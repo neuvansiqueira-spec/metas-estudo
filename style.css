@@ -139,3 +139,10 @@ textarea:focus { outline: 3px solid rgba(37, 99, 235, .18); border-color: var(--
 .discipline-list h3 { margin: 0 0 10px; font-size: 1rem; }
 .tag-list { display: flex; flex-wrap: wrap; gap: 8px; }
 .tag-list span { border-radius: 999px; padding: 7px 11px; background: #eef2ff; color: #1e3a8a; font-weight: 800; font-size: .84rem; }
+.stat-card small { display: block; margin-top: 8px; color: var(--muted); font-size: .78rem; line-height: 1.35; }
+.bulk-priority-box { margin-top: 18px; padding: 16px; border-radius: 18px; background: #fff7ed; border: 1px solid #fed7aa; }
+.bulk-priority-box h3 { margin: 0 0 6px; }
+.bulk-priority-box select { width: auto; min-width: 180px; }
+.show-more { margin-top: 14px; width: auto; }
+.card-actions button { width: auto; padding: 8px 10px; border-radius: 999px; font-size: .84rem; }
+@media (max-width: 620px) { .bulk-priority-box select, .show-more, .card-actions button { width: 100%; } }
