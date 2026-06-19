@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Metas de Estudo para Concurso</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="hero">
+    <nav class="topbar" aria-label="Navegação principal">
+      <div class="brand">
+        <span class="brand-icon" aria-hidden="true">✓</span>
+        <div>
+          <strong>Metas Concurso</strong>
+          <small>Planeje, registre e revise</small>
+        </div>
+      </div>
+      <a class="github-link" href="#como-rodar">Como usar</a>
+    </nav>
+
+    <section class="hero-content">
+      <div>
+        <p class="eyebrow">Dashboard de estudos</p>
+        <h1>Controle suas metas de estudo para concurso público</h1>
+        <p class="hero-text">Cadastre disciplinas, registre seus estudos diários, acompanhe questões e receba alertas de revisões de 24h, 7 dias e 30 dias.</p>
+      </div>
+      <div class="goal-card">
+        <span>Meta semanal</span>
+        <strong id="weeklyGoalStatus">0h registradas</strong>
+        <small>Dados salvos automaticamente no seu navegador.</small>
+      </div>
+    </section>
+  </header>
+
+  <main class="container">
+    <section class="dashboard" aria-labelledby="dashboard-title">
+      <div class="section-heading">
+        <p class="eyebrow">Resumo</p>
+        <h2 id="dashboard-title">Dashboard</h2>
+      </div>
+      <div class="stats-grid">
+        <article class="stat-card">
+          <span>Horas hoje</span>
+          <strong id="todayHours">0h</strong>
+        </article>
+        <article class="stat-card">
+          <span>Horas na semana</span>
+          <strong id="weekHours">0h</strong>
+        </article>
+        <article class="stat-card">
+          <span>Questões feitas</span>
+          <strong id="totalQuestions">0</strong>
+        </article>
+        <article class="stat-card">
+          <span>Percentual de acertos</span>
+          <strong id="accuracyRate">0%</strong>
+        </article>
+      </div>
+    </section>
+
+    <section class="grid-layout">
+      <article class="panel" aria-labelledby="subjects-title">
+        <div class="section-heading inline">
+          <div>
+            <p class="eyebrow">Cadastro</p>
+            <h2 id="subjects-title">Disciplinas</h2>
+          </div>
+        </div>
+        <form id="subjectForm" class="form-stack">
+          <label>
+            Nome da disciplina
+            <input id="subjectName" type="text" placeholder="Ex.: Direito Constitucional" required />
+          </label>
+          <label>
+            Meta semanal em horas
+            <input id="subjectGoal" type="number" min="0" step="0.5" placeholder="Ex.: 6" required />
+          </label>
+          <button type="submit">Adicionar disciplina</button>
+        </form>
+        <ul id="subjectList" class="list empty-message" aria-live="polite"></ul>
+      </article>
+
+      <article class="panel" aria-labelledby="study-title">
+        <div class="section-heading">
+          <p class="eyebrow">Registro diário</p>
+          <h2 id="study-title">Novo estudo</h2>
+        </div>
+        <form id="studyForm" class="form-grid">
+          <label>
+            Data
+            <input id="studyDate" type="date" required />
+          </label>
+          <label>
+            Disciplina
+            <select id="studySubject" required></select>
+          </label>
+          <label class="wide">
+            Assunto
+            <input id="studyTopic" type="text" placeholder="Ex.: Controle de constitucionalidade" required />
+          </label>
+          <label>
+            Minutos estudados
+            <input id="studyMinutes" type="number" min="1" required />
+          </label>
+          <label>
+            Questões feitas
+            <input id="questionsDone" type="number" min="0" value="0" required />
+          </label>
+          <label>
+            Acertos
+            <input id="correctAnswers" type="number" min="0" value="0" required />
+          </label>
+          <label>
+            Erros
+            <input id="wrongAnswers" type="number" min="0" value="0" required />
+          </label>
+          <label>
+            Brancos
+            <input id="blankAnswers" type="number" min="0" value="0" required />
+          </label>
+          <button class="wide" type="submit">Salvar registro</button>
+        </form>
+      </article>
+    </section>
+
+    <section class="grid-layout secondary">
+      <article class="panel" aria-labelledby="reviews-title">
+        <div class="section-heading">
+          <p class="eyebrow">Revisões</p>
+          <h2 id="reviews-title">24h, 7 dias e 30 dias</h2>
+        </div>
+        <div id="reviewList" class="review-list empty-message" aria-live="polite"></div>
+      </article>
+
+      <article class="panel alert-panel" aria-labelledby="alerts-title">
+        <div class="section-heading">
+          <p class="eyebrow">Atrasos</p>
+          <h2 id="alerts-title">Disciplinas atrasadas</h2>
+        </div>
+        <div id="alertList" class="alert-list empty-message" aria-live="polite"></div>
+      </article>
+    </section>
+
+    <section class="panel" aria-labelledby="history-title">
+      <div class="section-heading inline">
+        <div>
+          <p class="eyebrow">Histórico</p>
+          <h2 id="history-title">Registros recentes</h2>
+        </div>
+        <button id="clearData" class="danger" type="button">Limpar dados</button>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Disciplina</th>
+              <th>Assunto</th>
+              <th>Minutos</th>
+              <th>Questões</th>
+              <th>Acertos</th>
+              <th>Erros</th>
+              <th>Brancos</th>
+            </tr>
+          </thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="como-rodar" class="panel instructions" aria-labelledby="run-title">
+      <h2 id="run-title">Como rodar e publicar</h2>
+      <ol>
+        <li>Baixe ou clone este repositório.</li>
+        <li>Abra o arquivo <code>index.html</code> no navegador. Não é necessário instalar dependências.</li>
+        <li>Para publicar no GitHub Pages, envie os arquivos para um repositório no GitHub.</li>
+        <li>No GitHub, acesse <strong>Settings → Pages</strong>, selecione a branch principal e a pasta raiz, depois salve.</li>
+        <li>Após alguns minutos, o GitHub exibirá a URL pública do site.</li>
+      </ol>
+    </section>
+  </main>
+
+  <footer>
+    <p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
