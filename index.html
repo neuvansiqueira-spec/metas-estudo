@@ -20,6 +20,7 @@
         <a href="#dashboard-title">Dashboard</a>
         <a href="#edital-title">Edital</a>
         <a href="#vertical-title">Edital Verticalizado</a>
+        <a href="#import-title">Importar Edital</a>
         <a href="#schedulable-title">Assuntos Agendáveis</a>
         <a href="#como-rodar">Como usar</a>
       </div>
@@ -136,6 +137,28 @@
         <label>Filtro rápido<select id="filterQuick"><option value="">Todos</option><option value="schedulable">Agendáveis</option><option value="notStarted">Não iniciados</option><option value="weak">Fracos</option></select></label>
       </div>
       <div id="syllabusList" class="cards-list empty-message"></div>
+    </section>
+
+
+    <section class="panel" aria-labelledby="import-title">
+      <div class="section-heading"><p class="eyebrow">Importação JSON</p><h2 id="import-title">Importar Edital</h2></div>
+      <p class="notice">Selecione um arquivo JSON com os campos do edital verticalizado para revisar os itens antes de salvar no localStorage.</p>
+      <div class="form-grid">
+        <label class="wide">Arquivo JSON<input id="jsonImportFile" type="file" accept="application/json,.json" /></label>
+      </div>
+      <div id="importMessage" class="file-info empty-message" aria-live="polite"></div>
+      <div class="import-summary stats-grid compact" aria-label="Resumo da importação">
+        <article class="stat-card"><span>Total de disciplinas</span><strong id="importDisciplineTotal">0</strong></article>
+        <article class="stat-card"><span>Total de assuntos</span><strong id="importSubjectTotal">0</strong></article>
+      </div>
+      <div class="filters form-grid compact">
+        <label>Disciplina<select id="importFilterDiscipline"><option value="">Todas</option></select></label>
+        <label>Status<select id="importFilterStatus"><option value="">Todos</option></select></label>
+        <label>Prioridade<select id="importFilterPriority"><option value="">Todas</option></select></label>
+        <label>Domínio<select id="importFilterDomain"><option value="">Todos</option></select></label>
+      </div>
+      <div class="actions"><button id="importJsonButton" type="button" disabled>Importar para o edital verticalizado</button></div>
+      <div id="importPreview" class="table-wrapper empty-message" aria-live="polite"></div>
     </section>
 
     <section class="panel" aria-labelledby="schedulable-title">
