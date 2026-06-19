@@ -119,15 +119,15 @@
         <label>Prioridade<select id="itemPriority"><option>Alta</option><option selected>Média</option><option>Baixa</option></select></label>
         <label>Peso<input id="itemWeight" type="number" min="0" step="0.5" value="1" /></label>
         <label>Status<select id="itemStatus"><option>Não iniciado</option><option>Em andamento</option><option>Estudado</option><option>Revisar</option><option>Dominado</option><option>Ignorado</option></select></label>
-        <label>Domínio<select id="itemDomain"><option>Fraco</option><option selected>Médio</option><option>Forte</option></select></label>
+        <label>Domínio<select id="itemDomain"><option selected>Sem diagnóstico</option><option>Não avaliado</option><option>Fraco</option><option>Médio</option><option>Forte</option></select></label>
         <label class="wide">Observações<textarea id="itemNotes" rows="3"></textarea></label>
         <button class="wide" type="submit">Adicionar item ao edital</button>
       </form>
 
       <div class="bulk-box">
         <h3>Cadastro em massa</h3>
-        <p class="item-meta">Cole um item por linha. Use ponto e vírgula para separar: disciplina; tópico; assunto; subassunto; referência; prioridade; peso; status; domínio; observações.</p>
-        <textarea id="bulkInput" rows="6" placeholder="Português; Gramática; Concordância verbal; Casos especiais; Item 1.2; Alta; 2; Não iniciado; Fraco; Revisar exemplos"></textarea>
+        <p class="item-meta">Cole um item por linha. Use ponto e vírgula para separar: disciplina; tópico; assunto; subassunto; referência; prioridade; peso; status; domínio; observações. Deixe o domínio vazio para usar Sem diagnóstico.</p>
+        <textarea id="bulkInput" rows="6" placeholder="Português; Gramática; Concordância verbal; Casos especiais; Item 1.2; Alta; 2; Não iniciado; Sem diagnóstico; Revisar exemplos"></textarea>
         <div class="actions"><button id="previewBulk" type="button">Revisar itens</button><button id="saveBulk" class="secondary-button" type="button" disabled>Salvar itens revisados</button></div>
         <div id="bulkPreview" class="table-wrapper empty-message"></div>
       </div>
@@ -137,7 +137,7 @@
         <label>Disciplina<select id="filterDiscipline"><option value="">Todas</option></select></label>
         <label>Prioridade<select id="filterPriority"><option value="">Todas</option><option>Alta</option><option>Média</option><option>Baixa</option></select></label>
         <label>Status<select id="filterStatus"><option value="">Todos</option><option>Não iniciado</option><option>Em andamento</option><option>Estudado</option><option>Revisar</option><option>Dominado</option><option>Ignorado</option></select></label>
-        <label>Domínio<select id="filterDomain"><option value="">Todos</option><option>Fraco</option><option>Médio</option><option>Forte</option></select></label>
+        <label>Domínio<select id="filterDomain"><option value="">Todos</option><option>Sem diagnóstico</option><option>Não avaliado</option><option>Fraco</option><option>Médio</option><option>Forte</option></select></label>
         <label>Agendável<select id="filterSchedulable"><option value="">Todos</option><option value="yes">Agendável</option><option value="no">Não agendável</option></select></label>
         <label>Filtro rápido<select id="filterQuick"><option value="">Todos</option><option value="schedulable">Agendáveis</option><option value="notStarted">Não iniciados</option><option value="weak">Fracos</option><option value="undiagnosed">Sem diagnóstico</option></select></label>
       </div>
