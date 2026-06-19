@@ -40,7 +40,26 @@ function normalizeImportedStatus(value) { const allowed = ["Não iniciado", "Em 
 function normalizeImportedPriority(value) { const allowed = ["Alta", "Média", "Baixa"]; return allowed.find((item) => item.toLowerCase() === String(value || "").trim().toLowerCase()) || "Média"; }
 function normalizeImportedDomain(value) { const allowed = ["Fraco", "Médio", "Forte"]; return allowed.find((item) => item.toLowerCase() === String(value || "").trim().toLowerCase()) || "Médio"; }
 function isTruthyImportValue(value) { if (value === undefined || value === null || value === "") return true; return [true, "true", "sim", "s", "1", "agendável", "agendavel", "yes", "y"].includes(typeof value === "string" ? value.trim().toLowerCase() : value); }
-function normalizeImportPayload(payload) { return Array.isArray(payload) ? payload : Array.isArray(payload?.itens) ? payload.itens : Array.isArray(payload?.items) ? payload.items : []; }
+function normalizeImportPayload(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (payload && typeof payload === "object" && Array.isArray(payload.itens)) return payload.itens;
+  if (payload && typeof payload === "object" && Array.isArray(payload.items)) return payload.items;
+  return null;
+}
+function resetImportDraft(message = "") {
+  importDraft = [];
+  elements.importMessage.innerHTML = message;
+  renderImportPreview();
+}
+function showImportError(message, error) {
+  console.error(message, error);
+  resetImportDraft(message);
+}
+function normalizeImportedMode(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  const allowed = ["Revisão apenas", "Questões apenas", "Estudo teórico", "Estudo + questões"];
+  return allowed.find((item) => item.toLowerCase() === normalized) || "Estudo + questões";
+}
 function importedItemToSyllabus(raw) {
   raw ||= {};
   const id = createId();
@@ -64,7 +83,7 @@ function importedItemToSyllabus(raw) {
     importKey: "",
     importMeta: {
       concurso: raw.concurso || "", banca: raw.banca || "", cargo: raw.cargo || "", eixo: raw.eixo || "", parent_referencia: raw.parent_referencia || "", fonte: raw.fonte || "",
-      agendavel: isTruthyImportValue(raw.agendavel), tipo_agendamento: raw.tipo_agendamento || "Estudo + questões", imported: true
+      agendavel: isTruthyImportValue(raw.agendavel), tipo_agendamento: normalizeImportedMode(raw.tipo_agendamento), imported: true
     }
   };
 }
@@ -127,19 +146,40 @@ elements.schedulableList.addEventListener("change", (event) => { const id = even
 
 elements.jsonImportFile.addEventListener("change", async () => {
   const file = elements.jsonImportFile.files[0];
-  importDraft = [];
-  if (!file) { elements.importMessage.innerHTML = ""; renderImportPreview(); return; }
+  resetImportDraft();
+  if (!file) return;
   try {
-    const payload = JSON.parse(await file.text());
-    importDraft = normalizeImportPayload(payload).map(prepareImportedItem);
-    elements.importMessage.innerHTML = importDraft.length ? `<strong>${escapeHTML(file.name)}</strong> carregado para pré-visualização.` : "O JSON não possui itens para importar. Use um array ou um objeto com a propriedade itens/items.";
+    const text = await file.text();
+    let payload;
+    try {
+      payload = JSON.parse(text);
+    } catch (error) {
+      showImportError("Arquivo JSON inválido.", error);
+      return;
+    }
+    const rawItems = normalizeImportPayload(payload);
+    if (!rawItems) {
+      showImportError("Arquivo JSON inválido.", new Error("Formato esperado: array direto ou objeto com propriedade itens."));
+      return;
+    }
+    const validRawItems = rawItems.filter((item) => item && typeof item === "object" && !Array.isArray(item));
+    if (!validRawItems.length) {
+      showImportError("Nenhum item encontrado no JSON.", new Error("A lista de itens está vazia ou não contém objetos válidos."));
+      return;
+    }
+    importDraft = validRawItems.map(prepareImportedItem);
+    elements.importMessage.innerHTML = `Pré-visualização carregada com sucesso. <strong>${escapeHTML(file.name)}</strong> pronto para conferência.`;
+    renderImportPreview();
   } catch (error) {
-    elements.importMessage.innerHTML = `Não foi possível ler o JSON: ${escapeHTML(error.message)}`;
+    showImportError("Arquivo JSON inválido.", error);
   }
-  renderImportPreview();
 });
 elements.importJsonButton.addEventListener("click", () => {
-  if (!importDraft.length) return;
+  if (!importDraft.length) {
+    elements.importMessage.innerHTML = "Nenhum item encontrado no JSON.";
+    console.error("Importação bloqueada: nenhum arquivo JSON válido foi lido antes do clique.");
+    return;
+  }
   const existingKeys = new Set(state.syllabusItems.map((item) => item.importKey || importKeyFor(item)));
   const hasDuplicates = importDraft.some((item) => existingKeys.has(item.importKey));
   let itemsToImport = [...importDraft];
@@ -153,14 +193,19 @@ elements.importJsonButton.addEventListener("click", () => {
       itemsToImport = importDraft.filter((item) => !existingKeys.has(item.importKey));
     }
   }
-  state.syllabusItems.push(...itemsToImport);
-  itemsToImport.forEach((item) => {
-    state.schedulableSettings[item.id] = { availability: item.importMeta.agendavel ? "Agendável" : "Não agendável", mode: item.importMeta.tipo_agendamento || "Estudo + questões", priority: item.priority === "Alta" };
-  });
-  importDraft = [];
-  elements.jsonImportFile.value = "";
-  render();
-  elements.importMessage.innerHTML = "Edital verticalizado importado com sucesso.";
+  try {
+    state.syllabusItems.push(...itemsToImport);
+    itemsToImport.forEach((item) => {
+      state.schedulableSettings[item.id] = { availability: item.importMeta.agendavel ? "Agendável" : "Não agendável", mode: item.importMeta.tipo_agendamento || "Estudo + questões", priority: item.priority === "Alta" };
+    });
+    importDraft = [];
+    elements.jsonImportFile.value = "";
+    render();
+    elements.importMessage.innerHTML = "Edital verticalizado importado com sucesso.";
+  } catch (error) {
+    console.error("Falha ao importar o edital verticalizado.", error);
+    elements.importMessage.innerHTML = `Falha ao importar o edital verticalizado: ${escapeHTML(error.message)}`;
+  }
 });
 
 elements.clearImportedSyllabus.addEventListener("click", () => {
