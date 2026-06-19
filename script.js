@@ -1,263 +1,72 @@
 const STORAGE_KEY = "metasConcursoData";
 const todayISO = () => new Date().toISOString().slice(0, 10);
+const defaultState = { subjects: [], studies: [], edital: { pdf: null }, syllabusItems: [], schedulableSettings: {} };
+const state = { ...defaultState, ...(JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}) };
+state.edital = { ...defaultState.edital, ...(state.edital || {}) };
+state.syllabusItems ||= [];
+state.schedulableSettings ||= {};
+let bulkDraft = [];
 
-const state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
-  subjects: [],
-  studies: []
-};
-
+const $ = (selector) => document.querySelector(selector);
 const elements = {
-  subjectForm: document.querySelector("#subjectForm"),
-  subjectName: document.querySelector("#subjectName"),
-  subjectGoal: document.querySelector("#subjectGoal"),
-  subjectList: document.querySelector("#subjectList"),
-  studyForm: document.querySelector("#studyForm"),
-  studyDate: document.querySelector("#studyDate"),
-  studySubject: document.querySelector("#studySubject"),
-  studyTopic: document.querySelector("#studyTopic"),
-  studyMinutes: document.querySelector("#studyMinutes"),
-  questionsDone: document.querySelector("#questionsDone"),
-  correctAnswers: document.querySelector("#correctAnswers"),
-  wrongAnswers: document.querySelector("#wrongAnswers"),
-  blankAnswers: document.querySelector("#blankAnswers"),
-  todayHours: document.querySelector("#todayHours"),
-  weekHours: document.querySelector("#weekHours"),
-  weeklyGoalStatus: document.querySelector("#weeklyGoalStatus"),
-  totalQuestions: document.querySelector("#totalQuestions"),
-  accuracyRate: document.querySelector("#accuracyRate"),
-  reviewList: document.querySelector("#reviewList"),
-  alertList: document.querySelector("#alertList"),
-  historyBody: document.querySelector("#historyBody"),
-  clearData: document.querySelector("#clearData")
+  subjectForm: $("#subjectForm"), subjectName: $("#subjectName"), subjectGoal: $("#subjectGoal"), subjectList: $("#subjectList"),
+  studyForm: $("#studyForm"), studyDate: $("#studyDate"), studySubject: $("#studySubject"), studyTopic: $("#studyTopic"), studyMinutes: $("#studyMinutes"), questionsDone: $("#questionsDone"), correctAnswers: $("#correctAnswers"), wrongAnswers: $("#wrongAnswers"), blankAnswers: $("#blankAnswers"),
+  todayHours: $("#todayHours"), weekHours: $("#weekHours"), weeklyGoalStatus: $("#weeklyGoalStatus"), totalQuestions: $("#totalQuestions"), accuracyRate: $("#accuracyRate"), syllabusStudied: $("#syllabusStudied"), syllabusTotal: $("#syllabusTotal"), schedulableTotal: $("#schedulableTotal"), notStartedTotal: $("#notStartedTotal"), weakTotal: $("#weakTotal"), pendingDiscipline: $("#pendingDiscipline"),
+  reviewList: $("#reviewList"), alertList: $("#alertList"), historyBody: $("#historyBody"), clearData: $("#clearData"),
+  editalForm: $("#editalForm"), contestName: $("#contestName"), agency: $("#agency"), role: $("#role"), board: $("#board"), examDate: $("#examDate"), officialLink: $("#officialLink"), generalNotes: $("#generalNotes"), editalPdf: $("#editalPdf"), pdfInfo: $("#pdfInfo"), removePdf: $("#removePdf"),
+  syllabusForm: $("#syllabusForm"), itemDiscipline: $("#itemDiscipline"), itemTopic: $("#itemTopic"), itemSubject: $("#itemSubject"), itemSubtopic: $("#itemSubtopic"), itemReference: $("#itemReference"), itemPriority: $("#itemPriority"), itemWeight: $("#itemWeight"), itemStatus: $("#itemStatus"), itemDomain: $("#itemDomain"), itemNotes: $("#itemNotes"),
+  bulkInput: $("#bulkInput"), previewBulk: $("#previewBulk"), saveBulk: $("#saveBulk"), bulkPreview: $("#bulkPreview"), filterDiscipline: $("#filterDiscipline"), filterPriority: $("#filterPriority"), filterStatus: $("#filterStatus"), filterDomain: $("#filterDomain"), filterQuick: $("#filterQuick"), syllabusList: $("#syllabusList"), schedulableList: $("#schedulableList")
 };
-
 elements.studyDate.value = todayISO();
 
-function saveData() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
-
-function formatHours(minutes) {
-  const hours = minutes / 60;
-  return `${Number.isInteger(hours) ? hours : hours.toFixed(1)}h`;
-}
-
-function parseDate(dateString) {
-  const [year, month, day] = dateString.split("-").map(Number);
-  return new Date(year, month - 1, day);
-}
-
-function addDays(dateString, days) {
-  const date = parseDate(dateString);
-  date.setDate(date.getDate() + days);
-  return date.toISOString().slice(0, 10);
-}
-
-function isSameWeek(dateString) {
-  const now = new Date();
-  const date = parseDate(dateString);
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-  start.setDate(now.getDate() - now.getDay());
-  const end = new Date(start);
-  end.setDate(start.getDate() + 7);
-  return date >= start && date < end;
-}
-
-function createId() {
-  return globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-function escapeHTML(value) {
-  return String(value).replace(/[&<>"']/g, (char) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    "\"": "&quot;",
-    "'": "&#039;"
-  })[char]);
-}
-
-function subjectNameById(id) {
-  return state.subjects.find((subject) => subject.id === id)?.name || "Disciplina removida";
-}
+function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function formatHours(minutes) { const hours = minutes / 60; return `${Number.isInteger(hours) ? hours : hours.toFixed(1)}h`; }
+function parseDate(dateString) { const [year, month, day] = dateString.split("-").map(Number); return new Date(year, month - 1, day); }
+function addDays(dateString, days) { const date = parseDate(dateString); date.setDate(date.getDate() + days); return date.toISOString().slice(0, 10); }
+function isSameWeek(dateString) { const now = new Date(); const date = parseDate(dateString); const start = new Date(now); start.setHours(0, 0, 0, 0); start.setDate(now.getDate() - now.getDay()); const end = new Date(start); end.setDate(start.getDate() + 7); return date >= start && date < end; }
+function createId() { return globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`; }
+function escapeHTML(value) { return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;" })[char]); }
+function subjectNameById(id) { return state.subjects.find((subject) => subject.id === id)?.name || "Disciplina removida"; }
+function settingFor(id) { return state.schedulableSettings[id] ||= { availability: "Não agendável", mode: "Estudo teórico", priority: false }; }
+function isSchedulable(id) { return settingFor(id).availability === "Agendável"; }
+function completedStatus(item) { return ["Estudado", "Dominado"].includes(item.status); }
 
 function renderSubjects() {
-  elements.subjectList.innerHTML = "";
-  elements.studySubject.innerHTML = "";
-
-  if (!state.subjects.length) {
-    elements.studySubject.innerHTML = '<option value="">Cadastre uma disciplina</option>';
-    return;
-  }
-
+  elements.subjectList.innerHTML = ""; elements.studySubject.innerHTML = state.subjects.length ? "" : '<option value="">Cadastre uma disciplina</option>';
   state.subjects.forEach((subject) => {
-    const option = document.createElement("option");
-    option.value = subject.id;
-    option.textContent = subject.name;
-    elements.studySubject.appendChild(option);
-
-    const weeklyMinutes = state.studies
-      .filter((study) => study.subjectId === subject.id && isSameWeek(study.date))
-      .reduce((sum, study) => sum + study.minutes, 0);
-
-    const li = document.createElement("li");
-    li.className = "subject-item";
-    li.innerHTML = `
-      <div>
-        <strong>${escapeHTML(subject.name)}</strong>
-        <div class="item-meta">Meta: ${subject.goalHours}h/semana • Atual: ${formatHours(weeklyMinutes)}</div>
-      </div>
-      <span class="badge">${Math.min(100, Math.round((weeklyMinutes / (subject.goalHours * 60 || 1)) * 100))}%</span>
-    `;
-    elements.subjectList.appendChild(li);
+    const option = document.createElement("option"); option.value = subject.id; option.textContent = subject.name; elements.studySubject.appendChild(option);
+    const weeklyMinutes = state.studies.filter((study) => study.subjectId === subject.id && isSameWeek(study.date)).reduce((sum, study) => sum + study.minutes, 0);
+    const li = document.createElement("li"); li.className = "subject-item"; li.innerHTML = `<div><strong>${escapeHTML(subject.name)}</strong><div class="item-meta">Meta: ${subject.goalHours}h/semana • Atual: ${formatHours(weeklyMinutes)}</div></div><span class="badge">${Math.min(100, Math.round((weeklyMinutes / (subject.goalHours * 60 || 1)) * 100))}%</span>`; elements.subjectList.appendChild(li);
   });
 }
-
 function renderDashboard() {
-  const today = todayISO();
-  const todayMinutes = state.studies.filter((study) => study.date === today).reduce((sum, study) => sum + study.minutes, 0);
-  const weekMinutes = state.studies.filter((study) => isSameWeek(study.date)).reduce((sum, study) => sum + study.minutes, 0);
-  const totalQuestions = state.studies.reduce((sum, study) => sum + study.questions, 0);
-  const correct = state.studies.reduce((sum, study) => sum + study.correct, 0);
-
-  elements.todayHours.textContent = formatHours(todayMinutes);
-  elements.weekHours.textContent = formatHours(weekMinutes);
-  elements.weeklyGoalStatus.textContent = `${formatHours(weekMinutes)} registradas`;
-  elements.totalQuestions.textContent = totalQuestions;
-  elements.accuracyRate.textContent = totalQuestions ? `${Math.round((correct / totalQuestions) * 100)}%` : "0%";
+  const today = todayISO(); const todayMinutes = state.studies.filter((study) => study.date === today).reduce((sum, study) => sum + study.minutes, 0); const weekMinutes = state.studies.filter((study) => isSameWeek(study.date)).reduce((sum, study) => sum + study.minutes, 0); const totalQuestions = state.studies.reduce((sum, study) => sum + study.questions, 0); const correct = state.studies.reduce((sum, study) => sum + study.correct, 0);
+  const total = state.syllabusItems.length; const studied = state.syllabusItems.filter(completedStatus).length; const weak = state.syllabusItems.filter((item) => item.domain === "Fraco").length; const notStarted = state.syllabusItems.filter((item) => item.status === "Não iniciado").length;
+  const pendingByDiscipline = state.syllabusItems.filter((item) => !completedStatus(item) && item.status !== "Ignorado").reduce((acc, item) => ({ ...acc, [item.discipline]: (acc[item.discipline] || 0) + 1 }), {}); const topPending = Object.entries(pendingByDiscipline).sort((a, b) => b[1] - a[1])[0];
+  elements.todayHours.textContent = formatHours(todayMinutes); elements.weekHours.textContent = formatHours(weekMinutes); elements.weeklyGoalStatus.textContent = `${formatHours(weekMinutes)} registradas`; elements.totalQuestions.textContent = totalQuestions; elements.accuracyRate.textContent = totalQuestions ? `${Math.round((correct / totalQuestions) * 100)}%` : "0%";
+  elements.syllabusStudied.textContent = total ? `${Math.round((studied / total) * 100)}%` : "0%"; elements.syllabusTotal.textContent = total; elements.schedulableTotal.textContent = state.syllabusItems.filter((item) => isSchedulable(item.id)).length; elements.notStartedTotal.textContent = notStarted; elements.weakTotal.textContent = weak; elements.pendingDiscipline.textContent = topPending ? `${topPending[0]} (${topPending[1]})` : "-";
 }
+function renderEdital() { ["contestName", "agency", "role", "board", "examDate", "officialLink", "generalNotes"].forEach((key) => { elements[key].value = state.edital[key] || ""; }); elements.pdfInfo.innerHTML = state.edital.pdf ? `<strong>Arquivo:</strong> ${escapeHTML(state.edital.pdf.name)}<br><span class="item-meta">Anexado em ${escapeHTML(state.edital.pdf.attachedAt)}</span>` : ""; }
+function getFilteredItems() { return state.syllabusItems.filter((item) => (!elements.filterDiscipline.value || item.discipline === elements.filterDiscipline.value) && (!elements.filterPriority.value || item.priority === elements.filterPriority.value) && (!elements.filterStatus.value || item.status === elements.filterStatus.value) && (!elements.filterDomain.value || item.domain === elements.filterDomain.value) && (!elements.filterQuick.value || (elements.filterQuick.value === "schedulable" && isSchedulable(item.id)) || (elements.filterQuick.value === "notStarted" && item.status === "Não iniciado") || (elements.filterQuick.value === "weak" && item.domain === "Fraco"))); }
+function renderFilters() { const current = elements.filterDiscipline.value; const disciplines = [...new Set(state.syllabusItems.map((item) => item.discipline).filter(Boolean))].sort(); elements.filterDiscipline.innerHTML = '<option value="">Todas</option>' + disciplines.map((d) => `<option ${d === current ? "selected" : ""}>${escapeHTML(d)}</option>`).join(""); }
+function renderSyllabus() { renderFilters(); elements.syllabusList.innerHTML = ""; getFilteredItems().forEach((item) => { const card = document.createElement("article"); card.className = "syllabus-card"; card.innerHTML = `<header><div><h3>${escapeHTML(item.discipline)} — ${escapeHTML(item.subject)}</h3><div class="item-meta">${escapeHTML(item.topic)}${item.subtopic ? ` • ${escapeHTML(item.subtopic)}` : ""}</div></div><span class="badge ${item.priority === "Alta" ? "danger" : item.priority === "Baixa" ? "neutral" : "warn"}">${escapeHTML(item.priority)}</span></header><div class="card-meta-grid"><span>Status: ${escapeHTML(item.status)}</span><span>Domínio: ${escapeHTML(item.domain)}</span><span>Peso: ${escapeHTML(item.weight)}</span><span>Ref.: ${escapeHTML(item.reference || "-")}</span></div>${item.notes ? `<p class="item-meta">${escapeHTML(item.notes)}</p>` : ""}`; elements.syllabusList.appendChild(card); }); }
+function renderSchedulable() { elements.schedulableList.innerHTML = ""; state.syllabusItems.forEach((item) => { const setting = settingFor(item.id); const card = document.createElement("article"); card.className = "syllabus-card"; card.innerHTML = `<header><div><h3>${escapeHTML(item.discipline)} — ${escapeHTML(item.subject)}</h3><div class="item-meta">${escapeHTML(item.topic)} • ${escapeHTML(item.status)} • domínio ${escapeHTML(item.domain)}</div></div><span class="badge ${setting.priority ? "danger" : isSchedulable(item.id) ? "success" : "neutral"}">${setting.priority ? "Prioritário" : setting.availability}</span></header><div class="card-actions"><label>Disponibilidade <select data-setting="availability" data-id="${item.id}"><option ${setting.availability === "Agendável" ? "selected" : ""}>Agendável</option><option ${setting.availability === "Não agendável" ? "selected" : ""}>Não agendável</option></select></label><label>Tipo <select data-setting="mode" data-id="${item.id}"><option ${setting.mode === "Revisão apenas" ? "selected" : ""}>Revisão apenas</option><option ${setting.mode === "Questões apenas" ? "selected" : ""}>Questões apenas</option><option ${setting.mode === "Estudo teórico" ? "selected" : ""}>Estudo teórico</option><option ${setting.mode === "Estudo + questões" ? "selected" : ""}>Estudo + questões</option></select></label><label><input type="checkbox" data-setting="priority" data-id="${item.id}" ${setting.priority ? "checked" : ""}> Assunto prioritário</label></div>`; elements.schedulableList.appendChild(card); }); }
+function renderReviews() { const today = todayISO(); const reviewWindows = [{ label: "24h", days: 1 }, { label: "7 dias", days: 7 }, { label: "30 dias", days: 30 }]; elements.reviewList.innerHTML = ""; state.studies.forEach((study) => reviewWindows.forEach((window) => { const dueDate = addDays(study.date, window.days); if (dueDate <= today) { const item = document.createElement("div"); item.className = "review-item"; item.innerHTML = `<span class="badge ${dueDate < today ? "danger" : "warn"}">Revisão ${window.label}</span><strong>${escapeHTML(subjectNameById(study.subjectId))} — ${escapeHTML(study.topic)}</strong><div class="item-meta">Estudado em ${study.date} • Revisar em ${dueDate}</div>`; elements.reviewList.appendChild(item); } })); }
+function renderAlerts() { elements.alertList.innerHTML = ""; state.subjects.forEach((subject) => { const lastStudy = state.studies.filter((study) => study.subjectId === subject.id).sort((a, b) => b.date.localeCompare(a.date))[0]; const daysWithoutStudy = lastStudy ? Math.floor((parseDate(todayISO()) - parseDate(lastStudy.date)) / 86400000) : Infinity; const weeklyMinutes = state.studies.filter((study) => study.subjectId === subject.id && isSameWeek(study.date)).reduce((sum, study) => sum + study.minutes, 0); if (!lastStudy || daysWithoutStudy >= 7 || weeklyMinutes < subject.goalHours * 30) { const item = document.createElement("div"); item.className = "alert-item"; item.innerHTML = `<span class="badge danger">Atenção</span><strong>${escapeHTML(subject.name)}</strong><div class="item-meta">${lastStudy ? `Último estudo há ${daysWithoutStudy} dia(s).` : "Nunca estudada."} Meta semanal em risco: ${formatHours(weeklyMinutes)} de ${subject.goalHours}h.</div>`; elements.alertList.appendChild(item); } }); }
+function renderHistory() { elements.historyBody.innerHTML = ""; [...state.studies].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 20).forEach((study) => { const row = document.createElement("tr"); row.innerHTML = `<td>${study.date}</td><td>${escapeHTML(subjectNameById(study.subjectId))}</td><td>${escapeHTML(study.topic)}</td><td>${study.minutes}</td><td>${study.questions}</td><td>${study.correct}</td><td>${study.wrong}</td><td>${study.blank}</td>`; elements.historyBody.appendChild(row); }); }
+function render() { renderSubjects(); renderDashboard(); renderEdital(); renderSyllabus(); renderSchedulable(); renderReviews(); renderAlerts(); renderHistory(); saveData(); }
+function syllabusFromValues(values) { return { id: createId(), discipline: values[0]?.trim() || "Sem disciplina", topic: values[1]?.trim() || "Geral", subject: values[2]?.trim() || "Assunto", subtopic: values[3]?.trim() || "", reference: values[4]?.trim() || "", priority: values[5]?.trim() || "Média", weight: Number(values[6]) || 1, status: values[7]?.trim() || "Não iniciado", domain: values[8]?.trim() || "Médio", notes: values[9]?.trim() || "" }; }
 
-function renderReviews() {
-  const today = todayISO();
-  const reviewWindows = [
-    { label: "24h", days: 1 },
-    { label: "7 dias", days: 7 },
-    { label: "30 dias", days: 30 }
-  ];
-  elements.reviewList.innerHTML = "";
-
-  state.studies.forEach((study) => {
-    reviewWindows.forEach((window) => {
-      const dueDate = addDays(study.date, window.days);
-      if (dueDate <= today) {
-        const item = document.createElement("div");
-        item.className = "review-item";
-        item.innerHTML = `
-          <span class="badge ${dueDate < today ? "danger" : "warn"}">Revisão ${window.label}</span>
-          <strong>${escapeHTML(subjectNameById(study.subjectId))} — ${escapeHTML(study.topic)}</strong>
-          <div class="item-meta">Estudado em ${study.date} • Revisar em ${dueDate}</div>
-        `;
-        elements.reviewList.appendChild(item);
-      }
-    });
-  });
-}
-
-function renderAlerts() {
-  elements.alertList.innerHTML = "";
-  state.subjects.forEach((subject) => {
-    const lastStudy = state.studies
-      .filter((study) => study.subjectId === subject.id)
-      .sort((a, b) => b.date.localeCompare(a.date))[0];
-    const daysWithoutStudy = lastStudy ? Math.floor((parseDate(todayISO()) - parseDate(lastStudy.date)) / 86400000) : Infinity;
-    const weeklyMinutes = state.studies
-      .filter((study) => study.subjectId === subject.id && isSameWeek(study.date))
-      .reduce((sum, study) => sum + study.minutes, 0);
-
-    if (!lastStudy || daysWithoutStudy >= 7 || weeklyMinutes < subject.goalHours * 30) {
-      const item = document.createElement("div");
-      item.className = "alert-item";
-      item.innerHTML = `
-        <span class="badge danger">Atenção</span>
-        <strong>${escapeHTML(subject.name)}</strong>
-        <div class="item-meta">${lastStudy ? `Último estudo há ${daysWithoutStudy} dia(s).` : "Nunca estudada."} Meta semanal em risco: ${formatHours(weeklyMinutes)} de ${subject.goalHours}h.</div>
-      `;
-      elements.alertList.appendChild(item);
-    }
-  });
-}
-
-function renderHistory() {
-  elements.historyBody.innerHTML = "";
-  [...state.studies]
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 20)
-    .forEach((study) => {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${study.date}</td>
-        <td>${escapeHTML(subjectNameById(study.subjectId))}</td>
-        <td>${escapeHTML(study.topic)}</td>
-        <td>${study.minutes}</td>
-        <td>${study.questions}</td>
-        <td>${study.correct}</td>
-        <td>${study.wrong}</td>
-        <td>${study.blank}</td>
-      `;
-      elements.historyBody.appendChild(row);
-    });
-}
-
-function render() {
-  renderSubjects();
-  renderDashboard();
-  renderReviews();
-  renderAlerts();
-  renderHistory();
-  saveData();
-}
-
-elements.subjectForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  state.subjects.push({
-    id: createId(),
-    name: elements.subjectName.value.trim(),
-    goalHours: Number(elements.subjectGoal.value)
-  });
-  elements.subjectForm.reset();
-  render();
-});
-
-elements.studyForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  if (!elements.studySubject.value) {
-    alert("Cadastre uma disciplina antes de registrar o estudo.");
-    return;
-  }
-
-  const questions = Number(elements.questionsDone.value);
-  const correct = Number(elements.correctAnswers.value);
-  const wrong = Number(elements.wrongAnswers.value);
-  const blank = Number(elements.blankAnswers.value);
-
-  if (correct + wrong + blank !== questions) {
-    alert("A soma de acertos, erros e brancos deve ser igual ao total de questões feitas.");
-    return;
-  }
-
-  state.studies.push({
-    id: createId(),
-    date: elements.studyDate.value,
-    subjectId: elements.studySubject.value,
-    topic: elements.studyTopic.value.trim(),
-    minutes: Number(elements.studyMinutes.value),
-    questions,
-    correct,
-    wrong,
-    blank
-  });
-  elements.studyForm.reset();
-  elements.studyDate.value = todayISO();
-  render();
-});
-
-elements.clearData.addEventListener("click", () => {
-  if (confirm("Tem certeza que deseja apagar todos os dados salvos neste navegador?")) {
-    state.subjects = [];
-    state.studies = [];
-    render();
-  }
-});
+elements.subjectForm.addEventListener("submit", (event) => { event.preventDefault(); state.subjects.push({ id: createId(), name: elements.subjectName.value.trim(), goalHours: Number(elements.subjectGoal.value) }); elements.subjectForm.reset(); render(); });
+elements.studyForm.addEventListener("submit", (event) => { event.preventDefault(); if (!elements.studySubject.value) return alert("Cadastre uma disciplina antes de registrar o estudo."); const questions = Number(elements.questionsDone.value); const correct = Number(elements.correctAnswers.value); const wrong = Number(elements.wrongAnswers.value); const blank = Number(elements.blankAnswers.value); if (correct + wrong + blank !== questions) return alert("A soma de acertos, erros e brancos deve ser igual ao total de questões feitas."); state.studies.push({ id: createId(), date: elements.studyDate.value, subjectId: elements.studySubject.value, topic: elements.studyTopic.value.trim(), minutes: Number(elements.studyMinutes.value), questions, correct, wrong, blank }); elements.studyForm.reset(); elements.studyDate.value = todayISO(); render(); });
+elements.editalForm.addEventListener("submit", (event) => { event.preventDefault(); ["contestName", "agency", "role", "board", "examDate", "officialLink", "generalNotes"].forEach((key) => { state.edital[key] = elements[key].value.trim(); }); render(); });
+elements.editalPdf.addEventListener("change", () => { const file = elements.editalPdf.files[0]; if (!file) return; state.edital.pdf = { name: file.name, size: file.size, type: file.type, attachedAt: new Date().toLocaleString("pt-BR") }; render(); });
+elements.removePdf.addEventListener("click", () => { state.edital.pdf = null; elements.editalPdf.value = ""; render(); });
+elements.syllabusForm.addEventListener("submit", (event) => { event.preventDefault(); state.syllabusItems.push({ id: createId(), discipline: elements.itemDiscipline.value.trim(), topic: elements.itemTopic.value.trim(), subject: elements.itemSubject.value.trim(), subtopic: elements.itemSubtopic.value.trim(), reference: elements.itemReference.value.trim(), priority: elements.itemPriority.value, weight: Number(elements.itemWeight.value) || 1, status: elements.itemStatus.value, domain: elements.itemDomain.value, notes: elements.itemNotes.value.trim() }); elements.syllabusForm.reset(); elements.itemPriority.value = "Média"; elements.itemWeight.value = 1; elements.itemStatus.value = "Não iniciado"; elements.itemDomain.value = "Médio"; render(); });
+elements.previewBulk.addEventListener("click", () => { bulkDraft = elements.bulkInput.value.split("\n").map((line) => line.trim()).filter(Boolean).map((line) => syllabusFromValues(line.split(";"))); elements.saveBulk.disabled = !bulkDraft.length; elements.bulkPreview.innerHTML = bulkDraft.length ? `<table><thead><tr><th>Disciplina</th><th>Tópico</th><th>Assunto</th><th>Prioridade</th><th>Status</th><th>Domínio</th></tr></thead><tbody>${bulkDraft.map((item) => `<tr><td>${escapeHTML(item.discipline)}</td><td>${escapeHTML(item.topic)}</td><td>${escapeHTML(item.subject)}</td><td>${escapeHTML(item.priority)}</td><td>${escapeHTML(item.status)}</td><td>${escapeHTML(item.domain)}</td></tr>`).join("")}</tbody></table>` : ""; });
+elements.saveBulk.addEventListener("click", () => { state.syllabusItems.push(...bulkDraft); bulkDraft = []; elements.bulkInput.value = ""; elements.bulkPreview.innerHTML = ""; elements.saveBulk.disabled = true; render(); });
+[elements.filterDiscipline, elements.filterPriority, elements.filterStatus, elements.filterDomain, elements.filterQuick].forEach((filter) => filter.addEventListener("change", renderSyllabus));
+elements.schedulableList.addEventListener("change", (event) => { const id = event.target.dataset.id; const key = event.target.dataset.setting; if (!id || !key) return; const setting = settingFor(id); setting[key] = event.target.type === "checkbox" ? event.target.checked : event.target.value; render(); });
+elements.clearData.addEventListener("click", () => { if (confirm("Tem certeza que deseja apagar todos os dados salvos neste navegador?")) { state.subjects = []; state.studies = []; state.edital = { pdf: null }; state.syllabusItems = []; state.schedulableSettings = {}; render(); } });
 
 render();
