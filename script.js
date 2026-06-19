@@ -17,7 +17,7 @@ const elements = {
   editalForm: $("#editalForm"), contestName: $("#contestName"), agency: $("#agency"), role: $("#role"), board: $("#board"), examDate: $("#examDate"), officialLink: $("#officialLink"), generalNotes: $("#generalNotes"), editalPdf: $("#editalPdf"), pdfInfo: $("#pdfInfo"), removePdf: $("#removePdf"),
   syllabusForm: $("#syllabusForm"), itemDiscipline: $("#itemDiscipline"), itemTopic: $("#itemTopic"), itemSubject: $("#itemSubject"), itemSubtopic: $("#itemSubtopic"), itemReference: $("#itemReference"), itemPriority: $("#itemPriority"), itemWeight: $("#itemWeight"), itemStatus: $("#itemStatus"), itemDomain: $("#itemDomain"), itemNotes: $("#itemNotes"),
   bulkInput: $("#bulkInput"), previewBulk: $("#previewBulk"), saveBulk: $("#saveBulk"), bulkPreview: $("#bulkPreview"), filterDiscipline: $("#filterDiscipline"), filterPriority: $("#filterPriority"), filterStatus: $("#filterStatus"), filterDomain: $("#filterDomain"), filterQuick: $("#filterQuick"), syllabusList: $("#syllabusList"), schedulableList: $("#schedulableList"),
-  jsonImportFile: $("#jsonImportFile"), importMessage: $("#importMessage"), importDisciplineTotal: $("#importDisciplineTotal"), importSubjectTotal: $("#importSubjectTotal"), importFilterDiscipline: $("#importFilterDiscipline"), importFilterStatus: $("#importFilterStatus"), importFilterPriority: $("#importFilterPriority"), importFilterDomain: $("#importFilterDomain"), importJsonButton: $("#importJsonButton"), importPreview: $("#importPreview")
+  jsonImportFile: $("#jsonImportFile"), importMessage: $("#importMessage"), importDisciplineTotal: $("#importDisciplineTotal"), importSubjectTotal: $("#importSubjectTotal"), importFilterDiscipline: $("#importFilterDiscipline"), importFilterStatus: $("#importFilterStatus"), importFilterPriority: $("#importFilterPriority"), importFilterDomain: $("#importFilterDomain"), importJsonButton: $("#importJsonButton"), clearImportedSyllabus: $("#clearImportedSyllabus"), importDisciplineList: $("#importDisciplineList"), importPreview: $("#importPreview")
 };
 elements.studyDate.value = todayISO();
 
@@ -30,6 +30,8 @@ function createId() { return globalThis.crypto?.randomUUID ? globalThis.crypto.r
 function escapeHTML(value) { return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;" })[char]); }
 function subjectNameById(id) { return state.subjects.find((subject) => subject.id === id)?.name || "Disciplina removida"; }
 function settingFor(id) { return state.schedulableSettings[id] ||= { availability: "Não agendável", mode: "Estudo teórico", priority: false }; }
+function normalizeText(value) { return String(value ?? "").trim(); }
+function importKeyFor(item) { return [item.discipline, item.topic, item.subject, item.subtopic, item.reference].map((value) => normalizeText(value).toLowerCase()).join("|"); }
 function isSchedulable(id) { return settingFor(id).availability === "Agendável"; }
 function completedStatus(item) { return ["Estudado", "Dominado"].includes(item.status); }
 
@@ -37,9 +39,10 @@ function completedStatus(item) { return ["Estudado", "Dominado"].includes(item.s
 function normalizeImportedStatus(value) { const allowed = ["Não iniciado", "Em andamento", "Estudado", "Revisar", "Dominado", "Ignorado"]; return allowed.find((item) => item.toLowerCase() === String(value || "").trim().toLowerCase()) || "Não iniciado"; }
 function normalizeImportedPriority(value) { const allowed = ["Alta", "Média", "Baixa"]; return allowed.find((item) => item.toLowerCase() === String(value || "").trim().toLowerCase()) || "Média"; }
 function normalizeImportedDomain(value) { const allowed = ["Fraco", "Médio", "Forte"]; return allowed.find((item) => item.toLowerCase() === String(value || "").trim().toLowerCase()) || "Médio"; }
-function isTruthyImportValue(value) { return [true, "true", "sim", "s", "1", "agendável", "agendavel"].includes(typeof value === "string" ? value.trim().toLowerCase() : value); }
+function isTruthyImportValue(value) { if (value === undefined || value === null || value === "") return true; return [true, "true", "sim", "s", "1", "agendável", "agendavel", "yes", "y"].includes(typeof value === "string" ? value.trim().toLowerCase() : value); }
 function normalizeImportPayload(payload) { return Array.isArray(payload) ? payload : Array.isArray(payload?.itens) ? payload.itens : Array.isArray(payload?.items) ? payload.items : []; }
 function importedItemToSyllabus(raw) {
+  raw ||= {};
   const id = createId();
   const discipline = String(raw.disciplina || "Sem disciplina").trim() || "Sem disciplina";
   const subject = String(raw.assunto || raw.referencia_edital || "Assunto").trim() || "Assunto";
@@ -57,12 +60,15 @@ function importedItemToSyllabus(raw) {
     status: normalizeImportedStatus(raw.status),
     domain: normalizeImportedDomain(raw.dominio),
     notes: notesParts.join(" • "),
+    imported: true,
+    importKey: "",
     importMeta: {
       concurso: raw.concurso || "", banca: raw.banca || "", cargo: raw.cargo || "", eixo: raw.eixo || "", parent_referencia: raw.parent_referencia || "", fonte: raw.fonte || "",
-      agendavel: isTruthyImportValue(raw.agendavel), tipo_agendamento: raw.tipo_agendamento || "Estudo teórico"
+      agendavel: isTruthyImportValue(raw.agendavel), tipo_agendamento: raw.tipo_agendamento || "Estudo + questões", imported: true
     }
   };
 }
+function prepareImportedItem(raw) { const item = importedItemToSyllabus(raw); item.importKey = importKeyFor(item); return item; }
 function getFilteredImportItems() { return importDraft.filter((item) => (!elements.importFilterDiscipline.value || item.discipline === elements.importFilterDiscipline.value) && (!elements.importFilterStatus.value || item.status === elements.importFilterStatus.value) && (!elements.importFilterPriority.value || item.priority === elements.importFilterPriority.value) && (!elements.importFilterDomain.value || item.domain === elements.importFilterDomain.value)); }
 function renderImportFilters() {
   [[elements.importFilterDiscipline, importDraft.map((item) => item.discipline), "Todas"], [elements.importFilterStatus, importDraft.map((item) => item.status), "Todos"], [elements.importFilterPriority, importDraft.map((item) => item.priority), "Todas"], [elements.importFilterDomain, importDraft.map((item) => item.domain), "Todos"]].forEach(([select, values, label]) => {
@@ -75,7 +81,10 @@ function renderImportPreview() {
   elements.importDisciplineTotal.textContent = new Set(importDraft.map((item) => item.discipline)).size;
   elements.importSubjectTotal.textContent = importDraft.length;
   elements.importJsonButton.disabled = !importDraft.length;
-  elements.importPreview.innerHTML = filtered.length ? `<table><thead><tr><th>Disciplina</th><th>Eixo/Tópico</th><th>Assunto</th><th>Referência</th><th>Status</th><th>Prioridade</th><th>Domínio</th><th>Agendável</th></tr></thead><tbody>${filtered.map((item) => `<tr><td>${escapeHTML(item.discipline)}</td><td>${escapeHTML(item.topic)}</td><td>${escapeHTML(item.subject)}</td><td>${escapeHTML(item.reference || "-")}</td><td>${escapeHTML(item.status)}</td><td>${escapeHTML(item.priority)}</td><td>${escapeHTML(item.domain)}</td><td>${item.importMeta.agendavel ? "Sim" : "Não"}</td></tr>`).join("")}</tbody></table>` : "";
+  const disciplines = [...new Set(importDraft.map((item) => item.discipline).filter(Boolean))].sort();
+  elements.importDisciplineList.innerHTML = disciplines.length ? `<h3>Disciplinas identificadas</h3><div class="tag-list">${disciplines.map((discipline) => `<span>${escapeHTML(discipline)}</span>`).join("")}</div>` : "";
+  const previewItems = filtered.slice(0, 10);
+  elements.importPreview.innerHTML = previewItems.length ? `<p class="item-meta">Exemplo dos primeiros itens importados${filtered.length > previewItems.length ? ` (${previewItems.length} de ${filtered.length} filtrados)` : ""}.</p><table><thead><tr><th>Disciplina</th><th>Eixo/Tópico</th><th>Assunto</th><th>Referência</th><th>Status</th><th>Prioridade</th><th>Domínio</th><th>Agendável</th></tr></thead><tbody>${previewItems.map((item) => `<tr><td>${escapeHTML(item.discipline)}</td><td>${escapeHTML(item.topic)}</td><td>${escapeHTML(item.subject)}</td><td>${escapeHTML(item.reference || "-")}</td><td>${escapeHTML(item.status)}</td><td>${escapeHTML(item.priority)}</td><td>${escapeHTML(item.domain)}</td><td>${item.importMeta.agendavel ? "Sim" : "Não"}</td></tr>`).join("")}</tbody></table>` : "";
 }
 
 function renderSubjects() {
@@ -122,7 +131,7 @@ elements.jsonImportFile.addEventListener("change", async () => {
   if (!file) { elements.importMessage.innerHTML = ""; renderImportPreview(); return; }
   try {
     const payload = JSON.parse(await file.text());
-    importDraft = normalizeImportPayload(payload).map(importedItemToSyllabus);
+    importDraft = normalizeImportPayload(payload).map(prepareImportedItem);
     elements.importMessage.innerHTML = importDraft.length ? `<strong>${escapeHTML(file.name)}</strong> carregado para pré-visualização.` : "O JSON não possui itens para importar. Use um array ou um objeto com a propriedade itens/items.";
   } catch (error) {
     elements.importMessage.innerHTML = `Não foi possível ler o JSON: ${escapeHTML(error.message)}`;
@@ -131,14 +140,37 @@ elements.jsonImportFile.addEventListener("change", async () => {
 });
 elements.importJsonButton.addEventListener("click", () => {
   if (!importDraft.length) return;
-  state.syllabusItems.push(...importDraft);
-  importDraft.forEach((item) => {
-    if (item.importMeta.agendavel || item.importMeta.tipo_agendamento) state.schedulableSettings[item.id] = { availability: item.importMeta.agendavel ? "Agendável" : "Não agendável", mode: item.importMeta.tipo_agendamento || "Estudo teórico", priority: item.priority === "Alta" };
+  const existingKeys = new Set(state.syllabusItems.map((item) => item.importKey || importKeyFor(item)));
+  const hasDuplicates = importDraft.some((item) => existingKeys.has(item.importKey));
+  let itemsToImport = [...importDraft];
+  if (hasDuplicates) {
+    const replace = confirm("Este edital parece já ter sido importado. Clique em OK para substituir os dados existentes ou em Cancelar para apenas adicionar novos itens.");
+    if (replace) {
+      const draftKeys = new Set(importDraft.map((item) => item.importKey));
+      state.syllabusItems.filter((item) => draftKeys.has(item.importKey || importKeyFor(item))).forEach((item) => delete state.schedulableSettings[item.id]);
+      state.syllabusItems = state.syllabusItems.filter((item) => !draftKeys.has(item.importKey || importKeyFor(item)));
+    } else {
+      itemsToImport = importDraft.filter((item) => !existingKeys.has(item.importKey));
+    }
+  }
+  state.syllabusItems.push(...itemsToImport);
+  itemsToImport.forEach((item) => {
+    state.schedulableSettings[item.id] = { availability: item.importMeta.agendavel ? "Agendável" : "Não agendável", mode: item.importMeta.tipo_agendamento || "Estudo + questões", priority: item.priority === "Alta" };
   });
-  elements.importMessage.innerHTML = `${importDraft.length} assunto(s) importado(s) para o edital verticalizado e salvo(s) no localStorage.`;
   importDraft = [];
   elements.jsonImportFile.value = "";
   render();
+  elements.importMessage.innerHTML = "Edital verticalizado importado com sucesso.";
+});
+
+elements.clearImportedSyllabus.addEventListener("click", () => {
+  const importedItems = state.syllabusItems.filter((item) => item.imported || item.importMeta?.imported);
+  if (!importedItems.length) return alert("Não há edital verticalizado importado para limpar.");
+  if (!confirm("Tem certeza que deseja apagar apenas os itens importados do edital verticalizado?")) return;
+  importedItems.forEach((item) => delete state.schedulableSettings[item.id]);
+  state.syllabusItems = state.syllabusItems.filter((item) => !(item.imported || item.importMeta?.imported));
+  render();
+  elements.importMessage.innerHTML = "Edital verticalizado importado removido.";
 });
 
 elements.clearData.addEventListener("click", () => { if (confirm("Tem certeza que deseja apagar todos os dados salvos neste navegador?")) { state.subjects = []; state.studies = []; state.edital = { pdf: null }; state.syllabusItems = []; state.schedulableSettings = {}; render(); } });
