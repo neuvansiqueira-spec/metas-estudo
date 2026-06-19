@@ -55,7 +55,8 @@
         <article class="stat-card"><span>Assuntos cadastrados</span><strong id="syllabusTotal">0</strong></article>
         <article class="stat-card"><span>Assuntos agendáveis</span><strong id="schedulableTotal">0</strong></article>
         <article class="stat-card"><span>Não iniciados</span><strong id="notStartedTotal">0</strong></article>
-        <article class="stat-card"><span>Assuntos fracos</span><strong id="weakTotal">0</strong></article>
+        <article class="stat-card"><span>Assuntos sem diagnóstico</span><strong id="undiagnosedTotal">0</strong><small>Assuntos sem diagnóstico são conteúdos ainda sem estudo, revisão ou questões registradas.</small></article>
+        <article class="stat-card"><span>Assuntos fracos</span><strong id="weakTotal">0</strong><small>Assuntos fracos são definidos por baixo desempenho ou marcação manual.</small></article>
         <article class="stat-card wide-stat"><span>Disciplina com maior pendência</span><strong id="pendingDiscipline">-</strong></article>
       </div>
     </section>
@@ -63,6 +64,7 @@
     <section class="grid-layout">
       <article class="panel" aria-labelledby="subjects-title">
         <div class="section-heading inline"><div><p class="eyebrow">Cadastro</p><h2 id="subjects-title">Disciplinas</h2></div></div>
+        <p class="notice">As disciplinas podem vir do edital importado ou ser cadastradas manualmente.</p>
         <form id="subjectForm" class="form-stack">
           <label>Nome da disciplina<input id="subjectName" type="text" placeholder="Ex.: Direito Constitucional" required /></label>
           <label>Meta semanal em horas<input id="subjectGoal" type="number" min="0" step="0.5" placeholder="Ex.: 6" required /></label>
@@ -108,7 +110,8 @@
     <section class="panel" aria-labelledby="vertical-title">
       <div class="section-heading"><p class="eyebrow">Organização do conteúdo</p><h2 id="vertical-title">Edital Verticalizado</h2></div>
       <form id="syllabusForm" class="form-grid">
-        <label>Disciplina<input id="itemDiscipline" type="text" required /></label>
+        <label>Disciplina<input id="itemDiscipline" type="text" list="disciplineOptions" required /></label>
+        <datalist id="disciplineOptions"></datalist>
         <label>Tópico principal<input id="itemTopic" type="text" required /></label>
         <label>Assunto<input id="itemSubject" type="text" required /></label>
         <label>Subassunto<input id="itemSubtopic" type="text" /></label>
@@ -130,13 +133,22 @@
       </div>
 
       <div class="filters form-grid compact">
+        <label class="wide">Busca por palavra-chave<input id="filterSearch" type="search" placeholder="Buscar disciplina, tópico, assunto, referência ou observações" /></label>
         <label>Disciplina<select id="filterDiscipline"><option value="">Todas</option></select></label>
         <label>Prioridade<select id="filterPriority"><option value="">Todas</option><option>Alta</option><option>Média</option><option>Baixa</option></select></label>
         <label>Status<select id="filterStatus"><option value="">Todos</option><option>Não iniciado</option><option>Em andamento</option><option>Estudado</option><option>Revisar</option><option>Dominado</option><option>Ignorado</option></select></label>
         <label>Domínio<select id="filterDomain"><option value="">Todos</option><option>Fraco</option><option>Médio</option><option>Forte</option></select></label>
-        <label>Filtro rápido<select id="filterQuick"><option value="">Todos</option><option value="schedulable">Agendáveis</option><option value="notStarted">Não iniciados</option><option value="weak">Fracos</option></select></label>
+        <label>Agendável<select id="filterSchedulable"><option value="">Todos</option><option value="yes">Agendável</option><option value="no">Não agendável</option></select></label>
+        <label>Filtro rápido<select id="filterQuick"><option value="">Todos</option><option value="schedulable">Agendáveis</option><option value="notStarted">Não iniciados</option><option value="weak">Fracos</option><option value="undiagnosed">Sem diagnóstico</option></select></label>
       </div>
+      <div class="bulk-priority-box">
+        <h3>Ajuste de prioridade em massa</h3>
+        <p class="item-meta">Aplique a nova prioridade a todos os assuntos que passam pelos filtros atuais.</p>
+        <div class="actions"><select id="bulkPriority"><option>Alta</option><option selected>Média</option><option>Baixa</option></select><button id="applyBulkPriority" type="button">Aplicar aos itens filtrados</button></div>
+      </div>
+      <p id="syllabusCount" class="item-meta"></p>
       <div id="syllabusList" class="cards-list empty-message"></div>
+      <button id="showMoreSyllabus" class="secondary-button show-more" type="button">Mostrar mais</button>
     </section>
 
 

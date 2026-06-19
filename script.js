@@ -5,18 +5,21 @@ const state = { ...defaultState, ...(JSON.parse(localStorage.getItem(STORAGE_KEY
 state.edital = { ...defaultState.edital, ...(state.edital || {}) };
 state.syllabusItems ||= [];
 state.schedulableSettings ||= {};
+state.migrations ||= {};
 let bulkDraft = [];
 let importDraft = [];
+let syllabusVisibleCount = 30;
+let editingSyllabusId = null;
 
 const $ = (selector) => document.querySelector(selector);
 const elements = {
   subjectForm: $("#subjectForm"), subjectName: $("#subjectName"), subjectGoal: $("#subjectGoal"), subjectList: $("#subjectList"),
   studyForm: $("#studyForm"), studyDate: $("#studyDate"), studySubject: $("#studySubject"), studyTopic: $("#studyTopic"), studyMinutes: $("#studyMinutes"), questionsDone: $("#questionsDone"), correctAnswers: $("#correctAnswers"), wrongAnswers: $("#wrongAnswers"), blankAnswers: $("#blankAnswers"),
-  todayHours: $("#todayHours"), weekHours: $("#weekHours"), weeklyGoalStatus: $("#weeklyGoalStatus"), totalQuestions: $("#totalQuestions"), accuracyRate: $("#accuracyRate"), syllabusStudied: $("#syllabusStudied"), syllabusTotal: $("#syllabusTotal"), schedulableTotal: $("#schedulableTotal"), notStartedTotal: $("#notStartedTotal"), weakTotal: $("#weakTotal"), pendingDiscipline: $("#pendingDiscipline"),
+  todayHours: $("#todayHours"), weekHours: $("#weekHours"), weeklyGoalStatus: $("#weeklyGoalStatus"), totalQuestions: $("#totalQuestions"), accuracyRate: $("#accuracyRate"), syllabusStudied: $("#syllabusStudied"), syllabusTotal: $("#syllabusTotal"), schedulableTotal: $("#schedulableTotal"), notStartedTotal: $("#notStartedTotal"), undiagnosedTotal: $("#undiagnosedTotal"), weakTotal: $("#weakTotal"), pendingDiscipline: $("#pendingDiscipline"),
   reviewList: $("#reviewList"), alertList: $("#alertList"), historyBody: $("#historyBody"), clearData: $("#clearData"),
   editalForm: $("#editalForm"), contestName: $("#contestName"), agency: $("#agency"), role: $("#role"), board: $("#board"), examDate: $("#examDate"), officialLink: $("#officialLink"), generalNotes: $("#generalNotes"), editalPdf: $("#editalPdf"), pdfInfo: $("#pdfInfo"), removePdf: $("#removePdf"),
   syllabusForm: $("#syllabusForm"), itemDiscipline: $("#itemDiscipline"), itemTopic: $("#itemTopic"), itemSubject: $("#itemSubject"), itemSubtopic: $("#itemSubtopic"), itemReference: $("#itemReference"), itemPriority: $("#itemPriority"), itemWeight: $("#itemWeight"), itemStatus: $("#itemStatus"), itemDomain: $("#itemDomain"), itemNotes: $("#itemNotes"),
-  bulkInput: $("#bulkInput"), previewBulk: $("#previewBulk"), saveBulk: $("#saveBulk"), bulkPreview: $("#bulkPreview"), filterDiscipline: $("#filterDiscipline"), filterPriority: $("#filterPriority"), filterStatus: $("#filterStatus"), filterDomain: $("#filterDomain"), filterQuick: $("#filterQuick"), syllabusList: $("#syllabusList"), schedulableList: $("#schedulableList"),
+  bulkInput: $("#bulkInput"), previewBulk: $("#previewBulk"), saveBulk: $("#saveBulk"), bulkPreview: $("#bulkPreview"), filterSearch: $("#filterSearch"), filterDiscipline: $("#filterDiscipline"), filterPriority: $("#filterPriority"), filterStatus: $("#filterStatus"), filterDomain: $("#filterDomain"), filterSchedulable: $("#filterSchedulable"), filterQuick: $("#filterQuick"), bulkPriority: $("#bulkPriority"), applyBulkPriority: $("#applyBulkPriority"), syllabusCount: $("#syllabusCount"), showMoreSyllabus: $("#showMoreSyllabus"), syllabusList: $("#syllabusList"), schedulableList: $("#schedulableList"), disciplineOptions: $("#disciplineOptions"),
   jsonImportFile: $("#jsonImportFile"), importMessage: $("#importMessage"), importDisciplineTotal: $("#importDisciplineTotal"), importSubjectTotal: $("#importSubjectTotal"), importFilterDiscipline: $("#importFilterDiscipline"), importFilterStatus: $("#importFilterStatus"), importFilterPriority: $("#importFilterPriority"), importFilterDomain: $("#importFilterDomain"), importJsonButton: $("#importJsonButton"), clearImportedSyllabus: $("#clearImportedSyllabus"), importDisciplineList: $("#importDisciplineList"), importPreview: $("#importPreview")
 };
 elements.studyDate.value = todayISO();
@@ -34,6 +37,69 @@ function normalizeText(value) { return String(value ?? "").trim(); }
 function importKeyFor(item) { return [item.discipline, item.topic, item.subject, item.subtopic, item.reference].map((value) => normalizeText(value).toLowerCase()).join("|"); }
 function isSchedulable(id) { return settingFor(id).availability === "Agendável"; }
 function completedStatus(item) { return ["Estudado", "Dominado"].includes(item.status); }
+
+function canonical(value) { return normalizeText(value).toLowerCase(); }
+function getSyllabusDisciplines() { return [...new Set(state.syllabusItems.map((item) => normalizeText(item.discipline)).filter(Boolean))].sort((a, b) => a.localeCompare(b)); }
+function getAllDisciplines() { return [...new Set([...state.subjects.map((subject) => normalizeText(subject.name)), ...getSyllabusDisciplines()].filter(Boolean))].sort((a, b) => a.localeCompare(b)); }
+function subjectForDiscipline(discipline) { return state.subjects.find((subject) => canonical(subject.name) === canonical(discipline)); }
+function ensureSubjectForDiscipline(discipline) {
+  const name = normalizeText(discipline) || "Sem disciplina";
+  const existing = subjectForDiscipline(name);
+  if (existing) return existing;
+  const subject = { id: createId(), name, goalHours: 0, importedFromSyllabus: true };
+  state.subjects.push(subject);
+  return subject;
+}
+function migrateImportedDisciplines() {
+  state.syllabusItems.forEach((item) => {
+    item.id ||= createId();
+    item.discipline = normalizeText(item.discipline) || "Sem disciplina";
+    item.topic = normalizeText(item.topic) || "Geral";
+    item.subject = normalizeText(item.subject) || "Assunto";
+    item.status = normalizeImportedStatus(item.status);
+    item.priority = normalizeImportedPriority(item.priority);
+    item.domain = normalizeImportedDomain(item.domain);
+    item.importKey ||= importKeyFor(item);
+    if (item.imported || item.importMeta?.imported) {
+      item.imported = true;
+      item.importMeta = { ...(item.importMeta || {}), imported: true };
+    }
+  });
+  getSyllabusDisciplines().forEach(ensureSubjectForDiscipline);
+}
+function studiesForItem(item) {
+  const disciplineSubject = subjectForDiscipline(item.discipline);
+  const subjectIds = new Set([disciplineSubject?.id].filter(Boolean));
+  return state.studies.filter((study) => subjectIds.has(study.subjectId) && (!study.topic || canonical(study.topic).includes(canonical(item.subject)) || canonical(item.subject).includes(canonical(study.topic))));
+}
+function hasDiagnosis(item) {
+  if (["Em andamento", "Estudado", "Revisar", "Dominado"].includes(item.status)) return true;
+  if (item.reviewed || item.lastReviewedAt) return true;
+  return studiesForItem(item).some((study) => study.minutes > 0 || study.questions > 0);
+}
+function isUndiagnosed(item) { return !hasDiagnosis(item); }
+function itemPerformance(item) {
+  return studiesForItem(item).reduce((acc, study) => ({ questions: acc.questions + (study.questions || 0), correct: acc.correct + (study.correct || 0), wrong: acc.wrong + (study.wrong || 0), blank: acc.blank + (study.blank || 0) }), { questions: 0, correct: 0, wrong: 0, blank: 0 });
+}
+function isWeakItem(item) {
+  if (item.manualWeak) return true;
+  if (isUndiagnosed(item)) return false;
+  const performance = itemPerformance(item);
+  const answered = performance.correct + performance.wrong;
+  const accuracy = answered ? performance.correct / answered : 1;
+  const cebraspeNet = performance.correct - performance.wrong;
+  return item.domain === "Fraco" || (answered > 0 && accuracy < 0.7) || (performance.wrong >= 3 && performance.wrong > performance.correct) || (performance.questions >= 5 && cebraspeNet <= 0);
+}
+function setItemStatus(id, status) { const item = state.syllabusItems.find((entry) => entry.id === id); if (item) { item.status = status; render(); } }
+function setItemDomain(id, domain, manualWeak = false) { const item = state.syllabusItems.find((entry) => entry.id === id); if (item) { item.domain = domain; item.manualWeak = manualWeak || item.manualWeak; render(); } }
+function toggleItemSchedulable(id) { const setting = settingFor(id); setting.availability = setting.availability === "Agendável" ? "Não agendável" : "Agendável"; render(); }
+function editSyllabusItem(id) {
+  const item = state.syllabusItems.find((entry) => entry.id === id);
+  if (!item) return;
+  elements.itemDiscipline.value = item.discipline; elements.itemTopic.value = item.topic; elements.itemSubject.value = item.subject; elements.itemSubtopic.value = item.subtopic || ""; elements.itemReference.value = item.reference || ""; elements.itemPriority.value = item.priority; elements.itemWeight.value = item.weight || 1; elements.itemStatus.value = item.status; elements.itemDomain.value = item.domain; elements.itemNotes.value = item.notes || "";
+  editingSyllabusId = id;
+  document.getElementById("vertical-title").scrollIntoView({ behavior: "smooth", block: "start" });
+}
 
 
 function normalizeImportedStatus(value) { const allowed = ["Não iniciado", "Em andamento", "Estudado", "Revisar", "Dominado", "Ignorado"]; return allowed.find((item) => item.toLowerCase() === String(value || "").trim().toLowerCase()) || "Não iniciado"; }
@@ -107,24 +173,57 @@ function renderImportPreview() {
 }
 
 function renderSubjects() {
-  elements.subjectList.innerHTML = ""; elements.studySubject.innerHTML = state.subjects.length ? "" : '<option value="">Cadastre uma disciplina</option>';
-  state.subjects.forEach((subject) => {
+  migrateImportedDisciplines();
+  const disciplines = getAllDisciplines();
+  elements.subjectList.innerHTML = "";
+  elements.studySubject.innerHTML = disciplines.length ? "" : '<option value="">Cadastre ou importe uma disciplina</option>';
+  elements.disciplineOptions.innerHTML = disciplines.map((discipline) => `<option value="${escapeHTML(discipline)}"></option>`).join("");
+  disciplines.forEach((discipline) => {
+    const subject = ensureSubjectForDiscipline(discipline);
     const option = document.createElement("option"); option.value = subject.id; option.textContent = subject.name; elements.studySubject.appendChild(option);
     const weeklyMinutes = state.studies.filter((study) => study.subjectId === subject.id && isSameWeek(study.date)).reduce((sum, study) => sum + study.minutes, 0);
-    const li = document.createElement("li"); li.className = "subject-item"; li.innerHTML = `<div><strong>${escapeHTML(subject.name)}</strong><div class="item-meta">Meta: ${subject.goalHours}h/semana • Atual: ${formatHours(weeklyMinutes)}</div></div><span class="badge">${Math.min(100, Math.round((weeklyMinutes / (subject.goalHours * 60 || 1)) * 100))}%</span>`; elements.subjectList.appendChild(li);
+    const imported = getSyllabusDisciplines().some((name) => canonical(name) === canonical(subject.name));
+    const li = document.createElement("li"); li.className = "subject-item"; li.innerHTML = `<div><strong>${escapeHTML(subject.name)}</strong><div class="item-meta">${imported ? "Disciplina do edital importado • " : ""}Meta: ${subject.goalHours}h/semana • Atual: ${formatHours(weeklyMinutes)}</div></div><span class="badge">${Math.min(100, Math.round((weeklyMinutes / (subject.goalHours * 60 || 1)) * 100))}%</span>`; elements.subjectList.appendChild(li);
   });
 }
 function renderDashboard() {
   const today = todayISO(); const todayMinutes = state.studies.filter((study) => study.date === today).reduce((sum, study) => sum + study.minutes, 0); const weekMinutes = state.studies.filter((study) => isSameWeek(study.date)).reduce((sum, study) => sum + study.minutes, 0); const totalQuestions = state.studies.reduce((sum, study) => sum + study.questions, 0); const correct = state.studies.reduce((sum, study) => sum + study.correct, 0);
-  const total = state.syllabusItems.length; const studied = state.syllabusItems.filter(completedStatus).length; const weak = state.syllabusItems.filter((item) => item.domain === "Fraco").length; const notStarted = state.syllabusItems.filter((item) => item.status === "Não iniciado").length;
+  const total = state.syllabusItems.length; const studied = state.syllabusItems.filter(completedStatus).length; const weak = state.syllabusItems.filter(isWeakItem).length; const undiagnosed = state.syllabusItems.filter(isUndiagnosed).length; const notStarted = state.syllabusItems.filter((item) => item.status === "Não iniciado").length;
   const pendingByDiscipline = state.syllabusItems.filter((item) => !completedStatus(item) && item.status !== "Ignorado").reduce((acc, item) => ({ ...acc, [item.discipline]: (acc[item.discipline] || 0) + 1 }), {}); const topPending = Object.entries(pendingByDiscipline).sort((a, b) => b[1] - a[1])[0];
   elements.todayHours.textContent = formatHours(todayMinutes); elements.weekHours.textContent = formatHours(weekMinutes); elements.weeklyGoalStatus.textContent = `${formatHours(weekMinutes)} registradas`; elements.totalQuestions.textContent = totalQuestions; elements.accuracyRate.textContent = totalQuestions ? `${Math.round((correct / totalQuestions) * 100)}%` : "0%";
-  elements.syllabusStudied.textContent = total ? `${Math.round((studied / total) * 100)}%` : "0%"; elements.syllabusTotal.textContent = total; elements.schedulableTotal.textContent = state.syllabusItems.filter((item) => isSchedulable(item.id)).length; elements.notStartedTotal.textContent = notStarted; elements.weakTotal.textContent = weak; elements.pendingDiscipline.textContent = topPending ? `${topPending[0]} (${topPending[1]})` : "-";
+  elements.syllabusStudied.textContent = total ? `${Math.round((studied / total) * 100)}%` : "0%"; elements.syllabusTotal.textContent = total; elements.schedulableTotal.textContent = state.syllabusItems.filter((item) => isSchedulable(item.id)).length; elements.notStartedTotal.textContent = notStarted; elements.undiagnosedTotal.textContent = undiagnosed; elements.weakTotal.textContent = weak; elements.pendingDiscipline.textContent = topPending ? `${topPending[0]} (${topPending[1]})` : "-";
 }
 function renderEdital() { ["contestName", "agency", "role", "board", "examDate", "officialLink", "generalNotes"].forEach((key) => { elements[key].value = state.edital[key] || ""; }); elements.pdfInfo.innerHTML = state.edital.pdf ? `<strong>Arquivo:</strong> ${escapeHTML(state.edital.pdf.name)}<br><span class="item-meta">Anexado em ${escapeHTML(state.edital.pdf.attachedAt)}</span>` : ""; }
-function getFilteredItems() { return state.syllabusItems.filter((item) => (!elements.filterDiscipline.value || item.discipline === elements.filterDiscipline.value) && (!elements.filterPriority.value || item.priority === elements.filterPriority.value) && (!elements.filterStatus.value || item.status === elements.filterStatus.value) && (!elements.filterDomain.value || item.domain === elements.filterDomain.value) && (!elements.filterQuick.value || (elements.filterQuick.value === "schedulable" && isSchedulable(item.id)) || (elements.filterQuick.value === "notStarted" && item.status === "Não iniciado") || (elements.filterQuick.value === "weak" && item.domain === "Fraco"))); }
-function renderFilters() { const current = elements.filterDiscipline.value; const disciplines = [...new Set(state.syllabusItems.map((item) => item.discipline).filter(Boolean))].sort(); elements.filterDiscipline.innerHTML = '<option value="">Todas</option>' + disciplines.map((d) => `<option ${d === current ? "selected" : ""}>${escapeHTML(d)}</option>`).join(""); }
-function renderSyllabus() { renderFilters(); elements.syllabusList.innerHTML = ""; getFilteredItems().forEach((item) => { const card = document.createElement("article"); card.className = "syllabus-card"; card.innerHTML = `<header><div><h3>${escapeHTML(item.discipline)} — ${escapeHTML(item.subject)}</h3><div class="item-meta">${escapeHTML(item.topic)}${item.subtopic ? ` • ${escapeHTML(item.subtopic)}` : ""}</div></div><span class="badge ${item.priority === "Alta" ? "danger" : item.priority === "Baixa" ? "neutral" : "warn"}">${escapeHTML(item.priority)}</span></header><div class="card-meta-grid"><span>Status: ${escapeHTML(item.status)}</span><span>Domínio: ${escapeHTML(item.domain)}</span><span>Peso: ${escapeHTML(item.weight)}</span><span>Ref.: ${escapeHTML(item.reference || "-")}</span></div>${item.notes ? `<p class="item-meta">${escapeHTML(item.notes)}</p>` : ""}`; elements.syllabusList.appendChild(card); }); }
+function getFilteredItems() {
+  const term = canonical(elements.filterSearch.value);
+  return state.syllabusItems.filter((item) => {
+    const haystack = [item.discipline, item.topic, item.subject, item.subtopic, item.reference, item.notes].map(canonical).join(" ");
+    return (!term || haystack.includes(term))
+      && (!elements.filterDiscipline.value || item.discipline === elements.filterDiscipline.value)
+      && (!elements.filterPriority.value || item.priority === elements.filterPriority.value)
+      && (!elements.filterStatus.value || item.status === elements.filterStatus.value)
+      && (!elements.filterDomain.value || item.domain === elements.filterDomain.value)
+      && (!elements.filterSchedulable.value || (elements.filterSchedulable.value === "yes" ? isSchedulable(item.id) : !isSchedulable(item.id)))
+      && (!elements.filterQuick.value || (elements.filterQuick.value === "schedulable" && isSchedulable(item.id)) || (elements.filterQuick.value === "notStarted" && item.status === "Não iniciado") || (elements.filterQuick.value === "weak" && isWeakItem(item)) || (elements.filterQuick.value === "undiagnosed" && isUndiagnosed(item)));
+  });
+}
+function renderFilters() { const current = elements.filterDiscipline.value; const disciplines = getAllDisciplines(); elements.filterDiscipline.innerHTML = '<option value="">Todas</option>' + disciplines.map((d) => `<option ${d === current ? "selected" : ""}>${escapeHTML(d)}</option>`).join(""); }
+function renderSyllabus() {
+  renderFilters();
+  const filtered = getFilteredItems();
+  const visibleItems = filtered.slice(0, syllabusVisibleCount);
+  elements.syllabusList.innerHTML = "";
+  elements.syllabusCount.textContent = filtered.length ? `Exibindo ${visibleItems.length} de ${filtered.length} assunto(s) filtrado(s).` : "Nenhum assunto encontrado com os filtros atuais.";
+  elements.showMoreSyllabus.hidden = visibleItems.length >= filtered.length;
+  visibleItems.forEach((item) => {
+    const setting = settingFor(item.id);
+    const weak = isWeakItem(item);
+    const undiagnosed = isUndiagnosed(item);
+    const card = document.createElement("article"); card.className = "syllabus-card";
+    card.innerHTML = `<header><div><h3>${escapeHTML(item.discipline)} — ${escapeHTML(item.subject)}</h3><div class="item-meta">${escapeHTML(item.topic)}${item.subtopic ? ` • ${escapeHTML(item.subtopic)}` : ""}</div></div><span class="badge ${item.priority === "Alta" ? "danger" : item.priority === "Baixa" ? "neutral" : "warn"}">${escapeHTML(item.priority)}</span></header><div class="card-meta-grid"><span>Status: ${escapeHTML(item.status)}</span><span>Domínio: ${escapeHTML(item.domain)}</span><span>Diagnóstico: ${undiagnosed ? "Sem diagnóstico" : weak ? "Fraco" : "OK"}</span><span>Agendável: ${isSchedulable(item.id) ? "Sim" : "Não"}</span><span>Peso: ${escapeHTML(item.weight)}</span><span>Ref.: ${escapeHTML(item.reference || "-")}</span></div>${item.notes ? `<p class="item-meta">${escapeHTML(item.notes)}</p>` : ""}<div class="card-actions"><button type="button" data-action="edit" data-id="${item.id}">Editar</button><button type="button" data-action="studied" data-id="${item.id}">Marcar como estudado</button><button type="button" data-action="review" data-id="${item.id}">Marcar como revisar</button><button type="button" data-action="dominated" data-id="${item.id}">Marcar como dominado</button><button type="button" data-action="weak" data-id="${item.id}">Marcar como fraco</button><button type="button" data-action="schedulable" data-id="${item.id}">${setting.availability === "Agendável" ? "Desativar" : "Ativar"} agendável</button></div>`;
+    elements.syllabusList.appendChild(card);
+  });
+}
 function renderSchedulable() { elements.schedulableList.innerHTML = ""; state.syllabusItems.forEach((item) => { const setting = settingFor(item.id); const card = document.createElement("article"); card.className = "syllabus-card"; card.innerHTML = `<header><div><h3>${escapeHTML(item.discipline)} — ${escapeHTML(item.subject)}</h3><div class="item-meta">${escapeHTML(item.topic)} • ${escapeHTML(item.status)} • domínio ${escapeHTML(item.domain)}</div></div><span class="badge ${setting.priority ? "danger" : isSchedulable(item.id) ? "success" : "neutral"}">${setting.priority ? "Prioritário" : setting.availability}</span></header><div class="card-actions"><label>Disponibilidade <select data-setting="availability" data-id="${item.id}"><option ${setting.availability === "Agendável" ? "selected" : ""}>Agendável</option><option ${setting.availability === "Não agendável" ? "selected" : ""}>Não agendável</option></select></label><label>Tipo <select data-setting="mode" data-id="${item.id}"><option ${setting.mode === "Revisão apenas" ? "selected" : ""}>Revisão apenas</option><option ${setting.mode === "Questões apenas" ? "selected" : ""}>Questões apenas</option><option ${setting.mode === "Estudo teórico" ? "selected" : ""}>Estudo teórico</option><option ${setting.mode === "Estudo + questões" ? "selected" : ""}>Estudo + questões</option></select></label><label><input type="checkbox" data-setting="priority" data-id="${item.id}" ${setting.priority ? "checked" : ""}> Assunto prioritário</label></div>`; elements.schedulableList.appendChild(card); }); }
 function renderReviews() { const today = todayISO(); const reviewWindows = [{ label: "24h", days: 1 }, { label: "7 dias", days: 7 }, { label: "30 dias", days: 30 }]; elements.reviewList.innerHTML = ""; state.studies.forEach((study) => reviewWindows.forEach((window) => { const dueDate = addDays(study.date, window.days); if (dueDate <= today) { const item = document.createElement("div"); item.className = "review-item"; item.innerHTML = `<span class="badge ${dueDate < today ? "danger" : "warn"}">Revisão ${window.label}</span><strong>${escapeHTML(subjectNameById(study.subjectId))} — ${escapeHTML(study.topic)}</strong><div class="item-meta">Estudado em ${study.date} • Revisar em ${dueDate}</div>`; elements.reviewList.appendChild(item); } })); }
 function renderAlerts() { elements.alertList.innerHTML = ""; state.subjects.forEach((subject) => { const lastStudy = state.studies.filter((study) => study.subjectId === subject.id).sort((a, b) => b.date.localeCompare(a.date))[0]; const daysWithoutStudy = lastStudy ? Math.floor((parseDate(todayISO()) - parseDate(lastStudy.date)) / 86400000) : Infinity; const weeklyMinutes = state.studies.filter((study) => study.subjectId === subject.id && isSameWeek(study.date)).reduce((sum, study) => sum + study.minutes, 0); if (!lastStudy || daysWithoutStudy >= 7 || weeklyMinutes < subject.goalHours * 30) { const item = document.createElement("div"); item.className = "alert-item"; item.innerHTML = `<span class="badge danger">Atenção</span><strong>${escapeHTML(subject.name)}</strong><div class="item-meta">${lastStudy ? `Último estudo há ${daysWithoutStudy} dia(s).` : "Nunca estudada."} Meta semanal em risco: ${formatHours(weeklyMinutes)} de ${subject.goalHours}h.</div>`; elements.alertList.appendChild(item); } }); }
@@ -137,11 +236,14 @@ elements.studyForm.addEventListener("submit", (event) => { event.preventDefault(
 elements.editalForm.addEventListener("submit", (event) => { event.preventDefault(); ["contestName", "agency", "role", "board", "examDate", "officialLink", "generalNotes"].forEach((key) => { state.edital[key] = elements[key].value.trim(); }); render(); });
 elements.editalPdf.addEventListener("change", () => { const file = elements.editalPdf.files[0]; if (!file) return; state.edital.pdf = { name: file.name, size: file.size, type: file.type, attachedAt: new Date().toLocaleString("pt-BR") }; render(); });
 elements.removePdf.addEventListener("click", () => { state.edital.pdf = null; elements.editalPdf.value = ""; render(); });
-elements.syllabusForm.addEventListener("submit", (event) => { event.preventDefault(); state.syllabusItems.push({ id: createId(), discipline: elements.itemDiscipline.value.trim(), topic: elements.itemTopic.value.trim(), subject: elements.itemSubject.value.trim(), subtopic: elements.itemSubtopic.value.trim(), reference: elements.itemReference.value.trim(), priority: elements.itemPriority.value, weight: Number(elements.itemWeight.value) || 1, status: elements.itemStatus.value, domain: elements.itemDomain.value, notes: elements.itemNotes.value.trim() }); elements.syllabusForm.reset(); elements.itemPriority.value = "Média"; elements.itemWeight.value = 1; elements.itemStatus.value = "Não iniciado"; elements.itemDomain.value = "Médio"; render(); });
+elements.syllabusForm.addEventListener("submit", (event) => { event.preventDefault(); const payload = { id: editingSyllabusId || createId(), discipline: elements.itemDiscipline.value.trim(), topic: elements.itemTopic.value.trim(), subject: elements.itemSubject.value.trim(), subtopic: elements.itemSubtopic.value.trim(), reference: elements.itemReference.value.trim(), priority: elements.itemPriority.value, weight: Number(elements.itemWeight.value) || 1, status: elements.itemStatus.value, domain: elements.itemDomain.value, notes: elements.itemNotes.value.trim() }; const existingIndex = state.syllabusItems.findIndex((item) => item.id === editingSyllabusId); if (existingIndex >= 0) state.syllabusItems[existingIndex] = { ...state.syllabusItems[existingIndex], ...payload }; else state.syllabusItems.push(payload); editingSyllabusId = null; elements.syllabusForm.reset(); elements.itemPriority.value = "Média"; elements.itemWeight.value = 1; elements.itemStatus.value = "Não iniciado"; elements.itemDomain.value = "Médio"; render(); });
 elements.previewBulk.addEventListener("click", () => { bulkDraft = elements.bulkInput.value.split("\n").map((line) => line.trim()).filter(Boolean).map((line) => syllabusFromValues(line.split(";"))); elements.saveBulk.disabled = !bulkDraft.length; elements.bulkPreview.innerHTML = bulkDraft.length ? `<table><thead><tr><th>Disciplina</th><th>Tópico</th><th>Assunto</th><th>Prioridade</th><th>Status</th><th>Domínio</th></tr></thead><tbody>${bulkDraft.map((item) => `<tr><td>${escapeHTML(item.discipline)}</td><td>${escapeHTML(item.topic)}</td><td>${escapeHTML(item.subject)}</td><td>${escapeHTML(item.priority)}</td><td>${escapeHTML(item.status)}</td><td>${escapeHTML(item.domain)}</td></tr>`).join("")}</tbody></table>` : ""; });
 elements.saveBulk.addEventListener("click", () => { state.syllabusItems.push(...bulkDraft); bulkDraft = []; elements.bulkInput.value = ""; elements.bulkPreview.innerHTML = ""; elements.saveBulk.disabled = true; render(); });
-[elements.filterDiscipline, elements.filterPriority, elements.filterStatus, elements.filterDomain, elements.filterQuick].forEach((filter) => filter.addEventListener("change", renderSyllabus));
+[elements.filterSearch, elements.filterDiscipline, elements.filterPriority, elements.filterStatus, elements.filterDomain, elements.filterSchedulable, elements.filterQuick].forEach((filter) => filter.addEventListener(filter === elements.filterSearch ? "input" : "change", () => { syllabusVisibleCount = 30; renderSyllabus(); }));
 [elements.importFilterDiscipline, elements.importFilterStatus, elements.importFilterPriority, elements.importFilterDomain].forEach((filter) => filter.addEventListener("change", renderImportPreview));
+elements.syllabusList.addEventListener("click", (event) => { const button = event.target.closest("button[data-action]"); if (!button) return; const { action, id } = button.dataset; if (action === "edit") editSyllabusItem(id); if (action === "studied") setItemStatus(id, "Estudado"); if (action === "review") setItemStatus(id, "Revisar"); if (action === "dominated") setItemStatus(id, "Dominado"); if (action === "weak") setItemDomain(id, "Fraco", true); if (action === "schedulable") toggleItemSchedulable(id); });
+elements.showMoreSyllabus.addEventListener("click", () => { syllabusVisibleCount += 30; renderSyllabus(); });
+elements.applyBulkPriority.addEventListener("click", () => { const filtered = getFilteredItems(); if (!filtered.length) return alert("Nenhum item filtrado para alterar."); filtered.forEach((item) => { item.priority = elements.bulkPriority.value; }); render(); });
 elements.schedulableList.addEventListener("change", (event) => { const id = event.target.dataset.id; const key = event.target.dataset.setting; if (!id || !key) return; const setting = settingFor(id); setting[key] = event.target.type === "checkbox" ? event.target.checked : event.target.value; render(); });
 
 elements.jsonImportFile.addEventListener("change", async () => {
