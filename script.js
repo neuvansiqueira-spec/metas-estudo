@@ -52,13 +52,24 @@ function normalizePlanningState(planning = {}) {
   };
 }
 const defaultState = { subjects: [], studies: [], edital: { pdf: null }, syllabusItems: [], schedulableSettings: {}, dailyGoals: [], questionLogs: [], simulados: [], planning: cloneData(defaultPlanning), settings: { defaultMockGoal: 92 }, materials: [], disciplineWeights: {}, monthlyGoals: {} };
-const state = { ...defaultState, ...(JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}) };
+function readJSONStorage(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw);
+  } catch (error) {
+    console.error(`[Metas Estudo] Dados corrompidos em ${key}.`, error);
+    window.__METAS_STORAGE_ERROR__ = { key, message: error.message };
+    return fallback;
+  }
+}
+const state = { ...cloneData(defaultState), ...(readJSONStorage(STORAGE_KEY, {}) || {}) };
 state.edital = { ...defaultState.edital, ...(state.edital || {}) };
 state.syllabusItems ||= [];
 state.schedulableSettings ||= {};
 state.dailyGoals ||= [];
 state.questionLogs ||= [];
-state.simulados ||= JSON.parse(localStorage.getItem(SIMULADOS_STORAGE_KEY) || "[]");
+state.simulados ||= readJSONStorage(SIMULADOS_STORAGE_KEY, []);
 state.materials ||= [];
 state.disciplineWeights ||= {};
 state.monthlyGoals ||= {};
@@ -145,7 +156,29 @@ function renderMotivationalPhrase(phrase = pickMotivationalPhrase()) {
   if (elements.dailyMotivationText) elements.dailyMotivationText.textContent = phrase;
 }
 
-function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); localStorage.setItem(SIMULADOS_STORAGE_KEY, JSON.stringify(state.simulados || [])); }
+function saveData() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(SIMULADOS_STORAGE_KEY, JSON.stringify(state.simulados || []));
+  } catch (error) {
+    console.error("[Metas Estudo] Não foi possível salvar no localStorage.", error);
+    alert("Não foi possível salvar os dados. Verifique o espaço disponível do navegador e exporte um backup.");
+  }
+}
+function showStorageWarningIfNeeded() {
+  if (!window.__METAS_STORAGE_ERROR__) return;
+  const warning = document.createElement("div");
+  warning.className = "storage-warning notice warning-notice";
+  warning.innerHTML = `<strong>Aviso:</strong> encontramos dados corrompidos na chave <code>${escapeHTML(window.__METAS_STORAGE_ERROR__.key)}</code>. Você pode importar um backup, continuar com estado vazio ou limpar apenas a chave corrompida. <button type="button" data-storage-action="backup">Importar backup</button> <button type="button" data-storage-action="clear-corrupt">Limpar chave corrompida</button> <button type="button" data-storage-action="dismiss">Continuar</button>`;
+  document.body.prepend(warning);
+  warning.addEventListener("click", (event) => {
+    const action = event.target.closest("button")?.dataset.storageAction;
+    if (!action) return;
+    if (action === "backup") showView("backup");
+    if (action === "clear-corrupt" && confirm("Limpar apenas a chave corrompida?")) localStorage.removeItem(window.__METAS_STORAGE_ERROR__.key);
+    warning.remove();
+  });
+}
 function getProjectStorageKeys() {
   const known = [STORAGE_KEY, SIMULADOS_STORAGE_KEY, "syllabusItems", "editalVerticalizado", "edital_verticalizado", "assuntosAgendaveis", "metasDoDia", "dailyGoals"];
   return Object.keys(localStorage).filter((key) => known.includes(key) || key.toLowerCase().includes("metas") || key.toLowerCase().includes("edital"));
@@ -708,7 +741,8 @@ function linkedMaterialsHTML(materials) {
   if (!materials.length) return "";
   return `<div class="linked-materials"><strong>Materiais vinculados</strong><div class="card-actions">${materials.map((m) => `<button type="button" data-open-material="${m.id}" title="${escapeHTML(m.title)}">${escapeHTML(materialButtonLabel(m))}</button>`).join("")}</div></div>`;
 }
-function openMaterial(id) { const material = state.materials.find((m) => m.id === id); if (!material) return; window.open(material.link, "_blank", "noopener"); }
+function isValidHttpUrl(value) { try { const url = new URL(value); return ["http:", "https:"].includes(url.protocol); } catch { return false; } }
+function openMaterial(id) { const material = state.materials.find((m) => m.id === id); if (!material) return; if (!isValidHttpUrl(material.link)) return alert("Este material não possui link válido com http/https."); window.open(material.link, "_blank", "noopener"); }
 function renderMaterialSelectors() {
   if (!elements.materialForm) return;
   const disciplines = getAllDisciplines();
@@ -742,7 +776,7 @@ function updateStudyMaterialOptions() {
   elements.studyMaterial.innerHTML = '<option value="">Nenhum material vinculado</option>' + mats.map((m)=>`<option value="${m.id}">${escapeHTML(m.type)} — ${escapeHTML(m.title)}</option>`).join("");
 }
 function editMaterial(id) { const m = state.materials.find((x)=>x.id===id); if (!m) return; elements.materialEditingId.value=m.id; elements.materialTitle.value=m.title; elements.materialDate.value=m.date||todayISO(); elements.materialDiscipline.value=m.discipline; elements.materialSubject.value=m.subject; elements.materialType.value=m.type; elements.materialOrigin.value=m.origin; elements.materialLink.value=m.link; elements.materialTags.value=materialTagsArray(m.tags).join(", "); elements.materialNotes.value=m.notes||""; renderMaterialSelectors(); showView("materiais"); }
-function saveMaterial(event) { event.preventDefault(); const syllabusItem = state.syllabusItems.find((i)=>canonical(i.discipline)===canonical(elements.materialDiscipline.value) && canonical(i.subject)===canonical(elements.materialSubject.value)); const material = { id: elements.materialEditingId.value || createId(), title: elements.materialTitle.value.trim(), discipline: elements.materialDiscipline.value.trim(), subject: elements.materialSubject.value.trim(), syllabusItemId: syllabusItem?.id || "", type: elements.materialType.value, link: elements.materialLink.value.trim(), origin: elements.materialOrigin.value, notes: elements.materialNotes.value.trim(), date: elements.materialDate.value || todayISO(), tags: materialTagsArray(elements.materialTags.value), updatedAt: new Date().toISOString() }; const idx = state.materials.findIndex((m)=>m.id===material.id); if (idx>=0) state.materials[idx]=material; else state.materials.push(material); elements.materialForm.reset(); elements.materialEditingId.value=""; elements.materialDate.value=todayISO(); render(); showView("materiais"); }
+function saveMaterial(event) { event.preventDefault(); if (!elements.materialLink.value.trim()) return alert("Informe o link do material."); if (!isValidHttpUrl(elements.materialLink.value.trim())) return alert("O link do material deve começar com http:// ou https://."); const syllabusItem = state.syllabusItems.find((i)=>canonical(i.discipline)===canonical(elements.materialDiscipline.value) && canonical(i.subject)===canonical(elements.materialSubject.value)); const material = { id: elements.materialEditingId.value || createId(), title: elements.materialTitle.value.trim(), discipline: elements.materialDiscipline.value.trim(), subject: elements.materialSubject.value.trim(), syllabusItemId: syllabusItem?.id || "", type: elements.materialType.value, link: elements.materialLink.value.trim(), origin: elements.materialOrigin.value, notes: elements.materialNotes.value.trim(), date: elements.materialDate.value || todayISO(), tags: materialTagsArray(elements.materialTags.value), updatedAt: new Date().toISOString() }; const idx = state.materials.findIndex((m)=>m.id===material.id); if (idx>=0) state.materials[idx]=material; else state.materials.push(material); elements.materialForm.reset(); elements.materialEditingId.value=""; elements.materialDate.value=todayISO(); render(); showView("materiais"); }
 
 function render() { migrateIncorrectWeakDomains(); renderSubjects(); renderGoalSelectors(); renderQuestionSelectors(); renderPlanning(); renderProgressPanel(); renderDashboard(); renderGoalDashboardCards(); renderEdital(); renderSyllabus(); renderSchedulable(); renderDailyGoals(); renderGoalCalendar(); renderQuestionHistory(); updateQuestionCalculated(); renderMaterials(); updateStudyMaterialOptions(); renderReviews(); renderAlerts(); renderHistory(); renderImportPreview(); renderBackupSummary(); renderSimulados(); saveData(); }
 function syllabusFromValues(values) { return { id: createId(), discipline: values[0]?.trim() || "Sem disciplina", topic: values[1]?.trim() || "Geral", subject: values[2]?.trim() || "Assunto", subtopic: values[3]?.trim() || "", reference: values[4]?.trim() || "", priority: values[5]?.trim() || "Média", weight: Number(values[6]) || 1, status: values[7]?.trim() || "Não iniciado", domain: normalizeImportedDomain(values[8]), notes: values[9]?.trim() || "" }; }
@@ -900,13 +934,60 @@ function generateDailyGoals() {
     showView("metas-do-dia");
   } catch (error) { console.error("Não foi possível gerar metas.", error); showDailyGoalMessage("Não foi possível gerar metas. Verifique se o edital foi importado.", "error"); }
 }
-function updateGoalDone(goal) { goal.status = "Concluída"; if (!goal.actualMinutes) goal.actualMinutes = goal.minutes; goal.studyStatus = "Concluído"; updateItemProgress(goal.syllabusItemId, { status: "Concluído", studyMinutes: (Number(getSyllabusById(goal.syllabusItemId)?.studyMinutes) || 0) + (Number(goal.actualMinutes) || Number(goal.minutes) || 0) }); }
+function appendGoalHistory(goal, text) {
+  goal.history ||= [];
+  goal.history.push({ at: new Date().toISOString(), text });
+  goal.notes = [goal.notes || "", text].filter(Boolean).join("\n");
+}
+function updateGoalDone(goal) {
+  const previousStatus = goal.status;
+  goal.status = "Concluída";
+  if (!goal.actualMinutes) goal.actualMinutes = goal.minutes;
+  goal.studyStatus = "Concluído";
+  goal.completedAt ||= new Date().toISOString();
+  if (previousStatus !== "Concluída") appendGoalHistory(goal, `Concluída em ${new Date().toLocaleString("pt-BR")}.`);
+  const item = getSyllabusById(goal.syllabusItemId);
+  if (item) {
+    const previous = Number(item.studyMinutes) || 0;
+    updateItemProgress(goal.syllabusItemId, { status: "Concluído", studyMinutes: previous + (Number(goal.actualMinutes) || Number(goal.minutes) || 0), lastStudyDate: goal.date });
+  }
+}
+function postponeGoal(goal) {
+  const nextDate = prompt("Nova data da meta (AAAA-MM-DD)", goal.date);
+  if (!nextDate || Number.isNaN(Date.parse(`${nextDate}T00:00:00`))) return;
+  const oldDate = goal.date;
+  goal.date = nextDate;
+  goal.status = "Adiada";
+  appendGoalHistory(goal, `Adiada de ${oldDate} para ${nextDate}.`);
+}
+function registerGoalTime(goal) {
+  const minutes = Number(prompt("Minutos realizados", goal.actualMinutes || goal.minutes || 0));
+  if (!Number.isFinite(minutes) || minutes < 0) return alert("Informe um número de minutos válido.");
+  goal.actualMinutes = minutes;
+  goal.studyStatus = minutes > 0 ? "Iniciado" : (goal.studyStatus || "Pendente");
+  const item = getSyllabusById(goal.syllabusItemId);
+  if (item && minutes > 0) updateItemProgress(goal.syllabusItemId, { status: item.status === "Concluído" ? item.status : "Em andamento", studyMinutes: (Number(item.studyMinutes) || 0) + minutes, lastStudyDate: goal.date });
+}
+function editGoal(goal) {
+  elements.goalDate.value=goal.date; elements.goalDiscipline.value=goal.discipline; optionsForItems(elements.goalSyllabusItem, goal.discipline, goal.syllabusItemId); elements.goalSyllabusItem.value=goal.syllabusItemId; elements.goalType.value=goal.type; elements.goalMinutes.value=goal.minutes; elements.goalActualMinutes.value=goal.actualMinutes||0; elements.goalPriority.value=goal.priority; elements.goalStatus.value=goal.status; elements.goalNotes.value=goal.notes||""; showView("metas-do-dia");
+}
 function weekStart(dateString) { const d=parseDate(dateString); d.setDate(d.getDate()-d.getDay()); return d.toISOString().slice(0,10); }
 function daysBetween(start, count) { return Array.from({length:count},(_,i)=>addDays(start,i)); }
 function goalsBetween(start,end) { return state.dailyGoals.filter((g)=>g.date>=start && g.date<=end); }
 function completionRate(goals) { return goals.length ? Math.round(goals.filter((g)=>g.status==="Concluída").length/goals.length*100) : 0; }
-function generateWeekGoals() { const start=weekStart(elements.calendarDate?.value||todayISO()); const made=[]; daysBetween(start,7).forEach((date)=>made.push(...generateGoalsForDate(date))); state.dailyGoals.push(...made); render(); showView("calendario-metas"); }
-function generateMonthGoals() { const ref=parseDate(elements.calendarDate?.value||todayISO()); const start=`${ref.getFullYear()}-${String(ref.getMonth()+1).padStart(2,"0")}-01`; const days=new Date(ref.getFullYear(),ref.getMonth()+1,0).getDate(); const made=[]; daysBetween(start,days).forEach((date)=>made.push(...generateGoalsForDate(date,{maxGoals: availabilityForDate(date).type==="folga"?5:undefined}))); state.dailyGoals.push(...made); render(); showView("calendario-metas"); }
+function previewGoals(kind, goals) {
+  const dist = goals.reduce((a,g)=>(a[g.discipline]=(a[g.discipline]||0)+1,a),{});
+  const days = [...new Set(goals.map((g)=>g.date))];
+  const hours = goals.reduce((a,g)=>a+Number(g.minutes||0),0);
+  return `${kind}: ${goals.length} metas; ${Object.keys(dist).length} disciplinas; ${days.length} dias usados; ${formatHours(hours)} planejadas; distribuição: ${Object.entries(dist).map(([d,n])=>`${d} (${n})`).join(", ") || "sem metas"}. Confirmar geração?`;
+}
+function saveGeneratedGoals(kind, made) {
+  if (!made.length) return alert("Nenhuma meta nova gerada. Verifique assuntos agendáveis, duplicidades ou disponibilidade.");
+  if (!confirm(previewGoals(kind, made))) return;
+  state.dailyGoals.push(...made); render(); showView("calendario-metas");
+}
+function generateWeekGoals() { const start=weekStart(elements.calendarDate?.value||todayISO()); const made=[]; daysBetween(start,7).forEach((date)=>made.push(...generateGoalsForDate(date))); saveGeneratedGoals("Pré-visualização semanal", made); }
+function generateMonthGoals() { const ref=parseDate(elements.calendarDate?.value||todayISO()); const start=`${ref.getFullYear()}-${String(ref.getMonth()+1).padStart(2,"0")}-01`; const days=new Date(ref.getFullYear(),ref.getMonth()+1,0).getDate(); const made=[]; daysBetween(start,days).forEach((date)=>made.push(...generateGoalsForDate(date,{maxGoals: availabilityForDate(date).type==="folga"?5:undefined}))); saveGeneratedGoals("Pré-visualização mensal", made); }
 function renderDisciplineWeights() { if (!elements.disciplineWeightsList) return; const ds=getAllDisciplines(); elements.disciplineWeightsList.innerHTML = ds.length ? ds.map((d)=>`<label class="weight-row"><span>${escapeHTML(d)}</span><select data-discipline-weight="${escapeHTML(d)}"><option value="1" ${disciplineWeightValue(d)===1?"selected":""}>Baixa (1)</option><option value="3" ${disciplineWeightValue(d)===3?"selected":""}>Média (3)</option><option value="4" ${disciplineWeightValue(d)===4?"selected":""}>Alta (4)</option><option value="5" ${disciplineWeightValue(d)===5?"selected":""}>Muito alta (5)</option></select></label>`).join("") : "Cadastre ou importe disciplinas para configurar pesos."; }
 function renderGoalCalendar() { if (!elements.goalCalendarContent) return; renderDisciplineWeights(); const date=elements.calendarDate?.value||todayISO(), mode=elements.calendarViewMode?.value||"daily"; const start=mode==="weekly"?weekStart(date):mode==="monthly"?`${date.slice(0,7)}-01`:date; const end=mode==="daily"?date:mode==="weekly"?addDays(start,6):`${date.slice(0,7)}-${String(new Date(parseDate(date).getFullYear(),parseDate(date).getMonth()+1,0).getDate()).padStart(2,"0")}`; const goals=goalsBetween(start,end); const planned=goals.reduce((a,g)=>a+Number(g.minutes||0),0), done=goals.reduce((a,g)=>a+Number(g.actualMinutes||0),0); const dist=goals.reduce((a,g)=>(a[g.discipline]=(a[g.discipline]||0)+1,a),{}); elements.goalCalendarStats.innerHTML = `<article class="stat-card"><span>Horas planejadas</span><strong>${formatHours(planned)}</strong></article><article class="stat-card"><span>Horas realizadas</span><strong>${formatHours(done)}</strong></article><article class="stat-card"><span>Assuntos planejados</span><strong>${goals.length}</strong></article><article class="stat-card"><span>Assuntos concluídos</span><strong>${goals.filter(g=>g.status==="Concluída").length}</strong></article><article class="stat-card"><span>Cumprimento</span><strong>${completionRate(goals)}%</strong></article><article class="stat-card wide-stat"><span>Distribuição por disciplina</span><strong>${Object.entries(dist).map(([d,n])=>`${escapeHTML(d)} (${n})`).join(", ")||"-"}</strong></article>`;
   if (mode==="daily") { const av=availabilityForDate(date); elements.goalCalendarContent.innerHTML = `<h3>${date} — ${escapeHTML(av.type)}</h3><p class="item-meta">Horas disponíveis: ${av.hours}h</p>` + (goals.map(goalCalendarCard).join("") || "Nenhuma meta para a data."); }
@@ -955,12 +1036,12 @@ elements.generateMonthGoals?.addEventListener("click", generateMonthGoals);
 [elements.calendarDate, elements.calendarViewMode].filter(Boolean).forEach((el)=>el.addEventListener("change", renderGoalCalendar));
 elements.disciplineWeightsList?.addEventListener("change", (event)=>{ const d=event.target.dataset.disciplineWeight; if(d){ state.disciplineWeights[d]=Number(event.target.value)||3; render(); }});
 [elements.monthlyTopicGoal, elements.monthlyHourGoal].filter(Boolean).forEach((el)=>el.addEventListener("change",()=>{ const key=(elements.calendarDate?.value||todayISO()).slice(0,7); state.monthlyGoals[key]={ topics:Number(elements.monthlyTopicGoal.value)||0, hours:Number(elements.monthlyHourGoal.value)||0 }; render(); }));
-elements.goalCalendarContent?.addEventListener("click", (event)=>{ const b=event.target.closest("button[data-calendar-action],button[data-register-goal]"); if(!b) return; if(b.dataset.registerGoal) return fillQuestionFromGoal(b.dataset.registerGoal); const goal=state.dailyGoals.find(g=>g.id===b.dataset.id); if(!goal) return; if(b.dataset.calendarAction==="done") updateGoalDone(goal); if(b.dataset.calendarAction==="postpone") goal.status="Adiada"; if(b.dataset.calendarAction==="time") goal.actualMinutes=Number(prompt("Minutos realizados", goal.actualMinutes||goal.minutes||0))||0; if(b.dataset.calendarAction==="edit") { elements.goalDate.value=goal.date; elements.goalDiscipline.value=goal.discipline; optionsForItems(elements.goalSyllabusItem, goal.discipline, goal.syllabusItemId); elements.goalSyllabusItem.value=goal.syllabusItemId; elements.goalType.value=goal.type; elements.goalMinutes.value=goal.minutes; elements.goalActualMinutes.value=goal.actualMinutes||0; elements.goalPriority.value=goal.priority; elements.goalStatus.value=goal.status; elements.goalNotes.value=goal.notes||""; showView("metas-do-dia"); } render(); });
+elements.goalCalendarContent?.addEventListener("click", (event)=>{ const b=event.target.closest("button[data-calendar-action],button[data-register-goal]"); if(!b) return; if(b.dataset.registerGoal) return fillQuestionFromGoal(b.dataset.registerGoal); const goal=state.dailyGoals.find(g=>g.id===b.dataset.id); if(!goal) return; if(b.dataset.calendarAction==="done") updateGoalDone(goal); if(b.dataset.calendarAction==="postpone") postponeGoal(goal); if(b.dataset.calendarAction==="time") registerGoalTime(goal); if(b.dataset.calendarAction==="edit") editGoal(goal); render(); });
 elements.goalDiscipline.addEventListener("change", () => optionsForItems(elements.goalSyllabusItem, elements.goalDiscipline.value));
 elements.questionDiscipline.addEventListener("change", () => optionsForItems(elements.questionSyllabusItem, elements.questionDiscipline.value));
 elements.goalSyllabusItem.addEventListener("change", () => { const item = getSyllabusById(elements.goalSyllabusItem.value); if (item) { elements.goalDiscipline.value = item.discipline; elements.goalPriority.value = item.priority; elements.goalType.value = goalTypeForItem(item); } });
 elements.goalForm.addEventListener("submit", (event) => { event.preventDefault(); const item = getSyllabusById(elements.goalSyllabusItem.value); if (!item) return alert("Selecione um assunto do edital verticalizado."); state.dailyGoals.push({ id: createId(), date: elements.goalDate.value, discipline: elements.goalDiscipline.value, syllabusItemId: item.id, subject: item.subject, type: elements.goalType.value, minutes: Number(elements.goalMinutes.value), priority: elements.goalPriority.value, status: elements.goalStatus.value, actualMinutes: Number(elements.goalActualMinutes?.value) || 0, studyStatus: elements.goalStudyStatus?.value || "Iniciado", notes: elements.goalNotes.value.trim() }); elements.goalForm.reset(); elements.goalDate.value = todayISO(); render(); });
-elements.dailyGoalsList.addEventListener("click", (event) => { const button = event.target.closest("button[data-register-goal]"); if (button) fillQuestionFromGoal(button.dataset.registerGoal); const action = event.target.closest("button[data-goal-action]"); if (action) { const goal = state.dailyGoals.find((g) => g.id === action.dataset.id); if (goal) { goal.status = action.dataset.goalAction; if (goal.status === "Concluída" && !goal.actualMinutes) goal.actualMinutes = goal.minutes; if (goal.status === "Concluída") updateGoalDone(goal); render(); } } });
+elements.dailyGoalsList.addEventListener("click", (event) => { const button = event.target.closest("button[data-register-goal]"); if (button) fillQuestionFromGoal(button.dataset.registerGoal); const action = event.target.closest("button[data-goal-action]"); if (action) { const goal = state.dailyGoals.find((g) => g.id === action.dataset.id); if (goal) { if (action.dataset.goalAction === "Adiada") postponeGoal(goal); else { goal.status = action.dataset.goalAction; if (goal.status === "Concluída") updateGoalDone(goal); } render(); } } });
 elements.dailyGoalsList.addEventListener("change", (event) => { const id = event.target.dataset.goalStatus; if (!id) return; const goal = state.dailyGoals.find((g) => g.id === id); if (goal) { goal.status = event.target.value; render(); } });
 [elements.questionTotal, elements.questionCorrect, elements.questionWrong, elements.questionBlank].forEach((input) => input.addEventListener("input", updateQuestionCalculated));
 elements.questionForm.addEventListener("submit", saveQuestionLog);
@@ -987,6 +1068,7 @@ document.addEventListener("click", (event) => { const open = event.target.closes
 mergeCompatibleLocalStorageData();
 renderMotivationalPhrase();
 render();
+showStorageWarningIfNeeded();
 
 const viewLinks = [...document.querySelectorAll("[data-view-link]")];
 const viewPanels = [...document.querySelectorAll(".app-view")];
