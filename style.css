@@ -162,3 +162,50 @@ textarea:focus { outline: 3px solid rgba(37, 99, 235, .18); border-color: var(--
 .nav-links a { color: #fff; text-decoration: none; border: 1px solid rgba(255,255,255,.25); border-radius: 999px; padding: 8px 12px; font-weight: 700; }
 textarea { width: 100%; border-radius: 14px; border: 1px solid var(--border); padding: 12px 14px; font: inherit; resize: vertical; }
 @media (max-width: 760px) { .section-heading.inline { align-items: stretch; flex-direction: column; } }
+
+.app-layout {
+  max-width: 1360px;
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.screen-stage { min-width: 0; }
+.side-nav {
+  position: sticky;
+  top: 18px;
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  background: rgba(255,255,255,.92);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+}
+.side-nav-title { color: var(--muted); font-size: .78rem; font-weight: 900; text-transform: uppercase; letter-spacing: .12em; margin-bottom: 4px; }
+.side-nav a, .nav-links a {
+  text-decoration: none;
+  font-weight: 800;
+  transition: .2s ease;
+}
+.side-nav a {
+  color: #334155;
+  border-radius: 14px;
+  padding: 11px 12px;
+}
+.side-nav a:hover, .side-nav a.active { background: #eff6ff; color: var(--primary-dark); }
+.nav-links a.active { background: rgba(255,255,255,.95); color: #1e3a8a; border-color: rgba(255,255,255,.95); }
+.app-screen { display: none; }
+.app-screen.active { display: block; animation: screenIn .18s ease; }
+.grid-layout.app-screen.active { display: grid; }
+.dashboard-tools.app-screen.active { margin-top: 22px; }
+.menu-toggle { display: none; width: auto; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.32); }
+@keyframes screenIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 1050px) {
+  .app-layout { grid-template-columns: 1fr; }
+  .side-nav { display: none; }
+  .menu-toggle { display: inline-flex; align-items: center; justify-content: center; }
+  .nav-links { display: none; width: 100%; }
+  .nav-links.open { display: flex; }
+}
