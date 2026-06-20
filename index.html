@@ -27,6 +27,7 @@
         <a href="#planejamento" data-view-link="planejamento">Planejamento</a>
         <a href="#progresso" data-view-link="progresso">Progresso</a>
         <a href="#metas-do-dia" data-view-link="metas-do-dia">Metas do Dia</a>
+        <a href="#calendario-metas" data-view-link="calendario-metas">Calendário de Metas</a>
         <a href="#questoes" data-view-link="questoes">Questões</a>
         <a href="#simulados" data-view-link="simulados">Simulados</a>
         <a href="#historico-questoes" data-view-link="historico-questoes">Histórico de Questões</a>
@@ -63,6 +64,7 @@
       <a href="#planejamento" data-view-link="planejamento">Planejamento</a>
       <a href="#progresso" data-view-link="progresso">Progresso</a>
       <a href="#metas-do-dia" data-view-link="metas-do-dia">Metas do Dia</a>
+      <a href="#calendario-metas" data-view-link="calendario-metas">Calendário de Metas</a>
       <a href="#questoes" data-view-link="questoes">Questões</a>
       <a href="#simulados" data-view-link="simulados">Simulados</a>
       <a href="#historico-questoes" data-view-link="historico-questoes">Histórico de Questões</a>
@@ -97,6 +99,13 @@
         <article class="stat-card"><span>Materiais cadastrados</span><strong id="materialsTotal">0</strong></article>
         <article class="stat-card"><span>Disciplinas com materiais</span><strong id="materialDisciplinesTotal">0</strong></article>
         <article class="stat-card"><span>Assuntos com materiais</span><strong id="materialTopicsTotal">0</strong></article>
+        <article class="stat-card"><span>Metas de hoje</span><strong id="todayGoalsTotal">0</strong></article>
+        <article class="stat-card"><span>Metas da semana</span><strong id="weekGoalsTotal">0</strong></article>
+        <article class="stat-card"><span>Cumprimento semanal</span><strong id="weekGoalRate">0%</strong></article>
+        <article class="stat-card"><span>Cumprimento mensal</span><strong id="monthGoalRate">0%</strong></article>
+        <article class="stat-card wide-stat"><span>Próxima meta</span><strong id="nextGoalLabel">-</strong></article>
+        <article class="stat-card wide-stat"><span>Disciplina mais priorizada na semana</span><strong id="weekTopDiscipline">-</strong></article>
+        <article class="stat-card wide-stat"><span>Disciplina mais atrasada</span><strong id="mostDelayedDiscipline">-</strong></article>
         <article class="stat-card"><span>Metas pendentes hoje</span><strong id="todayPendingGoals">0</strong></article>
         <article class="stat-card"><span>Metas concluídas hoje</span><strong id="todayDoneGoals">0</strong></article>
         <article class="stat-card"><span>Não iniciados</span><strong id="notStartedTotal">0</strong></article>
@@ -305,13 +314,25 @@
         <label>Tempo real (min)<input id="goalActualMinutes" type="number" min="0" value="0" /></label>
         <label>Status do estudo<select id="goalStudyStatus"><option>Iniciado</option><option>Concluído</option></select></label>
         <label>Prioridade<select id="goalPriority"><option>Alta</option><option selected>Média</option><option>Baixa</option></select></label>
-        <label>Status<select id="goalStatus"><option selected>Pendente</option><option>Concluída</option><option>Adiada</option><option>Ignorada</option></select></label>
+        <label>Status<select id="goalStatus"><option selected>Pendente</option><option>Concluída</option><option>Adiada</option><option>Não cumprida</option><option>Ignorada</option></select></label>
         <label class="wide">Observações / dificuldade<textarea id="goalNotes" rows="3"></textarea></label>
         <button class="wide" type="submit">Salvar meta manual</button>
       </form>
       <div id="dailyGoalsList" class="cards-list empty-message" aria-live="polite"></div>
     </section>
 
+    <section id="view-calendario-metas" class="panel app-view" data-view="calendario-metas" aria-labelledby="goal-calendar-title">
+      <div class="section-heading inline"><div><p class="eyebrow">Calendário visual</p><h2 id="goal-calendar-title">Calendário de Metas</h2></div><div class="actions"><button id="generateWeekGoals" type="button">Gerar metas da semana</button><button id="generateMonthGoals" class="secondary-button" type="button">Gerar base do mês</button></div></div>
+      <p class="notice">Alterne entre visão diária, semanal e mensal. A geração automática usa pesos manuais, atraso, assuntos pendentes, desempenho em questões/simulados, revisões e disponibilidade do Planejamento.</p>
+      <div class="calendar-toolbar form-grid compact">
+        <label>Data de referência<input id="calendarDate" type="date" /></label>
+        <label>Visão<select id="calendarViewMode"><option value="daily">Diário</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option></select></label>
+      </div>
+      <article class="bulk-box"><h3>Peso/incidência por disciplina</h3><p class="item-meta">Configure manualmente a incidência. Sem configuração, o sistema usa peso médio.</p><div id="disciplineWeightsList" class="cards-list"></div></article>
+      <div id="goalCalendarStats" class="stats-grid compact"></div>
+      <div id="goalCalendarContent" class="goal-calendar empty-message" aria-live="polite"></div>
+      <article class="bulk-box"><h3>Planejamento mensal</h3><div class="form-grid compact"><label>Meta mensal de assuntos<input id="monthlyTopicGoal" type="number" min="0" /></label><label>Meta mensal de horas<input id="monthlyHourGoal" type="number" min="0" step="0.5" /></label></div><div id="monthlyPlanSummary" class="stats-grid compact"></div></article>
+    </section>
 
     <section id="view-progresso" class="panel app-view" data-view="progresso" aria-labelledby="progress-title">
       <div class="section-heading"><p class="eyebrow">Acompanhamento estratégico</p><h2 id="progress-title">Progresso do Edital</h2></div>
