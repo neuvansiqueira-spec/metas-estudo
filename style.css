@@ -588,3 +588,50 @@ tbody tr.goal-hit { background: rgba(22, 163, 74, .08); }
   .dashboard, .panel { padding: 18px; }
   .stat-card::before, .syllabus-card::before, .subject-item::before, .review-item::before, .alert-item::before { width: 3px; }
 }
+
+.daily-message-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  margin: 0 0 22px;
+  padding: 20px;
+  border: 1px solid #bed4ef;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(31, 111, 178, .14), transparent 16rem),
+    linear-gradient(135deg, #ffffff 0%, #eef6ff 72%, #fff9eb 100%);
+  box-shadow: var(--shadow-soft);
+}
+.daily-message-card h3 {
+  margin: 0 0 8px;
+  color: var(--primary-deep);
+  font-size: clamp(1.05rem, 2.2vw, 1.35rem);
+}
+.daily-message-text {
+  margin: 0;
+  color: #27415f;
+  font-size: clamp(1.05rem, 2.5vw, 1.45rem);
+  font-weight: 800;
+  line-height: 1.35;
+  text-wrap: balance;
+}
+.message-button {
+  width: auto;
+  min-width: 132px;
+  min-height: 40px;
+  padding: 9px 14px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+@media (max-width: 620px) {
+  .daily-message-card {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 18px;
+  }
+  .message-button {
+    width: 100%;
+  }
+}

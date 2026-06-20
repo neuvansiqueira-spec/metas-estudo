@@ -1,6 +1,45 @@
 const STORAGE_KEY = "metasConcursoData";
 const SIMULADOS_STORAGE_KEY = "metasEstudoSimulados";
 const todayISO = () => new Date().toISOString().slice(0, 10);
+
+const MOTIVATIONAL_MESSAGE_STORAGE_KEY = "metasEstudoMensagemMotivacionalAtual";
+const motivationalMessages = [
+  "Disciplina vence motivação.",
+  "Hoje é dia de ganhar pontos líquidos.",
+  "Cada questão corrigida diminui uma dúvida na prova.",
+  "Não estude para fechar PDF; estude para acertar questão.",
+  "Plantão passa. A aprovação fica.",
+  "O edital não se vence em um dia, mas se perde quando você para.",
+  "A constância decide antes da prova.",
+  "Menos promessa, mais execução.",
+  "A meta de hoje protege o resultado de julho.",
+  "Quem controla o edital controla a ansiedade.",
+  "Cebraspe cobra precisão; treine com critério.",
+  "Revise o erro antes que ele vire padrão.",
+  "Estudo estratégico começa pelo que mais cai.",
+  "A carreira policial exige preparo antes da posse.",
+  "Questão errada é mapa de revisão.",
+  "O plantão termina; a meta continua registrada.",
+  "Faça o básico bem feito todos os dias.",
+  "Prova objetiva premia decisão objetiva.",
+  "Controle horas, assuntos e desempenho.",
+  "Prioridade alta merece execução alta.",
+  "A banca testa detalhe; você treina método.",
+  "Avance no edital com calma e constância.",
+  "Líquido positivo nasce de erro bem corrigido.",
+  "Não conte dias; cumpra metas.",
+  "A revisão certa economiza pontos na prova.",
+  "Carreira policial começa na rotina de hoje.",
+  "Seu planejamento reduz improviso na prova.",
+  "Marque, corrija, revise e siga.",
+  "Assunto fraco precisa de ação, não culpa.",
+  "Simulado mostra caminho, não sentença.",
+  "A aprovação respeita rotina consistente.",
+  "Estude com foco no edital e na banca.",
+  "Toda sessão curta pode render avanço real.",
+  "Desempenho melhora com registro e ajuste.",
+  "Hoje você treina para decidir melhor na prova."
+];
 const defaultState = { subjects: [], studies: [], edital: { pdf: null }, syllabusItems: [], schedulableSettings: {}, dailyGoals: [], questionLogs: [], simulados: [], settings: { defaultMockGoal: 92 } };
 const state = { ...defaultState, ...(JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}) };
 state.edital = { ...defaultState.edital, ...(state.edital || {}) };
@@ -51,6 +90,7 @@ let editingSyllabusId = null;
 
 const $ = (selector) => document.querySelector(selector);
 const elements = {
+  dailyMotivationalMessage: $("#dailyMotivationalMessage"), changeMotivationalMessage: $("#changeMotivationalMessage"),
   subjectForm: $("#subjectForm"), subjectName: $("#subjectName"), subjectGoal: $("#subjectGoal"), subjectList: $("#subjectList"),
   studyForm: $("#studyForm"), studyDate: $("#studyDate"), studySubject: $("#studySubject"), studyTopic: $("#studyTopic"), studyMinutes: $("#studyMinutes"), questionsDone: $("#questionsDone"), correctAnswers: $("#correctAnswers"), wrongAnswers: $("#wrongAnswers"), blankAnswers: $("#blankAnswers"),
   todayHours: $("#todayHours"), weekHours: $("#weekHours"), weeklyGoalStatus: $("#weeklyGoalStatus"), totalQuestions: $("#totalQuestions"), accuracyRate: $("#accuracyRate"), syllabusStudied: $("#syllabusStudied"), syllabusTotal: $("#syllabusTotal"), schedulableTotal: $("#schedulableTotal"), notStartedTotal: $("#notStartedTotal"), undiagnosedTotal: $("#undiagnosedTotal"), weakTotal: $("#weakTotal"), pendingDiscipline: $("#pendingDiscipline"),
@@ -72,6 +112,21 @@ elements.goalDate.value = todayISO();
 elements.questionDate.value = todayISO();
 if (elements.mockDate) elements.mockDate.value = todayISO();
 
+
+function randomMotivationalMessageIndex(previousIndex = null) {
+  if (motivationalMessages.length <= 1) return 0;
+  let nextIndex = Math.floor(Math.random() * motivationalMessages.length);
+  while (nextIndex === previousIndex) nextIndex = Math.floor(Math.random() * motivationalMessages.length);
+  return nextIndex;
+}
+function showRandomMotivationalMessage() {
+  if (!elements.dailyMotivationalMessage) return;
+  const previousIndex = Number(localStorage.getItem(MOTIVATIONAL_MESSAGE_STORAGE_KEY));
+  const safePreviousIndex = Number.isInteger(previousIndex) ? previousIndex : null;
+  const nextIndex = randomMotivationalMessageIndex(safePreviousIndex);
+  localStorage.setItem(MOTIVATIONAL_MESSAGE_STORAGE_KEY, String(nextIndex));
+  elements.dailyMotivationalMessage.textContent = motivationalMessages[nextIndex];
+}
 function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); localStorage.setItem(SIMULADOS_STORAGE_KEY, JSON.stringify(state.simulados || [])); }
 function getProjectStorageKeys() {
   const known = [STORAGE_KEY, SIMULADOS_STORAGE_KEY, "syllabusItems", "editalVerticalizado", "edital_verticalizado", "assuntosAgendaveis", "metasDoDia", "dailyGoals"];
@@ -676,6 +731,9 @@ elements.mockExamForm?.addEventListener("submit", saveMock);
 elements.mockHistory?.addEventListener("click", (event) => { const view = event.target.closest("button[data-view-mock]"); const edit = event.target.closest("button[data-edit-mock]"); const duplicate = event.target.closest("button[data-duplicate-mock]"); const del = event.target.closest("button[data-delete-mock]"); if (view) { const m = state.simulados.find((x)=>x.id===view.dataset.viewMock); if (m) { state.simulados = state.simulados.filter((x)=>x.id!==m.id).concat(m); render(); } } if (edit) editMock(edit.dataset.editMock); if (duplicate) { const m = state.simulados.find((x)=>x.id===duplicate.dataset.duplicateMock); if (m) { state.simulados.push(prepareMock({ ...structuredClone(m), id:createId(), name:`${m.name} (cópia)` })); render(); } } if (del && confirm("Excluir este simulado?")) { state.simulados = state.simulados.filter((x)=>x.id!==del.dataset.deleteMock); render(); } });
 
 elements.questionHistoryBody.addEventListener("click", (event) => { const edit = event.target.closest("button[data-edit-question]"); const del = event.target.closest("button[data-delete-question]"); if (edit) editQuestionLog(edit.dataset.editQuestion); if (del && confirm("Excluir este lançamento de questões?")) { const log = state.questionLogs.find((q) => q.id === del.dataset.deleteQuestion); state.questionLogs = state.questionLogs.filter((q) => q.id !== del.dataset.deleteQuestion); if (log) { const item = getSyllabusById(log.syllabusItemId); if (item) recomputeSyllabusQuestionStats(item); } render(); } });
+
+elements.changeMotivationalMessage?.addEventListener("click", showRandomMotivationalMessage);
+showRandomMotivationalMessage();
 
 mergeCompatibleLocalStorageData();
 render();
