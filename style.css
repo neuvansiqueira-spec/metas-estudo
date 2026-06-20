@@ -648,3 +648,19 @@ tbody tr.goal-hit { background: rgba(22, 163, 74, .08); }
 .progress-controls label { font-size: .9rem; }
 .warning-notice { background: #fff7ed; border-color: #fed7aa; color: #9a3412; }
 @media (max-width: 760px) { .progress-controls { grid-template-columns: 1fr; } }
+
+/* Calendário de metas */
+.calendar-toolbar { margin: 14px 0 20px; }
+.weight-row { display: grid; grid-template-columns: minmax(160px, 1fr) 180px; gap: 12px; align-items: center; padding: 12px; border: 1px solid var(--border); border-radius: 16px; background: #f8fbff; }
+.goal-calendar { margin-top: 18px; }
+.calendar-grid { display: grid; gap: 12px; }
+.week-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.month-grid { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+.calendar-grid article { min-height: 120px; border: 1px solid var(--border); border-radius: 18px; padding: 12px; background: #fff; box-shadow: 0 10px 24px rgba(15, 23, 42, .06); }
+.calendar-grid article.unavailable { background: #eef2f7; color: #64748b; }
+.goal-pill { display: block; margin: 8px 0 0; padding: 8px; border-radius: 12px; background: #dbeafe; color: #1e3a8a; font-size: .84rem; }
+.goal-pill.done, .goal-status-concluida { border-color: rgba(22, 163, 74, .35); background: #ecfdf5; }
+.goal-pill.warn, .goal-status-adiada { border-color: rgba(245, 158, 11, .45); background: #fffbeb; }
+.goal-status-nao-cumprida, .goal-status-ignorada { border-color: rgba(220, 38, 38, .35); background: #fef2f2; }
+.badge.neutral { background: #e2e8f0; color: #334155; }
+@media (max-width: 720px) { .weight-row { grid-template-columns: 1fr; } .month-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
