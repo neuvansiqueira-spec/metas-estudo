@@ -1,5 +1,43 @@
 const STORAGE_KEY = "metasConcursoData";
 const SIMULADOS_STORAGE_KEY = "metasEstudoSimulados";
+const MOTIVATION_STORAGE_KEY = "metasEstudoMensagemDoDia";
+const MOTIVATIONAL_PHRASES = [
+  "Disciplina vence motivação.",
+  "Hoje é dia de ganhar pontos líquidos.",
+  "Cada questão corrigida diminui uma dúvida na prova.",
+  "Não estude para fechar PDF; estude para acertar questão.",
+  "Plantão passa. A aprovação fica.",
+  "O edital não se vence em um dia, mas se perde quando você para.",
+  "A constância decide antes da prova.",
+  "Menos promessa, mais execução.",
+  "A meta de hoje protege o resultado da prova.",
+  "Quem controla o edital controla a ansiedade.",
+  "O líquido Cebraspe melhora no detalhe.",
+  "A revisão certa vale mais que uma leitura cansada.",
+  "Erro corrigido hoje é ponto preservado na prova.",
+  "A aprovação é construída em dias comuns.",
+  "Não negocie com a procrastinação.",
+  "Pouco bem feito ainda é melhor que muito abandonado.",
+  "Sua escala muda; sua meta se adapta.",
+  "Dia de plantão pede estratégia, não culpa.",
+  "Folga bem usada vira vantagem competitiva.",
+  "A banca cobra precisão. Treine precisão.",
+  "O edital é grande, mas o controle é diário.",
+  "Hoje você não precisa vencer tudo; precisa avançar.",
+  "Questão errada sem correção vira erro repetido.",
+  "O caderno de erros é mapa de aprovação.",
+  "Não conte horas; transforme horas em acertos.",
+  "Seu estudo precisa gerar decisão de prova.",
+  "Assunto difícil não se evita, se quebra em partes.",
+  "A meta semanal organiza a ansiedade.",
+  "A prova cobra constância antes de cobrar memória.",
+  "O próximo ponto líquido começa agora.",
+  "Delegado se forma na rotina que ninguém vê.",
+  "Controle o edital antes que ele controle sua semana.",
+  "Estudo estratégico é escolher o próximo ponto possível.",
+  "Cebraspe pune descuido; sua rotina treina atenção.",
+  "A disciplina do pós-plantão também conta."
+];
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const defaultPlanning = { config: { examDate: "", scaleType: "24x72", scaleNotes: "", shiftHours: 1, restHours: 5, normalHours: 2.5, minWeeklyHours: 10, idealWeeklyHours: 18, weeklyTopics: 8, safetyDays: 7 }, availability: {}, weeklyGoals: [], forecasts: {} };
 const defaultState = { subjects: [], studies: [], edital: { pdf: null }, syllabusItems: [], schedulableSettings: {}, dailyGoals: [], questionLogs: [], simulados: [], planning: structuredClone(defaultPlanning), settings: { defaultMockGoal: 92 }, materials: [] };
@@ -57,7 +95,7 @@ const $ = (selector) => document.querySelector(selector);
 const elements = {
   subjectForm: $("#subjectForm"), subjectName: $("#subjectName"), subjectGoal: $("#subjectGoal"), subjectList: $("#subjectList"),
   studyForm: $("#studyForm"), studyDate: $("#studyDate"), studySubject: $("#studySubject"), studyTopic: $("#studyTopic"), studyMinutes: $("#studyMinutes"), studyPlannedMinutes: $("#studyPlannedMinutes"), studyTopicStatus: $("#studyTopicStatus"), studyDifficultyNotes: $("#studyDifficultyNotes"), questionsDone: $("#questionsDone"), correctAnswers: $("#correctAnswers"), wrongAnswers: $("#wrongAnswers"), blankAnswers: $("#blankAnswers"),
-  todayHours: $("#todayHours"), weekHours: $("#weekHours"), weeklyGoalStatus: $("#weeklyGoalStatus"), totalQuestions: $("#totalQuestions"), accuracyRate: $("#accuracyRate"), syllabusStudied: $("#syllabusStudied"), syllabusTotal: $("#syllabusTotal"), schedulableTotal: $("#schedulableTotal"), notStartedTotal: $("#notStartedTotal"), undiagnosedTotal: $("#undiagnosedTotal"), weakTotal: $("#weakTotal"), pendingDiscipline: $("#pendingDiscipline"), totalStudyTime: $("#totalStudyTime"), averageTimePerTopic: $("#averageTimePerTopic"), dashboardCompletionForecast: $("#dashboardCompletionForecast"), daysUntilExam: $("#daysUntilExam"), planningStatus: $("#planningStatus"),
+  todayHours: $("#todayHours"), weekHours: $("#weekHours"), weeklyGoalStatus: $("#weeklyGoalStatus"), totalQuestions: $("#totalQuestions"), accuracyRate: $("#accuracyRate"), syllabusStudied: $("#syllabusStudied"), syllabusTotal: $("#syllabusTotal"), schedulableTotal: $("#schedulableTotal"), notStartedTotal: $("#notStartedTotal"), undiagnosedTotal: $("#undiagnosedTotal"), weakTotal: $("#weakTotal"), pendingDiscipline: $("#pendingDiscipline"), totalStudyTime: $("#totalStudyTime"), averageTimePerTopic: $("#averageTimePerTopic"), dashboardCompletionForecast: $("#dashboardCompletionForecast"), daysUntilExam: $("#daysUntilExam"), planningStatus: $("#planningStatus"), dailyMotivationText: $("#dailyMotivationText"), changeMotivation: $("#changeMotivation"),
   reviewList: $("#reviewList"), alertList: $("#alertList"), historyBody: $("#historyBody"), clearData: $("#clearData"),
   editalForm: $("#editalForm"), contestName: $("#contestName"), agency: $("#agency"), role: $("#role"), board: $("#board"), examDate: $("#examDate"), officialLink: $("#officialLink"), generalNotes: $("#generalNotes"), editalPdf: $("#editalPdf"), pdfInfo: $("#pdfInfo"), removePdf: $("#removePdf"),
   syllabusForm: $("#syllabusForm"), itemDiscipline: $("#itemDiscipline"), itemTopic: $("#itemTopic"), itemSubject: $("#itemSubject"), itemSubtopic: $("#itemSubtopic"), itemReference: $("#itemReference"), itemPriority: $("#itemPriority"), itemWeight: $("#itemWeight"), itemStatus: $("#itemStatus"), itemDomain: $("#itemDomain"), itemNotes: $("#itemNotes"),
@@ -78,6 +116,19 @@ elements.goalDate.value = todayISO();
 elements.questionDate.value = todayISO();
 if (elements.mockDate) elements.mockDate.value = todayISO();
 if (elements.materialDate) elements.materialDate.value = todayISO();
+
+
+function pickMotivationalPhrase() {
+  const lastPhrase = localStorage.getItem(MOTIVATION_STORAGE_KEY);
+  const availablePhrases = MOTIVATIONAL_PHRASES.filter((phrase) => phrase !== lastPhrase);
+  const pool = availablePhrases.length ? availablePhrases : MOTIVATIONAL_PHRASES;
+  const phrase = pool[Math.floor(Math.random() * pool.length)];
+  localStorage.setItem(MOTIVATION_STORAGE_KEY, phrase);
+  return phrase;
+}
+function renderMotivationalPhrase(phrase = pickMotivationalPhrase()) {
+  if (elements.dailyMotivationText) elements.dailyMotivationText.textContent = phrase;
+}
 
 function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); localStorage.setItem(SIMULADOS_STORAGE_KEY, JSON.stringify(state.simulados || [])); }
 function getProjectStorageKeys() {
@@ -613,6 +664,7 @@ function saveMaterial(event) { event.preventDefault(); const syllabusItem = stat
 function render() { migrateIncorrectWeakDomains(); renderSubjects(); renderGoalSelectors(); renderQuestionSelectors(); renderPlanning(); renderDashboard(); renderEdital(); renderSyllabus(); renderSchedulable(); renderDailyGoals(); renderQuestionHistory(); updateQuestionCalculated(); renderMaterials(); updateStudyMaterialOptions(); renderReviews(); renderAlerts(); renderHistory(); renderImportPreview(); renderBackupSummary(); renderSimulados(); saveData(); }
 function syllabusFromValues(values) { return { id: createId(), discipline: values[0]?.trim() || "Sem disciplina", topic: values[1]?.trim() || "Geral", subject: values[2]?.trim() || "Assunto", subtopic: values[3]?.trim() || "", reference: values[4]?.trim() || "", priority: values[5]?.trim() || "Média", weight: Number(values[6]) || 1, status: values[7]?.trim() || "Não iniciado", domain: normalizeImportedDomain(values[8]), notes: values[9]?.trim() || "" }; }
 
+elements.changeMotivation?.addEventListener("click", () => renderMotivationalPhrase());
 elements.subjectForm.addEventListener("submit", (event) => { event.preventDefault(); state.subjects.push({ id: createId(), name: elements.subjectName.value.trim(), goalHours: Number(elements.subjectGoal.value) }); elements.subjectForm.reset(); render(); });
 elements.studyForm.addEventListener("submit", (event) => { event.preventDefault(); if (!elements.studySubject.value) return alert("Cadastre uma disciplina antes de registrar o estudo."); const questions = Number(elements.questionsDone.value); const correct = Number(elements.correctAnswers.value); const wrong = Number(elements.wrongAnswers.value); const blank = Number(elements.blankAnswers.value); if (correct + wrong + blank !== questions) return alert("A soma de acertos, erros e brancos deve ser igual ao total de questões feitas."); state.studies.push({ id: createId(), date: elements.studyDate.value, subjectId: elements.studySubject.value, topic: elements.studyTopic.value.trim(), minutes: Number(elements.studyMinutes.value), plannedMinutes: Number(elements.studyPlannedMinutes?.value) || 0, topicStatus: elements.studyTopicStatus?.value || "Iniciado", difficultyNotes: elements.studyDifficultyNotes?.value.trim() || "", materialId: elements.studyMaterial?.value || "", questions, correct, wrong, blank }); elements.studyForm.reset(); elements.studyDate.value = todayISO();
 elements.goalDate.value = todayISO();
@@ -827,6 +879,7 @@ elements.studyTopic?.addEventListener("input", updateStudyMaterialOptions);
 document.addEventListener("click", (event) => { const open = event.target.closest("button[data-open-material]"); const edit = event.target.closest("button[data-edit-material]"); const del = event.target.closest("button[data-delete-material]"); if (open) openMaterial(open.dataset.openMaterial); if (edit) editMaterial(edit.dataset.editMaterial); if (del && confirm("Excluir este material?")) { state.materials = state.materials.filter((m)=>m.id!==del.dataset.deleteMaterial); render(); } });
 
 mergeCompatibleLocalStorageData();
+renderMotivationalPhrase();
 render();
 
 const viewLinks = [...document.querySelectorAll("[data-view-link]")];
