@@ -164,7 +164,6 @@ function editSyllabusItem(id) {
   elements.itemDiscipline.value = item.discipline; elements.itemTopic.value = item.topic; elements.itemSubject.value = item.subject; elements.itemSubtopic.value = item.subtopic || ""; elements.itemReference.value = item.reference || ""; elements.itemPriority.value = item.priority; elements.itemWeight.value = item.weight || 1; elements.itemStatus.value = item.status; elements.itemDomain.value = item.domain; elements.itemNotes.value = item.notes || "";
   editingSyllabusId = id;
   showView("edital-verticalizado");
-  document.getElementById("vertical-title").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 
@@ -451,7 +450,6 @@ function generateDailyGoals() {
     render();
     showDailyGoalMessage("Metas do dia geradas com sucesso.", "success");
     showView("metas-do-dia");
-    document.getElementById("daily-goals-title").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (error) {
     console.error("Não foi possível gerar metas.", error);
     showDailyGoalMessage("Não foi possível gerar metas. Verifique se o edital foi importado.", "error");
@@ -467,9 +465,8 @@ function recomputeSyllabusQuestionStats(item) { const logs = state.questionLogs.
 function saveQuestionLog(event) { event.preventDefault(); const n = questionNumbers(); const error = validateQuestionLog(n); if (error) return alert(error); const item = getSyllabusById(elements.questionSyllabusItem.value); const id = elements.questionEditingId.value || createId(); const log = { id, date: elements.questionDate.value, discipline: elements.questionDiscipline.value, syllabusItemId: item.id, subject: item.subject, board: elements.questionBoard.value, total: n.total, correct: n.correct, wrong: n.wrong, blank: n.blank, accuracyRate: Number(n.accuracy.toFixed(1)), errorRate: Number(n.errorPct.toFixed(1)), blankRate: Number(n.blankPct.toFixed(1)), cebraspeNet: n.net, notes: elements.questionNotes.value.trim(), trainingType: elements.questionTrainingType.value, origin: elements.questionOrigin.value || "avulso", linkedGoalId: elements.questionLinkedGoalId.value || "" }; const idx = state.questionLogs.findIndex((q) => q.id === id); if (idx >= 0) state.questionLogs[idx] = log; else state.questionLogs.push(log); recomputeSyllabusQuestionStats(item); alert(analysisMessage(n)); if (log.linkedGoalId && confirm("Deseja marcar a meta vinculada como concluída?")) { const goal = state.dailyGoals.find((g) => g.id === log.linkedGoalId); if (goal) goal.status = "Concluída"; } elements.questionForm.reset(); elements.questionEditingId.value = ""; elements.questionLinkedGoalId.value = ""; elements.questionOrigin.value = "avulso"; elements.questionDate.value = todayISO(); render(); }
 function getQuestionTotals() { return state.questionLogs.reduce((a,l) => ({ total:a.total+l.total, correct:a.correct+l.correct, wrong:a.wrong+l.wrong, blank:a.blank+l.blank, net:a.net+l.cebraspeNet }), { total:0, correct:0, wrong:0, blank:0, net:0 }); }
 function renderQuestionHistory() { const filtered = state.questionLogs.filter((log) => (!elements.questionFilterDiscipline.value || log.discipline === elements.questionFilterDiscipline.value) && (!elements.questionFilterSubject.value || log.syllabusItemId === elements.questionFilterSubject.value) && (!elements.questionFilterBoard.value || log.board === elements.questionFilterBoard.value)).sort((a,b) => b.date.localeCompare(a.date)); elements.questionHistoryBody.innerHTML = filtered.map((log) => `<tr><td>${log.date}</td><td>${escapeHTML(log.discipline)}</td><td>${escapeHTML(log.subject)}</td><td>${escapeHTML(log.board)}</td><td>${log.total}</td><td>${log.correct}</td><td>${log.wrong}</td><td>${log.blank}</td><td>${log.accuracyRate}%</td><td>${log.cebraspeNet}</td><td>${escapeHTML(log.origin)}</td><td>${escapeHTML(log.notes || "-")}</td><td><button type="button" data-edit-question="${log.id}">Editar</button><button class="danger" type="button" data-delete-question="${log.id}">Excluir</button></td></tr>`).join(""); }
-function fillQuestionFromGoal(goalId) { const goal = state.dailyGoals.find((g) => g.id === goalId); if (!goal) return; elements.questionDate.value = goal.date; elements.questionDiscipline.value = goal.discipline; optionsForItems(elements.questionSyllabusItem, goal.discipline, goal.syllabusItemId); elements.questionSyllabusItem.value = goal.syllabusItemId; elements.questionOrigin.value = "meta do dia"; elements.questionLinkedGoalId.value = goal.id; showView("questoes");
-  document.getElementById("questions-title").scrollIntoView({ behavior: "smooth", block: "start" }); }
-function editQuestionLog(id) { const log = state.questionLogs.find((q) => q.id === id); if (!log) return; elements.questionEditingId.value = log.id; elements.questionDate.value = log.date; elements.questionDiscipline.value = log.discipline; optionsForItems(elements.questionSyllabusItem, log.discipline, log.syllabusItemId); elements.questionSyllabusItem.value = log.syllabusItemId; elements.questionBoard.value = log.board; elements.questionTrainingType.value = log.trainingType; elements.questionTotal.value = log.total; elements.questionCorrect.value = log.correct; elements.questionWrong.value = log.wrong; elements.questionBlank.value = log.blank; elements.questionNotes.value = log.notes; elements.questionOrigin.value = log.origin; elements.questionLinkedGoalId.value = log.linkedGoalId; updateQuestionCalculated(); showView("questoes"); document.getElementById("questions-title").scrollIntoView({ behavior: "smooth", block: "start" }); }
+function fillQuestionFromGoal(goalId) { const goal = state.dailyGoals.find((g) => g.id === goalId); if (!goal) return; elements.questionDate.value = goal.date; elements.questionDiscipline.value = goal.discipline; optionsForItems(elements.questionSyllabusItem, goal.discipline, goal.syllabusItemId); elements.questionSyllabusItem.value = goal.syllabusItemId; elements.questionOrigin.value = "meta do dia"; elements.questionLinkedGoalId.value = goal.id; showView("questoes"); }
+function editQuestionLog(id) { const log = state.questionLogs.find((q) => q.id === id); if (!log) return; elements.questionEditingId.value = log.id; elements.questionDate.value = log.date; elements.questionDiscipline.value = log.discipline; optionsForItems(elements.questionSyllabusItem, log.discipline, log.syllabusItemId); elements.questionSyllabusItem.value = log.syllabusItemId; elements.questionBoard.value = log.board; elements.questionTrainingType.value = log.trainingType; elements.questionTotal.value = log.total; elements.questionCorrect.value = log.correct; elements.questionWrong.value = log.wrong; elements.questionBlank.value = log.blank; elements.questionNotes.value = log.notes; elements.questionOrigin.value = log.origin; elements.questionLinkedGoalId.value = log.linkedGoalId; updateQuestionCalculated(); showView("questoes"); }
 
 if (elements.generateDailyGoals) elements.generateDailyGoals.addEventListener("click", generateDailyGoals);
 elements.goalDiscipline.addEventListener("change", () => optionsForItems(elements.goalSyllabusItem, elements.goalDiscipline.value));
@@ -487,7 +484,7 @@ mergeCompatibleLocalStorageData();
 render();
 
 const viewLinks = [...document.querySelectorAll("[data-view-link]")];
-const viewPanels = [...document.querySelectorAll(".app-view[data-view]")];
+const viewPanels = [...document.querySelectorAll(".app-view")];
 const viewAliases = { verticalizado: "edital-verticalizado" };
 const viewIds = new Set(viewPanels.map((panel) => panel.dataset.view));
 const menuToggle = document.getElementById("menuToggle");
@@ -503,11 +500,28 @@ function hashToView() {
   return viewIds.has(view) ? view : "dashboard";
 }
 
+function renderView(viewId) {
+  const renderers = {
+    dashboard: () => { renderDashboard(); renderSubjects(); },
+    edital: renderEdital,
+    "edital-verticalizado": renderSyllabus,
+    "importar-edital": renderImportPreview,
+    "assuntos-agendaveis": renderSchedulable,
+    "metas-do-dia": () => { renderGoalSelectors(); renderDailyGoals(); },
+    questoes: () => { renderQuestionSelectors(); updateQuestionCalculated(); },
+    "historico-questoes": () => { renderQuestionSelectors(); renderQuestionHistory(); },
+    revisoes: () => { renderReviews(); renderAlerts(); },
+    historico: renderHistory,
+    "como-usar": () => {}
+  };
+  renderers[viewId]?.();
+}
+
 function showView(viewId = hashToView(), options = {}) {
   const target = viewIds.has(normalizeViewId(viewId)) ? normalizeViewId(viewId) : "dashboard";
 
   viewPanels.forEach((panel) => {
-    const active = panel.dataset.view === target;
+    const active = panel.id === `view-${target}`;
     panel.classList.toggle("active", active);
     panel.toggleAttribute("hidden", !active);
   });
@@ -525,6 +539,7 @@ function showView(viewId = hashToView(), options = {}) {
 
   if (mainMenu && !options.keepMenuOpen) mainMenu.classList.remove("open");
   if (menuToggle) menuToggle.setAttribute("aria-expanded", mainMenu?.classList.contains("open") ? "true" : "false");
+  renderView(target);
   if (!options.skipScroll) document.querySelector(".screen-stage")?.scrollIntoView({ block: "start" });
 }
 
