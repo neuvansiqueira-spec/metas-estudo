@@ -52,22 +52,34 @@
 
   <main class="container app-layout">
     <aside class="side-nav" aria-label="Menu de telas">
-      <div class="side-nav-title">Telas</div>
-      <a href="#dashboard" data-view-link="dashboard">Dashboard</a>
-      <a href="#edital" data-view-link="edital">Edital</a>
-      <a href="#edital-verticalizado" data-view-link="edital-verticalizado">Edital Verticalizado</a>
-      <a href="#importar-edital" data-view-link="importar-edital">Importar Edital</a>
-      <a href="#assuntos-agendaveis" data-view-link="assuntos-agendaveis">Assuntos Agendáveis</a>
-      <a href="#materiais" data-view-link="materiais">Materiais</a>
-      <a href="#planejamento" data-view-link="planejamento">Planejamento</a>
-      <a href="#metas-do-dia" data-view-link="metas-do-dia">Metas do Dia</a>
-      <a href="#questoes" data-view-link="questoes">Questões</a>
-      <a href="#simulados" data-view-link="simulados">Simulados</a>
-      <a href="#historico-questoes" data-view-link="historico-questoes">Histórico de Questões</a>
-      <a href="#revisoes" data-view-link="revisoes">Revisões</a>
-      <a href="#historico" data-view-link="historico">Histórico</a>
-      <a href="#backup" data-view-link="backup">Backup</a>
-      <a href="#como-usar" data-view-link="como-usar">Como usar</a>
+      <div class="side-nav-title">Menu</div>
+      <div class="side-nav-section" aria-labelledby="menu-principal">
+        <div id="menu-principal" class="side-nav-heading">Principal</div>
+        <a href="#dashboard" data-view-link="dashboard">Dashboard</a>
+        <a href="#planejamento" data-view-link="planejamento">Planejamento</a>
+      </div>
+      <div class="side-nav-section" aria-labelledby="menu-edital">
+        <div id="menu-edital" class="side-nav-heading">Edital</div>
+        <a href="#edital" data-view-link="edital">Edital</a>
+        <a href="#edital-verticalizado" data-view-link="edital-verticalizado">Edital Verticalizado</a>
+        <a href="#importar-edital" data-view-link="importar-edital">Importar Edital</a>
+        <a href="#assuntos-agendaveis" data-view-link="assuntos-agendaveis">Assuntos Agendáveis</a>
+        <a href="#materiais" data-view-link="materiais">Materiais</a>
+      </div>
+      <div class="side-nav-section" aria-labelledby="menu-execucao">
+        <div id="menu-execucao" class="side-nav-heading">Execução</div>
+        <a href="#metas-do-dia" data-view-link="metas-do-dia">Metas do Dia</a>
+        <a href="#questoes" data-view-link="questoes">Questões</a>
+        <a href="#simulados" data-view-link="simulados">Simulados</a>
+        <a href="#revisoes" data-view-link="revisoes">Revisões</a>
+      </div>
+      <div class="side-nav-section" aria-labelledby="menu-sistema">
+        <div id="menu-sistema" class="side-nav-heading">Histórico e Sistema</div>
+        <a href="#historico-questoes" data-view-link="historico-questoes">Histórico de Questões</a>
+        <a href="#historico" data-view-link="historico">Histórico</a>
+        <a href="#backup" data-view-link="backup">Backup</a>
+        <a href="#como-usar" data-view-link="como-usar">Como usar</a>
+      </div>
     </aside>
     <div class="screen-stage">
     <section id="view-dashboard" class="dashboard app-view" data-view="dashboard" aria-labelledby="dashboard-title">

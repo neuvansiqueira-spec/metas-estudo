@@ -629,3 +629,210 @@ tbody tr.goal-hit { background: rgba(22, 163, 74, .08); }
 .linked-materials strong { color: #1e3a8a; }
 #materialsList .card-meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 @media (max-width: 620px) { #materialsList .card-meta-grid { grid-template-columns: 1fr; } }
+
+/* Accessibility and zoom resilience improvements */
+html {
+  overflow-x: hidden;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+button,
+input,
+select,
+textarea,
+.side-nav a,
+.nav-links a {
+  line-height: 1.35;
+}
+
+.app-layout {
+  align-items: start;
+}
+
+.screen-stage {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.side-nav {
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  align-content: start;
+}
+
+.side-nav-section {
+  display: grid;
+  gap: 4px;
+  padding: 8px 0 10px;
+  border-top: 1px solid rgba(212, 223, 235, .8);
+}
+
+.side-nav-section:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.side-nav-heading {
+  padding: 4px 10px;
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.side-nav a {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  overflow-wrap: anywhere;
+}
+
+.side-nav a.active {
+  outline: 2px solid rgba(199, 154, 59, .45);
+  outline-offset: -2px;
+}
+
+.side-nav a:focus-visible,
+.nav-links a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(199, 154, 59, .75);
+  outline-offset: 2px;
+}
+
+.form-grid {
+  grid-template-columns: repeat(2, minmax(min(100%, 18rem), 1fr));
+}
+
+input,
+select,
+textarea {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.panel,
+.dashboard,
+.stat-card,
+.syllabus-card,
+.bulk-box,
+.discipline-entry,
+.subject-item,
+.review-item,
+.alert-item {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.table-wrapper,
+.cards-list,
+.list,
+.review-list,
+.alert-list,
+.backup-preview,
+.discipline-list,
+#syllabusList,
+#materialList {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-wrapper table {
+  width: max-content;
+  min-width: 100%;
+}
+
+.actions,
+.card-actions,
+.subject-item,
+.syllabus-card header,
+.daily-message-card {
+  min-width: 0;
+}
+
+.actions > *,
+.card-actions > * {
+  min-width: min(100%, 10rem);
+}
+
+.topbar {
+  min-width: 0;
+}
+
+.nav-links {
+  max-width: 100%;
+}
+
+@media (min-width: 1051px) {
+  .nav-links {
+    display: none;
+  }
+
+  .menu-toggle {
+    display: none;
+  }
+}
+
+@media (max-width: 1050px) {
+  .nav-links.open {
+    max-height: min(72dvh, 34rem);
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+  }
+}
+
+@media (max-width: 760px) {
+  .hero {
+    padding-bottom: 64px;
+  }
+
+  .hero-content {
+    gap: 24px;
+  }
+
+  .daily-message-card,
+  .subject-item,
+  .syllabus-card header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .card-actions label,
+  .card-actions select,
+  .card-actions button,
+  .actions button,
+  .actions select,
+  .show-more {
+    width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .hero,
+  .container {
+    padding-inline: 10px;
+  }
+
+  .dashboard,
+  .panel {
+    padding: 16px;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    padding-inline: 12px;
+  }
+}
