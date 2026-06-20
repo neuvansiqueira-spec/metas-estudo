@@ -198,7 +198,7 @@ textarea { width: 100%; border-radius: 14px; border: 1px solid var(--border); pa
 .app-view { display: none; }
 .app-view.active { display: block; animation: screenIn .18s ease; }
 .grid-layout.app-view.active { display: grid; }
-.dashboard-tools.app-view.active { margin-top: 22px; }
+.dashboard-tools { margin-top: 22px; }
 .menu-toggle { display: none; width: auto; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.32); }
 @keyframes screenIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
