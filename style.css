@@ -629,3 +629,22 @@ tbody tr.goal-hit { background: rgba(22, 163, 74, .08); }
 .linked-materials strong { color: #1e3a8a; }
 #materialsList .card-meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 @media (max-width: 620px) { #materialsList .card-meta-grid { grid-template-columns: 1fr; } }
+
+.progress-dashboard-card { margin: 22px 0; }
+.text-link { color: var(--primary); font-weight: 900; text-decoration: none; }
+.text-link:hover { text-decoration: underline; }
+.progress-summary { display: grid; gap: 14px; }
+.progress-summary strong { display: block; color: var(--primary); font-size: clamp(2.2rem, 6vw, 4rem); line-height: 1; }
+.progress-summary span { color: var(--muted); font-weight: 800; }
+.progress-main { margin: 18px 0; padding: 18px; border: 1px solid var(--border); border-radius: 22px; background: #f8fbff; }
+.progress-main h3 { margin: 0 0 12px; color: var(--primary-dark); }
+.progress { width: 100%; height: 12px; overflow: hidden; border-radius: 999px; background: #dbeafe; border: 1px solid #bfdbfe; }
+.progress span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--primary), var(--success)); }
+.progress-cards .stat-card strong { font-size: clamp(1.25rem, 3vw, 2rem); }
+.strategic-alerts { margin: 18px 0; }
+.strategic-alerts .alert-item { display: grid; gap: 8px; }
+.progress-discipline-list .syllabus-card { background: linear-gradient(180deg, #fff, #f8fbff); }
+.progress-controls { display: grid; grid-template-columns: 220px minmax(240px, 1fr); gap: 12px; padding-top: 10px; border-top: 1px dashed var(--border); }
+.progress-controls label { font-size: .9rem; }
+.warning-notice { background: #fff7ed; border-color: #fed7aa; color: #9a3412; }
+@media (max-width: 760px) { .progress-controls { grid-template-columns: 1fr; } }
