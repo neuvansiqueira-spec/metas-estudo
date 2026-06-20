@@ -22,6 +22,9 @@
         <a href="#vertical-title">Edital Verticalizado</a>
         <a href="#import-title">Importar Edital Verticalizado</a>
         <a href="#schedulable-title">Assuntos Agendáveis</a>
+        <a href="#daily-goals-title">Metas do Dia</a>
+        <a href="#questions-title">Questões</a>
+        <a href="#question-history-title">Histórico de Questões</a>
         <a href="#como-rodar">Como usar</a>
       </div>
     </nav>
@@ -50,10 +53,13 @@
         <article class="stat-card"><span>Horas hoje</span><strong id="todayHours">0h</strong></article>
         <article class="stat-card"><span>Horas na semana</span><strong id="weekHours">0h</strong></article>
         <article class="stat-card"><span>Questões feitas</span><strong id="totalQuestions">0</strong></article>
-        <article class="stat-card"><span>Percentual de acertos</span><strong id="accuracyRate">0%</strong></article>
+        <article class="stat-card"><span>Percentual geral de acerto</span><strong id="accuracyRate">0%</strong></article>
+        <article class="stat-card"><span>Líquido Cebraspe geral</span><strong id="generalCebraspeNet">0</strong></article>
         <article class="stat-card"><span>Edital estudado</span><strong id="syllabusStudied">0%</strong></article>
         <article class="stat-card"><span>Assuntos cadastrados</span><strong id="syllabusTotal">0</strong></article>
         <article class="stat-card"><span>Assuntos agendáveis</span><strong id="schedulableTotal">0</strong></article>
+        <article class="stat-card"><span>Metas pendentes hoje</span><strong id="todayPendingGoals">0</strong></article>
+        <article class="stat-card"><span>Metas concluídas hoje</span><strong id="todayDoneGoals">0</strong></article>
         <article class="stat-card"><span>Não iniciados</span><strong id="notStartedTotal">0</strong></article>
         <article class="stat-card"><span>Assuntos sem diagnóstico</span><strong id="undiagnosedTotal">0</strong><small>Assuntos sem diagnóstico são conteúdos ainda sem estudo, revisão ou questões registradas.</small></article>
         <article class="stat-card"><span>Assuntos fracos</span><strong id="weakTotal">0</strong><small>Assuntos fracos são definidos por baixo desempenho ou marcação manual.</small></article>
@@ -178,6 +184,55 @@
       <div class="section-heading"><p class="eyebrow">Planejamento futuro</p><h2 id="schedulable-title">Assuntos Agendáveis</h2></div>
       <p class="item-meta">Esta tela é alimentada pelos itens do edital verticalizado. Defina como cada assunto poderá entrar nas suas metas.</p>
       <div id="schedulableList" class="cards-list empty-message"></div>
+    </section>
+
+
+
+    <section class="panel" aria-labelledby="daily-goals-title">
+      <div class="section-heading inline"><div><p class="eyebrow">Planejamento diário</p><h2 id="daily-goals-title">Metas do Dia</h2></div><button id="generateDailyGoals" type="button">Gerar metas do dia</button></div>
+      <p class="notice">As metas são criadas a partir dos assuntos agendáveis do edital verticalizado, priorizando alta prioridade, não iniciados, sem diagnóstico, fracos e disciplinas com mais pendências.</p>
+      <form id="goalForm" class="form-grid">
+        <label>Data<input id="goalDate" type="date" required /></label>
+        <label>Disciplina<select id="goalDiscipline" required></select></label>
+        <label class="wide">Assunto<select id="goalSyllabusItem" required></select></label>
+        <label>Tipo da meta<select id="goalType"><option>Estudo novo</option><option>Revisão</option><option>Questões</option><option>Simulado</option><option>Reforço</option></select></label>
+        <label>Tempo sugerido (min)<input id="goalMinutes" type="number" min="1" value="50" required /></label>
+        <label>Prioridade<select id="goalPriority"><option>Alta</option><option selected>Média</option><option>Baixa</option></select></label>
+        <label>Status<select id="goalStatus"><option selected>Pendente</option><option>Concluída</option><option>Adiada</option><option>Ignorada</option></select></label>
+        <label class="wide">Observações<textarea id="goalNotes" rows="3"></textarea></label>
+        <button class="wide" type="submit">Salvar meta manual</button>
+      </form>
+      <div id="dailyGoalsList" class="cards-list empty-message" aria-live="polite"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="questions-title">
+      <div class="section-heading"><p class="eyebrow">Desempenho</p><h2 id="questions-title">Questões</h2></div>
+      <form id="questionForm" class="form-grid">
+        <input id="questionEditingId" type="hidden" /><input id="questionLinkedGoalId" type="hidden" /><input id="questionOrigin" type="hidden" value="avulso" />
+        <label>Data<input id="questionDate" type="date" required /></label>
+        <label>Disciplina<select id="questionDiscipline" required></select></label>
+        <label class="wide">Assunto<select id="questionSyllabusItem" required></select></label>
+        <label>Banca<select id="questionBoard"><option>Cebraspe</option><option>FGV</option><option>FCC</option><option>Vunesp</option><option>Instituto AOCP</option><option>Cesgranrio</option><option>Outra</option></select></label>
+        <label>Tipo de treino<select id="questionTrainingType"><option>Questões avulsas</option><option>Caderno de erros</option><option>Simulado</option><option>Revisão</option><option>Pós-aula</option></select></label>
+        <label>Total de questões<input id="questionTotal" type="number" min="1" required /></label>
+        <label>Acertos<input id="questionCorrect" type="number" min="0" value="0" required /></label>
+        <label>Erros<input id="questionWrong" type="number" min="0" value="0" required /></label>
+        <label>Brancos<input id="questionBlank" type="number" min="0" value="0" required /></label>
+        <label class="wide">Observações<textarea id="questionNotes" rows="3"></textarea></label>
+        <div id="questionCalculated" class="calculation-box wide">Preencha os números para calcular percentuais e líquido.</div>
+        <div id="questionAnalysis" class="notice wide"></div>
+        <button class="wide" type="submit">Salvar lançamento de questões</button>
+      </form>
+    </section>
+
+    <section class="panel" aria-labelledby="question-history-title">
+      <div class="section-heading"><p class="eyebrow">Histórico</p><h2 id="question-history-title">Histórico de Questões</h2></div>
+      <div class="filters form-grid compact">
+        <label>Disciplina<select id="questionFilterDiscipline"><option value="">Todas</option></select></label>
+        <label>Assunto<select id="questionFilterSubject"><option value="">Todos</option></select></label>
+        <label>Banca<select id="questionFilterBoard"><option value="">Todas</option><option>Cebraspe</option><option>FGV</option><option>FCC</option><option>Vunesp</option><option>Instituto AOCP</option><option>Cesgranrio</option><option>Outra</option></select></label>
+      </div>
+      <div class="table-wrapper"><table><thead><tr><th>Data</th><th>Disciplina</th><th>Assunto</th><th>Banca</th><th>Total</th><th>Acertos</th><th>Erros</th><th>Brancos</th><th>% Acerto</th><th>Líquido</th><th>Origem</th><th>Observações</th><th>Ações</th></tr></thead><tbody id="questionHistoryBody"></tbody></table></div>
     </section>
 
     <section class="grid-layout secondary">
