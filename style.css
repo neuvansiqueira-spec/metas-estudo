@@ -588,3 +588,14 @@ tbody tr.goal-hit { background: rgba(22, 163, 74, .08); }
   .dashboard, .panel { padding: 18px; }
   .stat-card::before, .syllabus-card::before, .subject-item::before, .review-item::before, .alert-item::before { width: 3px; }
 }
+.linked-materials {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px dashed #bfdbfe;
+  border-radius: 16px;
+  background: #eff6ff;
+}
+.linked-materials strong { color: #1e3a8a; }
+#materialsList .card-meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 620px) { #materialsList .card-meta-grid { grid-template-columns: 1fr; } }
