@@ -8,6 +8,37 @@ state.schedulableSettings ||= {};
 state.dailyGoals ||= [];
 state.questionLogs ||= [];
 state.migrations ||= {};
+function mergeCompatibleLocalStorageData() {
+  const candidates = ["syllabusItems", "editalVerticalizado", "edital_verticalizado", "assuntosAgendaveis", "metasDoDia", "dailyGoals"];
+  candidates.forEach((key) => {
+    if (key === STORAGE_KEY) return;
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      const items = Array.isArray(parsed) ? parsed : (parsed?.syllabusItems || parsed?.itens || parsed?.items || parsed?.assuntos);
+      if ((key.toLowerCase().includes("meta") || parsed?.dailyGoals) && Array.isArray(items) && !state.dailyGoals.length) state.dailyGoals = items;
+      else if (Array.isArray(items) && !state.syllabusItems.length) state.syllabusItems = items.map((item) => ({
+        id: item.id || createId(),
+        discipline: item.discipline || item.disciplina || "Sem disciplina",
+        topic: item.topic || item.topico || item.eixo || "Geral",
+        subject: item.subject || item.assunto || item.referencia_edital || "Assunto",
+        subtopic: item.subtopic || item.subassunto || item.nivel || "",
+        reference: item.reference || item.referencia_edital || "",
+        priority: normalizeImportedPriority(item.priority || item.prioridade),
+        weight: Number(item.weight ?? item.peso) || 1,
+        status: normalizeImportedStatus(item.status),
+        domain: normalizeImportedDomain(item.domain || item.dominio),
+        notes: item.notes || item.observacoes || "",
+        agendavel: item.agendavel,
+        tipo_agendamento: item.tipo_agendamento,
+        importMeta: item.importMeta || { agendavel: acceptsSchedulableValue(item.agendavel), tipo_agendamento: item.tipo_agendamento || "" }
+      }));
+    } catch (error) {
+      console.warn(`[Metas do dia] Não foi possível ler a chave compatível ${key}.`, error);
+    }
+  });
+}
 let bulkDraft = [];
 let importDraft = [];
 let syllabusVisibleCount = 30;
@@ -33,6 +64,18 @@ elements.goalDate.value = todayISO();
 elements.questionDate.value = todayISO();
 
 function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function showDailyGoalMessage(message, type = "info") {
+  let box = document.getElementById("dailyGoalsMessage");
+  if (!box) {
+    box = document.createElement("div");
+    box.id = "dailyGoalsMessage";
+    box.className = "file-info empty-message";
+    box.setAttribute("aria-live", "polite");
+    elements.dailyGoalsList.before(box);
+  }
+  box.textContent = message;
+  box.dataset.type = type;
+}
 function formatHours(minutes) { const hours = minutes / 60; return `${Number.isInteger(hours) ? hours : hours.toFixed(1)}h`; }
 function parseDate(dateString) { const [year, month, day] = dateString.split("-").map(Number); return new Date(year, month - 1, day); }
 function addDays(dateString, days) { const date = parseDate(dateString); date.setDate(date.getDate() + days); return date.toISOString().slice(0, 10); }
@@ -43,7 +86,19 @@ function subjectNameById(id) { return state.subjects.find((subject) => subject.i
 function settingFor(id) { return state.schedulableSettings[id] ||= { availability: "Não agendável", mode: "Estudo teórico", priority: false }; }
 function normalizeText(value) { return String(value ?? "").trim(); }
 function importKeyFor(item) { return [item.discipline, item.topic, item.subject, item.subtopic, item.reference].map((value) => normalizeText(value).toLowerCase()).join("|"); }
-function isSchedulable(id) { return settingFor(id).availability === "Agendável"; }
+function acceptsSchedulableValue(value) {
+  if (value === 1 || value === true) return true;
+  return ["true", "sim", "agendável", "agendavel", "1"].includes(String(value ?? "").trim().toLowerCase());
+}
+function isSchedulable(id) {
+  const item = state.syllabusItems.find((entry) => entry.id === id);
+  const setting = settingFor(id);
+  return setting.availability === "Agendável"
+    || acceptsSchedulableValue(item?.agendavel)
+    || acceptsSchedulableValue(item?.schedulable)
+    || acceptsSchedulableValue(item?.importMeta?.agendavel)
+    || Boolean(item?.tipo_agendamento || item?.importMeta?.tipo_agendamento);
+}
 function completedStatus(item) { return ["Estudado", "Dominado"].includes(item.status); }
 
 function canonical(value) { return normalizeText(value).toLowerCase(); }
@@ -351,18 +406,56 @@ elements.clearImportedSyllabus.addEventListener("click", () => {
 
 elements.clearData.addEventListener("click", () => { if (confirm("Tem certeza que deseja apagar todos os dados salvos neste navegador?")) { state.subjects = []; state.studies = []; state.edital = { pdf: null }; state.syllabusItems = []; state.schedulableSettings = {}; state.dailyGoals = []; state.questionLogs = []; render(); } });
 
-render();
-
 function syllabusLabel(item) { return `${item.discipline} — ${item.subject}${item.subtopic ? ` • ${item.subtopic}` : ""}`; }
 function getSyllabusById(id) { return state.syllabusItems.find((item) => item.id === id); }
 function optionsForDiscipline(select, current = "") { const ds = getAllDisciplines(); select.innerHTML = '<option value="">Selecione</option>' + ds.map((d) => `<option value="${escapeHTML(d)}" ${d === current ? "selected" : ""}>${escapeHTML(d)}</option>`).join(""); }
 function optionsForItems(select, discipline, current = "") { const items = state.syllabusItems.filter((item) => !discipline || item.discipline === discipline); select.innerHTML = '<option value="">Selecione</option>' + items.map((item) => `<option value="${item.id}" ${item.id === current ? "selected" : ""}>${escapeHTML(item.subject)}${item.subtopic ? ` • ${escapeHTML(item.subtopic)}` : ""}</option>`).join(""); }
 function renderGoalSelectors() { const gd = elements.goalDiscipline.value; const gi = elements.goalSyllabusItem.value; optionsForDiscipline(elements.goalDiscipline, gd); optionsForItems(elements.goalSyllabusItem, elements.goalDiscipline.value || gd, gi); }
 function renderQuestionSelectors() { const qd = elements.questionDiscipline.value; const qi = elements.questionSyllabusItem.value; optionsForDiscipline(elements.questionDiscipline, qd); optionsForItems(elements.questionSyllabusItem, elements.questionDiscipline.value || qd, qi); const fd = elements.questionFilterDiscipline.value; optionsForDiscipline(elements.questionFilterDiscipline, fd); elements.questionFilterDiscipline.querySelector('option').textContent = 'Todas'; const fs = elements.questionFilterSubject.value; elements.questionFilterSubject.innerHTML = '<option value="">Todos</option>' + state.syllabusItems.filter((item) => !elements.questionFilterDiscipline.value || item.discipline === elements.questionFilterDiscipline.value).map((item) => `<option value="${item.id}" ${item.id === fs ? "selected" : ""}>${escapeHTML(item.subject)}</option>`).join(''); }
-function goalTypeForItem(item) { const mode = settingFor(item.id).mode; if (isWeakItem(item)) return "Reforço"; if (mode === "Questões apenas") return "Questões"; if (mode === "Revisão apenas" || item.status === "Revisar") return "Revisão"; return item.status === "Não iniciado" ? "Estudo novo" : "Questões"; }
+function goalTypeForItem(item) { const mode = item.importMeta?.tipo_agendamento || item.tipo_agendamento || settingFor(item.id).mode; if (isWeakItem(item)) return "Reforço"; if (mode === "Questões apenas") return "Questões"; if (mode === "Revisão apenas" || item.status === "Revisar") return "Revisão"; return item.status === "Não iniciado" ? "Estudo novo" : "Questões"; }
 function itemScore(item, pendingByDiscipline) { return (item.priority === "Alta" ? 60 : item.priority === "Média" ? 25 : 5) + (item.status === "Não iniciado" ? 45 : 0) + (isUndiagnosed(item) ? 35 : 0) + (isWeakItem(item) ? 40 : 0) + (Number(item.weight) || 1) * 6 + (pendingByDiscipline[item.discipline] || 0); }
-function generateDailyGoals() { const today = todayISO(); const existing = new Set(state.dailyGoals.filter((g) => g.date === today).map((g) => g.syllabusItemId)); const pendingByDiscipline = state.syllabusItems.filter((item) => !completedStatus(item) && item.status !== "Ignorado").reduce((acc, item) => (acc[item.discipline] = (acc[item.discipline] || 0) + 1, acc), {}); const candidates = state.syllabusItems.filter((item) => isSchedulable(item.id) && item.status !== "Ignorado" && !existing.has(item.id)).sort((a,b) => itemScore(b,pendingByDiscipline) - itemScore(a,pendingByDiscipline)).slice(0, 5); if (!candidates.length) return alert("Nenhum assunto agendável novo para gerar hoje."); candidates.forEach((item) => state.dailyGoals.push({ id: createId(), date: today, discipline: item.discipline, syllabusItemId: item.id, subject: item.subject, type: goalTypeForItem(item), minutes: item.priority === "Alta" ? 60 : 40, priority: item.priority, status: "Pendente", notes: `Gerada automaticamente. Pontos de decisão: status ${item.status}, domínio ${item.domain}, peso ${item.weight}.` })); render(); }
-function renderDailyGoals() { const goals = [...state.dailyGoals].sort((a,b) => b.date.localeCompare(a.date)); elements.dailyGoalsList.innerHTML = goals.length ? goals.map((goal) => `<article class="syllabus-card"><header><div><h3>${escapeHTML(goal.discipline)} — ${escapeHTML(goal.subject)}</h3><div class="item-meta">${goal.date} • ${escapeHTML(goal.type)} • ${goal.minutes} min</div></div><span class="badge ${goal.status === "Concluída" ? "success" : goal.priority === "Alta" ? "danger" : "warn"}">${escapeHTML(goal.status)}</span></header><div class="card-meta-grid"><span>Prioridade: ${escapeHTML(goal.priority)}</span><span>Assunto vinculado: ${escapeHTML(goal.syllabusItemId || "-")}</span><span>Observações: ${escapeHTML(goal.notes || "-")}</span></div><div class="card-actions"><select data-goal-status="${goal.id}"><option ${goal.status === "Pendente" ? "selected" : ""}>Pendente</option><option ${goal.status === "Concluída" ? "selected" : ""}>Concluída</option><option ${goal.status === "Adiada" ? "selected" : ""}>Adiada</option><option ${goal.status === "Ignorada" ? "selected" : ""}>Ignorada</option></select>${["Questões","Reforço"].includes(goal.type) ? `<button type="button" data-register-goal="${goal.id}">Registrar questões desta meta</button>` : ""}</div></article>`).join("") : "Nenhuma meta cadastrada."; }
+function makeGoal(item, date, type) {
+  const minutes = type === "Questões" ? 30 : item.priority === "Alta" ? 60 : 45;
+  return { id: createId(), date, data: date, discipline: item.discipline, disciplina: item.discipline, syllabusItemId: item.id, subject: item.subject, assunto: item.subject, referencia_edital: item.reference || "", type, tipo: type.toLowerCase(), minutes, tempo_sugerido_minutos: minutes, priority: item.priority, prioridade: item.priority, status: "Pendente", origin: "edital verticalizado", origem: "edital verticalizado", notes: `Gerada automaticamente do edital verticalizado. Status: ${item.status}; domínio: ${item.domain}; peso: ${item.weight}.`, observacoes: `Priorizada por status, domínio, prioridade, peso e pendência da disciplina.` };
+}
+function pickCandidate(candidates, used, predicate = () => true) { return candidates.find((item) => !used.has(item.id) && predicate(item)); }
+function generateDailyGoals() {
+  try {
+    const date = elements.goalDate.value || todayISO();
+    const storageKeys = Object.keys(localStorage).filter((key) => /metas|edital|syllabus|assunto|vertical/i.test(key));
+    console.info(`[Metas do dia] Itens do edital encontrados: ${state.syllabusItems.length}`);
+    console.info(`[Metas do dia] Dados lidos da chave principal: ${STORAGE_KEY}. Chaves relacionadas existentes: ${storageKeys.join(", ") || "nenhuma"}`);
+    if (!state.syllabusItems.length) { showDailyGoalMessage("Não foi possível gerar metas. Verifique se o edital foi importado.", "error"); return; }
+    const existingToday = state.dailyGoals.filter((g) => g.date === date);
+    if (existingToday.length && !confirm("Já existem metas para hoje. Deseja substituir ou adicionar novas? Clique em OK para adicionar novas ou em Cancelar para manter como está.")) return;
+    const existing = new Set(existingToday.map((g) => g.syllabusItemId));
+    const pendingByDiscipline = state.syllabusItems.filter((item) => !completedStatus(item) && item.status !== "Ignorado").reduce((acc, item) => (acc[item.discipline] = (acc[item.discipline] || 0) + 1, acc), {});
+    const candidates = state.syllabusItems.filter((item) => isSchedulable(item.id) && item.status !== "Ignorado" && !existing.has(item.id)).sort((a,b) => itemScore(b,pendingByDiscipline) - itemScore(a,pendingByDiscipline));
+    console.info(`[Metas do dia] Assuntos agendáveis encontrados: ${candidates.length}`);
+    if (!candidates.length) { showDailyGoalMessage("Nenhum assunto agendável encontrado. Verifique o edital verticalizado.", "warning"); return; }
+    const used = new Set(); const chosen = [];
+    const add = (type, predicate) => { const item = pickCandidate(candidates, used, predicate); if (item && chosen.length < 5) { used.add(item.id); chosen.push(makeGoal(item, date, type)); } };
+    add("Estudo novo", (item) => item.status === "Não iniciado");
+    add("Questões", (item) => goalTypeForItem(item) === "Questões" || !isUndiagnosed(item));
+    add("Reforço", (item) => isWeakItem(item));
+    if (!chosen.some((goal) => ["Reforço", "Revisão"].includes(goal.type))) add("Revisão", (item) => ["Estudado", "Revisar", "Em andamento"].includes(item.status));
+    while (chosen.length < Math.min(4, candidates.length)) {
+      const next = pickCandidate(candidates, used);
+      if (!next) break;
+      used.add(next.id);
+      chosen.push(makeGoal(next, date, goalTypeForItem(next)));
+    }
+    state.dailyGoals.push(...chosen);
+    console.info(`[Metas do dia] Metas geradas: ${chosen.length}`);
+    render();
+    showDailyGoalMessage("Metas do dia geradas com sucesso.", "success");
+    document.getElementById("daily-goals-title").scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (error) {
+    console.error("Não foi possível gerar metas.", error);
+    showDailyGoalMessage("Não foi possível gerar metas. Verifique se o edital foi importado.", "error");
+  }
+}
+function renderDailyGoals() { const goals = [...state.dailyGoals].sort((a,b) => b.date.localeCompare(a.date)); elements.dailyGoalsList.innerHTML = goals.length ? goals.map((goal) => `<article class="syllabus-card"><header><div><h3>${escapeHTML(goal.discipline)} — ${escapeHTML(goal.subject)}</h3><div class="item-meta">${goal.date} • ${escapeHTML(goal.type || goal.tipo)} • ${goal.minutes} min • Origem: ${escapeHTML(goal.origin || goal.origem || "-")}</div></div><span class="badge ${goal.status === "Concluída" ? "success" : goal.priority === "Alta" ? "danger" : "warn"}">${escapeHTML(goal.status)}</span></header><div class="card-meta-grid"><span>Prioridade: ${escapeHTML(goal.priority)}</span><span>Referência: ${escapeHTML(goal.referencia_edital || "-")}</span><span>Assunto vinculado: ${escapeHTML(goal.syllabusItemId || "-")}</span><span>Observações: ${escapeHTML(goal.notes || goal.observacoes || "-")}</span></div><div class="card-actions"><button type="button" data-goal-action="Concluída" data-id="${goal.id}">Concluir</button><button type="button" data-goal-action="Adiada" data-id="${goal.id}">Adiar</button><button type="button" data-goal-action="Ignorada" data-id="${goal.id}">Ignorar</button>${["Questões","Reforço","questões","reforço"].includes(goal.type || goal.tipo) ? `<button type="button" data-register-goal="${goal.id}">Registrar questões desta meta</button>` : ""}</div></article>`).join("") : "Nenhuma meta cadastrada."; }
 function questionNumbers() { const total = Number(elements.questionTotal.value), correct = Number(elements.questionCorrect.value), wrong = Number(elements.questionWrong.value), blank = Number(elements.questionBlank.value); return { total, correct, wrong, blank, sum: correct + wrong + blank, accuracy: total ? correct / total * 100 : 0, errorPct: total ? wrong / total * 100 : 0, blankPct: total ? blank / total * 100 : 0, net: correct - wrong }; }
 function analysisMessage(n) { if (!n.total) return ""; if (n.accuracy >= 80) return "Bom desempenho: percentual de acerto acima de 80%. Em Cebraspe, os erros reduzem diretamente o líquido."; if (n.accuracy < 70) return "Atenção: percentual inferior a 70%. Recomenda-se revisão do assunto. Em Cebraspe, os erros reduzem diretamente o líquido."; return "Assunto ainda sem domínio consolidado. Programe nova revisão."; }
 function updateQuestionCalculated() { const n = questionNumbers(); elements.questionCalculated.innerHTML = `Total calculado: <strong>${n.sum || 0}</strong> • Acerto: <strong>${n.accuracy.toFixed(1)}%</strong> • Erro: <strong>${n.errorPct.toFixed(1)}%</strong> • Brancos: <strong>${n.blankPct.toFixed(1)}%</strong> • Líquido Cebraspe: <strong>${n.net || 0}</strong>`; elements.questionAnalysis.textContent = analysisMessage(n); }
@@ -380,9 +473,12 @@ elements.goalDiscipline.addEventListener("change", () => optionsForItems(element
 elements.questionDiscipline.addEventListener("change", () => optionsForItems(elements.questionSyllabusItem, elements.questionDiscipline.value));
 elements.goalSyllabusItem.addEventListener("change", () => { const item = getSyllabusById(elements.goalSyllabusItem.value); if (item) { elements.goalDiscipline.value = item.discipline; elements.goalPriority.value = item.priority; elements.goalType.value = goalTypeForItem(item); } });
 elements.goalForm.addEventListener("submit", (event) => { event.preventDefault(); const item = getSyllabusById(elements.goalSyllabusItem.value); if (!item) return alert("Selecione um assunto do edital verticalizado."); state.dailyGoals.push({ id: createId(), date: elements.goalDate.value, discipline: elements.goalDiscipline.value, syllabusItemId: item.id, subject: item.subject, type: elements.goalType.value, minutes: Number(elements.goalMinutes.value), priority: elements.goalPriority.value, status: elements.goalStatus.value, notes: elements.goalNotes.value.trim() }); elements.goalForm.reset(); elements.goalDate.value = todayISO(); render(); });
-elements.dailyGoalsList.addEventListener("click", (event) => { const button = event.target.closest("button[data-register-goal]"); if (button) fillQuestionFromGoal(button.dataset.registerGoal); });
+elements.dailyGoalsList.addEventListener("click", (event) => { const button = event.target.closest("button[data-register-goal]"); if (button) fillQuestionFromGoal(button.dataset.registerGoal); const action = event.target.closest("button[data-goal-action]"); if (action) { const goal = state.dailyGoals.find((g) => g.id === action.dataset.id); if (goal) { goal.status = action.dataset.goalAction; render(); } } });
 elements.dailyGoalsList.addEventListener("change", (event) => { const id = event.target.dataset.goalStatus; if (!id) return; const goal = state.dailyGoals.find((g) => g.id === id); if (goal) { goal.status = event.target.value; render(); } });
 [elements.questionTotal, elements.questionCorrect, elements.questionWrong, elements.questionBlank].forEach((input) => input.addEventListener("input", updateQuestionCalculated));
 elements.questionForm.addEventListener("submit", saveQuestionLog);
 [elements.questionFilterDiscipline, elements.questionFilterSubject, elements.questionFilterBoard].forEach((filter) => filter.addEventListener("change", () => { renderQuestionSelectors(); renderQuestionHistory(); }));
 elements.questionHistoryBody.addEventListener("click", (event) => { const edit = event.target.closest("button[data-edit-question]"); const del = event.target.closest("button[data-delete-question]"); if (edit) editQuestionLog(edit.dataset.editQuestion); if (del && confirm("Excluir este lançamento de questões?")) { const log = state.questionLogs.find((q) => q.id === del.dataset.deleteQuestion); state.questionLogs = state.questionLogs.filter((q) => q.id !== del.dataset.deleteQuestion); if (log) { const item = getSyllabusById(log.syllabusItemId); if (item) recomputeSyllabusQuestionStats(item); } render(); } });
+
+mergeCompatibleLocalStorageData();
+render();
