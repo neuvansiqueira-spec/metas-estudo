@@ -664,3 +664,70 @@ tbody tr.goal-hit { background: rgba(22, 163, 74, .08); }
 .goal-status-nao-cumprida, .goal-status-ignorada { border-color: rgba(220, 38, 38, .35); background: #fef2f2; }
 .badge.neutral { background: #e2e8f0; color: #334155; }
 @media (max-width: 720px) { .weight-row { grid-template-columns: 1fr; } .month-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Ajustes de resolução do PR #25: rolagem independente e responsividade do menu. */
+@media (min-width: 1051px) {
+  .app-layout {
+    height: calc(100vh - 32px);
+    max-height: calc(100vh - 32px);
+    overflow: hidden;
+  }
+
+  .side-nav {
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  .screen-stage {
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 4px;
+  }
+}
+
+.side-nav a.active,
+.nav-links a.active {
+  outline: 2px solid transparent;
+}
+
+.side-nav a:focus-visible,
+.nav-links a:focus-visible,
+.menu-toggle:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, .35);
+  outline-offset: 3px;
+}
+
+.table-wrapper {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-wrapper table {
+  min-width: 720px;
+}
+
+@media (max-width: 1050px) {
+  .nav-links.open {
+    max-height: min(72vh, 620px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 4px;
+  }
+}
+
+@media (max-width: 620px) {
+  .nav-links.open {
+    max-height: 76vh;
+  }
+
+  .side-nav a,
+  .nav-links a {
+    min-height: 44px;
+  }
+}
