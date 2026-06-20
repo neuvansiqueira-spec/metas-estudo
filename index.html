@@ -28,6 +28,7 @@
         <a href="#historico-questoes" data-view-link="historico-questoes">Histórico de Questões</a>
         <a href="#revisoes" data-view-link="revisoes">Revisões</a>
         <a href="#historico" data-view-link="historico">Histórico</a>
+        <a href="#backup" data-view-link="backup">Backup</a>
         <a href="#como-usar" data-view-link="como-usar">Como usar</a>
       </div>
     </nav>
@@ -59,6 +60,7 @@
       <a href="#historico-questoes" data-view-link="historico-questoes">Histórico de Questões</a>
       <a href="#revisoes" data-view-link="revisoes">Revisões</a>
       <a href="#historico" data-view-link="historico">Histórico</a>
+      <a href="#backup" data-view-link="backup">Backup</a>
       <a href="#como-usar" data-view-link="como-usar">Como usar</a>
     </aside>
     <div class="screen-stage">
@@ -261,6 +263,25 @@
     <section id="view-historico" class="panel app-view" data-view="historico" aria-labelledby="history-title">
       <div class="section-heading inline"><div><p class="eyebrow">Histórico</p><h2 id="history-title">Registros recentes</h2></div><button id="clearData" class="danger" type="button">Limpar dados</button></div>
       <div class="table-wrapper"><table><thead><tr><th>Data</th><th>Disciplina</th><th>Assunto</th><th>Minutos</th><th>Questões</th><th>Acertos</th><th>Erros</th><th>Brancos</th></tr></thead><tbody id="historyBody"></tbody></table></div>
+    </section>
+
+    <section id="view-backup" class="panel app-view" data-view="backup" aria-labelledby="backup-title">
+      <div class="section-heading"><p class="eyebrow">Portabilidade</p><h2 id="backup-title">Backup</h2></div>
+      <p class="notice">Os dados deste site ficam salvos apenas neste navegador. Para usar em outro computador, celular ou tablet, exporte um backup JSON e salve no Google Drive. Depois, importe esse arquivo no outro dispositivo.</p>
+      <p class="notice warning-notice">Não compartilhe seu arquivo de backup com terceiros se ele contiver dados pessoais ou informações de estudo.</p>
+      <div class="backup-actions actions">
+        <button id="exportBackup" type="button">Exportar backup JSON</button>
+        <button id="selectBackupFile" class="secondary-button" type="button">Importar backup JSON</button>
+        <button id="clearAllLocalData" class="danger" type="button">Limpar todos os dados locais</button>
+        <input id="backupFileInput" type="file" accept="application/json,.json" hidden />
+      </div>
+      <div class="backup-meta">
+        <article class="stat-card"><span>Último backup exportado</span><strong id="lastBackupDate">Nunca exportado</strong></article>
+        <article class="stat-card"><span>Chaves locais do projeto</span><strong id="backupStorageKeys">0</strong></article>
+      </div>
+      <h3>Resumo dos dados salvos</h3>
+      <div id="backupSummary" class="stats-grid compact backup-summary" aria-live="polite"></div>
+      <div id="backupPreview" class="backup-preview empty-message" aria-live="polite"></div>
     </section>
 
     <section id="view-como-usar" class="panel instructions app-view" data-view="como-usar" aria-labelledby="run-title">
