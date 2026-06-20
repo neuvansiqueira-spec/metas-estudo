@@ -25,6 +25,7 @@
         <a href="#assuntos-agendaveis" data-view-link="assuntos-agendaveis">Assuntos Agendáveis</a>
         <a href="#metas-do-dia" data-view-link="metas-do-dia">Metas do Dia</a>
         <a href="#questoes" data-view-link="questoes">Questões</a>
+        <a href="#simulados" data-view-link="simulados">Simulados</a>
         <a href="#historico-questoes" data-view-link="historico-questoes">Histórico de Questões</a>
         <a href="#revisoes" data-view-link="revisoes">Revisões</a>
         <a href="#historico" data-view-link="historico">Histórico</a>
@@ -57,6 +58,7 @@
       <a href="#assuntos-agendaveis" data-view-link="assuntos-agendaveis">Assuntos Agendáveis</a>
       <a href="#metas-do-dia" data-view-link="metas-do-dia">Metas do Dia</a>
       <a href="#questoes" data-view-link="questoes">Questões</a>
+      <a href="#simulados" data-view-link="simulados">Simulados</a>
       <a href="#historico-questoes" data-view-link="historico-questoes">Histórico de Questões</a>
       <a href="#revisoes" data-view-link="revisoes">Revisões</a>
       <a href="#historico" data-view-link="historico">Histórico</a>
@@ -84,6 +86,12 @@
         <article class="stat-card"><span>Assuntos sem diagnóstico</span><strong id="undiagnosedTotal">0</strong><small>Assuntos sem diagnóstico são conteúdos ainda sem estudo, revisão ou questões registradas.</small></article>
         <article class="stat-card"><span>Assuntos fracos</span><strong id="weakTotal">0</strong><small>Assuntos fracos são definidos por baixo desempenho ou marcação manual.</small></article>
         <article class="stat-card wide-stat"><span>Disciplina com maior pendência</span><strong id="pendingDiscipline">-</strong></article>
+        <article class="stat-card"><span>Simulados realizados</span><strong id="mockTotal">0</strong></article>
+        <article class="stat-card"><span>Último líquido</span><strong id="mockLastNet">0</strong></article>
+        <article class="stat-card"><span>Melhor líquido</span><strong id="mockBestNet">0</strong></article>
+        <article class="stat-card"><span>Líquido médio</span><strong id="mockAverageNet">0</strong></article>
+        <article class="stat-card"><span>Simulados acima da meta</span><strong id="mockAboveGoal">0</strong></article>
+        <article class="stat-card wide-stat"><span>Disciplina mais problemática nos simulados</span><strong id="mockProblemDiscipline">-</strong></article>
       </div>
 
       <div class="grid-layout dashboard-tools">
@@ -243,6 +251,36 @@
         <div id="questionAnalysis" class="notice wide"></div>
         <button class="wide" type="submit">Salvar lançamento de questões</button>
       </form>
+    </section>
+
+
+    <section id="view-simulados" class="panel app-view" data-view="simulados" aria-labelledby="mock-title">
+      <div class="section-heading inline"><div><p class="eyebrow">Cebraspe</p><h2 id="mock-title">Simulados</h2></div><button id="newMockExam" type="button">Novo simulado</button></div>
+      <p class="notice">Registre simulados no padrão Cebraspe, acompanhe líquido, meta e desempenho por disciplina. Os dados ficam no localStorage em <code>metasEstudoSimulados</code>.</p>
+      <div id="mockSummary" class="stats-grid compact"></div>
+      <form id="mockExamForm" class="form-grid mock-form">
+        <input id="mockExamEditingId" type="hidden" />
+        <label>Nome do simulado<input id="mockName" type="text" required placeholder="Ex.: Simulado geral 01" /></label>
+        <label>Data do simulado<input id="mockDate" type="date" required /></label>
+        <label>Banca<input id="mockBoard" type="text" value="Cebraspe" required /></label>
+        <label>Instituição/curso<input id="mockInstitution" type="text" /></label>
+        <label>Total de questões<input id="mockTotalQuestions" type="number" min="1" required /></label>
+        <label>Acertos<input id="mockCorrect" type="number" min="0" value="0" required /></label>
+        <label>Erros<input id="mockWrong" type="number" min="0" value="0" required /></label>
+        <label>Brancos<input id="mockBlank" type="number" min="0" value="0" required /></label>
+        <label>Meta de líquido<input id="mockGoal" type="number" value="92" required /></label>
+        <label>Dificuldade percebida<select id="mockDifficulty"><option>Baixa</option><option selected>Média</option><option>Alta</option><option>Muito alta</option></select></label>
+        <label class="wide">Observações<textarea id="mockNotes" rows="3"></textarea></label>
+        <label class="wide">Situação emocional ou observação estratégica<textarea id="mockStrategy" rows="3"></textarea></label>
+        <div id="mockCalculated" class="calculation-box wide">Preencha os números para calcular o resultado geral.</div>
+        <div class="wide discipline-entry"><h3>Resultado por disciplina</h3><div class="form-grid compact"><label>Disciplina<input id="mockDisciplineName" type="text" list="disciplineOptions" /></label><label>Total<input id="mockDisciplineTotal" type="number" min="1" /></label><label>Acertos<input id="mockDisciplineCorrect" type="number" min="0" value="0" /></label><label>Erros<input id="mockDisciplineWrong" type="number" min="0" value="0" /></label><label>Brancos<input id="mockDisciplineBlank" type="number" min="0" value="0" /></label><label class="wide">Observações<input id="mockDisciplineNotes" type="text" /></label></div><div class="actions"><button id="addMockDiscipline" type="button">Adicionar disciplina</button><button id="clearMockDisciplines" class="secondary-button" type="button">Limpar disciplinas</button></div><div id="mockDisciplineDraft" class="table-wrapper empty-message"></div></div>
+        <button class="wide" type="submit">Salvar simulado</button>
+      </form>
+      <h3>Resultado geral</h3><div id="mockGeneralResult" class="calculation-box"></div>
+      <h3>Resultado por disciplina</h3><div id="mockDisciplineResults" class="table-wrapper empty-message"></div>
+      <h3>Diagnóstico do simulado</h3><div id="mockDiagnosis" class="notice"></div>
+      <h3>Histórico de simulados</h3><div id="mockHistory" class="cards-list empty-message"></div>
+      <h3>Evolução</h3><div id="mockEvolution" class="table-wrapper empty-message"></div>
     </section>
 
     <section id="view-historico-questoes" class="panel app-view" data-view="historico-questoes" aria-labelledby="question-history-title">
