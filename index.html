@@ -55,23 +55,31 @@
   <main class="container app-layout">
     <aside class="side-nav" aria-label="Menu de telas">
       <div class="side-nav-title">Telas</div>
-      <a href="#dashboard" data-view-link="dashboard">Dashboard</a>
-      <a href="#edital" data-view-link="edital">Edital</a>
-      <a href="#edital-verticalizado" data-view-link="edital-verticalizado">Edital Verticalizado</a>
-      <a href="#importar-edital" data-view-link="importar-edital">Importar Edital</a>
-      <a href="#assuntos-agendaveis" data-view-link="assuntos-agendaveis">Assuntos Agendáveis</a>
-      <a href="#materiais" data-view-link="materiais">Materiais</a>
-      <a href="#planejamento" data-view-link="planejamento">Planejamento</a>
-      <a href="#progresso" data-view-link="progresso">Progresso</a>
-      <a href="#metas-do-dia" data-view-link="metas-do-dia">Metas do Dia</a>
-      <a href="#calendario-metas" data-view-link="calendario-metas">Calendário de Metas</a>
-      <a href="#questoes" data-view-link="questoes">Questões</a>
-      <a href="#simulados" data-view-link="simulados">Simulados</a>
-      <a href="#historico-questoes" data-view-link="historico-questoes">Histórico de Questões</a>
-      <a href="#revisoes" data-view-link="revisoes">Revisões</a>
-      <a href="#historico" data-view-link="historico">Histórico</a>
-      <a href="#backup" data-view-link="backup">Backup</a>
-      <a href="#como-usar" data-view-link="como-usar">Como usar</a>
+      <div class="side-nav-group"><span>Visão geral</span>
+        <a href="#dashboard" data-view-link="dashboard">Dashboard</a>
+        <a href="#planejamento" data-view-link="planejamento">Planejamento</a>
+        <a href="#progresso" data-view-link="progresso">Progresso</a>
+      </div>
+      <div class="side-nav-group"><span>Edital e conteúdo</span>
+        <a href="#edital" data-view-link="edital">Edital</a>
+        <a href="#edital-verticalizado" data-view-link="edital-verticalizado">Edital Verticalizado</a>
+        <a href="#importar-edital" data-view-link="importar-edital">Importar Edital</a>
+        <a href="#assuntos-agendaveis" data-view-link="assuntos-agendaveis">Assuntos Agendáveis</a>
+        <a href="#materiais" data-view-link="materiais">Materiais</a>
+      </div>
+      <div class="side-nav-group"><span>Execução</span>
+        <a href="#metas-do-dia" data-view-link="metas-do-dia">Metas do Dia</a>
+        <a href="#calendario-metas" data-view-link="calendario-metas">Calendário de Metas</a>
+        <a href="#questoes" data-view-link="questoes">Questões</a>
+        <a href="#simulados" data-view-link="simulados">Simulados</a>
+        <a href="#revisoes" data-view-link="revisoes">Revisões</a>
+      </div>
+      <div class="side-nav-group"><span>Histórico e suporte</span>
+        <a href="#historico-questoes" data-view-link="historico-questoes">Histórico de Questões</a>
+        <a href="#historico" data-view-link="historico">Histórico</a>
+        <a href="#backup" data-view-link="backup">Backup</a>
+        <a href="#como-usar" data-view-link="como-usar">Como usar</a>
+      </div>
     </aside>
     <div class="screen-stage">
     <section id="view-dashboard" class="dashboard app-view" data-view="dashboard" aria-labelledby="dashboard-title">
@@ -88,17 +96,21 @@
         <button id="changeMotivation" class="secondary-button daily-message-button" type="button">Trocar frase</button>
       </article>
       <div class="stats-grid expanded">
+        <div class="dashboard-block-title">Resumo principal</div>
         <article class="stat-card"><span>Horas hoje</span><strong id="todayHours">0h</strong></article>
         <article class="stat-card"><span>Horas na semana</span><strong id="weekHours">0h</strong></article>
         <article class="stat-card"><span>Questões feitas</span><strong id="totalQuestions">0</strong></article>
         <article class="stat-card"><span>Percentual geral de acerto</span><strong id="accuracyRate">0%</strong></article>
         <article class="stat-card"><span>Líquido Cebraspe geral</span><strong id="generalCebraspeNet">0</strong></article>
+        <div class="dashboard-block-title">Progresso do edital</div>
         <article class="stat-card"><span>Edital estudado</span><strong id="syllabusStudied">0%</strong></article>
         <article class="stat-card"><span>Assuntos cadastrados</span><strong id="syllabusTotal">0</strong></article>
         <article class="stat-card"><span>Assuntos agendáveis</span><strong id="schedulableTotal">0</strong></article>
+        <div class="dashboard-block-title">Materiais</div>
         <article class="stat-card"><span>Materiais cadastrados</span><strong id="materialsTotal">0</strong></article>
         <article class="stat-card"><span>Disciplinas com materiais</span><strong id="materialDisciplinesTotal">0</strong></article>
         <article class="stat-card"><span>Assuntos com materiais</span><strong id="materialTopicsTotal">0</strong></article>
+        <div class="dashboard-block-title">Metas</div>
         <article class="stat-card"><span>Metas de hoje</span><strong id="todayGoalsTotal">0</strong></article>
         <article class="stat-card"><span>Metas da semana</span><strong id="weekGoalsTotal">0</strong></article>
         <article class="stat-card"><span>Cumprimento semanal</span><strong id="weekGoalRate">0%</strong></article>
@@ -108,15 +120,18 @@
         <article class="stat-card wide-stat"><span>Disciplina mais atrasada</span><strong id="mostDelayedDiscipline">-</strong></article>
         <article class="stat-card"><span>Metas pendentes hoje</span><strong id="todayPendingGoals">0</strong></article>
         <article class="stat-card"><span>Metas concluídas hoje</span><strong id="todayDoneGoals">0</strong></article>
+        <div class="dashboard-block-title">Pendências do edital</div>
         <article class="stat-card"><span>Não iniciados</span><strong id="notStartedTotal">0</strong></article>
         <article class="stat-card"><span>Assuntos sem diagnóstico</span><strong id="undiagnosedTotal">0</strong><small>Assuntos sem diagnóstico são conteúdos ainda sem estudo, revisão ou questões registradas.</small></article>
         <article class="stat-card"><span>Assuntos fracos</span><strong id="weakTotal">0</strong><small>Assuntos fracos são definidos por baixo desempenho ou marcação manual.</small></article>
         <article class="stat-card wide-stat"><span>Disciplina com maior pendência</span><strong id="pendingDiscipline">-</strong></article>
+        <div class="dashboard-block-title">Planejamento</div>
         <article class="stat-card"><span>Tempo total estudado</span><strong id="totalStudyTime">0h</strong></article>
         <article class="stat-card"><span>Média por assunto</span><strong id="averageTimePerTopic">0h</strong></article>
         <article class="stat-card wide-stat"><span>Previsão de conclusão</span><strong id="dashboardCompletionForecast">-</strong></article>
         <article class="stat-card"><span>Dias até a prova</span><strong id="daysUntilExam">-</strong></article>
         <article class="stat-card"><span>Situação do planejamento</span><strong id="planningStatus">-</strong></article>
+        <div class="dashboard-block-title">Simulados</div>
         <article class="stat-card"><span>Simulados realizados</span><strong id="mockTotal">0</strong></article>
         <article class="stat-card"><span>Último líquido</span><strong id="mockLastNet">0</strong></article>
         <article class="stat-card"><span>Melhor líquido</span><strong id="mockBestNet">0</strong></article>
@@ -166,7 +181,7 @@
 
     <section id="view-edital" class="panel app-view" data-view="edital" aria-labelledby="edital-title">
       <div class="section-heading"><p class="eyebrow">Dados do concurso</p><h2 id="edital-title">Edital</h2></div>
-      <p class="notice">Uso pessoal: as informações do edital, inclusive referência ao PDF anexado, ficam salvas apenas neste navegador via localStorage.</p>
+      <p class="notice">Uso pessoal: as informações do edital ficam salvas apenas neste navegador via localStorage. O sistema salva apenas a referência do arquivo. Para acessar o PDF em outros dispositivos, mantenha-o no Google Drive ou cadastre o link.</p>
       <form id="editalForm" class="form-grid">
         <label>Nome do concurso<input id="contestName" type="text" placeholder="Ex.: Concurso Tribunal X 2026" /></label>
         <label>Órgão<input id="agency" type="text" placeholder="Ex.: Tribunal Regional" /></label>
@@ -435,8 +450,8 @@
     </section>
 
     <section id="view-como-usar" class="panel instructions app-view" data-view="como-usar" aria-labelledby="run-title">
-      <h2 id="run-title">Como rodar e publicar</h2>
-      <ol><li>Baixe ou clone este repositório.</li><li>Abra o arquivo <code>index.html</code> no navegador. Não é necessário instalar dependências.</li><li>Os dados ficam no navegador usado; para testar do zero, use o botão <strong>Limpar dados</strong>.</li><li>Para publicar no GitHub Pages, envie os arquivos para um repositório no GitHub.</li></ol>
+      <h2 id="run-title">Como usar o Metas Estudo</h2>
+      <ol><li><strong>Importar edital:</strong> use Importar Edital para carregar JSON/itens e revise o Edital Verticalizado antes de marcar assuntos agendáveis.</li><li><strong>Gerar metas:</strong> configure pesos, calendário de plantão/folga e clique em gerar metas do dia, semana ou mês. Semana e mês exibem pré-visualização antes de salvar.</li><li><strong>Concluir, adiar e editar metas:</strong> use Metas do Dia ou Calendário de Metas. Concluir atualiza progresso, horas e assunto vinculado; adiar solicita nova data e registra observação.</li><li><strong>Calendário diário/semanal/mensal:</strong> no Calendário de Metas, escolha a data e a visão. Clique em um dia na semana ou no mês para operar as metas daquela data.</li><li><strong>Registrar tempo e questões:</strong> informe minutos reais na meta ou registre estudos/questões nas telas próprias. As horas do Dashboard usam estudos, metas com tempo real e questões com tempo gasto.</li><li><strong>Simulados:</strong> cadastre resultado geral e por disciplina para alimentar diagnóstico de pontos fracos.</li><li><strong>Planejamento por plantão:</strong> configure escala, horas disponíveis, data de prova e margem de segurança para melhorar a previsão de término.</li><li><strong>Materiais:</strong> cadastre links com http/https, vincule a disciplina/assunto e abra em nova aba pelos botões de material.</li><li><strong>Backup e tablet/celular:</strong> exporte o JSON, salve no Drive e importe no outro dispositivo. O PDF não é salvo dentro do site; cadastre link externo ou mantenha o arquivo no Drive.</li><li><strong>PWA:</strong> instalação como aplicativo será tratada em etapa posterior; esta correção mantém HTML, CSS e JavaScript puro sem criar PWA novo.</li></ol>
     </section>
     </div>
   </main>
