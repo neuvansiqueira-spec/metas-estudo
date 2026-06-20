@@ -16,16 +16,19 @@
           <small>Planeje, registre e revise</small>
         </div>
       </div>
-      <div class="nav-links">
-        <a href="#dashboard-title">Dashboard</a>
-        <a href="#edital-title">Edital</a>
-        <a href="#vertical-title">Edital Verticalizado</a>
-        <a href="#import-title">Importar Edital Verticalizado</a>
-        <a href="#schedulable-title">Assuntos Agendáveis</a>
-        <a href="#daily-goals-title">Metas do Dia</a>
-        <a href="#questions-title">Questões</a>
-        <a href="#question-history-title">Histórico de Questões</a>
-        <a href="#como-rodar">Como usar</a>
+      <button id="menuToggle" class="menu-toggle" type="button" aria-expanded="false" aria-controls="mainMenu">Menu</button>
+      <div id="mainMenu" class="nav-links">
+        <a href="#dashboard" data-screen-link="dashboard">Dashboard</a>
+        <a href="#edital" data-screen-link="edital">Edital</a>
+        <a href="#verticalizado" data-screen-link="verticalizado">Edital Verticalizado</a>
+        <a href="#importar-edital" data-screen-link="importar-edital">Importar Edital</a>
+        <a href="#assuntos-agendaveis" data-screen-link="assuntos-agendaveis">Assuntos Agendáveis</a>
+        <a href="#metas-do-dia" data-screen-link="metas-do-dia">Metas do Dia</a>
+        <a href="#questoes" data-screen-link="questoes">Questões</a>
+        <a href="#historico-questoes" data-screen-link="historico-questoes">Histórico de Questões</a>
+        <a href="#revisoes" data-screen-link="revisoes">Revisões</a>
+        <a href="#historico" data-screen-link="historico">Histórico</a>
+        <a href="#como-usar" data-screen-link="como-usar">Como usar</a>
       </div>
     </nav>
 
@@ -43,8 +46,23 @@
     </section>
   </header>
 
-  <main class="container">
-    <section class="dashboard" aria-labelledby="dashboard-title">
+  <main class="container app-layout">
+    <aside class="side-nav" aria-label="Menu de telas">
+      <div class="side-nav-title">Telas</div>
+      <a href="#dashboard" data-screen-link="dashboard">Dashboard</a>
+      <a href="#edital" data-screen-link="edital">Edital</a>
+      <a href="#verticalizado" data-screen-link="verticalizado">Edital Verticalizado</a>
+      <a href="#importar-edital" data-screen-link="importar-edital">Importar Edital</a>
+      <a href="#assuntos-agendaveis" data-screen-link="assuntos-agendaveis">Assuntos Agendáveis</a>
+      <a href="#metas-do-dia" data-screen-link="metas-do-dia">Metas do Dia</a>
+      <a href="#questoes" data-screen-link="questoes">Questões</a>
+      <a href="#historico-questoes" data-screen-link="historico-questoes">Histórico de Questões</a>
+      <a href="#revisoes" data-screen-link="revisoes">Revisões</a>
+      <a href="#historico" data-screen-link="historico">Histórico</a>
+      <a href="#como-usar" data-screen-link="como-usar">Como usar</a>
+    </aside>
+    <div class="screen-stage">
+    <section class="dashboard app-screen" data-screen="dashboard" aria-labelledby="dashboard-title">
       <div class="section-heading">
         <p class="eyebrow">Resumo</p>
         <h2 id="dashboard-title">Dashboard</h2>
@@ -67,7 +85,7 @@
       </div>
     </section>
 
-    <section class="grid-layout">
+    <section class="grid-layout dashboard-tools app-screen" data-screen="dashboard">
       <article class="panel" aria-labelledby="subjects-title">
         <div class="section-heading inline"><div><p class="eyebrow">Cadastro</p><h2 id="subjects-title">Disciplinas</h2></div></div>
         <p class="notice">As disciplinas podem vir do edital importado ou ser cadastradas manualmente.</p>
@@ -95,7 +113,7 @@
       </article>
     </section>
 
-    <section class="panel" aria-labelledby="edital-title">
+    <section class="panel app-screen" data-screen="edital" aria-labelledby="edital-title">
       <div class="section-heading"><p class="eyebrow">Dados do concurso</p><h2 id="edital-title">Edital</h2></div>
       <p class="notice">Uso pessoal: as informações do edital, inclusive referência ao PDF anexado, ficam salvas apenas neste navegador via localStorage.</p>
       <form id="editalForm" class="form-grid">
@@ -113,7 +131,7 @@
       </form>
     </section>
 
-    <section class="panel" aria-labelledby="vertical-title">
+    <section class="panel app-screen" data-screen="verticalizado" aria-labelledby="vertical-title">
       <div class="section-heading"><p class="eyebrow">Organização do conteúdo</p><h2 id="vertical-title">Edital Verticalizado</h2></div>
       <form id="syllabusForm" class="form-grid">
         <label>Disciplina<input id="itemDiscipline" type="text" list="disciplineOptions" required /></label>
@@ -158,7 +176,7 @@
     </section>
 
 
-    <section class="panel" aria-labelledby="import-title">
+    <section class="panel app-screen" data-screen="importar-edital" aria-labelledby="import-title">
       <div class="section-heading"><p class="eyebrow">Importação JSON</p><h2 id="import-title">Importar Edital Verticalizado</h2></div>
       <p class="notice">Selecione um arquivo JSON com os campos do edital verticalizado para revisar os itens antes de salvar no localStorage.</p>
       <div class="form-grid">
@@ -180,7 +198,7 @@
       <div id="importPreview" class="table-wrapper empty-message" aria-live="polite"></div>
     </section>
 
-    <section class="panel" aria-labelledby="schedulable-title">
+    <section class="panel app-screen" data-screen="assuntos-agendaveis" aria-labelledby="schedulable-title">
       <div class="section-heading"><p class="eyebrow">Planejamento futuro</p><h2 id="schedulable-title">Assuntos Agendáveis</h2></div>
       <p class="item-meta">Esta tela é alimentada pelos itens do edital verticalizado. Defina como cada assunto poderá entrar nas suas metas.</p>
       <div id="schedulableList" class="cards-list empty-message"></div>
@@ -188,7 +206,7 @@
 
 
 
-    <section class="panel" aria-labelledby="daily-goals-title">
+    <section class="panel app-screen" data-screen="metas-do-dia" aria-labelledby="daily-goals-title">
       <div class="section-heading inline"><div><p class="eyebrow">Planejamento diário</p><h2 id="daily-goals-title">Metas do Dia</h2></div><button id="generateDailyGoals" type="button">Gerar metas do dia</button></div>
       <p class="notice">As metas são criadas a partir dos assuntos agendáveis do edital verticalizado, priorizando alta prioridade, não iniciados, sem diagnóstico, fracos e disciplinas com mais pendências.</p>
       <form id="goalForm" class="form-grid">
@@ -205,7 +223,7 @@
       <div id="dailyGoalsList" class="cards-list empty-message" aria-live="polite"></div>
     </section>
 
-    <section class="panel" aria-labelledby="questions-title">
+    <section class="panel app-screen" data-screen="questoes" aria-labelledby="questions-title">
       <div class="section-heading"><p class="eyebrow">Desempenho</p><h2 id="questions-title">Questões</h2></div>
       <form id="questionForm" class="form-grid">
         <input id="questionEditingId" type="hidden" /><input id="questionLinkedGoalId" type="hidden" /><input id="questionOrigin" type="hidden" value="avulso" />
@@ -225,7 +243,7 @@
       </form>
     </section>
 
-    <section class="panel" aria-labelledby="question-history-title">
+    <section class="panel app-screen" data-screen="historico-questoes" aria-labelledby="question-history-title">
       <div class="section-heading"><p class="eyebrow">Histórico</p><h2 id="question-history-title">Histórico de Questões</h2></div>
       <div class="filters form-grid compact">
         <label>Disciplina<select id="questionFilterDiscipline"><option value="">Todas</option></select></label>
@@ -235,20 +253,21 @@
       <div class="table-wrapper"><table><thead><tr><th>Data</th><th>Disciplina</th><th>Assunto</th><th>Banca</th><th>Total</th><th>Acertos</th><th>Erros</th><th>Brancos</th><th>% Acerto</th><th>Líquido</th><th>Origem</th><th>Observações</th><th>Ações</th></tr></thead><tbody id="questionHistoryBody"></tbody></table></div>
     </section>
 
-    <section class="grid-layout secondary">
+    <section class="grid-layout secondary app-screen" data-screen="revisoes">
       <article class="panel" aria-labelledby="reviews-title"><div class="section-heading"><p class="eyebrow">Revisões</p><h2 id="reviews-title">24h, 7 dias e 30 dias</h2></div><div id="reviewList" class="review-list empty-message" aria-live="polite"></div></article>
       <article class="panel alert-panel" aria-labelledby="alerts-title"><div class="section-heading"><p class="eyebrow">Atrasos</p><h2 id="alerts-title">Disciplinas atrasadas</h2></div><div id="alertList" class="alert-list empty-message" aria-live="polite"></div></article>
     </section>
 
-    <section class="panel" aria-labelledby="history-title">
+    <section class="panel app-screen" data-screen="historico" aria-labelledby="history-title">
       <div class="section-heading inline"><div><p class="eyebrow">Histórico</p><h2 id="history-title">Registros recentes</h2></div><button id="clearData" class="danger" type="button">Limpar dados</button></div>
       <div class="table-wrapper"><table><thead><tr><th>Data</th><th>Disciplina</th><th>Assunto</th><th>Minutos</th><th>Questões</th><th>Acertos</th><th>Erros</th><th>Brancos</th></tr></thead><tbody id="historyBody"></tbody></table></div>
     </section>
 
-    <section id="como-rodar" class="panel instructions" aria-labelledby="run-title">
+    <section id="como-rodar" class="panel instructions app-screen" data-screen="como-usar" aria-labelledby="run-title">
       <h2 id="run-title">Como rodar e publicar</h2>
       <ol><li>Baixe ou clone este repositório.</li><li>Abra o arquivo <code>index.html</code> no navegador. Não é necessário instalar dependências.</li><li>Os dados ficam no navegador usado; para testar do zero, use o botão <strong>Limpar dados</strong>.</li><li>Para publicar no GitHub Pages, envie os arquivos para um repositório no GitHub.</li></ol>
     </section>
+    </div>
   </main>
 
   <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p></footer>

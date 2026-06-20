@@ -163,6 +163,7 @@ function editSyllabusItem(id) {
   if (!item) return;
   elements.itemDiscipline.value = item.discipline; elements.itemTopic.value = item.topic; elements.itemSubject.value = item.subject; elements.itemSubtopic.value = item.subtopic || ""; elements.itemReference.value = item.reference || ""; elements.itemPriority.value = item.priority; elements.itemWeight.value = item.weight || 1; elements.itemStatus.value = item.status; elements.itemDomain.value = item.domain; elements.itemNotes.value = item.notes || "";
   editingSyllabusId = id;
+  activateScreen("verticalizado");
   document.getElementById("vertical-title").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -449,6 +450,7 @@ function generateDailyGoals() {
     console.info(`[Metas do dia] Metas geradas: ${chosen.length}`);
     render();
     showDailyGoalMessage("Metas do dia geradas com sucesso.", "success");
+    activateScreen("metas-do-dia");
     document.getElementById("daily-goals-title").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (error) {
     console.error("Não foi possível gerar metas.", error);
@@ -465,8 +467,9 @@ function recomputeSyllabusQuestionStats(item) { const logs = state.questionLogs.
 function saveQuestionLog(event) { event.preventDefault(); const n = questionNumbers(); const error = validateQuestionLog(n); if (error) return alert(error); const item = getSyllabusById(elements.questionSyllabusItem.value); const id = elements.questionEditingId.value || createId(); const log = { id, date: elements.questionDate.value, discipline: elements.questionDiscipline.value, syllabusItemId: item.id, subject: item.subject, board: elements.questionBoard.value, total: n.total, correct: n.correct, wrong: n.wrong, blank: n.blank, accuracyRate: Number(n.accuracy.toFixed(1)), errorRate: Number(n.errorPct.toFixed(1)), blankRate: Number(n.blankPct.toFixed(1)), cebraspeNet: n.net, notes: elements.questionNotes.value.trim(), trainingType: elements.questionTrainingType.value, origin: elements.questionOrigin.value || "avulso", linkedGoalId: elements.questionLinkedGoalId.value || "" }; const idx = state.questionLogs.findIndex((q) => q.id === id); if (idx >= 0) state.questionLogs[idx] = log; else state.questionLogs.push(log); recomputeSyllabusQuestionStats(item); alert(analysisMessage(n)); if (log.linkedGoalId && confirm("Deseja marcar a meta vinculada como concluída?")) { const goal = state.dailyGoals.find((g) => g.id === log.linkedGoalId); if (goal) goal.status = "Concluída"; } elements.questionForm.reset(); elements.questionEditingId.value = ""; elements.questionLinkedGoalId.value = ""; elements.questionOrigin.value = "avulso"; elements.questionDate.value = todayISO(); render(); }
 function getQuestionTotals() { return state.questionLogs.reduce((a,l) => ({ total:a.total+l.total, correct:a.correct+l.correct, wrong:a.wrong+l.wrong, blank:a.blank+l.blank, net:a.net+l.cebraspeNet }), { total:0, correct:0, wrong:0, blank:0, net:0 }); }
 function renderQuestionHistory() { const filtered = state.questionLogs.filter((log) => (!elements.questionFilterDiscipline.value || log.discipline === elements.questionFilterDiscipline.value) && (!elements.questionFilterSubject.value || log.syllabusItemId === elements.questionFilterSubject.value) && (!elements.questionFilterBoard.value || log.board === elements.questionFilterBoard.value)).sort((a,b) => b.date.localeCompare(a.date)); elements.questionHistoryBody.innerHTML = filtered.map((log) => `<tr><td>${log.date}</td><td>${escapeHTML(log.discipline)}</td><td>${escapeHTML(log.subject)}</td><td>${escapeHTML(log.board)}</td><td>${log.total}</td><td>${log.correct}</td><td>${log.wrong}</td><td>${log.blank}</td><td>${log.accuracyRate}%</td><td>${log.cebraspeNet}</td><td>${escapeHTML(log.origin)}</td><td>${escapeHTML(log.notes || "-")}</td><td><button type="button" data-edit-question="${log.id}">Editar</button><button class="danger" type="button" data-delete-question="${log.id}">Excluir</button></td></tr>`).join(""); }
-function fillQuestionFromGoal(goalId) { const goal = state.dailyGoals.find((g) => g.id === goalId); if (!goal) return; elements.questionDate.value = goal.date; elements.questionDiscipline.value = goal.discipline; optionsForItems(elements.questionSyllabusItem, goal.discipline, goal.syllabusItemId); elements.questionSyllabusItem.value = goal.syllabusItemId; elements.questionOrigin.value = "meta do dia"; elements.questionLinkedGoalId.value = goal.id; document.getElementById("questions-title").scrollIntoView({ behavior: "smooth", block: "start" }); }
-function editQuestionLog(id) { const log = state.questionLogs.find((q) => q.id === id); if (!log) return; elements.questionEditingId.value = log.id; elements.questionDate.value = log.date; elements.questionDiscipline.value = log.discipline; optionsForItems(elements.questionSyllabusItem, log.discipline, log.syllabusItemId); elements.questionSyllabusItem.value = log.syllabusItemId; elements.questionBoard.value = log.board; elements.questionTrainingType.value = log.trainingType; elements.questionTotal.value = log.total; elements.questionCorrect.value = log.correct; elements.questionWrong.value = log.wrong; elements.questionBlank.value = log.blank; elements.questionNotes.value = log.notes; elements.questionOrigin.value = log.origin; elements.questionLinkedGoalId.value = log.linkedGoalId; updateQuestionCalculated(); document.getElementById("questions-title").scrollIntoView({ behavior: "smooth", block: "start" }); }
+function fillQuestionFromGoal(goalId) { const goal = state.dailyGoals.find((g) => g.id === goalId); if (!goal) return; elements.questionDate.value = goal.date; elements.questionDiscipline.value = goal.discipline; optionsForItems(elements.questionSyllabusItem, goal.discipline, goal.syllabusItemId); elements.questionSyllabusItem.value = goal.syllabusItemId; elements.questionOrigin.value = "meta do dia"; elements.questionLinkedGoalId.value = goal.id; activateScreen("questoes");
+  document.getElementById("questions-title").scrollIntoView({ behavior: "smooth", block: "start" }); }
+function editQuestionLog(id) { const log = state.questionLogs.find((q) => q.id === id); if (!log) return; elements.questionEditingId.value = log.id; elements.questionDate.value = log.date; elements.questionDiscipline.value = log.discipline; optionsForItems(elements.questionSyllabusItem, log.discipline, log.syllabusItemId); elements.questionSyllabusItem.value = log.syllabusItemId; elements.questionBoard.value = log.board; elements.questionTrainingType.value = log.trainingType; elements.questionTotal.value = log.total; elements.questionCorrect.value = log.correct; elements.questionWrong.value = log.wrong; elements.questionBlank.value = log.blank; elements.questionNotes.value = log.notes; elements.questionOrigin.value = log.origin; elements.questionLinkedGoalId.value = log.linkedGoalId; updateQuestionCalculated(); activateScreen("questoes"); document.getElementById("questions-title").scrollIntoView({ behavior: "smooth", block: "start" }); }
 
 if (elements.generateDailyGoals) elements.generateDailyGoals.addEventListener("click", generateDailyGoals);
 elements.goalDiscipline.addEventListener("change", () => optionsForItems(elements.goalSyllabusItem, elements.goalDiscipline.value));
@@ -482,3 +485,40 @@ elements.questionHistoryBody.addEventListener("click", (event) => { const edit =
 
 mergeCompatibleLocalStorageData();
 render();
+
+const screenLinks = [...document.querySelectorAll("[data-screen-link]")];
+const screenPanels = [...document.querySelectorAll("[data-screen]")];
+const screenIds = new Set(screenPanels.map((panel) => panel.dataset.screen));
+const menuToggle = document.getElementById("menuToggle");
+const mainMenu = document.getElementById("mainMenu");
+
+function hashToScreen() {
+  const screen = window.location.hash.replace("#", "") || "dashboard";
+  return screenIds.has(screen) ? screen : "dashboard";
+}
+
+function activateScreen(screen = hashToScreen(), options = {}) {
+  const target = screenIds.has(screen) ? screen : "dashboard";
+  screenPanels.forEach((panel) => {
+    const active = panel.dataset.screen === target;
+    panel.classList.toggle("active", active);
+    panel.toggleAttribute("hidden", !active);
+  });
+  screenLinks.forEach((link) => {
+    const active = link.dataset.screenLink === target;
+    link.classList.toggle("active", active);
+    if (active) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  });
+  if (mainMenu && !options.keepMenuOpen) mainMenu.classList.remove("open");
+  if (menuToggle) menuToggle.setAttribute("aria-expanded", mainMenu?.classList.contains("open") ? "true" : "false");
+  if (!options.skipScroll) document.querySelector('.screen-stage')?.scrollIntoView({ block: "start" });
+}
+
+menuToggle?.addEventListener("click", () => {
+  mainMenu?.classList.toggle("open");
+  menuToggle.setAttribute("aria-expanded", mainMenu?.classList.contains("open") ? "true" : "false");
+});
+
+window.addEventListener("hashchange", () => activateScreen(hashToScreen()));
+activateScreen(hashToScreen(), { skipScroll: true, keepMenuOpen: true });
