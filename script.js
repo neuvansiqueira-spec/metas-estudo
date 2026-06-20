@@ -1,12 +1,13 @@
 const STORAGE_KEY = "metasConcursoData";
 const todayISO = () => new Date().toISOString().slice(0, 10);
-const defaultState = { subjects: [], studies: [], edital: { pdf: null }, syllabusItems: [], schedulableSettings: {}, dailyGoals: [], questionLogs: [] };
+const defaultState = { subjects: [], studies: [], edital: { pdf: null }, syllabusItems: [], schedulableSettings: {}, dailyGoals: [], questionLogs: [], settings: {} };
 const state = { ...defaultState, ...(JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}) };
 state.edital = { ...defaultState.edital, ...(state.edital || {}) };
 state.syllabusItems ||= [];
 state.schedulableSettings ||= {};
 state.dailyGoals ||= [];
 state.questionLogs ||= [];
+state.settings ||= {};
 state.migrations ||= {};
 function mergeCompatibleLocalStorageData() {
   const candidates = ["syllabusItems", "editalVerticalizado", "edital_verticalizado", "assuntosAgendaveis", "metasDoDia", "dailyGoals"];
@@ -41,6 +42,7 @@ function mergeCompatibleLocalStorageData() {
 }
 let bulkDraft = [];
 let importDraft = [];
+let pendingBackupPayload = null;
 let syllabusVisibleCount = 30;
 let editingSyllabusId = null;
 
@@ -57,13 +59,106 @@ const elements = {
   generalCebraspeNet: $("#generalCebraspeNet"), todayPendingGoals: $("#todayPendingGoals"), todayDoneGoals: $("#todayDoneGoals"),
   generateDailyGoals: $("#generateDailyGoals"), goalForm: $("#goalForm"), goalDate: $("#goalDate"), goalDiscipline: $("#goalDiscipline"), goalSyllabusItem: $("#goalSyllabusItem"), goalType: $("#goalType"), goalMinutes: $("#goalMinutes"), goalPriority: $("#goalPriority"), goalStatus: $("#goalStatus"), goalNotes: $("#goalNotes"), dailyGoalsList: $("#dailyGoalsList"),
   questionForm: $("#questionForm"), questionEditingId: $("#questionEditingId"), questionLinkedGoalId: $("#questionLinkedGoalId"), questionOrigin: $("#questionOrigin"), questionDate: $("#questionDate"), questionDiscipline: $("#questionDiscipline"), questionSyllabusItem: $("#questionSyllabusItem"), questionBoard: $("#questionBoard"), questionTrainingType: $("#questionTrainingType"), questionTotal: $("#questionTotal"), questionCorrect: $("#questionCorrect"), questionWrong: $("#questionWrong"), questionBlank: $("#questionBlank"), questionNotes: $("#questionNotes"), questionCalculated: $("#questionCalculated"), questionAnalysis: $("#questionAnalysis"),
-  questionFilterDiscipline: $("#questionFilterDiscipline"), questionFilterSubject: $("#questionFilterSubject"), questionFilterBoard: $("#questionFilterBoard"), questionHistoryBody: $("#questionHistoryBody")
+  questionFilterDiscipline: $("#questionFilterDiscipline"), questionFilterSubject: $("#questionFilterSubject"), questionFilterBoard: $("#questionFilterBoard"), questionHistoryBody: $("#questionHistoryBody"),
+  exportBackup: $("#exportBackup"), selectBackupFile: $("#selectBackupFile"), backupFileInput: $("#backupFileInput"), clearAllLocalData: $("#clearAllLocalData"), lastBackupDate: $("#lastBackupDate"), backupStorageKeys: $("#backupStorageKeys"), backupSummary: $("#backupSummary"), backupPreview: $("#backupPreview")
 };
 elements.studyDate.value = todayISO();
 elements.goalDate.value = todayISO();
 elements.questionDate.value = todayISO();
 
 function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function getProjectStorageKeys() {
+  const known = [STORAGE_KEY, "syllabusItems", "editalVerticalizado", "edital_verticalizado", "assuntosAgendaveis", "metasDoDia", "dailyGoals"];
+  return Object.keys(localStorage).filter((key) => known.includes(key) || key.toLowerCase().includes("metas") || key.toLowerCase().includes("edital"));
+}
+function backupCounts(source = state) {
+  return {
+    edital: source.edital && Object.values(source.edital).some(Boolean) ? 1 : 0,
+    verticalizado: source.syllabusItems?.length || 0,
+    agendaveis: source.syllabusItems?.filter((item) => {
+      const setting = source.schedulableSettings?.[item.id] || {};
+      return setting.availability === "Agendável" || acceptsSchedulableValue(item.agendavel) || acceptsSchedulableValue(item.schedulable) || acceptsSchedulableValue(item.importMeta?.agendavel) || Boolean(item.tipo_agendamento || item.importMeta?.tipo_agendamento);
+    }).length || 0,
+    disciplinas: source.subjects?.length || 0,
+    metas: source.dailyGoals?.length || 0,
+    questoes: source.questionLogs?.length || 0,
+    revisoes: source.studies?.length ? source.studies.length * 3 : 0,
+    historico: source.studies?.length || 0
+  };
+}
+function renderBackupSummary() {
+  if (!elements.backupSummary) return;
+  const counts = backupCounts();
+  const cards = [
+    ["Itens do edital verticalizado", counts.verticalizado], ["Assuntos agendáveis", counts.agendaveis], ["Disciplinas", counts.disciplinas],
+    ["Metas", counts.metas], ["Lançamentos de questões", counts.questoes], ["Revisões previstas", counts.revisoes], ["Registros históricos", counts.historico]
+  ];
+  elements.lastBackupDate.textContent = state.settings?.lastBackupAt ? new Date(state.settings.lastBackupAt).toLocaleString("pt-BR") : "Nunca exportado";
+  elements.backupStorageKeys.textContent = getProjectStorageKeys().length;
+  elements.backupSummary.innerHTML = cards.map(([label, value]) => `<article class="stat-card"><span>${label}</span><strong>${value}</strong></article>`).join("");
+}
+function makeBackupPayload() {
+  saveData();
+  const keys = getProjectStorageKeys();
+  const localStorageData = Object.fromEntries(keys.map((key) => [key, localStorage.getItem(key)]));
+  return { app: "metas-estudo", version: 1, exportedAt: new Date().toISOString(), storageKey: STORAGE_KEY, data: structuredClone(state), localStorage: localStorageData };
+}
+function backupFilename(date = new Date()) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `backup-metas-estudo-${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}-${pad(date.getHours())}-${pad(date.getMinutes())}.json`;
+}
+function exportBackup() {
+  const payload = makeBackupPayload();
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob); link.download = backupFilename(); link.click(); URL.revokeObjectURL(link.href);
+  state.settings ||= {}; state.settings.lastBackupAt = payload.exportedAt; saveData(); renderBackupSummary();
+}
+function normalizeBackupPayload(payload) {
+  if (payload?.app === "metas-estudo" && payload.data) return payload;
+  if (payload?.storageKey === STORAGE_KEY && payload.data) return { app: "metas-estudo", exportedAt: payload.exportedAt, data: payload.data, localStorage: payload.localStorage || {} };
+  return { app: "metas-estudo", exportedAt: payload?.exportedAt || "Data não informada", data: payload, localStorage: {} };
+}
+function renderBackupPreview(payload) {
+  const normalized = normalizeBackupPayload(payload); const counts = backupCounts(normalized.data || {});
+  const disciplines = [...new Set([...(normalized.data.subjects || []).map((s) => s.name), ...(normalized.data.syllabusItems || []).map((i) => i.discipline)].filter(Boolean))].sort();
+  const backupDate = normalized.exportedAt && !Number.isNaN(Date.parse(normalized.exportedAt)) ? new Date(normalized.exportedAt).toLocaleString("pt-BR") : "Não informada";
+  elements.backupPreview.innerHTML = `<h3>Pré-visualização do backup selecionado</h3><div class="stats-grid compact backup-summary"><article class="stat-card"><span>Data do backup</span><strong>${escapeHTML(backupDate)}</strong></article><article class="stat-card"><span>Disciplinas</span><strong>${counts.disciplinas}</strong></article><article class="stat-card"><span>Assuntos</span><strong>${counts.verticalizado}</strong></article><article class="stat-card"><span>Metas</span><strong>${counts.metas}</strong></article><article class="stat-card"><span>Questões</span><strong>${counts.questoes}</strong></article><article class="stat-card"><span>Revisões</span><strong>${counts.revisoes}</strong></article></div><p class="item-meta"><strong>Disciplinas encontradas:</strong> ${disciplines.slice(0, 20).map(escapeHTML).join(", ") || "nenhuma"}${disciplines.length > 20 ? "..." : ""}</p><div class="actions"><button type="button" data-backup-import="replace" class="danger">Substituir dados atuais</button><button type="button" data-backup-import="merge" class="secondary-button">Mesclar com dados atuais</button><button type="button" data-backup-import="cancel">Cancelar</button></div>`;
+  return normalized;
+}
+function replaceState(nextState) { Object.keys(state).forEach((key) => delete state[key]); Object.assign(state, { ...structuredClone(defaultState), ...(nextState || {}) }); state.edital = { ...defaultState.edital, ...(state.edital || {}) }; state.syllabusItems ||= []; state.schedulableSettings ||= {}; state.dailyGoals ||= []; state.questionLogs ||= []; state.settings ||= {}; }
+function mergeArrays(current = [], incoming = [], keyFn = (item) => item?.id || JSON.stringify(item)) { const seen = new Set(current.map(keyFn)); incoming.forEach((item) => { const key = keyFn(item); if (!seen.has(key)) { current.push(item); seen.add(key); } }); return current; }
+function mergeBackupData(data = {}) {
+  mergeArrays(state.subjects, data.subjects || [], (item) => canonical(item.name || item.id));
+  mergeArrays(state.studies, data.studies || [], (item) => item.id || [item.date, item.subjectId, item.topic, item.minutes].join("|"));
+  mergeArrays(state.syllabusItems, data.syllabusItems || [], (item) => item.importKey || importKeyFor(item));
+  mergeArrays(state.dailyGoals, data.dailyGoals || [], (item) => item.id || [item.date, item.discipline, item.subject, item.type].join("|"));
+  mergeArrays(state.questionLogs, data.questionLogs || [], (item) => item.id || [item.date, item.discipline, item.subject, item.total, item.correct, item.wrong].join("|"));
+  state.edital = { ...(data.edital || {}), ...state.edital };
+  state.schedulableSettings = { ...(data.schedulableSettings || {}), ...state.schedulableSettings };
+  state.settings = { ...(data.settings || {}), ...state.settings };
+}
+function clearProjectLocalStorage() { getProjectStorageKeys().forEach((key) => localStorage.removeItem(key)); }
+function restoreBackup(payload, mode) {
+  if (mode === "replace") { clearProjectLocalStorage(); replaceState(payload.data); }
+  if (mode === "merge") mergeBackupData(payload.data);
+  render(); showView("backup"); elements.backupPreview.innerHTML += `<p class="notice">Backup ${mode === "replace" ? "substituído" : "mesclado"} com sucesso.</p>`;
+}
+async function handleBackupFile(file) {
+  try {
+    pendingBackupPayload = renderBackupPreview(JSON.parse(await file.text()));
+  } catch (error) { console.error("Erro ao importar backup", error); alert("Não foi possível ler este arquivo JSON de backup."); }
+}
+function handleBackupImportChoice(action) {
+  if (action === "cancel") { pendingBackupPayload = null; elements.backupPreview.innerHTML = ""; return; }
+  if (!pendingBackupPayload) return alert("Selecione um arquivo de backup JSON antes de importar.");
+  if (action === "replace" && !confirm("Substituir dados atuais? Apenas dados do projeto metas-estudo serão apagados antes da restauração.")) return;
+  restoreBackup(pendingBackupPayload, action); pendingBackupPayload = null;
+}
+function clearAllLocalDataFromBackup() {
+  if (!confirm("Tem certeza? Esta ação apagará os dados salvos neste navegador. Faça backup antes de continuar.")) return;
+  clearProjectLocalStorage(); replaceState({}); render(); showView("backup");
+}
 function showDailyGoalMessage(message, type = "info") {
   let box = document.getElementById("dailyGoalsMessage");
   if (!box) {
@@ -310,7 +405,7 @@ function migrateIncorrectWeakDomains() {
   state.migrations.incorrectWeakDomains = true;
   return changed;
 }
-function render() { migrateIncorrectWeakDomains(); renderSubjects(); renderGoalSelectors(); renderQuestionSelectors(); renderDashboard(); renderEdital(); renderSyllabus(); renderSchedulable(); renderDailyGoals(); renderQuestionHistory(); updateQuestionCalculated(); renderReviews(); renderAlerts(); renderHistory(); renderImportPreview(); saveData(); }
+function render() { migrateIncorrectWeakDomains(); renderSubjects(); renderGoalSelectors(); renderQuestionSelectors(); renderDashboard(); renderEdital(); renderSyllabus(); renderSchedulable(); renderDailyGoals(); renderQuestionHistory(); updateQuestionCalculated(); renderReviews(); renderAlerts(); renderHistory(); renderImportPreview(); renderBackupSummary(); saveData(); }
 function syllabusFromValues(values) { return { id: createId(), discipline: values[0]?.trim() || "Sem disciplina", topic: values[1]?.trim() || "Geral", subject: values[2]?.trim() || "Assunto", subtopic: values[3]?.trim() || "", reference: values[4]?.trim() || "", priority: values[5]?.trim() || "Média", weight: Number(values[6]) || 1, status: values[7]?.trim() || "Não iniciado", domain: normalizeImportedDomain(values[8]), notes: values[9]?.trim() || "" }; }
 
 elements.subjectForm.addEventListener("submit", (event) => { event.preventDefault(); state.subjects.push({ id: createId(), name: elements.subjectName.value.trim(), goalHours: Number(elements.subjectGoal.value) }); elements.subjectForm.reset(); render(); });
@@ -404,7 +499,12 @@ elements.clearImportedSyllabus.addEventListener("click", () => {
   elements.importMessage.innerHTML = "Edital verticalizado importado removido.";
 });
 
-elements.clearData.addEventListener("click", () => { if (confirm("Tem certeza que deseja apagar todos os dados salvos neste navegador?")) { state.subjects = []; state.studies = []; state.edital = { pdf: null }; state.syllabusItems = []; state.schedulableSettings = {}; state.dailyGoals = []; state.questionLogs = []; render(); } });
+elements.clearData.addEventListener("click", () => { if (confirm("Tem certeza que deseja apagar todos os dados salvos neste navegador?")) { replaceState({}); render(); } });
+elements.exportBackup?.addEventListener("click", exportBackup);
+elements.selectBackupFile?.addEventListener("click", () => elements.backupFileInput.click());
+elements.backupFileInput?.addEventListener("change", () => { const file = elements.backupFileInput.files[0]; if (file) handleBackupFile(file); elements.backupFileInput.value = ""; });
+elements.clearAllLocalData?.addEventListener("click", clearAllLocalDataFromBackup);
+elements.backupPreview?.addEventListener("click", (event) => { const button = event.target.closest("button[data-backup-import]"); if (button) handleBackupImportChoice(button.dataset.backupImport); });
 
 function syllabusLabel(item) { return `${item.discipline} — ${item.subject}${item.subtopic ? ` • ${item.subtopic}` : ""}`; }
 function getSyllabusById(id) { return state.syllabusItems.find((item) => item.id === id); }
@@ -512,6 +612,7 @@ function renderView(viewId) {
     "historico-questoes": () => { renderQuestionSelectors(); renderQuestionHistory(); },
     revisoes: () => { renderReviews(); renderAlerts(); },
     historico: renderHistory,
+    backup: renderBackupSummary,
     "como-usar": () => {}
   };
   renderers[viewId]?.();
