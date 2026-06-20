@@ -23,6 +23,7 @@
         <a href="#edital-verticalizado" data-view-link="edital-verticalizado">Edital Verticalizado</a>
         <a href="#importar-edital" data-view-link="importar-edital">Importar Edital</a>
         <a href="#assuntos-agendaveis" data-view-link="assuntos-agendaveis">Assuntos Agendáveis</a>
+        <a href="#materiais" data-view-link="materiais">Materiais</a>
         <a href="#planejamento" data-view-link="planejamento">Planejamento</a>
         <a href="#metas-do-dia" data-view-link="metas-do-dia">Metas do Dia</a>
         <a href="#questoes" data-view-link="questoes">Questões</a>
@@ -57,6 +58,7 @@
       <a href="#edital-verticalizado" data-view-link="edital-verticalizado">Edital Verticalizado</a>
       <a href="#importar-edital" data-view-link="importar-edital">Importar Edital</a>
       <a href="#assuntos-agendaveis" data-view-link="assuntos-agendaveis">Assuntos Agendáveis</a>
+      <a href="#materiais" data-view-link="materiais">Materiais</a>
       <a href="#planejamento" data-view-link="planejamento">Planejamento</a>
       <a href="#metas-do-dia" data-view-link="metas-do-dia">Metas do Dia</a>
       <a href="#questoes" data-view-link="questoes">Questões</a>
@@ -82,6 +84,9 @@
         <article class="stat-card"><span>Edital estudado</span><strong id="syllabusStudied">0%</strong></article>
         <article class="stat-card"><span>Assuntos cadastrados</span><strong id="syllabusTotal">0</strong></article>
         <article class="stat-card"><span>Assuntos agendáveis</span><strong id="schedulableTotal">0</strong></article>
+        <article class="stat-card"><span>Materiais cadastrados</span><strong id="materialsTotal">0</strong></article>
+        <article class="stat-card"><span>Disciplinas com materiais</span><strong id="materialDisciplinesTotal">0</strong></article>
+        <article class="stat-card"><span>Assuntos com materiais</span><strong id="materialTopicsTotal">0</strong></article>
         <article class="stat-card"><span>Metas pendentes hoje</span><strong id="todayPendingGoals">0</strong></article>
         <article class="stat-card"><span>Metas concluídas hoje</span><strong id="todayDoneGoals">0</strong></article>
         <article class="stat-card"><span>Não iniciados</span><strong id="notStartedTotal">0</strong></article>
@@ -122,6 +127,7 @@
           <label>Minutos estudados<input id="studyMinutes" type="number" min="1" required /></label>
           <label>Tempo planejado (min)<input id="studyPlannedMinutes" type="number" min="0" value="0" /></label>
           <label>Status do assunto<select id="studyTopicStatus"><option>Iniciado</option><option>Concluído</option></select></label>
+          <label>Material usado<select id="studyMaterial"><option value="">Nenhum material vinculado</option></select></label>
           <label class="wide">Observação sobre dificuldade<textarea id="studyDifficultyNotes" rows="2"></textarea></label>
           <label>Questões feitas<input id="questionsDone" type="number" min="0" value="0" required /></label>
           <label>Acertos<input id="correctAnswers" type="number" min="0" value="0" required /></label>
@@ -218,6 +224,36 @@
       <div id="importPreview" class="table-wrapper empty-message" aria-live="polite"></div>
     </section>
 
+
+    <section id="view-materiais" class="panel app-view" data-view="materiais" aria-labelledby="materials-title">
+      <div class="section-heading"><p class="eyebrow">Biblioteca</p><h2 id="materials-title">Materiais</h2></div>
+      <p class="notice">Os arquivos não são salvos dentro do site. O sistema salva apenas o link ou referência do material. Para acesso em outros dispositivos, mantenha os arquivos no Google Drive ou outro serviço de nuvem e exporte backup JSON do site.</p>
+      <p class="notice warning-notice">Evite colocar arquivos pessoais ou protegidos por direitos autorais em repositórios públicos.</p>
+      <form id="materialForm" class="form-grid">
+        <input id="materialEditingId" type="hidden" />
+        <label>Título do material<input id="materialTitle" type="text" required /></label>
+        <label>Data de cadastro<input id="materialDate" type="date" required /></label>
+        <label>Disciplina<input id="materialDiscipline" type="text" list="materialDisciplineOptions" required /></label>
+        <datalist id="materialDisciplineOptions"></datalist>
+        <label>Assunto<input id="materialSubject" type="text" list="materialSubjectOptions" required /></label>
+        <datalist id="materialSubjectOptions"></datalist>
+        <label>Tipo de material<select id="materialType"><option>PDF</option><option>Word</option><option>Imagem</option><option>Mapa mental</option><option>Resumo</option><option>Aula</option><option>Questões</option><option>Outro</option></select></label>
+        <label>Origem<select id="materialOrigin"><option>Google Drive</option><option>OneDrive</option><option>Link externo</option><option>Arquivo local/referência manual</option><option>Outro</option></select></label>
+        <label class="wide">Link do arquivo<input id="materialLink" type="text" placeholder="https://drive.google.com/... ou referência manual" required /></label>
+        <label class="wide">Tags<input id="materialTags" type="text" placeholder="Separadas por vírgula: resumo, revisão, mapas" /></label>
+        <label class="wide">Observações<textarea id="materialNotes" rows="3"></textarea></label>
+        <button class="wide" type="submit">Salvar material</button>
+      </form>
+      <div class="filters form-grid compact">
+        <label>Disciplina<select id="materialFilterDiscipline"><option value="">Todas</option></select></label>
+        <label>Assunto<select id="materialFilterSubject"><option value="">Todos</option></select></label>
+        <label>Tipo<select id="materialFilterType"><option value="">Todos</option></select></label>
+        <label>Origem<select id="materialFilterOrigin"><option value="">Todas</option></select></label>
+        <label class="wide">Texto livre<input id="materialFilterText" type="search" placeholder="Buscar por título, tags, observações ou link" /></label>
+      </div>
+      <div id="materialsList" class="cards-list empty-message" aria-live="polite"></div>
+    </section>
+
     <section id="view-assuntos-agendaveis" class="panel app-view" data-view="assuntos-agendaveis" aria-labelledby="schedulable-title">
       <div class="section-heading"><p class="eyebrow">Planejamento futuro</p><h2 id="schedulable-title">Assuntos Agendáveis</h2></div>
       <p class="item-meta">Esta tela é alimentada pelos itens do edital verticalizado. Defina como cada assunto poderá entrar nas suas metas.</p>
@@ -238,7 +274,7 @@
       <article class="bulk-box"><h3>Calendário simples de disponibilidade</h3><p class="item-meta">Edite os próximos dias conforme plantão, folga, normal, indisponível, estudo leve ou estudo forte.</p><div id="availabilityCalendar" class="cards-list"></div></article>
       <article class="bulk-box"><h3>Previsão de conclusão do edital</h3><div id="completionForecast" class="stats-grid compact"></div><div id="completionAlert" class="notice"></div></article>
       <article class="bulk-box"><h3>Metas semanais</h3><div id="weeklyGoalsPlan" class="stats-grid compact"></div><div id="weeklyGoalsAlert" class="notice"></div></article>
-      <article class="bulk-box"><h3>Histórico de tempo por assunto</h3><div id="timeHistorySummary" class="stats-grid compact"></div><div class="table-wrapper"><table><thead><tr><th>Data</th><th>Disciplina</th><th>Assunto</th><th>Tempo</th><th>Tipo</th><th>Status</th><th>Observações</th></tr></thead><tbody id="timeHistoryBody"></tbody></table></div></article>
+      <article class="bulk-box"><h3>Histórico de tempo por assunto</h3><div id="timeHistorySummary" class="stats-grid compact"></div><div class="table-wrapper"><table><thead><tr><th>Data</th><th>Disciplina</th><th>Assunto</th><th>Tempo</th><th>Tipo</th><th>Status</th><th>Material usado</th><th>Observações</th></tr></thead><tbody id="timeHistoryBody"></tbody></table></div></article>
     </section>
 
     <section id="view-metas-do-dia" class="panel app-view" data-view="metas-do-dia" aria-labelledby="daily-goals-title">
