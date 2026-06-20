@@ -2,7 +2,18 @@ const STORAGE_KEY = "metasConcursoData";
 const SIMULADOS_STORAGE_KEY = "metasEstudoSimulados";
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const defaultPlanning = { config: { examDate: "", scaleType: "24x72", scaleNotes: "", shiftHours: 1, restHours: 5, normalHours: 2.5, minWeeklyHours: 10, idealWeeklyHours: 18, weeklyTopics: 8, safetyDays: 7 }, availability: {}, weeklyGoals: [], forecasts: {} };
-const defaultState = { subjects: [], studies: [], edital: { pdf: null }, syllabusItems: [], schedulableSettings: {}, dailyGoals: [], questionLogs: [], simulados: [], planning: structuredClone(defaultPlanning), settings: { defaultMockGoal: 92 }, materials: [] };
+function cloneData(value) { return globalThis.structuredClone ? structuredClone(value) : JSON.parse(JSON.stringify(value)); }
+function normalizePlanningState(planning = {}) {
+  return {
+    ...cloneData(defaultPlanning),
+    ...planning,
+    config: { ...defaultPlanning.config, ...(planning.config || {}) },
+    availability: { ...(planning.availability || {}) },
+    weeklyGoals: Array.isArray(planning.weeklyGoals) ? planning.weeklyGoals : [],
+    forecasts: { ...(planning.forecasts || {}) }
+  };
+}
+const defaultState = { subjects: [], studies: [], edital: { pdf: null }, syllabusItems: [], schedulableSettings: {}, dailyGoals: [], questionLogs: [], simulados: [], planning: cloneData(defaultPlanning), settings: { defaultMockGoal: 92 }, materials: [] };
 const state = { ...defaultState, ...(JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}) };
 state.edital = { ...defaultState.edital, ...(state.edital || {}) };
 state.syllabusItems ||= [];
@@ -11,7 +22,7 @@ state.dailyGoals ||= [];
 state.questionLogs ||= [];
 state.simulados ||= JSON.parse(localStorage.getItem(SIMULADOS_STORAGE_KEY) || "[]");
 state.materials ||= [];
-state.planning = { ...structuredClone(defaultPlanning), ...(state.planning || {}), config: { ...defaultPlanning.config, ...(state.planning?.config || {}) }, availability: { ...(state.planning?.availability || {}) }, weeklyGoals: state.planning?.weeklyGoals || [], forecasts: { ...(state.planning?.forecasts || {}) } };
+state.planning = normalizePlanningState(state.planning);
 state.settings ||= {};
 state.settings.defaultMockGoal ||= 92;
 state.materials ||= [];
@@ -116,7 +127,7 @@ function makeBackupPayload() {
   saveData();
   const keys = getProjectStorageKeys();
   const localStorageData = Object.fromEntries(keys.map((key) => [key, localStorage.getItem(key)]));
-  return { app: "metas-estudo", version: 1, exportedAt: new Date().toISOString(), storageKey: STORAGE_KEY, data: structuredClone(state), localStorage: localStorageData };
+  return { app: "metas-estudo", version: 1, exportedAt: new Date().toISOString(), storageKey: STORAGE_KEY, data: cloneData(state), localStorage: localStorageData };
 }
 function backupFilename(date = new Date()) {
   const pad = (n) => String(n).padStart(2, "0");
@@ -141,7 +152,7 @@ function renderBackupPreview(payload) {
   elements.backupPreview.innerHTML = `<h3>Pré-visualização do backup selecionado</h3><div class="stats-grid compact backup-summary"><article class="stat-card"><span>Data do backup</span><strong>${escapeHTML(backupDate)}</strong></article><article class="stat-card"><span>Disciplinas</span><strong>${counts.disciplinas}</strong></article><article class="stat-card"><span>Assuntos</span><strong>${counts.verticalizado}</strong></article><article class="stat-card"><span>Metas</span><strong>${counts.metas}</strong></article><article class="stat-card"><span>Questões</span><strong>${counts.questoes}</strong></article><article class="stat-card"><span>Simulados</span><strong>${counts.simulados}</strong></article><article class="stat-card"><span>Revisões</span><strong>${counts.revisoes}</strong></article></div><p class="item-meta"><strong>Disciplinas encontradas:</strong> ${disciplines.slice(0, 20).map(escapeHTML).join(", ") || "nenhuma"}${disciplines.length > 20 ? "..." : ""}</p><div class="actions"><button type="button" data-backup-import="replace" class="danger">Substituir dados atuais</button><button type="button" data-backup-import="merge" class="secondary-button">Mesclar com dados atuais</button><button type="button" data-backup-import="cancel">Cancelar</button></div>`;
   return normalized;
 }
-function replaceState(nextState) { Object.keys(state).forEach((key) => delete state[key]); Object.assign(state, { ...structuredClone(defaultState), ...(nextState || {}) }); state.edital = { ...defaultState.edital, ...(state.edital || {}) }; state.syllabusItems ||= []; state.schedulableSettings ||= {}; state.dailyGoals ||= []; state.questionLogs ||= []; state.simulados ||= []; state.planning = { ...structuredClone(defaultPlanning), ...(state.planning || {}), config: { ...defaultPlanning.config, ...(state.planning?.config || {}) }, availability: { ...(state.planning?.availability || {}) }, weeklyGoals: state.planning?.weeklyGoals || [], forecasts: { ...(state.planning?.forecasts || {}) } }; state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.materials ||= []; }
+function replaceState(nextState) { Object.keys(state).forEach((key) => delete state[key]); Object.assign(state, { ...cloneData(defaultState), ...(nextState || {}) }); state.edital = { ...defaultState.edital, ...(state.edital || {}) }; state.syllabusItems ||= []; state.schedulableSettings ||= {}; state.dailyGoals ||= []; state.questionLogs ||= []; state.simulados ||= []; state.planning = normalizePlanningState(state.planning); state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.materials ||= []; }
 function mergeArrays(current = [], incoming = [], keyFn = (item) => item?.id || JSON.stringify(item)) { const seen = new Set(current.map(keyFn)); incoming.forEach((item) => { const key = keyFn(item); if (!seen.has(key)) { current.push(item); seen.add(key); } }); return current; }
 function mergeBackupData(data = {}) {
   mergeArrays(state.subjects, data.subjects || [], (item) => canonical(item.name || item.id));
@@ -151,7 +162,7 @@ function mergeBackupData(data = {}) {
   mergeArrays(state.questionLogs, data.questionLogs || [], (item) => item.id || [item.date, item.discipline, item.subject, item.total, item.correct, item.wrong].join("|"));
   mergeArrays(state.simulados, data.simulados || [], (item) => item.id || [item.date, item.name, item.total, item.correct, item.wrong].join("|"));
   mergeArrays(state.materials, data.materials || data.materiais || [], (item) => item.id || [item.title || item.titulo, item.discipline || item.disciplina, item.subject || item.assunto, item.link].join("|"));
-  if (data.planning) state.planning = { ...state.planning, ...data.planning, config: { ...state.planning.config, ...(data.planning.config || {}) }, availability: { ...(data.planning.availability || {}), ...state.planning.availability }, weeklyGoals: data.planning.weeklyGoals || state.planning.weeklyGoals, forecasts: { ...(data.planning.forecasts || {}), ...state.planning.forecasts } };
+  if (data.planning) state.planning = normalizePlanningState({ ...state.planning, ...data.planning, config: { ...state.planning.config, ...(data.planning.config || {}) }, availability: { ...(data.planning.availability || {}), ...state.planning.availability }, weeklyGoals: data.planning.weeklyGoals || state.planning.weeklyGoals, forecasts: { ...(data.planning.forecasts || {}), ...state.planning.forecasts } });
   state.edital = { ...(data.edital || {}), ...state.edital };
   state.schedulableSettings = { ...(data.schedulableSettings || {}), ...state.schedulableSettings };
   state.settings = { ...(data.settings || {}), ...state.settings };
@@ -813,7 +824,7 @@ elements.addMockDiscipline?.addEventListener("click", addMockDiscipline);
 elements.clearMockDisciplines?.addEventListener("click", () => { mockDisciplineDraft = []; renderMockDraft(); });
 elements.mockDisciplineDraft?.addEventListener("click", (event) => { const button = event.target.closest("button[data-remove-mock-discipline]"); if (button) { mockDisciplineDraft.splice(Number(button.dataset.removeMockDiscipline), 1); renderMockDraft(); } });
 elements.mockExamForm?.addEventListener("submit", saveMock);
-elements.mockHistory?.addEventListener("click", (event) => { const view = event.target.closest("button[data-view-mock]"); const edit = event.target.closest("button[data-edit-mock]"); const duplicate = event.target.closest("button[data-duplicate-mock]"); const del = event.target.closest("button[data-delete-mock]"); if (view) { const m = state.simulados.find((x)=>x.id===view.dataset.viewMock); if (m) { state.simulados = state.simulados.filter((x)=>x.id!==m.id).concat(m); render(); } } if (edit) editMock(edit.dataset.editMock); if (duplicate) { const m = state.simulados.find((x)=>x.id===duplicate.dataset.duplicateMock); if (m) { state.simulados.push(prepareMock({ ...structuredClone(m), id:createId(), name:`${m.name} (cópia)` })); render(); } } if (del && confirm("Excluir este simulado?")) { state.simulados = state.simulados.filter((x)=>x.id!==del.dataset.deleteMock); render(); } });
+elements.mockHistory?.addEventListener("click", (event) => { const view = event.target.closest("button[data-view-mock]"); const edit = event.target.closest("button[data-edit-mock]"); const duplicate = event.target.closest("button[data-duplicate-mock]"); const del = event.target.closest("button[data-delete-mock]"); if (view) { const m = state.simulados.find((x)=>x.id===view.dataset.viewMock); if (m) { state.simulados = state.simulados.filter((x)=>x.id!==m.id).concat(m); render(); } } if (edit) editMock(edit.dataset.editMock); if (duplicate) { const m = state.simulados.find((x)=>x.id===duplicate.dataset.duplicateMock); if (m) { state.simulados.push(prepareMock({ ...cloneData(m), id:createId(), name:`${m.name} (cópia)` })); render(); } } if (del && confirm("Excluir este simulado?")) { state.simulados = state.simulados.filter((x)=>x.id!==del.dataset.deleteMock); render(); } });
 
 elements.questionHistoryBody.addEventListener("click", (event) => { const edit = event.target.closest("button[data-edit-question]"); const del = event.target.closest("button[data-delete-question]"); if (edit) editQuestionLog(edit.dataset.editQuestion); if (del && confirm("Excluir este lançamento de questões?")) { const log = state.questionLogs.find((q) => q.id === del.dataset.deleteQuestion); state.questionLogs = state.questionLogs.filter((q) => q.id !== del.dataset.deleteQuestion); if (log) { const item = getSyllabusById(log.syllabusItemId); if (item) recomputeSyllabusQuestionStats(item); } render(); } });
 
