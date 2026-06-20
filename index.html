@@ -24,6 +24,7 @@
         <a href="#importar-edital" data-view-link="importar-edital">Importar Edital</a>
         <a href="#assuntos-agendaveis" data-view-link="assuntos-agendaveis">Assuntos Agendáveis</a>
         <a href="#metas-do-dia" data-view-link="metas-do-dia">Metas do Dia</a>
+        <a href="#planejamento" data-view-link="planejamento">Planejamento</a>
         <a href="#questoes" data-view-link="questoes">Questões</a>
         <a href="#simulados" data-view-link="simulados">Simulados</a>
         <a href="#historico-questoes" data-view-link="historico-questoes">Histórico de Questões</a>
@@ -57,6 +58,7 @@
       <a href="#importar-edital" data-view-link="importar-edital">Importar Edital</a>
       <a href="#assuntos-agendaveis" data-view-link="assuntos-agendaveis">Assuntos Agendáveis</a>
       <a href="#metas-do-dia" data-view-link="metas-do-dia">Metas do Dia</a>
+      <a href="#planejamento" data-view-link="planejamento">Planejamento</a>
       <a href="#questoes" data-view-link="questoes">Questões</a>
       <a href="#simulados" data-view-link="simulados">Simulados</a>
       <a href="#historico-questoes" data-view-link="historico-questoes">Histórico de Questões</a>
@@ -74,6 +76,11 @@
       <div class="stats-grid expanded">
         <article class="stat-card"><span>Horas hoje</span><strong id="todayHours">0h</strong></article>
         <article class="stat-card"><span>Horas na semana</span><strong id="weekHours">0h</strong></article>
+        <article class="stat-card"><span>Tempo total estudado</span><strong id="planningTotalHours">0h</strong></article>
+        <article class="stat-card"><span>Média de tempo por assunto</span><strong id="planningAvgTopicTime">0h</strong></article>
+        <article class="stat-card"><span>Previsão de conclusão do edital</span><strong id="planningForecastDate">-</strong></article>
+        <article class="stat-card"><span>Dias restantes até a prova</span><strong id="planningDaysToExam">-</strong></article>
+        <article class="stat-card"><span>Situação do planejamento</span><strong id="planningSituation">-</strong></article>
         <article class="stat-card"><span>Questões feitas</span><strong id="totalQuestions">0</strong></article>
         <article class="stat-card"><span>Percentual geral de acerto</span><strong id="accuracyRate">0%</strong></article>
         <article class="stat-card"><span>Líquido Cebraspe geral</span><strong id="generalCebraspeNet">0</strong></article>
@@ -113,6 +120,9 @@
           <label>Disciplina<select id="studySubject" required></select></label>
           <label class="wide">Assunto<input id="studyTopic" type="text" placeholder="Ex.: Controle de constitucionalidade" required /></label>
           <label>Minutos estudados<input id="studyMinutes" type="number" min="1" required /></label>
+          <label>Tempo planejado (min)<input id="studyPlannedMinutes" type="number" min="0" /></label>
+          <label>Status do assunto<select id="studyTopicStatus"><option>Iniciado</option><option>Concluído</option></select></label>
+          <label class="wide">Dificuldade/observação<input id="studyDifficultyNotes" type="text" placeholder="Ex.: assunto difícil, revisar jurisprudência" /></label>
           <label>Questões feitas<input id="questionsDone" type="number" min="0" value="0" required /></label>
           <label>Acertos<input id="correctAnswers" type="number" min="0" value="0" required /></label>
           <label>Erros<input id="wrongAnswers" type="number" min="0" value="0" required /></label>
@@ -225,12 +235,30 @@
         <label class="wide">Assunto<select id="goalSyllabusItem" required></select></label>
         <label>Tipo da meta<select id="goalType"><option>Estudo novo</option><option>Revisão</option><option>Questões</option><option>Simulado</option><option>Reforço</option></select></label>
         <label>Tempo sugerido (min)<input id="goalMinutes" type="number" min="1" value="50" required /></label>
+        <label>Tempo real (min)<input id="goalActualMinutes" type="number" min="0" /></label>
+        <label>Status do estudo<select id="goalStudyStatus"><option>Iniciado</option><option>Concluído</option></select></label>
         <label>Prioridade<select id="goalPriority"><option>Alta</option><option selected>Média</option><option>Baixa</option></select></label>
         <label>Status<select id="goalStatus"><option selected>Pendente</option><option>Concluída</option><option>Adiada</option><option>Ignorada</option></select></label>
         <label class="wide">Observações<textarea id="goalNotes" rows="3"></textarea></label>
         <button class="wide" type="submit">Salvar meta manual</button>
       </form>
       <div id="dailyGoalsList" class="cards-list empty-message" aria-live="polite"></div>
+    </section>
+
+
+    <section id="view-planejamento" class="panel app-view" data-view="planejamento" aria-labelledby="planning-title">
+      <div class="section-heading"><p class="eyebrow">ORDEM 3.2</p><h2 id="planning-title">Planejamento</h2></div>
+      <article class="bulk-box"><h3>Configuração da rotina</h3><form id="planningConfigForm" class="form-grid">
+        <label>Data da prova<input id="planningExamDate" type="date" /></label><label>Tipo de escala<select id="planningScaleType"><option>24x72</option><option>3 dias de trabalho / 6 dias de folga</option><option>semanal personalizada</option><option>manual</option></select></label>
+        <label>Horas disponíveis em dia de plantão<input id="planningHoursPlantao" type="number" min="0" step="0.5" /></label><label>Horas disponíveis em dia de folga<input id="planningHoursFolga" type="number" min="0" step="0.5" /></label>
+        <label>Horas disponíveis em dia normal<input id="planningHoursNormal" type="number" min="0" step="0.5" /></label><label>Meta semanal mínima de horas<input id="planningMinWeeklyHours" type="number" min="0" step="0.5" /></label>
+        <label>Meta semanal ideal de horas<input id="planningIdealWeeklyHours" type="number" min="0" step="0.5" /></label><label>Meta semanal de assuntos<input id="planningWeeklyTopics" type="number" min="0" /></label>
+        <label>Margem de segurança em dias<input id="planningSafetyDays" type="number" min="0" /></label><label class="wide">Observações da escala<textarea id="planningScaleNotes" rows="3"></textarea></label><button class="wide" type="submit">Salvar configuração</button>
+      </form></article>
+      <article class="bulk-box"><h3>Calendário simples de disponibilidade</h3><p class="item-meta">Edite manualmente os próximos dias. Cada tipo estima horas disponíveis.</p><div id="availabilityCalendar" class="table-wrapper"></div></article>
+      <article class="bulk-box"><h3>Previsão de conclusão do edital</h3><div id="planningForecast" class="stats-grid compact"></div><div id="planningForecastAlert" class="notice"></div></article>
+      <article class="bulk-box"><h3>Metas semanais</h3><div id="weeklyPlanning" class="stats-grid compact"></div><div id="weeklyPlanningAlert" class="notice"></div></article>
+      <article class="bulk-box"><h3>Histórico de tempo por assunto</h3><div id="timeHistorySummary" class="stats-grid compact"></div><div id="timeHistoryTable" class="table-wrapper"></div></article>
     </section>
 
     <section id="view-questoes" class="panel app-view" data-view="questoes" aria-labelledby="questions-title">
@@ -243,6 +271,7 @@
         <label>Banca<select id="questionBoard"><option>Cebraspe</option><option>FGV</option><option>FCC</option><option>Vunesp</option><option>Instituto AOCP</option><option>Cesgranrio</option><option>Outra</option></select></label>
         <label>Tipo de treino<select id="questionTrainingType"><option>Questões avulsas</option><option>Caderno de erros</option><option>Simulado</option><option>Revisão</option><option>Pós-aula</option></select></label>
         <label>Total de questões<input id="questionTotal" type="number" min="1" required /></label>
+        <label>Tempo gasto (min)<input id="questionTimeMinutes" type="number" min="0" /></label>
         <label>Acertos<input id="questionCorrect" type="number" min="0" value="0" required /></label>
         <label>Erros<input id="questionWrong" type="number" min="0" value="0" required /></label>
         <label>Brancos<input id="questionBlank" type="number" min="0" value="0" required /></label>
@@ -300,7 +329,7 @@
 
     <section id="view-historico" class="panel app-view" data-view="historico" aria-labelledby="history-title">
       <div class="section-heading inline"><div><p class="eyebrow">Histórico</p><h2 id="history-title">Registros recentes</h2></div><button id="clearData" class="danger" type="button">Limpar dados</button></div>
-      <div class="table-wrapper"><table><thead><tr><th>Data</th><th>Disciplina</th><th>Assunto</th><th>Minutos</th><th>Questões</th><th>Acertos</th><th>Erros</th><th>Brancos</th></tr></thead><tbody id="historyBody"></tbody></table></div>
+      <div class="table-wrapper"><table><thead><tr><th>Data</th><th>Disciplina</th><th>Assunto</th><th>Minutos</th><th>Questões</th><th>Acertos</th><th>Erros</th><th>Brancos</th><th>Tempo planejado</th><th>Status</th><th>Observações</th></tr></thead><tbody id="historyBody"></tbody></table></div>
     </section>
 
     <section id="view-backup" class="panel app-view" data-view="backup" aria-labelledby="backup-title">
