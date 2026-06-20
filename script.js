@@ -427,14 +427,24 @@ function normalizeMockDiscipline(entry) {
   const total = Number(entry.total) || 0, correct = Number(entry.correct) || 0, wrong = Number(entry.wrong) || 0, blank = Number(entry.blank) || 0;
   return { id: entry.id || createId(), discipline: normalizeText(entry.discipline) || "Sem disciplina", total, correct, wrong, blank, notes: normalizeText(entry.notes), net: correct - wrong, accuracyPct: percent(correct, total), errorPct: percent(wrong, total), blankPct: percent(blank, total) };
 }
+function strategicMockAlert(goalDiff) {
+  return goalDiff < 0 ? `Você ficou ${Math.abs(goalDiff)} pontos líquidos abaixo da meta.` : "Você atingiu ou superou a meta deste simulado.";
+}
 function buildMockDiagnosis(mock) {
   const disciplines = (mock.disciplines || []).map(normalizeMockDiscipline);
   const best = [...disciplines].sort((a,b) => b.net - a.net || b.accuracyPct - a.accuracyPct)[0];
   const worst = [...disciplines].sort((a,b) => a.net - b.net || b.errorPct - a.errorPct)[0];
   const mostWrong = [...disciplines].sort((a,b) => b.wrong - a.wrong)[0];
   const mostBlank = [...disciplines].sort((a,b) => b.blank - a.blank)[0];
-  const alert = mock.goalDiff < 0 ? `Você ficou ${Math.abs(mock.goalDiff)} pontos líquidos abaixo da meta. Priorize revisão das disciplinas com maior erro líquido antes do próximo simulado.` : `Você atingiu ou superou a meta em ${mock.goalDiff} ponto(s) líquidos. Mantenha revisão das disciplinas com mais erros e brancos.`;
-  return { best: best?.discipline || "-", worst: worst?.discipline || "-", mostWrong: mostWrong?.discipline || "-", mostBlank: mostBlank?.discipline || "-", goalDistance: mock.goalDiff, alert };
+  return {
+    hasDisciplines: disciplines.length > 0,
+    best: best?.discipline || "-",
+    worst: worst?.discipline || "-",
+    mostWrong: mostWrong?.discipline || "-",
+    mostBlank: mostBlank?.discipline || "-",
+    goalDistance: mock.goalDiff,
+    alert: strategicMockAlert(mock.goalDiff)
+  };
 }
 function prepareMock(payload) {
   const n = mockNumbersFromValues(Number(payload.total), Number(payload.correct), Number(payload.wrong), Number(payload.blank), Number(payload.goal));
@@ -450,6 +460,21 @@ function mockStats() {
   return { mocks, count: mocks.length, best: nets.length ? Math.max(...nets) : 0, worst: nets.length ? Math.min(...nets) : 0, average: nets.length ? Math.round(nets.reduce((a,b)=>a+b,0)/nets.length) : 0, last: mocks.at(-1)?.net || 0, first: mocks[0]?.net || 0, aboveGoal: mocks.filter((m) => m.net >= m.goal).length, problemDiscipline: Object.entries(problem).sort((a,b)=>b[1]-a[1])[0]?.[0] || "-" };
 }
 function renderMockCalculated() { if (!elements.mockCalculated) return; const n = currentMockNumbers(); elements.mockCalculated.innerHTML = `Respondidas: <strong>${n.answered}</strong> • Líquido Cebraspe: <strong>${n.net}</strong> • Acerto/respondidas: <strong>${n.accuracyAnswered}%</strong> • Acerto/total: <strong>${n.accuracyTotal}%</strong> • Brancos: <strong>${n.blankPct}%</strong> • Diferença para meta: <strong>${n.goalDiff}</strong>`; }
+function renderLatestMockDiagnosis(mock) {
+  if (!mock) return "Salve um simulado para gerar diagnóstico.";
+  const diagnosis = mock.diagnosis || buildMockDiagnosis(mock);
+  if (!diagnosis.hasDisciplines && !(mock.disciplines || []).length) {
+    return `<p><strong>Líquido:</strong> ${mock.net} • <strong>Meta:</strong> ${mock.goal} • <strong>Diferença para a meta:</strong> ${mock.goalDiff}</p><p>Resultado por disciplina ainda não informado. Cadastre o desempenho por disciplina para gerar diagnóstico detalhado.</p><p>${escapeHTML(strategicMockAlert(mock.goalDiff))}</p>`;
+  }
+  return `<strong>Melhor disciplina:</strong> ${escapeHTML(diagnosis.best)} • <strong>Pior disciplina:</strong> ${escapeHTML(diagnosis.worst)} • <strong>Mais erros:</strong> ${escapeHTML(diagnosis.mostWrong)} • <strong>Mais brancos:</strong> ${escapeHTML(diagnosis.mostBlank)} • <strong>Distância da meta:</strong> ${diagnosis.goalDistance}<br>${escapeHTML(strategicMockAlert(mock.goalDiff))}`;
+}
+function renderMockEvolution(stats, maxBase) {
+  if (!stats.mocks.length) return "Nenhuma evolução disponível.";
+  const summary = stats.mocks.length === 1
+    ? "Cadastre pelo menos dois simulados para calcular evolução entre o primeiro e o último."
+    : `Evolução primeiro → último: <strong>${stats.last - stats.first}</strong>. Maior líquido: <strong>${stats.best}</strong>. Menor líquido: <strong>${stats.worst}</strong>. Líquido médio: <strong>${stats.average}</strong>. Atingiu/superou a meta <strong>${stats.aboveGoal}</strong> vez(es).`;
+  return `<p class="item-meta">${summary}</p><table><thead><tr><th>Data</th><th>Simulado</th><th>Líquido</th><th>Meta</th><th>Barra</th></tr></thead><tbody>${stats.mocks.map((m)=>`<tr class="${m.net >= m.goal ? "goal-hit" : ""}"><td>${m.date}</td><td>${escapeHTML(m.name)}</td><td>${m.net}</td><td>${m.goal}</td><td><div class="progress"><span style="width:${Math.max(0, Math.min(100, m.net / maxBase * 100))}%"></span></div></td></tr>`).join("")}</tbody></table>`;
+}
 function renderMockDraft() { if (!elements.mockDisciplineDraft) return; elements.mockDisciplineDraft.innerHTML = mockDisciplineDraft.length ? `<table><thead><tr><th>Disciplina</th><th>Total</th><th>Acertos</th><th>Erros</th><th>Brancos</th><th>Líquido</th><th>% Acerto</th><th>% Erro</th><th>% Brancos</th><th>Ações</th></tr></thead><tbody>${mockDisciplineDraft.map((d,i)=>`<tr><td>${escapeHTML(d.discipline)}</td><td>${d.total}</td><td>${d.correct}</td><td>${d.wrong}</td><td>${d.blank}</td><td>${d.net}</td><td>${d.accuracyPct}%</td><td>${d.errorPct}%</td><td>${d.blankPct}%</td><td><button type="button" data-remove-mock-discipline="${i}">Remover</button></td></tr>`).join("")}</tbody></table>` : "Nenhuma disciplina lançada."; }
 function renderSimulados() {
   if (!elements.mockSummary) return;
@@ -458,10 +483,10 @@ function renderSimulados() {
   const latest = stats.mocks.at(-1);
   elements.mockGeneralResult.innerHTML = latest ? `Último simulado: <strong>${escapeHTML(latest.name)}</strong> • Líquido <strong>${latest.net}</strong> • Meta <strong>${latest.goal}</strong> • Diferença <strong>${latest.goalDiff}</strong>` : "Nenhum simulado salvo.";
   elements.mockDisciplineResults.innerHTML = latest?.disciplines?.length ? `<table><thead><tr><th>Disciplina</th><th>Total</th><th>Acertos</th><th>Erros</th><th>Brancos</th><th>Líquido</th><th>% Acerto</th><th>% Erro</th><th>% Brancos</th><th>Obs.</th></tr></thead><tbody>${latest.disciplines.map((d)=>`<tr><td>${escapeHTML(d.discipline)}</td><td>${d.total}</td><td>${d.correct}</td><td>${d.wrong}</td><td>${d.blank}</td><td>${d.net}</td><td>${d.accuracyPct}%</td><td>${d.errorPct}%</td><td>${d.blankPct}%</td><td>${escapeHTML(d.notes || "-")}</td></tr>`).join("")}</tbody></table>` : "Nenhum resultado por disciplina no último simulado.";
-  elements.mockDiagnosis.innerHTML = latest ? `<strong>Melhor disciplina:</strong> ${escapeHTML(latest.diagnosis.best)} • <strong>Pior disciplina:</strong> ${escapeHTML(latest.diagnosis.worst)} • <strong>Mais erros:</strong> ${escapeHTML(latest.diagnosis.mostWrong)} • <strong>Mais brancos:</strong> ${escapeHTML(latest.diagnosis.mostBlank)} • <strong>Distância da meta:</strong> ${latest.diagnosis.goalDistance}<br>${escapeHTML(latest.diagnosis.alert)}` : "Salve um simulado para gerar diagnóstico.";
+  elements.mockDiagnosis.innerHTML = renderLatestMockDiagnosis(latest);
   elements.mockHistory.innerHTML = (state.simulados || []).length ? [...state.simulados].sort((a,b)=>b.date.localeCompare(a.date)).map((m)=>`<article class="syllabus-card"><header><div><h3>${escapeHTML(m.name)}</h3><div class="item-meta">${m.date} • ${escapeHTML(m.board)} • ${m.total} questões • ${m.correct} acertos • ${m.wrong} erros • ${m.blank} brancos • líquido ${m.net} • meta ${m.goal} • diferença ${m.goalDiff}</div></div><span class="badge ${m.net >= m.goal ? "success" : "warn"}">${m.net >= m.goal ? "Meta atingida" : "Abaixo da meta"}</span></header><div class="card-actions"><button type="button" data-view-mock="${m.id}">Visualizar detalhes</button><button type="button" data-edit-mock="${m.id}">Editar</button><button type="button" data-duplicate-mock="${m.id}">Duplicar</button><button class="danger" type="button" data-delete-mock="${m.id}">Excluir</button></div></article>`).join("") : "Nenhum simulado cadastrado.";
   const maxBase = Math.max(1, ...stats.mocks.map((m)=>Math.max(m.goal, m.net, 0)));
-  elements.mockEvolution.innerHTML = stats.mocks.length ? `<p class="item-meta">Evolução primeiro → último: <strong>${stats.last - stats.first}</strong>. Atingiu/superou a meta <strong>${stats.aboveGoal}</strong> vez(es).</p><table><thead><tr><th>Data</th><th>Simulado</th><th>Líquido</th><th>Meta</th><th>Barra</th></tr></thead><tbody>${stats.mocks.map((m)=>`<tr class="${m.net >= m.goal ? "goal-hit" : ""}"><td>${m.date}</td><td>${escapeHTML(m.name)}</td><td>${m.net}</td><td>${m.goal}</td><td><div class="progress"><span style="width:${Math.max(0, Math.min(100, m.net / maxBase * 100))}%"></span></div></td></tr>`).join("")}</tbody></table>` : "Nenhuma evolução disponível.";
+  elements.mockEvolution.innerHTML = renderMockEvolution(stats, maxBase);
   renderMockCalculated(); renderMockDraft();
 }
 function resetMockForm() { elements.mockExamForm?.reset(); mockDisciplineDraft = []; if (elements.mockExamEditingId) elements.mockExamEditingId.value = ""; if (elements.mockDate) elements.mockDate.value = todayISO(); if (elements.mockBoard) elements.mockBoard.value = "Cebraspe"; if (elements.mockGoal) elements.mockGoal.value = state.settings.defaultMockGoal || 92; renderMockCalculated(); renderMockDraft(); }
