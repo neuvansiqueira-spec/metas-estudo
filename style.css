@@ -217,3 +217,8 @@ textarea { width: 100%; border-radius: 14px; border: 1px solid var(--border); pa
 .backup-preview:not(:empty) { margin-top: 18px; padding: 18px; border: 1px solid var(--border); border-radius: 22px; background: #f8fafc; }
 .backup-preview h3 { margin-top: 0; }
 @media (max-width: 620px) { .backup-meta { grid-template-columns: 1fr; } }
+.progress { background: #e2e8f0; border-radius: 999px; height: 12px; min-width: 120px; overflow: hidden; }
+.progress span { background: var(--primary); display: block; height: 100%; }
+.goal-hit .progress span { background: var(--success); }
+.goal-hit { background: rgba(22, 163, 74, 0.08); }
+.discipline-entry { border: 1px solid var(--border); border-radius: 18px; padding: 1rem; }
