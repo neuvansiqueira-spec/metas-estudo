@@ -2028,3 +2028,107 @@ textarea,
   .smart-review-card .card-actions { display: grid; grid-template-columns: 1fr; }
   .smart-review-card .card-actions button { width: 100%; font-size: 1rem; }
 }
+
+/* Hotfix 20260621: revisão com tempo e cards responsivos sem quebras ruins */
+.stat-card,
+.dashboard-block,
+.smart-review-card,
+.review-item,
+.syllabus-card,
+.goal-card,
+.panel {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  line-height: 1.35;
+}
+
+.stats-grid,
+.stats-grid.compact,
+.dashboard-blocks,
+.review-time-summary {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+}
+
+.stat-card strong,
+.goal-card strong,
+.badge,
+.no-break,
+input[type="date"] {
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
+
+.stat-card strong {
+  font-size: clamp(1.35rem, 3.2vw, 2.25rem);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+.stat-value-text,
+.stat-card .stat-value-text,
+.syllabus-card h3,
+.smart-review-card h4,
+.smart-review-card p,
+.review-item strong,
+.item-meta {
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: auto;
+}
+
+.dashboard-block-title,
+.stat-card span,
+.card-label {
+  line-height: 1.25;
+}
+
+.smart-review-card {
+  min-width: min(100%, 260px);
+}
+
+.smart-review-card header > div {
+  min-width: 0;
+}
+
+.card-label {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.review-reason {
+  color: var(--muted);
+  font-size: .93rem;
+  line-height: 1.45;
+}
+
+.review-time-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(130px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.review-time-grid input {
+  min-width: 0;
+}
+
+.card-meta-grid span,
+td,
+th {
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+@media (max-width: 620px) {
+  .stat-card { padding: 16px; }
+  .stat-card strong { font-size: clamp(1.25rem, 8vw, 1.75rem); }
+  .review-time-grid { grid-template-columns: 1fr; }
+  .smart-review-card { padding: 14px; }
+}

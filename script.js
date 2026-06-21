@@ -697,8 +697,8 @@ function smartReviewReason(item) {
 function smartReviewPlan(date = todayISO()) {
   const av = availabilityForDate(date);
   const type = av.type || "dia normal";
-  if (type === "indisponível") return { count: 0, minutes: 15, optional: true, label: dayTypeLabel(av) };
-  if (type === "plantão") return { count: 1, minutes: 20, label: dayTypeLabel(av) };
+  if (type === "indisponível") return { count: 0, minutes: 0, optional: true, label: dayTypeLabel(av) };
+  if (type === "plantão") return { count: 1, minutes: 15, label: dayTypeLabel(av) };
   if (type === "folga" || type === "estudo forte") return { count: 3, minutes: 25, label: dayTypeLabel(av) };
   if (type === "estudo leve") return { count: 1, minutes: 20, label: dayTypeLabel(av) };
   return { count: 2, minutes: 20, label: dayTypeLabel(av) };
@@ -713,8 +713,16 @@ function getSmartReviewSuggestions(date = todayISO()) {
   candidates.sort((a, b) => a.reason.rank - b.reason.rank || (b.lastStudy || "").localeCompare(a.lastStudy || "") || (Number(b.item.weight) || 0) - (Number(a.item.weight) || 0));
   return suggestions.concat(candidates.slice(0, Math.max(0, plan.count - suggestions.length)).map(({ item, reason }) => ({ id: `smart-${date}-${item.id}`, date, discipline: item.discipline, subject: item.subject, syllabusItemId: item.id, origin: reason.label, reason: reason.label, minutes: plan.minutes, status: "sugerido" }))).slice(0, 3);
 }
+function suggestedMinutesForReview(review) {
+  return Number(review.suggestedMinutes ?? review.tempoSugerido ?? review.tempo_sugerido ?? review.minutes) || smartReviewPlan(review.date || todayISO()).minutes || 0;
+}
+function performedMinutesForReview(review) {
+  return Number(review.performedMinutes ?? review.tempoRealizado ?? review.tempo_realizado ?? review.realizedMinutes ?? review.actualMinutes) || 0;
+}
 function smartReviewCard(review) {
-  return `<article class="smart-review-card"><header><div><h4>${escapeHTML(review.discipline)}</h4><p>${escapeHTML(review.subject)}</p></div><span class="badge warn">${Number(review.minutes) || 20} min</span></header><div class="item-meta">Motivo: ${escapeHTML(review.reason || review.origin || "Revisão indicada")}</div><div class="card-actions"><button type="button" data-smart-review-action="done" data-id="${escapeHTML(review.id)}">Marcar como revisado</button><button class="secondary-button" type="button" data-smart-review-action="postpone" data-id="${escapeHTML(review.id)}">Adiar</button></div></article>`;
+  const suggested = suggestedMinutesForReview(review);
+  const performed = performedMinutesForReview(review) || suggested;
+  return `<article class="smart-review-card" data-review-card-id="${escapeHTML(review.id)}"><header><div><span class="card-label">Disciplina</span><h4>${escapeHTML(review.discipline)}</h4><span class="card-label">Assunto</span><p>${escapeHTML(review.subject)}</p></div><span class="badge warn no-break">${suggested} min</span></header><div class="review-reason"><strong>Motivo da revisão:</strong> ${escapeHTML(review.reason || review.origin || "Revisão indicada")}</div><div class="review-time-grid"><label>Tempo sugerido (min)<input type="number" min="0" step="5" inputmode="numeric" data-smart-review-time="suggested" data-id="${escapeHTML(review.id)}" value="${suggested}"></label><label>Tempo realizado (min)<input type="number" min="0" step="5" inputmode="numeric" data-smart-review-time="performed" data-id="${escapeHTML(review.id)}" value="${performed}"></label></div><div class="card-actions"><button type="button" data-smart-review-action="done" data-id="${escapeHTML(review.id)}">Marcar como revisado</button><button class="secondary-button" type="button" data-smart-review-action="postpone" data-id="${escapeHTML(review.id)}">Adiar</button></div></article>`;
 }
 function renderSmartReviewBlock(target, date = todayISO()) {
   if (!target) return;
@@ -726,7 +734,8 @@ function renderSmartReviewBlock(target, date = todayISO()) {
 function renderSmartReviewSummary() {
   const today = todayISO();
   const suggestions = getSmartReviewSuggestions(today);
-  const done = state.smartReviews.filter((review) => review.date === today && review.status === "revisado").length;
+  const doneToday = state.smartReviews.filter((review) => review.date === today && review.status === "revisado");
+  const done = doneToday.length;
   const reasonCounts = suggestions.reduce((acc, review) => (acc[review.reason || review.origin] = (acc[review.reason || review.origin] || 0) + 1, acc), {});
   const mainReason = Object.entries(reasonCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "-";
   if (elements.dashboardSmartReviewSuggested) elements.dashboardSmartReviewSuggested.textContent = suggestions.length;
@@ -737,16 +746,31 @@ function renderSmartReviewsDashboard() {
   if (!elements.reviewsDashboard) return;
   const today = todayISO();
   const suggested = getSmartReviewSuggestions(today);
+  const doneToday = state.smartReviews.filter((review) => review.date === today && review.status === "revisado");
+  const todaysTimedReviews = state.smartReviews.filter((review) => review.date === today && ["revisado", "adiado", "sugerido"].includes(review.status));
+  const reviewKey = (review) => review.syllabusItemId || `${canonical(review.discipline)}|${canonical(review.subject)}|${review.id}`;
+  const timedMap = new Map([...suggested, ...todaysTimedReviews].map((review) => [reviewKey(review), review]));
+  const suggestedTotal = [...timedMap.values()].reduce((sum, review) => sum + suggestedMinutesForReview(review), 0);
+  const doneTotal = doneToday.reduce((sum, review) => sum + performedMinutesForReview(review), 0);
+  const avgDone = doneToday.length ? Math.round(doneTotal / doneToday.length) : 0;
   const done = state.smartReviews.filter((review) => review.status === "revisado").sort((a,b)=>(b.date||"").localeCompare(a.date||""));
   const postponed = state.smartReviews.filter((review) => review.status === "adiado").sort((a,b)=>(b.date||"").localeCompare(a.date||""));
   const history = state.smartReviews.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||""));
-  const mini = (items) => items.length ? items.slice(0, 8).map((r)=>`<div class="review-item"><strong>${escapeHTML(r.discipline)} — ${escapeHTML(r.subject)}</strong><div class="item-meta">${formatDateBR(r.date)} • ${escapeHTML(r.status)} • ${escapeHTML(r.reason || r.origin || "-")} • ${Number(r.minutes)||0} min</div></div>`).join("") : '<p class="empty-message">Nenhum registro.</p>';
-  elements.reviewsDashboard.innerHTML = `<section><h3>Sugeridas hoje</h3><div class="smart-review-list">${suggested.length ? suggested.map(smartReviewCard).join("") : '<p class="empty-message">Nenhuma sugestão hoje.</p>'}</div></section><section><h3>Revisões concluídas</h3>${mini(done)}</section><section><h3>Revisões adiadas</h3>${mini(postponed)}</section><section><h3>Histórico de revisões</h3>${mini(history)}</section>`;
+  const mini = (items) => items.length ? items.slice(0, 10).map((r)=>`<div class="review-item"><strong>${escapeHTML(r.discipline)} — ${escapeHTML(r.subject)}</strong><div class="item-meta">${formatDateBR(r.date)} • ${escapeHTML(r.status)} • ${escapeHTML(r.reason || r.origin || "-")} • sugerido: ${suggestedMinutesForReview(r)} min${r.status === "revisado" ? ` • realizado: ${performedMinutesForReview(r)} min` : ""}</div></div>`).join("") : '<p class="empty-message">Nenhum registro.</p>';
+  elements.reviewsDashboard.innerHTML = `<section><h3>Resumo de tempo hoje</h3><div class="stats-grid compact review-time-summary"><article class="stat-card"><span>Tempo sugerido hoje</span><strong class="no-break">${suggestedTotal} min</strong></article><article class="stat-card"><span>Tempo concluído hoje</span><strong class="no-break">${doneTotal} min</strong></article><article class="stat-card"><span>Média por revisão</span><strong class="no-break">${avgDone} min</strong></article></div></section><section><h3>Sugeridas hoje</h3><div class="smart-review-list">${suggested.length ? suggested.map(smartReviewCard).join("") : '<p class="empty-message">Nenhuma sugestão hoje.</p>'}</div></section><section><h3>Revisões concluídas</h3>${mini(done)}</section><section><h3>Revisões adiadas</h3>${mini(postponed)}</section><section><h3>Histórico de revisões</h3>${mini(history)}</section>`;
+}
+function cssEscapeValue(value) {
+  return globalThis.CSS?.escape ? CSS.escape(value) : String(value).replace(/[^a-zA-Z0-9_-]/g, "\\$&");
 }
 function saveSmartReviewAction(id, status) {
   const review = getSmartReviewSuggestions(todayISO()).find((item) => item.id === id) || state.smartReviews.find((item) => item.id === id);
   if (!review) return;
-  const payload = { ...review, id: createId(), date: todayISO(), origin: review.reason || review.origin, motivo: review.reason || review.origin, minutes: Number(review.minutes) || smartReviewPlan().minutes, tempo_sugerido: Number(review.minutes) || smartReviewPlan().minutes, status };
+  const suggestedInput = document.querySelector(`[data-smart-review-time="suggested"][data-id="${cssEscapeValue(id)}"]`);
+  const performedInput = document.querySelector(`[data-smart-review-time="performed"][data-id="${cssEscapeValue(id)}"]`);
+  const suggestedMinutes = Math.max(0, Number(suggestedInput?.value ?? suggestedMinutesForReview(review)) || 0);
+  const performedMinutes = Math.max(0, Number(performedInput?.value ?? suggestedMinutes) || 0);
+  const payload = { ...review, id: createId(), date: todayISO(), origin: review.reason || review.origin, motivo: review.reason || review.origin, minutes: suggestedMinutes, suggestedMinutes, tempoSugerido: suggestedMinutes, tempo_sugerido: suggestedMinutes, status };
+  if (status === "revisado") Object.assign(payload, { performedMinutes, tempoRealizado: performedMinutes, tempo_realizado: performedMinutes });
   state.smartReviews.push(payload);
   if (status === "revisado") { const item = getSyllabusById(review.syllabusItemId); if (item) item.lastReviewedAt = todayISO(); }
   render();
