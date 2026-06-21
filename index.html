@@ -19,20 +19,9 @@
       <button id="menuToggle" class="menu-toggle" type="button" aria-expanded="false" aria-controls="mainMenu">Menu</button>
       <div id="mainMenu" class="nav-links">
         <a href="#dashboard" data-view-link="dashboard">Dashboard</a>
-        <a href="#edital" data-view-link="edital">Edital</a>
-        <a href="#edital-verticalizado" data-view-link="edital-verticalizado">Edital Verticalizado</a>
-        <a href="#importar-edital" data-view-link="importar-edital">Importar Edital</a>
-        <a href="#assuntos-agendaveis" data-view-link="assuntos-agendaveis">Assuntos Agendáveis</a>
-        <a href="#materiais" data-view-link="materiais">Materiais</a>
+        <a href="#metas-do-dia" data-view-link="metas-do-dia">Plano do Dia</a>
+        <a href="#calendario-metas" data-view-link="calendario-metas">Calendário</a>
         <a href="#planejamento" data-view-link="planejamento">Planejamento</a>
-        <a href="#progresso" data-view-link="progresso">Progresso</a>
-        <a href="#metas-do-dia" data-view-link="metas-do-dia">Metas do Dia</a>
-        <a href="#calendario-metas" data-view-link="calendario-metas">Calendário de Metas</a>
-        <a href="#questoes" data-view-link="questoes">Questões</a>
-        <a href="#simulados" data-view-link="simulados">Simulados</a>
-        <a href="#historico-questoes" data-view-link="historico-questoes">Histórico de Questões</a>
-        <a href="#revisoes" data-view-link="revisoes">Revisões</a>
-        <a href="#historico" data-view-link="historico">Histórico</a>
         <a href="#backup" data-view-link="backup">Backup</a>
         <a href="#como-usar" data-view-link="como-usar">Como usar</a>
       </div>
@@ -54,29 +43,31 @@
 
   <main class="container app-layout">
     <aside class="side-nav" aria-label="Menu de telas">
-      <div class="side-nav-title">Telas</div>
-      <div class="side-nav-group"><span>Visão geral</span>
+      <div class="side-nav-title">Navegação</div>
+      <div class="side-nav-group"><span>Principal</span>
         <a href="#dashboard" data-view-link="dashboard">Dashboard</a>
+        <a href="#metas-do-dia" data-view-link="metas-do-dia">Plano do Dia</a>
+        <a href="#calendario-metas" data-view-link="calendario-metas">Calendário de Metas</a>
         <a href="#planejamento" data-view-link="planejamento">Planejamento</a>
-        <a href="#progresso" data-view-link="progresso">Progresso</a>
       </div>
-      <div class="side-nav-group"><span>Edital e conteúdo</span>
+      <div class="side-nav-group"><span>Edital</span>
         <a href="#edital" data-view-link="edital">Edital</a>
         <a href="#edital-verticalizado" data-view-link="edital-verticalizado">Edital Verticalizado</a>
         <a href="#importar-edital" data-view-link="importar-edital">Importar Edital</a>
         <a href="#assuntos-agendaveis" data-view-link="assuntos-agendaveis">Assuntos Agendáveis</a>
-        <a href="#materiais" data-view-link="materiais">Materiais</a>
       </div>
-      <div class="side-nav-group"><span>Execução</span>
-        <a href="#metas-do-dia" data-view-link="metas-do-dia">Metas do Dia</a>
-        <a href="#calendario-metas" data-view-link="calendario-metas">Calendário de Metas</a>
+      <div class="side-nav-group"><span>Desempenho</span>
+        <a href="#progresso" data-view-link="progresso">Progresso</a>
         <a href="#questoes" data-view-link="questoes">Questões</a>
-        <a href="#simulados" data-view-link="simulados">Simulados</a>
-        <a href="#revisoes" data-view-link="revisoes">Revisões</a>
-      </div>
-      <div class="side-nav-group"><span>Histórico e suporte</span>
         <a href="#historico-questoes" data-view-link="historico-questoes">Histórico de Questões</a>
+        <a href="#simulados" data-view-link="simulados">Simulados</a>
+      </div>
+      <div class="side-nav-group"><span>Apoio</span>
+        <a href="#materiais" data-view-link="materiais">Materiais</a>
+        <a href="#revisoes" data-view-link="revisoes">Revisões</a>
         <a href="#historico" data-view-link="historico">Histórico</a>
+      </div>
+      <div class="side-nav-group"><span>Sistema</span>
         <a href="#backup" data-view-link="backup">Backup</a>
         <a href="#como-usar" data-view-link="como-usar">Como usar</a>
       </div>
@@ -95,53 +86,50 @@
         </div>
         <button id="changeMotivation" class="secondary-button daily-message-button" type="button">Trocar frase</button>
       </article>
-      <div class="stats-grid expanded">
-        <div class="dashboard-block-title">Resumo principal</div>
-        <article class="stat-card"><span>Horas hoje</span><strong id="todayHours">0h</strong></article>
-        <article class="stat-card"><span>Horas na semana</span><strong id="weekHours">0h</strong></article>
-        <article class="stat-card"><span>Questões feitas</span><strong id="totalQuestions">0</strong></article>
-        <article class="stat-card"><span>Percentual geral de acerto</span><strong id="accuracyRate">0%</strong></article>
-        <article class="stat-card"><span>Líquido Cebraspe geral</span><strong id="generalCebraspeNet">0</strong></article>
-        <div class="dashboard-block-title">Progresso do edital</div>
-        <article class="stat-card"><span>Edital estudado</span><strong id="syllabusStudied">0%</strong></article>
-        <article class="stat-card"><span>Assuntos cadastrados</span><strong id="syllabusTotal">0</strong></article>
-        <article class="stat-card"><span>Assuntos agendáveis</span><strong id="schedulableTotal">0</strong></article>
-        <div class="dashboard-block-title">Materiais</div>
-        <article class="stat-card"><span>Materiais cadastrados</span><strong id="materialsTotal">0</strong></article>
-        <article class="stat-card"><span>Disciplinas com materiais</span><strong id="materialDisciplinesTotal">0</strong></article>
-        <article class="stat-card"><span>Assuntos com materiais</span><strong id="materialTopicsTotal">0</strong></article>
-        <div class="dashboard-block-title">Metas</div>
-        <article class="stat-card"><span>Meta de hoje</span><strong id="dashboardTodayGoal">0h</strong><small id="dashboardTodayGoalDetail">Sem metas planejadas.</small></article>
-        <article class="stat-card"><span>Metas de hoje</span><strong id="todayGoalsTotal">0</strong></article>
-        <article class="stat-card"><span>Metas pendentes hoje</span><strong id="todayPendingGoals">0</strong></article>
-        <article class="stat-card"><span>Metas concluídas hoje</span><strong id="todayDoneGoals">0</strong></article>
-        <article class="stat-card"><span>Percentual diário</span><strong id="dashboardDailyGoalRate">0%</strong></article>
-        <article class="stat-card"><span>Tempo faltante hoje</span><strong id="dashboardTodayRemaining">0h</strong></article>
-        <article class="stat-card wide-stat"><span>Próxima meta de hoje</span><strong id="dashboardNextTodayGoal">-</strong><button id="viewDayPlan" class="secondary-button" type="button">Ver Plano do Dia</button></article>
-        <article class="stat-card"><span>Metas da semana</span><strong id="weekGoalsTotal">0</strong></article>
-        <article class="stat-card"><span>Cumprimento semanal</span><strong id="weekGoalRate">0%</strong></article>
-        <article class="stat-card"><span>Cumprimento mensal</span><strong id="monthGoalRate">0%</strong></article>
-        <article class="stat-card wide-stat"><span>Próxima meta</span><strong id="nextGoalLabel">-</strong></article>
-        <article class="stat-card wide-stat"><span>Disciplina mais priorizada na semana</span><strong id="weekTopDiscipline">-</strong></article>
-        <article class="stat-card wide-stat"><span>Disciplina mais atrasada</span><strong id="mostDelayedDiscipline">-</strong></article>
-        <div class="dashboard-block-title">Pendências do edital</div>
-        <article class="stat-card"><span>Não iniciados</span><strong id="notStartedTotal">0</strong></article>
-        <article class="stat-card"><span>Assuntos sem diagnóstico</span><strong id="undiagnosedTotal">0</strong><small>Assuntos sem diagnóstico são conteúdos ainda sem estudo, revisão ou questões registradas.</small></article>
-        <article class="stat-card"><span>Assuntos fracos</span><strong id="weakTotal">0</strong><small>Assuntos fracos são definidos por baixo desempenho ou marcação manual.</small></article>
-        <article class="stat-card wide-stat"><span>Disciplina com maior pendência</span><strong id="pendingDiscipline">-</strong></article>
-        <div class="dashboard-block-title">Planejamento</div>
-        <article class="stat-card"><span>Tempo total estudado</span><strong id="totalStudyTime">0h</strong></article>
-        <article class="stat-card"><span>Média por assunto</span><strong id="averageTimePerTopic">0h</strong></article>
-        <article class="stat-card wide-stat"><span>Previsão de conclusão</span><strong id="dashboardCompletionForecast">-</strong></article>
-        <article class="stat-card"><span>Dias até a prova</span><strong id="daysUntilExam">-</strong></article>
-        <article class="stat-card"><span>Situação do planejamento</span><strong id="planningStatus">-</strong></article>
-        <div class="dashboard-block-title">Simulados</div>
-        <article class="stat-card"><span>Simulados realizados</span><strong id="mockTotal">0</strong></article>
-        <article class="stat-card"><span>Último líquido</span><strong id="mockLastNet">0</strong></article>
-        <article class="stat-card"><span>Melhor líquido</span><strong id="mockBestNet">0</strong></article>
-        <article class="stat-card"><span>Líquido médio</span><strong id="mockAverageNet">0</strong></article>
-        <article class="stat-card"><span>Simulados acima da meta</span><strong id="mockAboveGoal">0</strong></article>
-        <article class="stat-card wide-stat"><span>Disciplina mais problemática nos simulados</span><strong id="mockProblemDiscipline">-</strong></article>
+      <div class="dashboard-blocks" aria-label="Resumo organizado do Dashboard">
+        <article class="dashboard-block"><div class="dashboard-block-title">Hoje</div><div class="stats-grid compact">
+          <article class="stat-card"><span>Plano do Dia</span><strong id="todayGoalsTotal">0</strong><small>metas planejadas</small></article>
+          <article class="stat-card"><span>Meta de horas hoje</span><strong id="dashboardTodayGoal">0h</strong><small id="dashboardTodayGoalDetail">Sem metas planejadas.</small></article>
+          <article class="stat-card"><span>Tempo estudado hoje</span><strong id="todayHours">0h</strong></article>
+          <article class="stat-card"><span>Tempo faltante hoje</span><strong id="dashboardTodayRemaining">0h</strong></article>
+          <article class="stat-card"><span>Metas pendentes hoje</span><strong id="todayPendingGoals">0</strong></article>
+          <article class="stat-card"><span>Metas concluídas hoje</span><strong id="todayDoneGoals">0</strong></article>
+          <article class="stat-card wide-stat"><span>Próxima meta</span><strong id="dashboardNextTodayGoal">-</strong><button id="viewDayPlan" class="secondary-button" type="button">Ver Plano do Dia</button></article>
+        </div></article>
+        <article class="dashboard-block"><div class="dashboard-block-title">Progresso do Edital</div><div class="stats-grid compact">
+          <article class="stat-card"><span>Edital estudado</span><strong id="syllabusStudied">0%</strong></article>
+          <article class="stat-card"><span>Assuntos estudados/total</span><strong><span id="dashboardStudiedTopics">0</span>/<span id="syllabusTotal">0</span></strong></article>
+          <article class="stat-card"><span>Disciplina mais atrasada</span><strong id="mostDelayedDiscipline">-</strong></article>
+          <article class="stat-card"><span>Previsão de conclusão</span><strong id="dashboardCompletionForecast">-</strong></article>
+          <article class="stat-card wide-stat"><a class="button-link" href="#progresso" data-view-link="progresso">Ver Progresso</a></article>
+        </div></article>
+        <article class="dashboard-block"><div class="dashboard-block-title">Desempenho</div><div class="stats-grid compact">
+          <article class="stat-card"><span>Questões feitas</span><strong id="totalQuestions">0</strong></article>
+          <article class="stat-card"><span>Percentual de acerto</span><strong id="accuracyRate">0%</strong></article>
+          <article class="stat-card"><span>Líquido Cebraspe geral</span><strong id="generalCebraspeNet">0</strong></article>
+          <article class="stat-card"><span>Disciplina mais problemática</span><strong id="dashboardProblemDiscipline">-</strong></article>
+          <article class="stat-card wide-stat"><a class="button-link" href="#questoes" data-view-link="questoes">Registrar Questões</a></article>
+        </div></article>
+        <article class="dashboard-block"><div class="dashboard-block-title">Simulados</div><div class="stats-grid compact">
+          <article class="stat-card"><span>Simulados realizados</span><strong id="mockTotal">0</strong></article>
+          <article class="stat-card"><span>Último líquido</span><strong id="mockLastNet">0</strong></article>
+          <article class="stat-card"><span>Melhor líquido</span><strong id="mockBestNet">0</strong></article>
+          <article class="stat-card"><span>Líquido médio</span><strong id="mockAverageNet">0</strong></article>
+          <article class="stat-card wide-stat"><a class="button-link" href="#simulados" data-view-link="simulados">Ver Simulados</a></article>
+        </div></article>
+        <article class="dashboard-block"><div class="dashboard-block-title">Planejamento</div><div class="stats-grid compact">
+          <article class="stat-card"><span>Horas na semana</span><strong id="weekHours">0h</strong></article>
+          <article class="stat-card"><span>Meta semanal mínima</span><strong id="dashboardMinWeeklyHours">0h</strong></article>
+          <article class="stat-card"><span>Meta semanal ideal</span><strong id="dashboardIdealWeeklyHours">0h</strong></article>
+          <article class="stat-card"><span>Situação do planejamento</span><strong id="planningStatus">-</strong></article>
+          <article class="stat-card wide-stat"><a class="button-link" href="#planejamento" data-view-link="planejamento">Configurar Planejamento</a></article>
+        </div></article>
+        <article class="dashboard-block"><div class="dashboard-block-title">Materiais</div><div class="stats-grid compact">
+          <article class="stat-card"><span>Materiais cadastrados</span><strong id="materialsTotal">0</strong></article>
+          <article class="stat-card"><span>Disciplinas com materiais</span><strong id="materialDisciplinesTotal">0</strong></article>
+          <article class="stat-card"><span>Assuntos com materiais</span><strong id="materialTopicsTotal">0</strong></article>
+          <article class="stat-card wide-stat"><a class="button-link" href="#materiais" data-view-link="materiais">Ver Materiais</a></article>
+        </div></article>
       </div>
 
 
@@ -306,23 +294,29 @@
 
     <section id="view-planejamento" class="panel app-view" data-view="planejamento" aria-labelledby="planning-title">
       <div class="section-heading"><p class="eyebrow">Plantões</p><h2 id="planning-title">Planejamento</h2></div>
-      <article class="bulk-box"><h3>Configuração da rotina</h3>
+      <article class="bulk-box planning-block"><h3>1. Configuração da prova</h3>
         <form id="planningConfigForm" class="form-grid">
           <label>Data da prova<input id="planningExamDate" type="date" /></label>
+          <label>Margem de segurança (dias)<input id="planningSafetyDays" type="number" min="0" /></label>
           <label>Tipo de escala<select id="planningScaleType"><option>24x72</option><option>3 dias de trabalho / 6 dias de folga</option><option>semanal personalizada</option><option>manual</option></select></label>
           <label class="wide">Observações da escala<textarea id="planningScaleNotes" rows="2"></textarea></label>
-          <label>Horas em plantão<input id="planningShiftHours" type="number" min="0" step="0.5" /></label><label>Horas em folga<input id="planningRestHours" type="number" min="0" step="0.5" /></label><label>Horas em dia normal<input id="planningNormalHours" type="number" min="0" step="0.5" /></label>
-          <label>Meta semanal mínima (h)<input id="planningMinWeeklyHours" type="number" min="0" step="0.5" /></label><label>Meta semanal ideal (h)<input id="planningIdealWeeklyHours" type="number" min="0" step="0.5" /></label><label>Meta semanal de assuntos<input id="planningWeeklyTopics" type="number" min="0" /></label>
-          <label>Margem de segurança (dias)<input id="planningSafetyDays" type="number" min="0" /></label><button class="wide" type="submit">Salvar configuração</button>
+          <div class="wide planning-subblock"><h4>2. Metas de tempo</h4><p class="item-meta">Altere aqui as metas de horas por dia, a meta semanal e o volume semanal de assuntos.</p><div class="form-grid compact">
+            <label>Meta de estudo em dia de plantão<input id="planningShiftHours" type="number" min="0" step="0.5" /></label>
+            <label>Meta de estudo em dia de folga<input id="planningRestHours" type="number" min="0" step="0.5" /></label>
+            <label>Meta de estudo em dia normal<input id="planningNormalHours" type="number" min="0" step="0.5" /></label>
+            <label>Meta semanal mínima (h)<input id="planningMinWeeklyHours" type="number" min="0" step="0.5" /></label>
+            <label>Meta semanal ideal (h)<input id="planningIdealWeeklyHours" type="number" min="0" step="0.5" /></label>
+            <label>Meta semanal de assuntos<input id="planningWeeklyTopics" type="number" min="0" /></label>
+          </div></div>
+          <button class="wide" type="submit">Salvar configuração</button>
         </form></article>
-      <article class="bulk-box"><h3>Calendário simples de disponibilidade</h3><p class="item-meta">Edite os próximos dias conforme plantão, folga, normal, indisponível, estudo leve ou estudo forte.</p><div id="availabilityCalendar" class="cards-list"></div></article>
-      <article class="bulk-box"><h3>Previsão de conclusão do edital</h3><div id="completionForecast" class="stats-grid compact"></div><div id="completionAlert" class="notice"></div></article>
-      <article class="bulk-box"><h3>Metas semanais</h3><div id="weeklyGoalsPlan" class="stats-grid compact"></div><div id="weeklyGoalsAlert" class="notice"></div></article>
+      <article class="bulk-box planning-block"><h3>3. Calendário de disponibilidade</h3><p class="item-meta">Edite os próximos dias conforme plantão, folga, dia normal, indisponível, estudo leve ou estudo forte.</p><div id="availabilityCalendar" class="cards-list"></div></article>
+      <article class="bulk-box planning-block"><h3>4. Previsão</h3><div id="completionForecast" class="stats-grid compact"></div><div id="completionAlert" class="notice"></div><div id="weeklyGoalsPlan" class="stats-grid compact"></div><div id="weeklyGoalsAlert" class="notice"></div></article>
       <article class="bulk-box"><h3>Histórico de tempo por assunto</h3><div id="timeHistorySummary" class="stats-grid compact"></div><div class="table-wrapper"><table><thead><tr><th>Data</th><th>Disciplina</th><th>Assunto</th><th>Tempo</th><th>Tipo</th><th>Status</th><th>Material usado</th><th>Observações</th></tr></thead><tbody id="timeHistoryBody"></tbody></table></div></article>
     </section>
 
     <section id="view-metas-do-dia" class="panel app-view" data-view="metas-do-dia" aria-labelledby="daily-goals-title">
-      <div class="section-heading inline"><div><p class="eyebrow">Planejamento diário</p><h2 id="daily-goals-title">Metas do Dia</h2></div><button id="generateDailyGoals" type="button">Gerar metas do dia</button></div>
+      <div class="section-heading inline"><div><p class="eyebrow">Planejamento diário</p><h2 id="daily-goals-title">Plano do Dia</h2></div><button id="generateDailyGoals" type="button">Gerar metas do dia</button></div>
       <p class="notice">As metas são criadas a partir dos assuntos agendáveis do edital verticalizado, priorizando alta prioridade, não iniciados, sem diagnóstico, fracos e disciplinas com mais pendências.</p>
       <div class="selected-day-banner">Exibindo metas de: <strong id="selectedGoalDateLabel">--/--/----</strong></div>
       <article class="day-plan-panel" aria-labelledby="day-plan-title">
@@ -341,8 +335,8 @@
         <label>Disciplina<select id="goalDiscipline" required></select></label>
         <label class="wide">Assunto<select id="goalSyllabusItem" required></select></label>
         <label>Tipo da meta<select id="goalType"><option>Estudo novo</option><option>Revisão</option><option>Questões</option><option>Simulado</option><option>Reforço</option></select></label>
-        <label>Tempo sugerido (min)<input id="goalMinutes" type="number" min="1" value="50" required /></label>
-        <label>Tempo real (min)<input id="goalActualMinutes" type="number" min="0" value="0" /></label>
+        <label>Tempo planejado (min)<input id="goalMinutes" type="number" min="1" value="50" required /></label>
+        <label>Tempo realizado (min)<input id="goalActualMinutes" type="number" min="0" value="0" /></label>
         <label>Status do estudo<select id="goalStudyStatus"><option>Iniciado</option><option>Concluído</option></select></label>
         <label>Prioridade<select id="goalPriority"><option>Alta</option><option selected>Média</option><option>Baixa</option></select></label>
         <label>Status<select id="goalStatus"><option selected>Pendente</option><option>Concluída</option><option>Adiada</option><option>Não cumprida</option><option>Ignorada</option></select></label>
@@ -467,7 +461,14 @@
 
     <section id="view-como-usar" class="panel instructions app-view" data-view="como-usar" aria-labelledby="run-title">
       <h2 id="run-title">Como usar o Metas Estudo</h2>
-      <ol><li><strong>Importar edital:</strong> use Importar Edital para carregar JSON/itens e revise o Edital Verticalizado antes de marcar assuntos agendáveis.</li><li><strong>Gerar metas:</strong> configure pesos, calendário de plantão/folga e clique em gerar metas do dia, semana ou mês. Semana e mês exibem pré-visualização antes de salvar.</li><li><strong>Concluir, adiar e editar metas:</strong> use Metas do Dia ou Calendário de Metas. Concluir atualiza progresso, horas e assunto vinculado; adiar solicita nova data e registra observação.</li><li><strong>Calendário diário/semanal/mensal:</strong> no Calendário de Metas, escolha a data e a visão. Clique em um dia na semana ou no mês para operar as metas daquela data.</li><li><strong>Registrar tempo e questões:</strong> informe minutos reais na meta ou registre estudos/questões nas telas próprias. As horas do Dashboard usam estudos, metas com tempo real e questões com tempo gasto.</li><li><strong>Simulados:</strong> cadastre resultado geral e por disciplina para alimentar diagnóstico de pontos fracos.</li><li><strong>Planejamento por plantão:</strong> configure escala, horas disponíveis, data de prova e margem de segurança para melhorar a previsão de término.</li><li><strong>Materiais:</strong> cadastre links com http/https, vincule a disciplina/assunto e abra em nova aba pelos botões de material.</li><li><strong>Backup e tablet/celular:</strong> exporte o JSON, salve no Drive e importe no outro dispositivo. O PDF não é salvo dentro do site; cadastre link externo ou mantenha o arquivo no Drive.</li><li><strong>PWA:</strong> instalação como aplicativo será tratada em etapa posterior; esta correção mantém HTML, CSS e JavaScript puro sem criar PWA novo.</li></ol>
+      <div class="instructions-grid">
+        <article><h3>1. Primeiro uso</h3><ul><li>Importe o edital verticalizado em <strong>Importar Edital</strong>.</li><li>Revise os itens em <strong>Edital Verticalizado</strong> e marque o que pode entrar no planejamento em <strong>Assuntos Agendáveis</strong>.</li><li>Configure <strong>Planejamento</strong> com data da prova, escala, metas por dia e metas semanais.</li><li>Exporte um <strong>backup JSON</strong> após a configuração inicial.</li></ul></article>
+        <article><h3>2. Uso diário</h3><ul><li>Abra <strong>Plano do Dia</strong>.</li><li>Confira o resumo, a próxima meta e a lista do que estudar hoje.</li><li>Conclua metas, registre tempo realizado e registre questões quando fizer treino.</li></ul></article>
+        <article><h3>3. Uso semanal</h3><ul><li>Revise o <strong>Calendário de Metas</strong>.</li><li>Ajuste o <strong>Planejamento</strong> se houver plantão, folga ou semana atípica.</li><li>Verifique <strong>Progresso</strong> e registre <strong>Simulados</strong>.</li></ul></article>
+        <article><h3>4. Backup</h3><ul><li>Exporte antes de trocar de dispositivo, limpar navegador ou fazer grandes alterações.</li><li>Salve o arquivo JSON no Google Drive ou outro local seguro.</li><li>No outro dispositivo, abra <strong>Backup</strong> e importe o JSON. Isso preserva os dados do navegador.</li></ul></article>
+        <article><h3>5. Materiais</h3><ul><li>Cadastre links do Google Drive ou páginas http/https em <strong>Materiais</strong>.</li><li>Vincule o material à disciplina e ao assunto.</li><li>Abra materiais diretamente nos cards do Plano do Dia quando houver vínculo.</li></ul></article>
+        <article><h3>6. Observação importante</h3><p>Os dados ficam no navegador via localStorage. Para usar em outro computador, tablet ou celular, exporte e importe o backup JSON.</p></article>
+      </div>
     </section>
     </div>
   </main>
