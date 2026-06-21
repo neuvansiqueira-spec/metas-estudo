@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Metas de Estudo para Concurso</title>
-  <link rel="stylesheet" href="style.css?v=20260621-layout-fix" />
+  <link rel="stylesheet" href="style.css?v=20260621-dashboard-fix" />
 </head>
 <body>
   <header class="hero">
@@ -120,20 +120,20 @@
           <article class="stat-card"><span>Tempo faltante hoje</span><strong id="dashboardTodayRemaining">0h</strong></article>
           <article class="stat-card"><span>Metas pendentes hoje</span><strong id="todayPendingGoals">0</strong></article>
           <article class="stat-card"><span>Metas concluídas hoje</span><strong id="todayDoneGoals">0</strong></article>
-          <article class="stat-card wide-stat"><span>Próxima meta</span><strong id="dashboardNextTodayGoal">-</strong><button id="viewDayPlan" class="secondary-button" type="button">Ver Plano do Dia</button></article>
+          <article class="stat-card wide-stat"><span>Próxima meta</span><strong id="dashboardNextTodayGoal" class="stat-value-text">-</strong><button id="viewDayPlan" class="secondary-button" type="button">Ver Plano do Dia</button></article>
         </div></article>
         <article class="dashboard-block"><div class="dashboard-block-title">Progresso do Edital</div><div class="stats-grid compact">
           <article class="stat-card"><span>Edital estudado</span><strong id="syllabusStudied">0%</strong></article>
           <article class="stat-card"><span>Assuntos estudados/total</span><strong><span id="dashboardStudiedTopics">0</span>/<span id="syllabusTotal">0</span></strong></article>
-          <article class="stat-card"><span>Disciplina mais atrasada</span><strong id="mostDelayedDiscipline">-</strong></article>
-          <article class="stat-card"><span>Previsão de conclusão</span><strong id="dashboardCompletionForecast">-</strong></article>
+          <article class="stat-card"><span>Disciplina mais atrasada</span><strong id="mostDelayedDiscipline" class="stat-value-text">-</strong></article>
+          <article class="stat-card"><span>Previsão de conclusão</span><strong id="dashboardCompletionForecast" class="stat-value-text">-</strong></article>
           <article class="stat-card wide-stat"><a class="button-link" href="#progresso" data-view-link="progresso">Ver Progresso</a></article>
         </div></article>
         <article class="dashboard-block"><div class="dashboard-block-title">Desempenho</div><div class="stats-grid compact">
           <article class="stat-card"><span>Questões feitas</span><strong id="totalQuestions">0</strong></article>
           <article class="stat-card"><span>Percentual de acerto</span><strong id="accuracyRate">0%</strong></article>
           <article class="stat-card"><span>Líquido Cebraspe geral</span><strong id="generalCebraspeNet">0</strong></article>
-          <article class="stat-card"><span>Disciplina mais problemática</span><strong id="dashboardProblemDiscipline">-</strong></article>
+          <article class="stat-card"><span>Disciplina mais problemática</span><strong id="dashboardProblemDiscipline" class="stat-value-text">-</strong></article>
           <article class="stat-card wide-stat"><a class="button-link" href="#questoes" data-view-link="questoes">Registrar Questões</a></article>
         </div></article>
         <article class="dashboard-block"><div class="dashboard-block-title">Simulados</div><div class="stats-grid compact">
@@ -147,7 +147,7 @@
           <article class="stat-card"><span>Horas na semana</span><strong id="weekHours">0h</strong></article>
           <article class="stat-card"><span>Meta semanal mínima</span><strong id="dashboardMinWeeklyHours">0h</strong></article>
           <article class="stat-card"><span>Meta semanal ideal</span><strong id="dashboardIdealWeeklyHours">0h</strong></article>
-          <article class="stat-card"><span>Situação do planejamento</span><strong id="planningStatus">-</strong></article>
+          <article class="stat-card"><span>Situação do planejamento</span><strong id="planningStatus" class="stat-value-text">-</strong></article>
           <article class="stat-card wide-stat"><a class="button-link" href="#planejamento" data-view-link="planejamento">Configurar Planejamento</a></article>
         </div></article>
         <article class="dashboard-block"><div class="dashboard-block-title">Materiais</div><div class="stats-grid compact">
@@ -477,7 +477,7 @@
         <input id="backupFileInput" type="file" accept="application/json,.json" hidden />
       </div>
       <div class="backup-meta">
-        <article class="stat-card"><span>Último backup exportado</span><strong id="lastBackupDate">Nunca exportado</strong></article>
+        <article class="stat-card"><span>Último backup exportado</span><strong id="lastBackupDate" class="stat-value-text">Nunca exportado</strong></article>
         <article class="stat-card"><span>Chaves locais do projeto</span><strong id="backupStorageKeys">0</strong></article>
       </div>
       <h3>Resumo dos dados salvos</h3>
@@ -506,7 +506,7 @@
     <a href="#backup" data-view-link="backup">Backup</a>
   </nav>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260621-layout-fix</p></footer>
-  <script src="script.js?v=20260621-layout-fix"></script>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260621-dashboard-fix</p></footer>
+  <script src="script.js?v=20260621-dashboard-fix"></script>
 </body>
 </html>
