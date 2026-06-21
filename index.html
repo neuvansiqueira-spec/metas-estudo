@@ -320,6 +320,7 @@
     <section id="view-metas-do-dia" class="panel app-view" data-view="metas-do-dia" aria-labelledby="daily-goals-title">
       <div class="section-heading inline"><div><p class="eyebrow">Planejamento diário</p><h2 id="daily-goals-title">Metas do Dia</h2></div><button id="generateDailyGoals" type="button">Gerar metas do dia</button></div>
       <p class="notice">As metas são criadas a partir dos assuntos agendáveis do edital verticalizado, priorizando alta prioridade, não iniciados, sem diagnóstico, fracos e disciplinas com mais pendências.</p>
+      <div id="dailyGoalsSummary" class="stats-grid compact" aria-live="polite"></div>
       <form id="goalForm" class="form-grid">
         <label>Data<input id="goalDate" type="date" required /></label>
         <label>Disciplina<select id="goalDiscipline" required></select></label>
