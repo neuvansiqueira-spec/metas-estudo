@@ -2029,7 +2029,7 @@ textarea,
   .smart-review-card .card-actions button { width: 100%; font-size: 1rem; }
 }
 
-/* Hotfix 20260621: revisão com tempo e cards responsivos sem quebras ruins */
+/* Hotfix 20260621-dashboard-card-fix: cards legíveis, sem quebra vertical. */
 .stat-card,
 .dashboard-block,
 .smart-review-card,
@@ -2038,16 +2038,31 @@ textarea,
 .goal-card,
 .panel {
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   word-break: normal;
+  hyphens: auto;
   line-height: 1.35;
+}
+
+.dashboard-blocks {
+  grid-template-columns: 1fr;
 }
 
 .stats-grid,
 .stats-grid.compact,
-.dashboard-blocks,
 .review-time-summary {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.dashboard-block .stats-grid.compact,
+.dashboard .stats-grid.compact {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+@media (min-width: 1500px) {
+  .dashboard-blocks {
+    grid-template-columns: repeat(2, minmax(520px, 1fr));
+  }
 }
 
 .stat-card strong,
@@ -2061,7 +2076,7 @@ input[type="date"] {
 }
 
 .stat-card strong {
-  font-size: clamp(1.35rem, 3.2vw, 2.25rem);
+  font-size: clamp(1.25rem, 2.2vw, 2rem);
   line-height: 1.08;
   letter-spacing: -0.03em;
 }
@@ -2127,8 +2142,66 @@ th {
 }
 
 @media (max-width: 620px) {
+  .stats-grid,
+  .stats-grid.compact,
+  .dashboard-block .stats-grid.compact,
+  .dashboard .stats-grid.compact,
+  .review-time-summary { grid-template-columns: 1fr; }
   .stat-card { padding: 16px; }
   .stat-card strong { font-size: clamp(1.25rem, 8vw, 1.75rem); }
   .review-time-grid { grid-template-columns: 1fr; }
   .smart-review-card { padding: 14px; }
+}
+
+/* Valores compactos: datas, percentuais e números curtos não devem quebrar. */
+.stat-value-date,
+.stat-value-compact,
+.no-break,
+#syllabusStudied,
+#dashboardStudiedTopics,
+#syllabusTotal,
+#accuracyRate,
+#todayGoalsTotal,
+#dashboardTodayGoal,
+#todayHours,
+#dashboardTodayRemaining,
+#todayPendingGoals,
+#todayDoneGoals,
+#dashboardSmartReviewSuggested,
+#dashboardSmartReviewDone,
+#totalQuestions,
+#generalCebraspeNet,
+#mockTotal,
+#mockLastNet,
+#mockBestNet,
+#mockAverageNet,
+#weekHours,
+#dashboardMinWeeklyHours,
+#dashboardIdealWeeklyHours,
+#dashboardTodayDisciplines,
+#dashboardTodayTopics,
+#dashboardWeekDisciplines,
+#dashboardWeekTopics,
+#materialsTotal,
+#materialDisciplinesTotal,
+#materialTopicsTotal {
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
+  hyphens: none;
+}
+
+.stat-value-text {
+  font-size: clamp(0.95rem, 1.4vw, 1.25rem);
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: auto;
+}
+
+.stat-card span,
+.stat-card small,
+.dashboard-block-title {
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: none;
 }
