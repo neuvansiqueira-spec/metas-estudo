@@ -1989,3 +1989,42 @@ textarea,
 .responsive-table { min-width: 680px; }
 @media (max-width: 900px) { .goal-central-grid { grid-template-columns: 1fr; } }
 @media (max-width: 620px) { .goal-central-card { padding: 18px; } .goal-central-card button { font-size: 1rem; padding: 14px 16px; } }
+
+.smart-review-panel {
+  border: 1px solid #bfdbfe;
+  background: #f8fbff;
+  border-radius: 18px;
+  padding: 18px;
+  margin: 18px 0;
+}
+.smart-review-list, .smart-review-sections { display: grid; gap: 12px; }
+.smart-review-card {
+  background: #fff;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, .06);
+}
+.smart-review-card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.smart-review-card h4 { margin: 0 0 4px; color: var(--primary); }
+.smart-review-card p { margin: 0; font-weight: 700; }
+.smart-review-card .card-actions { margin-top: 12px; }
+.smart-review-card .card-actions button { min-height: 44px; }
+.smart-review-sections section {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px;
+  background: #fff;
+}
+.wide-panel { grid-column: 1 / -1; }
+@media (max-width: 720px) {
+  .smart-review-card header { flex-direction: column; }
+  .smart-review-card .card-actions { display: grid; grid-template-columns: 1fr; }
+  .smart-review-card .card-actions button { width: 100%; font-size: 1rem; }
+}

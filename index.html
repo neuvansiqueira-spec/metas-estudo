@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260621-date-br" />
+  <link rel="stylesheet" href="style.css?v=20260621-smart-review" />
 </head>
 <body>
   <header class="hero">
@@ -130,6 +130,12 @@
           <article class="stat-card"><span>Metas pendentes hoje</span><strong id="todayPendingGoals">0</strong></article>
           <article class="stat-card"><span>Metas concluídas hoje</span><strong id="todayDoneGoals">0</strong></article>
           <article class="stat-card wide-stat"><span>Próxima meta</span><strong id="dashboardNextTodayGoal" class="stat-value-text">-</strong><button id="viewDayPlan" class="secondary-button" type="button">Ver Plano do Dia</button></article>
+        </div></article>
+
+        <article class="dashboard-block"><div class="dashboard-block-title">Revisão Inteligente</div><div class="stats-grid compact">
+          <article class="stat-card"><span>Sugeridas hoje</span><strong id="dashboardSmartReviewSuggested">0</strong></article>
+          <article class="stat-card"><span>Concluídas hoje</span><strong id="dashboardSmartReviewDone">0</strong></article>
+          <article class="stat-card wide-stat"><span>Principal motivo</span><strong id="dashboardSmartReviewReason" class="stat-value-text">-</strong></article>
         </div></article>
         <article class="dashboard-block"><div class="dashboard-block-title">Progresso do Edital</div><div class="stats-grid compact">
           <article class="stat-card"><span>Edital estudado</span><strong id="syllabusStudied">0%</strong></article>
@@ -336,6 +342,7 @@
       <div class="section-heading inline"><div><p class="eyebrow">Hoje • Esta semana • Este mês</p><h2 id="central-goals-title">Central de Metas</h2></div><button id="centralOpenDayPlan" type="button">Abrir Plano do Dia</button></div>
       <p class="notice">Visão didática das metas diárias, semanais e mensais com base na escala configurada no Planejamento.</p>
       <div id="centralGoalsCards" class="goal-central-grid" aria-live="polite"></div>
+      <article class="smart-review-panel" aria-labelledby="central-smart-review-title"><div class="section-heading inline"><div><p class="eyebrow">Revisão diária</p><h3 id="central-smart-review-title">Revisão Inteligente de Hoje</h3></div></div><div id="centralSmartReview" class="smart-review-list" aria-live="polite"></div></article>
       <article class="bulk-box"><h3>Escala</h3><div id="centralScaleSummary" class="stats-grid compact"></div></article>
       <article class="bulk-box"><h3>Próximas datas</h3><div class="table-wrapper"><table class="responsive-table"><thead><tr><th>Data</th><th>Dia da semana</th><th>Tipo do dia</th><th>Horas previstas</th><th>Assuntos previstos</th></tr></thead><tbody id="centralNextDates"></tbody></table></div></article>
     </section>
@@ -380,6 +387,7 @@
         <div id="dailyGoalsSummary" class="stats-grid compact daily-goals-summary" aria-live="polite"></div>
       </article>
       <article id="nextDailyGoal" class="next-goal-card" aria-live="polite"></article>
+      <article class="smart-review-panel" aria-labelledby="day-smart-review-title"><div class="section-heading inline"><div><p class="eyebrow">Revisão diária</p><h3 id="day-smart-review-title">Revisão Inteligente de Hoje</h3></div></div><div id="daySmartReview" class="smart-review-list" aria-live="polite"></div></article>
       <section class="today-study-panel" aria-labelledby="today-study-title">
         <div class="section-heading"><p class="eyebrow">Execução</p><h2 id="today-study-title">O que estudar hoje</h2></div>
         <div id="dailyGoalsList" class="daily-goals-board empty-message" aria-live="polite"></div>
@@ -487,6 +495,7 @@
     </section>
 
     <section id="view-revisoes" class="grid-layout secondary app-view" data-view="revisoes">
+      <article class="panel wide-panel" aria-labelledby="smart-reviews-title"><div class="section-heading"><p class="eyebrow">Revisão inteligente</p><h2 id="smart-reviews-title">Revisões</h2></div><div id="reviewsDashboard" class="smart-review-sections" aria-live="polite"></div></article>
       <article class="panel" aria-labelledby="reviews-title"><div class="section-heading"><p class="eyebrow">Revisões</p><h2 id="reviews-title">24h, 7 dias e 30 dias</h2></div><div id="reviewList" class="review-list empty-message" aria-live="polite"></div></article>
       <article class="panel alert-panel" aria-labelledby="alerts-title"><div class="section-heading"><p class="eyebrow">Atrasos</p><h2 id="alerts-title">Disciplinas atrasadas</h2></div><div id="alertList" class="alert-list empty-message" aria-live="polite"></div></article>
     </section>
@@ -535,7 +544,7 @@
     <a href="#backup" data-view-link="backup">Backup</a>
   </nav>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260621-date-br</p></footer>
-  <script src="script.js?v=20260621-date-br"></script>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260621-smart-review</p></footer>
+  <script src="script.js?v=20260621-smart-review"></script>
 </body>
 </html>
