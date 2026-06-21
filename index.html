@@ -111,15 +111,19 @@
         <article class="stat-card"><span>Disciplinas com materiais</span><strong id="materialDisciplinesTotal">0</strong></article>
         <article class="stat-card"><span>Assuntos com materiais</span><strong id="materialTopicsTotal">0</strong></article>
         <div class="dashboard-block-title">Metas</div>
+        <article class="stat-card"><span>Meta de hoje</span><strong id="dashboardTodayGoal">0h</strong><small id="dashboardTodayGoalDetail">Sem metas planejadas.</small></article>
         <article class="stat-card"><span>Metas de hoje</span><strong id="todayGoalsTotal">0</strong></article>
+        <article class="stat-card"><span>Metas pendentes hoje</span><strong id="todayPendingGoals">0</strong></article>
+        <article class="stat-card"><span>Metas concluídas hoje</span><strong id="todayDoneGoals">0</strong></article>
+        <article class="stat-card"><span>Percentual diário</span><strong id="dashboardDailyGoalRate">0%</strong></article>
+        <article class="stat-card"><span>Tempo faltante hoje</span><strong id="dashboardTodayRemaining">0h</strong></article>
+        <article class="stat-card wide-stat"><span>Próxima meta de hoje</span><strong id="dashboardNextTodayGoal">-</strong><button id="viewDayPlan" class="secondary-button" type="button">Ver Plano do Dia</button></article>
         <article class="stat-card"><span>Metas da semana</span><strong id="weekGoalsTotal">0</strong></article>
         <article class="stat-card"><span>Cumprimento semanal</span><strong id="weekGoalRate">0%</strong></article>
         <article class="stat-card"><span>Cumprimento mensal</span><strong id="monthGoalRate">0%</strong></article>
         <article class="stat-card wide-stat"><span>Próxima meta</span><strong id="nextGoalLabel">-</strong></article>
         <article class="stat-card wide-stat"><span>Disciplina mais priorizada na semana</span><strong id="weekTopDiscipline">-</strong></article>
         <article class="stat-card wide-stat"><span>Disciplina mais atrasada</span><strong id="mostDelayedDiscipline">-</strong></article>
-        <article class="stat-card"><span>Metas pendentes hoje</span><strong id="todayPendingGoals">0</strong></article>
-        <article class="stat-card"><span>Metas concluídas hoje</span><strong id="todayDoneGoals">0</strong></article>
         <div class="dashboard-block-title">Pendências do edital</div>
         <article class="stat-card"><span>Não iniciados</span><strong id="notStartedTotal">0</strong></article>
         <article class="stat-card"><span>Assuntos sem diagnóstico</span><strong id="undiagnosedTotal">0</strong><small>Assuntos sem diagnóstico são conteúdos ainda sem estudo, revisão ou questões registradas.</small></article>
@@ -320,6 +324,18 @@
     <section id="view-metas-do-dia" class="panel app-view" data-view="metas-do-dia" aria-labelledby="daily-goals-title">
       <div class="section-heading inline"><div><p class="eyebrow">Planejamento diário</p><h2 id="daily-goals-title">Metas do Dia</h2></div><button id="generateDailyGoals" type="button">Gerar metas do dia</button></div>
       <p class="notice">As metas são criadas a partir dos assuntos agendáveis do edital verticalizado, priorizando alta prioridade, não iniciados, sem diagnóstico, fracos e disciplinas com mais pendências.</p>
+      <div class="selected-day-banner">Exibindo metas de: <strong id="selectedGoalDateLabel">--/--/----</strong></div>
+      <article class="day-plan-panel" aria-labelledby="day-plan-title">
+        <div class="section-heading"><p class="eyebrow">Agenda diária</p><h2 id="day-plan-title">Plano do Dia</h2></div>
+        <div id="dailyGoalsSummary" class="stats-grid compact daily-goals-summary" aria-live="polite"></div>
+      </article>
+      <article id="nextDailyGoal" class="next-goal-card" aria-live="polite"></article>
+      <section class="today-study-panel" aria-labelledby="today-study-title">
+        <div class="section-heading"><p class="eyebrow">Execução</p><h2 id="today-study-title">O que estudar hoje</h2></div>
+        <div id="dailyGoalsList" class="daily-goals-board empty-message" aria-live="polite"></div>
+      </section>
+      <details class="manual-goal-panel" open>
+        <summary>Adicionar meta manual</summary>
       <form id="goalForm" class="form-grid">
         <label>Data<input id="goalDate" type="date" required /></label>
         <label>Disciplina<select id="goalDiscipline" required></select></label>
@@ -333,8 +349,7 @@
         <label class="wide">Observações / dificuldade<textarea id="goalNotes" rows="3"></textarea></label>
         <button class="wide" type="submit">Salvar meta manual</button>
       </form>
-      <div id="dailyGoalsSummary" class="stats-grid compact daily-goals-summary" aria-live="polite"></div>
-      <div id="dailyGoalsList" class="cards-list empty-message" aria-live="polite"></div>
+      </details>
     </section>
 
     <section id="view-calendario-metas" class="panel app-view" data-view="calendario-metas" aria-labelledby="goal-calendar-title">
