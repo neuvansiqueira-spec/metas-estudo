@@ -774,7 +774,7 @@ tbody tr.goal-hit { background: rgba(22, 163, 74, .08); }
 }
 .stat-card {
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 .storage-warning {
   position: sticky;
@@ -1129,7 +1129,7 @@ button,
 input,
 select,
 textarea {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 h1 {
@@ -1322,7 +1322,7 @@ textarea {
 .next-goal-card {
   min-width: 0;
   overflow: visible;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .week-grid {
@@ -1462,5 +1462,130 @@ textarea {
   .mobile-quick-nav a {
     min-height: 40px;
     padding-inline: 2px;
+  }
+}
+
+/* Correção 20260621-dashboard-fix: evita cards estreitos e quebra letra por letra no Dashboard. */
+h1,
+h2,
+h3,
+h4,
+p,
+li,
+span,
+strong,
+a,
+small,
+label,
+th,
+td,
+button,
+input,
+select,
+textarea,
+.stat-card,
+.dashboard-block,
+.dashboard-block-title,
+.stat-card span,
+.stat-card strong,
+.wide-stat {
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: auto;
+}
+
+.dashboard-blocks {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.dashboard-block {
+  min-width: 0;
+  overflow: visible;
+}
+
+.dashboard-block-title,
+.dashboard-block .dashboard-block-title {
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: auto;
+  line-height: 1.25;
+}
+
+.dashboard-block .stats-grid.compact,
+.dashboard .stats-grid.compact {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+
+.dashboard .stat-card {
+  min-width: 0;
+  overflow: visible;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: auto;
+}
+
+.dashboard .stat-card span,
+.dashboard .stat-card small {
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: auto;
+  line-height: 1.35;
+}
+
+.dashboard .stat-card strong {
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: auto;
+  font-size: clamp(1.55rem, 1rem + 1.4vw, 2.35rem);
+  line-height: 1.12;
+  letter-spacing: -.02em;
+}
+
+.dashboard .stat-card strong.stat-value-text,
+.dashboard .stat-card.wide-stat strong,
+.dashboard #mostDelayedDiscipline,
+.dashboard #dashboardCompletionForecast,
+.dashboard #dashboardProblemDiscipline,
+.dashboard #planningStatus,
+.dashboard #dashboardNextTodayGoal {
+  font-size: clamp(1.05rem, .92rem + .6vw, 1.45rem);
+  line-height: 1.25;
+  letter-spacing: -.01em;
+}
+
+.dashboard .wide-stat {
+  grid-column: span 2;
+}
+
+@media (min-width: 1280px) {
+  .dashboard-blocks {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-block:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1051px) {
+  .app-layout {
+    grid-template-columns: minmax(220px, 250px) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .dashboard-block .stats-grid.compact,
+  .dashboard .stats-grid.compact {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard .wide-stat {
+    grid-column: auto;
   }
 }
