@@ -147,6 +147,10 @@
           <article class="stat-card"><span>Horas na semana</span><strong id="weekHours">0h</strong></article>
           <article class="stat-card"><span>Meta semanal mínima</span><strong id="dashboardMinWeeklyHours">0h</strong></article>
           <article class="stat-card"><span>Meta semanal ideal</span><strong id="dashboardIdealWeeklyHours">0h</strong></article>
+          <article class="stat-card"><span>Disciplinas previstas hoje</span><strong id="dashboardTodayDisciplines">0</strong></article>
+          <article class="stat-card"><span>Assuntos previstos hoje</span><strong id="dashboardTodayTopics">0</strong></article>
+          <article class="stat-card"><span>Disciplinas previstas na semana</span><strong id="dashboardWeekDisciplines">0</strong></article>
+          <article class="stat-card"><span>Assuntos previstos na semana</span><strong id="dashboardWeekTopics">0</strong></article>
           <article class="stat-card"><span>Situação do planejamento</span><strong id="planningStatus" class="stat-value-text">-</strong></article>
           <article class="stat-card wide-stat"><a class="button-link" href="#planejamento" data-view-link="planejamento">Configurar Planejamento</a></article>
         </div></article>
@@ -333,6 +337,14 @@
             <label>Meta semanal mínima (h)<input id="planningMinWeeklyHours" type="number" min="0" step="0.5" /></label>
             <label>Meta semanal ideal (h)<input id="planningIdealWeeklyHours" type="number" min="0" step="0.5" /></label>
             <label>Meta semanal de assuntos<input id="planningWeeklyTopics" type="number" min="0" /></label>
+          </div></div>
+          <div class="wide planning-subblock"><h4>Distribuição de Disciplinas e Assuntos</h4><p class="item-meta">Defina limites para a geração automática de metas por dia, semana e mês.</p><div class="form-grid compact">
+            <label>Disciplinas por dia<input id="planningDisciplinesPerDay" type="number" min="1" /></label>
+            <label>Disciplinas por semana<input id="planningDisciplinesPerWeek" type="number" min="1" /></label>
+            <label>Disciplinas por mês<input id="planningDisciplinesPerMonth" type="number" min="1" /></label>
+            <label>Assuntos por dia<input id="planningTopicsPerDay" type="number" min="1" /></label>
+            <label>Assuntos por semana<input id="planningTopicsPerWeek" type="number" min="1" /></label>
+            <label>Assuntos por mês<input id="planningTopicsPerMonth" type="number" min="1" /></label>
           </div></div>
           <button class="wide" type="submit">Salvar configuração</button>
         </form></article>
