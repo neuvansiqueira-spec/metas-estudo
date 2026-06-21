@@ -126,8 +126,8 @@ const elements = {
   syllabusForm: $("#syllabusForm"), itemDiscipline: $("#itemDiscipline"), itemTopic: $("#itemTopic"), itemSubject: $("#itemSubject"), itemSubtopic: $("#itemSubtopic"), itemReference: $("#itemReference"), itemPriority: $("#itemPriority"), itemWeight: $("#itemWeight"), itemStatus: $("#itemStatus"), itemDomain: $("#itemDomain"), itemNotes: $("#itemNotes"),
   bulkInput: $("#bulkInput"), previewBulk: $("#previewBulk"), saveBulk: $("#saveBulk"), bulkPreview: $("#bulkPreview"), filterSearch: $("#filterSearch"), filterDiscipline: $("#filterDiscipline"), filterPriority: $("#filterPriority"), filterStatus: $("#filterStatus"), filterDomain: $("#filterDomain"), filterSchedulable: $("#filterSchedulable"), filterQuick: $("#filterQuick"), bulkPriority: $("#bulkPriority"), applyBulkPriority: $("#applyBulkPriority"), syllabusCount: $("#syllabusCount"), showMoreSyllabus: $("#showMoreSyllabus"), syllabusList: $("#syllabusList"), schedulableList: $("#schedulableList"), disciplineOptions: $("#disciplineOptions"),
   jsonImportFile: $("#jsonImportFile"), importMessage: $("#importMessage"), importDisciplineTotal: $("#importDisciplineTotal"), importSubjectTotal: $("#importSubjectTotal"), importFilterDiscipline: $("#importFilterDiscipline"), importFilterStatus: $("#importFilterStatus"), importFilterPriority: $("#importFilterPriority"), importFilterDomain: $("#importFilterDomain"), importJsonButton: $("#importJsonButton"), clearImportedSyllabus: $("#clearImportedSyllabus"), importDisciplineList: $("#importDisciplineList"), importPreview: $("#importPreview"),
-  generalCebraspeNet: $("#generalCebraspeNet"), todayPendingGoals: $("#todayPendingGoals"), todayDoneGoals: $("#todayDoneGoals"),
-  generateDailyGoals: $("#generateDailyGoals"), goalForm: $("#goalForm"), goalDate: $("#goalDate"), goalDiscipline: $("#goalDiscipline"), goalSyllabusItem: $("#goalSyllabusItem"), goalType: $("#goalType"), goalMinutes: $("#goalMinutes"), goalActualMinutes: $("#goalActualMinutes"), goalStudyStatus: $("#goalStudyStatus"), goalPriority: $("#goalPriority"), goalStatus: $("#goalStatus"), goalNotes: $("#goalNotes"), dailyGoalsSummary: $("#dailyGoalsSummary"), dailyGoalsList: $("#dailyGoalsList"),
+  generalCebraspeNet: $("#generalCebraspeNet"), todayPendingGoals: $("#todayPendingGoals"), todayDoneGoals: $("#todayDoneGoals"), dashboardTodayGoal: $("#dashboardTodayGoal"), dashboardTodayGoalDetail: $("#dashboardTodayGoalDetail"), dashboardDailyGoalRate: $("#dashboardDailyGoalRate"), dashboardTodayRemaining: $("#dashboardTodayRemaining"), dashboardNextTodayGoal: $("#dashboardNextTodayGoal"), viewDayPlan: $("#viewDayPlan"),
+  selectedGoalDateLabel: $("#selectedGoalDateLabel"), nextDailyGoal: $("#nextDailyGoal"), generateDailyGoals: $("#generateDailyGoals"), goalForm: $("#goalForm"), goalDate: $("#goalDate"), goalDiscipline: $("#goalDiscipline"), goalSyllabusItem: $("#goalSyllabusItem"), goalType: $("#goalType"), goalMinutes: $("#goalMinutes"), goalActualMinutes: $("#goalActualMinutes"), goalStudyStatus: $("#goalStudyStatus"), goalPriority: $("#goalPriority"), goalStatus: $("#goalStatus"), goalNotes: $("#goalNotes"), dailyGoalsSummary: $("#dailyGoalsSummary"), dailyGoalsList: $("#dailyGoalsList"),
   calendarDate: $("#calendarDate"), calendarViewMode: $("#calendarViewMode"), generateWeekGoals: $("#generateWeekGoals"), generateMonthGoals: $("#generateMonthGoals"), disciplineWeightsList: $("#disciplineWeightsList"), goalCalendarStats: $("#goalCalendarStats"), goalCalendarContent: $("#goalCalendarContent"), monthlyTopicGoal: $("#monthlyTopicGoal"), monthlyHourGoal: $("#monthlyHourGoal"), monthlyPlanSummary: $("#monthlyPlanSummary"), todayGoalsTotal: $("#todayGoalsTotal"), weekGoalsTotal: $("#weekGoalsTotal"), weekGoalRate: $("#weekGoalRate"), monthGoalRate: $("#monthGoalRate"), nextGoalLabel: $("#nextGoalLabel"), weekTopDiscipline: $("#weekTopDiscipline"), mostDelayedDiscipline: $("#mostDelayedDiscipline"),
   questionForm: $("#questionForm"), questionEditingId: $("#questionEditingId"), questionLinkedGoalId: $("#questionLinkedGoalId"), questionOrigin: $("#questionOrigin"), questionDate: $("#questionDate"), questionDiscipline: $("#questionDiscipline"), questionSyllabusItem: $("#questionSyllabusItem"), questionBoard: $("#questionBoard"), questionTrainingType: $("#questionTrainingType"), questionTotal: $("#questionTotal"), questionMinutes: $("#questionMinutes"), questionCorrect: $("#questionCorrect"), questionWrong: $("#questionWrong"), questionBlank: $("#questionBlank"), questionNotes: $("#questionNotes"), questionCalculated: $("#questionCalculated"), questionAnalysis: $("#questionAnalysis"),
   questionFilterDiscipline: $("#questionFilterDiscipline"), questionFilterSubject: $("#questionFilterSubject"), questionFilterBoard: $("#questionFilterBoard"), questionHistoryBody: $("#questionHistoryBody"),
@@ -292,6 +292,10 @@ function showDailyGoalMessage(message, type = "info") {
   box.dataset.type = type;
 }
 function formatHours(minutes) { const hours = minutes / 60; return `${Number.isInteger(hours) ? hours : hours.toFixed(1)}h`; }
+function formatDateBR(dateString) { if (!dateString) return "--/--/----"; const [year, month, day] = dateString.split("-"); return `${day}/${month}/${year}`; }
+function isGoalDone(goal) { return goal.status === "Concluída"; }
+function isGoalInProgress(goal) { return !isGoalDone(goal) && !["Pendente", "Adiada", "Reagendada", "Não cumprida", "Ignorada"].includes(goal.status || "Pendente") && Number(goal.actualMinutes || 0) > 0 || (!isGoalDone(goal) && Number(goal.actualMinutes || 0) > 0 && !["Não cumprida", "Ignorada", "Adiada", "Reagendada"].includes(goal.status || "")); }
+function goalProgressStats(goals, availability = { hours: 0 }) { const planned = goals.reduce((a,g)=>a+Number(g.minutes||0),0); const done = goals.reduce((a,g)=>a+Number(g.actualMinutes||0),0); const target = planned || Number(availability.hours || 0) * 60; const completed = goals.filter(isGoalDone).length; const pending = goals.filter((g)=>!isGoalDone(g) && !["Não cumprida", "Ignorada"].includes(g.status || "")).length; return { planned, done, target, remaining: Math.max(0, target - done), completed, pending, goalsPct: goals.length ? Math.round(completed / goals.length * 100) : 0, timePct: target ? Math.min(100, Math.round(done / target * 100)) : 0 }; }
 function parseDate(dateString) { const [year, month, day] = dateString.split("-").map(Number); return new Date(year, month - 1, day); }
 function addDays(dateString, days) { const date = parseDate(dateString); date.setDate(date.getDate() + days); return date.toISOString().slice(0, 10); }
 function isSameWeek(dateString) { const now = new Date(); const date = parseDate(dateString); const start = new Date(now); start.setHours(0, 0, 0, 0); start.setDate(now.getDate() - now.getDay()); const end = new Date(start); end.setDate(start.getDate() + 7); return date >= start && date < end; }
@@ -965,6 +969,7 @@ function updateGoalDone(goal) {
     updateItemProgress(goal.syllabusItemId, { status: "Concluído", studyMinutes: previous + (Number(goal.actualMinutes) || Number(goal.minutes) || 0), lastStudyDate: goal.date });
   }
   saveData();
+  showDailyGoalMessage("Meta concluída.", "success");
 }
 function postponeGoal(goal) {
   const nextDate = prompt("Nova data da meta (AAAA-MM-DD)", goal.date);
@@ -976,6 +981,7 @@ function postponeGoal(goal) {
   appendGoalHistory(goal, `Reagendada de ${oldDate} para ${nextDate}.`);
   elements.goalDate.value = nextDate;
   saveData();
+  showDailyGoalMessage(`Meta adiada para ${formatDateBR(nextDate)}.`, "success");
 }
 function registerGoalTime(goal) {
   const previousMinutes = Number(goal.actualMinutes) || 0;
@@ -989,6 +995,7 @@ function registerGoalTime(goal) {
   if (item && delta > 0) updateItemProgress(goal.syllabusItemId, { status: item.status === "Concluído" ? item.status : "Em andamento", studyMinutes: (Number(item.studyMinutes) || 0) + delta, lastStudyDate: goal.date });
   if (minutes > 0 && goal.status !== "Concluída" && confirm("Deseja concluir esta meta agora?")) updateGoalDone(goal);
   saveData();
+  showDailyGoalMessage("Tempo registrado.", "success");
 }
 function editGoal(goal) {
   elements.goalDate.value=goal.date; elements.goalDiscipline.value=goal.discipline; optionsForItems(elements.goalSyllabusItem, goal.discipline, goal.syllabusItemId); elements.goalSyllabusItem.value=goal.syllabusItemId; elements.goalType.value=goal.type; elements.goalMinutes.value=goal.minutes; elements.goalActualMinutes.value=goal.actualMinutes||0; elements.goalPriority.value=goal.priority; elements.goalStatus.value=goal.status; elements.goalNotes.value=goal.notes||""; showView("metas-do-dia");
@@ -1012,7 +1019,7 @@ function generateWeekGoals() { const start=weekStart(elements.calendarDate?.valu
 function generateMonthGoals() { const ref=parseDate(elements.calendarDate?.value||todayISO()); const start=`${ref.getFullYear()}-${String(ref.getMonth()+1).padStart(2,"0")}-01`; const days=new Date(ref.getFullYear(),ref.getMonth()+1,0).getDate(); const made=[]; daysBetween(start,days).forEach((date)=>made.push(...generateGoalsForDate(date,{maxGoals: availabilityForDate(date).type==="folga"?5:undefined}))); saveGeneratedGoals("Pré-visualização mensal", made); }
 function renderDisciplineWeights() { if (!elements.disciplineWeightsList) return; const ds=getAllDisciplines(); elements.disciplineWeightsList.innerHTML = ds.length ? ds.map((d)=>`<label class="weight-row"><span>${escapeHTML(d)}</span><select data-discipline-weight="${escapeHTML(d)}"><option value="1" ${disciplineWeightValue(d)===1?"selected":""}>Baixa (1)</option><option value="3" ${disciplineWeightValue(d)===3?"selected":""}>Média (3)</option><option value="4" ${disciplineWeightValue(d)===4?"selected":""}>Alta (4)</option><option value="5" ${disciplineWeightValue(d)===5?"selected":""}>Muito alta (5)</option></select></label>`).join("") : "Cadastre ou importe disciplinas para configurar pesos."; }
 function renderGoalCalendar() { if (!elements.goalCalendarContent) return; renderDisciplineWeights(); const date=elements.calendarDate?.value||todayISO(), mode=elements.calendarViewMode?.value||"daily"; const start=mode==="weekly"?weekStart(date):mode==="monthly"?`${date.slice(0,7)}-01`:date; const end=mode==="daily"?date:mode==="weekly"?addDays(start,6):`${date.slice(0,7)}-${String(new Date(parseDate(date).getFullYear(),parseDate(date).getMonth()+1,0).getDate()).padStart(2,"0")}`; const goals=goalsBetween(start,end); const planned=goals.reduce((a,g)=>a+Number(g.minutes||0),0), done=goals.reduce((a,g)=>a+Number(g.actualMinutes||0),0); const dist=goals.reduce((a,g)=>(a[g.discipline]=(a[g.discipline]||0)+1,a),{}); elements.goalCalendarStats.innerHTML = `<article class="stat-card"><span>Horas planejadas</span><strong>${formatHours(planned)}</strong></article><article class="stat-card"><span>Horas realizadas</span><strong>${formatHours(done)}</strong></article><article class="stat-card"><span>Assuntos planejados</span><strong>${goals.length}</strong></article><article class="stat-card"><span>Assuntos concluídos</span><strong>${goals.filter(g=>g.status==="Concluída").length}</strong></article><article class="stat-card"><span>Cumprimento</span><strong>${completionRate(goals)}%</strong></article><article class="stat-card wide-stat"><span>Distribuição por disciplina</span><strong>${Object.entries(dist).map(([d,n])=>`${escapeHTML(d)} (${n})`).join(", ")||"-"}</strong></article>`;
-  if (mode==="daily") { const av=availabilityForDate(date); elements.goalCalendarContent.innerHTML = `<h3>${date} — ${escapeHTML(av.type)}</h3><p class="item-meta">Horas disponíveis: ${av.hours}h</p>` + (goals.map(goalCalendarCard).join("") || "Nenhuma meta para a data."); }
+  if (mode==="daily") { const av=availabilityForDate(date); elements.goalCalendarContent.innerHTML = `<div class="section-heading inline"><div><h3>${formatDateBR(date)} — ${escapeHTML(av.type)}</h3><p class="item-meta">Horas disponíveis: ${av.hours}h</p></div><button type="button" data-open-day-plan="${date}">Abrir Plano do Dia</button></div>` + (goals.map(goalCalendarCard).join("") || "Nenhuma meta para a data."); }
   if (mode==="weekly") elements.goalCalendarContent.innerHTML = `<div class="calendar-grid week-grid">${daysBetween(start,7).map((d)=>`<article><h3>${d}</h3><small>${escapeHTML(availabilityForDate(d).type)} • ${availabilityForDate(d).hours}h</small>${state.dailyGoals.filter(g=>g.date===d).map(goalCalendarMini).join("")||"<p class='item-meta'>Sem metas</p>"}</article>`).join("")}</div>`;
   if (mode==="monthly") { const days=Number(end.slice(-2)); elements.goalCalendarContent.innerHTML = `<div class="calendar-grid month-grid">${daysBetween(start,days).map((d)=>{const gs=state.dailyGoals.filter(g=>g.date===d), av=availabilityForDate(d); return `<article class="${av.type==='indisponível'?'unavailable':''}"><strong>${d.slice(-2)}</strong><small>${escapeHTML(av.type)}</small><span>${gs.length} meta(s)</span><span>${gs.filter(g=>g.status==='Concluída').length} concluída(s)</span></article>`}).join("")}</div>`; }
   const key=date.slice(0,7); const mg=state.monthlyGoals[key]||{}; if(elements.monthlyTopicGoal) elements.monthlyTopicGoal.value=mg.topics||""; if(elements.monthlyHourGoal) elements.monthlyHourGoal.value=mg.hours||""; const total=state.syllabusItems.filter(i=>i.status!=="Ignorado").length||1, completed=state.syllabusItems.filter(completedStatus).length; elements.monthlyPlanSummary.innerHTML=`<article class="stat-card"><span>Avanço esperado</span><strong>${Math.round(goals.length/total*100)}%</strong></article><article class="stat-card"><span>Previsão de conclusão</span><strong>${goals.length?Math.ceil((total-completed)/Math.max(1,goals.length))+' mês(es)':'-'}</strong></article>`; }
@@ -1022,47 +1029,55 @@ function renderDailyGoals() {
   if (!elements.dailyGoalsList) return;
   const date = elements.goalDate?.value || todayISO();
   const availability = availabilityForDate(date);
-  const dayGoals = state.dailyGoals.filter((g) => g.date === date).sort((a,b) => (a.status === "Concluída") - (b.status === "Concluída") || a.discipline.localeCompare(b.discipline));
+  const dayGoals = state.dailyGoals.filter((g) => g.date === date).sort((a,b) => isGoalDone(a) - isGoalDone(b) || (a.status || "").localeCompare(b.status || "") || a.discipline.localeCompare(b.discipline));
   const otherDates = state.dailyGoals.some((g) => g.date !== date);
-  const planned = dayGoals.reduce((a,g)=>a+Number(g.minutes||0),0);
-  const done = dayGoals.reduce((a,g)=>a+Number(g.actualMinutes||0),0);
-  const remaining = Math.max(0, planned - done);
-  const completed = dayGoals.filter((g)=>g.status === "Concluída").length;
-  const pending = dayGoals.filter((g)=>g.status !== "Concluída" && g.status !== "Ignorada").length;
-  const target = planned || Number(availability.hours || 0) * 60;
+  const stats = goalProgressStats(dayGoals, availability);
+  if (elements.selectedGoalDateLabel) elements.selectedGoalDateLabel.textContent = formatDateBR(date);
   if (elements.dailyGoalsSummary) {
     elements.dailyGoalsSummary.innerHTML = `
-      <article class="stat-card"><span>Data selecionada</span><strong>${escapeHTML(date)}</strong></article>
+      <article class="stat-card"><span>Data selecionada</span><strong>${formatDateBR(date)}</strong></article>
       <article class="stat-card"><span>Tipo do dia</span><strong>${escapeHTML(availability.type || "normal")}</strong></article>
-      <article class="stat-card"><span>Horas disponíveis</span><strong>${Number(availability.hours || 0)}h</strong></article>
-      <article class="stat-card"><span>Meta de tempo do dia</span><strong>${target ? formatHours(target) : "-"}</strong></article>
-      <article class="stat-card"><span>Tempo realizado</span><strong>${formatHours(done)}</strong></article>
-      <article class="stat-card"><span>Tempo faltante</span><strong>${formatHours(remaining)}</strong></article>
-      <article class="stat-card"><span>Percentual cumprido</span><strong>${target ? Math.min(100, Math.round(done / target * 100)) : 0}%</strong></article>
-      <article class="stat-card"><span>Metas da data</span><strong>${dayGoals.length}</strong></article>
-      <article class="stat-card"><span>Concluídas</span><strong>${completed}</strong></article>
-      <article class="stat-card"><span>Pendentes</span><strong>${pending}</strong></article>`;
+      <article class="stat-card"><span>Meta de horas do dia</span><strong>${stats.target ? formatHours(stats.target) : "-"}</strong></article>
+      <article class="stat-card"><span>Tempo já realizado</span><strong>${formatHours(stats.done)}</strong></article>
+      <article class="stat-card"><span>Tempo faltante</span><strong>${formatHours(stats.remaining)}</strong></article>
+      <article class="stat-card"><span>Percentual cumprido</span><strong>${stats.timePct}%</strong></article>
+      <article class="stat-card"><span>Quantidade de metas do dia</span><strong>${dayGoals.length}</strong></article>
+      <article class="stat-card"><span>Metas concluídas</span><strong>${stats.completed}</strong></article>
+      <article class="stat-card"><span>Metas pendentes</span><strong>${stats.pending}</strong></article>
+      <article class="stat-card wide-stat"><span>Metas: ${stats.completed} de ${dayGoals.length} concluídas — ${stats.goalsPct}%</span><div class="progress"><span style="width:${stats.goalsPct}%"></span></div></article>
+      <article class="stat-card wide-stat"><span>Tempo: ${formatHours(stats.done)} de ${stats.target ? formatHours(stats.target) : "0h"} — ${stats.timePct}%</span><div class="progress"><span style="width:${stats.timePct}%"></span></div></article>`;
   }
+  renderNextDailyGoal(dayGoals);
   const notices = [];
   if (availability.type === "indisponível") notices.push(`<p class="notice warning-notice">Dia marcado como indisponível. A geração automática só acontece mediante confirmação.</p>`);
-  if (otherDates) notices.push(`<p class="notice">Existem metas em outras datas. Altere a data ou acesse o Calendário de Metas.</p>`);
+  if (!dayGoals.length && otherDates) notices.push(`<p class="notice">Não há metas nesta data, mas existem metas cadastradas em outros dias. Use o Calendário de Metas ou altere a data.</p>`);
   if (!dayGoals.length) {
-    elements.dailyGoalsList.innerHTML = `${notices.join("")}<p class="empty-message">Nenhuma meta cadastrada para esta data.</p><button type="button" data-generate-selected-date>Gerar metas para esta data</button>`;
+    elements.dailyGoalsList.innerHTML = `${notices.join("")}<p class="empty-message">Nenhuma meta cadastrada para esta data.</p><button class="big-action-button" type="button" data-generate-selected-date>Gerar metas para esta data</button>`;
     return;
   }
-  elements.dailyGoalsList.innerHTML = notices.join("") + dayGoals.map(dailyGoalCard).join("");
+  const groups = [
+    ["Pendentes", dayGoals.filter((g)=>!isGoalDone(g) && !isGoalInProgress(g)), "Nenhuma meta pendente."],
+    ["Em andamento", dayGoals.filter(isGoalInProgress), "Nenhuma meta em andamento."],
+    ["Concluídas", dayGoals.filter(isGoalDone), "Nenhuma meta concluída."]
+  ];
+  elements.dailyGoalsList.innerHTML = notices.join("") + groups.map(([title, goals, empty]) => `<section class="goal-status-section"><h3>${title}</h3>${goals.length ? goals.map((goal, index)=>dailyGoalCard(goal, dayGoals.indexOf(goal) + 1)).join("") : `<p class="empty-message">${empty}</p>`}</section>`).join("");
 }
-function dailyGoalCard(goal) {
+function renderNextDailyGoal(dayGoals) {
+  if (!elements.nextDailyGoal) return;
+  const next = dayGoals.find((g)=>!isGoalDone(g) && !["Não cumprida", "Ignorada", "Adiada", "Reagendada"].includes(g.status || ""));
+  if (!next) { elements.nextDailyGoal.innerHTML = `<h3>Próxima meta</h3><p>Todas as metas do dia foram concluídas.</p>`; return; }
+  elements.nextDailyGoal.innerHTML = `<h3>Próxima meta</h3><strong>${escapeHTML(next.discipline)}</strong><p>${escapeHTML(next.subject)}</p><div class="item-meta">Tempo sugerido: ${Number(next.minutes||0)} min • Prioridade: ${escapeHTML(next.priority || next.prioridade || "-")}</div><div class="card-actions"><button type="button" data-goal-action="Concluída" data-id="${next.id}">Concluir</button><button type="button" data-goal-action="Tempo" data-id="${next.id}">Registrar tempo</button><button type="button" data-register-goal="${next.id}">Registrar questões</button></div>`;
+}
+function dailyGoalCard(goal, number = 1) {
   const linked = materialsForTopic(goal.discipline, goal.subject, goal.syllabusItemId);
-  const firstMaterialButton = linked[0] ? `<button type="button" data-open-material="${linked[0].id}">Abrir material do assunto</button>` : "";
-  return `<article class="syllabus-card goal-status-${canonical(goal.status)}">
-    <header><div><h3>${escapeHTML(goal.discipline)} — ${escapeHTML(goal.subject)}</h3><div class="item-meta">${escapeHTML(goal.type || goal.tipo || "Meta")} • ${escapeHTML(goal.date)} • planejado ${Number(goal.minutes||0)} min • real ${Number(goal.actualMinutes||0)} min</div></div><span class="badge ${goal.status === "Concluída" ? "success" : goal.priority === "Alta" ? "danger" : "warn"}">${escapeHTML(goal.status || "Pendente")}</span></header>
+  const firstMaterialButton = linked[0] ? `<button type="button" data-open-material="${linked[0].id}">Abrir material</button>` : "";
+  return `<article class="syllabus-card daily-goal-card goal-status-${canonical(goal.status)}">
+    <header><div><span class="goal-number">Meta ${number}</span><h3>${escapeHTML(goal.discipline)}</h3><div class="goal-subject">${escapeHTML(goal.subject)}</div><div class="item-meta">${escapeHTML(goal.type || goal.tipo || "Meta")} — ${Number(goal.minutes||0)} min</div></div><span class="badge ${goal.status === "Concluída" ? "success" : goal.priority === "Alta" ? "danger" : "warn"}">Status: ${escapeHTML(goal.status || "Pendente")}</span></header>
     <div class="card-meta-grid">
-      <span>Disciplina: ${escapeHTML(goal.discipline)}</span><span>Assunto: ${escapeHTML(goal.subject)}</span><span>Tipo: ${escapeHTML(goal.type || goal.tipo || "-")}</span><span>Data: ${escapeHTML(goal.date)}</span>
-      <span>Tempo planejado: ${Number(goal.minutes||0)} min</span><span>Tempo real: ${Number(goal.actualMinutes||0)} min</span><span>Status: ${escapeHTML(goal.status || "Pendente")}</span><span>Prioridade: ${escapeHTML(goal.priority || goal.prioridade || "-")}</span>
-      <span>Referência do edital: ${escapeHTML(goal.referencia_edital || getSyllabusById(goal.syllabusItemId)?.reference || "-")}</span><span>Observações: ${escapeHTML(goal.notes || goal.observacoes || "-")}</span>
+      <span>Disciplina: ${escapeHTML(goal.discipline)}</span><span>Assunto: ${escapeHTML(goal.subject)}</span><span>Tipo: ${escapeHTML(goal.type || goal.tipo || "-")}</span><span>Prioridade: ${escapeHTML(goal.priority || goal.prioridade || "-")}</span>
+      <span>Tempo planejado: ${Number(goal.minutes||0)} min</span><span>Tempo realizado: ${Number(goal.actualMinutes||0)} min</span><span>Status: ${escapeHTML(goal.status || "Pendente")}</span><span>Referência: ${escapeHTML(goal.referencia_edital || getSyllabusById(goal.syllabusItemId)?.reference || "-")}</span>
     </div>${linkedMaterialsHTML(linked)}
-    <div class="card-actions"><button type="button" data-goal-action="Concluída" data-id="${goal.id}">Concluir</button><button type="button" data-goal-action="Adiada" data-id="${goal.id}">Adiar</button><button type="button" data-goal-action="Não cumprida" data-id="${goal.id}">Não cumprir</button><button type="button" data-goal-action="Ignorada" data-id="${goal.id}">Ignorar</button><button type="button" data-goal-action="Tempo" data-id="${goal.id}">Registrar tempo</button><button type="button" data-register-goal="${goal.id}">Registrar questões</button>${firstMaterialButton}</div>
+    <div class="card-actions"><button type="button" data-goal-action="Concluída" data-id="${goal.id}">Concluir</button><button type="button" data-goal-action="Tempo" data-id="${goal.id}">Registrar tempo</button><button type="button" data-goal-action="Adiada" data-id="${goal.id}">Adiar</button><button type="button" data-goal-action="Não cumprida" data-id="${goal.id}">Não cumprir</button><button type="button" data-register-goal="${goal.id}">Registrar questões</button>${firstMaterialButton}</div>
   </article>`;
 }
 function questionNumbers() { const total = Number(elements.questionTotal.value), correct = Number(elements.questionCorrect.value), wrong = Number(elements.questionWrong.value), blank = Number(elements.questionBlank.value); return { total, correct, wrong, blank, sum: correct + wrong + blank, accuracy: total ? correct / total * 100 : 0, errorPct: total ? wrong / total * 100 : 0, blankPct: total ? blank / total * 100 : 0, net: correct - wrong }; }
@@ -1105,12 +1120,31 @@ elements.generateMonthGoals?.addEventListener("click", generateMonthGoals);
 [elements.calendarDate, elements.calendarViewMode].filter(Boolean).forEach((el)=>el.addEventListener("change", renderGoalCalendar));
 elements.disciplineWeightsList?.addEventListener("change", (event)=>{ const d=event.target.dataset.disciplineWeight; if(d){ state.disciplineWeights[d]=Number(event.target.value)||3; render(); }});
 [elements.monthlyTopicGoal, elements.monthlyHourGoal].filter(Boolean).forEach((el)=>el.addEventListener("change",()=>{ const key=(elements.calendarDate?.value||todayISO()).slice(0,7); state.monthlyGoals[key]={ topics:Number(elements.monthlyTopicGoal.value)||0, hours:Number(elements.monthlyHourGoal.value)||0 }; render(); }));
-elements.goalCalendarContent?.addEventListener("click", (event)=>{ const b=event.target.closest("button[data-calendar-action],button[data-register-goal]"); if(!b) return; if(b.dataset.registerGoal) return fillQuestionFromGoal(b.dataset.registerGoal); const goal=state.dailyGoals.find(g=>g.id===b.dataset.id); if(!goal) return; if(b.dataset.calendarAction==="done") updateGoalDone(goal); if(b.dataset.calendarAction==="postpone") postponeGoal(goal); if(b.dataset.calendarAction==="time") registerGoalTime(goal); if(b.dataset.calendarAction==="edit") editGoal(goal); render(); });
+elements.goalCalendarContent?.addEventListener("click", (event)=>{ const openPlan=event.target.closest("button[data-open-day-plan]"); if(openPlan){ elements.goalDate.value=openPlan.dataset.openDayPlan; renderDailyGoals(); return showView("metas-do-dia"); } const b=event.target.closest("button[data-calendar-action],button[data-register-goal]"); if(!b) return; if(b.dataset.registerGoal) return fillQuestionFromGoal(b.dataset.registerGoal); const goal=state.dailyGoals.find(g=>g.id===b.dataset.id); if(!goal) return; if(b.dataset.calendarAction==="done") updateGoalDone(goal); if(b.dataset.calendarAction==="postpone") postponeGoal(goal); if(b.dataset.calendarAction==="time") registerGoalTime(goal); if(b.dataset.calendarAction==="edit") editGoal(goal); render(); });
 elements.goalDiscipline.addEventListener("change", () => optionsForItems(elements.goalSyllabusItem, elements.goalDiscipline.value));
 elements.questionDiscipline.addEventListener("change", () => optionsForItems(elements.questionSyllabusItem, elements.questionDiscipline.value));
 elements.goalSyllabusItem.addEventListener("change", () => { const item = getSyllabusById(elements.goalSyllabusItem.value); if (item) { elements.goalDiscipline.value = item.discipline; elements.goalPriority.value = item.priority; elements.goalType.value = goalTypeForItem(item); } });
+
+function handleDailyGoalActionClick(event) {
+  const button = event.target.closest("button[data-register-goal]");
+  if (button) return fillQuestionFromGoal(button.dataset.registerGoal);
+  if (event.target.closest("button[data-generate-selected-date]")) return generateDailyGoals();
+  const action = event.target.closest("button[data-goal-action]");
+  if (action) {
+    const goal = state.dailyGoals.find((g) => g.id === action.dataset.id);
+    if (goal) {
+      if (action.dataset.goalAction === "Adiada") postponeGoal(goal);
+      else if (action.dataset.goalAction === "Tempo") registerGoalTime(goal);
+      else if (action.dataset.goalAction === "Concluída") updateGoalDone(goal);
+      else { goal.status = action.dataset.goalAction; appendGoalHistory(goal, `Status alterado para ${goal.status}.`); showDailyGoalMessage(`Status alterado para ${goal.status}.`, "success"); saveData(); }
+      render();
+    }
+  }
+}
 elements.goalForm.addEventListener("submit", (event) => { event.preventDefault(); const item = getSyllabusById(elements.goalSyllabusItem.value); if (!item) return alert("Selecione um assunto do edital verticalizado."); const selectedDate = elements.goalDate.value || todayISO(); state.dailyGoals.push({ id: createId(), date: selectedDate, data: selectedDate, discipline: elements.goalDiscipline.value, disciplina: elements.goalDiscipline.value, syllabusItemId: item.id, subject: item.subject, assunto: item.subject, referencia_edital: item.reference || "", type: elements.goalType.value, tipo: elements.goalType.value.toLowerCase(), minutes: Number(elements.goalMinutes.value), priority: elements.goalPriority.value, prioridade: elements.goalPriority.value, status: elements.goalStatus.value, actualMinutes: Number(elements.goalActualMinutes?.value) || 0, studyStatus: elements.goalStudyStatus?.value || "Iniciado", notes: elements.goalNotes.value.trim() }); elements.goalForm.reset(); elements.goalDate.value = selectedDate; render(); });
-elements.dailyGoalsList.addEventListener("click", (event) => { const button = event.target.closest("button[data-register-goal]"); if (button) fillQuestionFromGoal(button.dataset.registerGoal); if (event.target.closest("button[data-generate-selected-date]")) return generateDailyGoals(); const action = event.target.closest("button[data-goal-action]"); if (action) { const goal = state.dailyGoals.find((g) => g.id === action.dataset.id); if (goal) { if (action.dataset.goalAction === "Adiada") postponeGoal(goal); else if (action.dataset.goalAction === "Tempo") registerGoalTime(goal); else if (action.dataset.goalAction === "Concluída") updateGoalDone(goal); else { goal.status = action.dataset.goalAction; appendGoalHistory(goal, `Status alterado para ${goal.status}.`); } render(); } } });
+elements.dailyGoalsList.addEventListener("click", handleDailyGoalActionClick);
+elements.nextDailyGoal?.addEventListener("click", handleDailyGoalActionClick);
+elements.viewDayPlan?.addEventListener("click", () => { elements.goalDate.value = todayISO(); renderDailyGoals(); showView("metas-do-dia"); });
 elements.dailyGoalsList.addEventListener("change", (event) => { const id = event.target.dataset.goalStatus; if (!id) return; const goal = state.dailyGoals.find((g) => g.id === id); if (goal) { goal.status = event.target.value; render(); } });
 [elements.questionTotal, elements.questionCorrect, elements.questionWrong, elements.questionBlank].forEach((input) => input.addEventListener("input", updateQuestionCalculated));
 elements.questionForm.addEventListener("submit", saveQuestionLog);
@@ -1156,7 +1190,7 @@ function hashToView() {
   return viewIds.has(view) ? view : "dashboard";
 }
 
-function renderGoalDashboardCards() { const today=todayISO(), ws=weekStart(today), we=addDays(ws,6), ms=today.slice(0,7)+"-01", me=today.slice(0,7)+"-31"; const tg=state.dailyGoals.filter(g=>g.date===today), wg=goalsBetween(ws,we), mg=state.dailyGoals.filter(g=>g.date.slice(0,7)===today.slice(0,7)); const next=state.dailyGoals.filter(g=>g.status!=="Concluída" && g.date>=today).sort((a,b)=>a.date.localeCompare(b.date))[0]; const delayed=Object.entries(state.syllabusItems.filter(i=>!completedStatus(i)&&i.status!=="Ignorado").reduce((a,i)=>(a[i.discipline]=(a[i.discipline]||0)+1,a),{})).sort((a,b)=>b[1]-a[1])[0]; const top=Object.entries(wg.reduce((a,g)=>(a[g.discipline]=(a[g.discipline]||0)+1,a),{})).sort((a,b)=>b[1]-a[1])[0]; if(elements.todayGoalsTotal) elements.todayGoalsTotal.textContent=tg.length; if(elements.weekGoalsTotal) elements.weekGoalsTotal.textContent=wg.length; if(elements.weekGoalRate) elements.weekGoalRate.textContent=completionRate(wg)+"%"; if(elements.monthGoalRate) elements.monthGoalRate.textContent=completionRate(mg)+"%"; if(elements.nextGoalLabel) elements.nextGoalLabel.textContent=next?`${next.date} — ${next.discipline}: ${next.subject}`:"-"; if(elements.weekTopDiscipline) elements.weekTopDiscipline.textContent=top?`${top[0]} (${top[1]})`:"-"; if(elements.mostDelayedDiscipline) elements.mostDelayedDiscipline.textContent=delayed?`${delayed[0]} (${delayed[1]})`:"-"; }
+function renderGoalDashboardCards() { const today=todayISO(), ws=weekStart(today), we=addDays(ws,6); const tg=state.dailyGoals.filter(g=>g.date===today), wg=goalsBetween(ws,we), mg=state.dailyGoals.filter(g=>g.date.slice(0,7)===today.slice(0,7)); const av=availabilityForDate(today); const stats=goalProgressStats(tg,av); const nextToday=tg.find(g=>!isGoalDone(g) && !["Não cumprida","Ignorada","Adiada","Reagendada"].includes(g.status||"")); const next=state.dailyGoals.filter(g=>g.status!=="Concluída" && g.date>=today).sort((a,b)=>a.date.localeCompare(b.date))[0]; const delayed=Object.entries(state.syllabusItems.filter(i=>!completedStatus(i)&&i.status!=="Ignorado").reduce((a,i)=>(a[i.discipline]=(a[i.discipline]||0)+1,a),{})).sort((a,b)=>b[1]-a[1])[0]; const top=Object.entries(wg.reduce((a,g)=>(a[g.discipline]=(a[g.discipline]||0)+1,a),{})).sort((a,b)=>b[1]-a[1])[0]; if(elements.dashboardTodayGoal) elements.dashboardTodayGoal.textContent=stats.target?formatHours(stats.target):"0h"; if(elements.dashboardTodayGoalDetail) elements.dashboardTodayGoalDetail.textContent=`${tg.length} meta(s) para hoje`; if(elements.dashboardDailyGoalRate) elements.dashboardDailyGoalRate.textContent=stats.goalsPct+"%"; if(elements.dashboardTodayRemaining) elements.dashboardTodayRemaining.textContent=formatHours(stats.remaining); if(elements.dashboardNextTodayGoal) elements.dashboardNextTodayGoal.textContent=nextToday?`${nextToday.discipline}: ${nextToday.subject}`:"Todas concluídas ou sem metas"; if(elements.todayGoalsTotal) elements.todayGoalsTotal.textContent=tg.length; if(elements.todayPendingGoals) elements.todayPendingGoals.textContent=stats.pending; if(elements.todayDoneGoals) elements.todayDoneGoals.textContent=stats.completed; if(elements.weekGoalsTotal) elements.weekGoalsTotal.textContent=wg.length; if(elements.weekGoalRate) elements.weekGoalRate.textContent=completionRate(wg)+"%"; if(elements.monthGoalRate) elements.monthGoalRate.textContent=completionRate(mg)+"%"; if(elements.nextGoalLabel) elements.nextGoalLabel.textContent=next?`${next.date} — ${next.discipline}: ${next.subject}`:"-"; if(elements.weekTopDiscipline) elements.weekTopDiscipline.textContent=top?`${top[0]} (${top[1]})`:"-"; if(elements.mostDelayedDiscipline) elements.mostDelayedDiscipline.textContent=delayed?`${delayed[0]} (${delayed[1]})`:"-"; }
 function renderView(viewId) {
   const renderers = {
     dashboard: () => { renderDashboard(); renderSubjects(); },
