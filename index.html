@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Metas de Estudo para Concurso</title>
-  <link rel="stylesheet" href="style.css?v=20260621-3" />
+  <link rel="stylesheet" href="style.css?v=20260621-menu-mobile" />
 </head>
 <body>
   <header class="hero">
@@ -16,14 +16,39 @@
           <small>Planeje, registre e revise</small>
         </div>
       </div>
-      <button id="menuToggle" class="menu-toggle" type="button" aria-expanded="false" aria-controls="mainMenu">Menu</button>
+      <button id="menuToggle" class="menu-toggle" type="button" aria-expanded="false" aria-controls="mainMenu">☰ Menu</button>
       <div id="mainMenu" class="nav-links">
-        <a href="#dashboard" data-view-link="dashboard">Dashboard</a>
-        <a href="#metas-do-dia" data-view-link="metas-do-dia">Plano do Dia</a>
-        <a href="#calendario-metas" data-view-link="calendario-metas">Calendário</a>
-        <a href="#planejamento" data-view-link="planejamento">Planejamento</a>
-        <a href="#backup" data-view-link="backup">Backup</a>
-        <a href="#como-usar" data-view-link="como-usar">Como usar</a>
+        <div class="mobile-menu-header">
+          <strong>Menu</strong>
+          <button id="menuClose" class="menu-close" type="button" aria-label="Fechar menu">×</button>
+        </div>
+        <div class="mobile-menu-group"><span>Principal</span>
+          <a href="#dashboard" data-view-link="dashboard">Dashboard</a>
+          <a href="#metas-do-dia" data-view-link="metas-do-dia">Plano do Dia</a>
+          <a href="#calendario-metas" data-view-link="calendario-metas">Calendário de Metas</a>
+          <a href="#planejamento" data-view-link="planejamento">Planejamento</a>
+        </div>
+        <div class="mobile-menu-group"><span>Edital</span>
+          <a href="#edital" data-view-link="edital">Edital</a>
+          <a href="#edital-verticalizado" data-view-link="edital-verticalizado">Edital Verticalizado</a>
+          <a href="#importar-edital" data-view-link="importar-edital">Importar Edital</a>
+          <a href="#assuntos-agendaveis" data-view-link="assuntos-agendaveis">Assuntos Agendáveis</a>
+        </div>
+        <div class="mobile-menu-group"><span>Desempenho</span>
+          <a href="#progresso" data-view-link="progresso">Progresso</a>
+          <a href="#questoes" data-view-link="questoes">Questões</a>
+          <a href="#historico-questoes" data-view-link="historico-questoes">Histórico de Questões</a>
+          <a href="#simulados" data-view-link="simulados">Simulados</a>
+        </div>
+        <div class="mobile-menu-group"><span>Apoio</span>
+          <a href="#materiais" data-view-link="materiais">Materiais</a>
+          <a href="#revisoes" data-view-link="revisoes">Revisões</a>
+          <a href="#historico" data-view-link="historico">Histórico</a>
+        </div>
+        <div class="mobile-menu-group"><span>Sistema</span>
+          <a href="#backup" data-view-link="backup">Backup</a>
+          <a href="#como-usar" data-view-link="como-usar">Como usar</a>
+        </div>
       </div>
     </nav>
 
@@ -40,6 +65,7 @@
       </div>
     </section>
   </header>
+  <div id="menuOverlay" class="menu-overlay" hidden></div>
 
   <main class="container app-layout">
     <aside class="side-nav" aria-label="Menu de telas">
@@ -472,8 +498,15 @@
     </section>
     </div>
   </main>
+  <nav class="mobile-quick-nav" aria-label="Atalhos principais">
+    <a href="#metas-do-dia" data-view-link="metas-do-dia">Hoje</a>
+    <a href="#calendario-metas" data-view-link="calendario-metas">Calendário</a>
+    <a href="#planejamento" data-view-link="planejamento">Planejamento</a>
+    <a href="#progresso" data-view-link="progresso">Progresso</a>
+    <a href="#backup" data-view-link="backup">Backup</a>
+  </nav>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260621-3</p></footer>
-  <script src="script.js?v=20260621-3"></script>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260621-menu-mobile</p></footer>
+  <script src="script.js?v=20260621-menu-mobile"></script>
 </body>
 </html>

@@ -1182,6 +1182,8 @@ const viewAliases = { verticalizado: "edital-verticalizado" };
 const viewIds = new Set(viewPanels.map((panel) => panel.dataset.view));
 const menuToggle = document.getElementById("menuToggle");
 const mainMenu = document.getElementById("mainMenu");
+const menuClose = document.getElementById("menuClose");
+const menuOverlay = document.getElementById("menuOverlay");
 
 function normalizeViewId(viewId) {
   const normalized = String(viewId || "").replace(/^#/, "") || "dashboard";
@@ -1217,6 +1219,14 @@ function renderView(viewId) {
   renderers[viewId]?.();
 }
 
+function setMobileMenuOpen(isOpen) {
+  if (!mainMenu) return;
+  mainMenu.classList.toggle("open", isOpen);
+  menuOverlay?.classList.toggle("open", isOpen);
+  if (menuOverlay) menuOverlay.hidden = !isOpen;
+  menuToggle?.setAttribute("aria-expanded", isOpen ? "true" : "false");
+}
+
 function showView(viewId = hashToView(), options = {}) {
   const target = viewIds.has(normalizeViewId(viewId)) ? normalizeViewId(viewId) : "dashboard";
 
@@ -1237,8 +1247,8 @@ function showView(viewId = hashToView(), options = {}) {
     history.pushState(null, "", `#${target}`);
   }
 
-  if (mainMenu && !options.keepMenuOpen) mainMenu.classList.remove("open");
-  if (menuToggle) menuToggle.setAttribute("aria-expanded", mainMenu?.classList.contains("open") ? "true" : "false");
+  if (!options.keepMenuOpen) setMobileMenuOpen(false);
+  else menuToggle?.setAttribute("aria-expanded", mainMenu?.classList.contains("open") ? "true" : "false");
   renderView(target);
   if (!options.skipScroll) document.querySelector(".screen-stage")?.scrollIntoView({ block: "start" });
 }
@@ -1250,9 +1260,11 @@ viewLinks.forEach((link) => {
   });
 });
 
-menuToggle?.addEventListener("click", () => {
-  mainMenu?.classList.toggle("open");
-  menuToggle.setAttribute("aria-expanded", mainMenu?.classList.contains("open") ? "true" : "false");
+menuToggle?.addEventListener("click", () => setMobileMenuOpen(!mainMenu?.classList.contains("open")));
+menuClose?.addEventListener("click", () => setMobileMenuOpen(false));
+menuOverlay?.addEventListener("click", () => setMobileMenuOpen(false));
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") setMobileMenuOpen(false);
 });
 
 window.addEventListener("hashchange", () => showView(hashToView()));
