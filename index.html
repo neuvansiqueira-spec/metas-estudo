@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260621-menu-hotfix" />
+  <link rel="stylesheet" href="style.css?v=20260621-goals-scale" />
 </head>
 <body>
   <header class="hero">
@@ -30,6 +30,7 @@
         </div>
         <div class="mobile-menu-group"><span>Principal</span>
           <a href="#dashboard" data-view-link="dashboard">Dashboard</a>
+          <a href="#central-metas" data-view-link="central-metas">Central de Metas</a>
           <a href="#metas-do-dia" data-view-link="metas-do-dia">Plano do Dia</a>
           <a href="#calendario-metas" data-view-link="calendario-metas">Calendário de Metas</a>
           <a href="#planejamento" data-view-link="planejamento">Planejamento</a>
@@ -78,6 +79,7 @@
       <div class="side-nav-title">Navegação</div>
       <div class="side-nav-group"><span>Principal</span>
         <a href="#dashboard" data-view-link="dashboard">Dashboard</a>
+        <a href="#central-metas" data-view-link="central-metas">Central de Metas</a>
         <a href="#metas-do-dia" data-view-link="metas-do-dia">Plano do Dia</a>
         <a href="#calendario-metas" data-view-link="calendario-metas">Calendário de Metas</a>
         <a href="#planejamento" data-view-link="planejamento">Planejamento</a>
@@ -119,6 +121,7 @@
         <button id="changeMotivation" class="secondary-button daily-message-button" type="button">Trocar frase</button>
       </article>
       <div class="dashboard-blocks" aria-label="Resumo organizado do Dashboard">
+        <article class="dashboard-block"><div class="dashboard-block-title">Central de Metas</div><div id="dashboardGoalsScaleSummary" class="stats-grid compact"></div></article>
         <article class="dashboard-block"><div class="dashboard-block-title">Hoje</div><div class="stats-grid compact">
           <article class="stat-card"><span>Plano do Dia</span><strong id="todayGoalsTotal">0</strong><small>metas planejadas</small></article>
           <article class="stat-card"><span>Meta de horas hoje</span><strong id="dashboardTodayGoal">0h</strong><small id="dashboardTodayGoalDetail">Sem metas planejadas.</small></article>
@@ -328,14 +331,23 @@
       <div id="schedulableList" class="cards-list empty-message"></div>
     </section>
 
+
+    <section id="view-central-metas" class="panel app-view" data-view="central-metas" aria-labelledby="central-goals-title">
+      <div class="section-heading inline"><div><p class="eyebrow">Hoje • Esta semana • Este mês</p><h2 id="central-goals-title">Central de Metas</h2></div><button id="centralOpenDayPlan" type="button">Abrir Plano do Dia</button></div>
+      <p class="notice">Visão didática das metas diárias, semanais e mensais com base na escala configurada no Planejamento.</p>
+      <div id="centralGoalsCards" class="goal-central-grid" aria-live="polite"></div>
+      <article class="bulk-box"><h3>Escala</h3><div id="centralScaleSummary" class="stats-grid compact"></div></article>
+      <article class="bulk-box"><h3>Próximas datas</h3><div class="table-wrapper"><table class="responsive-table"><thead><tr><th>Data</th><th>Dia da semana</th><th>Tipo do dia</th><th>Horas previstas</th><th>Assuntos previstos</th></tr></thead><tbody id="centralNextDates"></tbody></table></div></article>
+    </section>
+
     <section id="view-planejamento" class="panel app-view" data-view="planejamento" aria-labelledby="planning-title">
       <div class="section-heading"><p class="eyebrow">Plantões</p><h2 id="planning-title">Planejamento</h2></div>
       <article class="bulk-box planning-block"><h3>1. Configuração da prova</h3>
         <form id="planningConfigForm" class="form-grid">
           <label>Data da prova<input id="planningExamDate" type="date" /></label>
           <label>Margem de segurança (dias)<input id="planningSafetyDays" type="number" min="0" /></label>
-          <label>Tipo de escala<select id="planningScaleType"><option>24x72</option><option>3 dias de trabalho / 6 dias de folga</option><option>semanal personalizada</option><option>manual</option></select></label>
-          <label class="wide">Observações da escala<textarea id="planningScaleNotes" rows="2"></textarea></label>
+          <label>Tipo de escala<select id="planningScaleType"><option>24x72</option><option>3 dias de trabalho / 6 dias de folga</option><option>manual</option></select></label>
+          <div class="wide planning-subblock scale-work-block"><h4>Escala de Trabalho</h4><p class="item-meta">Informe uma data conhecida da sua escala e em qual ponto da escala você estava nesse dia. O sistema calculará os próximos plantões e folgas automaticamente.</p><div id="scale3x6Fields" class="form-grid compact"><label>Data de referência da escala<input id="planningScaleReferenceDate" type="date" /></label><label>Situação nessa data<select id="planningScaleReferencePosition"><option value="0">Trabalho - dia 1</option><option value="1">Trabalho - dia 2</option><option value="2">Trabalho - dia 3</option><option value="3">Folga - dia 1</option><option value="4">Folga - dia 2</option><option value="5">Folga - dia 3</option><option value="6">Folga - dia 4</option><option value="7">Folga - dia 5</option><option value="8">Folga - dia 6</option></select></label></div></div><label class="wide">Observações da escala<textarea id="planningScaleNotes" rows="2"></textarea></label>
           <div class="wide planning-subblock"><h4>2. Metas de tempo</h4><p class="item-meta">Altere aqui as metas de horas por dia, a meta semanal e o volume semanal de assuntos.</p><div class="form-grid compact">
             <label>Meta de estudo em dia de plantão<input id="planningShiftHours" type="number" min="0" step="0.5" /></label>
             <label>Meta de estudo em dia de folga<input id="planningRestHours" type="number" min="0" step="0.5" /></label>
@@ -523,7 +535,7 @@
     <a href="#backup" data-view-link="backup">Backup</a>
   </nav>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260621-menu-hotfix</p></footer>
-  <script src="script.js?v=20260621-menu-hotfix"></script>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260621-goals-scale</p></footer>
+  <script src="script.js?v=20260621-goals-scale"></script>
 </body>
 </html>
