@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-cache-20260621-smart-review";
+const CACHE_NAME = "metas-estudo-cache-20260621-review-time-layout-fix";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
