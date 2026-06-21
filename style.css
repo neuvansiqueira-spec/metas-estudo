@@ -2294,3 +2294,78 @@ th {
     min-width: 0 !important;
   }
 }
+
+/* Hotfix: impede que a tabela do Histórico de Questões seja comprimida a ponto de quebrar letras em coluna. */
+#view-historico-questoes .table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+#view-historico-questoes table {
+  width: max-content;
+  min-width: 1400px;
+  table-layout: auto;
+}
+
+#view-historico-questoes th,
+#view-historico-questoes td {
+  min-width: 88px;
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
+  hyphens: none;
+  vertical-align: top;
+}
+
+#view-historico-questoes th:nth-child(1),
+#view-historico-questoes td:nth-child(1),
+#view-historico-questoes th:nth-child(5),
+#view-historico-questoes td:nth-child(5),
+#view-historico-questoes th:nth-child(6),
+#view-historico-questoes td:nth-child(6),
+#view-historico-questoes th:nth-child(7),
+#view-historico-questoes td:nth-child(7),
+#view-historico-questoes th:nth-child(8),
+#view-historico-questoes td:nth-child(8),
+#view-historico-questoes th:nth-child(9),
+#view-historico-questoes td:nth-child(9),
+#view-historico-questoes th:nth-child(10),
+#view-historico-questoes td:nth-child(10) {
+  min-width: 92px;
+}
+
+#view-historico-questoes th:nth-child(2),
+#view-historico-questoes td:nth-child(2),
+#view-historico-questoes th:nth-child(3),
+#view-historico-questoes td:nth-child(3),
+#view-historico-questoes th:nth-child(4),
+#view-historico-questoes td:nth-child(4),
+#view-historico-questoes th:nth-child(11),
+#view-historico-questoes td:nth-child(11),
+#view-historico-questoes th:nth-child(12),
+#view-historico-questoes td:nth-child(12) {
+  min-width: 180px;
+}
+
+#view-historico-questoes th:nth-child(3),
+#view-historico-questoes td:nth-child(3),
+#view-historico-questoes th:nth-child(12),
+#view-historico-questoes td:nth-child(12) {
+  min-width: 220px;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+  hyphens: none;
+}
+
+#view-historico-questoes th:nth-child(13),
+#view-historico-questoes td:nth-child(13) {
+  min-width: 150px;
+}
+
+#view-historico-questoes td:nth-child(13) button {
+  white-space: nowrap;
+}
