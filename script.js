@@ -1295,3 +1295,15 @@ document.addEventListener("keydown", (event) => {
 
 window.addEventListener("hashchange", () => showView(hashToView()));
 showView(hashToView(), { skipScroll: true, keepMenuOpen: true });
+
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("service-worker.js")
+      .then(() => console.log("[Metas Estudo] Service worker registrado."))
+      .catch((error) => console.log("[Metas Estudo] Falha ao registrar service worker.", error));
+  });
+}
+
+registerServiceWorker();
