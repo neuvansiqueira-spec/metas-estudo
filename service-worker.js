@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-cache-20260621-goals-scale";
+const CACHE_NAME = "metas-estudo-cache-20260621-date-br";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
