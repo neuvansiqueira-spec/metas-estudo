@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260621-review-time-layout-fix" />
+  <link rel="stylesheet" href="style.css?v=20260621-dashboard-card-fix" />
 </head>
 <body>
   <header class="hero">
@@ -123,56 +123,56 @@
       <div class="dashboard-blocks" aria-label="Resumo organizado do Dashboard">
         <article class="dashboard-block"><div class="dashboard-block-title">Central de Metas</div><div id="dashboardGoalsScaleSummary" class="stats-grid compact"></div></article>
         <article class="dashboard-block"><div class="dashboard-block-title">Hoje</div><div class="stats-grid compact">
-          <article class="stat-card"><span>Plano do Dia</span><strong id="todayGoalsTotal">0</strong><small>metas planejadas</small></article>
-          <article class="stat-card"><span>Meta de horas hoje</span><strong id="dashboardTodayGoal">0h</strong><small id="dashboardTodayGoalDetail">Sem metas planejadas.</small></article>
-          <article class="stat-card"><span>Tempo estudado hoje</span><strong id="todayHours">0h</strong></article>
-          <article class="stat-card"><span>Tempo faltante hoje</span><strong id="dashboardTodayRemaining">0h</strong></article>
-          <article class="stat-card"><span>Metas pendentes hoje</span><strong id="todayPendingGoals">0</strong></article>
-          <article class="stat-card"><span>Metas concluídas hoje</span><strong id="todayDoneGoals">0</strong></article>
+          <article class="stat-card"><span>Plano do Dia</span><strong id="todayGoalsTotal" class="stat-value-compact">0</strong><small>metas planejadas</small></article>
+          <article class="stat-card"><span>Meta de horas hoje</span><strong id="dashboardTodayGoal" class="stat-value-compact">0h</strong><small id="dashboardTodayGoalDetail">Sem metas planejadas.</small></article>
+          <article class="stat-card"><span>Tempo estudado hoje</span><strong id="todayHours" class="stat-value-compact">0h</strong></article>
+          <article class="stat-card"><span>Tempo faltante hoje</span><strong id="dashboardTodayRemaining" class="stat-value-compact">0h</strong></article>
+          <article class="stat-card"><span>Metas pendentes hoje</span><strong id="todayPendingGoals" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Metas concluídas hoje</span><strong id="todayDoneGoals" class="stat-value-compact">0</strong></article>
           <article class="stat-card wide-stat"><span>Próxima meta</span><strong id="dashboardNextTodayGoal" class="stat-value-text">-</strong><button id="viewDayPlan" class="secondary-button" type="button">Ver Plano do Dia</button></article>
         </div></article>
 
         <article class="dashboard-block"><div class="dashboard-block-title">Revisão Inteligente</div><div class="stats-grid compact">
-          <article class="stat-card"><span>Sugeridas hoje</span><strong id="dashboardSmartReviewSuggested">0</strong></article>
-          <article class="stat-card"><span>Concluídas hoje</span><strong id="dashboardSmartReviewDone">0</strong></article>
+          <article class="stat-card"><span>Sugeridas hoje</span><strong id="dashboardSmartReviewSuggested" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Concluídas hoje</span><strong id="dashboardSmartReviewDone" class="stat-value-compact">0</strong></article>
           <article class="stat-card wide-stat"><span>Principal motivo</span><strong id="dashboardSmartReviewReason" class="stat-value-text">-</strong></article>
         </div></article>
         <article class="dashboard-block"><div class="dashboard-block-title">Progresso do Edital</div><div class="stats-grid compact">
-          <article class="stat-card"><span>Edital estudado</span><strong id="syllabusStudied">0%</strong></article>
-          <article class="stat-card"><span>Assuntos estudados/total</span><strong><span id="dashboardStudiedTopics">0</span>/<span id="syllabusTotal">0</span></strong></article>
+          <article class="stat-card"><span>Edital estudado</span><strong id="syllabusStudied" class="stat-value-compact">0%</strong></article>
+          <article class="stat-card"><span>Assuntos estudados/total</span><strong class="stat-value-compact"><span id="dashboardStudiedTopics">0</span>/<span id="syllabusTotal">0</span></strong></article>
           <article class="stat-card"><span>Disciplina mais atrasada</span><strong id="mostDelayedDiscipline" class="stat-value-text">-</strong></article>
           <article class="stat-card"><span>Previsão de conclusão</span><strong id="dashboardCompletionForecast" class="stat-value-text">-</strong></article>
           <article class="stat-card wide-stat"><a class="button-link" href="#progresso" data-view-link="progresso">Ver Progresso</a></article>
         </div></article>
         <article class="dashboard-block"><div class="dashboard-block-title">Desempenho</div><div class="stats-grid compact">
-          <article class="stat-card"><span>Questões feitas</span><strong id="totalQuestions">0</strong></article>
-          <article class="stat-card"><span>Percentual de acerto</span><strong id="accuracyRate">0%</strong></article>
-          <article class="stat-card"><span>Líquido Cebraspe geral</span><strong id="generalCebraspeNet">0</strong></article>
+          <article class="stat-card"><span>Questões feitas</span><strong id="totalQuestions" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Percentual de acerto</span><strong id="accuracyRate" class="stat-value-compact">0%</strong></article>
+          <article class="stat-card"><span>Líquido Cebraspe geral</span><strong id="generalCebraspeNet" class="stat-value-compact">0</strong></article>
           <article class="stat-card"><span>Disciplina mais problemática</span><strong id="dashboardProblemDiscipline" class="stat-value-text">-</strong></article>
           <article class="stat-card wide-stat"><a class="button-link" href="#questoes" data-view-link="questoes">Registrar Questões</a></article>
         </div></article>
         <article class="dashboard-block"><div class="dashboard-block-title">Simulados</div><div class="stats-grid compact">
-          <article class="stat-card"><span>Simulados realizados</span><strong id="mockTotal">0</strong></article>
-          <article class="stat-card"><span>Último líquido</span><strong id="mockLastNet">0</strong></article>
-          <article class="stat-card"><span>Melhor líquido</span><strong id="mockBestNet">0</strong></article>
-          <article class="stat-card"><span>Líquido médio</span><strong id="mockAverageNet">0</strong></article>
+          <article class="stat-card"><span>Simulados realizados</span><strong id="mockTotal" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Último líquido</span><strong id="mockLastNet" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Melhor líquido</span><strong id="mockBestNet" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Líquido médio</span><strong id="mockAverageNet" class="stat-value-compact">0</strong></article>
           <article class="stat-card wide-stat"><a class="button-link" href="#simulados" data-view-link="simulados">Ver Simulados</a></article>
         </div></article>
         <article class="dashboard-block"><div class="dashboard-block-title">Planejamento</div><div class="stats-grid compact">
-          <article class="stat-card"><span>Horas na semana</span><strong id="weekHours">0h</strong></article>
-          <article class="stat-card"><span>Meta semanal mínima</span><strong id="dashboardMinWeeklyHours">0h</strong></article>
-          <article class="stat-card"><span>Meta semanal ideal</span><strong id="dashboardIdealWeeklyHours">0h</strong></article>
-          <article class="stat-card"><span>Disciplinas previstas hoje</span><strong id="dashboardTodayDisciplines">0</strong></article>
-          <article class="stat-card"><span>Assuntos previstos hoje</span><strong id="dashboardTodayTopics">0</strong></article>
-          <article class="stat-card"><span>Disciplinas previstas na semana</span><strong id="dashboardWeekDisciplines">0</strong></article>
-          <article class="stat-card"><span>Assuntos previstos na semana</span><strong id="dashboardWeekTopics">0</strong></article>
+          <article class="stat-card"><span>Horas na semana</span><strong id="weekHours" class="stat-value-compact">0h</strong></article>
+          <article class="stat-card"><span>Meta semanal mínima</span><strong id="dashboardMinWeeklyHours" class="stat-value-compact">0h</strong></article>
+          <article class="stat-card"><span>Meta semanal ideal</span><strong id="dashboardIdealWeeklyHours" class="stat-value-compact">0h</strong></article>
+          <article class="stat-card"><span>Disciplinas previstas hoje</span><strong id="dashboardTodayDisciplines" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Assuntos previstos hoje</span><strong id="dashboardTodayTopics" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Disciplinas previstas na semana</span><strong id="dashboardWeekDisciplines" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Assuntos previstos na semana</span><strong id="dashboardWeekTopics" class="stat-value-compact">0</strong></article>
           <article class="stat-card"><span>Situação do planejamento</span><strong id="planningStatus" class="stat-value-text">-</strong></article>
           <article class="stat-card wide-stat"><a class="button-link" href="#planejamento" data-view-link="planejamento">Configurar Planejamento</a></article>
         </div></article>
         <article class="dashboard-block"><div class="dashboard-block-title">Materiais</div><div class="stats-grid compact">
-          <article class="stat-card"><span>Materiais cadastrados</span><strong id="materialsTotal">0</strong></article>
-          <article class="stat-card"><span>Disciplinas com materiais</span><strong id="materialDisciplinesTotal">0</strong></article>
-          <article class="stat-card"><span>Assuntos com materiais</span><strong id="materialTopicsTotal">0</strong></article>
+          <article class="stat-card"><span>Materiais cadastrados</span><strong id="materialsTotal" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Disciplinas com materiais</span><strong id="materialDisciplinesTotal" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Assuntos com materiais</span><strong id="materialTopicsTotal" class="stat-value-compact">0</strong></article>
           <article class="stat-card wide-stat"><a class="button-link" href="#materiais" data-view-link="materiais">Ver Materiais</a></article>
         </div></article>
       </div>
@@ -544,7 +544,7 @@
     <a href="#backup" data-view-link="backup">Backup</a>
   </nav>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260621-review-time-layout-fix</p></footer>
-  <script src="script.js?v=20260621-review-time-layout-fix"></script>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260621-dashboard-card-fix</p></footer>
+  <script src="script.js?v=20260621-dashboard-card-fix"></script>
 </body>
 </html>
