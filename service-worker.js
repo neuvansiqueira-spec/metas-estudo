@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-cache-20260621-pwa-svg";
+const CACHE_NAME = "metas-estudo-cache-20260621-menu-hotfix";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
