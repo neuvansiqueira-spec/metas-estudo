@@ -1248,6 +1248,7 @@ function renderView(viewId) {
 function setMobileMenuOpen(isOpen) {
   if (!mainMenu) return;
   mainMenu.classList.toggle("open", isOpen);
+  document.body.classList.toggle("mobile-menu-open", isOpen);
   menuOverlay?.classList.toggle("open", isOpen);
   if (menuOverlay) menuOverlay.hidden = !isOpen;
   menuToggle?.setAttribute("aria-expanded", isOpen ? "true" : "false");
