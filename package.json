@@ -1,0 +1,8 @@
+{
+  "name": "metas-estudo",
+  "version": "20260621-stability-base",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  }
+}

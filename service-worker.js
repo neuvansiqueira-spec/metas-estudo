@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-cache-20260621-history-name-fix";
+const CACHE_NAME = "metas-estudo-cache-20260621-stability-base";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
