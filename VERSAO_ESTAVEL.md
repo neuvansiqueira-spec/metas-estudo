@@ -2,11 +2,11 @@
 
 ## Versão estável atual
 
-`20260621-question-history-layout-fix`
+`20260626-stability-review`
 
 ## Data
 
-21/06/2026
+26/06/2026
 
 ## Telas principais cobertas pela estabilidade
 

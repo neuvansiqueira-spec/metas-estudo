@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260621-stability-base",
+  "version": "20260626-stability-review",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
