@@ -34,9 +34,9 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão de estabilidade', () => {
-  assert.match(html, /style\.css\?v=20260621-stability-base/);
-  assert.match(html, /script\.js\?v=20260621-stability-base/);
-  assert.match(html, /Versão: 20260621-stability-base/);
+  assert.match(html, /style\.css\?v=20260626-stability-review/);
+  assert.match(html, /script\.js\?v=20260626-stability-review/);
+  assert.match(html, /Versão: 20260626-stability-review/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -47,4 +47,26 @@ test('não há textos obviamente quebrados em coluna por regras CSS perigosas', 
 test('CSS preserva regras esperadas para dados compactos e tabelas grandes', () => {
   assert.match(css, /white-space\s*:\s*nowrap/i);
   assert.match(css, /overflow-x\s*:\s*auto/i);
+});
+
+test('importação de edital preserva prévia, domínio e integração com agendáveis', () => {
+  assert.match(html, /id="jsonImportFile"[^>]+type="file"/);
+  assert.match(script, /normalizeImportPayload/);
+  assert.match(script, /renderImportPreview/);
+  assert.match(script, /normalizeImportedDomain\(raw\.dominio \|\| raw\.domain \|\| raw\.diagnostico\)/);
+  assert.match(script, /state\.syllabusItems\.push\(\.\.\.itemsToImport\)/);
+  assert.match(script, /state\.schedulableSettings\[item\.id\]/);
+  assert.match(script, /saveData\(\)/);
+});
+
+test('tempo de revisão sugerido e realizado é salvo e exibido em Dashboard/Revisões', () => {
+  assert.match(html, /id="reviewsDashboard"/);
+  assert.match(html, /id="dashboardSmartReviewSuggested"/);
+  assert.match(script, /data-smart-review-time="suggested"/);
+  assert.match(script, /data-smart-review-time="performed"/);
+  assert.match(script, /function upsertSmartReviewTime/);
+  assert.match(script, /tempoSugerido/);
+  assert.match(script, /tempoRealizado/);
+  assert.match(script, /Tempo sugerido hoje/);
+  assert.match(script, /Tempo concluído hoje/);
 });

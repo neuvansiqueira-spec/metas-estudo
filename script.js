@@ -416,7 +416,12 @@ function editSyllabusItem(id) {
 }
 
 
-function normalizeImportedStatus(value) { const allowed = ["Não iniciado", "Em andamento", "Estudado", "Revisar", "Dominado", "Ignorado"]; return allowed.find((item) => item.toLowerCase() === String(value || "").trim().toLowerCase()) || "Não iniciado"; }
+function normalizeImportedStatus(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (["concluído", "concluido"].includes(normalized)) return "Estudado";
+  const allowed = ["Não iniciado", "Em andamento", "Estudado", "Revisar", "Dominado", "Ignorado"];
+  return allowed.find((item) => item.toLowerCase() === normalized) || "Não iniciado";
+}
 function normalizeImportedPriority(value) { const allowed = ["Alta", "Média", "Baixa"]; return allowed.find((item) => item.toLowerCase() === String(value || "").trim().toLowerCase()) || "Média"; }
 function normalizeImportedDomain(value) { const allowed = ["Sem diagnóstico", "Não avaliado", "Fraco", "Médio", "Forte"]; return allowed.find((item) => item.toLowerCase() === String(value || "").trim().toLowerCase()) || "Sem diagnóstico"; }
 function isTruthyImportValue(value) { if (value === undefined || value === null || value === "") return true; return [true, "true", "sim", "s", "1", "agendável", "agendavel", "yes", "y"].includes(typeof value === "string" ? value.trim().toLowerCase() : value); }
@@ -457,7 +462,7 @@ function importedItemToSyllabus(raw) {
     priority: normalizeImportedPriority(raw.prioridade),
     weight: Number(raw.peso) || 1,
     status: normalizeImportedStatus(raw.status),
-    domain: "Sem diagnóstico",
+    domain: normalizeImportedDomain(raw.dominio || raw.domain || raw.diagnostico),
     notes: notesParts.join(" • "),
     imported: true,
     importKey: "",
@@ -761,6 +766,21 @@ function renderSmartReviewsDashboard() {
 }
 function cssEscapeValue(value) {
   return globalThis.CSS?.escape ? CSS.escape(value) : String(value).replace(/[^a-zA-Z0-9_-]/g, "\\$&");
+}
+function upsertSmartReviewTime(id, field, rawValue) {
+  const review = getSmartReviewSuggestions(todayISO()).find((item) => item.id === id) || state.smartReviews.find((item) => item.id === id);
+  if (!review) return;
+  const value = Math.max(0, Number(rawValue) || 0);
+  let record = state.smartReviews.find((item) => item.id === id && item.status === "sugerido");
+  if (!record) {
+    record = { ...review, id, date: todayISO(), origin: review.reason || review.origin, motivo: review.reason || review.origin, status: "sugerido" };
+    state.smartReviews.push(record);
+  }
+  if (field === "suggested") Object.assign(record, { minutes: value, suggestedMinutes: value, tempoSugerido: value, tempo_sugerido: value });
+  if (field === "performed") Object.assign(record, { performedMinutes: value, tempoRealizado: value, tempo_realizado: value });
+  saveData();
+  renderSmartReviewSummary();
+  renderSmartReviewsDashboard();
 }
 function saveSmartReviewAction(id, status) {
   const review = getSmartReviewSuggestions(todayISO()).find((item) => item.id === id) || state.smartReviews.find((item) => item.id === id);
@@ -1348,6 +1368,7 @@ elements.goalForm.addEventListener("submit", (event) => { event.preventDefault()
 elements.dailyGoalsList.addEventListener("click", handleDailyGoalActionClick);
 elements.nextDailyGoal?.addEventListener("click", handleDailyGoalActionClick);
 document.addEventListener("click", (event) => { const btn = event.target.closest("button[data-smart-review-action]"); if (!btn) return; saveSmartReviewAction(btn.dataset.id, btn.dataset.smartReviewAction === "done" ? "revisado" : "adiado"); });
+document.addEventListener("change", (event) => { const input = event.target.closest("input[data-smart-review-time]"); if (!input) return; upsertSmartReviewTime(input.dataset.id, input.dataset.smartReviewTime, input.value); });
 elements.viewDayPlan?.addEventListener("click", () => { elements.goalDate.value = todayISO(); renderDailyGoals(); showView("metas-do-dia"); });
 elements.dailyGoalsList.addEventListener("change", (event) => { const id = event.target.dataset.goalStatus; if (!id) return; const goal = state.dailyGoals.find((g) => g.id === id); if (goal) { goal.status = event.target.value; render(); } });
 [elements.questionTotal, elements.questionCorrect, elements.questionWrong, elements.questionBlank].forEach((input) => input.addEventListener("input", updateQuestionCalculated));
