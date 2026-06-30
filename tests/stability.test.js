@@ -110,13 +110,21 @@ test('Banco de Questões recalcula filtros em cascata por disciplina', () => {
   assert.match(script, /function qbSyllabusDisciplineCounts/);
   assert.match(script, /function qbFillSelectWithLabels/);
   assert.match(script, /label:`\$\{d\} \(\$\{counts\[d\] \|\| 0\}\)`/);
+  assert.match(script, /function qbSetDependentFiltersDisabled/);
+  assert.match(script, /Sem questões disponíveis/);
+  assert.match(script, /qbStartTraining\.disabled = !qbCanStartTraining\(\)/);
   assert.match(script, /está no edital, mas ainda não há questões dessa disciplina no banco/);
   assert.match(script, /alert\(qbSelectedZeroDisciplineMessage\(\) \|\| "Nenhuma questão encontrada com os filtros atuais\."\)/);
   assert.match(script, /function renderQbDiagnostics/);
+  assert.match(script, /function qbLimitedList/);
+  assert.match(script, /Ver mais \$\{hidden\} item\(ns\)/);
   assert.match(html, /id="qbDiagnostics"/);
   assert.match(script, /Disciplinas do edital com questões/);
   assert.match(script, /Disciplinas do edital sem questões/);
   assert.match(script, /Assuntos do edital sem questões/);
+  assert.match(css, /\.qb-diagnostics-grid/);
+  assert.match(css, /overflow-wrap: break-word/);
+  assert.match(css, /max-height: 320px/);
   assert.match(script, /\["Questões filtradas", filteredTotal\]/);
 });
 
