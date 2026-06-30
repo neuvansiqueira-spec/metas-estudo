@@ -119,6 +119,15 @@ test('Banco de Questões recalcula filtros em cascata por disciplina', () => {
   assert.match(script, /function qbLimitedList/);
   assert.match(script, /Ver mais \$\{hidden\} item\(ns\)/);
   assert.match(html, /id="qbDiagnostics"/);
+  assert.match(html, /Diagnóstico do edital no banco/);
+  assert.match(html, /id="qbSyllabusVerticalized"/);
+  assert.match(script, /function renderQbSyllabusVerticalized/);
+  assert.match(script, /Questões vinculadas:/);
+  assert.match(script, /Assuntos cobertos:/);
+  assert.match(script, /renderQbSyllabusVerticalized\(\)/);
+  assert.match(script, /qbPreviewSection\.hidden = false/);
+  assert.match(script, /qbPreviewSection\) elements\.qbPreviewSection\.hidden = true/);
+  assert.match(html, /<section id="qbPreviewSection" class="qb-section" aria-labelledby="qb-preview-title" hidden>/);
   assert.match(script, /Disciplinas do edital com questões/);
   assert.match(script, /Disciplinas do edital sem questões/);
   assert.match(script, /Assuntos do edital sem questões/);
