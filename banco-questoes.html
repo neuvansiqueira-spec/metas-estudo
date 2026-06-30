@@ -75,6 +75,7 @@
     <section class="panel" aria-labelledby="filters-title">
       <div class="section-heading"><p class="eyebrow">Treino</p><h2 id="filters-title">Montar treino</h2></div>
       <div class="filters form-grid compact">
+        <label class="wide">Escopo do treino<select id="trainingScope"><option value="all">Banco completo</option><option value="syllabus">Somente assuntos do edital</option><option value="week">Assuntos da semana</option><option value="weak">Assuntos fracos</option><option value="trouble">Erradas/brancas</option><option value="unseen">Não estudados</option></select></label>
         <label>Disciplina<select id="filterDiscipline"><option value="">Todas</option></select></label>
         <label>Assunto<select id="filterSubject"><option value="">Todos</option></select></label>
         <label>Tema<select id="filterTheme"><option value="">Todos</option></select></label>
@@ -121,7 +122,7 @@
     const $ = (selector) => document.querySelector(selector);
     const els = {
       bankFile: $("#bankFile"), importMessage: $("#importMessage"), bankStats: $("#bankStats"),
-      filterDiscipline: $("#filterDiscipline"), filterSubject: $("#filterSubject"), filterTheme: $("#filterTheme"), filterBoard: $("#filterBoard"), filterYear: $("#filterYear"), filterSearch: $("#filterSearch"),
+      trainingScope: $("#trainingScope"), filterDiscipline: $("#filterDiscipline"), filterSubject: $("#filterSubject"), filterTheme: $("#filterTheme"), filterBoard: $("#filterBoard"), filterYear: $("#filterYear"), filterSearch: $("#filterSearch"),
       trainingLimit: $("#trainingLimit"), shuffleTraining: $("#shuffleTraining"), startTraining: $("#startTraining"), previewFiltered: $("#previewFiltered"), filteredPreview: $("#filteredPreview"),
       trainingPanel: $("#trainingPanel"), trainingCounter: $("#trainingCounter"), trainingProgress: $("#trainingProgress"), questionCard: $("#questionCard"),
       resultPanel: $("#resultPanel"), resultSummary: $("#resultSummary"), resultDetails: $("#resultDetails"),
@@ -197,6 +198,41 @@
       if (!Array.isArray(source)) return [];
       return source.map(normalizeQuestion).filter((q) => q.enunciado.trim());
     }
+
+    function safePartialMatch(a, b) {
+      const x = normalizeText(a).replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+      const y = normalizeText(b).replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+      if (!x || !y) return false;
+      if (x === y) return true;
+      if (Math.min(x.length, y.length) < 4) return false;
+      return x.includes(y) || y.includes(x);
+    }
+    function syllabusDiscipline(item) { return item.discipline || item.disciplina || "Sem disciplina"; }
+    function syllabusTexts(item) { return [item.subject, item.assunto, item.topic, item.topico, item.subtopic, item.subassunto].filter(Boolean); }
+    function questionTexts(q) { return [q.assunto, q.subject, q.tema, q.theme, q.topico, q.topic, q.subtopic, q.subassunto].filter(Boolean); }
+    function matchesSyllabusItem(q, item) { return safePartialMatch(q.disciplina || q.discipline, syllabusDiscipline(item)) && syllabusTexts(item).some((itemText) => questionTexts(q).some((qText) => safePartialMatch(qText, itemText))); }
+    function activeSyllabusItems() { return (state.syllabusItems || []).filter((item) => normalizeText(item.status || item.situacao) !== "ignorado"); }
+    function goalDate(goal) { return goal.date || goal.data || ""; }
+    function weekStartISO(date = new Date()) { const d = typeof date === "string" ? new Date(`${date}T00:00:00`) : new Date(date); const day = (d.getDay() + 6) % 7; d.setDate(d.getDate() - day); return d.toISOString().slice(0, 10); }
+    function addDaysISO(date, days) { const d = new Date(`${date}T00:00:00`); d.setDate(d.getDate() + days); return d.toISOString().slice(0, 10); }
+    function minutesForSyllabusItem(item) { return (state.dailyGoals || []).filter((g) => g.syllabusItemId === item.id || (safePartialMatch(g.discipline || g.disciplina, syllabusDiscipline(item)) && safePartialMatch(g.subject || g.assunto, item.subject || item.assunto))).reduce((sum, g) => sum + Number(g.actualMinutes || g.tempo_real_minutos || 0), 0); }
+    function isWeakSyllabusItem(item) { return [item.domain, item.dominio, item.difficulty, item.dificuldade, item.notes].some((v) => normalizeText(v).includes("fraco")); }
+    function scopedQuestions() {
+      const scope = els.trainingScope.value || "all";
+      const bank = state.questionBank || [];
+      if (scope === "all") return bank;
+      if (scope === "trouble") {
+        const ids = new Set((state.questionBankSessions || []).flatMap((s) => s.items || []).filter((i) => i.status === "errado" || i.status === "branco" || !i.marcado || i.marcado === "B").map((i) => i.id));
+        return bank.filter((q) => ids.has(q.id));
+      }
+      let items = activeSyllabusItems();
+      if (scope === "week") { const start = weekStartISO(), end = addDaysISO(start, 6); const goals = (state.dailyGoals || []).filter((g) => goalDate(g) >= start && goalDate(g) <= end); items = items.filter((item) => goals.some((g) => g.syllabusItemId === item.id || (safePartialMatch(g.discipline || g.disciplina, syllabusDiscipline(item)) && safePartialMatch(g.subject || g.assunto, item.subject || item.assunto)))); }
+      if (scope === "weak") items = items.filter(isWeakSyllabusItem);
+      if (scope === "unseen") items = items.filter((item) => normalizeText(item.status || item.situacao || "Não iniciado") === "nao iniciado" || minutesForSyllabusItem(item) === 0);
+      return bank.filter((q) => items.some((item) => matchesSyllabusItem(q, item)));
+    }
+    function scopeLabel() { return { all:"Banco completo", syllabus:"Somente assuntos do edital", week:"Assuntos da semana", weak:"Assuntos fracos", trouble:"Erradas/brancas", unseen:"Não estudados" }[els.trainingScope.value || "all"] || "Banco completo"; }
+    function missingSyllabusWithoutQuestions() { const scoped = scopedQuestions(); return activeSyllabusItems().filter((item) => !scoped.some((q) => matchesSyllabusItem(q, item))).length; }
     function uniqueSorted(values) {
       return [...new Set(values.filter(Boolean).map(String))].sort((a, b) => a.localeCompare(b, "pt-BR"));
     }
@@ -211,10 +247,10 @@
       return Boolean(current);
     }
     function cascadeBase({ disciplina = els.filterDiscipline.value, assunto = els.filterSubject.value, tema = els.filterTheme.value, banca = els.filterBoard.value } = {}) {
-      return state.questionBank.filter((q) => (!disciplina || q.disciplina === disciplina) && (!assunto || q.assunto === assunto) && (!tema || q.tema === tema) && (!banca || q.banca === banca));
+      return scopedQuestions().filter((q) => (!disciplina || q.disciplina === disciplina) && (!assunto || q.assunto === assunto) && (!tema || q.tema === tema) && (!banca || q.banca === banca));
     }
     function renderFilters() {
-      const bank = state.questionBank;
+      const bank = scopedQuestions();
       fillSelect(els.filterDiscipline, uniqueSorted(bank.map((q) => q.disciplina)), "Todas");
       const disciplina = els.filterDiscipline.value;
       fillSelect(els.filterSubject, uniqueSorted(cascadeBase({ disciplina, assunto: "", tema: "", banca: "" }).map((q) => q.assunto)), "Todos");
@@ -227,7 +263,7 @@
     }
     function filteredQuestions() {
       const search = normalizeText(els.filterSearch.value);
-      return state.questionBank.filter((q) => {
+      return scopedQuestions().filter((q) => {
         if (els.filterDiscipline.value && q.disciplina !== els.filterDiscipline.value) return false;
         if (els.filterSubject.value && q.assunto !== els.filterSubject.value) return false;
         if (els.filterTheme.value && q.tema !== els.filterTheme.value) return false;
@@ -247,9 +283,10 @@
       els.bankStats.innerHTML = `
         <article class="stat-card"><span>Questões no banco</span><strong>${bank.length}</strong></article>
         <article class="stat-card"><span>Questões filtradas</span><strong>${filteredQuestions().length}</strong></article>
-        <article class="stat-card"><span>Disciplinas</span><strong>${uniqueSorted(bank.map((q) => q.disciplina)).length}</strong></article>
-        <article class="stat-card"><span>Assuntos</span><strong>${uniqueSorted(bank.map((q) => q.assunto)).length}</strong></article>
-        <article class="stat-card"><span>Com gabarito</span><strong>${withKey}</strong></article>
+        <article class="stat-card"><span>Disciplinas disponíveis</span><strong>${uniqueSorted(scopedQuestions().map((q) => q.disciplina)).length}</strong></article>
+        <article class="stat-card"><span>Assuntos disponíveis</span><strong>${uniqueSorted(scopedQuestions().map((q) => q.assunto)).length}</strong></article>
+        <article class="stat-card"><span>Questões com gabarito</span><strong>${scopedQuestions().filter((q) => q.gabarito).length}</strong></article>
+        <article class="stat-card"><span>Assuntos do edital sem questões</span><strong>${missingSyllabusWithoutQuestions()}</strong></article>
         <article class="stat-card"><span>Treinos salvos</span><strong>${sessions.length}</strong></article>
         <article class="stat-card wide-stat"><span>Último treino</span><strong>${sessions[0] ? new Date(sessions[0].createdAt).toLocaleString("pt-BR") : "Nenhum"}</strong></article>`;
     }
@@ -374,7 +411,7 @@
       renderFilters();
       const list = filteredQuestions();
       const disciplina = els.filterDiscipline.value || "todas as disciplinas";
-      els.importMessage.textContent = `Filtros atualizados para ${disciplina}: ${list.length} questões encontradas.`;
+      els.importMessage.textContent = `Escopo: ${scopeLabel()} — ${disciplina}: ${list.length} questões encontradas.`;
       renderStats();
       els.filteredPreview.innerHTML = list.length ? list.slice(0, 20).map((q, i) => `<article class="bank-item"><strong>${i + 1}. ${escapeHTML(q.disciplina)} — ${escapeHTML(q.assunto)}</strong><p>${escapeHTML(q.enunciado)}</p><div class="item-meta">${escapeHTML(q.banca || "-")} • ${escapeHTML(q.ano || "-")} • ${escapeHTML(q.referencia || "-")}</div></article>`).join("") : "Nenhuma questão encontrada.";
     }
@@ -401,7 +438,7 @@
       if (nav === "next" && training.index < training.items.length - 1) { training.index += 1; renderQuestion(); }
       if (event.target.closest("[data-finish]")) finishTraining();
     });
-    [els.filterDiscipline, els.filterSubject, els.filterTheme, els.filterBoard, els.filterYear].forEach((el) => el.addEventListener("change", previewFiltered));
+    [els.trainingScope, els.filterDiscipline, els.filterSubject, els.filterTheme, els.filterBoard, els.filterYear].forEach((el) => el.addEventListener("change", previewFiltered));
     els.filterSearch.addEventListener("input", previewFiltered);
     els.exportBank.addEventListener("click", () => downloadJSON("metas-estudo-banco-questoes.json", { schema: "metas-estudo-question-bank-v1", questionBank: state.questionBank }));
     els.exportSessions.addEventListener("click", () => downloadJSON("metas-estudo-resultados-banco-questoes.json", { schema: "metas-estudo-question-bank-sessions-v1", questionBankSessions: state.questionBankSessions || [] }));
