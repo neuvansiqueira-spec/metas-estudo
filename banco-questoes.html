@@ -203,15 +203,27 @@
     function fillSelect(select, values, label) {
       const current = select.value;
       select.innerHTML = `<option value="">${label}</option>` + values.map((v) => `<option value="${escapeHTML(v)}">${escapeHTML(v)}</option>`).join("");
-      if (values.includes(current)) select.value = current;
+      if (values.includes(current)) {
+        select.value = current;
+        return false;
+      }
+      select.value = "";
+      return Boolean(current);
+    }
+    function cascadeBase({ disciplina = els.filterDiscipline.value, assunto = els.filterSubject.value, tema = els.filterTheme.value, banca = els.filterBoard.value } = {}) {
+      return state.questionBank.filter((q) => (!disciplina || q.disciplina === disciplina) && (!assunto || q.assunto === assunto) && (!tema || q.tema === tema) && (!banca || q.banca === banca));
     }
     function renderFilters() {
       const bank = state.questionBank;
       fillSelect(els.filterDiscipline, uniqueSorted(bank.map((q) => q.disciplina)), "Todas");
-      fillSelect(els.filterSubject, uniqueSorted(bank.map((q) => q.assunto)), "Todos");
-      fillSelect(els.filterTheme, uniqueSorted(bank.map((q) => q.tema)), "Todos");
-      fillSelect(els.filterBoard, uniqueSorted(bank.map((q) => q.banca)), "Todas");
-      fillSelect(els.filterYear, uniqueSorted(bank.map((q) => q.ano)), "Todos");
+      const disciplina = els.filterDiscipline.value;
+      fillSelect(els.filterSubject, uniqueSorted(cascadeBase({ disciplina, assunto: "", tema: "", banca: "" }).map((q) => q.assunto)), "Todos");
+      const assunto = els.filterSubject.value;
+      fillSelect(els.filterTheme, uniqueSorted(cascadeBase({ disciplina, assunto, tema: "", banca: "" }).map((q) => q.tema)), "Todos");
+      const tema = els.filterTheme.value;
+      fillSelect(els.filterBoard, uniqueSorted(cascadeBase({ disciplina, assunto, tema, banca: "" }).map((q) => q.banca)), "Todas");
+      const banca = els.filterBoard.value;
+      fillSelect(els.filterYear, uniqueSorted(cascadeBase({ disciplina, assunto, tema, banca }).map((q) => q.ano)), "Todos");
     }
     function filteredQuestions() {
       const search = normalizeText(els.filterSearch.value);
@@ -234,6 +246,7 @@
       const sessions = state.questionBankSessions || [];
       els.bankStats.innerHTML = `
         <article class="stat-card"><span>Questões no banco</span><strong>${bank.length}</strong></article>
+        <article class="stat-card"><span>Questões filtradas</span><strong>${filteredQuestions().length}</strong></article>
         <article class="stat-card"><span>Disciplinas</span><strong>${uniqueSorted(bank.map((q) => q.disciplina)).length}</strong></article>
         <article class="stat-card"><span>Assuntos</span><strong>${uniqueSorted(bank.map((q) => q.assunto)).length}</strong></article>
         <article class="stat-card"><span>Com gabarito</span><strong>${withKey}</strong></article>
@@ -358,7 +371,11 @@
       els.resultDetails.innerHTML = session.items.slice(0, 50).map((q, i) => `<article class="bank-item"><strong>${i + 1}. ${escapeHTML(q.disciplina)} — ${escapeHTML(q.assunto)}</strong><p>${escapeHTML(q.enunciado)}</p><div class="item-meta">Marcado: ${escapeHTML(q.marcado || "-")}${q.gabarito ? ` • Gabarito: ${escapeHTML(q.gabarito)}` : " • Sem gabarito"}</div></article>`).join("");
     }
     function previewFiltered() {
+      renderFilters();
       const list = filteredQuestions();
+      const disciplina = els.filterDiscipline.value || "todas as disciplinas";
+      els.importMessage.textContent = `Filtros atualizados para ${disciplina}: ${list.length} questões encontradas.`;
+      renderStats();
       els.filteredPreview.innerHTML = list.length ? list.slice(0, 20).map((q, i) => `<article class="bank-item"><strong>${i + 1}. ${escapeHTML(q.disciplina)} — ${escapeHTML(q.assunto)}</strong><p>${escapeHTML(q.enunciado)}</p><div class="item-meta">${escapeHTML(q.banca || "-")} • ${escapeHTML(q.ano || "-")} • ${escapeHTML(q.referencia || "-")}</div></article>`).join("") : "Nenhuma questão encontrada.";
     }
 
@@ -384,7 +401,8 @@
       if (nav === "next" && training.index < training.items.length - 1) { training.index += 1; renderQuestion(); }
       if (event.target.closest("[data-finish]")) finishTraining();
     });
-    [els.filterDiscipline, els.filterSubject, els.filterTheme, els.filterBoard, els.filterYear, els.filterSearch].forEach((el) => el.addEventListener("input", () => { if (!els.filteredPreview.classList.contains("empty-message")) previewFiltered(); }));
+    [els.filterDiscipline, els.filterSubject, els.filterTheme, els.filterBoard, els.filterYear].forEach((el) => el.addEventListener("change", previewFiltered));
+    els.filterSearch.addEventListener("input", previewFiltered);
     els.exportBank.addEventListener("click", () => downloadJSON("metas-estudo-banco-questoes.json", { schema: "metas-estudo-question-bank-v1", questionBank: state.questionBank }));
     els.exportSessions.addEventListener("click", () => downloadJSON("metas-estudo-resultados-banco-questoes.json", { schema: "metas-estudo-question-bank-sessions-v1", questionBankSessions: state.questionBankSessions || [] }));
     els.clearBank.addEventListener("click", () => {
