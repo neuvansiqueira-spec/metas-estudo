@@ -2384,3 +2384,13 @@ th {
 .question-bank-meta span { background: #f8fafc; border-radius: 12px; padding: 8px 10px; }
 .training-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: center; margin-top: 16px; }
 @media (max-width: 720px) { .question-bank-actions { grid-template-columns: 1fr; } .training-footer { align-items: stretch; } }
+
+.qb-diagnostics-card { max-width: 100%; overflow: hidden; }
+.qb-diagnostics-grid { display: grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap: 12px; align-items: start; }
+.qb-diagnostics-grid section { min-width: 0; max-height: 320px; overflow: auto; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px; }
+.qb-diagnostics-grid h5 { margin: 0 0 8px; color: #123f78; font-size: .95rem; }
+.qb-diagnostics-grid ul { margin: 0; padding-left: 1.2rem; }
+.qb-diagnostics-grid li { margin: 6px 0; line-height: 1.45; overflow-wrap: break-word; word-break: normal; }
+.qb-diagnostics-grid details { margin-top: 8px; }
+.qb-diagnostics-grid summary { cursor: pointer; color: #123f78; font-weight: 700; }
+@media (max-width: 900px) { .qb-diagnostics-grid { grid-template-columns: 1fr; } }
