@@ -97,8 +97,14 @@ test('Banco de Questões recalcula filtros em cascata por disciplina', () => {
   assert.match(script, /qbCascadeBase\(\{ discipline, subject, theme, board \}\)\.map\(q=>q\.ano\)/);
   assert.match(script, /Escopo: \$\{qbScopeLabel\(\)\} — \$\{discipline\}: \$\{list\.length\} questões encontradas\./);
   assert.match(html, /id="qbTrainingScope"/);
-  assert.match(html, /Escopo do treino/);
+  assert.match(html, /<label>Escopo<select id="qbTrainingScope">/);
+  assert.match(html, /<option value="syllabus">Edital atual<\/option>/);
+  assert.match(html, /id="qbReviewTypeWrapper" hidden/);
+  assert.match(html, /Tipo de revisão/);
+  assert.match(html, /Erradas \+ brancas/);
   assert.match(script, /function qbScopedBank/);
+  assert.match(script, /function qbReviewSyllabusItems/);
+  assert.match(script, /qbReviewTypeWrapper\.hidden/);
   assert.match(script, /function qbActiveSyllabusItems/);
   assert.match(script, /function qbMissingSyllabusWithoutQuestions/);
   assert.match(script, /\["Questões filtradas", filteredTotal\]/);
