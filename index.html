@@ -501,16 +501,16 @@
         <div class="actions"><button id="qbExportBank" class="secondary-button" type="button">Exportar banco</button><button id="qbExportResults" class="secondary-button" type="button">Exportar resultados</button><button id="qbClearBank" class="danger" type="button">Limpar banco local</button></div>
       </details>
 
-      <details class="qb-section qb-details-card" open>
-        <summary><span><strong>Diagnóstico do edital no banco</strong><small>Cobertura por disciplina e assunto</small></span></summary>
+      <details id="qbSyllabusDiagnosticsPanel" class="qb-section qb-details-card qb-compact-accordion">
+        <summary><span><strong id="qb-syllabus-title">Edital verticalizado</strong><small id="qbSyllabusSummary">Resumo do edital e cobertura no banco</small></span></summary>
         <div id="qbDiagnostics" class="question-bank-list empty-message"></div>
       </details>
 
-      <section class="question-bank-packages qb-section" aria-labelledby="qb-packages-title">
-        <div class="section-heading"><p class="eyebrow">Edital verticalizado</p><h3 id="qb-packages-title">Pacotes do Edital</h3></div>
+      <details id="qbPackagesPanel" class="qb-section qb-details-card qb-compact-accordion">
+        <summary><span><strong id="qb-packages-title">Pacotes do Edital</strong><small id="qbPackagesSummary">Pacotes prontos para treinar por disciplina</small></span></summary>
         <p class="notice">Treine disciplinas inteiras usando apenas os assuntos previstos no edital/plano atual. Assuntos com status “Ignorado” não entram nos pacotes.</p>
         <div id="qbSyllabusPackages" class="question-bank-list empty-message"></div>
-      </section>
+      </details>
 
       <section class="qb-section" aria-labelledby="qb-preview-title">
         <div class="section-heading"><p class="eyebrow">Prévia</p><h3 id="qb-preview-title">Prévia das questões filtradas</h3></div>
