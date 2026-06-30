@@ -2394,3 +2394,34 @@ th {
 .qb-diagnostics-grid details { margin-top: 8px; }
 .qb-diagnostics-grid summary { cursor: pointer; color: #123f78; font-weight: 700; }
 @media (max-width: 900px) { .qb-diagnostics-grid { grid-template-columns: 1fr; } }
+
+.question-bank-screen { display: grid; gap: 18px; }
+.qb-section { border: 1px solid rgba(18,63,120,.12); border-radius: 18px; padding: 18px; background: linear-gradient(180deg,#fff,#fbfdff); box-shadow: 0 8px 22px rgba(18,63,120,.06); }
+.qb-summary { padding-bottom: 14px; }
+.qb-stats-grid { grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); }
+.qb-stats-grid .stat-card { min-height: 92px; padding: 14px; }
+.qb-stats-grid .stat-card span { font-size: .82rem; line-height: 1.25; }
+.qb-stats-grid .stat-card strong { font-size: clamp(1.2rem, 2vw, 1.7rem); overflow-wrap: break-word; }
+.qb-filters-card { border-color: rgba(18,63,120,.24); box-shadow: 0 14px 34px rgba(18,63,120,.1); }
+.qb-filter-grid { align-items: end; }
+.qb-check { align-self: center; min-height: 48px; display: flex; align-items: center; gap: 8px; }
+.qb-training-actions { margin-top: 14px; padding-top: 14px; border-top: 1px solid #e2e8f0; }
+.qb-training-actions button { min-width: 150px; }
+.qb-details-card { padding: 0; overflow: hidden; }
+.qb-details-card > summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; gap: 12px; padding: 16px 18px; color: #123f78; }
+.qb-details-card > summary::-webkit-details-marker { display: none; }
+.qb-details-card > summary::after { content: "Abrir"; font-weight: 700; color: #64748b; }
+.qb-details-card[open] > summary::after { content: "Recolher"; }
+.qb-details-card > summary span { display: grid; gap: 3px; min-width: 0; }
+.qb-details-card > summary small { color: #64748b; font-weight: 500; }
+.qb-details-card > :not(summary) { margin: 0 18px 18px; }
+.qb-preview-item p, .question-bank-text, .question-bank-item p { overflow-wrap: break-word; word-break: normal; hyphens: auto; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+.question-bank-item header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; }
+@media (max-width: 720px) {
+  .qb-section { padding: 14px; border-radius: 14px; }
+  .qb-details-card { padding: 0; }
+  .qb-details-card > summary { padding: 14px; }
+  .qb-details-card > :not(summary) { margin: 0 14px 14px; }
+  .qb-training-actions { align-items: stretch; }
+  .qb-training-actions button { width: 100%; }
+}
