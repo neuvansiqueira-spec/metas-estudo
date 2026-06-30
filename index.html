@@ -157,6 +157,9 @@
           <article class="stat-card"><span>Questões no banco</span><strong id="dashboardQuestionBankTotal" class="stat-value-compact">0</strong></article>
           <article class="stat-card"><span>Treinos realizados</span><strong id="dashboardQuestionBankSessions" class="stat-value-compact">0</strong></article>
           <article class="stat-card"><span>Último treino</span><strong id="dashboardQuestionBankLast" class="stat-value-text">-</strong></article>
+          <article class="stat-card"><span>Pacotes disponíveis</span><strong id="dashboardQuestionBankPackages" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Questões vinculadas ao edital</span><strong id="dashboardQuestionBankLinked" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Assuntos do edital sem questões</span><strong id="dashboardQuestionBankMissing" class="stat-value-compact">0</strong></article>
           <article class="stat-card wide-stat"><a class="button-link" href="#banco-questoes" data-view-link="banco-questoes">Treinar Banco</a></article>
         </div></article>
         <article class="dashboard-block"><div class="dashboard-block-title">Simulados</div><div class="stats-grid compact">
@@ -477,6 +480,11 @@
       </div>
       <div id="qbMessage" class="file-info empty-message" aria-live="polite"></div>
       <h3>Resumo</h3><div id="qbStats" class="stats-grid compact"></div>
+      <section class="question-bank-packages" aria-labelledby="qb-packages-title">
+        <div class="section-heading"><p class="eyebrow">Edital verticalizado</p><h3 id="qb-packages-title">Pacotes do Edital</h3></div>
+        <p class="notice">Treine disciplinas inteiras usando apenas os assuntos previstos no edital/plano atual. Assuntos com status “Ignorado” não entram nos pacotes.</p>
+        <div id="qbSyllabusPackages" class="question-bank-list empty-message"></div>
+      </section>
       <h3>Filtros</h3>
       <div class="filters form-grid compact">
         <label>Disciplina<select id="qbFilterDiscipline"><option value="">Todas</option></select></label>
