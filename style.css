@@ -2425,3 +2425,34 @@ th {
   .qb-training-actions { align-items: stretch; }
   .qb-training-actions button { width: 100%; }
 }
+
+.qb-compact-accordion { padding: 0; overflow: hidden; }
+.qb-compact-accordion > summary {
+  align-items: center;
+  background: linear-gradient(135deg, #f8fbff, #eef6ff);
+  border-radius: 18px;
+}
+.qb-compact-accordion[open] > summary { border-bottom: 1px solid #e2e8f0; border-radius: 18px 18px 0 0; }
+.qb-compact-accordion > summary strong { font-size: 1.02rem; line-height: 1.25; overflow-wrap: break-word; }
+.qb-compact-accordion > summary small { line-height: 1.35; overflow-wrap: break-word; }
+.qb-compact-accordion > summary::after {
+  flex: 0 0 auto;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  padding: 7px 12px;
+  background: #fff;
+  white-space: nowrap;
+}
+.qb-compact-accordion > .notice { margin-top: 18px; }
+.question-bank-packages-grid, #qbSyllabusPackages { grid-template-columns: 1fr; }
+#qbSyllabusPackages .question-bank-item { overflow: hidden; }
+#qbSyllabusPackages .card-meta-grid { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+#qbSyllabusPackages details .card-meta-grid span { line-height: 1.45; overflow-wrap: break-word; word-break: normal; }
+#qbDiagnostics .question-bank-item p,
+#qbSyllabusPackages .question-bank-item p { display: block; overflow: visible; -webkit-line-clamp: unset; }
+
+@media (max-width: 720px) {
+  .qb-compact-accordion > summary { align-items: stretch; flex-direction: column; }
+  .qb-compact-accordion > summary::after { align-self: flex-start; }
+  #qbSyllabusPackages .card-meta-grid { grid-template-columns: 1fr; }
+}
