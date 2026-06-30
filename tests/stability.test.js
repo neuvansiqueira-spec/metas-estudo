@@ -99,6 +99,22 @@ test('Banco de Questões recalcula filtros em cascata por disciplina', () => {
   assert.match(script, /\["Questões filtradas", filteredTotal\]/);
 });
 
+
+test('Banco de Questões possui Pacotes do Edital vinculados ao edital verticalizado', () => {
+  assert.match(html, /id="qbSyllabusPackages"/);
+  assert.match(html, /Pacotes do Edital/);
+  assert.match(html, /dashboardQuestionBankPackages/);
+  assert.match(html, /dashboardQuestionBankLinked/);
+  assert.match(html, /dashboardQuestionBankMissing/);
+  assert.match(script, /function qbSyllabusPackages/);
+  assert.match(script, /function qbMatchesSyllabusItem/);
+  assert.match(script, /function qbSafePartialMatch/);
+  assert.match(script, /data-qb-package-mode="full"/);
+  assert.match(script, /Treinar não estudados/);
+  assert.match(script, /Treinar erradas\/brancas/);
+  assert.match(script, /Assuntos do edital sem questões cadastradas/);
+});
+
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
   assert.match(sw, /metas-estudo-cache-20260630-question-bank/);
