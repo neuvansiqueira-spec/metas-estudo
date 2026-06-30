@@ -27,8 +27,26 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+function shouldPreferNetwork(request) {
+  const destination = request.destination;
+  return request.mode === "navigate" || ["document", "script", "style", "worker"].includes(destination);
+}
+
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+
+  if (shouldPreferNetwork(event.request)) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return response;
+        })
+        .catch(() => caches.match(event.request).then((cachedResponse) => cachedResponse || caches.match("index.html")))
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => cachedResponse || fetch(event.request))

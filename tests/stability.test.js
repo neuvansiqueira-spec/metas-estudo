@@ -33,10 +33,10 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
   }
 });
 
-test('arquivos carregados usam a versão de estabilidade', () => {
-  assert.match(html, /style\.css\?v=20260626-stability-review/);
-  assert.match(html, /script\.js\?v=20260626-stability-review/);
-  assert.match(html, /Versão: 20260626-stability-review/);
+test('arquivos carregados usam a versão do banco de questões', () => {
+  assert.match(html, /style\.css\?v=20260630-question-bank/);
+  assert.match(html, /script\.js\?v=20260630-question-bank/);
+  assert.match(html, /Versão: 20260630-question-bank/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -69,4 +69,31 @@ test('tempo de revisão sugerido e realizado é salvo e exibido em Dashboard/Rev
   assert.match(script, /tempoRealizado/);
   assert.match(script, /Tempo sugerido hoje/);
   assert.match(script, /Tempo concluído hoje/);
+});
+
+
+test('Banco de Questões possui rota SPA e suporte a justificativas', () => {
+  assert.ok(hasVisibleRouteSupport('#banco-questoes'), '#banco-questoes deve ter link de navegação SPA');
+  assert.match(html, /id="view-banco-questoes"/);
+  assert.match(script, /"banco-questoes": renderQuestionBank/);
+  assert.match(script, /function questionBankExplanation/);
+  assert.match(script, /raw\.justificativa/);
+  assert.match(script, /raw\.fundamento/);
+  assert.match(script, /raw\.comentario/);
+  assert.match(script, /raw\.explanation/);
+  assert.match(script, /raw\.notes/);
+  assert.match(script, /Sem justificativa cadastrada/);
+  assert.match(script, /Resposta marcada:/);
+  assert.match(script, /Resultado:/);
+  assert.match(script, /Justificativa\/fundamento:/);
+});
+
+test('service worker prioriza rede para app shell versionado', () => {
+  const sw = fs.readFileSync('service-worker.js', 'utf8');
+  assert.match(sw, /metas-estudo-cache-20260630-question-bank/);
+  assert.match(sw, /shouldPreferNetwork/);
+  assert.match(sw, /request\.mode === "navigate"/);
+  assert.match(sw, /\["document", "script", "style", "worker"\]/);
+  assert.match(sw, /self\.skipWaiting\(\)/);
+  assert.match(sw, /self\.clients\.claim\(\)/);
 });

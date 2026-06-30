@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260626-stability-review",
+  "version": "20260630-question-bank",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
