@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Banco de Questões • Metas Concurso</title>
+  <meta name="theme-color" content="#123f78" />
+  <link rel="stylesheet" href="style.css?v=20260630-question-bank" />
+  <style>
+    .question-bank-page { max-width: 1180px; margin: 0 auto; padding: 24px; }
+    .question-bank-header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 20px; }
+    .question-bank-header h1 { margin: 0; }
+    .question-card { border: 1px solid rgba(18,63,120,.18); border-radius: 18px; padding: 18px; background: #fff; box-shadow: 0 10px 30px rgba(18,63,120,.08); }
+    .question-text { font-size: 1.08rem; line-height: 1.55; margin: 14px 0; }
+    .question-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+    .answer-button { min-height: 54px; font-size: 1rem; font-weight: 700; }
+    .answer-button.selected { outline: 3px solid rgba(18,63,120,.35); transform: translateY(-1px); }
+    .answer-button.blank-button { background: #64748b; }
+    .progress-line { height: 10px; border-radius: 999px; background: #e5e7eb; overflow: hidden; margin: 12px 0; }
+    .progress-line span { display: block; height: 100%; background: #123f78; width: 0%; transition: width .2s ease; }
+    .question-meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; color: #475569; font-size: .9rem; }
+    .question-meta-grid span { background: #f8fafc; border-radius: 12px; padding: 8px 10px; }
+    .training-footer { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; margin-top: 16px; }
+    .bank-list { display: grid; gap: 10px; }
+    .bank-item { border: 1px solid #e5e7eb; border-radius: 14px; padding: 12px; background: #fff; }
+    .danger-zone { border-color: rgba(185,28,28,.25); }
+    .muted { color: #64748b; }
+    @media (max-width: 720px) {
+      .question-bank-page { padding: 14px; }
+      .question-bank-header { flex-direction: column; }
+      .question-actions { grid-template-columns: 1fr; }
+      .training-footer { align-items: stretch; }
+      .training-footer .actions { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="question-bank-page">
+    <header class="question-bank-header">
+      <div>
+        <p class="eyebrow">Treino Cebraspe</p>
+        <h1>Banco de Questões</h1>
+        <p class="hero-text">Importe um JSON privado, filtre os itens e treine Certo, Errado ou Branco sem publicar as questões no GitHub.</p>
+      </div>
+      <div class="actions">
+        <a class="button-link" href="index.html#questoes">Voltar ao site</a>
+      </div>
+    </header>
+
+    <section class="panel" aria-labelledby="import-title">
+      <div class="section-heading inline">
+        <div>
+          <p class="eyebrow">Importação local</p>
+          <h2 id="import-title">Importar JSON do banco</h2>
+        </div>
+      </div>
+      <p class="notice warning-notice">Use arquivo privado. O conteúdo importado fica no localStorage deste navegador, junto com os dados do site.</p>
+      <div class="form-grid">
+        <label class="wide">Arquivo JSON
+          <input id="bankFile" type="file" accept="application/json,.json" />
+        </label>
+      </div>
+      <div class="actions">
+        <button id="exportBank" type="button" class="secondary-button">Exportar banco atual</button>
+        <button id="exportSessions" type="button" class="secondary-button">Exportar resultados</button>
+      </div>
+      <div id="importMessage" class="file-info empty-message" aria-live="polite"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="stats-title">
+      <div class="section-heading"><p class="eyebrow">Resumo</p><h2 id="stats-title">Dados carregados</h2></div>
+      <div id="bankStats" class="stats-grid compact"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="filters-title">
+      <div class="section-heading"><p class="eyebrow">Treino</p><h2 id="filters-title">Montar treino</h2></div>
+      <div class="filters form-grid compact">
+        <label>Disciplina<select id="filterDiscipline"><option value="">Todas</option></select></label>
+        <label>Assunto<select id="filterSubject"><option value="">Todos</option></select></label>
+        <label>Tema<select id="filterTheme"><option value="">Todos</option></select></label>
+        <label>Banca<select id="filterBoard"><option value="">Todas</option></select></label>
+        <label>Ano<select id="filterYear"><option value="">Todos</option></select></label>
+        <label>Quantidade<input id="trainingLimit" type="number" min="1" value="20" /></label>
+        <label class="wide">Busca<input id="filterSearch" type="search" placeholder="Palavra no enunciado, assunto, tema ou referência" /></label>
+        <label><input id="shuffleTraining" type="checkbox" checked /> Embaralhar</label>
+      </div>
+      <div class="actions">
+        <button id="startTraining" type="button">Iniciar treino</button>
+        <button id="previewFiltered" class="secondary-button" type="button">Pré-visualizar filtradas</button>
+      </div>
+      <div id="filteredPreview" class="bank-list empty-message"></div>
+    </section>
+
+    <section id="trainingPanel" class="panel" aria-labelledby="training-title" hidden>
+      <div class="section-heading inline">
+        <div>
+          <p class="eyebrow">Resolver</p>
+          <h2 id="training-title">Treino em andamento</h2>
+        </div>
+        <strong id="trainingCounter" class="badge">0/0</strong>
+      </div>
+      <div class="progress-line" aria-hidden="true"><span id="trainingProgress"></span></div>
+      <div id="questionCard" class="question-card"></div>
+    </section>
+
+    <section id="resultPanel" class="panel" aria-labelledby="result-title" hidden>
+      <div class="section-heading"><p class="eyebrow">Resultado</p><h2 id="result-title">Último treino</h2></div>
+      <div id="resultSummary" class="stats-grid compact"></div>
+      <div id="resultDetails" class="bank-list"></div>
+    </section>
+
+    <section class="panel danger-zone" aria-labelledby="danger-title">
+      <div class="section-heading"><p class="eyebrow">Manutenção</p><h2 id="danger-title">Limpeza local</h2></div>
+      <p class="notice warning-notice">Isso apaga apenas o banco de questões e os treinos desta tela. Não apaga metas, edital, simulados ou histórico geral.</p>
+      <button id="clearBank" class="danger" type="button">Limpar banco de questões local</button>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "metasConcursoData";
+    const $ = (selector) => document.querySelector(selector);
+    const els = {
+      bankFile: $("#bankFile"), importMessage: $("#importMessage"), bankStats: $("#bankStats"),
+      filterDiscipline: $("#filterDiscipline"), filterSubject: $("#filterSubject"), filterTheme: $("#filterTheme"), filterBoard: $("#filterBoard"), filterYear: $("#filterYear"), filterSearch: $("#filterSearch"),
+      trainingLimit: $("#trainingLimit"), shuffleTraining: $("#shuffleTraining"), startTraining: $("#startTraining"), previewFiltered: $("#previewFiltered"), filteredPreview: $("#filteredPreview"),
+      trainingPanel: $("#trainingPanel"), trainingCounter: $("#trainingCounter"), trainingProgress: $("#trainingProgress"), questionCard: $("#questionCard"),
+      resultPanel: $("#resultPanel"), resultSummary: $("#resultSummary"), resultDetails: $("#resultDetails"),
+      exportBank: $("#exportBank"), exportSessions: $("#exportSessions"), clearBank: $("#clearBank")
+    };
+
+    let state = readState();
+    state.questionBank ||= [];
+    state.questionBankSessions ||= [];
+    let training = null;
+
+    function readState() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); }
+      catch { return {}; }
+    }
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+    function createId() {
+      return `qb-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+    function escapeHTML(value) {
+      return String(value ?? "").replace(/[&<>'"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;"}[c]));
+    }
+    function normalizeText(value) {
+      return String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    }
+    function downloadJSON(filename, payload) {
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+    function normalizeAnswer(value) {
+      if (value === true) return "C";
+      if (value === false) return "E";
+      const raw = normalizeText(value).replace(/[^a-z]/g, "");
+      if (["c", "certo", "correto", "verdadeiro", "v"].includes(raw)) return "C";
+      if (["e", "errado", "incorreto", "falso", "f"].includes(raw)) return "E";
+      return "";
+    }
+    function normalizeQuestion(raw, index) {
+      const id = raw.id || raw.codigo || raw.referencia || createId();
+      const disciplina = raw.disciplina || raw.discipline || "Sem disciplina";
+      const assunto = raw.assunto || raw.subject || raw.topico || raw.topic || "Sem assunto";
+      const tema = raw.tema || raw.theme || raw.subassunto || raw.subtopic || "Geral";
+      const enunciado = raw.enunciado || raw.statement || raw.texto || raw.question || "";
+      const gabarito = normalizeAnswer(raw.gabarito ?? raw.resposta ?? raw.answer ?? raw.correctAnswer);
+      return {
+        id: String(id || `questao-${index + 1}`),
+        disciplina: String(disciplina),
+        assunto: String(assunto),
+        tema: String(tema),
+        banca: String(raw.banca || raw.board || ""),
+        ano: raw.ano || raw.year || "",
+        orgao: String(raw.orgao || raw.agency || ""),
+        cargo: String(raw.cargo || raw.role || ""),
+        referencia: String(raw.referencia || raw.reference || raw.codigo || ""),
+        tipo: String(raw.tipo || raw.type || "Certo/Errado"),
+        enunciado: String(enunciado),
+        gabarito,
+        observacoes: String(raw.observacoes || raw.notes || ""),
+        tags: Array.isArray(raw.tags) ? raw.tags : []
+      };
+    }
+    function questionsFromPayload(payload) {
+      const source = Array.isArray(payload) ? payload : payload.questionBank || payload.questoes || payload.questions || payload.items || [];
+      if (!Array.isArray(source)) return [];
+      return source.map(normalizeQuestion).filter((q) => q.enunciado.trim());
+    }
+    function uniqueSorted(values) {
+      return [...new Set(values.filter(Boolean).map(String))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+    }
+    function fillSelect(select, values, label) {
+      const current = select.value;
+      select.innerHTML = `<option value="">${label}</option>` + values.map((v) => `<option value="${escapeHTML(v)}">${escapeHTML(v)}</option>`).join("");
+      if (values.includes(current)) select.value = current;
+    }
+    function renderFilters() {
+      const bank = state.questionBank;
+      fillSelect(els.filterDiscipline, uniqueSorted(bank.map((q) => q.disciplina)), "Todas");
+      fillSelect(els.filterSubject, uniqueSorted(bank.map((q) => q.assunto)), "Todos");
+      fillSelect(els.filterTheme, uniqueSorted(bank.map((q) => q.tema)), "Todos");
+      fillSelect(els.filterBoard, uniqueSorted(bank.map((q) => q.banca)), "Todas");
+      fillSelect(els.filterYear, uniqueSorted(bank.map((q) => q.ano)), "Todos");
+    }
+    function filteredQuestions() {
+      const search = normalizeText(els.filterSearch.value);
+      return state.questionBank.filter((q) => {
+        if (els.filterDiscipline.value && q.disciplina !== els.filterDiscipline.value) return false;
+        if (els.filterSubject.value && q.assunto !== els.filterSubject.value) return false;
+        if (els.filterTheme.value && q.tema !== els.filterTheme.value) return false;
+        if (els.filterBoard.value && q.banca !== els.filterBoard.value) return false;
+        if (els.filterYear.value && String(q.ano) !== els.filterYear.value) return false;
+        if (search) {
+          const haystack = normalizeText([q.enunciado, q.disciplina, q.assunto, q.tema, q.banca, q.referencia, q.orgao, q.cargo].join(" "));
+          if (!haystack.includes(search)) return false;
+        }
+        return true;
+      });
+    }
+    function renderStats() {
+      const bank = state.questionBank;
+      const withKey = bank.filter((q) => q.gabarito).length;
+      const sessions = state.questionBankSessions || [];
+      els.bankStats.innerHTML = `
+        <article class="stat-card"><span>Questões no banco</span><strong>${bank.length}</strong></article>
+        <article class="stat-card"><span>Disciplinas</span><strong>${uniqueSorted(bank.map((q) => q.disciplina)).length}</strong></article>
+        <article class="stat-card"><span>Assuntos</span><strong>${uniqueSorted(bank.map((q) => q.assunto)).length}</strong></article>
+        <article class="stat-card"><span>Com gabarito</span><strong>${withKey}</strong></article>
+        <article class="stat-card"><span>Treinos salvos</span><strong>${sessions.length}</strong></article>
+        <article class="stat-card wide-stat"><span>Último treino</span><strong>${sessions[0] ? new Date(sessions[0].createdAt).toLocaleString("pt-BR") : "Nenhum"}</strong></article>`;
+    }
+    function renderAll() {
+      renderFilters();
+      renderStats();
+    }
+    function showMessage(text, type = "") {
+      els.importMessage.className = `file-info empty-message ${type}`;
+      els.importMessage.textContent = text;
+    }
+    function importBank(payload) {
+      const incoming = questionsFromPayload(payload);
+      if (!incoming.length) throw new Error("Nenhuma questão válida encontrada no JSON.");
+      const existing = new Map(state.questionBank.map((q) => [q.id, q]));
+      incoming.forEach((q) => existing.set(q.id, q));
+      state.questionBank = [...existing.values()];
+      saveState();
+      renderAll();
+      showMessage(`${incoming.length} questão(ões) importada(s). Banco atual: ${state.questionBank.length} item(ns).`, "success");
+    }
+    function shuffle(list) {
+      const copy = [...list];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+    function questionHasKey(q) { return q.gabarito === "C" || q.gabarito === "E"; }
+    function startTraining() {
+      let items = filteredQuestions();
+      if (!items.length) return alert("Nenhuma questão encontrada com os filtros atuais.");
+      if (els.shuffleTraining.checked) items = shuffle(items);
+      const limit = Math.max(1, Number(els.trainingLimit.value) || items.length);
+      items = items.slice(0, limit);
+      training = { id: createId(), createdAt: new Date().toISOString(), index: 0, items, answers: {} };
+      els.trainingPanel.hidden = false;
+      els.resultPanel.hidden = true;
+      renderQuestion();
+      els.trainingPanel.scrollIntoView({ block: "start", behavior: "smooth" });
+    }
+    function answerCurrent(answer) {
+      if (!training) return;
+      const current = training.items[training.index];
+      training.answers[current.id] = answer;
+      if (training.index < training.items.length - 1) training.index += 1;
+      renderQuestion();
+    }
+    function renderQuestion() {
+      const q = training.items[training.index];
+      const answered = Object.keys(training.answers).length;
+      const selected = training.answers[q.id] || "";
+      const progress = Math.round(answered / training.items.length * 100);
+      els.trainingCounter.textContent = `${training.index + 1}/${training.items.length}`;
+      els.trainingProgress.style.width = `${progress}%`;
+      const reveal = questionHasKey(q) && selected;
+      const checkText = reveal ? (selected === q.gabarito ? "Resposta compatível com o gabarito." : `Gabarito: ${q.gabarito}.`) : (questionHasKey(q) ? "Gabarito disponível para correção automática." : "Sem gabarito: o treino salvará sua marcação, mas não calculará acerto.");
+      els.questionCard.innerHTML = `
+        <div class="question-meta-grid">
+          <span>Disciplina: ${escapeHTML(q.disciplina)}</span>
+          <span>Assunto: ${escapeHTML(q.assunto)}</span>
+          <span>Tema: ${escapeHTML(q.tema)}</span>
+          <span>Banca: ${escapeHTML(q.banca || "-")}</span>
+          <span>Ano: ${escapeHTML(q.ano || "-")}</span>
+          <span>Ref.: ${escapeHTML(q.referencia || "-")}</span>
+        </div>
+        <p class="question-text">${escapeHTML(q.enunciado)}</p>
+        <p class="notice">${escapeHTML(checkText)}</p>
+        <div class="question-actions">
+          <button class="answer-button ${selected === "C" ? "selected" : ""}" type="button" data-answer="C">Certo</button>
+          <button class="answer-button ${selected === "E" ? "selected" : ""}" type="button" data-answer="E">Errado</button>
+          <button class="answer-button blank-button ${selected === "B" ? "selected" : ""}" type="button" data-answer="B">Branco</button>
+        </div>
+        <div class="training-footer">
+          <span class="muted">Respondidas: ${answered}/${training.items.length}</span>
+          <div class="actions">
+            <button class="secondary-button" type="button" data-nav="prev" ${training.index === 0 ? "disabled" : ""}>Anterior</button>
+            <button class="secondary-button" type="button" data-nav="next" ${training.index >= training.items.length - 1 ? "disabled" : ""}>Próxima</button>
+            <button type="button" data-finish>Finalizar treino</button>
+          </div>
+        </div>`;
+    }
+    function finishTraining() {
+      if (!training) return;
+      const answeredItems = training.items.map((q) => ({ ...q, marcado: training.answers[q.id] || "" }));
+      const hasAnyKey = answeredItems.some(questionHasKey);
+      const summary = answeredItems.reduce((acc, q) => {
+        if (q.marcado === "C") acc.markedC += 1;
+        if (q.marcado === "E") acc.markedE += 1;
+        if (q.marcado === "B" || !q.marcado) acc.blank += 1;
+        if (questionHasKey(q) && q.marcado && q.marcado !== "B") {
+          if (q.marcado === q.gabarito) acc.correct += 1;
+          else acc.wrong += 1;
+        }
+        return acc;
+      }, { total: answeredItems.length, markedC: 0, markedE: 0, blank: 0, correct: 0, wrong: 0 });
+      summary.net = summary.correct - summary.wrong;
+      const session = { id: training.id, createdAt: training.createdAt, summary, hasAnyKey, items: answeredItems.map((q) => ({ id: q.id, enunciado: q.enunciado, disciplina: q.disciplina, assunto: q.assunto, tema: q.tema, banca: q.banca, ano: q.ano, referencia: q.referencia, marcado: q.marcado, gabarito: q.gabarito || "" })) };
+      state.questionBankSessions.unshift(session);
+      saveState();
+      renderResult(session);
+      renderStats();
+      training = null;
+      els.trainingPanel.hidden = true;
+      els.resultPanel.hidden = false;
+      els.resultPanel.scrollIntoView({ block: "start", behavior: "smooth" });
+    }
+    function renderResult(session) {
+      const s = session.summary;
+      els.resultSummary.innerHTML = `
+        <article class="stat-card"><span>Total</span><strong>${s.total}</strong></article>
+        <article class="stat-card"><span>Marcadas C</span><strong>${s.markedC}</strong></article>
+        <article class="stat-card"><span>Marcadas E</span><strong>${s.markedE}</strong></article>
+        <article class="stat-card"><span>Brancos</span><strong>${s.blank}</strong></article>
+        <article class="stat-card"><span>Acertos</span><strong>${session.hasAnyKey ? s.correct : "-"}</strong></article>
+        <article class="stat-card"><span>Erros</span><strong>${session.hasAnyKey ? s.wrong : "-"}</strong></article>
+        <article class="stat-card"><span>Líquido Cebraspe</span><strong>${session.hasAnyKey ? s.net : "Sem gabarito"}</strong></article>`;
+      els.resultDetails.innerHTML = session.items.slice(0, 50).map((q, i) => `<article class="bank-item"><strong>${i + 1}. ${escapeHTML(q.disciplina)} — ${escapeHTML(q.assunto)}</strong><p>${escapeHTML(q.enunciado)}</p><div class="item-meta">Marcado: ${escapeHTML(q.marcado || "-")}${q.gabarito ? ` • Gabarito: ${escapeHTML(q.gabarito)}` : " • Sem gabarito"}</div></article>`).join("");
+    }
+    function previewFiltered() {
+      const list = filteredQuestions();
+      els.filteredPreview.innerHTML = list.length ? list.slice(0, 20).map((q, i) => `<article class="bank-item"><strong>${i + 1}. ${escapeHTML(q.disciplina)} — ${escapeHTML(q.assunto)}</strong><p>${escapeHTML(q.enunciado)}</p><div class="item-meta">${escapeHTML(q.banca || "-")} • ${escapeHTML(q.ano || "-")} • ${escapeHTML(q.referencia || "-")}</div></article>`).join("") : "Nenhuma questão encontrada.";
+    }
+
+    els.bankFile.addEventListener("change", async (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      try {
+        const payload = JSON.parse(await file.text());
+        importBank(payload);
+      } catch (error) {
+        showMessage(`Erro ao importar: ${error.message}`, "error");
+      } finally {
+        event.target.value = "";
+      }
+    });
+    els.startTraining.addEventListener("click", startTraining);
+    els.previewFiltered.addEventListener("click", previewFiltered);
+    els.questionCard.addEventListener("click", (event) => {
+      const answer = event.target.closest("[data-answer]")?.dataset.answer;
+      if (answer) answerCurrent(answer);
+      const nav = event.target.closest("[data-nav]")?.dataset.nav;
+      if (nav === "prev" && training.index > 0) { training.index -= 1; renderQuestion(); }
+      if (nav === "next" && training.index < training.items.length - 1) { training.index += 1; renderQuestion(); }
+      if (event.target.closest("[data-finish]")) finishTraining();
+    });
+    [els.filterDiscipline, els.filterSubject, els.filterTheme, els.filterBoard, els.filterYear, els.filterSearch].forEach((el) => el.addEventListener("input", () => { if (!els.filteredPreview.classList.contains("empty-message")) previewFiltered(); }));
+    els.exportBank.addEventListener("click", () => downloadJSON("metas-estudo-banco-questoes.json", { schema: "metas-estudo-question-bank-v1", questionBank: state.questionBank }));
+    els.exportSessions.addEventListener("click", () => downloadJSON("metas-estudo-resultados-banco-questoes.json", { schema: "metas-estudo-question-bank-sessions-v1", questionBankSessions: state.questionBankSessions || [] }));
+    els.clearBank.addEventListener("click", () => {
+      if (!confirm("Apagar banco de questões e treinos desta tela neste navegador?")) return;
+      state.questionBank = [];
+      state.questionBankSessions = [];
+      saveState();
+      els.filteredPreview.innerHTML = "";
+      els.trainingPanel.hidden = true;
+      els.resultPanel.hidden = true;
+      renderAll();
+      showMessage("Banco local limpo.", "success");
+    });
+
+    renderAll();
+  </script>
+</body>
+</html>
