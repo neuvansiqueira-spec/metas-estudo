@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Treino por Questões • Metas Concurso</title>
+  <title>Banco de Questões • Metas Concurso</title>
   <meta name="theme-color" content="#123f78" />
-  <link rel="stylesheet" href="style.css?v=20260701-final-ux-fix" />
+  <link rel="stylesheet" href="style.css?v=20260701-rollback-stable" />
   <style>
     .question-bank-page { max-width: 1180px; margin: 0 auto; padding: 24px; }
     .question-bank-header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 20px; }
@@ -40,8 +40,8 @@
     <header class="question-bank-header">
       <div>
         <p class="eyebrow">Treino Cebraspe</p>
-        <h1>Treino por Questões</h1>
-        <p class="hero-text">Importe questões em JSON, filtre por disciplina, assunto, banca e monte treinos no estilo Certo/Errado.</p>
+        <h1>Banco de Questões</h1>
+        <p class="hero-text">Importe um JSON privado, filtre os itens e treine Certo, Errado ou Branco sem publicar as questões no GitHub.</p>
       </div>
       <div class="actions">
         <a class="button-link" href="index.html#questoes">Voltar ao site</a>
@@ -74,7 +74,7 @@
     </section>
 
     <section class="panel" aria-labelledby="error-notebook-title">
-      <div class="section-heading inline"><div><p class="eyebrow">Revisão ativa</p><h2 id="error-notebook-title">Revisão de Erros</h2><p class="muted">Erros, brancos e dúvidas são salvos automaticamente no localStorage.</p></div><button id="startErrorNotebook" class="secondary-button" type="button">Revisar em modo treino</button></div>
+      <div class="section-heading inline"><div><p class="eyebrow">Revisão ativa</p><h2 id="error-notebook-title">Caderno de Erros</h2><p class="muted">Erros, brancos e dúvidas são salvos automaticamente no localStorage.</p></div><button id="startErrorNotebook" class="secondary-button" type="button">Revisar em modo treino</button></div>
       <div id="errorStats" class="stats-grid compact"></div>
       <div class="filters form-grid compact">
         <label>Disciplina<select id="errorFilterDiscipline"><option value="">Todas</option></select></label>
