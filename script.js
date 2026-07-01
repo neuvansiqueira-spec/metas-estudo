@@ -1673,9 +1673,19 @@ function normalizeViewId(viewId) {
   return viewAliases[normalized] || normalized;
 }
 
+function targetFromLink(link) {
+  if (!link) return "dashboard";
+  const rawTarget = link.dataset?.viewLink || link.getAttribute?.("href") || "dashboard";
+  return normalizeViewId(rawTarget);
+}
+
+function resolveViewTarget(viewId) {
+  const rawTarget = viewId?.dataset || viewId?.getAttribute ? targetFromLink(viewId) : normalizeViewId(viewId);
+  return viewIds.has(rawTarget) ? rawTarget : "dashboard";
+}
+
 function hashToView() {
-  const view = normalizeViewId(window.location.hash);
-  return viewIds.has(view) ? view : "dashboard";
+  return resolveViewTarget(window.location.hash);
 }
 
 function renderGoalDashboardCards() { const today=todayISO(), ws=weekStart(today), we=addDays(ws,6); const tg=state.dailyGoals.filter(g=>g.date===today), wg=goalsBetween(ws,we), mg=state.dailyGoals.filter(g=>g.date.slice(0,7)===today.slice(0,7)); const av=availabilityForDate(today); const stats=goalProgressStats(tg,av); const nextToday=tg.find(g=>!isGoalDone(g) && !["Não cumprida","Ignorada","Adiada","Reagendada"].includes(g.status||"")); const next=state.dailyGoals.filter(g=>g.status!=="Concluída" && g.date>=today).sort((a,b)=>a.date.localeCompare(b.date))[0]; const delayed=Object.entries(state.syllabusItems.filter(i=>!completedStatus(i)&&i.status!=="Ignorado").reduce((a,i)=>(a[i.discipline]=(a[i.discipline]||0)+1,a),{})).sort((a,b)=>b[1]-a[1])[0]; const top=Object.entries(wg.reduce((a,g)=>(a[g.discipline]=(a[g.discipline]||0)+1,a),{})).sort((a,b)=>b[1]-a[1])[0]; if(elements.dashboardTodayGoal) elements.dashboardTodayGoal.textContent=stats.target?formatHours(stats.target):"0h"; if(elements.dashboardTodayGoalDetail) elements.dashboardTodayGoalDetail.textContent=`${tg.length} meta(s) para hoje`; if(elements.dashboardDailyGoalRate) elements.dashboardDailyGoalRate.textContent=stats.goalsPct+"%"; if(elements.dashboardTodayRemaining) elements.dashboardTodayRemaining.textContent=formatHours(stats.remaining); if(elements.dashboardNextTodayGoal) elements.dashboardNextTodayGoal.textContent=nextToday?`${nextToday.discipline}: ${nextToday.subject}`:"Todas concluídas ou sem metas"; if(elements.todayGoalsTotal) elements.todayGoalsTotal.textContent=tg.length; if(elements.todayPendingGoals) elements.todayPendingGoals.textContent=stats.pending; if(elements.todayDoneGoals) elements.todayDoneGoals.textContent=stats.completed; if(elements.weekGoalsTotal) elements.weekGoalsTotal.textContent=wg.length; if(elements.weekGoalRate) elements.weekGoalRate.textContent=completionRate(wg)+"%"; if(elements.monthGoalRate) elements.monthGoalRate.textContent=completionRate(mg)+"%"; if(elements.nextGoalLabel) elements.nextGoalLabel.textContent=next?`${next.date} — ${next.discipline}: ${next.subject}`:"-"; if(elements.weekTopDiscipline) elements.weekTopDiscipline.textContent=top?`${top[0]} (${top[1]})`:"-"; if(elements.mostDelayedDiscipline) elements.mostDelayedDiscipline.textContent=delayed?`${delayed[0]} (${delayed[1]})`:"-"; }
@@ -1715,16 +1725,21 @@ function setMobileMenuOpen(isOpen) {
 }
 
 function showView(viewId = hashToView(), options = {}) {
-  const target = viewIds.has(normalizeViewId(viewId)) ? normalizeViewId(viewId) : "dashboard";
+  const target = resolveViewTarget(viewId);
 
   viewPanels.forEach((panel) => {
-    const active = panel.id === `view-${target}`;
-    panel.classList.toggle("active", active);
-    panel.toggleAttribute("hidden", !active);
+    panel.classList.remove("active");
+    panel.hidden = true;
   });
 
+  const activePanel = document.getElementById(`view-${target}`);
+  if (activePanel?.classList.contains("app-view")) {
+    activePanel.classList.add("active");
+    activePanel.hidden = false;
+  }
+
   viewLinks.forEach((link) => {
-    const active = normalizeViewId(link.dataset.viewLink) === target;
+    const active = targetFromLink(link) === target;
     link.classList.toggle("active", active);
     if (active) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
@@ -1744,7 +1759,9 @@ document.addEventListener("click", (event) => {
   const link = event.target.closest("[data-view-link]");
   if (!link) return;
   event.preventDefault();
-  showView(link.dataset.viewLink || link.getAttribute("href"));
+  const target = resolveViewTarget(link);
+  console.log("[ROUTE]", { clicked: link.textContent.trim(), target });
+  showView(target);
   const scrollTarget = link.dataset.scrollTarget;
   if (scrollTarget) requestAnimationFrame(() => document.querySelector(scrollTarget)?.scrollIntoView({ block: "start", behavior: "smooth" }));
 });
@@ -1764,7 +1781,10 @@ function registerServiceWorker() {
 
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("service-worker.js")
-      .then(() => console.log("[Metas Estudo] Service worker registrado."))
+      .then((registration) => {
+        registration.update();
+        console.log("[Metas Estudo] Service worker registrado.");
+      })
       .catch((error) => console.log("[Metas Estudo] Falha ao registrar service worker.", error));
   });
 }

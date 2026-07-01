@@ -34,10 +34,10 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
   }
 });
 
-test('arquivos carregados usam a versão do banco de questões', () => {
-  assert.match(html, /style\.css\?v=20260701-error-notebook-fix6/);
-  assert.match(html, /script\.js\?v=20260701-error-notebook-fix6/);
-  assert.match(html, /Versão: 20260701-error-notebook-fix6/);
+test('arquivos carregados usam a versão da correção de rota', () => {
+  assert.match(html, /style\.css\?v=20260701-route-fix/);
+  assert.match(html, /script\.js\?v=20260701-route-fix/);
+  assert.match(html, /Versão: 20260701-route-fix/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -167,9 +167,38 @@ test('Banco de Questões possui Pacotes do Edital vinculados ao edital verticali
   assert.match(script, /Assuntos do edital sem questões cadastradas/);
 });
 
+
+test('rotas Backup e Caderno de Erros não compartilham destinos', () => {
+  const backupLinks = [...html.matchAll(/<a\b[^>]*>[^<]*Backup[^<]*<\/a>/g)].map((match) => match[0]);
+  assert.ok(backupLinks.length >= 3, 'deve existir Backup no menu lateral, mobile e barra inferior');
+  for (const link of backupLinks) {
+    assert.match(link, /href="#backup"/);
+    assert.match(link, /data-view-link="backup"/);
+    assert.doesNotMatch(link, /caderno-erros/);
+  }
+
+  const cadernoLinks = [...html.matchAll(/<a\b[^>]*>[^<]*Caderno de Erros[^<]*<\/a>/g)].map((match) => match[0]);
+  assert.ok(cadernoLinks.length >= 3, 'deve existir Caderno de Erros nos links visíveis');
+  for (const link of cadernoLinks) {
+    assert.match(link, /href="#caderno-erros"/);
+    assert.match(link, /data-view-link="caderno-erros"/);
+    assert.doesNotMatch(link, /#backup|data-view-link="backup"/);
+  }
+
+  assert.match(script, /function targetFromLink/);
+  assert.match(script, /link\.dataset\?\.viewLink \|\| link\.getAttribute\?\.\("href"\)/);
+  assert.match(script, /function resolveViewTarget/);
+  assert.match(script, /panel\.classList\.remove\("active"\)/);
+  assert.match(script, /panel\.hidden = true/);
+  assert.match(script, /document\.getElementById\(`view-\$\{target\}`\)/);
+  assert.match(script, /console\.log\("\[ROUTE\]", \{ clicked: link\.textContent\.trim\(\), target \}\)/);
+  assert.match(script, /backup: renderBackupSummary/);
+  assert.match(script, /"caderno-erros": qbRenderErrorNotebook/);
+});
+
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-cache-20260701-error-notebook-fix6/);
+  assert.match(sw, /metas-estudo-cache-20260701-route-fix/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);
