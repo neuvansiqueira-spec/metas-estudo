@@ -34,10 +34,10 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
   }
 });
 
-test('arquivos carregados usam a versão da correção da tela de treino', () => {
-  assert.match(html, /style\.css\?v=20260701-pages-deploy-fix/);
-  assert.match(html, /script\.js\?v=20260701-pages-deploy-fix/);
-  assert.match(html, /Versão: 20260701-pages-deploy-fix/);
+test('arquivos carregados usam a versão da simplificação de questões', () => {
+  assert.match(html, /style\.css\?v=20260701-simple-questions-fix/);
+  assert.match(html, /script\.js\?v=20260701-simple-questions-fix/);
+  assert.match(html, /Versão: 20260701-simple-questions-fix/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -78,8 +78,8 @@ test('Banco de Questões possui rota SPA e suporte a justificativas', () => {
   assert.ok(hasVisibleRouteSupport('#banco-questoes'), '#banco-questoes deve ter link de navegação SPA');
   assert.match(html, /id="view-banco-questoes"/);
   assert.match(html, /id="view-caderno-erros"/);
-  assert.match(html, /id="view-treino-questoes"/);
-  assert.match(html, /data-view="treino-questoes"/);
+  assert.doesNotMatch(html, /id="view-treino-questoes"/);
+  assert.doesNotMatch(html, /data-view="treino-questoes"/);
   assert.match(html, />Revisão de Erros</);
   assert.match(html, /id="qbErrorStats"/);
   assert.match(html, /id="qbErrorNotebookList"/);
@@ -92,7 +92,7 @@ test('Banco de Questões possui rota SPA e suporte a justificativas', () => {
   assert.match(script, /CADERNO_ERROS_STORAGE_KEY/);
   assert.match(script, /"banco-questoes": renderQuestionBank/);
   assert.match(script, /"caderno-erros": qbRenderErrorNotebook/);
-  assert.match(script, /"treino-questoes": qbRenderTrainingView/);
+  assert.doesNotMatch(script, /"treino-questoes": qbRenderTrainingView/);
   assert.match(script, /function questionBankExplanation/);
   assert.match(script, /raw\.justificativa/);
   assert.match(script, /raw\.fundamento/);
@@ -181,7 +181,7 @@ test('rotas Backup e Revisão de Erros não compartilham destinos', () => {
   }
 
   const cadernoLinks = [...html.matchAll(/<a\b[^>]*>[^<]*Revisão de Erros[^<]*<\/a>/g)].map((match) => match[0]);
-  assert.ok(cadernoLinks.length >= 3, 'deve existir Revisão de Erros nos links visíveis');
+  assert.ok(cadernoLinks.length >= 2, 'deve existir Revisão de Erros nos menus visíveis');
   for (const link of cadernoLinks) {
     assert.match(link, /href="#caderno-erros"/);
     assert.match(link, /data-view-link="caderno-erros"/);
@@ -197,12 +197,12 @@ test('rotas Backup e Revisão de Erros não compartilham destinos', () => {
   assert.match(script, /console\.log\("\[ROUTE\]", \{ clicked: link\.textContent\.trim\(\), target \}\)/);
   assert.match(script, /backup: renderBackupSummary/);
   assert.match(script, /"caderno-erros": qbRenderErrorNotebook/);
-  assert.match(script, /"treino-questoes": qbRenderTrainingView/);
+  assert.doesNotMatch(script, /"treino-questoes": qbRenderTrainingView/);
 });
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-cache-20260701-pages-deploy-fix/);
+  assert.match(sw, /metas-estudo-cache-20260701-simple-questions-fix/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);
