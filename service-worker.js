@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-cache-20260701-route-fix";
+const CACHE_NAME = "metas-estudo-cache-20260701-training-view-fix";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
