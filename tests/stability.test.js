@@ -35,9 +35,9 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão da correção da tela de treino', () => {
-  assert.match(html, /style\.css\?v=20260701-final-ux-fix/);
-  assert.match(html, /script\.js\?v=20260701-final-ux-fix/);
-  assert.match(html, /Versão: 20260701-final-ux-fix/);
+  assert.match(html, /style\.css\?v=20260701-pages-deploy-fix/);
+  assert.match(html, /script\.js\?v=20260701-pages-deploy-fix/);
+  assert.match(html, /Versão: 20260701-pages-deploy-fix/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -202,7 +202,7 @@ test('rotas Backup e Revisão de Erros não compartilham destinos', () => {
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-cache-20260701-final-ux-fix/);
+  assert.match(sw, /metas-estudo-cache-20260701-pages-deploy-fix/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);

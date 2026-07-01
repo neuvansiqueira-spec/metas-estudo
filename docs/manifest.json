@@ -1,0 +1,26 @@
+{
+  "name": "Metas de Estudo para Concurso",
+  "short_name": "Metas Estudo",
+  "description": "Controle pessoal de metas, edital, questões, simulados e planejamento de estudos.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#edf3f9",
+  "theme_color": "#123f78",
+  "lang": "pt-BR",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
