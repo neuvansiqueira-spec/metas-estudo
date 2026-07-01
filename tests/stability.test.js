@@ -11,6 +11,7 @@ const screens = [
   { hash: '#central-metas', view: 'view-central-metas', title: 'Central de Metas' },
   { hash: '#metas-do-dia', view: 'view-metas-do-dia', title: 'Plano do Dia' },
   { hash: '#historico-questoes', view: 'view-historico-questoes', title: 'Histórico de Questões' },
+  { hash: '#caderno-erros', view: 'view-caderno-erros', title: 'Caderno de Erros' },
   { hash: '#historico', view: 'view-historico', title: 'Histórico Geral' },
   { hash: '#revisoes', view: 'view-revisoes', title: 'Revisões' },
   { hash: '#backup', view: 'view-backup', title: 'Backup' }
@@ -34,9 +35,9 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão do banco de questões', () => {
-  assert.match(html, /style\.css\?v=20260701-error-notebook-fix5/);
-  assert.match(html, /script\.js\?v=20260701-error-notebook-fix5/);
-  assert.match(html, /Versão: 20260701-error-notebook-fix5/);
+  assert.match(html, /style\.css\?v=20260701-error-notebook-fix6/);
+  assert.match(html, /script\.js\?v=20260701-error-notebook-fix6/);
+  assert.match(html, /Versão: 20260701-error-notebook-fix6/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -76,6 +77,7 @@ test('tempo de revisão sugerido e realizado é salvo e exibido em Dashboard/Rev
 test('Banco de Questões possui rota SPA e suporte a justificativas', () => {
   assert.ok(hasVisibleRouteSupport('#banco-questoes'), '#banco-questoes deve ter link de navegação SPA');
   assert.match(html, /id="view-banco-questoes"/);
+  assert.match(html, /id="view-caderno-erros"/);
   assert.match(html, />Caderno de Erros</);
   assert.match(html, /id="qbErrorStats"/);
   assert.match(html, /id="qbErrorNotebookList"/);
@@ -87,6 +89,7 @@ test('Banco de Questões possui rota SPA e suporte a justificativas', () => {
   assert.match(script, /qbSetNotebookStatus\(btn\.dataset\.qbErrorId, btn\.dataset\.qbErrorStatus\)/);
   assert.match(script, /CADERNO_ERROS_STORAGE_KEY/);
   assert.match(script, /"banco-questoes": renderQuestionBank/);
+  assert.match(script, /"caderno-erros": qbRenderErrorNotebook/);
   assert.match(script, /function questionBankExplanation/);
   assert.match(script, /raw\.justificativa/);
   assert.match(script, /raw\.fundamento/);
@@ -166,7 +169,7 @@ test('Banco de Questões possui Pacotes do Edital vinculados ao edital verticali
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-cache-20260701-error-notebook-fix5/);
+  assert.match(sw, /metas-estudo-cache-20260701-error-notebook-fix6/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);
