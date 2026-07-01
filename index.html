@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260701-error-notebook-fix5" />
+  <link rel="stylesheet" href="style.css?v=20260701-error-notebook-fix6" />
 </head>
 <body>
   <header class="hero">
@@ -46,7 +46,7 @@
           <a href="#questoes" data-view-link="questoes">Questões</a>
           <a href="#historico-questoes" data-view-link="historico-questoes">Histórico de Questões</a>
           <a href="#banco-questoes" data-view-link="banco-questoes">Banco de Questões</a>
-          <a href="#banco-questoes" data-view-link="banco-questoes" data-scroll-target="#qb-error-notebook-title">Caderno de Erros</a>
+          <a href="#caderno-erros" data-view-link="caderno-erros">Caderno de Erros</a>
           <a href="#simulados" data-view-link="simulados">Simulados</a>
         </div>
         <div class="mobile-menu-group"><span>Apoio</span>
@@ -97,7 +97,7 @@
         <a href="#questoes" data-view-link="questoes">Questões</a>
         <a href="#historico-questoes" data-view-link="historico-questoes">Histórico de Questões</a>
         <a href="#banco-questoes" data-view-link="banco-questoes">Banco de Questões</a>
-        <a href="#banco-questoes" data-view-link="banco-questoes" data-scroll-target="#qb-error-notebook-title">Caderno de Erros</a>
+        <a href="#caderno-erros" data-view-link="caderno-erros">Caderno de Erros</a>
         <a href="#simulados" data-view-link="simulados">Simulados</a>
       </div>
       <div class="side-nav-group"><span>Apoio</span>
@@ -162,7 +162,7 @@
           <article class="stat-card"><span>Pacotes disponíveis</span><strong id="dashboardQuestionBankPackages" class="stat-value-compact">0</strong></article>
           <article class="stat-card"><span>Questões vinculadas ao edital</span><strong id="dashboardQuestionBankLinked" class="stat-value-compact">0</strong></article>
           <article class="stat-card"><span>Assuntos do edital sem questões</span><strong id="dashboardQuestionBankMissing" class="stat-value-compact">0</strong></article>
-          <article class="stat-card wide-stat"><a class="button-link" href="#banco-questoes" data-view-link="banco-questoes">Treinar Banco</a><a class="button-link" href="#banco-questoes" data-view-link="banco-questoes" data-scroll-target="#qb-error-notebook-title">Abrir Caderno de Erros</a></article>
+          <article class="stat-card wide-stat"><a class="button-link" href="#banco-questoes" data-view-link="banco-questoes">Treinar Banco</a><a class="button-link" href="#caderno-erros" data-view-link="caderno-erros">Abrir Caderno de Erros</a></article>
         </div></article>
         <article class="dashboard-block"><div class="dashboard-block-title">Simulados</div><div class="stats-grid compact">
           <article class="stat-card"><span>Simulados realizados</span><strong id="mockTotal" class="stat-value-compact">0</strong></article>
@@ -477,26 +477,6 @@
         <div id="qbStats" class="stats-grid compact qb-stats-grid"></div>
       </section>
 
-      <section class="qb-section qb-error-notebook" aria-labelledby="qb-error-notebook-title">
-        <div class="section-heading inline"><div><p class="eyebrow">Revisão ativa</p><h3 id="qb-error-notebook-title">Caderno de Erros</h3><p class="item-meta">Revise somente o que você errou, deixou em branco ou marcou como dúvida.</p></div></div>
-        <div id="qbErrorStats" class="stats-grid compact qb-stats-grid"></div>
-        <div class="actions qb-error-actions" aria-label="Ações principais do Caderno de Erros">
-          <button id="qbStartErrorNotebook" type="button">Revisar pendentes</button>
-          <button id="qbReviewByDiscipline" class="secondary-button" type="button">Revisar por disciplina</button>
-          <button id="qbReviewBySubject" class="secondary-button" type="button">Revisar por assunto</button>
-          <button id="qbToggleErrorHistory" class="secondary-button" type="button">Ver histórico detalhado</button>
-        </div>
-        <div class="filters form-grid compact qb-filter-grid" aria-label="Filtros simples do Caderno de Erros">
-          <label>Disciplina<select id="qbErrorFilterDiscipline"><option value="">Todas</option></select></label>
-          <label>Assunto<select id="qbErrorFilterSubject"><option value="">Todos</option></select></label>
-          <label>Motivo<select id="qbErrorFilterReason"><option value="">Todos</option><option value="erro">Erro</option><option value="branco">Branco</option><option value="duvida">Dúvida</option></select></label>
-          <label>Status<select id="qbErrorFilterStatus"><option value="">Todos</option><option value="pendente">Pendente</option><option value="revisado">Revisado</option><option value="dominado">Dominado</option></select></label>
-        </div>
-        <details id="qbErrorHistory" class="qb-details-card qb-error-history">
-          <summary><span><strong>Histórico detalhado</strong><small>Registros ficam recolhidos por padrão; gabarito e justificativa não aparecem automaticamente.</small></span></summary>
-          <div id="qbErrorNotebookList" class="question-bank-list empty-message"></div>
-        </details>
-      </section>
 
       <section class="qb-section qb-filters-card" aria-labelledby="qb-filters-title">
         <div class="section-heading"><p class="eyebrow">Centro do treino</p><h3 id="qb-filters-title">Filtros do Treino</h3></div>
@@ -546,6 +526,29 @@
       </section>
       <section id="qbTrainingPanel" class="question-bank-training qb-section" hidden><div class="section-heading inline"><div><p class="eyebrow">Resolver</p><h3>Treino em andamento</h3></div><strong id="qbTrainingCounter" class="badge">0/0</strong></div><div class="question-bank-progress"><span id="qbTrainingProgress"></span></div><div id="qbQuestionCard" class="question-bank-card"></div></section>
       <section id="qbResultPanel" class="qb-section" hidden><div class="section-heading"><p class="eyebrow">Resultado</p><h3>Último treino</h3></div><div id="qbResultSummary" class="stats-grid compact"></div><div id="qbResultDetails" class="question-bank-list"></div></section>
+    </section>
+
+    <section id="view-caderno-erros" class="panel app-view question-bank-screen" data-view="caderno-erros" aria-labelledby="caderno-erros-title">
+      <section class="qb-section qb-error-notebook" aria-labelledby="caderno-erros-title">
+        <div class="section-heading inline"><div><p class="eyebrow">Revisão ativa</p><h2 id="caderno-erros-title">Caderno de Erros</h2><p class="item-meta">Revise somente o que você errou, deixou em branco ou marcou como dúvida.</p></div></div>
+        <div id="qbErrorStats" class="stats-grid compact qb-stats-grid"></div>
+        <div class="actions qb-error-actions" aria-label="Ações principais do Caderno de Erros">
+          <button id="qbStartErrorNotebook" type="button">Revisar pendentes</button>
+          <button id="qbReviewByDiscipline" class="secondary-button" type="button">Revisar por disciplina</button>
+          <button id="qbReviewBySubject" class="secondary-button" type="button">Revisar por assunto</button>
+          <button id="qbToggleErrorHistory" class="secondary-button" type="button">Ver histórico detalhado</button>
+        </div>
+        <div class="filters form-grid compact qb-filter-grid" aria-label="Filtros simples do Caderno de Erros">
+          <label>Disciplina<select id="qbErrorFilterDiscipline"><option value="">Todas</option></select></label>
+          <label>Assunto<select id="qbErrorFilterSubject"><option value="">Todos</option></select></label>
+          <label>Motivo<select id="qbErrorFilterReason"><option value="">Todos</option><option value="erro">Erro</option><option value="branco">Branco</option><option value="duvida">Dúvida</option></select></label>
+          <label>Status<select id="qbErrorFilterStatus"><option value="">Todos</option><option value="pendente">Pendente</option><option value="revisado">Revisado</option><option value="dominado">Dominado</option></select></label>
+        </div>
+        <details id="qbErrorHistory" class="qb-details-card qb-error-history">
+          <summary><span><strong>Histórico detalhado</strong><small>Registros ficam recolhidos por padrão; gabarito e justificativa não aparecem automaticamente.</small></span></summary>
+          <div id="qbErrorNotebookList" class="question-bank-list empty-message"></div>
+        </details>
+      </section>
     </section>
 
     <section id="view-simulados" class="panel app-view" data-view="simulados" aria-labelledby="mock-title">
@@ -637,7 +640,7 @@
     <a href="#backup" data-view-link="backup">Backup</a>
   </nav>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260701-error-notebook-fix5</p></footer>
-  <script src="script.js?v=20260701-error-notebook-fix5"></script>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260701-error-notebook-fix6</p></footer>
+  <script src="script.js?v=20260701-error-notebook-fix6"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-cache-20260701-error-notebook-fix5";
+const CACHE_NAME = "metas-estudo-cache-20260701-error-notebook-fix6";
 const FILES_TO_CACHE = [
   "./",
   "index.html",

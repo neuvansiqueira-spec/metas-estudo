@@ -2525,3 +2525,37 @@ th {
   white-space: normal;
   overflow-wrap: anywhere;
 }
+
+.qb-error-notebook .qb-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.qb-error-notebook .stat-card {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  min-height: 112px;
+  padding: 18px;
+}
+
+.qb-error-notebook .stat-card strong {
+  display: block;
+  max-width: 100%;
+  font-size: clamp(1.05rem, 1.8vw, 1.45rem) !important;
+  line-height: 1.25 !important;
+  letter-spacing: -0.02em;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.qb-error-notebook .stat-card span {
+  font-size: .78rem;
+  line-height: 1.2;
+}
+
+.qb-error-notebook .filters {
+  overflow: visible;
+}
