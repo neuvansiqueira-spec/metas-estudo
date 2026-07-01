@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260701-simple-questions-fix",
+  "version": "20260701-rollback-stable",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

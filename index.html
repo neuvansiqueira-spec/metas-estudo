@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260701-simple-questions-fix" />
+  <link rel="stylesheet" href="style.css?v=20260701-rollback-stable" />
 </head>
 <body>
   <header class="hero">
@@ -42,13 +42,12 @@
           <a href="#assuntos-agendaveis" data-view-link="assuntos-agendaveis">Assuntos Agendáveis</a>
         </div>
         <div class="mobile-menu-group"><span>Desempenho</span>
-          <a href="#questoes" data-view-link="questoes">Registro de Desempenho</a>
-          <a href="#historico-questoes" data-view-link="historico-questoes">Histórico de Desempenho</a>
+          <a href="#progresso" data-view-link="progresso">Progresso</a>
+          <a href="#questoes" data-view-link="questoes">Questões</a>
+          <a href="#historico-questoes" data-view-link="historico-questoes">Histórico de Questões</a>
+          <a href="#banco-questoes" data-view-link="banco-questoes">Banco de Questões</a>
+          <a href="#caderno-erros" data-view-link="caderno-erros">Caderno de Erros</a>
           <a href="#simulados" data-view-link="simulados">Simulados</a>
-        </div>
-        <div class="mobile-menu-group"><span>Treino</span>
-          <a href="#banco-questoes" data-view-link="banco-questoes">Treino por Questões</a>
-          <a href="#caderno-erros" data-view-link="caderno-erros">Revisão de Erros</a>
         </div>
         <div class="mobile-menu-group"><span>Apoio</span>
           <a href="#materiais" data-view-link="materiais">Materiais</a>
@@ -94,13 +93,12 @@
         <a href="#assuntos-agendaveis" data-view-link="assuntos-agendaveis">Assuntos Agendáveis</a>
       </div>
       <div class="side-nav-group"><span>Desempenho</span>
-        <a href="#questoes" data-view-link="questoes">Registro de Desempenho</a>
-        <a href="#historico-questoes" data-view-link="historico-questoes">Histórico de Desempenho</a>
+        <a href="#progresso" data-view-link="progresso">Progresso</a>
+        <a href="#questoes" data-view-link="questoes">Questões</a>
+        <a href="#historico-questoes" data-view-link="historico-questoes">Histórico de Questões</a>
+        <a href="#banco-questoes" data-view-link="banco-questoes">Banco de Questões</a>
+        <a href="#caderno-erros" data-view-link="caderno-erros">Caderno de Erros</a>
         <a href="#simulados" data-view-link="simulados">Simulados</a>
-      </div>
-      <div class="side-nav-group"><span>Treino</span>
-        <a href="#banco-questoes" data-view-link="banco-questoes">Treino por Questões</a>
-        <a href="#caderno-erros" data-view-link="caderno-erros">Revisão de Erros</a>
       </div>
       <div class="side-nav-group"><span>Apoio</span>
         <a href="#materiais" data-view-link="materiais">Materiais</a>
@@ -151,20 +149,20 @@
           <article class="stat-card wide-stat"><a class="button-link" href="#progresso" data-view-link="progresso">Ver Progresso</a></article>
         </div></article>
         <article class="dashboard-block"><div class="dashboard-block-title">Desempenho</div><div class="stats-grid compact">
-          <article class="stat-card"><span>Desempenho em Questões</span><strong id="totalQuestions" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Questões feitas</span><strong id="totalQuestions" class="stat-value-compact">0</strong></article>
           <article class="stat-card"><span>Percentual de acerto</span><strong id="accuracyRate" class="stat-value-compact">0%</strong></article>
           <article class="stat-card"><span>Líquido Cebraspe geral</span><strong id="generalCebraspeNet" class="stat-value-compact">0</strong></article>
           <article class="stat-card"><span>Disciplina mais problemática</span><strong id="dashboardProblemDiscipline" class="stat-value-text">-</strong></article>
-          <article class="stat-card wide-stat"><a class="button-link" href="#questoes" data-view-link="questoes">Registrar Desempenho</a></article>
+          <article class="stat-card wide-stat"><a class="button-link" href="#questoes" data-view-link="questoes">Registrar Questões</a></article>
         </div></article>
-        <article class="dashboard-block"><div class="dashboard-block-title">Treino por Questões</div><div class="stats-grid compact">
+        <article class="dashboard-block"><div class="dashboard-block-title">Banco de Questões</div><div class="stats-grid compact">
           <article class="stat-card"><span>Questões no banco</span><strong id="dashboardQuestionBankTotal" class="stat-value-compact">0</strong></article>
           <article class="stat-card"><span>Treinos realizados</span><strong id="dashboardQuestionBankSessions" class="stat-value-compact">0</strong></article>
           <article class="stat-card"><span>Último treino</span><strong id="dashboardQuestionBankLast" class="stat-value-text">-</strong></article>
           <article class="stat-card"><span>Pacotes disponíveis</span><strong id="dashboardQuestionBankPackages" class="stat-value-compact">0</strong></article>
           <article class="stat-card"><span>Questões vinculadas ao edital</span><strong id="dashboardQuestionBankLinked" class="stat-value-compact">0</strong></article>
           <article class="stat-card"><span>Assuntos do edital sem questões</span><strong id="dashboardQuestionBankMissing" class="stat-value-compact">0</strong></article>
-          <article class="stat-card wide-stat"><a class="button-link" href="#banco-questoes" data-view-link="banco-questoes">Treinar Questões</a><a class="button-link" href="#caderno-erros" data-view-link="caderno-erros">Abrir Revisão de Erros</a></article>
+          <article class="stat-card wide-stat"><a class="button-link" href="#banco-questoes" data-view-link="banco-questoes">Treinar Banco</a><a class="button-link" href="#caderno-erros" data-view-link="caderno-erros">Abrir Caderno de Erros</a></article>
         </div></article>
         <article class="dashboard-block"><div class="dashboard-block-title">Simulados</div><div class="stats-grid compact">
           <article class="stat-card"><span>Simulados realizados</span><strong id="mockTotal" class="stat-value-compact">0</strong></article>
@@ -449,14 +447,14 @@
     </section>
 
     <section id="view-questoes" class="panel app-view" data-view="questoes" aria-labelledby="questions-title">
-      <div class="section-heading"><p class="eyebrow">Desempenho</p><h2 id="questions-title">Registro de Desempenho</h2><p class="item-meta">Lance aqui o resultado de blocos de questões já resolvidas: total, acertos, erros, brancos, disciplina e assunto.</p></div>
+      <div class="section-heading"><p class="eyebrow">Desempenho</p><h2 id="questions-title">Questões</h2></div>
       <form id="questionForm" class="form-grid">
         <input id="questionEditingId" type="hidden" /><input id="questionLinkedGoalId" type="hidden" /><input id="questionOrigin" type="hidden" value="avulso" />
         <label>Data<input id="questionDate" type="date" required /></label>
         <label>Disciplina<select id="questionDiscipline" required></select></label>
         <label class="wide">Assunto<select id="questionSyllabusItem" required></select></label>
         <label>Banca<select id="questionBoard"><option>Cebraspe</option><option>FGV</option><option>FCC</option><option>Vunesp</option><option>Instituto AOCP</option><option>Cesgranrio</option><option>Outra</option></select></label>
-        <label>Tipo de treino<select id="questionTrainingType"><option>Questões avulsas</option><option>Revisão de Erros</option><option>Simulado</option><option>Revisão</option><option>Pós-aula</option></select></label>
+        <label>Tipo de treino<select id="questionTrainingType"><option>Questões avulsas</option><option>Caderno de erros</option><option>Simulado</option><option>Revisão</option><option>Pós-aula</option></select></label>
         <label>Total de questões<input id="questionTotal" type="number" min="1" required /></label>
         <label>Tempo gasto (min)<input id="questionMinutes" type="number" min="0" value="0" /></label>
         <label>Acertos<input id="questionCorrect" type="number" min="0" value="0" required /></label>
@@ -465,13 +463,13 @@
         <label class="wide">Observações<textarea id="questionNotes" rows="3"></textarea></label>
         <div id="questionCalculated" class="calculation-box wide">Preencha os números para calcular percentuais e líquido.</div>
         <div id="questionAnalysis" class="notice wide"></div>
-        <button class="wide" type="submit">Salvar desempenho</button>
+        <button class="wide" type="submit">Salvar lançamento de questões</button>
       </form>
     </section>
 
 
     <section id="view-banco-questoes" class="panel app-view question-bank-screen" data-view="banco-questoes" aria-labelledby="question-bank-title">
-      <div class="section-heading inline"><div><p class="eyebrow">Treino Certo/Errado</p><h2 id="question-bank-title">Treino por Questões</h2><p class="item-meta">Importe questões em JSON, filtre por disciplina, assunto, banca e monte treinos no estilo Certo/Errado.</p></div><button id="qbNewTraining" type="button">Novo treino</button></div>
+      <div class="section-heading inline"><div><p class="eyebrow">Treino Certo/Errado</p><h2 id="question-bank-title">Banco de Questões</h2><p class="item-meta">Tela reorganizada para montar treinos, diagnosticar cobertura do edital e gerenciar seu banco local sem publicar questões no repositório.</p></div><button id="qbNewTraining" type="button">Novo treino</button></div>
       <p class="notice warning-notice">Não inclua arquivos JSON de questões no GitHub. Use apenas importação local; os dados permanecem no localStorage em <code>metasConcursoData.questionBank</code>.</p>
 
       <section class="qb-section qb-summary" aria-labelledby="qb-summary-title">
@@ -493,8 +491,6 @@
           <label>Quantidade<input id="qbTrainingLimit" type="number" min="1" value="20" /></label>
           <label class="wide">Busca textual<input id="qbFilterSearch" type="search" placeholder="Enunciado, disciplina, assunto, tema, banca ou referência" /></label>
           <label class="qb-check"><input id="qbShuffleTraining" type="checkbox" checked /> Embaralhar</label>
-          <label class="qb-check wide"><input id="qbShowFeedbackImmediately" type="checkbox" checked /> Mostrar gabarito e justificativa após cada resposta</label>
-          <p id="qbFeedbackModeDescription" class="item-meta wide">Modo estudo: você responde e vê gabarito e justificativa na hora.</p>
         </div>
         <div class="actions qb-training-actions"><button id="qbPreviewFiltered" class="secondary-button" type="button">Pré-visualizar</button><button id="qbStartTraining" type="button">Iniciar treino</button><button id="qbRedoBlanks" class="secondary-button" type="button">Refazer brancos</button></div>
         <div id="qbMessage" class="file-info empty-message" aria-live="polite"></div>
@@ -528,22 +524,21 @@
         <div class="section-heading"><p class="eyebrow">Prévia</p><h3 id="qb-preview-title">Prévia das questões filtradas</h3></div>
         <div id="qbFilteredPreview" class="question-bank-list empty-message">Clique em “Pré-visualizar” para listar as questões encontradas.</div>
       </section>
-
-      <section id="qbTrainingPanel" class="question-bank-training qb-section" hidden><div class="section-heading inline"><div><p class="eyebrow">Resolver</p><h2 id="treino-questoes-title">Treino por Questões</h2><h3>Treino em andamento</h3></div><strong id="qbTrainingCounter" class="badge">0/0</strong></div><div class="question-bank-progress"><span id="qbTrainingProgress"></span></div><div id="qbQuestionCard" class="question-bank-card"></div></section>
-      <section id="qbResultPanel" class="qb-section" hidden><div class="section-heading"><p class="eyebrow">Resultado</p><h2 id="treino-questoes-result-title">Último treino</h2></div><div id="qbResultSummary" class="stats-grid compact"></div><div id="qbResultDetails" class="question-bank-list"></div></section>
+      <section id="qbTrainingPanel" class="question-bank-training qb-section" hidden><div class="section-heading inline"><div><p class="eyebrow">Resolver</p><h3>Treino em andamento</h3></div><strong id="qbTrainingCounter" class="badge">0/0</strong></div><div class="question-bank-progress"><span id="qbTrainingProgress"></span></div><div id="qbQuestionCard" class="question-bank-card"></div></section>
+      <section id="qbResultPanel" class="qb-section" hidden><div class="section-heading"><p class="eyebrow">Resultado</p><h3>Último treino</h3></div><div id="qbResultSummary" class="stats-grid compact"></div><div id="qbResultDetails" class="question-bank-list"></div></section>
     </section>
 
     <section id="view-caderno-erros" class="panel app-view question-bank-screen" data-view="caderno-erros" aria-labelledby="caderno-erros-title">
       <section class="qb-section qb-error-notebook" aria-labelledby="caderno-erros-title">
-        <div class="section-heading inline"><div><p class="eyebrow">Revisão simples</p><h2 id="caderno-erros-title">Revisão de Erros</h2><p class="item-meta">Revise somente questões que você errou, deixou em branco ou marcou como dúvida.</p></div></div>
+        <div class="section-heading inline"><div><p class="eyebrow">Revisão ativa</p><h2 id="caderno-erros-title">Caderno de Erros</h2><p class="item-meta">Revise somente o que você errou, deixou em branco ou marcou como dúvida.</p></div></div>
         <div id="qbErrorStats" class="stats-grid compact qb-stats-grid"></div>
-        <div class="actions qb-error-actions" aria-label="Ações principais da Revisão de Erros">
+        <div class="actions qb-error-actions" aria-label="Ações principais do Caderno de Erros">
           <button id="qbStartErrorNotebook" type="button">Revisar pendentes</button>
           <button id="qbReviewByDiscipline" class="secondary-button" type="button">Revisar por disciplina</button>
           <button id="qbReviewBySubject" class="secondary-button" type="button">Revisar por assunto</button>
           <button id="qbToggleErrorHistory" class="secondary-button" type="button">Ver histórico detalhado</button>
         </div>
-        <div class="filters form-grid compact qb-filter-grid" aria-label="Filtros simples da Revisão de Erros">
+        <div class="filters form-grid compact qb-filter-grid" aria-label="Filtros simples do Caderno de Erros">
           <label>Disciplina<select id="qbErrorFilterDiscipline"><option value="">Todas</option></select></label>
           <label>Assunto<select id="qbErrorFilterSubject"><option value="">Todos</option></select></label>
           <label>Motivo<select id="qbErrorFilterReason"><option value="">Todos</option><option value="erro">Erro</option><option value="branco">Branco</option><option value="duvida">Dúvida</option></select></label>
@@ -586,7 +581,7 @@
     </section>
 
     <section id="view-historico-questoes" class="panel app-view" data-view="historico-questoes" aria-labelledby="question-history-title">
-      <div class="section-heading"><p class="eyebrow">Histórico</p><h2 id="question-history-title">Histórico de Desempenho</h2><p class="item-meta">Consulte seus lançamentos manuais de questões, percentuais e líquido Cebraspe.</p></div>
+      <div class="section-heading"><p class="eyebrow">Histórico</p><h2 id="question-history-title">Histórico de Questões</h2></div>
       <div class="filters form-grid compact">
         <label>Disciplina<select id="questionFilterDiscipline"><option value="">Todas</option></select></label>
         <label>Assunto<select id="questionFilterSubject"><option value="">Todos</option></select></label>
@@ -602,7 +597,7 @@
     </section>
 
     <section id="view-historico" class="panel app-view" data-view="historico" aria-labelledby="history-title">
-      <div class="section-heading inline"><div><p class="eyebrow">Registros recentes</p><h2 id="history-title">Histórico Geral</h2><p class="item-meta">Esta tela mostra registros gerais de estudo. Para lançamentos de questões, use Desempenho → Histórico de Desempenho.</p></div><button id="clearData" class="danger" type="button">Limpar dados</button></div>
+      <div class="section-heading inline"><div><p class="eyebrow">Registros recentes</p><h2 id="history-title">Histórico Geral</h2><p class="item-meta">Esta tela mostra registros gerais de estudo. Para lançamentos de questões, use Desempenho → Histórico de Questões.</p></div><button id="clearData" class="danger" type="button">Limpar dados</button></div>
       <div class="table-wrapper"><table><thead><tr><th>Data</th><th>Disciplina</th><th>Assunto</th><th>Minutos</th><th>Questões</th><th>Acertos</th><th>Erros</th><th>Brancos</th></tr></thead><tbody id="historyBody"></tbody></table></div>
     </section>
 
@@ -645,7 +640,7 @@
     <a href="#backup" data-view-link="backup">Backup</a>
   </nav>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260701-simple-questions-fix</p></footer>
-  <script src="script.js?v=20260701-simple-questions-fix"></script>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260701-rollback-stable</p></footer>
+  <script src="script.js?v=20260701-rollback-stable"></script>
 </body>
 </html>

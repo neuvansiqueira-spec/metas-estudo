@@ -2295,7 +2295,7 @@ th {
   }
 }
 
-/* Hotfix: impede que a tabela do Histórico de Desempenho seja comprimida a ponto de quebrar letras em coluna. */
+/* Hotfix: impede que a tabela do Histórico de Questões seja comprimida a ponto de quebrar letras em coluna. */
 #view-historico-questoes .table-wrapper {
   width: 100%;
   max-width: 100%;
@@ -2458,7 +2458,7 @@ th {
   #qbSyllabusPackages .card-meta-grid { grid-template-columns: 1fr; }
 }
 
-/* Revisão de Erros: revisão ativa sem vazamento horizontal de estatísticas longas. */
+/* Caderno de Erros: revisão ativa sem vazamento horizontal de estatísticas longas. */
 .qb-error-notebook .qb-stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -2509,7 +2509,7 @@ th {
   margin-top: 4px;
 }
 
-/* Revisão de Erros como histórico recolhido: cards compactos e sem vazamento. */
+/* Caderno de Erros como histórico recolhido: cards compactos e sem vazamento. */
 .qb-error-notebook-row,
 .qb-error-notebook-row * {
   min-width: 0;

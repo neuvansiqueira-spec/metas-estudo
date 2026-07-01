@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-cache-20260701-simple-questions-fix";
+const CACHE_NAME = "metas-estudo-cache-20260701-rollback-stable";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
