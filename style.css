@@ -2485,3 +2485,33 @@ th {
   word-break: break-word;
   max-width: 100%;
 }
+
+/* Caderno de Erros como fila de revisão: cards compactos e sem vazamento. */
+.qb-error-notebook-row,
+.qb-error-notebook-row * {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.qb-error-notebook-row .card-meta-grid span,
+.qb-error-notebook-row details,
+.qb-error-notebook-row summary,
+.qb-error-notebook-row p {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.qb-error-notebook .stat-card {
+  padding: 12px;
+}
+
+.qb-error-notebook .stat-card span {
+  font-size: .74rem;
+}
+
+.qb-error-notebook .stat-card strong {
+  font-size: clamp(.95rem, 1.6vw, 1.35rem);
+  line-height: 1.25;
+}
