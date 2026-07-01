@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260701-error-notebook-fix4" />
+  <link rel="stylesheet" href="style.css?v=20260701-error-notebook-fix5" />
 </head>
 <body>
   <header class="hero">
@@ -478,15 +478,24 @@
       </section>
 
       <section class="qb-section qb-error-notebook" aria-labelledby="qb-error-notebook-title">
-        <div class="section-heading inline"><div><p class="eyebrow">Revisão ativa</p><h3 id="qb-error-notebook-title">Caderno de Erros</h3><p class="item-meta">Questões erradas, em branco ou marcadas como dúvida são salvas automaticamente neste navegador.</p></div><button id="qbStartErrorNotebook" class="secondary-button" type="button">Revisar pendentes</button></div>
+        <div class="section-heading inline"><div><p class="eyebrow">Revisão ativa</p><h3 id="qb-error-notebook-title">Caderno de Erros</h3><p class="item-meta">Revise somente o que você errou, deixou em branco ou marcou como dúvida.</p></div></div>
         <div id="qbErrorStats" class="stats-grid compact qb-stats-grid"></div>
-        <div class="filters form-grid compact qb-filter-grid">
+        <div class="actions qb-error-actions" aria-label="Ações principais do Caderno de Erros">
+          <button id="qbStartErrorNotebook" type="button">Revisar pendentes</button>
+          <button id="qbReviewByDiscipline" class="secondary-button" type="button">Revisar por disciplina</button>
+          <button id="qbReviewBySubject" class="secondary-button" type="button">Revisar por assunto</button>
+          <button id="qbToggleErrorHistory" class="secondary-button" type="button">Ver histórico detalhado</button>
+        </div>
+        <div class="filters form-grid compact qb-filter-grid" aria-label="Filtros simples do Caderno de Erros">
           <label>Disciplina<select id="qbErrorFilterDiscipline"><option value="">Todas</option></select></label>
           <label>Assunto<select id="qbErrorFilterSubject"><option value="">Todos</option></select></label>
-          <label>Status<select id="qbErrorFilterStatus"><option value="">Todos</option><option value="pendente">Pendente</option><option value="revisado">Revisado</option><option value="dominado">Dominado</option></select></label>
           <label>Motivo<select id="qbErrorFilterReason"><option value="">Todos</option><option value="erro">Erro</option><option value="branco">Branco</option><option value="duvida">Dúvida</option></select></label>
+          <label>Status<select id="qbErrorFilterStatus"><option value="">Todos</option><option value="pendente">Pendente</option><option value="revisado">Revisado</option><option value="dominado">Dominado</option></select></label>
         </div>
-        <div id="qbErrorNotebookList" class="question-bank-list empty-message"></div>
+        <details id="qbErrorHistory" class="qb-details-card qb-error-history">
+          <summary><span><strong>Histórico detalhado</strong><small>Registros ficam recolhidos por padrão; gabarito e justificativa não aparecem automaticamente.</small></span></summary>
+          <div id="qbErrorNotebookList" class="question-bank-list empty-message"></div>
+        </details>
       </section>
 
       <section class="qb-section qb-filters-card" aria-labelledby="qb-filters-title">
@@ -628,7 +637,7 @@
     <a href="#backup" data-view-link="backup">Backup</a>
   </nav>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260701-error-notebook-fix4</p></footer>
-  <script src="script.js?v=20260701-error-notebook-fix4"></script>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260701-error-notebook-fix5</p></footer>
+  <script src="script.js?v=20260701-error-notebook-fix5"></script>
 </body>
 </html>
