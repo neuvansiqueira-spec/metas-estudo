@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260701-error-notebook-fix6",
+  "version": "20260701-route-fix",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
