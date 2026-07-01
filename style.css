@@ -2457,3 +2457,31 @@ th {
   .qb-compact-accordion > summary::after { align-self: flex-start; }
   #qbSyllabusPackages .card-meta-grid { grid-template-columns: 1fr; }
 }
+
+/* Caderno de Erros: evita vazamento horizontal de estatísticas longas. */
+.qb-error-notebook .qb-stats-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.qb-error-notebook .stat-card {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.qb-error-notebook .stat-card span,
+.qb-error-notebook .stat-card small,
+.qb-error-notebook .stat-card strong {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.qb-error-notebook .stat-card strong {
+  font-size: clamp(1.1rem, 2vw, 1.6rem);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
+}
