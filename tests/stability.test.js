@@ -34,9 +34,9 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão do banco de questões', () => {
-  assert.match(html, /style\.css\?v=20260630-question-bank/);
-  assert.match(html, /script\.js\?v=20260630-question-bank/);
-  assert.match(html, /Versão: 20260630-question-bank/);
+  assert.match(html, /style\.css\?v=20260701-error-notebook/);
+  assert.match(html, /script\.js\?v=20260701-error-notebook/);
+  assert.match(html, /Versão: 20260701-error-notebook/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -75,6 +75,16 @@ test('tempo de revisão sugerido e realizado é salvo e exibido em Dashboard/Rev
 test('Banco de Questões possui rota SPA e suporte a justificativas', () => {
   assert.ok(hasVisibleRouteSupport('#banco-questoes'), '#banco-questoes deve ter link de navegação SPA');
   assert.match(html, /id="view-banco-questoes"/);
+  assert.match(html, />Caderno de Erros</);
+  assert.match(html, /id="qbErrorStats"/);
+  assert.match(html, /id="qbErrorNotebookList"/);
+  assert.ok(script.includes('qbErrorStats: $("#qbErrorStats")'));
+  assert.ok(script.includes('qbErrorNotebookList: $("#qbErrorNotebookList")'));
+  assert.ok(script.includes('qbStartErrorNotebook: $("#qbStartErrorNotebook")'));
+  assert.match(script, /qbStartErrorNotebook\?\.addEventListener\("click", qbStartNotebookTraining\)/);
+  assert.match(script, /data-qb-error-status/);
+  assert.match(script, /qbSetNotebookStatus\(btn\.dataset\.qbErrorId, btn\.dataset\.qbErrorStatus\)/);
+  assert.match(script, /CADERNO_ERROS_STORAGE_KEY/);
   assert.match(script, /"banco-questoes": renderQuestionBank/);
   assert.match(script, /function questionBankExplanation/);
   assert.match(script, /raw\.justificativa/);
@@ -155,7 +165,7 @@ test('Banco de Questões possui Pacotes do Edital vinculados ao edital verticali
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-cache-20260630-question-bank/);
+  assert.match(sw, /metas-estudo-cache-20260701-error-notebook/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);
