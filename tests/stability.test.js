@@ -34,13 +34,14 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão do banco de questões', () => {
-  assert.match(html, /style\.css\?v=20260701-error-notebook-fix2/);
-  assert.match(html, /script\.js\?v=20260701-error-notebook-fix2/);
-  assert.match(html, /Versão: 20260701-error-notebook-fix2/);
+  assert.match(html, /style\.css\?v=20260701-error-notebook-fix3/);
+  assert.match(html, /script\.js\?v=20260701-error-notebook-fix3/);
+  assert.match(html, /Versão: 20260701-error-notebook-fix3/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
-  assert.doesNotMatch(css, /overflow-wrap\s*:\s*anywhere/i);
+  assert.match(css, /\.qb-error-notebook \.stat-card strong[\s\S]*overflow-wrap\s*:\s*anywhere/i);
+  assert.match(css, /\.qb-error-notebook \.stat-card strong[\s\S]*word-break\s*:\s*break-word/i);
   assert.doesNotMatch(css, /word-break\s*:\s*break-all/i);
 });
 
@@ -165,7 +166,7 @@ test('Banco de Questões possui Pacotes do Edital vinculados ao edital verticali
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-cache-20260701-error-notebook-fix2/);
+  assert.match(sw, /metas-estudo-cache-20260701-error-notebook-fix3/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);
