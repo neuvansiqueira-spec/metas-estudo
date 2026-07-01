@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260630-question-bank",
+  "version": "20260701-error-notebook",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
