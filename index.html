@@ -475,6 +475,18 @@
         <div id="qbStats" class="stats-grid compact qb-stats-grid"></div>
       </section>
 
+      <section class="qb-section qb-error-notebook" aria-labelledby="qb-error-notebook-title">
+        <div class="section-heading inline"><div><p class="eyebrow">Revisão ativa</p><h3 id="qb-error-notebook-title">Caderno de Erros</h3><p class="item-meta">Questões erradas, em branco ou marcadas como dúvida são salvas automaticamente neste navegador.</p></div><button id="qbStartErrorNotebook" class="secondary-button" type="button">Revisar em modo treino</button></div>
+        <div id="qbErrorStats" class="stats-grid compact qb-stats-grid"></div>
+        <div class="filters form-grid compact qb-filter-grid">
+          <label>Disciplina<select id="qbErrorFilterDiscipline"><option value="">Todas</option></select></label>
+          <label>Assunto<select id="qbErrorFilterSubject"><option value="">Todos</option></select></label>
+          <label>Status<select id="qbErrorFilterStatus"><option value="">Todos</option><option value="pendente">Pendente</option><option value="revisado">Revisado</option><option value="dominado">Dominado</option></select></label>
+          <label>Motivo<select id="qbErrorFilterReason"><option value="">Todos</option><option value="erro">Erro</option><option value="branco">Branco</option><option value="duvida">Dúvida</option></select></label>
+        </div>
+        <div id="qbErrorNotebookList" class="question-bank-list empty-message"></div>
+      </section>
+
       <section class="qb-section qb-filters-card" aria-labelledby="qb-filters-title">
         <div class="section-heading"><p class="eyebrow">Centro do treino</p><h3 id="qb-filters-title">Filtros do Treino</h3></div>
         <div class="filters form-grid compact qb-filter-grid">

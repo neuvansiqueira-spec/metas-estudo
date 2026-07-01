@@ -16,6 +16,7 @@
     .answer-button { min-height: 54px; font-size: 1rem; font-weight: 700; }
     .answer-button.selected { outline: 3px solid rgba(18,63,120,.35); transform: translateY(-1px); }
     .answer-button.blank-button { background: #64748b; }
+    .answer-button.doubt-button { background: #f59e0b; }
     .progress-line { height: 10px; border-radius: 999px; background: #e5e7eb; overflow: hidden; margin: 12px 0; }
     .progress-line span { display: block; height: 100%; background: #123f78; width: 0%; transition: width .2s ease; }
     .question-meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; color: #475569; font-size: .9rem; }
@@ -72,6 +73,18 @@
       <div id="bankStats" class="stats-grid compact"></div>
     </section>
 
+    <section class="panel" aria-labelledby="error-notebook-title">
+      <div class="section-heading inline"><div><p class="eyebrow">Revisão ativa</p><h2 id="error-notebook-title">Caderno de Erros</h2><p class="muted">Erros, brancos e dúvidas são salvos automaticamente no localStorage.</p></div><button id="startErrorNotebook" class="secondary-button" type="button">Revisar em modo treino</button></div>
+      <div id="errorStats" class="stats-grid compact"></div>
+      <div class="filters form-grid compact">
+        <label>Disciplina<select id="errorFilterDiscipline"><option value="">Todas</option></select></label>
+        <label>Assunto<select id="errorFilterSubject"><option value="">Todos</option></select></label>
+        <label>Status<select id="errorFilterStatus"><option value="">Todos</option><option value="pendente">Pendente</option><option value="revisado">Revisado</option><option value="dominado">Dominado</option></select></label>
+        <label>Motivo<select id="errorFilterReason"><option value="">Todos</option><option value="erro">Erro</option><option value="branco">Branco</option><option value="duvida">Dúvida</option></select></label>
+      </div>
+      <div id="errorNotebookList" class="bank-list empty-message"></div>
+    </section>
+
     <section class="panel" aria-labelledby="filters-title">
       <div class="section-heading"><p class="eyebrow">Treino</p><h2 id="filters-title">Montar treino</h2></div>
       <div class="filters form-grid compact">
@@ -126,12 +139,13 @@
       trainingLimit: $("#trainingLimit"), shuffleTraining: $("#shuffleTraining"), startTraining: $("#startTraining"), previewFiltered: $("#previewFiltered"), filteredPreview: $("#filteredPreview"),
       trainingPanel: $("#trainingPanel"), trainingCounter: $("#trainingCounter"), trainingProgress: $("#trainingProgress"), questionCard: $("#questionCard"),
       resultPanel: $("#resultPanel"), resultSummary: $("#resultSummary"), resultDetails: $("#resultDetails"),
-      exportBank: $("#exportBank"), exportSessions: $("#exportSessions"), clearBank: $("#clearBank")
+      exportBank: $("#exportBank"), exportSessions: $("#exportSessions"), clearBank: $("#clearBank"), errorStats: $("#errorStats"), errorNotebookList: $("#errorNotebookList"), errorFilterDiscipline: $("#errorFilterDiscipline"), errorFilterSubject: $("#errorFilterSubject"), errorFilterStatus: $("#errorFilterStatus"), errorFilterReason: $("#errorFilterReason"), startErrorNotebook: $("#startErrorNotebook")
     };
 
     let state = readState();
     state.questionBank ||= [];
     state.questionBankSessions ||= [];
+    state.questionErrorNotebook ||= [];
     let training = null;
 
     function readState() {
@@ -290,9 +304,15 @@
         <article class="stat-card"><span>Treinos salvos</span><strong>${sessions.length}</strong></article>
         <article class="stat-card wide-stat"><span>Último treino</span><strong>${sessions[0] ? new Date(sessions[0].createdAt).toLocaleString("pt-BR") : "Nenhum"}</strong></article>`;
     }
+    function errorReason(q) { if (!q.marcado || q.marcado === "B") return "branco"; if (q.marcado === "D") return "duvida"; if (questionHasKey(q) && q.marcado !== q.gabarito) return "erro"; return ""; }
+    function reasonLabel(reason) { return ({ erro:"Erro", branco:"Branco", duvida:"Dúvida" }[reason] || reason || "-"); }
+    function saveNotebookItems(items) { state.questionErrorNotebook ||= []; items.forEach((q) => { const motivoErro = errorReason(q); if (!motivoErro) return; const entry = { id:q.id, disciplina:q.disciplina, assunto:q.assunto, banca:q.banca||"", cargo:q.cargo||"", enunciado:q.enunciado, respostaMarcada:q.marcado||"", gabaritoCorreto:q.gabarito||"", justificativa:q.justificativa||q.fundamento||q.observacoes||"Sem justificativa cadastrada", motivoErro, dataRegistro:new Date().toISOString(), status:"pendente", quantidadeErros:1 }; const existing=state.questionErrorNotebook.find((i)=>i.id===entry.id); if (existing) Object.assign(existing, entry, { status: existing.status || "pendente", quantidadeErros:(Number(existing.quantidadeErros)||1)+1 }); else state.questionErrorNotebook.unshift(entry); }); }
+    function filteredNotebook() { return (state.questionErrorNotebook||[]).filter((i)=>(!els.errorFilterDiscipline.value||i.disciplina===els.errorFilterDiscipline.value)&&(!els.errorFilterSubject.value||i.assunto===els.errorFilterSubject.value)&&(!els.errorFilterStatus.value||i.status===els.errorFilterStatus.value)&&(!els.errorFilterReason.value||i.motivoErro===els.errorFilterReason.value)); }
+    function renderErrorNotebook() { const list=state.questionErrorNotebook||[]; fillSelect(els.errorFilterDiscipline, uniqueSorted(list.map(i=>i.disciplina)), "Todas"); fillSelect(els.errorFilterSubject, uniqueSorted(list.filter(i=>!els.errorFilterDiscipline.value||i.disciplina===els.errorFilterDiscipline.value).map(i=>i.assunto)), "Todos"); const by=(field)=>Object.entries(list.reduce((a,i)=>{const k=i[field]||"Sem informação";a[k]=(a[k]||0)+(Number(i.quantidadeErros)||1);return a;},{})).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>`${k} (${v})`).join(", ")||"-"; els.errorStats.innerHTML=[["Total de erros",list.reduce((s,i)=>s+(Number(i.quantidadeErros)||1),0)],["Disciplinas com mais erros",by("disciplina")],["Assuntos com mais erros",by("assunto")],["Questões dominadas",list.filter(i=>i.status==="dominado").length],["Questões pendentes",list.filter(i=>i.status==="pendente").length]].map(([a,b])=>`<article class="stat-card"><span>${a}</span><strong>${escapeHTML(b)}</strong></article>`).join(""); const shown=filteredNotebook(); els.errorNotebookList.innerHTML=shown.length?shown.map((i)=>`<article class="bank-item"><strong>${escapeHTML(i.disciplina)} — ${escapeHTML(i.assunto)}</strong><div class="item-meta">${escapeHTML(i.banca||'-')} • ${escapeHTML(i.cargo||'-')} • Motivo: ${escapeHTML(reasonLabel(i.motivoErro))} • Status: ${escapeHTML(i.status)} • Erros: ${Number(i.quantidadeErros)||1}</div><p>${escapeHTML(i.enunciado)}</p><p><strong>Resposta:</strong> ${escapeHTML(i.respostaMarcada||'-')} • <strong>Gabarito:</strong> ${escapeHTML(i.gabaritoCorreto||'-')}</p><p><strong>Justificativa:</strong> ${escapeHTML(i.justificativa||'-')}</p><div class="actions"><button class="secondary-button" data-error-status="revisado" data-error-id="${escapeHTML(i.id)}">Marcar revisada</button><button data-error-status="dominado" data-error-id="${escapeHTML(i.id)}">Marcar dominada</button></div></article>`).join(""):"Nenhum registro no caderno de erros."; }
     function renderAll() {
       renderFilters();
       renderStats();
+      renderErrorNotebook();
     }
     function showMessage(text, type = "") {
       els.importMessage.className = `file-info empty-message ${type}`;
@@ -359,7 +379,7 @@
         <div class="question-actions">
           <button class="answer-button ${selected === "C" ? "selected" : ""}" type="button" data-answer="C">Certo</button>
           <button class="answer-button ${selected === "E" ? "selected" : ""}" type="button" data-answer="E">Errado</button>
-          <button class="answer-button blank-button ${selected === "B" ? "selected" : ""}" type="button" data-answer="B">Branco</button>
+          <button class="answer-button blank-button ${selected === "B" ? "selected" : ""}" type="button" data-answer="B">Branco</button><button class="answer-button doubt-button ${selected === "D" ? "selected" : ""}" type="button" data-answer="D">Dúvida</button>
         </div>
         <div class="training-footer">
           <span class="muted">Respondidas: ${answered}/${training.items.length}</span>
@@ -387,6 +407,7 @@
       summary.net = summary.correct - summary.wrong;
       const session = { id: training.id, createdAt: training.createdAt, summary, hasAnyKey, items: answeredItems.map((q) => ({ id: q.id, enunciado: q.enunciado, disciplina: q.disciplina, assunto: q.assunto, tema: q.tema, banca: q.banca, ano: q.ano, referencia: q.referencia, marcado: q.marcado, gabarito: q.gabarito || "" })) };
       state.questionBankSessions.unshift(session);
+      saveNotebookItems(answeredItems);
       saveState();
       renderResult(session);
       renderStats();
@@ -442,6 +463,9 @@
     els.filterSearch.addEventListener("input", previewFiltered);
     els.exportBank.addEventListener("click", () => downloadJSON("metas-estudo-banco-questoes.json", { schema: "metas-estudo-question-bank-v1", questionBank: state.questionBank }));
     els.exportSessions.addEventListener("click", () => downloadJSON("metas-estudo-resultados-banco-questoes.json", { schema: "metas-estudo-question-bank-sessions-v1", questionBankSessions: state.questionBankSessions || [] }));
+    [els.errorFilterDiscipline, els.errorFilterSubject, els.errorFilterStatus, els.errorFilterReason].forEach((el) => el.addEventListener("change", renderErrorNotebook));
+    els.errorNotebookList.addEventListener("click", (event) => { const btn=event.target.closest("[data-error-status]"); if (!btn) return; const item=(state.questionErrorNotebook||[]).find((i)=>i.id===btn.dataset.errorId); if (item) { item.status=btn.dataset.errorStatus; item.dataRegistro=new Date().toISOString(); saveState(); renderErrorNotebook(); } });
+    els.startErrorNotebook.addEventListener("click", () => { const ids=new Set(filteredNotebook().filter(i=>i.status!=="dominado").map(i=>i.id)); let items=(state.questionBank||[]).filter(q=>ids.has(q.id)); if (!items.length) return alert("Nenhuma questão pendente/revisada do caderno corresponde ao banco atual."); if (els.shuffleTraining.checked) items=shuffle(items); training={ id:createId(), createdAt:new Date().toISOString(), index:0, items, answers:{} }; els.trainingPanel.hidden=false; els.resultPanel.hidden=true; renderQuestion(); });
     els.clearBank.addEventListener("click", () => {
       if (!confirm("Apagar banco de questões e treinos desta tela neste navegador?")) return;
       state.questionBank = [];
