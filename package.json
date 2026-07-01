@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260701-training-view-fix",
+  "version": "20260701-questions-ux-feedback",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
