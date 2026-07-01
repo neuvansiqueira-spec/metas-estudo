@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-cache-20260701-questions-ux-feedback";
+const CACHE_NAME = "metas-estudo-cache-20260701-final-ux-fix";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
