@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-cache-20260708-delete-controls";
+const CACHE_NAME = "metas-estudo-cache-20260708-delete-controls-v2";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
@@ -37,17 +37,44 @@ function isHtmlResponse(response) {
   return (response.headers.get("content-type") || "").includes("text/html");
 }
 
-async function injectCustomActions(response) {
+function isScriptJsRequest(request) {
+  const url = new URL(request.url);
+  return url.pathname.endsWith("/script.js") || url.pathname.endsWith("script.js");
+}
+
+async function injectCustomActionsIntoHtml(response) {
   if (!response || !isHtmlResponse(response)) return response;
   const html = await response.clone().text();
   if (html.includes("custom-actions.js")) return response;
   const patched = html.includes("</body>")
-    ? html.replace("</body>", '<script src="custom-actions.js"></script></body>')
-    : `${html}<script src="custom-actions.js"></script>`;
+    ? html.replace("</body>", '<script src="custom-actions.js?v=20260708-delete-controls-v2"></script></body>')
+    : `${html}<script src="custom-actions.js?v=20260708-delete-controls-v2"></script>`;
+  const headers = new Headers(response.headers);
+  headers.delete("content-length");
   return new Response(patched, {
     status: response.status,
     statusText: response.statusText,
-    headers: response.headers
+    headers
+  });
+}
+
+async function injectCustomActionsIntoScript(response) {
+  const script = await response.clone().text();
+  if (script.includes("20260708-delete-discipline-subject-v1")) return response;
+  let custom = "";
+  try {
+    custom = await fetch("custom-actions.js?v=20260708-delete-controls-v2").then((res) => res.ok ? res.text() : "");
+  } catch (error) {
+    custom = "";
+  }
+  if (!custom) return response;
+  const headers = new Headers(response.headers);
+  headers.set("content-type", "application/javascript;charset=utf-8");
+  headers.delete("content-length");
+  return new Response(`${script}\n\n;${custom}`, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
   });
 }
 
@@ -56,10 +83,12 @@ async function networkFirstWithCache(request) {
     const response = await fetch(request);
     const cacheResponse = response.clone();
     caches.open(CACHE_NAME).then((cache) => cache.put(request, cacheResponse));
-    return injectCustomActions(response);
+    if (isScriptJsRequest(request)) return injectCustomActionsIntoScript(response);
+    return injectCustomActionsIntoHtml(response);
   } catch (error) {
     const cachedResponse = await caches.match(request) || await caches.match("index.html");
-    return injectCustomActions(cachedResponse);
+    if (isScriptJsRequest(request)) return injectCustomActionsIntoScript(cachedResponse);
+    return injectCustomActionsIntoHtml(cachedResponse);
   }
 }
 
