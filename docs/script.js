@@ -1437,12 +1437,30 @@ function materialButtonLabel(material) {
   if (type === "resumo") return "Abrir resumo";
   return "Abrir material";
 }
+function goalMaterialsHTML(goal) {
+  const materials = state.materials.filter((m) => canonical(m.discipline) === canonical(goal.discipline) && canonical(m.subject) === canonical(goal.subject));
+  const actions = materials.length
+    ? materials.map((m, index) => `<button type="button" data-open-material="${m.id}" title="${escapeHTML(m.title)}">${materials.length > 1 ? `Abrir material ${index + 1}` : "Abrir material"}</button>`).join("")
+    : `<button type="button" data-create-goal-material data-discipline="${escapeHTML(goal.discipline || "")}" data-subject="${escapeHTML(goal.subject || "")}">Cadastrar material para esta meta</button>`;
+  return `<div class="linked-materials goal-materials"><strong>📚 Material da meta:</strong><div class="card-actions">${actions}</div></div>`;
+}
 function linkedMaterialsHTML(materials) {
   if (!materials.length) return "";
   return `<div class="linked-materials"><strong>Materiais vinculados</strong><div class="card-actions">${materials.map((m) => `<button type="button" data-open-material="${m.id}" title="${escapeHTML(m.title)}">${escapeHTML(materialButtonLabel(m))}</button>`).join("")}</div></div>`;
 }
 function isValidHttpUrl(value) { try { const url = new URL(value); return ["http:", "https:"].includes(url.protocol); } catch { return false; } }
 function openMaterial(id) { const material = state.materials.find((m) => m.id === id); if (!material) return; if (!isValidHttpUrl(material.link)) return alert("Este material não possui link válido com http/https."); window.open(material.link, "_blank", "noopener"); }
+function startMaterialForGoal(discipline, subject) {
+  if (!elements.materialForm) return;
+  elements.materialForm.reset();
+  elements.materialEditingId.value = "";
+  elements.materialDate.value = todayISO();
+  elements.materialDiscipline.value = discipline || "";
+  elements.materialSubject.value = subject || "";
+  renderMaterialSelectors();
+  showView("materiais");
+  elements.materialTitle?.focus();
+}
 function renderMaterialSelectors() {
   if (!elements.materialForm) return;
   const disciplines = getAllDisciplines();
@@ -2014,19 +2032,17 @@ function renderNextDailyGoal(dayGoals) {
   dayGoals.forEach(normalizeGoalTimeFields);
   const next = dayGoals.find((g)=>!isGoalDone(g) && !["Não cumprida", "Ignorada", "Adiada", "Reagendada"].includes(g.status || ""));
   if (!next) { elements.nextDailyGoal.innerHTML = `<h3>Próxima meta</h3><p>Todas as metas do dia foram concluídas.</p>`; return; }
-  elements.nextDailyGoal.innerHTML = `<h3>Próxima meta</h3><strong>${escapeHTML(next.discipline)}</strong><p>${escapeHTML(next.subject)}</p><div class="item-meta">Planejado: ${Number(next.minutes||0)} min • Estudo realizado: ${Number(next.studyActualMinutes||0)} min • Questões realizadas: ${Number(next.questionActualMinutes||0)} min • Total realizado: ${Number(next.actualMinutes||0)} min • Prioridade: ${escapeHTML(next.priority || next.prioridade || "-")}</div><div class="card-actions"><button type="button" data-goal-action="Concluída" data-id="${next.id}">Concluir meta</button><button type="button" data-goal-action="Estudo" data-id="${next.id}">Registrar estudo</button><button type="button" data-goal-action="QuestoesTempo" data-id="${next.id}">Tempo de questões</button><button type="button" data-goal-timer="study" data-id="${next.id}">Cronômetro estudo</button><button type="button" data-goal-timer="questions" data-id="${next.id}">Cronômetro questões</button><button type="button" data-register-goal="${next.id}">Registrar questões</button></div>`;
+  elements.nextDailyGoal.innerHTML = `<h3>Próxima meta</h3><strong>${escapeHTML(next.discipline)}</strong><p>${escapeHTML(next.subject)}</p><div class="item-meta">Planejado: ${Number(next.minutes||0)} min • Estudo realizado: ${Number(next.studyActualMinutes||0)} min • Questões realizadas: ${Number(next.questionActualMinutes||0)} min • Total realizado: ${Number(next.actualMinutes||0)} min • Prioridade: ${escapeHTML(next.priority || next.prioridade || "-")}</div>${goalMaterialsHTML(next)}<div class="card-actions"><button type="button" data-goal-action="Concluída" data-id="${next.id}">Concluir meta</button><button type="button" data-goal-action="Estudo" data-id="${next.id}">Registrar estudo</button><button type="button" data-goal-action="QuestoesTempo" data-id="${next.id}">Tempo de questões</button><button type="button" data-goal-timer="study" data-id="${next.id}">Cronômetro estudo</button><button type="button" data-goal-timer="questions" data-id="${next.id}">Cronômetro questões</button><button type="button" data-register-goal="${next.id}">Registrar questões</button></div>`;
 }
 function dailyGoalCard(goal, number = 1) {
   normalizeGoalTimeFields(goal);
-  const linked = materialsForTopic(goal.discipline, goal.subject, goal.syllabusItemId);
-  const firstMaterialButton = linked[0] ? `<button type="button" data-open-material="${linked[0].id}">Abrir material</button>` : "";
   return `<article class="syllabus-card daily-goal-card goal-status-${canonical(goal.status)}">
     <header><div><span class="goal-number">Meta ${number}</span><h3>${escapeHTML(goal.discipline)}</h3><div class="goal-subject">${escapeHTML(goal.subject)}</div><div class="item-meta">${escapeHTML(goal.type || goal.tipo || "Meta")} — ${Number(goal.minutes||0)} min</div></div><span class="badge ${goal.status === "Concluída" ? "success" : goal.priority === "Alta" ? "danger" : "warn"}">Status: ${escapeHTML(goal.status || "Pendente")}</span></header>
     <div class="card-meta-grid">
       <span>Disciplina: ${escapeHTML(goal.discipline)}</span><span>Assunto: ${escapeHTML(goal.subject)}</span><span>Tipo: ${escapeHTML(goal.type || goal.tipo || "-")}</span><span>Prioridade: ${escapeHTML(goal.priority || goal.prioridade || "-")}</span>
       <span>Planejado: ${Number(goal.minutes||0)} min</span><span>Estudo realizado: ${Number(goal.studyActualMinutes||0)} min</span><span>Questões realizadas: ${Number(goal.questionActualMinutes||0)} min</span><span>Total realizado: ${Number(goal.actualMinutes||0)} min</span><span>Status: ${escapeHTML(goal.status || "Pendente")}</span><span>Referência: ${escapeHTML(goal.referencia_edital || getSyllabusById(goal.syllabusItemId)?.reference || "-")}</span>
-    </div>${linkedMaterialsHTML(linked)}
-    <div class="card-actions"><button type="button" data-goal-action="Concluída" data-id="${goal.id}">Concluir meta</button><button type="button" data-goal-action="Estudo" data-id="${goal.id}">Registrar estudo</button><button type="button" data-goal-action="QuestoesTempo" data-id="${goal.id}">Tempo de questões</button><button type="button" data-goal-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button type="button" data-goal-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button type="button" data-goal-action="Adiada" data-id="${goal.id}">Adiar</button><button type="button" data-goal-action="Não cumprida" data-id="${goal.id}">Não cumprir</button><button type="button" data-register-goal="${goal.id}">Registrar questões</button>${firstMaterialButton}</div>
+    </div>${goalMaterialsHTML(goal)}
+    <div class="card-actions"><button type="button" data-goal-action="Concluída" data-id="${goal.id}">Concluir meta</button><button type="button" data-goal-action="Estudo" data-id="${goal.id}">Registrar estudo</button><button type="button" data-goal-action="QuestoesTempo" data-id="${goal.id}">Tempo de questões</button><button type="button" data-goal-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button type="button" data-goal-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button type="button" data-goal-action="Adiada" data-id="${goal.id}">Adiar</button><button type="button" data-goal-action="Não cumprida" data-id="${goal.id}">Não cumprir</button><button type="button" data-register-goal="${goal.id}">Registrar questões</button></div>
   </article>`;
 }
 function questionNumbers() { const total = Number(elements.questionTotal.value), correct = Number(elements.questionCorrect.value), wrong = Number(elements.questionWrong.value), blank = Number(elements.questionBlank.value); return { total, correct, wrong, blank, sum: correct + wrong + blank, accuracy: total ? correct / total * 100 : 0, errorPct: total ? wrong / total * 100 : 0, blankPct: total ? blank / total * 100 : 0, net: correct - wrong }; }
@@ -2155,7 +2171,7 @@ elements.studySubject?.addEventListener("change", updateStudyMaterialOptions);
 elements.studyTopic?.addEventListener("input", updateStudyMaterialOptions);
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin, elements.materialFilterText].filter(Boolean).forEach((filter) => filter.addEventListener("input", renderMaterials));
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin].filter(Boolean).forEach((filter) => filter.addEventListener("change", renderMaterials));
-document.addEventListener("click", (event) => { const open = event.target.closest("button[data-open-material]"); const edit = event.target.closest("button[data-edit-material]"); const del = event.target.closest("button[data-delete-material]"); if (open) openMaterial(open.dataset.openMaterial); if (edit) editMaterial(edit.dataset.editMaterial); if (del && confirm("Excluir este material?")) { state.materials = state.materials.filter((m)=>m.id!==del.dataset.deleteMaterial); render(); } });
+document.addEventListener("click", (event) => { const open = event.target.closest("button[data-open-material]"); const create = event.target.closest("button[data-create-goal-material]"); const edit = event.target.closest("button[data-edit-material]"); const del = event.target.closest("button[data-delete-material]"); if (open) openMaterial(open.dataset.openMaterial); if (create) startMaterialForGoal(create.dataset.discipline, create.dataset.subject); if (edit) editMaterial(edit.dataset.editMaterial); if (del && confirm("Excluir este material?")) { state.materials = state.materials.filter((m)=>m.id!==del.dataset.deleteMaterial); render(); } });
 
 mergeCompatibleLocalStorageData();
 renderMotivationalPhrase();
