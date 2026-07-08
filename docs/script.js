@@ -1565,18 +1565,63 @@ function optionsForItems(select, discipline, current = "") { const items = state
 function renderGoalSelectors() { const gd = elements.goalDiscipline.value; const gi = elements.goalSyllabusItem.value; optionsForDiscipline(elements.goalDiscipline, gd); optionsForItems(elements.goalSyllabusItem, elements.goalDiscipline.value || gd, gi); }
 function renderQuestionSelectors() { const qd = elements.questionDiscipline.value; const qi = elements.questionSyllabusItem.value; optionsForDiscipline(elements.questionDiscipline, qd); optionsForItems(elements.questionSyllabusItem, elements.questionDiscipline.value || qd, qi); const fd = elements.questionFilterDiscipline.value; optionsForDiscipline(elements.questionFilterDiscipline, fd); elements.questionFilterDiscipline.querySelector('option').textContent = 'Todas'; const fs = elements.questionFilterSubject.value; elements.questionFilterSubject.innerHTML = '<option value="">Todos</option>' + state.syllabusItems.filter((item) => !elements.questionFilterDiscipline.value || item.discipline === elements.questionFilterDiscipline.value).map((item) => `<option value="${item.id}" ${item.id === fs ? "selected" : ""}>${escapeHTML(item.subject)}</option>`).join(''); }
 function goalTypeForItem(item) { const mode = item.importMeta?.tipo_agendamento || item.tipo_agendamento || settingFor(item.id).mode; if (isWeakItem(item)) return "Reforço"; if (mode === "Questões apenas") return "Questões"; if (mode === "Revisão apenas" || item.status === "Revisar") return "Revisão"; return item.status === "Não iniciado" ? "Estudo novo" : "Questões"; }
-function disciplineWeightValue(discipline) { return Number(state.disciplineWeights?.[discipline] || 3); }
+const DISCIPLINE_WEIGHT_OPTIONS = [
+  { value: 18, label: "Altíssima" },
+  { value: 14, label: "Peças" },
+  { value: 12, label: "Muito alta" },
+  { value: 7, label: "Alta" },
+  { value: 3, label: "Média" }
+];
+const DEFAULT_DISCIPLINE_WEIGHTS = [
+  { names: ["direito penal"], weight: 18 },
+  { names: ["direito processual penal"], weight: 18 },
+  { names: ["legislação penal e processual penal extravagante", "legislacao penal e processual penal extravagante", "legislação específica penal e processual penal", "legislacao especifica penal e processual penal"], weight: 18 },
+  { names: ["peça para delegado de polícia civil", "peca para delegado de policia civil"], weight: 14 },
+  { names: ["direito constitucional"], weight: 12 },
+  { names: ["direito administrativo"], weight: 7 },
+  { names: ["legislação estadual e institucional", "legislacao estadual e institucional", "legislação especial administrativa", "legislacao especial administrativa"], weight: 7 },
+  { names: ["direitos humanos"], weight: 3 },
+  { names: ["medicina legal", "ciências forenses", "ciencias forenses"], weight: 3 }
+];
+function defaultDisciplineWeight(discipline) {
+  const normalized = normalizeMatchText(discipline);
+  return DEFAULT_DISCIPLINE_WEIGHTS.find((entry) => entry.names.some((name) => normalizeMatchText(name) === normalized))?.weight || 3;
+}
+function normalizeDisciplineWeight(value, discipline = "") {
+  const weight = Math.round(Number(value));
+  return DISCIPLINE_WEIGHT_OPTIONS.some((option) => option.value === weight) ? weight : defaultDisciplineWeight(discipline);
+}
+function disciplineWeightValue(discipline) {
+  const stored = state.disciplineWeights?.[discipline];
+  return stored === undefined || stored === null || stored === "" ? defaultDisciplineWeight(discipline) : normalizeDisciplineWeight(stored, discipline);
+}
+function disciplineWeightOptions(discipline) {
+  const current = disciplineWeightValue(discipline);
+  return DISCIPLINE_WEIGHT_OPTIONS.map((option) => `<option value="${option.value}" ${current === option.value ? "selected" : ""}>${option.value} = ${option.label}</option>`).join("");
+}
+function ensureDefaultDisciplineWeights() {
+  state.disciplineWeights ||= {};
+  getAllDisciplines().forEach((discipline) => {
+    if (state.disciplineWeights[discipline] === undefined || state.disciplineWeights[discipline] === null || state.disciplineWeights[discipline] === "") {
+      state.disciplineWeights[discipline] = defaultDisciplineWeight(discipline);
+    } else {
+      state.disciplineWeights[discipline] = normalizeDisciplineWeight(state.disciplineWeights[discipline], discipline);
+    }
+  });
+}
 function disciplineQuestionWeakness(discipline) { const logs = state.questionLogs.filter((q) => canonical(q.discipline) === canonical(discipline)); const total = logs.reduce((a,q)=>a+Number(q.total||0),0); const wrong = logs.reduce((a,q)=>a+Number(q.wrong||0),0); return total ? wrong / total * 100 : 0; }
 function mockWeakness(discipline) { const rows = (state.simulados||[]).flatMap((m)=>m.disciplines||[]).filter((d)=>canonical(d.name||d.discipline)===canonical(discipline)); const total = rows.reduce((a,d)=>a+Number(d.total||0),0); const wrong = rows.reduce((a,d)=>a+Number(d.wrong||0),0); return total ? wrong / total * 100 : 0; }
 function itemScore(item, pendingByDiscipline) { const pending = pendingByDiscipline[item.discipline] || 0; const totalDisc = state.syllabusItems.filter((i)=>i.discipline===item.discipline && i.status!=="Ignorado").length || 1; const atrasada = pending / totalDisc * 40; const reviewDue = item.status === "Revisar" || item.lastReviewedAt && addDays(item.lastReviewedAt, 7) <= todayISO() ? 30 : 0; const examBoost = state.edital.examDate ? Math.max(0, 20 - Math.ceil((parseDate(state.edital.examDate)-new Date())/86400000)/10) : 0; const subjectIncidenceBoost = (normalizeSubjectIncidence(item.weight) - 3) * 10; return disciplineWeightValue(item.discipline) * 18 + atrasada + (item.status === "Não iniciado" ? 35 : 0) + (isUndiagnosed(item) ? 18 : 0) + (isWeakItem(item) ? 42 : 0) + disciplineQuestionWeakness(item.discipline) * .7 + mockWeakness(item.discipline) * .4 + subjectIncidenceBoost + reviewDue + examBoost; }
 function makeGoal(item, date, type) {
   const dayType = availabilityForDate(date).type;
   const factor = dayType === "plantão" ? 0.6 : dayType === "folga" || dayType === "estudo forte" ? 1.25 : dayType === "indisponível" ? 0.2 : dayType === "estudo leve" ? 0.75 : 1;
-  const minutes = Math.max(15, Math.round((type === "Questões" ? 30 : item.priority === "Alta" ? 60 : 45) * factor));
+  const baseMinutes = ({ "Estudo novo": 60, "Questões": 45, "Revisão": 30, "Reforço": 45 })[type] || 45;
+  const minutes = Math.min(dayType === "folga" || dayType === "estudo forte" ? 90 : Infinity, Math.max(30, Math.round(baseMinutes * factor)));
   return { id: createId(), date, data: date, discipline: item.discipline, disciplina: item.discipline, syllabusItemId: item.id, subject: item.subject, assunto: item.subject, referencia_edital: item.reference || "", type, tipo: type.toLowerCase(), minutes, tempo_sugerido_minutos: minutes, priority: item.priority, prioridade: item.priority, status: "Pendente", origin: "edital verticalizado", origem: "edital verticalizado", notes: `Gerada automaticamente do edital verticalizado. Status: ${item.status}; domínio: ${item.domain}; incidência do assunto: ${normalizeSubjectIncidence(item.weight)} = ${subjectIncidenceLabel(item.weight)}.`, observacoes: `Priorizada por status, domínio, prioridade, incidência do assunto e pendência da disciplina.` };
 }
 function pickCandidate(candidates, used, predicate = () => true, chosen = [], maxGoals = 4, disciplineLimit = Infinity, allowedDisciplines = null) { const counts = chosen.reduce((a,g)=>(a[g.discipline]=(a[g.discipline]||0)+1,a),{}); const usedDisciplines = new Set(chosen.map((g)=>g.discipline)); return candidates.find((item) => !used.has(item.id) && predicate(item) && (!allowedDisciplines || allowedDisciplines.has(item.discipline)) && (usedDisciplines.has(item.discipline) || usedDisciplines.size < disciplineLimit) && ((counts[item.discipline]||0) < Math.ceil(maxGoals/2) || Object.keys(counts).length <= 1)); }
 function generateGoalsForDate(date, opts = {}) {
+  ensureDefaultDisciplineWeights();
   const dayType = availabilityForDate(date).type;
   if (dayType === "indisponível" && !opts.manual) return [];
   const existing = new Set(state.dailyGoals.filter((g)=>g.date===date).map((g)=>g.syllabusItemId));
@@ -1707,7 +1752,7 @@ function saveGeneratedGoals(kind, made) {
 }
 function generateWeekGoals() { const c=planningConfig(); const start=weekStart(elements.calendarDate?.value||todayISO()); const made=[]; daysBetween(start,7).forEach((date)=>{ const weekDisciplines=new Set(made.map((g)=>g.discipline)); const remainingTopics=(Number(c.topicsPerWeek)||8)-made.length; if (remainingTopics<=0) return; const remainingNewDisciplines=Math.max(0,(Number(c.disciplinesPerWeek)||6)-weekDisciplines.size); made.push(...generateGoalsForDate(date,{topicLimit:Math.min(Number(c.topicsPerDay)||3,remainingTopics), disciplineLimit:(Number(c.disciplinesPerDay)||2), allowedDisciplines: remainingNewDisciplines>0 ? null : weekDisciplines})); }); const limited=limitGeneratedGoals(made,{topicLimit:Number(c.topicsPerWeek)||8, disciplineLimit:Number(c.disciplinesPerWeek)||6}); if (limited.length < (Number(c.topicsPerWeek)||8)) alert(generationShortageMessage(limited, Number(c.topicsPerWeek)||8, "a semana").trim()); saveGeneratedGoals("Pré-visualização semanal", limited); }
 function generateMonthGoals() { const c=planningConfig(); const ref=parseDate(elements.calendarDate?.value||todayISO()); const start=`${ref.getFullYear()}-${String(ref.getMonth()+1).padStart(2,"0")}-01`; const days=new Date(ref.getFullYear(),ref.getMonth()+1,0).getDate(); const made=[]; daysBetween(start,days).forEach((date)=>{ const monthDisciplines=new Set(made.map((g)=>g.discipline)); const remainingTopics=(Number(c.topicsPerMonth)||40)-made.length; if (remainingTopics<=0) return; const remainingNewDisciplines=Math.max(0,(Number(c.disciplinesPerMonth)||10)-monthDisciplines.size); made.push(...generateGoalsForDate(date,{maxGoals: availabilityForDate(date).type==="folga"?5:undefined, topicLimit:Math.min(Number(c.topicsPerDay)||3,remainingTopics), disciplineLimit:(Number(c.disciplinesPerDay)||2), allowedDisciplines: remainingNewDisciplines>0 ? null : monthDisciplines})); }); const limited=limitGeneratedGoals(made,{topicLimit:Number(c.topicsPerMonth)||40, disciplineLimit:Number(c.disciplinesPerMonth)||10}); if (limited.length < (Number(c.topicsPerMonth)||40)) alert(generationShortageMessage(limited, Number(c.topicsPerMonth)||40, "o mês").trim()); saveGeneratedGoals("Pré-visualização mensal", limited); }
-function renderDisciplineWeights() { if (!elements.disciplineWeightsList) return; const ds=getAllDisciplines(); elements.disciplineWeightsList.innerHTML = ds.length ? ds.map((d)=>`<label class="weight-row"><span>${escapeHTML(d)}</span><select data-discipline-weight="${escapeHTML(d)}"><option value="1" ${disciplineWeightValue(d)===1?"selected":""}>Baixa (1)</option><option value="3" ${disciplineWeightValue(d)===3?"selected":""}>Média (3)</option><option value="4" ${disciplineWeightValue(d)===4?"selected":""}>Alta (4)</option><option value="5" ${disciplineWeightValue(d)===5?"selected":""}>Muito alta (5)</option></select></label>`).join("") : "Cadastre ou importe disciplinas para configurar pesos."; }
+function renderDisciplineWeights() { if (!elements.disciplineWeightsList) return; ensureDefaultDisciplineWeights(); const ds=getAllDisciplines(); elements.disciplineWeightsList.innerHTML = ds.length ? ds.map((d)=>`<label class="weight-row"><span>${escapeHTML(d)}</span><select data-discipline-weight="${escapeHTML(d)}">${disciplineWeightOptions(d)}</select></label>`).join("") : "Cadastre ou importe disciplinas para configurar pesos."; }
 function renderGoalCalendar() { if (!elements.goalCalendarContent) return; renderDisciplineWeights(); const date=elements.calendarDate?.value||todayISO(), mode=elements.calendarViewMode?.value||"daily"; const start=mode==="weekly"?weekStart(date):mode==="monthly"?`${date.slice(0,7)}-01`:date; const end=mode==="daily"?date:mode==="weekly"?addDays(start,6):`${date.slice(0,7)}-${String(new Date(parseDate(date).getFullYear(),parseDate(date).getMonth()+1,0).getDate()).padStart(2,"0")}`; const goals=goalsBetween(start,end); const planned=goals.reduce((a,g)=>a+Number(g.minutes||0),0), done=goals.reduce((a,g)=>a+Number(g.actualMinutes||0),0); const dist=goals.reduce((a,g)=>(a[g.discipline]=(a[g.discipline]||0)+1,a),{}); elements.goalCalendarStats.innerHTML = `<article class="stat-card"><span>Horas planejadas</span><strong>${formatHours(planned)}</strong></article><article class="stat-card"><span>Horas realizadas</span><strong>${formatHours(done)}</strong></article><article class="stat-card"><span>Assuntos planejados</span><strong>${goals.length}</strong></article><article class="stat-card"><span>Assuntos concluídos</span><strong>${goals.filter(g=>g.status==="Concluída").length}</strong></article><article class="stat-card"><span>Cumprimento</span><strong>${completionRate(goals)}%</strong></article><article class="stat-card wide-stat"><span>Distribuição por disciplina</span><strong>${Object.entries(dist).map(([d,n])=>`${escapeHTML(d)} (${n})`).join(", ")||"-"}</strong></article>`;
   if (mode==="daily") { const av=availabilityForDate(date); elements.goalCalendarContent.innerHTML = `<div class="section-heading inline"><div><h3>${formatDateBR(date)} — ${escapeHTML(dayTypeLabel(av))}</h3><p class="item-meta">Horas disponíveis: ${av.hours}h</p></div><button type="button" data-open-day-plan="${date}">Abrir Plano do Dia</button></div>` + (goals.map(goalCalendarCard).join("") || "Nenhuma meta para a data."); }
   if (mode==="weekly") elements.goalCalendarContent.innerHTML = `<div class="calendar-grid week-grid">${daysBetween(start,7).map((d)=>`<article class="clickable-day" data-open-day-plan="${d}" tabindex="0" role="button" aria-label="Abrir Plano do Dia em ${formatDateBR(d)}"><h3>${formatDateBR(d)}</h3><small>${escapeHTML(dayTypeLabel(availabilityForDate(d)))} • ${availabilityForDate(d).hours}h</small>${state.dailyGoals.filter(g=>g.date===d).map(goalCalendarMini).join("")||"<p class='item-meta'>Sem metas</p>"}</article>`).join("")}</div>`;
@@ -1830,7 +1875,7 @@ elements.goalDate?.addEventListener("change", () => { renderDailyGoals(); render
 elements.generateWeekGoals?.addEventListener("click", generateWeekGoals);
 elements.generateMonthGoals?.addEventListener("click", generateMonthGoals);
 [elements.calendarDate, elements.calendarViewMode].filter(Boolean).forEach((el)=>el.addEventListener("change", renderGoalCalendar));
-elements.disciplineWeightsList?.addEventListener("change", (event)=>{ const d=event.target.dataset.disciplineWeight; if(d){ state.disciplineWeights[d]=Number(event.target.value)||3; render(); }});
+elements.disciplineWeightsList?.addEventListener("change", (event)=>{ const d=event.target.dataset.disciplineWeight; if(d){ state.disciplineWeights[d]=normalizeDisciplineWeight(event.target.value, d); render(); }});
 [elements.monthlyTopicGoal, elements.monthlyHourGoal].filter(Boolean).forEach((el)=>el.addEventListener("change",()=>{ const key=(elements.calendarDate?.value||todayISO()).slice(0,7); state.monthlyGoals[key]={ topics:Number(elements.monthlyTopicGoal.value)||0, hours:Number(elements.monthlyHourGoal.value)||0 }; render(); }));
 elements.goalCalendarContent?.addEventListener("click", (event)=>{ const openPlan=event.target.closest("[data-open-day-plan]"); if(openPlan){ elements.goalDate.value=openPlan.dataset.openDayPlan; renderDailyGoals(); return showView("metas-do-dia"); } const b=event.target.closest("button[data-calendar-action],button[data-register-goal]"); if(!b) return; if(b.dataset.registerGoal) return fillQuestionFromGoal(b.dataset.registerGoal); const goal=state.dailyGoals.find(g=>g.id===b.dataset.id); if(!goal) return; if(b.dataset.calendarAction==="done") updateGoalDone(goal); if(b.dataset.calendarAction==="postpone") postponeGoal(goal); if(b.dataset.calendarAction==="time") registerGoalTime(goal); if(b.dataset.calendarAction==="edit") editGoal(goal); render(); });
 elements.goalCalendarContent?.addEventListener("keydown", (event)=>{ if (!["Enter", " "].includes(event.key)) return; const openPlan=event.target.closest("[data-open-day-plan]"); if (!openPlan) return; event.preventDefault(); elements.goalDate.value=openPlan.dataset.openDayPlan; renderDailyGoals(); showView("metas-do-dia"); });

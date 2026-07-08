@@ -54,3 +54,19 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima`);
   assert.equal(state.syllabusItems[2].priority, 'Altíssima');
   assert.equal(normalizeImportedPriority('Baixíssima'), 'Baixíssima');
 });
+
+test('Calendário de Metas usa incidências novas e duração mínima/máxima de metas', () => {
+  assert.match(script, /\{ value: 18, label: "Altíssima" \}/);
+  assert.match(script, /\{ value: 14, label: "Peças" \}/);
+  assert.match(script, /\{ value: 12, label: "Muito alta" \}/);
+  assert.match(script, /\{ value: 7, label: "Alta" \}/);
+  assert.match(script, /\{ value: 3, label: "Média" \}/);
+  assert.match(script, /\["direito penal"\], weight: 18/);
+  assert.match(script, /\["peça para delegado de polícia civil", "peca para delegado de policia civil"\], weight: 14/);
+  assert.match(script, /\["direito constitucional"\], weight: 12/);
+  assert.match(script, /\["direito administrativo"\], weight: 7/);
+  assert.match(script, /state\.disciplineWeights\[d\]=normalizeDisciplineWeight\(event\.target\.value, d\)/);
+  assert.match(script, /"Estudo novo": 60, "Questões": 45, "Revisão": 30, "Reforço": 45/);
+  assert.match(script, /Math\.max\(30, Math\.round\(baseMinutes \* factor\)\)/);
+  assert.match(script, /dayType === "folga" \|\| dayType === "estudo forte" \? 90 : Infinity/);
+});
