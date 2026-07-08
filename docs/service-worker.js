@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-cache-20260708-incidencias-v2";
+const CACHE_NAME = "metas-estudo-cache-20260701-rollback-stable";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
