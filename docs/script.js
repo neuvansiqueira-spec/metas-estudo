@@ -202,7 +202,7 @@ const elements = {
   reviewList: $("#reviewList"), centralSmartReview: $("#centralSmartReview"), daySmartReview: $("#daySmartReview"), reviewsDashboard: $("#reviewsDashboard"), dashboardSmartReviewSuggested: $("#dashboardSmartReviewSuggested"), dashboardSmartReviewDone: $("#dashboardSmartReviewDone"), dashboardSmartReviewReason: $("#dashboardSmartReviewReason"), alertList: $("#alertList"), historyBody: $("#historyBody"), clearData: $("#clearData"),
   editalForm: $("#editalForm"), contestName: $("#contestName"), agency: $("#agency"), role: $("#role"), board: $("#board"), examDate: $("#examDate"), officialLink: $("#officialLink"), generalNotes: $("#generalNotes"), editalPdf: $("#editalPdf"), pdfInfo: $("#pdfInfo"), removePdf: $("#removePdf"),
   syllabusForm: $("#syllabusForm"), itemDiscipline: $("#itemDiscipline"), itemTopic: $("#itemTopic"), itemSubject: $("#itemSubject"), itemSubtopic: $("#itemSubtopic"), itemReference: $("#itemReference"), itemPriority: $("#itemPriority"), itemWeight: $("#itemWeight"), itemStatus: $("#itemStatus"), itemDomain: $("#itemDomain"), itemNotes: $("#itemNotes"),
-  bulkInput: $("#bulkInput"), previewBulk: $("#previewBulk"), saveBulk: $("#saveBulk"), bulkPreview: $("#bulkPreview"), filterSearch: $("#filterSearch"), filterDiscipline: $("#filterDiscipline"), filterPriority: $("#filterPriority"), filterStatus: $("#filterStatus"), filterDomain: $("#filterDomain"), filterSchedulable: $("#filterSchedulable"), filterQuick: $("#filterQuick"), bulkPriority: $("#bulkPriority"), applyBulkPriority: $("#applyBulkPriority"), syllabusCount: $("#syllabusCount"), showMoreSyllabus: $("#showMoreSyllabus"), syllabusList: $("#syllabusList"), schedulableList: $("#schedulableList"), disciplineOptions: $("#disciplineOptions"),
+  bulkInput: $("#bulkInput"), previewBulk: $("#previewBulk"), saveBulk: $("#saveBulk"), bulkPreview: $("#bulkPreview"), incidenceTableInput: $("#incidenceTableInput"), applyIncidenceTableButton: $("#applyIncidenceTableButton"), incidenceTableResult: $("#incidenceTableResult"), filterSearch: $("#filterSearch"), filterDiscipline: $("#filterDiscipline"), filterPriority: $("#filterPriority"), filterStatus: $("#filterStatus"), filterDomain: $("#filterDomain"), filterSchedulable: $("#filterSchedulable"), filterQuick: $("#filterQuick"), bulkPriority: $("#bulkPriority"), applyBulkPriority: $("#applyBulkPriority"), syllabusCount: $("#syllabusCount"), showMoreSyllabus: $("#showMoreSyllabus"), syllabusList: $("#syllabusList"), schedulableList: $("#schedulableList"), disciplineOptions: $("#disciplineOptions"),
   jsonImportFile: $("#jsonImportFile"), importMessage: $("#importMessage"), importDisciplineTotal: $("#importDisciplineTotal"), importSubjectTotal: $("#importSubjectTotal"), importFilterDiscipline: $("#importFilterDiscipline"), importFilterStatus: $("#importFilterStatus"), importFilterPriority: $("#importFilterPriority"), importFilterDomain: $("#importFilterDomain"), importJsonButton: $("#importJsonButton"), clearImportedSyllabus: $("#clearImportedSyllabus"), importDisciplineList: $("#importDisciplineList"), importedSyllabusGroups: $("#importedSyllabusGroups"), importPreview: $("#importPreview"),
   generalCebraspeNet: $("#generalCebraspeNet"), todayPendingGoals: $("#todayPendingGoals"), todayDoneGoals: $("#todayDoneGoals"), dashboardTodayGoal: $("#dashboardTodayGoal"), dashboardTodayGoalDetail: $("#dashboardTodayGoalDetail"), dashboardDailyGoalRate: $("#dashboardDailyGoalRate"), dashboardTodayRemaining: $("#dashboardTodayRemaining"), dashboardNextTodayGoal: $("#dashboardNextTodayGoal"), viewDayPlan: $("#viewDayPlan"),
   selectedGoalDateLabel: $("#selectedGoalDateLabel"), nextDailyGoal: $("#nextDailyGoal"), generateDailyGoals: $("#generateDailyGoals"), goalForm: $("#goalForm"), goalDate: $("#goalDate"), goalDiscipline: $("#goalDiscipline"), goalSyllabusItem: $("#goalSyllabusItem"), goalType: $("#goalType"), goalMinutes: $("#goalMinutes"), goalActualMinutes: $("#goalActualMinutes"), goalStudyStatus: $("#goalStudyStatus"), goalPriority: $("#goalPriority"), goalStatus: $("#goalStatus"), goalNotes: $("#goalNotes"), dailyGoalsSummary: $("#dailyGoalsSummary"), dailyGoalsList: $("#dailyGoalsList"),
@@ -424,6 +424,83 @@ function escapeHTML(value) { return String(value ?? "").replace(/[&<>"']/g, (cha
 function subjectNameById(id) { return state.subjects.find((subject) => subject.id === id)?.name || "Disciplina removida"; }
 function settingFor(id) { return state.schedulableSettings[id] ||= { availability: "Não agendável", mode: "Estudo teórico", priority: false }; }
 function normalizeText(value) { return String(value ?? "").trim(); }
+function normalizeMatchText(text) {
+  return String(text ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[–—−]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+const DISCIPLINE_EQUIVALENCES = {
+  "pecas para delegado": ["peca para delegado de policia civil"],
+  "direito administrativo e gestao publica": ["direito administrativo"],
+  "ciencias forenses": ["medicina legal"],
+  "legislacao penal e processual penal extravagante": [
+    "legislacao especifica - direito penal",
+    "legislacao especifica - direito processual penal",
+    "legislacao especifica - direito penal e processo penal",
+    "legislacao especifica - direito processual penal e penal"
+  ],
+  "direito penal": ["direito penal"],
+  "direito processual penal": ["direito processual penal"],
+  "direito constitucional": ["direito constitucional"],
+  "direitos humanos": ["direitos humanos"]
+};
+
+function disciplineMatchKeys(discipline) {
+  const key = normalizeMatchText(discipline);
+  return [...new Set([key, ...(DISCIPLINE_EQUIVALENCES[key] || []).map(normalizeMatchText)])].filter(Boolean);
+}
+function matchesDisciplineName(actual, incoming) { return disciplineMatchKeys(incoming).includes(normalizeMatchText(actual)); }
+function existingDisciplinesForIncoming(incoming) { return getAllDisciplines().filter((discipline) => matchesDisciplineName(discipline, incoming)); }
+function findSyllabusItemByIncidence(discipline, subject) {
+  const subjectKey = normalizeMatchText(subject);
+  return state.syllabusItems.find((item) => matchesDisciplineName(item.discipline, discipline) && normalizeMatchText(item.subject) === subjectKey);
+}
+
+function applyIncidenceTable(rawText) {
+  const report = { disciplinasAtualizadas: [], assuntosAtualizados: [], disciplinasNaoEncontradas: [], assuntosNaoEncontrados: [] };
+  state.disciplineWeights ||= {};
+  String(rawText || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean).forEach((line, index) => {
+    const [tipoRaw, disciplinaRaw, assuntoRaw, valorRaw, prioridadeRaw] = line.split(";").map((field) => field?.trim() || "");
+    const tipo = normalizeMatchText(tipoRaw);
+    if (!tipo || tipo === "tipo") return;
+    const valor = Number(String(valorRaw).replace(",", "."));
+    if (!Number.isFinite(valor)) return;
+    if (tipo === "disciplina") {
+      const disciplines = existingDisciplinesForIncoming(disciplinaRaw);
+      if (!disciplines.length) {
+        report.disciplinasNaoEncontradas.push({ linha: index + 1, disciplina: disciplinaRaw, valor });
+        return;
+      }
+      disciplines.forEach((discipline) => {
+        state.disciplineWeights[discipline] = valor;
+        report.disciplinasAtualizadas.push({ linha: index + 1, disciplina, valor });
+      });
+      return;
+    }
+    if (tipo === "assunto") {
+      const item = findSyllabusItemByIncidence(disciplinaRaw, assuntoRaw);
+      if (!item) {
+        report.assuntosNaoEncontrados.push({ linha: index + 1, disciplina: disciplinaRaw, assunto: assuntoRaw, valor, prioridade: prioridadeRaw });
+        return;
+      }
+      item.weight = valor;
+      item.priority = prioridadeRaw;
+      report.assuntosAtualizados.push({ linha: index + 1, disciplina: item.discipline, assunto: item.subject, valor, prioridade: prioridadeRaw });
+    }
+  });
+  return report;
+}
+function renderIncidenceReport(report) {
+  if (!elements.incidenceTableResult || !report) return;
+  const notFound = [...report.disciplinasNaoEncontradas, ...report.assuntosNaoEncontrados];
+  elements.incidenceTableResult.innerHTML = `<p class="notice">Incidências aplicadas: ${report.assuntosAtualizados.length} assuntos atualizados; ${report.disciplinasAtualizadas.length} disciplinas atualizadas; ${notFound.length} não encontrados.</p>${notFound.length ? `<h4>Não encontrados</h4><ul>${notFound.map((item) => `<li>${escapeHTML(item.disciplina)}${item.assunto ? ` — ${escapeHTML(item.assunto)}` : ""}</li>`).join("")}</ul>` : ""}`;
+}
+
 function importKeyFor(item) { return [item.discipline, item.topic, item.subject, item.subtopic, item.reference].map((value) => normalizeText(value).toLowerCase()).join("|"); }
 function acceptsSchedulableValue(value) {
   if (value === 1 || value === true) return true;
@@ -1322,6 +1399,7 @@ elements.editalForm.addEventListener("submit", (event) => { event.preventDefault
 elements.editalPdf.addEventListener("change", () => { const file = elements.editalPdf.files[0]; if (!file) return; state.edital.pdf = { name: file.name, size: file.size, type: file.type, attachedAt: new Date().toLocaleString("pt-BR") }; render(); });
 elements.removePdf.addEventListener("click", () => { state.edital.pdf = null; elements.editalPdf.value = ""; render(); });
 elements.syllabusForm.addEventListener("submit", (event) => { event.preventDefault(); const payload = { id: editingSyllabusId || createId(), discipline: elements.itemDiscipline.value.trim(), topic: elements.itemTopic.value.trim(), subject: elements.itemSubject.value.trim(), subtopic: elements.itemSubtopic.value.trim(), reference: elements.itemReference.value.trim(), priority: elements.itemPriority.value, weight: normalizeSubjectIncidence(elements.itemWeight.value), status: elements.itemStatus.value, domain: elements.itemDomain.value, manualWeak: elements.itemDomain.value === "Fraco", notes: elements.itemNotes.value.trim() }; const existingIndex = state.syllabusItems.findIndex((item) => item.id === editingSyllabusId); if (existingIndex >= 0) state.syllabusItems[existingIndex] = { ...state.syllabusItems[existingIndex], ...payload }; else state.syllabusItems.push(payload); editingSyllabusId = null; elements.syllabusForm.reset(); elements.itemPriority.value = "Média"; elements.itemWeight.value = 3; elements.itemStatus.value = "Não iniciado"; elements.itemDomain.value = "Sem diagnóstico"; render(); });
+elements.applyIncidenceTableButton?.addEventListener("click", () => { const report = applyIncidenceTable(elements.incidenceTableInput?.value || ""); saveData(); render(); renderIncidenceReport(report); });
 elements.previewBulk.addEventListener("click", () => { bulkDraft = elements.bulkInput.value.split("\n").map((line) => line.trim()).filter(Boolean).map((line) => syllabusFromValues(line.split(";"))); elements.saveBulk.disabled = !bulkDraft.length; elements.bulkPreview.innerHTML = bulkDraft.length ? `<table><thead><tr><th>Disciplina</th><th>Tópico</th><th>Assunto</th><th>Prioridade</th><th>Status</th><th>Domínio</th></tr></thead><tbody>${bulkDraft.map((item) => `<tr><td>${escapeHTML(item.discipline)}</td><td>${escapeHTML(item.topic)}</td><td>${escapeHTML(item.subject)}</td><td>${escapeHTML(item.priority)}</td><td>${escapeHTML(item.status)}</td><td>${escapeHTML(item.domain)}</td></tr>`).join("")}</tbody></table>` : ""; });
 elements.saveBulk.addEventListener("click", () => { state.syllabusItems.push(...bulkDraft); bulkDraft = []; elements.bulkInput.value = ""; elements.bulkPreview.innerHTML = ""; elements.saveBulk.disabled = true; render(); });
 [elements.filterSearch, elements.filterDiscipline, elements.filterPriority, elements.filterStatus, elements.filterDomain, elements.filterSchedulable, elements.filterQuick].forEach((filter) => filter.addEventListener(filter === elements.filterSearch ? "input" : "change", () => { syllabusVisibleCount = 30; renderSyllabus(); }));

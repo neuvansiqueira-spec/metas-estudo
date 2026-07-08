@@ -273,6 +273,16 @@
         <div id="bulkPreview" class="table-wrapper empty-message"></div>
       </div>
 
+      <div class="bulk-box" id="incidenceApplyBox">
+        <h3>Aplicar incidências</h3>
+        <p class="item-meta">Cole uma tabela no formato TIPO;DISCIPLINA;ASSUNTO;VALOR;PRIORIDADE. Esta ação apenas atualiza pesos de disciplinas, incidência e prioridade de assuntos já existentes.</p>
+        <textarea id="incidenceTableInput" rows="8" placeholder="TIPO;DISCIPLINA;ASSUNTO;VALOR;PRIORIDADE
+DISCIPLINA;Direito Penal;;18;Altíssima
+ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
+        <div class="actions"><button id="applyIncidenceTableButton" type="button">Aplicar incidências</button></div>
+        <div id="incidenceTableResult" class="empty-message" aria-live="polite"></div>
+      </div>
+
       <div class="filters form-grid compact">
         <label class="wide">Busca por palavra-chave<input id="filterSearch" type="search" placeholder="Buscar disciplina, tópico, assunto, referência ou observações" /></label>
         <label>Disciplina<select id="filterDiscipline"><option value="">Todas</option></select></label>
@@ -304,6 +314,7 @@
         <article class="stat-card"><span>Total de itens encontrados</span><strong id="importSubjectTotal">0</strong></article>
         <article class="stat-card"><span>Total de disciplinas</span><strong id="importDisciplineTotal">0</strong></article>
       </div>
+
       <div class="filters form-grid compact">
         <label>Disciplina<select id="importFilterDiscipline"><option value="">Todas</option></select></label>
         <label>Status<select id="importFilterStatus"><option value="">Todos</option></select></label>
@@ -336,6 +347,7 @@
         <label class="wide">Observações<textarea id="materialNotes" rows="3"></textarea></label>
         <button class="wide" type="submit">Salvar material</button>
       </form>
+
       <div class="filters form-grid compact">
         <label>Disciplina<select id="materialFilterDiscipline"><option value="">Todas</option></select></label>
         <label>Assunto<select id="materialFilterSubject"><option value="">Todos</option></select></label>
@@ -584,6 +596,7 @@
 
     <section id="view-historico-questoes" class="panel app-view" data-view="historico-questoes" aria-labelledby="question-history-title">
       <div class="section-heading"><p class="eyebrow">Histórico</p><h2 id="question-history-title">Histórico de Questões</h2></div>
+
       <div class="filters form-grid compact">
         <label>Disciplina<select id="questionFilterDiscipline"><option value="">Todas</option></select></label>
         <label>Assunto<select id="questionFilterSubject"><option value="">Todos</option></select></label>
