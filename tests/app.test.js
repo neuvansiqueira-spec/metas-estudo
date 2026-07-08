@@ -70,3 +70,18 @@ test('Calendário de Metas usa incidências novas e duração mínima/máxima de
   assert.match(script, /Math\.max\(30, Math\.round\(baseMinutes \* factor\)\)/);
   assert.match(script, /dayType === "folga" \|\| dayType === "estudo forte" \? 90 : Infinity/);
 });
+
+test('Plano do Dia separa tempo de estudo e questões sem concluir automaticamente', () => {
+  assert.match(script, /function normalizeGoalTimeFields\(goal\)/);
+  assert.match(script, /goal\.studyActualMinutes = hasStudyActual \? Number\(goal\.studyActualMinutes\) \|\| 0 : legacyActual/);
+  assert.match(script, /goal\.questionActualMinutes = hasQuestionActual \? Number\(goal\.questionActualMinutes\) \|\| 0 : 0/);
+  assert.match(script, /goal\.actualMinutes = goal\.studyActualMinutes \+ goal\.questionActualMinutes/);
+  assert.match(script, /Registrar estudo/);
+  assert.match(script, /Tempo de questões/);
+  assert.match(script, /Estudo realizado: \$\{Number\(goal\.studyActualMinutes\|\|0\)\} min/);
+  assert.match(script, /Questões realizadas: \$\{Number\(goal\.questionActualMinutes\|\|0\)\} min/);
+  assert.match(script, /Total realizado: \$\{Number\(goal\.actualMinutes\|\|0\)\} min/);
+  assert.match(script, /registerGoalTime\(goal, "study"\)/);
+  assert.match(script, /registerGoalTime\(goal, "questions"\)/);
+  assert.doesNotMatch(script, /Deseja concluir esta meta agora/);
+});
