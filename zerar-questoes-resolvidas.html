@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zerar questões resolvidas</title>
+  <style>
+    :root { font-family: Arial, sans-serif; color: #102033; background: #f4f7fb; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+    main { width: min(760px, 100%); background: #fff; border-radius: 18px; box-shadow: 0 20px 50px rgba(16,32,51,.12); padding: 28px; }
+    h1 { margin: 0 0 8px; font-size: 1.7rem; }
+    p { line-height: 1.55; }
+    .notice { background: #eef5ff; border-left: 4px solid #1f5fa8; padding: 12px 14px; border-radius: 10px; }
+    .danger { background: #b3261e; color: white; border: 0; border-radius: 12px; padding: 12px 16px; font-weight: 700; cursor: pointer; }
+    .secondary { background: #eef2f7; color: #102033; border: 0; border-radius: 12px; padding: 12px 16px; font-weight: 700; cursor: pointer; text-decoration: none; display: inline-block; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin: 18px 0; }
+    .card { border: 1px solid #d9e2ef; border-radius: 14px; padding: 14px; background: #fafcff; }
+    .card span { display: block; font-size: .86rem; color: #526477; }
+    .card strong { font-size: 1.5rem; }
+    code { background: #eef2f7; padding: 2px 5px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Zerar questões resolvidas</h1>
+    <p class="notice">Esta limpeza atua somente nos dados salvos neste navegador. Ela não apaga disciplinas, edital, assuntos, metas, materiais, banco de questões ou simulados.</p>
+
+    <div id="summary" class="grid" aria-live="polite"></div>
+
+    <p>Serão zerados:</p>
+    <ul>
+      <li>Histórico de questões lançadas.</li>
+      <li>Treinos/resultados do banco de questões.</li>
+      <li>Caderno de erros gerado por questões.</li>
+      <li>Estatísticas de questões gravadas nos assuntos do edital.</li>
+    </ul>
+
+    <div id="result" class="notice" hidden></div>
+
+    <div class="actions">
+      <button id="resetButton" class="danger" type="button">Zerar questões resolvidas</button>
+      <a class="secondary" href="index.html">Voltar ao site</a>
+    </div>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "metasConcursoData";
+    const CADERNO_ERROS_STORAGE_KEY = "cadernoErros";
+
+    function readJSON(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+      } catch (error) {
+        return fallback;
+      }
+    }
+
+    function writeJSON(key, value) {
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+
+    function countCadernoErros() {
+      const external = readJSON(CADERNO_ERROS_STORAGE_KEY, []);
+      return Array.isArray(external) ? external.length : 0;
+    }
+
+    function currentCounts() {
+      const data = readJSON(STORAGE_KEY, {});
+      return {
+        questionLogs: Array.isArray(data.questionLogs) ? data.questionLogs.length : 0,
+        questionBankSessions: Array.isArray(data.questionBankSessions) ? data.questionBankSessions.length : 0,
+        questionErrorNotebook: Array.isArray(data.questionErrorNotebook) ? data.questionErrorNotebook.length : 0,
+        cadernoErros: countCadernoErros(),
+        syllabusItems: Array.isArray(data.syllabusItems) ? data.syllabusItems.length : 0
+      };
+    }
+
+    function renderCounts() {
+      const counts = currentCounts();
+      document.getElementById("summary").innerHTML = `
+        <div class="card"><span>Histórico de questões</span><strong>${counts.questionLogs}</strong></div>
+        <div class="card"><span>Treinos do banco</span><strong>${counts.questionBankSessions}</strong></div>
+        <div class="card"><span>Caderno de erros interno</span><strong>${counts.questionErrorNotebook}</strong></div>
+        <div class="card"><span>Chave cadernoErros</span><strong>${counts.cadernoErros}</strong></div>
+        <div class="card"><span>Assuntos preservados</span><strong>${counts.syllabusItems}</strong></div>
+      `;
+    }
+
+    function resetSolvedQuestions() {
+      const data = readJSON(STORAGE_KEY, {});
+      const before = currentCounts();
+
+      data.questionLogs = [];
+      data.questionBankSessions = [];
+      data.questionErrorNotebook = [];
+
+      if (Array.isArray(data.syllabusItems)) {
+        data.syllabusItems = data.syllabusItems.map((item) => {
+          const next = { ...item };
+          next.questionsTotal = 0;
+          next.questionsCorrect = 0;
+          next.questionsWrong = 0;
+          next.questionsBlank = 0;
+          next.accuracyRate = 0;
+          next.cebraspeNet = 0;
+          next.lastTrainingDate = "";
+          if (["Fraco", "Médio", "Forte"].includes(next.domain) && !next.manualWeak) {
+            next.domain = "Sem diagnóstico";
+          }
+          return next;
+        });
+      }
+
+      writeJSON(STORAGE_KEY, data);
+      localStorage.removeItem(CADERNO_ERROS_STORAGE_KEY);
+      renderCounts();
+
+      const result = document.getElementById("result");
+      result.hidden = false;
+      result.innerHTML = `Limpeza concluída. Apagados: <code>${before.questionLogs}</code> histórico(s), <code>${before.questionBankSessions}</code> treino(s), <code>${before.questionErrorNotebook + before.cadernoErros}</code> item(ns) de caderno de erros. Assuntos, edital, metas, materiais, banco de questões e simulados foram preservados.`;
+    }
+
+    document.getElementById("resetButton").addEventListener("click", () => {
+      if (confirm("Zerar questões resolvidas neste navegador?")) resetSolvedQuestions();
+    });
+
+    renderCounts();
+  </script>
+</body>
+</html>
