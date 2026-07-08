@@ -1,5 +1,8 @@
 (() => {
-  const DELETE_ACTIONS_VERSION = "20260708-delete-discipline-subject-v1";
+  if (window.__METAS_DELETE_ACTIONS_LOADED__) return;
+  window.__METAS_DELETE_ACTIONS_LOADED__ = true;
+
+  const DELETE_ACTIONS_VERSION = "20260708-delete-discipline-subject-v2";
 
   function ready() {
     return typeof state !== "undefined" && Array.isArray(state.syllabusItems) && Array.isArray(state.subjects);
@@ -46,17 +49,18 @@
     if (typeof saveData === "function") saveData();
     if (typeof render === "function") render();
     if (typeof showView === "function") showView(view || currentView());
-    if (message) {
-      const target = document.querySelector("#importMessage") || document.querySelector("#syllabusCount") || document.querySelector("#subjectList");
-      if (target) {
-        const box = document.createElement("p");
-        box.className = "notice";
-        box.textContent = message;
-        target.insertAdjacentElement("afterend", box);
-        setTimeout(() => box.remove(), 5000);
-      }
-    }
-    setTimeout(enhanceDeleteButtons, 0);
+    if (message) showTemporaryMessage(message);
+    queueEnhance();
+  }
+
+  function showTemporaryMessage(message) {
+    const target = document.querySelector("#importMessage") || document.querySelector("#syllabusCount") || document.querySelector("#subjectList");
+    if (!target) return;
+    const box = document.createElement("p");
+    box.className = "notice";
+    box.textContent = message;
+    target.insertAdjacentElement("afterend", box);
+    setTimeout(() => box.remove(), 5000);
   }
 
   function deleteSyllabusItem(id) {
@@ -123,18 +127,41 @@
     });
   }
 
-  function enhanceImportedGroupsRendering() {
-    if (typeof renderImportedSyllabusGroups === "function") renderImportedSyllabusGroups();
+  function enhanceImportedGroupsRenderingOnce() {
+    const box = document.querySelector("#importedSyllabusGroups");
+    if (!box || box.dataset.customRendered === "true") return;
+    if (typeof renderImportedSyllabusGroups === "function") {
+      renderImportedSyllabusGroups();
+      box.dataset.customRendered = "true";
+    }
   }
 
   function enhanceDeleteButtons() {
     try {
       enhanceSyllabusDeleteButtons();
       enhanceSubjectDeleteButtons();
-      enhanceImportedGroupsRendering();
+      enhanceImportedGroupsRenderingOnce();
     } catch (error) {
       console.warn(`[Metas Estudo] Falha no complemento ${DELETE_ACTIONS_VERSION}.`, error);
     }
+  }
+
+  let enhanceTimer = null;
+  function queueEnhance() {
+    clearTimeout(enhanceTimer);
+    enhanceTimer = setTimeout(enhanceDeleteButtons, 80);
+  }
+
+  function wrapFunction(name) {
+    if (typeof window[name] !== "function" || window[name].__deleteActionsWrapped) return;
+    const original = window[name];
+    const wrapped = function(...args) {
+      const result = original.apply(this, args);
+      queueEnhance();
+      return result;
+    };
+    wrapped.__deleteActionsWrapped = true;
+    window[name] = wrapped;
   }
 
   document.addEventListener("click", (event) => {
@@ -151,10 +178,9 @@
     }
   });
 
-  const observer = new MutationObserver(() => enhanceDeleteButtons());
-  observer.observe(document.documentElement, { childList: true, subtree: true });
-  window.addEventListener("hashchange", () => setTimeout(enhanceDeleteButtons, 0));
-  window.addEventListener("load", () => setTimeout(enhanceDeleteButtons, 0));
+  ["render", "showView", "renderSyllabus", "renderSubjects", "renderImportPreview"].forEach(wrapFunction);
+  window.addEventListener("hashchange", queueEnhance);
+  window.addEventListener("load", queueEnhance);
   setTimeout(enhanceDeleteButtons, 0);
   setTimeout(enhanceDeleteButtons, 500);
 })();
