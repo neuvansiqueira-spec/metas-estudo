@@ -165,6 +165,10 @@ textarea:focus { outline: 3px solid rgba(37, 99, 235, .18); border-color: var(--
 
 .import-summary { margin-top: 18px; }
 .import-summary .stat-card strong { font-size: clamp(1.6rem, 3vw, 2.2rem); }
+.imported-syllabus-groups:not(:empty) { margin-top: 18px; padding: 16px; border-radius: 18px; background: #f8fafc; border: 1px solid var(--border); }
+.imported-syllabus-groups h3 { margin: 0 0 6px; }
+.imported-syllabus-groups .cards-list { margin-top: 12px; }
+.imported-group-card h4 { margin: 0; }
 #importPreview { margin-top: 18px; }
 #importPreview table { min-width: 1100px; }
 #importMessage:not(:empty) { padding: 14px; border-radius: 18px; background: #f8fafc; border: 1px solid var(--border); }

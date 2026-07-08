@@ -58,6 +58,14 @@ test('importação de edital preserva prévia, domínio e integração com agend
   assert.match(script, /normalizeImportedDomain\(raw\.dominio \|\| raw\.domain \|\| raw\.diagnostico\)/);
   assert.match(script, /state\.syllabusItems\.push\(\.\.\.itemsToImport\)/);
   assert.match(script, /state\.schedulableSettings\[item\.id\]/);
+  assert.match(script, /function renderImportedSyllabusGroups/);
+  assert.match(script, /function deleteImportedSyllabusGroup/);
+  assert.match(script, /importMeta\?\.concurso/);
+  assert.match(script, /importMeta\?\.fonte/);
+  assert.match(script, /Fonte:\\s\*/);
+  assert.match(script, /delete state\.schedulableSettings\[id\]/);
+  assert.match(html, /id="importedSyllabusGroups"/);
+  assert.match(script, /Excluir este edital/);
   assert.match(script, /saveData\(\)/);
 });
 

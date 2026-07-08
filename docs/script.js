@@ -203,7 +203,7 @@ const elements = {
   editalForm: $("#editalForm"), contestName: $("#contestName"), agency: $("#agency"), role: $("#role"), board: $("#board"), examDate: $("#examDate"), officialLink: $("#officialLink"), generalNotes: $("#generalNotes"), editalPdf: $("#editalPdf"), pdfInfo: $("#pdfInfo"), removePdf: $("#removePdf"),
   syllabusForm: $("#syllabusForm"), itemDiscipline: $("#itemDiscipline"), itemTopic: $("#itemTopic"), itemSubject: $("#itemSubject"), itemSubtopic: $("#itemSubtopic"), itemReference: $("#itemReference"), itemPriority: $("#itemPriority"), itemWeight: $("#itemWeight"), itemStatus: $("#itemStatus"), itemDomain: $("#itemDomain"), itemNotes: $("#itemNotes"),
   bulkInput: $("#bulkInput"), previewBulk: $("#previewBulk"), saveBulk: $("#saveBulk"), bulkPreview: $("#bulkPreview"), filterSearch: $("#filterSearch"), filterDiscipline: $("#filterDiscipline"), filterPriority: $("#filterPriority"), filterStatus: $("#filterStatus"), filterDomain: $("#filterDomain"), filterSchedulable: $("#filterSchedulable"), filterQuick: $("#filterQuick"), bulkPriority: $("#bulkPriority"), applyBulkPriority: $("#applyBulkPriority"), syllabusCount: $("#syllabusCount"), showMoreSyllabus: $("#showMoreSyllabus"), syllabusList: $("#syllabusList"), schedulableList: $("#schedulableList"), disciplineOptions: $("#disciplineOptions"),
-  jsonImportFile: $("#jsonImportFile"), importMessage: $("#importMessage"), importDisciplineTotal: $("#importDisciplineTotal"), importSubjectTotal: $("#importSubjectTotal"), importFilterDiscipline: $("#importFilterDiscipline"), importFilterStatus: $("#importFilterStatus"), importFilterPriority: $("#importFilterPriority"), importFilterDomain: $("#importFilterDomain"), importJsonButton: $("#importJsonButton"), clearImportedSyllabus: $("#clearImportedSyllabus"), importDisciplineList: $("#importDisciplineList"), importPreview: $("#importPreview"),
+  jsonImportFile: $("#jsonImportFile"), importMessage: $("#importMessage"), importDisciplineTotal: $("#importDisciplineTotal"), importSubjectTotal: $("#importSubjectTotal"), importFilterDiscipline: $("#importFilterDiscipline"), importFilterStatus: $("#importFilterStatus"), importFilterPriority: $("#importFilterPriority"), importFilterDomain: $("#importFilterDomain"), importJsonButton: $("#importJsonButton"), clearImportedSyllabus: $("#clearImportedSyllabus"), importDisciplineList: $("#importDisciplineList"), importedSyllabusGroups: $("#importedSyllabusGroups"), importPreview: $("#importPreview"),
   generalCebraspeNet: $("#generalCebraspeNet"), todayPendingGoals: $("#todayPendingGoals"), todayDoneGoals: $("#todayDoneGoals"), dashboardTodayGoal: $("#dashboardTodayGoal"), dashboardTodayGoalDetail: $("#dashboardTodayGoalDetail"), dashboardDailyGoalRate: $("#dashboardDailyGoalRate"), dashboardTodayRemaining: $("#dashboardTodayRemaining"), dashboardNextTodayGoal: $("#dashboardNextTodayGoal"), viewDayPlan: $("#viewDayPlan"),
   selectedGoalDateLabel: $("#selectedGoalDateLabel"), nextDailyGoal: $("#nextDailyGoal"), generateDailyGoals: $("#generateDailyGoals"), goalForm: $("#goalForm"), goalDate: $("#goalDate"), goalDiscipline: $("#goalDiscipline"), goalSyllabusItem: $("#goalSyllabusItem"), goalType: $("#goalType"), goalMinutes: $("#goalMinutes"), goalActualMinutes: $("#goalActualMinutes"), goalStudyStatus: $("#goalStudyStatus"), goalPriority: $("#goalPriority"), goalStatus: $("#goalStatus"), goalNotes: $("#goalNotes"), dailyGoalsSummary: $("#dailyGoalsSummary"), dailyGoalsList: $("#dailyGoalsList"),
   calendarDate: $("#calendarDate"), calendarViewMode: $("#calendarViewMode"), generateWeekGoals: $("#generateWeekGoals"), generateMonthGoals: $("#generateMonthGoals"), disciplineWeightsList: $("#disciplineWeightsList"), goalCalendarStats: $("#goalCalendarStats"), goalCalendarContent: $("#goalCalendarContent"), monthlyTopicGoal: $("#monthlyTopicGoal"), monthlyHourGoal: $("#monthlyHourGoal"), monthlyPlanSummary: $("#monthlyPlanSummary"), todayGoalsTotal: $("#todayGoalsTotal"), weekGoalsTotal: $("#weekGoalsTotal"), weekGoalRate: $("#weekGoalRate"), monthGoalRate: $("#monthGoalRate"), nextGoalLabel: $("#nextGoalLabel"), weekTopDiscipline: $("#weekTopDiscipline"), mostDelayedDiscipline: $("#mostDelayedDiscipline"),
@@ -577,6 +577,44 @@ function renderImportFilters() {
     const current = select.value; const options = [...new Set(values.filter(Boolean))].sort(); select.innerHTML = `<option value="">${label}</option>` + options.map((value) => `<option ${value === current ? "selected" : ""}>${escapeHTML(value)}</option>`).join("");
   });
 }
+function isImportedSyllabusItem(item) { return Boolean(item?.imported || item?.importMeta?.imported); }
+function importedSyllabusGroupName(item) {
+  const concurso = String(item?.importMeta?.concurso || "").trim();
+  if (concurso) return concurso;
+  const fonte = String(item?.importMeta?.fonte || "").trim();
+  if (fonte) return fonte;
+  const notesFonte = String(item?.notes || "").match(/Fonte:\s*([^•\n]+)/i)?.[1]?.trim();
+  return notesFonte || "Edital importado sem identificação";
+}
+function importedSyllabusGroupKey(item) { return importedSyllabusGroupName(item).toLocaleLowerCase("pt-BR"); }
+function getImportedSyllabusGroups() {
+  const groups = new Map();
+  (state.syllabusItems || []).filter(isImportedSyllabusItem).forEach((item) => {
+    const name = importedSyllabusGroupName(item);
+    const key = importedSyllabusGroupKey(item);
+    if (!groups.has(key)) groups.set(key, { key, name, items: [], disciplines: new Set() });
+    const group = groups.get(key);
+    group.items.push(item);
+    if (item.discipline) group.disciplines.add(item.discipline);
+  });
+  return [...groups.values()].sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+}
+function renderImportedSyllabusGroups() {
+  if (!elements.importedSyllabusGroups) return;
+  const groups = getImportedSyllabusGroups();
+  elements.importedSyllabusGroups.innerHTML = `<h3>Gerenciar editais importados</h3><p class="item-meta">Exclua apenas um edital específico abaixo. O botão de limpeza geral remove todos os editais importados.</p>` + (groups.length ? `<div class="cards-list">${groups.map((group) => `<article class="syllabus-card imported-group-card"><header><div><h4>${escapeHTML(group.name)}</h4><div class="item-meta">${group.items.length} item(ns) • ${group.disciplines.size} disciplina(s)</div></div><button class="danger" type="button" data-delete-imported-group="${escapeHTML(group.key)}">Excluir este edital</button></header></article>`).join("")}</div>` : `<p class="empty-message">Nenhum edital importado encontrado.</p>`);
+}
+function deleteImportedSyllabusGroup(groupKey) {
+  const group = getImportedSyllabusGroups().find((entry) => entry.key === groupKey);
+  if (!group) return alert("Edital importado não encontrado.");
+  if (!confirm(`Excluir somente o edital "${group.name}"? Disciplinas manuais, metas, materiais, simulados, banco de questões, histórico e planejamento serão preservados.`)) return;
+  const itemIds = new Set(group.items.map((item) => item.id));
+  itemIds.forEach((id) => delete state.schedulableSettings[id]);
+  state.syllabusItems = state.syllabusItems.filter((item) => !itemIds.has(item.id));
+  render();
+  elements.importMessage.innerHTML = "Edital excluído com sucesso.";
+}
+
 function renderImportPreview() {
   renderImportFilters();
   const filtered = getFilteredImportItems();
@@ -1232,7 +1270,7 @@ elements.qbReviewByDiscipline?.addEventListener("click", () => qbReviewFilteredB
 elements.qbReviewBySubject?.addEventListener("click", () => qbReviewFilteredBy("assunto"));
 elements.qbToggleErrorHistory?.addEventListener("click", () => { if (elements.qbErrorHistory) elements.qbErrorHistory.open = !elements.qbErrorHistory.open; });
 
-function render() { migrateIncorrectWeakDomains(); renderSubjects(); renderGoalSelectors(); renderQuestionSelectors(); renderPlanning(); renderProgressPanel(); renderDashboard(); renderGoalDashboardCards(); renderEdital(); renderSyllabus(); renderSchedulable(); renderDailyGoals(); renderGoalCalendar(); renderCentralGoals(); renderQuestionHistory(); updateQuestionCalculated(); renderMaterials(); updateStudyMaterialOptions(); renderReviews(); renderSmartReviewsDashboard(); renderAlerts(); renderHistory(); renderImportPreview(); renderBackupSummary(); renderQuestionBank(); qbRenderErrorNotebook(); renderSimulados(); saveData(); }
+function render() { migrateIncorrectWeakDomains(); renderSubjects(); renderGoalSelectors(); renderQuestionSelectors(); renderPlanning(); renderProgressPanel(); renderDashboard(); renderGoalDashboardCards(); renderEdital(); renderSyllabus(); renderSchedulable(); renderDailyGoals(); renderGoalCalendar(); renderCentralGoals(); renderQuestionHistory(); updateQuestionCalculated(); renderMaterials(); updateStudyMaterialOptions(); renderReviews(); renderSmartReviewsDashboard(); renderAlerts(); renderHistory(); renderImportPreview(); renderImportedSyllabusGroups(); renderBackupSummary(); renderQuestionBank(); qbRenderErrorNotebook(); renderSimulados(); saveData(); }
 function syllabusFromValues(values) { return { id: createId(), discipline: values[0]?.trim() || "Sem disciplina", topic: values[1]?.trim() || "Geral", subject: values[2]?.trim() || "Assunto", subtopic: values[3]?.trim() || "", reference: values[4]?.trim() || "", priority: values[5]?.trim() || "Média", weight: Number(values[6]) || 1, status: values[7]?.trim() || "Não iniciado", domain: normalizeImportedDomain(values[8]), notes: values[9]?.trim() || "" }; }
 
 elements.changeMotivation?.addEventListener("click", () => renderMotivationalPhrase());
@@ -1316,6 +1354,11 @@ elements.importJsonButton.addEventListener("click", () => {
     console.error("Falha ao importar o edital verticalizado.", error);
     elements.importMessage.innerHTML = `Falha ao importar o edital verticalizado: ${escapeHTML(error.message)}`;
   }
+});
+
+elements.importedSyllabusGroups?.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-delete-imported-group]");
+  if (button) deleteImportedSyllabusGroup(button.dataset.deleteImportedGroup);
 });
 
 elements.clearImportedSyllabus.addEventListener("click", () => {
