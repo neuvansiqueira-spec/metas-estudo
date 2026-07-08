@@ -196,6 +196,26 @@ test('rotas Backup e Caderno de Erros não compartilham destinos', () => {
   assert.match(script, /"caderno-erros": qbRenderErrorNotebook/);
 });
 
+test('Backup permite zerar somente questões resolvidas preservando dados principais', () => {
+  assert.match(html, /id="resetSolvedQuestions"[^>]*>Zerar questões resolvidas<\/button>/);
+  assert.match(html, /class="backup-reset-actions actions"/);
+  assert.match(css, /\.backup-reset-actions \{[^}]*border-top: 1px solid var\(--border\)/);
+  assert.match(script, /resetSolvedQuestions: \$\("#resetSolvedQuestions"\)/);
+  assert.match(script, /function resetSolvedQuestionsFromBackup\(\)/);
+  assert.match(script, /state\.questionLogs = \[\]/);
+  assert.match(script, /state\.questionBankSessions = \[\]/);
+  assert.match(script, /state\.questionErrorNotebook = \[\]/);
+  assert.match(script, /localStorage\.removeItem\(CADERNO_ERROS_STORAGE_KEY\)/);
+  assert.match(script, /item\.questionsTotal = 0/);
+  assert.match(script, /item\.questionsCorrect = 0/);
+  assert.match(script, /item\.questionsWrong = 0/);
+  assert.match(script, /item\.questionsBlank = 0/);
+  assert.match(script, /item\.accuracyRate = 0/);
+  assert.match(script, /item\.cebraspeNet = 0/);
+  assert.match(script, /item\.lastTrainingDate = ""/);
+  assert.match(script, /Questões resolvidas zeradas com sucesso\./);
+});
+
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
   assert.match(sw, /metas-estudo-cache-20260701-rollback-stable/);
