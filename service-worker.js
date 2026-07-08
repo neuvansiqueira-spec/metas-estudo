@@ -1,10 +1,9 @@
-const CACHE_NAME = "metas-estudo-cache-20260708-delete-controls-v3";
+const CACHE_NAME = "metas-estudo-cache-20260701-rollback-stable-restored";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
   "style.css",
   "script.js",
-  "custom-actions.js",
   "manifest.json",
   "icons/icon.svg",
   "icons/icon-maskable.svg"
@@ -33,43 +32,19 @@ function shouldPreferNetwork(request) {
   return request.mode === "navigate" || ["document", "script", "style", "worker"].includes(destination);
 }
 
-function isHtmlResponse(response) {
-  return (response.headers.get("content-type") || "").includes("text/html");
-}
-
-async function injectCustomActions(response) {
-  if (!response || !isHtmlResponse(response)) return response;
-  const html = await response.clone().text();
-  if (html.includes("custom-actions.js")) return response;
-  const patched = html.includes("</body>")
-    ? html.replace("</body>", '<script src="custom-actions.js?v=20260708-delete-controls-v3"></script></body>')
-    : `${html}<script src="custom-actions.js?v=20260708-delete-controls-v3"></script>`;
-  const headers = new Headers(response.headers);
-  headers.delete("content-length");
-  return new Response(patched, {
-    status: response.status,
-    statusText: response.statusText,
-    headers
-  });
-}
-
-async function networkFirstWithCache(request) {
-  try {
-    const response = await fetch(request);
-    const clone = response.clone();
-    caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-    return injectCustomActions(response);
-  } catch (error) {
-    const cachedResponse = await caches.match(request) || await caches.match("index.html");
-    return injectCustomActions(cachedResponse);
-  }
-}
-
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
   if (shouldPreferNetwork(event.request)) {
-    event.respondWith(networkFirstWithCache(event.request));
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return response;
+        })
+        .catch(() => caches.match(event.request).then((cachedResponse) => cachedResponse || caches.match("index.html")))
+    );
     return;
   }
 
