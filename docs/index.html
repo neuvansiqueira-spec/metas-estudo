@@ -317,6 +317,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
         <article class="stat-card"><span>Total de itens encontrados</span><strong id="importSubjectTotal">0</strong></article>
         <article class="stat-card"><span>Total de disciplinas</span><strong id="importDisciplineTotal">0</strong></article>
       </div>
+
       <div class="filters form-grid compact">
         <label>Disciplina<select id="importFilterDiscipline"><option value="">Todas</option></select></label>
         <label>Status<select id="importFilterStatus"><option value="">Todos</option></select></label>
@@ -349,6 +350,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
         <label class="wide">Observações<textarea id="materialNotes" rows="3"></textarea></label>
         <button class="wide" type="submit">Salvar material</button>
       </form>
+
       <div class="filters form-grid compact">
         <label>Disciplina<select id="materialFilterDiscipline"><option value="">Todas</option></select></label>
         <label>Assunto<select id="materialFilterSubject"><option value="">Todos</option></select></label>
@@ -611,6 +613,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
 
     <section id="view-historico-questoes" class="panel app-view" data-view="historico-questoes" aria-labelledby="question-history-title">
       <div class="section-heading"><p class="eyebrow">Histórico</p><h2 id="question-history-title">Histórico de Questões</h2></div>
+
       <div class="filters form-grid compact">
         <label>Disciplina<select id="questionFilterDiscipline"><option value="">Todas</option></select></label>
         <label>Assunto<select id="questionFilterSubject"><option value="">Todos</option></select></label>
@@ -671,6 +674,27 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     <a href="#planejamento" data-view-link="planejamento">Planejamento</a>
     <a href="#backup" data-view-link="backup">Backup</a>
   </nav>
+
+  <aside id="floatingTimer" class="floating-timer" aria-live="polite" hidden>
+    <div class="floating-timer-header">
+      <div>
+        <span class="floating-timer-label">Cronômetro</span>
+        <strong id="timerDiscipline">-</strong>
+      </div>
+      <button type="button" class="timer-icon-button" data-timer-action="close" aria-label="Fechar cronômetro">×</button>
+    </div>
+    <div class="floating-timer-body">
+      <span id="timerSubject" class="floating-timer-subject">-</span>
+      <span id="timerKind" class="badge neutral">Estudo</span>
+      <strong id="timerTime" class="floating-timer-time">00:00:00</strong>
+    </div>
+    <div class="floating-timer-actions">
+      <button id="timerPauseResume" type="button" data-timer-action="pause">Pausar</button>
+      <button type="button" data-timer-action="save">Salvar tempo</button>
+      <button type="button" class="secondary-button" data-timer-action="reset">Zerar</button>
+      <button type="button" class="secondary-button" data-timer-action="close">Fechar</button>
+    </div>
+  </aside>
 
   <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260701-rollback-stable</p></footer>
   <script src="script.js?v=20260701-rollback-stable"></script>

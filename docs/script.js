@@ -203,6 +203,101 @@ let pendingBackupPayload = null;
 let syllabusVisibleCount = 30;
 let editingSyllabusId = null;
 
+let floatingTimer = {
+  goalId: null,
+  kind: null,
+  elapsedSeconds: 0,
+  startedAt: null,
+  paused: false,
+  intervalId: null
+};
+
+function timerKindLabel(kind) { return kind === "questions" ? "Questões" : "Estudo"; }
+function currentTimerSeconds() {
+  if (!floatingTimer.goalId) return 0;
+  const runningSeconds = floatingTimer.startedAt && !floatingTimer.paused ? Math.floor((Date.now() - floatingTimer.startedAt) / 1000) : 0;
+  return floatingTimer.elapsedSeconds + runningSeconds;
+}
+function formatTimerSeconds(totalSeconds) {
+  const total = Math.max(0, Number(totalSeconds) || 0);
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+  return [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":");
+}
+function timerSavedMinutes(seconds) {
+  if (seconds <= 0) return 0;
+  const fullMinutes = Math.floor(seconds / 60);
+  const rounded = fullMinutes + (seconds % 60 >= 30 ? 1 : 0);
+  return Math.max(1, rounded);
+}
+function floatingTimerGoal() { return state.dailyGoals.find((goal) => goal.id === floatingTimer.goalId); }
+function stopFloatingTimerInterval() {
+  if (floatingTimer.intervalId) clearInterval(floatingTimer.intervalId);
+  floatingTimer.intervalId = null;
+}
+function renderFloatingTimer() {
+  if (!elements.floatingTimer) return;
+  const goal = floatingTimerGoal();
+  const isActive = Boolean(goal && floatingTimer.goalId);
+  elements.floatingTimer.hidden = !isActive;
+  if (!isActive) return;
+  elements.timerDiscipline.textContent = goal.discipline || "Sem disciplina";
+  elements.timerSubject.textContent = goal.subject || "Assunto";
+  elements.timerKind.textContent = timerKindLabel(floatingTimer.kind);
+  elements.timerTime.textContent = formatTimerSeconds(currentTimerSeconds());
+  elements.timerPauseResume.textContent = floatingTimer.paused ? "Continuar" : "Pausar";
+}
+function startFloatingTimer(goal, kind = "study") {
+  if (floatingTimer.goalId && !confirm("Já existe cronômetro em andamento. Deseja substituir?")) return;
+  stopFloatingTimerInterval();
+  floatingTimer = { goalId: goal.id, kind, elapsedSeconds: 0, startedAt: Date.now(), paused: false, intervalId: null };
+  floatingTimer.intervalId = setInterval(renderFloatingTimer, 1000);
+  renderFloatingTimer();
+}
+function pauseOrResumeFloatingTimer() {
+  if (!floatingTimer.goalId) return;
+  if (floatingTimer.paused) {
+    floatingTimer.startedAt = Date.now();
+    floatingTimer.paused = false;
+  } else {
+    floatingTimer.elapsedSeconds = currentTimerSeconds();
+    floatingTimer.startedAt = null;
+    floatingTimer.paused = true;
+  }
+  renderFloatingTimer();
+}
+function resetFloatingTimer() {
+  if (!floatingTimer.goalId) return;
+  floatingTimer.elapsedSeconds = 0;
+  floatingTimer.startedAt = floatingTimer.paused ? null : Date.now();
+  renderFloatingTimer();
+}
+function closeFloatingTimer() {
+  stopFloatingTimerInterval();
+  floatingTimer = { goalId: null, kind: null, elapsedSeconds: 0, startedAt: null, paused: false, intervalId: null };
+  renderFloatingTimer();
+}
+function saveFloatingTimerTime() {
+  const goal = floatingTimerGoal();
+  if (!goal) return closeFloatingTimer();
+  normalizeGoalTimeFields(goal);
+  const seconds = currentTimerSeconds();
+  const minutes = timerSavedMinutes(seconds);
+  if (minutes <= 0) return alert("Inicie o cronômetro antes de salvar.");
+  const field = floatingTimer.kind === "questions" ? "questionActualMinutes" : "studyActualMinutes";
+  const label = timerKindLabel(floatingTimer.kind);
+  goal[field] = (Number(goal[field]) || 0) + minutes;
+  goal.actualMinutes = (Number(goal.studyActualMinutes) || 0) + (Number(goal.questionActualMinutes) || 0);
+  goal.studyStatus = goal.actualMinutes > 0 ? "Iniciado" : (goal.studyStatus || "Pendente");
+  if (goal.actualMinutes > 0 && goal.status === "Pendente") goal.status = "Em andamento";
+  appendGoalHistory(goal, `Tempo salvo pelo cronômetro: +${minutes} min em ${label} em ${new Date().toLocaleString("pt-BR")}. Total realizado: ${goal.actualMinutes} min.`);
+  saveData();
+  render();
+  showDailyGoalMessage(`Tempo salvo: ${minutes} min em ${label}.`, "success");
+  closeFloatingTimer();
+}
+
 const $ = (selector) => document.querySelector(selector);
 const elements = {
   subjectForm: $("#subjectForm"), subjectName: $("#subjectName"), subjectGoal: $("#subjectGoal"), subjectList: $("#subjectList"),
@@ -224,7 +319,8 @@ const elements = {
   planningConfigForm: $("#planningConfigForm"), planningExamDate: $("#planningExamDate"), planningScaleType: $("#planningScaleType"), planningScaleNotes: $("#planningScaleNotes"), planningShiftHours: $("#planningShiftHours"), planningRestHours: $("#planningRestHours"), planningNormalHours: $("#planningNormalHours"), planningMinWeeklyHours: $("#planningMinWeeklyHours"), planningIdealWeeklyHours: $("#planningIdealWeeklyHours"), planningWeeklyTopics: $("#planningWeeklyTopics"), planningDisciplinesPerDay: $("#planningDisciplinesPerDay"), planningDisciplinesPerWeek: $("#planningDisciplinesPerWeek"), planningDisciplinesPerMonth: $("#planningDisciplinesPerMonth"), planningTopicsPerDay: $("#planningTopicsPerDay"), planningTopicsPerWeek: $("#planningTopicsPerWeek"), planningTopicsPerMonth: $("#planningTopicsPerMonth"), planningSafetyDays: $("#planningSafetyDays"), planningScaleReferenceDate: $("#planningScaleReferenceDate"), planningScaleReferencePosition: $("#planningScaleReferencePosition"), scale3x6Fields: $("#scale3x6Fields"), centralGoalsCards: $("#centralGoalsCards"), centralScaleSummary: $("#centralScaleSummary"), centralNextDates: $("#centralNextDates"), centralOpenDayPlan: $("#centralOpenDayPlan"), dashboardGoalsScaleSummary: $("#dashboardGoalsScaleSummary"), availabilityCalendar: $("#availabilityCalendar"), completionForecast: $("#completionForecast"), completionAlert: $("#completionAlert"), weeklyGoalsPlan: $("#weeklyGoalsPlan"), weeklyGoalsAlert: $("#weeklyGoalsAlert"), timeHistorySummary: $("#timeHistorySummary"), timeHistoryBody: $("#timeHistoryBody"),
   dashboardQuestionBankTotal: $("#dashboardQuestionBankTotal"), dashboardQuestionBankSessions: $("#dashboardQuestionBankSessions"), dashboardQuestionBankLast: $("#dashboardQuestionBankLast"), dashboardQuestionBankPackages: $("#dashboardQuestionBankPackages"), dashboardQuestionBankLinked: $("#dashboardQuestionBankLinked"), dashboardQuestionBankMissing: $("#dashboardQuestionBankMissing"),
   materialsTotal: $("#materialsTotal"), materialDisciplinesTotal: $("#materialDisciplinesTotal"), materialTopicsTotal: $("#materialTopicsTotal"), materialForm: $("#materialForm"), materialEditingId: $("#materialEditingId"), materialTitle: $("#materialTitle"), materialDate: $("#materialDate"), materialDiscipline: $("#materialDiscipline"), materialSubject: $("#materialSubject"), materialType: $("#materialType"), materialOrigin: $("#materialOrigin"), materialLink: $("#materialLink"), materialTags: $("#materialTags"), materialNotes: $("#materialNotes"), materialDisciplineOptions: $("#materialDisciplineOptions"), materialSubjectOptions: $("#materialSubjectOptions"), materialFilterDiscipline: $("#materialFilterDiscipline"), materialFilterSubject: $("#materialFilterSubject"), materialFilterType: $("#materialFilterType"), materialFilterOrigin: $("#materialFilterOrigin"), materialFilterText: $("#materialFilterText"), materialsList: $("#materialsList"), studyMaterial: $("#studyMaterial"),
-  qbSyllabusPackages: $("#qbSyllabusPackages"), qbSyllabusVerticalized: $("#qbSyllabusVerticalized"), qbPreviewSection: $("#qbPreviewSection"), qbSyllabusSummary: $("#qbSyllabusSummary"), qbPackagesSummary: $("#qbPackagesSummary"), qbFile: $("#qbFile"), qbNewTraining: $("#qbNewTraining"), qbRedoBlanks: $("#qbRedoBlanks"), qbExportBank: $("#qbExportBank"), qbExportResults: $("#qbExportResults"), qbClearBank: $("#qbClearBank"), qbMessage: $("#qbMessage"), qbStats: $("#qbStats"), qbDiagnostics: $("#qbDiagnostics"), qbTrainingScope: $("#qbTrainingScope"), qbReviewTypeWrapper: $("#qbReviewTypeWrapper"), qbReviewType: $("#qbReviewType"), qbFilterDiscipline: $("#qbFilterDiscipline"), qbFilterSubject: $("#qbFilterSubject"), qbFilterTheme: $("#qbFilterTheme"), qbFilterBoard: $("#qbFilterBoard"), qbFilterYear: $("#qbFilterYear"), qbFilterSearch: $("#qbFilterSearch"), qbTrainingLimit: $("#qbTrainingLimit"), qbShuffleTraining: $("#qbShuffleTraining"), qbStartTraining: $("#qbStartTraining"), qbPreviewFiltered: $("#qbPreviewFiltered"), qbFilteredPreview: $("#qbFilteredPreview"), qbTrainingPanel: $("#qbTrainingPanel"), qbTrainingCounter: $("#qbTrainingCounter"), qbTrainingProgress: $("#qbTrainingProgress"), qbQuestionCard: $("#qbQuestionCard"), qbResultPanel: $("#qbResultPanel"), qbResultSummary: $("#qbResultSummary"), qbResultDetails: $("#qbResultDetails"), qbErrorStats: $("#qbErrorStats"), qbErrorNotebookList: $("#qbErrorNotebookList"), qbErrorFilterDiscipline: $("#qbErrorFilterDiscipline"), qbErrorFilterSubject: $("#qbErrorFilterSubject"), qbErrorFilterStatus: $("#qbErrorFilterStatus"), qbErrorFilterReason: $("#qbErrorFilterReason"), qbStartErrorNotebook: $("#qbStartErrorNotebook"), qbReviewByDiscipline: $("#qbReviewByDiscipline"), qbReviewBySubject: $("#qbReviewBySubject"), qbToggleErrorHistory: $("#qbToggleErrorHistory"), qbErrorHistory: $("#qbErrorHistory")
+  qbSyllabusPackages: $("#qbSyllabusPackages"), qbSyllabusVerticalized: $("#qbSyllabusVerticalized"), qbPreviewSection: $("#qbPreviewSection"), qbSyllabusSummary: $("#qbSyllabusSummary"), qbPackagesSummary: $("#qbPackagesSummary"), qbFile: $("#qbFile"), qbNewTraining: $("#qbNewTraining"), qbRedoBlanks: $("#qbRedoBlanks"), qbExportBank: $("#qbExportBank"), qbExportResults: $("#qbExportResults"), qbClearBank: $("#qbClearBank"), qbMessage: $("#qbMessage"), qbStats: $("#qbStats"), qbDiagnostics: $("#qbDiagnostics"), qbTrainingScope: $("#qbTrainingScope"), qbReviewTypeWrapper: $("#qbReviewTypeWrapper"), qbReviewType: $("#qbReviewType"), qbFilterDiscipline: $("#qbFilterDiscipline"), qbFilterSubject: $("#qbFilterSubject"), qbFilterTheme: $("#qbFilterTheme"), qbFilterBoard: $("#qbFilterBoard"), qbFilterYear: $("#qbFilterYear"), qbFilterSearch: $("#qbFilterSearch"), qbTrainingLimit: $("#qbTrainingLimit"), qbShuffleTraining: $("#qbShuffleTraining"), qbStartTraining: $("#qbStartTraining"), qbPreviewFiltered: $("#qbPreviewFiltered"), qbFilteredPreview: $("#qbFilteredPreview"), qbTrainingPanel: $("#qbTrainingPanel"), qbTrainingCounter: $("#qbTrainingCounter"), qbTrainingProgress: $("#qbTrainingProgress"), qbQuestionCard: $("#qbQuestionCard"), qbResultPanel: $("#qbResultPanel"), qbResultSummary: $("#qbResultSummary"), qbResultDetails: $("#qbResultDetails"), qbErrorStats: $("#qbErrorStats"), qbErrorNotebookList: $("#qbErrorNotebookList"), qbErrorFilterDiscipline: $("#qbErrorFilterDiscipline"), qbErrorFilterSubject: $("#qbErrorFilterSubject"), qbErrorFilterStatus: $("#qbErrorFilterStatus"), qbErrorFilterReason: $("#qbErrorFilterReason"), qbStartErrorNotebook: $("#qbStartErrorNotebook"), qbReviewByDiscipline: $("#qbReviewByDiscipline"), qbReviewBySubject: $("#qbReviewBySubject"), qbToggleErrorHistory: $("#qbToggleErrorHistory"), qbErrorHistory: $("#qbErrorHistory"),
+  floatingTimer: $("#floatingTimer"), timerDiscipline: $("#timerDiscipline"), timerSubject: $("#timerSubject"), timerKind: $("#timerKind"), timerTime: $("#timerTime"), timerPauseResume: $("#timerPauseResume")
 };
 elements.studyDate.value = todayISO();
 elements.goalDate.value = todayISO();
@@ -436,6 +532,7 @@ function escapeHTML(value) { return String(value ?? "").replace(/[&<>"']/g, (cha
 function subjectNameById(id) { return state.subjects.find((subject) => subject.id === id)?.name || "Disciplina removida"; }
 function settingFor(id) { return state.schedulableSettings[id] ||= { availability: "Não agendável", mode: "Estudo teórico", priority: false }; }
 function normalizeText(value) { return String(value ?? "").trim(); }
+
 function normalizeMatchText(text) {
   return String(text ?? "")
     .normalize("NFD")
@@ -787,6 +884,85 @@ function cleanupDisciplineWeights(removedDisciplineNames = new Set()) {
     if (removedNames.has(normalized) && !remainingDisciplines.has(normalized)) delete state.disciplineWeights[discipline];
   });
 }
+function deleteSyllabusItem(id) {
+  const item = getSyllabusById(id);
+  if (!item) return alert("Assunto não encontrado.");
+  if (!confirm("Excluir este assunto do Edital Verticalizado? Histórico, questões, simulados, materiais e planejamento serão preservados.")) return;
+  const removedDisciplineNames = new Set([item.discipline].map(normalizeText).filter(Boolean));
+  state.syllabusItems = state.syllabusItems.filter((entry) => entry.id !== id);
+  delete state.schedulableSettings[id];
+  cleanupOrphanImportedSubjects(removedDisciplineNames);
+  cleanupDisciplineWeights(removedDisciplineNames);
+  saveData();
+  render();
+}
+function deleteOrphanSubjectDiscipline(disciplineName) {
+  const normalizedDiscipline = canonical(disciplineName);
+  const matchingSubjects = (state.subjects || []).filter((subject) => canonical(subject.name) === normalizedDiscipline);
+
+  if (!matchingSubjects.length) {
+    alert("Disciplina não encontrada.");
+    return false;
+  }
+
+  const studiedSubjectIds = new Set((state.studies || []).map((study) => study.subjectId).filter(Boolean));
+  const hasStudies = matchingSubjects.some((subject) => studiedSubjectIds.has(subject.id));
+  const hasManual = matchingSubjects.some((subject) => subject.importedFromSyllabus !== true);
+  const removableSubjects = matchingSubjects.filter((subject) => subject.importedFromSyllabus === true && !studiedSubjectIds.has(subject.id));
+
+  if (hasStudies) {
+    alert("Esta disciplina possui estudos registrados. Para preservar o histórico, ela não foi removida.");
+    return false;
+  }
+
+  if (hasManual && !removableSubjects.length) {
+    alert("Esta disciplina é manual. Para preservar seus dados, ela não foi removida automaticamente.");
+    return false;
+  }
+
+  if (!removableSubjects.length) {
+    alert("Nenhuma disciplina automática órfã foi encontrada para remover.");
+    return false;
+  }
+
+  if (!confirm("Esta disciplina não possui mais assuntos no edital. Excluir a disciplina automática órfã?")) return false;
+
+  const removableIds = new Set(removableSubjects.map((subject) => subject.id));
+  state.subjects = state.subjects.filter((subject) => !removableIds.has(subject.id));
+
+  if (state.disciplineWeights) {
+    Object.keys(state.disciplineWeights).forEach((discipline) => {
+      if (canonical(discipline) === normalizedDiscipline) delete state.disciplineWeights[discipline];
+    });
+  }
+
+  saveData();
+  render();
+  alert("Disciplina automática órfã excluída com sucesso.");
+  return true;
+}
+function deleteDisciplineFromSyllabus(disciplineName) {
+  const normalizedDiscipline = canonical(disciplineName);
+  if (!normalizedDiscipline) return alert("Disciplina não encontrada.");
+
+  const removedItems = (state.syllabusItems || []).filter((item) => canonical(item.discipline) === normalizedDiscipline);
+
+  if (!removedItems.length) {
+    return deleteOrphanSubjectDiscipline(disciplineName);
+  }
+
+  if (!confirm("Excluir esta disciplina do edital? Os assuntos vinculados serão removidos, mas histórico, questões, simulados, materiais e planejamento serão preservados.")) return;
+
+  removedItems.forEach((item) => delete state.schedulableSettings[item.id]);
+  state.syllabusItems = state.syllabusItems.filter((item) => canonical(item.discipline) !== normalizedDiscipline);
+
+  const removedDisciplineNames = new Set([disciplineName].map(normalizeText).filter(Boolean));
+  cleanupOrphanImportedSubjects(removedDisciplineNames);
+  cleanupDisciplineWeights(removedDisciplineNames);
+
+  saveData();
+  render();
+}
 function deleteImportedSyllabusGroup(groupKey) {
   const group = getImportedSyllabusGroups().find((entry) => entry.key === groupKey);
   if (!group) return alert("Edital importado não encontrado.");
@@ -826,7 +1002,7 @@ function renderSubjects() {
     const option = document.createElement("option"); option.value = subject.id; option.textContent = subject.name; elements.studySubject.appendChild(option);
     const weeklyMinutes = state.studies.filter((study) => study.subjectId === subject.id && isSameWeek(study.date)).reduce((sum, study) => sum + study.minutes, 0);
     const imported = getSyllabusDisciplines().some((name) => canonical(name) === canonical(subject.name));
-    const li = document.createElement("li"); li.className = "subject-item"; li.innerHTML = `<div><strong>${escapeHTML(subject.name)}</strong><div class="item-meta">${imported ? "Disciplina do edital importado • " : ""}Meta: ${subject.goalHours}h/semana • Atual: ${formatHours(weeklyMinutes)}</div></div><span class="badge">${Math.min(100, Math.round((weeklyMinutes / (subject.goalHours * 60 || 1)) * 100))}%</span>`; elements.subjectList.appendChild(li);
+    const li = document.createElement("li"); li.className = "subject-item"; li.innerHTML = `<div><strong>${escapeHTML(subject.name)}</strong><div class="item-meta">${imported ? "Disciplina do edital importado • " : ""}Meta: ${subject.goalHours}h/semana • Atual: ${formatHours(weeklyMinutes)}</div></div><div class="card-actions"><span class="badge">${Math.min(100, Math.round((weeklyMinutes / (subject.goalHours * 60 || 1)) * 100))}%</span><button class="danger" type="button" data-delete-discipline="${escapeHTML(subject.name)}">Excluir disciplina</button></div>`; elements.subjectList.appendChild(li);
   });
 }
 
@@ -996,7 +1172,7 @@ function renderSyllabus() {
     const undiagnosed = isUndiagnosed(item);
     const card = document.createElement("article"); card.className = "syllabus-card";
     const linked = materialsForTopic(item.discipline, item.subject, item.id);
-    card.innerHTML = `<header><div><h3>${escapeHTML(item.discipline)} — ${escapeHTML(item.subject)}</h3><div class="item-meta">${escapeHTML(item.topic)}${item.subtopic ? ` • ${escapeHTML(item.subtopic)}` : ""}</div></div><span class="badge ${isTopicStudied(item) ? "success" : isTopicStarted(item) ? "warn" : "neutral"}">${escapeHTML(normalizeProgressStatus(item.status))}</span></header><div class="card-meta-grid"><span>Status: ${escapeHTML(item.status)}</span><span>Domínio: ${escapeHTML(item.domain)}</span><span>Diagnóstico: ${undiagnosed ? "Sem diagnóstico" : weak ? "Fraco" : "OK"}</span><span>Tempo no assunto: ${formatHours(minutesForItem(item))}</span><span>Incidência do assunto: ${normalizeSubjectIncidence(item.weight)} = ${escapeHTML(subjectIncidenceLabel(item.weight))}</span><span>Ref.: ${escapeHTML(item.reference || "-")}</span></div>${item.notes ? `<p class="item-meta">${escapeHTML(item.notes)}</p>` : ""}${linkedMaterialsHTML(linked)}<div class="card-actions"><label>Incidência do assunto <select data-incidence-id="${item.id}" title="Incidência do assunto: usada para priorizar o estudo sem alterar a ordem do edital.">${subjectIncidenceOptions(item.weight)}</select></label><button type="button" data-action="edit" data-id="${item.id}">Editar</button><button type="button" data-action="not-started" data-id="${item.id}">Não iniciado</button><button type="button" data-action="started" data-id="${item.id}">Iniciado</button><button type="button" data-action="studied" data-id="${item.id}">Concluído</button><button type="button" data-action="review" data-id="${item.id}">Revisado</button><button type="button" data-action="weak" data-id="${item.id}">Marcar como fraco</button><button type="button" data-action="schedulable" data-id="${item.id}">${setting.availability === "Agendável" ? "Desativar" : "Ativar"} agendável</button></div><div class="progress-controls"><label>Tempo estudado no assunto (min)<input type="number" min="0" data-progress-field="minutes" data-progress-id="${item.id}" value="${Number(item.studyMinutes) || 0}"></label><label>Observação curta<input type="text" maxlength="140" data-progress-field="notes" data-progress-id="${item.id}" value="${escapeHTML(item.progressNotes || "")}" placeholder="Ex.: revisar exceções"></label></div>`;
+    card.innerHTML = `<header><div><h3>${escapeHTML(item.discipline)} — ${escapeHTML(item.subject)}</h3><div class="item-meta">${escapeHTML(item.topic)}${item.subtopic ? ` • ${escapeHTML(item.subtopic)}` : ""}</div></div><span class="badge ${isTopicStudied(item) ? "success" : isTopicStarted(item) ? "warn" : "neutral"}">${escapeHTML(normalizeProgressStatus(item.status))}</span></header><div class="card-meta-grid"><span>Status: ${escapeHTML(item.status)}</span><span>Domínio: ${escapeHTML(item.domain)}</span><span>Diagnóstico: ${undiagnosed ? "Sem diagnóstico" : weak ? "Fraco" : "OK"}</span><span>Tempo no assunto: ${formatHours(minutesForItem(item))}</span><span>Incidência do assunto: ${normalizeSubjectIncidence(item.weight)} = ${escapeHTML(subjectIncidenceLabel(item.weight))}</span><span>Ref.: ${escapeHTML(item.reference || "-")}</span></div>${item.notes ? `<p class="item-meta">${escapeHTML(item.notes)}</p>` : ""}${linkedMaterialsHTML(linked)}<div class="card-actions"><label>Incidência do assunto <select data-incidence-id="${item.id}" title="Incidência do assunto: usada para priorizar o estudo sem alterar a ordem do edital.">${subjectIncidenceOptions(item.weight)}</select></label><button type="button" data-action="edit" data-id="${item.id}">Editar</button><button type="button" data-action="not-started" data-id="${item.id}">Não iniciado</button><button type="button" data-action="started" data-id="${item.id}">Iniciado</button><button type="button" data-action="studied" data-id="${item.id}">Concluído</button><button type="button" data-action="review" data-id="${item.id}">Revisado</button><button type="button" data-action="weak" data-id="${item.id}">Marcar como fraco</button><button type="button" data-action="schedulable" data-id="${item.id}">${setting.availability === "Agendável" ? "Desativar" : "Ativar"} agendável</button><button class="danger" type="button" data-action="delete" data-id="${item.id}">Excluir assunto</button></div><div class="progress-controls"><label>Tempo estudado no assunto (min)<input type="number" min="0" data-progress-field="minutes" data-progress-id="${item.id}" value="${Number(item.studyMinutes) || 0}"></label><label>Observação curta<input type="text" maxlength="140" data-progress-field="notes" data-progress-id="${item.id}" value="${escapeHTML(item.progressNotes || "")}" placeholder="Ex.: revisar exceções"></label></div>`;
     elements.syllabusList.appendChild(card);
   });
 }
@@ -1464,7 +1640,7 @@ elements.qbReviewByDiscipline?.addEventListener("click", () => qbReviewFilteredB
 elements.qbReviewBySubject?.addEventListener("click", () => qbReviewFilteredBy("assunto"));
 elements.qbToggleErrorHistory?.addEventListener("click", () => { if (elements.qbErrorHistory) elements.qbErrorHistory.open = !elements.qbErrorHistory.open; });
 
-function render() { migrateIncorrectWeakDomains(); renderSubjects(); renderGoalSelectors(); renderQuestionSelectors(); renderPlanning(); renderProgressPanel(); renderDashboard(); renderGoalDashboardCards(); renderEdital(); renderSyllabus(); renderSchedulable(); renderDailyGoals(); renderGoalCalendar(); renderCentralGoals(); renderQuestionHistory(); updateQuestionCalculated(); renderMaterials(); updateStudyMaterialOptions(); renderReviews(); renderSmartReviewsDashboard(); renderSmartReviewStandalone(); renderAlerts(); renderHistory(); renderImportPreview(); renderImportedSyllabusGroups(); renderBackupSummary(); renderQuestionBank(); qbRenderErrorNotebook(); renderSimulados(); saveData(); }
+function render() { migrateIncorrectWeakDomains(); renderFloatingTimer(); renderSubjects(); renderGoalSelectors(); renderQuestionSelectors(); renderPlanning(); renderProgressPanel(); renderDashboard(); renderGoalDashboardCards(); renderEdital(); renderSyllabus(); renderSchedulable(); renderDailyGoals(); renderGoalCalendar(); renderCentralGoals(); renderQuestionHistory(); updateQuestionCalculated(); renderMaterials(); updateStudyMaterialOptions(); renderReviews(); renderSmartReviewsDashboard(); renderSmartReviewStandalone(); renderAlerts(); renderHistory(); renderImportPreview(); renderImportedSyllabusGroups(); renderBackupSummary(); renderQuestionBank(); qbRenderErrorNotebook(); renderSimulados(); saveData(); }
 function syllabusFromValues(values) { return { id: createId(), discipline: values[0]?.trim() || "Sem disciplina", topic: values[1]?.trim() || "Geral", subject: values[2]?.trim() || "Assunto", subtopic: values[3]?.trim() || "", reference: values[4]?.trim() || "", priority: values[5]?.trim() || "Média", weight: normalizeSubjectIncidence(values[6]), status: values[7]?.trim() || "Não iniciado", domain: normalizeImportedDomain(values[8]), notes: values[9]?.trim() || "" }; }
 
 elements.changeMotivation?.addEventListener("click", () => renderMotivationalPhrase());
@@ -1481,7 +1657,8 @@ elements.previewBulk.addEventListener("click", () => { bulkDraft = elements.bulk
 elements.saveBulk.addEventListener("click", () => { state.syllabusItems.push(...bulkDraft); bulkDraft = []; elements.bulkInput.value = ""; elements.bulkPreview.innerHTML = ""; elements.saveBulk.disabled = true; render(); });
 [elements.filterSearch, elements.filterDiscipline, elements.filterPriority, elements.filterStatus, elements.filterDomain, elements.filterSchedulable, elements.filterQuick].forEach((filter) => filter.addEventListener(filter === elements.filterSearch ? "input" : "change", () => { syllabusVisibleCount = 30; renderSyllabus(); }));
 [elements.importFilterDiscipline, elements.importFilterStatus, elements.importFilterPriority, elements.importFilterDomain].forEach((filter) => filter.addEventListener("change", renderImportPreview));
-elements.syllabusList.addEventListener("click", (event) => { const button = event.target.closest("button[data-action]"); if (!button) return; const { action, id } = button.dataset; if (action === "edit") editSyllabusItem(id); if (action === "not-started") setItemStatus(id, "Não iniciado"); if (action === "started") setItemStatus(id, "Em andamento"); if (action === "studied") setItemStatus(id, "Concluído"); if (action === "review") { updateItemProgress(id, { status: "Revisar", reviewed: true, lastReviewedAt: todayISO() }); render(); } if (action === "dominated") setItemStatus(id, "Dominado"); if (action === "weak") setItemDomain(id, "Fraco", true); if (action === "schedulable") toggleItemSchedulable(id); });
+elements.syllabusList.addEventListener("click", (event) => { const button = event.target.closest("button[data-action]"); if (!button) return; const { action, id } = button.dataset; if (action === "edit") editSyllabusItem(id); if (action === "not-started") setItemStatus(id, "Não iniciado"); if (action === "started") setItemStatus(id, "Em andamento"); if (action === "studied") setItemStatus(id, "Concluído"); if (action === "review") { updateItemProgress(id, { status: "Revisar", reviewed: true, lastReviewedAt: todayISO() }); render(); } if (action === "dominated") setItemStatus(id, "Dominado"); if (action === "weak") setItemDomain(id, "Fraco", true); if (action === "schedulable") toggleItemSchedulable(id); if (action === "delete") deleteSyllabusItem(id); });
+elements.subjectList.addEventListener("click", (event) => { const button = event.target.closest("button[data-delete-discipline]"); if (button) deleteDisciplineFromSyllabus(button.dataset.deleteDiscipline); });
 elements.syllabusList.addEventListener("change", (event) => { const incidenceId = event.target.dataset.incidenceId; if (incidenceId) { const item = getSyllabusById(incidenceId); if (item) { item.weight = normalizeSubjectIncidence(event.target.value); render(); } return; } const id = event.target.dataset.progressId; if (!id) return; const item = getSyllabusById(id); if (!item) return; if (event.target.dataset.progressField === "minutes") item.studyMinutes = Math.max(0, Number(event.target.value) || 0); if (event.target.dataset.progressField === "notes") item.progressNotes = event.target.value.trim(); render(); });
 elements.showMoreSyllabus.addEventListener("click", () => { syllabusVisibleCount += 30; renderSyllabus(); });
 elements.applyBulkPriority.addEventListener("click", () => { const filtered = getFilteredItems(); if (!filtered.length) return alert("Nenhum item filtrado para alterar."); filtered.forEach((item) => { item.priority = elements.bulkPriority.value; }); render(); });
@@ -1776,7 +1953,7 @@ function renderGoalCalendar() { if (!elements.goalCalendarContent) return; rende
   if (mode==="monthly") { const days=Number(end.slice(-2)); elements.goalCalendarContent.innerHTML = `<div class="calendar-grid month-grid">${daysBetween(start,days).map((d)=>{const gs=state.dailyGoals.filter(g=>g.date===d), av=availabilityForDate(d); return `<article class="clickable-day ${av.type==='indisponível'?'unavailable':''}" data-open-day-plan="${d}" tabindex="0" role="button" aria-label="Abrir Plano do Dia em ${formatDateBR(d)}"><strong>${d.slice(-2)}</strong><small>${escapeHTML(dayTypeLabel(av))}</small><span>${gs.length} meta(s)</span><span>${gs.filter(g=>g.status==='Concluída').length} concluída(s)</span></article>`}).join("")}</div>`; }
   const key=date.slice(0,7); const mg=state.monthlyGoals[key]||{}; if(elements.monthlyTopicGoal) elements.monthlyTopicGoal.value=mg.topics||""; if(elements.monthlyHourGoal) elements.monthlyHourGoal.value=mg.hours||""; const total=state.syllabusItems.filter(i=>i.status!=="Ignorado").length||1; const forecastDate=planningMetrics().forecastDate; elements.monthlyPlanSummary.innerHTML=`<article class="stat-card"><span>Avanço esperado</span><strong>${Math.round(goals.length/total*100)}%</strong></article><article class="stat-card"><span>Previsão de conclusão</span><strong>${forecastDate?formatDateBR(forecastDate):'-'}</strong></article>`; }
 function goalCalendarMini(g){ return `<p class="goal-pill ${g.status==='Concluída'?'done':g.status==='Adiada'?'warn':''}">${escapeHTML(g.discipline)} — ${escapeHTML(g.subject)}</p>`; }
-function goalCalendarCard(goal){ normalizeGoalTimeFields(goal); return `<article class="syllabus-card goal-status-${canonical(goal.status)}"><header><div><h3>${escapeHTML(goal.discipline)} — ${escapeHTML(goal.subject)}</h3><div class="item-meta">${escapeHTML(goal.type)} • planejado ${goal.minutes||0} min • estudo ${goal.studyActualMinutes||0} min • questões ${goal.questionActualMinutes||0} min • total ${goal.actualMinutes||0} min • status ${escapeHTML(goal.status)}</div></div></header><div class="card-actions"><button data-calendar-action="done" data-id="${goal.id}">Concluir meta</button><button data-calendar-action="postpone" data-id="${goal.id}">Adiar</button><button data-calendar-action="edit" data-id="${goal.id}">Editar</button><button data-calendar-action="study-time" data-id="${goal.id}">Registrar estudo</button><button data-calendar-action="question-time" data-id="${goal.id}">Tempo de questões</button><button data-register-goal="${goal.id}">Registrar questões</button></div></article>`; }
+function goalCalendarCard(goal){ normalizeGoalTimeFields(goal); return `<article class="syllabus-card goal-status-${canonical(goal.status)}"><header><div><h3>${escapeHTML(goal.discipline)} — ${escapeHTML(goal.subject)}</h3><div class="item-meta">${escapeHTML(goal.type)} • planejado ${goal.minutes||0} min • estudo ${goal.studyActualMinutes||0} min • questões ${goal.questionActualMinutes||0} min • total ${goal.actualMinutes||0} min • status ${escapeHTML(goal.status)}</div></div></header><div class="card-actions"><button data-calendar-action="done" data-id="${goal.id}">Concluir meta</button><button data-calendar-action="postpone" data-id="${goal.id}">Adiar</button><button data-calendar-action="edit" data-id="${goal.id}">Editar</button><button data-calendar-action="study-time" data-id="${goal.id}">Registrar estudo</button><button data-calendar-action="question-time" data-id="${goal.id}">Tempo de questões</button><button data-calendar-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button data-calendar-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button data-register-goal="${goal.id}">Registrar questões</button></div></article>`; }
 
 function renderCentralGoals() {
   if (!elements.centralGoalsCards && !elements.dashboardGoalsScaleSummary) return;
@@ -1837,7 +2014,7 @@ function renderNextDailyGoal(dayGoals) {
   dayGoals.forEach(normalizeGoalTimeFields);
   const next = dayGoals.find((g)=>!isGoalDone(g) && !["Não cumprida", "Ignorada", "Adiada", "Reagendada"].includes(g.status || ""));
   if (!next) { elements.nextDailyGoal.innerHTML = `<h3>Próxima meta</h3><p>Todas as metas do dia foram concluídas.</p>`; return; }
-  elements.nextDailyGoal.innerHTML = `<h3>Próxima meta</h3><strong>${escapeHTML(next.discipline)}</strong><p>${escapeHTML(next.subject)}</p><div class="item-meta">Planejado: ${Number(next.minutes||0)} min • Estudo realizado: ${Number(next.studyActualMinutes||0)} min • Questões realizadas: ${Number(next.questionActualMinutes||0)} min • Total realizado: ${Number(next.actualMinutes||0)} min • Prioridade: ${escapeHTML(next.priority || next.prioridade || "-")}</div><div class="card-actions"><button type="button" data-goal-action="Concluída" data-id="${next.id}">Concluir meta</button><button type="button" data-goal-action="Estudo" data-id="${next.id}">Registrar estudo</button><button type="button" data-goal-action="QuestoesTempo" data-id="${next.id}">Tempo de questões</button><button type="button" data-register-goal="${next.id}">Registrar questões</button></div>`;
+  elements.nextDailyGoal.innerHTML = `<h3>Próxima meta</h3><strong>${escapeHTML(next.discipline)}</strong><p>${escapeHTML(next.subject)}</p><div class="item-meta">Planejado: ${Number(next.minutes||0)} min • Estudo realizado: ${Number(next.studyActualMinutes||0)} min • Questões realizadas: ${Number(next.questionActualMinutes||0)} min • Total realizado: ${Number(next.actualMinutes||0)} min • Prioridade: ${escapeHTML(next.priority || next.prioridade || "-")}</div><div class="card-actions"><button type="button" data-goal-action="Concluída" data-id="${next.id}">Concluir meta</button><button type="button" data-goal-action="Estudo" data-id="${next.id}">Registrar estudo</button><button type="button" data-goal-action="QuestoesTempo" data-id="${next.id}">Tempo de questões</button><button type="button" data-goal-timer="study" data-id="${next.id}">Cronômetro estudo</button><button type="button" data-goal-timer="questions" data-id="${next.id}">Cronômetro questões</button><button type="button" data-register-goal="${next.id}">Registrar questões</button></div>`;
 }
 function dailyGoalCard(goal, number = 1) {
   normalizeGoalTimeFields(goal);
@@ -1849,7 +2026,7 @@ function dailyGoalCard(goal, number = 1) {
       <span>Disciplina: ${escapeHTML(goal.discipline)}</span><span>Assunto: ${escapeHTML(goal.subject)}</span><span>Tipo: ${escapeHTML(goal.type || goal.tipo || "-")}</span><span>Prioridade: ${escapeHTML(goal.priority || goal.prioridade || "-")}</span>
       <span>Planejado: ${Number(goal.minutes||0)} min</span><span>Estudo realizado: ${Number(goal.studyActualMinutes||0)} min</span><span>Questões realizadas: ${Number(goal.questionActualMinutes||0)} min</span><span>Total realizado: ${Number(goal.actualMinutes||0)} min</span><span>Status: ${escapeHTML(goal.status || "Pendente")}</span><span>Referência: ${escapeHTML(goal.referencia_edital || getSyllabusById(goal.syllabusItemId)?.reference || "-")}</span>
     </div>${linkedMaterialsHTML(linked)}
-    <div class="card-actions"><button type="button" data-goal-action="Concluída" data-id="${goal.id}">Concluir meta</button><button type="button" data-goal-action="Estudo" data-id="${goal.id}">Registrar estudo</button><button type="button" data-goal-action="QuestoesTempo" data-id="${goal.id}">Tempo de questões</button><button type="button" data-goal-action="Adiada" data-id="${goal.id}">Adiar</button><button type="button" data-goal-action="Não cumprida" data-id="${goal.id}">Não cumprir</button><button type="button" data-register-goal="${goal.id}">Registrar questões</button>${firstMaterialButton}</div>
+    <div class="card-actions"><button type="button" data-goal-action="Concluída" data-id="${goal.id}">Concluir meta</button><button type="button" data-goal-action="Estudo" data-id="${goal.id}">Registrar estudo</button><button type="button" data-goal-action="QuestoesTempo" data-id="${goal.id}">Tempo de questões</button><button type="button" data-goal-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button type="button" data-goal-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button type="button" data-goal-action="Adiada" data-id="${goal.id}">Adiar</button><button type="button" data-goal-action="Não cumprida" data-id="${goal.id}">Não cumprir</button><button type="button" data-register-goal="${goal.id}">Registrar questões</button>${firstMaterialButton}</div>
   </article>`;
 }
 function questionNumbers() { const total = Number(elements.questionTotal.value), correct = Number(elements.questionCorrect.value), wrong = Number(elements.questionWrong.value), blank = Number(elements.questionBlank.value); return { total, correct, wrong, blank, sum: correct + wrong + blank, accuracy: total ? correct / total * 100 : 0, errorPct: total ? wrong / total * 100 : 0, blankPct: total ? blank / total * 100 : 0, net: correct - wrong }; }
@@ -1897,7 +2074,7 @@ elements.generateMonthGoals?.addEventListener("click", generateMonthGoals);
 [elements.smartReviewDate].filter(Boolean).forEach((el)=>["change","input"].forEach((eventName)=>el.addEventListener(eventName, renderSmartReviewStandalone)));
 elements.disciplineWeightsList?.addEventListener("change", (event)=>{ const d=event.target.dataset.disciplineWeight; if(d){ state.disciplineWeights[d]=normalizeDisciplineWeight(event.target.value, d); render(); }});
 [elements.monthlyTopicGoal, elements.monthlyHourGoal].filter(Boolean).forEach((el)=>el.addEventListener("change",()=>{ const key=(elements.calendarDate?.value||todayISO()).slice(0,7); state.monthlyGoals[key]={ topics:Number(elements.monthlyTopicGoal.value)||0, hours:Number(elements.monthlyHourGoal.value)||0 }; render(); }));
-elements.goalCalendarContent?.addEventListener("click", (event)=>{ const openPlan=event.target.closest("[data-open-day-plan]"); if(openPlan){ elements.goalDate.value=openPlan.dataset.openDayPlan; renderDailyGoals(); return showView("metas-do-dia"); } const b=event.target.closest("button[data-calendar-action],button[data-register-goal]"); if(!b) return; if(b.dataset.registerGoal) return fillQuestionFromGoal(b.dataset.registerGoal); const goal=state.dailyGoals.find(g=>g.id===b.dataset.id); if(!goal) return; if(b.dataset.calendarAction==="done") updateGoalDone(goal); if(b.dataset.calendarAction==="postpone") postponeGoal(goal); if(b.dataset.calendarAction==="study-time") registerGoalTime(goal, "study"); if(b.dataset.calendarAction==="question-time") registerGoalTime(goal, "questions"); if(b.dataset.calendarAction==="edit") editGoal(goal); render(); });
+elements.goalCalendarContent?.addEventListener("click", (event)=>{ const openPlan=event.target.closest("[data-open-day-plan]"); if(openPlan){ elements.goalDate.value=openPlan.dataset.openDayPlan; renderDailyGoals(); return showView("metas-do-dia"); } const timerButton=event.target.closest("button[data-calendar-timer]"); if(timerButton){ const goal=state.dailyGoals.find(g=>g.id===timerButton.dataset.id); if(goal) startFloatingTimer(goal, timerButton.dataset.calendarTimer); return; } const b=event.target.closest("button[data-calendar-action],button[data-register-goal]"); if(!b) return; if(b.dataset.registerGoal) return fillQuestionFromGoal(b.dataset.registerGoal); const goal=state.dailyGoals.find(g=>g.id===b.dataset.id); if(!goal) return; if(b.dataset.calendarAction==="done") updateGoalDone(goal); if(b.dataset.calendarAction==="postpone") postponeGoal(goal); if(b.dataset.calendarAction==="study-time") registerGoalTime(goal, "study"); if(b.dataset.calendarAction==="question-time") registerGoalTime(goal, "questions"); if(b.dataset.calendarAction==="edit") editGoal(goal); render(); });
 elements.goalCalendarContent?.addEventListener("keydown", (event)=>{ if (!["Enter", " "].includes(event.key)) return; const openPlan=event.target.closest("[data-open-day-plan]"); if (!openPlan) return; event.preventDefault(); elements.goalDate.value=openPlan.dataset.openDayPlan; renderDailyGoals(); showView("metas-do-dia"); });
 elements.goalDiscipline.addEventListener("change", () => optionsForItems(elements.goalSyllabusItem, elements.goalDiscipline.value));
 elements.questionDiscipline.addEventListener("change", () => optionsForItems(elements.questionSyllabusItem, elements.questionDiscipline.value));
@@ -1907,6 +2084,12 @@ function handleDailyGoalActionClick(event) {
   const button = event.target.closest("button[data-register-goal]");
   if (button) return fillQuestionFromGoal(button.dataset.registerGoal);
   if (event.target.closest("button[data-generate-selected-date]")) return generateDailyGoals();
+  const timerButton = event.target.closest("button[data-goal-timer]");
+  if (timerButton) {
+    const goal = state.dailyGoals.find((g) => g.id === timerButton.dataset.id);
+    if (goal) startFloatingTimer(goal, timerButton.dataset.goalTimer);
+    return;
+  }
   const action = event.target.closest("button[data-goal-action]");
   if (action) {
     const goal = state.dailyGoals.find((g) => g.id === action.dataset.id);
@@ -1923,6 +2106,14 @@ function handleDailyGoalActionClick(event) {
 elements.goalForm.addEventListener("submit", (event) => { event.preventDefault(); const item = getSyllabusById(elements.goalSyllabusItem.value); if (!item) return alert("Selecione um assunto do edital verticalizado."); const selectedDate = elements.goalDate.value || todayISO(); state.dailyGoals.push({ id: createId(), date: selectedDate, data: selectedDate, discipline: elements.goalDiscipline.value, disciplina: elements.goalDiscipline.value, syllabusItemId: item.id, subject: item.subject, assunto: item.subject, referencia_edital: item.reference || "", type: elements.goalType.value, tipo: elements.goalType.value.toLowerCase(), minutes: Number(elements.goalMinutes.value), priority: elements.goalPriority.value, prioridade: elements.goalPriority.value, status: elements.goalStatus.value, studyActualMinutes: Number(elements.goalActualMinutes?.value) || 0, questionActualMinutes: 0, actualMinutes: Number(elements.goalActualMinutes?.value) || 0, studyStatus: elements.goalStudyStatus?.value || "Iniciado", notes: elements.goalNotes.value.trim() }); elements.goalForm.reset(); elements.goalDate.value = selectedDate; render(); });
 elements.dailyGoalsList.addEventListener("click", handleDailyGoalActionClick);
 elements.nextDailyGoal?.addEventListener("click", handleDailyGoalActionClick);
+elements.floatingTimer?.addEventListener("click", (event) => {
+  const action = event.target.closest("button[data-timer-action]")?.dataset.timerAction;
+  if (!action) return;
+  if (action === "pause") pauseOrResumeFloatingTimer();
+  if (action === "save") saveFloatingTimerTime();
+  if (action === "reset") resetFloatingTimer();
+  if (action === "close") closeFloatingTimer();
+});
 document.addEventListener("click", (event) => { const btn = event.target.closest("button[data-smart-review-action]"); if (!btn) return; saveSmartReviewAction(btn.dataset.id, btn.dataset.smartReviewAction === "done" ? "revisado" : "adiado"); });
 document.addEventListener("change", (event) => { const input = event.target.closest("input[data-smart-review-time]"); if (!input) return; upsertSmartReviewTime(input.dataset.id, input.dataset.smartReviewTime, input.value); });
 elements.viewDayPlan?.addEventListener("click", () => { elements.goalDate.value = todayISO(); renderDailyGoals(); showView("metas-do-dia"); });
