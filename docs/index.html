@@ -608,8 +608,11 @@
       <div class="backup-actions actions">
         <button id="exportBackup" type="button">Exportar backup JSON</button>
         <button id="selectBackupFile" class="secondary-button" type="button">Importar backup JSON</button>
-        <button id="clearAllLocalData" class="danger" type="button">Limpar todos os dados locais</button>
         <input id="backupFileInput" type="file" accept="application/json,.json" hidden />
+      </div>
+      <div class="backup-reset-actions actions" aria-label="Ações de redefinição de questões">
+        <button id="resetSolvedQuestions" class="secondary-button" type="button">Zerar questões resolvidas</button>
+        <button id="clearAllLocalData" class="danger" type="button">Limpar todos os dados locais</button>
       </div>
       <div class="backup-meta">
         <article class="stat-card"><span>Último backup exportado</span><strong id="lastBackupDate" class="stat-value-text">Nunca exportado</strong></article>
