@@ -17,6 +17,40 @@ test('Aplicar incidências lê textarea, atualiza somente edital existente e ren
   assert.match(script, /item\.weight = normalizeSubjectIncidence\(valor\)/);
   assert.match(script, /item\.priority = normalizeImportedPriority\(prioridadeRaw\)/);
   assert.match(script, /Incidências aplicadas: \$\{report\.assuntosAtualizados\.length\} assuntos atualizados; \$\{report\.disciplinasAtualizadas\.length\} disciplinas atualizadas; \$\{notFound\.length\} não encontrados\./);
-  assert.match(script, /const report = applyIncidenceTable\(elements\.incidenceTableInput\?\.value \|\| ""\);[\s\S]*saveData\(\);[\s\S]*render\(\);[\s\S]*renderIncidenceReport\(report\);/);
+  assert.match(script, /const report = applyIncidenceTable\(elements\.incidenceTableInput\.value\);[\s\S]*saveData\(\);[\s\S]*render\(\);[\s\S]*renderIncidenceReport\(report\);/);
   assert.match(script, /elements\.applyIncidenceTableButton\?\.addEventListener\("click", handleApplyIncidenceTable\)/);
+  assert.match(script, /const allowed = \["Altíssima", "Muito alta", "Alta", "Média", "Baixa", "Baixíssima"\]/);
+  assert.match(script, /itemSubjectKey === subjectKey \|\| itemSubjectKey\.includes\(subjectKey\) \|\| subjectKey\.includes\(itemSubjectKey\)/);
+});
+
+
+test('Aplicar incidências atualiza assuntos por correspondência parcial e mantém prioridades máximas', () => {
+  const logicStart = script.indexOf('function normalizeText(value)');
+  const logicEnd = script.indexOf('function normalizeImportedDomain(value)');
+  assert.notEqual(logicStart, -1);
+  assert.notEqual(logicEnd, -1);
+  const state = {
+    disciplineWeights: {},
+    syllabusItems: [
+      { discipline: 'Direito Processual Penal', subject: '2.1 Princípios Fundamentais do Processo Penal', weight: 1, priority: 'Média' },
+      { discipline: 'Direito Processual Penal', subject: '2.2 Inquérito Policial', weight: 1, priority: 'Média' },
+      { discipline: 'Direito Penal', subject: '1.1 Teoria Geral do Crime', weight: 1, priority: 'Média' },
+    ],
+  };
+  const makeLogic = new Function('state', `${script.slice(logicStart, logicEnd)}; return { applyIncidenceTable, renderIncidenceReport, normalizeImportedPriority };`);
+  const { applyIncidenceTable, normalizeImportedPriority } = makeLogic(state);
+
+  const report = applyIncidenceTable(`TIPO;DISCIPLINA;ASSUNTO;VALOR;PRIORIDADE
+ASSUNTO;Direito Processual Penal;Princípios Fundamentais do Processo Penal;4;Alta
+ASSUNTO;Direito Processual Penal;Inquérito Policial;5;Muito alta
+ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima`);
+
+  assert.equal(report.assuntosAtualizados.length, 3);
+  assert.equal(report.assuntosNaoEncontrados.length, 0);
+  assert.equal(state.syllabusItems[0].weight, 4);
+  assert.equal(state.syllabusItems[1].weight, 5);
+  assert.equal(state.syllabusItems[2].weight, 5);
+  assert.equal(state.syllabusItems[1].priority, 'Muito alta');
+  assert.equal(state.syllabusItems[2].priority, 'Altíssima');
+  assert.equal(normalizeImportedPriority('Baixíssima'), 'Baixíssima');
 });
