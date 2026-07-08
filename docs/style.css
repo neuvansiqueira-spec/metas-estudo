@@ -2581,3 +2581,34 @@ th {
   overflow-wrap: anywhere;
   word-break: normal;
 }
+
+/* Cronômetro flutuante */
+.floating-timer {
+  position: fixed;
+  right: clamp(14px, 3vw, 28px);
+  bottom: clamp(72px, 8vw, 28px);
+  z-index: 1200;
+  width: min(360px, calc(100vw - 28px));
+  padding: 16px;
+  border: 1px solid #93c5fd;
+  border-radius: 22px;
+  background: linear-gradient(180deg, #eff6ff, #ffffff);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, .28);
+}
+.floating-timer[hidden] { display: none; }
+.floating-timer-header,
+.floating-timer-actions,
+.floating-timer-body { display: flex; gap: 10px; }
+.floating-timer-header { align-items: start; justify-content: space-between; }
+.floating-timer-label { display: block; color: var(--primary-dark); font-size: .75rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+.floating-timer-header strong { display: block; color: #172554; font-size: 1.05rem; }
+.timer-icon-button { min-width: 36px; padding: 7px 10px; border-radius: 999px; }
+.floating-timer-body { flex-direction: column; margin: 12px 0; }
+.floating-timer-subject { color: #334155; font-weight: 800; }
+.floating-timer-time { color: #0f172a; font-size: 2rem; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+.floating-timer-actions { flex-wrap: wrap; }
+.floating-timer-actions button { flex: 1 1 130px; }
+@media (max-width: 720px) {
+  .floating-timer { bottom: 74px; }
+  .floating-timer-time { font-size: 1.7rem; }
+}

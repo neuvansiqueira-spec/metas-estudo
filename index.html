@@ -675,6 +675,27 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     <a href="#backup" data-view-link="backup">Backup</a>
   </nav>
 
+  <aside id="floatingTimer" class="floating-timer" aria-live="polite" hidden>
+    <div class="floating-timer-header">
+      <div>
+        <span class="floating-timer-label">Cronômetro</span>
+        <strong id="timerDiscipline">-</strong>
+      </div>
+      <button type="button" class="timer-icon-button" data-timer-action="close" aria-label="Fechar cronômetro">×</button>
+    </div>
+    <div class="floating-timer-body">
+      <span id="timerSubject" class="floating-timer-subject">-</span>
+      <span id="timerKind" class="badge neutral">Estudo</span>
+      <strong id="timerTime" class="floating-timer-time">00:00:00</strong>
+    </div>
+    <div class="floating-timer-actions">
+      <button id="timerPauseResume" type="button" data-timer-action="pause">Pausar</button>
+      <button type="button" data-timer-action="save">Salvar tempo</button>
+      <button type="button" class="secondary-button" data-timer-action="reset">Zerar</button>
+      <button type="button" class="secondary-button" data-timer-action="close">Fechar</button>
+    </div>
+  </aside>
+
   <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260701-rollback-stable</p></footer>
   <script src="script.js?v=20260701-rollback-stable"></script>
 </body>
