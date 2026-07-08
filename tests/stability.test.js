@@ -233,3 +233,27 @@ test('service worker prioriza rede para app shell versionado', () => {
   assert.match(sw, /self\.skipWaiting\(\)/);
   assert.match(sw, /self\.clients\.claim\(\)/);
 });
+
+
+test('exclusão de disciplina trata disciplinas automáticas órfãs sem apagar históricos', () => {
+  const deletionBlock = script.slice(script.indexOf('function deleteOrphanSubjectDiscipline'), script.indexOf('function deleteImportedSyllabusGroup'));
+  assert.match(script, /function deleteOrphanSubjectDiscipline\(disciplineName\)/);
+  assert.match(script, /const matchingSubjects = \(state\.subjects \|\| \[\]\)\.filter\(\(subject\) => canonical\(subject\.name\) === normalizedDiscipline\)/);
+  assert.match(script, /const studiedSubjectIds = new Set\(\(state\.studies \|\| \[\]\)\.map\(\(study\) => study\.subjectId\)\.filter\(Boolean\)\)/);
+  assert.match(script, /subject\.importedFromSyllabus === true && !studiedSubjectIds\.has\(subject\.id\)/);
+  assert.match(script, /Disciplina automática órfã excluída com sucesso\./);
+  assert.match(script, /Esta disciplina é manual\. Para preservar seus dados, ela não foi removida automaticamente\./);
+  assert.match(script, /Esta disciplina possui estudos registrados\. Para preservar o histórico, ela não foi removida\./);
+  assert.ok(script.includes('if (!removedItems.length) {\n    return deleteOrphanSubjectDiscipline(disciplineName);\n  }'));
+  assert.match(script, /removedItems\.forEach\(\(item\) => delete state\.schedulableSettings\[item\.id\]\)/);
+  assert.match(script, /cleanupOrphanImportedSubjects\(removedDisciplineNames\)/);
+  assert.doesNotMatch(deletionBlock, /state\.studies\s*=\s*\[\]/);
+  assert.doesNotMatch(deletionBlock, /state\.questionLogs\s*=\s*\[\]/);
+  assert.doesNotMatch(deletionBlock, /state\.questionBank\s*=\s*\[\]/);
+  assert.doesNotMatch(deletionBlock, /state\.questionBankSessions\s*=\s*\[\]/);
+  assert.doesNotMatch(deletionBlock, /state\.questionErrorNotebook\s*=\s*\[\]/);
+  assert.doesNotMatch(deletionBlock, /state\.simulados\s*=\s*\[\]/);
+  assert.doesNotMatch(deletionBlock, /state\.materials\s*=\s*\[\]/);
+  assert.doesNotMatch(deletionBlock, /state\.dailyGoals\s*=\s*\[\]/);
+  assert.doesNotMatch(deletionBlock, /state\.planning\s*=\s*\{\}/);
+});

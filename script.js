@@ -651,17 +651,70 @@ function deleteSyllabusItem(id) {
   saveData();
   render();
 }
+function deleteOrphanSubjectDiscipline(disciplineName) {
+  const normalizedDiscipline = canonical(disciplineName);
+  const matchingSubjects = (state.subjects || []).filter((subject) => canonical(subject.name) === normalizedDiscipline);
+
+  if (!matchingSubjects.length) {
+    alert("Disciplina não encontrada.");
+    return false;
+  }
+
+  const studiedSubjectIds = new Set((state.studies || []).map((study) => study.subjectId).filter(Boolean));
+  const hasStudies = matchingSubjects.some((subject) => studiedSubjectIds.has(subject.id));
+  const hasManual = matchingSubjects.some((subject) => subject.importedFromSyllabus !== true);
+  const removableSubjects = matchingSubjects.filter((subject) => subject.importedFromSyllabus === true && !studiedSubjectIds.has(subject.id));
+
+  if (hasStudies) {
+    alert("Esta disciplina possui estudos registrados. Para preservar o histórico, ela não foi removida.");
+    return false;
+  }
+
+  if (hasManual && !removableSubjects.length) {
+    alert("Esta disciplina é manual. Para preservar seus dados, ela não foi removida automaticamente.");
+    return false;
+  }
+
+  if (!removableSubjects.length) {
+    alert("Nenhuma disciplina automática órfã foi encontrada para remover.");
+    return false;
+  }
+
+  if (!confirm("Esta disciplina não possui mais assuntos no edital. Excluir a disciplina automática órfã?")) return false;
+
+  const removableIds = new Set(removableSubjects.map((subject) => subject.id));
+  state.subjects = state.subjects.filter((subject) => !removableIds.has(subject.id));
+
+  if (state.disciplineWeights) {
+    Object.keys(state.disciplineWeights).forEach((discipline) => {
+      if (canonical(discipline) === normalizedDiscipline) delete state.disciplineWeights[discipline];
+    });
+  }
+
+  saveData();
+  render();
+  alert("Disciplina automática órfã excluída com sucesso.");
+  return true;
+}
 function deleteDisciplineFromSyllabus(disciplineName) {
   const normalizedDiscipline = canonical(disciplineName);
   if (!normalizedDiscipline) return alert("Disciplina não encontrada.");
-  if (!confirm("Excluir esta disciplina do edital? Os assuntos vinculados serão removidos, mas histórico, questões, simulados, materiais e planejamento serão preservados.")) return;
+
   const removedItems = (state.syllabusItems || []).filter((item) => canonical(item.discipline) === normalizedDiscipline);
-  if (!removedItems.length) return alert("Nenhum assunto desta disciplina foi encontrado no Edital Verticalizado.");
+
+  if (!removedItems.length) {
+    return deleteOrphanSubjectDiscipline(disciplineName);
+  }
+
+  if (!confirm("Excluir esta disciplina do edital? Os assuntos vinculados serão removidos, mas histórico, questões, simulados, materiais e planejamento serão preservados.")) return;
+
   removedItems.forEach((item) => delete state.schedulableSettings[item.id]);
   state.syllabusItems = state.syllabusItems.filter((item) => canonical(item.discipline) !== normalizedDiscipline);
+
   const removedDisciplineNames = new Set([disciplineName].map(normalizeText).filter(Boolean));
   cleanupOrphanImportedSubjects(removedDisciplineNames);
   cleanupDisciplineWeights(removedDisciplineNames);
+
   saveData();
   render();
 }
