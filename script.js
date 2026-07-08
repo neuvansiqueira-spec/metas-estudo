@@ -1137,7 +1137,9 @@ function renderSmartReviewBlock(target, date = todayISO()) {
   target.innerHTML = `<p class="item-meta">${escapeHTML(plan.label)} • até ${suggestions.length} revisão(ões) hoje.</p>` + suggestions.map(smartReviewCard).join("");
 }
 function renderSmartReviewStandalone() {
+  if (!elements.smartReviewStandalone) return;
   const date = elements.smartReviewDate?.value || todayISO();
+  if (elements.smartReviewDate && !elements.smartReviewDate.value) elements.smartReviewDate.value = date;
   renderSmartReviewBlock(elements.smartReviewStandalone, date);
 }
 function renderSmartReviewSummary() {

@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260701-rollback-stable" />
+  <link rel="stylesheet" href="style.css?v=20260708-fix-visual" />
 </head>
 <body>
   <header class="hero">
@@ -361,6 +361,20 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
       <div id="materialsList" class="cards-list empty-message" aria-live="polite"></div>
     </section>
 
+    <section id="view-revisao-inteligente" class="panel app-view" data-view="revisao-inteligente" aria-labelledby="smart-review-title">
+      <div class="section-heading">
+        <p class="eyebrow">Revisão diária</p>
+        <h2 id="smart-review-title">Revisão Inteligente</h2>
+      </div>
+      <p class="notice">Mostra os assuntos sugeridos para revisão na data selecionada, com base no edital, metas e histórico salvo.</p>
+      <div class="form-grid compact">
+        <label>Data da revisão
+          <input id="smartReviewDate" type="date" />
+        </label>
+      </div>
+      <div id="smartReviewStandalone" class="smart-review-list cards-list empty-message" aria-live="polite"></div>
+    </section>
+
     <section id="view-assuntos-agendaveis" class="panel app-view" data-view="assuntos-agendaveis" aria-labelledby="schedulable-title">
       <div class="section-heading"><p class="eyebrow">Planejamento futuro</p><h2 id="schedulable-title">Assuntos Agendáveis</h2></div>
       <p class="item-meta">Esta tela é alimentada pelos itens do edital verticalizado. Defina como cada assunto poderá entrar nas suas metas.</p>
@@ -612,18 +626,6 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
       <article class="panel wide-panel" aria-labelledby="smart-reviews-title"><div class="section-heading"><p class="eyebrow">Revisão inteligente</p><h2 id="smart-reviews-title">Revisões</h2></div><div id="reviewsDashboard" class="smart-review-sections" aria-live="polite"></div></article>
       <article class="panel" aria-labelledby="reviews-title"><div class="section-heading"><p class="eyebrow">Revisões</p><h2 id="reviews-title">24h, 7 dias e 30 dias</h2></div><div id="reviewList" class="review-list empty-message" aria-live="polite"></div></article>
       <article class="panel alert-panel" aria-labelledby="alerts-title"><div class="section-heading"><p class="eyebrow">Atrasos</p><h2 id="alerts-title">Disciplinas atrasadas</h2></div><div id="alertList" class="alert-list empty-message" aria-live="polite"></div></article>
-    </section>
-
-    <section id="view-revisao-inteligente" class="panel app-view" data-view="revisao-inteligente" aria-labelledby="smart-review-standalone-title">
-      <div class="section-heading">
-        <p class="eyebrow">Revisão diária</p>
-        <h2 id="smart-review-standalone-title">Revisão Inteligente</h2>
-      </div>
-      <p class="notice">Mostra os assuntos indicados para revisar hoje, priorizando conteúdos atrasados, fracos ou nunca revisados.</p>
-      <div class="form-grid compact">
-        <label>Data da revisão<input id="smartReviewDate" type="date" /></label>
-      </div>
-      <div id="smartReviewStandalone" class="smart-review-list" aria-live="polite"></div>
     </section>
 
     <section id="view-historico" class="panel app-view" data-view="historico" aria-labelledby="history-title">
