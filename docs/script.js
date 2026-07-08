@@ -458,7 +458,12 @@ function matchesDisciplineName(actual, incoming) { return disciplineMatchKeys(in
 function existingSyllabusDisciplinesForIncoming(incoming) { return getSyllabusDisciplines().filter((discipline) => matchesDisciplineName(discipline, incoming)); }
 function findSyllabusItemByIncidence(discipline, subject) {
   const subjectKey = normalizeMatchText(subject);
-  return state.syllabusItems.find((item) => matchesDisciplineName(item.discipline, discipline) && normalizeMatchText(item.subject) === subjectKey);
+  if (!subjectKey) return null;
+  return state.syllabusItems.find((item) => {
+    if (!matchesDisciplineName(item.discipline, discipline)) return false;
+    const itemSubjectKey = normalizeMatchText(item.subject);
+    return itemSubjectKey === subjectKey || itemSubjectKey.includes(subjectKey) || subjectKey.includes(itemSubjectKey);
+  });
 }
 
 function emptyIncidenceReport() {
@@ -514,8 +519,8 @@ function renderIncidenceReport(report) {
 }
 
 function handleApplyIncidenceTable() {
-  const report = applyIncidenceTable(elements.incidenceTableInput?.value || "");
-  if (!report.emptySyllabus) saveData();
+  const report = applyIncidenceTable(elements.incidenceTableInput.value);
+  saveData();
   render();
   renderIncidenceReport(report);
 }
@@ -628,7 +633,7 @@ function normalizeImportedStatus(value) {
   const allowed = ["Não iniciado", "Em andamento", "Estudado", "Revisar", "Dominado", "Ignorado"];
   return allowed.find((item) => item.toLowerCase() === normalized) || "Não iniciado";
 }
-function normalizeImportedPriority(value) { const allowed = ["Alta", "Média", "Baixa"]; return allowed.find((item) => item.toLowerCase() === String(value || "").trim().toLowerCase()) || "Média"; }
+function normalizeImportedPriority(value) { const allowed = ["Altíssima", "Muito alta", "Alta", "Média", "Baixa", "Baixíssima"]; return allowed.find((item) => item.toLowerCase() === String(value || "").trim().toLowerCase()) || "Média"; }
 function normalizeImportedDomain(value) { const allowed = ["Sem diagnóstico", "Não avaliado", "Fraco", "Médio", "Forte"]; return allowed.find((item) => item.toLowerCase() === String(value || "").trim().toLowerCase()) || "Sem diagnóstico"; }
 function isTruthyImportValue(value) { if (value === undefined || value === null || value === "") return true; return [true, "true", "sim", "s", "1", "agendável", "agendavel", "yes", "y"].includes(typeof value === "string" ? value.trim().toLowerCase() : value); }
 function normalizeImportPayload(payload) {
