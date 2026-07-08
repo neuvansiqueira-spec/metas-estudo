@@ -203,7 +203,7 @@ const elements = {
   editalForm: $("#editalForm"), contestName: $("#contestName"), agency: $("#agency"), role: $("#role"), board: $("#board"), examDate: $("#examDate"), officialLink: $("#officialLink"), generalNotes: $("#generalNotes"), editalPdf: $("#editalPdf"), pdfInfo: $("#pdfInfo"), removePdf: $("#removePdf"),
   syllabusForm: $("#syllabusForm"), itemDiscipline: $("#itemDiscipline"), itemTopic: $("#itemTopic"), itemSubject: $("#itemSubject"), itemSubtopic: $("#itemSubtopic"), itemReference: $("#itemReference"), itemPriority: $("#itemPriority"), itemWeight: $("#itemWeight"), itemStatus: $("#itemStatus"), itemDomain: $("#itemDomain"), itemNotes: $("#itemNotes"),
   bulkInput: $("#bulkInput"), previewBulk: $("#previewBulk"), saveBulk: $("#saveBulk"), bulkPreview: $("#bulkPreview"), incidenceTableInput: $("#incidenceTableInput"), applyIncidenceTableButton: $("#applyIncidenceTableButton"), incidenceTableResult: $("#incidenceTableResult"), filterSearch: $("#filterSearch"), filterDiscipline: $("#filterDiscipline"), filterPriority: $("#filterPriority"), filterStatus: $("#filterStatus"), filterDomain: $("#filterDomain"), filterSchedulable: $("#filterSchedulable"), filterQuick: $("#filterQuick"), bulkPriority: $("#bulkPriority"), applyBulkPriority: $("#applyBulkPriority"), syllabusCount: $("#syllabusCount"), showMoreSyllabus: $("#showMoreSyllabus"), syllabusList: $("#syllabusList"), schedulableList: $("#schedulableList"), disciplineOptions: $("#disciplineOptions"),
-  jsonImportFile: $("#jsonImportFile"), importMessage: $("#importMessage"), importDisciplineTotal: $("#importDisciplineTotal"), importSubjectTotal: $("#importSubjectTotal"), importFilterDiscipline: $("#importFilterDiscipline"), importFilterStatus: $("#importFilterStatus"), importFilterPriority: $("#importFilterPriority"), importFilterDomain: $("#importFilterDomain"), importJsonButton: $("#importJsonButton"), clearImportedSyllabus: $("#clearImportedSyllabus"), importDisciplineList: $("#importDisciplineList"), importedSyllabusGroups: $("#importedSyllabusGroups"), importPreview: $("#importPreview"),
+  jsonImportFile: $("#jsonImportFile"), replaceImportedSyllabus: $("#replaceImportedSyllabus"), importMessage: $("#importMessage"), importDisciplineTotal: $("#importDisciplineTotal"), importSubjectTotal: $("#importSubjectTotal"), importFilterDiscipline: $("#importFilterDiscipline"), importFilterStatus: $("#importFilterStatus"), importFilterPriority: $("#importFilterPriority"), importFilterDomain: $("#importFilterDomain"), importJsonButton: $("#importJsonButton"), clearImportedSyllabus: $("#clearImportedSyllabus"), importDisciplineList: $("#importDisciplineList"), importedSyllabusGroups: $("#importedSyllabusGroups"), importPreview: $("#importPreview"),
   generalCebraspeNet: $("#generalCebraspeNet"), todayPendingGoals: $("#todayPendingGoals"), todayDoneGoals: $("#todayDoneGoals"), dashboardTodayGoal: $("#dashboardTodayGoal"), dashboardTodayGoalDetail: $("#dashboardTodayGoalDetail"), dashboardDailyGoalRate: $("#dashboardDailyGoalRate"), dashboardTodayRemaining: $("#dashboardTodayRemaining"), dashboardNextTodayGoal: $("#dashboardNextTodayGoal"), viewDayPlan: $("#viewDayPlan"),
   selectedGoalDateLabel: $("#selectedGoalDateLabel"), nextDailyGoal: $("#nextDailyGoal"), generateDailyGoals: $("#generateDailyGoals"), goalForm: $("#goalForm"), goalDate: $("#goalDate"), goalDiscipline: $("#goalDiscipline"), goalSyllabusItem: $("#goalSyllabusItem"), goalType: $("#goalType"), goalMinutes: $("#goalMinutes"), goalActualMinutes: $("#goalActualMinutes"), goalStudyStatus: $("#goalStudyStatus"), goalPriority: $("#goalPriority"), goalStatus: $("#goalStatus"), goalNotes: $("#goalNotes"), dailyGoalsSummary: $("#dailyGoalsSummary"), dailyGoalsList: $("#dailyGoalsList"),
   calendarDate: $("#calendarDate"), calendarViewMode: $("#calendarViewMode"), generateWeekGoals: $("#generateWeekGoals"), generateMonthGoals: $("#generateMonthGoals"), disciplineWeightsList: $("#disciplineWeightsList"), goalCalendarStats: $("#goalCalendarStats"), goalCalendarContent: $("#goalCalendarContent"), monthlyTopicGoal: $("#monthlyTopicGoal"), monthlyHourGoal: $("#monthlyHourGoal"), monthlyPlanSummary: $("#monthlyPlanSummary"), todayGoalsTotal: $("#todayGoalsTotal"), weekGoalsTotal: $("#weekGoalsTotal"), weekGoalRate: $("#weekGoalRate"), monthGoalRate: $("#monthGoalRate"), nextGoalLabel: $("#nextGoalLabel"), weekTopDiscipline: $("#weekTopDiscipline"), mostDelayedDiscipline: $("#mostDelayedDiscipline"),
@@ -684,6 +684,41 @@ function importedItemToSyllabus(raw) {
   };
 }
 function prepareImportedItem(raw) { const item = importedItemToSyllabus(raw); item.importKey = importKeyFor(item); return item; }
+function validRawImportItemsFromPayload(payload) {
+  const rawItems = normalizeImportPayload(payload);
+  if (!rawItems) throw new Error("Formato esperado: array direto ou objeto com propriedade itens.");
+  const validRawItems = rawItems.filter((item) => item && typeof item === "object" && !Array.isArray(item));
+  if (!validRawItems.length) throw new Error("Nenhum item encontrado no JSON.");
+  return validRawItems;
+}
+function applyImportedSyllabusReplacement(items) {
+  const importedIds = new Set((state.syllabusItems || []).filter(isImportedSyllabusItem).map((item) => item.id));
+  state.syllabusItems = (state.syllabusItems || []).filter((item) => !isImportedSyllabusItem(item));
+  importedIds.forEach((id) => delete state.schedulableSettings[id]);
+  state.syllabusItems.push(...items);
+  items.forEach((item) => {
+    state.schedulableSettings[item.id] = { availability: item.importMeta.agendavel ? "Agendável" : "Não agendável", mode: item.importMeta.tipo_agendamento || "Estudo + questões", priority: item.priority === "Alta" };
+  });
+}
+async function replaceImportedSyllabusFromSelectedJson() {
+  const file = elements.jsonImportFile.files?.[0];
+  if (!file) {
+    elements.importMessage.innerHTML = "Selecione um arquivo JSON no campo Arquivo JSON.";
+    return;
+  }
+  try {
+    const payload = JSON.parse(await file.text());
+    const items = validRawImportItemsFromPayload(payload).map(prepareImportedItem);
+    applyImportedSyllabusReplacement(items);
+    const disciplines = new Set(items.map((item) => item.discipline).filter(Boolean));
+    saveData();
+    render();
+    elements.importMessage.innerHTML = `Edital substituído com ${items.length} itens e ${disciplines.size} disciplinas.`;
+  } catch (error) {
+    console.error("Falha ao substituir edital pelo JSON selecionado.", error);
+    elements.importMessage.innerHTML = `Falha ao substituir edital: ${escapeHTML(error.message)}`;
+  }
+}
 function getFilteredImportItems() { return importDraft.filter((item) => (!elements.importFilterDiscipline.value || item.discipline === elements.importFilterDiscipline.value) && (!elements.importFilterStatus.value || item.status === elements.importFilterStatus.value) && (!elements.importFilterPriority.value || item.priority === elements.importFilterPriority.value) && (!elements.importFilterDomain.value || item.domain === elements.importFilterDomain.value)); }
 function renderImportFilters() {
   [[elements.importFilterDiscipline, importDraft.map((item) => item.discipline), "Todas"], [elements.importFilterStatus, importDraft.map((item) => item.status), "Todos"], [elements.importFilterPriority, importDraft.map((item) => item.priority), "Todas"], [elements.importFilterDomain, importDraft.map((item) => item.domain), "Todos"]].forEach(([select, values, label]) => {
@@ -1447,14 +1482,11 @@ elements.jsonImportFile.addEventListener("change", async () => {
       showImportError("Arquivo JSON inválido.", error);
       return;
     }
-    const rawItems = normalizeImportPayload(payload);
-    if (!rawItems) {
-      showImportError("Arquivo JSON inválido.", new Error("Formato esperado: array direto ou objeto com propriedade itens."));
-      return;
-    }
-    const validRawItems = rawItems.filter((item) => item && typeof item === "object" && !Array.isArray(item));
-    if (!validRawItems.length) {
-      showImportError("Nenhum item encontrado no JSON.", new Error("A lista de itens está vazia ou não contém objetos válidos."));
+    let validRawItems;
+    try {
+      validRawItems = validRawImportItemsFromPayload(payload);
+    } catch (error) {
+      showImportError(error.message, error);
       return;
     }
     importDraft = validRawItems.map(prepareImportedItem);
@@ -1464,6 +1496,7 @@ elements.jsonImportFile.addEventListener("change", async () => {
     showImportError("Arquivo JSON inválido.", error);
   }
 });
+elements.replaceImportedSyllabus?.addEventListener("click", replaceImportedSyllabusFromSelectedJson);
 elements.importJsonButton.addEventListener("click", () => {
   if (!importDraft.length) {
     elements.importMessage.innerHTML = "Nenhum item encontrado no JSON.";
