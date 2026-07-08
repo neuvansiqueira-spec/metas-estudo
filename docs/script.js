@@ -616,18 +616,46 @@ function renderImportedSyllabusGroups() {
   const groups = getImportedSyllabusGroups();
   elements.importedSyllabusGroups.innerHTML = `<h3>Gerenciar editais importados</h3><p class="item-meta">Exclua apenas um edital específico abaixo. O botão de limpeza geral remove todos os editais importados.</p>` + (groups.length ? `<div class="cards-list">${groups.map((group) => `<article class="syllabus-card imported-group-card"><header><div><h4>${escapeHTML(group.name)}</h4><div class="item-meta">${group.items.length} item(ns) • ${group.disciplines.size} disciplina(s)</div></div><button class="danger" type="button" data-delete-imported-group="${escapeHTML(group.key)}">Excluir este edital</button></header></article>`).join("")}</div>` : `<p class="empty-message">Nenhum edital importado encontrado.</p>`);
 }
+function cleanupOrphanImportedSubjects(removedDisciplineNames = new Set()) {
+  const removedNames = new Set([...removedDisciplineNames].map(canonical).filter(Boolean));
+  if (!removedNames.size) return;
+  const remainingDisciplines = new Set((state.syllabusItems || []).map((item) => canonical(item.discipline)).filter(Boolean));
+  const studiedSubjectIds = new Set((state.studies || []).map((study) => study.subjectId).filter(Boolean));
+  state.subjects = (state.subjects || []).filter((subject) => {
+    const subjectName = canonical(subject.name);
+    const canRemove = subject.importedFromSyllabus === true
+      && removedNames.has(subjectName)
+      && !remainingDisciplines.has(subjectName)
+      && !studiedSubjectIds.has(subject.id);
+    return !canRemove;
+  });
+}
+function cleanupDisciplineWeights(removedDisciplineNames = new Set()) {
+  const removedNames = new Set([...removedDisciplineNames].map(canonical).filter(Boolean));
+  if (!removedNames.size || !state.disciplineWeights) return;
+  const remainingDisciplines = new Set((state.syllabusItems || []).map((item) => canonical(item.discipline)).filter(Boolean));
+  Object.keys(state.disciplineWeights).forEach((discipline) => {
+    const normalized = canonical(discipline);
+    if (removedNames.has(normalized) && !remainingDisciplines.has(normalized)) delete state.disciplineWeights[discipline];
+  });
+}
 function deleteImportedSyllabusGroup(groupKey) {
   const group = getImportedSyllabusGroups().find((entry) => entry.key === groupKey);
   if (!group) return alert("Edital importado não encontrado.");
   if (!confirm(`Excluir somente o edital "${group.name}"? Disciplinas manuais, metas, materiais, simulados, banco de questões, histórico e planejamento serão preservados.`)) return;
   const itemIds = new Set(group.items.map((item) => item.id));
+  const removedDisciplineNames = new Set(group.items.map((item) => normalizeText(item.discipline)).filter(Boolean));
   itemIds.forEach((id) => delete state.schedulableSettings[id]);
   state.syllabusItems = state.syllabusItems.filter((item) => !itemIds.has(item.id));
+  cleanupOrphanImportedSubjects(removedDisciplineNames);
+  cleanupDisciplineWeights(removedDisciplineNames);
+  saveData();
   render();
-  elements.importMessage.innerHTML = "Edital excluído com sucesso.";
+  elements.importMessage.innerHTML = "Edital excluído com sucesso. Disciplinas automáticas sem uso também foram removidas.";
 }
 
 function renderImportPreview() {
+  renderImportedSyllabusGroups();
   renderImportFilters();
   const filtered = getFilteredImportItems();
   elements.importDisciplineTotal.textContent = new Set(importDraft.map((item) => item.discipline)).size;
@@ -1377,10 +1405,14 @@ elements.clearImportedSyllabus.addEventListener("click", () => {
   const importedItems = state.syllabusItems.filter((item) => item.imported || item.importMeta?.imported);
   if (!importedItems.length) return alert("Não há edital verticalizado importado para limpar.");
   if (!confirm("Tem certeza que deseja apagar apenas os itens importados do edital verticalizado?")) return;
+  const removedDisciplineNames = new Set(importedItems.map((item) => normalizeText(item.discipline)).filter(Boolean));
   importedItems.forEach((item) => delete state.schedulableSettings[item.id]);
   state.syllabusItems = state.syllabusItems.filter((item) => !(item.imported || item.importMeta?.imported));
+  cleanupOrphanImportedSubjects(removedDisciplineNames);
+  cleanupDisciplineWeights(removedDisciplineNames);
+  saveData();
   render();
-  elements.importMessage.innerHTML = "Edital verticalizado importado removido.";
+  elements.importMessage.innerHTML = "Edital verticalizado importado removido. Disciplinas automáticas sem uso também foram removidas.";
 });
 
 elements.clearData.addEventListener("click", () => { if (confirm("Tem certeza que deseja apagar todos os dados salvos neste navegador?")) { clearProjectLocalStorage(); replaceState({}); saveData(); render(); } });
