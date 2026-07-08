@@ -14,6 +14,7 @@ const screens = [
   { hash: '#caderno-erros', view: 'view-caderno-erros', title: 'Caderno de Erros' },
   { hash: '#historico', view: 'view-historico', title: 'Histórico Geral' },
   { hash: '#revisoes', view: 'view-revisoes', title: 'Revisões' },
+  { hash: '#revisao-inteligente', view: 'view-revisao-inteligente', title: 'Revisão Inteligente' },
   { hash: '#backup', view: 'view-backup', title: 'Backup' }
 ];
 
@@ -35,7 +36,7 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão da correção de rota', () => {
-  assert.match(html, /style\.css\?v=20260701-rollback-stable/);
+  assert.match(html, /style\.css\?v=20260708-fix-visual/);
   assert.match(html, /script\.js\?v=20260701-rollback-stable/);
   assert.match(html, /Versão: 20260701-rollback-stable/);
 });
