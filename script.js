@@ -452,12 +452,18 @@ function isGoogleClientConfigured() {
   return Boolean(clientId && clientId !== "COLE_AQUI_O_CLIENT_ID_DO_GOOGLE_CLOUD" && !/placeholder|cole_aqui|colocar/i.test(clientId));
 }
 function googleClientConfigMessage() { return "Google Client ID não configurado. Configure o client_id no script.js para ativar a sincronização."; }
+function googleAuthorizationStatusMessage(meta = readSyncMeta()) {
+  if (!meta.connected) return "não conectado";
+  return hasValidGoogleDriveAccessToken() ? "token válido para envio" : "Conectado, mas autorização expirada. Clique em Conectar Google Drive para renovar.";
+}
 function renderSyncStatus(message = "") {
   if (!elements.syncStatus) return;
   const meta = readSyncMeta();
   const configured = isGoogleClientConfigured();
+  const authorizationMessage = googleAuthorizationStatusMessage(meta);
   const rows = [
-    ["Status", meta.connected ? "conectado" : "não conectado"],
+    ["Status", meta.connected ? "conectado à conta Google" : "não conectado"],
+    ["Autorização para envio", authorizationMessage],
     ["Último salvamento local", meta.lastLocalSaveAt ? `${new Date(meta.lastLocalSaveAt).toLocaleString("pt-BR")} • origem: ${meta.lastLocalSaveReason || "alteração"}` : "Nunca"],
     ["Última sincronização local", meta.lastSyncAt ? new Date(meta.lastSyncAt).toLocaleString("pt-BR") : "Nunca"],
     ["Último envio automático", meta.lastAutoSyncAt ? `${new Date(meta.lastAutoSyncAt).toLocaleString("pt-BR")} • origem: ${meta.lastAutoSyncReason || "alteração"}` : "Nunca"],
@@ -468,8 +474,9 @@ function renderSyncStatus(message = "") {
     ["Dispositivo de origem", meta.remoteDeviceName || "Desconhecido"],
     ["Dispositivo atual", getDeviceName()]
   ];
-  const notice = !configured ? (message || meta.error || "Sincronização Google Drive ainda não configurada.") : (message || meta.error || "Pronto.");
-  elements.syncStatus.innerHTML = `<div class="sync-status-grid">${rows.map(([label, value]) => `<article><span>${escapeHTML(label)}</span><strong>${escapeHTML(value)}</strong></article>`).join("")}</div><p class="sync-message ${meta.error || !configured ? "sync-error" : "sync-success"}">${escapeHTML(notice)}</p>`;
+  const expiredAuthorization = meta.connected && !hasValidGoogleDriveAccessToken();
+  const notice = !configured ? (message || meta.error || "Sincronização Google Drive ainda não configurada.") : (message || meta.error || (expiredAuthorization ? authorizationMessage : "Pronto."));
+  elements.syncStatus.innerHTML = `<div class="sync-status-grid">${rows.map(([label, value]) => `<article><span>${escapeHTML(label)}</span><strong>${escapeHTML(value)}</strong></article>`).join("")}</div><p class="sync-message ${meta.error || !configured || expiredAuthorization ? "sync-error" : "sync-success"}">${escapeHTML(notice)}</p>`;
 }
 let googleDriveAccessToken = "";
 let googleDriveTokenExpiresAt = 0;
@@ -528,7 +535,10 @@ function autoSyncSuccessMessage(reason = "alteração") {
   if (reason === "backup-import") return "Backup importado e enviado para a nuvem.";
   return "Alteração salva e enviada para a nuvem.";
 }
-function autoSyncLocalOnlyMessage() {
+function autoSyncLocalOnlyMessage(reason = "alteração", meta = readSyncMeta()) {
+  if (meta.connected && !hasValidGoogleDriveAccessToken()) {
+    return reason === "timer-save" ? "Tempo salvo localmente. Autorização Google expirada." : "Alteração salva localmente. Autorização Google expirada.";
+  }
   return "Alteração salva localmente. Conecte ao Google Drive para enviar à nuvem.";
 }
 function markPendingSync(reason = "alteração", message = autoSyncLocalOnlyMessage()) {
@@ -604,7 +614,7 @@ async function forcePushToCloud() { if (!confirm("Enviar o estado atual deste di
 async function sendPendingSyncAfterConnect() {
   const meta = readSyncMeta();
   if (!meta.pendingSync) return false;
-  if (!confirm("Existem alterações salvas localmente que ainda não foram enviadas à nuvem. Deseja enviar agora?")) {
+  if (!confirm("Existem alterações pendentes. Deseja enviar agora?")) {
     renderSyncStatus("Google Drive conectado. Envio pendente mantido.");
     return false;
   }
