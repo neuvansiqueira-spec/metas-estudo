@@ -386,22 +386,50 @@ function renderSyncStatus(message = "") {
   const notice = !configured ? (message || meta.error || "Sincronização Google Drive ainda não configurada.") : (message || meta.error || "Pronto.");
   elements.syncStatus.innerHTML = `<div class="sync-status-grid">${rows.map(([label, value]) => `<article><span>${escapeHTML(label)}</span><strong>${escapeHTML(value)}</strong></article>`).join("")}</div><p class="sync-message ${meta.error || !configured ? "sync-error" : "sync-success"}">${escapeHTML(notice)}</p>`;
 }
+let googleDriveAccessToken = "";
+let googleDriveTokenExpiresAt = 0;
+let googleDriveTokenClient = null;
+
+function clearGoogleDriveAccessToken() { googleDriveAccessToken = ""; googleDriveTokenExpiresAt = 0; }
+function hasValidGoogleDriveAccessToken() { return Boolean(googleDriveAccessToken && Date.now() < googleDriveTokenExpiresAt - 60000); }
 function syncErrorMessage(error, fallback) {
   const msg = String(error?.message || error || "");
   if (!navigator.onLine) return "Sem internet. Verifique a conexão e tente novamente.";
   if (/popup|cancel|closed|denied|access_denied/i.test(msg)) return "Login cancelado ou permissão negada.";
-  if (/401|token|Unauthorized/i.test(msg)) return "Token expirado. Clique novamente para autorizar o Google Drive.";
+  if (/401|token|Unauthorized|TOKEN_EXPIRED|invalid_token/i.test(msg)) return "Autorização expirada. Conecte novamente ao Google Drive.";
   return fallback || msg || "Erro de sincronização.";
 }
-async function getAccessToken() {
+async function getAccessToken({ prompt = "" } = {}) {
+  if (hasValidGoogleDriveAccessToken()) return googleDriveAccessToken;
   if (!isGoogleClientConfigured()) throw new Error(googleClientConfigMessage());
   if (!window.google?.accounts?.oauth2) throw new Error("Google Identity Services não carregou. Verifique a conexão.");
   return new Promise((resolve, reject) => {
-    const client = google.accounts.oauth2.initTokenClient({ client_id: GOOGLE_CLIENT_ID, scope: GOOGLE_DRIVE_SCOPE, callback: (response) => response?.access_token ? resolve(response.access_token) : reject(new Error(response?.error || "login cancelado")) });
-    client.requestAccessToken({ prompt: "consent" });
+    googleDriveTokenClient = googleDriveTokenClient || google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: GOOGLE_DRIVE_SCOPE,
+      callback: (response) => {
+        if (response?.access_token) {
+          googleDriveAccessToken = response.access_token;
+          googleDriveTokenExpiresAt = Date.now() + (Number(response.expires_in || 3600) * 1000);
+          resolve(googleDriveAccessToken);
+          return;
+        }
+        reject(new Error(response?.error || "login cancelado"));
+      }
+    });
+    googleDriveTokenClient.requestAccessToken(prompt ? { prompt } : {});
   });
 }
-async function driveFetch(url, options = {}) { const accessToken = await getAccessToken(); const response = await fetch(url, { ...options, headers: { ...(options.headers || {}), Authorization: `Bearer ${accessToken}` } }); if (!response.ok) throw new Error(`${response.status} ${await response.text()}`); return response; }
+async function driveFetch(url, options = {}) {
+  const accessToken = await getAccessToken();
+  const response = await fetch(url, { ...options, headers: { ...(options.headers || {}), Authorization: `Bearer ${accessToken}` } });
+  if (response.status === 401) {
+    clearGoogleDriveAccessToken();
+    throw new Error(`TOKEN_EXPIRED 401 ${await response.text()}`);
+  }
+  if (!response.ok) throw new Error(`${response.status} ${await response.text()}`);
+  return response;
+}
 async function findSyncFile() { const q = encodeURIComponent(`name='${GOOGLE_SYNC_FILE_NAME}' and trashed=false`); const r = await driveFetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id,name,modifiedTime)`); return (await r.json()).files?.[0] || null; }
 function multipartBody(payload, fileId) { const boundary = "metas_estudo_sync_boundary"; const metadata = { name: GOOGLE_SYNC_FILE_NAME, mimeType: "application/json", ...(fileId ? {} : { parents: ["appDataFolder"] }) }; return { boundary, body: `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(payload, null, 2)}\r\n--${boundary}--` }; }
 async function createSyncFile(payload) { const { boundary, body } = multipartBody(payload); const r = await driveFetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,modifiedTime", { method: "POST", headers: { "Content-Type": `multipart/related; boundary=${boundary}` }, body }); return r.json(); }
@@ -422,9 +450,9 @@ async function connectGoogleDrive() {
     renderSyncStatus(message);
     return;
   }
-  try { await getAccessToken(); writeSyncMeta({ connected: true, error: "" }); renderSyncStatus("Google Drive conectado."); } catch (error) { const message = syncErrorMessage(error, "Erro ao conectar o Google Drive."); writeSyncMeta({ connected: false, error: message }); renderSyncStatus(message); }
+  try { await getAccessToken({ prompt: hasValidGoogleDriveAccessToken() ? "" : "consent" }); writeSyncMeta({ connected: true, error: "" }); renderSyncStatus("Google Drive conectado."); } catch (error) { const message = syncErrorMessage(error, "Erro ao conectar o Google Drive."); writeSyncMeta({ connected: false, error: message }); renderSyncStatus(message); }
 }
-function disconnectGoogleDrive() { writeSyncMeta({ connected: false, error: "" }); renderSyncStatus("Google Drive desconectado neste navegador."); }
+function disconnectGoogleDrive() { clearGoogleDriveAccessToken(); writeSyncMeta({ connected: false, error: "" }); renderSyncStatus("Google Drive desconectado neste navegador."); }
 
 function showStorageWarningIfNeeded() {
   if (!window.__METAS_STORAGE_ERROR__) return;
