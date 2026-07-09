@@ -11,7 +11,7 @@ const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
-const ENABLE_FACTORY = false;
+const ENABLE_FACTORY = true;
 const MOTIVATIONAL_PHRASES = [
   "Disciplina vence motivação.",
   "Hoje é dia de ganhar pontos líquidos.",
@@ -773,7 +773,7 @@ function backupCounts(source = state) {
     historico: source.studies?.length || 0,
     simulados: source.simulados?.length || 0,
     materiais: source.materials?.length || 0,
-    fabrica: source.factoryItems?.length || 0,
+    fabrica: source.factoryAgenda?.length || source.factoryItems?.length || 0,
     bancoQuestoes: source.questionBank?.length || 0,
     treinosBanco: source.questionBankSessions?.length || 0,
     cadernoErros: source.questionErrorNotebook?.length || 0
@@ -834,8 +834,9 @@ function mergeBackupData(data = {}) {
   mergeArrays(state.smartReviews, data.smartReviews || data.revisoesInteligentes || [], (item) => item.id || [item.date, item.discipline, item.subject, item.status, item.origin].join("|"));
   mergeArrays(state.simulados, data.simulados || [], (item) => item.id || [item.date, item.name, item.total, item.correct, item.wrong].join("|"));
   mergeArrays(state.materials, data.materials || data.materiais || [], (item) => item.id || [item.title || item.titulo, item.discipline || item.disciplina, item.subject || item.assunto, item.link].join("|"));
-  mergeArrays(state.factoryItems, data.factoryItems || data.factoryAgenda || data.fabricaResumos || [], (item) => item.id || [item.discipline, item.theme, item.subtheme].join("|"));
-  state.factoryAgenda = state.factoryItems;
+  mergeArrays(state.factoryAgenda, data.factoryAgenda || data.factoryItems || data.fabricaResumos || [], (item) => item.id || [item.disciplina || item.discipline, item.tema || item.theme].join("|"));
+  state.factoryAgenda = state.factoryAgenda.map(normalizeFactoryItem);
+  state.factoryItems = state.factoryAgenda;
   state.disciplineWeights = { ...(data.disciplineWeights || {}), ...state.disciplineWeights };
   state.monthlyGoals = { ...(data.monthlyGoals || {}), ...state.monthlyGoals };
   if (data.planning) state.planning = normalizePlanningState({ ...state.planning, ...data.planning, config: { ...state.planning.config, ...(data.planning.config || {}) }, availability: { ...(data.planning.availability || {}), ...state.planning.availability }, weeklyGoals: data.planning.weeklyGoals || state.planning.weeklyGoals, forecasts: { ...(data.planning.forecasts || {}), ...state.planning.forecasts } });
@@ -1415,20 +1416,109 @@ function periodSummary(start, days) { const dates=daysBetween(start, days), goal
 function studyOriginLabel(study) {
   return ({ manual: "manual", countdown: "cronômetro regressivo", free: "cronômetro livre" }[study.origin]) || "registro geral";
 }
-const FACTORY_STATUSES = ["Não iniciado","Triagem pendente","Triagem concluída","Resumo/Aula em produção","Resumo/Aula aprovado","Lei em produção","Lei aprovada","Jurisprudência em produção","Jurisprudência aprovada","Peça em produção","Peça aprovada","Consolidação final","PDF final gerado","Finalizado","Atualizar depois"];
-const FACTORY_MODULES = ["RESUMO/AULA","LEI","JURISPRUDÊNCIA","PEÇA","COMPLETO"];
-function defaultFactoryModules(modules = {}) { return Object.fromEntries(FACTORY_MODULES.map((name) => [name, { status: modules[name]?.status || "Não iniciado", wordLink: modules[name]?.wordLink || "", pdfLink: modules[name]?.pdfLink || "", notes: modules[name]?.notes || "", completedAt: modules[name]?.completedAt || "" }])); }
-function normalizeFactoryItem(item = {}) { return { id: item.id || createId(), discipline: item.discipline || item.disciplina || "", theme: item.theme || item.tema || "", subtheme: item.subtheme || item.subtema || "", priority: item.priority || item.prioridade || "Média", plannedDate: item.plannedDate || item.dataPlanejada || todayISO(), status: FACTORY_STATUSES.includes(item.status) ? item.status : "Não iniciado", modules: defaultFactoryModules(item.modules || item.modulos || {}), sourceFolder: item.sourceFolder || item.fontePasta || "", finalLink: item.finalLink || item.linkFinal || "", notes: item.notes || item.observacoes || "", updatedAt: item.updatedAt || new Date().toISOString() }; }
-function factoryItemTitle(item) { return [item.theme, item.subtheme].filter(Boolean).join(" — "); }
-function factoryPrompt(kind, item) { const title = factoryItemTitle(item); const map = { triagem: `Tema: ${title}\n\nFaça apenas a TRIAGEM das fontes.\nClassifique cada fonte por módulo:\n1. RESUMO/AULA\n2. LEI\n3. JURISPRUDÊNCIA\n4. PEÇA\n5. ATUALIZAÇÃO / COMPLEMENTO, se houver\n\nNão gere resumo.\nNão gere Word.\nNão gere PDF.`, resumo: `Triagem aprovada.\nAgora gere somente o MÓDULO RESUMO/AULA.\nUse apenas as fontes classificadas como RESUMO/AULA.\nNão gerar lei, jurisprudência, peça ou consolidado.\nSem PCDF.\nSem CEBRASPE.\nUsar “📌 PROVA”.\nAplicar PROMPT RESUMO completo abaixo:\n[COLE AQUI O PROMPT RESUMO COMPLETO]`, lei: `MÓDULO RESUMO/AULA aprovado.\nAgora gere somente o MÓDULO LEI.\nUse apenas as fontes classificadas como LEI.\nUsar artigo como unidade central.\nAplicar PROMPT LEIS completo abaixo:\n[COLE AQUI O PROMPT LEIS COMPLETO]`, jurisprudencia: `MÓDULO RESUMO/AULA aprovado.\nMÓDULO LEI aprovado.\nAgora gere somente o MÓDULO JURISPRUDÊNCIA.\nUse apenas fontes classificadas como JURISPRUDÊNCIA.\nDefinir recorte temático, tribunais e período.\nSem PCDF.\nSem CEBRASPE.\nUsar “📌 PROVA”.\nAplicar PROMPT JURISPRUDÊNCIA completo abaixo:\n[COLE AQUI O PROMPT JURISPRUDÊNCIA COMPLETO]`, peca: `MÓDULO RESUMO/AULA aprovado.\nMÓDULO LEI aprovado.\nMÓDULO JURISPRUDÊNCIA aprovado.\nAgora gere somente o MÓDULO PEÇA.\nUse apenas fontes classificadas como PEÇA.\nNão fazer peça pronta.\nExtrair estrutura, requisitos, fundamentos, pedidos e determinações.\nAplicar PROMPT PEÇAS completo abaixo:\n[COLE AQUI O PROMPT PEÇAS COMPLETO]`, consolidacao: `Os 4 módulos foram aprovados:\n1. RESUMO/AULA\n2. LEI\n3. JURISPRUDÊNCIA\n4. PEÇA\n\nAgora faça a CONSOLIDAÇÃO FINAL em Word.\nNão reescrever como resumo genérico.\nPreservar o padrão de cada módulo.\nOrdem:\n1. RESUMO/AULA\n2. LEI\n3. JURISPRUDÊNCIA\n4. PEÇA\n\nNão inserir PCDF.\nNão inserir CEBRASPE.\nUsar “📌 PROVA”.` }; return `Disciplina: ${item.discipline}\nTema: ${title}\n\n${map[kind] || ""}`; }
-function copyFactoryPrompt(kind, id) { const item = state.factoryItems.find((x) => x.id === id); if (!item) return; const text = factoryPrompt(kind, item); navigator.clipboard?.writeText(text).then(() => alert("Prompt copiado."), () => prompt("Copie o prompt:", text)); }
-function saveFactoryItem(event) { event.preventDefault(); const item = normalizeFactoryItem({ id: elements.factoryEditingId.value || createId(), discipline: elements.factoryDiscipline.value.trim(), theme: elements.factoryTheme.value.trim(), subtheme: elements.factorySubtheme.value.trim(), priority: elements.factoryPriority.value, plannedDate: elements.factoryPlannedDate.value || todayISO(), status: elements.factoryStatus.value, sourceFolder: elements.factorySourceFolder.value.trim(), finalLink: elements.factoryFinalLink.value.trim(), notes: elements.factoryNotes.value.trim(), modules: state.factoryItems.find((x)=>x.id===elements.factoryEditingId.value)?.modules }); const idx = state.factoryItems.findIndex((x)=>x.id===item.id); idx >= 0 ? state.factoryItems.splice(idx, 1, item) : state.factoryItems.push(item); elements.factoryForm.reset(); elements.factoryEditingId.value = ""; elements.factoryPlannedDate.value = todayISO(); render(); autoSyncAfterSave(idx >= 0 ? "factory-update" : "factory-create"); }
-function editFactoryItem(id) { const item = state.factoryItems.find((x)=>x.id===id); if (!item) return; elements.factoryEditingId.value = item.id; elements.factoryDiscipline.value = item.discipline; elements.factoryTheme.value = item.theme; elements.factorySubtheme.value = item.subtheme; elements.factoryPriority.value = item.priority; elements.factoryPlannedDate.value = item.plannedDate; elements.factoryStatus.value = item.status; elements.factorySourceFolder.value = item.sourceFolder; elements.factoryFinalLink.value = item.finalLink; elements.factoryNotes.value = item.notes; showView("fabrica-resumos"); }
-function addFactoryMaterial(item, title, link, type) { if (!link) return alert("Informe um link antes de cadastrar em Materiais."); state.materials.push({ id: createId(), title, discipline: item.discipline, subject: item.theme, type, origin: "Google Drive", link, notes: `Cadastrado pela Fábrica de Resumos (${item.status}).`, date: todayISO(), tags: ["fábrica", "resumo topificado"], updatedAt: new Date().toISOString() }); render(); autoSyncAfterSave("factory-link"); }
-function updateFactoryModule(id, moduleName, field, value) { const item = state.factoryItems.find((x)=>x.id===id); if (!item) return; item.modules = defaultFactoryModules(item.modules); item.modules[moduleName][field] = value; item.updatedAt = new Date().toISOString(); saveData(); autoSyncAfterSave(field.includes("Link") ? "factory-link" : "factory-update"); renderFactory(); }
-function nextFactoryStatus(id) { const item = state.factoryItems.find((x)=>x.id===id); if (!item) return; item.status = FACTORY_STATUSES[Math.min(FACTORY_STATUSES.indexOf(item.status) + 1, FACTORY_STATUSES.length - 1)]; item.updatedAt = new Date().toISOString(); saveData(); render(); autoSyncAfterSave("factory-status"); }
-function filteredFactoryItems() { const term = canonical(elements.factoryFilterText?.value || ""); return state.factoryItems.map(normalizeFactoryItem).filter((item) => (!elements.factoryFilterDiscipline.value || item.discipline === elements.factoryFilterDiscipline.value) && (!elements.factoryFilterPriority.value || item.priority === elements.factoryFilterPriority.value) && (!elements.factoryFilterStatus.value || item.status === elements.factoryFilterStatus.value) && (!elements.factoryFilterDate.value || item.plannedDate === elements.factoryFilterDate.value) && (elements.factoryFilterView.value !== "finalizados" || ["PDF final gerado","Finalizado"].includes(item.status)) && (elements.factoryFilterView.value !== "pendentes" || !["PDF final gerado","Finalizado"].includes(item.status)) && (elements.factoryFilterView.value !== "atualizar" || item.status === "Atualizar depois") && (!term || canonical([item.discipline,item.theme,item.subtheme,item.notes,item.sourceFolder,item.finalLink].join(" ")).includes(term))); }
-function renderFactory() { if (!ENABLE_FACTORY) { showFactoryDisabledMessage(); return; } if (!elements.factoryList) return; state.factoryItems = (state.factoryItems || []).map(normalizeFactoryItem); [elements.factoryStatus, elements.factoryFilterStatus].filter(Boolean).forEach((select) => { const keep = select.value; select.innerHTML = `${select === elements.factoryFilterStatus ? '<option value="">Todos</option>' : ''}${FACTORY_STATUSES.map((s)=>`<option>${s}</option>`).join("")}`; select.value = keep || (select === elements.factoryStatus ? "Não iniciado" : ""); }); setOptions(elements.factoryFilterDiscipline, "Todas", state.factoryItems.map((i)=>i.discipline)); const today = todayISO(); const counts = { total: state.factoryItems.length, pendentes: state.factoryItems.filter(i=>!["PDF final gerado","Finalizado"].includes(i.status)).length, producao: state.factoryItems.filter(i=>/produção|Consolidação/.test(i.status)).length, finalizados: state.factoryItems.filter(i=>["PDF final gerado","Finalizado"].includes(i.status)).length, atrasados: state.factoryItems.filter(i=>i.plannedDate && i.plannedDate < today && !["PDF final gerado","Finalizado"].includes(i.status)).length, atualizar: state.factoryItems.filter(i=>i.status==="Atualizar depois").length }; elements.factorySummary.innerHTML = Object.entries({"Total de temas":counts.total,"Pendentes":counts.pendentes,"Em produção":counts.producao,"Finalizados":counts.finalizados,"Atrasados":counts.atrasados,"Atualizar depois":counts.atualizar}).map(([k,v])=>`<article class="stat-card"><span>${k}</span><strong>${v}</strong></article>`).join(""); const list = filteredFactoryItems(); elements.factoryList.innerHTML = list.map((item)=>`<article class="syllabus-card factory-card"><header><div><h3>${escapeHTML(item.discipline)} — ${escapeHTML(factoryItemTitle(item))}</h3><div class="item-meta">${formatDateBR(item.plannedDate)} • Prioridade ${escapeHTML(item.priority)}</div></div><span class="badge ${item.status==='Finalizado'?'success':item.priority==='Alta'?'danger':'neutral'}">${escapeHTML(item.status)}</span></header><div class="card-meta-grid"><span>Pasta: ${item.sourceFolder ? `<a href="${escapeHTML(item.sourceFolder)}" target="_blank" rel="noopener">abrir fonte</a>` : "-"}</span><span>PDF final: ${item.finalLink ? `<a href="${escapeHTML(item.finalLink)}" target="_blank" rel="noopener">abrir PDF</a>` : "-"}</span><span>Observações: ${escapeHTML(item.notes || "-")}</span></div><div class="factory-modules">${FACTORY_MODULES.map((m)=>{ const mod=item.modules[m]; return `<details><summary>${m} — ${escapeHTML(mod.status)}</summary><div class="form-grid compact"><label>Status<input data-factory-module-field="status" data-id="${item.id}" data-module="${m}" value="${escapeHTML(mod.status)}"></label><label>Word<input data-factory-module-field="wordLink" data-id="${item.id}" data-module="${m}" value="${escapeHTML(mod.wordLink)}"></label><label>PDF<input data-factory-module-field="pdfLink" data-id="${item.id}" data-module="${m}" value="${escapeHTML(mod.pdfLink)}"></label><label>Conclusão<input type="date" data-factory-module-field="completedAt" data-id="${item.id}" data-module="${m}" value="${escapeHTML(mod.completedAt)}"></label><label class="wide">Observação<input data-factory-module-field="notes" data-id="${item.id}" data-module="${m}" value="${escapeHTML(mod.notes)}"></label></div></details>`; }).join("")}</div><div class="card-actions"><button data-factory-edit="${item.id}">Editar</button><button data-factory-next="${item.id}">Marcar próximo status</button><button data-factory-prompt="triagem" data-id="${item.id}">Prompt triagem</button><button data-factory-prompt="resumo" data-id="${item.id}">Prompt Resumo/Aula</button><button data-factory-prompt="lei" data-id="${item.id}">Prompt Lei</button><button data-factory-prompt="jurisprudencia" data-id="${item.id}">Prompt Jurisprudência</button><button data-factory-prompt="peca" data-id="${item.id}">Prompt Peça</button><button data-factory-prompt="consolidacao" data-id="${item.id}">Prompt consolidação</button><button data-factory-material="final" data-id="${item.id}">Cadastrar em Materiais</button><button data-factory-duplicate="${item.id}">Duplicar item</button><button class="danger" data-factory-delete="${item.id}">Excluir</button></div></article>`).join(""); }
+const FACTORY_STATUSES = ["Não iniciado","Triagem pendente","Em produção","Aguardando revisão","Finalizado","Atualizar depois"];
+function normalizeFactoryItem(item = {}) {
+  const now = new Date().toISOString();
+  const status = FACTORY_STATUSES.includes(item.status) ? item.status : "Não iniciado";
+  return {
+    id: item.id || createId(),
+    disciplina: item.disciplina || item.discipline || "",
+    tema: item.tema || item.theme || item.subject || "",
+    prioridade: item.prioridade || item.priority || "Média",
+    status,
+    dataPlanejada: item.dataPlanejada || item.plannedDate || item.date || "",
+    observacao: item.observacao || item.observacoes || item.notes || "",
+    createdAt: item.createdAt || item.created_at || item.updatedAt || now,
+    updatedAt: item.updatedAt || item.updated_at || now
+  };
+}
+function ensureFactoryAgenda() {
+  if (!Array.isArray(state.factoryAgenda)) state.factoryAgenda = [];
+  const incoming = state.factoryAgenda.length ? state.factoryAgenda : (Array.isArray(state.factoryItems) ? state.factoryItems : []);
+  state.factoryAgenda = incoming.map(normalizeFactoryItem);
+  state.factoryItems = state.factoryAgenda;
+  return state.factoryAgenda;
+}
+function syncFactoryUpdate() {
+  saveData();
+  if (typeof autoSyncAfterSave === "function") autoSyncAfterSave("factory-update");
+}
+function saveFactoryItem(event) {
+  event.preventDefault();
+  const disciplina = elements.factoryDiscipline.value.trim();
+  const tema = elements.factoryTheme.value.trim();
+  if (!disciplina || !tema) return alert("Informe disciplina e tema.");
+  const agenda = ensureFactoryAgenda();
+  const now = new Date().toISOString();
+  const id = elements.factoryEditingId.value || createId();
+  const previous = agenda.find((item) => item.id === id);
+  const item = normalizeFactoryItem({
+    id,
+    disciplina,
+    tema,
+    prioridade: elements.factoryPriority.value,
+    status: elements.factoryStatus.value,
+    dataPlanejada: elements.factoryPlannedDate.value,
+    observacao: elements.factoryNotes.value.trim(),
+    createdAt: previous?.createdAt || now,
+    updatedAt: now
+  });
+  const idx = agenda.findIndex((x) => x.id === id);
+  if (idx >= 0) agenda.splice(idx, 1, item); else agenda.push(item);
+  state.factoryAgenda = agenda;
+  state.factoryItems = state.factoryAgenda;
+  elements.factoryForm.reset();
+  elements.factoryEditingId.value = "";
+  renderFactory();
+  syncFactoryUpdate();
+}
+function editFactoryItem(id) {
+  const item = ensureFactoryAgenda().find((x) => x.id === id);
+  if (!item) return;
+  elements.factoryEditingId.value = item.id;
+  elements.factoryDiscipline.value = item.disciplina;
+  elements.factoryTheme.value = item.tema;
+  elements.factoryPriority.value = item.prioridade;
+  elements.factoryPlannedDate.value = item.dataPlanejada || "";
+  elements.factoryStatus.value = item.status;
+  elements.factoryNotes.value = item.observacao || "";
+  elements.factoryForm?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function deleteFactoryItem(id) {
+  if (!confirm("Excluir este tema da Fábrica?")) return;
+  state.factoryAgenda = ensureFactoryAgenda().filter((item) => item.id !== id);
+  state.factoryItems = state.factoryAgenda;
+  renderFactory();
+  syncFactoryUpdate();
+}
+function changeFactoryStatus(id, status) {
+  const item = ensureFactoryAgenda().find((x) => x.id === id);
+  if (!item || !FACTORY_STATUSES.includes(status)) return;
+  item.status = status;
+  item.updatedAt = new Date().toISOString();
+  renderFactory();
+  syncFactoryUpdate();
+}
+function renderFactory() {
+  if (!elements.factoryList) return;
+  try {
+    const agenda = ensureFactoryAgenda();
+    [elements.factoryStatus].filter(Boolean).forEach((select) => {
+      const keep = select.value || "Não iniciado";
+      select.innerHTML = FACTORY_STATUSES.map((s)=>`<option>${s}</option>`).join("");
+      select.value = FACTORY_STATUSES.includes(keep) ? keep : "Não iniciado";
+    });
+    if (elements.factorySummary) elements.factorySummary.innerHTML = `<article class="stat-card"><span>Temas cadastrados</span><strong>${agenda.length}</strong></article>`;
+    if (!agenda.length) {
+      elements.factoryList.textContent = "Nenhum tema cadastrado na Fábrica.";
+      return;
+    }
+    elements.factoryList.innerHTML = agenda.map((item)=>`<article class="syllabus-card factory-card"><header><div><h3>${escapeHTML(item.disciplina)} — ${escapeHTML(item.tema)}</h3><div class="item-meta">Prioridade ${escapeHTML(item.prioridade)}${item.dataPlanejada ? ` • ${formatDateBR(item.dataPlanejada)}` : ""}</div></div><span class="badge ${item.status==='Finalizado'?'success':item.prioridade==='Alta'?'danger':'neutral'}">${escapeHTML(item.status)}</span></header><div class="card-meta-grid"><span>Disciplina: ${escapeHTML(item.disciplina)}</span><span>Tema: ${escapeHTML(item.tema)}</span><span>Data planejada: ${item.dataPlanejada ? formatDateBR(item.dataPlanejada) : "-"}</span><span>Observação: ${escapeHTML(item.observacao || "-")}</span></div><div class="card-actions"><label>Status <select data-factory-status="${item.id}">${FACTORY_STATUSES.map((s)=>`<option ${s===item.status?'selected':''}>${s}</option>`).join("")}</select></label><button type="button" data-factory-edit="${item.id}">Editar</button><button type="button" class="danger" data-factory-delete="${item.id}">Excluir</button></div></article>`).join("");
+  } catch (error) {
+    console.error("[Metas Estudo] Erro ao carregar Fábrica de Resumos", error);
+    showFactoryErrorMessage();
+  }
+}
 
 function materialTitleById(id) { return state.materials.find((m) => m.id === id)?.title || ""; }
 function timeLogFromStudy(study) {
@@ -2628,10 +2718,9 @@ if (elements.materialForm) elements.materialForm.addEventListener("submit", save
 elements.materialDiscipline?.addEventListener("input", renderMaterialSelectors);
 elements.studySubject?.addEventListener("change", updateStudyMaterialOptions);
 elements.studyTopic?.addEventListener("input", updateStudyMaterialOptions);
-if (ENABLE_FACTORY) elements.factoryForm?.addEventListener("submit", saveFactoryItem);
-if (ENABLE_FACTORY) [elements.factoryFilterDiscipline, elements.factoryFilterPriority, elements.factoryFilterStatus, elements.factoryFilterDate, elements.factoryFilterView, elements.factoryFilterText].filter(Boolean).forEach((filter) => filter.addEventListener("input", renderFactory));
-document.addEventListener("change", (event) => { if (!ENABLE_FACTORY) return; const field = event.target.closest("[data-factory-module-field]"); if (field) updateFactoryModule(field.dataset.id, field.dataset.module, field.dataset.factoryModuleField, field.value); });
-document.addEventListener("click", (event) => { if (!ENABLE_FACTORY && event.target.closest("[data-factory-edit],[data-factory-next],[data-factory-delete],[data-factory-duplicate],[data-factory-prompt],[data-factory-material],[data-create-factory-from-syllabus]")) return; const edit = event.target.closest("[data-factory-edit]"); const next = event.target.closest("[data-factory-next]"); const del = event.target.closest("[data-factory-delete]"); const dup = event.target.closest("[data-factory-duplicate]"); const promptBtn = event.target.closest("[data-factory-prompt]"); const mat = event.target.closest("[data-factory-material]"); const fromSyllabus = event.target.closest("[data-create-factory-from-syllabus]"); if (fromSyllabus) { const item = getSyllabusById(fromSyllabus.dataset.createFactoryFromSyllabus); if (item) { state.factoryItems.push(normalizeFactoryItem({ discipline: item.discipline, theme: item.subject, subtheme: item.subtopic || item.topic || "", priority: item.priority || "Média", plannedDate: todayISO(), status: "Não iniciado", notes: item.reference || "" })); render(); showView("fabrica-resumos"); autoSyncAfterSave("factory-create"); } } if (edit) editFactoryItem(edit.dataset.factoryEdit); if (next) nextFactoryStatus(next.dataset.factoryNext); if (promptBtn) copyFactoryPrompt(promptBtn.dataset.factoryPrompt, promptBtn.dataset.id); if (dup) { const item = state.factoryItems.find((x)=>x.id===dup.dataset.factoryDuplicate); if (item) { state.factoryItems.push({ ...cloneData(item), id: createId(), theme: `${item.theme} (cópia)`, updatedAt: new Date().toISOString() }); render(); autoSyncAfterSave("factory-create"); } } if (mat) { const item = state.factoryItems.find((x)=>x.id===mat.dataset.id); if (item) addFactoryMaterial(item, `${item.theme} — PDF final`, item.finalLink, "PDF"); } if (del && confirm("Excluir este item da Fábrica?")) { state.factoryItems = state.factoryItems.filter((x)=>x.id!==del.dataset.factoryDelete); render(); autoSyncAfterSave("factory-delete"); } });
+elements.factoryForm?.addEventListener("submit", saveFactoryItem);
+document.addEventListener("change", (event) => { const status = event.target.closest("[data-factory-status]"); if (status) changeFactoryStatus(status.dataset.factoryStatus, status.value); });
+document.addEventListener("click", (event) => { const edit = event.target.closest("[data-factory-edit]"); const del = event.target.closest("[data-factory-delete]"); if (edit) editFactoryItem(edit.dataset.factoryEdit); if (del) deleteFactoryItem(del.dataset.factoryDelete); });
 
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin, elements.materialFilterText].filter(Boolean).forEach((filter) => filter.addEventListener("input", renderMaterials));
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin].filter(Boolean).forEach((filter) => filter.addEventListener("change", renderMaterials));
