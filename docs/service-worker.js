@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-20260709-sync-drive";
+const CACHE_NAME = "metas-estudo-20260709-sync-client-id";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
