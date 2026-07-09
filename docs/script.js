@@ -8,6 +8,7 @@ const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
+const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const MOTIVATIONAL_PHRASES = [
   "Disciplina vence motivação.",
@@ -300,6 +301,7 @@ function saveFloatingTimerTime() {
   saveData();
   render();
   showDailyGoalMessage(`Tempo salvo: ${minutes} min em ${label}.`, "success");
+  autoSyncAfterSave("timer");
   closeFloatingTimer();
 }
 
@@ -362,7 +364,7 @@ function saveData(options = {}) {
   }
 }
 
-function readSyncMeta() { return readJSONStorage(SYNC_META_STORAGE_KEY, { connected: false, lastLocalUpdateAt: "", lastSyncAt: "", remoteUpdatedAt: "", remoteDeviceName: "", error: "" }); }
+function readSyncMeta() { return readJSONStorage(SYNC_META_STORAGE_KEY, { connected: false, lastLocalUpdateAt: "", lastSyncAt: "", lastAutoSyncAt: "", lastAutoSyncReason: "", remoteUpdatedAt: "", remoteDeviceName: "", error: "" }); }
 function writeSyncMeta(meta) { localStorage.setItem(SYNC_META_STORAGE_KEY, JSON.stringify({ ...readSyncMeta(), ...meta })); }
 function markLocalUpdated(date = new Date().toISOString()) { writeSyncMeta({ lastLocalUpdateAt: date }); }
 function getDeviceId() { let id = localStorage.getItem(DEVICE_ID_STORAGE_KEY); if (!id) { id = createId(); localStorage.setItem(DEVICE_ID_STORAGE_KEY, id); } return id; }
@@ -379,6 +381,7 @@ function renderSyncStatus(message = "") {
   const rows = [
     ["Status", meta.connected ? "conectado" : "não conectado"],
     ["Última sincronização local", meta.lastSyncAt ? new Date(meta.lastSyncAt).toLocaleString("pt-BR") : "Nunca"],
+    ["Última sincronização automática", meta.lastAutoSyncAt ? new Date(meta.lastAutoSyncAt).toLocaleString("pt-BR") : "Nunca"],
     ["Última versão na nuvem", meta.remoteUpdatedAt ? new Date(meta.remoteUpdatedAt).toLocaleString("pt-BR") : "Desconhecida"],
     ["Dispositivo de origem", meta.remoteDeviceName || "Desconhecido"],
     ["Dispositivo atual", getDeviceName()]
@@ -436,7 +439,49 @@ async function createSyncFile(payload) { const { boundary, body } = multipartBod
 async function updateSyncFile(fileId, payload) { const { boundary, body } = multipartBody(payload, fileId); const r = await driveFetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart&fields=id,modifiedTime`, { method: "PATCH", headers: { "Content-Type": `multipart/related; boundary=${boundary}` }, body }); return r.json(); }
 async function downloadSyncFile(fileId) { return (await driveFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`)).json(); }
 function makeSyncPayload() { const updatedAt = new Date().toISOString(); markLocalUpdated(updatedAt); return { app: "metas-estudo", schemaVersion: 1, updatedAt, deviceId: getDeviceId(), deviceName: getDeviceName(), state: makeBackupPayload().data }; }
-async function uploadSyncPayload(payload = makeSyncPayload()) { const file = await findSyncFile(); const saved = file ? await updateSyncFile(file.id, payload) : await createSyncFile(payload); writeSyncMeta({ connected: true, lastSyncAt: new Date().toISOString(), remoteUpdatedAt: payload.updatedAt, remoteDeviceName: payload.deviceName, error: "" }); renderSyncStatus("Dados enviados para a nuvem com sucesso."); return saved; }
+function autoSyncSuccessMessage(reason = "alteração") {
+  if (reason === "timer") return "Tempo salvo e enviado para a nuvem.";
+  if (reason === "material") return "Material salvo e enviado para a nuvem.";
+  if (reason === "daily-goal") return "Meta diária salva e enviada para a nuvem.";
+  if (reason === "backup-import") return "Backup importado e enviado para a nuvem.";
+  return "Alteração salva e enviada para a nuvem.";
+}
+function autoSyncLocalOnlyMessage(meta = readSyncMeta()) { return meta.connected ? "Autorização expirada. Conecte novamente ao Google Drive." : "Alteração salva localmente. Sincronize depois."; }
+let autoSyncTimer = null;
+let pendingAutoSyncReason = "alteração";
+async function uploadSyncPayload(payload = makeSyncPayload(), { statusMessage = "Dados enviados para a nuvem com sucesso." } = {}) { const file = await findSyncFile(); const saved = file ? await updateSyncFile(file.id, payload) : await createSyncFile(payload); writeSyncMeta({ connected: true, lastSyncAt: new Date().toISOString(), remoteUpdatedAt: payload.updatedAt, remoteDeviceName: payload.deviceName, error: "" }); renderSyncStatus(statusMessage); return saved; }
+async function runAutoSyncAfterSave(reason) {
+  const meta = readSyncMeta();
+  if (!meta.connected || !hasValidGoogleDriveAccessToken()) { const message = autoSyncLocalOnlyMessage(meta); writeSyncMeta({ error: message }); renderSyncStatus(message); return; }
+  try {
+    const file = await findSyncFile();
+    if (file) {
+      const remote = await downloadSyncFile(file.id);
+      const remoteDate = new Date(remote.updatedAt || file.modifiedTime || 0);
+      const lastSyncDate = new Date(meta.lastSyncAt || 0);
+      if (remoteDate > lastSyncDate && remote.deviceId !== getDeviceId()) {
+        const message = "Existe versão mais nova na nuvem. Escolha baixar dados da nuvem ou enviar este dispositivo.";
+        writeSyncMeta({ remoteUpdatedAt: remote.updatedAt || file.modifiedTime || "", remoteDeviceName: remote.deviceName || "", error: message });
+        renderSyncStatus(message);
+        return;
+      }
+    }
+    await uploadSyncPayload(makeSyncPayload(), { statusMessage: autoSyncSuccessMessage(reason) });
+    writeSyncMeta({ lastAutoSyncAt: new Date().toISOString(), lastAutoSyncReason: reason, error: "" });
+    renderSyncStatus(autoSyncSuccessMessage(reason));
+  } catch (error) {
+    const message = syncErrorMessage(error, "Alteração salva localmente. Sincronize depois.");
+    writeSyncMeta({ error: message });
+    renderSyncStatus(message);
+  }
+}
+function autoSyncAfterSave(reason = "alteração") {
+  pendingAutoSyncReason = reason;
+  const meta = readSyncMeta();
+  if (!meta.connected || !hasValidGoogleDriveAccessToken()) { const message = autoSyncLocalOnlyMessage(meta); writeSyncMeta({ error: message }); renderSyncStatus(message); return; }
+  clearTimeout(autoSyncTimer);
+  autoSyncTimer = setTimeout(() => runAutoSyncAfterSave(pendingAutoSyncReason), AUTO_SYNC_DEBOUNCE_MS);
+}
 async function pullSyncPayload() { const file = await findSyncFile(); if (!file) throw new Error("arquivo remoto inexistente"); const payload = await downloadSyncFile(file.id); writeSyncMeta({ connected: true, remoteUpdatedAt: payload.updatedAt || file.modifiedTime || "", remoteDeviceName: payload.deviceName || "", error: "" }); renderSyncStatus("Dados da nuvem encontrados."); return payload; }
 function applyCloudPayload(payload) { if (payload?.app !== "metas-estudo" || !payload.state) throw new Error("Arquivo remoto inválido."); const safetyBackup = JSON.stringify(makeBackupPayload()); clearProjectLocalStorage(); localStorage.setItem("metasEstudoBackupAntesDaSincronizacao", safetyBackup); replaceState(payload.state); saveData({ skipSyncTimestamp: true }); writeSyncMeta({ connected: true, lastLocalUpdateAt: payload.updatedAt, lastSyncAt: new Date().toISOString(), remoteUpdatedAt: payload.updatedAt, remoteDeviceName: payload.deviceName || "", error: "" }); render(); showView("backup"); renderSyncStatus("Dados da nuvem aplicados com backup local de segurança."); }
 async function syncNow() { try { const remote = await pullSyncPayload(); const localDate = new Date(readSyncMeta().lastLocalUpdateAt || 0); const remoteDate = new Date(remote.updatedAt || 0); if (remoteDate > localDate) { if (confirm("Existe versão mais nova na nuvem. Deseja baixar para este dispositivo?")) applyCloudPayload(remote); else renderSyncStatus("Sincronização cancelada pelo usuário."); } else if (localDate > remoteDate) { if (confirm("Este dispositivo tem versão mais nova. Deseja enviar para a nuvem?")) await uploadSyncPayload(makeSyncPayload()); else renderSyncStatus("Sincronização cancelada pelo usuário."); } else renderSyncStatus("Tudo sincronizado."); } catch (error) { const message = syncErrorMessage(error, error.message === "arquivo remoto inexistente" ? "Arquivo remoto inexistente." : "Erro ao sincronizar."); writeSyncMeta({ error: message }); renderSyncStatus(message); } }
@@ -558,7 +603,7 @@ function clearProjectLocalStorage() { getProjectStorageKeys().forEach((key) => l
 function restoreBackup(payload, mode) {
   if (mode === "replace") { clearProjectLocalStorage(); replaceState(payload.data); }
   if (mode === "merge") mergeBackupData(payload.data);
-  render(); showView("backup"); elements.backupPreview.innerHTML += `<p class="notice">Backup ${mode === "replace" ? "substituído" : "mesclado"} com sucesso.</p>`;
+  render(); showView("backup"); elements.backupPreview.innerHTML += `<p class="notice">Backup ${mode === "replace" ? "substituído" : "mesclado"} com sucesso.</p>`; autoSyncAfterSave("backup-import");
 }
 async function handleBackupFile(file) {
   try {
@@ -1594,7 +1639,7 @@ function updateStudyMaterialOptions() {
   elements.studyMaterial.innerHTML = '<option value="">Nenhum material vinculado</option>' + mats.map((m)=>`<option value="${m.id}">${escapeHTML(m.type)} — ${escapeHTML(m.title)}</option>`).join("");
 }
 function editMaterial(id) { const m = state.materials.find((x)=>x.id===id); if (!m) return; elements.materialEditingId.value=m.id; elements.materialTitle.value=m.title; elements.materialDate.value=m.date||todayISO(); elements.materialDiscipline.value=m.discipline; elements.materialSubject.value=m.subject; elements.materialType.value=m.type; elements.materialOrigin.value=m.origin; elements.materialLink.value=m.link; elements.materialTags.value=materialTagsArray(m.tags).join(", "); elements.materialNotes.value=m.notes||""; renderMaterialSelectors(); showView("materiais"); }
-function saveMaterial(event) { event.preventDefault(); if (!elements.materialLink.value.trim()) return alert("Informe o link do material."); if (!isValidHttpUrl(elements.materialLink.value.trim())) return alert("O link do material deve começar com http:// ou https://."); const syllabusItem = state.syllabusItems.find((i)=>canonical(i.discipline)===canonical(elements.materialDiscipline.value) && canonical(i.subject)===canonical(elements.materialSubject.value)); const material = { id: elements.materialEditingId.value || createId(), title: elements.materialTitle.value.trim(), discipline: elements.materialDiscipline.value.trim(), subject: elements.materialSubject.value.trim(), syllabusItemId: syllabusItem?.id || "", type: elements.materialType.value, link: elements.materialLink.value.trim(), origin: elements.materialOrigin.value, notes: elements.materialNotes.value.trim(), date: elements.materialDate.value || todayISO(), tags: materialTagsArray(elements.materialTags.value), updatedAt: new Date().toISOString() }; const idx = state.materials.findIndex((m)=>m.id===material.id); if (idx>=0) state.materials[idx]=material; else state.materials.push(material); elements.materialForm.reset(); elements.materialEditingId.value=""; elements.materialDate.value=todayISO(); render(); showView("materiais"); }
+function saveMaterial(event) { event.preventDefault(); if (!elements.materialLink.value.trim()) return alert("Informe o link do material."); if (!isValidHttpUrl(elements.materialLink.value.trim())) return alert("O link do material deve começar com http:// ou https://."); const syllabusItem = state.syllabusItems.find((i)=>canonical(i.discipline)===canonical(elements.materialDiscipline.value) && canonical(i.subject)===canonical(elements.materialSubject.value)); const material = { id: elements.materialEditingId.value || createId(), title: elements.materialTitle.value.trim(), discipline: elements.materialDiscipline.value.trim(), subject: elements.materialSubject.value.trim(), syllabusItemId: syllabusItem?.id || "", type: elements.materialType.value, link: elements.materialLink.value.trim(), origin: elements.materialOrigin.value, notes: elements.materialNotes.value.trim(), date: elements.materialDate.value || todayISO(), tags: materialTagsArray(elements.materialTags.value), updatedAt: new Date().toISOString() }; const idx = state.materials.findIndex((m)=>m.id===material.id); if (idx>=0) state.materials[idx]=material; else state.materials.push(material); elements.materialForm.reset(); elements.materialEditingId.value=""; elements.materialDate.value=todayISO(); render(); showView("materiais"); autoSyncAfterSave("material"); }
 
 let questionBankTraining = null;
 let qbPreviewVisible = false;
@@ -2019,6 +2064,7 @@ function updateGoalDone(goal) {
   }
   saveData();
   showDailyGoalMessage("Meta concluída.", "success");
+  autoSyncAfterSave("daily-goal");
 }
 function postponeGoal(goal) {
   const nextDate = prompt("Nova data da meta (AAAA-MM-DD)", goal.date);
@@ -2031,6 +2077,7 @@ function postponeGoal(goal) {
   elements.goalDate.value = nextDate;
   saveData();
   showDailyGoalMessage(`Meta adiada para ${formatDateBR(nextDate)}.`, "success");
+  autoSyncAfterSave("daily-goal");
 }
 function registerGoalTime(goal, kind = "study") {
   normalizeGoalTimeFields(goal);
@@ -2048,6 +2095,7 @@ function registerGoalTime(goal, kind = "study") {
   saveData();
   render();
   showDailyGoalMessage("Tempo registrado. A meta não foi concluída automaticamente.", "success");
+  autoSyncAfterSave("daily-goal");
 }
 function editGoal(goal) {
   elements.goalDate.value=goal.date; elements.goalDiscipline.value=goal.discipline; optionsForItems(elements.goalSyllabusItem, goal.discipline, goal.syllabusItemId); elements.goalSyllabusItem.value=goal.syllabusItemId; elements.goalType.value=goal.type; elements.goalMinutes.value=goal.minutes; elements.goalActualMinutes.value=goal.actualMinutes||0; elements.goalPriority.value=goal.priority; elements.goalStatus.value=goal.status; elements.goalNotes.value=goal.notes||""; showView("metas-do-dia");
@@ -2219,12 +2267,12 @@ function handleDailyGoalActionClick(event) {
       else if (action.dataset.goalAction === "Estudo") registerGoalTime(goal, "study");
       else if (action.dataset.goalAction === "QuestoesTempo") registerGoalTime(goal, "questions");
       else if (action.dataset.goalAction === "Concluída") updateGoalDone(goal);
-      else { goal.status = action.dataset.goalAction; appendGoalHistory(goal, `Status alterado para ${goal.status}.`); showDailyGoalMessage(`Status alterado para ${goal.status}.`, "success"); saveData(); }
+      else { goal.status = action.dataset.goalAction; appendGoalHistory(goal, `Status alterado para ${goal.status}.`); showDailyGoalMessage(`Status alterado para ${goal.status}.`, "success"); saveData(); autoSyncAfterSave("daily-goal"); }
       render();
     }
   }
 }
-elements.goalForm.addEventListener("submit", (event) => { event.preventDefault(); const item = getSyllabusById(elements.goalSyllabusItem.value); if (!item) return alert("Selecione um assunto do edital verticalizado."); const selectedDate = elements.goalDate.value || todayISO(); state.dailyGoals.push({ id: createId(), date: selectedDate, data: selectedDate, discipline: elements.goalDiscipline.value, disciplina: elements.goalDiscipline.value, syllabusItemId: item.id, subject: item.subject, assunto: item.subject, referencia_edital: item.reference || "", type: elements.goalType.value, tipo: elements.goalType.value.toLowerCase(), minutes: Number(elements.goalMinutes.value), priority: elements.goalPriority.value, prioridade: elements.goalPriority.value, status: elements.goalStatus.value, studyActualMinutes: Number(elements.goalActualMinutes?.value) || 0, questionActualMinutes: 0, actualMinutes: Number(elements.goalActualMinutes?.value) || 0, studyStatus: elements.goalStudyStatus?.value || "Iniciado", notes: elements.goalNotes.value.trim() }); elements.goalForm.reset(); elements.goalDate.value = selectedDate; render(); });
+elements.goalForm.addEventListener("submit", (event) => { event.preventDefault(); const item = getSyllabusById(elements.goalSyllabusItem.value); if (!item) return alert("Selecione um assunto do edital verticalizado."); const selectedDate = elements.goalDate.value || todayISO(); state.dailyGoals.push({ id: createId(), date: selectedDate, data: selectedDate, discipline: elements.goalDiscipline.value, disciplina: elements.goalDiscipline.value, syllabusItemId: item.id, subject: item.subject, assunto: item.subject, referencia_edital: item.reference || "", type: elements.goalType.value, tipo: elements.goalType.value.toLowerCase(), minutes: Number(elements.goalMinutes.value), priority: elements.goalPriority.value, prioridade: elements.goalPriority.value, status: elements.goalStatus.value, studyActualMinutes: Number(elements.goalActualMinutes?.value) || 0, questionActualMinutes: 0, actualMinutes: Number(elements.goalActualMinutes?.value) || 0, studyStatus: elements.goalStudyStatus?.value || "Iniciado", notes: elements.goalNotes.value.trim() }); elements.goalForm.reset(); elements.goalDate.value = selectedDate; render(); autoSyncAfterSave("daily-goal"); });
 elements.dailyGoalsList.addEventListener("click", handleDailyGoalActionClick);
 elements.nextDailyGoal?.addEventListener("click", handleDailyGoalActionClick);
 elements.floatingTimer?.addEventListener("click", (event) => {
