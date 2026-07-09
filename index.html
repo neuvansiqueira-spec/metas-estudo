@@ -71,7 +71,7 @@
       <div class="goal-card">
         <span>Meta semanal</span>
         <strong id="weeklyGoalStatus">0h registradas</strong>
-        <small>Dados salvos automaticamente no seu navegador.</small>
+        <small>Dados salvos no navegador com sincronização opcional via Google Drive.</small>
       </div>
     </section>
   </header>
@@ -333,7 +333,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
 
     <section id="view-materiais" class="panel app-view" data-view="materiais" aria-labelledby="materials-title">
       <div class="section-heading"><p class="eyebrow">Biblioteca</p><h2 id="materials-title">Materiais</h2></div>
-      <p class="notice">Os arquivos não são salvos dentro do site. O sistema salva apenas o link ou referência do material. Para acesso em outros dispositivos, mantenha os arquivos no Google Drive ou outro serviço de nuvem e exporte backup JSON do site.</p>
+      <p class="notice">Os arquivos não são salvos dentro do site: o sistema salva o link ou referência do material. Para acesso em outros dispositivos, mantenha os arquivos no Google Drive ou outro serviço de nuvem e use a sincronização via Google Drive; exporte backup JSON apenas como cópia extra de segurança.</p>
       <p class="notice warning-notice">Evite colocar arquivos pessoais ou protegidos por direitos autorais em repositórios públicos.</p>
       <form id="materialForm" class="form-grid">
         <input id="materialEditingId" type="hidden" />
@@ -635,7 +635,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
 
     <section id="view-backup" class="panel app-view" data-view="backup" aria-labelledby="backup-title">
       <div class="section-heading"><p class="eyebrow">Portabilidade</p><h2 id="backup-title">Backup</h2></div>
-      <p class="notice">Os dados deste site ficam salvos apenas neste navegador. Para usar em outro computador, celular ou tablet, exporte um backup JSON e salve no Google Drive. Depois, importe esse arquivo no outro dispositivo.</p>
+      <p class="notice">Os dados continuam salvos automaticamente neste navegador e agora podem ser sincronizados com o Google Drive pelo arquivo metas-estudo-sync.json. Use Exportar/Importar backup JSON como opção extra de segurança antes de trocar de dispositivo, limpar o navegador ou fazer grandes alterações.</p>
       <p class="notice warning-notice">Não compartilhe seu arquivo de backup com terceiros se ele contiver dados pessoais ou informações de estudo.</p>
       <div class="backup-actions actions">
         <button id="exportBackup" type="button">Exportar backup JSON</button>
@@ -653,7 +653,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
 
       <article class="sync-card" aria-labelledby="sync-title">
         <div class="section-heading"><p class="eyebrow">Google Drive</p><h2 id="sync-title">☁️ SINCRONIZAÇÃO</h2></div>
-        <p class="notice">A sincronização é uma camada adicional: o site continua salvando tudo neste navegador e mantém o backup manual abaixo.</p>
+        <p class="notice">A sincronização usa o Google Drive para manter o arquivo metas-estudo-sync.json na pasta privada do app. O site continua salvando tudo neste navegador e mantém o backup manual abaixo como segurança.</p>
         <div class="sync-actions actions">
           <button id="connectGoogleDrive" type="button">Conectar Google Drive</button>
           <button id="syncNow" class="secondary-button" type="button">Sincronizar agora</button>
@@ -674,9 +674,9 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
         <article><h3>1. Primeiro uso</h3><ul><li>Importe o edital verticalizado em <strong>Importar Edital</strong>.</li><li>Revise os itens em <strong>Edital Verticalizado</strong> e marque o que pode entrar no planejamento em <strong>Assuntos Agendáveis</strong>.</li><li>Configure <strong>Planejamento</strong> com data da prova, escala, metas por dia e metas semanais.</li><li>Exporte um <strong>backup JSON</strong> após a configuração inicial.</li></ul></article>
         <article><h3>2. Uso diário</h3><ul><li>Abra <strong>Plano do Dia</strong>.</li><li>Confira o resumo, a próxima meta e a lista do que estudar hoje.</li><li>Conclua metas, registre tempo realizado e registre questões quando fizer treino.</li></ul></article>
         <article><h3>3. Uso semanal</h3><ul><li>Revise o <strong>Calendário de Metas</strong>.</li><li>Ajuste o <strong>Planejamento</strong> se houver plantão, folga ou semana atípica.</li><li>Verifique <strong>Progresso</strong> e registre <strong>Simulados</strong>.</li></ul></article>
-        <article><h3>4. Backup</h3><ul><li>Exporte antes de trocar de dispositivo, limpar navegador ou fazer grandes alterações.</li><li>Salve o arquivo JSON no Google Drive ou outro local seguro.</li><li>No outro dispositivo, abra <strong>Backup</strong> e importe o JSON. Isso preserva os dados do navegador.</li></ul></article>
+        <article><h3>4. Backup e sincronização</h3><ul><li>Use <strong>☁️ SINCRONIZAÇÃO</strong> em Backup para conectar o Google Drive, sincronizar agora, enviar este dispositivo para a nuvem ou baixar dados da nuvem.</li><li>A nuvem usa o arquivo <strong>metas-estudo-sync.json</strong>; o backup JSON exportado/importado continua disponível como cópia manual de segurança.</li><li>Exporte antes de trocar de dispositivo, limpar navegador ou fazer grandes alterações.</li></ul></article>
         <article><h3>5. Materiais</h3><ul><li>Cadastre links do Google Drive ou páginas http/https em <strong>Materiais</strong>.</li><li>Vincule o material à disciplina e ao assunto.</li><li>Abra materiais diretamente nos cards do Plano do Dia quando houver vínculo.</li></ul></article>
-        <article><h3>6. Observação importante</h3><p>Os dados ficam no navegador via localStorage. Para usar em outro computador, tablet ou celular, exporte e importe o backup JSON.</p></article>
+        <article><h3>6. Observação importante</h3><p>Os dados ficam no navegador via localStorage e podem ser sincronizados pelo Google Drive usando metas-estudo-sync.json. Para máxima segurança, mantenha também backups JSON exportados manualmente.</p></article>
       </div>
     </section>
     </div>
@@ -709,7 +709,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </div>
   </aside>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260701-rollback-stable</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260709-sync-drive</p></footer>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="script.js?v=20260709-sync-drive"></script>
 </body>

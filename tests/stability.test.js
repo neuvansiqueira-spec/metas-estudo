@@ -38,7 +38,7 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 test('arquivos carregados usam a versão da sincronização Google Drive', () => {
   assert.match(html, /style\.css\?v=20260709-sync-drive/);
   assert.match(html, /script\.js\?v=20260709-sync-drive/);
-  assert.match(html, /Versão: 20260701-rollback-stable/);
+  assert.match(html, /Versão: 20260709-sync-drive/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -257,4 +257,17 @@ test('exclusão de disciplina trata disciplinas automáticas órfãs sem apagar 
   assert.doesNotMatch(deletionBlock, /state\.materials\s*=\s*\[\]/);
   assert.doesNotMatch(deletionBlock, /state\.dailyGoals\s*=\s*\[\]/);
   assert.doesNotMatch(deletionBlock, /state\.planning\s*=\s*\{\}/);
+});
+
+
+test('interface publicada expõe sincronização Google Drive', () => {
+  assert.match(html, /https:\/\/accounts\.google\.com\/gsi\/client/);
+  assert.match(html, /☁️ SINCRONIZAÇÃO/);
+  assert.match(html, /Conectar Google Drive/);
+  assert.match(html, /Sincronizar agora/);
+  assert.match(html, /Enviar este dispositivo para a nuvem/);
+  assert.match(html, /Baixar dados da nuvem/);
+  assert.match(html, /Desconectar/);
+  assert.match(html, /metas-estudo-sync\.json/);
+  assert.match(script, /const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync\.json"/);
 });
