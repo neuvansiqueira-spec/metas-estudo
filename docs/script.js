@@ -1424,6 +1424,229 @@ const FACTORY_MODULES = [
   { key: "peca", label: "PEÇA" },
   { key: "completo", label: "COMPLETO" }
 ];
+
+const FACTORY_PROMPT_TYPES = [
+  { key: "triagem", label: "Gerar prompt de triagem" },
+  { key: "resumoAula", label: "Gerar prompt Resumo/Aula" },
+  { key: "lei", label: "Gerar prompt Lei" },
+  { key: "jurisprudencia", label: "Gerar prompt Jurisprudência" },
+  { key: "peca", label: "Gerar prompt Peça" },
+  { key: "consolidacao", label: "Gerar prompt Consolidação Final" }
+];
+function factoryPromptContext(item = {}) {
+  return `Disciplina: ${item.disciplina || "[DISCIPLINA]"}
+Tema: ${item.tema || "[TEMA]"}`;
+}
+function factoryPromptText(type, item = {}) {
+  const context = factoryPromptContext(item);
+  const theme = item.tema || "[TEMA]";
+  const prompts = {
+    triagem: `${context}
+
+Faça apenas a TRIAGEM das fontes.
+
+Classifique cada fonte por módulo:
+
+1. RESUMO/AULA
+2. LEI
+3. JURISPRUDÊNCIA
+4. PEÇA
+5. ATUALIZAÇÃO / COMPLEMENTO, se houver
+
+Não gere resumo.
+Não gere Word.
+Não gere PDF.
+Não gere módulo final.
+
+Informe:
+- fontes principais de cada módulo;
+- fontes secundárias;
+- fontes duplicadas;
+- fontes insuficientes;
+- se há fonte faltante;
+- se é possível gerar o material com segurança.`,
+    resumoAula: `${context}
+
+Triagem aprovada.
+
+Agora gere somente o MÓDULO RESUMO/AULA.
+
+Use apenas as fontes classificadas como RESUMO/AULA na triagem.
+
+Regras:
+- gerar somente o MÓDULO RESUMO/AULA;
+- não gerar módulo lei;
+- não gerar jurisprudência;
+- não gerar peça;
+- não gerar Word final consolidado;
+- não inserir PCDF;
+- não inserir CEBRASPE;
+- substituir qualquer “📌 CEBRASPE” por “📌 PROVA”;
+- não identificar banca, concurso, professora ou curso;
+- preservar profundidade;
+- usar estrutura topificada hierárquica;
+- não fazer resumo corrido;
+- não transformar em texto genérico;
+- usar títulos com inicial maiúscula ou caixa alta;
+- aplicar negrito nos títulos, subtítulos e palavras-chave.
+
+Aplique abaixo o PROMPT RESUMO completo:
+
+[COLE AQUI O PROMPT RESUMO COMPLETO]`,
+    lei: `MÓDULO RESUMO/AULA aprovado.
+
+Agora gere somente o MÓDULO LEI.
+
+Use apenas as fontes classificadas como LEI na triagem.
+
+Disciplina:
+${item.disciplina || "[DISCIPLINA]"}
+
+Tema:
+${theme}
+
+Regras:
+- gerar somente o MÓDULO LEI;
+- não gerar resumo/aula;
+- não gerar jurisprudência;
+- não gerar peça;
+- não gerar Word final consolidado;
+- usar artigo como unidade central;
+- preservar prazos, competências, vedações, exceções, requisitos e pontos de prova;
+- não copiar a lei integralmente;
+- não fazer comentário doutrinário;
+- não inserir PCDF;
+- não inserir CEBRASPE;
+- substituir qualquer “📌 CEBRASPE” por “📌 PROVA”;
+- não identificar banca, concurso, professora ou curso;
+- aplicar negrito conforme o padrão do projeto de leis.
+
+Aplique abaixo o PROMPT LEIS completo:
+
+[COLE AQUI O PROMPT LEIS COMPLETO]`,
+    jurisprudencia: `MÓDULO RESUMO/AULA aprovado.
+MÓDULO LEI aprovado.
+
+Agora gere somente o MÓDULO JURISPRUDÊNCIA.
+
+Use apenas as fontes classificadas como JURISPRUDÊNCIA na triagem.
+
+Disciplina:
+${item.disciplina || "[DISCIPLINA]"}
+
+Tema:
+${theme}
+
+RECORTE TEMÁTICO OBRIGATÓRIO:
+[DEFINIR TESES DESEJADAS]
+
+TRIBUNAIS:
+- Supremo Tribunal Federal (STF)
+- Superior Tribunal de Justiça (STJ)
+
+PERÍODO:
+- priorizar jurisprudências de [ANO INICIAL] a [ANO FINAL], se constarem nas fontes;
+- admitir tese anterior somente se for súmula, tese consolidada ou entendimento clássico indispensável.
+
+Regras:
+- gerar somente o MÓDULO JURISPRUDÊNCIA;
+- não gerar resumo/aula;
+- não gerar lei;
+- não gerar peça;
+- não gerar Word final consolidado;
+- não copiar ementa;
+- não narrar caso concreto;
+- não informar número de processo, relator, órgão julgador ou data exata, salvo se indispensável;
+- preservar tribunal, súmula, informativo, tema, ano, tese e distinções STF/STJ se constarem;
+- não inventar jurisprudência;
+- não pesquisar fora das fontes;
+- não inserir PCDF;
+- não inserir CEBRASPE;
+- substituir qualquer “📌 CEBRASPE” por “📌 PROVA”;
+- usar mapa mental hierárquico de palavras-chave;
+- usar títulos com inicial maiúscula ou caixa alta.
+
+Aplique abaixo o PROMPT JURISPRUDÊNCIA completo:
+
+[COLE AQUI O PROMPT JURISPRUDÊNCIA COMPLETO]`,
+    peca: `MÓDULO RESUMO/AULA aprovado.
+MÓDULO LEI aprovado.
+MÓDULO JURISPRUDÊNCIA aprovado.
+
+Agora gere somente o MÓDULO PEÇA.
+
+Use apenas as fontes classificadas como PEÇA na triagem.
+
+Disciplina:
+${item.disciplina || "[DISCIPLINA]"}
+
+Tema:
+${theme}
+
+Regras:
+- gerar somente o MÓDULO PEÇA;
+- não gerar resumo/aula;
+- não gerar lei;
+- não gerar jurisprudência;
+- não gerar Word final consolidado;
+- não fazer peça pronta;
+- não fazer aula corrida;
+- extrair estrutura, requisitos, fundamentos, pedidos e determinações;
+- não inserir PCDF;
+- não inserir CEBRASPE;
+- substituir qualquer “📌 CEBRASPE” por “📌 PROVA”;
+- não identificar banca, concurso, professora ou curso;
+- remover nome de professora, curso, turma ou material;
+- usar estrutura topificada hierárquica;
+- preservar profundidade prática.
+
+Aplique abaixo o PROMPT PEÇAS completo:
+
+[COLE AQUI O PROMPT PEÇAS COMPLETO]`,
+    consolidacao: `Os 4 módulos foram aprovados:
+
+1. MÓDULO RESUMO/AULA
+2. MÓDULO LEI
+3. MÓDULO JURISPRUDÊNCIA
+4. MÓDULO PEÇA
+
+Agora faça a CONSOLIDAÇÃO FINAL em Word.
+
+Disciplina:
+${item.disciplina || "[DISCIPLINA]"}
+
+Tema:
+${theme}
+
+Regras:
+- não reescrever como resumo genérico;
+- preservar o padrão próprio de cada módulo;
+- não misturar lei com doutrina;
+- não misturar jurisprudência com resumo/aula;
+- não transformar peça em comentário;
+- eliminar repetições desnecessárias;
+- manter profundidade;
+- manter hierarquia visual forte;
+- aplicar negrito nos títulos, subtítulos e palavras-chave;
+- usar “📌 PROVA”;
+- não inserir PCDF;
+- não inserir CEBRASPE;
+- não identificar banca, concurso, professora ou curso;
+- não inserir comentários externos;
+- não pesquisar fora dos módulos aprovados.
+
+Ordem do arquivo final:
+
+1. MÓDULO RESUMO/AULA
+2. MÓDULO LEI
+3. MÓDULO JURISPRUDÊNCIA
+4. MÓDULO PEÇA
+
+Gerar arquivo Word editável.`
+  };
+  return prompts[type] || "";
+}
+
 function normalizeFactoryModule(module = {}) {
   const status = FACTORY_STATUSES.includes(module.status) ? module.status : "Não iniciado";
   return {
@@ -1553,6 +1776,39 @@ function saveFactoryModules(event) {
   renderFactory();
   syncFactoryUpdate();
 }
+
+function showFactoryPrompt(id, type) {
+  const item = ensureFactoryAgenda().find((x) => x.id === id);
+  if (!item) return;
+  const panel = elements.factoryList?.querySelector(`[data-factory-prompt-panel="${CSS.escape(id)}"]`);
+  if (!panel) return;
+  const promptText = factoryPromptText(type, item);
+  const promptLabel = FACTORY_PROMPT_TYPES.find((p) => p.key === type)?.label?.replace("Gerar prompt ", "") || "Prompt";
+  panel.innerHTML = `<div class="factory-prompt-box"><div class="factory-prompt-header"><div><h4>Prompt — ${escapeHTML(promptLabel)}</h4><p class="item-meta">${escapeHTML(item.disciplina)} — ${escapeHTML(item.tema)}</p></div><button type="button" class="secondary-button" data-factory-prompt-close="${item.id}">Fechar</button></div><textarea readonly rows="18" data-factory-prompt-text="${item.id}">${escapeHTML(promptText)}</textarea><div class="card-actions"><button type="button" data-factory-prompt-copy="${item.id}">Copiar prompt</button><span class="item-meta" data-factory-prompt-message="${item.id}" aria-live="polite"></span></div></div>`;
+  panel.querySelector("textarea")?.focus();
+}
+async function copyFactoryPrompt(id) {
+  const textArea = elements.factoryList?.querySelector(`[data-factory-prompt-text="${CSS.escape(id)}"]`);
+  const message = elements.factoryList?.querySelector(`[data-factory-prompt-message="${CSS.escape(id)}"]`);
+  if (!textArea) return;
+  try {
+    if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(textArea.value);
+    else {
+      textArea.select();
+      document.execCommand("copy");
+    }
+    if (message) message.textContent = "Prompt copiado.";
+  } catch (error) {
+    textArea.select();
+    document.execCommand("copy");
+    if (message) message.textContent = "Prompt copiado.";
+  }
+}
+function closeFactoryPrompt(id) {
+  const panel = elements.factoryList?.querySelector(`[data-factory-prompt-panel="${CSS.escape(id)}"]`);
+  if (panel) panel.innerHTML = "";
+}
+
 function renderFactory() {
   if (!elements.factoryList) return;
   try {
@@ -1572,7 +1828,8 @@ function renderFactory() {
       item.modules = modules;
       item.status = factoryOverallStatus(modules);
       const moduleSummary = FACTORY_MODULES.map(({ key, label }) => `<li><strong>${escapeHTML(label)}:</strong> ${escapeHTML(modules[key].status)}</li>`).join("");
-      return `<article class="syllabus-card factory-card"><header><div><h3>${escapeHTML(item.disciplina)} — ${escapeHTML(item.tema)}</h3><div class="item-meta">Prioridade ${escapeHTML(item.prioridade)}${item.dataPlanejada ? ` • ${formatDateBR(item.dataPlanejada)}` : ""}</div></div><span class="badge ${item.status==='Aprovado'||item.status==='PDF gerado'?'success':item.prioridade==='Alta'?'danger':'neutral'}">${escapeHTML(item.status)}</span></header><ul class="factory-module-summary">${moduleSummary}</ul><div class="card-meta-grid"><span>Disciplina: ${escapeHTML(item.disciplina)}</span><span>Tema: ${escapeHTML(item.tema)}</span><span>Data planejada: ${item.dataPlanejada ? formatDateBR(item.dataPlanejada) : "-"}</span><span>Observação: ${escapeHTML(item.observacao || "-")}</span></div><div class="card-actions"><button type="button" data-factory-modules="${item.id}">Editar módulos</button><button type="button" data-factory-edit="${item.id}">Editar tema</button><button type="button" class="danger" data-factory-delete="${item.id}">Excluir</button></div><div class="factory-modules-panel" data-factory-modules-panel="${item.id}"></div></article>`;
+      const promptButtons = FACTORY_PROMPT_TYPES.map(({ key, label }) => `<button type="button" class="secondary-button" data-factory-prompt="${item.id}|${key}">${escapeHTML(label)}</button>`).join("");
+      return `<article class="syllabus-card factory-card"><header><div><h3>${escapeHTML(item.disciplina)} — ${escapeHTML(item.tema)}</h3><div class="item-meta">Prioridade ${escapeHTML(item.prioridade)}${item.dataPlanejada ? ` • ${formatDateBR(item.dataPlanejada)}` : ""}</div></div><span class="badge ${item.status==='Aprovado'||item.status==='PDF gerado'?'success':item.prioridade==='Alta'?'danger':'neutral'}">${escapeHTML(item.status)}</span></header><ul class="factory-module-summary">${moduleSummary}</ul><div class="card-meta-grid"><span>Disciplina: ${escapeHTML(item.disciplina)}</span><span>Tema: ${escapeHTML(item.tema)}</span><span>Data planejada: ${item.dataPlanejada ? formatDateBR(item.dataPlanejada) : "-"}</span><span>Observação: ${escapeHTML(item.observacao || "-")}</span></div><div class="factory-prompt-actions"><h4>Prompts da Fábrica</h4><div class="card-actions">${promptButtons}</div></div><div class="factory-prompt-panel" data-factory-prompt-panel="${item.id}"></div><div class="card-actions"><button type="button" data-factory-modules="${item.id}">Editar módulos</button><button type="button" data-factory-edit="${item.id}">Editar tema</button><button type="button" class="danger" data-factory-delete="${item.id}">Excluir</button></div><div class="factory-modules-panel" data-factory-modules-panel="${item.id}"></div></article>`;
     }).join("");
   } catch (error) {
     console.error("[Metas Estudo] Erro ao carregar Fábrica de Resumos", error);
@@ -2780,7 +3037,7 @@ elements.studySubject?.addEventListener("change", updateStudyMaterialOptions);
 elements.studyTopic?.addEventListener("input", updateStudyMaterialOptions);
 elements.factoryForm?.addEventListener("submit", saveFactoryItem);
 document.addEventListener("submit", saveFactoryModules);
-document.addEventListener("click", (event) => { const edit = event.target.closest("[data-factory-edit]"); const del = event.target.closest("[data-factory-delete]"); const modules = event.target.closest("[data-factory-modules]"); const cancelModules = event.target.closest("[data-factory-modules-cancel]"); if (edit) editFactoryItem(edit.dataset.factoryEdit); if (del) deleteFactoryItem(del.dataset.factoryDelete); if (modules) editFactoryModules(modules.dataset.factoryModules); if (cancelModules) renderFactory(); });
+document.addEventListener("click", (event) => { const edit = event.target.closest("[data-factory-edit]"); const del = event.target.closest("[data-factory-delete]"); const modules = event.target.closest("[data-factory-modules]"); const cancelModules = event.target.closest("[data-factory-modules-cancel]"); const prompt = event.target.closest("[data-factory-prompt]"); const copyPrompt = event.target.closest("[data-factory-prompt-copy]"); const closePrompt = event.target.closest("[data-factory-prompt-close]"); if (edit) editFactoryItem(edit.dataset.factoryEdit); if (del) deleteFactoryItem(del.dataset.factoryDelete); if (modules) editFactoryModules(modules.dataset.factoryModules); if (cancelModules) renderFactory(); if (prompt) { const [id, type] = prompt.dataset.factoryPrompt.split("|"); showFactoryPrompt(id, type); } if (copyPrompt) copyFactoryPrompt(copyPrompt.dataset.factoryPromptCopy); if (closePrompt) closeFactoryPrompt(closePrompt.dataset.factoryPromptClose); });
 
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin, elements.materialFilterText].filter(Boolean).forEach((filter) => filter.addEventListener("input", renderMaterials));
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin].filter(Boolean).forEach((filter) => filter.addEventListener("change", renderMaterials));
