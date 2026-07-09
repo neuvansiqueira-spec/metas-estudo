@@ -3,6 +3,11 @@ const SIMULADOS_STORAGE_KEY = "metasEstudoSimulados";
 const MOTIVATION_STORAGE_KEY = "metasEstudoMensagemDoDia";
 const CADERNO_ERROS_STORAGE_KEY = "cadernoErros";
 const CADERNO_ERROS_DEBUG = false;
+const GOOGLE_CLIENT_ID = "COLOCAR_CLIENT_ID_AQUI";
+const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
+const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
+const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
+const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const QB_RENDER_LIMIT = 20;
 const MOTIVATIONAL_PHRASES = [
   "Disciplina vence motivação.",
@@ -320,6 +325,7 @@ const elements = {
   dashboardQuestionBankTotal: $("#dashboardQuestionBankTotal"), dashboardQuestionBankSessions: $("#dashboardQuestionBankSessions"), dashboardQuestionBankLast: $("#dashboardQuestionBankLast"), dashboardQuestionBankPackages: $("#dashboardQuestionBankPackages"), dashboardQuestionBankLinked: $("#dashboardQuestionBankLinked"), dashboardQuestionBankMissing: $("#dashboardQuestionBankMissing"),
   materialsTotal: $("#materialsTotal"), materialDisciplinesTotal: $("#materialDisciplinesTotal"), materialTopicsTotal: $("#materialTopicsTotal"), materialForm: $("#materialForm"), materialEditingId: $("#materialEditingId"), materialTitle: $("#materialTitle"), materialDate: $("#materialDate"), materialDiscipline: $("#materialDiscipline"), materialSubject: $("#materialSubject"), materialType: $("#materialType"), materialOrigin: $("#materialOrigin"), materialLink: $("#materialLink"), materialTags: $("#materialTags"), materialNotes: $("#materialNotes"), materialDisciplineOptions: $("#materialDisciplineOptions"), materialSubjectOptions: $("#materialSubjectOptions"), materialFilterDiscipline: $("#materialFilterDiscipline"), materialFilterSubject: $("#materialFilterSubject"), materialFilterType: $("#materialFilterType"), materialFilterOrigin: $("#materialFilterOrigin"), materialFilterText: $("#materialFilterText"), materialsList: $("#materialsList"), studyMaterial: $("#studyMaterial"),
   qbSyllabusPackages: $("#qbSyllabusPackages"), qbSyllabusVerticalized: $("#qbSyllabusVerticalized"), qbPreviewSection: $("#qbPreviewSection"), qbSyllabusSummary: $("#qbSyllabusSummary"), qbPackagesSummary: $("#qbPackagesSummary"), qbFile: $("#qbFile"), qbNewTraining: $("#qbNewTraining"), qbRedoBlanks: $("#qbRedoBlanks"), qbExportBank: $("#qbExportBank"), qbExportResults: $("#qbExportResults"), qbClearBank: $("#qbClearBank"), qbMessage: $("#qbMessage"), qbStats: $("#qbStats"), qbDiagnostics: $("#qbDiagnostics"), qbTrainingScope: $("#qbTrainingScope"), qbReviewTypeWrapper: $("#qbReviewTypeWrapper"), qbReviewType: $("#qbReviewType"), qbFilterDiscipline: $("#qbFilterDiscipline"), qbFilterSubject: $("#qbFilterSubject"), qbFilterTheme: $("#qbFilterTheme"), qbFilterBoard: $("#qbFilterBoard"), qbFilterYear: $("#qbFilterYear"), qbFilterSearch: $("#qbFilterSearch"), qbTrainingLimit: $("#qbTrainingLimit"), qbShuffleTraining: $("#qbShuffleTraining"), qbStartTraining: $("#qbStartTraining"), qbPreviewFiltered: $("#qbPreviewFiltered"), qbFilteredPreview: $("#qbFilteredPreview"), qbTrainingPanel: $("#qbTrainingPanel"), qbTrainingCounter: $("#qbTrainingCounter"), qbTrainingProgress: $("#qbTrainingProgress"), qbQuestionCard: $("#qbQuestionCard"), qbResultPanel: $("#qbResultPanel"), qbResultSummary: $("#qbResultSummary"), qbResultDetails: $("#qbResultDetails"), qbErrorStats: $("#qbErrorStats"), qbErrorNotebookList: $("#qbErrorNotebookList"), qbErrorFilterDiscipline: $("#qbErrorFilterDiscipline"), qbErrorFilterSubject: $("#qbErrorFilterSubject"), qbErrorFilterStatus: $("#qbErrorFilterStatus"), qbErrorFilterReason: $("#qbErrorFilterReason"), qbStartErrorNotebook: $("#qbStartErrorNotebook"), qbReviewByDiscipline: $("#qbReviewByDiscipline"), qbReviewBySubject: $("#qbReviewBySubject"), qbToggleErrorHistory: $("#qbToggleErrorHistory"), qbErrorHistory: $("#qbErrorHistory"),
+  connectGoogleDrive: $("#connectGoogleDrive"), syncNowButton: $("#syncNow"), pushToCloud: $("#pushToCloud"), pullFromCloud: $("#pullFromCloud"), disconnectGoogleDrive: $("#disconnectGoogleDrive"), syncStatus: $("#syncStatus"),
   floatingTimer: $("#floatingTimer"), timerDiscipline: $("#timerDiscipline"), timerSubject: $("#timerSubject"), timerKind: $("#timerKind"), timerTime: $("#timerTime"), timerPauseResume: $("#timerPauseResume")
 };
 elements.studyDate.value = todayISO();
@@ -343,8 +349,9 @@ function renderMotivationalPhrase(phrase = pickMotivationalPhrase()) {
   if (elements.dailyMotivationText) elements.dailyMotivationText.textContent = phrase;
 }
 
-function saveData() {
+function saveData(options = {}) {
   try {
+    if (!options.skipSyncTimestamp) markLocalUpdated();
     state.dailyGoals?.forEach(normalizeGoalTimeFields);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     localStorage.setItem(SIMULADOS_STORAGE_KEY, JSON.stringify(state.simulados || []));
@@ -354,6 +361,58 @@ function saveData() {
     alert("Não foi possível salvar os dados. Verifique o espaço disponível do navegador e exporte um backup.");
   }
 }
+
+function readSyncMeta() { return readJSONStorage(SYNC_META_STORAGE_KEY, { connected: false, lastLocalUpdateAt: "", lastSyncAt: "", remoteUpdatedAt: "", remoteDeviceName: "", error: "" }); }
+function writeSyncMeta(meta) { localStorage.setItem(SYNC_META_STORAGE_KEY, JSON.stringify({ ...readSyncMeta(), ...meta })); }
+function markLocalUpdated(date = new Date().toISOString()) { writeSyncMeta({ lastLocalUpdateAt: date }); }
+function getDeviceId() { let id = localStorage.getItem(DEVICE_ID_STORAGE_KEY); if (!id) { id = createId(); localStorage.setItem(DEVICE_ID_STORAGE_KEY, id); } return id; }
+function getDeviceName() { const ua = navigator.userAgent || ""; const kind = /Mobi|Android|iPhone/i.test(ua) ? "Celular" : (/iPad|Tablet/i.test(ua) ? "Tablet" : "PC"); return `${kind} / ${navigator.platform || "navegador"}`; }
+function isGoogleClientConfigured() { return GOOGLE_CLIENT_ID && GOOGLE_CLIENT_ID !== "COLOCAR_CLIENT_ID_AQUI"; }
+function renderSyncStatus(message = "") {
+  if (!elements.syncStatus) return;
+  const meta = readSyncMeta();
+  const configured = isGoogleClientConfigured();
+  const rows = [
+    ["Status", meta.connected ? "conectado" : "não conectado"],
+    ["Última sincronização local", meta.lastSyncAt ? new Date(meta.lastSyncAt).toLocaleString("pt-BR") : "Nunca"],
+    ["Última versão na nuvem", meta.remoteUpdatedAt ? new Date(meta.remoteUpdatedAt).toLocaleString("pt-BR") : "Desconhecida"],
+    ["Dispositivo de origem", meta.remoteDeviceName || "Desconhecido"],
+    ["Dispositivo atual", getDeviceName()]
+  ];
+  const notice = !configured ? "Sincronização Google Drive ainda não configurada." : (message || meta.error || "Pronto.");
+  elements.syncStatus.innerHTML = `<div class="sync-status-grid">${rows.map(([label, value]) => `<article><span>${escapeHTML(label)}</span><strong>${escapeHTML(value)}</strong></article>`).join("")}</div><p class="sync-message ${meta.error || !configured ? "sync-error" : "sync-success"}">${escapeHTML(notice)}</p>`;
+}
+function syncErrorMessage(error, fallback) {
+  const msg = String(error?.message || error || "");
+  if (!navigator.onLine) return "Sem internet. Verifique a conexão e tente novamente.";
+  if (/popup|cancel|closed|denied|access_denied/i.test(msg)) return "Login cancelado ou permissão negada.";
+  if (/401|token|Unauthorized/i.test(msg)) return "Token expirado. Clique novamente para autorizar o Google Drive.";
+  return fallback || msg || "Erro de sincronização.";
+}
+async function getAccessToken() {
+  if (!isGoogleClientConfigured()) throw new Error("Google Client ID ausente");
+  if (!window.google?.accounts?.oauth2) throw new Error("Google Identity Services não carregou. Verifique a conexão.");
+  return new Promise((resolve, reject) => {
+    const client = google.accounts.oauth2.initTokenClient({ client_id: GOOGLE_CLIENT_ID, scope: GOOGLE_DRIVE_SCOPE, callback: (response) => response?.access_token ? resolve(response.access_token) : reject(new Error(response?.error || "login cancelado")) });
+    client.requestAccessToken({ prompt: "consent" });
+  });
+}
+async function driveFetch(url, options = {}) { const accessToken = await getAccessToken(); const response = await fetch(url, { ...options, headers: { ...(options.headers || {}), Authorization: `Bearer ${accessToken}` } }); if (!response.ok) throw new Error(`${response.status} ${await response.text()}`); return response; }
+async function findSyncFile() { const q = encodeURIComponent(`name='${GOOGLE_SYNC_FILE_NAME}' and trashed=false`); const r = await driveFetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id,name,modifiedTime)`); return (await r.json()).files?.[0] || null; }
+function multipartBody(payload, fileId) { const boundary = "metas_estudo_sync_boundary"; const metadata = { name: GOOGLE_SYNC_FILE_NAME, mimeType: "application/json", ...(fileId ? {} : { parents: ["appDataFolder"] }) }; return { boundary, body: `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(payload, null, 2)}\r\n--${boundary}--` }; }
+async function createSyncFile(payload) { const { boundary, body } = multipartBody(payload); const r = await driveFetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,modifiedTime", { method: "POST", headers: { "Content-Type": `multipart/related; boundary=${boundary}` }, body }); return r.json(); }
+async function updateSyncFile(fileId, payload) { const { boundary, body } = multipartBody(payload, fileId); const r = await driveFetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart&fields=id,modifiedTime`, { method: "PATCH", headers: { "Content-Type": `multipart/related; boundary=${boundary}` }, body }); return r.json(); }
+async function downloadSyncFile(fileId) { return (await driveFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`)).json(); }
+function makeSyncPayload() { const updatedAt = new Date().toISOString(); markLocalUpdated(updatedAt); return { app: "metas-estudo", schemaVersion: 1, updatedAt, deviceId: getDeviceId(), deviceName: getDeviceName(), state: makeBackupPayload().data }; }
+async function uploadSyncPayload(payload = makeSyncPayload()) { const file = await findSyncFile(); const saved = file ? await updateSyncFile(file.id, payload) : await createSyncFile(payload); writeSyncMeta({ connected: true, lastSyncAt: new Date().toISOString(), remoteUpdatedAt: payload.updatedAt, remoteDeviceName: payload.deviceName, error: "" }); renderSyncStatus("Dados enviados para a nuvem com sucesso."); return saved; }
+async function pullSyncPayload() { const file = await findSyncFile(); if (!file) throw new Error("arquivo remoto inexistente"); const payload = await downloadSyncFile(file.id); writeSyncMeta({ connected: true, remoteUpdatedAt: payload.updatedAt || file.modifiedTime || "", remoteDeviceName: payload.deviceName || "", error: "" }); renderSyncStatus("Dados da nuvem encontrados."); return payload; }
+function applyCloudPayload(payload) { if (payload?.app !== "metas-estudo" || !payload.state) throw new Error("Arquivo remoto inválido."); const safetyBackup = JSON.stringify(makeBackupPayload()); clearProjectLocalStorage(); localStorage.setItem("metasEstudoBackupAntesDaSincronizacao", safetyBackup); replaceState(payload.state); saveData({ skipSyncTimestamp: true }); writeSyncMeta({ connected: true, lastLocalUpdateAt: payload.updatedAt, lastSyncAt: new Date().toISOString(), remoteUpdatedAt: payload.updatedAt, remoteDeviceName: payload.deviceName || "", error: "" }); render(); showView("backup"); renderSyncStatus("Dados da nuvem aplicados com backup local de segurança."); }
+async function syncNow() { try { const remote = await pullSyncPayload(); const localDate = new Date(readSyncMeta().lastLocalUpdateAt || 0); const remoteDate = new Date(remote.updatedAt || 0); if (remoteDate > localDate) { if (confirm("Existe versão mais nova na nuvem. Deseja baixar para este dispositivo?")) applyCloudPayload(remote); else renderSyncStatus("Sincronização cancelada pelo usuário."); } else if (localDate > remoteDate) { if (confirm("Este dispositivo tem versão mais nova. Deseja enviar para a nuvem?")) await uploadSyncPayload(makeSyncPayload()); else renderSyncStatus("Sincronização cancelada pelo usuário."); } else renderSyncStatus("Tudo sincronizado."); } catch (error) { const message = syncErrorMessage(error, error.message === "arquivo remoto inexistente" ? "Arquivo remoto inexistente." : "Erro ao sincronizar."); writeSyncMeta({ error: message }); renderSyncStatus(message); } }
+async function forcePullFromCloud() { if (!confirm("Baixar dados da nuvem e substituir os dados deste dispositivo? Um backup local automático será criado antes.")) return; try { applyCloudPayload(await pullSyncPayload()); } catch (error) { const message = syncErrorMessage(error, "Erro ao baixar."); writeSyncMeta({ error: message }); renderSyncStatus(message); } }
+async function forcePushToCloud() { if (!confirm("Enviar o estado atual deste dispositivo para a nuvem?")) return; try { await uploadSyncPayload(makeSyncPayload()); } catch (error) { const message = syncErrorMessage(error, "Erro ao enviar."); writeSyncMeta({ error: message }); renderSyncStatus(message); } }
+async function connectGoogleDrive() { try { await getAccessToken(); writeSyncMeta({ connected: true, error: "" }); renderSyncStatus("Google Drive conectado."); } catch (error) { const message = syncErrorMessage(error, "Google Client ID ausente."); writeSyncMeta({ connected: false, error: message }); renderSyncStatus(message); } }
+function disconnectGoogleDrive() { writeSyncMeta({ connected: false, error: "" }); renderSyncStatus("Google Drive desconectado neste navegador."); }
+
 function showStorageWarningIfNeeded() {
   if (!window.__METAS_STORAGE_ERROR__) return;
   const warning = document.createElement("div");
@@ -370,7 +429,7 @@ function showStorageWarningIfNeeded() {
 }
 function getProjectStorageKeys() {
   const known = [STORAGE_KEY, SIMULADOS_STORAGE_KEY, CADERNO_ERROS_STORAGE_KEY, "cadernoErros", "syllabusItems", "editalVerticalizado", "edital_verticalizado", "assuntosAgendaveis", "metasDoDia", "dailyGoals"];
-  return Object.keys(localStorage).filter((key) => known.includes(key) || key.toLowerCase().includes("metas") || key.toLowerCase().includes("edital"));
+  return Object.keys(localStorage).filter((key) => ![DEVICE_ID_STORAGE_KEY, SYNC_META_STORAGE_KEY, "metasEstudoBackupAntesDaSincronizacao"].includes(key) && (known.includes(key) || key.toLowerCase().includes("metas") || key.toLowerCase().includes("edital")));
 }
 function backupCounts(source = state) {
   return {
@@ -1765,6 +1824,11 @@ elements.clearImportedSyllabus.addEventListener("click", () => {
 
 elements.clearData.addEventListener("click", () => { if (confirm("Tem certeza que deseja apagar todos os dados salvos neste navegador?")) { clearProjectLocalStorage(); replaceState({}); saveData(); render(); } });
 elements.exportBackup?.addEventListener("click", exportBackup);
+elements.connectGoogleDrive?.addEventListener("click", connectGoogleDrive);
+elements.syncNowButton?.addEventListener("click", syncNow);
+elements.pushToCloud?.addEventListener("click", forcePushToCloud);
+elements.pullFromCloud?.addEventListener("click", forcePullFromCloud);
+elements.disconnectGoogleDrive?.addEventListener("click", disconnectGoogleDrive);
 elements.selectBackupFile?.addEventListener("click", () => elements.backupFileInput.click());
 elements.backupFileInput?.addEventListener("change", () => { const file = elements.backupFileInput.files[0]; if (file) handleBackupFile(file); elements.backupFileInput.value = ""; });
 elements.resetSolvedQuestions?.addEventListener("click", resetSolvedQuestionsFromBackup);
@@ -2227,7 +2291,7 @@ function renderView(viewId) {
     "revisao-inteligente": renderSmartReviewStandalone,
     revisoes: () => { renderReviews(); renderSmartReviewsDashboard(); renderAlerts(); },
     historico: renderHistory,
-    backup: renderBackupSummary,
+    backup: () => { renderBackupSummary(); renderSyncStatus(); },
     planejamento: renderPlanning,
     progresso: renderProgressPanel,
     "como-usar": () => {}

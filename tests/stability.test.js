@@ -35,9 +35,9 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
   }
 });
 
-test('arquivos carregados usam a versão da correção de rota', () => {
-  assert.match(html, /style\.css\?v=20260708-fix-visual/);
-  assert.match(html, /script\.js\?v=20260701-rollback-stable/);
+test('arquivos carregados usam a versão da sincronização Google Drive', () => {
+  assert.match(html, /style\.css\?v=20260709-sync-drive/);
+  assert.match(html, /script\.js\?v=20260709-sync-drive/);
   assert.match(html, /Versão: 20260701-rollback-stable/);
 });
 
@@ -201,7 +201,7 @@ test('rotas Backup e Caderno de Erros não compartilham destinos', () => {
   assert.match(script, /panel\.hidden = true/);
   assert.match(script, /document\.getElementById\(`view-\$\{target\}`\)/);
   assert.match(script, /console\.log\("\[ROUTE\]", \{ clicked: link\.textContent\.trim\(\), target \}\)/);
-  assert.match(script, /backup: renderBackupSummary/);
+  assert.match(script, /backup: \(\) => \{ renderBackupSummary\(\); renderSyncStatus\(\); \}/);
   assert.match(script, /"caderno-erros": qbRenderErrorNotebook/);
 });
 
@@ -227,7 +227,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-cache-20260701-rollback-stable/);
+  assert.match(sw, /metas-estudo-20260709-sync-drive/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);

@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260708-fix-visual" />
+  <link rel="stylesheet" href="style.css?v=20260709-sync-drive" />
 </head>
 <body>
   <header class="hero">
@@ -650,6 +650,19 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
         <article class="stat-card"><span>Último backup exportado</span><strong id="lastBackupDate" class="stat-value-text">Nunca exportado</strong></article>
         <article class="stat-card"><span>Chaves locais do projeto</span><strong id="backupStorageKeys">0</strong></article>
       </div>
+
+      <article class="sync-card" aria-labelledby="sync-title">
+        <div class="section-heading"><p class="eyebrow">Google Drive</p><h2 id="sync-title">☁️ SINCRONIZAÇÃO</h2></div>
+        <p class="notice">A sincronização é uma camada adicional: o site continua salvando tudo neste navegador e mantém o backup manual abaixo.</p>
+        <div class="sync-actions actions">
+          <button id="connectGoogleDrive" type="button">Conectar Google Drive</button>
+          <button id="syncNow" class="secondary-button" type="button">Sincronizar agora</button>
+          <button id="pushToCloud" class="secondary-button" type="button">Enviar este dispositivo para a nuvem</button>
+          <button id="pullFromCloud" class="secondary-button" type="button">Baixar dados da nuvem</button>
+          <button id="disconnectGoogleDrive" class="danger" type="button">Desconectar</button>
+        </div>
+        <div id="syncStatus" class="sync-status" aria-live="polite"></div>
+      </article>
       <h3>Resumo dos dados salvos</h3>
       <div id="backupSummary" class="stats-grid compact backup-summary" aria-live="polite"></div>
       <div id="backupPreview" class="backup-preview empty-message" aria-live="polite"></div>
@@ -697,6 +710,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
   </aside>
 
   <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260701-rollback-stable</p></footer>
-  <script src="script.js?v=20260701-rollback-stable"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="script.js?v=20260709-sync-drive"></script>
 </body>
 </html>
