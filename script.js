@@ -594,12 +594,25 @@ function handleCloudConflict(remote, contextMessage = "Existe versão mais nova 
   if (confirm(contextMessage)) applyCloudPayload(remote);
   else renderSyncStatus("Atualização da nuvem cancelada pelo usuário.");
 }
+function hasLocalSyncPending(meta = readSyncMeta()) { return Boolean(meta.pendingSync || hasPendingLocalChanges(meta)); }
+async function resolvePendingLocalSyncBeforeCloudDownload(meta = readSyncMeta()) {
+  const wantsUpload = confirm("Existem alterações locais pendentes. Deseja enviar este dispositivo para a nuvem ou baixar a versão da nuvem?\n\nOK = enviar este dispositivo para a nuvem.\nCancelar = escolher baixar a versão da nuvem.");
+  if (wantsUpload) {
+    await uploadSyncPayload(makeSyncPayload(), { statusMessage: "Alterações locais pendentes enviadas para a nuvem." });
+    writeSyncMeta({ pendingSync: false, pendingSyncReason: "", lastAutoSyncAt: new Date().toISOString(), lastAutoSyncReason: meta.pendingSyncReason || "alteração", lastAutoSyncError: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", error: "" });
+    renderSyncStatus("Alterações locais pendentes enviadas para a nuvem.");
+    return true;
+  }
+  const wantsDownload = confirm("Baixar a versão da nuvem para este dispositivo? Um backup local automático será criado antes.");
+  if (!wantsDownload) renderSyncStatus("Alterações locais pendentes mantidas neste dispositivo.");
+  return false;
+}
 let cloudAutoCheckRunning = false;
 let lastCloudAutoCheckAt = 0;
 async function checkCloudForNewerVersion(context = "open") {
   const meta = readSyncMeta();
   if (!meta.connected || !hasValidGoogleDriveAccessToken()) {
-    if (!meta.connected || meta.error || context === "open") renderSyncStatus("Conecte ao Google Drive para verificar atualizações da nuvem.");
+    if (context === "open") renderSyncStatus("Conecte ao Google Drive para verificar atualizações da nuvem.");
     return;
   }
   const now = Date.now();
@@ -607,11 +620,18 @@ async function checkCloudForNewerVersion(context = "open") {
   cloudAutoCheckRunning = true;
   lastCloudAutoCheckAt = now;
   try {
+    const hadPendingLocalChanges = hasLocalSyncPending(meta);
     const remote = await pullSyncPayload();
     const cloudDataUpdatedAt = syncPayloadUpdatedAt(remote);
     const remoteDate = new Date(cloudDataUpdatedAt || 0);
     const localDate = new Date(localDataUpdatedAt(readSyncMeta()) || 0);
+    if (hadPendingLocalChanges && remote.deviceId !== getDeviceId()) {
+      const uploadedLocalVersion = await resolvePendingLocalSyncBeforeCloudDownload(meta);
+      if (!uploadedLocalVersion) handleCloudConflict(remote, "Existe versão mais nova na nuvem. Deseja atualizar este dispositivo?");
+      return;
+    }
     if (remoteDate > localDate && remote.deviceId !== getDeviceId()) handleCloudConflict(remote, "Existe versão mais nova na nuvem. Deseja atualizar este dispositivo?");
+    else renderSyncStatus("Google Drive conectado e pronto para sincronizar.");
   } catch (error) {
     const message = syncErrorMessage(error, "Não foi possível verificar versão nova na nuvem.");
     writeSyncMeta({ error: message });
@@ -620,6 +640,7 @@ async function checkCloudForNewerVersion(context = "open") {
     cloudAutoCheckRunning = false;
   }
 }
+async function checkCloudForUpdatesAfterAuth() { return checkCloudForNewerVersion("after-auth"); }
 async function forcePullFromCloud() { if (!confirm("Baixar dados da nuvem e substituir os dados deste dispositivo? Um backup local automático será criado antes.")) return; try { applyCloudPayload(await pullSyncPayload()); } catch (error) { const message = syncErrorMessage(error, "Erro ao baixar."); writeSyncMeta({ error: message }); renderSyncStatus(message); } }
 async function forcePushToCloud() { if (!confirm("Enviar o estado atual deste dispositivo para a nuvem?")) return; try { await uploadSyncPayload(makeSyncPayload()); } catch (error) { const message = syncErrorMessage(error, "Erro ao enviar."); writeSyncMeta({ error: message }); renderSyncStatus(message); } }
 async function sendPendingSyncAfterConnect() {
@@ -652,8 +673,8 @@ async function connectGoogleDrive() {
   try {
     await getAccessToken({ prompt: hasValidGoogleDriveAccessToken() ? "" : "consent" });
     writeSyncMeta({ connected: true, error: "" });
-    const sentPending = await sendPendingSyncAfterConnect();
-    if (!sentPending) renderSyncStatus("Google Drive conectado.");
+    renderSyncStatus("Google Drive conectado e pronto para sincronizar.");
+    await checkCloudForUpdatesAfterAuth();
   } catch (error) { const message = syncErrorMessage(error, "Erro ao conectar o Google Drive."); writeSyncMeta({ connected: false, error: message }); renderSyncStatus(message); }
 }
 function disconnectGoogleDrive() { clearGoogleDriveAccessToken(); writeSyncMeta({ connected: false, error: "" }); renderSyncStatus("Google Drive desconectado neste navegador."); }
