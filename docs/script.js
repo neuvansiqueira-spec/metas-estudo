@@ -72,7 +72,7 @@ function normalizePlanningState(planning = {}) {
     forecasts: { ...(planning.forecasts || {}) }
   };
 }
-const defaultTimerPreferences = { visualAlerts: true, sound: false, vibration: true, browserNotifications: false };
+const defaultTimerPreferences = { visualAlerts: true, sound: false, vibration: true, browserNotifications: false, audioUnlocked: false };
 const defaultState = { subjects: [], studies: [], edital: { pdf: null }, syllabusItems: [], schedulableSettings: {}, dailyGoals: [], questionLogs: [], smartReviews: [], simulados: [], planning: cloneData(defaultPlanning), settings: { defaultMockGoal: 92, timerPreferences: cloneData(defaultTimerPreferences) }, materials: [], questionBank: [], questionBankSessions: [], questionErrorNotebook: [], disciplineWeights: {}, monthlyGoals: {}, timerSession: null, factoryItems: [] };
 function readJSONStorage(key, fallback) {
   try {
@@ -235,8 +235,12 @@ let floatingTimer = {
   paused: false,
   intervalId: null,
   completed: false,
-  warnedFive: false,
-  warnedOne: false,
+  warnedFiveMinutes: false,
+  warnedOneMinute: false,
+  completionAlertShown: false,
+  currentAlertMessage: "",
+  audioMessage: "",
+  vibrationMessage: "",
   completionDismissed: false,
   mode: "countdown"
 };
@@ -269,19 +273,39 @@ function stopFloatingTimerInterval() {
 function timerPlannedSeconds(goal = floatingTimerGoal()) { return floatingTimer.mode === "free" ? Math.max(0, Math.round((Number(floatingTimer.sessionGoalMinutes) || 0) * 60)) : Math.max(0, Math.round((Number(goal?.minutes) || 0) * 60)); }
 function timerRemainingSeconds(goal = floatingTimerGoal()) { const planned = timerPlannedSeconds(goal); return planned ? Math.max(0, planned - currentTimerSeconds()) : 0; }
 function timerProgressPercent(goal = floatingTimerGoal()) { const planned = timerPlannedSeconds(goal); return planned ? Math.min(100, Math.round((currentTimerSeconds() / planned) * 100)) : 0; }
-function timerAlertMessage(goal = floatingTimerGoal()) {
-  if (!state.settings?.timerPreferences?.visualAlerts || !timerPlannedSeconds(goal)) return "";
+function updateTimerWarningFlags(goal = floatingTimerGoal()) {
+  const planned = timerPlannedSeconds(goal);
+  if (!planned || floatingTimer.completed) return;
   const remaining = timerRemainingSeconds(goal);
-  if (remaining <= 0) return "✅ Tempo concluído";
-  if (remaining <= 60) return "⚠️ Faltam 1 minuto";
-  if (remaining <= 300) return "⏳ Faltam 5 minutos";
-  return "";
+  if (planned > 300 && remaining <= 300 && remaining > 60 && !floatingTimer.warnedFiveMinutes) {
+    floatingTimer.warnedFiveMinutes = true;
+    floatingTimer.currentAlertMessage = "⏳ Faltam 5 minutos";
+    persistFloatingTimerSession();
+  }
+  if (planned > 60 && remaining <= 60 && remaining > 0 && !floatingTimer.warnedOneMinute) {
+    floatingTimer.warnedOneMinute = true;
+    floatingTimer.currentAlertMessage = "⚠️ Falta 1 minuto";
+    persistFloatingTimerSession();
+  }
 }
-function playTimerBeep() {
-  if (!state.settings?.timerPreferences?.sound) return;
+function timerAlertMessage(goal = floatingTimerGoal()) {
+  if (!timerPlannedSeconds(goal)) return "";
+  if (timerRemainingSeconds(goal) <= 0) return "✅ Tempo concluído";
+  return floatingTimer.currentAlertMessage || "";
+}
+let timerAudioContext = null;
+async function getTimerAudioContext() {
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
-  if (!AudioCtx) return;
-  const ctx = new AudioCtx();
+  if (!AudioCtx) return null;
+  timerAudioContext ||= new AudioCtx();
+  if (timerAudioContext.state === "suspended") await timerAudioContext.resume();
+  return timerAudioContext;
+}
+async function playTimerBeep(force = false) {
+  if (!force && !state.settings?.timerPreferences?.sound) return true;
+  const ctx = await getTimerAudioContext();
+  if (!ctx) return false;
+  if (ctx.state !== "running") return false;
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.type = "sine"; osc.frequency.value = 880;
@@ -289,18 +313,42 @@ function playTimerBeep() {
   gain.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.02);
   gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
   osc.connect(gain); gain.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.38);
+  return true;
 }
 function notifyTimerFinished(goal = floatingTimerGoal()) {
-  if (state.settings?.timerPreferences?.vibration && navigator.vibrate) navigator.vibrate([180, 80, 180]);
-  if (state.settings?.timerPreferences?.browserNotifications && "Notification" in window && Notification.permission === "granted") new Notification("Tempo de estudo concluído", { body: `${goal?.discipline || "Meta"} — ${goal?.subject || "Assunto"}` });
+  floatingTimer.vibrationMessage = "";
+  if (state.settings?.timerPreferences?.vibration) {
+    if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
+    else floatingTimer.vibrationMessage = "Vibração não suportada neste navegador";
+  }
+  if (state.settings?.timerPreferences?.browserNotifications && "Notification" in window && Notification.permission === "granted") new Notification("Tempo de estudo concluído.", { body: `${goal?.discipline || "Meta"} — ${goal?.subject || "Assunto"}` });
 }
-function completeFloatingTimerIfNeeded() {
+async function completeFloatingTimerIfNeeded() {
   const goal = floatingTimerGoal();
-  if (!goal || floatingTimer.completed || !timerPlannedSeconds(goal) || floatingTimer.completionDismissed || currentTimerSeconds() < timerPlannedSeconds(goal)) return;
+  updateTimerWarningFlags(goal);
+  if (!goal || floatingTimer.completed || !timerPlannedSeconds(goal) || currentTimerSeconds() < timerPlannedSeconds(goal)) return;
   floatingTimer.completed = true;
-  playTimerBeep();
+  floatingTimer.completionAlertShown = true;
+  floatingTimer.currentAlertMessage = "✅ Tempo concluído";
+  if (state.settings?.timerPreferences?.sound) {
+    const played = await playTimerBeep();
+    floatingTimer.audioMessage = played ? "" : "Clique em Testar som uma vez para liberar o áudio neste navegador.";
+  }
   notifyTimerFinished(goal);
+  persistFloatingTimerSession();
   renderFloatingTimer();
+}
+
+async function testTimerSound() {
+  state.settings ||= {};
+  state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences);
+  const played = await playTimerBeep(true);
+  state.settings.timerPreferences.sound = played;
+  state.settings.timerPreferences.audioUnlocked = played;
+  floatingTimer.audioMessage = played ? "Som ativado para este navegador." : "Clique em Testar som uma vez para liberar o áudio neste navegador.";
+  saveTimerPreferences();
+  renderFloatingTimer();
+  if (!played) alert(floatingTimer.audioMessage);
 }
 async function enableTimerNotifications(input) {
   if (!("Notification" in window)) { alert("Este navegador não oferece notificações."); return false; }
@@ -308,7 +356,7 @@ async function enableTimerNotifications(input) {
   const enabled = permission === "granted";
   state.settings.timerPreferences.browserNotifications = enabled;
   if (input) input.checked = enabled;
-  if (!enabled) alert("Notificações não foram permitidas pelo navegador.");
+  if (!enabled) alert("Notificações bloqueadas neste navegador.");
   return enabled;
 }
 
@@ -327,11 +375,16 @@ function renderFloatingTimer() {
   elements.timerTime.textContent = floatingTimer.mode === "countdown" && planned ? formatTimerSeconds(timerRemainingSeconds(goal)) : formatTimerSeconds(currentTimerSeconds());
   elements.timerProgressBar.style.width = `${progress}%`;
   elements.timerProgressText.textContent = planned ? `${progress}% do tempo decorrido` : "Sem tempo planejado";
+  updateTimerWarningFlags(goal);
   const alertMessage = timerAlertMessage(goal);
   elements.timerAlert.hidden = !alertMessage;
   elements.timerAlert.textContent = alertMessage;
   elements.timerAlert.className = `timer-alert ${timerRemainingSeconds(goal) <= 60 ? "strong" : ""}`;
-  elements.timerCompletion.hidden = !floatingTimer.completed || floatingTimer.completionDismissed;
+  if (elements.timerCompletion) {
+    elements.timerCompletion.hidden = !floatingTimer.completionAlertShown || floatingTimer.completionDismissed;
+    const details = elements.timerCompletion.querySelector("[data-timer-completion-details]");
+    if (details) details.innerHTML = `<div>Tempo realizado: <strong>${formatTimerSeconds(currentTimerSeconds())}</strong></div><div>Disciplina: <strong>${escapeHTML(goal.discipline || "Sem disciplina")}</strong></div><div>Assunto: <strong>${escapeHTML(goal.subject || "Assunto")}</strong></div>${floatingTimer.audioMessage ? `<p class="item-meta">${escapeHTML(floatingTimer.audioMessage)}</p>` : ""}${floatingTimer.vibrationMessage ? `<p class="item-meta">${escapeHTML(floatingTimer.vibrationMessage)}</p>` : ""}`;
+  }
   elements.timerPauseResume.textContent = floatingTimer.paused ? "Continuar" : "Pausar";
   elements.timerSettings?.querySelectorAll("input[data-timer-pref]").forEach((input) => { input.checked = Boolean(state.settings?.timerPreferences?.[input.dataset.timerPref]); });
   completeFloatingTimerIfNeeded();
@@ -358,7 +411,7 @@ function startFloatingTimer(goal, kind = "study") {
   state.settings.timerMode = selectedMode;
   saveData();
   autoSyncAfterSave("timer-settings");
-  floatingTimer = { goalId: goal.id, kind, elapsedSeconds: 0, startedAt: Date.now(), paused: false, intervalId: null, completed: false, warnedFive: false, warnedOne: false, completionDismissed: false, mode: selectedMode, sessionGoalMinutes };
+  floatingTimer = { goalId: goal.id, kind, elapsedSeconds: 0, startedAt: Date.now(), paused: false, intervalId: null, completed: false, warnedFiveMinutes: false, warnedOneMinute: false, completionAlertShown: false, currentAlertMessage: "", audioMessage: "", vibrationMessage: "", completionDismissed: false, mode: selectedMode, sessionGoalMinutes };
   floatingTimer.intervalId = setInterval(renderFloatingTimer, 1000);
   persistFloatingTimerSession();
   renderFloatingTimer();
@@ -385,7 +438,7 @@ function resetFloatingTimer() {
 }
 function closeFloatingTimer() {
   stopFloatingTimerInterval();
-  floatingTimer = { goalId: null, kind: null, elapsedSeconds: 0, startedAt: null, paused: false, intervalId: null, completed: false, warnedFive: false, warnedOne: false, completionDismissed: false, mode: state.settings?.timerMode || "countdown" };
+  floatingTimer = { goalId: null, kind: null, elapsedSeconds: 0, startedAt: null, paused: false, intervalId: null, completed: false, warnedFiveMinutes: false, warnedOneMinute: false, completionAlertShown: false, currentAlertMessage: "", audioMessage: "", vibrationMessage: "", completionDismissed: false, mode: state.settings?.timerMode || "countdown" };
   state.timerSession = null;
   saveData();
   renderFloatingTimer();
@@ -2571,15 +2624,16 @@ elements.floatingTimer?.addEventListener("click", (event) => {
   if (action === "save") saveFloatingTimerTime();
   if (action === "reset") resetFloatingTimer();
   if (action === "close") closeFloatingTimer();
-  if (action === "continue") { floatingTimer.completionDismissed = true; renderFloatingTimer(); }
+  if (action === "continue") { floatingTimer.completionDismissed = true; floatingTimer.completed = false; floatingTimer.elapsedSeconds = currentTimerSeconds(); floatingTimer.startedAt = Date.now(); renderFloatingTimer(); }
+  if (action === "test-sound") testTimerSound();
+  if (action === "notifications") enableTimerNotifications();
 });
 document.addEventListener("change", async (event) => {
   const input = event.target.closest("input[data-timer-pref]");
   if (!input) return;
   state.settings ||= {}; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences);
   const key = input.dataset.timerPref;
-  if (key === "browserNotifications" && input.checked) await enableTimerNotifications(input);
-  else state.settings.timerPreferences[key] = input.checked;
+  state.settings.timerPreferences[key] = input.checked;
   saveTimerPreferences();
 });
 elements.addManualTime?.addEventListener("click", addManualTime);

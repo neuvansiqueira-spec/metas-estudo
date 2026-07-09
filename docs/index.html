@@ -736,6 +736,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
       <div id="timerAlert" class="timer-alert" hidden></div>
       <section id="timerCompletion" class="timer-completion" aria-live="assertive" hidden>
         <strong>✅ Tempo concluído</strong>
+        <div data-timer-completion-details class="timer-completion-details"></div>
         <div class="floating-timer-actions">
           <button type="button" data-timer-action="save">Salvar tempo</button>
           <button type="button" class="secondary-button" data-timer-action="continue">Continuar estudando</button>
@@ -747,8 +748,10 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
       <summary>Configurações do cronômetro</summary>
       <label><input type="checkbox" data-timer-pref="visualAlerts" checked /> Alerta visual</label>
       <label><input type="checkbox" data-timer-pref="sound" /> Som ao terminar</label>
+      <button type="button" class="secondary-button" data-timer-action="test-sound">Testar som</button>
       <label><input type="checkbox" data-timer-pref="vibration" checked /> Vibração</label>
-      <label><input type="checkbox" data-timer-pref="browserNotifications" /> Permitir notificações do cronômetro</label>
+      <label><input type="checkbox" data-timer-pref="browserNotifications" /> Enviar notificação ao concluir</label>
+      <button type="button" class="secondary-button" data-timer-action="notifications">Ativar notificações</button>
     </details>
     <div class="floating-timer-actions">
       <button id="timerPauseResume" type="button" data-timer-action="pause">Pausar</button>

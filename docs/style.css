@@ -2679,13 +2679,21 @@ th {
   box-shadow: 0 10px 24px rgba(220, 38, 38, .16);
 }
 .timer-completion {
-  padding: 12px;
+  position: fixed;
+  z-index: 80;
+  left: 50%;
+  top: 50%;
+  width: min(420px, calc(100vw - 32px));
+  transform: translate(-50%, -50%);
+  padding: 18px;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, .28);
   border: 1px solid #86efac;
   border-radius: 18px;
   background: #f0fdf4;
   color: #14532d;
 }
-.timer-completion > strong { display: block; margin-bottom: 10px; font-size: 1.05rem; }
+.timer-completion > strong { display: block; margin-bottom: 10px; font-size: 1.2rem; }
+.timer-completion-details { display: grid; gap: 6px; margin-bottom: 12px; color: #166534; }
 .timer-settings {
   margin: 10px 0 12px;
   padding: 10px 12px;
@@ -2696,6 +2704,7 @@ th {
 .timer-settings summary { cursor: pointer; font-weight: 900; color: #1e3a8a; }
 .timer-settings label { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: .9rem; color: #334155; }
 .timer-settings input { width: auto; }
+.timer-settings button { width: 100%; margin-top: 8px; }
 .timer-mode-label {
   display: block;
   margin-top: 6px;
