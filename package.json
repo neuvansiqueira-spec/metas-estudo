@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260701-rollback-stable",
+  "version": "20260709-sync-drive",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
