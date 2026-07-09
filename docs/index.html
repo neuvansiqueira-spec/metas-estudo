@@ -700,7 +700,25 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
       <span id="timerSubject" class="floating-timer-subject">-</span>
       <span id="timerKind" class="badge neutral">Estudo</span>
       <strong id="timerTime" class="floating-timer-time">00:00:00</strong>
+      <div class="timer-progress" aria-label="Progresso do cronômetro"><span id="timerProgressBar"></span></div>
+      <small id="timerProgressText" class="item-meta">0% do tempo decorrido</small>
+      <div id="timerAlert" class="timer-alert" hidden></div>
+      <section id="timerCompletion" class="timer-completion" aria-live="assertive" hidden>
+        <strong>✅ Tempo concluído</strong>
+        <div class="floating-timer-actions">
+          <button type="button" data-timer-action="save">Salvar tempo</button>
+          <button type="button" class="secondary-button" data-timer-action="continue">Continuar estudando</button>
+          <button type="button" class="secondary-button" data-timer-action="close">Fechar aviso</button>
+        </div>
+      </section>
     </div>
+    <details id="timerSettings" class="timer-settings">
+      <summary>Configurações do cronômetro</summary>
+      <label><input type="checkbox" data-timer-pref="visualAlerts" checked /> Alerta visual</label>
+      <label><input type="checkbox" data-timer-pref="sound" /> Som ao terminar</label>
+      <label><input type="checkbox" data-timer-pref="vibration" checked /> Vibração</label>
+      <label><input type="checkbox" data-timer-pref="browserNotifications" /> Permitir notificações do cronômetro</label>
+    </details>
     <div class="floating-timer-actions">
       <button id="timerPauseResume" type="button" data-timer-action="pause">Pausar</button>
       <button type="button" data-timer-action="save">Salvar tempo</button>

@@ -8,6 +8,7 @@ const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
+const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const MOTIVATIONAL_PHRASES = [
@@ -71,7 +72,8 @@ function normalizePlanningState(planning = {}) {
     forecasts: { ...(planning.forecasts || {}) }
   };
 }
-const defaultState = { subjects: [], studies: [], edital: { pdf: null }, syllabusItems: [], schedulableSettings: {}, dailyGoals: [], questionLogs: [], smartReviews: [], simulados: [], planning: cloneData(defaultPlanning), settings: { defaultMockGoal: 92 }, materials: [], questionBank: [], questionBankSessions: [], questionErrorNotebook: [], disciplineWeights: {}, monthlyGoals: {} };
+const defaultTimerPreferences = { visualAlerts: true, sound: false, vibration: true, browserNotifications: false };
+const defaultState = { subjects: [], studies: [], edital: { pdf: null }, syllabusItems: [], schedulableSettings: {}, dailyGoals: [], questionLogs: [], smartReviews: [], simulados: [], planning: cloneData(defaultPlanning), settings: { defaultMockGoal: 92, timerPreferences: cloneData(defaultTimerPreferences) }, materials: [], questionBank: [], questionBankSessions: [], questionErrorNotebook: [], disciplineWeights: {}, monthlyGoals: {} };
 function readJSONStorage(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
@@ -110,8 +112,22 @@ state.monthlyGoals ||= {};
 state.planning = normalizePlanningState(state.planning);
 state.settings ||= {};
 state.settings.defaultMockGoal ||= 92;
+state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences);
 state.materials ||= [];
 state.migrations ||= {};
+
+
+function normalizeTimerPreferences(preferences = {}) {
+  const stored = readJSONStorage(TIMER_PREFS_STORAGE_KEY, {});
+  return { ...defaultTimerPreferences, ...stored, ...(preferences || {}) };
+}
+function saveTimerPreferences() {
+  state.settings ||= {};
+  state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences);
+  localStorage.setItem(TIMER_PREFS_STORAGE_KEY, JSON.stringify(state.settings.timerPreferences));
+  saveData();
+  autoSyncAfterSave("timer-preferences");
+}
 
 function cadernoErrosDebug(...args) { if (CADERNO_ERROS_DEBUG) console.debug("[Caderno de Erros]", ...args); }
 function normalizarItemCadernoErros(item = {}) {
@@ -215,7 +231,11 @@ let floatingTimer = {
   elapsedSeconds: 0,
   startedAt: null,
   paused: false,
-  intervalId: null
+  intervalId: null,
+  completed: false,
+  warnedFive: false,
+  warnedOne: false,
+  completionDismissed: false
 };
 
 function timerKindLabel(kind) { return kind === "questions" ? "Questões" : "Estudo"; }
@@ -242,6 +262,53 @@ function stopFloatingTimerInterval() {
   if (floatingTimer.intervalId) clearInterval(floatingTimer.intervalId);
   floatingTimer.intervalId = null;
 }
+
+function timerPlannedSeconds(goal = floatingTimerGoal()) { return Math.max(0, Math.round((Number(goal?.minutes) || 0) * 60)); }
+function timerRemainingSeconds(goal = floatingTimerGoal()) { const planned = timerPlannedSeconds(goal); return planned ? Math.max(0, planned - currentTimerSeconds()) : 0; }
+function timerProgressPercent(goal = floatingTimerGoal()) { const planned = timerPlannedSeconds(goal); return planned ? Math.min(100, Math.round((currentTimerSeconds() / planned) * 100)) : 0; }
+function timerAlertMessage(goal = floatingTimerGoal()) {
+  if (!state.settings?.timerPreferences?.visualAlerts || !timerPlannedSeconds(goal)) return "";
+  const remaining = timerRemainingSeconds(goal);
+  if (remaining <= 0) return "✅ Tempo concluído";
+  if (remaining <= 60) return "⚠️ Faltam 1 minuto";
+  if (remaining <= 300) return "⏳ Faltam 5 minutos";
+  return "";
+}
+function playTimerBeep() {
+  if (!state.settings?.timerPreferences?.sound) return;
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) return;
+  const ctx = new AudioCtx();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = "sine"; osc.frequency.value = 880;
+  gain.gain.setValueAtTime(0.001, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+  osc.connect(gain); gain.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.38);
+}
+function notifyTimerFinished(goal = floatingTimerGoal()) {
+  if (state.settings?.timerPreferences?.vibration && navigator.vibrate) navigator.vibrate([180, 80, 180]);
+  if (state.settings?.timerPreferences?.browserNotifications && "Notification" in window && Notification.permission === "granted") new Notification("Tempo de estudo concluído", { body: `${goal?.discipline || "Meta"} — ${goal?.subject || "Assunto"}` });
+}
+function completeFloatingTimerIfNeeded() {
+  const goal = floatingTimerGoal();
+  if (!goal || floatingTimer.completed || !timerPlannedSeconds(goal) || floatingTimer.completionDismissed || currentTimerSeconds() < timerPlannedSeconds(goal)) return;
+  floatingTimer.completed = true;
+  playTimerBeep();
+  notifyTimerFinished(goal);
+  renderFloatingTimer();
+}
+async function enableTimerNotifications(input) {
+  if (!("Notification" in window)) { alert("Este navegador não oferece notificações."); return false; }
+  const permission = Notification.permission === "default" ? await Notification.requestPermission() : Notification.permission;
+  const enabled = permission === "granted";
+  state.settings.timerPreferences.browserNotifications = enabled;
+  if (input) input.checked = enabled;
+  if (!enabled) alert("Notificações não foram permitidas pelo navegador.");
+  return enabled;
+}
+
 function renderFloatingTimer() {
   if (!elements.floatingTimer) return;
   const goal = floatingTimerGoal();
@@ -251,13 +318,24 @@ function renderFloatingTimer() {
   elements.timerDiscipline.textContent = goal.discipline || "Sem disciplina";
   elements.timerSubject.textContent = goal.subject || "Assunto";
   elements.timerKind.textContent = timerKindLabel(floatingTimer.kind);
-  elements.timerTime.textContent = formatTimerSeconds(currentTimerSeconds());
+  const planned = timerPlannedSeconds(goal);
+  const progress = timerProgressPercent(goal);
+  elements.timerTime.textContent = planned ? formatTimerSeconds(timerRemainingSeconds(goal)) : formatTimerSeconds(currentTimerSeconds());
+  elements.timerProgressBar.style.width = `${progress}%`;
+  elements.timerProgressText.textContent = planned ? `${progress}% do tempo decorrido` : "Sem tempo planejado";
+  const alertMessage = timerAlertMessage(goal);
+  elements.timerAlert.hidden = !alertMessage;
+  elements.timerAlert.textContent = alertMessage;
+  elements.timerAlert.className = `timer-alert ${timerRemainingSeconds(goal) <= 60 ? "strong" : ""}`;
+  elements.timerCompletion.hidden = !floatingTimer.completed || floatingTimer.completionDismissed;
   elements.timerPauseResume.textContent = floatingTimer.paused ? "Continuar" : "Pausar";
+  elements.timerSettings?.querySelectorAll("input[data-timer-pref]").forEach((input) => { input.checked = Boolean(state.settings?.timerPreferences?.[input.dataset.timerPref]); });
+  completeFloatingTimerIfNeeded();
 }
 function startFloatingTimer(goal, kind = "study") {
   if (floatingTimer.goalId && !confirm("Já existe cronômetro em andamento. Deseja substituir?")) return;
   stopFloatingTimerInterval();
-  floatingTimer = { goalId: goal.id, kind, elapsedSeconds: 0, startedAt: Date.now(), paused: false, intervalId: null };
+  floatingTimer = { goalId: goal.id, kind, elapsedSeconds: 0, startedAt: Date.now(), paused: false, intervalId: null, completed: false, warnedFive: false, warnedOne: false, completionDismissed: false };
   floatingTimer.intervalId = setInterval(renderFloatingTimer, 1000);
   renderFloatingTimer();
 }
@@ -281,7 +359,7 @@ function resetFloatingTimer() {
 }
 function closeFloatingTimer() {
   stopFloatingTimerInterval();
-  floatingTimer = { goalId: null, kind: null, elapsedSeconds: 0, startedAt: null, paused: false, intervalId: null };
+  floatingTimer = { goalId: null, kind: null, elapsedSeconds: 0, startedAt: null, paused: false, intervalId: null, completed: false, warnedFive: false, warnedOne: false, completionDismissed: false };
   renderFloatingTimer();
 }
 function saveFloatingTimerTime() {
@@ -328,7 +406,7 @@ const elements = {
   materialsTotal: $("#materialsTotal"), materialDisciplinesTotal: $("#materialDisciplinesTotal"), materialTopicsTotal: $("#materialTopicsTotal"), materialForm: $("#materialForm"), materialEditingId: $("#materialEditingId"), materialTitle: $("#materialTitle"), materialDate: $("#materialDate"), materialDiscipline: $("#materialDiscipline"), materialSubject: $("#materialSubject"), materialType: $("#materialType"), materialOrigin: $("#materialOrigin"), materialLink: $("#materialLink"), materialTags: $("#materialTags"), materialNotes: $("#materialNotes"), materialDisciplineOptions: $("#materialDisciplineOptions"), materialSubjectOptions: $("#materialSubjectOptions"), materialFilterDiscipline: $("#materialFilterDiscipline"), materialFilterSubject: $("#materialFilterSubject"), materialFilterType: $("#materialFilterType"), materialFilterOrigin: $("#materialFilterOrigin"), materialFilterText: $("#materialFilterText"), materialsList: $("#materialsList"), studyMaterial: $("#studyMaterial"),
   qbSyllabusPackages: $("#qbSyllabusPackages"), qbSyllabusVerticalized: $("#qbSyllabusVerticalized"), qbPreviewSection: $("#qbPreviewSection"), qbSyllabusSummary: $("#qbSyllabusSummary"), qbPackagesSummary: $("#qbPackagesSummary"), qbFile: $("#qbFile"), qbNewTraining: $("#qbNewTraining"), qbRedoBlanks: $("#qbRedoBlanks"), qbExportBank: $("#qbExportBank"), qbExportResults: $("#qbExportResults"), qbClearBank: $("#qbClearBank"), qbMessage: $("#qbMessage"), qbStats: $("#qbStats"), qbDiagnostics: $("#qbDiagnostics"), qbTrainingScope: $("#qbTrainingScope"), qbReviewTypeWrapper: $("#qbReviewTypeWrapper"), qbReviewType: $("#qbReviewType"), qbFilterDiscipline: $("#qbFilterDiscipline"), qbFilterSubject: $("#qbFilterSubject"), qbFilterTheme: $("#qbFilterTheme"), qbFilterBoard: $("#qbFilterBoard"), qbFilterYear: $("#qbFilterYear"), qbFilterSearch: $("#qbFilterSearch"), qbTrainingLimit: $("#qbTrainingLimit"), qbShuffleTraining: $("#qbShuffleTraining"), qbStartTraining: $("#qbStartTraining"), qbPreviewFiltered: $("#qbPreviewFiltered"), qbFilteredPreview: $("#qbFilteredPreview"), qbTrainingPanel: $("#qbTrainingPanel"), qbTrainingCounter: $("#qbTrainingCounter"), qbTrainingProgress: $("#qbTrainingProgress"), qbQuestionCard: $("#qbQuestionCard"), qbResultPanel: $("#qbResultPanel"), qbResultSummary: $("#qbResultSummary"), qbResultDetails: $("#qbResultDetails"), qbErrorStats: $("#qbErrorStats"), qbErrorNotebookList: $("#qbErrorNotebookList"), qbErrorFilterDiscipline: $("#qbErrorFilterDiscipline"), qbErrorFilterSubject: $("#qbErrorFilterSubject"), qbErrorFilterStatus: $("#qbErrorFilterStatus"), qbErrorFilterReason: $("#qbErrorFilterReason"), qbStartErrorNotebook: $("#qbStartErrorNotebook"), qbReviewByDiscipline: $("#qbReviewByDiscipline"), qbReviewBySubject: $("#qbReviewBySubject"), qbToggleErrorHistory: $("#qbToggleErrorHistory"), qbErrorHistory: $("#qbErrorHistory"),
   connectGoogleDrive: $("#connectGoogleDrive"), syncNowButton: $("#syncNow"), pushToCloud: $("#pushToCloud"), pullFromCloud: $("#pullFromCloud"), disconnectGoogleDrive: $("#disconnectGoogleDrive"), syncStatus: $("#syncStatus"),
-  floatingTimer: $("#floatingTimer"), timerDiscipline: $("#timerDiscipline"), timerSubject: $("#timerSubject"), timerKind: $("#timerKind"), timerTime: $("#timerTime"), timerPauseResume: $("#timerPauseResume")
+  floatingTimer: $("#floatingTimer"), timerDiscipline: $("#timerDiscipline"), timerSubject: $("#timerSubject"), timerKind: $("#timerKind"), timerTime: $("#timerTime"), timerPauseResume: $("#timerPauseResume"), timerProgressBar: $("#timerProgressBar"), timerProgressText: $("#timerProgressText"), timerAlert: $("#timerAlert"), timerCompletion: $("#timerCompletion"), timerSettings: $("#timerSettings")
 };
 elements.studyDate.value = todayISO();
 elements.goalDate.value = todayISO();
@@ -578,7 +656,7 @@ function renderBackupPreview(payload) {
   return normalized;
 }
 function replaceState(nextState) { Object.keys(state).forEach((key) => delete state[key]); Object.assign(state, { ...cloneData(defaultState), ...(nextState || {}) }); state.edital = { ...defaultState.edital, ...(state.edital || {}) }; state.syllabusItems ||= []; state.schedulableSettings ||= {}; state.dailyGoals ||= []; state.questionLogs ||= []; state.questionBank ||= []; state.questionBankSessions ||= []; state.questionErrorNotebook ||= carregarCadernoErros();
-state.smartReviews ||= []; state.simulados ||= []; state.planning = normalizePlanningState(state.planning); state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.materials ||= []; state.disciplineWeights ||= {}; state.monthlyGoals ||= {}; }
+state.smartReviews ||= []; state.simulados ||= []; state.planning = normalizePlanningState(state.planning); state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences); state.materials ||= []; state.disciplineWeights ||= {}; state.monthlyGoals ||= {}; }
 function mergeArrays(current = [], incoming = [], keyFn = (item) => item?.id || JSON.stringify(item)) { const seen = new Set(current.map(keyFn)); incoming.forEach((item) => { const key = keyFn(item); if (!seen.has(key)) { current.push(item); seen.add(key); } }); return current; }
 function mergeBackupData(data = {}) {
   mergeArrays(state.subjects, data.subjects || [], (item) => canonical(item.name || item.id));
@@ -2282,6 +2360,16 @@ elements.floatingTimer?.addEventListener("click", (event) => {
   if (action === "save") saveFloatingTimerTime();
   if (action === "reset") resetFloatingTimer();
   if (action === "close") closeFloatingTimer();
+  if (action === "continue") { floatingTimer.completionDismissed = true; renderFloatingTimer(); }
+});
+document.addEventListener("change", async (event) => {
+  const input = event.target.closest("input[data-timer-pref]");
+  if (!input) return;
+  state.settings ||= {}; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences);
+  const key = input.dataset.timerPref;
+  if (key === "browserNotifications" && input.checked) await enableTimerNotifications(input);
+  else state.settings.timerPreferences[key] = input.checked;
+  saveTimerPreferences();
 });
 document.addEventListener("click", (event) => { const btn = event.target.closest("button[data-smart-review-action]"); if (!btn) return; saveSmartReviewAction(btn.dataset.id, btn.dataset.smartReviewAction === "done" ? "revisado" : "adiado"); });
 document.addEventListener("change", (event) => { const input = event.target.closest("input[data-smart-review-time]"); if (!input) return; upsertSmartReviewTime(input.dataset.id, input.dataset.smartReviewTime, input.value); });
