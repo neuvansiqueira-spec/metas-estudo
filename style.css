@@ -2696,3 +2696,15 @@ th {
 .timer-settings summary { cursor: pointer; font-weight: 900; color: #1e3a8a; }
 .timer-settings label { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: .9rem; color: #334155; }
 .timer-settings input { width: auto; }
+.timer-mode-label {
+  display: block;
+  margin-top: 6px;
+  color: #334155;
+  font-size: .82rem;
+  font-weight: 800;
+}
+.timer-mode-label select {
+  width: auto;
+  margin-left: 4px;
+  padding: 4px 8px;
+}

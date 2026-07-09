@@ -73,7 +73,7 @@ function normalizePlanningState(planning = {}) {
   };
 }
 const defaultTimerPreferences = { visualAlerts: true, sound: false, vibration: true, browserNotifications: false };
-const defaultState = { subjects: [], studies: [], edital: { pdf: null }, syllabusItems: [], schedulableSettings: {}, dailyGoals: [], questionLogs: [], smartReviews: [], simulados: [], planning: cloneData(defaultPlanning), settings: { defaultMockGoal: 92, timerPreferences: cloneData(defaultTimerPreferences) }, materials: [], questionBank: [], questionBankSessions: [], questionErrorNotebook: [], disciplineWeights: {}, monthlyGoals: {} };
+const defaultState = { subjects: [], studies: [], edital: { pdf: null }, syllabusItems: [], schedulableSettings: {}, dailyGoals: [], questionLogs: [], smartReviews: [], simulados: [], planning: cloneData(defaultPlanning), settings: { defaultMockGoal: 92, timerPreferences: cloneData(defaultTimerPreferences) }, materials: [], questionBank: [], questionBankSessions: [], questionErrorNotebook: [], disciplineWeights: {}, monthlyGoals: {}, timerSession: null };
 function readJSONStorage(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
@@ -126,7 +126,7 @@ function saveTimerPreferences() {
   state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences);
   localStorage.setItem(TIMER_PREFS_STORAGE_KEY, JSON.stringify(state.settings.timerPreferences));
   saveData();
-  autoSyncAfterSave("timer-preferences");
+  autoSyncAfterSave("timer-settings");
 }
 
 function cadernoErrosDebug(...args) { if (CADERNO_ERROS_DEBUG) console.debug("[Caderno de Erros]", ...args); }
@@ -224,6 +224,7 @@ let importDraft = [];
 let pendingBackupPayload = null;
 let syllabusVisibleCount = 30;
 let editingSyllabusId = null;
+let lastTimeAction = null;
 
 let floatingTimer = {
   goalId: null,
@@ -235,7 +236,8 @@ let floatingTimer = {
   completed: false,
   warnedFive: false,
   warnedOne: false,
-  completionDismissed: false
+  completionDismissed: false,
+  mode: "countdown"
 };
 
 function timerKindLabel(kind) { return kind === "questions" ? "Questões" : "Estudo"; }
@@ -263,7 +265,7 @@ function stopFloatingTimerInterval() {
   floatingTimer.intervalId = null;
 }
 
-function timerPlannedSeconds(goal = floatingTimerGoal()) { return Math.max(0, Math.round((Number(goal?.minutes) || 0) * 60)); }
+function timerPlannedSeconds(goal = floatingTimerGoal()) { return floatingTimer.mode === "free" ? Math.max(0, Math.round((Number(floatingTimer.sessionGoalMinutes) || 0) * 60)) : Math.max(0, Math.round((Number(goal?.minutes) || 0) * 60)); }
 function timerRemainingSeconds(goal = floatingTimerGoal()) { const planned = timerPlannedSeconds(goal); return planned ? Math.max(0, planned - currentTimerSeconds()) : 0; }
 function timerProgressPercent(goal = floatingTimerGoal()) { const planned = timerPlannedSeconds(goal); return planned ? Math.min(100, Math.round((currentTimerSeconds() / planned) * 100)) : 0; }
 function timerAlertMessage(goal = floatingTimerGoal()) {
@@ -317,10 +319,11 @@ function renderFloatingTimer() {
   if (!isActive) return;
   elements.timerDiscipline.textContent = goal.discipline || "Sem disciplina";
   elements.timerSubject.textContent = goal.subject || "Assunto";
-  elements.timerKind.textContent = timerKindLabel(floatingTimer.kind);
+  elements.timerKind.textContent = `${floatingTimer.mode === "free" ? "Cronômetro livre" : "Contagem regressiva"} • ${timerKindLabel(floatingTimer.kind)}`;
+  if (elements.timerMode) elements.timerMode.value = floatingTimer.mode || "countdown";
   const planned = timerPlannedSeconds(goal);
   const progress = timerProgressPercent(goal);
-  elements.timerTime.textContent = planned ? formatTimerSeconds(timerRemainingSeconds(goal)) : formatTimerSeconds(currentTimerSeconds());
+  elements.timerTime.textContent = floatingTimer.mode === "countdown" && planned ? formatTimerSeconds(timerRemainingSeconds(goal)) : formatTimerSeconds(currentTimerSeconds());
   elements.timerProgressBar.style.width = `${progress}%`;
   elements.timerProgressText.textContent = planned ? `${progress}% do tempo decorrido` : "Sem tempo planejado";
   const alertMessage = timerAlertMessage(goal);
@@ -332,11 +335,31 @@ function renderFloatingTimer() {
   elements.timerSettings?.querySelectorAll("input[data-timer-pref]").forEach((input) => { input.checked = Boolean(state.settings?.timerPreferences?.[input.dataset.timerPref]); });
   completeFloatingTimerIfNeeded();
 }
+function persistFloatingTimerSession() {
+  if (!floatingTimer.goalId) { state.timerSession = null; saveData(); return; }
+  state.timerSession = { ...floatingTimer, elapsedSeconds: currentTimerSeconds(), startedAt: floatingTimer.paused ? null : Date.now(), intervalId: null };
+  saveData();
+}
+function restoreFloatingTimerSession() {
+  const saved = state.timerSession;
+  if (!saved?.goalId || !state.dailyGoals.some((g) => g.id === saved.goalId)) return;
+  const choice = prompt("Havia uma sessão em andamento. Deseja continuar, salvar ou descartar?", "continuar");
+  floatingTimer = { ...saved, intervalId: null, startedAt: saved.paused ? null : Date.now() };
+  if (choice === "salvar") saveFloatingTimerTime();
+  else if (choice === "descartar") closeFloatingTimer();
+  else { floatingTimer.intervalId = setInterval(renderFloatingTimer, 1000); renderFloatingTimer(); }
+}
 function startFloatingTimer(goal, kind = "study") {
   if (floatingTimer.goalId && !confirm("Já existe cronômetro em andamento. Deseja substituir?")) return;
   stopFloatingTimerInterval();
-  floatingTimer = { goalId: goal.id, kind, elapsedSeconds: 0, startedAt: Date.now(), paused: false, intervalId: null, completed: false, warnedFive: false, warnedOne: false, completionDismissed: false };
+  const selectedMode = elements.timerMode?.value || state.settings?.timerMode || "countdown";
+  const sessionGoalMinutes = selectedMode === "free" ? Number(prompt("Meta opcional da sessão em minutos (deixe 0 para livre)", 0)) || 0 : 0;
+  state.settings.timerMode = selectedMode;
+  saveData();
+  autoSyncAfterSave("timer-settings");
+  floatingTimer = { goalId: goal.id, kind, elapsedSeconds: 0, startedAt: Date.now(), paused: false, intervalId: null, completed: false, warnedFive: false, warnedOne: false, completionDismissed: false, mode: selectedMode, sessionGoalMinutes };
   floatingTimer.intervalId = setInterval(renderFloatingTimer, 1000);
+  persistFloatingTimerSession();
   renderFloatingTimer();
 }
 function pauseOrResumeFloatingTimer() {
@@ -349,17 +372,21 @@ function pauseOrResumeFloatingTimer() {
     floatingTimer.startedAt = null;
     floatingTimer.paused = true;
   }
+  persistFloatingTimerSession();
   renderFloatingTimer();
 }
 function resetFloatingTimer() {
   if (!floatingTimer.goalId) return;
   floatingTimer.elapsedSeconds = 0;
   floatingTimer.startedAt = floatingTimer.paused ? null : Date.now();
+  persistFloatingTimerSession();
   renderFloatingTimer();
 }
 function closeFloatingTimer() {
   stopFloatingTimerInterval();
-  floatingTimer = { goalId: null, kind: null, elapsedSeconds: 0, startedAt: null, paused: false, intervalId: null, completed: false, warnedFive: false, warnedOne: false, completionDismissed: false };
+  floatingTimer = { goalId: null, kind: null, elapsedSeconds: 0, startedAt: null, paused: false, intervalId: null, completed: false, warnedFive: false, warnedOne: false, completionDismissed: false, mode: state.settings?.timerMode || "countdown" };
+  state.timerSession = null;
+  saveData();
   renderFloatingTimer();
 }
 function saveFloatingTimerTime() {
@@ -376,6 +403,7 @@ function saveFloatingTimerTime() {
   goal.studyStatus = goal.actualMinutes > 0 ? "Iniciado" : (goal.studyStatus || "Pendente");
   if (goal.actualMinutes > 0 && goal.status === "Pendente") goal.status = "Em andamento";
   appendGoalHistory(goal, `Tempo salvo pelo cronômetro: +${minutes} min em ${label} em ${new Date().toLocaleString("pt-BR")}. Total realizado: ${goal.actualMinutes} min.`);
+  if (floatingTimer.kind !== "questions") state.studies.push({ id: createId(), date: todayISO(), subjectId: state.subjects.find((s) => canonical(s.name) === canonical(goal.discipline))?.id || "", syllabusItemId: goal.syllabusItemId || "", topic: goal.subject || "Assunto", minutes, plannedMinutes: Number(goal.minutes) || 0, topicStatus: "Iniciado", difficultyNotes: `Salvo pelo ${floatingTimer.mode === "free" ? "Cronômetro livre" : "Contagem regressiva"}.`, materialId: "", questions: 0, correct: 0, wrong: 0, blank: 0, origin: floatingTimer.mode === "free" ? "free" : "countdown", goalId: goal.id });
   saveData();
   render();
   showDailyGoalMessage(`Tempo salvo: ${minutes} min em ${label}.`, "success");
@@ -406,7 +434,7 @@ const elements = {
   materialsTotal: $("#materialsTotal"), materialDisciplinesTotal: $("#materialDisciplinesTotal"), materialTopicsTotal: $("#materialTopicsTotal"), materialForm: $("#materialForm"), materialEditingId: $("#materialEditingId"), materialTitle: $("#materialTitle"), materialDate: $("#materialDate"), materialDiscipline: $("#materialDiscipline"), materialSubject: $("#materialSubject"), materialType: $("#materialType"), materialOrigin: $("#materialOrigin"), materialLink: $("#materialLink"), materialTags: $("#materialTags"), materialNotes: $("#materialNotes"), materialDisciplineOptions: $("#materialDisciplineOptions"), materialSubjectOptions: $("#materialSubjectOptions"), materialFilterDiscipline: $("#materialFilterDiscipline"), materialFilterSubject: $("#materialFilterSubject"), materialFilterType: $("#materialFilterType"), materialFilterOrigin: $("#materialFilterOrigin"), materialFilterText: $("#materialFilterText"), materialsList: $("#materialsList"), studyMaterial: $("#studyMaterial"),
   qbSyllabusPackages: $("#qbSyllabusPackages"), qbSyllabusVerticalized: $("#qbSyllabusVerticalized"), qbPreviewSection: $("#qbPreviewSection"), qbSyllabusSummary: $("#qbSyllabusSummary"), qbPackagesSummary: $("#qbPackagesSummary"), qbFile: $("#qbFile"), qbNewTraining: $("#qbNewTraining"), qbRedoBlanks: $("#qbRedoBlanks"), qbExportBank: $("#qbExportBank"), qbExportResults: $("#qbExportResults"), qbClearBank: $("#qbClearBank"), qbMessage: $("#qbMessage"), qbStats: $("#qbStats"), qbDiagnostics: $("#qbDiagnostics"), qbTrainingScope: $("#qbTrainingScope"), qbReviewTypeWrapper: $("#qbReviewTypeWrapper"), qbReviewType: $("#qbReviewType"), qbFilterDiscipline: $("#qbFilterDiscipline"), qbFilterSubject: $("#qbFilterSubject"), qbFilterTheme: $("#qbFilterTheme"), qbFilterBoard: $("#qbFilterBoard"), qbFilterYear: $("#qbFilterYear"), qbFilterSearch: $("#qbFilterSearch"), qbTrainingLimit: $("#qbTrainingLimit"), qbShuffleTraining: $("#qbShuffleTraining"), qbStartTraining: $("#qbStartTraining"), qbPreviewFiltered: $("#qbPreviewFiltered"), qbFilteredPreview: $("#qbFilteredPreview"), qbTrainingPanel: $("#qbTrainingPanel"), qbTrainingCounter: $("#qbTrainingCounter"), qbTrainingProgress: $("#qbTrainingProgress"), qbQuestionCard: $("#qbQuestionCard"), qbResultPanel: $("#qbResultPanel"), qbResultSummary: $("#qbResultSummary"), qbResultDetails: $("#qbResultDetails"), qbErrorStats: $("#qbErrorStats"), qbErrorNotebookList: $("#qbErrorNotebookList"), qbErrorFilterDiscipline: $("#qbErrorFilterDiscipline"), qbErrorFilterSubject: $("#qbErrorFilterSubject"), qbErrorFilterStatus: $("#qbErrorFilterStatus"), qbErrorFilterReason: $("#qbErrorFilterReason"), qbStartErrorNotebook: $("#qbStartErrorNotebook"), qbReviewByDiscipline: $("#qbReviewByDiscipline"), qbReviewBySubject: $("#qbReviewBySubject"), qbToggleErrorHistory: $("#qbToggleErrorHistory"), qbErrorHistory: $("#qbErrorHistory"),
   connectGoogleDrive: $("#connectGoogleDrive"), syncNowButton: $("#syncNow"), pushToCloud: $("#pushToCloud"), pullFromCloud: $("#pullFromCloud"), disconnectGoogleDrive: $("#disconnectGoogleDrive"), syncStatus: $("#syncStatus"),
-  floatingTimer: $("#floatingTimer"), timerDiscipline: $("#timerDiscipline"), timerSubject: $("#timerSubject"), timerKind: $("#timerKind"), timerTime: $("#timerTime"), timerPauseResume: $("#timerPauseResume"), timerProgressBar: $("#timerProgressBar"), timerProgressText: $("#timerProgressText"), timerAlert: $("#timerAlert"), timerCompletion: $("#timerCompletion"), timerSettings: $("#timerSettings")
+  floatingTimer: $("#floatingTimer"), timerDiscipline: $("#timerDiscipline"), timerSubject: $("#timerSubject"), timerKind: $("#timerKind"), timerTime: $("#timerTime"), timerPauseResume: $("#timerPauseResume"), timerProgressBar: $("#timerProgressBar"), timerProgressText: $("#timerProgressText"), timerAlert: $("#timerAlert"), timerCompletion: $("#timerCompletion"), timerSettings: $("#timerSettings"), timerMode: $("#timerMode"), addManualTime: $("#addManualTime"), timeUndoNotice: $("#timeUndoNotice"), undoTimeAction: $("#undoTimeAction")
 };
 elements.studyDate.value = todayISO();
 elements.goalDate.value = todayISO();
@@ -532,7 +560,7 @@ function syncPayloadUpdatedAt(payload = {}, fallback = "") { return payload.clou
 function localDataUpdatedAt(meta = readSyncMeta()) { return meta.localDataUpdatedAt || meta.lastLocalUpdateAt || ""; }
 function writeLocalDataUpdatedAt(date, { dirty = true } = {}) { writeSyncMeta({ lastLocalUpdateAt: date, localDataUpdatedAt: date, localDirty: dirty }); }
 function autoSyncSuccessMessage(reason = "alteração") {
-  if (reason === "timer-save" || reason === "timer") return "Tempo salvo e enviado para a nuvem.";
+  if (["timer-save", "timer", "timer-edit", "timer-delete", "timer-manual", "timer-settings"].includes(reason)) return "Cronômetro atualizado e enviado para a nuvem.";
   if (reason === "material-save" || reason === "material") return "Material salvo e enviado para a nuvem.";
   if (reason === "goal-save" || reason === "daily-goal") return "Meta diária salva e enviada para a nuvem.";
   if (reason === "backup-import") return "Backup importado e enviado para a nuvem.";
@@ -540,7 +568,7 @@ function autoSyncSuccessMessage(reason = "alteração") {
 }
 function autoSyncLocalOnlyMessage(reason = "alteração", meta = readSyncMeta()) {
   if (meta.connected && !hasValidGoogleDriveAccessToken()) {
-    return reason === "timer-save" ? "Tempo salvo localmente. Autorização Google expirada." : "Alteração salva localmente. Autorização Google expirada.";
+    return reason === "timer-save" ? "Tempo salvo localmente. Autorização Google expirada." : (["timer-edit", "timer-delete", "timer-manual", "timer-settings"].includes(reason) ? "Cronômetro salvo localmente. Autorização Google expirada." : "Alteração salva localmente. Autorização Google expirada.");
   }
   return "Alteração salva localmente. Conecte ao Google Drive para enviar à nuvem.";
 }
@@ -786,7 +814,7 @@ function renderBackupPreview(payload) {
   return normalized;
 }
 function replaceState(nextState) { Object.keys(state).forEach((key) => delete state[key]); Object.assign(state, { ...cloneData(defaultState), ...(nextState || {}) }); state.edital = { ...defaultState.edital, ...(state.edital || {}) }; state.syllabusItems ||= []; state.schedulableSettings ||= {}; state.dailyGoals ||= []; state.questionLogs ||= []; state.questionBank ||= []; state.questionBankSessions ||= []; state.questionErrorNotebook ||= carregarCadernoErros();
-state.smartReviews ||= []; state.simulados ||= []; state.planning = normalizePlanningState(state.planning); state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences); state.materials ||= []; state.disciplineWeights ||= {}; state.monthlyGoals ||= {}; }
+state.smartReviews ||= []; state.simulados ||= []; state.planning = normalizePlanningState(state.planning); state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences); state.settings.timerMode ||= "countdown"; state.materials ||= []; state.disciplineWeights ||= {}; state.monthlyGoals ||= {}; }
 function mergeArrays(current = [], incoming = [], keyFn = (item) => item?.id || JSON.stringify(item)) { const seen = new Set(current.map(keyFn)); incoming.forEach((item) => { const key = keyFn(item); if (!seen.has(key)) { current.push(item); seen.add(key); } }); return current; }
 function mergeBackupData(data = {}) {
   mergeArrays(state.subjects, data.subjects || [], (item) => canonical(item.name || item.id));
@@ -1375,8 +1403,38 @@ function dayTypeLabel(av) { return av.label || ({"plantão":"Plantão","folga":"
 function nextDateByType(type) { for (let i=0;i<60;i++){ const d=addDays(todayISO(), i); if (availabilityForDate(d).type===type) return d; } return ""; }
 function periodSummary(start, days) { const dates=daysBetween(start, days), goals=goalsBetween(start, addDays(start, days-1)); const planned=goals.reduce((a,g)=>a+Number(g.minutes||0),0); const done=goals.reduce((a,g)=>a+goalTotalActualMinutes(g),0); return { dates, goals, planned, done, pending: goals.filter(g=>!isGoalDone(g)).length, completed: goals.filter(isGoalDone).length, disciplines: new Set(goals.map(g=>g.discipline)).size, percent: planned ? Math.min(100, Math.round(done/planned*100)) : completionRate(goals), subjects: goals.length }; }
 
+
+function studyOriginLabel(study) {
+  return ({ manual: "manual", countdown: "cronômetro regressivo", free: "cronômetro livre" }[study.origin]) || "registro geral";
+}
+function materialTitleById(id) { return state.materials.find((m) => m.id === id)?.title || ""; }
+function timeLogFromStudy(study) {
+  return { id: study.id, source: "study", date: study.date, discipline: subjectNameById(study.subjectId), subject: study.topic, minutes: Number(study.minutes) || 0, plannedMinutes: Number(study.plannedMinutes) || 0, type: studyOriginLabel(study), status: study.topicStatus || "Iniciado", notes: study.difficultyNotes || "", materialId: study.materialId || "", material: materialTitleById(study.materialId) };
+}
+function syncTimeChange(reason) { saveData(); render(); autoSyncAfterSave(reason); }
+function showTimeUndo(action) { lastTimeAction = action; if (elements.timeUndoNotice) elements.timeUndoNotice.hidden = false; }
+function upsertStudyFromPrompts(existing = {}) {
+  const subjectNames = state.subjects.map((s) => s.name).join(", ");
+  const discipline = prompt(`Disciplina (${subjectNames || "cadastre disciplinas se necessário"})`, existing.discipline || subjectNameById(existing.subjectId) || "");
+  if (!discipline) return null;
+  let subject = state.subjects.find((s) => canonical(s.name) === canonical(discipline));
+  if (!subject) { subject = { id: createId(), name: discipline.trim(), goalHours: 0 }; state.subjects.push(subject); }
+  const topic = prompt("Assunto", existing.topic || existing.subject || ""); if (!topic) return null;
+  const date = prompt("Data (AAAA-MM-DD)", existing.date || todayISO()); if (!date || Number.isNaN(Date.parse(`${date}T00:00:00`))) return alert("Data inválida."), null;
+  const minutes = Number(prompt("Duração em minutos", existing.minutes || 0)); if (!Number.isFinite(minutes) || minutes <= 0) return alert("Informe tempo maior que zero."), null;
+  const materialList = state.materials.map((m) => `${m.id}: ${m.title}`).join("\n");
+  const materialId = prompt(`Material vinculado opcional: cole o ID ou deixe vazio\n${materialList}`, existing.materialId || "") || "";
+  const difficultyNotes = prompt("Observação opcional", existing.difficultyNotes || existing.notes || "") || "";
+  const linkedItem = findSyllabusItemByStudy(subject.id, topic);
+  return { ...existing, id: existing.id || createId(), date, subjectId: subject.id, syllabusItemId: linkedItem?.id || existing.syllabusItemId || "", topic, minutes, plannedMinutes: Number(existing.plannedMinutes) || 0, topicStatus: existing.topicStatus || "Iniciado", difficultyNotes, materialId, questions: Number(existing.questions) || 0, correct: Number(existing.correct) || 0, wrong: Number(existing.wrong) || 0, blank: Number(existing.blank) || 0, origin: existing.origin || "manual" };
+}
+function addManualTime() { const study = upsertStudyFromPrompts({ origin: "manual", date: todayISO() }); if (!study) return; state.studies.push(study); syncTimeChange("timer-manual"); }
+function editStudyTime(id) { const idx = state.studies.findIndex((s) => s.id === id); if (idx < 0) return; const before = cloneData(state.studies[idx]); const edited = upsertStudyFromPrompts(state.studies[idx]); if (!edited) return; state.studies[idx] = edited; showTimeUndo({ type: "edit", before, afterId: id }); syncTimeChange("timer-edit"); }
+function deleteStudyTime(id) { const idx = state.studies.findIndex((s) => s.id === id); if (idx < 0) return; if (!confirm("Deseja realmente excluir este tempo salvo?")) return; const [removed] = state.studies.splice(idx, 1); showTimeUndo({ type: "delete", removed, index: idx }); syncTimeChange("timer-delete"); }
+function undoTimeAction() { if (!lastTimeAction) return; if (lastTimeAction.type === "delete") state.studies.splice(lastTimeAction.index, 0, lastTimeAction.removed); if (lastTimeAction.type === "edit") { const idx = state.studies.findIndex((s) => s.id === lastTimeAction.afterId); if (idx >= 0) state.studies[idx] = lastTimeAction.before; } lastTimeAction = null; if (elements.timeUndoNotice) elements.timeUndoNotice.hidden = true; syncTimeChange("timer-edit"); }
+
 function getStudyTimeLogs() {
-  const studyLogs = state.studies.map((study) => ({ date: study.date, discipline: subjectNameById(study.subjectId), subject: study.topic, minutes: Number(study.minutes) || 0, plannedMinutes: Number(study.plannedMinutes) || 0, type: "Estudo", status: study.topicStatus || "Iniciado", notes: study.difficultyNotes || "", materialId: study.materialId || "", material: state.materials.find((m)=>m.id===study.materialId)?.title || "" }));
+  const studyLogs = state.studies.map(timeLogFromStudy);
   const goalLogs = state.dailyGoals.filter((goal) => goalTotalActualMinutes(goal) > 0).map((goal) => ({ date: goal.date, discipline: goal.discipline, subject: goal.subject, minutes: goalTotalActualMinutes(goal), plannedMinutes: Number(goal.minutes) || 0, type: goal.type || goal.tipo || "Meta", status: goal.studyStatus || goal.status || "Iniciado", notes: goal.notes || goal.observacoes || "" }));
   const questionLogs = state.questionLogs.filter((log) => Number(log.minutes) > 0).map((log) => ({ date: log.date, discipline: log.discipline, subject: log.subject, minutes: Number(log.minutes) || 0, plannedMinutes: 0, type: log.trainingType || "Questões", status: "Concluído", notes: log.notes || "" }));
   return [...studyLogs, ...goalLogs, ...questionLogs];
@@ -1474,7 +1532,7 @@ function renderPlanning() {
   elements.weeklyGoalsAlert.textContent = w.total < c.minWeeklyHours ? "Alerta: semana abaixo da meta mínima; compense nas folgas quando possível." : (m.safeDiff !== null && m.safeDiff < 0 ? "Alerta: planejamento atrasado para a margem de segurança." : "Planejamento em dia ou adiantado para a rotina informada.");
   const logs = getStudyTimeLogs().sort((a,b)=>b.date.localeCompare(a.date)); const byDisc = logs.reduce((a,l)=>(a[l.discipline]=(a[l.discipline]||0)+l.minutes,a),{}); const top = Object.entries(byDisc).sort((a,b)=>b[1]-a[1])[0];
   elements.timeHistorySummary.innerHTML = [["Hoje",formatHours(logs.filter(l=>l.date===todayISO()).reduce((s,l)=>s+l.minutes,0))],["Semana",formatHours(logs.filter(l=>isSameWeek(l.date)).reduce((s,l)=>s+l.minutes,0))],["Edital",formatHours(m.totalMinutes)],["Disciplina mais estudada",top?`${top[0]} (${formatHours(top[1])})`:"-"]].map(([a,b])=>`<article class="stat-card"><span>${a}</span><strong>${escapeHTML(b)}</strong></article>`).join("");
-  elements.timeHistoryBody.innerHTML = logs.slice(0,50).map((l)=>`<tr><td>${formatDateBR(l.date)}</td><td>${escapeHTML(l.discipline)}</td><td>${escapeHTML(l.subject)}</td><td>${l.minutes} min</td><td>${escapeHTML(l.type)}</td><td>${escapeHTML(l.status)}</td><td>${escapeHTML(l.material || "-")}</td><td>${escapeHTML(l.notes||"-")}</td></tr>`).join("");
+  elements.timeHistoryBody.innerHTML = logs.slice(0,50).map((l)=>`<tr><td>${formatDateBR(l.date)}</td><td>${escapeHTML(l.discipline)}</td><td>${escapeHTML(l.subject)}</td><td>${l.minutes} min</td><td>${escapeHTML(l.type)}</td><td>${escapeHTML(l.status)}</td><td>${escapeHTML(l.material || "-")}</td><td>${escapeHTML(l.notes||"-")}</td><td>${l.source === "study" ? `<button type="button" data-time-edit="${l.id}">Editar</button> <button class="danger" type="button" data-time-delete="${l.id}">Excluir</button>` : "-"}</td></tr>`).join("");
 }
 
 function renderDashboard() {
@@ -2504,6 +2562,10 @@ document.addEventListener("change", async (event) => {
   else state.settings.timerPreferences[key] = input.checked;
   saveTimerPreferences();
 });
+elements.addManualTime?.addEventListener("click", addManualTime);
+elements.undoTimeAction?.addEventListener("click", undoTimeAction);
+elements.timeHistoryBody?.addEventListener("click", (event) => { const edit = event.target.closest("button[data-time-edit]"); if (edit) return editStudyTime(edit.dataset.timeEdit); const del = event.target.closest("button[data-time-delete]"); if (del) return deleteStudyTime(del.dataset.timeDelete); });
+elements.timerMode?.addEventListener("change", () => { if (floatingTimer.goalId && currentTimerSeconds() > 0) { const choice = prompt("Há uma sessão em andamento. Deseja descartar ou salvar antes? Digite salvar ou descartar.", "salvar"); if (choice === "salvar") saveFloatingTimerTime(); else if (choice === "descartar") closeFloatingTimer(); else { elements.timerMode.value = floatingTimer.mode || "countdown"; return; } } state.settings.timerMode = elements.timerMode.value; saveData(); autoSyncAfterSave("timer-settings"); });
 document.addEventListener("click", (event) => { const btn = event.target.closest("button[data-smart-review-action]"); if (!btn) return; saveSmartReviewAction(btn.dataset.id, btn.dataset.smartReviewAction === "done" ? "revisado" : "adiado"); });
 document.addEventListener("change", (event) => { const input = event.target.closest("input[data-smart-review-time]"); if (!input) return; upsertSmartReviewTime(input.dataset.id, input.dataset.smartReviewTime, input.value); });
 elements.viewDayPlan?.addEventListener("click", () => { elements.goalDate.value = todayISO(); renderDailyGoals(); showView("metas-do-dia"); });
@@ -2667,7 +2729,9 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") setMobileMenuOpen(false);
 });
 
+window.addEventListener("beforeunload", persistFloatingTimerSession);
 window.addEventListener("hashchange", () => showView(hashToView()));
+restoreFloatingTimerSession();
 showView(hashToView(), { skipScroll: true, keepMenuOpen: true });
 
 function registerServiceWorker() {
