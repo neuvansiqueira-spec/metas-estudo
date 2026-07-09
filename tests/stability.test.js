@@ -15,7 +15,8 @@ const screens = [
   { hash: '#historico', view: 'view-historico', title: 'Histórico Geral' },
   { hash: '#revisoes', view: 'view-revisoes', title: 'Revisões' },
   { hash: '#revisao-inteligente', view: 'view-revisao-inteligente', title: 'Revisão Inteligente' },
-  { hash: '#backup', view: 'view-backup', title: 'Backup' }
+  { hash: '#backup', view: 'view-backup', title: 'Backup' },
+  { hash: '#fabrica-resumos', view: 'view-fabrica-resumos', title: '🏭 Fábrica de Resumos' }
 ];
 
 function hasVisibleRouteSupport(hash) {
@@ -35,10 +36,10 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
   }
 });
 
-test('arquivos carregados usam a versão da sincronização Google Drive', () => {
-  assert.match(html, /style\.css\?v=20260709-sync-client-id/);
-  assert.match(html, /script\.js\?v=20260709-sync-client-id/);
-  assert.match(html, /Versão: 20260709-sync-client-id/);
+test('arquivos carregados usam a versão da Fábrica de Resumos', () => {
+  assert.match(html, /style\.css\?v=20260709-fabrica-resumos/);
+  assert.match(html, /script\.js\?v=20260709-fabrica-resumos/);
+  assert.match(html, /Versão: 20260709-fabrica-resumos/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -227,7 +228,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260709-sync-client-id/);
+  assert.match(sw, /metas-estudo-20260709-fabrica-resumos/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);
