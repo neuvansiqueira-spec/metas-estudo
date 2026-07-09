@@ -3,7 +3,7 @@ const SIMULADOS_STORAGE_KEY = "metasEstudoSimulados";
 const MOTIVATION_STORAGE_KEY = "metasEstudoMensagemDoDia";
 const CADERNO_ERROS_STORAGE_KEY = "cadernoErros";
 const CADERNO_ERROS_DEBUG = false;
-const GOOGLE_CLIENT_ID = "COLOCAR_CLIENT_ID_AQUI";
+const GOOGLE_CLIENT_ID = "COLE_AQUI_O_CLIENT_ID_DO_GOOGLE_CLOUD";
 const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata";
 const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
@@ -367,7 +367,11 @@ function writeSyncMeta(meta) { localStorage.setItem(SYNC_META_STORAGE_KEY, JSON.
 function markLocalUpdated(date = new Date().toISOString()) { writeSyncMeta({ lastLocalUpdateAt: date }); }
 function getDeviceId() { let id = localStorage.getItem(DEVICE_ID_STORAGE_KEY); if (!id) { id = createId(); localStorage.setItem(DEVICE_ID_STORAGE_KEY, id); } return id; }
 function getDeviceName() { const ua = navigator.userAgent || ""; const kind = /Mobi|Android|iPhone/i.test(ua) ? "Celular" : (/iPad|Tablet/i.test(ua) ? "Tablet" : "PC"); return `${kind} / ${navigator.platform || "navegador"}`; }
-function isGoogleClientConfigured() { return GOOGLE_CLIENT_ID && GOOGLE_CLIENT_ID !== "COLOCAR_CLIENT_ID_AQUI"; }
+function isGoogleClientConfigured() {
+  const clientId = String(GOOGLE_CLIENT_ID || "").trim();
+  return Boolean(clientId && clientId !== "COLE_AQUI_O_CLIENT_ID_DO_GOOGLE_CLOUD" && !/placeholder|cole_aqui|colocar/i.test(clientId));
+}
+function googleClientConfigMessage() { return "Google Client ID não configurado. Configure o client_id no script.js para ativar a sincronização."; }
 function renderSyncStatus(message = "") {
   if (!elements.syncStatus) return;
   const meta = readSyncMeta();
@@ -379,7 +383,7 @@ function renderSyncStatus(message = "") {
     ["Dispositivo de origem", meta.remoteDeviceName || "Desconhecido"],
     ["Dispositivo atual", getDeviceName()]
   ];
-  const notice = !configured ? "Sincronização Google Drive ainda não configurada." : (message || meta.error || "Pronto.");
+  const notice = !configured ? (message || meta.error || "Sincronização Google Drive ainda não configurada.") : (message || meta.error || "Pronto.");
   elements.syncStatus.innerHTML = `<div class="sync-status-grid">${rows.map(([label, value]) => `<article><span>${escapeHTML(label)}</span><strong>${escapeHTML(value)}</strong></article>`).join("")}</div><p class="sync-message ${meta.error || !configured ? "sync-error" : "sync-success"}">${escapeHTML(notice)}</p>`;
 }
 function syncErrorMessage(error, fallback) {
@@ -390,7 +394,7 @@ function syncErrorMessage(error, fallback) {
   return fallback || msg || "Erro de sincronização.";
 }
 async function getAccessToken() {
-  if (!isGoogleClientConfigured()) throw new Error("Google Client ID ausente");
+  if (!isGoogleClientConfigured()) throw new Error(googleClientConfigMessage());
   if (!window.google?.accounts?.oauth2) throw new Error("Google Identity Services não carregou. Verifique a conexão.");
   return new Promise((resolve, reject) => {
     const client = google.accounts.oauth2.initTokenClient({ client_id: GOOGLE_CLIENT_ID, scope: GOOGLE_DRIVE_SCOPE, callback: (response) => response?.access_token ? resolve(response.access_token) : reject(new Error(response?.error || "login cancelado")) });
@@ -410,7 +414,16 @@ function applyCloudPayload(payload) { if (payload?.app !== "metas-estudo" || !pa
 async function syncNow() { try { const remote = await pullSyncPayload(); const localDate = new Date(readSyncMeta().lastLocalUpdateAt || 0); const remoteDate = new Date(remote.updatedAt || 0); if (remoteDate > localDate) { if (confirm("Existe versão mais nova na nuvem. Deseja baixar para este dispositivo?")) applyCloudPayload(remote); else renderSyncStatus("Sincronização cancelada pelo usuário."); } else if (localDate > remoteDate) { if (confirm("Este dispositivo tem versão mais nova. Deseja enviar para a nuvem?")) await uploadSyncPayload(makeSyncPayload()); else renderSyncStatus("Sincronização cancelada pelo usuário."); } else renderSyncStatus("Tudo sincronizado."); } catch (error) { const message = syncErrorMessage(error, error.message === "arquivo remoto inexistente" ? "Arquivo remoto inexistente." : "Erro ao sincronizar."); writeSyncMeta({ error: message }); renderSyncStatus(message); } }
 async function forcePullFromCloud() { if (!confirm("Baixar dados da nuvem e substituir os dados deste dispositivo? Um backup local automático será criado antes.")) return; try { applyCloudPayload(await pullSyncPayload()); } catch (error) { const message = syncErrorMessage(error, "Erro ao baixar."); writeSyncMeta({ error: message }); renderSyncStatus(message); } }
 async function forcePushToCloud() { if (!confirm("Enviar o estado atual deste dispositivo para a nuvem?")) return; try { await uploadSyncPayload(makeSyncPayload()); } catch (error) { const message = syncErrorMessage(error, "Erro ao enviar."); writeSyncMeta({ error: message }); renderSyncStatus(message); } }
-async function connectGoogleDrive() { try { await getAccessToken(); writeSyncMeta({ connected: true, error: "" }); renderSyncStatus("Google Drive conectado."); } catch (error) { const message = syncErrorMessage(error, "Google Client ID ausente."); writeSyncMeta({ connected: false, error: message }); renderSyncStatus(message); } }
+async function connectGoogleDrive() {
+  if (!isGoogleClientConfigured()) {
+    const message = googleClientConfigMessage();
+    alert(message);
+    writeSyncMeta({ connected: false, error: message });
+    renderSyncStatus(message);
+    return;
+  }
+  try { await getAccessToken(); writeSyncMeta({ connected: true, error: "" }); renderSyncStatus("Google Drive conectado."); } catch (error) { const message = syncErrorMessage(error, "Erro ao conectar o Google Drive."); writeSyncMeta({ connected: false, error: message }); renderSyncStatus(message); }
+}
 function disconnectGoogleDrive() { writeSyncMeta({ connected: false, error: "" }); renderSyncStatus("Google Drive desconectado neste navegador."); }
 
 function showStorageWarningIfNeeded() {
