@@ -419,7 +419,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
         </form></article>
       <article class="bulk-box planning-block"><h3>3. Calendário de disponibilidade</h3><p class="item-meta">Edite os próximos dias conforme plantão, folga, dia normal, indisponível, estudo leve ou estudo forte.</p><div id="availabilityCalendar" class="cards-list"></div></article>
       <article class="bulk-box planning-block"><h3>4. Previsão</h3><div id="completionForecast" class="stats-grid compact"></div><div id="completionAlert" class="notice"></div><div id="weeklyGoalsPlan" class="stats-grid compact"></div><div id="weeklyGoalsAlert" class="notice"></div></article>
-      <article class="bulk-box"><h3>Histórico de tempo por assunto</h3><div id="timeHistorySummary" class="stats-grid compact"></div><div class="table-wrapper"><table><thead><tr><th>Data</th><th>Disciplina</th><th>Assunto</th><th>Tempo</th><th>Tipo</th><th>Status</th><th>Material usado</th><th>Observações</th></tr></thead><tbody id="timeHistoryBody"></tbody></table></div></article>
+      <article class="bulk-box"><h3>Histórico de tempo por assunto</h3><div class="card-actions"><button id="addManualTime" type="button">Adicionar tempo manual</button></div><div id="timeUndoNotice" class="notice" hidden>Alteração realizada. <button id="undoTimeAction" type="button">Desfazer</button></div><div id="timeHistorySummary" class="stats-grid compact"></div><div class="table-wrapper"><table><thead><tr><th>Data</th><th>Disciplina</th><th>Assunto</th><th>Tempo</th><th>Tipo</th><th>Status</th><th>Material usado</th><th>Observações</th><th>Ações</th></tr></thead><tbody id="timeHistoryBody"></tbody></table></div></article>
     </section>
 
     <section id="view-metas-do-dia" class="panel app-view" data-view="metas-do-dia" aria-labelledby="daily-goals-title">
@@ -691,7 +691,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
   <aside id="floatingTimer" class="floating-timer" aria-live="polite" hidden>
     <div class="floating-timer-header">
       <div>
-        <span class="floating-timer-label">Cronômetro</span>
+        <span class="floating-timer-label">Cronômetro</span><label class="timer-mode-label">Modo: <select id="timerMode"><option value="countdown">Contagem regressiva</option><option value="free">Cronômetro livre</option></select></label>
         <strong id="timerDiscipline">-</strong>
       </div>
       <button type="button" class="timer-icon-button" data-timer-action="close" aria-label="Fechar cronômetro">×</button>
