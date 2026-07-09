@@ -431,7 +431,7 @@ function renderMotivationalPhrase(phrase = pickMotivationalPhrase()) {
 
 function saveData(options = {}) {
   try {
-    if (!options.skipSyncTimestamp && !isApplyingRemote) markLocalUpdated();
+    if (options.markLocalChange && !isApplyingRemote) markLocalUpdated();
     state.dailyGoals?.forEach(normalizeGoalTimeFields);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     localStorage.setItem(SIMULADOS_STORAGE_KEY, JSON.stringify(state.simulados || []));
@@ -530,7 +530,7 @@ async function downloadSyncFile(fileId) { return (await driveFetch(`https://www.
 function makeSyncPayload() { const updatedAt = new Date().toISOString(); markLocalUpdated(updatedAt); saveData({ skipSyncTimestamp: true }); return { app: "metas-estudo", schemaVersion: 1, updatedAt, cloudDataUpdatedAt: updatedAt, localDataUpdatedAt: updatedAt, deviceId: getDeviceId(), deviceName: getDeviceName(), state: cloneData(state) }; }
 function syncPayloadUpdatedAt(payload = {}, fallback = "") { return payload.cloudDataUpdatedAt || payload.updatedAt || fallback || ""; }
 function localDataUpdatedAt(meta = readSyncMeta()) { return meta.localDataUpdatedAt || meta.lastLocalUpdateAt || ""; }
-function writeLocalDataUpdatedAt(date) { writeSyncMeta({ lastLocalUpdateAt: date, localDataUpdatedAt: date, localDirty: true }); }
+function writeLocalDataUpdatedAt(date, { dirty = true } = {}) { writeSyncMeta({ lastLocalUpdateAt: date, localDataUpdatedAt: date, localDirty: dirty }); }
 function autoSyncSuccessMessage(reason = "alteração") {
   if (reason === "timer-save" || reason === "timer") return "Tempo salvo e enviado para a nuvem.";
   if (reason === "material-save" || reason === "material") return "Material salvo e enviado para a nuvem.";
@@ -555,6 +555,7 @@ let isSyncing = false;
 let suppressAutoCheckUntil = 0;
 function isSyncLocked() { return syncDialogOpen || isApplyingRemote || isSyncing; }
 function canRunAutoSyncChecks() { return !isSyncLocked() && Date.now() >= suppressAutoCheckUntil; }
+function suppressAutoChecksAfterSync() { suppressAutoCheckUntil = Date.now() + 15000; }
 function withSyncDialog(callback) {
   if (syncDialogOpen || isApplyingRemote || isSyncing) return null;
   syncDialogOpen = true;
@@ -568,9 +569,10 @@ function askSyncChoice(message, choices) {
     return Number.isInteger(index) && choices[index] ? choices[index] : null;
   });
 }
-async function uploadSyncPayload(payload = makeSyncPayload(), { statusMessage = "Dados enviados para a nuvem com sucesso." } = {}) { if (isSyncing) return null; isSyncing = true; try { const file = await findSyncFile(); const saved = file ? await updateSyncFile(file.id, payload) : await createSyncFile(payload); writeSyncMeta({ connected: true, pendingSync: false, pendingSyncReason: null, localDirty: false, lastSyncAt: new Date().toISOString(), remoteUpdatedAt: syncPayloadUpdatedAt(payload), cloudDataUpdatedAt: syncPayloadUpdatedAt(payload), remoteDeviceName: payload.deviceName, error: "" }); renderSyncStatus(statusMessage); return saved; } finally { isSyncing = false; } }
+async function uploadSyncPayload(payload = makeSyncPayload(), { statusMessage = "Dados enviados para a nuvem com sucesso." } = {}) { if (isSyncing) return null; isSyncing = true; try { const file = await findSyncFile(); const saved = file ? await updateSyncFile(file.id, payload) : await createSyncFile(payload); writeSyncMeta({ connected: true, pendingSync: false, pendingSyncReason: null, localDirty: false, lastSyncAt: new Date().toISOString(), remoteUpdatedAt: syncPayloadUpdatedAt(payload), cloudDataUpdatedAt: syncPayloadUpdatedAt(payload), localDataUpdatedAt: syncPayloadUpdatedAt(payload), lastLocalUpdateAt: syncPayloadUpdatedAt(payload), remoteDeviceName: payload.deviceName, error: "" }); suppressAutoChecksAfterSync(); renderSyncStatus(statusMessage); return saved; } finally { isSyncing = false; } }
 async function runAutoSyncAfterSave(reason) {
   if (isSyncLocked()) return;
+  markLocalUpdated();
   const meta = readSyncMeta();
   const localSaveAt = new Date().toISOString();
   writeSyncMeta({ lastLocalSaveAt: localSaveAt, lastLocalSaveReason: reason });
@@ -608,9 +610,9 @@ function autoSyncAfterSave(reason = "alteração") {
   return runAutoSyncAfterSave(pendingAutoSyncReason);
 }
 async function pullSyncPayload() { if (isSyncing) throw new Error("sincronização em andamento"); isSyncing = true; try { const file = await findSyncFile(); if (!file) throw new Error("arquivo remoto inexistente"); const payload = await downloadSyncFile(file.id); const cloudDataUpdatedAt = syncPayloadUpdatedAt(payload, file.modifiedTime); writeSyncMeta({ connected: true, remoteUpdatedAt: cloudDataUpdatedAt, cloudDataUpdatedAt, remoteDeviceName: payload.deviceName || "", error: "" }); renderSyncStatus("Dados da nuvem encontrados."); return payload; } finally { isSyncing = false; } }
-function applyCloudPayload(payload) { if (payload?.app !== "metas-estudo" || !payload.state) throw new Error("Arquivo remoto inválido."); isApplyingRemote = true; try { const cloudDataUpdatedAt = syncPayloadUpdatedAt(payload); const safetyBackup = JSON.stringify(makeBackupPayload()); clearProjectLocalStorage(); localStorage.setItem("metasEstudoBackupAntesDaSincronizacao", safetyBackup); replaceState(payload.state); saveData({ skipSyncTimestamp: true }); writeSyncMeta({ connected: true, pendingSync: false, pendingSyncReason: null, localDirty: false, lastLocalUpdateAt: cloudDataUpdatedAt, localDataUpdatedAt: cloudDataUpdatedAt, lastSyncAt: new Date().toISOString(), lastAutoSyncError: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", remoteUpdatedAt: cloudDataUpdatedAt, cloudDataUpdatedAt, remoteDeviceName: payload.deviceName || "", error: "" }); suppressAutoCheckUntil = Date.now() + 10000; render(); showView("backup"); renderSyncStatus("Dados atualizados pela nuvem."); } finally { isApplyingRemote = false; } }
-async function syncNow() { if (!canRunAutoSyncChecks()) return; try { const remote = await pullSyncPayload(); const localDate = new Date(localDataUpdatedAt(readSyncMeta()) || 0); const remoteDate = new Date(syncPayloadUpdatedAt(remote) || 0); if (+remoteDate === +localDate) return renderSyncStatus("Tudo sincronizado."); if (remoteDate > localDate) { const choice = askSyncChoice("Existe versão mais nova na nuvem. Deseja atualizar este dispositivo?", ["Baixar versão da nuvem", "Cancelar"]); if (choice === "Baixar versão da nuvem") applyCloudPayload(remote); else renderSyncStatus("Sincronização cancelada pelo usuário."); } else if (localDate > remoteDate) { const choice = askSyncChoice("Este dispositivo tem versão mais nova. Deseja enviar para a nuvem?", ["Enviar este dispositivo para a nuvem", "Cancelar"]); if (choice === "Enviar este dispositivo para a nuvem") await uploadSyncPayload(makeSyncPayload()); else renderSyncStatus("Sincronização cancelada pelo usuário."); } } catch (error) { const message = syncErrorMessage(error, error.message === "arquivo remoto inexistente" ? "Arquivo remoto inexistente." : "Erro ao sincronizar."); writeSyncMeta({ error: message }); renderSyncStatus(message); } }
-function hasPendingLocalChanges(meta = readSyncMeta()) { return new Date(localDataUpdatedAt(meta) || 0) > new Date(meta.lastSyncAt || 0); }
+function applyCloudPayload(payload) { if (payload?.app !== "metas-estudo" || !payload.state) throw new Error("Arquivo remoto inválido."); isApplyingRemote = true; try { const cloudDataUpdatedAt = syncPayloadUpdatedAt(payload); const safetyBackup = JSON.stringify(makeBackupPayload()); clearProjectLocalStorage(); localStorage.setItem("metasEstudoBackupAntesDaSincronizacao", safetyBackup); replaceState(payload.state); saveData({ skipSyncTimestamp: true }); writeSyncMeta({ connected: true, pendingSync: false, pendingSyncReason: null, localDirty: false, lastLocalUpdateAt: cloudDataUpdatedAt, localDataUpdatedAt: cloudDataUpdatedAt, lastSyncAt: new Date().toISOString(), lastAutoSyncError: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", remoteUpdatedAt: cloudDataUpdatedAt, cloudDataUpdatedAt, remoteDeviceName: payload.deviceName || "", error: "" }); suppressAutoChecksAfterSync(); render(); showView("backup"); renderSyncStatus("Dados atualizados pela nuvem."); } finally { isApplyingRemote = false; } }
+async function syncNow() { if (!canRunAutoSyncChecks()) return; try { const remote = await pullSyncPayload(); const meta = readSyncMeta(); const localDate = new Date(localDataUpdatedAt(meta) || 0); const remoteDate = new Date(syncPayloadUpdatedAt(remote) || 0); if (+remoteDate === +localDate) return renderSyncStatus("Tudo sincronizado."); if (hasLocalSyncPending(meta) && remote.deviceId !== getDeviceId()) { const pendingChoice = await resolvePendingLocalSyncBeforeCloudDownload(meta); if (pendingChoice === "download") applyCloudPayload(remote); return; } if (remoteDate > localDate) { const choice = askSyncChoice("Existe versão mais nova na nuvem. Deseja atualizar este dispositivo?", ["Baixar versão da nuvem", "Cancelar"]); if (choice === "Baixar versão da nuvem") applyCloudPayload(remote); else renderSyncStatus("Sincronização cancelada pelo usuário."); } else if (localDate > remoteDate) { const choice = askSyncChoice("Este dispositivo tem versão mais nova. Deseja enviar para a nuvem?", ["Enviar este dispositivo para a nuvem", "Cancelar"]); if (choice === "Enviar este dispositivo para a nuvem") await uploadSyncPayload(makeSyncPayload()); else renderSyncStatus("Sincronização cancelada pelo usuário."); } } catch (error) { const message = syncErrorMessage(error, error.message === "arquivo remoto inexistente" ? "Arquivo remoto inexistente." : "Erro ao sincronizar."); writeSyncMeta({ error: message }); renderSyncStatus(message); } }
+function hasPendingLocalChanges(meta = readSyncMeta()) { return new Date(localDataUpdatedAt(meta) || 0) > new Date(meta.cloudDataUpdatedAt || meta.remoteUpdatedAt || 0); }
 function handleCloudConflict(remote, contextMessage = "Existe versão mais nova na nuvem. Deseja atualizar este dispositivo?") {
   const choice = askSyncChoice(contextMessage, ["Baixar versão da nuvem", "Cancelar"]);
   if (choice === "Baixar versão da nuvem") applyCloudPayload(remote);
@@ -619,16 +621,16 @@ function handleCloudConflict(remote, contextMessage = "Existe versão mais nova 
 function hasLocalSyncPending(meta = readSyncMeta()) { return Boolean(meta.pendingSync || meta.localDirty || hasPendingLocalChanges(meta)); }
 async function resolvePendingLocalSyncBeforeCloudDownload(meta = readSyncMeta()) {
   const choice = askSyncChoice("Existem alterações locais pendentes.", ["Baixar versão da nuvem", "Enviar este dispositivo para a nuvem", "Cancelar", "Fazer backup antes"]);
-  if (choice === "Fazer backup antes") exportBackup();
+  if (choice === "Fazer backup antes") { exportBackup(); return "handled"; }
   if (choice === "Enviar este dispositivo para a nuvem") {
     await uploadSyncPayload(makeSyncPayload(), { statusMessage: "Alterações locais pendentes enviadas para a nuvem." });
-    writeSyncMeta({ pendingSync: false, pendingSyncReason: "", lastAutoSyncAt: new Date().toISOString(), lastAutoSyncReason: meta.pendingSyncReason || "alteração", lastAutoSyncError: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", error: "" });
+    writeSyncMeta({ pendingSync: false, pendingSyncReason: null, lastAutoSyncAt: new Date().toISOString(), lastAutoSyncReason: meta.pendingSyncReason || "alteração", lastAutoSyncError: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", error: "" });
     renderSyncStatus("Alterações locais pendentes enviadas para a nuvem.");
-    return true;
+    return "handled";
   }
-  if (choice === "Baixar versão da nuvem") return false;
+  if (choice === "Baixar versão da nuvem") return "download";
   renderSyncStatus("Alterações locais pendentes mantidas neste dispositivo.");
-  return true;
+  return "handled";
 }
 let cloudAutoCheckRunning = false;
 let lastCloudAutoCheckAt = 0;
@@ -650,8 +652,8 @@ async function checkCloudForNewerVersion(context = "open") {
     const remoteDate = new Date(cloudDataUpdatedAt || 0);
     const localDate = new Date(localDataUpdatedAt(readSyncMeta()) || 0);
     if (hadPendingLocalChanges && remote.deviceId !== getDeviceId()) {
-      const uploadedLocalVersion = await resolvePendingLocalSyncBeforeCloudDownload(meta);
-      if (!uploadedLocalVersion) handleCloudConflict(remote, "Existe versão mais nova na nuvem. Deseja atualizar este dispositivo?");
+      const pendingChoice = await resolvePendingLocalSyncBeforeCloudDownload(meta);
+      if (pendingChoice === "download") applyCloudPayload(remote);
       return;
     }
     if (+remoteDate === +localDate) renderSyncStatus("Tudo sincronizado.");
