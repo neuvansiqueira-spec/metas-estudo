@@ -2753,3 +2753,36 @@ th {
 .factory-module-editor legend { padding: 0 8px; font-weight: 800; }
 .factory-module-editor .wide { grid-column: 1 / -1; }
 @media (max-width: 720px) { .factory-module-editor { grid-template-columns: 1fr; } }
+.factory-prompt-actions {
+  margin: 14px 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: rgba(239, 246, 255, .72);
+}
+.factory-prompt-actions h4 { margin: 0 0 10px; }
+.factory-prompt-panel:not(:empty) { margin: 14px 0; }
+.factory-prompt-box {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #bfdbfe;
+  border-radius: 18px;
+  background: #eff6ff;
+}
+.factory-prompt-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+.factory-prompt-header h4 { margin: 0 0 4px; }
+.factory-prompt-box textarea {
+  width: 100%;
+  min-height: 360px;
+  resize: vertical;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+@media (max-width: 640px) { .factory-prompt-header { flex-direction: column; } }
