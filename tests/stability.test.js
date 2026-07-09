@@ -36,9 +36,9 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão da sincronização Google Drive', () => {
-  assert.match(html, /style\.css\?v=20260709-sync-drive/);
-  assert.match(html, /script\.js\?v=20260709-sync-drive/);
-  assert.match(html, /Versão: 20260709-sync-drive/);
+  assert.match(html, /style\.css\?v=20260709-sync-client-id/);
+  assert.match(html, /script\.js\?v=20260709-sync-client-id/);
+  assert.match(html, /Versão: 20260709-sync-client-id/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -227,7 +227,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260709-sync-drive/);
+  assert.match(sw, /metas-estudo-20260709-sync-client-id/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);
