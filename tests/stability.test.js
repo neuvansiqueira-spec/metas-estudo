@@ -270,7 +270,7 @@ test('interface publicada expõe sincronização Google Drive', () => {
   assert.match(html, /Desconectar/);
   assert.match(html, /metas-estudo-sync\.json/);
   assert.match(script, /const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync\.json"/);
-  assert.match(script, /const GOOGLE_CLIENT_ID = "COLE_AQUI_O_CLIENT_ID_DO_GOOGLE_CLOUD"/);
+  assert.match(script, /const GOOGLE_CLIENT_ID = "888613157566-p6ad2hmuav7uc7tqabs846rnnmh6g7mf.apps.googleusercontent.com"/);
   assert.match(script, /Google Client ID não configurado\. Configure o client_id no script\.js para ativar a sincronização\./);
   assert.match(script, /google\.accounts\.oauth2\.initTokenClient/);
   assert.match(script, /requestAccessToken\(\{ prompt: "consent" \}\)/);
