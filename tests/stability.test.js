@@ -280,3 +280,19 @@ test('interface publicada expõe sincronização Google Drive', () => {
   assert.match(script, /Autorização expirada\. Conecte novamente ao Google Drive\./);
   assert.match(script, /const GOOGLE_DRIVE_SCOPE = "https:\/\/www\.googleapis\.com\/auth\/drive\.appdata"/);
 });
+
+test('auto-sync do cronômetro mantém pendência quando autorização Google expira', () => {
+  assert.match(script, /function googleAuthorizationStatusMessage/);
+  assert.match(script, /conectado à conta Google/);
+  assert.match(script, /Autorização para envio/);
+  assert.match(script, /token válido para envio/);
+  assert.match(script, /Conectado, mas autorização expirada\. Clique em Conectar Google Drive para renovar\./);
+  assert.match(script, /reason === "timer-save" \? "Tempo salvo localmente\. Autorização Google expirada\."/);
+  assert.match(script, /if \(!meta\.connected \|\| !hasValidGoogleDriveAccessToken\(\)\) \{[\s\S]*markPendingSync\(reason, message\)/);
+  assert.match(script, /const isExpiredToken = \/Autorização expirada\|TOKEN_EXPIRED\|401\|token\|Unauthorized\|invalid_token\/i\.test\(rawErrorMessage\)/);
+  assert.match(script, /if \(isExpiredToken\) markPendingSync\(reason, message\)/);
+  assert.match(script, /writeSyncMeta\(\{ pendingSync: true, pendingSyncReason: reason/);
+  assert.match(script, /Existem alterações pendentes\. Deseja enviar agora\?/);
+  assert.match(script, /Alterações pendentes enviadas para a nuvem\./);
+  assert.match(script, /pendingSync: false, pendingSyncReason: "", lastAutoSyncAt: new Date\(\)\.toISOString\(\), lastAutoSyncReason: meta\.pendingSyncReason/);
+});
