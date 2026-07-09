@@ -273,6 +273,10 @@ test('interface publicada expõe sincronização Google Drive', () => {
   assert.match(script, /const GOOGLE_CLIENT_ID = "888613157566-p6ad2hmuav7uc7tqabs846rnnmh6g7mf.apps.googleusercontent.com"/);
   assert.match(script, /Google Client ID não configurado\. Configure o client_id no script\.js para ativar a sincronização\./);
   assert.match(script, /google\.accounts\.oauth2\.initTokenClient/);
-  assert.match(script, /requestAccessToken\(\{ prompt: "consent" \}\)/);
+  assert.match(script, /let googleDriveAccessToken = ""/);
+  assert.match(script, /function hasValidGoogleDriveAccessToken/);
+  assert.match(script, /requestAccessToken\(prompt \? \{ prompt \} : \{\}\)/);
+  assert.match(script, /getAccessToken\(\{ prompt: hasValidGoogleDriveAccessToken\(\) \? "" : "consent" \}\)/);
+  assert.match(script, /Autorização expirada\. Conecte novamente ao Google Drive\./);
   assert.match(script, /const GOOGLE_DRIVE_SCOPE = "https:\/\/www\.googleapis\.com\/auth\/drive\.appdata"/);
 });
