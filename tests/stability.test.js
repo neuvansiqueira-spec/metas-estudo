@@ -36,10 +36,10 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
   }
 });
 
-test('arquivos carregados usam a versão da Fábrica de Resumos', () => {
-  assert.match(html, /style\.css\?v=20260709-fabrica-resumos/);
-  assert.match(html, /script\.js\?v=20260709-fabrica-resumos/);
-  assert.match(html, /Versão: 20260709-fabrica-resumos/);
+test('arquivos carregados usam a versão da correção de congelamento', () => {
+  assert.match(html, /style\.css\?v=20260709-fix-site-freeze/);
+  assert.match(html, /script\.js\?v=20260709-fix-site-freeze/);
+  assert.match(html, /Versão: 20260709-fix-site-freeze/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -228,12 +228,21 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260709-fabrica-resumos/);
+  assert.match(sw, /metas-estudo-20260709-fix-site-freeze/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);
   assert.match(sw, /self\.skipWaiting\(\)/);
   assert.match(sw, /self\.clients\.claim\(\)/);
+});
+
+test('Fábrica fica isolada atrás de flag e não bloqueia telas principais', () => {
+  assert.match(script, /const ENABLE_FACTORY = false;/);
+  assert.match(script, /factoryAgenda: \[\]/);
+  assert.match(script, /state\.factoryAgenda \|\|= \[\]/);
+  assert.match(script, /safeRenderView\("fabrica-resumos", renderFactory\)/);
+  assert.match(script, /Erro ao carregar Fábrica de Resumos/);
+  assert.match(script, /rawTarget === "fabrica-resumos"\) return "dashboard"/);
 });
 
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-20260709-fabrica-resumos";
+const CACHE_NAME = "metas-estudo-20260709-fix-site-freeze";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
