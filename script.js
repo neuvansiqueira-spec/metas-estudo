@@ -1416,10 +1416,45 @@ function periodSummary(start, days) { const dates=daysBetween(start, days), goal
 function studyOriginLabel(study) {
   return ({ manual: "manual", countdown: "cronômetro regressivo", free: "cronômetro livre" }[study.origin]) || "registro geral";
 }
-const FACTORY_STATUSES = ["Não iniciado","Triagem pendente","Em produção","Aguardando revisão","Finalizado","Atualizar depois"];
+const FACTORY_STATUSES = ["Não iniciado","Em produção","Aguardando revisão","Aprovado","PDF gerado","Precisa refazer","Atualizar depois"];
+const FACTORY_MODULES = [
+  { key: "resumoAula", label: "RESUMO/AULA" },
+  { key: "lei", label: "LEI" },
+  { key: "jurisprudencia", label: "JURISPRUDÊNCIA" },
+  { key: "peca", label: "PEÇA" },
+  { key: "completo", label: "COMPLETO" }
+];
+function normalizeFactoryModule(module = {}) {
+  const status = FACTORY_STATUSES.includes(module.status) ? module.status : "Não iniciado";
+  return {
+    status,
+    wordLink: module.wordLink || module.linkWord || module.linkDoWord || module.word || "",
+    pdfLink: module.pdfLink || module.linkPdf || module.linkDoPDF || module.pdf || "",
+    observacao: module.observacao || module.observacoes || module.notes || "",
+    dataConclusao: module.dataConclusao || module.concludedAt || module.completionDate || ""
+  };
+}
+function normalizeFactoryModules(modules = {}, legacyItem = {}) {
+  const hasModules = modules && typeof modules === "object" && Object.keys(modules).length > 0;
+  const migratedLegacyStatus = legacyItem.status === "Finalizado" ? "Aprovado" : (FACTORY_STATUSES.includes(legacyItem.status) ? legacyItem.status : "Não iniciado");
+  return Object.fromEntries(FACTORY_MODULES.map(({ key }) => {
+    const incoming = modules?.[key] || modules?.[key.toUpperCase?.()] || (!hasModules && key === "resumoAula" ? { status: migratedLegacyStatus, observacao: legacyItem.observacao || legacyItem.notes || "" } : {});
+    return [key, normalizeFactoryModule(incoming)];
+  }));
+}
+function factoryOverallStatus(modules = {}) {
+  const statuses = FACTORY_MODULES.map(({ key }) => modules[key]?.status || "Não iniciado");
+  if (statuses.every((status) => status === "PDF gerado")) return "PDF gerado";
+  if (statuses.every((status) => ["Aprovado", "PDF gerado", "Atualizar depois"].includes(status))) return "Aprovado";
+  if (statuses.some((status) => status === "Precisa refazer")) return "Precisa refazer";
+  if (statuses.some((status) => status === "Aguardando revisão")) return "Aguardando revisão";
+  if (statuses.some((status) => status === "Em produção")) return "Em produção";
+  return "Não iniciado";
+}
 function normalizeFactoryItem(item = {}) {
   const now = new Date().toISOString();
-  const status = FACTORY_STATUSES.includes(item.status) ? item.status : "Não iniciado";
+  const modules = normalizeFactoryModules(item.modules || item.modulos || {}, item);
+  const status = FACTORY_STATUSES.includes(item.status) ? item.status : factoryOverallStatus(modules);
   return {
     id: item.id || createId(),
     disciplina: item.disciplina || item.discipline || "",
@@ -1429,6 +1464,7 @@ function normalizeFactoryItem(item = {}) {
     dataPlanejada: item.dataPlanejada || item.plannedDate || item.date || "",
     observacao: item.observacao || item.observacoes || item.notes || "",
     createdAt: item.createdAt || item.created_at || item.updatedAt || now,
+    modules: normalizeFactoryModules(item.modules || item.modulos || {}, item),
     updatedAt: item.updatedAt || item.updated_at || now
   };
 }
@@ -1491,10 +1527,28 @@ function deleteFactoryItem(id) {
   renderFactory();
   syncFactoryUpdate();
 }
-function changeFactoryStatus(id, status) {
+function editFactoryModules(id) {
   const item = ensureFactoryAgenda().find((x) => x.id === id);
-  if (!item || !FACTORY_STATUSES.includes(status)) return;
-  item.status = status;
+  if (!item) return;
+  const html = FACTORY_MODULES.map(({ key, label }) => {
+    const module = normalizeFactoryModule(item.modules?.[key]);
+    return `<fieldset class="factory-module-editor"><legend>${escapeHTML(label)}</legend><label>Status<select data-factory-module-field="${item.id}|${key}|status">${FACTORY_STATUSES.map((s)=>`<option ${s===module.status?'selected':''}>${s}</option>`).join("")}</select></label><label>Link do Word<input type="url" data-factory-module-field="${item.id}|${key}|wordLink" value="${escapeHTML(module.wordLink)}" placeholder="https://..." /></label><label>Link do PDF<input type="url" data-factory-module-field="${item.id}|${key}|pdfLink" value="${escapeHTML(module.pdfLink)}" placeholder="https://..." /></label><label>Data de conclusão<input type="date" data-factory-module-field="${item.id}|${key}|dataConclusao" value="${escapeHTML(module.dataConclusao)}" /></label><label class="wide">Observação<textarea rows="2" data-factory-module-field="${item.id}|${key}|observacao">${escapeHTML(module.observacao)}</textarea></label></fieldset>`;
+  }).join("");
+  elements.factoryList.querySelector(`[data-factory-modules-panel="${CSS.escape(id)}"]`).innerHTML = `<form class="factory-modules-form" data-factory-modules-form="${item.id}"><h4>Módulos de produção</h4>${html}<div class="card-actions"><button type="submit">Salvar módulos</button><button type="button" class="secondary-button" data-factory-modules-cancel="${item.id}">Cancelar</button></div></form>`;
+}
+function saveFactoryModules(event) {
+  const form = event.target.closest("[data-factory-modules-form]");
+  if (!form) return;
+  event.preventDefault();
+  const item = ensureFactoryAgenda().find((x) => x.id === form.dataset.factoryModulesForm);
+  if (!item) return;
+  item.modules = normalizeFactoryModules(item.modules || {});
+  form.querySelectorAll("[data-factory-module-field]").forEach((field) => {
+    const [, key, prop] = field.dataset.factoryModuleField.split("|");
+    item.modules[key][prop] = field.value.trim();
+  });
+  item.modules = normalizeFactoryModules(item.modules);
+  item.status = factoryOverallStatus(item.modules);
   item.updatedAt = new Date().toISOString();
   renderFactory();
   syncFactoryUpdate();
@@ -1513,7 +1567,13 @@ function renderFactory() {
       elements.factoryList.textContent = "Nenhum tema cadastrado na Fábrica.";
       return;
     }
-    elements.factoryList.innerHTML = agenda.map((item)=>`<article class="syllabus-card factory-card"><header><div><h3>${escapeHTML(item.disciplina)} — ${escapeHTML(item.tema)}</h3><div class="item-meta">Prioridade ${escapeHTML(item.prioridade)}${item.dataPlanejada ? ` • ${formatDateBR(item.dataPlanejada)}` : ""}</div></div><span class="badge ${item.status==='Finalizado'?'success':item.prioridade==='Alta'?'danger':'neutral'}">${escapeHTML(item.status)}</span></header><div class="card-meta-grid"><span>Disciplina: ${escapeHTML(item.disciplina)}</span><span>Tema: ${escapeHTML(item.tema)}</span><span>Data planejada: ${item.dataPlanejada ? formatDateBR(item.dataPlanejada) : "-"}</span><span>Observação: ${escapeHTML(item.observacao || "-")}</span></div><div class="card-actions"><label>Status <select data-factory-status="${item.id}">${FACTORY_STATUSES.map((s)=>`<option ${s===item.status?'selected':''}>${s}</option>`).join("")}</select></label><button type="button" data-factory-edit="${item.id}">Editar</button><button type="button" class="danger" data-factory-delete="${item.id}">Excluir</button></div></article>`).join("");
+    elements.factoryList.innerHTML = agenda.map((item)=>{
+      const modules = normalizeFactoryModules(item.modules || {});
+      item.modules = modules;
+      item.status = factoryOverallStatus(modules);
+      const moduleSummary = FACTORY_MODULES.map(({ key, label }) => `<li><strong>${escapeHTML(label)}:</strong> ${escapeHTML(modules[key].status)}</li>`).join("");
+      return `<article class="syllabus-card factory-card"><header><div><h3>${escapeHTML(item.disciplina)} — ${escapeHTML(item.tema)}</h3><div class="item-meta">Prioridade ${escapeHTML(item.prioridade)}${item.dataPlanejada ? ` • ${formatDateBR(item.dataPlanejada)}` : ""}</div></div><span class="badge ${item.status==='Aprovado'||item.status==='PDF gerado'?'success':item.prioridade==='Alta'?'danger':'neutral'}">${escapeHTML(item.status)}</span></header><ul class="factory-module-summary">${moduleSummary}</ul><div class="card-meta-grid"><span>Disciplina: ${escapeHTML(item.disciplina)}</span><span>Tema: ${escapeHTML(item.tema)}</span><span>Data planejada: ${item.dataPlanejada ? formatDateBR(item.dataPlanejada) : "-"}</span><span>Observação: ${escapeHTML(item.observacao || "-")}</span></div><div class="card-actions"><button type="button" data-factory-modules="${item.id}">Editar módulos</button><button type="button" data-factory-edit="${item.id}">Editar tema</button><button type="button" class="danger" data-factory-delete="${item.id}">Excluir</button></div><div class="factory-modules-panel" data-factory-modules-panel="${item.id}"></div></article>`;
+    }).join("");
   } catch (error) {
     console.error("[Metas Estudo] Erro ao carregar Fábrica de Resumos", error);
     showFactoryErrorMessage();
@@ -2719,8 +2779,8 @@ elements.materialDiscipline?.addEventListener("input", renderMaterialSelectors);
 elements.studySubject?.addEventListener("change", updateStudyMaterialOptions);
 elements.studyTopic?.addEventListener("input", updateStudyMaterialOptions);
 elements.factoryForm?.addEventListener("submit", saveFactoryItem);
-document.addEventListener("change", (event) => { const status = event.target.closest("[data-factory-status]"); if (status) changeFactoryStatus(status.dataset.factoryStatus, status.value); });
-document.addEventListener("click", (event) => { const edit = event.target.closest("[data-factory-edit]"); const del = event.target.closest("[data-factory-delete]"); if (edit) editFactoryItem(edit.dataset.factoryEdit); if (del) deleteFactoryItem(del.dataset.factoryDelete); });
+document.addEventListener("submit", saveFactoryModules);
+document.addEventListener("click", (event) => { const edit = event.target.closest("[data-factory-edit]"); const del = event.target.closest("[data-factory-delete]"); const modules = event.target.closest("[data-factory-modules]"); const cancelModules = event.target.closest("[data-factory-modules-cancel]"); if (edit) editFactoryItem(edit.dataset.factoryEdit); if (del) deleteFactoryItem(del.dataset.factoryDelete); if (modules) editFactoryModules(modules.dataset.factoryModules); if (cancelModules) renderFactory(); });
 
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin, elements.materialFilterText].filter(Boolean).forEach((filter) => filter.addEventListener("input", renderMaterials));
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin].filter(Boolean).forEach((filter) => filter.addEventListener("change", renderMaterials));
