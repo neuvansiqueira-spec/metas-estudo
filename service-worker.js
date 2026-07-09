@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-cache-20260701-rollback-stable";
+const CACHE_NAME = "metas-estudo-20260709-sync-drive";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
