@@ -442,7 +442,7 @@ function saveData(options = {}) {
   }
 }
 
-function readSyncMeta() { return readJSONStorage(SYNC_META_STORAGE_KEY, { connected: false, lastLocalUpdateAt: "", lastLocalSaveAt: "", lastLocalSaveReason: "", lastSyncAt: "", lastAutoSyncAt: "", lastAutoSyncReason: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", lastAutoSyncError: "", remoteUpdatedAt: "", remoteDeviceName: "", error: "" }); }
+function readSyncMeta() { return readJSONStorage(SYNC_META_STORAGE_KEY, { connected: false, lastLocalUpdateAt: "", lastLocalSaveAt: "", lastLocalSaveReason: "", lastSyncAt: "", lastAutoSyncAt: "", lastAutoSyncReason: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", lastAutoSyncError: "", pendingSync: false, pendingSyncReason: "", remoteUpdatedAt: "", remoteDeviceName: "", error: "" }); }
 function writeSyncMeta(meta) { localStorage.setItem(SYNC_META_STORAGE_KEY, JSON.stringify({ ...readSyncMeta(), ...meta })); }
 function markLocalUpdated(date = new Date().toISOString()) { writeSyncMeta({ lastLocalUpdateAt: date }); }
 function getDeviceId() { let id = localStorage.getItem(DEVICE_ID_STORAGE_KEY); if (!id) { id = createId(); localStorage.setItem(DEVICE_ID_STORAGE_KEY, id); } return id; }
@@ -461,6 +461,8 @@ function renderSyncStatus(message = "") {
     ["Último salvamento local", meta.lastLocalSaveAt ? `${new Date(meta.lastLocalSaveAt).toLocaleString("pt-BR")} • origem: ${meta.lastLocalSaveReason || "alteração"}` : "Nunca"],
     ["Última sincronização local", meta.lastSyncAt ? new Date(meta.lastSyncAt).toLocaleString("pt-BR") : "Nunca"],
     ["Último envio automático", meta.lastAutoSyncAt ? `${new Date(meta.lastAutoSyncAt).toLocaleString("pt-BR")} • origem: ${meta.lastAutoSyncReason || "alteração"}` : "Nunca"],
+    ["Pendência de envio", meta.pendingSync ? "Sim" : "Não"],
+    ["Motivo da pendência", meta.pendingSync ? (meta.pendingSyncReason || "alteração") : "Nenhum"],
     ["Último erro de auto-sync", meta.lastAutoSyncErrorAt ? `${new Date(meta.lastAutoSyncErrorAt).toLocaleString("pt-BR")} • origem: ${meta.lastAutoSyncErrorReason || "alteração"} • ${meta.lastAutoSyncError || meta.error || "erro"}` : "Nenhum"],
     ["Última versão na nuvem", meta.remoteUpdatedAt ? new Date(meta.remoteUpdatedAt).toLocaleString("pt-BR") : "Desconhecida"],
     ["Dispositivo de origem", meta.remoteDeviceName || "Desconhecido"],
@@ -526,9 +528,11 @@ function autoSyncSuccessMessage(reason = "alteração") {
   if (reason === "backup-import") return "Backup importado e enviado para a nuvem.";
   return "Alteração salva e enviada para a nuvem.";
 }
-function autoSyncLocalOnlyMessage(reason = "alteração", meta = readSyncMeta()) {
-  if (reason === "timer-save" || reason === "timer") return meta.connected ? "Tempo salvo localmente. Autorização Google expirada." : "Tempo salvo neste dispositivo. Conecte ao Google Drive para sincronizar.";
-  return meta.connected ? "Alteração salva localmente. Autorização Google expirada." : "Alteração salva localmente. Conecte ao Google Drive para sincronizar.";
+function autoSyncLocalOnlyMessage() {
+  return "Alteração salva localmente. Conecte ao Google Drive para enviar à nuvem.";
+}
+function markPendingSync(reason = "alteração", message = autoSyncLocalOnlyMessage()) {
+  writeSyncMeta({ pendingSync: true, pendingSyncReason: reason, error: message, lastAutoSyncErrorAt: new Date().toISOString(), lastAutoSyncErrorReason: reason, lastAutoSyncError: message });
 }
 let autoSyncTimer = null;
 let pendingAutoSyncReason = "alteração";
@@ -537,7 +541,7 @@ async function runAutoSyncAfterSave(reason) {
   const meta = readSyncMeta();
   const localSaveAt = new Date().toISOString();
   writeSyncMeta({ lastLocalSaveAt: localSaveAt, lastLocalSaveReason: reason });
-  if (!meta.connected || !hasValidGoogleDriveAccessToken()) { const message = autoSyncLocalOnlyMessage(reason, meta); writeSyncMeta({ error: message, lastAutoSyncErrorAt: localSaveAt, lastAutoSyncErrorReason: reason, lastAutoSyncError: message }); renderSyncStatus(message); return; }
+  if (!meta.connected || !hasValidGoogleDriveAccessToken()) { const message = autoSyncLocalOnlyMessage(reason, meta); markPendingSync(reason, message); renderSyncStatus(message); return; }
   try {
     const file = await findSyncFile();
     if (file) {
@@ -553,11 +557,14 @@ async function runAutoSyncAfterSave(reason) {
     }
     const payload = makeSyncPayload();
     await uploadSyncPayload(payload, { statusMessage: autoSyncSuccessMessage(reason) });
-    writeSyncMeta({ lastAutoSyncAt: new Date().toISOString(), lastAutoSyncReason: reason, lastAutoSyncError: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", error: "" });
+    writeSyncMeta({ pendingSync: false, pendingSyncReason: "", lastAutoSyncAt: new Date().toISOString(), lastAutoSyncReason: reason, lastAutoSyncError: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", error: "" });
     renderSyncStatus(autoSyncSuccessMessage(reason));
   } catch (error) {
-    const message = syncErrorMessage(error, reason === "timer-save" || reason === "timer" ? "Tempo salvo localmente. Autorização Google expirada." : "Alteração salva localmente. Sincronize depois.");
-    writeSyncMeta({ error: message, lastAutoSyncErrorAt: new Date().toISOString(), lastAutoSyncErrorReason: reason, lastAutoSyncError: message });
+    const rawErrorMessage = String(error?.message || error || "");
+    const isExpiredToken = /Autorização expirada|TOKEN_EXPIRED|401|token|Unauthorized|invalid_token/i.test(rawErrorMessage);
+    const message = isExpiredToken ? autoSyncLocalOnlyMessage(reason) : syncErrorMessage(error, "Alteração salva localmente. Sincronize depois.");
+    if (isExpiredToken) markPendingSync(reason, message);
+    else writeSyncMeta({ error: message, lastAutoSyncErrorAt: new Date().toISOString(), lastAutoSyncErrorReason: reason, lastAutoSyncError: message });
     renderSyncStatus(message);
   }
 }
@@ -594,6 +601,25 @@ async function checkCloudForNewerVersion(context = "open") {
 }
 async function forcePullFromCloud() { if (!confirm("Baixar dados da nuvem e substituir os dados deste dispositivo? Um backup local automático será criado antes.")) return; try { applyCloudPayload(await pullSyncPayload()); } catch (error) { const message = syncErrorMessage(error, "Erro ao baixar."); writeSyncMeta({ error: message }); renderSyncStatus(message); } }
 async function forcePushToCloud() { if (!confirm("Enviar o estado atual deste dispositivo para a nuvem?")) return; try { await uploadSyncPayload(makeSyncPayload()); } catch (error) { const message = syncErrorMessage(error, "Erro ao enviar."); writeSyncMeta({ error: message }); renderSyncStatus(message); } }
+async function sendPendingSyncAfterConnect() {
+  const meta = readSyncMeta();
+  if (!meta.pendingSync) return false;
+  if (!confirm("Existem alterações salvas localmente que ainda não foram enviadas à nuvem. Deseja enviar agora?")) {
+    renderSyncStatus("Google Drive conectado. Envio pendente mantido.");
+    return false;
+  }
+  try {
+    await uploadSyncPayload(makeSyncPayload(), { statusMessage: "Alterações pendentes enviadas para a nuvem." });
+    writeSyncMeta({ pendingSync: false, pendingSyncReason: "", lastAutoSyncAt: new Date().toISOString(), lastAutoSyncReason: meta.pendingSyncReason || "alteração", lastAutoSyncError: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", error: "" });
+    renderSyncStatus("Alterações pendentes enviadas para a nuvem.");
+    return true;
+  } catch (error) {
+    const message = syncErrorMessage(error, "Não foi possível enviar as alterações pendentes.");
+    writeSyncMeta({ pendingSync: true, pendingSyncReason: meta.pendingSyncReason || "alteração", error: message });
+    renderSyncStatus(message);
+    return true;
+  }
+}
 async function connectGoogleDrive() {
   if (!isGoogleClientConfigured()) {
     const message = googleClientConfigMessage();
@@ -602,7 +628,12 @@ async function connectGoogleDrive() {
     renderSyncStatus(message);
     return;
   }
-  try { await getAccessToken({ prompt: hasValidGoogleDriveAccessToken() ? "" : "consent" }); writeSyncMeta({ connected: true, error: "" }); renderSyncStatus("Google Drive conectado."); } catch (error) { const message = syncErrorMessage(error, "Erro ao conectar o Google Drive."); writeSyncMeta({ connected: false, error: message }); renderSyncStatus(message); }
+  try {
+    await getAccessToken({ prompt: hasValidGoogleDriveAccessToken() ? "" : "consent" });
+    writeSyncMeta({ connected: true, error: "" });
+    const sentPending = await sendPendingSyncAfterConnect();
+    if (!sentPending) renderSyncStatus("Google Drive conectado.");
+  } catch (error) { const message = syncErrorMessage(error, "Erro ao conectar o Google Drive."); writeSyncMeta({ connected: false, error: message }); renderSyncStatus(message); }
 }
 function disconnectGoogleDrive() { clearGoogleDriveAccessToken(); writeSyncMeta({ connected: false, error: "" }); renderSyncStatus("Google Drive desconectado neste navegador."); }
 
