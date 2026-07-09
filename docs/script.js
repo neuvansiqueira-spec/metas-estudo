@@ -73,7 +73,7 @@ function normalizePlanningState(planning = {}) {
   };
 }
 const defaultTimerPreferences = { visualAlerts: true, sound: false, vibration: true, browserNotifications: false };
-const defaultState = { subjects: [], studies: [], edital: { pdf: null }, syllabusItems: [], schedulableSettings: {}, dailyGoals: [], questionLogs: [], smartReviews: [], simulados: [], planning: cloneData(defaultPlanning), settings: { defaultMockGoal: 92, timerPreferences: cloneData(defaultTimerPreferences) }, materials: [], questionBank: [], questionBankSessions: [], questionErrorNotebook: [], disciplineWeights: {}, monthlyGoals: {} };
+const defaultState = { subjects: [], studies: [], edital: { pdf: null }, syllabusItems: [], schedulableSettings: {}, dailyGoals: [], questionLogs: [], smartReviews: [], simulados: [], planning: cloneData(defaultPlanning), settings: { defaultMockGoal: 92, timerPreferences: cloneData(defaultTimerPreferences) }, materials: [], questionBank: [], questionBankSessions: [], questionErrorNotebook: [], disciplineWeights: {}, monthlyGoals: {}, timerSession: null, factoryItems: [] };
 function readJSONStorage(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
@@ -114,6 +114,7 @@ state.settings ||= {};
 state.settings.defaultMockGoal ||= 92;
 state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences);
 state.materials ||= [];
+state.factoryItems ||= [];
 state.migrations ||= {};
 
 
@@ -126,7 +127,7 @@ function saveTimerPreferences() {
   state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences);
   localStorage.setItem(TIMER_PREFS_STORAGE_KEY, JSON.stringify(state.settings.timerPreferences));
   saveData();
-  autoSyncAfterSave("timer-preferences");
+  autoSyncAfterSave("timer-settings");
 }
 
 function cadernoErrosDebug(...args) { if (CADERNO_ERROS_DEBUG) console.debug("[Caderno de Erros]", ...args); }
@@ -224,6 +225,7 @@ let importDraft = [];
 let pendingBackupPayload = null;
 let syllabusVisibleCount = 30;
 let editingSyllabusId = null;
+let lastTimeAction = null;
 
 let floatingTimer = {
   goalId: null,
@@ -235,7 +237,8 @@ let floatingTimer = {
   completed: false,
   warnedFive: false,
   warnedOne: false,
-  completionDismissed: false
+  completionDismissed: false,
+  mode: "countdown"
 };
 
 function timerKindLabel(kind) { return kind === "questions" ? "Questões" : "Estudo"; }
@@ -263,7 +266,7 @@ function stopFloatingTimerInterval() {
   floatingTimer.intervalId = null;
 }
 
-function timerPlannedSeconds(goal = floatingTimerGoal()) { return Math.max(0, Math.round((Number(goal?.minutes) || 0) * 60)); }
+function timerPlannedSeconds(goal = floatingTimerGoal()) { return floatingTimer.mode === "free" ? Math.max(0, Math.round((Number(floatingTimer.sessionGoalMinutes) || 0) * 60)) : Math.max(0, Math.round((Number(goal?.minutes) || 0) * 60)); }
 function timerRemainingSeconds(goal = floatingTimerGoal()) { const planned = timerPlannedSeconds(goal); return planned ? Math.max(0, planned - currentTimerSeconds()) : 0; }
 function timerProgressPercent(goal = floatingTimerGoal()) { const planned = timerPlannedSeconds(goal); return planned ? Math.min(100, Math.round((currentTimerSeconds() / planned) * 100)) : 0; }
 function timerAlertMessage(goal = floatingTimerGoal()) {
@@ -317,10 +320,11 @@ function renderFloatingTimer() {
   if (!isActive) return;
   elements.timerDiscipline.textContent = goal.discipline || "Sem disciplina";
   elements.timerSubject.textContent = goal.subject || "Assunto";
-  elements.timerKind.textContent = timerKindLabel(floatingTimer.kind);
+  elements.timerKind.textContent = `${floatingTimer.mode === "free" ? "Cronômetro livre" : "Contagem regressiva"} • ${timerKindLabel(floatingTimer.kind)}`;
+  if (elements.timerMode) elements.timerMode.value = floatingTimer.mode || "countdown";
   const planned = timerPlannedSeconds(goal);
   const progress = timerProgressPercent(goal);
-  elements.timerTime.textContent = planned ? formatTimerSeconds(timerRemainingSeconds(goal)) : formatTimerSeconds(currentTimerSeconds());
+  elements.timerTime.textContent = floatingTimer.mode === "countdown" && planned ? formatTimerSeconds(timerRemainingSeconds(goal)) : formatTimerSeconds(currentTimerSeconds());
   elements.timerProgressBar.style.width = `${progress}%`;
   elements.timerProgressText.textContent = planned ? `${progress}% do tempo decorrido` : "Sem tempo planejado";
   const alertMessage = timerAlertMessage(goal);
@@ -332,11 +336,31 @@ function renderFloatingTimer() {
   elements.timerSettings?.querySelectorAll("input[data-timer-pref]").forEach((input) => { input.checked = Boolean(state.settings?.timerPreferences?.[input.dataset.timerPref]); });
   completeFloatingTimerIfNeeded();
 }
+function persistFloatingTimerSession() {
+  if (!floatingTimer.goalId) { state.timerSession = null; saveData(); return; }
+  state.timerSession = { ...floatingTimer, elapsedSeconds: currentTimerSeconds(), startedAt: floatingTimer.paused ? null : Date.now(), intervalId: null };
+  saveData();
+}
+function restoreFloatingTimerSession() {
+  const saved = state.timerSession;
+  if (!saved?.goalId || !state.dailyGoals.some((g) => g.id === saved.goalId)) return;
+  const choice = prompt("Havia uma sessão em andamento. Deseja continuar, salvar ou descartar?", "continuar");
+  floatingTimer = { ...saved, intervalId: null, startedAt: saved.paused ? null : Date.now() };
+  if (choice === "salvar") saveFloatingTimerTime();
+  else if (choice === "descartar") closeFloatingTimer();
+  else { floatingTimer.intervalId = setInterval(renderFloatingTimer, 1000); renderFloatingTimer(); }
+}
 function startFloatingTimer(goal, kind = "study") {
   if (floatingTimer.goalId && !confirm("Já existe cronômetro em andamento. Deseja substituir?")) return;
   stopFloatingTimerInterval();
-  floatingTimer = { goalId: goal.id, kind, elapsedSeconds: 0, startedAt: Date.now(), paused: false, intervalId: null, completed: false, warnedFive: false, warnedOne: false, completionDismissed: false };
+  const selectedMode = elements.timerMode?.value || state.settings?.timerMode || "countdown";
+  const sessionGoalMinutes = selectedMode === "free" ? Number(prompt("Meta opcional da sessão em minutos (deixe 0 para livre)", 0)) || 0 : 0;
+  state.settings.timerMode = selectedMode;
+  saveData();
+  autoSyncAfterSave("timer-settings");
+  floatingTimer = { goalId: goal.id, kind, elapsedSeconds: 0, startedAt: Date.now(), paused: false, intervalId: null, completed: false, warnedFive: false, warnedOne: false, completionDismissed: false, mode: selectedMode, sessionGoalMinutes };
   floatingTimer.intervalId = setInterval(renderFloatingTimer, 1000);
+  persistFloatingTimerSession();
   renderFloatingTimer();
 }
 function pauseOrResumeFloatingTimer() {
@@ -349,17 +373,21 @@ function pauseOrResumeFloatingTimer() {
     floatingTimer.startedAt = null;
     floatingTimer.paused = true;
   }
+  persistFloatingTimerSession();
   renderFloatingTimer();
 }
 function resetFloatingTimer() {
   if (!floatingTimer.goalId) return;
   floatingTimer.elapsedSeconds = 0;
   floatingTimer.startedAt = floatingTimer.paused ? null : Date.now();
+  persistFloatingTimerSession();
   renderFloatingTimer();
 }
 function closeFloatingTimer() {
   stopFloatingTimerInterval();
-  floatingTimer = { goalId: null, kind: null, elapsedSeconds: 0, startedAt: null, paused: false, intervalId: null, completed: false, warnedFive: false, warnedOne: false, completionDismissed: false };
+  floatingTimer = { goalId: null, kind: null, elapsedSeconds: 0, startedAt: null, paused: false, intervalId: null, completed: false, warnedFive: false, warnedOne: false, completionDismissed: false, mode: state.settings?.timerMode || "countdown" };
+  state.timerSession = null;
+  saveData();
   renderFloatingTimer();
 }
 function saveFloatingTimerTime() {
@@ -376,6 +404,7 @@ function saveFloatingTimerTime() {
   goal.studyStatus = goal.actualMinutes > 0 ? "Iniciado" : (goal.studyStatus || "Pendente");
   if (goal.actualMinutes > 0 && goal.status === "Pendente") goal.status = "Em andamento";
   appendGoalHistory(goal, `Tempo salvo pelo cronômetro: +${minutes} min em ${label} em ${new Date().toLocaleString("pt-BR")}. Total realizado: ${goal.actualMinutes} min.`);
+  if (floatingTimer.kind !== "questions") state.studies.push({ id: createId(), date: todayISO(), subjectId: state.subjects.find((s) => canonical(s.name) === canonical(goal.discipline))?.id || "", syllabusItemId: goal.syllabusItemId || "", topic: goal.subject || "Assunto", minutes, plannedMinutes: Number(goal.minutes) || 0, topicStatus: "Iniciado", difficultyNotes: `Salvo pelo ${floatingTimer.mode === "free" ? "Cronômetro livre" : "Contagem regressiva"}.`, materialId: "", questions: 0, correct: 0, wrong: 0, blank: 0, origin: floatingTimer.mode === "free" ? "free" : "countdown", goalId: goal.id });
   saveData();
   render();
   showDailyGoalMessage(`Tempo salvo: ${minutes} min em ${label}.`, "success");
@@ -404,9 +433,10 @@ const elements = {
   planningConfigForm: $("#planningConfigForm"), planningExamDate: $("#planningExamDate"), planningScaleType: $("#planningScaleType"), planningScaleNotes: $("#planningScaleNotes"), planningShiftHours: $("#planningShiftHours"), planningRestHours: $("#planningRestHours"), planningNormalHours: $("#planningNormalHours"), planningMinWeeklyHours: $("#planningMinWeeklyHours"), planningIdealWeeklyHours: $("#planningIdealWeeklyHours"), planningWeeklyTopics: $("#planningWeeklyTopics"), planningDisciplinesPerDay: $("#planningDisciplinesPerDay"), planningDisciplinesPerWeek: $("#planningDisciplinesPerWeek"), planningDisciplinesPerMonth: $("#planningDisciplinesPerMonth"), planningTopicsPerDay: $("#planningTopicsPerDay"), planningTopicsPerWeek: $("#planningTopicsPerWeek"), planningTopicsPerMonth: $("#planningTopicsPerMonth"), planningSafetyDays: $("#planningSafetyDays"), planningScaleReferenceDate: $("#planningScaleReferenceDate"), planningScaleReferencePosition: $("#planningScaleReferencePosition"), scale3x6Fields: $("#scale3x6Fields"), centralGoalsCards: $("#centralGoalsCards"), centralScaleSummary: $("#centralScaleSummary"), centralNextDates: $("#centralNextDates"), centralOpenDayPlan: $("#centralOpenDayPlan"), dashboardGoalsScaleSummary: $("#dashboardGoalsScaleSummary"), availabilityCalendar: $("#availabilityCalendar"), completionForecast: $("#completionForecast"), completionAlert: $("#completionAlert"), weeklyGoalsPlan: $("#weeklyGoalsPlan"), weeklyGoalsAlert: $("#weeklyGoalsAlert"), timeHistorySummary: $("#timeHistorySummary"), timeHistoryBody: $("#timeHistoryBody"),
   dashboardQuestionBankTotal: $("#dashboardQuestionBankTotal"), dashboardQuestionBankSessions: $("#dashboardQuestionBankSessions"), dashboardQuestionBankLast: $("#dashboardQuestionBankLast"), dashboardQuestionBankPackages: $("#dashboardQuestionBankPackages"), dashboardQuestionBankLinked: $("#dashboardQuestionBankLinked"), dashboardQuestionBankMissing: $("#dashboardQuestionBankMissing"),
   materialsTotal: $("#materialsTotal"), materialDisciplinesTotal: $("#materialDisciplinesTotal"), materialTopicsTotal: $("#materialTopicsTotal"), materialForm: $("#materialForm"), materialEditingId: $("#materialEditingId"), materialTitle: $("#materialTitle"), materialDate: $("#materialDate"), materialDiscipline: $("#materialDiscipline"), materialSubject: $("#materialSubject"), materialType: $("#materialType"), materialOrigin: $("#materialOrigin"), materialLink: $("#materialLink"), materialTags: $("#materialTags"), materialNotes: $("#materialNotes"), materialDisciplineOptions: $("#materialDisciplineOptions"), materialSubjectOptions: $("#materialSubjectOptions"), materialFilterDiscipline: $("#materialFilterDiscipline"), materialFilterSubject: $("#materialFilterSubject"), materialFilterType: $("#materialFilterType"), materialFilterOrigin: $("#materialFilterOrigin"), materialFilterText: $("#materialFilterText"), materialsList: $("#materialsList"), studyMaterial: $("#studyMaterial"),
+  factoryForm: $("#factoryForm"), factoryEditingId: $("#factoryEditingId"), factoryDiscipline: $("#factoryDiscipline"), factoryTheme: $("#factoryTheme"), factorySubtheme: $("#factorySubtheme"), factoryPriority: $("#factoryPriority"), factoryPlannedDate: $("#factoryPlannedDate"), factoryStatus: $("#factoryStatus"), factorySourceFolder: $("#factorySourceFolder"), factoryFinalLink: $("#factoryFinalLink"), factoryNotes: $("#factoryNotes"), factorySummary: $("#factorySummary"), factoryFilterDiscipline: $("#factoryFilterDiscipline"), factoryFilterPriority: $("#factoryFilterPriority"), factoryFilterStatus: $("#factoryFilterStatus"), factoryFilterDate: $("#factoryFilterDate"), factoryFilterView: $("#factoryFilterView"), factoryFilterText: $("#factoryFilterText"), factoryList: $("#factoryList"),
   qbSyllabusPackages: $("#qbSyllabusPackages"), qbSyllabusVerticalized: $("#qbSyllabusVerticalized"), qbPreviewSection: $("#qbPreviewSection"), qbSyllabusSummary: $("#qbSyllabusSummary"), qbPackagesSummary: $("#qbPackagesSummary"), qbFile: $("#qbFile"), qbNewTraining: $("#qbNewTraining"), qbRedoBlanks: $("#qbRedoBlanks"), qbExportBank: $("#qbExportBank"), qbExportResults: $("#qbExportResults"), qbClearBank: $("#qbClearBank"), qbMessage: $("#qbMessage"), qbStats: $("#qbStats"), qbDiagnostics: $("#qbDiagnostics"), qbTrainingScope: $("#qbTrainingScope"), qbReviewTypeWrapper: $("#qbReviewTypeWrapper"), qbReviewType: $("#qbReviewType"), qbFilterDiscipline: $("#qbFilterDiscipline"), qbFilterSubject: $("#qbFilterSubject"), qbFilterTheme: $("#qbFilterTheme"), qbFilterBoard: $("#qbFilterBoard"), qbFilterYear: $("#qbFilterYear"), qbFilterSearch: $("#qbFilterSearch"), qbTrainingLimit: $("#qbTrainingLimit"), qbShuffleTraining: $("#qbShuffleTraining"), qbStartTraining: $("#qbStartTraining"), qbPreviewFiltered: $("#qbPreviewFiltered"), qbFilteredPreview: $("#qbFilteredPreview"), qbTrainingPanel: $("#qbTrainingPanel"), qbTrainingCounter: $("#qbTrainingCounter"), qbTrainingProgress: $("#qbTrainingProgress"), qbQuestionCard: $("#qbQuestionCard"), qbResultPanel: $("#qbResultPanel"), qbResultSummary: $("#qbResultSummary"), qbResultDetails: $("#qbResultDetails"), qbErrorStats: $("#qbErrorStats"), qbErrorNotebookList: $("#qbErrorNotebookList"), qbErrorFilterDiscipline: $("#qbErrorFilterDiscipline"), qbErrorFilterSubject: $("#qbErrorFilterSubject"), qbErrorFilterStatus: $("#qbErrorFilterStatus"), qbErrorFilterReason: $("#qbErrorFilterReason"), qbStartErrorNotebook: $("#qbStartErrorNotebook"), qbReviewByDiscipline: $("#qbReviewByDiscipline"), qbReviewBySubject: $("#qbReviewBySubject"), qbToggleErrorHistory: $("#qbToggleErrorHistory"), qbErrorHistory: $("#qbErrorHistory"),
   connectGoogleDrive: $("#connectGoogleDrive"), syncNowButton: $("#syncNow"), pushToCloud: $("#pushToCloud"), pullFromCloud: $("#pullFromCloud"), disconnectGoogleDrive: $("#disconnectGoogleDrive"), syncStatus: $("#syncStatus"),
-  floatingTimer: $("#floatingTimer"), timerDiscipline: $("#timerDiscipline"), timerSubject: $("#timerSubject"), timerKind: $("#timerKind"), timerTime: $("#timerTime"), timerPauseResume: $("#timerPauseResume"), timerProgressBar: $("#timerProgressBar"), timerProgressText: $("#timerProgressText"), timerAlert: $("#timerAlert"), timerCompletion: $("#timerCompletion"), timerSettings: $("#timerSettings")
+  floatingTimer: $("#floatingTimer"), timerDiscipline: $("#timerDiscipline"), timerSubject: $("#timerSubject"), timerKind: $("#timerKind"), timerTime: $("#timerTime"), timerPauseResume: $("#timerPauseResume"), timerProgressBar: $("#timerProgressBar"), timerProgressText: $("#timerProgressText"), timerAlert: $("#timerAlert"), timerCompletion: $("#timerCompletion"), timerSettings: $("#timerSettings"), timerMode: $("#timerMode"), addManualTime: $("#addManualTime"), timeUndoNotice: $("#timeUndoNotice"), undoTimeAction: $("#undoTimeAction")
 };
 elements.studyDate.value = todayISO();
 elements.goalDate.value = todayISO();
@@ -415,6 +445,7 @@ if (elements.calendarDate) elements.calendarDate.value = todayISO();
 if (elements.smartReviewDate) elements.smartReviewDate.value = todayISO();
 if (elements.mockDate) elements.mockDate.value = todayISO();
 if (elements.materialDate) elements.materialDate.value = todayISO();
+if (elements.factoryPlannedDate) elements.factoryPlannedDate.value = todayISO();
 
 
 function pickMotivationalPhrase() {
@@ -532,7 +563,7 @@ function syncPayloadUpdatedAt(payload = {}, fallback = "") { return payload.clou
 function localDataUpdatedAt(meta = readSyncMeta()) { return meta.localDataUpdatedAt || meta.lastLocalUpdateAt || ""; }
 function writeLocalDataUpdatedAt(date, { dirty = true } = {}) { writeSyncMeta({ lastLocalUpdateAt: date, localDataUpdatedAt: date, localDirty: dirty }); }
 function autoSyncSuccessMessage(reason = "alteração") {
-  if (reason === "timer-save" || reason === "timer") return "Tempo salvo e enviado para a nuvem.";
+  if (["timer-save", "timer", "timer-edit", "timer-delete", "timer-manual", "timer-settings"].includes(reason)) return "Cronômetro atualizado e enviado para a nuvem.";
   if (reason === "material-save" || reason === "material") return "Material salvo e enviado para a nuvem.";
   if (reason === "goal-save" || reason === "daily-goal") return "Meta diária salva e enviada para a nuvem.";
   if (reason === "backup-import") return "Backup importado e enviado para a nuvem.";
@@ -540,7 +571,7 @@ function autoSyncSuccessMessage(reason = "alteração") {
 }
 function autoSyncLocalOnlyMessage(reason = "alteração", meta = readSyncMeta()) {
   if (meta.connected && !hasValidGoogleDriveAccessToken()) {
-    return reason === "timer-save" ? "Tempo salvo localmente. Autorização Google expirada." : "Alteração salva localmente. Autorização Google expirada.";
+    return reason === "timer-save" ? "Tempo salvo localmente. Autorização Google expirada." : (["timer-edit", "timer-delete", "timer-manual", "timer-settings"].includes(reason) ? "Cronômetro salvo localmente. Autorização Google expirada." : "Alteração salva localmente. Autorização Google expirada.");
   }
   return "Alteração salva localmente. Conecte ao Google Drive para enviar à nuvem.";
 }
@@ -740,6 +771,7 @@ function backupCounts(source = state) {
     historico: source.studies?.length || 0,
     simulados: source.simulados?.length || 0,
     materiais: source.materials?.length || 0,
+    fabrica: source.factoryItems?.length || 0,
     bancoQuestoes: source.questionBank?.length || 0,
     treinosBanco: source.questionBankSessions?.length || 0,
     cadernoErros: source.questionErrorNotebook?.length || 0
@@ -750,7 +782,7 @@ function renderBackupSummary() {
   const counts = backupCounts();
   const cards = [
     ["Itens do edital verticalizado", counts.verticalizado], ["Assuntos agendáveis", counts.agendaveis], ["Disciplinas", counts.disciplinas],
-    ["Metas", counts.metas], ["Lançamentos de questões", counts.questoes], ["Banco de questões", counts.bancoQuestoes], ["Treinos do banco", counts.treinosBanco], ["Simulados", counts.simulados], ["Materiais", counts.materiais], ["Revisões previstas", counts.revisoes], ["Registros históricos", counts.historico]
+    ["Metas", counts.metas], ["Lançamentos de questões", counts.questoes], ["Banco de questões", counts.bancoQuestoes], ["Treinos do banco", counts.treinosBanco], ["Simulados", counts.simulados], ["Materiais", counts.materiais], ["Revisões previstas", counts.revisoes], ["Registros históricos", counts.historico], ["Agenda da Fábrica", counts.fabrica || 0]
   ];
   elements.lastBackupDate.textContent = state.settings?.lastBackupAt ? new Date(state.settings.lastBackupAt).toLocaleString("pt-BR") : "Nunca exportado";
   elements.backupStorageKeys.textContent = getProjectStorageKeys().length;
@@ -786,7 +818,7 @@ function renderBackupPreview(payload) {
   return normalized;
 }
 function replaceState(nextState) { Object.keys(state).forEach((key) => delete state[key]); Object.assign(state, { ...cloneData(defaultState), ...(nextState || {}) }); state.edital = { ...defaultState.edital, ...(state.edital || {}) }; state.syllabusItems ||= []; state.schedulableSettings ||= {}; state.dailyGoals ||= []; state.questionLogs ||= []; state.questionBank ||= []; state.questionBankSessions ||= []; state.questionErrorNotebook ||= carregarCadernoErros();
-state.smartReviews ||= []; state.simulados ||= []; state.planning = normalizePlanningState(state.planning); state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences); state.materials ||= []; state.disciplineWeights ||= {}; state.monthlyGoals ||= {}; }
+state.smartReviews ||= []; state.simulados ||= []; state.planning = normalizePlanningState(state.planning); state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences); state.settings.timerMode ||= "countdown"; state.materials ||= []; state.factoryItems ||= []; state.disciplineWeights ||= {}; state.monthlyGoals ||= {}; }
 function mergeArrays(current = [], incoming = [], keyFn = (item) => item?.id || JSON.stringify(item)) { const seen = new Set(current.map(keyFn)); incoming.forEach((item) => { const key = keyFn(item); if (!seen.has(key)) { current.push(item); seen.add(key); } }); return current; }
 function mergeBackupData(data = {}) {
   mergeArrays(state.subjects, data.subjects || [], (item) => canonical(item.name || item.id));
@@ -800,6 +832,7 @@ function mergeBackupData(data = {}) {
   mergeArrays(state.smartReviews, data.smartReviews || data.revisoesInteligentes || [], (item) => item.id || [item.date, item.discipline, item.subject, item.status, item.origin].join("|"));
   mergeArrays(state.simulados, data.simulados || [], (item) => item.id || [item.date, item.name, item.total, item.correct, item.wrong].join("|"));
   mergeArrays(state.materials, data.materials || data.materiais || [], (item) => item.id || [item.title || item.titulo, item.discipline || item.disciplina, item.subject || item.assunto, item.link].join("|"));
+  mergeArrays(state.factoryItems, data.factoryItems || data.fabricaResumos || [], (item) => item.id || [item.discipline, item.theme, item.subtheme].join("|"));
   state.disciplineWeights = { ...(data.disciplineWeights || {}), ...state.disciplineWeights };
   state.monthlyGoals = { ...(data.monthlyGoals || {}), ...state.monthlyGoals };
   if (data.planning) state.planning = normalizePlanningState({ ...state.planning, ...data.planning, config: { ...state.planning.config, ...(data.planning.config || {}) }, availability: { ...(data.planning.availability || {}), ...state.planning.availability }, weeklyGoals: data.planning.weeklyGoals || state.planning.weeklyGoals, forecasts: { ...(data.planning.forecasts || {}), ...state.planning.forecasts } });
@@ -1375,8 +1408,53 @@ function dayTypeLabel(av) { return av.label || ({"plantão":"Plantão","folga":"
 function nextDateByType(type) { for (let i=0;i<60;i++){ const d=addDays(todayISO(), i); if (availabilityForDate(d).type===type) return d; } return ""; }
 function periodSummary(start, days) { const dates=daysBetween(start, days), goals=goalsBetween(start, addDays(start, days-1)); const planned=goals.reduce((a,g)=>a+Number(g.minutes||0),0); const done=goals.reduce((a,g)=>a+goalTotalActualMinutes(g),0); return { dates, goals, planned, done, pending: goals.filter(g=>!isGoalDone(g)).length, completed: goals.filter(isGoalDone).length, disciplines: new Set(goals.map(g=>g.discipline)).size, percent: planned ? Math.min(100, Math.round(done/planned*100)) : completionRate(goals), subjects: goals.length }; }
 
+
+function studyOriginLabel(study) {
+  return ({ manual: "manual", countdown: "cronômetro regressivo", free: "cronômetro livre" }[study.origin]) || "registro geral";
+}
+const FACTORY_STATUSES = ["Não iniciado","Triagem pendente","Triagem concluída","Resumo/Aula em produção","Resumo/Aula aprovado","Lei em produção","Lei aprovada","Jurisprudência em produção","Jurisprudência aprovada","Peça em produção","Peça aprovada","Consolidação final","PDF final gerado","Finalizado","Atualizar depois"];
+const FACTORY_MODULES = ["RESUMO/AULA","LEI","JURISPRUDÊNCIA","PEÇA","COMPLETO"];
+function defaultFactoryModules(modules = {}) { return Object.fromEntries(FACTORY_MODULES.map((name) => [name, { status: modules[name]?.status || "Não iniciado", wordLink: modules[name]?.wordLink || "", pdfLink: modules[name]?.pdfLink || "", notes: modules[name]?.notes || "", completedAt: modules[name]?.completedAt || "" }])); }
+function normalizeFactoryItem(item = {}) { return { id: item.id || createId(), discipline: item.discipline || item.disciplina || "", theme: item.theme || item.tema || "", subtheme: item.subtheme || item.subtema || "", priority: item.priority || item.prioridade || "Média", plannedDate: item.plannedDate || item.dataPlanejada || todayISO(), status: FACTORY_STATUSES.includes(item.status) ? item.status : "Não iniciado", modules: defaultFactoryModules(item.modules || item.modulos || {}), sourceFolder: item.sourceFolder || item.fontePasta || "", finalLink: item.finalLink || item.linkFinal || "", notes: item.notes || item.observacoes || "", updatedAt: item.updatedAt || new Date().toISOString() }; }
+function factoryItemTitle(item) { return [item.theme, item.subtheme].filter(Boolean).join(" — "); }
+function factoryPrompt(kind, item) { const title = factoryItemTitle(item); const map = { triagem: `Tema: ${title}\n\nFaça apenas a TRIAGEM das fontes.\nClassifique cada fonte por módulo:\n1. RESUMO/AULA\n2. LEI\n3. JURISPRUDÊNCIA\n4. PEÇA\n5. ATUALIZAÇÃO / COMPLEMENTO, se houver\n\nNão gere resumo.\nNão gere Word.\nNão gere PDF.`, resumo: `Triagem aprovada.\nAgora gere somente o MÓDULO RESUMO/AULA.\nUse apenas as fontes classificadas como RESUMO/AULA.\nNão gerar lei, jurisprudência, peça ou consolidado.\nSem PCDF.\nSem CEBRASPE.\nUsar “📌 PROVA”.\nAplicar PROMPT RESUMO completo abaixo:\n[COLE AQUI O PROMPT RESUMO COMPLETO]`, lei: `MÓDULO RESUMO/AULA aprovado.\nAgora gere somente o MÓDULO LEI.\nUse apenas as fontes classificadas como LEI.\nUsar artigo como unidade central.\nAplicar PROMPT LEIS completo abaixo:\n[COLE AQUI O PROMPT LEIS COMPLETO]`, jurisprudencia: `MÓDULO RESUMO/AULA aprovado.\nMÓDULO LEI aprovado.\nAgora gere somente o MÓDULO JURISPRUDÊNCIA.\nUse apenas fontes classificadas como JURISPRUDÊNCIA.\nDefinir recorte temático, tribunais e período.\nSem PCDF.\nSem CEBRASPE.\nUsar “📌 PROVA”.\nAplicar PROMPT JURISPRUDÊNCIA completo abaixo:\n[COLE AQUI O PROMPT JURISPRUDÊNCIA COMPLETO]`, peca: `MÓDULO RESUMO/AULA aprovado.\nMÓDULO LEI aprovado.\nMÓDULO JURISPRUDÊNCIA aprovado.\nAgora gere somente o MÓDULO PEÇA.\nUse apenas fontes classificadas como PEÇA.\nNão fazer peça pronta.\nExtrair estrutura, requisitos, fundamentos, pedidos e determinações.\nAplicar PROMPT PEÇAS completo abaixo:\n[COLE AQUI O PROMPT PEÇAS COMPLETO]`, consolidacao: `Os 4 módulos foram aprovados:\n1. RESUMO/AULA\n2. LEI\n3. JURISPRUDÊNCIA\n4. PEÇA\n\nAgora faça a CONSOLIDAÇÃO FINAL em Word.\nNão reescrever como resumo genérico.\nPreservar o padrão de cada módulo.\nOrdem:\n1. RESUMO/AULA\n2. LEI\n3. JURISPRUDÊNCIA\n4. PEÇA\n\nNão inserir PCDF.\nNão inserir CEBRASPE.\nUsar “📌 PROVA”.` }; return `Disciplina: ${item.discipline}\nTema: ${title}\n\n${map[kind] || ""}`; }
+function copyFactoryPrompt(kind, id) { const item = state.factoryItems.find((x) => x.id === id); if (!item) return; const text = factoryPrompt(kind, item); navigator.clipboard?.writeText(text).then(() => alert("Prompt copiado."), () => prompt("Copie o prompt:", text)); }
+function saveFactoryItem(event) { event.preventDefault(); const item = normalizeFactoryItem({ id: elements.factoryEditingId.value || createId(), discipline: elements.factoryDiscipline.value.trim(), theme: elements.factoryTheme.value.trim(), subtheme: elements.factorySubtheme.value.trim(), priority: elements.factoryPriority.value, plannedDate: elements.factoryPlannedDate.value || todayISO(), status: elements.factoryStatus.value, sourceFolder: elements.factorySourceFolder.value.trim(), finalLink: elements.factoryFinalLink.value.trim(), notes: elements.factoryNotes.value.trim(), modules: state.factoryItems.find((x)=>x.id===elements.factoryEditingId.value)?.modules }); const idx = state.factoryItems.findIndex((x)=>x.id===item.id); idx >= 0 ? state.factoryItems.splice(idx, 1, item) : state.factoryItems.push(item); elements.factoryForm.reset(); elements.factoryEditingId.value = ""; elements.factoryPlannedDate.value = todayISO(); render(); autoSyncAfterSave(idx >= 0 ? "factory-update" : "factory-create"); }
+function editFactoryItem(id) { const item = state.factoryItems.find((x)=>x.id===id); if (!item) return; elements.factoryEditingId.value = item.id; elements.factoryDiscipline.value = item.discipline; elements.factoryTheme.value = item.theme; elements.factorySubtheme.value = item.subtheme; elements.factoryPriority.value = item.priority; elements.factoryPlannedDate.value = item.plannedDate; elements.factoryStatus.value = item.status; elements.factorySourceFolder.value = item.sourceFolder; elements.factoryFinalLink.value = item.finalLink; elements.factoryNotes.value = item.notes; showView("fabrica-resumos"); }
+function addFactoryMaterial(item, title, link, type) { if (!link) return alert("Informe um link antes de cadastrar em Materiais."); state.materials.push({ id: createId(), title, discipline: item.discipline, subject: item.theme, type, origin: "Google Drive", link, notes: `Cadastrado pela Fábrica de Resumos (${item.status}).`, date: todayISO(), tags: ["fábrica", "resumo topificado"], updatedAt: new Date().toISOString() }); render(); autoSyncAfterSave("factory-link"); }
+function updateFactoryModule(id, moduleName, field, value) { const item = state.factoryItems.find((x)=>x.id===id); if (!item) return; item.modules = defaultFactoryModules(item.modules); item.modules[moduleName][field] = value; item.updatedAt = new Date().toISOString(); saveData(); autoSyncAfterSave(field.includes("Link") ? "factory-link" : "factory-update"); renderFactory(); }
+function nextFactoryStatus(id) { const item = state.factoryItems.find((x)=>x.id===id); if (!item) return; item.status = FACTORY_STATUSES[Math.min(FACTORY_STATUSES.indexOf(item.status) + 1, FACTORY_STATUSES.length - 1)]; item.updatedAt = new Date().toISOString(); saveData(); render(); autoSyncAfterSave("factory-status"); }
+function filteredFactoryItems() { const term = canonical(elements.factoryFilterText?.value || ""); return state.factoryItems.map(normalizeFactoryItem).filter((item) => (!elements.factoryFilterDiscipline.value || item.discipline === elements.factoryFilterDiscipline.value) && (!elements.factoryFilterPriority.value || item.priority === elements.factoryFilterPriority.value) && (!elements.factoryFilterStatus.value || item.status === elements.factoryFilterStatus.value) && (!elements.factoryFilterDate.value || item.plannedDate === elements.factoryFilterDate.value) && (elements.factoryFilterView.value !== "finalizados" || ["PDF final gerado","Finalizado"].includes(item.status)) && (elements.factoryFilterView.value !== "pendentes" || !["PDF final gerado","Finalizado"].includes(item.status)) && (elements.factoryFilterView.value !== "atualizar" || item.status === "Atualizar depois") && (!term || canonical([item.discipline,item.theme,item.subtheme,item.notes,item.sourceFolder,item.finalLink].join(" ")).includes(term))); }
+function renderFactory() { if (!elements.factoryList) return; state.factoryItems = (state.factoryItems || []).map(normalizeFactoryItem); [elements.factoryStatus, elements.factoryFilterStatus].filter(Boolean).forEach((select) => { const keep = select.value; select.innerHTML = `${select === elements.factoryFilterStatus ? '<option value="">Todos</option>' : ''}${FACTORY_STATUSES.map((s)=>`<option>${s}</option>`).join("")}`; select.value = keep || (select === elements.factoryStatus ? "Não iniciado" : ""); }); setOptions(elements.factoryFilterDiscipline, "Todas", state.factoryItems.map((i)=>i.discipline)); const today = todayISO(); const counts = { total: state.factoryItems.length, pendentes: state.factoryItems.filter(i=>!["PDF final gerado","Finalizado"].includes(i.status)).length, producao: state.factoryItems.filter(i=>/produção|Consolidação/.test(i.status)).length, finalizados: state.factoryItems.filter(i=>["PDF final gerado","Finalizado"].includes(i.status)).length, atrasados: state.factoryItems.filter(i=>i.plannedDate && i.plannedDate < today && !["PDF final gerado","Finalizado"].includes(i.status)).length, atualizar: state.factoryItems.filter(i=>i.status==="Atualizar depois").length }; elements.factorySummary.innerHTML = Object.entries({"Total de temas":counts.total,"Pendentes":counts.pendentes,"Em produção":counts.producao,"Finalizados":counts.finalizados,"Atrasados":counts.atrasados,"Atualizar depois":counts.atualizar}).map(([k,v])=>`<article class="stat-card"><span>${k}</span><strong>${v}</strong></article>`).join(""); const list = filteredFactoryItems(); elements.factoryList.innerHTML = list.map((item)=>`<article class="syllabus-card factory-card"><header><div><h3>${escapeHTML(item.discipline)} — ${escapeHTML(factoryItemTitle(item))}</h3><div class="item-meta">${formatDateBR(item.plannedDate)} • Prioridade ${escapeHTML(item.priority)}</div></div><span class="badge ${item.status==='Finalizado'?'success':item.priority==='Alta'?'danger':'neutral'}">${escapeHTML(item.status)}</span></header><div class="card-meta-grid"><span>Pasta: ${item.sourceFolder ? `<a href="${escapeHTML(item.sourceFolder)}" target="_blank" rel="noopener">abrir fonte</a>` : "-"}</span><span>PDF final: ${item.finalLink ? `<a href="${escapeHTML(item.finalLink)}" target="_blank" rel="noopener">abrir PDF</a>` : "-"}</span><span>Observações: ${escapeHTML(item.notes || "-")}</span></div><div class="factory-modules">${FACTORY_MODULES.map((m)=>{ const mod=item.modules[m]; return `<details><summary>${m} — ${escapeHTML(mod.status)}</summary><div class="form-grid compact"><label>Status<input data-factory-module-field="status" data-id="${item.id}" data-module="${m}" value="${escapeHTML(mod.status)}"></label><label>Word<input data-factory-module-field="wordLink" data-id="${item.id}" data-module="${m}" value="${escapeHTML(mod.wordLink)}"></label><label>PDF<input data-factory-module-field="pdfLink" data-id="${item.id}" data-module="${m}" value="${escapeHTML(mod.pdfLink)}"></label><label>Conclusão<input type="date" data-factory-module-field="completedAt" data-id="${item.id}" data-module="${m}" value="${escapeHTML(mod.completedAt)}"></label><label class="wide">Observação<input data-factory-module-field="notes" data-id="${item.id}" data-module="${m}" value="${escapeHTML(mod.notes)}"></label></div></details>`; }).join("")}</div><div class="card-actions"><button data-factory-edit="${item.id}">Editar</button><button data-factory-next="${item.id}">Marcar próximo status</button><button data-factory-prompt="triagem" data-id="${item.id}">Prompt triagem</button><button data-factory-prompt="resumo" data-id="${item.id}">Prompt Resumo/Aula</button><button data-factory-prompt="lei" data-id="${item.id}">Prompt Lei</button><button data-factory-prompt="jurisprudencia" data-id="${item.id}">Prompt Jurisprudência</button><button data-factory-prompt="peca" data-id="${item.id}">Prompt Peça</button><button data-factory-prompt="consolidacao" data-id="${item.id}">Prompt consolidação</button><button data-factory-material="final" data-id="${item.id}">Cadastrar em Materiais</button><button data-factory-duplicate="${item.id}">Duplicar item</button><button class="danger" data-factory-delete="${item.id}">Excluir</button></div></article>`).join(""); }
+
+function materialTitleById(id) { return state.materials.find((m) => m.id === id)?.title || ""; }
+function timeLogFromStudy(study) {
+  return { id: study.id, source: "study", date: study.date, discipline: subjectNameById(study.subjectId), subject: study.topic, minutes: Number(study.minutes) || 0, plannedMinutes: Number(study.plannedMinutes) || 0, type: studyOriginLabel(study), status: study.topicStatus || "Iniciado", notes: study.difficultyNotes || "", materialId: study.materialId || "", material: materialTitleById(study.materialId) };
+}
+function syncTimeChange(reason) { saveData(); render(); autoSyncAfterSave(reason); }
+function showTimeUndo(action) { lastTimeAction = action; if (elements.timeUndoNotice) elements.timeUndoNotice.hidden = false; }
+function upsertStudyFromPrompts(existing = {}) {
+  const subjectNames = state.subjects.map((s) => s.name).join(", ");
+  const discipline = prompt(`Disciplina (${subjectNames || "cadastre disciplinas se necessário"})`, existing.discipline || subjectNameById(existing.subjectId) || "");
+  if (!discipline) return null;
+  let subject = state.subjects.find((s) => canonical(s.name) === canonical(discipline));
+  if (!subject) { subject = { id: createId(), name: discipline.trim(), goalHours: 0 }; state.subjects.push(subject); }
+  const topic = prompt("Assunto", existing.topic || existing.subject || ""); if (!topic) return null;
+  const date = prompt("Data (AAAA-MM-DD)", existing.date || todayISO()); if (!date || Number.isNaN(Date.parse(`${date}T00:00:00`))) return alert("Data inválida."), null;
+  const minutes = Number(prompt("Duração em minutos", existing.minutes || 0)); if (!Number.isFinite(minutes) || minutes <= 0) return alert("Informe tempo maior que zero."), null;
+  const materialList = state.materials.map((m) => `${m.id}: ${m.title}`).join("\n");
+  const materialId = prompt(`Material vinculado opcional: cole o ID ou deixe vazio\n${materialList}`, existing.materialId || "") || "";
+  const difficultyNotes = prompt("Observação opcional", existing.difficultyNotes || existing.notes || "") || "";
+  const linkedItem = findSyllabusItemByStudy(subject.id, topic);
+  return { ...existing, id: existing.id || createId(), date, subjectId: subject.id, syllabusItemId: linkedItem?.id || existing.syllabusItemId || "", topic, minutes, plannedMinutes: Number(existing.plannedMinutes) || 0, topicStatus: existing.topicStatus || "Iniciado", difficultyNotes, materialId, questions: Number(existing.questions) || 0, correct: Number(existing.correct) || 0, wrong: Number(existing.wrong) || 0, blank: Number(existing.blank) || 0, origin: existing.origin || "manual" };
+}
+function addManualTime() { const study = upsertStudyFromPrompts({ origin: "manual", date: todayISO() }); if (!study) return; state.studies.push(study); syncTimeChange("timer-manual"); }
+function editStudyTime(id) { const idx = state.studies.findIndex((s) => s.id === id); if (idx < 0) return; const before = cloneData(state.studies[idx]); const edited = upsertStudyFromPrompts(state.studies[idx]); if (!edited) return; state.studies[idx] = edited; showTimeUndo({ type: "edit", before, afterId: id }); syncTimeChange("timer-edit"); }
+function deleteStudyTime(id) { const idx = state.studies.findIndex((s) => s.id === id); if (idx < 0) return; if (!confirm("Deseja realmente excluir este tempo salvo?")) return; const [removed] = state.studies.splice(idx, 1); showTimeUndo({ type: "delete", removed, index: idx }); syncTimeChange("timer-delete"); }
+function undoTimeAction() { if (!lastTimeAction) return; if (lastTimeAction.type === "delete") state.studies.splice(lastTimeAction.index, 0, lastTimeAction.removed); if (lastTimeAction.type === "edit") { const idx = state.studies.findIndex((s) => s.id === lastTimeAction.afterId); if (idx >= 0) state.studies[idx] = lastTimeAction.before; } lastTimeAction = null; if (elements.timeUndoNotice) elements.timeUndoNotice.hidden = true; syncTimeChange("timer-edit"); }
+
 function getStudyTimeLogs() {
-  const studyLogs = state.studies.map((study) => ({ date: study.date, discipline: subjectNameById(study.subjectId), subject: study.topic, minutes: Number(study.minutes) || 0, plannedMinutes: Number(study.plannedMinutes) || 0, type: "Estudo", status: study.topicStatus || "Iniciado", notes: study.difficultyNotes || "", materialId: study.materialId || "", material: state.materials.find((m)=>m.id===study.materialId)?.title || "" }));
+  const studyLogs = state.studies.map(timeLogFromStudy);
   const goalLogs = state.dailyGoals.filter((goal) => goalTotalActualMinutes(goal) > 0).map((goal) => ({ date: goal.date, discipline: goal.discipline, subject: goal.subject, minutes: goalTotalActualMinutes(goal), plannedMinutes: Number(goal.minutes) || 0, type: goal.type || goal.tipo || "Meta", status: goal.studyStatus || goal.status || "Iniciado", notes: goal.notes || goal.observacoes || "" }));
   const questionLogs = state.questionLogs.filter((log) => Number(log.minutes) > 0).map((log) => ({ date: log.date, discipline: log.discipline, subject: log.subject, minutes: Number(log.minutes) || 0, plannedMinutes: 0, type: log.trainingType || "Questões", status: "Concluído", notes: log.notes || "" }));
   return [...studyLogs, ...goalLogs, ...questionLogs];
@@ -1474,7 +1552,7 @@ function renderPlanning() {
   elements.weeklyGoalsAlert.textContent = w.total < c.minWeeklyHours ? "Alerta: semana abaixo da meta mínima; compense nas folgas quando possível." : (m.safeDiff !== null && m.safeDiff < 0 ? "Alerta: planejamento atrasado para a margem de segurança." : "Planejamento em dia ou adiantado para a rotina informada.");
   const logs = getStudyTimeLogs().sort((a,b)=>b.date.localeCompare(a.date)); const byDisc = logs.reduce((a,l)=>(a[l.discipline]=(a[l.discipline]||0)+l.minutes,a),{}); const top = Object.entries(byDisc).sort((a,b)=>b[1]-a[1])[0];
   elements.timeHistorySummary.innerHTML = [["Hoje",formatHours(logs.filter(l=>l.date===todayISO()).reduce((s,l)=>s+l.minutes,0))],["Semana",formatHours(logs.filter(l=>isSameWeek(l.date)).reduce((s,l)=>s+l.minutes,0))],["Edital",formatHours(m.totalMinutes)],["Disciplina mais estudada",top?`${top[0]} (${formatHours(top[1])})`:"-"]].map(([a,b])=>`<article class="stat-card"><span>${a}</span><strong>${escapeHTML(b)}</strong></article>`).join("");
-  elements.timeHistoryBody.innerHTML = logs.slice(0,50).map((l)=>`<tr><td>${formatDateBR(l.date)}</td><td>${escapeHTML(l.discipline)}</td><td>${escapeHTML(l.subject)}</td><td>${l.minutes} min</td><td>${escapeHTML(l.type)}</td><td>${escapeHTML(l.status)}</td><td>${escapeHTML(l.material || "-")}</td><td>${escapeHTML(l.notes||"-")}</td></tr>`).join("");
+  elements.timeHistoryBody.innerHTML = logs.slice(0,50).map((l)=>`<tr><td>${formatDateBR(l.date)}</td><td>${escapeHTML(l.discipline)}</td><td>${escapeHTML(l.subject)}</td><td>${l.minutes} min</td><td>${escapeHTML(l.type)}</td><td>${escapeHTML(l.status)}</td><td>${escapeHTML(l.material || "-")}</td><td>${escapeHTML(l.notes||"-")}</td><td>${l.source === "study" ? `<button type="button" data-time-edit="${l.id}">Editar</button> <button class="danger" type="button" data-time-delete="${l.id}">Excluir</button>` : "-"}</td></tr>`).join("");
 }
 
 function renderDashboard() {
@@ -1529,7 +1607,7 @@ function renderSyllabus() {
     elements.syllabusList.appendChild(card);
   });
 }
-function renderSchedulable() { elements.schedulableList.innerHTML = ""; state.syllabusItems.forEach((item) => { const setting = settingFor(item.id); const linked = materialsForTopic(item.discipline, item.subject, item.id); const card = document.createElement("article"); card.className = "syllabus-card"; card.innerHTML = `<header><div><h3>${escapeHTML(item.discipline)} — ${escapeHTML(item.subject)}</h3><div class="item-meta">${escapeHTML(item.topic)} • ${escapeHTML(item.status)} • domínio ${escapeHTML(item.domain)}</div></div><span class="badge ${setting.priority ? "danger" : isSchedulable(item.id) ? "success" : "neutral"}">${setting.priority ? "Prioritário" : setting.availability}</span></header><div class="card-actions"><label>Disponibilidade <select data-setting="availability" data-id="${item.id}"><option ${setting.availability === "Agendável" ? "selected" : ""}>Agendável</option><option ${setting.availability === "Não agendável" ? "selected" : ""}>Não agendável</option></select></label><label>Tipo <select data-setting="mode" data-id="${item.id}"><option ${setting.mode === "Revisão apenas" ? "selected" : ""}>Revisão apenas</option><option ${setting.mode === "Questões apenas" ? "selected" : ""}>Questões apenas</option><option ${setting.mode === "Estudo teórico" ? "selected" : ""}>Estudo teórico</option><option ${setting.mode === "Estudo + questões" ? "selected" : ""}>Estudo + questões</option></select></label><label><input type="checkbox" data-setting="priority" data-id="${item.id}" ${setting.priority ? "checked" : ""}> Assunto prioritário</label></div>${linkedMaterialsHTML(linked)}`; elements.schedulableList.appendChild(card); }); }
+function renderSchedulable() { elements.schedulableList.innerHTML = ""; state.syllabusItems.forEach((item) => { const setting = settingFor(item.id); const linked = materialsForTopic(item.discipline, item.subject, item.id); const card = document.createElement("article"); card.className = "syllabus-card"; card.innerHTML = `<header><div><h3>${escapeHTML(item.discipline)} — ${escapeHTML(item.subject)}</h3><div class="item-meta">${escapeHTML(item.topic)} • ${escapeHTML(item.status)} • domínio ${escapeHTML(item.domain)}</div></div><span class="badge ${setting.priority ? "danger" : isSchedulable(item.id) ? "success" : "neutral"}">${setting.priority ? "Prioritário" : setting.availability}</span></header><div class="card-actions"><label>Disponibilidade <select data-setting="availability" data-id="${item.id}"><option ${setting.availability === "Agendável" ? "selected" : ""}>Agendável</option><option ${setting.availability === "Não agendável" ? "selected" : ""}>Não agendável</option></select></label><label>Tipo <select data-setting="mode" data-id="${item.id}"><option ${setting.mode === "Revisão apenas" ? "selected" : ""}>Revisão apenas</option><option ${setting.mode === "Questões apenas" ? "selected" : ""}>Questões apenas</option><option ${setting.mode === "Estudo teórico" ? "selected" : ""}>Estudo teórico</option><option ${setting.mode === "Estudo + questões" ? "selected" : ""}>Estudo + questões</option></select></label><label><input type="checkbox" data-setting="priority" data-id="${item.id}" ${setting.priority ? "checked" : ""}> Assunto prioritário</label></div>${linkedMaterialsHTML(linked)}<div class="card-actions"><button type="button" data-create-factory-from-syllabus="${item.id}">Criar na Fábrica</button></div>`; elements.schedulableList.appendChild(card); }); }
 
 function lastStudyDateForItem(item) {
   const dates = [
@@ -2011,7 +2089,7 @@ elements.qbReviewByDiscipline?.addEventListener("click", () => qbReviewFilteredB
 elements.qbReviewBySubject?.addEventListener("click", () => qbReviewFilteredBy("assunto"));
 elements.qbToggleErrorHistory?.addEventListener("click", () => { if (elements.qbErrorHistory) elements.qbErrorHistory.open = !elements.qbErrorHistory.open; });
 
-function render() { migrateIncorrectWeakDomains(); renderFloatingTimer(); renderSubjects(); renderGoalSelectors(); renderQuestionSelectors(); renderPlanning(); renderProgressPanel(); renderDashboard(); renderGoalDashboardCards(); renderEdital(); renderSyllabus(); renderSchedulable(); renderDailyGoals(); renderGoalCalendar(); renderCentralGoals(); renderQuestionHistory(); updateQuestionCalculated(); renderMaterials(); updateStudyMaterialOptions(); renderReviews(); renderSmartReviewsDashboard(); renderSmartReviewStandalone(); renderAlerts(); renderHistory(); renderImportPreview(); renderImportedSyllabusGroups(); renderBackupSummary(); renderQuestionBank(); qbRenderErrorNotebook(); renderSimulados(); saveData(); }
+function render() { migrateIncorrectWeakDomains(); renderFloatingTimer(); renderSubjects(); renderGoalSelectors(); renderQuestionSelectors(); renderPlanning(); renderProgressPanel(); renderDashboard(); renderGoalDashboardCards(); renderEdital(); renderSyllabus(); renderSchedulable(); renderDailyGoals(); renderGoalCalendar(); renderCentralGoals(); renderQuestionHistory(); updateQuestionCalculated(); renderMaterials(); updateStudyMaterialOptions(); renderFactory(); renderReviews(); renderSmartReviewsDashboard(); renderSmartReviewStandalone(); renderAlerts(); renderHistory(); renderImportPreview(); renderImportedSyllabusGroups(); renderBackupSummary(); renderQuestionBank(); qbRenderErrorNotebook(); renderSimulados(); saveData(); }
 function syllabusFromValues(values) { return { id: createId(), discipline: values[0]?.trim() || "Sem disciplina", topic: values[1]?.trim() || "Geral", subject: values[2]?.trim() || "Assunto", subtopic: values[3]?.trim() || "", reference: values[4]?.trim() || "", priority: values[5]?.trim() || "Média", weight: normalizeSubjectIncidence(values[6]), status: values[7]?.trim() || "Não iniciado", domain: normalizeImportedDomain(values[8]), notes: values[9]?.trim() || "" }; }
 
 elements.changeMotivation?.addEventListener("click", () => renderMotivationalPhrase());
@@ -2504,6 +2582,10 @@ document.addEventListener("change", async (event) => {
   else state.settings.timerPreferences[key] = input.checked;
   saveTimerPreferences();
 });
+elements.addManualTime?.addEventListener("click", addManualTime);
+elements.undoTimeAction?.addEventListener("click", undoTimeAction);
+elements.timeHistoryBody?.addEventListener("click", (event) => { const edit = event.target.closest("button[data-time-edit]"); if (edit) return editStudyTime(edit.dataset.timeEdit); const del = event.target.closest("button[data-time-delete]"); if (del) return deleteStudyTime(del.dataset.timeDelete); });
+elements.timerMode?.addEventListener("change", () => { if (floatingTimer.goalId && currentTimerSeconds() > 0) { const choice = prompt("Há uma sessão em andamento. Deseja descartar ou salvar antes? Digite salvar ou descartar.", "salvar"); if (choice === "salvar") saveFloatingTimerTime(); else if (choice === "descartar") closeFloatingTimer(); else { elements.timerMode.value = floatingTimer.mode || "countdown"; return; } } state.settings.timerMode = elements.timerMode.value; saveData(); autoSyncAfterSave("timer-settings"); });
 document.addEventListener("click", (event) => { const btn = event.target.closest("button[data-smart-review-action]"); if (!btn) return; saveSmartReviewAction(btn.dataset.id, btn.dataset.smartReviewAction === "done" ? "revisado" : "adiado"); });
 document.addEventListener("change", (event) => { const input = event.target.closest("input[data-smart-review-time]"); if (!input) return; upsertSmartReviewTime(input.dataset.id, input.dataset.smartReviewTime, input.value); });
 elements.viewDayPlan?.addEventListener("click", () => { elements.goalDate.value = todayISO(); renderDailyGoals(); showView("metas-do-dia"); });
@@ -2543,6 +2625,11 @@ if (elements.materialForm) elements.materialForm.addEventListener("submit", save
 elements.materialDiscipline?.addEventListener("input", renderMaterialSelectors);
 elements.studySubject?.addEventListener("change", updateStudyMaterialOptions);
 elements.studyTopic?.addEventListener("input", updateStudyMaterialOptions);
+elements.factoryForm?.addEventListener("submit", saveFactoryItem);
+[elements.factoryFilterDiscipline, elements.factoryFilterPriority, elements.factoryFilterStatus, elements.factoryFilterDate, elements.factoryFilterView, elements.factoryFilterText].filter(Boolean).forEach((filter) => filter.addEventListener("input", renderFactory));
+document.addEventListener("change", (event) => { const field = event.target.closest("[data-factory-module-field]"); if (field) updateFactoryModule(field.dataset.id, field.dataset.module, field.dataset.factoryModuleField, field.value); });
+document.addEventListener("click", (event) => { const edit = event.target.closest("[data-factory-edit]"); const next = event.target.closest("[data-factory-next]"); const del = event.target.closest("[data-factory-delete]"); const dup = event.target.closest("[data-factory-duplicate]"); const promptBtn = event.target.closest("[data-factory-prompt]"); const mat = event.target.closest("[data-factory-material]"); const fromSyllabus = event.target.closest("[data-create-factory-from-syllabus]"); if (fromSyllabus) { const item = getSyllabusById(fromSyllabus.dataset.createFactoryFromSyllabus); if (item) { state.factoryItems.push(normalizeFactoryItem({ discipline: item.discipline, theme: item.subject, subtheme: item.subtopic || item.topic || "", priority: item.priority || "Média", plannedDate: todayISO(), status: "Não iniciado", notes: item.reference || "" })); render(); showView("fabrica-resumos"); autoSyncAfterSave("factory-create"); } } if (edit) editFactoryItem(edit.dataset.factoryEdit); if (next) nextFactoryStatus(next.dataset.factoryNext); if (promptBtn) copyFactoryPrompt(promptBtn.dataset.factoryPrompt, promptBtn.dataset.id); if (dup) { const item = state.factoryItems.find((x)=>x.id===dup.dataset.factoryDuplicate); if (item) { state.factoryItems.push({ ...cloneData(item), id: createId(), theme: `${item.theme} (cópia)`, updatedAt: new Date().toISOString() }); render(); autoSyncAfterSave("factory-create"); } } if (mat) { const item = state.factoryItems.find((x)=>x.id===mat.dataset.id); if (item) addFactoryMaterial(item, `${item.theme} — PDF final`, item.finalLink, "PDF"); } if (del && confirm("Excluir este item da Fábrica?")) { state.factoryItems = state.factoryItems.filter((x)=>x.id!==del.dataset.factoryDelete); render(); autoSyncAfterSave("factory-delete"); } });
+
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin, elements.materialFilterText].filter(Boolean).forEach((filter) => filter.addEventListener("input", renderMaterials));
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin].filter(Boolean).forEach((filter) => filter.addEventListener("change", renderMaterials));
 document.addEventListener("click", (event) => { const open = event.target.closest("button[data-open-material]"); const create = event.target.closest("button[data-create-goal-material]"); const edit = event.target.closest("button[data-edit-material]"); const del = event.target.closest("button[data-delete-material]"); if (open) openMaterial(open.dataset.openMaterial); if (create) startMaterialForGoal(create.dataset.discipline, create.dataset.subject); if (edit) editMaterial(edit.dataset.editMaterial); if (del && confirm("Excluir este material?")) { state.materials = state.materials.filter((m)=>m.id!==del.dataset.deleteMaterial); render(); } });
@@ -2589,6 +2676,7 @@ function renderView(viewId) {
     "edital-verticalizado": renderSyllabus,
     "importar-edital": renderImportPreview,
     materiais: renderMaterials,
+    "fabrica-resumos": renderFactory,
     "assuntos-agendaveis": renderSchedulable,
     "central-metas": renderCentralGoals,
     "metas-do-dia": () => { renderGoalSelectors(); renderDailyGoals(); },
@@ -2667,7 +2755,9 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") setMobileMenuOpen(false);
 });
 
+window.addEventListener("beforeunload", persistFloatingTimerSession);
 window.addEventListener("hashchange", () => showView(hashToView()));
+restoreFloatingTimerSession();
 showView(hashToView(), { skipScroll: true, keepMenuOpen: true });
 
 function registerServiceWorker() {
