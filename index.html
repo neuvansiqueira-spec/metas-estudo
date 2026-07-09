@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260709-fix-site-freeze" />
+  <link rel="stylesheet" href="style.css?v=20260709-fabrica-minima" />
 </head>
 <body>
   <header class="hero">
@@ -365,30 +365,19 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
 
 
     <section id="view-fabrica-resumos" class="panel app-view" data-view="fabrica-resumos" aria-labelledby="factory-title">
-      <div class="section-heading"><p class="eyebrow">Agenda da Fábrica</p><h2 id="factory-title">🏭 Fábrica de Resumos</h2></div>
-      <p class="notice">Controle a produção dos resumos topificados: triagem, módulos, links Word/PDF, consolidação, atualização futura e cadastro em Materiais.</p>
+      <div class="section-heading"><p class="eyebrow">Fábrica</p><h2 id="factory-title">🏭 Fábrica de Resumos</h2></div>
+      <p class="notice">Versão mínima e segura para cadastrar, listar, editar, excluir e acompanhar o status dos temas. Os dados são salvos no localStorage, entram no backup manual e seguem na sincronização Google Drive pelo estado do app.</p>
       <div id="factorySummary" class="stats-grid compact factory-summary" aria-live="polite"></div>
       <form id="factoryForm" class="form-grid factory-form">
         <input id="factoryEditingId" type="hidden" />
         <label>Disciplina<input id="factoryDiscipline" type="text" placeholder="Processo Penal" required /></label>
         <label>Tema<input id="factoryTheme" type="text" placeholder="Inquérito Policial" required /></label>
-        <label>Subtema<input id="factorySubtheme" type="text" placeholder="Lei nº 12.830/2013" /></label>
         <label>Prioridade<select id="factoryPriority"><option>Alta</option><option selected>Média</option><option>Baixa</option></select></label>
+        <label>Status<select id="factoryStatus"></select></label>
         <label>Data planejada<input id="factoryPlannedDate" type="date" /></label>
-        <label>Status geral<select id="factoryStatus"></select></label>
-        <label class="wide">Fonte / Pasta Google Drive<input id="factorySourceFolder" type="url" placeholder="https://drive.google.com/..." /></label>
-        <label class="wide">Link do material final<input id="factoryFinalLink" type="url" placeholder="PDF completo" /></label>
-        <label class="wide">Observações<textarea id="factoryNotes" rows="3" placeholder="lacuna de fonte, falta revisar, atualizar com lei nova depois..."></textarea></label>
-        <button class="wide" type="submit">Adicionar tema</button>
+        <label class="wide">Observação<textarea id="factoryNotes" rows="3" placeholder="Observações sobre o tema..."></textarea></label>
+        <button class="wide" type="submit">+ Adicionar tema</button>
       </form>
-      <div class="filters form-grid compact">
-        <label>Disciplina<select id="factoryFilterDiscipline"><option value="">Todas</option></select></label>
-        <label>Prioridade<select id="factoryFilterPriority"><option value="">Todas</option><option>Alta</option><option>Média</option><option>Baixa</option></select></label>
-        <label>Status<select id="factoryFilterStatus"><option value="">Todos</option></select></label>
-        <label>Data planejada<input id="factoryFilterDate" type="date" /></label>
-        <label>Visão<select id="factoryFilterView"><option value="">Todos</option><option value="finalizados">Materiais finalizados</option><option value="pendentes">Materiais pendentes</option><option value="atualizar">Atualização futura</option></select></label>
-        <label class="wide">Buscar<input id="factoryFilterText" type="search" placeholder="Tema, subtema, observações ou link" /></label>
-      </div>
       <div id="factoryList" class="cards-list factory-list empty-message" aria-live="polite"></div>
     </section>
 
@@ -758,8 +747,8 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </div>
   </aside>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260709-fix-site-freeze</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260709-fabrica-minima</p></footer>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="script.js?v=20260709-fix-site-freeze"></script>
+  <script src="script.js?v=20260709-fabrica-minima"></script>
 </body>
 </html>
