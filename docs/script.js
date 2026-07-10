@@ -75,6 +75,12 @@ function normalizePlanningState(planning = {}) {
 }
 const defaultTimerPreferences = { visualAlerts: true, sound: false, vibration: true, browserNotifications: false };
 const defaultFactoryPromptLibrary = { triagem: "", resumoAula: "", lei: "", jurisprudencia: "", peca: "", consolidacao: "" };
+const OLD_LEI_RECORTE_PROMPT = [
+  "RECORTE: se houver edital/programa/recorte, trabalhe somente os artigos e temas indicados.",
+  "Se não houver, trabalhe a lei",
+  "amplamente, priorizando todos os artigos juridicamente relevantes."
+].join(" ");
+const NEW_LEI_RECORTE_PROMPT = "RECORTE: trabalhe somente os artigos e temas expressamente indicados. Se o recorte não estiver cadastrado ou estiver impreciso, interrompa a geração e solicite confirmação. Somente trabalhe a lei integralmente quando houver autorização expressa do usuário.";
 const FACTORY_LIBRARY_FALLBACK = "[PROMPT COMPLETO AINDA NÃO CADASTRADO NA BIBLIOTECA DA FÁBRICA]";
 const defaultState = { subjects: [], studies: [], edital: { pdf: null }, syllabusItems: [], schedulableSettings: {}, dailyGoals: [], questionLogs: [], smartReviews: [], simulados: [], planning: cloneData(defaultPlanning), settings: { defaultMockGoal: 92, timerPreferences: cloneData(defaultTimerPreferences) }, materials: [], questionBank: [], questionBankSessions: [], questionErrorNotebook: [], disciplineWeights: {}, monthlyGoals: {}, timerSession: null, factoryItems: [], factoryAgenda: [], factoryPromptLibrary: cloneData(defaultFactoryPromptLibrary) };
 function readJSONStorage(key, fallback) {
@@ -119,8 +125,12 @@ state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timer
 state.materials ||= [];
 state.factoryItems ||= [];
 state.factoryAgenda ||= [];
-state.factoryPromptLibrary = { ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) };
+state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) });
 state.migrations ||= {};
+if (!state.migrations.leiRecortePromptV2 && state.factoryPromptLibrary?.lei?.includes(NEW_LEI_RECORTE_PROMPT)) {
+  state.migrations.leiRecortePromptV2 = new Date().toISOString();
+  saveData();
+}
 
 
 function normalizeTimerPreferences(preferences = {}) {
@@ -823,7 +833,7 @@ function renderBackupPreview(payload) {
   return normalized;
 }
 function replaceState(nextState) { Object.keys(state).forEach((key) => delete state[key]); Object.assign(state, { ...cloneData(defaultState), ...(nextState || {}) }); state.edital = { ...defaultState.edital, ...(state.edital || {}) }; state.syllabusItems ||= []; state.schedulableSettings ||= {}; state.dailyGoals ||= []; state.questionLogs ||= []; state.questionBank ||= []; state.questionBankSessions ||= []; state.questionErrorNotebook ||= carregarCadernoErros();
-state.smartReviews ||= []; state.simulados ||= []; state.planning = normalizePlanningState(state.planning); state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences); state.settings.timerMode ||= "countdown"; state.materials ||= []; state.factoryItems ||= []; state.factoryAgenda ||= []; state.factoryPromptLibrary = { ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) }; state.disciplineWeights ||= {}; state.monthlyGoals ||= {}; }
+state.smartReviews ||= []; state.simulados ||= []; state.planning = normalizePlanningState(state.planning); state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences); state.settings.timerMode ||= "countdown"; state.materials ||= []; state.factoryItems ||= []; state.factoryAgenda ||= []; state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) }); state.disciplineWeights ||= {}; state.monthlyGoals ||= {}; }
 function mergeArrays(current = [], incoming = [], keyFn = (item) => item?.id || JSON.stringify(item)) { const seen = new Set(current.map(keyFn)); incoming.forEach((item) => { const key = keyFn(item); if (!seen.has(key)) { current.push(item); seen.add(key); } }); return current; }
 function mergeBackupData(data = {}) {
   mergeArrays(state.subjects, data.subjects || [], (item) => canonical(item.name || item.id));
@@ -1443,8 +1453,15 @@ function factoryPromptContext(item = {}) {
   return `Disciplina: ${item.disciplina || "[DISCIPLINA]"}
 Tema: ${item.tema || "[TEMA]"}`;
 }
+function migrateFactoryPromptLibraryLeiRecorte(library = {}) {
+  const normalized = { ...library };
+  if (typeof normalized.lei === "string" && normalized.lei.includes(OLD_LEI_RECORTE_PROMPT)) {
+    normalized.lei = normalized.lei.split(OLD_LEI_RECORTE_PROMPT).join(NEW_LEI_RECORTE_PROMPT);
+  }
+  return normalized;
+}
 function normalizeFactoryPromptLibrary(library = {}) {
-  return Object.fromEntries(Object.keys(defaultFactoryPromptLibrary).map((key) => [key, String(library?.[key] || "") ]));
+  return migrateFactoryPromptLibraryLeiRecorte(Object.fromEntries(Object.keys(defaultFactoryPromptLibrary).map((key) => [key, String(library?.[key] || "") ])));
 }
 function factoryPromptBase(type) {
   const text = String(state.factoryPromptLibrary?.[type] || "").trim();
