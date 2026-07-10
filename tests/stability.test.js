@@ -306,3 +306,8 @@ test('auto-sync do cronômetro mantém pendência quando autorização Google ex
   assert.match(script, /Alterações pendentes enviadas para a nuvem\./);
   assert.match(script, /pendingSync: false, pendingSyncReason: "", lastAutoSyncAt: new Date\(\)\.toISOString\(\), lastAutoSyncReason: meta\.pendingSyncReason/);
 });
+
+test('Prompt Lei inicia com comando aprovado e sem status anterior no cabeçalho específico', () => {
+  assert.match(script, /const leiCommon = `MÓDULO RESUMO\/AULA aprovado\.\\n\\nAgora gere somente o MÓDULO LEI\.\\n\\nUse apenas as fontes classificadas como LEI na triagem\./);
+  assert.match(script, /lei: `\$\{leiCommon\}\\n\\nMÓDULO: LEI/);
+});
