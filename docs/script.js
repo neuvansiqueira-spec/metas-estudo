@@ -624,7 +624,8 @@ function renderSyncStatus(message = "") {
   ];
   const expiredAuthorization = meta.connected && !hasValidGoogleDriveAccessToken();
   const notice = !configured ? (message || meta.error || "Sincronização Google Drive ainda não configurada.") : (message || meta.error || (expiredAuthorization ? authorizationMessage : "Pronto."));
-  elements.syncStatus.innerHTML = `<div class="sync-status-grid">${rows.map(([label, value]) => `<article><span>${escapeHTML(label)}</span><strong>${escapeHTML(value)}</strong></article>`).join("")}</div><p class="sync-message ${meta.error || !configured || expiredAuthorization ? "sync-error" : "sync-success"}">${escapeHTML(notice)}</p>`;
+  const details = meta.errorDetails ? `<details class="sync-error-details"><summary>Ver detalhes do erro</summary><pre>${escapeHTML(meta.errorDetails)}</pre></details>` : "";
+  elements.syncStatus.innerHTML = `<div class="sync-status-grid">${rows.map(([label, value]) => `<article><span>${escapeHTML(label)}</span><strong>${escapeHTML(value)}</strong></article>`).join("")}</div><p class="sync-message ${meta.error || !configured || expiredAuthorization ? "sync-error" : "sync-success"}">${escapeHTML(notice)}</p>${details}`;
 }
 let googleDriveAccessToken = "";
 let googleDriveTokenExpiresAt = 0;
@@ -732,7 +733,7 @@ async function runAutoSyncAfterSave(reason) {
       const remoteDate = new Date(syncPayloadUpdatedAt(remote, file.modifiedTime) || 0);
       const lastSyncDate = new Date(meta.lastSyncAt || 0);
       if (remoteDate > lastSyncDate && remote.deviceId !== getDeviceId()) {
-        const message = "Existe versão mais nova na nuvem. Escolha baixar dados da nuvem ou enviar este dispositivo.";
+        const message = "Existem dados mais recentes no Google Drive. Escolha baixar dados da nuvem ou enviar este dispositivo.";
         writeSyncMeta({ remoteUpdatedAt: syncPayloadUpdatedAt(remote, file.modifiedTime), cloudDataUpdatedAt: syncPayloadUpdatedAt(remote, file.modifiedTime), remoteDeviceName: remote.deviceName || "", error: message });
         renderSyncStatus(message);
         return;
@@ -757,11 +758,76 @@ function autoSyncAfterSave(reason = "alteração") {
   clearTimeout(autoSyncTimer);
   return runAutoSyncAfterSave(pendingAutoSyncReason);
 }
-async function pullSyncPayload() { if (isSyncing) throw new Error("sincronização em andamento"); isSyncing = true; try { const file = await findSyncFile(); if (!file) throw new Error("arquivo remoto inexistente"); const payload = await downloadSyncFile(file.id); const cloudDataUpdatedAt = syncPayloadUpdatedAt(payload, file.modifiedTime); writeSyncMeta({ connected: true, remoteUpdatedAt: cloudDataUpdatedAt, cloudDataUpdatedAt, remoteDeviceName: payload.deviceName || "", error: "" }); renderSyncStatus("Dados da nuvem encontrados."); return payload; } finally { isSyncing = false; } }
-function applyCloudPayload(payload) { if (payload?.app !== "metas-estudo" || !payload.state) throw new Error("Arquivo remoto inválido."); isApplyingRemote = true; try { const cloudDataUpdatedAt = syncPayloadUpdatedAt(payload); const safetyBackup = JSON.stringify(makeBackupPayload()); clearProjectLocalStorage(); localStorage.setItem("metasEstudoBackupAntesDaSincronizacao", safetyBackup); replaceState(payload.state); saveData({ skipSyncTimestamp: true }); writeSyncMeta({ connected: true, pendingSync: false, pendingSyncReason: null, localDirty: false, lastLocalUpdateAt: cloudDataUpdatedAt, localDataUpdatedAt: cloudDataUpdatedAt, lastSyncAt: new Date().toISOString(), lastAutoSyncError: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", remoteUpdatedAt: cloudDataUpdatedAt, cloudDataUpdatedAt, remoteDeviceName: payload.deviceName || "", error: "" }); suppressAutoChecksAfterSync(); render(); showView("backup"); renderSyncStatus("Dados atualizados pela nuvem."); } finally { isApplyingRemote = false; } }
-async function syncNow() { if (!canRunAutoSyncChecks()) return; try { const remote = await pullSyncPayload(); const meta = readSyncMeta(); const localDate = new Date(localDataUpdatedAt(meta) || 0); const remoteDate = new Date(syncPayloadUpdatedAt(remote) || 0); if (+remoteDate === +localDate) return renderSyncStatus("Tudo sincronizado."); if (hasLocalSyncPending(meta) && remote.deviceId !== getDeviceId()) { const pendingChoice = await resolvePendingLocalSyncBeforeCloudDownload(meta); if (pendingChoice === "download") applyCloudPayload(remote); return; } if (remoteDate > localDate) { const choice = askSyncChoice("Existe versão mais nova na nuvem. Deseja atualizar este dispositivo?", ["Baixar versão da nuvem", "Cancelar"]); if (choice === "Baixar versão da nuvem") applyCloudPayload(remote); else renderSyncStatus("Sincronização cancelada pelo usuário."); } else if (localDate > remoteDate) { const choice = askSyncChoice("Este dispositivo tem versão mais nova. Deseja enviar para a nuvem?", ["Enviar este dispositivo para a nuvem", "Cancelar"]); if (choice === "Enviar este dispositivo para a nuvem") await uploadSyncPayload(makeSyncPayload()); else renderSyncStatus("Sincronização cancelada pelo usuário."); } } catch (error) { const message = syncErrorMessage(error, error.message === "arquivo remoto inexistente" ? "Arquivo remoto inexistente." : "Erro ao sincronizar."); writeSyncMeta({ error: message }); renderSyncStatus(message); } }
+
+function isQuotaExceededError(error) {
+  return error?.name === "QuotaExceededError" || error?.name === "NS_ERROR_DOM_QUOTA_REACHED" || /quota|exceeded|storage/i.test(String(error?.message || error || ""));
+}
+function cloudSyncError(kind, userMessage, error) {
+  const wrapped = new Error(userMessage);
+  wrapped.cloudSyncKind = kind;
+  wrapped.details = String(error?.stack || error?.message || error || userMessage);
+  return wrapped;
+}
+function classifyCloudSyncError(error, fallback = "Erro de sincronização.") {
+  const kind = error?.cloudSyncKind || (isQuotaExceededError(error) ? "quota" : "generic");
+  const raw = String(error?.message || error || "");
+  const message = syncErrorMessage(error, raw || fallback);
+  const byKind = {
+    query: "Erro ao consultar a nuvem. Verifique a conexão e tente novamente.",
+    download: "Erro ao baixar o arquivo do Google Drive. Tente novamente.",
+    invalid: "Arquivo remoto inválido. Os dados locais foram preservados.",
+    quota: "Falta de espaço no navegador. Libere espaço, exporte um backup e tente novamente.",
+    backup: "Erro ao criar backup de segurança. Os dados locais foram preservados.",
+    apply: "Erro ao aplicar os dados da nuvem. Os dados locais foram preservados."
+  };
+  return { message: byKind[kind] || message || fallback, details: error?.details || String(error?.stack || raw || fallback), kind };
+}
+function recordCloudSyncError(error, fallback) {
+  const info = classifyCloudSyncError(error, fallback);
+  const now = new Date().toISOString();
+  writeSyncMeta({ error: info.message, errorDetails: info.details, lastCloudDialogAt: now, lastCloudErrorAt: now, lastCloudErrorKind: info.kind });
+  suppressAutoCheckUntil = Date.now() + 60000;
+  renderSyncStatus(info.message);
+  return info.message;
+}
+function validateCloudPayload(payload) {
+  if (payload?.app !== "metas-estudo" || payload.schemaVersion !== 1 || !payload.state || typeof payload.state !== "object" || Array.isArray(payload.state)) {
+    throw cloudSyncError("invalid", "Arquivo remoto inválido. Os dados locais foram preservados.");
+  }
+  const updatedAt = syncPayloadUpdatedAt(payload);
+  if (!updatedAt || Number.isNaN(Date.parse(updatedAt))) throw cloudSyncError("invalid", "Arquivo remoto inválido. Os dados locais foram preservados.");
+}
+function writeCloudStateTransaction(nextState, payload) {
+  const tempKey = `${STORAGE_KEY}__cloud_tmp`;
+  const nextData = { ...cloneData(defaultState), ...(nextState || {}) };
+  const mainValue = JSON.stringify(nextData);
+  const simuladosValue = JSON.stringify(nextData.simulados || []);
+  const cadernoValue = JSON.stringify(nextData.questionErrorNotebook || []);
+  const previousValues = new Map([STORAGE_KEY, SIMULADOS_STORAGE_KEY, CADERNO_ERROS_STORAGE_KEY].map((key) => [key, localStorage.getItem(key)]));
+  try {
+    localStorage.setItem("metasEstudoBackupAntesDaSincronizacao", JSON.stringify({ app: "metas-estudo", createdAt: new Date().toISOString(), source: "cloud-sync", previousLocalUpdatedAt: localDataUpdatedAt(readSyncMeta()) }));
+  } catch (error) {
+    throw cloudSyncError(isQuotaExceededError(error) ? "quota" : "backup", isQuotaExceededError(error) ? "Falta de espaço no navegador. Libere espaço, exporte um backup e tente novamente." : "Erro ao criar backup de segurança. Os dados locais foram preservados.", error);
+  }
+  try {
+    localStorage.setItem(tempKey, mainValue);
+    localStorage.setItem(STORAGE_KEY, localStorage.getItem(tempKey));
+    localStorage.setItem(SIMULADOS_STORAGE_KEY, simuladosValue);
+    localStorage.setItem(CADERNO_ERROS_STORAGE_KEY, cadernoValue);
+    localStorage.removeItem(tempKey);
+  } catch (error) {
+    try {
+      localStorage.removeItem(tempKey);
+      previousValues.forEach((value, key) => { if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value); });
+    } catch (_) {}
+    throw cloudSyncError(isQuotaExceededError(error) ? "quota" : "apply", isQuotaExceededError(error) ? "Falta de espaço no navegador. Libere espaço, exporte um backup e tente novamente." : "Erro ao aplicar os dados da nuvem. Os dados locais foram preservados.", error);
+  }
+}
+async function pullSyncPayload() { if (isSyncing) throw new Error("sincronização em andamento"); isSyncing = true; try { let file; try { file = await findSyncFile(); } catch (error) { throw cloudSyncError("query", "Erro ao consultar a nuvem. Verifique a conexão e tente novamente.", error); } if (!file) throw cloudSyncError("query", "Arquivo remoto inexistente."); let payload; try { payload = await downloadSyncFile(file.id); } catch (error) { throw cloudSyncError("download", "Erro ao baixar o arquivo do Google Drive. Tente novamente.", error); } validateCloudPayload(payload); const cloudDataUpdatedAt = syncPayloadUpdatedAt(payload, file.modifiedTime); writeSyncMeta({ connected: true, remoteUpdatedAt: cloudDataUpdatedAt, cloudDataUpdatedAt, remoteDeviceName: payload.deviceName || "", error: "", errorDetails: "" }); renderSyncStatus("Dados da nuvem encontrados."); return payload; } finally { isSyncing = false; } }
+function applyCloudPayload(payload) { isApplyingRemote = true; try { validateCloudPayload(payload); const cloudDataUpdatedAt = syncPayloadUpdatedAt(payload); writeCloudStateTransaction(payload.state, payload); replaceState(payload.state); writeSyncMeta({ connected: true, pendingSync: false, pendingSyncReason: null, localDirty: false, lastLocalUpdateAt: cloudDataUpdatedAt, localDataUpdatedAt: cloudDataUpdatedAt, lastSyncAt: new Date().toISOString(), lastAutoSyncError: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", remoteUpdatedAt: cloudDataUpdatedAt, cloudDataUpdatedAt, remoteDeviceName: payload.deviceName || "", error: "", errorDetails: "", lastCloudDialogAt: "" }); suppressAutoChecksAfterSync(); render(); showView("backup"); renderSyncStatus("Dados atualizados pela nuvem."); } catch (error) { if (!error.cloudSyncKind) throw cloudSyncError("apply", "Erro ao aplicar os dados da nuvem. Os dados locais foram preservados.", error); throw error; } finally { isApplyingRemote = false; } }
+async function syncNow() { if (!canRunAutoSyncChecks()) return; try { const remote = await pullSyncPayload(); const meta = readSyncMeta(); const localDate = new Date(localDataUpdatedAt(meta) || 0); const remoteDate = new Date(syncPayloadUpdatedAt(remote) || 0); if (+remoteDate === +localDate) return renderSyncStatus("Tudo sincronizado."); if (hasLocalSyncPending(meta) && remote.deviceId !== getDeviceId()) { const pendingChoice = await resolvePendingLocalSyncBeforeCloudDownload(meta); if (pendingChoice === "download") applyCloudPayload(remote); return; } if (remoteDate > localDate) { const choice = askSyncChoice("Existem dados mais recentes no Google Drive.", ["Baixar versão da nuvem", "Cancelar"]); if (choice === "Baixar versão da nuvem") applyCloudPayload(remote); else renderSyncStatus("Sincronização cancelada pelo usuário."); } else if (localDate > remoteDate) { const choice = askSyncChoice("Este dispositivo tem versão mais nova. Deseja enviar para a nuvem?", ["Enviar este dispositivo para a nuvem", "Cancelar"]); if (choice === "Enviar este dispositivo para a nuvem") await uploadSyncPayload(makeSyncPayload()); else renderSyncStatus("Sincronização cancelada pelo usuário."); } } catch (error) { recordCloudSyncError(error, "Erro ao sincronizar."); } }
 function hasPendingLocalChanges(meta = readSyncMeta()) { return new Date(localDataUpdatedAt(meta) || 0) > new Date(meta.cloudDataUpdatedAt || meta.remoteUpdatedAt || 0); }
-function handleCloudConflict(remote, contextMessage = "Existe versão mais nova na nuvem. Deseja atualizar este dispositivo?") {
+function handleCloudConflict(remote, contextMessage = "Existem dados mais recentes no Google Drive.") {
   const choice = askSyncChoice(contextMessage, ["Baixar versão da nuvem", "Cancelar"]);
   if (choice === "Baixar versão da nuvem") applyCloudPayload(remote);
   else renderSyncStatus("Atualização da nuvem cancelada pelo usuário.");
@@ -805,19 +871,17 @@ async function checkCloudForNewerVersion(context = "open") {
       return;
     }
     if (+remoteDate === +localDate) renderSyncStatus("Tudo sincronizado.");
-    else if (remoteDate > localDate && remote.deviceId !== getDeviceId()) handleCloudConflict(remote, "Existe versão mais nova na nuvem. Deseja atualizar este dispositivo?");
+    else if (remoteDate > localDate && remote.deviceId !== getDeviceId()) handleCloudConflict(remote, "Existem dados mais recentes no Google Drive.");
     else if (localDate > remoteDate) renderSyncStatus("Este dispositivo tem versão mais nova. Use Enviar para a nuvem para sincronizar.");
     else renderSyncStatus("Google Drive conectado e pronto para sincronizar.");
   } catch (error) {
-    const message = syncErrorMessage(error, "Não foi possível verificar versão nova na nuvem.");
-    writeSyncMeta({ error: message });
-    renderSyncStatus(message);
+    recordCloudSyncError(error, "Erro ao consultar a nuvem.");
   } finally {
     cloudAutoCheckRunning = false;
   }
 }
 async function checkCloudForUpdatesAfterAuth() { return checkCloudForNewerVersion("after-auth"); }
-async function forcePullFromCloud() { if (!confirm("Baixar dados da nuvem e substituir os dados deste dispositivo? Um backup local automático será criado antes.")) return; try { applyCloudPayload(await pullSyncPayload()); } catch (error) { const message = syncErrorMessage(error, "Erro ao baixar."); writeSyncMeta({ error: message }); renderSyncStatus(message); } }
+async function forcePullFromCloud() { if (!confirm("Baixar dados da nuvem e substituir os dados deste dispositivo? Um backup local automático será criado antes.")) return; try { applyCloudPayload(await pullSyncPayload()); } catch (error) { recordCloudSyncError(error, "Erro ao baixar."); } }
 async function forcePushToCloud() { if (!confirm("Enviar o estado atual deste dispositivo para a nuvem?")) return; try { await uploadSyncPayload(makeSyncPayload()); } catch (error) { const message = syncErrorMessage(error, "Erro ao enviar."); writeSyncMeta({ error: message }); renderSyncStatus(message); } }
 async function sendPendingSyncAfterConnect() {
   const meta = readSyncMeta();

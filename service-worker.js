@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-20260710-timer-alert-volume-v2";
+const CACHE_NAME = "metas-estudo-20260710-cloud-sync-loop-fix1";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
