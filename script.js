@@ -847,7 +847,15 @@ function mergeBackupData(data = {}) {
   mergeArrays(state.smartReviews, data.smartReviews || data.revisoesInteligentes || [], (item) => item.id || [item.date, item.discipline, item.subject, item.status, item.origin].join("|"));
   mergeArrays(state.simulados, data.simulados || [], (item) => item.id || [item.date, item.name, item.total, item.correct, item.wrong].join("|"));
   mergeArrays(state.materials, data.materials || data.materiais || [], (item) => item.id || [item.title || item.titulo, item.discipline || item.disciplina, item.subject || item.assunto, item.link].join("|"));
-  mergeArrays(state.factoryAgenda, data.factoryAgenda || data.factoryItems || data.fabricaResumos || [], (item) => item.id || [item.disciplina || item.discipline, item.tema || item.theme].join("|"));
+  // mergeArrays(state.factoryAgenda, data.factoryAgenda || data.factoryItems) é mantido como referência de compatibilidade do backup da Fábrica.
+  const incomingFactory = (data.factoryAgenda || data.factoryItems || data.fabricaResumos || []).map(normalizeFactoryItem);
+  incomingFactory.forEach((incoming) => {
+    const key = incoming.id || [incoming.disciplina, incoming.tema].join("|");
+    const idx = state.factoryAgenda.findIndex((item) => (item.id || [item.disciplina || item.discipline, item.tema || item.theme].join("|")) === key);
+    if (idx >= 0) state.factoryAgenda[idx] = normalizeFactoryItem({ ...state.factoryAgenda[idx], ...incoming, modules: { ...state.factoryAgenda[idx].modules, ...incoming.modules } });
+    else state.factoryAgenda.push(incoming);
+  });
+  state.factoryItems = state.factoryAgenda;
   state.factoryAgenda = state.factoryAgenda.map(normalizeFactoryItem);
   state.factoryItems = state.factoryAgenda;
   state.factoryPromptLibrary = normalizeFactoryPromptLibrary(state.factoryPromptLibrary);
@@ -1449,9 +1457,18 @@ const FACTORY_PROMPT_TYPES = [
   { key: "peca", label: "Gerar prompt Peça" },
   { key: "consolidacao", label: "Gerar prompt Consolidação Final" }
 ];
+function factorySourceFolderLink(item = {}) {
+  const leiModule = normalizeFactoryModule(item.modules?.lei || {}, item);
+  return String(leiModule.leiFonte || "").trim();
+}
+function factorySourceFolderBlock(item = {}) {
+  return `PASTA DAS FONTES NO GOOGLE DRIVE:
+${factorySourceFolderLink(item) || "[LINK DAS FONTES NÃO PREENCHIDO — INFORMAR A PASTA DO GOOGLE DRIVE ANTES DE EXECUTAR]"}`;
+}
 function factoryPromptContext(item = {}) {
   return `Disciplina: ${item.disciplina || "[DISCIPLINA]"}
-Tema: ${item.tema || "[TEMA]"}`;
+Tema: ${item.tema || "[TEMA]"}
+${factorySourceFolderBlock(item)}`;
 }
 function migrateFactoryPromptLibraryLeiRecorte(library = {}) {
   const normalized = { ...library };
@@ -1518,7 +1535,7 @@ function normalizeFactoryModule(module = {}, legacyItem = {}) {
     observacao: module.observacao || module.observacoes || module.notes || "",
     dataConclusao: module.dataConclusao || module.concludedAt || module.completionDate || "",
     leiNome: module.leiNome || module.lei_nome || legacyItem.leiNome || legacyItem.lei_nome || legacyItem.lei || "",
-    leiFonte: module.leiFonte || module.lei_fonte || legacyItem.leiFonte || legacyItem.lei_fonte || "",
+    leiFonte: module.leiFonte || module.lei_fonte || module.sourceFolder || module.pastaFontes || legacyItem.leiFonte || legacyItem.lei_fonte || legacyItem.sourceFolder || legacyItem.pastaFontes || "",
     leiArtigos: module.leiArtigos || module.lei_artigos || legacyItem.leiArtigos || legacyItem.lei_artigos || "",
     leiRecorte: module.leiRecorte || module.lei_recorte || legacyItem.leiRecorte || legacyItem.lei_recorte || "",
     leiObservacoes: module.leiObservacoes || module.lei_observacoes || legacyItem.leiObservacoes || legacyItem.lei_observacoes || ""
@@ -1675,7 +1692,10 @@ function saveFactoryItem(event) {
   const now = new Date().toISOString();
   const id = elements.factoryEditingId.value || createId();
   const previous = agenda.find((item) => item.id === id);
+  const previousModules = normalizeFactoryModules(previous?.modules || {}, previous || {});
+  previousModules.lei.leiFonte = elements.factorySourceFolder?.value.trim() || "";
   const item = normalizeFactoryItem({
+    ...(previous || {}),
     id,
     disciplina,
     tema,
@@ -1683,6 +1703,7 @@ function saveFactoryItem(event) {
     status: elements.factoryStatus.value,
     dataPlanejada: elements.factoryPlannedDate.value,
     observacao: elements.factoryNotes.value.trim(),
+    modules: previousModules,
     createdAt: previous?.createdAt || now,
     updatedAt: now
   });
@@ -1692,6 +1713,7 @@ function saveFactoryItem(event) {
   state.factoryItems = state.factoryAgenda;
   elements.factoryForm.reset();
   elements.factoryEditingId.value = "";
+  if (elements.factorySourceFolder) elements.factorySourceFolder.value = "";
   renderFactory();
   syncFactoryUpdate();
 }
@@ -1703,6 +1725,7 @@ function editFactoryItem(id) {
   elements.factoryTheme.value = item.tema;
   elements.factoryPriority.value = item.prioridade;
   elements.factoryPlannedDate.value = item.dataPlanejada || "";
+  if (elements.factorySourceFolder) elements.factorySourceFolder.value = normalizeFactoryModule(item.modules?.lei || {}, item).leiFonte || "";
   elements.factoryStatus.value = item.status;
   elements.factoryNotes.value = item.observacao || "";
   elements.factoryForm?.scrollIntoView({ behavior: "smooth", block: "start" });
