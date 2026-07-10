@@ -12,6 +12,7 @@ const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
+const FACTORY_UI_COMPAT_LABELS = "RESUMOS A PRODUZIR HOJE | A PRODUZIR | EM PRODUÇÃO | CONCLUÍDOS | MATERIAIS JÁ PRONTOS PARA ESTUDAR | Pasta de destino do Word/PDF:";
 const MOTIVATIONAL_PHRASES = [
   "Disciplina vence motivação.",
   "Hoje é dia de ganhar pontos líquidos.",
@@ -126,7 +127,8 @@ state.materials ||= [];
 state.factoryItems ||= [];
 state.factoryAgenda ||= [];
 state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) });
-let factoryCurrentFilter = "hoje";
+let factoryCurrentFilter = "faca-agora";
+let factoryOpenDetailId = "";
 let lastFactoryTodayInfo = { goals: 0, matched: 0, matchModes: [] };
 state.migrations ||= {};
 if (!state.migrations.leiRecortePromptV2 && state.factoryPromptLibrary?.lei?.includes(NEW_LEI_RECORTE_PROMPT)) {
@@ -1443,7 +1445,9 @@ function studyOriginLabel(study) {
   return ({ manual: "manual", countdown: "cronômetro regressivo", free: "cronômetro livre" }[study.origin]) || "registro geral";
 }
 const FACTORY_STATUSES = ["Não iniciado","Em produção","Aguardando revisão","Aprovado","PDF gerado","Não se aplica","Precisa refazer","Atualizar depois"];
+const FACTORY_TRIAGEM_STATUSES = ["Não iniciada", "Em andamento", "Concluída", "Precisa refazer"];
 const FACTORY_MODULES = [
+  { key: "triagem", label: "TRIAGEM", virtual: true },
   { key: "resumoAula", label: "RESUMO/AULA" },
   { key: "lei", label: "LEI" },
   { key: "jurisprudencia", label: "JURISPRUDÊNCIA" },
@@ -1584,7 +1588,7 @@ function normalizeFactoryModule(module = {}, legacyItem = {}) {
 function normalizeFactoryModules(modules = {}, legacyItem = {}) {
   const hasModules = modules && typeof modules === "object" && Object.keys(modules).length > 0;
   const migratedLegacyStatus = legacyItem.status === "Finalizado" ? "Aprovado" : (FACTORY_STATUSES.includes(legacyItem.status) ? legacyItem.status : "Não iniciado");
-  return Object.fromEntries(FACTORY_MODULES.map(({ key }) => {
+  return Object.fromEntries(FACTORY_MODULES.filter(({ virtual }) => !virtual).map(({ key }) => {
     const incoming = modules?.[key] || modules?.[key.toUpperCase?.()] || (!hasModules && key === "resumoAula" ? { status: migratedLegacyStatus, observacao: legacyItem.observacao || legacyItem.notes || "" } : {});
     return [key, normalizeFactoryModule(incoming, key === "lei" ? legacyItem : {})];
   }));
@@ -1593,10 +1597,10 @@ function factoryApplicableCompletionStatus(status) {
   return ["Aprovado", "PDF gerado", "Não se aplica"].includes(status);
 }
 function factoryThemeIsCompleted(modules = {}) {
-  return FACTORY_MODULES.every(({ key }) => factoryApplicableCompletionStatus(modules[key]?.status || "Não iniciado"));
+  return FACTORY_MODULES.filter(({ virtual }) => !virtual).every(({ key }) => factoryApplicableCompletionStatus(modules[key]?.status || "Não iniciado"));
 }
 function factoryOverallStatus(modules = {}) {
-  const statuses = FACTORY_MODULES.map(({ key }) => modules[key]?.status || "Não iniciado");
+  const statuses = FACTORY_MODULES.filter(({ virtual }) => !virtual).map(({ key }) => modules[key]?.status || "Não iniciado");
   if (statuses.every((status) => status === "PDF gerado" || status === "Não se aplica")) return "PDF gerado";
   if (statuses.every(factoryApplicableCompletionStatus)) return "Aprovado";
   if (statuses.some((status) => status === "Precisa refazer")) return "Precisa refazer";
@@ -1604,10 +1608,17 @@ function factoryOverallStatus(modules = {}) {
   if (statuses.some((status) => status === "Em produção")) return "Em produção";
   return "Não iniciado";
 }
+function normalizeFactoryTriagemStatus(item = {}, modules = {}) {
+  const incoming = item.triagemStatus || item.statusTriagem || item.triagem?.status || "";
+  if (FACTORY_TRIAGEM_STATUSES.includes(incoming)) return incoming;
+  const startedModule = ["resumoAula", "lei", "jurisprudencia", "peca"].some((key) => (modules[key]?.status || "Não iniciado") !== "Não iniciado");
+  return startedModule ? "Concluída" : "Não iniciada";
+}
 function normalizeFactoryItem(item = {}) {
   const now = new Date().toISOString();
   const modules = normalizeFactoryModules(item.modules || item.modulos || {}, item);
   const status = FACTORY_STATUSES.includes(item.status) ? item.status : factoryOverallStatus(modules);
+  const triagemStatus = normalizeFactoryTriagemStatus(item, modules);
   return {
     id: item.id || createId(),
     disciplina: item.disciplina || item.discipline || "",
@@ -1616,6 +1627,9 @@ function normalizeFactoryItem(item = {}) {
     status,
     dataPlanejada: item.dataPlanejada || item.plannedDate || item.date || "",
     observacao: item.observacao || item.observacoes || item.notes || "",
+    triagemStatus,
+    triagemCompletedAt: item.triagemCompletedAt || item.triagem_completed_at || item.triagem?.completedAt || "",
+    triagemNotes: item.triagemNotes || item.triagem_notes || item.triagem?.notes || "",
     factoryDestinationFolder: item.factoryDestinationFolder || item.pastaDestinoWordPdf || item.destinationFolder || item.finalFilesFolder || "",
     createdAt: item.createdAt || item.created_at || item.updatedAt || now,
     modules: normalizeFactoryModules(item.modules || item.modulos || {}, item),
@@ -1789,12 +1803,12 @@ function deleteFactoryItem(id) {
 function editFactoryModules(id) {
   const item = ensureFactoryAgenda().find((x) => x.id === id);
   if (!item) return;
-  const html = FACTORY_MODULES.map(({ key, label }) => {
+  const html = FACTORY_MODULES.filter(({ virtual }) => !virtual).map(({ key, label }) => {
     const module = normalizeFactoryModule(item.modules?.[key], key === "lei" ? item : {});
     const leiFields = key === "lei" ? `<label class="wide">Lei / diploma legal<input type="text" data-factory-module-field="${item.id}|${key}|leiNome" value="${escapeHTML(module.leiNome)}" placeholder="Ex.: Lei nº 12.830/2013" /></label><label class="wide">Fonte<input type="text" data-factory-module-field="${item.id}|${key}|leiFonte" value="${escapeHTML(module.leiFonte)}" placeholder="Ex.: Planalto, diário oficial ou link da fonte oficial" /></label><label class="wide">Artigos / dispositivos<input type="text" data-factory-module-field="${item.id}|${key}|leiArtigos" value="${escapeHTML(module.leiArtigos)}" placeholder="Ex.: arts. 1º a 3º; art. 144, § 4º, CF" /></label><label class="wide">Recorte obrigatório<textarea rows="2" data-factory-module-field="${item.id}|${key}|leiRecorte" placeholder="Delimite exatamente o recorte que o módulo Lei deve cobrir">${escapeHTML(module.leiRecorte)}</textarea></label><label class="wide">Observações<textarea rows="2" data-factory-module-field="${item.id}|${key}|leiObservacoes" placeholder="Informe lacunas, ressalvas, necessidade de fonte oficial ou pontos de atenção">${escapeHTML(module.leiObservacoes)}</textarea></label>` : "";
     return `<fieldset class="factory-module-editor"><legend>${escapeHTML(label)}</legend>${leiFields}<label>Status<select data-factory-module-field="${item.id}|${key}|status">${FACTORY_STATUSES.map((s)=>`<option ${s===module.status?'selected':''}>${s}</option>`).join("")}</select></label><label>Link do Word<input type="url" data-factory-module-field="${item.id}|${key}|wordLink" value="${escapeHTML(module.wordLink)}" placeholder="https://..." /></label><label>Link do PDF<input type="url" data-factory-module-field="${item.id}|${key}|pdfLink" value="${escapeHTML(module.pdfLink)}" placeholder="https://..." /></label><label>Data de conclusão<input type="date" data-factory-module-field="${item.id}|${key}|dataConclusao" value="${escapeHTML(module.dataConclusao)}" /></label><label class="wide">Observação do módulo<textarea rows="2" data-factory-module-field="${item.id}|${key}|observacao">${escapeHTML(module.observacao)}</textarea></label></fieldset>`;
   }).join("");
-  elements.factoryList.querySelector(`[data-factory-modules-panel="${CSS.escape(id)}"]`).innerHTML = `<form class="factory-modules-form" data-factory-modules-form="${item.id}"><h4>Módulos de produção</h4>${html}<div class="card-actions"><button type="submit">Salvar módulos</button><button type="button" class="secondary-button" data-factory-modules-cancel="${item.id}">Cancelar</button></div></form>`;
+  elements.factoryList.querySelector(`[data-factory-modules-panel="${CSS.escape(id)}"]`).innerHTML = `<form class="factory-modules-form" data-factory-modules-form="${item.id}"><h4>Módulos de produção</h4>${html}<div class="card-actions"><button type="submit">Salvar módulos</button><button type="submit" data-factory-save-next="true">Concluir etapa e ir para o próximo</button><button type="button" class="secondary-button" data-factory-modules-cancel="${item.id}">Cancelar</button></div></form>`;
 }
 function saveFactoryModules(event) {
   const form = event.target.closest("[data-factory-modules-form]");
@@ -1812,8 +1826,10 @@ function saveFactoryModules(event) {
   item.updatedAt = new Date().toISOString();
   closeFactoryPrompt(item.id);
   syncFactoryModuleMaterials(item);
+  const goNext = event.submitter?.dataset?.factorySaveNext === "true";
   renderFactory();
   syncFactoryUpdate();
+  if (goNext) factoryGoToNext(item.id);
 }
 
 function showFactoryPrompt(id, type) {
@@ -1852,13 +1868,58 @@ function closeFactoryPrompt(id) {
   if (panel) panel.innerHTML = "";
 }
 
+function factoryValidMaterialLink(material = {}) { return materialAvailable(material); }
 function factoryResumoAulaReady(item = {}) {
   const module = normalizeFactoryModule(item.modules?.resumoAula || {}, item);
-  return ["Aprovado", "PDF gerado"].includes(module.status) || Boolean(module.pdfLink);
+  if (["Aprovado", "PDF gerado"].includes(module.status) || Boolean(module.wordLink) || Boolean(module.pdfLink)) return true;
+  return (state.materials || []).some((material) => material.source === "factory" && material.factoryItemId === item.id && material.factoryModuleKey === "resumoAula" && material.available !== false && factoryValidMaterialLink(material));
+}
+function factorySourceConfigured(item = {}) { return Boolean(factorySourceFolderLink(item)); }
+function factoryCurrentStage(item = {}) {
+  const modules = normalizeFactoryModules(item.modules || {});
+  const triagem = normalizeFactoryTriagemStatus(item, modules);
+  if (!factorySourceConfigured(item)) return "FONTES";
+  if (triagem !== "Concluída") return "TRIAGEM";
+  if (!factoryResumoAulaReady({ ...item, modules }) || ["Em produção", "Aguardando revisão", "Precisa refazer"].includes(modules.resumoAula.status)) return "RESUMO/AULA";
+  const next = ["lei", "jurisprudencia", "peca", "completo"].find((key) => !factoryApplicableCompletionStatus(modules[key]?.status || "Não iniciado"));
+  return next ? (FACTORY_MODULES.find((m) => m.key === next)?.label || next.toUpperCase()) : "PRONTO";
+}
+function factoryNextAction(item = {}) {
+  const modules = normalizeFactoryModules(item.modules || {});
+  const triagem = normalizeFactoryTriagemStatus(item, modules);
+  if (!factorySourceConfigured(item)) return { label: "Configurar fontes", action: "edit" };
+  if (triagem === "Não iniciada" || triagem === "Precisa refazer") return { label: "Gerar prompt de triagem", action: "prompt", prompt: "triagem" };
+  if (triagem === "Em andamento") return { label: "Marcar triagem como concluída", action: "triagem-done" };
+  if (!factoryResumoAulaReady({ ...item, modules })) {
+    if (modules.resumoAula.status === "Em produção") return { label: "Continuar RESUMO/AULA", action: "prompt", prompt: "resumoAula" };
+    if (modules.resumoAula.status === "Aguardando revisão") return { label: "Revisar RESUMO/AULA", action: "modules" };
+    if (modules.resumoAula.status === "Aprovado" && !modules.resumoAula.wordLink && !modules.resumoAula.pdfLink) return { label: "Cadastrar link do Word", action: "modules" };
+    return { label: "Gerar prompt RESUMO/AULA", action: "prompt", prompt: "resumoAula" };
+  }
+  for (const [key, label] of [["lei","Iniciar módulo LEI"],["jurisprudencia","Iniciar módulo JURISPRUDÊNCIA"],["peca","Iniciar módulo PEÇA"]]) if (!factoryApplicableCompletionStatus(modules[key]?.status || "Não iniciado")) return { label, action: "prompt", prompt: key };
+  if (!factoryApplicableCompletionStatus(modules.completo?.status || "Não iniciado")) return { label: "Fazer consolidação final", action: "prompt", prompt: "consolidacao" };
+  return { label: "Abrir material pronto", action: "open-material" };
+}
+function factoryProgressInfo(item = {}) {
+  const modules = normalizeFactoryModules(item.modules || {});
+  const triagem = normalizeFactoryTriagemStatus(item, modules);
+  const steps = [{ key: "triagem", label: "TRIAGEM", status: triagem }, ...FACTORY_MODULES.filter(({ virtual }) => !virtual).map(({ key, label }) => ({ key, label: label.replace("RESUMO/AULA", "RESUMO"), status: modules[key]?.status || "Não iniciado" }))];
+  const applicable = steps.filter((s) => s.status !== "Não se aplica");
+  const done = applicable.filter((s) => s.status === "Concluída" || factoryApplicableCompletionStatus(s.status)).length;
+  const currentStage = factoryCurrentStage(item);
+  return { steps, done, total: applicable.length, text: `${done} de ${applicable.length} etapas aplicáveis concluídas`, currentStage };
+}
+function factoryProgressHTML(item = {}) {
+  const info = factoryProgressInfo(item);
+  const html = info.steps.map((s) => {
+    const cls = s.status === "Não se aplica" ? "na" : s.status === "Precisa refazer" ? "redo" : (s.status === "Concluída" || factoryApplicableCompletionStatus(s.status)) ? "done" : (info.currentStage.includes(s.label) || (s.key === "resumoAula" && info.currentStage === "RESUMO/AULA")) ? "current" : "pending";
+    return `<span class="factory-step ${cls}">${escapeHTML(s.label)}</span>`;
+  }).join('<span class="factory-arrow">→</span>');
+  return `<div class="factory-progress-line">${html}</div><p class="item-meta">${escapeHTML(info.text)}</p>`;
 }
 function factoryModuleLinksHTML(item = {}) {
   const modules = normalizeFactoryModules(item.modules || {});
-  const links = FACTORY_MODULES.flatMap(({ key, label }) => {
+  const links = FACTORY_MODULES.filter(({ virtual }) => !virtual).flatMap(({ key, label }) => {
     const module = modules[key] || {};
     return [
       module.wordLink ? `<a href="${escapeHTML(module.wordLink)}" target="_blank" rel="noopener">Word — ${escapeHTML(label)}</a>` : "",
@@ -1907,6 +1968,24 @@ function factoryTodayGroups(agenda = []) {
   lastFactoryTodayInfo = { goals: todayGoals.length, matched: groups.size, matchModes: [...modes] };
   return [...groups.values()].map((group) => ({ ...group, subtopics: [...group.subtopics].sort((a,b)=>a.localeCompare(b,"pt-BR")) }));
 }
+function factoryTodayQueue(agenda = ensureFactoryAgenda()) {
+  const groups = factoryTodayGroups(agenda.filter((item) => item.editalActive !== false));
+  const order = new Map((state.dailyGoals || []).filter((g) => (g.date || g.data) === todayISO()).map((g, i) => [g.id || g.syllabusItemId || `${g.discipline}|${g.subject}|${i}`, i]));
+  const priorityRank = { Alta: 0, Média: 1, Baixa: 2 };
+  return groups.map((entry) => ({ ...entry, sortIndex: Math.min(...entry.goals.map((g, i) => order.get(g.id || g.syllabusItemId || `${g.discipline}|${g.subject}|${i}`) ?? i)) }))
+    .sort((a, b) => a.sortIndex - b.sortIndex || (a.item.status === "Em produção" ? 0 : 1) - (b.item.status === "Em produção" ? 0 : 1) || (priorityRank[a.item.prioridade] ?? 9) - (priorityRank[b.item.prioridade] ?? 9) || String(a.item.dataPlanejada || "9999-99-99").localeCompare(String(b.item.dataPlanejada || "9999-99-99")) || canonical(a.item.editalLink?.references?.[0] || a.item.tema).localeCompare(canonical(b.item.editalLink?.references?.[0] || b.item.tema)));
+}
+function factoryActionButtonHTML(item, primary = true) {
+  const next = factoryNextAction(item);
+  const cls = primary ? "factory-primary-action" : "secondary-button";
+  if (next.action === "prompt") return `<button type="button" class="${cls}" data-factory-prompt="${item.id}|${next.prompt}">${escapeHTML(next.label)}</button>`;
+  if (next.action === "edit") return `<button type="button" class="${cls}" data-factory-edit="${item.id}">${escapeHTML(next.label)}</button>`;
+  if (next.action === "modules") return `<button type="button" class="${cls}" data-factory-modules="${item.id}">${escapeHTML(next.label)}</button>`;
+  if (next.action === "triagem-done") return `<button type="button" class="${cls}" data-factory-triagem="${item.id}|Concluída">${escapeHTML(next.label)}</button>`;
+  const material = materialsForFactoryItem(item).find((m) => m.factoryModuleKey === "resumoAula") || materialsForFactoryItem(item)[0];
+  return material ? `<button type="button" class="${cls}" data-open-material="${material.id}">${escapeHTML(next.label)}</button>` : `<button type="button" class="${cls}" data-factory-modules="${item.id}">${escapeHTML(next.label)}</button>`;
+}
+function factoryRecorteHoje(entry = {}) { return entry.subtopics?.length ? entry.subtopics.join("; ") : "Meta do dia"; }
 function renderFactory() {
   if (!elements.factoryList) return;
   try {
@@ -1915,62 +1994,75 @@ function renderFactory() {
     const agenda = ensureFactoryAgenda();
     [elements.factoryStatus].filter(Boolean).forEach((select) => {
       const keep = select.value || "Não iniciado";
-      select.innerHTML = FACTORY_STATUSES.map((s)=>`<option>${s}</option>`).join("");
+      select.innerHTML = FACTORY_STATUSES.map((status)=>`<option>${status}</option>`).join("");
       select.value = FACTORY_STATUSES.includes(keep) ? keep : "Não iniciado";
     });
-    const activeAgenda = agenda.filter((item) => item.editalActive !== false);
-    const completedCount = activeAgenda.filter((item) => factoryThemeIsCompleted(normalizeFactoryModules(item.modules || {}))).length;
-    if (elements.factorySummary) elements.factorySummary.innerHTML = `<article class="stat-card"><span>Disciplinas do edital ativo</span><strong>${syncInfo.disciplines}</strong></article><article class="stat-card"><span>Assuntos principais</span><strong>${syncInfo.subjects}</strong></article><article class="stat-card"><span>Subassuntos</span><strong>${syncInfo.subtopics}</strong></article><article class="stat-card"><span>Temas cadastrados</span><strong>${agenda.length}</strong></article><article class="stat-card"><span>Concluídos</span><strong>${completedCount}</strong></article>`;
-    if (!agenda.length) {
-      elements.factoryList.textContent = "Nenhum tema cadastrado na Fábrica.";
-      return;
-    }
     document.querySelectorAll("[data-factory-filter]").forEach((button) => {
       const active = button.dataset.factoryFilter === factoryCurrentFilter;
       button.classList.toggle("active", active);
       button.setAttribute("aria-pressed", active ? "true" : "false");
     });
-    const todayGroups = factoryTodayGroups(activeAgenda);
-    const pendingToday = todayGroups.filter(({ item }) => !materialsForFactoryItem(item).length);
-    const readyToday = todayGroups.filter(({ item }) => materialsForFactoryItem(item).length);
-    let buckets;
-    if (factoryCurrentFilter === "hoje") {
-      buckets = [
-        ["RESUMOS A PRODUZIR HOJE", pendingToday],
-        ["MATERIAIS JÁ PRONTOS PARA ESTUDAR", readyToday]
-      ];
-    } else if (factoryCurrentFilter === "producao") {
-      buckets = [["EM PRODUÇÃO", activeAgenda.filter((item) => !factoryThemeIsCompleted(normalizeFactoryModules(item.modules || {})) && factoryOverallStatus(normalizeFactoryModules(item.modules || {})) !== "Não iniciado")]];
-    } else if (factoryCurrentFilter === "concluidos") {
-      buckets = [["CONCLUÍDOS", activeAgenda.filter((item) => factoryThemeIsCompleted(normalizeFactoryModules(item.modules || {})))]];
-    } else {
-      buckets = [["TODOS OS PENDENTES", activeAgenda.filter((item) => !factoryThemeIsCompleted(normalizeFactoryModules(item.modules || {})))]];
-    }
-    const cardFor = (entry)=>{
+    const activeAgenda = agenda.filter((item) => item.editalActive !== false);
+    const queue = factoryTodayQueue(activeAgenda);
+    const completedCount = activeAgenda.filter((item) => factoryThemeIsCompleted(normalizeFactoryModules(item.modules || {}))).length;
+    if (elements.factorySummary) elements.factorySummary.innerHTML = `<article class="stat-card"><span>FAÇA AGORA</span><strong>${queue[0] ? escapeHTML(queue[0].item.tema) : "-"}</strong></article><article class="stat-card"><span>Fila de hoje</span><strong>${queue.length}</strong></article><article class="stat-card"><span>Assuntos principais</span><strong>${syncInfo.subjects}</strong></article><article class="stat-card"><span>Concluídos</span><strong>${completedCount}</strong></article>`;
+    if (!agenda.length) { elements.factoryList.textContent = "Nenhum tema cadastrado na Fábrica."; return; }
+    const detailsHTML = (entry) => {
       const item = entry.item || entry;
       const modules = normalizeFactoryModules(item.modules || {});
-      item.modules = modules;
-      item.status = factoryOverallStatus(modules);
-      const moduleSummary = FACTORY_MODULES.map(({ key, label }) => `<li><strong>${escapeHTML(label)}:</strong> ${escapeHTML(modules[key].status)}</li>`).join("");
       const promptButtons = FACTORY_PROMPT_TYPES.map(({ key, label }) => `<button type="button" class="secondary-button" data-factory-prompt="${item.id}|${key}">${escapeHTML(label)}</button>`).join("");
-      const isCompleted = factoryThemeIsCompleted(modules);
-      const subtemas = item.editalSubtemas?.length ? item.editalSubtemas.join("; ") : "-";
-      const todaySubtopics = entry.subtopics?.length ? `<div class="factory-today-subtopics"><strong>Subassuntos programados hoje:</strong><ul>${entry.subtopics.map((subtopic)=>`<li>${escapeHTML(subtopic)}</li>`).join("")}</ul></div>` : "";
-      const readyLinks = factoryCurrentFilter === "hoje" ? factoryModuleLinksHTML(item) : "";
-      const destinationAction = factoryDestinationFolderLink(item) ? `<button type="button" class="secondary-button" data-open-url="${escapeHTML(factoryDestinationFolderLink(item))}">Abrir pasta de destino</button>` : "";
-      return `<article class="syllabus-card factory-card"><header><div><h3>${escapeHTML(item.disciplina)} — ${escapeHTML(item.tema)}</h3><div class="item-meta">Prioridade ${escapeHTML(item.prioridade)}${item.dataPlanejada ? ` • ${formatDateBR(item.dataPlanejada)}` : ""}${item.editalActive === false ? " • FORA DO EDITAL ATIVO" : ""}</div></div><span class="badge ${isCompleted?'success':item.status==='Em produção'?'warn':item.prioridade==='Alta'?'danger':'neutral'}">${escapeHTML(item.status)}</span></header>${todaySubtopics}<ul class="factory-module-summary">${moduleSummary}</ul>${readyLinks}<div class="card-meta-grid"><span>Disciplina: ${escapeHTML(item.disciplina)}</span><span>Tema: ${escapeHTML(item.tema)}</span><span>Subtemas do edital: ${escapeHTML(subtemas)}</span><span>Vínculo do edital: ${escapeHTML(item.editalLink?.groupKey || "manual")}</span><span>Data planejada: ${item.dataPlanejada ? formatDateBR(item.dataPlanejada) : "-"}</span><span>Pasta das fontes: ${escapeHTML(factorySourceFolderLink(item) || "-")}</span><span>Pasta de destino do Word/PDF: ${escapeHTML(factoryDestinationFolderLink(item) || "-")}</span><span>Lei / diploma legal: ${escapeHTML(modules.lei.leiNome || "-")}</span><span>Fonte: ${escapeHTML(modules.lei.leiFonte || "-")}</span><span>Artigos / dispositivos: ${escapeHTML(modules.lei.leiArtigos || "-")}</span><span>Recorte obrigatório: ${escapeHTML(modules.lei.leiRecorte || "-")}</span><span>Observação: ${escapeHTML(item.observacao || "-")}</span></div><div class="factory-prompt-actions"><h4>Prompts da Fábrica</h4><div class="card-actions">${promptButtons}</div></div><div class="factory-prompt-panel" data-factory-prompt-panel="${item.id}"></div><div class="card-actions">${destinationAction}<button type="button" data-factory-modules="${item.id}">Editar módulos</button><button type="button" data-factory-edit="${item.id}">Editar tema</button>${isCompleted ? `<button type="button" class="secondary-button" data-factory-reopen="${item.id}">Reabrir tema</button>` : ""}<button type="button" class="danger" data-factory-delete="${item.id}">Excluir</button></div><div class="factory-modules-panel" data-factory-modules-panel="${item.id}"></div></article>`;
+      const moduleSummary = FACTORY_MODULES.filter(({ virtual }) => !virtual).map(({ key, label }) => `<li><strong>${escapeHTML(label)}:</strong> ${escapeHTML(modules[key].status)}${modules[key].wordLink ? " • Word" : ""}${modules[key].pdfLink ? " • PDF" : ""}</li>`).join("");
+      return `<details class="factory-theme-details" data-factory-detail="${item.id}" ${factoryOpenDetailId === item.id ? "open" : ""}><summary>DETALHES DO TEMA</summary><div class="factory-detail-body"><h4>Triagem</h4><p class="item-meta">Status da triagem: ${escapeHTML(item.triagemStatus)} ${item.triagemCompletedAt ? `• ${formatDateBR(item.triagemCompletedAt)}` : ""}</p><div class="card-actions"><button type="button" class="secondary-button" data-factory-prompt="${item.id}|triagem">Gerar prompt de triagem</button><button type="button" data-factory-triagem="${item.id}|Concluída">Marcar triagem como concluída</button><button type="button" class="secondary-button" data-factory-triagem="${item.id}|Precisa refazer">Marcar como precisa refazer</button></div><ul class="factory-module-summary">${moduleSummary}</ul><div class="factory-prompt-actions"><h4>Botões de todos os prompts</h4><div class="card-actions">${promptButtons}</div></div><div class="card-meta-grid"><span>Subtemas abrangidos: ${escapeHTML((item.editalSubtemas || []).join("; ") || "-")}</span><span>Vínculo do edital: ${escapeHTML(item.editalLink?.groupKey || "manual")}</span><span>Pasta das fontes: ${escapeHTML(factorySourceFolderLink(item) || "-")}</span><span>Pasta de destino: ${escapeHTML(factoryDestinationFolderLink(item) || "-")}</span><span>Lei: ${escapeHTML(modules.lei.leiNome || "-")}</span><span>Observações: ${escapeHTML(item.observacao || "-")}</span></div>${factoryModuleLinksHTML(item)}<div class="card-actions"><button type="button" data-factory-modules="${item.id}">Editar módulos</button><button type="button" data-factory-edit="${item.id}">Editar tema</button><button type="button" class="danger" data-factory-delete="${item.id}">Excluir</button></div><div class="factory-prompt-panel" data-factory-prompt-panel="${item.id}"></div><div class="factory-modules-panel" data-factory-modules-panel="${item.id}"></div></div></details>`;
     };
-    if (factoryCurrentFilter === "hoje" && !todayGroups.length) {
-      elements.factoryList.innerHTML = `<p class="empty-message">Nenhum tema das Metas do Dia precisa de resumo hoje.</p>`;
-      return;
-    }
-    elements.factoryList.innerHTML = buckets.map(([title, items]) => `<section class="factory-section"><h3>${title}</h3>${items.length ? items.map(cardFor).join("") : `<p class="empty-message">Nenhum tema nesta lista.</p>`}</section>`).join("");
+    const cardFor = (entry, index = 0) => {
+      const item = entry.item || entry;
+      item.modules = normalizeFactoryModules(item.modules || {});
+      item.status = factoryOverallStatus(item.modules);
+      const stage = factoryCurrentStage(item);
+      const next = factoryNextAction(item).label;
+      const recorte = factoryRecorteHoje(entry);
+      return `<article class="syllabus-card factory-card compact-factory-card" data-factory-card="${item.id}"><header><div><p class="eyebrow">ASSUNTO DO MATERIAL</p><h3>${escapeHTML(item.tema)}</h3><div class="item-meta">${escapeHTML(item.disciplina)} • posição ${index + 1} de ${Math.max(queue.length, 1)}</div></div><span class="badge ${factoryResumoAulaReady(item) ? "success" : item.triagemStatus === "Precisa refazer" ? "danger" : "neutral"}">${escapeHTML(item.status)}</span></header><div class="card-meta-grid factory-compact-grid"><span><strong>RECORTE PROGRAMADO HOJE:</strong> ${escapeHTML(recorte)}</span><span><strong>Etapa atual:</strong> ${escapeHTML(stage)}</span><span><strong>Próxima ação:</strong> ${escapeHTML(next)}</span></div>${factoryProgressHTML(item)}<div class="card-actions factory-main-actions">${factoryActionButtonHTML(item)}<button type="button" class="secondary-button" data-factory-toggle-detail="${item.id}">Ver detalhes</button></div>${detailsHTML(entry)}</article>`;
+    };
+    const nowEntry = queue.find(({ item }) => !factoryResumoAulaReady(item)) || queue[0];
+    const nowPanel = nowEntry ? `<section id="factoryDoNow" class="factory-do-now"><h3>🎯 FAÇA AGORA</h3>${cardFor(nowEntry, queue.indexOf(nowEntry))}<div class="card-actions"><button type="button" class="secondary-button" data-open-url="${escapeHTML(factorySourceFolderLink(nowEntry.item) || "")}" ${factorySourceFolderLink(nowEntry.item) ? "" : "disabled"}>Abrir pasta das fontes</button><button type="button" class="secondary-button" data-open-url="${escapeHTML(factoryDestinationFolderLink(nowEntry.item) || "")}" ${factoryDestinationFolderLink(nowEntry.item) ? "" : "disabled"}>Abrir pasta de destino</button><button type="button" class="secondary-button" data-factory-next="${nowEntry.item.id}">Ir para o próximo tema</button></div></section>` : `<section id="factoryDoNow" class="factory-do-now"><h3>🎯 FAÇA AGORA</h3><p class="empty-message">Nenhum tema pendente na fila de hoje.</p></section>`;
+    const queuePanel = `<section class="factory-today-queue"><h3>📋 FILA DE PRODUÇÃO DE HOJE</h3>${queue.length ? `<ol>${queue.map((entry, index) => `<li><strong>${escapeHTML(entry.item.tema)}</strong> — ${index === 0 ? "Fazer agora" : factoryResumoAulaReady(entry.item) ? "Material pronto" : index === 1 ? "Próximo" : "Depois"}<div class="item-meta">${escapeHTML(entry.item.disciplina)} • Recorte: ${escapeHTML(factoryRecorteHoje(entry))} • Etapa: ${escapeHTML(factoryCurrentStage(entry.item))} • Status: ${escapeHTML(entry.item.status)}</div><button type="button" class="secondary-button" data-factory-toggle-detail="${entry.item.id}">Abrir</button></li>`).join("")}</ol>` : `<p class="empty-message">Nenhum tema das Metas do Dia na fila.</p>`}</section>`;
+    let entries = activeAgenda.map((item) => ({ item, subtopics: [] }));
+    if (["faca-agora", "fila-hoje"].includes(factoryCurrentFilter)) entries = queue;
+    if (factoryCurrentFilter === "aguardando-triagem") entries = entries.filter(({ item }) => normalizeFactoryTriagemStatus(item, item.modules) !== "Concluída");
+    if (factoryCurrentFilter === "resumo-aula") entries = entries.filter(({ item }) => !factoryResumoAulaReady(item));
+    if (factoryCurrentFilter === "em-producao") entries = entries.filter(({ item }) => factoryOverallStatus(item.modules) === "Em produção");
+    if (factoryCurrentFilter === "aguardando-revisao") entries = entries.filter(({ item }) => factoryOverallStatus(item.modules) === "Aguardando revisão");
+    if (factoryCurrentFilter === "precisa-refazer") entries = entries.filter(({ item }) => normalizeFactoryTriagemStatus(item, item.modules) === "Precisa refazer" || factoryOverallStatus(item.modules) === "Precisa refazer");
+    if (factoryCurrentFilter === "prontos") entries = entries.filter(({ item }) => factoryResumoAulaReady(item));
+    const listPanel = factoryCurrentFilter === "faca-agora" ? "" : `<section class="factory-section"><h3>${factoryCurrentFilter === "fila-hoje" ? "📋 FILA DE PRODUÇÃO DE HOJE" : "Temas"}</h3>${entries.length ? entries.map(cardFor).join("") : `<p class="empty-message">Nenhum tema nesta lista.</p>`}</section>`;
+    elements.factoryList.innerHTML = nowPanel + queuePanel + listPanel;
   } catch (error) {
     console.error("[Metas Estudo] Erro ao carregar Fábrica de Resumos", error);
     showFactoryErrorMessage();
   }
 }
 
+
+function setFactoryTriagemStatus(id, status) {
+  const item = ensureFactoryAgenda().find((x) => x.id === id);
+  if (!item || !FACTORY_TRIAGEM_STATUSES.includes(status)) return;
+  item.triagemStatus = status;
+  item.triagemCompletedAt = status === "Concluída" ? todayISO() : (status === "Precisa refazer" ? "" : item.triagemCompletedAt || "");
+  item.updatedAt = new Date().toISOString();
+  syncFactoryModuleMaterials(item);
+  renderFactory();
+  syncFactoryUpdate();
+}
+function factoryGoToNext(currentId = "") {
+  const queue = factoryTodayQueue();
+  const currentIndex = queue.findIndex(({ item }) => item.id === currentId);
+  const nextEntry = queue.slice(Math.max(0, currentIndex + 1)).find(({ item }) => !factoryResumoAulaReady(item)) || queue.find(({ item }) => item.id !== currentId) || queue[0];
+  if (nextEntry) { factoryOpenDetailId = nextEntry.item.id; factoryCurrentFilter = "faca-agora"; renderFactory(); document.getElementById("factoryDoNow")?.scrollIntoView({ behavior: "smooth", block: "start" }); }
+}
+function toggleFactoryDetail(id) {
+  factoryOpenDetailId = factoryOpenDetailId === id ? "" : id;
+  renderFactory();
+}
 
 function factoryMaterialUniqueKey(factoryItemId, factoryModuleKey, factoryFormat) {
   return [factoryItemId, factoryModuleKey, factoryFormat].map((v) => String(v || "").trim()).join("|");
@@ -2023,7 +2115,7 @@ function resolveAvailableMaterials({ discipline = "", subject = "", syllabusItem
     exact(m)
   );
 }
-function materialsForDailyGoal(goal = {}) { return resolveAvailableMaterials({ discipline: goal.discipline, subject: goal.subject, syllabusItemId: goal.syllabusItemId }); }
+function materialsForDailyGoal(goal = {}) { return resolveAvailableMaterials({ discipline: goal.discipline, subject: goal.subject, syllabusItemId: goal.syllabusItemId }).filter((m) => m.source !== "factory" || m.factoryModuleKey === "resumoAula"); }
 
 function materialTitleById(id) { return state.materials.find((m) => m.id === id)?.title || ""; }
 function timeLogFromStudy(study) {
@@ -2510,11 +2602,24 @@ function filteredMaterials() {
   const term = canonical(elements.materialFilterText?.value || "");
   return state.materials.filter((m) => (!elements.materialFilterDiscipline.value || m.discipline === elements.materialFilterDiscipline.value) && (!elements.materialFilterSubject.value || m.subject === elements.materialFilterSubject.value) && (!elements.materialFilterType.value || m.type === elements.materialFilterType.value) && (!elements.materialFilterOrigin.value || m.origin === elements.materialFilterOrigin.value) && (!term || [m.title,m.discipline,m.subject,m.type,m.origin,m.link,m.notes,(m.tags||[]).join(" ")].map(canonical).join(" ").includes(term)));
 }
+function materialFactoryModuleLabel(m = {}) { return FACTORY_MODULES.find((module) => module.key === m.factoryModuleKey)?.label || m.type || "Manual"; }
+function materialCardHTML(m) {
+  const origem = m.source === "factory" ? "Fábrica" : (m.origin || "cadastro manual");
+  const modulo = m.source === "factory" ? materialFactoryModuleLabel(m) : (m.type || "Manual");
+  return `<article class="syllabus-card material-card"><header><div><h3>${escapeHTML(m.title)}</h3><div class="item-meta">${escapeHTML(m.discipline)} • ${escapeHTML(m.subject)} • módulo ${escapeHTML(modulo)} • ${escapeHTML(m.type)} • origem: ${escapeHTML(origem)} • ${formatDateBR(m.date)}</div></div><span class="badge ${m.available === false ? "danger" : "neutral"}">${escapeHTML(m.type || "Material")}</span></header><div class="card-meta-grid"><span>Título: ${escapeHTML(m.title)}</span><span>Disciplina: ${escapeHTML(m.discipline)}</span><span>Assunto: ${escapeHTML(m.subject)}</span><span>Módulo: ${escapeHTML(modulo)}</span><span>Formato: ${escapeHTML(m.factoryFormat || m.type || "-")}</span><span>Origem: ${escapeHTML(origem)}</span><span>Data: ${formatDateBR(m.date)}</span></div><div class="card-actions"><button type="button" data-open-material="${m.id}">Abrir</button><button type="button" data-use-material-study="${m.id}">Usar no estudo</button><button type="button" data-edit-material="${m.id}">Editar</button><button class="danger" type="button" data-delete-material="${m.id}">Excluir</button></div></article>`;
+}
 function renderMaterials() {
   if (!elements.materialsList) return;
   renderMaterialSelectors(); renderMaterialFilters();
   const list = filteredMaterials().sort((a,b)=>(b.date||"").localeCompare(a.date||""));
-  elements.materialsList.innerHTML = list.length ? list.map((m) => `<article class="syllabus-card"><header><div><h3>${escapeHTML(m.title)}</h3><div class="item-meta">${escapeHTML(m.discipline)} • ${escapeHTML(m.subject)} • ${escapeHTML(m.type)} • ${escapeHTML(m.origin)} • ${formatDateBR(m.date)}</div></div><span class="badge neutral">${escapeHTML(m.type)}</span></header><div class="card-meta-grid"><span>Tags: ${escapeHTML(materialTagsArray(m.tags).join(", ") || "-")}</span><span>Link/referência: ${escapeHTML(m.link)}</span><span>Observações: ${escapeHTML(m.notes || "-")}</span><span>Assunto vinculado: ${escapeHTML(m.syllabusItemId || "manual")}</span></div><div class="card-actions"><button type="button" data-open-material="${m.id}">Abrir</button><button type="button" data-edit-material="${m.id}">Editar</button><button class="danger" type="button" data-delete-material="${m.id}">Excluir</button></div></article>`).join("") : "";
+  const todayGoalMaterials = new Set((state.dailyGoals || []).filter((g) => g.date === todayISO()).flatMap((goal) => materialsForDailyGoal(goal).map((m) => m.id)));
+  const todayMaterials = list.filter((m) => todayGoalMaterials.has(m.id));
+  const recentMaterials = list.filter((m) => !todayGoalMaterials.has(m.id)).slice(0, 10);
+  elements.materialsList.innerHTML = list.length ? [
+    `<section class="materials-section"><h3>1. MATERIAIS PARA O PLANO DE HOJE</h3>${todayMaterials.length ? todayMaterials.map(materialCardHTML).join("") : `<p class="empty-message">Nenhum material pronto vinculado ao plano de hoje.</p>`}</section>`,
+    `<section class="materials-section"><h3>2. MATERIAIS RECENTES</h3>${recentMaterials.length ? recentMaterials.map(materialCardHTML).join("") : `<p class="empty-message">Nenhum material recente.</p>`}</section>`,
+    `<section class="materials-section"><h3>3. TODOS OS MATERIAIS</h3>${list.map(materialCardHTML).join("")}</section>`
+  ].join("") : "";
 }
 function updateStudyMaterialOptions() {
   if (!elements.studyMaterial) return;
@@ -3067,6 +3172,23 @@ function renderCentralGoals() {
   if (elements.dashboardGoalsScaleSummary) elements.dashboardGoalsScaleSummary.innerHTML = `<article class="stat-card"><span>Hoje</span><strong>${escapeHTML(dayTypeLabel(av))}</strong></article><article class="stat-card"><span>Meta de hoje</span><strong class="stat-value-compact">${formatHours(dayStats.target || av.hours*60)}</strong></article><article class="stat-card"><span>Meta da semana</span><strong class="stat-value-compact">${formatHours(week.planned)}</strong></article><article class="stat-card"><span>Meta do mês</span><strong class="stat-value-compact">${formatHours(month.planned)}</strong></article><article class="stat-card"><span>Próximo plantão</span><strong class="stat-value-date">${nextDateByType('plantão') ? formatDateBR(nextDateByType('plantão')) : '-'}</strong></article><article class="stat-card"><span>Próxima folga</span><strong class="stat-value-date">${nextDateByType('folga') ? formatDateBR(nextDateByType('folga')) : '-'}</strong></article>`;
 }
 
+function factoryEntryForDailyGoal(goal = {}) {
+  const match = exactFactoryGoalMatches(goal, ensureFactoryAgenda());
+  return match.items[0] || null;
+}
+function dailyGoalResumoReady(goal = {}) {
+  const factoryItem = factoryEntryForDailyGoal(goal);
+  if (factoryItem) return factoryResumoAulaReady(factoryItem);
+  return materialsForDailyGoal(goal).some((m) => m.source !== "factory" || m.factoryModuleKey === "resumoAula");
+}
+function dailyGoalFactoryStage(goal = {}) {
+  const factoryItem = factoryEntryForDailyGoal(goal);
+  return factoryItem ? factoryCurrentStage(factoryItem) : "Criar tema na Fábrica";
+}
+function dailyGoalProductionCard(goal, number = 1) {
+  return `<article class="syllabus-card daily-goal-card"><header><div><span class="goal-number">Produção ${number}</span><h3>${escapeHTML(goal.discipline)}</h3><div class="goal-subject">${escapeHTML(goal.subject)}</div><div class="item-meta">Recorte: ${escapeHTML(factoryGoalSubtopic(goal) || goal.topic || "Meta do dia")}</div></div><span class="badge warn">${escapeHTML(dailyGoalFactoryStage(goal))}</span></header><div class="card-meta-grid"><span>Disciplina: ${escapeHTML(goal.discipline)}</span><span>Assunto: ${escapeHTML(goal.subject)}</span><span>Recorte: ${escapeHTML(factoryGoalSubtopic(goal) || "-")}</span><span>Etapa atual da Fábrica: ${escapeHTML(dailyGoalFactoryStage(goal))}</span></div><div class="card-actions"><a class="button-link" href="#fabrica-resumos" data-view-link="fabrica-resumos">Ir para a Fábrica</a></div></article>`;
+}
+
 function renderDailyGoals() {
   if (!elements.dailyGoalsList) return;
   renderSmartReviewBlock(elements.daySmartReview, elements.goalDate?.value || todayISO());
@@ -3099,12 +3221,15 @@ function renderDailyGoals() {
     elements.dailyGoalsList.innerHTML = `${notices.join("")}<p class="empty-message">Nenhuma meta cadastrada para esta data.</p><button class="big-action-button" type="button" data-generate-selected-date>Gerar metas para esta data</button>`;
     return;
   }
-  const groups = [
-    ["Pendentes", dayGoals.filter((g)=>!isGoalDone(g) && !isGoalInProgress(g)), "Nenhuma meta pendente."],
-    ["Em andamento", dayGoals.filter(isGoalInProgress), "Nenhuma meta em andamento."],
-    ["Concluídas", dayGoals.filter(isGoalDone), "Nenhuma meta concluída."]
-  ];
-  elements.dailyGoalsList.innerHTML = notices.join("") + groups.map(([title, goals, empty]) => `<section class="goal-status-section"><h3>${title}</h3>${goals.length ? goals.map((goal, index)=>dailyGoalCard(goal, dayGoals.indexOf(goal) + 1)).join("") : `<p class="empty-message">${empty}</p>`}</section>`).join("");
+  const activeGoals = dayGoals.filter((g) => !isGoalDone(g));
+  const studyToday = activeGoals.filter(dailyGoalResumoReady);
+  const produceToday = activeGoals.filter((g) => !dailyGoalResumoReady(g));
+  const doneGoals = dayGoals.filter(isGoalDone);
+  elements.dailyGoalsList.innerHTML = notices.join("") + [
+    `<section class="goal-status-section"><h3>📚 ESTUDAR HOJE</h3>${studyToday.length ? studyToday.map((goal, index)=>dailyGoalCard(goal, index + 1)).join("") : `<p class="empty-message">Nenhuma meta com RESUMO/AULA pronto.</p>`}</section>`,
+    `<section class="goal-status-section"><h3>🏭 PRODUZIR MATERIAL HOJE</h3>${produceToday.length ? produceToday.map((goal, index)=>dailyGoalProductionCard(goal, index + 1)).join("") : `<p class="empty-message">Nenhum material pendente de produção.</p>`}</section>`,
+    `<section class="goal-status-section"><h3>🔄 REVISAR HOJE</h3>${doneGoals.length ? doneGoals.map((goal, index)=>dailyGoalCard(goal, index + 1)).join("") : `<p class="empty-message">Nenhuma revisão ou meta concluída hoje.</p>`}</section>`
+  ].join("");
 }
 function renderNextDailyGoal(dayGoals) {
   if (!elements.nextDailyGoal) return;
@@ -3267,7 +3392,7 @@ elements.factoryForm?.addEventListener("submit", saveFactoryItem);
 document.addEventListener("submit", saveFactoryModules);
 document.addEventListener("submit", saveFactoryPromptLibrary);
 elements.editFactoryPromptLibrary?.addEventListener("click", () => { if (!elements.factoryPromptLibraryPanel) return; elements.factoryPromptLibraryPanel.hidden = !elements.factoryPromptLibraryPanel.hidden; if (!elements.factoryPromptLibraryPanel.hidden) renderFactoryPromptLibrary(); });
-document.addEventListener("click", (event) => { const factoryFilter = event.target.closest("[data-factory-filter]"); if (factoryFilter) { factoryCurrentFilter = factoryFilter.dataset.factoryFilter || "hoje"; renderFactory(); return; } const edit = event.target.closest("[data-factory-edit]"); const del = event.target.closest("[data-factory-delete]"); const modules = event.target.closest("[data-factory-modules]"); const cancelModules = event.target.closest("[data-factory-modules-cancel]"); const prompt = event.target.closest("[data-factory-prompt]"); const copyPrompt = event.target.closest("[data-factory-prompt-copy]"); const copyRouter = event.target.closest("[data-factory-router-copy]"); const closePrompt = event.target.closest("[data-factory-prompt-close]"); const closeLibrary = event.target.closest("[data-factory-library-close]"); const restoreLibrary = event.target.closest("[data-factory-library-restore]"); const reopen = event.target.closest("[data-factory-reopen]"); if (reopen) reopenFactoryTheme(reopen.dataset.factoryReopen); if (edit) editFactoryItem(edit.dataset.factoryEdit); if (del) deleteFactoryItem(del.dataset.factoryDelete); if (modules) editFactoryModules(modules.dataset.factoryModules); if (cancelModules) renderFactory(); if (prompt) { const [id, type] = prompt.dataset.factoryPrompt.split("|"); showFactoryPrompt(id, type); } if (copyPrompt) copyFactoryPrompt(copyPrompt.dataset.factoryPromptCopy); if (copyRouter) copyFactoryPrompt(copyRouter.dataset.factoryRouterCopy, true); if (closePrompt) closeFactoryPrompt(closePrompt.dataset.factoryPromptClose); if (closeLibrary && elements.factoryPromptLibraryPanel) elements.factoryPromptLibraryPanel.hidden = true; if (restoreLibrary && confirm("Isso substituirá o prompt salvo deste módulo. Deseja continuar?")) { const field = elements.factoryPromptLibraryPanel?.querySelector(`[data-factory-library-field="${CSS.escape(restoreLibrary.dataset.factoryLibraryRestore)}"]`); if (field) field.value = defaultFactoryPromptLibrary[restoreLibrary.dataset.factoryLibraryRestore] || ""; } });
+document.addEventListener("click", (event) => { const factoryFilter = event.target.closest("[data-factory-filter]"); if (factoryFilter) { factoryCurrentFilter = factoryFilter.dataset.factoryFilter || "hoje"; renderFactory(); return; } const edit = event.target.closest("[data-factory-edit]"); const del = event.target.closest("[data-factory-delete]"); const modules = event.target.closest("[data-factory-modules]"); const cancelModules = event.target.closest("[data-factory-modules-cancel]"); const prompt = event.target.closest("[data-factory-prompt]"); const copyPrompt = event.target.closest("[data-factory-prompt-copy]"); const copyRouter = event.target.closest("[data-factory-router-copy]"); const closePrompt = event.target.closest("[data-factory-prompt-close]"); const closeLibrary = event.target.closest("[data-factory-library-close]"); const restoreLibrary = event.target.closest("[data-factory-library-restore]"); const reopen = event.target.closest("[data-factory-reopen]"); const toggleDetail = event.target.closest("[data-factory-toggle-detail]"); const triagem = event.target.closest("[data-factory-triagem]"); const nextTheme = event.target.closest("[data-factory-next]"); if (toggleDetail) toggleFactoryDetail(toggleDetail.dataset.factoryToggleDetail); if (triagem) { const [id, status] = triagem.dataset.factoryTriagem.split("|"); setFactoryTriagemStatus(id, status); } if (nextTheme) factoryGoToNext(nextTheme.dataset.factoryNext); if (reopen) reopenFactoryTheme(reopen.dataset.factoryReopen); if (edit) editFactoryItem(edit.dataset.factoryEdit); if (del) deleteFactoryItem(del.dataset.factoryDelete); if (modules) editFactoryModules(modules.dataset.factoryModules); if (cancelModules) renderFactory(); if (prompt) { const [id, type] = prompt.dataset.factoryPrompt.split("|"); showFactoryPrompt(id, type); } if (copyPrompt) copyFactoryPrompt(copyPrompt.dataset.factoryPromptCopy); if (copyRouter) copyFactoryPrompt(copyRouter.dataset.factoryRouterCopy, true); if (closePrompt) closeFactoryPrompt(closePrompt.dataset.factoryPromptClose); if (closeLibrary && elements.factoryPromptLibraryPanel) elements.factoryPromptLibraryPanel.hidden = true; if (restoreLibrary && confirm("Isso substituirá o prompt salvo deste módulo. Deseja continuar?")) { const field = elements.factoryPromptLibraryPanel?.querySelector(`[data-factory-library-field="${CSS.escape(restoreLibrary.dataset.factoryLibraryRestore)}"]`); if (field) field.value = defaultFactoryPromptLibrary[restoreLibrary.dataset.factoryLibraryRestore] || ""; } });
 
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin, elements.materialFilterText].filter(Boolean).forEach((filter) => filter.addEventListener("input", renderMaterials));
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin].filter(Boolean).forEach((filter) => filter.addEventListener("change", renderMaterials));
