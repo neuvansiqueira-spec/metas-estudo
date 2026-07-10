@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-20260710-drive-docx-upload-factory-operational";
+const CACHE_NAME = "metas-estudo-20260710-factory-operational-fix1";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
