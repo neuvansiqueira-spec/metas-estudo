@@ -37,9 +37,9 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão da fábrica mínima', () => {
-  assert.match(html, /style\.css\?v=20260709-fabrica-minima/);
-  assert.match(html, /script\.js\?v=20260709-fabrica-minima/);
-  assert.match(html, /Versão: 20260709-fabrica-minima/);
+  assert.match(html, /style\.css\?v=20260710-fabrica-integrada/);
+  assert.match(html, /script\.js\?v=20260710-fabrica-integrada/);
+  assert.match(html, /Versão: 20260710-fabrica-integrada/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -228,7 +228,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260709-fabrica-minima/);
+  assert.match(sw, /metas-estudo-20260710-fabrica-integrada/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);
@@ -334,9 +334,9 @@ test('Fábrica salva pasta de destino independente e injeta destino nos prompts'
   assert.match(script, /factoryDestinationFolder: item\.factoryDestinationFolder \|\| item\.pastaDestinoWordPdf \|\| item\.destinationFolder \|\| item\.finalFilesFolder \|\| ""/);
   assert.match(script, /const factoryDestinationFolder = elements\.factoryDestinationFolder\?\.value\.trim\(\) \|\| ""/);
   assert.match(script, /PASTA DAS FONTES NO GOOGLE DRIVE:/);
-  assert.match(script, /PASTA DE DESTINO DOS ARQUIVOS FINAIS NO GOOGLE DRIVE:/);
-  assert.match(script, /\[PASTA DE DESTINO NÃO PREENCHIDA — INFORMAR O LINK ANTES DE GERAR O ARQUIVO\]/);
-  assert.match(script, /AO CONCLUIR, SALVAR O WORD E O PDF NA PASTA DE DESTINO\./);
+  assert.match(script, /PASTA DE DESTINO DOS ARQUIVOS GERADOS NESTA ETAPA:/);
+  assert.match(script, /Pasta de destino não preenchida\. O arquivo poderá ser gerado/);
+  assert.match(script, /A pasta acima é somente o destino de gravação\. Não trate este link como arquivo individual/);
   assert.match(script, /Pasta das fontes:/);
   assert.match(script, /Pasta de destino do Word\/PDF:/);
   assert.match(script, /wordLink: module\.wordLink/);
