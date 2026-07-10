@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const vm = require('node:vm');
 
 const html = fs.readFileSync('index.html', 'utf8');
 const css = fs.readFileSync('style.css', 'utf8');
@@ -37,9 +38,9 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão da fábrica mínima', () => {
-  assert.match(html, /style\.css\?v=20260710-timer-alerts-fix2/);
-  assert.match(html, /script\.js\?v=20260710-timer-alerts-fix2/);
-  assert.match(html, /Versão: 20260710-timer-alerts-fix2/);
+  assert.match(html, /style\.css\?v=20260710-timer-free-alert-fix1/);
+  assert.match(html, /script\.js\?v=20260710-timer-free-alert-fix1/);
+  assert.match(html, /Versão: 20260710-timer-free-alert-fix1/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -228,7 +229,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260710-timer-alerts-fix2/);
+  assert.match(sw, /metas-estudo-20260710-timer-free-alert-fix1/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);
@@ -368,13 +369,45 @@ test('alertas do cronômetro disparam uma única vez e usam flags de controle', 
 });
 
 test('alertas do cronômetro são resilientes e não ocorrem em modo livre sem meta', () => {
-  assert.match(script, /floatingTimer\.mode !== "countdown"/);
-  assert.match(script, /!planned/);
+  assert.match(script, /if \(!goal \|\| !planned \|\| floatingTimer\.completionDismissed\) return/);
+  assert.match(script, /floatingTimer\.mode === "free"/);
+  assert.match(script, /currentTimerSeconds\(\) >= planned && !floatingTimer\.completed\) triggerTimerAlert\("completed"/);
   assert.match(script, /async function sendTimerNotification/);
   assert.match(script, /serviceWorkerRegistration\?\.showNotification/);
   assert.match(script, /new Notification\(timerAlertTitle\(type\), options\)/);
   assert.match(script, /catch \(error\) \{ console\.warn\("Falha na notificação do cronômetro"/);
   assert.match(script, /const ctx = await prepareTimerAudioContext\(\)/);
+});
+
+
+test('modo livre com meta dispara alerta completed uma única vez ao atingir a meta', () => {
+  const plannedMatch = script.match(/function timerPlannedSeconds\([^\n]+/);
+  const alertMatch = script.match(/function checkFloatingTimerAlerts\(\) \{[\s\S]*?\n\}/);
+  assert.ok(plannedMatch, 'timerPlannedSeconds deve existir');
+  assert.ok(alertMatch, 'checkFloatingTimerAlerts deve existir');
+
+  const calls = [];
+  const context = {
+    floatingTimer: {
+      goalId: 'goal-1',
+      mode: 'free',
+      sessionGoalMinutes: 1,
+      completed: false,
+      completionDismissed: false
+    },
+    floatingTimerGoal: () => ({ id: 'goal-1', minutes: 30 }),
+    currentTimerSeconds: () => 60,
+    timerRemainingSeconds: () => { throw new Error('modo livre não deve usar timerRemainingSeconds para alertas'); },
+    triggerTimerAlert: (type) => {
+      calls.push(type);
+      if (type === 'completed') context.floatingTimer.completed = true;
+    }
+  };
+
+  vm.createContext(context);
+  vm.runInContext(`${plannedMatch[0]}; ${alertMatch[0]}; checkFloatingTimerAlerts(); checkFloatingTimerAlerts();`, context);
+
+  assert.deepEqual(calls, ['completed']);
 });
 
 
