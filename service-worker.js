@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-20260710-timer-alerts-fix1";
+const CACHE_NAME = "metas-estudo-20260710-timer-alerts-fix2";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
