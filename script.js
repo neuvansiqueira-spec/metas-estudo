@@ -1471,10 +1471,10 @@ function factoryDestinationFolderLink(item = {}) {
   return String(item.factoryDestinationFolder || item.pastaDestinoWordPdf || item.destinationFolder || item.finalFilesFolder || "").trim();
 }
 function factoryDestinationFolderBlock(item = {}) {
-  return `PASTA DE DESTINO DOS ARQUIVOS FINAIS NO GOOGLE DRIVE:
-${factoryDestinationFolderLink(item) || "[PASTA DE DESTINO NÃO PREENCHIDA — INFORMAR O LINK ANTES DE GERAR O ARQUIVO]"}
+  return `PASTA DE DESTINO DOS ARQUIVOS GERADOS NESTA ETAPA:
+${factoryDestinationFolderLink(item) || "Pasta de destino não preenchida. O arquivo poderá ser gerado, mas não haverá indicação automática de onde deverá ser salvo."}
 
-AO CONCLUIR, SALVAR O WORD E O PDF NA PASTA DE DESTINO.`;
+A pasta acima é somente o destino de gravação. Não trate este link como arquivo individual.`;
 }
 function factoryPromptContext(item = {}) {
   return `Disciplina: ${item.disciplina || "[DISCIPLINA]"}
@@ -1510,12 +1510,12 @@ function factoryRouterText(type, item = {}) {
   const leiDetails = hasAnyLeiField ? `Modo detalhado do módulo LEI:\n- Lei / diploma legal: ${leiModule.leiNome || "[NÃO PREENCHIDO]"}\n- Fonte: ${leiModule.leiFonte || "[NÃO PREENCHIDO]"}\n- Artigos / dispositivos: ${leiModule.leiArtigos || "[NÃO PREENCHIDO]"}\n- Recorte obrigatório: ${leiModule.leiRecorte || "[NÃO PREENCHIDO]"}\n- Observações: ${leiModule.leiObservacoes || "[NÃO PREENCHIDO]"}${hasLeiNome && hasLeiRecorte ? "" : `\n\n${leiAviso}`}` : `Modo rápido do módulo LEI:\n${leiAviso}`;
   const common = `${context}\nStatus anterior: ${item.status || "Não iniciado"}\nFontes a usar: conforme a triagem e as fontes classificadas para este módulo.\nFontes a não usar: fontes de outros módulos, conteúdo externo não fornecido e materiais não aprovados na triagem.\nRegras específicas do tema/módulo: ${item.observacao || "sem observações adicionais cadastradas."}`;
   const routers = {
-    triagem: `${common}\n\nFaça apenas a TRIAGEM das fontes. Classifique cada fonte por RESUMO/AULA, LEI, JURISPRUDÊNCIA, PEÇA e ATUALIZAÇÃO/COMPLEMENTO. Não gere resumo, Word, PDF ou módulo final.`,
-    resumoAula: `${common}\n\nMÓDULO: RESUMO/AULA. Use apenas as fontes classificadas como RESUMO/AULA na triagem. Não gere lei, jurisprudência, peça ou Word final. Preserve profundidade, hierarquia, negritos e substitua qualquer referência de banca por “📌 PROVA”.`,
-    lei: `${common}\n\nMÓDULO: LEI.\n${leiDetails}\n\nUse as fontes classificadas como LEI na triagem para identificar o diploma e o recorte. Confira o conteúdo normativo exclusivamente no texto oficial vigente do Planalto.\nRECORTE: trabalhe somente os artigos e temas expressamente indicados. Se o recorte não estiver cadastrado ou estiver impreciso, interrompa a geração e solicite confirmação. Somente trabalhe a lei integralmente quando houver autorização expressa do usuário.\nUse artigo/dispositivo como unidade central, preserve prazos, competências, vedações, exceções, requisitos, sanções e pontos de prova. Não copie a lei integralmente e não faça comentário doutrinário.`,
-    jurisprudencia: `${common}\n\nMÓDULO: JURISPRUDÊNCIA. Use apenas fontes classificadas como JURISPRUDÊNCIA. Preserve tribunal, súmula, informativo, tema, ano, tese e distinções STF/STJ quando constarem. Não invente jurisprudência nem pesquise fora das fontes.`,
-    peca: `${common}\n\nMÓDULO: PEÇA. Use apenas fontes classificadas como PEÇA. Extraia estrutura, requisitos, fundamentos, pedidos e determinações. Não faça peça pronta nem aula corrida.`,
-    consolidacao: `${common}\n\nCONSOLIDAÇÃO FINAL. Os módulos aprovados devem ser reunidos na ordem: RESUMO/AULA, LEI, JURISPRUDÊNCIA e PEÇA. Preserve o padrão de cada módulo, elimine repetições e não pesquise fora dos módulos aprovados.`
+    triagem: `${common}\n\nA pasta de destino acima é apenas informação para etapas futuras. Faça apenas a TRIAGEM das fontes. Classifique cada fonte por RESUMO/AULA, LEI, JURISPRUDÊNCIA, PEÇA e ATUALIZAÇÃO/COMPLEMENTO. Não gere resumo, Word, PDF ou módulo final.`,
+    resumoAula: `${common}\n\nMÓDULO: RESUMO/AULA. Use apenas as fontes classificadas como RESUMO/AULA na triagem. Não gere os módulos LEI, JURISPRUDÊNCIA ou PEÇA e não faça ainda a consolidação final. Gere somente o arquivo Word correspondente ao MÓDULO RESUMO/AULA. Preserve profundidade, hierarquia, negritos e substitua qualquer referência de banca por “📌 PROVA”.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o MÓDULO RESUMO/AULA;\n- gerar um arquivo Word editável contendo o módulo;\n- não gerar ainda o Word final consolidado;\n- salvar o Word na pasta de destino indicada, somente quando houver ferramenta autorizada para gravação no Google Drive;\n- após salvar, devolver o link exato do arquivo criado;\n- não afirmar que salvou no Google Drive se a gravação não tiver ocorrido;\n- caso não exista ferramenta autorizada para salvar no Drive, gerar o Word para download e informar que ele precisa ser colocado manualmente na pasta.`,
+    lei: `${common}\n\nMÓDULO: LEI.\n${leiDetails}\n\nUse as fontes classificadas como LEI na triagem para identificar o diploma e o recorte. Confira o conteúdo normativo exclusivamente no texto oficial vigente do Planalto.\nRECORTE: trabalhe somente os artigos e temas expressamente indicados. Se o recorte não estiver cadastrado ou estiver impreciso, interrompa a geração e solicite confirmação. Somente trabalhe a lei integralmente quando houver autorização expressa do usuário.\nUse artigo/dispositivo como unidade central, preserve prazos, competências, vedações, exceções, requisitos, sanções e pontos de prova. Não copie a lei integralmente e não faça comentário doutrinário.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o Word do módulo LEI;\n- não gerar consolidação final;\n- salvar o Word na pasta de destino indicada apenas com ferramenta autorizada e devolver o link exato do arquivo criado.`,
+    jurisprudencia: `${common}\n\nMÓDULO: JURISPRUDÊNCIA. Use apenas fontes classificadas como JURISPRUDÊNCIA. Preserve tribunal, súmula, informativo, tema, ano, tese e distinções STF/STJ quando constarem. Não invente jurisprudência nem pesquise fora das fontes.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o Word do módulo JURISPRUDÊNCIA;\n- não gerar consolidação final;\n- salvar o Word na pasta de destino indicada apenas com ferramenta autorizada e devolver o link exato do arquivo criado.`,
+    peca: `${common}\n\nMÓDULO: PEÇA. Use apenas fontes classificadas como PEÇA. Extraia estrutura, requisitos, fundamentos, pedidos e determinações. Não faça peça pronta nem aula corrida.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o Word do módulo PEÇA;\n- não gerar consolidação final;\n- salvar o Word na pasta de destino indicada apenas com ferramenta autorizada e devolver o link exato do arquivo criado.`,
+    consolidacao: `${common}\n\nCONSOLIDAÇÃO FINAL. Os módulos aprovados devem ser reunidos na ordem: RESUMO/AULA, LEI, JURISPRUDÊNCIA e PEÇA. Preserve o padrão de cada módulo, elimine repetições e não pesquise fora dos módulos aprovados.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar Word consolidado;\n- gerar PDF consolidado;\n- salvar ambos na pasta de destino, quando houver acesso autorizado;\n- devolver separadamente o link do Word e o link do PDF.`
   };
   return routers[type] || common;
 }
@@ -1682,6 +1682,8 @@ function reopenFactoryTheme(id) {
   if (firstCompleted) item.modules[firstCompleted.key].status = "Em produção";
   item.status = factoryOverallStatus(item.modules);
   item.updatedAt = new Date().toISOString();
+  closeFactoryPrompt(item.id);
+  syncFactoryModuleMaterials(item);
   renderFactory();
   syncFactoryUpdate();
 }
@@ -1731,6 +1733,8 @@ function saveFactoryItem(event) {
   elements.factoryEditingId.value = "";
   if (elements.factorySourceFolder) elements.factorySourceFolder.value = "";
   if (elements.factoryDestinationFolder) elements.factoryDestinationFolder.value = "";
+  closeFactoryPrompt(item.id);
+  syncFactoryModuleMaterials(item);
   renderFactory();
   syncFactoryUpdate();
 }
@@ -1779,6 +1783,8 @@ function saveFactoryModules(event) {
   item.modules = normalizeFactoryModules(item.modules);
   item.status = factoryOverallStatus(item.modules);
   item.updatedAt = new Date().toISOString();
+  closeFactoryPrompt(item.id);
+  syncFactoryModuleMaterials(item);
   renderFactory();
   syncFactoryUpdate();
 }
@@ -1788,10 +1794,12 @@ function showFactoryPrompt(id, type) {
   if (!item) return;
   const panel = elements.factoryList?.querySelector(`[data-factory-prompt-panel="${CSS.escape(id)}"]`);
   if (!panel) return;
+  const hasDestinationFolder = Boolean(factoryDestinationFolderLink(item));
+  if (!hasDestinationFolder && type !== "triagem" && !confirm("Pasta de destino não preenchida. O arquivo poderá ser gerado, mas não haverá indicação automática de onde deverá ser salvo.\n\nOK = Gerar mesmo assim. Cancelar = Voltar e preencher a pasta.")) { editFactoryItem(id); return; }
   const promptText = factoryPromptText(type, item, "full");
   const routerText = factoryPromptText(type, item, "router");
   const promptLabel = FACTORY_PROMPT_TYPES.find((p) => p.key === type)?.label?.replace("Gerar prompt ", "") || "Prompt";
-  panel.innerHTML = `<div class="factory-prompt-box"><div class="factory-prompt-header"><div><h4>Prompt — ${escapeHTML(promptLabel)}</h4><p class="item-meta">${escapeHTML(item.disciplina)} — ${escapeHTML(item.tema)}</p></div><button type="button" class="secondary-button" data-factory-prompt-close="${item.id}">Fechar</button></div><textarea readonly rows="18" data-factory-prompt-text="${item.id}">${escapeHTML(promptText)}</textarea><textarea hidden readonly data-factory-router-text="${item.id}">${escapeHTML(routerText)}</textarea><div class="card-actions"><button type="button" data-factory-prompt-copy="${item.id}">Copiar prompt completo</button><button type="button" class="secondary-button" data-factory-router-copy="${item.id}">Copiar apenas prompt roteador</button><span class="item-meta" data-factory-prompt-message="${item.id}" aria-live="polite"></span></div></div>`;
+  panel.innerHTML = `<div class="factory-prompt-box"><div class="factory-prompt-header"><div><h4>Prompt — ${escapeHTML(promptLabel)}</h4><p class="item-meta">${escapeHTML(item.disciplina)} — ${escapeHTML(item.tema)}</p><p class="item-meta">Pasta de destino incluída no prompt: ${hasDestinationFolder ? "SIM" : "NÃO"}</p></div><button type="button" class="secondary-button" data-factory-prompt-close="${item.id}">Fechar</button></div><textarea readonly rows="18" data-factory-prompt-text="${item.id}">${escapeHTML(promptText)}</textarea><textarea hidden readonly data-factory-router-text="${item.id}">${escapeHTML(routerText)}</textarea><div class="card-actions">${hasDestinationFolder ? `<button type="button" class="secondary-button" data-open-url="${escapeHTML(factoryDestinationFolderLink(item))}">Abrir pasta de destino</button>` : `<button type="button" class="secondary-button" data-factory-edit="${item.id}">Voltar e preencher a pasta</button>`}<button type="button" data-factory-prompt-copy="${item.id}">Copiar prompt completo</button><button type="button" class="secondary-button" data-factory-router-copy="${item.id}">Copiar apenas prompt roteador</button><span class="item-meta" data-factory-prompt-message="${item.id}" aria-live="polite"></span></div></div>`;
   panel.querySelector("textarea")?.focus();
 }
 async function copyFactoryPrompt(id, routerOnly = false) {
@@ -1896,8 +1904,8 @@ function renderFactory() {
       button.setAttribute("aria-pressed", active ? "true" : "false");
     });
     const todayGroups = factoryTodayGroups(activeAgenda);
-    const pendingToday = todayGroups.filter(({ item }) => !factoryResumoAulaReady(item));
-    const readyToday = todayGroups.filter(({ item }) => factoryResumoAulaReady(item));
+    const pendingToday = todayGroups.filter(({ item }) => !materialsForFactoryItem(item).length);
+    const readyToday = todayGroups.filter(({ item }) => materialsForFactoryItem(item).length);
     let buckets;
     if (factoryCurrentFilter === "hoje") {
       buckets = [
@@ -1921,8 +1929,9 @@ function renderFactory() {
       const isCompleted = factoryThemeIsCompleted(modules);
       const subtemas = item.editalSubtemas?.length ? item.editalSubtemas.join("; ") : "-";
       const todaySubtopics = entry.subtopics?.length ? `<div class="factory-today-subtopics"><strong>Subassuntos programados hoje:</strong><ul>${entry.subtopics.map((subtopic)=>`<li>${escapeHTML(subtopic)}</li>`).join("")}</ul></div>` : "";
-      const readyLinks = factoryCurrentFilter === "hoje" && factoryResumoAulaReady(item) ? factoryModuleLinksHTML(item) : "";
-      return `<article class="syllabus-card factory-card"><header><div><h3>${escapeHTML(item.disciplina)} — ${escapeHTML(item.tema)}</h3><div class="item-meta">Prioridade ${escapeHTML(item.prioridade)}${item.dataPlanejada ? ` • ${formatDateBR(item.dataPlanejada)}` : ""}${item.editalActive === false ? " • FORA DO EDITAL ATIVO" : ""}</div></div><span class="badge ${isCompleted?'success':item.status==='Em produção'?'warn':item.prioridade==='Alta'?'danger':'neutral'}">${escapeHTML(item.status)}</span></header>${todaySubtopics}<ul class="factory-module-summary">${moduleSummary}</ul>${readyLinks}<div class="card-meta-grid"><span>Disciplina: ${escapeHTML(item.disciplina)}</span><span>Tema: ${escapeHTML(item.tema)}</span><span>Subtemas do edital: ${escapeHTML(subtemas)}</span><span>Vínculo do edital: ${escapeHTML(item.editalLink?.groupKey || "manual")}</span><span>Data planejada: ${item.dataPlanejada ? formatDateBR(item.dataPlanejada) : "-"}</span><span>Pasta das fontes: ${escapeHTML(factorySourceFolderLink(item) || "-")}</span><span>Pasta de destino do Word/PDF: ${escapeHTML(factoryDestinationFolderLink(item) || "-")}</span><span>Lei / diploma legal: ${escapeHTML(modules.lei.leiNome || "-")}</span><span>Fonte: ${escapeHTML(modules.lei.leiFonte || "-")}</span><span>Artigos / dispositivos: ${escapeHTML(modules.lei.leiArtigos || "-")}</span><span>Recorte obrigatório: ${escapeHTML(modules.lei.leiRecorte || "-")}</span><span>Observação: ${escapeHTML(item.observacao || "-")}</span></div><div class="factory-prompt-actions"><h4>Prompts da Fábrica</h4><div class="card-actions">${promptButtons}</div></div><div class="factory-prompt-panel" data-factory-prompt-panel="${item.id}"></div><div class="card-actions"><button type="button" data-factory-modules="${item.id}">Editar módulos</button><button type="button" data-factory-edit="${item.id}">Editar tema</button>${isCompleted ? `<button type="button" class="secondary-button" data-factory-reopen="${item.id}">Reabrir tema</button>` : ""}<button type="button" class="danger" data-factory-delete="${item.id}">Excluir</button></div><div class="factory-modules-panel" data-factory-modules-panel="${item.id}"></div></article>`;
+      const readyLinks = factoryCurrentFilter === "hoje" ? factoryModuleLinksHTML(item) : "";
+      const destinationAction = factoryDestinationFolderLink(item) ? `<button type="button" class="secondary-button" data-open-url="${escapeHTML(factoryDestinationFolderLink(item))}">Abrir pasta de destino</button>` : "";
+      return `<article class="syllabus-card factory-card"><header><div><h3>${escapeHTML(item.disciplina)} — ${escapeHTML(item.tema)}</h3><div class="item-meta">Prioridade ${escapeHTML(item.prioridade)}${item.dataPlanejada ? ` • ${formatDateBR(item.dataPlanejada)}` : ""}${item.editalActive === false ? " • FORA DO EDITAL ATIVO" : ""}</div></div><span class="badge ${isCompleted?'success':item.status==='Em produção'?'warn':item.prioridade==='Alta'?'danger':'neutral'}">${escapeHTML(item.status)}</span></header>${todaySubtopics}<ul class="factory-module-summary">${moduleSummary}</ul>${readyLinks}<div class="card-meta-grid"><span>Disciplina: ${escapeHTML(item.disciplina)}</span><span>Tema: ${escapeHTML(item.tema)}</span><span>Subtemas do edital: ${escapeHTML(subtemas)}</span><span>Vínculo do edital: ${escapeHTML(item.editalLink?.groupKey || "manual")}</span><span>Data planejada: ${item.dataPlanejada ? formatDateBR(item.dataPlanejada) : "-"}</span><span>Pasta das fontes: ${escapeHTML(factorySourceFolderLink(item) || "-")}</span><span>Pasta de destino do Word/PDF: ${escapeHTML(factoryDestinationFolderLink(item) || "-")}</span><span>Lei / diploma legal: ${escapeHTML(modules.lei.leiNome || "-")}</span><span>Fonte: ${escapeHTML(modules.lei.leiFonte || "-")}</span><span>Artigos / dispositivos: ${escapeHTML(modules.lei.leiArtigos || "-")}</span><span>Recorte obrigatório: ${escapeHTML(modules.lei.leiRecorte || "-")}</span><span>Observação: ${escapeHTML(item.observacao || "-")}</span></div><div class="factory-prompt-actions"><h4>Prompts da Fábrica</h4><div class="card-actions">${promptButtons}</div></div><div class="factory-prompt-panel" data-factory-prompt-panel="${item.id}"></div><div class="card-actions">${destinationAction}<button type="button" data-factory-modules="${item.id}">Editar módulos</button><button type="button" data-factory-edit="${item.id}">Editar tema</button>${isCompleted ? `<button type="button" class="secondary-button" data-factory-reopen="${item.id}">Reabrir tema</button>` : ""}<button type="button" class="danger" data-factory-delete="${item.id}">Excluir</button></div><div class="factory-modules-panel" data-factory-modules-panel="${item.id}"></div></article>`;
     };
     if (factoryCurrentFilter === "hoje" && !todayGroups.length) {
       elements.factoryList.innerHTML = `<p class="empty-message">Nenhum tema das Metas do Dia precisa de resumo hoje.</p>`;
@@ -1934,6 +1943,60 @@ function renderFactory() {
     showFactoryErrorMessage();
   }
 }
+
+
+function factoryMaterialUniqueKey(factoryItemId, factoryModuleKey, factoryFormat) {
+  return [factoryItemId, factoryModuleKey, factoryFormat].map((v) => String(v || "").trim()).join("|");
+}
+function factorySyllabusItemIds(item = {}) {
+  return [...new Set([...(item.editalLink?.itemIds || []), ...(Array.isArray(item.syllabusItemIds) ? item.syllabusItemIds : []), item.syllabusItemId || ""].filter(Boolean))];
+}
+function factoryModuleMaterialTitle(item, moduleKey, format) {
+  const label = FACTORY_MODULES.find((m) => m.key === moduleKey)?.label || moduleKey;
+  return `${item.tema || item.subject || "Material"} — ${label} — ${format}`;
+}
+function markFactoryMaterialUnavailable(factoryItemId, factoryModuleKey, factoryFormat) {
+  const key = factoryMaterialUniqueKey(factoryItemId, factoryModuleKey, factoryFormat);
+  const material = (state.materials || []).find((m) => m.source === "factory" && m.factoryUniqueKey === key);
+  if (material) { material.available = false; material.updatedAt = new Date().toISOString(); }
+}
+function syncFactoryModuleMaterials(item) {
+  state.materials ||= [];
+  const normalized = normalizeFactoryItem(item);
+  const syllabusItemIds = factorySyllabusItemIds(normalized);
+  const now = new Date().toISOString();
+  Object.entries(normalizeFactoryModules(normalized.modules || {})).forEach(([moduleKey, module]) => {
+    [["Word", module.wordLink], ["PDF", module.pdfLink]].forEach(([format, link]) => {
+      const unique = factoryMaterialUniqueKey(normalized.id, moduleKey, format);
+      const idx = state.materials.findIndex((m) => m.source === "factory" && (m.factoryUniqueKey === unique || (m.factoryItemId === normalized.id && m.factoryModuleKey === moduleKey && m.factoryFormat === format)));
+      if (!String(link || "").trim()) { markFactoryMaterialUnavailable(normalized.id, moduleKey, format); return; }
+      const payload = {
+        id: idx >= 0 ? state.materials[idx].id : `factory-${normalized.id}-${moduleKey}-${canonical(format)}`,
+        title: factoryModuleMaterialTitle(normalized, moduleKey, format), source: "factory", factoryUniqueKey: unique,
+        factoryItemId: normalized.id, factoryModuleKey: moduleKey, factoryFormat: format,
+        discipline: normalized.disciplina, subject: normalized.tema, syllabusItemId: syllabusItemIds[0] || "", syllabusItemIds,
+        link: String(link).trim(), type: format, origin: "Google Drive", date: module.dataConclusao || todayISO(), updatedAt: now, available: true,
+        notes: `Material automático da Fábrica (${FACTORY_MODULES.find((m) => m.key === moduleKey)?.label || moduleKey}).`, tags: ["Fábrica de Resumos", moduleKey, format]
+      };
+      if (idx >= 0) state.materials[idx] = { ...state.materials[idx], ...payload };
+      else state.materials.push(payload);
+    });
+  });
+}
+function syncAllFactoryMaterials() { ensureFactoryAgenda().forEach(syncFactoryModuleMaterials); }
+function materialAvailable(m) { return m && m.available !== false && isValidHttpUrl(m.link || ""); }
+function materialsForFactoryItem(item) { const id = item?.id || item; return (state.materials || []).filter((m) => materialAvailable(m) && m.source === "factory" && m.factoryItemId === id); }
+function resolveAvailableMaterials({ discipline = "", subject = "", syllabusItemId = "", syllabusItemIds = [], factoryItemId = "" } = {}) {
+  const ids = new Set([syllabusItemId, ...syllabusItemIds].filter(Boolean));
+  const exact = (m) => canonical(m.discipline) === canonical(discipline) && canonical(m.subject) === canonical(subject);
+  return (state.materials || []).filter(materialAvailable).filter((m) =>
+    (syllabusItemId && m.syllabusItemId === syllabusItemId) ||
+    ([...(m.syllabusItemIds || [])].some((id) => ids.has(id))) ||
+    (factoryItemId && m.factoryItemId === factoryItemId) ||
+    exact(m)
+  );
+}
+function materialsForDailyGoal(goal = {}) { return resolveAvailableMaterials({ discipline: goal.discipline, subject: goal.subject, syllabusItemId: goal.syllabusItemId }); }
 
 function materialTitleById(id) { return state.materials.find((m) => m.id === id)?.title || ""; }
 function timeLogFromStudy(study) {
@@ -2366,7 +2429,7 @@ const MATERIAL_TYPES = ["PDF", "Word", "Imagem", "Mapa mental", "Resumo", "Aula"
 const MATERIAL_ORIGINS = ["Google Drive", "OneDrive", "Link externo", "Arquivo local/referência manual", "Outro"];
 function materialTagsArray(value) { return Array.isArray(value) ? value : String(value || "").split(",").map((tag) => tag.trim()).filter(Boolean); }
 function materialsForTopic(discipline, subject, syllabusItemId = "") {
-  return state.materials.filter((m) => (syllabusItemId && m.syllabusItemId === syllabusItemId) || (canonical(m.discipline) === canonical(discipline) && canonical(m.subject) === canonical(subject)));
+  return resolveAvailableMaterials({ discipline, subject, syllabusItemId });
 }
 function materialButtonLabel(material) {
   const type = String(material.type || "material").toLowerCase();
@@ -2377,11 +2440,11 @@ function materialButtonLabel(material) {
   return "Abrir material";
 }
 function goalMaterialsHTML(goal) {
-  const materials = state.materials.filter((m) => canonical(m.discipline) === canonical(goal.discipline) && canonical(m.subject) === canonical(goal.subject));
+  const materials = materialsForDailyGoal(goal);
   const actions = materials.length
     ? materials.map((m, index) => `<button type="button" data-open-material="${m.id}" title="${escapeHTML(m.title)}">${materials.length > 1 ? `Abrir material ${index + 1}` : "Abrir material"}</button>`).join("")
-    : `<button type="button" data-create-goal-material data-discipline="${escapeHTML(goal.discipline || "")}" data-subject="${escapeHTML(goal.subject || "")}">Cadastrar material para esta meta</button>`;
-  return `<div class="linked-materials goal-materials"><strong>📚 Material da meta:</strong><div class="card-actions">${actions}</div></div>`;
+    : `<span class="item-meta">Nenhum material pronto para este assunto.</span><button type="button" data-create-goal-material data-discipline="${escapeHTML(goal.discipline || "")}" data-subject="${escapeHTML(goal.subject || "")}">Cadastrar material para esta meta</button>`;
+  return `<div class="linked-materials goal-materials"><strong>📚 MATERIAIS DISPONÍVEIS:</strong><div class="card-actions">${actions}</div></div>`;
 }
 function linkedMaterialsHTML(materials) {
   if (!materials.length) return "";
@@ -2429,7 +2492,8 @@ function renderMaterials() {
 function updateStudyMaterialOptions() {
   if (!elements.studyMaterial) return;
   const discipline = subjectNameById(elements.studySubject.value);
-  const mats = state.materials.filter((m) => canonical(m.discipline) === canonical(discipline) && (!elements.studyTopic.value || canonical(m.subject).includes(canonical(elements.studyTopic.value)) || canonical(elements.studyTopic.value).includes(canonical(m.subject))));
+  const linkedItem = findSyllabusItemByStudy(elements.studySubject.value, elements.studyTopic.value.trim());
+  const mats = resolveAvailableMaterials({ discipline, subject: elements.studyTopic.value.trim(), syllabusItemId: linkedItem?.id || "" });
   elements.studyMaterial.innerHTML = '<option value="">Nenhum material vinculado</option>' + mats.map((m)=>`<option value="${m.id}">${escapeHTML(m.type)} — ${escapeHTML(m.title)}</option>`).join("");
 }
 function editMaterial(id) { const m = state.materials.find((x)=>x.id===id); if (!m) return; elements.materialEditingId.value=m.id; elements.materialTitle.value=m.title; elements.materialDate.value=m.date||todayISO(); elements.materialDiscipline.value=m.discipline; elements.materialSubject.value=m.subject; elements.materialType.value=m.type; elements.materialOrigin.value=m.origin; elements.materialLink.value=m.link; elements.materialTags.value=materialTagsArray(m.tags).join(", "); elements.materialNotes.value=m.notes||""; renderMaterialSelectors(); showView("materiais"); }
@@ -2597,7 +2661,7 @@ elements.qbReviewByDiscipline?.addEventListener("click", () => qbReviewFilteredB
 elements.qbReviewBySubject?.addEventListener("click", () => qbReviewFilteredBy("assunto"));
 elements.qbToggleErrorHistory?.addEventListener("click", () => { if (elements.qbErrorHistory) elements.qbErrorHistory.open = !elements.qbErrorHistory.open; });
 
-function render() { migrateIncorrectWeakDomains(); renderFloatingTimer(); renderSubjects(); renderGoalSelectors(); renderQuestionSelectors(); renderPlanning(); renderProgressPanel(); renderDashboard(); renderGoalDashboardCards(); renderEdital(); renderSyllabus(); renderSchedulable(); renderDailyGoals(); renderGoalCalendar(); renderCentralGoals(); renderQuestionHistory(); updateQuestionCalculated(); renderMaterials(); updateStudyMaterialOptions(); safeRenderView("fabrica-resumos", renderFactory); renderReviews(); renderSmartReviewsDashboard(); renderSmartReviewStandalone(); renderAlerts(); renderHistory(); renderImportPreview(); renderImportedSyllabusGroups(); renderBackupSummary(); renderQuestionBank(); qbRenderErrorNotebook(); renderSimulados(); saveData(); }
+function render() { migrateIncorrectWeakDomains(); syncAllFactoryMaterials(); renderFloatingTimer(); renderSubjects(); renderGoalSelectors(); renderQuestionSelectors(); renderPlanning(); renderProgressPanel(); renderDashboard(); renderGoalDashboardCards(); renderEdital(); renderSyllabus(); renderSchedulable(); renderDailyGoals(); renderGoalCalendar(); renderCentralGoals(); renderQuestionHistory(); updateQuestionCalculated(); renderMaterials(); updateStudyMaterialOptions(); safeRenderView("fabrica-resumos", renderFactory); renderReviews(); renderSmartReviewsDashboard(); renderSmartReviewStandalone(); renderAlerts(); renderHistory(); renderImportPreview(); renderImportedSyllabusGroups(); renderBackupSummary(); renderQuestionBank(); qbRenderErrorNotebook(); renderSimulados(); saveData(); }
 function syllabusFromValues(values) { return { id: createId(), discipline: values[0]?.trim() || "Sem disciplina", topic: values[1]?.trim() || "Geral", subject: values[2]?.trim() || "Assunto", subtopic: values[3]?.trim() || "", reference: values[4]?.trim() || "", priority: values[5]?.trim() || "Média", weight: normalizeSubjectIncidence(values[6]), status: values[7]?.trim() || "Não iniciado", domain: normalizeImportedDomain(values[8]), notes: values[9]?.trim() || "" }; }
 
 elements.changeMotivation?.addEventListener("click", () => renderMotivationalPhrase());
@@ -3180,7 +3244,7 @@ document.addEventListener("click", (event) => { const factoryFilter = event.targ
 
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin, elements.materialFilterText].filter(Boolean).forEach((filter) => filter.addEventListener("input", renderMaterials));
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin].filter(Boolean).forEach((filter) => filter.addEventListener("change", renderMaterials));
-document.addEventListener("click", (event) => { const open = event.target.closest("button[data-open-material]"); const create = event.target.closest("button[data-create-goal-material]"); const edit = event.target.closest("button[data-edit-material]"); const del = event.target.closest("button[data-delete-material]"); if (open) openMaterial(open.dataset.openMaterial); if (create) startMaterialForGoal(create.dataset.discipline, create.dataset.subject); if (edit) editMaterial(edit.dataset.editMaterial); if (del && confirm("Excluir este material?")) { state.materials = state.materials.filter((m)=>m.id!==del.dataset.deleteMaterial); render(); } });
+document.addEventListener("click", (event) => { const openUrl = event.target.closest("button[data-open-url]"); if (openUrl && isValidHttpUrl(openUrl.dataset.openUrl)) window.open(openUrl.dataset.openUrl, "_blank", "noopener"); const open = event.target.closest("button[data-open-material]"); const create = event.target.closest("button[data-create-goal-material]"); const edit = event.target.closest("button[data-edit-material]"); const del = event.target.closest("button[data-delete-material]"); if (open) openMaterial(open.dataset.openMaterial); if (create) startMaterialForGoal(create.dataset.discipline, create.dataset.subject); if (edit) editMaterial(edit.dataset.editMaterial); if (del && confirm("Excluir este material?")) { state.materials = state.materials.filter((m)=>m.id!==del.dataset.deleteMaterial); render(); } });
 
 mergeCompatibleLocalStorageData();
 renderMotivationalPhrase();
