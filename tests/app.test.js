@@ -85,3 +85,8 @@ test('Plano do Dia separa tempo de estudo e questões sem concluir automaticamen
   assert.match(script, /registerGoalTime\(goal, "questions"\)/);
   assert.doesNotMatch(script, /Deseja concluir esta meta agora/);
 });
+
+test('Prompt completo do módulo Lei exige recorte expresso e não autoriza lei ampla sem confirmação', () => {
+  assert.match(script, /RECORTE: trabalhe somente os artigos e temas expressamente indicados\. Se o recorte não estiver cadastrado ou estiver impreciso, interrompa a geração e solicite confirmação\. Somente trabalhe a lei integralmente quando houver autorização expressa do usuário\./);
+  assert.doesNotMatch(script, new RegExp(["Se não houver", "trabalhe a lei amplamente"].join(", ")));
+});
