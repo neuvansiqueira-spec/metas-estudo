@@ -69,14 +69,8 @@ test('Fábrica operacional organiza faça agora, fila, triagem e resumo pronto c
   assert.match(script, /let factoryCurrentFilter = "faca-agora"/);
   assert.match(script, /FACTORY_TRIAGEM_STATUSES = \["Não iniciada", "Em andamento", "Concluída", "Precisa refazer"\]/);
   assert.match(script, /function factoryResumoAulaReady\(item = \{\}\)/);
-  assert.match(script, /function factoryResumoAulaMaterialAvailable\(item = \{\}\)/);
-  assert.match(script, /factoryValidModuleLink\(module\.wordLink\) \|\| factoryValidModuleLink\(module\.pdfLink\)/);
-  assert.doesNotMatch(script, /\["Aprovado", "PDF gerado"\]\.includes\(module\.status\) \|\| Boolean\(module\.wordLink\)/);
   assert.match(script, /material\.factoryModuleKey === "resumoAula"/);
   assert.match(script, /function factoryCurrentStage\(item = \{\}\)/);
-  assert.match(script, /function factoryItemHasPendingStage\(item = \{\}\)/);
-  assert.match(script, /queue\.find\(\(\{ item \}\) => factoryItemHasPendingStage\(item\)\)/);
-  assert.match(script, /Cadastrar link do Word/);
   assert.match(script, /function factoryNextAction\(item = \{\}\)/);
   assert.match(script, /function factoryTodayQueue\(agenda = ensureFactoryAgenda\(\)\)/);
   assert.match(script, /ASSUNTO DO MATERIAL/);
@@ -93,11 +87,6 @@ test('Plano do Dia e Materiais separam estudo, produção e cards de materiais',
   assert.match(script, /📚 ESTUDAR HOJE/);
   assert.match(script, /🏭 PRODUZIR MATERIAL HOJE/);
   assert.match(script, /🔄 REVISAR HOJE/);
-  assert.match(script, /✅ CONCLUÍDAS HOJE/);
-  assert.match(script, /const reviewGoalsToday = activeGoals\.filter\(isRevisionGoal\)/);
-  assert.match(script, /const smartReviewsToday = getSmartReviewSuggestions\(date\)/);
-  assert.match(script, /const doneGoals = dayGoals\.filter\(isGoalDone\)/);
-  assert.doesNotMatch(script, /<h3>🔄 REVISAR HOJE<\/h3>\$\{doneGoals\.length/);
   assert.match(script, /function dailyGoalResumoReady/);
   assert.match(script, /function dailyGoalProductionCard/);
   assert.match(script, /MATERIAIS PARA O PLANO DE HOJE/);

@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260710-pages-deploy-fix1",
+  "version": "20260710-emergency-stable1",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
