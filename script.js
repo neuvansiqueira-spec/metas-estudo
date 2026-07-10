@@ -440,7 +440,7 @@ const elements = {
   bulkInput: $("#bulkInput"), previewBulk: $("#previewBulk"), saveBulk: $("#saveBulk"), bulkPreview: $("#bulkPreview"), incidenceTableInput: $("#incidenceTableInput"), applyIncidenceTableButton: $("#applyIncidenceTableButton"), incidenceTableResult: $("#incidenceTableResult"), filterSearch: $("#filterSearch"), filterDiscipline: $("#filterDiscipline"), filterPriority: $("#filterPriority"), filterStatus: $("#filterStatus"), filterDomain: $("#filterDomain"), filterSchedulable: $("#filterSchedulable"), filterQuick: $("#filterQuick"), bulkPriority: $("#bulkPriority"), applyBulkPriority: $("#applyBulkPriority"), syllabusCount: $("#syllabusCount"), showMoreSyllabus: $("#showMoreSyllabus"), syllabusList: $("#syllabusList"), schedulableList: $("#schedulableList"), disciplineOptions: $("#disciplineOptions"),
   jsonImportFile: $("#jsonImportFile"), replaceImportedSyllabus: $("#replaceImportedSyllabus"), importMessage: $("#importMessage"), importDisciplineTotal: $("#importDisciplineTotal"), importSubjectTotal: $("#importSubjectTotal"), importFilterDiscipline: $("#importFilterDiscipline"), importFilterStatus: $("#importFilterStatus"), importFilterPriority: $("#importFilterPriority"), importFilterDomain: $("#importFilterDomain"), importJsonButton: $("#importJsonButton"), clearImportedSyllabus: $("#clearImportedSyllabus"), importDisciplineList: $("#importDisciplineList"), importedSyllabusGroups: $("#importedSyllabusGroups"), importPreview: $("#importPreview"),
   generalCebraspeNet: $("#generalCebraspeNet"), todayPendingGoals: $("#todayPendingGoals"), todayDoneGoals: $("#todayDoneGoals"), dashboardTodayGoal: $("#dashboardTodayGoal"), dashboardTodayGoalDetail: $("#dashboardTodayGoalDetail"), dashboardDailyGoalRate: $("#dashboardDailyGoalRate"), dashboardTodayRemaining: $("#dashboardTodayRemaining"), dashboardNextTodayGoal: $("#dashboardNextTodayGoal"), viewDayPlan: $("#viewDayPlan"),
-  selectedGoalDateLabel: $("#selectedGoalDateLabel"), nextDailyGoal: $("#nextDailyGoal"), generateDailyGoals: $("#generateDailyGoals"), goalForm: $("#goalForm"), goalDate: $("#goalDate"), goalDiscipline: $("#goalDiscipline"), goalSyllabusItem: $("#goalSyllabusItem"), goalType: $("#goalType"), goalMinutes: $("#goalMinutes"), goalActualMinutes: $("#goalActualMinutes"), goalStudyStatus: $("#goalStudyStatus"), goalPriority: $("#goalPriority"), goalStatus: $("#goalStatus"), goalNotes: $("#goalNotes"), dailyGoalsSummary: $("#dailyGoalsSummary"), dailyGoalsList: $("#dailyGoalsList"),
+  selectedGoalDateLabel: $("#selectedGoalDateLabel"), nextDailyGoal: $("#nextDailyGoal"), generateDailyGoals: $("#generateDailyGoals"), refreshDailyGoalsFromPlanning: $("#refreshDailyGoalsFromPlanning"), goalForm: $("#goalForm"), goalDate: $("#goalDate"), goalDiscipline: $("#goalDiscipline"), goalSyllabusItem: $("#goalSyllabusItem"), goalType: $("#goalType"), goalMinutes: $("#goalMinutes"), goalActualMinutes: $("#goalActualMinutes"), goalStudyStatus: $("#goalStudyStatus"), goalPriority: $("#goalPriority"), goalStatus: $("#goalStatus"), goalNotes: $("#goalNotes"), dailyGoalsSummary: $("#dailyGoalsSummary"), dailyGoalsList: $("#dailyGoalsList"),
   calendarDate: $("#calendarDate"), calendarViewMode: $("#calendarViewMode"), generateWeekGoals: $("#generateWeekGoals"), generateMonthGoals: $("#generateMonthGoals"), disciplineWeightsList: $("#disciplineWeightsList"), goalCalendarStats: $("#goalCalendarStats"), goalCalendarContent: $("#goalCalendarContent"), monthlyTopicGoal: $("#monthlyTopicGoal"), monthlyHourGoal: $("#monthlyHourGoal"), monthlyPlanSummary: $("#monthlyPlanSummary"), todayGoalsTotal: $("#todayGoalsTotal"), weekGoalsTotal: $("#weekGoalsTotal"), weekGoalRate: $("#weekGoalRate"), monthGoalRate: $("#monthGoalRate"), nextGoalLabel: $("#nextGoalLabel"), weekTopDiscipline: $("#weekTopDiscipline"), mostDelayedDiscipline: $("#mostDelayedDiscipline"),
   questionForm: $("#questionForm"), questionEditingId: $("#questionEditingId"), questionLinkedGoalId: $("#questionLinkedGoalId"), questionOrigin: $("#questionOrigin"), questionDate: $("#questionDate"), questionDiscipline: $("#questionDiscipline"), questionSyllabusItem: $("#questionSyllabusItem"), questionBoard: $("#questionBoard"), questionTrainingType: $("#questionTrainingType"), questionTotal: $("#questionTotal"), questionMinutes: $("#questionMinutes"), questionCorrect: $("#questionCorrect"), questionWrong: $("#questionWrong"), questionBlank: $("#questionBlank"), questionNotes: $("#questionNotes"), questionCalculated: $("#questionCalculated"), questionAnalysis: $("#questionAnalysis"),
   questionFilterDiscipline: $("#questionFilterDiscipline"), questionFilterSubject: $("#questionFilterSubject"), questionFilterBoard: $("#questionFilterBoard"), questionHistoryBody: $("#questionHistoryBody"),
@@ -2820,27 +2820,65 @@ function generationShortageMessage(goals, requestedTopics, label) {
   if (goals.length >= requestedTopics) return "";
   return ` Aviso: havia apenas ${goals.length} assunto(s) disponível(is) para ${label}; o sistema gerou o máximo possível sem apagar dados antigos.`;
 }
+function uniqueGoalsBySyllabus(goals, reservedIds = new Set()) {
+  const used = new Set(reservedIds);
+  return goals.filter((goal) => {
+    const key = goal.syllabusItemId;
+    if (!key || used.has(key)) return false;
+    used.add(key);
+    return true;
+  });
+}
+function shouldRecalculateDailyGoal(goal) {
+  normalizeGoalTimeFields(goal);
+  const status = goal.status || "Pendente";
+  return !isGoalDone(goal) && !isGoalInProgress(goal) && goalTotalActualMinutes(goal) <= 0 && ["", "Pendente"].includes(status);
+}
+function isPreservableDailyGoal(goal) {
+  return !shouldRecalculateDailyGoal(goal);
+}
 function generateDailyGoals() {
   try {
     const date = elements.goalDate.value || todayISO();
     const availability = availabilityForDate(date);
     if (!state.syllabusItems.length) { showDailyGoalMessage("Não foi possível gerar metas. Verifique se o edital foi importado.", "error"); return; }
     const existingToday = state.dailyGoals.filter((g) => g.date === date);
-    if (existingToday.length && !confirm("Já existem metas para esta data. Clique em OK para adicionar novas ou em Cancelar para manter como está.")) return;
+    if (existingToday.length && !confirm(`Já existem ${existingToday.length} meta(s) para ${formatDateBR(date)}. O sistema vai manter as metas existentes e gerar somente assuntos ainda não presentes, sem duplicar syllabusItemId. Clique em OK para tentar adicionar apenas metas faltantes ou em Cancelar para manter como está.`)) return;
     const manualUnavailable = availability.type === "indisponível";
     if (manualUnavailable && !confirm("Este dia está marcado como indisponível. Deseja gerar metas mesmo assim?")) {
       showDailyGoalMessage("Geração cancelada: o dia selecionado está indisponível.", "warning");
       return;
     }
-    const chosen = generateGoalsForDate(date, { manual: manualUnavailable });
-    if (!chosen.length) { showDailyGoalMessage("Nenhuma meta gerada. Verifique assuntos agendáveis, duplicidades ou disponibilidade do dia.", "warning"); return; }
+    const existingIds = new Set(existingToday.map((g)=>g.syllabusItemId).filter(Boolean));
+    const chosen = uniqueGoalsBySyllabus(generateGoalsForDate(date, { manual: manualUnavailable }), existingIds);
+    if (!chosen.length) { showDailyGoalMessage(existingToday.length ? `Nenhuma meta nova foi adicionada: já existem metas para ${formatDateBR(date)} e duplicidades por assunto foram bloqueadas.` : "Nenhuma meta gerada. Verifique assuntos agendáveis, duplicidades ou disponibilidade do dia.", "warning"); return; }
     state.dailyGoals.push(...chosen);
     saveData();
     render();
     const disciplines = new Set(chosen.map((g)=>g.discipline)).size;
-    showDailyGoalMessage(`${chosen.length} meta(s) gerada(s) para ${formatDateBR(date)}, com ${disciplines} disciplina(s) diferente(s). Limitação aplicada: ${availability.type} (${availability.hours || 0}h disponíveis), até ${planningConfig().disciplinesPerDay} disciplina(s) e ${planningConfig().topicsPerDay} assunto(s).${generationShortageMessage(chosen, planningConfig().topicsPerDay, "o dia")}`, "success");
+    showDailyGoalMessage(`${chosen.length} meta(s) nova(s) gerada(s) para ${formatDateBR(date)}, com ${disciplines} disciplina(s) diferente(s). Metas existentes foram preservadas e duplicidades por assunto foram bloqueadas. Limitação aplicada: ${availability.type} (${availability.hours || 0}h disponíveis), até ${planningConfig().disciplinesPerDay} disciplina(s) e ${planningConfig().topicsPerDay} assunto(s).${generationShortageMessage(chosen, planningConfig().topicsPerDay, "o dia")}`, "success");
     showView("metas-do-dia");
   } catch (error) { console.error("Não foi possível gerar metas.", error); showDailyGoalMessage("Não foi possível gerar metas. Verifique se o edital foi importado.", "error"); }
+}
+function refreshDailyGoalsFromPlanning() {
+  try {
+    const date = elements.goalDate.value || todayISO();
+    if (!state.syllabusItems.length) { showDailyGoalMessage("Não foi possível atualizar. Verifique se o edital foi importado.", "error"); return; }
+    const dayGoals = state.dailyGoals.filter((g) => g.date === date);
+    const preserved = dayGoals.filter(isPreservableDailyGoal);
+    const recalculated = dayGoals.filter((g) => !isPreservableDailyGoal(g));
+    if (!confirm(`Atualizar o Plano do Dia de ${formatDateBR(date)} conforme o Planejamento atual?\n\nSerão preservadas ${preserved.length} meta(s) concluída(s), em andamento ou com tempo/questões registrado(s), mantendo histórico, links e observações.\nSerão removidas e recalculadas ${recalculated.length} meta(s) pendente(s) ainda não iniciada(s).`)) return;
+    const manualUnavailable = availabilityForDate(date).type === "indisponível";
+    const preservedIds = new Set(preserved.map((g)=>g.syllabusItemId).filter(Boolean));
+    state.dailyGoals = state.dailyGoals.filter((g) => g.date !== date || preserved.includes(g));
+    const generated = uniqueGoalsBySyllabus(generateGoalsForDate(date, { manual: manualUnavailable }), preservedIds);
+    state.dailyGoals.push(...generated);
+    saveData();
+    render();
+    showDailyGoalMessage(`Plano de ${formatDateBR(date)} atualizado conforme o Planejamento: ${preserved.length} meta(s) preservada(s), ${recalculated.length} pendente(s) removida(s) e ${generated.length} meta(s) recalculada(s), sem duplicar assuntos.`, "success");
+    if (factoryCurrentFilter === "hoje") renderFactory();
+    showView("metas-do-dia");
+  } catch (error) { console.error("Não foi possível atualizar o Plano do Dia.", error); showDailyGoalMessage("Não foi possível atualizar o Plano do Dia conforme o Planejamento.", "error"); }
 }
 function appendGoalHistory(goal, text) {
   goal.history ||= [];
@@ -3030,6 +3068,7 @@ elements.availabilityCalendar?.addEventListener("change", (event) => {
 });
 
 if (elements.generateDailyGoals) elements.generateDailyGoals.addEventListener("click", generateDailyGoals);
+elements.refreshDailyGoalsFromPlanning?.addEventListener("click", refreshDailyGoalsFromPlanning);
 elements.planningScaleType?.addEventListener("change", () => { if (elements.scale3x6Fields) elements.scale3x6Fields.hidden = elements.planningScaleType.value !== "3 dias de trabalho / 6 dias de folga"; });
 elements.centralOpenDayPlan?.addEventListener("click", () => { elements.goalDate.value=todayISO(); renderDailyGoals(); showView("metas-do-dia"); });
 elements.centralGoalsCards?.addEventListener("click", (event) => { if (event.target.closest("[data-central-open-day]")) { elements.goalDate.value=todayISO(); renderDailyGoals(); showView("metas-do-dia"); } if (event.target.closest("[data-central-week]")) { if(elements.calendarDate) elements.calendarDate.value=todayISO(); generateWeekGoals(); } if (event.target.closest("[data-central-month]")) { if(elements.calendarDate) elements.calendarDate.value=todayISO(); generateMonthGoals(); } });
