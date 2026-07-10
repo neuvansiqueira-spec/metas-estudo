@@ -378,7 +378,12 @@ async function testTimerAlerts() {
 function checkFloatingTimerAlerts() {
   const goal = floatingTimerGoal();
   const planned = timerPlannedSeconds(goal);
-  if (!goal || floatingTimer.mode !== "countdown" || !planned || floatingTimer.completionDismissed) return;
+  if (!goal || !planned || floatingTimer.completionDismissed) return;
+  if (floatingTimer.mode === "free") {
+    if (currentTimerSeconds() >= planned && !floatingTimer.completed) triggerTimerAlert("completed", goal);
+    return;
+  }
+  if (floatingTimer.mode !== "countdown") return;
   const remaining = timerRemainingSeconds(goal);
   if (remaining <= 0) { if (!floatingTimer.completed) triggerTimerAlert("completed", goal); return; }
   if (remaining <= 60 && remaining > 0) { if (!floatingTimer.warnedOne) triggerTimerAlert("one-minute", goal); return; }
