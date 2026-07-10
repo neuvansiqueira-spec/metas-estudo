@@ -126,6 +126,8 @@ state.materials ||= [];
 state.factoryItems ||= [];
 state.factoryAgenda ||= [];
 state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) });
+let factoryCurrentFilter = "hoje";
+let lastFactoryTodayInfo = { goals: 0, matched: 0, matchModes: [] };
 state.migrations ||= {};
 if (!state.migrations.leiRecortePromptV2 && state.factoryPromptLibrary?.lei?.includes(NEW_LEI_RECORTE_PROMPT)) {
   state.migrations.leiRecortePromptV2 = new Date().toISOString();
@@ -1815,6 +1817,61 @@ function closeFactoryPrompt(id) {
   if (panel) panel.innerHTML = "";
 }
 
+function factoryResumoAulaReady(item = {}) {
+  const module = normalizeFactoryModule(item.modules?.resumoAula || {}, item);
+  return ["Aprovado", "PDF gerado"].includes(module.status) || Boolean(module.pdfLink);
+}
+function factoryModuleLinksHTML(item = {}) {
+  const modules = normalizeFactoryModules(item.modules || {});
+  const links = FACTORY_MODULES.flatMap(({ key, label }) => {
+    const module = modules[key] || {};
+    return [
+      module.wordLink ? `<a href="${escapeHTML(module.wordLink)}" target="_blank" rel="noopener">Word — ${escapeHTML(label)}</a>` : "",
+      module.pdfLink ? `<a href="${escapeHTML(module.pdfLink)}" target="_blank" rel="noopener">PDF — ${escapeHTML(label)}</a>` : ""
+    ].filter(Boolean);
+  });
+  return links.length ? `<div class="card-actions factory-ready-links">${links.join("")}</div>` : `<p class="item-meta">Links Word/PDF ainda não cadastrados.</p>`;
+}
+function factoryGoalSubtopic(goal = {}) {
+  const syllabus = (state.syllabusItems || []).find((item) => item.id === goal.syllabusItemId);
+  return factorySyllabusSubtopic(syllabus) || goal.subtopic || goal.subassunto || goal.topic || "";
+}
+function exactFactoryGoalMatches(goal = {}, agenda = []) {
+  const syllabus = (state.syllabusItems || []).find((item) => item.id === goal.syllabusItemId);
+  const id = goal.syllabusItemId || goal.editalItemId || goal.itemId || "";
+  const stableKey = syllabus ? factorySyllabusStableKey(syllabus) : "";
+  const byId = id ? agenda.filter((item) => (item.editalLink?.itemIds || []).includes(id)) : [];
+  if (byId.length) return { items: byId, mode: "identificador original do item do edital" };
+  const byKey = stableKey ? agenda.filter((item) => (item.editalLink?.itemKeys || []).includes(stableKey)) : [];
+  if (byKey.length) return { items: byKey, mode: "identificador original do item do edital" };
+  const discipline = canonical(goal.discipline || goal.disciplina || syllabus?.discipline || syllabus?.disciplina || "");
+  const subject = canonical(goal.subject || goal.assunto || (syllabus ? factorySyllabusMainSubject(syllabus) : ""));
+  const subtopic = canonical(factoryGoalSubtopic(goal));
+  const exact = agenda.filter((item) => {
+    if (canonical(item.disciplina) !== discipline || canonical(item.tema) !== subject) return false;
+    if (!subtopic) return true;
+    return (item.editalSubtemas || []).some((value) => canonical(value) === subtopic);
+  });
+  return { items: exact, mode: exact.length ? "correspondência exata normalizada por disciplina, assunto principal e subassunto" : "sem vínculo exato" };
+}
+function factoryTodayGroups(agenda = []) {
+  const todayGoals = (state.dailyGoals || []).filter((goal) => (goal.date || goal.data) === todayISO());
+  const groups = new Map();
+  const modes = new Set();
+  todayGoals.forEach((goal) => {
+    const match = exactFactoryGoalMatches(goal, agenda);
+    if (match.items.length) modes.add(match.mode);
+    match.items.forEach((item) => {
+      if (!groups.has(item.id)) groups.set(item.id, { item, goals: [], subtopics: new Set() });
+      const group = groups.get(item.id);
+      group.goals.push(goal);
+      const subtopic = factoryGoalSubtopic(goal);
+      if (subtopic) group.subtopics.add(subtopic);
+    });
+  });
+  lastFactoryTodayInfo = { goals: todayGoals.length, matched: groups.size, matchModes: [...modes] };
+  return [...groups.values()].map((group) => ({ ...group, subtopics: [...group.subtopics].sort((a,b)=>a.localeCompare(b,"pt-BR")) }));
+}
 function renderFactory() {
   if (!elements.factoryList) return;
   try {
@@ -1833,13 +1890,29 @@ function renderFactory() {
       elements.factoryList.textContent = "Nenhum tema cadastrado na Fábrica.";
       return;
     }
-    const buckets = [
-      ["A PRODUZIR", activeAgenda.filter((item) => !factoryThemeIsCompleted(normalizeFactoryModules(item.modules || {})) && factoryOverallStatus(normalizeFactoryModules(item.modules || {})) === "Não iniciado")],
-      ["EM PRODUÇÃO", activeAgenda.filter((item) => !factoryThemeIsCompleted(normalizeFactoryModules(item.modules || {})) && factoryOverallStatus(normalizeFactoryModules(item.modules || {})) !== "Não iniciado")],
-      ["CONCLUÍDOS", activeAgenda.filter((item) => factoryThemeIsCompleted(normalizeFactoryModules(item.modules || {})))],
-      ["FORA DO EDITAL ATIVO", agenda.filter((item) => item.editalActive === false)]
-    ];
-    const cardFor = (item)=>{
+    document.querySelectorAll("[data-factory-filter]").forEach((button) => {
+      const active = button.dataset.factoryFilter === factoryCurrentFilter;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+    const todayGroups = factoryTodayGroups(activeAgenda);
+    const pendingToday = todayGroups.filter(({ item }) => !factoryResumoAulaReady(item));
+    const readyToday = todayGroups.filter(({ item }) => factoryResumoAulaReady(item));
+    let buckets;
+    if (factoryCurrentFilter === "hoje") {
+      buckets = [
+        ["RESUMOS A PRODUZIR HOJE", pendingToday],
+        ["MATERIAIS JÁ PRONTOS PARA ESTUDAR", readyToday]
+      ];
+    } else if (factoryCurrentFilter === "producao") {
+      buckets = [["EM PRODUÇÃO", activeAgenda.filter((item) => !factoryThemeIsCompleted(normalizeFactoryModules(item.modules || {})) && factoryOverallStatus(normalizeFactoryModules(item.modules || {})) !== "Não iniciado")]];
+    } else if (factoryCurrentFilter === "concluidos") {
+      buckets = [["CONCLUÍDOS", activeAgenda.filter((item) => factoryThemeIsCompleted(normalizeFactoryModules(item.modules || {})))]];
+    } else {
+      buckets = [["TODOS OS PENDENTES", activeAgenda.filter((item) => !factoryThemeIsCompleted(normalizeFactoryModules(item.modules || {}))))]];
+    }
+    const cardFor = (entry)=>{
+      const item = entry.item || entry;
       const modules = normalizeFactoryModules(item.modules || {});
       item.modules = modules;
       item.status = factoryOverallStatus(modules);
@@ -1847,8 +1920,14 @@ function renderFactory() {
       const promptButtons = FACTORY_PROMPT_TYPES.map(({ key, label }) => `<button type="button" class="secondary-button" data-factory-prompt="${item.id}|${key}">${escapeHTML(label)}</button>`).join("");
       const isCompleted = factoryThemeIsCompleted(modules);
       const subtemas = item.editalSubtemas?.length ? item.editalSubtemas.join("; ") : "-";
-      return `<article class="syllabus-card factory-card"><header><div><h3>${escapeHTML(item.disciplina)} — ${escapeHTML(item.tema)}</h3><div class="item-meta">Prioridade ${escapeHTML(item.prioridade)}${item.dataPlanejada ? ` • ${formatDateBR(item.dataPlanejada)}` : ""}${item.editalActive === false ? " • FORA DO EDITAL ATIVO" : ""}</div></div><span class="badge ${isCompleted?'success':item.status==='Em produção'?'warn':item.prioridade==='Alta'?'danger':'neutral'}">${escapeHTML(item.status)}</span></header><ul class="factory-module-summary">${moduleSummary}</ul><div class="card-meta-grid"><span>Disciplina: ${escapeHTML(item.disciplina)}</span><span>Tema: ${escapeHTML(item.tema)}</span><span>Subtemas do edital: ${escapeHTML(subtemas)}</span><span>Vínculo do edital: ${escapeHTML(item.editalLink?.groupKey || "manual")}</span><span>Data planejada: ${item.dataPlanejada ? formatDateBR(item.dataPlanejada) : "-"}</span><span>Pasta das fontes: ${escapeHTML(factorySourceFolderLink(item) || "-")}</span><span>Pasta de destino do Word/PDF: ${escapeHTML(factoryDestinationFolderLink(item) || "-")}</span><span>Lei / diploma legal: ${escapeHTML(modules.lei.leiNome || "-")}</span><span>Fonte: ${escapeHTML(modules.lei.leiFonte || "-")}</span><span>Artigos / dispositivos: ${escapeHTML(modules.lei.leiArtigos || "-")}</span><span>Recorte obrigatório: ${escapeHTML(modules.lei.leiRecorte || "-")}</span><span>Observação: ${escapeHTML(item.observacao || "-")}</span></div><div class="factory-prompt-actions"><h4>Prompts da Fábrica</h4><div class="card-actions">${promptButtons}</div></div><div class="factory-prompt-panel" data-factory-prompt-panel="${item.id}"></div><div class="card-actions"><button type="button" data-factory-modules="${item.id}">Editar módulos</button><button type="button" data-factory-edit="${item.id}">Editar tema</button>${isCompleted ? `<button type="button" class="secondary-button" data-factory-reopen="${item.id}">Reabrir tema</button>` : ""}<button type="button" class="danger" data-factory-delete="${item.id}">Excluir</button></div><div class="factory-modules-panel" data-factory-modules-panel="${item.id}"></div></article>`;
+      const todaySubtopics = entry.subtopics?.length ? `<div class="factory-today-subtopics"><strong>Subassuntos programados hoje:</strong><ul>${entry.subtopics.map((subtopic)=>`<li>${escapeHTML(subtopic)}</li>`).join("")}</ul></div>` : "";
+      const readyLinks = factoryCurrentFilter === "hoje" && factoryResumoAulaReady(item) ? factoryModuleLinksHTML(item) : "";
+      return `<article class="syllabus-card factory-card"><header><div><h3>${escapeHTML(item.disciplina)} — ${escapeHTML(item.tema)}</h3><div class="item-meta">Prioridade ${escapeHTML(item.prioridade)}${item.dataPlanejada ? ` • ${formatDateBR(item.dataPlanejada)}` : ""}${item.editalActive === false ? " • FORA DO EDITAL ATIVO" : ""}</div></div><span class="badge ${isCompleted?'success':item.status==='Em produção'?'warn':item.prioridade==='Alta'?'danger':'neutral'}">${escapeHTML(item.status)}</span></header>${todaySubtopics}<ul class="factory-module-summary">${moduleSummary}</ul>${readyLinks}<div class="card-meta-grid"><span>Disciplina: ${escapeHTML(item.disciplina)}</span><span>Tema: ${escapeHTML(item.tema)}</span><span>Subtemas do edital: ${escapeHTML(subtemas)}</span><span>Vínculo do edital: ${escapeHTML(item.editalLink?.groupKey || "manual")}</span><span>Data planejada: ${item.dataPlanejada ? formatDateBR(item.dataPlanejada) : "-"}</span><span>Pasta das fontes: ${escapeHTML(factorySourceFolderLink(item) || "-")}</span><span>Pasta de destino do Word/PDF: ${escapeHTML(factoryDestinationFolderLink(item) || "-")}</span><span>Lei / diploma legal: ${escapeHTML(modules.lei.leiNome || "-")}</span><span>Fonte: ${escapeHTML(modules.lei.leiFonte || "-")}</span><span>Artigos / dispositivos: ${escapeHTML(modules.lei.leiArtigos || "-")}</span><span>Recorte obrigatório: ${escapeHTML(modules.lei.leiRecorte || "-")}</span><span>Observação: ${escapeHTML(item.observacao || "-")}</span></div><div class="factory-prompt-actions"><h4>Prompts da Fábrica</h4><div class="card-actions">${promptButtons}</div></div><div class="factory-prompt-panel" data-factory-prompt-panel="${item.id}"></div><div class="card-actions"><button type="button" data-factory-modules="${item.id}">Editar módulos</button><button type="button" data-factory-edit="${item.id}">Editar tema</button>${isCompleted ? `<button type="button" class="secondary-button" data-factory-reopen="${item.id}">Reabrir tema</button>` : ""}<button type="button" class="danger" data-factory-delete="${item.id}">Excluir</button></div><div class="factory-modules-panel" data-factory-modules-panel="${item.id}"></div></article>`;
     };
+    if (factoryCurrentFilter === "hoje" && !todayGroups.length) {
+      elements.factoryList.innerHTML = `<p class="empty-message">Nenhum tema das Metas do Dia precisa de resumo hoje.</p>`;
+      return;
+    }
     elements.factoryList.innerHTML = buckets.map(([title, items]) => `<section class="factory-section"><h3>${title}</h3>${items.length ? items.map(cardFor).join("") : `<p class="empty-message">Nenhum tema nesta lista.</p>`}</section>`).join("");
   } catch (error) {
     console.error("[Metas Estudo] Erro ao carregar Fábrica de Resumos", error);
@@ -3058,7 +3137,7 @@ elements.factoryForm?.addEventListener("submit", saveFactoryItem);
 document.addEventListener("submit", saveFactoryModules);
 document.addEventListener("submit", saveFactoryPromptLibrary);
 elements.editFactoryPromptLibrary?.addEventListener("click", () => { if (!elements.factoryPromptLibraryPanel) return; elements.factoryPromptLibraryPanel.hidden = !elements.factoryPromptLibraryPanel.hidden; if (!elements.factoryPromptLibraryPanel.hidden) renderFactoryPromptLibrary(); });
-document.addEventListener("click", (event) => { const edit = event.target.closest("[data-factory-edit]"); const del = event.target.closest("[data-factory-delete]"); const modules = event.target.closest("[data-factory-modules]"); const cancelModules = event.target.closest("[data-factory-modules-cancel]"); const prompt = event.target.closest("[data-factory-prompt]"); const copyPrompt = event.target.closest("[data-factory-prompt-copy]"); const copyRouter = event.target.closest("[data-factory-router-copy]"); const closePrompt = event.target.closest("[data-factory-prompt-close]"); const closeLibrary = event.target.closest("[data-factory-library-close]"); const restoreLibrary = event.target.closest("[data-factory-library-restore]"); const reopen = event.target.closest("[data-factory-reopen]"); if (reopen) reopenFactoryTheme(reopen.dataset.factoryReopen); if (edit) editFactoryItem(edit.dataset.factoryEdit); if (del) deleteFactoryItem(del.dataset.factoryDelete); if (modules) editFactoryModules(modules.dataset.factoryModules); if (cancelModules) renderFactory(); if (prompt) { const [id, type] = prompt.dataset.factoryPrompt.split("|"); showFactoryPrompt(id, type); } if (copyPrompt) copyFactoryPrompt(copyPrompt.dataset.factoryPromptCopy); if (copyRouter) copyFactoryPrompt(copyRouter.dataset.factoryRouterCopy, true); if (closePrompt) closeFactoryPrompt(closePrompt.dataset.factoryPromptClose); if (closeLibrary && elements.factoryPromptLibraryPanel) elements.factoryPromptLibraryPanel.hidden = true; if (restoreLibrary && confirm("Isso substituirá o prompt salvo deste módulo. Deseja continuar?")) { const field = elements.factoryPromptLibraryPanel?.querySelector(`[data-factory-library-field="${CSS.escape(restoreLibrary.dataset.factoryLibraryRestore)}"]`); if (field) field.value = defaultFactoryPromptLibrary[restoreLibrary.dataset.factoryLibraryRestore] || ""; } });
+document.addEventListener("click", (event) => { const factoryFilter = event.target.closest("[data-factory-filter]"); if (factoryFilter) { factoryCurrentFilter = factoryFilter.dataset.factoryFilter || "hoje"; renderFactory(); return; } const edit = event.target.closest("[data-factory-edit]"); const del = event.target.closest("[data-factory-delete]"); const modules = event.target.closest("[data-factory-modules]"); const cancelModules = event.target.closest("[data-factory-modules-cancel]"); const prompt = event.target.closest("[data-factory-prompt]"); const copyPrompt = event.target.closest("[data-factory-prompt-copy]"); const copyRouter = event.target.closest("[data-factory-router-copy]"); const closePrompt = event.target.closest("[data-factory-prompt-close]"); const closeLibrary = event.target.closest("[data-factory-library-close]"); const restoreLibrary = event.target.closest("[data-factory-library-restore]"); const reopen = event.target.closest("[data-factory-reopen]"); if (reopen) reopenFactoryTheme(reopen.dataset.factoryReopen); if (edit) editFactoryItem(edit.dataset.factoryEdit); if (del) deleteFactoryItem(del.dataset.factoryDelete); if (modules) editFactoryModules(modules.dataset.factoryModules); if (cancelModules) renderFactory(); if (prompt) { const [id, type] = prompt.dataset.factoryPrompt.split("|"); showFactoryPrompt(id, type); } if (copyPrompt) copyFactoryPrompt(copyPrompt.dataset.factoryPromptCopy); if (copyRouter) copyFactoryPrompt(copyRouter.dataset.factoryRouterCopy, true); if (closePrompt) closeFactoryPrompt(closePrompt.dataset.factoryPromptClose); if (closeLibrary && elements.factoryPromptLibraryPanel) elements.factoryPromptLibraryPanel.hidden = true; if (restoreLibrary && confirm("Isso substituirá o prompt salvo deste módulo. Deseja continuar?")) { const field = elements.factoryPromptLibraryPanel?.querySelector(`[data-factory-library-field="${CSS.escape(restoreLibrary.dataset.factoryLibraryRestore)}"]`); if (field) field.value = defaultFactoryPromptLibrary[restoreLibrary.dataset.factoryLibraryRestore] || ""; } });
 
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin, elements.materialFilterText].filter(Boolean).forEach((filter) => filter.addEventListener("input", renderMaterials));
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin].filter(Boolean).forEach((filter) => filter.addEventListener("change", renderMaterials));

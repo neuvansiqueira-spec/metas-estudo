@@ -370,6 +370,12 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
       <div class="actions factory-settings-actions"><button id="editFactoryPromptLibrary" type="button" class="secondary-button">Editar biblioteca de prompts</button></div>
       <section id="factoryPromptLibraryPanel" class="bulk-box factory-prompt-library" hidden aria-labelledby="factory-prompt-library-title"></section>
       <div id="factorySummary" class="stats-grid compact factory-summary" aria-live="polite"></div>
+      <div class="actions factory-filter-actions" role="group" aria-label="Filtros da Fábrica">
+        <button type="button" class="secondary-button" data-factory-filter="hoje">HOJE</button>
+        <button type="button" class="secondary-button" data-factory-filter="pendentes">TODOS OS PENDENTES</button>
+        <button type="button" class="secondary-button" data-factory-filter="producao">EM PRODUÇÃO</button>
+        <button type="button" class="secondary-button" data-factory-filter="concluidos">CONCLUÍDOS</button>
+      </div>
       <form id="factoryForm" class="form-grid factory-form">
         <input id="factoryEditingId" type="hidden" />
         <label>Disciplina<input id="factoryDiscipline" type="text" placeholder="Processo Penal" required /></label>
