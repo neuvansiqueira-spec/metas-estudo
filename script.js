@@ -1440,12 +1440,14 @@ Tema: ${item.tema || "[TEMA]"}`;
 function factoryPromptText(type, item = {}) {
   const context = factoryPromptContext(item);
   const theme = item.tema || "[TEMA]";
-  const leiNome = item.leiNome || "[LEI_NOME]";
-  const leiFonte = item.leiFonte || "[LEI_FONTE]";
-  const leiArtigos = item.leiArtigos || "[LEI_ARTIGOS]";
-  const leiRecorte = item.leiRecorte || "[LEI_RECORTE]";
-  const leiObservacoes = item.leiObservacoes || "[LEI_OBSERVACOES]";
-  const leiMissingAlert = (!item.leiNome || !item.leiRecorte) ? "\n[DEFINIR LEI, ARTIGOS E RECORTE ANTES DE GERAR]\n" : "";
+  const leiModule = normalizeFactoryModule(item.modules?.lei || {}, item);
+  const leiMissingPlaceholder = "[DEFINIR LEI, ARTIGOS E RECORTE ANTES DE GERAR]";
+  const hasLeiFields = [leiModule.leiNome, leiModule.leiFonte, leiModule.leiArtigos, leiModule.leiRecorte, leiModule.leiObservacoes].every((value) => String(value || "").trim());
+  const leiNome = hasLeiFields ? leiModule.leiNome : leiMissingPlaceholder;
+  const leiFonte = hasLeiFields ? leiModule.leiFonte : leiMissingPlaceholder;
+  const leiArtigos = hasLeiFields ? leiModule.leiArtigos : leiMissingPlaceholder;
+  const leiRecorte = hasLeiFields ? leiModule.leiRecorte : leiMissingPlaceholder;
+  const leiObservacoes = hasLeiFields ? leiModule.leiObservacoes : leiMissingPlaceholder;
   const prompts = {
     triagem: `${context}
 
@@ -1524,7 +1526,7 @@ Recorte obrigatório:
 ${leiRecorte}
 
 Observações:
-${leiObservacoes}${leiMissingAlert}
+${leiObservacoes}
 Regras:
 - gerar somente o MÓDULO LEI;
 - não gerar resumo/aula;
@@ -1667,14 +1669,19 @@ Gerar arquivo Word editável.`
   return prompts[type] || "";
 }
 
-function normalizeFactoryModule(module = {}) {
+function normalizeFactoryModule(module = {}, legacyItem = {}) {
   const status = FACTORY_STATUSES.includes(module.status) ? module.status : "Não iniciado";
   return {
     status,
     wordLink: module.wordLink || module.linkWord || module.linkDoWord || module.word || "",
     pdfLink: module.pdfLink || module.linkPdf || module.linkDoPDF || module.pdf || "",
     observacao: module.observacao || module.observacoes || module.notes || "",
-    dataConclusao: module.dataConclusao || module.concludedAt || module.completionDate || ""
+    dataConclusao: module.dataConclusao || module.concludedAt || module.completionDate || "",
+    leiNome: module.leiNome || module.lei_nome || legacyItem.leiNome || legacyItem.lei_nome || legacyItem.lei || "",
+    leiFonte: module.leiFonte || module.lei_fonte || legacyItem.leiFonte || legacyItem.lei_fonte || "",
+    leiArtigos: module.leiArtigos || module.lei_artigos || legacyItem.leiArtigos || legacyItem.lei_artigos || "",
+    leiRecorte: module.leiRecorte || module.lei_recorte || legacyItem.leiRecorte || legacyItem.lei_recorte || "",
+    leiObservacoes: module.leiObservacoes || module.lei_observacoes || legacyItem.leiObservacoes || legacyItem.lei_observacoes || ""
   };
 }
 function normalizeFactoryModules(modules = {}, legacyItem = {}) {
@@ -1682,7 +1689,7 @@ function normalizeFactoryModules(modules = {}, legacyItem = {}) {
   const migratedLegacyStatus = legacyItem.status === "Finalizado" ? "Aprovado" : (FACTORY_STATUSES.includes(legacyItem.status) ? legacyItem.status : "Não iniciado");
   return Object.fromEntries(FACTORY_MODULES.map(({ key }) => {
     const incoming = modules?.[key] || modules?.[key.toUpperCase?.()] || (!hasModules && key === "resumoAula" ? { status: migratedLegacyStatus, observacao: legacyItem.observacao || legacyItem.notes || "" } : {});
-    return [key, normalizeFactoryModule(incoming)];
+    return [key, normalizeFactoryModule(incoming, key === "lei" ? legacyItem : {})];
   }));
 }
 function factoryOverallStatus(modules = {}) {
@@ -1706,11 +1713,6 @@ function normalizeFactoryItem(item = {}) {
     status,
     dataPlanejada: item.dataPlanejada || item.plannedDate || item.date || "",
     observacao: item.observacao || item.observacoes || item.notes || "",
-    leiNome: item.leiNome || item.lei_nome || item.lei || "",
-    leiFonte: item.leiFonte || item.lei_fonte || "",
-    leiArtigos: item.leiArtigos || item.lei_artigos || "",
-    leiRecorte: item.leiRecorte || item.lei_recorte || "",
-    leiObservacoes: item.leiObservacoes || item.lei_observacoes || "",
     createdAt: item.createdAt || item.created_at || item.updatedAt || now,
     modules: normalizeFactoryModules(item.modules || item.modulos || {}, item),
     updatedAt: item.updatedAt || item.updated_at || now
@@ -1744,11 +1746,6 @@ function saveFactoryItem(event) {
     status: elements.factoryStatus.value,
     dataPlanejada: elements.factoryPlannedDate.value,
     observacao: elements.factoryNotes.value.trim(),
-    leiNome: elements.factoryLeiNome?.value.trim() || "",
-    leiFonte: elements.factoryLeiFonte?.value.trim() || "",
-    leiArtigos: elements.factoryLeiArtigos?.value.trim() || "",
-    leiRecorte: elements.factoryLeiRecorte?.value.trim() || "",
-    leiObservacoes: elements.factoryLeiObservacoes?.value.trim() || "",
     createdAt: previous?.createdAt || now,
     updatedAt: now
   });
@@ -1770,11 +1767,6 @@ function editFactoryItem(id) {
   elements.factoryPriority.value = item.prioridade;
   elements.factoryPlannedDate.value = item.dataPlanejada || "";
   elements.factoryStatus.value = item.status;
-  if (elements.factoryLeiNome) elements.factoryLeiNome.value = item.leiNome || "";
-  if (elements.factoryLeiFonte) elements.factoryLeiFonte.value = item.leiFonte || "";
-  if (elements.factoryLeiArtigos) elements.factoryLeiArtigos.value = item.leiArtigos || "";
-  if (elements.factoryLeiRecorte) elements.factoryLeiRecorte.value = item.leiRecorte || "";
-  if (elements.factoryLeiObservacoes) elements.factoryLeiObservacoes.value = item.leiObservacoes || "";
   elements.factoryNotes.value = item.observacao || "";
   elements.factoryForm?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -1789,8 +1781,9 @@ function editFactoryModules(id) {
   const item = ensureFactoryAgenda().find((x) => x.id === id);
   if (!item) return;
   const html = FACTORY_MODULES.map(({ key, label }) => {
-    const module = normalizeFactoryModule(item.modules?.[key]);
-    return `<fieldset class="factory-module-editor"><legend>${escapeHTML(label)}</legend><label>Status<select data-factory-module-field="${item.id}|${key}|status">${FACTORY_STATUSES.map((s)=>`<option ${s===module.status?'selected':''}>${s}</option>`).join("")}</select></label><label>Link do Word<input type="url" data-factory-module-field="${item.id}|${key}|wordLink" value="${escapeHTML(module.wordLink)}" placeholder="https://..." /></label><label>Link do PDF<input type="url" data-factory-module-field="${item.id}|${key}|pdfLink" value="${escapeHTML(module.pdfLink)}" placeholder="https://..." /></label><label>Data de conclusão<input type="date" data-factory-module-field="${item.id}|${key}|dataConclusao" value="${escapeHTML(module.dataConclusao)}" /></label><label class="wide">Observação<textarea rows="2" data-factory-module-field="${item.id}|${key}|observacao">${escapeHTML(module.observacao)}</textarea></label></fieldset>`;
+    const module = normalizeFactoryModule(item.modules?.[key], key === "lei" ? item : {});
+    const leiFields = key === "lei" ? `<label class="wide">Lei / diploma legal<input type="text" data-factory-module-field="${item.id}|${key}|leiNome" value="${escapeHTML(module.leiNome)}" placeholder="Ex.: Lei nº 12.830/2013" /></label><label class="wide">Fonte<input type="text" data-factory-module-field="${item.id}|${key}|leiFonte" value="${escapeHTML(module.leiFonte)}" placeholder="Ex.: Planalto, diário oficial ou link da fonte oficial" /></label><label class="wide">Artigos / dispositivos<input type="text" data-factory-module-field="${item.id}|${key}|leiArtigos" value="${escapeHTML(module.leiArtigos)}" placeholder="Ex.: arts. 1º a 3º; art. 144, § 4º, CF" /></label><label class="wide">Recorte obrigatório<textarea rows="2" data-factory-module-field="${item.id}|${key}|leiRecorte" placeholder="Delimite exatamente o recorte que o módulo Lei deve cobrir">${escapeHTML(module.leiRecorte)}</textarea></label><label class="wide">Observações<textarea rows="2" data-factory-module-field="${item.id}|${key}|leiObservacoes" placeholder="Informe lacunas, ressalvas, necessidade de fonte oficial ou pontos de atenção">${escapeHTML(module.leiObservacoes)}</textarea></label>` : "";
+    return `<fieldset class="factory-module-editor"><legend>${escapeHTML(label)}</legend>${leiFields}<label>Status<select data-factory-module-field="${item.id}|${key}|status">${FACTORY_STATUSES.map((s)=>`<option ${s===module.status?'selected':''}>${s}</option>`).join("")}</select></label><label>Link do Word<input type="url" data-factory-module-field="${item.id}|${key}|wordLink" value="${escapeHTML(module.wordLink)}" placeholder="https://..." /></label><label>Link do PDF<input type="url" data-factory-module-field="${item.id}|${key}|pdfLink" value="${escapeHTML(module.pdfLink)}" placeholder="https://..." /></label><label>Data de conclusão<input type="date" data-factory-module-field="${item.id}|${key}|dataConclusao" value="${escapeHTML(module.dataConclusao)}" /></label><label class="wide">Observação do módulo<textarea rows="2" data-factory-module-field="${item.id}|${key}|observacao">${escapeHTML(module.observacao)}</textarea></label></fieldset>`;
   }).join("");
   elements.factoryList.querySelector(`[data-factory-modules-panel="${CSS.escape(id)}"]`).innerHTML = `<form class="factory-modules-form" data-factory-modules-form="${item.id}"><h4>Módulos de produção</h4>${html}<div class="card-actions"><button type="submit">Salvar módulos</button><button type="button" class="secondary-button" data-factory-modules-cancel="${item.id}">Cancelar</button></div></form>`;
 }
@@ -1864,7 +1857,7 @@ function renderFactory() {
       item.status = factoryOverallStatus(modules);
       const moduleSummary = FACTORY_MODULES.map(({ key, label }) => `<li><strong>${escapeHTML(label)}:</strong> ${escapeHTML(modules[key].status)}</li>`).join("");
       const promptButtons = FACTORY_PROMPT_TYPES.map(({ key, label }) => `<button type="button" class="secondary-button" data-factory-prompt="${item.id}|${key}">${escapeHTML(label)}</button>`).join("");
-      return `<article class="syllabus-card factory-card"><header><div><h3>${escapeHTML(item.disciplina)} — ${escapeHTML(item.tema)}</h3><div class="item-meta">Prioridade ${escapeHTML(item.prioridade)}${item.dataPlanejada ? ` • ${formatDateBR(item.dataPlanejada)}` : ""}</div></div><span class="badge ${item.status==='Aprovado'||item.status==='PDF gerado'?'success':item.prioridade==='Alta'?'danger':'neutral'}">${escapeHTML(item.status)}</span></header><ul class="factory-module-summary">${moduleSummary}</ul><div class="card-meta-grid"><span>Disciplina: ${escapeHTML(item.disciplina)}</span><span>Tema: ${escapeHTML(item.tema)}</span><span>Data planejada: ${item.dataPlanejada ? formatDateBR(item.dataPlanejada) : "-"}</span><span>Lei / diploma legal: ${escapeHTML(item.leiNome || "-")}</span><span>Artigos / dispositivos: ${escapeHTML(item.leiArtigos || "-")}</span><span>Recorte obrigatório: ${escapeHTML(item.leiRecorte || "-")}</span><span>Observação: ${escapeHTML(item.observacao || "-")}</span></div><div class="factory-prompt-actions"><h4>Prompts da Fábrica</h4><div class="card-actions">${promptButtons}</div></div><div class="factory-prompt-panel" data-factory-prompt-panel="${item.id}"></div><div class="card-actions"><button type="button" data-factory-modules="${item.id}">Editar módulos</button><button type="button" data-factory-edit="${item.id}">Editar tema</button><button type="button" class="danger" data-factory-delete="${item.id}">Excluir</button></div><div class="factory-modules-panel" data-factory-modules-panel="${item.id}"></div></article>`;
+      return `<article class="syllabus-card factory-card"><header><div><h3>${escapeHTML(item.disciplina)} — ${escapeHTML(item.tema)}</h3><div class="item-meta">Prioridade ${escapeHTML(item.prioridade)}${item.dataPlanejada ? ` • ${formatDateBR(item.dataPlanejada)}` : ""}</div></div><span class="badge ${item.status==='Aprovado'||item.status==='PDF gerado'?'success':item.prioridade==='Alta'?'danger':'neutral'}">${escapeHTML(item.status)}</span></header><ul class="factory-module-summary">${moduleSummary}</ul><div class="card-meta-grid"><span>Disciplina: ${escapeHTML(item.disciplina)}</span><span>Tema: ${escapeHTML(item.tema)}</span><span>Data planejada: ${item.dataPlanejada ? formatDateBR(item.dataPlanejada) : "-"}</span><span>Lei / diploma legal: ${escapeHTML(modules.lei.leiNome || "-")}</span><span>Fonte: ${escapeHTML(modules.lei.leiFonte || "-")}</span><span>Artigos / dispositivos: ${escapeHTML(modules.lei.leiArtigos || "-")}</span><span>Recorte obrigatório: ${escapeHTML(modules.lei.leiRecorte || "-")}</span><span>Observação: ${escapeHTML(item.observacao || "-")}</span></div><div class="factory-prompt-actions"><h4>Prompts da Fábrica</h4><div class="card-actions">${promptButtons}</div></div><div class="factory-prompt-panel" data-factory-prompt-panel="${item.id}"></div><div class="card-actions"><button type="button" data-factory-modules="${item.id}">Editar módulos</button><button type="button" data-factory-edit="${item.id}">Editar tema</button><button type="button" class="danger" data-factory-delete="${item.id}">Excluir</button></div><div class="factory-modules-panel" data-factory-modules-panel="${item.id}"></div></article>`;
     }).join("");
   } catch (error) {
     console.error("[Metas Estudo] Erro ao carregar Fábrica de Resumos", error);
