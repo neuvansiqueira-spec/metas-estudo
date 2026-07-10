@@ -1869,14 +1869,10 @@ function closeFactoryPrompt(id) {
 }
 
 function factoryValidMaterialLink(material = {}) { return materialAvailable(material); }
-function factoryValidModuleLink(link = "") { return isValidHttpUrl(link || ""); }
-function factoryResumoAulaMaterialAvailable(item = {}) {
-  const module = normalizeFactoryModule(item.modules?.resumoAula || {}, item);
-  if (factoryValidModuleLink(module.wordLink) || factoryValidModuleLink(module.pdfLink)) return true;
-  return (state.materials || []).some((material) => material.source === "factory" && material.factoryItemId === item.id && material.factoryModuleKey === "resumoAula" && material.available !== false && factoryValidMaterialLink(material));
-}
 function factoryResumoAulaReady(item = {}) {
-  return factoryResumoAulaMaterialAvailable(item);
+  const module = normalizeFactoryModule(item.modules?.resumoAula || {}, item);
+  if (["Aprovado", "PDF gerado"].includes(module.status) || Boolean(module.wordLink) || Boolean(module.pdfLink)) return true;
+  return (state.materials || []).some((material) => material.source === "factory" && material.factoryItemId === item.id && material.factoryModuleKey === "resumoAula" && material.available !== false && factoryValidMaterialLink(material));
 }
 function factorySourceConfigured(item = {}) { return Boolean(factorySourceFolderLink(item)); }
 function factoryCurrentStage(item = {}) {
@@ -1887,14 +1883,6 @@ function factoryCurrentStage(item = {}) {
   if (!factoryResumoAulaReady({ ...item, modules }) || ["Em produção", "Aguardando revisão", "Precisa refazer"].includes(modules.resumoAula.status)) return "RESUMO/AULA";
   const next = ["lei", "jurisprudencia", "peca", "completo"].find((key) => !factoryApplicableCompletionStatus(modules[key]?.status || "Não iniciado"));
   return next ? (FACTORY_MODULES.find((m) => m.key === next)?.label || next.toUpperCase()) : "PRONTO";
-}
-function factoryItemHasPendingStage(item = {}) {
-  const modules = normalizeFactoryModules(item.modules || {});
-  const triagem = normalizeFactoryTriagemStatus(item, modules);
-  if (!factorySourceConfigured(item)) return true;
-  if (triagem !== "Concluída") return true;
-  if (!factoryResumoAulaReady({ ...item, modules }) || ["Em produção", "Aguardando revisão", "Precisa refazer"].includes(modules.resumoAula.status)) return true;
-  return ["lei", "jurisprudencia", "peca", "completo"].some((key) => !factoryApplicableCompletionStatus(modules[key]?.status || "Não iniciado"));
 }
 function factoryNextAction(item = {}) {
   const modules = normalizeFactoryModules(item.modules || {});
@@ -2035,7 +2023,7 @@ function renderFactory() {
       const recorte = factoryRecorteHoje(entry);
       return `<article class="syllabus-card factory-card compact-factory-card" data-factory-card="${item.id}"><header><div><p class="eyebrow">ASSUNTO DO MATERIAL</p><h3>${escapeHTML(item.tema)}</h3><div class="item-meta">${escapeHTML(item.disciplina)} • posição ${index + 1} de ${Math.max(queue.length, 1)}</div></div><span class="badge ${factoryResumoAulaReady(item) ? "success" : item.triagemStatus === "Precisa refazer" ? "danger" : "neutral"}">${escapeHTML(item.status)}</span></header><div class="card-meta-grid factory-compact-grid"><span><strong>RECORTE PROGRAMADO HOJE:</strong> ${escapeHTML(recorte)}</span><span><strong>Etapa atual:</strong> ${escapeHTML(stage)}</span><span><strong>Próxima ação:</strong> ${escapeHTML(next)}</span></div>${factoryProgressHTML(item)}<div class="card-actions factory-main-actions">${factoryActionButtonHTML(item)}<button type="button" class="secondary-button" data-factory-toggle-detail="${item.id}">Ver detalhes</button></div>${detailsHTML(entry)}</article>`;
     };
-    const nowEntry = queue.find(({ item }) => factoryItemHasPendingStage(item));
+    const nowEntry = queue.find(({ item }) => !factoryResumoAulaReady(item)) || queue[0];
     const nowPanel = nowEntry ? `<section id="factoryDoNow" class="factory-do-now"><h3>🎯 FAÇA AGORA</h3>${cardFor(nowEntry, queue.indexOf(nowEntry))}<div class="card-actions"><button type="button" class="secondary-button" data-open-url="${escapeHTML(factorySourceFolderLink(nowEntry.item) || "")}" ${factorySourceFolderLink(nowEntry.item) ? "" : "disabled"}>Abrir pasta das fontes</button><button type="button" class="secondary-button" data-open-url="${escapeHTML(factoryDestinationFolderLink(nowEntry.item) || "")}" ${factoryDestinationFolderLink(nowEntry.item) ? "" : "disabled"}>Abrir pasta de destino</button><button type="button" class="secondary-button" data-factory-next="${nowEntry.item.id}">Ir para o próximo tema</button></div></section>` : `<section id="factoryDoNow" class="factory-do-now"><h3>🎯 FAÇA AGORA</h3><p class="empty-message">Nenhum tema pendente na fila de hoje.</p></section>`;
     const queuePanel = `<section class="factory-today-queue"><h3>📋 FILA DE PRODUÇÃO DE HOJE</h3>${queue.length ? `<ol>${queue.map((entry, index) => `<li><strong>${escapeHTML(entry.item.tema)}</strong> — ${index === 0 ? "Fazer agora" : factoryResumoAulaReady(entry.item) ? "Material pronto" : index === 1 ? "Próximo" : "Depois"}<div class="item-meta">${escapeHTML(entry.item.disciplina)} • Recorte: ${escapeHTML(factoryRecorteHoje(entry))} • Etapa: ${escapeHTML(factoryCurrentStage(entry.item))} • Status: ${escapeHTML(entry.item.status)}</div><button type="button" class="secondary-button" data-factory-toggle-detail="${entry.item.id}">Abrir</button></li>`).join("")}</ol>` : `<p class="empty-message">Nenhum tema das Metas do Dia na fila.</p>`}</section>`;
     let entries = activeAgenda.map((item) => ({ item, subtopics: [] }));
@@ -2068,7 +2056,7 @@ function setFactoryTriagemStatus(id, status) {
 function factoryGoToNext(currentId = "") {
   const queue = factoryTodayQueue();
   const currentIndex = queue.findIndex(({ item }) => item.id === currentId);
-  const nextEntry = queue.slice(Math.max(0, currentIndex + 1)).find(({ item }) => factoryItemHasPendingStage(item)) || queue.find(({ item }) => item.id !== currentId && factoryItemHasPendingStage(item)) || queue[0];
+  const nextEntry = queue.slice(Math.max(0, currentIndex + 1)).find(({ item }) => !factoryResumoAulaReady(item)) || queue.find(({ item }) => item.id !== currentId) || queue[0];
   if (nextEntry) { factoryOpenDetailId = nextEntry.item.id; factoryCurrentFilter = "faca-agora"; renderFactory(); document.getElementById("factoryDoNow")?.scrollIntoView({ behavior: "smooth", block: "start" }); }
 }
 function toggleFactoryDetail(id) {
@@ -3234,18 +3222,13 @@ function renderDailyGoals() {
     return;
   }
   const activeGoals = dayGoals.filter((g) => !isGoalDone(g));
-  const isRevisionGoal = (goal) => canonical(goal.type || goal.tipo || "") === canonical("Revisão");
-  const reviewGoalsToday = activeGoals.filter(isRevisionGoal);
-  const reviewGoalKeys = new Set(reviewGoalsToday.map((goal) => goal.syllabusItemId || `${canonical(goal.discipline)}|${canonical(goal.subject)}`));
-  const smartReviewsToday = getSmartReviewSuggestions(date).filter((review) => !reviewGoalKeys.has(review.syllabusItemId || `${canonical(review.discipline)}|${canonical(review.subject)}`));
-  const studyToday = activeGoals.filter((goal) => !isRevisionGoal(goal) && dailyGoalResumoReady(goal));
-  const produceToday = activeGoals.filter((goal) => !isRevisionGoal(goal) && !dailyGoalResumoReady(goal));
+  const studyToday = activeGoals.filter(dailyGoalResumoReady);
+  const produceToday = activeGoals.filter((g) => !dailyGoalResumoReady(g));
   const doneGoals = dayGoals.filter(isGoalDone);
   elements.dailyGoalsList.innerHTML = notices.join("") + [
     `<section class="goal-status-section"><h3>📚 ESTUDAR HOJE</h3>${studyToday.length ? studyToday.map((goal, index)=>dailyGoalCard(goal, index + 1)).join("") : `<p class="empty-message">Nenhuma meta com RESUMO/AULA pronto.</p>`}</section>`,
     `<section class="goal-status-section"><h3>🏭 PRODUZIR MATERIAL HOJE</h3>${produceToday.length ? produceToday.map((goal, index)=>dailyGoalProductionCard(goal, index + 1)).join("") : `<p class="empty-message">Nenhum material pendente de produção.</p>`}</section>`,
-    `<section class="goal-status-section"><h3>🔄 REVISAR HOJE</h3>${reviewGoalsToday.length || smartReviewsToday.length ? reviewGoalsToday.map((goal, index)=>dailyGoalCard(goal, index + 1)).join("") + smartReviewsToday.map(smartReviewCard).join("") : `<p class="empty-message">Nenhuma revisão prevista para hoje.</p>`}</section>`,
-    `<section class="goal-status-section"><h3>✅ CONCLUÍDAS HOJE</h3>${doneGoals.length ? doneGoals.map((goal, index)=>dailyGoalCard(goal, index + 1)).join("") : `<p class="empty-message">Nenhuma meta concluída hoje.</p>`}</section>`
+    `<section class="goal-status-section"><h3>🔄 REVISAR HOJE</h3>${doneGoals.length ? doneGoals.map((goal, index)=>dailyGoalCard(goal, index + 1)).join("") : `<p class="empty-message">Nenhuma revisão ou meta concluída hoje.</p>`}</section>`
   ].join("");
 }
 function renderNextDailyGoal(dayGoals) {
