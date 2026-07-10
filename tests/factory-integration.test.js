@@ -44,3 +44,21 @@ test('metas, registro de estudo e fábrica reutilizam resolvedor central de mate
   assert.match(script, /const readyToday = todayGroups\.filter\(\(\{ item \}\) => materialsForFactoryItem\(item\)\.length\)/);
   assert.equal(script, docsScript, 'script.js e docs/script.js devem permanecer sincronizados');
 });
+
+test('prompts da Fábrica orientam upload DOCX/PDF no Drive sem caminho local bruto', () => {
+  assert.match(script, /const FACTORY_DRIVE_UPLOAD_INSTRUCTIONS = `/);
+  assert.match(script, /Não envie caminho local bruto para uma ação que exija \\`file_uri\\`/);
+  assert.match(script, /ação apropriada de importação de documento/);
+  assert.match(script, /source_file = arquivo local gerado e reconhecido pelo runtime/);
+  assert.match(script, /upload_mode = keep_source_file_type/);
+  assert.match(script, /preservar como DOCX, sem converter automaticamente em Google Docs/);
+  assert.match(script, /extrair o ID da pasta a partir do link salvo em factoryDestinationFolder/);
+  assert.match(script, /mover o arquivo criado para o ID da pasta de destino/);
+  assert.match(script, /obter e devolver o link final exato do arquivo no Google Drive/);
+  assert.match(script, /Nunca passe diretamente uma string como \/mnt\/data\/nome-do-arquivo\.pdf/);
+  assert.match(script, /não afirme que houve salvamento/);
+  assert.match(script, /ARQUIVO GERADO E SALVO/);
+  assert.match(script, /ARQUIVO GERADO, MAS NÃO SALVO NO DRIVE/);
+  assert.match(script, /triagem: `\$\{common\}\\n\\nA pasta de destino acima é apenas informação para etapas futuras[\s\S]*Não gere resumo, Word, PDF ou módulo final/);
+  assert.equal(script, docsScript, 'script.js e docs/script.js devem permanecer sincronizados');
+});

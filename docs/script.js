@@ -1451,6 +1451,33 @@ const FACTORY_MODULES = [
   { key: "completo", label: "COMPLETO" }
 ];
 
+
+const FACTORY_DRIVE_UPLOAD_INSTRUCTIONS = `FLUXO OBRIGATÓRIO DE GRAVAÇÃO NO GOOGLE DRIVE:
+- Depois de gerar o arquivo DOCX, confirme que ele foi realmente criado antes de tentar gravar.
+- Após gerar o arquivo DOCX, tente gravá-lo no Google Drive utilizando a ação apropriada de importação de documento. Envie o arquivo gerado como referência de arquivo aceita pelo conector e preserve seu formato original. Não envie caminho local bruto para uma ação que exija \`file_uri\`. Após a importação, mova o arquivo para a pasta de destino informada. Somente declare que a gravação foi concluída depois de receber confirmação do Google Drive e obter o link do arquivo.
+- Para Word/DOCX, utilize o fluxo equivalente a: importar o DOCX pela ação de documento; source_file = arquivo local gerado e reconhecido pelo runtime; upload_mode = keep_source_file_type; preservar como DOCX, sem converter automaticamente em Google Docs; obter o ID do arquivo criado; extrair o ID da pasta a partir do link salvo em factoryDestinationFolder; mover o arquivo criado para o ID da pasta de destino; obter e devolver o link final exato do arquivo no Google Drive.
+- Para PDF, utilize uma ação de upload que aceite uma referência de arquivo produzida pelo runtime. Nunca passe diretamente uma string como /mnt/data/nome-do-arquivo.pdf para um parâmetro que exija referência estruturada file_uri.
+- Não repita indefinidamente a mesma ação quando o conector recusar a referência do arquivo. Se não for possível obter uma referência de arquivo aceita pelo conector, não afirme que houve salvamento: disponibilize o arquivo para download e informe objetivamente que o upload manual ainda é necessário.
+
+FORMATO FINAL DA RESPOSTA QUANDO O UPLOAD FUNCIONAR:
+ARQUIVO GERADO E SALVO
+
+Módulo: [nome do módulo]
+Formato: Word
+Nome: [nome do arquivo]
+Pasta de destino: [link da pasta]
+Link do arquivo: [link exato do arquivo no Google Drive]
+Status da gravação: concluída
+
+FORMATO FINAL DA RESPOSTA QUANDO NÃO FUNCIONAR:
+ARQUIVO GERADO, MAS NÃO SALVO NO DRIVE
+
+Módulo: [nome do módulo]
+Formato: Word
+Nome: [nome do arquivo]
+Motivo: [erro objetivo]
+Providência: upload manual necessário`;
+
 const FACTORY_PROMPT_TYPES = [
   { key: "triagem", label: "Gerar prompt de triagem" },
   { key: "resumoAula", label: "Gerar prompt Resumo/Aula" },
@@ -1511,11 +1538,11 @@ function factoryRouterText(type, item = {}) {
   const common = `${context}\nStatus anterior: ${item.status || "Não iniciado"}\nFontes a usar: conforme a triagem e as fontes classificadas para este módulo.\nFontes a não usar: fontes de outros módulos, conteúdo externo não fornecido e materiais não aprovados na triagem.\nRegras específicas do tema/módulo: ${item.observacao || "sem observações adicionais cadastradas."}`;
   const routers = {
     triagem: `${common}\n\nA pasta de destino acima é apenas informação para etapas futuras. Faça apenas a TRIAGEM das fontes. Classifique cada fonte por RESUMO/AULA, LEI, JURISPRUDÊNCIA, PEÇA e ATUALIZAÇÃO/COMPLEMENTO. Não gere resumo, Word, PDF ou módulo final.`,
-    resumoAula: `${common}\n\nMÓDULO: RESUMO/AULA. Use apenas as fontes classificadas como RESUMO/AULA na triagem. Não gere os módulos LEI, JURISPRUDÊNCIA ou PEÇA e não faça ainda a consolidação final. Gere somente o arquivo Word correspondente ao MÓDULO RESUMO/AULA. Preserve profundidade, hierarquia, negritos e substitua qualquer referência de banca por “📌 PROVA”.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o MÓDULO RESUMO/AULA;\n- gerar um arquivo Word editável contendo o módulo;\n- não gerar ainda o Word final consolidado;\n- salvar o Word na pasta de destino indicada, somente quando houver ferramenta autorizada para gravação no Google Drive;\n- após salvar, devolver o link exato do arquivo criado;\n- não afirmar que salvou no Google Drive se a gravação não tiver ocorrido;\n- caso não exista ferramenta autorizada para salvar no Drive, gerar o Word para download e informar que ele precisa ser colocado manualmente na pasta.`,
-    lei: `${common}\n\nMÓDULO: LEI.\n${leiDetails}\n\nUse as fontes classificadas como LEI na triagem para identificar o diploma e o recorte. Confira o conteúdo normativo exclusivamente no texto oficial vigente do Planalto.\nRECORTE: trabalhe somente os artigos e temas expressamente indicados. Se o recorte não estiver cadastrado ou estiver impreciso, interrompa a geração e solicite confirmação. Somente trabalhe a lei integralmente quando houver autorização expressa do usuário.\nUse artigo/dispositivo como unidade central, preserve prazos, competências, vedações, exceções, requisitos, sanções e pontos de prova. Não copie a lei integralmente e não faça comentário doutrinário.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o Word do módulo LEI;\n- não gerar consolidação final;\n- salvar o Word na pasta de destino indicada apenas com ferramenta autorizada e devolver o link exato do arquivo criado.`,
-    jurisprudencia: `${common}\n\nMÓDULO: JURISPRUDÊNCIA. Use apenas fontes classificadas como JURISPRUDÊNCIA. Preserve tribunal, súmula, informativo, tema, ano, tese e distinções STF/STJ quando constarem. Não invente jurisprudência nem pesquise fora das fontes.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o Word do módulo JURISPRUDÊNCIA;\n- não gerar consolidação final;\n- salvar o Word na pasta de destino indicada apenas com ferramenta autorizada e devolver o link exato do arquivo criado.`,
-    peca: `${common}\n\nMÓDULO: PEÇA. Use apenas fontes classificadas como PEÇA. Extraia estrutura, requisitos, fundamentos, pedidos e determinações. Não faça peça pronta nem aula corrida.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o Word do módulo PEÇA;\n- não gerar consolidação final;\n- salvar o Word na pasta de destino indicada apenas com ferramenta autorizada e devolver o link exato do arquivo criado.`,
-    consolidacao: `${common}\n\nCONSOLIDAÇÃO FINAL. Os módulos aprovados devem ser reunidos na ordem: RESUMO/AULA, LEI, JURISPRUDÊNCIA e PEÇA. Preserve o padrão de cada módulo, elimine repetições e não pesquise fora dos módulos aprovados.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar Word consolidado;\n- gerar PDF consolidado;\n- salvar ambos na pasta de destino, quando houver acesso autorizado;\n- devolver separadamente o link do Word e o link do PDF.`
+    resumoAula: `${common}\n\nMÓDULO: RESUMO/AULA. Use apenas as fontes classificadas como RESUMO/AULA na triagem. Não gere os módulos LEI, JURISPRUDÊNCIA ou PEÇA e não faça ainda a consolidação final. Gere somente o arquivo Word correspondente ao MÓDULO RESUMO/AULA. Preserve profundidade, hierarquia, negritos e substitua qualquer referência de banca por “📌 PROVA”.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o MÓDULO RESUMO/AULA;\n- gerar um arquivo Word editável contendo o módulo;\n- não gerar ainda o Word final consolidado;\n- salvar o Word na pasta de destino indicada, somente quando houver ferramenta autorizada para gravação no Google Drive;\n- após salvar, devolver o link exato do arquivo criado;\n- não afirmar que salvou no Google Drive se a gravação não tiver ocorrido;\n- caso não exista ferramenta autorizada para salvar no Drive, gerar o Word para download e informar que ele precisa ser colocado manualmente na pasta.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`,
+    lei: `${common}\n\nMÓDULO: LEI.\n${leiDetails}\n\nUse as fontes classificadas como LEI na triagem para identificar o diploma e o recorte. Confira o conteúdo normativo exclusivamente no texto oficial vigente do Planalto.\nRECORTE: trabalhe somente os artigos e temas expressamente indicados. Se o recorte não estiver cadastrado ou estiver impreciso, interrompa a geração e solicite confirmação. Somente trabalhe a lei integralmente quando houver autorização expressa do usuário.\nUse artigo/dispositivo como unidade central, preserve prazos, competências, vedações, exceções, requisitos, sanções e pontos de prova. Não copie a lei integralmente e não faça comentário doutrinário.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o Word do módulo LEI;\n- não gerar consolidação final;\n- salvar o Word na pasta de destino indicada apenas com ferramenta autorizada e devolver o link exato do arquivo criado.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`,
+    jurisprudencia: `${common}\n\nMÓDULO: JURISPRUDÊNCIA. Use apenas fontes classificadas como JURISPRUDÊNCIA. Preserve tribunal, súmula, informativo, tema, ano, tese e distinções STF/STJ quando constarem. Não invente jurisprudência nem pesquise fora das fontes.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o Word do módulo JURISPRUDÊNCIA;\n- não gerar consolidação final;\n- salvar o Word na pasta de destino indicada apenas com ferramenta autorizada e devolver o link exato do arquivo criado.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`,
+    peca: `${common}\n\nMÓDULO: PEÇA. Use apenas fontes classificadas como PEÇA. Extraia estrutura, requisitos, fundamentos, pedidos e determinações. Não faça peça pronta nem aula corrida.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o Word do módulo PEÇA;\n- não gerar consolidação final;\n- salvar o Word na pasta de destino indicada apenas com ferramenta autorizada e devolver o link exato do arquivo criado.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`,
+    consolidacao: `${common}\n\nCONSOLIDAÇÃO FINAL. Os módulos aprovados devem ser reunidos na ordem: RESUMO/AULA, LEI, JURISPRUDÊNCIA e PEÇA. Preserve o padrão de cada módulo, elimine repetições e não pesquise fora dos módulos aprovados.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar Word consolidado;\n- gerar PDF consolidado;\n- salvar ambos na pasta de destino, quando houver acesso autorizado;\n- devolver separadamente o link do Word e o link do PDF;\n- se qualquer upload falhar, não apresentar falha como sucesso e indicar o arquivo pendente de upload manual.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`
   };
   return routers[type] || common;
 }
