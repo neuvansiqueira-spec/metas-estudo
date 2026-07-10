@@ -38,9 +38,9 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão da fábrica mínima', () => {
-  assert.match(html, /style\.css\?v=20260710-cloud-sync-loop-fix1/);
-  assert.match(html, /script\.js\?v=20260710-cloud-sync-loop-fix1/);
-  assert.match(html, /Versão: 20260710-cloud-sync-loop-fix1/);
+  assert.match(html, /style\.css\?v=20260710-cloud-sync-quota-fix2/);
+  assert.match(html, /script\.js\?v=20260710-cloud-sync-quota-fix2/);
+  assert.match(html, /Versão: 20260710-cloud-sync-quota-fix2/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -229,7 +229,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260710-cloud-sync-loop-fix1/);
+  assert.match(sw, /metas-estudo-20260710-cloud-sync-quota-fix2/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);
@@ -479,8 +479,9 @@ test('sincronização da nuvem trata aplicação transacional e erros específic
   assert.match(script, /function validateCloudPayload/);
   assert.match(script, /Arquivo remoto inválido\. Os dados locais foram preservados\./);
   assert.match(script, /function writeCloudStateTransaction/);
-  assert.match(script, /const tempKey = `\$\{STORAGE_KEY\}__cloud_tmp`/);
-  assert.match(script, /localStorage\.setItem\(tempKey, mainValue\)/);
+  assert.doesNotMatch(script, /const tempKey = `\$\{STORAGE_KEY\}__cloud_tmp`/);
+  assert.doesNotMatch(script, /localStorage\.setItem\(tempKey, mainValue\)/);
+  assert.match(script, /localStorage\.setItem\(STORAGE_KEY, mainValue\)/);
   assert.doesNotMatch(script.slice(script.indexOf('function applyCloudPayload'), script.indexOf('async function syncNow')), /clearProjectLocalStorage\(\)/);
   assert.match(script, /Falta de espaço no navegador\. Libere espaço, exporte um backup e tente novamente\./);
   assert.match(script, /Erro ao aplicar os dados da nuvem\. Os dados locais foram preservados\./);

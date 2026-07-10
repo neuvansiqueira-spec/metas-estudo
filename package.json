@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260710-cloud-sync-loop-fix1",
+  "version": "20260710-cloud-sync-quota-fix2",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

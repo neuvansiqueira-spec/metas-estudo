@@ -798,7 +798,6 @@ function validateCloudPayload(payload) {
   if (!updatedAt || Number.isNaN(Date.parse(updatedAt))) throw cloudSyncError("invalid", "Arquivo remoto inválido. Os dados locais foram preservados.");
 }
 function writeCloudStateTransaction(nextState, payload) {
-  const tempKey = `${STORAGE_KEY}__cloud_tmp`;
   const nextData = { ...cloneData(defaultState), ...(nextState || {}) };
   const mainValue = JSON.stringify(nextData);
   const simuladosValue = JSON.stringify(nextData.simulados || []);
@@ -810,14 +809,11 @@ function writeCloudStateTransaction(nextState, payload) {
     throw cloudSyncError(isQuotaExceededError(error) ? "quota" : "backup", isQuotaExceededError(error) ? "Falta de espaço no navegador. Libere espaço, exporte um backup e tente novamente." : "Erro ao criar backup de segurança. Os dados locais foram preservados.", error);
   }
   try {
-    localStorage.setItem(tempKey, mainValue);
-    localStorage.setItem(STORAGE_KEY, localStorage.getItem(tempKey));
+    localStorage.setItem(STORAGE_KEY, mainValue);
     localStorage.setItem(SIMULADOS_STORAGE_KEY, simuladosValue);
     localStorage.setItem(CADERNO_ERROS_STORAGE_KEY, cadernoValue);
-    localStorage.removeItem(tempKey);
   } catch (error) {
     try {
-      localStorage.removeItem(tempKey);
       previousValues.forEach((value, key) => { if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value); });
     } catch (_) {}
     throw cloudSyncError(isQuotaExceededError(error) ? "quota" : "apply", isQuotaExceededError(error) ? "Falta de espaço no navegador. Libere espaço, exporte um backup e tente novamente." : "Erro ao aplicar os dados da nuvem. Os dados locais foram preservados.", error);
