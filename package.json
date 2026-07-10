@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260710-timer-free-alert-fix1",
+  "version": "20260710-timer-alert-volume-v2",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

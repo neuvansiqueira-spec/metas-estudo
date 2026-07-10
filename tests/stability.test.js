@@ -38,9 +38,9 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão da fábrica mínima', () => {
-  assert.match(html, /style\.css\?v=20260710-timer-free-alert-fix1/);
-  assert.match(html, /script\.js\?v=20260710-timer-free-alert-fix1/);
-  assert.match(html, /Versão: 20260710-timer-free-alert-fix1/);
+  assert.match(html, /style\.css\?v=20260710-timer-alert-volume-v2/);
+  assert.match(html, /script\.js\?v=20260710-timer-alert-volume-v2/);
+  assert.match(html, /Versão: 20260710-timer-alert-volume-v2/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -229,7 +229,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260710-timer-free-alert-fix1/);
+  assert.match(sw, /metas-estudo-20260710-timer-alert-volume-v2/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);
@@ -427,9 +427,34 @@ test('áudio do cronômetro aguarda resume e reporta bloqueio', () => {
   assert.match(script, /ctx\.state !== "running"\) return false/);
   assert.match(script, /Som: \$\{sound\}/);
   assert.match(script, /\? "reproduzido" : "bloqueado"/);
-  assert.match(script, /\[740, 940, 660\]/);
-  assert.match(script, /index \* 0\.32/);
-  assert.match(script, /osc\.stop\(start \+ 0\.28\)/);
+  assert.match(script, /timerAlertSoundPattern\(type = "completed"\)/);
+  assert.match(script, /sequences: 3, sequenceGap: 1\.55, gain: 0\.22 \* volume/);
+  assert.match(script, /osc\.stop\(start \+ duration \+ 0\.04\)/);
+});
+
+
+test('alerta final tem três sequências e intensidades distintas dos avisos', () => {
+  assert.match(script, /return \{ sequences: 3, sequenceGap: 1\.55, gain: 0\.22 \* volume/);
+  assert.match(script, /type === "five-minutes"\) return \{ sequences: 1, sequenceGap: 0, gain: 0\.09 \* volume/);
+  assert.match(script, /type === "one-minute"\) return \{ sequences: 1, sequenceGap: 0, gain: 0\.14 \* volume/);
+  assert.match(script, /for \(let sequence = 0; sequence < pattern\.sequences; sequence \+= 1\)/);
+  assert.match(script, /type === "test" \? "completed" : type/);
+});
+
+test('botão silenciar interrompe sons programados', () => {
+  assert.match(html, /data-timer-action="silence-alert">Silenciar alerta/);
+  assert.match(script, /function silenceTimerAlert\(\)/);
+  assert.match(script, /timerAlertTimeouts\.forEach\(\(timeoutId\) => clearTimeout\(timeoutId\)\)/);
+  assert.match(script, /timerAlertOscillators\.forEach/);
+  assert.match(script, /if \(action === "silence-alert"\) silenceTimerAlert\(\)/);
+});
+
+test('preferência de volume do alerta é preservada', () => {
+  assert.match(html, /Volume do alerta: <select data-timer-pref="alertVolume">/);
+  assert.match(script, /alertVolume: "medium"/);
+  assert.match(script, /select\[data-timer-pref\]/);
+  assert.match(script, /input\.type === "checkbox" \? input\.checked : input\.value/);
+  assert.match(script, /localStorage\.setItem\(TIMER_PREFS_STORAGE_KEY, JSON\.stringify\(state\.settings\.timerPreferences\)\)/);
 });
 
 test('teste de notificações solicita permissão e tolera ausência da API', () => {

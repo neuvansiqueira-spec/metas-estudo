@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260710-timer-free-alert-fix1" />
+  <link rel="stylesheet" href="style.css?v=20260710-timer-alert-volume-v2" />
 </head>
 <body>
   <header class="hero">
@@ -743,6 +743,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
         <div class="floating-timer-actions">
           <button type="button" data-timer-action="save">Salvar tempo</button>
           <button type="button" class="secondary-button" data-timer-action="continue">Continuar estudando</button>
+          <button type="button" class="secondary-button" data-timer-action="silence-alert">Silenciar alerta</button>
           <button type="button" class="secondary-button" data-timer-action="close">Fechar aviso</button>
         </div>
       </section>
@@ -751,6 +752,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
       <summary>Configurações do cronômetro</summary>
       <label><input type="checkbox" data-timer-pref="visualAlerts" checked /> Alerta visual</label>
       <label><input type="checkbox" data-timer-pref="sound" /> Som do cronômetro</label>
+      <label>Volume do alerta: <select data-timer-pref="alertVolume"><option value="low">Baixo</option><option value="medium">Médio</option><option value="high">Alto</option></select></label>
       <label><input type="checkbox" data-timer-pref="vibration" checked /> Vibração</label>
       <label><input type="checkbox" data-timer-pref="browserNotifications" /> Permitir notificações do cronômetro</label>
       <button type="button" class="secondary-button" data-timer-action="test-alerts">Testar alertas</button>
@@ -763,8 +765,8 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </div>
   </aside>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260710-timer-free-alert-fix1</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260710-timer-alert-volume-v2</p></footer>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="script.js?v=20260710-timer-free-alert-fix1"></script>
+  <script src="script.js?v=20260710-timer-alert-volume-v2"></script>
 </body>
 </html>
