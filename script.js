@@ -74,7 +74,9 @@ function normalizePlanningState(planning = {}) {
   };
 }
 const defaultTimerPreferences = { visualAlerts: true, sound: false, vibration: true, browserNotifications: false };
-const defaultState = { subjects: [], studies: [], edital: { pdf: null }, syllabusItems: [], schedulableSettings: {}, dailyGoals: [], questionLogs: [], smartReviews: [], simulados: [], planning: cloneData(defaultPlanning), settings: { defaultMockGoal: 92, timerPreferences: cloneData(defaultTimerPreferences) }, materials: [], questionBank: [], questionBankSessions: [], questionErrorNotebook: [], disciplineWeights: {}, monthlyGoals: {}, timerSession: null, factoryItems: [], factoryAgenda: [] };
+const defaultFactoryPromptLibrary = { triagem: "", resumoAula: "", lei: "", jurisprudencia: "", peca: "", consolidacao: "" };
+const FACTORY_LIBRARY_FALLBACK = "[PROMPT COMPLETO AINDA NÃO CADASTRADO NA BIBLIOTECA DA FÁBRICA]";
+const defaultState = { subjects: [], studies: [], edital: { pdf: null }, syllabusItems: [], schedulableSettings: {}, dailyGoals: [], questionLogs: [], smartReviews: [], simulados: [], planning: cloneData(defaultPlanning), settings: { defaultMockGoal: 92, timerPreferences: cloneData(defaultTimerPreferences) }, materials: [], questionBank: [], questionBankSessions: [], questionErrorNotebook: [], disciplineWeights: {}, monthlyGoals: {}, timerSession: null, factoryItems: [], factoryAgenda: [], factoryPromptLibrary: cloneData(defaultFactoryPromptLibrary) };
 function readJSONStorage(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
@@ -117,6 +119,7 @@ state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timer
 state.materials ||= [];
 state.factoryItems ||= [];
 state.factoryAgenda ||= [];
+state.factoryPromptLibrary = { ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) };
 state.migrations ||= {};
 
 
@@ -435,7 +438,7 @@ const elements = {
   planningConfigForm: $("#planningConfigForm"), planningExamDate: $("#planningExamDate"), planningScaleType: $("#planningScaleType"), planningScaleNotes: $("#planningScaleNotes"), planningShiftHours: $("#planningShiftHours"), planningRestHours: $("#planningRestHours"), planningNormalHours: $("#planningNormalHours"), planningMinWeeklyHours: $("#planningMinWeeklyHours"), planningIdealWeeklyHours: $("#planningIdealWeeklyHours"), planningWeeklyTopics: $("#planningWeeklyTopics"), planningDisciplinesPerDay: $("#planningDisciplinesPerDay"), planningDisciplinesPerWeek: $("#planningDisciplinesPerWeek"), planningDisciplinesPerMonth: $("#planningDisciplinesPerMonth"), planningTopicsPerDay: $("#planningTopicsPerDay"), planningTopicsPerWeek: $("#planningTopicsPerWeek"), planningTopicsPerMonth: $("#planningTopicsPerMonth"), planningSafetyDays: $("#planningSafetyDays"), planningScaleReferenceDate: $("#planningScaleReferenceDate"), planningScaleReferencePosition: $("#planningScaleReferencePosition"), scale3x6Fields: $("#scale3x6Fields"), centralGoalsCards: $("#centralGoalsCards"), centralScaleSummary: $("#centralScaleSummary"), centralNextDates: $("#centralNextDates"), centralOpenDayPlan: $("#centralOpenDayPlan"), dashboardGoalsScaleSummary: $("#dashboardGoalsScaleSummary"), availabilityCalendar: $("#availabilityCalendar"), completionForecast: $("#completionForecast"), completionAlert: $("#completionAlert"), weeklyGoalsPlan: $("#weeklyGoalsPlan"), weeklyGoalsAlert: $("#weeklyGoalsAlert"), timeHistorySummary: $("#timeHistorySummary"), timeHistoryBody: $("#timeHistoryBody"),
   dashboardQuestionBankTotal: $("#dashboardQuestionBankTotal"), dashboardQuestionBankSessions: $("#dashboardQuestionBankSessions"), dashboardQuestionBankLast: $("#dashboardQuestionBankLast"), dashboardQuestionBankPackages: $("#dashboardQuestionBankPackages"), dashboardQuestionBankLinked: $("#dashboardQuestionBankLinked"), dashboardQuestionBankMissing: $("#dashboardQuestionBankMissing"),
   materialsTotal: $("#materialsTotal"), materialDisciplinesTotal: $("#materialDisciplinesTotal"), materialTopicsTotal: $("#materialTopicsTotal"), materialForm: $("#materialForm"), materialEditingId: $("#materialEditingId"), materialTitle: $("#materialTitle"), materialDate: $("#materialDate"), materialDiscipline: $("#materialDiscipline"), materialSubject: $("#materialSubject"), materialType: $("#materialType"), materialOrigin: $("#materialOrigin"), materialLink: $("#materialLink"), materialTags: $("#materialTags"), materialNotes: $("#materialNotes"), materialDisciplineOptions: $("#materialDisciplineOptions"), materialSubjectOptions: $("#materialSubjectOptions"), materialFilterDiscipline: $("#materialFilterDiscipline"), materialFilterSubject: $("#materialFilterSubject"), materialFilterType: $("#materialFilterType"), materialFilterOrigin: $("#materialFilterOrigin"), materialFilterText: $("#materialFilterText"), materialsList: $("#materialsList"), studyMaterial: $("#studyMaterial"),
-  factoryForm: $("#factoryForm"), factoryEditingId: $("#factoryEditingId"), factoryDiscipline: $("#factoryDiscipline"), factoryTheme: $("#factoryTheme"), factorySubtheme: $("#factorySubtheme"), factoryPriority: $("#factoryPriority"), factoryPlannedDate: $("#factoryPlannedDate"), factoryStatus: $("#factoryStatus"), factorySourceFolder: $("#factorySourceFolder"), factoryFinalLink: $("#factoryFinalLink"), factoryLeiNome: $("#factoryLeiNome"), factoryLeiFonte: $("#factoryLeiFonte"), factoryLeiArtigos: $("#factoryLeiArtigos"), factoryLeiRecorte: $("#factoryLeiRecorte"), factoryLeiObservacoes: $("#factoryLeiObservacoes"), factoryNotes: $("#factoryNotes"), factorySummary: $("#factorySummary"), factoryFilterDiscipline: $("#factoryFilterDiscipline"), factoryFilterPriority: $("#factoryFilterPriority"), factoryFilterStatus: $("#factoryFilterStatus"), factoryFilterDate: $("#factoryFilterDate"), factoryFilterView: $("#factoryFilterView"), factoryFilterText: $("#factoryFilterText"), factoryList: $("#factoryList"),
+  editFactoryPromptLibrary: $("#editFactoryPromptLibrary"), factoryForm: $("#factoryForm"), factoryEditingId: $("#factoryEditingId"), factoryDiscipline: $("#factoryDiscipline"), factoryTheme: $("#factoryTheme"), factorySubtheme: $("#factorySubtheme"), factoryPriority: $("#factoryPriority"), factoryPlannedDate: $("#factoryPlannedDate"), factoryStatus: $("#factoryStatus"), factorySourceFolder: $("#factorySourceFolder"), factoryFinalLink: $("#factoryFinalLink"), factoryLeiNome: $("#factoryLeiNome"), factoryLeiFonte: $("#factoryLeiFonte"), factoryLeiArtigos: $("#factoryLeiArtigos"), factoryLeiRecorte: $("#factoryLeiRecorte"), factoryLeiObservacoes: $("#factoryLeiObservacoes"), factoryNotes: $("#factoryNotes"), factorySummary: $("#factorySummary"), factoryFilterDiscipline: $("#factoryFilterDiscipline"), factoryFilterPriority: $("#factoryFilterPriority"), factoryFilterStatus: $("#factoryFilterStatus"), factoryFilterDate: $("#factoryFilterDate"), factoryFilterView: $("#factoryFilterView"), factoryFilterText: $("#factoryFilterText"), factoryList: $("#factoryList"), factoryPromptLibraryPanel: $("#factoryPromptLibraryPanel"),
   qbSyllabusPackages: $("#qbSyllabusPackages"), qbSyllabusVerticalized: $("#qbSyllabusVerticalized"), qbPreviewSection: $("#qbPreviewSection"), qbSyllabusSummary: $("#qbSyllabusSummary"), qbPackagesSummary: $("#qbPackagesSummary"), qbFile: $("#qbFile"), qbNewTraining: $("#qbNewTraining"), qbRedoBlanks: $("#qbRedoBlanks"), qbExportBank: $("#qbExportBank"), qbExportResults: $("#qbExportResults"), qbClearBank: $("#qbClearBank"), qbMessage: $("#qbMessage"), qbStats: $("#qbStats"), qbDiagnostics: $("#qbDiagnostics"), qbTrainingScope: $("#qbTrainingScope"), qbReviewTypeWrapper: $("#qbReviewTypeWrapper"), qbReviewType: $("#qbReviewType"), qbFilterDiscipline: $("#qbFilterDiscipline"), qbFilterSubject: $("#qbFilterSubject"), qbFilterTheme: $("#qbFilterTheme"), qbFilterBoard: $("#qbFilterBoard"), qbFilterYear: $("#qbFilterYear"), qbFilterSearch: $("#qbFilterSearch"), qbTrainingLimit: $("#qbTrainingLimit"), qbShuffleTraining: $("#qbShuffleTraining"), qbStartTraining: $("#qbStartTraining"), qbPreviewFiltered: $("#qbPreviewFiltered"), qbFilteredPreview: $("#qbFilteredPreview"), qbTrainingPanel: $("#qbTrainingPanel"), qbTrainingCounter: $("#qbTrainingCounter"), qbTrainingProgress: $("#qbTrainingProgress"), qbQuestionCard: $("#qbQuestionCard"), qbResultPanel: $("#qbResultPanel"), qbResultSummary: $("#qbResultSummary"), qbResultDetails: $("#qbResultDetails"), qbErrorStats: $("#qbErrorStats"), qbErrorNotebookList: $("#qbErrorNotebookList"), qbErrorFilterDiscipline: $("#qbErrorFilterDiscipline"), qbErrorFilterSubject: $("#qbErrorFilterSubject"), qbErrorFilterStatus: $("#qbErrorFilterStatus"), qbErrorFilterReason: $("#qbErrorFilterReason"), qbStartErrorNotebook: $("#qbStartErrorNotebook"), qbReviewByDiscipline: $("#qbReviewByDiscipline"), qbReviewBySubject: $("#qbReviewBySubject"), qbToggleErrorHistory: $("#qbToggleErrorHistory"), qbErrorHistory: $("#qbErrorHistory"),
   connectGoogleDrive: $("#connectGoogleDrive"), syncNowButton: $("#syncNow"), pushToCloud: $("#pushToCloud"), pullFromCloud: $("#pullFromCloud"), disconnectGoogleDrive: $("#disconnectGoogleDrive"), syncStatus: $("#syncStatus"),
   floatingTimer: $("#floatingTimer"), timerDiscipline: $("#timerDiscipline"), timerSubject: $("#timerSubject"), timerKind: $("#timerKind"), timerTime: $("#timerTime"), timerPauseResume: $("#timerPauseResume"), timerProgressBar: $("#timerProgressBar"), timerProgressText: $("#timerProgressText"), timerAlert: $("#timerAlert"), timerCompletion: $("#timerCompletion"), timerSettings: $("#timerSettings"), timerMode: $("#timerMode"), addManualTime: $("#addManualTime"), timeUndoNotice: $("#timeUndoNotice"), undoTimeAction: $("#undoTimeAction")
@@ -784,7 +787,7 @@ function renderBackupSummary() {
   const counts = backupCounts();
   const cards = [
     ["Itens do edital verticalizado", counts.verticalizado], ["Assuntos agendáveis", counts.agendaveis], ["Disciplinas", counts.disciplinas],
-    ["Metas", counts.metas], ["Lançamentos de questões", counts.questoes], ["Banco de questões", counts.bancoQuestoes], ["Treinos do banco", counts.treinosBanco], ["Simulados", counts.simulados], ["Materiais", counts.materiais], ["Revisões previstas", counts.revisoes], ["Registros históricos", counts.historico], ["Agenda da Fábrica", counts.fabrica || 0]
+    ["Metas", counts.metas], ["Lançamentos de questões", counts.questoes], ["Banco de questões", counts.bancoQuestoes], ["Treinos do banco", counts.treinosBanco], ["Simulados", counts.simulados], ["Materiais", counts.materiais], ["Revisões previstas", counts.revisoes], ["Registros históricos", counts.historico], ["Agenda da Fábrica", counts.fabrica || 0], ["Prompts da Fábrica", Object.values(state.factoryPromptLibrary || {}).filter(Boolean).length]
   ];
   elements.lastBackupDate.textContent = state.settings?.lastBackupAt ? new Date(state.settings.lastBackupAt).toLocaleString("pt-BR") : "Nunca exportado";
   elements.backupStorageKeys.textContent = getProjectStorageKeys().length;
@@ -820,7 +823,7 @@ function renderBackupPreview(payload) {
   return normalized;
 }
 function replaceState(nextState) { Object.keys(state).forEach((key) => delete state[key]); Object.assign(state, { ...cloneData(defaultState), ...(nextState || {}) }); state.edital = { ...defaultState.edital, ...(state.edital || {}) }; state.syllabusItems ||= []; state.schedulableSettings ||= {}; state.dailyGoals ||= []; state.questionLogs ||= []; state.questionBank ||= []; state.questionBankSessions ||= []; state.questionErrorNotebook ||= carregarCadernoErros();
-state.smartReviews ||= []; state.simulados ||= []; state.planning = normalizePlanningState(state.planning); state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences); state.settings.timerMode ||= "countdown"; state.materials ||= []; state.factoryItems ||= []; state.factoryAgenda ||= []; state.disciplineWeights ||= {}; state.monthlyGoals ||= {}; }
+state.smartReviews ||= []; state.simulados ||= []; state.planning = normalizePlanningState(state.planning); state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences); state.settings.timerMode ||= "countdown"; state.materials ||= []; state.factoryItems ||= []; state.factoryAgenda ||= []; state.factoryPromptLibrary = { ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) }; state.disciplineWeights ||= {}; state.monthlyGoals ||= {}; }
 function mergeArrays(current = [], incoming = [], keyFn = (item) => item?.id || JSON.stringify(item)) { const seen = new Set(current.map(keyFn)); incoming.forEach((item) => { const key = keyFn(item); if (!seen.has(key)) { current.push(item); seen.add(key); } }); return current; }
 function mergeBackupData(data = {}) {
   mergeArrays(state.subjects, data.subjects || [], (item) => canonical(item.name || item.id));
@@ -837,6 +840,9 @@ function mergeBackupData(data = {}) {
   mergeArrays(state.factoryAgenda, data.factoryAgenda || data.factoryItems || data.fabricaResumos || [], (item) => item.id || [item.disciplina || item.discipline, item.tema || item.theme].join("|"));
   state.factoryAgenda = state.factoryAgenda.map(normalizeFactoryItem);
   state.factoryItems = state.factoryAgenda;
+  state.factoryPromptLibrary = normalizeFactoryPromptLibrary(state.factoryPromptLibrary);
+  const incomingFactoryPromptLibrary = normalizeFactoryPromptLibrary(data.factoryPromptLibrary || {});
+  Object.entries(incomingFactoryPromptLibrary).forEach(([key, value]) => { if (value.trim()) state.factoryPromptLibrary[key] = value; });
   state.disciplineWeights = { ...(data.disciplineWeights || {}), ...state.disciplineWeights };
   state.monthlyGoals = { ...(data.monthlyGoals || {}), ...state.monthlyGoals };
   if (data.planning) state.planning = normalizePlanningState({ ...state.planning, ...data.planning, config: { ...state.planning.config, ...(data.planning.config || {}) }, availability: { ...(data.planning.availability || {}), ...state.planning.availability }, weeklyGoals: data.planning.weeklyGoals || state.planning.weeklyGoals, forecasts: { ...(data.planning.forecasts || {}), ...state.planning.forecasts } });
@@ -1437,238 +1443,52 @@ function factoryPromptContext(item = {}) {
   return `Disciplina: ${item.disciplina || "[DISCIPLINA]"}
 Tema: ${item.tema || "[TEMA]"}`;
 }
-function factoryPromptText(type, item = {}) {
+function normalizeFactoryPromptLibrary(library = {}) {
+  return Object.fromEntries(Object.keys(defaultFactoryPromptLibrary).map((key) => [key, String(library?.[key] || "") ]));
+}
+function factoryPromptBase(type) {
+  const text = String(state.factoryPromptLibrary?.[type] || "").trim();
+  return text || FACTORY_LIBRARY_FALLBACK;
+}
+function factoryRouterText(type, item = {}) {
   const context = factoryPromptContext(item);
   const theme = item.tema || "[TEMA]";
   const leiModule = normalizeFactoryModule(item.modules?.lei || {}, item);
-  const leiMissingPlaceholder = "[DEFINIR LEI, ARTIGOS E RECORTE ANTES DE GERAR]";
-  const hasLeiFields = [leiModule.leiNome, leiModule.leiFonte, leiModule.leiArtigos, leiModule.leiRecorte, leiModule.leiObservacoes].every((value) => String(value || "").trim());
-  const leiNome = hasLeiFields ? leiModule.leiNome : leiMissingPlaceholder;
-  const leiFonte = hasLeiFields ? leiModule.leiFonte : leiMissingPlaceholder;
-  const leiArtigos = hasLeiFields ? leiModule.leiArtigos : leiMissingPlaceholder;
-  const leiRecorte = hasLeiFields ? leiModule.leiRecorte : leiMissingPlaceholder;
-  const leiObservacoes = hasLeiFields ? leiModule.leiObservacoes : leiMissingPlaceholder;
-  const prompts = {
-    triagem: `${context}
-
-Faça apenas a TRIAGEM das fontes.
-
-Classifique cada fonte por módulo:
-
-1. RESUMO/AULA
-2. LEI
-3. JURISPRUDÊNCIA
-4. PEÇA
-5. ATUALIZAÇÃO / COMPLEMENTO, se houver
-
-Não gere resumo.
-Não gere Word.
-Não gere PDF.
-Não gere módulo final.
-
-Informe:
-- fontes principais de cada módulo;
-- fontes secundárias;
-- fontes duplicadas;
-- fontes insuficientes;
-- se há fonte faltante;
-- se é possível gerar o material com segurança.`,
-    resumoAula: `${context}
-
-Triagem aprovada.
-
-Agora gere somente o MÓDULO RESUMO/AULA.
-
-Use apenas as fontes classificadas como RESUMO/AULA na triagem.
-
-Regras:
-- gerar somente o MÓDULO RESUMO/AULA;
-- não gerar módulo lei;
-- não gerar jurisprudência;
-- não gerar peça;
-- não gerar Word final consolidado;
-- não inserir PCDF;
-- não inserir CEBRASPE;
-- substituir qualquer “📌 CEBRASPE” por “📌 PROVA”;
-- não identificar banca, concurso, professora ou curso;
-- preservar profundidade;
-- usar estrutura topificada hierárquica;
-- não fazer resumo corrido;
-- não transformar em texto genérico;
-- usar títulos com inicial maiúscula ou caixa alta;
-- aplicar negrito nos títulos, subtítulos e palavras-chave.
-
-Aplique abaixo o PROMPT RESUMO completo:
-
-[COLE AQUI O PROMPT RESUMO COMPLETO]`,
-    lei: `MÓDULO RESUMO/AULA aprovado.
-
-Agora gere somente o MÓDULO LEI.
-
-Use apenas as fontes classificadas como LEI na triagem.
-
-Disciplina:
-${item.disciplina || "[DISCIPLINA]"}
-
-Tema:
-${theme}
-
-Lei / diploma legal:
-${leiNome}
-
-Fonte:
-${leiFonte}
-
-Artigos / dispositivos:
-${leiArtigos}
-
-Recorte obrigatório:
-${leiRecorte}
-
-Observações:
-${leiObservacoes}
-Regras:
-- gerar somente o MÓDULO LEI;
-- não gerar resumo/aula;
-- não gerar jurisprudência;
-- não gerar peça;
-- não gerar Word final consolidado;
-- usar artigo como unidade central;
-- preservar prazos, competências, vedações, exceções, requisitos, penas, sanções e pontos de prova;
-- não copiar a lei integralmente;
-- não fazer comentário doutrinário;
-- não inserir PCDF;
-- não inserir CEBRASPE;
-- substituir qualquer “📌 CEBRASPE” por “📌 PROVA”;
-- não identificar banca, concurso, professora ou curso;
-- aplicar negrito conforme o padrão do projeto de leis.
-
-Aplique abaixo o PROMPT LEIS completo:
-
-[COLE AQUI O PROMPT LEIS COMPLETO]`,
-    jurisprudencia: `MÓDULO RESUMO/AULA aprovado.
-MÓDULO LEI aprovado.
-
-Agora gere somente o MÓDULO JURISPRUDÊNCIA.
-
-Use apenas as fontes classificadas como JURISPRUDÊNCIA na triagem.
-
-Disciplina:
-${item.disciplina || "[DISCIPLINA]"}
-
-Tema:
-${theme}
-
-RECORTE TEMÁTICO OBRIGATÓRIO:
-[DEFINIR TESES DESEJADAS]
-
-TRIBUNAIS:
-- Supremo Tribunal Federal (STF)
-- Superior Tribunal de Justiça (STJ)
-
-PERÍODO:
-- priorizar jurisprudências de [ANO INICIAL] a [ANO FINAL], se constarem nas fontes;
-- admitir tese anterior somente se for súmula, tese consolidada ou entendimento clássico indispensável.
-
-Regras:
-- gerar somente o MÓDULO JURISPRUDÊNCIA;
-- não gerar resumo/aula;
-- não gerar lei;
-- não gerar peça;
-- não gerar Word final consolidado;
-- não copiar ementa;
-- não narrar caso concreto;
-- não informar número de processo, relator, órgão julgador ou data exata, salvo se indispensável;
-- preservar tribunal, súmula, informativo, tema, ano, tese e distinções STF/STJ se constarem;
-- não inventar jurisprudência;
-- não pesquisar fora das fontes;
-- não inserir PCDF;
-- não inserir CEBRASPE;
-- substituir qualquer “📌 CEBRASPE” por “📌 PROVA”;
-- usar mapa mental hierárquico de palavras-chave;
-- usar títulos com inicial maiúscula ou caixa alta.
-
-Aplique abaixo o PROMPT JURISPRUDÊNCIA completo:
-
-[COLE AQUI O PROMPT JURISPRUDÊNCIA COMPLETO]`,
-    peca: `MÓDULO RESUMO/AULA aprovado.
-MÓDULO LEI aprovado.
-MÓDULO JURISPRUDÊNCIA aprovado.
-
-Agora gere somente o MÓDULO PEÇA.
-
-Use apenas as fontes classificadas como PEÇA na triagem.
-
-Disciplina:
-${item.disciplina || "[DISCIPLINA]"}
-
-Tema:
-${theme}
-
-Regras:
-- gerar somente o MÓDULO PEÇA;
-- não gerar resumo/aula;
-- não gerar lei;
-- não gerar jurisprudência;
-- não gerar Word final consolidado;
-- não fazer peça pronta;
-- não fazer aula corrida;
-- extrair estrutura, requisitos, fundamentos, pedidos e determinações;
-- não inserir PCDF;
-- não inserir CEBRASPE;
-- substituir qualquer “📌 CEBRASPE” por “📌 PROVA”;
-- não identificar banca, concurso, professora ou curso;
-- remover nome de professora, curso, turma ou material;
-- usar estrutura topificada hierárquica;
-- preservar profundidade prática.
-
-Aplique abaixo o PROMPT PEÇAS completo:
-
-[COLE AQUI O PROMPT PEÇAS COMPLETO]`,
-    consolidacao: `Os 4 módulos foram aprovados:
-
-1. MÓDULO RESUMO/AULA
-2. MÓDULO LEI
-3. MÓDULO JURISPRUDÊNCIA
-4. MÓDULO PEÇA
-
-Agora faça a CONSOLIDAÇÃO FINAL em Word.
-
-Disciplina:
-${item.disciplina || "[DISCIPLINA]"}
-
-Tema:
-${theme}
-
-Regras:
-- não reescrever como resumo genérico;
-- preservar o padrão próprio de cada módulo;
-- não misturar lei com doutrina;
-- não misturar jurisprudência com resumo/aula;
-- não transformar peça em comentário;
-- eliminar repetições desnecessárias;
-- manter profundidade;
-- manter hierarquia visual forte;
-- aplicar negrito nos títulos, subtítulos e palavras-chave;
-- usar “📌 PROVA”;
-- não inserir PCDF;
-- não inserir CEBRASPE;
-- não identificar banca, concurso, professora ou curso;
-- não inserir comentários externos;
-- não pesquisar fora dos módulos aprovados.
-
-Ordem do arquivo final:
-
-1. MÓDULO RESUMO/AULA
-2. MÓDULO LEI
-3. MÓDULO JURISPRUDÊNCIA
-4. MÓDULO PEÇA
-
-Gerar arquivo Word editável.`
+  const leiValues = [leiModule.leiNome, leiModule.leiFonte, leiModule.leiArtigos, leiModule.leiRecorte, leiModule.leiObservacoes].map((value) => String(value || "").trim());
+  const hasAnyLeiField = leiValues.some(Boolean);
+  const leiAviso = "[RECORTE LEGAL NÃO PREENCHIDO — USAR FONTES CLASSIFICADAS COMO LEI NA TRIAGEM E CONFIRMAR RECORTE ANTES DE GERAR]";
+  const leiDetails = hasAnyLeiField ? `Modo detalhado do módulo LEI:\n- Lei / diploma legal: ${leiModule.leiNome || "[NÃO PREENCHIDO]"}\n- Fonte: ${leiModule.leiFonte || "[NÃO PREENCHIDO]"}\n- Artigos / dispositivos: ${leiModule.leiArtigos || "[NÃO PREENCHIDO]"}\n- Recorte obrigatório: ${leiModule.leiRecorte || "[NÃO PREENCHIDO]"}\n- Observações: ${leiModule.leiObservacoes || "[NÃO PREENCHIDO]"}` : `Modo rápido do módulo LEI:\n- Usar fontes classificadas como LEI na triagem.\n- Respeitar a disciplina e o tema.\n- Se o recorte legal não estiver claro, pedir confirmação antes de gerar.\n${leiAviso}`;
+  const common = `${context}\nStatus anterior: ${item.status || "Não iniciado"}\nFontes a usar: conforme a triagem e as fontes classificadas para este módulo.\nFontes a não usar: fontes de outros módulos, conteúdo externo não fornecido e materiais não aprovados na triagem.\nRegras específicas do tema/módulo: ${item.observacao || "sem observações adicionais cadastradas."}`;
+  const routers = {
+    triagem: `${common}\n\nFaça apenas a TRIAGEM das fontes. Classifique cada fonte por RESUMO/AULA, LEI, JURISPRUDÊNCIA, PEÇA e ATUALIZAÇÃO/COMPLEMENTO. Não gere resumo, Word, PDF ou módulo final.`,
+    resumoAula: `${common}\n\nMÓDULO: RESUMO/AULA. Use apenas as fontes classificadas como RESUMO/AULA na triagem. Não gere lei, jurisprudência, peça ou Word final. Preserve profundidade, hierarquia, negritos e substitua qualquer referência de banca por “📌 PROVA”.`,
+    lei: `${common}\n\nMÓDULO: LEI.\n${leiDetails}\n\nUse artigo/dispositivo como unidade central, preserve prazos, competências, vedações, exceções, requisitos, sanções e pontos de prova. Não copie a lei integralmente e não faça comentário doutrinário.`,
+    jurisprudencia: `${common}\n\nMÓDULO: JURISPRUDÊNCIA. Use apenas fontes classificadas como JURISPRUDÊNCIA. Preserve tribunal, súmula, informativo, tema, ano, tese e distinções STF/STJ quando constarem. Não invente jurisprudência nem pesquise fora das fontes.`,
+    peca: `${common}\n\nMÓDULO: PEÇA. Use apenas fontes classificadas como PEÇA. Extraia estrutura, requisitos, fundamentos, pedidos e determinações. Não faça peça pronta nem aula corrida.`,
+    consolidacao: `${common}\n\nCONSOLIDAÇÃO FINAL. Os módulos aprovados devem ser reunidos na ordem: RESUMO/AULA, LEI, JURISPRUDÊNCIA e PEÇA. Preserve o padrão de cada módulo, elimine repetições e não pesquise fora dos módulos aprovados.`
   };
-  return prompts[type] || "";
+  return routers[type] || common;
 }
-
+function factoryPromptText(type, item = {}, mode = "full") {
+  const router = factoryRouterText(type, item);
+  if (mode === "router") return router;
+  return `${router}\n\n==============================\nPROMPT COMPLETO DO PROJETO — ${FACTORY_PROMPT_TYPES.find((p) => p.key === type)?.label?.replace("Gerar prompt ", "").toUpperCase() || type.toUpperCase()}\n==============================\n\n${factoryPromptBase(type)}`;
+}
+function renderFactoryPromptLibrary() {
+  const panel = elements.factoryPromptLibraryPanel;
+  if (!panel) return;
+  state.factoryPromptLibrary = normalizeFactoryPromptLibrary(state.factoryPromptLibrary);
+  const fields = FACTORY_PROMPT_TYPES.map(({ key, label }) => `<label class="wide"><strong>${escapeHTML(label.replace("Gerar prompt ", "PROMPT ").replace("de triagem", "TRIAGEM COMPLETO").replace("Resumo/Aula", "RESUMO/AULA COMPLETO").replace("Lei", "LEI COMPLETO").replace("Jurisprudência", "JURISPRUDÊNCIA COMPLETO").replace("Peça", "PEÇA COMPLETO").replace("Consolidação Final", "CONSOLIDAÇÃO FINAL COMPLETO"))}</strong><textarea rows="8" data-factory-library-field="${key}" placeholder="Cole aqui o prompt-base completo deste módulo">${escapeHTML(state.factoryPromptLibrary[key])}</textarea><button type="button" class="secondary-button" data-factory-library-restore="${key}">Restaurar modelo padrão</button></label>`).join("");
+  panel.innerHTML = `<div class="section-heading inline"><div><p class="eyebrow">Configurações da Fábrica</p><h3 id="factory-prompt-library-title">⚙️ Biblioteca de Prompts da Fábrica</h3></div><button type="button" class="secondary-button" data-factory-library-close>Fechar</button></div><p class="notice">Salve aqui os prompts-base completos do projeto. Eles entram no backup e na sincronização Google Drive.</p><form id="factoryPromptLibraryForm" class="form-grid">${fields}<button class="wide" type="submit">Salvar biblioteca de prompts</button></form>`;
+}
+function saveFactoryPromptLibrary(event) {
+  const form = event.target.closest("#factoryPromptLibraryForm");
+  if (!form) return;
+  event.preventDefault();
+  const next = normalizeFactoryPromptLibrary(state.factoryPromptLibrary);
+  form.querySelectorAll("[data-factory-library-field]").forEach((field) => { next[field.dataset.factoryLibraryField] = field.value; });
+  state.factoryPromptLibrary = next; saveData(); if (typeof autoSyncAfterSave === "function") autoSyncAfterSave("factory-prompt-library"); renderFactoryPromptLibrary();
+}
 function normalizeFactoryModule(module = {}, legacyItem = {}) {
   const status = FACTORY_STATUSES.includes(module.status) ? module.status : "Não iniciado";
   return {
@@ -1810,13 +1630,15 @@ function showFactoryPrompt(id, type) {
   if (!item) return;
   const panel = elements.factoryList?.querySelector(`[data-factory-prompt-panel="${CSS.escape(id)}"]`);
   if (!panel) return;
-  const promptText = factoryPromptText(type, item);
+  const promptText = factoryPromptText(type, item, "full");
+  const routerText = factoryPromptText(type, item, "router");
   const promptLabel = FACTORY_PROMPT_TYPES.find((p) => p.key === type)?.label?.replace("Gerar prompt ", "") || "Prompt";
-  panel.innerHTML = `<div class="factory-prompt-box"><div class="factory-prompt-header"><div><h4>Prompt — ${escapeHTML(promptLabel)}</h4><p class="item-meta">${escapeHTML(item.disciplina)} — ${escapeHTML(item.tema)}</p></div><button type="button" class="secondary-button" data-factory-prompt-close="${item.id}">Fechar</button></div><textarea readonly rows="18" data-factory-prompt-text="${item.id}">${escapeHTML(promptText)}</textarea><div class="card-actions"><button type="button" data-factory-prompt-copy="${item.id}">Copiar prompt</button><span class="item-meta" data-factory-prompt-message="${item.id}" aria-live="polite"></span></div></div>`;
+  panel.innerHTML = `<div class="factory-prompt-box"><div class="factory-prompt-header"><div><h4>Prompt — ${escapeHTML(promptLabel)}</h4><p class="item-meta">${escapeHTML(item.disciplina)} — ${escapeHTML(item.tema)}</p></div><button type="button" class="secondary-button" data-factory-prompt-close="${item.id}">Fechar</button></div><textarea readonly rows="18" data-factory-prompt-text="${item.id}">${escapeHTML(promptText)}</textarea><textarea hidden readonly data-factory-router-text="${item.id}">${escapeHTML(routerText)}</textarea><div class="card-actions"><button type="button" data-factory-prompt-copy="${item.id}">Copiar prompt completo</button><button type="button" class="secondary-button" data-factory-router-copy="${item.id}">Copiar apenas prompt roteador</button><span class="item-meta" data-factory-prompt-message="${item.id}" aria-live="polite"></span></div></div>`;
   panel.querySelector("textarea")?.focus();
 }
-async function copyFactoryPrompt(id) {
-  const textArea = elements.factoryList?.querySelector(`[data-factory-prompt-text="${CSS.escape(id)}"]`);
+async function copyFactoryPrompt(id, routerOnly = false) {
+  const selector = routerOnly ? `[data-factory-router-text="${CSS.escape(id)}"]` : `[data-factory-prompt-text="${CSS.escape(id)}"]`;
+  const textArea = elements.factoryList?.querySelector(selector);
   const message = elements.factoryList?.querySelector(`[data-factory-prompt-message="${CSS.escape(id)}"]`);
   if (!textArea) return;
   try {
@@ -1825,11 +1647,11 @@ async function copyFactoryPrompt(id) {
       textArea.select();
       document.execCommand("copy");
     }
-    if (message) message.textContent = "Prompt copiado.";
+    if (message) message.textContent = routerOnly ? "Prompt roteador copiado." : "Prompt completo copiado.";
   } catch (error) {
     textArea.select();
     document.execCommand("copy");
-    if (message) message.textContent = "Prompt copiado.";
+    if (message) message.textContent = routerOnly ? "Prompt roteador copiado." : "Prompt completo copiado.";
   }
 }
 function closeFactoryPrompt(id) {
@@ -3065,7 +2887,9 @@ elements.studySubject?.addEventListener("change", updateStudyMaterialOptions);
 elements.studyTopic?.addEventListener("input", updateStudyMaterialOptions);
 elements.factoryForm?.addEventListener("submit", saveFactoryItem);
 document.addEventListener("submit", saveFactoryModules);
-document.addEventListener("click", (event) => { const edit = event.target.closest("[data-factory-edit]"); const del = event.target.closest("[data-factory-delete]"); const modules = event.target.closest("[data-factory-modules]"); const cancelModules = event.target.closest("[data-factory-modules-cancel]"); const prompt = event.target.closest("[data-factory-prompt]"); const copyPrompt = event.target.closest("[data-factory-prompt-copy]"); const closePrompt = event.target.closest("[data-factory-prompt-close]"); if (edit) editFactoryItem(edit.dataset.factoryEdit); if (del) deleteFactoryItem(del.dataset.factoryDelete); if (modules) editFactoryModules(modules.dataset.factoryModules); if (cancelModules) renderFactory(); if (prompt) { const [id, type] = prompt.dataset.factoryPrompt.split("|"); showFactoryPrompt(id, type); } if (copyPrompt) copyFactoryPrompt(copyPrompt.dataset.factoryPromptCopy); if (closePrompt) closeFactoryPrompt(closePrompt.dataset.factoryPromptClose); });
+document.addEventListener("submit", saveFactoryPromptLibrary);
+elements.editFactoryPromptLibrary?.addEventListener("click", () => { if (!elements.factoryPromptLibraryPanel) return; elements.factoryPromptLibraryPanel.hidden = !elements.factoryPromptLibraryPanel.hidden; if (!elements.factoryPromptLibraryPanel.hidden) renderFactoryPromptLibrary(); });
+document.addEventListener("click", (event) => { const edit = event.target.closest("[data-factory-edit]"); const del = event.target.closest("[data-factory-delete]"); const modules = event.target.closest("[data-factory-modules]"); const cancelModules = event.target.closest("[data-factory-modules-cancel]"); const prompt = event.target.closest("[data-factory-prompt]"); const copyPrompt = event.target.closest("[data-factory-prompt-copy]"); const copyRouter = event.target.closest("[data-factory-router-copy]"); const closePrompt = event.target.closest("[data-factory-prompt-close]"); const closeLibrary = event.target.closest("[data-factory-library-close]"); const restoreLibrary = event.target.closest("[data-factory-library-restore]"); if (edit) editFactoryItem(edit.dataset.factoryEdit); if (del) deleteFactoryItem(del.dataset.factoryDelete); if (modules) editFactoryModules(modules.dataset.factoryModules); if (cancelModules) renderFactory(); if (prompt) { const [id, type] = prompt.dataset.factoryPrompt.split("|"); showFactoryPrompt(id, type); } if (copyPrompt) copyFactoryPrompt(copyPrompt.dataset.factoryPromptCopy); if (copyRouter) copyFactoryPrompt(copyRouter.dataset.factoryRouterCopy, true); if (closePrompt) closeFactoryPrompt(closePrompt.dataset.factoryPromptClose); if (closeLibrary && elements.factoryPromptLibraryPanel) elements.factoryPromptLibraryPanel.hidden = true; if (restoreLibrary && confirm("Isso substituirá o prompt salvo deste módulo. Deseja continuar?")) { const field = elements.factoryPromptLibraryPanel?.querySelector(`[data-factory-library-field="${CSS.escape(restoreLibrary.dataset.factoryLibraryRestore)}"]`); if (field) field.value = defaultFactoryPromptLibrary[restoreLibrary.dataset.factoryLibraryRestore] || ""; } });
 
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin, elements.materialFilterText].filter(Boolean).forEach((filter) => filter.addEventListener("input", renderMaterials));
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin].filter(Boolean).forEach((filter) => filter.addEventListener("change", renderMaterials));
