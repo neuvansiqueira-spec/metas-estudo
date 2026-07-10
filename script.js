@@ -289,45 +289,77 @@ function timerPlannedSeconds(goal = floatingTimerGoal()) { return floatingTimer.
 function timerRemainingSeconds(goal = floatingTimerGoal()) { const planned = timerPlannedSeconds(goal); return planned ? Math.max(0, planned - currentTimerSeconds()) : 0; }
 function timerProgressPercent(goal = floatingTimerGoal()) { const planned = timerPlannedSeconds(goal); return planned ? Math.min(100, Math.round((currentTimerSeconds() / planned) * 100)) : 0; }
 function timerAlertMessage(goal = floatingTimerGoal()) {
+  if (timerTestAlertUntil > Date.now()) return "🔔 Teste de alertas do cronômetro";
   if (!state.settings?.timerPreferences?.visualAlerts || !timerPlannedSeconds(goal)) return "";
   const remaining = timerRemainingSeconds(goal);
-  if (remaining <= 0) return "✅ Tempo concluído";
-  if (remaining <= 60) return "⚠️ Faltam 1 minuto";
-  if (remaining <= 300) return "⏳ Faltam 5 minutos";
+  if (remaining <= 0 || floatingTimer.completed) return "✅ Tempo concluído";
+  if (remaining <= 60 || floatingTimer.warnedOne) return "🚨 Faltam 1 minuto";
+  if (remaining <= 300 || floatingTimer.warnedFive) return "⏳ Faltam 5 minutos";
   return "";
 }
-function playTimerBeep() {
+let timerAudioContext = null;
+let timerTestAlertUntil = 0;
+function prepareTimerAudioContext() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return null;
+    timerAudioContext ||= new AudioCtx();
+    if (timerAudioContext.state === "suspended") timerAudioContext.resume?.().catch?.(() => {});
+    return timerAudioContext;
+  } catch (error) {
+    console.warn("Falha ao preparar áudio do cronômetro", error);
+    return null;
+  }
+}
+function playTimerBeep(type = "completed") {
   if (!state.settings?.timerPreferences?.sound) return;
-  const AudioCtx = window.AudioContext || window.webkitAudioContext;
-  if (!AudioCtx) return;
-  const ctx = new AudioCtx();
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.type = "sine"; osc.frequency.value = 880;
-  gain.gain.setValueAtTime(0.001, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
-  osc.connect(gain); gain.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.38);
+  try {
+    const ctx = prepareTimerAudioContext();
+    if (!ctx) return;
+    const tones = type === "five-minutes" ? [660] : type === "one-minute" ? [880, 880] : [880, 1040, 880];
+    tones.forEach((frequency, index) => {
+      const start = ctx.currentTime + index * 0.18;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine"; osc.frequency.value = frequency;
+      gain.gain.setValueAtTime(0.001, start);
+      gain.gain.exponentialRampToValueAtTime(0.2, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.14);
+      osc.connect(gain); gain.connect(ctx.destination); osc.start(start); osc.stop(start + 0.16);
+    });
+  } catch (error) { console.warn("Falha no som do cronômetro", error); }
 }
-function notifyTimerFinished(goal = floatingTimerGoal()) {
-  if (state.settings?.timerPreferences?.vibration && navigator.vibrate) navigator.vibrate([180, 80, 180]);
-  if (state.settings?.timerPreferences?.browserNotifications && "Notification" in window && Notification.permission === "granted") new Notification("Tempo de estudo concluído", { body: `${goal?.discipline || "Meta"} — ${goal?.subject || "Assunto"}` });
+function timerAlertTitle(type) { return ({ "five-minutes": "Faltam 5 minutos", "one-minute": "Falta 1 minuto", completed: "Tempo de estudo concluído", test: "Teste de alertas do cronômetro" }[type]) || "Alerta do cronômetro"; }
+function notifyTimerAlert(type, goal = floatingTimerGoal()) {
+  try { if (state.settings?.timerPreferences?.vibration && navigator.vibrate) navigator.vibrate(type === "five-minutes" ? [120] : type === "one-minute" ? [160, 80, 160] : [220, 100, 220]); } catch (error) { console.warn("Falha na vibração do cronômetro", error); }
+  try { if (state.settings?.timerPreferences?.browserNotifications && "Notification" in window && Notification.permission === "granted") new Notification(timerAlertTitle(type), { body: `${goal?.discipline || "Meta"} — ${goal?.subject || "Assunto"}` }); } catch (error) { console.warn("Falha na notificação do cronômetro", error); }
 }
-function completeFloatingTimerIfNeeded() {
+function triggerTimerAlert(type, goal = floatingTimerGoal()) {
+  if (type === "five-minutes") floatingTimer.warnedFive = true;
+  if (type === "one-minute") floatingTimer.warnedOne = true;
+  if (type === "completed") floatingTimer.completed = true;
+  if (type === "test") timerTestAlertUntil = Date.now() + 5000;
+  playTimerBeep(type);
+  notifyTimerAlert(type, goal);
+  if (type === "test") alert("Teste de alertas do cronômetro: aviso visual, som, vibração e notificação foram solicitados conforme suas permissões.");
+}
+function checkFloatingTimerAlerts() {
   const goal = floatingTimerGoal();
-  if (!goal || floatingTimer.completed || !timerPlannedSeconds(goal) || floatingTimer.completionDismissed || currentTimerSeconds() < timerPlannedSeconds(goal)) return;
-  floatingTimer.completed = true;
-  playTimerBeep();
-  notifyTimerFinished(goal);
-  renderFloatingTimer();
+  const planned = timerPlannedSeconds(goal);
+  if (!goal || floatingTimer.mode !== "countdown" || !planned || floatingTimer.completionDismissed) return;
+  const remaining = timerRemainingSeconds(goal);
+  if (remaining <= 0) { if (!floatingTimer.completed) triggerTimerAlert("completed", goal); return; }
+  if (remaining <= 60 && remaining > 0) { if (!floatingTimer.warnedOne) triggerTimerAlert("one-minute", goal); return; }
+  if (remaining <= 300 && remaining > 60 && !floatingTimer.warnedFive) triggerTimerAlert("five-minutes", goal);
 }
 async function enableTimerNotifications(input) {
-  if (!("Notification" in window)) { alert("Este navegador não oferece notificações."); return false; }
-  const permission = Notification.permission === "default" ? await Notification.requestPermission() : Notification.permission;
+  if (!("Notification" in window)) { state.settings.timerPreferences.browserNotifications = false; if (input) input.checked = false; alert("Notificações do cronômetro não são suportadas neste navegador."); return false; }
+  let permission = Notification.permission;
+  try { permission = permission === "default" ? await Notification.requestPermission() : permission; } catch (error) { console.warn("Falha ao solicitar notificação do cronômetro", error); permission = "denied"; }
   const enabled = permission === "granted";
   state.settings.timerPreferences.browserNotifications = enabled;
   if (input) input.checked = enabled;
-  if (!enabled) alert("Notificações não foram permitidas pelo navegador.");
+  alert(enabled ? "Notificações do cronômetro permitidas." : `Notificações do cronômetro ${permission === "denied" ? "negadas" : "não autorizadas"}.`);
   return enabled;
 }
 
@@ -346,14 +378,14 @@ function renderFloatingTimer() {
   elements.timerTime.textContent = floatingTimer.mode === "countdown" && planned ? formatTimerSeconds(timerRemainingSeconds(goal)) : formatTimerSeconds(currentTimerSeconds());
   elements.timerProgressBar.style.width = `${progress}%`;
   elements.timerProgressText.textContent = planned ? `${progress}% do tempo decorrido` : "Sem tempo planejado";
+  checkFloatingTimerAlerts();
   const alertMessage = timerAlertMessage(goal);
   elements.timerAlert.hidden = !alertMessage;
   elements.timerAlert.textContent = alertMessage;
-  elements.timerAlert.className = `timer-alert ${timerRemainingSeconds(goal) <= 60 ? "strong" : ""}`;
+  elements.timerAlert.className = `timer-alert ${timerRemainingSeconds(goal) <= 60 || floatingTimer.completed ? "strong" : ""}`;
   elements.timerCompletion.hidden = !floatingTimer.completed || floatingTimer.completionDismissed;
   elements.timerPauseResume.textContent = floatingTimer.paused ? "Continuar" : "Pausar";
   elements.timerSettings?.querySelectorAll("input[data-timer-pref]").forEach((input) => { input.checked = Boolean(state.settings?.timerPreferences?.[input.dataset.timerPref]); });
-  completeFloatingTimerIfNeeded();
 }
 function persistFloatingTimerSession() {
   if (!floatingTimer.goalId) { state.timerSession = null; saveData(); return; }
@@ -377,6 +409,7 @@ function startFloatingTimer(goal, kind = "study") {
   state.settings.timerMode = selectedMode;
   saveData();
   autoSyncAfterSave("timer-settings");
+  prepareTimerAudioContext();
   floatingTimer = { goalId: goal.id, kind, elapsedSeconds: 0, startedAt: Date.now(), paused: false, intervalId: null, completed: false, warnedFive: false, warnedOne: false, completionDismissed: false, mode: selectedMode, sessionGoalMinutes };
   floatingTimer.intervalId = setInterval(renderFloatingTimer, 1000);
   persistFloatingTimerSession();
@@ -399,6 +432,10 @@ function resetFloatingTimer() {
   if (!floatingTimer.goalId) return;
   floatingTimer.elapsedSeconds = 0;
   floatingTimer.startedAt = floatingTimer.paused ? null : Date.now();
+  floatingTimer.completed = false;
+  floatingTimer.warnedFive = false;
+  floatingTimer.warnedOne = false;
+  floatingTimer.completionDismissed = false;
   persistFloatingTimerSession();
   renderFloatingTimer();
 }
@@ -3335,12 +3372,14 @@ elements.floatingTimer?.addEventListener("click", (event) => {
   if (action === "reset") resetFloatingTimer();
   if (action === "close") closeFloatingTimer();
   if (action === "continue") { floatingTimer.completionDismissed = true; renderFloatingTimer(); }
+  if (action === "test-alerts") { prepareTimerAudioContext(); triggerTimerAlert("test", floatingTimerGoal()); renderFloatingTimer(); }
 });
 document.addEventListener("change", async (event) => {
   const input = event.target.closest("input[data-timer-pref]");
   if (!input) return;
   state.settings ||= {}; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences);
   const key = input.dataset.timerPref;
+  if (key === "sound" && input.checked) prepareTimerAudioContext();
   if (key === "browserNotifications" && input.checked) await enableTimerNotifications(input);
   else state.settings.timerPreferences[key] = input.checked;
   saveTimerPreferences();

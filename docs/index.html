@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260710-emergency-stable1" />
+  <link rel="stylesheet" href="style.css?v=20260710-timer-alerts-fix1" />
 </head>
 <body>
   <header class="hero">
@@ -737,7 +737,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
       <strong id="timerTime" class="floating-timer-time">00:00:00</strong>
       <div class="timer-progress" aria-label="Progresso do cronômetro"><span id="timerProgressBar"></span></div>
       <small id="timerProgressText" class="item-meta">0% do tempo decorrido</small>
-      <div id="timerAlert" class="timer-alert" hidden></div>
+      <div id="timerAlert" class="timer-alert" aria-live="assertive" hidden></div>
       <section id="timerCompletion" class="timer-completion" aria-live="assertive" hidden>
         <strong>✅ Tempo concluído</strong>
         <div class="floating-timer-actions">
@@ -750,9 +750,10 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     <details id="timerSettings" class="timer-settings">
       <summary>Configurações do cronômetro</summary>
       <label><input type="checkbox" data-timer-pref="visualAlerts" checked /> Alerta visual</label>
-      <label><input type="checkbox" data-timer-pref="sound" /> Som ao terminar</label>
+      <label><input type="checkbox" data-timer-pref="sound" /> Som do cronômetro</label>
       <label><input type="checkbox" data-timer-pref="vibration" checked /> Vibração</label>
       <label><input type="checkbox" data-timer-pref="browserNotifications" /> Permitir notificações do cronômetro</label>
+      <button type="button" class="secondary-button" data-timer-action="test-alerts">Testar alertas</button>
     </details>
     <div class="floating-timer-actions">
       <button id="timerPauseResume" type="button" data-timer-action="pause">Pausar</button>
@@ -762,8 +763,8 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </div>
   </aside>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260710-emergency-stable1</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260710-timer-alerts-fix1</p></footer>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="script.js?v=20260710-emergency-stable1"></script>
+  <script src="script.js?v=20260710-timer-alerts-fix1"></script>
 </body>
 </html>
