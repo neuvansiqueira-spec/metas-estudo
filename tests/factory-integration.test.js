@@ -4,6 +4,7 @@ const fs = require('node:fs');
 
 const script = fs.readFileSync('script.js', 'utf8');
 const docsScript = fs.readFileSync('docs/script.js', 'utf8');
+const html = fs.readFileSync('index.html', 'utf8');
 
 test('prompts da Fábrica diferenciam pasta, módulos e entrega obrigatória', () => {
   assert.match(script, /function factoryDestinationFolderLink\(item = \{\}\)/);
@@ -41,7 +42,7 @@ test('metas, registro de estudo e fábrica reutilizam resolvedor central de mate
   assert.match(script, /MATERIAIS DISPONÍVEIS/);
   assert.match(script, /Nenhum material pronto para este assunto/);
   assert.match(script, /const mats = resolveAvailableMaterials\(/);
-  assert.match(script, /const readyToday = todayGroups\.filter\(\(\{ item \}\) => materialsForFactoryItem\(item\)\.length\)/);
+  assert.match(script, /function factoryTodayQueue\(agenda = ensureFactoryAgenda\(\)\)/);
   assert.equal(script, docsScript, 'script.js e docs/script.js devem permanecer sincronizados');
 });
 
@@ -60,5 +61,38 @@ test('prompts da Fábrica orientam upload DOCX/PDF no Drive sem caminho local br
   assert.match(script, /ARQUIVO GERADO E SALVO/);
   assert.match(script, /ARQUIVO GERADO, MAS NÃO SALVO NO DRIVE/);
   assert.match(script, /triagem: `\$\{common\}\\n\\nA pasta de destino acima é apenas informação para etapas futuras[\s\S]*Não gere resumo, Word, PDF ou módulo final/);
+  assert.equal(script, docsScript, 'script.js e docs/script.js devem permanecer sincronizados');
+});
+
+
+test('Fábrica operacional organiza faça agora, fila, triagem e resumo pronto corretamente', () => {
+  assert.match(script, /let factoryCurrentFilter = "faca-agora"/);
+  assert.match(script, /FACTORY_TRIAGEM_STATUSES = \["Não iniciada", "Em andamento", "Concluída", "Precisa refazer"\]/);
+  assert.match(script, /function factoryResumoAulaReady\(item = \{\}\)/);
+  assert.match(script, /material\.factoryModuleKey === "resumoAula"/);
+  assert.match(script, /function factoryCurrentStage\(item = \{\}\)/);
+  assert.match(script, /function factoryNextAction\(item = \{\}\)/);
+  assert.match(script, /function factoryTodayQueue\(agenda = ensureFactoryAgenda\(\)\)/);
+  assert.match(script, /ASSUNTO DO MATERIAL/);
+  assert.match(script, /RECORTE PROGRAMADO HOJE/);
+  assert.match(script, /SUBTEMAS ABRANGIDOS|Subtemas abrangidos/);
+  assert.match(script, /DETALHES DO TEMA/);
+  assert.match(script, /factoryOpenDetailId/);
+  assert.match(script, /Concluir etapa e ir para o próximo/i);
+  assert.match(html, /data-factory-filter="faca-agora"/);
+  assert.match(html, /data-factory-filter="prontos"/);
+});
+
+test('Plano do Dia e Materiais separam estudo, produção e cards de materiais', () => {
+  assert.match(script, /📚 ESTUDAR HOJE/);
+  assert.match(script, /🏭 PRODUZIR MATERIAL HOJE/);
+  assert.match(script, /🔄 REVISAR HOJE/);
+  assert.match(script, /function dailyGoalResumoReady/);
+  assert.match(script, /function dailyGoalProductionCard/);
+  assert.match(script, /MATERIAIS PARA O PLANO DE HOJE/);
+  assert.match(script, /MATERIAIS RECENTES/);
+  assert.match(script, /TODOS OS MATERIAIS/);
+  assert.match(script, /data-use-material-study/);
+  assert.match(script, /markFactoryMaterialUnavailable\(normalized\.id, moduleKey, format\)/);
   assert.equal(script, docsScript, 'script.js e docs/script.js devem permanecer sincronizados');
 });
