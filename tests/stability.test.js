@@ -37,9 +37,9 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão da fábrica mínima', () => {
-  assert.match(html, /style\.css\?v=20260710-emergency-stable1/);
-  assert.match(html, /script\.js\?v=20260710-emergency-stable1/);
-  assert.match(html, /Versão: 20260710-emergency-stable1/);
+  assert.match(html, /style\.css\?v=20260710-timer-alerts-fix1/);
+  assert.match(html, /script\.js\?v=20260710-timer-alerts-fix1/);
+  assert.match(html, /Versão: 20260710-timer-alerts-fix1/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -228,7 +228,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260710-emergency-stable1/);
+  assert.match(sw, /metas-estudo-20260710-timer-alerts-fix1/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);
@@ -354,4 +354,30 @@ test('Fábrica conclui tema com módulos aplicáveis e inclui backup/sincroniza�
   assert.match(script, /state\.factoryItems = state\.factoryAgenda/);
   assert.match(script, /factoryPromptLibrary/);
   assert.match(script, /factoryAgenda/);
+});
+
+
+test('alertas do cronômetro disparam uma única vez e usam flags de controle', () => {
+  assert.match(script, /function triggerTimerAlert\(type, goal = floatingTimerGoal\(\)\)/);
+  assert.match(script, /if \(type === "five-minutes"\) floatingTimer\.warnedFive = true/);
+  assert.match(script, /if \(type === "one-minute"\) floatingTimer\.warnedOne = true/);
+  assert.match(script, /if \(type === "completed"\) floatingTimer\.completed = true/);
+  assert.match(script, /remaining <= 300 && remaining > 60 && !floatingTimer\.warnedFive\) triggerTimerAlert\("five-minutes"/);
+  assert.match(script, /remaining <= 60 && remaining > 0\) \{ if \(!floatingTimer\.warnedOne\) triggerTimerAlert\("one-minute"/);
+  assert.match(script, /remaining <= 0\) \{ if \(!floatingTimer\.completed\) triggerTimerAlert\("completed"/);
+});
+
+test('alertas do cronômetro são resilientes e não ocorrem em modo livre sem meta', () => {
+  assert.match(script, /floatingTimer\.mode !== "countdown"/);
+  assert.match(script, /!planned/);
+  assert.match(script, /try \{ if \(state\.settings\?\.timerPreferences\?\.browserNotifications[\s\S]*new Notification/);
+  assert.match(script, /catch \(error\) \{ console\.warn\("Falha na notificação do cronômetro"/);
+  assert.match(script, /try \{[\s\S]*prepareTimerAudioContext\(\)[\s\S]*\} catch \(error\) \{ console\.warn\("Falha no som do cronômetro"/);
+});
+
+test('interface do cronômetro permite testar alertas e mantém scripts publicados idênticos', () => {
+  const docsScript = fs.readFileSync('docs/script.js', 'utf8');
+  assert.equal(script, docsScript);
+  assert.match(html, /data-timer-action="test-alerts"/);
+  assert.match(html, /id="timerAlert" class="timer-alert" aria-live="assertive"/);
 });
