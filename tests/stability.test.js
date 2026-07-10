@@ -325,6 +325,24 @@ test('Fábrica integra automaticamente o edital ativo sem duplicidades e preserv
   assert.doesNotMatch(script.slice(script.indexOf('function syncFactoryWithActiveEdital'), script.indexOf('function reopenFactoryTheme')), /deleteFactoryItem|filter\(\(item\) => item\.id !==/);
 });
 
+
+test('Fábrica salva pasta de destino independente e injeta destino nos prompts', () => {
+  assert.match(html, /id="factoryDestinationFolder"/);
+  assert.match(html, /Link da pasta de destino do Word\/PDF no Google Drive/);
+  assert.match(script, /factoryDestinationFolder: \$\("#factoryDestinationFolder"\)/);
+  assert.match(script, /function factoryDestinationFolderLink/);
+  assert.match(script, /factoryDestinationFolder: item\.factoryDestinationFolder \|\| item\.pastaDestinoWordPdf \|\| item\.destinationFolder \|\| item\.finalFilesFolder \|\| ""/);
+  assert.match(script, /const factoryDestinationFolder = elements\.factoryDestinationFolder\?\.value\.trim\(\) \|\| ""/);
+  assert.match(script, /PASTA DAS FONTES NO GOOGLE DRIVE:/);
+  assert.match(script, /PASTA DE DESTINO DOS ARQUIVOS FINAIS NO GOOGLE DRIVE:/);
+  assert.match(script, /\[PASTA DE DESTINO NÃO PREENCHIDA — INFORMAR O LINK ANTES DE GERAR O ARQUIVO\]/);
+  assert.match(script, /AO CONCLUIR, SALVAR O WORD E O PDF NA PASTA DE DESTINO\./);
+  assert.match(script, /Pasta das fontes:/);
+  assert.match(script, /Pasta de destino do Word\/PDF:/);
+  assert.match(script, /wordLink: module\.wordLink/);
+  assert.match(script, /pdfLink: module\.pdfLink/);
+});
+
 test('Fábrica conclui tema com módulos aplicáveis e inclui backup/sincronização', () => {
   assert.match(script, /"Não se aplica"/);
   assert.match(script, /function factoryApplicableCompletionStatus/);
