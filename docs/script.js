@@ -299,49 +299,81 @@ function timerAlertMessage(goal = floatingTimerGoal()) {
 }
 let timerAudioContext = null;
 let timerTestAlertUntil = 0;
-function prepareTimerAudioContext() {
+let timerTestAlertReport = "";
+async function prepareTimerAudioContext() {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return null;
     timerAudioContext ||= new AudioCtx();
-    if (timerAudioContext.state === "suspended") timerAudioContext.resume?.().catch?.(() => {});
+    if (timerAudioContext.state === "suspended") await timerAudioContext.resume();
     return timerAudioContext;
   } catch (error) {
     console.warn("Falha ao preparar áudio do cronômetro", error);
     return null;
   }
 }
-function playTimerBeep(type = "completed") {
-  if (!state.settings?.timerPreferences?.sound) return;
+async function playTimerBeep(type = "completed") {
+  if (!state.settings?.timerPreferences?.sound) return false;
   try {
-    const ctx = prepareTimerAudioContext();
-    if (!ctx) return;
-    const tones = type === "five-minutes" ? [660] : type === "one-minute" ? [880, 880] : [880, 1040, 880];
+    const ctx = await prepareTimerAudioContext();
+    if (!ctx || ctx.state !== "running") return false;
+    const tones = type === "five-minutes" ? [660, 740, 660] : type === "one-minute" ? [880, 740, 880] : [740, 940, 660];
     tones.forEach((frequency, index) => {
-      const start = ctx.currentTime + index * 0.18;
+      const start = ctx.currentTime + index * 0.32;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = "sine"; osc.frequency.value = frequency;
       gain.gain.setValueAtTime(0.001, start);
-      gain.gain.exponentialRampToValueAtTime(0.2, start + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.14);
-      osc.connect(gain); gain.connect(ctx.destination); osc.start(start); osc.stop(start + 0.16);
+      gain.gain.exponentialRampToValueAtTime(0.16, start + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.26);
+      osc.connect(gain); gain.connect(ctx.destination); osc.start(start); osc.stop(start + 0.28);
     });
-  } catch (error) { console.warn("Falha no som do cronômetro", error); }
+    return true;
+  } catch (error) { console.warn("Falha no som do cronômetro", error); return false; }
 }
 function timerAlertTitle(type) { return ({ "five-minutes": "Faltam 5 minutos", "one-minute": "Falta 1 minuto", completed: "Tempo de estudo concluído", test: "Teste de alertas do cronômetro" }[type]) || "Alerta do cronômetro"; }
-function notifyTimerAlert(type, goal = floatingTimerGoal()) {
-  try { if (state.settings?.timerPreferences?.vibration && navigator.vibrate) navigator.vibrate(type === "five-minutes" ? [120] : type === "one-minute" ? [160, 80, 160] : [220, 100, 220]); } catch (error) { console.warn("Falha na vibração do cronômetro", error); }
-  try { if (state.settings?.timerPreferences?.browserNotifications && "Notification" in window && Notification.permission === "granted") new Notification(timerAlertTitle(type), { body: `${goal?.discipline || "Meta"} — ${goal?.subject || "Assunto"}` }); } catch (error) { console.warn("Falha na notificação do cronômetro", error); }
+async function sendTimerNotification(type, goal = floatingTimerGoal()) {
+  if (!state.settings?.timerPreferences?.browserNotifications) return "desativada";
+  if (!("Notification" in window)) return "não permitida";
+  let permission = Notification.permission;
+  if (type === "test" && permission === "default") {
+    try { permission = await Notification.requestPermission(); } catch (error) { console.warn("Falha ao solicitar notificação do cronômetro", error); return "não permitida"; }
+  }
+  if (permission !== "granted") return "não permitida";
+  try {
+    const options = { body: `${goal?.discipline || "Meta"} — ${goal?.subject || "Assunto"}` };
+    const serviceWorkerRegistration = navigator.serviceWorker?.ready ? await navigator.serviceWorker.ready : null;
+    if (serviceWorkerRegistration?.showNotification) await serviceWorkerRegistration.showNotification(timerAlertTitle(type), options);
+    else new Notification(timerAlertTitle(type), options);
+    return "enviada";
+  } catch (error) { console.warn("Falha na notificação do cronômetro", error); return "não permitida"; }
 }
-function triggerTimerAlert(type, goal = floatingTimerGoal()) {
+function vibrateTimerAlert(type) {
+  if (!state.settings?.timerPreferences?.vibration) return "desativada";
+  if (!navigator.vibrate) return "não suportada";
+  try { navigator.vibrate(type === "five-minutes" ? [120] : type === "one-minute" ? [160, 80, 160] : [220, 100, 220]); return "solicitada"; } catch (error) { console.warn("Falha na vibração do cronômetro", error); return "não suportada"; }
+}
+async function notifyTimerAlert(type, goal = floatingTimerGoal()) {
+  vibrateTimerAlert(type);
+  await sendTimerNotification(type, goal);
+}
+async function triggerTimerAlert(type, goal = floatingTimerGoal()) {
   if (type === "five-minutes") floatingTimer.warnedFive = true;
   if (type === "one-minute") floatingTimer.warnedOne = true;
   if (type === "completed") floatingTimer.completed = true;
-  if (type === "test") timerTestAlertUntil = Date.now() + 5000;
-  playTimerBeep(type);
-  notifyTimerAlert(type, goal);
-  if (type === "test") alert("Teste de alertas do cronômetro: aviso visual, som, vibração e notificação foram solicitados conforme suas permissões.");
+  if (type === "test") { timerTestAlertUntil = Date.now() + 8000; renderFloatingTimer(); }
+  await playTimerBeep(type);
+  await notifyTimerAlert(type, goal);
+}
+async function testTimerAlerts() {
+  timerTestAlertUntil = Date.now() + 8000;
+  timerTestAlertReport = "Alerta visual: funcionando\nSom: verificando...\nVibração: verificando...\nNotificação: verificando...";
+  renderFloatingTimer();
+  const sound = state.settings?.timerPreferences?.sound ? ((await playTimerBeep("test")) ? "reproduzido" : "bloqueado") : "desativado";
+  const vibration = vibrateTimerAlert("test");
+  const notification = await sendTimerNotification("test", floatingTimerGoal());
+  timerTestAlertReport = `Alerta visual: funcionando\nSom: ${sound}\nVibração: ${vibration}\nNotificação: ${notification}`;
+  renderFloatingTimer();
 }
 function checkFloatingTimerAlerts() {
   const goal = floatingTimerGoal();
@@ -381,8 +413,9 @@ function renderFloatingTimer() {
   checkFloatingTimerAlerts();
   const alertMessage = timerAlertMessage(goal);
   elements.timerAlert.hidden = !alertMessage;
-  elements.timerAlert.textContent = alertMessage;
-  elements.timerAlert.className = `timer-alert ${timerRemainingSeconds(goal) <= 60 || floatingTimer.completed ? "strong" : ""}`;
+  elements.timerAlert.textContent = timerTestAlertReport && timerTestAlertUntil > Date.now() ? `${alertMessage}
+${timerTestAlertReport}` : alertMessage;
+  elements.timerAlert.className = `timer-alert ${timerTestAlertUntil > Date.now() || timerRemainingSeconds(goal) <= 60 || floatingTimer.completed ? "strong" : ""}`;
   elements.timerCompletion.hidden = !floatingTimer.completed || floatingTimer.completionDismissed;
   elements.timerPauseResume.textContent = floatingTimer.paused ? "Continuar" : "Pausar";
   elements.timerSettings?.querySelectorAll("input[data-timer-pref]").forEach((input) => { input.checked = Boolean(state.settings?.timerPreferences?.[input.dataset.timerPref]); });
@@ -3372,7 +3405,7 @@ elements.floatingTimer?.addEventListener("click", (event) => {
   if (action === "reset") resetFloatingTimer();
   if (action === "close") closeFloatingTimer();
   if (action === "continue") { floatingTimer.completionDismissed = true; renderFloatingTimer(); }
-  if (action === "test-alerts") { prepareTimerAudioContext(); triggerTimerAlert("test", floatingTimerGoal()); renderFloatingTimer(); }
+  if (action === "test-alerts") testTimerAlerts();
 });
 document.addEventListener("change", async (event) => {
   const input = event.target.closest("input[data-timer-pref]");

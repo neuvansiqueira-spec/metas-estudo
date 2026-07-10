@@ -37,9 +37,9 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão da fábrica mínima', () => {
-  assert.match(html, /style\.css\?v=20260710-timer-alerts-fix1/);
-  assert.match(html, /script\.js\?v=20260710-timer-alerts-fix1/);
-  assert.match(html, /Versão: 20260710-timer-alerts-fix1/);
+  assert.match(html, /style\.css\?v=20260710-timer-alerts-fix2/);
+  assert.match(html, /script\.js\?v=20260710-timer-alerts-fix2/);
+  assert.match(html, /Versão: 20260710-timer-alerts-fix2/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -228,7 +228,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260710-timer-alerts-fix1/);
+  assert.match(sw, /metas-estudo-20260710-timer-alerts-fix2/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);
@@ -358,7 +358,7 @@ test('Fábrica conclui tema com módulos aplicáveis e inclui backup/sincroniza�
 
 
 test('alertas do cronômetro disparam uma única vez e usam flags de controle', () => {
-  assert.match(script, /function triggerTimerAlert\(type, goal = floatingTimerGoal\(\)\)/);
+  assert.match(script, /async function triggerTimerAlert\(type, goal = floatingTimerGoal\(\)\)/);
   assert.match(script, /if \(type === "five-minutes"\) floatingTimer\.warnedFive = true/);
   assert.match(script, /if \(type === "one-minute"\) floatingTimer\.warnedOne = true/);
   assert.match(script, /if \(type === "completed"\) floatingTimer\.completed = true/);
@@ -370,9 +370,42 @@ test('alertas do cronômetro disparam uma única vez e usam flags de controle', 
 test('alertas do cronômetro são resilientes e não ocorrem em modo livre sem meta', () => {
   assert.match(script, /floatingTimer\.mode !== "countdown"/);
   assert.match(script, /!planned/);
-  assert.match(script, /try \{ if \(state\.settings\?\.timerPreferences\?\.browserNotifications[\s\S]*new Notification/);
+  assert.match(script, /async function sendTimerNotification/);
+  assert.match(script, /serviceWorkerRegistration\?\.showNotification/);
+  assert.match(script, /new Notification\(timerAlertTitle\(type\), options\)/);
   assert.match(script, /catch \(error\) \{ console\.warn\("Falha na notificação do cronômetro"/);
-  assert.match(script, /try \{[\s\S]*prepareTimerAudioContext\(\)[\s\S]*\} catch \(error\) \{ console\.warn\("Falha no som do cronômetro"/);
+  assert.match(script, /const ctx = await prepareTimerAudioContext\(\)/);
+});
+
+
+test('teste de alertas do cronômetro não é bloqueante e renderiza imediatamente', () => {
+  assert.doesNotMatch(script, /if \(type === "test"\)[^;]*alert\(/);
+  assert.match(script, /timerTestAlertUntil = Date\.now\(\) \+ 8000/);
+  assert.match(script, /timerTestAlertReport = "Alerta visual: funcionando/);
+  assert.match(script, /renderFloatingTimer\(\);\n  const sound = state\.settings/);
+  assert.match(script, /timerTestAlertUntil > Date\.now\(\) \|\| timerRemainingSeconds/);
+  assert.match(script, /if \(action === "test-alerts"\) testTimerAlerts\(\)/);
+});
+
+test('áudio do cronômetro aguarda resume e reporta bloqueio', () => {
+  assert.match(script, /async function prepareTimerAudioContext\(\)/);
+  assert.match(script, /await timerAudioContext\.resume\(\)/);
+  assert.match(script, /async function playTimerBeep/);
+  assert.match(script, /ctx\.state !== "running"\) return false/);
+  assert.match(script, /Som: \$\{sound\}/);
+  assert.match(script, /\? "reproduzido" : "bloqueado"/);
+  assert.match(script, /\[740, 940, 660\]/);
+  assert.match(script, /index \* 0\.32/);
+  assert.match(script, /osc\.stop\(start \+ 0\.28\)/);
+});
+
+test('teste de notificações solicita permissão e tolera ausência da API', () => {
+  assert.match(script, /permission === "default"/);
+  assert.match(script, /await Notification\.requestPermission\(\)/);
+  assert.match(script, /permission !== "granted"\) return "não permitida"/);
+  assert.match(script, /!\("Notification" in window\)\) return "não permitida"/);
+  assert.match(script, /Notificação: \$\{notification\}/);
+  assert.match(script, /return "desativada"/);
 });
 
 test('interface do cronômetro permite testar alertas e mantém scripts publicados idênticos', () => {
