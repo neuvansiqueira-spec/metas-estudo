@@ -74,7 +74,7 @@ function normalizePlanningState(planning = {}) {
     forecasts: { ...(planning.forecasts || {}) }
   };
 }
-const defaultTimerPreferences = { visualAlerts: true, sound: false, vibration: true, browserNotifications: false };
+const defaultTimerPreferences = { visualAlerts: true, sound: false, vibration: true, browserNotifications: false, alertVolume: "medium" };
 const defaultFactoryPromptLibrary = { triagem: "", resumoAula: "", lei: "", jurisprudencia: "", peca: "", consolidacao: "" };
 const OLD_LEI_RECORTE_PROMPT = [
   "RECORTE: se houver edital/programa/recorte, trabalhe somente os artigos e temas indicados.",
@@ -300,6 +300,8 @@ function timerAlertMessage(goal = floatingTimerGoal()) {
 let timerAudioContext = null;
 let timerTestAlertUntil = 0;
 let timerTestAlertReport = "";
+let timerAlertTimeouts = [];
+let timerAlertOscillators = [];
 async function prepareTimerAudioContext() {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -312,22 +314,42 @@ async function prepareTimerAudioContext() {
     return null;
   }
 }
+function timerAlertVolumeGain() {
+  return ({ low: 0.65, medium: 1, high: 1.3 }[state.settings?.timerPreferences?.alertVolume]) || 1;
+}
+function timerAlertSoundPattern(type = "completed") {
+  const volume = timerAlertVolumeGain();
+  if (type === "five-minutes") return { sequences: 1, sequenceGap: 0, gain: 0.09 * volume, tones: [{ frequency: 520, offset: 0, duration: 0.18 }, { frequency: 620, offset: 0.22, duration: 0.18 }] };
+  if (type === "one-minute") return { sequences: 1, sequenceGap: 0, gain: 0.14 * volume, tones: [{ frequency: 700, offset: 0, duration: 0.22 }, { frequency: 920, offset: 0.28, duration: 0.22 }, { frequency: 700, offset: 0.56, duration: 0.22 }] };
+  return { sequences: 3, sequenceGap: 1.55, gain: 0.22 * volume, tones: [{ frequency: 880, offset: 0, duration: 0.34 }, { frequency: 1175, offset: 0.42, duration: 0.34 }, { frequency: 988, offset: 0.84, duration: 0.42 }] };
+}
+function silenceTimerAlert() {
+  timerAlertTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
+  timerAlertTimeouts = [];
+  timerAlertOscillators.forEach((osc) => { try { osc.stop(); } catch (error) {} });
+  timerAlertOscillators = [];
+}
 async function playTimerBeep(type = "completed") {
   if (!state.settings?.timerPreferences?.sound) return false;
   try {
+    silenceTimerAlert();
     const ctx = await prepareTimerAudioContext();
     if (!ctx || ctx.state !== "running") return false;
-    const tones = type === "five-minutes" ? [660, 740, 660] : type === "one-minute" ? [880, 740, 880] : [740, 940, 660];
-    tones.forEach((frequency, index) => {
-      const start = ctx.currentTime + index * 0.32;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine"; osc.frequency.value = frequency;
-      gain.gain.setValueAtTime(0.001, start);
-      gain.gain.exponentialRampToValueAtTime(0.16, start + 0.03);
-      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.26);
-      osc.connect(gain); gain.connect(ctx.destination); osc.start(start); osc.stop(start + 0.28);
-    });
+    const pattern = timerAlertSoundPattern(type === "test" ? "completed" : type);
+    for (let sequence = 0; sequence < pattern.sequences; sequence += 1) {
+      pattern.tones.forEach(({ frequency, offset, duration }) => {
+        const start = ctx.currentTime + (sequence * pattern.sequenceGap) + offset;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "square"; osc.frequency.value = frequency;
+        gain.gain.setValueAtTime(0.001, start);
+        gain.gain.exponentialRampToValueAtTime(Math.min(0.32, pattern.gain), start + 0.035);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+        osc.connect(gain); gain.connect(ctx.destination); osc.start(start); osc.stop(start + duration + 0.04);
+        timerAlertOscillators.push(osc);
+        timerAlertTimeouts.push(setTimeout(() => { timerAlertOscillators = timerAlertOscillators.filter((item) => item !== osc); }, Math.max(0, (start - ctx.currentTime + duration + 0.1) * 1000)));
+      });
+    }
     return true;
   } catch (error) { console.warn("Falha no som do cronômetro", error); return false; }
 }
@@ -424,6 +446,7 @@ ${timerTestAlertReport}` : alertMessage;
   elements.timerCompletion.hidden = !floatingTimer.completed || floatingTimer.completionDismissed;
   elements.timerPauseResume.textContent = floatingTimer.paused ? "Continuar" : "Pausar";
   elements.timerSettings?.querySelectorAll("input[data-timer-pref]").forEach((input) => { input.checked = Boolean(state.settings?.timerPreferences?.[input.dataset.timerPref]); });
+  elements.timerSettings?.querySelectorAll("select[data-timer-pref]").forEach((select) => { select.value = state.settings?.timerPreferences?.[select.dataset.timerPref] || "medium"; });
 }
 function persistFloatingTimerSession() {
   if (!floatingTimer.goalId) { state.timerSession = null; saveData(); return; }
@@ -3411,15 +3434,16 @@ elements.floatingTimer?.addEventListener("click", (event) => {
   if (action === "close") closeFloatingTimer();
   if (action === "continue") { floatingTimer.completionDismissed = true; renderFloatingTimer(); }
   if (action === "test-alerts") testTimerAlerts();
+  if (action === "silence-alert") silenceTimerAlert();
 });
 document.addEventListener("change", async (event) => {
-  const input = event.target.closest("input[data-timer-pref]");
+  const input = event.target.closest("input[data-timer-pref], select[data-timer-pref]");
   if (!input) return;
   state.settings ||= {}; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences);
   const key = input.dataset.timerPref;
   if (key === "sound" && input.checked) prepareTimerAudioContext();
   if (key === "browserNotifications" && input.checked) await enableTimerNotifications(input);
-  else state.settings.timerPreferences[key] = input.checked;
+  else state.settings.timerPreferences[key] = input.type === "checkbox" ? input.checked : input.value;
   saveTimerPreferences();
 });
 elements.addManualTime?.addEventListener("click", addManualTime);
