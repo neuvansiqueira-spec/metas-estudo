@@ -306,3 +306,34 @@ test('auto-sync do cronômetro mantém pendência quando autorização Google ex
   assert.match(script, /Alterações pendentes enviadas para a nuvem\./);
   assert.match(script, /pendingSync: false, pendingSyncReason: "", lastAutoSyncAt: new Date\(\)\.toISOString\(\), lastAutoSyncReason: meta\.pendingSyncReason/);
 });
+
+test('Fábrica integra automaticamente o edital ativo sem duplicidades e preservando dados', () => {
+  assert.match(script, /function factoryActiveEditalGroups/);
+  assert.match(script, /factoryEditalGroupKey\(discipline, subject\)/);
+  assert.match(script, /byKey\.set\(item\.editalLink\.groupKey, item\)/);
+  assert.match(script, /const existing = byKey\.get\(group\.key\)/);
+  assert.match(script, /agenda\.push\(normalizeFactoryItem/);
+  assert.match(script, /editalSubtemas: group\.subtopics/);
+  assert.match(script, /Subtemas do edital:/);
+  assert.match(script, /editalActive = false/);
+  assert.match(script, /Fora do edital ativo/);
+  assert.match(script, /A PRODUZIR/);
+  assert.match(script, /EM PRODUÇÃO/);
+  assert.match(script, /CONCLUÍDOS/);
+  assert.match(script, /data-factory-reopen/);
+  assert.match(script, /function reopenFactoryTheme/);
+  assert.doesNotMatch(script.slice(script.indexOf('function syncFactoryWithActiveEdital'), script.indexOf('function reopenFactoryTheme')), /deleteFactoryItem|filter\(\(item\) => item\.id !==/);
+});
+
+test('Fábrica conclui tema com módulos aplicáveis e inclui backup/sincronização', () => {
+  assert.match(script, /"Não se aplica"/);
+  assert.match(script, /function factoryApplicableCompletionStatus/);
+  assert.match(script, /\["Aprovado", "PDF gerado", "Não se aplica"\]/);
+  assert.match(script, /function factoryThemeIsCompleted/);
+  assert.match(script, /state: cloneData\(state\)/);
+  assert.match(script, /data: cloneData\(state\)/);
+  assert.match(script, /mergeArrays\(state\.factoryAgenda, data\.factoryAgenda \|\| data\.factoryItems/);
+  assert.match(script, /state\.factoryItems = state\.factoryAgenda/);
+  assert.match(script, /factoryPromptLibrary/);
+  assert.match(script, /factoryAgenda/);
+});
