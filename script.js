@@ -1909,7 +1909,7 @@ function renderFactory() {
     } else if (factoryCurrentFilter === "concluidos") {
       buckets = [["CONCLUÍDOS", activeAgenda.filter((item) => factoryThemeIsCompleted(normalizeFactoryModules(item.modules || {})))]];
     } else {
-      buckets = [["TODOS OS PENDENTES", activeAgenda.filter((item) => !factoryThemeIsCompleted(normalizeFactoryModules(item.modules || {}))))]];
+      buckets = [["TODOS OS PENDENTES", activeAgenda.filter((item) => !factoryThemeIsCompleted(normalizeFactoryModules(item.modules || {})))]];
     }
     const cardFor = (entry)=>{
       const item = entry.item || entry;
