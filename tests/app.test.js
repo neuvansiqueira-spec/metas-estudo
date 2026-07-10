@@ -4,6 +4,18 @@ const fs = require('node:fs');
 
 const html = fs.readFileSync('index.html', 'utf8');
 const script = fs.readFileSync('script.js', 'utf8');
+const docsScript = fs.readFileSync('docs/script.js', 'utf8');
+const forbiddenLeiRecorteText = ['Se não houver', 'trabalhe a lei amplamente'].join(', ');
+const requiredLeiRecorteText = 'RECORTE: trabalhe somente os artigos e temas expressamente indicados. Se o recorte não estiver cadastrado ou estiver impreciso, interrompa a geração e solicite confirmação. Somente trabalhe a lei integralmente quando houver autorização expressa do usuário.';
+
+function projectFiles(dir = '.') {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = dir === '.' ? entry.name : `${dir}/${entry.name}`;
+    if (entry.name === '.git' || entry.name === 'node_modules') return [];
+    if (entry.isDirectory()) return projectFiles(path);
+    return [path];
+  });
+}
 
 
 test('Aplicar incidências lê textarea, atualiza somente edital existente e renderiza relatório', () => {
@@ -87,6 +99,10 @@ test('Plano do Dia separa tempo de estudo e questões sem concluir automaticamen
 });
 
 test('Prompt completo do módulo Lei exige recorte expresso e não autoriza lei ampla sem confirmação', () => {
-  assert.match(script, /RECORTE: trabalhe somente os artigos e temas expressamente indicados\. Se o recorte não estiver cadastrado ou estiver impreciso, interrompa a geração e solicite confirmação\. Somente trabalhe a lei integralmente quando houver autorização expressa do usuário\./);
-  assert.doesNotMatch(script, new RegExp(["Se não houver", "trabalhe a lei amplamente"].join(", ")));
+  assert.match(script, new RegExp(requiredLeiRecorteText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(docsScript, new RegExp(requiredLeiRecorteText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  const filesWithForbiddenText = projectFiles()
+    .filter((path) => fs.statSync(path).isFile())
+    .filter((path) => fs.readFileSync(path, 'utf8').includes(forbiddenLeiRecorteText));
+  assert.deepEqual(filesWithForbiddenText, []);
 });
