@@ -38,9 +38,9 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão da fábrica mínima', () => {
-  assert.match(html, /style\.css\?v=20260710-timer-alert-volume-v2/);
-  assert.match(html, /script\.js\?v=20260710-timer-alert-volume-v2/);
-  assert.match(html, /Versão: 20260710-timer-alert-volume-v2/);
+  assert.match(html, /style\.css\?v=20260710-cloud-sync-loop-fix1/);
+  assert.match(html, /script\.js\?v=20260710-cloud-sync-loop-fix1/);
+  assert.match(html, /Versão: 20260710-cloud-sync-loop-fix1/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -229,7 +229,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260710-timer-alert-volume-v2/);
+  assert.match(sw, /metas-estudo-20260710-cloud-sync-loop-fix1/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);
@@ -471,4 +471,26 @@ test('interface do cronômetro permite testar alertas e mantém scripts publicad
   assert.equal(script, docsScript);
   assert.match(html, /data-timer-action="test-alerts"/);
   assert.match(html, /id="timerAlert" class="timer-alert" aria-live="assertive"/);
+});
+
+test('sincronização da nuvem trata aplicação transacional e erros específicos', () => {
+  assert.match(script, /Existem dados mais recentes no Google Drive\./);
+  assert.doesNotMatch(script, /Não foi possível verificar versão nova na nuvem/);
+  assert.match(script, /function validateCloudPayload/);
+  assert.match(script, /Arquivo remoto inválido\. Os dados locais foram preservados\./);
+  assert.match(script, /function writeCloudStateTransaction/);
+  assert.match(script, /const tempKey = `\$\{STORAGE_KEY\}__cloud_tmp`/);
+  assert.match(script, /localStorage\.setItem\(tempKey, mainValue\)/);
+  assert.doesNotMatch(script.slice(script.indexOf('function applyCloudPayload'), script.indexOf('async function syncNow')), /clearProjectLocalStorage\(\)/);
+  assert.match(script, /Falta de espaço no navegador\. Libere espaço, exporte um backup e tente novamente\./);
+  assert.match(script, /Erro ao aplicar os dados da nuvem\. Os dados locais foram preservados\./);
+  assert.match(script, /Erro ao consultar a nuvem\. Verifique a conexão e tente novamente\./);
+  assert.match(script, /Erro ao baixar o arquivo do Google Drive\. Tente novamente\./);
+  assert.match(script, /Erro ao criar backup de segurança|backup: "Erro ao criar backup de segurança/);
+  assert.match(script, /errorDetails/);
+  assert.match(script, /Ver detalhes do erro/);
+  assert.match(script, /suppressAutoCheckUntil = Date\.now\(\) \+ 60000/);
+  assert.match(script, /lastCloudDialogAt/);
+  assert.match(script, /localDataUpdatedAt: cloudDataUpdatedAt/);
+  assert.match(script, /cloudDataUpdatedAt, remoteDeviceName: payload\.deviceName/);
 });
