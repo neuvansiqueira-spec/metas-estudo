@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-20260710-factory-operational-fix1";
+const CACHE_NAME = "metas-estudo-20260710-pages-deploy-fix1";
 const FILES_TO_CACHE = [
   "./",
   "index.html",

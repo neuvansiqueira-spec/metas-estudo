@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - work
   workflow_dispatch:
 
 permissions:
@@ -27,10 +26,10 @@ jobs:
         uses: actions/checkout@v4
       - name: Configure Pages
         uses: actions/configure-pages@v5
-      - name: Upload site from repository root
+      - name: Upload site from docs
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: docs
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
