@@ -37,10 +37,10 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
   }
 });
 
-test('arquivos carregados usam a versão da fábrica mínima', () => {
-  assert.match(html, /style\.css\?v=20260710-cloud-sync-quota-fix2/);
-  assert.match(html, /script\.js\?v=20260710-cloud-sync-quota-fix2/);
-  assert.match(html, /Versão: 20260710-cloud-sync-quota-fix2/);
+test('arquivos carregados usam a versão atual', () => {
+  assert.match(html, /style\.css\?v=20260711-timer-motivational-progress/);
+  assert.match(html, /script\.js\?v=20260711-timer-motivational-progress/);
+  assert.match(html, /Versão: 20260711-timer-motivational-progress/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -229,7 +229,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260710-cloud-sync-quota-fix2/);
+  assert.match(sw, /metas-estudo-20260711-timer-motivational-progress/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);
@@ -494,4 +494,38 @@ test('sincronização da nuvem trata aplicação transacional e erros específic
   assert.match(script, /lastCloudDialogAt/);
   assert.match(script, /localDataUpdatedAt: cloudDataUpdatedAt/);
   assert.match(script, /cloudDataUpdatedAt, remoteDeviceName: payload\.deviceName/);
+});
+
+test('mensagens motivacionais do cronômetro regressivo cobrem marcos e estado da sessão', () => {
+  assert.match(script, /const TIMER_MOTIVATIONAL_MESSAGES = \{/);
+  for (const milestone of [10, 25, 40, 50, 65, 75, 90, 100]) {
+    assert.match(script, new RegExp(`${milestone}: \\[`), `${milestone}% deve ter banco de frases`);
+  }
+  assert.match(script, /displayedMotivationalMilestones: \[\]/);
+  assert.match(script, /floatingTimer\.displayedMotivationalMilestones = \[\]/);
+  assert.match(script, /mode: selectedMode/);
+  assert.match(script, /checkTimerMotivationalProgress\(goal\)/);
+});
+
+test('mensagens motivacionais disparam só o maior marco pendente e ignoram modo livre', () => {
+  assert.match(script, /floatingTimer\.mode !== "countdown"/);
+  assert.match(script, /const progress = \(\(planned - timerRemainingSeconds\(goal\)\) \/ planned\) \* 100/);
+  assert.match(script, /TIMER_MOTIVATIONAL_MILESTONES\.filter\(\(item\) => progress >= item && !shown\.includes\(item\)\)\.pop\(\)/);
+  assert.match(script, /floatingTimer\.displayedMotivationalMilestones = \[\.\.\.shown, milestone\]/);
+});
+
+test('toast motivacional é único, some automaticamente e é acessível', () => {
+  assert.match(html, /id="timerMotivationalToast" class="timer-motivational-toast" aria-live="polite" aria-atomic="true" hidden/);
+  assert.match(script, /clearTimeout\(timerMotivationalToastTimeout\)/);
+  assert.match(script, /TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 5000/);
+  assert.match(script, /elements\.timerMotivationalToast\.hidden = true/);
+  assert.match(css, /\.timer-motivational-toast[\s\S]*pointer-events:\s*none/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
+});
+
+test('banco motivacional varia frases e tolera banco vazio', () => {
+  assert.match(script, /const available = messages\.filter\(\(phrase\) => !used\.includes\(phrase\)\)/);
+  assert.match(script, /const pool = available\.length \? available : messages/);
+  assert.match(script, /if \(!messages\.length\) return ""/);
+  assert.match(script, /localStorage\.setItem\(TIMER_MOTIVATIONAL_HISTORY_KEY/);
 });

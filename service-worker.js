@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-20260710-cloud-sync-quota-fix2";
+const CACHE_NAME = "metas-estudo-20260711-timer-motivational-progress";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
