@@ -83,6 +83,15 @@ const OLD_LEI_RECORTE_PROMPT = [
 ].join(" ");
 const NEW_LEI_RECORTE_PROMPT = "RECORTE: trabalhe somente os artigos e temas expressamente indicados. Se o recorte não estiver cadastrado ou estiver impreciso, interrompa a geração e solicite confirmação. Somente trabalhe a lei integralmente quando houver autorização expressa do usuário.";
 const FACTORY_LIBRARY_FALLBACK = "[PROMPT COMPLETO AINDA NÃO CADASTRADO NA BIBLIOTECA DA FÁBRICA]";
+const FACTORY_DOCX_EMOJI_FONT_INSTRUCTIONS = `## FONTES E EMOJIS NO WORD
+
+- Usar a fonte prevista pelo módulo para o texto comum, normalmente Arial 11.
+- Não aplicar Arial aos emojis.
+- Manter emojis em trechos separados do texto comum.
+- Aplicar Segoe UI Emoji aos trechos que contenham emojis.
+- Preservar negrito, tamanho, recuo, espaçamento e alinhamento.
+- Preservar os seletores Unicode necessários à apresentação colorida dos emojis.
+- Aplicar a regra ao documento inteiro, inclusive títulos, subtítulos e rodapé.`;
 const defaultState = { subjects: [], studies: [], edital: { pdf: null }, syllabusItems: [], schedulableSettings: {}, dailyGoals: [], questionLogs: [], smartReviews: [], simulados: [], planning: cloneData(defaultPlanning), settings: { defaultMockGoal: 92, timerPreferences: cloneData(defaultTimerPreferences) }, materials: [], questionBank: [], questionBankSessions: [], questionErrorNotebook: [], disciplineWeights: {}, monthlyGoals: {}, timerSession: null, factoryItems: [], factoryAgenda: [], factoryPromptLibrary: cloneData(defaultFactoryPromptLibrary) };
 function readJSONStorage(key, fallback) {
   try {
@@ -1711,7 +1720,8 @@ function factoryRouterText(type, item = {}) {
 function factoryPromptText(type, item = {}, mode = "full") {
   const router = factoryRouterText(type, item);
   if (mode === "router") return router;
-  return `${router}\n\n==============================\nPROMPT COMPLETO DO PROJETO — ${FACTORY_PROMPT_TYPES.find((p) => p.key === type)?.label?.replace("Gerar prompt ", "").toUpperCase() || type.toUpperCase()}\n==============================\n\n${factoryPromptBase(type)}`;
+  const docxEmojiFontInstructions = ["resumoAula", "lei", "jurisprudencia", "peca", "consolidacao"].includes(type) ? `\n\n${FACTORY_DOCX_EMOJI_FONT_INSTRUCTIONS}` : "";
+  return `${router}${docxEmojiFontInstructions}\n\n==============================\nPROMPT COMPLETO DO PROJETO — ${FACTORY_PROMPT_TYPES.find((p) => p.key === type)?.label?.replace("Gerar prompt ", "").toUpperCase() || type.toUpperCase()}\n==============================\n\n${factoryPromptBase(type)}`;
 }
 function renderFactoryPromptLibrary() {
   const panel = elements.factoryPromptLibraryPanel;
