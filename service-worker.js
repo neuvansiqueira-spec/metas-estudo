@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-20260711-resumo-aula-remover-duplicacao-v3";
+const CACHE_NAME = "metas-estudo-20260711-resumo-aula-estrutura-didatica-v4";
 const FILES_TO_CACHE = [
   "./",
   "index.html",

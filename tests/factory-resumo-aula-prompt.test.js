@@ -41,11 +41,13 @@ function migrationHarness() {
   const leiFn = extractFunction(script, 'migrateFactoryPromptLibraryLeiRecorte');
   const resumoFn = extractFunction(script, 'migrateStateFactoryPromptLibraryResumoAulaDidatica');
   const dedupeFn = extractFunction(script, 'migrateStateFactoryPromptLibraryResumoAulaRemoverDuplicacao');
+  const estruturaV4Fn = extractFunction(script, 'migrateStateFactoryPromptLibraryResumoAulaEstruturaDidaticaV4');
   return new Function(`
     const FACTORY_RESUMO_AULA_PROMPT_SEGMENT = ${JSON.stringify(segment)};
     const FACTORY_RESUMO_AULA_PROMPT = FACTORY_RESUMO_AULA_PROMPT_SEGMENT;
     const FACTORY_RESUMO_AULA_MIGRATION_ID = "resumoAulaDidaticaProfundidadeV2";
     const FACTORY_RESUMO_AULA_DUPLICATION_MIGRATION_ID = "resumoAulaRemoverDuplicacaoV3";
+    const FACTORY_RESUMO_AULA_ESTRUTURA_DIDATICA_MIGRATION_ID = "resumoAulaEstruturaDidaticaV4";
     const OLD_LEI_RECORTE_PROMPT = [
       "RECORTE: se houver edital/programa/recorte, trabalhe somente os artigos e temas indicados.",
       "Se não houver, trabalhe a lei",
@@ -57,7 +59,8 @@ function migrationHarness() {
     ${leiFn}
     ${resumoFn}
     ${dedupeFn}
-    return { migrateStateFactoryPromptLibraryResumoAulaDidatica, migrateStateFactoryPromptLibraryResumoAulaRemoverDuplicacao, FACTORY_RESUMO_AULA_PROMPT, FACTORY_RESUMO_AULA_PROMPT_SEGMENT, FACTORY_RESUMO_AULA_MIGRATION_ID, FACTORY_RESUMO_AULA_DUPLICATION_MIGRATION_ID };
+    ${estruturaV4Fn}
+    return { migrateStateFactoryPromptLibraryResumoAulaDidatica, migrateStateFactoryPromptLibraryResumoAulaRemoverDuplicacao, migrateStateFactoryPromptLibraryResumoAulaEstruturaDidaticaV4, FACTORY_RESUMO_AULA_PROMPT, FACTORY_RESUMO_AULA_PROMPT_SEGMENT, FACTORY_RESUMO_AULA_MIGRATION_ID, FACTORY_RESUMO_AULA_DUPLICATION_MIGRATION_ID, FACTORY_RESUMO_AULA_ESTRUTURA_DIDATICA_MIGRATION_ID };
   `)();
 }
 
@@ -81,6 +84,12 @@ test('prompt RESUMO/AULA contém os blocos e controles obrigatórios', () => {
     '## PADRÃO OBRIGATÓRIO DE PROFUNDIDADE DIDÁTICA',
     '## ORDEM DIDÁTICA DE DESENVOLVIMENTO',
     '## CONTROLE DE DENSIDADE E AGRUPAMENTO',
+    '## CONTROLE OBJETIVO DE TÍTULOS, SUBTÓPICOS E LINHAS',
+    '## PROIBIÇÃO DE METALINGUAGEM SOBRE AS FONTES',
+    'PREFIRA LINHAS COM ATÉ 22 PALAVRAS.',
+    'USE NUMERAÇÃO INTEIRA COMO FORMA PREFERENCIAL DOS TÍTULOS ♦️.',
+    'A PROFUNDIDADE DEVE OCORRER DENTRO DOS BLOCOS, E NÃO PELA MULTIPLICAÇÃO DE TÍTULOS ♦️.',
+    'CONVERTA O CONTEÚDO SEGURO EM REGRA JURÍDICA DIRETA E AUTOSSUFICIENTE.',
     '## MODELO DE REFERÊNCIA',
     '## REVISÃO INTERNA EM DUAS PASSAGENS',
     '## CONTROLE FINAL DE FIDELIDADE, AMBIGUIDADE E COBERTURA',
@@ -155,6 +164,51 @@ test('migração de remoção de duplicação RESUMO/AULA é idempotente e inici
   const snapshot = JSON.stringify(emptyState);
   assert.equal(migrateStateFactoryPromptLibraryResumoAulaRemoverDuplicacao(emptyState), false);
   assert.equal(JSON.stringify(emptyState), snapshot);
+});
+
+
+test('migração V4 RESUMO/AULA substitui somente resumoAula, preserva demais prompts e dados, e é idempotente', () => {
+  const { migrateStateFactoryPromptLibraryResumoAulaEstruturaDidaticaV4, FACTORY_RESUMO_AULA_PROMPT, FACTORY_RESUMO_AULA_ESTRUTURA_DIDATICA_MIGRATION_ID } = migrationHarness();
+  const state = {
+    migrations: { outra: 'ok' },
+    factoryPromptLibrary: {
+      triagem: 'triagem atual',
+      resumoAula: 'prompt antigo',
+      lei: 'lei atual',
+      jurisprudencia: 'juris atual',
+      peca: 'peça atual',
+      consolidacao: 'consolidação atual'
+    },
+    subjects: [{ name: 'Direito Penal' }],
+    settings: { tema: 'escuro' },
+    materials: [{ id: 'm1' }]
+  };
+  const beforeOther = JSON.stringify({
+    triagem: state.factoryPromptLibrary.triagem,
+    lei: state.factoryPromptLibrary.lei,
+    jurisprudencia: state.factoryPromptLibrary.jurisprudencia,
+    peca: state.factoryPromptLibrary.peca,
+    consolidacao: state.factoryPromptLibrary.consolidacao,
+    subjects: state.subjects,
+    settings: state.settings,
+    materials: state.materials
+  });
+  assert.equal(migrateStateFactoryPromptLibraryResumoAulaEstruturaDidaticaV4(state), true);
+  assert.equal(state.factoryPromptLibrary.resumoAula, FACTORY_RESUMO_AULA_PROMPT);
+  assert.ok(state.migrations[FACTORY_RESUMO_AULA_ESTRUTURA_DIDATICA_MIGRATION_ID]);
+  assert.equal(JSON.stringify({
+    triagem: state.factoryPromptLibrary.triagem,
+    lei: state.factoryPromptLibrary.lei,
+    jurisprudencia: state.factoryPromptLibrary.jurisprudencia,
+    peca: state.factoryPromptLibrary.peca,
+    consolidacao: state.factoryPromptLibrary.consolidacao,
+    subjects: state.subjects,
+    settings: state.settings,
+    materials: state.materials
+  }), beforeOther);
+  const snapshot = JSON.stringify(state);
+  assert.equal(migrateStateFactoryPromptLibraryResumoAulaEstruturaDidaticaV4(state), false);
+  assert.equal(JSON.stringify(state), snapshot);
 });
 
 test('script publicado, docs e cache carregam a nova versão sem divergência', () => {
