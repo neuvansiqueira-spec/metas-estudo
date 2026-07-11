@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260711-timer-motivational-progress",
+  "version": "20260711-free-timer-goal-motivation",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
