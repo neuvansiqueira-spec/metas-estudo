@@ -353,12 +353,40 @@ function showTimerMotivationalToast(milestone, phrase = chooseTimerMotivationalM
 }
 function checkTimerMotivationalProgress(goal = floatingTimerGoal()) {
   const planned = timerPlannedSeconds(goal);
-  if (!goal || floatingTimer.mode !== "countdown" || !planned) return;
-  const progress = ((planned - timerRemainingSeconds(goal)) / planned) * 100;
-  const shown = Array.isArray(floatingTimer.displayedMotivationalMilestones) ? floatingTimer.displayedMotivationalMilestones : [];
-  const milestone = TIMER_MOTIVATIONAL_MILESTONES.filter((item) => progress >= item && !shown.includes(item)).pop();
+  const supportedMode =
+    floatingTimer.mode === "countdown" ||
+    floatingTimer.mode === "free";
+
+  if (!goal || !supportedMode || !planned) return;
+
+  const progress = Math.min(
+    100,
+    (currentTimerSeconds() / planned) * 100
+  );
+
+  const shown = Array.isArray(
+    floatingTimer.displayedMotivationalMilestones
+  )
+    ? floatingTimer.displayedMotivationalMilestones
+    : [];
+
+  const reachedMilestones = TIMER_MOTIVATIONAL_MILESTONES.filter(
+    (milestone) => progress >= milestone
+  );
+
+  const pendingMilestones = reachedMilestones.filter(
+    (milestone) => !shown.includes(milestone)
+  );
+
+  const milestone =
+    pendingMilestones[pendingMilestones.length - 1];
+
   if (!milestone) return;
-  floatingTimer.displayedMotivationalMilestones = [...shown, milestone];
+
+  floatingTimer.displayedMotivationalMilestones = [
+    ...new Set([...shown, ...reachedMilestones])
+  ];
+
   showTimerMotivationalToast(milestone);
   persistFloatingTimerSession();
 }

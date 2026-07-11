@@ -38,9 +38,9 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão atual', () => {
-  assert.match(html, /style\.css\?v=20260711-timer-motivational-progress/);
-  assert.match(html, /script\.js\?v=20260711-timer-motivational-progress/);
-  assert.match(html, /Versão: 20260711-timer-motivational-progress/);
+  assert.match(html, /style\.css\?v=20260711-free-timer-goal-motivation/);
+  assert.match(html, /script\.js\?v=20260711-free-timer-goal-motivation/);
+  assert.match(html, /Versão: 20260711-free-timer-goal-motivation/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -229,7 +229,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260711-timer-motivational-progress/);
+  assert.match(sw, /metas-estudo-20260711-free-timer-goal-motivation/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);
@@ -507,11 +507,15 @@ test('mensagens motivacionais do cronômetro regressivo cobrem marcos e estado d
   assert.match(script, /checkTimerMotivationalProgress\(goal\)/);
 });
 
-test('mensagens motivacionais disparam só o maior marco pendente e ignoram modo livre', () => {
-  assert.match(script, /floatingTimer\.mode !== "countdown"/);
-  assert.match(script, /const progress = \(\(planned - timerRemainingSeconds\(goal\)\) \/ planned\) \* 100/);
-  assert.match(script, /TIMER_MOTIVATIONAL_MILESTONES\.filter\(\(item\) => progress >= item && !shown\.includes\(item\)\)\.pop\(\)/);
-  assert.match(script, /floatingTimer\.displayedMotivationalMilestones = \[\.\.\.shown, milestone\]/);
+test('mensagens motivacionais disparam no regressivo e livre com meta, mantendo só o maior marco pendente', () => {
+  assert.match(script, /floatingTimer\.mode === "countdown"/);
+  assert.match(script, /floatingTimer\.mode === "free"/);
+  assert.match(script, /if \(!goal \|\| !supportedMode \|\| !planned\) return/);
+  assert.match(script, /\(currentTimerSeconds\(\) \/ planned\) \* 100/);
+  assert.match(script, /const reachedMilestones = TIMER_MOTIVATIONAL_MILESTONES\.filter/);
+  assert.match(script, /const pendingMilestones = reachedMilestones\.filter/);
+  assert.match(script, /pendingMilestones\[pendingMilestones\.length - 1\]/);
+  assert.match(script, /\.\.\.new Set\(\[\.\.\.shown, \.\.\.reachedMilestones\]\)/);
 });
 
 test('toast motivacional é único, some automaticamente e é acessível', () => {
