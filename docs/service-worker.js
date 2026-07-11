@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-20260711-free-timer-goal-motivation";
+const CACHE_NAME = "metas-estudo-20260711-resumo-aula-didatica-v2";
 const FILES_TO_CACHE = [
   "./",
   "index.html",

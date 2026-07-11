@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260711-free-timer-goal-motivation",
+  "version": "20260711-resumo-aula-didatica-v2",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
