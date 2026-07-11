@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260711-resumo-aula-didatica-v2",
+  "version": "20260711-resumo-aula-remover-duplicacao-v3",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
