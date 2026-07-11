@@ -17,19 +17,35 @@ function extractStringConst(source, name) {
   return JSON.parse(literal);
 }
 
+function extractFunction(source, name) {
+  const start = source.indexOf(`\nfunction ${name}`) + 1;
+  assert.notEqual(start, 0, `função ${name} não encontrada`);
+  const signatureEnd = source.indexOf(') {', start);
+  const bodyStart = source.indexOf('{', signatureEnd);
+  let depth = 0;
+  for (let index = bodyStart; index < source.length; index += 1) {
+    if (source[index] === '{') depth += 1;
+    if (source[index] === '}') depth -= 1;
+    if (depth === 0) return source.slice(start, index + 1);
+  }
+  throw new Error(`fim da função ${name} não encontrado`);
+}
+
 function officialPrompt(source = script) {
   const segment = extractStringConst(source, 'FACTORY_RESUMO_AULA_PROMPT_SEGMENT');
-  return `${segment}${segment}`;
+  return segment;
 }
 
 function migrationHarness() {
   const segment = extractStringConst(script, 'FACTORY_RESUMO_AULA_PROMPT_SEGMENT');
-  const leiFn = script.match(/function migrateFactoryPromptLibraryLeiRecorte\(library = \{\}\) \{[\s\S]*?\n\}/)[0];
-  const resumoFn = script.match(/function migrateStateFactoryPromptLibraryResumoAulaDidatica\(targetState = state\) \{[\s\S]*?\n\}/)[0];
+  const leiFn = extractFunction(script, 'migrateFactoryPromptLibraryLeiRecorte');
+  const resumoFn = extractFunction(script, 'migrateStateFactoryPromptLibraryResumoAulaDidatica');
+  const dedupeFn = extractFunction(script, 'migrateStateFactoryPromptLibraryResumoAulaRemoverDuplicacao');
   return new Function(`
     const FACTORY_RESUMO_AULA_PROMPT_SEGMENT = ${JSON.stringify(segment)};
-    const FACTORY_RESUMO_AULA_PROMPT = FACTORY_RESUMO_AULA_PROMPT_SEGMENT + FACTORY_RESUMO_AULA_PROMPT_SEGMENT;
+    const FACTORY_RESUMO_AULA_PROMPT = FACTORY_RESUMO_AULA_PROMPT_SEGMENT;
     const FACTORY_RESUMO_AULA_MIGRATION_ID = "resumoAulaDidaticaProfundidadeV2";
+    const FACTORY_RESUMO_AULA_DUPLICATION_MIGRATION_ID = "resumoAulaRemoverDuplicacaoV3";
     const OLD_LEI_RECORTE_PROMPT = [
       "RECORTE: se houver edital/programa/recorte, trabalhe somente os artigos e temas indicados.",
       "Se não houver, trabalhe a lei",
@@ -40,19 +56,22 @@ function migrationHarness() {
     const defaultFactoryPromptLibrary = { triagem: "", resumoAula: FACTORY_RESUMO_AULA_PROMPT, lei: "", jurisprudencia: "", peca: "", consolidacao: "" };
     ${leiFn}
     ${resumoFn}
-    return { migrateStateFactoryPromptLibraryResumoAulaDidatica, FACTORY_RESUMO_AULA_PROMPT, FACTORY_RESUMO_AULA_MIGRATION_ID };
+    ${dedupeFn}
+    return { migrateStateFactoryPromptLibraryResumoAulaDidatica, migrateStateFactoryPromptLibraryResumoAulaRemoverDuplicacao, FACTORY_RESUMO_AULA_PROMPT, FACTORY_RESUMO_AULA_PROMPT_SEGMENT, FACTORY_RESUMO_AULA_MIGRATION_ID, FACTORY_RESUMO_AULA_DUPLICATION_MIGRATION_ID };
   `)();
 }
 
-test('constante oficial RESUMO/AULA contém integralmente o prompt fornecido', () => {
+test('constante oficial RESUMO/AULA contém somente uma cópia do segmento', () => {
   const segment = extractStringConst(script, 'FACTORY_RESUMO_AULA_PROMPT_SEGMENT');
   const prompt = officialPrompt();
-  assert.equal(prompt, `${segment}${segment}`);
+  assert.equal(prompt, segment);
   assert.equal(officialPrompt(docsScript), prompt);
+  assert.match(script, /const FACTORY_RESUMO_AULA_PROMPT = FACTORY_RESUMO_AULA_PROMPT_SEGMENT;/);
+  assert.match(docsScript, /const FACTORY_RESUMO_AULA_PROMPT = FACTORY_RESUMO_AULA_PROMPT_SEGMENT;/);
   assert.match(script, /resumoAula: FACTORY_RESUMO_AULA_PROMPT/);
   assert.match(docsScript, /resumoAula: FACTORY_RESUMO_AULA_PROMPT/);
   assert.ok(prompt.startsWith('TRANSFORME AS FONTES CLASSIFICADAS COMO RESUMO/AULA'));
-  assert.ok(prompt.includes('SALVO PEDIDO EXPRESSO.TRANSFORME AS FONTES CLASSIFICADAS COMO RESUMO/AULA'));
+  assert.equal((prompt.match(/TRANSFORME AS FONTES CLASSIFICADAS COMO RESUMO\/AULA/g) || []).length, 1);
   assert.ok(prompt.endsWith('NÃO ENTREGUE APENAS O CONTEÚDO NO CHAT, SALVO PEDIDO EXPRESSO.'));
 });
 
@@ -74,13 +93,28 @@ test('prompt RESUMO/AULA contém os blocos e controles obrigatórios', () => {
   ].forEach((required) => assert.ok(prompt.includes(required), `faltou: ${required}`));
 });
 
+
+
+test('comando RESUMO/AULA e títulos principais aparecem somente uma vez', () => {
+  const prompt = officialPrompt();
+  const generatedCommand = `PROMPT DO MÓDULO RESUMO/AULA:
+
+${prompt}`;
+  assert.equal((generatedCommand.match(/TRANSFORME AS FONTES CLASSIFICADAS COMO RESUMO\/AULA/g) || []).length, 1);
+  const headings = [...prompt.matchAll(/^## .+$/gm)].map((match) => match[0]);
+  assert.ok(headings.length > 5);
+  headings.forEach((heading) => {
+    assert.equal(headings.filter((candidate) => candidate === heading).length, 1, `título duplicado: ${heading}`);
+  });
+});
+
 test('migração RESUMO/AULA altera somente factoryPromptLibrary.resumoAula e preserva os demais dados', () => {
-  const { migrateStateFactoryPromptLibraryResumoAulaDidatica, FACTORY_RESUMO_AULA_PROMPT, FACTORY_RESUMO_AULA_MIGRATION_ID } = migrationHarness();
+  const { migrateStateFactoryPromptLibraryResumoAulaRemoverDuplicacao, FACTORY_RESUMO_AULA_PROMPT, FACTORY_RESUMO_AULA_PROMPT_SEGMENT, FACTORY_RESUMO_AULA_DUPLICATION_MIGRATION_ID } = migrationHarness();
   const state = {
     migrations: { outra: 'ok' },
     factoryPromptLibrary: {
       triagem: 'triagem atual',
-      resumoAula: 'prompt antigo',
+      resumoAula: `${FACTORY_RESUMO_AULA_PROMPT_SEGMENT}${FACTORY_RESUMO_AULA_PROMPT_SEGMENT}`,
       lei: 'lei atual',
       jurisprudencia: 'juris atual',
       peca: 'peça atual',
@@ -98,9 +132,9 @@ test('migração RESUMO/AULA altera somente factoryPromptLibrary.resumoAula e pr
     subjects: state.subjects,
     settings: state.settings
   });
-  assert.equal(migrateStateFactoryPromptLibraryResumoAulaDidatica(state), true);
+  assert.equal(migrateStateFactoryPromptLibraryResumoAulaRemoverDuplicacao(state), true);
   assert.equal(state.factoryPromptLibrary.resumoAula, FACTORY_RESUMO_AULA_PROMPT);
-  assert.ok(state.migrations[FACTORY_RESUMO_AULA_MIGRATION_ID]);
+  assert.ok(state.migrations[FACTORY_RESUMO_AULA_DUPLICATION_MIGRATION_ID]);
   assert.equal(JSON.stringify({
     triagem: state.factoryPromptLibrary.triagem,
     lei: state.factoryPromptLibrary.lei,
@@ -112,14 +146,14 @@ test('migração RESUMO/AULA altera somente factoryPromptLibrary.resumoAula e pr
   }), beforeOther);
 });
 
-test('migração RESUMO/AULA é idempotente e inicializa estruturas ausentes', () => {
-  const { migrateStateFactoryPromptLibraryResumoAulaDidatica, FACTORY_RESUMO_AULA_PROMPT, FACTORY_RESUMO_AULA_MIGRATION_ID } = migrationHarness();
+test('migração de remoção de duplicação RESUMO/AULA é idempotente e inicializa estruturas ausentes', () => {
+  const { migrateStateFactoryPromptLibraryResumoAulaRemoverDuplicacao, FACTORY_RESUMO_AULA_PROMPT, FACTORY_RESUMO_AULA_DUPLICATION_MIGRATION_ID } = migrationHarness();
   const emptyState = { unrelated: ['preservado'] };
-  assert.equal(migrateStateFactoryPromptLibraryResumoAulaDidatica(emptyState), true);
+  assert.equal(migrateStateFactoryPromptLibraryResumoAulaRemoverDuplicacao(emptyState), true);
   assert.equal(emptyState.factoryPromptLibrary.resumoAula, FACTORY_RESUMO_AULA_PROMPT);
-  assert.ok(emptyState.migrations[FACTORY_RESUMO_AULA_MIGRATION_ID]);
+  assert.ok(emptyState.migrations[FACTORY_RESUMO_AULA_DUPLICATION_MIGRATION_ID]);
   const snapshot = JSON.stringify(emptyState);
-  assert.equal(migrateStateFactoryPromptLibraryResumoAulaDidatica(emptyState), false);
+  assert.equal(migrateStateFactoryPromptLibraryResumoAulaRemoverDuplicacao(emptyState), false);
   assert.equal(JSON.stringify(emptyState), snapshot);
 });
 
