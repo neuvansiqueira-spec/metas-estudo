@@ -2825,3 +2825,45 @@ th {
 .factory-today-queue ol { display: grid; gap: 10px; padding-left: 24px; }
 .factory-today-queue li { padding: 10px; border-bottom: 1px solid var(--border); }
 @media (max-width: 760px) { .factory-do-now { order: -1; } .factory-main-actions, .factory-main-actions button, .factory-primary-action { width: 100%; } .factory-progress-line { font-size: .95rem; } .compact-factory-card { padding: 14px; } }
+
+.timer-motivational-toast {
+  position: fixed;
+  left: 50%;
+  bottom: clamp(18px, 4vw, 34px);
+  z-index: 1300;
+  width: min(420px, calc(100vw - 32px));
+  padding: 14px 18px;
+  border: 1px solid rgba(37, 99, 235, .28);
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(15, 23, 42, .96), rgba(30, 64, 175, .94));
+  color: #ffffff;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, .28);
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, 18px) scale(.98);
+  transition: opacity .24s ease, transform .24s ease;
+}
+.timer-motivational-toast[hidden] { display: none; }
+.timer-motivational-toast.visible {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+}
+.timer-motivational-toast strong {
+  display: block;
+  font-size: .82rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.timer-motivational-toast span {
+  display: block;
+  margin-top: 5px;
+  font-size: .98rem;
+  font-weight: 800;
+}
+@media (max-width: 720px) {
+  .timer-motivational-toast { bottom: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .timer-motivational-toast { transition: none; }
+}

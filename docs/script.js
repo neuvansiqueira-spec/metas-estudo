@@ -93,6 +93,19 @@ const FACTORY_DOCX_EMOJI_FONT_INSTRUCTIONS = `## FONTES E EMOJIS NO WORD
 - Preservar os seletores Unicode necessários à apresentação colorida dos emojis.
 - Aplicar a regra ao documento inteiro, inclusive títulos, subtítulos e rodapé.`;
 const defaultState = { subjects: [], studies: [], edital: { pdf: null }, syllabusItems: [], schedulableSettings: {}, dailyGoals: [], questionLogs: [], smartReviews: [], simulados: [], planning: cloneData(defaultPlanning), settings: { defaultMockGoal: 92, timerPreferences: cloneData(defaultTimerPreferences) }, materials: [], questionBank: [], questionBankSessions: [], questionErrorNotebook: [], disciplineWeights: {}, monthlyGoals: {}, timerSession: null, factoryItems: [], factoryAgenda: [], factoryPromptLibrary: cloneData(defaultFactoryPromptLibrary) };
+const TIMER_MOTIVATIONAL_HISTORY_KEY = "metasEstudoTimerMotivationalHistory";
+const TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 5000;
+const TIMER_MOTIVATIONAL_MILESTONES = [10, 25, 40, 50, 65, 75, 90, 100];
+const TIMER_MOTIVATIONAL_MESSAGES = {
+  10: ["Vamos lá. O mais difícil era começar.", "Você já saiu do zero. Continue.", "O primeiro passo já ficou para trás.", "O ritmo está sendo construído agora.", "Não pense no caminho inteiro. Vença este momento.", "Você começou. Agora deixe a constância trabalhar.", "Mais uma sessão começou do jeito certo.", "O início já foi vencido. Continue presente."],
+  25: ["Muito bem. É de pouco a pouco mesmo.", "Você já encontrou o ritmo. Mantenha.", "Cada minuto fortalece a sua constância.", "Você não precisa correr. Só não pare.", "O progresso está acontecendo, mesmo em silêncio.", "Continue firme. A disciplina já assumiu o controle.", "Um quarto do caminho já foi conquistado.", "Pequenos avanços também constroem grandes resultados."],
+  40: ["Olhe o quanto você já avançou.", "Você já foi longe demais para parar agora.", "O esforço está começando a virar resultado.", "Continue. A parte mais difícil já perdeu força.", "Mais um pouco e metade estará vencida.", "Seu foco está construindo algo maior.", "Você está avançando melhor do que imagina.", "Permaneça presente. O progresso já é real."],
+  50: ["Metade do caminho já foi vencida.", "Estamos forjando um vencedor.", "Você chegou até aqui pela sua disciplina.", "Respire, reorganize o foco e continue.", "Você não está começando. Já está avançado.", "A metade que falta é menor do que tudo que você já venceu.", "Meio caminho concluído. Continue construindo.", "Sua constância trouxe você até aqui."],
+  65: ["Você não está sozinho. Continue firme.", "Seu esforço de agora protege o seu resultado futuro.", "É aqui que a constância faz diferença.", "Não solte o ritmo que você construiu.", "Cada minuto restante vale ainda mais agora.", "Você está transformando intenção em conquista.", "Continue. A sua disciplina está vencendo o cansaço.", "O caminho já está ficando menor."],
+  75: ["Falta pouco. Continue presente.", "Três quartos do caminho já foram vencidos.", "Você está muito mais perto do fim do que do começo.", "Só mais um trecho. Permaneça firme.", "O cansaço passa, mas o avanço permanece.", "Agora é foco apenas no próximo minuto.", "Você já venceu a maior parte desta sessão.", "Continue. A linha de chegada já está próxima."],
+  90: ["Último esforço. Você está quase lá.", "Não diminua agora. Falta muito pouco.", "Mais alguns minutos e esta etapa estará concluída.", "A vitória desta sessão já está à vista.", "Termine com a mesma firmeza com que começou.", "Aguente só mais um pouco. Está funcionando.", "A reta final chegou. Continue presente.", "Falta pouco para transformar esforço em missão cumprida."],
+  100: ["Concluído. Mais uma etapa vencida por você.", "Missão cumprida. Sua constância venceu novamente.", "Você prometeu avançar e cumpriu.", "Mais uma sessão concluída. O resultado está sendo construído.", "Hoje você ficou um pouco mais preparado.", "Muito bem. Este tempo agora faz parte da sua conquista.", "Você terminou o que começou.", "Sessão concluída. Mais um passo na direção do seu objetivo."]
+};
 function readJSONStorage(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
@@ -266,6 +279,7 @@ let floatingTimer = {
   warnedFive: false,
   warnedOne: false,
   completionDismissed: false,
+  displayedMotivationalMilestones: [],
   mode: "countdown"
 };
 
@@ -305,6 +319,48 @@ function timerAlertMessage(goal = floatingTimerGoal()) {
   if (remaining <= 60 || floatingTimer.warnedOne) return "🚨 Faltam 1 minuto";
   if (remaining <= 300 || floatingTimer.warnedFive) return "⏳ Faltam 5 minutos";
   return "";
+}
+
+let timerMotivationalToastTimeout = null;
+function readTimerMotivationalHistory() {
+  try { return JSON.parse(localStorage.getItem(TIMER_MOTIVATIONAL_HISTORY_KEY) || "{}"); } catch (error) { return {}; }
+}
+function writeTimerMotivationalHistory(history) {
+  try { localStorage.setItem(TIMER_MOTIVATIONAL_HISTORY_KEY, JSON.stringify(history || {})); } catch (error) { console.warn("Falha ao salvar histórico motivacional do cronômetro", error); }
+}
+function chooseTimerMotivationalMessage(milestone) {
+  const messages = Array.isArray(TIMER_MOTIVATIONAL_MESSAGES?.[milestone]) ? TIMER_MOTIVATIONAL_MESSAGES[milestone].filter(Boolean) : [];
+  if (!messages.length) return "";
+  const history = readTimerMotivationalHistory();
+  const used = Array.isArray(history[milestone]) ? history[milestone].filter((phrase) => messages.includes(phrase)) : [];
+  const available = messages.filter((phrase) => !used.includes(phrase));
+  const pool = available.length ? available : messages;
+  const phrase = pool[Math.floor(Math.random() * pool.length)] || "";
+  history[milestone] = available.length ? [...used, phrase] : [phrase];
+  writeTimerMotivationalHistory(history);
+  return phrase;
+}
+function showTimerMotivationalToast(milestone, phrase = chooseTimerMotivationalMessage(milestone)) {
+  if (!elements.timerMotivationalToast || !phrase) return;
+  clearTimeout(timerMotivationalToastTimeout);
+  elements.timerMotivationalToast.innerHTML = `<strong>${milestone}% CONCLUÍDO</strong><span>${phrase}</span>`;
+  elements.timerMotivationalToast.hidden = false;
+  elements.timerMotivationalToast.classList.add("visible");
+  timerMotivationalToastTimeout = setTimeout(() => {
+    elements.timerMotivationalToast.classList.remove("visible");
+    timerMotivationalToastTimeout = setTimeout(() => { elements.timerMotivationalToast.hidden = true; }, 260);
+  }, TIMER_MOTIVATIONAL_TOAST_DURATION_MS);
+}
+function checkTimerMotivationalProgress(goal = floatingTimerGoal()) {
+  const planned = timerPlannedSeconds(goal);
+  if (!goal || floatingTimer.mode !== "countdown" || !planned) return;
+  const progress = ((planned - timerRemainingSeconds(goal)) / planned) * 100;
+  const shown = Array.isArray(floatingTimer.displayedMotivationalMilestones) ? floatingTimer.displayedMotivationalMilestones : [];
+  const milestone = TIMER_MOTIVATIONAL_MILESTONES.filter((item) => progress >= item && !shown.includes(item)).pop();
+  if (!milestone) return;
+  floatingTimer.displayedMotivationalMilestones = [...shown, milestone];
+  showTimerMotivationalToast(milestone);
+  persistFloatingTimerSession();
 }
 let timerAudioContext = null;
 let timerTestAlertUntil = 0;
@@ -447,6 +503,7 @@ function renderFloatingTimer() {
   elements.timerProgressBar.style.width = `${progress}%`;
   elements.timerProgressText.textContent = planned ? `${progress}% do tempo decorrido` : "Sem tempo planejado";
   checkFloatingTimerAlerts();
+  checkTimerMotivationalProgress(goal);
   const alertMessage = timerAlertMessage(goal);
   elements.timerAlert.hidden = !alertMessage;
   elements.timerAlert.textContent = timerTestAlertReport && timerTestAlertUntil > Date.now() ? `${alertMessage}
@@ -480,7 +537,7 @@ function startFloatingTimer(goal, kind = "study") {
   saveData();
   autoSyncAfterSave("timer-settings");
   prepareTimerAudioContext();
-  floatingTimer = { goalId: goal.id, kind, elapsedSeconds: 0, startedAt: Date.now(), paused: false, intervalId: null, completed: false, warnedFive: false, warnedOne: false, completionDismissed: false, mode: selectedMode, sessionGoalMinutes };
+  floatingTimer = { goalId: goal.id, kind, elapsedSeconds: 0, startedAt: Date.now(), paused: false, intervalId: null, completed: false, warnedFive: false, warnedOne: false, completionDismissed: false, displayedMotivationalMilestones: [], mode: selectedMode, sessionGoalMinutes };
   floatingTimer.intervalId = setInterval(renderFloatingTimer, 1000);
   persistFloatingTimerSession();
   renderFloatingTimer();
@@ -506,12 +563,13 @@ function resetFloatingTimer() {
   floatingTimer.warnedFive = false;
   floatingTimer.warnedOne = false;
   floatingTimer.completionDismissed = false;
+  floatingTimer.displayedMotivationalMilestones = [];
   persistFloatingTimerSession();
   renderFloatingTimer();
 }
 function closeFloatingTimer() {
   stopFloatingTimerInterval();
-  floatingTimer = { goalId: null, kind: null, elapsedSeconds: 0, startedAt: null, paused: false, intervalId: null, completed: false, warnedFive: false, warnedOne: false, completionDismissed: false, mode: state.settings?.timerMode || "countdown" };
+  floatingTimer = { goalId: null, kind: null, elapsedSeconds: 0, startedAt: null, paused: false, intervalId: null, completed: false, warnedFive: false, warnedOne: false, completionDismissed: false, displayedMotivationalMilestones: [], mode: state.settings?.timerMode || "countdown" };
   state.timerSession = null;
   saveData();
   renderFloatingTimer();
@@ -562,7 +620,7 @@ const elements = {
   editFactoryPromptLibrary: $("#editFactoryPromptLibrary"), factoryForm: $("#factoryForm"), factoryEditingId: $("#factoryEditingId"), factoryDiscipline: $("#factoryDiscipline"), factoryTheme: $("#factoryTheme"), factorySubtheme: $("#factorySubtheme"), factoryPriority: $("#factoryPriority"), factoryPlannedDate: $("#factoryPlannedDate"), factoryStatus: $("#factoryStatus"), factorySourceFolder: $("#factorySourceFolder"), factoryDestinationFolder: $("#factoryDestinationFolder"), factoryFinalLink: $("#factoryFinalLink"), factoryLeiNome: $("#factoryLeiNome"), factoryLeiFonte: $("#factoryLeiFonte"), factoryLeiArtigos: $("#factoryLeiArtigos"), factoryLeiRecorte: $("#factoryLeiRecorte"), factoryLeiObservacoes: $("#factoryLeiObservacoes"), factoryNotes: $("#factoryNotes"), factorySummary: $("#factorySummary"), factoryFilterDiscipline: $("#factoryFilterDiscipline"), factoryFilterPriority: $("#factoryFilterPriority"), factoryFilterStatus: $("#factoryFilterStatus"), factoryFilterDate: $("#factoryFilterDate"), factoryFilterView: $("#factoryFilterView"), factoryFilterText: $("#factoryFilterText"), factoryList: $("#factoryList"), factoryPromptLibraryPanel: $("#factoryPromptLibraryPanel"),
   qbSyllabusPackages: $("#qbSyllabusPackages"), qbSyllabusVerticalized: $("#qbSyllabusVerticalized"), qbPreviewSection: $("#qbPreviewSection"), qbSyllabusSummary: $("#qbSyllabusSummary"), qbPackagesSummary: $("#qbPackagesSummary"), qbFile: $("#qbFile"), qbNewTraining: $("#qbNewTraining"), qbRedoBlanks: $("#qbRedoBlanks"), qbExportBank: $("#qbExportBank"), qbExportResults: $("#qbExportResults"), qbClearBank: $("#qbClearBank"), qbMessage: $("#qbMessage"), qbStats: $("#qbStats"), qbDiagnostics: $("#qbDiagnostics"), qbTrainingScope: $("#qbTrainingScope"), qbReviewTypeWrapper: $("#qbReviewTypeWrapper"), qbReviewType: $("#qbReviewType"), qbFilterDiscipline: $("#qbFilterDiscipline"), qbFilterSubject: $("#qbFilterSubject"), qbFilterTheme: $("#qbFilterTheme"), qbFilterBoard: $("#qbFilterBoard"), qbFilterYear: $("#qbFilterYear"), qbFilterSearch: $("#qbFilterSearch"), qbTrainingLimit: $("#qbTrainingLimit"), qbShuffleTraining: $("#qbShuffleTraining"), qbStartTraining: $("#qbStartTraining"), qbPreviewFiltered: $("#qbPreviewFiltered"), qbFilteredPreview: $("#qbFilteredPreview"), qbTrainingPanel: $("#qbTrainingPanel"), qbTrainingCounter: $("#qbTrainingCounter"), qbTrainingProgress: $("#qbTrainingProgress"), qbQuestionCard: $("#qbQuestionCard"), qbResultPanel: $("#qbResultPanel"), qbResultSummary: $("#qbResultSummary"), qbResultDetails: $("#qbResultDetails"), qbErrorStats: $("#qbErrorStats"), qbErrorNotebookList: $("#qbErrorNotebookList"), qbErrorFilterDiscipline: $("#qbErrorFilterDiscipline"), qbErrorFilterSubject: $("#qbErrorFilterSubject"), qbErrorFilterStatus: $("#qbErrorFilterStatus"), qbErrorFilterReason: $("#qbErrorFilterReason"), qbStartErrorNotebook: $("#qbStartErrorNotebook"), qbReviewByDiscipline: $("#qbReviewByDiscipline"), qbReviewBySubject: $("#qbReviewBySubject"), qbToggleErrorHistory: $("#qbToggleErrorHistory"), qbErrorHistory: $("#qbErrorHistory"),
   connectGoogleDrive: $("#connectGoogleDrive"), syncNowButton: $("#syncNow"), pushToCloud: $("#pushToCloud"), pullFromCloud: $("#pullFromCloud"), disconnectGoogleDrive: $("#disconnectGoogleDrive"), syncStatus: $("#syncStatus"),
-  floatingTimer: $("#floatingTimer"), timerDiscipline: $("#timerDiscipline"), timerSubject: $("#timerSubject"), timerKind: $("#timerKind"), timerTime: $("#timerTime"), timerPauseResume: $("#timerPauseResume"), timerProgressBar: $("#timerProgressBar"), timerProgressText: $("#timerProgressText"), timerAlert: $("#timerAlert"), timerCompletion: $("#timerCompletion"), timerSettings: $("#timerSettings"), timerMode: $("#timerMode"), addManualTime: $("#addManualTime"), timeUndoNotice: $("#timeUndoNotice"), undoTimeAction: $("#undoTimeAction")
+  floatingTimer: $("#floatingTimer"), timerDiscipline: $("#timerDiscipline"), timerSubject: $("#timerSubject"), timerKind: $("#timerKind"), timerTime: $("#timerTime"), timerPauseResume: $("#timerPauseResume"), timerProgressBar: $("#timerProgressBar"), timerProgressText: $("#timerProgressText"), timerAlert: $("#timerAlert"), timerCompletion: $("#timerCompletion"), timerSettings: $("#timerSettings"), timerMode: $("#timerMode"), timerMotivationalToast: $("#timerMotivationalToast"), addManualTime: $("#addManualTime"), timeUndoNotice: $("#timeUndoNotice"), undoTimeAction: $("#undoTimeAction")
 };
 elements.studyDate.value = todayISO();
 elements.goalDate.value = todayISO();
