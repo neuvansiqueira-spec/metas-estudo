@@ -30,16 +30,20 @@ function extractFunction(source, name) {
 
 function migrationHarness() {
   const triagemPrompt = extractTemplateConst(script, 'FACTORY_TRIAGEM_PROMPT');
+  const previousTriagemPrompt = script.match(/const FACTORY_TRIAGEM_PROMPT_METODOLOGIA_GERAL_V1 = ([\s\S]*?);\nconst FACTORY_TRIAGEM_METHODOLOGY_MIGRATION_ID/)?.[1];
+  assert.ok(previousTriagemPrompt, 'prompt anterior da TRIAGEM não encontrado');
   const fn = extractFunction(script, 'migrateStateFactoryPromptLibraryTriagemMetodologiaGeral');
   return new Function(`
     const FACTORY_TRIAGEM_PROMPT = ${JSON.stringify(triagemPrompt)};
+    const FACTORY_TRIAGEM_PROMPT_METODOLOGIA_GERAL_V1 = ${previousTriagemPrompt};
     const FACTORY_TRIAGEM_METHODOLOGY_MIGRATION_ID = "factoryTriagemMetodologiaGeralV1";
+    const FACTORY_TRIAGEM_REFINEMENT_MIGRATION_ID = "factoryTriagemRefinamentoMetodologiaV2";
     const FACTORY_LIBRARY_FALLBACK = "[PROMPT COMPLETO AINDA NÃO CADASTRADO NA BIBLIOTECA DA FÁBRICA]";
     function cloneData(value) { return JSON.parse(JSON.stringify(value)); }
     const defaultFactoryPromptLibrary = { triagem: FACTORY_TRIAGEM_PROMPT, resumoAula: "resumo", lei: "lei", jurisprudencia: "jur", peca: "peca", consolidacao: "con" };
     function migrateFactoryPromptLibraryLeiRecorte(library = {}) { return { ...library }; }
     ${fn}
-    return { migrateStateFactoryPromptLibraryTriagemMetodologiaGeral, FACTORY_TRIAGEM_PROMPT, FACTORY_TRIAGEM_METHODOLOGY_MIGRATION_ID, FACTORY_LIBRARY_FALLBACK };
+    return { migrateStateFactoryPromptLibraryTriagemMetodologiaGeral, FACTORY_TRIAGEM_PROMPT, FACTORY_TRIAGEM_PROMPT_METODOLOGIA_GERAL_V1, FACTORY_TRIAGEM_METHODOLOGY_MIGRATION_ID, FACTORY_TRIAGEM_REFINEMENT_MIGRATION_ID, FACTORY_LIBRARY_FALLBACK };
   `)();
 }
 
@@ -56,11 +60,38 @@ test('prompt oficial de TRIAGEM contém a metodologia geral e está sincronizado
     'peça específica integral',
     'peça específica parcial',
     'material duplicado',
-    'Classificação principal: RESUMO/AULA. Função secundária: apoio para estruturação da PEÇA.',
+    'sem classificação estrutural artificial',
+    'indicando qual arquivo equivalente deverá prevalecer',
     'sem classificar apenas pelo nome do arquivo'
   ].forEach((required) => assert.ok(prompt.includes(required), `faltou: ${required}`));
   assert.match(script, /defaultFactoryPromptLibrary = \{ triagem: FACTORY_TRIAGEM_PROMPT/);
   assert.match(docsScript, /defaultFactoryPromptLibrary = \{ triagem: FACTORY_TRIAGEM_PROMPT/);
+});
+
+
+test('cabeçalho da TRIAGEM usa todos os arquivos acessíveis e demais módulos preservam fontes aprovadas', () => {
+  assert.ok(script.includes('type === "triagem"'));
+  assert.ok(script.includes('Fontes a usar: todos os arquivos efetivamente acessíveis e legíveis na pasta de fontes indicada.'));
+  assert.ok(script.includes('Fontes a não usar: conteúdo externo, arquivos de outras pastas não fornecidas, materiais inacessíveis e arquivos que não possam ser efetivamente examinados.'));
+  assert.ok(script.includes('Fontes a usar: conforme a triagem e as fontes classificadas para este módulo.'));
+  assert.ok(script.includes('Fontes a não usar: fontes de outros módulos, conteúdo externo não fornecido e materiais não aprovados na triagem.'));
+});
+
+test('TRIAGEM permite irrelevantes, duplicadas e suficiência material do módulo PEÇA', () => {
+  const prompt = extractTemplateConst(script, 'FACTORY_TRIAGEM_PROMPT');
+  [
+    'Cada arquivo relevante deverá receber uma classificação estrutural principal',
+    'IRRELEVANTE PARA O TEMA, sem classificação estrutural artificial',
+    'DUPLICADA, indicando qual arquivo equivalente deverá prevalecer',
+    'arquivo principal correspondente, no caso de duplicidade',
+    'conteúdo parcial, porém materialmente útil para estruturar, fundamentar ou desenvolver parte relevante da peça',
+    'classifique o módulo PEÇA como PARCIALMENTE SUFICIENTES',
+    'meramente superficial, isolado, fragmentado ou incapaz de sustentar com segurança qualquer parte relevante da peça',
+    'classifique o módulo PEÇA como INSUFICIENTES',
+    'Quando não houver nenhuma fonte relacionada ao módulo PEÇA, classifique como INEXISTENTES',
+    'A simples menção ao nome de uma peça, medida, requisito ou estrutura não basta'
+  ].forEach((required) => assert.ok(prompt.includes(required), `faltou: ${required}`));
+  assert.doesNotMatch(prompt, /Cada arquivo deve possuir uma classificação principal/);
 });
 
 test('TRIAGEM exige suficiência separada por módulo e os quatro estados', () => {
@@ -99,7 +130,7 @@ test('TRIAGEM preserva vínculos temáticos e proíbe geração de módulos fina
 });
 
 test('migração TRIAGEM atualiza apenas vazio ou fallback, é idempotente e preserva personalização genuína', () => {
-  const { migrateStateFactoryPromptLibraryTriagemMetodologiaGeral, FACTORY_TRIAGEM_PROMPT, FACTORY_TRIAGEM_METHODOLOGY_MIGRATION_ID, FACTORY_LIBRARY_FALLBACK } = migrationHarness();
+  const { migrateStateFactoryPromptLibraryTriagemMetodologiaGeral, FACTORY_TRIAGEM_PROMPT, FACTORY_TRIAGEM_PROMPT_METODOLOGIA_GERAL_V1, FACTORY_TRIAGEM_METHODOLOGY_MIGRATION_ID, FACTORY_TRIAGEM_REFINEMENT_MIGRATION_ID, FACTORY_LIBRARY_FALLBACK } = migrationHarness();
   const state = { migrations: { outra: 'ok' }, factoryPromptLibrary: { triagem: '', resumoAula: 'custom resumo', lei: 'custom lei', jurisprudencia: 'custom jur', peca: 'custom peca', consolidacao: 'custom con' }, factoryItems: [{ id: '1' }], materials: [{ id: 'm' }] };
   assert.equal(migrateStateFactoryPromptLibraryTriagemMetodologiaGeral(state), true);
   assert.equal(state.factoryPromptLibrary.triagem, FACTORY_TRIAGEM_PROMPT);
@@ -107,6 +138,7 @@ test('migração TRIAGEM atualiza apenas vazio ou fallback, é idempotente e pre
   assert.deepEqual(state.factoryItems, [{ id: '1' }]);
   assert.deepEqual(state.materials, [{ id: 'm' }]);
   assert.ok(state.migrations[FACTORY_TRIAGEM_METHODOLOGY_MIGRATION_ID]);
+  assert.ok(state.migrations[FACTORY_TRIAGEM_REFINEMENT_MIGRATION_ID]);
   const afterFirst = JSON.stringify(state);
   assert.equal(migrateStateFactoryPromptLibraryTriagemMetodologiaGeral(state), false);
   assert.equal(JSON.stringify(state), afterFirst);
@@ -118,6 +150,10 @@ test('migração TRIAGEM atualiza apenas vazio ou fallback, é idempotente e pre
   const fallback = { migrations: {}, factoryPromptLibrary: { triagem: FACTORY_LIBRARY_FALLBACK } };
   assert.equal(migrateStateFactoryPromptLibraryTriagemMetodologiaGeral(fallback), true);
   assert.equal(fallback.factoryPromptLibrary.triagem, FACTORY_TRIAGEM_PROMPT);
+
+  const previousOfficial = { migrations: { [FACTORY_TRIAGEM_METHODOLOGY_MIGRATION_ID]: 'already-ran' }, factoryPromptLibrary: { triagem: FACTORY_TRIAGEM_PROMPT_METODOLOGIA_GERAL_V1 } };
+  assert.equal(migrateStateFactoryPromptLibraryTriagemMetodologiaGeral(previousOfficial), true);
+  assert.equal(previousOfficial.factoryPromptLibrary.triagem, FACTORY_TRIAGEM_PROMPT);
 });
 
 test('prompts dos demais módulos permanecem referenciados e script mantém paridade com docs', () => {

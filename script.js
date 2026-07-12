@@ -487,7 +487,7 @@ A conclusão não pode ser direcionada previamente para suficiência, insuficiê
 
 ## CLASSIFICAÇÕES E FUNÇÕES
 
-Preserve como classificação principal uma destas categorias estruturais:
+Cada arquivo relevante deverá receber uma classificação estrutural principal entre:
 
 1. RESUMO/AULA;
 2. LEI;
@@ -495,9 +495,13 @@ Preserve como classificação principal uma destas categorias estruturais:
 4. PEÇA;
 5. ATUALIZAÇÃO/COMPLEMENTO.
 
-Cada arquivo deve possuir uma classificação principal. Quando necessário, registre classificação ou função secundária sem alterar artificialmente a natureza predominante da fonte.
+Quando o arquivo não possuir conteúdo útil para o tema ou recorte analisado, poderá receber diretamente a condição IRRELEVANTE PARA O TEMA, sem classificação estrutural artificial.
 
-Condições auxiliares permitidas, sem transformá-las obrigatoriamente em novos módulos estruturais:
+Quando o arquivo for duplicado, informe, quando identificável, sua classificação temática e acrescente a condição DUPLICADA, indicando qual arquivo equivalente deverá prevalecer.
+
+A condição DUPLICADA não elimina a necessidade de informar o conteúdo repetido e o arquivo principal correspondente.
+
+Condições especiais e auxiliares permitidas, sem transformá-las em novos módulos estruturais da Fábrica:
 
 * IRRELEVANTE PARA O TEMA;
 * DUPLICADA;
@@ -513,7 +517,9 @@ Para cada fonte, informe obrigatoriamente:
 
 * nome exato;
 * assunto predominante;
-* classificação principal;
+* classificação principal, quando aplicável;
+* condição especial: IRRELEVANTE PARA O TEMA ou DUPLICADA, quando aplicável;
+* arquivo principal correspondente, no caso de duplicidade;
 * classificação ou função secundária, quando houver;
 * relação direta, indireta ou inexistente com o tema;
 * conteúdo útil;
@@ -591,7 +597,13 @@ Distinga expressamente:
 
 A ausência de modelo integral não torna automaticamente inúteis todas as fontes. Ao mesmo tempo, técnica geral, comparação teórica ou modelo de outro tema não podem ser tratados como fonte integral da peça específica.
 
-Quando houver apenas conteúdo parcial, a conclusão correta para PEÇA deve ser PARCIALMENTE SUFICIENTES, com lacunas concretas.
+Quando houver conteúdo parcial, porém materialmente útil para estruturar, fundamentar ou desenvolver parte relevante da peça com fidelidade, classifique o módulo PEÇA como PARCIALMENTE SUFICIENTES e indique concretamente as lacunas que impedem a produção integral.
+
+Quando o conteúdo for meramente superficial, isolado, fragmentado ou incapaz de sustentar com segurança qualquer parte relevante da peça, classifique o módulo PEÇA como INSUFICIENTES.
+
+Quando não houver nenhuma fonte relacionada ao módulo PEÇA, classifique como INEXISTENTES.
+
+A simples menção ao nome de uma peça, medida, requisito ou estrutura não basta para considerar as fontes parcialmente suficientes.
 
 ## VÍNCULOS TEMÁTICOS COM AS PEÇAS
 
@@ -647,7 +659,9 @@ Para cada arquivo:
 
 * nome;
 * assunto predominante;
-* classificação principal;
+* classificação principal, quando aplicável;
+* condição especial: IRRELEVANTE PARA O TEMA ou DUPLICADA, quando aplicável;
+* arquivo principal correspondente, no caso de duplicidade;
 * função secundária;
 * relação direta, indireta ou inexistente com o tema;
 * conteúdo útil;
@@ -682,7 +696,9 @@ Apresentar lacunas concretas e individualizadas, sem autorizar pesquisa externa.
 ### G. Resultado global
 
 Produzir síntese compatível com os resultados separados, sem esconder divergências entre os módulos e sem reduzir a triagem a uma conclusão binária global.`;
+const FACTORY_TRIAGEM_PROMPT_METODOLOGIA_GERAL_V1 = '## ESCOPO DO MÓDULO TRIAGEM\n\nFaça apenas a TRIAGEM documental das fontes fornecidas para a Fábrica de Resumos.\n\nNão execute uma triagem concreta fora dos arquivos efetivamente acessíveis, não produza resumo, lei topificada, jurisprudência, peça, Word ou PDF, e não pesquise fora das fontes anexadas ou indicadas.\n\nA triagem deve responder: “O que cada arquivo realmente contém, para qual módulo ele serve e até onde o conjunto das fontes permite produzir material com fidelidade?”.\n\nA triagem não deve ser direcionada para confirmar uma conclusão anterior nem para demonstrar previamente que existe ou não existe um modelo integral. A existência de modelo integral é apenas um dos elementos da análise do módulo PEÇA.\n\n## METODOLOGIA GERAL\n\nExamine cada arquivo individualmente segundo sua função real no projeto, sem classificar apenas pelo nome do arquivo.\n\nDiferencie, quando o conteúdo efetivamente examinado permitir:\n\n* conteúdo teórico;\n* legislação;\n* jurisprudência;\n* estrutura prática de peça;\n* técnica geral de elaboração de peças;\n* peça específica integral;\n* peça específica parcial;\n* peça de outro tema;\n* atualização ou complemento;\n* material irrelevante;\n* material duplicado.\n\nA conclusão não pode ser direcionada previamente para suficiência, insuficiência, suficiência parcial ou existência/inexistência de modelo integral. O resultado deve decorrer somente do conteúdo localizado nas fontes.\n\n## CLASSIFICAÇÕES E FUNÇÕES\n\nPreserve como classificação principal uma destas categorias estruturais:\n\n1. RESUMO/AULA;\n2. LEI;\n3. JURISPRUDÊNCIA;\n4. PEÇA;\n5. ATUALIZAÇÃO/COMPLEMENTO.\n\nCada arquivo deve possuir uma classificação principal. Quando necessário, registre classificação ou função secundária sem alterar artificialmente a natureza predominante da fonte.\n\nCondições auxiliares permitidas, sem transformá-las obrigatoriamente em novos módulos estruturais:\n\n* IRRELEVANTE PARA O TEMA;\n* DUPLICADA;\n* APOIO ESTRUTURAL;\n* FONTE PRINCIPAL;\n* FONTE SECUNDÁRIA.\n\nExemplo de registro permitido: Classificação principal: RESUMO/AULA. Função secundária: apoio para estruturação da PEÇA.\n\n## EXAME INDIVIDUAL DAS FONTES\n\nPara cada fonte, informe obrigatoriamente:\n\n* nome exato;\n* assunto predominante;\n* classificação principal;\n* classificação ou função secundária, quando houver;\n* relação direta, indireta ou inexistente com o tema;\n* conteúdo útil;\n* limitações;\n* presença de duplicidade;\n* decisão de uso.\n\nUse decisões equivalentes a:\n\n* USAR COMO FONTE PRINCIPAL;\n* USAR COMO FONTE SECUNDÁRIA;\n* USAR APENAS COMO APOIO;\n* NÃO USAR NESTE MÓDULO;\n* DESCARTAR POR DUPLICIDADE.\n\n## SUFICIÊNCIA SEPARADA POR MÓDULO\n\nApós a classificação individual, avalie separadamente a suficiência documental para:\n\n* RESUMO/AULA;\n* LEI;\n* JURISPRUDÊNCIA;\n* PEÇA;\n* ATUALIZAÇÃO/COMPLEMENTO.\n\nPara cada módulo, use somente um dos quatro resultados:\n\n* SUFICIENTES;\n* PARCIALMENTE SUFICIENTES;\n* INSUFICIENTES;\n* INEXISTENTES.\n\nCada resultado deve ter justificativa objetiva e própria. Não apresente uma única conclusão global que esconda diferenças entre módulos. Não trate PARCIALMENTE SUFICIENTES como sinônimo de SUFICIENTES nem de INEXISTENTES.\n\nDefinições obrigatórias:\n\n* SUFICIENTES: há material suficiente para produzir o módulo com fidelidade documental, sem pesquisa externa e sem criação de conteúdo ausente.\n* PARCIALMENTE SUFICIENTES: há conteúdo relevante e aproveitável, mas existem lacunas que impedem a produção integral ou segura do módulo.\n* INSUFICIENTES: o conteúdo localizado é superficial, fragmentado, inadequado ou incapaz de sustentar o módulo com fidelidade.\n* INEXISTENTES: não foi localizada nenhuma fonte correspondente à categoria ou ao módulo.\n\n## REGRA PARA RESUMO/AULA\n\nO módulo RESUMO/AULA pode ser considerado SUFICIENTE quando o conjunto das fontes apresentar conteúdo teórico adequado, ainda que as informações estejam distribuídas entre vários arquivos, nenhum arquivo isolado contenha toda a matéria e existam fontes principais e secundárias diferentes.\n\nA existência de resumo anteriormente produzido não prova automaticamente suficiência. A suficiência deve resultar da análise documental das fontes.\n\n## REGRA PARA PEÇA\n\nA avaliação do módulo PEÇA não depende exclusivamente da existência de um único modelo integral pronto.\n\nVerifique se o conjunto das fontes permite identificar, com segurança:\n\n* espécie da manifestação;\n* autoridade destinatária;\n* legitimidade;\n* contexto procedimental;\n* estrutura;\n* exposição dos fatos;\n* fundamentos;\n* requisitos;\n* demonstração concreta do cabimento;\n* pedidos;\n* providências finais;\n* encerramento;\n* padrão exigido pela disciplina.\n\nDistinga expressamente:\n\n1. peça específica e integral;\n2. peça específica parcial;\n3. técnica geral de peças;\n4. peça de outro tema com possível apoio estrutural;\n5. peça de outro tema sem utilidade para o módulo.\n\nA ausência de modelo integral não torna automaticamente inúteis todas as fontes. Ao mesmo tempo, técnica geral, comparação teórica ou modelo de outro tema não podem ser tratados como fonte integral da peça específica.\n\nQuando houver apenas conteúdo parcial, a conclusão correta para PEÇA deve ser PARCIALMENTE SUFICIENTES, com lacunas concretas.\n\n## VÍNCULOS TEMÁTICOS COM AS PEÇAS\n\nQuando houver fonte classificada como PEÇA, identifique fontes complementares diretamente relacionadas somente se o vínculo for real e demonstrável.\n\nPreserve a classificação original da fonte complementar, não desenvolva antecipadamente o conteúdo jurídico, não invente vínculo e não reclassifique artificialmente a fonte complementar como PEÇA.\n\nPara cada peça identificada, informe: nome da peça; fontes principais classificadas como PEÇA; fontes complementares diretamente relacionadas; classificação original de cada fonte complementar; especificidade temática abordada; suficiência da fonte para desenvolver a especificidade.\n\nUse apenas estes estados para o vínculo temático: SUFICIENTE PARA INCLUSÃO; PARCIALMENTE SUFICIENTE; INSUFICIENTE; SEM FONTE RELACIONADA IDENTIFICADA.\n\n## LACUNAS DOCUMENTAIS\n\nIndique lacunas específicas e individualizadas. Não use apenas expressões genéricas como “faltam informações”, “material incompleto” ou “fontes insuficientes”.\n\nIdentifique concretamente, quando aplicável: ausência de fonte legislativa; ausência de jurisprudência; ausência de estrutura prática; ausência de modelo integral; ausência de pedidos; ausência de fundamentação; ausência de tratamento de requisito específico; ausência de encerramento; ausência de fonte diretamente relacionada ao recorte; ausência de densidade suficiente para o resumo.\n\nA indicação da lacuna não autoriza pesquisa externa.\n\n## PROIBIÇÕES\n\nÉ proibido:\n\n* pesquisar externamente;\n* complementar por conhecimento próprio;\n* criar conteúdo ausente;\n* classificar com base apenas no nome do arquivo;\n* repetir automaticamente conclusão de triagem anterior;\n* direcionar a análise para confirmar resultado previamente esperado;\n* tratar técnica geral como peça específica;\n* descartar fonte útil apenas porque ela não contém modelo integral;\n* declarar suficiência da PEÇA apenas porque existe conteúdo teórico;\n* declarar insuficiência global quando módulos diferentes possuem resultados diferentes;\n* gerar resumo;\n* gerar lei topificada;\n* gerar jurisprudência;\n* gerar peça;\n* gerar Word ou PDF.\n\n## FORMATO OBRIGATÓRIO DA TRIAGEM\n\n### A. Identificação geral\n\n* disciplina;\n* tema;\n* subtema ou recorte;\n* quantidade informada;\n* quantidade efetivamente acessível e legível.\n\n### B. Quadro individual das fontes\n\nPara cada arquivo:\n\n* nome;\n* assunto predominante;\n* classificação principal;\n* função secundária;\n* relação direta, indireta ou inexistente com o tema;\n* conteúdo útil;\n* limitações;\n* duplicidade;\n* decisão de uso.\n\n### C. Consolidação por categoria\n\nSeparar:\n\n* RESUMO/AULA;\n* LEI;\n* JURISPRUDÊNCIA;\n* PEÇA;\n* ATUALIZAÇÃO/COMPLEMENTO;\n* irrelevantes;\n* duplicadas.\n\n### D. Fontes principais e secundárias\n\nIndicar fontes principais, secundárias e de mero apoio para cada módulo relevante.\n\n### E. Suficiência por módulo\n\nInformar separadamente RESUMO/AULA, LEI, JURISPRUDÊNCIA, PEÇA e ATUALIZAÇÃO/COMPLEMENTO, usando somente SUFICIENTES, PARCIALMENTE SUFICIENTES, INSUFICIENTES ou INEXISTENTES.\n\n### F. Lacunas documentais\n\nApresentar lacunas concretas e individualizadas, sem autorizar pesquisa externa.\n\n### G. Resultado global\n\nProduzir síntese compatível com os resultados separados, sem esconder divergências entre os módulos e sem reduzir a triagem a uma conclusão binária global.';
 const FACTORY_TRIAGEM_METHODOLOGY_MIGRATION_ID = "factoryTriagemMetodologiaGeralV1";
+const FACTORY_TRIAGEM_REFINEMENT_MIGRATION_ID = "factoryTriagemRefinamentoMetodologiaV2";
 
 const defaultFactoryPromptLibrary = { triagem: FACTORY_TRIAGEM_PROMPT, resumoAula: FACTORY_RESUMO_AULA_PROMPT, lei: "", jurisprudencia: "", peca: FACTORY_PECA_PROMPT, consolidacao: "" };
 const OLD_LEI_RECORTE_PROMPT = [
@@ -2400,13 +2416,17 @@ function migrateStateFactoryPromptLibraryTriagemMetodologiaGeral(targetState = s
     ...cloneData(defaultFactoryPromptLibrary),
     ...(targetState.factoryPromptLibrary || {})
   });
-  if (targetState.migrations[FACTORY_TRIAGEM_METHODOLOGY_MIGRATION_ID]) return false;
   const currentTriagemPrompt = String(targetState.factoryPromptLibrary.triagem || "");
-  const shouldUpdateTriagemPrompt = !currentTriagemPrompt.trim() || currentTriagemPrompt === FACTORY_LIBRARY_FALLBACK;
+  const knownOfficialTriagemPrompts = [FACTORY_LIBRARY_FALLBACK, FACTORY_TRIAGEM_PROMPT_METODOLOGIA_GERAL_V1, FACTORY_TRIAGEM_PROMPT];
+  const shouldUpdateTriagemPrompt = !currentTriagemPrompt.trim() || knownOfficialTriagemPrompts.includes(currentTriagemPrompt);
+  if (!targetState.migrations[FACTORY_TRIAGEM_METHODOLOGY_MIGRATION_ID]) {
+    targetState.migrations[FACTORY_TRIAGEM_METHODOLOGY_MIGRATION_ID] = new Date().toISOString();
+  }
+  if (targetState.migrations[FACTORY_TRIAGEM_REFINEMENT_MIGRATION_ID]) return false;
   if (shouldUpdateTriagemPrompt) {
     targetState.factoryPromptLibrary.triagem = FACTORY_TRIAGEM_PROMPT;
   }
-  targetState.migrations[FACTORY_TRIAGEM_METHODOLOGY_MIGRATION_ID] = new Date().toISOString();
+  targetState.migrations[FACTORY_TRIAGEM_REFINEMENT_MIGRATION_ID] = new Date().toISOString();
   return shouldUpdateTriagemPrompt;
 }
 
@@ -2478,7 +2498,10 @@ function factoryRouterText(type, item = {}) {
   const leiBlock = `BLOQUEIO OBRIGATÓRIO:\n- não gerar o módulo;\n- não gerar Word;\n- não escolher artigos por conta própria;\n- não reconstruir conteúdo por memória;\n- solicitar lei/diploma, artigos/dispositivos e recorte;\n- considerar “lei integral” somente quando isso estiver expressamente informado.`;
   const leiAviso = `[LEI/DIPLOMA OU RECORTE NÃO PREENCHIDOS — INTERROMPER A GERAÇÃO E SOLICITAR CONFIRMAÇÃO]\n${leiBlock}`;
   const leiDetails = hasAnyLeiField ? `Modo detalhado do módulo LEI:\n- Lei / diploma legal: ${leiModule.leiNome || "[NÃO PREENCHIDO]"}\n- Fonte: ${leiModule.leiFonte || "[NÃO PREENCHIDO]"}\n- Artigos / dispositivos: ${leiModule.leiArtigos || "[NÃO PREENCHIDO]"}\n- Recorte obrigatório: ${leiModule.leiRecorte || "[NÃO PREENCHIDO]"}\n- Observações: ${leiModule.leiObservacoes || "[NÃO PREENCHIDO]"}${hasLeiNome && hasLeiRecorte ? "" : `\n\n${leiAviso}`}` : `Modo rápido do módulo LEI:\n${leiAviso}`;
-  const common = `${context}\nStatus anterior: ${item.status || "Não iniciado"}\nFontes a usar: conforme a triagem e as fontes classificadas para este módulo.\nFontes a não usar: fontes de outros módulos, conteúdo externo não fornecido e materiais não aprovados na triagem.\nRegras específicas do tema/módulo: ${item.observacao || "sem observações adicionais cadastradas."}`;
+  const commonSources = type === "triagem"
+    ? "Fontes a usar: todos os arquivos efetivamente acessíveis e legíveis na pasta de fontes indicada.\nFontes a não usar: conteúdo externo, arquivos de outras pastas não fornecidas, materiais inacessíveis e arquivos que não possam ser efetivamente examinados."
+    : "Fontes a usar: conforme a triagem e as fontes classificadas para este módulo.\nFontes a não usar: fontes de outros módulos, conteúdo externo não fornecido e materiais não aprovados na triagem.";
+  const common = `${context}\nStatus anterior: ${item.status || "Não iniciado"}\n${commonSources}\nRegras específicas do tema/módulo: ${item.observacao || "sem observações adicionais cadastradas."}`;
   const routers = {
     triagem: `${common}
 
