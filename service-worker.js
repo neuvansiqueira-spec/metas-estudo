@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-20260712-triagem-refinamento-v2";
+const CACHE_NAME = "metas-estudo-20260712-tempo-dinamico-etapa-1";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
