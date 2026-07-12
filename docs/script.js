@@ -2294,10 +2294,31 @@ function factoryApplicableCompletionStatus(status) {
   return ["Aprovado", "PDF gerado", "Não se aplica"].includes(status);
 }
 function factoryThemeIsCompleted(modules = {}) {
-  return FACTORY_MODULES.filter(({ virtual }) => !virtual).every(({ key }) => factoryApplicableCompletionStatus(modules[key]?.status || "Não iniciado"));
+  const normalized = normalizeFactoryModules(modules || {});
+  return FACTORY_MODULES.filter(({ virtual }) => !virtual).every(({ key }) => factoryApplicableCompletionStatus(normalized[key]?.status || "Não iniciado"));
+}
+function factoryAnyStageStarted(modules = {}, item = {}) {
+  const normalized = normalizeFactoryModules(modules || {}, item);
+  const triagemStarted = normalizeFactoryTriagemStatus(item, normalized) !== "Não iniciada";
+  return triagemStarted || FACTORY_MODULES.filter(({ virtual }) => !virtual).some(({ key }) => (normalized[key]?.status || "Não iniciado") !== "Não iniciado");
+}
+function factoryThemeVisualLabel(item = {}) {
+  const modules = normalizeFactoryModules(item.modules || {}, item);
+  if (factoryThemeIsCompleted(modules)) return "ASSUNTO CONCLUÍDO";
+  if (factoryResumoAulaReady({ ...item, modules })) return "RESUMO/AULA CONCLUÍDO";
+  if (factoryAnyStageStarted(modules, item)) return "ASSUNTO EM PRODUÇÃO";
+  return "ASSUNTO PENDENTE";
+}
+function factoryQueueItemLabel(item = {}, index = 0, firstPendingId = "") {
+  const modules = normalizeFactoryModules(item.modules || {}, item);
+  if (factoryThemeIsCompleted(modules)) return "Assunto concluído";
+  if (factoryResumoAulaReady({ ...item, modules })) return "Resumo/Aula pronto";
+  if (item.id && item.id === firstPendingId) return "Fazer agora";
+  return index === 1 ? "Próximo" : "Depois";
 }
 function factoryOverallStatus(modules = {}) {
-  const statuses = FACTORY_MODULES.filter(({ virtual }) => !virtual).map(({ key }) => modules[key]?.status || "Não iniciado");
+  const normalized = normalizeFactoryModules(modules || {});
+  const statuses = FACTORY_MODULES.filter(({ virtual }) => !virtual).map(({ key }) => normalized[key]?.status || "Não iniciado");
   if (statuses.every((status) => status === "PDF gerado" || status === "Não se aplica")) return "PDF gerado";
   if (statuses.every(factoryApplicableCompletionStatus)) return "Aprovado";
   if (statuses.some((status) => status === "Precisa refazer")) return "Precisa refazer";
@@ -2685,7 +2706,7 @@ function factoryActionButtonHTML(item, primary = true) {
 function factoryRecorteHoje(entry = {}) { return entry.subtopics?.length ? entry.subtopics.join("; ") : "Meta do dia"; }
 function factoryThemeHighlightHTML(item = {}, recorte = "", { position = "" } = {}) {
   const positionText = position ? ` • ${position}` : "";
-  return `<div class="factory-theme-highlight"><p class="factory-theme-label">ASSUNTO EM PRODUÇÃO</p><h3 class="factory-theme-title">${escapeHTML(item.tema || "-")}</h3><p class="factory-theme-discipline"><strong>Disciplina:</strong> ${escapeHTML(item.disciplina || "-")}${escapeHTML(positionText)}</p>${recorte ? `<p class="factory-theme-recorte"><strong>Recorte programado hoje:</strong> ${escapeHTML(recorte)}</p>` : ""}</div>`;
+  return `<div class="factory-theme-highlight"><p class="factory-theme-label">${escapeHTML(factoryThemeVisualLabel(item))}</p><h3 class="factory-theme-title">${escapeHTML(item.tema || "-")}</h3><p class="factory-theme-discipline"><strong>Disciplina:</strong> ${escapeHTML(item.disciplina || "-")}${escapeHTML(positionText)}</p>${recorte ? `<p class="factory-theme-recorte"><strong>Recorte programado hoje:</strong> ${escapeHTML(recorte)}</p>` : ""}</div>`;
 }
 function renderFactory() {
   if (!elements.factoryList) return;
@@ -2724,9 +2745,20 @@ function renderFactory() {
       const recorte = factoryRecorteHoje(entry);
       return `<article class="syllabus-card factory-card compact-factory-card" data-factory-card="${item.id}"><header class="factory-card-header"><div class="factory-card-heading">${factoryThemeHighlightHTML(item, recorte, { position: `posição ${index + 1} de ${Math.max(queue.length, 1)}` })}</div><span class="badge factory-status-badge ${factoryResumoAulaReady(item) ? "success" : item.triagemStatus === "Precisa refazer" ? "danger" : "neutral"}">${escapeHTML(item.status)}</span></header><div class="card-meta-grid factory-compact-grid"><span><strong>Etapa atual:</strong> ${escapeHTML(stage)}</span><span><strong>Próxima ação:</strong> ${escapeHTML(next)}</span><span><strong>Status:</strong> ${escapeHTML(item.status)}</span></div>${factoryProgressHTML(item)}<div class="card-actions factory-main-actions">${factoryActionButtonHTML(item)}<button type="button" class="secondary-button" data-factory-toggle-detail="${item.id}">Ver detalhes</button></div>${detailsHTML(entry)}</article>`;
     };
-    const nowEntry = queue.find(({ item }) => !factoryResumoAulaReady(item)) || queue[0];
+    const selectedEntry = factoryOpenDetailId ? queue.find(({ item }) => item.id === factoryOpenDetailId) || activeAgenda.map((item) => ({ item, subtopics: [] })).find(({ item }) => item.id === factoryOpenDetailId) : null;
+    const firstResumoPendingEntry = queue.find(({ item }) => !factoryResumoAulaReady(item));
+    const nowEntry = selectedEntry || firstResumoPendingEntry || queue[0];
+    const firstPendingId = queue.find(({ item }) => {
+      const modules = normalizeFactoryModules(item.modules || {}, item);
+      return !factoryThemeIsCompleted(modules) && !factoryResumoAulaReady({ ...item, modules });
+    })?.item.id || "";
     const nowPanel = nowEntry ? `<section id="factoryDoNow" class="factory-do-now"><h3>🎯 FAÇA AGORA</h3>${cardFor(nowEntry, queue.indexOf(nowEntry))}<div class="card-actions"><button type="button" class="secondary-button" data-open-url="${escapeHTML(factorySourceFolderLink(nowEntry.item) || "")}" ${factorySourceFolderLink(nowEntry.item) ? "" : "disabled"}>Abrir pasta das fontes</button><button type="button" class="secondary-button" data-open-url="${escapeHTML(factoryDestinationFolderLink(nowEntry.item) || "")}" ${factoryDestinationFolderLink(nowEntry.item) ? "" : "disabled"}>Abrir pasta de destino</button><button type="button" class="secondary-button" data-factory-next="${nowEntry.item.id}">Ir para o próximo tema</button></div></section>` : `<section id="factoryDoNow" class="factory-do-now"><h3>🎯 FAÇA AGORA</h3><p class="empty-message">Nenhum tema pendente na fila de hoje.</p></section>`;
-    const queuePanel = `<section class="factory-today-queue"><h3>📋 FILA DE PRODUÇÃO DE HOJE</h3>${queue.length ? `<ol>${queue.map((entry, index) => `<li><div class="factory-queue-theme">${factoryThemeHighlightHTML(entry.item, factoryRecorteHoje(entry))}</div><div class="item-meta"><strong>${index === 0 ? "Fazer agora" : factoryResumoAulaReady(entry.item) ? "Material pronto" : index === 1 ? "Próximo" : "Depois"}</strong> • Etapa: ${escapeHTML(factoryCurrentStage(entry.item))} • Status: ${escapeHTML(entry.item.status)}</div><button type="button" class="secondary-button" data-factory-toggle-detail="${entry.item.id}">Abrir</button></li>`).join("")}</ol>` : `<p class="empty-message">Nenhum tema das Metas do Dia na fila.</p>`}</section>`;
+    const queuePanel = `<section class="factory-today-queue"><h3>📋 FILA DE PRODUÇÃO DE HOJE</h3>${queue.length ? `<ol>${queue.map((entry, index) => {
+      const modules = normalizeFactoryModules(entry.item.modules || {}, entry.item);
+      const status = factoryOverallStatus(modules);
+      const isOpen = factoryOpenDetailId === entry.item.id;
+      return `<li><div class="factory-queue-theme">${factoryThemeHighlightHTML(entry.item, factoryRecorteHoje(entry))}</div><div class="item-meta"><strong>${escapeHTML(factoryQueueItemLabel({ ...entry.item, modules }, index, firstPendingId))}</strong> • Etapa: ${escapeHTML(factoryCurrentStage({ ...entry.item, modules }))} • Status: ${escapeHTML(status)}</div><button type="button" class="secondary-button" data-factory-toggle-detail="${entry.item.id}" aria-expanded="${isOpen ? "true" : "false"}">${isOpen ? "Fechar" : "Abrir"}</button></li>`;
+    }).join("")}</ol>` : `<p class="empty-message">Nenhum tema das Metas do Dia na fila.</p>`}</section>`;
     let entries = activeAgenda.map((item) => ({ item, subtopics: [] }));
     if (["faca-agora", "fila-hoje"].includes(factoryCurrentFilter)) entries = queue;
     if (factoryCurrentFilter === "aguardando-triagem") entries = entries.filter(({ item }) => normalizeFactoryTriagemStatus(item, item.modules) !== "Concluída");
@@ -2736,7 +2768,7 @@ function renderFactory() {
     if (factoryCurrentFilter === "precisa-refazer") entries = entries.filter(({ item }) => normalizeFactoryTriagemStatus(item, item.modules) === "Precisa refazer" || factoryOverallStatus(item.modules) === "Precisa refazer");
     if (factoryCurrentFilter === "prontos") entries = entries.filter(({ item }) => factoryResumoAulaReady(item));
     const listPanel = factoryCurrentFilter === "faca-agora" ? "" : `<section class="factory-section"><h3>${factoryCurrentFilter === "fila-hoje" ? "📋 FILA DE PRODUÇÃO DE HOJE" : "Temas"}</h3>${entries.length ? entries.map(cardFor).join("") : `<p class="empty-message">Nenhum tema nesta lista.</p>`}</section>`;
-    elements.factoryList.innerHTML = nowPanel + queuePanel + listPanel;
+    elements.factoryList.innerHTML = factoryCurrentFilter === "faca-agora" ? nowPanel + queuePanel : listPanel;
   } catch (error) {
     console.error("[Metas Estudo] Erro ao carregar Fábrica de Resumos", error);
     showFactoryErrorMessage();
@@ -2762,7 +2794,10 @@ function factoryGoToNext(currentId = "") {
 }
 function toggleFactoryDetail(id) {
   factoryOpenDetailId = factoryOpenDetailId === id ? "" : id;
+  if (factoryOpenDetailId) factoryCurrentFilter = "faca-agora";
   renderFactory();
+  const target = factoryOpenDetailId ? document.querySelector(`[data-factory-card="${CSS.escape(factoryOpenDetailId)}"]`) : document.getElementById("factoryDoNow");
+  target?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function factoryMaterialUniqueKey(factoryItemId, factoryModuleKey, factoryFormat) {
