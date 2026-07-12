@@ -2335,7 +2335,7 @@ function normalizeFactoryTriagemStatus(item = {}, modules = {}) {
 function normalizeFactoryItem(item = {}) {
   const now = new Date().toISOString();
   const modules = normalizeFactoryModules(item.modules || item.modulos || {}, item);
-  const status = FACTORY_STATUSES.includes(item.status) ? item.status : factoryOverallStatus(modules);
+  const status = factoryOverallStatus(modules);
   const triagemStatus = normalizeFactoryTriagemStatus(item, modules);
   return {
     id: item.id || createId(),
@@ -2668,11 +2668,11 @@ function exactFactoryGoalMatches(goal = {}, agenda = []) {
   });
   return { items: exact, mode: exact.length ? "correspondência exata normalizada por disciplina, assunto principal e subassunto" : "sem vínculo exato" };
 }
-function factoryTodayGroups(agenda = []) {
-  const todayGoals = (state.dailyGoals || []).filter((goal) => (goal.date || goal.data) === todayISO());
+function factoryGoalGroupsForDate(date = todayISO(), agenda = []) {
+  const dayGoals = (state.dailyGoals || []).filter((goal) => (goal.date || goal.data) === date);
   const groups = new Map();
   const modes = new Set();
-  todayGoals.forEach((goal) => {
+  dayGoals.forEach((goal) => {
     const match = exactFactoryGoalMatches(goal, agenda);
     if (match.items.length) modes.add(match.mode);
     match.items.forEach((item) => {
@@ -2683,15 +2683,38 @@ function factoryTodayGroups(agenda = []) {
       if (subtopic) group.subtopics.add(subtopic);
     });
   });
-  lastFactoryTodayInfo = { goals: todayGoals.length, matched: groups.size, matchModes: [...modes] };
-  return [...groups.values()].map((group) => ({ ...group, subtopics: [...group.subtopics].sort((a,b)=>a.localeCompare(b,"pt-BR")) }));
+  if (date === todayISO()) lastFactoryTodayInfo = { goals: dayGoals.length, matched: groups.size, matchModes: [...modes] };
+  return [...groups.values()].map((group) => ({ ...group, date, subtopics: [...group.subtopics].sort((a,b)=>a.localeCompare(b,"pt-BR")) }));
 }
-function factoryTodayQueue(agenda = ensureFactoryAgenda()) {
-  const groups = factoryTodayGroups(agenda.filter((item) => item.editalActive !== false));
-  const order = new Map((state.dailyGoals || []).filter((g) => (g.date || g.data) === todayISO()).map((g, i) => [g.id || g.syllabusItemId || `${g.discipline}|${g.subject}|${i}`, i]));
+function factoryTodayGroups(agenda = []) { return factoryGoalGroupsForDate(todayISO(), agenda); }
+function factoryQueueForDate(date = todayISO(), agenda = ensureFactoryAgenda()) {
+  const groups = factoryGoalGroupsForDate(date, agenda.filter((item) => item.editalActive !== false));
+  const order = new Map((state.dailyGoals || []).filter((g) => (g.date || g.data) === date).map((g, i) => [g.id || g.syllabusItemId || `${g.discipline}|${g.subject}|${i}`, i]));
   const priorityRank = { Alta: 0, Média: 1, Baixa: 2 };
   return groups.map((entry) => ({ ...entry, sortIndex: Math.min(...entry.goals.map((g, i) => order.get(g.id || g.syllabusItemId || `${g.discipline}|${g.subject}|${i}`) ?? i)) }))
-    .sort((a, b) => a.sortIndex - b.sortIndex || (a.item.status === "Em produção" ? 0 : 1) - (b.item.status === "Em produção" ? 0 : 1) || (priorityRank[a.item.prioridade] ?? 9) - (priorityRank[b.item.prioridade] ?? 9) || String(a.item.dataPlanejada || "9999-99-99").localeCompare(String(b.item.dataPlanejada || "9999-99-99")) || canonical(a.item.editalLink?.references?.[0] || a.item.tema).localeCompare(canonical(b.item.editalLink?.references?.[0] || b.item.tema)));
+    .sort((a, b) => a.sortIndex - b.sortIndex || (factoryOverallStatus(a.item.modules) === "Em produção" ? 0 : 1) - (factoryOverallStatus(b.item.modules) === "Em produção" ? 0 : 1) || (priorityRank[a.item.prioridade] ?? 9) - (priorityRank[b.item.prioridade] ?? 9) || String(a.item.dataPlanejada || "9999-99-99").localeCompare(String(b.item.dataPlanejada || "9999-99-99")) || canonical(a.item.editalLink?.references?.[0] || a.item.tema).localeCompare(canonical(b.item.editalLink?.references?.[0] || b.item.tema)));
+}
+function factoryTodayQueue(agenda = ensureFactoryAgenda()) { return factoryQueueForDate(todayISO(), agenda); }
+function factoryResumoAulaPending(entry = {}) {
+  const item = entry.item || entry;
+  const modules = normalizeFactoryModules(item.modules || {}, item);
+  return !factoryThemeIsCompleted(modules) && !factoryResumoAulaReady({ ...item, modules });
+}
+function factoryDoNowQueue(agenda = ensureFactoryAgenda()) {
+  const activeAgenda = agenda.filter((item) => item.editalActive !== false);
+  const today = todayISO();
+  const dates = [...new Set((state.dailyGoals || []).map((goal) => goal.date || goal.data).filter((date) => date && date <= today))].sort();
+  const seen = new Set();
+  const overdue = [];
+  const current = [];
+  dates.forEach((date) => {
+    factoryQueueForDate(date, activeAgenda).forEach((entry) => {
+      if (seen.has(entry.item.id) || !factoryResumoAulaPending(entry)) return;
+      seen.add(entry.item.id);
+      (date < today ? overdue : current).push({ ...entry, sourceDate: date });
+    });
+  });
+  return [...overdue, ...current];
 }
 function factoryActionButtonHTML(item, primary = true) {
   const next = factoryNextAction(item);
@@ -2725,9 +2748,10 @@ function renderFactory() {
       button.setAttribute("aria-pressed", active ? "true" : "false");
     });
     const activeAgenda = agenda.filter((item) => item.editalActive !== false);
-    const queue = factoryTodayQueue(activeAgenda);
+    const todayQueue = factoryTodayQueue(activeAgenda);
+    const queue = factoryDoNowQueue(activeAgenda);
     const completedCount = activeAgenda.filter((item) => factoryThemeIsCompleted(normalizeFactoryModules(item.modules || {}))).length;
-    if (elements.factorySummary) elements.factorySummary.innerHTML = `<article class="stat-card factory-summary-now">${queue[0] ? factoryThemeHighlightHTML(queue[0].item, factoryRecorteHoje(queue[0])) : `<span>FAÇA AGORA</span><strong>-</strong>`}</article><article class="stat-card"><span>Fila de hoje</span><strong>${queue.length}</strong></article><article class="stat-card"><span>Assuntos principais</span><strong>${syncInfo.subjects}</strong></article><article class="stat-card"><span>Concluídos</span><strong>${completedCount}</strong></article>`;
+    if (elements.factorySummary) elements.factorySummary.innerHTML = `<article class="stat-card factory-summary-now">${queue[0] ? factoryThemeHighlightHTML(queue[0].item, factoryRecorteHoje(queue[0])) : `<span>FAÇA AGORA</span><strong>-</strong>`}</article><article class="stat-card"><span>Fila de hoje</span><strong>${todayQueue.length}</strong></article><article class="stat-card"><span>Assuntos principais</span><strong>${syncInfo.subjects}</strong></article><article class="stat-card"><span>Concluídos</span><strong>${completedCount}</strong></article>`;
     if (!agenda.length) { elements.factoryList.textContent = "Nenhum tema cadastrado na Fábrica."; return; }
     const detailsHTML = (entry) => {
       const item = entry.item || entry;
@@ -2752,22 +2776,23 @@ function renderFactory() {
       const modules = normalizeFactoryModules(item.modules || {}, item);
       return !factoryThemeIsCompleted(modules) && !factoryResumoAulaReady({ ...item, modules });
     })?.item.id || "";
-    const nowPanel = nowEntry ? `<section id="factoryDoNow" class="factory-do-now"><h3>🎯 FAÇA AGORA</h3>${cardFor(nowEntry, queue.indexOf(nowEntry))}<div class="card-actions"><button type="button" class="secondary-button" data-open-url="${escapeHTML(factorySourceFolderLink(nowEntry.item) || "")}" ${factorySourceFolderLink(nowEntry.item) ? "" : "disabled"}>Abrir pasta das fontes</button><button type="button" class="secondary-button" data-open-url="${escapeHTML(factoryDestinationFolderLink(nowEntry.item) || "")}" ${factoryDestinationFolderLink(nowEntry.item) ? "" : "disabled"}>Abrir pasta de destino</button><button type="button" class="secondary-button" data-factory-next="${nowEntry.item.id}">Ir para o próximo tema</button></div></section>` : `<section id="factoryDoNow" class="factory-do-now"><h3>🎯 FAÇA AGORA</h3><p class="empty-message">Nenhum tema pendente na fila de hoje.</p></section>`;
-    const queuePanel = `<section class="factory-today-queue"><h3>📋 FILA DE PRODUÇÃO DE HOJE</h3>${queue.length ? `<ol>${queue.map((entry, index) => {
+    const nowPanel = nowEntry ? `<section id="factoryDoNow" class="factory-do-now"><h3>🎯 FAÇA AGORA</h3>${cardFor(nowEntry, queue.indexOf(nowEntry))}<div class="card-actions"><button type="button" class="secondary-button" data-open-url="${escapeHTML(factorySourceFolderLink(nowEntry.item) || "")}" ${factorySourceFolderLink(nowEntry.item) ? "" : "disabled"}>Abrir pasta das fontes</button><button type="button" class="secondary-button" data-open-url="${escapeHTML(factoryDestinationFolderLink(nowEntry.item) || "")}" ${factoryDestinationFolderLink(nowEntry.item) ? "" : "disabled"}>Abrir pasta de destino</button><button type="button" class="secondary-button" data-factory-next="${nowEntry.item.id}">Ir para o próximo tema</button></div></section>` : `<section id="factoryDoNow" class="factory-do-now"><h3>🎯 FAÇA AGORA</h3><p class="empty-message">Nenhum resumo/aula pendente de hoje ou de dias anteriores.</p></section>`;
+    const queuePanel = `<section class="factory-today-queue"><h3>📋 FILA RESUMIDA DE PENDÊNCIAS</h3>${queue.length ? `<ol>${queue.map((entry, index) => {
       const modules = normalizeFactoryModules(entry.item.modules || {}, entry.item);
       const status = factoryOverallStatus(modules);
       const isOpen = factoryOpenDetailId === entry.item.id;
       return `<li><div class="factory-queue-theme">${factoryThemeHighlightHTML(entry.item, factoryRecorteHoje(entry))}</div><div class="item-meta"><strong>${escapeHTML(factoryQueueItemLabel({ ...entry.item, modules }, index, firstPendingId))}</strong> • Etapa: ${escapeHTML(factoryCurrentStage({ ...entry.item, modules }))} • Status: ${escapeHTML(status)}</div><button type="button" class="secondary-button" data-factory-toggle-detail="${entry.item.id}" aria-expanded="${isOpen ? "true" : "false"}">${isOpen ? "Fechar" : "Abrir"}</button></li>`;
-    }).join("")}</ol>` : `<p class="empty-message">Nenhum tema das Metas do Dia na fila.</p>`}</section>`;
+    }).join("")}</ol>` : `<p class="empty-message">Nenhum resumo/aula pendente na fila.</p>`}</section>`;
     let entries = activeAgenda.map((item) => ({ item, subtopics: [] }));
-    if (["faca-agora", "fila-hoje"].includes(factoryCurrentFilter)) entries = queue;
+    if (factoryCurrentFilter === "faca-agora") entries = queue;
+    if (factoryCurrentFilter === "fila-hoje") entries = todayQueue;
     if (factoryCurrentFilter === "aguardando-triagem") entries = entries.filter(({ item }) => normalizeFactoryTriagemStatus(item, item.modules) !== "Concluída");
     if (factoryCurrentFilter === "resumo-aula") entries = entries.filter(({ item }) => !factoryResumoAulaReady(item));
     if (factoryCurrentFilter === "em-producao") entries = entries.filter(({ item }) => factoryOverallStatus(item.modules) === "Em produção");
     if (factoryCurrentFilter === "aguardando-revisao") entries = entries.filter(({ item }) => factoryOverallStatus(item.modules) === "Aguardando revisão");
     if (factoryCurrentFilter === "precisa-refazer") entries = entries.filter(({ item }) => normalizeFactoryTriagemStatus(item, item.modules) === "Precisa refazer" || factoryOverallStatus(item.modules) === "Precisa refazer");
     if (factoryCurrentFilter === "prontos") entries = entries.filter(({ item }) => factoryResumoAulaReady(item));
-    const listPanel = factoryCurrentFilter === "faca-agora" ? "" : `<section class="factory-section"><h3>${factoryCurrentFilter === "fila-hoje" ? "📋 FILA DE PRODUÇÃO DE HOJE" : "Temas"}</h3>${entries.length ? entries.map(cardFor).join("") : `<p class="empty-message">Nenhum tema nesta lista.</p>`}</section>`;
+    const listPanel = factoryCurrentFilter === "faca-agora" ? "" : `<section class="factory-section"><h3>${factoryCurrentFilter === "fila-hoje" ? "📋 FILA RESUMIDA DE PENDÊNCIAS" : "Temas"}</h3>${entries.length ? entries.map(cardFor).join("") : `<p class="empty-message">Nenhum tema nesta lista.</p>`}</section>`;
     elements.factoryList.innerHTML = factoryCurrentFilter === "faca-agora" ? nowPanel + queuePanel : listPanel;
   } catch (error) {
     console.error("[Metas Estudo] Erro ao carregar Fábrica de Resumos", error);
@@ -2787,7 +2812,7 @@ function setFactoryTriagemStatus(id, status) {
   syncFactoryUpdate();
 }
 function factoryGoToNext(currentId = "") {
-  const queue = factoryTodayQueue();
+  const queue = factoryDoNowQueue();
   const currentIndex = queue.findIndex(({ item }) => item.id === currentId);
   const nextEntry = queue.slice(Math.max(0, currentIndex + 1)).find(({ item }) => !factoryResumoAulaReady(item)) || queue.find(({ item }) => item.id !== currentId) || queue[0];
   if (nextEntry) { factoryOpenDetailId = nextEntry.item.id; factoryCurrentFilter = "faca-agora"; renderFactory(); document.getElementById("factoryDoNow")?.scrollIntoView({ behavior: "smooth", block: "start" }); }
