@@ -90,8 +90,8 @@ test('Fábrica operacional organiza faça agora, fila, triagem e resumo pronto c
   assert.match(script, /function factoryCurrentStage\(item = \{\}\)/);
   assert.match(script, /function factoryNextAction\(item = \{\}\)/);
   assert.match(script, /function factoryTodayQueue\(agenda = ensureFactoryAgenda\(\)\)/);
-  assert.match(script, /ASSUNTO DO MATERIAL/);
-  assert.match(script, /RECORTE PROGRAMADO HOJE/);
+  assert.match(script, /ASSUNTO EM PRODUÇÃO/);
+  assert.match(script, /Recorte programado hoje/);
   assert.match(script, /SUBTEMAS ABRANGIDOS|Subtemas abrangidos/);
   assert.match(script, /DETALHES DO TEMA/);
   assert.match(script, /factoryOpenDetailId/);
