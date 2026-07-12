@@ -21,6 +21,23 @@ test('prompts da Fábrica diferenciam pasta, módulos e entrega obrigatória', (
   assert.doesNotMatch(script, /Não gere lei, jurisprudência, peça ou Word final/);
 });
 
+
+test('prompt do módulo PEÇA exige varredura de especificidades temáticas e fontes complementares vinculadas', () => {
+  assert.match(script, /const FACTORY_PECA_PROMPT = `/);
+  assert.match(script, /peca: FACTORY_PECA_PROMPT/);
+  assert.match(script, /USE COMO FONTE PRINCIPAL AS FONTES CLASSIFICADAS COMO PEÇA NA TRIAGEM/);
+  assert.match(script, /LEI, JURISPRUDÊNCIA, RESUMO\/AULA OU ATUALIZAÇÃO\/COMPLEMENTO/);
+  assert.match(script, /VÍNCULO DIRETO E IDENTIFICÁVEL COM A PEÇA ATUAL/);
+  assert.match(script, /## VERIFICAÇÃO OBRIGATÓRIA DE ESPECIFICIDADES TEMÁTICAS/);
+  assert.match(script, /ESPECIFICIDADES TEMÁTICAS DA PEÇA/);
+  assert.match(script, /crimes hediondos ou equiparados/);
+  assert.match(script, /⚠️ LACUNA TEMÁTICA DETECTADA/);
+  assert.match(script, /NÃO CRIE NOVA AULA, NOVA META OU NOVO MÓDULO/);
+  assert.match(script, /Não invente especificidades/);
+  assert.match(script, /MÓDULO: PEÇA\. Use fontes classificadas como PEÇA como base principal/);
+  assert.equal(script, docsScript, 'script.js e docs/script.js devem permanecer sincronizados');
+});
+
 test('materiais automáticos da Fábrica usam chave única e não tratam pasta como arquivo', () => {
   assert.match(script, /function factoryMaterialUniqueKey\(factoryItemId, factoryModuleKey, factoryFormat\)/);
   assert.match(script, /function syncFactoryModuleMaterials\(item\)/);
