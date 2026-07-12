@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-20260712-corrige-calculo-carga-horaria";
+const CACHE_NAME = "metas-estudo-20260712-organiza-materiais";
 const FILES_TO_CACHE = [
   "./",
   "index.html",

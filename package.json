@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260712-corrige-calculo-carga-horaria",
+  "version": "20260712-organiza-materiais",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

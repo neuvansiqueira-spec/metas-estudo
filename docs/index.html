@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260712-corrige-calculo-carga-horaria" />
+  <link rel="stylesheet" href="style.css?v=20260712-organiza-materiais" />
 </head>
 <body>
   <header class="hero">
@@ -358,7 +358,11 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
         <label>Assunto<select id="materialFilterSubject"><option value="">Todos</option></select></label>
         <label>Tipo<select id="materialFilterType"><option value="">Todos</option></select></label>
         <label>Origem<select id="materialFilterOrigin"><option value="">Todas</option></select></label>
-        <label class="wide">Texto livre<input id="materialFilterText" type="search" placeholder="Buscar por título, tags, observações ou link" /></label>
+        <label class="wide">Buscar material<input id="materialFilterText" type="search" placeholder="Buscar por disciplina, assunto, tipo, origem ou título" /></label>
+        <label>Situação<select id="materialFilterSituation"><option value="">Todas</option><option value="needsConfiguration">A configurar</option><option value="ready">Prontos para estudar</option><option value="studying">Em estudo</option><option value="completed">Concluídos</option><option value="unlinked">Sem vínculo</option></select></label>
+        <label>Estimativa<select id="materialFilterEstimate"><option value="">Todos</option><option value="with">Com estimativa</option><option value="without">Sem estimativa</option><option value="automatic">Automática</option><option value="manual">Manual</option></select></label>
+        <label>Ordenação<select id="materialSort"><option value="topic">Disciplina e assunto</option><option value="updated">Atualizados recentemente</option><option value="largestEstimate">Maior carga horária</option><option value="largestRemaining">Maior tempo restante</option><option value="largestProgress">Maior progresso</option><option value="smallestProgress">Menor progresso</option></select></label>
+        <button id="clearMaterialFilters" type="button" class="secondary-button">Limpar filtros</button>
       </div>
       <div id="materialsList" class="cards-list empty-message" aria-live="polite"></div>
     </section>
@@ -766,8 +770,8 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
   </aside>
   <div id="timerMotivationalToast" class="timer-motivational-toast" aria-live="polite" aria-atomic="true" hidden></div>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260712-corrige-calculo-carga-horaria</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260712-organiza-materiais</p></footer>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="script.js?v=20260712-corrige-calculo-carga-horaria"></script>
+  <script src="script.js?v=20260712-organiza-materiais"></script>
 </body>
 </html>
