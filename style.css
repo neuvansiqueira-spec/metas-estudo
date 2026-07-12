@@ -234,6 +234,7 @@ textarea { width: 100%; border-radius: 14px; border: 1px solid var(--border); pa
 .side-nav a:hover, .side-nav a.active { background: #eff6ff; color: var(--primary-dark); }
 .nav-links a.active { background: rgba(255,255,255,.95); color: #1e3a8a; border-color: rgba(255,255,255,.95); }
 .app-view { display: none; }
+.app-view[hidden] { display: none !important; }
 .app-view.active { display: block; animation: screenIn .18s ease; }
 .grid-layout.app-view.active { display: grid; }
 .dashboard-tools { margin-top: 22px; }
@@ -2403,7 +2404,8 @@ th {
 .qb-diagnostics-grid summary { cursor: pointer; color: #123f78; font-weight: 700; }
 @media (max-width: 900px) { .qb-diagnostics-grid { grid-template-columns: 1fr; } }
 
-.question-bank-screen { display: grid; gap: 18px; }
+.question-bank-screen { gap: 18px; }
+.question-bank-screen.app-view.active { display: grid; }
 .qb-section { border: 1px solid rgba(18,63,120,.12); border-radius: 18px; padding: 18px; background: linear-gradient(180deg,#fff,#fbfdff); box-shadow: 0 8px 22px rgba(18,63,120,.06); }
 .qb-summary { padding-bottom: 14px; }
 .qb-stats-grid { grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); }
