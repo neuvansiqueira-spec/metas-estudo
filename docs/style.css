@@ -2867,3 +2867,70 @@ th {
 @media (prefers-reduced-motion: reduce) {
   .timer-motivational-toast { transition: none; }
 }
+/* Fábrica de Resumos: destaque visual seguro do assunto e controle local de quebras */
+#view-fabrica-resumos,
+#view-fabrica-resumos * {
+  min-width: 0;
+  max-width: 100%;
+  word-break: normal;
+  hyphens: none;
+  white-space: normal;
+  line-height: 1.45;
+  overflow-wrap: break-word;
+}
+#view-fabrica-resumos .factory-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+#view-fabrica-resumos .factory-card-heading { flex: 1 1 auto; }
+#view-fabrica-resumos .factory-status-badge { flex: 0 0 auto; }
+#view-fabrica-resumos .factory-theme-highlight {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #bfdbfe;
+  border-left: 5px solid #2563eb;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(239, 246, 255, .96), rgba(255, 255, 255, .92));
+  color: var(--text);
+}
+#view-fabrica-resumos .factory-theme-label {
+  margin: 0;
+  color: #1d4ed8;
+  font-size: .74rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+#view-fabrica-resumos .factory-theme-title {
+  margin: 0;
+  color: #0f172a;
+  font-size: clamp(1.18rem, 1rem + 1vw, 1.75rem);
+  font-weight: 950;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: none;
+}
+#view-fabrica-resumos .factory-theme-discipline,
+#view-fabrica-resumos .factory-theme-recorte {
+  margin: 0;
+  color: #475569;
+  font-size: clamp(.88rem, .82rem + .22vw, 1rem);
+}
+#view-fabrica-resumos .factory-theme-discipline strong,
+#view-fabrica-resumos .factory-theme-recorte strong { color: #1e3a8a; }
+#view-fabrica-resumos .factory-summary-now { grid-column: span 2; }
+#view-fabrica-resumos .factory-summary-now .factory-theme-highlight { padding: 10px 12px; }
+#view-fabrica-resumos .factory-queue-theme .factory-theme-highlight { margin-bottom: 6px; }
+@media (max-width: 760px) {
+  #view-fabrica-resumos .factory-card-header { flex-direction: column; }
+  #view-fabrica-resumos .factory-status-badge { align-self: flex-start; }
+  #view-fabrica-resumos .factory-summary-now { grid-column: auto; }
+}
+@media (max-width: 430px) {
+  #view-fabrica-resumos .factory-theme-highlight { padding: 10px 12px; border-radius: 14px; }
+  #view-fabrica-resumos .factory-theme-title { font-size: clamp(1.08rem, 7vw, 1.38rem); }
+}
