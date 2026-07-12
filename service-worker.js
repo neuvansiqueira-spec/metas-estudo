@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-20260712-fabrica-assunto-visual-v1";
+const CACHE_NAME = "metas-estudo-20260712-peca-regimes-especiais-v2";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
