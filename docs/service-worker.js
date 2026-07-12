@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-20260712-organiza-materiais";
+const CACHE_NAME = "metas-estudo-20260712-restaura-materiais-estavel";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
