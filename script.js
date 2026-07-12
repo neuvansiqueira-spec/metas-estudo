@@ -71,16 +71,99 @@ function migrateMaterialEstimates(targetState = state) {
   if (!targetState.migrations[MATERIAL_ESTIMATE_MIGRATION_ID]) targetState.migrations[MATERIAL_ESTIMATE_MIGRATION_ID] = new Date().toISOString();
   return changed;
 }
+
+const SEGMENTED_GOAL_MIGRATION_ID = "segmentedDynamicStudyGoalsV1";
+function validEstimatedMinutes(value) { const n = Number(value); return Number.isFinite(n) && n > 0 ? Math.round(n) : 0; }
+function splitEstimatedMinutesIntoSegments(totalMinutes) {
+  const total = validEstimatedMinutes(totalMinutes);
+  if (!total) return [];
+  if (total <= 90) return [total];
+  const segments = [];
+  let remaining = total;
+  while (remaining > 60) {
+    segments.push(60);
+    remaining -= 60;
+  }
+  if (remaining > 0) segments.push(remaining);
+  return segments;
+}
+
+function nextSchedulableSegmentDate(startDate, segmentOffset, segmentMinutes) {
+  let date = startDate;
+  let placed = 0;
+  for (let guard = 0; guard < 120; guard++) {
+    const availability = availabilityForDate(date);
+    const capacity = Math.max(0, Number(availability.hours || 0) * 60);
+    const planned = (state.dailyGoals || []).filter((g) => g.date === date).reduce((sum, goal) => sum + Number(goal.minutes || 0), 0);
+    const usable = availability.type !== "indisponível" && (!capacity || planned + segmentMinutes <= capacity);
+    if (usable && placed++ >= segmentOffset) return date;
+    date = addDays(date, 1);
+  }
+  return addDays(startDate, segmentOffset);
+}
+function dynamicGoalSegmentKey(goal = {}) { return [goal.syllabusItemId || "", goal.estimateSourceId || "", goal.segmentIndex || 1, goal.segmentCount || 1].join("|"); }
+function normalizeSegmentedGoalFields(goal = {}) {
+  if (!goal || typeof goal !== "object") return goal;
+  if (goal.estimatedTotalMinutes !== undefined) goal.estimatedTotalMinutes = validEstimatedMinutes(goal.estimatedTotalMinutes);
+  if (goal.segmentMinutes !== undefined) goal.segmentMinutes = validEstimatedMinutes(goal.segmentMinutes);
+  if (goal.segmentIndex !== undefined) goal.segmentIndex = Math.max(1, Number.parseInt(goal.segmentIndex, 10) || 1);
+  if (goal.segmentCount !== undefined) goal.segmentCount = Math.max(1, Number.parseInt(goal.segmentCount, 10) || 1);
+  goal.estimateSourceId ||= "";
+  return goal;
+}
+function migrateSegmentedGoals(targetState = state) {
+  targetState.dailyGoals ||= []; targetState.migrations ||= {};
+  let changed = !targetState.migrations[SEGMENTED_GOAL_MIGRATION_ID];
+  targetState.dailyGoals.forEach((goal) => { const before = JSON.stringify(goal); normalizeSegmentedGoalFields(goal); changed ||= before !== JSON.stringify(goal); });
+  if (!targetState.migrations[SEGMENTED_GOAL_MIGRATION_ID]) targetState.migrations[SEGMENTED_GOAL_MIGRATION_ID] = new Date().toISOString();
+  return changed;
+}
+function estimateMaterialForItem(item = {}) {
+  const linked = resolveAvailableMaterials({ discipline: item.discipline, subject: item.subject, syllabusItemId: item.id }).filter((m) => m.source !== "factory" || m.factoryModuleKey === "resumoAula");
+  const material = linked.find((m) => validEstimatedMinutes(m.manualEstimatedMinutes)) || linked.find((m) => validEstimatedMinutes(m.estimatedMinutes));
+  if (!material) return null;
+  const manual = validEstimatedMinutes(material.manualEstimatedMinutes);
+  const estimated = validEstimatedMinutes(material.estimatedMinutes);
+  const minutes = manual || estimated;
+  return minutes ? { material, minutes, source: manual ? "manualEstimatedMinutes" : "estimatedMinutes" } : null;
+}
+function plannedStudyStatsForMaterial(material = {}) {
+  const goals = (state.dailyGoals || []).filter((g) => g.estimateSourceId === material.id || (g.syllabusItemId && (g.syllabusItemId === material.syllabusItemId || (material.syllabusItemIds || []).includes(g.syllabusItemId))));
+  const planned = goals.reduce((a,g)=>a+Number(g.minutes||0),0);
+  const done = goals.reduce((a,g)=>a+goalTotalActualMinutes(g),0);
+  const total = validEstimatedMinutes(material.estimatedMinutes);
+  const segments = splitEstimatedMinutesIntoSegments(total).length;
+  const affectable = goals.filter((g)=>g.date >= todayISO() && shouldRecalculateDailyGoal(g)).length;
+  return { planned, done, remaining: Math.max(0, total - done), segments, affectable };
+}
+function updateFuturePendingGoalsForMaterial(materialId) {
+  const material = state.materials.find((m) => m.id === materialId); if (!material) return;
+  const stats = plannedStudyStatsForMaterial(material);
+  if (!stats.affectable) return alert("Não há metas futuras pendentes afetáveis para este material.");
+  if (!confirm(`Atualizar metas futuras pendentes? ${stats.affectable} meta(s) serão afetadas. Metas concluídas, iniciadas, com tempo, histórico, adiadas ou reagendadas serão preservadas.`)) return;
+  const minutes = validEstimatedMinutes(material.manualEstimatedMinutes) || validEstimatedMinutes(material.estimatedMinutes);
+  const segments = splitEstimatedMinutesIntoSegments(minutes);
+  let updated = 0;
+  state.dailyGoals.filter((g)=>g.date >= todayISO() && shouldRecalculateDailyGoal(g) && (g.estimateSourceId === material.id || g.syllabusItemId === material.syllabusItemId || (material.syllabusItemIds || []).includes(g.syllabusItemId))).forEach((goal, i) => {
+    const previous = Number(goal.minutes) || 0; const segment = segments[i % segments.length] || minutes;
+    goal.minutes = segment; goal.tempo_sugerido_minutos = segment; goal.estimatedTotalMinutes = minutes; goal.segmentMinutes = segment; goal.segmentIndex = Math.min(i + 1, segments.length); goal.segmentCount = segments.length; goal.estimateSourceId = material.id;
+    appendGoalHistory(goal, `Carga planejada recalculada após atualização do material. Estimativa anterior: ${previous} minutos. Nova estimativa: ${segment} minutos. Data: ${new Date().toLocaleString("pt-BR")}.`); updated++;
+  });
+  saveData(); render(); alert(`${updated} meta(s) futura(s) pendente(s) atualizada(s).`); autoSyncAfterSave("material-estimate-goals");
+}
+
 function materialEstimateOriginLabel(material = {}) { return material.estimateMode === "manual" ? "ajuste manual" : "cálculo automático"; }
 function materialEstimateSummaryHTML(material = {}) {
   const m = normalizeMaterialEstimateFields(material);
-  if (!m.estimatedMinutes) return `<p class="item-meta material-estimate-summary">Carga estimada: sem estimativa cadastrada. Esta carga não altera metas nesta etapa.</p>`;
+  if (!m.estimatedMinutes) return `<p class="item-meta material-estimate-summary">Carga estimada: sem estimativa cadastrada. Sem estimativa válida para integrar às metas.</p>`;
   const density = m.estimateMode === "manual" ? "" : `<span>Densidade: ${escapeHTML(MATERIAL_DENSITY_LABELS[m.materialDensity])}</span>`;
   return `<div class="card-meta-grid material-estimate-summary"><span>${m.usefulPages} páginas úteis</span>${density}<span>Carga estimada: ${formatHours(m.estimatedMinutes)}</span><span>Origem: ${escapeHTML(materialEstimateOriginLabel(m))}</span><span>Tempo efetivamente estudado: registrado no histórico</span><span>Tempo restante: não calculado nesta etapa</span></div>`;
 }
 function materialEstimateFormHTML(material = {}) {
   const m = normalizeMaterialEstimateFields(material);
-  return `<section class="material-estimate-box"><h4>Carga horária do material</h4><p class="item-meta">Páginas úteis são páginas com conteúdo efetivo de estudo. Desconsidere capa, folha de rosto, sumário, páginas em branco, referências isoladas, páginas administrativas e repetições sem conteúdo novo.</p><div class="form-grid compact"><label>Páginas úteis<input data-material-estimate-field="usefulPages" data-material-id="${m.id}" type="number" min="0" step="1" value="${m.usefulPages || ""}"></label><label>Densidade<select data-material-estimate-field="materialDensity" data-material-id="${m.id}"><option value="light" ${m.materialDensity==="light"?"selected":""}>Leve</option><option value="normal" ${m.materialDensity==="normal"?"selected":""}>Normal</option><option value="dense" ${m.materialDensity==="dense"?"selected":""}>Densa</option></select></label><label>Modo da estimativa<select data-material-estimate-field="estimateMode" data-material-id="${m.id}"><option value="automatic" ${m.estimateMode==="automatic"?"selected":""}>Automático</option><option value="manual" ${m.estimateMode==="manual"?"selected":""}>Manual</option></select></label><label>Tempo manual (min, blocos de 30)<input data-material-estimate-field="manualEstimatedMinutes" data-material-id="${m.id}" type="number" min="30" step="30" value="${m.manualEstimatedMinutes || ""}"></label></div><div class="card-meta-grid"><span>Tempo calculado automaticamente: ${m.automaticEstimatedMinutes ? formatHours(m.automaticEstimatedMinutes) : "sem estimativa"}</span><span>Tempo manual: ${m.manualEstimatedMinutes ? formatHours(m.manualEstimatedMinutes) : "não informado"}</span><span>Carga horária final: ${m.estimatedMinutes ? formatHours(m.estimatedMinutes) : "sem estimativa"}</span><span>Origem da estimativa: ${escapeHTML(materialEstimateOriginLabel(m))}</span><span>Última atualização: ${m.estimatedAt ? new Date(m.estimatedAt).toLocaleString("pt-BR") : "Nunca"}</span></div><div class="actions"><button type="button" class="secondary-button" data-calculate-material-estimate="${m.id}">Calcular</button><button type="button" data-save-material-estimate="${m.id}">Salvar estimativa</button><span class="item-meta" data-material-estimate-message="${m.id}" aria-live="polite"></span></div></section>`;
+  const stats = typeof state !== "undefined" ? plannedStudyStatsForMaterial(m) : { planned: 0, done: 0, remaining: m.estimatedMinutes || 0, segments: splitEstimatedMinutesIntoSegments(m.estimatedMinutes).length, affectable: 0 };
+  const updateButton = m.estimatedMinutes && stats.affectable ? `<button type="button" class="secondary-button" data-update-material-goals="${m.id}">Atualizar metas futuras pendentes</button>` : "";
+  return `<section class="material-estimate-box"><h4>Carga horária do material</h4><p class="item-meta">Páginas úteis são páginas com conteúdo efetivo de estudo. Desconsidere capa, folha de rosto, sumário, páginas em branco, referências isoladas, páginas administrativas e repetições sem conteúdo novo.</p><div class="form-grid compact"><label>Páginas úteis<input data-material-estimate-field="usefulPages" data-material-id="${m.id}" type="number" min="0" step="1" value="${m.usefulPages || ""}"></label><label>Densidade<select data-material-estimate-field="materialDensity" data-material-id="${m.id}"><option value="light" ${m.materialDensity==="light"?"selected":""}>Leve</option><option value="normal" ${m.materialDensity==="normal"?"selected":""}>Normal</option><option value="dense" ${m.materialDensity==="dense"?"selected":""}>Densa</option></select></label><label>Modo da estimativa<select data-material-estimate-field="estimateMode" data-material-id="${m.id}"><option value="automatic" ${m.estimateMode==="automatic"?"selected":""}>Automático</option><option value="manual" ${m.estimateMode==="manual"?"selected":""}>Manual</option></select></label><label>Tempo manual (min, blocos de 30)<input data-material-estimate-field="manualEstimatedMinutes" data-material-id="${m.id}" type="number" min="30" step="30" value="${m.manualEstimatedMinutes || ""}"></label></div><div class="card-meta-grid"><span>Carga total estimada: ${m.estimatedMinutes ? formatHours(m.estimatedMinutes) : "sem estimativa"}</span><span>Tempo já planejado: ${formatHours(stats.planned)}</span><span>Tempo concluído: ${formatHours(stats.done)}</span><span>Tempo restante: ${formatHours(stats.remaining)}</span><span>Quantidade de blocos: ${stats.segments || 0}</span><span>Metas futuras pendentes afetáveis: ${stats.affectable || 0}</span><span>Tempo calculado automaticamente: ${m.automaticEstimatedMinutes ? formatHours(m.automaticEstimatedMinutes) : "sem estimativa"}</span><span>Tempo manual: ${m.manualEstimatedMinutes ? formatHours(m.manualEstimatedMinutes) : "não informado"}</span><span>Origem da estimativa: ${escapeHTML(materialEstimateOriginLabel(m))}</span><span>Última atualização: ${m.estimatedAt ? new Date(m.estimatedAt).toLocaleString("pt-BR") : "Nunca"}</span></div><div class="actions"><button type="button" class="secondary-button" data-calculate-material-estimate="${m.id}">Calcular</button><button type="button" data-save-material-estimate="${m.id}">Salvar estimativa</button>${updateButton}<span class="item-meta" data-material-estimate-message="${m.id}" aria-live="polite"></span></div></section>`;
 }
 function collectMaterialEstimateFromCard(id) {
   const get = (field) => document.querySelector(`[data-material-estimate-field="${field}"][data-material-id="${CSS.escape(id)}"]`)?.value ?? "";
@@ -848,7 +931,7 @@ function normalizeGoalTimeFields(goal) {
   goal.actualMinutes = goal.studyActualMinutes + goal.questionActualMinutes;
   return goal;
 }
-state.dailyGoals.forEach((goal) => { goal.date ||= goal.data || todayISO(); goal.data ||= goal.date; goal.discipline ||= goal.disciplina || "Sem disciplina"; goal.subject ||= goal.assunto || "Assunto"; goal.type ||= goal.tipo || "Meta"; goal.minutes = Number(goal.minutes ?? goal.tempo_sugerido_minutos) || 0; normalizeGoalTimeFields(goal); goal.status ||= "Pendente"; });
+state.dailyGoals.forEach((goal) => { goal.date ||= goal.data || todayISO(); goal.data ||= goal.date; goal.discipline ||= goal.disciplina || "Sem disciplina"; goal.subject ||= goal.assunto || "Assunto"; goal.type ||= goal.tipo || "Meta"; goal.minutes = Number(goal.minutes ?? goal.tempo_sugerido_minutos) || 0; normalizeGoalTimeFields(goal); normalizeSegmentedGoalFields(goal); goal.status ||= "Pendente"; });
 state.questionLogs ||= []; state.questionBank ||= []; state.questionBankSessions ||= []; state.questionErrorNotebook ||= carregarCadernoErros();
 state.smartReviews ||= [];
 state.simulados ||= readJSONStorage(SIMULADOS_STORAGE_KEY, []);
@@ -1817,7 +1900,7 @@ function renderBackupPreview(payload) {
   return normalized;
 }
 function replaceState(nextState) { Object.keys(state).forEach((key) => delete state[key]); Object.assign(state, { ...cloneData(defaultState), ...(nextState || {}) }); state.edital = { ...defaultState.edital, ...(state.edital || {}) }; state.syllabusItems ||= []; state.schedulableSettings ||= {}; state.dailyGoals ||= []; state.questionLogs ||= []; state.questionBank ||= []; state.questionBankSessions ||= []; state.questionErrorNotebook ||= carregarCadernoErros();
-state.smartReviews ||= []; state.simulados ||= []; state.planning = normalizePlanningState(state.planning); state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences); state.settings.timerMode ||= "countdown"; state.materials ||= []; migrateMaterialEstimates(state); state.factoryItems ||= []; state.factoryAgenda ||= []; state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) }); state.disciplineWeights ||= {}; state.monthlyGoals ||= {}; }
+state.smartReviews ||= []; state.simulados ||= []; state.planning = normalizePlanningState(state.planning); state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences); state.settings.timerMode ||= "countdown"; state.materials ||= []; migrateMaterialEstimates(state); migrateSegmentedGoals(state); state.factoryItems ||= []; state.factoryAgenda ||= []; state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) }); state.disciplineWeights ||= {}; state.monthlyGoals ||= {}; }
 function mergeArrays(current = [], incoming = [], keyFn = (item) => item?.id || JSON.stringify(item)) { const seen = new Set(current.map(keyFn)); incoming.forEach((item) => { const key = keyFn(item); if (!seen.has(key)) { current.push(item); seen.add(key); } }); return current; }
 function mergeBackupData(data = {}) {
   mergeArrays(state.subjects, data.subjects || [], (item) => canonical(item.name || item.id));
@@ -4093,8 +4176,16 @@ function makeGoal(item, date, type) {
   const dayType = availabilityForDate(date).type;
   const factor = dayType === "plantão" ? 0.6 : dayType === "folga" || dayType === "estudo forte" ? 1.25 : dayType === "indisponível" ? 0.2 : dayType === "estudo leve" ? 0.75 : 1;
   const baseMinutes = ({ "Estudo novo": 60, "Questões": 45, "Revisão": 30, "Reforço": 45 })[type] || 45;
-  const minutes = Math.min(dayType === "folga" || dayType === "estudo forte" ? 90 : Infinity, Math.max(30, Math.round(baseMinutes * factor)));
-  return { id: createId(), date, data: date, discipline: item.discipline, disciplina: item.discipline, syllabusItemId: item.id, subject: item.subject, assunto: item.subject, referencia_edital: item.reference || "", type, tipo: type.toLowerCase(), minutes, tempo_sugerido_minutos: minutes, priority: item.priority, prioridade: item.priority, status: "Pendente", origin: "edital verticalizado", origem: "edital verticalizado", notes: `Gerada automaticamente do edital verticalizado. Status: ${item.status}; domínio: ${item.domain}; incidência do assunto: ${normalizeSubjectIncidence(item.weight)} = ${subjectIncidenceLabel(item.weight)}.`, observacoes: `Priorizada por status, domínio, prioridade, incidência do assunto e pendência da disciplina.` };
+  const fallbackMinutes = Math.min(dayType === "folga" || dayType === "estudo forte" ? 90 : Infinity, Math.max(30, Math.round(baseMinutes * factor)));
+  const estimate = type === "Estudo novo" ? estimateMaterialForItem(item) : null;
+  const customMinutes = validEstimatedMinutes(item.customStudyMinutes || item.customMinutes || item.tempoPersonalizadoMinutos || item.tempo_personalizado_minutos || item.plannedMinutes);
+  const totalMinutes = estimate?.minutes || customMinutes || fallbackMinutes;
+  const segments = type === "Estudo novo" ? splitEstimatedMinutesIntoSegments(totalMinutes) : [fallbackMinutes];
+  return segments.map((segmentMinutes, index) => {
+    const partLabel = segments.length > 1 ? ` — parte ${index + 1}/${segments.length}` : "";
+    const segmentDate = estimate && segments.length > 1 ? nextSchedulableSegmentDate(date, index, segmentMinutes) : date;
+    return { id: createId(), date: segmentDate, data: segmentDate, discipline: item.discipline, disciplina: item.discipline, syllabusItemId: item.id, subject: `${item.subject}${partLabel}`, assunto: `${item.subject}${partLabel}`, baseSubject: item.subject, referencia_edital: item.reference || "", type, tipo: type.toLowerCase(), minutes: segmentMinutes, tempo_sugerido_minutos: segmentMinutes, estimatedTotalMinutes: estimate ? totalMinutes : 0, segmentMinutes: estimate ? segmentMinutes : 0, segmentIndex: estimate ? index + 1 : 0, segmentCount: estimate ? segments.length : 0, estimateSourceId: estimate?.material?.id || "", priority: item.priority, prioridade: item.priority, status: "Pendente", origin: "edital verticalizado", origem: "edital verticalizado", notes: `Gerada automaticamente do edital verticalizado. Status: ${item.status}; domínio: ${item.domain}; incidência do assunto: ${normalizeSubjectIncidence(item.weight)} = ${subjectIncidenceLabel(item.weight)}.${estimate ? ` Carga horária integrada do material ${estimate.material.title || estimate.material.id}: ${totalMinutes} min (${estimate.source}).` : ""}`, observacoes: `Priorizada por status, domínio, prioridade, incidência do assunto e pendência da disciplina.` };
+  });
 }
 function pickCandidate(candidates, used, predicate = () => true, chosen = [], maxGoals = 4, disciplineLimit = Infinity, allowedDisciplines = null) { const counts = chosen.reduce((a,g)=>(a[g.discipline]=(a[g.discipline]||0)+1,a),{}); const usedDisciplines = new Set(chosen.map((g)=>g.discipline)); return candidates.find((item) => !used.has(item.id) && predicate(item) && (!allowedDisciplines || allowedDisciplines.has(item.discipline)) && (usedDisciplines.has(item.discipline) || usedDisciplines.size < disciplineLimit) && ((counts[item.discipline]||0) < Math.ceil(maxGoals/2) || Object.keys(counts).length <= 1)); }
 function generateGoalsForDate(date, opts = {}) {
@@ -4117,7 +4208,7 @@ function generateGoalsForDate(date, opts = {}) {
     [Math.max(1,Math.floor(maxGoals*.1)), (i)=>i.status==="Revisar" || goalTypeForItem(i)==="Revisão"]
   ];
   const used = new Set(), chosen = [];
-  const addOne = (pred) => { const item = pickCandidate(candidates, used, pred, chosen, maxGoals, disciplineLimit, allowedDisciplines); if (item && chosen.length < maxGoals) { used.add(item.id); chosen.push(makeGoal(item, date, goalTypeForItem(item))); } };
+  const addOne = (pred) => { const item = pickCandidate(candidates, used, pred, chosen, maxGoals, disciplineLimit, allowedDisciplines); if (item && chosen.length < maxGoals) { used.add(item.id); chosen.push(...makeGoal(item, date, goalTypeForItem(item))); } };
   buckets.forEach(([n,p]) => { for (let i=0;i<n && chosen.length<maxGoals;i++) addOne(p); });
   while (new Set(chosen.map((g)=>g.discipline)).size < minDisc && chosen.length < maxGoals) addOne((i)=>!chosen.some((g)=>g.discipline===i.discipline));
   while (chosen.length < Math.min(maxGoals, candidates.length)) addOne(()=>true);
@@ -4140,7 +4231,7 @@ function generationShortageMessage(goals, requestedTopics, label) {
 function uniqueGoalsBySyllabus(goals, reservedIds = new Set()) {
   const used = new Set(reservedIds);
   return goals.filter((goal) => {
-    const key = goal.syllabusItemId;
+    const key = goal.estimateSourceId ? dynamicGoalSegmentKey(goal) : goal.syllabusItemId;
     if (!key || used.has(key)) return false;
     used.add(key);
     return true;
@@ -4166,7 +4257,7 @@ function generateDailyGoals() {
       showDailyGoalMessage("Geração cancelada: o dia selecionado está indisponível.", "warning");
       return;
     }
-    const existingIds = new Set(existingToday.map((g)=>g.syllabusItemId).filter(Boolean));
+    const existingIds = new Set(existingToday.map((g)=>g.estimateSourceId ? dynamicGoalSegmentKey(g) : g.syllabusItemId).filter(Boolean));
     const chosen = uniqueGoalsBySyllabus(generateGoalsForDate(date, { manual: manualUnavailable }), existingIds);
     if (!chosen.length) { showDailyGoalMessage(existingToday.length ? `Nenhuma meta nova foi adicionada: já existem metas para ${formatDateBR(date)} e duplicidades por assunto foram bloqueadas.` : "Nenhuma meta gerada. Verifique assuntos agendáveis, duplicidades ou disponibilidade do dia.", "warning"); return; }
     state.dailyGoals.push(...chosen);
@@ -4186,7 +4277,7 @@ function refreshDailyGoalsFromPlanning() {
     const recalculated = dayGoals.filter((g) => !isPreservableDailyGoal(g));
     if (!confirm(`Atualizar o Plano do Dia de ${formatDateBR(date)} conforme o Planejamento atual?\n\nSerão preservadas ${preserved.length} meta(s) concluída(s), em andamento ou com tempo/questões registrado(s), mantendo histórico, links e observações.\nSerão removidas e recalculadas ${recalculated.length} meta(s) pendente(s) ainda não iniciada(s).`)) return;
     const manualUnavailable = availabilityForDate(date).type === "indisponível";
-    const preservedIds = new Set(preserved.map((g)=>g.syllabusItemId).filter(Boolean));
+    const preservedIds = new Set(preserved.map((g)=>g.estimateSourceId ? dynamicGoalSegmentKey(g) : g.syllabusItemId).filter(Boolean));
     state.dailyGoals = state.dailyGoals.filter((g) => g.date !== date || preserved.includes(g));
     const generated = uniqueGoalsBySyllabus(generateGoalsForDate(date, { manual: manualUnavailable }), preservedIds);
     state.dailyGoals.push(...generated);
@@ -4607,7 +4698,7 @@ initFactoryEvents();
 
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin, elements.materialFilterText].filter(Boolean).forEach((filter) => filter.addEventListener("input", renderMaterials));
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin].filter(Boolean).forEach((filter) => filter.addEventListener("change", renderMaterials));
-document.addEventListener("click", (event) => { const openUrl = event.target.closest("button[data-open-url]"); if (openUrl && isValidHttpUrl(openUrl.dataset.openUrl)) window.open(openUrl.dataset.openUrl, "_blank", "noopener"); const open = event.target.closest("button[data-open-material]"); const create = event.target.closest("button[data-create-goal-material]"); const edit = event.target.closest("button[data-edit-material]"); const del = event.target.closest("button[data-delete-material]"); const calcEstimate = event.target.closest("button[data-calculate-material-estimate]"); const saveEstimate = event.target.closest("button[data-save-material-estimate]"); if (calcEstimate) { event.preventDefault(); previewMaterialEstimate(calcEstimate.dataset.calculateMaterialEstimate); } if (saveEstimate) { event.preventDefault(); saveMaterialEstimate(saveEstimate.dataset.saveMaterialEstimate); } if (open) openMaterial(open.dataset.openMaterial); if (create) startMaterialForGoal(create.dataset.discipline, create.dataset.subject); if (edit) editMaterial(edit.dataset.editMaterial); if (del && confirm("Excluir este material?")) { state.materials = state.materials.filter((m)=>m.id!==del.dataset.deleteMaterial); render(); } });
+document.addEventListener("click", (event) => { const openUrl = event.target.closest("button[data-open-url]"); if (openUrl && isValidHttpUrl(openUrl.dataset.openUrl)) window.open(openUrl.dataset.openUrl, "_blank", "noopener"); const open = event.target.closest("button[data-open-material]"); const create = event.target.closest("button[data-create-goal-material]"); const edit = event.target.closest("button[data-edit-material]"); const del = event.target.closest("button[data-delete-material]"); const calcEstimate = event.target.closest("button[data-calculate-material-estimate]"); const saveEstimate = event.target.closest("button[data-save-material-estimate]"); const updateMaterialGoals = event.target.closest("button[data-update-material-goals]"); if (updateMaterialGoals) { event.preventDefault(); updateFuturePendingGoalsForMaterial(updateMaterialGoals.dataset.updateMaterialGoals); } if (calcEstimate) { event.preventDefault(); previewMaterialEstimate(calcEstimate.dataset.calculateMaterialEstimate); } if (saveEstimate) { event.preventDefault(); saveMaterialEstimate(saveEstimate.dataset.saveMaterialEstimate); } if (open) openMaterial(open.dataset.openMaterial); if (create) startMaterialForGoal(create.dataset.discipline, create.dataset.subject); if (edit) editMaterial(edit.dataset.editMaterial); if (del && confirm("Excluir este material?")) { state.materials = state.materials.filter((m)=>m.id!==del.dataset.deleteMaterial); render(); } });
 
 mergeCompatibleLocalStorageData();
 renderMotivationalPhrase();
