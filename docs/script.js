@@ -13,6 +13,96 @@ const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
 const FACTORY_UI_COMPAT_LABELS = "RESUMOS A PRODUZIR HOJE | A PRODUZIR | EM PRODUÇÃO | CONCLUÍDOS | MATERIAIS JÁ PRONTOS PARA ESTUDAR | Pasta de destino do Word/PDF:";
+
+const MATERIAL_ESTIMATE_VERSION = 1;
+const MATERIAL_ESTIMATE_MIGRATION_ID = "materialDynamicTimeEstimateV1";
+const MATERIAL_DENSITY_FACTORS = { light: 0.8, normal: 1, dense: 1.25 };
+const MATERIAL_DENSITY_LABELS = { light: "leve", normal: "normal", dense: "densa" };
+const MATERIAL_ESTIMATE_MODES = ["automatic", "manual"];
+const MATERIAL_ESTIMATE_BASE_RANGES = [
+  { maxPages: 5, minutes: 30 },
+  { maxPages: 10, minutes: 60 },
+  { maxPages: 15, minutes: 90 },
+  { maxPages: 25, minutes: 120 },
+  { maxPages: 35, minutes: 180 },
+  { maxPages: 45, minutes: 240 }
+];
+function materialEstimateEmpty() { return { usefulPages: 0, materialDensity: "normal", automaticEstimatedMinutes: 0, manualEstimatedMinutes: 0, estimatedMinutes: 0, estimateMode: "automatic", estimatedAt: "", estimateVersion: MATERIAL_ESTIMATE_VERSION }; }
+function validMaterialDensity(density) { return Object.prototype.hasOwnProperty.call(MATERIAL_DENSITY_FACTORS, density); }
+function parseOptionalInteger(value) { if (value === "" || value === null || value === undefined) return 0; if (typeof value === "string" && !/^\d+$/.test(value.trim())) return NaN; const n = Number(value); return Number.isInteger(n) ? n : NaN; }
+function materialBaseEstimatedMinutes(usefulPages) {
+  const pages = parseOptionalInteger(usefulPages);
+  if (Number.isNaN(pages)) throw new Error("Informe páginas úteis como número inteiro.");
+  if (pages < 0) throw new Error("Páginas úteis não podem ser negativas.");
+  if (pages === 0) return 0;
+  const range = MATERIAL_ESTIMATE_BASE_RANGES.find((item) => pages <= item.maxPages);
+  if (range) return range.minutes;
+  return 240 + Math.ceil((pages - 45) / 10) * 60;
+}
+function roundToThirtyMinutes(minutes) {
+  if (!Number.isFinite(minutes) || minutes <= 0) return 0;
+  // Empates exatos entre dois blocos de 30 minutos arredondam para cima de forma determinística.
+  return Math.max(30, Math.floor((minutes + 15) / 30) * 30);
+}
+function calculateMaterialEstimatedMinutes(usefulPages, density = "normal") {
+  if (!validMaterialDensity(density)) throw new Error("Densidade inválida. Use light, normal ou dense.");
+  const base = materialBaseEstimatedMinutes(usefulPages);
+  if (!base) return 0;
+  return roundToThirtyMinutes(base * MATERIAL_DENSITY_FACTORS[density]);
+}
+function normalizeManualEstimatedMinutes(value) {
+  const minutes = parseOptionalInteger(value);
+  if (Number.isNaN(minutes) || minutes <= 0 || minutes % 30 !== 0) return 0;
+  return minutes;
+}
+function normalizeMaterialEstimateFields(material = {}) {
+  const defaults = materialEstimateEmpty();
+  const density = validMaterialDensity(material.materialDensity) ? material.materialDensity : defaults.materialDensity;
+  const usefulPages = Math.max(0, parseOptionalInteger(material.usefulPages) || 0);
+  const mode = MATERIAL_ESTIMATE_MODES.includes(material.estimateMode) ? material.estimateMode : defaults.estimateMode;
+  const automatic = usefulPages ? calculateMaterialEstimatedMinutes(usefulPages, density) : 0;
+  const manual = normalizeManualEstimatedMinutes(material.manualEstimatedMinutes);
+  return { ...material, usefulPages, materialDensity: density, automaticEstimatedMinutes: automatic, manualEstimatedMinutes: manual, estimatedMinutes: mode === "manual" ? manual : automatic, estimateMode: mode, estimatedAt: material.estimatedAt || "", estimateVersion: Number(material.estimateVersion) || MATERIAL_ESTIMATE_VERSION };
+}
+function migrateMaterialEstimates(targetState = state) {
+  targetState.materials ||= []; targetState.migrations ||= {};
+  let changed = !targetState.migrations[MATERIAL_ESTIMATE_MIGRATION_ID];
+  targetState.materials = targetState.materials.map((material) => { const normalized = normalizeMaterialEstimateFields(material); changed ||= JSON.stringify(material) !== JSON.stringify(normalized); return normalized; });
+  if (!targetState.migrations[MATERIAL_ESTIMATE_MIGRATION_ID]) targetState.migrations[MATERIAL_ESTIMATE_MIGRATION_ID] = new Date().toISOString();
+  return changed;
+}
+function materialEstimateOriginLabel(material = {}) { return material.estimateMode === "manual" ? "ajuste manual" : "cálculo automático"; }
+function materialEstimateSummaryHTML(material = {}) {
+  const m = normalizeMaterialEstimateFields(material);
+  if (!m.estimatedMinutes) return `<p class="item-meta material-estimate-summary">Carga estimada: sem estimativa cadastrada. Esta carga não altera metas nesta etapa.</p>`;
+  const density = m.estimateMode === "manual" ? "" : `<span>Densidade: ${escapeHTML(MATERIAL_DENSITY_LABELS[m.materialDensity])}</span>`;
+  return `<div class="card-meta-grid material-estimate-summary"><span>${m.usefulPages} páginas úteis</span>${density}<span>Carga estimada: ${formatHours(m.estimatedMinutes)}</span><span>Origem: ${escapeHTML(materialEstimateOriginLabel(m))}</span><span>Tempo efetivamente estudado: registrado no histórico</span><span>Tempo restante: não calculado nesta etapa</span></div>`;
+}
+function materialEstimateFormHTML(material = {}) {
+  const m = normalizeMaterialEstimateFields(material);
+  return `<section class="material-estimate-box"><h4>Carga horária do material</h4><p class="item-meta">Páginas úteis são páginas com conteúdo efetivo de estudo. Desconsidere capa, folha de rosto, sumário, páginas em branco, referências isoladas, páginas administrativas e repetições sem conteúdo novo.</p><div class="form-grid compact"><label>Páginas úteis<input data-material-estimate-field="usefulPages" data-material-id="${m.id}" type="number" min="0" step="1" value="${m.usefulPages || ""}"></label><label>Densidade<select data-material-estimate-field="materialDensity" data-material-id="${m.id}"><option value="light" ${m.materialDensity==="light"?"selected":""}>Leve</option><option value="normal" ${m.materialDensity==="normal"?"selected":""}>Normal</option><option value="dense" ${m.materialDensity==="dense"?"selected":""}>Densa</option></select></label><label>Modo da estimativa<select data-material-estimate-field="estimateMode" data-material-id="${m.id}"><option value="automatic" ${m.estimateMode==="automatic"?"selected":""}>Automático</option><option value="manual" ${m.estimateMode==="manual"?"selected":""}>Manual</option></select></label><label>Tempo manual (min, blocos de 30)<input data-material-estimate-field="manualEstimatedMinutes" data-material-id="${m.id}" type="number" min="30" step="30" value="${m.manualEstimatedMinutes || ""}"></label></div><div class="card-meta-grid"><span>Tempo calculado automaticamente: ${m.automaticEstimatedMinutes ? formatHours(m.automaticEstimatedMinutes) : "sem estimativa"}</span><span>Tempo manual: ${m.manualEstimatedMinutes ? formatHours(m.manualEstimatedMinutes) : "não informado"}</span><span>Carga horária final: ${m.estimatedMinutes ? formatHours(m.estimatedMinutes) : "sem estimativa"}</span><span>Origem da estimativa: ${escapeHTML(materialEstimateOriginLabel(m))}</span><span>Última atualização: ${m.estimatedAt ? new Date(m.estimatedAt).toLocaleString("pt-BR") : "Nunca"}</span></div><div class="actions"><button type="button" class="secondary-button" data-calculate-material-estimate="${m.id}">Calcular</button><button type="button" data-save-material-estimate="${m.id}">Salvar estimativa</button><span class="item-meta" data-material-estimate-message="${m.id}" aria-live="polite"></span></div></section>`;
+}
+function collectMaterialEstimateFromCard(id) {
+  const get = (field) => document.querySelector(`[data-material-estimate-field="${field}"][data-material-id="${CSS.escape(id)}"]`)?.value ?? "";
+  const payload = { usefulPages: get("usefulPages"), materialDensity: get("materialDensity") || "normal", estimateMode: get("estimateMode") || "automatic", manualEstimatedMinutes: get("manualEstimatedMinutes") };
+  if (parseOptionalInteger(payload.usefulPages) <= 0 && payload.estimateMode === "automatic") throw new Error("Informe páginas úteis inteiras para calcular automaticamente.");
+  if (payload.estimateMode === "manual" && !normalizeManualEstimatedMinutes(payload.manualEstimatedMinutes)) throw new Error("Informe tempo manual válido em blocos de 30 minutos.");
+  return normalizeMaterialEstimateFields(payload);
+}
+function previewMaterialEstimate(id) {
+  const msg = document.querySelector(`[data-material-estimate-message="${CSS.escape(id)}"]`);
+  try {
+    const normalized = collectMaterialEstimateFromCard(id);
+    if (msg) msg.textContent = normalized.estimatedMinutes ? `Prévia: ${formatHours(normalized.estimatedMinutes)} (${materialEstimateOriginLabel(normalized)}).` : "Sem estimativa para salvar.";
+  } catch (error) { if (msg) msg.textContent = error.message; }
+}
+function saveMaterialEstimate(id) {
+  const material = state.materials.find((m) => m.id === id); if (!material) return;
+  const msg = document.querySelector(`[data-material-estimate-message="${CSS.escape(id)}"]`);
+  try { const normalized = collectMaterialEstimateFromCard(id); Object.assign(material, normalized, { estimatedAt: new Date().toISOString(), estimateVersion: MATERIAL_ESTIMATE_VERSION }); saveData({ markLocalChange: true }); renderMaterials(); autoSyncAfterSave("material-estimate"); alert("Estimativa salva com sucesso."); }
+  catch (error) { if (msg) msg.textContent = error.message; else alert(error.message); }
+}
+
 const MOTIVATIONAL_PHRASES = [
   "Disciplina vence motivação.",
   "Hoje é dia de ganhar pontos líquidos.",
@@ -763,6 +853,7 @@ state.questionLogs ||= []; state.questionBank ||= []; state.questionBankSessions
 state.smartReviews ||= [];
 state.simulados ||= readJSONStorage(SIMULADOS_STORAGE_KEY, []);
 state.materials ||= [];
+migrateMaterialEstimates(state);
 state.questionBank ||= [];
 state.questionBankSessions ||= [];
 state.questionErrorNotebook = mergeCadernoErros(state.questionErrorNotebook, carregarCadernoErros());
@@ -1726,7 +1817,7 @@ function renderBackupPreview(payload) {
   return normalized;
 }
 function replaceState(nextState) { Object.keys(state).forEach((key) => delete state[key]); Object.assign(state, { ...cloneData(defaultState), ...(nextState || {}) }); state.edital = { ...defaultState.edital, ...(state.edital || {}) }; state.syllabusItems ||= []; state.schedulableSettings ||= {}; state.dailyGoals ||= []; state.questionLogs ||= []; state.questionBank ||= []; state.questionBankSessions ||= []; state.questionErrorNotebook ||= carregarCadernoErros();
-state.smartReviews ||= []; state.simulados ||= []; state.planning = normalizePlanningState(state.planning); state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences); state.settings.timerMode ||= "countdown"; state.materials ||= []; state.factoryItems ||= []; state.factoryAgenda ||= []; state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) }); state.disciplineWeights ||= {}; state.monthlyGoals ||= {}; }
+state.smartReviews ||= []; state.simulados ||= []; state.planning = normalizePlanningState(state.planning); state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences); state.settings.timerMode ||= "countdown"; state.materials ||= []; migrateMaterialEstimates(state); state.factoryItems ||= []; state.factoryAgenda ||= []; state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) }); state.disciplineWeights ||= {}; state.monthlyGoals ||= {}; }
 function mergeArrays(current = [], incoming = [], keyFn = (item) => item?.id || JSON.stringify(item)) { const seen = new Set(current.map(keyFn)); incoming.forEach((item) => { const key = keyFn(item); if (!seen.has(key)) { current.push(item); seen.add(key); } }); return current; }
 function mergeBackupData(data = {}) {
   mergeArrays(state.subjects, data.subjects || [], (item) => canonical(item.name || item.id));
@@ -1739,7 +1830,8 @@ function mergeBackupData(data = {}) {
   mergeArrays(state.questionErrorNotebook, data.questionErrorNotebook || [], (item) => item.id);
   mergeArrays(state.smartReviews, data.smartReviews || data.revisoesInteligentes || [], (item) => item.id || [item.date, item.discipline, item.subject, item.status, item.origin].join("|"));
   mergeArrays(state.simulados, data.simulados || [], (item) => item.id || [item.date, item.name, item.total, item.correct, item.wrong].join("|"));
-  mergeArrays(state.materials, data.materials || data.materiais || [], (item) => item.id || [item.title || item.titulo, item.discipline || item.disciplina, item.subject || item.assunto, item.link].join("|"));
+  mergeArrays(state.materials, (data.materials || data.materiais || []).map(normalizeMaterialEstimateFields), (item) => item.id || [item.title || item.titulo, item.discipline || item.disciplina, item.subject || item.assunto, item.link].join("|"));
+  migrateMaterialEstimates(state);
   // mergeArrays(state.factoryAgenda, data.factoryAgenda || data.factoryItems) é mantido como referência de compatibilidade do backup da Fábrica.
   const incomingFactory = (data.factoryAgenda || data.factoryItems || data.fabricaResumos || []).map(normalizeFactoryItem);
   incomingFactory.forEach((incoming) => {
@@ -3126,8 +3218,8 @@ function syncFactoryModuleMaterials(item) {
         link: String(link).trim(), type: format, origin: "Google Drive", date: module.dataConclusao || todayISO(), updatedAt: now, available: true,
         notes: `Material automático da Fábrica (${FACTORY_MODULES.find((m) => m.key === moduleKey)?.label || moduleKey}).`, tags: ["Fábrica de Resumos", moduleKey, format]
       };
-      if (idx >= 0) state.materials[idx] = { ...state.materials[idx], ...payload };
-      else state.materials.push(payload);
+      if (idx >= 0) state.materials[idx] = normalizeMaterialEstimateFields({ ...state.materials[idx], ...payload });
+      else state.materials.push(normalizeMaterialEstimateFields(payload));
     });
   });
 }
@@ -3635,7 +3727,7 @@ function materialFactoryModuleLabel(m = {}) { return FACTORY_MODULES.find((modul
 function materialCardHTML(m) {
   const origem = m.source === "factory" ? "Fábrica" : (m.origin || "cadastro manual");
   const modulo = m.source === "factory" ? materialFactoryModuleLabel(m) : (m.type || "Manual");
-  return `<article class="syllabus-card material-card"><header><div><h3>${escapeHTML(m.title)}</h3><div class="item-meta">${escapeHTML(m.discipline)} • ${escapeHTML(m.subject)} • módulo ${escapeHTML(modulo)} • ${escapeHTML(m.type)} • origem: ${escapeHTML(origem)} • ${formatDateBR(m.date)}</div></div><span class="badge ${m.available === false ? "danger" : "neutral"}">${escapeHTML(m.type || "Material")}</span></header><div class="card-meta-grid"><span>Título: ${escapeHTML(m.title)}</span><span>Disciplina: ${escapeHTML(m.discipline)}</span><span>Assunto: ${escapeHTML(m.subject)}</span><span>Módulo: ${escapeHTML(modulo)}</span><span>Formato: ${escapeHTML(m.factoryFormat || m.type || "-")}</span><span>Origem: ${escapeHTML(origem)}</span><span>Data: ${formatDateBR(m.date)}</span></div><div class="card-actions"><button type="button" data-open-material="${m.id}">Abrir</button><button type="button" data-use-material-study="${m.id}">Usar no estudo</button><button type="button" data-edit-material="${m.id}">Editar</button><button class="danger" type="button" data-delete-material="${m.id}">Excluir</button></div></article>`;
+  return `<article class="syllabus-card material-card"><header><div><h3>${escapeHTML(m.title)}</h3><div class="item-meta">${escapeHTML(m.discipline)} • ${escapeHTML(m.subject)} • módulo ${escapeHTML(modulo)} • ${escapeHTML(m.type)} • origem: ${escapeHTML(origem)} • ${formatDateBR(m.date)}</div></div><span class="badge ${m.available === false ? "danger" : "neutral"}">${escapeHTML(m.type || "Material")}</span></header><div class="card-meta-grid"><span>Título: ${escapeHTML(m.title)}</span><span>Disciplina: ${escapeHTML(m.discipline)}</span><span>Assunto: ${escapeHTML(m.subject)}</span><span>Módulo: ${escapeHTML(modulo)}</span><span>Formato: ${escapeHTML(m.factoryFormat || m.type || "-")}</span><span>Origem: ${escapeHTML(origem)}</span><span>Data: ${formatDateBR(m.date)}</span></div>${materialEstimateSummaryHTML(m)}${materialEstimateFormHTML(m)}<div class="card-actions"><button type="button" data-open-material="${m.id}">Abrir</button><button type="button" data-use-material-study="${m.id}">Usar no estudo</button><button type="button" data-edit-material="${m.id}">Editar</button><button class="danger" type="button" data-delete-material="${m.id}">Excluir</button></div></article>`;
 }
 function renderMaterials() {
   if (!elements.materialsList) return;
@@ -3658,7 +3750,7 @@ function updateStudyMaterialOptions() {
   elements.studyMaterial.innerHTML = '<option value="">Nenhum material vinculado</option>' + mats.map((m)=>`<option value="${m.id}">${escapeHTML(m.type)} — ${escapeHTML(m.title)}</option>`).join("");
 }
 function editMaterial(id) { const m = state.materials.find((x)=>x.id===id); if (!m) return; elements.materialEditingId.value=m.id; elements.materialTitle.value=m.title; elements.materialDate.value=m.date||todayISO(); elements.materialDiscipline.value=m.discipline; elements.materialSubject.value=m.subject; elements.materialType.value=m.type; elements.materialOrigin.value=m.origin; elements.materialLink.value=m.link; elements.materialTags.value=materialTagsArray(m.tags).join(", "); elements.materialNotes.value=m.notes||""; renderMaterialSelectors(); showView("materiais"); }
-function saveMaterial(event) { event.preventDefault(); if (!elements.materialLink.value.trim()) return alert("Informe o link do material."); if (!isValidHttpUrl(elements.materialLink.value.trim())) return alert("O link do material deve começar com http:// ou https://."); const syllabusItem = state.syllabusItems.find((i)=>canonical(i.discipline)===canonical(elements.materialDiscipline.value) && canonical(i.subject)===canonical(elements.materialSubject.value)); const material = { id: elements.materialEditingId.value || createId(), title: elements.materialTitle.value.trim(), discipline: elements.materialDiscipline.value.trim(), subject: elements.materialSubject.value.trim(), syllabusItemId: syllabusItem?.id || "", type: elements.materialType.value, link: elements.materialLink.value.trim(), origin: elements.materialOrigin.value, notes: elements.materialNotes.value.trim(), date: elements.materialDate.value || todayISO(), tags: materialTagsArray(elements.materialTags.value), updatedAt: new Date().toISOString() }; const idx = state.materials.findIndex((m)=>m.id===material.id); if (idx>=0) state.materials[idx]=material; else state.materials.push(material); elements.materialForm.reset(); elements.materialEditingId.value=""; elements.materialDate.value=todayISO(); render(); showView("materiais"); autoSyncAfterSave("material"); }
+function saveMaterial(event) { event.preventDefault(); if (!elements.materialLink.value.trim()) return alert("Informe o link do material."); if (!isValidHttpUrl(elements.materialLink.value.trim())) return alert("O link do material deve começar com http:// ou https://."); const syllabusItem = state.syllabusItems.find((i)=>canonical(i.discipline)===canonical(elements.materialDiscipline.value) && canonical(i.subject)===canonical(elements.materialSubject.value)); const material = normalizeMaterialEstimateFields({ ...state.materials.find((m)=>m.id===elements.materialEditingId.value), id: elements.materialEditingId.value || createId(), title: elements.materialTitle.value.trim(), discipline: elements.materialDiscipline.value.trim(), subject: elements.materialSubject.value.trim(), syllabusItemId: syllabusItem?.id || "", type: elements.materialType.value, link: elements.materialLink.value.trim(), origin: elements.materialOrigin.value, notes: elements.materialNotes.value.trim(), date: elements.materialDate.value || todayISO(), tags: materialTagsArray(elements.materialTags.value), updatedAt: new Date().toISOString() }); const idx = state.materials.findIndex((m)=>m.id===material.id); if (idx>=0) state.materials[idx]=material; else state.materials.push(material); elements.materialForm.reset(); elements.materialEditingId.value=""; elements.materialDate.value=todayISO(); render(); showView("materiais"); autoSyncAfterSave("material"); }
 
 let questionBankTraining = null;
 let qbPreviewVisible = false;
@@ -4515,7 +4607,7 @@ initFactoryEvents();
 
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin, elements.materialFilterText].filter(Boolean).forEach((filter) => filter.addEventListener("input", renderMaterials));
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin].filter(Boolean).forEach((filter) => filter.addEventListener("change", renderMaterials));
-document.addEventListener("click", (event) => { const openUrl = event.target.closest("button[data-open-url]"); if (openUrl && isValidHttpUrl(openUrl.dataset.openUrl)) window.open(openUrl.dataset.openUrl, "_blank", "noopener"); const open = event.target.closest("button[data-open-material]"); const create = event.target.closest("button[data-create-goal-material]"); const edit = event.target.closest("button[data-edit-material]"); const del = event.target.closest("button[data-delete-material]"); if (open) openMaterial(open.dataset.openMaterial); if (create) startMaterialForGoal(create.dataset.discipline, create.dataset.subject); if (edit) editMaterial(edit.dataset.editMaterial); if (del && confirm("Excluir este material?")) { state.materials = state.materials.filter((m)=>m.id!==del.dataset.deleteMaterial); render(); } });
+document.addEventListener("click", (event) => { const openUrl = event.target.closest("button[data-open-url]"); if (openUrl && isValidHttpUrl(openUrl.dataset.openUrl)) window.open(openUrl.dataset.openUrl, "_blank", "noopener"); const open = event.target.closest("button[data-open-material]"); const create = event.target.closest("button[data-create-goal-material]"); const edit = event.target.closest("button[data-edit-material]"); const del = event.target.closest("button[data-delete-material]"); const calcEstimate = event.target.closest("button[data-calculate-material-estimate]"); const saveEstimate = event.target.closest("button[data-save-material-estimate]"); if (calcEstimate) { event.preventDefault(); previewMaterialEstimate(calcEstimate.dataset.calculateMaterialEstimate); } if (saveEstimate) { event.preventDefault(); saveMaterialEstimate(saveEstimate.dataset.saveMaterialEstimate); } if (open) openMaterial(open.dataset.openMaterial); if (create) startMaterialForGoal(create.dataset.discipline, create.dataset.subject); if (edit) editMaterial(edit.dataset.editMaterial); if (del && confirm("Excluir este material?")) { state.materials = state.materials.filter((m)=>m.id!==del.dataset.deleteMaterial); render(); } });
 
 mergeCompatibleLocalStorageData();
 renderMotivationalPhrase();
