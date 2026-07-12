@@ -10,7 +10,7 @@ const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const serviceWorker = fs.readFileSync('service-worker.js', 'utf8');
 const docsServiceWorker = fs.readFileSync('docs/service-worker.js', 'utf8');
 
-const version = '20260712-corrige-calculo-carga-horaria';
+const version = '20260712-organiza-materiais';
 const clickRoutes = [
   'factoryPrompt', 'factoryPromptClose', 'factoryPromptCopy', 'factoryRouterCopy',
   'factoryEdit', 'factoryDelete', 'factoryModules', 'factoryModulesCancel',
