@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const script = fs.readFileSync('script.js', 'utf8');
 const docsScript = fs.readFileSync('docs/script.js', 'utf8');
 const html = fs.readFileSync('index.html', 'utf8');
+const css = fs.readFileSync('style.css', 'utf8');
 const docsHtml = fs.readFileSync('docs/index.html', 'utf8');
 const sw = fs.readFileSync('service-worker.js', 'utf8');
 const docsSw = fs.readFileSync('docs/service-worker.js', 'utf8');
@@ -120,4 +121,56 @@ test('migração segmentada é idempotente e preserva cronômetro, backup e sinc
 test('TRIAGEM não foi alterada por esta suíte de estimativa', () => {
   assert.match(script, /const FACTORY_TRIAGEM_PROMPT = `/);
   assert.doesNotMatch(script, /TEMPO DINÂMICO[\s\S]*const FACTORY_TRIAGEM_PROMPT/);
+});
+
+test('botão Calcular usa o cartão clicado, feedback visível e não depende de CSS.escape', () => {
+  assert.match(script, /button\?\.closest\?\.\("\.material-estimate-box"\)/);
+  assert.match(script, /container\.querySelector\(`\[data-material-estimate-field=/);
+  assert.doesNotMatch(script, /function collectMaterialEstimateFromCard\(id\)[\s\S]*document\.querySelector\(\`\[data-material-estimate-field/);
+  assert.doesNotMatch(script, /function previewMaterialEstimate\(id\)[\s\S]*CSS\.escape\(id\)/);
+  assert.match(script, /previewMaterialEstimate\(calcEstimate\)/);
+  assert.match(script, /saveMaterialEstimate\(saveEstimate\)/);
+  assert.match(script, /data-material-estimate-message="\$\{m\.id\}" aria-live="polite"/);
+  assert.match(css, /\.material-estimate-feedback\.success/);
+  assert.match(css, /\.material-estimate-feedback\.error/);
+});
+
+test('prévia manual 120 atualiza o próprio cartão com 2h e 2 blocos sem salvar ou sincronizar', () => {
+  assert.match(script, /Prévia calculada: \$\{formatHours\(normalized\.estimatedMinutes\)\}/);
+  assert.match(script, /Quantidade de blocos: \$\{segments\}/);
+  const manual = logic.normalizeMaterialEstimateFields({ estimateMode: 'manual', usefulPages: '', materialDensity: 'normal', manualEstimatedMinutes: 120 });
+  assert.equal(manual.estimatedMinutes, 120);
+  assert.equal(logic.splitEstimatedMinutesIntoSegments(manual.estimatedMinutes).length, 2);
+  const previewBlock = script.slice(script.indexOf('function previewMaterialEstimate'), script.indexOf('function saveMaterialEstimate'));
+  assert.doesNotMatch(previewBlock, /saveData|autoSyncAfterSave|state\.dailyGoals|appendGoalHistory/);
+});
+
+test('modo manual não exige páginas úteis e rejeita tempo que não é múltiplo de 30', () => {
+  assert.match(script, /payload\.estimateMode === "manual"[\s\S]*manualMinutes % 30 !== 0/);
+  assert.match(script, /múltiplos de 30 minutos/);
+  const manual = logic.normalizeMaterialEstimateFields({ estimateMode: 'manual', usefulPages: '', manualEstimatedMinutes: 120 });
+  assert.equal(manual.estimatedMinutes, 120);
+  assert.equal(logic.normalizeManualEstimatedMinutes(125), 0);
+});
+
+test('modo automático usa páginas e densidade para 10 páginas normais sem usar manual como final', () => {
+  const automatic = logic.normalizeMaterialEstimateFields({ estimateMode: 'automatic', usefulPages: 10, materialDensity: 'normal', manualEstimatedMinutes: 120 });
+  assert.equal(automatic.automaticEstimatedMinutes, 60);
+  assert.equal(automatic.estimatedMinutes, 60);
+  assert.equal(logic.splitEstimatedMinutesIntoSegments(automatic.estimatedMinutes).length, 1);
+});
+
+test('Salvar estimativa coleta o próprio cartão sem exigir cálculo prévio', () => {
+  const saveBlock = script.slice(script.indexOf('function saveMaterialEstimate'), script.indexOf('const MOTIVATIONAL_PHRASES'));
+  assert.match(saveBlock, /collectMaterialEstimateFromContainer\(container\)/);
+  assert.doesNotMatch(saveBlock, /previewMaterialEstimate\(/);
+  assert.match(saveBlock, /Estimativa salva com sucesso/);
+  assert.match(saveBlock, /setMaterialEstimateFeedback/);
+});
+
+test('arquivos de publicação mantêm paridade entre raiz e docs para correção da carga horária', () => {
+  assert.equal(script, docsScript);
+  assert.equal(css, fs.readFileSync('docs/style.css', 'utf8'));
+  assert.equal(html, docsHtml);
+  assert.equal(sw, docsSw);
 });

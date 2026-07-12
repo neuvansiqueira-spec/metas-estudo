@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-20260712-tempo-dinamico-etapa-2";
+const CACHE_NAME = "metas-estudo-20260712-corrige-calculo-carga-horaria";
 const FILES_TO_CACHE = [
   "./",
   "index.html",

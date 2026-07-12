@@ -159,31 +159,103 @@ function materialEstimateSummaryHTML(material = {}) {
   const density = m.estimateMode === "manual" ? "" : `<span>Densidade: ${escapeHTML(MATERIAL_DENSITY_LABELS[m.materialDensity])}</span>`;
   return `<div class="card-meta-grid material-estimate-summary"><span>${m.usefulPages} páginas úteis</span>${density}<span>Carga estimada: ${formatHours(m.estimatedMinutes)}</span><span>Origem: ${escapeHTML(materialEstimateOriginLabel(m))}</span><span>Tempo efetivamente estudado: registrado no histórico</span><span>Tempo restante: não calculado nesta etapa</span></div>`;
 }
+function materialEstimatePreviewLines(normalized = {}) {
+  const segments = splitEstimatedMinutesIntoSegments(normalized.estimatedMinutes).length;
+  return [`Prévia calculada: ${formatHours(normalized.estimatedMinutes)}`, `Origem: ${materialEstimateOriginLabel(normalized)}`, `Quantidade de blocos: ${segments}`];
+}
+function setMaterialEstimateFeedback(container, message, type = "success") {
+  if (!container) return;
+  const feedback = container.querySelector("[data-material-estimate-message]");
+  if (!feedback) return;
+  feedback.classList.remove("success", "error");
+  feedback.classList.add(type === "error" ? "error" : "success");
+  feedback.innerHTML = Array.isArray(message) ? message.map((line) => `<span>${escapeHTML(line)}</span>`).join("") : escapeHTML(message || "");
+}
+function updateMaterialEstimatePreview(container, normalized = {}) {
+  if (!container) throw new Error("Não foi possível atualizar a prévia neste cartão.");
+  const segments = splitEstimatedMinutesIntoSegments(normalized.estimatedMinutes).length;
+  const values = {
+    estimatedMinutes: normalized.estimatedMinutes ? formatHours(normalized.estimatedMinutes) : "sem estimativa",
+    origin: materialEstimateOriginLabel(normalized),
+    segments,
+    automaticEstimatedMinutes: normalized.automaticEstimatedMinutes ? formatHours(normalized.automaticEstimatedMinutes) : "sem estimativa",
+    manualEstimatedMinutes: normalized.manualEstimatedMinutes ? formatHours(normalized.manualEstimatedMinutes) : "não informado"
+  };
+  Object.entries(values).forEach(([key, value]) => {
+    const field = container.querySelector(`[data-material-estimate-preview="${key}"]`);
+    if (field) field.textContent = value;
+  });
+}
+function updateMaterialEstimateModeUI(container) {
+  if (!container) return;
+  const mode = container.querySelector('[data-material-estimate-field="estimateMode"]')?.value || "automatic";
+  const pages = container.querySelector('[data-material-estimate-field="usefulPages"]');
+  const density = container.querySelector('[data-material-estimate-field="materialDensity"]');
+  const manual = container.querySelector('[data-material-estimate-field="manualEstimatedMinutes"]');
+  if (pages) pages.required = mode === "automatic";
+  if (density) density.disabled = mode === "manual";
+  if (manual) manual.disabled = false;
+  container.querySelectorAll("[data-material-estimate-mode-hint]").forEach((hint) => { hint.hidden = hint.dataset.materialEstimateModeHint !== mode; });
+}
 function materialEstimateFormHTML(material = {}) {
   const m = normalizeMaterialEstimateFields(material);
   const stats = typeof state !== "undefined" ? plannedStudyStatsForMaterial(m) : { planned: 0, done: 0, remaining: m.estimatedMinutes || 0, segments: splitEstimatedMinutesIntoSegments(m.estimatedMinutes).length, affectable: 0 };
   const updateButton = m.estimatedMinutes && stats.affectable ? `<button type="button" class="secondary-button" data-update-material-goals="${m.id}">Atualizar metas futuras pendentes</button>` : "";
-  return `<section class="material-estimate-box"><h4>Carga horária do material</h4><p class="item-meta">Páginas úteis são páginas com conteúdo efetivo de estudo. Desconsidere capa, folha de rosto, sumário, páginas em branco, referências isoladas, páginas administrativas e repetições sem conteúdo novo.</p><div class="form-grid compact"><label>Páginas úteis<input data-material-estimate-field="usefulPages" data-material-id="${m.id}" type="number" min="0" step="1" value="${m.usefulPages || ""}"></label><label>Densidade<select data-material-estimate-field="materialDensity" data-material-id="${m.id}"><option value="light" ${m.materialDensity==="light"?"selected":""}>Leve</option><option value="normal" ${m.materialDensity==="normal"?"selected":""}>Normal</option><option value="dense" ${m.materialDensity==="dense"?"selected":""}>Densa</option></select></label><label>Modo da estimativa<select data-material-estimate-field="estimateMode" data-material-id="${m.id}"><option value="automatic" ${m.estimateMode==="automatic"?"selected":""}>Automático</option><option value="manual" ${m.estimateMode==="manual"?"selected":""}>Manual</option></select></label><label>Tempo manual (min, blocos de 30)<input data-material-estimate-field="manualEstimatedMinutes" data-material-id="${m.id}" type="number" min="30" step="30" value="${m.manualEstimatedMinutes || ""}"></label></div><div class="card-meta-grid"><span>Carga total estimada: ${m.estimatedMinutes ? formatHours(m.estimatedMinutes) : "sem estimativa"}</span><span>Tempo já planejado: ${formatHours(stats.planned)}</span><span>Tempo concluído: ${formatHours(stats.done)}</span><span>Tempo restante: ${formatHours(stats.remaining)}</span><span>Quantidade de blocos: ${stats.segments || 0}</span><span>Metas futuras pendentes afetáveis: ${stats.affectable || 0}</span><span>Tempo calculado automaticamente: ${m.automaticEstimatedMinutes ? formatHours(m.automaticEstimatedMinutes) : "sem estimativa"}</span><span>Tempo manual: ${m.manualEstimatedMinutes ? formatHours(m.manualEstimatedMinutes) : "não informado"}</span><span>Origem da estimativa: ${escapeHTML(materialEstimateOriginLabel(m))}</span><span>Última atualização: ${m.estimatedAt ? new Date(m.estimatedAt).toLocaleString("pt-BR") : "Nunca"}</span></div><div class="actions"><button type="button" class="secondary-button" data-calculate-material-estimate="${m.id}">Calcular</button><button type="button" data-save-material-estimate="${m.id}">Salvar estimativa</button>${updateButton}<span class="item-meta" data-material-estimate-message="${m.id}" aria-live="polite"></span></div></section>`;
+  return `<section class="material-estimate-box" data-material-estimate-box="${m.id}"><h4>Carga horária do material</h4><p class="item-meta">Páginas úteis são páginas com conteúdo efetivo de estudo. Desconsidere capa, folha de rosto, sumário, páginas em branco, referências isoladas, páginas administrativas e repetições sem conteúdo novo.</p><div class="form-grid compact"><label>Páginas úteis<input data-material-estimate-field="usefulPages" data-material-id="${m.id}" type="number" min="0" step="1" value="${m.usefulPages || ""}" ${m.estimateMode === "automatic" ? "required" : ""}></label><label>Densidade<select data-material-estimate-field="materialDensity" data-material-id="${m.id}" ${m.estimateMode === "manual" ? "disabled" : ""}><option value="light" ${m.materialDensity==="light"?"selected":""}>Leve</option><option value="normal" ${m.materialDensity==="normal"?"selected":""}>Normal</option><option value="dense" ${m.materialDensity==="dense"?"selected":""}>Densa</option></select></label><label>Modo da estimativa<select data-material-estimate-field="estimateMode" data-material-id="${m.id}"><option value="automatic" ${m.estimateMode==="automatic"?"selected":""}>Automático</option><option value="manual" ${m.estimateMode==="manual"?"selected":""}>Manual</option></select></label><label>Tempo manual (min, blocos de 30)<input data-material-estimate-field="manualEstimatedMinutes" data-material-id="${m.id}" type="number" min="30" step="30" value="${m.manualEstimatedMinutes || ""}"></label></div><p class="item-meta material-estimate-mode-hint" data-material-estimate-mode-hint="manual" ${m.estimateMode === "manual" ? "" : "hidden"}>Modo manual: informe o tempo manual. Páginas úteis e densidade podem ficar vazias e não controlam o resultado final.</p><p class="item-meta material-estimate-mode-hint" data-material-estimate-mode-hint="automatic" ${m.estimateMode === "automatic" ? "" : "hidden"}>Modo automático: páginas úteis e densidade controlam o resultado. O tempo manual será preservado, mas não será o valor final.</p><div class="card-meta-grid"><span>Carga total estimada: <strong data-material-estimate-preview="estimatedMinutes">${m.estimatedMinutes ? formatHours(m.estimatedMinutes) : "sem estimativa"}</strong></span><span>Tempo já planejado: ${formatHours(stats.planned)}</span><span>Tempo concluído: ${formatHours(stats.done)}</span><span>Tempo restante: ${formatHours(stats.remaining)}</span><span>Quantidade de blocos: <strong data-material-estimate-preview="segments">${stats.segments || 0}</strong></span><span>Metas futuras pendentes afetáveis: ${stats.affectable || 0}</span><span>Tempo calculado automaticamente: <strong data-material-estimate-preview="automaticEstimatedMinutes">${m.automaticEstimatedMinutes ? formatHours(m.automaticEstimatedMinutes) : "sem estimativa"}</strong></span><span>Tempo manual: <strong data-material-estimate-preview="manualEstimatedMinutes">${m.manualEstimatedMinutes ? formatHours(m.manualEstimatedMinutes) : "não informado"}</strong></span><span>Origem da estimativa: <strong data-material-estimate-preview="origin">${escapeHTML(materialEstimateOriginLabel(m))}</strong></span><span>Última atualização: ${m.estimatedAt ? new Date(m.estimatedAt).toLocaleString("pt-BR") : "Nunca"}</span></div><div class="actions"><button type="button" class="secondary-button" data-calculate-material-estimate="${m.id}">Calcular</button><button type="button" data-save-material-estimate="${m.id}">Salvar estimativa</button>${updateButton}</div><div class="material-estimate-feedback" data-material-estimate-message="${m.id}" aria-live="polite"></div></section>`;
 }
-function collectMaterialEstimateFromCard(id) {
-  const get = (field) => document.querySelector(`[data-material-estimate-field="${field}"][data-material-id="${CSS.escape(id)}"]`)?.value ?? "";
+function materialEstimateContainerFromButton(button) {
+  const container = button?.closest?.(".material-estimate-box");
+  if (!container) throw new Error("Não foi possível localizar o cartão da carga horária.");
+  return container;
+}
+function collectMaterialEstimateFromContainer(container) {
+  if (!container) throw new Error("Não foi possível localizar o formulário da carga horária.");
+  const get = (field) => {
+    const input = container.querySelector(`[data-material-estimate-field="${field}"]`);
+    if (!input) throw new Error(`Campo de estimativa ausente: ${field}.`);
+    return input.value ?? "";
+  };
   const payload = { usefulPages: get("usefulPages"), materialDensity: get("materialDensity") || "normal", estimateMode: get("estimateMode") || "automatic", manualEstimatedMinutes: get("manualEstimatedMinutes") };
-  if (parseOptionalInteger(payload.usefulPages) <= 0 && payload.estimateMode === "automatic") throw new Error("Informe páginas úteis inteiras para calcular automaticamente.");
-  if (payload.estimateMode === "manual" && !normalizeManualEstimatedMinutes(payload.manualEstimatedMinutes)) throw new Error("Informe tempo manual válido em blocos de 30 minutos.");
+  const usefulPages = parseOptionalInteger(payload.usefulPages);
+  if (payload.estimateMode === "automatic" && (Number.isNaN(usefulPages) || usefulPages <= 0)) throw new Error("Informe páginas úteis inteiras e maiores que zero para calcular automaticamente.");
+  const manualMinutes = parseOptionalInteger(payload.manualEstimatedMinutes);
+  if (payload.estimateMode === "manual" && (Number.isNaN(manualMinutes) || manualMinutes <= 0 || manualMinutes % 30 !== 0)) throw new Error("Informe tempo manual maior que zero em múltiplos de 30 minutos.");
   return normalizeMaterialEstimateFields(payload);
 }
-function previewMaterialEstimate(id) {
-  const msg = document.querySelector(`[data-material-estimate-message="${CSS.escape(id)}"]`);
+function collectMaterialEstimateFromCard(container) { return collectMaterialEstimateFromContainer(container); }
+function previewMaterialEstimate(button) {
+  let container;
   try {
-    const normalized = collectMaterialEstimateFromCard(id);
-    if (msg) msg.textContent = normalized.estimatedMinutes ? `Prévia: ${formatHours(normalized.estimatedMinutes)} (${materialEstimateOriginLabel(normalized)}).` : "Sem estimativa para salvar.";
-  } catch (error) { if (msg) msg.textContent = error.message; }
+    container = materialEstimateContainerFromButton(button);
+    updateMaterialEstimateModeUI(container);
+    const normalized = collectMaterialEstimateFromContainer(container);
+    updateMaterialEstimatePreview(container, normalized);
+    setMaterialEstimateFeedback(container, materialEstimatePreviewLines(normalized), "success");
+  } catch (error) {
+    if (!container && button?.closest) container = button.closest(".material-estimate-box");
+    setMaterialEstimateFeedback(container, error.message || "Erro ao calcular a prévia da carga horária.", "error");
+  }
 }
-function saveMaterialEstimate(id) {
-  const material = state.materials.find((m) => m.id === id); if (!material) return;
-  const msg = document.querySelector(`[data-material-estimate-message="${CSS.escape(id)}"]`);
-  try { const normalized = collectMaterialEstimateFromCard(id); Object.assign(material, normalized, { estimatedAt: new Date().toISOString(), estimateVersion: MATERIAL_ESTIMATE_VERSION }); saveData({ markLocalChange: true }); renderMaterials(); autoSyncAfterSave("material-estimate"); alert("Estimativa salva com sucesso."); }
-  catch (error) { if (msg) msg.textContent = error.message; else alert(error.message); }
+function saveMaterialEstimate(button) {
+  let container;
+  try {
+    container = materialEstimateContainerFromButton(button);
+    updateMaterialEstimateModeUI(container);
+    const id = button?.dataset?.saveMaterialEstimate;
+    const material = state.materials.find((m) => m.id === id);
+    if (!material) throw new Error("Material não encontrado para salvar a estimativa.");
+    const normalized = collectMaterialEstimateFromContainer(container);
+    Object.assign(material, normalized, { estimatedAt: new Date().toISOString(), estimateVersion: MATERIAL_ESTIMATE_VERSION });
+    saveData({ markLocalChange: true });
+    updateMaterialEstimatePreview(container, normalized);
+    setMaterialEstimateFeedback(container, [...materialEstimatePreviewLines(normalized), "Estimativa salva com sucesso."], "success");
+    autoSyncAfterSave("material-estimate");
+    alert("Estimativa salva com sucesso.");
+  } catch (error) {
+    if (!container && button?.closest) container = button.closest(".material-estimate-box");
+    setMaterialEstimateFeedback(container, error.message || "Erro ao salvar a estimativa.", "error");
+    if (!container) alert(error.message || "Erro ao salvar a estimativa.");
+  }
 }
 
 const MOTIVATIONAL_PHRASES = [
@@ -4698,7 +4770,8 @@ initFactoryEvents();
 
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin, elements.materialFilterText].filter(Boolean).forEach((filter) => filter.addEventListener("input", renderMaterials));
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin].filter(Boolean).forEach((filter) => filter.addEventListener("change", renderMaterials));
-document.addEventListener("click", (event) => { const openUrl = event.target.closest("button[data-open-url]"); if (openUrl && isValidHttpUrl(openUrl.dataset.openUrl)) window.open(openUrl.dataset.openUrl, "_blank", "noopener"); const open = event.target.closest("button[data-open-material]"); const create = event.target.closest("button[data-create-goal-material]"); const edit = event.target.closest("button[data-edit-material]"); const del = event.target.closest("button[data-delete-material]"); const calcEstimate = event.target.closest("button[data-calculate-material-estimate]"); const saveEstimate = event.target.closest("button[data-save-material-estimate]"); const updateMaterialGoals = event.target.closest("button[data-update-material-goals]"); if (updateMaterialGoals) { event.preventDefault(); updateFuturePendingGoalsForMaterial(updateMaterialGoals.dataset.updateMaterialGoals); } if (calcEstimate) { event.preventDefault(); previewMaterialEstimate(calcEstimate.dataset.calculateMaterialEstimate); } if (saveEstimate) { event.preventDefault(); saveMaterialEstimate(saveEstimate.dataset.saveMaterialEstimate); } if (open) openMaterial(open.dataset.openMaterial); if (create) startMaterialForGoal(create.dataset.discipline, create.dataset.subject); if (edit) editMaterial(edit.dataset.editMaterial); if (del && confirm("Excluir este material?")) { state.materials = state.materials.filter((m)=>m.id!==del.dataset.deleteMaterial); render(); } });
+document.addEventListener("change", (event) => { const mode = event.target.closest?.('[data-material-estimate-field="estimateMode"]'); if (mode) updateMaterialEstimateModeUI(mode.closest(".material-estimate-box")); });
+document.addEventListener("click", (event) => { const openUrl = event.target.closest("button[data-open-url]"); if (openUrl && isValidHttpUrl(openUrl.dataset.openUrl)) window.open(openUrl.dataset.openUrl, "_blank", "noopener"); const open = event.target.closest("button[data-open-material]"); const create = event.target.closest("button[data-create-goal-material]"); const edit = event.target.closest("button[data-edit-material]"); const del = event.target.closest("button[data-delete-material]"); const calcEstimate = event.target.closest("button[data-calculate-material-estimate]"); const saveEstimate = event.target.closest("button[data-save-material-estimate]"); const updateMaterialGoals = event.target.closest("button[data-update-material-goals]"); if (updateMaterialGoals) { event.preventDefault(); updateFuturePendingGoalsForMaterial(updateMaterialGoals.dataset.updateMaterialGoals); } if (calcEstimate) { event.preventDefault(); previewMaterialEstimate(calcEstimate); } if (saveEstimate) { event.preventDefault(); saveMaterialEstimate(saveEstimate); } if (open) openMaterial(open.dataset.openMaterial); if (create) startMaterialForGoal(create.dataset.discipline, create.dataset.subject); if (edit) editMaterial(edit.dataset.editMaterial); if (del && confirm("Excluir este material?")) { state.materials = state.materials.filter((m)=>m.id!==del.dataset.deleteMaterial); render(); } });
 
 mergeCompatibleLocalStorageData();
 renderMotivationalPhrase();

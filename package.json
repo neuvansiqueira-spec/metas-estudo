@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260712-tempo-dinamico-etapa-2",
+  "version": "20260712-corrige-calculo-carga-horaria",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
