@@ -14,7 +14,7 @@ function loadEstimateLogic() {
   const start = script.indexOf('const MATERIAL_ESTIMATE_VERSION = 1;');
   const end = script.indexOf('const MOTIVATIONAL_PHRASES = [');
   assert.ok(start >= 0 && end > start, 'bloco de estimativa encontrado');
-  return new Function(`${script.slice(start, end)}; return { calculateMaterialEstimatedMinutes, materialBaseEstimatedMinutes, roundToThirtyMinutes, normalizeMaterialEstimateFields, migrateMaterialEstimates, normalizeManualEstimatedMinutes };`)();
+  return new Function(`${script.slice(start, end)}; return { calculateMaterialEstimatedMinutes, materialBaseEstimatedMinutes, roundToThirtyMinutes, normalizeMaterialEstimateFields, migrateMaterialEstimates, normalizeManualEstimatedMinutes, splitEstimatedMinutesIntoSegments, normalizeSegmentedGoalFields, migrateSegmentedGoals };`)();
 }
 
 const logic = loadEstimateLogic();
@@ -71,12 +71,50 @@ test('backup, mesclagem, interface e publicação preservam campos da estimativa
   assert.match(script, /makeSyncPayload\(\)[\s\S]*state: cloneData\(state\)/);
   assert.match(script, /Carga horária do material/);
   assert.match(script, /data-save-material-estimate/);
-  assert.match(script, /Esta carga não altera metas nesta etapa/);
+  assert.match(script, /Atualizar metas futuras pendentes/);
+  assert.match(script, /Carga total estimada/);
+  assert.match(script, /Tempo já planejado/);
   assert.match(html, /id="materialForm"/);
   assert.equal(script, docsScript);
   assert.equal(html, docsHtml);
   assert.equal(sw, docsSw);
   assert.match(sw, new RegExp(`metas-estudo-${pkg.version}`));
+});
+
+
+
+test('divisão da carga estimada em blocos seguros e soma exata', () => {
+  const cases = [[120,[60,60]],[150,[60,60,30]],[180,[60,60,60]],[240,[60,60,60,60]],[300,[60,60,60,60,60]]];
+  for (const [total, expected] of cases) {
+    const segments = logic.splitEstimatedMinutesIntoSegments(total);
+    assert.deepEqual(segments, expected, `${total} minutos`);
+    assert.equal(segments.reduce((a,b)=>a+b,0), total);
+    assert.equal(segments.every((minutes)=>minutes <= 90), true);
+  }
+});
+
+test('integração da estimativa às metas preserva prioridades e proteções', () => {
+  assert.match(script, /manualEstimatedMinutes[\s\S]*estimatedMinutes[\s\S]*customMinutes[\s\S]*fallbackMinutes/);
+  assert.match(script, /type === "Estudo novo" \? estimateMaterialForItem\(item\) : null/);
+  assert.match(script, /"Questões": 45, "Revisão": 30, "Reforço": 45/);
+  assert.match(script, /dynamicGoalSegmentKey/);
+  assert.match(script, /segmentIndex/);
+  assert.match(script, /segmentCount/);
+  assert.match(script, /estimateSourceId/);
+  assert.match(script, /Carga planejada recalculada após atualização do material/);
+  assert.match(script, /shouldRecalculateDailyGoal\(g\)/);
+});
+
+test('migração segmentada é idempotente e preserva cronômetro, backup e sincronização', () => {
+  const state = { dailyGoals: [{ id: 'g1', minutes: 60, actualMinutes: 10, segmentIndex: '2', segmentCount: '3', estimateSourceId: 'm1' }], migrations: {} };
+  logic.migrateSegmentedGoals(state);
+  const once = JSON.stringify(state);
+  logic.migrateSegmentedGoals(state);
+  assert.equal(JSON.stringify(state), once);
+  assert.equal(state.dailyGoals[0].segmentIndex, 2);
+  assert.match(script, /timerPlannedSeconds\(goal = floatingTimerGoal\(\)\)/);
+  assert.match(script, /makeBackupPayload\(\)[\s\S]*data: cloneData\(state\)/);
+  assert.match(script, /makeSyncPayload\(\)[\s\S]*state: cloneData\(state\)/);
 });
 
 test('TRIAGEM não foi alterada por esta suíte de estimativa', () => {
