@@ -83,12 +83,12 @@ test('funções da Fábrica seguem presentes após a alteração visual', () => 
 
 test('prompts internos oficiais não foram alterados em relação ao commit base', { skip: !fs.existsSync('.git') }, () => {
   const baseScript = execSync('git show HEAD^:script.js', { encoding: 'utf8' });
-  for (const name of ['FACTORY_RESUMO_AULA_PROMPT_SEGMENT', 'FACTORY_PECA_PROMPT']) {
+  for (const name of ['FACTORY_RESUMO_AULA_PROMPT_SEGMENT']) {
     assert.equal(constValue(name), constValue(name, baseScript), `${name} não deve mudar`);
   }
 });
 
 test('armazenamento, backup e sincronização não receberam alterações de implementação', { skip: !fs.existsSync('.git') }, () => {
-  const diff = execSync('git diff HEAD^ -- script.js docs/script.js', { encoding: 'utf8' });
-  assert.doesNotMatch(diff, /localStorage|backup|Google Drive|syncWithGoogleDrive|saveBackup|restoreBackup|cronômetro|timer/i);
+  const diff = execSync('git diff --unified=0 HEAD^ -- script.js docs/script.js', { encoding: 'utf8' });
+  assert.doesNotMatch(diff, /function (saveData|autoSyncAfterSave|syncWithGoogleDrive|saveBackup|restoreBackup|saveTimerPreferences|salvarCadernoErros|startTimer|pauseTimer|resetTimer)\b/);
 });

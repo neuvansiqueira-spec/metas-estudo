@@ -28,10 +28,10 @@ test('prompt do módulo PEÇA exige varredura de especificidades temáticas e fo
   assert.match(script, /USE COMO FONTE PRINCIPAL AS FONTES CLASSIFICADAS COMO PEÇA NA TRIAGEM/);
   assert.match(script, /LEI, JURISPRUDÊNCIA, RESUMO\/AULA OU ATUALIZAÇÃO\/COMPLEMENTO/);
   assert.match(script, /VÍNCULO DIRETO E IDENTIFICÁVEL COM A PEÇA ATUAL/);
-  assert.match(script, /## VERIFICAÇÃO OBRIGATÓRIA DE ESPECIFICIDADES TEMÁTICAS/);
+  assert.match(script, /## INVENTÁRIO INTERNO OBRIGATÓRIO DE ESPECIFICIDADES TEMÁTICAS/);
   assert.match(script, /ESPECIFICIDADES TEMÁTICAS DA PEÇA/);
   assert.match(script, /crimes hediondos ou equiparados/);
-  assert.match(script, /⚠️ LACUNA TEMÁTICA DETECTADA/);
+  assert.match(script, /✳️ LACUNA TEMÁTICA DETECTADA/);
   assert.match(script, /NÃO CRIE NOVA AULA, NOVA META OU NOVO MÓDULO/);
   assert.match(script, /Não invente especificidades/);
   assert.match(script, /MÓDULO: PEÇA\. Use fontes classificadas como PEÇA como base principal/);

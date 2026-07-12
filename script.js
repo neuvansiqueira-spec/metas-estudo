@@ -80,7 +80,8 @@ const FACTORY_RESUMO_AULA_PROMPT = FACTORY_RESUMO_AULA_PROMPT_SEGMENT;
 const FACTORY_RESUMO_AULA_MIGRATION_ID = "resumoAulaDidaticaProfundidadeV2";
 const FACTORY_RESUMO_AULA_DUPLICATION_MIGRATION_ID = "resumoAulaRemoverDuplicacaoV3";
 const FACTORY_RESUMO_AULA_ESTRUTURA_DIDATICA_MIGRATION_ID = "resumoAulaEstruturaDidaticaV4";
-const FACTORY_PECA_PROMPT = `## ESCOPO DO MÓDULO PEÇA
+const FACTORY_PECA_REGIMES_ESPECIAIS_MIGRATION_ID = "factoryPecaRegimesEspeciaisV2";
+const FACTORY_PECA_PREVIOUS_PROMPT = `## ESCOPO DO MÓDULO PEÇA
 
 USE COMO FONTE PRINCIPAL AS FONTES CLASSIFICADAS COMO PEÇA NA TRIAGEM.
 
@@ -162,6 +163,266 @@ Utilize somente informações presentes nas fontes aprovadas e disponibilizadas 
 Se houver indício de especificidade relevante, mas as fontes aprovadas forem insuficientes, registrar ao final:
 
 ⚠️ LACUNA TEMÁTICA DETECTADA: há possível especificidade jurídica relacionada a [tema], mas as fontes aprovadas não fornecem conteúdo suficiente para sua inclusão segura.
+
+Não criar automaticamente uma nova aula ou meta de estudo.
+
+Somente sugerir conteúdo autônomo quando a especificidade:
+
+1. for extensa demais para integrar o resumo da peça;
+2. constituir tema autônomo do edital;
+3. for aplicável a várias peças;
+4. exigir estudo aprofundado próprio;
+5. não estiver suficientemente desenvolvida nas fontes aprovadas.
+
+## FIDELIDADE ÀS FONTES
+
+PRESERVE INTEGRALMENTE AS REGRAS ATUAIS DE FIDELIDADE ÀS FONTES.
+
+NÃO INVENTE REQUISITO, PRAZO, COMPETÊNCIA, LEGITIMADO, PEDIDO, EFEITO, EXCEÇÃO, JURISPRUDÊNCIA OU FUNDAMENTO AUSENTE DAS FONTES APROVADAS.
+
+SE A FONTE NECESSÁRIA NÃO ESTIVER ANEXADA OU DISPONÍVEL, NÃO EXECUTE O MÓDULO.
+
+## ENTREGA
+
+GERE UM ARQUIVO .DOCX EDITÁVEL EXCLUSIVO DO MÓDULO PEÇA.
+
+NÃO GERE RESUMO/AULA, LEI, JURISPRUDÊNCIA OU CONSOLIDAÇÃO FINAL.
+
+NÃO CRIE NOVA AULA, NOVA META OU NOVO MÓDULO DE ESTUDO PARA CADA ESPECIFICIDADE PONTUAL.
+
+NOME DO ARQUIVO:
+
+RESUMO_PECA_[FILTRO].docx`;
+const FACTORY_PECA_PROMPT = `## ESCOPO DO MÓDULO PEÇA
+
+USE COMO FONTE PRINCIPAL AS FONTES CLASSIFICADAS COMO PEÇA NA TRIAGEM.
+
+É PERMITIDO USAR, DE FORMA COMPLEMENTAR, FONTES APROVADAS CLASSIFICADAS COMO LEI, JURISPRUDÊNCIA, RESUMO/AULA OU ATUALIZAÇÃO/COMPLEMENTO, DESDE QUE HAJA VÍNCULO DIRETO E IDENTIFICÁVEL COM A PEÇA ATUAL.
+
+NÃO MISTURE INDISCRIMINADAMENTE FONTES DE OUTROS MÓDULOS.
+
+A FONTE COMPLEMENTAR SOMENTE PODE SER UTILIZADA PARA ESPECIFICIDADE TEMÁTICA DIRETAMENTE RELACIONADA À PEÇA, COMO LEGISLAÇÃO ESPECIAL, PRAZO ESPECIAL, REQUISITO ESPECÍFICO, JURISPRUDÊNCIA ESSENCIAL, COMPETÊNCIA, LEGITIMIDADE, PEDIDO OU EFEITO JURÍDICO PRÓPRIO.
+
+NÃO PESQUISE, NÃO ATUALIZE, NÃO CORRIJA E NÃO COMPLETE O CONTEÚDO POR CONHECIMENTO EXTERNO.
+
+USE SOMENTE INFORMAÇÕES PRESENTES NAS FONTES APROVADAS E DISPONIBILIZADAS PARA O MÓDULO.
+
+## OBJETIVO
+
+GERE RESUMO DA PEÇA, NÃO PEÇA PRONTA E NÃO AULA CORRIDA.
+
+EXTRAIA E ORGANIZE, QUANDO PRESENTES NAS FONTES APROVADAS:
+
+* CABIMENTO;
+* REQUISITOS;
+* FUNDAMENTOS;
+* LEGITIMIDADE;
+* COMPETÊNCIA;
+* ESTRUTURA FORMAL;
+* PEDIDOS;
+* DETERMINAÇÕES;
+* CUIDADOS DE REDAÇÃO;
+* ESPECIFICIDADES TEMÁTICAS DIRETAMENTE RELACIONADAS À PEÇA.
+
+## INVENTÁRIO INTERNO OBRIGATÓRIO DE ESPECIFICIDADES TEMÁTICAS
+
+Antes de redigir o resumo da peça, realize internamente um inventário obrigatório das especificidades temáticas presentes nas fontes aprovadas e diretamente relacionadas à peça.
+
+Esse inventário é etapa interna de controle e não deve aparecer como relatório no Word final.
+
+Não se limite ao modelo geral da medida ou à estrutura formal da peça.
+
+Verifique especialmente:
+
+* leis especiais;
+* regimes jurídicos específicos;
+* prazos diferenciados;
+* requisitos adicionais;
+* requisitos de prorrogação;
+* exceções;
+* hipóteses especiais de cabimento;
+* competência especial;
+* legitimidade própria;
+* pedidos especiais ou subsidiários;
+* efeitos jurídicos particulares;
+* sigilo especial;
+* sujeitos vulneráveis;
+* organizações criminosas;
+* tráfico de drogas;
+* violência doméstica;
+* crimes hediondos ou equiparados;
+* competência federal, eleitoral ou militar;
+* prerrogativa de função;
+* jurisprudência indispensável.
+
+Quando houver conteúdo relevante, crie obrigatoriamente o tópico:
+
+ESPECIFICIDADES TEMÁTICAS DA PEÇA
+
+Nesse tópico, apresente de forma hierarquizada apenas as particularidades que alterem, complementem ou diferenciem a elaboração da peça.
+
+Exemplos de temas que devem ser verificados quando relacionados à peça:
+
+* crimes hediondos ou equiparados;
+* organizações criminosas;
+* tráfico de drogas;
+* violência doméstica e familiar;
+* crimes contra crianças, adolescentes, idosos ou vulneráveis;
+* competência federal, eleitoral ou militar;
+* prerrogativa de função;
+* legislação especial aplicável;
+* prazos especiais;
+* requisitos reforçados;
+* pedidos complementares;
+* jurisprudência essencial.
+
+
+
+## CENTRALIZAÇÃO OBRIGATÓRIA DOS REGIMES ESPECIAIS
+
+Quando uma especificidade temática for identificada, crie dentro de ESPECIFICIDADES TEMÁTICAS DA PEÇA um bloco próprio para cada regime especial relevante.
+
+Formato preferencial:
+
+▶️📚 REGIME ESPECIAL: [NOME DO REGIME]
+
+Desenvolva, somente quando presentes nas fontes aprovadas:
+
+1. campo de incidência;
+2. relação com o cabimento da peça;
+3. prazo especial;
+4. possibilidade e requisitos de prorrogação;
+5. requisitos adicionais;
+6. reflexos na fundamentação;
+7. reflexos nos pedidos;
+8. competência ou legitimidade específica;
+9. exceções e limites;
+10. ponto relevante para prova.
+
+Não crie campos vazios.
+
+Não invente elementos que não estejam nas fontes.
+
+A simples menção ao nome do regime especial não conta como desenvolvimento.
+
+A simples repetição do prazo em diferentes partes do documento também não conta como desenvolvimento.
+
+Quando houver conteúdo suficiente, o bloco especial deve permitir compreender:
+
+* qual é o regime;
+* quando ele interfere na peça;
+* o que muda na fundamentação;
+* o que muda no pedido;
+* quais limites ou lacunas foram identificados.
+
+Quando as fontes trouxerem apenas uma informação isolada, como um prazo, apresente somente essa informação e registre a insuficiência no bloco final de lacunas.
+
+## CONTROLE DE REPETIÇÕES
+
+O regime especial deve ser desenvolvido integralmente apenas uma vez, no tópico ESPECIFICIDADES TEMÁTICAS DA PEÇA.
+
+Nas demais partes da peça, como CABIMENTO, FUNDAMENTOS e PEDIDOS, faça somente referência curta e funcional ao regime.
+
+Exemplos de referência curta:
+
+✅ Verificar a incidência do regime especial desenvolvido em ESPECIFICIDADES TEMÁTICAS.
+
+✅ Adequar o prazo e os pedidos ao regime especial aplicável, conforme o bloco específico.
+
+Não repita em três ou quatro locais a mesma explicação sobre prazo, requisitos ou limitações.
+
+Preserve a informação necessária em cada parte da estrutura, mas evite duplicação textual.
+
+## ORDEM DAS ESPECIFICIDADES TEMÁTICAS
+
+Dentro do tópico ESPECIFICIDADES TEMÁTICAS DA PEÇA, utilize esta ordem:
+
+1. regimes legais especiais diretamente aplicáveis;
+2. prazos e requisitos especiais;
+3. competência, legitimidade e pedidos próprios;
+4. jurisprudência essencial;
+5. distinções em relação a outras peças ou medidas;
+6. lacunas das fontes.
+
+A comparação com outra medida não pode substituir o desenvolvimento do regime especial principal.
+
+Quando houver regime especial e distinção comparativa, desenvolva primeiro o regime especial e somente depois a distinção em relação a outra peça ou medida.
+
+## CONTROLE DE AMBIGUIDADE JURÍDICA
+
+Não utilize formulações amplas ou disjuntivas que possam sugerir hipóteses jurídicas independentes quando as fontes não explicarem essa relação.
+
+Evite frases como “Cabe se o delito estiver no rol ou for hediondo ou equiparado”.
+
+Essa formulação somente pode ser usada se a relação jurídica estiver expressamente e suficientemente desenvolvida nas fontes aprovadas.
+
+Quando as fontes apenas mencionarem elementos isolados, redija de forma segura:
+
+✅ Verificar o enquadramento jurídico do delito conforme as hipóteses expressamente desenvolvidas nas fontes aprovadas.
+
+Toda conclusão deve indicar:
+
+* o instituto;
+* o alcance;
+* a condição;
+* o efeito;
+* a exceção, quando existente.
+
+## LACUNAS DAS FONTES APROVADAS
+
+Não espalhe pelo conteúdo expressões como “segundo as fontes”, “as fontes indicam”, “as fontes exemplificam”, “dispositivo mencionado nas fontes” ou “regra geral indicada nas fontes”.
+
+O conteúdo jurídico principal deve ser apresentado diretamente.
+
+Reúna as insuficiências documentais em um único bloco final, usando este título somente quando necessário:
+
+## LACUNAS DAS FONTES APROVADAS
+
+Formato:
+
+✳️ [Informação relevante não suficientemente desenvolvida].
+
+Exemplos de lacunas, sem criar conteúdo jurídico fixo:
+
+✳️ As fontes aprovadas não enumeram o rol legal aplicável.
+
+✳️ As fontes aprovadas não desenvolvem os requisitos específicos da prorrogação.
+
+✳️ As fontes aprovadas não esclarecem suficientemente a relação entre o regime geral e o regime especial.
+
+Não repita a mesma lacuna em diferentes partes do documento.
+
+## EXEMPLO DE ORGANIZAÇÃO SEM CONTEÚDO JURÍDICO FIXO
+
+Se as fontes contiverem informações sobre um regime especial diretamente relacionado à peça, o resumo deve produzir estrutura semelhante a:
+
+▶️📚 REGIME ESPECIAL: [NOME DO REGIME]
+
+1️⃣ **Prazo especial:** [informação efetivamente presente na fonte].
+
+2️⃣ **Prorrogação:** [informação efetivamente presente na fonte].
+
+3️⃣ **Reflexo na fundamentação:** [informação efetivamente presente na fonte].
+
+4️⃣ **Reflexo no pedido:** [informação efetivamente presente na fonte].
+
+✳️ **Limites documentais:** [lacuna efetivamente identificada].
+
+Se a única informação disponível for prazo especial, apresente somente o prazo, não invente requisitos, não presuma cabimento automático e registre a insuficiência das demais informações no bloco final de lacunas.
+
+Depois do regime especial, poderá aparecer distinção em relação a outra medida somente quando a comparação estiver presente nas fontes e for útil à elaboração da peça.
+
+Não crie conteúdo com base em conhecimento externo não fornecido.
+
+Não invente especificidades.
+
+Utilize somente informações presentes nas fontes aprovadas e disponibilizadas para o módulo.
+
+Se houver indício de especificidade relevante, mas as fontes aprovadas forem insuficientes, registre a insuficiência somente no bloco final LACUNAS DAS FONTES APROVADAS.
+
+Preserve o aviso de lacuna temática, quando necessário, dentro desse bloco final único, sem espalhar alertas pelo documento:
+
+✳️ LACUNA TEMÁTICA DETECTADA: há possível especificidade jurídica relacionada a [tema], mas as fontes aprovadas não fornecem conteúdo suficiente para sua inclusão segura.
 
 Não criar automaticamente uma nova aula ou meta de estudo.
 
@@ -276,6 +537,7 @@ state.migrations ||= {};
 let shouldSaveAfterFactoryPromptMigrations = migrateStateFactoryPromptLibraryResumoAulaDidatica(state);
 shouldSaveAfterFactoryPromptMigrations = migrateStateFactoryPromptLibraryResumoAulaRemoverDuplicacao(state) || shouldSaveAfterFactoryPromptMigrations;
 shouldSaveAfterFactoryPromptMigrations = migrateStateFactoryPromptLibraryResumoAulaEstruturaDidaticaV4(state) || shouldSaveAfterFactoryPromptMigrations;
+shouldSaveAfterFactoryPromptMigrations = migrateStateFactoryPromptLibraryPecaRegimesEspeciaisV2(state) || shouldSaveAfterFactoryPromptMigrations;
 if (!state.migrations.leiRecortePromptV2 && state.factoryPromptLibrary?.lei?.includes(NEW_LEI_RECORTE_PROMPT)) {
   state.migrations.leiRecortePromptV2 = new Date().toISOString();
   shouldSaveAfterFactoryPromptMigrations = true;
@@ -1924,6 +2186,22 @@ function migrateStateFactoryPromptLibraryResumoAulaRemoverDuplicacao(targetState
   return true;
 }
 
+function migrateStateFactoryPromptLibraryPecaRegimesEspeciaisV2(targetState = state) {
+  targetState.migrations ||= {};
+  targetState.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({
+    ...cloneData(defaultFactoryPromptLibrary),
+    ...(targetState.factoryPromptLibrary || {})
+  });
+  if (targetState.migrations[FACTORY_PECA_REGIMES_ESPECIAIS_MIGRATION_ID]) return false;
+  const currentPecaPrompt = String(targetState.factoryPromptLibrary.peca || "");
+  const shouldUpdatePecaPrompt = !currentPecaPrompt.trim() || currentPecaPrompt === FACTORY_PECA_PREVIOUS_PROMPT || currentPecaPrompt === FACTORY_LIBRARY_FALLBACK;
+  if (shouldUpdatePecaPrompt) {
+    targetState.factoryPromptLibrary.peca = FACTORY_PECA_PROMPT;
+  }
+  targetState.migrations[FACTORY_PECA_REGIMES_ESPECIAIS_MIGRATION_ID] = new Date().toISOString();
+  return shouldUpdatePecaPrompt;
+}
+
 function migrateStateFactoryPromptLibraryResumoAulaEstruturaDidaticaV4(targetState = state) {
   targetState.migrations ||= {};
   targetState.factoryPromptLibrary ||= {};
@@ -1952,7 +2230,11 @@ function factoryRouterText(type, item = {}) {
   const leiDetails = hasAnyLeiField ? `Modo detalhado do módulo LEI:\n- Lei / diploma legal: ${leiModule.leiNome || "[NÃO PREENCHIDO]"}\n- Fonte: ${leiModule.leiFonte || "[NÃO PREENCHIDO]"}\n- Artigos / dispositivos: ${leiModule.leiArtigos || "[NÃO PREENCHIDO]"}\n- Recorte obrigatório: ${leiModule.leiRecorte || "[NÃO PREENCHIDO]"}\n- Observações: ${leiModule.leiObservacoes || "[NÃO PREENCHIDO]"}${hasLeiNome && hasLeiRecorte ? "" : `\n\n${leiAviso}`}` : `Modo rápido do módulo LEI:\n${leiAviso}`;
   const common = `${context}\nStatus anterior: ${item.status || "Não iniciado"}\nFontes a usar: conforme a triagem e as fontes classificadas para este módulo.\nFontes a não usar: fontes de outros módulos, conteúdo externo não fornecido e materiais não aprovados na triagem.\nRegras específicas do tema/módulo: ${item.observacao || "sem observações adicionais cadastradas."}`;
   const routers = {
-    triagem: `${common}\n\nA pasta de destino acima é apenas informação para etapas futuras. Faça apenas a TRIAGEM das fontes. Classifique cada fonte por RESUMO/AULA, LEI, JURISPRUDÊNCIA, PEÇA e ATUALIZAÇÃO/COMPLEMENTO. Não gere resumo, Word, PDF ou módulo final.`,
+    triagem: `${common}\n\nA pasta de destino acima é apenas informação para etapas futuras. Faça apenas a TRIAGEM das fontes. Classifique cada fonte por RESUMO/AULA, LEI, JURISPRUDÊNCIA, PEÇA e ATUALIZAÇÃO/COMPLEMENTO. Não gere resumo, Word, PDF ou módulo final.
+
+## VÍNCULOS TEMÁTICOS COM AS PEÇAS
+
+Quando houver fonte classificada como PEÇA, verifique se outras fontes aprovadas contêm conteúdo diretamente necessário para compreender especificidades dessa peça. Para cada peça identificada, informe: nome da peça; fontes principais classificadas como PEÇA; fontes complementares diretamente relacionadas; classificação original de cada fonte complementar; especificidade temática abordada; suficiência da fonte para desenvolver a especificidade. Use apenas estes estados: SUFICIENTE PARA INCLUSÃO; PARCIALMENTE SUFICIENTE; INSUFICIENTE; SEM FONTE RELACIONADA IDENTIFICADA. Não antecipe o resumo, não desenvolva conteúdo jurídico e não invente vínculos. Apenas identifique e registre vínculos efetivamente encontrados, preservando as categorias estruturais existentes.`,
     resumoAula: `${common}\n\nMÓDULO: RESUMO/AULA. Use apenas as fontes classificadas como RESUMO/AULA na triagem. Não gere os módulos LEI, JURISPRUDÊNCIA ou PEÇA e não faça ainda a consolidação final. Gere somente o arquivo Word correspondente ao MÓDULO RESUMO/AULA. Preserve profundidade, hierarquia, negritos e substitua qualquer referência de banca por “📌 PROVA”.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o MÓDULO RESUMO/AULA;\n- gerar um arquivo Word editável contendo o módulo;\n- não gerar ainda o Word final consolidado;\n- salvar o Word na pasta de destino indicada, somente quando houver ferramenta autorizada para gravação no Google Drive;\n- após salvar, devolver o link exato do arquivo criado;\n- não afirmar que salvou no Google Drive se a gravação não tiver ocorrido;\n- caso não exista ferramenta autorizada para salvar no Drive, gerar o Word para download e informar que ele precisa ser colocado manualmente na pasta.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`,
     lei: `${common}\n\nMÓDULO: LEI.\n${leiDetails}\n\nUse as fontes classificadas como LEI na triagem para identificar o diploma e o recorte. Confira o conteúdo normativo exclusivamente no texto oficial vigente do Planalto.\nRECORTE: trabalhe somente os artigos e temas expressamente indicados. Se o recorte não estiver cadastrado ou estiver impreciso, interrompa a geração e solicite confirmação. Somente trabalhe a lei integralmente quando houver autorização expressa do usuário.\nUse artigo/dispositivo como unidade central, preserve prazos, competências, vedações, exceções, requisitos, sanções e pontos de prova. Não copie a lei integralmente e não faça comentário doutrinário.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o Word do módulo LEI;\n- não gerar consolidação final;\n- salvar o Word na pasta de destino indicada apenas com ferramenta autorizada e devolver o link exato do arquivo criado.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`,
     jurisprudencia: `${common}\n\nMÓDULO: JURISPRUDÊNCIA. Use apenas fontes classificadas como JURISPRUDÊNCIA. Preserve tribunal, súmula, informativo, tema, ano, tese e distinções STF/STJ quando constarem. Não invente jurisprudência nem pesquise fora das fontes.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o Word do módulo JURISPRUDÊNCIA;\n- não gerar consolidação final;\n- salvar o Word na pasta de destino indicada apenas com ferramenta autorizada e devolver o link exato do arquivo criado.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`,
