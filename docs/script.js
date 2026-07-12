@@ -454,7 +454,237 @@ NOME DO ARQUIVO:
 
 RESUMO_PECA_[FILTRO].docx`;
 
-const defaultFactoryPromptLibrary = { triagem: "", resumoAula: FACTORY_RESUMO_AULA_PROMPT, lei: "", jurisprudencia: "", peca: FACTORY_PECA_PROMPT, consolidacao: "" };
+
+const FACTORY_TRIAGEM_PROMPT = `## ESCOPO DO MÓDULO TRIAGEM
+
+Faça apenas a TRIAGEM documental das fontes fornecidas para a Fábrica de Resumos.
+
+Não execute uma triagem concreta fora dos arquivos efetivamente acessíveis, não produza resumo, lei topificada, jurisprudência, peça, Word ou PDF, e não pesquise fora das fontes anexadas ou indicadas.
+
+A triagem deve responder: “O que cada arquivo realmente contém, para qual módulo ele serve e até onde o conjunto das fontes permite produzir material com fidelidade?”.
+
+A triagem não deve ser direcionada para confirmar uma conclusão anterior nem para demonstrar previamente que existe ou não existe um modelo integral. A existência de modelo integral é apenas um dos elementos da análise do módulo PEÇA.
+
+## METODOLOGIA GERAL
+
+Examine cada arquivo individualmente segundo sua função real no projeto, sem classificar apenas pelo nome do arquivo.
+
+Diferencie, quando o conteúdo efetivamente examinado permitir:
+
+* conteúdo teórico;
+* legislação;
+* jurisprudência;
+* estrutura prática de peça;
+* técnica geral de elaboração de peças;
+* peça específica integral;
+* peça específica parcial;
+* peça de outro tema;
+* atualização ou complemento;
+* material irrelevante;
+* material duplicado.
+
+A conclusão não pode ser direcionada previamente para suficiência, insuficiência, suficiência parcial ou existência/inexistência de modelo integral. O resultado deve decorrer somente do conteúdo localizado nas fontes.
+
+## CLASSIFICAÇÕES E FUNÇÕES
+
+Preserve como classificação principal uma destas categorias estruturais:
+
+1. RESUMO/AULA;
+2. LEI;
+3. JURISPRUDÊNCIA;
+4. PEÇA;
+5. ATUALIZAÇÃO/COMPLEMENTO.
+
+Cada arquivo deve possuir uma classificação principal. Quando necessário, registre classificação ou função secundária sem alterar artificialmente a natureza predominante da fonte.
+
+Condições auxiliares permitidas, sem transformá-las obrigatoriamente em novos módulos estruturais:
+
+* IRRELEVANTE PARA O TEMA;
+* DUPLICADA;
+* APOIO ESTRUTURAL;
+* FONTE PRINCIPAL;
+* FONTE SECUNDÁRIA.
+
+Exemplo de registro permitido: Classificação principal: RESUMO/AULA. Função secundária: apoio para estruturação da PEÇA.
+
+## EXAME INDIVIDUAL DAS FONTES
+
+Para cada fonte, informe obrigatoriamente:
+
+* nome exato;
+* assunto predominante;
+* classificação principal;
+* classificação ou função secundária, quando houver;
+* relação direta, indireta ou inexistente com o tema;
+* conteúdo útil;
+* limitações;
+* presença de duplicidade;
+* decisão de uso.
+
+Use decisões equivalentes a:
+
+* USAR COMO FONTE PRINCIPAL;
+* USAR COMO FONTE SECUNDÁRIA;
+* USAR APENAS COMO APOIO;
+* NÃO USAR NESTE MÓDULO;
+* DESCARTAR POR DUPLICIDADE.
+
+## SUFICIÊNCIA SEPARADA POR MÓDULO
+
+Após a classificação individual, avalie separadamente a suficiência documental para:
+
+* RESUMO/AULA;
+* LEI;
+* JURISPRUDÊNCIA;
+* PEÇA;
+* ATUALIZAÇÃO/COMPLEMENTO.
+
+Para cada módulo, use somente um dos quatro resultados:
+
+* SUFICIENTES;
+* PARCIALMENTE SUFICIENTES;
+* INSUFICIENTES;
+* INEXISTENTES.
+
+Cada resultado deve ter justificativa objetiva e própria. Não apresente uma única conclusão global que esconda diferenças entre módulos. Não trate PARCIALMENTE SUFICIENTES como sinônimo de SUFICIENTES nem de INEXISTENTES.
+
+Definições obrigatórias:
+
+* SUFICIENTES: há material suficiente para produzir o módulo com fidelidade documental, sem pesquisa externa e sem criação de conteúdo ausente.
+* PARCIALMENTE SUFICIENTES: há conteúdo relevante e aproveitável, mas existem lacunas que impedem a produção integral ou segura do módulo.
+* INSUFICIENTES: o conteúdo localizado é superficial, fragmentado, inadequado ou incapaz de sustentar o módulo com fidelidade.
+* INEXISTENTES: não foi localizada nenhuma fonte correspondente à categoria ou ao módulo.
+
+## REGRA PARA RESUMO/AULA
+
+O módulo RESUMO/AULA pode ser considerado SUFICIENTE quando o conjunto das fontes apresentar conteúdo teórico adequado, ainda que as informações estejam distribuídas entre vários arquivos, nenhum arquivo isolado contenha toda a matéria e existam fontes principais e secundárias diferentes.
+
+A existência de resumo anteriormente produzido não prova automaticamente suficiência. A suficiência deve resultar da análise documental das fontes.
+
+## REGRA PARA PEÇA
+
+A avaliação do módulo PEÇA não depende exclusivamente da existência de um único modelo integral pronto.
+
+Verifique se o conjunto das fontes permite identificar, com segurança:
+
+* espécie da manifestação;
+* autoridade destinatária;
+* legitimidade;
+* contexto procedimental;
+* estrutura;
+* exposição dos fatos;
+* fundamentos;
+* requisitos;
+* demonstração concreta do cabimento;
+* pedidos;
+* providências finais;
+* encerramento;
+* padrão exigido pela disciplina.
+
+Distinga expressamente:
+
+1. peça específica e integral;
+2. peça específica parcial;
+3. técnica geral de peças;
+4. peça de outro tema com possível apoio estrutural;
+5. peça de outro tema sem utilidade para o módulo.
+
+A ausência de modelo integral não torna automaticamente inúteis todas as fontes. Ao mesmo tempo, técnica geral, comparação teórica ou modelo de outro tema não podem ser tratados como fonte integral da peça específica.
+
+Quando houver apenas conteúdo parcial, a conclusão correta para PEÇA deve ser PARCIALMENTE SUFICIENTES, com lacunas concretas.
+
+## VÍNCULOS TEMÁTICOS COM AS PEÇAS
+
+Quando houver fonte classificada como PEÇA, identifique fontes complementares diretamente relacionadas somente se o vínculo for real e demonstrável.
+
+Preserve a classificação original da fonte complementar, não desenvolva antecipadamente o conteúdo jurídico, não invente vínculo e não reclassifique artificialmente a fonte complementar como PEÇA.
+
+Para cada peça identificada, informe: nome da peça; fontes principais classificadas como PEÇA; fontes complementares diretamente relacionadas; classificação original de cada fonte complementar; especificidade temática abordada; suficiência da fonte para desenvolver a especificidade.
+
+Use apenas estes estados para o vínculo temático: SUFICIENTE PARA INCLUSÃO; PARCIALMENTE SUFICIENTE; INSUFICIENTE; SEM FONTE RELACIONADA IDENTIFICADA.
+
+## LACUNAS DOCUMENTAIS
+
+Indique lacunas específicas e individualizadas. Não use apenas expressões genéricas como “faltam informações”, “material incompleto” ou “fontes insuficientes”.
+
+Identifique concretamente, quando aplicável: ausência de fonte legislativa; ausência de jurisprudência; ausência de estrutura prática; ausência de modelo integral; ausência de pedidos; ausência de fundamentação; ausência de tratamento de requisito específico; ausência de encerramento; ausência de fonte diretamente relacionada ao recorte; ausência de densidade suficiente para o resumo.
+
+A indicação da lacuna não autoriza pesquisa externa.
+
+## PROIBIÇÕES
+
+É proibido:
+
+* pesquisar externamente;
+* complementar por conhecimento próprio;
+* criar conteúdo ausente;
+* classificar com base apenas no nome do arquivo;
+* repetir automaticamente conclusão de triagem anterior;
+* direcionar a análise para confirmar resultado previamente esperado;
+* tratar técnica geral como peça específica;
+* descartar fonte útil apenas porque ela não contém modelo integral;
+* declarar suficiência da PEÇA apenas porque existe conteúdo teórico;
+* declarar insuficiência global quando módulos diferentes possuem resultados diferentes;
+* gerar resumo;
+* gerar lei topificada;
+* gerar jurisprudência;
+* gerar peça;
+* gerar Word ou PDF.
+
+## FORMATO OBRIGATÓRIO DA TRIAGEM
+
+### A. Identificação geral
+
+* disciplina;
+* tema;
+* subtema ou recorte;
+* quantidade informada;
+* quantidade efetivamente acessível e legível.
+
+### B. Quadro individual das fontes
+
+Para cada arquivo:
+
+* nome;
+* assunto predominante;
+* classificação principal;
+* função secundária;
+* relação direta, indireta ou inexistente com o tema;
+* conteúdo útil;
+* limitações;
+* duplicidade;
+* decisão de uso.
+
+### C. Consolidação por categoria
+
+Separar:
+
+* RESUMO/AULA;
+* LEI;
+* JURISPRUDÊNCIA;
+* PEÇA;
+* ATUALIZAÇÃO/COMPLEMENTO;
+* irrelevantes;
+* duplicadas.
+
+### D. Fontes principais e secundárias
+
+Indicar fontes principais, secundárias e de mero apoio para cada módulo relevante.
+
+### E. Suficiência por módulo
+
+Informar separadamente RESUMO/AULA, LEI, JURISPRUDÊNCIA, PEÇA e ATUALIZAÇÃO/COMPLEMENTO, usando somente SUFICIENTES, PARCIALMENTE SUFICIENTES, INSUFICIENTES ou INEXISTENTES.
+
+### F. Lacunas documentais
+
+Apresentar lacunas concretas e individualizadas, sem autorizar pesquisa externa.
+
+### G. Resultado global
+
+Produzir síntese compatível com os resultados separados, sem esconder divergências entre os módulos e sem reduzir a triagem a uma conclusão binária global.`;
+const FACTORY_TRIAGEM_METHODOLOGY_MIGRATION_ID = "factoryTriagemMetodologiaGeralV1";
+
+const defaultFactoryPromptLibrary = { triagem: FACTORY_TRIAGEM_PROMPT, resumoAula: FACTORY_RESUMO_AULA_PROMPT, lei: "", jurisprudencia: "", peca: FACTORY_PECA_PROMPT, consolidacao: "" };
 const OLD_LEI_RECORTE_PROMPT = [
   "RECORTE: se houver edital/programa/recorte, trabalhe somente os artigos e temas indicados.",
   "Se não houver, trabalhe a lei",
@@ -537,7 +767,8 @@ const FACTORY_CLICK_ROUTES = ["factoryPrompt", "factoryPromptClose", "factoryPro
 const FACTORY_LIBRARY_CLICK_ROUTES = ["factoryLibraryClose", "factoryLibraryRestore"];
 let lastFactoryTodayInfo = { goals: 0, matched: 0, matchModes: [] };
 state.migrations ||= {};
-let shouldSaveAfterFactoryPromptMigrations = migrateStateFactoryPromptLibraryResumoAulaDidatica(state);
+let shouldSaveAfterFactoryPromptMigrations = migrateStateFactoryPromptLibraryTriagemMetodologiaGeral(state);
+shouldSaveAfterFactoryPromptMigrations = migrateStateFactoryPromptLibraryResumoAulaDidatica(state) || shouldSaveAfterFactoryPromptMigrations;
 shouldSaveAfterFactoryPromptMigrations = migrateStateFactoryPromptLibraryResumoAulaRemoverDuplicacao(state) || shouldSaveAfterFactoryPromptMigrations;
 shouldSaveAfterFactoryPromptMigrations = migrateStateFactoryPromptLibraryResumoAulaEstruturaDidaticaV4(state) || shouldSaveAfterFactoryPromptMigrations;
 shouldSaveAfterFactoryPromptMigrations = migrateStateFactoryPromptLibraryPecaRegimesEspeciaisV2(state) || shouldSaveAfterFactoryPromptMigrations;
@@ -2163,6 +2394,22 @@ function migrateFactoryPromptLibraryLeiRecorte(library = {}) {
   }
   return normalized;
 }
+function migrateStateFactoryPromptLibraryTriagemMetodologiaGeral(targetState = state) {
+  targetState.migrations ||= {};
+  targetState.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({
+    ...cloneData(defaultFactoryPromptLibrary),
+    ...(targetState.factoryPromptLibrary || {})
+  });
+  if (targetState.migrations[FACTORY_TRIAGEM_METHODOLOGY_MIGRATION_ID]) return false;
+  const currentTriagemPrompt = String(targetState.factoryPromptLibrary.triagem || "");
+  const shouldUpdateTriagemPrompt = !currentTriagemPrompt.trim() || currentTriagemPrompt === FACTORY_LIBRARY_FALLBACK;
+  if (shouldUpdateTriagemPrompt) {
+    targetState.factoryPromptLibrary.triagem = FACTORY_TRIAGEM_PROMPT;
+  }
+  targetState.migrations[FACTORY_TRIAGEM_METHODOLOGY_MIGRATION_ID] = new Date().toISOString();
+  return shouldUpdateTriagemPrompt;
+}
+
 function migrateStateFactoryPromptLibraryResumoAulaDidatica(targetState = state) {
   targetState.migrations ||= {};
   targetState.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({
@@ -2233,11 +2480,9 @@ function factoryRouterText(type, item = {}) {
   const leiDetails = hasAnyLeiField ? `Modo detalhado do módulo LEI:\n- Lei / diploma legal: ${leiModule.leiNome || "[NÃO PREENCHIDO]"}\n- Fonte: ${leiModule.leiFonte || "[NÃO PREENCHIDO]"}\n- Artigos / dispositivos: ${leiModule.leiArtigos || "[NÃO PREENCHIDO]"}\n- Recorte obrigatório: ${leiModule.leiRecorte || "[NÃO PREENCHIDO]"}\n- Observações: ${leiModule.leiObservacoes || "[NÃO PREENCHIDO]"}${hasLeiNome && hasLeiRecorte ? "" : `\n\n${leiAviso}`}` : `Modo rápido do módulo LEI:\n${leiAviso}`;
   const common = `${context}\nStatus anterior: ${item.status || "Não iniciado"}\nFontes a usar: conforme a triagem e as fontes classificadas para este módulo.\nFontes a não usar: fontes de outros módulos, conteúdo externo não fornecido e materiais não aprovados na triagem.\nRegras específicas do tema/módulo: ${item.observacao || "sem observações adicionais cadastradas."}`;
   const routers = {
-    triagem: `${common}\n\nA pasta de destino acima é apenas informação para etapas futuras. Faça apenas a TRIAGEM das fontes. Classifique cada fonte por RESUMO/AULA, LEI, JURISPRUDÊNCIA, PEÇA e ATUALIZAÇÃO/COMPLEMENTO. Não gere resumo, Word, PDF ou módulo final.
+    triagem: `${common}
 
-## VÍNCULOS TEMÁTICOS COM AS PEÇAS
-
-Quando houver fonte classificada como PEÇA, verifique se outras fontes aprovadas contêm conteúdo diretamente necessário para compreender especificidades dessa peça. Para cada peça identificada, informe: nome da peça; fontes principais classificadas como PEÇA; fontes complementares diretamente relacionadas; classificação original de cada fonte complementar; especificidade temática abordada; suficiência da fonte para desenvolver a especificidade. Use apenas estes estados: SUFICIENTE PARA INCLUSÃO; PARCIALMENTE SUFICIENTE; INSUFICIENTE; SEM FONTE RELACIONADA IDENTIFICADA. Não antecipe o resumo, não desenvolva conteúdo jurídico e não invente vínculos. Apenas identifique e registre vínculos efetivamente encontrados, preservando as categorias estruturais existentes.`,
+MÓDULO: TRIAGEM. A pasta de destino acima é apenas informação para etapas futuras. Faça apenas a TRIAGEM das fontes, aplicando o prompt completo oficial abaixo. Classifique cada fonte por RESUMO/AULA, LEI, JURISPRUDÊNCIA, PEÇA e ATUALIZAÇÃO/COMPLEMENTO, com suficiência separada por módulo. Não gere resumo, lei topificada, jurisprudência, peça, Word, PDF ou módulo final.`,
     resumoAula: `${common}\n\nMÓDULO: RESUMO/AULA. Use apenas as fontes classificadas como RESUMO/AULA na triagem. Não gere os módulos LEI, JURISPRUDÊNCIA ou PEÇA e não faça ainda a consolidação final. Gere somente o arquivo Word correspondente ao MÓDULO RESUMO/AULA. Preserve profundidade, hierarquia, negritos e substitua qualquer referência de banca por “📌 PROVA”.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o MÓDULO RESUMO/AULA;\n- gerar um arquivo Word editável contendo o módulo;\n- não gerar ainda o Word final consolidado;\n- salvar o Word na pasta de destino indicada, somente quando houver ferramenta autorizada para gravação no Google Drive;\n- após salvar, devolver o link exato do arquivo criado;\n- não afirmar que salvou no Google Drive se a gravação não tiver ocorrido;\n- caso não exista ferramenta autorizada para salvar no Drive, gerar o Word para download e informar que ele precisa ser colocado manualmente na pasta.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`,
     lei: `${common}\n\nMÓDULO: LEI.\n${leiDetails}\n\nUse as fontes classificadas como LEI na triagem para identificar o diploma e o recorte. Confira o conteúdo normativo exclusivamente no texto oficial vigente do Planalto.\nRECORTE: trabalhe somente os artigos e temas expressamente indicados. Se o recorte não estiver cadastrado ou estiver impreciso, interrompa a geração e solicite confirmação. Somente trabalhe a lei integralmente quando houver autorização expressa do usuário.\nUse artigo/dispositivo como unidade central, preserve prazos, competências, vedações, exceções, requisitos, sanções e pontos de prova. Não copie a lei integralmente e não faça comentário doutrinário.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o Word do módulo LEI;\n- não gerar consolidação final;\n- salvar o Word na pasta de destino indicada apenas com ferramenta autorizada e devolver o link exato do arquivo criado.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`,
     jurisprudencia: `${common}\n\nMÓDULO: JURISPRUDÊNCIA. Use apenas fontes classificadas como JURISPRUDÊNCIA. Preserve tribunal, súmula, informativo, tema, ano, tese e distinções STF/STJ quando constarem. Não invente jurisprudência nem pesquise fora das fontes.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o Word do módulo JURISPRUDÊNCIA;\n- não gerar consolidação final;\n- salvar o Word na pasta de destino indicada apenas com ferramenta autorizada e devolver o link exato do arquivo criado.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`,

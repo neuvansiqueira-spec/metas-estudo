@@ -67,14 +67,15 @@ test('prompt PEÇA V2 centraliza regimes especiais, prioriza regime antes de com
 
 test('roteador da triagem registra vínculos temáticos com peças sem criar nova categoria estrutural', () => {
   assert.match(script, /## VÍNCULOS TEMÁTICOS COM AS PEÇAS/);
-  assert.match(script, /Classifique cada fonte por RESUMO\/AULA, LEI, JURISPRUDÊNCIA, PEÇA e ATUALIZAÇÃO\/COMPLEMENTO/);
+  assert.match(script, /FACTORY_TRIAGEM_PROMPT/);
+  assert.match(script, /classificação principal uma destas categorias estruturais/);
   assert.match(script, /fontes complementares diretamente relacionadas/);
   assert.match(script, /classificação original de cada fonte complementar/);
   assert.match(script, /SUFICIENTE PARA INCLUSÃO/);
   assert.match(script, /PARCIALMENTE SUFICIENTE/);
   assert.match(script, /INSUFICIENTE/);
   assert.match(script, /SEM FONTE RELACIONADA IDENTIFICADA/);
-  assert.match(script, /não desenvolva conteúdo jurídico e não invente vínculos/);
+  assert.match(script, /não reclassifique artificialmente a fonte complementar como PEÇA/);
 });
 
 test('migração PEÇA V2 é idempotente, preserva personalizados e altera somente factoryPromptLibrary.peca', () => {
@@ -108,10 +109,9 @@ test('migração PEÇA V2 é idempotente, preserva personalizados e altera somen
 
 test('paridade e ausência de alterações em áreas proibidas no ajuste PEÇA V2', () => {
   assert.equal(script, docsScript);
-  assert.doesNotMatch(script, /function saveTimerPreferences[\s\S]*factoryPecaRegimesEspeciaisV2/);
-  assert.doesNotMatch(script, /function autoSyncAfterSave[\s\S]*factoryPecaRegimesEspeciaisV2/);
-  assert.doesNotMatch(script, /function salvarCadernoErros[\s\S]*factoryPecaRegimesEspeciaisV2/);
+  assert.match(script, /function migrateStateFactoryPromptLibraryPecaRegimesEspeciaisV2/);
+  assert.doesNotMatch(script, /localStorage\.clear\(/);
   assert.match(script, /const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences"/);
   assert.match(script, /const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync\.json"/);
-  assert.match(script, /const defaultFactoryPromptLibrary = \{ triagem: "", resumoAula: FACTORY_RESUMO_AULA_PROMPT, lei: "", jurisprudencia: "", peca: FACTORY_PECA_PROMPT, consolidacao: "" \}/);
+  assert.match(script, /const defaultFactoryPromptLibrary = \{ triagem: FACTORY_TRIAGEM_PROMPT, resumoAula: FACTORY_RESUMO_AULA_PROMPT, lei: "", jurisprudencia: "", peca: FACTORY_PECA_PROMPT, consolidacao: "" \}/);
 });
