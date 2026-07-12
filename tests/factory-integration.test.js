@@ -15,7 +15,7 @@ test('prompts da Fábrica diferenciam pasta, módulos e entrega obrigatória', (
   assert.match(script, /Gere somente o arquivo Word correspondente ao MÓDULO RESUMO\/AULA/);
   assert.match(script, /não faça ainda a consolidação final/);
   assert.match(script, /gerar um arquivo Word editável contendo o módulo/);
-  assert.match(script, /Não gere resumo, Word, PDF ou módulo final/);
+  assert.match(script, /Não gere resumo, lei topificada, jurisprudência, peça, Word, PDF ou módulo final/);
   assert.match(script, /gerar Word consolidado/);
   assert.match(script, /gerar PDF consolidado/);
   assert.doesNotMatch(script, /Não gere lei, jurisprudência, peça ou Word final/);
@@ -77,7 +77,7 @@ test('prompts da Fábrica orientam upload DOCX/PDF no Drive sem caminho local br
   assert.match(script, /não afirme que houve salvamento/);
   assert.match(script, /ARQUIVO GERADO E SALVO/);
   assert.match(script, /ARQUIVO GERADO, MAS NÃO SALVO NO DRIVE/);
-  assert.match(script, /triagem: `\$\{common\}\\n\\nA pasta de destino acima é apenas informação para etapas futuras[\s\S]*Não gere resumo, Word, PDF ou módulo final/);
+  assert.match(script, /triagem: `\$\{common\}\n\nMÓDULO: TRIAGEM[\s\S]*Não gere resumo, lei topificada, jurisprudência, peça, Word, PDF ou módulo final/);
   assert.equal(script, docsScript, 'script.js e docs/script.js devem permanecer sincronizados');
 });
 

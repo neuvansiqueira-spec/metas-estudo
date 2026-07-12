@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-20260712-inicializacao-sem-flash-v5";
+const CACHE_NAME = "metas-estudo-20260712-triagem-metodologia-geral-v1";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
