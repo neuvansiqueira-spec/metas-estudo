@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260711-resumo-aula-estrutura-didatica-v4",
+  "version": "20260712-fabrica-assunto-visual-v1",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
