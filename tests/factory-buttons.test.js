@@ -10,7 +10,7 @@ const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const serviceWorker = fs.readFileSync('service-worker.js', 'utf8');
 const docsServiceWorker = fs.readFileSync('docs/service-worker.js', 'utf8');
 
-const version = '20260712-fabrica-botoes-operacionais-v2';
+const version = '20260712-fabrica-fila-status-v3';
 const clickRoutes = [
   'factoryPrompt', 'factoryPromptClose', 'factoryPromptCopy', 'factoryRouterCopy',
   'factoryEdit', 'factoryDelete', 'factoryModules', 'factoryModulesCancel',
@@ -105,4 +105,35 @@ test('arquivos publicados e scripts ficam sincronizados na nova versão pública
   assert.equal(serviceWorker, docsServiceWorker);
   assert.equal(packageJson.version, version);
   for (const source of [html, serviceWorker]) assert.match(source, new RegExp(version));
+});
+
+test('fila da Fábrica abre o item clicado no painel principal e alterna Abrir/Fechar', () => {
+  assert.match(script, /const selectedEntry = factoryOpenDetailId \? queue\.find\(\(\{ item \}\) => item\.id === factoryOpenDetailId\)/);
+  assert.match(script, /const nowEntry = selectedEntry \|\| firstResumoPendingEntry \|\| queue\[0\]/);
+  assert.match(script, /factoryOpenDetailId = factoryOpenDetailId === id \? "" : id/);
+  assert.match(script, /if \(factoryOpenDetailId\) factoryCurrentFilter = "faca-agora"/);
+  assert.match(script, /data-factory-detail="\$\{item\.id\}" \$\{factoryOpenDetailId === item\.id \? "open" : ""\}/);
+  assert.match(script, /\$\{isOpen \? "Fechar" : "Abrir"\}/);
+  assert.match(script, /scrollIntoView\(\{ behavior: "smooth", block: "start" \}\)/);
+});
+
+test('rótulos e status da fila são derivados dos módulos normalizados', () => {
+  assert.match(script, /function factoryThemeVisualLabel\(item = \{\}\)/);
+  assert.match(script, /return "ASSUNTO CONCLUÍDO"/);
+  assert.match(script, /return "RESUMO\/AULA CONCLUÍDO"/);
+  assert.match(script, /return "ASSUNTO EM PRODUÇÃO"/);
+  assert.match(script, /return "ASSUNTO PENDENTE"/);
+  assert.match(script, /function factoryQueueItemLabel\(item = \{\}, index = 0, firstPendingId = ""\)/);
+  assert.match(script, /return "Assunto concluído"/);
+  assert.match(script, /return "Resumo\/Aula pronto"/);
+  assert.match(script, /return "Fazer agora"/);
+  assert.match(script, /const status = factoryOverallStatus\(modules\)/);
+  assert.doesNotMatch(script, /index === 0 \? "Fazer agora"/);
+});
+
+test('filtros evitam cards interativos duplicados e protegem armazenamento', () => {
+  assert.match(script, /elements\.factoryList\.innerHTML = factoryCurrentFilter === "faca-agora" \? nowPanel \+ queuePanel : listPanel/);
+  assert.doesNotMatch(script, /elements\.factoryList\.innerHTML = nowPanel \+ queuePanel \+ listPanel/);
+  assert.doesNotMatch(script, /localStorage\.clear\(/);
+  assert.doesNotMatch(script, /removeItem\([^)]*(factoryAgenda|factoryItems|materials|dailyGoals|smartReviews|syllabusItems|questionBank|simulados)/);
 });

@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-20260712-fabrica-botoes-operacionais-v2";
+const CACHE_NAME = "metas-estudo-20260712-fabrica-fila-status-v3";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
