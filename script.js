@@ -532,6 +532,9 @@ state.factoryAgenda ||= [];
 state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) });
 let factoryCurrentFilter = "faca-agora";
 let factoryOpenDetailId = "";
+let factoryEventsInitialized = false;
+const FACTORY_CLICK_ROUTES = ["factoryPrompt", "factoryPromptClose", "factoryPromptCopy", "factoryRouterCopy", "factoryEdit", "factoryDelete", "factoryModules", "factoryModulesCancel", "factoryToggleDetail", "factoryNext", "factoryTriagem", "factoryReopen", "openUrl"];
+const FACTORY_LIBRARY_CLICK_ROUTES = ["factoryLibraryClose", "factoryLibraryRestore"];
 let lastFactoryTodayInfo = { goals: 0, matched: 0, matchModes: [] };
 state.migrations ||= {};
 let shouldSaveAfterFactoryPromptMigrations = migrateStateFactoryPromptLibraryResumoAulaDidatica(state);
@@ -4089,11 +4092,98 @@ if (elements.materialForm) elements.materialForm.addEventListener("submit", save
 elements.materialDiscipline?.addEventListener("input", renderMaterialSelectors);
 elements.studySubject?.addEventListener("change", updateStudyMaterialOptions);
 elements.studyTopic?.addEventListener("input", updateStudyMaterialOptions);
-elements.factoryForm?.addEventListener("submit", saveFactoryItem);
-document.addEventListener("submit", saveFactoryModules);
-document.addEventListener("submit", saveFactoryPromptLibrary);
-elements.editFactoryPromptLibrary?.addEventListener("click", () => { if (!elements.factoryPromptLibraryPanel) return; elements.factoryPromptLibraryPanel.hidden = !elements.factoryPromptLibraryPanel.hidden; if (!elements.factoryPromptLibraryPanel.hidden) renderFactoryPromptLibrary(); });
-document.addEventListener("click", (event) => { const factoryFilter = event.target.closest("[data-factory-filter]"); if (factoryFilter) { factoryCurrentFilter = factoryFilter.dataset.factoryFilter || "hoje"; renderFactory(); return; } const edit = event.target.closest("[data-factory-edit]"); const del = event.target.closest("[data-factory-delete]"); const modules = event.target.closest("[data-factory-modules]"); const cancelModules = event.target.closest("[data-factory-modules-cancel]"); const prompt = event.target.closest("[data-factory-prompt]"); const copyPrompt = event.target.closest("[data-factory-prompt-copy]"); const copyRouter = event.target.closest("[data-factory-router-copy]"); const closePrompt = event.target.closest("[data-factory-prompt-close]"); const closeLibrary = event.target.closest("[data-factory-library-close]"); const restoreLibrary = event.target.closest("[data-factory-library-restore]"); const reopen = event.target.closest("[data-factory-reopen]"); const toggleDetail = event.target.closest("[data-factory-toggle-detail]"); const triagem = event.target.closest("[data-factory-triagem]"); const nextTheme = event.target.closest("[data-factory-next]"); if (toggleDetail) toggleFactoryDetail(toggleDetail.dataset.factoryToggleDetail); if (triagem) { const [id, status] = triagem.dataset.factoryTriagem.split("|"); setFactoryTriagemStatus(id, status); } if (nextTheme) factoryGoToNext(nextTheme.dataset.factoryNext); if (reopen) reopenFactoryTheme(reopen.dataset.factoryReopen); if (edit) editFactoryItem(edit.dataset.factoryEdit); if (del) deleteFactoryItem(del.dataset.factoryDelete); if (modules) editFactoryModules(modules.dataset.factoryModules); if (cancelModules) renderFactory(); if (prompt) { const [id, type] = prompt.dataset.factoryPrompt.split("|"); showFactoryPrompt(id, type); } if (copyPrompt) copyFactoryPrompt(copyPrompt.dataset.factoryPromptCopy); if (copyRouter) copyFactoryPrompt(copyRouter.dataset.factoryRouterCopy, true); if (closePrompt) closeFactoryPrompt(closePrompt.dataset.factoryPromptClose); if (closeLibrary && elements.factoryPromptLibraryPanel) elements.factoryPromptLibraryPanel.hidden = true; if (restoreLibrary && confirm("Isso substituirá o prompt salvo deste módulo. Deseja continuar?")) { const field = elements.factoryPromptLibraryPanel?.querySelector(`[data-factory-library-field="${CSS.escape(restoreLibrary.dataset.factoryLibraryRestore)}"]`); if (field) field.value = defaultFactoryPromptLibrary[restoreLibrary.dataset.factoryLibraryRestore] || ""; } });
+function showFactoryEventError(action, error) {
+  console.error(`[Metas Estudo] Erro na ação da Fábrica: ${action}`, error);
+  alert("Não foi possível executar esta ação da Fábrica. Seus dados salvos foram preservados. Tente novamente ou verifique as informações preenchidas.");
+}
+function openFactoryUrl(url) {
+  try {
+    const parsed = new URL(String(url || ""));
+    if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("URL sem protocolo http/https.");
+    window.open(parsed.href, "_blank", "noopener");
+  } catch (error) {
+    alert("Link inválido ou não preenchido. Preencha a pasta correspondente da Fábrica antes de abrir.");
+  }
+}
+function handleFactoryFilterClick(event) {
+  const button = event.target.closest("[data-factory-filter]");
+  if (!button) return;
+  event.preventDefault();
+  try {
+    factoryCurrentFilter = button.dataset.factoryFilter || "faca-agora";
+    renderFactory();
+  } catch (error) { showFactoryEventError("filtro", error); }
+}
+function handleFactoryListClick(event) {
+  const button = event.target.closest("button");
+  if (!button || !elements.factoryList?.contains(button)) return;
+  try {
+    const prompt = button.closest("[data-factory-prompt]");
+    if (prompt) { event.preventDefault(); const [id, type] = prompt.dataset.factoryPrompt.split("|"); return showFactoryPrompt(id, type); }
+    const closePrompt = button.closest("[data-factory-prompt-close]");
+    if (closePrompt) { event.preventDefault(); return closeFactoryPrompt(closePrompt.dataset.factoryPromptClose); }
+    const copyPrompt = button.closest("[data-factory-prompt-copy]");
+    if (copyPrompt) { event.preventDefault(); return copyFactoryPrompt(copyPrompt.dataset.factoryPromptCopy, false); }
+    const copyRouter = button.closest("[data-factory-router-copy]");
+    if (copyRouter) { event.preventDefault(); return copyFactoryPrompt(copyRouter.dataset.factoryRouterCopy, true); }
+    const edit = button.closest("[data-factory-edit]");
+    if (edit) { event.preventDefault(); return editFactoryItem(edit.dataset.factoryEdit); }
+    const del = button.closest("[data-factory-delete]");
+    if (del) { event.preventDefault(); return deleteFactoryItem(del.dataset.factoryDelete); }
+    const modules = button.closest("[data-factory-modules]");
+    if (modules) { event.preventDefault(); return editFactoryModules(modules.dataset.factoryModules); }
+    const cancelModules = button.closest("[data-factory-modules-cancel]");
+    if (cancelModules) { event.preventDefault(); const panel = elements.factoryList.querySelector(`[data-factory-modules-panel="${CSS.escape(cancelModules.dataset.factoryModulesCancel)}"]`); if (panel) panel.innerHTML = ""; return; }
+    const toggleDetail = button.closest("[data-factory-toggle-detail]");
+    if (toggleDetail) { event.preventDefault(); return toggleFactoryDetail(toggleDetail.dataset.factoryToggleDetail); }
+    const nextTheme = button.closest("[data-factory-next]");
+    if (nextTheme) { event.preventDefault(); return factoryGoToNext(nextTheme.dataset.factoryNext); }
+    const reopen = button.closest("[data-factory-reopen]");
+    if (reopen) { event.preventDefault(); return reopenFactoryTheme(reopen.dataset.factoryReopen); }
+    const triagem = button.closest("[data-factory-triagem]");
+    if (triagem) { event.preventDefault(); const [id, status] = triagem.dataset.factoryTriagem.split("|"); return setFactoryTriagemStatus(id, status); }
+    const openUrl = button.closest("[data-open-url]");
+    if (openUrl) { event.preventDefault(); event.stopPropagation(); return openFactoryUrl(openUrl.dataset.openUrl); }
+  } catch (error) { showFactoryEventError(button.getAttributeNames().find((name) => name.startsWith("data-factory-") || name === "data-open-url") || "clique", error); }
+}
+function handleFactoryModulesSubmit(event) {
+  if (!event.target.closest("[data-factory-modules-form]")) return;
+  try { saveFactoryModules(event); } catch (error) { event.preventDefault(); showFactoryEventError("salvar módulos", error); }
+}
+function handleFactoryPromptLibraryClick(event) {
+  const button = event.target.closest("button");
+  if (!button || !elements.factoryPromptLibraryPanel?.contains(button)) return;
+  try {
+    const closeLibrary = button.closest("[data-factory-library-close]");
+    if (closeLibrary) { event.preventDefault(); elements.factoryPromptLibraryPanel.hidden = true; elements.editFactoryPromptLibrary?.setAttribute("aria-expanded", "false"); return; }
+    const restoreLibrary = button.closest("[data-factory-library-restore]");
+    if (restoreLibrary) { event.preventDefault(); const key = restoreLibrary.dataset.factoryLibraryRestore; if (confirm("Isso substituirá o prompt salvo deste módulo. Deseja continuar?")) { const field = elements.factoryPromptLibraryPanel.querySelector(`[data-factory-library-field="${CSS.escape(key)}"]`); if (field) field.value = defaultFactoryPromptLibrary[key] || ""; } }
+  } catch (error) { showFactoryEventError("biblioteca de prompts", error); }
+}
+function handleFactoryPromptLibrarySubmit(event) {
+  if (!event.target.closest("#factoryPromptLibraryForm")) return;
+  try { saveFactoryPromptLibrary(event); } catch (error) { event.preventDefault(); showFactoryEventError("salvar biblioteca de prompts", error); }
+}
+function openFactoryPromptLibrary() {
+  if (!elements.factoryPromptLibraryPanel) return;
+  elements.factoryPromptLibraryPanel.hidden = false;
+  elements.editFactoryPromptLibrary?.setAttribute("aria-expanded", "true");
+  renderFactoryPromptLibrary();
+}
+function initFactoryEvents() {
+  if (factoryEventsInitialized) return;
+  factoryEventsInitialized = true;
+  elements.factoryForm?.addEventListener("submit", saveFactoryItem);
+  const factoryFilterContainer = document.querySelector("[data-factory-filter]")?.parentElement;
+  factoryFilterContainer?.addEventListener("click", handleFactoryFilterClick);
+  elements.factoryList?.addEventListener("click", handleFactoryListClick);
+  elements.factoryList?.addEventListener("submit", handleFactoryModulesSubmit);
+  elements.editFactoryPromptLibrary?.addEventListener("click", openFactoryPromptLibrary);
+  elements.editFactoryPromptLibrary?.setAttribute("aria-controls", "factoryPromptLibraryPanel");
+  elements.factoryPromptLibraryPanel?.addEventListener("click", handleFactoryPromptLibraryClick);
+  elements.factoryPromptLibraryPanel?.addEventListener("submit", handleFactoryPromptLibrarySubmit);
+}
+initFactoryEvents();
 
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin, elements.materialFilterText].filter(Boolean).forEach((filter) => filter.addEventListener("input", renderMaterials));
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin].filter(Boolean).forEach((filter) => filter.addEventListener("change", renderMaterials));
