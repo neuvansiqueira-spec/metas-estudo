@@ -2936,3 +2936,10 @@ th {
   #view-fabrica-resumos .factory-theme-highlight { padding: 10px 12px; border-radius: 14px; }
   #view-fabrica-resumos .factory-theme-title { font-size: clamp(1.08rem, 7vw, 1.38rem); }
 }
+
+.material-estimate-feedback { flex-basis: 100%; margin-top: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: #f8fafc; color: var(--text); font-weight: 700; line-height: 1.5; }
+.material-estimate-feedback:empty { display: none; }
+.material-estimate-feedback span { display: block; }
+.material-estimate-feedback.success { background: #ecfdf5; border-color: #86efac; color: #14532d; }
+.material-estimate-feedback.error { background: #fff7ed; border-color: #fdba74; color: #9a3412; }
+.material-estimate-mode-hint { margin-top: 8px; padding: 8px 10px; border-left: 4px solid var(--primary); background: #eff6ff; border-radius: 8px; }
