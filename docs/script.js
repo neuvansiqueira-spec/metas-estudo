@@ -80,13 +80,128 @@ const FACTORY_RESUMO_AULA_PROMPT = FACTORY_RESUMO_AULA_PROMPT_SEGMENT;
 const FACTORY_RESUMO_AULA_MIGRATION_ID = "resumoAulaDidaticaProfundidadeV2";
 const FACTORY_RESUMO_AULA_DUPLICATION_MIGRATION_ID = "resumoAulaRemoverDuplicacaoV3";
 const FACTORY_RESUMO_AULA_ESTRUTURA_DIDATICA_MIGRATION_ID = "resumoAulaEstruturaDidaticaV4";
-const defaultFactoryPromptLibrary = { triagem: "", resumoAula: FACTORY_RESUMO_AULA_PROMPT, lei: "", jurisprudencia: "", peca: "", consolidacao: "" };
+const FACTORY_PECA_PROMPT = `## ESCOPO DO MÓDULO PEÇA
+
+USE COMO FONTE PRINCIPAL AS FONTES CLASSIFICADAS COMO PEÇA NA TRIAGEM.
+
+É PERMITIDO USAR, DE FORMA COMPLEMENTAR, FONTES APROVADAS CLASSIFICADAS COMO LEI, JURISPRUDÊNCIA, RESUMO/AULA OU ATUALIZAÇÃO/COMPLEMENTO, DESDE QUE HAJA VÍNCULO DIRETO E IDENTIFICÁVEL COM A PEÇA ATUAL.
+
+NÃO MISTURE INDISCRIMINADAMENTE FONTES DE OUTROS MÓDULOS.
+
+A FONTE COMPLEMENTAR SOMENTE PODE SER UTILIZADA PARA ESPECIFICIDADE TEMÁTICA DIRETAMENTE RELACIONADA À PEÇA, COMO LEGISLAÇÃO ESPECIAL, PRAZO ESPECIAL, REQUISITO ESPECÍFICO, JURISPRUDÊNCIA ESSENCIAL, COMPETÊNCIA, LEGITIMIDADE, PEDIDO OU EFEITO JURÍDICO PRÓPRIO.
+
+NÃO PESQUISE, NÃO ATUALIZE, NÃO CORRIJA E NÃO COMPLETE O CONTEÚDO POR CONHECIMENTO EXTERNO.
+
+USE SOMENTE INFORMAÇÕES PRESENTES NAS FONTES APROVADAS E DISPONIBILIZADAS PARA O MÓDULO.
+
+## OBJETIVO
+
+GERE RESUMO DA PEÇA, NÃO PEÇA PRONTA E NÃO AULA CORRIDA.
+
+EXTRAIA E ORGANIZE, QUANDO PRESENTES NAS FONTES APROVADAS:
+
+* CABIMENTO;
+* REQUISITOS;
+* FUNDAMENTOS;
+* LEGITIMIDADE;
+* COMPETÊNCIA;
+* ESTRUTURA FORMAL;
+* PEDIDOS;
+* DETERMINAÇÕES;
+* CUIDADOS DE REDAÇÃO;
+* ESPECIFICIDADES TEMÁTICAS DIRETAMENTE RELACIONADAS À PEÇA.
+
+## VERIFICAÇÃO OBRIGATÓRIA DE ESPECIFICIDADES TEMÁTICAS
+
+Após elaborar a estrutura principal da peça, realize uma verificação obrigatória das fontes aprovadas para identificar especificidades jurídicas diretamente relacionadas ao tema.
+
+Não se limite ao modelo geral da medida ou à estrutura formal da peça.
+
+Verifique a existência de:
+
+* leis especiais;
+* regimes jurídicos específicos;
+* prazos diferenciados;
+* requisitos adicionais;
+* exceções;
+* hipóteses especiais de cabimento;
+* competências específicas;
+* legitimados próprios;
+* pedidos especiais ou subsidiários;
+* efeitos jurídicos particulares;
+* diferenças conforme o crime investigado;
+* entendimentos jurisprudenciais indispensáveis.
+
+Quando houver conteúdo relevante, crie obrigatoriamente o tópico:
+
+ESPECIFICIDADES TEMÁTICAS DA PEÇA
+
+Nesse tópico, apresente de forma hierarquizada apenas as particularidades que alterem, complementem ou diferenciem a elaboração da peça.
+
+Exemplos de temas que devem ser verificados quando relacionados à peça:
+
+* crimes hediondos ou equiparados;
+* organizações criminosas;
+* tráfico de drogas;
+* violência doméstica e familiar;
+* crimes contra crianças, adolescentes, idosos ou vulneráveis;
+* competência federal, eleitoral ou militar;
+* prerrogativa de função;
+* legislação especial aplicável;
+* prazos especiais;
+* requisitos reforçados;
+* pedidos complementares;
+* jurisprudência essencial.
+
+Não crie conteúdo com base em conhecimento externo não fornecido.
+
+Não invente especificidades.
+
+Utilize somente informações presentes nas fontes aprovadas e disponibilizadas para o módulo.
+
+Se houver indício de especificidade relevante, mas as fontes aprovadas forem insuficientes, registrar ao final:
+
+⚠️ LACUNA TEMÁTICA DETECTADA: há possível especificidade jurídica relacionada a [tema], mas as fontes aprovadas não fornecem conteúdo suficiente para sua inclusão segura.
+
+Não criar automaticamente uma nova aula ou meta de estudo.
+
+Somente sugerir conteúdo autônomo quando a especificidade:
+
+1. for extensa demais para integrar o resumo da peça;
+2. constituir tema autônomo do edital;
+3. for aplicável a várias peças;
+4. exigir estudo aprofundado próprio;
+5. não estiver suficientemente desenvolvida nas fontes aprovadas.
+
+## FIDELIDADE ÀS FONTES
+
+PRESERVE INTEGRALMENTE AS REGRAS ATUAIS DE FIDELIDADE ÀS FONTES.
+
+NÃO INVENTE REQUISITO, PRAZO, COMPETÊNCIA, LEGITIMADO, PEDIDO, EFEITO, EXCEÇÃO, JURISPRUDÊNCIA OU FUNDAMENTO AUSENTE DAS FONTES APROVADAS.
+
+SE A FONTE NECESSÁRIA NÃO ESTIVER ANEXADA OU DISPONÍVEL, NÃO EXECUTE O MÓDULO.
+
+## ENTREGA
+
+GERE UM ARQUIVO .DOCX EDITÁVEL EXCLUSIVO DO MÓDULO PEÇA.
+
+NÃO GERE RESUMO/AULA, LEI, JURISPRUDÊNCIA OU CONSOLIDAÇÃO FINAL.
+
+NÃO CRIE NOVA AULA, NOVA META OU NOVO MÓDULO DE ESTUDO PARA CADA ESPECIFICIDADE PONTUAL.
+
+NOME DO ARQUIVO:
+
+RESUMO_PECA_[FILTRO].docx`;
+
+const defaultFactoryPromptLibrary = { triagem: "", resumoAula: FACTORY_RESUMO_AULA_PROMPT, lei: "", jurisprudencia: "", peca: FACTORY_PECA_PROMPT, consolidacao: "" };
 const OLD_LEI_RECORTE_PROMPT = [
   "RECORTE: se houver edital/programa/recorte, trabalhe somente os artigos e temas indicados.",
   "Se não houver, trabalhe a lei",
   "amplamente, priorizando todos os artigos juridicamente relevantes."
 ].join(" ");
 const NEW_LEI_RECORTE_PROMPT = "RECORTE: trabalhe somente os artigos e temas expressamente indicados. Se o recorte não estiver cadastrado ou estiver impreciso, interrompa a geração e solicite confirmação. Somente trabalhe a lei integralmente quando houver autorização expressa do usuário.";
+
+
 const FACTORY_LIBRARY_FALLBACK = "[PROMPT COMPLETO AINDA NÃO CADASTRADO NA BIBLIOTECA DA FÁBRICA]";
 const FACTORY_DOCX_EMOJI_FONT_INSTRUCTIONS = `## FONTES E EMOJIS NO WORD
 
@@ -1841,7 +1956,7 @@ function factoryRouterText(type, item = {}) {
     resumoAula: `${common}\n\nMÓDULO: RESUMO/AULA. Use apenas as fontes classificadas como RESUMO/AULA na triagem. Não gere os módulos LEI, JURISPRUDÊNCIA ou PEÇA e não faça ainda a consolidação final. Gere somente o arquivo Word correspondente ao MÓDULO RESUMO/AULA. Preserve profundidade, hierarquia, negritos e substitua qualquer referência de banca por “📌 PROVA”.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o MÓDULO RESUMO/AULA;\n- gerar um arquivo Word editável contendo o módulo;\n- não gerar ainda o Word final consolidado;\n- salvar o Word na pasta de destino indicada, somente quando houver ferramenta autorizada para gravação no Google Drive;\n- após salvar, devolver o link exato do arquivo criado;\n- não afirmar que salvou no Google Drive se a gravação não tiver ocorrido;\n- caso não exista ferramenta autorizada para salvar no Drive, gerar o Word para download e informar que ele precisa ser colocado manualmente na pasta.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`,
     lei: `${common}\n\nMÓDULO: LEI.\n${leiDetails}\n\nUse as fontes classificadas como LEI na triagem para identificar o diploma e o recorte. Confira o conteúdo normativo exclusivamente no texto oficial vigente do Planalto.\nRECORTE: trabalhe somente os artigos e temas expressamente indicados. Se o recorte não estiver cadastrado ou estiver impreciso, interrompa a geração e solicite confirmação. Somente trabalhe a lei integralmente quando houver autorização expressa do usuário.\nUse artigo/dispositivo como unidade central, preserve prazos, competências, vedações, exceções, requisitos, sanções e pontos de prova. Não copie a lei integralmente e não faça comentário doutrinário.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o Word do módulo LEI;\n- não gerar consolidação final;\n- salvar o Word na pasta de destino indicada apenas com ferramenta autorizada e devolver o link exato do arquivo criado.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`,
     jurisprudencia: `${common}\n\nMÓDULO: JURISPRUDÊNCIA. Use apenas fontes classificadas como JURISPRUDÊNCIA. Preserve tribunal, súmula, informativo, tema, ano, tese e distinções STF/STJ quando constarem. Não invente jurisprudência nem pesquise fora das fontes.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o Word do módulo JURISPRUDÊNCIA;\n- não gerar consolidação final;\n- salvar o Word na pasta de destino indicada apenas com ferramenta autorizada e devolver o link exato do arquivo criado.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`,
-    peca: `${common}\n\nMÓDULO: PEÇA. Use apenas fontes classificadas como PEÇA. Extraia estrutura, requisitos, fundamentos, pedidos e determinações. Não faça peça pronta nem aula corrida.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o Word do módulo PEÇA;\n- não gerar consolidação final;\n- salvar o Word na pasta de destino indicada apenas com ferramenta autorizada e devolver o link exato do arquivo criado.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`,
+    peca: `${common}\n\nMÓDULO: PEÇA. Use fontes classificadas como PEÇA como base principal. Permita, apenas como apoio complementar, fontes aprovadas classificadas como LEI, JURISPRUDÊNCIA, RESUMO/AULA ou ATUALIZAÇÃO/COMPLEMENTO quando houver vínculo direto e identificável com a peça atual. Não misture fontes de outros módulos indiscriminadamente. Extraia estrutura, requisitos, fundamentos, pedidos e determinações. Após a estrutura principal, faça a verificação obrigatória de especificidades temáticas prevista no prompt completo. Não faça peça pronta nem aula corrida.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o Word do módulo PEÇA;\n- não gerar consolidação final;\n- salvar o Word na pasta de destino indicada apenas com ferramenta autorizada e devolver o link exato do arquivo criado.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`,
     consolidacao: `${common}\n\nCONSOLIDAÇÃO FINAL. Os módulos aprovados devem ser reunidos na ordem: RESUMO/AULA, LEI, JURISPRUDÊNCIA e PEÇA. Preserve o padrão de cada módulo, elimine repetições e não pesquise fora dos módulos aprovados.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar Word consolidado;\n- gerar PDF consolidado;\n- salvar ambos na pasta de destino, quando houver acesso autorizado;\n- devolver separadamente o link do Word e o link do PDF;\n- se qualquer upload falhar, não apresentar falha como sucesso e indicar o arquivo pendente de upload manual.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`
   };
   return routers[type] || common;
