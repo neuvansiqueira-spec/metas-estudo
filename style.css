@@ -2943,29 +2943,3 @@ th {
 .material-estimate-feedback.success { background: #ecfdf5; border-color: #86efac; color: #14532d; }
 .material-estimate-feedback.error { background: #fff7ed; border-color: #fdba74; color: #9a3412; }
 .material-estimate-mode-hint { margin-top: 8px; padding: 8px 10px; border-left: 4px solid var(--primary); background: #eff6ff; border-radius: 8px; }
-
-.materials-summary { margin: 18px 0; }
-.materials-do-now { border: 2px solid #2563eb; background: #eff6ff; border-radius: 18px; padding: 16px; margin: 18px 0; }
-.materials-do-now h3 { margin-top: 0; color: #1e3a8a; letter-spacing: .08em; }
-.material-shortcut { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; align-items: center; padding: 12px; border: 1px solid var(--border); border-radius: 14px; background: #fff; overflow-wrap: anywhere; }
-.material-shortcut span { color: var(--muted); }
-.material-shortcut button { grid-row: span 2; }
-.material-situation-group { margin: 16px 0; border: 1px solid var(--border); border-radius: 18px; background: #fff; overflow: hidden; }
-.material-situation-group > summary { cursor: pointer; padding: 14px 16px; font-weight: 900; color: #1e3a8a; background: #f8fafc; }
-.material-situation-group > .cards-list { padding: 14px; }
-.compact-material-card { overflow-wrap: anywhere; }
-.compact-material-card .eyebrow { margin: 0 0 4px; }
-.material-badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
-.material-compact-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
-.material-progress-line { display: grid; gap: 6px; margin: 12px 0; font-weight: 800; }
-.material-details { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); }
-#view-materiais .filters { align-items: end; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
-#view-materiais .filters .wide { grid-column: span 2; }
-@media (max-width: 760px) {
-  .materials-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  #view-materiais .filters, #view-materiais .filters .wide { grid-template-columns: 1fr; grid-column: auto; }
-  .material-shortcut { grid-template-columns: 1fr; }
-  .material-shortcut button, .compact-material-card .card-actions button { width: 100%; min-height: 42px; }
-  .compact-material-card header { flex-direction: column; align-items: flex-start; }
-}
-@media (max-width: 420px) { .materials-summary { grid-template-columns: 1fr; } }

@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260712-organiza-materiais",
+  "version": "20260712-restaura-materiais-estavel",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
