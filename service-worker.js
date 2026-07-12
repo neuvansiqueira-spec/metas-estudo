@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-20260712-fabrica-fila-pendencias-v4";
+const CACHE_NAME = "metas-estudo-20260712-inicializacao-sem-flash-v5";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
