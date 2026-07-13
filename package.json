@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260713-restaura-cartoes-materiais-v2",
+  "version": "20260713-secoes-materiais-recolhiveis",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

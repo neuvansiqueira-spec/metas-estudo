@@ -3884,17 +3884,36 @@ function materialCardHTML(m) {
   const modulo = m.source === "factory" ? materialFactoryModuleLabel(m) : (m.type || "Manual");
   return `<article class="syllabus-card material-card"><header><div><h3>${escapeHTML(m.title)}</h3><div class="item-meta">${escapeHTML(m.discipline)} • ${escapeHTML(m.subject)} • módulo ${escapeHTML(modulo)} • ${escapeHTML(m.type)} • origem: ${escapeHTML(origem)} • ${formatDateBR(m.date)}</div></div><span class="badge ${m.available === false ? "danger" : "neutral"}">${escapeHTML(m.type || "Material")}</span></header><div class="card-meta-grid"><span>Título: ${escapeHTML(m.title)}</span><span>Disciplina: ${escapeHTML(m.discipline)}</span><span>Assunto: ${escapeHTML(m.subject)}</span><span>Módulo: ${escapeHTML(modulo)}</span><span>Formato: ${escapeHTML(m.factoryFormat || m.type || "-")}</span><span>Origem: ${escapeHTML(origem)}</span><span>Data: ${formatDateBR(m.date)}</span></div>${materialEstimateSummaryHTML(m)}${materialEstimateFormHTML(m)}<div class="card-actions"><button type="button" data-open-material="${m.id}">Abrir</button><button type="button" data-use-material-study="${m.id}">Usar no estudo</button><button type="button" data-edit-material="${m.id}">Editar</button><button class="danger" type="button" data-delete-material="${m.id}">Excluir</button></div></article>`;
 }
+const materialSectionOpenState = { today: true, recent: false, all: false };
+let materialSectionToggleListenerRegistered = false;
+function materialSectionHTML(key, title, content, emptyMessage) {
+  const openAttribute = materialSectionOpenState[key] ? " open" : "";
+  const sectionContent = content.length ? content.map(materialCardHTML).join("") : `<p class="empty-message">${emptyMessage}</p>`;
+  return `<details class="materials-section materials-collapsible-section" data-material-section="${key}"${openAttribute}><summary class="materials-section-summary">${title}</summary><div class="materials-section-content">${sectionContent}</div></details>`;
+}
+function ensureMaterialSectionToggleListener() {
+  if (materialSectionToggleListenerRegistered || !elements.materialsList) return;
+  elements.materialsList.addEventListener("toggle", (event) => {
+    const section = event.target;
+    if (!(section instanceof HTMLDetailsElement) || !section.matches("[data-material-section]")) return;
+    const key = section.dataset.materialSection;
+    if (!Object.prototype.hasOwnProperty.call(materialSectionOpenState, key)) return;
+    materialSectionOpenState[key] = section.open;
+  }, true);
+  materialSectionToggleListenerRegistered = true;
+}
 function renderMaterials() {
   if (!elements.materialsList) return;
+  ensureMaterialSectionToggleListener();
   renderMaterialSelectors(); renderMaterialFilters();
   const list = filteredMaterials().sort((a,b)=>(b.date||"").localeCompare(a.date||""));
   const todayGoalMaterials = new Set((state.dailyGoals || []).filter((g) => g.date === todayISO()).flatMap((goal) => materialsForDailyGoal(goal).map((m) => m.id)));
   const todayMaterials = list.filter((m) => todayGoalMaterials.has(m.id));
   const recentMaterials = list.filter((m) => !todayGoalMaterials.has(m.id)).slice(0, 10);
   elements.materialsList.innerHTML = list.length ? [
-    `<section class="materials-section"><h3>1. MATERIAIS PARA O PLANO DE HOJE</h3>${todayMaterials.length ? todayMaterials.map(materialCardHTML).join("") : `<p class="empty-message">Nenhum material pronto vinculado ao plano de hoje.</p>`}</section>`,
-    `<section class="materials-section"><h3>2. MATERIAIS RECENTES</h3>${recentMaterials.length ? recentMaterials.map(materialCardHTML).join("") : `<p class="empty-message">Nenhum material recente.</p>`}</section>`,
-    `<section class="materials-section"><h3>3. TODOS OS MATERIAIS</h3>${list.map(materialCardHTML).join("")}</section>`
+    materialSectionHTML("today", "1. MATERIAIS PARA O PLANO DE HOJE", todayMaterials, "Nenhum material pronto vinculado ao plano de hoje."),
+    materialSectionHTML("recent", "2. MATERIAIS RECENTES", recentMaterials, "Nenhum material recente."),
+    materialSectionHTML("all", "3. TODOS OS MATERIAIS", list, "Nenhum material cadastrado.")
   ].join("") : "";
 }
 function updateStudyMaterialOptions() {
