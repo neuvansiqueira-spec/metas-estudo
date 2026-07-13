@@ -175,15 +175,22 @@ test('arquivos de publicação mantêm paridade entre raiz e docs para correçã
   assert.equal(sw, docsSw);
 });
 
-test('Materiais renderizam detalhes recolhíveis sem persistir estado nos dados', () => {
-  assert.match(script, /const openMaterialDetailIds = new Set\(\)/);
-  assert.match(script, /data-toggle-material-details/);
-  assert.match(script, /data-material-details="\$\{m\.id\}" \$\{isOpen \? "" : "hidden"\}/);
-  assert.match(script, /function toggleMaterialDetails\(button\)/);
+test('Materiais renderizam visual estável sem detalhes recolhíveis ou mutação de dados', () => {
+  assert.doesNotMatch(script, /const openMaterialDetailIds = new Set\(\)/);
+  assert.doesNotMatch(script, /data-toggle-material-details/);
+  assert.doesNotMatch(script, /data-material-details/);
+  assert.doesNotMatch(script, /data-material-card/);
+  assert.doesNotMatch(script, /function toggleMaterialDetails\(button\)/);
+  assert.doesNotMatch(script, /Abrir detalhes|Fechar detalhes/);
+  assert.doesNotMatch(script, /material-card-details|material-card-summary|material-details-toggle/);
+  assert.doesNotMatch(css, /material-card-details|material-card-summary|material-details-toggle/);
   assert.doesNotMatch(script, /state\.materials[^\n;]*(open|expanded|collapsed|details)/i);
-  assert.match(script, /event\.target\.closest\("button\[data-toggle-material-details\]"\)/);
-  assert.match(script, /button\.textContent = willOpen \? "Fechar detalhes" : "Abrir detalhes"/);
+  assert.match(script, /<article class="syllabus-card material-card"><header><div><h3>\$\{escapeHTML\(m\.title\)\}<\/h3>/);
+  assert.match(script, /<span>Disciplina: \$\{escapeHTML\(m\.discipline\)\}<\/span><span>Assunto: \$\{escapeHTML\(m\.subject\)\}<\/span><span>Módulo: \$\{escapeHTML\(modulo\)\}<\/span>/);
+  assert.match(script, /\$\{materialEstimateSummaryHTML\(m\)\}\$\{materialEstimateFormHTML\(m\)\}<div class="card-actions">/);
+  assert.match(script, /data-open-material="\$\{m\.id\}">Abrir/);
+  assert.match(script, /data-use-material-study="\$\{m\.id\}">Usar no estudo/);
+  assert.match(script, /data-edit-material="\$\{m\.id\}">Editar/);
+  assert.match(script, /data-delete-material="\$\{m\.id\}">Excluir/);
   assert.equal(script, docsScript);
-  assert.match(css, /#view-materiais \.material-card/);
-  assert.match(css, /#view-materiais \.material-card-details\[hidden\]/);
 });

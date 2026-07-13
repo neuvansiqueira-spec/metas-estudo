@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260713-corrige-duplicidade-materiais",
+  "version": "20260713-restaura-cartoes-materiais-v2",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
