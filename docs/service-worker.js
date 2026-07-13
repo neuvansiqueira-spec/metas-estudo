@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-20260713-hotfix-indexeddb-cache-v2";
+const CACHE_NAME = "metas-estudo-20260713-corrige-plano-dia-mobile";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
