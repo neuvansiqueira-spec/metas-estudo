@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-20260713-indexeddb-etapa1-copia-segura";
+const CACHE_NAME = "metas-estudo-20260713-hotfix-indexeddb-cache-v2";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
