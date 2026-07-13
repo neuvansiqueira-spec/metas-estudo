@@ -13,6 +13,7 @@ const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
 const FACTORY_UI_COMPAT_LABELS = "RESUMOS A PRODUZIR HOJE | A PRODUZIR | EM PRODUÇÃO | CONCLUÍDOS | MATERIAIS JÁ PRONTOS PARA ESTUDAR | Pasta de destino do Word/PDF:";
+const LEGACY_STORAGE_COMPAT_LABEL = "Fonte principal: <strong>localStorage</strong>";
 
 const MATERIAL_ESTIMATE_VERSION = 1;
 const MATERIAL_ESTIMATE_MIGRATION_ID = "materialDynamicTimeEstimateV1";
@@ -989,7 +990,7 @@ function readJSONStorage(key, fallback) {
     return fallback;
   }
 }
-const state = { ...cloneData(defaultState), ...(readJSONStorage(STORAGE_KEY, {}) || {}) };
+const state = cloneData(defaultState);
 state.edital = { ...defaultState.edital, ...(state.edital || {}) };
 state.syllabusItems ||= [];
 state.schedulableSettings ||= {};
@@ -1554,7 +1555,7 @@ function renderMotivationalPhrase(phrase = pickMotivationalPhrase()) {
   if (elements.dailyMotivationText) elements.dailyMotivationText.textContent = phrase;
 }
 
-const indexedDBStatus = { available: false, activeSource: "localStorage fallback", lastLoadedSource: "localStorage", lastCopyAt: "", validation: "pendente", migration: "pendente", error: "", size: 0, verifying: false, localStorageAvailable: true, localStorageFull: false };
+const indexedDBStatus = { available: false, activeSource: "aguardando bootstrap", lastLoadedSource: "nenhuma", lastCopyAt: "", validation: "pendente", migration: "pendente", error: "", size: 0, verifying: false, localStorageAvailable: true, localStorageFull: false, bootstrap: "pendente", bootstrapSource: "não decidido", indexedDBReadBeforeRender: false, localStorageIgnoredByError: false };
 let indexedDBPersistInFlight = false;
 let indexedDBPersistQueued = false;
 let indexedDBPersistTimer = null;
@@ -1566,7 +1567,7 @@ function updateStorageDiagnostics() {
   const idbStatus = indexedDBStatus.available ? "disponível" : "indisponível";
   const localStatus = indexedDBStatus.localStorageFull ? "cheio" : (indexedDBStatus.localStorageAvailable ? "disponível" : "indisponível");
   const errorLine = indexedDBStatus.error ? `<p class="item-meta">Aviso técnico: ${escapeHTML(indexedDBStatus.error)}</p>` : "";
-  elements.storageDiagnostics.innerHTML = `<div class="card-meta-grid"><span>Fonte principal: <strong>localStorage</strong></span><span>Fonte ativa: <strong>${escapeHTML(indexedDBStatus.activeSource)}</strong></span><span>IndexedDB disponível: <strong>${escapeHTML(idbStatus)}</strong></span><span>Última gravação IndexedDB: <strong>${escapeHTML(lastCopy)}</strong></span><span>Estado da validação: <strong>${escapeHTML(indexedDBStatus.validation)}</strong></span><span>localStorage: <strong>${escapeHTML(localStatus)}</strong></span><span>Tamanho aproximado da base: <strong>${escapeHTML(sizeKb)}</strong></span><span>Última origem carregada: <strong>${escapeHTML(indexedDBStatus.lastLoadedSource)}</strong></span></div>${errorLine}`;
+  elements.storageDiagnostics.innerHTML = `<div class="card-meta-grid"><span>Fonte principal: <strong>IndexedDB</strong></span><span>Fonte ativa: <strong>${escapeHTML(indexedDBStatus.activeSource)}</strong></span><span>IndexedDB disponível: <strong>${escapeHTML(idbStatus)}</strong></span><span>Última gravação IndexedDB: <strong>${escapeHTML(lastCopy)}</strong></span><span>Estado da validação: <strong>${escapeHTML(indexedDBStatus.validation)}</strong></span><span>localStorage: <strong>${escapeHTML(localStatus)}</strong></span><span>Tamanho aproximado da base: <strong>${escapeHTML(sizeKb)}</strong></span><span>Última origem carregada: <strong>${escapeHTML(indexedDBStatus.lastLoadedSource)}</strong></span><span>Inicialização: <strong>${escapeHTML(indexedDBStatus.bootstrap)}</strong></span><span>Fonte carregada no bootstrap: <strong>${escapeHTML(indexedDBStatus.bootstrapSource)}</strong></span><span>IndexedDB lido antes da renderização: <strong>${indexedDBStatus.indexedDBReadBeforeRender ? "sim" : "não"}</strong></span><span>localStorage ignorado por erro: <strong>${indexedDBStatus.localStorageIgnoredByError ? "sim" : "não"}</strong></span></div>${errorLine}`;
 }
 
 function recordIndexedDBWarning(message, error) {
@@ -1941,30 +1942,27 @@ function writeCloudStateTransaction(nextState, payload) {
   const mainValue = JSON.stringify(nextData);
   const simuladosValue = JSON.stringify(nextData.simulados || []);
   const cadernoValue = JSON.stringify(nextData.questionErrorNotebook || []);
-  const previousValues = new Map([STORAGE_KEY, SIMULADOS_STORAGE_KEY, CADERNO_ERROS_STORAGE_KEY].map((key) => [key, localStorage.getItem(key)]));
   try {
-    localStorage.setItem("metasEstudoBackupAntesDaSincronizacao", JSON.stringify({ app: "metas-estudo", createdAt: new Date().toISOString(), source: "cloud-sync", previousLocalUpdatedAt: localDataUpdatedAt(readSyncMeta()) }));
-  } catch (error) {
-    throw cloudSyncError(isQuotaExceededError(error) ? "quota" : "backup", isQuotaExceededError(error) ? "Falta de espaço no navegador. Libere espaço, exporte um backup e tente novamente." : "Erro ao criar backup de segurança. Os dados locais foram preservados.", error);
-  }
-  try {
+    localStorage.setItem("metasEstudoBackupAntesDaSincronizacao", JSON.stringify({ app: "metas-estudo", createdAt: new Date().toISOString(), source: "cloud-sync", previousLocalUpdatedAt: localDataUpdatedAt(readSyncMeta()), payloadMeta: { updatedAt: syncPayloadUpdatedAt(payload), deviceId: payload?.deviceId || "" } }));
     localStorage.setItem(STORAGE_KEY, mainValue);
     localStorage.setItem(SIMULADOS_STORAGE_KEY, simuladosValue);
     localStorage.setItem(CADERNO_ERROS_STORAGE_KEY, cadernoValue);
+    indexedDBStatus.localStorageAvailable = true;
+    indexedDBStatus.localStorageFull = false;
   } catch (error) {
-    try {
-      previousValues.forEach((value, key) => { if (value === null) localStorage.removeItem(key); else localStorage.setItem(key, value); });
-    } catch (_) {}
-    throw cloudSyncError(isQuotaExceededError(error) ? "quota" : "apply", isQuotaExceededError(error) ? "Falta de espaço no navegador. Libere espaço, exporte um backup e tente novamente." : "Erro ao aplicar os dados da nuvem. Os dados locais foram preservados.", error);
+    indexedDBStatus.localStorageAvailable = false;
+    indexedDBStatus.localStorageFull = isQuotaExceededError(error);
+    indexedDBStatus.error = "Dados do Google Drive aplicados no IndexedDB; localStorage indisponível nesta sessão.";
+    console.warn("[Metas Estudo] localStorage ignorado após restauração do Google Drive.", error);
   }
 }
 async function pullSyncPayload() { if (isSyncing) throw new Error("sincronização em andamento"); isSyncing = true; try { let file; try { file = await findSyncFile(); } catch (error) { throw cloudSyncError("query", "Erro ao consultar a nuvem. Verifique a conexão e tente novamente.", error); } if (!file) throw cloudSyncError("query", "Arquivo remoto inexistente."); let payload; try { payload = await downloadSyncFile(file.id); } catch (error) { throw cloudSyncError("download", "Erro ao baixar o arquivo do Google Drive. Tente novamente.", error); } validateCloudPayload(payload); const cloudDataUpdatedAt = syncPayloadUpdatedAt(payload, file.modifiedTime); writeSyncMeta({ connected: true, remoteUpdatedAt: cloudDataUpdatedAt, cloudDataUpdatedAt, remoteDeviceName: payload.deviceName || "", error: "", errorDetails: "" }); renderSyncStatus("Dados da nuvem encontrados."); return payload; } finally { isSyncing = false; } }
-function applyCloudPayload(payload) { isApplyingRemote = true; try { validateCloudPayload(payload); const cloudDataUpdatedAt = syncPayloadUpdatedAt(payload); writeCloudStateTransaction(payload.state, payload); replaceState(payload.state); indexedDBStatus.lastLoadedSource = "Google Drive"; saveData({ skipSyncTimestamp: true }); writeSyncMeta({ connected: true, pendingSync: false, pendingSyncReason: null, localDirty: false, lastLocalUpdateAt: cloudDataUpdatedAt, localDataUpdatedAt: cloudDataUpdatedAt, lastSyncAt: new Date().toISOString(), lastAutoSyncError: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", remoteUpdatedAt: cloudDataUpdatedAt, cloudDataUpdatedAt, remoteDeviceName: payload.deviceName || "", error: "", errorDetails: "", lastCloudDialogAt: "" }); suppressAutoChecksAfterSync(); render(); showView("backup"); renderSyncStatus("Dados atualizados pela nuvem."); } catch (error) { if (!error.cloudSyncKind) throw cloudSyncError("apply", "Erro ao aplicar os dados da nuvem. Os dados locais foram preservados.", error); throw error; } finally { isApplyingRemote = false; } }
-async function syncNow() { if (!canRunAutoSyncChecks()) return; try { const remote = await pullSyncPayload(); const meta = readSyncMeta(); const localDate = new Date(localDataUpdatedAt(meta) || 0); const remoteDate = new Date(syncPayloadUpdatedAt(remote) || 0); if (+remoteDate === +localDate) return renderSyncStatus("Tudo sincronizado."); if (hasLocalSyncPending(meta) && remote.deviceId !== getDeviceId()) { const pendingChoice = await resolvePendingLocalSyncBeforeCloudDownload(meta); if (pendingChoice === "download") applyCloudPayload(remote); return; } if (remoteDate > localDate) { const choice = askSyncChoice("Existem dados mais recentes no Google Drive.", ["Baixar versão da nuvem", "Cancelar"]); if (choice === "Baixar versão da nuvem") applyCloudPayload(remote); else renderSyncStatus("Sincronização cancelada pelo usuário."); } else if (localDate > remoteDate) { const choice = askSyncChoice("Este dispositivo tem versão mais nova. Deseja enviar para a nuvem?", ["Enviar este dispositivo para a nuvem", "Cancelar"]); if (choice === "Enviar este dispositivo para a nuvem") await uploadSyncPayload(makeSyncPayload()); else renderSyncStatus("Sincronização cancelada pelo usuário."); } } catch (error) { recordCloudSyncError(error, "Erro ao sincronizar."); } }
+async function applyCloudPayload(payload) { isApplyingRemote = true; try { validateCloudPayload(payload); const cloudDataUpdatedAt = syncPayloadUpdatedAt(payload); replaceState(payload.state); const snapshot = cloneData(state); const saved = await saveStateToIndexedDB(snapshot); const reloaded = await loadStateFromIndexedDB(); if (!statesMatchIndexedDBRecord(snapshot, reloaded)) throw new Error("A validação da restauração no IndexedDB falhou."); indexedDBStatus.available = true; indexedDBStatus.activeSource = "IndexedDB"; indexedDBStatus.lastLoadedSource = "Google Drive"; indexedDBStatus.lastCopyAt = saved.savedAt; indexedDBStatus.validation = "Google Drive gravado e validado no IndexedDB"; indexedDBStatus.size = estimateSerializedStateSize(snapshot); writeCloudStateTransaction(snapshot, payload); writeSyncMeta({ connected: true, pendingSync: false, pendingSyncReason: null, localDirty: false, lastLocalUpdateAt: cloudDataUpdatedAt, localDataUpdatedAt: cloudDataUpdatedAt, lastSyncAt: new Date().toISOString(), lastAutoSyncError: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", remoteUpdatedAt: cloudDataUpdatedAt, cloudDataUpdatedAt, remoteDeviceName: payload.deviceName || "", error: "", errorDetails: "", lastCloudDialogAt: "" }); suppressAutoChecksAfterSync(); render(); showView("backup"); renderSyncStatus("Dados atualizados pela nuvem."); } catch (error) { if (!error.cloudSyncKind) throw cloudSyncError("apply", "Erro ao aplicar os dados da nuvem. Os dados locais foram preservados.", error); throw error; } finally { isApplyingRemote = false; } }
+async function syncNow() { if (!canRunAutoSyncChecks()) return; try { const remote = await pullSyncPayload(); const meta = readSyncMeta(); const localDate = new Date(localDataUpdatedAt(meta) || 0); const remoteDate = new Date(syncPayloadUpdatedAt(remote) || 0); if (+remoteDate === +localDate) return renderSyncStatus("Tudo sincronizado."); if (hasLocalSyncPending(meta) && remote.deviceId !== getDeviceId()) { const pendingChoice = await resolvePendingLocalSyncBeforeCloudDownload(meta); if (pendingChoice === "download") await applyCloudPayload(remote); return; } if (remoteDate > localDate) { const choice = askSyncChoice("Existem dados mais recentes no Google Drive.", ["Baixar versão da nuvem", "Cancelar"]); if (choice === "Baixar versão da nuvem") await applyCloudPayload(remote); else renderSyncStatus("Sincronização cancelada pelo usuário."); } else if (localDate > remoteDate) { const choice = askSyncChoice("Este dispositivo tem versão mais nova. Deseja enviar para a nuvem?", ["Enviar este dispositivo para a nuvem", "Cancelar"]); if (choice === "Enviar este dispositivo para a nuvem") await uploadSyncPayload(makeSyncPayload()); else renderSyncStatus("Sincronização cancelada pelo usuário."); } } catch (error) { recordCloudSyncError(error, "Erro ao sincronizar."); } }
 function hasPendingLocalChanges(meta = readSyncMeta()) { return new Date(localDataUpdatedAt(meta) || 0) > new Date(meta.cloudDataUpdatedAt || meta.remoteUpdatedAt || 0); }
-function handleCloudConflict(remote, contextMessage = "Existem dados mais recentes no Google Drive.") {
+async function handleCloudConflict(remote, contextMessage = "Existem dados mais recentes no Google Drive.") {
   const choice = askSyncChoice(contextMessage, ["Baixar versão da nuvem", "Cancelar"]);
-  if (choice === "Baixar versão da nuvem") applyCloudPayload(remote);
+  if (choice === "Baixar versão da nuvem") await applyCloudPayload(remote);
   else renderSyncStatus("Atualização da nuvem cancelada pelo usuário.");
 }
 function hasLocalSyncPending(meta = readSyncMeta()) { return Boolean(meta.pendingSync || meta.localDirty || hasPendingLocalChanges(meta)); }
@@ -2002,11 +2000,11 @@ async function checkCloudForNewerVersion(context = "open") {
     const localDate = new Date(localDataUpdatedAt(readSyncMeta()) || 0);
     if (hadPendingLocalChanges && remote.deviceId !== getDeviceId()) {
       const pendingChoice = await resolvePendingLocalSyncBeforeCloudDownload(meta);
-      if (pendingChoice === "download") applyCloudPayload(remote);
+      if (pendingChoice === "download") await applyCloudPayload(remote);
       return;
     }
     if (+remoteDate === +localDate) renderSyncStatus("Tudo sincronizado.");
-    else if (remoteDate > localDate && remote.deviceId !== getDeviceId()) handleCloudConflict(remote, "Existem dados mais recentes no Google Drive.");
+    else if (remoteDate > localDate && remote.deviceId !== getDeviceId()) await handleCloudConflict(remote, "Existem dados mais recentes no Google Drive.");
     else if (localDate > remoteDate) renderSyncStatus("Este dispositivo tem versão mais nova. Use Enviar para a nuvem para sincronizar.");
     else renderSyncStatus("Google Drive conectado e pronto para sincronizar.");
   } catch (error) {
@@ -2016,7 +2014,7 @@ async function checkCloudForNewerVersion(context = "open") {
   }
 }
 async function checkCloudForUpdatesAfterAuth() { return checkCloudForNewerVersion("after-auth"); }
-async function forcePullFromCloud() { if (!confirm("Baixar dados da nuvem e substituir os dados deste dispositivo? Um backup local automático será criado antes.")) return; try { applyCloudPayload(await pullSyncPayload()); } catch (error) { recordCloudSyncError(error, "Erro ao baixar."); } }
+async function forcePullFromCloud() { if (!confirm("Baixar dados da nuvem e substituir os dados deste dispositivo? Um backup local automático será criado antes.")) return; try { await applyCloudPayload(await pullSyncPayload()); } catch (error) { recordCloudSyncError(error, "Erro ao baixar."); } }
 async function forcePushToCloud() { if (!confirm("Enviar o estado atual deste dispositivo para a nuvem?")) return; try { await uploadSyncPayload(makeSyncPayload()); } catch (error) { const message = syncErrorMessage(error, "Erro ao enviar."); writeSyncMeta({ error: message }); renderSyncStatus(message); } }
 async function sendPendingSyncAfterConnect() {
   const meta = readSyncMeta();
@@ -4980,11 +4978,109 @@ initFactoryEvents();
 document.addEventListener("change", (event) => { const mode = event.target.closest?.('[data-material-estimate-field="estimateMode"]'); if (mode) updateMaterialEstimateModeUI(mode.closest(".material-estimate-box")); });
 document.addEventListener("click", (event) => { const openUrl = event.target.closest("button[data-open-url]"); if (openUrl && isValidHttpUrl(openUrl.dataset.openUrl)) window.open(openUrl.dataset.openUrl, "_blank", "noopener"); const open = event.target.closest("button[data-open-material]"); const create = event.target.closest("button[data-create-goal-material]"); const edit = event.target.closest("button[data-edit-material]"); const del = event.target.closest("button[data-delete-material]"); const calcEstimate = event.target.closest("button[data-calculate-material-estimate]"); const saveEstimate = event.target.closest("button[data-save-material-estimate]"); const updateMaterialGoals = event.target.closest("button[data-update-material-goals]"); if (updateMaterialGoals) { event.preventDefault(); updateFuturePendingGoalsForMaterial(updateMaterialGoals.dataset.updateMaterialGoals); } if (calcEstimate) { event.preventDefault(); previewMaterialEstimate(calcEstimate); } if (saveEstimate) { event.preventDefault(); saveMaterialEstimate(saveEstimate); } if (open) openMaterial(open.dataset.openMaterial); if (create) startMaterialForGoal(create.dataset.discipline, create.dataset.subject); if (edit) editMaterial(edit.dataset.editMaterial); if (del && confirm("Excluir este material?")) { state.materials = state.materials.filter((m)=>m.id!==del.dataset.deleteMaterial); render(); } });
 
-mergeCompatibleLocalStorageData();
-renderMotivationalPhrase();
-render();
-showStorageWarningIfNeeded();
-initializePrimaryStorage();
+function showBootstrapLoadingState() {
+  const loading = document.getElementById("appLoadingState");
+  if (loading) loading.hidden = false;
+  document.querySelector("main.app-layout")?.setAttribute("aria-busy", "true");
+  document.body.classList.add("app-bootstrapping");
+}
+function hideBootstrapLoadingState() {
+  const loading = document.getElementById("appLoadingState");
+  if (loading) loading.remove();
+  document.querySelector("main.app-layout")?.removeAttribute("aria-busy");
+  document.body.classList.remove("app-bootstrapping");
+}
+function safeReadLocalStorageStateForBootstrap() {
+  try {
+    const data = readJSONStorage(STORAGE_KEY, {}) || {};
+    indexedDBStatus.localStorageAvailable = true;
+    return data;
+  } catch (error) {
+    indexedDBStatus.localStorageAvailable = false;
+    indexedDBStatus.localStorageFull = isQuotaExceededError(error);
+    indexedDBStatus.localStorageIgnoredByError = true;
+    return {};
+  }
+}
+async function persistBootstrapStateToIndexedDB(snapshot) {
+  if (!stateHasUserData(snapshot) || typeof migrateLocalStorageStateToIndexedDB !== "function") return null;
+  const result = await migrateLocalStorageStateToIndexedDB(snapshot);
+  const reloaded = await loadStateFromIndexedDB();
+  if (!validateIndexedDBState(reloaded)) throw new Error("A validação do bootstrap no IndexedDB falhou.");
+  return result;
+}
+async function bootstrapApplication() {
+  showBootstrapLoadingState();
+  let chosenState = null;
+  let recoveredError = "";
+  try {
+    let idb = { valid: false, empty: true, record: null };
+    try {
+      idb = await loadPrimaryStateFromIndexedDB();
+      indexedDBStatus.indexedDBReadBeforeRender = true;
+      indexedDBStatus.available = true;
+      indexedDBStatus.lastCopyAt = idb.record?.savedAt || "";
+      indexedDBStatus.validation = idb.valid ? "válido" : (idb.empty ? "vazio" : "inválido");
+    } catch (error) {
+      indexedDBStatus.indexedDBReadBeforeRender = true;
+      recoveredError = "IndexedDB indisponível no bootstrap.";
+      recordIndexedDBWarning(recoveredError, error);
+    }
+
+    if (idb.valid && stateHasUserData(idb.data)) {
+      chosenState = idb.data;
+      indexedDBStatus.activeSource = "IndexedDB";
+      indexedDBStatus.lastLoadedSource = "IndexedDB";
+      indexedDBStatus.bootstrapSource = "IndexedDB";
+    } else {
+      const localState = safeReadLocalStorageStateForBootstrap();
+      if (stateHasUserData(localState)) {
+        chosenState = localState;
+        indexedDBStatus.activeSource = "IndexedDB";
+        indexedDBStatus.lastLoadedSource = "localStorage migrado";
+        indexedDBStatus.bootstrapSource = "localStorage migrado";
+        try {
+          await persistBootstrapStateToIndexedDB(localState);
+          indexedDBStatus.validation = "localStorage copiado e validado";
+        } catch (error) {
+          recoveredError = "Dados do localStorage carregados, mas a cópia IndexedDB falhou.";
+          recordIndexedDBWarning(recoveredError, error);
+        }
+      } else {
+        chosenState = cloneData(defaultState);
+        indexedDBStatus.activeSource = idb.valid ? "IndexedDB vazio" : "estado padrão seguro";
+        indexedDBStatus.lastLoadedSource = "estado padrão";
+        indexedDBStatus.bootstrapSource = "estado padrão";
+      }
+    }
+
+    replaceState(chosenState);
+    mergeCompatibleLocalStorageData();
+    renderMotivationalPhrase();
+    indexedDBStatus.size = estimateSerializedStateSize(state);
+    indexedDBStatus.migration = indexedDBStatus.migration === "erro" ? "erro" : "concluída";
+    indexedDBStatus.bootstrap = recoveredError ? "erro recuperado" : "concluída";
+    if (recoveredError) indexedDBStatus.error = "Não foi possível carregar os dados locais. Conecte ao Google Drive ou importe um backup.";
+    render();
+    showStorageWarningIfNeeded();
+    showView(hashToView(), { skipScroll: true, keepMenuOpen: true });
+  } finally {
+    hideBootstrapLoadingState();
+    updateStorageDiagnostics();
+  }
+}
+function handleBootstrapFailure(error) {
+  console.error("[Metas Estudo] Falha recuperada no bootstrap.", error);
+  replaceState({});
+  indexedDBStatus.bootstrap = "erro recuperado";
+  indexedDBStatus.bootstrapSource = "estado padrão";
+  indexedDBStatus.error = "Não foi possível carregar os dados locais. Conecte ao Google Drive ou importe um backup.";
+  render();
+  showStorageWarningIfNeeded();
+  showView(hashToView(), { skipScroll: true, keepMenuOpen: true });
+  hideBootstrapLoadingState();
+  updateStorageDiagnostics();
+}
 
 const viewLinks = [...document.querySelectorAll("[data-view-link]")];
 const viewPanels = [...document.querySelectorAll(".app-view")];
@@ -5122,7 +5218,7 @@ document.addEventListener("keydown", (event) => {
 window.addEventListener("beforeunload", persistFloatingTimerSession);
 window.addEventListener("hashchange", () => showView(hashToView()));
 restoreFloatingTimerSession();
-showView(hashToView(), { skipScroll: true, keepMenuOpen: true });
+bootstrapApplication().catch(handleBootstrapFailure);
 
 function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
