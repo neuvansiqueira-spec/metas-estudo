@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260713-corrige-plano-dia-mobile" />
+  <link rel="stylesheet" href="style.css?v=20260713-analise-estrategica-v1" />
 </head>
 <body>
   <header class="hero">
@@ -48,6 +48,7 @@
           <a href="#banco-questoes" data-view-link="banco-questoes">Banco de Questões</a>
           <a href="#caderno-erros" data-view-link="caderno-erros">Caderno de Erros</a>
           <a href="#simulados" data-view-link="simulados">Simulados</a>
+          <a href="#analise-estrategica" data-view-link="analise-estrategica">Análise Estratégica</a>
         </div>
         <div class="mobile-menu-group"><span>Apoio</span>
           <a href="#materiais" data-view-link="materiais">Materiais</a>
@@ -102,6 +103,7 @@
         <a href="#banco-questoes" data-view-link="banco-questoes">Banco de Questões</a>
         <a href="#caderno-erros" data-view-link="caderno-erros">Caderno de Erros</a>
         <a href="#simulados" data-view-link="simulados">Simulados</a>
+        <a href="#analise-estrategica" data-view-link="analise-estrategica">Análise Estratégica</a>
       </div>
       <div class="side-nav-group"><span>Apoio</span>
         <a href="#materiais" data-view-link="materiais">Materiais</a>
@@ -721,6 +723,28 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
         <article><h3>6. Observação importante</h3><p>Os dados ficam no navegador via localStorage e podem ser sincronizados pelo Google Drive usando metas-estudo-sync.json. Para máxima segurança, mantenha também backups JSON exportados manualmente.</p></article>
       </div>
     </section>
+    <section id="view-analise-estrategica" class="dashboard app-view" data-view="analise-estrategica" aria-labelledby="analise-estrategica-title" hidden>
+      <div class="section-heading">
+        <p class="eyebrow">Diagnóstico local</p>
+        <h2 id="analise-estrategica-title">Análise Estratégica</h2>
+        <p class="privacy-note">Esta análise é processada no seu dispositivo. Nenhum dado de estudo é enviado para serviços externos.</p>
+      </div>
+      <form id="analyticsPeriodForm" class="analytics-filters">
+        <label>Período
+          <select id="analyticsPeriodSelect">
+            <option value="7d">Últimos 7 dias</option>
+            <option value="30d" selected>Últimos 30 dias</option>
+            <option value="90d">Últimos 90 dias</option>
+            <option value="custom">Período personalizado</option>
+          </select>
+        </label>
+        <label>Início <input id="analyticsStartDate" type="date"></label>
+        <label>Fim <input id="analyticsEndDate" type="date"></label>
+        <button type="submit">Atualizar análise</button>
+      </form>
+      <div id="analyticsContent" class="strategic-analysis-grid"></div>
+      <div id="analyticsPlanPreview" class="analytics-plan-preview" hidden></div>
+    </section>
     </div>
   </main>
   <nav class="mobile-quick-nav" aria-label="Atalhos principais">
@@ -773,9 +797,10 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
   </aside>
   <div id="timerMotivationalToast" class="timer-motivational-toast" aria-live="polite" aria-atomic="true" hidden></div>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260713-corrige-plano-dia-mobile</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260713-analise-estrategica-v1</p></footer>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="storage-indexeddb.js?v=20260713-corrige-plano-dia-mobile"></script>
-  <script src="script.js?v=20260713-corrige-plano-dia-mobile"></script>
+  <script src="storage-indexeddb.js?v=20260713-analise-estrategica-v1"></script>
+  <script src="analytics-engine.js?v=20260713-analise-estrategica-v1"></script>
+  <script src="script.js?v=20260713-analise-estrategica-v1"></script>
 </body>
 </html>
