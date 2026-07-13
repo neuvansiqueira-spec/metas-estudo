@@ -1554,7 +1554,7 @@ function renderMotivationalPhrase(phrase = pickMotivationalPhrase()) {
   if (elements.dailyMotivationText) elements.dailyMotivationText.textContent = phrase;
 }
 
-const indexedDBStatus = { available: false, lastCopyAt: "", migration: "pendente", error: "", size: 0, verifying: false };
+const indexedDBStatus = { available: false, activeSource: "localStorage fallback", lastLoadedSource: "localStorage", lastCopyAt: "", validation: "pendente", migration: "pendente", error: "", size: 0, verifying: false, localStorageAvailable: true, localStorageFull: false };
 let indexedDBPersistInFlight = false;
 let indexedDBPersistQueued = false;
 let indexedDBPersistTimer = null;
@@ -1563,16 +1563,81 @@ function updateStorageDiagnostics() {
   if (!elements?.storageDiagnostics) return;
   const lastCopy = indexedDBStatus.lastCopyAt ? new Date(indexedDBStatus.lastCopyAt).toLocaleString("pt-BR") : "Nunca";
   const sizeKb = indexedDBStatus.size ? `${Math.ceil(indexedDBStatus.size / 1024)} KB` : "Não calculado";
-  const copyStatus = indexedDBStatus.available ? "disponível" : "indisponível";
+  const idbStatus = indexedDBStatus.available ? "disponível" : "indisponível";
+  const localStatus = indexedDBStatus.localStorageFull ? "cheio" : (indexedDBStatus.localStorageAvailable ? "disponível" : "indisponível");
   const errorLine = indexedDBStatus.error ? `<p class="item-meta">Aviso técnico: ${escapeHTML(indexedDBStatus.error)}</p>` : "";
-  elements.storageDiagnostics.innerHTML = `<div class="card-meta-grid"><span>Fonte principal: <strong>localStorage</strong></span><span>Cópia IndexedDB: <strong>${copyStatus}</strong></span><span>Última cópia IndexedDB: <strong>${escapeHTML(lastCopy)}</strong></span><span>Tamanho aproximado da base: <strong>${escapeHTML(sizeKb)}</strong></span><span>Migração inicial: <strong>${escapeHTML(indexedDBStatus.migration)}</strong></span></div>${errorLine}`;
+  elements.storageDiagnostics.innerHTML = `<div class="card-meta-grid"><span>Fonte principal: <strong>localStorage</strong></span><span>Fonte ativa: <strong>${escapeHTML(indexedDBStatus.activeSource)}</strong></span><span>IndexedDB disponível: <strong>${escapeHTML(idbStatus)}</strong></span><span>Última gravação IndexedDB: <strong>${escapeHTML(lastCopy)}</strong></span><span>Estado da validação: <strong>${escapeHTML(indexedDBStatus.validation)}</strong></span><span>localStorage: <strong>${escapeHTML(localStatus)}</strong></span><span>Tamanho aproximado da base: <strong>${escapeHTML(sizeKb)}</strong></span><span>Última origem carregada: <strong>${escapeHTML(indexedDBStatus.lastLoadedSource)}</strong></span></div>${errorLine}`;
 }
 
 function recordIndexedDBWarning(message, error) {
   indexedDBStatus.available = false;
+  indexedDBStatus.activeSource = "localStorage fallback";
+  indexedDBStatus.validation = "erro";
   indexedDBStatus.error = message || error?.message || "Falha no IndexedDB.";
-  if (error) console.warn("[Metas Estudo] IndexedDB indisponível; mantendo localStorage como fonte principal.", error);
+  if (error) console.warn("[Metas Estudo] IndexedDB indisponível; usando localStorage fallback.", error);
   updateStorageDiagnostics();
+}
+
+function stateHasUserData(value = {}) {
+  return ["subjects", "studies", "syllabusItems", "dailyGoals", "questionLogs", "materials", "questionBank", "simulados", "smartReviews", "factoryAgenda", "factoryItems"].some((key) => Array.isArray(value?.[key]) && value[key].length);
+}
+
+function stateTimestamp(value = {}) {
+  const candidates = [value.updatedAt, value.localDataUpdatedAt, value.settings?.updatedAt, value.settings?.localDataUpdatedAt, readSyncMeta().localDataUpdatedAt, readSyncMeta().lastLocalUpdateAt].filter(Boolean);
+  const parsed = candidates.map((date) => Date.parse(date)).filter((time) => !Number.isNaN(time));
+  return parsed.length ? Math.max(...parsed) : 0;
+}
+
+async function loadPrimaryStateFromIndexedDB() {
+  if (typeof loadStateFromIndexedDB !== "function" || typeof validateIndexedDBState !== "function") throw new Error("Módulo IndexedDB não carregado.");
+  const record = await loadStateFromIndexedDB();
+  if (!record) return { valid: false, empty: true, record: null };
+  if (!validateIndexedDBState(record)) return { valid: false, empty: false, record };
+  return { valid: true, empty: false, record, data: record.data };
+}
+
+async function initializePrimaryStorage() {
+  try {
+    const idb = await loadPrimaryStateFromIndexedDB();
+    indexedDBStatus.available = true;
+    indexedDBStatus.lastCopyAt = idb.record?.savedAt || "";
+    indexedDBStatus.validation = idb.valid ? "válido" : (idb.empty ? "vazio" : "inválido");
+    const localState = readJSONStorage(STORAGE_KEY, {}) || {};
+    const localHasData = stateHasUserData(localState);
+    if (idb.valid && stateHasUserData(idb.data)) {
+      const idbTime = stateTimestamp(idb.data);
+      const localTime = stateTimestamp(localState);
+      const chooseLocal = localHasData && localTime && idbTime && localTime > idbTime;
+      if (chooseLocal) {
+        console.info("[Metas Estudo] Fonte escolhida: localStorage fallback (mais recente).", { localTime, idbTime });
+        indexedDBStatus.activeSource = "localStorage fallback";
+        indexedDBStatus.lastLoadedSource = "localStorage";
+        await migrateLocalStorageStateToIndexedDB(cloneData(state));
+      } else {
+        console.info("[Metas Estudo] Fonte escolhida: IndexedDB.", { localTime, idbTime });
+        indexedDBStatus.activeSource = "IndexedDB";
+        indexedDBStatus.lastLoadedSource = "IndexedDB";
+        replaceState(idb.data);
+        render();
+      }
+    } else if (localHasData || stateHasUserData(state)) {
+      console.info("[Metas Estudo] Fonte escolhida: localStorage fallback (IndexedDB vazio/inválido).");
+      indexedDBStatus.activeSource = "localStorage fallback";
+      indexedDBStatus.lastLoadedSource = "localStorage";
+      await migrateLocalStorageStateToIndexedDB(cloneData(state));
+      indexedDBStatus.validation = "localStorage copiado e validado";
+    } else {
+      indexedDBStatus.activeSource = idb.valid ? "IndexedDB" : "localStorage fallback";
+      indexedDBStatus.lastLoadedSource = idb.valid ? "IndexedDB" : "localStorage";
+    }
+    indexedDBStatus.size = estimateSerializedStateSize(state);
+    indexedDBStatus.migration = "concluída";
+    indexedDBStatus.error = "";
+  } catch (error) {
+    recordIndexedDBWarning("IndexedDB falhou; usando localStorage fallback.", error);
+  } finally {
+    updateStorageDiagnostics();
+  }
 }
 
 function queueIndexedDBStateCopy() {
@@ -1590,11 +1655,15 @@ async function processIndexedDBStateCopyQueue() {
   try {
     const snapshot = cloneData(state);
     const record = await saveStateToIndexedDB(snapshot);
+    const reloaded = await loadStateFromIndexedDB();
+    if (!statesMatchIndexedDBRecord(snapshot, reloaded)) throw new Error("A validação da gravação no IndexedDB falhou.");
     indexedDBStatus.available = true;
+    indexedDBStatus.activeSource = "IndexedDB";
     indexedDBStatus.lastCopyAt = record.savedAt;
+    indexedDBStatus.validation = "válido";
     indexedDBStatus.size = estimateSerializedStateSize(snapshot);
     if (indexedDBStatus.migration === "pendente") indexedDBStatus.migration = "concluída";
-    indexedDBStatus.error = "";
+    indexedDBStatus.error = indexedDBStatus.localStorageFull ? "IndexedDB funcionando; cópia localStorage indisponível por falta de espaço." : "";
   } catch (error) {
     recordIndexedDBWarning("Falha ao atualizar a cópia IndexedDB.", error);
   } finally {
@@ -1605,18 +1674,23 @@ async function processIndexedDBStateCopyQueue() {
 }
 
 function persistStateSafely(options = {}) {
+  if (options.markLocalChange && !isApplyingRemote) markLocalUpdated();
+  state.dailyGoals?.forEach(normalizeGoalTimeFields);
+  queueIndexedDBStateCopy();
   try {
-    if (options.markLocalChange && !isApplyingRemote) markLocalUpdated();
-    state.dailyGoals?.forEach(normalizeGoalTimeFields);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     localStorage.setItem(SIMULADOS_STORAGE_KEY, JSON.stringify(state.simulados || []));
     salvarCadernoErros(state.questionErrorNotebook || []);
+    indexedDBStatus.localStorageAvailable = true;
+    indexedDBStatus.localStorageFull = false;
+    if (indexedDBStatus.error === "IndexedDB funcionando; cópia localStorage indisponível por falta de espaço.") indexedDBStatus.error = "";
   } catch (error) {
-    console.error("[Metas Estudo] Não foi possível salvar no localStorage.", error);
-    const message = isQuotaExceededError(error) ? "Não foi possível salvar: o armazenamento local do navegador está cheio. Exporte um backup e libere espaço; nenhuma limpeza automática foi executada." : "Não foi possível salvar os dados. Verifique o armazenamento do navegador e exporte um backup.";
-    alert(message);
+    console.error("[Metas Estudo] Não foi possível atualizar a cópia localStorage.", error);
+    indexedDBStatus.localStorageAvailable = false;
+    indexedDBStatus.localStorageFull = isQuotaExceededError(error);
+    indexedDBStatus.error = indexedDBStatus.localStorageFull ? "IndexedDB funcionando; cópia localStorage indisponível por falta de espaço." : "Cópia localStorage indisponível; IndexedDB permanece como salvamento principal.";
   } finally {
-    queueIndexedDBStateCopy();
+    updateStorageDiagnostics();
   }
 }
 
@@ -1628,7 +1702,9 @@ async function initializeIndexedDBBackup() {
     const result = await migrateLocalStorageStateToIndexedDB(cloneData(state));
     const record = result.record || await loadStateFromIndexedDB();
     indexedDBStatus.available = true;
+    indexedDBStatus.activeSource = "IndexedDB";
     indexedDBStatus.lastCopyAt = record?.savedAt || result.metadata?.savedAt || "";
+    indexedDBStatus.validation = "válido";
     indexedDBStatus.size = estimateSerializedStateSize(state);
     indexedDBStatus.migration = "concluída";
     indexedDBStatus.error = "";
@@ -1644,14 +1720,12 @@ async function verifyStorageCopy() {
   if (indexedDBStatus.verifying) return;
   indexedDBStatus.verifying = true; updateStorageDiagnostics();
   try {
-    const before = await loadStateFromIndexedDB().catch(() => null);
-    let record = before;
-    if (!statesMatchIndexedDBRecord(state, record)) record = await saveStateToIndexedDB(cloneData(state));
-    const reloaded = await loadStateFromIndexedDB();
-    if (!statesMatchIndexedDBRecord(state, reloaded)) throw new Error("A cópia relida não corresponde ao estado atual.");
-    indexedDBStatus.available = true; indexedDBStatus.lastCopyAt = reloaded.savedAt || record.savedAt; indexedDBStatus.size = estimateSerializedStateSize(state); indexedDBStatus.migration = "concluída"; indexedDBStatus.error = "Verificação concluída com sucesso.";
+    const record = await loadStateFromIndexedDB();
+    if (!validateIndexedDBState(record)) throw new Error("Registro current ausente ou checksum inválido.");
+    if (!statesMatchIndexedDBRecord(state, record)) throw new Error("IndexedDB válido, mas diferente do estado em memória.");
+    indexedDBStatus.available = true; indexedDBStatus.lastCopyAt = record.savedAt || indexedDBStatus.lastCopyAt; indexedDBStatus.validation = "válido e igual à memória"; indexedDBStatus.size = estimateSerializedStateSize(state); indexedDBStatus.migration = "concluída"; indexedDBStatus.error = "Teste de carregamento pelo IndexedDB concluído sem substituir dados.";
   } catch (error) {
-    indexedDBStatus.migration = "erro"; recordIndexedDBWarning("Verificação do armazenamento falhou.", error);
+    indexedDBStatus.migration = "erro"; recordIndexedDBWarning("Teste de carregamento pelo IndexedDB falhou.", error);
   } finally { indexedDBStatus.verifying = false; updateStorageDiagnostics(); }
 }
 
@@ -1885,7 +1959,7 @@ function writeCloudStateTransaction(nextState, payload) {
   }
 }
 async function pullSyncPayload() { if (isSyncing) throw new Error("sincronização em andamento"); isSyncing = true; try { let file; try { file = await findSyncFile(); } catch (error) { throw cloudSyncError("query", "Erro ao consultar a nuvem. Verifique a conexão e tente novamente.", error); } if (!file) throw cloudSyncError("query", "Arquivo remoto inexistente."); let payload; try { payload = await downloadSyncFile(file.id); } catch (error) { throw cloudSyncError("download", "Erro ao baixar o arquivo do Google Drive. Tente novamente.", error); } validateCloudPayload(payload); const cloudDataUpdatedAt = syncPayloadUpdatedAt(payload, file.modifiedTime); writeSyncMeta({ connected: true, remoteUpdatedAt: cloudDataUpdatedAt, cloudDataUpdatedAt, remoteDeviceName: payload.deviceName || "", error: "", errorDetails: "" }); renderSyncStatus("Dados da nuvem encontrados."); return payload; } finally { isSyncing = false; } }
-function applyCloudPayload(payload) { isApplyingRemote = true; try { validateCloudPayload(payload); const cloudDataUpdatedAt = syncPayloadUpdatedAt(payload); writeCloudStateTransaction(payload.state, payload); replaceState(payload.state); writeSyncMeta({ connected: true, pendingSync: false, pendingSyncReason: null, localDirty: false, lastLocalUpdateAt: cloudDataUpdatedAt, localDataUpdatedAt: cloudDataUpdatedAt, lastSyncAt: new Date().toISOString(), lastAutoSyncError: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", remoteUpdatedAt: cloudDataUpdatedAt, cloudDataUpdatedAt, remoteDeviceName: payload.deviceName || "", error: "", errorDetails: "", lastCloudDialogAt: "" }); suppressAutoChecksAfterSync(); render(); showView("backup"); renderSyncStatus("Dados atualizados pela nuvem."); } catch (error) { if (!error.cloudSyncKind) throw cloudSyncError("apply", "Erro ao aplicar os dados da nuvem. Os dados locais foram preservados.", error); throw error; } finally { isApplyingRemote = false; } }
+function applyCloudPayload(payload) { isApplyingRemote = true; try { validateCloudPayload(payload); const cloudDataUpdatedAt = syncPayloadUpdatedAt(payload); writeCloudStateTransaction(payload.state, payload); replaceState(payload.state); indexedDBStatus.lastLoadedSource = "Google Drive"; saveData({ skipSyncTimestamp: true }); writeSyncMeta({ connected: true, pendingSync: false, pendingSyncReason: null, localDirty: false, lastLocalUpdateAt: cloudDataUpdatedAt, localDataUpdatedAt: cloudDataUpdatedAt, lastSyncAt: new Date().toISOString(), lastAutoSyncError: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", remoteUpdatedAt: cloudDataUpdatedAt, cloudDataUpdatedAt, remoteDeviceName: payload.deviceName || "", error: "", errorDetails: "", lastCloudDialogAt: "" }); suppressAutoChecksAfterSync(); render(); showView("backup"); renderSyncStatus("Dados atualizados pela nuvem."); } catch (error) { if (!error.cloudSyncKind) throw cloudSyncError("apply", "Erro ao aplicar os dados da nuvem. Os dados locais foram preservados.", error); throw error; } finally { isApplyingRemote = false; } }
 async function syncNow() { if (!canRunAutoSyncChecks()) return; try { const remote = await pullSyncPayload(); const meta = readSyncMeta(); const localDate = new Date(localDataUpdatedAt(meta) || 0); const remoteDate = new Date(syncPayloadUpdatedAt(remote) || 0); if (+remoteDate === +localDate) return renderSyncStatus("Tudo sincronizado."); if (hasLocalSyncPending(meta) && remote.deviceId !== getDeviceId()) { const pendingChoice = await resolvePendingLocalSyncBeforeCloudDownload(meta); if (pendingChoice === "download") applyCloudPayload(remote); return; } if (remoteDate > localDate) { const choice = askSyncChoice("Existem dados mais recentes no Google Drive.", ["Baixar versão da nuvem", "Cancelar"]); if (choice === "Baixar versão da nuvem") applyCloudPayload(remote); else renderSyncStatus("Sincronização cancelada pelo usuário."); } else if (localDate > remoteDate) { const choice = askSyncChoice("Este dispositivo tem versão mais nova. Deseja enviar para a nuvem?", ["Enviar este dispositivo para a nuvem", "Cancelar"]); if (choice === "Enviar este dispositivo para a nuvem") await uploadSyncPayload(makeSyncPayload()); else renderSyncStatus("Sincronização cancelada pelo usuário."); } } catch (error) { recordCloudSyncError(error, "Erro ao sincronizar."); } }
 function hasPendingLocalChanges(meta = readSyncMeta()) { return new Date(localDataUpdatedAt(meta) || 0) > new Date(meta.cloudDataUpdatedAt || meta.remoteUpdatedAt || 0); }
 function handleCloudConflict(remote, contextMessage = "Existem dados mais recentes no Google Drive.") {
@@ -2100,6 +2174,8 @@ function clearProjectLocalStorage() { getProjectStorageKeys().forEach((key) => l
 function restoreBackup(payload, mode) {
   if (mode === "replace") { clearProjectLocalStorage(); replaceState(payload.data); }
   if (mode === "merge") mergeBackupData(payload.data);
+  indexedDBStatus.lastLoadedSource = "backup";
+  saveData({ markLocalChange: true });
   render(); showView("backup"); elements.backupPreview.innerHTML += `<p class="notice">Backup ${mode === "replace" ? "substituído" : "mesclado"} com sucesso.</p>`; autoSyncAfterSave("backup-import");
 }
 async function handleBackupFile(file) {
@@ -4908,7 +4984,7 @@ mergeCompatibleLocalStorageData();
 renderMotivationalPhrase();
 render();
 showStorageWarningIfNeeded();
-initializeIndexedDBBackup();
+initializePrimaryStorage();
 
 const viewLinks = [...document.querySelectorAll("[data-view-link]")];
 const viewPanels = [...document.querySelectorAll(".app-view")];
