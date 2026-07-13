@@ -38,9 +38,9 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão atual', () => {
-  assert.match(html, /style\.css\?v=20260713-secoes-materiais-recolhiveis/);
-  assert.match(html, /script\.js\?v=20260713-secoes-materiais-recolhiveis/);
-  assert.match(html, /Versão: 20260713-secoes-materiais-recolhiveis/);
+  assert.match(html, /style\.css\?v=20260713-materiais-recolhiveis-nas-secoes/);
+  assert.match(html, /script\.js\?v=20260713-materiais-recolhiveis-nas-secoes/);
+  assert.match(html, /Versão: 20260713-materiais-recolhiveis-nas-secoes/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -229,7 +229,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260713-secoes-materiais-recolhiveis/);
+  assert.match(sw, /metas-estudo-20260713-materiais-recolhiveis-nas-secoes/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);

@@ -1,4 +1,4 @@
-const CACHE_NAME = "metas-estudo-20260713-secoes-materiais-recolhiveis";
+const CACHE_NAME = "metas-estudo-20260713-materiais-recolhiveis-nas-secoes";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
