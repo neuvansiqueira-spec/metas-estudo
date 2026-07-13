@@ -1,9 +1,10 @@
-const CACHE_NAME = "metas-estudo-20260713-materiais-recolhiveis-nas-secoes";
+const CACHE_NAME = "metas-estudo-20260713-indexeddb-etapa1-copia-segura";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
   "style.css",
   "script.js",
+  "storage-indexeddb.js",
   "manifest.json",
   "icons/icon.svg",
   "icons/icon-maskable.svg"

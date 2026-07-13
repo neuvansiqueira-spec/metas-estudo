@@ -52,9 +52,11 @@ test('status visual é calculado dos módulos normalizados e não do item.status
   assert.match(script, /const status = factoryOverallStatus\(modules\)/);
 });
 
-test('armazenamento, backup e sincronização não foram alterados nesta mudança', { skip: !fs.existsSync('.git') }, () => {
-  const diff = execSync('git diff --unified=0 -- script.js docs/script.js', { encoding: 'utf8' });
-  assert.doesNotMatch(diff, /function (saveData|loadData|autoSyncAfterSave|syncWithGoogleDrive|saveBackup|restoreBackup|exportBackup|importBackup)\b/);
-  assert.doesNotMatch(diff, /localStorage\.(clear|removeItem)\(/);
-  assert.doesNotMatch(diff, /factoryAgenda\s*=\s*\[\]|factoryItems\s*=\s*\[\]|materials\s*=\s*\[\]|dailyGoals\s*=\s*\[\]/);
+test('cópia IndexedDB preserva backup, sincronização e não remove chaves automaticamente', () => {
+  assert.match(script, /function persistStateSafely\(options = \{\}\)/);
+  assert.match(script, /localStorage\.setItem\(STORAGE_KEY, JSON\.stringify\(state\)\)/);
+  assert.match(script, /queueIndexedDBStateCopy\(\)/);
+  assert.doesNotMatch(script, /indexedDB\.deleteDatabase|localStorage\.clear\(\)/);
+  assert.match(script, /function makeBackupPayload\(\)/);
+  assert.match(script, /function makeSyncPayload\(\)/);
 });

@@ -38,9 +38,9 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão atual', () => {
-  assert.match(html, /style\.css\?v=20260713-materiais-recolhiveis-nas-secoes/);
-  assert.match(html, /script\.js\?v=20260713-materiais-recolhiveis-nas-secoes/);
-  assert.match(html, /Versão: 20260713-materiais-recolhiveis-nas-secoes/);
+  assert.match(html, /style\.css\?v=20260713-indexeddb-etapa1-copia-segura/);
+  assert.match(html, /script\.js\?v=20260713-indexeddb-etapa1-copia-segura/);
+  assert.match(html, /Versão: 20260713-indexeddb-etapa1-copia-segura/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -203,7 +203,7 @@ test('rotas Backup e Caderno de Erros não compartilham destinos', () => {
   assert.match(script, /panel\.hidden = true/);
   assert.match(script, /document\.getElementById\(`view-\$\{target\}`\)/);
   assert.match(script, /console\.log\("\[ROUTE\]", \{ clicked: link\.textContent\.trim\(\), target \}\)/);
-  assert.match(script, /backup: \(\) => \{ renderBackupSummary\(\); renderSyncStatus\(\); \}/);
+  assert.match(script, /backup: \(\) => \{ renderBackupSummary\(\); renderSyncStatus\(\); updateStorageDiagnostics\(\); \}/);
   assert.match(script, /"caderno-erros": qbRenderErrorNotebook/);
 });
 
@@ -229,7 +229,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260713-materiais-recolhiveis-nas-secoes/);
+  assert.match(sw, /metas-estudo-20260713-indexeddb-etapa1-copia-segura/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);

@@ -88,7 +88,8 @@ test('prompts internos oficiais não foram alterados em relação ao commit base
   }
 });
 
-test('armazenamento, backup e sincronização não receberam alterações de implementação', { skip: !fs.existsSync('.git') }, () => {
-  const diff = execSync('git diff --unified=0 HEAD^ -- script.js docs/script.js', { encoding: 'utf8' });
-  assert.doesNotMatch(diff, /function (saveData|autoSyncAfterSave|syncWithGoogleDrive|saveBackup|restoreBackup|saveTimerPreferences|salvarCadernoErros|startTimer|pauseTimer|resetTimer)\b/);
+test('armazenamento IndexedDB mantém localStorage como fonte principal', () => {
+  assert.match(script, /Fonte principal: <strong>localStorage<\/strong>/);
+  assert.match(script, /function saveData\(options = \{\}\) \{ persistStateSafely\(options\); \}/);
+  assert.match(script, /initializeIndexedDBBackup\(\)/);
 });
