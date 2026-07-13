@@ -1029,6 +1029,11 @@ let factoryEventsInitialized = false;
 const FACTORY_CLICK_ROUTES = ["factoryPrompt", "factoryPromptClose", "factoryPromptCopy", "factoryRouterCopy", "factoryEdit", "factoryDelete", "factoryModules", "factoryModulesCancel", "factoryToggleDetail", "factoryNext", "factoryTriagem", "factoryReopen", "openUrl"];
 const FACTORY_LIBRARY_CLICK_ROUTES = ["factoryLibraryClose", "factoryLibraryRestore"];
 let lastFactoryTodayInfo = { goals: 0, matched: 0, matchModes: [] };
+const indexedDBStatus = { available: false, activeSource: "aguardando bootstrap", lastLoadedSource: "nenhuma", lastCopyAt: "", validation: "pendente", migration: "pendente", error: "", size: 0, verifying: false, localStorageAvailable: true, localStorageFull: false, bootstrap: "pendente", bootstrapSource: "não decidido", indexedDBReadBeforeRender: false, localStorageIgnoredByError: false };
+let indexedDBPersistInFlight = false;
+let indexedDBPersistQueued = false;
+let indexedDBPersistTimer = null;
+
 state.migrations ||= {};
 let shouldSaveAfterFactoryPromptMigrations = migrateStateFactoryPromptLibraryTriagemMetodologiaGeral(state);
 shouldSaveAfterFactoryPromptMigrations = migrateStateFactoryPromptLibraryResumoAulaDidatica(state) || shouldSaveAfterFactoryPromptMigrations;
@@ -1039,8 +1044,6 @@ if (!state.migrations.leiRecortePromptV2 && state.factoryPromptLibrary?.lei?.inc
   state.migrations.leiRecortePromptV2 = new Date().toISOString();
   shouldSaveAfterFactoryPromptMigrations = true;
 }
-if (shouldSaveAfterFactoryPromptMigrations) saveData();
-
 
 function normalizeTimerPreferences(preferences = {}) {
   const stored = readJSONStorage(TIMER_PREFS_STORAGE_KEY, {});
@@ -1541,6 +1544,7 @@ if (elements.smartReviewDate) elements.smartReviewDate.value = todayISO();
 if (elements.mockDate) elements.mockDate.value = todayISO();
 if (elements.materialDate) elements.materialDate.value = todayISO();
 if (elements.factoryPlannedDate) elements.factoryPlannedDate.value = todayISO();
+if (shouldSaveAfterFactoryPromptMigrations) saveData();
 
 
 function pickMotivationalPhrase() {
@@ -1554,11 +1558,6 @@ function pickMotivationalPhrase() {
 function renderMotivationalPhrase(phrase = pickMotivationalPhrase()) {
   if (elements.dailyMotivationText) elements.dailyMotivationText.textContent = phrase;
 }
-
-const indexedDBStatus = { available: false, activeSource: "aguardando bootstrap", lastLoadedSource: "nenhuma", lastCopyAt: "", validation: "pendente", migration: "pendente", error: "", size: 0, verifying: false, localStorageAvailable: true, localStorageFull: false, bootstrap: "pendente", bootstrapSource: "não decidido", indexedDBReadBeforeRender: false, localStorageIgnoredByError: false };
-let indexedDBPersistInFlight = false;
-let indexedDBPersistQueued = false;
-let indexedDBPersistTimer = null;
 
 function updateStorageDiagnostics() {
   if (!elements?.storageDiagnostics) return;
