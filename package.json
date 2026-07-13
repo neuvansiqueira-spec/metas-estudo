@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260713-corrige-plano-dia-mobile",
+  "version": "20260713-analise-estrategica-v1",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

@@ -3088,3 +3088,21 @@ body.app-bootstrapping .app-layout {
     letter-spacing: -.02em;
   }
 }
+
+/* Análise estratégica */
+.analytics-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; align-items: end; margin: 18px 0 22px; }
+.analytics-filters label { display: grid; gap: 6px; font-weight: 800; color: var(--primary-dark); }
+.strategic-analysis-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.analytics-full { grid-column: 1 / -1; }
+.privacy-note, .notice { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a; border-radius: 14px; padding: 12px; }
+.responsive-table { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.analytics-chart { display: grid; gap: 10px; margin: 12px 0; }
+.analytics-bar-row { display: grid; grid-template-columns: minmax(90px, 1fr) 3fr auto; gap: 10px; align-items: center; }
+.analytics-bar-row div { min-width: 90px; height: 12px; background: #e2e8f0; border-radius: 999px; overflow: hidden; }
+.analytics-bar-row i { display: block; height: 100%; min-width: 2px; background: linear-gradient(90deg, var(--primary), #38bdf8); border-radius: inherit; }
+.analytics-plan-preview { margin-top: 18px; }
+@media (max-width: 760px) {
+  .analytics-filters, .strategic-analysis-grid, .analytics-bar-row { grid-template-columns: 1fr; }
+  .analytics-filters button, #applyAnalyticsPlan { width: 100%; min-height: 44px; }
+  .analytics-bar-row div { width: 100%; }
+}

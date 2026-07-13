@@ -1,9 +1,10 @@
-const CACHE_NAME = "metas-estudo-20260713-corrige-plano-dia-mobile";
+const CACHE_NAME = "metas-estudo-20260713-analise-estrategica-v1";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
   "style.css",
   "script.js",
+  "analytics-engine.js",
   "storage-indexeddb.js",
   "manifest.json",
   "icons/icon.svg",

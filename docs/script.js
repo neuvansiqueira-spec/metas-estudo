@@ -5128,6 +5128,49 @@ function showFactoryDisabledMessage() {
   if (elements.factorySummary) elements.factorySummary.innerHTML = "";
   if (elements.factoryList) elements.factoryList.textContent = "Fábrica de Resumos temporariamente desativada para restaurar o site.";
 }
+
+function renderStrategicAnalysis() {
+  const content = document.getElementById("analyticsContent");
+  if (!content || !window.AnalyticsEngine) return;
+  const periodSelect = document.getElementById("analyticsPeriodSelect");
+  const startInput = document.getElementById("analyticsStartDate");
+  const endInput = document.getElementById("analyticsEndDate");
+  const mode = periodSelect?.value || "30d";
+  const custom = { start: startInput?.value, end: endInput?.value };
+  const analysis = window.AnalyticsEngine.buildStrategicAnalysis(state, mode, custom, { today: todayISO(), minStrongQuestions: 20 });
+  const stat = (label, value) => `<article class="stat-card"><span>${escapeHTML(label)}</span><strong class="stat-value-compact">${escapeHTML(String(value))}</strong></article>`;
+  const list = (items, empty = "Nenhum item identificado.") => items?.length ? `<ul>${items.map((item) => `<li>${escapeHTML(String(item))}</li>`).join("")}</ul>` : `<p class="empty-message">${escapeHTML(empty)}</p>`;
+  const table = (rows) => rows?.length ? `<div class="responsive-table"><table><thead><tr><th>Disciplina</th><th>Horas</th><th>Questões</th><th>Acertos</th><th>Erros</th><th>Brancos</th><th>%</th><th>Líquido</th><th>Evolução</th><th>Justificativa</th></tr></thead><tbody>${rows.map((d) => `<tr><td>${escapeHTML(d.discipline)}</td><td>${d.hours}</td><td>${d.questions}</td><td>${d.correct}</td><td>${d.wrong}</td><td>${d.blank}</td><td>${d.accuracyPct}%</td><td>${d.net}</td><td>${d.evolution === null ? "Sem base" : `${d.evolution} p.p.`}</td><td>${escapeHTML(d.justification)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="empty-message">Nenhuma disciplina nesta classificação.</p>`;
+  const bars = (rows, valueKey, label) => { const max = Math.max(1, ...rows.map((r) => Math.abs(Number(r[valueKey]) || 0))); return `<div class="analytics-chart" aria-label="${escapeHTML(label)}">${rows.slice(0,8).map((r) => `<div class="analytics-bar-row"><span>${escapeHTML(r.discipline)}</span><div><i style="width:${Math.min(100, Math.abs(Number(r[valueKey]) || 0) / max * 100)}%"></i></div><b>${escapeHTML(String(r[valueKey]))}</b></div>`).join("") || "Sem dados."}</div>`; };
+  const evolution = Object.entries(analysis.evolution).map(([k, v]) => `${k}: ${v.direction} (${v.delta})`);
+  content.innerHTML = `
+    <article class="panel analytics-full"><h3>1. Situação Geral</h3><span class="badge ${analysis.overallSituation.classification === "CRÍTICA" ? "danger" : analysis.overallSituation.classification === "FAVORÁVEL" ? "success" : "warn"}">${escapeHTML(analysis.overallSituation.classification)}</span><p>${escapeHTML(analysis.overallSituation.explanation)}</p></article>
+    <article class="panel analytics-full"><h3>2. Resumo do Período</h3><div class="stats-grid compact">${[
+      ["Horas estudadas", analysis.summary.hours], ["Sessões de estudo", analysis.summary.sessions], ["Dias com estudo", analysis.summary.studyDays], ["Média diária", `${analysis.summary.dailyAverageHours}h`], ["Questões feitas", analysis.summary.questionsTotal], ["Acertos", analysis.summary.correct], ["Erros", analysis.summary.wrong], ["Brancos", analysis.summary.blank], ["Percentual de acerto", `${analysis.summary.accuracyPct}%`], ["Líquido Cebraspe", analysis.summary.cebraspeNet], ["Metas previstas", analysis.summary.goalsPlanned], ["Metas concluídas", analysis.summary.goalsCompleted], ["Cumprimento", `${analysis.summary.goalCompletionPct}%`], ["Revisões feitas", analysis.summary.reviews], ["Simulados", analysis.summary.mockExams]
+    ].map(([l,v])=>stat(l,v)).join("")}</div></article>
+    <article class="panel"><h3>3. Evolução</h3>${list(evolution)}</article>
+    <article class="panel"><h3>4. Disciplinas Fortes</h3>${table(analysis.strongDisciplines)}</article>
+    <article class="panel"><h3>5. Disciplinas Críticas</h3>${table(analysis.criticalDisciplines)}</article>
+    <article class="panel analytics-full"><h3>6. Assuntos Negligenciados</h3><div class="responsive-table"><table><thead><tr><th>Disciplina</th><th>Assunto</th><th>Dias sem estudo</th><th>Última questão</th><th>Metas pendentes</th><th>Motivo</th></tr></thead><tbody>${analysis.neglectedSubjects.slice(0,20).map((s) => `<tr><td>${escapeHTML(s.discipline)}</td><td>${escapeHTML(s.subject)}</td><td>${s.daysSinceLastStudy === 999 ? "Sem registro" : s.daysSinceLastStudy}</td><td>${escapeHTML(s.lastQuestionDate)}</td><td>${s.pendingGoals}</td><td>${escapeHTML(s.reason)}</td></tr>`).join("") || `<tr><td colspan="6">Nenhum assunto negligenciado identificado.</td></tr>`}</tbody></table></div></article>
+    <article class="panel"><h3>7. Eficiência do Estudo</h3><p class="notice">${escapeHTML(analysis.efficiency.warning)}</p><div class="card-meta-grid"><span>Questões/hora: <strong>${analysis.efficiency.questionsPerHour ?? "Sem dados"}</strong></span><span>Acertos/hora: <strong>${analysis.efficiency.correctPerHour ?? "Sem dados"}</strong></span><span>Líquido/hora: <strong>${analysis.efficiency.netPerHour ?? "Sem dados"}</strong></span><span>Tempo médio/questão: <strong>${analysis.efficiency.averageMinutesPerQuestion ?? "Sem dados"} min</strong></span></div></article>
+    <article class="panel"><h3>8. Desempenho Cebraspe</h3><p>Líquido geral: <strong>${analysis.cebraspe.net}</strong>. Fórmula: acertos - erros; brancos são neutros.</p>${bars(analysis.cebraspe.byDiscipline, "net", "Líquido por disciplina")}</article>
+    <article class="panel"><h3>9. Simulados</h3><div class="card-meta-grid"><span>Quantidade: <strong>${analysis.mockExams.count}</strong></span><span>Média líquida: <strong>${analysis.mockExams.averageNet}</strong></span><span>Melhor: <strong>${analysis.mockExams.bestNet}</strong></span><span>Pior: <strong>${analysis.mockExams.worstNet}</strong></span><span>Tendência: <strong>${escapeHTML(analysis.mockExams.trend)}</strong></span><span>Distância da meta: <strong>${analysis.mockExams.goalDistance ?? "Sem meta"}</strong></span></div></article>
+    <article class="panel analytics-full"><h3>10. Plano Recomendado</h3><h4>Prioridade alta</h4>${list(analysis.recommendations.highPriority)}<h4>Assuntos prioritários</h4>${list(analysis.recommendations.prioritySubjects)}<h4>Manutenção</h4>${list(analysis.recommendations.maintenance)}<h4>Reduzir excesso</h4>${list(analysis.recommendations.reduceExcess)}<p><strong>Distribuição semanal:</strong> ${escapeHTML(analysis.recommendations.weeklyDistribution)}</p><p><strong>Revisões:</strong> ${escapeHTML(analysis.recommendations.reviewSuggestions)}</p><p><strong>Questões:</strong> ${escapeHTML(analysis.recommendations.suggestedQuestions)}</p><button id="applyAnalyticsPlan" type="button">Aplicar ao planejamento</button></article>
+    <article class="panel analytics-full"><h3>Gráficos</h3><h4>Horas por disciplina</h4>${bars(analysis.disciplines, "hours", "Horas por disciplina")}<h4>Líquido por disciplina</h4>${bars(analysis.disciplines, "net", "Líquido por disciplina")}</article>
+    <article class="panel analytics-full"><h3>Qualidade dos Dados</h3>${list([`Disciplinas sem lançamentos: ${analysis.dataQuality.disciplinesWithoutEntries.join(", ") || "nenhuma"}`, `Estudos sem assunto/disciplina vinculada: ${analysis.dataQuality.studiesWithoutSubject}`, `Questões sem disciplina: ${analysis.dataQuality.questionsWithoutDiscipline}`, `Poucos dados no período: ${analysis.dataQuality.insufficient ? "sim" : "não"}`, `Métricas indisponíveis: ${analysis.dataQuality.metricsUnavailable.join(", ") || "nenhuma"}`])}</article>
+    <details class="panel analytics-full"><summary>Como esta análise foi calculada</summary><p>Disciplina forte exige pelo menos 20 questões, 70% de acerto, líquido positivo e cumprimento aceitável de metas quando existirem. Disciplina crítica combina baixo percentual, líquido baixo/negativo, muitos erros, queda recente ou metas não concluídas. Negligência considera itens não concluídos/ignorados sem estudo recente, sem questões ou com metas pendentes. O líquido Cebraspe é acertos menos erros; brancos são neutros. O período atual é comparado ao período imediatamente anterior de mesma duração. Limitações: a análise usa apenas dados registrados no state e não estima aprovação.</p></details>`;
+  document.getElementById("applyAnalyticsPlan")?.addEventListener("click", () => {
+    const preview = document.getElementById("analyticsPlanPreview");
+    if (!preview) return;
+    preview.hidden = false;
+    preview.innerHTML = `<article class="panel"><h3>Prévia para planejamento</h3><p>Nenhuma meta foi criada ou alterada. Revise as sugestões antes de qualquer mudança manual.</p>${list([...analysis.recommendations.highPriority, ...analysis.recommendations.prioritySubjects])}</article>`;
+    preview.scrollIntoView({ block: "start", behavior: "smooth" });
+  });
+}
+
+document.getElementById("analyticsPeriodForm")?.addEventListener("submit", (event) => { event.preventDefault(); renderStrategicAnalysis(); });
+document.getElementById("analyticsPeriodSelect")?.addEventListener("change", renderStrategicAnalysis);
+
 function renderView(viewId) {
   const renderers = {
     dashboard: () => { renderDashboard(); renderSubjects(); },
@@ -5151,7 +5194,8 @@ function renderView(viewId) {
     backup: () => { renderBackupSummary(); renderSyncStatus(); updateStorageDiagnostics(); },
     planejamento: renderPlanning,
     progresso: renderProgressPanel,
-    "como-usar": () => {}
+    "como-usar": () => {},
+    "analise-estrategica": renderStrategicAnalysis
   };
   safeRenderView(viewId, renderers[viewId]);
 }
