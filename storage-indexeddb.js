@@ -62,8 +62,15 @@ function runStoreOperation(storeName, mode, operation) {
   }));
 }
 
-function saveStateToIndexedDB(state) {
-  const record = { id: STUDY_DB_CURRENT_ID, schemaVersion: STUDY_DB_SCHEMA_VERSION, savedAt: new Date().toISOString(), checksum: checksumForState(state), data: JSON.parse(JSON.stringify(state || {})) };
+function indexedDBStateHasUserData(state = {}) {
+  return ["subjects", "studies", "syllabusItems", "dailyGoals", "questionLogs", "materials", "questionBank", "simulados", "smartReviews", "factoryAgenda", "factoryItems"].some((key) => Array.isArray(state?.[key]) && state[key].length);
+}
+
+async function saveStateToIndexedDB(state) {
+  const data = JSON.parse(JSON.stringify(state || {}));
+  const existing = await loadStateFromIndexedDB().catch(() => null);
+  if (validateIndexedDBState(existing) && indexedDBStateHasUserData(existing.data) && !indexedDBStateHasUserData(data)) throw new Error("Proteção ativada: estado vazio não substitui IndexedDB válido.");
+  const record = { id: STUDY_DB_CURRENT_ID, schemaVersion: STUDY_DB_SCHEMA_VERSION, savedAt: new Date().toISOString(), checksum: checksumForState(data), data };
   return runStoreOperation(STUDY_DB_APP_STATE_STORE, "readwrite", (store) => store.put(record)).then(() => record);
 }
 
@@ -80,7 +87,9 @@ function saveIndexedDBMetadata(metadata) {
 }
 
 function validateIndexedDBState(record) {
-  if (!record || record.id !== STUDY_DB_CURRENT_ID || record.schemaVersion !== STUDY_DB_SCHEMA_VERSION || !record.data || typeof record.data !== "object") return false;
+  if (!record || record.id !== STUDY_DB_CURRENT_ID || record.schemaVersion !== STUDY_DB_SCHEMA_VERSION || !record.data || typeof record.data !== "object" || Array.isArray(record.data)) return false;
+  const arrayKeys = ["subjects", "studies", "syllabusItems", "dailyGoals", "questionLogs", "smartReviews", "simulados", "materials", "questionBank", "questionBankSessions", "questionErrorNotebook"];
+  if (!arrayKeys.every((key) => record.data[key] === undefined || Array.isArray(record.data[key]))) return false;
   return record.checksum === checksumForState(record.data);
 }
 
@@ -99,5 +108,5 @@ async function migrateLocalStorageStateToIndexedDB(state) {
   return { completed: true, reused: false, record: reloaded, metadata };
 }
 
-if (typeof window !== "undefined") Object.assign(window, { openStudyDatabase, saveStateToIndexedDB, loadStateFromIndexedDB, getIndexedDBMetadata, validateIndexedDBState, estimateSerializedStateSize, migrateLocalStorageStateToIndexedDB, statesMatchIndexedDBRecord });
-if (typeof module !== "undefined") module.exports = { openStudyDatabase, saveStateToIndexedDB, loadStateFromIndexedDB, getIndexedDBMetadata, validateIndexedDBState, estimateSerializedStateSize, migrateLocalStorageStateToIndexedDB, checksumForState, statesMatchIndexedDBRecord };
+if (typeof window !== "undefined") Object.assign(window, { openStudyDatabase, saveStateToIndexedDB, loadStateFromIndexedDB, getIndexedDBMetadata, validateIndexedDBState, estimateSerializedStateSize, migrateLocalStorageStateToIndexedDB, statesMatchIndexedDBRecord, indexedDBStateHasUserData });
+if (typeof module !== "undefined") module.exports = { openStudyDatabase, saveStateToIndexedDB, loadStateFromIndexedDB, getIndexedDBMetadata, validateIndexedDBState, estimateSerializedStateSize, migrateLocalStorageStateToIndexedDB, checksumForState, statesMatchIndexedDBRecord, indexedDBStateHasUserData };
