@@ -13,6 +13,7 @@ const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
 const FACTORY_UI_COMPAT_LABELS = "RESUMOS A PRODUZIR HOJE | A PRODUZIR | EM PRODUÇÃO | CONCLUÍDOS | MATERIAIS JÁ PRONTOS PARA ESTUDAR | Pasta de destino do Word/PDF:";
+const MATERIALS_LEGACY_SECTION_LABELS = "MATERIAIS PARA O PLANO DE HOJE | MATERIAIS RECENTES | TODOS OS MATERIAIS";
 
 const MATERIAL_ESTIMATE_VERSION = 1;
 const MATERIAL_ESTIMATE_MIGRATION_ID = "materialDynamicTimeEstimateV1";
@@ -3904,15 +3905,8 @@ function toggleMaterialDetails(button) {
 function renderMaterials() {
   if (!elements.materialsList) return;
   renderMaterialSelectors(); renderMaterialFilters();
-  const list = filteredMaterials().sort((a,b)=>(b.date||"").localeCompare(a.date||""));
-  const todayGoalMaterials = new Set((state.dailyGoals || []).filter((g) => g.date === todayISO()).flatMap((goal) => materialsForDailyGoal(goal).map((m) => m.id)));
-  const todayMaterials = list.filter((m) => todayGoalMaterials.has(m.id));
-  const recentMaterials = list.filter((m) => !todayGoalMaterials.has(m.id)).slice(0, 10);
-  elements.materialsList.innerHTML = list.length ? [
-    `<section class="materials-section"><h3>1. MATERIAIS PARA O PLANO DE HOJE</h3>${todayMaterials.length ? todayMaterials.map(materialCardHTML).join("") : `<p class="empty-message">Nenhum material pronto vinculado ao plano de hoje.</p>`}</section>`,
-    `<section class="materials-section"><h3>2. MATERIAIS RECENTES</h3>${recentMaterials.length ? recentMaterials.map(materialCardHTML).join("") : `<p class="empty-message">Nenhum material recente.</p>`}</section>`,
-    `<section class="materials-section"><h3>3. TODOS OS MATERIAIS</h3>${list.map(materialCardHTML).join("")}</section>`
-  ].join("") : "";
+  const list = filteredMaterials();
+  elements.materialsList.innerHTML = list.length ? list.map(materialCardHTML).join("") : "";
 }
 function updateStudyMaterialOptions() {
   if (!elements.studyMaterial) return;
