@@ -174,3 +174,16 @@ test('arquivos de publicação mantêm paridade entre raiz e docs para correçã
   assert.equal(html, docsHtml);
   assert.equal(sw, docsSw);
 });
+
+test('Materiais renderizam detalhes recolhíveis sem persistir estado nos dados', () => {
+  assert.match(script, /const openMaterialDetailIds = new Set\(\)/);
+  assert.match(script, /data-toggle-material-details/);
+  assert.match(script, /data-material-details="\$\{m\.id\}" \$\{isOpen \? "" : "hidden"\}/);
+  assert.match(script, /function toggleMaterialDetails\(button\)/);
+  assert.doesNotMatch(script, /state\.materials[^\n;]*(open|expanded|collapsed|details)/i);
+  assert.match(script, /event\.target\.closest\("button\[data-toggle-material-details\]"\)/);
+  assert.match(script, /button\.textContent = willOpen \? "Fechar detalhes" : "Abrir detalhes"/);
+  assert.equal(script, docsScript);
+  assert.match(css, /#view-materiais \.material-card/);
+  assert.match(css, /#view-materiais \.material-card-details\[hidden\]/);
+});
