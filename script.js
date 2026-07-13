@@ -1521,7 +1521,7 @@ const elements = {
   calendarDate: $("#calendarDate"), calendarViewMode: $("#calendarViewMode"), generateWeekGoals: $("#generateWeekGoals"), generateMonthGoals: $("#generateMonthGoals"), disciplineWeightsList: $("#disciplineWeightsList"), goalCalendarStats: $("#goalCalendarStats"), goalCalendarContent: $("#goalCalendarContent"), monthlyTopicGoal: $("#monthlyTopicGoal"), monthlyHourGoal: $("#monthlyHourGoal"), monthlyPlanSummary: $("#monthlyPlanSummary"), todayGoalsTotal: $("#todayGoalsTotal"), weekGoalsTotal: $("#weekGoalsTotal"), weekGoalRate: $("#weekGoalRate"), monthGoalRate: $("#monthGoalRate"), nextGoalLabel: $("#nextGoalLabel"), weekTopDiscipline: $("#weekTopDiscipline"), mostDelayedDiscipline: $("#mostDelayedDiscipline"),
   questionForm: $("#questionForm"), questionEditingId: $("#questionEditingId"), questionLinkedGoalId: $("#questionLinkedGoalId"), questionOrigin: $("#questionOrigin"), questionDate: $("#questionDate"), questionDiscipline: $("#questionDiscipline"), questionSyllabusItem: $("#questionSyllabusItem"), questionBoard: $("#questionBoard"), questionTrainingType: $("#questionTrainingType"), questionTotal: $("#questionTotal"), questionMinutes: $("#questionMinutes"), questionCorrect: $("#questionCorrect"), questionWrong: $("#questionWrong"), questionBlank: $("#questionBlank"), questionNotes: $("#questionNotes"), questionCalculated: $("#questionCalculated"), questionAnalysis: $("#questionAnalysis"),
   questionFilterDiscipline: $("#questionFilterDiscipline"), questionFilterSubject: $("#questionFilterSubject"), questionFilterBoard: $("#questionFilterBoard"), questionHistoryBody: $("#questionHistoryBody"),
-  exportBackup: $("#exportBackup"), selectBackupFile: $("#selectBackupFile"), backupFileInput: $("#backupFileInput"), resetSolvedQuestions: $("#resetSolvedQuestions"), clearAllLocalData: $("#clearAllLocalData"), lastBackupDate: $("#lastBackupDate"), backupStorageKeys: $("#backupStorageKeys"), backupSummary: $("#backupSummary"), backupPreview: $("#backupPreview"),
+  exportBackup: $("#exportBackup"), selectBackupFile: $("#selectBackupFile"), backupFileInput: $("#backupFileInput"), resetSolvedQuestions: $("#resetSolvedQuestions"), clearAllLocalData: $("#clearAllLocalData"), lastBackupDate: $("#lastBackupDate"), backupStorageKeys: $("#backupStorageKeys"), backupSummary: $("#backupSummary"), backupPreview: $("#backupPreview"), storageDiagnostics: $("#storageDiagnostics"), verifyStorage: $("#verifyStorage"),
   mockTotal: $("#mockTotal"), mockLastNet: $("#mockLastNet"), mockBestNet: $("#mockBestNet"), mockAverageNet: $("#mockAverageNet"), mockAboveGoal: $("#mockAboveGoal"), mockProblemDiscipline: $("#mockProblemDiscipline"),
   newMockExam: $("#newMockExam"), mockExamForm: $("#mockExamForm"), mockExamEditingId: $("#mockExamEditingId"), mockName: $("#mockName"), mockDate: $("#mockDate"), mockBoard: $("#mockBoard"), mockInstitution: $("#mockInstitution"), mockNotes: $("#mockNotes"), mockTotalQuestions: $("#mockTotalQuestions"), mockCorrect: $("#mockCorrect"), mockWrong: $("#mockWrong"), mockBlank: $("#mockBlank"), mockGoal: $("#mockGoal"), mockStrategy: $("#mockStrategy"), mockDifficulty: $("#mockDifficulty"), mockCalculated: $("#mockCalculated"), mockDisciplineName: $("#mockDisciplineName"), mockDisciplineTotal: $("#mockDisciplineTotal"), mockDisciplineCorrect: $("#mockDisciplineCorrect"), mockDisciplineWrong: $("#mockDisciplineWrong"), mockDisciplineBlank: $("#mockDisciplineBlank"), mockDisciplineNotes: $("#mockDisciplineNotes"), addMockDiscipline: $("#addMockDiscipline"), clearMockDisciplines: $("#clearMockDisciplines"), mockDisciplineDraft: $("#mockDisciplineDraft"), mockSummary: $("#mockSummary"), mockGeneralResult: $("#mockGeneralResult"), mockDisciplineResults: $("#mockDisciplineResults"), mockDiagnosis: $("#mockDiagnosis"), mockHistory: $("#mockHistory"), mockEvolution: $("#mockEvolution"),
   planningConfigForm: $("#planningConfigForm"), planningExamDate: $("#planningExamDate"), planningScaleType: $("#planningScaleType"), planningScaleNotes: $("#planningScaleNotes"), planningShiftHours: $("#planningShiftHours"), planningRestHours: $("#planningRestHours"), planningNormalHours: $("#planningNormalHours"), planningMinWeeklyHours: $("#planningMinWeeklyHours"), planningIdealWeeklyHours: $("#planningIdealWeeklyHours"), planningWeeklyTopics: $("#planningWeeklyTopics"), planningDisciplinesPerDay: $("#planningDisciplinesPerDay"), planningDisciplinesPerWeek: $("#planningDisciplinesPerWeek"), planningDisciplinesPerMonth: $("#planningDisciplinesPerMonth"), planningTopicsPerDay: $("#planningTopicsPerDay"), planningTopicsPerWeek: $("#planningTopicsPerWeek"), planningTopicsPerMonth: $("#planningTopicsPerMonth"), planningSafetyDays: $("#planningSafetyDays"), planningScaleReferenceDate: $("#planningScaleReferenceDate"), planningScaleReferencePosition: $("#planningScaleReferencePosition"), scale3x6Fields: $("#scale3x6Fields"), centralGoalsCards: $("#centralGoalsCards"), centralScaleSummary: $("#centralScaleSummary"), centralNextDates: $("#centralNextDates"), centralOpenDayPlan: $("#centralOpenDayPlan"), dashboardGoalsScaleSummary: $("#dashboardGoalsScaleSummary"), availabilityCalendar: $("#availabilityCalendar"), completionForecast: $("#completionForecast"), completionAlert: $("#completionAlert"), weeklyGoalsPlan: $("#weeklyGoalsPlan"), weeklyGoalsAlert: $("#weeklyGoalsAlert"), timeHistorySummary: $("#timeHistorySummary"), timeHistoryBody: $("#timeHistoryBody"),
@@ -1554,7 +1554,57 @@ function renderMotivationalPhrase(phrase = pickMotivationalPhrase()) {
   if (elements.dailyMotivationText) elements.dailyMotivationText.textContent = phrase;
 }
 
-function saveData(options = {}) {
+const indexedDBStatus = { available: false, lastCopyAt: "", migration: "pendente", error: "", size: 0, verifying: false };
+let indexedDBPersistInFlight = false;
+let indexedDBPersistQueued = false;
+let indexedDBPersistTimer = null;
+
+function updateStorageDiagnostics() {
+  if (!elements?.storageDiagnostics) return;
+  const lastCopy = indexedDBStatus.lastCopyAt ? new Date(indexedDBStatus.lastCopyAt).toLocaleString("pt-BR") : "Nunca";
+  const sizeKb = indexedDBStatus.size ? `${Math.ceil(indexedDBStatus.size / 1024)} KB` : "Não calculado";
+  const copyStatus = indexedDBStatus.available ? "disponível" : "indisponível";
+  const errorLine = indexedDBStatus.error ? `<p class="item-meta">Aviso técnico: ${escapeHTML(indexedDBStatus.error)}</p>` : "";
+  elements.storageDiagnostics.innerHTML = `<div class="card-meta-grid"><span>Fonte principal: <strong>localStorage</strong></span><span>Cópia IndexedDB: <strong>${copyStatus}</strong></span><span>Última cópia IndexedDB: <strong>${escapeHTML(lastCopy)}</strong></span><span>Tamanho aproximado da base: <strong>${escapeHTML(sizeKb)}</strong></span><span>Migração inicial: <strong>${escapeHTML(indexedDBStatus.migration)}</strong></span></div>${errorLine}`;
+}
+
+function recordIndexedDBWarning(message, error) {
+  indexedDBStatus.available = false;
+  indexedDBStatus.error = message || error?.message || "Falha no IndexedDB.";
+  if (error) console.warn("[Metas Estudo] IndexedDB indisponível; mantendo localStorage como fonte principal.", error);
+  updateStorageDiagnostics();
+}
+
+function queueIndexedDBStateCopy() {
+  if (typeof saveStateToIndexedDB !== "function") return;
+  indexedDBPersistQueued = true;
+  if (indexedDBPersistTimer) clearTimeout(indexedDBPersistTimer);
+  indexedDBPersistTimer = setTimeout(processIndexedDBStateCopyQueue, 300);
+}
+
+async function processIndexedDBStateCopyQueue() {
+  if (indexedDBPersistInFlight) return;
+  if (!indexedDBPersistQueued) return;
+  indexedDBPersistQueued = false;
+  indexedDBPersistInFlight = true;
+  try {
+    const snapshot = cloneData(state);
+    const record = await saveStateToIndexedDB(snapshot);
+    indexedDBStatus.available = true;
+    indexedDBStatus.lastCopyAt = record.savedAt;
+    indexedDBStatus.size = estimateSerializedStateSize(snapshot);
+    if (indexedDBStatus.migration === "pendente") indexedDBStatus.migration = "concluída";
+    indexedDBStatus.error = "";
+  } catch (error) {
+    recordIndexedDBWarning("Falha ao atualizar a cópia IndexedDB.", error);
+  } finally {
+    indexedDBPersistInFlight = false;
+    updateStorageDiagnostics();
+    if (indexedDBPersistQueued) processIndexedDBStateCopyQueue();
+  }
+}
+
+function persistStateSafely(options = {}) {
   try {
     if (options.markLocalChange && !isApplyingRemote) markLocalUpdated();
     state.dailyGoals?.forEach(normalizeGoalTimeFields);
@@ -1563,8 +1613,46 @@ function saveData(options = {}) {
     salvarCadernoErros(state.questionErrorNotebook || []);
   } catch (error) {
     console.error("[Metas Estudo] Não foi possível salvar no localStorage.", error);
-    alert("Não foi possível salvar os dados. Verifique o espaço disponível do navegador e exporte um backup.");
+    const message = isQuotaExceededError(error) ? "Não foi possível salvar: o armazenamento local do navegador está cheio. Exporte um backup e libere espaço; nenhuma limpeza automática foi executada." : "Não foi possível salvar os dados. Verifique o armazenamento do navegador e exporte um backup.";
+    alert(message);
+  } finally {
+    queueIndexedDBStateCopy();
   }
+}
+
+function saveData(options = {}) { persistStateSafely(options); }
+
+async function initializeIndexedDBBackup() {
+  if (typeof migrateLocalStorageStateToIndexedDB !== "function") { recordIndexedDBWarning("Módulo IndexedDB não carregado."); return; }
+  try {
+    const result = await migrateLocalStorageStateToIndexedDB(cloneData(state));
+    const record = result.record || await loadStateFromIndexedDB();
+    indexedDBStatus.available = true;
+    indexedDBStatus.lastCopyAt = record?.savedAt || result.metadata?.savedAt || "";
+    indexedDBStatus.size = estimateSerializedStateSize(state);
+    indexedDBStatus.migration = "concluída";
+    indexedDBStatus.error = "";
+  } catch (error) {
+    indexedDBStatus.migration = "erro";
+    recordIndexedDBWarning("Migração inicial do IndexedDB falhou.", error);
+  } finally {
+    updateStorageDiagnostics();
+  }
+}
+
+async function verifyStorageCopy() {
+  if (indexedDBStatus.verifying) return;
+  indexedDBStatus.verifying = true; updateStorageDiagnostics();
+  try {
+    const before = await loadStateFromIndexedDB().catch(() => null);
+    let record = before;
+    if (!statesMatchIndexedDBRecord(state, record)) record = await saveStateToIndexedDB(cloneData(state));
+    const reloaded = await loadStateFromIndexedDB();
+    if (!statesMatchIndexedDBRecord(state, reloaded)) throw new Error("A cópia relida não corresponde ao estado atual.");
+    indexedDBStatus.available = true; indexedDBStatus.lastCopyAt = reloaded.savedAt || record.savedAt; indexedDBStatus.size = estimateSerializedStateSize(state); indexedDBStatus.migration = "concluída"; indexedDBStatus.error = "Verificação concluída com sucesso.";
+  } catch (error) {
+    indexedDBStatus.migration = "erro"; recordIndexedDBWarning("Verificação do armazenamento falhou.", error);
+  } finally { indexedDBStatus.verifying = false; updateStorageDiagnostics(); }
 }
 
 function readSyncMeta() { return readJSONStorage(SYNC_META_STORAGE_KEY, { connected: false, lastLocalUpdateAt: "", lastLocalSaveAt: "", lastLocalSaveReason: "", lastSyncAt: "", lastAutoSyncAt: "", lastAutoSyncReason: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", lastAutoSyncError: "", pendingSync: false, pendingSyncReason: null, localDirty: false, localDataUpdatedAt: "", cloudDataUpdatedAt: "", remoteUpdatedAt: "", remoteDeviceName: "", error: "" }); }
@@ -4227,6 +4315,7 @@ window.addEventListener("load", () => checkCloudForNewerVersion("open"));
 document.addEventListener("visibilitychange", () => { if (!document.hidden && canRunAutoSyncChecks()) checkCloudForNewerVersion("focus"); });
 window.addEventListener("focus", () => { if (canRunAutoSyncChecks()) checkCloudForNewerVersion("focus"); });
 elements.selectBackupFile?.addEventListener("click", () => elements.backupFileInput.click());
+elements.verifyStorage?.addEventListener("click", verifyStorageCopy);
 elements.backupFileInput?.addEventListener("change", () => { const file = elements.backupFileInput.files[0]; if (file) handleBackupFile(file); elements.backupFileInput.value = ""; });
 elements.resetSolvedQuestions?.addEventListener("click", resetSolvedQuestionsFromBackup);
 elements.clearAllLocalData?.addEventListener("click", clearAllLocalDataFromBackup);
@@ -4819,6 +4908,7 @@ mergeCompatibleLocalStorageData();
 renderMotivationalPhrase();
 render();
 showStorageWarningIfNeeded();
+initializeIndexedDBBackup();
 
 const viewLinks = [...document.querySelectorAll("[data-view-link]")];
 const viewPanels = [...document.querySelectorAll(".app-view")];
@@ -4887,7 +4977,7 @@ function renderView(viewId) {
     "revisao-inteligente": renderSmartReviewStandalone,
     revisoes: () => { renderReviews(); renderSmartReviewsDashboard(); renderAlerts(); },
     historico: renderHistory,
-    backup: () => { renderBackupSummary(); renderSyncStatus(); },
+    backup: () => { renderBackupSummary(); renderSyncStatus(); updateStorageDiagnostics(); },
     planejamento: renderPlanning,
     progresso: renderProgressPanel,
     "como-usar": () => {}

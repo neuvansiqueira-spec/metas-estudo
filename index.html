@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260713-materiais-recolhiveis-nas-secoes" />
+  <link rel="stylesheet" href="style.css?v=20260713-indexeddb-etapa1-copia-segura" />
 </head>
 <body>
   <header class="hero">
@@ -698,6 +698,12 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
         </div>
         <div id="syncStatus" class="sync-status" aria-live="polite"></div>
       </article>
+
+      <article class="sync-card" aria-labelledby="storage-title">
+        <div class="section-heading"><p class="eyebrow">Armazenamento</p><h2 id="storage-title">Armazenamento</h2></div>
+        <div id="storageDiagnostics" class="sync-status" aria-live="polite">Verificando armazenamento...</div>
+        <div class="actions"><button id="verifyStorage" class="secondary-button" type="button">Verificar armazenamento</button></div>
+      </article>
       <h3>Resumo dos dados salvos</h3>
       <div id="backupSummary" class="stats-grid compact backup-summary" aria-live="polite"></div>
       <div id="backupPreview" class="backup-preview empty-message" aria-live="polite"></div>
@@ -766,8 +772,9 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
   </aside>
   <div id="timerMotivationalToast" class="timer-motivational-toast" aria-live="polite" aria-atomic="true" hidden></div>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260713-materiais-recolhiveis-nas-secoes</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260713-indexeddb-etapa1-copia-segura</p></footer>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="script.js?v=20260713-materiais-recolhiveis-nas-secoes"></script>
+  <script src="storage-indexeddb.js?v=20260713-indexeddb-etapa1-copia-segura"></script>
+  <script src="script.js?v=20260713-indexeddb-etapa1-copia-segura"></script>
 </body>
 </html>
