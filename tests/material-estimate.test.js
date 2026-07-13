@@ -194,3 +194,49 @@ test('Materiais renderizam visual estável sem detalhes recolhíveis ou mutaçã
   assert.match(script, /data-delete-material="\$\{m\.id\}">Excluir/);
   assert.equal(script, docsScript);
 });
+
+test('Materiais têm exatamente três seções recolhíveis com estado inicial em memória', () => {
+  assert.match(script, /const materialSectionOpenState = \{ today: true, recent: false, all: false \};/);
+  assert.match(script, /data-material-section="\$\{key\}"\$\{openAttribute\}/);
+  assert.match(script, /materialSectionHTML\("today", "1\. MATERIAIS PARA O PLANO DE HOJE", todayMaterials/);
+  assert.match(script, /materialSectionHTML\("recent", "2\. MATERIAIS RECENTES", recentMaterials/);
+  assert.match(script, /materialSectionHTML\("all", "3\. TODOS OS MATERIAIS", list/);
+  assert.match(script, /<details class="materials-section materials-collapsible-section"/);
+  assert.match(script, /<summary class="materials-section-summary">\$\{title\}<\/summary>/);
+  assert.match(script, /<div class="materials-section-content">\$\{sectionContent\}<\/div>/);
+  assert.match(script, /const openAttribute = materialSectionOpenState\[key\] \? " open" : ""/);
+});
+
+test('Materiais preservam abertura independente após render sem persistir em state ou localStorage', () => {
+  assert.match(script, /let materialSectionToggleListenerRegistered = false;/);
+  assert.match(script, /addEventListener\("toggle",/);
+  assert.match(script, /materialSectionOpenState\[key\] = section\.open;/);
+  assert.match(script, /ensureMaterialSectionToggleListener\(\);/);
+  assert.doesNotMatch(script, /state\.[A-Za-z0-9_]*(Material|material)[A-Za-z0-9_]*(Open|Collapsed|Expanded|Section)/);
+  const materialSectionBlock = script.slice(script.indexOf('const materialSectionOpenState'), script.indexOf('function updateStudyMaterialOptions'));
+  assert.doesNotMatch(materialSectionBlock, /localStorage/);
+  assert.doesNotMatch(materialSectionBlock, /querySelectorAll\([^)]*data-material-section[\s\S]*forEach\([^)]*addEventListener/);
+});
+
+test('Materiais preservam regras de conteúdo nas seções recolhíveis', () => {
+  const renderBlock = script.slice(script.indexOf('function renderMaterials'), script.indexOf('function updateStudyMaterialOptions'));
+  assert.match(renderBlock, /filteredMaterials\(\)\.sort\(\(a,b\)=>\(b\.date\|\|""\)\.localeCompare\(a\.date\|\|""\)\)/);
+  assert.match(renderBlock, /materialsForDailyGoal\(goal\)\.map\(\(m\) => m\.id\)/);
+  assert.match(renderBlock, /const todayMaterials = list\.filter\(\(m\) => todayGoalMaterials\.has\(m\.id\)\)/);
+  assert.match(renderBlock, /const recentMaterials = list\.filter\(\(m\) => !todayGoalMaterials\.has\(m\.id\)\)\.slice\(0, 10\)/);
+  assert.match(renderBlock, /materialSectionHTML\("all", "3\. TODOS OS MATERIAIS", list/);
+  assert.match(script, /Nenhum material pronto vinculado ao plano de hoje\./);
+  assert.match(script, /Nenhum material recente\./);
+  assert.match(script, /elements\.materialFilterDiscipline[\s\S]*addEventListener\("input", renderMaterials\)/);
+  assert.match(script, /elements\.materialFilterDiscipline[\s\S]*addEventListener\("change", renderMaterials\)/);
+});
+
+test('CSS novo das seções recolhíveis fica limitado à aba Materiais', () => {
+  const collapsibleCss = css.split('\n').filter((line) => line.includes('materials-collapsible-section') || line.includes('materials-section-summary') || line.includes('materials-section-content')).join('\n');
+  assert.match(collapsibleCss, /#view-materiais \.materials-collapsible-section/);
+  assert.match(collapsibleCss, /#view-materiais \.materials-section-summary/);
+  assert.match(collapsibleCss, /#view-materiais \.materials-section-content/);
+  assert.doesNotMatch(collapsibleCss, /(^|\n)\s*(details|summary|section|h3|button|\.material-card|\.syllabus-card)\b/);
+  assert.match(collapsibleCss, /cursor: pointer/);
+  assert.match(collapsibleCss, /overflow-wrap: anywhere/);
+});
