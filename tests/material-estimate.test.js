@@ -211,6 +211,10 @@ test('Materiais preservam abertura independente após render sem persistir em st
   assert.match(script, /let materialSectionToggleListenerRegistered = false;/);
   assert.match(script, /addEventListener\("toggle",/);
   assert.match(script, /materialSectionOpenState\[key\] = section\.open;/);
+  assert.match(script, /const materialItemOpenState = new Set\(\);/);
+  assert.match(script, /data-material-item-key/);
+  assert.match(script, /materialItemOpenState\.add\(key\)/);
+  assert.match(script, /materialItemOpenState\.delete\(key\)/);
   assert.match(script, /ensureMaterialSectionToggleListener\(\);/);
   assert.doesNotMatch(script, /state\.[A-Za-z0-9_]*(Material|material)[A-Za-z0-9_]*(Open|Collapsed|Expanded|Section)/);
   const materialSectionBlock = script.slice(script.indexOf('const materialSectionOpenState'), script.indexOf('function updateStudyMaterialOptions'));

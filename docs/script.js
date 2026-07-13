@@ -3885,18 +3885,41 @@ function materialCardHTML(m) {
   return `<article class="syllabus-card material-card"><header><div><h3>${escapeHTML(m.title)}</h3><div class="item-meta">${escapeHTML(m.discipline)} • ${escapeHTML(m.subject)} • módulo ${escapeHTML(modulo)} • ${escapeHTML(m.type)} • origem: ${escapeHTML(origem)} • ${formatDateBR(m.date)}</div></div><span class="badge ${m.available === false ? "danger" : "neutral"}">${escapeHTML(m.type || "Material")}</span></header><div class="card-meta-grid"><span>Título: ${escapeHTML(m.title)}</span><span>Disciplina: ${escapeHTML(m.discipline)}</span><span>Assunto: ${escapeHTML(m.subject)}</span><span>Módulo: ${escapeHTML(modulo)}</span><span>Formato: ${escapeHTML(m.factoryFormat || m.type || "-")}</span><span>Origem: ${escapeHTML(origem)}</span><span>Data: ${formatDateBR(m.date)}</span></div>${materialEstimateSummaryHTML(m)}${materialEstimateFormHTML(m)}<div class="card-actions"><button type="button" data-open-material="${m.id}">Abrir</button><button type="button" data-use-material-study="${m.id}">Usar no estudo</button><button type="button" data-edit-material="${m.id}">Editar</button><button class="danger" type="button" data-delete-material="${m.id}">Excluir</button></div></article>`;
 }
 const materialSectionOpenState = { today: true, recent: false, all: false };
+const materialItemOpenState = new Set();
 let materialSectionToggleListenerRegistered = false;
+function materialItemInstanceKey(sectionKey, materialId) { return `${sectionKey}:${materialId}`; }
+function materialItemSummaryHTML(material) {
+  const origem = material.source === "factory" ? "Fábrica" : (material.origin || "cadastro manual");
+  const modulo = material.source === "factory" ? materialFactoryModuleLabel(material) : (material.type || "Manual");
+  const details = [modulo, origem];
+  if (validEstimatedMinutes(material.estimatedMinutes)) details.push(`Carga estimada: ${formatHours(material.estimatedMinutes)}`);
+  return `<span class="material-item-summary-main">${escapeHTML(material.title || "Material sem título")}</span><span class="material-item-summary-meta">${escapeHTML(material.discipline || "Disciplina não informada")} • ${escapeHTML(material.subject || "Assunto não informado")}</span><span class="material-item-summary-meta">${details.map(escapeHTML).join(" • ")}</span>`;
+}
+function materialCollapsibleHTML(sectionKey, material) {
+  const itemKey = materialItemInstanceKey(sectionKey, material.id);
+  const openAttribute = materialItemOpenState.has(itemKey) ? " open" : "";
+  return `<details class="material-collapsible-item" data-material-item-key="${escapeHTML(itemKey)}"${openAttribute}><summary class="material-item-summary">${materialItemSummaryHTML(material)}</summary><div class="material-item-content">${materialCardHTML(material)}</div></details>`;
+}
 function materialSectionHTML(key, title, content, emptyMessage) {
   const openAttribute = materialSectionOpenState[key] ? " open" : "";
-  const sectionContent = content.length ? content.map(materialCardHTML).join("") : `<p class="empty-message">${emptyMessage}</p>`;
+  const sectionContent = content.length ? content.map((material) => materialCollapsibleHTML(key, material)).join("") : `<p class="empty-message">${emptyMessage}</p>`;
   return `<details class="materials-section materials-collapsible-section" data-material-section="${key}"${openAttribute}><summary class="materials-section-summary">${title}</summary><div class="materials-section-content">${sectionContent}</div></details>`;
 }
 function ensureMaterialSectionToggleListener() {
   if (materialSectionToggleListenerRegistered || !elements.materialsList) return;
   elements.materialsList.addEventListener("toggle", (event) => {
-    const section = event.target;
-    if (!(section instanceof HTMLDetailsElement) || !section.matches("[data-material-section]")) return;
-    const key = section.dataset.materialSection;
+    const detail = event.target;
+    if (!(detail instanceof HTMLDetailsElement)) return;
+    const section = detail;
+    if (detail.matches("[data-material-item-key]")) {
+      const key = detail.dataset.materialItemKey;
+      if (!key) return;
+      if (detail.open) materialItemOpenState.add(key);
+      else materialItemOpenState.delete(key);
+      return;
+    }
+    if (!detail.matches("[data-material-section]")) return;
+    const key = detail.dataset.materialSection;
     if (!Object.prototype.hasOwnProperty.call(materialSectionOpenState, key)) return;
     materialSectionOpenState[key] = section.open;
   }, true);
