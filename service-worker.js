@@ -1,5 +1,5 @@
 // versão anterior: metas-estudo-20260714-conselheiro-local-v1
-const CACHE_NAME = "metas-estudo-20260714-safe-area-mensagens-alarme-cronometro-v3";
+const CACHE_NAME = "metas-estudo-20260714-cronometro-fluxo-moderno-v1";
 const FILES_TO_CACHE = [
   "./",
   "index.html",

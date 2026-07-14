@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260714-safe-area-mensagens-alarme-cronometro-v3" />
+  <link rel="stylesheet" href="style.css?v=20260714-cronometro-fluxo-moderno-v1" />
 </head>
 <body>
   <header class="hero">
@@ -853,12 +853,52 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
   </aside>
   <div id="timerMotivationalToast" class="timer-motivational-toast" aria-live="polite" aria-atomic="true" hidden></div>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260714-safe-area-mensagens-alarme-cronometro-v3</p></footer>
+  <div id="timerStudyModal" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="timerStudyModalTitle" hidden>
+    <div class="app-modal-backdrop" data-timer-study-cancel></div>
+    <form id="timerStudyForm" class="app-modal-card timer-study-modal-card">
+      <div class="modal-heading">
+        <p class="eyebrow">REGISTRAR ESTUDO</p>
+        <h2 id="timerStudyModalTitle">Registrar estudo</h2>
+      </div>
+      <section class="timer-study-summary" aria-label="Histórico da sessão">
+        <strong>Sessão</strong>
+        <div><span>Início</span><output id="timerStudyStartedAt">-</output></div>
+        <div><span>Fim</span><output id="timerStudyEndedAt">-</output></div>
+        <div><span>Tempo</span><output id="timerStudySessionTime">-</output></div>
+        <div><span>Modo</span><output id="timerStudySessionMode">-</output></div>
+      </section>
+      <label class="timer-readonly-time">⏱ Tempo estudado
+        <input id="timerStudyMinutes" type="text" readonly aria-readonly="true">
+        <small>(origem: cronômetro)</small>
+      </label>
+      <label>📚 Disciplina
+        <select id="timerStudyDiscipline" required></select>
+      </label>
+      <label>📖 Assunto
+        <select id="timerStudySubject" required></select>
+      </label>
+      <label>📄 Material
+        <select id="timerStudyMaterial"><option value="">Sem material vinculado</option></select>
+      </label>
+      <label>📝 Observações
+        <textarea id="timerStudyNotes" rows="3" placeholder="Opcional"></textarea>
+      </label>
+      <label class="checkbox-line"><input id="timerStudyUpdateGoal" type="checkbox" checked> Atualizar meta automaticamente</label>
+      <label class="checkbox-line"><input id="timerStudyFeedAnalytics" type="checkbox" checked> Alimentar análise estratégica</label>
+      <label class="checkbox-line"><input id="timerStudyFeedAdvisor" type="checkbox" checked> Alimentar Conselheiro</label>
+      <div class="modal-actions">
+        <button type="button" class="secondary-button" data-timer-study-cancel>Cancelar</button>
+        <button type="submit">Salvar estudo</button>
+      </div>
+    </form>
+  </div>
+
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260714-cronometro-fluxo-moderno-v1</p></footer>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="storage-indexeddb.js?v=20260714-safe-area-mensagens-alarme-cronometro-v3"></script>
-  <script src="analytics-engine.js?v=20260714-safe-area-mensagens-alarme-cronometro-v3"></script>
-  <script src="study-advisor.js?v=20260714-safe-area-mensagens-alarme-cronometro-v3"></script>
-  <script src="advisor-navigation-engine.js?v=20260714-safe-area-mensagens-alarme-cronometro-v3"></script>
-  <script src="script.js?v=20260714-safe-area-mensagens-alarme-cronometro-v3"></script>
+  <script src="storage-indexeddb.js?v=20260714-cronometro-fluxo-moderno-v1"></script>
+  <script src="analytics-engine.js?v=20260714-cronometro-fluxo-moderno-v1"></script>
+  <script src="study-advisor.js?v=20260714-cronometro-fluxo-moderno-v1"></script>
+  <script src="advisor-navigation-engine.js?v=20260714-cronometro-fluxo-moderno-v1"></script>
+  <script src="script.js?v=20260714-cronometro-fluxo-moderno-v1"></script>
 </body>
 </html>
