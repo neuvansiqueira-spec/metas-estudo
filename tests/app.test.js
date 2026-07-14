@@ -230,6 +230,45 @@ test('Exportação cobre gráficos individuais, PDF, compartilhamento, clique du
   assert.equal(exportArea.includes('confirm('), false);
 });
 
+test('Exportação real dos gráficos usa payload completo, botões reais e um arquivo por formato individual', () => {
+  const start = script.indexOf('function formatExportDuration(minutes');
+  const end = script.indexOf('function setPerformanceExportStatus');
+  const logic = new Function('formatDateBR', 'escapeHTML', 'traduzirRotuloAnalise', `${script.slice(start, end)}; return { buildPerformanceCsv, buildFullPerformanceReportSvg, buildChartSvg };`)(
+    (d) => d,
+    (v) => String(v),
+    (v) => ({ consolidated: 'Consolidado' }[v] || String(v))
+  );
+  const payload = {
+    generatedAt: '2026-07-14T00:00:00.000Z',
+    filters: { mode: '30d', periodLabel: 'Últimos 30 dias', discipline: 'all', origin: 'consolidated' },
+    summary: { timeLabel: '55 min', minutes: 55, sessions: 3, activeDays: 2, questions: 0, goalsCompleted: 0 },
+    daily: [{ date: '2026-07-14', minutes: 55, questions: 0 }],
+    questions: { correct: 0, wrong: 0, blank: 0, cebraspeNet: 0, sufficientSample: false },
+    disciplines: [{ discipline: 'Direito Penal', minutes: 55, questions: 0, correct: 0, wrong: 0, blank: 0, net: 0, accuracyPct: 0 }],
+    mockExams: [{ date: '2026-07-14', name: 'Simulado 1', net: 0 }],
+    plannedVsActual: [{ date: '2026-07-14', plannedMinutes: 60, actualMinutes: 55, plannedGoals: 27, completedGoals: 0 }],
+    insights: ['Continue registrando dados.'],
+    maturity: { label: 'Base em desenvolvimento' }
+  };
+  const csv = logic.buildPerformanceCsv(payload);
+  ['minutes','sessions','activeDays','accuracyPct','cebraspeNet','timeLabel','sufficientSample','sampleMessage','true','false'].forEach((term) => assert.doesNotMatch(csv, new RegExp(term)));
+  ['RESUMO GERAL','Indicador;Valor','Tempo estudado','Líquido Cebraspe','EVOLUÇÃO DIÁRIA','DESEMPENHO POR DISCIPLINA','PLANEJADO X REALIZADO'].forEach((term) => assert.match(csv, new RegExp(term)));
+  const full = logic.buildFullPerformanceReportSvg(payload, { period: 'Últimos 30 dias' });
+  ['Resumo geral','Evolução diária','Questões e líquido Cebraspe','Tempo por disciplina','Resultado por disciplina','Simulados','Planejado x realizado','Leitura automática'].forEach((term) => assert.match(full, new RegExp(term)));
+  assert.match(full, /55 min/);
+  assert.match(full, /Direito Penal/);
+  assert.match(full, /Acertos, erros e brancos/);
+  assert.match(full, /1h planejado; 55 min realizado/);
+  assert.doesNotMatch(script, /buildChartSvg\('full',\s*payload\.daily/);
+  assert.match(script, /function buildFullPerformanceReportSvg\(payload, metadata = \{\}\)/);
+  ['daily','questions','hours','net','mocks','planned'].forEach((type) => assert.match(script, new RegExp(`data-chart-export="${type}"`)));
+  ['Evolução diária','Questões e desempenho Cebraspe','Tempo por disciplina','Líquido por disciplina','Simulados','Planejado x realizado'].forEach((label) => assert.match(script, new RegExp(label)));
+  const individualExportBlock = script.slice(script.indexOf('async function handleChartExportAction'), script.indexOf('function setupPerformanceExportControls'));
+  assert.match(individualExportBlock, /if \(format === 'svg'\) downloadGeneratedFile/);
+  assert.match(individualExportBlock, /if \(format === 'png'\) await exportChartToPng/);
+  assert.match(individualExportBlock, /if \(format === 'csv'\) downloadGeneratedFile/);
+});
+
 
 test('Análise Estratégica unificada remove duplicações e estabiliza exportação', () => {
   assert.doesNotMatch(script, /centralVisual/);
