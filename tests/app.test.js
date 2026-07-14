@@ -310,3 +310,52 @@ test('Filtros, exportação e mobile da análise estratégica usam estruturas se
   assert.match(style, /overflow-wrap: break-word/);
   assert.match(style, /hyphens: none/);
 });
+
+test('Planejamento possui seções recolhíveis e modos por tipo de dia', () => {
+  assert.match(html, /<details class="planning-section" data-planning-section="summary" open>/);
+  assert.match(html, /data-planning-section="day-modes" open/);
+  assert.match(html, /data-planning-section="disciplines"/);
+  assert.match(html, /data-planning-section="load"/);
+  assert.match(html, /data-planning-section="scale"/);
+  assert.match(html, /data-planning-section="preview"/);
+  assert.match(html, /data-planning-section="advanced"/);
+  assert.match(html, /id="planningDayModes"/);
+  assert.match(html, /Salvar planejamento/);
+  assert.match(style, /\.planning-section \{ width: 100%/);
+  assert.match(style, /@media \(max-width: 768px\)[\s\S]*\.day-mode-grid \{ grid-template-columns: 1fr; \}/);
+  assert.match(style, /hyphens: none/);
+  assert.match(script, /sessionStorage\.setItem\("planningOpenSections"/);
+  assert.match(script, /matchMedia\("\(max-width: 768px\)"\)/);
+});
+
+test('Configuração retrocompatível de conteúdo por dia valida questões e preserva padrão antigo', () => {
+  assert.match(script, /const defaultDayContentModes = \{ normal: \{ mode: "goals_only", questionTarget: 30 \}, folga: \{ mode: "goals_only", questionTarget: 60 \}, plantao: \{ mode: "goals_only", questionTarget: 20 \} \}/);
+  assert.match(script, /const DAY_CONTENT_MODES = \["goals_only", "questions_only", "questions_and_goals"\]/);
+  assert.match(script, /function normalizeDayContentModes\(input = \{\}\)/);
+  assert.match(script, /function validateQuestionTarget\(value\) \{ const n = Number\(value\); return Number\.isInteger\(n\) && Number\.isFinite\(n\) && n >= 1; \}/);
+  assert.match(script, /name="dayContentMode-\$\{type\}"/);
+  assert.match(script, /data-question-target-type="\$\{type\}"/);
+  assert.match(script, /A meta de questões deve ser um número inteiro positivo/);
+});
+
+test('Plano do Dia integra somente questões sem meta comum e sem duplicidade', () => {
+  assert.match(script, /function getPlanningDayType\(date, targetState = state\)/);
+  assert.match(script, /function getDayContentConfig\(date, targetState = state\)/);
+  assert.match(script, /function questionsForDate\(date, targetState = state\)[\s\S]*Number\(log\.correct\)[\s\S]*Number\(log\.wrong\)[\s\S]*Number\(log\.blank\)/);
+  assert.match(script, /const expected = dayModeIncludesGoals\(dayContent\.mode\) \? Math\.max/);
+  assert.match(script, /const candidates = dayModeIncludesGoals\(dayContent\.mode\) \?/);
+  assert.match(script, /Hoje o planejamento é somente questões/);
+  assert.match(script, /META DE QUESTÕES/);
+  assert.match(script, /data-register-question-goal/);
+  assert.match(script, /elements\.questionOrigin\.value = "meta de questões"/);
+  assert.doesNotMatch(script, /discipline: ""/);
+});
+
+test('Prévia do planejamento mostra tipo, modo, questões e disciplinas sem alterar state', () => {
+  assert.match(script, /function renderPlanningPreview\(\)/);
+  assert.match(script, /DAY_TYPE_LABELS\[type\]/);
+  assert.match(script, /DAY_CONTENT_MODE_LABELS\[cfg\.mode\]/);
+  assert.match(script, /cfg\.questionTarget\} questões/);
+  assert.match(script, /Sem metas automáticas de estudo/);
+  assert.doesNotMatch(script.slice(script.indexOf('function renderPlanningPreview'), script.indexOf('function renderDashboard')), /state\.dailyGoals\.push|saveData\(/);
+});
