@@ -1149,7 +1149,7 @@ h2,
   line-height: 1.18;
 }
 
-h3 { line-height: 1.25; }
+h3 { line-height: 1.15; }
 
 .container {
   width: 100%;
@@ -3521,14 +3521,28 @@ footer {
 @media (max-width: 768px) { .day-mode-grid { grid-template-columns: 1fr; } .planning-actions { justify-content: stretch; } .planning-actions button { width: 100%; } }
 
 #view-planejamento {
-  padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(130px + env(safe-area-inset-bottom, 0px));
 }
 
-.planning-form-stack {
+.planning-form-stack,
+.planning-preview-wrapper,
+.planning-content {
   padding-bottom: 24px;
 }
 
-#view-planejamento :is(h2, h3, h4, strong, span, small, p, li, td, th, summary) {
+#view-planejamento
+:is(
+  .planning-preview-card,
+  .planning-preview-card *,
+  .planning-summary-card,
+  .planning-summary-card *,
+  td,
+  th,
+  li,
+  p,
+  strong,
+  span
+) {
   word-break: normal;
   overflow-wrap: break-word;
   hyphens: none;
@@ -3568,12 +3582,16 @@ footer {
   text-transform: uppercase;
 }
 
-.planning-summary-value {
+.planning-summary-value,
+.planning-insight-value,
+.planning-highlight-value {
+  min-width: 0;
   display: block;
   width: 100%;
+  max-width: 100%;
   color: var(--primary-deep);
   font-size: clamp(1rem, 2.5vw, 1.25rem);
-  line-height: 1.25;
+  line-height: 1.15;
   letter-spacing: normal;
   white-space: normal;
   word-break: normal;
@@ -3618,6 +3636,12 @@ footer {
 @media (max-width: 768px) {
   .planning-summary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .planning-summary-value,
+  .planning-insight-value,
+  .planning-highlight-value {
+    font-size: clamp(1rem, 5vw, 1.5rem);
   }
 
   #planningPreview {

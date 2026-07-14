@@ -372,29 +372,34 @@ test('Hotfix do planejamento mobile usa resumo próprio e textos sem repetição
   assert.doesNotMatch(summaryBlock, /Folga: \$\{DAY_CONTENT_MODE_LABELS/);
   assert.doesNotMatch(summaryBlock, /Plantão: \$\{DAY_CONTENT_MODE_LABELS/);
   assert.match(style, /@media \(max-width: 768px\)[\s\S]*\.planning-summary-grid\s*\{[\s\S]*grid-template-columns: 1fr/);
-  assert.match(style, /\.planning-summary-value[\s\S]*font-size: clamp\(1rem, 2\.5vw, 1\.25rem\)/);
+  assert.match(style, /\.planning-summary-value,[\s\S]*\.planning-insight-value,[\s\S]*\.planning-highlight-value[\s\S]*min-width: 0;[\s\S]*max-width: 100%;[\s\S]*font-size: clamp\(1rem, 2\.5vw, 1\.25rem\)/);
+  assert.match(style, /@media \(max-width: 768px\)[\s\S]*\.planning-summary-value,[\s\S]*font-size: clamp\(1rem, 5vw, 1\.5rem\)/);
 });
 
 test('Hotfix do planejamento mobile usa cartões na prévia agrupados por data', () => {
   const previewBlock = script.slice(script.indexOf('function renderPlanningPreview'), script.indexOf('function renderDashboard()'));
   assert.match(previewBlock, /planning-preview-card/);
-  assert.match(previewBlock, /<header><strong>\$\{formatDateBR\(date\)\}<\/strong>/);
+  assert.match(previewBlock, /planning-preview-card-header/);
+  assert.match(previewBlock, /planning-preview-day-type/);
+  assert.match(previewBlock, /<strong>\$\{formatDateBR\(date\)\}<\/strong>/);
   assert.match(previewBlock, /<ul>\$\{studyGoals\.map/);
   assert.doesNotMatch(previewBlock, /<table|<tr|<td/);
-  assert.match(style, /#view-planejamento :is\([\s\S]*word-break: normal;[\s\S]*hyphens: none;/);
+  assert.match(style, /#view-planejamento\s*:is\([\s\S]*\.planning-preview-card,\s*[\s\S]*\.planning-summary-card,\s*[\s\S]*word-break: normal;[\s\S]*overflow-wrap: break-word;[\s\S]*hyphens: none;/);
   assert.doesNotMatch(style, /#view-planejamento[\s\S]{0,400}(word-break:\s*break-all|overflow-wrap:\s*anywhere|hyphens:\s*auto)/);
 });
 
 test('Hotfix seleciona disciplinas e assuntos distintos e reconciliação é idempotente', () => {
-  assert.match(script, /function selectDistinctPlanningDisciplines\(\{\s*date,\s*count,\s*eligibleItems,\s*existingGoals = \[\],\s*recentHistory = \[\]/);
+  assert.match(script, /function selectDistinctPlanningItems\(\{ count, eligibleGoals, eligibleItems, existingGoals = \[\], date = todayISO\(\), recentHistory = \[\]/);
+  assert.match(script, /function selectDistinctPlanningDisciplines\(\{ date, count, eligibleItems, existingGoals = \[\], recentHistory = \[\]/);
   assert.match(script, /usedDisciplines\.has\(disciplineKey\)/);
   assert.match(script, /usedSubjects\.has\(subjectKey\)/);
-  assert.match(script, /Apenas \$\{selected\.length\} disciplinas elegíveis disponíveis/);
+  assert.match(script, /Apenas \$\{selected\.length\} disciplinas elegíveis disponíveis para este dia\./);
   assert.match(script, /seenAuto\.has\(key\)/);
   assert.match(script, /function isProtectedDailyGoal\(goal\)[\s\S]*isManualDailyGoal\(goal\)[\s\S]*isGoalDone\(goal\)[\s\S]*isGoalInProgress\(goal\)[\s\S]*goalTotalActualMinutes\(goal\) > 0/);
   assert.match(script, /dayModeIncludesGoals\(dayContent\.mode\) \? Math\.max/);
   assert.match(script, /dayModeIncludesQuestions\(cfg\.mode\)/);
-  assert.match(style, /#view-planejamento\s*\{[\s\S]*padding-bottom: calc\(120px \+ env\(safe-area-inset-bottom, 0px\)\)/);
+  assert.match(style, /#view-planejamento\s*\{[\s\S]*padding-bottom: calc\(130px \+ env\(safe-area-inset-bottom, 0px\)\)/);
+  assert.match(style, /\.planning-form-stack,[\s\S]*\.planning-preview-wrapper,[\s\S]*\.planning-content\s*\{[\s\S]*padding-bottom: 24px/);
   assert.strictEqual(script, docsScript);
   assert.strictEqual(style, docsStyle);
 });
