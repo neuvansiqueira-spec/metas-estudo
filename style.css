@@ -3227,3 +3227,30 @@ body.app-bootstrapping .app-layout {
 @media (max-width: 390px) {
   .stats-grid.compact { grid-template-columns: 1fr; }
 }
+
+/* 20260714-exportacao-desempenho-v1 */
+.export-main-button { min-width: 132px; }
+.export-status { align-self: center; min-height: 1.2em; color: var(--muted); font-weight: 800; }
+.export-dialog { position: fixed; inset: 0; z-index: 80; display: grid; place-items: start center; padding: max(18px, env(safe-area-inset-top)) 16px max(90px, env(safe-area-inset-bottom)); background: rgba(15, 23, 42, .45); overflow-y: auto; }
+.export-dialog[hidden] { display: none; }
+.export-dialog-card { width: min(680px, 100%); margin-top: 8vh; padding: 20px; border-radius: 22px; background: #fff; box-shadow: 0 24px 70px rgba(15, 23, 42, .28); }
+.export-menu-actions { display: grid; gap: 10px; }
+.export-menu-actions button { width: 100%; min-height: 48px; text-align: left; }
+.chart-panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.chart-export-button { padding: 8px 12px; font-size: .9rem; }
+.analytics-bar-row span, .performance-day span, .responsive-table td { word-break: normal; overflow-wrap: break-word; hyphens: manual; }
+@media (max-width: 760px) { .export-main-button { width: 100%; min-height: 48px; } .export-dialog { align-items: end; padding-left: 10px; padding-right: 10px; } .export-dialog-card { margin-top: 0; margin-bottom: max(74px, env(safe-area-inset-bottom)); border-radius: 22px 22px 0 0; } .chart-panel-heading { align-items: stretch; } .chart-export-button { width: 100%; min-height: 44px; } }
+@media print {
+  body { background: #fff !important; color: #0f172a !important; font: 11pt Arial, sans-serif; }
+  header, nav, .mobile-quick-nav, .floating-timer, .bottom-nav, .analytics-filters, .export-dialog, .chart-export-button, button, form, .actions, #timerMotivationalToast { display: none !important; }
+  .app-view[hidden], [hidden] { display: none !important; }
+  #view-analise-estrategica, #analyticsContent, .panel { display: block !important; }
+  .screen-stage, main, .dashboard { box-shadow: none !important; border: 0 !important; margin: 0 !important; padding: 0 !important; max-width: none !important; }
+  #view-analise-estrategica::before { content: "Relatório de Desempenho"; display: block; font-size: 22pt; font-weight: 900; margin-bottom: 8mm; }
+  .panel, .stat-card, .analytics-table-details { background: #fff !important; border: 1px solid #cbd5e1 !important; break-inside: avoid; page-break-inside: avoid; margin-bottom: 8mm; }
+  .panel h3, .panel h4 { break-after: avoid; page-break-after: avoid; }
+  .performance-svg-chart, .analytics-chart { overflow: visible !important; break-inside: avoid; page-break-inside: avoid; }
+  table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+  th, td { border: 1px solid #cbd5e1; padding: 4px; word-break: normal; overflow-wrap: break-word; }
+  @page { margin: 14mm; }
+}
