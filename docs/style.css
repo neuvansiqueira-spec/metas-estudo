@@ -3106,3 +3106,15 @@ body.app-bootstrapping .app-layout {
   .analytics-filters button, #applyAnalyticsPlan { width: 100%; min-height: 44px; }
   .analytics-bar-row div { width: 100%; }
 }
+
+.advisor-screen, .advisor-screen * { max-width: 100%; box-sizing: border-box; }
+.advisor-suggestions { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+.advisor-suggestions.inline { margin-top: 12px; }
+.advisor-conversation { display: grid; gap: 14px; margin: 18px 0; }
+.advisor-message { padding: 14px; border: 1px solid var(--border); border-radius: 18px; overflow-wrap: anywhere; }
+.advisor-message.user { background: #eff6ff; margin-left: min(12%, 80px); }
+.advisor-message.bot { background: #f8fafc; margin-right: min(12%, 80px); }
+.advisor-message p { white-space: normal; line-height: 1.55; }
+.advisor-input { display: grid; gap: 10px; padding-bottom: env(safe-area-inset-bottom); }
+.advisor-input textarea { width: 100%; min-height: 96px; resize: vertical; }
+@media (max-width: 720px) { .advisor-suggestions { flex-direction: column; } .advisor-suggestions button, .advisor-input button { width: 100%; min-height: 44px; } .advisor-message.user, .advisor-message.bot { margin-left: 0; margin-right: 0; } .advisor-input { position: static; } }

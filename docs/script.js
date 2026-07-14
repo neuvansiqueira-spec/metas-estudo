@@ -5168,6 +5168,25 @@ function renderStrategicAnalysis() {
   });
 }
 
+
+let advisorConversation = [];
+let advisorCachedAnalysis = null;
+let advisorCachedKey = "";
+const advisorQuickQuestions = ["Como está meu desempenho?","Qual disciplina devo priorizar?","Qual disciplina mais está tirando pontos?","Onde estou estudando demais?","O que estou negligenciando?","Estou melhor que no período anterior?","Como está meu desempenho Cebraspe?","Como foram meus simulados?","O que devo fazer nesta semana?","Quais assuntos precisam de revisão?","Quantas horas estudei?","Quantas questões fiz?"];
+function advisorPeriodSelection(){return { mode: document.getElementById("advisorPeriodSelect")?.value || "30d", custom:{ start: document.getElementById("advisorStartDate")?.value, end: document.getElementById("advisorEndDate")?.value } };}
+function advisorBuildAnalysis(force=false){ if(!window.AnalyticsEngine) return null; const sel=advisorPeriodSelection(); const key=JSON.stringify({sel, studies:state.studies?.length, questions:state.questionLogs?.length, goals:state.dailyGoals?.length, mocks:state.simulados?.length, syllabus:state.syllabusItems?.length, today:todayISO()}); if(force||key!==advisorCachedKey){ advisorCachedAnalysis=window.AnalyticsEngine.buildStrategicAnalysis(state, sel.mode, sel.custom, { today: todayISO(), minStrongQuestions: 20 }); advisorCachedKey=key; } return advisorCachedAnalysis; }
+function advisorRenderSuggestions(items=advisorQuickQuestions){ const box=document.getElementById("advisorSuggestions"); if(!box) return; box.innerHTML=items.map(q=>`<button type="button" class="secondary-button" data-advisor-question="${escapeHTML(q)}">${escapeHTML(q)}</button>`).join(""); }
+function advisorRenderConversation(){ const box=document.getElementById("advisorConversation"); if(!box) return; box.innerHTML=advisorConversation.map((m)=> m.role==='user' ? `<article class="advisor-message user"><strong>Você</strong><p>${escapeHTML(m.text)}</p></article>` : `<article class="advisor-message bot"><strong>Conselheiro — ${escapeHTML(m.response.title)}</strong><p>${escapeHTML(m.response.answer).replace(/\n/g,"<br>")}</p><details><summary>DADOS UTILIZADOS</summary><ul>${(m.response.evidence||[]).map(e=>`<li>${escapeHTML(String(e))}</li>`).join("")||"<li>Nenhuma evidência numérica disponível.</li>"}</ul></details>${(m.response.suggestions||[]).length?`<div class="advisor-suggestions inline">${m.response.suggestions.map(q=>`<button type="button" class="secondary-button" data-advisor-question="${escapeHTML(q)}">${escapeHTML(q)}</button>`).join("")}</div>`:""}</article>`).join(""); }
+function renderAdvisor(){ if(!window.StudyAdvisor) return; const analysis=advisorBuildAnalysis(); if(!analysis) return; const period=document.getElementById("advisorPeriodInfo"); if(period) period.textContent=`Período analisado: ${analysis.period.days} dias (${analysis.period.start} a ${analysis.period.end}).`; const summary=document.getElementById("advisorSummary"); if(summary){ const res=window.StudyAdvisor.buildAdvisorAnswer({ question:"Como está meu desempenho?", analysis, state, period:analysis.period }); summary.innerHTML=`<span>Resumo automático do momento</span><strong>${escapeHTML(analysis.overallSituation.classification)}</strong><small>${escapeHTML(res.answer)}</small>`; } advisorRenderSuggestions(); advisorRenderConversation(); }
+function advisorAsk(question){ const text=String(question||"").trim(); if(!text) return; const analysis=advisorBuildAnalysis(true); const before=JSON.stringify(state); const response=window.StudyAdvisor.buildAdvisorAnswer({ question:text, analysis, state, period:analysis.period }); if(JSON.stringify(state)!==before){ console.error("Conselheiro tentou alterar o state; alteração bloqueada."); replaceState(JSON.parse(before)); }
+ advisorConversation.push({role:'user',text},{role:'bot',response}); advisorRenderConversation(); advisorRenderSuggestions(response.suggestions?.length?response.suggestions:advisorQuickQuestions); document.getElementById("advisorConversation")?.scrollIntoView({block:"end",behavior:"smooth"}); }
+
+document.getElementById("advisorPeriodForm")?.addEventListener("submit",(event)=>{event.preventDefault(); advisorBuildAnalysis(true); renderAdvisor();});
+document.getElementById("advisorPeriodSelect")?.addEventListener("change",()=>{advisorBuildAnalysis(true); renderAdvisor();});
+document.getElementById("advisorQuestionForm")?.addEventListener("submit",(event)=>{event.preventDefault(); const q=document.getElementById("advisorQuestion"); advisorAsk(q?.value); if(q) q.value="";});
+document.getElementById("advisorClear")?.addEventListener("click",()=>{advisorConversation=[]; renderAdvisor();});
+document.addEventListener("click",(event)=>{ const btn=event.target.closest("[data-advisor-question]"); if(!btn) return; advisorAsk(btn.dataset.advisorQuestion);});
+
 document.getElementById("analyticsPeriodForm")?.addEventListener("submit", (event) => { event.preventDefault(); renderStrategicAnalysis(); });
 document.getElementById("analyticsPeriodSelect")?.addEventListener("change", renderStrategicAnalysis);
 
@@ -5195,7 +5214,8 @@ function renderView(viewId) {
     planejamento: renderPlanning,
     progresso: renderProgressPanel,
     "como-usar": () => {},
-    "analise-estrategica": renderStrategicAnalysis
+    "analise-estrategica": renderStrategicAnalysis,
+    conselheiro: renderAdvisor
   };
   safeRenderView(viewId, renderers[viewId]);
 }

@@ -1,10 +1,11 @@
-const CACHE_NAME = "metas-estudo-20260713-analise-estrategica-v1";
+const CACHE_NAME = "metas-estudo-20260714-conselheiro-local-v1";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
   "style.css",
   "script.js",
   "analytics-engine.js",
+  "study-advisor.js",
   "storage-indexeddb.js",
   "manifest.json",
   "icons/icon.svg",
