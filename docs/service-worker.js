@@ -1,5 +1,5 @@
 // versão anterior: metas-estudo-20260714-conselheiro-local-v1
-const CACHE_NAME = "metas-estudo-20260714-plano-dia-multidisciplinar-cronometro-v4";
+const CACHE_NAME = "metas-estudo-20260714-graficos-didaticos-exportacao-v2";
 const FILES_TO_CACHE = [
   "./",
   "index.html",

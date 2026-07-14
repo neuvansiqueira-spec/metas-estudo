@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260714-plano-dia-multidisciplinar-cronometro-v4",
+  "version": "20260714-graficos-didaticos-exportacao-v2",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
