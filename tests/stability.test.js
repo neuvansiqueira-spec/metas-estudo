@@ -38,10 +38,10 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão atual', () => {
-  assert.match(html, /style\.css\?v=20260714-analise-acordeao-portugues-v3/);
-  assert.match(html, /storage-indexeddb\.js\?v=20260714-analise-acordeao-portugues-v3/);
-  assert.match(html, /script\.js\?v=20260714-analise-acordeao-portugues-v3/);
-  assert.match(html, /Versão: 20260714-analise-acordeao-portugues-v3/);
+  assert.match(html, /style\.css\?v=20260714-hotfix-acordeao-mobile-v1/);
+  assert.match(html, /storage-indexeddb\.js\?v=20260714-hotfix-acordeao-mobile-v1/);
+  assert.match(html, /script\.js\?v=20260714-hotfix-acordeao-mobile-v1/);
+  assert.match(html, /Versão: 20260714-hotfix-acordeao-mobile-v1/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -230,7 +230,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260714-analise-acordeao-portugues-v3/);
+  assert.match(sw, /metas-estudo-20260714-hotfix-acordeao-mobile-v1/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);

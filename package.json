@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260714-analise-acordeao-portugues-v3",
+  "version": "20260714-hotfix-acordeao-mobile-v1",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

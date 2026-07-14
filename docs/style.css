@@ -3349,3 +3349,152 @@ body.app-bootstrapping .app-layout {
   .analytics-export-toolbar { display: none !important; }
   details:not([open]) { display: none !important; }
 }
+
+
+/* 20260714-hotfix-acordeao-mobile-v1: acordeões da Análise Estratégica em coluna única e legíveis. */
+#view-analise-estrategica {
+  padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+}
+
+footer {
+  padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px));
+}
+
+#view-analise-estrategica,
+#view-analise-estrategica * {
+  min-width: 0;
+}
+
+#analyticsContent,
+#view-analise-estrategica .strategic-analysis-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  max-width: 100%;
+}
+
+#view-analise-estrategica .analytics-section {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.analytics-section {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.analytics-section > summary.analytics-section-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+  padding: 16px;
+  cursor: pointer;
+  list-style: none;
+  background: #ffffff;
+  color: var(--text);
+  font-weight: 400;
+}
+
+.analytics-section > summary.analytics-section-summary::after {
+  content: none;
+}
+
+.analytics-section-summary::-webkit-details-marker {
+  display: none;
+}
+
+.analytics-section-heading {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.analytics-section-title {
+  display: block;
+  min-width: 0;
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.3;
+  color: var(--text);
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: normal;
+  hyphens: none;
+}
+
+.analytics-section-resume {
+  display: block;
+  min-width: 0;
+  color: var(--muted);
+  font-size: .86rem;
+  line-height: 1.35;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+  hyphens: none;
+}
+
+.analytics-section-chevron {
+  flex: 0 0 auto;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--muted);
+  transition: transform .2s ease;
+}
+
+.analytics-section[open] .analytics-section-chevron {
+  transform: rotate(90deg);
+}
+
+.analytics-section-content {
+  min-width: 0;
+  padding: 0 16px 16px;
+  border-top: 1px solid var(--border);
+}
+
+#view-analise-estrategica
+:is(
+  .analytics-section-title,
+  .analytics-section-resume,
+  h2,
+  h3,
+  h4,
+  strong,
+  small,
+  summary
+) {
+  word-break: normal;
+  hyphens: none;
+}
+
+@media (max-width: 768px) {
+  #analyticsContent {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px;
+  }
+
+  .analytics-section {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .analytics-section-summary {
+    padding: 15px 14px;
+  }
+
+  .analytics-section-title {
+    font-size: 1rem;
+  }
+
+  .analytics-section-resume {
+    font-size: .82rem;
+  }
+}

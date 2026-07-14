@@ -7,7 +7,7 @@ const script = fs.readFileSync('script.js','utf8');
 const html = fs.readFileSync('index.html','utf8');
 const style = fs.readFileSync('style.css','utf8');
 const sw = fs.readFileSync('service-worker.js','utf8');
-const version = '20260714-analise-acordeao-portugues-v3';
+const version = '20260714-hotfix-acordeao-mobile-v1';
 
 function logic(){
   const start = script.indexOf('function formatExportDuration(minutes');
@@ -31,7 +31,7 @@ test('acordeão renderizado abre resumo geral e fecha demais seções principais
   const l=logic();
   const out = [l.renderAnalyticsSummary(dashboard,maturity), l.renderRhythmSection(dashboard), l.renderQuestionsSection(dashboard), l.renderDisciplinePerformancePanel(dashboard.disciplines), l.renderMockEvolutionChart(dashboard.mockExams), l.renderPlannedVsActualChart(dashboard.plannedVsActual), l.renderDetailedDiagnosis(analysis), l.renderAnalyticsQualityDetails(analysis)].join('');
   assert.match(out, /<details class="analytics-section"[^>]+data-analytics-section="resumo"[^>]+open/);
-  assert.match(out, /<summary><span>Ritmo e constância<\/span>/);
+  assert.match(out, /<summary class="analytics-section-summary"><span class="analytics-section-heading"><strong class="analytics-section-title">Ritmo e constância<\/strong><small class="analytics-section-resume">5 dias ativos • 3h 20min<\/small><\/span><span class="analytics-section-chevron" aria-hidden="true">›<\/span><\/summary>/);
   assert.equal((out.match(/<details class="analytics-section"/g)||[]).length, 8);
   assert.equal((out.match(/data-analytics-section="(?!resumo)[^"]+"[^>]* open/g)||[]).length, 0);
 });
@@ -107,4 +107,21 @@ test('celular fecha outras seções principais e preserva sessão visual sem sta
   assert.match(script, /matchMedia\('\(max-width: 767px\)'\)\.matches/);
   assert.match(script, /sessionStorage\.setItem\('analytics-open-sections'/);
   assert.doesNotMatch(script, /state\.analytics-open-sections|state\.analyticsSections/);
+});
+
+
+test('hotfix mobile mantém acordeões da análise em coluna única e textos legíveis', () => {
+  const out = logic().renderQuestionsSection(dashboard);
+  assert.match(out, /<summary class="analytics-section-summary"><span class="analytics-section-heading"><strong class="analytics-section-title">Questões e desempenho Cebraspe<\/strong><small class="analytics-section-resume">80 questões • líquido 50<\/small><\/span><span class="analytics-section-chevron" aria-hidden="true">›<\/span><\/summary>/);
+  assert.match(style, /#analyticsContent,[\s\S]*?#view-analise-estrategica \.strategic-analysis-grid \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\);[\s\S]*?width: 100%;[\s\S]*?max-width: 100%;/);
+  assert.match(style, /#view-analise-estrategica \.analytics-section \{[\s\S]*?grid-column: 1 \/ -1;[\s\S]*?width: 100%;/);
+  assert.match(style, /\.analytics-section-heading \{[\s\S]*?display: grid;[\s\S]*?gap: 4px;/);
+  assert.match(style, /\.analytics-section-title \{[\s\S]*?word-break: normal;[\s\S]*?overflow-wrap: normal;[\s\S]*?hyphens: none;/);
+  assert.doesNotMatch(style, /\.analytics-section-title \{[\s\S]*?overflow-wrap: anywhere;[\s\S]*?\}/);
+  assert.match(style, /@media \(max-width: 768px\) \{[\s\S]*?#analyticsContent \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\) !important;[\s\S]*?gap: 10px;/);
+  assert.match(style, /footer \{[\s\S]*?padding-bottom: calc\(110px \+ env\(safe-area-inset-bottom, 0px\)\);/);
+});
+
+test('hotfix mobile possui paridade entre raiz e docs', () => {
+  for (const f of ['script.js','style.css','index.html','service-worker.js']) assert.equal(fs.readFileSync(f,'utf8'), fs.readFileSync('docs/'+f,'utf8'));
 });
