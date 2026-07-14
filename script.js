@@ -320,7 +320,7 @@ function normalizePlanningState(planning = {}) {
     forecasts: { ...(planning.forecasts || {}) }
   };
 }
-const defaultTimerPreferences = { visualAlerts: true, sound: false, vibration: true, browserNotifications: false, alertVolume: "medium" };
+const defaultTimerPreferences = { visualAlerts: true, sound: true, vibration: true, motivationalMessages: true, browserNotifications: false, alertVolume: "medium" };
 const FACTORY_RESUMO_AULA_PROMPT_SEGMENT = "TRANSFORME AS FONTES CLASSIFICADAS COMO RESUMO/AULA EM MAPA HIERÁRQUICO DE PALAVRAS-CHAVE PARA CÓPIA MANUSCRITA.\n\nNÃO PRODUZA RESUMO CORRIDO, PARÁGRAFOS LONGOS, EXPLICAÇÕES EXTERNAS, TABELAS OU COMENTÁRIOS.\n\nNÃO MAPEIE TODO O TEXTO MECANICAMENTE.\n\nNÃO PESQUISE, ATUALIZE, CORRIJA OU COMPLETE O CONTEÚDO.\n\nPRESERVE O SENTIDO JURÍDICO DO ORIGINAL.\n\n## ESCOPO DO MÓDULO\n\nUSE APENAS AS FONTES CLASSIFICADAS COMO RESUMO/AULA NA TRIAGEM.\n\nRESPEITE A DISCIPLINA, O TEMA E O RECORTE INFORMADOS.\n\nNÃO USE FONTES CLASSIFICADAS COMO LEI, JURISPRUDÊNCIA, PEÇA OU ATUALIZAÇÃO/COMPLEMENTO.\n\nNÃO GERE MÓDULO LEI, JURISPRUDÊNCIA, PEÇA OU CONSOLIDAÇÃO FINAL.\n\nNÃO TRANSFORME O CONTEÚDO EM LEI SECA TOPIFICADA, MAPA DE JULGADOS OU MODELO DE PEÇA.\n\nNÃO INSERIR PCDF, BANCA, CONCURSO, PROFESSORA, CURSO OU TURMA.\n\nSUBSTITUIR QUALQUER REFERÊNCIA ESPECÍFICA DE PROVA POR “📌 PROVA”.\n\nSE A FONTE NECESSÁRIA NÃO ESTIVER ANEXADA OU DISPONÍVEL, NÃO EXECUTE. INFORME:\n\n“O ARQUIVO OU A FONTE CLASSIFICADA COMO RESUMO/AULA PRECISA SER ANEXADA.”\n\n## OBJETIVO\n\nO RESULTADO FINAL DEVE TER A COMPLETUDE DE UM RESUMO APROFUNDADO, MAS A ARQUITETURA VISUAL, A FLUIDEZ E A FACILIDADE DE REVISÃO DE UM MAPA HIERÁRQUICO DIDÁTICO.\n\nA COMPLETUDE DEVE VIR DO CONTEÚDO JURÍDICO PRESERVADO, E NÃO DA ABERTURA EXCESSIVA DE TÍTULOS OU DA REPETIÇÃO DE BLOCOS.\n\nEXTRAIA SOMENTE O CONTEÚDO JURÍDICO NECESSÁRIO PARA ESTUDO, REVISÃO E MEMORIZAÇÃO:\n\n* DISCIPLINA;\n* TEMA;\n* INSTITUTOS;\n* CONCEITOS;\n* NATUREZA JURÍDICA;\n* CARACTERÍSTICAS;\n* CLASSIFICAÇÕES;\n* ELEMENTOS;\n* REQUISITOS;\n* CONDIÇÕES;\n* PROCEDIMENTOS;\n* ETAPAS;\n* PRAZOS;\n* COMPETÊNCIAS;\n* LEGITIMIDADES;\n* RESPONSABILIDADES;\n* DIREITOS;\n* DEVERES;\n* VEDAÇÕES;\n* EXCEÇÕES;\n* EFEITOS;\n* CONSEQUÊNCIAS;\n* DIFERENÇAS ENTRE INSTITUTOS;\n* REGRAS GERAIS E ESPECIAIS;\n* PONTOS DE PROVA.\n\nNÃO INVENTE INFORMAÇÃO AUSENTE.\n\n## FIDELIDADE E CONTRADIÇÕES\n\nUSE SOMENTE O CONTEÚDO DAS FONTES APROVADAS NA TRIAGEM.\n\nNÃO INVENTE CONCEITO, FUNDAMENTO, EXCEÇÃO, REQUISITO, PRAZO, COMPETÊNCIA, CONSEQUÊNCIA OU DISTINÇÃO.\n\nSE HOUVER DÚVIDA, PRESERVE APENAS A IDEIA SEGURA.\n\nSE O ORIGINAL TROUXER INFORMAÇÕES INCOMPATÍVEIS:\n\n1. PRESERVE O SENTIDO JURÍDICO PREDOMINANTE DO PRÓPRIO ARQUIVO.\n2. EM CONFLITO ENTRE TEXTO EXPLICATIVO E TABELA, PREFIRA O TEXTO EXPLICATIVO MAIS COMPLETO, SALVO SE A TABELA FOR O ÚNICO LOCAL DO TEMA.\n3. NÃO REPRODUZA AUTOMATICAMENTE DUAS INFORMAÇÕES INCOMPATÍVEIS COMO SE AMBAS ESTIVESSEM CORRETAS.\n4. SE A CONTRADIÇÃO NÃO PUDER SER RESOLVIDA, INSIRA:\n\n✳️ CONTRADIÇÃO INTERNA NO ORIGINAL\n\n## PADRÃO OBRIGATÓRIO DE PROFUNDIDADE DIDÁTICA\n\nANTES DE REDIGIR O MAPA, FAÇA INTERNAMENTE UM INVENTÁRIO DOS GRANDES EIXOS, INSTITUTOS E INFORMAÇÕES JURÍDICAS RELEVANTES PRESENTES NAS FONTES.\n\nESSE INVENTÁRIO É SOMENTE UMA ETAPA INTERNA DE CONTROLE. NÃO O APRESENTE NO DOCUMENTO FINAL.\n\nPARA CADA INSTITUTO RELEVANTE, VERIFIQUE SE A FONTE APRESENTA:\n\n1. CONCEITO OU NATUREZA;\n2. FINALIDADE;\n3. SUJEITO, TITULAR, LEGITIMIDADE, ATRIBUIÇÃO OU COMPETÊNCIA;\n4. OBJETO OU CAMPO DE APLICAÇÃO;\n5. REQUISITOS OU CONDIÇÕES;\n6. PROCEDIMENTO, ETAPAS OU FORMA DE FUNCIONAMENTO;\n7. EFEITOS OU CONSEQUÊNCIAS JURÍDICAS;\n8. LIMITES, VEDAÇÕES, EXCEÇÕES OU RESSALVAS;\n9. DISTINÇÕES EM RELAÇÃO A INSTITUTOS PRÓXIMOS;\n10. PONTO RELEVANTE PARA PROVA.\n\nSE ALGUM DESSES ELEMENTOS ESTIVER PRESENTE NA FONTE, ELE DEVE APARECER NO MAPA.\n\nSE NÃO ESTIVER PRESENTE NA FONTE, NÃO INVENTE, NÃO PESQUISE E NÃO COMPLETE.\n\nA SIMPLES MENÇÃO AO NOME DO INSTITUTO NÃO CONTA COMO DESENVOLVIMENTO.\n\nQUANDO A FONTE TROUXER ELEMENTOS SUFICIENTES, O BLOCO DEVE PERMITIR RECORDAR:\n\n* O QUE É;\n* PARA QUE SERVE;\n* QUEM ATUA;\n* SOBRE O QUE RECAI;\n* EM QUAIS CONDIÇÕES;\n* COMO FUNCIONA;\n* QUAIS EFEITOS PRODUZ;\n* QUAIS SÃO SEUS LIMITES, EXCEÇÕES E DISTINÇÕES.\n\nNÃO DEIXE INSTITUTO RELEVANTE REDUZIDO A TÍTULO, DEFINIÇÃO GENÉRICA OU CONCLUSÃO SOLTA QUANDO A FONTE APRESENTAR DESENVOLVIMENTO ADICIONAL.\n\nNÃO SACRIFIQUE PARA ENCURTAR O MATERIAL:\n\n* SUJEITO DA REGRA;\n* OBJETO DA PERMISSÃO OU VEDAÇÃO;\n* FINALIDADE DO INSTITUTO;\n* CONDIÇÃO DE APLICAÇÃO;\n* REQUISITOS;\n* PROCEDIMENTO;\n* EXCEÇÃO RELEVANTE;\n* CONSEQUÊNCIA JURÍDICA;\n* DIFERENÇA ENTRE REGRA GERAL E ESPECIAL.\n\n## ORDEM DIDÁTICA DE DESENVOLVIMENTO\n\nORGANIZE CADA GRANDE EIXO, SEMPRE QUE O CONTEÚDO DA FONTE PERMITIR, NESTA SEQUÊNCIA:\n\n1. VISÃO GERAL;\n2. CONCEITO, NATUREZA E FINALIDADE;\n3. SUJEITOS, ATRIBUIÇÕES E COMPETÊNCIAS;\n4. OBJETO, REQUISITOS E CONDIÇÕES;\n5. PROCEDIMENTO OU FUNCIONAMENTO;\n6. EFEITOS E CONSEQUÊNCIAS;\n7. LIMITES, VEDAÇÕES, EXCEÇÕES E DISTINÇÕES;\n8. 📌 PROVA.\n\nA SEQUÊNCIA É UM PADRÃO DE ORGANIZAÇÃO, NÃO UMA AUTORIZAÇÃO PARA CRIAR INFORMAÇÃO AUSENTE.\n\nNÃO ESPALHE AS PARTES DO MESMO INSTITUTO EM TÍTULOS PRINCIPAIS DIFERENTES QUANDO ELAS PUDEREM SER COMPREENDIDAS NO MESMO GRANDE EIXO.\n\n## CONTROLE DE DENSIDADE E AGRUPAMENTO\n\nNÃO CONFUNDA COMPLETUDE COM FRAGMENTAÇÃO NEM CONCISÃO COM SUPERFICIALIDADE.\n\nPRESERVE TODA INFORMAÇÃO JURÍDICA RELEVANTE, MAS AGRUPE INFORMAÇÕES PRÓXIMAS SOB O MESMO EIXO TEMÁTICO.\n\nANTES DE CRIAR UM NOVO TÍTULO ♦️, VERIFIQUE SE O CONTEÚDO PODE SER ORGANIZADO COMO:\n\n* SUBTÓPICO NUMERADO DO TÍTULO ANTERIOR;\n* BLOCO ▶️📚 DO MESMO INSTITUTO;\n* REGRA OU CONSEQUÊNCIA ✅;\n* EXCEÇÃO, DISTINÇÃO OU PEGADINHA ✳️;\n* PONTO DE REVISÃO 📌 PROVA.\n\nUSE TÍTULOS ♦️ SOMENTE PARA GRANDES EIXOS DO TEMA.\n\nUSE SUBNUMERAÇÃO 1.1., 1.2., 2.1. ETC. PARA ASSUNTOS DEPENDENTES, COMPLEMENTARES OU INTERNAMENTE RELACIONADOS.\n\nNÃO CRIE TÍTULO AUTÔNOMO PARA CADA CONCEITO, NATUREZA, CARACTERÍSTICA, EFEITO, EXCEÇÃO OU DISTINÇÃO.\n\nQUANDO FOREM COMPLEMENTARES E JURIDICAMENTE COMPATÍVEIS, REÚNA NO MESMO BLOCO:\n\n* CONCEITO, NATUREZA E FINALIDADE;\n* SUJEITO, ATRIBUIÇÃO E COMPETÊNCIA;\n* REQUISITO, PROCEDIMENTO E CONSEQUÊNCIA;\n* REGRA, LIMITE E EXCEÇÃO;\n* CARACTERÍSTICAS DO MESMO INSTITUTO.\n\nNÃO JUNTE INFORMAÇÕES APENAS PARA REDUZIR PÁGINAS QUANDO ISSO GERAR AMBIGUIDADE, APAGAR DISTINÇÕES OU PREJUDICAR A MEMORIZAÇÃO.\n\nA REDUÇÃO DE DENSIDADE DEVE OCORRER POR:\n\n* AGRUPAMENTO TEMÁTICO;\n* HIERARQUIZAÇÃO;\n* SUBNUMERAÇÃO;\n* ELIMINAÇÃO DE REPETIÇÕES;\n* REDAÇÃO DIRETA E JURIDICAMENTE COMPLETA;\n* USO ADEQUADO DE ✅, ✳️ E 📌 PROVA.\n\nNÃO ELIMINE PRAZO, REQUISITO, COMPETÊNCIA, LEGITIMIDADE, VEDAÇÃO, EXCEÇÃO, DISTINÇÃO OU CONSEQUÊNCIA PARA DEIXAR O MATERIAL MAIS CURTO.\n\n## CONTROLE OBJETIVO DE TÍTULOS, SUBTÓPICOS E LINHAS\n\nUSE ♦️ SOMENTE PARA GRANDES EIXOS TEMÁTICOS AUTÔNOMOS.\n\nUSE PREFERENCIALMENTE NUMERAÇÃO INTEIRA NOS GRANDES EIXOS:\n\n1.;\n2.;\n3.;\n4.;\nETC.\n\nNÃO CRIE TÍTULO ♦️ SUBNUMERADO, COMO 2.1., 3.1. OU 5.2., QUANDO O CONTEÚDO PUDER SER DESENVOLVIDO COMO BLOCO ▶️📚 DENTRO DO EIXO PRINCIPAL.\n\nUM TÍTULO ♦️ SUBNUMERADO SOMENTE É ADMITIDO QUANDO:\n\n1. REPRESENTAR UM SUBEIXO JURIDICAMENTE AUTÔNOMO;\n2. EXIGIR PELO MENOS DOIS BLOCOS ▶️📚 SUBSTANCIAIS;\n3. SUA SEPARAÇÃO MELHORAR MATERIALMENTE A COMPREENSÃO;\n4. SUA INCORPORAÇÃO AO EIXO PRINCIPAL PREJUDICAR A CLAREZA.\n\nANTES DE FINALIZAR, VERIFIQUE CADA TÍTULO ♦️:\n\n- SE POSSUI APENAS UM BLOCO ▶️📚, PREFIRA INCORPORÁ-LO AO EIXO PRINCIPAL;\n- SE É APENAS ESPÉCIE, PRAZO ESPECIAL, EXCEÇÃO OU DESDOBRAMENTO, USE ▶️📚;\n- SE REPETE O CONTEXTO DO TÍTULO ANTERIOR, AGRUPE;\n- SE NÃO FUNCIONA COMO ÂNCORA AUTÔNOMA DE MEMORIZAÇÃO, NÃO O MANTENHA COMO ♦️.\n\nEM TEMAS ESPECÍFICOS OU ESTREITOS, NÃO REPRODUZA ARTIFICIALMENTE A MESMA QUANTIDADE DE TÍTULOS USADA EM TEMAS AMPLOS.\n\nNÃO EXISTE QUANTIDADE FIXA DE TÍTULOS.\n\nA QUANTIDADE DEVE DECORRER DA ESTRUTURA JURÍDICA REAL DO CONTEÚDO.\n\nCADA LINHA DEVE CONTER PREFERENCIALMENTE UMA ÚNICA RELAÇÃO JURÍDICA PRINCIPAL.\n\nPREFIRA LINHAS COM ATÉ 22 PALAVRAS.\n\nA LINHA PODE ULTRAPASSAR ESSE TAMANHO SOMENTE QUANDO A DIVISÃO GERAR AMBIGUIDADE, RETIRAR CONDIÇÃO, EXCEÇÃO, SUJEITO, OBJETO OU CONSEQUÊNCIA.\n\nSE UMA LINHA CONTIVER DUAS PROPOSIÇÕES JURÍDICAS AUTÔNOMAS, DIVIDA-A EM DUAS CAMADAS OU LINHAS, SEM EXCLUIR CONTEÚDO.\n\nNÃO TRANSFORME FRASES CURTAS EM PALAVRAS SOLTAS OU EXPRESSÕES TELEGRÁFICAS.\n\n## PROIBIÇÃO DE METALINGUAGEM SOBRE AS FONTES\n\nNO DOCUMENTO FINAL, NÃO USE EXPRESSÕES COMO:\n\n- “AS FONTES APRESENTAM”;\n- “SEGUNDO AS FONTES”;\n- “UMA DAS FONTES”;\n- “O MATERIAL INFORMA”;\n- “CONFORME O MATERIAL”;\n- “LINHA PREDOMINANTE DAS FONTES”;\n- “CORRENTE ADOTADA PELA FONTE”;\n- “HIPÓTESES APRESENTADAS NAS FONTES”.\n\nCONVERTA O CONTEÚDO SEGURO EM REGRA JURÍDICA DIRETA E AUTOSSUFICIENTE.\n\nSE HOUVER POSIÇÕES DIVERGENTES CLARAMENTE DESENVOLVIDAS NO ORIGINAL, APRESENTE DIRETAMENTE:\n\n1️⃣ PRIMEIRA CORRENTE: [CONTEÚDO].\n\n2️⃣ SEGUNDA CORRENTE: [CONTEÚDO].\n\n✳️ DIVERGÊNCIA: [PONTO EXATO DA DIVERGÊNCIA].\n\nSE A CONTRADIÇÃO INTERNA NÃO PUDER SER RESOLVIDA COM SEGURANÇA, USE EXATAMENTE:\n\n✳️ CONTRADIÇÃO INTERNA NO ORIGINAL\n\nNÃO MENCIONE O PROCESSO DE LEITURA, SELEÇÃO OU COMPARAÇÃO DAS FONTES NO MAPA FINAL.\n\nA EXPRESSÃO “FONTES DE INFORMAÇÃO” CONTINUA PERMITIDA QUANDO FOR PARTE DO PRÓPRIO CONTEÚDO JURÍDICO E NÃO UMA REFERÊNCIA AOS ARQUIVOS UTILIZADOS.\n\n## MODELO DE REFERÊNCIA\n\nUSE O WORD-MODELO E OS ARQUIVOS DA PASTA 00_MODELOS_REFERENCIA SOMENTE COMO REFERÊNCIA DE:\n\n* PROFUNDIDADE;\n* AGRUPAMENTO TEMÁTICO;\n* RITMO DE LEITURA;\n* EXTENSÃO DAS LINHAS;\n* HIERARQUIA;\n* RESPIRO VISUAL.\n\nNÃO COPIE CONTEÚDO JURÍDICO DOS MODELOS E NÃO OS TRATE COMO FONTE DO TEMA.\n\nENTRE MODELOS COM DENSIDADES DIFERENTES, PREFIRA O PADRÃO QUE DESENVOLVA CADA INSTITUTO EM BLOCOS AUTOSSUFICIENTES, AGRUPE CONTEÚDOS RELACIONADOS E EVITE EXCESSO DE TÍTULOS PRINCIPAIS.\n\nOS TÍTULOS DEVEM FUNCIONAR COMO ÂNCORAS VISUAIS DE MEMORIZAÇÃO:\n\n* PRESERVE O EMOJI ORIGINAL, QUANDO HOUVER;\n* SE O ORIGINAL NÃO TROUXER EMOJI, É PERMITIDO INSERIR UM ÚNICO EMOJI TEMÁTICO E COERENTE APÓS ♦️;\n* USE O MESMO EMOJI PARA O MESMO GRANDE EIXO;\n* EVITE EMOJIS ALEATÓRIOS OU MERAMENTE DECORATIVOS;\n* NÃO ESPALHE NOVOS EMOJIS PELO CORPO DO TEXTO.\n\nEM CASO DE CONFLITO, OBSERVE ESTA ORDEM:\n\n1. FIDELIDADE JURÍDICA;\n2. COBERTURA DOS ELEMENTOS PRESENTES NAS FONTES;\n3. COMPLETUDE DO CONTEÚDO RELEVANTE;\n4. ORGANIZAÇÃO DIDÁTICA;\n5. CONCISÃO;\n6. ESTÉTICA.\n\n## REVISÃO INTERNA EM DUAS PASSAGENS\n\nPRIMEIRA PASSAGEM — COBERTURA E PROFUNDIDADE:\n\nCOMPARE INTERNAMENTE O MAPA COM O INVENTÁRIO INICIAL E VERIFIQUE:\n\n1. ALGUM INSTITUTO RELEVANTE FICOU APENAS MENCIONADO?\n2. ALGUMA REGRA PERDEU SUJEITO, OBJETO, CONDIÇÃO, PROCEDIMENTO OU CONSEQUÊNCIA?\n3. ALGUMA EXCEÇÃO, VEDAÇÃO, COMPETÊNCIA, PRAZO OU DISTINÇÃO FOI OMITIDA?\n4. ALGUMA INFORMAÇÃO PRESENTE NA FONTE FOI SUBSTITUÍDA POR EXPRESSÃO GENÉRICA?\n\nSE HOUVER OMISSÃO, APROFUNDE O BLOCO USANDO SOMENTE O CONTEÚDO DAS FONTES.\n\nSEGUNDA PASSAGEM — DIDÁTICA E AGRUPAMENTO:\n\nVERIFIQUE:\n\n1. ALGUM GRANDE EIXO FOI FRAGMENTADO EM TÍTULOS DESNECESSÁRIOS?\n2. BLOCOS RELACIONADOS PODEM SER REUNIDOS SEM PERDA DE CLAREZA?\n3. A ORDEM PERMITE COMPREENDER PRIMEIRO A REGRA E DEPOIS SEUS LIMITES E EXCEÇÕES?\n4. O LEITOR CONSEGUE RECORDAR O CONTEÚDO SEM CONSULTAR IMEDIATAMENTE A FONTE?\n\nSE HOUVER FRAGMENTAÇÃO, REORGANIZE E AGRUPE SEM EXCLUIR CONTEÚDO RELEVANTE.\n\n## FORMATO OBRIGATÓRIO\n\n♦️ [EMOJI ORIGINAL OU TEMÁTICO, SE NECESSÁRIO] [NUMERAÇÃO]. [PALAVRA-NÚCLEO EM MAIÚSCULAS]\n\n▶️📚 [INSTITUTO]. [ASSUNTO OU RECORTE]:\n\n1️⃣ **[INSTITUTO/PALAVRA-NÚCLEO]:** [RELAÇÃO CURTA]\n\n2️⃣ **[ELEMENTO]:** [CONDIÇÃO OU CONSEQUÊNCIA CURTA]\n\n3️⃣ **[REQUISITO/PRAZO/COMPETÊNCIA]:** [INFORMAÇÃO ESSENCIAL]\n\n✅ [RESULTADO, REGRA OU CONSEQUÊNCIA AUTOSSUFICIENTE]\n\n✳️ [EXCEÇÃO, RESSALVA, DIFERENÇA OU PEGADINHA]\n\n📌 PROVA: [FRASE CURTA, SE ÚTIL]\n\nUSE SOMENTE AS CAMADAS NECESSÁRIAS.\n\n## HIERARQUIA E NUMERAÇÃO\n\n1️⃣ INSTITUTO PRINCIPAL.\n\n2️⃣ ELEMENTO DEPENDENTE.\n\n3️⃣ CONDIÇÃO, REQUISITO, PRAZO, SUJEITO, COMPETÊNCIA OU PROCEDIMENTO.\n\n4️⃣ E 5️⃣ SOMENTE QUANDO INDISPENSÁVEIS.\n\n✅ RESULTADO, ÚLTIMA CAMADA OU CONSEQUÊNCIA.\n\n✳️ EXCEÇÃO, DISTINÇÃO, ORDEM, PEGADINHA OU RESSALVA.\n\n📌 PROVA SOMENTE QUANDO AJUDAR NA REVISÃO.\n\nUSE PREFERENCIALMENTE ATÉ TRÊS NÍVEIS: 1️⃣, 2️⃣ E ✅.\n\nUSE 3️⃣, 4️⃣ OU 5️⃣ QUANDO NECESSÁRIOS PARA PRESERVAR PROFUNDIDADE E CLAREZA.\n\nUSE INDENTAÇÃO PROGRESSIVA REAL.\n\nPADRONIZE A NUMERAÇÃO DOS TÍTULOS ♦️, PRESERVANDO A ORDEM E EVITANDO SUBDIVISÕES ARTIFICIAIS:\n\n1.;\n2.;\n3.;\n4.;\nETC.\n\nUSE NUMERAÇÃO INTEIRA COMO FORMA PREFERENCIAL DOS TÍTULOS ♦️.\n\nUSE SUBNUMERAÇÃO 1.1., 1.2., 2.1. ETC. SOMENTE DE FORMA EXCEPCIONAL, QUANDO O SUBEIXO FOR JURIDICAMENTE AUTÔNOMO E EXIGIR DESENVOLVIMENTO PRÓPRIO.\n\nESPÉCIES, REGIMES ESPECIAIS, PRAZOS ESPECIAIS, EXCEÇÕES E DESDOBRAMENTOS NORMALMENTE DEVEM SER DESENVOLVIDOS COMO BLOCOS ▶️📚 DENTRO DO EIXO PRINCIPAL.\n\nA PROFUNDIDADE DEVE OCORRER DENTRO DOS BLOCOS, E NÃO PELA MULTIPLICAÇÃO DE TÍTULOS ♦️.\n\nNÃO TRANSFORME TODO ASSUNTO DEPENDENTE, COMPLEMENTAR OU INTERNAMENTE RELACIONADO EM TÍTULO ♦️ SUBNUMERADO.\n\nNÃO TRANSFORME TODO ASSUNTO EM NOVO EIXO PRINCIPAL.\n\nCORRIJA SALTOS, DUPLICIDADES OU NUMERAÇÃO INCOERENTE, SEM ALTERAR A ORDEM TEMÁTICA.\n\nNÃO NUMERE ARTIFICIALMENTE TODOS OS BLOCOS ▶️.\n\n## TÍTULOS E SUBTÓPICOS\n\nPRESERVE OS EMOJIS QUE ANTECEDEM OS TÍTULOS.\n\nSE O ORIGINAL NÃO TROUXER EMOJI, É PERMITIDO INSERIR UM ÚNICO EMOJI TEMÁTICO APÓS ♦️ PARA FUNCIONAR COMO ÂNCORA VISUAL, DESDE QUE SEJA COERENTE, ESTÁVEL E NÃO MERAMENTE DECORATIVO.\n\nREDUZA O TÍTULO À PALAVRA-NÚCLEO, SEM PERDER O CONTEXTO.\n\nSE A PALAVRA ISOLADA FICAR GENÉRICA, MANTENHA O RECORTE APÓS DOIS-PONTOS.\n\nQUANDO O TEMA PRINCIPAL FOR IDENTIFICÁVEL, REPITA-O NOS SUBTÓPICOS QUANDO NECESSÁRIO PARA PRESERVAR O CONTEXTO.\n\nNÃO ABRA LINHA SEPARADA APENAS PARA:\n\n* CONCEITO;\n* REGRA;\n* REQUISITOS;\n* NATUREZA;\n* EFEITO;\n* CARACTERÍSTICAS.\n\nUSE:\n\n▶️📚 [INSTITUTO]. [ASSUNTO]:\n\nOU:\n\n▶️📚 [INSTITUTO]. [ASSUNTO] — [NATUREZA]:\n\nNÃO ESCREVA “TÓPICO”, “SUBTÓPICO”, “CAMADA” OU “RESUMO”.\n\n## AMBIGUIDADE JURÍDICA\n\nNÃO USE CONCLUSÕES SOLTAS, COMO:\n\n“NÃO CABE”;\n“APLICA”;\n“NÃO APLICA”;\n“POSSÍVEL”;\n“IMPOSSÍVEL”;\n“VÁLIDO”;\n“INVÁLIDO”;\n“CONFIGURA”;\n“NÃO CONFIGURA”.\n\nTODA CONCLUSÃO DEVE INDICAR:\n\n* QUAL INSTITUTO;\n* QUAL ATO, MEDIDA, REGRA OU EFEITO;\n* QUAL ALCANCE;\n* QUAL SUJEITO OU ÓRGÃO;\n* QUAL CONDIÇÃO;\n* QUAL CONSEQUÊNCIA;\n* QUAL EXCEÇÃO, SE HOUVER.\n\nANTES DE FINALIZAR CADA ✅, CONFIRA:\n\n* NÃO CABE O QUÊ?\n* APLICA A QUÊ?\n* QUEM PODE?\n* QUAL FINALIDADE?\n* QUAL CONDIÇÃO?\n* QUAL CONSEQUÊNCIA?\n* QUAL EXCEÇÃO?\n\nA LINHA ✅ DEVE SER AUTOSSUFICIENTE.\n\nSE HOUVER REGRA GERAL E EXCEÇÃO, SEPARE:\n\n✅ REGRA: [REGRA GERAL AUTOSSUFICIENTE]\n\n✳️ EXCEÇÃO: [HIPÓTESE EXCEPCIONAL]\n\n✳️ PEGADINHA: [DIFERENÇA COBRÁVEL]\n\n## EXEMPLOS E CASOS CONCRETOS\n\nNÃO TRANSFORME EXEMPLOS DO AUTOR OU CASOS CONCRETOS EM CONTEÚDO CENTRAL.\n\nSÓ PRESERVE UMA SITUAÇÃO FÁTICA QUANDO FOR INDISPENSÁVEL PARA COMPREENDER OU DELIMITAR A REGRA.\n\nNESSE CASO, USE PALAVRAS-CHAVE CURTAS, SEM NARRATIVA.\n\nNÃO ACRESCENTE EXEMPLOS EXTERNOS.\n\n## REDAÇÃO E SIGLAS\n\nUSE FRASES SINTÉTICAS, MAS JURIDICAMENTE COMPLETAS.\n\nNÃO REDUZA A REDAÇÃO A PALAVRAS SOLTAS OU A EXPRESSÕES TELEGRÁFICAS QUE APAGUEM A RELAÇÃO JURÍDICA.\n\nCADA LINHA DEVE INFORMAR, QUANDO PRESENTES NA FONTE: QUEM; PODE OU DEVE FAZER O QUÊ; EM QUAL SITUAÇÃO; SOB QUAIS REQUISITOS; COM QUAL FINALIDADE; E PRODUZINDO QUAL CONSEQUÊNCIA.\n\nNÃO EXISTE LIMITE RÍGIDO DE PALAVRAS POR LINHA.\n\nA LINHA PODE SER MAIOR QUANDO ISSO FOR NECESSÁRIO PARA PRESERVAR O RACIOCÍNIO, A CONDIÇÃO, A EXCEÇÃO OU A CONSEQUÊNCIA JURÍDICA.\n\nÉ PERMITIDO USAR DOIS-PONTOS PARA PRESERVAR O SENTIDO.\n\nNÃO ESCREVA PARÁGRAFOS LONGOS.\n\nNÃO REPITA A MESMA IDEIA.\n\nNÃO USE PALAVRA GENÉRICA QUE APAGUE O SENTIDO.\n\nUSE NEGRITO SOMENTE ATÉ OS DOIS-PONTOS, QUANDO HOUVER.\n\nNÃO USE SIGLAS SOLTAS.\n\nNA PRIMEIRA OCORRÊNCIA, ESCREVA O NOME COMPLETO E A SIGLA ENTRE PARÊNTESES.\n\nDEPOIS, A SIGLA PODE SER USADA.\n\n## CONTROLE FINAL DE FIDELIDADE, AMBIGUIDADE E COBERTURA\n\nANTES DE FINALIZAR, CONFIRA:\n\n1. O CONTEÚDO VEIO SOMENTE DAS FONTES RESUMO/AULA?\n2. FOI INSERIDO CONTEÚDO DE LEI, JURISPRUDÊNCIA OU PEÇA DE OUTRO MÓDULO?\n3. HÁ REGRA POSITIVA OU NEGATIVA?\n4. HÁ VEDAÇÃO, EXCEÇÃO OU RESSALVA?\n5. HÁ PRAZO, PROCEDIMENTO, COMPETÊNCIA OU LEGITIMIDADE?\n6. ALGUMA CONCLUSÃO FICOU SEM OBJETO?\n7. CADA ✅ É AUTOSSUFICIENTE?\n8. ALGUMA REGRA FOI INVERTIDA?\n9. ALGUMA SIGLA FICOU SOLTA?\n10. O TÍTULO PRESERVA O CONTEXTO?\n11. EXISTE REPETIÇÃO DESNECESSÁRIA?\n12. A REDUÇÃO RETIROU ALGUM ELEMENTO ESSENCIAL?\n13. HÁ TÍTULOS AUTÔNOMOS QUE PODERIAM SER SUBTÓPICOS?\n14. HÁ MUITOS BLOCOS SEGUIDOS SOBRE O MESMO INSTITUTO?\n15. OS TÍTULOS PRINCIPAIS REPRESENTAM GRANDES EIXOS?\n16. A SUBNUMERAÇÃO MOSTRA A RELAÇÃO ENTRE OS ASSUNTOS?\n17. OS EMOJIS DOS TÍTULOS AJUDAM A LOCALIZAR OS TEMAS?\n18. O MATERIAL PODE SER REVISADO VISUALMENTE SEM LEITURA INTEGRAL?\n19. O RESULTADO SE PARECE COM MAPA DE ESTUDO, E NÃO COM APOSTILA FRAGMENTADA?\n20. A COMPLETUDE FOI PRESERVADA APÓS O AGRUPAMENTO?\n\nSE HOUVER RISCO DE INVERSÃO, REESCREVA.\n\nSE O CONTEÚDO ESTIVER CORRETO, MAS EXCESSIVAMENTE FRAGMENTADO, FAÇA UMA REORGANIZAÇÃO DIDÁTICA FINAL SEM EXCLUIR INFORMAÇÃO RELEVANTE.\n\nNUNCA TRANSFORME:\n\n* REGRA NEGATIVA EM POSITIVA;\n* POSSIBILIDADE EM IMPOSSIBILIDADE;\n* EXEMPLO DO AUTOR EM REGRA GERAL;\n* ARGUMENTO ISOLADO EM CONCLUSÃO;\n* VEDAÇÃO DE FINALIDADE EM VEDAÇÃO DO INSTITUTO INTEIRO;\n* EXCEÇÃO EM REGRA GERAL.\n\n## PROIBIÇÕES\n\nNÃO CRIE COMO TÍTULOS AUTÔNOMOS:\n\n* RESUMO;\n* REGRA;\n* FATO ESSENCIAL;\n* CONDIÇÕES;\n* FUNDAMENTOS;\n* CONSEQUÊNCIA;\n* IDENTIFICAÇÃO;\n* FONTE.\n\nÉ PERMITIDO USAR “✅ REGRA:”, “✳️ EXCEÇÃO:” E “✳️ PEGADINHA:” DENTRO DO BLOCO TEMÁTICO.\n\nNÃO INFORME:\n\n* NOME DO ARQUIVO-FONTE;\n* NOMES DE PROFESSORES;\n* NOME DO CURSO;\n* NOME DA TURMA;\n* BANCA;\n* CONCURSO;\n* NOMES PRÓPRIOS DE CASOS CONCRETOS.\n\nNÃO INCLUA:\n\n* DOUTRINA EXTERNA;\n* JURISPRUDÊNCIA NÃO FORNECIDA;\n* LEGISLAÇÃO NÃO FORNECIDA;\n* EXEMPLOS EXTERNOS;\n* TABELAS.\n\n## ORGANIZAÇÃO\n\nPRESERVE A ORDEM TEMÁTICA DO ORIGINAL.\n\nPODE REORGANIZAR INTERNAMENTE APENAS PARA ELIMINAR REPETIÇÕES OU CORRIGIR HIERARQUIA, SEM ALTERAR O SENTIDO.\n\nNÃO REPITA A MESMA REGRA EM BLOCOS DIFERENTES.\n\nSE O ORIGINAL REPETIR UMA REGRA EM QUADRO, TABELA OU SÍNTESE FINAL, CONSOLIDE A INFORMAÇÃO NO BLOCO MAIS COMPLETO.\n\nNÃO REPRODUZA A TABELA.\n\n## WORD DO MÓDULO\n\nGERE UM ARQUIVO .DOCX EDITÁVEL EXCLUSIVO DO MÓDULO RESUMO/AULA.\n\nNÃO CONSOLIDE COM LEI, JURISPRUDÊNCIA OU PEÇA.\n\nUSE O WORD-MODELO ANEXADO COMO PADRÃO DE FORMATAÇÃO.\n\nPRESERVE:\n\n* FONTE;\n* TAMANHO;\n* ESPAÇAMENTO;\n* RECUOS;\n* RESPIRO VISUAL;\n* NEGRITOS;\n* ESTILO DOS TÍTULOS E SUBTÓPICOS;\n* RODAPÉ COM NUMERAÇÃO.\n\nSE NÃO HOUVER MODELO, USE:\n\n* A4;\n* ARIAL 11;\n* MARGENS DE 2 CM;\n* ESPAÇAMENTO SIMPLES;\n* ALINHAMENTO À ESQUERDA;\n* INDENTAÇÃO PROGRESSIVA REAL;\n* SEM TABELAS;\n* SEM CABEÇALHO;\n* RODAPÉ APENAS COM NUMERAÇÃO.\n\nINSIRA NUMERAÇÃO NO RODAPÉ:\n\nFIM DA PÁGINA;\nCENTRALIZADA;\nEM NEGRITO;\nFORMATO “1 DE 20”.\n\nNOME DO ARQUIVO:\n\nMAPA_HIERARQUICO_RESUMO_AULA_[FILTRO].docx\n\nENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD.\n\nNÃO ENTREGUE APENAS O CONTEÚDO NO CHAT, SALVO PEDIDO EXPRESSO.";
 const FACTORY_RESUMO_AULA_PROMPT = FACTORY_RESUMO_AULA_PROMPT_SEGMENT;
 const FACTORY_RESUMO_AULA_MIGRATION_ID = "resumoAulaDidaticaProfundidadeV2";
@@ -1162,6 +1162,8 @@ let floatingTimer = {
   paused: false,
   intervalId: null,
   completed: false,
+  completionAlarmPlayed: false,
+  previousRemainingSeconds: null,
   warnedFive: false,
   warnedOne: false,
   completionDismissed: false,
@@ -1195,7 +1197,17 @@ function stopFloatingTimerInterval() {
 }
 
 function timerPlannedSeconds(goal = floatingTimerGoal()) { return floatingTimer.mode === "free" ? Math.max(0, Math.round((Number(floatingTimer.sessionGoalMinutes) || 0) * 60)) : Math.max(0, Math.round((Number(goal?.minutes) || 0) * 60)); }
-function timerRemainingSeconds(goal = floatingTimerGoal()) { const planned = timerPlannedSeconds(goal); return planned ? Math.max(0, planned - currentTimerSeconds()) : 0; }
+function timerTargetEndTime(goal = floatingTimerGoal()) {
+  const planned = timerPlannedSeconds(goal);
+  if (!planned || floatingTimer.paused || !floatingTimer.startedAt) return null;
+  return floatingTimer.startedAt + Math.max(0, planned - (Number(floatingTimer.elapsedSeconds) || 0)) * 1000;
+}
+function timerRemainingSeconds(goal = floatingTimerGoal()) {
+  const planned = timerPlannedSeconds(goal);
+  if (!planned) return 0;
+  if (floatingTimer.mode === "countdown" && !floatingTimer.paused && floatingTimer.startedAt) return Math.max(0, Math.ceil((timerTargetEndTime(goal) - Date.now()) / 1000));
+  return Math.max(0, planned - currentTimerSeconds());
+}
 function timerProgressPercent(goal = floatingTimerGoal()) { const planned = timerPlannedSeconds(goal); return planned ? Math.min(100, Math.round((currentTimerSeconds() / planned) * 100)) : 0; }
 function timerAlertMessage(goal = floatingTimerGoal()) {
   if (timerTestAlertUntil > Date.now()) return "🔔 Teste de alertas do cronômetro";
@@ -1243,7 +1255,7 @@ function checkTimerMotivationalProgress(goal = floatingTimerGoal()) {
     floatingTimer.mode === "countdown" ||
     floatingTimer.mode === "free";
 
-  if (!goal || !supportedMode || !planned) return;
+  if (!goal || !supportedMode || !planned || state.settings?.timerPreferences?.motivationalMessages === false) return;
 
   const progress = Math.min(
     100,
@@ -1277,22 +1289,38 @@ function checkTimerMotivationalProgress(goal = floatingTimerGoal()) {
   persistFloatingTimerSession();
 }
 let timerAudioContext = null;
+let timerAudioPrepared = false;
+let timerAudioUserMessage = "";
 let timerTestAlertUntil = 0;
 let timerTestAlertReport = "";
 let timerAlertTimeouts = [];
 let timerAlertOscillators = [];
-async function prepareTimerAudioContext() {
+async function prepareTimerAudio() {
+  timerAudioUserMessage = "";
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return null;
+    if (!AudioCtx) { timerAudioUserMessage = "O navegador não permitiu o som. O aviso visual continuará funcionando. Toque em ‘Testar alarme’ para tentar novamente."; return null; }
     timerAudioContext ||= new AudioCtx();
     if (timerAudioContext.state === "suspended") await timerAudioContext.resume();
+    if (timerAudioContext.state !== "running") return null;
+    if (!timerAudioPrepared) {
+      const gain = timerAudioContext.createGain();
+      const osc = timerAudioContext.createOscillator();
+      const start = timerAudioContext.currentTime;
+      gain.gain.setValueAtTime(0.00001, start);
+      osc.frequency.setValueAtTime(440, start);
+      osc.connect(gain); gain.connect(timerAudioContext.destination);
+      osc.start(start); osc.stop(start + 0.03);
+      timerAudioPrepared = true;
+    }
     return timerAudioContext;
   } catch (error) {
     console.warn("Falha ao preparar áudio do cronômetro", error);
+    timerAudioUserMessage = "O navegador não permitiu o som. O aviso visual continuará funcionando. Toque em ‘Testar alarme’ para tentar novamente.";
     return null;
   }
 }
+async function prepareTimerAudioContext() { return prepareTimerAudio(); }
 function timerAlertVolumeGain() {
   return ({ low: 0.65, medium: 1, high: 1.3 }[state.settings?.timerPreferences?.alertVolume]) || 1;
 }
@@ -1300,7 +1328,7 @@ function timerAlertSoundPattern(type = "completed") {
   const volume = timerAlertVolumeGain();
   if (type === "five-minutes") return { sequences: 1, sequenceGap: 0, gain: 0.09 * volume, tones: [{ frequency: 520, offset: 0, duration: 0.18 }, { frequency: 620, offset: 0.22, duration: 0.18 }] };
   if (type === "one-minute") return { sequences: 1, sequenceGap: 0, gain: 0.14 * volume, tones: [{ frequency: 700, offset: 0, duration: 0.22 }, { frequency: 920, offset: 0.28, duration: 0.22 }, { frequency: 700, offset: 0.56, duration: 0.22 }] };
-  return { sequences: 3, sequenceGap: 1.55, gain: 0.22 * volume, tones: [{ frequency: 880, offset: 0, duration: 0.34 }, { frequency: 1175, offset: 0.42, duration: 0.34 }, { frequency: 988, offset: 0.84, duration: 0.42 }] };
+  return { sequences: 1, sequenceGap: 0, gain: 0.18 * volume, tones: [{ frequency: 660, offset: 0, duration: 0.28 }, { frequency: 880, offset: 0.38, duration: 0.28 }, { frequency: 990, offset: 0.76, duration: 0.34 }, { frequency: 740, offset: 1.42, duration: 0.30 }, { frequency: 990, offset: 1.82, duration: 0.50 }] };
 }
 function silenceTimerAlert() {
   timerAlertTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
@@ -1308,11 +1336,11 @@ function silenceTimerAlert() {
   timerAlertOscillators.forEach((osc) => { try { osc.stop(); } catch (error) {} });
   timerAlertOscillators = [];
 }
-async function playTimerBeep(type = "completed") {
+async function playTimerCompletionAlarm(type = "completed") {
   if (!state.settings?.timerPreferences?.sound) return false;
   try {
     silenceTimerAlert();
-    const ctx = await prepareTimerAudioContext();
+    const ctx = timerAudioPrepared ? timerAudioContext : await prepareTimerAudio();
     if (!ctx || ctx.state !== "running") return false;
     const pattern = timerAlertSoundPattern(type === "test" ? "completed" : type);
     for (let sequence = 0; sequence < pattern.sequences; sequence += 1) {
@@ -1330,8 +1358,9 @@ async function playTimerBeep(type = "completed") {
       });
     }
     return true;
-  } catch (error) { console.warn("Falha no som do cronômetro", error); return false; }
+  } catch (error) { console.warn("Falha no som do cronômetro", error); timerAudioUserMessage = "O navegador não permitiu o som. O aviso visual continuará funcionando. Toque em ‘Testar alarme’ para tentar novamente."; return false; }
 }
+async function playTimerBeep(type = "completed") { return playTimerCompletionAlarm(type); }
 function timerAlertTitle(type) { return ({ "five-minutes": "Faltam 5 minutos", "one-minute": "Falta 1 minuto", completed: "Tempo de estudo concluído", test: "Teste de alertas do cronômetro" }[type]) || "Alerta do cronômetro"; }
 async function sendTimerNotification(type, goal = floatingTimerGoal()) {
   if (!state.settings?.timerPreferences?.browserNotifications) return "desativada";
@@ -1352,7 +1381,7 @@ async function sendTimerNotification(type, goal = floatingTimerGoal()) {
 function vibrateTimerAlert(type) {
   if (!state.settings?.timerPreferences?.vibration) return "desativada";
   if (!navigator.vibrate) return "não suportada";
-  try { navigator.vibrate(type === "five-minutes" ? [120] : type === "one-minute" ? [160, 80, 160] : [220, 100, 220]); return "solicitada"; } catch (error) { console.warn("Falha na vibração do cronômetro", error); return "não suportada"; }
+  try { navigator.vibrate(type === "five-minutes" ? [120] : type === "one-minute" ? [160, 80, 160] : [200, 120, 200, 120, 350]); return "solicitada"; } catch (error) { console.warn("Falha na vibração do cronômetro", error); return "não suportada"; }
 }
 async function notifyTimerAlert(type, goal = floatingTimerGoal()) {
   vibrateTimerAlert(type);
@@ -1361,7 +1390,7 @@ async function notifyTimerAlert(type, goal = floatingTimerGoal()) {
 async function triggerTimerAlert(type, goal = floatingTimerGoal()) {
   if (type === "five-minutes") floatingTimer.warnedFive = true;
   if (type === "one-minute") floatingTimer.warnedOne = true;
-  if (type === "completed") floatingTimer.completed = true;
+  if (type === "completed") { floatingTimer.completed = true; floatingTimer.completionAlarmPlayed = true; floatingTimer.elapsedSeconds = timerPlannedSeconds(goal); floatingTimer.startedAt = null; floatingTimer.paused = true; stopFloatingTimerInterval(); }
   if (type === "test") { timerTestAlertUntil = Date.now() + 8000; renderFloatingTimer(); }
   await playTimerBeep(type);
   await notifyTimerAlert(type, goal);
@@ -1386,7 +1415,9 @@ function checkFloatingTimerAlerts() {
   }
   if (floatingTimer.mode !== "countdown") return;
   const remaining = timerRemainingSeconds(goal);
-  if (remaining <= 0) { if (!floatingTimer.completed) triggerTimerAlert("completed", goal); return; }
+  const crossedToZero = (floatingTimer.previousRemainingSeconds ?? remaining + 1) > 0 && remaining <= 0;
+  floatingTimer.previousRemainingSeconds = remaining;
+  if (crossedToZero || remaining <= 0) { if (!floatingTimer.completionAlarmPlayed) triggerTimerAlert("completed", goal); return; }
   if (remaining <= 60 && remaining > 0) { if (!floatingTimer.warnedOne) triggerTimerAlert("one-minute", goal); return; }
   if (remaining <= 300 && remaining > 60 && !floatingTimer.warnedFive) triggerTimerAlert("five-minutes", goal);
 }
@@ -1421,8 +1452,13 @@ function renderFloatingTimer() {
   const alertMessage = timerAlertMessage(goal);
   elements.timerAlert.hidden = !alertMessage;
   elements.timerAlert.textContent = timerTestAlertReport && timerTestAlertUntil > Date.now() ? `${alertMessage}
-${timerTestAlertReport}` : alertMessage;
+${timerTestAlertReport}` : (timerAudioUserMessage ? `${alertMessage || "✅ Tempo concluído"}
+${timerAudioUserMessage}` : alertMessage);
   elements.timerAlert.className = `timer-alert ${timerTestAlertUntil > Date.now() || timerRemainingSeconds(goal) <= 60 || floatingTimer.completed ? "strong" : ""}`;
+  elements.timerTime.classList.toggle("completed", Boolean(floatingTimer.completed));
+  elements.floatingTimer.classList.toggle("timer-finished", Boolean(floatingTimer.completed));
+  const audioStatus = elements.timerSettings?.querySelector("[data-timer-audio-status]");
+  if (audioStatus) audioStatus.textContent = !state.settings?.timerPreferences?.sound ? "Som desativado nas preferências." : (timerAudioPrepared ? "Áudio preparado." : "Toque em “Testar alarme” para liberar o som.");
   elements.timerCompletion.hidden = !floatingTimer.completed || floatingTimer.completionDismissed;
   elements.timerPauseResume.textContent = floatingTimer.paused ? "Continuar" : "Pausar";
   elements.timerSettings?.querySelectorAll("input[data-timer-pref]").forEach((input) => { input.checked = Boolean(state.settings?.timerPreferences?.[input.dataset.timerPref]); });
@@ -1450,8 +1486,8 @@ function startFloatingTimer(goal, kind = "study") {
   state.settings.timerMode = selectedMode;
   saveData();
   autoSyncAfterSave("timer-settings");
-  prepareTimerAudioContext();
-  floatingTimer = { goalId: goal.id, kind, elapsedSeconds: 0, startedAt: Date.now(), paused: false, intervalId: null, completed: false, warnedFive: false, warnedOne: false, completionDismissed: false, displayedMotivationalMilestones: [], mode: selectedMode, sessionGoalMinutes };
+  prepareTimerAudio();
+  floatingTimer = { goalId: goal.id, kind, elapsedSeconds: 0, startedAt: Date.now(), paused: false, intervalId: null, completed: false, completionAlarmPlayed: false, previousRemainingSeconds: null, warnedFive: false, warnedOne: false, completionDismissed: false, displayedMotivationalMilestones: [], mode: selectedMode, sessionGoalMinutes };
   floatingTimer.intervalId = setInterval(renderFloatingTimer, 1000);
   persistFloatingTimerSession();
   renderFloatingTimer();
@@ -1474,6 +1510,8 @@ function resetFloatingTimer() {
   floatingTimer.elapsedSeconds = 0;
   floatingTimer.startedAt = floatingTimer.paused ? null : Date.now();
   floatingTimer.completed = false;
+  floatingTimer.completionAlarmPlayed = false;
+  floatingTimer.previousRemainingSeconds = null;
   floatingTimer.warnedFive = false;
   floatingTimer.warnedOne = false;
   floatingTimer.completionDismissed = false;
@@ -1483,7 +1521,7 @@ function resetFloatingTimer() {
 }
 function closeFloatingTimer() {
   stopFloatingTimerInterval();
-  floatingTimer = { goalId: null, kind: null, elapsedSeconds: 0, startedAt: null, paused: false, intervalId: null, completed: false, warnedFive: false, warnedOne: false, completionDismissed: false, displayedMotivationalMilestones: [], mode: state.settings?.timerMode || "countdown" };
+  floatingTimer = { goalId: null, kind: null, elapsedSeconds: 0, startedAt: null, paused: false, intervalId: null, completed: false, completionAlarmPlayed: false, previousRemainingSeconds: null, warnedFive: false, warnedOne: false, completionDismissed: false, displayedMotivationalMilestones: [], mode: state.settings?.timerMode || "countdown" };
   state.timerSession = null;
   saveData();
   renderFloatingTimer();
@@ -4818,6 +4856,7 @@ elements.nextDailyGoal?.addEventListener("click", handleDailyGoalActionClick);
 elements.floatingTimer?.addEventListener("click", (event) => {
   const action = event.target.closest("button[data-timer-action]")?.dataset.timerAction;
   if (!action) return;
+  if (["pause", "continue"].includes(action)) prepareTimerAudio();
   if (action === "pause") pauseOrResumeFloatingTimer();
   if (action === "save") saveFloatingTimerTime();
   if (action === "reset") resetFloatingTimer();
@@ -4831,7 +4870,7 @@ document.addEventListener("change", async (event) => {
   if (!input) return;
   state.settings ||= {}; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences);
   const key = input.dataset.timerPref;
-  if (key === "sound" && input.checked) prepareTimerAudioContext();
+  if (key === "sound" && input.checked) prepareTimerAudio();
   if (key === "browserNotifications" && input.checked) await enableTimerNotifications(input);
   else state.settings.timerPreferences[key] = input.type === "checkbox" ? input.checked : input.value;
   saveTimerPreferences();
@@ -5326,3 +5365,5 @@ function registerServiceWorker() {
 }
 
 registerServiceWorker();
+
+["visibilitychange", "pageshow", "focus"].forEach((eventName) => window.addEventListener(eventName, () => { if (!floatingTimer.goalId) return; renderFloatingTimer(); }));

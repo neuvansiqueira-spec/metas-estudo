@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260714-conselheiro-autonomo-preditivo-v1",
+  "version": "20260714-safe-area-mensagens-alarme-cronometro-v3",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
