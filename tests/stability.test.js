@@ -38,10 +38,10 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão atual', () => {
-  assert.match(html, /style\.css\?v=20260714-conselheiro-autonomo-preditivo-v1/);
-  assert.match(html, /storage-indexeddb\.js\?v=20260714-conselheiro-autonomo-preditivo-v1/);
-  assert.match(html, /script\.js\?v=20260714-conselheiro-autonomo-preditivo-v1/);
-  assert.match(html, /Versão: 20260714-conselheiro-autonomo-preditivo-v1/);
+  assert.match(html, /style\.css\?v=20260714-safe-area-mensagens-alarme-cronometro-v3/);
+  assert.match(html, /storage-indexeddb\.js\?v=20260714-safe-area-mensagens-alarme-cronometro-v3/);
+  assert.match(html, /script\.js\?v=20260714-safe-area-mensagens-alarme-cronometro-v3/);
+  assert.match(html, /Versão: 20260714-safe-area-mensagens-alarme-cronometro-v3/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -230,7 +230,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260714-conselheiro-autonomo-preditivo-v1/);
+  assert.match(sw, /metas-estudo-20260714-safe-area-mensagens-alarme-cronometro-v3/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);
@@ -363,10 +363,10 @@ test('alertas do cronômetro disparam uma única vez e usam flags de controle', 
   assert.match(script, /async function triggerTimerAlert\(type, goal = floatingTimerGoal\(\)\)/);
   assert.match(script, /if \(type === "five-minutes"\) floatingTimer\.warnedFive = true/);
   assert.match(script, /if \(type === "one-minute"\) floatingTimer\.warnedOne = true/);
-  assert.match(script, /if \(type === "completed"\) floatingTimer\.completed = true/);
+  assert.match(script, /if \(type === "completed"\) \{ floatingTimer\.completed = true; floatingTimer\.completionAlarmPlayed = true/);
   assert.match(script, /remaining <= 300 && remaining > 60 && !floatingTimer\.warnedFive\) triggerTimerAlert\("five-minutes"/);
   assert.match(script, /remaining <= 60 && remaining > 0\) \{ if \(!floatingTimer\.warnedOne\) triggerTimerAlert\("one-minute"/);
-  assert.match(script, /remaining <= 0\) \{ if \(!floatingTimer\.completed\) triggerTimerAlert\("completed"/);
+  assert.match(script, /if \(crossedToZero \|\| remaining <= 0\) \{ if \(!floatingTimer\.completionAlarmPlayed\) triggerTimerAlert\("completed"/);
 });
 
 test('alertas do cronômetro são resilientes e não ocorrem em modo livre sem meta', () => {
@@ -377,7 +377,7 @@ test('alertas do cronômetro são resilientes e não ocorrem em modo livre sem m
   assert.match(script, /serviceWorkerRegistration\?\.showNotification/);
   assert.match(script, /new Notification\(timerAlertTitle\(type\), options\)/);
   assert.match(script, /catch \(error\) \{ console\.warn\("Falha na notificação do cronômetro"/);
-  assert.match(script, /const ctx = await prepareTimerAudioContext\(\)/);
+  assert.match(script, /const ctx = timerAudioPrepared \? timerAudioContext : await prepareTimerAudio\(\)/);
 });
 
 
@@ -424,18 +424,19 @@ test('teste de alertas do cronômetro não é bloqueante e renderiza imediatamen
 test('áudio do cronômetro aguarda resume e reporta bloqueio', () => {
   assert.match(script, /async function prepareTimerAudioContext\(\)/);
   assert.match(script, /await timerAudioContext\.resume\(\)/);
+  assert.match(script, /async function playTimerCompletionAlarm/);
   assert.match(script, /async function playTimerBeep/);
   assert.match(script, /ctx\.state !== "running"\) return false/);
   assert.match(script, /Som: \$\{sound\}/);
   assert.match(script, /\? "reproduzido" : "bloqueado"/);
   assert.match(script, /timerAlertSoundPattern\(type = "completed"\)/);
-  assert.match(script, /sequences: 3, sequenceGap: 1\.55, gain: 0\.22 \* volume/);
+  assert.match(script, /tones: \[\{ frequency: 660/);
   assert.match(script, /osc\.stop\(start \+ duration \+ 0\.04\)/);
 });
 
 
-test('alerta final tem três sequências e intensidades distintas dos avisos', () => {
-  assert.match(script, /return \{ sequences: 3, sequenceGap: 1\.55, gain: 0\.22 \* volume/);
+test('alerta final tem sequência curta e intensidades distintas dos avisos', () => {
+  assert.match(script, /return \{ sequences: 1, sequenceGap: 0, gain: 0\.18 \* volume/);
   assert.match(script, /type === "five-minutes"\) return \{ sequences: 1, sequenceGap: 0, gain: 0\.09 \* volume/);
   assert.match(script, /type === "one-minute"\) return \{ sequences: 1, sequenceGap: 0, gain: 0\.14 \* volume/);
   assert.match(script, /for \(let sequence = 0; sequence < pattern\.sequences; sequence \+= 1\)/);
@@ -511,12 +512,36 @@ test('mensagens motivacionais do cronômetro regressivo cobrem marcos e estado d
 test('mensagens motivacionais disparam no regressivo e livre com meta, mantendo só o maior marco pendente', () => {
   assert.match(script, /floatingTimer\.mode === "countdown"/);
   assert.match(script, /floatingTimer\.mode === "free"/);
-  assert.match(script, /if \(!goal \|\| !supportedMode \|\| !planned\) return/);
+  assert.match(script, /if \(!goal \|\| !supportedMode \|\| !planned \|\| state\.settings\?\.timerPreferences\?\.motivationalMessages === false\) return/);
   assert.match(script, /\(currentTimerSeconds\(\) \/ planned\) \* 100/);
   assert.match(script, /const reachedMilestones = TIMER_MOTIVATIONAL_MILESTONES\.filter/);
   assert.match(script, /const pendingMilestones = reachedMilestones\.filter/);
   assert.match(script, /pendingMilestones\[pendingMilestones\.length - 1\]/);
   assert.match(script, /\.\.\.new Set\(\[\.\.\.shown, \.\.\.reachedMilestones\]\)/);
+});
+
+
+test('alarme regressivo é robusto em áudio, vibração, aba em segundo plano e preferências', () => {
+  assert.match(script, /function timerTargetEndTime/);
+  assert.match(script, /Date\.now\(\)/);
+  assert.match(script, /completionAlarmPlayed: false/);
+  assert.match(script, /previousRemainingSeconds: null/);
+  assert.match(script, /const crossedToZero = \(floatingTimer\.previousRemainingSeconds \?\? remaining \+ 1\) > 0 && remaining <= 0/);
+  assert.match(script, /\["visibilitychange", "pageshow", "focus"\]/);
+  assert.match(script, /window\.addEventListener\(eventName/);
+  assert.match(script, /window\.AudioContext \|\| window\.webkitAudioContext/);
+  assert.match(script, /timerAudioContext \|\|= new AudioCtx\(\)/);
+  assert.match(script, /timerAudioPrepared = true/);
+  assert.match(script, /playTimerCompletionAlarm/);
+  assert.match(script, /\[200, 120, 200, 120, 350\]/);
+  assert.match(script, /timerAudioUserMessage = "O navegador não permitiu o som/);
+  assert.match(script, /sound: true, vibration: true, motivationalMessages: true/);
+  assert.match(html, /TESTAR ALARME|Testar alarme/);
+  assert.match(html, /data-timer-audio-status/);
+  assert.match(html, /TEMPO CONCLUÍDO/);
+  assert.match(css, /\.floating-timer\.timer-finished/);
+  assert.equal(script, fs.readFileSync('docs/script.js', 'utf8'), 'script.js e docs/script.js devem permanecer sincronizados');
+  assert.equal(html, fs.readFileSync('docs/index.html', 'utf8'), 'index.html e docs/index.html devem permanecer sincronizados');
 });
 
 test('toast motivacional é único, some automaticamente e é acessível', () => {

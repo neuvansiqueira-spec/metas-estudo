@@ -2610,6 +2610,9 @@ th {
 .floating-timer-time { color: #0f172a; font-size: 2rem; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: .04em; }
 .floating-timer-actions { flex-wrap: wrap; }
 .floating-timer-actions button { flex: 1 1 130px; }
+.floating-timer.timer-finished { border: 3px solid #b91c1c; box-shadow: 0 18px 45px rgba(185,28,28,.24); }
+.floating-timer-time.completed { background: #7f1d1d; color: #fff; border-radius: 14px; padding: 10px 12px; text-align: center; }
+
 @media (max-width: 720px) {
   .floating-timer { bottom: 74px; }
   .floating-timer-time { font-size: 1.7rem; }

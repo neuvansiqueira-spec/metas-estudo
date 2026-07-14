@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260714-conselheiro-autonomo-preditivo-v1" />
+  <link rel="stylesheet" href="style.css?v=20260714-safe-area-mensagens-alarme-cronometro-v3" />
 </head>
 <body>
   <header class="hero">
@@ -823,7 +823,8 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
       <small id="timerProgressText" class="item-meta">0% do tempo decorrido</small>
       <div id="timerAlert" class="timer-alert" aria-live="assertive" hidden></div>
       <section id="timerCompletion" class="timer-completion" aria-live="assertive" hidden>
-        <strong>✅ Tempo concluído</strong>
+        <strong>TEMPO CONCLUÍDO</strong>
+        <p>Seu período terminou. Salve o tempo ou continue somente para concluir o ponto atual.</p>
         <div class="floating-timer-actions">
           <button type="button" data-timer-action="save">Salvar tempo</button>
           <button type="button" class="secondary-button" data-timer-action="continue">Continuar estudando</button>
@@ -835,11 +836,13 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     <details id="timerSettings" class="timer-settings">
       <summary>Configurações do cronômetro</summary>
       <label><input type="checkbox" data-timer-pref="visualAlerts" checked /> Alerta visual</label>
-      <label><input type="checkbox" data-timer-pref="sound" /> Som do cronômetro</label>
+      <label><input type="checkbox" data-timer-pref="sound" checked /> Alarme ao concluir</label>
       <label>Volume do alerta: <select data-timer-pref="alertVolume"><option value="low">Baixo</option><option value="medium">Médio</option><option value="high">Alto</option></select></label>
-      <label><input type="checkbox" data-timer-pref="vibration" checked /> Vibração</label>
+      <label><input type="checkbox" data-timer-pref="vibration" checked /> Vibração ao concluir</label>
+      <label><input type="checkbox" data-timer-pref="motivationalMessages" checked /> Mensagens de incentivo</label>
       <label><input type="checkbox" data-timer-pref="browserNotifications" /> Permitir notificações do cronômetro</label>
-      <button type="button" class="secondary-button" data-timer-action="test-alerts">Testar alertas</button>
+      <button type="button" class="secondary-button" data-timer-action="test-alerts">Testar alarme</button>
+      <small class="item-meta" data-timer-audio-status>Toque em “Testar alarme” para liberar o som.</small>
     </details>
     <div class="floating-timer-actions">
       <button id="timerPauseResume" type="button" data-timer-action="pause">Pausar</button>
@@ -850,12 +853,12 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
   </aside>
   <div id="timerMotivationalToast" class="timer-motivational-toast" aria-live="polite" aria-atomic="true" hidden></div>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260714-conselheiro-autonomo-preditivo-v1</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260714-safe-area-mensagens-alarme-cronometro-v3</p></footer>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="storage-indexeddb.js?v=20260714-conselheiro-autonomo-preditivo-v1"></script>
-  <script src="analytics-engine.js?v=20260714-conselheiro-autonomo-preditivo-v1"></script>
-  <script src="study-advisor.js?v=20260714-conselheiro-autonomo-preditivo-v1"></script>
-  <script src="advisor-navigation-engine.js?v=20260714-conselheiro-autonomo-preditivo-v1"></script>
-  <script src="script.js?v=20260714-conselheiro-autonomo-preditivo-v1"></script>
+  <script src="storage-indexeddb.js?v=20260714-safe-area-mensagens-alarme-cronometro-v3"></script>
+  <script src="analytics-engine.js?v=20260714-safe-area-mensagens-alarme-cronometro-v3"></script>
+  <script src="study-advisor.js?v=20260714-safe-area-mensagens-alarme-cronometro-v3"></script>
+  <script src="advisor-navigation-engine.js?v=20260714-safe-area-mensagens-alarme-cronometro-v3"></script>
+  <script src="script.js?v=20260714-safe-area-mensagens-alarme-cronometro-v3"></script>
 </body>
 </html>
