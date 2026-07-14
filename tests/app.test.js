@@ -199,16 +199,16 @@ test('Gráficos didáticos exibem duração humana, ordenação, zero recolhíve
 test('Botão Gerar PDF é direto, não depende do modal, e CSS mobile evita hifenização e rolagem horizontal', () => {
   assert.match(html, /data-performance-export="pdf"[^>]*>Gerar PDF/);
   assert.match(html, /export-direct-button" data-performance-export="pdf">Gerar PDF/);
-  assert.match(script, /document\.querySelectorAll\('\[data-performance-export\]'\)/);
+  assert.match(script, /performanceExportEventsInitialized/);
   assert.match(script, /No iPhone, use Compartilhar na tela de impressão e escolha Salvar em Arquivos\./);
   assert.match(style, /hyphens\s*:\s*none/);
   assert.match(style, /grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
-  assert.match(style, /\.analytics-export-actions button[\s\S]*white-space:\s*normal/);
+  assert.match(style, /\.analytics-export-toolbar button[\s\S]*white-space:\s*normal/);
 });
 
 test('Exportação cobre gráficos individuais, PDF, compartilhamento, clique duplicado e responsividade', () => {
   ['daily','questions','disciplines','mocks','planned','hours','net'].forEach((type) => assert.match(script, new RegExp(`data-chart-export="${type}"|chartRowsForType[\\s\\S]*${type}`)));
-  assert.match(script, /aria-label="Exportar gráfico Evolução diária"/);
+  assert.match(script, /aria-label="Exportar gráfico Evolução do estudo"/);
   assert.match(script, /navigator\.canShare\?\.\(\{ files:/);
   assert.match(script, /downloadGeneratedFile\(blob, filename\)/);
   assert.match(script, /if \(button\?\.disabled\) return/);
@@ -224,4 +224,46 @@ test('Exportação cobre gráficos individuais, PDF, compartilhamento, clique du
   assert.equal(exportArea.includes('alert('), false);
   assert.equal(exportArea.includes('prompt('), false);
   assert.equal(exportArea.includes('confirm('), false);
+});
+
+
+test('Análise Estratégica unificada remove duplicações e estabiliza exportação', () => {
+  assert.doesNotMatch(script, /centralVisual/);
+  assert.doesNotMatch(script, /<h3>Gráficos<\/h3>/);
+  assert.doesNotMatch(script, /Resumo do Período/);
+  assert.doesNotMatch(script, /Desempenho Cebraspe/);
+  assert.match(script, /function renderAnalyticsHeader\(/);
+  assert.match(script, /function renderAnalyticsMaturity\(/);
+  assert.match(script, /function renderAnalyticsSummary\(/);
+  assert.match(script, /function renderAnalyticsComparison\(/);
+  assert.match(script, /function renderStudyEvolutionCharts\(/);
+  assert.match(script, /function renderQuestionPerformanceChart\(/);
+  assert.match(script, /function renderDisciplinePerformancePanel\(/);
+  assert.match(script, /function renderMockEvolutionChart\(/);
+  assert.match(script, /function renderPlannedVsActualChart\(/);
+  assert.match(script, /function renderAnalyticsInsights\(/);
+  assert.match(script, /function renderDetailedDiagnosis\(/);
+  assert.equal((script.match(/<h3>Resumo principal<\/h3>/g) || []).length, 1);
+  assert.equal((script.match(/<h4>Horas por disciplina<\/h4>/g) || []).length, 1);
+  assert.equal((script.match(/<h4>Líquido por disciplina<\/h4>/g) || []).length, 1);
+  assert.equal((script.match(/<h3>Evolução dos simulados<\/h3>/g) || []).length, 3);
+  assert.match(script, /performanceExportEventsInitialized = true/);
+  assert.match(script, /latestPerformanceExportPayload = payload/);
+  assert.match(script, /Líquido em destaque/);
+  assert.doesNotMatch(script, /cebraspeNet"]\)/);
+  assert.match(script, /Ainda não existem questões registradas neste período\./);
+  assert.match(script, /Ver diagnóstico estratégico detalhado/);
+  assert.match(script, /<summary>Qualidade dos dados<\/summary>/);
+});
+
+test('Filtros, exportação e mobile da análise estratégica usam estruturas separadas', () => {
+  assert.match(html, /id="analyticsPeriodForm" class="analytics-filters analytics-filter-grid"/);
+  assert.match(html, /class="analytics-export-toolbar"/);
+  assert.ok(html.indexOf('analytics-filter-grid') < html.indexOf('analytics-export-toolbar'));
+  assert.match(style, /\.analytics-filter-grid\s*\{/);
+  assert.match(style, /\.analytics-export-toolbar\s*\{/);
+  assert.match(style, /@media \(max-width: 768px\)[\s\S]*\.analytics-filter-grid \{ grid-template-columns: 1fr; \}/);
+  assert.match(style, /@media \(max-width: 390px\)[\s\S]*\.analytics-export-toolbar \{ grid-template-columns: 1fr; \}/);
+  assert.match(style, /overflow-wrap: break-word/);
+  assert.match(style, /hyphens: none/);
 });
