@@ -3521,7 +3521,7 @@ footer {
 @media (max-width: 768px) { .day-mode-grid { grid-template-columns: 1fr; } .planning-actions { justify-content: stretch; } .planning-actions button { width: 100%; } }
 
 #view-planejamento {
-  padding-bottom: calc(130px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(150px + env(safe-area-inset-bottom, 0px));
 }
 
 .planning-form-stack,
@@ -3546,6 +3546,127 @@ footer {
   word-break: normal;
   overflow-wrap: break-word;
   hyphens: none;
+}
+
+.planning-forecast-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  width: 100%;
+}
+
+.planning-forecast-card {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  overflow: hidden;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: #f8fbff;
+}
+
+.planning-forecast-label {
+  display: block;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: .85rem;
+  margin-bottom: 8px;
+}
+
+.planning-forecast-value {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  font-size: clamp(1rem, 4vw, 1.35rem);
+  line-height: 1.2;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+  hyphens: none;
+}
+
+.weekly-plan-desktop {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.weekly-plan-desktop table {
+  width: 100%;
+  table-layout: auto;
+}
+
+.weekly-plan-desktop th,
+.weekly-plan-desktop td {
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+  hyphens: none;
+}
+
+.weekly-plan-mobile {
+  display: none;
+}
+
+.weekly-plan-day-card {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--card);
+  overflow: hidden;
+}
+
+.weekly-plan-day-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.weekly-plan-day-card ul {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.weekly-plan-day-card li {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.weekly-plan-day-card li strong,
+.weekly-plan-day-card li span {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+  hyphens: none;
+}
+
+@media (max-width: 768px) {
+  .planning-forecast-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .weekly-plan-desktop {
+    display: none;
+  }
+
+  .weekly-plan-mobile {
+    display: grid;
+    gap: 12px;
+  }
 }
 
 .planning-summary-grid {

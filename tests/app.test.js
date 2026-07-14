@@ -398,8 +398,51 @@ test('Hotfix seleciona disciplinas e assuntos distintos e reconciliação é ide
   assert.match(script, /function isProtectedDailyGoal\(goal\)[\s\S]*isManualDailyGoal\(goal\)[\s\S]*isGoalDone\(goal\)[\s\S]*isGoalInProgress\(goal\)[\s\S]*goalTotalActualMinutes\(goal\) > 0/);
   assert.match(script, /dayModeIncludesGoals\(dayContent\.mode\) \? Math\.max/);
   assert.match(script, /dayModeIncludesQuestions\(cfg\.mode\)/);
-  assert.match(style, /#view-planejamento\s*\{[\s\S]*padding-bottom: calc\(130px \+ env\(safe-area-inset-bottom, 0px\)\)/);
+  assert.match(style, /#view-planejamento\s*\{[\s\S]*padding-bottom: calc\(150px \+ env\(safe-area-inset-bottom, 0px\)\)/);
   assert.match(style, /\.planning-form-stack,[\s\S]*\.planning-preview-wrapper,[\s\S]*\.planning-content\s*\{[\s\S]*padding-bottom: 24px/);
+  assert.strictEqual(script, docsScript);
+  assert.strictEqual(style, docsStyle);
+});
+
+
+test('Hotfix da previsão em ajustes avançados não usa stat-card para textos longos', () => {
+  const forecastBlock = script.slice(script.indexOf('function planningForecastCard'), script.indexOf('function renderPlanningPreview'));
+  assert.match(script, /function planningForecastCard\(label, value\)/);
+  assert.match(forecastBlock, /planning-forecast-card/);
+  assert.match(forecastBlock, /planning-forecast-label/);
+  assert.match(forecastBlock, /planning-forecast-value/);
+  assert.doesNotMatch(forecastBlock, /<article class="stat-card"/);
+  assert.match(script, /\["Situação do edital",m\.diffDays !== null/);
+  assert.match(style, /\.planning-forecast-value\s*\{[\s\S]*font-size: clamp\(1rem, 4vw, 1\.35rem\);[\s\S]*word-break: normal;[\s\S]*overflow-wrap: break-word;[\s\S]*hyphens: none;/);
+  assert.match(style, /\.planning-forecast-card\s*\{[\s\S]*min-width: 0;[\s\S]*width: 100%;[\s\S]*max-width: 100%;[\s\S]*height: auto;[\s\S]*overflow: hidden;/);
+});
+
+test('Hotfix do weeklyGoalsPlan alterna tabela desktop e cartões mobile agrupados por data', () => {
+  const weeklyBlock = script.slice(script.indexOf('function renderWeeklyGoalsPlanDesktop'), script.indexOf('function renderPlanning()'));
+  assert.match(weeklyBlock, /function renderWeeklyGoalsPlanDesktop\(days\)/);
+  assert.match(weeklyBlock, /function renderWeeklyGoalsPlanMobile\(days\)/);
+  assert.match(weeklyBlock, /weekly-plan-desktop/);
+  assert.match(weeklyBlock, /weekly-plan-mobile/);
+  assert.match(weeklyBlock, /weekly-plan-day-card/);
+  assert.match(weeklyBlock, /<table><thead><tr><th>Data<\/th><th>Disciplina<\/th><th>Assunto<\/th><\/tr><\/thead>/);
+  assert.match(weeklyBlock, /days\.map\(\(day\)=>`<article class="weekly-plan-day-card">/);
+  assert.match(weeklyBlock, /<header><strong>\$\{formatDateBR\(day\.date\)\}<\/strong><span>\$\{day\.goals\.length\}/);
+  assert.match(weeklyBlock, /<li><strong>\$\{escapeHTML\(goal\.discipline/);
+  assert.match(weeklyBlock, /<span>\$\{escapeHTML\(goal\.subject/);
+  assert.match(style, /\.weekly-plan-mobile\s*\{\s*display: none;\s*\}/);
+  assert.match(style, /@media \(max-width: 768px\) \{[\s\S]*\.weekly-plan-desktop\s*\{[\s\S]*display: none;[\s\S]*\.weekly-plan-mobile\s*\{[\s\S]*display: grid;[\s\S]*gap: 12px;/);
+});
+
+test('Hotfix do weeklyGoalsPlan usa seleção distinta e deduplica somente a visualização', () => {
+  assert.match(script, /function planningGoalDisplayKey\(goal\)/);
+  assert.match(script, /function dedupeWeeklyGoalsForDisplay\(goals = \[\]\)/);
+  assert.match(script, /if \(seen\.has\(key\) && !isManualDailyGoal\(goal\)\) return false;/);
+  assert.doesNotMatch(script.slice(script.indexOf('function dedupeWeeklyGoalsForDisplay'), script.indexOf('function renderWeeklyGoalsPlanDesktop')), /state\.dailyGoals\s*=|splice\(|saveData\(/);
+  assert.match(script, /selectDistinctPlanningDisciplines\(\{ date, count: requested, existingGoals: manual \}\)\.selected/);
+  assert.match(script, /maxEligible < requestedDisciplines \? `<p class="notice">Apenas \$\{maxEligible\} disciplina elegível disponível\.<\/p>`/);
+  assert.doesNotMatch(style, /#view-planejamento[\s\S]{0,1200}word-break:\s*break-all/);
+  assert.doesNotMatch(style, /#view-planejamento[\s\S]{0,1200}hyphens:\s*auto/);
+  assert.match(style, /#view-planejamento\s*\{[\s\S]*padding-bottom: calc\(150px \+ env\(safe-area-inset-bottom, 0px\)\)/);
   assert.strictEqual(script, docsScript);
   assert.strictEqual(style, docsStyle);
 });
