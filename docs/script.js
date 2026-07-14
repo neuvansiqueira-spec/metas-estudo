@@ -1153,6 +1153,7 @@ let pendingBackupPayload = null;
 let syllabusVisibleCount = 30;
 let editingSyllabusId = null;
 let lastTimeAction = null;
+let pendingTimerStudyDraft = null;
 
 let floatingTimer = {
   goalId: null,
@@ -1168,7 +1169,10 @@ let floatingTimer = {
   warnedOne: false,
   completionDismissed: false,
   displayedMotivationalMilestones: [],
-  mode: "countdown"
+  mode: "countdown",
+  pauses: [],
+  resumes: [],
+  openedAt: null
 };
 
 function timerKindLabel(kind) { return kind === "questions" ? "Questões" : "Estudo"; }
@@ -1189,6 +1193,18 @@ function timerSavedMinutes(seconds) {
   const fullMinutes = Math.floor(seconds / 60);
   const rounded = fullMinutes + (seconds % 60 >= 30 ? 1 : 0);
   return Math.max(1, rounded);
+}
+function timerModeLabel(mode = floatingTimer.mode) { return mode === "free" ? "Cronômetro livre" : "Contagem regressiva"; }
+function timerSessionStartedAt() {
+  const elapsed = currentTimerSeconds() * 1000;
+  return floatingTimer.openedAt || (floatingTimer.startedAt ? floatingTimer.startedAt - elapsed : Date.now() - elapsed);
+}
+function timerSessionDraft() {
+  const goal = floatingTimerGoal();
+  const endedAt = Date.now();
+  const seconds = currentTimerSeconds();
+  const minutes = timerSavedMinutes(seconds);
+  return { goal, seconds, minutes, startedAt: timerSessionStartedAt(), endedAt, mode: floatingTimer.mode || "countdown", plannedMinutes: Math.round(timerPlannedSeconds(goal) / 60), pauses: [...(floatingTimer.pauses || [])], resumes: [...(floatingTimer.resumes || [])], kind: floatingTimer.kind || "study" };
 }
 function floatingTimerGoal() { return state.dailyGoals.find((goal) => goal.id === floatingTimer.goalId); }
 function stopFloatingTimerInterval() {
@@ -1472,22 +1488,21 @@ function persistFloatingTimerSession() {
 function restoreFloatingTimerSession() {
   const saved = state.timerSession;
   if (!saved?.goalId || !state.dailyGoals.some((g) => g.id === saved.goalId)) return;
-  const choice = prompt("Havia uma sessão em andamento. Deseja continuar, salvar ou descartar?", "continuar");
-  floatingTimer = { ...saved, intervalId: null, startedAt: saved.paused ? null : Date.now() };
-  if (choice === "salvar") saveFloatingTimerTime();
-  else if (choice === "descartar") closeFloatingTimer();
-  else { floatingTimer.intervalId = setInterval(renderFloatingTimer, 1000); renderFloatingTimer(); }
+  floatingTimer = { ...saved, intervalId: null, startedAt: saved.paused ? null : Date.now(), pauses: saved.pauses || [], resumes: saved.resumes || [], openedAt: saved.openedAt || Date.now() };
+  floatingTimer.intervalId = setInterval(renderFloatingTimer, 1000);
+  renderFloatingTimer();
+  showDailyGoalMessage("Sessão do cronômetro restaurada automaticamente.", "success");
 }
 function startFloatingTimer(goal, kind = "study") {
-  if (floatingTimer.goalId && !confirm("Já existe cronômetro em andamento. Deseja substituir?")) return;
+  if (floatingTimer.goalId) { showDailyGoalMessage("Já existe cronômetro em andamento. Salve ou feche a sessão atual antes de iniciar outra.", "error"); return; }
   stopFloatingTimerInterval();
   const selectedMode = elements.timerMode?.value || state.settings?.timerMode || "countdown";
-  const sessionGoalMinutes = selectedMode === "free" ? Number(prompt("Meta opcional da sessão em minutos (deixe 0 para livre)", 0)) || 0 : 0;
+  const sessionGoalMinutes = selectedMode === "free" ? 0 : 0;
   state.settings.timerMode = selectedMode;
   saveData();
   autoSyncAfterSave("timer-settings");
   prepareTimerAudio();
-  floatingTimer = { goalId: goal.id, kind, elapsedSeconds: 0, startedAt: Date.now(), paused: false, intervalId: null, completed: false, completionAlarmPlayed: false, previousRemainingSeconds: null, warnedFive: false, warnedOne: false, completionDismissed: false, displayedMotivationalMilestones: [], mode: selectedMode, sessionGoalMinutes };
+  floatingTimer = { goalId: goal.id, kind, elapsedSeconds: 0, startedAt: Date.now(), paused: false, intervalId: null, completed: false, completionAlarmPlayed: false, previousRemainingSeconds: null, warnedFive: false, warnedOne: false, completionDismissed: false, displayedMotivationalMilestones: [], mode: selectedMode, sessionGoalMinutes, pauses: [], resumes: [], openedAt: Date.now() };
   floatingTimer.intervalId = setInterval(renderFloatingTimer, 1000);
   persistFloatingTimerSession();
   renderFloatingTimer();
@@ -1495,9 +1510,11 @@ function startFloatingTimer(goal, kind = "study") {
 function pauseOrResumeFloatingTimer() {
   if (!floatingTimer.goalId) return;
   if (floatingTimer.paused) {
+    floatingTimer.resumes = [...(floatingTimer.resumes || []), new Date().toISOString()];
     floatingTimer.startedAt = Date.now();
     floatingTimer.paused = false;
   } else {
+    floatingTimer.pauses = [...(floatingTimer.pauses || []), new Date().toISOString()];
     floatingTimer.elapsedSeconds = currentTimerSeconds();
     floatingTimer.startedAt = null;
     floatingTimer.paused = true;
@@ -1516,35 +1533,92 @@ function resetFloatingTimer() {
   floatingTimer.warnedOne = false;
   floatingTimer.completionDismissed = false;
   floatingTimer.displayedMotivationalMilestones = [];
+  floatingTimer.pauses = [];
+  floatingTimer.resumes = [];
+  floatingTimer.openedAt = Date.now();
   persistFloatingTimerSession();
   renderFloatingTimer();
 }
 function closeFloatingTimer() {
   stopFloatingTimerInterval();
-  floatingTimer = { goalId: null, kind: null, elapsedSeconds: 0, startedAt: null, paused: false, intervalId: null, completed: false, completionAlarmPlayed: false, previousRemainingSeconds: null, warnedFive: false, warnedOne: false, completionDismissed: false, displayedMotivationalMilestones: [], mode: state.settings?.timerMode || "countdown" };
+  floatingTimer = { goalId: null, kind: null, elapsedSeconds: 0, startedAt: null, paused: false, intervalId: null, completed: false, completionAlarmPlayed: false, previousRemainingSeconds: null, warnedFive: false, warnedOne: false, completionDismissed: false, displayedMotivationalMilestones: [], mode: state.settings?.timerMode || "countdown", pauses: [], resumes: [], openedAt: null };
   state.timerSession = null;
   saveData();
   renderFloatingTimer();
 }
-function saveFloatingTimerTime() {
-  const goal = floatingTimerGoal();
-  if (!goal) return closeFloatingTimer();
+function openTimerStudyModal() {
+  const draft = timerSessionDraft();
+  if (!draft.goal) return closeFloatingTimer();
+  if (draft.minutes <= 0) { showDailyGoalMessage("Inicie o cronômetro antes de salvar.", "error"); return; }
+  pendingTimerStudyDraft = draft;
+  populateTimerStudyModal(draft);
+  elements.timerStudyModal.hidden = false;
+  document.body.classList.add("modal-open");
+}
+function closeTimerStudyModal() {
+  pendingTimerStudyDraft = null;
+  if (elements.timerStudyModal) elements.timerStudyModal.hidden = true;
+  document.body.classList.remove("modal-open");
+}
+function saveFloatingTimerTime() { openTimerStudyModal(); }
+
+function openDailyDisciplines() {
+  const today = todayISO();
+  const open = state.dailyGoals.filter((goal) => (goal.date || goal.data) === today && !isCompletedStatusValue(goal.status));
+  return [...new Set(open.map((goal) => goal.discipline).filter(Boolean))];
+}
+function optionHTML(value, label = value) { return `<option value="${escapeHTML(value)}">${escapeHTML(label)}</option>`; }
+function subjectsForDiscipline(discipline) {
+  const fromGoals = state.dailyGoals.filter((goal) => canonical(goal.discipline) === canonical(discipline)).map((goal) => goal.subject).filter(Boolean);
+  const fromSyllabus = state.syllabusItems.filter((item) => canonical(item.discipline) === canonical(discipline)).map((item) => item.subject).filter(Boolean);
+  return [...new Set([...fromGoals, ...fromSyllabus])];
+}
+function populateTimerStudySubjects(selected = "") {
+  const discipline = elements.timerStudyDiscipline?.value || "";
+  const subjects = subjectsForDiscipline(discipline);
+  elements.timerStudySubject.innerHTML = subjects.map((subject) => optionHTML(subject)).join("") || optionHTML(selected || "Assunto");
+  if (selected && subjects.includes(selected)) elements.timerStudySubject.value = selected;
+}
+function populateTimerStudyModal(draft) {
+  const goal = draft.goal;
+  const openDisciplines = openDailyDisciplines();
+  const disciplines = [...new Set([...(openDisciplines.length === 1 ? openDisciplines : []), goal.discipline, ...state.subjects.map((s) => s.name)].filter(Boolean))];
+  elements.timerStudyStartedAt.textContent = new Date(draft.startedAt).toLocaleString("pt-BR");
+  elements.timerStudyEndedAt.textContent = new Date(draft.endedAt).toLocaleString("pt-BR");
+  elements.timerStudySessionTime.textContent = `${draft.minutes} min (${formatTimerSeconds(draft.seconds)})`;
+  elements.timerStudySessionMode.textContent = timerModeLabel(draft.mode);
+  elements.timerStudyMinutes.value = `${draft.minutes} min`;
+  elements.timerStudyDiscipline.innerHTML = disciplines.map((discipline) => optionHTML(discipline)).join("");
+  elements.timerStudyDiscipline.value = openDisciplines.length === 1 ? openDisciplines[0] : goal.discipline;
+  populateTimerStudySubjects(goal.subject || "");
+  elements.timerStudyMaterial.innerHTML = optionHTML("", "Sem material vinculado") + state.materials.map((m) => optionHTML(m.id, m.title || m.link || "Material")).join("");
+  elements.timerStudyNotes.value = "";
+  elements.timerStudyUpdateGoal.checked = true;
+  elements.timerStudyFeedAnalytics.checked = true;
+  elements.timerStudyFeedAdvisor.checked = true;
+}
+function submitTimerStudyModal(event) {
+  event.preventDefault();
+  const draft = pendingTimerStudyDraft;
+  if (!draft?.goal) return;
+  const goal = draft.goal;
   normalizeGoalTimeFields(goal);
-  const seconds = currentTimerSeconds();
-  const minutes = timerSavedMinutes(seconds);
-  if (minutes <= 0) return alert("Inicie o cronômetro antes de salvar.");
-  const field = floatingTimer.kind === "questions" ? "questionActualMinutes" : "studyActualMinutes";
-  const label = timerKindLabel(floatingTimer.kind);
-  goal[field] = (Number(goal[field]) || 0) + minutes;
-  goal.actualMinutes = (Number(goal.studyActualMinutes) || 0) + (Number(goal.questionActualMinutes) || 0);
-  goal.studyStatus = goal.actualMinutes > 0 ? "Iniciado" : (goal.studyStatus || "Pendente");
-  if (goal.actualMinutes > 0 && goal.status === "Pendente") goal.status = "Em andamento";
-  appendGoalHistory(goal, `Tempo salvo pelo cronômetro: +${minutes} min em ${label} em ${new Date().toLocaleString("pt-BR")}. Total realizado: ${goal.actualMinutes} min.`);
-  if (floatingTimer.kind !== "questions") state.studies.push({ id: createId(), date: todayISO(), subjectId: state.subjects.find((s) => canonical(s.name) === canonical(goal.discipline))?.id || "", syllabusItemId: goal.syllabusItemId || "", topic: goal.subject || "Assunto", minutes, plannedMinutes: Number(goal.minutes) || 0, topicStatus: "Iniciado", difficultyNotes: `Salvo pelo ${floatingTimer.mode === "free" ? "Cronômetro livre" : "Contagem regressiva"}.`, materialId: "", questions: 0, correct: 0, wrong: 0, blank: 0, origin: floatingTimer.mode === "free" ? "free" : "countdown", goalId: goal.id });
+  const minutes = draft.minutes;
+  const field = draft.kind === "questions" ? "questionActualMinutes" : "studyActualMinutes";
+  const label = timerKindLabel(draft.kind);
+  if (elements.timerStudyUpdateGoal.checked) {
+    goal[field] = (Number(goal[field]) || 0) + minutes;
+    goal.actualMinutes = (Number(goal.studyActualMinutes) || 0) + (Number(goal.questionActualMinutes) || 0);
+    goal.studyStatus = goal.actualMinutes > 0 ? "Iniciado" : (goal.studyStatus || "Pendente");
+    if (goal.actualMinutes > 0 && goal.status === "Pendente") goal.status = "Em andamento";
+    appendGoalHistory(goal, `Tempo salvo pelo cronômetro: +${minutes} min em ${label} em ${new Date(draft.endedAt).toLocaleString("pt-BR")}. Total realizado: ${goal.actualMinutes} min.`);
+  }
+  if (draft.kind !== "questions") state.studies.push({ id: createId(), date: todayISO(), startedAt: new Date(draft.startedAt).toISOString(), endedAt: new Date(draft.endedAt).toISOString(), startTime: new Date(draft.startedAt).toISOString(), endTime: new Date(draft.endedAt).toISOString(), subjectId: state.subjects.find((s) => canonical(s.name) === canonical(elements.timerStudyDiscipline.value))?.id || "", discipline: elements.timerStudyDiscipline.value, syllabusItemId: goal.syllabusItemId || "", topic: elements.timerStudySubject.value || goal.subject || "Assunto", minutes, plannedMinutes: draft.plannedMinutes, timerMode: draft.mode, plannedDuration: draft.plannedMinutes, actualDuration: minutes, pauses: draft.pauses, resumes: draft.resumes, topicStatus: "Iniciado", difficultyNotes: elements.timerStudyNotes.value.trim(), materialId: elements.timerStudyMaterial.value || "", questions: 0, correct: 0, wrong: 0, blank: 0, origin: "timer", timerOrigin: draft.mode, goalId: goal.id, feedAnalytics: elements.timerStudyFeedAnalytics.checked, feedAdvisor: elements.timerStudyFeedAdvisor.checked });
   saveData();
   render();
   showDailyGoalMessage(`Tempo salvo: ${minutes} min em ${label}.`, "success");
   autoSyncAfterSave("timer-save");
+  closeTimerStudyModal();
   closeFloatingTimer();
 }
 
@@ -1572,7 +1646,7 @@ const elements = {
   editFactoryPromptLibrary: $("#editFactoryPromptLibrary"), factoryForm: $("#factoryForm"), factoryEditingId: $("#factoryEditingId"), factoryDiscipline: $("#factoryDiscipline"), factoryTheme: $("#factoryTheme"), factorySubtheme: $("#factorySubtheme"), factoryPriority: $("#factoryPriority"), factoryPlannedDate: $("#factoryPlannedDate"), factoryStatus: $("#factoryStatus"), factorySourceFolder: $("#factorySourceFolder"), factoryDestinationFolder: $("#factoryDestinationFolder"), factoryFinalLink: $("#factoryFinalLink"), factoryLeiNome: $("#factoryLeiNome"), factoryLeiFonte: $("#factoryLeiFonte"), factoryLeiArtigos: $("#factoryLeiArtigos"), factoryLeiRecorte: $("#factoryLeiRecorte"), factoryLeiObservacoes: $("#factoryLeiObservacoes"), factoryNotes: $("#factoryNotes"), factorySummary: $("#factorySummary"), factoryFilterDiscipline: $("#factoryFilterDiscipline"), factoryFilterPriority: $("#factoryFilterPriority"), factoryFilterStatus: $("#factoryFilterStatus"), factoryFilterDate: $("#factoryFilterDate"), factoryFilterView: $("#factoryFilterView"), factoryFilterText: $("#factoryFilterText"), factoryList: $("#factoryList"), factoryPromptLibraryPanel: $("#factoryPromptLibraryPanel"),
   qbSyllabusPackages: $("#qbSyllabusPackages"), qbSyllabusVerticalized: $("#qbSyllabusVerticalized"), qbPreviewSection: $("#qbPreviewSection"), qbSyllabusSummary: $("#qbSyllabusSummary"), qbPackagesSummary: $("#qbPackagesSummary"), qbFile: $("#qbFile"), qbNewTraining: $("#qbNewTraining"), qbRedoBlanks: $("#qbRedoBlanks"), qbExportBank: $("#qbExportBank"), qbExportResults: $("#qbExportResults"), qbClearBank: $("#qbClearBank"), qbMessage: $("#qbMessage"), qbStats: $("#qbStats"), qbDiagnostics: $("#qbDiagnostics"), qbTrainingScope: $("#qbTrainingScope"), qbReviewTypeWrapper: $("#qbReviewTypeWrapper"), qbReviewType: $("#qbReviewType"), qbFilterDiscipline: $("#qbFilterDiscipline"), qbFilterSubject: $("#qbFilterSubject"), qbFilterTheme: $("#qbFilterTheme"), qbFilterBoard: $("#qbFilterBoard"), qbFilterYear: $("#qbFilterYear"), qbFilterSearch: $("#qbFilterSearch"), qbTrainingLimit: $("#qbTrainingLimit"), qbShuffleTraining: $("#qbShuffleTraining"), qbStartTraining: $("#qbStartTraining"), qbPreviewFiltered: $("#qbPreviewFiltered"), qbFilteredPreview: $("#qbFilteredPreview"), qbTrainingPanel: $("#qbTrainingPanel"), qbTrainingCounter: $("#qbTrainingCounter"), qbTrainingProgress: $("#qbTrainingProgress"), qbQuestionCard: $("#qbQuestionCard"), qbResultPanel: $("#qbResultPanel"), qbResultSummary: $("#qbResultSummary"), qbResultDetails: $("#qbResultDetails"), qbErrorStats: $("#qbErrorStats"), qbErrorNotebookList: $("#qbErrorNotebookList"), qbErrorFilterDiscipline: $("#qbErrorFilterDiscipline"), qbErrorFilterSubject: $("#qbErrorFilterSubject"), qbErrorFilterStatus: $("#qbErrorFilterStatus"), qbErrorFilterReason: $("#qbErrorFilterReason"), qbStartErrorNotebook: $("#qbStartErrorNotebook"), qbReviewByDiscipline: $("#qbReviewByDiscipline"), qbReviewBySubject: $("#qbReviewBySubject"), qbToggleErrorHistory: $("#qbToggleErrorHistory"), qbErrorHistory: $("#qbErrorHistory"),
   connectGoogleDrive: $("#connectGoogleDrive"), syncNowButton: $("#syncNow"), pushToCloud: $("#pushToCloud"), pullFromCloud: $("#pullFromCloud"), disconnectGoogleDrive: $("#disconnectGoogleDrive"), syncStatus: $("#syncStatus"),
-  floatingTimer: $("#floatingTimer"), timerDiscipline: $("#timerDiscipline"), timerSubject: $("#timerSubject"), timerKind: $("#timerKind"), timerTime: $("#timerTime"), timerPauseResume: $("#timerPauseResume"), timerProgressBar: $("#timerProgressBar"), timerProgressText: $("#timerProgressText"), timerAlert: $("#timerAlert"), timerCompletion: $("#timerCompletion"), timerSettings: $("#timerSettings"), timerMode: $("#timerMode"), timerMotivationalToast: $("#timerMotivationalToast"), addManualTime: $("#addManualTime"), timeUndoNotice: $("#timeUndoNotice"), undoTimeAction: $("#undoTimeAction")
+  floatingTimer: $("#floatingTimer"), timerDiscipline: $("#timerDiscipline"), timerSubject: $("#timerSubject"), timerKind: $("#timerKind"), timerTime: $("#timerTime"), timerPauseResume: $("#timerPauseResume"), timerProgressBar: $("#timerProgressBar"), timerProgressText: $("#timerProgressText"), timerAlert: $("#timerAlert"), timerCompletion: $("#timerCompletion"), timerSettings: $("#timerSettings"), timerMode: $("#timerMode"), timerMotivationalToast: $("#timerMotivationalToast"), timerStudyModal: $("#timerStudyModal"), timerStudyForm: $("#timerStudyForm"), timerStudyStartedAt: $("#timerStudyStartedAt"), timerStudyEndedAt: $("#timerStudyEndedAt"), timerStudySessionTime: $("#timerStudySessionTime"), timerStudySessionMode: $("#timerStudySessionMode"), timerStudyMinutes: $("#timerStudyMinutes"), timerStudyDiscipline: $("#timerStudyDiscipline"), timerStudySubject: $("#timerStudySubject"), timerStudyMaterial: $("#timerStudyMaterial"), timerStudyNotes: $("#timerStudyNotes"), timerStudyUpdateGoal: $("#timerStudyUpdateGoal"), timerStudyFeedAnalytics: $("#timerStudyFeedAnalytics"), timerStudyFeedAdvisor: $("#timerStudyFeedAdvisor"), addManualTime: $("#addManualTime"), timeUndoNotice: $("#timeUndoNotice"), undoTimeAction: $("#undoTimeAction")
 };
 elements.studyDate.value = todayISO();
 elements.goalDate.value = todayISO();
@@ -4878,7 +4952,10 @@ document.addEventListener("change", async (event) => {
 elements.addManualTime?.addEventListener("click", addManualTime);
 elements.undoTimeAction?.addEventListener("click", undoTimeAction);
 elements.timeHistoryBody?.addEventListener("click", (event) => { const edit = event.target.closest("button[data-time-edit]"); if (edit) return editStudyTime(edit.dataset.timeEdit); const del = event.target.closest("button[data-time-delete]"); if (del) return deleteStudyTime(del.dataset.timeDelete); });
-elements.timerMode?.addEventListener("change", () => { if (floatingTimer.goalId && currentTimerSeconds() > 0) { const choice = prompt("Há uma sessão em andamento. Deseja descartar ou salvar antes? Digite salvar ou descartar.", "salvar"); if (choice === "salvar") saveFloatingTimerTime(); else if (choice === "descartar") closeFloatingTimer(); else { elements.timerMode.value = floatingTimer.mode || "countdown"; return; } } state.settings.timerMode = elements.timerMode.value; saveData(); autoSyncAfterSave("timer-settings"); });
+elements.timerStudyForm?.addEventListener("submit", submitTimerStudyModal);
+elements.timerStudyDiscipline?.addEventListener("change", () => populateTimerStudySubjects());
+document.addEventListener("click", (event) => { if (event.target.closest("[data-timer-study-cancel]")) closeTimerStudyModal(); });
+elements.timerMode?.addEventListener("change", () => { if (floatingTimer.goalId && currentTimerSeconds() > 0) { elements.timerMode.value = floatingTimer.mode || "countdown"; showDailyGoalMessage("Salve ou feche a sessão atual antes de trocar o modo do cronômetro.", "error"); return; } state.settings.timerMode = elements.timerMode.value; saveData(); autoSyncAfterSave("timer-settings"); });
 document.addEventListener("click", (event) => { const btn = event.target.closest("button[data-smart-review-action]"); if (!btn) return; saveSmartReviewAction(btn.dataset.id, btn.dataset.smartReviewAction === "done" ? "revisado" : "adiado"); });
 document.addEventListener("change", (event) => { const input = event.target.closest("input[data-smart-review-time]"); if (!input) return; upsertSmartReviewTime(input.dataset.id, input.dataset.smartReviewTime, input.value); });
 elements.viewDayPlan?.addEventListener("click", () => { elements.goalDate.value = todayISO(); renderDailyGoals(); showView("metas-do-dia"); });
