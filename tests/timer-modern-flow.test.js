@@ -55,3 +55,35 @@ test('raiz e docs permanecem identicos nos arquivos publicados', () => {
   assert.equal(html, docsHtml);
   assert.equal(css, docsCss);
 });
+
+test('Plano do Dia reconcilia disciplinas por dia sem repetir enquanto houver elegiveis', () => {
+  assert.match(script, /function reconcileDailyGoalsWithPlanning\(targetState = state, date = todayISO\(\), opts = \{\}\)/);
+  assert.match(script, /const expected = Math\.max\(0, Number\(targetState\.planning\?\.config\?\.disciplinesPerDay\)/);
+  assert.match(script, /selectableDisciplineGoalsForDate/);
+  assert.match(script, /if \(usedDisciplines\.has\(canonical\(goal\.discipline\)\)\) continue/);
+  assert.match(script, /new Set\(\(targetState\.dailyGoals \|\| \[\]\)\.filter/);
+  assert.match(script, /Planejamento prevê \$\{expected\} disciplinas, mas existem apenas \$\{disciplines\.size\} disciplinas elegíveis/);
+});
+
+test('Assuntos por dia nao reduz quantidade de disciplinas e excedentes sao removidos com seguranca', () => {
+  assert.match(script, /topicLimit: Math\.max\(Number\(planningConfig\(\)\.topicsPerDay\) \|\| 1, Number\(planningConfig\(\)\.disciplinesPerDay\) \|\| 1\)/);
+  assert.match(script, /function isProtectedDailyGoal\(goal\).*isManualDailyGoal\(goal\).*isGoalDone\(goal\).*isGoalInProgress\(goal\).*goalTotalActualMinutes\(goal\) > 0/s);
+  assert.match(script, /function isAutomaticIntactDailyGoal\(goal\) \{ return !isProtectedDailyGoal\(goal\); \}/);
+  assert.match(script, /report\.removed\.push\(goal\.id\)/);
+});
+
+test('Salvar Planejamento atualiza Plano do Dia e botao manual tambem reconcilia', () => {
+  assert.match(script, /const report = reconcileDailyGoalsWithPlanning\(state, elements\.goalDate\?\.value \|\| todayISO\(\)\)/);
+  assert.match(script, /Planejamento salvo e Plano do Dia atualizado/);
+  assert.match(script, /const report = reconcileDailyGoalsWithPlanning\(state, date, \{ manual: availabilityForDate\(date\)\.type === "indisponível" \}\)/);
+  assert.doesNotMatch(script, /location\.reload\(\)/);
+});
+
+test('Cronometro carrega contexto do cartao, usa minutos automaticos e bloqueia duplicidade', () => {
+  assert.match(script, /floatingTimer = \{ sessionId: createId\(\), goalId: goal\.id, goalDate: goal\.date \|\| goal\.data, discipline: goal\.discipline, subject: goal\.subject/);
+  assert.match(script, /elements\.timerStudyMinutes\.value = `\$\{draft\.minutes\} min`/);
+  assert.match(html, /readonly aria-readonly="true"/);
+  assert.match(script, /state\.studies\.some\(\(study\) => study\.timerSessionId === draft\.sessionId\)/);
+  assert.match(script, /timerSessionId: draft\.sessionId/);
+  assert.doesNotMatch(script.slice(script.indexOf('function openTimerStudyModal()'), script.indexOf('function submitTimerStudyModal')), /prompt\s*\(/);
+});

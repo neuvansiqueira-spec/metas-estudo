@@ -1204,7 +1204,7 @@ function timerSessionDraft() {
   const endedAt = Date.now();
   const seconds = currentTimerSeconds();
   const minutes = timerSavedMinutes(seconds);
-  return { goal, seconds, minutes, startedAt: timerSessionStartedAt(), endedAt, mode: floatingTimer.mode || "countdown", plannedMinutes: Math.round(timerPlannedSeconds(goal) / 60), pauses: [...(floatingTimer.pauses || [])], resumes: [...(floatingTimer.resumes || [])], kind: floatingTimer.kind || "study" };
+  return { sessionId: floatingTimer.sessionId || floatingTimer.openedAt || createId(), goal, seconds, minutes, startedAt: timerSessionStartedAt(), endedAt, mode: floatingTimer.mode || "countdown", plannedMinutes: Math.round(timerPlannedSeconds(goal) / 60), pauses: [...(floatingTimer.pauses || [])], resumes: [...(floatingTimer.resumes || [])], kind: floatingTimer.kind || "study", origin: "Plano do Dia" };
 }
 function floatingTimerGoal() { return state.dailyGoals.find((goal) => goal.id === floatingTimer.goalId); }
 function stopFloatingTimerInterval() {
@@ -1502,7 +1502,7 @@ function startFloatingTimer(goal, kind = "study") {
   saveData();
   autoSyncAfterSave("timer-settings");
   prepareTimerAudio();
-  floatingTimer = { goalId: goal.id, kind, elapsedSeconds: 0, startedAt: Date.now(), paused: false, intervalId: null, completed: false, completionAlarmPlayed: false, previousRemainingSeconds: null, warnedFive: false, warnedOne: false, completionDismissed: false, displayedMotivationalMilestones: [], mode: selectedMode, sessionGoalMinutes, pauses: [], resumes: [], openedAt: Date.now() };
+  floatingTimer = { sessionId: createId(), goalId: goal.id, goalDate: goal.date || goal.data, discipline: goal.discipline, subject: goal.subject, material: goal.estimateSourceId || "", plannedMinutes: Number(goal.minutes) || 0, origin: "Plano do Dia", kind, elapsedSeconds: 0, startedAt: Date.now(), paused: false, intervalId: null, completed: false, completionAlarmPlayed: false, previousRemainingSeconds: null, warnedFive: false, warnedOne: false, completionDismissed: false, displayedMotivationalMilestones: [], mode: selectedMode, sessionGoalMinutes, pauses: [], resumes: [], openedAt: Date.now() };
   floatingTimer.intervalId = setInterval(renderFloatingTimer, 1000);
   persistFloatingTimerSession();
   renderFloatingTimer();
@@ -1600,7 +1600,7 @@ function populateTimerStudyModal(draft) {
 function submitTimerStudyModal(event) {
   event.preventDefault();
   const draft = pendingTimerStudyDraft;
-  if (!draft?.goal) return;
+  if (!draft?.goal || !draft.sessionId || state.studies.some((study) => study.timerSessionId === draft.sessionId)) { showDailyGoalMessage("Esta sessão do cronômetro já foi salva.", "warning"); return; }
   const goal = draft.goal;
   normalizeGoalTimeFields(goal);
   const minutes = draft.minutes;
@@ -1613,7 +1613,7 @@ function submitTimerStudyModal(event) {
     if (goal.actualMinutes > 0 && goal.status === "Pendente") goal.status = "Em andamento";
     appendGoalHistory(goal, `Tempo salvo pelo cronômetro: +${minutes} min em ${label} em ${new Date(draft.endedAt).toLocaleString("pt-BR")}. Total realizado: ${goal.actualMinutes} min.`);
   }
-  if (draft.kind !== "questions") state.studies.push({ id: createId(), date: todayISO(), startedAt: new Date(draft.startedAt).toISOString(), endedAt: new Date(draft.endedAt).toISOString(), startTime: new Date(draft.startedAt).toISOString(), endTime: new Date(draft.endedAt).toISOString(), subjectId: state.subjects.find((s) => canonical(s.name) === canonical(elements.timerStudyDiscipline.value))?.id || "", discipline: elements.timerStudyDiscipline.value, syllabusItemId: goal.syllabusItemId || "", topic: elements.timerStudySubject.value || goal.subject || "Assunto", minutes, plannedMinutes: draft.plannedMinutes, timerMode: draft.mode, plannedDuration: draft.plannedMinutes, actualDuration: minutes, pauses: draft.pauses, resumes: draft.resumes, topicStatus: "Iniciado", difficultyNotes: elements.timerStudyNotes.value.trim(), materialId: elements.timerStudyMaterial.value || "", questions: 0, correct: 0, wrong: 0, blank: 0, origin: "timer", timerOrigin: draft.mode, goalId: goal.id, feedAnalytics: elements.timerStudyFeedAnalytics.checked, feedAdvisor: elements.timerStudyFeedAdvisor.checked });
+  if (draft.kind !== "questions") state.studies.push({ id: createId(), sessionId: draft.sessionId, timerSessionId: draft.sessionId, date: todayISO(), startedAt: new Date(draft.startedAt).toISOString(), endedAt: new Date(draft.endedAt).toISOString(), startTime: new Date(draft.startedAt).toISOString(), endTime: new Date(draft.endedAt).toISOString(), subjectId: state.subjects.find((s) => canonical(s.name) === canonical(elements.timerStudyDiscipline.value))?.id || "", discipline: elements.timerStudyDiscipline.value, syllabusItemId: goal.syllabusItemId || "", topic: elements.timerStudySubject.value || goal.subject || "Assunto", material: elements.timerStudyMaterial.value || "", minutes, plannedMinutes: draft.plannedMinutes, timerMode: draft.mode, plannedDuration: draft.plannedMinutes, actualDuration: minutes, pauses: draft.pauses, resumes: draft.resumes, topicStatus: "Iniciado", difficultyNotes: elements.timerStudyNotes.value.trim(), materialId: elements.timerStudyMaterial.value || "", questions: 0, correct: 0, wrong: 0, blank: 0, origin: "timer", timerSource: "Plano do Dia", timerOrigin: draft.mode, goalId: goal.id, feedAnalytics: elements.timerStudyFeedAnalytics.checked, feedAdvisor: elements.timerStudyFeedAdvisor.checked });
   saveData();
   render();
   showDailyGoalMessage(`Tempo salvo: ${minutes} min em ${label}.`, "success");
@@ -4576,6 +4576,55 @@ function makeGoal(item, date, type) {
   });
 }
 function pickCandidate(candidates, used, predicate = () => true, chosen = [], maxGoals = 4, disciplineLimit = Infinity, allowedDisciplines = null) { const counts = chosen.reduce((a,g)=>(a[g.discipline]=(a[g.discipline]||0)+1,a),{}); const usedDisciplines = new Set(chosen.map((g)=>g.discipline)); return candidates.find((item) => !used.has(item.id) && predicate(item) && (!allowedDisciplines || allowedDisciplines.has(item.discipline)) && (usedDisciplines.has(item.discipline) || usedDisciplines.size < disciplineLimit) && ((counts[item.discipline]||0) < Math.ceil(maxGoals/2) || Object.keys(counts).length <= 1)); }
+function selectableDisciplineGoalsForDate(date, opts = {}) {
+  const availableGoals = generateGoalsForDate(date, { ...opts, topicLimit: Math.max(Number(planningConfig().topicsPerDay) || 1, Number(planningConfig().disciplinesPerDay) || 1), disciplineLimit: Number(planningConfig().disciplinesPerDay) || 1 });
+  const selected = [], usedDisciplines = new Set();
+  for (const goal of availableGoals) {
+    if (usedDisciplines.has(canonical(goal.discipline))) continue;
+    selected.push(goal);
+    usedDisciplines.add(canonical(goal.discipline));
+    if (selected.length >= (Number(planningConfig().disciplinesPerDay) || 1)) break;
+  }
+  return selected;
+}
+function isManualDailyGoal(goal) { return !["edital verticalizado", "planejamento", "Plano do Dia"].includes(goal.origin || goal.origem || "manual"); }
+function isProtectedDailyGoal(goal) { return isManualDailyGoal(goal) || isGoalDone(goal) || isGoalInProgress(goal) || goalTotalActualMinutes(goal) > 0 || !["", "Pendente"].includes(goal.status || "Pendente"); }
+function isAutomaticIntactDailyGoal(goal) { return !isProtectedDailyGoal(goal); }
+function reconcileDailyGoalsWithPlanning(targetState = state, date = todayISO(), opts = {}) {
+  const expected = Math.max(0, Number(targetState.planning?.config?.disciplinesPerDay) || Number(planningConfig().disciplinesPerDay) || 1);
+  try {
+    const dayGoals = (targetState.dailyGoals || []).filter((goal) => (goal.date || goal.data) === date);
+    dayGoals.forEach(normalizeGoalTimeFields);
+    const mainGoals = dayGoals.filter((goal) => !isManualDailyGoal(goal) && ["Estudo novo", "Revisão", "Reforço", "Meta"].includes(goal.type || goal.tipo || "Meta"));
+    const protectedGoals = dayGoals.filter(isProtectedDailyGoal);
+    const represented = new Set(mainGoals.map((goal) => canonical(goal.discipline)).filter(Boolean));
+    const report = { expected, found: mainGoals.length, added: [], preserved: protectedGoals.map((goal) => goal.id), removed: [], selectedDisciplines: [...represented], warnings: [] };
+    const existingKeys = new Set(dayGoals.map((g)=>g.estimateSourceId ? dynamicGoalSegmentKey(g) : g.syllabusItemId).filter(Boolean));
+    const manualUnavailable = availabilityForDate(date).type === "indisponível";
+    const candidates = selectableDisciplineGoalsForDate(date, { manual: manualUnavailable || opts.manual }).filter((goal) => !represented.has(canonical(goal.discipline)) && !existingKeys.has(goal.estimateSourceId ? dynamicGoalSegmentKey(goal) : goal.syllabusItemId));
+    while (new Set((targetState.dailyGoals || []).filter((goal) => (goal.date || goal.data) === date && !isManualDailyGoal(goal)).map((goal) => canonical(goal.discipline))).size < expected && candidates.length) {
+      const goal = candidates.shift();
+      goal.origin = goal.origem = "planejamento";
+      targetState.dailyGoals.push(goal);
+      report.added.push(goal.id);
+      report.selectedDisciplines.push(goal.discipline);
+    }
+    let automatic = (targetState.dailyGoals || []).filter((goal) => (goal.date || goal.data) === date && isAutomaticIntactDailyGoal(goal));
+    let disciplines = new Set((targetState.dailyGoals || []).filter((goal) => (goal.date || goal.data) === date && !isManualDailyGoal(goal)).map((goal) => canonical(goal.discipline)));
+    for (let i = automatic.length - 1; disciplines.size > expected && i >= 0; i--) {
+      const goal = automatic[i];
+      const same = (targetState.dailyGoals || []).filter((g) => (g.date || g.data) === date && !isManualDailyGoal(g) && canonical(g.discipline) === canonical(goal.discipline));
+      if (same.length > 1) continue;
+      targetState.dailyGoals = targetState.dailyGoals.filter((g) => g !== goal);
+      report.removed.push(goal.id);
+      disciplines = new Set((targetState.dailyGoals || []).filter((g) => (g.date || g.data) === date && !isManualDailyGoal(g)).map((g) => canonical(g.discipline)));
+    }
+    if (disciplines.size < expected) report.warnings.push(`Planejamento prevê ${expected} disciplinas, mas existem apenas ${disciplines.size} disciplinas elegíveis com assuntos agendáveis.`);
+    report.found = disciplines.size;
+    report.selectedDisciplines = [...disciplines];
+    return report;
+  } finally {}
+}
 function generateGoalsForDate(date, opts = {}) {
   ensureDefaultDisciplineWeights();
   const dayType = availabilityForDate(date).type;
@@ -4645,14 +4694,11 @@ function generateDailyGoals() {
       showDailyGoalMessage("Geração cancelada: o dia selecionado está indisponível.", "warning");
       return;
     }
-    const existingIds = new Set(existingToday.map((g)=>g.estimateSourceId ? dynamicGoalSegmentKey(g) : g.syllabusItemId).filter(Boolean));
-    const chosen = uniqueGoalsBySyllabus(generateGoalsForDate(date, { manual: manualUnavailable }), existingIds);
-    if (!chosen.length) { showDailyGoalMessage(existingToday.length ? `Nenhuma meta nova foi adicionada: já existem metas para ${formatDateBR(date)} e duplicidades por assunto foram bloqueadas.` : "Nenhuma meta gerada. Verifique assuntos agendáveis, duplicidades ou disponibilidade do dia.", "warning"); return; }
-    state.dailyGoals.push(...chosen);
+    const report = reconcileDailyGoalsWithPlanning(state, date, { manual: manualUnavailable });
+    if (!report.added.length) { showDailyGoalMessage(existingToday.length ? `Nenhuma meta nova foi adicionada: o Plano do Dia já está reconciliado para ${formatDateBR(date)}.` : "Nenhuma meta gerada. Verifique assuntos agendáveis, duplicidades ou disponibilidade do dia.", report.warnings.length ? "warning" : "success"); return; }
     saveData();
     render();
-    const disciplines = new Set(chosen.map((g)=>g.discipline)).size;
-    showDailyGoalMessage(`${chosen.length} meta(s) nova(s) gerada(s) para ${formatDateBR(date)}, com ${disciplines} disciplina(s) diferente(s). Metas existentes foram preservadas e duplicidades por assunto foram bloqueadas. Limitação aplicada: ${availability.type} (${availability.hours || 0}h disponíveis), até ${planningConfig().disciplinesPerDay} disciplina(s) e ${planningConfig().topicsPerDay} assunto(s).${generationShortageMessage(chosen, planningConfig().topicsPerDay, "o dia")}`, "success");
+    showDailyGoalMessage(`Plano do Dia reconciliado: ${report.found} de ${report.expected} disciplinas planejadas. ${report.added.length} meta(s) adicionada(s). ${report.warnings.join(" ")}`, report.warnings.length ? "warning" : "success");
     showView("metas-do-dia");
   } catch (error) { console.error("Não foi possível gerar metas.", error); showDailyGoalMessage("Não foi possível gerar metas. Verifique se o edital foi importado.", "error"); }
 }
@@ -4660,18 +4706,10 @@ function refreshDailyGoalsFromPlanning() {
   try {
     const date = elements.goalDate.value || todayISO();
     if (!state.syllabusItems.length) { showDailyGoalMessage("Não foi possível atualizar. Verifique se o edital foi importado.", "error"); return; }
-    const dayGoals = state.dailyGoals.filter((g) => g.date === date);
-    const preserved = dayGoals.filter(isPreservableDailyGoal);
-    const recalculated = dayGoals.filter((g) => !isPreservableDailyGoal(g));
-    if (!confirm(`Atualizar o Plano do Dia de ${formatDateBR(date)} conforme o Planejamento atual?\n\nSerão preservadas ${preserved.length} meta(s) concluída(s), em andamento ou com tempo/questões registrado(s), mantendo histórico, links e observações.\nSerão removidas e recalculadas ${recalculated.length} meta(s) pendente(s) ainda não iniciada(s).`)) return;
-    const manualUnavailable = availabilityForDate(date).type === "indisponível";
-    const preservedIds = new Set(preserved.map((g)=>g.estimateSourceId ? dynamicGoalSegmentKey(g) : g.syllabusItemId).filter(Boolean));
-    state.dailyGoals = state.dailyGoals.filter((g) => g.date !== date || preserved.includes(g));
-    const generated = uniqueGoalsBySyllabus(generateGoalsForDate(date, { manual: manualUnavailable }), preservedIds);
-    state.dailyGoals.push(...generated);
+    const report = reconcileDailyGoalsWithPlanning(state, date, { manual: availabilityForDate(date).type === "indisponível" });
     saveData();
     render();
-    showDailyGoalMessage(`Plano de ${formatDateBR(date)} atualizado conforme o Planejamento: ${preserved.length} meta(s) preservada(s), ${recalculated.length} pendente(s) removida(s) e ${generated.length} meta(s) recalculada(s), sem duplicar assuntos.`, "success");
+    showDailyGoalMessage(`Plano de ${formatDateBR(date)} atualizado conforme o Planejamento: ${report.found} de ${report.expected} disciplinas planejadas; ${report.added.length} adicionada(s); ${report.removed.length} excedente(s) intacta(s) removida(s). ${report.warnings.join(" ")}`, report.warnings.length ? "warning" : "success");
     if (factoryCurrentFilter === "hoje") renderFactory();
     showView("metas-do-dia");
   } catch (error) { console.error("Não foi possível atualizar o Plano do Dia.", error); showDailyGoalMessage("Não foi possível atualizar o Plano do Dia conforme o Planejamento.", "error"); }
@@ -4806,7 +4844,7 @@ function renderDailyGoals() {
       <article class="stat-card"><span>Tempo já realizado</span><strong class="stat-value-compact">${formatHours(stats.done)}</strong></article>
       <article class="stat-card"><span>Tempo faltante</span><strong class="stat-value-compact">${formatHours(stats.remaining)}</strong></article>
       <article class="stat-card"><span>Percentual cumprido</span><strong class="stat-value-compact">${stats.timePct}%</strong></article>
-      <article class="stat-card"><span>Quantidade de disciplinas previstas</span><strong class="stat-value-compact">${new Set(dayGoals.map((g)=>g.discipline)).size}</strong></article>
+      <article class="stat-card"><span>Disciplinas planejadas</span><strong class="stat-value-compact">${new Set(dayGoals.filter((g)=>!isManualDailyGoal(g)).map((g)=>g.discipline)).size} de ${planningConfig().disciplinesPerDay} disciplinas planejadas${new Set(dayGoals.filter((g)=>!isManualDailyGoal(g)).map((g)=>g.discipline)).size < planningConfig().disciplinesPerDay ? ` — faltam ${planningConfig().disciplinesPerDay - new Set(dayGoals.filter((g)=>!isManualDailyGoal(g)).map((g)=>g.discipline)).size}` : ""}</strong></article>
       <article class="stat-card"><span>Quantidade de assuntos previstos</span><strong class="stat-value-compact">${dayGoals.length}</strong></article>
       <article class="stat-card"><span>Metas concluídas</span><strong class="stat-value-compact">${stats.completed}</strong></article>
       <article class="stat-card"><span>Metas pendentes</span><strong class="stat-value-compact">${stats.pending}</strong></article>
@@ -4870,7 +4908,10 @@ elements.planningConfigForm?.addEventListener("submit", (event) => {
   c.shiftHours = Number(elements.planningShiftHours.value) || 0; c.restHours = Number(elements.planningRestHours.value) || 0; c.normalHours = Number(elements.planningNormalHours.value) || 0;
   c.minWeeklyHours = Number(elements.planningMinWeeklyHours.value) || 0; c.idealWeeklyHours = Number(elements.planningIdealWeeklyHours.value) || 0; c.weeklyTopics = Number(elements.planningWeeklyTopics.value) || 0; c.disciplinesPerDay = Number(elements.planningDisciplinesPerDay.value) || 2; c.disciplinesPerWeek = Number(elements.planningDisciplinesPerWeek.value) || 6; c.disciplinesPerMonth = Number(elements.planningDisciplinesPerMonth.value) || 10; c.topicsPerDay = Number(elements.planningTopicsPerDay.value) || 3; c.topicsPerWeek = Number(elements.planningTopicsPerWeek.value) || c.weeklyTopics || 8; c.topicsPerMonth = Number(elements.planningTopicsPerMonth.value) || 40; c.safetyDays = Number(elements.planningSafetyDays.value) || 0;
   if (c.examDate) state.edital.examDate = c.examDate;
+  const report = reconcileDailyGoalsWithPlanning(state, elements.goalDate?.value || todayISO());
+  saveData();
   render(); showView("planejamento");
+  showDailyGoalMessage(`Planejamento salvo e Plano do Dia atualizado: ${report.found} de ${report.expected} disciplinas planejadas. ${report.warnings.join(" ")}`, report.warnings.length ? "warning" : "success");
 });
 elements.availabilityCalendar?.addEventListener("change", (event) => {
   const typeDate = event.target.dataset.availabilityType;
