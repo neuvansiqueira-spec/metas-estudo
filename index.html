@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260714-analise-modo-calibracao-v1" />
+  <link rel="stylesheet" href="style.css?v=20260714-conselheiro-autonomo-preditivo-v1" />
 </head>
 <body>
   <header class="hero">
@@ -746,7 +746,28 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
         <button type="submit">Recalcular</button>
       </form>
       <div id="advisorPeriodInfo" class="notice"></div>
+      <details class="advisor-nav-panel" open>
+        <summary>Meu destino</summary>
+        <form id="advisorMissionForm" class="advisor-mission-grid">
+          <label>Concurso <input id="advisorContestName" name="contestName" autocomplete="off"></label>
+          <label>Cargo <input id="advisorPositionName" name="positionName" autocomplete="off"></label>
+          <label>Instituição <input id="advisorInstitution" name="institution" autocomplete="off"></label>
+          <label>Banca <input id="advisorBoard" name="board" autocomplete="off"></label>
+          <label>Data da prova <input id="advisorExamDate" name="examDate" type="date"></label>
+          <label>Questões da prova <input id="advisorTotalExamQuestions" name="totalExamQuestions" type="number" min="0" step="1"></label>
+          <label>Nota líquida desejada <input id="advisorTargetNetScore" name="targetNetScore" type="number" step="0.1"></label>
+          <label>Acerto desejado (%) <input id="advisorTargetAccuracyPct" name="targetAccuracyPct" type="number" min="0" max="100" step="0.1"></label>
+          <label>Cobertura edital (%) <input id="advisorTargetSyllabusCoveragePct" name="targetSyllabusCoveragePct" type="number" min="0" max="100" step="1" value="100"></label>
+          <label>Revisões desejadas (%) <input id="advisorTargetReviewsPct" name="targetReviewsPct" type="number" min="0" max="100" step="1"></label>
+          <label>Simulados desejados <input id="advisorTargetMockExams" name="targetMockExams" type="number" min="0" step="1"></label>
+          <label>Horas semanais disponíveis <input id="advisorWeeklyHours" name="weeklyHours" type="number" min="0" step="0.5"></label>
+          <label>Modo de autonomia <select id="advisorAutonomyMode"><option value="orientador">Orientador</option><option value="copilot" selected>Copiloto</option><option value="autopilot">Piloto automático (exige ativação expressa)</option></select></label>
+          <label class="wide-field">Observações <textarea id="advisorMissionNotes" name="notes" rows="2"></textarea></label>
+          <div class="card-actions wide-field"><button type="submit">Salvar destino e recalcular</button><button type="button" class="secondary-button" id="advisorRecalculateRoute">Recalcular rota</button></div>
+        </form>
+      </details>
       <article id="advisorSummary" class="stat-card wide-stat"></article>
+      <div id="advisorNavigationContent" class="advisor-navigation-content" aria-live="polite"></div>
       <div id="advisorSuggestions" class="advisor-suggestions" aria-label="Perguntas sugeridas"></div>
       <div id="advisorConversation" class="advisor-conversation" aria-live="polite"></div>
       <form id="advisorQuestionForm" class="advisor-input">
@@ -829,11 +850,12 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
   </aside>
   <div id="timerMotivationalToast" class="timer-motivational-toast" aria-live="polite" aria-atomic="true" hidden></div>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260714-analise-modo-calibracao-v1</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260714-conselheiro-autonomo-preditivo-v1</p></footer>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="storage-indexeddb.js?v=20260714-analise-modo-calibracao-v1"></script>
-  <script src="analytics-engine.js?v=20260714-analise-modo-calibracao-v1"></script>
-  <script src="study-advisor.js?v=20260714-analise-modo-calibracao-v1"></script>
-  <script src="script.js?v=20260714-analise-modo-calibracao-v1"></script>
+  <script src="storage-indexeddb.js?v=20260714-conselheiro-autonomo-preditivo-v1"></script>
+  <script src="analytics-engine.js?v=20260714-conselheiro-autonomo-preditivo-v1"></script>
+  <script src="study-advisor.js?v=20260714-conselheiro-autonomo-preditivo-v1"></script>
+  <script src="advisor-navigation-engine.js?v=20260714-conselheiro-autonomo-preditivo-v1"></script>
+  <script src="script.js?v=20260714-conselheiro-autonomo-preditivo-v1"></script>
 </body>
 </html>

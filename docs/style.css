@@ -3130,3 +3130,16 @@ body.app-bootstrapping .app-layout {
   .maturity-actions { display: grid; grid-template-columns: 1fr; }
   .maturity-actions button { width: 100%; min-height: 44px; }
 }
+.advisor-navigation-content { display: grid; gap: 12px; margin: 16px 0; }
+.advisor-nav-panel { border: 1px solid var(--border); border-radius: 16px; padding: 12px; background: #fff; overflow-wrap: anywhere; }
+.advisor-nav-panel summary { cursor: pointer; font-weight: 800; color: var(--text); }
+.advisor-mission-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+.advisor-mission-grid label { min-width: 0; }
+.advisor-mission-grid input, .advisor-mission-grid select, .advisor-mission-grid textarea { width: 100%; max-width: 100%; }
+.advisor-mission-grid .wide-field { grid-column: 1 / -1; }
+.advisor-kv { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 12px 0 0; }
+.advisor-kv div { border: 1px solid var(--border); border-radius: 12px; padding: 10px; background: #f8fafc; min-width: 0; }
+.advisor-kv dt { font-size: .78rem; color: var(--muted); }
+.advisor-kv dd { margin: 4px 0 0; font-weight: 800; overflow-wrap: anywhere; }
+@media (max-width: 900px) { .advisor-mission-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .advisor-kv { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 430px) { .advisor-mission-grid, .advisor-kv { grid-template-columns: 1fr; } .advisor-nav-panel { padding: 10px; } }
