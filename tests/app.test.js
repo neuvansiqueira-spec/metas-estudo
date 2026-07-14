@@ -129,7 +129,7 @@ test('Exportação de desempenho possui arquitetura, UI acessível e paridade ra
 test('Exportação respeita filtros e preserva dados consolidados sem duplicar ou alterar estado', () => {
   const start = script.indexOf('function formatExportDuration(minutes');
   const end = script.indexOf('function setPerformanceExportStatus');
-  const makeLogic = new Function('formatDateBR', 'escapeHTML', `${script.slice(start, end)}; return { buildPerformanceExportPayload, buildPerformanceCsv, buildChartSvg, formatExportDuration, sanitizeExportFilename };`);
+  const makeLogic = new Function('formatDateBR', 'escapeHTML', `${script.slice(start, end)}; return { buildPerformanceExportPayload, buildPerformanceCsv, buildFullPerformanceReportSvg, buildChartSvg, formatExportDuration, sanitizeExportFilename };`);
   const logic = makeLogic((d) => `BR:${d}`, (v) => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;'));
   const dashboard = { summary: { timeLabel: '55 min', questions: 3 }, comparison: {}, daily: [{ date: '2026-07-14', minutes: 55, questions: 3 }], questions: { correct: 2, wrong: 1, blank: 0, cebraspeNet: 1 }, disciplines: [{ discipline: 'Direito Processual Penal com Nome Muito Longo', minutes: 55, questions: 3, correct: 2, wrong: 1, blank: 0, net: 1 }], mockExams: [], plannedVsActual: [{ date: '2026-07-14', plannedMinutes: 80, actualMinutes: 55, plannedGoals: 2, completedGoals: 1 }], insights: ['Amostra insuficiente'] };
   const before = JSON.stringify(dashboard);
@@ -142,8 +142,12 @@ test('Exportação respeita filtros e preserva dados consolidados sem duplicar o
   assert.equal(JSON.stringify(dashboard), before);
   const csv = logic.buildPerformanceCsv(payload);
   assert.equal(csv.charCodeAt(0), 0xfeff);
-  assert.match(csv, /TIPO_DE_REGISTRO;CAMPO_1/);
-  assert.match(csv, /DISCIPLINA;Direito Processual Penal/);
+  assert.doesNotMatch(csv, /TIPO_DE_REGISTRO;CAMPO_1/);
+  assert.match(csv, /RESUMO GERAL/);
+  assert.match(csv, /Tempo estudado/);
+  assert.match(csv, /Líquido Cebraspe/);
+  ['minutes','sessions','activeDays','accuracyPct','cebraspeNet'].forEach((key) => assert.doesNotMatch(csv, new RegExp(key)));
+  assert.match(csv, /DESEMPENHO POR DISCIPLINA[\s\S]*Direito Processual Penal/);
   assert.match(csv, /55 min/);
   assert.doesNotMatch(csv, /0\.92/);
 });
@@ -151,7 +155,7 @@ test('Exportação respeita filtros e preserva dados consolidados sem duplicar o
 test('CSV, nomes, duração, SVG e rótulos longos seguem requisitos de exportação', () => {
   const start = script.indexOf('function formatExportDuration(minutes');
   const end = script.indexOf('function setPerformanceExportStatus');
-  const logic = new Function('formatDateBR', 'escapeHTML', `${script.slice(start, end)}; return { buildPerformanceCsv, buildChartSvg, formatExportDuration, sanitizeExportFilename };`)((d) => d, (v) => String(v));
+  const logic = new Function('formatDateBR', 'escapeHTML', `${script.slice(start, end)}; return { buildPerformanceCsv, buildFullPerformanceReportSvg, buildChartSvg, formatExportDuration, sanitizeExportFilename };`)((d) => d, (v) => String(v));
   assert.equal(logic.formatExportDuration(55), '55 min');
   assert.equal(logic.formatExportDuration(80), '1h 20min');
   assert.equal(logic.sanitizeExportFilename('Direito Processual Penal: 30 dias?.csv'), 'direito-processual-penal-30-dias.csv');

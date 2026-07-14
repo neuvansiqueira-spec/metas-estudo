@@ -1,5 +1,5 @@
 // versão anterior: metas-estudo-20260714-conselheiro-local-v1
-const CACHE_NAME = "metas-estudo-20260714-exportacoes-didaticas-mais-opcoes-v1";
+const CACHE_NAME = "metas-estudo-20260714-exportacao-real-graficos-v2";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
