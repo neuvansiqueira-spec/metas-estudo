@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260714-exportacao-real-graficos-v2" />
+  <link rel="stylesheet" href="style.css?v=20260714-planejamento-acordeao-modos-dia-v1" />
 </head>
 <body>
   <header class="hero">
@@ -433,32 +433,58 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
 
     <section id="view-planejamento" class="panel app-view" data-view="planejamento" aria-labelledby="planning-title">
       <div class="section-heading"><p class="eyebrow">Plantões</p><h2 id="planning-title">Planejamento</h2></div>
-      <article class="bulk-box planning-block"><h3>1. Configuração da prova</h3>
-        <form id="planningConfigForm" class="form-grid">
-          <label>Data da prova<input id="planningExamDate" type="date" /></label>
-          <label>Margem de segurança (dias)<input id="planningSafetyDays" type="number" min="0" /></label>
-          <label>Tipo de escala<select id="planningScaleType"><option>24x72</option><option>3 dias de trabalho / 6 dias de folga</option><option>manual</option></select></label>
-          <div class="wide planning-subblock scale-work-block"><h4>Escala de Trabalho</h4><p class="item-meta">Informe uma data conhecida da sua escala e em qual ponto da escala você estava nesse dia. O sistema calculará os próximos plantões e folgas automaticamente.</p><div id="scale3x6Fields" class="form-grid compact"><label>Data de referência da escala<input id="planningScaleReferenceDate" type="date" /></label><label>Situação nessa data<select id="planningScaleReferencePosition"><option value="0">Trabalho - dia 1</option><option value="1">Trabalho - dia 2</option><option value="2">Trabalho - dia 3</option><option value="3">Folga - dia 1</option><option value="4">Folga - dia 2</option><option value="5">Folga - dia 3</option><option value="6">Folga - dia 4</option><option value="7">Folga - dia 5</option><option value="8">Folga - dia 6</option></select></label></div></div><label class="wide">Observações da escala<textarea id="planningScaleNotes" rows="2"></textarea></label>
-          <div class="wide planning-subblock"><h4>2. Metas de tempo</h4><p class="item-meta">Altere aqui as metas de horas por dia, a meta semanal e o volume semanal de assuntos.</p><div class="form-grid compact">
-            <label>Meta de estudo em dia de plantão<input id="planningShiftHours" type="number" min="0" step="0.5" /></label>
-            <label>Meta de estudo em dia de folga<input id="planningRestHours" type="number" min="0" step="0.5" /></label>
-            <label>Meta de estudo em dia normal<input id="planningNormalHours" type="number" min="0" step="0.5" /></label>
-            <label>Meta semanal mínima (h)<input id="planningMinWeeklyHours" type="number" min="0" step="0.5" /></label>
-            <label>Meta semanal ideal (h)<input id="planningIdealWeeklyHours" type="number" min="0" step="0.5" /></label>
-            <label>Meta semanal de assuntos<input id="planningWeeklyTopics" type="number" min="0" /></label>
-          </div></div>
-          <div class="wide planning-subblock"><h4>Distribuição de Disciplinas e Assuntos</h4><p class="item-meta">Defina limites para a geração automática de metas por dia, semana e mês.</p><div class="form-grid compact">
+      <form id="planningConfigForm" class="planning-form-stack">
+        <details class="planning-section" data-planning-section="summary" open>
+          <summary class="planning-section-summary"><span class="planning-section-heading"><strong class="planning-section-title">Resumo do planejamento</strong><small id="planningSummaryResume" class="planning-section-resume">Resumo rápido do planejamento atual.</small></span><span class="planning-section-chevron" aria-hidden="true">›</span></summary>
+          <div id="planningSummaryCards" class="planning-section-content stats-grid compact"></div>
+        </details>
+        <details class="planning-section" data-planning-section="day-modes" open>
+          <summary class="planning-section-summary"><span class="planning-section-heading"><strong class="planning-section-title">Conteúdo por tipo de dia</strong><small id="planningDayModesResume" class="planning-section-resume">Normal, folga e plantão com metas próprias.</small></span><span class="planning-section-chevron" aria-hidden="true">›</span></summary>
+          <div id="planningDayModes" class="planning-section-content day-mode-grid"></div>
+        </details>
+        <details class="planning-section" data-planning-section="disciplines">
+          <summary class="planning-section-summary"><span class="planning-section-heading"><strong class="planning-section-title">Disciplinas e distribuição</strong><small class="planning-section-resume">Limites de disciplinas e assuntos por período.</small></span><span class="planning-section-chevron" aria-hidden="true">›</span></summary>
+          <div class="planning-section-content form-grid compact">
             <label>Disciplinas por dia<input id="planningDisciplinesPerDay" type="number" min="1" /></label>
             <label>Disciplinas por semana<input id="planningDisciplinesPerWeek" type="number" min="1" /></label>
             <label>Disciplinas por mês<input id="planningDisciplinesPerMonth" type="number" min="1" /></label>
             <label>Assuntos por dia<input id="planningTopicsPerDay" type="number" min="1" /></label>
             <label>Assuntos por semana<input id="planningTopicsPerWeek" type="number" min="1" /></label>
             <label>Assuntos por mês<input id="planningTopicsPerMonth" type="number" min="1" /></label>
-          </div></div>
-          <button class="wide" type="submit">Salvar configuração</button>
-        </form></article>
-      <article class="bulk-box planning-block"><h3>3. Calendário de disponibilidade</h3><p class="item-meta">Edite os próximos dias conforme plantão, folga, dia normal, indisponível, estudo leve ou estudo forte.</p><div id="availabilityCalendar" class="cards-list"></div></article>
-      <article class="bulk-box planning-block"><h3>4. Previsão</h3><div id="completionForecast" class="stats-grid compact"></div><div id="completionAlert" class="notice"></div><div id="weeklyGoalsPlan" class="stats-grid compact"></div><div id="weeklyGoalsAlert" class="notice"></div></article>
+          </div>
+        </details>
+        <details class="planning-section" data-planning-section="load">
+          <summary class="planning-section-summary"><span class="planning-section-heading"><strong class="planning-section-title">Carga, limites e disponibilidade</strong><small class="planning-section-resume">Horas por tipo de dia e metas semanais.</small></span><span class="planning-section-chevron" aria-hidden="true">›</span></summary>
+          <div class="planning-section-content form-grid compact">
+            <label>Data da prova<input id="planningExamDate" type="date" /></label>
+            <label>Margem de segurança (dias)<input id="planningSafetyDays" type="number" min="0" /></label>
+            <label>Meta de estudo em dia de plantão<input id="planningShiftHours" type="number" min="0" step="0.5" /></label>
+            <label>Meta de estudo em dia de folga<input id="planningRestHours" type="number" min="0" step="0.5" /></label>
+            <label>Meta de estudo em dia normal<input id="planningNormalHours" type="number" min="0" step="0.5" /></label>
+            <label>Meta semanal mínima (h)<input id="planningMinWeeklyHours" type="number" min="0" step="0.5" /></label>
+            <label>Meta semanal ideal (h)<input id="planningIdealWeeklyHours" type="number" min="0" step="0.5" /></label>
+            <label>Meta semanal de assuntos<input id="planningWeeklyTopics" type="number" min="0" /></label>
+          </div>
+        </details>
+        <details class="planning-section" data-planning-section="scale">
+          <summary class="planning-section-summary"><span class="planning-section-heading"><strong class="planning-section-title">Escala e classificação dos dias</strong><small class="planning-section-resume">Escala atual e calendário editável dos próximos dias.</small></span><span class="planning-section-chevron" aria-hidden="true">›</span></summary>
+          <div class="planning-section-content form-grid">
+            <label>Tipo de escala<select id="planningScaleType"><option>24x72</option><option>3 dias de trabalho / 6 dias de folga</option><option>manual</option></select></label>
+            <div class="wide planning-subblock scale-work-block"><h4>Escala de Trabalho</h4><p class="item-meta">Informe uma data conhecida da sua escala e em qual ponto da escala você estava nesse dia.</p><div id="scale3x6Fields" class="form-grid compact"><label>Data de referência da escala<input id="planningScaleReferenceDate" type="date" /></label><label>Situação nessa data<select id="planningScaleReferencePosition"><option value="0">Trabalho - dia 1</option><option value="1">Trabalho - dia 2</option><option value="2">Trabalho - dia 3</option><option value="3">Folga - dia 1</option><option value="4">Folga - dia 2</option><option value="5">Folga - dia 3</option><option value="6">Folga - dia 4</option><option value="7">Folga - dia 5</option><option value="8">Folga - dia 6</option></select></label></div></div>
+            <label class="wide">Observações da escala<textarea id="planningScaleNotes" rows="2"></textarea></label>
+            <div id="availabilityCalendar" class="cards-list wide"></div>
+          </div>
+        </details>
+        <details class="planning-section" data-planning-section="preview">
+          <summary class="planning-section-summary"><span class="planning-section-heading"><strong class="planning-section-title">Prévia do planejamento</strong><small class="planning-section-resume">Próximos dias sem alterar dados.</small></span><span class="planning-section-chevron" aria-hidden="true">›</span></summary>
+          <div id="planningPreview" class="planning-section-content cards-list"></div>
+        </details>
+        <details class="planning-section" data-planning-section="advanced">
+          <summary class="planning-section-summary"><span class="planning-section-heading"><strong class="planning-section-title">Ajustes avançados</strong><small class="planning-section-resume">Previsões e alertas calculados.</small></span><span class="planning-section-chevron" aria-hidden="true">›</span></summary>
+          <div class="planning-section-content"><div id="completionForecast" class="stats-grid compact"></div><div id="completionAlert" class="notice"></div><div id="weeklyGoalsPlan" class="stats-grid compact"></div><div id="weeklyGoalsAlert" class="notice"></div></div>
+        </details>
+        <div class="planning-actions"><button type="submit" class="big-action-button">Salvar planejamento</button></div>
+      </form>
       <article class="bulk-box"><h3>Histórico de tempo por assunto</h3><div class="card-actions"><button id="addManualTime" type="button">Adicionar tempo manual</button></div><div id="timeUndoNotice" class="notice" hidden>Alteração realizada. <button id="undoTimeAction" type="button">Desfazer</button></div><div id="timeHistorySummary" class="stats-grid compact"></div><div class="table-wrapper"><table><thead><tr><th>Data</th><th>Disciplina</th><th>Assunto</th><th>Tempo</th><th>Tipo</th><th>Status</th><th>Material usado</th><th>Observações</th><th>Ações</th></tr></thead><tbody id="timeHistoryBody"></tbody></table></div></article>
     </section>
 
@@ -927,12 +953,12 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </form>
   </div>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260714-exportacao-real-graficos-v2</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260714-planejamento-acordeao-modos-dia-v1</p></footer>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="storage-indexeddb.js?v=20260714-exportacao-real-graficos-v2"></script>
-  <script src="analytics-engine.js?v=20260714-exportacao-real-graficos-v2"></script>
-  <script src="study-advisor.js?v=20260714-exportacao-real-graficos-v2"></script>
-  <script src="advisor-navigation-engine.js?v=20260714-exportacao-real-graficos-v2"></script>
-  <script src="script.js?v=20260714-exportacao-real-graficos-v2"></script>
+  <script src="storage-indexeddb.js?v=20260714-planejamento-acordeao-modos-dia-v1"></script>
+  <script src="analytics-engine.js?v=20260714-planejamento-acordeao-modos-dia-v1"></script>
+  <script src="study-advisor.js?v=20260714-planejamento-acordeao-modos-dia-v1"></script>
+  <script src="advisor-navigation-engine.js?v=20260714-planejamento-acordeao-modos-dia-v1"></script>
+  <script src="script.js?v=20260714-planejamento-acordeao-modos-dia-v1"></script>
 </body>
 </html>
