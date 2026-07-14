@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260714-analise-unificada-estavel-v1" />
+  <link rel="stylesheet" href="style.css?v=20260714-analise-acordeao-portugues-v3" />
 </head>
 <body>
   <header class="hero">
@@ -784,7 +784,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
         <h2 id="analise-estrategica-title">Análise Estratégica</h2>
         <p class="privacy-note">Esta análise é processada no seu dispositivo. Nenhum dado de estudo é enviado para serviços externos.</p>
       </div>
-      <form id="analyticsPeriodForm" class="analytics-filters analytics-filter-grid">
+      <details class="analytics-filters-section"><summary>Filtros da análise</summary><form id="analyticsPeriodForm" class="analytics-filters analytics-filter-grid">
         <label>Período
           <select id="analyticsPeriodSelect">
             <option value="7d">Últimos 7 dias</option>
@@ -795,8 +795,8 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
             <option value="all">Todo o histórico</option>
           </select>
         </label>
-        <label>Início <input id="analyticsStartDate" type="date"></label>
-        <label>Fim <input id="analyticsEndDate" type="date"></label>
+        <label data-analytics-custom-date hidden>Início <input id="analyticsStartDate" type="date"></label>
+        <label data-analytics-custom-date hidden>Fim <input id="analyticsEndDate" type="date"></label>
         <label>Disciplina
           <select id="analyticsDisciplineSelect"><option value="all">Todas</option></select>
         </label>
@@ -804,7 +804,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
           <select id="analyticsOriginSelect"><option value="consolidated">Consolidado</option><option value="estudos">Estudos</option><option value="questões">Questões</option><option value="simulados">Simulados</option></select>
         </label>
         <button type="submit">Atualizar análise</button>
-      </form>
+      </form></details>
       <div class="analytics-export-toolbar" aria-label="Ações de exportação da análise">
         <button type="button" class="secondary-button export-direct-button" data-performance-export="pdf">Gerar PDF</button>
         <button type="button" class="secondary-button export-direct-button" data-performance-export="png">Exportar imagem</button>
@@ -924,12 +924,12 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </form>
   </div>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260714-analise-unificada-estavel-v1</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260714-analise-acordeao-portugues-v3</p></footer>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="storage-indexeddb.js?v=20260714-analise-unificada-estavel-v1"></script>
-  <script src="analytics-engine.js?v=20260714-analise-unificada-estavel-v1"></script>
-  <script src="study-advisor.js?v=20260714-analise-unificada-estavel-v1"></script>
-  <script src="advisor-navigation-engine.js?v=20260714-analise-unificada-estavel-v1"></script>
-  <script src="script.js?v=20260714-analise-unificada-estavel-v1"></script>
+  <script src="storage-indexeddb.js?v=20260714-analise-acordeao-portugues-v3"></script>
+  <script src="analytics-engine.js?v=20260714-analise-acordeao-portugues-v3"></script>
+  <script src="study-advisor.js?v=20260714-analise-acordeao-portugues-v3"></script>
+  <script src="advisor-navigation-engine.js?v=20260714-analise-acordeao-portugues-v3"></script>
+  <script src="script.js?v=20260714-analise-acordeao-portugues-v3"></script>
 </body>
 </html>
