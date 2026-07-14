@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260714-hotfix-acordeao-mobile-v1" />
+  <link rel="stylesheet" href="style.css?v=20260714-exportacoes-didaticas-mais-opcoes-v1" />
 </head>
 <body>
   <header class="hero">
@@ -809,18 +809,21 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
         <button type="button" class="secondary-button export-direct-button" data-performance-export="pdf">Gerar PDF</button>
         <button type="button" class="secondary-button export-direct-button" data-performance-export="png">Exportar imagem</button>
         <button type="button" class="secondary-button export-direct-button" data-performance-export="csv">Exportar CSV</button>
-        <button id="performanceExportButton" type="button" class="secondary-button export-main-button" aria-haspopup="dialog">Mais opções</button>
+        <button id="performanceExportButton" type="button" class="secondary-button export-main-button" aria-haspopup="dialog" aria-label="Mais opções da análise">Mais opções</button>
         <span id="performanceExportStatus" class="export-status" aria-live="polite"></span>
       </div>
       <div id="performanceExportDialog" class="export-dialog" role="dialog" aria-modal="true" aria-labelledby="performanceExportTitle" hidden>
         <div class="export-dialog-card">
           <div class="section-heading inline"><div><p class="eyebrow">Exportação local</p><h3 id="performanceExportTitle">Exportar Central Visual de Desempenho</h3></div><button id="performanceExportClose" type="button" class="secondary-button" aria-label="Fechar menu de exportação">×</button></div>
           <div class="export-menu-actions">
-            <button type="button" data-performance-export="pdf">Gerar PDF</button>
-            <button type="button" data-performance-export="png">Relatório completo em PNG</button>
-            <button type="button" data-performance-export="csv">Dados completos em CSV</button>
-            <button type="button" data-performance-export="charts">Exportar cada gráfico individualmente</button>
-            <button type="button" data-performance-export="share" hidden>Compartilhar arquivo</button>
+            <button type="button" data-performance-export="charts">Exportar gráfico individual</button>
+            <button type="button" data-performance-export="png">Exportar relatório completo em imagem</button>
+            <button type="button" data-performance-export="csv">Exportar relatório completo em CSV consolidado</button>
+            <button type="button" data-performance-export="pdf">Exportar relatório completo em PDF</button>
+            <button type="button" data-performance-export="share">Compartilhar arquivo</button>
+            <button type="button" data-performance-export="table">Ver dados em tabela</button>
+            <button type="button" data-performance-export="methodology">Ver detalhes metodológicos</button>
+            <button id="performanceExportCancel" type="button" class="secondary-button">Cancelar</button>
           </div>
           <p id="performanceExportShareNote" class="notice" hidden>Compartilhamento de arquivos indisponível neste dispositivo. O download normal será usado.</p>
           <p class="item-meta export-iphone-note">No iPhone, use Compartilhar na tela de impressão e escolha Salvar em Arquivos.</p>
@@ -924,12 +927,12 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </form>
   </div>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260714-hotfix-acordeao-mobile-v1</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260714-exportacoes-didaticas-mais-opcoes-v1</p></footer>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="storage-indexeddb.js?v=20260714-hotfix-acordeao-mobile-v1"></script>
-  <script src="analytics-engine.js?v=20260714-hotfix-acordeao-mobile-v1"></script>
-  <script src="study-advisor.js?v=20260714-hotfix-acordeao-mobile-v1"></script>
-  <script src="advisor-navigation-engine.js?v=20260714-hotfix-acordeao-mobile-v1"></script>
-  <script src="script.js?v=20260714-hotfix-acordeao-mobile-v1"></script>
+  <script src="storage-indexeddb.js?v=20260714-exportacoes-didaticas-mais-opcoes-v1"></script>
+  <script src="analytics-engine.js?v=20260714-exportacoes-didaticas-mais-opcoes-v1"></script>
+  <script src="study-advisor.js?v=20260714-exportacoes-didaticas-mais-opcoes-v1"></script>
+  <script src="advisor-navigation-engine.js?v=20260714-exportacoes-didaticas-mais-opcoes-v1"></script>
+  <script src="script.js?v=20260714-exportacoes-didaticas-mais-opcoes-v1"></script>
 </body>
 </html>

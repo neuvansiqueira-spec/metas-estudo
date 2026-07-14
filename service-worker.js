@@ -1,5 +1,5 @@
 // versão anterior: metas-estudo-20260714-conselheiro-local-v1
-const CACHE_NAME = "metas-estudo-20260714-hotfix-acordeao-mobile-v1";
+const CACHE_NAME = "metas-estudo-20260714-exportacoes-didaticas-mais-opcoes-v1";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
