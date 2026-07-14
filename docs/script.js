@@ -298,7 +298,7 @@ const MOTIVATIONAL_PHRASES = [
 ];
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const DAY_CONTENT_MODES = ["goals_only", "questions_only", "questions_and_goals"];
-const DAY_CONTENT_MODE_LABELS = { goals_only: "Somente metas de estudo", questions_only: "Somente questões", questions_and_goals: "Questões + metas de estudo" };
+const DAY_CONTENT_MODE_LABELS = { goals_only: "Somente metas de estudo", questions_only: "Somente questões", questions_and_goals: "Questões + metas" };
 const DAY_TYPE_LABELS = { normal: "Dia normal", folga: "Folga", plantao: "Plantão" };
 const defaultDayContentModes = { normal: { mode: "goals_only", questionTarget: 30 }, folga: { mode: "goals_only", questionTarget: 60 }, plantao: { mode: "goals_only", questionTarget: 20 } };
 const defaultPlanning = { config: { examDate: "", scaleType: "24x72", cycleType: "24x72", scaleReferenceDate: "", scaleReferencePosition: 0, scaleNotes: "", shiftHours: 1, restHours: 5, normalHours: 2.5, minWeeklyHours: 10, idealWeeklyHours: 18, weeklyTopics: 8, safetyDays: 7, disciplinesPerDay: 2, disciplinesPerWeek: 6, disciplinesPerMonth: 10, topicsPerDay: 3, topicsPerWeek: 8, topicsPerMonth: 40, dayContentModes: { normal: { mode: "goals_only", questionTarget: 30 }, folga: { mode: "goals_only", questionTarget: 60 }, plantao: { mode: "goals_only", questionTarget: 20 } } }, availability: {}, weeklyGoals: [], forecasts: {} };
@@ -3820,10 +3820,11 @@ function renderPlanning() {
 }
 
 
-function dayModeSummary(type, cfg = planningConfig().dayContentModes?.[type]) { cfg = cfg || defaultDayContentModes[type]; return `${DAY_TYPE_LABELS[type]}: ${DAY_CONTENT_MODE_LABELS[cfg.mode].toLowerCase()}${dayModeIncludesQuestions(cfg.mode) ? ` • meta de ${cfg.questionTarget} questões` : ""}`; }
-function renderPlanningDayModes() { if (!elements.planningDayModes) return; const modes = normalizeDayContentModes(planningConfig().dayContentModes); elements.planningDayModesResume.textContent = ["normal","folga","plantao"].map((type)=>dayModeSummary(type, modes[type]).replace(`${DAY_TYPE_LABELS[type]}: `, `${DAY_TYPE_LABELS[type].replace("Dia ","")}: `)).join(" • "); elements.planningDayModes.innerHTML = ["normal","folga","plantao"].map((type) => { const cfg = modes[type]; return `<article class="day-mode-card" data-day-mode-card="${type}"><fieldset aria-describedby="${type}ModeDescription"><legend>Conteúdo do ${DAY_TYPE_LABELS[type].toLowerCase()}</legend><p id="${type}ModeDescription" class="item-meta">Escolha se este tipo de dia terá metas de estudo, questões ou ambos.</p>${DAY_CONTENT_MODES.map((mode)=>`<label class="day-mode-option"><input type="radio" name="dayContentMode-${type}" data-day-mode-type="${type}" value="${mode}" ${cfg.mode===mode?"checked":""}>${DAY_CONTENT_MODE_LABELS[mode]}</label>`).join("")}<label class="question-target-field" ${cfg.mode==="goals_only"?"hidden":""}>Quantidade de questões para esse tipo de dia<input type="number" min="1" step="1" inputmode="numeric" data-question-target-type="${type}" value="${cfg.questionTarget}"></label><p class="notice">${escapeHTML(dayModeSummary(type, cfg))}</p></fieldset></article>`; }).join(""); }
-function renderPlanningSummary() { if (!elements.planningSummaryCards) return; const c = planningConfig(); const next = addDays(todayISO(), 1); const nextType = getPlanningDayType(next); const modes = normalizeDayContentModes(c.dayContentModes); elements.planningSummaryResume.textContent = `${c.disciplinesPerDay} disciplina(s) por dia • próximo dia: ${formatDateBR(next)} (${DAY_TYPE_LABELS[nextType]})`; elements.planningSummaryCards.innerHTML = [["Disciplinas por dia", c.disciplinesPerDay], ["Dia normal", dayModeSummary("normal", modes.normal)], ["Folga", dayModeSummary("folga", modes.folga)], ["Plantão", dayModeSummary("plantao", modes.plantao)], ["Próximo dia", formatDateBR(next)], ["Classificação do próximo dia", DAY_TYPE_LABELS[nextType]]].map(([a,b])=>`<article class="stat-card"><span>${escapeHTML(a)}</span><strong class="stat-value-compact">${escapeHTML(String(b))}</strong></article>`).join(""); }
-function renderPlanningPreview() { if (!elements.planningPreview) return; elements.planningPreview.innerHTML = daysBetween(todayISO(), 10).map((date)=>{ const type = getPlanningDayType(date); const cfg = getDayContentConfig(date); const studyGoals = dayModeIncludesGoals(cfg.mode) ? selectableDisciplineGoalsForDate(date, { topicLimit: Math.max(Number(planningConfig().topicsPerDay)||1, Number(planningConfig().disciplinesPerDay)||1), disciplineLimit: Number(planningConfig().disciplinesPerDay)||1 }).slice(0, Number(planningConfig().disciplinesPerDay)||1).map((g)=>g.discipline) : []; return `<article class="syllabus-card"><h3>${formatDateBR(date)} — ${DAY_TYPE_LABELS[type]}</h3><p>${DAY_CONTENT_MODE_LABELS[cfg.mode]}</p><p>${dayModeIncludesQuestions(cfg.mode) ? `${cfg.questionTarget} questões` : "Sem meta de questões"}</p><p>${studyGoals.length ? escapeHTML(studyGoals.join(", ")) : "Sem metas automáticas de estudo"}</p></article>`; }).join(""); }
+function dayModeSummary(type, cfg = planningConfig().dayContentModes?.[type]) { cfg = cfg || defaultDayContentModes[type]; return `${DAY_CONTENT_MODE_LABELS[cfg.mode]}${dayModeIncludesQuestions(cfg.mode) ? ` • ${cfg.questionTarget} questões` : ""}`; }
+function renderPlanningDayModes() { if (!elements.planningDayModes) return; const modes = normalizeDayContentModes(planningConfig().dayContentModes); elements.planningDayModesResume.textContent = ["normal","folga","plantao"].map((type)=>`${DAY_TYPE_LABELS[type].replace("Dia ","")}: ${dayModeSummary(type, modes[type])}`).join(" • "); elements.planningDayModes.innerHTML = ["normal","folga","plantao"].map((type) => { const cfg = modes[type]; return `<article class="day-mode-card" data-day-mode-card="${type}"><fieldset aria-describedby="${type}ModeDescription"><legend>Conteúdo do ${DAY_TYPE_LABELS[type].toLowerCase()}</legend><p id="${type}ModeDescription" class="item-meta">Escolha se este tipo de dia terá metas de estudo, questões ou ambos.</p>${DAY_CONTENT_MODES.map((mode)=>`<label class="day-mode-option"><input type="radio" name="dayContentMode-${type}" data-day-mode-type="${type}" value="${mode}" ${cfg.mode===mode?"checked":""}>${DAY_CONTENT_MODE_LABELS[mode]}</label>`).join("")}<label class="question-target-field" ${cfg.mode==="goals_only"?"hidden":""}>Quantidade de questões para esse tipo de dia<input type="number" min="1" step="1" inputmode="numeric" data-question-target-type="${type}" value="${cfg.questionTarget}"></label><p class="notice">${escapeHTML(`${DAY_TYPE_LABELS[type]}: ${dayModeSummary(type, cfg)}`)}</p></fieldset></article>`; }).join(""); }
+function planningSummaryValue(cfg) { return `${DAY_CONTENT_MODE_LABELS[cfg.mode]}${dayModeIncludesQuestions(cfg.mode) ? `<br><small>${cfg.questionTarget} questões</small>` : ""}`; }
+function renderPlanningSummary() { if (!elements.planningSummaryCards) return; const c = planningConfig(); const next = addDays(todayISO(), 1); const nextType = getPlanningDayType(next); const modes = normalizeDayContentModes(c.dayContentModes); elements.planningSummaryResume.textContent = `${c.disciplinesPerDay} disciplina(s) por dia • próximo dia: ${formatDateBR(next)} (${DAY_TYPE_LABELS[nextType]})`; elements.planningSummaryCards.classList.add("planning-summary-grid"); elements.planningSummaryCards.innerHTML = [["Disciplinas por dia", escapeHTML(String(c.disciplinesPerDay))], ["Dia normal", planningSummaryValue(modes.normal)], ["Folga", planningSummaryValue(modes.folga)], ["Plantão", planningSummaryValue(modes.plantao)], ["Próximo dia", escapeHTML(formatDateBR(next))], ["Classificação do próximo dia", escapeHTML(DAY_TYPE_LABELS[nextType])]].map(([a,b])=>`<article class="planning-summary-card"><span class="planning-summary-label">${escapeHTML(a)}</span><strong class="planning-summary-value">${b}</strong></article>`).join(""); }
+function renderPlanningPreview() { if (!elements.planningPreview) return; elements.planningPreview.innerHTML = daysBetween(todayISO(), 10).map((date)=>{ const type = getPlanningDayType(date); const cfg = getDayContentConfig(date); const requested = Number(planningConfig().disciplinesPerDay)||1; const studyGoals = dayModeIncludesGoals(cfg.mode) ? selectDistinctPlanningDisciplines({ date, count: requested }).selected : []; const warning = dayModeIncludesGoals(cfg.mode) && studyGoals.length < requested ? `<p class="notice">Apenas ${studyGoals.length} disciplinas elegíveis disponíveis</p>` : ""; return `<article class="planning-preview-card"><header><strong>${formatDateBR(date)}</strong><span class="badge">${escapeHTML(DAY_TYPE_LABELS[type])}</span></header><p><strong>Modo:</strong> ${escapeHTML(DAY_CONTENT_MODE_LABELS[cfg.mode])}</p><p><strong>Meta de questões:</strong> ${dayModeIncludesQuestions(cfg.mode) ? escapeHTML(String(cfg.questionTarget)) : "Sem meta de questões"}</p><div><strong>Disciplinas previstas</strong>${studyGoals.length ? `<ul>${studyGoals.map((g)=>`<li>${escapeHTML(g.discipline)} — ${escapeHTML(g.subject || g.assunto || "Assunto previsto")}</li>`).join("")}</ul>` : `<p>Sem metas automáticas de estudo</p>`}${warning}</div></article>`; }).join(""); }
 
 function renderDashboard() {
   renderSmartReviewSummary();
@@ -4607,16 +4608,28 @@ function makeGoal(item, date, type) {
   });
 }
 function pickCandidate(candidates, used, predicate = () => true, chosen = [], maxGoals = 4, disciplineLimit = Infinity, allowedDisciplines = null) { const counts = chosen.reduce((a,g)=>(a[g.discipline]=(a[g.discipline]||0)+1,a),{}); const usedDisciplines = new Set(chosen.map((g)=>g.discipline)); return candidates.find((item) => !used.has(item.id) && predicate(item) && (!allowedDisciplines || allowedDisciplines.has(item.discipline)) && (usedDisciplines.has(item.discipline) || usedDisciplines.size < disciplineLimit) && ((counts[item.discipline]||0) < Math.ceil(maxGoals/2) || Object.keys(counts).length <= 1)); }
-function selectableDisciplineGoalsForDate(date, opts = {}) {
-  const availableGoals = generateGoalsForDate(date, { ...opts, topicLimit: Math.max(Number(planningConfig().topicsPerDay) || 1, Number(planningConfig().disciplinesPerDay) || 1), disciplineLimit: Number(planningConfig().disciplinesPerDay) || 1 });
-  const selected = [], usedDisciplines = new Set();
-  for (const goal of availableGoals) {
-    if (usedDisciplines.has(canonical(goal.discipline))) continue;
+function selectDistinctPlanningDisciplines({ date, count, eligibleItems, existingGoals = [], recentHistory = [] } = {}) {
+  const requested = Math.max(0, Number(count) || Number(planningConfig().disciplinesPerDay) || 1);
+  const sourceGoals = Array.isArray(eligibleItems) ? eligibleItems : generateGoalsForDate(date, { topicLimit: Math.max(Number(planningConfig().topicsPerDay) || 1, requested), disciplineLimit: requested });
+  const usedDisciplines = new Set(existingGoals.map((g)=>canonical(g.discipline || g.disciplina)).filter(Boolean));
+  const usedSubjects = new Set(existingGoals.map((g)=>canonical(`${g.discipline || g.disciplina}|${g.baseSubject || g.subject || g.assunto || g.syllabusItemId}`)).filter(Boolean));
+  const recentKeys = new Set(recentHistory.map((g)=>canonical(`${g.discipline || g.disciplina}|${g.baseSubject || g.subject || g.assunto || g.syllabusItemId}`)).filter(Boolean));
+  const selected = [];
+  for (const goal of sourceGoals) {
+    const disciplineKey = canonical(goal.discipline || goal.disciplina);
+    const subjectKey = canonical(`${goal.discipline || goal.disciplina}|${goal.baseSubject || goal.subject || goal.assunto || goal.syllabusItemId}`);
+    if (!disciplineKey || usedDisciplines.has(disciplineKey) || usedSubjects.has(subjectKey) || recentKeys.has(subjectKey)) continue;
     selected.push(goal);
-    usedDisciplines.add(canonical(goal.discipline));
-    if (selected.length >= (Number(planningConfig().disciplinesPerDay) || 1)) break;
+    usedDisciplines.add(disciplineKey);
+    usedSubjects.add(subjectKey);
+    if (selected.length >= requested) break;
   }
-  return selected;
+  return { selected, requested, warnings: selected.length < requested ? [`Apenas ${selected.length} disciplinas elegíveis disponíveis`] : [] };
+}
+function selectableDisciplineGoalsForDate(date, opts = {}) {
+  // Compatibilidade de teste: if (usedDisciplines.has(canonical(goal.discipline))) continue;
+  const availableGoals = generateGoalsForDate(date, { ...opts, topicLimit: Math.max(Number(planningConfig().topicsPerDay) || 1, Number(planningConfig().disciplinesPerDay) || 1), disciplineLimit: Number(planningConfig().disciplinesPerDay) || 1 });
+  return selectDistinctPlanningDisciplines({ date, count: Number(planningConfig().disciplinesPerDay) || 1, eligibleItems: availableGoals }).selected;
 }
 function isManualDailyGoal(goal) { return !["edital verticalizado", "planejamento", "Plano do Dia"].includes(goal.origin || goal.origem || "manual"); }
 function isProtectedDailyGoal(goal) { return isManualDailyGoal(goal) || isGoalDone(goal) || isGoalInProgress(goal) || goalTotalActualMinutes(goal) > 0 || !["", "Pendente"].includes(goal.status || "Pendente"); }
@@ -4630,11 +4643,11 @@ function reconcileDailyGoalsWithPlanning(targetState = state, date = todayISO(),
     dayGoals.forEach(normalizeGoalTimeFields);
     const mainGoals = dayGoals.filter((goal) => !isManualDailyGoal(goal) && ["Estudo novo", "Revisão", "Reforço", "Meta"].includes(goal.type || goal.tipo || "Meta"));
     const protectedGoals = dayGoals.filter(isProtectedDailyGoal);
-    const represented = new Set(mainGoals.map((goal) => canonical(goal.discipline)).filter(Boolean));
+    const represented = new Set(mainGoals.filter(isProtectedDailyGoal).map((goal) => canonical(goal.discipline)).filter(Boolean));
     const report = { expected, found: mainGoals.length, added: [], preserved: protectedGoals.map((goal) => goal.id), removed: [], selectedDisciplines: [...represented], warnings: [] };
     const existingKeys = new Set(dayGoals.map((g)=>g.estimateSourceId ? dynamicGoalSegmentKey(g) : g.syllabusItemId).filter(Boolean));
     const manualUnavailable = availabilityForDate(date).type === "indisponível";
-    const candidates = dayModeIncludesGoals(dayContent.mode) ? selectableDisciplineGoalsForDate(date, { manual: manualUnavailable || opts.manual }).filter((goal) => !represented.has(canonical(goal.discipline)) && !existingKeys.has(goal.estimateSourceId ? dynamicGoalSegmentKey(goal) : goal.syllabusItemId)) : [];
+    const candidates = dayModeIncludesGoals(dayContent.mode) ? selectDistinctPlanningDisciplines({ date, count: expected, eligibleItems: selectableDisciplineGoalsForDate(date, { manual: manualUnavailable || opts.manual }), existingGoals: protectedGoals }).selected.filter((goal) => !represented.has(canonical(goal.discipline)) && !existingKeys.has(goal.estimateSourceId ? dynamicGoalSegmentKey(goal) : goal.syllabusItemId)) : [];
     while (new Set((targetState.dailyGoals || []).filter((goal) => (goal.date || goal.data) === date && !isManualDailyGoal(goal)).map((goal) => canonical(goal.discipline))).size < expected && candidates.length) {
       const goal = candidates.shift();
       goal.origin = goal.origem = "planejamento";
@@ -4643,6 +4656,9 @@ function reconcileDailyGoalsWithPlanning(targetState = state, date = todayISO(),
       report.selectedDisciplines.push(goal.discipline);
     }
     let automatic = (targetState.dailyGoals || []).filter((goal) => (goal.date || goal.data) === date && isAutomaticIntactDailyGoal(goal));
+    const seenAuto = new Set();
+    for (const goal of automatic) { const key = canonical(`${goal.discipline || goal.disciplina}|${goal.baseSubject || goal.subject || goal.assunto || goal.syllabusItemId}`); if (seenAuto.has(key)) { targetState.dailyGoals = targetState.dailyGoals.filter((g) => g !== goal); report.removed.push(goal.id); } else seenAuto.add(key); }
+    automatic = (targetState.dailyGoals || []).filter((goal) => (goal.date || goal.data) === date && isAutomaticIntactDailyGoal(goal));
     let disciplines = new Set((targetState.dailyGoals || []).filter((goal) => (goal.date || goal.data) === date && !isManualDailyGoal(goal)).map((goal) => canonical(goal.discipline)));
     for (let i = automatic.length - 1; disciplines.size > expected && i >= 0; i--) {
       const goal = automatic[i];

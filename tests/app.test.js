@@ -6,6 +6,7 @@ const html = fs.readFileSync('index.html', 'utf8');
 const script = fs.readFileSync('script.js', 'utf8');
 const docsScript = fs.readFileSync('docs/script.js', 'utf8');
 const style = fs.readFileSync('style.css', 'utf8');
+const docsStyle = fs.readFileSync('docs/style.css', 'utf8');
 const forbiddenLeiRecorteText = ['Se não houver', 'trabalhe a lei amplamente'].join(', ');
 const requiredLeiRecorteText = 'RECORTE: trabalhe somente os artigos e temas expressamente indicados. Se o recorte não estiver cadastrado ou estiver impreciso, interrompa a geração e solicite confirmação. Somente trabalhe a lei integralmente quando houver autorização expressa do usuário.';
 
@@ -357,5 +358,43 @@ test('Prévia do planejamento mostra tipo, modo, questões e disciplinas sem alt
   assert.match(script, /DAY_CONTENT_MODE_LABELS\[cfg\.mode\]/);
   assert.match(script, /cfg\.questionTarget\} questões/);
   assert.match(script, /Sem metas automáticas de estudo/);
-  assert.doesNotMatch(script.slice(script.indexOf('function renderPlanningPreview'), script.indexOf('function renderDashboard')), /state\.dailyGoals\.push|saveData\(/);
+  assert.doesNotMatch(script.slice(script.indexOf('function renderPlanningPreview'), script.indexOf('function renderDashboard()')), /state\.dailyGoals\.push|saveData\(/);
+});
+
+test('Hotfix do planejamento mobile usa resumo próprio e textos sem repetição', () => {
+  assert.match(script, /planning-summary-grid/);
+  assert.match(script, /planning-summary-card/);
+  assert.match(script, /planning-summary-label/);
+  assert.match(script, /planning-summary-value/);
+  const summaryBlock = script.slice(script.indexOf('function renderPlanningSummary'), script.indexOf('function renderPlanningPreview'));
+  assert.doesNotMatch(summaryBlock, /class="stat-card"/);
+  assert.doesNotMatch(summaryBlock, /Dia normal: \$\{DAY_CONTENT_MODE_LABELS/);
+  assert.doesNotMatch(summaryBlock, /Folga: \$\{DAY_CONTENT_MODE_LABELS/);
+  assert.doesNotMatch(summaryBlock, /Plantão: \$\{DAY_CONTENT_MODE_LABELS/);
+  assert.match(style, /@media \(max-width: 768px\)[\s\S]*\.planning-summary-grid\s*\{[\s\S]*grid-template-columns: 1fr/);
+  assert.match(style, /\.planning-summary-value[\s\S]*font-size: clamp\(1rem, 2\.5vw, 1\.25rem\)/);
+});
+
+test('Hotfix do planejamento mobile usa cartões na prévia agrupados por data', () => {
+  const previewBlock = script.slice(script.indexOf('function renderPlanningPreview'), script.indexOf('function renderDashboard()'));
+  assert.match(previewBlock, /planning-preview-card/);
+  assert.match(previewBlock, /<header><strong>\$\{formatDateBR\(date\)\}<\/strong>/);
+  assert.match(previewBlock, /<ul>\$\{studyGoals\.map/);
+  assert.doesNotMatch(previewBlock, /<table|<tr|<td/);
+  assert.match(style, /#view-planejamento :is\([\s\S]*word-break: normal;[\s\S]*hyphens: none;/);
+  assert.doesNotMatch(style, /#view-planejamento[\s\S]{0,400}(word-break:\s*break-all|overflow-wrap:\s*anywhere|hyphens:\s*auto)/);
+});
+
+test('Hotfix seleciona disciplinas e assuntos distintos e reconciliação é idempotente', () => {
+  assert.match(script, /function selectDistinctPlanningDisciplines\(\{\s*date,\s*count,\s*eligibleItems,\s*existingGoals = \[\],\s*recentHistory = \[\]/);
+  assert.match(script, /usedDisciplines\.has\(disciplineKey\)/);
+  assert.match(script, /usedSubjects\.has\(subjectKey\)/);
+  assert.match(script, /Apenas \$\{selected\.length\} disciplinas elegíveis disponíveis/);
+  assert.match(script, /seenAuto\.has\(key\)/);
+  assert.match(script, /function isProtectedDailyGoal\(goal\)[\s\S]*isManualDailyGoal\(goal\)[\s\S]*isGoalDone\(goal\)[\s\S]*isGoalInProgress\(goal\)[\s\S]*goalTotalActualMinutes\(goal\) > 0/);
+  assert.match(script, /dayModeIncludesGoals\(dayContent\.mode\) \? Math\.max/);
+  assert.match(script, /dayModeIncludesQuestions\(cfg\.mode\)/);
+  assert.match(style, /#view-planejamento\s*\{[\s\S]*padding-bottom: calc\(120px \+ env\(safe-area-inset-bottom, 0px\)\)/);
+  assert.strictEqual(script, docsScript);
+  assert.strictEqual(style, docsStyle);
 });
