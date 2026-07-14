@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260714-hotfix-acordeao-mobile-v1",
+  "version": "20260714-exportacoes-didaticas-mais-opcoes-v1",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

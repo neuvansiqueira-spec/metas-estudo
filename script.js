@@ -5328,28 +5328,85 @@ function buildPerformanceExportPayload(dashboard, filters = {}, analysis = {}) {
 function buildPerformanceCsv(payload) {
   const rows = [['TIPO_DE_REGISTRO','CAMPO_1','CAMPO_2','CAMPO_3','CAMPO_4','CAMPO_5','CAMPO_6','CAMPO_7']];
   Object.entries(payload.summary || {}).forEach(([k,v]) => rows.push(['RESUMO', k, v, '', '', '', '', '']));
-  (payload.daily || []).forEach(d => rows.push(['EVOLUCAO_DIARIA', formatDateBR(d.date), formatExportDuration(d.minutes), d.questions, d.correct || 0, d.wrong || 0, d.blank || 0, '']));
-  (payload.disciplines || []).forEach(d => rows.push(['DISCIPLINA', d.discipline, formatExportDuration(d.minutes), d.questions, d.correct, d.wrong, d.blank, d.net]));
+  (payload.daily || []).forEach(d => rows.push(['EVOLUCAO_DIARIA', formatDateBR(d.date), Number(d.minutes)||0, formatExportDuration(d.minutes), d.questions || 0, '', '', '']));
+  (payload.disciplines || []).forEach(d => rows.push(['DISCIPLINA', d.discipline, Number(d.minutes)||0, formatExportDuration(d.minutes), d.questions || 0, d.correct || 0, d.wrong || 0, d.net || 0]));
   rows.push(['QUESTOES','Período', payload.questions.correct || 0, payload.questions.wrong || 0, payload.questions.blank || 0, payload.questions.cebraspeNet || 0, '', '']);
-  (payload.mockExams || []).forEach(m => rows.push(['SIMULADO', formatDateBR(m.date), m.name, m.correct, m.wrong, m.blank, m.net, m.accuracyPct]));
-  (payload.plannedVsActual || []).forEach(d => rows.push(['PLANEJADO_REALIZADO', formatDateBR(d.date), formatExportDuration(d.plannedMinutes), formatExportDuration(d.actualMinutes), d.plannedGoals, d.completedGoals, '', '']));
+  (payload.mockExams || []).forEach(m => rows.push(['SIMULADO', formatDateBR(m.date), m.name, m.correct || 0, m.wrong || 0, m.blank || 0, m.net || 0, m.accuracyPct || 0]));
+  (payload.plannedVsActual || []).forEach(d => rows.push(['PLANEJADO_REALIZADO', formatDateBR(d.date), d.plannedMinutes || 0, d.actualMinutes || 0, (d.actualMinutes || 0) - (d.plannedMinutes || 0), d.plannedMinutes ? Math.round((d.actualMinutes || 0) / d.plannedMinutes * 100) + '%' : 'Sem planejamento', '', '']));
   return '\ufeff' + rows.map(r => r.map(csvEscape).join(';')).join('\n');
+}
+function buildIndividualChartCsv(chartType, rows = []) {
+  const headersByType = {
+    hours: ['Disciplina','Minutos','Tempo formatado','Percentual'],
+    net: ['Disciplina','Acertos','Erros','Brancos','Líquido','Amostra'],
+    disciplines: ['Disciplina','Minutos','Tempo formatado','Questões','Acertos','Erros','Brancos','Líquido'],
+    daily: ['Data','Minutos','Tempo formatado','Questões'],
+    questions: ['Acertos','Erros','Brancos','Líquido','Percentual de acerto','Amostra'],
+    mocks: ['Data','Nome','Acertos','Erros','Brancos','Líquido','Percentual'],
+    planned: ['Data','Planejado','Realizado','Diferença','Percentual cumprido']
+  };
+  const body = [];
+  if (chartType === 'hours') {
+    const positive = rows.map(r => ({...r, minutesValue: Math.round(Number(r.minutes ?? (Number(r.hours)||0)*60)||0)})).filter(r => r.minutesValue > 0).sort((a,b)=>b.minutesValue-a.minutesValue);
+    const total = positive.reduce((s,r)=>s+r.minutesValue,0);
+    positive.forEach(r => body.push([r.discipline, r.minutesValue, formatExportDuration(r.minutesValue), `${Math.round(r.minutesValue/Math.max(1,total)*100)}%`]));
+  } else if (chartType === 'net') rows.filter(r => Number(r.questions)>0).forEach(r => body.push([r.discipline, r.correct||0, r.wrong||0, r.blank||0, r.net||0, r.questions||0]));
+  else if (chartType === 'daily') rows.forEach(d => body.push([formatDateBR(d.date), d.minutes||0, formatExportDuration(d.minutes), d.questions||0]));
+  else if (chartType === 'questions') { const q = rows[0] || {}; const sample=(q.correct||0)+(q.wrong||0)+(q.blank||0); body.push([q.correct||0,q.wrong||0,q.blank||0,q.cebraspeNet||q.net||0,sample?Math.round((q.correct||0)/sample*100)+'%':'0%',sample]); }
+  else if (chartType === 'mocks') rows.forEach(m => body.push([formatDateBR(m.date), m.name||'Simulado', m.correct||0, m.wrong||0, m.blank||0, m.net||0, `${m.accuracyPct||0}%`]));
+  else if (chartType === 'planned') rows.forEach(d => body.push([formatDateBR(d.date), d.plannedMinutes||0, d.actualMinutes||0, (d.actualMinutes||0)-(d.plannedMinutes||0), d.plannedMinutes?Math.round((d.actualMinutes||0)/d.plannedMinutes*100)+'%':'Sem planejamento']));
+  else rows.forEach(r => body.push([r.discipline||'', r.minutes||0, formatExportDuration(r.minutes), r.questions||0, r.correct||0, r.wrong||0, r.blank||0, r.net||0]));
+  return '\ufeff' + [headersByType[chartType] || headersByType.disciplines, ...body].map(r => r.map(csvEscape).join(';')).join('\n');
 }
 function chartRowsForType(type, payload) {
   const map = { daily: payload.daily || [], questions: [payload.questions || {}], disciplines: payload.disciplines || [], mocks: payload.mockExams || [], planned: payload.plannedVsActual || [], hours: payload.disciplines || [], net: payload.disciplines || [] };
   return map[type] || [];
 }
-function buildChartSvg(chartType, data, metadata = {}) {
-  const title = metadata.title || 'Gráfico de desempenho', rows = data || [];
-  const W = 900, H = 520, pad = 70, max = Math.max(1, ...rows.flatMap(r => [r.minutes, r.questions, r.correct, r.wrong, r.blank, r.net, r.plannedMinutes, r.actualMinutes].map(Number).filter(Number.isFinite).map(Math.abs)));
-  const bars = rows.slice(0, 24).map((r, i) => { const value = Number(r.minutes ?? r.questions ?? r.correct ?? r.net ?? r.actualMinutes ?? 0) || 0; const x = pad + i * ((W - pad * 2) / Math.max(1, rows.slice(0,24).length)); const bw = Math.max(12, (W - pad * 2) / Math.max(1, rows.slice(0,24).length) - 8); const bh = Math.abs(value) / max * 300; const y = 400 - bh; const label = r.date ? formatDateBR(r.date) : (r.discipline || r.name || 'Período'); return `<g><rect x="${x}" y="${y}" width="${bw}" height="${bh}" fill="#2563eb"/><text x="${x}" y="${Math.min(492, y + bh + 18)}" font-size="11" fill="#334155">${escapeHTML(String(label)).slice(0,22)}</text><text x="${x}" y="${y - 6}" font-size="12" fill="#0f172a">${escapeHTML(String(value))}</text></g>`; }).join('');
-  return `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" role="img"><style>text{font-family:Arial,sans-serif}.legend{font-size:14px;fill:#475569}.title{font-weight:700;font-size:28px;fill:#0f172a}</style><rect width="100%" height="100%" fill="#fff"/><text x="40" y="44" class="title">${escapeHTML(title)}</text><text x="40" y="72" class="legend">Período: ${escapeHTML(metadata.period || '-')} • Disciplina: ${escapeHTML(metadata.discipline || 'Todas')} • Origem: ${escapeHTML(metadata.origin || 'Consolidado')}</text><text x="40" y="96" class="legend">Legenda: barras azuis representam os valores consolidados; gerado em ${escapeHTML(formatDateBR((metadata.generatedAt || new Date().toISOString()).slice(0,10)))}</text><line x1="${pad}" y1="400" x2="${W-pad}" y2="400" stroke="#94a3b8"/>${bars || `<text x="40" y="180" class="legend">Dados insuficientes</text>`}</svg>`;
+function wrapSvgText(text, maxChars = 52) {
+  const words = String(text || '').split(/\s+/).filter(Boolean), lines = [];
+  let line = '';
+  words.forEach((word) => { if ((line + ' ' + word).trim().length > maxChars && line) { lines.push(line); line = word; } else line = (line + ' ' + word).trim(); });
+  if (line) lines.push(line);
+  return lines.length ? lines : [''];
 }
-function svgToPngBlob(svg, options = {}) { return new Promise((resolve, reject) => { const img = new Image(); const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' })); img.onload = () => { const canvas = document.createElement('canvas'); canvas.width = options.width || 1200; canvas.height = options.height || Math.max(700, Math.round(canvas.width * img.height / img.width)); const ctx = canvas.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.drawImage(img,0,0,canvas.width,canvas.height); URL.revokeObjectURL(url); canvas.toBlob(b => b ? resolve(b) : reject(new Error('PNG indisponível')), 'image/png'); }; img.onerror = reject; img.src = url; }); }
+function svgTextBlock(text, x, y, cls = 'note', maxChars = 78, lineHeight = 24) {
+  return wrapSvgText(text, maxChars).map((line, i) => `<text x="${x}" y="${y + i * lineHeight}" class="${cls}">${escapeHTML(line)}</text>`).join('');
+}
+function chartFinding(chartType, rows = [], metadata = {}) {
+  if (!rows.length) return 'Ainda não há dados suficientes para interpretar este gráfico.';
+  if (chartType === 'hours') { const positive=rows.map(r=>({...r, m:Math.round(Number(r.minutes ?? (Number(r.hours)||0)*60)||0)})).filter(r=>r.m>0).sort((a,b)=>b.m-a.m), total=positive.reduce((s,r)=>s+r.m,0); return positive[0] ? `${positive[0].discipline} concentrou ${formatExportDuration(positive[0].m)}, correspondendo a ${Math.round(positive[0].m/Math.max(1,total)*100)}% do tempo registrado.` : 'Nenhuma disciplina registrou tempo neste período.'; }
+  if (chartType === 'net') { const qs=rows.filter(r=>Number(r.questions)>0).sort((a,b)=>(Number(b.net)||0)-(Number(a.net)||0)); return qs[0] ? `O melhor líquido foi ${qs[0].net||0} em ${qs[0].discipline}, com amostra de ${qs[0].questions||0} questões.` : 'Não existem questões suficientes por disciplina neste período.'; }
+  if (chartType === 'daily') { const best=rows.slice().sort((a,b)=>(Number(b.minutes)||0)-(Number(a.minutes)||0))[0]; return best ? `O maior volume de estudo ocorreu em ${formatDateBR(best.date)}, com ${formatExportDuration(best.minutes)}.` : 'Ainda não há evolução diária no período.'; }
+  if (chartType === 'questions') { const q=rows[0]||{}, sample=(q.correct||0)+(q.wrong||0)+(q.blank||0); return sample ? `Foram respondidas ${sample} questões; líquido = ${(q.cebraspeNet ?? q.net) || 0} e acerto de ${Math.round((q.correct||0)/sample*100)}%.` : 'Ainda não há questões registradas neste período.'; }
+  if (chartType === 'planned') { const p=rows.reduce((s,r)=>s+(Number(r.plannedMinutes)||0),0), a=rows.reduce((s,r)=>s+(Number(r.actualMinutes)||0),0), diff=a-p; return p||a ? `O realizado ficou ${diff>=0?'acima':'abaixo'} do planejado em ${formatExportDuration(Math.abs(diff))}.` : 'Não existe tempo planejado registrado neste período.'; }
+  if (chartType === 'mocks') { const best=rows.slice().sort((a,b)=>(Number(b.net)||0)-(Number(a.net)||0))[0]; return rows.length === 1 ? `Houve 1 simulado: ${best.name||'Simulado'}, com líquido ${best.net||0}.` : `Houve ${rows.length} simulados no período, com melhor líquido de ${best?.net||0}.`; }
+  return 'Dados consolidados para estudo e compartilhamento.';
+}
+function buildChartSvg(chartType, data, metadata = {}) {
+  const rows = data || [], title = metadata.title || 'Gráfico de desempenho';
+  const W = 1600, H = 1050, left = 120, top = 310, plotW = 1360, plotH = 570;
+  const discipline = metadata.discipline && metadata.discipline !== 'all' ? metadata.discipline : 'Todas';
+  const generated = new Date(metadata.generatedAt || new Date().toISOString()).toLocaleString('pt-BR');
+  const finding = metadata.finding || chartFinding(chartType, rows, metadata);
+  let body = '', legend = 'Legenda: valores em azul; escala proporcional ao maior valor do gráfico.';
+  if (chartType === 'hours') {
+    const positive=rows.map(r=>({...r,m:Math.round(Number(r.minutes ?? (Number(r.hours)||0)*60)||0)})).filter(r=>r.m>0).sort((a,b)=>b.m-a.m).slice(0,12), total=positive.reduce((s,r)=>s+r.m,0), max=Math.max(1,...positive.map(r=>r.m));
+    body = positive.length ? positive.map((r,i)=>{ const y=top+i*46, w=Math.max(8,r.m/max*(plotW-500)), pct=Math.round(r.m/Math.max(1,total)*100); return `<g><text x="${left}" y="${y+23}" class="label">${escapeHTML(r.discipline)}</text><rect x="520" y="${y}" width="${w}" height="28" rx="8" fill="#2563eb"/><text x="${540+w}" y="${y+21}" class="value">${formatExportDuration(r.m)} • ${pct}%</text></g>`; }).join('') : `<text x="${left}" y="${top}" class="empty">Sem tempo registrado no período selecionado.</text>`;
+    const zero = rows.filter(r=>Math.round(Number(r.minutes ?? (Number(r.hours)||0)*60)||0)<=0).length; legend = `Unidade: tempo estudado. Escala: maior barra = ${formatExportDuration(max)}.${zero ? ` ${zero} disciplinas sem tempo registrado.` : ''}`;
+  } else if (chartType === 'net') {
+    const qs=rows.filter(r=>Number(r.questions)>0).slice(0,12), max=Math.max(1,...qs.map(r=>Math.abs(Number(r.net)||0))); body=`<line x1="800" y1="${top-20}" x2="800" y2="${top+plotH}" stroke="#0f172a"/><text x="785" y="${top-34}" class="label">0</text>`+(qs.length?qs.map((r,i)=>{ const y=top+i*52, net=Number(r.net)||0, w=Math.abs(net)/max*520, x=net>=0?800:800-w; return `<g><text x="${left}" y="${y+20}" class="label">${escapeHTML(r.discipline)}</text><rect x="${x}" y="${y}" width="${Math.max(8,w)}" height="24" rx="7" fill="${net>=0?'#16a34a':'#dc2626'}"/><text x="${net>=0?x+w+16:x-120}" y="${y+19}" class="value">${net>0?'+':''}${net}</text><text x="${left}" y="${y+42}" class="note">${r.correct||0} acertos • ${r.wrong||0} erros • ${r.blank||0} brancos • amostra ${r.questions||0}</text></g>`;}).join(''):`<text x="${left}" y="${top}" class="empty">Não existem questões suficientes por disciplina neste período.</text>`); legend='Unidade: líquido Cebraspe. Eixo central zero; positivos à direita e negativos à esquerda.';
+  } else if (chartType === 'daily' || chartType === 'mocks') {
+    const vals=rows.map(r=>Number(chartType==='mocks'?r.net:r.minutes)||0), max=Math.max(1,...vals), step=plotW/Math.max(1,rows.length-1); const pts=rows.map((r,i)=>[left+i*step, top+plotH-(Number(chartType==='mocks'?r.net:r.minutes)||0)/max*plotH,r]); body=`<line x1="${left}" y1="${top+plotH}" x2="${left+plotW}" y2="${top+plotH}" stroke="#64748b"/><line x1="${left}" y1="${top}" x2="${left}" y2="${top+plotH}" stroke="#64748b"/>`+[0,.25,.5,.75,1].map(t=>`<line x1="${left}" y1="${top+plotH-t*plotH}" x2="${left+plotW}" y2="${top+plotH-t*plotH}" stroke="#e2e8f0"/><text x="45" y="${top+plotH-t*plotH+6}" class="note">${Math.round(max*t)}</text>`).join('')+(pts.length>1?`<polyline points="${pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')}" fill="none" stroke="#2563eb" stroke-width="5"/>`: '')+pts.map(([x,y,r])=>`<circle cx="${x}" cy="${y}" r="9" fill="#0f766e"/><text x="${x-38}" y="${top+plotH+42}" class="note">${formatDateBR(r.date).slice(0,5)}</text><text x="${x-28}" y="${y-14}" class="value">${chartType==='mocks'?(r.net||0):formatExportDuration(r.minutes)}</text>`).join(''); legend=chartType==='mocks'?'Linha cronológica dos simulados; unidade: líquido.':'Linha diária real; unidade: minutos estudados.';
+  } else if (chartType === 'questions') { const q=rows[0]||{}, vals=[['Acertos',q.correct||0,'#16a34a'],['Erros',q.wrong||0,'#dc2626'],['Brancos',q.blank||0,'#94a3b8']], total=Math.max(1,vals.reduce((s,v)=>s+v[1],0)); body=vals.map((v,i)=>`<g><rect x="${left}" y="${top+i*90}" width="${v[1]/total*900}" height="52" rx="12" fill="${v[2]}"/><text x="${left+920}" y="${top+i*90+34}" class="value">${v[0]}: ${v[1]}</text></g>`).join('')+`<rect x="${left}" y="${top+320}" width="520" height="110" rx="22" fill="#eff6ff"/><text x="${left+34}" y="${top+370}" class="label">Líquido = acertos - erros</text><text x="${left+34}" y="${top+415}" class="titleSmall">${(q.cebraspeNet??q.net)||0}</text>`; legend='Composição: acertos, erros e brancos; brancos são neutros no líquido.';
+  } else if (chartType === 'planned') { const p=rows.reduce((s,r)=>s+(+r.plannedMinutes||0),0), a=rows.reduce((s,r)=>s+(+r.actualMinutes||0),0), max=Math.max(1,p,a); body=[['Planejado',p,'#64748b'],['Realizado',a,'#2563eb']].map((v,i)=>`<g><text x="${left}" y="${top+i*100+34}" class="label">${v[0]}</text><rect x="360" y="${top+i*100}" width="${v[1]/max*900}" height="54" rx="14" fill="${v[2]}"/><text x="${380+v[1]/max*900}" y="${top+i*100+36}" class="value">${formatExportDuration(v[1])}</text></g>`).join(''); legend='Barras pareadas de tempo planejado e realizado.'; }
+  else body = `<text x="${left}" y="${top}" class="empty">Dados consolidados disponíveis no CSV.</text>`;
+  return `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" role="img"><title>${escapeHTML(title)}</title><desc>${escapeHTML(finding)}</desc><style>text{font-family:Arial,Helvetica,sans-serif}.title{font-weight:800;font-size:46px;fill:#0f172a}.titleSmall{font-weight:800;font-size:42px;fill:#1d4ed8}.meta{font-size:25px;fill:#334155}.note{font-size:23px;fill:#475569}.label{font-size:25px;font-weight:700;fill:#0f172a}.value{font-size:24px;font-weight:800;fill:#0f172a}.empty{font-size:29px;font-weight:700;fill:#475569}</style><rect width="100%" height="100%" fill="#fff"/><text x="60" y="72" class="title">${escapeHTML(title)}</text><text x="60" y="120" class="meta">Período: ${escapeHTML(metadata.period || '-')} • Disciplina: ${escapeHTML(discipline)}</text><text x="60" y="158" class="meta">Origem: ${escapeHTML(metadata.origin || 'Consolidado')} • Unidade: ${escapeHTML(metadata.unit || 'valores do gráfico')}</text>${svgTextBlock('Frase-resumo: “' + finding + '”',60,210,'note',95,30)}<g>${body}</g><text x="60" y="940" class="note">Legenda: ${escapeHTML(legend)}</text><text x="60" y="985" class="note">Gerado em: ${escapeHTML(generated)} • Origem dos dados: registros locais da Análise Estratégica</text></svg>`;
+}
+function svgToPngBlob(svg, options = {}) { return new Promise((resolve, reject) => { const img = new Image(); const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' })); img.onload = () => { const canvas = document.createElement('canvas'); canvas.width = options.width || 1600; canvas.height = options.height || Math.max(700, Math.round(canvas.width * img.height / img.width)); const ctx = canvas.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.drawImage(img,0,0,canvas.width,canvas.height); URL.revokeObjectURL(url); canvas.toBlob(b => b ? resolve(b) : reject(new Error('PNG indisponível')), 'image/png'); }; img.onerror = reject; img.src = url; }); }
 function downloadGeneratedFile(blob, filename) { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = sanitizeExportFilename(filename); document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
 async function shareGeneratedFile(blob, filename, mimeType) { const file = new File([blob], filename, { type: mimeType }); if (navigator.canShare?.({ files: [file] })) return navigator.share({ files: [file], title: filename }); downloadGeneratedFile(blob, filename); }
 function openPerformancePrintView(payload) { document.body.classList.add('performance-print-mode'); window.__performancePrintPayload = payload; setTimeout(() => window.print(), 50); }
-function exportChartToPng(chartDefinition, metadata) { const svg = buildChartSvg(chartDefinition.type, chartDefinition.data, metadata); return svgToPngBlob(svg, { width: 1200 }).then(blob => { downloadGeneratedFile(blob, `${metadata.filename}.png`); return blob; }); }
+function exportChartToPng(chartDefinition, metadata) { const svg = buildChartSvg(chartDefinition.type, chartDefinition.data, metadata); return svgToPngBlob(svg, { width: 2400, height: 1575 }).then(blob => { downloadGeneratedFile(blob, `${metadata.filename}.png`); return blob; }); }
 if (typeof module !== 'undefined') module.exports = { formatExportDuration, humanDurationFromHours, renderHoursByDisciplineChart, renderNetByDisciplineChart, sanitizeExportFilename, buildPerformanceExportPayload, buildPerformanceCsv, buildChartSvg };
 
 
@@ -5403,6 +5460,7 @@ function renderStrategicAnalysis() { const content=document.getElementById('anal
   const filters={discipline:disciplineSelect?.value||'all',origin:document.getElementById('analyticsOriginSelect')?.value||'consolidated',custom,mode,periodLabel:periodSelect?.selectedOptions?.[0]?.textContent||mode}; const analysis=window.AnalyticsEngine.buildStrategicAnalysis(state,mode,custom,{today:todayISO(),minStrongQuestions:20}); const dashboard=window.AnalyticsEngine.buildPerformanceDashboard(state,mode,filters,{today:todayISO(),minStrongQuestions:20}); const viewModel={filters,periodLabel:analyticsPeriodLabel(analysis.period),dashboard,analysis,maturity:analysis.dataMaturity}; content.innerHTML=[renderAnalyticsHeader(viewModel),renderAnalyticsSummary(dashboard,analysis.dataMaturity),renderRhythmSection(dashboard),renderQuestionsSection(dashboard),renderDisciplinePerformancePanel(dashboard.disciplines,analysis.period),renderMockEvolutionChart(dashboard.mockExams),renderPlannedVsActualChart(dashboard.plannedVsActual),renderDetailedDiagnosis(analysis),renderAnalyticsQualityDetails(analysis)].join(''); syncAnalyticsSectionState(); setupDisciplineSorting(); setupPerformanceExportControls(buildPerformanceExportPayload(dashboard,filters,analysis)); }
 
 
+function closePerformanceExportDialog() { const d = document.getElementById('performanceExportDialog'); if (d) d.hidden = true; document.getElementById(d?.dataset.returnFocus || 'performanceExportButton')?.focus(); }
 let performanceExportEventsInitialized = false;
 let latestPerformanceExportPayload = null;
 function setPerformanceExportStatus(message) { const el = document.getElementById('performanceExportStatus'); if (el) el.textContent = message || ''; }
@@ -5417,13 +5475,16 @@ async function handlePerformanceExportAction(action, trigger) {
     const filenameBase = `desempenho-${payload.filters?.discipline === 'all' ? 'geral' : payload.filters?.discipline || 'geral'}-${todayISO()}`;
     if (action === 'pdf') { setPerformanceExportStatus('No iPhone, use Compartilhar na tela de impressão e escolha Salvar em Arquivos.'); openPerformancePrintView(payload); }
     if (action === 'csv') downloadGeneratedFile(new Blob([buildPerformanceCsv(payload)], { type: 'text/csv;charset=utf-8' }), `${filenameBase}.csv`);
+    if (action === 'share' && !(typeof File !== 'undefined' && navigator.canShare?.({ files: [new File(['x'], 'x.txt', { type: 'text/plain' })] }))) setPerformanceExportStatus('Indisponível neste dispositivo; usando download como fallback.');
     if (action === 'png' || action === 'share') {
       const svg = buildChartSvg('full', payload.daily, { title: 'Relatório de Desempenho', period: payload.filters?.periodLabel || payload.filters?.mode || 'Período selecionado', discipline: payload.filters?.discipline, origin: payload.filters?.origin, generatedAt: payload.generatedAt });
       const blob = await svgToPngBlob(svg, { width: 2400, height: 1400 });
       if (action === 'share') await shareGeneratedFile(blob, `${sanitizeExportFilename(filenameBase)}.png`, 'image/png'); else downloadGeneratedFile(blob, `${filenameBase}.png`);
     }
     if (action === 'charts') document.querySelector('.chart-export-button')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    setPerformanceExportStatus('Arquivo preparado.');
+    if (action === 'table') { document.querySelector('.analytics-data-table')?.setAttribute('open', ''); setPerformanceExportStatus('Tabela do gráfico aberta quando há dados disponíveis.'); }
+    else if (action === 'methodology') setPerformanceExportStatus('Metodologia: líquido Cebraspe = acertos - erros; brancos são neutros; filtros e período vêm da Análise Estratégica.');
+    else setPerformanceExportStatus('Arquivo preparado.');
     document.getElementById('performanceExportDialog')?.setAttribute('hidden', '');
   } catch (err) { console.error(err); setPerformanceExportStatus('Não foi possível gerar o arquivo neste dispositivo. Tente exportar apenas um gráfico ou usar o relatório para impressão.'); }
   finally { if (button) button.disabled = false; }
@@ -5451,7 +5512,7 @@ async function handleChartExportAction(trigger, format) {
     const meta = { title, period: payload.filters?.periodLabel || payload.filters?.mode || 'Período selecionado', discipline: payload.filters?.discipline, origin: traduzirRotuloAnalise(payload.filters?.origin || 'consolidated'), generatedAt: payload.generatedAt, filename: `grafico-${sanitizeExportFilename(title)}` };
     if (format === 'svg') downloadGeneratedFile(new Blob([buildChartSvg(type, rows, meta)], { type: 'image/svg+xml;charset=utf-8' }), `${meta.filename}.svg`);
     if (format === 'png') await exportChartToPng({ type, data: rows }, meta);
-    if (format === 'csv') downloadGeneratedFile(new Blob([buildPerformanceCsv({ ...payload, daily: type === 'daily' ? rows : [], disciplines: ['disciplines','hours','net'].includes(type) ? rows : [], mockExams: type === 'mocks' ? rows : [], plannedVsActual: type === 'planned' ? rows : [], questions: type === 'questions' ? (rows[0] || {}) : {} })], { type: 'text/csv;charset=utf-8' }), `${meta.filename}.csv`);
+    if (format === 'csv') downloadGeneratedFile(new Blob([buildIndividualChartCsv(type, rows)], { type: 'text/csv;charset=utf-8' }), `${meta.filename}.csv`);
     setPerformanceExportStatus('Arquivo preparado.');
     document.getElementById('chartExportFormatMenu')?.remove();
   } catch (err) { console.error(err); setPerformanceExportStatus('Não foi possível gerar o arquivo neste dispositivo.'); }
@@ -5461,14 +5522,14 @@ function setupPerformanceExportControls(payload) {
   latestPerformanceExportPayload = payload;
   const dialog = document.getElementById('performanceExportDialog'), shareBtn = dialog?.querySelector('[data-performance-export="share"]'), note = document.getElementById('performanceExportShareNote');
   const canShareProbe = typeof File !== 'undefined' && navigator.canShare?.({ files: [new File(['x'], 'x.txt', { type: 'text/plain' })] });
-  if (shareBtn) shareBtn.hidden = !canShareProbe; if (note) note.hidden = !!canShareProbe;
+  if (shareBtn) shareBtn.textContent = canShareProbe ? 'Compartilhar arquivo' : 'Compartilhar arquivo (fallback por download)'; if (note) note.hidden = !!canShareProbe;
   if (performanceExportEventsInitialized) return;
   performanceExportEventsInitialized = true;
   document.addEventListener('click', (event) => {
     const openButton = event.target.closest('#performanceExportButton');
-    if (openButton) { event.preventDefault(); const d = document.getElementById('performanceExportDialog'); if (d) d.hidden = false; document.getElementById('performanceExportClose')?.focus(); return; }
-    const closeButton = event.target.closest('#performanceExportClose');
-    if (closeButton) { event.preventDefault(); const d = document.getElementById('performanceExportDialog'); if (d) d.hidden = true; document.getElementById('performanceExportButton')?.focus(); return; }
+    if (openButton) { event.preventDefault(); const d = document.getElementById('performanceExportDialog'); if (d) { d.hidden = false; d.dataset.returnFocus = 'performanceExportButton'; } d?.querySelector('[data-performance-export], #performanceExportClose')?.focus(); return; }
+    const closeButton = event.target.closest('#performanceExportClose, #performanceExportCancel');
+    if (closeButton) { event.preventDefault(); closePerformanceExportDialog(); return; }
     const exportButton = event.target.closest('[data-performance-export]');
     if (exportButton) { event.preventDefault(); handlePerformanceExportAction(exportButton.dataset.performanceExport, exportButton); return; }
     const chartButton = event.target.closest('[data-chart-export]');
@@ -5476,7 +5537,8 @@ function setupPerformanceExportControls(payload) {
     const chartFormat = event.target.closest('[data-chart-format]');
     if (chartFormat) { event.preventDefault(); handleChartExportAction(chartFormat, chartFormat.dataset.chartFormat); }
   });
-  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') { const d = document.getElementById('performanceExportDialog'); if (d && !d.hidden) d.hidden = true; } });
+  document.addEventListener('click', (event) => { const d = document.getElementById('performanceExportDialog'); if (d && !d.hidden && event.target === d) closePerformanceExportDialog(); });
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape') closePerformanceExportDialog(); });
 }
 
 
