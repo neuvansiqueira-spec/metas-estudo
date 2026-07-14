@@ -1,5 +1,5 @@
 // versão anterior: metas-estudo-20260714-conselheiro-local-v1
-const CACHE_NAME = "metas-estudo-20260714-planejamento-acordeao-modos-dia-v1";
+const CACHE_NAME = "metas-estudo-20260714-hotfix-planejamento-mobile-distinto-v1";
 const FILES_TO_CACHE = [
   "./",
   "index.html",
