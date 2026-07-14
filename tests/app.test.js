@@ -109,7 +109,7 @@ test('Prompt completo do módulo Lei exige recorte expresso e não autoriza lei 
 });
 
 test('Exportação de desempenho possui arquitetura, UI acessível e paridade raiz/docs', () => {
-  assert.match(html, /id="performanceExportButton"[^>]*>Exportar/);
+  assert.match(html, /id="performanceExportButton"[^>]*>Mais opções/);
   assert.match(html, /id="performanceExportDialog"[^>]*role="dialog"[^>]*aria-modal="true"/);
   assert.match(html, /data-performance-export="pdf"/);
   assert.match(html, /data-performance-export="png"/);
@@ -166,6 +166,44 @@ test('CSV, nomes, duração, SVG e rótulos longos seguem requisitos de exporta�
   assert.match(svg, /Legenda:/);
   assert.match(style, /overflow-wrap: break-word/);
   assert.match(style, /word-break: normal/);
+});
+
+
+
+test('Gráficos didáticos exibem duração humana, ordenação, zero recolhível, líquido e tabelas', () => {
+  const start = script.indexOf('function formatExportDuration(minutes');
+  const end = script.indexOf('function setPerformanceExportStatus');
+  const logic = new Function('formatDateBR', 'escapeHTML', `${script.slice(start, end)}; return { renderHoursByDisciplineChart, renderNetByDisciplineChart };`)((d) => d, (v) => String(v));
+  const rows = [
+    { discipline: 'Peça para Delegado de Polícia Civil', hours: 0.08, questions: 0, correct: 0, wrong: 0, blank: 0, net: 0 },
+    { discipline: 'Direito Processual Penal', hours: 0.92, questions: 26, correct: 18, wrong: 6, blank: 2, net: 12 },
+    { discipline: 'Direito Penal', hours: 0, questions: 10, correct: 2, wrong: 5, blank: 3, net: -3 }
+  ];
+  const hours = logic.renderHoursByDisciplineChart(rows, { start: '2026-07-01', end: '2026-07-14' });
+  assert.match(hours, /1\. Direito Processual Penal/);
+  assert.match(hours, /55 min • 92% do período/);
+  assert.doesNotMatch(hours, /0\.92/);
+  assert.match(hours, /Disciplinas sem tempo registrado/);
+  assert.match(hours, /Ver dados em tabela/);
+  assert.ok(hours.indexOf('Direito Processual Penal') < hours.indexOf('Peça para Delegado de Polícia Civil'));
+  const net = logic.renderNetByDisciplineChart(rows, { start: '2026-07-01', end: '2026-07-14' });
+  assert.match(net, /Líquido: <strong>\+12<\/strong>/);
+  assert.match(net, /Líquido: <strong>-3<\/strong>/);
+  assert.match(net, /18 acertos • 6 erros • 2 brancos/);
+  assert.match(net, /Amostra: 26 questões/);
+  assert.match(net, /Ver dados em tabela/);
+  const empty = logic.renderNetByDisciplineChart([{ discipline: 'Sem questões', hours: 1, questions: 0, net: 0 }], {});
+  assert.match(empty, /Ainda não existem questões registradas por disciplina neste período\./);
+});
+
+test('Botão Gerar PDF é direto, não depende do modal, e CSS mobile evita hifenização e rolagem horizontal', () => {
+  assert.match(html, /data-performance-export="pdf"[^>]*>Gerar PDF/);
+  assert.match(html, /export-direct-button" data-performance-export="pdf">Gerar PDF/);
+  assert.match(script, /document\.querySelectorAll\('\[data-performance-export\]'\)/);
+  assert.match(script, /No iPhone, use Compartilhar na tela de impressão e escolha Salvar em Arquivos\./);
+  assert.match(style, /hyphens\s*:\s*none/);
+  assert.match(style, /grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(style, /\.analytics-export-actions button[\s\S]*white-space:\s*normal/);
 });
 
 test('Exportação cobre gráficos individuais, PDF, compartilhamento, clique duplicado e responsividade', () => {
