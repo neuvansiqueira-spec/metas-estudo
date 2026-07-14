@@ -3201,3 +3201,29 @@ body.app-bootstrapping .app-layout {
 .advisor-kv dd { margin: 4px 0 0; font-weight: 800; overflow-wrap: anywhere; }
 @media (max-width: 900px) { .advisor-mission-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .advisor-kv { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 430px) { .advisor-mission-grid, .advisor-kv { grid-template-columns: 1fr; } .advisor-nav-panel { padding: 10px; } }
+
+/* 20260714-central-visual-desempenho-v1 */
+.performance-central { border-color: rgba(37, 99, 235, .28); background: linear-gradient(180deg, #ffffff, #f8fbff); }
+.performance-svg-chart { display: flex; align-items: end; gap: 8px; min-height: 150px; overflow-x: auto; padding: 14px 8px 8px; border: 1px solid var(--border); border-radius: 16px; background: #fff; }
+.performance-day { min-width: 42px; display: grid; grid-template-rows: 1fr auto; grid-auto-flow: column; align-items: end; gap: 3px; text-align: center; color: #334155; font-size: .75rem; }
+.performance-day span { grid-column: 1 / -1; writing-mode: horizontal-tb; transform: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.performance-day i { display: inline-block; width: 9px; border-radius: 999px 999px 2px 2px; background: #2563eb; }
+.performance-day .chart-questions, .performance-day .chart-wrong { background: #f97316; }
+.performance-day .chart-correct, .performance-day .chart-actualMinutes { background: #16a34a; }
+.performance-day .chart-blank, .performance-day .chart-plannedMinutes { background: #64748b; }
+.performance-day .chart-cebraspeNet { background: #7c3aed; }
+.chart-legend { color: var(--muted); font-weight: 700; }
+.analytics-table-details { margin-top: 12px; border: 1px solid var(--border); border-radius: 14px; padding: 10px 12px; background: #f8fafc; }
+.analytics-table-details summary { cursor: pointer; min-height: 42px; display: flex; align-items: center; font-weight: 900; color: var(--primary-dark); }
+@media (max-width: 760px) {
+  .performance-svg-chart { max-width: 100%; gap: 6px; padding-bottom: max(10px, env(safe-area-inset-bottom)); }
+  .performance-day { min-width: 36px; font-size: .7rem; }
+  .performance-day i { width: 8px; }
+}
+@media (max-width: 430px) {
+  .performance-day { min-width: 32px; }
+  .stats-grid.compact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 390px) {
+  .stats-grid.compact { grid-template-columns: 1fr; }
+}
