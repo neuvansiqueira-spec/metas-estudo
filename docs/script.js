@@ -3800,6 +3800,39 @@ function renderDashboardProgressSummary() {
 function updateItemProgress(id, patch = {}) { const item = getSyllabusById(id); if (!item) return; Object.assign(item, patch, { updatedAt: new Date().toISOString() }); }
 function findSyllabusItemByStudy(subjectId, topic) { const discipline = subjectNameById(subjectId); return state.syllabusItems.find((item) => canonical(item.discipline) === canonical(discipline) && (canonical(topic).includes(canonical(item.subject)) || canonical(item.subject).includes(canonical(topic)))); }
 
+function planningForecastCard(label, value) {
+  return `<article class="planning-forecast-card"><span class="planning-forecast-label">${escapeHTML(label)}</span><strong class="planning-forecast-value">${escapeHTML(value)}</strong></article>`;
+}
+function planningGoalDisplayKey(goal) { return canonical(`${goal.date || goal.data}|${goal.discipline || goal.disciplina}|${goal.subject || goal.assunto || goal.baseSubject || ""}`); }
+function dedupeWeeklyGoalsForDisplay(goals = []) {
+  const seen = new Set();
+  return goals.filter((goal) => {
+    const key = planningGoalDisplayKey(goal);
+    if (!key) return true;
+    if (seen.has(key) && !isManualDailyGoal(goal)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+function weeklyPlanGoalsForDate(date, requested = Number(planningConfig().disciplinesPerDay) || 1) {
+  const existing = state.dailyGoals.filter((goal)=>(goal.date || goal.data)===date);
+  const manual = existing.filter(isManualDailyGoal);
+  const automatic = existing.filter((goal)=>!isManualDailyGoal(goal));
+  const selected = selectDistinctPlanningDisciplines({ date, count: requested, existingGoals: manual }).selected;
+  const displayGoals = selected.length ? [...manual, ...selected] : [...manual, ...automatic];
+  return dedupeWeeklyGoalsForDisplay(displayGoals).slice(0, Math.max(requested, manual.length));
+}
+function weeklyPlanDays(requested = Number(planningConfig().disciplinesPerDay) || 1) {
+  return daysBetween(todayISO(), 7).map((date)=>({ date, goals: weeklyPlanGoalsForDate(date, requested) }));
+}
+function renderWeeklyGoalsPlanDesktop(days) {
+  const rows = days.flatMap((day)=>day.goals.map((goal)=>`<tr><td>${formatDateBR(day.date)}</td><td>${escapeHTML(goal.discipline || goal.disciplina || "-")}</td><td>${escapeHTML(goal.subject || goal.assunto || goal.baseSubject || "Assunto previsto")}</td></tr>`));
+  return `<div class="weekly-plan-desktop"><table><thead><tr><th>Data</th><th>Disciplina</th><th>Assunto</th></tr></thead><tbody>${rows.length ? rows.join("") : `<tr><td colspan="3">Sem metas elegíveis para a semana.</td></tr>`}</tbody></table></div>`;
+}
+function renderWeeklyGoalsPlanMobile(days) {
+  return `<div class="weekly-plan-mobile">${days.map((day)=>`<article class="weekly-plan-day-card"><header><strong>${formatDateBR(day.date)}</strong><span>${day.goals.length} ${day.goals.length === 1 ? "disciplina" : "disciplinas"}</span></header>${day.goals.length ? `<ul>${day.goals.map((goal)=>`<li><strong>${escapeHTML(goal.discipline || goal.disciplina || "-")}</strong><span>${escapeHTML(goal.subject || goal.assunto || goal.baseSubject || "Assunto previsto")}</span></li>`).join("")}</ul>` : `<p class="empty-message">Sem metas elegíveis para este dia.</p>`}</article>`).join("")}</div>`;
+}
+
 function renderPlanning() {
   if (!elements.planningConfigForm) return;
   const c = planningConfig();
@@ -3808,14 +3841,22 @@ function renderPlanning() {
   renderPlanningDayModes(); renderPlanningSummary(); renderPlanningPreview();
   elements.availabilityCalendar.innerHTML = Array.from({length: 21}, (_, i) => { const date = addDays(todayISO(), i); const av = availabilityForDate(date); return `<article class="syllabus-card"><header><div><h3>${formatDateBR(date)}</h3><div class="item-meta">Horas estimadas editáveis para este dia.</div></div></header><div class="card-actions"><label>Tipo <select data-availability-type="${date}">${["plantão","folga","dia normal","indisponível","estudo leve","estudo forte"].map((t)=>`<option ${av.type===t?"selected":""}>${t}</option>`).join("")}</select></label><label>Horas <input data-availability-hours="${date}" type="number" min="0" step="0.5" value="${av.hours}"></label></div></article>`; }).join("");
   const m = planningMetrics(); state.planning.forecasts = { ...m, updatedAt: new Date().toISOString() };
-  const cards = [["Total de assuntos",m.total],["Concluídos",m.completed],["Pendentes",m.pending],["Edital estudado",`${m.percent}%`],["Assuntos/semana",m.avgTopicsWeek.toFixed(1)],["Tempo médio/assunto",formatHours(m.avgMinutes)],["Horas estimadas",formatHours(m.totalEstimatedMinutes)],["Horas já estudadas",formatHours(m.totalMinutes)],["Horas restantes",formatHours(m.remainingMinutes)],["Conclusão prevista",formatDateBR(m.forecastDate)],["Diferença para prova",m.diffDays===null?"-":`${m.diffDays} dias`]];
-  elements.completionForecast.innerHTML = cards.map(([a,b])=>`<article class="stat-card"><span>${a}</span><strong class="stat-value-compact">${b}</strong></article>`).join("");
+  const cards = [["Total de assuntos",m.total],["Concluídos",m.completed],["Pendentes",m.pending],["Edital estudado",`${m.percent}%`],["Assuntos/semana",m.avgTopicsWeek.toFixed(1)],["Tempo médio/assunto",formatHours(m.avgMinutes)],["Horas estimadas",formatHours(m.totalEstimatedMinutes)],["Horas já estudadas",formatHours(m.totalMinutes)],["Horas restantes",formatHours(m.remainingMinutes)],["Conclusão prevista",formatDateBR(m.forecastDate)],["Diferença para prova",m.diffDays===null?"-":`${m.diffDays} dias`],["Situação do edital",m.diffDays !== null && m.diffDays < 0 ? "Atrasado para a data da prova" : "Dentro do prazo informado"]];
+  elements.completionForecast.classList.remove("stats-grid", "compact");
+  elements.completionForecast.classList.add("planning-forecast-grid");
+  elements.completionForecast.innerHTML = cards.map(([a,b])=>planningForecastCard(a, String(b))).join("");
   elements.completionAlert.textContent = m.diffDays !== null && m.diffDays < 0 ? "No ritmo atual, o edital não será concluído antes da prova." : "No ritmo atual, o edital será concluído antes da prova.";
   const w = weekAvailability(); const possibleTopics = Math.floor((w.total*60)/(m.avgMinutes||60)); const neededWeeks = m.examDate ? Math.max(1, Math.ceil((parseDate(m.examDate)-parseDate(todayISO()))/604800000)) : 1; const neededTopics = Math.ceil(m.pending/neededWeeks); const suggested = Math.max(0, Math.min(m.pending, Math.max(possibleTopics, neededTopics, Number(c.weeklyTopics)||0)));
-  elements.weeklyGoalsPlan.innerHTML = [["Horas disponíveis",`${w.total.toFixed(1)}h`],["Assuntos sugeridos",suggested],["Horas sugeridas/dia",`${(w.total/7).toFixed(1)}h`],["Meta mínima",`${c.minWeeklyHours}h`],["Meta ideal",`${c.idealWeeklyHours}h`]].map(([a,b])=>`<article class="stat-card"><span>${a}</span><strong class="stat-value-compact">${b}</strong></article>`).join("");
+  const requestedDisciplines = Number(c.disciplinesPerDay) || 1;
+  const weeklyDays = weeklyPlanDays(requestedDisciplines);
+  const maxEligible = Math.max(0, ...weeklyDays.map((day)=>day.goals.length));
+  elements.weeklyGoalsPlan.classList.remove("stats-grid", "compact");
+  elements.weeklyGoalsPlan.innerHTML = `<div class="planning-forecast-grid weekly-plan-metrics">${[["Horas disponíveis",`${w.total.toFixed(1)}h`],["Assuntos sugeridos",suggested],["Horas sugeridas/dia",`${(w.total/7).toFixed(1)}h`],["Meta mínima",`${c.minWeeklyHours}h`],["Meta ideal",`${c.idealWeeklyHours}h`]].map(([a,b])=>planningForecastCard(a, String(b))).join("")}</div>${maxEligible < requestedDisciplines ? `<p class="notice">Apenas ${maxEligible} disciplina elegível disponível.</p>` : ""}${renderWeeklyGoalsPlanDesktop(weeklyDays)}${renderWeeklyGoalsPlanMobile(weeklyDays)}`;
   elements.weeklyGoalsAlert.textContent = w.total < c.minWeeklyHours ? "Alerta: semana abaixo da meta mínima; compense nas folgas quando possível." : (m.safeDiff !== null && m.safeDiff < 0 ? "Alerta: planejamento atrasado para a margem de segurança." : "Planejamento em dia ou adiantado para a rotina informada.");
   const logs = getStudyTimeLogs().sort((a,b)=>b.date.localeCompare(a.date)); const byDisc = logs.reduce((a,l)=>(a[l.discipline]=(a[l.discipline]||0)+l.minutes,a),{}); const top = Object.entries(byDisc).sort((a,b)=>b[1]-a[1])[0];
-  elements.timeHistorySummary.innerHTML = [["Hoje",formatHours(logs.filter(l=>l.date===todayISO()).reduce((s,l)=>s+l.minutes,0))],["Semana",formatHours(logs.filter(l=>isSameWeek(l.date)).reduce((s,l)=>s+l.minutes,0))],["Edital",formatHours(m.totalMinutes)],["Disciplina mais estudada",top?`${top[0]} (${formatHours(top[1])})`:"-"]].map(([a,b])=>`<article class="stat-card"><span>${a}</span><strong>${escapeHTML(b)}</strong></article>`).join("");
+  elements.timeHistorySummary.classList.remove("stats-grid", "compact");
+  elements.timeHistorySummary.classList.add("planning-forecast-grid");
+  elements.timeHistorySummary.innerHTML = [["Hoje",formatHours(logs.filter(l=>l.date===todayISO()).reduce((s,l)=>s+l.minutes,0))],["Semana",formatHours(logs.filter(l=>isSameWeek(l.date)).reduce((s,l)=>s+l.minutes,0))],["Edital",formatHours(m.totalMinutes)],["Disciplina mais estudada",top?`${top[0]} (${formatHours(top[1])})`:"-"]].map(([a,b])=>planningForecastCard(a, String(b))).join("");
   elements.timeHistoryBody.innerHTML = logs.slice(0,50).map((l)=>`<tr><td>${formatDateBR(l.date)}</td><td>${escapeHTML(l.discipline)}</td><td>${escapeHTML(l.subject)}</td><td>${l.minutes} min</td><td>${escapeHTML(l.type)}</td><td>${escapeHTML(l.status)}</td><td>${escapeHTML(l.material || "-")}</td><td>${escapeHTML(l.notes||"-")}</td><td>${l.source === "study" ? `<button type="button" data-time-edit="${l.id}">Editar</button> <button class="danger" type="button" data-time-delete="${l.id}">Excluir</button>` : "-"}</td></tr>`).join("");
 }
 
