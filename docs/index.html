@@ -738,7 +738,9 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
             <option value="7d">Últimos 7 dias</option>
             <option value="30d" selected>Últimos 30 dias</option>
             <option value="90d">Últimos 90 dias</option>
+            <option value="month">Mês atual</option>
             <option value="custom">Período personalizado</option>
+            <option value="all">Todo o histórico</option>
           </select>
         </label>
         <label>Início <input id="advisorStartDate" type="date"></label>
@@ -788,11 +790,19 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
             <option value="7d">Últimos 7 dias</option>
             <option value="30d" selected>Últimos 30 dias</option>
             <option value="90d">Últimos 90 dias</option>
+            <option value="month">Mês atual</option>
             <option value="custom">Período personalizado</option>
+            <option value="all">Todo o histórico</option>
           </select>
         </label>
         <label>Início <input id="analyticsStartDate" type="date"></label>
         <label>Fim <input id="analyticsEndDate" type="date"></label>
+        <label>Disciplina
+          <select id="analyticsDisciplineSelect"><option value="all">Todas</option></select>
+        </label>
+        <label>Origem
+          <select id="analyticsOriginSelect"><option value="consolidated">Consolidado</option><option value="estudos">Estudos</option><option value="questões">Questões</option><option value="simulados">Simulados</option></select>
+        </label>
         <button type="submit">Atualizar análise</button>
       </form>
       <div id="analyticsContent" class="strategic-analysis-grid"></div>
@@ -896,7 +906,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
   <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260714-plano-dia-multidisciplinar-cronometro-v4</p></footer>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="storage-indexeddb.js?v=20260714-plano-dia-multidisciplinar-cronometro-v4"></script>
-  <script src="analytics-engine.js?v=20260714-plano-dia-multidisciplinar-cronometro-v4"></script>
+  <script src="analytics-engine.js?v=20260714-central-visual-desempenho-v1"></script>
   <script src="study-advisor.js?v=20260714-plano-dia-multidisciplinar-cronometro-v4"></script>
   <script src="advisor-navigation-engine.js?v=20260714-plano-dia-multidisciplinar-cronometro-v4"></script>
   <script src="script.js?v=20260714-plano-dia-multidisciplinar-cronometro-v4"></script>
