@@ -9,6 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
+const APP_VERSION = "20260714-conclusao-meta-sem-repetir-tempo-v1";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -2360,6 +2361,18 @@ function showDailyGoalMessage(message, type = "info") {
   box.textContent = message;
   box.dataset.type = type;
 }
+function goalCompletionElements() {
+  return {
+    modal: document.getElementById("goalCompletionModal"),
+    summary: document.getElementById("goalCompletionDescription"),
+    notice: document.getElementById("goalCompletionNotice"),
+    cancel: document.getElementById("goalCompletionCancel"),
+    confirm: document.getElementById("goalCompletionConfirm")
+  };
+}
+let goalCompletionActiveGoalId = "";
+let goalCompletionReturnFocus = null;
+const goalCompletionInProgress = new Set();
 function formatHours(minutes) { const hours = minutes / 60; return `${Number.isInteger(hours) ? hours : hours.toFixed(1)}h`; }
 function formatDateBR(dateString) {
   if (typeof dateString !== "string") return "-";
@@ -4835,21 +4848,74 @@ function appendGoalHistory(goal, text) {
   goal.history.push({ at: new Date().toISOString(), text });
   goal.notes = [goal.notes || "", text].filter(Boolean).join("\n");
 }
-function updateGoalDone(goal) {
-  const previousStatus = goal.status;
+function buildGoalCompletionSummary(goal) {
   normalizeGoalTimeFields(goal);
+  const planned = Number(goal.minutes) || 0;
+  const study = Number(goal.studyActualMinutes) || 0;
+  const questions = Number(goal.questionActualMinutes) || 0;
+  const total = goalTotalActualMinutes(goal);
+  const diff = total - planned;
+  const diffLabel = diff > 0 ? `Acima do planejado: ${diff} min` : diff < 0 ? `Abaixo do planejado: ${Math.abs(diff)} min` : "Dentro do planejado: 0 min";
+  if (total <= 0) {
+    return `<h3>${escapeHTML(goal.discipline || "Disciplina")}</h3><p class="goal-completion-subject">${escapeHTML(goal.subject || "Assunto")}</p><p class="goal-completion-zero"><strong>Nenhum tempo foi registrado nesta meta.</strong><br>A conclusão não adicionará tempo automaticamente.</p><div class="goal-completion-grid"><span><strong>Planejado</strong>${planned} min</span><span><strong>Total realizado</strong>0 min</span></div>`;
+  }
+  return `<h3>${escapeHTML(goal.discipline || "Disciplina")}</h3><p class="goal-completion-subject">${escapeHTML(goal.subject || "Assunto")}</p><div class="goal-completion-grid"><span><strong>Planejado</strong>${planned} min</span><span><strong>Estudo registrado</strong>${study} min</span><span><strong>Questões registradas</strong>${questions} min</span><span><strong>Total realizado</strong>${total} min</span><span><strong>Diferença</strong>${diffLabel}</span></div>`;
+}
+function openGoalCompletionModal(goalId, trigger = null) {
+  const goal = state.dailyGoals.find((g) => g.id === goalId);
+  if (!goal) return;
+  if (isGoalDone(goal)) { showDailyGoalMessage("Esta meta já está concluída.", "info"); return; }
+  const els = goalCompletionElements();
+  if (!els.modal || !els.summary || !els.confirm || !els.cancel) return confirmGoalCompletion(goalId);
+  normalizeGoalTimeFields(goal);
+  const total = goalTotalActualMinutes(goal);
+  goalCompletionActiveGoalId = goalId;
+  goalCompletionReturnFocus = trigger || document.activeElement;
+  els.summary.innerHTML = buildGoalCompletionSummary(goal);
+  els.notice.textContent = total > 0 ? "Os tempos já registrados serão mantidos sem alterações." : "A conclusão não adicionará tempo automaticamente.";
+  els.cancel.textContent = total > 0 ? "Cancelar" : "Voltar";
+  els.confirm.textContent = total > 0 ? "Concluir meta" : "Concluir sem registrar tempo";
+  els.confirm.disabled = false;
+  els.modal.hidden = false;
+  els.modal.focus();
+}
+function closeGoalCompletionModal() {
+  const els = goalCompletionElements();
+  if (els.modal) els.modal.hidden = true;
+  goalCompletionActiveGoalId = "";
+  const target = goalCompletionReturnFocus;
+  goalCompletionReturnFocus = null;
+  if (target && typeof target.focus === "function") target.focus();
+}
+function confirmGoalCompletion(goalId = goalCompletionActiveGoalId) {
+  const goal = state.dailyGoals.find((g) => g.id === goalId);
+  if (!goal) return;
+  if (goalCompletionInProgress.has(goalId)) return;
+  if (isGoalDone(goal)) { showDailyGoalMessage("Esta meta já está concluída.", "info"); closeGoalCompletionModal(); return; }
+  goalCompletionInProgress.add(goalId);
+  const els = goalCompletionElements();
+  if (els.confirm) els.confirm.disabled = true;
+  normalizeGoalTimeFields(goal);
+  const studyActualMinutes = Number(goal.studyActualMinutes) || 0;
+  const questionActualMinutes = Number(goal.questionActualMinutes) || 0;
+  const actualMinutes = goalTotalActualMinutes(goal);
+  goal.studyActualMinutes = studyActualMinutes;
+  goal.questionActualMinutes = questionActualMinutes;
+  goal.actualMinutes = actualMinutes;
   goal.status = "Concluída";
   goal.studyStatus = "Concluído";
-  goal.completedAt ||= new Date().toISOString();
-  if (previousStatus !== "Concluída") appendGoalHistory(goal, `Concluída em ${new Date().toLocaleString("pt-BR")}.`);
-  const item = getSyllabusById(goal.syllabusItemId);
-  if (item && previousStatus !== "Concluída") {
-    const previous = Number(item.studyMinutes) || 0;
-    updateItemProgress(goal.syllabusItemId, { status: "Concluído", studyMinutes: previous + (Number(goal.actualMinutes) || Number(goal.minutes) || 0), lastStudyDate: goal.date });
-  }
+  goal.completed = true;
+  goal.completedAt = goal.completedAt || new Date().toISOString();
+  appendGoalHistory(goal, `Concluída em ${new Date().toLocaleString("pt-BR")}. Tempo preservado: ${actualMinutes} min.`);
   saveData();
-  showDailyGoalMessage("Meta concluída.", "success");
+  render();
   autoSyncAfterSave("daily-goal");
+  closeGoalCompletionModal();
+  showDailyGoalMessage(actualMinutes > 0 ? `Meta concluída. Os ${actualMinutes} minutos registrados foram mantidos.` : "Meta concluída sem tempo registrado.", "success");
+  goalCompletionInProgress.delete(goalId);
+}
+function updateGoalDone(goal) {
+  openGoalCompletionModal(goal.id);
 }
 function postponeGoal(goal) {
   const nextDate = prompt("Nova data da meta (AAAA-MM-DD)", goal.date);
@@ -5075,7 +5141,7 @@ elements.generateMonthGoals?.addEventListener("click", generateMonthGoals);
 [elements.smartReviewDate].filter(Boolean).forEach((el)=>["change","input"].forEach((eventName)=>el.addEventListener(eventName, renderSmartReviewStandalone)));
 elements.disciplineWeightsList?.addEventListener("change", (event)=>{ const d=event.target.dataset.disciplineWeight; if(d){ state.disciplineWeights[d]=normalizeDisciplineWeight(event.target.value, d); render(); }});
 [elements.monthlyTopicGoal, elements.monthlyHourGoal].filter(Boolean).forEach((el)=>el.addEventListener("change",()=>{ const key=(elements.calendarDate?.value||todayISO()).slice(0,7); state.monthlyGoals[key]={ topics:Number(elements.monthlyTopicGoal.value)||0, hours:Number(elements.monthlyHourGoal.value)||0 }; render(); }));
-elements.goalCalendarContent?.addEventListener("click", (event)=>{ const openPlan=event.target.closest("[data-open-day-plan]"); if(openPlan){ elements.goalDate.value=openPlan.dataset.openDayPlan; renderDailyGoals(); return showView("metas-do-dia"); } const timerButton=event.target.closest("button[data-calendar-timer]"); if(timerButton){ const goal=state.dailyGoals.find(g=>g.id===timerButton.dataset.id); if(goal) startFloatingTimer(goal, timerButton.dataset.calendarTimer); return; } const b=event.target.closest("button[data-calendar-action],button[data-register-goal]"); if(!b) return; if(b.dataset.registerGoal) return fillQuestionFromGoal(b.dataset.registerGoal); const goal=state.dailyGoals.find(g=>g.id===b.dataset.id); if(!goal) return; if(b.dataset.calendarAction==="done") updateGoalDone(goal); if(b.dataset.calendarAction==="postpone") postponeGoal(goal); if(b.dataset.calendarAction==="study-time") registerGoalTime(goal, "study"); if(b.dataset.calendarAction==="question-time") registerGoalTime(goal, "questions"); if(b.dataset.calendarAction==="edit") editGoal(goal); render(); });
+elements.goalCalendarContent?.addEventListener("click", (event)=>{ const openPlan=event.target.closest("[data-open-day-plan]"); if(openPlan){ elements.goalDate.value=openPlan.dataset.openDayPlan; renderDailyGoals(); return showView("metas-do-dia"); } const timerButton=event.target.closest("button[data-calendar-timer]"); if(timerButton){ const goal=state.dailyGoals.find(g=>g.id===timerButton.dataset.id); if(goal) startFloatingTimer(goal, timerButton.dataset.calendarTimer); return; } const b=event.target.closest("button[data-calendar-action],button[data-register-goal]"); if(!b) return; if(b.dataset.registerGoal) return fillQuestionFromGoal(b.dataset.registerGoal); const goal=state.dailyGoals.find(g=>g.id===b.dataset.id); if(!goal) return; if(b.dataset.calendarAction==="done") openGoalCompletionModal(goal.id, b); if(b.dataset.calendarAction==="postpone") postponeGoal(goal); if(b.dataset.calendarAction==="study-time") registerGoalTime(goal, "study"); if(b.dataset.calendarAction==="question-time") registerGoalTime(goal, "questions"); if(b.dataset.calendarAction==="edit") editGoal(goal); render(); });
 elements.goalCalendarContent?.addEventListener("keydown", (event)=>{ if (!["Enter", " "].includes(event.key)) return; const openPlan=event.target.closest("[data-open-day-plan]"); if (!openPlan) return; event.preventDefault(); elements.goalDate.value=openPlan.dataset.openDayPlan; renderDailyGoals(); showView("metas-do-dia"); });
 elements.goalDiscipline.addEventListener("change", () => optionsForItems(elements.goalSyllabusItem, elements.goalDiscipline.value));
 elements.questionDiscipline.addEventListener("change", () => optionsForItems(elements.questionSyllabusItem, elements.questionDiscipline.value));
@@ -5100,7 +5166,7 @@ function handleDailyGoalActionClick(event) {
       if (action.dataset.goalAction === "Adiada") postponeGoal(goal);
       else if (action.dataset.goalAction === "Estudo") registerGoalTime(goal, "study");
       else if (action.dataset.goalAction === "QuestoesTempo") registerGoalTime(goal, "questions");
-      else if (action.dataset.goalAction === "Concluída") updateGoalDone(goal);
+      else if (action.dataset.goalAction === "Concluída") openGoalCompletionModal(goal.id, action);
       else { goal.status = action.dataset.goalAction; appendGoalHistory(goal, `Status alterado para ${goal.status}.`); showDailyGoalMessage(`Status alterado para ${goal.status}.`, "success"); saveData(); autoSyncAfterSave("daily-goal"); }
       render();
     }
@@ -5893,3 +5959,13 @@ function registerServiceWorker() {
 registerServiceWorker();
 
 ["visibilitychange", "pageshow", "focus"].forEach((eventName) => window.addEventListener(eventName, () => { if (!floatingTimer.goalId) return; renderFloatingTimer(); }));
+
+
+document.addEventListener("click", (event) => {
+  if (event.target.closest("[data-goal-completion-cancel]")) closeGoalCompletionModal();
+  if (event.target.closest("#goalCompletionConfirm")) confirmGoalCompletion();
+});
+document.addEventListener("keydown", (event) => {
+  const modal = document.getElementById("goalCompletionModal");
+  if (event.key === "Escape" && modal && !modal.hidden) { event.preventDefault(); closeGoalCompletionModal(); }
+});

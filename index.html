@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260714-hotfix-planejamento-mobile-final-v1" />
+  <link rel="stylesheet" href="style.css?v=20260714-conclusao-meta-sem-repetir-tempo-v1" />
 </head>
 <body>
   <header class="hero">
@@ -953,12 +953,29 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </form>
   </div>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260714-hotfix-planejamento-mobile-final-v1</p></footer>
+
+  <div id="goalCompletionModal" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="goalCompletionTitle" hidden tabindex="-1">
+    <div class="app-modal-backdrop" data-goal-completion-cancel></div>
+    <section class="app-modal-card goal-completion-modal-card" aria-describedby="goalCompletionDescription">
+      <div class="modal-heading">
+        <p class="eyebrow">CONCLUIR META</p>
+        <h2 id="goalCompletionTitle">Concluir meta</h2>
+      </div>
+      <div id="goalCompletionDescription" class="goal-completion-summary"></div>
+      <p id="goalCompletionNotice" class="notice goal-completion-notice">Os tempos já registrados serão mantidos sem alterações.</p>
+      <div class="modal-actions">
+        <button type="button" class="secondary-button" id="goalCompletionCancel" data-goal-completion-cancel>Cancelar</button>
+        <button type="button" id="goalCompletionConfirm">Concluir meta</button>
+      </div>
+    </section>
+  </div>
+
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260714-conclusao-meta-sem-repetir-tempo-v1</p></footer>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="storage-indexeddb.js?v=20260714-hotfix-planejamento-mobile-final-v1"></script>
-  <script src="analytics-engine.js?v=20260714-hotfix-planejamento-mobile-final-v1"></script>
-  <script src="study-advisor.js?v=20260714-hotfix-planejamento-mobile-final-v1"></script>
-  <script src="advisor-navigation-engine.js?v=20260714-hotfix-planejamento-mobile-final-v1"></script>
-  <script src="script.js?v=20260714-hotfix-planejamento-mobile-final-v1"></script>
+  <script src="storage-indexeddb.js?v=20260714-conclusao-meta-sem-repetir-tempo-v1"></script>
+  <script src="analytics-engine.js?v=20260714-conclusao-meta-sem-repetir-tempo-v1"></script>
+  <script src="study-advisor.js?v=20260714-conclusao-meta-sem-repetir-tempo-v1"></script>
+  <script src="advisor-navigation-engine.js?v=20260714-conclusao-meta-sem-repetir-tempo-v1"></script>
+  <script src="script.js?v=20260714-conclusao-meta-sem-repetir-tempo-v1"></script>
 </body>
 </html>

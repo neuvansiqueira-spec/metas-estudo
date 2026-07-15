@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260714-hotfix-planejamento-mobile-final-v1",
+  "version": "20260714-conclusao-meta-sem-repetir-tempo-v1",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

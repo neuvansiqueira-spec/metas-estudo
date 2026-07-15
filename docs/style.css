@@ -3772,3 +3772,14 @@ footer {
     overflow-x: visible;
   }
 }
+
+.goal-completion-modal-card { max-width: 560px; }
+.goal-completion-summary { display: grid; gap: 12px; }
+.goal-completion-summary h3 { margin: 0; color: var(--text); }
+.goal-completion-summary .goal-completion-subject { margin: -6px 0 4px; color: var(--muted); font-weight: 700; }
+.goal-completion-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.goal-completion-grid span, .goal-completion-zero { border: 1px solid var(--border); border-radius: 14px; padding: 10px 12px; background: #f8fafc; }
+.goal-completion-grid strong { display: block; color: var(--muted); font-size: .82rem; margin-bottom: 4px; }
+.goal-completion-notice { margin: 0; }
+#goalCompletionModal:focus, #goalCompletionConfirm:focus-visible, #goalCompletionCancel:focus-visible { outline: 3px solid rgba(37, 99, 235, .45); outline-offset: 3px; }
+@media (max-width: 520px) { .goal-completion-grid { grid-template-columns: 1fr; } }

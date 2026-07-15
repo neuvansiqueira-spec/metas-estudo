@@ -7,7 +7,7 @@ const script = fs.readFileSync('script.js','utf8');
 const html = fs.readFileSync('index.html','utf8');
 const style = fs.readFileSync('style.css','utf8');
 const sw = fs.readFileSync('service-worker.js','utf8');
-const version = '20260714-hotfix-planejamento-mobile-final-v1';
+const version = '20260714-conclusao-meta-sem-repetir-tempo-v1';
 
 function logic(){
   const start = script.indexOf('function formatExportDuration(minutes');
