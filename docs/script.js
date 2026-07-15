@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260714-recuperacao-tempo-antigo-cronometro-v2";
+const APP_VERSION = "20260714-recuperacao-tempo-antigo-cronometro-v3";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -17,6 +17,7 @@ const FACTORY_UI_COMPAT_LABELS = "RESUMOS A PRODUZIR HOJE | A PRODUZIR | EM PROD
 const DAILY_PLAN_COMPAT_LABELS = "META DE QUESTÕES | 📚 ESTUDAR HOJE | 🏭 PRODUZIR MATERIAL HOJE | 🔄 REVISAR HOJE";
 const LEGACY_STORAGE_COMPAT_LABEL = "Fonte principal: <strong>localStorage</strong>";
 const LEGACY_TIMER_GOAL_MINUTES_RECOVERY_MIGRATION_ID = "legacyTimerGoalMinutesRecoveryV1";
+const LEGACY_TIMER_RECOVERY_V2_MIGRATION_KEY = "legacyTimerRecoveryV2";
 
 const MATERIAL_ESTIMATE_VERSION = 1;
 const MATERIAL_ESTIMATE_MIGRATION_ID = "materialDynamicTimeEstimateV1";
@@ -1665,7 +1666,7 @@ const elements = {
   calendarDate: $("#calendarDate"), calendarViewMode: $("#calendarViewMode"), generateWeekGoals: $("#generateWeekGoals"), generateMonthGoals: $("#generateMonthGoals"), disciplineWeightsList: $("#disciplineWeightsList"), goalCalendarStats: $("#goalCalendarStats"), goalCalendarContent: $("#goalCalendarContent"), monthlyTopicGoal: $("#monthlyTopicGoal"), monthlyHourGoal: $("#monthlyHourGoal"), monthlyPlanSummary: $("#monthlyPlanSummary"), todayGoalsTotal: $("#todayGoalsTotal"), weekGoalsTotal: $("#weekGoalsTotal"), weekGoalRate: $("#weekGoalRate"), monthGoalRate: $("#monthGoalRate"), nextGoalLabel: $("#nextGoalLabel"), weekTopDiscipline: $("#weekTopDiscipline"), mostDelayedDiscipline: $("#mostDelayedDiscipline"),
   questionForm: $("#questionForm"), questionEditingId: $("#questionEditingId"), questionLinkedGoalId: $("#questionLinkedGoalId"), questionOrigin: $("#questionOrigin"), questionDate: $("#questionDate"), questionDiscipline: $("#questionDiscipline"), questionSyllabusItem: $("#questionSyllabusItem"), questionBoard: $("#questionBoard"), questionTrainingType: $("#questionTrainingType"), questionTotal: $("#questionTotal"), questionMinutes: $("#questionMinutes"), questionCorrect: $("#questionCorrect"), questionWrong: $("#questionWrong"), questionBlank: $("#questionBlank"), questionNotes: $("#questionNotes"), questionCalculated: $("#questionCalculated"), questionAnalysis: $("#questionAnalysis"),
   questionFilterDiscipline: $("#questionFilterDiscipline"), questionFilterSubject: $("#questionFilterSubject"), questionFilterBoard: $("#questionFilterBoard"), questionHistoryBody: $("#questionHistoryBody"),
-  exportBackup: $("#exportBackup"), selectBackupFile: $("#selectBackupFile"), backupFileInput: $("#backupFileInput"), resetSolvedQuestions: $("#resetSolvedQuestions"), clearAllLocalData: $("#clearAllLocalData"), lastBackupDate: $("#lastBackupDate"), backupStorageKeys: $("#backupStorageKeys"), backupSummary: $("#backupSummary"), backupPreview: $("#backupPreview"), storageDiagnostics: $("#storageDiagnostics"), verifyStorage: $("#verifyStorage"),
+  exportBackup: $("#exportBackup"), selectBackupFile: $("#selectBackupFile"), backupFileInput: $("#backupFileInput"), resetSolvedQuestions: $("#resetSolvedQuestions"), clearAllLocalData: $("#clearAllLocalData"), lastBackupDate: $("#lastBackupDate"), backupStorageKeys: $("#backupStorageKeys"), backupSummary: $("#backupSummary"), backupPreview: $("#backupPreview"), storageDiagnostics: $("#storageDiagnostics"), legacyTimerRecoveryReview: $("#legacyTimerRecoveryReview"), legacyTimerRecoveryPanel: $("#legacyTimerRecoveryPanel"), verifyStorage: $("#verifyStorage"),
   mockTotal: $("#mockTotal"), mockLastNet: $("#mockLastNet"), mockBestNet: $("#mockBestNet"), mockAverageNet: $("#mockAverageNet"), mockAboveGoal: $("#mockAboveGoal"), mockProblemDiscipline: $("#mockProblemDiscipline"),
   newMockExam: $("#newMockExam"), mockExamForm: $("#mockExamForm"), mockExamEditingId: $("#mockExamEditingId"), mockName: $("#mockName"), mockDate: $("#mockDate"), mockBoard: $("#mockBoard"), mockInstitution: $("#mockInstitution"), mockNotes: $("#mockNotes"), mockTotalQuestions: $("#mockTotalQuestions"), mockCorrect: $("#mockCorrect"), mockWrong: $("#mockWrong"), mockBlank: $("#mockBlank"), mockGoal: $("#mockGoal"), mockStrategy: $("#mockStrategy"), mockDifficulty: $("#mockDifficulty"), mockCalculated: $("#mockCalculated"), mockDisciplineName: $("#mockDisciplineName"), mockDisciplineTotal: $("#mockDisciplineTotal"), mockDisciplineCorrect: $("#mockDisciplineCorrect"), mockDisciplineWrong: $("#mockDisciplineWrong"), mockDisciplineBlank: $("#mockDisciplineBlank"), mockDisciplineNotes: $("#mockDisciplineNotes"), addMockDiscipline: $("#addMockDiscipline"), clearMockDisciplines: $("#clearMockDisciplines"), mockDisciplineDraft: $("#mockDisciplineDraft"), mockSummary: $("#mockSummary"), mockGeneralResult: $("#mockGeneralResult"), mockDisciplineResults: $("#mockDisciplineResults"), mockDiagnosis: $("#mockDiagnosis"), mockHistory: $("#mockHistory"), mockEvolution: $("#mockEvolution"),
   planningConfigForm: $("#planningConfigForm"), planningSummaryResume: $("#planningSummaryResume"), planningSummaryCards: $("#planningSummaryCards"), planningDayModesResume: $("#planningDayModesResume"), planningDayModes: $("#planningDayModes"), planningPreview: $("#planningPreview"), planningExamDate: $("#planningExamDate"), planningScaleType: $("#planningScaleType"), planningScaleNotes: $("#planningScaleNotes"), planningShiftHours: $("#planningShiftHours"), planningRestHours: $("#planningRestHours"), planningNormalHours: $("#planningNormalHours"), planningMinWeeklyHours: $("#planningMinWeeklyHours"), planningIdealWeeklyHours: $("#planningIdealWeeklyHours"), planningWeeklyTopics: $("#planningWeeklyTopics"), planningDisciplinesPerDay: $("#planningDisciplinesPerDay"), planningDisciplinesPerWeek: $("#planningDisciplinesPerWeek"), planningDisciplinesPerMonth: $("#planningDisciplinesPerMonth"), planningTopicsPerDay: $("#planningTopicsPerDay"), planningTopicsPerWeek: $("#planningTopicsPerWeek"), planningTopicsPerMonth: $("#planningTopicsPerMonth"), planningSafetyDays: $("#planningSafetyDays"), planningScaleReferenceDate: $("#planningScaleReferenceDate"), planningScaleReferencePosition: $("#planningScaleReferencePosition"), scale3x6Fields: $("#scale3x6Fields"), centralGoalsCards: $("#centralGoalsCards"), centralScaleSummary: $("#centralScaleSummary"), centralNextDates: $("#centralNextDates"), centralOpenDayPlan: $("#centralOpenDayPlan"), dashboardGoalsScaleSummary: $("#dashboardGoalsScaleSummary"), availabilityCalendar: $("#availabilityCalendar"), completionForecast: $("#completionForecast"), completionAlert: $("#completionAlert"), weeklyGoalsPlan: $("#weeklyGoalsPlan"), weeklyGoalsAlert: $("#weeklyGoalsAlert"), timeHistorySummary: $("#timeHistorySummary"), timeHistoryBody: $("#timeHistoryBody"),
@@ -2241,6 +2242,35 @@ function renderBackupSummary() {
   elements.backupStorageKeys.textContent = getProjectStorageKeys().length;
   elements.backupSummary.innerHTML = cards.map(([label, value]) => `<article class="stat-card"><span>${label}</span><strong>${value}</strong></article>`).join("");
 }
+
+function renderLegacyTimerRecoveryReview() {
+  const box = elements?.legacyTimerRecoveryReview;
+  if (!box) return;
+  const migration = legacyTimerMigrationState(state);
+  const assignments = Object.keys(migration.assignments || {}).length;
+  const pendingEntries = Object.entries(migration.pending || {}).filter(([key]) => !migration.assignments[key] && !migration.ignored[key]);
+  const cards = pendingEntries.map(([key, item]) => {
+    const options = (item.candidateGoalIds || []).map((id) => { const g = state.dailyGoals.find((goal)=>goal.id===id); return g ? `<option value="${escapeHTML(id)}">${escapeHTML(legacyGoalDiscipline(g))} — ${escapeHTML(legacyGoalTopic(g))} (${escapeHTML(legacyGoalDate(g))})</option>` : ""; }).join("");
+    return `<div class="legacy-recovery-session"><strong>${escapeHTML(item.date || "sem data")}</strong><div>${escapeHTML(item.discipline || "-")} — ${escapeHTML(item.topic || "-")}</div><div>${Number(item.minutes)||0} min${item.startedAt || item.endedAt ? ` • ${escapeHTML(item.startedAt || "?")} → ${escapeHTML(item.endedAt || "?")}` : ""}</div><p class="item-meta">${escapeHTML(item.reason || "Aguardando revisão")}</p><label>Possíveis metas <select data-legacy-recovery-goal="${escapeHTML(key)}"><option value="">Manter pendente</option>${options}</select></label><div class="card-actions"><button type="button" data-legacy-recovery-associate="${escapeHTML(key)}">Associar à meta selecionada</button><button type="button" class="secondary-button" data-legacy-recovery-ignore="${escapeHTML(key)}">Ignorar esta sessão</button></div></div>`;
+  }).join("");
+  box.innerHTML = `<p><strong>${assignments}</strong> sessões recuperadas automaticamente<br><strong>${pendingEntries.length}</strong> sessões aguardando revisão</p>${cards || '<p class="empty-message">Nenhuma sessão pendente de revisão.</p>'}`;
+}
+function openLegacyTimerRecoveryModal(sessionKey, goalId) {
+  const migration = legacyTimerMigrationState(state); const item = migration.pending[sessionKey]; const goal = state.dailyGoals.find((g)=>g.id===goalId);
+  const modal = document.getElementById("legacyTimerRecoveryModal"); const body = document.getElementById("legacyTimerRecoveryModalBody"); const confirm = document.getElementById("legacyTimerRecoveryConfirm");
+  if (!item || !goal || !modal || !body || !confirm) return; normalizeGoalTimeFields(goal);
+  const current = Number(goal.actualMinutes)||0; const result = current + (Number(item.minutes)||0);
+  body.innerHTML = `<p>Sessão antiga: <strong>${Number(item.minutes)||0} min</strong></p><p>Meta escolhida: <strong>${escapeHTML(legacyGoalDiscipline(goal))} — ${escapeHTML(legacyGoalTopic(goal))}</strong></p><p>Tempo atual da meta: <strong>${current} min</strong></p><p>Resultado após associação: <strong>${result} min</strong></p>`;
+  confirm.dataset.legacyRecoveryConfirm = `${sessionKey}|${goalId}`; modal.hidden = false;
+}
+function closeLegacyTimerRecoveryModal() { const modal = document.getElementById("legacyTimerRecoveryModal"); if (modal) modal.hidden = true; }
+function confirmLegacyTimerRecovery(sessionKey, goalId) {
+  const migration = legacyTimerMigrationState(state); const item = migration.pending[sessionKey]; const goal = state.dailyGoals.find((g)=>g.id===goalId);
+  if (!item || !goal || legacyGoalHasExistingTime(goal)) return;
+  const report = legacyRecoveryReportBase(state); applyLegacyTimerRecovery(goal, Number(item.minutes)||0, "manual-confirmation", sessionKey, migration, report); delete migration.pending[sessionKey];
+  saveData({ markLocalChange: true }); render(); showView("backup", { skipScroll: true }); elements.legacyTimerRecoveryPanel?.setAttribute("open", ""); autoSyncAfterSave("timer");
+}
+
 function makeBackupPayload() {
   saveData();
   const keys = getProjectStorageKeys();
@@ -2390,57 +2420,123 @@ function formatDateBR(dateString) {
 }
 function isGoalDone(goal) { return goal.status === "Concluída"; }
 function goalTotalActualMinutes(goal) { normalizeGoalTimeFields(goal); return Number(goal.actualMinutes) || 0; }
-function recoverLegacyTimerMinutesForGoals(targetState = state) {
-  targetState.dailyGoals ||= [];
-  targetState.studies ||= [];
+function legacyTimerMigrationState(targetState = state) {
   targetState.migrations ||= {};
-  const report = { inspectedGoals: 0, recoveredGoals: 0, recoveredMinutes: 0, ignoredDuplicates: 0, preservedGoals: 0 };
+  targetState.migrations[LEGACY_TIMER_RECOVERY_V2_MIGRATION_KEY] ||= { assignments: {}, ignored: {}, pending: {}, executedAt: "" };
+  const migration = targetState.migrations[LEGACY_TIMER_RECOVERY_V2_MIGRATION_KEY];
+  migration.assignments ||= {};
+  migration.ignored ||= {};
+  migration.pending ||= {};
+  migration.executedAt ||= "";
+  return migration;
+}
+function legacyTimerSessionKey(study = {}) { return String(study.timerSessionId || study.sessionId || study.id || ""); }
+function legacyTimerStudyMinutes(study = {}) { const minutes = Number(study.minutes ?? study.actualDuration); return Number.isFinite(minutes) && minutes > 0 ? Math.round(minutes) : 0; }
+function isLegacyTimerStudy(study = {}) {
+  if (!study || study.origin === "manual") return false;
+  if (!legacyTimerStudyMinutes(study)) return false;
+  if (study.origin === "timer") return true;
+  return Boolean(study.timerSessionId || (study.sessionId && study.timerMode) || study.timerSource || study.timerOrigin || (study.startedAt && study.endedAt) || Number(study.actualDuration) > 0);
+}
+function localDateFromLegacyValue(value) {
+  if (!value) return "";
+  const text = String(value);
+  const direct = text.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (direct) return direct[1];
+  const parsed = new Date(text);
+  if (Number.isNaN(parsed.getTime())) return "";
+  const y = parsed.getFullYear();
+  const m = String(parsed.getMonth() + 1).padStart(2, "0");
+  const d = String(parsed.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+function legacyStudyDate(study = {}) { return localDateFromLegacyValue(study.date) || localDateFromLegacyValue(study.startedAt) || localDateFromLegacyValue(study.endedAt) || localDateFromLegacyValue(study.startTime) || localDateFromLegacyValue(study.endTime); }
+function legacyGoalDate(goal = {}) { return localDateFromLegacyValue(goal.date || goal.data); }
+function legacyStudyDiscipline(study = {}) { return study.discipline ?? study.disciplina ?? ""; }
+function legacyStudyTopic(study = {}) { return study.topic ?? study.subject ?? study.assunto ?? ""; }
+function legacyGoalDiscipline(goal = {}) { return goal.discipline ?? goal.disciplina ?? ""; }
+function legacyGoalTopic(goal = {}) { return goal.subject ?? goal.assunto ?? ""; }
+function legacyStableId(value) { return String(value || "").trim(); }
+function legacyNormalized(value) { return normalizeMatchText(value).replace(/[.,;:!?()[\]{}"']/g, " ").replace(/\s*[-/]\s*/g, " ").replace(/\s+/g, " ").trim(); }
+function legacyGoalHasExistingTime(goal = {}) { normalizeGoalTimeFields(goal); return (Number(goal.studyActualMinutes) || 0) > 0 || (Number(goal.questionActualMinutes) || 0) > 0 || (Number(goal.actualMinutes) || 0) > 0 || (Number(goal.tempo_real_minutos) || 0) > 0; }
+function legacyRecoveryReportBase(targetState = state) {
+  return { inspectedGoals: (targetState.dailyGoals || []).length, inspectedStudies: (targetState.studies || []).length, recoveredByGoalId: 0, recoveredBySyllabusItem: 0, recoveredByExactFields: 0, manuallyRecovered: 0, recoveredGoals: 0, recoveredMinutes: 0, ignoredDuplicates: 0, ambiguousSessions: 0, unmatchedSessions: 0, preservedGoals: 0 };
+}
+function applyLegacyTimerRecovery(goal, minutes, matchType, sessionKey, migration, report) {
+  normalizeGoalTimeFields(goal);
+  const questionMinutes = Number(goal.questionActualMinutes) || 0;
+  goal.studyActualMinutes = (Number(goal.studyActualMinutes) || 0) + minutes;
+  goal.actualMinutes = goal.studyActualMinutes + questionMinutes;
+  goal.timerMinutesRecoveredAt ||= new Date().toISOString();
+  goal.timerMinutesRecoveryVersion = 2;
+  if ((goal.status || "Pendente") === "Pendente" && goal.actualMinutes > 0) goal.status = "Em andamento";
+  const label = matchType === "syllabus-item" ? "correspondência por data e identificador do edital" : matchType === "exact-date-discipline-topic" ? "correspondência por data, disciplina e assunto" : matchType === "manual-confirmation" ? "confirmação manual" : "correspondência pelo id da meta";
+  const historyText = `Tempo antigo recuperado: ${minutes} min — ${label}.`;
+  const hasHistory = (goal.history || []).some((entry) => entry?.text === historyText) || String(goal.notes || "").includes(historyText);
+  if (!hasHistory) appendGoalHistory(goal, historyText);
+  migration.assignments[sessionKey] = { goalId: goal.id, minutes, matchType, assignedAt: new Date().toISOString() };
+  migration.executedAt = migration.executedAt || new Date().toISOString();
+  report.recoveredMinutes += minutes; report.recoveredGoals = (report.recoveredGoals || 0) + 1;
+  if (matchType === "goal-id") report.recoveredByGoalId++; else if (matchType === "syllabus-item") report.recoveredBySyllabusItem++; else if (matchType === "exact-date-discipline-topic") report.recoveredByExactFields++; else if (matchType === "manual-confirmation") report.manuallyRecovered++;
+}
+function recoverLegacyTimerMinutesForGoals(targetState = state) {
+  targetState.dailyGoals ||= []; targetState.studies ||= [];
+  const migration = legacyTimerMigrationState(targetState);
+  const report = legacyRecoveryReportBase(targetState);
   const studiesByGoalId = new Map();
-  targetState.studies.forEach((study) => {
-    if (!study || !study.goalId) return;
-    if (study.origin !== "timer") return;
-    if (!studiesByGoalId.has(study.goalId)) studiesByGoalId.set(study.goalId, []);
-    studiesByGoalId.get(study.goalId).push(study);
-  });
+  targetState.studies.forEach((study) => { if (!study?.goalId || !isLegacyTimerStudy(study)) return; if (!studiesByGoalId.has(study.goalId)) studiesByGoalId.set(study.goalId, []); studiesByGoalId.get(study.goalId).push(study); });
   targetState.dailyGoals.forEach((goal) => {
-    if (!goal || !goal.id) return;
-    report.inspectedGoals++;
-    normalizeGoalTimeFields(goal);
-    const legacyActual = Number(goal.tempo_real_minutos) || 0;
-    const currentTotal = goalTotalActualMinutes(goal);
-    if (currentTotal > 0 || legacyActual > 0) {
-      report.preservedGoals++;
-      return;
-    }
-    const linkedStudies = studiesByGoalId.get(goal.id) || [];
-    const seenSessions = new Set();
-    let recovered = 0;
-    linkedStudies.forEach((study) => {
-      const sessionKey = study.timerSessionId || study.sessionId || study.id;
-      if (!sessionKey) return;
-      if (seenSessions.has(sessionKey)) {
-        report.ignoredDuplicates++;
-        return;
-      }
-      seenSessions.add(sessionKey);
-      const minutes = Number(study.minutes ?? study.actualDuration);
-      if (Number.isFinite(minutes) && minutes > 0) recovered += minutes;
+    if (!goal?.id) return;
+    if (legacyGoalHasExistingTime(goal)) { report.preservedGoals++; return; }
+    const seenSessions = new Set(); const recoverable = [];
+    (studiesByGoalId.get(goal.id) || []).forEach((study) => {
+      const sessionKey = legacyTimerSessionKey(study); if (!sessionKey || migration.assignments[sessionKey] || migration.ignored[sessionKey]) return;
+      if (seenSessions.has(sessionKey)) { report.ignoredDuplicates++; return; }
+      seenSessions.add(sessionKey); const minutes = legacyTimerStudyMinutes(study); if (minutes > 0) recoverable.push({ sessionKey, minutes });
     });
-    recovered = Math.round(recovered);
-    if (recovered <= 0) return;
-    goal.studyActualMinutes = recovered;
-    goal.actualMinutes = recovered;
-    goal.timerMinutesRecoveredAt ||= new Date().toISOString();
-    goal.timerMinutesRecoveryVersion = 1;
-    if ((goal.status || "Pendente") === "Pendente") goal.status = "Em andamento";
-    const historyText = `Tempo antigo do cronômetro recuperado: ${recovered} min.`;
+    const recovered = Math.round(recoverable.reduce((sum, item) => sum + item.minutes, 0)); if (recovered <= 0) return;
+    recoverable.forEach(({ sessionKey, minutes }) => { migration.assignments[sessionKey] = { goalId: goal.id, minutes, matchType: "goal-id", assignedAt: new Date().toISOString() }; });
+    const questionMinutes = Number(goal.questionActualMinutes) || 0;
+    goal.studyActualMinutes = recovered; goal.actualMinutes = recovered + questionMinutes; goal.timerMinutesRecoveredAt ||= new Date().toISOString(); goal.timerMinutesRecoveryVersion = 2;
+    if ((goal.status || "Pendente") === "Pendente" && goal.actualMinutes > 0) goal.status = "Em andamento";
+    const historyText = `Tempo antigo recuperado: ${recovered} min — correspondência pelo id da meta.`;
     const hasHistory = (goal.history || []).some((entry) => entry?.text === historyText) || String(goal.notes || "").includes(historyText);
     if (!hasHistory) appendGoalHistory(goal, historyText);
-    report.recoveredGoals++;
-    report.recoveredMinutes += recovered;
+    report.recoveredByGoalId += recoverable.length; report.recoveredGoals++; report.recoveredMinutes += recovered;
   });
   if (!targetState.migrations[LEGACY_TIMER_GOAL_MINUTES_RECOVERY_MIGRATION_ID]) targetState.migrations[LEGACY_TIMER_GOAL_MINUTES_RECOVERY_MIGRATION_ID] = new Date().toISOString();
   return report;
+}
+function recoverOrphanLegacyTimerMinutesForGoals(targetState = state) {
+  targetState.dailyGoals ||= []; targetState.studies ||= [];
+  const migration = legacyTimerMigrationState(targetState);
+  const report = legacyRecoveryReportBase(targetState);
+  const usedThisRun = new Set();
+  targetState.studies.forEach((study) => {
+    if (!isLegacyTimerStudy(study)) return;
+    const sessionKey = legacyTimerSessionKey(study); const minutes = legacyTimerStudyMinutes(study);
+    if (!sessionKey || !minutes) return;
+    if (migration.assignments[sessionKey] || migration.ignored[sessionKey] || usedThisRun.has(sessionKey)) { report.ignoredDuplicates++; return; }
+    usedThisRun.add(sessionKey);
+    const date = legacyStudyDate(study); const studySyllabus = legacyStableId(study.syllabusItemId);
+    let candidates = [];
+    if (date && studySyllabus) candidates = targetState.dailyGoals.filter((goal) => !legacyGoalHasExistingTime(goal) && legacyGoalDate(goal) === date && legacyStableId(goal.syllabusItemId) === studySyllabus);
+    if (candidates.length === 1) { applyLegacyTimerRecovery(candidates[0], minutes, "syllabus-item", sessionKey, migration, report); delete migration.pending[sessionKey]; return; }
+    if (candidates.length > 1) { migration.pending[sessionKey] = { reason: "Mais de uma meta candidata por identificador do edital", date, discipline: legacyStudyDiscipline(study), topic: legacyStudyTopic(study), minutes, candidateGoalIds: candidates.map((g)=>g.id) }; report.ambiguousSessions++; return; }
+    const discipline = legacyNormalized(legacyStudyDiscipline(study)); const topic = legacyNormalized(legacyStudyTopic(study));
+    if (date && discipline && topic) candidates = targetState.dailyGoals.filter((goal) => !legacyGoalHasExistingTime(goal) && legacyGoalDate(goal) === date && legacyNormalized(legacyGoalDiscipline(goal)) === discipline && legacyNormalized(legacyGoalTopic(goal)) === topic);
+    if (candidates.length === 1) { applyLegacyTimerRecovery(candidates[0], minutes, "exact-date-discipline-topic", sessionKey, migration, report); delete migration.pending[sessionKey]; return; }
+    if (candidates.length > 1) { migration.pending[sessionKey] = { reason: "Mais de uma meta candidata por data, disciplina e assunto", date, discipline: legacyStudyDiscipline(study), topic: legacyStudyTopic(study), minutes, startedAt: study.startedAt || study.startTime || "", endedAt: study.endedAt || study.endTime || "", candidateGoalIds: candidates.map((g)=>g.id) }; report.ambiguousSessions++; return; }
+    migration.pending[sessionKey] = { reason: "Nenhuma correspondência automática segura", date, discipline: legacyStudyDiscipline(study), topic: legacyStudyTopic(study), minutes, startedAt: study.startedAt || study.startTime || "", endedAt: study.endedAt || study.endTime || "", candidateGoalIds: [] };
+    report.unmatchedSessions++;
+  });
+  migration.executedAt = migration.executedAt || new Date().toISOString();
+  return report;
+}
+function mergeLegacyTimerRecoveryReports(...reports) {
+  const merged = legacyRecoveryReportBase(state);
+  reports.forEach((report) => Object.keys(merged).forEach((key) => { merged[key] += Number(report?.[key]) || 0; }));
+  return merged;
 }
 function isGoalInProgress(goal) { const done = goalTotalActualMinutes(goal); return !isGoalDone(goal) && !["Pendente", "Adiada", "Reagendada", "Não cumprida", "Ignorada"].includes(goal.status || "Pendente") && done > 0 || (!isGoalDone(goal) && done > 0 && !["Não cumprida", "Ignorada", "Adiada", "Reagendada"].includes(goal.status || "")); }
 function goalProgressStats(goals, availability = { hours: 0 }) { const planned = goals.reduce((a,g)=>a+Number(g.minutes||0),0); const done = goals.reduce((a,g)=>a+goalTotalActualMinutes(g),0); const target = planned || Number(availability.hours || 0) * 60; const completed = goals.filter(isGoalDone).length; const pending = goals.filter((g)=>!isGoalDone(g) && !["Não cumprida", "Ignorada"].includes(g.status || "")).length; return { planned, done, target, remaining: Math.max(0, target - done), completed, pending, goalsPct: goals.length ? Math.round(completed / goals.length * 100) : 0, timePct: target ? Math.min(100, Math.round(done / target * 100)) : 0 }; }
@@ -4527,7 +4623,7 @@ elements.qbReviewByDiscipline?.addEventListener("click", () => qbReviewFilteredB
 elements.qbReviewBySubject?.addEventListener("click", () => qbReviewFilteredBy("assunto"));
 elements.qbToggleErrorHistory?.addEventListener("click", () => { if (elements.qbErrorHistory) elements.qbErrorHistory.open = !elements.qbErrorHistory.open; });
 
-function render() { migrateIncorrectWeakDomains(); syncAllFactoryMaterials(); renderFloatingTimer(); renderSubjects(); renderGoalSelectors(); renderQuestionSelectors(); renderPlanning(); renderProgressPanel(); renderDashboard(); renderGoalDashboardCards(); renderEdital(); renderSyllabus(); renderSchedulable(); renderDailyGoals(); renderGoalCalendar(); renderCentralGoals(); renderQuestionHistory(); updateQuestionCalculated(); renderMaterials(); updateStudyMaterialOptions(); safeRenderView("fabrica-resumos", renderFactory); renderReviews(); renderSmartReviewsDashboard(); renderSmartReviewStandalone(); renderAlerts(); renderHistory(); renderImportPreview(); renderImportedSyllabusGroups(); renderBackupSummary(); renderQuestionBank(); qbRenderErrorNotebook(); renderSimulados(); saveData(); }
+function render() { migrateIncorrectWeakDomains(); syncAllFactoryMaterials(); renderFloatingTimer(); renderSubjects(); renderGoalSelectors(); renderQuestionSelectors(); renderPlanning(); renderProgressPanel(); renderDashboard(); renderGoalDashboardCards(); renderEdital(); renderSyllabus(); renderSchedulable(); renderDailyGoals(); renderGoalCalendar(); renderCentralGoals(); renderQuestionHistory(); updateQuestionCalculated(); renderMaterials(); updateStudyMaterialOptions(); safeRenderView("fabrica-resumos", renderFactory); renderReviews(); renderSmartReviewsDashboard(); renderSmartReviewStandalone(); renderAlerts(); renderHistory(); renderImportPreview(); renderImportedSyllabusGroups(); renderBackupSummary(); renderLegacyTimerRecoveryReview(); renderQuestionBank(); qbRenderErrorNotebook(); renderSimulados(); saveData(); }
 function syllabusFromValues(values) { return { id: createId(), discipline: values[0]?.trim() || "Sem disciplina", topic: values[1]?.trim() || "Geral", subject: values[2]?.trim() || "Assunto", subtopic: values[3]?.trim() || "", reference: values[4]?.trim() || "", priority: values[5]?.trim() || "Média", weight: normalizeSubjectIncidence(values[6]), status: values[7]?.trim() || "Não iniciado", domain: normalizeImportedDomain(values[8]), notes: values[9]?.trim() || "" }; }
 
 elements.changeMotivation?.addEventListener("click", () => renderMotivationalPhrase());
@@ -4648,6 +4744,7 @@ elements.backupFileInput?.addEventListener("change", () => { const file = elemen
 elements.resetSolvedQuestions?.addEventListener("click", resetSolvedQuestionsFromBackup);
 elements.clearAllLocalData?.addEventListener("click", clearAllLocalDataFromBackup);
 elements.backupPreview?.addEventListener("click", (event) => { const button = event.target.closest("button[data-backup-import]"); if (button) handleBackupImportChoice(button.dataset.backupImport); });
+document.addEventListener("click", (event) => { const assoc = event.target.closest("button[data-legacy-recovery-associate]"); if (assoc) { const key = assoc.dataset.legacyRecoveryAssociate; const selected = document.querySelector(`[data-legacy-recovery-goal="${CSS.escape(key)}"]`)?.value; if (selected) openLegacyTimerRecoveryModal(key, selected); } const ignore = event.target.closest("button[data-legacy-recovery-ignore]"); if (ignore) { const migration = legacyTimerMigrationState(state); migration.ignored[ignore.dataset.legacyRecoveryIgnore] = { ignoredAt: new Date().toISOString() }; delete migration.pending[ignore.dataset.legacyRecoveryIgnore]; saveData({ markLocalChange: true }); renderLegacyTimerRecoveryReview(); } if (event.target.closest("[data-legacy-recovery-cancel]")) closeLegacyTimerRecoveryModal(); const confirm = event.target.closest("#legacyTimerRecoveryConfirm"); if (confirm?.dataset.legacyRecoveryConfirm) { const [sessionKey, goalId] = confirm.dataset.legacyRecoveryConfirm.split("|"); closeLegacyTimerRecoveryModal(); confirmLegacyTimerRecovery(sessionKey, goalId); } });
 
 function syllabusLabel(item) { return `${item.discipline} — ${item.subject}${item.subtopic ? ` • ${item.subtopic}` : ""}`; }
 function getSyllabusById(id) { return state.syllabusItems.find((item) => item.id === id); }
@@ -5501,11 +5598,12 @@ async function bootstrapApplication() {
 
     replaceState(chosenState);
     mergeCompatibleLocalStorageData();
-    const hadLegacyTimerRecoveryMarker = Boolean(state.migrations?.[LEGACY_TIMER_GOAL_MINUTES_RECOVERY_MIGRATION_ID]);
-    const legacyTimerRecoveryReport = recoverLegacyTimerMinutesForGoals(state);
+    const legacyGoalIdRecoveryReport = recoverLegacyTimerMinutesForGoals(state);
+    const legacyOrphanRecoveryReport = recoverOrphanLegacyTimerMinutesForGoals(state);
+    const legacyTimerRecoveryReport = mergeLegacyTimerRecoveryReports(legacyGoalIdRecoveryReport, legacyOrphanRecoveryReport);
     window.__legacyTimerRecoveryReport = legacyTimerRecoveryReport;
-    console.info("[Metas Estudo] Recuperação de tempo antigo", legacyTimerRecoveryReport);
-    if (!hadLegacyTimerRecoveryMarker || legacyTimerRecoveryReport.recoveredGoals || legacyTimerRecoveryReport.recoveredMinutes) saveData({ markLocalChange: true });
+    console.info("[Metas Estudo] Recuperação de tempos antigos", legacyTimerRecoveryReport);
+    if (legacyTimerRecoveryReport.recoveredMinutes) saveData({ markLocalChange: true });
     renderMotivationalPhrase();
     indexedDBStatus.size = estimateSerializedStateSize(state);
     indexedDBStatus.migration = indexedDBStatus.migration === "erro" ? "erro" : "concluída";
