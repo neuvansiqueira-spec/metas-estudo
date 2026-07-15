@@ -9,13 +9,14 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260714-plano-dia-secoes-recolhiveis-v1";
+const APP_VERSION = "20260714-recuperacao-tempo-antigo-cronometro-v1";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
 const FACTORY_UI_COMPAT_LABELS = "RESUMOS A PRODUZIR HOJE | A PRODUZIR | EM PRODUÇÃO | CONCLUÍDOS | MATERIAIS JÁ PRONTOS PARA ESTUDAR | Pasta de destino do Word/PDF:";
 const DAILY_PLAN_COMPAT_LABELS = "META DE QUESTÕES | 📚 ESTUDAR HOJE | 🏭 PRODUZIR MATERIAL HOJE | 🔄 REVISAR HOJE";
 const LEGACY_STORAGE_COMPAT_LABEL = "Fonte principal: <strong>localStorage</strong>";
+const LEGACY_TIMER_GOAL_MINUTES_RECOVERY_MIGRATION_ID = "legacyTimerGoalMinutesRecoveryV1";
 
 const MATERIAL_ESTIMATE_VERSION = 1;
 const MATERIAL_ESTIMATE_MIGRATION_ID = "materialDynamicTimeEstimateV1";
@@ -2269,7 +2270,7 @@ function renderBackupPreview(payload) {
   elements.backupPreview.innerHTML = `<h3>Pré-visualização do backup selecionado</h3><div class="stats-grid compact backup-summary"><article class="stat-card"><span>Data do backup</span><strong class="stat-value-date">${escapeHTML(backupDate)}</strong></article><article class="stat-card"><span>Disciplinas</span><strong>${counts.disciplinas}</strong></article><article class="stat-card"><span>Assuntos</span><strong>${counts.verticalizado}</strong></article><article class="stat-card"><span>Metas</span><strong>${counts.metas}</strong></article><article class="stat-card"><span>Questões</span><strong>${counts.questoes}</strong></article><article class="stat-card"><span>Banco de questões</span><strong>${counts.bancoQuestoes}</strong></article><article class="stat-card"><span>Treinos do banco</span><strong>${counts.treinosBanco}</strong></article><article class="stat-card"><span>Simulados</span><strong>${counts.simulados}</strong></article><article class="stat-card"><span>Revisões</span><strong>${counts.revisoes}</strong></article></div><p class="item-meta"><strong>Disciplinas encontradas:</strong> ${disciplines.slice(0, 20).map(escapeHTML).join(", ") || "nenhuma"}${disciplines.length > 20 ? "..." : ""}</p><div class="actions"><button type="button" data-backup-import="replace" class="danger">Substituir dados atuais</button><button type="button" data-backup-import="merge" class="secondary-button">Mesclar com dados atuais</button><button type="button" data-backup-import="cancel">Cancelar</button></div>`;
   return normalized;
 }
-function replaceState(nextState) { Object.keys(state).forEach((key) => delete state[key]); Object.assign(state, { ...cloneData(defaultState), ...(nextState || {}) }); state.edital = { ...defaultState.edital, ...(state.edital || {}) }; state.syllabusItems ||= []; state.schedulableSettings ||= {}; state.dailyGoals ||= []; state.questionLogs ||= []; state.questionBank ||= []; state.questionBankSessions ||= []; state.questionErrorNotebook ||= carregarCadernoErros();
+function replaceState(nextState) { Object.keys(state).forEach((key) => delete state[key]); Object.assign(state, { ...cloneData(defaultState), ...(nextState || {}) }); state.edital = { ...defaultState.edital, ...(state.edital || {}) }; state.syllabusItems ||= []; state.schedulableSettings ||= {}; state.dailyGoals ||= []; state.dailyGoals.forEach((goal) => { goal.date ||= goal.data || todayISO(); goal.data ||= goal.date; goal.discipline ||= goal.disciplina || "Sem disciplina"; goal.subject ||= goal.assunto || "Assunto"; goal.type ||= goal.tipo || "Meta"; goal.minutes = Number(goal.minutes ?? goal.tempo_sugerido_minutos) || 0; normalizeGoalTimeFields(goal); normalizeSegmentedGoalFields(goal); goal.status ||= "Pendente"; }); state.questionLogs ||= []; state.questionBank ||= []; state.questionBankSessions ||= []; state.questionErrorNotebook ||= carregarCadernoErros();
 state.smartReviews ||= []; state.simulados ||= []; state.advisorMission ||= {}; state.advisorNavigation ||= { version: 1, autonomyMode: "copilot", activeRoute: null, routeHistory: [], lastProjection: null, lastRecalculatedAt: "", sourceFingerprint: "", userLimits: {} }; state.planning = normalizePlanningState(state.planning); state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences); state.settings.timerMode ||= "countdown"; state.materials ||= []; migrateMaterialEstimates(state); migrateSegmentedGoals(state); state.factoryItems ||= []; state.factoryAgenda ||= []; state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) }); state.disciplineWeights ||= {}; state.monthlyGoals ||= {}; }
 function mergeArrays(current = [], incoming = [], keyFn = (item) => item?.id || JSON.stringify(item)) { const seen = new Set(current.map(keyFn)); incoming.forEach((item) => { const key = keyFn(item); if (!seen.has(key)) { current.push(item); seen.add(key); } }); return current; }
 function mergeBackupData(data = {}) {
@@ -2310,6 +2311,7 @@ function clearProjectLocalStorage() { getProjectStorageKeys().forEach((key) => l
 function restoreBackup(payload, mode) {
   if (mode === "replace") { clearProjectLocalStorage(); replaceState(payload.data); }
   if (mode === "merge") mergeBackupData(payload.data);
+  recoverLegacyTimerMinutesForGoals(state);
   indexedDBStatus.lastLoadedSource = "backup";
   saveData({ markLocalChange: true });
   render(); showView("backup"); elements.backupPreview.innerHTML += `<p class="notice">Backup ${mode === "replace" ? "substituído" : "mesclado"} com sucesso.</p>`; autoSyncAfterSave("backup-import");
@@ -2388,6 +2390,58 @@ function formatDateBR(dateString) {
 }
 function isGoalDone(goal) { return goal.status === "Concluída"; }
 function goalTotalActualMinutes(goal) { normalizeGoalTimeFields(goal); return Number(goal.actualMinutes) || 0; }
+function recoverLegacyTimerMinutesForGoals(targetState = state) {
+  targetState.dailyGoals ||= [];
+  targetState.studies ||= [];
+  targetState.migrations ||= {};
+  const report = { inspectedGoals: 0, recoveredGoals: 0, recoveredMinutes: 0, ignoredDuplicates: 0, preservedGoals: 0 };
+  const studiesByGoalId = new Map();
+  targetState.studies.forEach((study) => {
+    if (!study || !study.goalId) return;
+    if (study.origin !== "timer") return;
+    if (!studiesByGoalId.has(study.goalId)) studiesByGoalId.set(study.goalId, []);
+    studiesByGoalId.get(study.goalId).push(study);
+  });
+  targetState.dailyGoals.forEach((goal) => {
+    if (!goal || !goal.id) return;
+    report.inspectedGoals++;
+    normalizeGoalTimeFields(goal);
+    const legacyActual = Number(goal.tempo_real_minutos) || 0;
+    const currentTotal = goalTotalActualMinutes(goal);
+    if (currentTotal > 0 || legacyActual > 0) {
+      report.preservedGoals++;
+      return;
+    }
+    const linkedStudies = studiesByGoalId.get(goal.id) || [];
+    const seenSessions = new Set();
+    let recovered = 0;
+    linkedStudies.forEach((study) => {
+      const sessionKey = study.timerSessionId || study.sessionId || study.id;
+      if (!sessionKey) return;
+      if (seenSessions.has(sessionKey)) {
+        report.ignoredDuplicates++;
+        return;
+      }
+      seenSessions.add(sessionKey);
+      const minutes = Number(study.minutes ?? study.actualDuration);
+      if (Number.isFinite(minutes) && minutes > 0) recovered += minutes;
+    });
+    recovered = Math.round(recovered);
+    if (recovered <= 0) return;
+    goal.studyActualMinutes = recovered;
+    goal.actualMinutes = recovered;
+    goal.timerMinutesRecoveredAt ||= new Date().toISOString();
+    goal.timerMinutesRecoveryVersion = 1;
+    if ((goal.status || "Pendente") === "Pendente") goal.status = "Em andamento";
+    const historyText = `Tempo antigo do cronômetro recuperado: ${recovered} min.`;
+    const hasHistory = (goal.history || []).some((entry) => entry?.text === historyText) || String(goal.notes || "").includes(historyText);
+    if (!hasHistory) appendGoalHistory(goal, historyText);
+    report.recoveredGoals++;
+    report.recoveredMinutes += recovered;
+  });
+  if (!targetState.migrations[LEGACY_TIMER_GOAL_MINUTES_RECOVERY_MIGRATION_ID]) targetState.migrations[LEGACY_TIMER_GOAL_MINUTES_RECOVERY_MIGRATION_ID] = new Date().toISOString();
+  return report;
+}
 function isGoalInProgress(goal) { const done = goalTotalActualMinutes(goal); return !isGoalDone(goal) && !["Pendente", "Adiada", "Reagendada", "Não cumprida", "Ignorada"].includes(goal.status || "Pendente") && done > 0 || (!isGoalDone(goal) && done > 0 && !["Não cumprida", "Ignorada", "Adiada", "Reagendada"].includes(goal.status || "")); }
 function goalProgressStats(goals, availability = { hours: 0 }) { const planned = goals.reduce((a,g)=>a+Number(g.minutes||0),0); const done = goals.reduce((a,g)=>a+goalTotalActualMinutes(g),0); const target = planned || Number(availability.hours || 0) * 60; const completed = goals.filter(isGoalDone).length; const pending = goals.filter((g)=>!isGoalDone(g) && !["Não cumprida", "Ignorada"].includes(g.status || "")).length; return { planned, done, target, remaining: Math.max(0, target - done), completed, pending, goalsPct: goals.length ? Math.round(completed / goals.length * 100) : 0, timePct: target ? Math.min(100, Math.round(done / target * 100)) : 0 }; }
 function parseDate(dateString) { const [year, month, day] = dateString.split("-").map(Number); return new Date(year, month - 1, day); }
@@ -5447,6 +5501,9 @@ async function bootstrapApplication() {
 
     replaceState(chosenState);
     mergeCompatibleLocalStorageData();
+    const hadLegacyTimerRecoveryMarker = Boolean(state.migrations?.[LEGACY_TIMER_GOAL_MINUTES_RECOVERY_MIGRATION_ID]);
+    const legacyTimerRecoveryReport = recoverLegacyTimerMinutesForGoals(state);
+    if (!hadLegacyTimerRecoveryMarker || legacyTimerRecoveryReport.recoveredGoals || legacyTimerRecoveryReport.recoveredMinutes) saveData({ markLocalChange: true });
     renderMotivationalPhrase();
     indexedDBStatus.size = estimateSerializedStateSize(state);
     indexedDBStatus.migration = indexedDBStatus.migration === "erro" ? "erro" : "concluída";
