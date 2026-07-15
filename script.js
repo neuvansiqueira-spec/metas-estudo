@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260714-recuperacao-tempo-antigo-cronometro-v1";
+const APP_VERSION = "20260714-recuperacao-tempo-antigo-cronometro-v2";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -5503,6 +5503,8 @@ async function bootstrapApplication() {
     mergeCompatibleLocalStorageData();
     const hadLegacyTimerRecoveryMarker = Boolean(state.migrations?.[LEGACY_TIMER_GOAL_MINUTES_RECOVERY_MIGRATION_ID]);
     const legacyTimerRecoveryReport = recoverLegacyTimerMinutesForGoals(state);
+    window.__legacyTimerRecoveryReport = legacyTimerRecoveryReport;
+    console.info("[Metas Estudo] Recuperação de tempo antigo", legacyTimerRecoveryReport);
     if (!hadLegacyTimerRecoveryMarker || legacyTimerRecoveryReport.recoveredGoals || legacyTimerRecoveryReport.recoveredMinutes) saveData({ markLocalChange: true });
     renderMotivationalPhrase();
     indexedDBStatus.size = estimateSerializedStateSize(state);

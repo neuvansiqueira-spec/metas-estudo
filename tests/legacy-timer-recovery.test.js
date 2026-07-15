@@ -101,3 +101,9 @@ test('marcador global não impede recuperação após backup restaurado', () => 
 test('recuperação roda depois de replaceState e merge localStorage no bootstrap antes do render', () => {
   assert.match(script, /replaceState\(chosenState\);\n    mergeCompatibleLocalStorageData\(\);\n    const hadLegacyTimerRecoveryMarker = Boolean\(state\.migrations\?\.\[LEGACY_TIMER_GOAL_MINUTES_RECOVERY_MIGRATION_ID\]\);\n    const legacyTimerRecoveryReport = recoverLegacyTimerMinutesForGoals\(state\);[\s\S]*?render\(\);/);
 });
+
+test('bootstrap expõe relatório temporário e console informativo sem dados pessoais', () => {
+  assert.match(script, /window\.__legacyTimerRecoveryReport = legacyTimerRecoveryReport;/);
+  assert.match(script, /console\.info\("\[Metas Estudo\] Recuperação de tempo antigo", legacyTimerRecoveryReport\);/);
+  assert.match(script, /const report = \{ inspectedGoals: 0, recoveredGoals: 0, recoveredMinutes: 0, ignoredDuplicates: 0, preservedGoals: 0 \};/);
+});
