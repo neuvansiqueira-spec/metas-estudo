@@ -3784,7 +3784,7 @@ footer {
 #goalCompletionModal:focus, #goalCompletionConfirm:focus-visible, #goalCompletionCancel:focus-visible { outline: 3px solid rgba(37, 99, 235, .45); outline-offset: 3px; }
 @media (max-width: 520px) { .goal-completion-grid { grid-template-columns: 1fr; } }
 
-/* Versão 20260714-plano-dia-secoes-recolhiveis-v1 */
+/* Versão 20260714-recuperacao-tempo-antigo-cronometro-v2 */
 #view-metas-do-dia {
   padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px));
 }
