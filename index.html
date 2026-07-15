@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260714-recuperacao-tempo-antigo-cronometro-v2" />
+  <link rel="stylesheet" href="style.css?v=20260714-recuperacao-tempo-antigo-cronometro-v3" />
 </head>
 <body>
   <header class="hero">
@@ -733,6 +733,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
       <article class="sync-card" aria-labelledby="storage-title">
         <div class="section-heading"><p class="eyebrow">Armazenamento</p><h2 id="storage-title">Armazenamento</h2></div>
         <div id="storageDiagnostics" class="sync-status" aria-live="polite">Verificando armazenamento...</div>
+        <details id="legacyTimerRecoveryPanel" class="legacy-timer-recovery-panel"><summary>RECUPERAÇÃO DE TEMPOS ANTIGOS</summary><div id="legacyTimerRecoveryReview" class="sync-status" aria-live="polite">Verificando sessões antigas...</div></details>
         <div class="actions"><button id="verifyStorage" class="secondary-button" type="button">Testar carregamento pelo IndexedDB</button></div>
       </article>
       <h3>Resumo dos dados salvos</h3>
@@ -970,12 +971,20 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </section>
   </div>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260714-recuperacao-tempo-antigo-cronometro-v2</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260714-recuperacao-tempo-antigo-cronometro-v3</p></footer>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="storage-indexeddb.js?v=20260714-recuperacao-tempo-antigo-cronometro-v2"></script>
-  <script src="analytics-engine.js?v=20260714-recuperacao-tempo-antigo-cronometro-v2"></script>
-  <script src="study-advisor.js?v=20260714-recuperacao-tempo-antigo-cronometro-v2"></script>
-  <script src="advisor-navigation-engine.js?v=20260714-recuperacao-tempo-antigo-cronometro-v2"></script>
-  <script src="script.js?v=20260714-recuperacao-tempo-antigo-cronometro-v2"></script>
+  <script src="storage-indexeddb.js?v=20260714-recuperacao-tempo-antigo-cronometro-v3"></script>
+  <script src="analytics-engine.js?v=20260714-recuperacao-tempo-antigo-cronometro-v3"></script>
+  <script src="study-advisor.js?v=20260714-recuperacao-tempo-antigo-cronometro-v3"></script>
+  <script src="advisor-navigation-engine.js?v=20260714-recuperacao-tempo-antigo-cronometro-v3"></script>
+  <script src="script.js?v=20260714-recuperacao-tempo-antigo-cronometro-v3"></script>
+  <div id="legacyTimerRecoveryModal" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="legacyTimerRecoveryModalTitle" hidden>
+    <div class="app-modal-backdrop" data-legacy-recovery-cancel></div>
+    <section class="app-modal-card">
+      <div class="modal-heading"><p class="eyebrow">RECUPERAÇÃO DE TEMPO ANTIGO</p><h2 id="legacyTimerRecoveryModalTitle">Confirmar associação</h2></div>
+      <div id="legacyTimerRecoveryModalBody" class="goal-completion-summary"></div>
+      <div class="modal-actions"><button type="button" class="secondary-button" data-legacy-recovery-cancel>Cancelar</button><button type="button" id="legacyTimerRecoveryConfirm">Confirmar associação</button></div>
+    </section>
+  </div>
 </body>
 </html>
