@@ -3783,3 +3783,93 @@ footer {
 .goal-completion-notice { margin: 0; }
 #goalCompletionModal:focus, #goalCompletionConfirm:focus-visible, #goalCompletionCancel:focus-visible { outline: 3px solid rgba(37, 99, 235, .45); outline-offset: 3px; }
 @media (max-width: 520px) { .goal-completion-grid { grid-template-columns: 1fr; } }
+
+/* Versão 20260714-plano-dia-secoes-recolhiveis-v1 */
+#view-metas-do-dia {
+  padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px));
+}
+#view-metas-do-dia,
+#view-metas-do-dia * {
+  word-break: normal;
+  overflow-wrap: break-word;
+  hyphens: none;
+}
+.daily-plan-section,
+.daily-goal-section {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 14px 0;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, .07);
+  overflow: hidden;
+}
+.daily-plan-section { display: block; grid-column: 1 / -1; }
+.daily-plan-summary,
+.daily-goal-summary {
+  cursor: pointer;
+  padding: 16px;
+  list-style: none;
+}
+.daily-plan-summary::-webkit-details-marker,
+.daily-goal-summary::-webkit-details-marker { display: none; }
+.daily-plan-heading,
+.daily-goal-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+.daily-plan-title { color: var(--primary-dark); font-size: 1.05rem; }
+.daily-plan-resume,
+.daily-goal-summary > span:last-child {
+  color: var(--muted);
+  font-weight: 800;
+  text-align: right;
+}
+.daily-plan-content,
+.daily-goal-content {
+  padding: 0 16px 16px;
+  display: grid;
+  gap: 14px;
+}
+.daily-goal-summary > span:first-child { display: grid; gap: 2px; }
+.daily-goal-summary > span:first-child span { color: #334155; font-weight: 800; }
+.daily-goal-materials,
+.daily-goal-history,
+.daily-goal-more-actions {
+  border: 1px dashed var(--border-strong);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: #f8fafc;
+}
+.daily-goal-materials summary,
+.daily-goal-history summary,
+.daily-goal-more-actions summary {
+  cursor: pointer;
+  font-weight: 900;
+  color: var(--primary-dark);
+}
+.daily-goals-board { grid-template-columns: 1fr; }
+@media (max-width: 768px) {
+  #view-metas-do-dia,
+  #view-metas-do-dia * { max-width: 100%; min-width: 0; }
+  #view-metas-do-dia .daily-plan-section,
+  #view-metas-do-dia .daily-goal-section,
+  #view-metas-do-dia .daily-plan-content,
+  #view-metas-do-dia .daily-goal-content,
+  #view-metas-do-dia .daily-goals-board,
+  #view-metas-do-dia .card-meta-grid,
+  #view-metas-do-dia .stats-grid {
+    width: 100%;
+    grid-template-columns: 1fr !important;
+  }
+  .daily-plan-heading,
+  .daily-goal-summary {
+    flex-direction: column;
+  }
+  .daily-plan-resume,
+  .daily-goal-summary > span:last-child { text-align: left; }
+}
