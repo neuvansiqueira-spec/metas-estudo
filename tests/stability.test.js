@@ -38,10 +38,10 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão atual', () => {
-  assert.match(html, /style\.css\?v=20260716-cronometro-integrado-v3/);
-  assert.match(html, /storage-indexeddb\.js\?v=20260716-cronometro-integrado-v3/);
-  assert.match(html, /script\.js\?v=20260716-cronometro-integrado-v3/);
-  assert.match(html, /Versão: 20260716-cronometro-integrado-v3/);
+  assert.match(html, /style\.css\?v=20260716-mensagens-topo-v4/);
+  assert.match(html, /storage-indexeddb\.js\?v=20260716-mensagens-topo-v4/);
+  assert.match(html, /script\.js\?v=20260716-mensagens-topo-v4/);
+  assert.match(html, /Versão: 20260716-mensagens-topo-v4/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -230,7 +230,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260716-cronometro-integrado-v3/);
+  assert.match(sw, /metas-estudo-20260716-mensagens-topo-v4/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);
@@ -551,6 +551,9 @@ test('toast motivacional é único, some automaticamente e é acessível', () =>
   assert.match(script, /elements\.timerMotivationalToast\.hidden = true/);
   assert.match(css, /\.timer-motivational-toast[\s\S]*pointer-events:\s*none/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.match(css, /\.timer-motivational-toast[\s\S]*top:\s*max\([^;]*env\(safe-area-inset-top/);
+  assert.match(css, /transform:\s*translate\(-50%,\s*-18px\)\s*scale\(\.98\)/);
+  assert.doesNotMatch(css.match(/\.timer-motivational-toast\s*\{[\s\S]*?\}/)?.[0] || "", /bottom:/);
 });
 
 test('banco motivacional varia frases e tolera banco vazio', () => {

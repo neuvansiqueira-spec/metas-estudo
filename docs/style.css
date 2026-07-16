@@ -2917,7 +2917,7 @@ th {
 .timer-motivational-toast {
   position: fixed;
   left: 50%;
-  bottom: clamp(18px, 4vw, 34px);
+  top: max(12px, calc(env(safe-area-inset-top, 0px) + 12px));
   z-index: 1300;
   width: min(420px, calc(100vw - 32px));
   padding: 14px 18px;
@@ -2929,7 +2929,7 @@ th {
   text-align: center;
   pointer-events: none;
   opacity: 0;
-  transform: translate(-50%, 18px) scale(.98);
+  transform: translate(-50%, -18px) scale(.98);
   transition: opacity .24s ease, transform .24s ease;
 }
 .timer-motivational-toast[hidden] { display: none; }
@@ -2950,7 +2950,10 @@ th {
   font-weight: 800;
 }
 @media (max-width: 720px) {
-  .timer-motivational-toast { bottom: 14px; }
+  .timer-motivational-toast {
+    top: max(10px, calc(env(safe-area-inset-top, 0px) + 10px));
+    width: calc(100vw - 24px);
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .timer-motivational-toast { transition: none; }
