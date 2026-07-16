@@ -9,12 +9,14 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260716-sync-inicial-sem-dados-antigos-v1";
+const APP_VERSION = "20260716-sync-inicial-autorizacao-v2";
+const STARTUP_GOOGLE_IDENTITY_TIMEOUT_MS = 1500;
 const STARTUP_SYNC_TIMEOUT_MS = 4000;
 let startupSyncInProgress = true;
 let startupSyncResolved = false;
 const startupSyncWriteQueue = [];
 let startupDataChangedAfterFallback = false;
+let startupDriveVerificationDeferred = false;
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -1930,7 +1932,7 @@ async function getAccessToken({ prompt = "" } = {}) {
   if (!isGoogleClientConfigured()) throw new Error(googleClientConfigMessage());
   if (!window.google?.accounts?.oauth2) throw new Error("Google Identity Services não carregou. Verifique a conexão.");
   return new Promise((resolve, reject) => {
-    googleDriveTokenClient = googleDriveTokenClient || google.accounts.oauth2.initTokenClient({
+    googleDriveTokenClient = google.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,
       scope: GOOGLE_DRIVE_SCOPE,
       callback: (response) => {
@@ -1945,6 +1947,32 @@ async function getAccessToken({ prompt = "" } = {}) {
     });
     googleDriveTokenClient.requestAccessToken(prompt ? { prompt } : {});
   });
+}
+function waitForGoogleIdentityServices(timeoutMs = STARTUP_GOOGLE_IDENTITY_TIMEOUT_MS) {
+  if (window.google?.accounts?.oauth2) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const started = Date.now();
+    const timer = setInterval(() => {
+      if (window.google?.accounts?.oauth2) { clearInterval(timer); resolve(true); }
+      else if (Date.now() - started >= timeoutMs) { clearInterval(timer); resolve(false); }
+    }, 25);
+  });
+}
+function startupAuthorizationNeedsInteraction(error) {
+  return /interaction_required|login_required|consent_required|popup_required|immediate_failed|interaction|login|consent|popup/i.test(String(error?.message || error || ""));
+}
+async function ensureStartupGoogleDriveAuthorization() {
+  if (hasValidGoogleDriveAccessToken()) return { authorized: true, mode: "existing-token" };
+  if (!readSyncMeta().connected) return { authorized: false, mode: "not-connected" };
+  if (!isGoogleClientConfigured() || !(await waitForGoogleIdentityServices())) return { authorized: false, mode: "unavailable" };
+  try {
+    await getAccessToken({ prompt: "none" });
+    return { authorized: true, mode: "silent" };
+  } catch (error) {
+    return startupAuthorizationNeedsInteraction(error)
+      ? { authorized: false, mode: "interaction-required", interactionRequired: true }
+      : { authorized: false, mode: "silent-failed", error };
+  }
 }
 async function driveFetch(url, options = {}) {
   const accessToken = await getAccessToken();
@@ -1988,7 +2016,7 @@ let isApplyingRemote = false;
 let isSyncing = false;
 let suppressAutoCheckUntil = 0;
 function isSyncLocked() { return syncDialogOpen || isApplyingRemote || isSyncing; }
-function canRunAutoSyncChecks() { return !isSyncLocked() && Date.now() >= suppressAutoCheckUntil; }
+function canRunAutoSyncChecks() { return startupSyncResolved && !startupDriveVerificationDeferred && !isSyncLocked() && Date.now() >= suppressAutoCheckUntil; }
 function suppressAutoChecksAfterSync() { suppressAutoCheckUntil = Date.now() + 15000; }
 function withSyncDialog(callback) {
   if (syncDialogOpen || isApplyingRemote || isSyncing) return null;
@@ -2039,7 +2067,7 @@ async function runAutoSyncAfterSave(reason) {
 }
 function autoSyncAfterSave(reason = "alteração") {
   if (startupSyncInProgress) { startupSyncWriteQueue.push(reason); return; }
-  if (isSyncLocked()) return;
+  if (startupDriveVerificationDeferred || isSyncLocked()) return;
   pendingAutoSyncReason = reason;
   clearTimeout(autoSyncTimer);
   return runAutoSyncAfterSave(pendingAutoSyncReason);
@@ -2191,6 +2219,7 @@ async function connectGoogleDrive() {
   }
   try {
     await getAccessToken({ prompt: hasValidGoogleDriveAccessToken() ? "" : "consent" });
+    startupDriveVerificationDeferred = false;
     writeSyncMeta({ connected: true, error: "" });
     renderSyncStatus("Google Drive conectado e pronto para sincronizar.");
     await checkCloudForUpdatesAfterAuth();
@@ -5681,9 +5710,27 @@ function showStartupConflictNotice() {
   renderSyncStatus("Conflito de sincronização — alterações deste aparelho foram preservadas. Escolha a versão na área de Backup.");
 }
 
-function showBootstrapLoadingState() {
+function setBootstrapLoadingMessage(message) {
   const loading = document.getElementById("appLoadingState");
-  if (loading) { loading.hidden = false; loading.textContent = hasValidGoogleDriveAccessToken() ? "Verificando dados mais recentes no Google Drive…" : "Carregando seus dados…"; }
+  if (loading) { loading.hidden = false; loading.textContent = message; }
+}
+function waitForStartupAuthorizationChoice() {
+  const loading = document.getElementById("appLoadingState");
+  if (!loading) return Promise.resolve("local");
+  loading.hidden = false;
+  loading.innerHTML = `<p>Confirme a atualização para carregar seus dados mais recentes.</p><div class="actions"><button type="button" data-startup-drive-choice="cloud">Atualizar pelo Google Drive</button><button type="button" class="secondary-button" data-startup-drive-choice="local">Usar dados deste aparelho</button></div>`;
+  return new Promise((resolve) => {
+    const onChoice = (event) => {
+      const choice = event.target.closest("button[data-startup-drive-choice]")?.dataset.startupDriveChoice;
+      if (!choice) return;
+      loading.removeEventListener("click", onChoice);
+      resolve(choice);
+    };
+    loading.addEventListener("click", onChoice);
+  });
+}
+function showBootstrapLoadingState() {
+  setBootstrapLoadingMessage("Carregando seus dados…");
   document.querySelector("main.app-layout")?.setAttribute("aria-busy", "true");
   document.body.classList.add("app-bootstrapping");
 }
@@ -5715,7 +5762,7 @@ async function persistBootstrapStateToIndexedDB(snapshot) {
 async function bootstrapApplication() {
   showBootstrapLoadingState();
   const startedAt = new Date().toISOString();
-  updateStartupSyncReport({ startedAt, resolvedAt: "", elapsedMs: 0, localSource: "default", finalSource: "default", cloudSessionAvailable: hasValidGoogleDriveAccessToken(), cloudMetadataChecked: false, cloudContentDownloaded: false, localHashMatched: false, remoteNewer: false, localNewer: false, pendingLocalChanges: false, conflict: false, offlineFallback: false, renderedBeforeResolution: false, renderCountBeforeResolution: 0, renderCountAfterResolution: 0 });
+  updateStartupSyncReport({ startedAt, resolvedAt: "", elapsedMs: 0, localSource: "default", finalSource: "default", cloudSessionAvailable: hasValidGoogleDriveAccessToken(), cloudMetadataChecked: false, cloudContentDownloaded: false, localHashMatched: false, remoteNewer: false, localNewer: false, pendingLocalChanges: false, conflict: false, offlineFallback: false, authorizationAttempted: false, authorizationMode: "", authorizationRequiredInteraction: false, authorizationSucceeded: false, userChoseLocal: false, userChoseCloud: false, renderedBeforeResolution: false, renderCountBeforeResolution: 0, renderCountAfterResolution: 0 });
   let chosenState = cloneData(defaultState), localSource = "default", recoveredError = "";
   try {
     let idb = { valid: false, empty: true, record: null };
@@ -5723,7 +5770,27 @@ async function bootstrapApplication() {
     const localStorageState = safeReadLocalStorageStateForBootstrap();
     if (idb.valid && stateHasUserData(idb.data)) { chosenState = idb.data; localSource = "indexeddb"; }
     else if (stateHasUserData(localStorageState)) { chosenState = localStorageState; localSource = "localstorage"; }
-    const resolution = await resolveStartupStateWithCloud(chosenState, { localSource });
+    setBootstrapLoadingMessage(readSyncMeta().connected ? "Verificando autorização do Google Drive…" : "Carregando seus dados…");
+    let authorization = await ensureStartupGoogleDriveAuthorization();
+    updateStartupSyncReport({ authorizationAttempted: authorization.mode !== "existing-token" && authorization.mode !== "not-connected", authorizationMode: authorization.mode, authorizationRequiredInteraction: Boolean(authorization.interactionRequired), authorizationSucceeded: authorization.authorized, userChoseLocal: false, userChoseCloud: false });
+    while (authorization.interactionRequired) {
+      const choice = await waitForStartupAuthorizationChoice();
+      if (choice === "local") {
+        startupDriveVerificationDeferred = true;
+        updateStartupSyncReport({ userChoseLocal: true });
+        break;
+      }
+      updateStartupSyncReport({ userChoseCloud: true });
+      setBootstrapLoadingMessage("Verificando autorização do Google Drive…");
+      try {
+        await getAccessToken({ prompt: "" });
+        authorization = { authorized: true, mode: "interactive" };
+        updateStartupSyncReport({ authorizationMode: authorization.mode, authorizationSucceeded: true });
+      } catch (error) {
+        updateStartupSyncReport({ authorizationMode: "interactive-failed", authorizationSucceeded: false });
+      }
+    }
+    const resolution = await resolveStartupStateWithCloud(chosenState, { localSource, cloudSessionAvailable: authorization.authorized });
     chosenState = resolution.state || chosenState;
     const finalHash = stableStartupStateHash(chosenState);
     replaceState(chosenState);
@@ -5743,7 +5810,7 @@ async function bootstrapApplication() {
     syncAllFactoryMaterials(); renderMotivationalPhrase(); indexedDBStatus.size = estimateSerializedStateSize(state); indexedDBStatus.migration = "concluída"; indexedDBStatus.bootstrap = recoveredError ? "erro recuperado" : "concluída";
     updateStartupSyncReport({ resolvedAt: new Date().toISOString(), elapsedMs: resolution.elapsedMs, localSource, finalSource: resolution.source, cloudMetadataChecked: resolution.cloudChecked, cloudContentDownloaded: Boolean(resolution.remoteMetadata && (resolution.cloudNewer || !stateHasUserData(chosenState))), remoteNewer: resolution.cloudNewer, localNewer: resolution.localNewer, pendingLocalChanges: hasLocalSyncPending(readSyncMeta()), conflict: resolution.conflict, offlineFallback: resolution.offlineFallback });
     render(); updateStartupSyncReport({ renderCountAfterResolution: 1 });
-    if (resolution.conflict) showStartupConflictNotice(); else if (resolution.offlineFallback) renderSyncStatus("Modo offline — exibindo os dados salvos neste aparelho."); else if (resolution.source === "google-drive") renderSyncStatus("Dados atualizados pelo Google Drive"); else renderSyncStatus(resolution.localNewer ? "Alterações locais aguardando sincronização" : "Dados deste aparelho");
+    if (startupDriveVerificationDeferred) renderSyncStatus("Dados deste aparelho — atualização do Drive não verificada"); else if (resolution.conflict) showStartupConflictNotice(); else if (resolution.offlineFallback) renderSyncStatus("Modo offline — exibindo os dados salvos neste aparelho."); else if (resolution.source === "google-drive") renderSyncStatus("Dados atualizados pelo Google Drive"); else renderSyncStatus(resolution.localNewer ? "Alterações locais aguardando sincronização" : "Dados deste aparelho");
     showStorageWarningIfNeeded(); showView(hashToView(), { skipScroll: true, keepMenuOpen: true });
   } finally { releaseStartupSyncQueue(); hideBootstrapLoadingState(); updateStorageDiagnostics(); }
 }

@@ -3031,7 +3031,7 @@ th {
 }
 body.app-bootstrapping .app-layout {
   pointer-events: none;
-  opacity: .45;
+  visibility: hidden;
 }
 
 /* Versão 20260713-corrige-plano-dia-mobile: ajuste responsivo limitado ao Plano do Dia e ao menu inferior. */
