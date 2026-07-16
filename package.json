@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260715-estabilizacao-plano-fabrica-materiais-v1",
+  "version": "20260716-sync-inicial-sem-dados-antigos-v1",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
