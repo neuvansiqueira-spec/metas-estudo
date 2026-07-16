@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260714-recuperacao-tempo-antigo-cronometro-v3" />
+  <link rel="stylesheet" href="style.css?v=20260715-planejamento-estimativa-material-v1" />
 </head>
 <body>
   <header class="hero">
@@ -485,7 +485,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
         </details>
         <div class="planning-actions"><button type="submit" class="big-action-button">Salvar planejamento</button></div>
       </form>
-      <article class="bulk-box"><h3>Histórico de tempo por assunto</h3><div class="card-actions"><button id="addManualTime" type="button">Adicionar tempo manual</button></div><div id="timeUndoNotice" class="notice" hidden>Alteração realizada. <button id="undoTimeAction" type="button">Desfazer</button></div><div id="timeHistorySummary" class="stats-grid compact"></div><div class="table-wrapper"><table><thead><tr><th>Data</th><th>Disciplina</th><th>Assunto</th><th>Tempo</th><th>Tipo</th><th>Status</th><th>Material usado</th><th>Observações</th><th>Ações</th></tr></thead><tbody id="timeHistoryBody"></tbody></table></div></article>
+      <article class="bulk-box"><h3>Metas planejadas e histórico de tempo</h3><div class="card-actions"><button id="addManualTime" type="button">Adicionar tempo manual</button></div><div id="timeUndoNotice" class="notice" hidden>Alteração realizada. <button id="undoTimeAction" type="button">Desfazer</button></div><div id="timeHistorySummary" class="stats-grid compact"></div><div id="timeHistoryCards" class="planning-history-cards" aria-live="polite"></div></article>
     </section>
 
     <section id="view-metas-do-dia" class="panel app-view" data-view="metas-do-dia" aria-labelledby="daily-goals-title">
@@ -971,13 +971,13 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </section>
   </div>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260714-recuperacao-tempo-antigo-cronometro-v3</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260715-planejamento-estimativa-material-v1</p></footer>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="storage-indexeddb.js?v=20260714-recuperacao-tempo-antigo-cronometro-v3"></script>
-  <script src="analytics-engine.js?v=20260714-recuperacao-tempo-antigo-cronometro-v3"></script>
-  <script src="study-advisor.js?v=20260714-recuperacao-tempo-antigo-cronometro-v3"></script>
-  <script src="advisor-navigation-engine.js?v=20260714-recuperacao-tempo-antigo-cronometro-v3"></script>
-  <script src="script.js?v=20260714-recuperacao-tempo-antigo-cronometro-v3"></script>
+  <script src="storage-indexeddb.js?v=20260715-planejamento-estimativa-material-v1"></script>
+  <script src="analytics-engine.js?v=20260715-planejamento-estimativa-material-v1"></script>
+  <script src="study-advisor.js?v=20260715-planejamento-estimativa-material-v1"></script>
+  <script src="advisor-navigation-engine.js?v=20260715-planejamento-estimativa-material-v1"></script>
+  <script src="script.js?v=20260715-planejamento-estimativa-material-v1"></script>
   <div id="legacyTimerRecoveryModal" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="legacyTimerRecoveryModalTitle" hidden>
     <div class="app-modal-backdrop" data-legacy-recovery-cancel></div>
     <section class="app-modal-card">
