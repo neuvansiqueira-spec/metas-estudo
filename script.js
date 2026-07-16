@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260716-corrige-otimizacao-abas-v2";
+const APP_VERSION = "20260716-corrige-concluidos-faca-agora-v1";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -3679,6 +3679,14 @@ function factoryResumoAulaPending(entry = {}) {
   const modules = normalizeFactoryModules(item.modules || {}, item);
   return !factoryThemeIsCompleted(modules) && !factoryResumoAulaReady({ ...item, modules });
 }
+function factoryCanAppearInDoNow(entry = {}, queue = factoryDoNowQueue()) {
+  const item = entry.item || entry;
+  const modules = normalizeFactoryModules(item.modules || {}, item);
+  return Boolean(item.id)
+    && !factoryThemeIsCompleted(modules)
+    && factoryResumoAulaPending({ ...item, modules })
+    && queue.some(({ item: queuedItem }) => queuedItem.id === item.id);
+}
 function factoryDoNowQueue(agenda = ensureFactoryAgenda()) {
   const activeAgenda = agenda.filter((item) => item.editalActive !== false);
   const today = todayISO();
@@ -3751,8 +3759,14 @@ function renderFactory() {
       const recorte = factoryRecorteHoje(entry);
       return `<article class="syllabus-card factory-card compact-factory-card" data-factory-card="${item.id}"><header class="factory-card-header"><div class="factory-card-heading">${factoryThemeHighlightHTML(viewItem, recorte, { position: `posição ${index + 1} de ${Math.max(queue.length, 1)}` })}</div><span class="badge factory-status-badge ${factoryResumoAulaReady(viewItem) ? "success" : viewItem.triagemStatus === "Precisa refazer" ? "danger" : "neutral"}">${escapeHTML(viewItem.status)}</span></header><div class="card-meta-grid factory-compact-grid"><span><strong>Etapa atual:</strong> ${escapeHTML(stage)}</span><span><strong>Próxima ação:</strong> ${escapeHTML(next)}</span><span><strong>Status:</strong> ${escapeHTML(item.status)}</span></div>${factoryProgressHTML(viewItem)}<div class="card-actions factory-main-actions">${factoryActionButtonHTML(viewItem)}<button type="button" class="secondary-button" data-factory-toggle-detail="${item.id}">Ver detalhes</button></div>${detailsHTML(entry)}</article>`;
     };
-    const selectedEntry = factoryOpenDetailId ? queue.find(({ item }) => item.id === factoryOpenDetailId) || activeAgenda.map((item) => ({ item, subtopics: [] })).find(({ item }) => item.id === factoryOpenDetailId) : null;
-    const firstResumoPendingEntry = queue.find(({ item }) => !factoryResumoAulaReady(item));
+    if (factoryCurrentFilter === "faca-agora" && factoryOpenDetailId) {
+      const openEntry = queue.find(({ item }) => item.id === factoryOpenDetailId);
+      if (!factoryCanAppearInDoNow(openEntry, queue)) factoryOpenDetailId = "";
+    }
+    const selectedEntry = factoryOpenDetailId
+      ? queue.find(({ item }) => item.id === factoryOpenDetailId)
+      : null;
+    const firstResumoPendingEntry = queue.find((entry) => factoryCanAppearInDoNow(entry, queue));
     const nowEntry = selectedEntry || firstResumoPendingEntry || queue[0];
     const firstPendingId = queue.find(({ item }) => {
       const modules = normalizeFactoryModules(item.modules || {}, item);
@@ -3801,7 +3815,9 @@ function factoryGoToNext(currentId = "") {
 }
 function toggleFactoryDetail(id) {
   factoryOpenDetailId = factoryOpenDetailId === id ? "" : id;
-  if (factoryOpenDetailId) factoryCurrentFilter = "faca-agora";
+  const queue = factoryDoNowQueue();
+  const entry = queue.find(({ item }) => item.id === factoryOpenDetailId);
+  if (factoryOpenDetailId && factoryCanAppearInDoNow(entry, queue)) factoryCurrentFilter = "faca-agora";
   renderFactory();
   const target = factoryOpenDetailId ? document.querySelector(`[data-factory-card="${CSS.escape(factoryOpenDetailId)}"]`) : document.getElementById("factoryDoNow");
   target?.scrollIntoView({ behavior: "smooth", block: "start" });
