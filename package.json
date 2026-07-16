@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260716-interface-unificada-v6",
+  "version": "20260716-recolhimento-interno-v7",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

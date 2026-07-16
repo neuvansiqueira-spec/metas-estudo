@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260716-interface-unificada-v6";
+const APP_VERSION = "20260716-recolhimento-interno-v7";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -6413,7 +6413,7 @@ function syncNavigationGroups(target) {
 }
 
 function enhanceCollapsibleSections() {
-  const targets = document.querySelectorAll("#view-dashboard > .dashboard-block, #view-dashboard > .progress-dashboard-card, #view-progresso > .panel, #view-historico-questoes > .panel, #view-revisoes > .panel, #view-backup > .panel");
+  const targets = document.querySelectorAll("#view-dashboard .dashboard-block, #view-dashboard > .progress-dashboard-card, #view-dashboard .dashboard-tools > .panel, #view-central-metas > .smart-review-panel, #view-central-metas > .bulk-box, #view-edital-verticalizado > .bulk-box, #view-revisoes > .panel, #view-backup > .sync-card, #view-como-usar .instructions-grid > article");
   const seenByView = new Map();
   targets.forEach((container, index) => {
     if (container.dataset.collapsibleReady === "true") return;

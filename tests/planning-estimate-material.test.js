@@ -51,6 +51,10 @@ test('Menu reúne temas relacionados e blocos principais são recolhíveis', () 
   assert.match(script, /sessionStorage\.setItem\(`collapsible:/);
   assert.match(css, /\.interface-collapsible-summary/);
   assert.match(css, /\.navigation-group-links/);
+  assert.match(css, /\.navigation-group:not\(\[open\]\) > \.navigation-group-links \{ display: none; \}/);
+  assert.match(script, /#view-dashboard \.dashboard-block/);
+  assert.match(script, /#view-backup > \.sync-card/);
+  assert.match(script, /#view-como-usar \.instructions-grid > article/);
 });
 
 test('Abrir material usa fluxo central, noopener e feedback interno', () => {
@@ -72,5 +76,5 @@ test('arquivos publicados e versão permanecem sincronizados', () => {
   assert.equal(html, fs.readFileSync('docs/index.html', 'utf8'));
   assert.equal(css, fs.readFileSync('docs/style.css', 'utf8'));
   assert.equal(fs.readFileSync('service-worker.js', 'utf8'), fs.readFileSync('docs/service-worker.js', 'utf8'));
-  assert.match(script, /20260716-interface-unificada-v6/);
+  assert.match(script, /20260716-recolhimento-interno-v7/);
 });

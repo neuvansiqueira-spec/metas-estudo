@@ -788,6 +788,7 @@ tbody tr.goal-hit { background: rgba(22, 163, 74, .08); }
 .navigation-group > summary::after { content: "›"; font-size: 1.25rem; transform: rotate(0); transition: transform .18s ease; }
 .navigation-group[open] > summary::after { transform: rotate(90deg); }
 .navigation-group-links { display: grid; gap: 6px; }
+.navigation-group:not([open]) > .navigation-group-links { display: none; }
 
 /* Leitura didática da estimativa diretamente na meta. */
 .goal-time-comparison {
