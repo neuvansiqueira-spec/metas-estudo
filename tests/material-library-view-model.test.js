@@ -6,7 +6,7 @@ function logic() {
   const start = script.indexOf('function normalizeMaterialFormat(material = {})');
   const end = script.indexOf('const materialSectionOpenState', start);
   assert.ok(start >= 0 && end > start);
-  return new Function(`const FACTORY_MODULES=[{key:'resumoAula',label:'RESUMO/AULA'},{key:'lei',label:'LEI'}]; const canonical=(v)=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim(); const materialTagsArray=(value)=>Array.isArray(value)?value:String(value||'').split(',').map((tag)=>tag.trim()).filter(Boolean); ${script.slice(start, end)}; return { buildMaterialLibraryViewModel, materialPhysicalFileIdentity, materialGroupMatchesFilters };`)();
+  return new Function(`const FACTORY_MODULES=[{key:'resumoAula',label:'RESUMO/AULA'},{key:'lei',label:'LEI'}]; const canonical=(v)=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim(); const materialTagsArray=(value)=>Array.isArray(value)?value:String(value||'').split(',').map((tag)=>tag.trim()).filter(Boolean); ${script.slice(start, end)}; return { buildMaterialLibraryViewModel, materialPhysicalFileIdentity, materialLogicalAssociationKey, materialGroupMatchesFilters };`)();
 }
 const api = logic();
 const base = { discipline: 'Direito Processual Penal', subject: 'Conceito', factoryModuleKey: 'resumoAula', date: '2026-07-16' };
@@ -44,4 +44,19 @@ test('formatos equivalentes do mesmo arquivo não duplicam e manual preserva uso
 test('detalhe não expõe a identidade física interna e ações manuais não excluem Fábrica', () => {
   const groupHTML = script.slice(script.indexOf('function materialGroupHTML'), script.indexOf('function materialSectionHTML'));
   assert.doesNotMatch(groupHTML, /file\.identity/); assert.match(groupHTML, /Editar cadastro manual/); assert.match(groupHTML, /Excluir cadastro manual/); assert.match(groupHTML, /record\.source !== "factory"/);
+});
+
+test('mesmo arquivo em dois assuntos preserva dois grupos e o filtro encontra o segundo', () => {
+  const state = { syllabusItems: [{id:'s1', discipline:'Penal', subject:'Assunto um'}, {id:'s2', discipline:'Penal', subject:'Assunto dois'}] };
+  const one = { ...factoryPdf, id:'shared-one', syllabusItemId:'s1', discipline:'rótulo antigo', subject:'rótulo antigo', link:'https://drive.google.com/file/d/SHARED/view' };
+  const two = { ...factoryPdf, id:'shared-two', syllabusItemId:'s2', discipline:'rótulo antigo', subject:'rótulo antigo', link:'https://drive.google.com/open?id=SHARED' };
+  const groups = api.buildMaterialLibraryViewModel([one, two], state); assert.equal(groups.length, 2); assert.deepEqual(groups.map((group) => group.subject).sort(), ['Assunto dois', 'Assunto um']);
+  global.elements = { materialFilterDiscipline:{value:''}, materialFilterSubject:{value:'Assunto dois'}, materialFilterType:{value:''}, materialFilterOrigin:{value:''}, materialFilterText:{value:''} }; assert.equal(api.materialGroupMatchesFilters(groups.find((group) => group.subject === 'Assunto dois')), true); assert.equal(api.materialGroupMatchesFilters(groups.find((group) => group.subject === 'Assunto um')), false);
+});
+test('mesmo arquivo em disciplinas diferentes preserva dois grupos', () => {
+  const records = [{...factoryPdf, id:'d1', discipline:'Direito Penal', subject:'Tema', link:'https://drive.google.com/file/d/DISC/view'}, {...factoryPdf, id:'d2', discipline:'Direito Civil', subject:'Tema', link:'https://drive.google.com/open?id=DISC'}]; assert.equal(api.buildMaterialLibraryViewModel(records, {}).length, 2);
+});
+test('prioridade da Fábrica é determinística independente da ordem dos registros', () => {
+  const manualGeneric = { id:'z-manual', source:'manual', module:'Material manual', type:'PDF', discipline:'D', subject:'S', link:'https://drive.google.com/open?id=ORDER' }; const factory = { id:'a-factory', source:'factory', factoryItemId:'f', syllabusItemId:'s', factoryModuleKey:'resumoAula', factoryFormat:'PDF', discipline:'D', subject:'S', link:'https://drive.google.com/file/d/ORDER/view' };
+  const forward = api.buildMaterialLibraryViewModel([manualGeneric, factory], {}); const reversed = api.buildMaterialLibraryViewModel([factory, manualGeneric], {}); assert.equal(forward[0].module, 'RESUMO/AULA'); assert.deepEqual(forward.map(({module, discipline, subject, formats, origins}) => ({module, discipline, subject, formats, origins})), reversed.map(({module, discipline, subject, formats, origins}) => ({module, discipline, subject, formats, origins})));
 });

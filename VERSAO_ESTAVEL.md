@@ -2,7 +2,7 @@
 
 ## Versão estável atual
 
-`20260716-agrupar-materiais-e-eliminar-duplicacoes-v2`
+`20260716-agrupar-materiais-e-eliminar-duplicacoes-v3`
 
 ## Data
 

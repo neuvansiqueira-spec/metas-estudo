@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260716-agrupar-materiais-e-eliminar-duplicacoes-v2",
+  "version": "20260716-agrupar-materiais-e-eliminar-duplicacoes-v3",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
