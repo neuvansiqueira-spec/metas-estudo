@@ -270,6 +270,43 @@ test('Exportação real dos gráficos usa payload completo, botões reais e um a
   assert.match(individualExportBlock, /if \(format === 'csv'\) downloadGeneratedFile/);
 });
 
+test('PDF, CSV e imagem usam leitura didática, cores semânticas e relatório próprio', () => {
+  const start = script.indexOf('function formatExportDuration(minutes');
+  const end = script.indexOf('function setPerformanceExportStatus');
+  const logic = new Function('formatDateBR', 'escapeHTML', 'traduzirRotuloAnalise', `${script.slice(start, end)}; return { buildPerformanceCsv, buildFullPerformanceReportSvg, buildPerformancePrintHtml };`)(
+    (d) => d,
+    (v) => String(v),
+    (v) => String(v)
+  );
+  const payload = {
+    generatedAt: '2026-07-16T12:00:00.000Z',
+    filters: { periodLabel: 'Últimos 30 dias', discipline: 'all' },
+    summary: { timeLabel: '4h', sessions: 8, activeDays: 5, questions: 30, cebraspeNet: 14, goalsCompleted: 6 },
+    questions: { correct: 22, wrong: 8, blank: 0, accuracyPct: 73, cebraspeNet: 14 },
+    daily: [{ date: '2026-07-16', minutes: 60, questions: 10 }],
+    disciplines: [{ discipline: 'Direito Penal', minutes: 120, questions: 30, correct: 22, wrong: 8, blank: 0, accuracyPct: 73, net: 14 }],
+    plannedVsActual: [{ date: '2026-07-16', plannedMinutes: 90, actualMinutes: 60 }],
+    mockExams: [], insights: ['Revise os erros mais recorrentes.']
+  };
+  const csv = logic.buildPerformanceCsv(payload);
+  assert.match(csv, /COMO LER ESTE RELATÓRIO/);
+  assert.match(csv, /CSV não guarda cores/);
+  assert.match(csv, /Leitura didática/);
+  assert.match(csv, /Amostra inicial|Base em construção/);
+  const svg = logic.buildFullPerformanceReportSvg(payload, {});
+  ['Painel visual de desempenho','#172554','#1d4ed8','#0ea5e9','#16a34a','#dc2626','#fef3c7'].forEach((term) => assert.match(svg, new RegExp(term)));
+  assert.match(svg, /Verde: avanço/);
+  assert.match(svg, /Leitura orientativa/);
+  const printable = logic.buildPerformancePrintHtml(payload);
+  assert.match(printable, /id="performancePrintableReport"/);
+  assert.match(printable, /Como interpretar:/);
+  assert.match(printable, /Próximos passos/);
+  assert.match(printable, /class="metric blue"/);
+  assert.match(style, /print-color-adjust:\s*exact/);
+  assert.match(style, /body\.performance-print-mode > :not\(#performancePrintableReport\)/);
+  assert.match(style, /\.performance-print-metrics \.green/);
+});
+
 
 test('Análise Estratégica unificada remove duplicações e estabiliza exportação', () => {
   assert.doesNotMatch(script, /centralVisual/);

@@ -1,5 +1,5 @@
 // versão anterior: metas-estudo-20260714-conselheiro-local-v1
-const CACHE_NAME = "metas-estudo-20260716-mensagens-topo-v4";
+const CACHE_NAME = "metas-estudo-20260716-exportacao-didatica-v5";
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v1`;
 const FILES_TO_CACHE = [
   "./",

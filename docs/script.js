@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260716-mensagens-topo-v4";
+const APP_VERSION = "20260716-exportacao-didatica-v5";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -5945,12 +5945,36 @@ function buildPerformanceExportPayload(dashboard, filters = {}, analysis = {}) {
   return { generatedAt: new Date().toISOString(), title: 'Relatório de Desempenho', filters: clone(filters), summary: clone(dashboard?.summary || {}), comparison: clone(dashboard?.comparison || {}), daily: clone(dashboard?.daily || []), questions: clone(dashboard?.questions || {}), disciplines: clone(dashboard?.disciplines || []), mockExams: clone(dashboard?.mockExams || []), plannedVsActual: clone(dashboard?.plannedVsActual || []), insights: clone(dashboard?.insights || []), maturity: clone(analysis?.dataMaturity || {}), analysisSummary: clone(analysis?.summary || {}) };
 }
 function percentLabel(value) { return Number.isFinite(Number(value)) ? `${Number(value).toFixed(1).replace('.', ',')}%` : 'Amostra em desenvolvimento'; }
+function performanceStatus(value, target, inverse = false) {
+  const current = Number(value) || 0, reference = Math.max(1, Number(target) || 0);
+  const ratio = inverse ? reference / Math.max(1, current) : current / reference;
+  if (ratio >= 1) return { label: 'Meta alcançada', tone: 'success', color: '#16a34a', soft: '#dcfce7' };
+  if (ratio >= .7) return { label: 'Em progresso', tone: 'progress', color: '#2563eb', soft: '#dbeafe' };
+  if (ratio > 0) return { label: 'Ponto de atenção', tone: 'attention', color: '#d97706', soft: '#fef3c7' };
+  return { label: 'Sem registro', tone: 'neutral', color: '#64748b', soft: '#f1f5f9' };
+}
+function performanceReadingText({ accuracy = 0, questions = 0, net = 0 } = {}) {
+  if (!questions) return 'Registre questões para formar uma leitura confiável.';
+  if (questions < 20) return 'Amostra inicial: use como sinal, não como conclusão.';
+  if (net < 0) return 'Priorize revisão dos erros antes de aumentar o volume.';
+  if (accuracy >= 80) return 'Bom domínio na amostra atual; mantenha revisões.';
+  if (accuracy >= 60) return 'Base em construção; revise os assuntos com mais erros.';
+  return 'Ponto de atenção: retome teoria, erros e questões graduais.';
+}
 function buildPerformanceCsv(payload) {
   const summary = payload.summary || {}, questions = payload.questions || {}, maturity = payload.maturity || {};
   const goalsPlanned = (payload.plannedVsActual || []).reduce((s,r)=>s+(Number(r.plannedGoals)||0),0);
   const weekly = Number(summary.activeDays) ? Math.round(Number(summary.activeDays || 0) / 7 * 1000) / 10 : 0;
   const sections = [];
   const add = (rows) => sections.push(...rows, []);
+  add([
+    ['COMO LER ESTE RELATÓRIO'], ['Cor na versão visual','Significado','Ação sugerida'],
+    ['Verde','Meta alcançada ou resultado consistente','Manter ritmo e revisões'],
+    ['Azul','Evolução em andamento','Continuar e acompanhar a tendência'],
+    ['Amarelo','Ponto de atenção','Revisar erros e ajustar o plano'],
+    ['Cinza','Sem dados suficientes','Registrar novas sessões ou questões'],
+    ['Observação sobre o CSV','CSV não guarda cores; por isso as classificações aparecem em texto.','Abra no Excel, Numbers ou Google Planilhas para aplicar filtros.']
+  ]);
   add([
     ['RESUMO GERAL'], ['Indicador','Valor'],
     ['Tempo estudado', summary.timeLabel || formatExportDuration(summary.minutes || 0)],
@@ -5962,10 +5986,10 @@ function buildPerformanceCsv(payload) {
     ...(summary.observacao ? [['Observação', summary.observacao]] : [])
   ]);
   add([['EVOLUÇÃO DIÁRIA'], ['Data','Minutos','Tempo formatado','Questões'], ...(payload.daily || []).map(d=>[formatDateBR(d.date), Number(d.minutes)||0, formatExportDuration(d.minutes), d.questions || 0])]);
-  add([['DESEMPENHO POR DISCIPLINA'], ['Disciplina','Minutos','Tempo formatado','Questões','Acertos','Erros','Brancos','Líquido','Percentual'], ...(payload.disciplines || []).map(d=>[d.discipline, Number(d.minutes)||0, formatExportDuration(d.minutes), d.questions || 0, d.correct || 0, d.wrong || 0, d.blank || 0, d.net || 0, `${d.accuracyPct || 0}%`])]);
+  add([['DESEMPENHO POR DISCIPLINA'], ['Disciplina','Minutos','Tempo formatado','Questões','Acertos','Erros','Brancos','Líquido','Percentual','Leitura didática'], ...(payload.disciplines || []).map(d=>[d.discipline, Number(d.minutes)||0, formatExportDuration(d.minutes), d.questions || 0, d.correct || 0, d.wrong || 0, d.blank || 0, d.net || 0, `${d.accuracyPct || 0}%`, performanceReadingText({ accuracy:d.accuracyPct, questions:d.questions, net:d.net })])]);
   add([['QUESTÕES E LÍQUIDO CEBRASPE'], ['Acertos','Erros','Brancos','Líquido','Percentual'], [questions.correct || 0, questions.wrong || 0, questions.blank || 0, questions.cebraspeNet || 0, questions.sufficientSample === false ? 'Amostra em desenvolvimento' : `${questions.accuracyPct || 0}%`]]);
   add([['SIMULADOS'], ['Data','Nome','Acertos','Erros','Brancos','Líquido','Percentual'], ...(payload.mockExams || []).map(m=>[formatDateBR(m.date), m.name || 'Simulado', m.correct || 0, m.wrong || 0, m.blank || 0, m.net || 0, `${m.accuracyPct || 0}%`])]);
-  add([['PLANEJADO X REALIZADO'], ['Data','Planejado','Realizado','Diferença','Percentual cumprido'], ...(payload.plannedVsActual || []).map(d=>[formatDateBR(d.date), d.plannedMinutes || 0, d.actualMinutes || 0, (d.actualMinutes || 0) - (d.plannedMinutes || 0), d.plannedMinutes ? Math.round((d.actualMinutes || 0) / d.plannedMinutes * 100) + '%' : 'Sem planejamento'])]);
+  add([['PLANEJADO X REALIZADO'], ['Data','Planejado','Realizado','Diferença','Percentual cumprido','Situação'], ...(payload.plannedVsActual || []).map(d=>[formatDateBR(d.date), d.plannedMinutes || 0, d.actualMinutes || 0, (d.actualMinutes || 0) - (d.plannedMinutes || 0), d.plannedMinutes ? Math.round((d.actualMinutes || 0) / d.plannedMinutes * 100) + '%' : 'Sem planejamento', d.plannedMinutes ? performanceStatus(d.actualMinutes, d.plannedMinutes).label : 'Sem planejamento'])]);
   return '\ufeff' + sections.map(r => r.map(csvEscape).join(';')).join('\n');
 }
 function buildIndividualChartCsv(chartType, rows = []) {
@@ -6015,7 +6039,7 @@ function chartFinding(chartType, rows = [], metadata = {}) {
   if (chartType === 'mocks') { const best=rows.slice().sort((a,b)=>(Number(b.net)||0)-(Number(a.net)||0))[0]; return rows.length === 1 ? `Houve 1 simulado: ${best.name||'Simulado'}, com líquido ${best.net||0}.` : `Houve ${rows.length} simulados no período, com melhor líquido de ${best?.net||0}.`; }
   return 'Dados consolidados para estudo e compartilhamento.';
 }
-function buildFullPerformanceReportSvg(payload, metadata = {}) {
+function buildLegacyFullPerformanceReportSvg(payload, metadata = {}) {
   const W = 1600, margin = 70, rowH = 34;
   const generated = new Date(metadata.generatedAt || payload.generatedAt || new Date().toISOString()).toLocaleString('pt-BR');
   const period = metadata.period || payload.filters?.periodLabel || payload.filters?.mode || 'Período selecionado';
@@ -6038,6 +6062,38 @@ function buildFullPerformanceReportSvg(payload, metadata = {}) {
   let y = 210;
   const body = rows.map(r=>{ if(r.type==='title'){ y+=18; const out=`<text x="${margin}" y="${y}" class="section">${escapeHTML(r.text)}</text>`; y+=42; return out; } const out=`<text x="${margin}" y="${y}" class="label">${escapeHTML(r.a)}</text><text x="620" y="${y}" class="value">${escapeHTML(String(r.b))}</text>`; y+=rowH; return out; }).join('');
   return `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" role="img"><title>Relatório de Desempenho</title><style>text{font-family:Arial,Helvetica,sans-serif}.title{font-size:48px;font-weight:800;fill:#0f172a}.meta{font-size:25px;fill:#334155}.section{font-size:31px;font-weight:800;fill:#1d4ed8}.label{font-size:24px;font-weight:700;fill:#0f172a}.value{font-size:24px;fill:#334155}</style><rect width="100%" height="100%" fill="#fff"/><text x="${margin}" y="75" class="title">Relatório completo de desempenho</text><text x="${margin}" y="122" class="meta">Período: ${escapeHTML(period)} • Disciplina: ${escapeHTML(discipline)} • Origem: ${escapeHTML(origin)}</text><text x="${margin}" y="160" class="meta">Gerado em: ${escapeHTML(generated)}</text>${body}<text x="${margin}" y="${H-42}" class="meta">Data de geração: ${escapeHTML(generated)}</text></svg>`;
+}
+function buildFullPerformanceReportSvg(payload, metadata = {}) {
+  const W=1600, margin=72, contentW=W-margin*2;
+  const generated=new Date(metadata.generatedAt||payload.generatedAt||new Date().toISOString()).toLocaleString('pt-BR');
+  const period=metadata.period||payload.filters?.periodLabel||payload.filters?.mode||'Período selecionado';
+  const discipline=payload.filters?.discipline&&payload.filters.discipline!=='all'?payload.filters.discipline:'Todas as disciplinas';
+  const summary=payload.summary||{}, questions=payload.questions||{}, disciplines=(payload.disciplines||[]).slice().sort((a,b)=>(Number(b.minutes)||0)-(Number(a.minutes)||0)).slice(0,8);
+  const daily=(payload.daily||[]).slice(-10), planned=(payload.plannedVsActual||[]).reduce((a,r)=>({planned:a.planned+(Number(r.plannedMinutes)||0),actual:a.actual+(Number(r.actualMinutes)||0)}),{planned:0,actual:0});
+  const insights=(payload.insights||[]).slice(0,4), maxDaily=Math.max(1,...daily.map(d=>Number(d.minutes)||0)), maxDiscipline=Math.max(1,...disciplines.map(d=>Number(d.minutes)||0));
+  const metrics=[['Tempo estudado',summary.timeLabel||formatExportDuration(summary.minutes||0),'#2563eb','#dbeafe'],['Dias ativos',summary.activeDays||0,'#7c3aed','#ede9fe'],['Sessões',summary.sessions||0,'#0891b2','#cffafe'],['Questões',summary.questions||0,'#d97706','#fef3c7'],['Líquido Cebraspe',summary.cebraspeNet??questions.cebraspeNet??0,'#16a34a','#dcfce7'],['Metas concluídas',summary.goalsCompleted||0,'#db2777','#fce7f3']];
+  let y=270;
+  const section=(title,subtitle='')=>{const out=`<rect x="${margin}" y="${y}" width="${contentW}" height="66" rx="20" fill="#eff6ff"/><rect x="${margin}" y="${y}" width="12" height="66" rx="6" fill="#2563eb"/><text x="${margin+34}" y="${y+31}" class="section">${escapeHTML(title)}</text><text x="${margin+34}" y="${y+53}" class="hint">${escapeHTML(subtitle)}</text>`;y+=92;return out;};
+  let body=section('Resumo geral','A leitura rápida do período selecionado');
+  metrics.forEach((m,i)=>{const col=i%3,row=Math.floor(i/3),x=margin+col*486,cy=y+row*132;body+=`<rect x="${x}" y="${cy}" width="454" height="108" rx="22" fill="${m[3]}"/><circle cx="${x+40}" cy="${cy+38}" r="16" fill="${m[2]}"/><text x="${x+70}" y="${cy+36}" class="cardLabel">${escapeHTML(m[0])}</text><text x="${x+32}" y="${cy+82}" class="cardValue" fill="${m[2]}">${escapeHTML(String(m[1]))}</text>`;});
+  y+=288; body+=section('Evolução diária','Cada barra representa o tempo estudado no dia');
+  if(daily.length){daily.forEach((d,i)=>{const x=margin+i*(contentW/Math.max(1,daily.length)),h=Math.max(8,(Number(d.minutes)||0)/maxDaily*170),bw=Math.max(30,contentW/Math.max(12,daily.length)-14);body+=`<rect x="${x}" y="${y+185-h}" width="${bw}" height="${h}" rx="10" fill="url(#blueBar)"/><text x="${x}" y="${y+214}" class="axis">${escapeHTML(formatDateBR(d.date).slice(0,5))}</text><text x="${x}" y="${y+178-h}" class="barValue">${escapeHTML(formatExportDuration(d.minutes||0))}</text>`;});}else body+=`<text x="${margin}" y="${y+42}" class="empty">Ainda não há registros diários neste período.</text>`;
+  y+=260; body+=section('Questões e líquido Cebraspe','Verde = acertos • vermelho = erros • cinza = brancos');
+  const qTotal=Math.max(1,(Number(questions.correct)||0)+(Number(questions.wrong)||0)+(Number(questions.blank)||0)); let qx=margin;
+  [[questions.correct||0,'#16a34a'],[questions.wrong||0,'#dc2626'],[questions.blank||0,'#94a3b8']].forEach(([v,c])=>{const w=Number(v)/qTotal*contentW;body+=`<rect x="${qx}" y="${y}" width="${Math.max(v?8:0,w)}" height="62" fill="${c}"/>`;qx+=w;});
+  const reading=performanceReadingText({accuracy:questions.accuracyPct,questions:qTotal===1&&!(questions.correct||questions.wrong||questions.blank)?0:qTotal,net:questions.cebraspeNet});
+  body+=`<text x="${margin}" y="${y+92}" class="hint">Acertos, erros e brancos</text><text x="${margin}" y="${y+123}" class="cardLabel">${questions.correct||0} acertos • ${questions.wrong||0} erros • ${questions.blank||0} brancos • líquido ${(questions.cebraspeNet||0)>0?'+':''}${questions.cebraspeNet||0}</text>${svgTextBlock(reading,margin,y+158,'note',100,28)}`;
+  y+=215; body+=section('Tempo por disciplina','Barras ordenadas pelo maior tempo registrado');
+  disciplines.forEach((d,i)=>{const rowY=y+i*66,w=Math.max(8,(Number(d.minutes)||0)/maxDiscipline*760);body+=`<text x="${margin}" y="${rowY+24}" class="label">${escapeHTML(String(d.discipline||'Sem disciplina').slice(0,42))}</text><rect x="650" y="${rowY}" width="${w}" height="30" rx="10" fill="${i%2?'#0ea5e9':'#2563eb'}"/><text x="${Math.min(1450,670+w)}" y="${rowY+23}" class="barValue">${escapeHTML(formatExportDuration(d.minutes||0))}</text>`;});
+  if(!disciplines.length) body+=`<text x="${margin}" y="${y+36}" class="empty">Sem tempo por disciplina.</text>`; y+=Math.max(90,disciplines.length*66+28);
+  body+=section('Resultado por disciplina','Leitura orientativa; amostras pequenas não são conclusivas');
+  disciplines.slice(0,6).forEach((d,i)=>{const status=performanceStatus(d.accuracyPct||0,80),rowY=y+i*82;body+=`<rect x="${margin}" y="${rowY}" width="${contentW}" height="62" rx="16" fill="${status.soft}"/><text x="${margin+22}" y="${rowY+27}" class="label">${escapeHTML(String(d.discipline||'Sem disciplina').slice(0,48))}</text><text x="${margin+22}" y="${rowY+50}" class="hint">${d.questions||0} questões • ${d.accuracyPct||0}% de acerto • líquido ${(d.net||0)>0?'+':''}${d.net||0}</text><text x="${margin+1120}" y="${rowY+38}" class="badge" fill="${status.color}">${escapeHTML(d.questions<20?'Amostra inicial':status.label)}</text>`;});
+  if(!disciplines.length) body+=`<text x="${margin}" y="${y+36}" class="empty">Sem resultado por disciplina.</text>`; y+=Math.max(90,Math.min(6,disciplines.length)*82+28);
+  body+=section('Simulados',`${(payload.mockExams||[]).length} registro(s) no período`); (payload.mockExams||[]).slice(-5).forEach((m,i)=>{body+=`<text x="${margin}" y="${y+i*38}" class="label">${escapeHTML(formatDateBR(m.date))} — ${escapeHTML(m.name||'Simulado')}</text><text x="${margin+1050}" y="${y+i*38}" class="value">Líquido ${(m.net||0)>0?'+':''}${m.net||0}</text>`;}); if(!(payload.mockExams||[]).length)body+=`<text x="${margin}" y="${y+25}" class="empty">Nenhum simulado registrado.</text>`; y+=Math.max(70,Math.min(5,(payload.mockExams||[]).length)*38+25);
+  body+=section('Planejado x realizado','Compare a intenção com a execução real'); const planStatus=planned.planned?performanceStatus(planned.actual,planned.planned):performanceStatus(0,1); const planMax=Math.max(1,planned.planned,planned.actual); body+=`<text x="${margin}" y="${y+25}" class="label">Planejado</text><rect x="360" y="${y}" width="${planned.planned/planMax*850}" height="38" rx="12" fill="#94a3b8"/><text x="1240" y="${y+27}" class="value">${escapeHTML(formatExportDuration(planned.planned))}</text><text x="${margin}" y="${y+91}" class="label">Realizado</text><rect x="360" y="${y+66}" width="${planned.actual/planMax*850}" height="38" rx="12" fill="${planStatus.color}"/><text x="1240" y="${y+93}" class="value">${escapeHTML(formatExportDuration(planned.actual))}</text><text x="${margin}" y="${y+132}" class="hint">${escapeHTML(formatExportDuration(planned.planned))} planejado; ${escapeHTML(formatExportDuration(planned.actual))} realizado</text>`; y+=160;
+  body+=section('Leitura automática','Sugestões geradas a partir dos registros disponíveis'); (insights.length?insights:['Continue registrando dados para receber orientações mais precisas.']).forEach((x,i)=>{body+=`<circle cx="${margin+14}" cy="${y+i*48-7}" r="8" fill="#7c3aed"/>${svgTextBlock(x,margin+36,y+i*48,'note',94,26)}`;}); y+=Math.max(90,(insights.length||1)*48+28);
+  const H=y+100;
+  return `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" role="img"><title>Relatório visual de desempenho</title><defs><linearGradient id="header" x1="0" x2="1"><stop stop-color="#172554"/><stop offset=".55" stop-color="#1d4ed8"/><stop offset="1" stop-color="#0ea5e9"/></linearGradient><linearGradient id="blueBar" x1="0" y1="1" x2="0" y2="0"><stop stop-color="#2563eb"/><stop offset="1" stop-color="#38bdf8"/></linearGradient></defs><style>text{font-family:Arial,Helvetica,sans-serif}.heroTitle{font-size:48px;font-weight:900;fill:#fff}.heroMeta{font-size:23px;fill:#dbeafe}.section{font-size:27px;font-weight:900;fill:#172554}.hint{font-size:17px;fill:#64748b}.cardLabel{font-size:22px;font-weight:700;fill:#334155}.cardValue{font-size:34px;font-weight:900}.label{font-size:21px;font-weight:800;fill:#0f172a}.value,.barValue{font-size:20px;font-weight:800;fill:#334155}.note{font-size:20px;fill:#475569}.axis{font-size:17px;fill:#64748b}.badge{font-size:20px;font-weight:900}.empty{font-size:22px;font-weight:700;fill:#64748b}</style><rect width="100%" height="100%" fill="#f8fafc"/><rect width="100%" height="220" fill="url(#header)"/><text x="${margin}" y="78" class="heroTitle">Painel visual de desempenho</text><text x="${margin}" y="125" class="heroMeta">Período: ${escapeHTML(period)} • ${escapeHTML(discipline)}</text><text x="${margin}" y="164" class="heroMeta">Gerado em ${escapeHTML(generated)} • Verde: avanço • Azul: progresso • Amarelo: atenção • Cinza: sem dados</text>${body}<text x="${margin}" y="${H-40}" class="hint">Relatório didático gerado com dados locais do seu planejamento.</text></svg>`;
 }
 function buildChartSvg(chartType, data, metadata = {}) {
   const rows = data || [], title = metadata.title || 'Gráfico de desempenho';
@@ -6062,7 +6118,16 @@ function buildChartSvg(chartType, data, metadata = {}) {
 function svgToPngBlob(svg, options = {}) { return new Promise((resolve, reject) => { const img = new Image(); const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' })); img.onload = () => { const canvas = document.createElement('canvas'); canvas.width = options.width || 1600; canvas.height = options.height || Math.max(700, Math.round(canvas.width * img.height / img.width)); const ctx = canvas.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0,0,canvas.width,canvas.height); ctx.drawImage(img,0,0,canvas.width,canvas.height); URL.revokeObjectURL(url); canvas.toBlob(b => b ? resolve(b) : reject(new Error('PNG indisponível')), 'image/png'); }; img.onerror = reject; img.src = url; }); }
 function downloadGeneratedFile(blob, filename) { const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = sanitizeExportFilename(filename); document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
 async function shareGeneratedFile(blob, filename, mimeType) { const file = new File([blob], filename, { type: mimeType }); if (navigator.canShare?.({ files: [file] })) return navigator.share({ files: [file], title: filename }); downloadGeneratedFile(blob, filename); }
-function openPerformancePrintView(payload) { document.body.classList.add('performance-print-mode'); window.__performancePrintPayload = payload; setTimeout(() => window.print(), 50); }
+function buildPerformancePrintHtml(payload) {
+  const summary=payload.summary||{}, questions=payload.questions||{}, period=payload.filters?.periodLabel||payload.filters?.mode||'Período selecionado';
+  const discipline=payload.filters?.discipline&&payload.filters.discipline!=='all'?payload.filters.discipline:'Todas as disciplinas';
+  const planned=(payload.plannedVsActual||[]).reduce((a,r)=>({planned:a.planned+(Number(r.plannedMinutes)||0),actual:a.actual+(Number(r.actualMinutes)||0)}),{planned:0,actual:0});
+  const metrics=[['Tempo estudado',summary.timeLabel||formatExportDuration(summary.minutes||0),'blue'],['Dias ativos',summary.activeDays||0,'purple'],['Sessões',summary.sessions||0,'cyan'],['Questões',summary.questions||0,'amber'],['Líquido Cebraspe',summary.cebraspeNet??questions.cebraspeNet??0,'green'],['Metas concluídas',summary.goalsCompleted||0,'pink']];
+  const rows=(payload.disciplines||[]).slice().sort((a,b)=>(Number(b.minutes)||0)-(Number(a.minutes)||0));
+  return `<article id="performancePrintableReport" class="performance-print-report"><header class="performance-print-hero"><p>ANÁLISE ESTRATÉGICA</p><h1>Relatório de desempenho</h1><div>Período: <strong>${escapeHTML(period)}</strong> • Disciplina: <strong>${escapeHTML(discipline)}</strong></div><small>Verde = avanço • Azul = progresso • Amarelo = atenção • Cinza = sem dados</small></header><section><h2>Resumo geral</h2><p class="performance-print-explainer">Comece por estes indicadores para entender o volume e a constância do período.</p><div class="performance-print-metrics">${metrics.map(([l,v,t])=>`<div class="metric ${t}"><span>${escapeHTML(l)}</span><strong>${escapeHTML(String(v))}</strong></div>`).join('')}</div></section><section><h2>Questões e líquido Cebraspe</h2><div class="performance-print-question-grid"><div class="correct"><strong>${questions.correct||0}</strong><span>Acertos</span></div><div class="wrong"><strong>${questions.wrong||0}</strong><span>Erros</span></div><div class="blank"><strong>${questions.blank||0}</strong><span>Brancos</span></div><div class="net"><strong>${(questions.cebraspeNet||0)>0?'+':''}${questions.cebraspeNet||0}</strong><span>Líquido</span></div></div><p class="performance-print-tip"><strong>Como interpretar:</strong> ${escapeHTML(performanceReadingText({accuracy:questions.accuracyPct,questions:(questions.correct||0)+(questions.wrong||0)+(questions.blank||0),net:questions.cebraspeNet}))}</p></section><section><h2>Desempenho por disciplina</h2><p class="performance-print-explainer">A classificação é orientativa. Com menos de 20 questões, trate o resultado apenas como sinal inicial.</p><table><thead><tr><th>Disciplina</th><th>Tempo</th><th>Questões</th><th>Acerto</th><th>Líquido</th><th>Leitura</th></tr></thead><tbody>${rows.length?rows.map(d=>`<tr><td><strong>${escapeHTML(d.discipline||'Sem disciplina')}</strong></td><td>${escapeHTML(formatExportDuration(d.minutes||0))}</td><td>${d.questions||0}</td><td>${d.accuracyPct||0}%</td><td>${(d.net||0)>0?'+':''}${d.net||0}</td><td>${escapeHTML(performanceReadingText({accuracy:d.accuracyPct,questions:d.questions,net:d.net}))}</td></tr>`).join(''):'<tr><td colspan="6">Sem dados por disciplina.</td></tr>'}</tbody></table></section><section><h2>Planejado x realizado</h2><div class="performance-print-plan"><div><span>Planejado</span><strong>${formatExportDuration(planned.planned)}</strong></div><div><span>Realizado</span><strong>${formatExportDuration(planned.actual)}</strong></div><div><span>Situação</span><strong>${planned.planned?performanceStatus(planned.actual,planned.planned).label:'Sem planejamento'}</strong></div></div></section><section><h2>Próximos passos</h2><ul>${((payload.insights||[]).slice(0,6).length?(payload.insights||[]).slice(0,6):['Continue registrando estudos e questões para ampliar a precisão da análise.']).map(x=>`<li>${escapeHTML(x)}</li>`).join('')}</ul></section><footer>Gerado em ${escapeHTML(new Date(payload.generatedAt||new Date().toISOString()).toLocaleString('pt-BR'))} • Dados locais da aba Desempenho</footer></article>`;
+}
+function cleanupPerformancePrintView() { document.body.classList.remove('performance-print-mode'); document.getElementById('performancePrintableReport')?.remove(); }
+function openPerformancePrintView(payload) { cleanupPerformancePrintView(); document.body.insertAdjacentHTML('beforeend', buildPerformancePrintHtml(payload)); document.body.classList.add('performance-print-mode'); window.__performancePrintPayload = payload; window.addEventListener('afterprint', cleanupPerformancePrintView, { once:true }); setTimeout(() => window.print(), 80); }
 function exportChartToPng(chartDefinition, metadata) { const svg = buildChartSvg(chartDefinition.type, chartDefinition.data, metadata); return svgToPngBlob(svg, { width: 2400, height: 1575 }).then(blob => { downloadGeneratedFile(blob, `${metadata.filename}.png`); return blob; }); }
 async function exportFullReportPngFiles(payload, filenameBase) {
   const svg = buildFullPerformanceReportSvg(payload, { period: payload.filters?.periodLabel || payload.filters?.mode || 'Período selecionado' });

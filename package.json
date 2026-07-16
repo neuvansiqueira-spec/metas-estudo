@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260716-mensagens-topo-v4",
+  "version": "20260716-exportacao-didatica-v5",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

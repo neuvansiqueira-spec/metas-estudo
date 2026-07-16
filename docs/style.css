@@ -3277,6 +3277,7 @@ body.app-bootstrapping .app-layout {
 .export-menu-actions button { width: 100%; min-height: 48px; text-align: left; }
 .chart-panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .chart-export-button { padding: 8px 12px; font-size: .9rem; }
+.performance-print-report { display: none; }
 .analytics-day span, .responsive-table td { word-break: normal; overflow-wrap: break-word; hyphens: manual; }
 @media (max-width: 760px) { .export-main-button { width: 100%; min-height: 48px; } .export-dialog { align-items: end; padding-left: 10px; padding-right: 10px; } .export-dialog-card { margin-top: 0; margin-bottom: max(74px, env(safe-area-inset-bottom)); border-radius: 22px 22px 0 0; } .chart-panel-heading { align-items: stretch; } .chart-export-button { width: 100%; min-height: 44px; } }
 @media print {
@@ -3291,6 +3292,48 @@ body.app-bootstrapping .app-layout {
   table { width: 100%; border-collapse: collapse; font-size: 9pt; }
   th, td { border: 1px solid #cbd5e1; padding: 4px; word-break: normal; overflow-wrap: break-word; }
   @page { margin: 14mm; }
+}
+@media print {
+  body.performance-print-mode { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  body.performance-print-mode > :not(#performancePrintableReport) { display: none !important; }
+  body.performance-print-mode #performancePrintableReport { display: block !important; color: #0f172a; font: 9.5pt/1.4 Arial, sans-serif; }
+  .performance-print-report { max-width: 190mm; margin: 0 auto; }
+  .performance-print-hero { padding: 10mm; border-radius: 6mm; color: #fff; background: linear-gradient(135deg, #172554, #1d4ed8 58%, #0ea5e9); }
+  .performance-print-hero p { margin: 0 0 2mm; font-size: 8pt; font-weight: 900; letter-spacing: .18em; }
+  .performance-print-hero h1 { margin: 0 0 3mm; font-size: 24pt; color: #fff; }
+  .performance-print-hero small { display: block; margin-top: 4mm; color: #dbeafe; }
+  .performance-print-report section { margin-top: 7mm; break-inside: auto; }
+  .performance-print-report h2 { margin: 0 0 2mm; padding: 3mm 4mm; border-left: 4mm solid #2563eb; border-radius: 2mm; color: #172554; background: #eff6ff; font-size: 15pt; break-after: avoid; }
+  .performance-print-explainer { margin: 2mm 0 4mm; color: #475569; }
+  .performance-print-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3mm; }
+  .performance-print-metrics .metric { min-height: 22mm; padding: 4mm; border-radius: 4mm; break-inside: avoid; }
+  .performance-print-metrics .metric span, .performance-print-metrics .metric strong { display: block; }
+  .performance-print-metrics .metric strong { margin-top: 2mm; font-size: 17pt; }
+  .performance-print-metrics .blue { background: #dbeafe; color: #1d4ed8; }
+  .performance-print-metrics .purple { background: #ede9fe; color: #6d28d9; }
+  .performance-print-metrics .cyan { background: #cffafe; color: #0e7490; }
+  .performance-print-metrics .amber { background: #fef3c7; color: #b45309; }
+  .performance-print-metrics .green { background: #dcfce7; color: #15803d; }
+  .performance-print-metrics .pink { background: #fce7f3; color: #be185d; }
+  .performance-print-question-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; }
+  .performance-print-question-grid > div { padding: 4mm; border-radius: 4mm; text-align: center; break-inside: avoid; }
+  .performance-print-question-grid strong, .performance-print-question-grid span { display: block; }
+  .performance-print-question-grid strong { font-size: 18pt; }
+  .performance-print-question-grid .correct { background: #dcfce7; color: #15803d; }
+  .performance-print-question-grid .wrong { background: #fee2e2; color: #b91c1c; }
+  .performance-print-question-grid .blank { background: #f1f5f9; color: #475569; }
+  .performance-print-question-grid .net { background: #dbeafe; color: #1d4ed8; }
+  .performance-print-tip { padding: 4mm; border-radius: 3mm; background: #f8fafc; border: 1px solid #cbd5e1; }
+  .performance-print-report table { font-size: 8.5pt; }
+  .performance-print-report th { color: #fff; background: #1d4ed8; }
+  .performance-print-report tbody tr:nth-child(even) { background: #eff6ff; }
+  .performance-print-report tr { break-inside: avoid; }
+  .performance-print-plan { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3mm; }
+  .performance-print-plan div { padding: 4mm; border-radius: 4mm; background: #eff6ff; break-inside: avoid; }
+  .performance-print-plan span, .performance-print-plan strong { display: block; }
+  .performance-print-plan strong { margin-top: 2mm; font-size: 14pt; color: #1d4ed8; }
+  .performance-print-report footer { margin-top: 8mm; padding-top: 3mm; border-top: 1px solid #cbd5e1; color: #64748b; font-size: 8pt; }
+  @page { size: A4 portrait; margin: 10mm; }
 }
 
 /* 20260714-graficos-didaticos-exportacao-v2 */
