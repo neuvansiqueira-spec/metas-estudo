@@ -42,16 +42,14 @@ test('Meta compara estimativa e tempo realizado sem concluir automaticamente', (
   assert.match(css, /\.goal-time-comparison\.tone-exceeded/);
 });
 
-test('Menu reúne temas relacionados e blocos principais são recolhíveis', () => {
-  for (const group of ['Hoje e metas', 'Planejamento', 'Edital e materiais', 'Questões e revisões', 'Desempenho', 'Dados e ajuda']) assert.match(html, new RegExp(`<summary>${group}</summary>`));
-  assert.match(html, /class="mobile-menu-group navigation-group"/);
-  assert.match(html, /class="side-nav-group navigation-group"/);
-  assert.match(script, /function syncNavigationGroups/);
+test('Menu principal clássico é preservado e blocos internos são recolhíveis', () => {
+  for (const group of ['Principal', 'Edital', 'Desempenho', 'Apoio', 'Sistema']) assert.match(html, new RegExp(`<span>${group}</span>`));
+  assert.doesNotMatch(html, /class="mobile-menu-group navigation-group"/);
+  assert.doesNotMatch(html, /class="side-nav-group navigation-group"/);
   assert.match(script, /function enhanceCollapsibleSections/);
   assert.match(script, /sessionStorage\.setItem\(`collapsible:/);
   assert.match(css, /\.interface-collapsible-summary/);
-  assert.match(css, /\.navigation-group-links/);
-  assert.match(css, /\.navigation-group:not\(\[open\]\) > \.navigation-group-links \{ display: none; \}/);
+  assert.match(css, /details:not\(\[open\]\) > :not\(summary\) \{ display: none !important; \}/);
   assert.match(script, /#view-dashboard \.dashboard-block/);
   assert.match(script, /#view-backup > \.sync-card/);
   assert.match(script, /#view-como-usar \.instructions-grid > article/);
@@ -76,5 +74,5 @@ test('arquivos publicados e versão permanecem sincronizados', () => {
   assert.equal(html, fs.readFileSync('docs/index.html', 'utf8'));
   assert.equal(css, fs.readFileSync('docs/style.css', 'utf8'));
   assert.equal(fs.readFileSync('service-worker.js', 'utf8'), fs.readFileSync('docs/service-worker.js', 'utf8'));
-  assert.match(script, /20260716-recolhimento-interno-v7/);
+  assert.match(script, /20260716-menu-restaurado-v8/);
 });

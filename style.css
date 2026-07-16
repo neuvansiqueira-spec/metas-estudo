@@ -837,6 +837,8 @@ tbody tr.goal-hit { background: rgba(22, 163, 74, .08); }
 .interface-collapsible-summary::after { content: "+"; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 999px; background: #eaf2ff; color: #1d4ed8; }
 .interface-collapsible[open] > .interface-collapsible-summary::after { content: "−"; }
 .interface-collapsible-content { padding-top: 8px; }
+/* Garante o comportamento nativo mesmo quando o conteúdo interno possui display próprio. */
+details:not([open]) > :not(summary) { display: none !important; }
 @media (max-width: 620px) {
   .goal-time-comparison-grid { grid-template-columns: 1fr; }
   .navigation-group > summary { min-height: 44px; }
