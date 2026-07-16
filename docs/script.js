@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260714-recuperacao-tempo-antigo-cronometro-v3";
+const APP_VERSION = "20260715-planejamento-estimativa-material-v1";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -1669,7 +1669,7 @@ const elements = {
   exportBackup: $("#exportBackup"), selectBackupFile: $("#selectBackupFile"), backupFileInput: $("#backupFileInput"), resetSolvedQuestions: $("#resetSolvedQuestions"), clearAllLocalData: $("#clearAllLocalData"), lastBackupDate: $("#lastBackupDate"), backupStorageKeys: $("#backupStorageKeys"), backupSummary: $("#backupSummary"), backupPreview: $("#backupPreview"), storageDiagnostics: $("#storageDiagnostics"), legacyTimerRecoveryReview: $("#legacyTimerRecoveryReview"), legacyTimerRecoveryPanel: $("#legacyTimerRecoveryPanel"), verifyStorage: $("#verifyStorage"),
   mockTotal: $("#mockTotal"), mockLastNet: $("#mockLastNet"), mockBestNet: $("#mockBestNet"), mockAverageNet: $("#mockAverageNet"), mockAboveGoal: $("#mockAboveGoal"), mockProblemDiscipline: $("#mockProblemDiscipline"),
   newMockExam: $("#newMockExam"), mockExamForm: $("#mockExamForm"), mockExamEditingId: $("#mockExamEditingId"), mockName: $("#mockName"), mockDate: $("#mockDate"), mockBoard: $("#mockBoard"), mockInstitution: $("#mockInstitution"), mockNotes: $("#mockNotes"), mockTotalQuestions: $("#mockTotalQuestions"), mockCorrect: $("#mockCorrect"), mockWrong: $("#mockWrong"), mockBlank: $("#mockBlank"), mockGoal: $("#mockGoal"), mockStrategy: $("#mockStrategy"), mockDifficulty: $("#mockDifficulty"), mockCalculated: $("#mockCalculated"), mockDisciplineName: $("#mockDisciplineName"), mockDisciplineTotal: $("#mockDisciplineTotal"), mockDisciplineCorrect: $("#mockDisciplineCorrect"), mockDisciplineWrong: $("#mockDisciplineWrong"), mockDisciplineBlank: $("#mockDisciplineBlank"), mockDisciplineNotes: $("#mockDisciplineNotes"), addMockDiscipline: $("#addMockDiscipline"), clearMockDisciplines: $("#clearMockDisciplines"), mockDisciplineDraft: $("#mockDisciplineDraft"), mockSummary: $("#mockSummary"), mockGeneralResult: $("#mockGeneralResult"), mockDisciplineResults: $("#mockDisciplineResults"), mockDiagnosis: $("#mockDiagnosis"), mockHistory: $("#mockHistory"), mockEvolution: $("#mockEvolution"),
-  planningConfigForm: $("#planningConfigForm"), planningSummaryResume: $("#planningSummaryResume"), planningSummaryCards: $("#planningSummaryCards"), planningDayModesResume: $("#planningDayModesResume"), planningDayModes: $("#planningDayModes"), planningPreview: $("#planningPreview"), planningExamDate: $("#planningExamDate"), planningScaleType: $("#planningScaleType"), planningScaleNotes: $("#planningScaleNotes"), planningShiftHours: $("#planningShiftHours"), planningRestHours: $("#planningRestHours"), planningNormalHours: $("#planningNormalHours"), planningMinWeeklyHours: $("#planningMinWeeklyHours"), planningIdealWeeklyHours: $("#planningIdealWeeklyHours"), planningWeeklyTopics: $("#planningWeeklyTopics"), planningDisciplinesPerDay: $("#planningDisciplinesPerDay"), planningDisciplinesPerWeek: $("#planningDisciplinesPerWeek"), planningDisciplinesPerMonth: $("#planningDisciplinesPerMonth"), planningTopicsPerDay: $("#planningTopicsPerDay"), planningTopicsPerWeek: $("#planningTopicsPerWeek"), planningTopicsPerMonth: $("#planningTopicsPerMonth"), planningSafetyDays: $("#planningSafetyDays"), planningScaleReferenceDate: $("#planningScaleReferenceDate"), planningScaleReferencePosition: $("#planningScaleReferencePosition"), scale3x6Fields: $("#scale3x6Fields"), centralGoalsCards: $("#centralGoalsCards"), centralScaleSummary: $("#centralScaleSummary"), centralNextDates: $("#centralNextDates"), centralOpenDayPlan: $("#centralOpenDayPlan"), dashboardGoalsScaleSummary: $("#dashboardGoalsScaleSummary"), availabilityCalendar: $("#availabilityCalendar"), completionForecast: $("#completionForecast"), completionAlert: $("#completionAlert"), weeklyGoalsPlan: $("#weeklyGoalsPlan"), weeklyGoalsAlert: $("#weeklyGoalsAlert"), timeHistorySummary: $("#timeHistorySummary"), timeHistoryBody: $("#timeHistoryBody"),
+  planningConfigForm: $("#planningConfigForm"), planningSummaryResume: $("#planningSummaryResume"), planningSummaryCards: $("#planningSummaryCards"), planningDayModesResume: $("#planningDayModesResume"), planningDayModes: $("#planningDayModes"), planningPreview: $("#planningPreview"), planningExamDate: $("#planningExamDate"), planningScaleType: $("#planningScaleType"), planningScaleNotes: $("#planningScaleNotes"), planningShiftHours: $("#planningShiftHours"), planningRestHours: $("#planningRestHours"), planningNormalHours: $("#planningNormalHours"), planningMinWeeklyHours: $("#planningMinWeeklyHours"), planningIdealWeeklyHours: $("#planningIdealWeeklyHours"), planningWeeklyTopics: $("#planningWeeklyTopics"), planningDisciplinesPerDay: $("#planningDisciplinesPerDay"), planningDisciplinesPerWeek: $("#planningDisciplinesPerWeek"), planningDisciplinesPerMonth: $("#planningDisciplinesPerMonth"), planningTopicsPerDay: $("#planningTopicsPerDay"), planningTopicsPerWeek: $("#planningTopicsPerWeek"), planningTopicsPerMonth: $("#planningTopicsPerMonth"), planningSafetyDays: $("#planningSafetyDays"), planningScaleReferenceDate: $("#planningScaleReferenceDate"), planningScaleReferencePosition: $("#planningScaleReferencePosition"), scale3x6Fields: $("#scale3x6Fields"), centralGoalsCards: $("#centralGoalsCards"), centralScaleSummary: $("#centralScaleSummary"), centralNextDates: $("#centralNextDates"), centralOpenDayPlan: $("#centralOpenDayPlan"), dashboardGoalsScaleSummary: $("#dashboardGoalsScaleSummary"), availabilityCalendar: $("#availabilityCalendar"), completionForecast: $("#completionForecast"), completionAlert: $("#completionAlert"), weeklyGoalsPlan: $("#weeklyGoalsPlan"), weeklyGoalsAlert: $("#weeklyGoalsAlert"), timeHistorySummary: $("#timeHistorySummary"), timeHistoryCards: $("#timeHistoryCards"),
   dashboardQuestionBankTotal: $("#dashboardQuestionBankTotal"), dashboardQuestionBankSessions: $("#dashboardQuestionBankSessions"), dashboardQuestionBankLast: $("#dashboardQuestionBankLast"), dashboardQuestionBankPackages: $("#dashboardQuestionBankPackages"), dashboardQuestionBankLinked: $("#dashboardQuestionBankLinked"), dashboardQuestionBankMissing: $("#dashboardQuestionBankMissing"),
   materialsTotal: $("#materialsTotal"), materialDisciplinesTotal: $("#materialDisciplinesTotal"), materialTopicsTotal: $("#materialTopicsTotal"), materialForm: $("#materialForm"), materialEditingId: $("#materialEditingId"), materialTitle: $("#materialTitle"), materialDate: $("#materialDate"), materialDiscipline: $("#materialDiscipline"), materialSubject: $("#materialSubject"), materialType: $("#materialType"), materialOrigin: $("#materialOrigin"), materialLink: $("#materialLink"), materialTags: $("#materialTags"), materialNotes: $("#materialNotes"), materialDisciplineOptions: $("#materialDisciplineOptions"), materialSubjectOptions: $("#materialSubjectOptions"), materialFilterDiscipline: $("#materialFilterDiscipline"), materialFilterSubject: $("#materialFilterSubject"), materialFilterType: $("#materialFilterType"), materialFilterOrigin: $("#materialFilterOrigin"), materialFilterText: $("#materialFilterText"), materialsList: $("#materialsList"), studyMaterial: $("#studyMaterial"),
   editFactoryPromptLibrary: $("#editFactoryPromptLibrary"), factoryForm: $("#factoryForm"), factoryEditingId: $("#factoryEditingId"), factoryDiscipline: $("#factoryDiscipline"), factoryTheme: $("#factoryTheme"), factorySubtheme: $("#factorySubtheme"), factoryPriority: $("#factoryPriority"), factoryPlannedDate: $("#factoryPlannedDate"), factoryStatus: $("#factoryStatus"), factorySourceFolder: $("#factorySourceFolder"), factoryDestinationFolder: $("#factoryDestinationFolder"), factoryFinalLink: $("#factoryFinalLink"), factoryLeiNome: $("#factoryLeiNome"), factoryLeiFonte: $("#factoryLeiFonte"), factoryLeiArtigos: $("#factoryLeiArtigos"), factoryLeiRecorte: $("#factoryLeiRecorte"), factoryLeiObservacoes: $("#factoryLeiObservacoes"), factoryNotes: $("#factoryNotes"), factorySummary: $("#factorySummary"), factoryFilterDiscipline: $("#factoryFilterDiscipline"), factoryFilterPriority: $("#factoryFilterPriority"), factoryFilterStatus: $("#factoryFilterStatus"), factoryFilterDate: $("#factoryFilterDate"), factoryFilterView: $("#factoryFilterView"), factoryFilterText: $("#factoryFilterText"), factoryList: $("#factoryList"), factoryPromptLibraryPanel: $("#factoryPromptLibraryPanel"),
@@ -3853,7 +3853,12 @@ function resolveAvailableMaterials({ discipline = "", subject = "", syllabusItem
     exact(m)
   );
 }
-function materialsForDailyGoal(goal = {}) { return resolveAvailableMaterials({ discipline: goal.discipline, subject: goal.subject, syllabusItemId: goal.syllabusItemId }).filter((m) => m.source !== "factory" || m.factoryModuleKey === "resumoAula"); }
+function materialsForDailyGoal(goal = {}) {
+  const resolved = resolveAvailableMaterials({ discipline: goal.discipline, subject: goal.subject, syllabusItemId: goal.syllabusItemId });
+  const estimateMaterial = state.materials.find((material) => material.id === goal.estimateSourceId);
+  const safeSyllabusMaterials = (state.materials || []).filter((material) => goal.syllabusItemId && (material.syllabusItemId === goal.syllabusItemId || (material.syllabusItemIds || []).includes(goal.syllabusItemId)));
+  return [estimateMaterial, ...safeSyllabusMaterials, ...resolved].filter(Boolean).filter((material, index, all) => all.findIndex((candidate) => candidate.id === material.id) === index).filter((m) => m.source !== "factory" || m.factoryModuleKey === "resumoAula").sort((a, b) => Number(b.id === goal.estimateSourceId) - Number(a.id === goal.estimateSourceId) || Number((b.syllabusItemId === goal.syllabusItemId)) - Number((a.syllabusItemId === goal.syllabusItemId)));
+}
 
 function materialTitleById(id) { return state.materials.find((m) => m.id === id)?.title || ""; }
 function timeLogFromStudy(study) {
@@ -4023,7 +4028,16 @@ function renderPlanning() {
   elements.timeHistorySummary.classList.remove("stats-grid", "compact");
   elements.timeHistorySummary.classList.add("planning-forecast-grid");
   elements.timeHistorySummary.innerHTML = [["Hoje",formatHours(logs.filter(l=>l.date===todayISO()).reduce((s,l)=>s+l.minutes,0))],["Semana",formatHours(logs.filter(l=>isSameWeek(l.date)).reduce((s,l)=>s+l.minutes,0))],["Edital",formatHours(m.totalMinutes)],["Disciplina mais estudada",top?`${top[0]} (${formatHours(top[1])})`:"-"]].map(([a,b])=>planningForecastCard(a, String(b))).join("");
-  elements.timeHistoryBody.innerHTML = logs.slice(0,50).map((l)=>`<tr><td>${formatDateBR(l.date)}</td><td>${escapeHTML(l.discipline)}</td><td>${escapeHTML(l.subject)}</td><td>${l.minutes} min</td><td>${escapeHTML(l.type)}</td><td>${escapeHTML(l.status)}</td><td>${escapeHTML(l.material || "-")}</td><td>${escapeHTML(l.notes||"-")}</td><td>${l.source === "study" ? `<button type="button" data-time-edit="${l.id}">Editar</button> <button class="danger" type="button" data-time-delete="${l.id}">Excluir</button>` : "-"}</td></tr>`).join("");
+  elements.timeHistoryCards.innerHTML = logs.slice(0,50).map((l) => planningHistoryCardHTML(l)).join("") || `<p class="empty-message">Nenhuma meta ou registro de tempo para exibir.</p>`;
+}
+
+function planningHistoryCardHTML(log = {}) {
+  const details = [
+    ["Observações", log.notes], ["Diagnóstico", log.diagnosis || log.diagnostico], ["Justificativas automáticas", log.automaticJustification || log.justificativaAutomatica],
+    ["Informações do edital", log.editalInfo || log.reference || log.referencia], ["Histórico da meta", log.history || log.historico]
+  ].filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== "");
+  const detailText = details.map(([label, value]) => `<p><strong>${escapeHTML(label)}:</strong> ${escapeHTML(Array.isArray(value) ? value.map((item) => typeof item === "string" ? item : item.message || item.text || JSON.stringify(item)).join(" • ") : String(value))}</p>`).join("") || `<p>Sem observações ou histórico adicional.</p>`;
+  return `<article class="planning-history-card"><header><div><span class="planning-history-date">${formatDateBR(log.date)}</span><h3>${escapeHTML(log.discipline || "Disciplina")}</h3><p>${escapeHTML(log.subject || "Assunto")}</p></div><span class="badge">${escapeHTML(log.status || "-")}</span></header><div class="card-meta-grid"><span>Tempo planejado: ${Number(log.plannedMinutes || 0)} min</span><span>Tempo realizado: ${Number(log.minutes || 0)} min</span><span>Tipo: ${escapeHTML(log.type || "-")}</span><span>Prioridade: ${escapeHTML(log.priority || "-")}</span><span>Material vinculado: ${escapeHTML(log.material || "-")}</span></div><details class="planning-history-details"><summary>Observações e histórico</summary><div>${detailText}</div></details><div class="card-actions"><button type="button" data-planning-history-details="${log.id}">Ver detalhes</button>${log.source === "study" ? `<button type="button" data-time-edit="${log.id}">Editar</button><button class="danger" type="button" data-time-delete="${log.id}">Excluir</button>` : ""}</div></article>`;
 }
 
 
@@ -4348,16 +4362,31 @@ function materialButtonLabel(material) {
 }
 function goalMaterialsHTML(goal) {
   const materials = materialsForDailyGoal(goal);
-  const actions = materials.length
-    ? materials.map((m, index) => `<button type="button" data-open-material="${m.id}" title="${escapeHTML(m.title)}">${materials.length > 1 ? `Abrir material ${index + 1}` : "Abrir material"}</button>`).join("")
-    : `<span class="item-meta">Nenhum material pronto para este assunto.</span><button type="button" data-create-goal-material data-discipline="${escapeHTML(goal.discipline || "")}" data-subject="${escapeHTML(goal.subject || "")}">Cadastrar material para esta meta</button>`;
-  return `<div class="linked-materials goal-materials"><strong>📚 MATERIAIS DISPONÍVEIS:</strong><div class="card-actions">${actions}</div></div>`;
+  if (!materials.length) return `<div class="linked-materials goal-materials"><strong>📚 MATERIAIS DISPONÍVEIS:</strong><p class="item-meta">Nenhum material vinculado a esta meta. Nenhum material pronto para este assunto.</p><button type="button" data-create-goal-material data-discipline="${escapeHTML(goal.discipline || "")}" data-subject="${escapeHTML(goal.subject || "")}">Cadastrar material para esta meta</button></div>`;
+  return `<div class="linked-materials goal-materials"><strong>📚 MATERIAIS DISPONÍVEIS:</strong>${materials.map((m) => `<article class="goal-material-item"><strong>${escapeHTML(m.title || "Material sem nome")}</strong><div class="item-meta">Tipo: ${escapeHTML(m.type || "-")} • Origem: ${escapeHTML(m.origin || "-")} • Estimativa: ${Number(m.estimatedMinutes) ? `${Number(m.estimatedMinutes)} min` : "sem estimativa"}</div><div class="item-meta">${isValidHttpUrl(m.link) ? `URL: ${escapeHTML(m.link)}` : "Link indisponível ou inválido."}</div><button type="button" data-open-goal-material="${goal.id}" data-material-id="${m.id}">Abrir material</button></article>`).join("")}</div>`;
 }
 function linkedMaterialsHTML(materials) {
   if (!materials.length) return "";
   return `<div class="linked-materials"><strong>Materiais vinculados</strong><div class="card-actions">${materials.map((m) => `<button type="button" data-open-material="${m.id}" title="${escapeHTML(m.title)}">${escapeHTML(materialButtonLabel(m))}</button>`).join("")}</div></div>`;
 }
 function isValidHttpUrl(value) { try { const url = new URL(value); return ["http:", "https:"].includes(url.protocol); } catch { return false; } }
+const goalMaterialNotices = new Map();
+function showGoalMaterialNotice(goalId, message) { goalMaterialNotices.set(goalId, message); document.querySelectorAll(`[data-goal-material-notice="${goalId}"]`).forEach((notice) => { notice.textContent = message; notice.hidden = false; }); }
+function openGoalMaterial(goalId, materialId = "") {
+  const goal = state.dailyGoals.find((item) => item.id === goalId);
+  if (!goal) return false;
+  const materials = materialsForDailyGoal(goal);
+  const selectedMaterial = materialId ? materials.find((material) => material.id === materialId) : null;
+  if (!selectedMaterial && materials.length > 1) {
+    document.querySelectorAll(`[data-daily-goal-details="${goalId}"] .daily-goal-materials`).forEach((details) => { details.open = true; });
+    showGoalMaterialNotice(goalId, "Escolha um material disponível para abertura.");
+    return false;
+  }
+  const material = selectedMaterial || materials[0];
+  if (!material || !isValidHttpUrl(material.link)) { showGoalMaterialNotice(goalId, "O material está vinculado à meta, mas não possui um link válido para abertura."); return false; }
+  window.open(material.link, "_blank", "noopener");
+  return true;
+}
 function openMaterial(id) { const material = state.materials.find((m) => m.id === id); if (!material) return; if (!isValidHttpUrl(material.link)) return alert("Este material não possui link válido com http/https."); window.open(material.link, "_blank", "noopener"); }
 function startMaterialForGoal(discipline, subject) {
   if (!elements.materialForm) return;
@@ -5183,6 +5212,23 @@ function dailyPlanQuestionsSection(date, dayContent, questionProgress) {
     <div class="daily-plan-content"><div class="card-meta-grid"><span>Realizadas: ${questionProgress.done}</span><span>Meta: ${questionProgress.target}</span><span>Faltantes: ${missing}</span><span>Acertos: ${totals.correct}</span><span>Erros: ${totals.wrong}</span><span>Brancos: ${totals.blank}</span></div><div class="card-actions"><button type="button" data-register-question-goal="${date}">Registrar questões</button></div></div>
   </details>`;
 }
+function goalMaterialEstimateHTML(goal) {
+  const material = goal.estimateSourceId ? state.materials.find((item) => item.id === goal.estimateSourceId) : materialsForDailyGoal(goal)[0];
+  const total = Number(goal.estimatedTotalMinutes || material?.estimatedMinutes || 0);
+  if (!total) return `<p class="goal-material-estimate empty-message">Sem estimativa de material vinculada.</p>`;
+  const rows = [["Estimativa total", `${total} min`], [goal.segmentCount > 1 ? "Bloco atual" : "Bloco desta meta", `${Number(goal.segmentMinutes || goal.minutes || 0)} min`]];
+  if (goal.segmentCount > 1) rows.push(["Etapa", `${Number(goal.segmentIndex || 1)} de ${Number(goal.segmentCount)}`]);
+  if (Number(material?.usefulPages) > 0) rows.push(["Páginas úteis", String(Number(material.usefulPages))]);
+  if (material?.materialDensity) rows.push(["Densidade", escapeHTML(material.materialDensity)]);
+  if (material?.estimateMode) rows.push(["Origem", material.estimateMode === "manual" ? "estimativa manual" : "cálculo automático"]);
+  return `<section class="goal-material-estimate"><strong>ESTIMATIVA DO MATERIAL</strong><div class="card-meta-grid">${rows.map(([label, value]) => `<span>${label}: ${value}</span>`).join("")}</div></section>`;
+}
+function nextGoalEstimateHTML(goal) {
+  const material = goal.estimateSourceId ? state.materials.find((item) => item.id === goal.estimateSourceId) : materialsForDailyGoal(goal)[0];
+  const total = Number(goal.estimatedTotalMinutes || material?.estimatedMinutes || 0);
+  if (!total) return `<span>Sem estimativa de material vinculada.</span>`;
+  return goal.segmentCount > 1 ? `<span>Planejado agora: ${Number(goal.minutes || 0)} min</span><span>Estimativa total: ${total} min • etapa ${Number(goal.segmentIndex || 1)} de ${Number(goal.segmentCount)}</span>` : `<span>Estimativa do material: ${total} min</span>`;
+}
 function goalMaterialsDetailsHTML(goal) {
   const materials = materialsForDailyGoal(goal);
   return `<details class="daily-goal-materials"><summary>Materiais disponíveis <span>${materials.length} materiais</span></summary><div class="daily-plan-content">${goalMaterialsHTML(goal) || `<p class="empty-message">Nenhum material disponível.</p>`}</div></details>`;
@@ -5200,9 +5246,11 @@ function dailyGoalDetailsCard(goal, number = 1) {
     <div class="daily-goal-content">
       <div class="card-meta-grid"><span>Disciplina: ${escapeHTML(goal.discipline)}</span><span>Assunto: ${escapeHTML(goal.subject)}</span><span>Tipo: ${escapeHTML(goal.type || goal.tipo || "-")}</span><span>Prioridade: ${escapeHTML(goal.priority || goal.prioridade || "-")}</span><span>Planejado: ${Number(goal.minutes||0)} min</span><span>Estudo realizado: ${Number(goal.studyActualMinutes||0)} min</span><span>Questões realizadas: ${Number(goal.questionActualMinutes||0)} min</span><span>Total realizado: ${Number(goal.actualMinutes||0)} min</span><span>Status: ${escapeHTML(status)}</span><span>Referência: ${escapeHTML(goal.referencia_edital || getSyllabusById(goal.syllabusItemId)?.reference || "-")}</span></div>
       <div class="progress"><span style="width:${Math.min(100, Math.round((goalTotalActualMinutes(goal) / Math.max(1, Number(goal.minutes)||1)) * 100))}%"></span></div>
+      ${goalMaterialEstimateHTML(goal)}
       ${goalMaterialsDetailsHTML(goal)}
+      <p class="notice" data-goal-material-notice="${goal.id}" ${goalMaterialNotices.has(goal.id) ? "" : "hidden"}>${escapeHTML(goalMaterialNotices.get(goal.id) || "")}</p>
       <details class="daily-goal-history"><summary>Histórico resumido</summary><ul>${history || "<li>Sem histórico registrado.</li>"}</ul></details>
-      <div class="card-actions"><button type="button" data-goal-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button type="button" data-goal-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button type="button" data-goal-action="Concluída" data-id="${goal.id}">Concluir meta</button></div>
+      <div class="card-actions"><button type="button" data-open-goal-material="${goal.id}">Abrir material</button><button type="button" data-goal-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button type="button" data-goal-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button type="button" data-goal-action="Concluída" data-id="${goal.id}">Concluir meta</button></div>
       <details class="daily-goal-more-actions"><summary>Mais ações</summary><div class="card-actions"><button type="button" data-goal-action="Estudo" data-id="${goal.id}">Registrar estudo manualmente</button><button type="button" data-goal-action="QuestoesTempo" data-id="${goal.id}">Registrar tempo de questões</button><button type="button" data-register-goal="${goal.id}">Registrar questões</button><button type="button" data-goal-history="${goal.id}">Ver histórico</button><button type="button" data-goal-action="Adiada" data-id="${goal.id}">Reagendar ou adiar</button><button type="button" data-goal-action="Não cumprida" data-id="${goal.id}">Não cumprir</button></div></details>
     </div>
   </details>`;
@@ -5238,7 +5286,7 @@ function renderNextDailyGoal(dayGoals) {
   dayGoals.forEach(normalizeGoalTimeFields);
   const next = dayGoals.find((g)=>!isGoalDone(g) && !["Não cumprida", "Ignorada", "Adiada", "Reagendada"].includes(g.status || ""));
   if (!next) { elements.nextDailyGoal.innerHTML = `<details ${dailyPlanSectionAttrs("next", true)}>${dailyPlanSummaryHTML("Próxima atividade", "Todas concluídas")}<div class="daily-plan-content"><p>Todas as metas do dia foram concluídas.</p></div></details>`; return; }
-  elements.nextDailyGoal.innerHTML = `<details ${dailyPlanSectionAttrs("next", true)}>${dailyPlanSummaryHTML("Próxima atividade", `${next.discipline} • ${next.subject}`)}<div class="daily-plan-content"><strong>${escapeHTML(next.discipline)}</strong><p>${escapeHTML(next.subject)}</p><div class="card-meta-grid"><span>Planejado: ${Number(next.minutes||0)} min</span><span>Realizado: ${Number(next.actualMinutes||0)} min</span><span>Prioridade: ${escapeHTML(next.priority || next.prioridade || "-")}</span></div><div class="card-actions"><button type="button" data-open-goal-material="${next.id}">Abrir material</button><button type="button" data-goal-timer="study" data-id="${next.id}">Iniciar cronômetro</button><button type="button" data-goal-action="Estudo" data-id="${next.id}">Registrar estudo</button><button type="button" data-goal-action="Concluída" data-id="${next.id}">Concluir meta</button></div></div></details>`;
+  elements.nextDailyGoal.innerHTML = `<details ${dailyPlanSectionAttrs("next", true)}>${dailyPlanSummaryHTML("Próxima atividade", `${next.discipline} • ${next.subject}`)}<div class="daily-plan-content"><strong>${escapeHTML(next.discipline)}</strong><p>${escapeHTML(next.subject)}</p><div class="card-meta-grid"><span>Planejado: ${Number(next.minutes||0)} min</span>${nextGoalEstimateHTML(next)}<span>Realizado: ${Number(next.actualMinutes||0)} min</span><span>Prioridade: ${escapeHTML(next.priority || next.prioridade || "-")}</span></div><p class="notice" data-goal-material-notice="${next.id}" ${goalMaterialNotices.has(next.id) ? "" : "hidden"}>${escapeHTML(goalMaterialNotices.get(next.id) || "")}</p><div class="card-actions"><button type="button" data-open-goal-material="${next.id}">Abrir material</button><button type="button" data-goal-timer="study" data-id="${next.id}">Iniciar cronômetro</button><button type="button" data-goal-action="Estudo" data-id="${next.id}">Registrar estudo</button><button type="button" data-goal-action="Concluída" data-id="${next.id}">Concluir meta</button></div></div></details>`;
 }
 function dailyGoalCard(goal, number = 1) { return dailyGoalDetailsCard(goal, number); }
 function questionNumbers() { const total = Number(elements.questionTotal.value), correct = Number(elements.questionCorrect.value), wrong = Number(elements.questionWrong.value), blank = Number(elements.questionBlank.value); return { total, correct, wrong, blank, sum: correct + wrong + blank, accuracy: total ? correct / total * 100 : 0, errorPct: total ? wrong / total * 100 : 0, blankPct: total ? blank / total * 100 : 0, net: correct - wrong }; }
@@ -5315,7 +5363,7 @@ elements.goalSyllabusItem.addEventListener("change", () => { const item = getSyl
 
 function handleDailyGoalActionClick(event) {
   const openedMaterial = event.target.closest("button[data-open-goal-material]");
-  if (openedMaterial) { const details = document.querySelector(`[data-daily-goal-details="${openedMaterial.dataset.openGoalMaterial}"] .daily-goal-materials`); if (details) details.open = true; return; }
+  if (openedMaterial) { event.preventDefault(); event.stopPropagation(); openGoalMaterial(openedMaterial.dataset.openGoalMaterial, openedMaterial.dataset.materialId || ""); return; }
   const historyButton = event.target.closest("button[data-goal-history]");
   if (historyButton) { const details = document.querySelector(`[data-daily-goal-details="${historyButton.dataset.goalHistory}"] .daily-goal-history`); if (details) details.open = true; return; }
   const button = event.target.closest("button[data-register-goal]");
@@ -5378,7 +5426,7 @@ document.addEventListener("change", async (event) => {
 });
 elements.addManualTime?.addEventListener("click", addManualTime);
 elements.undoTimeAction?.addEventListener("click", undoTimeAction);
-elements.timeHistoryBody?.addEventListener("click", (event) => { const edit = event.target.closest("button[data-time-edit]"); if (edit) return editStudyTime(edit.dataset.timeEdit); const del = event.target.closest("button[data-time-delete]"); if (del) return deleteStudyTime(del.dataset.timeDelete); });
+elements.timeHistoryCards?.addEventListener("click", (event) => { const details = event.target.closest("button[data-planning-history-details]"); if (details) { const card = details.closest(".planning-history-card"); const section = card?.querySelector(".planning-history-details"); if (section) section.open = true; return; } const edit = event.target.closest("button[data-time-edit]"); if (edit) return editStudyTime(edit.dataset.timeEdit); const del = event.target.closest("button[data-time-delete]"); if (del) return deleteStudyTime(del.dataset.timeDelete); });
 elements.timerStudyForm?.addEventListener("submit", submitTimerStudyModal);
 elements.timerStudyDiscipline?.addEventListener("change", () => populateTimerStudySubjects());
 document.addEventListener("click", (event) => { if (event.target.closest("[data-timer-study-cancel]")) closeTimerStudyModal(); });

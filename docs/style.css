@@ -3876,3 +3876,18 @@ footer {
 
 .legacy-timer-recovery-panel { margin-top: 1rem; }
 .legacy-recovery-session { border-top: 1px solid var(--border-color, #ddd); padding: .75rem 0; }
+
+/* Versão 20260715-planejamento-estimativa-material-v1 */
+#view-planejamento { overflow-x: clip; }
+.planning-history-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 16px; max-width: 100%; }
+.planning-history-card { min-width: 0; padding: 18px; border: 1px solid var(--border); border-radius: 18px; background: var(--card); box-shadow: 0 8px 22px rgba(15,23,42,.06); }
+.planning-history-card header { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; }
+.planning-history-card h3, .planning-history-card p { margin: 4px 0; overflow-wrap: break-word; }
+.planning-history-date { color: var(--muted); font-weight: 800; }
+.planning-history-details { margin-top: 14px; padding: 10px 12px; border: 1px dashed var(--border-strong); border-radius: 12px; background: #f8fafc; }
+.planning-history-details summary { cursor: pointer; font-weight: 800; color: var(--primary-dark); }
+.goal-material-estimate { padding: 12px; border: 1px solid #bfdbfe; border-radius: 14px; background: #eff6ff; display: grid; gap: 10px; }
+.goal-material-estimate.empty-message { margin: 0; }
+.goal-material-item { display: grid; gap: 6px; padding: 10px 0; border-top: 1px solid var(--border); }
+.goal-material-item:first-of-type { border-top: 0; }
+@media (max-width: 768px) { .planning-history-cards { grid-template-columns: 1fr; } .planning-history-card { padding: 14px; } .planning-history-card header { flex-direction: column; } .planning-history-card .card-actions { flex-wrap: wrap; } }

@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260714-recuperacao-tempo-antigo-cronometro-v3",
+  "version": "20260715-planejamento-estimativa-material-v1",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
