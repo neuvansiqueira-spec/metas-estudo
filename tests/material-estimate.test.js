@@ -96,7 +96,7 @@ test('divisão da carga estimada em blocos seguros e soma exata', () => {
 
 test('integração da estimativa às metas preserva prioridades e proteções', () => {
   assert.match(script, /manualEstimatedMinutes[\s\S]*estimatedMinutes[\s\S]*customMinutes[\s\S]*fallbackMinutes/);
-  assert.match(script, /type === "Estudo novo" \? estimateMaterialForItem\(item\) : null/);
+  assert.match(script, /planningContext\?\.materialEstimateBySyllabusItemId\.get\(item\.id\)/);
   assert.match(script, /"Questões": 45, "Revisão": 30, "Reforço": 45/);
   assert.match(script, /dynamicGoalSegmentKey/);
   assert.match(script, /segmentIndex/);

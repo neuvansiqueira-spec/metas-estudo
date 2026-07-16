@@ -4404,7 +4404,8 @@ function openGoalMaterial(goalId, materialId = "") {
   const materials = materialsForDailyGoal(goal, projectionEntry);
   const selectedMaterial = materialId ? materials.find((material) => material.id === materialId) : null;
   if (!selectedMaterial && materials.length > 1) {
-    document.querySelectorAll(`[data-daily-goal-details="${goalId}"] .daily-goal-materials`).forEach((details) => { details.open = true; });
+    const card = document.querySelector(`[data-daily-goal-details="${goalId}"]`);
+    if (card) { card.open = true; hydrateDailyGoal(goalId); const materialDetails = card.querySelector(".daily-goal-materials"); if (materialDetails) { materialDetails.open = true; materialDetails.scrollIntoView?.({ behavior: "smooth", block: "nearest" }); } }
     showGoalMaterialNotice(goalId, "Escolha um material disponível para abertura.");
     return false;
   }
@@ -4861,26 +4862,45 @@ function ensureDefaultDisciplineWeights() {
   });
 }
 function buildPlanningScoreContext(targetState = state) {
-  ensureDefaultDisciplineWeights();
-  const pendingByDiscipline = {}, totalByDiscipline = {}, questionTotals = {}, mockTotals = {};
+  const keyFor = (discipline, subject) => `${canonical(discipline)}|${canonical(subject)}`;
+  const add = (map, key, value) => { if (!key) return; const values = map.get(key) || []; values.push(value); map.set(key, values); };
+  const studiesBySyllabusItemId = new Map(), goalsBySyllabusItemId = new Map(), questionLogsBySyllabusItemId = new Map(), materialsBySyllabusItemId = new Map(), materialsByParentSyllabusItemId = new Map();
+  const studiesByDisciplineSubject = new Map(), goalsByDisciplineSubject = new Map(), questionsByDisciplineSubject = new Map(), materialsByDisciplineSubject = new Map();
+  const subjectById = new Map((targetState.subjects || []).map((subject) => [subject.id, subject.name]));
+  (targetState.studies || []).forEach((study) => { add(studiesBySyllabusItemId, study.syllabusItemId, study); add(studiesByDisciplineSubject, keyFor(subjectById.get(study.subjectId), study.topic), study); });
+  (targetState.dailyGoals || []).forEach((goal) => { add(goalsBySyllabusItemId, goal.syllabusItemId, goal); add(goalsByDisciplineSubject, keyFor(goal.discipline, goal.baseSubject || goal.subject), goal); });
+  (targetState.questionLogs || []).forEach((log) => { add(questionLogsBySyllabusItemId, log.syllabusItemId, log); add(questionsByDisciplineSubject, keyFor(log.discipline, log.subject), log); });
+  (targetState.materials || []).forEach((material) => { if (!materialAvailable(material)) return; [material.syllabusItemId, ...(material.syllabusItemIds || [])].forEach((id) => add(materialsBySyllabusItemId, id, material)); add(materialsByParentSyllabusItemId, material.parentSyllabusItemId, material); add(materialsByDisciplineSubject, keyFor(material.discipline, material.subject), material); });
+  const pendingByDiscipline = {}, totalByDiscipline = {}, questionTotals = {}, mockTotals = {}, itemMetrics = new Map(), materialEstimateBySyllabusItemId = new Map();
   (targetState.syllabusItems || []).forEach((item) => { if (item.status !== "Ignorado") { totalByDiscipline[item.discipline] = (totalByDiscipline[item.discipline] || 0) + 1; if (!completedStatus(item)) pendingByDiscipline[item.discipline] = (pendingByDiscipline[item.discipline] || 0) + 1; } });
-  (targetState.questionLogs || []).forEach((log) => { const key = canonical(log.discipline); const row = questionTotals[key] ||= { total: 0, wrong: 0 }; row.total += Number(log.total || 0); row.wrong += Number(log.wrong || 0); });
-  (targetState.simulados || []).flatMap((mock) => mock.disciplines || []).forEach((row) => { const key = canonical(row.name || row.discipline); const total = mockTotals[key] ||= { total: 0, wrong: 0 }; total.total += Number(row.total || 0); total.wrong += Number(row.wrong || 0); });
-  const weaknesses = Object.fromEntries(Object.keys(totalByDiscipline).map((discipline) => { const questions = questionTotals[canonical(discipline)] || {}; const mocks = mockTotals[canonical(discipline)] || {}; return [discipline, { question: questions.total ? questions.wrong / questions.total * 100 : 0, mock: mocks.total ? mocks.wrong / mocks.total * 100 : 0 }]; }));
+  (targetState.questionLogs || []).forEach((log) => { const key = canonical(log.discipline); const totals = questionTotals[key] ||= { total: 0, wrong: 0 }; totals.total += Number(log.total || 0); totals.wrong += Number(log.wrong || 0); });
+  (targetState.simulados || []).flatMap((mock) => mock.disciplines || []).forEach((row) => { const totals = mockTotals[canonical(row.name || row.discipline)] ||= { total: 0, wrong: 0 }; totals.total += Number(row.total || 0); totals.wrong += Number(row.wrong || 0); });
+  const weaknesses = Object.fromEntries(Object.keys(totalByDiscipline).map((discipline) => { const questions = questionTotals[canonical(discipline)] || {}, mocks = mockTotals[canonical(discipline)] || {}; return [discipline, { question: questions.total ? questions.wrong / questions.total * 100 : 0, mock: mocks.total ? mocks.wrong / mocks.total * 100 : 0 }]; }));
   const examBoost = targetState.edital?.examDate ? Math.max(0, 20 - Math.ceil((parseDate(targetState.edital.examDate) - new Date()) / 86400000) / 10) : 0;
   const scores = new Map();
-  (targetState.syllabusItems || []).forEach((item) => { const pending = pendingByDiscipline[item.discipline] || 0, total = totalByDiscipline[item.discipline] || 1, weak = weaknesses[item.discipline] || {}; const reviewDue = item.status === "Revisar" || item.lastReviewedAt && addDays(item.lastReviewedAt, 7) <= todayISO() ? 30 : 0; const score = disciplineWeightValue(item.discipline) * 18 + pending / total * 40 + (item.status === "Não iniciado" ? 35 : 0) + (isUndiagnosed(item) ? 18 : 0) + (isWeakItem(item) ? 42 : 0) + (weak.question || 0) * .7 + (weak.mock || 0) * .4 + (normalizeSubjectIncidence(item.weight) - 3) * 10 + reviewDue + examBoost; scores.set(item.id, score); if (typeof performanceCounters !== "undefined") { performanceCounters.scoreExecutions++; performanceCounters.scoredItems++; } });
-  return { pendingByDiscipline, totalByDiscipline, weaknesses, scores, candidates: (targetState.syllabusItems || []).filter((item) => isSchedulable(item.id) && item.status !== "Ignorado").sort((a, b) => (scores.get(b.id) || 0) - (scores.get(a.id) || 0)) };
+  (targetState.syllabusItems || []).forEach((item) => {
+    const key = keyFor(item.discipline, item.subject), studies = [...(studiesBySyllabusItemId.get(item.id) || []), ...(studiesByDisciplineSubject.get(key) || [])], goals = [...(goalsBySyllabusItemId.get(item.id) || []), ...(goalsByDisciplineSubject.get(key) || [])], questions = [...(questionLogsBySyllabusItemId.get(item.id) || []), ...(questionsByDisciplineSubject.get(key) || [])];
+    const unique = (rows) => [...new Map(rows.map((row) => [row.id || row, row])).values()]; const itemStudies = unique(studies), itemGoals = unique(goals), itemQuestions = unique(questions);
+    const performance = [...itemStudies, ...itemQuestions].reduce((acc, row) => ({ questions: acc.questions + Number(row.total ?? row.questions ?? 0), correct: acc.correct + Number(row.correct || 0), wrong: acc.wrong + Number(row.wrong || 0), blank: acc.blank + Number(row.blank || 0) }), { questions: 0, correct: 0, wrong: 0, blank: 0 });
+    const minutes = Number(item.studyMinutes || 0) + itemStudies.reduce((sum, row) => sum + Number(row.minutes || 0), 0) + itemGoals.reduce((sum, row) => sum + goalTotalActualMinutes(row), 0) + itemQuestions.reduce((sum, row) => sum + Number(row.minutes || 0), 0);
+    const diagnosed = ["Em andamento", "Estudado", "Revisar", "Dominado"].includes(item.status) || item.reviewed || item.lastReviewedAt || itemStudies.some((row) => Number(row.minutes) > 0 || Number(row.questions) > 0) || itemQuestions.some((row) => Number(row.total) > 0);
+    const answered = performance.correct + performance.wrong, net = performance.correct - performance.wrong, weakItem = Boolean(item.manualWeak || (diagnosed && (item.domain === "Fraco" || answered > 0 && performance.correct / answered < .7 || performance.wrong >= 3 && performance.wrong > performance.correct || performance.questions >= 5 && net <= 0)));
+    const materials = unique([...(materialsBySyllabusItemId.get(item.id) || []), ...(materialsByParentSyllabusItemId.get(item.id) || []), ...(materialsByDisciplineSubject.get(key) || [])]).filter((material) => material.source !== "factory" || material.factoryModuleKey === "resumoAula"); const material = materials.find((row) => validEstimatedMinutes(row.manualEstimatedMinutes)) || materials.find((row) => validEstimatedMinutes(row.estimatedMinutes)); if (material) materialEstimateBySyllabusItemId.set(item.id, { material, minutes: validEstimatedMinutes(material.manualEstimatedMinutes) || validEstimatedMinutes(material.estimatedMinutes), source: validEstimatedMinutes(material.manualEstimatedMinutes) ? "manualEstimatedMinutes" : "estimatedMinutes" });
+    const pending = pendingByDiscipline[item.discipline] || 0, total = totalByDiscipline[item.discipline] || 1, weakness = weaknesses[item.discipline] || {}, reviewDue = item.status === "Revisar" || item.lastReviewedAt && addDays(item.lastReviewedAt, 7) <= todayISO() ? 30 : 0;
+    scores.set(item.id, disciplineWeightValue(item.discipline) * 18 + pending / total * 40 + (item.status === "Não iniciado" ? 35 : 0) + (!diagnosed ? 18 : 0) + (weakItem ? 42 : 0) + (weakness.question || 0) * .7 + (weakness.mock || 0) * .4 + (normalizeSubjectIncidence(item.weight) - 3) * 10 + reviewDue + examBoost); itemMetrics.set(item.id, { diagnosed, minutes, performance: { ...performance, net }, weakItem }); if (typeof performanceCounters !== "undefined") { performanceCounters.scoreExecutions++; performanceCounters.scoredItems++; }
+  });
+  const candidates = (targetState.syllabusItems || []).filter((item) => isSchedulable(item.id) && item.status !== "Ignorado").sort((a, b) => (scores.get(b.id) || 0) - (scores.get(a.id) || 0));
+  return { studiesBySyllabusItemId, goalsBySyllabusItemId, questionLogsBySyllabusItemId, studiesByDisciplineSubject, goalsByDisciplineSubject, questionsByDisciplineSubject, materialsBySyllabusItemId, materialsByParentSyllabusItemId, materialsByDisciplineSubject, materialEstimateBySyllabusItemId, pendingByDiscipline, totalByDiscipline, weaknesses, itemMetrics, scores, candidates };
 }
 function disciplineQuestionWeakness(discipline) { return buildPlanningScoreContext().weaknesses[discipline]?.question || 0; }
 function mockWeakness(discipline) { return buildPlanningScoreContext().weaknesses[discipline]?.mock || 0; }
 function itemScore(item, pendingByDiscipline, context = null) { const scoreContext = context || buildPlanningScoreContext(); return scoreContext.scores.get(item.id) || 0; }
-function makeGoal(item, date, type) {
+function makeGoal(item, date, type, planningContext = null) {
   const dayType = availabilityForDate(date).type;
   const factor = dayType === "plantão" ? 0.6 : dayType === "folga" || dayType === "estudo forte" ? 1.25 : dayType === "indisponível" ? 0.2 : dayType === "estudo leve" ? 0.75 : 1;
   const baseMinutes = ({ "Estudo novo": 60, "Questões": 45, "Revisão": 30, "Reforço": 45 })[type] || 45;
   const fallbackMinutes = Math.min(dayType === "folga" || dayType === "estudo forte" ? 90 : Infinity, Math.max(30, Math.round(baseMinutes * factor)));
-  const estimate = type === "Estudo novo" ? estimateMaterialForItem(item) : null;
+  const estimate = type === "Estudo novo" ? (planningContext?.materialEstimateBySyllabusItemId.get(item.id) || estimateMaterialForItem(item)) : null;
   const customMinutes = validEstimatedMinutes(item.customStudyMinutes || item.customMinutes || item.tempoPersonalizadoMinutos || item.tempo_personalizado_minutos || item.plannedMinutes);
   const totalMinutes = estimate?.minutes || customMinutes || fallbackMinutes;
   const segments = type === "Estudo novo" ? splitEstimatedMinutesIntoSegments(totalMinutes) : [fallbackMinutes];
@@ -4898,7 +4918,7 @@ function eligiblePlanningGoalsForDate(date, opts = {}) {
   if (dayType === "indisponível" && !opts.manual) return [];
   const reserved = new Set([...(opts.existingGoals || []), ...state.dailyGoals.filter((g) => (g.date || g.data) === date)].map((g) => g.estimateSourceId ? dynamicGoalSegmentKey(g) : g.syllabusItemId).filter(Boolean));
   const chosenByDiscipline = new Map();
-  for (const item of context.candidates) { if (reserved.has(item.id)) continue; const disciplineKey = canonical(item.discipline); if (!disciplineKey || chosenByDiscipline.has(disciplineKey)) continue; const [goal] = makeGoal(item, date, goalTypeForItem(item)); if (goal) chosenByDiscipline.set(disciplineKey, goal); }
+  for (const item of context.candidates) { if (reserved.has(item.id)) continue; const disciplineKey = canonical(item.discipline); if (!disciplineKey || chosenByDiscipline.has(disciplineKey)) continue; const [goal] = makeGoal(item, date, context.itemMetrics.get(item.id)?.weakItem ? "Reforço" : goalTypeForItem(item), context); if (goal) chosenByDiscipline.set(disciplineKey, goal); }
   return [...chosenByDiscipline.values()];
 }
 function selectDistinctPlanningItems({ count, eligibleGoals, eligibleItems, existingGoals = [], date = todayISO(), recentHistory = [] } = {}) {
@@ -4994,7 +5014,7 @@ function generateGoalsForDate(date, opts = {}) {
     [Math.max(1,Math.floor(maxGoals*.1)), (i)=>i.status==="Revisar" || goalTypeForItem(i)==="Revisão"]
   ];
   const used = new Set(), chosen = [];
-  const addOne = (pred) => { const item = pickCandidate(candidates, used, pred, chosen, maxGoals, disciplineLimit, allowedDisciplines); if (item && chosen.length < maxGoals) { used.add(item.id); chosen.push(...makeGoal(item, date, goalTypeForItem(item))); } };
+  const addOne = (pred) => { const item = pickCandidate(candidates, used, pred, chosen, maxGoals, disciplineLimit, allowedDisciplines); if (item && chosen.length < maxGoals) { used.add(item.id); chosen.push(...makeGoal(item, date, context.itemMetrics.get(item.id)?.weakItem ? "Reforço" : goalTypeForItem(item), context)); } };
   buckets.forEach(([n,p]) => { for (let i=0;i<n && chosen.length<maxGoals;i++) addOne(p); });
   while (new Set(chosen.map((g)=>g.discipline)).size < minDisc && chosen.length < maxGoals) addOne((i)=>!chosen.some((g)=>g.discipline===i.discipline));
   while (chosen.length < Math.min(maxGoals, candidates.length)) addOne(()=>true);
@@ -6152,13 +6172,15 @@ function renderView(viewId) {
     "analise-estrategica": renderStrategicAnalysis,
     conselheiro: renderAdvisor
   };
+  const heavyView = ["metas-do-dia", "fabrica-resumos", "planejamento"].includes(viewId);
+  if (heavyView) Object.assign(performanceCounters, { projectionBuilds: 0, scoreExecutions: 0, scoredItems: 0, hydratedGoals: 0, initialDurationMs: 0, deferredPreviewDurationMs: 0, deferredHistoryDurationMs: 0, totalCompletedDurationMs: 0 });
   const startedAt = performance.now();
   safeRenderView(viewId, renderers[viewId]);
   const durationMs = performance.now() - startedAt;
   const report = window.__viewPerformanceReport ||= { lastView: "", lastDurationMs: 0, views: {} };
-  report.lastView = viewId; report.lastDurationMs = durationMs;
+  report.lastView = viewId; report.lastDurationMs = durationMs; if (heavyView) performanceCounters.initialDurationMs = durationMs;
   if (["metas-do-dia", "fabrica-resumos", "planejamento"].includes(viewId)) {
-    const view = report.views[viewId] ||= {}; view.durationMs = durationMs;
+    const view = report.views[viewId] ||= {}; view.durationMs = durationMs; Object.assign(view, performanceCounters);
     if (viewId === "metas-do-dia") Object.assign(view, { projectionBuilds: performanceCounters.projectionBuilds, renderedGoals: document.querySelectorAll("[data-daily-goal-details]").length, hydratedGoals: document.querySelectorAll("[data-daily-goal-hydrated=true]").length, materials: (state.materials || []).length, factoryItems: (state.factoryAgenda || state.factoryItems || []).length });
     if (viewId === "fabrica-resumos") Object.assign(view, { renderedCards: document.querySelectorAll("[data-factory-card]").length, hydratedDetails: document.querySelectorAll("[data-detail-hydrated=true]").length, queueItems: document.querySelectorAll(".factory-today-queue li").length, factoryItems: (state.factoryAgenda || state.factoryItems || []).length });
     if (viewId === "planejamento") Object.assign(view, { scoredItems: performanceCounters.scoredItems, scoreExecutions: performanceCounters.scoreExecutions, historyCards: document.querySelectorAll(".planning-history-card").length, syllabusItems: (state.syllabusItems || []).length });
