@@ -6,6 +6,8 @@ const script = fs.readFileSync('script.js', 'utf8');
 const docsScript = fs.readFileSync('docs/script.js', 'utf8');
 const style = fs.readFileSync('style.css', 'utf8');
 const docsStyle = fs.readFileSync('docs/style.css', 'utf8');
+const html = fs.readFileSync('index.html', 'utf8');
+const docsHtml = fs.readFileSync('docs/index.html', 'utf8');
 
 test('Plano do Dia usa details/summary nas seções principais e estados iniciais corretos', () => {
   assert.match(script, /dailyPlanSectionAttrs\("summary", true\)/);
@@ -17,6 +19,14 @@ test('Plano do Dia usa details/summary nas seções principais e estados iniciai
   assert.match(script, /dailyPlanSectionAttrs\("goals", rememberedDailyPlanSection\(date\) === "goals"\)/);
   assert.match(script, /dailyPlanSectionAttrs\("review", rememberedDailyPlanSection\(date\) === "review"\)/);
   assert.match(script, /Pendências e histórico/);
+});
+
+test('Revisão Inteligente de Hoje inicia recolhida e pode ser aberta pelo resumo', () => {
+  assert.match(html, /<details class="smart-review-panel day-smart-review-panel" aria-labelledby="day-smart-review-title">/);
+  assert.match(html, /<summary class="day-smart-review-summary">/);
+  assert.match(html, /id="daySmartReview" class="smart-review-list day-smart-review-content"/);
+  assert.doesNotMatch(html, /<details class="smart-review-panel day-smart-review-panel"[^>]*\sopen(?:\s|>)/);
+  assert.match(style, /\.day-smart-review-panel\[open\] \.day-smart-review-toggle::before \{ content: "Recolher"; \}/);
 });
 
 test('Cada meta possui details/summary, conclusão fechada e andamento pode abrir', () => {
@@ -86,4 +96,5 @@ test('CSS do Plano do Dia evita quebra indevida, coluna única e espaço inferio
 test('Raiz e docs permanecem iguais', () => {
   assert.equal(script, docsScript);
   assert.equal(style, docsStyle);
+  assert.equal(html, docsHtml);
 });
