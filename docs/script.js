@@ -9,7 +9,12 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260715-estabilizacao-plano-fabrica-materiais-v1";
+const APP_VERSION = "20260716-sync-inicial-sem-dados-antigos-v1";
+const STARTUP_SYNC_TIMEOUT_MS = 4000;
+let startupSyncInProgress = true;
+let startupSyncResolved = false;
+const startupSyncWriteQueue = [];
+let startupDataChangedAfterFallback = false;
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -1870,7 +1875,7 @@ async function verifyStorageCopy() {
   } finally { indexedDBStatus.verifying = false; updateStorageDiagnostics(); }
 }
 
-function readSyncMeta() { return readJSONStorage(SYNC_META_STORAGE_KEY, { connected: false, lastLocalUpdateAt: "", lastLocalSaveAt: "", lastLocalSaveReason: "", lastSyncAt: "", lastAutoSyncAt: "", lastAutoSyncReason: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", lastAutoSyncError: "", pendingSync: false, pendingSyncReason: null, localDirty: false, localDataUpdatedAt: "", cloudDataUpdatedAt: "", remoteUpdatedAt: "", remoteDeviceName: "", error: "" }); }
+function readSyncMeta() { return readJSONStorage(SYNC_META_STORAGE_KEY, { connected: false, deviceId: "", lastSuccessfulSyncAt: "", lastRemoteModifiedTime: "", lastRemoteVersion: "", lastRemoteFileId: "", lastSyncedStateHash: "", localStateHash: "", localUpdatedAt: "", pendingLocalChanges: false, startupSource: "", startupResolvedAt: "", lastLocalUpdateAt: "", lastLocalSaveAt: "", lastLocalSaveReason: "", lastSyncAt: "", lastAutoSyncAt: "", lastAutoSyncReason: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", lastAutoSyncError: "", pendingSync: false, pendingSyncReason: null, localDirty: false, localDataUpdatedAt: "", cloudDataUpdatedAt: "", remoteUpdatedAt: "", remoteDeviceName: "", error: "" }); }
 function writeSyncMeta(meta) { localStorage.setItem(SYNC_META_STORAGE_KEY, JSON.stringify({ ...readSyncMeta(), ...meta })); }
 function markLocalUpdated(date = new Date().toISOString()) { writeLocalDataUpdatedAt(date); }
 function getDeviceId() { let id = localStorage.getItem(DEVICE_ID_STORAGE_KEY); if (!id) { id = createId(); localStorage.setItem(DEVICE_ID_STORAGE_KEY, id); } return id; }
@@ -1951,7 +1956,7 @@ async function driveFetch(url, options = {}) {
   if (!response.ok) throw new Error(`${response.status} ${await response.text()}`);
   return response;
 }
-async function findSyncFile() { const q = encodeURIComponent(`name='${GOOGLE_SYNC_FILE_NAME}' and trashed=false`); const r = await driveFetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id,name,modifiedTime)`); return (await r.json()).files?.[0] || null; }
+async function findSyncFile() { const q = encodeURIComponent(`name='${GOOGLE_SYNC_FILE_NAME}' and trashed=false`); const r = await driveFetch(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id,name,modifiedTime,version,size,appProperties)`); return (await r.json()).files?.[0] || null; }
 function multipartBody(payload, fileId) { const boundary = "metas_estudo_sync_boundary"; const metadata = { name: GOOGLE_SYNC_FILE_NAME, mimeType: "application/json", ...(fileId ? {} : { parents: ["appDataFolder"] }) }; return { boundary, body: `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(payload, null, 2)}\r\n--${boundary}--` }; }
 async function createSyncFile(payload) { const { boundary, body } = multipartBody(payload); const r = await driveFetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,modifiedTime", { method: "POST", headers: { "Content-Type": `multipart/related; boundary=${boundary}` }, body }); return r.json(); }
 async function updateSyncFile(fileId, payload) { const { boundary, body } = multipartBody(payload, fileId); const r = await driveFetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart&fields=id,modifiedTime`, { method: "PATCH", headers: { "Content-Type": `multipart/related; boundary=${boundary}` }, body }); return r.json(); }
@@ -2033,6 +2038,7 @@ async function runAutoSyncAfterSave(reason) {
   }
 }
 function autoSyncAfterSave(reason = "alteração") {
+  if (startupSyncInProgress) { startupSyncWriteQueue.push(reason); return; }
   if (isSyncLocked()) return;
   pendingAutoSyncReason = reason;
   clearTimeout(autoSyncTimer);
@@ -5614,9 +5620,70 @@ initFactoryEvents();
 document.addEventListener("change", (event) => { const mode = event.target.closest?.('[data-material-estimate-field="estimateMode"]'); if (mode) updateMaterialEstimateModeUI(mode.closest(".material-estimate-box")); });
 document.addEventListener("click", (event) => { const openUrl = event.target.closest("button[data-open-url]"); if (openUrl && isValidHttpUrl(openUrl.dataset.openUrl)) window.open(openUrl.dataset.openUrl, "_blank", "noopener"); const open = event.target.closest("button[data-open-material]"); const create = event.target.closest("button[data-create-goal-material]"); const edit = event.target.closest("button[data-edit-material]"); const del = event.target.closest("button[data-delete-material]"); const calcEstimate = event.target.closest("button[data-calculate-material-estimate]"); const saveEstimate = event.target.closest("button[data-save-material-estimate]"); const updateMaterialGoals = event.target.closest("button[data-update-material-goals]"); if (updateMaterialGoals) { event.preventDefault(); updateFuturePendingGoalsForMaterial(updateMaterialGoals.dataset.updateMaterialGoals); } if (calcEstimate) { event.preventDefault(); previewMaterialEstimate(calcEstimate); } if (saveEstimate) { event.preventDefault(); saveMaterialEstimate(saveEstimate); } if (open) openMaterial(open.dataset.openMaterial); if (create) startMaterialForGoal(create.dataset.discipline, create.dataset.subject); if (edit) editMaterial(edit.dataset.editMaterial); if (del && confirm("Excluir este material?")) { state.materials = state.materials.filter((m)=>m.id!==del.dataset.deleteMaterial); render(); } });
 
+function stableStartupStateHash(value = {}) {
+  const volatile = new Set(["startupSource", "startupResolvedAt", "openSection", "activeSection", "diagnostics", "temporaryDiagnostics"]);
+  const canonicalize = (item) => {
+    if (Array.isArray(item)) return item.map(canonicalize);
+    if (!item || typeof item !== "object") return item;
+    return Object.keys(item).sort().reduce((result, key) => { if (!volatile.has(key)) result[key] = canonicalize(item[key]); return result; }, {});
+  };
+  const text = JSON.stringify(canonicalize(value));
+  let hash = 2166136261;
+  for (let index = 0; index < text.length; index += 1) { hash ^= text.charCodeAt(index); hash = Math.imul(hash, 16777619); }
+  return `fnv1a-${(hash >>> 0).toString(16)}`;
+}
+function remoteMetadataIsNewer(remote = {}, meta = readSyncMeta()) {
+  if (!remote?.id) return false;
+  if (remote.version && meta.lastRemoteVersion) return Number(remote.version) > Number(meta.lastRemoteVersion);
+  if (remote.modifiedTime && meta.lastRemoteModifiedTime) return Date.parse(remote.modifiedTime) > Date.parse(meta.lastRemoteModifiedTime);
+  return remote.id !== meta.lastRemoteFileId || Boolean(remote.modifiedTime && !meta.lastRemoteModifiedTime);
+}
+function withStartupTimeout(promise, timeoutMs = STARTUP_SYNC_TIMEOUT_MS) {
+  return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error("STARTUP_SYNC_TIMEOUT")), timeoutMs))]);
+}
+async function resolveStartupStateWithCloud(localState, options = {}) {
+  const started = Date.now(), meta = options.meta || readSyncMeta(), localHash = stableStartupStateHash(localState || {});
+  const result = { state: localState, source: options.localSource || "indexeddb", cloudChecked: false, cloudNewer: false, localNewer: false, conflict: false, offlineFallback: false, elapsedMs: 0, remoteMetadata: null };
+  const cloudAvailable = options.cloudSessionAvailable ?? hasValidGoogleDriveAccessToken();
+  if (!cloudAvailable) { result.elapsedMs = Date.now() - started; return result; }
+  try {
+    const metadata = await withStartupTimeout((options.findFile || findSyncFile)(), options.timeoutMs || STARTUP_SYNC_TIMEOUT_MS);
+    result.cloudChecked = true; result.remoteMetadata = metadata;
+    if (!metadata) { result.elapsedMs = Date.now() - started; return result; }
+    const localPending = Boolean(meta.pendingLocalChanges || meta.pendingSync || meta.localDirty || (meta.localStateHash && meta.localStateHash !== meta.lastSyncedStateHash));
+    const remoteNewer = remoteMetadataIsNewer(metadata, meta);
+    result.cloudNewer = remoteNewer;
+    result.localNewer = localPending && !remoteNewer;
+    const needsContent = remoteNewer || !meta.lastSyncedStateHash || !stateHasUserData(localState) || (localPending && remoteNewer);
+    if (!needsContent) { result.elapsedMs = Date.now() - started; return result; }
+    const payload = await withStartupTimeout((options.downloadFile || downloadSyncFile)(metadata.id), options.timeoutMs || STARTUP_SYNC_TIMEOUT_MS);
+    validateCloudPayload(payload);
+    const remoteHash = stableStartupStateHash(payload.state);
+    const conflict = localPending && remoteNewer && remoteHash !== localHash;
+    result.conflict = conflict;
+    if (conflict) { result.source = "conflict-local"; result.elapsedMs = Date.now() - started; return result; }
+    if (remoteNewer || !stateHasUserData(localState)) { result.state = payload.state; result.source = "google-drive"; }
+    result.elapsedMs = Date.now() - started;
+    return result;
+  } catch (error) {
+    result.offlineFallback = true; result.source = "offline-fallback"; result.elapsedMs = Date.now() - started; result.error = error?.message || String(error); return result;
+  }
+}
+function updateStartupSyncReport(values = {}) {
+  window.__startupSyncReport = { ...(window.__startupSyncReport || {}), ...values };
+}
+function releaseStartupSyncQueue() {
+  startupSyncInProgress = false; startupSyncResolved = true;
+  const reason = startupSyncWriteQueue.pop(); startupSyncWriteQueue.length = 0;
+  if (reason) autoSyncAfterSave(reason);
+}
+function showStartupConflictNotice() {
+  renderSyncStatus("Conflito de sincronização — alterações deste aparelho foram preservadas. Escolha a versão na área de Backup.");
+}
+
 function showBootstrapLoadingState() {
   const loading = document.getElementById("appLoadingState");
-  if (loading) loading.hidden = false;
+  if (loading) { loading.hidden = false; loading.textContent = hasValidGoogleDriveAccessToken() ? "Verificando dados mais recentes no Google Drive…" : "Carregando seus dados…"; }
   document.querySelector("main.app-layout")?.setAttribute("aria-busy", "true");
   document.body.classList.add("app-bootstrapping");
 }
@@ -5647,49 +5714,18 @@ async function persistBootstrapStateToIndexedDB(snapshot) {
 }
 async function bootstrapApplication() {
   showBootstrapLoadingState();
-  let chosenState = null;
-  let recoveredError = "";
+  const startedAt = new Date().toISOString();
+  updateStartupSyncReport({ startedAt, resolvedAt: "", elapsedMs: 0, localSource: "default", finalSource: "default", cloudSessionAvailable: hasValidGoogleDriveAccessToken(), cloudMetadataChecked: false, cloudContentDownloaded: false, localHashMatched: false, remoteNewer: false, localNewer: false, pendingLocalChanges: false, conflict: false, offlineFallback: false, renderedBeforeResolution: false, renderCountBeforeResolution: 0, renderCountAfterResolution: 0 });
+  let chosenState = cloneData(defaultState), localSource = "default", recoveredError = "";
   try {
     let idb = { valid: false, empty: true, record: null };
-    try {
-      idb = await loadPrimaryStateFromIndexedDB();
-      indexedDBStatus.indexedDBReadBeforeRender = true;
-      indexedDBStatus.available = true;
-      indexedDBStatus.lastCopyAt = idb.record?.savedAt || "";
-      indexedDBStatus.validation = idb.valid ? "válido" : (idb.empty ? "vazio" : "inválido");
-    } catch (error) {
-      indexedDBStatus.indexedDBReadBeforeRender = true;
-      recoveredError = "IndexedDB indisponível no bootstrap.";
-      recordIndexedDBWarning(recoveredError, error);
-    }
-
-    if (idb.valid && stateHasUserData(idb.data)) {
-      chosenState = idb.data;
-      indexedDBStatus.activeSource = "IndexedDB";
-      indexedDBStatus.lastLoadedSource = "IndexedDB";
-      indexedDBStatus.bootstrapSource = "IndexedDB";
-    } else {
-      const localState = safeReadLocalStorageStateForBootstrap();
-      if (stateHasUserData(localState)) {
-        chosenState = localState;
-        indexedDBStatus.activeSource = "IndexedDB";
-        indexedDBStatus.lastLoadedSource = "localStorage migrado";
-        indexedDBStatus.bootstrapSource = "localStorage migrado";
-        try {
-          await persistBootstrapStateToIndexedDB(localState);
-          indexedDBStatus.validation = "localStorage copiado e validado";
-        } catch (error) {
-          recoveredError = "Dados do localStorage carregados, mas a cópia IndexedDB falhou.";
-          recordIndexedDBWarning(recoveredError, error);
-        }
-      } else {
-        chosenState = cloneData(defaultState);
-        indexedDBStatus.activeSource = idb.valid ? "IndexedDB vazio" : "estado padrão seguro";
-        indexedDBStatus.lastLoadedSource = "estado padrão";
-        indexedDBStatus.bootstrapSource = "estado padrão";
-      }
-    }
-
+    try { idb = await loadPrimaryStateFromIndexedDB(); indexedDBStatus.indexedDBReadBeforeRender = true; indexedDBStatus.available = true; indexedDBStatus.lastCopyAt = idb.record?.savedAt || ""; } catch (error) { recoveredError = "IndexedDB indisponível no bootstrap."; recordIndexedDBWarning(recoveredError, error); }
+    const localStorageState = safeReadLocalStorageStateForBootstrap();
+    if (idb.valid && stateHasUserData(idb.data)) { chosenState = idb.data; localSource = "indexeddb"; }
+    else if (stateHasUserData(localStorageState)) { chosenState = localStorageState; localSource = "localstorage"; }
+    const resolution = await resolveStartupStateWithCloud(chosenState, { localSource });
+    chosenState = resolution.state || chosenState;
+    const finalHash = stableStartupStateHash(chosenState);
     replaceState(chosenState);
     mergeCompatibleLocalStorageData();
     const legacyGoalIdRecoveryReport = recoverLegacyTimerMinutesForGoals(state);
@@ -5697,20 +5733,19 @@ async function bootstrapApplication() {
     const legacyTimerRecoveryReport = mergeLegacyTimerRecoveryReports(legacyGoalIdRecoveryReport, legacyOrphanRecoveryReport);
     window.__legacyTimerRecoveryReport = legacyTimerRecoveryReport;
     console.info("[Metas Estudo] Recuperação de tempos antigos", legacyTimerRecoveryReport);
-    if (legacyTimerRecoveryReport.recoveredMinutes) saveData({ markLocalChange: true });
-    syncAllFactoryMaterials();
-    renderMotivationalPhrase();
-    indexedDBStatus.size = estimateSerializedStateSize(state);
-    indexedDBStatus.migration = indexedDBStatus.migration === "erro" ? "erro" : "concluída";
-    indexedDBStatus.bootstrap = recoveredError ? "erro recuperado" : "concluída";
-    if (recoveredError) indexedDBStatus.error = "Não foi possível carregar os dados locais. Conecte ao Google Drive ou importe um backup.";
-    render();
-    showStorageWarningIfNeeded();
-    showView(hashToView(), { skipScroll: true, keepMenuOpen: true });
-  } finally {
-    hideBootstrapLoadingState();
-    updateStorageDiagnostics();
-  }
+    const snapshot = cloneData(state);
+    await persistBootstrapStateToIndexedDB(snapshot).catch((error) => { recoveredError ||= "A cópia IndexedDB falhou."; recordIndexedDBWarning(recoveredError, error); });
+    persistStateSafely({ skipSyncTimestamp: true });
+    const remote = resolution.remoteMetadata || {};
+    writeSyncMeta({ deviceId: getDeviceId(), localStateHash: finalHash, localUpdatedAt: new Date().toISOString(), pendingLocalChanges: resolution.source === "local-newer" || resolution.localNewer, lastRemoteModifiedTime: remote.modifiedTime || readSyncMeta().lastRemoteModifiedTime, lastRemoteVersion: remote.version || readSyncMeta().lastRemoteVersion, lastRemoteFileId: remote.id || readSyncMeta().lastRemoteFileId, startupSource: resolution.source, startupResolvedAt: new Date().toISOString() });
+    indexedDBStatus.activeSource = resolution.source === "google-drive" ? "Google Drive" : localSource;
+    indexedDBStatus.lastLoadedSource = indexedDBStatus.activeSource; indexedDBStatus.bootstrapSource = resolution.source;
+    syncAllFactoryMaterials(); renderMotivationalPhrase(); indexedDBStatus.size = estimateSerializedStateSize(state); indexedDBStatus.migration = "concluída"; indexedDBStatus.bootstrap = recoveredError ? "erro recuperado" : "concluída";
+    updateStartupSyncReport({ resolvedAt: new Date().toISOString(), elapsedMs: resolution.elapsedMs, localSource, finalSource: resolution.source, cloudMetadataChecked: resolution.cloudChecked, cloudContentDownloaded: Boolean(resolution.remoteMetadata && (resolution.cloudNewer || !stateHasUserData(chosenState))), remoteNewer: resolution.cloudNewer, localNewer: resolution.localNewer, pendingLocalChanges: hasLocalSyncPending(readSyncMeta()), conflict: resolution.conflict, offlineFallback: resolution.offlineFallback });
+    render(); updateStartupSyncReport({ renderCountAfterResolution: 1 });
+    if (resolution.conflict) showStartupConflictNotice(); else if (resolution.offlineFallback) renderSyncStatus("Modo offline — exibindo os dados salvos neste aparelho."); else if (resolution.source === "google-drive") renderSyncStatus("Dados atualizados pelo Google Drive"); else renderSyncStatus(resolution.localNewer ? "Alterações locais aguardando sincronização" : "Dados deste aparelho");
+    showStorageWarningIfNeeded(); showView(hashToView(), { skipScroll: true, keepMenuOpen: true });
+  } finally { releaseStartupSyncQueue(); hideBootstrapLoadingState(); updateStorageDiagnostics(); }
 }
 function handleBootstrapFailure(error) {
   console.error("[Metas Estudo] Falha recuperada no bootstrap.", error);
