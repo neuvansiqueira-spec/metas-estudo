@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260716-organizar-registro-desempenho-questoes-v1";
+const APP_VERSION = "20260716-agrupar-materiais-e-eliminar-duplicacoes-v3";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -4459,71 +4459,89 @@ function renderMaterialFilters() {
   setOptions(elements.materialFilterType, "Todos", MATERIAL_TYPES);
   setOptions(elements.materialFilterOrigin, "Todas", MATERIAL_ORIGINS);
 }
-function filteredMaterials() {
-  const term = canonical(elements.materialFilterText?.value || "");
-  return state.materials.filter((m) => (!elements.materialFilterDiscipline.value || m.discipline === elements.materialFilterDiscipline.value) && (!elements.materialFilterSubject.value || m.subject === elements.materialFilterSubject.value) && (!elements.materialFilterType.value || m.type === elements.materialFilterType.value) && (!elements.materialFilterOrigin.value || m.origin === elements.materialFilterOrigin.value) && (!term || [m.title,m.discipline,m.subject,m.type,m.origin,m.link,m.notes,(m.tags||[]).join(" ")].map(canonical).join(" ").includes(term)));
+function normalizeMaterialFormat(material = {}) {
+  const raw = String(material.factoryFormat || material.type || "").trim(); const normalized = canonical(raw);
+  if (/(^|\s)(pdf|arquivo pdf)(\s|$)/.test(normalized) || normalized === "application/pdf") return "PDF";
+  if (["word", "doc", "docx", "documento word"].includes(normalized)) return "Word";
+  if (["video", "vídeo", "aula em video", "aula em vídeo"].includes(normalized)) return "Vídeo";
+  if (["audio", "áudio"].includes(normalized)) return "Áudio";
+  if (["imagem", "image"].includes(normalized)) return "Imagem";
+  if (["link", "url"].includes(normalized)) return "Link";
+  const pathname = (() => { try { return new URL(String(material.link || "")).pathname.toLowerCase(); } catch { return ""; } })();
+  if (/\.pdf$/.test(pathname)) return "PDF";
+  if (/\.(doc|docx)$/.test(pathname)) return "Word";
+  if (/\.(mp4|webm|mov)$/.test(pathname)) return "Vídeo";
+  if (/\.(mp3|wav|m4a|ogg)$/.test(pathname)) return "Áudio";
+  if (/\.(png|jpe?g|gif|webp|svg)$/.test(pathname)) return "Imagem";
+  return "Outro";
 }
-function materialFactoryModuleLabel(m = {}) { return FACTORY_MODULES.find((module) => module.key === m.factoryModuleKey)?.label || m.type || "Manual"; }
-function materialCardHTML(m) {
-  const origem = m.source === "factory" ? "Fábrica" : (m.origin || "cadastro manual");
-  const modulo = m.source === "factory" ? materialFactoryModuleLabel(m) : (m.type || "Manual");
-  return `<article class="syllabus-card material-card"><header><div><h3>${escapeHTML(m.title)}</h3><div class="item-meta">${escapeHTML(m.discipline)} • ${escapeHTML(m.subject)} • módulo ${escapeHTML(modulo)} • ${escapeHTML(m.type)} • origem: ${escapeHTML(origem)} • ${formatDateBR(m.date)}</div></div><span class="badge ${m.available === false ? "danger" : "neutral"}">${escapeHTML(m.type || "Material")}</span></header><div class="card-meta-grid"><span>Título: ${escapeHTML(m.title)}</span><span>Disciplina: ${escapeHTML(m.discipline)}</span><span>Assunto: ${escapeHTML(m.subject)}</span><span>Módulo: ${escapeHTML(modulo)}</span><span>Formato: ${escapeHTML(m.factoryFormat || m.type || "-")}</span><span>Origem: ${escapeHTML(origem)}</span><span>Data: ${formatDateBR(m.date)}</span></div>${materialEstimateSummaryHTML(m)}${materialEstimateFormHTML(m)}<div class="card-actions"><button type="button" data-open-material="${m.id}">Abrir</button><button type="button" data-use-material-study="${m.id}">Usar no estudo</button><button type="button" data-edit-material="${m.id}">Editar</button><button class="danger" type="button" data-delete-material="${m.id}">Excluir</button></div></article>`;
+function materialFormat(material = {}) { return normalizeMaterialFormat(material); }
+function materialOriginLabel(material = {}) { return material.source === "factory" ? "Fábrica" : "Cadastro manual"; }
+function materialDriveFileId(link = "") {
+  try { const url = new URL(String(link).trim()); if (!/(^|\.)drive\.google\.com$/i.test(url.hostname)) return ""; return url.pathname.match(/\/file\/d\/([^/?#]+)/)?.[1] || url.searchParams.get("id") || ""; } catch { return ""; }
 }
+function normalizedMaterialUrl(link = "") {
+  try { const url = new URL(String(link).trim()); url.hash = ""; [...url.searchParams.keys()].filter((key) => /^(utm_[^=]*|fbclid)$/i.test(key)).forEach((key) => url.searchParams.delete(key)); url.pathname = url.pathname.replace(/\/$/, "") || "/"; return url.toString().replace(/\/$/, ""); } catch { return String(link || "").trim().replace(/#.*/, "").replace(/\/$/, ""); }
+}
+function materialPhysicalFileIdentity(material = {}) { const driveId = materialDriveFileId(material.link); if (driveId) return `drive:${driveId}`; const url = normalizedMaterialUrl(material.link); if (url) return `url:${url}`; const explicitId = material.fileId || material.fileID || material.sourceRecordId; if (explicitId) return `source:${explicitId}`; return `record:${material.id || "unknown"}`; }
+function materialFactoryModuleLabelFromKey(key = "") { return FACTORY_MODULES.find((module) => module.key === String(key).trim())?.label || ""; }
+function materialExplicitModuleLabel(material = {}) { const explicit = String(material.module || material.modulo || "").trim(); return ["manual", "material", "material manual", "outro"].includes(canonical(explicit)) ? "" : explicit.toUpperCase(); }
+function materialTagModuleLabel(material = {}) { const tags = materialTagsArray(material.tags).map(canonical); if (tags.some((tag) => tag === "fabrica de resumos" || tag === "resumoaula")) return "RESUMO/AULA"; return ""; }
+function materialTypeModuleLabel(material = {}) { const type = canonical(material.type); if (type === "resumo" || type === "aula") return "RESUMO/AULA"; if (type === "lei") return "LEI"; if (type === "jurisprudencia") return "JURISPRUDÊNCIA"; if (type === "peca") return "PEÇA"; return ""; }
+function materialModuleLabel(material = {}) { return materialFactoryModuleLabelFromKey(material.factoryModuleKey) || materialExplicitModuleLabel(material) || materialTagModuleLabel(material) || materialTypeModuleLabel(material); }
+function materialVisualModule(records = []) {
+  const factory = records.map((record) => materialFactoryModuleLabelFromKey(record.factoryModuleKey)).find(Boolean); if (factory) return factory;
+  const explicit = records.map(materialExplicitModuleLabel).find(Boolean); if (explicit) return explicit;
+  const tags = records.map(materialTagModuleLabel).find(Boolean); if (tags) return tags;
+  return records.map(materialTypeModuleLabel).find(Boolean) || "MATERIAL MANUAL";
+}
+function materialLogicalAssociation(material = {}, targetState = {}) {
+  const item = (targetState.syllabusItems || []).find((candidate) => candidate.id === material.syllabusItemId);
+  const discipline = String(item?.discipline || material.discipline || "").trim(); const subject = String(item?.subject || material.subject || "").trim();
+  return { discipline, subject, key: `${canonical(discipline)}|${canonical(subject)}` };
+}
+function materialLogicalAssociationKey(material = {}, targetState = {}) { return materialLogicalAssociation(material, targetState).key; }
+function materialRecordPreference(left, right) { const score = (material) => (material.source === "factory" && material.factoryItemId && material.syllabusItemId ? 30 : 0) + (material.source !== "factory" && material.syllabusItemId ? 20 : 0) + (material.link ? 4 : 0) + (material.notes ? 2 : 0) + (material.tags?.length ? 1 : 0); const leftScore = score(left); const rightScore = score(right); if (rightScore !== leftScore) return rightScore > leftScore ? right : left; return String(right.id || "").localeCompare(String(left.id || "")) < 0 ? right : left; }
+function materialGroupSearchText(group) { return canonical(group.files.flatMap((file) => file.records.flatMap((record) => [record.title, record.discipline, record.subject, record.type, record.factoryFormat, record.origin, record.link, record.notes, ...materialTagsArray(record.tags)])).concat([group.module, group.discipline, group.subject]).join(" ")); }
+function buildMaterialLibraryViewModel(materials = [], targetState = {}) {
+  const physicalAssociations = new Map();
+  (materials || []).forEach((material) => { const association = materialLogicalAssociation(material, targetState); const identity = materialPhysicalFileIdentity(material); const key = `${identity}|${association.key}`; if (!physicalAssociations.has(key)) physicalAssociations.set(key, { identity, association, records: [] }); physicalAssociations.get(key).records.push(material); });
+  const visualGroups = new Map();
+  physicalAssociations.forEach((physicalFile) => {
+    const { discipline, subject, key: associationKey } = physicalFile.association; const module = materialVisualModule(physicalFile.records); const groupKey = `${associationKey}|${canonical(module)}`;
+    if (!visualGroups.has(groupKey)) visualGroups.set(groupKey, { key: groupKey, discipline, subject, module, filesByFormat: new Map() }); const group = visualGroups.get(groupKey);
+    physicalFile.records.forEach((record) => { const format = normalizeMaterialFormat(record); const fileKey = `${physicalFile.identity}|${canonical(format)}`; if (!group.filesByFormat.has(fileKey)) group.filesByFormat.set(fileKey, { key: fileKey, identity: physicalFile.identity, format, records: [], primary: record }); const file = group.filesByFormat.get(fileKey); file.records.push(record); file.primary = materialRecordPreference(file.primary, record); });
+  });
+  return [...visualGroups.values()].map((group) => { const files = [...group.filesByFormat.values()].map((file) => ({ ...file, titles: [...new Set(file.records.map((record) => record.title).filter(Boolean))], origins: [...new Set(file.records.map(materialOriginLabel))].sort(), latestDate: file.records.map((record) => record.updatedAt || record.date || "").sort().at(-1) || "" })); const records = files.flatMap((file) => file.records); const latestDate = files.map((file) => file.latestDate).sort().at(-1) || ""; const estimatedMinutes = Math.max(0, ...records.map((record) => Number(record.estimatedMinutes) || 0)); const result = { key: group.key, discipline: group.discipline, subject: group.subject, module: group.module, files, records, latestDate, estimatedMinutes, formats: [...new Set(files.map((file) => file.format))].sort(), origins: [...new Set(records.map(materialOriginLabel))].sort() }; result.searchText = materialGroupSearchText(result); return result; }).sort((left, right) => right.latestDate.localeCompare(left.latestDate) || left.key.localeCompare(right.key));
+}
+function materialGroupMatchesFilters(group) {
+  const selectedDiscipline = elements.materialFilterDiscipline?.value || ""; const selectedSubject = elements.materialFilterSubject?.value || ""; const selectedType = elements.materialFilterType?.value || ""; const selectedOrigin = elements.materialFilterOrigin?.value || ""; const term = canonical(elements.materialFilterText?.value || "");
+  return (!selectedDiscipline || group.discipline === selectedDiscipline || group.records.some((record) => record.discipline === selectedDiscipline)) && (!selectedSubject || group.subject === selectedSubject || group.records.some((record) => record.subject === selectedSubject)) && (!selectedType || group.files.some((file) => file.format === selectedType || file.records.some((record) => record.type === selectedType))) && (!selectedOrigin || group.records.some((record) => record.origin === selectedOrigin || materialOriginLabel(record) === selectedOrigin)) && (!term || group.searchText.includes(term));
+}
+function filteredMaterials() { return buildMaterialLibraryViewModel(state.materials, state).filter(materialGroupMatchesFilters); }
+function materialFileActionsHTML(file) { return `<button type="button" data-open-material="${escapeHTML(file.primary.id)}">${escapeHTML(materialButtonLabel({ type: file.format }))}${file.records.length > 1 ? "" : ""}</button>`; }
 const materialSectionOpenState = { today: true, recent: false, all: false };
 const materialItemOpenState = new Set();
 let materialSectionToggleListenerRegistered = false;
-function materialItemInstanceKey(sectionKey, materialId) { return `${sectionKey}:${materialId}`; }
-function materialItemSummaryHTML(material) {
-  const origem = material.source === "factory" ? "Fábrica" : (material.origin || "cadastro manual");
-  const modulo = material.source === "factory" ? materialFactoryModuleLabel(material) : (material.type || "Manual");
-  const details = [modulo, origem];
-  if (validEstimatedMinutes(material.estimatedMinutes)) details.push(`Carga estimada: ${formatHours(material.estimatedMinutes)}`);
-  return `<span class="material-item-summary-main">${escapeHTML(material.title || "Material sem título")}</span><span class="material-item-summary-meta">${escapeHTML(material.discipline || "Disciplina não informada")} • ${escapeHTML(material.subject || "Assunto não informado")}</span><span class="material-item-summary-meta">${details.map(escapeHTML).join(" • ")}</span>`;
+function materialItemInstanceKey(sectionKey, groupKey) { return `${sectionKey}:${groupKey}`; }
+function materialGroupHTML(sectionKey, group) {
+  const itemKey = materialItemInstanceKey(sectionKey, group.key); const openAttribute = materialItemOpenState.has(itemKey) ? " open" : "";
+  const originText = group.origins.join(" • "); const dates = group.latestDate ? formatDateBR(group.latestDate) : "Data não informada";
+  const files = group.files.map((file) => `<li><strong>${escapeHTML(file.format)}</strong> — ${escapeHTML(file.primary.title || "Material sem título")}<br><span class="item-meta">Títulos alternativos: ${escapeHTML(file.titles.join(" • ") || "-")} • Origens vinculadas: ${escapeHTML(file.origins.join(" • "))}</span>${materialEstimateSummaryHTML(file.primary)}${materialEstimateFormHTML(file.primary)}<div class="card-actions">${materialFileActionsHTML(file)}<button type="button" data-use-material-study="${escapeHTML(file.primary.id)}">Usar no estudo</button>${file.records.filter((record) => record.source !== "factory").map((record) => `<button type="button" data-edit-material="${escapeHTML(record.id)}">Editar cadastro manual</button><button class="danger" type="button" data-delete-material="${escapeHTML(record.id)}">Excluir cadastro manual</button>`).join("")}</div></li>`).join("");
+  return `<details class="material-collapsible-item" data-material-item-key="${escapeHTML(itemKey)}"${openAttribute}><summary class="material-item-summary"><span class="material-item-summary-main">${escapeHTML(group.module)}</span><span class="material-item-summary-meta">${escapeHTML(group.discipline || "Disciplina não informada")} • ${escapeHTML(group.subject || "Assunto não informado")}</span><span class="material-item-summary-meta">${group.files.length} arquivo(s)/formato(s) • ${escapeHTML(group.formats.join(" • "))} • Origem: ${escapeHTML(originText)}${group.estimatedMinutes ? ` • Carga estimada: ${escapeHTML(formatHours(group.estimatedMinutes))}` : ""}</span></summary><div class="material-item-content"><article class="syllabus-card material-card"><header><div><h3>${escapeHTML(group.module)}</h3><div class="item-meta">${escapeHTML(group.discipline)} • ${escapeHTML(group.subject)} • ${group.files.length} arquivos/formatos disponíveis • Origem: ${escapeHTML(originText)} • ${dates}</div></div></header><div class="card-actions">${group.files.map(materialFileActionsHTML).join("")}</div><details><summary>Ver detalhes</summary><ul class="material-library-details">${files}</ul></details></article></div></details>`;
 }
-function materialCollapsibleHTML(sectionKey, material) {
-  const itemKey = materialItemInstanceKey(sectionKey, material.id);
-  const openAttribute = materialItemOpenState.has(itemKey) ? " open" : "";
-  return `<details class="material-collapsible-item" data-material-item-key="${escapeHTML(itemKey)}"${openAttribute}><summary class="material-item-summary">${materialItemSummaryHTML(material)}</summary><div class="material-item-content">${materialCardHTML(material)}</div></details>`;
-}
-function materialSectionHTML(key, title, content, emptyMessage) {
-  const openAttribute = materialSectionOpenState[key] ? " open" : "";
-  const sectionContent = content.length ? content.map((material) => materialCollapsibleHTML(key, material)).join("") : `<p class="empty-message">${emptyMessage}</p>`;
-  return `<details class="materials-section materials-collapsible-section" data-material-section="${key}"${openAttribute}><summary class="materials-section-summary">${title}</summary><div class="materials-section-content">${sectionContent}</div></details>`;
-}
+function materialSectionHTML(key, title, content, emptyMessage) { const openAttribute = materialSectionOpenState[key] ? " open" : ""; const sectionContent = content.length ? content.map((group) => materialGroupHTML(key, group)).join("") : `<p class="empty-message">${emptyMessage}</p>`; return `<details class="materials-section materials-collapsible-section" data-material-section="${key}"${openAttribute}><summary class="materials-section-summary">${title}</summary><div class="materials-section-content">${sectionContent}</div></details>`; }
 function ensureMaterialSectionToggleListener() {
   if (materialSectionToggleListenerRegistered || !elements.materialsList) return;
-  elements.materialsList.addEventListener("toggle", (event) => {
-    const detail = event.target;
-    if (!(detail instanceof HTMLDetailsElement)) return;
-    const section = detail;
-    if (detail.matches("[data-material-item-key]")) {
-      const key = detail.dataset.materialItemKey;
-      if (!key) return;
-      if (detail.open) materialItemOpenState.add(key);
-      else materialItemOpenState.delete(key);
-      return;
-    }
-    if (!detail.matches("[data-material-section]")) return;
-    const key = detail.dataset.materialSection;
-    if (!Object.prototype.hasOwnProperty.call(materialSectionOpenState, key)) return;
-    materialSectionOpenState[key] = section.open;
-  }, true);
+  elements.materialsList.addEventListener("toggle", (event) => { const detail = event.target; if (!(detail instanceof HTMLDetailsElement)) return; if (detail.matches("[data-material-item-key]")) { const key = detail.dataset.materialItemKey; if (key) detail.open ? materialItemOpenState.add(key) : materialItemOpenState.delete(key); return; } if (!detail.matches("[data-material-section]")) return; const key = detail.dataset.materialSection; if (Object.prototype.hasOwnProperty.call(materialSectionOpenState, key)) materialSectionOpenState[key] = detail.open; }, true);
   materialSectionToggleListenerRegistered = true;
 }
 function renderMaterials() {
-  if (!elements.materialsList) return;
-  ensureMaterialSectionToggleListener();
-  renderMaterialSelectors(); renderMaterialFilters();
-  const list = filteredMaterials().sort((a,b)=>(b.date||"").localeCompare(a.date||""));
-  const todayProjectionByGoalId = new Map(buildDailyPlanProjection(todayISO()).map((entry) => [entry.goal.id, entry]));
-  const todayGoalMaterials = new Set((state.dailyGoals || []).filter((g) => g.date === todayISO()).flatMap((goal) => materialsForDailyGoal(goal, todayProjectionByGoalId.get(goal.id)).map((m) => m.id)));
-  const todayMaterials = list.filter((m) => todayGoalMaterials.has(m.id));
-  const recentMaterials = list.filter((m) => !todayGoalMaterials.has(m.id)).slice(0, 10);
-  elements.materialsList.innerHTML = list.length ? [
-    materialSectionHTML("today", "1. MATERIAIS PARA O PLANO DE HOJE", todayMaterials, "Nenhum material pronto vinculado ao plano de hoje."),
-    materialSectionHTML("recent", "2. MATERIAIS RECENTES", recentMaterials, "Nenhum material recente."),
-    materialSectionHTML("all", "3. TODOS OS MATERIAIS", list, "Nenhum material cadastrado.")
-  ].join("") : "";
+  if (!elements.materialsList) return; ensureMaterialSectionToggleListener(); renderMaterialSelectors(); renderMaterialFilters();
+  const list = filteredMaterials(); const todayProjectionByGoalId = new Map(buildDailyPlanProjection(todayISO()).map((entry) => [entry.goal.id, entry]));
+  const todayRecordIds = new Set((state.dailyGoals || []).filter((goal) => goal.date === todayISO()).flatMap((goal) => materialsForDailyGoal(goal, todayProjectionByGoalId.get(goal.id)).map((material) => material.id)));
+  const todayMaterials = list.filter((group) => group.records.some((record) => todayRecordIds.has(record.id))); const todayKeys = new Set(todayMaterials.map((group) => group.key)); const recentMaterials = list.filter((group) => !todayKeys.has(group.key)).slice(0, 10);
+  elements.materialsList.innerHTML = list.length ? [materialSectionHTML("today", "1. MATERIAIS PARA O PLANO DE HOJE", todayMaterials, "Nenhum material pronto vinculado ao plano de hoje."), materialSectionHTML("recent", "2. MATERIAIS RECENTES", recentMaterials, "Nenhum material recente."), materialSectionHTML("all", "3. TODOS OS MATERIAIS", list, "Nenhum material cadastrado.")].join("") : "";
 }
 function updateStudyMaterialOptions() {
   if (!elements.studyMaterial) return;
@@ -5667,7 +5685,7 @@ initFactoryEvents();
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin, elements.materialFilterText].filter(Boolean).forEach((filter) => filter.addEventListener("input", renderMaterials));
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin].filter(Boolean).forEach((filter) => filter.addEventListener("change", renderMaterials));
 document.addEventListener("change", (event) => { const mode = event.target.closest?.('[data-material-estimate-field="estimateMode"]'); if (mode) updateMaterialEstimateModeUI(mode.closest(".material-estimate-box")); });
-document.addEventListener("click", (event) => { const openUrl = event.target.closest("button[data-open-url]"); if (openUrl && isValidHttpUrl(openUrl.dataset.openUrl)) window.open(openUrl.dataset.openUrl, "_blank", "noopener"); const open = event.target.closest("button[data-open-material]"); const create = event.target.closest("button[data-create-goal-material]"); const edit = event.target.closest("button[data-edit-material]"); const del = event.target.closest("button[data-delete-material]"); const calcEstimate = event.target.closest("button[data-calculate-material-estimate]"); const saveEstimate = event.target.closest("button[data-save-material-estimate]"); const updateMaterialGoals = event.target.closest("button[data-update-material-goals]"); if (updateMaterialGoals) { event.preventDefault(); updateFuturePendingGoalsForMaterial(updateMaterialGoals.dataset.updateMaterialGoals); } if (calcEstimate) { event.preventDefault(); previewMaterialEstimate(calcEstimate); } if (saveEstimate) { event.preventDefault(); saveMaterialEstimate(saveEstimate); } if (open) openMaterial(open.dataset.openMaterial); if (create) startMaterialForGoal(create.dataset.discipline, create.dataset.subject); if (edit) editMaterial(edit.dataset.editMaterial); if (del && confirm("Excluir este material?")) { state.materials = state.materials.filter((m)=>m.id!==del.dataset.deleteMaterial); render(); } });
+document.addEventListener("click", (event) => { const openUrl = event.target.closest("button[data-open-url]"); if (openUrl && isValidHttpUrl(openUrl.dataset.openUrl)) window.open(openUrl.dataset.openUrl, "_blank", "noopener"); const open = event.target.closest("button[data-open-material]"); const create = event.target.closest("button[data-create-goal-material]"); const edit = event.target.closest("button[data-edit-material]"); const del = event.target.closest("button[data-delete-material]"); const use = event.target.closest("button[data-use-material-study]"); const calcEstimate = event.target.closest("button[data-calculate-material-estimate]"); const saveEstimate = event.target.closest("button[data-save-material-estimate]"); const updateMaterialGoals = event.target.closest("button[data-update-material-goals]"); if (updateMaterialGoals) { event.preventDefault(); updateFuturePendingGoalsForMaterial(updateMaterialGoals.dataset.updateMaterialGoals); } if (calcEstimate) { event.preventDefault(); previewMaterialEstimate(calcEstimate); } if (saveEstimate) { event.preventDefault(); saveMaterialEstimate(saveEstimate); } if (open) openMaterial(open.dataset.openMaterial); if (use) { const material = state.materials.find((m) => m.id === use.dataset.useMaterialStudy); if (material) { showView("dashboard"); const subject = state.subjects.find((item) => canonical(item.name) === canonical(material.discipline)); if (subject) elements.studySubject.value = subject.id; elements.studyTopic.value = material.subject || ""; updateStudyMaterialOptions(); if (elements.studyMaterial) elements.studyMaterial.value = material.id; } } if (create) startMaterialForGoal(create.dataset.discipline, create.dataset.subject); if (edit) editMaterial(edit.dataset.editMaterial); if (del && confirm("Excluir este material?")) { state.materials = state.materials.filter((m)=>m.id!==del.dataset.deleteMaterial); render(); } });
 
 function showBootstrapLoadingState() {
   const loading = document.getElementById("appLoadingState");

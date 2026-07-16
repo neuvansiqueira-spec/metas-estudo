@@ -175,23 +175,14 @@ test('arquivos de publicação mantêm paridade entre raiz e docs para correçã
   assert.equal(sw, docsSw);
 });
 
-test('Materiais renderizam visual estável sem detalhes recolhíveis ou mutação de dados', () => {
-  assert.doesNotMatch(script, /const openMaterialDetailIds = new Set\(\)/);
-  assert.doesNotMatch(script, /data-toggle-material-details/);
-  assert.doesNotMatch(script, /data-material-details/);
-  assert.doesNotMatch(script, /data-material-card/);
-  assert.doesNotMatch(script, /function toggleMaterialDetails\(button\)/);
-  assert.doesNotMatch(script, /Abrir detalhes|Fechar detalhes/);
-  assert.doesNotMatch(script, /material-card-details|material-card-summary|material-details-toggle/);
-  assert.doesNotMatch(css, /material-card-details|material-card-summary|material-details-toggle/);
-  assert.doesNotMatch(script, /state\.materials[^\n;]*(open|expanded|collapsed|details)/i);
-  assert.match(script, /<article class="syllabus-card material-card"><header><div><h3>\$\{escapeHTML\(m\.title\)\}<\/h3>/);
-  assert.match(script, /<span>Disciplina: \$\{escapeHTML\(m\.discipline\)\}<\/span><span>Assunto: \$\{escapeHTML\(m\.subject\)\}<\/span><span>Módulo: \$\{escapeHTML\(modulo\)\}<\/span>/);
-  assert.match(script, /\$\{materialEstimateSummaryHTML\(m\)\}\$\{materialEstimateFormHTML\(m\)\}<div class="card-actions">/);
-  assert.match(script, /data-open-material="\$\{m\.id\}">Abrir/);
-  assert.match(script, /data-use-material-study="\$\{m\.id\}">Usar no estudo/);
-  assert.match(script, /data-edit-material="\$\{m\.id\}">Editar/);
-  assert.match(script, /data-delete-material="\$\{m\.id\}">Excluir/);
+test('Materiais renderizam grupos visuais sem mutar registros', () => {
+  assert.match(script, /function buildMaterialLibraryViewModel/);
+  assert.match(script, /function materialPhysicalFileIdentity/);
+  assert.match(script, /Origens vinculadas/);
+  assert.match(script, /Editar cadastro manual/);
+  assert.match(script, /Excluir cadastro manual/);
+  assert.match(script, /<summary>Ver detalhes<\/summary>/);
+  assert.doesNotMatch(script, /state\.materials[^\n;]*(open|expanded|collapsed)/i);
   assert.equal(script, docsScript);
 });
 
@@ -210,7 +201,7 @@ test('Materiais têm exatamente três seções recolhíveis com estado inicial e
 test('Materiais preservam abertura independente após render sem persistir em state ou localStorage', () => {
   assert.match(script, /let materialSectionToggleListenerRegistered = false;/);
   assert.match(script, /addEventListener\("toggle",/);
-  assert.match(script, /materialSectionOpenState\[key\] = section\.open;/);
+  assert.match(script, /materialSectionOpenState\[key\] = detail\.open;/);
   assert.match(script, /const materialItemOpenState = new Set\(\);/);
   assert.match(script, /data-material-item-key/);
   assert.match(script, /materialItemOpenState\.add\(key\)/);
@@ -222,12 +213,13 @@ test('Materiais preservam abertura independente após render sem persistir em st
   assert.doesNotMatch(materialSectionBlock, /querySelectorAll\([^)]*data-material-section[\s\S]*forEach\([^)]*addEventListener/);
 });
 
-test('Materiais preservam regras de conteúdo nas seções recolhíveis', () => {
+test('Materiais aplicam modelo agrupado às três seções', () => {
   const renderBlock = script.slice(script.indexOf('function renderMaterials'), script.indexOf('function updateStudyMaterialOptions'));
-  assert.match(renderBlock, /filteredMaterials\(\)\.sort\(\(a,b\)=>\(b\.date\|\|""\)\.localeCompare\(a\.date\|\|""\)\)/);
+  assert.match(renderBlock, /const list = filteredMaterials\(\)/);
   assert.match(renderBlock, /materialsForDailyGoal\(goal, todayProjectionByGoalId\.get\(goal\.id\)\)\.map/);
-  assert.match(renderBlock, /const todayMaterials = list\.filter\(\(m\) => todayGoalMaterials\.has\(m\.id\)\)/);
-  assert.match(renderBlock, /const recentMaterials = list\.filter\(\(m\) => !todayGoalMaterials\.has\(m\.id\)\)\.slice\(0, 10\)/);
+  assert.match(renderBlock, /group\.records\.some/);
+  assert.match(renderBlock, /todayKeys/);
+  assert.match(renderBlock, /slice\(0, 10\)/);
   assert.match(renderBlock, /materialSectionHTML\("all", "3\. TODOS OS MATERIAIS", list/);
   assert.match(script, /Nenhum material pronto vinculado ao plano de hoje\./);
   assert.match(script, /Nenhum material recente\./);
