@@ -2,7 +2,7 @@
 
 ## Versão estável atual
 
-`20260716-agrupar-materiais-e-eliminar-duplicacoes-v3`
+`20260716-unificar-materiais-plano-do-dia-v1`
 
 ## Data
 
@@ -10,7 +10,7 @@
 
 ## Restauração de abertura estável
 
-Esta versão consolida visualmente a biblioteca da aba Materiais por disciplina, assunto e módulo, sem alterar registros persistidos. Arquivos físicos equivalentes são exibidos uma única vez e formatos distintos permanecem disponíveis no mesmo cartão.
+Esta versão unifica a disponibilidade de materiais do Plano do Dia em uma projeção central, preservando os registros persistidos. Metas concluídas ficam fora dos materiais do plano atual, enquanto a biblioteca e o histórico continuam exibindo seus materiais consolidados.
 
 ## Telas principais cobertas pela estabilidade
 

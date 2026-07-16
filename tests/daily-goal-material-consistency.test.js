@@ -1,0 +1,51 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+
+const script = fs.readFileSync('script.js', 'utf8');
+const start = script.indexOf('function materialAvailable(m)');
+const end = script.indexOf('\n\nfunction materialTitleById', start);
+const factory = new Function('state', `${script.slice(start, end)}; return { buildDailyPlanProjection, getDailyGoalMaterialState };`);
+const today = '2026-07-16';
+const goal = { id: 'goal', date: today, discipline: 'Penal', subject: 'Crime', syllabusItemId: 'crime', status: 'Pendente' };
+
+function materialState(materials, status = 'Pendente') {
+  const state = { dailyGoals: [{ ...goal, status }], materials, factoryItems: [] };
+  const api = factory(state);
+  const entry = api.buildDailyPlanProjection(today, state)[0];
+  return api.getDailyGoalMaterialState(entry.goal, entry);
+}
+
+test('fonte central retorna zero sem material e consolida PDF manual/Fábrica sem mutar state', () => {
+  const state = materialState([]);
+  assert.deepEqual(state, { materials: [], count: 0, hasMaterials: false, estimatedMaterials: [], estimatedMinutes: 0, hasEstimate: false });
+  const records = [
+    { id: 'manual', goalId: 'goal', discipline: 'Penal', subject: 'Crime', syllabusItemId: 'crime', type: 'PDF', link: 'https://example.test/crime.pdf' },
+    { id: 'factory', goalId: 'goal', discipline: 'Penal', subject: 'Crime', syllabusItemId: 'crime', source: 'factory', factoryFormat: 'PDF', link: 'https://example.test/crime.pdf', estimatedMinutes: 90 }
+  ];
+  const before = JSON.stringify(records);
+  const consolidated = materialState(records);
+  assert.equal(consolidated.count, 1);
+  assert.equal(consolidated.hasMaterials, true);
+  assert.equal(consolidated.hasEstimate, true);
+  assert.equal(JSON.stringify(records), before);
+});
+
+test('renderização usa estado central para botões, textos, contagem e metas ativas de hoje', () => {
+  assert.match(script, /function getDailyGoalMaterialState\(/);
+  assert.match(script, /materialState\.hasMaterials \? `<button type="button" data-open-goal-material/);
+  assert.match(script, /Cadastrar material/);
+  assert.match(script, /Produzir material/);
+  assert.match(script, /Nenhum material disponível para este assunto\./);
+  assert.match(script, /materiais disponíveis.*sem estimativa de duração/s);
+  assert.match(script, /materialState\.count} materiais/);
+  assert.match(script, /!isGoalDone\(goal\)\)\.flatMap\(\(goal\) => getDailyGoalMaterialState/);
+  assert.doesNotMatch(script, /Sem estimativa de material vinculada/);
+});
+
+test('meta concluída não entra na seção de hoje, mas continua na biblioteca consolidada', () => {
+  const renderBlock = script.slice(script.indexOf('function renderMaterials'), script.indexOf('function updateStudyMaterialOptions'));
+  assert.match(renderBlock, /\(goal\.date \|\| goal\.data\) === todayISO\(\) && !isGoalDone\(goal\)/);
+  assert.match(renderBlock, /const list = filteredMaterials\(\)/);
+  assert.match(renderBlock, /materialSectionHTML\("all", "3\. TODOS OS MATERIAIS", list/);
+});
