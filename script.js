@@ -4689,7 +4689,13 @@ elements.qbReviewByDiscipline?.addEventListener("click", () => qbReviewFilteredB
 elements.qbReviewBySubject?.addEventListener("click", () => qbReviewFilteredBy("assunto"));
 elements.qbToggleErrorHistory?.addEventListener("click", () => { if (elements.qbErrorHistory) elements.qbErrorHistory.open = !elements.qbErrorHistory.open; });
 
-function render() { renderFloatingTimer(); renderSubjects(); renderGoalSelectors(); renderQuestionSelectors(); renderPlanning(); renderProgressPanel(); renderDashboard(); renderGoalDashboardCards(); renderEdital(); renderSyllabus(); renderSchedulable(); renderDailyGoals(); renderGoalCalendar(); renderCentralGoals(); renderQuestionHistory(); updateQuestionCalculated(); renderMaterials(); updateStudyMaterialOptions(); safeRenderView("fabrica-resumos", renderFactory); renderReviews(); renderSmartReviewsDashboard(); renderSmartReviewStandalone(); renderAlerts(); renderHistory(); renderImportPreview(); renderImportedSyllabusGroups(); renderBackupSummary(); renderLegacyTimerRecoveryReview(); renderQuestionBank(); qbRenderErrorNotebook(); renderSimulados(); }
+// Atualiza somente a tela aberta. A renderização completa de todas as telas na inicialização
+// bloqueava a interação mesmo quando o usuário precisava apenas do Dashboard.
+function render() {
+  renderFloatingTimer();
+  const activeView = typeof hashToView === "function" ? hashToView() : "dashboard";
+  renderView(typeof resolveViewTarget === "function" ? resolveViewTarget(activeView) : activeView);
+}
 function syllabusFromValues(values) { return { id: createId(), discipline: values[0]?.trim() || "Sem disciplina", topic: values[1]?.trim() || "Geral", subject: values[2]?.trim() || "Assunto", subtopic: values[3]?.trim() || "", reference: values[4]?.trim() || "", priority: values[5]?.trim() || "Média", weight: normalizeSubjectIncidence(values[6]), status: values[7]?.trim() || "Não iniciado", domain: normalizeImportedDomain(values[8]), notes: values[9]?.trim() || "" }; }
 
 elements.changeMotivation?.addEventListener("click", () => renderMotivationalPhrase());
@@ -6131,7 +6137,7 @@ function renderView(viewId) {
     "edital-verticalizado": renderSyllabus,
     "importar-edital": renderImportPreview,
     materiais: renderMaterials,
-    "fabrica-resumos": renderFactory,
+    "fabrica-resumos": () => safeRenderView("fabrica-resumos", renderFactory),
     "assuntos-agendaveis": renderSchedulable,
     "central-metas": renderCentralGoals,
     "metas-do-dia": () => { renderGoalSelectors(); renderDailyGoals(); },
