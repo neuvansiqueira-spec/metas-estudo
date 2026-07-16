@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260716-gerador-unico-v11",
+  "version": "20260716-cronometro-livre-v12",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260716-gerador-unico-v11";
+const APP_VERSION = "20260716-cronometro-livre-v12";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -1479,6 +1479,7 @@ async function enableTimerNotifications(input) {
 
 function renderFloatingTimer() {
   if (!elements.floatingTimer) return;
+  if (elements.timerMode) elements.timerMode.value = floatingTimer.goalId ? (floatingTimer.mode || "countdown") : (state.settings?.timerMode || "countdown");
   const goal = floatingTimerGoal();
   const isActive = Boolean(goal && floatingTimer.goalId);
   elements.floatingTimer.hidden = !isActive;
@@ -1486,7 +1487,6 @@ function renderFloatingTimer() {
   elements.timerDiscipline.textContent = goal.discipline || "Sem disciplina";
   elements.timerSubject.textContent = goal.subject || "Assunto";
   elements.timerKind.textContent = `${floatingTimer.mode === "free" ? "Cronômetro livre" : "Contagem regressiva"} • ${timerKindLabel(floatingTimer.kind)}`;
-  if (elements.timerMode) elements.timerMode.value = floatingTimer.mode || "countdown";
   const planned = timerPlannedSeconds(goal);
   const progress = timerProgressPercent(goal);
   elements.timerTime.textContent = floatingTimer.mode === "countdown" && planned ? formatTimerSeconds(timerRemainingSeconds(goal)) : formatTimerSeconds(currentTimerSeconds());
@@ -1525,7 +1525,7 @@ function restoreFloatingTimerSession() {
 function startFloatingTimer(goal, kind = "study") {
   if (floatingTimer.goalId) { showDailyGoalMessage("Já existe cronômetro em andamento. Salve ou feche a sessão atual antes de iniciar outra.", "error"); return; }
   stopFloatingTimerInterval();
-  const selectedMode = elements.timerMode?.value || state.settings?.timerMode || "countdown";
+  const selectedMode = state.settings?.timerMode || elements.timerMode?.value || "countdown";
   const sessionGoalMinutes = selectedMode === "free" ? 0 : 0;
   state.settings.timerMode = selectedMode;
   saveData();
@@ -5720,7 +5720,27 @@ elements.timeHistoryCards?.addEventListener("click", (event) => { const more = e
 elements.timerStudyForm?.addEventListener("submit", submitTimerStudyModal);
 elements.timerStudyDiscipline?.addEventListener("change", () => populateTimerStudySubjects());
 document.addEventListener("click", (event) => { if (event.target.closest("[data-timer-study-cancel]")) closeTimerStudyModal(); });
-elements.timerMode?.addEventListener("change", () => { if (floatingTimer.goalId && currentTimerSeconds() > 0) { elements.timerMode.value = floatingTimer.mode || "countdown"; showDailyGoalMessage("Salve ou feche a sessão atual antes de trocar o modo do cronômetro.", "error"); return; } state.settings.timerMode = elements.timerMode.value; saveData(); autoSyncAfterSave("timer-settings"); });
+elements.timerMode?.addEventListener("change", () => {
+  const selectedMode = elements.timerMode.value === "free" ? "free" : "countdown";
+  state.settings.timerMode = selectedMode;
+  if (floatingTimer.goalId) {
+    const elapsedSeconds = currentTimerSeconds();
+    floatingTimer.elapsedSeconds = elapsedSeconds;
+    floatingTimer.startedAt = floatingTimer.paused ? null : Date.now();
+    floatingTimer.mode = selectedMode;
+    floatingTimer.sessionGoalMinutes = 0;
+    floatingTimer.completed = false;
+    floatingTimer.completionAlarmPlayed = false;
+    floatingTimer.completionDismissed = false;
+    floatingTimer.previousRemainingSeconds = null;
+    floatingTimer.warnedFive = false;
+    floatingTimer.warnedOne = false;
+    persistFloatingTimerSession();
+    renderFloatingTimer();
+    showDailyGoalMessage(selectedMode === "free" ? "Cronômetro livre ativado. O tempo continuará contando para cima." : "Contagem regressiva ativada. O tempo já decorrido foi preservado.", "success");
+  } else saveData();
+  autoSyncAfterSave("timer-settings");
+});
 document.addEventListener("click", (event) => { const btn = event.target.closest("button[data-smart-review-action]"); if (!btn) return; saveSmartReviewAction(btn.dataset.id, btn.dataset.smartReviewAction === "done" ? "revisado" : "adiado"); });
 document.addEventListener("change", (event) => { const input = event.target.closest("input[data-smart-review-time]"); if (!input) return; upsertSmartReviewTime(input.dataset.id, input.dataset.smartReviewTime, input.value); });
 elements.viewDayPlan?.addEventListener("click", () => { elements.goalDate.value = todayISO(); renderDailyGoals(); showView("metas-do-dia"); });

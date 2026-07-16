@@ -38,10 +38,10 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão atual', () => {
-  assert.match(html, /style\.css\?v=20260716-gerador-unico-v11/);
-  assert.match(html, /storage-indexeddb\.js\?v=20260716-gerador-unico-v11/);
-  assert.match(html, /script\.js\?v=20260716-gerador-unico-v11/);
-  assert.match(html, /Versão: 20260716-gerador-unico-v11/);
+  assert.match(html, /style\.css\?v=20260716-cronometro-livre-v12/);
+  assert.match(html, /storage-indexeddb\.js\?v=20260716-cronometro-livre-v12/);
+  assert.match(html, /script\.js\?v=20260716-cronometro-livre-v12/);
+  assert.match(html, /Versão: 20260716-cronometro-livre-v12/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -230,7 +230,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260716-gerador-unico-v11/);
+  assert.match(sw, /metas-estudo-20260716-cronometro-livre-v12/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);
@@ -409,6 +409,14 @@ test('modo livre com meta dispara alerta completed uma única vez ao atingir a m
   vm.runInContext(`${plannedMatch[0]}; ${alertMatch[0]}; checkFloatingTimerAlerts(); checkFloatingTimerAlerts();`, context);
 
   assert.deepEqual(calls, ['completed']);
+});
+
+test('modo livre pode ser ativado na sessão atual sem perder o tempo decorrido', () => {
+  assert.match(script, /const selectedMode = state\.settings\?\.timerMode \|\| elements\.timerMode\?\.value \|\| "countdown"/);
+  assert.match(script, /const elapsedSeconds = currentTimerSeconds\(\);[\s\S]*floatingTimer\.elapsedSeconds = elapsedSeconds;[\s\S]*floatingTimer\.mode = selectedMode/);
+  assert.match(script, /floatingTimer\.startedAt = floatingTimer\.paused \? null : Date\.now\(\)/);
+  assert.match(script, /Cronômetro livre ativado\. O tempo continuará contando para cima\./);
+  assert.doesNotMatch(script, /Salve ou feche a sessão atual antes de trocar o modo do cronômetro/);
 });
 
 
