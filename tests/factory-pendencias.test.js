@@ -41,7 +41,7 @@ test('Abrir usa fila de pendências, seleciona o item clicado no painel principa
   assert.match(script, /const nowEntry = selectedEntry \|\| firstResumoPendingEntry \|\| queue\[0\]/);
   assert.match(script, /factoryOpenDetailId = factoryOpenDetailId === id \? "" : id/);
   assert.match(script, /if \(factoryOpenDetailId\) factoryCurrentFilter = "faca-agora"/);
-  assert.match(script, /elements\.factoryList\.innerHTML = factoryCurrentFilter === "faca-agora" \? nowPanel \+ queuePanel : listPanel/);
+  assert.match(script, /todayPlanPanel \+ \(factoryCurrentFilter === "faca-agora"/);
   assert.match(script, /if \(factoryCurrentFilter === "fila-hoje"\) entries = todayQueue/);
 });
 

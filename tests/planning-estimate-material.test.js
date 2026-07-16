@@ -33,7 +33,7 @@ test('Abrir material usa fluxo central, noopener e feedback interno', () => {
   assert.match(script, /function openGoalMaterial\(goalId, materialId = ""\)/);
   assert.match(script, /materialsForDailyGoal\(goal\)/);
   assert.match(script, /window\.open\(material\.link, "_blank", "noopener"\)/);
-  assert.match(script, /O material está vinculado à meta, mas não possui um link válido para abertura\./);
+  assert.match(script, /O material existe, mas este formato não possui link válido\./);
   assert.match(script, /Escolha um material disponível para abertura\./);
   assert.match(script, /data-material-id="\$\{m\.id\}"/);
   assert.match(script, /event\.preventDefault\(\); event\.stopPropagation\(\); openGoalMaterial/);
@@ -48,5 +48,5 @@ test('arquivos publicados e versão permanecem sincronizados', () => {
   assert.equal(html, fs.readFileSync('docs/index.html', 'utf8'));
   assert.equal(css, fs.readFileSync('docs/style.css', 'utf8'));
   assert.equal(fs.readFileSync('service-worker.js', 'utf8'), fs.readFileSync('docs/service-worker.js', 'utf8'));
-  assert.match(script, /20260715-planejamento-estimativa-material-v1/);
+  assert.match(script, /20260715-estabilizacao-plano-fabrica-materiais-v1/);
 });

@@ -1,5 +1,5 @@
 // versão anterior: metas-estudo-20260714-conselheiro-local-v1
-const CACHE_NAME = "metas-estudo-20260715-planejamento-estimativa-material-v1";
+const CACHE_NAME = "metas-estudo-20260715-estabilizacao-plano-fabrica-materiais-v1";
 const FILES_TO_CACHE = [
   "./",
   "index.html",

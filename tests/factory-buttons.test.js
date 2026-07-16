@@ -10,7 +10,7 @@ const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const serviceWorker = fs.readFileSync('service-worker.js', 'utf8');
 const docsServiceWorker = fs.readFileSync('docs/service-worker.js', 'utf8');
 
-const version = '20260715-planejamento-estimativa-material-v1';
+const version = '20260715-estabilizacao-plano-fabrica-materiais-v1';
 const clickRoutes = [
   'factoryPrompt', 'factoryPromptClose', 'factoryPromptCopy', 'factoryRouterCopy',
   'factoryEdit', 'factoryDelete', 'factoryModules', 'factoryModulesCancel',
@@ -132,7 +132,7 @@ test('rótulos e status da fila são derivados dos módulos normalizados', () =>
 });
 
 test('filtros evitam cards interativos duplicados e protegem armazenamento', () => {
-  assert.match(script, /elements\.factoryList\.innerHTML = factoryCurrentFilter === "faca-agora" \? nowPanel \+ queuePanel : listPanel/);
+  assert.match(script, /todayPlanPanel \+ \(factoryCurrentFilter === "faca-agora"/);
   assert.doesNotMatch(script, /elements\.factoryList\.innerHTML = nowPanel \+ queuePanel \+ listPanel/);
   assert.doesNotMatch(script, /localStorage\.clear\(/);
   assert.doesNotMatch(script, /removeItem\([^)]*(factoryAgenda|factoryItems|materials|dailyGoals|smartReviews|syllabusItems|questionBank|simulados)/);

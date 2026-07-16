@@ -57,7 +57,7 @@ test('metas, registro de estudo e fábrica reutilizam resolvedor central de mate
   assert.match(script, /function materialsForDailyGoal\(goal = \{\}\)/);
   assert.match(script, /const materials = materialsForDailyGoal\(goal\)/);
   assert.match(script, /MATERIAIS DISPONÍVEIS/);
-  assert.match(script, /Nenhum material pronto para este assunto/);
+  assert.match(script, /Nenhum material vinculado a esta meta/);
   assert.match(script, /const mats = resolveAvailableMaterials\(/);
   assert.match(script, /function factoryTodayQueue\(agenda = ensureFactoryAgenda\(\)\)/);
   assert.equal(script, docsScript, 'script.js e docs/script.js devem permanecer sincronizados');

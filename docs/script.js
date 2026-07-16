@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260715-planejamento-estimativa-material-v1";
+const APP_VERSION = "20260715-estabilizacao-plano-fabrica-materiais-v1";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -3711,9 +3711,8 @@ function factoryThemeHighlightHTML(item = {}, recorte = "", { position = "" } = 
 function renderFactory() {
   if (!elements.factoryList) return;
   try {
-    const syncInfo = syncFactoryWithActiveEdital();
-    if (syncInfo.changed) saveData();
-    const agenda = ensureFactoryAgenda();
+    const syncInfo = { subjects: 0, changed: false };
+    const agenda = (state.factoryAgenda?.length ? state.factoryAgenda : (state.factoryItems || [])).map(normalizeFactoryItem);
     [elements.factoryStatus].filter(Boolean).forEach((select) => {
       const keep = select.value || "Não iniciado";
       select.innerHTML = FACTORY_STATUSES.map((status)=>`<option>${status}</option>`).join("");
@@ -3725,6 +3724,9 @@ function renderFactory() {
       button.setAttribute("aria-pressed", active ? "true" : "false");
     });
     const activeAgenda = agenda.filter((item) => item.editalActive !== false);
+    const selectedDate = elements.goalDate?.value || todayISO();
+    const dailyProjection = buildDailyPlanProjection(selectedDate);
+    const todayPlanPanel = `<section class="factory-section factory-today-plan"><h3>📚 MATERIAIS PARA O PLANO DE HOJE</h3>${dailyProjection.length ? dailyProjection.map((entry) => { const count = entry.materialGroups.reduce((total, group) => total + group.materials.length, 0); const status = !count ? "Pendente" : entry.factoryItems.length && entry.materialGroups.length ? "Pronto" : "Parcial"; return `<article class="syllabus-card factory-card"><h3>${escapeHTML(entry.goal.discipline)} — ${escapeHTML(entry.goal.subject)}</h3><p class="item-meta">${escapeHTML(status)} • ${count} arquivo(s)</p>${entry.materialGroups.length ? entry.materialGroups.map((group) => `<p><strong>${escapeHTML(group.label === "resumoAula" ? "RESUMO/AULA" : group.label.toUpperCase())}:</strong> ${group.materials.map((material) => escapeHTML(materialButtonLabel(material))).join(" • ")}</p>`).join("") : `<p class="item-meta">Nenhum material vinculado.</p>`}</article>`; }).join("") : `<p class="empty-message">Nenhuma meta cadastrada para esta data.</p>`}</section>`;
     const todayQueue = factoryTodayQueue(activeAgenda);
     const queue = factoryDoNowQueue(activeAgenda);
     const completedCount = activeAgenda.filter((item) => factoryThemeIsCompleted(normalizeFactoryModules(item.modules || {}))).length;
@@ -3770,7 +3772,7 @@ function renderFactory() {
     if (factoryCurrentFilter === "precisa-refazer") entries = entries.filter(({ item }) => normalizeFactoryTriagemStatus(item, item.modules) === "Precisa refazer" || factoryOverallStatus(item.modules) === "Precisa refazer");
     if (factoryCurrentFilter === "prontos") entries = entries.filter(({ item }) => factoryResumoAulaReady(item));
     const listPanel = factoryCurrentFilter === "faca-agora" ? "" : `<section class="factory-section"><h3>${factoryCurrentFilter === "fila-hoje" ? "📋 FILA RESUMIDA DE PENDÊNCIAS" : "Temas"}</h3>${entries.length ? entries.map(cardFor).join("") : `<p class="empty-message">Nenhum tema nesta lista.</p>`}</section>`;
-    elements.factoryList.innerHTML = factoryCurrentFilter === "faca-agora" ? nowPanel + queuePanel : listPanel;
+    elements.factoryList.innerHTML = todayPlanPanel + (factoryCurrentFilter === "faca-agora" ? nowPanel + queuePanel : listPanel.replace("<h3>", "<h3>FILA GERAL DA FÁBRICA — "));
   } catch (error) {
     console.error("[Metas Estudo] Erro ao carregar Fábrica de Resumos", error);
     showFactoryErrorMessage();
@@ -3841,24 +3843,58 @@ function syncFactoryModuleMaterials(item) {
   });
 }
 function syncAllFactoryMaterials() { ensureFactoryAgenda().forEach(syncFactoryModuleMaterials); }
-function materialAvailable(m) { return m && m.available !== false && isValidHttpUrl(m.link || ""); }
-function materialsForFactoryItem(item) { const id = item?.id || item; return (state.materials || []).filter((m) => materialAvailable(m) && m.source === "factory" && m.factoryItemId === id); }
-function resolveAvailableMaterials({ discipline = "", subject = "", syllabusItemId = "", syllabusItemIds = [], factoryItemId = "" } = {}) {
-  const ids = new Set([syllabusItemId, ...syllabusItemIds].filter(Boolean));
-  const exact = (m) => canonical(m.discipline) === canonical(discipline) && canonical(m.subject) === canonical(subject);
-  return (state.materials || []).filter(materialAvailable).filter((m) =>
-    (syllabusItemId && m.syllabusItemId === syllabusItemId) ||
-    ([...(m.syllabusItemIds || [])].some((id) => ids.has(id))) ||
-    (factoryItemId && m.factoryItemId === factoryItemId) ||
-    exact(m)
-  );
+function materialAvailable(m) { return m && m.available !== false; }
+function dailyPlanCanonical(value) { return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " "); }
+function dailyPlanMaterialIdentity(material = {}) {
+  const link = String(material.link || "").trim().toLowerCase();
+  return material.sourceRecordId || (material.factoryItemId ? `${material.factoryItemId}|${material.factoryModuleKey || "material"}|${String(material.factoryFormat || material.type || "").toLowerCase()}` : `${link}|${material.factoryModuleKey || "manual"}|${String(material.factoryFormat || material.type || "").toLowerCase()}`);
+}
+function buildDailyPlanProjection(date, targetState = state) {
+  const goals = (targetState.dailyGoals || []).filter((goal) => (goal.date || goal.data) === date);
+  const materials = (targetState.materials || []).filter(materialAvailable);
+  const factoryItems = targetState.factoryAgenda?.length ? targetState.factoryAgenda : (targetState.factoryItems || []);
+  const goalCandidates = (record) => goals.filter((goal) => {
+    const itemIds = [record.syllabusItemId, ...(record.syllabusItemIds || []), record.parentSyllabusItemId].filter(Boolean);
+    if (goal.estimateSourceId && goal.estimateSourceId === record.id) return true;
+    if (record.goalId && record.goalId === goal.id) return true;
+    if (itemIds.includes(goal.syllabusItemId)) return true;
+    return false;
+  });
+  const projection = goals.map((goal) => {
+    const linkedFactory = factoryItems.filter((item) => {
+      if (item.goalId === goal.id) return true;
+      const ids = [item.syllabusItemId, ...(item.syllabusItemIds || []), ...(item.editalLink?.itemIds || []), item.parentSyllabusItemId].filter(Boolean);
+      if (goal.syllabusItemId && ids.includes(goal.syllabusItemId)) return true;
+      const candidates = factoryItems.filter((candidate) => dailyPlanCanonical(candidate.disciplina || candidate.discipline) === dailyPlanCanonical(item.disciplina || item.discipline) && dailyPlanCanonical(candidate.tema || candidate.subject) === dailyPlanCanonical(item.tema || item.subject));
+      return candidates.length === 1 && dailyPlanCanonical(item.disciplina || item.discipline) === dailyPlanCanonical(goal.discipline || goal.disciplina) && dailyPlanCanonical(item.tema || item.subject) === dailyPlanCanonical(goal.subject || goal.assunto) && goals.filter((candidate) => dailyPlanCanonical(candidate.discipline || candidate.disciplina) === dailyPlanCanonical(goal.discipline || goal.disciplina) && dailyPlanCanonical(candidate.subject || candidate.assunto) === dailyPlanCanonical(goal.subject || goal.assunto)).length === 1;
+    });
+    const factoryIds = new Set(linkedFactory.map((item) => item.id));
+    const linked = materials.filter((material) => {
+      if (goal.estimateSourceId === material.id || material.goalId === goal.id) return true;
+      if (factoryIds.has(material.factoryItemId)) return true;
+      if (material.factoryItemId && linkedFactory.some((item) => item.id === material.factoryItemId)) return true;
+      const ids = [material.syllabusItemId, ...(material.syllabusItemIds || []), material.parentSyllabusItemId].filter(Boolean);
+      if (goal.syllabusItemId && ids.includes(goal.syllabusItemId)) return true;
+      const candidates = goalCandidates(material);
+      return candidates.length === 1 && dailyPlanCanonical(material.discipline) === dailyPlanCanonical(goal.discipline || goal.disciplina) && dailyPlanCanonical(material.subject) === dailyPlanCanonical(goal.subject || goal.assunto);
+    });
+    const seen = new Set(); const uniqueMaterials = linked.filter((material) => { const key = dailyPlanMaterialIdentity(material); if (seen.has(key)) return false; seen.add(key); return true; });
+    const groups = new Map();
+    uniqueMaterials.forEach((material) => { const key = `${goal.id}|${material.factoryItemId || "manual"}|${material.factoryModuleKey || "material"}`; if (!groups.has(key)) groups.set(key, { key, moduleKey: material.factoryModuleKey || "material", label: material.factoryModuleKey || "MATERIAL", materials: [], subtopic: material.parentSyllabusItemId === goal.syllabusItemId ? material.subject : "" }); groups.get(key).materials.push(material); });
+    const estimateCandidates = uniqueMaterials.filter((material) => Number(material.estimatedMinutes) > 0);
+    const explicit = materials.find((material) => material.id === goal.estimateSourceId);
+    const estimateMaterial = explicit || (estimateCandidates.length === 1 ? estimateCandidates[0] : null);
+    return { goal, factoryItems: linkedFactory, materialGroups: [...groups.values()], estimate: Number(goal.estimatedTotalMinutes || estimateMaterial?.estimatedMinutes || 0), estimateMaterial, warnings: linked.length !== uniqueMaterials.length ? ["duplicates-hidden"] : [] };
+  });
+  return projection;
 }
 function materialsForDailyGoal(goal = {}) {
-  const resolved = resolveAvailableMaterials({ discipline: goal.discipline, subject: goal.subject, syllabusItemId: goal.syllabusItemId });
-  const estimateMaterial = state.materials.find((material) => material.id === goal.estimateSourceId);
-  const safeSyllabusMaterials = (state.materials || []).filter((material) => goal.syllabusItemId && (material.syllabusItemId === goal.syllabusItemId || (material.syllabusItemIds || []).includes(goal.syllabusItemId)));
-  return [estimateMaterial, ...safeSyllabusMaterials, ...resolved].filter(Boolean).filter((material, index, all) => all.findIndex((candidate) => candidate.id === material.id) === index).filter((m) => m.source !== "factory" || m.factoryModuleKey === "resumoAula").sort((a, b) => Number(b.id === goal.estimateSourceId) - Number(a.id === goal.estimateSourceId) || Number((b.syllabusItemId === goal.syllabusItemId)) - Number((a.syllabusItemId === goal.syllabusItemId)));
+  const date = goal.date || goal.data;
+  return (buildDailyPlanProjection(date).find((entry) => entry.goal === goal || entry.goal.id === goal.id)?.materialGroups || []).flatMap((group) => group.materials);
 }
+function materialsForFactoryItem(item) { const id = item?.id || item; return (state.materials || []).filter((m) => materialAvailable(m) && m.source === "factory" && m.factoryItemId === id); }
+function resolveAvailableMaterials({ discipline = "", subject = "", syllabusItemId = "", syllabusItemIds = [], factoryItemId = "" } = {}) { return (state.materials || []).filter(materialAvailable).filter((m) => (factoryItemId && m.factoryItemId === factoryItemId) || (syllabusItemId && [m.syllabusItemId, ...(m.syllabusItemIds || [])].includes(syllabusItemId)) || (syllabusItemIds || []).some((id) => [m.syllabusItemId, ...(m.syllabusItemIds || [])].includes(id)) || (dailyPlanCanonical(m.discipline) === dailyPlanCanonical(discipline) && dailyPlanCanonical(m.subject) === dailyPlanCanonical(subject))); }
+
 
 function materialTitleById(id) { return state.materials.find((m) => m.id === id)?.title || ""; }
 function timeLogFromStudy(study) {
@@ -4361,9 +4397,9 @@ function materialButtonLabel(material) {
   return "Abrir material";
 }
 function goalMaterialsHTML(goal) {
-  const materials = materialsForDailyGoal(goal);
-  if (!materials.length) return `<div class="linked-materials goal-materials"><strong>📚 MATERIAIS DISPONÍVEIS:</strong><p class="item-meta">Nenhum material vinculado a esta meta. Nenhum material pronto para este assunto.</p><button type="button" data-create-goal-material data-discipline="${escapeHTML(goal.discipline || "")}" data-subject="${escapeHTML(goal.subject || "")}">Cadastrar material para esta meta</button></div>`;
-  return `<div class="linked-materials goal-materials"><strong>📚 MATERIAIS DISPONÍVEIS:</strong>${materials.map((m) => `<article class="goal-material-item"><strong>${escapeHTML(m.title || "Material sem nome")}</strong><div class="item-meta">Tipo: ${escapeHTML(m.type || "-")} • Origem: ${escapeHTML(m.origin || "-")} • Estimativa: ${Number(m.estimatedMinutes) ? `${Number(m.estimatedMinutes)} min` : "sem estimativa"}</div><div class="item-meta">${isValidHttpUrl(m.link) ? `URL: ${escapeHTML(m.link)}` : "Link indisponível ou inválido."}</div><button type="button" data-open-goal-material="${goal.id}" data-material-id="${m.id}">Abrir material</button></article>`).join("")}</div>`;
+  const entry = buildDailyPlanProjection(goal.date || goal.data).find((item) => item.goal.id === goal.id);
+  if (!entry?.materialGroups.length) return `<div class="linked-materials goal-materials"><strong>📚 MATERIAIS DISPONÍVEIS:</strong><p class="item-meta">Nenhum material vinculado a esta meta.</p><button type="button" data-create-goal-material data-discipline="${escapeHTML(goal.discipline || "")}" data-subject="${escapeHTML(goal.subject || "")}">Cadastrar material para esta meta</button><a class="button-link" href="#fabrica-resumos" data-view-link="fabrica-resumos">Produzir material</a></div>`;
+  return `<div class="linked-materials goal-materials"><strong>📚 MATERIAIS DISPONÍVEIS:</strong>${entry.materialGroups.map((group) => `<section class="goal-material-group"><strong>${escapeHTML(group.label === "resumoAula" ? "RESUMO/AULA" : group.label.toUpperCase())}</strong>${group.subtopic ? `<p class="item-meta">Material do subtema: ${escapeHTML(group.subtopic)}</p>` : ""}<div class="card-actions">${group.materials.map((m) => `<button type="button" data-open-goal-material="${goal.id}" data-material-id="${m.id}">${escapeHTML(materialButtonLabel(m))}</button>`).join("")}</div></section>`).join("")}</div>`;
 }
 function linkedMaterialsHTML(materials) {
   if (!materials.length) return "";
@@ -4383,7 +4419,8 @@ function openGoalMaterial(goalId, materialId = "") {
     return false;
   }
   const material = selectedMaterial || materials[0];
-  if (!material || !isValidHttpUrl(material.link)) { showGoalMaterialNotice(goalId, "O material está vinculado à meta, mas não possui um link válido para abertura."); return false; }
+  if (!material) { showGoalMaterialNotice(goalId, "Nenhum material vinculado a esta meta."); return false; }
+  if (!isValidHttpUrl(material.link)) { showGoalMaterialNotice(goalId, "O material existe, mas este formato não possui link válido."); return false; }
   window.open(material.link, "_blank", "noopener");
   return true;
 }
@@ -4652,7 +4689,7 @@ elements.qbReviewByDiscipline?.addEventListener("click", () => qbReviewFilteredB
 elements.qbReviewBySubject?.addEventListener("click", () => qbReviewFilteredBy("assunto"));
 elements.qbToggleErrorHistory?.addEventListener("click", () => { if (elements.qbErrorHistory) elements.qbErrorHistory.open = !elements.qbErrorHistory.open; });
 
-function render() { migrateIncorrectWeakDomains(); syncAllFactoryMaterials(); renderFloatingTimer(); renderSubjects(); renderGoalSelectors(); renderQuestionSelectors(); renderPlanning(); renderProgressPanel(); renderDashboard(); renderGoalDashboardCards(); renderEdital(); renderSyllabus(); renderSchedulable(); renderDailyGoals(); renderGoalCalendar(); renderCentralGoals(); renderQuestionHistory(); updateQuestionCalculated(); renderMaterials(); updateStudyMaterialOptions(); safeRenderView("fabrica-resumos", renderFactory); renderReviews(); renderSmartReviewsDashboard(); renderSmartReviewStandalone(); renderAlerts(); renderHistory(); renderImportPreview(); renderImportedSyllabusGroups(); renderBackupSummary(); renderLegacyTimerRecoveryReview(); renderQuestionBank(); qbRenderErrorNotebook(); renderSimulados(); saveData(); }
+function render() { renderFloatingTimer(); renderSubjects(); renderGoalSelectors(); renderQuestionSelectors(); renderPlanning(); renderProgressPanel(); renderDashboard(); renderGoalDashboardCards(); renderEdital(); renderSyllabus(); renderSchedulable(); renderDailyGoals(); renderGoalCalendar(); renderCentralGoals(); renderQuestionHistory(); updateQuestionCalculated(); renderMaterials(); updateStudyMaterialOptions(); safeRenderView("fabrica-resumos", renderFactory); renderReviews(); renderSmartReviewsDashboard(); renderSmartReviewStandalone(); renderAlerts(); renderHistory(); renderImportPreview(); renderImportedSyllabusGroups(); renderBackupSummary(); renderLegacyTimerRecoveryReview(); renderQuestionBank(); qbRenderErrorNotebook(); renderSimulados(); }
 function syllabusFromValues(values) { return { id: createId(), discipline: values[0]?.trim() || "Sem disciplina", topic: values[1]?.trim() || "Geral", subject: values[2]?.trim() || "Assunto", subtopic: values[3]?.trim() || "", reference: values[4]?.trim() || "", priority: values[5]?.trim() || "Média", weight: normalizeSubjectIncidence(values[6]), status: values[7]?.trim() || "Não iniciado", domain: normalizeImportedDomain(values[8]), notes: values[9]?.trim() || "" }; }
 
 elements.changeMotivation?.addEventListener("click", () => renderMotivationalPhrase());
@@ -5213,8 +5250,9 @@ function dailyPlanQuestionsSection(date, dayContent, questionProgress) {
   </details>`;
 }
 function goalMaterialEstimateHTML(goal) {
-  const material = goal.estimateSourceId ? state.materials.find((item) => item.id === goal.estimateSourceId) : materialsForDailyGoal(goal)[0];
-  const total = Number(goal.estimatedTotalMinutes || material?.estimatedMinutes || 0);
+  const entry = buildDailyPlanProjection(goal.date || goal.data).find((item) => item.goal.id === goal.id);
+  const material = entry?.estimateMaterial;
+  const total = Number(entry?.estimate || 0);
   if (!total) return `<p class="goal-material-estimate empty-message">Sem estimativa de material vinculada.</p>`;
   const rows = [["Estimativa total", `${total} min`], [goal.segmentCount > 1 ? "Bloco atual" : "Bloco desta meta", `${Number(goal.segmentMinutes || goal.minutes || 0)} min`]];
   if (goal.segmentCount > 1) rows.push(["Etapa", `${Number(goal.segmentIndex || 1)} de ${Number(goal.segmentCount)}`]);
@@ -5224,8 +5262,8 @@ function goalMaterialEstimateHTML(goal) {
   return `<section class="goal-material-estimate"><strong>ESTIMATIVA DO MATERIAL</strong><div class="card-meta-grid">${rows.map(([label, value]) => `<span>${label}: ${value}</span>`).join("")}</div></section>`;
 }
 function nextGoalEstimateHTML(goal) {
-  const material = goal.estimateSourceId ? state.materials.find((item) => item.id === goal.estimateSourceId) : materialsForDailyGoal(goal)[0];
-  const total = Number(goal.estimatedTotalMinutes || material?.estimatedMinutes || 0);
+  const entry = buildDailyPlanProjection(goal.date || goal.data).find((item) => item.goal.id === goal.id);
+  const total = Number(entry?.estimate || 0);
   if (!total) return `<span>Sem estimativa de material vinculada.</span>`;
   return goal.segmentCount > 1 ? `<span>Planejado agora: ${Number(goal.minutes || 0)} min</span><span>Estimativa total: ${total} min • etapa ${Number(goal.segmentIndex || 1)} de ${Number(goal.segmentCount)}</span>` : `<span>Estimativa do material: ${total} min</span>`;
 }
@@ -5261,6 +5299,8 @@ function renderDailyGoals() {
   const date = elements.goalDate?.value || todayISO();
   const availability = availabilityForDate(date);
   const dayGoals = state.dailyGoals.filter((g) => g.date === date).sort((a,b) => isGoalDone(a) - isGoalDone(b) || (a.status || "").localeCompare(b.status || "") || a.discipline.localeCompare(b.discipline));
+  const projection = buildDailyPlanProjection(date);
+  window.__dailyPlanConsistencyReport = { date, dailyGoals: dayGoals.length, projectedGoals: projection.length, factoryItemsForToday: projection.reduce((sum, entry) => sum + entry.factoryItems.length, 0), materialsForToday: projection.reduce((sum, entry) => sum + entry.materialGroups.reduce((total, group) => total + group.materials.length, 0), 0), goalsWithoutMaterial: projection.filter((entry) => !entry.materialGroups.length).map((entry) => entry.goal.id), ambiguousMaterials: projection.filter((entry) => entry.warnings.length).length, visualDuplicatesRemoved: projection.reduce((sum, entry) => sum + entry.warnings.length, 0), stateMutatedDuringRender: false };
   const otherDates = state.dailyGoals.some((g) => g.date !== date);
   const stats = goalProgressStats(dayGoals, availability);
   const dayContent = getDayContentConfig(date);
@@ -5652,6 +5692,7 @@ async function bootstrapApplication() {
     window.__legacyTimerRecoveryReport = legacyTimerRecoveryReport;
     console.info("[Metas Estudo] Recuperação de tempos antigos", legacyTimerRecoveryReport);
     if (legacyTimerRecoveryReport.recoveredMinutes) saveData({ markLocalChange: true });
+    syncAllFactoryMaterials();
     renderMotivationalPhrase();
     indexedDBStatus.size = estimateSerializedStateSize(state);
     indexedDBStatus.migration = indexedDBStatus.migration === "erro" ? "erro" : "concluída";
