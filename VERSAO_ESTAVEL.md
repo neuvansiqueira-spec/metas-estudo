@@ -2,7 +2,7 @@
 
 ## Versão estável atual
 
-`20260716-restaura-abertura-estavel-v1`
+`20260716-otimiza-abas-pesadas-v1`
 
 ## Data
 

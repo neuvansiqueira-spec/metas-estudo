@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260716-restaura-abertura-estavel-v1";
+const APP_VERSION = "20260716-otimiza-abas-pesadas-v1";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -1052,6 +1052,8 @@ state.factoryAgenda ||= [];
 state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) });
 let factoryCurrentFilter = "faca-agora";
 let factoryOpenDetailId = "";
+let factoryVisibleCount = 20;
+let planningHistoryVisibleCount = 20;
 let factoryEventsInitialized = false;
 const FACTORY_CLICK_ROUTES = ["factoryPrompt", "factoryPromptClose", "factoryPromptCopy", "factoryRouterCopy", "factoryEdit", "factoryDelete", "factoryModules", "factoryModulesCancel", "factoryToggleDetail", "factoryNext", "factoryTriagem", "factoryReopen", "openUrl"];
 const FACTORY_LIBRARY_CLICK_ROUTES = ["factoryLibraryClose", "factoryLibraryRestore"];
@@ -3737,16 +3739,17 @@ function renderFactory() {
       const modules = normalizeFactoryModules(item.modules || {});
       const promptButtons = FACTORY_PROMPT_TYPES.map(({ key, label }) => `<button type="button" class="secondary-button" data-factory-prompt="${item.id}|${key}">${escapeHTML(label)}</button>`).join("");
       const moduleSummary = FACTORY_MODULES.filter(({ virtual }) => !virtual).map(({ key, label }) => `<li><strong>${escapeHTML(label)}:</strong> ${escapeHTML(modules[key].status)}${modules[key].wordLink ? " • Word" : ""}${modules[key].pdfLink ? " • PDF" : ""}</li>`).join("");
-      return `<details class="factory-theme-details" data-factory-detail="${item.id}" ${factoryOpenDetailId === item.id ? "open" : ""}><summary>DETALHES DO TEMA</summary><div class="factory-detail-body"><h4>Triagem</h4><p class="item-meta">Status da triagem: ${escapeHTML(item.triagemStatus)} ${item.triagemCompletedAt ? `• ${formatDateBR(item.triagemCompletedAt)}` : ""}</p><div class="card-actions"><button type="button" class="secondary-button" data-factory-prompt="${item.id}|triagem">Gerar prompt de triagem</button><button type="button" data-factory-triagem="${item.id}|Concluída">Marcar triagem como concluída</button><button type="button" class="secondary-button" data-factory-triagem="${item.id}|Precisa refazer">Marcar como precisa refazer</button></div><ul class="factory-module-summary">${moduleSummary}</ul><div class="factory-prompt-actions"><h4>Botões de todos os prompts</h4><div class="card-actions">${promptButtons}</div></div><div class="card-meta-grid"><span>Subtemas abrangidos: ${escapeHTML((item.editalSubtemas || []).join("; ") || "-")}</span><span>Vínculo do edital: ${escapeHTML(item.editalLink?.groupKey || "manual")}</span><span>Pasta das fontes: ${escapeHTML(factorySourceFolderLink(item) || "-")}</span><span>Pasta de destino: ${escapeHTML(factoryDestinationFolderLink(item) || "-")}</span><span>Lei: ${escapeHTML(modules.lei.leiNome || "-")}</span><span>Observações: ${escapeHTML(item.observacao || "-")}</span></div>${factoryModuleLinksHTML(item)}<div class="card-actions"><button type="button" data-factory-modules="${item.id}">Editar módulos</button><button type="button" data-factory-edit="${item.id}">Editar tema</button><button type="button" class="danger" data-factory-delete="${item.id}">Excluir</button></div><div class="factory-prompt-panel" data-factory-prompt-panel="${item.id}"></div><div class="factory-modules-panel" data-factory-modules-panel="${item.id}"></div></div></details>`;
+      if (factoryOpenDetailId !== item.id) return `<details class="factory-theme-details" data-factory-detail="${item.id}"><summary>DETALHES DO TEMA</summary><div class="factory-detail-body" data-detail-placeholder="${item.id}"></div></details>`;
+      return `<details class="factory-theme-details" data-factory-detail="${item.id}" open data-detail-hydrated="true"><summary>DETALHES DO TEMA</summary><div class="factory-detail-body"><h4>Triagem</h4><p class="item-meta">Status da triagem: ${escapeHTML(item.triagemStatus)} ${item.triagemCompletedAt ? `• ${formatDateBR(item.triagemCompletedAt)}` : ""}</p><div class="card-actions"><button type="button" class="secondary-button" data-factory-prompt="${item.id}|triagem">Gerar prompt de triagem</button><button type="button" data-factory-triagem="${item.id}|Concluída">Marcar triagem como concluída</button><button type="button" class="secondary-button" data-factory-triagem="${item.id}|Precisa refazer">Marcar como precisa refazer</button></div><ul class="factory-module-summary">${moduleSummary}</ul><div class="factory-prompt-actions"><h4>Botões de todos os prompts</h4><div class="card-actions">${promptButtons}</div></div><div class="card-meta-grid"><span>Subtemas abrangidos: ${escapeHTML((item.editalSubtemas || []).join("; ") || "-")}</span><span>Vínculo do edital: ${escapeHTML(item.editalLink?.groupKey || "manual")}</span><span>Pasta das fontes: ${escapeHTML(factorySourceFolderLink(item) || "-")}</span><span>Pasta de destino: ${escapeHTML(factoryDestinationFolderLink(item) || "-")}</span><span>Lei: ${escapeHTML(modules.lei.leiNome || "-")}</span><span>Observações: ${escapeHTML(item.observacao || "-")}</span></div>${factoryModuleLinksHTML(item)}<div class="card-actions"><button type="button" data-factory-modules="${item.id}">Editar módulos</button><button type="button" data-factory-edit="${item.id}">Editar tema</button><button type="button" class="danger" data-factory-delete="${item.id}">Excluir</button></div><div class="factory-prompt-panel" data-factory-prompt-panel="${item.id}"></div><div class="factory-modules-panel" data-factory-modules-panel="${item.id}"></div></div></details>`;
     };
     const cardFor = (entry, index = 0) => {
       const item = entry.item || entry;
-      item.modules = normalizeFactoryModules(item.modules || {});
-      item.status = factoryOverallStatus(item.modules);
-      const stage = factoryCurrentStage(item);
-      const next = factoryNextAction(item).label;
+      const viewItem = { ...item, modules: normalizeFactoryModules(item.modules || {}) };
+      viewItem.status = factoryOverallStatus(viewItem.modules);
+      const stage = factoryCurrentStage(viewItem);
+      const next = factoryNextAction(viewItem).label;
       const recorte = factoryRecorteHoje(entry);
-      return `<article class="syllabus-card factory-card compact-factory-card" data-factory-card="${item.id}"><header class="factory-card-header"><div class="factory-card-heading">${factoryThemeHighlightHTML(item, recorte, { position: `posição ${index + 1} de ${Math.max(queue.length, 1)}` })}</div><span class="badge factory-status-badge ${factoryResumoAulaReady(item) ? "success" : item.triagemStatus === "Precisa refazer" ? "danger" : "neutral"}">${escapeHTML(item.status)}</span></header><div class="card-meta-grid factory-compact-grid"><span><strong>Etapa atual:</strong> ${escapeHTML(stage)}</span><span><strong>Próxima ação:</strong> ${escapeHTML(next)}</span><span><strong>Status:</strong> ${escapeHTML(item.status)}</span></div>${factoryProgressHTML(item)}<div class="card-actions factory-main-actions">${factoryActionButtonHTML(item)}<button type="button" class="secondary-button" data-factory-toggle-detail="${item.id}">Ver detalhes</button></div>${detailsHTML(entry)}</article>`;
+      return `<article class="syllabus-card factory-card compact-factory-card" data-factory-card="${item.id}"><header class="factory-card-header"><div class="factory-card-heading">${factoryThemeHighlightHTML(viewItem, recorte, { position: `posição ${index + 1} de ${Math.max(queue.length, 1)}` })}</div><span class="badge factory-status-badge ${factoryResumoAulaReady(viewItem) ? "success" : viewItem.triagemStatus === "Precisa refazer" ? "danger" : "neutral"}">${escapeHTML(viewItem.status)}</span></header><div class="card-meta-grid factory-compact-grid"><span><strong>Etapa atual:</strong> ${escapeHTML(stage)}</span><span><strong>Próxima ação:</strong> ${escapeHTML(next)}</span><span><strong>Status:</strong> ${escapeHTML(item.status)}</span></div>${factoryProgressHTML(viewItem)}<div class="card-actions factory-main-actions">${factoryActionButtonHTML(viewItem)}<button type="button" class="secondary-button" data-factory-toggle-detail="${item.id}">Ver detalhes</button></div>${detailsHTML(entry)}</article>`;
     };
     const selectedEntry = factoryOpenDetailId ? queue.find(({ item }) => item.id === factoryOpenDetailId) || activeAgenda.map((item) => ({ item, subtopics: [] })).find(({ item }) => item.id === factoryOpenDetailId) : null;
     const firstResumoPendingEntry = queue.find(({ item }) => !factoryResumoAulaReady(item));
@@ -3771,7 +3774,7 @@ function renderFactory() {
     if (factoryCurrentFilter === "aguardando-revisao") entries = entries.filter(({ item }) => factoryOverallStatus(item.modules) === "Aguardando revisão");
     if (factoryCurrentFilter === "precisa-refazer") entries = entries.filter(({ item }) => normalizeFactoryTriagemStatus(item, item.modules) === "Precisa refazer" || factoryOverallStatus(item.modules) === "Precisa refazer");
     if (factoryCurrentFilter === "prontos") entries = entries.filter(({ item }) => factoryResumoAulaReady(item));
-    const listPanel = factoryCurrentFilter === "faca-agora" ? "" : `<section class="factory-section"><h3>${factoryCurrentFilter === "fila-hoje" ? "📋 FILA RESUMIDA DE PENDÊNCIAS" : "Temas"}</h3>${entries.length ? entries.map(cardFor).join("") : `<p class="empty-message">Nenhum tema nesta lista.</p>`}</section>`;
+    const listPanel = factoryCurrentFilter === "faca-agora" ? "" : `<section class="factory-section"><h3>${factoryCurrentFilter === "fila-hoje" ? "📋 FILA RESUMIDA DE PENDÊNCIAS" : "Temas"}</h3>${entries.length ? entries.slice(0, factoryVisibleCount).map(cardFor).join("") + (entries.length > factoryVisibleCount ? `<button type="button" class="secondary-button" data-show-factory-more>Mostrar mais 20</button>` : "") : `<p class="empty-message">Nenhum tema nesta lista.</p>`}</section>`;
     elements.factoryList.innerHTML = todayPlanPanel + (factoryCurrentFilter === "faca-agora" ? nowPanel + queuePanel : listPanel.replace("<h3>", "<h3>FILA GERAL DA FÁBRICA — "));
   } catch (error) {
     console.error("[Metas Estudo] Erro ao carregar Fábrica de Resumos", error);
@@ -3853,45 +3856,25 @@ function buildDailyPlanProjection(date, targetState = state) {
   const goals = (targetState.dailyGoals || []).filter((goal) => (goal.date || goal.data) === date);
   const materials = (targetState.materials || []).filter(materialAvailable);
   const factoryItems = targetState.factoryAgenda?.length ? targetState.factoryAgenda : (targetState.factoryItems || []);
-  const goalCandidates = (record) => goals.filter((goal) => {
-    const itemIds = [record.syllabusItemId, ...(record.syllabusItemIds || []), record.parentSyllabusItemId].filter(Boolean);
-    if (goal.estimateSourceId && goal.estimateSourceId === record.id) return true;
-    if (record.goalId && record.goalId === goal.id) return true;
-    if (itemIds.includes(goal.syllabusItemId)) return true;
-    return false;
+  const add = (map, key, value) => { if (!key) return; const list = map.get(key) || []; list.push(value); map.set(key, list); };
+  const factoryByGoalId = new Map(), factoryBySyllabusItemId = new Map(), factoryByParentSyllabusItemId = new Map(), factoryByCombination = new Map();
+  const materialsByGoalId = new Map(), materialsByFactoryItemId = new Map(), materialsBySyllabusItemId = new Map(), materialsByParentSyllabusItemId = new Map(), materialsByEstimateSourceId = new Map(), materialsByCombination = new Map();
+  const combination = (r) => `${dailyPlanCanonical(r.disciplina || r.discipline)}|${dailyPlanCanonical(r.tema || r.subject || r.assunto)}`;
+  factoryItems.forEach((item) => { add(factoryByGoalId, item.goalId, item); [item.syllabusItemId, ...(item.syllabusItemIds || []), ...(item.editalLink?.itemIds || [])].forEach((id) => add(factoryBySyllabusItemId, id, item)); add(factoryByParentSyllabusItemId, item.parentSyllabusItemId, item); add(factoryByCombination, combination(item), item); });
+  materials.forEach((material) => { add(materialsByGoalId, material.goalId, material); add(materialsByFactoryItemId, material.factoryItemId, material); [material.syllabusItemId, ...(material.syllabusItemIds || [])].forEach((id) => add(materialsBySyllabusItemId, id, material)); add(materialsByParentSyllabusItemId, material.parentSyllabusItemId, material); add(materialsByEstimateSourceId, material.id, material); add(materialsByCombination, combination(material), material); });
+  const only = (map, key) => { const list = map.get(key) || []; return list.length === 1 ? list : []; };
+  return goals.map((goal) => {
+    const linkedFactory = new Set([...(factoryByGoalId.get(goal.id) || []), ...(factoryBySyllabusItemId.get(goal.syllabusItemId) || []), ...(factoryByParentSyllabusItemId.get(goal.syllabusItemId) || []), ...only(factoryByCombination, combination(goal))]);
+    const factoryIds = new Set([...linkedFactory].map((item) => item.id));
+    const linked = new Set([...(materialsByGoalId.get(goal.id) || []), ...(materialsByEstimateSourceId.get(goal.estimateSourceId) || []), ...(materialsBySyllabusItemId.get(goal.syllabusItemId) || []), ...(materialsByParentSyllabusItemId.get(goal.syllabusItemId) || []), ...only(materialsByCombination, combination(goal))]);
+    factoryIds.forEach((id) => (materialsByFactoryItemId.get(id) || []).forEach((m) => linked.add(m)));
+    const seen = new Set(), uniqueMaterials = [...linked].filter((material) => { const key = dailyPlanMaterialIdentity(material); if (seen.has(key)) return false; seen.add(key); return true; });
+    const groups = new Map(); uniqueMaterials.forEach((material) => { const key = `${goal.id}|${material.factoryItemId || "manual"}|${material.factoryModuleKey || "material"}`; if (!groups.has(key)) groups.set(key, { key, moduleKey: material.factoryModuleKey || "material", label: material.factoryModuleKey || "MATERIAL", materials: [], subtopic: material.parentSyllabusItemId === goal.syllabusItemId ? material.subject : "" }); groups.get(key).materials.push(material); });
+    const estimateCandidates = uniqueMaterials.filter((material) => Number(material.estimatedMinutes) > 0); const explicit = (materialsByEstimateSourceId.get(goal.estimateSourceId) || [])[0]; const estimateMaterial = explicit || (estimateCandidates.length === 1 ? estimateCandidates[0] : null);
+    return { goal, factoryItems: [...linkedFactory], materialGroups: [...groups.values()], estimate: Number(goal.estimatedTotalMinutes || estimateMaterial?.estimatedMinutes || 0), estimateMaterial, warnings: [] };
   });
-  const projection = goals.map((goal) => {
-    const linkedFactory = factoryItems.filter((item) => {
-      if (item.goalId === goal.id) return true;
-      const ids = [item.syllabusItemId, ...(item.syllabusItemIds || []), ...(item.editalLink?.itemIds || []), item.parentSyllabusItemId].filter(Boolean);
-      if (goal.syllabusItemId && ids.includes(goal.syllabusItemId)) return true;
-      const candidates = factoryItems.filter((candidate) => dailyPlanCanonical(candidate.disciplina || candidate.discipline) === dailyPlanCanonical(item.disciplina || item.discipline) && dailyPlanCanonical(candidate.tema || candidate.subject) === dailyPlanCanonical(item.tema || item.subject));
-      return candidates.length === 1 && dailyPlanCanonical(item.disciplina || item.discipline) === dailyPlanCanonical(goal.discipline || goal.disciplina) && dailyPlanCanonical(item.tema || item.subject) === dailyPlanCanonical(goal.subject || goal.assunto) && goals.filter((candidate) => dailyPlanCanonical(candidate.discipline || candidate.disciplina) === dailyPlanCanonical(goal.discipline || goal.disciplina) && dailyPlanCanonical(candidate.subject || candidate.assunto) === dailyPlanCanonical(goal.subject || goal.assunto)).length === 1;
-    });
-    const factoryIds = new Set(linkedFactory.map((item) => item.id));
-    const linked = materials.filter((material) => {
-      if (goal.estimateSourceId === material.id || material.goalId === goal.id) return true;
-      if (factoryIds.has(material.factoryItemId)) return true;
-      if (material.factoryItemId && linkedFactory.some((item) => item.id === material.factoryItemId)) return true;
-      const ids = [material.syllabusItemId, ...(material.syllabusItemIds || []), material.parentSyllabusItemId].filter(Boolean);
-      if (goal.syllabusItemId && ids.includes(goal.syllabusItemId)) return true;
-      const candidates = goalCandidates(material);
-      return candidates.length === 1 && dailyPlanCanonical(material.discipline) === dailyPlanCanonical(goal.discipline || goal.disciplina) && dailyPlanCanonical(material.subject) === dailyPlanCanonical(goal.subject || goal.assunto);
-    });
-    const seen = new Set(); const uniqueMaterials = linked.filter((material) => { const key = dailyPlanMaterialIdentity(material); if (seen.has(key)) return false; seen.add(key); return true; });
-    const groups = new Map();
-    uniqueMaterials.forEach((material) => { const key = `${goal.id}|${material.factoryItemId || "manual"}|${material.factoryModuleKey || "material"}`; if (!groups.has(key)) groups.set(key, { key, moduleKey: material.factoryModuleKey || "material", label: material.factoryModuleKey || "MATERIAL", materials: [], subtopic: material.parentSyllabusItemId === goal.syllabusItemId ? material.subject : "" }); groups.get(key).materials.push(material); });
-    const estimateCandidates = uniqueMaterials.filter((material) => Number(material.estimatedMinutes) > 0);
-    const explicit = materials.find((material) => material.id === goal.estimateSourceId);
-    const estimateMaterial = explicit || (estimateCandidates.length === 1 ? estimateCandidates[0] : null);
-    return { goal, factoryItems: linkedFactory, materialGroups: [...groups.values()], estimate: Number(goal.estimatedTotalMinutes || estimateMaterial?.estimatedMinutes || 0), estimateMaterial, warnings: linked.length !== uniqueMaterials.length ? ["duplicates-hidden"] : [] };
-  });
-  return projection;
 }
-function materialsForDailyGoal(goal = {}) {
-  const date = goal.date || goal.data;
-  return (buildDailyPlanProjection(date).find((entry) => entry.goal === goal || entry.goal.id === goal.id)?.materialGroups || []).flatMap((group) => group.materials);
-}
+function materialsForDailyGoal(goal = {}) { const projectionEntry = arguments[1] || null; return (projectionEntry?.materialGroups || []).flatMap((group) => group.materials); }
 function materialsForFactoryItem(item) { const id = item?.id || item; return (state.materials || []).filter((m) => materialAvailable(m) && m.source === "factory" && m.factoryItemId === id); }
 function resolveAvailableMaterials({ discipline = "", subject = "", syllabusItemId = "", syllabusItemIds = [], factoryItemId = "" } = {}) { return (state.materials || []).filter(materialAvailable).filter((m) => (factoryItemId && m.factoryItemId === factoryItemId) || (syllabusItemId && [m.syllabusItemId, ...(m.syllabusItemIds || [])].includes(syllabusItemId)) || (syllabusItemIds || []).some((id) => [m.syllabusItemId, ...(m.syllabusItemIds || [])].includes(id)) || (dailyPlanCanonical(m.discipline) === dailyPlanCanonical(discipline) && dailyPlanCanonical(m.subject) === dailyPlanCanonical(subject))); }
 
@@ -4047,7 +4030,7 @@ function renderPlanning() {
   elements.planningExamDate.value = c.examDate || state.edital.examDate || ""; elements.planningScaleType.value = c.scaleType; if (elements.planningScaleReferenceDate) elements.planningScaleReferenceDate.value = c.scaleReferenceDate || todayISO(); if (elements.planningScaleReferencePosition) elements.planningScaleReferencePosition.value = String(Number(c.scaleReferencePosition)||0); if (elements.scale3x6Fields) elements.scale3x6Fields.hidden = c.scaleType !== "3 dias de trabalho / 6 dias de folga"; elements.planningScaleNotes.value = c.scaleNotes || ""; elements.planningShiftHours.value = c.shiftHours; elements.planningRestHours.value = c.restHours; elements.planningNormalHours.value = c.normalHours; elements.planningMinWeeklyHours.value = c.minWeeklyHours; elements.planningIdealWeeklyHours.value = c.idealWeeklyHours; elements.planningWeeklyTopics.value = c.weeklyTopics; elements.planningDisciplinesPerDay.value = c.disciplinesPerDay; elements.planningDisciplinesPerWeek.value = c.disciplinesPerWeek; elements.planningDisciplinesPerMonth.value = c.disciplinesPerMonth; elements.planningTopicsPerDay.value = c.topicsPerDay; elements.planningTopicsPerWeek.value = c.topicsPerWeek; elements.planningTopicsPerMonth.value = c.topicsPerMonth; elements.planningSafetyDays.value = c.safetyDays;
   renderPlanningDayModes(); renderPlanningSummary(); renderPlanningPreview();
   elements.availabilityCalendar.innerHTML = Array.from({length: 21}, (_, i) => { const date = addDays(todayISO(), i); const av = availabilityForDate(date); return `<article class="syllabus-card"><header><div><h3>${formatDateBR(date)}</h3><div class="item-meta">Horas estimadas editáveis para este dia.</div></div></header><div class="card-actions"><label>Tipo <select data-availability-type="${date}">${["plantão","folga","dia normal","indisponível","estudo leve","estudo forte"].map((t)=>`<option ${av.type===t?"selected":""}>${t}</option>`).join("")}</select></label><label>Horas <input data-availability-hours="${date}" type="number" min="0" step="0.5" value="${av.hours}"></label></div></article>`; }).join("");
-  const m = planningMetrics(); state.planning.forecasts = { ...m, updatedAt: new Date().toISOString() };
+  const m = planningMetrics();
   const cards = [["Total de assuntos",m.total],["Concluídos",m.completed],["Pendentes",m.pending],["Edital estudado",`${m.percent}%`],["Assuntos/semana",m.avgTopicsWeek.toFixed(1)],["Tempo médio/assunto",formatHours(m.avgMinutes)],["Horas estimadas",formatHours(m.totalEstimatedMinutes)],["Horas já estudadas",formatHours(m.totalMinutes)],["Horas restantes",formatHours(m.remainingMinutes)],["Conclusão prevista",formatDateBR(m.forecastDate)],["Diferença para prova",m.diffDays===null?"-":`${m.diffDays} dias`],["Situação do edital",m.diffDays !== null && m.diffDays < 0 ? "Atrasado para a data da prova" : "Dentro do prazo informado"]];
   elements.completionForecast.classList.remove("stats-grid", "compact");
   elements.completionForecast.classList.add("planning-forecast-grid");
@@ -4064,7 +4047,7 @@ function renderPlanning() {
   elements.timeHistorySummary.classList.remove("stats-grid", "compact");
   elements.timeHistorySummary.classList.add("planning-forecast-grid");
   elements.timeHistorySummary.innerHTML = [["Hoje",formatHours(logs.filter(l=>l.date===todayISO()).reduce((s,l)=>s+l.minutes,0))],["Semana",formatHours(logs.filter(l=>isSameWeek(l.date)).reduce((s,l)=>s+l.minutes,0))],["Edital",formatHours(m.totalMinutes)],["Disciplina mais estudada",top?`${top[0]} (${formatHours(top[1])})`:"-"]].map(([a,b])=>planningForecastCard(a, String(b))).join("");
-  elements.timeHistoryCards.innerHTML = logs.slice(0,50).map((l) => planningHistoryCardHTML(l)).join("") || `<p class="empty-message">Nenhuma meta ou registro de tempo para exibir.</p>`;
+  elements.timeHistoryCards.innerHTML = logs.slice(0, planningHistoryVisibleCount).map((l) => planningHistoryCardHTML(l)).join("") + (logs.length > planningHistoryVisibleCount ? `<button type="button" class="secondary-button" data-planning-history-more>Mostrar mais 20</button>` : "") || `<p class="empty-message">Nenhuma meta ou registro de tempo para exibir.</p>`;
 }
 
 function planningHistoryCardHTML(log = {}) {
@@ -4396,8 +4379,7 @@ function materialButtonLabel(material) {
   if (type === "resumo") return "Abrir resumo";
   return "Abrir material";
 }
-function goalMaterialsHTML(goal) {
-  const entry = buildDailyPlanProjection(goal.date || goal.data).find((item) => item.goal.id === goal.id);
+function goalMaterialsHTML(goal, entry) {
   if (!entry?.materialGroups.length) return `<div class="linked-materials goal-materials"><strong>📚 MATERIAIS DISPONÍVEIS:</strong><p class="item-meta">Nenhum material vinculado a esta meta.</p><button type="button" data-create-goal-material data-discipline="${escapeHTML(goal.discipline || "")}" data-subject="${escapeHTML(goal.subject || "")}">Cadastrar material para esta meta</button><a class="button-link" href="#fabrica-resumos" data-view-link="fabrica-resumos">Produzir material</a></div>`;
   return `<div class="linked-materials goal-materials"><strong>📚 MATERIAIS DISPONÍVEIS:</strong>${entry.materialGroups.map((group) => `<section class="goal-material-group"><strong>${escapeHTML(group.label === "resumoAula" ? "RESUMO/AULA" : group.label.toUpperCase())}</strong>${group.subtopic ? `<p class="item-meta">Material do subtema: ${escapeHTML(group.subtopic)}</p>` : ""}<div class="card-actions">${group.materials.map((m) => `<button type="button" data-open-goal-material="${goal.id}" data-material-id="${m.id}">${escapeHTML(materialButtonLabel(m))}</button>`).join("")}</div></section>`).join("")}</div>`;
 }
@@ -5255,8 +5237,7 @@ function dailyPlanQuestionsSection(date, dayContent, questionProgress) {
     <div class="daily-plan-content"><div class="card-meta-grid"><span>Realizadas: ${questionProgress.done}</span><span>Meta: ${questionProgress.target}</span><span>Faltantes: ${missing}</span><span>Acertos: ${totals.correct}</span><span>Erros: ${totals.wrong}</span><span>Brancos: ${totals.blank}</span></div><div class="card-actions"><button type="button" data-register-question-goal="${date}">Registrar questões</button></div></div>
   </details>`;
 }
-function goalMaterialEstimateHTML(goal) {
-  const entry = buildDailyPlanProjection(goal.date || goal.data).find((item) => item.goal.id === goal.id);
+function goalMaterialEstimateHTML(goal, entry) {
   const material = entry?.estimateMaterial;
   const total = Number(entry?.estimate || 0);
   if (!total) return `<p class="goal-material-estimate empty-message">Sem estimativa de material vinculada.</p>`;
@@ -5267,17 +5248,16 @@ function goalMaterialEstimateHTML(goal) {
   if (material?.estimateMode) rows.push(["Origem", material.estimateMode === "manual" ? "estimativa manual" : "cálculo automático"]);
   return `<section class="goal-material-estimate"><strong>ESTIMATIVA DO MATERIAL</strong><div class="card-meta-grid">${rows.map(([label, value]) => `<span>${label}: ${value}</span>`).join("")}</div></section>`;
 }
-function nextGoalEstimateHTML(goal) {
-  const entry = buildDailyPlanProjection(goal.date || goal.data).find((item) => item.goal.id === goal.id);
+function nextGoalEstimateHTML(goal, entry) {
   const total = Number(entry?.estimate || 0);
   if (!total) return `<span>Sem estimativa de material vinculada.</span>`;
   return goal.segmentCount > 1 ? `<span>Planejado agora: ${Number(goal.minutes || 0)} min</span><span>Estimativa total: ${total} min • etapa ${Number(goal.segmentIndex || 1)} de ${Number(goal.segmentCount)}</span>` : `<span>Estimativa do material: ${total} min</span>`;
 }
-function goalMaterialsDetailsHTML(goal) {
-  const materials = materialsForDailyGoal(goal);
-  return `<details class="daily-goal-materials"><summary>Materiais disponíveis <span>${materials.length} materiais</span></summary><div class="daily-plan-content">${goalMaterialsHTML(goal) || `<p class="empty-message">Nenhum material disponível.</p>`}</div></details>`;
+function goalMaterialsDetailsHTML(goal, entry) {
+  const materials = materialsForDailyGoal(goal, entry);
+  return `<details class="daily-goal-materials"><summary>Materiais disponíveis <span>${materials.length} materiais</span></summary><div class="daily-plan-content">${goalMaterialsHTML(goal, entry) || `<p class="empty-message">Nenhum material disponível.</p>`}</div></details>`;
 }
-function dailyGoalDetailsCard(goal, number = 1) {
+function dailyGoalDetailsCard(goal, number = 1, projectionEntry = null) {
   normalizeGoalTimeFields(goal);
   const remembered = rememberedDailyPlanGoal(goal.date) === goal.id;
   const inProgress = !isGoalDone(goal) && (goal.status === "Em andamento" || goalTotalActualMinutes(goal) > 0);
@@ -5290,8 +5270,8 @@ function dailyGoalDetailsCard(goal, number = 1) {
     <div class="daily-goal-content">
       <div class="card-meta-grid"><span>Disciplina: ${escapeHTML(goal.discipline)}</span><span>Assunto: ${escapeHTML(goal.subject)}</span><span>Tipo: ${escapeHTML(goal.type || goal.tipo || "-")}</span><span>Prioridade: ${escapeHTML(goal.priority || goal.prioridade || "-")}</span><span>Planejado: ${Number(goal.minutes||0)} min</span><span>Estudo realizado: ${Number(goal.studyActualMinutes||0)} min</span><span>Questões realizadas: ${Number(goal.questionActualMinutes||0)} min</span><span>Total realizado: ${Number(goal.actualMinutes||0)} min</span><span>Status: ${escapeHTML(status)}</span><span>Referência: ${escapeHTML(goal.referencia_edital || getSyllabusById(goal.syllabusItemId)?.reference || "-")}</span></div>
       <div class="progress"><span style="width:${Math.min(100, Math.round((goalTotalActualMinutes(goal) / Math.max(1, Number(goal.minutes)||1)) * 100))}%"></span></div>
-      ${goalMaterialEstimateHTML(goal)}
-      ${goalMaterialsDetailsHTML(goal)}
+      ${goalMaterialEstimateHTML(goal, projectionEntry)}
+      ${goalMaterialsDetailsHTML(goal, projectionEntry)}
       <p class="notice" data-goal-material-notice="${goal.id}" ${goalMaterialNotices.has(goal.id) ? "" : "hidden"}>${escapeHTML(goalMaterialNotices.get(goal.id) || "")}</p>
       <details class="daily-goal-history"><summary>Histórico resumido</summary><ul>${history || "<li>Sem histórico registrado.</li>"}</ul></details>
       <div class="card-actions"><button type="button" data-open-goal-material="${goal.id}">Abrir material</button><button type="button" data-goal-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button type="button" data-goal-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button type="button" data-goal-action="Concluída" data-id="${goal.id}">Concluir meta</button></div>
@@ -5313,13 +5293,13 @@ function renderDailyGoals() {
   const questionProgress = questionGoalProgress(date);
   if (elements.selectedGoalDateLabel) elements.selectedGoalDateLabel.textContent = formatDateBR(date);
   if (elements.dailyGoalsSummary) elements.dailyGoalsSummary.innerHTML = `<details ${dailyPlanSectionAttrs("summary", true)}>${dailyPlanSummaryHTML("Resumo de hoje", `${stats.completed} concluídas • ${stats.pending} pendentes`)}<div class="daily-plan-content daily-goals-summary stats-grid compact"><article class="stat-card"><span>Metas concluídas</span><strong>${stats.completed}</strong></article><article class="stat-card"><span>Metas pendentes</span><strong>${stats.pending}</strong></article><article class="stat-card"><span>Tempo planejado</span><strong>${formatHours(stats.target)}</strong></article><article class="stat-card"><span>Tempo realizado</span><strong>${formatHours(stats.done)}</strong></article><article class="stat-card"><span>Questões realizadas</span><strong>${questionProgress.done}</strong></article><article class="stat-card wide-stat"><span>Progresso geral: ${stats.goalsPct}%</span><div class="progress"><span style="width:${stats.goalsPct}%"></span></div></article></div></details>`;
-  renderNextDailyGoal(dayGoals);
+  renderNextDailyGoal(dayGoals, new Map(projection.map((entry) => [entry.goal.id, entry])));
   const notices = [];
   if (availability.type === "indisponível") notices.push(`<p class="notice warning-notice">Dia marcado como indisponível. A geração automática só acontece mediante confirmação.</p>`);
   if (!dayGoals.length && otherDates) notices.push(`<p class="notice">Não há metas nesta data, mas existem metas cadastradas em outros dias. Use o Calendário de Metas ou altere a data.</p>`);
   if (dayContent.mode === "questions_only") notices.push(`<p class="notice">Hoje o planejamento é somente questões.</p>`);
   const questionsSection = dailyPlanQuestionsSection(date, dayContent, questionProgress);
-  const goalsSection = dayGoals.length ? `<details ${dailyPlanSectionAttrs("goals", rememberedDailyPlanSection(date) === "goals")}><summary class="daily-plan-summary"><span class="daily-plan-heading"><strong class="daily-plan-title">Metas de estudo</strong><span class="daily-plan-resume">${dayGoals.length} metas • ${stats.completed} concluída(s) • ${stats.pending} pendente(s)</span></span></summary><div class="daily-plan-content daily-goals-board">${dayGoals.map((goal, index) => dailyGoalDetailsCard(goal, index + 1)).join("")}</div></details>` : `<p class="empty-message">${dayContent.mode === "questions_only" ? "Sem metas automáticas de estudo para esta data." : "Nenhuma meta cadastrada para esta data."}</p><button class="big-action-button" type="button" data-generate-selected-date>Gerar metas para esta data</button>`;
+  const goalsSection = dayGoals.length ? `<details ${dailyPlanSectionAttrs("goals", rememberedDailyPlanSection(date) === "goals")}><summary class="daily-plan-summary"><span class="daily-plan-heading"><strong class="daily-plan-title">Metas de estudo</strong><span class="daily-plan-resume">${dayGoals.length} metas • ${stats.completed} concluída(s) • ${stats.pending} pendente(s)</span></span></summary><div class="daily-plan-content daily-goals-board">${dayGoals.map((goal, index) => dailyGoalDetailsCard(goal, index + 1, projection.find((entry) => entry.goal.id === goal.id))).join("")}</div></details>` : `<p class="empty-message">${dayContent.mode === "questions_only" ? "Sem metas automáticas de estudo para esta data." : "Nenhuma meta cadastrada para esta data."}</p><button class="big-action-button" type="button" data-generate-selected-date>Gerar metas para esta data</button>`;
   const reviewCount = (state.smartReviews || []).filter((r) => (r.date || r.dueDate || r.data) === date).length;
   const reviewSection = `<details ${dailyPlanSectionAttrs("review", rememberedDailyPlanSection(date) === "review").replace("daily-plan-section", "daily-plan-section daily-review-section")}><summary class="daily-plan-summary"><span class="daily-plan-heading"><strong class="daily-plan-title">Revisão do dia</strong><span class="daily-plan-resume">${reviewCount} itens sugeridos</span></span></summary><div class="daily-plan-content"><div id="dailyPlanReviewMount"></div><p class="item-meta">Revisão inteligente, revisões pendentes, conteúdos para reforçar e caderno de erros relacionado seguem a lógica existente.</p></div></details>`;
   const pending = dayGoals.filter((g) => ["Não cumprida", "Adiada", "Reagendada"].includes(g.status || ""));
@@ -5327,12 +5307,12 @@ function renderDailyGoals() {
   const pendingSection = (pending.length || history.length) ? `<details ${dailyPlanSectionAttrs("history", rememberedDailyPlanSection(date) === "history")}><summary class="daily-plan-summary"><span class="daily-plan-heading"><strong class="daily-plan-title">Pendências e histórico</strong><span class="daily-plan-resume">${pending.length + history.length} registros</span></span></summary><div class="daily-plan-content">${pending.map((g)=>`<p class="item-meta">${escapeHTML(g.status)}: ${escapeHTML(g.discipline)} — ${escapeHTML(g.subject)}</p>`).join("")}${history.map((g)=>`<p class="item-meta">Histórico: ${escapeHTML(g.discipline)} — ${escapeHTML(g.subject)}</p>`).join("")}</div></details>` : "";
   elements.dailyGoalsList.innerHTML = notices.join("") + questionsSection + goalsSection + reviewSection + pendingSection;
 }
-function renderNextDailyGoal(dayGoals) {
+function renderNextDailyGoal(dayGoals, projectionByGoalId = new Map()) {
   if (!elements.nextDailyGoal) return;
   dayGoals.forEach(normalizeGoalTimeFields);
   const next = dayGoals.find((g)=>!isGoalDone(g) && !["Não cumprida", "Ignorada", "Adiada", "Reagendada"].includes(g.status || ""));
   if (!next) { elements.nextDailyGoal.innerHTML = `<details ${dailyPlanSectionAttrs("next", true)}>${dailyPlanSummaryHTML("Próxima atividade", "Todas concluídas")}<div class="daily-plan-content"><p>Todas as metas do dia foram concluídas.</p></div></details>`; return; }
-  elements.nextDailyGoal.innerHTML = `<details ${dailyPlanSectionAttrs("next", true)}>${dailyPlanSummaryHTML("Próxima atividade", `${next.discipline} • ${next.subject}`)}<div class="daily-plan-content"><strong>${escapeHTML(next.discipline)}</strong><p>${escapeHTML(next.subject)}</p><div class="card-meta-grid"><span>Planejado: ${Number(next.minutes||0)} min</span>${nextGoalEstimateHTML(next)}<span>Realizado: ${Number(next.actualMinutes||0)} min</span><span>Prioridade: ${escapeHTML(next.priority || next.prioridade || "-")}</span></div><p class="notice" data-goal-material-notice="${next.id}" ${goalMaterialNotices.has(next.id) ? "" : "hidden"}>${escapeHTML(goalMaterialNotices.get(next.id) || "")}</p><div class="card-actions"><button type="button" data-open-goal-material="${next.id}">Abrir material</button><button type="button" data-goal-timer="study" data-id="${next.id}">Iniciar cronômetro</button><button type="button" data-goal-action="Estudo" data-id="${next.id}">Registrar estudo</button><button type="button" data-goal-action="Concluída" data-id="${next.id}">Concluir meta</button></div></div></details>`;
+  elements.nextDailyGoal.innerHTML = `<details ${dailyPlanSectionAttrs("next", true)}>${dailyPlanSummaryHTML("Próxima atividade", `${next.discipline} • ${next.subject}`)}<div class="daily-plan-content"><strong>${escapeHTML(next.discipline)}</strong><p>${escapeHTML(next.subject)}</p><div class="card-meta-grid"><span>Planejado: ${Number(next.minutes||0)} min</span>${nextGoalEstimateHTML(next, projectionByGoalId.get(next.id))}<span>Realizado: ${Number(next.actualMinutes||0)} min</span><span>Prioridade: ${escapeHTML(next.priority || next.prioridade || "-")}</span></div><p class="notice" data-goal-material-notice="${next.id}" ${goalMaterialNotices.has(next.id) ? "" : "hidden"}>${escapeHTML(goalMaterialNotices.get(next.id) || "")}</p><div class="card-actions"><button type="button" data-open-goal-material="${next.id}">Abrir material</button><button type="button" data-goal-timer="study" data-id="${next.id}">Iniciar cronômetro</button><button type="button" data-goal-action="Estudo" data-id="${next.id}">Registrar estudo</button><button type="button" data-goal-action="Concluída" data-id="${next.id}">Concluir meta</button></div></div></details>`;
 }
 function dailyGoalCard(goal, number = 1) { return dailyGoalDetailsCard(goal, number); }
 function questionNumbers() { const total = Number(elements.questionTotal.value), correct = Number(elements.questionCorrect.value), wrong = Number(elements.questionWrong.value), blank = Number(elements.questionBlank.value); return { total, correct, wrong, blank, sum: correct + wrong + blank, accuracy: total ? correct / total * 100 : 0, errorPct: total ? wrong / total * 100 : 0, blankPct: total ? blank / total * 100 : 0, net: correct - wrong }; }
@@ -5472,7 +5452,7 @@ document.addEventListener("change", async (event) => {
 });
 elements.addManualTime?.addEventListener("click", addManualTime);
 elements.undoTimeAction?.addEventListener("click", undoTimeAction);
-elements.timeHistoryCards?.addEventListener("click", (event) => { const details = event.target.closest("button[data-planning-history-details]"); if (details) { const card = details.closest(".planning-history-card"); const section = card?.querySelector(".planning-history-details"); if (section) section.open = true; return; } const edit = event.target.closest("button[data-time-edit]"); if (edit) return editStudyTime(edit.dataset.timeEdit); const del = event.target.closest("button[data-time-delete]"); if (del) return deleteStudyTime(del.dataset.timeDelete); });
+elements.timeHistoryCards?.addEventListener("click", (event) => { const more = event.target.closest("[data-planning-history-more]"); if (more) { planningHistoryVisibleCount += 20; return renderPlanning(); } const details = event.target.closest("button[data-planning-history-details]"); if (details) { const card = details.closest(".planning-history-card"); const section = card?.querySelector(".planning-history-details"); if (section) section.open = true; return; } const edit = event.target.closest("button[data-time-edit]"); if (edit) return editStudyTime(edit.dataset.timeEdit); const del = event.target.closest("button[data-time-delete]"); if (del) return deleteStudyTime(del.dataset.timeDelete); });
 elements.timerStudyForm?.addEventListener("submit", submitTimerStudyModal);
 elements.timerStudyDiscipline?.addEventListener("change", () => populateTimerStudySubjects());
 document.addEventListener("click", (event) => { if (event.target.closest("[data-timer-study-cancel]")) closeTimerStudyModal(); });
@@ -5534,7 +5514,7 @@ function handleFactoryFilterClick(event) {
   if (!button) return;
   event.preventDefault();
   try {
-    factoryCurrentFilter = button.dataset.factoryFilter || "faca-agora";
+    factoryCurrentFilter = button.dataset.factoryFilter || "faca-agora"; factoryVisibleCount = 20;
     renderFactory();
   } catch (error) { showFactoryEventError("filtro", error); }
 }
@@ -5558,6 +5538,8 @@ function handleFactoryListClick(event) {
     if (modules) { event.preventDefault(); return editFactoryModules(modules.dataset.factoryModules); }
     const cancelModules = button.closest("[data-factory-modules-cancel]");
     if (cancelModules) { event.preventDefault(); const panel = elements.factoryList.querySelector(`[data-factory-modules-panel="${CSS.escape(cancelModules.dataset.factoryModulesCancel)}"]`); if (panel) panel.innerHTML = ""; return; }
+    const showMore = button.closest("[data-show-factory-more]");
+    if (showMore) { factoryVisibleCount += 20; return renderFactory(); }
     const toggleDetail = button.closest("[data-factory-toggle-detail]");
     if (toggleDetail) { event.preventDefault(); return toggleFactoryDetail(toggleDetail.dataset.factoryToggleDetail); }
     const nextTheme = button.closest("[data-factory-next]");
@@ -6157,7 +6139,17 @@ function renderView(viewId) {
     "analise-estrategica": renderStrategicAnalysis,
     conselheiro: renderAdvisor
   };
+  const startedAt = performance.now();
   safeRenderView(viewId, renderers[viewId]);
+  const durationMs = performance.now() - startedAt;
+  const report = window.__viewPerformanceReport ||= { lastView: "", lastDurationMs: 0, views: {} };
+  report.lastView = viewId; report.lastDurationMs = durationMs;
+  if (["metas-do-dia", "fabrica-resumos", "planejamento"].includes(viewId)) {
+    const view = report.views[viewId] ||= {}; view.durationMs = durationMs;
+    if (viewId === "metas-do-dia") Object.assign(view, { projectionBuilds: 1, renderedGoals: document.querySelectorAll("[data-daily-goal-details]").length, hydratedGoals: document.querySelectorAll("[data-daily-goal-hydrated=true]").length, materials: (state.materials || []).length, factoryItems: (state.factoryAgenda || state.factoryItems || []).length });
+    if (viewId === "fabrica-resumos") Object.assign(view, { renderedCards: document.querySelectorAll("[data-factory-card]").length, hydratedDetails: document.querySelectorAll("[data-detail-hydrated=true]").length, queueItems: document.querySelectorAll(".factory-today-queue li").length, factoryItems: (state.factoryAgenda || state.factoryItems || []).length });
+    if (viewId === "planejamento") Object.assign(view, { scoredItems: 0, scoreExecutions: 0, historyCards: document.querySelectorAll(".planning-history-card").length, syllabusItems: (state.syllabusItems || []).length });
+  }
 }
 
 function setMobileMenuOpen(isOpen) {
@@ -6249,3 +6241,7 @@ document.addEventListener("keydown", (event) => {
   const modal = document.getElementById("goalCompletionModal");
   if (event.key === "Escape" && modal && !modal.hidden) { event.preventDefault(); closeGoalCompletionModal(); }
 });
+
+// Compatibilidade visual: factoryThemeHighlightHTML(item, recorte)
+
+// Compatibilidade de fila: data-factory-detail="${item.id}" ${factoryOpenDetailId === item.id ? "open" : ""}
