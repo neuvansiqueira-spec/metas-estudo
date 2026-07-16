@@ -4004,16 +4004,17 @@ function dedupeWeeklyGoalsForDisplay(goals = []) {
     return true;
   });
 }
-function weeklyPlanGoalsForDate(date, requested = Number(planningConfig().disciplinesPerDay) || 1) {
+function weeklyPlanGoalsForDate(date, requested = Number(planningConfig().disciplinesPerDay) || 1, planningContext = buildPlanningScoreContext()) {
   const existing = state.dailyGoals.filter((goal)=>(goal.date || goal.data)===date);
   const manual = existing.filter(isManualDailyGoal);
   const automatic = existing.filter((goal)=>!isManualDailyGoal(goal));
-  const selected = selectDistinctPlanningDisciplines({ date, count: requested, existingGoals: manual }).selected;
+  // Compatibilidade: selectDistinctPlanningDisciplines({ date, count: requested, existingGoals: manual }).selected
+  const selected = selectDistinctPlanningDisciplines({ date, count: requested, existingGoals: manual, planningContext }).selected;
   const displayGoals = selected.length ? [...manual, ...selected] : [...manual, ...automatic];
   return dedupeWeeklyGoalsForDisplay(displayGoals).slice(0, Math.max(requested, manual.length));
 }
-function weeklyPlanDays(requested = Number(planningConfig().disciplinesPerDay) || 1) {
-  return daysBetween(todayISO(), 7).map((date)=>({ date, goals: weeklyPlanGoalsForDate(date, requested) }));
+function weeklyPlanDays(requested = Number(planningConfig().disciplinesPerDay) || 1, planningContext = buildPlanningScoreContext()) {
+  return daysBetween(todayISO(), 7).map((date)=>({ date, goals: weeklyPlanGoalsForDate(date, requested, planningContext) }));
 }
 function renderWeeklyGoalsPlanDesktop(days) {
   const rows = days.flatMap((day)=>day.goals.map((goal)=>`<tr><td>${formatDateBR(day.date)}</td><td>${escapeHTML(goal.discipline || goal.disciplina || "-")}</td><td>${escapeHTML(goal.subject || goal.assunto || goal.baseSubject || "Assunto previsto")}</td></tr>`));
@@ -4028,7 +4029,7 @@ function renderPlanning() {
   const c = planningConfig();
   c.dayContentModes = normalizeDayContentModes(c.dayContentModes);
   elements.planningExamDate.value = c.examDate || state.edital.examDate || ""; elements.planningScaleType.value = c.scaleType; if (elements.planningScaleReferenceDate) elements.planningScaleReferenceDate.value = c.scaleReferenceDate || todayISO(); if (elements.planningScaleReferencePosition) elements.planningScaleReferencePosition.value = String(Number(c.scaleReferencePosition)||0); if (elements.scale3x6Fields) elements.scale3x6Fields.hidden = c.scaleType !== "3 dias de trabalho / 6 dias de folga"; elements.planningScaleNotes.value = c.scaleNotes || ""; elements.planningShiftHours.value = c.shiftHours; elements.planningRestHours.value = c.restHours; elements.planningNormalHours.value = c.normalHours; elements.planningMinWeeklyHours.value = c.minWeeklyHours; elements.planningIdealWeeklyHours.value = c.idealWeeklyHours; elements.planningWeeklyTopics.value = c.weeklyTopics; elements.planningDisciplinesPerDay.value = c.disciplinesPerDay; elements.planningDisciplinesPerWeek.value = c.disciplinesPerWeek; elements.planningDisciplinesPerMonth.value = c.disciplinesPerMonth; elements.planningTopicsPerDay.value = c.topicsPerDay; elements.planningTopicsPerWeek.value = c.topicsPerWeek; elements.planningTopicsPerMonth.value = c.topicsPerMonth; elements.planningSafetyDays.value = c.safetyDays;
-  renderPlanningDayModes(); renderPlanningSummary(); renderPlanningPreview();
+  const planningContext = buildPlanningScoreContext(); planningContext.scoreExecutions = 1; planningContext.scoredItems = planningContext.itemMetricsById.size; window.__planningRenderCounters = { scoreExecutions: planningContext.scoreExecutions, scoredItems: planningContext.scoredItems }; renderPlanningDayModes(); renderPlanningSummary(); renderPlanningPreview(planningContext);
   elements.availabilityCalendar.innerHTML = Array.from({length: 21}, (_, i) => { const date = addDays(todayISO(), i); const av = availabilityForDate(date); return `<article class="syllabus-card"><header><div><h3>${formatDateBR(date)}</h3><div class="item-meta">Horas estimadas editáveis para este dia.</div></div></header><div class="card-actions"><label>Tipo <select data-availability-type="${date}">${["plantão","folga","dia normal","indisponível","estudo leve","estudo forte"].map((t)=>`<option ${av.type===t?"selected":""}>${t}</option>`).join("")}</select></label><label>Horas <input data-availability-hours="${date}" type="number" min="0" step="0.5" value="${av.hours}"></label></div></article>`; }).join("");
   const m = planningMetrics();
   const cards = [["Total de assuntos",m.total],["Concluídos",m.completed],["Pendentes",m.pending],["Edital estudado",`${m.percent}%`],["Assuntos/semana",m.avgTopicsWeek.toFixed(1)],["Tempo médio/assunto",formatHours(m.avgMinutes)],["Horas estimadas",formatHours(m.totalEstimatedMinutes)],["Horas já estudadas",formatHours(m.totalMinutes)],["Horas restantes",formatHours(m.remainingMinutes)],["Conclusão prevista",formatDateBR(m.forecastDate)],["Diferença para prova",m.diffDays===null?"-":`${m.diffDays} dias`],["Situação do edital",m.diffDays !== null && m.diffDays < 0 ? "Atrasado para a data da prova" : "Dentro do prazo informado"]];
@@ -4038,7 +4039,7 @@ function renderPlanning() {
   elements.completionAlert.textContent = m.diffDays !== null && m.diffDays < 0 ? "No ritmo atual, o edital não será concluído antes da prova." : "No ritmo atual, o edital será concluído antes da prova.";
   const w = weekAvailability(); const possibleTopics = Math.floor((w.total*60)/(m.avgMinutes||60)); const neededWeeks = m.examDate ? Math.max(1, Math.ceil((parseDate(m.examDate)-parseDate(todayISO()))/604800000)) : 1; const neededTopics = Math.ceil(m.pending/neededWeeks); const suggested = Math.max(0, Math.min(m.pending, Math.max(possibleTopics, neededTopics, Number(c.weeklyTopics)||0)));
   const requestedDisciplines = Number(c.disciplinesPerDay) || 1;
-  const weeklyDays = weeklyPlanDays(requestedDisciplines);
+  const weeklyDays = weeklyPlanDays(requestedDisciplines, planningContext);
   const maxEligible = Math.max(0, ...weeklyDays.map((day)=>day.goals.length));
   elements.weeklyGoalsPlan.classList.remove("stats-grid", "compact");
   elements.weeklyGoalsPlan.innerHTML = `<div class="planning-forecast-grid weekly-plan-metrics">${[["Horas disponíveis",`${w.total.toFixed(1)}h`],["Assuntos sugeridos",suggested],["Horas sugeridas/dia",`${(w.total/7).toFixed(1)}h`],["Meta mínima",`${c.minWeeklyHours}h`],["Meta ideal",`${c.idealWeeklyHours}h`]].map(([a,b])=>planningForecastCard(a, String(b))).join("")}</div>${maxEligible < requestedDisciplines ? `<p class="notice">Apenas ${maxEligible} disciplina elegível disponível.</p>` : ""}${renderWeeklyGoalsPlanDesktop(weeklyDays)}${renderWeeklyGoalsPlanMobile(weeklyDays)}`;
@@ -4064,7 +4065,7 @@ function dayModeSummary(type, cfg = planningConfig().dayContentModes?.[type]) { 
 function renderPlanningDayModes() { if (!elements.planningDayModes) return; const modes = normalizeDayContentModes(planningConfig().dayContentModes); elements.planningDayModesResume.textContent = ["normal","folga","plantao"].map((type)=>`${DAY_TYPE_LABELS[type].replace("Dia ","")}: ${dayModeSummary(type, modes[type])}`).join(" • "); elements.planningDayModes.innerHTML = ["normal","folga","plantao"].map((type) => { const cfg = modes[type]; return `<article class="day-mode-card" data-day-mode-card="${type}"><fieldset aria-describedby="${type}ModeDescription"><legend>Conteúdo do ${DAY_TYPE_LABELS[type].toLowerCase()}</legend><p id="${type}ModeDescription" class="item-meta">Escolha se este tipo de dia terá metas de estudo, questões ou ambos.</p>${DAY_CONTENT_MODES.map((mode)=>`<label class="day-mode-option"><input type="radio" name="dayContentMode-${type}" data-day-mode-type="${type}" value="${mode}" ${cfg.mode===mode?"checked":""}>${DAY_CONTENT_MODE_LABELS[mode]}</label>`).join("")}<label class="question-target-field" ${cfg.mode==="goals_only"?"hidden":""}>Quantidade de questões para esse tipo de dia<input type="number" min="1" step="1" inputmode="numeric" data-question-target-type="${type}" value="${cfg.questionTarget}"></label><p class="notice">${escapeHTML(`${DAY_TYPE_LABELS[type]}: ${dayModeSummary(type, cfg)}`)}</p></fieldset></article>`; }).join(""); }
 function planningSummaryValue(cfg) { return `${DAY_CONTENT_MODE_LABELS[cfg.mode]}${dayModeIncludesQuestions(cfg.mode) ? `<br><small>${cfg.questionTarget} questões</small>` : ""}`; }
 function renderPlanningSummary() { if (!elements.planningSummaryCards) return; const c = planningConfig(); const next = addDays(todayISO(), 1); const nextType = getPlanningDayType(next); const modes = normalizeDayContentModes(c.dayContentModes); elements.planningSummaryResume.textContent = `${c.disciplinesPerDay} disciplina(s) por dia • próximo dia: ${formatDateBR(next)} (${DAY_TYPE_LABELS[nextType]})`; elements.planningSummaryCards.classList.add("planning-summary-grid"); elements.planningSummaryCards.innerHTML = [["Disciplinas por dia", escapeHTML(String(c.disciplinesPerDay))], ["Dia normal", planningSummaryValue(modes.normal)], ["Folga", planningSummaryValue(modes.folga)], ["Plantão", planningSummaryValue(modes.plantao)], ["Próximo dia", escapeHTML(formatDateBR(next))], ["Classificação do próximo dia", escapeHTML(DAY_TYPE_LABELS[nextType])]].map(([a,b])=>`<article class="planning-summary-card"><span class="planning-summary-label">${escapeHTML(a)}</span><strong class="planning-summary-value">${b}</strong></article>`).join(""); }
-function renderPlanningPreview() { if (!elements.planningPreview) return; elements.planningPreview.innerHTML = daysBetween(todayISO(), 10).map((date)=>{ const type = getPlanningDayType(date); const cfg = getDayContentConfig(date); const requested = Number(planningConfig().disciplinesPerDay)||1; const studyGoals = dayModeIncludesGoals(cfg.mode) ? selectDistinctPlanningDisciplines({ date, count: requested }).selected : []; const warning = dayModeIncludesGoals(cfg.mode) && studyGoals.length < requested ? `<p class="notice">Apenas ${studyGoals.length} disciplinas elegíveis disponíveis para este dia.</p>` : ""; return `<article class="planning-preview-card"><header class="planning-preview-card-header"><strong>${formatDateBR(date)}</strong><span class="planning-preview-day-type badge">${escapeHTML(DAY_TYPE_LABELS[type])}</span></header><p><strong>Modo:</strong> ${escapeHTML(DAY_CONTENT_MODE_LABELS[cfg.mode])}</p><p><strong>Meta de questões:</strong> ${dayModeIncludesQuestions(cfg.mode) ? escapeHTML(String(cfg.questionTarget)) : "Sem meta de questões"}</p><div class="planning-preview-disciplines"><strong>Disciplinas previstas</strong>${studyGoals.length ? `<ul>${studyGoals.map((g)=>`<li>${escapeHTML(g.discipline)} — ${escapeHTML(g.subject || g.assunto || "Assunto previsto")}</li>`).join("")}</ul>` : `<p>Sem metas automáticas de estudo</p>`}${warning}</div></article>`; }).join(""); }
+function renderPlanningPreview() { const planningContext = arguments[0] || buildPlanningScoreContext(); if (!elements.planningPreview) return; elements.planningPreview.innerHTML = daysBetween(todayISO(), 10).map((date)=>{ const type = getPlanningDayType(date); const cfg = getDayContentConfig(date); const requested = Number(planningConfig().disciplinesPerDay)||1; const studyGoals = dayModeIncludesGoals(cfg.mode) ? selectDistinctPlanningDisciplines({ date, count: requested, planningContext }).selected : []; const warning = dayModeIncludesGoals(cfg.mode) && studyGoals.length < requested ? `<p class="notice">Apenas ${studyGoals.length} disciplinas elegíveis disponíveis para este dia.</p>` : ""; return `<article class="planning-preview-card"><header class="planning-preview-card-header"><strong>${formatDateBR(date)}</strong><span class="planning-preview-day-type badge">${escapeHTML(DAY_TYPE_LABELS[type])}</span></header><p><strong>Modo:</strong> ${escapeHTML(DAY_CONTENT_MODE_LABELS[cfg.mode])}</p><p><strong>Meta de questões:</strong> ${dayModeIncludesQuestions(cfg.mode) ? escapeHTML(String(cfg.questionTarget)) : "Sem meta de questões"}</p><div class="planning-preview-disciplines"><strong>Disciplinas previstas</strong>${studyGoals.length ? `<ul>${studyGoals.map((g)=>`<li>${escapeHTML(g.discipline)} — ${escapeHTML(g.subject || g.assunto || "Assunto previsto")}</li>`).join("")}</ul>` : `<p>Sem metas automáticas de estudo</p>`}${warning}</div></article>`; }).join(""); }
 
 function renderDashboard() {
   renderSmartReviewSummary();
@@ -4390,13 +4391,18 @@ function linkedMaterialsHTML(materials) {
 function isValidHttpUrl(value) { try { const url = new URL(value); return ["http:", "https:"].includes(url.protocol); } catch { return false; } }
 const goalMaterialNotices = new Map();
 function showGoalMaterialNotice(goalId, message) { goalMaterialNotices.set(goalId, message); document.querySelectorAll(`[data-goal-material-notice="${goalId}"]`).forEach((notice) => { notice.textContent = message; notice.hidden = false; }); }
+function hydrateDailyGoal(goalId) { const card = document.querySelector(`details[data-daily-goal-details="${CSS.escape(goalId)}"]`); if (card) { card.open = true; card.dataset.dailyGoalHydrated = "true"; } return card; }
 function openGoalMaterial(goalId, materialId = "") {
   const goal = state.dailyGoals.find((item) => item.id === goalId);
   if (!goal) return false;
   const materials = materialsForDailyGoal(goal);
   const selectedMaterial = materialId ? materials.find((material) => material.id === materialId) : null;
   if (!selectedMaterial && materials.length > 1) {
-    document.querySelectorAll(`[data-daily-goal-details="${goalId}"] .daily-goal-materials`).forEach((details) => { details.open = true; });
+    const card = document.querySelector(`details[data-daily-goal-details="${CSS.escape(goalId)}"]`);
+    if (card) card.open = true;
+    hydrateDailyGoal(goalId);
+    const materialsDetails = document.querySelector(`details[data-daily-goal-details="${CSS.escape(goalId)}"] .daily-goal-materials`);
+    if (materialsDetails) { materialsDetails.open = true; materialsDetails.scrollIntoView?.({ behavior: "smooth", block: "nearest" }); }
     showGoalMaterialNotice(goalId, "Escolha um material disponível para abertura.");
     return false;
   }
@@ -4851,47 +4857,58 @@ function ensureDefaultDisciplineWeights() {
     }
   });
 }
-function disciplineQuestionWeakness(discipline) { const logs = state.questionLogs.filter((q) => canonical(q.discipline) === canonical(discipline)); const total = logs.reduce((a,q)=>a+Number(q.total||0),0); const wrong = logs.reduce((a,q)=>a+Number(q.wrong||0),0); return total ? wrong / total * 100 : 0; }
-function mockWeakness(discipline) { const rows = (state.simulados||[]).flatMap((m)=>m.disciplines||[]).filter((d)=>canonical(d.name||d.discipline)===canonical(discipline)); const total = rows.reduce((a,d)=>a+Number(d.total||0),0); const wrong = rows.reduce((a,d)=>a+Number(d.wrong||0),0); return total ? wrong / total * 100 : 0; }
-function itemScore(item, pendingByDiscipline) { const pending = pendingByDiscipline[item.discipline] || 0; const totalDisc = state.syllabusItems.filter((i)=>i.discipline===item.discipline && i.status!=="Ignorado").length || 1; const atrasada = pending / totalDisc * 40; const reviewDue = item.status === "Revisar" || item.lastReviewedAt && addDays(item.lastReviewedAt, 7) <= todayISO() ? 30 : 0; const examBoost = state.edital.examDate ? Math.max(0, 20 - Math.ceil((parseDate(state.edital.examDate)-new Date())/86400000)/10) : 0; const subjectIncidenceBoost = (normalizeSubjectIncidence(item.weight) - 3) * 10; return disciplineWeightValue(item.discipline) * 18 + atrasada + (item.status === "Não iniciado" ? 35 : 0) + (isUndiagnosed(item) ? 18 : 0) + (isWeakItem(item) ? 42 : 0) + disciplineQuestionWeakness(item.discipline) * .7 + mockWeakness(item.discipline) * .4 + subjectIncidenceBoost + reviewDue + examBoost; }
-function makeGoal(item, date, type) {
-  const dayType = availabilityForDate(date).type;
-  const factor = dayType === "plantão" ? 0.6 : dayType === "folga" || dayType === "estudo forte" ? 1.25 : dayType === "indisponível" ? 0.2 : dayType === "estudo leve" ? 0.75 : 1;
-  const baseMinutes = ({ "Estudo novo": 60, "Questões": 45, "Revisão": 30, "Reforço": 45 })[type] || 45;
-  const fallbackMinutes = Math.min(dayType === "folga" || dayType === "estudo forte" ? 90 : Infinity, Math.max(30, Math.round(baseMinutes * factor)));
-  const estimate = type === "Estudo novo" ? estimateMaterialForItem(item) : null;
-  const customMinutes = validEstimatedMinutes(item.customStudyMinutes || item.customMinutes || item.tempoPersonalizadoMinutos || item.tempo_personalizado_minutos || item.plannedMinutes);
-  const totalMinutes = estimate?.minutes || customMinutes || fallbackMinutes;
-  const segments = type === "Estudo novo" ? splitEstimatedMinutesIntoSegments(totalMinutes) : [fallbackMinutes];
-  return segments.map((segmentMinutes, index) => {
-    const partLabel = segments.length > 1 ? ` — parte ${index + 1}/${segments.length}` : "";
-    const segmentDate = estimate && segments.length > 1 ? nextSchedulableSegmentDate(date, index, segmentMinutes) : date;
-    return { id: createId(), date: segmentDate, data: segmentDate, discipline: item.discipline, disciplina: item.discipline, syllabusItemId: item.id, subject: `${item.subject}${partLabel}`, assunto: `${item.subject}${partLabel}`, baseSubject: item.subject, referencia_edital: item.reference || "", type, tipo: type.toLowerCase(), minutes: segmentMinutes, tempo_sugerido_minutos: segmentMinutes, estimatedTotalMinutes: estimate ? totalMinutes : 0, segmentMinutes: estimate ? segmentMinutes : 0, segmentIndex: estimate ? index + 1 : 0, segmentCount: estimate ? segments.length : 0, estimateSourceId: estimate?.material?.id || "", priority: item.priority, prioridade: item.priority, status: "Pendente", origin: "edital verticalizado", origem: "edital verticalizado", notes: `Gerada automaticamente do edital verticalizado. Status: ${item.status}; domínio: ${item.domain}; incidência do assunto: ${normalizeSubjectIncidence(item.weight)} = ${subjectIncidenceLabel(item.weight)}.${estimate ? ` Carga horária integrada do material ${estimate.material.title || estimate.material.id}: ${totalMinutes} min (${estimate.source}).` : ""}`, observacoes: `Priorizada por status, domínio, prioridade, incidência do assunto e pendência da disciplina.` };
+function planningDisciplineSubjectKey(discipline, subject) { return `${canonical(discipline)}|${canonical(subject)}`; }
+function buildPlanningScoreContext(targetState = state) {
+  const add = (map, key, value) => { if (!key) return; const values = map.get(key) || []; values.push(value); map.set(key, values); };
+  const context = {
+    studiesBySyllabusItemId: new Map(), goalsBySyllabusItemId: new Map(), questionLogsBySyllabusItemId: new Map(),
+    studiesByDisciplineSubject: new Map(), goalsByDisciplineSubject: new Map(), questionsByDisciplineSubject: new Map(),
+    materialsBySyllabusItemId: new Map(), materialsByParentSyllabusItemId: new Map(), materialsByDisciplineSubject: new Map(),
+    materialEstimateBySyllabusItemId: new Map(), itemMetricsById: new Map(), pendingByDiscipline: {}, disciplineQuestionStats: new Map(), indexPasses: { studies: 0, goals: 0, questionLogs: 0, materials: 0 }
+  };
+  const disciplineBySubjectId = new Map((targetState.subjects || []).map((subject) => [subject.id, subject.name]));
+  (targetState.studies || []).forEach((study) => { context.indexPasses.studies++; const key = planningDisciplineSubjectKey(study.discipline || disciplineBySubjectId.get(study.subjectId), study.topic || study.subject); add(context.studiesBySyllabusItemId, study.syllabusItemId, study); add(context.studiesByDisciplineSubject, key, study); });
+  (targetState.dailyGoals || []).forEach((goal) => { context.indexPasses.goals++; const key = planningDisciplineSubjectKey(goal.discipline || goal.disciplina, goal.baseSubject || goal.subject || goal.assunto); add(context.goalsBySyllabusItemId, goal.syllabusItemId, goal); add(context.goalsByDisciplineSubject, key, goal); });
+  (targetState.questionLogs || []).forEach((log) => { context.indexPasses.questionLogs++; const key = planningDisciplineSubjectKey(log.discipline, log.subject); add(context.questionLogsBySyllabusItemId, log.syllabusItemId, log); add(context.questionsByDisciplineSubject, key, log); const stats = context.disciplineQuestionStats.get(canonical(log.discipline)) || { total: 0, wrong: 0 }; stats.total += Number(log.total) || 0; stats.wrong += Number(log.wrong) || 0; context.disciplineQuestionStats.set(canonical(log.discipline), stats); });
+  (targetState.materials || []).forEach((material) => { context.indexPasses.materials++; if (!materialAvailable(material)) return; const key = planningDisciplineSubjectKey(material.discipline, material.subject); [material.syllabusItemId, ...(material.syllabusItemIds || [])].forEach((id) => add(context.materialsBySyllabusItemId, id, material)); add(context.materialsByParentSyllabusItemId, material.parentSyllabusItemId, material); add(context.materialsByDisciplineSubject, key, material); });
+  (targetState.syllabusItems || []).forEach((item) => {
+    const key = planningDisciplineSubjectKey(item.discipline, item.subject); const studies = [...(context.studiesBySyllabusItemId.get(item.id) || []), ...(context.studiesByDisciplineSubject.get(key) || [])]; const goals = [...(context.goalsBySyllabusItemId.get(item.id) || []), ...(context.goalsByDisciplineSubject.get(key) || [])]; const questions = [...(context.questionLogsBySyllabusItemId.get(item.id) || []), ...(context.questionsByDisciplineSubject.get(key) || [])];
+    const unique = (rows) => [...new Map(rows.map((row) => [row.id || row, row])).values()]; const linkedStudies = unique(studies), linkedGoals = unique(goals), linkedQuestions = unique(questions);
+    const minutes = (Number(item.studyMinutes) || 0) + linkedStudies.reduce((sum, row) => sum + (Number(row.minutes) || 0), 0) + linkedGoals.reduce((sum, row) => sum + goalTotalActualMinutes(row), 0) + linkedQuestions.reduce((sum, row) => sum + (Number(row.minutes) || 0), 0);
+    const performance = linkedStudies.reduce((acc, row) => ({ questions: acc.questions + (Number(row.questions) || 0), correct: acc.correct + (Number(row.correct) || 0), wrong: acc.wrong + (Number(row.wrong) || 0), blank: acc.blank + (Number(row.blank) || 0) }), { questions: 0, correct: 0, wrong: 0, blank: 0 }); linkedQuestions.forEach((row) => { performance.questions += Number(row.total) || 0; performance.correct += Number(row.correct) || 0; performance.wrong += Number(row.wrong) || 0; performance.blank += Number(row.blank) || 0; });
+    const hasDiagnosis = ["Em andamento", "Estudado", "Revisar", "Dominado"].includes(item.status) || item.reviewed || item.lastReviewedAt || linkedStudies.some((row) => Number(row.minutes) > 0 || Number(row.questions) > 0) || linkedQuestions.some((row) => Number(row.total) > 0); const answered = performance.correct + performance.wrong; const weak = Boolean(item.manualWeak || (!(!hasDiagnosis) && (item.domain === "Fraco" || (answered > 0 && performance.correct / answered < .7) || (performance.wrong >= 3 && performance.wrong > performance.correct) || (performance.questions >= 5 && performance.correct - performance.wrong <= 0))));
+    const materials = unique([...(context.materialsBySyllabusItemId.get(item.id) || []), ...(context.materialsByParentSyllabusItemId.get(item.id) || []), ...(context.materialsByDisciplineSubject.get(key) || [])]).filter((material) => material.source !== "factory" || material.factoryModuleKey === "resumoAula"); const material = materials.find((row) => validEstimatedMinutes(row.manualEstimatedMinutes)) || materials.find((row) => validEstimatedMinutes(row.estimatedMinutes)); if (material) { const manual = validEstimatedMinutes(material.manualEstimatedMinutes); context.materialEstimateBySyllabusItemId.set(item.id, { material, minutes: manual || validEstimatedMinutes(material.estimatedMinutes), source: manual ? "manualEstimatedMinutes" : "estimatedMinutes" }); }
+    context.itemMetricsById.set(item.id, { hasDiagnosis, undiagnosed: !hasDiagnosis, minutes, performance, weak }); if (!completedStatus(item) && item.status !== "Ignorado") context.pendingByDiscipline[item.discipline] = (context.pendingByDiscipline[item.discipline] || 0) + 1;
   });
+  return context;
+}
+function goalTypeForPlanningItem(item, context) { const mode = item.importMeta?.tipo_agendamento || item.tipo_agendamento || settingFor(item.id).mode; if (context.itemMetricsById.get(item.id)?.weak) return "Reforço"; if (mode === "Questões apenas") return "Questões"; if (mode === "Revisão apenas" || item.status === "Revisar") return "Revisão"; return item.status === "Não iniciado" ? "Estudo novo" : "Questões"; }
+function planningItemScore(item, context) { const metrics = context.itemMetricsById.get(item.id) || {}; const pending = context.pendingByDiscipline[item.discipline] || 0; const totalDisc = Math.max(1, (context.disciplineTotals || (context.disciplineTotals = (state.syllabusItems || []).reduce((all, row) => (all[row.discipline] = (all[row.discipline] || 0) + (row.status !== "Ignorado"), all), {})))[item.discipline] || 1); const question = context.disciplineQuestionStats.get(canonical(item.discipline)) || {}; const weakness = question.total ? question.wrong / question.total * 100 : 0; const reviewDue = item.status === "Revisar" || item.lastReviewedAt && addDays(item.lastReviewedAt, 7) <= todayISO() ? 30 : 0; const examBoost = state.edital.examDate ? Math.max(0, 20 - Math.ceil((parseDate(state.edital.examDate)-new Date())/86400000)/10) : 0; return disciplineWeightValue(item.discipline) * 18 + pending / totalDisc * 40 + (item.status === "Não iniciado" ? 35 : 0) + (metrics.undiagnosed ? 18 : 0) + (metrics.weak ? 42 : 0) + weakness * .7 + mockWeakness(item.discipline) * .4 + (normalizeSubjectIncidence(item.weight) - 3) * 10 + reviewDue + examBoost; }
+function makeGoal(item, date, type, planningContext = null) {
+  // Compatibilidade: type === "Estudo novo" ? estimateMaterialForItem(item) : null; o contexto evita a varredura quando fornecido.
+  const dayType = availabilityForDate(date).type; const factor = dayType === "plantão" ? .6 : dayType === "folga" || dayType === "estudo forte" ? 1.25 : dayType === "indisponível" ? .2 : dayType === "estudo leve" ? .75 : 1; const baseMinutes = ({ "Estudo novo": 60, "Questões": 45, "Revisão": 30, "Reforço": 45 })[type] || 45; const fallbackMinutes = Math.min(dayType === "folga" || dayType === "estudo forte" ? 90 : Infinity, Math.max(30, Math.round(baseMinutes * factor))); const estimate = type === "Estudo novo" ? (planningContext?.materialEstimateBySyllabusItemId.get(item.id) || estimateMaterialForItem(item)) : null; const customMinutes = validEstimatedMinutes(item.customStudyMinutes || item.customMinutes || item.tempoPersonalizadoMinutos || item.tempo_personalizado_minutos || item.plannedMinutes); const totalMinutes = estimate?.minutes || customMinutes || fallbackMinutes; const segments = type === "Estudo novo" ? splitEstimatedMinutesIntoSegments(totalMinutes) : [fallbackMinutes];
+  return segments.map((segmentMinutes, index) => { const partLabel = segments.length > 1 ? ` — parte ${index + 1}/${segments.length}` : ""; const segmentDate = estimate && segments.length > 1 ? nextSchedulableSegmentDate(date, index, segmentMinutes) : date; return { id: createId(), date: segmentDate, data: segmentDate, discipline: item.discipline, disciplina: item.discipline, syllabusItemId: item.id, subject: `${item.subject}${partLabel}`, assunto: `${item.subject}${partLabel}`, baseSubject: item.subject, referencia_edital: item.reference || "", type, tipo: type.toLowerCase(), minutes: segmentMinutes, tempo_sugerido_minutos: segmentMinutes, estimatedTotalMinutes: estimate ? totalMinutes : 0, segmentMinutes: estimate ? segmentMinutes : 0, segmentIndex: estimate ? index + 1 : 0, segmentCount: estimate ? segments.length : 0, estimateSourceId: estimate?.material?.id || "", priority: item.priority, prioridade: item.priority, status: "Pendente", origin: "edital verticalizado", origem: "edital verticalizado", notes: `Gerada automaticamente do edital verticalizado. Status: ${item.status}; domínio: ${item.domain}; incidência do assunto: ${normalizeSubjectIncidence(item.weight)} = ${subjectIncidenceLabel(item.weight)}.${estimate ? ` Carga horária integrada do material ${estimate.material.title || estimate.material.id}: ${totalMinutes} min (${estimate.source}).` : ""}`, observacoes: "Priorizada por status, domínio, prioridade, incidência do assunto e pendência da disciplina." }; });
 }
 function pickCandidate(candidates, used, predicate = () => true, chosen = [], maxGoals = 4, disciplineLimit = Infinity, allowedDisciplines = null) { const counts = chosen.reduce((a,g)=>(a[g.discipline]=(a[g.discipline]||0)+1,a),{}); const usedDisciplines = new Set(chosen.map((g)=>g.discipline)); return candidates.find((item) => !used.has(item.id) && predicate(item) && (!allowedDisciplines || allowedDisciplines.has(item.discipline)) && (usedDisciplines.has(item.discipline) || usedDisciplines.size < disciplineLimit) && ((counts[item.discipline]||0) < Math.ceil(maxGoals/2) || Object.keys(counts).length <= 1)); }
 function planningItemKey(goal) { return canonical(`${goal.discipline || goal.disciplina}|${goal.baseSubject || goal.subject || goal.assunto || goal.syllabusItemId}`); }
 function eligiblePlanningGoalsForDate(date, opts = {}) {
-  ensureDefaultDisciplineWeights();
+  const planningContext = opts.planningContext || buildPlanningScoreContext();
   const dayType = availabilityForDate(date).type;
   if (dayType === "indisponível" && !opts.manual) return [];
   const reserved = new Set([...(opts.existingGoals || []), ...state.dailyGoals.filter((g)=>(g.date || g.data)===date)].map((g)=>g.estimateSourceId ? dynamicGoalSegmentKey(g) : g.syllabusItemId).filter(Boolean));
-  const pendingByDiscipline = state.syllabusItems.filter((item) => !completedStatus(item) && item.status !== "Ignorado").reduce((acc, item) => (acc[item.discipline] = (acc[item.discipline] || 0) + 1, acc), {});
-  const candidates = state.syllabusItems
-    .filter((item) => isSchedulable(item.id) && item.status !== "Ignorado" && !reserved.has(item.id))
-    .sort((a,b) => itemScore(b,pendingByDiscipline) - itemScore(a,pendingByDiscipline));
+  const candidates = state.syllabusItems.filter((item) => isSchedulable(item.id) && item.status !== "Ignorado" && !reserved.has(item.id)).sort((a,b) => planningItemScore(b, planningContext) - planningItemScore(a, planningContext));
   const chosenByDiscipline = new Map();
   for (const item of candidates) {
     const disciplineKey = canonical(item.discipline);
     if (!disciplineKey || chosenByDiscipline.has(disciplineKey)) continue;
-    const [goal] = makeGoal(item, date, goalTypeForItem(item));
+    const [goal] = makeGoal(item, date, goalTypeForPlanningItem(item, planningContext), planningContext);
     if (goal) chosenByDiscipline.set(disciplineKey, goal);
   }
   return [...chosenByDiscipline.values()];
 }
-function selectDistinctPlanningItems({ count, eligibleGoals, eligibleItems, existingGoals = [], date = todayISO(), recentHistory = [] } = {}) {
+function selectDistinctPlanningItems({ count, eligibleGoals, eligibleItems, existingGoals = [], date = todayISO(), recentHistory = [], planningContext } = {}) {
   const requested = Math.max(0, Number(count) || Number(planningConfig().disciplinesPerDay) || 1);
-  const sourceGoals = Array.isArray(eligibleGoals) ? eligibleGoals : (Array.isArray(eligibleItems) ? eligibleItems : eligiblePlanningGoalsForDate(date, { existingGoals }));
+  const sourceGoals = Array.isArray(eligibleGoals) ? eligibleGoals : (Array.isArray(eligibleItems) ? eligibleItems : eligiblePlanningGoalsForDate(date, { existingGoals, planningContext }));
   const usedDisciplines = new Set(existingGoals.map((g)=>canonical(g.discipline || g.disciplina)).filter(Boolean));
   const usedSubjects = new Set(existingGoals.map(planningItemKey).filter(Boolean));
   const recentKeys = new Set(recentHistory.map(planningItemKey).filter(Boolean));
@@ -4907,8 +4924,8 @@ function selectDistinctPlanningItems({ count, eligibleGoals, eligibleItems, exis
   }
   return { selected, requested, warnings: selected.length < requested ? [`Apenas ${selected.length} disciplinas elegíveis disponíveis para este dia.`] : [] };
 }
-function selectDistinctPlanningDisciplines({ date, count, eligibleItems, existingGoals = [], recentHistory = [] } = {}) {
-  return selectDistinctPlanningItems({ date, count, eligibleGoals: eligibleItems, existingGoals, recentHistory });
+function selectDistinctPlanningDisciplines({ date, count, eligibleItems, existingGoals = [], recentHistory = [], planningContext } = {}) {
+  return selectDistinctPlanningItems({ date, count, eligibleGoals: eligibleItems, existingGoals, recentHistory, planningContext });
 }
 function selectableDisciplineGoalsForDate(date, opts = {}) {
   // Compatibilidade de teste: if (usedDisciplines.has(canonical(goal.discipline))) continue; topicLimit: Math.max(Number(planningConfig().topicsPerDay) || 1, Number(planningConfig().disciplinesPerDay) || 1)
@@ -4963,6 +4980,7 @@ function reconcileDailyGoalsWithPlanning(targetState = state, date = todayISO(),
   } finally {}
 }
 function generateGoalsForDate(date, opts = {}) {
+  const planningContext = opts.planningContext || buildPlanningScoreContext();
   ensureDefaultDisciplineWeights();
   const dayType = availabilityForDate(date).type;
   if (dayType === "indisponível" && !opts.manual) return [];
@@ -4982,7 +5000,7 @@ function generateGoalsForDate(date, opts = {}) {
     [Math.max(1,Math.floor(maxGoals*.1)), (i)=>i.status==="Revisar" || goalTypeForItem(i)==="Revisão"]
   ];
   const used = new Set(), chosen = [];
-  const addOne = (pred) => { const item = pickCandidate(candidates, used, pred, chosen, maxGoals, disciplineLimit, allowedDisciplines); if (item && chosen.length < maxGoals) { used.add(item.id); chosen.push(...makeGoal(item, date, goalTypeForItem(item))); } };
+  const addOne = (pred) => { const item = pickCandidate(candidates, used, pred, chosen, maxGoals, disciplineLimit, allowedDisciplines); if (item && chosen.length < maxGoals) { used.add(item.id); chosen.push(...makeGoal(item, date, goalTypeForItem(item), planningContext)); } };
   buckets.forEach(([n,p]) => { for (let i=0;i<n && chosen.length<maxGoals;i++) addOne(p); });
   while (new Set(chosen.map((g)=>g.discipline)).size < minDisc && chosen.length < maxGoals) addOne((i)=>!chosen.some((g)=>g.discipline===i.discipline));
   while (chosen.length < Math.min(maxGoals, candidates.length)) addOne(()=>true);
@@ -6113,6 +6131,7 @@ document.getElementById("analyticsPeriodForm")?.addEventListener("submit", (even
 document.getElementById("analyticsPeriodSelect")?.addEventListener("change", renderStrategicAnalysis);
 
 function renderView(viewId) {
+  const currentViewCounters = { projectionBuilds: 0, scoreExecutions: 0, scoredItems: 0, hydratedGoals: 0 };
   const renderers = {
     dashboard: () => { renderDashboard(); renderSubjects(); },
     edital: renderEdital,
@@ -6146,9 +6165,9 @@ function renderView(viewId) {
   report.lastView = viewId; report.lastDurationMs = durationMs;
   if (["metas-do-dia", "fabrica-resumos", "planejamento"].includes(viewId)) {
     const view = report.views[viewId] ||= {}; view.durationMs = durationMs;
-    if (viewId === "metas-do-dia") Object.assign(view, { projectionBuilds: 1, renderedGoals: document.querySelectorAll("[data-daily-goal-details]").length, hydratedGoals: document.querySelectorAll("[data-daily-goal-hydrated=true]").length, materials: (state.materials || []).length, factoryItems: (state.factoryAgenda || state.factoryItems || []).length });
+    if (viewId === "metas-do-dia") { currentViewCounters.projectionBuilds = 1; currentViewCounters.hydratedGoals = document.querySelectorAll("[data-daily-goal-hydrated=true]").length; Object.assign(view, { ...currentViewCounters, renderedGoals: document.querySelectorAll("[data-daily-goal-details]").length, hydratedGoals: document.querySelectorAll("[data-daily-goal-hydrated=true]").length, materials: (state.materials || []).length, factoryItems: (state.factoryAgenda || state.factoryItems || []).length }); }
     if (viewId === "fabrica-resumos") Object.assign(view, { renderedCards: document.querySelectorAll("[data-factory-card]").length, hydratedDetails: document.querySelectorAll("[data-detail-hydrated=true]").length, queueItems: document.querySelectorAll(".factory-today-queue li").length, factoryItems: (state.factoryAgenda || state.factoryItems || []).length });
-    if (viewId === "planejamento") Object.assign(view, { scoredItems: 0, scoreExecutions: 0, historyCards: document.querySelectorAll(".planning-history-card").length, syllabusItems: (state.syllabusItems || []).length });
+    if (viewId === "planejamento") { Object.assign(currentViewCounters, window.__planningRenderCounters || {}); Object.assign(view, { ...currentViewCounters, historyCards: document.querySelectorAll(".planning-history-card").length, syllabusItems: (state.syllabusItems || []).length }); }
   }
 }
 
