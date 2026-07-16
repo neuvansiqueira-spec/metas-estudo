@@ -2,7 +2,7 @@
 
 ## Versão estável atual
 
-`20260716-corrige-concluidos-faca-agora-v1`
+`20260716-organizar-registro-desempenho-questoes-v1`
 
 ## Data
 
@@ -10,7 +10,7 @@
 
 ## Restauração de abertura estável
 
-Esta versão corrige isoladamente o painel “FAÇA AGORA” da Fábrica de Resumos. Temas concluídos — inclusive quando etapas dispensadas estão como “Não se aplica” — permanecem consultáveis em “Prontos”, mas não podem voltar à fila de pendências nem ao painel de produção. A renderização limpa apenas a seleção temporária de interface inválida, sem salvar, migrar ou alterar dados do usuário.
+Esta versão organiza a área de questões: “Registrar Questões” cria novos lançamentos e “Desempenho e Histórico” consulta registros manuais e treinos concluídos no Banco de Questões sem alterar dados persistidos.
 
 ## Telas principais cobertas pela estabilidade
 

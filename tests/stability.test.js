@@ -11,7 +11,7 @@ const screens = [
   { hash: '#dashboard', view: 'view-dashboard', title: 'Dashboard' },
   { hash: '#central-metas', view: 'view-central-metas', title: 'Central de Metas' },
   { hash: '#metas-do-dia', view: 'view-metas-do-dia', title: 'Plano do Dia' },
-  { hash: '#historico-questoes', view: 'view-historico-questoes', title: 'Histórico de Questões' },
+  { hash: '#historico-questoes', view: 'view-historico-questoes', title: 'Desempenho e Histórico de Questões' },
   { hash: '#caderno-erros', view: 'view-caderno-erros', title: 'Caderno de Erros' },
   { hash: '#historico', view: 'view-historico', title: 'Histórico Geral' },
   { hash: '#revisoes', view: 'view-revisoes', title: 'Revisões' },
@@ -38,10 +38,10 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão atual', () => {
-  assert.match(html, /style\.css\?v=20260716-corrige-concluidos-faca-agora-v1/);
-  assert.match(html, /storage-indexeddb\.js\?v=20260716-corrige-concluidos-faca-agora-v1/);
-  assert.match(html, /script\.js\?v=20260716-corrige-concluidos-faca-agora-v1/);
-  assert.match(html, /Versão: 20260716-corrige-concluidos-faca-agora-v1/);
+  assert.match(html, /style\.css\?v=20260716-organizar-registro-desempenho-questoes-v1/);
+  assert.match(html, /storage-indexeddb\.js\?v=20260716-organizar-registro-desempenho-questoes-v1/);
+  assert.match(html, /script\.js\?v=20260716-organizar-registro-desempenho-questoes-v1/);
+  assert.match(html, /Versão: 20260716-organizar-registro-desempenho-questoes-v1/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -230,7 +230,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260716-corrige-concluidos-faca-agora-v1/);
+  assert.match(sw, /metas-estudo-20260716-organizar-registro-desempenho-questoes-v1/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);

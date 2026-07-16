@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260716-corrige-concluidos-faca-agora-v1" />
+  <link rel="stylesheet" href="style.css?v=20260716-organizar-registro-desempenho-questoes-v1" />
 </head>
 <body>
   <header class="hero">
@@ -43,8 +43,8 @@
         </div>
         <div class="mobile-menu-group"><span>Desempenho</span>
           <a href="#progresso" data-view-link="progresso">Progresso</a>
-          <a href="#questoes" data-view-link="questoes">Questões</a>
-          <a href="#historico-questoes" data-view-link="historico-questoes">Histórico de Questões</a>
+          <a href="#questoes" data-view-link="questoes">Registrar Questões</a>
+          <a href="#historico-questoes" data-view-link="historico-questoes">Desempenho e Histórico</a>
           <a href="#banco-questoes" data-view-link="banco-questoes">Banco de Questões</a>
           <a href="#caderno-erros" data-view-link="caderno-erros">Caderno de Erros</a>
           <a href="#simulados" data-view-link="simulados">Simulados</a>
@@ -99,8 +99,8 @@
       </div>
       <div class="side-nav-group"><span>Desempenho</span>
         <a href="#progresso" data-view-link="progresso">Progresso</a>
-        <a href="#questoes" data-view-link="questoes">Questões</a>
-        <a href="#historico-questoes" data-view-link="historico-questoes">Histórico de Questões</a>
+        <a href="#questoes" data-view-link="questoes">Registrar Questões</a>
+        <a href="#historico-questoes" data-view-link="historico-questoes">Desempenho e Histórico</a>
         <a href="#banco-questoes" data-view-link="banco-questoes">Banco de Questões</a>
         <a href="#caderno-erros" data-view-link="caderno-erros">Caderno de Erros</a>
         <a href="#simulados" data-view-link="simulados">Simulados</a>
@@ -544,7 +544,10 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </section>
 
     <section id="view-questoes" class="panel app-view" data-view="questoes" aria-labelledby="questions-title">
-      <div class="section-heading"><p class="eyebrow">Desempenho</p><h2 id="questions-title">Questões</h2></div>
+      <div class="section-heading"><p class="eyebrow">Novo lançamento</p><h2 id="questions-title">Registrar sessão de questões</h2></div>
+      <p class="notice">Use esta tela para cadastrar um novo resultado. A escolha de disciplina e assunto abaixo define onde o novo lançamento será registrado. Os resultados anteriores aparecem no resumo do assunto e em Desempenho e Histórico.</p>
+      <section id="questionSubjectSummary" class="notice" aria-live="polite">Selecione disciplina e assunto para consultar o histórico deste assunto.</section>
+      <h3>Dados da nova sessão</h3>
       <form id="questionForm" class="form-grid">
         <input id="questionEditingId" type="hidden" /><input id="questionLinkedGoalId" type="hidden" /><input id="questionOrigin" type="hidden" value="avulso" />
         <label>Data<input id="questionDate" type="date" required /></label>
@@ -678,11 +681,13 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </section>
 
     <section id="view-historico-questoes" class="panel app-view" data-view="historico-questoes" aria-labelledby="question-history-title">
-      <div class="section-heading"><p class="eyebrow">Histórico</p><h2 id="question-history-title">Histórico de Questões</h2></div>
-
+      <div class="section-heading"><p class="eyebrow">Desempenho</p><h2 id="question-history-title">Desempenho e Histórico de Questões</h2></div>
+      <p class="notice">Consulte resultados registrados manualmente e treinos concluídos no Banco de Questões. Use os filtros para analisar uma disciplina ou assunto.</p>
+      <div id="questionHistorySummary" class="stats-grid compact" aria-live="polite"></div>
       <div class="filters form-grid compact">
         <label>Disciplina<select id="questionFilterDiscipline"><option value="">Todas</option></select></label>
         <label>Assunto<select id="questionFilterSubject"><option value="">Todos</option></select></label>
+        <label>Origem<select id="questionFilterOrigin"><option value="">Todas</option><option value="manual">Registro manual</option><option value="banco">Banco de Questões</option></select></label>
         <label>Banca<select id="questionFilterBoard"><option value="">Todas</option><option>Cebraspe</option><option>FGV</option><option>FCC</option><option>Vunesp</option><option>Instituto AOCP</option><option>Cesgranrio</option><option>Outra</option></select></label>
       </div>
       <div class="table-wrapper"><table><thead><tr><th>Data</th><th>Disciplina</th><th>Assunto</th><th>Banca</th><th>Total</th><th>Acertos</th><th>Erros</th><th>Brancos</th><th>% Acerto</th><th>Líquido</th><th>Origem</th><th>Observações</th><th>Ações</th></tr></thead><tbody id="questionHistoryBody"></tbody></table></div>
@@ -971,13 +976,13 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </section>
   </div>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260716-corrige-concluidos-faca-agora-v1</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260716-organizar-registro-desempenho-questoes-v1</p></footer>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="storage-indexeddb.js?v=20260716-corrige-concluidos-faca-agora-v1"></script>
-  <script src="analytics-engine.js?v=20260716-corrige-concluidos-faca-agora-v1"></script>
-  <script src="study-advisor.js?v=20260716-corrige-concluidos-faca-agora-v1"></script>
-  <script src="advisor-navigation-engine.js?v=20260716-corrige-concluidos-faca-agora-v1"></script>
-  <script src="script.js?v=20260716-corrige-concluidos-faca-agora-v1"></script>
+  <script src="storage-indexeddb.js?v=20260716-organizar-registro-desempenho-questoes-v1"></script>
+  <script src="analytics-engine.js?v=20260716-organizar-registro-desempenho-questoes-v1"></script>
+  <script src="study-advisor.js?v=20260716-organizar-registro-desempenho-questoes-v1"></script>
+  <script src="advisor-navigation-engine.js?v=20260716-organizar-registro-desempenho-questoes-v1"></script>
+  <script src="script.js?v=20260716-organizar-registro-desempenho-questoes-v1"></script>
   <div id="legacyTimerRecoveryModal" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="legacyTimerRecoveryModalTitle" hidden>
     <div class="app-modal-backdrop" data-legacy-recovery-cancel></div>
     <section class="app-modal-card">
