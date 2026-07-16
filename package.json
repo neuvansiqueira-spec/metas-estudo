@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260716-cronometro-livre-v12",
+  "version": "20260716-estimativa-planejamento-v13",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

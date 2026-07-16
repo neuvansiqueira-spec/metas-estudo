@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260716-cronometro-livre-v12" />
+  <link rel="stylesheet" href="style.css?v=20260716-estimativa-planejamento-v13" />
 </head>
 <body>
   <header class="hero">
@@ -443,6 +443,13 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
             <label>Meta semanal mínima (h)<input id="planningMinWeeklyHours" type="number" min="0" step="0.5" /></label>
             <label>Meta semanal ideal (h)<input id="planningIdealWeeklyHours" type="number" min="0" step="0.5" /></label>
             <label>Meta semanal de assuntos<input id="planningWeeklyTopics" type="number" min="0" /></label>
+          </div>
+        </details>
+        <details class="planning-section" data-planning-section="estimates">
+          <summary class="planning-section-summary"><span class="planning-section-heading"><strong class="planning-section-title">Estimativas de materiais</strong><small id="planningMaterialEstimateResume" class="planning-section-resume">Carga prevista, tempo realizado e projeção pelo ritmo real.</small></span><span class="planning-section-chevron" aria-hidden="true">›</span></summary>
+          <div class="planning-section-content">
+            <p class="notice">A estimativa automática parte das páginas úteis e da densidade. Depois que ao menos uma meta vinculada for concluída, o sistema compara previsto e realizado para projetar se o material tende a terminar antes, dentro ou depois da estimativa.</p>
+            <div id="planningMaterialEstimates" class="planning-material-estimates cards-list" aria-live="polite"></div>
           </div>
         </details>
         <details class="planning-section" data-planning-section="scale">
@@ -966,13 +973,13 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </section>
   </div>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260716-cronometro-livre-v12</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260716-estimativa-planejamento-v13</p></footer>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="storage-indexeddb.js?v=20260716-cronometro-livre-v12"></script>
-  <script src="analytics-engine.js?v=20260716-cronometro-livre-v12"></script>
-  <script src="study-advisor.js?v=20260716-cronometro-livre-v12"></script>
-  <script src="advisor-navigation-engine.js?v=20260716-cronometro-livre-v12"></script>
-  <script src="script.js?v=20260716-cronometro-livre-v12"></script>
+  <script src="storage-indexeddb.js?v=20260716-estimativa-planejamento-v13"></script>
+  <script src="analytics-engine.js?v=20260716-estimativa-planejamento-v13"></script>
+  <script src="study-advisor.js?v=20260716-estimativa-planejamento-v13"></script>
+  <script src="advisor-navigation-engine.js?v=20260716-estimativa-planejamento-v13"></script>
+  <script src="script.js?v=20260716-estimativa-planejamento-v13"></script>
   <div id="legacyTimerRecoveryModal" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="legacyTimerRecoveryModalTitle" hidden>
     <div class="app-modal-backdrop" data-legacy-recovery-cancel></div>
     <section class="app-modal-card">

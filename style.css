@@ -4084,6 +4084,13 @@ footer {
 .goal-material-estimate.empty-message { margin: 0; }
 .goal-material-item { display: grid; gap: 6px; padding: 10px 0; border-top: 1px solid var(--border); }
 .goal-material-item:first-of-type { border-top: 0; }
+.planning-material-estimates { display: grid; gap: 14px; }
+.planning-estimate-item { border: 1px solid #bfdbfe; border-radius: 16px; background: #f8fbff; overflow: hidden; }
+.planning-estimate-item > summary { cursor: pointer; padding: 15px 16px; color: var(--primary-dark); }
+.planning-estimate-item > summary > span { display: grid; gap: 4px; }
+.planning-estimate-item > summary small { color: var(--muted); overflow-wrap: break-word; }
+.planning-estimate-item-content { padding: 0 14px 14px; }
+.planning-estimate-item .material-estimate-box { margin: 0; }
 @media (max-width: 768px) { .planning-history-cards { grid-template-columns: 1fr; } .planning-history-card { padding: 14px; } .planning-history-card header { flex-direction: column; } .planning-history-card .card-actions { flex-wrap: wrap; } }
 
 /* Estabilização do Plano do Dia: módulos permanecem dentro da meta, sem criar cartões paralelos. */

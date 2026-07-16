@@ -42,6 +42,22 @@ test('Meta compara estimativa e tempo realizado sem concluir automaticamente', (
   assert.match(css, /\.goal-time-comparison\.tone-exceeded/);
 });
 
+test('Estimativa fica no Planejamento e projeta o total pelo ritmo realmente concluído', () => {
+  assert.match(html, /data-planning-section="estimates"/);
+  assert.match(html, /id="planningMaterialEstimates"/);
+  assert.match(html, /Carga prevista, tempo realizado e projeção pelo ritmo real/);
+  assert.match(script, /function renderPlanningMaterialEstimates\(\)/);
+  assert.match(script, /completedActual \/ completedPlanned/);
+  assert.match(script, /projectedTotal = hasPaceSample \? roundToThirtyMinutes\(total \* paceFactor\) : total/);
+  assert.match(script, /Tendência de terminar antes/);
+  assert.match(script, /Tendência de precisar de mais tempo/);
+  assert.match(script, /Tendência de ficar dentro da estimativa/);
+  assert.match(script, /Projeção pelo ritmo real/);
+  assert.match(script, /data-open-material-estimate/);
+  assert.match(script, /openMaterialEstimateInPlanning/);
+  assert.match(css, /\.planning-estimate-item/);
+});
+
 test('Menu principal clássico é preservado e blocos internos são recolhíveis', () => {
   for (const group of ['Principal', 'Edital', 'Desempenho', 'Apoio', 'Sistema']) assert.match(html, new RegExp(`<span>${group}</span>`));
   assert.doesNotMatch(html, /class="mobile-menu-group navigation-group"/);
@@ -74,5 +90,5 @@ test('arquivos publicados e versão permanecem sincronizados', () => {
   assert.equal(html, fs.readFileSync('docs/index.html', 'utf8'));
   assert.equal(css, fs.readFileSync('docs/style.css', 'utf8'));
   assert.equal(fs.readFileSync('service-worker.js', 'utf8'), fs.readFileSync('docs/service-worker.js', 'utf8'));
-  assert.match(script, /20260716-cronometro-livre-v12/);
+  assert.match(script, /20260716-estimativa-planejamento-v13/);
 });

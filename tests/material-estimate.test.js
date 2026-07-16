@@ -70,10 +70,10 @@ test('backup, mesclagem, interface e publicação preservam campos da estimativa
   for (const token of ['usefulPages','materialDensity','automaticEstimatedMinutes','manualEstimatedMinutes','estimatedMinutes','estimateMode','estimatedAt','estimateVersion']) assert.match(script, new RegExp(token));
   assert.match(script, /mergeArrays\(state\.materials, \(data\.materials \|\| data\.materiais \|\| \[\]\)\.map\(normalizeMaterialEstimateFields\)/);
   assert.match(script, /makeSyncPayload\(\)[\s\S]*state: cloneData\(state\)/);
-  assert.match(script, /Carga horária do material/);
+  assert.match(script, /Estimativa de carga e ritmo real/);
   assert.match(script, /data-save-material-estimate/);
   assert.match(script, /Atualizar metas futuras pendentes/);
-  assert.match(script, /Carga total estimada/);
+  assert.match(script, /Carga inicial estimada/);
   assert.match(script, /Tempo já planejado/);
   assert.match(html, /id="materialForm"/);
   assert.equal(script, docsScript);

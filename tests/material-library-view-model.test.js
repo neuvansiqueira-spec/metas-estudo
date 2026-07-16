@@ -39,7 +39,7 @@ test('caso real agrupa manual sem módulo e Fábrica em RESUMO/AULA sem mutar re
 test('formatos equivalentes do mesmo arquivo não duplicam e manual preserva uso e estimativa', () => {
   const manual = { id:'manual-only', source:'manual', type:'DOC', title:'Manual', discipline:'D', subject:'S', link:'https://example.test/manual.doc', estimatedMinutes:60 };
   const duplicate = { ...manual, id:'manual-copy', type:'Documento Word' }; const groups = api.buildMaterialLibraryViewModel([manual, duplicate], {});
-  assert.equal(groups[0].files.length, 1); assert.equal(groups[0].files[0].format, 'Word'); assert.match(script, /data-use-material-study="\$\{escapeHTML\(file\.primary\.id\)\}"/); assert.match(script, /materialEstimateFormHTML\(file\.primary\)/);
+  assert.equal(groups[0].files.length, 1); assert.equal(groups[0].files[0].format, 'Word'); assert.match(script, /data-use-material-study="\$\{escapeHTML\(file\.primary\.id\)\}"/); assert.match(script, /data-open-material-estimate="\$\{escapeHTML\(file\.primary\.id\)\}"/);
 });
 test('detalhe não expõe a identidade física interna e ações manuais não excluem Fábrica', () => {
   const groupHTML = script.slice(script.indexOf('function materialGroupHTML'), script.indexOf('function materialSectionHTML'));
