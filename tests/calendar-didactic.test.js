@@ -36,10 +36,15 @@ test('calendário didático exporta PDF, CSV e imagem com os três períodos', (
 });
 
 test('geração de metas é separada para dia, semana e mês', () => {
-  for (const id of ['generateDayGoals', 'generateWeekGoals', 'generateMonthGoals']) assert.match(html, new RegExp(`id="${id}"`));
+  assert.match(html, /id="goalGenerationScope"/);
+  assert.match(html, /id="generateCalendarGoals"/);
+  assert.equal((html.match(/id="generateCalendarGoals"/g) || []).length, 1);
+  assert.doesNotMatch(html, /id="generate(?:Day|Week|Month)Goals"/);
   assert.match(script, /function generateDayGoals\(\)/);
   assert.match(script, /Pré-visualização diária/);
-  assert.match(script, /elements\.generateDayGoals\?\.addEventListener\("click", generateDayGoals\)/);
+  assert.match(script, /function generateCalendarGoals\(\)/);
+  assert.match(script, /daily: generateDayGoals, weekly: generateWeekGoals, monthly: generateMonthGoals/);
+  assert.match(script, /elements\.generateCalendarGoals\?\.addEventListener\("click", generateCalendarGoals\)/);
   assert.match(script, /function generateWeekGoals\(\)/);
   assert.match(script, /function generateMonthGoals\(\)/);
 });
