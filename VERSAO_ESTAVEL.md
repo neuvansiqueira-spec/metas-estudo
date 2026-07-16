@@ -2,7 +2,7 @@
 
 ## Versão estável atual
 
-`20260716-organizar-registro-desempenho-questoes-v1`
+`20260716-agrupar-materiais-sem-duplicacao-v1`
 
 ## Data
 
@@ -10,7 +10,7 @@
 
 ## Restauração de abertura estável
 
-Esta versão organiza a área de questões: “Registrar Questões” cria novos lançamentos e “Desempenho e Histórico” consulta registros manuais e treinos concluídos no Banco de Questões sem alterar dados persistidos.
+Esta versão consolida visualmente a biblioteca da aba Materiais por disciplina, assunto e módulo, sem alterar registros persistidos. Arquivos físicos equivalentes são exibidos uma única vez e formatos distintos permanecem disponíveis no mesmo cartão.
 
 ## Telas principais cobertas pela estabilidade
 
