@@ -182,7 +182,7 @@ test('Materiais renderizam grupos visuais sem mutar registros', () => {
   assert.match(script, /Editar cadastro manual/);
   assert.match(script, /Excluir cadastro manual/);
   assert.match(script, /<summary>Ver detalhes<\/summary>/);
-  assert.doesNotMatch(script, /state\.materials[^\n;]*(open|expanded|collapsed)/i);
+  assert.doesNotMatch(script, /state\.materials\.(?:open|expanded|collapsed)/i);
   assert.equal(script, docsScript);
 });
 
@@ -216,7 +216,7 @@ test('Materiais preservam abertura independente após render sem persistir em st
 test('Materiais aplicam modelo agrupado às três seções', () => {
   const renderBlock = script.slice(script.indexOf('function renderMaterials'), script.indexOf('function updateStudyMaterialOptions'));
   assert.match(renderBlock, /const list = filteredMaterials\(\)/);
-  assert.match(renderBlock, /materialsForDailyGoal\(goal, todayProjectionByGoalId\.get\(goal\.id\)\)\.map/);
+  assert.match(renderBlock, /getDailyGoalMaterialState\(goal, todayProjectionByGoalId\.get\(goal\.id\)\)\.materials\.map/);
   assert.match(renderBlock, /group\.records\.some/);
   assert.match(renderBlock, /todayKeys/);
   assert.match(renderBlock, /slice\(0, 10\)/);

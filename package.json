@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260716-agrupar-materiais-e-eliminar-duplicacoes-v3",
+  "version": "20260716-unificar-materiais-plano-do-dia-v1",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

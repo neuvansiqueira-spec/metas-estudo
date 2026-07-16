@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260716-agrupar-materiais-e-eliminar-duplicacoes-v3";
+const APP_VERSION = "20260716-unificar-materiais-plano-do-dia-v1";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -3884,7 +3884,7 @@ function buildDailyPlanProjection(date, targetState = state) { if (typeof perfor
     const factoryIds = new Set([...linkedFactory].map((item) => item.id));
     const linked = new Set([...(materialsByGoalId.get(goal.id) || []), ...(materialsByEstimateSourceId.get(goal.estimateSourceId) || []), ...(materialsBySyllabusItemId.get(goal.syllabusItemId) || []), ...(materialsByParentSyllabusItemId.get(goal.syllabusItemId) || []), ...only(materialsByCombination, combination(goal))]);
     factoryIds.forEach((id) => (materialsByFactoryItemId.get(id) || []).forEach((m) => linked.add(m)));
-    const seen = new Set(), uniqueMaterials = [...linked].filter((material) => { const key = dailyPlanMaterialIdentity(material); if (seen.has(key)) return false; seen.add(key); return true; });
+    const uniqueByIdentity = new Map(); [...linked].forEach((material) => { const key = dailyPlanMaterialIdentity(material); const current = uniqueByIdentity.get(key); if (!current || (Number(material.estimatedMinutes) || 0) > (Number(current.estimatedMinutes) || 0)) uniqueByIdentity.set(key, material); }); const uniqueMaterials = [...uniqueByIdentity.values()];
     const groups = new Map(); uniqueMaterials.forEach((material) => { const key = `${goal.id}|${material.factoryItemId || "manual"}|${material.factoryModuleKey || "material"}`; if (!groups.has(key)) groups.set(key, { key, moduleKey: material.factoryModuleKey || "material", label: material.factoryModuleKey || "MATERIAL", materials: [], subtopic: material.parentSyllabusItemId === goal.syllabusItemId ? material.subject : "" }); groups.get(key).materials.push(material); });
     const estimateCandidates = uniqueMaterials.filter((material) => Number(material.estimatedMinutes) > 0); const explicit = (materialsByEstimateSourceId.get(goal.estimateSourceId) || [])[0]; const estimateMaterial = explicit || (estimateCandidates.length === 1 ? estimateCandidates[0] : null);
     return { goal, factoryItems: [...linkedFactory], materialGroups: [...groups.values()], estimate: Number(goal.estimatedTotalMinutes || estimateMaterial?.estimatedMinutes || 0), estimateMaterial, warnings: [] };
@@ -3895,6 +3895,20 @@ function materialsForDailyGoal(goal = {}, projectionEntry = null) {
   const date = goal.date || goal.data || todayISO();
   const entry = buildDailyPlanProjection(date).find((candidate) => candidate.goal.id === goal.id);
   return (entry?.materialGroups || []).flatMap((group) => group.materials);
+}
+function dailyGoalMaterialIdentity(material = {}) {
+  const link = String(material.link || "").trim().toLowerCase().replace(/#.*/, "").replace(/\/$/, "");
+  const format = String(material.factoryFormat || material.type || "material").trim().toLowerCase();
+  return `${link || material.sourceRecordId || material.id || "material"}|${format}`;
+}
+function getDailyGoalMaterialState(goal = {}, projectionEntry = null) {
+  const rawMaterials = materialsForDailyGoal(goal, projectionEntry);
+  const consolidated = new Map();
+  rawMaterials.forEach((material) => { const key = dailyGoalMaterialIdentity(material); const current = consolidated.get(key); if (!current || (Number(material.estimatedMinutes) || 0) > (Number(current.estimatedMinutes) || 0)) consolidated.set(key, material); });
+  const materials = [...consolidated.values()];
+  const estimatedMaterials = materials.filter((material) => Number(material.estimatedMinutes) > 0);
+  const estimatedMinutes = Number(projectionEntry?.estimate || 0) || estimatedMaterials.reduce((total, material) => total + (Number(material.estimatedMinutes) || 0), 0);
+  return { materials, count: materials.length, hasMaterials: materials.length > 0, estimatedMaterials, estimatedMinutes, hasEstimate: estimatedMinutes > 0 };
 }
 function materialsForFactoryItem(item) { const id = item?.id || item; return (state.materials || []).filter((m) => materialAvailable(m) && m.source === "factory" && m.factoryItemId === id); }
 function resolveAvailableMaterials({ discipline = "", subject = "", syllabusItemId = "", syllabusItemIds = [], factoryItemId = "" } = {}) { return (state.materials || []).filter(materialAvailable).filter((m) => (factoryItemId && m.factoryItemId === factoryItemId) || (syllabusItemId && [m.syllabusItemId, ...(m.syllabusItemIds || [])].includes(syllabusItemId)) || (syllabusItemIds || []).some((id) => [m.syllabusItemId, ...(m.syllabusItemIds || [])].includes(id)) || (dailyPlanCanonical(m.discipline) === dailyPlanCanonical(discipline) && dailyPlanCanonical(m.subject) === dailyPlanCanonical(subject))); }
@@ -4401,9 +4415,9 @@ function materialButtonLabel(material) {
   if (type === "resumo") return "Abrir resumo";
   return "Abrir material";
 }
-function goalMaterialsHTML(goal, entry) {
-  if (!entry?.materialGroups.length) return `<div class="linked-materials goal-materials"><strong>📚 MATERIAIS DISPONÍVEIS:</strong><p class="item-meta">Nenhum material vinculado a esta meta.</p><button type="button" data-create-goal-material data-discipline="${escapeHTML(goal.discipline || "")}" data-subject="${escapeHTML(goal.subject || "")}">Cadastrar material para esta meta</button><a class="button-link" href="#fabrica-resumos" data-view-link="fabrica-resumos">Produzir material</a></div>`;
-  return `<div class="linked-materials goal-materials"><strong>📚 MATERIAIS DISPONÍVEIS:</strong>${entry.materialGroups.map((group) => `<section class="goal-material-group"><strong>${escapeHTML(group.label === "resumoAula" ? "RESUMO/AULA" : group.label.toUpperCase())}</strong>${group.subtopic ? `<p class="item-meta">Material do subtema: ${escapeHTML(group.subtopic)}</p>` : ""}<div class="card-actions">${group.materials.map((m) => `<button type="button" data-open-goal-material="${goal.id}" data-material-id="${m.id}">${escapeHTML(materialButtonLabel(m))}</button>`).join("")}</div></section>`).join("")}</div>`;
+function goalMaterialsHTML(goal, materialState) {
+  if (!materialState.hasMaterials) return `<div class="linked-materials goal-materials"><strong>📚 MATERIAIS DISPONÍVEIS:</strong><p class="item-meta">Nenhum material vinculado a esta meta.</p><button type="button" data-create-goal-material data-discipline="${escapeHTML(goal.discipline || "")}" data-subject="${escapeHTML(goal.subject || "")}">Cadastrar material</button><a class="button-link" href="#fabrica-resumos" data-view-link="fabrica-resumos">Produzir material</a></div>`;
+  return `<div class="linked-materials goal-materials"><strong>📚 MATERIAIS DISPONÍVEIS:</strong><div class="card-actions">${materialState.materials.map((material) => `<button type="button" data-open-goal-material="${goal.id}" data-material-id="${material.id}">${escapeHTML(materialButtonLabel(material))}</button>`).join("")}</div></div>`;
 }
 function linkedMaterialsHTML(materials) {
   if (!materials.length) return "";
@@ -4539,7 +4553,7 @@ function ensureMaterialSectionToggleListener() {
 function renderMaterials() {
   if (!elements.materialsList) return; ensureMaterialSectionToggleListener(); renderMaterialSelectors(); renderMaterialFilters();
   const list = filteredMaterials(); const todayProjectionByGoalId = new Map(buildDailyPlanProjection(todayISO()).map((entry) => [entry.goal.id, entry]));
-  const todayRecordIds = new Set((state.dailyGoals || []).filter((goal) => goal.date === todayISO()).flatMap((goal) => materialsForDailyGoal(goal, todayProjectionByGoalId.get(goal.id)).map((material) => material.id)));
+  const todayRecordIds = new Set((state.dailyGoals || []).filter((goal) => (goal.date || goal.data) === todayISO() && !isGoalDone(goal)).flatMap((goal) => getDailyGoalMaterialState(goal, todayProjectionByGoalId.get(goal.id)).materials.map((material) => material.id)));
   const todayMaterials = list.filter((group) => group.records.some((record) => todayRecordIds.has(record.id))); const todayKeys = new Set(todayMaterials.map((group) => group.key)); const recentMaterials = list.filter((group) => !todayKeys.has(group.key)).slice(0, 10);
   elements.materialsList.innerHTML = list.length ? [materialSectionHTML("today", "1. MATERIAIS PARA O PLANO DE HOJE", todayMaterials, "Nenhum material pronto vinculado ao plano de hoje."), materialSectionHTML("recent", "2. MATERIAIS RECENTES", recentMaterials, "Nenhum material recente."), materialSectionHTML("all", "3. TODOS OS MATERIAIS", list, "Nenhum material cadastrado.")].join("") : "";
 }
@@ -5303,10 +5317,15 @@ function dailyPlanQuestionsSection(date, dayContent, questionProgress) {
     <div class="daily-plan-content"><div class="card-meta-grid"><span>Realizadas: ${questionProgress.done}</span><span>Meta: ${questionProgress.target}</span><span>Faltantes: ${missing}</span><span>Acertos: ${totals.correct}</span><span>Erros: ${totals.wrong}</span><span>Brancos: ${totals.blank}</span></div><div class="card-actions"><button type="button" data-register-question-goal="${date}">Registrar questões</button></div></div>
   </details>`;
 }
-function goalMaterialEstimateHTML(goal, entry) {
+function dailyGoalMaterialAvailabilityHTML(materialState) {
+  if (!materialState.hasMaterials) return `<p class="goal-material-estimate empty-message">Nenhum material disponível para este assunto.</p>`;
+  const label = `${materialState.count} ${materialState.count === 1 ? "material disponível" : "materiais disponíveis"}`;
+  return `<p class="goal-material-estimate">${label}${materialState.hasEstimate ? ` • duração estimada: ${formatHours(materialState.estimatedMinutes)}` : ", sem estimativa de duração."}</p>`;
+}
+function goalMaterialEstimateHTML(goal, entry, materialState = getDailyGoalMaterialState(goal, entry)) {
+  if (!materialState.hasEstimate) return "";
   const material = entry?.estimateMaterial;
-  const total = Number(entry?.estimate || 0);
-  if (!total) return `<p class="goal-material-estimate empty-message">Sem estimativa de material vinculada.</p>`;
+  const total = materialState.estimatedMinutes;
   const rows = [["Estimativa total", `${total} min`], [goal.segmentCount > 1 ? "Bloco atual" : "Bloco desta meta", `${Number(goal.segmentMinutes || goal.minutes || 0)} min`]];
   if (goal.segmentCount > 1) rows.push(["Etapa", `${Number(goal.segmentIndex || 1)} de ${Number(goal.segmentCount)}`]);
   if (Number(material?.usefulPages) > 0) rows.push(["Páginas úteis", String(Number(material.usefulPages))]);
@@ -5314,19 +5333,15 @@ function goalMaterialEstimateHTML(goal, entry) {
   if (material?.estimateMode) rows.push(["Origem", material.estimateMode === "manual" ? "estimativa manual" : "cálculo automático"]);
   return `<section class="goal-material-estimate"><strong>ESTIMATIVA DO MATERIAL</strong><div class="card-meta-grid">${rows.map(([label, value]) => `<span>${label}: ${value}</span>`).join("")}</div></section>`;
 }
-function nextGoalEstimateHTML(goal, entry) {
-  const total = Number(entry?.estimate || 0);
-  if (!total) return `<span>Sem estimativa de material vinculada.</span>`;
-  return goal.segmentCount > 1 ? `<span>Planejado agora: ${Number(goal.minutes || 0)} min</span><span>Estimativa total: ${total} min • etapa ${Number(goal.segmentIndex || 1)} de ${Number(goal.segmentCount)}</span>` : `<span>Estimativa do material: ${total} min</span>`;
-}
-function goalMaterialsDetailsHTML(goal, entry) {
-  const materials = materialsForDailyGoal(goal, entry);
-  return `<details class="daily-goal-materials"><summary>Materiais disponíveis <span>${materials.length} materiais</span></summary><div class="daily-plan-content">${goalMaterialsHTML(goal, entry) || `<p class="empty-message">Nenhum material disponível.</p>`}</div></details>`;
+function nextGoalEstimateHTML(goal, entry, materialState = getDailyGoalMaterialState(goal, entry)) { return dailyGoalMaterialAvailabilityHTML(materialState); }
+function goalMaterialsDetailsHTML(goal, entry, materialState = getDailyGoalMaterialState(goal, entry)) {
+  return `<details class="daily-goal-materials"><summary>Materiais disponíveis <span>${materialState.count} materiais</span></summary><div class="daily-plan-content">${goalMaterialsHTML(goal, materialState)}</div></details>`;
 }
 function dailyGoalDetailsBodyHTML(goal, projectionEntry = null) {
   const status = goal.status || "Pendente";
   const history = (goal.history || goal.historico || []).slice(-3).map((entry) => `<li>${escapeHTML(typeof entry === "string" ? entry : entry.message || entry.text || JSON.stringify(entry))}</li>`).join("");
-  return `<div class="daily-goal-content"><div class="card-meta-grid"><span>Disciplina: ${escapeHTML(goal.discipline)}</span><span>Assunto: ${escapeHTML(goal.subject)}</span><span>Tipo: ${escapeHTML(goal.type || goal.tipo || "-")}</span><span>Prioridade: ${escapeHTML(goal.priority || goal.prioridade || "-")}</span><span>Planejado: ${Number(goal.minutes||0)} min</span><span>Estudo realizado: ${Number(goal.studyActualMinutes||0)} min</span><span>Questões realizadas: ${Number(goal.questionActualMinutes||0)} min</span><span>Total realizado: ${Number(goal.actualMinutes||0)} min</span><span>Status: ${escapeHTML(status)}</span><span>Referência: ${escapeHTML(goal.referencia_edital || getSyllabusById(goal.syllabusItemId)?.reference || "-")}</span></div><div class="progress"><span style="width:${Math.min(100, Math.round((goalTotalActualMinutes(goal) / Math.max(1, Number(goal.minutes)||1)) * 100))}%"></span></div>${goalMaterialEstimateHTML(goal, projectionEntry)}${goalMaterialsDetailsHTML(goal, projectionEntry)}<p class="notice" data-goal-material-notice="${goal.id}" ${goalMaterialNotices.has(goal.id) ? "" : "hidden"}>${escapeHTML(goalMaterialNotices.get(goal.id) || "")}</p><details class="daily-goal-history"><summary>Histórico resumido</summary><ul>${history || "<li>Sem histórico registrado.</li>"}</ul></details><div class="card-actions"><button type="button" data-open-goal-material="${goal.id}">Abrir material</button><button type="button" data-goal-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button type="button" data-goal-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button type="button" data-goal-action="Concluída" data-id="${goal.id}">Concluir meta</button></div><details class="daily-goal-more-actions"><summary>Mais ações</summary><div class="card-actions"><button type="button" data-goal-action="Estudo" data-id="${goal.id}">Registrar estudo manualmente</button><button type="button" data-goal-action="QuestoesTempo" data-id="${goal.id}">Registrar tempo de questões</button><button type="button" data-register-goal="${goal.id}">Registrar questões</button><button type="button" data-goal-history="${goal.id}">Ver histórico</button><button type="button" data-goal-action="Adiada" data-id="${goal.id}">Reagendar ou adiar</button><button type="button" data-goal-action="Não cumprida" data-id="${goal.id}">Não cumprir</button></div></details></div>`;
+  const materialState = getDailyGoalMaterialState(goal, projectionEntry);
+  return `<div class="daily-goal-content"><div class="card-meta-grid"><span>Disciplina: ${escapeHTML(goal.discipline)}</span><span>Assunto: ${escapeHTML(goal.subject)}</span><span>Tipo: ${escapeHTML(goal.type || goal.tipo || "-")}</span><span>Prioridade: ${escapeHTML(goal.priority || goal.prioridade || "-")}</span><span>Planejado: ${Number(goal.minutes||0)} min</span><span>Estudo realizado: ${Number(goal.studyActualMinutes||0)} min</span><span>Questões realizadas: ${Number(goal.questionActualMinutes||0)} min</span><span>Total realizado: ${Number(goal.actualMinutes||0)} min</span><span>Status: ${escapeHTML(status)}</span><span>Referência: ${escapeHTML(goal.referencia_edital || getSyllabusById(goal.syllabusItemId)?.reference || "-")}</span></div><div class="progress"><span style="width:${Math.min(100, Math.round((goalTotalActualMinutes(goal) / Math.max(1, Number(goal.minutes)||1)) * 100))}%"></span></div>${dailyGoalMaterialAvailabilityHTML(materialState)}${goalMaterialEstimateHTML(goal, projectionEntry, materialState)}${goalMaterialsDetailsHTML(goal, projectionEntry, materialState)}<p class="notice" data-goal-material-notice="${goal.id}" ${goalMaterialNotices.has(goal.id) ? "" : "hidden"}>${escapeHTML(goalMaterialNotices.get(goal.id) || "")}</p><details class="daily-goal-history"><summary>Histórico resumido</summary><ul>${history || "<li>Sem histórico registrado.</li>"}</ul></details><div class="card-actions">${materialState.hasMaterials ? `<button type="button" data-open-goal-material="${goal.id}">Abrir material</button>` : `<button type="button" data-create-goal-material data-discipline="${escapeHTML(goal.discipline || "")}" data-subject="${escapeHTML(goal.subject || "")}">Cadastrar material</button><a class="button-link" href="#fabrica-resumos" data-view-link="fabrica-resumos">Produzir material</a>`}<button type="button" data-goal-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button type="button" data-goal-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button type="button" data-goal-action="Concluída" data-id="${goal.id}">Concluir meta</button></div><details class="daily-goal-more-actions"><summary>Mais ações</summary><div class="card-actions"><button type="button" data-goal-action="Estudo" data-id="${goal.id}">Registrar estudo manualmente</button><button type="button" data-goal-action="QuestoesTempo" data-id="${goal.id}">Registrar tempo de questões</button><button type="button" data-register-goal="${goal.id}">Registrar questões</button><button type="button" data-goal-history="${goal.id}">Ver histórico</button><button type="button" data-goal-action="Adiada" data-id="${goal.id}">Reagendar ou adiar</button><button type="button" data-goal-action="Não cumprida" data-id="${goal.id}">Não cumprir</button></div></details></div>`;
 }
 function dailyGoalDetailsCard(goal, number = 1, projectionEntry = null) {
   normalizeGoalTimeFields(goal);
@@ -5379,7 +5394,9 @@ function renderNextDailyGoal(dayGoals, projectionByGoalId = new Map()) {
   dayGoals.forEach(normalizeGoalTimeFields);
   const next = dayGoals.find((g)=>!isGoalDone(g) && !["Não cumprida", "Ignorada", "Adiada", "Reagendada"].includes(g.status || ""));
   if (!next) { elements.nextDailyGoal.innerHTML = `<details ${dailyPlanSectionAttrs("next", true)}>${dailyPlanSummaryHTML("Próxima atividade", "Todas concluídas")}<div class="daily-plan-content"><p>Todas as metas do dia foram concluídas.</p></div></details>`; return; }
-  elements.nextDailyGoal.innerHTML = `<details ${dailyPlanSectionAttrs("next", true)}>${dailyPlanSummaryHTML("Próxima atividade", `${next.discipline} • ${next.subject}`)}<div class="daily-plan-content"><strong>${escapeHTML(next.discipline)}</strong><p>${escapeHTML(next.subject)}</p><div class="card-meta-grid"><span>Planejado: ${Number(next.minutes||0)} min</span>${nextGoalEstimateHTML(next, projectionByGoalId.get(next.id))}<span>Realizado: ${Number(next.actualMinutes||0)} min</span><span>Prioridade: ${escapeHTML(next.priority || next.prioridade || "-")}</span></div><p class="notice" data-goal-material-notice="${next.id}" ${goalMaterialNotices.has(next.id) ? "" : "hidden"}>${escapeHTML(goalMaterialNotices.get(next.id) || "")}</p><div class="card-actions"><button type="button" data-open-goal-material="${next.id}">Abrir material</button><button type="button" data-goal-timer="study" data-id="${next.id}">Iniciar cronômetro</button><button type="button" data-goal-action="Estudo" data-id="${next.id}">Registrar estudo</button><button type="button" data-goal-action="Concluída" data-id="${next.id}">Concluir meta</button></div></div></details>`;
+  const materialState = getDailyGoalMaterialState(next, projectionByGoalId.get(next.id));
+  const materialActions = materialState.hasMaterials ? `<button type="button" data-open-goal-material="${next.id}">Abrir material</button>` : `<button type="button" data-create-goal-material data-discipline="${escapeHTML(next.discipline || "")}" data-subject="${escapeHTML(next.subject || "")}">Cadastrar material</button><a class="button-link" href="#fabrica-resumos" data-view-link="fabrica-resumos">Produzir material</a>`;
+  elements.nextDailyGoal.innerHTML = `<details ${dailyPlanSectionAttrs("next", true)}>${dailyPlanSummaryHTML("Próxima atividade", `${next.discipline} • ${next.subject}`)}<div class="daily-plan-content"><strong>${escapeHTML(next.discipline)}</strong><p>${escapeHTML(next.subject)}</p><div class="card-meta-grid"><span>Planejado: ${Number(next.minutes||0)} min</span>${nextGoalEstimateHTML(next, projectionByGoalId.get(next.id), materialState)}<span>Realizado: ${Number(next.actualMinutes||0)} min</span><span>Prioridade: ${escapeHTML(next.priority || next.prioridade || "-")}</span></div><p class="notice" data-goal-material-notice="${next.id}" ${goalMaterialNotices.has(next.id) ? "" : "hidden"}>${escapeHTML(goalMaterialNotices.get(next.id) || "")}</p><div class="card-actions">${materialActions}<button type="button" data-goal-timer="study" data-id="${next.id}">Iniciar cronômetro</button><button type="button" data-goal-action="Estudo" data-id="${next.id}">Registrar estudo</button><button type="button" data-goal-action="Concluída" data-id="${next.id}">Concluir meta</button></div></div></details>`;
 }
 function dailyGoalCard(goal, number = 1) { return dailyGoalDetailsCard(goal, number); }
 function questionNumbers() { const total = Number(elements.questionTotal.value), correct = Number(elements.questionCorrect.value), wrong = Number(elements.questionWrong.value), blank = Number(elements.questionBlank.value); return { total, correct, wrong, blank, sum: correct + wrong + blank, accuracy: total ? correct / total * 100 : 0, errorPct: total ? wrong / total * 100 : 0, blankPct: total ? blank / total * 100 : 0, net: correct - wrong }; }

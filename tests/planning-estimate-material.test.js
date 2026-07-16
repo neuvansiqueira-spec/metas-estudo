@@ -23,10 +23,9 @@ test('Estimativa da meta diferencia total, bloco, etapa e dados existentes', () 
   assert.match(script, /Páginas úteis/);
   assert.match(script, /Densidade/);
   assert.match(script, /cálculo automático/);
-  assert.match(script, /Sem estimativa de material vinculada\./);
+  assert.match(script, /sem estimativa de duração/);
   assert.match(script, /function nextGoalEstimateHTML/);
-  assert.match(script, /Estimativa do material:/);
-  assert.match(script, /Planejado agora:/);
+  assert.match(script, /duração estimada:/);
 });
 
 test('Abrir material usa fluxo central, noopener e feedback interno', () => {
@@ -48,5 +47,5 @@ test('arquivos publicados e versão permanecem sincronizados', () => {
   assert.equal(html, fs.readFileSync('docs/index.html', 'utf8'));
   assert.equal(css, fs.readFileSync('docs/style.css', 'utf8'));
   assert.equal(fs.readFileSync('service-worker.js', 'utf8'), fs.readFileSync('docs/service-worker.js', 'utf8'));
-  assert.match(script, /20260716-agrupar-materiais-e-eliminar-duplicacoes-v3/);
+  assert.match(script, /20260716-unificar-materiais-plano-do-dia-v1/);
 });

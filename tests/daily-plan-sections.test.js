@@ -28,7 +28,7 @@ test('Cada meta possui details/summary, conclusão fechada e andamento pode abri
 });
 
 test('Materiais iniciam recolhidos e ações secundárias ficam em Mais ações', () => {
-  assert.match(script, /<details class="daily-goal-materials"><summary>Materiais disponíveis <span>\$\{materials\.length\} materiais/);
+  assert.match(script, /<details class="daily-goal-materials"><summary>Materiais disponíveis <span>\$\{materialState\.count\} materiais/);
   assert.match(script, /<details class="daily-goal-more-actions"><summary>Mais ações<\/summary>/);
   assert.match(script, /Cronômetro estudo/);
   assert.match(script, /Cronômetro questões/);
