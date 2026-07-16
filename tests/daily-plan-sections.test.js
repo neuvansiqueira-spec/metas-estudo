@@ -26,7 +26,7 @@ test('Revisão Inteligente de Hoje inicia recolhida e pode ser aberta pelo resum
   assert.match(html, /<summary class="day-smart-review-summary">/);
   assert.match(html, /id="daySmartReview" class="smart-review-list day-smart-review-content"/);
   assert.doesNotMatch(html, /<details class="smart-review-panel day-smart-review-panel"[^>]*\sopen(?:\s|>)/);
-  assert.match(style, /\.day-smart-review-panel\[open\] \.day-smart-review-toggle::before \{ content: "Recolher"; \}/);
+  assert.match(style, /\.day-smart-review-panel\[open\] \.day-smart-review-toggle::before \{ content: "Recolher"; \}/);\n  assert.match(style, /\.day-smart-review-toggle \{[\\s\\S]*flex: 0 0 auto;[\\s\\S]*white-space: nowrap;[\\s\\S]*word-break: keep-all;[\\s\\S]*overflow-wrap: normal;/);
 });
 
 test('Cada meta possui details/summary, conclusão fechada e andamento pode abrir', () => {
