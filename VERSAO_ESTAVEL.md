@@ -2,11 +2,15 @@
 
 ## Versão estável atual
 
-`20260716-sync-inicial-autorizacao-v2`
+`20260716-restaura-abertura-estavel-v1`
 
 ## Data
 
 16/07/2026
+
+## Restauração de abertura estável
+
+Esta versão reverte seletivamente as lógicas bloqueantes de inicialização introduzidas nas PRs #210 e #211. O estado local validado no IndexedDB é aplicado e a tela ativa é renderizada antes de qualquer ação do Google Drive. A sincronização permanece disponível apenas por ação manual ou auto-sync após a abertura, sem persistir token.
 
 ## Telas principais cobertas pela estabilidade
 
