@@ -3891,3 +3891,8 @@ footer {
 .goal-material-item { display: grid; gap: 6px; padding: 10px 0; border-top: 1px solid var(--border); }
 .goal-material-item:first-of-type { border-top: 0; }
 @media (max-width: 768px) { .planning-history-cards { grid-template-columns: 1fr; } .planning-history-card { padding: 14px; } .planning-history-card header { flex-direction: column; } .planning-history-card .card-actions { flex-wrap: wrap; } }
+
+/* Estabilização do Plano do Dia: módulos permanecem dentro da meta, sem criar cartões paralelos. */
+.goal-material-group { margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--border, #d8e0ea); }
+.goal-material-group:first-of-type { border-top: 0; }
+.factory-today-plan .factory-card { margin-bottom: .75rem; }
