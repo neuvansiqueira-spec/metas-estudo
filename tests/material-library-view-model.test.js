@@ -60,3 +60,8 @@ test('prioridade da Fábrica é determinística independente da ordem dos regist
   const manualGeneric = { id:'z-manual', source:'manual', module:'Material manual', type:'PDF', discipline:'D', subject:'S', link:'https://drive.google.com/open?id=ORDER' }; const factory = { id:'a-factory', source:'factory', factoryItemId:'f', syllabusItemId:'s', factoryModuleKey:'resumoAula', factoryFormat:'PDF', discipline:'D', subject:'S', link:'https://drive.google.com/file/d/ORDER/view' };
   const forward = api.buildMaterialLibraryViewModel([manualGeneric, factory], {}); const reversed = api.buildMaterialLibraryViewModel([factory, manualGeneric], {}); assert.equal(forward[0].module, 'RESUMO/AULA'); assert.deepEqual(forward.map(({module, discipline, subject, formats, origins}) => ({module, discipline, subject, formats, origins})), reversed.map(({module, discipline, subject, formats, origins}) => ({module, discipline, subject, formats, origins})));
 });
+
+test('biblioteca ignora registros indisponíveis como o Plano do Dia', () => {
+  const filteredBlock = script.slice(script.indexOf('function filteredMaterials'), script.indexOf('function materialFileActionsHTML'));
+  assert.match(filteredBlock, /\(state\.materials \|\| \[\]\)\.filter\(materialAvailable\)/);
+});

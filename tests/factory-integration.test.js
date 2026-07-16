@@ -108,7 +108,7 @@ test('Plano do Dia e Materiais separam estudo, produção e cards de materiais',
   assert.match(script, /function dailyGoalProductionCard/);
   assert.match(script, /MATERIAIS PARA O PLANO DE HOJE/);
   assert.match(script, /MATERIAIS RECENTES/);
-  assert.match(script, /TODOS OS MATERIAIS/);
+  assert.match(script, /OUTROS MATERIAIS/);
   assert.match(script, /data-use-material-study/);
   assert.match(script, /markFactoryMaterialUnavailable\(normalized\.id, moduleKey, format\)/);
   assert.equal(script, docsScript, 'script.js e docs/script.js devem permanecer sincronizados');

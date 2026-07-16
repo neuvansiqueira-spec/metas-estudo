@@ -4,7 +4,9 @@ const fs = require('node:fs');
 const script = fs.readFileSync('script.js', 'utf8');
 const start = script.indexOf('function materialAvailable(m)');
 const end = script.indexOf('\n\nfunction materialTitleById', start);
-const projectionFactory = new Function('state', `${script.slice(start, end)}; return { buildDailyPlanProjection, materialsForDailyGoal };`);
+const identityStart = script.indexOf('function materialDriveFileId');
+const identityEnd = script.indexOf('function materialFactoryModuleLabelFromKey', identityStart);
+const projectionFactory = new Function('state', `${script.slice(identityStart, identityEnd)} ${script.slice(start, end)}; return { buildDailyPlanProjection, materialsForDailyGoal };`);
 const projection = projectionFactory({});
 
 const date = '2026-07-15';
