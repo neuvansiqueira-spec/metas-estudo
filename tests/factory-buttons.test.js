@@ -10,7 +10,7 @@ const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const serviceWorker = fs.readFileSync('service-worker.js', 'utf8');
 const docsServiceWorker = fs.readFileSync('docs/service-worker.js', 'utf8');
 
-const version = '20260716-corrige-otimizacao-abas-v2';
+const version = '20260716-corrige-concluidos-faca-agora-v1';
 const clickRoutes = [
   'factoryPrompt', 'factoryPromptClose', 'factoryPromptCopy', 'factoryRouterCopy',
   'factoryEdit', 'factoryDelete', 'factoryModules', 'factoryModulesCancel',
@@ -108,10 +108,11 @@ test('arquivos publicados e scripts ficam sincronizados na nova versão pública
 });
 
 test('fila da Fábrica abre o item clicado no painel principal e alterna Abrir/Fechar', () => {
-  assert.match(script, /const selectedEntry = factoryOpenDetailId \? queue\.find\(\(\{ item \}\) => item\.id === factoryOpenDetailId\)/);
+  assert.match(script, /const selectedEntry = factoryOpenDetailId\n      \? queue\.find\(\(\{ item \}\) => item\.id === factoryOpenDetailId\)\n      : null/);
   assert.match(script, /const nowEntry = selectedEntry \|\| firstResumoPendingEntry \|\| queue\[0\]/);
   assert.match(script, /factoryOpenDetailId = factoryOpenDetailId === id \? "" : id/);
-  assert.match(script, /if \(factoryOpenDetailId\) factoryCurrentFilter = "faca-agora"/);
+  assert.match(script, /const entry = queue\.find\(\(\{ item \}\) => item\.id === factoryOpenDetailId\);\n  if \(factoryOpenDetailId && factoryCanAppearInDoNow\(entry, queue\)\) factoryCurrentFilter = "faca-agora"/);
+  assert.doesNotMatch(script, /if \(factoryOpenDetailId\) factoryCurrentFilter = "faca-agora"/);
   assert.match(script, /data-factory-detail="\$\{item\.id\}" \$\{factoryOpenDetailId === item\.id \? "open" : ""\}/);
   assert.match(script, /\$\{isOpen \? "Fechar" : "Abrir"\}/);
   assert.match(script, /scrollIntoView\(\{ behavior: "smooth", block: "start" \}\)/);

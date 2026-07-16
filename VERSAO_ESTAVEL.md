@@ -2,7 +2,7 @@
 
 ## Versão estável atual
 
-`20260716-corrige-otimizacao-abas-v2`
+`20260716-corrige-concluidos-faca-agora-v1`
 
 ## Data
 
@@ -10,7 +10,7 @@
 
 ## Restauração de abertura estável
 
-Esta versão reverte seletivamente as lógicas bloqueantes de inicialização introduzidas nas PRs #210 e #211. O estado local validado no IndexedDB é aplicado e a tela ativa é renderizada antes de qualquer ação do Google Drive. A sincronização permanece disponível apenas por ação manual ou auto-sync após a abertura, sem persistir token.
+Esta versão corrige isoladamente o painel “FAÇA AGORA” da Fábrica de Resumos. Temas concluídos — inclusive quando etapas dispensadas estão como “Não se aplica” — permanecem consultáveis em “Prontos”, mas não podem voltar à fila de pendências nem ao painel de produção. A renderização limpa apenas a seleção temporária de interface inválida, sem salvar, migrar ou alterar dados do usuário.
 
 ## Telas principais cobertas pela estabilidade
 
