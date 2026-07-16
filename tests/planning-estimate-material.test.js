@@ -74,5 +74,5 @@ test('arquivos publicados e versão permanecem sincronizados', () => {
   assert.equal(html, fs.readFileSync('docs/index.html', 'utf8'));
   assert.equal(css, fs.readFileSync('docs/style.css', 'utf8'));
   assert.equal(fs.readFileSync('service-worker.js', 'utf8'), fs.readFileSync('docs/service-worker.js', 'utf8'));
-  assert.match(script, /20260716-menu-restaurado-v8/);
+  assert.match(script, /20260716-calendario-didatico-v9/);
 });

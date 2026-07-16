@@ -662,6 +662,20 @@ tbody tr.goal-hit { background: rgba(22, 163, 74, .08); }
 
 /* Calendário de metas */
 .calendar-toolbar { margin: 14px 0 20px; }
+.calendar-export-actions { margin: 0 0 16px; }
+.goal-calendar-section { margin-top: 14px; overflow: hidden; border: 1px solid #bfdbfe; border-radius: 20px; background: #f8fbff; }
+.goal-calendar-section > summary { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 64px; padding: 14px 18px; color: #172554; cursor: pointer; list-style: none; }
+.goal-calendar-section > summary::-webkit-details-marker { display: none; }
+.goal-calendar-section > summary > span { display: grid; gap: 3px; min-width: 0; }
+.goal-calendar-section > summary strong { font-size: 1.05rem; }
+.goal-calendar-section > summary small { color: var(--muted); overflow-wrap: break-word; }
+.goal-calendar-section > summary::after { content: "+"; display: grid; place-items: center; flex: 0 0 34px; width: 34px; height: 34px; border-radius: 999px; color: #1d4ed8; background: #dbeafe; font-size: 1.35rem; font-weight: 900; }
+.goal-calendar-section[open] > summary::after { content: "−"; }
+.goal-calendar-section-content { padding: 0 16px 18px; }
+.goal-calendar-section[data-goal-calendar-section="weekly"] { border-color: #ddd6fe; background: #faf8ff; }
+.goal-calendar-section[data-goal-calendar-section="monthly"] { border-color: #a5f3fc; background: #f0fdff; }
+.calendar-settings-section { border-color: #dbe4f0; background: #fff; }
+.calendar-print-report { display: none; }
 .weight-row { display: grid; grid-template-columns: minmax(160px, 1fr) 180px; gap: 12px; align-items: center; padding: 12px; border: 1px solid var(--border); border-radius: 16px; background: #f8fbff; }
 .goal-calendar { margin-top: 18px; }
 .calendar-grid { display: grid; gap: 12px; }
@@ -741,6 +755,33 @@ tbody tr.goal-hit { background: rgba(22, 163, 74, .08); }
   .nav-links a {
     min-height: 44px;
   }
+}
+
+@media (max-width: 620px) {
+  .calendar-export-actions { display: grid; grid-template-columns: 1fr; }
+  .calendar-export-actions button { width: 100%; min-height: 48px; }
+  .goal-calendar-section > summary { padding: 13px 14px; }
+  .goal-calendar-section-content { padding: 0 10px 14px; }
+}
+
+@media print {
+  body.calendar-print-mode { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  body.calendar-print-mode > :not(#goalCalendarPrintableReport) { display: none !important; }
+  body.calendar-print-mode #goalCalendarPrintableReport { display: block !important; max-width: 190mm; margin: 0 auto; color: #0f172a; font: 9pt/1.35 Arial, sans-serif; }
+  .calendar-print-report > header { padding: 9mm; border-radius: 5mm; color: #fff; background: linear-gradient(135deg, #172554, #1d4ed8 58%, #0891b2); }
+  .calendar-print-report > header p { margin: 0 0 2mm; font-size: 8pt; font-weight: 900; letter-spacing: .16em; }
+  .calendar-print-report > header h1 { margin: 0 0 3mm; color: #fff; font-size: 23pt; }
+  .calendar-print-report section { margin-top: 7mm; }
+  .calendar-print-report h2 { margin: 0 0 2mm; padding: 3mm 4mm; border-left: 4mm solid #2563eb; border-radius: 2mm; color: #172554; background: #eff6ff; break-after: avoid; }
+  .calendar-print-summary { padding: 3mm; border-radius: 2mm; background: #f8fafc; }
+  .calendar-print-day { margin-top: 4mm; break-inside: avoid; }
+  .calendar-print-day h3 { margin: 0 0 2mm; color: #1d4ed8; }
+  .calendar-print-report table { width: 100%; min-width: 0; border-collapse: collapse; font-size: 8pt; }
+  .calendar-print-report th { color: #fff; background: #1d4ed8; }
+  .calendar-print-report th, .calendar-print-report td { padding: 2.2mm; border: 1px solid #cbd5e1; }
+  .calendar-print-report tbody tr:nth-child(even) { background: #eff6ff; }
+  .calendar-print-report footer { margin-top: 8mm; padding-top: 3mm; border-top: 1px solid #cbd5e1; color: #64748b; }
+  @page { size: A4 portrait; margin: 10mm; }
 }
 
 /* Auditoria operacional: menu com grupos, menor duplicidade visual e suporte a zoom. */

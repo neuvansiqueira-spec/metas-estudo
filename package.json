@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260716-menu-restaurado-v8",
+  "version": "20260716-calendario-didatico-v9",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

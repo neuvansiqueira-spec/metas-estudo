@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260716-menu-restaurado-v8" />
+  <link rel="stylesheet" href="style.css?v=20260716-calendario-didatico-v9" />
 </head>
 <body>
   <header class="hero">
@@ -507,12 +507,18 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
       <p class="notice">Alterne entre visão diária, semanal e mensal. A geração automática usa pesos manuais, incidência dos assuntos, atraso, assuntos pendentes, desempenho em questões/simulados, revisões e disponibilidade do Planejamento.</p>
       <div class="calendar-toolbar form-grid compact">
         <label>Data de referência<input id="calendarDate" type="date" /></label>
-        <label>Visão<select id="calendarViewMode"><option value="daily">Diário</option><option value="weekly">Semanal</option><option value="monthly">Mensal</option></select></label>
+        <label>Abrir primeiro<select id="calendarViewMode"><option value="daily">Dia</option><option value="weekly">Semana</option><option value="monthly">Mês</option></select></label>
       </div>
-      <article class="bulk-box"><h3>Peso/incidência por disciplina</h3><p class="item-meta">Configure manualmente a incidência. Sem configuração, o sistema usa peso médio.</p><div id="disciplineWeightsList" class="cards-list"></div></article>
-      <div id="goalCalendarStats" class="stats-grid compact"></div>
-      <div id="goalCalendarContent" class="goal-calendar empty-message" aria-live="polite"></div>
-      <article class="bulk-box"><h3>Planejamento mensal</h3><div class="form-grid compact"><label>Meta mensal de assuntos<input id="monthlyTopicGoal" type="number" min="0" /></label><label>Meta mensal de horas<input id="monthlyHourGoal" type="number" min="0" step="0.5" /></label></div><div id="monthlyPlanSummary" class="stats-grid compact"></div></article>
+      <div class="calendar-export-actions actions" aria-label="Exportar calendário didático">
+        <button id="exportGoalCalendarPdf" type="button">Gerar PDF</button>
+        <button id="exportGoalCalendarCsv" class="secondary-button" type="button">Gerar CSV</button>
+        <button id="exportGoalCalendarImage" class="secondary-button" type="button">Gerar imagem</button>
+      </div>
+      <p id="goalCalendarExportStatus" class="file-info" aria-live="polite" hidden></p>
+      <details class="goal-calendar-section" data-goal-calendar-section="daily" open><summary><span><strong>Calendário do dia</strong><small id="goalCalendarDailyResume">Metas da data escolhida</small></span></summary><div class="goal-calendar-section-content"><div id="goalCalendarStats" class="stats-grid compact"></div><div id="goalCalendarContent" class="goal-calendar empty-message" aria-live="polite"></div></div></details>
+      <details class="goal-calendar-section" data-goal-calendar-section="weekly"><summary><span><strong>Calendário semanal</strong><small id="goalCalendarWeeklyResume">Sete dias de planejamento</small></span></summary><div class="goal-calendar-section-content"><div id="goalCalendarWeeklyStats" class="stats-grid compact"></div><div id="goalCalendarWeeklyContent" class="goal-calendar empty-message" aria-live="polite"></div></div></details>
+      <details class="goal-calendar-section" data-goal-calendar-section="monthly"><summary><span><strong>Calendário mensal</strong><small id="goalCalendarMonthlyResume">Visão geral do mês</small></span></summary><div class="goal-calendar-section-content"><div id="goalCalendarMonthlyStats" class="stats-grid compact"></div><div id="goalCalendarMonthlyContent" class="goal-calendar empty-message" aria-live="polite"></div></div></details>
+      <details class="goal-calendar-section calendar-settings-section"><summary><span><strong>Configurações do calendário</strong><small>Pesos, incidência e metas mensais</small></span></summary><div class="goal-calendar-section-content"><article class="bulk-box"><h3>Peso/incidência por disciplina</h3><p class="item-meta">Configure manualmente a incidência. Sem configuração, o sistema usa peso médio.</p><div id="disciplineWeightsList" class="cards-list"></div></article><article class="bulk-box"><h3>Planejamento mensal</h3><div class="form-grid compact"><label>Meta mensal de assuntos<input id="monthlyTopicGoal" type="number" min="0" /></label><label>Meta mensal de horas<input id="monthlyHourGoal" type="number" min="0" step="0.5" /></label></div><div id="monthlyPlanSummary" class="stats-grid compact"></div></article></div></details>
     </section>
 
     <section id="view-progresso" class="panel app-view" data-view="progresso" aria-labelledby="progress-title">
@@ -958,13 +964,13 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </section>
   </div>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260716-menu-restaurado-v8</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260716-calendario-didatico-v9</p></footer>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="storage-indexeddb.js?v=20260716-menu-restaurado-v8"></script>
-  <script src="analytics-engine.js?v=20260716-menu-restaurado-v8"></script>
-  <script src="study-advisor.js?v=20260716-menu-restaurado-v8"></script>
-  <script src="advisor-navigation-engine.js?v=20260716-menu-restaurado-v8"></script>
-  <script src="script.js?v=20260716-menu-restaurado-v8"></script>
+  <script src="storage-indexeddb.js?v=20260716-calendario-didatico-v9"></script>
+  <script src="analytics-engine.js?v=20260716-calendario-didatico-v9"></script>
+  <script src="study-advisor.js?v=20260716-calendario-didatico-v9"></script>
+  <script src="advisor-navigation-engine.js?v=20260716-calendario-didatico-v9"></script>
+  <script src="script.js?v=20260716-calendario-didatico-v9"></script>
   <div id="legacyTimerRecoveryModal" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="legacyTimerRecoveryModalTitle" hidden>
     <div class="app-modal-backdrop" data-legacy-recovery-cancel></div>
     <section class="app-modal-card">
