@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260716-otimiza-abas-pesadas-v1";
+const APP_VERSION = "20260716-corrige-otimizacao-abas-v2";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -3852,7 +3852,7 @@ function dailyPlanMaterialIdentity(material = {}) {
   const link = String(material.link || "").trim().toLowerCase();
   return material.sourceRecordId || (material.factoryItemId ? `${material.factoryItemId}|${material.factoryModuleKey || "material"}|${String(material.factoryFormat || material.type || "").toLowerCase()}` : `${link}|${material.factoryModuleKey || "manual"}|${String(material.factoryFormat || material.type || "").toLowerCase()}`);
 }
-function buildDailyPlanProjection(date, targetState = state) {
+function buildDailyPlanProjection(date, targetState = state) { if (typeof performanceCounters !== "undefined") performanceCounters.projectionBuilds++;
   const goals = (targetState.dailyGoals || []).filter((goal) => (goal.date || goal.data) === date);
   const materials = (targetState.materials || []).filter(materialAvailable);
   const factoryItems = targetState.factoryAgenda?.length ? targetState.factoryAgenda : (targetState.factoryItems || []);
@@ -3874,7 +3874,12 @@ function buildDailyPlanProjection(date, targetState = state) {
     return { goal, factoryItems: [...linkedFactory], materialGroups: [...groups.values()], estimate: Number(goal.estimatedTotalMinutes || estimateMaterial?.estimatedMinutes || 0), estimateMaterial, warnings: [] };
   });
 }
-function materialsForDailyGoal(goal = {}) { const projectionEntry = arguments[1] || null; return (projectionEntry?.materialGroups || []).flatMap((group) => group.materials); }
+function materialsForDailyGoal(goal = {}, projectionEntry = null) {
+  if (projectionEntry) return (projectionEntry.materialGroups || []).flatMap((group) => group.materials);
+  const date = goal.date || goal.data || todayISO();
+  const entry = buildDailyPlanProjection(date).find((candidate) => candidate.goal.id === goal.id);
+  return (entry?.materialGroups || []).flatMap((group) => group.materials);
+}
 function materialsForFactoryItem(item) { const id = item?.id || item; return (state.materials || []).filter((m) => materialAvailable(m) && m.source === "factory" && m.factoryItemId === id); }
 function resolveAvailableMaterials({ discipline = "", subject = "", syllabusItemId = "", syllabusItemIds = [], factoryItemId = "" } = {}) { return (state.materials || []).filter(materialAvailable).filter((m) => (factoryItemId && m.factoryItemId === factoryItemId) || (syllabusItemId && [m.syllabusItemId, ...(m.syllabusItemIds || [])].includes(syllabusItemId)) || (syllabusItemIds || []).some((id) => [m.syllabusItemId, ...(m.syllabusItemIds || [])].includes(id)) || (dailyPlanCanonical(m.discipline) === dailyPlanCanonical(discipline) && dailyPlanCanonical(m.subject) === dailyPlanCanonical(subject))); }
 
@@ -4004,16 +4009,16 @@ function dedupeWeeklyGoalsForDisplay(goals = []) {
     return true;
   });
 }
-function weeklyPlanGoalsForDate(date, requested = Number(planningConfig().disciplinesPerDay) || 1) {
+function weeklyPlanGoalsForDate(date, requested = Number(planningConfig().disciplinesPerDay) || 1, scoreContext = null) {
   const existing = state.dailyGoals.filter((goal)=>(goal.date || goal.data)===date);
   const manual = existing.filter(isManualDailyGoal);
   const automatic = existing.filter((goal)=>!isManualDailyGoal(goal));
-  const selected = selectDistinctPlanningDisciplines({ date, count: requested, existingGoals: manual }).selected;
+  const selected = selectDistinctPlanningDisciplines({ date, count: requested, existingGoals: manual, eligibleItems: eligiblePlanningGoalsForDate(date, { scoreContext }) }).selected;
   const displayGoals = selected.length ? [...manual, ...selected] : [...manual, ...automatic];
   return dedupeWeeklyGoalsForDisplay(displayGoals).slice(0, Math.max(requested, manual.length));
 }
-function weeklyPlanDays(requested = Number(planningConfig().disciplinesPerDay) || 1) {
-  return daysBetween(todayISO(), 7).map((date)=>({ date, goals: weeklyPlanGoalsForDate(date, requested) }));
+function weeklyPlanDays(requested = Number(planningConfig().disciplinesPerDay) || 1, scoreContext = null) {
+  return daysBetween(todayISO(), 7).map((date)=>({ date, goals: weeklyPlanGoalsForDate(date, requested, scoreContext) }));
 }
 function renderWeeklyGoalsPlanDesktop(days) {
   const rows = days.flatMap((day)=>day.goals.map((goal)=>`<tr><td>${formatDateBR(day.date)}</td><td>${escapeHTML(goal.discipline || goal.disciplina || "-")}</td><td>${escapeHTML(goal.subject || goal.assunto || goal.baseSubject || "Assunto previsto")}</td></tr>`));
@@ -4026,9 +4031,10 @@ function renderWeeklyGoalsPlanMobile(days) {
 function renderPlanning() {
   if (!elements.planningConfigForm) return;
   const c = planningConfig();
+  const scoreContext = buildPlanningScoreContext();
   c.dayContentModes = normalizeDayContentModes(c.dayContentModes);
   elements.planningExamDate.value = c.examDate || state.edital.examDate || ""; elements.planningScaleType.value = c.scaleType; if (elements.planningScaleReferenceDate) elements.planningScaleReferenceDate.value = c.scaleReferenceDate || todayISO(); if (elements.planningScaleReferencePosition) elements.planningScaleReferencePosition.value = String(Number(c.scaleReferencePosition)||0); if (elements.scale3x6Fields) elements.scale3x6Fields.hidden = c.scaleType !== "3 dias de trabalho / 6 dias de folga"; elements.planningScaleNotes.value = c.scaleNotes || ""; elements.planningShiftHours.value = c.shiftHours; elements.planningRestHours.value = c.restHours; elements.planningNormalHours.value = c.normalHours; elements.planningMinWeeklyHours.value = c.minWeeklyHours; elements.planningIdealWeeklyHours.value = c.idealWeeklyHours; elements.planningWeeklyTopics.value = c.weeklyTopics; elements.planningDisciplinesPerDay.value = c.disciplinesPerDay; elements.planningDisciplinesPerWeek.value = c.disciplinesPerWeek; elements.planningDisciplinesPerMonth.value = c.disciplinesPerMonth; elements.planningTopicsPerDay.value = c.topicsPerDay; elements.planningTopicsPerWeek.value = c.topicsPerWeek; elements.planningTopicsPerMonth.value = c.topicsPerMonth; elements.planningSafetyDays.value = c.safetyDays;
-  renderPlanningDayModes(); renderPlanningSummary(); renderPlanningPreview();
+  renderPlanningDayModes(); renderPlanningSummary(); (window.requestAnimationFrame || ((fn) => setTimeout(fn, 0)))(() => renderPlanningPreview(scoreContext));
   elements.availabilityCalendar.innerHTML = Array.from({length: 21}, (_, i) => { const date = addDays(todayISO(), i); const av = availabilityForDate(date); return `<article class="syllabus-card"><header><div><h3>${formatDateBR(date)}</h3><div class="item-meta">Horas estimadas editáveis para este dia.</div></div></header><div class="card-actions"><label>Tipo <select data-availability-type="${date}">${["plantão","folga","dia normal","indisponível","estudo leve","estudo forte"].map((t)=>`<option ${av.type===t?"selected":""}>${t}</option>`).join("")}</select></label><label>Horas <input data-availability-hours="${date}" type="number" min="0" step="0.5" value="${av.hours}"></label></div></article>`; }).join("");
   const m = planningMetrics();
   const cards = [["Total de assuntos",m.total],["Concluídos",m.completed],["Pendentes",m.pending],["Edital estudado",`${m.percent}%`],["Assuntos/semana",m.avgTopicsWeek.toFixed(1)],["Tempo médio/assunto",formatHours(m.avgMinutes)],["Horas estimadas",formatHours(m.totalEstimatedMinutes)],["Horas já estudadas",formatHours(m.totalMinutes)],["Horas restantes",formatHours(m.remainingMinutes)],["Conclusão prevista",formatDateBR(m.forecastDate)],["Diferença para prova",m.diffDays===null?"-":`${m.diffDays} dias`],["Situação do edital",m.diffDays !== null && m.diffDays < 0 ? "Atrasado para a data da prova" : "Dentro do prazo informado"]];
@@ -4038,7 +4044,7 @@ function renderPlanning() {
   elements.completionAlert.textContent = m.diffDays !== null && m.diffDays < 0 ? "No ritmo atual, o edital não será concluído antes da prova." : "No ritmo atual, o edital será concluído antes da prova.";
   const w = weekAvailability(); const possibleTopics = Math.floor((w.total*60)/(m.avgMinutes||60)); const neededWeeks = m.examDate ? Math.max(1, Math.ceil((parseDate(m.examDate)-parseDate(todayISO()))/604800000)) : 1; const neededTopics = Math.ceil(m.pending/neededWeeks); const suggested = Math.max(0, Math.min(m.pending, Math.max(possibleTopics, neededTopics, Number(c.weeklyTopics)||0)));
   const requestedDisciplines = Number(c.disciplinesPerDay) || 1;
-  const weeklyDays = weeklyPlanDays(requestedDisciplines);
+  const weeklyDays = weeklyPlanDays(requestedDisciplines, scoreContext);
   const maxEligible = Math.max(0, ...weeklyDays.map((day)=>day.goals.length));
   elements.weeklyGoalsPlan.classList.remove("stats-grid", "compact");
   elements.weeklyGoalsPlan.innerHTML = `<div class="planning-forecast-grid weekly-plan-metrics">${[["Horas disponíveis",`${w.total.toFixed(1)}h`],["Assuntos sugeridos",suggested],["Horas sugeridas/dia",`${(w.total/7).toFixed(1)}h`],["Meta mínima",`${c.minWeeklyHours}h`],["Meta ideal",`${c.idealWeeklyHours}h`]].map(([a,b])=>planningForecastCard(a, String(b))).join("")}</div>${maxEligible < requestedDisciplines ? `<p class="notice">Apenas ${maxEligible} disciplina elegível disponível.</p>` : ""}${renderWeeklyGoalsPlanDesktop(weeklyDays)}${renderWeeklyGoalsPlanMobile(weeklyDays)}`;
@@ -4047,7 +4053,7 @@ function renderPlanning() {
   elements.timeHistorySummary.classList.remove("stats-grid", "compact");
   elements.timeHistorySummary.classList.add("planning-forecast-grid");
   elements.timeHistorySummary.innerHTML = [["Hoje",formatHours(logs.filter(l=>l.date===todayISO()).reduce((s,l)=>s+l.minutes,0))],["Semana",formatHours(logs.filter(l=>isSameWeek(l.date)).reduce((s,l)=>s+l.minutes,0))],["Edital",formatHours(m.totalMinutes)],["Disciplina mais estudada",top?`${top[0]} (${formatHours(top[1])})`:"-"]].map(([a,b])=>planningForecastCard(a, String(b))).join("");
-  elements.timeHistoryCards.innerHTML = logs.slice(0, planningHistoryVisibleCount).map((l) => planningHistoryCardHTML(l)).join("") + (logs.length > planningHistoryVisibleCount ? `<button type="button" class="secondary-button" data-planning-history-more>Mostrar mais 20</button>` : "") || `<p class="empty-message">Nenhuma meta ou registro de tempo para exibir.</p>`;
+  const renderHistory = () => { elements.timeHistoryCards.innerHTML = logs.slice(0, planningHistoryVisibleCount).map((l) => planningHistoryCardHTML(l)).join("") + (logs.length > planningHistoryVisibleCount ? `<button type="button" class="secondary-button" data-planning-history-more>Mostrar mais 20</button>` : "") || `<p class="empty-message">Nenhuma meta ou registro de tempo para exibir.</p>`; }; (window.requestIdleCallback || ((fn) => setTimeout(fn, 0)))(renderHistory);
 }
 
 function planningHistoryCardHTML(log = {}) {
@@ -4064,7 +4070,7 @@ function dayModeSummary(type, cfg = planningConfig().dayContentModes?.[type]) { 
 function renderPlanningDayModes() { if (!elements.planningDayModes) return; const modes = normalizeDayContentModes(planningConfig().dayContentModes); elements.planningDayModesResume.textContent = ["normal","folga","plantao"].map((type)=>`${DAY_TYPE_LABELS[type].replace("Dia ","")}: ${dayModeSummary(type, modes[type])}`).join(" • "); elements.planningDayModes.innerHTML = ["normal","folga","plantao"].map((type) => { const cfg = modes[type]; return `<article class="day-mode-card" data-day-mode-card="${type}"><fieldset aria-describedby="${type}ModeDescription"><legend>Conteúdo do ${DAY_TYPE_LABELS[type].toLowerCase()}</legend><p id="${type}ModeDescription" class="item-meta">Escolha se este tipo de dia terá metas de estudo, questões ou ambos.</p>${DAY_CONTENT_MODES.map((mode)=>`<label class="day-mode-option"><input type="radio" name="dayContentMode-${type}" data-day-mode-type="${type}" value="${mode}" ${cfg.mode===mode?"checked":""}>${DAY_CONTENT_MODE_LABELS[mode]}</label>`).join("")}<label class="question-target-field" ${cfg.mode==="goals_only"?"hidden":""}>Quantidade de questões para esse tipo de dia<input type="number" min="1" step="1" inputmode="numeric" data-question-target-type="${type}" value="${cfg.questionTarget}"></label><p class="notice">${escapeHTML(`${DAY_TYPE_LABELS[type]}: ${dayModeSummary(type, cfg)}`)}</p></fieldset></article>`; }).join(""); }
 function planningSummaryValue(cfg) { return `${DAY_CONTENT_MODE_LABELS[cfg.mode]}${dayModeIncludesQuestions(cfg.mode) ? `<br><small>${cfg.questionTarget} questões</small>` : ""}`; }
 function renderPlanningSummary() { if (!elements.planningSummaryCards) return; const c = planningConfig(); const next = addDays(todayISO(), 1); const nextType = getPlanningDayType(next); const modes = normalizeDayContentModes(c.dayContentModes); elements.planningSummaryResume.textContent = `${c.disciplinesPerDay} disciplina(s) por dia • próximo dia: ${formatDateBR(next)} (${DAY_TYPE_LABELS[nextType]})`; elements.planningSummaryCards.classList.add("planning-summary-grid"); elements.planningSummaryCards.innerHTML = [["Disciplinas por dia", escapeHTML(String(c.disciplinesPerDay))], ["Dia normal", planningSummaryValue(modes.normal)], ["Folga", planningSummaryValue(modes.folga)], ["Plantão", planningSummaryValue(modes.plantao)], ["Próximo dia", escapeHTML(formatDateBR(next))], ["Classificação do próximo dia", escapeHTML(DAY_TYPE_LABELS[nextType])]].map(([a,b])=>`<article class="planning-summary-card"><span class="planning-summary-label">${escapeHTML(a)}</span><strong class="planning-summary-value">${b}</strong></article>`).join(""); }
-function renderPlanningPreview() { if (!elements.planningPreview) return; elements.planningPreview.innerHTML = daysBetween(todayISO(), 10).map((date)=>{ const type = getPlanningDayType(date); const cfg = getDayContentConfig(date); const requested = Number(planningConfig().disciplinesPerDay)||1; const studyGoals = dayModeIncludesGoals(cfg.mode) ? selectDistinctPlanningDisciplines({ date, count: requested }).selected : []; const warning = dayModeIncludesGoals(cfg.mode) && studyGoals.length < requested ? `<p class="notice">Apenas ${studyGoals.length} disciplinas elegíveis disponíveis para este dia.</p>` : ""; return `<article class="planning-preview-card"><header class="planning-preview-card-header"><strong>${formatDateBR(date)}</strong><span class="planning-preview-day-type badge">${escapeHTML(DAY_TYPE_LABELS[type])}</span></header><p><strong>Modo:</strong> ${escapeHTML(DAY_CONTENT_MODE_LABELS[cfg.mode])}</p><p><strong>Meta de questões:</strong> ${dayModeIncludesQuestions(cfg.mode) ? escapeHTML(String(cfg.questionTarget)) : "Sem meta de questões"}</p><div class="planning-preview-disciplines"><strong>Disciplinas previstas</strong>${studyGoals.length ? `<ul>${studyGoals.map((g)=>`<li>${escapeHTML(g.discipline)} — ${escapeHTML(g.subject || g.assunto || "Assunto previsto")}</li>`).join("")}</ul>` : `<p>Sem metas automáticas de estudo</p>`}${warning}</div></article>`; }).join(""); }
+function renderPlanningPreview(scoreContext = buildPlanningScoreContext()) { if (!elements.planningPreview) return; elements.planningPreview.innerHTML = daysBetween(todayISO(), 10).map((date)=>{ const type = getPlanningDayType(date); const cfg = getDayContentConfig(date); const requested = Number(planningConfig().disciplinesPerDay)||1; const studyGoals = dayModeIncludesGoals(cfg.mode) ? selectDistinctPlanningDisciplines({ date, count: requested, eligibleItems: eligiblePlanningGoalsForDate(date, { scoreContext }) }).selected : []; const warning = dayModeIncludesGoals(cfg.mode) && studyGoals.length < requested ? `<p class="notice">Apenas ${studyGoals.length} disciplinas elegíveis disponíveis para este dia.</p>` : ""; return `<article class="planning-preview-card"><header class="planning-preview-card-header"><strong>${formatDateBR(date)}</strong><span class="planning-preview-day-type badge">${escapeHTML(DAY_TYPE_LABELS[type])}</span></header><p><strong>Modo:</strong> ${escapeHTML(DAY_CONTENT_MODE_LABELS[cfg.mode])}</p><p><strong>Meta de questões:</strong> ${dayModeIncludesQuestions(cfg.mode) ? escapeHTML(String(cfg.questionTarget)) : "Sem meta de questões"}</p><div class="planning-preview-disciplines"><strong>Disciplinas previstas</strong>${studyGoals.length ? `<ul>${studyGoals.map((g)=>`<li>${escapeHTML(g.discipline)} — ${escapeHTML(g.subject || g.assunto || "Assunto previsto")}</li>`).join("")}</ul>` : `<p>Sem metas automáticas de estudo</p>`}${warning}</div></article>`; }).join(""); }
 
 function renderDashboard() {
   renderSmartReviewSummary();
@@ -4388,12 +4394,14 @@ function linkedMaterialsHTML(materials) {
   return `<div class="linked-materials"><strong>Materiais vinculados</strong><div class="card-actions">${materials.map((m) => `<button type="button" data-open-material="${m.id}" title="${escapeHTML(m.title)}">${escapeHTML(materialButtonLabel(m))}</button>`).join("")}</div></div>`;
 }
 function isValidHttpUrl(value) { try { const url = new URL(value); return ["http:", "https:"].includes(url.protocol); } catch { return false; } }
+const performanceCounters = { projectionBuilds: 0, scoreExecutions: 0, scoredItems: 0, hydratedGoals: 0 };
 const goalMaterialNotices = new Map();
 function showGoalMaterialNotice(goalId, message) { goalMaterialNotices.set(goalId, message); document.querySelectorAll(`[data-goal-material-notice="${goalId}"]`).forEach((notice) => { notice.textContent = message; notice.hidden = false; }); }
 function openGoalMaterial(goalId, materialId = "") {
   const goal = state.dailyGoals.find((item) => item.id === goalId);
   if (!goal) return false;
-  const materials = materialsForDailyGoal(goal);
+  const projectionEntry = buildDailyPlanProjection(goal.date || goal.data || todayISO()).find((entry) => entry.goal.id === goal.id) || null;
+  const materials = materialsForDailyGoal(goal, projectionEntry);
   const selectedMaterial = materialId ? materials.find((material) => material.id === materialId) : null;
   if (!selectedMaterial && materials.length > 1) {
     document.querySelectorAll(`[data-daily-goal-details="${goalId}"] .daily-goal-materials`).forEach((details) => { details.open = true; });
@@ -4490,7 +4498,8 @@ function renderMaterials() {
   ensureMaterialSectionToggleListener();
   renderMaterialSelectors(); renderMaterialFilters();
   const list = filteredMaterials().sort((a,b)=>(b.date||"").localeCompare(a.date||""));
-  const todayGoalMaterials = new Set((state.dailyGoals || []).filter((g) => g.date === todayISO()).flatMap((goal) => materialsForDailyGoal(goal).map((m) => m.id)));
+  const todayProjectionByGoalId = new Map(buildDailyPlanProjection(todayISO()).map((entry) => [entry.goal.id, entry]));
+  const todayGoalMaterials = new Set((state.dailyGoals || []).filter((g) => g.date === todayISO()).flatMap((goal) => materialsForDailyGoal(goal, todayProjectionByGoalId.get(goal.id)).map((m) => m.id)));
   const todayMaterials = list.filter((m) => todayGoalMaterials.has(m.id));
   const recentMaterials = list.filter((m) => !todayGoalMaterials.has(m.id)).slice(0, 10);
   elements.materialsList.innerHTML = list.length ? [
@@ -4851,9 +4860,21 @@ function ensureDefaultDisciplineWeights() {
     }
   });
 }
-function disciplineQuestionWeakness(discipline) { const logs = state.questionLogs.filter((q) => canonical(q.discipline) === canonical(discipline)); const total = logs.reduce((a,q)=>a+Number(q.total||0),0); const wrong = logs.reduce((a,q)=>a+Number(q.wrong||0),0); return total ? wrong / total * 100 : 0; }
-function mockWeakness(discipline) { const rows = (state.simulados||[]).flatMap((m)=>m.disciplines||[]).filter((d)=>canonical(d.name||d.discipline)===canonical(discipline)); const total = rows.reduce((a,d)=>a+Number(d.total||0),0); const wrong = rows.reduce((a,d)=>a+Number(d.wrong||0),0); return total ? wrong / total * 100 : 0; }
-function itemScore(item, pendingByDiscipline) { const pending = pendingByDiscipline[item.discipline] || 0; const totalDisc = state.syllabusItems.filter((i)=>i.discipline===item.discipline && i.status!=="Ignorado").length || 1; const atrasada = pending / totalDisc * 40; const reviewDue = item.status === "Revisar" || item.lastReviewedAt && addDays(item.lastReviewedAt, 7) <= todayISO() ? 30 : 0; const examBoost = state.edital.examDate ? Math.max(0, 20 - Math.ceil((parseDate(state.edital.examDate)-new Date())/86400000)/10) : 0; const subjectIncidenceBoost = (normalizeSubjectIncidence(item.weight) - 3) * 10; return disciplineWeightValue(item.discipline) * 18 + atrasada + (item.status === "Não iniciado" ? 35 : 0) + (isUndiagnosed(item) ? 18 : 0) + (isWeakItem(item) ? 42 : 0) + disciplineQuestionWeakness(item.discipline) * .7 + mockWeakness(item.discipline) * .4 + subjectIncidenceBoost + reviewDue + examBoost; }
+function buildPlanningScoreContext(targetState = state) {
+  ensureDefaultDisciplineWeights();
+  const pendingByDiscipline = {}, totalByDiscipline = {}, questionTotals = {}, mockTotals = {};
+  (targetState.syllabusItems || []).forEach((item) => { if (item.status !== "Ignorado") { totalByDiscipline[item.discipline] = (totalByDiscipline[item.discipline] || 0) + 1; if (!completedStatus(item)) pendingByDiscipline[item.discipline] = (pendingByDiscipline[item.discipline] || 0) + 1; } });
+  (targetState.questionLogs || []).forEach((log) => { const key = canonical(log.discipline); const row = questionTotals[key] ||= { total: 0, wrong: 0 }; row.total += Number(log.total || 0); row.wrong += Number(log.wrong || 0); });
+  (targetState.simulados || []).flatMap((mock) => mock.disciplines || []).forEach((row) => { const key = canonical(row.name || row.discipline); const total = mockTotals[key] ||= { total: 0, wrong: 0 }; total.total += Number(row.total || 0); total.wrong += Number(row.wrong || 0); });
+  const weaknesses = Object.fromEntries(Object.keys(totalByDiscipline).map((discipline) => { const questions = questionTotals[canonical(discipline)] || {}; const mocks = mockTotals[canonical(discipline)] || {}; return [discipline, { question: questions.total ? questions.wrong / questions.total * 100 : 0, mock: mocks.total ? mocks.wrong / mocks.total * 100 : 0 }]; }));
+  const examBoost = targetState.edital?.examDate ? Math.max(0, 20 - Math.ceil((parseDate(targetState.edital.examDate) - new Date()) / 86400000) / 10) : 0;
+  const scores = new Map();
+  (targetState.syllabusItems || []).forEach((item) => { const pending = pendingByDiscipline[item.discipline] || 0, total = totalByDiscipline[item.discipline] || 1, weak = weaknesses[item.discipline] || {}; const reviewDue = item.status === "Revisar" || item.lastReviewedAt && addDays(item.lastReviewedAt, 7) <= todayISO() ? 30 : 0; const score = disciplineWeightValue(item.discipline) * 18 + pending / total * 40 + (item.status === "Não iniciado" ? 35 : 0) + (isUndiagnosed(item) ? 18 : 0) + (isWeakItem(item) ? 42 : 0) + (weak.question || 0) * .7 + (weak.mock || 0) * .4 + (normalizeSubjectIncidence(item.weight) - 3) * 10 + reviewDue + examBoost; scores.set(item.id, score); if (typeof performanceCounters !== "undefined") { performanceCounters.scoreExecutions++; performanceCounters.scoredItems++; } });
+  return { pendingByDiscipline, totalByDiscipline, weaknesses, scores, candidates: (targetState.syllabusItems || []).filter((item) => isSchedulable(item.id) && item.status !== "Ignorado").sort((a, b) => (scores.get(b.id) || 0) - (scores.get(a.id) || 0)) };
+}
+function disciplineQuestionWeakness(discipline) { return buildPlanningScoreContext().weaknesses[discipline]?.question || 0; }
+function mockWeakness(discipline) { return buildPlanningScoreContext().weaknesses[discipline]?.mock || 0; }
+function itemScore(item, pendingByDiscipline, context = null) { const scoreContext = context || buildPlanningScoreContext(); return scoreContext.scores.get(item.id) || 0; }
 function makeGoal(item, date, type) {
   const dayType = availabilityForDate(date).type;
   const factor = dayType === "plantão" ? 0.6 : dayType === "folga" || dayType === "estudo forte" ? 1.25 : dayType === "indisponível" ? 0.2 : dayType === "estudo leve" ? 0.75 : 1;
@@ -4872,21 +4893,12 @@ function makeGoal(item, date, type) {
 function pickCandidate(candidates, used, predicate = () => true, chosen = [], maxGoals = 4, disciplineLimit = Infinity, allowedDisciplines = null) { const counts = chosen.reduce((a,g)=>(a[g.discipline]=(a[g.discipline]||0)+1,a),{}); const usedDisciplines = new Set(chosen.map((g)=>g.discipline)); return candidates.find((item) => !used.has(item.id) && predicate(item) && (!allowedDisciplines || allowedDisciplines.has(item.discipline)) && (usedDisciplines.has(item.discipline) || usedDisciplines.size < disciplineLimit) && ((counts[item.discipline]||0) < Math.ceil(maxGoals/2) || Object.keys(counts).length <= 1)); }
 function planningItemKey(goal) { return canonical(`${goal.discipline || goal.disciplina}|${goal.baseSubject || goal.subject || goal.assunto || goal.syllabusItemId}`); }
 function eligiblePlanningGoalsForDate(date, opts = {}) {
-  ensureDefaultDisciplineWeights();
+  const context = opts.scoreContext || buildPlanningScoreContext();
   const dayType = availabilityForDate(date).type;
   if (dayType === "indisponível" && !opts.manual) return [];
-  const reserved = new Set([...(opts.existingGoals || []), ...state.dailyGoals.filter((g)=>(g.date || g.data)===date)].map((g)=>g.estimateSourceId ? dynamicGoalSegmentKey(g) : g.syllabusItemId).filter(Boolean));
-  const pendingByDiscipline = state.syllabusItems.filter((item) => !completedStatus(item) && item.status !== "Ignorado").reduce((acc, item) => (acc[item.discipline] = (acc[item.discipline] || 0) + 1, acc), {});
-  const candidates = state.syllabusItems
-    .filter((item) => isSchedulable(item.id) && item.status !== "Ignorado" && !reserved.has(item.id))
-    .sort((a,b) => itemScore(b,pendingByDiscipline) - itemScore(a,pendingByDiscipline));
+  const reserved = new Set([...(opts.existingGoals || []), ...state.dailyGoals.filter((g) => (g.date || g.data) === date)].map((g) => g.estimateSourceId ? dynamicGoalSegmentKey(g) : g.syllabusItemId).filter(Boolean));
   const chosenByDiscipline = new Map();
-  for (const item of candidates) {
-    const disciplineKey = canonical(item.discipline);
-    if (!disciplineKey || chosenByDiscipline.has(disciplineKey)) continue;
-    const [goal] = makeGoal(item, date, goalTypeForItem(item));
-    if (goal) chosenByDiscipline.set(disciplineKey, goal);
-  }
+  for (const item of context.candidates) { if (reserved.has(item.id)) continue; const disciplineKey = canonical(item.discipline); if (!disciplineKey || chosenByDiscipline.has(disciplineKey)) continue; const [goal] = makeGoal(item, date, goalTypeForItem(item)); if (goal) chosenByDiscipline.set(disciplineKey, goal); }
   return [...chosenByDiscipline.values()];
 }
 function selectDistinctPlanningItems({ count, eligibleGoals, eligibleItems, existingGoals = [], date = todayISO(), recentHistory = [] } = {}) {
@@ -5206,10 +5218,10 @@ function factoryEntryForDailyGoal(goal = {}) {
   const match = exactFactoryGoalMatches(goal, ensureFactoryAgenda());
   return match.items[0] || null;
 }
-function dailyGoalResumoReady(goal = {}) {
+function dailyGoalResumoReady(goal = {}, projectionEntry = null) {
   const factoryItem = factoryEntryForDailyGoal(goal);
   if (factoryItem) return factoryResumoAulaReady(factoryItem);
-  return materialsForDailyGoal(goal).some((m) => m.source !== "factory" || m.factoryModuleKey === "resumoAula");
+  return materialsForDailyGoal(goal, projectionEntry).some((m) => m.source !== "factory" || m.factoryModuleKey === "resumoAula");
 }
 function dailyGoalFactoryStage(goal = {}) {
   const factoryItem = factoryEntryForDailyGoal(goal);
@@ -5257,27 +5269,27 @@ function goalMaterialsDetailsHTML(goal, entry) {
   const materials = materialsForDailyGoal(goal, entry);
   return `<details class="daily-goal-materials"><summary>Materiais disponíveis <span>${materials.length} materiais</span></summary><div class="daily-plan-content">${goalMaterialsHTML(goal, entry) || `<p class="empty-message">Nenhum material disponível.</p>`}</div></details>`;
 }
+function dailyGoalDetailsBodyHTML(goal, projectionEntry = null) {
+  const status = goal.status || "Pendente";
+  const history = (goal.history || goal.historico || []).slice(-3).map((entry) => `<li>${escapeHTML(typeof entry === "string" ? entry : entry.message || entry.text || JSON.stringify(entry))}</li>`).join("");
+  return `<div class="daily-goal-content"><div class="card-meta-grid"><span>Disciplina: ${escapeHTML(goal.discipline)}</span><span>Assunto: ${escapeHTML(goal.subject)}</span><span>Tipo: ${escapeHTML(goal.type || goal.tipo || "-")}</span><span>Prioridade: ${escapeHTML(goal.priority || goal.prioridade || "-")}</span><span>Planejado: ${Number(goal.minutes||0)} min</span><span>Estudo realizado: ${Number(goal.studyActualMinutes||0)} min</span><span>Questões realizadas: ${Number(goal.questionActualMinutes||0)} min</span><span>Total realizado: ${Number(goal.actualMinutes||0)} min</span><span>Status: ${escapeHTML(status)}</span><span>Referência: ${escapeHTML(goal.referencia_edital || getSyllabusById(goal.syllabusItemId)?.reference || "-")}</span></div><div class="progress"><span style="width:${Math.min(100, Math.round((goalTotalActualMinutes(goal) / Math.max(1, Number(goal.minutes)||1)) * 100))}%"></span></div>${goalMaterialEstimateHTML(goal, projectionEntry)}${goalMaterialsDetailsHTML(goal, projectionEntry)}<p class="notice" data-goal-material-notice="${goal.id}" ${goalMaterialNotices.has(goal.id) ? "" : "hidden"}>${escapeHTML(goalMaterialNotices.get(goal.id) || "")}</p><details class="daily-goal-history"><summary>Histórico resumido</summary><ul>${history || "<li>Sem histórico registrado.</li>"}</ul></details><div class="card-actions"><button type="button" data-open-goal-material="${goal.id}">Abrir material</button><button type="button" data-goal-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button type="button" data-goal-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button type="button" data-goal-action="Concluída" data-id="${goal.id}">Concluir meta</button></div><details class="daily-goal-more-actions"><summary>Mais ações</summary><div class="card-actions"><button type="button" data-goal-action="Estudo" data-id="${goal.id}">Registrar estudo manualmente</button><button type="button" data-goal-action="QuestoesTempo" data-id="${goal.id}">Registrar tempo de questões</button><button type="button" data-register-goal="${goal.id}">Registrar questões</button><button type="button" data-goal-history="${goal.id}">Ver histórico</button><button type="button" data-goal-action="Adiada" data-id="${goal.id}">Reagendar ou adiar</button><button type="button" data-goal-action="Não cumprida" data-id="${goal.id}">Não cumprir</button></div></details></div>`;
+}
 function dailyGoalDetailsCard(goal, number = 1, projectionEntry = null) {
   normalizeGoalTimeFields(goal);
   const remembered = rememberedDailyPlanGoal(goal.date) === goal.id;
   const inProgress = !isGoalDone(goal) && (goal.status === "Em andamento" || goalTotalActualMinutes(goal) > 0);
-  const open = remembered || inProgress;
+  const hydrated = remembered || inProgress;
   const status = goal.status || "Pendente";
   const resume = `${goal.actualMinutes || 0} de ${Number(goal.minutes || 0)} min • ${status}`;
-  const history = (goal.history || goal.historico || []).slice(-3).map((entry) => `<li>${escapeHTML(typeof entry === "string" ? entry : entry.message || entry.text || JSON.stringify(entry))}</li>`).join("");
-  return `<details class="daily-goal-section goal-status-${canonical(status)}" data-daily-goal-details="${goal.id}"${open ? " open" : ""}>
-    <summary class="daily-goal-summary"><span><strong>${escapeHTML(goal.discipline)}</strong><span>${escapeHTML(goal.subject)}</span></span><span>${escapeHTML(resume)}</span></summary>
-    <div class="daily-goal-content">
-      <div class="card-meta-grid"><span>Disciplina: ${escapeHTML(goal.discipline)}</span><span>Assunto: ${escapeHTML(goal.subject)}</span><span>Tipo: ${escapeHTML(goal.type || goal.tipo || "-")}</span><span>Prioridade: ${escapeHTML(goal.priority || goal.prioridade || "-")}</span><span>Planejado: ${Number(goal.minutes||0)} min</span><span>Estudo realizado: ${Number(goal.studyActualMinutes||0)} min</span><span>Questões realizadas: ${Number(goal.questionActualMinutes||0)} min</span><span>Total realizado: ${Number(goal.actualMinutes||0)} min</span><span>Status: ${escapeHTML(status)}</span><span>Referência: ${escapeHTML(goal.referencia_edital || getSyllabusById(goal.syllabusItemId)?.reference || "-")}</span></div>
-      <div class="progress"><span style="width:${Math.min(100, Math.round((goalTotalActualMinutes(goal) / Math.max(1, Number(goal.minutes)||1)) * 100))}%"></span></div>
-      ${goalMaterialEstimateHTML(goal, projectionEntry)}
-      ${goalMaterialsDetailsHTML(goal, projectionEntry)}
-      <p class="notice" data-goal-material-notice="${goal.id}" ${goalMaterialNotices.has(goal.id) ? "" : "hidden"}>${escapeHTML(goalMaterialNotices.get(goal.id) || "")}</p>
-      <details class="daily-goal-history"><summary>Histórico resumido</summary><ul>${history || "<li>Sem histórico registrado.</li>"}</ul></details>
-      <div class="card-actions"><button type="button" data-open-goal-material="${goal.id}">Abrir material</button><button type="button" data-goal-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button type="button" data-goal-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button type="button" data-goal-action="Concluída" data-id="${goal.id}">Concluir meta</button></div>
-      <details class="daily-goal-more-actions"><summary>Mais ações</summary><div class="card-actions"><button type="button" data-goal-action="Estudo" data-id="${goal.id}">Registrar estudo manualmente</button><button type="button" data-goal-action="QuestoesTempo" data-id="${goal.id}">Registrar tempo de questões</button><button type="button" data-register-goal="${goal.id}">Registrar questões</button><button type="button" data-goal-history="${goal.id}">Ver histórico</button><button type="button" data-goal-action="Adiada" data-id="${goal.id}">Reagendar ou adiar</button><button type="button" data-goal-action="Não cumprida" data-id="${goal.id}">Não cumprir</button></div></details>
-    </div>
-  </details>`;
+  return `<details class="daily-goal-section goal-status-${canonical(status)}" data-daily-goal-details="${goal.id}" data-daily-goal-hydrated="${hydrated}"${hydrated ? " open" : ""}><summary class="daily-goal-summary"><span><strong>${escapeHTML(goal.discipline)}</strong><span>${escapeHTML(goal.subject)}</span></span><span>${escapeHTML(resume)}</span></summary><div data-daily-goal-body="${goal.id}">${hydrated ? dailyGoalDetailsBodyHTML(goal, projectionEntry) : '<div class="daily-goal-content daily-goal-placeholder"><p class="item-meta">Abra esta meta para carregar os detalhes e ações.</p></div>'}</div></details>`;
+}
+function hydrateDailyGoal(goalId) {
+  const details = document.querySelector(`[data-daily-goal-details="${goalId}"]`);
+  if (!details || details.dataset.dailyGoalHydrated === "true") return;
+  const goal = state.dailyGoals.find((item) => item.id === goalId); const entry = window.__dailyPlanProjectionByGoalId?.get(goalId);
+  if (!goal) return;
+  const mount = details.querySelector(`[data-daily-goal-body="${goalId}"]`); if (!mount) return;
+  mount.innerHTML = dailyGoalDetailsBodyHTML(goal, entry || null); details.dataset.dailyGoalHydrated = "true"; if (typeof performanceCounters !== "undefined") performanceCounters.hydratedGoals++;
 }
 function renderDailyGoals() {
   if (!elements.dailyGoalsList) return;
@@ -5286,6 +5298,7 @@ function renderDailyGoals() {
   const availability = availabilityForDate(date);
   const dayGoals = state.dailyGoals.filter((g) => g.date === date).sort((a,b) => isGoalDone(a) - isGoalDone(b) || (a.status || "").localeCompare(b.status || "") || a.discipline.localeCompare(b.discipline));
   const projection = buildDailyPlanProjection(date);
+  window.__dailyPlanProjectionByGoalId = new Map(projection.map((entry) => [entry.goal.id, entry]));
   window.__dailyPlanConsistencyReport = { date, dailyGoals: dayGoals.length, projectedGoals: projection.length, factoryItemsForToday: projection.reduce((sum, entry) => sum + entry.factoryItems.length, 0), materialsForToday: projection.reduce((sum, entry) => sum + entry.materialGroups.reduce((total, group) => total + group.materials.length, 0), 0), goalsWithoutMaterial: projection.filter((entry) => !entry.materialGroups.length).map((entry) => entry.goal.id), ambiguousMaterials: projection.filter((entry) => entry.warnings.length).length, visualDuplicatesRemoved: projection.reduce((sum, entry) => sum + entry.warnings.length, 0), stateMutatedDuringRender: false };
   const otherDates = state.dailyGoals.some((g) => g.date !== date);
   const stats = goalProgressStats(dayGoals, availability);
@@ -5293,13 +5306,13 @@ function renderDailyGoals() {
   const questionProgress = questionGoalProgress(date);
   if (elements.selectedGoalDateLabel) elements.selectedGoalDateLabel.textContent = formatDateBR(date);
   if (elements.dailyGoalsSummary) elements.dailyGoalsSummary.innerHTML = `<details ${dailyPlanSectionAttrs("summary", true)}>${dailyPlanSummaryHTML("Resumo de hoje", `${stats.completed} concluídas • ${stats.pending} pendentes`)}<div class="daily-plan-content daily-goals-summary stats-grid compact"><article class="stat-card"><span>Metas concluídas</span><strong>${stats.completed}</strong></article><article class="stat-card"><span>Metas pendentes</span><strong>${stats.pending}</strong></article><article class="stat-card"><span>Tempo planejado</span><strong>${formatHours(stats.target)}</strong></article><article class="stat-card"><span>Tempo realizado</span><strong>${formatHours(stats.done)}</strong></article><article class="stat-card"><span>Questões realizadas</span><strong>${questionProgress.done}</strong></article><article class="stat-card wide-stat"><span>Progresso geral: ${stats.goalsPct}%</span><div class="progress"><span style="width:${stats.goalsPct}%"></span></div></article></div></details>`;
-  renderNextDailyGoal(dayGoals, new Map(projection.map((entry) => [entry.goal.id, entry])));
+  renderNextDailyGoal(dayGoals, window.__dailyPlanProjectionByGoalId);
   const notices = [];
   if (availability.type === "indisponível") notices.push(`<p class="notice warning-notice">Dia marcado como indisponível. A geração automática só acontece mediante confirmação.</p>`);
   if (!dayGoals.length && otherDates) notices.push(`<p class="notice">Não há metas nesta data, mas existem metas cadastradas em outros dias. Use o Calendário de Metas ou altere a data.</p>`);
   if (dayContent.mode === "questions_only") notices.push(`<p class="notice">Hoje o planejamento é somente questões.</p>`);
   const questionsSection = dailyPlanQuestionsSection(date, dayContent, questionProgress);
-  const goalsSection = dayGoals.length ? `<details ${dailyPlanSectionAttrs("goals", rememberedDailyPlanSection(date) === "goals")}><summary class="daily-plan-summary"><span class="daily-plan-heading"><strong class="daily-plan-title">Metas de estudo</strong><span class="daily-plan-resume">${dayGoals.length} metas • ${stats.completed} concluída(s) • ${stats.pending} pendente(s)</span></span></summary><div class="daily-plan-content daily-goals-board">${dayGoals.map((goal, index) => dailyGoalDetailsCard(goal, index + 1, projection.find((entry) => entry.goal.id === goal.id))).join("")}</div></details>` : `<p class="empty-message">${dayContent.mode === "questions_only" ? "Sem metas automáticas de estudo para esta data." : "Nenhuma meta cadastrada para esta data."}</p><button class="big-action-button" type="button" data-generate-selected-date>Gerar metas para esta data</button>`;
+  const goalsSection = dayGoals.length ? `<details ${dailyPlanSectionAttrs("goals", rememberedDailyPlanSection(date) === "goals")}><summary class="daily-plan-summary"><span class="daily-plan-heading"><strong class="daily-plan-title">Metas de estudo</strong><span class="daily-plan-resume">${dayGoals.length} metas • ${stats.completed} concluída(s) • ${stats.pending} pendente(s)</span></span></summary><div class="daily-plan-content daily-goals-board">${dayGoals.map((goal, index) => dailyGoalDetailsCard(goal, index + 1, window.__dailyPlanProjectionByGoalId.get(goal.id))).join("")}</div></details>` : `<p class="empty-message">${dayContent.mode === "questions_only" ? "Sem metas automáticas de estudo para esta data." : "Nenhuma meta cadastrada para esta data."}</p><button class="big-action-button" type="button" data-generate-selected-date>Gerar metas para esta data</button>`;
   const reviewCount = (state.smartReviews || []).filter((r) => (r.date || r.dueDate || r.data) === date).length;
   const reviewSection = `<details ${dailyPlanSectionAttrs("review", rememberedDailyPlanSection(date) === "review").replace("daily-plan-section", "daily-plan-section daily-review-section")}><summary class="daily-plan-summary"><span class="daily-plan-heading"><strong class="daily-plan-title">Revisão do dia</strong><span class="daily-plan-resume">${reviewCount} itens sugeridos</span></span></summary><div class="daily-plan-content"><div id="dailyPlanReviewMount"></div><p class="item-meta">Revisão inteligente, revisões pendentes, conteúdos para reforçar e caderno de erros relacionado seguem a lógica existente.</p></div></details>`;
   const pending = dayGoals.filter((g) => ["Não cumprida", "Adiada", "Reagendada"].includes(g.status || ""));
@@ -5423,7 +5436,7 @@ function handleDailyPlanToggle(event) {
   const section = event.target.closest?.("details[data-daily-plan-section]");
   const goal = event.target.closest?.("details[data-daily-goal-details]");
   if (section && event.target === section) { if (section.open) { rememberDailyPlanSection(section.dataset.dailyPlanSection); if (isDailyPlanMobile()) document.querySelectorAll("#view-metas-do-dia details[data-daily-plan-section][open]").forEach((other)=>{ if (other !== section) other.open = false; }); } }
-  if (goal && event.target === goal) { if (goal.open) { rememberDailyPlanGoal(goal.dataset.dailyGoalDetails); if (isDailyPlanMobile()) document.querySelectorAll("#view-metas-do-dia details[data-daily-goal-details][open]").forEach((other)=>{ if (other !== goal) other.open = false; }); } }
+  if (goal && event.target === goal) { if (goal.open) { hydrateDailyGoal(goal.dataset.dailyGoalDetails); rememberDailyPlanGoal(goal.dataset.dailyGoalDetails); if (isDailyPlanMobile()) document.querySelectorAll("#view-metas-do-dia details[data-daily-goal-details][open]").forEach((other)=>{ if (other !== goal) other.open = false; }); } }
 }
 elements.dailyGoalsList.addEventListener("toggle", handleDailyPlanToggle, true);
 elements.dailyGoalsSummary?.addEventListener("toggle", handleDailyPlanToggle, true);
@@ -6146,9 +6159,9 @@ function renderView(viewId) {
   report.lastView = viewId; report.lastDurationMs = durationMs;
   if (["metas-do-dia", "fabrica-resumos", "planejamento"].includes(viewId)) {
     const view = report.views[viewId] ||= {}; view.durationMs = durationMs;
-    if (viewId === "metas-do-dia") Object.assign(view, { projectionBuilds: 1, renderedGoals: document.querySelectorAll("[data-daily-goal-details]").length, hydratedGoals: document.querySelectorAll("[data-daily-goal-hydrated=true]").length, materials: (state.materials || []).length, factoryItems: (state.factoryAgenda || state.factoryItems || []).length });
+    if (viewId === "metas-do-dia") Object.assign(view, { projectionBuilds: performanceCounters.projectionBuilds, renderedGoals: document.querySelectorAll("[data-daily-goal-details]").length, hydratedGoals: document.querySelectorAll("[data-daily-goal-hydrated=true]").length, materials: (state.materials || []).length, factoryItems: (state.factoryAgenda || state.factoryItems || []).length });
     if (viewId === "fabrica-resumos") Object.assign(view, { renderedCards: document.querySelectorAll("[data-factory-card]").length, hydratedDetails: document.querySelectorAll("[data-detail-hydrated=true]").length, queueItems: document.querySelectorAll(".factory-today-queue li").length, factoryItems: (state.factoryAgenda || state.factoryItems || []).length });
-    if (viewId === "planejamento") Object.assign(view, { scoredItems: 0, scoreExecutions: 0, historyCards: document.querySelectorAll(".planning-history-card").length, syllabusItems: (state.syllabusItems || []).length });
+    if (viewId === "planejamento") Object.assign(view, { scoredItems: performanceCounters.scoredItems, scoreExecutions: performanceCounters.scoreExecutions, historyCards: document.querySelectorAll(".planning-history-card").length, syllabusItems: (state.syllabusItems || []).length });
   }
 }
 

@@ -225,7 +225,7 @@ test('Materiais preservam abertura independente após render sem persistir em st
 test('Materiais preservam regras de conteúdo nas seções recolhíveis', () => {
   const renderBlock = script.slice(script.indexOf('function renderMaterials'), script.indexOf('function updateStudyMaterialOptions'));
   assert.match(renderBlock, /filteredMaterials\(\)\.sort\(\(a,b\)=>\(b\.date\|\|""\)\.localeCompare\(a\.date\|\|""\)\)/);
-  assert.match(renderBlock, /materialsForDailyGoal\(goal\)\.map\(\(m\) => m\.id\)/);
+  assert.match(renderBlock, /materialsForDailyGoal\(goal, todayProjectionByGoalId\.get\(goal\.id\)\)\.map/);
   assert.match(renderBlock, /const todayMaterials = list\.filter\(\(m\) => todayGoalMaterials\.has\(m\.id\)\)/);
   assert.match(renderBlock, /const recentMaterials = list\.filter\(\(m\) => !todayGoalMaterials\.has\(m\.id\)\)\.slice\(0, 10\)/);
   assert.match(renderBlock, /materialSectionHTML\("all", "3\. TODOS OS MATERIAIS", list/);

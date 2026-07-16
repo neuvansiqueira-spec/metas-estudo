@@ -24,7 +24,7 @@ test('Cada meta possui details/summary, conclusão fechada e andamento pode abri
   assert.match(script, /class="daily-goal-summary"/);
   assert.match(script, /data-daily-goal-details="\$\{goal\.id\}"/);
   assert.match(script, /const inProgress = !isGoalDone\(goal\).*goalTotalActualMinutes\(goal\) > 0/);
-  assert.match(script, /const open = remembered \|\| inProgress/);
+  assert.match(script, /const hydrated = remembered \|\| inProgress/);
 });
 
 test('Materiais iniciam recolhidos e ações secundárias ficam em Mais ações', () => {
