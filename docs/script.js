@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260716-unificar-materiais-plano-do-dia-v1";
+const APP_VERSION = "20260716-consistencia-materiais-v2";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -3865,8 +3865,7 @@ function syncAllFactoryMaterials() { ensureFactoryAgenda().forEach(syncFactoryMo
 function materialAvailable(m) { return m && m.available !== false; }
 function dailyPlanCanonical(value) { return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " "); }
 function dailyPlanMaterialIdentity(material = {}) {
-  const link = String(material.link || "").trim().toLowerCase();
-  return material.sourceRecordId || (material.factoryItemId ? `${material.factoryItemId}|${material.factoryModuleKey || "material"}|${String(material.factoryFormat || material.type || "").toLowerCase()}` : `${link}|${material.factoryModuleKey || "manual"}|${String(material.factoryFormat || material.type || "").toLowerCase()}`);
+  return `${materialPhysicalFileIdentity(material)}|${material.factoryModuleKey || "material"}`;
 }
 function buildDailyPlanProjection(date, targetState = state) { if (typeof performanceCounters !== "undefined") performanceCounters.projectionBuilds++;
   const goals = (targetState.dailyGoals || []).filter((goal) => (goal.date || goal.data) === date);
@@ -3897,9 +3896,7 @@ function materialsForDailyGoal(goal = {}, projectionEntry = null) {
   return (entry?.materialGroups || []).flatMap((group) => group.materials);
 }
 function dailyGoalMaterialIdentity(material = {}) {
-  const link = String(material.link || "").trim().toLowerCase().replace(/#.*/, "").replace(/\/$/, "");
-  const format = String(material.factoryFormat || material.type || "material").trim().toLowerCase();
-  return `${link || material.sourceRecordId || material.id || "material"}|${format}`;
+  return materialPhysicalFileIdentity(material);
 }
 function getDailyGoalMaterialState(goal = {}, projectionEntry = null) {
   const rawMaterials = materialsForDailyGoal(goal, projectionEntry);
@@ -4532,7 +4529,7 @@ function materialGroupMatchesFilters(group) {
   const selectedDiscipline = elements.materialFilterDiscipline?.value || ""; const selectedSubject = elements.materialFilterSubject?.value || ""; const selectedType = elements.materialFilterType?.value || ""; const selectedOrigin = elements.materialFilterOrigin?.value || ""; const term = canonical(elements.materialFilterText?.value || "");
   return (!selectedDiscipline || group.discipline === selectedDiscipline || group.records.some((record) => record.discipline === selectedDiscipline)) && (!selectedSubject || group.subject === selectedSubject || group.records.some((record) => record.subject === selectedSubject)) && (!selectedType || group.files.some((file) => file.format === selectedType || file.records.some((record) => record.type === selectedType))) && (!selectedOrigin || group.records.some((record) => record.origin === selectedOrigin || materialOriginLabel(record) === selectedOrigin)) && (!term || group.searchText.includes(term));
 }
-function filteredMaterials() { return buildMaterialLibraryViewModel(state.materials, state).filter(materialGroupMatchesFilters); }
+function filteredMaterials() { return buildMaterialLibraryViewModel((state.materials || []).filter(materialAvailable), state).filter(materialGroupMatchesFilters); }
 function materialFileActionsHTML(file) { return `<button type="button" data-open-material="${escapeHTML(file.primary.id)}">${escapeHTML(materialButtonLabel({ type: file.format }))}${file.records.length > 1 ? "" : ""}</button>`; }
 const materialSectionOpenState = { today: true, recent: false, all: false };
 const materialItemOpenState = new Set();
@@ -4554,8 +4551,12 @@ function renderMaterials() {
   if (!elements.materialsList) return; ensureMaterialSectionToggleListener(); renderMaterialSelectors(); renderMaterialFilters();
   const list = filteredMaterials(); const todayProjectionByGoalId = new Map(buildDailyPlanProjection(todayISO()).map((entry) => [entry.goal.id, entry]));
   const todayRecordIds = new Set((state.dailyGoals || []).filter((goal) => (goal.date || goal.data) === todayISO() && !isGoalDone(goal)).flatMap((goal) => getDailyGoalMaterialState(goal, todayProjectionByGoalId.get(goal.id)).materials.map((material) => material.id)));
-  const todayMaterials = list.filter((group) => group.records.some((record) => todayRecordIds.has(record.id))); const todayKeys = new Set(todayMaterials.map((group) => group.key)); const recentMaterials = list.filter((group) => !todayKeys.has(group.key)).slice(0, 10);
-  elements.materialsList.innerHTML = list.length ? [materialSectionHTML("today", "1. MATERIAIS PARA O PLANO DE HOJE", todayMaterials, "Nenhum material pronto vinculado ao plano de hoje."), materialSectionHTML("recent", "2. MATERIAIS RECENTES", recentMaterials, "Nenhum material recente."), materialSectionHTML("all", "3. TODOS OS MATERIAIS", list, "Nenhum material cadastrado.")].join("") : "";
+  const todayMaterials = list.filter((group) => group.records.some((record) => todayRecordIds.has(record.id)));
+  const todayKeys = new Set(todayMaterials.map((group) => group.key));
+  const recentMaterials = list.filter((group) => !todayKeys.has(group.key)).slice(0, 10);
+  const recentKeys = new Set(recentMaterials.map((group) => group.key));
+  const otherMaterials = list.filter((group) => !todayKeys.has(group.key) && !recentKeys.has(group.key));
+  elements.materialsList.innerHTML = list.length ? [materialSectionHTML("today", "1. MATERIAIS PARA O PLANO DE HOJE", todayMaterials, "Nenhum material pronto vinculado ao plano de hoje."), materialSectionHTML("recent", "2. MATERIAIS RECENTES", recentMaterials, "Nenhum material recente."), materialSectionHTML("all", "3. OUTROS MATERIAIS", otherMaterials, "Nenhum outro material cadastrado.")].join("") : "";
 }
 function updateStudyMaterialOptions() {
   if (!elements.studyMaterial) return;

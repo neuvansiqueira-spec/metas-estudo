@@ -191,7 +191,7 @@ test('Materiais têm exatamente três seções recolhíveis com estado inicial e
   assert.match(script, /data-material-section="\$\{key\}"\$\{openAttribute\}/);
   assert.match(script, /materialSectionHTML\("today", "1\. MATERIAIS PARA O PLANO DE HOJE", todayMaterials/);
   assert.match(script, /materialSectionHTML\("recent", "2\. MATERIAIS RECENTES", recentMaterials/);
-  assert.match(script, /materialSectionHTML\("all", "3\. TODOS OS MATERIAIS", list/);
+  assert.match(script, /materialSectionHTML\("all", "3\. OUTROS MATERIAIS", otherMaterials/);
   assert.match(script, /<details class="materials-section materials-collapsible-section"/);
   assert.match(script, /<summary class="materials-section-summary">\$\{title\}<\/summary>/);
   assert.match(script, /<div class="materials-section-content">\$\{sectionContent\}<\/div>/);
@@ -220,7 +220,7 @@ test('Materiais aplicam modelo agrupado às três seções', () => {
   assert.match(renderBlock, /group\.records\.some/);
   assert.match(renderBlock, /todayKeys/);
   assert.match(renderBlock, /slice\(0, 10\)/);
-  assert.match(renderBlock, /materialSectionHTML\("all", "3\. TODOS OS MATERIAIS", list/);
+  assert.match(renderBlock, /materialSectionHTML\("all", "3\. OUTROS MATERIAIS", otherMaterials/);
   assert.match(script, /Nenhum material pronto vinculado ao plano de hoje\./);
   assert.match(script, /Nenhum material recente\./);
   assert.match(script, /elements\.materialFilterDiscipline[\s\S]*addEventListener\("input", renderMaterials\)/);
