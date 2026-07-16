@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260716-consistencia-materiais-v2",
+  "version": "20260716-revisao-inteligente-recolhivel-v1",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

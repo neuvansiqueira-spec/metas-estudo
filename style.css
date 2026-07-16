@@ -2006,6 +2006,24 @@ textarea,
   padding: 18px;
   margin: 18px 0;
 }
+.day-smart-review-panel { padding: 0; overflow: hidden; }
+.day-smart-review-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px;
+  cursor: pointer;
+  list-style: none;
+}
+.day-smart-review-summary::-webkit-details-marker { display: none; }
+.day-smart-review-summary > span:first-child { display: grid; gap: 4px; }
+.day-smart-review-summary strong { color: var(--primary-dark); font-size: 1.05rem; }
+.day-smart-review-toggle { color: var(--primary); font-weight: 900; }
+.day-smart-review-panel[open] .day-smart-review-toggle::before { content: "Recolher"; }
+.day-smart-review-panel[open] .day-smart-review-toggle { font-size: 0; }
+.day-smart-review-panel[open] .day-smart-review-toggle::before { font-size: .95rem; }
+.day-smart-review-content { padding: 0 18px 18px; }
 .smart-review-list, .smart-review-sections { display: grid; gap: 12px; }
 .smart-review-card {
   background: #fff;
@@ -2033,6 +2051,7 @@ textarea,
 }
 .wide-panel { grid-column: 1 / -1; }
 @media (max-width: 720px) {
+  .day-smart-review-summary { align-items: flex-start; }
   .smart-review-card header { flex-direction: column; }
   .smart-review-card .card-actions { display: grid; grid-template-columns: 1fr; }
   .smart-review-card .card-actions button { width: 100%; font-size: 1rem; }

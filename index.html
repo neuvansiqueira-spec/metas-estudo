@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
-  <link rel="stylesheet" href="style.css?v=20260716-consistencia-materiais-v2" />
+  <link rel="stylesheet" href="style.css?v=20260716-revisao-inteligente-recolhivel-v1" />
 </head>
 <body>
   <header class="hero">
@@ -497,7 +497,10 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
         <div id="dailyGoalsSummary" class="stats-grid compact daily-goals-summary" aria-live="polite"></div>
       </article>
       <article id="nextDailyGoal" class="next-goal-card" aria-live="polite"></article>
-      <article class="smart-review-panel" aria-labelledby="day-smart-review-title"><div class="section-heading inline"><div><p class="eyebrow">Revisão diária</p><h3 id="day-smart-review-title">Revisão Inteligente de Hoje</h3></div></div><div id="daySmartReview" class="smart-review-list" aria-live="polite"></div></article>
+      <details class="smart-review-panel day-smart-review-panel" aria-labelledby="day-smart-review-title">
+        <summary class="day-smart-review-summary"><span><span class="eyebrow">Revisão diária</span><strong id="day-smart-review-title">Revisão Inteligente de Hoje</strong></span><span class="day-smart-review-toggle" aria-hidden="true">Abrir</span></summary>
+        <div id="daySmartReview" class="smart-review-list day-smart-review-content" aria-live="polite"></div>
+      </details>
       <section class="today-study-panel" aria-labelledby="today-study-title">
         <div class="section-heading"><p class="eyebrow">Execução</p><h2 id="today-study-title">O que estudar hoje</h2></div>
         <div id="dailyGoalsList" class="daily-goals-board empty-message" aria-live="polite"></div>
@@ -976,13 +979,13 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </section>
   </div>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260716-consistencia-materiais-v2</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260716-revisao-inteligente-recolhivel-v1</p></footer>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="storage-indexeddb.js?v=20260716-consistencia-materiais-v2"></script>
-  <script src="analytics-engine.js?v=20260716-consistencia-materiais-v2"></script>
-  <script src="study-advisor.js?v=20260716-consistencia-materiais-v2"></script>
-  <script src="advisor-navigation-engine.js?v=20260716-consistencia-materiais-v2"></script>
-  <script src="script.js?v=20260716-consistencia-materiais-v2"></script>
+  <script src="storage-indexeddb.js?v=20260716-revisao-inteligente-recolhivel-v1"></script>
+  <script src="analytics-engine.js?v=20260716-revisao-inteligente-recolhivel-v1"></script>
+  <script src="study-advisor.js?v=20260716-revisao-inteligente-recolhivel-v1"></script>
+  <script src="advisor-navigation-engine.js?v=20260716-revisao-inteligente-recolhivel-v1"></script>
+  <script src="script.js?v=20260716-revisao-inteligente-recolhivel-v1"></script>
   <div id="legacyTimerRecoveryModal" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="legacyTimerRecoveryModalTitle" hidden>
     <div class="app-modal-backdrop" data-legacy-recovery-cancel></div>
     <section class="app-modal-card">
