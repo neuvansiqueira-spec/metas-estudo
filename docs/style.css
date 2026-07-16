@@ -663,6 +663,7 @@ tbody tr.goal-hit { background: rgba(22, 163, 74, .08); }
 /* Calendário de metas */
 .calendar-toolbar { margin: 14px 0 20px; }
 .calendar-export-actions { margin: 0 0 16px; }
+.calendar-export-scope { margin: 0 0 10px; padding: 12px; border: 1px solid #dbeafe; border-radius: 16px; background: #f8fbff; }
 .goal-calendar-section { margin-top: 14px; overflow: hidden; border: 1px solid #bfdbfe; border-radius: 20px; background: #f8fbff; }
 .goal-calendar-section > summary { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-height: 64px; padding: 14px 18px; color: #172554; cursor: pointer; list-style: none; }
 .goal-calendar-section > summary::-webkit-details-marker { display: none; }
