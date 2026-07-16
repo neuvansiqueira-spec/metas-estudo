@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260716-revisao-recolhivel-mobile-v2";
+const APP_VERSION = "20260716-cronometro-integrado-v3";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -1644,7 +1644,7 @@ function submitTimerStudyModal(event) {
     if (goal.actualMinutes > 0 && goal.status === "Pendente") goal.status = "Em andamento";
     appendGoalHistory(goal, `Tempo salvo pelo cronômetro: +${minutes} min em ${label} em ${new Date(draft.endedAt).toLocaleString("pt-BR")}. Total realizado: ${goal.actualMinutes} min.`);
   }
-  if (draft.kind !== "questions") state.studies.push({ id: createId(), sessionId: draft.sessionId, timerSessionId: draft.sessionId, date: todayISO(), startedAt: new Date(draft.startedAt).toISOString(), endedAt: new Date(draft.endedAt).toISOString(), startTime: new Date(draft.startedAt).toISOString(), endTime: new Date(draft.endedAt).toISOString(), subjectId: state.subjects.find((s) => canonical(s.name) === canonical(elements.timerStudyDiscipline.value))?.id || "", discipline: elements.timerStudyDiscipline.value, syllabusItemId: goal.syllabusItemId || "", topic: elements.timerStudySubject.value || goal.subject || "Assunto", material: elements.timerStudyMaterial.value || "", minutes, plannedMinutes: draft.plannedMinutes, timerMode: draft.mode, plannedDuration: draft.plannedMinutes, actualDuration: minutes, pauses: draft.pauses, resumes: draft.resumes, topicStatus: "Iniciado", difficultyNotes: elements.timerStudyNotes.value.trim(), materialId: elements.timerStudyMaterial.value || "", questions: 0, correct: 0, wrong: 0, blank: 0, origin: "timer", timerSource: "Plano do Dia", timerOrigin: draft.mode, goalId: goal.id, feedAnalytics: elements.timerStudyFeedAnalytics.checked, feedAdvisor: elements.timerStudyFeedAdvisor.checked });
+  state.studies.push({ id: createId(), sessionId: draft.sessionId, timerSessionId: draft.sessionId, date: draft.goalDate || goal.date || goal.data || todayISO(), startedAt: new Date(draft.startedAt).toISOString(), endedAt: new Date(draft.endedAt).toISOString(), startTime: new Date(draft.startedAt).toISOString(), endTime: new Date(draft.endedAt).toISOString(), subjectId: state.subjects.find((s) => canonical(s.name) === canonical(elements.timerStudyDiscipline.value))?.id || "", discipline: elements.timerStudyDiscipline.value, syllabusItemId: goal.syllabusItemId || "", topic: elements.timerStudySubject.value || goal.subject || "Assunto", material: elements.timerStudyMaterial.value || "", minutes, plannedMinutes: draft.plannedMinutes, timerMode: draft.mode, timerKind: draft.kind, updatesGoal: elements.timerStudyUpdateGoal.checked, plannedDuration: draft.plannedMinutes, actualDuration: minutes, pauses: draft.pauses, resumes: draft.resumes, topicStatus: "Iniciado", difficultyNotes: elements.timerStudyNotes.value.trim(), materialId: elements.timerStudyMaterial.value || "", questions: 0, correct: 0, wrong: 0, blank: 0, origin: "timer", timerSource: "Plano do Dia", timerOrigin: draft.mode, goalId: goal.id, feedAnalytics: elements.timerStudyFeedAnalytics.checked, feedAdvisor: elements.timerStudyFeedAdvisor.checked });
   saveData();
   render();
   showDailyGoalMessage(`Tempo salvo: ${minutes} min em ${label}.`, "success");
@@ -2705,7 +2705,48 @@ function studiesForItem(item) {
   return state.studies.filter((study) => (study.syllabusItemId === item.id) || (subjectIds.has(study.subjectId) && (!study.topic || canonical(study.topic).includes(canonical(item.subject)) || canonical(item.subject).includes(canonical(study.topic)))));
 }
 function goalsForItem(item) { return state.dailyGoals.filter((goal) => goal.syllabusItemId === item.id || (canonical(goal.discipline) === canonical(item.discipline) && canonical(goal.subject) === canonical(item.subject))); }
-function minutesForItem(item) { return (Number(item.studyMinutes) || 0) + studiesForItem(item).reduce((s, study) => s + (Number(study.minutes) || 0), 0) + goalsForItem(item).reduce((s, goal) => s + goalTotalActualMinutes(goal), 0) + questionLogsForItem(item).reduce((s, log) => s + (Number(log.minutes) || 0), 0); }
+function uniqueTimerStudiesForGoal(goal, studies = state.studies) {
+  const seen = new Set();
+  return (studies || []).filter((study) => {
+    if (study.goalId !== goal.id || study.origin !== "timer" || study.updatesGoal === false) return false;
+    const sessionKey = String(study.timerSessionId || study.sessionId || study.id || "");
+    if (sessionKey && seen.has(sessionKey)) return false;
+    if (sessionKey) seen.add(sessionKey);
+    return true;
+  });
+}
+function goalUnloggedActualMinutes(goal, studies = state.studies) {
+  const recorded = uniqueTimerStudiesForGoal(goal, studies).reduce((sum, study) => sum + (Number(study.minutes) || 0), 0);
+  return Math.max(0, goalTotalActualMinutes(goal) - recorded);
+}
+function timerFeedState(feedField) {
+  const excludedSessions = new Set();
+  const excluded = (state.studies || []).filter((study) => {
+    if (study.origin !== "timer" || study[feedField] !== false) return false;
+    const sessionKey = `${study.goalId || ""}|${study.timerSessionId || study.sessionId || study.id || ""}`;
+    if (excludedSessions.has(sessionKey)) return false;
+    excludedSessions.add(sessionKey);
+    return true;
+  });
+  if (!excluded.length) return state;
+  const excludedByGoal = new Map();
+  excluded.forEach((study) => {
+    if (!study.goalId || study.updatesGoal === false) return;
+    const row = excludedByGoal.get(study.goalId) || { study: 0, questions: 0 };
+    row[study.timerKind === "questions" ? "questions" : "study"] += Number(study.minutes) || 0;
+    excludedByGoal.set(study.goalId, row);
+  });
+  const filtered = { ...state, studies: state.studies.filter((study) => !(study.origin === "timer" && study[feedField] === false)) };
+  filtered.dailyGoals = state.dailyGoals.map((goal) => {
+    const removed = excludedByGoal.get(goal.id);
+    if (!removed) return goal;
+    const studyActualMinutes = Math.max(0, (Number(goal.studyActualMinutes) || 0) - removed.study);
+    const questionActualMinutes = Math.max(0, (Number(goal.questionActualMinutes) || 0) - removed.questions);
+    return { ...goal, studyActualMinutes, questionActualMinutes, actualMinutes: studyActualMinutes + questionActualMinutes };
+  });
+  return filtered;
+}
+function minutesForItem(item) { return (Number(item.studyMinutes) || 0) + studiesForItem(item).reduce((s, study) => s + (Number(study.minutes) || 0), 0) + goalsForItem(item).reduce((s, goal) => s + goalUnloggedActualMinutes(goal), 0) + questionLogsForItem(item).reduce((s, log) => s + (Number(log.minutes) || 0), 0); }
 function hasCompletedGoal(item) { return goalsForItem(item).some((goal) => goal.status === "Concluída"); }
 function isTopicStudied(item) { return completedStatus(item) || minutesForItem(item) > 0 || hasCompletedGoal(item); }
 function isTopicStarted(item) { return minutesForItem(item) > 0 && !completedStatus(item); }
@@ -3913,7 +3954,7 @@ function resolveAvailableMaterials({ discipline = "", subject = "", syllabusItem
 
 function materialTitleById(id) { return state.materials.find((m) => m.id === id)?.title || ""; }
 function timeLogFromStudy(study) {
-  return { id: study.id, source: "study", date: study.date, discipline: subjectNameById(study.subjectId), subject: study.topic, minutes: Number(study.minutes) || 0, plannedMinutes: Number(study.plannedMinutes) || 0, type: studyOriginLabel(study), status: study.topicStatus || "Iniciado", notes: study.difficultyNotes || "", materialId: study.materialId || "", material: materialTitleById(study.materialId) };
+  return { id: study.id, source: "study", date: study.date, discipline: study.discipline || subjectNameById(study.subjectId), subject: study.topic, minutes: Number(study.minutes) || 0, plannedMinutes: Number(study.plannedMinutes) || 0, type: study.timerKind === "questions" ? "Cronômetro de questões" : studyOriginLabel(study), status: study.topicStatus || "Iniciado", notes: study.difficultyNotes || "", materialId: study.materialId || "", material: materialTitleById(study.materialId) };
 }
 function syncTimeChange(reason) { saveData(); render(); autoSyncAfterSave(reason); }
 function showTimeUndo(action) { lastTimeAction = action; if (elements.timeUndoNotice) elements.timeUndoNotice.hidden = false; }
@@ -3939,7 +3980,7 @@ function undoTimeAction() { if (!lastTimeAction) return; if (lastTimeAction.type
 
 function getStudyTimeLogs() {
   const studyLogs = state.studies.map(timeLogFromStudy);
-  const goalLogs = state.dailyGoals.filter((goal) => goalTotalActualMinutes(goal) > 0).map((goal) => ({ date: goal.date, discipline: goal.discipline, subject: goal.subject, minutes: goalTotalActualMinutes(goal), plannedMinutes: Number(goal.minutes) || 0, type: goal.type || goal.tipo || "Meta", status: goal.studyStatus || goal.status || "Iniciado", notes: goal.notes || goal.observacoes || "" }));
+  const goalLogs = state.dailyGoals.map((goal) => ({ date: goal.date, discipline: goal.discipline, subject: goal.subject, minutes: goalUnloggedActualMinutes(goal), plannedMinutes: Number(goal.minutes) || 0, type: goal.type || goal.tipo || "Meta", status: goal.studyStatus || goal.status || "Iniciado", notes: goal.notes || goal.observacoes || "" })).filter((goal) => goal.minutes > 0);
   const questionLogs = state.questionLogs.filter((log) => Number(log.minutes) > 0).map((log) => ({ date: log.date, discipline: log.discipline, subject: log.subject, minutes: Number(log.minutes) || 0, plannedMinutes: 0, type: log.trainingType || "Questões", status: "Concluído", notes: log.notes || "" }));
   return [...studyLogs, ...goalLogs, ...questionLogs];
 }
@@ -4284,7 +4325,7 @@ function saveSmartReviewAction(id, status) {
   render();
 }
 
-function renderReviews() { const today = todayISO(); const reviewWindows = [{ label: "24h", days: 1 }, { label: "7 dias", days: 7 }, { label: "30 dias", days: 30 }]; elements.reviewList.innerHTML = ""; state.studies.forEach((study) => reviewWindows.forEach((window) => { const dueDate = addDays(study.date, window.days); if (dueDate <= today) { const item = document.createElement("div"); item.className = "review-item"; item.innerHTML = `<span class="badge ${dueDate < today ? "danger" : "warn"}">Revisão ${window.label}</span><strong>${escapeHTML(subjectNameById(study.subjectId))} — ${escapeHTML(study.topic)}</strong><div class="item-meta">Estudado em ${formatDateBR(study.date)} • Revisar em ${formatDateBR(dueDate)}</div>`; elements.reviewList.appendChild(item); } })); }
+function renderReviews() { const today = todayISO(); const reviewWindows = [{ label: "24h", days: 1 }, { label: "7 dias", days: 7 }, { label: "30 dias", days: 30 }]; elements.reviewList.innerHTML = ""; state.studies.forEach((study) => reviewWindows.forEach((window) => { const dueDate = addDays(study.date, window.days); if (dueDate <= today) { const item = document.createElement("div"); item.className = "review-item"; item.innerHTML = `<span class="badge ${dueDate < today ? "danger" : "warn"}">Revisão ${window.label}</span><strong>${escapeHTML(study.discipline || subjectNameById(study.subjectId))} — ${escapeHTML(study.topic)}</strong><div class="item-meta">Estudado em ${formatDateBR(study.date)} • Revisar em ${formatDateBR(dueDate)}</div>`; elements.reviewList.appendChild(item); } })); }
 function renderAlerts() { elements.alertList.innerHTML = ""; state.subjects.forEach((subject) => { const lastStudy = state.studies.filter((study) => study.subjectId === subject.id).sort((a, b) => b.date.localeCompare(a.date))[0]; const daysWithoutStudy = lastStudy ? Math.floor((parseDate(todayISO()) - parseDate(lastStudy.date)) / 86400000) : Infinity; const weeklyMinutes = state.studies.filter((study) => study.subjectId === subject.id && isSameWeek(study.date)).reduce((sum, study) => sum + study.minutes, 0); if (!lastStudy || daysWithoutStudy >= 7 || weeklyMinutes < subject.goalHours * 30) { const item = document.createElement("div"); item.className = "alert-item"; item.innerHTML = `<span class="badge danger">Atenção</span><strong>${escapeHTML(subject.name)}</strong><div class="item-meta">${lastStudy ? `Último estudo há ${daysWithoutStudy} dia(s).` : "Nunca estudada."} Meta semanal em risco: ${formatHours(weeklyMinutes)} de ${subject.goalHours}h.</div>`; elements.alertList.appendChild(item); } }); }
 function renderHistory() {
   const studies = [...state.studies].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 20);
@@ -4297,7 +4338,7 @@ function renderHistory() {
   }
   studies.forEach((study) => {
     const row = document.createElement("tr");
-    row.innerHTML = `<td>${formatDateBR(study.date)}</td><td>${escapeHTML(subjectNameById(study.subjectId))}</td><td>${escapeHTML(study.topic)}</td><td>${study.minutes}</td><td>${study.questions}</td><td>${study.correct}</td><td>${study.wrong}</td><td>${study.blank}</td>`;
+    row.innerHTML = `<td>${formatDateBR(study.date)}</td><td>${escapeHTML(study.discipline || subjectNameById(study.subjectId))}</td><td>${escapeHTML(study.topic)}</td><td>${study.minutes}</td><td>${study.questions}</td><td>${study.correct}</td><td>${study.wrong}</td><td>${study.blank}</td>`;
     elements.historyBody.appendChild(row);
   });
 }
@@ -6090,7 +6131,7 @@ function syncAnalyticsSectionState(){ const main=[...document.querySelectorAll('
 function setupDisciplineSorting(){ document.querySelector('[data-discipline-sort]')?.addEventListener('change', e=>{ const list=document.querySelector('.discipline-performance-list'); if(!list) return; const mode=e.target.value; [...list.children].sort((a,b)=>{const n=x=>Number(x)||0; if(mode==='alphabetical') return a.dataset.name.localeCompare(b.dataset.name,'pt-BR'); const [field,dir]=mode.split('-'); const key=field==='questions'?'questions':field==='minutes'?'minutes':field==='net'?'net':'accuracy'; return dir==='asc'?n(a.dataset[key])-n(b.dataset[key]):n(b.dataset[key])-n(a.dataset[key]); }).forEach(el=>list.appendChild(el)); }); }
 function updateAnalyticsDateFieldVisibility(){ const custom=document.getElementById('analyticsPeriodSelect')?.value==='custom'; document.querySelectorAll('[data-analytics-custom-date]').forEach(el=>{ el.hidden=!custom; }); }
 function renderStrategicAnalysis() { const content=document.getElementById('analyticsContent'); if(!content||!window.AnalyticsEngine) return; const periodSelect=document.getElementById('analyticsPeriodSelect'), startInput=document.getElementById('analyticsStartDate'), endInput=document.getElementById('analyticsEndDate'); const mode=periodSelect?.value||'30d', custom={start:startInput?.value,end:endInput?.value}; updateAnalyticsDateFieldVisibility(); const disciplineSelect=document.getElementById('analyticsDisciplineSelect'); if(disciplineSelect&&disciplineSelect.options.length<=1){ const names=[...new Set([...(state.subjects||[]).map(x=>x.name),...(state.studies||[]).map(x=>x.discipline),...(state.questionLogs||[]).map(x=>x.discipline),...(state.dailyGoals||[]).map(x=>x.discipline),...(state.syllabusItems||[]).map(x=>x.discipline)].filter(Boolean))].sort(); disciplineSelect.insertAdjacentHTML('beforeend',names.map(name=>`<option value="${escapeHTML(name)}">${escapeHTML(name)}</option>`).join('')); }
-  const filters={discipline:disciplineSelect?.value||'all',origin:document.getElementById('analyticsOriginSelect')?.value||'consolidated',custom,mode,periodLabel:periodSelect?.selectedOptions?.[0]?.textContent||mode}; const analysis=window.AnalyticsEngine.buildStrategicAnalysis(state,mode,custom,{today:todayISO(),minStrongQuestions:20}); const dashboard=window.AnalyticsEngine.buildPerformanceDashboard(state,mode,filters,{today:todayISO(),minStrongQuestions:20}); const viewModel={filters,periodLabel:analyticsPeriodLabel(analysis.period),dashboard,analysis,maturity:analysis.dataMaturity}; content.innerHTML=[renderAnalyticsHeader(viewModel),renderAnalyticsSummary(dashboard,analysis.dataMaturity),renderRhythmSection(dashboard),renderQuestionsSection(dashboard),renderDisciplinePerformancePanel(dashboard.disciplines,analysis.period),renderMockEvolutionChart(dashboard.mockExams),renderPlannedVsActualChart(dashboard.plannedVsActual),renderDetailedDiagnosis(analysis),renderAnalyticsQualityDetails(analysis)].join(''); syncAnalyticsSectionState(); setupDisciplineSorting(); setupPerformanceExportControls(buildPerformanceExportPayload(dashboard,filters,analysis)); }
+  const analyticsState=timerFeedState("feedAnalytics"); const filters={discipline:disciplineSelect?.value||'all',origin:document.getElementById('analyticsOriginSelect')?.value||'consolidated',custom,mode,periodLabel:periodSelect?.selectedOptions?.[0]?.textContent||mode}; const analysis=window.AnalyticsEngine.buildStrategicAnalysis(analyticsState,mode,custom,{today:todayISO(),minStrongQuestions:20}); const dashboard=window.AnalyticsEngine.buildPerformanceDashboard(analyticsState,mode,filters,{today:todayISO(),minStrongQuestions:20}); const viewModel={filters,periodLabel:analyticsPeriodLabel(analysis.period),dashboard,analysis,maturity:analysis.dataMaturity}; content.innerHTML=[renderAnalyticsHeader(viewModel),renderAnalyticsSummary(dashboard,analysis.dataMaturity),renderRhythmSection(dashboard),renderQuestionsSection(dashboard),renderDisciplinePerformancePanel(dashboard.disciplines,analysis.period),renderMockEvolutionChart(dashboard.mockExams),renderPlannedVsActualChart(dashboard.plannedVsActual),renderDetailedDiagnosis(analysis),renderAnalyticsQualityDetails(analysis)].join(''); syncAnalyticsSectionState(); setupDisciplineSorting(); setupPerformanceExportControls(buildPerformanceExportPayload(dashboard,filters,analysis)); }
 
 
 function closePerformanceExportDialog() { const d = document.getElementById('performanceExportDialog'); if (d) d.hidden = true; document.getElementById(d?.dataset.returnFocus || 'performanceExportButton')?.focus(); }
@@ -6192,7 +6233,7 @@ let advisorCachedAnalysis = null;
 let advisorCachedKey = "";
 const advisorQuickQuestions = ["Como está meu desempenho?","Qual rota devo seguir?","Qual é o próximo melhor passo?","Qual disciplina devo priorizar?","Qual disciplina mais está tirando pontos?","O que estou negligenciando?","Como foram meus simulados?","O que devo fazer nesta semana?","Quais assuntos precisam de revisão?","Quantas horas estudei?","Quantas questões fiz?"];
 function advisorPeriodSelection(){return { mode: document.getElementById("advisorPeriodSelect")?.value || "30d", custom:{ start: document.getElementById("advisorStartDate")?.value, end: document.getElementById("advisorEndDate")?.value } };}
-function advisorBuildAnalysis(force=false){ if(!window.AnalyticsEngine) return null; const sel=advisorPeriodSelection(); const key=JSON.stringify({sel, studies:state.studies?.length, questions:state.questionLogs?.length, goals:state.dailyGoals?.length, mocks:state.simulados?.length, syllabus:state.syllabusItems?.length, reviews:state.smartReviews?.length, mission:state.advisorMission, nav:state.advisorNavigation?.autonomyMode, today:todayISO()}); if(force||key!==advisorCachedKey){ advisorCachedAnalysis=window.AnalyticsEngine.buildStrategicAnalysis(state, sel.mode, sel.custom, { today: todayISO(), minStrongQuestions: 20 }); advisorCachedKey=key; } return advisorCachedAnalysis; }
+function advisorBuildAnalysis(force=false){ if(!window.AnalyticsEngine) return null; const sel=advisorPeriodSelection(); const key=JSON.stringify({sel, studies:state.studies?.length, timerFeeds:state.studies?.map((study)=>[study.timerSessionId,study.feedAdvisor]), questions:state.questionLogs?.length, goals:state.dailyGoals?.length, mocks:state.simulados?.length, syllabus:state.syllabusItems?.length, reviews:state.smartReviews?.length, mission:state.advisorMission, nav:state.advisorNavigation?.autonomyMode, today:todayISO()}); if(force||key!==advisorCachedKey){ advisorCachedAnalysis=window.AnalyticsEngine.buildStrategicAnalysis(timerFeedState("feedAdvisor"), sel.mode, sel.custom, { today: todayISO(), minStrongQuestions: 20 }); advisorCachedKey=key; } return advisorCachedAnalysis; }
 function advisorMissionFromForm(){ return { version:1, contestName:document.getElementById("advisorContestName")?.value||"", positionName:document.getElementById("advisorPositionName")?.value||"", institution:document.getElementById("advisorInstitution")?.value||"", board:document.getElementById("advisorBoard")?.value||"", examDate:document.getElementById("advisorExamDate")?.value||"", totalExamQuestions:Number(document.getElementById("advisorTotalExamQuestions")?.value)||0, targetNetScore:document.getElementById("advisorTargetNetScore")?.value===""?null:Number(document.getElementById("advisorTargetNetScore")?.value), targetAccuracyPct:document.getElementById("advisorTargetAccuracyPct")?.value===""?null:Number(document.getElementById("advisorTargetAccuracyPct")?.value), targetSyllabusCoveragePct:document.getElementById("advisorTargetSyllabusCoveragePct")?.value===""?100:Number(document.getElementById("advisorTargetSyllabusCoveragePct")?.value), targetReviewsPct:document.getElementById("advisorTargetReviewsPct")?.value===""?null:Number(document.getElementById("advisorTargetReviewsPct")?.value), targetMockExams:document.getElementById("advisorTargetMockExams")?.value===""?null:Number(document.getElementById("advisorTargetMockExams")?.value), weeklyAvailableMinutes:document.getElementById("advisorWeeklyHours")?.value===""?null:Math.round(Number(document.getElementById("advisorWeeklyHours")?.value)*60), notes:document.getElementById("advisorMissionNotes")?.value||"", updatedAt:todayISO() }; }
 function advisorFillMissionForm(){ const m=window.AdvisorNavigationEngine?.normalizeAdvisorMission(state.advisorMission||{}) || {}; const set=(id,v)=>{const el=document.getElementById(id); if(el) el.value=v??"";}; set("advisorContestName",m.contestName); set("advisorPositionName",m.positionName); set("advisorInstitution",m.institution); set("advisorBoard",m.board); set("advisorExamDate",m.examDate); set("advisorTotalExamQuestions",m.totalExamQuestions||""); set("advisorTargetNetScore",m.targetNetScore??""); set("advisorTargetAccuracyPct",m.targetAccuracyPct??""); set("advisorTargetSyllabusCoveragePct",m.targetSyllabusCoveragePct??100); set("advisorTargetReviewsPct",m.targetReviewsPct??""); set("advisorTargetMockExams",m.targetMockExams??""); set("advisorWeeklyHours",m.weeklyAvailableMinutes?Number((m.weeklyAvailableMinutes/60).toFixed(1)):""); set("advisorMissionNotes",m.notes); const mode=document.getElementById("advisorAutonomyMode"); if(mode) mode.value=state.advisorNavigation?.autonomyMode||"copilot"; }
 function advisorBuildGuidance(analysis){ if(!window.AdvisorNavigationEngine||!analysis) return null; return window.AdvisorNavigationEngine.buildAutonomousGuidance({ state, analysis, mission:state.advisorMission, navigation:state.advisorNavigation, options:{today:todayISO()} }); }

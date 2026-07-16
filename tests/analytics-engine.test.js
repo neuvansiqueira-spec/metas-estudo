@@ -16,6 +16,29 @@ function sampleState() { return { subjects:[{id:'s1',name:'Direito Tributário'}
 const period = engine.getAnalyticsPeriod('30d', {}, {today:'2026-07-13'});
 
 test('resumo de período', () => { const a=engine.buildStrategicAnalysis(sampleState(),'30d',{}, {today:'2026-07-13'}); assert.equal(a.summary.sessions,2); assert.equal(a.summary.hours,3); assert.equal(a.summary.questionsTotal,56); });
+test('cronômetro vinculado à meta conta uma vez e preserva tempo manual residual', () => {
+  const timerState = { studies:[{id:'st',date:'2026-07-13',minutes:30,origin:'timer',goalId:'g',timerSessionId:'timer-1'}], dailyGoals:[{id:'g',date:'2026-07-13',studyActualMinutes:50,questionActualMinutes:0,actualMinutes:50}], questionLogs:[], syllabusItems:[], smartReviews:[], simulados:[] };
+  const summary = engine.calculateStudySummary(timerState, period);
+  assert.equal(summary.minutes, 50);
+  assert.equal(summary.sessions, 1);
+});
+test('cronômetro de questões entra como sessão sem duplicar a meta', () => {
+  const timerState = { studies:[{id:'st',date:'2026-07-13',minutes:20,origin:'timer',timerKind:'questions',goalId:'g',timerSessionId:'timer-q'}], dailyGoals:[{id:'g',date:'2026-07-13',studyActualMinutes:0,questionActualMinutes:20,actualMinutes:20}], questionLogs:[], syllabusItems:[], smartReviews:[], simulados:[] };
+  const summary = engine.calculateStudySummary(timerState, period);
+  assert.equal(summary.minutes, 20);
+  assert.equal(summary.sessions, 1);
+});
+test('opção de não alimentar análise exclui a sessão e não deixa o tempo vazar pela meta', () => {
+  const timerState = { studies:[{id:'st',date:'2026-07-13',minutes:30,origin:'timer',goalId:'g',timerSessionId:'timer-off',feedAnalytics:false}], dailyGoals:[{id:'g',date:'2026-07-13',studyActualMinutes:30,questionActualMinutes:0,actualMinutes:30}], questionLogs:[], syllabusItems:[], smartReviews:[], simulados:[] };
+  const summary = engine.calculateStudySummary(timerState, period);
+  assert.equal(summary.minutes, 0);
+  assert.equal(summary.sessions, 0);
+});
+test('sessão que não atualizou a meta preserva o tempo manual já existente', () => {
+  const timerState = { studies:[{id:'st',date:'2026-07-13',minutes:30,origin:'timer',goalId:'g',timerSessionId:'timer-no-goal',updatesGoal:false}], dailyGoals:[{id:'g',date:'2026-07-13',studyActualMinutes:20,questionActualMinutes:0,actualMinutes:20}], questionLogs:[], syllabusItems:[], smartReviews:[], simulados:[] };
+  const summary = engine.calculateStudySummary(timerState, period);
+  assert.equal(summary.minutes, 50);
+});
 test('comparação com período anterior sem divisão por zero enganosa', () => { const e=engine.compareAnalyticsPeriods(sampleState(), period); assert.ok(['aumento','queda','estabilidade','aumento sem percentual-base','ausência de dados suficientes'].includes(e.hours.direction)); });
 test('líquido Cebraspe e brancos neutros', () => { const c=engine.calculateCebraspeStats(sampleState(), period); assert.equal(c.net, 20); });
 test('disciplina forte com amostra suficiente', () => { const d=engine.calculateDisciplinePerformance(sampleState(), period); assert.ok(d.find(x=>x.discipline==='Processo Penal').isStrong); });

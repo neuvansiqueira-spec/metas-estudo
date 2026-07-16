@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260716-revisao-recolhivel-mobile-v2",
+  "version": "20260716-cronometro-integrado-v3",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

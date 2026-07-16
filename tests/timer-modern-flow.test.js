@@ -30,11 +30,17 @@ test('modal registra estudo com tempo automatico bloqueado e historico da sessao
 
 test('salvar sessao alimenta estudos metas dashboard analise e conselheiro sem reload', () => {
   assert.match(script, /state\.studies\.push\(\{[\s\S]*origin: "timer"/);
+  assert.match(script, /timerKind: draft\.kind/);
+  assert.match(script, /updatesGoal: elements\.timerStudyUpdateGoal\.checked/);
+  assert.match(script, /date: draft\.goalDate \|\| goal\.date \|\| goal\.data \|\| todayISO\(\)/);
   assert.match(script, /goal\[field\] = \(Number\(goal\[field\]\) \|\| 0\) \+ minutes/);
   assert.match(script, /render\(\);\n  showDailyGoalMessage/);
   assert.match(script, /autoSyncAfterSave\("timer-save"\)/);
   assert.match(script, /feedAnalytics: elements\.timerStudyFeedAnalytics\.checked/);
   assert.match(script, /feedAdvisor: elements\.timerStudyFeedAdvisor\.checked/);
+  assert.match(script, /goalUnloggedActualMinutes\(goal\)/);
+  assert.match(script, /timerFeedState\("feedAnalytics"\)/);
+  assert.match(script, /timerFeedState\("feedAdvisor"\)/);
   assert.doesNotMatch(script, /location\.reload\(\)/);
 });
 
