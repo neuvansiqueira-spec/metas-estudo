@@ -353,7 +353,7 @@ test('Plano do Dia integra somente questões sem meta comum e sem duplicidade', 
 });
 
 test('Prévia do planejamento mostra tipo, modo, questões e disciplinas sem alterar state', () => {
-  assert.match(script, /function renderPlanningPreview\(\)/);
+  assert.match(script, /function renderPlanningPreview\(scoreContext = buildPlanningScoreContext\(\)\)/);
   assert.match(script, /DAY_TYPE_LABELS\[type\]/);
   assert.match(script, /DAY_CONTENT_MODE_LABELS\[cfg\.mode\]/);
   assert.match(script, /cfg\.questionTarget\} questões/);
@@ -438,7 +438,7 @@ test('Hotfix do weeklyGoalsPlan usa seleção distinta e deduplica somente a vis
   assert.match(script, /function dedupeWeeklyGoalsForDisplay\(goals = \[\]\)/);
   assert.match(script, /if \(seen\.has\(key\) && !isManualDailyGoal\(goal\)\) return false;/);
   assert.doesNotMatch(script.slice(script.indexOf('function dedupeWeeklyGoalsForDisplay'), script.indexOf('function renderWeeklyGoalsPlanDesktop')), /state\.dailyGoals\s*=|splice\(|saveData\(/);
-  assert.match(script, /selectDistinctPlanningDisciplines\(\{ date, count: requested, existingGoals: manual \}\)\.selected/);
+  assert.match(script, /eligibleItems: eligiblePlanningGoalsForDate\(date, \{ scoreContext \}\)/);
   assert.match(script, /maxEligible < requestedDisciplines \? `<p class="notice">Apenas \$\{maxEligible\} disciplina elegível disponível\.<\/p>`/);
   assert.doesNotMatch(style, /#view-planejamento[\s\S]{0,1200}word-break:\s*break-all/);
   assert.doesNotMatch(style, /#view-planejamento[\s\S]{0,1200}hyphens:\s*auto/);

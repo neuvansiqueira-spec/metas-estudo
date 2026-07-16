@@ -54,8 +54,8 @@ test('materiais automáticos da Fábrica usam chave única e não tratam pasta c
 
 test('metas, registro de estudo e fábrica reutilizam resolvedor central de materiais', () => {
   assert.match(script, /function resolveAvailableMaterials\(/);
-  assert.match(script, /function materialsForDailyGoal\(goal = \{\}\)/);
-  assert.match(script, /const materials = materialsForDailyGoal\(goal\)/);
+  assert.match(script, /function materialsForDailyGoal\(goal = \{\}, projectionEntry = null\)/);
+  assert.match(script, /const materials = materialsForDailyGoal\(goal, projectionEntry\)/);
   assert.match(script, /MATERIAIS DISPONÍVEIS/);
   assert.match(script, /Nenhum material vinculado a esta meta/);
   assert.match(script, /const mats = resolveAvailableMaterials\(/);

@@ -31,7 +31,7 @@ test('Estimativa da meta diferencia total, bloco, etapa e dados existentes', () 
 
 test('Abrir material usa fluxo central, noopener e feedback interno', () => {
   assert.match(script, /function openGoalMaterial\(goalId, materialId = ""\)/);
-  assert.match(script, /materialsForDailyGoal\(goal\)/);
+  assert.match(script, /materialsForDailyGoal\(goal, projectionEntry\)/);
   assert.match(script, /window\.open\(material\.link, "_blank", "noopener"\)/);
   assert.match(script, /O material existe, mas este formato não possui link válido\./);
   assert.match(script, /Escolha um material disponível para abertura\./);
@@ -48,5 +48,5 @@ test('arquivos publicados e versão permanecem sincronizados', () => {
   assert.equal(html, fs.readFileSync('docs/index.html', 'utf8'));
   assert.equal(css, fs.readFileSync('docs/style.css', 'utf8'));
   assert.equal(fs.readFileSync('service-worker.js', 'utf8'), fs.readFileSync('docs/service-worker.js', 'utf8'));
-  assert.match(script, /20260716-otimiza-abas-pesadas-v1/);
+  assert.match(script, /20260716-corrige-otimizacao-abas-v2/);
 });

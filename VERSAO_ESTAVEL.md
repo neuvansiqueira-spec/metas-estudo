@@ -2,7 +2,7 @@
 
 ## Versão estável atual
 
-`20260716-otimiza-abas-pesadas-v1`
+`20260716-corrige-otimizacao-abas-v2`
 
 ## Data
 

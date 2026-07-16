@@ -7,7 +7,7 @@ const script = fs.readFileSync('script.js','utf8');
 const html = fs.readFileSync('index.html','utf8');
 const style = fs.readFileSync('style.css','utf8');
 const sw = fs.readFileSync('service-worker.js','utf8');
-const version = '20260716-otimiza-abas-pesadas-v1';
+const version = '20260716-corrige-otimizacao-abas-v2';
 
 function logic(){
   const start = script.indexOf('function formatExportDuration(minutes');

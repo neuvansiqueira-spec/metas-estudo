@@ -4,7 +4,8 @@ const fs = require('node:fs');
 const script = fs.readFileSync('script.js', 'utf8');
 const start = script.indexOf('function materialAvailable(m)');
 const end = script.indexOf('\n\nfunction materialTitleById', start);
-const projection = new Function('state', `${script.slice(start, end)}; return { buildDailyPlanProjection, materialsForDailyGoal };`)({});
+const projectionFactory = new Function('state', `${script.slice(start, end)}; return { buildDailyPlanProjection, materialsForDailyGoal };`);
+const projection = projectionFactory({});
 
 const date = '2026-07-15';
 const state = { dailyGoals: [
@@ -28,3 +29,21 @@ test('projeção mantém exatamente as três metas reais e não cria meta por ma
 test('Inquérito agrupa Word/PDF em RESUMO/AULA, LEI separada e remove duplicado visual', () => { const entry=projection.buildDailyPlanProjection(date,state).find(x=>x.goal.id==='goal-inquerito'); assert.equal(entry.materialGroups.length,2); assert.equal(entry.materialGroups.find(x=>x.moduleKey==='resumoAula').materials.length,2); assert.equal(entry.materialGroups.find(x=>x.moduleKey==='lei').materials.length,1); });
 test('subtema da Teoria Geral do Crime vincula pelo parent e meta sem material permanece', () => { const p=projection.buildDailyPlanProjection(date,state); assert.equal(p.find(x=>x.goal.id==='goal-teoria').materialGroups.length,1); assert.equal(p.find(x=>x.goal.id==='goal-sem').materialGroups.length,0); });
 test('materiais e estimativa não vazam entre metas nem somam formatos', () => { const entry=projection.buildDailyPlanProjection(date,state).find(x=>x.goal.id==='goal-inquerito'); assert.equal(entry.estimate,90); assert.deepEqual(entry.materialGroups.flatMap(x=>x.materials).map(x=>x.id).sort(), ['iq-lei','iq-pdf','iq-word']); assert.deepEqual(JSON.stringify(state), JSON.stringify(state)); });
+
+test('fixture pesada preserva vínculos e resolve materiais com e sem projeção fornecida', () => {
+  const heavy = { dailyGoals: [], materials: [], factoryItems: [] };
+  for (let i = 0; i < 80; i++) {
+    const id = `heavy-${i}`;
+    heavy.dailyGoals.push({ id, date, discipline: `DISCIPLINA ${i % 8}`, subject: `Assunto completo ${i}`, syllabusItemId: `item-${i}` });
+    heavy.factoryItems.push({ id: `factory-${i}`, goalId: id, syllabusItemId: `item-${i}`, parentSyllabusItemId: `parent-${i}`, disciplina: `DISCIPLINA ${i % 8}`, tema: `Assunto completo ${i}` });
+    heavy.materials.push({ id: `word-${i}`, factoryItemId: `factory-${i}`, goalId: id, syllabusItemId: `item-${i}`, factoryModuleKey: 'resumoAula', factoryFormat: 'Word', link: `https://example.test/${i}.docx` });
+    heavy.materials.push({ id: `pdf-${i}`, factoryItemId: `factory-${i}`, parentSyllabusItemId: `parent-${i}`, factoryModuleKey: 'resumoAula', factoryFormat: 'PDF', link: `https://example.test/${i}.pdf` });
+  }
+  const before = JSON.stringify(heavy);
+  const fallbackProjection = projectionFactory(heavy);
+  const entries = fallbackProjection.buildDailyPlanProjection(date, heavy);
+  assert.equal(entries.length, 80);
+  assert.deepEqual(fallbackProjection.materialsForDailyGoal(heavy.dailyGoals[41]).map((m) => m.id).sort(), ['pdf-41', 'word-41']);
+  assert.deepEqual(fallbackProjection.materialsForDailyGoal(heavy.dailyGoals[41], entries[41]).map((m) => m.id).sort(), ['pdf-41', 'word-41']);
+  assert.equal(JSON.stringify(heavy), before);
+});
