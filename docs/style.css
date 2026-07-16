@@ -2017,9 +2017,17 @@ textarea,
   list-style: none;
 }
 .day-smart-review-summary::-webkit-details-marker { display: none; }
-.day-smart-review-summary > span:first-child { display: grid; gap: 4px; }
+.day-smart-review-summary > span:first-child { display: grid; gap: 4px; min-width: 0; }
 .day-smart-review-summary strong { color: var(--primary-dark); font-size: 1.05rem; }
-.day-smart-review-toggle { color: var(--primary); font-weight: 900; }
+.day-smart-review-toggle {
+  flex: 0 0 auto;
+  min-width: max-content;
+  color: var(--primary);
+  font-weight: 900;
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
+}
 .day-smart-review-panel[open] .day-smart-review-toggle::before { content: "Recolher"; }
 .day-smart-review-panel[open] .day-smart-review-toggle { font-size: 0; }
 .day-smart-review-panel[open] .day-smart-review-toggle::before { font-size: .95rem; }
