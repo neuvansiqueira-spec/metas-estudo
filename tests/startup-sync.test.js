@@ -30,3 +30,45 @@ test('offline cloud failure falls back without replacing local', async () => {
 test('bootstrap has one post-resolution render and blocks uploads while resolving', () => {
  assert.match(script, /let startupSyncInProgress = true/); assert.match(script, /if \(startupSyncInProgress\) \{ startupSyncWriteQueue\.push\(reason\); return; \}/); assert.match(script, /renderedBeforeResolution: false/); assert.match(script, /renderCountAfterResolution: 1/);
 });
+
+test('reopened connected app silently requests a Drive authorization before checking cloud', async () => {
+ const start = script.indexOf('function waitForGoogleIdentityServices');
+ const end = script.indexOf('async function driveFetch', start);
+ const code = script.slice(start, end);
+ const calls = [];
+ const api = new Function('STARTUP_GOOGLE_IDENTITY_TIMEOUT_MS', 'window', 'hasValidGoogleDriveAccessToken', 'readSyncMeta', 'isGoogleClientConfigured', 'getAccessToken', `${code}; return ensureStartupGoogleDriveAuthorization;`)(1500, { google: { accounts: { oauth2: {} } } }, () => false, () => ({ connected: true }), () => true, async (options) => { calls.push(options); });
+ const result = await api();
+ assert.deepEqual(calls, [{ prompt: 'none' }]);
+ assert.deepEqual(result, { authorized: true, mode: 'silent' });
+});
+test('silent authorization requiring interaction keeps startup behind the internal choice screen', async () => {
+ const start = script.indexOf('function waitForGoogleIdentityServices');
+ const end = script.indexOf('async function driveFetch', start);
+ const code = script.slice(start, end);
+ const api = new Function('STARTUP_GOOGLE_IDENTITY_TIMEOUT_MS', 'window', 'hasValidGoogleDriveAccessToken', 'readSyncMeta', 'isGoogleClientConfigured', 'getAccessToken', `${code}; return ensureStartupGoogleDriveAuthorization;`)(1500, { google: { accounts: { oauth2: {} } } }, () => false, () => ({ connected: true }), () => true, async () => { throw new Error('interaction_required'); });
+ const result = await api();
+ assert.equal(result.authorized, false);
+ assert.equal(result.mode, 'interaction-required');
+ assert.equal(result.interactionRequired, true);
+ assert.match(script, /Confirme a atualização para carregar seus dados mais recentes\./);
+ assert.match(script, /data-startup-drive-choice="cloud"/);
+ assert.match(script, /getAccessToken\(\{ prompt: "" \}\)/);
+});
+test('startup authorization never persists tokens and local choice disables automatic checks', () => {
+ assert.doesNotMatch(script, /localStorage\.setItem\([^\n]*googleDriveAccessToken/);
+ assert.doesNotMatch(script, /localStorage\.setItem\([^\n]*Authorization/);
+ assert.match(script, /startupDriveVerificationDeferred = true/);
+ assert.match(script, /if \(startupDriveVerificationDeferred \|\| isSyncLocked\(\)\) return;/);
+ assert.match(script, /Dados deste aparelho — atualização do Drive não verificada/);
+});
+test('startup reports authorization outcome before the sole post-resolution render', () => {
+ assert.match(script, /authorizationAttempted: false/);
+ assert.match(script, /authorizationRequiredInteraction: Boolean\(authorization\.interactionRequired\)/);
+ assert.match(script, /renderCountBeforeResolution: 0/);
+ assert.match(script, /render\(\); updateStartupSyncReport\(\{ renderCountAfterResolution: 1 \}\)/);
+});
+test('bootstrap hides app cards while authorization or the user decision is pending', () => {
+ assert.match(script, /Verificando autorização do Google Drive…/);
+ const css = fs.readFileSync('style.css', 'utf8');
+ assert.match(css, /body\.app-bootstrapping \.app-layout \{\n  pointer-events: none;\n  visibility: hidden;/);
+});

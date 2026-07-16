@@ -2,11 +2,11 @@
 
 ## Versão estável atual
 
-`20260626-stability-review`
+`20260716-sync-inicial-autorizacao-v2`
 
 ## Data
 
-26/06/2026
+16/07/2026
 
 ## Telas principais cobertas pela estabilidade
 
