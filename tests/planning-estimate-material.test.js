@@ -28,6 +28,31 @@ test('Estimativa da meta diferencia total, bloco, etapa e dados existentes', () 
   assert.match(script, /duração estimada:/);
 });
 
+test('Meta compara estimativa e tempo realizado sem concluir automaticamente', () => {
+  assert.match(script, /function goalTimeComparison\(/);
+  assert.match(script, /plannedStudyStatsForMaterial\(material\)\.done/);
+  assert.match(script, /Restam aproximadamente/);
+  assert.match(script, /Concluída .* antes da estimativa/);
+  assert.match(script, /Precisou de .* adicionais/);
+  assert.match(script, /Estimativa ultrapassada em/);
+  assert.match(script, /Este indicador é informativo: a meta só é concluída/);
+  assert.match(script, /goalTimeComparisonHTML\(goal, projectionEntry, materialState\)/);
+  assert.doesNotMatch(script.match(/function goalTimeComparison[\s\S]*?function nextGoalEstimateHTML/)[0], /goal\.status\s*=/);
+  assert.match(css, /\.goal-time-comparison\.tone-ahead/);
+  assert.match(css, /\.goal-time-comparison\.tone-exceeded/);
+});
+
+test('Menu reúne temas relacionados e blocos principais são recolhíveis', () => {
+  for (const group of ['Hoje e metas', 'Planejamento', 'Edital e materiais', 'Questões e revisões', 'Desempenho', 'Dados e ajuda']) assert.match(html, new RegExp(`<summary>${group}</summary>`));
+  assert.match(html, /class="mobile-menu-group navigation-group"/);
+  assert.match(html, /class="side-nav-group navigation-group"/);
+  assert.match(script, /function syncNavigationGroups/);
+  assert.match(script, /function enhanceCollapsibleSections/);
+  assert.match(script, /sessionStorage\.setItem\(`collapsible:/);
+  assert.match(css, /\.interface-collapsible-summary/);
+  assert.match(css, /\.navigation-group-links/);
+});
+
 test('Abrir material usa fluxo central, noopener e feedback interno', () => {
   assert.match(script, /function openGoalMaterial\(goalId, materialId = ""\)/);
   assert.match(script, /materialsForDailyGoal\(goal, projectionEntry\)/);
@@ -47,5 +72,5 @@ test('arquivos publicados e versão permanecem sincronizados', () => {
   assert.equal(html, fs.readFileSync('docs/index.html', 'utf8'));
   assert.equal(css, fs.readFileSync('docs/style.css', 'utf8'));
   assert.equal(fs.readFileSync('service-worker.js', 'utf8'), fs.readFileSync('docs/service-worker.js', 'utf8'));
-  assert.match(script, /20260716-exportacao-didatica-v5/);
+  assert.match(script, /20260716-interface-unificada-v6/);
 });

@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260716-exportacao-didatica-v5";
+const APP_VERSION = "20260716-interface-unificada-v6";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -5375,6 +5375,33 @@ function goalMaterialEstimateHTML(goal, entry, materialState = getDailyGoalMater
   if (material?.estimateMode) rows.push(["Origem", material.estimateMode === "manual" ? "estimativa manual" : "cálculo automático"]);
   return `<section class="goal-material-estimate"><strong>ESTIMATIVA DO MATERIAL</strong><div class="card-meta-grid">${rows.map(([label, value]) => `<span>${label}: ${value}</span>`).join("")}</div></section>`;
 }
+function goalTimeComparison(goal, entry = null, materialState = getDailyGoalMaterialState(goal, entry)) {
+  const material = entry?.estimateMaterial || materialState?.estimateMaterial || null;
+  const estimated = Number(material?.estimatedMinutes || goal.estimatedTotalMinutes || goal.minutes || 0);
+  const actual = material && material.id ? plannedStudyStatsForMaterial(material).done : goalTotalActualMinutes(goal);
+  const difference = actual - estimated;
+  const percent = estimated > 0 ? Math.round((actual / estimated) * 100) : 0;
+  const relatedGoals = material && material.id ? (state.dailyGoals || []).filter((item) => item.estimateSourceId === material.id || (item.syllabusItemId && (item.syllabusItemId === material.syllabusItemId || (material.syllabusItemIds || []).includes(item.syllabusItemId)))) : [goal];
+  const done = relatedGoals.length > 0 && relatedGoals.every(isGoalDone);
+  let tone = "neutral"; let label = actual > 0 ? "Em andamento" : "Não iniciado";
+  if (estimated > 0 && actual < estimated) {
+    tone = done ? "ahead" : "remaining";
+    label = done ? `Concluída ${estimated - actual} min antes da estimativa` : `Restam aproximadamente ${estimated - actual} min`;
+  } else if (estimated > 0 && actual === estimated) {
+    tone = done ? "ahead" : "remaining";
+    label = done ? "Concluída dentro da estimativa" : "Estimativa atingida";
+  } else if (estimated > 0 && actual > estimated) {
+    tone = "exceeded";
+    label = done ? `Precisou de ${actual - estimated} min adicionais` : `Estimativa ultrapassada em ${actual - estimated} min`;
+  }
+  return { estimated, actual, difference, percent, done, tone, label };
+}
+function goalTimeComparisonHTML(goal, entry = null, materialState = getDailyGoalMaterialState(goal, entry)) {
+  const comparison = goalTimeComparison(goal, entry, materialState);
+  if (!comparison.estimated) return "";
+  const differenceLabel = comparison.difference === 0 ? "No tempo previsto" : comparison.difference < 0 ? `${Math.abs(comparison.difference)} min a menos` : `${comparison.difference} min a mais`;
+  return `<details class="goal-time-comparison tone-${comparison.tone}"><summary><span>Estimativa × realizado</span><strong>${escapeHTML(comparison.label)}</strong></summary><div class="goal-time-comparison-grid"><span><small>Estimativa</small><strong>${comparison.estimated} min</strong></span><span><small>Realizado</small><strong>${comparison.actual} min</strong></span><span><small>Diferença</small><strong>${differenceLabel}</strong></span><span><small>Uso da estimativa</small><strong>${comparison.percent}%</strong></span></div><p>Este indicador é informativo: a meta só é concluída quando você usa a ação “Concluir meta”.</p></details>`;
+}
 function nextGoalEstimateHTML(goal, entry, materialState = getDailyGoalMaterialState(goal, entry)) { return dailyGoalMaterialAvailabilityHTML(materialState); }
 function goalMaterialsDetailsHTML(goal, entry, materialState = getDailyGoalMaterialState(goal, entry)) {
   return `<details class="daily-goal-materials"><summary>Materiais disponíveis <span>${materialState.count} materiais</span></summary><div class="daily-plan-content">${goalMaterialsHTML(goal, materialState)}</div></details>`;
@@ -5383,7 +5410,7 @@ function dailyGoalDetailsBodyHTML(goal, projectionEntry = null) {
   const status = goal.status || "Pendente";
   const history = (goal.history || goal.historico || []).slice(-3).map((entry) => `<li>${escapeHTML(typeof entry === "string" ? entry : entry.message || entry.text || JSON.stringify(entry))}</li>`).join("");
   const materialState = getDailyGoalMaterialState(goal, projectionEntry);
-  return `<div class="daily-goal-content"><div class="card-meta-grid"><span>Disciplina: ${escapeHTML(goal.discipline)}</span><span>Assunto: ${escapeHTML(goal.subject)}</span><span>Tipo: ${escapeHTML(goal.type || goal.tipo || "-")}</span><span>Prioridade: ${escapeHTML(goal.priority || goal.prioridade || "-")}</span><span>Planejado: ${Number(goal.minutes||0)} min</span><span>Estudo realizado: ${Number(goal.studyActualMinutes||0)} min</span><span>Questões realizadas: ${Number(goal.questionActualMinutes||0)} min</span><span>Total realizado: ${Number(goal.actualMinutes||0)} min</span><span>Status: ${escapeHTML(status)}</span><span>Referência: ${escapeHTML(goal.referencia_edital || getSyllabusById(goal.syllabusItemId)?.reference || "-")}</span></div><div class="progress"><span style="width:${Math.min(100, Math.round((goalTotalActualMinutes(goal) / Math.max(1, Number(goal.minutes)||1)) * 100))}%"></span></div>${dailyGoalMaterialAvailabilityHTML(materialState)}${goalMaterialEstimateHTML(goal, projectionEntry, materialState)}${goalMaterialsDetailsHTML(goal, projectionEntry, materialState)}<p class="notice" data-goal-material-notice="${goal.id}" ${goalMaterialNotices.has(goal.id) ? "" : "hidden"}>${escapeHTML(goalMaterialNotices.get(goal.id) || "")}</p><details class="daily-goal-history"><summary>Histórico resumido</summary><ul>${history || "<li>Sem histórico registrado.</li>"}</ul></details><div class="card-actions">${materialState.hasMaterials ? `<button type="button" data-open-goal-material="${goal.id}">Abrir material</button>` : `<button type="button" data-create-goal-material data-discipline="${escapeHTML(goal.discipline || "")}" data-subject="${escapeHTML(goal.subject || "")}">Cadastrar material</button><a class="button-link" href="#fabrica-resumos" data-view-link="fabrica-resumos">Produzir material</a>`}<button type="button" data-goal-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button type="button" data-goal-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button type="button" data-goal-action="Concluída" data-id="${goal.id}">Concluir meta</button></div><details class="daily-goal-more-actions"><summary>Mais ações</summary><div class="card-actions"><button type="button" data-goal-action="Estudo" data-id="${goal.id}">Registrar estudo manualmente</button><button type="button" data-goal-action="QuestoesTempo" data-id="${goal.id}">Registrar tempo de questões</button><button type="button" data-register-goal="${goal.id}">Registrar questões</button><button type="button" data-goal-history="${goal.id}">Ver histórico</button><button type="button" data-goal-action="Adiada" data-id="${goal.id}">Reagendar ou adiar</button><button type="button" data-goal-action="Não cumprida" data-id="${goal.id}">Não cumprir</button></div></details></div>`;
+  return `<div class="daily-goal-content"><div class="card-meta-grid"><span>Disciplina: ${escapeHTML(goal.discipline)}</span><span>Assunto: ${escapeHTML(goal.subject)}</span><span>Tipo: ${escapeHTML(goal.type || goal.tipo || "-")}</span><span>Prioridade: ${escapeHTML(goal.priority || goal.prioridade || "-")}</span><span>Planejado: ${Number(goal.minutes||0)} min</span><span>Estudo realizado: ${Number(goal.studyActualMinutes||0)} min</span><span>Questões realizadas: ${Number(goal.questionActualMinutes||0)} min</span><span>Total realizado: ${Number(goal.actualMinutes||0)} min</span><span>Status: ${escapeHTML(status)}</span><span>Referência: ${escapeHTML(goal.referencia_edital || getSyllabusById(goal.syllabusItemId)?.reference || "-")}</span></div><div class="progress"><span style="width:${Math.min(100, Math.round((goalTotalActualMinutes(goal) / Math.max(1, Number(goal.minutes)||1)) * 100))}%"></span></div>${dailyGoalMaterialAvailabilityHTML(materialState)}${goalMaterialEstimateHTML(goal, projectionEntry, materialState)}${goalTimeComparisonHTML(goal, projectionEntry, materialState)}${goalMaterialsDetailsHTML(goal, projectionEntry, materialState)}<p class="notice" data-goal-material-notice="${goal.id}" ${goalMaterialNotices.has(goal.id) ? "" : "hidden"}>${escapeHTML(goalMaterialNotices.get(goal.id) || "")}</p><details class="daily-goal-history"><summary>Histórico resumido</summary><ul>${history || "<li>Sem histórico registrado.</li>"}</ul></details><div class="card-actions">${materialState.hasMaterials ? `<button type="button" data-open-goal-material="${goal.id}">Abrir material</button>` : `<button type="button" data-create-goal-material data-discipline="${escapeHTML(goal.discipline || "")}" data-subject="${escapeHTML(goal.subject || "")}">Cadastrar material</button><a class="button-link" href="#fabrica-resumos" data-view-link="fabrica-resumos">Produzir material</a>`}<button type="button" data-goal-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button type="button" data-goal-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button type="button" data-goal-action="Concluída" data-id="${goal.id}">Concluir meta</button></div><details class="daily-goal-more-actions"><summary>Mais ações</summary><div class="card-actions"><button type="button" data-goal-action="Estudo" data-id="${goal.id}">Registrar estudo manualmente</button><button type="button" data-goal-action="QuestoesTempo" data-id="${goal.id}">Registrar tempo de questões</button><button type="button" data-register-goal="${goal.id}">Registrar questões</button><button type="button" data-goal-history="${goal.id}">Ver histórico</button><button type="button" data-goal-action="Adiada" data-id="${goal.id}">Reagendar ou adiar</button><button type="button" data-goal-action="Não cumprida" data-id="${goal.id}">Não cumprir</button></div></details></div>`;
 }
 function dailyGoalDetailsCard(goal, number = 1, projectionEntry = null) {
   normalizeGoalTimeFields(goal);
@@ -6378,6 +6405,44 @@ function setMobileMenuOpen(isOpen) {
   menuToggle?.setAttribute("aria-expanded", isOpen ? "true" : "false");
 }
 
+function syncNavigationGroups(target) {
+  document.querySelectorAll(".navigation-group").forEach((group) => {
+    const containsActiveRoute = [...group.querySelectorAll("[data-view-link]")].some((link) => targetFromLink(link) === target);
+    if (containsActiveRoute) group.open = true;
+  });
+}
+
+function enhanceCollapsibleSections() {
+  const targets = document.querySelectorAll("#view-dashboard > .dashboard-block, #view-dashboard > .progress-dashboard-card, #view-progresso > .panel, #view-historico-questoes > .panel, #view-revisoes > .panel, #view-backup > .panel");
+  const seenByView = new Map();
+  targets.forEach((container, index) => {
+    if (container.dataset.collapsibleReady === "true") return;
+    const view = container.closest(".app-view");
+    const heading = container.querySelector(":scope > .dashboard-block-title, :scope > .section-heading, :scope > h2, :scope > h3");
+    const title = heading?.querySelector?.("h2, h3")?.textContent?.trim() || heading?.textContent?.trim() || `Conteúdo ${index + 1}`;
+    const details = document.createElement("details");
+    details.className = "interface-collapsible";
+    const key = `${view?.dataset.view || "view"}:${container.id || canonical(title) || index}`;
+    const count = seenByView.get(view) || 0;
+    seenByView.set(view, count + 1);
+    try { details.open = sessionStorage.getItem(`collapsible:${key}`) === "open" || (!sessionStorage.getItem(`collapsible:${key}`) && count === 0); } catch { details.open = count === 0; }
+    const summary = document.createElement("summary");
+    summary.className = "interface-collapsible-summary";
+    summary.textContent = title;
+    const content = document.createElement("div");
+    content.className = "interface-collapsible-content";
+    while (container.firstChild) content.appendChild(container.firstChild);
+    if (heading && !heading.querySelector("button, a, input, select, textarea")) heading.hidden = true;
+    details.append(summary, content);
+    container.appendChild(details);
+    container.dataset.collapsibleReady = "true";
+    details.addEventListener("toggle", () => {
+      try { sessionStorage.setItem(`collapsible:${key}`, details.open ? "open" : "closed"); } catch {}
+      if (details.open && isDailyPlanMobile()) view?.querySelectorAll(".interface-collapsible[open]").forEach((item) => { if (item !== details) item.open = false; });
+    });
+  });
+}
+
 function showView(viewId = hashToView(), options = {}) {
   const target = resolveViewTarget(viewId);
 
@@ -6398,6 +6463,7 @@ function showView(viewId = hashToView(), options = {}) {
     if (active) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
   });
+  syncNavigationGroups(target);
 
   if (!options.skipHash && window.location.hash !== `#${target}`) {
     history.pushState(null, "", `#${target}`);
@@ -6429,6 +6495,7 @@ document.addEventListener("keydown", (event) => {
 
 window.addEventListener("beforeunload", persistFloatingTimerSession);
 window.addEventListener("hashchange", () => showView(hashToView()));
+enhanceCollapsibleSections();
 restoreFloatingTimerSession();
 bootstrapApplication().catch(handleBootstrapFailure);
 

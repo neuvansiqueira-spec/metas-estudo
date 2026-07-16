@@ -765,6 +765,81 @@ tbody tr.goal-hit { background: rgba(22, 163, 74, .08); }
   letter-spacing: .12em;
   text-transform: uppercase;
 }
+
+/* Navegação unificada: os temas relacionados ficam juntos e recolhíveis. */
+.navigation-group {
+  min-width: 0;
+}
+.navigation-group > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  color: var(--muted);
+  cursor: pointer;
+  list-style: none;
+  font-size: .75rem;
+  font-weight: 900;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.navigation-group > summary::-webkit-details-marker { display: none; }
+.navigation-group > summary::after { content: "›"; font-size: 1.25rem; transform: rotate(0); transition: transform .18s ease; }
+.navigation-group[open] > summary::after { transform: rotate(90deg); }
+.navigation-group-links { display: grid; gap: 6px; }
+
+/* Leitura didática da estimativa diretamente na meta. */
+.goal-time-comparison {
+  margin-top: 12px;
+  overflow: hidden;
+  border: 1px solid #bfdbfe;
+  border-left: 6px solid #2563eb;
+  border-radius: 16px;
+  background: #eff6ff;
+}
+.goal-time-comparison > summary {
+  display: grid;
+  gap: 3px;
+  padding: 14px 16px;
+  cursor: pointer;
+  list-style-position: inside;
+  color: #1e3a8a;
+}
+.goal-time-comparison > summary span { font-size: .78rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.goal-time-comparison > summary strong { font-size: .98rem; }
+.goal-time-comparison-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 0 16px 14px; }
+.goal-time-comparison-grid > span { display: grid; gap: 3px; padding: 10px; border-radius: 12px; background: rgba(255,255,255,.78); }
+.goal-time-comparison-grid small { color: var(--muted); font-weight: 800; }
+.goal-time-comparison > p { margin: 0; padding: 0 16px 14px; color: var(--muted); font-size: .82rem; }
+.goal-time-comparison.tone-ahead { border-color: #86efac; border-left-color: #16a34a; background: #f0fdf4; }
+.goal-time-comparison.tone-ahead > summary { color: #166534; }
+.goal-time-comparison.tone-exceeded { border-color: #fdba74; border-left-color: #ea580c; background: #fff7ed; }
+.goal-time-comparison.tone-exceeded > summary { color: #9a3412; }
+
+/* Blocos principais recolhíveis, sem alterar os formulários e seus dados. */
+.interface-collapsible { border: 0; }
+.interface-collapsible-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 12px 4px;
+  color: var(--primary-dark);
+  cursor: pointer;
+  list-style: none;
+  font-size: 1rem;
+  font-weight: 900;
+}
+.interface-collapsible-summary::-webkit-details-marker { display: none; }
+.interface-collapsible-summary::after { content: "+"; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 999px; background: #eaf2ff; color: #1d4ed8; }
+.interface-collapsible[open] > .interface-collapsible-summary::after { content: "−"; }
+.interface-collapsible-content { padding-top: 8px; }
+@media (max-width: 620px) {
+  .goal-time-comparison-grid { grid-template-columns: 1fr; }
+  .navigation-group > summary { min-height: 44px; }
+}
 .topbar .nav-links {
   opacity: .92;
 }
