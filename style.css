@@ -1,3 +1,4 @@
+/* Versão de publicação: 20260716-restaura-abertura-estavel-v1 */
 :root {
   --bg: #f4f7fb;
   --surface: #ffffff;
@@ -3031,7 +3032,7 @@ th {
 }
 body.app-bootstrapping .app-layout {
   pointer-events: none;
-  visibility: hidden;
+  opacity: .45;
 }
 
 /* Versão 20260713-corrige-plano-dia-mobile: ajuste responsivo limitado ao Plano do Dia e ao menu inferior. */

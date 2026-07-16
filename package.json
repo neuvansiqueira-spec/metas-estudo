@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260716-sync-inicial-autorizacao-v2",
+  "version": "20260716-restaura-abertura-estavel-v1",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

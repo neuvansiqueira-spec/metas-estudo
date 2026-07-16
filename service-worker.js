@@ -1,5 +1,5 @@
 // versão anterior: metas-estudo-20260714-conselheiro-local-v1
-const CACHE_NAME = "metas-estudo-20260716-sync-inicial-autorizacao-v2";
+const CACHE_NAME = "metas-estudo-20260716-restaura-abertura-estavel-v1";
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v1`;
 const FILES_TO_CACHE = [
   "./",

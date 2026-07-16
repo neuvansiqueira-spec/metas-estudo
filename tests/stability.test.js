@@ -38,10 +38,10 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão atual', () => {
-  assert.match(html, /style\.css\?v=20260716-sync-inicial-autorizacao-v2/);
-  assert.match(html, /storage-indexeddb\.js\?v=20260716-sync-inicial-autorizacao-v2/);
-  assert.match(html, /script\.js\?v=20260716-sync-inicial-autorizacao-v2/);
-  assert.match(html, /Versão: 20260716-sync-inicial-autorizacao-v2/);
+  assert.match(html, /style\.css\?v=20260716-restaura-abertura-estavel-v1/);
+  assert.match(html, /storage-indexeddb\.js\?v=20260716-restaura-abertura-estavel-v1/);
+  assert.match(html, /script\.js\?v=20260716-restaura-abertura-estavel-v1/);
+  assert.match(html, /Versão: 20260716-restaura-abertura-estavel-v1/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -230,7 +230,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260716-sync-inicial-autorizacao-v2/);
+  assert.match(sw, /metas-estudo-20260716-restaura-abertura-estavel-v1/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);
@@ -558,4 +558,35 @@ test('banco motivacional varia frases e tolera banco vazio', () => {
   assert.match(script, /const pool = available\.length \? available : messages/);
   assert.match(script, /if \(!messages\.length\) return ""/);
   assert.match(script, /localStorage\.setItem\(TIMER_MOTIVATIONAL_HISTORY_KEY/);
+});
+
+test('bootstrap restaura o estado local e renderiza sem depender do Google Drive', () => {
+  const bootstrapStart = script.indexOf('async function bootstrapApplication()');
+  const bootstrapEnd = script.indexOf('function handleBootstrapFailure', bootstrapStart);
+  const bootstrap = script.slice(bootstrapStart, bootstrapEnd);
+  const renderStart = script.indexOf('function render()');
+  const renderEnd = script.indexOf('function syllabusFromValues', renderStart);
+  const renderBlock = script.slice(renderStart, renderEnd);
+  const renderViewStart = script.indexOf('function renderView');
+  const renderViewEnd = script.indexOf('function render()', renderViewStart);
+  const renderViewBlock = script.slice(renderViewStart, renderViewEnd);
+
+  assert.ok(bootstrapStart >= 0 && bootstrapEnd > bootstrapStart, 'bootstrap deve existir');
+  assert.match(bootstrap, /await loadPrimaryStateFromIndexedDB\(\)/);
+  assert.match(bootstrap, /safeReadLocalStorageStateForBootstrap\(\)/);
+  assert.match(bootstrap, /replaceState\(chosenState\)/);
+  assert.match(bootstrap, /render\(\)/);
+  assert.match(bootstrap, /showView\(hashToView\(\)/);
+  assert.doesNotMatch(bootstrap, /getAccessToken|findSyncFile|downloadSyncFile|driveFetch|checkCloudForUpdatesAfterAuth/);
+  assert.doesNotMatch(bootstrap, /ensureStartupGoogleDriveAuthorization|waitForGoogleIdentityServices|waitForStartupAuthorizationChoice|resolveStartupStateWithCloud/);
+  assert.doesNotMatch(script, /STARTUP_GOOGLE_IDENTITY_TIMEOUT_MS|STARTUP_SYNC_TIMEOUT_MS|startupDriveVerificationDeferred|startupSyncInProgress|startupSyncResolved|startupSyncWriteQueue/);
+
+  assert.match(renderBlock, /renderView\(typeof resolveViewTarget === "function" \? resolveViewTarget\(activeView\) : activeView\)/);
+  assert.match(renderViewBlock, /const renderers = \{/);
+  assert.match(renderViewBlock, /safeRenderView\(viewId, renderers\[viewId\]\)/);
+  assert.doesNotMatch(renderViewBlock, /Object\.values\(viewRenderers\)/);
+  assert.match(script, /async function connectGoogleDrive\(\)/);
+  assert.match(script, /await getAccessToken\(\{ prompt: hasValidGoogleDriveAccessToken\(\) \? "" : "consent" \}\)/);
+  assert.match(script, /let googleDriveAccessToken = ""/);
+  assert.doesNotMatch(script, /localStorage\.setItem\([^\n]*googleDriveAccessToken/);
 });
