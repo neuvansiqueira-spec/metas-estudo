@@ -17,24 +17,27 @@ function patchFunctionsFrom(source) {
 }
 
 for (const file of ["service-worker.js", "docs/service-worker.js"]) {
-  test(`${file}: sincroniza versão e libera mensagens do Cronômetro Livre`, () => {
+  test(`${file}: configura o Cronômetro Livre com a duração da meta`, () => {
     const source = fs.readFileSync(file, "utf8");
     const patch = patchFunctionsFrom(source);
     const original = [
       'const APP_VERSION = "20260717-numero-qc-v26";',
       'const TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 5000;',
-      'if (!goal || !supportedMode || !planned || state.settings?.timerPreferences?.motivationalMessages === false) return;'
+      'if (!goal || !supportedMode || !planned || state.settings?.timerPreferences?.motivationalMessages === false) return;',
+      'const sessionGoalMinutes = selectedMode === "free" ? 0 : 0;'
     ].join("\n");
 
     const result = patch.patchAppScriptSource(original);
-    assert.equal(patch.CURRENT_VERSION, "20260717-cronometro-livre-motivacao-v27");
-    assert.match(result, /APP_VERSION = "20260717-cronometro-livre-motivacao-v27"/);
+    assert.equal(patch.CURRENT_VERSION, "20260717-cronometro-livre-meta-v28");
+    assert.match(result, /APP_VERSION = "20260717-cronometro-livre-meta-v28"/);
     assert.match(result, /TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 30000/);
     assert.match(result, /floatingTimer\.mode !== "free" && !goal/);
     assert.doesNotMatch(result, /if \(!goal \|\| !supportedMode/);
+    assert.match(result, /sessionGoalMinutes = selectedMode === "free" \? Math\.max\(0, Number\(goal\.minutes\) \|\| 0\) : 0/);
+    assert.doesNotMatch(result, /sessionGoalMinutes = selectedMode === "free" \? 0 : 0/);
 
     const html = patch.patchHtmlSource('<p>Versão: 20260717-numero-qc-v26</p>');
-    assert.equal(html, '<p>Versão: 20260717-cronometro-livre-motivacao-v27</p>');
+    assert.equal(html, '<p>Versão: 20260717-cronometro-livre-meta-v28</p>');
   });
 }
 
