@@ -64,6 +64,16 @@ test("deduplica a mesma sessão e preserva a versão mais completa", () => {
   assert.equal(merged.studies[0].notes, "detalhes completos");
 });
 
+test("preserva sessões antigas ambíguas quando não há identificador confiável", () => {
+  const mergeSyncStates = loadMergeFunction(["sync-integral-core.js", "sync-integral-state.js", "sync-integral-cloud.js"]);
+  const common = { goalId: "meta-antiga", date: "2026-07-10", discipline: "Direito Penal", topic: "Culpabilidade" };
+  const local = { studies: [{ ...common, minutes: 15, notes: "sessão no computador" }], dailyGoals: [{ id: "meta-antiga" }], questionLogs: [] };
+  const remote = { studies: [{ ...common, minutes: 25, notes: "sessão no tablet" }], dailyGoals: [{ id: "meta-antiga" }], questionLogs: [] };
+  const merged = mergeSyncStates(local, remote, "remote");
+  assert.equal(merged.studies.length, 2);
+  assert.equal(merged.dailyGoals[0].actualMinutes, 40);
+});
+
 test("service worker injeta a sincronização integral sem substituir o estado local", () => {
   const sw = loadServiceWorker("service-worker.js");
   const helper = ["sync-integral-core.js", "sync-integral-state.js", "sync-integral-cloud.js"].map((file) => fs.readFileSync(file, "utf8")).join("\n");
