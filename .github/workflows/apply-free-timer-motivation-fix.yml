@@ -1,0 +1,106 @@
+name: Aplicar correção do cronômetro livre
+
+on:
+  push:
+    branches:
+      - agent/corrigir-mensagens-cronometro-livre
+
+permissions:
+  contents: write
+
+jobs:
+  apply-fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Aplicar correção e teste de regressão
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          old_version = "20260717-numero-qc-v26"
+          new_version = "20260717-cronometro-livre-motivacao-v27"
+          script_paths = [Path("script.js"), Path("docs/script.js")]
+          old_guard = '  if (!goal || !supportedMode || !planned || state.settings?.timerPreferences?.motivationalMessages === false) return;'
+          new_guard = '  const hasMotivationalContext = floatingTimer.mode === "free" || Boolean(goal);\n  if (!hasMotivationalContext || !supportedMode || !planned || state.settings?.timerPreferences?.motivationalMessages === false) return;'
+
+          for path in script_paths:
+              text = path.read_text(encoding="utf-8")
+              if text.count(old_guard) != 1:
+                  raise SystemExit(f"Guarda motivacional inesperada em {path}: {text.count(old_guard)} ocorrência(s)")
+              if text.count("const TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 5000;") != 1:
+                  raise SystemExit(f"Duração motivacional inesperada em {path}")
+              text = text.replace(old_guard, new_guard, 1)
+              text = text.replace("const TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 5000;", "const TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 30000;", 1)
+              text = text.replace(old_version, new_version)
+              path.write_text(text, encoding="utf-8")
+
+          for filename in ["index.html", "docs/index.html", "service-worker.js", "docs/service-worker.js", "package.json", "VERSAO_ESTAVEL.md"]:
+              path = Path(filename)
+              if not path.exists():
+                  continue
+              text = path.read_text(encoding="utf-8")
+              path.write_text(text.replace(old_version, new_version), encoding="utf-8")
+
+          test_path = Path("tests/free-timer-motivation.test.js")
+          test_path.write_text(r'''const test = require("node:test");
+          const assert = require("node:assert/strict");
+          const fs = require("node:fs");
+
+          const files = ["script.js", "docs/script.js"];
+
+          for (const file of files) {
+            test(`${file}: cronômetro livre com duração exibe mensagens motivacionais`, () => {
+              const source = fs.readFileSync(file, "utf8");
+              const start = source.indexOf("function checkTimerMotivationalProgress");
+              const end = source.indexOf("let timerAudioContext", start);
+              assert.notEqual(start, -1);
+              assert.notEqual(end, -1);
+              const block = source.slice(start, end);
+
+              assert.match(block, /floatingTimer\.mode === "free" \|\| Boolean\(goal\)/);
+              assert.match(block, /!planned/);
+              assert.doesNotMatch(block, /if \(!goal \|\|/);
+              assert.match(source, /const TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 30000;/);
+            });
+          }
+
+          test("arquivos publicados permanecem sincronizados", () => {
+            assert.equal(fs.readFileSync("script.js", "utf8"), fs.readFileSync("docs/script.js", "utf8"));
+          });
+          ''', encoding="utf-8")
+          PY
+
+      - name: Validar JavaScript e testes
+        run: |
+          node --check script.js
+          node --check docs/script.js
+          npm test
+          cmp -s script.js docs/script.js
+          cmp -s index.html docs/index.html
+          cmp -s service-worker.js docs/service-worker.js
+          git diff --check
+
+      - name: Publicar correção na própria branch
+        shell: bash
+        run: |
+          rm .github/workflows/apply-free-timer-motivation-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add script.js docs/script.js index.html docs/index.html service-worker.js docs/service-worker.js package.json VERSAO_ESTAVEL.md tests/free-timer-motivation.test.js .github/workflows/apply-free-timer-motivation-fix.yml
+          git commit -m "Corrige mensagens no Cronômetro Livre"
+          git push origin HEAD
