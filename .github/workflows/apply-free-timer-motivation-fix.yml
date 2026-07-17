@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - agent/corrigir-mensagens-cronometro-livre
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -15,6 +18,7 @@ jobs:
       - name: Baixar repositório
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.head_ref || github.ref_name }}
           fetch-depth: 0
 
       - name: Configurar Node.js
@@ -58,31 +62,31 @@ jobs:
 
           test_path = Path("tests/free-timer-motivation.test.js")
           test_path.write_text(r'''const test = require("node:test");
-          const assert = require("node:assert/strict");
-          const fs = require("node:fs");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
 
-          const files = ["script.js", "docs/script.js"];
+const files = ["script.js", "docs/script.js"];
 
-          for (const file of files) {
-            test(`${file}: cronômetro livre com duração exibe mensagens motivacionais`, () => {
-              const source = fs.readFileSync(file, "utf8");
-              const start = source.indexOf("function checkTimerMotivationalProgress");
-              const end = source.indexOf("let timerAudioContext", start);
-              assert.notEqual(start, -1);
-              assert.notEqual(end, -1);
-              const block = source.slice(start, end);
+for (const file of files) {
+  test(`${file}: cronômetro livre com duração exibe mensagens motivacionais`, () => {
+    const source = fs.readFileSync(file, "utf8");
+    const start = source.indexOf("function checkTimerMotivationalProgress");
+    const end = source.indexOf("let timerAudioContext", start);
+    assert.notEqual(start, -1);
+    assert.notEqual(end, -1);
+    const block = source.slice(start, end);
 
-              assert.match(block, /floatingTimer\.mode === "free" \|\| Boolean\(goal\)/);
-              assert.match(block, /!planned/);
-              assert.doesNotMatch(block, /if \(!goal \|\|/);
-              assert.match(source, /const TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 30000;/);
-            });
-          }
+    assert.match(block, /floatingTimer\.mode === "free" \|\| Boolean\(goal\)/);
+    assert.match(block, /!planned/);
+    assert.doesNotMatch(block, /if \(!goal \|\|/);
+    assert.match(source, /const TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 30000;/);
+  });
+}
 
-          test("arquivos publicados permanecem sincronizados", () => {
-            assert.equal(fs.readFileSync("script.js", "utf8"), fs.readFileSync("docs/script.js", "utf8"));
-          });
-          ''', encoding="utf-8")
+test("arquivos publicados permanecem sincronizados", () => {
+  assert.equal(fs.readFileSync("script.js", "utf8"), fs.readFileSync("docs/script.js", "utf8"));
+});
+''', encoding="utf-8")
           PY
 
       - name: Validar JavaScript e testes
