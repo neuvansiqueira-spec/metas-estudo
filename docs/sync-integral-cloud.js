@@ -45,7 +45,7 @@ async function uploadSyncPayloadIntegral(payload = makeSyncPayload(), { statusMe
   }
 }
 
-async function applyCloudPayloadIntegral(payload) {
+async function applyCloudPayloadIntegral(payload, { preserveView = false } = {}) {
   isApplyingRemote = true;
   try {
     validateCloudPayload(payload);
@@ -86,7 +86,7 @@ async function applyCloudPayloadIntegral(payload) {
     writeSyncMeta({ connected: true, pendingSync: !uploadSucceeded, pendingSyncReason: uploadSucceeded ? null : "cloud-merge", localDirty: !uploadSucceeded, lastLocalUpdateAt: mergedAt, localDataUpdatedAt: mergedAt, lastSyncAt: new Date().toISOString(), lastAutoSyncError: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", remoteUpdatedAt: mergedAt, cloudDataUpdatedAt: mergedAt, remoteDeviceName: payload.deviceName || "", stateFingerprint: mergedPayload.stateFingerprint, error: uploadSucceeded ? "" : "Dados mesclados; envio para a nuvem pendente.", errorDetails: "", lastCloudDialogAt: "" });
     suppressAutoChecksAfterSync();
     render();
-    showView("backup");
+    if (!preserveView) showView("backup");
     renderSyncStatus(uploadSucceeded ? "Sincronização integral concluída sem perda de sessões." : "Dados mesclados neste dispositivo. Reenvio para a nuvem pendente.");
   } catch (error) {
     if (!error.cloudSyncKind) throw cloudSyncError("apply", "Erro ao mesclar os dados da nuvem. Os dados locais foram preservados.", error);
@@ -133,7 +133,7 @@ async function checkCloudForNewerVersionIntegral(context = "open") {
       renderSyncStatus("Tudo sincronizado. O conteúdo dos dispositivos é idêntico.");
       return;
     }
-    await applyCloudPayloadIntegral(remote);
+    await applyCloudPayloadIntegral(remote, { preserveView: true });
   } catch (error) {
     recordCloudSyncError(error, "Erro ao consultar a nuvem.");
   } finally {
