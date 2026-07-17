@@ -38,10 +38,10 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão atual', () => {
-  assert.match(html, /style\.css\?v=20260716-logo-direita-ns-v17/);
-  assert.match(html, /storage-indexeddb\.js\?v=20260716-logo-direita-ns-v17/);
-  assert.match(html, /script\.js\?v=20260716-logo-direita-ns-v17/);
-  assert.match(html, /Versão: 20260716-logo-direita-ns-v17/);
+  assert.match(html, /style\.css\?v=20260716-logo-moderna-ns-v18/);
+  assert.match(html, /storage-indexeddb\.js\?v=20260716-logo-moderna-ns-v18/);
+  assert.match(html, /script\.js\?v=20260716-logo-moderna-ns-v18/);
+  assert.match(html, /Versão: 20260716-logo-moderna-ns-v18/);
 });
 
 test('identidade visual policial usa paleta institucional sem marca oficial', () => {
@@ -57,11 +57,11 @@ test('logo original aparece no cabeçalho, favicon e cache do aplicativo', () =>
   const sw = fs.readFileSync('service-worker.js', 'utf8');
   assert.match(html, /rel="icon"[^>]+icons\/logo-mark\.svg/);
   assert.match(html, /class="brand-icon"[\s\S]*?<img src="icons\/logo-mark\.svg"/);
-  assert.match(logo, /Escudo abstrato com livro aberto, espada central e iniciais N S/);
+  assert.match(logo, /Escudo geométrico com monograma NS e seta curva ascendente/);
   assert.match(logo, /#082b49/);
   assert.match(logo, /#c5a253/);
-  assert.match(logo, />N<\/text>/);
-  assert.match(logo, />S<\/text>/);
+  assert.match(logo, />NS<\/text>/);
+  assert.doesNotMatch(logo, /livro|espada/i);
   assert.match(html, /class="brand-copy"[\s\S]*?class="brand-icon"/);
   assert.match(css, /\.brand-icon\s*\{[\s\S]*?width:\s*80px;[\s\S]*?height:\s*88px;/);
   assert.match(css, /\.brand-icon\s*\{\s*width:\s*94px;\s*height:\s*103px;/);
@@ -255,7 +255,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260716-logo-direita-ns-v17/);
+  assert.match(sw, /metas-estudo-20260716-logo-moderna-ns-v18/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);
