@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
   <title id="title">Ícone Metas Estudo</title>
   <desc id="desc">Fundo azul institucional com letras ME centralizadas.</desc>
-  <rect width="512" height="512" rx="96" fill="#123f78"/>
-  <circle cx="256" cy="256" r="178" fill="#1d5fa7" opacity="0.72"/>
-  <path d="M96 142h320v228H96z" fill="none" stroke="#edf3f9" stroke-width="18" opacity="0.22"/>
+  <rect width="512" height="512" rx="96" fill="#082b49"/>
+  <circle cx="256" cy="256" r="178" fill="#154c79" opacity="0.84"/>
+  <path d="M96 142h320v228H96z" fill="none" stroke="#c5a253" stroke-width="18" opacity="0.78"/>
   <text x="256" y="304" text-anchor="middle" font-family="Inter, Arial, Helvetica, sans-serif" font-size="168" font-weight="900" letter-spacing="-10" fill="#ffffff">ME</text>
 </svg>

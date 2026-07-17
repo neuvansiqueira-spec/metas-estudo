@@ -38,10 +38,18 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão atual', () => {
-  assert.match(html, /style\.css\?v=20260716-estimativa-planejamento-v13/);
-  assert.match(html, /storage-indexeddb\.js\?v=20260716-estimativa-planejamento-v13/);
-  assert.match(html, /script\.js\?v=20260716-estimativa-planejamento-v13/);
-  assert.match(html, /Versão: 20260716-estimativa-planejamento-v13/);
+  assert.match(html, /style\.css\?v=20260716-identidade-policial-v14/);
+  assert.match(html, /storage-indexeddb\.js\?v=20260716-identidade-policial-v14/);
+  assert.match(html, /script\.js\?v=20260716-identidade-policial-v14/);
+  assert.match(html, /Versão: 20260716-identidade-policial-v14/);
+});
+
+test('identidade visual policial usa paleta institucional sem marca oficial', () => {
+  assert.match(html, /<meta name="theme-color" content="#082b49"/);
+  assert.match(css, /--primary-deep:\s*#041b2d/);
+  assert.match(css, /--accent:\s*#c5a253/);
+  assert.match(css, /Identidade visual 20260716-preparacao-policial-v14/);
+  assert.match(css, /\.mobile-quick-nav[\s\S]*background:\s*rgba\(4,27,45,\.97\)/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -230,7 +238,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260716-estimativa-planejamento-v13/);
+  assert.match(sw, /metas-estudo-20260716-identidade-policial-v14/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);
