@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260716-logo-exportacoes-v21";
+const APP_VERSION = "20260717-vinculos-materiais-v22";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -3402,8 +3402,18 @@ function normalizeFactoryItem(item = {}) {
   const modules = normalizeFactoryModules(item.modules || item.modulos || {}, item);
   const status = factoryOverallStatus(modules);
   const triagemStatus = normalizeFactoryTriagemStatus(item, modules);
+  const syllabusItemId = item.syllabusItemId || item.editalItemId || "";
+  const syllabusItemIds = [...new Set([
+    ...(Array.isArray(item.syllabusItemIds) ? item.syllabusItemIds : []),
+    ...(Array.isArray(item.editalLink?.itemIds) ? item.editalLink.itemIds : []),
+    syllabusItemId
+  ].filter(Boolean))];
   return {
     id: item.id || createId(),
+    goalId: item.goalId || item.metaId || "",
+    syllabusItemId: syllabusItemId || syllabusItemIds[0] || "",
+    syllabusItemIds,
+    parentSyllabusItemId: item.parentSyllabusItemId || item.parentItemId || "",
     disciplina: item.disciplina || item.discipline || "",
     tema: item.tema || item.theme || item.subject || "",
     prioridade: item.prioridade || item.priority || "Média",
@@ -3913,7 +3923,7 @@ function factoryMaterialUniqueKey(factoryItemId, factoryModuleKey, factoryFormat
   return [factoryItemId, factoryModuleKey, factoryFormat].map((v) => String(v || "").trim()).join("|");
 }
 function factorySyllabusItemIds(item = {}) {
-  return [...new Set([...(item.editalLink?.itemIds || []), ...(Array.isArray(item.syllabusItemIds) ? item.syllabusItemIds : []), item.syllabusItemId || ""].filter(Boolean))];
+  return [...new Set([...(Array.isArray(item.editalLink?.itemIds) ? item.editalLink.itemIds : []), ...(Array.isArray(item.syllabusItemIds) ? item.syllabusItemIds : []), item.syllabusItemId || ""].filter(Boolean))];
 }
 function factoryModuleMaterialTitle(item, moduleKey, format) {
   const label = FACTORY_MODULES.find((m) => m.key === moduleKey)?.label || moduleKey;
@@ -3938,7 +3948,9 @@ function syncFactoryModuleMaterials(item) {
         id: idx >= 0 ? state.materials[idx].id : `factory-${normalized.id}-${moduleKey}-${canonical(format)}`,
         title: factoryModuleMaterialTitle(normalized, moduleKey, format), source: "factory", factoryUniqueKey: unique,
         factoryItemId: normalized.id, factoryModuleKey: moduleKey, factoryFormat: format,
-        discipline: normalized.disciplina, subject: normalized.tema, syllabusItemId: syllabusItemIds[0] || "", syllabusItemIds,
+        goalId: normalized.goalId || "", discipline: normalized.disciplina, subject: normalized.tema,
+        syllabusItemId: normalized.syllabusItemId || syllabusItemIds[0] || "", syllabusItemIds,
+        parentSyllabusItemId: normalized.parentSyllabusItemId || "",
         link: String(link).trim(), type: format, origin: "Google Drive", date: module.dataConclusao || todayISO(), updatedAt: now, available: true,
         notes: `Material automático da Fábrica (${FACTORY_MODULES.find((m) => m.key === moduleKey)?.label || moduleKey}).`, tags: ["Fábrica de Resumos", moduleKey, format]
       };
@@ -3994,7 +4006,16 @@ function getDailyGoalMaterialState(goal = {}, projectionEntry = null) {
   return { materials, count: materials.length, hasMaterials: materials.length > 0, estimatedMaterials, estimatedMinutes, hasEstimate: estimatedMinutes > 0 };
 }
 function materialsForFactoryItem(item) { const id = item?.id || item; return (state.materials || []).filter((m) => materialAvailable(m) && m.source === "factory" && m.factoryItemId === id); }
-function resolveAvailableMaterials({ discipline = "", subject = "", syllabusItemId = "", syllabusItemIds = [], factoryItemId = "" } = {}) { return (state.materials || []).filter(materialAvailable).filter((m) => (factoryItemId && m.factoryItemId === factoryItemId) || (syllabusItemId && [m.syllabusItemId, ...(m.syllabusItemIds || [])].includes(syllabusItemId)) || (syllabusItemIds || []).some((id) => [m.syllabusItemId, ...(m.syllabusItemIds || [])].includes(id)) || (dailyPlanCanonical(m.discipline) === dailyPlanCanonical(discipline) && dailyPlanCanonical(m.subject) === dailyPlanCanonical(subject))); }
+function materialAssociationIds(material = {}) { return [...new Set([material.syllabusItemId, ...(Array.isArray(material.syllabusItemIds) ? material.syllabusItemIds : []), material.parentSyllabusItemId].filter(Boolean))]; }
+function materialMatchesAssociation(material = {}, { discipline = "", subject = "", syllabusItemId = "", syllabusItemIds = [], factoryItemId = "", goalId = "" } = {}) {
+  if (factoryItemId && material.factoryItemId === factoryItemId) return true;
+  if (goalId && material.goalId === goalId) return true;
+  const requestedIds = [...new Set([syllabusItemId, ...(Array.isArray(syllabusItemIds) ? syllabusItemIds : [])].filter(Boolean))];
+  if (requestedIds.some((id) => materialAssociationIds(material).includes(id))) return true;
+  const normalizedDiscipline = dailyPlanCanonical(discipline); const normalizedSubject = dailyPlanCanonical(subject);
+  return Boolean(normalizedDiscipline && normalizedSubject && dailyPlanCanonical(material.discipline) === normalizedDiscipline && dailyPlanCanonical(material.subject) === normalizedSubject);
+}
+function resolveAvailableMaterials(context = {}) { return (state.materials || []).filter(materialAvailable).filter((material) => materialMatchesAssociation(material, context)); }
 
 
 function materialTitleById(id) { return state.materials.find((m) => m.id === id)?.title || ""; }
@@ -4593,7 +4614,8 @@ function materialVisualModule(records = []) {
   return records.map(materialTypeModuleLabel).find(Boolean) || "MATERIAL MANUAL";
 }
 function materialLogicalAssociation(material = {}, targetState = {}) {
-  const item = (targetState.syllabusItems || []).find((candidate) => candidate.id === material.syllabusItemId);
+  const candidateIds = [material.syllabusItemId, ...(Array.isArray(material.syllabusItemIds) ? material.syllabusItemIds : []), material.parentSyllabusItemId].filter(Boolean);
+  const item = (targetState.syllabusItems || []).find((candidate) => candidateIds.includes(candidate.id));
   const discipline = String(item?.discipline || material.discipline || "").trim(); const subject = String(item?.subject || material.subject || "").trim();
   return { discipline, subject, key: `${canonical(discipline)}|${canonical(subject)}` };
 }
