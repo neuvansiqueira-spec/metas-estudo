@@ -1,9 +1,10 @@
 (() => {
   "use strict";
 
-  const GLOBAL_KEY = "__metasQuestionAccuracySpectrumV37";
-  const STYLE_ID = "questionAccuracySpectrumStylesV37";
-  const TIMER_RUNTIME_KEY = "__metasTimerMotivationAlignedV37";
+  const GLOBAL_KEY = "__metasQuestionAccuracySpectrumV38";
+  const STYLE_ID = "questionAccuracySpectrumStylesV38";
+  const TIMER_RUNTIME_KEY = "__metasTimerMotivationAlignedV38";
+  const SOUND_STORAGE_KEY = "metasEstudoMotivationalSoundEnabled";
   const TIMER_MILESTONES = [10, 25, 40, 50, 65, 75, 90, 100];
   const INPUT_IDS = new Set(["questionTotal", "questionCorrect", "questionWrong", "questionBlank"]);
 
@@ -98,6 +99,19 @@
         line-height: 1;
         white-space: nowrap;
       }
+      .timer-motivational-sound-option {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .timer-motivational-sound-option small {
+        display: block;
+        margin-top: 2px;
+        opacity: .72;
+        font-size: .76rem;
+        font-weight: 600;
+        line-height: 1.25;
+      }
       @media (max-width: 620px) {
         #questionCalculated.question-calculated-spectrum { padding-bottom: 52px !important; }
         .question-accuracy-spectrum-visual {
@@ -162,13 +176,14 @@
       renderQueued = false;
       renderQuestionAccuracySpectrum();
       observeCalculatedBox();
+      ensureMotivationalSoundControl();
     });
   }
 
   function observeCalculatedBox() {
     const box = document.getElementById("questionCalculated");
-    if (!box || box.dataset.accuracySpectrumObservedV37 === "true" || typeof MutationObserver === "undefined") return;
-    box.dataset.accuracySpectrumObservedV37 = "true";
+    if (!box || box.dataset.accuracySpectrumObservedV38 === "true" || typeof MutationObserver === "undefined") return;
+    box.dataset.accuracySpectrumObservedV38 = "true";
     const observer = new MutationObserver(() => {
       if (!spectrumRendering) scheduleRender();
     });
@@ -219,6 +234,152 @@
     return !checkbox || checkbox.checked;
   }
 
+  function motivationalSoundEnabled() {
+    try {
+      const preference = globalThis.state?.settings?.timerPreferences?.motivationalSound;
+      if (typeof preference === "boolean") return preference;
+    } catch (error) {}
+    try {
+      const stored = globalThis.localStorage?.getItem(SOUND_STORAGE_KEY);
+      return stored === null || stored === undefined ? true : stored !== "false";
+    } catch (error) {
+      return true;
+    }
+  }
+
+  function persistMotivationalSound(enabled) {
+    const normalized = Boolean(enabled);
+    try {
+      globalThis.localStorage?.setItem(SOUND_STORAGE_KEY, String(normalized));
+    } catch (error) {}
+    try {
+      if (typeof globalThis.state === "object" && globalThis.state) {
+        globalThis.state.settings ||= {};
+        globalThis.state.settings.timerPreferences ||= {};
+        globalThis.state.settings.timerPreferences.motivationalSound = normalized;
+        if (typeof globalThis.saveData === "function") globalThis.saveData();
+        if (typeof globalThis.autoSyncAfterSave === "function") globalThis.autoSyncAfterSave("timer-settings");
+      }
+    } catch (error) {
+      console.warn("[Cronômetro] Não foi possível salvar a preferência do aviso sonoro.", error);
+    }
+    return normalized;
+  }
+
+  let motivationalAudioContext = null;
+
+  function getAudioContext() {
+    const AudioContextClass = globalThis.AudioContext || globalThis.webkitAudioContext;
+    if (!AudioContextClass) return null;
+    if (!motivationalAudioContext || motivationalAudioContext.state === "closed") {
+      motivationalAudioContext = new AudioContextClass();
+    }
+    return motivationalAudioContext;
+  }
+
+  async function unlockMotivationalAudio() {
+    if (!motivationalSoundEnabled()) return false;
+    try {
+      const context = getAudioContext();
+      if (!context) return false;
+      if (context.state === "suspended") await context.resume();
+      return context.state === "running";
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function scheduleChimeTone(context, frequency, startAt, duration, peakVolume) {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(frequency, startAt);
+    gain.gain.setValueAtTime(.0001, startAt);
+    gain.gain.exponentialRampToValueAtTime(peakVolume, startAt + .018);
+    gain.gain.exponentialRampToValueAtTime(.0001, startAt + duration);
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start(startAt);
+    oscillator.stop(startAt + duration + .03);
+  }
+
+  async function playMotivationalChime(milestone = 10, { preview = false } = {}) {
+    if (!preview && !motivationalSoundEnabled()) return false;
+    try {
+      const context = getAudioContext();
+      if (!context) return false;
+      if (context.state === "suspended") await context.resume();
+      if (context.state !== "running") return false;
+      const startAt = context.currentTime + .015;
+      const finalMilestone = Number(milestone) >= 100;
+      const tones = finalMilestone
+        ? [{ frequency: 659.25, delay: 0 }, { frequency: 783.99, delay: .12 }, { frequency: 987.77, delay: .24 }]
+        : [{ frequency: 659.25, delay: 0 }, { frequency: 880, delay: .13 }];
+      tones.forEach((tone, index) => {
+        scheduleChimeTone(context, tone.frequency, startAt + tone.delay, index === tones.length - 1 ? .22 : .17, .038);
+      });
+      return true;
+    } catch (error) {
+      console.warn("[Cronômetro] O aviso sonoro não pôde ser reproduzido.", error);
+      return false;
+    }
+  }
+
+  function ensureMotivationalSoundControl() {
+    if (typeof document === "undefined") return null;
+    ensureStyles();
+    const existing = document.querySelector('[data-timer-pref="motivationalSound"]');
+    if (existing) {
+      if (document.activeElement !== existing) existing.checked = motivationalSoundEnabled();
+      return existing;
+    }
+    const motivationalCheckbox = document.querySelector('[data-timer-pref="motivationalMessages"]');
+    if (!motivationalCheckbox) return null;
+    const reference = motivationalCheckbox.closest("label") || motivationalCheckbox.parentElement;
+    if (!reference?.parentElement) return null;
+
+    const label = document.createElement("label");
+    label.className = `${reference.className || ""} timer-motivational-sound-option`.trim();
+    label.dataset.timerMotivationalSoundOption = "true";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = motivationalSoundEnabled();
+    checkbox.dataset.timerPref = "motivationalSound";
+    checkbox.setAttribute("aria-label", "Aviso sonoro das mensagens motivacionais");
+
+    const text = document.createElement("span");
+    text.innerHTML = `Aviso sonoro das mensagens motivacionais<small>Toque curto e suave em cada marco de progresso.</small>`;
+
+    label.append(checkbox, text);
+    reference.insertAdjacentElement("afterend", label);
+
+    checkbox.addEventListener("change", async () => {
+      persistMotivationalSound(checkbox.checked);
+      if (checkbox.checked) {
+        await unlockMotivationalAudio();
+        await playMotivationalChime(10, { preview: true });
+      }
+    });
+    return checkbox;
+  }
+
+  function installMotivationalAudioUnlock() {
+    if (typeof document === "undefined" || globalThis.__metasMotivationalAudioUnlockV38) return;
+    globalThis.__metasMotivationalAudioUnlockV38 = true;
+    const unlock = () => { void unlockMotivationalAudio(); };
+    document.addEventListener("pointerdown", unlock, { capture: true, passive: true });
+    document.addEventListener("touchstart", unlock, { capture: true, passive: true });
+    document.addEventListener("keydown", unlock, { capture: true });
+    document.addEventListener("click", () => ensureMotivationalSoundControl(), { capture: true });
+    if (typeof MutationObserver !== "undefined" && document.body) {
+      const observer = new MutationObserver(() => ensureMotivationalSoundControl());
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
+    setInterval(ensureMotivationalSoundControl, 1500);
+    setTimeout(ensureMotivationalSoundControl, 250);
+  }
+
   function timerFreeModeVisible() {
     const timer = document.getElementById("floatingTimer");
     return Boolean(timer && !timer.hidden && document.getElementById("timerMode")?.value === "free");
@@ -237,7 +398,7 @@
     }
     let phrase = "Você está avançando. Continue firme.";
     try {
-      if (typeof chooseTimerMotivationalMessage === "function") phrase = chooseTimerMotivationalMessage(milestone) || phrase;
+      if (typeof globalThis.chooseTimerMotivationalMessage === "function") phrase = globalThis.chooseTimerMotivationalMessage(milestone) || phrase;
     } catch (error) {}
     toast.innerHTML = `<strong>${milestone}% CONCLUÍDO</strong><span>${phrase}</span>`;
     toast.hidden = false;
@@ -254,6 +415,7 @@
       pointerEvents: "none",
       maxWidth: "min(92vw, 620px)"
     });
+    void playMotivationalChime(milestone);
     clearTimeout(timerHideTimeout);
     timerHideTimeout = setTimeout(() => {
       toast.classList.remove("visible");
@@ -307,6 +469,11 @@
     installQuestionAccuracySpectrum,
     timerDisplayedPercent,
     timerElapsedSeconds,
+    motivationalSoundEnabled,
+    persistMotivationalSound,
+    unlockMotivationalAudio,
+    playMotivationalChime,
+    ensureMotivationalSoundControl,
     installAlignedTimerMotivation
   });
 
@@ -314,5 +481,6 @@
     globalThis[GLOBAL_KEY] = true;
     installQuestionAccuracySpectrum();
   }
+  installMotivationalAudioUnlock();
   installAlignedTimerMotivation();
 })();
