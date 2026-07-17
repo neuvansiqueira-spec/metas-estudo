@@ -38,10 +38,10 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão atual', () => {
-  assert.match(html, /style\.css\?v=20260716-logo-moderna-ns-v18/);
-  assert.match(html, /storage-indexeddb\.js\?v=20260716-logo-moderna-ns-v18/);
-  assert.match(html, /script\.js\?v=20260716-logo-moderna-ns-v18/);
-  assert.match(html, /Versão: 20260716-logo-moderna-ns-v18/);
+  assert.match(html, /style\.css\?v=20260716-logo-opcao3-v19/);
+  assert.match(html, /storage-indexeddb\.js\?v=20260716-logo-opcao3-v19/);
+  assert.match(html, /script\.js\?v=20260716-logo-opcao3-v19/);
+  assert.match(html, /Versão: 20260716-logo-opcao3-v19/);
 });
 
 test('identidade visual policial usa paleta institucional sem marca oficial', () => {
@@ -57,8 +57,8 @@ test('logo original aparece no cabeçalho, favicon e cache do aplicativo', () =>
   const sw = fs.readFileSync('service-worker.js', 'utf8');
   assert.match(html, /rel="icon"[^>]+icons\/logo-mark\.svg/);
   assert.match(html, /class="brand-icon"[\s\S]*?<img src="icons\/logo-mark\.svg"/);
-  assert.match(logo, /Escudo geométrico com monograma NS e seta curva ascendente/);
-  assert.match(logo, /#082b49/);
+  assert.match(logo, /Emblema hexagonal moderno com monograma NS e chevron dourado/);
+  assert.match(logo, /#041b2d/);
   assert.match(logo, /#c5a253/);
   assert.match(logo, />NS<\/text>/);
   assert.doesNotMatch(logo, /livro|espada/i);
@@ -255,7 +255,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260716-logo-moderna-ns-v18/);
+  assert.match(sw, /metas-estudo-20260716-logo-opcao3-v19/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);

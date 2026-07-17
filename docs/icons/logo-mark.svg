@@ -1,20 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
   <title id="title">Logo NS Metas Concurso</title>
-  <desc id="desc">Escudo geométrico com monograma NS e seta curva ascendente.</desc>
+  <desc id="desc">Emblema hexagonal moderno com monograma NS e chevron dourado.</desc>
   <defs>
-    <linearGradient id="shieldBlue" x1="20" y1="14" x2="105" y2="115" gradientUnits="userSpaceOnUse">
+    <linearGradient id="hexBlue" x1="20" y1="18" x2="106" y2="111" gradientUnits="userSpaceOnUse">
       <stop stop-color="#2474a6"/>
-      <stop offset="1" stop-color="#082b49"/>
+      <stop offset=".48" stop-color="#154c79"/>
+      <stop offset="1" stop-color="#041b2d"/>
     </linearGradient>
-    <linearGradient id="arrowGold" x1="34" y1="96" x2="104" y2="42" gradientUnits="userSpaceOnUse">
+    <linearGradient id="chevronGold" x1="34" y1="83" x2="94" y2="105" gradientUnits="userSpaceOnUse">
       <stop stop-color="#a77d25"/>
-      <stop offset="1" stop-color="#f2cf75"/>
+      <stop offset=".5" stop-color="#f2cf75"/>
+      <stop offset="1" stop-color="#c5a253"/>
     </linearGradient>
   </defs>
-  <path d="M64 5 111 23v35c0 30-18 52-47 66C35 110 17 88 17 58V23L64 5Z" fill="#f7edcf"/>
-  <path d="M64 12 104 28v30c0 26-15 45-40 58-25-13-40-32-40-58V28L64 12Z" fill="url(#shieldBlue)" stroke="#c5a253" stroke-width="2"/>
-  <path d="M34 35h60" stroke="#ffffff" stroke-opacity=".2" stroke-width="2" stroke-linecap="round"/>
-  <text x="59" y="74" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="34" font-weight="900" letter-spacing="-3" fill="#ffffff">NS</text>
-  <path d="M33 88c13 12 34 13 49 3 14-9 21-25 18-42" fill="none" stroke="url(#arrowGold)" stroke-width="7" stroke-linecap="round"/>
-  <path d="m88 53 12-12 10 14" fill="none" stroke="#f2cf75" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M64 5 112 34v55l-48 34-48-34V34L64 5Z" fill="url(#hexBlue)"/>
+  <path d="M64 16 102 39v43l-38 28-38-28V39L64 16Z" fill="#f7f9fb"/>
+  <path d="M64 24 94 42v34L64 98 34 76V42L64 24Z" fill="url(#hexBlue)"/>
+  <text x="64" y="73" text-anchor="middle" font-family="Inter,Arial Black,Arial,sans-serif" font-size="43" font-weight="900" letter-spacing="-5" fill="#ffffff">NS</text>
+  <path d="m32 84 13-10 19 13 19-13 13 10-32 24L32 84Z" fill="url(#chevronGold)" stroke="#f7edcf" stroke-width="2" stroke-linejoin="round"/>
+  <path d="m64 108 12 8-12 8-12-8 12-8Z" fill="#154c79" stroke="#dceaf4" stroke-width="2"/>
 </svg>
