@@ -2,11 +2,12 @@ const PREVIOUS_VERSION = "20260717-numero-qc-v26";
 const PREVIOUS_DEPLOYMENT_VERSIONS = [
   PREVIOUS_VERSION,
   "20260717-sincronizacao-conteudo-v30",
-  "20260717-mensagens-cronometro-livre-pwa-v31"
+  "20260717-mensagens-cronometro-livre-pwa-v31",
+  "20260717-sincronizacao-automatica-dispositivos-v32"
 ];
-const CURRENT_VERSION = "20260717-sincronizacao-automatica-dispositivos-v32";
+const CURRENT_VERSION = "20260717-salvamento-integral-tempo-v33";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
-const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v8`;
+const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v9`;
 const FILES_TO_CACHE = [
   "./",
   "index.html",
