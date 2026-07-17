@@ -2,21 +2,22 @@
 
 ## Versão estável atual
 
-`20260716-unificar-materiais-plano-do-dia-v1`
+`20260717-cronometro-livre-motivacao-v27`
 
 ## Data
 
-16/07/2026
+17/07/2026
 
 ## Restauração de abertura estável
 
-Esta versão unifica a disponibilidade de materiais do Plano do Dia em uma projeção central, preservando os registros persistidos. Metas concluídas ficam fora dos materiais do plano atual, enquanto a biblioteca e o histórico continuam exibindo seus materiais consolidados.
+Esta versão preserva a organização e os dados da versão anterior, corrige a exibição das mensagens motivacionais no Cronômetro Livre com duração definida e mantém cada mensagem visível por 30 segundos. A identificação da versão, o cache e os arquivos entregues ao navegador foram sincronizados.
 
 ## Telas principais cobertas pela estabilidade
 
 - Dashboard
 - Central de Metas
 - Plano do Dia
+- Cronômetro Livre
 - Histórico de Questões
 - Histórico Geral
 - Revisões
