@@ -2,13 +2,52 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 
+const rootCore = fs.readFileSync("sync-integral-core.js", "utf8");
+const docsCore = fs.readFileSync("docs/sync-integral-core.js", "utf8");
+const rootState = fs.readFileSync("sync-integral-state.js", "utf8");
+const docsState = fs.readFileSync("docs/sync-integral-state.js", "utf8");
 const rootCloud = fs.readFileSync("sync-integral-cloud.js", "utf8");
 const docsCloud = fs.readFileSync("docs/sync-integral-cloud.js", "utf8");
 const rootWorker = fs.readFileSync("service-worker.js", "utf8");
 const docsWorker = fs.readFileSync("docs/service-worker.js", "utf8");
 const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
 
-const VERSION = "20260717-sincronizacao-automatica-dispositivos-v32";
+const VERSION = "20260717-salvamento-integral-tempo-v33";
+
+test("sessão nova do cronômetro recompõe e grava o total da meta", () => {
+  assert.match(rootCore, /function installTimerSaveTotalReconciliation\(\)/);
+  assert.match(rootCore, /const originalSubmitTimerStudyModal = submitTimerStudyModal/);
+  assert.match(rootCore, /before\.studyActualMinutes \+ added\.study/);
+  assert.match(rootCore, /before\.questionActualMinutes \+ added\.questions/);
+  assert.match(rootCore, /saveData\(\{ markLocalChange: true \}\)/);
+  assert.match(rootState, /if \(study\.updatesGoal === false\) return;/);
+});
+
+test("minuto já salvo é recuperado na abertura pelo histórico da meta", () => {
+  assert.match(rootCore, /function reconcileGoalWithTimerHistory\(goal = \{\}\)/);
+  assert.match(rootCore, /Tempo salvo pelo cronômetro:/);
+  assert.match(rootCore, /Total realizado:/);
+  assert.match(rootCore, /function installSavedTimerTotalsStartupRecovery\(\)/);
+  assert.match(rootCore, /setTimeout\(\(\) => \{/);
+  assert.match(rootCore, /Total da meta recuperado a partir da sessão salva/);
+  assert.match(rootCore, /autoSyncAfterSave\("timer-recovery"\)/);
+});
+
+test("app instalado e aba comum trocam o estado local sem depender da nuvem", () => {
+  assert.match(rootCloud, /function installSameDeviceStateSync\(\)/);
+  assert.match(rootCloud, /window\.addEventListener\("storage"/);
+  assert.match(rootCloud, /event\.key !== STORAGE_KEY/);
+  assert.match(rootCloud, /mergeSyncStates\(state, incomingState, "remote"\)/);
+  assert.match(rootCloud, /Dados atualizados pelo outro aplicativo deste dispositivo/);
+});
+
+test("autorização expirada tenta renovação antes de manter envio pendente", () => {
+  assert.match(rootCloud, /async function ensureConnectedGoogleDriveAuthorization/);
+  assert.match(rootCloud, /await getAccessToken\(\{ prompt: "" \}\)/);
+  assert.match(rootCloud, /installAutoSyncAuthorizationRetry/);
+  assert.match(rootCloud, /ensureConnectedGoogleDriveAuthorization\(\{ force: true \}\)/);
+  assert.match(rootCloud, /Autorização expirada\. Toque em Conectar Google Drive/);
+});
 
 test("celular consulta a nuvem ao retornar para a página e periodicamente", () => {
   assert.match(rootCloud, /const DEVICE_SYNC_REFRESH_INTERVAL_MS = 20000;/);
@@ -24,7 +63,6 @@ test("atualização automática só roda em condição segura", () => {
   assert.match(rootCloud, /document\.visibilityState === "hidden"/);
   assert.match(rootCloud, /navigator\.onLine === false/);
   assert.match(rootCloud, /!readSyncMeta\(\)\?\.connected/);
-  assert.match(rootCloud, /!hasValidGoogleDriveAccessToken\(\)/);
   assert.match(rootCloud, /isSyncing/);
   assert.match(rootCloud, /isApplyingRemote/);
   assert.match(rootCloud, /cloudAutoCheckRunning/);
@@ -38,10 +76,12 @@ test("mesclagem automática preserva a tela atual", () => {
   assert.match(rootCloud, /applyCloudPayloadIntegral\(remote, \{ preserveView: true \}\)/);
 });
 
-test("publicação da v32 permanece sincronizada entre raiz e docs", () => {
+test("publicação da v33 permanece sincronizada entre raiz e docs", () => {
+  assert.equal(rootCore, docsCore);
+  assert.equal(rootState, docsState);
   assert.equal(rootCloud, docsCloud);
   assert.equal(rootWorker, docsWorker);
   assert.equal(packageJson.version, VERSION);
   assert.match(rootWorker, new RegExp(VERSION));
-  assert.match(rootWorker, /startup-v8/);
+  assert.match(rootWorker, /startup-v9/);
 });
