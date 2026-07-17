@@ -106,3 +106,25 @@ function syncMergeRecord(localValue = {}, remoteValue = {}, prefer = "remote") {
   });
   return result;
 }
+
+function installTimerSaveTotalReconciliation() {
+  if (globalThis.__metasTimerSaveTotalReconciliationV33 || typeof submitTimerStudyModal !== "function") return;
+  globalThis.__metasTimerSaveTotalReconciliationV33 = true;
+  const originalSubmitTimerStudyModal = submitTimerStudyModal;
+  submitTimerStudyModal = function submitTimerStudyModalWithTotalReconciliation(event) {
+    const previousSessionIds = new Set((state.studies || []).map((study) => study.timerSessionId || study.sessionId).filter(Boolean));
+    const result = originalSubmitTimerStudyModal(event);
+    const newlySavedSessions = (state.studies || []).filter((study) => {
+      const sessionId = study.timerSessionId || study.sessionId;
+      return sessionId && !previousSessionIds.has(sessionId) && study.updatesGoal !== false;
+    });
+    if (newlySavedSessions.length) {
+      syncRebuildGoalTotals(state);
+      saveData({ markLocalChange: true });
+      render();
+    }
+    return result;
+  };
+}
+
+installTimerSaveTotalReconciliation();
