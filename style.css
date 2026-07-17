@@ -4168,6 +4168,10 @@ body {
 }
 .brand-copy { display: grid; gap: 3px; min-width: 0; }
 .brand { width: min(100%, 520px); justify-content: space-between; }
+@media (min-width: 1051px) {
+  .topbar .brand { width: 100%; }
+  .topbar .brand-icon { width: 112px; height: 122px; }
+}
 @media (max-width: 760px) {
   .topbar { flex-wrap: wrap; }
   .brand { flex: 1 1 100%; width: 100%; }

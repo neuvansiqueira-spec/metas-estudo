@@ -38,10 +38,10 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão atual', () => {
-  assert.match(html, /style\.css\?v=20260716-logo-opcao3-v19/);
-  assert.match(html, /storage-indexeddb\.js\?v=20260716-logo-opcao3-v19/);
-  assert.match(html, /script\.js\?v=20260716-logo-opcao3-v19/);
-  assert.match(html, /Versão: 20260716-logo-opcao3-v19/);
+  assert.match(html, /style\.css\?v=20260716-logo-desktop-v20/);
+  assert.match(html, /storage-indexeddb\.js\?v=20260716-logo-desktop-v20/);
+  assert.match(html, /script\.js\?v=20260716-logo-desktop-v20/);
+  assert.match(html, /Versão: 20260716-logo-desktop-v20/);
 });
 
 test('identidade visual policial usa paleta institucional sem marca oficial', () => {
@@ -63,7 +63,7 @@ test('logo original aparece no cabeçalho, favicon e cache do aplicativo', () =>
   assert.match(logo, />NS<\/text>/);
   assert.doesNotMatch(logo, /livro|espada/i);
   assert.match(html, /class="brand-copy"[\s\S]*?class="brand-icon"/);
-  assert.match(css, /\.brand-icon\s*\{[\s\S]*?width:\s*80px;[\s\S]*?height:\s*88px;/);
+  assert.match(css, /@media \(min-width: 1051px\) \{[\s\S]*?\.topbar \.brand \{ width: 100%; \}[\s\S]*?\.topbar \.brand-icon \{ width: 112px; height: 122px; \}/);
   assert.match(css, /\.brand-icon\s*\{\s*width:\s*94px;\s*height:\s*103px;/);
   assert.match(css, /\.hero-text\s*\{[\s\S]*?hyphens:\s*none;/);
   assert.match(sw, /icons\/logo-mark\.svg/);
@@ -255,7 +255,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260716-logo-opcao3-v19/);
+  assert.match(sw, /metas-estudo-20260716-logo-desktop-v20/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);

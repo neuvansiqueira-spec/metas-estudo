@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260716-logo-opcao3-v19",
+  "version": "20260716-logo-desktop-v20",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
