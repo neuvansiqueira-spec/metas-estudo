@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260717-cronometro-livre-meta-v28",
+  "version": "20260717-sincronizacao-integral-cronometro-v29",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
