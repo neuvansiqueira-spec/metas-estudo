@@ -20,12 +20,12 @@ function patchFunctionsFrom(source) {
     URL,
     console
   };
-  vm.runInNewContext(`${block}; result = { replaceVersion, patchHtmlSource, patchAppScriptSource, CURRENT_VERSION };`, context);
+  vm.runInNewContext(`${block}; result = { replaceVersion, patchHtmlSource, patchAppScriptSource, CURRENT_VERSION, TIMER_MOTIVATION_PWA_FALLBACK };`, context);
   return context.result;
 }
 
 for (const file of ["service-worker.js", "docs/service-worker.js"]) {
-  test(`${file}: configura o Cronômetro Livre com a duração da meta`, () => {
+  test(`${file}: configura e reforça mensagens do Cronômetro Livre no PWA`, () => {
     const source = fs.readFileSync(file, "utf8");
     const patch = patchFunctionsFrom(source);
     const original = [
@@ -37,19 +37,34 @@ for (const file of ["service-worker.js", "docs/service-worker.js"]) {
     ].join("\n");
 
     const result = patch.patchAppScriptSource(original);
-    assert.equal(patch.CURRENT_VERSION, "20260717-sincronizacao-integral-cronometro-v29");
-    assert.match(result, /APP_VERSION = "20260717-sincronizacao-integral-cronometro-v29"/);
+    assert.equal(patch.CURRENT_VERSION, "20260717-mensagens-cronometro-livre-pwa-v31");
+    assert.match(result, /APP_VERSION = "20260717-mensagens-cronometro-livre-pwa-v31"/);
     assert.match(result, /TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 30000/);
     assert.match(result, /floatingTimer\.mode !== "free" && !goal/);
     assert.doesNotMatch(result, /if \(!goal \|\| !supportedMode/);
     assert.match(result, /sessionGoalMinutes = selectedMode === "free" \? Math\.max\(0, Number\(goal\.minutes\) \|\| 0\) : 0/);
-    assert.doesNotMatch(result, /sessionGoalMinutes = selectedMode === "free" \? 0 : 0/);
     assert.match(result, /Number\(floatingTimer\.sessionGoalMinutes\) \|\| Number\(goal\?\.minutes\) \|\| 0/);
 
+    assert.match(result, /__timerMotivationPwaFallbackV31/);
+    assert.match(result, /setInterval\(\(\) => \{/);
+    assert.match(result, /zIndex: "100000"/);
+    assert.match(result, /}, 30000\);/);
+    assert.match(result, /document\.getElementById\("timerMotivationalToast"\)/);
+    assert.match(result, /const plannedMinutes = Number\(floatingTimer\.sessionGoalMinutes\) \|\| Number\(goal\?\.minutes\) \|\| 0/);
+
     const html = patch.patchHtmlSource('<p>Versão: 20260717-numero-qc-v26</p>');
-    assert.equal(html, '<p>Versão: 20260717-sincronizacao-integral-cronometro-v29</p>');
+    assert.equal(html, '<p>Versão: 20260717-mensagens-cronometro-livre-pwa-v31</p>');
   });
 }
+
+test("fallback motivacional é injetado somente uma vez", () => {
+  const patch = patchFunctionsFrom(fs.readFileSync("service-worker.js", "utf8"));
+  const once = patch.patchAppScriptSource("const APP_VERSION = \"20260717-numero-qc-v26\";");
+  const twice = patch.patchAppScriptSource(once);
+  assert.equal((twice.match(/__timerMotivationPwaFallbackV31/g) || []).length, 2);
+  assert.equal((once.match(/globalThis\.__timerMotivationPwaFallbackV31 = true/g) || []).length, 1);
+  assert.equal((twice.match(/globalThis\.__timerMotivationPwaFallbackV31 = true/g) || []).length, 1);
+});
 
 test("service worker publicado permanece sincronizado", () => {
   assert.equal(
