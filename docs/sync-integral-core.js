@@ -30,6 +30,26 @@ function syncPrimitiveArray(local = [], remote = []) {
   });
   return result;
 }
+function syncStableSerialize(value) {
+  if (value === null || value === undefined) return String(value);
+  if (Array.isArray(value)) return `[${value.map(syncStableSerialize).sort().join(",")}]`;
+  if (typeof value === "object") {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${syncStableSerialize(value[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+function syncStateFingerprint(value = {}) {
+  const serialized = syncStableSerialize(value || {});
+  let hash = 2166136261;
+  for (let index = 0; index < serialized.length; index += 1) {
+    hash ^= serialized.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `${serialized.length}:${(hash >>> 0).toString(16).padStart(8, "0")}`;
+}
+function syncPayloadFingerprint(payload = {}) {
+  return payload.stateFingerprint || syncStateFingerprint(payload.state || {});
+}
 function syncCollectionKey(item = {}, collection = "records") {
   const directId = (["studies", "questionBankSessions"].includes(collection) ? (item.sessionId || item.id) : (item.id || item.sessionId)) || item.uuid || item.key;
   if (directId) return `${collection}:id:${String(directId)}`;
