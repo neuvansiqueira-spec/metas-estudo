@@ -12,13 +12,23 @@ function routeLogic() {
   return new Function(`${script.slice(start, end)}; return { buildQconcursosFilterRoute, QCONCURSOS_DELEGADO_URL };`)();
 }
 
-test('registro de questões possui três etapas recolhíveis sem duplicar o formulário', () => {
+test('registro de questões possui duas etapas recolhíveis sem duplicar o formulário', () => {
   const view = html.slice(html.indexOf('id="view-questoes"'), html.indexOf('id="view-banco-questoes"'));
-  assert.equal((view.match(/class="question-register-section/g) || []).length, 3);
+  assert.equal((view.match(/<details class="question-register-section/g) || []).length, 2);
   assert.equal((view.match(/id="questionForm"/g) || []).length, 1);
-  assert.match(view, /ETAPA 1 • CONTEÚDO/);
-  assert.match(view, /ETAPA 2 • BUSCA EXTERNA/);
-  assert.match(view, /ETAPA 3 • RESULTADO/);
+  assert.match(view, /ETAPA 1 • BUSCA E CONTEÚDO/);
+  assert.match(view, /Encontrar e Filtrar Questões para Delegado/);
+  assert.match(view, /ETAPA 2 • RESULTADO/);
+  assert.match(view, /Registrar Resultado da Nova Sessão/);
+});
+
+test('capitalização visual mantém preposições em minúsculas sem alterar o valor original', () => {
+  const start = script.indexOf('function portugueseTitleCase');
+  const end = script.indexOf('function buildQconcursosFilterRoute', start);
+  const titleCase = new Function(`${script.slice(start, end)}; return portugueseTitleCase;`)();
+  const original = 'representação por prisão temporária e medidas cautelares';
+  assert.equal(titleCase(original), 'Representação por Prisão Temporária e Medidas Cautelares');
+  assert.equal(original, 'representação por prisão temporária e medidas cautelares');
 });
 
 test('rota prioriza cargo Delegado e preserva disciplina, assunto, subtema e banca', () => {

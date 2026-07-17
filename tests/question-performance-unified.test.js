@@ -6,7 +6,7 @@ test('questões separam registro e consulta unificada sem alterar fontes persist
   const html = fs.readFileSync('index.html', 'utf8');
   const script = fs.readFileSync('script.js', 'utf8');
   assert.match(html, /Registrar sessão de questões/);
-  assert.match(html, /Dados da nova sessão/);
+  assert.match(html, /Registrar Resultado da Nova Sessão/);
   assert.match(script, /Histórico deste assunto/);
   assert.match(html, /Desempenho e Histórico de Questões/);
   assert.match(html, /questionFilterOrigin/);

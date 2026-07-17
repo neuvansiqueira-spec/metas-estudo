@@ -10,7 +10,7 @@ const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const serviceWorker = fs.readFileSync('service-worker.js', 'utf8');
 const docsServiceWorker = fs.readFileSync('docs/service-worker.js', 'utf8');
 
-const version = '20260717-hierarquia-questoes-v24';
+const version = '20260717-fluxo-questoes-v25';
 const clickRoutes = [
   'factoryPrompt', 'factoryPromptClose', 'factoryPromptCopy', 'factoryRouterCopy',
   'factoryEdit', 'factoryDelete', 'factoryModules', 'factoryModulesCancel',
