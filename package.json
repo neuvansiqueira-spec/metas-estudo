@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260717-salvamento-integral-tempo-v33",
+  "version": "20260717-espectro-continuo-acertos-v34",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
