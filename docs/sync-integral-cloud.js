@@ -96,9 +96,48 @@ async function applyCloudPayloadIntegral(payload, { preserveView = false } = {})
   }
 }
 
+const DEVICE_SYNC_AUTH_RETRY_INTERVAL_MS = 10 * 60 * 1000;
+let deviceSyncAuthorizationLastAttemptAt = 0;
+let deviceSyncAuthorizationInFlight = null;
+
+async function ensureConnectedGoogleDriveAuthorization({ force = false } = {}) {
+  const meta = readSyncMeta();
+  if (!meta.connected) return false;
+  if (hasValidGoogleDriveAccessToken()) return true;
+  const now = Date.now();
+  if (!force && now - deviceSyncAuthorizationLastAttemptAt < DEVICE_SYNC_AUTH_RETRY_INTERVAL_MS) return false;
+  if (deviceSyncAuthorizationInFlight) return deviceSyncAuthorizationInFlight;
+  deviceSyncAuthorizationLastAttemptAt = now;
+  deviceSyncAuthorizationInFlight = (async () => {
+    try {
+      await getAccessToken({ prompt: "" });
+      if (hasValidGoogleDriveAccessToken()) {
+        writeSyncMeta({ connected: true, error: "", errorDetails: "" });
+        renderSyncStatus("Autorização Google renovada. Sincronização retomada.");
+        return true;
+      }
+    } catch (error) {
+      console.warn("[Metas Estudo] A autorização Google não pôde ser renovada silenciosamente.", error);
+    }
+    const message = "Autorização expirada. Toque em Conectar Google Drive para renovar e enviar as alterações pendentes.";
+    writeSyncMeta({ connected: true, pendingSync: true, error: message });
+    renderSyncStatus(message);
+    return false;
+  })();
+  try {
+    return await deviceSyncAuthorizationInFlight;
+  } finally {
+    deviceSyncAuthorizationInFlight = null;
+  }
+}
+
 async function syncNowIntegral() {
   if (!canRunAutoSyncChecks()) return;
   try {
+    if (readSyncMeta()?.connected && !hasValidGoogleDriveAccessToken()) {
+      const authorized = await ensureConnectedGoogleDriveAuthorization({ force: true });
+      if (!authorized) return;
+    }
     const remote = await pullSyncPayload();
     const localFingerprint = syncStateFingerprint(state);
     const remoteFingerprint = syncPayloadFingerprint(remote);
@@ -116,9 +155,19 @@ async function syncNowIntegral() {
 async function checkCloudForNewerVersionIntegral(context = "open") {
   if (!canRunAutoSyncChecks()) return;
   const meta = readSyncMeta();
-  if (!meta.connected || !hasValidGoogleDriveAccessToken()) {
+  if (!meta.connected) {
     if (context === "open") renderSyncStatus("Conecte ao Google Drive para verificar atualizações da nuvem.");
     return;
+  }
+  if (!hasValidGoogleDriveAccessToken()) {
+    const mayRetryAuthorization = !String(context).includes("interval");
+    const authorized = mayRetryAuthorization ? await ensureConnectedGoogleDriveAuthorization() : false;
+    if (!authorized) {
+      if (context === "open" || String(context).startsWith("device-")) {
+        renderSyncStatus("Autorização expirada. Toque em Conectar Google Drive para renovar.");
+      }
+      return;
+    }
   }
   const now = Date.now();
   if (cloudAutoCheckRunning || now < suppressAutoCheckUntil || (context !== "open" && now - lastCloudAutoCheckAt < 5000)) return;
@@ -149,7 +198,6 @@ function deviceSyncRefreshCanRun() {
   if (typeof document === "undefined" || document.visibilityState === "hidden") return false;
   if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
   if (typeof readSyncMeta !== "function" || !readSyncMeta()?.connected) return false;
-  if (typeof hasValidGoogleDriveAccessToken !== "function" || !hasValidGoogleDriveAccessToken()) return false;
   if (typeof isSyncing !== "undefined" && isSyncing) return false;
   if (typeof isApplyingRemote !== "undefined" && isApplyingRemote) return false;
   if (typeof cloudAutoCheckRunning !== "undefined" && cloudAutoCheckRunning) return false;
@@ -175,8 +223,8 @@ async function refreshDeviceFromCloud(reason = "interval") {
 }
 
 function installDeviceSyncRefresh() {
-  if (typeof window === "undefined" || typeof document === "undefined" || globalThis.__metasDeviceSyncRefreshV32) return;
-  globalThis.__metasDeviceSyncRefreshV32 = true;
+  if (typeof window === "undefined" || typeof document === "undefined" || globalThis.__metasDeviceSyncRefreshV33) return;
+  globalThis.__metasDeviceSyncRefreshV33 = true;
   const schedule = (reason, delay = 250) => setTimeout(() => refreshDeviceFromCloud(reason), delay);
   window.addEventListener("focus", () => schedule("focus"));
   window.addEventListener("pageshow", () => schedule("pageshow", 400));
@@ -188,4 +236,48 @@ function installDeviceSyncRefresh() {
   schedule("startup", 1800);
 }
 
+let sameDeviceStateSyncApplying = false;
+
+function installSameDeviceStateSync() {
+  if (typeof window === "undefined" || globalThis.__metasSameDeviceStateSyncV33) return;
+  globalThis.__metasSameDeviceStateSyncV33 = true;
+  window.addEventListener("storage", (event) => {
+    if (event.key !== STORAGE_KEY || !event.newValue || sameDeviceStateSyncApplying) return;
+    try {
+      const incomingState = JSON.parse(event.newValue);
+      if (!incomingState || typeof incomingState !== "object" || Array.isArray(incomingState)) return;
+      const currentFingerprint = syncStateFingerprint(state);
+      const incomingFingerprint = syncStateFingerprint(incomingState);
+      if (currentFingerprint === incomingFingerprint) return;
+      sameDeviceStateSyncApplying = true;
+      const mergedState = mergeSyncStates(state, incomingState, "remote");
+      replaceState(mergedState);
+      saveData({ skipSyncTimestamp: true });
+      render();
+      if (typeof showDailyGoalMessage === "function") {
+        showDailyGoalMessage("Dados atualizados pelo outro aplicativo deste dispositivo.", "success");
+      }
+    } catch (error) {
+      console.warn("[Metas Estudo] Falha ao atualizar outra janela deste dispositivo.", error);
+    } finally {
+      setTimeout(() => { sameDeviceStateSyncApplying = false; }, 0);
+    }
+  });
+}
+
+function installAutoSyncAuthorizationRetry() {
+  if (globalThis.__metasAutoSyncAuthorizationRetryV33 || typeof runAutoSyncAfterSave !== "function") return;
+  globalThis.__metasAutoSyncAuthorizationRetryV33 = true;
+  const originalRunAutoSyncAfterSave = runAutoSyncAfterSave;
+  runAutoSyncAfterSave = async function runAutoSyncAfterSaveWithAuthorization(reason) {
+    const meta = readSyncMeta();
+    if (meta.connected && !hasValidGoogleDriveAccessToken()) {
+      await ensureConnectedGoogleDriveAuthorization({ force: true });
+    }
+    return originalRunAutoSyncAfterSave(reason);
+  };
+}
+
+installSameDeviceStateSync();
+installAutoSyncAuthorizationRetry();
 installDeviceSyncRefresh();
