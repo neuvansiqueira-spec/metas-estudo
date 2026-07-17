@@ -4354,6 +4354,28 @@ tbody tr:hover { background: #f2f6f8; }
 }
 
 @media print {
+  .generated-file-brand {
+    float: right;
+    display: flex;
+    align-items: center;
+    gap: 3mm;
+    margin: 0 0 4mm 8mm;
+    color: #fff;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .generated-file-brand img { width: 22mm; height: 24mm; object-fit: contain; }
+  .performance-print-hero { position: relative; padding-right: 38mm !important; }
+  .performance-print-hero::after {
+    content: "";
+    position: absolute;
+    top: 7mm;
+    right: 9mm;
+    width: 24mm;
+    height: 26mm;
+    background: url("icons/logo-mark.svg") center / contain no-repeat;
+  }
   .calendar-print-report > header, .performance-print-hero {
     background: linear-gradient(135deg, var(--primary-deep), var(--primary) 72%, var(--primary-secondary));
     border-bottom: 3mm solid var(--accent);
