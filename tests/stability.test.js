@@ -38,10 +38,10 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão atual', () => {
-  assert.match(html, /style\.css\?v=20260716-logo-preparacao-v15/);
-  assert.match(html, /storage-indexeddb\.js\?v=20260716-logo-preparacao-v15/);
-  assert.match(html, /script\.js\?v=20260716-logo-preparacao-v15/);
-  assert.match(html, /Versão: 20260716-logo-preparacao-v15/);
+  assert.match(html, /style\.css\?v=20260716-logo-espada-nj-v16/);
+  assert.match(html, /storage-indexeddb\.js\?v=20260716-logo-espada-nj-v16/);
+  assert.match(html, /script\.js\?v=20260716-logo-espada-nj-v16/);
+  assert.match(html, /Versão: 20260716-logo-espada-nj-v16/);
 });
 
 test('identidade visual policial usa paleta institucional sem marca oficial', () => {
@@ -57,9 +57,12 @@ test('logo original aparece no cabeçalho, favicon e cache do aplicativo', () =>
   const sw = fs.readFileSync('service-worker.js', 'utf8');
   assert.match(html, /rel="icon"[^>]+icons\/logo-mark\.svg/);
   assert.match(html, /class="brand-icon"[\s\S]*?<img src="icons\/logo-mark\.svg"/);
-  assert.match(logo, /Escudo abstrato com livro aberto e marca de progresso/);
+  assert.match(logo, /Escudo abstrato com livro aberto, espada central e iniciais N J/);
   assert.match(logo, /#082b49/);
   assert.match(logo, /#c5a253/);
+  assert.match(logo, />N<\/text>/);
+  assert.match(logo, />J<\/text>/);
+  assert.match(css, /\.brand-icon\s*\{[\s\S]*?width:\s*62px;[\s\S]*?height:\s*68px;/);
   assert.match(sw, /icons\/logo-mark\.svg/);
 });
 
@@ -249,7 +252,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260716-logo-preparacao-v15/);
+  assert.match(sw, /metas-estudo-20260716-logo-espada-nj-v16/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);

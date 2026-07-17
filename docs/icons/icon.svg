@@ -1,10 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
   <title id="title">Ícone Metas Concurso</title>
-  <desc id="desc">Escudo abstrato com livro aberto e marca de progresso.</desc>
+  <desc id="desc">Escudo abstrato com livro aberto, espada central e iniciais N J.</desc>
   <rect width="512" height="512" rx="96" fill="#082b49"/>
   <circle cx="256" cy="256" r="190" fill="#154c79" opacity="0.84"/>
   <path d="M256 66 418 124v118c0 106-62 185-162 234C156 427 94 348 94 242V124L256 66Z" fill="#f7edcf"/>
   <path d="M256 91 394 141v101c0 91-52 158-138 203-86-45-138-112-138-203V141L256 91Z" fill="#082b49"/>
-  <path d="M171 193c31-5 59 3 85 23v100c-27-20-55-28-85-24v-99Zm170 0c-31-5-59 3-85 23v100c27-20 55-28 85-24v-99Z" fill="#ffffff" stroke="#dceaf4" stroke-width="7" stroke-linejoin="round"/>
-  <path d="m199 320 36 36 86-86" fill="none" stroke="#f2cf75" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M164 193c34-6 65 3 92 24v106c-27-21-58-31-92-25V193Zm184 0c-34-6-65 3-92 24v106c27-21 58-31 92-25V193Z" fill="#ffffff" stroke="#dceaf4" stroke-width="7" stroke-linejoin="round"/>
+  <text x="205" y="278" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="68" font-weight="900" fill="#082b49">N</text>
+  <text x="307" y="278" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="68" font-weight="900" fill="#082b49">J</text>
+  <path d="m256 92 25 50-14 182h-22l-14-182 25-50Z" fill="#f7edcf" stroke="#c5a253" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M191 312h130v27H191z" rx="12" fill="#c5a253" stroke="#f7edcf" stroke-width="7"/>
+  <path d="M242 339h28v63l-14 24-14-24v-63Z" fill="#f7edcf" stroke="#c5a253" stroke-width="7" stroke-linejoin="round"/>
 </svg>

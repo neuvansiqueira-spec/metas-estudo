@@ -1,10 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
   <title id="title">Ícone maskable Metas Concurso</title>
-  <desc id="desc">Escudo abstrato com livro aberto e marca de progresso em área segura.</desc>
+  <desc id="desc">Escudo abstrato com livro aberto, espada central e iniciais N J em área segura.</desc>
   <rect width="512" height="512" fill="#082b49"/>
   <circle cx="256" cy="256" r="210" fill="#154c79" opacity="0.72"/>
   <path d="M256 91 394 141v101c0 91-52 158-138 203-86-45-138-112-138-203V141L256 91Z" fill="#f7edcf"/>
   <path d="M256 113 373 156v86c0 77-44 134-117 173-73-39-117-96-117-173v-86l117-43Z" fill="#082b49"/>
-  <path d="M183 201c27-4 50 3 73 20v85c-23-17-47-24-73-20v-85Zm146 0c-27-4-50 3-73 20v85c23-17 47-24 73-20v-85Z" fill="#ffffff"/>
-  <path d="m207 309 31 31 73-73" fill="none" stroke="#f2cf75" stroke-width="21" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M178 201c29-5 55 3 78 21v90c-24-18-50-26-78-21v-90Zm156 0c-29-5-55 3-78 21v90c24-18 50-26 78-21v-90Z" fill="#ffffff"/>
+  <text x="213" y="274" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="58" font-weight="900" fill="#082b49">N</text>
+  <text x="299" y="274" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="58" font-weight="900" fill="#082b49">J</text>
+  <path d="m256 116 21 43-12 154h-18l-12-154 21-43Z" fill="#f7edcf" stroke="#c5a253" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M201 303h110v23H201z" rx="10" fill="#c5a253"/>
+  <path d="M244 326h24v53l-12 21-12-21v-53Z" fill="#f7edcf" stroke="#c5a253" stroke-width="6" stroke-linejoin="round"/>
 </svg>
