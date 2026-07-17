@@ -140,3 +140,52 @@ async function checkCloudForNewerVersionIntegral(context = "open") {
     cloudAutoCheckRunning = false;
   }
 }
+
+const DEVICE_SYNC_REFRESH_INTERVAL_MS = 20000;
+let deviceSyncRefreshRunning = false;
+let deviceSyncRefreshLastAt = 0;
+
+function deviceSyncRefreshCanRun() {
+  if (typeof document === "undefined" || document.visibilityState === "hidden") return false;
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
+  if (typeof readSyncMeta !== "function" || !readSyncMeta()?.connected) return false;
+  if (typeof hasValidGoogleDriveAccessToken !== "function" || !hasValidGoogleDriveAccessToken()) return false;
+  if (typeof isSyncing !== "undefined" && isSyncing) return false;
+  if (typeof isApplyingRemote !== "undefined" && isApplyingRemote) return false;
+  if (typeof cloudAutoCheckRunning !== "undefined" && cloudAutoCheckRunning) return false;
+  if (typeof floatingTimer !== "undefined" && floatingTimer?.startedAt && !floatingTimer?.paused) return false;
+  const activeTag = String(document.activeElement?.tagName || "").toUpperCase();
+  if (["INPUT", "TEXTAREA", "SELECT"].includes(activeTag)) return false;
+  return true;
+}
+
+async function refreshDeviceFromCloud(reason = "interval") {
+  if (!deviceSyncRefreshCanRun() || deviceSyncRefreshRunning) return;
+  const now = Date.now();
+  if (reason === "interval" && now - deviceSyncRefreshLastAt < DEVICE_SYNC_REFRESH_INTERVAL_MS - 1000) return;
+  deviceSyncRefreshRunning = true;
+  deviceSyncRefreshLastAt = now;
+  try {
+    await checkCloudForNewerVersionIntegral(`device-${reason}`);
+  } catch (error) {
+    console.warn("[Metas Estudo] A atualização automática deste dispositivo falhou.", error);
+  } finally {
+    deviceSyncRefreshRunning = false;
+  }
+}
+
+function installDeviceSyncRefresh() {
+  if (typeof window === "undefined" || typeof document === "undefined" || globalThis.__metasDeviceSyncRefreshV32) return;
+  globalThis.__metasDeviceSyncRefreshV32 = true;
+  const schedule = (reason, delay = 250) => setTimeout(() => refreshDeviceFromCloud(reason), delay);
+  window.addEventListener("focus", () => schedule("focus"));
+  window.addEventListener("pageshow", () => schedule("pageshow", 400));
+  window.addEventListener("online", () => schedule("online", 500));
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") schedule("visible", 350);
+  });
+  setInterval(() => refreshDeviceFromCloud("interval"), DEVICE_SYNC_REFRESH_INTERVAL_MS);
+  schedule("startup", 1800);
+}
+
+installDeviceSyncRefresh();
