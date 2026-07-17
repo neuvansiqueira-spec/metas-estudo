@@ -11,7 +11,15 @@ function patchFunctionsFrom(source) {
   assert.notEqual(end, -1, "fim das funções de correção não encontrado");
 
   const block = source.slice(start, end);
-  const context = {};
+  const context = {
+    self: { addEventListener() {}, skipWaiting() {}, clients: { claim() {} } },
+    caches: { open: async () => ({ addAll() {}, put() {} }), keys: async () => [], delete: async () => true, match: async () => null },
+    fetch: async () => ({ ok: false }),
+    Headers,
+    Response,
+    URL,
+    console
+  };
   vm.runInNewContext(`${block}; result = { replaceVersion, patchHtmlSource, patchAppScriptSource, CURRENT_VERSION };`, context);
   return context.result;
 }
@@ -29,8 +37,8 @@ for (const file of ["service-worker.js", "docs/service-worker.js"]) {
     ].join("\n");
 
     const result = patch.patchAppScriptSource(original);
-    assert.equal(patch.CURRENT_VERSION, "20260717-cronometro-livre-meta-v28");
-    assert.match(result, /APP_VERSION = "20260717-cronometro-livre-meta-v28"/);
+    assert.equal(patch.CURRENT_VERSION, "20260717-sincronizacao-integral-cronometro-v29");
+    assert.match(result, /APP_VERSION = "20260717-sincronizacao-integral-cronometro-v29"/);
     assert.match(result, /TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 30000/);
     assert.match(result, /floatingTimer\.mode !== "free" && !goal/);
     assert.doesNotMatch(result, /if \(!goal \|\| !supportedMode/);
@@ -39,7 +47,7 @@ for (const file of ["service-worker.js", "docs/service-worker.js"]) {
     assert.match(result, /Number\(floatingTimer\.sessionGoalMinutes\) \|\| Number\(goal\?\.minutes\) \|\| 0/);
 
     const html = patch.patchHtmlSource('<p>Versão: 20260717-numero-qc-v26</p>');
-    assert.equal(html, '<p>Versão: 20260717-cronometro-livre-meta-v28</p>');
+    assert.equal(html, '<p>Versão: 20260717-sincronizacao-integral-cronometro-v29</p>');
   });
 }
 
