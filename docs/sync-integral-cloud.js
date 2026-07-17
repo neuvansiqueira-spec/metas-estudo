@@ -100,10 +100,22 @@ const DEVICE_SYNC_AUTH_RETRY_INTERVAL_MS = 10 * 60 * 1000;
 let deviceSyncAuthorizationLastAttemptAt = 0;
 let deviceSyncAuthorizationInFlight = null;
 
-async function ensureConnectedGoogleDriveAuthorization({ force = false } = {}) {
+function googleDriveAuthorizationExpiredMessage() {
+  return "Autorização expirada. Toque em Conectar Google Drive para renovar e enviar as alterações pendentes.";
+}
+
+async function ensureConnectedGoogleDriveAuthorization({ force = false, interactive = false } = {}) {
   const meta = readSyncMeta();
   if (!meta.connected) return false;
   if (hasValidGoogleDriveAccessToken()) return true;
+
+  const message = googleDriveAuthorizationExpiredMessage();
+  if (!interactive) {
+    writeSyncMeta({ connected: true, error: message });
+    renderSyncStatus(message);
+    return false;
+  }
+
   const now = Date.now();
   if (!force && now - deviceSyncAuthorizationLastAttemptAt < DEVICE_SYNC_AUTH_RETRY_INTERVAL_MS) return false;
   if (deviceSyncAuthorizationInFlight) return deviceSyncAuthorizationInFlight;
@@ -117,9 +129,8 @@ async function ensureConnectedGoogleDriveAuthorization({ force = false } = {}) {
         return true;
       }
     } catch (error) {
-      console.warn("[Metas Estudo] A autorização Google não pôde ser renovada silenciosamente.", error);
+      console.warn("[Metas Estudo] A autorização Google não pôde ser renovada após a ação do usuário.", error);
     }
-    const message = "Autorização expirada. Toque em Conectar Google Drive para renovar e enviar as alterações pendentes.";
     writeSyncMeta({ connected: true, pendingSync: true, error: message });
     renderSyncStatus(message);
     return false;
@@ -135,7 +146,7 @@ async function syncNowIntegral() {
   if (!canRunAutoSyncChecks()) return;
   try {
     if (readSyncMeta()?.connected && !hasValidGoogleDriveAccessToken()) {
-      const authorized = await ensureConnectedGoogleDriveAuthorization({ force: true });
+      const authorized = await ensureConnectedGoogleDriveAuthorization({ force: true, interactive: true });
       if (!authorized) return;
     }
     const remote = await pullSyncPayload();
@@ -160,14 +171,12 @@ async function checkCloudForNewerVersionIntegral(context = "open") {
     return;
   }
   if (!hasValidGoogleDriveAccessToken()) {
-    const mayRetryAuthorization = !String(context).includes("interval");
-    const authorized = mayRetryAuthorization ? await ensureConnectedGoogleDriveAuthorization() : false;
-    if (!authorized) {
-      if (context === "open" || String(context).startsWith("device-")) {
-        renderSyncStatus("Autorização expirada. Toque em Conectar Google Drive para renovar.");
-      }
-      return;
+    const message = googleDriveAuthorizationExpiredMessage();
+    writeSyncMeta({ connected: true, error: message });
+    if (context === "open" || String(context).startsWith("device-")) {
+      renderSyncStatus("Autorização expirada. Toque em Conectar Google Drive para renovar.");
     }
+    return;
   }
   const now = Date.now();
   if (cloudAutoCheckRunning || now < suppressAutoCheckUntil || (context !== "open" && now - lastCloudAutoCheckAt < 5000)) return;
@@ -266,13 +275,16 @@ function installSameDeviceStateSync() {
 }
 
 function installAutoSyncAuthorizationRetry() {
-  if (globalThis.__metasAutoSyncAuthorizationRetryV33 || typeof runAutoSyncAfterSave !== "function") return;
-  globalThis.__metasAutoSyncAuthorizationRetryV33 = true;
+  if (globalThis.__metasAutoSyncAuthorizationRetryV36 || typeof runAutoSyncAfterSave !== "function") return;
+  globalThis.__metasAutoSyncAuthorizationRetryV36 = true;
   const originalRunAutoSyncAfterSave = runAutoSyncAfterSave;
-  runAutoSyncAfterSave = async function runAutoSyncAfterSaveWithAuthorization(reason) {
+  runAutoSyncAfterSave = async function runAutoSyncAfterSaveWithoutPopup(reason) {
     const meta = readSyncMeta();
     if (meta.connected && !hasValidGoogleDriveAccessToken()) {
-      await ensureConnectedGoogleDriveAuthorization({ force: true });
+      const message = googleDriveAuthorizationExpiredMessage();
+      markPendingSync(reason || "auto-save", message);
+      renderSyncStatus(message);
+      return;
     }
     return originalRunAutoSyncAfterSave(reason);
   };
