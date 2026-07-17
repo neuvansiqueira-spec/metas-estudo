@@ -1,7 +1,7 @@
 const PREVIOUS_VERSION = "20260717-numero-qc-v26";
-const CURRENT_VERSION = "20260717-sincronizacao-integral-cronometro-v29";
+const CURRENT_VERSION = "20260717-sincronizacao-conteudo-v30";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
-const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v5`;
+const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v6`;
 const FILES_TO_CACHE = [
   "./",
   "index.html",
@@ -73,6 +73,14 @@ function patchAppScriptSource(source, syncIntegralSource = "") {
   patched = patched.replace(
     /async function applyCloudPayload\(payload\) \{[\s\S]*?\nasync function syncNow\(\)/,
     'async function applyCloudPayload(payload) { return applyCloudPayloadIntegral(payload); }\nasync function syncNow()'
+  );
+  patched = patched.replace(
+    /async function syncNow\(\) \{[\s\S]*?\nfunction hasPendingLocalChanges/,
+    'async function syncNow() { return syncNowIntegral(); }\nfunction hasPendingLocalChanges'
+  );
+  patched = patched.replace(
+    /async function checkCloudForNewerVersion\(context = "open"\) \{[\s\S]*?\nasync function checkCloudForUpdatesAfterAuth/,
+    'async function checkCloudForNewerVersion(context = "open") { return checkCloudForNewerVersionIntegral(context); }\nasync function checkCloudForUpdatesAfterAuth'
   );
   patched = patched
     .split("Baixar versão da nuvem").join("Mesclar dados deste dispositivo com a nuvem")
