@@ -1,13 +1,21 @@
+function syncPreparePayload(payload = {}) {
+  const prepared = { ...payload, state: cloneData(payload.state || state) };
+  prepared.stateFingerprint = syncStateFingerprint(prepared.state);
+  return prepared;
+}
+
 async function uploadSyncPayloadIntegral(payload = makeSyncPayload(), { statusMessage = "Dados enviados para a nuvem com sucesso." } = {}) {
   if (isSyncing) return null;
   isSyncing = true;
   try {
+    payload = syncPreparePayload(payload);
     const file = await findSyncFile();
     if (file) {
       const remotePayload = await downloadSyncFile(file.id);
       validateCloudPayload(remotePayload);
       syncCreateSafetyBackup(state, "before-cloud-upload-merge");
       const mergedAt = new Date().toISOString();
+      const mergedState = mergeSyncStates(remotePayload.state, payload.state, "local");
       payload = {
         ...remotePayload,
         ...payload,
@@ -19,13 +27,15 @@ async function uploadSyncPayloadIntegral(payload = makeSyncPayload(), { statusMe
         deviceId: getDeviceId(),
         deviceName: getDeviceName(),
         mergedDeviceIds: [...new Set([...(remotePayload.mergedDeviceIds || []), remotePayload.deviceId, ...(payload.mergedDeviceIds || []), payload.deviceId].filter(Boolean))],
-        state: mergeSyncStates(remotePayload.state, payload.state, "local")
+        state: mergedState,
+        stateFingerprint: syncStateFingerprint(mergedState)
       };
     }
+    payload = syncPreparePayload(payload);
     const saved = file ? await updateSyncFile(file.id, payload) : await createSyncFile(payload);
     replaceState(payload.state);
     saveData({ skipSyncTimestamp: true });
-    writeSyncMeta({ connected: true, pendingSync: false, pendingSyncReason: null, localDirty: false, lastSyncAt: new Date().toISOString(), remoteUpdatedAt: syncPayloadUpdatedAt(payload), cloudDataUpdatedAt: syncPayloadUpdatedAt(payload), localDataUpdatedAt: syncPayloadUpdatedAt(payload), lastLocalUpdateAt: syncPayloadUpdatedAt(payload), remoteDeviceName: payload.deviceName, error: "" });
+    writeSyncMeta({ connected: true, pendingSync: false, pendingSyncReason: null, localDirty: false, lastSyncAt: new Date().toISOString(), remoteUpdatedAt: syncPayloadUpdatedAt(payload), cloudDataUpdatedAt: syncPayloadUpdatedAt(payload), localDataUpdatedAt: syncPayloadUpdatedAt(payload), lastLocalUpdateAt: syncPayloadUpdatedAt(payload), remoteDeviceName: payload.deviceName, stateFingerprint: payload.stateFingerprint, error: "" });
     suppressAutoChecksAfterSync();
     render();
     renderSyncStatus(statusMessage);
@@ -50,7 +60,8 @@ async function applyCloudPayloadIntegral(payload) {
       deviceId: getDeviceId(),
       deviceName: getDeviceName(),
       mergedDeviceIds: [...new Set([...(payload.mergedDeviceIds || []), payload.deviceId, getDeviceId()].filter(Boolean))],
-      state: cloneData(mergedState)
+      state: cloneData(mergedState),
+      stateFingerprint: syncStateFingerprint(mergedState)
     };
     replaceState(mergedState);
     const snapshot = cloneData(state);
@@ -72,7 +83,7 @@ async function applyCloudPayloadIntegral(payload) {
       console.warn("[Metas Estudo] A mesclagem foi preservada localmente, mas o reenvio para a nuvem ficou pendente.", uploadError);
       markPendingSync("cloud-merge", "Dados mesclados neste dispositivo. Reenvio para a nuvem pendente.");
     }
-    writeSyncMeta({ connected: true, pendingSync: !uploadSucceeded, pendingSyncReason: uploadSucceeded ? null : "cloud-merge", localDirty: !uploadSucceeded, lastLocalUpdateAt: mergedAt, localDataUpdatedAt: mergedAt, lastSyncAt: new Date().toISOString(), lastAutoSyncError: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", remoteUpdatedAt: mergedAt, cloudDataUpdatedAt: mergedAt, remoteDeviceName: payload.deviceName || "", error: uploadSucceeded ? "" : "Dados mesclados; envio para a nuvem pendente.", errorDetails: "", lastCloudDialogAt: "" });
+    writeSyncMeta({ connected: true, pendingSync: !uploadSucceeded, pendingSyncReason: uploadSucceeded ? null : "cloud-merge", localDirty: !uploadSucceeded, lastLocalUpdateAt: mergedAt, localDataUpdatedAt: mergedAt, lastSyncAt: new Date().toISOString(), lastAutoSyncError: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", remoteUpdatedAt: mergedAt, cloudDataUpdatedAt: mergedAt, remoteDeviceName: payload.deviceName || "", stateFingerprint: mergedPayload.stateFingerprint, error: uploadSucceeded ? "" : "Dados mesclados; envio para a nuvem pendente.", errorDetails: "", lastCloudDialogAt: "" });
     suppressAutoChecksAfterSync();
     render();
     showView("backup");
@@ -82,5 +93,50 @@ async function applyCloudPayloadIntegral(payload) {
     throw error;
   } finally {
     isApplyingRemote = false;
+  }
+}
+
+async function syncNowIntegral() {
+  if (!canRunAutoSyncChecks()) return;
+  try {
+    const remote = await pullSyncPayload();
+    const localFingerprint = syncStateFingerprint(state);
+    const remoteFingerprint = syncPayloadFingerprint(remote);
+    if (localFingerprint === remoteFingerprint) {
+      writeSyncMeta({ connected: true, stateFingerprint: localFingerprint, error: "" });
+      renderSyncStatus("Tudo sincronizado. O conteúdo dos dispositivos é idêntico.");
+      return;
+    }
+    await applyCloudPayloadIntegral(remote);
+  } catch (error) {
+    recordCloudSyncError(error, "Erro ao sincronizar.");
+  }
+}
+
+async function checkCloudForNewerVersionIntegral(context = "open") {
+  if (!canRunAutoSyncChecks()) return;
+  const meta = readSyncMeta();
+  if (!meta.connected || !hasValidGoogleDriveAccessToken()) {
+    if (context === "open") renderSyncStatus("Conecte ao Google Drive para verificar atualizações da nuvem.");
+    return;
+  }
+  const now = Date.now();
+  if (cloudAutoCheckRunning || now < suppressAutoCheckUntil || (context !== "open" && now - lastCloudAutoCheckAt < 5000)) return;
+  cloudAutoCheckRunning = true;
+  lastCloudAutoCheckAt = now;
+  try {
+    const remote = await pullSyncPayload();
+    const localFingerprint = syncStateFingerprint(state);
+    const remoteFingerprint = syncPayloadFingerprint(remote);
+    if (localFingerprint === remoteFingerprint) {
+      writeSyncMeta({ connected: true, stateFingerprint: localFingerprint, error: "" });
+      renderSyncStatus("Tudo sincronizado. O conteúdo dos dispositivos é idêntico.");
+      return;
+    }
+    await applyCloudPayloadIntegral(remote);
+  } catch (error) {
+    recordCloudSyncError(error, "Erro ao consultar a nuvem.");
+  } finally {
+    cloudAutoCheckRunning = false;
   }
 }
