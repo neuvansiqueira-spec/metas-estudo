@@ -25,7 +25,7 @@ function patchFunctionsFrom(source) {
 }
 
 for (const file of ["service-worker.js", "docs/service-worker.js"]) {
-  test(`${file}: configura e reforça mensagens do Cronômetro Livre no PWA`, () => {
+  test(`${file}: mantém correções do Cronômetro Livre e publica o espectro de acertos`, () => {
     const source = fs.readFileSync(file, "utf8");
     const patch = patchFunctionsFrom(source);
     const original = [
@@ -37,8 +37,8 @@ for (const file of ["service-worker.js", "docs/service-worker.js"]) {
     ].join("\n");
 
     const result = patch.patchAppScriptSource(original);
-    assert.equal(patch.CURRENT_VERSION, "20260717-salvamento-integral-tempo-v33");
-    assert.match(result, /APP_VERSION = "20260717-salvamento-integral-tempo-v33"/);
+    assert.equal(patch.CURRENT_VERSION, "20260717-espectro-continuo-acertos-v34");
+    assert.match(result, /APP_VERSION = "20260717-espectro-continuo-acertos-v34"/);
     assert.match(result, /TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 30000/);
     assert.match(result, /floatingTimer\.mode !== "free" && !goal/);
     assert.doesNotMatch(result, /if \(!goal \|\| !supportedMode/);
@@ -50,14 +50,14 @@ for (const file of ["service-worker.js", "docs/service-worker.js"]) {
     assert.match(result, /zIndex: "100000"/);
     assert.match(result, /}, 30000\);/);
     assert.match(result, /document\.getElementById\("timerMotivationalToast"\)/);
-    assert.match(result, /const plannedMinutes = Number\(floatingTimer\.sessionGoalMinutes\) \|\| Number\(goal\?\.minutes\) \|\| 0/);
 
-    const html = patch.patchHtmlSource('<p>Versão: 20260717-numero-qc-v26</p>');
-    assert.equal(html, '<p>Versão: 20260717-salvamento-integral-tempo-v33</p>');
-    assert.equal(
-      patch.patchHtmlSource('<p>Versão: 20260717-sincronizacao-automatica-dispositivos-v32</p>'),
-      '<p>Versão: 20260717-salvamento-integral-tempo-v33</p>'
-    );
+    const html = patch.patchHtmlSource('<p>Versão: 20260717-numero-qc-v26</p></body>');
+    assert.match(html, /Versão: 20260717-espectro-continuo-acertos-v34/);
+    assert.match(html, /question-accuracy-spectrum\.js\?v=20260717-espectro-continuo-acertos-v34/);
+    assert.equal((html.match(/question-accuracy-spectrum\.js/g) || []).length, 1);
+
+    const alreadyInjected = patch.patchHtmlSource('<script src="question-accuracy-spectrum.js"></script></body>');
+    assert.equal((alreadyInjected.match(/question-accuracy-spectrum\.js/g) || []).length, 1);
   });
 }
 

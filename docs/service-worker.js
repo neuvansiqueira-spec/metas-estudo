@@ -3,16 +3,18 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   PREVIOUS_VERSION,
   "20260717-sincronizacao-conteudo-v30",
   "20260717-mensagens-cronometro-livre-pwa-v31",
-  "20260717-sincronizacao-automatica-dispositivos-v32"
+  "20260717-sincronizacao-automatica-dispositivos-v32",
+  "20260717-salvamento-integral-tempo-v33"
 ];
-const CURRENT_VERSION = "20260717-salvamento-integral-tempo-v33";
+const CURRENT_VERSION = "20260717-espectro-continuo-acertos-v34";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
-const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v9`;
+const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v10`;
 const FILES_TO_CACHE = [
   "./",
   "index.html",
   "style.css",
   "script.js",
+  "question-accuracy-spectrum.js",
   "sync-integral-core.js",
   "sync-integral-state.js",
   "sync-integral-cloud.js",
@@ -56,7 +58,14 @@ function replaceVersion(source) {
 }
 
 function patchHtmlSource(source) {
-  return replaceVersion(source);
+  let patched = replaceVersion(source);
+  if (!patched.includes("question-accuracy-spectrum.js")) {
+    patched = patched.replace(
+      "</body>",
+      `<script src="question-accuracy-spectrum.js?v=${CURRENT_VERSION}"></script>\n</body>`
+    );
+  }
+  return patched;
 }
 
 const TIMER_MOTIVATION_PWA_FALLBACK = [
