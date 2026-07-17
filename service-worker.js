@@ -4,11 +4,12 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260717-sincronizacao-conteudo-v30",
   "20260717-mensagens-cronometro-livre-pwa-v31",
   "20260717-sincronizacao-automatica-dispositivos-v32",
-  "20260717-salvamento-integral-tempo-v33"
+  "20260717-salvamento-integral-tempo-v33",
+  "20260717-espectro-continuo-acertos-v34"
 ];
-const CURRENT_VERSION = "20260717-espectro-continuo-acertos-v34";
+const CURRENT_VERSION = "20260717-login-google-somente-manual-v36";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
-const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v10`;
+const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v11`;
 const FILES_TO_CACHE = [
   "./",
   "index.html",
