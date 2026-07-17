@@ -24,6 +24,7 @@ function syncRebuildGoalTotals(mergedState) {
   const studyTotals = new Map();
   const questionTotals = new Map();
   (mergedState.studies || []).forEach((study) => {
+    if (study.updatesGoal === false) return;
     const goalId = study.goalId || study.dailyGoalId;
     if (!goalId) return;
     const minutes = Math.max(0, Number(study.minutes) || Math.round((Number(study.seconds) || 0) / 60));
