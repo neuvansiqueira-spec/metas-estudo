@@ -172,7 +172,7 @@
     const observer = new MutationObserver(() => {
       if (!spectrumRendering) scheduleRender();
     });
-    observer.observe(box, { childList: true, characterData: true, subtree: true });
+    observer.observe(box, { childList: true });
   }
 
   function installQuestionAccuracySpectrum() {
