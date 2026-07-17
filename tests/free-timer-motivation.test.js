@@ -25,7 +25,7 @@ function patchFunctionsFrom(source) {
 }
 
 for (const file of ["service-worker.js", "docs/service-worker.js"]) {
-  test(`${file}: mantém correções do Cronômetro Livre e publica o espectro de acertos`, () => {
+  test(`${file}: mantém correções do Cronômetro Livre e publica a versão sem login automático`, () => {
     const source = fs.readFileSync(file, "utf8");
     const patch = patchFunctionsFrom(source);
     const original = [
@@ -37,8 +37,8 @@ for (const file of ["service-worker.js", "docs/service-worker.js"]) {
     ].join("\n");
 
     const result = patch.patchAppScriptSource(original);
-    assert.equal(patch.CURRENT_VERSION, "20260717-espectro-continuo-acertos-v34");
-    assert.match(result, /APP_VERSION = "20260717-espectro-continuo-acertos-v34"/);
+    assert.equal(patch.CURRENT_VERSION, "20260717-login-google-somente-manual-v36");
+    assert.match(result, /APP_VERSION = "20260717-login-google-somente-manual-v36"/);
     assert.match(result, /TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 30000/);
     assert.match(result, /floatingTimer\.mode !== "free" && !goal/);
     assert.doesNotMatch(result, /if \(!goal \|\| !supportedMode/);
@@ -52,9 +52,12 @@ for (const file of ["service-worker.js", "docs/service-worker.js"]) {
     assert.match(result, /document\.getElementById\("timerMotivationalToast"\)/);
 
     const html = patch.patchHtmlSource('<p>Versão: 20260717-numero-qc-v26</p></body>');
-    assert.match(html, /Versão: 20260717-espectro-continuo-acertos-v34/);
-    assert.match(html, /question-accuracy-spectrum\.js\?v=20260717-espectro-continuo-acertos-v34/);
+    assert.match(html, /Versão: 20260717-login-google-somente-manual-v36/);
+    assert.match(html, /question-accuracy-spectrum\.js\?v=20260717-login-google-somente-manual-v36/);
     assert.equal((html.match(/question-accuracy-spectrum\.js/g) || []).length, 1);
+
+    const previous = patch.patchHtmlSource('<p>Versão: 20260717-espectro-continuo-acertos-v34</p></body>');
+    assert.match(previous, /Versão: 20260717-login-google-somente-manual-v36/);
 
     const alreadyInjected = patch.patchHtmlSource('<script src="question-accuracy-spectrum.js"></script></body>');
     assert.equal((alreadyInjected.match(/question-accuracy-spectrum\.js/g) || []).length, 1);
