@@ -1,5 +1,5 @@
-// versão anterior: metas-estudo-20260714-conselheiro-local-v1
-const CACHE_NAME = "metas-estudo-20260717-numero-qc-v26";
+// versão anterior: metas-estudo-20260717-numero-qc-v26
+const CACHE_NAME = "metas-estudo-20260717-cronometro-livre-motivacao-v27";
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v1`;
 const FILES_TO_CACHE = [
   "./",
@@ -65,8 +65,56 @@ function staleWhileRevalidate(request) {
   });
 }
 
+function isMainAppScript(request) {
+  try {
+    return new URL(request.url).pathname.endsWith("/script.js");
+  } catch (error) {
+    return false;
+  }
+}
+
+function patchAppScriptSource(source) {
+  const oldGuard = 'if (!goal || !supportedMode || !planned || state.settings?.timerPreferences?.motivationalMessages === false) return;';
+  const newGuard = 'if ((floatingTimer.mode !== "free" && !goal) || !supportedMode || !planned || state.settings?.timerPreferences?.motivationalMessages === false) return;';
+  return source
+    .replace(oldGuard, newGuard)
+    .replace("const TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 5000;", "const TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 30000;");
+}
+
+async function patchAppScriptResponse(response) {
+  if (!response || !response.ok) return response;
+  const source = await response.text();
+  const headers = new Headers(response.headers);
+  headers.delete("content-length");
+  headers.delete("content-encoding");
+  headers.delete("etag");
+  headers.set("content-type", "application/javascript; charset=utf-8");
+  return new Response(patchAppScriptSource(source), {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
+}
+
+async function patchedAppScript(request) {
+  try {
+    const networkResponse = await fetch(request);
+    const patchedResponse = await patchAppScriptResponse(networkResponse);
+    cacheResponse(request, patchedResponse.clone());
+    return patchedResponse;
+  } catch (error) {
+    const cachedResponse = await caches.match(request);
+    return cachedResponse ? patchAppScriptResponse(cachedResponse) : cachedResponse;
+  }
+}
+
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+
+  if (isMainAppScript(event.request)) {
+    event.respondWith(patchedAppScript(event.request));
+    return;
+  }
 
   // HTML remains network-first so deployments are visible immediately. App assets use
   // stale-while-revalidate: a warm cache opens instantly and is refreshed in background.
