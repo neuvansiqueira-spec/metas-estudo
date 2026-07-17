@@ -1,7 +1,7 @@
 const PREVIOUS_VERSION = "20260717-numero-qc-v26";
-const CURRENT_VERSION = "20260717-cronometro-livre-motivacao-v27";
+const CURRENT_VERSION = "20260717-cronometro-livre-meta-v28";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
-const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v2`;
+const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v3`;
 const FILES_TO_CACHE = [
   "./",
   "index.html",
@@ -56,8 +56,11 @@ function patchHtmlSource(source) {
 function patchAppScriptSource(source) {
   const oldGuard = 'if (!goal || !supportedMode || !planned || state.settings?.timerPreferences?.motivationalMessages === false) return;';
   const newGuard = 'if ((floatingTimer.mode !== "free" && !goal) || !supportedMode || !planned || state.settings?.timerPreferences?.motivationalMessages === false) return;';
+  const oldFreeGoal = 'const sessionGoalMinutes = selectedMode === "free" ? 0 : 0;';
+  const newFreeGoal = 'const sessionGoalMinutes = selectedMode === "free" ? Math.max(0, Number(goal.minutes) || 0) : 0;';
   return replaceVersion(source)
     .replace(oldGuard, newGuard)
+    .replace(oldFreeGoal, newFreeGoal)
     .replace("const TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 5000;", "const TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 30000;");
 }
 
