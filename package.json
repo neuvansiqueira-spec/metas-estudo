@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260717-cronometro-livre-motivacao-v27",
+  "version": "20260717-cronometro-livre-meta-v28",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
