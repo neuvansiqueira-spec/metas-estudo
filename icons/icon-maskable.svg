@@ -1,8 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
-  <title id="title">Ícone maskable Metas Estudo</title>
-  <desc id="desc">Fundo azul institucional com letras ME centralizadas em área segura para PWA.</desc>
+  <title id="title">Ícone maskable Metas Concurso</title>
+  <desc id="desc">Escudo abstrato com livro aberto e marca de progresso em área segura.</desc>
   <rect width="512" height="512" fill="#082b49"/>
   <circle cx="256" cy="256" r="210" fill="#154c79" opacity="0.72"/>
-  <circle cx="256" cy="256" r="158" fill="#c5a253" opacity="0.24"/>
-  <text x="256" y="300" text-anchor="middle" font-family="Inter, Arial, Helvetica, sans-serif" font-size="142" font-weight="900" letter-spacing="-8" fill="#ffffff">ME</text>
+  <path d="M256 91 394 141v101c0 91-52 158-138 203-86-45-138-112-138-203V141L256 91Z" fill="#f7edcf"/>
+  <path d="M256 113 373 156v86c0 77-44 134-117 173-73-39-117-96-117-173v-86l117-43Z" fill="#082b49"/>
+  <path d="M183 201c27-4 50 3 73 20v85c-23-17-47-24-73-20v-85Zm146 0c-27-4-50 3-73 20v85c23-17 47-24 73-20v-85Z" fill="#ffffff"/>
+  <path d="m207 309 31 31 73-73" fill="none" stroke="#f2cf75" stroke-width="21" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

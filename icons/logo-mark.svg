@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Logo Metas Concurso</title>
+  <desc id="desc">Escudo abstrato com livro aberto e marca de progresso.</desc>
+  <path d="M64 5 111 22v34c0 31-18 54-47 68C35 110 17 87 17 56V22L64 5Z" fill="#f7edcf"/>
+  <path d="M64 12 104 27v29c0 27-15 47-40 60-25-13-40-33-40-60V27L64 12Z" fill="#082b49"/>
+  <path d="M64 21 95 33v23c0 21-11 37-31 49-20-12-31-28-31-49V33L64 21Z" fill="#154c79" stroke="#c5a253" stroke-width="3"/>
+  <path d="M39 43c9-1 17 1 25 7v29c-8-6-16-8-25-7V43Zm50 0c-9-1-17 1-25 7v29c8-6 16-8 25-7V43Z" fill="#ffffff" stroke="#dceaf4" stroke-width="2" stroke-linejoin="round"/>
+  <path d="m47 80 10 10 25-25" fill="none" stroke="#f2cf75" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

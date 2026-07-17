@@ -38,10 +38,10 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão atual', () => {
-  assert.match(html, /style\.css\?v=20260716-identidade-policial-v14/);
-  assert.match(html, /storage-indexeddb\.js\?v=20260716-identidade-policial-v14/);
-  assert.match(html, /script\.js\?v=20260716-identidade-policial-v14/);
-  assert.match(html, /Versão: 20260716-identidade-policial-v14/);
+  assert.match(html, /style\.css\?v=20260716-logo-preparacao-v15/);
+  assert.match(html, /storage-indexeddb\.js\?v=20260716-logo-preparacao-v15/);
+  assert.match(html, /script\.js\?v=20260716-logo-preparacao-v15/);
+  assert.match(html, /Versão: 20260716-logo-preparacao-v15/);
 });
 
 test('identidade visual policial usa paleta institucional sem marca oficial', () => {
@@ -50,6 +50,17 @@ test('identidade visual policial usa paleta institucional sem marca oficial', ()
   assert.match(css, /--accent:\s*#c5a253/);
   assert.match(css, /Identidade visual 20260716-preparacao-policial-v14/);
   assert.match(css, /\.mobile-quick-nav[\s\S]*background:\s*rgba\(4,27,45,\.97\)/);
+});
+
+test('logo original aparece no cabeçalho, favicon e cache do aplicativo', () => {
+  const logo = fs.readFileSync('icons/logo-mark.svg', 'utf8');
+  const sw = fs.readFileSync('service-worker.js', 'utf8');
+  assert.match(html, /rel="icon"[^>]+icons\/logo-mark\.svg/);
+  assert.match(html, /class="brand-icon"[\s\S]*?<img src="icons\/logo-mark\.svg"/);
+  assert.match(logo, /Escudo abstrato com livro aberto e marca de progresso/);
+  assert.match(logo, /#082b49/);
+  assert.match(logo, /#c5a253/);
+  assert.match(sw, /icons\/logo-mark\.svg/);
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
@@ -238,7 +249,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260716-identidade-policial-v14/);
+  assert.match(sw, /metas-estudo-20260716-logo-preparacao-v15/);
   assert.match(sw, /shouldPreferNetwork/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /\["document", "script", "style", "worker"\]/);
