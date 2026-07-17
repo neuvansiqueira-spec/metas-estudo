@@ -2,35 +2,38 @@
 
 ## Versão estável atual
 
-`20260717-salvamento-integral-tempo-v33`
+`20260717-espectro-continuo-acertos-v34`
 
 ## Data
 
 17/07/2026
 
+## Espectro contínuo no Total Calculado
+
+Na aba **Registrar sessão de questões**, o quadro **Total calculado** passa a refletir visualmente o percentual de acertos com uma transição contínua.
+
+O componente apresenta:
+
+- espectro suave vermelho → laranja → amarelo → verde → azul;
+- marcador posicionado na porcentagem exata de acertos;
+- tonalidade de fundo e borda calculada continuamente, sem faixas rígidas;
+- atualização imediata ao alterar total, acertos, erros ou brancos;
+- comportamento responsivo no computador, aplicativo instalado e celular;
+- atributos de acessibilidade com valor percentual do indicador.
+
+A escala visual não altera o cálculo já utilizado pelo sistema. O percentual continua sendo calculado a partir dos valores informados na sessão.
+
 ## Salvamento integral do tempo
 
-Esta versão corrige o caso em que uma sessão era salva pelo cronômetro, mas o total exibido pela meta permanecia com o valor anterior.
-
-Depois de salvar uma sessão vinculada à meta, o sistema agora:
-
-- preserva a sessão completa no histórico;
-- reconstrói os minutos de estudo e de questões com base nas sessões salvas;
-- atualiza imediatamente o total realizado da meta;
-- grava novamente o estado local com marcação de alteração;
-- mantém sessões configuradas para não atualizar a meta fora do cálculo automático.
-
-Assim, uma meta com 42 minutos passa para 43 minutos ao receber uma nova sessão válida de 1 minuto.
+A versão mantém a correção em que uma sessão salva pelo cronômetro atualiza imediatamente o total da meta, preserva o histórico completo e reconstrói os minutos de estudo e de questões com base nas sessões registradas.
 
 ## Atualização entre o app e o site no mesmo computador
 
-O app instalado e a aba comum do navegador passam a escutar alterações do armazenamento da mesma origem. Quando o tempo é salvo em um deles, o outro incorpora e renderiza o estado atualizado sem depender da nuvem.
+O app instalado e a aba comum do navegador continuam escutando alterações do armazenamento da mesma origem. Quando o tempo é salvo em um deles, o outro incorpora e renderiza o estado atualizado sem depender da nuvem.
 
 ## Autorização do Google Drive
 
-Quando o dispositivo continua marcado como conectado, mas o token expirou, o sistema tenta renovar a autorização antes de interromper a sincronização. Se a renovação silenciosa não for aceita pelo navegador, é exibida uma orientação clara para tocar em **Conectar Google Drive**. Nenhum envio ou download é possível sem autorização válida do Google.
-
-Depois de renovar a autorização, alterações pendentes continuam preservadas e podem ser enviadas para a nuvem.
+Quando o dispositivo continua marcado como conectado, mas o token expirou, o sistema tenta renovar a autorização antes de interromper a sincronização. Se a renovação silenciosa não for aceita pelo navegador, é exibida orientação para tocar em **Conectar Google Drive**.
 
 ## Sincronização integral entre dispositivos
 
@@ -50,4 +53,4 @@ A correção do Cronômetro Livre permanece ativa. As mensagens aparecem nos mar
 
 ## Segurança dos dados
 
-A alteração não remove sessões, metas ou históricos. A reconstrução dos totais usa os registros já preservados e somente acrescenta sessões novas identificadas como distintas.
+A alteração visual do percentual não modifica sessões, metas, históricos, totais nem dados de sincronização.
