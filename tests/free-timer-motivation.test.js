@@ -24,7 +24,8 @@ for (const file of ["service-worker.js", "docs/service-worker.js"]) {
       'const APP_VERSION = "20260717-numero-qc-v26";',
       'const TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 5000;',
       'if (!goal || !supportedMode || !planned || state.settings?.timerPreferences?.motivationalMessages === false) return;',
-      'const sessionGoalMinutes = selectedMode === "free" ? 0 : 0;'
+      'const sessionGoalMinutes = selectedMode === "free" ? 0 : 0;',
+      'function timerPlannedSeconds(goal = floatingTimerGoal()) { return floatingTimer.mode === "free" ? Math.max(0, Math.round((Number(floatingTimer.sessionGoalMinutes) || 0) * 60)) : Math.max(0, Math.round((Number(goal?.minutes) || 0) * 60)); }'
     ].join("\n");
 
     const result = patch.patchAppScriptSource(original);
@@ -35,6 +36,7 @@ for (const file of ["service-worker.js", "docs/service-worker.js"]) {
     assert.doesNotMatch(result, /if \(!goal \|\| !supportedMode/);
     assert.match(result, /sessionGoalMinutes = selectedMode === "free" \? Math\.max\(0, Number\(goal\.minutes\) \|\| 0\) : 0/);
     assert.doesNotMatch(result, /sessionGoalMinutes = selectedMode === "free" \? 0 : 0/);
+    assert.match(result, /Number\(floatingTimer\.sessionGoalMinutes\) \|\| Number\(goal\?\.minutes\) \|\| 0/);
 
     const html = patch.patchHtmlSource('<p>Versão: 20260717-numero-qc-v26</p>');
     assert.equal(html, '<p>Versão: 20260717-cronometro-livre-meta-v28</p>');
