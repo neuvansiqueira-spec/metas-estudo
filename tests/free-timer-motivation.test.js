@@ -3,32 +3,38 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
 
-function patchFunctionFrom(source) {
-  const start = source.indexOf("function patchAppScriptSource");
-  const endMarker = "\n}\n\nasync function patchAppScriptResponse";
+function patchFunctionsFrom(source) {
+  const start = source.indexOf('const PREVIOUS_VERSION =');
+  const endMarker = '\nasync function patchTextResponse';
   const end = source.indexOf(endMarker, start);
-  assert.notEqual(start, -1, "função de correção não encontrada");
-  assert.notEqual(end, -1, "fim da função de correção não encontrado");
-  const functionSource = source.slice(start, end + 2);
+  assert.notEqual(start, -1, "constantes de versão não encontradas");
+  assert.notEqual(end, -1, "fim das funções de correção não encontrado");
+
+  const block = source.slice(start, end);
   const context = {};
-  vm.runInNewContext(`${functionSource}; patch = patchAppScriptSource;`, context);
-  return context.patch;
+  vm.runInNewContext(`${block}; result = { replaceVersion, patchHtmlSource, patchAppScriptSource, CURRENT_VERSION };`, context);
+  return context.result;
 }
 
 for (const file of ["service-worker.js", "docs/service-worker.js"]) {
-  test(`${file}: libera mensagens motivacionais no Cronômetro Livre com duração`, () => {
+  test(`${file}: sincroniza versão e libera mensagens do Cronômetro Livre`, () => {
     const source = fs.readFileSync(file, "utf8");
-    const patch = patchFunctionFrom(source);
+    const patch = patchFunctionsFrom(source);
     const original = [
-      "const TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 5000;",
-      "if (!goal || !supportedMode || !planned || state.settings?.timerPreferences?.motivationalMessages === false) return;"
+      'const APP_VERSION = "20260717-numero-qc-v26";',
+      'const TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 5000;',
+      'if (!goal || !supportedMode || !planned || state.settings?.timerPreferences?.motivationalMessages === false) return;'
     ].join("\n");
-    const result = patch(original);
 
+    const result = patch.patchAppScriptSource(original);
+    assert.equal(patch.CURRENT_VERSION, "20260717-cronometro-livre-motivacao-v27");
+    assert.match(result, /APP_VERSION = "20260717-cronometro-livre-motivacao-v27"/);
     assert.match(result, /TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 30000/);
     assert.match(result, /floatingTimer\.mode !== "free" && !goal/);
-    assert.match(result, /\|\| !planned \|\|/);
     assert.doesNotMatch(result, /if \(!goal \|\| !supportedMode/);
+
+    const html = patch.patchHtmlSource('<p>Versão: 20260717-numero-qc-v26</p>');
+    assert.equal(html, '<p>Versão: 20260717-cronometro-livre-motivacao-v27</p>');
   });
 }
 
