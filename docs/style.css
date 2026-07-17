@@ -4151,8 +4151,10 @@ body {
 }
 
 .brand-icon {
-  width: 62px;
-  height: 68px;
+  flex: 0 0 auto;
+  width: 80px;
+  height: 88px;
+  margin-left: auto;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -4164,14 +4166,25 @@ body {
   height: 100%;
   object-fit: contain;
 }
+.brand-copy { display: grid; gap: 3px; min-width: 0; }
+.brand { width: min(100%, 520px); justify-content: space-between; }
 @media (max-width: 760px) {
-  .brand-icon { width: 52px; height: 57px; }
+  .topbar { flex-wrap: wrap; }
+  .brand { flex: 1 1 100%; width: 100%; }
+  .brand-icon { width: 94px; height: 103px; }
+  .menu-toggle { margin-right: auto; }
 }
 
 .brand strong { letter-spacing: .035em; text-transform: uppercase; }
 .brand small { color: rgba(255,255,255,.76); }
 .hero .eyebrow, .goal-card::before { color: #f7edcf; }
-.hero-text { color: rgba(255,255,255,.82); }
+.hero-text {
+  color: rgba(255,255,255,.82);
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+  -webkit-hyphens: none;
+}
 .goal-card {
   border-color: rgba(197,162,83,.52);
   background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(4,27,45,.2));

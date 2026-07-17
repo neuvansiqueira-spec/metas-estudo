@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260716-logo-espada-nj-v16",
+  "version": "20260716-logo-direita-ns-v17",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
