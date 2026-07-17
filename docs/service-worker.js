@@ -1,5 +1,5 @@
 // versão anterior: metas-estudo-20260714-conselheiro-local-v1
-const CACHE_NAME = "metas-estudo-20260717-fluxo-questoes-v25";
+const CACHE_NAME = "metas-estudo-20260717-numero-qc-v26";
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v1`;
 const FILES_TO_CACHE = [
   "./",

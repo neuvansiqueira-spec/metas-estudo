@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260717-fluxo-questoes-v25";
+const APP_VERSION = "20260717-numero-qc-v26";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -1711,7 +1711,7 @@ const elements = {
   generalCebraspeNet: $("#generalCebraspeNet"), todayPendingGoals: $("#todayPendingGoals"), todayDoneGoals: $("#todayDoneGoals"), dashboardTodayGoal: $("#dashboardTodayGoal"), dashboardTodayGoalDetail: $("#dashboardTodayGoalDetail"), dashboardDailyGoalRate: $("#dashboardDailyGoalRate"), dashboardTodayRemaining: $("#dashboardTodayRemaining"), dashboardNextTodayGoal: $("#dashboardNextTodayGoal"), viewDayPlan: $("#viewDayPlan"),
   selectedGoalDateLabel: $("#selectedGoalDateLabel"), nextDailyGoal: $("#nextDailyGoal"), generateDailyGoals: $("#generateDailyGoals"), refreshDailyGoalsFromPlanning: $("#refreshDailyGoalsFromPlanning"), goalForm: $("#goalForm"), goalDate: $("#goalDate"), goalDiscipline: $("#goalDiscipline"), goalSyllabusItem: $("#goalSyllabusItem"), goalType: $("#goalType"), goalMinutes: $("#goalMinutes"), goalActualMinutes: $("#goalActualMinutes"), goalStudyStatus: $("#goalStudyStatus"), goalPriority: $("#goalPriority"), goalStatus: $("#goalStatus"), goalNotes: $("#goalNotes"), dailyGoalsSummary: $("#dailyGoalsSummary"), dailyGoalsList: $("#dailyGoalsList"),
   calendarDate: $("#calendarDate"), goalGenerationScope: $("#goalGenerationScope"), generateCalendarGoals: $("#generateCalendarGoals"), disciplineWeightsList: $("#disciplineWeightsList"), goalCalendarStats: $("#goalCalendarStats"), goalCalendarContent: $("#goalCalendarContent"), goalCalendarWeeklyStats: $("#goalCalendarWeeklyStats"), goalCalendarWeeklyContent: $("#goalCalendarWeeklyContent"), goalCalendarMonthlyStats: $("#goalCalendarMonthlyStats"), goalCalendarMonthlyContent: $("#goalCalendarMonthlyContent"), goalCalendarDailyResume: $("#goalCalendarDailyResume"), goalCalendarWeeklyResume: $("#goalCalendarWeeklyResume"), goalCalendarMonthlyResume: $("#goalCalendarMonthlyResume"), goalCalendarExportScope: $("#goalCalendarExportScope"), exportGoalCalendarPdf: $("#exportGoalCalendarPdf"), exportGoalCalendarCsv: $("#exportGoalCalendarCsv"), exportGoalCalendarImage: $("#exportGoalCalendarImage"), goalCalendarExportStatus: $("#goalCalendarExportStatus"), monthlyTopicGoal: $("#monthlyTopicGoal"), monthlyHourGoal: $("#monthlyHourGoal"), monthlyPlanSummary: $("#monthlyPlanSummary"), todayGoalsTotal: $("#todayGoalsTotal"), weekGoalsTotal: $("#weekGoalsTotal"), weekGoalRate: $("#weekGoalRate"), monthGoalRate: $("#monthGoalRate"), nextGoalLabel: $("#nextGoalLabel"), weekTopDiscipline: $("#weekTopDiscipline"), mostDelayedDiscipline: $("#mostDelayedDiscipline"),
-  questionForm: $("#questionForm"), questionEditingId: $("#questionEditingId"), questionLinkedGoalId: $("#questionLinkedGoalId"), questionOrigin: $("#questionOrigin"), questionDate: $("#questionDate"), questionDiscipline: $("#questionDiscipline"), questionSyllabusItem: $("#questionSyllabusItem"), questionBoard: $("#questionBoard"), questionTrainingType: $("#questionTrainingType"), questionTotal: $("#questionTotal"), questionMinutes: $("#questionMinutes"), questionCorrect: $("#questionCorrect"), questionWrong: $("#questionWrong"), questionBlank: $("#questionBlank"), questionNotes: $("#questionNotes"), questionCalculated: $("#questionCalculated"), questionAnalysis: $("#questionAnalysis"), questionSubjectSummary: $("#questionSubjectSummary"), questionQconcursosRoute: $("#questionQconcursosRoute"),
+  questionForm: $("#questionForm"), questionEditingId: $("#questionEditingId"), questionLinkedGoalId: $("#questionLinkedGoalId"), questionOrigin: $("#questionOrigin"), questionDate: $("#questionDate"), questionDiscipline: $("#questionDiscipline"), questionSyllabusItem: $("#questionSyllabusItem"), questionBoard: $("#questionBoard"), questionTrainingType: $("#questionTrainingType"), questionTotal: $("#questionTotal"), questionMinutes: $("#questionMinutes"), questionCorrect: $("#questionCorrect"), questionWrong: $("#questionWrong"), questionBlank: $("#questionBlank"), questionNotes: $("#questionNotes"), questionCalculated: $("#questionCalculated"), questionAnalysis: $("#questionAnalysis"), questionSubjectSummary: $("#questionSubjectSummary"), questionQconcursosRoute: $("#questionQconcursosRoute"), questionQcNumber: $("#questionQcNumber"), saveQuestionQcNumber: $("#saveQuestionQcNumber"), questionQcNumberStatus: $("#questionQcNumberStatus"), questionRegistrationLinkSummary: $("#questionRegistrationLinkSummary"),
   questionFilterDiscipline: $("#questionFilterDiscipline"), questionFilterSubject: $("#questionFilterSubject"), questionFilterBoard: $("#questionFilterBoard"), questionFilterOrigin: $("#questionFilterOrigin"), questionHistoryBody: $("#questionHistoryBody"), questionHistorySummary: $("#questionHistorySummary"),
   exportBackup: $("#exportBackup"), selectBackupFile: $("#selectBackupFile"), backupFileInput: $("#backupFileInput"), resetSolvedQuestions: $("#resetSolvedQuestions"), clearAllLocalData: $("#clearAllLocalData"), lastBackupDate: $("#lastBackupDate"), backupStorageKeys: $("#backupStorageKeys"), backupSummary: $("#backupSummary"), backupPreview: $("#backupPreview"), storageDiagnostics: $("#storageDiagnostics"), legacyTimerRecoveryReview: $("#legacyTimerRecoveryReview"), legacyTimerRecoveryPanel: $("#legacyTimerRecoveryPanel"), verifyStorage: $("#verifyStorage"),
   mockTotal: $("#mockTotal"), mockLastNet: $("#mockLastNet"), mockBestNet: $("#mockBestNet"), mockAverageNet: $("#mockAverageNet"), mockAboveGoal: $("#mockAboveGoal"), mockProblemDiscipline: $("#mockProblemDiscipline"),
@@ -5679,11 +5679,27 @@ function buildQconcursosFilterRoute(item = {}, board = "") {
   const subject = String(item.subject || item.assunto || theme).trim();
   const subtopic = String(item.subtopic || item.subtema || "").trim();
   const selectedBoard = board && board !== "Outra" ? board : "Todas inicialmente";
-  return { discipline, theme, subject, subtopic, board: selectedBoard, url: QCONCURSOS_DELEGADO_URL, searchTerm: [subject, subtopic].filter(Boolean).join(" — ") };
+  const qcNumber = String(item.qconcursosNumber || item.qcSubjectNumber || "").trim();
+  return { discipline, theme, subject, subtopic, board: selectedBoard, qcNumber, url: QCONCURSOS_DELEGADO_URL, searchTerm: [subject, subtopic].filter(Boolean).join(" — ") };
+}
+function renderQuestionRegistrationLink(item = null) {
+  if (!elements.questionRegistrationLinkSummary) return;
+  if (!item) { elements.questionRegistrationLinkSummary.textContent = "Selecione disciplina e assunto na Etapa 1."; return; }
+  const path = [item.discipline || item.disciplina, item.topic || item.topico, item.subject || item.assunto, item.subtopic || item.subtema].filter(Boolean).map(portugueseTitleCase);
+  elements.questionRegistrationLinkSummary.innerHTML = `<small>VÍNCULO ATIVO DA SESSÃO</small><strong>${path.map(escapeHTML).join(" › ")}</strong><span>O resultado será salvo no assunto selecionado na Etapa 1.</span>`;
+}
+function syncQuestionQcNumberField(item = null) {
+  if (!elements.questionQcNumber) return;
+  const itemId = item?.id || "";
+  if (elements.questionQcNumber.dataset.syllabusItemId !== itemId) {
+    elements.questionQcNumber.dataset.syllabusItemId = itemId;
+    elements.questionQcNumber.value = item ? String(item.qconcursosNumber || item.qcSubjectNumber || "") : "";
+  }
 }
 function renderQconcursosFilterRoute() {
   if (!elements.questionQconcursosRoute) return;
   const item = getSyllabusById(elements.questionSyllabusItem?.value); const route = buildQconcursosFilterRoute(item || { discipline: elements.questionDiscipline?.value }, elements.questionBoard?.value || "");
+  syncQuestionQcNumberField(item); renderQuestionRegistrationLink(item);
   if (!route.discipline || !route.subject) { elements.questionQconcursosRoute.innerHTML = `<p class="empty-message">Selecione a disciplina e o assunto na Etapa 1 para montar uma rota específica.</p><a class="button-link secondary-button" href="${QCONCURSOS_DELEGADO_URL}" target="_blank" rel="noopener noreferrer">Abrir filtro de Delegado no QConcursos</a>`; return; }
   const hierarchy = [
     ["DISCIPLINA", portugueseTitleCase(route.discipline)], ["TEMA PRINCIPAL", portugueseTitleCase(route.theme || route.subject)], ["ASSUNTO", portugueseTitleCase(route.subject)], ["SUBTEMA", route.subtopic ? portugueseTitleCase(route.subtopic) : "Não Informado no Edital"]
@@ -5692,9 +5708,10 @@ function renderQconcursosFilterRoute() {
     ["1", "Cargo", "Delegado de Polícia — já aplicado pelo botão abaixo"],
     ["2", "Disciplina", portugueseTitleCase(route.discipline)],
     ["3", "Assunto", portugueseTitleCase(route.searchTerm || route.subject)],
-    ["4", "Banca", route.board],
-    ["5", "Período", "Comece pelos últimos 5 anos; amplie se houver menos de 20 questões"],
-    ["6", "Ordenação", "Relevância para o tema; depois, data da prova mais recente"]
+    ["4", "Numeração do Assunto no QC", route.qcNumber || "Não Cadastrada — Informe e Salve Acima"],
+    ["5", "Banca", route.board],
+    ["6", "Período", "Comece pelos últimos 5 anos; amplie se houver menos de 20 questões"],
+    ["7", "Ordenação", "Relevância para o tema; depois, data da prova mais recente"]
   ];
   elements.questionQconcursosRoute.innerHTML = `<div class="question-topic-hierarchy">${hierarchy.map(([label,value])=>`<span><small>${label}</small><strong>${escapeHTML(value)}</strong></span>`).join("")}</div><ol class="question-filter-route">${steps.map(([number,label,value])=>`<li><b>${number}</b><span><small>${label}</small><strong>${escapeHTML(value)}</strong></span></li>`).join("")}</ol><p class="question-filter-tip"><strong>Se aparecerem poucas questões:</strong> retire primeiro o período, depois a banca e somente depois o subtema. Preserve Cargo + Disciplina + Assunto para manter o treino voltado a Delegado.</p><div class="actions"><a class="button-link" href="${route.url}" target="_blank" rel="noopener noreferrer">Abrir QConcursos com cargo Delegado</a></div><p class="item-meta">O QConcursos será aberto em outra aba. Confirme os nomes dos filtros porque a classificação de assuntos pode variar dentro da plataforma.</p>`;
 }
@@ -5767,6 +5784,15 @@ elements.goalDiscipline.addEventListener("change", () => optionsForItems(element
 elements.questionDiscipline.addEventListener("change", () => { optionsForItems(elements.questionSyllabusItem, elements.questionDiscipline.value); renderQuestionSubjectSummary(); });
 elements.questionSyllabusItem.addEventListener("change", renderQuestionSubjectSummary);
 elements.questionBoard?.addEventListener("change", renderQconcursosFilterRoute);
+elements.saveQuestionQcNumber?.addEventListener("click", () => {
+  const item = getSyllabusById(elements.questionSyllabusItem?.value);
+  if (!item) { elements.questionQcNumberStatus.hidden = false; elements.questionQcNumberStatus.textContent = "Selecione um assunto antes de salvar a numeração do QC."; return; }
+  const number = String(elements.questionQcNumber?.value || "").trim();
+  if (number && !/^\d+(?:\.\d+)*$/.test(number)) { elements.questionQcNumberStatus.hidden = false; elements.questionQcNumberStatus.textContent = "Use somente números separados por pontos, como 1.1 ou 12.3.2."; return; }
+  item.qconcursosNumber = number; elements.questionQcNumber.dataset.syllabusItemId = item.id;
+  saveData(); autoSyncAfterSave("qconcursos-subject-number"); renderQconcursosFilterRoute();
+  elements.questionQcNumberStatus.hidden = false; elements.questionQcNumberStatus.textContent = number ? `Numeração ${number} salva neste assunto.` : "Numeração do QC removida deste assunto.";
+});
 elements.questionSubjectSummary?.addEventListener("click", (event) => { const button=event.target.closest("[data-view-question-performance]"); if (!button) return; elements.questionFilterDiscipline.value=elements.questionDiscipline.value; renderQuestionSelectors(); elements.questionFilterSubject.value=button.dataset.viewQuestionPerformance; showView("historico-questoes"); });
 elements.goalSyllabusItem.addEventListener("change", () => { const item = getSyllabusById(elements.goalSyllabusItem.value); if (item) { elements.goalDiscipline.value = item.discipline; elements.goalPriority.value = item.priority; elements.goalType.value = goalTypeForItem(item); } });
 

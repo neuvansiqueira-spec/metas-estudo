@@ -2625,6 +2625,12 @@ th {
 .question-filter-route li small { color: #64748b; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; }
 .question-filter-route li strong { color: #041b2d; overflow-wrap: break-word; }
 .question-filter-tip { margin: 16px 0; padding: 14px; border-left: 5px solid #c5a253; border-radius: 12px; background: #fff8e7; color: #5c4619; }
+.question-qc-number-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.question-qc-number-actions p { margin: 0; }
+.question-registration-link { display: grid; gap: 5px; padding: 14px 16px; border: 1px solid #b8d3e5; border-left: 6px solid #154c79; border-radius: 14px; background: #eef7fc; }
+.question-registration-link small { color: #b07f16; font-weight: 900; letter-spacing: .11em; }
+.question-registration-link strong { color: #041b2d; overflow-wrap: break-word; }
+.question-registration-link span { color: #52677a; }
 @media (max-width: 720px) {
   .question-register-section > summary { align-items: stretch; flex-direction: column; padding: 16px; }
   .question-register-section > summary::after { align-self: flex-start; }

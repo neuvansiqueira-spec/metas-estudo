@@ -42,6 +42,24 @@ test('rota prioriza cargo Delegado e preserva disciplina, assunto, subtema e ban
   assert.equal(route.board, 'Cebraspe');
 });
 
+test('rota inclui numeração própria do QC e não reaproveita referência do edital', () => {
+  const api = routeLogic();
+  const mapped = api.buildQconcursosFilterRoute({ discipline:'Direito Penal', subject:'Princípios', reference:'9.4', qconcursosNumber:'1.2' }, 'Cebraspe');
+  const unmapped = api.buildQconcursosFilterRoute({ discipline:'Direito Penal', subject:'Princípios', reference:'9.4' }, 'Cebraspe');
+  assert.equal(mapped.qcNumber, '1.2');
+  assert.equal(unmapped.qcNumber, '');
+  assert.match(script, /Numeração do Assunto no QC/);
+});
+
+test('resultado mostra vínculo ativo e salvamento mantém syllabusItemId, disciplina e assunto', () => {
+  assert.match(html, /id="questionRegistrationLinkSummary"/);
+  assert.match(script, /VÍNCULO ATIVO DA SESSÃO/);
+  const saveBlock = script.slice(script.indexOf('function saveQuestionLog'), script.indexOf('function questionRecordItem'));
+  assert.match(saveBlock, /syllabusItemId: item\.id/);
+  assert.match(saveBlock, /discipline: elements\.questionDiscipline\.value/);
+  assert.match(saveBlock, /subject: item\.subject/);
+});
+
 test('hierarquia principal e secundária tem identidade visual responsiva', () => {
   assert.match(html, /view-identity-heading/);
   assert.match(style, /\.app-view > \.section-heading/);

@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
   <link rel="icon" type="image/svg+xml" href="icons/logo-mark.svg" />
-  <link rel="stylesheet" href="style.css?v=20260717-fluxo-questoes-v25" />
+  <link rel="stylesheet" href="style.css?v=20260717-numero-qc-v26" />
 </head>
 <body>
   <header class="hero">
@@ -552,6 +552,8 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
             <label>Disciplina<select id="questionDiscipline" required></select></label>
             <label class="wide">Assunto do edital<select id="questionSyllabusItem" required></select></label>
             <label>Banca<select id="questionBoard"><option>Cebraspe</option><option>FGV</option><option>FCC</option><option>Vunesp</option><option>Instituto AOCP</option><option>Cesgranrio</option><option>Outra</option></select></label>
+            <label>Número do assunto no QC<input id="questionQcNumber" type="text" inputmode="decimal" placeholder="Ex.: 1.1 ou 12.3.2" aria-describedby="questionQcNumberHelp" /></label>
+            <div class="wide question-qc-number-actions"><button id="saveQuestionQcNumber" class="secondary-button" type="button">Salvar Número do QC Neste Assunto</button><p id="questionQcNumberHelp" class="item-meta">Use a numeração mostrada na lista de assuntos do QConcursos. Ela será salva somente no assunto selecionado.</p><p id="questionQcNumberStatus" class="file-info" aria-live="polite" hidden></p></div>
             <section id="questionSubjectSummary" class="notice wide" aria-live="polite">Selecione disciplina e assunto para consultar o histórico deste assunto.</section>
             <div id="questionQconcursosRoute" class="wide" aria-live="polite"></div>
           </div>
@@ -559,6 +561,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
         <details class="question-register-section" open>
           <summary><span><small>ETAPA 2 • RESULTADO</small><strong>Registrar Resultado da Nova Sessão</strong><em>Informe data, tipo de treino, quantidade, desempenho e tempo</em></span></summary>
           <div class="question-register-content form-grid">
+            <div id="questionRegistrationLinkSummary" class="question-registration-link wide" aria-live="polite">Selecione disciplina e assunto na Etapa 1.</div>
             <label>Data<input id="questionDate" type="date" required /></label>
             <label>Tipo de treino<select id="questionTrainingType"><option>Questões avulsas</option><option>Caderno de erros</option><option>Simulado</option><option>Revisão</option><option>Pós-aula</option></select></label>
             <label>Total de questões<input id="questionTotal" type="number" min="1" required /></label>
@@ -984,13 +987,13 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </section>
   </div>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260717-fluxo-questoes-v25</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260717-numero-qc-v26</p></footer>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="storage-indexeddb.js?v=20260717-fluxo-questoes-v25"></script>
-  <script src="analytics-engine.js?v=20260717-fluxo-questoes-v25"></script>
-  <script src="study-advisor.js?v=20260717-fluxo-questoes-v25"></script>
-  <script src="advisor-navigation-engine.js?v=20260717-fluxo-questoes-v25"></script>
-  <script src="script.js?v=20260717-fluxo-questoes-v25"></script>
+  <script src="storage-indexeddb.js?v=20260717-numero-qc-v26"></script>
+  <script src="analytics-engine.js?v=20260717-numero-qc-v26"></script>
+  <script src="study-advisor.js?v=20260717-numero-qc-v26"></script>
+  <script src="advisor-navigation-engine.js?v=20260717-numero-qc-v26"></script>
+  <script src="script.js?v=20260717-numero-qc-v26"></script>
   <div id="legacyTimerRecoveryModal" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="legacyTimerRecoveryModalTitle" hidden>
     <div class="app-modal-backdrop" data-legacy-recovery-cancel></div>
     <section class="app-modal-card">
