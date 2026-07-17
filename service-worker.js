@@ -1,7 +1,7 @@
 const PREVIOUS_VERSION = "20260717-numero-qc-v26";
-const CURRENT_VERSION = "20260717-sincronizacao-conteudo-v30";
+const CURRENT_VERSION = "20260717-mensagens-cronometro-livre-pwa-v31";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
-const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v6`;
+const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v7`;
 const FILES_TO_CACHE = [
   "./",
   "index.html",
@@ -50,6 +50,89 @@ function patchHtmlSource(source) {
   return replaceVersion(source);
 }
 
+const TIMER_MOTIVATION_PWA_FALLBACK = [
+  ';(() => {',
+  '  if (globalThis.__timerMotivationPwaFallbackV31) return;',
+  '  globalThis.__timerMotivationPwaFallbackV31 = true;',
+  '',
+  '  const milestones = [10, 25, 40, 50, 65, 75, 90, 100];',
+  '  let activeSessionKey = "";',
+  '  let shownMilestones = [];',
+  '  let hideTimeout = null;',
+  '',
+  '  function showPwaMotivationalToast(milestone) {',
+  '    const toast = document.getElementById("timerMotivationalToast");',
+  '    if (!toast) return;',
+  '',
+  '    let phrase = "Você está avançando. Continue firme.";',
+  '    try {',
+  '      if (typeof chooseTimerMotivationalMessage === "function") {',
+  '        phrase = chooseTimerMotivationalMessage(milestone) || phrase;',
+  '      }',
+  '    } catch (error) {',
+  '      console.warn("[Cronômetro] Falha ao escolher mensagem motivacional.", error);',
+  '    }',
+  '',
+  '    clearTimeout(hideTimeout);',
+  '    toast.innerHTML = `<strong>${milestone}% CONCLUÍDO</strong><span>${phrase}</span>`;',
+  '    toast.hidden = false;',
+  '    toast.classList.add("visible");',
+  '    Object.assign(toast.style, {',
+  '      display: "grid",',
+  '      position: "fixed",',
+  '      top: "18px",',
+  '      left: "50%",',
+  '      transform: "translateX(-50%)",',
+  '      zIndex: "100000",',
+  '      opacity: "1",',
+  '      visibility: "visible",',
+  '      pointerEvents: "none",',
+  '      maxWidth: "min(92vw, 620px)"',
+  '    });',
+  '',
+  '    hideTimeout = setTimeout(() => {',
+  '      toast.classList.remove("visible");',
+  '      toast.style.opacity = "0";',
+  '      hideTimeout = setTimeout(() => {',
+  '        toast.hidden = true;',
+  '        toast.style.display = "none";',
+  '      }, 260);',
+  '    }, 30000);',
+  '  }',
+  '',
+  '  setInterval(() => {',
+  '    try {',
+  '      if (typeof floatingTimer === "undefined" || floatingTimer.mode !== "free" || !floatingTimer.goalId) return;',
+  '      if (typeof state !== "undefined" && state.settings?.timerPreferences?.motivationalMessages === false) return;',
+  '',
+  '      const goal = typeof floatingTimerGoal === "function" ? floatingTimerGoal() : null;',
+  '      const plannedMinutes = Number(floatingTimer.sessionGoalMinutes) || Number(goal?.minutes) || 0;',
+  '      const plannedSeconds = Math.max(0, Math.round(plannedMinutes * 60));',
+  '      if (!plannedSeconds) return;',
+  '',
+  '      const sessionKey = `${floatingTimer.sessionId || ""}|${floatingTimer.goalId}|${floatingTimer.openedAt || ""}`;',
+  '      if (sessionKey !== activeSessionKey) {',
+  '        activeSessionKey = sessionKey;',
+  '        shownMilestones = [];',
+  '      }',
+  '',
+  '      const elapsedSeconds = typeof currentTimerSeconds === "function"',
+  '        ? currentTimerSeconds()',
+  '        : Math.max(0, Number(floatingTimer.elapsedSeconds) || 0);',
+  '      const progress = Math.min(100, (elapsedSeconds / plannedSeconds) * 100);',
+  '      const reached = milestones.filter((milestone) => progress >= milestone);',
+  '      const pending = reached.filter((milestone) => !shownMilestones.includes(milestone));',
+  '      const milestone = pending[pending.length - 1];',
+  '      if (!milestone) return;',
+  '',
+  '      shownMilestones = [...new Set([...shownMilestones, ...reached])];',
+  '      showPwaMotivationalToast(milestone);',
+  '    } catch (error) {',
+  '      console.warn("[Cronômetro] Verificador motivacional do PWA falhou.", error);',
+  '    }',
+  '  }, 1000);',
+  '})();',
+].join("\n");
 function patchAppScriptSource(source, syncIntegralSource = "") {
   const oldGuard = 'if (!goal || !supportedMode || !planned || state.settings?.timerPreferences?.motivationalMessages === false) return;';
   const newGuard = 'if ((floatingTimer.mode !== "free" && !goal) || !supportedMode || !planned || state.settings?.timerPreferences?.motivationalMessages === false) return;';
@@ -86,6 +169,10 @@ function patchAppScriptSource(source, syncIntegralSource = "") {
     .split("Baixar versão da nuvem").join("Mesclar dados deste dispositivo com a nuvem")
     .replace("Baixar dados da nuvem e substituir os dados deste dispositivo? Um backup local automático será criado antes.", "Mesclar os dados da nuvem com os dados deste dispositivo? Um backup local automático será criado antes.")
     .replace("Dados atualizados pela nuvem.", "Dados locais e da nuvem mesclados com segurança.");
+
+  if (!patched.includes("__timerMotivationPwaFallbackV31")) {
+    patched += `\n${TIMER_MOTIVATION_PWA_FALLBACK}\n`;
+  }
   return patched;
 }
 
