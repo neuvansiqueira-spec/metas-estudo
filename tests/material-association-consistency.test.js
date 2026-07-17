@@ -34,6 +34,16 @@ test('fallback textual exige disciplina e assunto completos e não vaza para hom
   assert.deepEqual(api.resolveAvailableMaterials({ subject: 'Teoria do Crime' }), []);
 });
 
+test('Representação por Prisão Temporária reconhece material salvo como Prisão Temporária', () => {
+  const materials = [
+    { id: 'prisao', discipline: 'Direito Processual Penal', subject: 'Prisão Temporária', link: 'https://drive.google.com/file/d/PRISAO/view' },
+    { id: 'outra-disciplina', discipline: 'Direito Penal', subject: 'Prisão Temporária', link: 'https://drive.google.com/file/d/OUTRA/view' }
+  ];
+  const api = resolver(materials);
+  assert.deepEqual(api.resolveAvailableMaterials({ discipline: 'Direito Processual Penal', subject: 'Representação por Prisão Temporária' }).map((m) => m.id), ['prisao']);
+  assert.equal(api.materialMatchesAssociation({ discipline: 'Direito Processual Penal', subject: 'Prisão' }, { discipline: 'Direito Processual Penal', subject: 'Representação por Prisão Temporária' }), false);
+});
+
 test('normalização e sincronização preservam todos os vínculos necessários', () => {
   const normalizeBlock = script.slice(script.indexOf('function normalizeFactoryItem'), script.indexOf('\n\nfunction factorySyllabusMainSubject'));
   const syncBlock = script.slice(script.indexOf('function syncFactoryModuleMaterials'), script.indexOf('\nfunction syncAllFactoryMaterials'));
@@ -43,4 +53,3 @@ test('normalização e sincronização preservam todos os vínculos necessários
   assert.match(syncBlock, /goalId: normalized\.goalId/);
   assert.match(syncBlock, /parentSyllabusItemId: normalized\.parentSyllabusItemId/);
 });
-

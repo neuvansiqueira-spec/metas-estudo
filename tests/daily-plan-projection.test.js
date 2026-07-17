@@ -49,3 +49,16 @@ test('fixture pesada preserva vínculos e resolve materiais com e sem projeção
   assert.deepEqual(fallbackProjection.materialsForDailyGoal(heavy.dailyGoals[41], entries[41]).map((m) => m.id).sort(), ['pdf-41', 'word-41']);
   assert.equal(JSON.stringify(heavy), before);
 });
+
+test('Plano do Dia reconhece variação segura de Prisão Temporária sem ID e sem vazar disciplina', () => {
+  const local = {
+    dailyGoals: [{ id:'goal-prisao', date, discipline:'Direito Processual Penal', subject:'Representação por Prisão Temporária' }],
+    factoryItems: [],
+    materials: [
+      { id:'material-prisao', discipline:'Direito Processual Penal', subject:'Prisão Temporária', link:'https://drive.google.com/file/d/PRISAO/view' },
+      { id:'material-homonimo', discipline:'Direito Penal', subject:'Prisão Temporária', link:'https://drive.google.com/file/d/HOMONIMO/view' }
+    ]
+  };
+  const entry = projectionFactory(local).buildDailyPlanProjection(date, local)[0];
+  assert.deepEqual(entry.materialGroups.flatMap((group) => group.materials).map((material) => material.id), ['material-prisao']);
+});

@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260717-vinculos-materiais-v22";
+const APP_VERSION = "20260717-prisao-temporaria-v23";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -3962,6 +3962,20 @@ function syncFactoryModuleMaterials(item) {
 function syncAllFactoryMaterials() { ensureFactoryAgenda().forEach(syncFactoryModuleMaterials); }
 function materialAvailable(m) { return m && m.available !== false; }
 function dailyPlanCanonical(value) { return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " "); }
+function dailyPlanSubjectKey(value) { return dailyPlanCanonical(value).replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " "); }
+function dailyPlanSubjectsCompatible(left = "", right = "") {
+  const leftKey = dailyPlanSubjectKey(left); const rightKey = dailyPlanSubjectKey(right);
+  if (!leftKey || !rightKey) return false;
+  if (leftKey === rightKey) return true;
+  const [shorter, longer] = leftKey.length <= rightKey.length ? [leftKey, rightKey] : [rightKey, leftKey];
+  const ignored = new Set(["a", "o", "as", "os", "e", "de", "da", "do", "das", "dos", "em", "por", "para", "com"]);
+  const meaningful = shorter.split(" ").filter((term) => term.length >= 3 && !ignored.has(term));
+  return meaningful.length >= 2 && ` ${longer} `.includes(` ${shorter} `);
+}
+function dailyPlanRecordsShareSubject(left = {}, right = {}) {
+  const leftDiscipline = dailyPlanCanonical(left.disciplina || left.discipline); const rightDiscipline = dailyPlanCanonical(right.disciplina || right.discipline);
+  return Boolean(leftDiscipline && leftDiscipline === rightDiscipline && dailyPlanSubjectsCompatible(left.tema || left.subject || left.assunto, right.tema || right.subject || right.assunto));
+}
 function dailyPlanMaterialIdentity(material = {}) {
   return `${materialPhysicalFileIdentity(material)}|${material.factoryModuleKey || "material"}`;
 }
@@ -3977,9 +3991,9 @@ function buildDailyPlanProjection(date, targetState = state) { if (typeof perfor
   materials.forEach((material) => { add(materialsByGoalId, material.goalId, material); add(materialsByFactoryItemId, material.factoryItemId, material); [material.syllabusItemId, ...(material.syllabusItemIds || [])].forEach((id) => add(materialsBySyllabusItemId, id, material)); add(materialsByParentSyllabusItemId, material.parentSyllabusItemId, material); add(materialsByEstimateSourceId, material.id, material); add(materialsByCombination, combination(material), material); });
   const only = (map, key) => { const list = map.get(key) || []; return list.length === 1 ? list : []; };
   return goals.map((goal) => {
-    const linkedFactory = new Set([...(factoryByGoalId.get(goal.id) || []), ...(factoryBySyllabusItemId.get(goal.syllabusItemId) || []), ...(factoryByParentSyllabusItemId.get(goal.syllabusItemId) || []), ...only(factoryByCombination, combination(goal))]);
+    const linkedFactory = new Set([...(factoryByGoalId.get(goal.id) || []), ...(factoryBySyllabusItemId.get(goal.syllabusItemId) || []), ...(factoryByParentSyllabusItemId.get(goal.syllabusItemId) || []), ...only(factoryByCombination, combination(goal)), ...factoryItems.filter((item) => dailyPlanRecordsShareSubject(item, goal))]);
     const factoryIds = new Set([...linkedFactory].map((item) => item.id));
-    const linked = new Set([...(materialsByGoalId.get(goal.id) || []), ...(materialsByEstimateSourceId.get(goal.estimateSourceId) || []), ...(materialsBySyllabusItemId.get(goal.syllabusItemId) || []), ...(materialsByParentSyllabusItemId.get(goal.syllabusItemId) || []), ...only(materialsByCombination, combination(goal))]);
+    const linked = new Set([...(materialsByGoalId.get(goal.id) || []), ...(materialsByEstimateSourceId.get(goal.estimateSourceId) || []), ...(materialsBySyllabusItemId.get(goal.syllabusItemId) || []), ...(materialsByParentSyllabusItemId.get(goal.syllabusItemId) || []), ...only(materialsByCombination, combination(goal)), ...materials.filter((material) => dailyPlanRecordsShareSubject(material, goal))]);
     factoryIds.forEach((id) => (materialsByFactoryItemId.get(id) || []).forEach((m) => linked.add(m)));
     const uniqueByIdentity = new Map(); [...linked].forEach((material) => { const key = dailyPlanMaterialIdentity(material); const current = uniqueByIdentity.get(key); if (!current || (Number(material.estimatedMinutes) || 0) > (Number(current.estimatedMinutes) || 0)) uniqueByIdentity.set(key, material); }); const uniqueMaterials = [...uniqueByIdentity.values()];
     const groups = new Map(); uniqueMaterials.forEach((material) => { const key = `${goal.id}|${material.factoryItemId || "manual"}|${material.factoryModuleKey || "material"}`; if (!groups.has(key)) groups.set(key, { key, moduleKey: material.factoryModuleKey || "material", label: material.factoryModuleKey || "MATERIAL", materials: [], subtopic: material.parentSyllabusItemId === goal.syllabusItemId ? material.subject : "" }); groups.get(key).materials.push(material); });
@@ -4013,7 +4027,7 @@ function materialMatchesAssociation(material = {}, { discipline = "", subject = 
   const requestedIds = [...new Set([syllabusItemId, ...(Array.isArray(syllabusItemIds) ? syllabusItemIds : [])].filter(Boolean))];
   if (requestedIds.some((id) => materialAssociationIds(material).includes(id))) return true;
   const normalizedDiscipline = dailyPlanCanonical(discipline); const normalizedSubject = dailyPlanCanonical(subject);
-  return Boolean(normalizedDiscipline && normalizedSubject && dailyPlanCanonical(material.discipline) === normalizedDiscipline && dailyPlanCanonical(material.subject) === normalizedSubject);
+  return Boolean(normalizedDiscipline && normalizedSubject && dailyPlanCanonical(material.discipline) === normalizedDiscipline && dailyPlanSubjectsCompatible(material.subject, subject));
 }
 function resolveAvailableMaterials(context = {}) { return (state.materials || []).filter(materialAvailable).filter((material) => materialMatchesAssociation(material, context)); }
 
