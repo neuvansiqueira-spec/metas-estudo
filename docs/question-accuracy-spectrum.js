@@ -3,6 +3,8 @@
 
   const GLOBAL_KEY = "__metasQuestionAccuracySpectrumV34";
   const STYLE_ID = "questionAccuracySpectrumStylesV34";
+  const TIMER_RUNTIME_KEY = "__metasTimerMotivationAlignedV35";
+  const TIMER_MILESTONES = [10, 25, 40, 50, 65, 75, 90, 100];
   const INPUT_IDS = new Set([
     "questionTotal",
     "questionCorrect",
@@ -188,16 +190,163 @@
     scheduleRender();
   }
 
+  function timerDisplayedPercent() {
+    const text = String(document.getElementById("timerProgressText")?.textContent || "");
+    const match = text.match(/(\d+(?:[.,]\d+)?)\s*%/);
+    if (!match) return 0;
+    return Math.min(100, Math.max(0, Number(match[1].replace(",", ".")) || 0));
+  }
+
+  function timerElapsedSeconds() {
+    const parts = String(document.getElementById("timerTime")?.textContent || "00:00:00")
+      .split(":")
+      .map((part) => Number(part) || 0);
+    if (parts.length !== 3) return 0;
+    return Math.max(0, parts[0] * 3600 + parts[1] * 60 + parts[2]);
+  }
+
+  function timerSessionIdentity() {
+    try {
+      if (typeof floatingTimer !== "undefined") {
+        return [floatingTimer.sessionId || "", floatingTimer.goalId || "", floatingTimer.openedAt || ""].join("|");
+      }
+    } catch (error) {}
+    return [
+      document.getElementById("timerDiscipline")?.textContent || "",
+      document.getElementById("timerSubject")?.textContent || "",
+      document.getElementById("timerKind")?.textContent || ""
+    ].join("|");
+  }
+
+  function timerMotivationalEnabled() {
+    const checkbox = document.querySelector('[data-timer-pref="motivationalMessages"]');
+    return !checkbox || checkbox.checked;
+  }
+
+  function timerFreeModeVisible() {
+    const timer = document.getElementById("floatingTimer");
+    return Boolean(timer && !timer.hidden && document.getElementById("timerMode")?.value === "free");
+  }
+
+  function synchronizeTimerMilestones(milestones) {
+    try {
+      if (typeof floatingTimer === "undefined") return;
+      const current = Array.isArray(floatingTimer.displayedMotivationalMilestones)
+        ? floatingTimer.displayedMotivationalMilestones
+        : [];
+      floatingTimer.displayedMotivationalMilestones = [...new Set([...current, ...milestones])];
+    } catch (error) {}
+  }
+
+  let timerHideTimeout = null;
+  function showAlignedTimerMotivation(milestone) {
+    let toast = document.getElementById("timerMotivationalToast");
+    if (!toast) {
+      toast = document.createElement("div");
+      toast.id = "timerMotivationalToast";
+      toast.className = "timer-motivational-toast";
+      toast.setAttribute("aria-live", "polite");
+      toast.setAttribute("aria-atomic", "true");
+      document.body.appendChild(toast);
+    }
+
+    let phrase = "Você está avançando. Continue firme.";
+    try {
+      if (typeof chooseTimerMotivationalMessage === "function") {
+        phrase = chooseTimerMotivationalMessage(milestone) || phrase;
+      }
+    } catch (error) {}
+
+    toast.innerHTML = `<strong>${milestone}% CONCLUÍDO</strong><span>${phrase}</span>`;
+    toast.hidden = false;
+    toast.classList.add("visible");
+    Object.assign(toast.style, {
+      display: "grid",
+      position: "fixed",
+      top: "18px",
+      left: "50%",
+      transform: "translateX(-50%)",
+      zIndex: "100000",
+      opacity: "1",
+      visibility: "visible",
+      pointerEvents: "none",
+      maxWidth: "min(92vw, 620px)"
+    });
+
+    clearTimeout(timerHideTimeout);
+    timerHideTimeout = setTimeout(() => {
+      toast.classList.remove("visible");
+      toast.style.opacity = "0";
+      timerHideTimeout = setTimeout(() => {
+        toast.hidden = true;
+        toast.style.display = "none";
+      }, 260);
+    }, 30000);
+  }
+
+  function installAlignedTimerMotivation() {
+    if (typeof document === "undefined" || globalThis[TIMER_RUNTIME_KEY]) return;
+    globalThis[TIMER_RUNTIME_KEY] = true;
+
+    let activeSession = "";
+    let lastElapsed = 0;
+    let shown = new Set();
+
+    const check = () => {
+      if (!timerFreeModeVisible() || !timerMotivationalEnabled()) return;
+
+      const session = timerSessionIdentity();
+      const elapsed = timerElapsedSeconds();
+      if (session !== activeSession || elapsed + 2 < lastElapsed) {
+        activeSession = session;
+        shown = new Set();
+      }
+      lastElapsed = elapsed;
+
+      try {
+        if (typeof floatingTimer !== "undefined" && Array.isArray(floatingTimer.displayedMotivationalMilestones)) {
+          floatingTimer.displayedMotivationalMilestones.forEach((milestone) => shown.add(Number(milestone)));
+        }
+      } catch (error) {}
+
+      const displayedPercent = Math.round(timerDisplayedPercent());
+      const reached = TIMER_MILESTONES.filter((milestone) => displayedPercent >= milestone);
+      const pending = reached.filter((milestone) => !shown.has(milestone));
+      const milestone = pending[pending.length - 1];
+      if (!milestone) return;
+
+      reached.forEach((value) => shown.add(value));
+      synchronizeTimerMilestones(reached);
+      showAlignedTimerMotivation(milestone);
+    };
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") setTimeout(check, 100);
+    });
+    document.addEventListener("change", (event) => {
+      if (event.target?.id === "timerMode" || event.target?.matches?.('[data-timer-pref="motivationalMessages"]')) {
+        setTimeout(check, 50);
+      }
+    }, true);
+    globalThis.addEventListener?.("focus", () => setTimeout(check, 100));
+    setInterval(check, 500);
+    setTimeout(check, 250);
+  }
+
   globalThis.MetasQuestionAccuracySpectrum = Object.freeze({
     clampAccuracyPercent,
     questionAccuracyFromValues,
     accuracySpectrumHue,
     renderQuestionAccuracySpectrum,
-    installQuestionAccuracySpectrum
+    installQuestionAccuracySpectrum,
+    timerDisplayedPercent,
+    timerElapsedSeconds,
+    installAlignedTimerMotivation
   });
 
   if (!globalThis[GLOBAL_KEY]) {
     globalThis[GLOBAL_KEY] = true;
     installQuestionAccuracySpectrum();
   }
+  installAlignedTimerMotivation();
 })();
