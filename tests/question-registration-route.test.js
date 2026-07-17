@@ -1,0 +1,47 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+
+const html = fs.readFileSync('index.html', 'utf8');
+const script = fs.readFileSync('script.js', 'utf8');
+const style = fs.readFileSync('style.css', 'utf8');
+
+function routeLogic() {
+  const start = script.indexOf('const QCONCURSOS_DELEGADO_URL');
+  const end = script.indexOf('function renderQconcursosFilterRoute', start);
+  return new Function(`${script.slice(start, end)}; return { buildQconcursosFilterRoute, QCONCURSOS_DELEGADO_URL };`)();
+}
+
+test('registro de questões possui três etapas recolhíveis sem duplicar o formulário', () => {
+  const view = html.slice(html.indexOf('id="view-questoes"'), html.indexOf('id="view-banco-questoes"'));
+  assert.equal((view.match(/class="question-register-section/g) || []).length, 3);
+  assert.equal((view.match(/id="questionForm"/g) || []).length, 1);
+  assert.match(view, /ETAPA 1 • CONTEÚDO/);
+  assert.match(view, /ETAPA 2 • BUSCA EXTERNA/);
+  assert.match(view, /ETAPA 3 • RESULTADO/);
+});
+
+test('rota prioriza cargo Delegado e preserva disciplina, assunto, subtema e banca', () => {
+  const api = routeLogic();
+  const route = api.buildQconcursosFilterRoute({ discipline:'Direito Processual Penal', topic:'Prisões', subject:'Prisão temporária', subtopic:'Representação' }, 'Cebraspe');
+  assert.match(route.url, /job_ids%5B%5D=169/);
+  assert.equal(route.discipline, 'Direito Processual Penal');
+  assert.equal(route.theme, 'Prisões');
+  assert.equal(route.subject, 'Prisão temporária');
+  assert.equal(route.subtopic, 'Representação');
+  assert.equal(route.board, 'Cebraspe');
+});
+
+test('hierarquia principal e secundária tem identidade visual responsiva', () => {
+  assert.match(html, /view-identity-heading/);
+  assert.match(style, /\.app-view > \.section-heading/);
+  assert.match(style, /\.question-register-section > summary/);
+  assert.match(style, /\.question-topic-hierarchy/);
+  assert.match(style, /@media \(max-width: 720px\)[\s\S]*\.question-topic-hierarchy \{ grid-template-columns: 1fr;/);
+});
+
+test('orientador avisa como ampliar amostra e abre site externo com segurança', () => {
+  assert.match(script, /menos de 20 questões/);
+  assert.match(script, /retire primeiro o período, depois a banca/);
+  assert.match(script, /target="_blank" rel="noopener noreferrer"/);
+});

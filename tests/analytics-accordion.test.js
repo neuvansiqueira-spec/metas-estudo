@@ -7,7 +7,7 @@ const script = fs.readFileSync('script.js','utf8');
 const html = fs.readFileSync('index.html','utf8');
 const style = fs.readFileSync('style.css','utf8');
 const sw = fs.readFileSync('service-worker.js','utf8');
-const version = '20260717-prisao-temporaria-v23';
+const version = '20260717-hierarquia-questoes-v24';
 
 function logic(){
   const start = script.indexOf('function formatExportDuration(minutes');

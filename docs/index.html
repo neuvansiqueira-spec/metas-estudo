@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-title" content="Metas Estudo" />
   <link rel="apple-touch-icon" href="icons/icon.svg" />
   <link rel="icon" type="image/svg+xml" href="icons/logo-mark.svg" />
-  <link rel="stylesheet" href="style.css?v=20260717-prisao-temporaria-v23" />
+  <link rel="stylesheet" href="style.css?v=20260717-hierarquia-questoes-v24" />
 </head>
 <body>
   <header class="hero">
@@ -542,26 +542,39 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </section>
 
     <section id="view-questoes" class="panel app-view" data-view="questoes" aria-labelledby="questions-title">
-      <div class="section-heading"><p class="eyebrow">Novo lançamento</p><h2 id="questions-title">Registrar sessão de questões</h2></div>
+      <div class="section-heading view-identity-heading"><p class="eyebrow">Questões • Registro e estratégia</p><h2 id="questions-title">Registrar sessão de questões</h2><p class="view-identity-description">Escolha o conteúdo, encontre o filtro adequado e registre o resultado sem misturar assunto principal e subtema.</p></div>
       <p class="notice">Use esta tela para cadastrar um novo resultado. A escolha de disciplina e assunto abaixo define onde o novo lançamento será registrado. Os resultados anteriores aparecem no resumo do assunto e em Desempenho e Histórico.</p>
-      <section id="questionSubjectSummary" class="notice" aria-live="polite">Selecione disciplina e assunto para consultar o histórico deste assunto.</section>
-      <h3>Dados da nova sessão</h3>
-      <form id="questionForm" class="form-grid">
+      <form id="questionForm" class="question-registration-flow">
         <input id="questionEditingId" type="hidden" /><input id="questionLinkedGoalId" type="hidden" /><input id="questionOrigin" type="hidden" value="avulso" />
-        <label>Data<input id="questionDate" type="date" required /></label>
-        <label>Disciplina<select id="questionDiscipline" required></select></label>
-        <label class="wide">Assunto<select id="questionSyllabusItem" required></select></label>
-        <label>Banca<select id="questionBoard"><option>Cebraspe</option><option>FGV</option><option>FCC</option><option>Vunesp</option><option>Instituto AOCP</option><option>Cesgranrio</option><option>Outra</option></select></label>
-        <label>Tipo de treino<select id="questionTrainingType"><option>Questões avulsas</option><option>Caderno de erros</option><option>Simulado</option><option>Revisão</option><option>Pós-aula</option></select></label>
-        <label>Total de questões<input id="questionTotal" type="number" min="1" required /></label>
-        <label>Tempo gasto (min)<input id="questionMinutes" type="number" min="0" value="0" /></label>
-        <label>Acertos<input id="questionCorrect" type="number" min="0" value="0" required /></label>
-        <label>Erros<input id="questionWrong" type="number" min="0" value="0" required /></label>
-        <label>Brancos<input id="questionBlank" type="number" min="0" value="0" required /></label>
-        <label class="wide">Observações<textarea id="questionNotes" rows="3"></textarea></label>
-        <div id="questionCalculated" class="calculation-box wide">Preencha os números para calcular percentuais e líquido.</div>
-        <div id="questionAnalysis" class="notice wide"></div>
-        <button class="wide" type="submit">Salvar lançamento de questões</button>
+        <details class="question-register-section" open>
+          <summary><span><small>ETAPA 1 • CONTEÚDO</small><strong>Disciplina, tema e subtema</strong><em>Define exatamente onde o resultado será registrado</em></span></summary>
+          <div class="question-register-content form-grid">
+            <label>Data<input id="questionDate" type="date" required /></label>
+            <label>Disciplina<select id="questionDiscipline" required></select></label>
+            <label class="wide">Assunto do edital<select id="questionSyllabusItem" required></select></label>
+            <label>Banca<select id="questionBoard"><option>Cebraspe</option><option>FGV</option><option>FCC</option><option>Vunesp</option><option>Instituto AOCP</option><option>Cesgranrio</option><option>Outra</option></select></label>
+            <label>Tipo de treino<select id="questionTrainingType"><option>Questões avulsas</option><option>Caderno de erros</option><option>Simulado</option><option>Revisão</option><option>Pós-aula</option></select></label>
+            <section id="questionSubjectSummary" class="notice wide" aria-live="polite">Selecione disciplina e assunto para consultar o histórico deste assunto.</section>
+          </div>
+        </details>
+        <details class="question-register-section question-filter-route-section" open>
+          <summary><span><small>ETAPA 2 • BUSCA EXTERNA</small><strong>Rota de filtros para Delegado</strong><em>Ordem recomendada para localizar questões no QConcursos</em></span></summary>
+          <div id="questionQconcursosRoute" class="question-register-content" aria-live="polite"></div>
+        </details>
+        <details class="question-register-section" open>
+          <summary><span><small>ETAPA 3 • RESULTADO</small><strong>Dados da nova sessão</strong><em>Registre quantidade, desempenho e tempo</em></span></summary>
+          <div class="question-register-content form-grid">
+            <label>Total de questões<input id="questionTotal" type="number" min="1" required /></label>
+            <label>Tempo gasto (min)<input id="questionMinutes" type="number" min="0" value="0" /></label>
+            <label>Acertos<input id="questionCorrect" type="number" min="0" value="0" required /></label>
+            <label>Erros<input id="questionWrong" type="number" min="0" value="0" required /></label>
+            <label>Brancos<input id="questionBlank" type="number" min="0" value="0" required /></label>
+            <label class="wide">Observações<textarea id="questionNotes" rows="3"></textarea></label>
+            <div id="questionCalculated" class="calculation-box wide">Preencha os números para calcular percentuais e líquido.</div>
+            <div id="questionAnalysis" class="notice wide"></div>
+            <button class="wide" type="submit">Salvar lançamento de questões</button>
+          </div>
+        </details>
       </form>
     </section>
 
@@ -974,13 +987,13 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </section>
   </div>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260717-prisao-temporaria-v23</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260717-hierarquia-questoes-v24</p></footer>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="storage-indexeddb.js?v=20260717-prisao-temporaria-v23"></script>
-  <script src="analytics-engine.js?v=20260717-prisao-temporaria-v23"></script>
-  <script src="study-advisor.js?v=20260717-prisao-temporaria-v23"></script>
-  <script src="advisor-navigation-engine.js?v=20260717-prisao-temporaria-v23"></script>
-  <script src="script.js?v=20260717-prisao-temporaria-v23"></script>
+  <script src="storage-indexeddb.js?v=20260717-hierarquia-questoes-v24"></script>
+  <script src="analytics-engine.js?v=20260717-hierarquia-questoes-v24"></script>
+  <script src="study-advisor.js?v=20260717-hierarquia-questoes-v24"></script>
+  <script src="advisor-navigation-engine.js?v=20260717-hierarquia-questoes-v24"></script>
+  <script src="script.js?v=20260717-hierarquia-questoes-v24"></script>
   <div id="legacyTimerRecoveryModal" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="legacyTimerRecoveryModalTitle" hidden>
     <div class="app-modal-backdrop" data-legacy-recovery-cancel></div>
     <section class="app-modal-card">
