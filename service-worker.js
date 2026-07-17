@@ -5,11 +5,12 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260717-mensagens-cronometro-livre-pwa-v31",
   "20260717-sincronizacao-automatica-dispositivos-v32",
   "20260717-salvamento-integral-tempo-v33",
-  "20260717-espectro-continuo-acertos-v34"
+  "20260717-espectro-continuo-acertos-v34",
+  "20260717-login-google-somente-manual-v36"
 ];
-const CURRENT_VERSION = "20260717-login-google-somente-manual-v36";
+const CURRENT_VERSION = "20260717-espectro-compacto-site-app-v37";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
-const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v11`;
+const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v12`;
 const FILES_TO_CACHE = [
   "./",
   "index.html",
@@ -60,13 +61,11 @@ function replaceVersion(source) {
 
 function patchHtmlSource(source) {
   let patched = replaceVersion(source);
-  if (!patched.includes("question-accuracy-spectrum.js")) {
-    patched = patched.replace(
-      "</body>",
-      `<script src="question-accuracy-spectrum.js?v=${CURRENT_VERSION}"></script>\n</body>`
-    );
-  }
-  return patched;
+  patched = patched.replace(/\s*<script[^>]*question-accuracy-spectrum\.js[^>]*><\/script>/gi, "");
+  return patched.replace(
+    "</body>",
+    `<script src="question-accuracy-spectrum.js?v=${CURRENT_VERSION}"></script>\n</body>`
+  );
 }
 
 const TIMER_MOTIVATION_PWA_FALLBACK = [
@@ -189,9 +188,6 @@ function patchAppScriptSource(source, syncIntegralSource = "") {
     .replace("Baixar dados da nuvem e substituir os dados deste dispositivo? Um backup local automático será criado antes.", "Mesclar os dados da nuvem com os dados deste dispositivo? Um backup local automático será criado antes.")
     .replace("Dados atualizados pela nuvem.", "Dados locais e da nuvem mesclados com segurança.");
 
-  if (!patched.includes("__timerMotivationPwaFallbackV31")) {
-    patched += `\n${TIMER_MOTIVATION_PWA_FALLBACK}\n`;
-  }
   return patched;
 }
 

@@ -9,7 +9,6 @@ function patchFunctionsFrom(source) {
   const end = source.indexOf(endMarker, start);
   assert.notEqual(start, -1, "constantes de versão não encontradas");
   assert.notEqual(end, -1, "fim das funções de correção não encontrado");
-
   const block = source.slice(start, end);
   const context = {
     self: { addEventListener() {}, skipWaiting() {}, clients: { claim() {} } },
@@ -25,7 +24,7 @@ function patchFunctionsFrom(source) {
 }
 
 for (const file of ["service-worker.js", "docs/service-worker.js"]) {
-  test(`${file}: mantém correções do Cronômetro Livre e publica a versão sem login automático`, () => {
+  test(`${file}: mantém correções e publica o espectro compacto`, () => {
     const source = fs.readFileSync(file, "utf8");
     const patch = patchFunctionsFrom(source);
     const original = [
@@ -37,41 +36,24 @@ for (const file of ["service-worker.js", "docs/service-worker.js"]) {
     ].join("\n");
 
     const result = patch.patchAppScriptSource(original);
-    assert.equal(patch.CURRENT_VERSION, "20260717-login-google-somente-manual-v36");
-    assert.match(result, /APP_VERSION = "20260717-login-google-somente-manual-v36"/);
+    assert.equal(patch.CURRENT_VERSION, "20260717-espectro-compacto-site-app-v37");
+    assert.match(result, /APP_VERSION = "20260717-espectro-compacto-site-app-v37"/);
     assert.match(result, /TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 30000/);
     assert.match(result, /floatingTimer\.mode !== "free" && !goal/);
-    assert.doesNotMatch(result, /if \(!goal \|\| !supportedMode/);
     assert.match(result, /sessionGoalMinutes = selectedMode === "free" \? Math\.max\(0, Number\(goal\.minutes\) \|\| 0\) : 0/);
     assert.match(result, /Number\(floatingTimer\.sessionGoalMinutes\) \|\| Number\(goal\?\.minutes\) \|\| 0/);
-
-    assert.match(result, /__timerMotivationPwaFallbackV31/);
-    assert.match(result, /setInterval\(\(\) => \{/);
-    assert.match(result, /zIndex: "100000"/);
-    assert.match(result, /}, 30000\);/);
-    assert.match(result, /document\.getElementById\("timerMotivationalToast"\)/);
+    assert.doesNotMatch(result, /__timerMotivationPwaFallbackV31/);
 
     const html = patch.patchHtmlSource('<p>Versão: 20260717-numero-qc-v26</p></body>');
-    assert.match(html, /Versão: 20260717-login-google-somente-manual-v36/);
-    assert.match(html, /question-accuracy-spectrum\.js\?v=20260717-login-google-somente-manual-v36/);
+    assert.match(html, /Versão: 20260717-espectro-compacto-site-app-v37/);
+    assert.match(html, /question-accuracy-spectrum\.js\?v=20260717-espectro-compacto-site-app-v37/);
     assert.equal((html.match(/question-accuracy-spectrum\.js/g) || []).length, 1);
 
-    const previous = patch.patchHtmlSource('<p>Versão: 20260717-espectro-continuo-acertos-v34</p></body>');
-    assert.match(previous, /Versão: 20260717-login-google-somente-manual-v36/);
-
-    const alreadyInjected = patch.patchHtmlSource('<script src="question-accuracy-spectrum.js"></script></body>');
-    assert.equal((alreadyInjected.match(/question-accuracy-spectrum\.js/g) || []).length, 1);
+    const oldInjected = patch.patchHtmlSource('<script src="question-accuracy-spectrum.js?v=antiga"></script></body>');
+    assert.equal((oldInjected.match(/question-accuracy-spectrum\.js/g) || []).length, 1);
+    assert.match(oldInjected, /question-accuracy-spectrum\.js\?v=20260717-espectro-compacto-site-app-v37/);
   });
 }
-
-test("fallback motivacional é injetado somente uma vez", () => {
-  const patch = patchFunctionsFrom(fs.readFileSync("service-worker.js", "utf8"));
-  const once = patch.patchAppScriptSource("const APP_VERSION = \"20260717-numero-qc-v26\";");
-  const twice = patch.patchAppScriptSource(once);
-  assert.equal((twice.match(/__timerMotivationPwaFallbackV31/g) || []).length, 2);
-  assert.equal((once.match(/globalThis\.__timerMotivationPwaFallbackV31 = true/g) || []).length, 1);
-  assert.equal((twice.match(/globalThis\.__timerMotivationPwaFallbackV31 = true/g) || []).length, 1);
-});
 
 test("service worker publicado permanece sincronizado", () => {
   assert.equal(

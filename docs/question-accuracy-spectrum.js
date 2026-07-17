@@ -1,16 +1,11 @@
 (() => {
   "use strict";
 
-  const GLOBAL_KEY = "__metasQuestionAccuracySpectrumV34";
-  const STYLE_ID = "questionAccuracySpectrumStylesV34";
-  const TIMER_RUNTIME_KEY = "__metasTimerMotivationAlignedV35";
+  const GLOBAL_KEY = "__metasQuestionAccuracySpectrumV37";
+  const STYLE_ID = "questionAccuracySpectrumStylesV37";
+  const TIMER_RUNTIME_KEY = "__metasTimerMotivationAlignedV37";
   const TIMER_MILESTONES = [10, 25, 40, 50, 65, 75, 90, 100];
-  const INPUT_IDS = new Set([
-    "questionTotal",
-    "questionCorrect",
-    "questionWrong",
-    "questionBlank"
-  ]);
+  const INPUT_IDS = new Set(["questionTotal", "questionCorrect", "questionWrong", "questionBlank"]);
 
   function clampAccuracyPercent(value) {
     const number = Number(value);
@@ -21,9 +16,7 @@
   function questionAccuracyFromValues(total, correct) {
     const normalizedTotal = Math.max(0, Number(total) || 0);
     const normalizedCorrect = Math.max(0, Number(correct) || 0);
-    return normalizedTotal
-      ? clampAccuracyPercent((normalizedCorrect / normalizedTotal) * 100)
-      : 0;
+    return normalizedTotal ? clampAccuracyPercent((normalizedCorrect / normalizedTotal) * 100) : 0;
   }
 
   function accuracySpectrumHue(percent) {
@@ -41,10 +34,10 @@
     } catch (error) {
       console.warn("[Questões] Não foi possível ler o cálculo original de acertos.", error);
     }
-
-    const total = document.getElementById("questionTotal")?.value;
-    const correct = document.getElementById("questionCorrect")?.value;
-    return questionAccuracyFromValues(total, correct);
+    return questionAccuracyFromValues(
+      document.getElementById("questionTotal")?.value,
+      document.getElementById("questionCorrect")?.value
+    );
   }
 
   function ensureStyles() {
@@ -56,28 +49,25 @@
         --question-accuracy: 0%;
         --question-accuracy-hue: 0;
         position: relative;
-        display: grid;
-        gap: 12px;
-        overflow: hidden;
-        border: 1px solid hsl(var(--question-accuracy-hue) 68% 42% / .72);
-        background:
-          radial-gradient(circle at 100% 0%, hsl(var(--question-accuracy-hue) 88% 78% / .38), transparent 48%),
-          linear-gradient(135deg, hsl(var(--question-accuracy-hue) 90% 98%), hsl(calc(var(--question-accuracy-hue) + 16) 82% 92%));
-        box-shadow: 0 12px 30px hsl(var(--question-accuracy-hue) 72% 38% / .13), inset 0 1px 0 rgba(255,255,255,.82);
-        transition: background .35s ease, border-color .35s ease, box-shadow .35s ease;
+        padding-bottom: 36px !important;
       }
-
       .question-accuracy-spectrum-visual {
+        position: absolute;
+        left: 16px;
+        right: 16px;
+        bottom: 9px;
         display: grid;
-        gap: 7px;
-        padding-top: 2px;
+        grid-template-columns: minmax(120px, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+        pointer-events: none;
       }
-
       .question-accuracy-spectrum-track {
         position: relative;
-        height: 14px;
-        overflow: visible;
-        border: 1px solid rgba(15, 23, 42, .14);
+        height: 9px;
+        min-width: 0;
+        border: 1px solid rgba(15, 23, 42, .15);
         border-radius: 999px;
         background: linear-gradient(90deg,
           #dc2626 0%,
@@ -87,31 +77,35 @@
           #0ea5e9 100%);
         box-shadow: inset 0 1px 2px rgba(15, 23, 42, .18);
       }
-
       .question-accuracy-spectrum-marker {
         position: absolute;
         top: 50%;
         left: var(--question-accuracy);
-        width: 20px;
-        height: 20px;
-        border: 3px solid #0f172a;
-        border-radius: 999px;
-        background: #fff;
-        box-shadow: 0 4px 12px rgba(15, 23, 42, .28);
+        width: 16px;
+        height: 16px;
+        border: 2px solid #0f172a;
+        border-radius: 50%;
+        background: hsl(var(--question-accuracy-hue) 82% 54%);
+        box-shadow: 0 2px 7px rgba(15, 23, 42, .28);
         transform: translate(-50%, -50%);
-        transition: left .28s ease;
+        transition: left .25s ease, background-color .25s ease;
       }
-
       .question-accuracy-spectrum-label {
-        color: #0f172a;
-        font-size: .86rem;
-        font-weight: 900;
-        letter-spacing: .01em;
+        margin: 0;
+        color: inherit;
+        font-size: .76rem;
+        font-weight: 800;
+        line-height: 1;
+        white-space: nowrap;
       }
-
       @media (max-width: 620px) {
-        .question-accuracy-spectrum-track { height: 13px; }
-        .question-accuracy-spectrum-marker { width: 19px; height: 19px; }
+        #questionCalculated.question-calculated-spectrum { padding-bottom: 52px !important; }
+        .question-accuracy-spectrum-visual {
+          grid-template-columns: 1fr;
+          gap: 6px;
+          bottom: 8px;
+        }
+        .question-accuracy-spectrum-label { font-size: .72rem; }
       }
     `;
     document.head.appendChild(style);
@@ -120,7 +114,6 @@
   function ensureVisual(box) {
     let visual = box.querySelector("[data-question-accuracy-spectrum]");
     if (visual) return visual;
-
     visual = document.createElement("div");
     visual.className = "question-accuracy-spectrum-visual";
     visual.dataset.questionAccuracySpectrum = "true";
@@ -134,27 +127,30 @@
     return visual;
   }
 
+  let spectrumRendering = false;
   function renderQuestionAccuracySpectrum() {
     const box = document.getElementById("questionCalculated");
-    if (!box) return;
-
-    ensureStyles();
-    const accuracy = readAccuracyPercent();
-    const hue = accuracySpectrumHue(accuracy);
-    const markerPercent = Math.min(99, Math.max(1, accuracy));
-    const visual = ensureVisual(box);
-    const track = visual.querySelector(".question-accuracy-spectrum-track");
-    const label = visual.querySelector(".question-accuracy-spectrum-label");
-
-    box.classList.add("question-calculated-spectrum");
-    box.style.setProperty("--question-accuracy", `${markerPercent}%`);
-    box.style.setProperty("--question-accuracy-hue", String(hue));
-
-    if (track) {
-      track.setAttribute("aria-valuenow", accuracy.toFixed(1));
-      track.setAttribute("aria-valuetext", `${accuracy.toFixed(1)}% de acertos`);
+    if (!box || spectrumRendering) return;
+    spectrumRendering = true;
+    try {
+      ensureStyles();
+      const accuracy = readAccuracyPercent();
+      const hue = accuracySpectrumHue(accuracy);
+      const markerPercent = Math.min(99.2, Math.max(.8, accuracy));
+      const visual = ensureVisual(box);
+      const track = visual.querySelector(".question-accuracy-spectrum-track");
+      const label = visual.querySelector(".question-accuracy-spectrum-label");
+      box.classList.add("question-calculated-spectrum");
+      box.style.setProperty("--question-accuracy", `${markerPercent}%`);
+      box.style.setProperty("--question-accuracy-hue", String(hue));
+      if (track) {
+        track.setAttribute("aria-valuenow", accuracy.toFixed(1));
+        track.setAttribute("aria-valuetext", `${accuracy.toFixed(1)}% de acertos`);
+      }
+      if (label) label.textContent = `${accuracy.toFixed(1).replace(".", ",")}% de acertos`;
+    } finally {
+      spectrumRendering = false;
     }
-    if (label) label.textContent = `${accuracy.toFixed(1).replace(".", ",")}% de acertos`;
   }
 
   let renderQueued = false;
@@ -171,9 +167,11 @@
 
   function observeCalculatedBox() {
     const box = document.getElementById("questionCalculated");
-    if (!box || box.dataset.accuracySpectrumObserved === "true" || typeof MutationObserver === "undefined") return;
-    box.dataset.accuracySpectrumObserved = "true";
-    const observer = new MutationObserver(() => scheduleRender());
+    if (!box || box.dataset.accuracySpectrumObservedV37 === "true" || typeof MutationObserver === "undefined") return;
+    box.dataset.accuracySpectrumObservedV37 = "true";
+    const observer = new MutationObserver(() => {
+      if (!spectrumRendering) scheduleRender();
+    });
     observer.observe(box, { childList: true });
   }
 
@@ -198,9 +196,7 @@
   }
 
   function timerElapsedSeconds() {
-    const parts = String(document.getElementById("timerTime")?.textContent || "00:00:00")
-      .split(":")
-      .map((part) => Number(part) || 0);
+    const parts = String(document.getElementById("timerTime")?.textContent || "00:00:00").split(":").map((part) => Number(part) || 0);
     if (parts.length !== 3) return 0;
     return Math.max(0, parts[0] * 3600 + parts[1] * 60 + parts[2]);
   }
@@ -228,16 +224,6 @@
     return Boolean(timer && !timer.hidden && document.getElementById("timerMode")?.value === "free");
   }
 
-  function synchronizeTimerMilestones(milestones) {
-    try {
-      if (typeof floatingTimer === "undefined") return;
-      const current = Array.isArray(floatingTimer.displayedMotivationalMilestones)
-        ? floatingTimer.displayedMotivationalMilestones
-        : [];
-      floatingTimer.displayedMotivationalMilestones = [...new Set([...current, ...milestones])];
-    } catch (error) {}
-  }
-
   let timerHideTimeout = null;
   function showAlignedTimerMotivation(milestone) {
     let toast = document.getElementById("timerMotivationalToast");
@@ -249,14 +235,10 @@
       toast.setAttribute("aria-atomic", "true");
       document.body.appendChild(toast);
     }
-
     let phrase = "Você está avançando. Continue firme.";
     try {
-      if (typeof chooseTimerMotivationalMessage === "function") {
-        phrase = chooseTimerMotivationalMessage(milestone) || phrase;
-      }
+      if (typeof chooseTimerMotivationalMessage === "function") phrase = chooseTimerMotivationalMessage(milestone) || phrase;
     } catch (error) {}
-
     toast.innerHTML = `<strong>${milestone}% CONCLUÍDO</strong><span>${phrase}</span>`;
     toast.hidden = false;
     toast.classList.add("visible");
@@ -272,7 +254,6 @@
       pointerEvents: "none",
       maxWidth: "min(92vw, 620px)"
     });
-
     clearTimeout(timerHideTimeout);
     timerHideTimeout = setTimeout(() => {
       toast.classList.remove("visible");
@@ -287,14 +268,11 @@
   function installAlignedTimerMotivation() {
     if (typeof document === "undefined" || globalThis[TIMER_RUNTIME_KEY]) return;
     globalThis[TIMER_RUNTIME_KEY] = true;
-
     let activeSession = "";
     let lastElapsed = 0;
     let shown = new Set();
-
     const check = () => {
       if (!timerFreeModeVisible() || !timerMotivationalEnabled()) return;
-
       const session = timerSessionIdentity();
       const elapsed = timerElapsedSeconds();
       if (session !== activeSession || elapsed + 2 < lastElapsed) {
@@ -302,31 +280,19 @@
         shown = new Set();
       }
       lastElapsed = elapsed;
-
-      try {
-        if (typeof floatingTimer !== "undefined" && Array.isArray(floatingTimer.displayedMotivationalMilestones)) {
-          floatingTimer.displayedMotivationalMilestones.forEach((milestone) => shown.add(Number(milestone)));
-        }
-      } catch (error) {}
-
       const displayedPercent = Math.round(timerDisplayedPercent());
       const reached = TIMER_MILESTONES.filter((milestone) => displayedPercent >= milestone);
       const pending = reached.filter((milestone) => !shown.has(milestone));
       const milestone = pending[pending.length - 1];
       if (!milestone) return;
-
       reached.forEach((value) => shown.add(value));
-      synchronizeTimerMilestones(reached);
       showAlignedTimerMotivation(milestone);
     };
-
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") setTimeout(check, 100);
     });
     document.addEventListener("change", (event) => {
-      if (event.target?.id === "timerMode" || event.target?.matches?.('[data-timer-pref="motivationalMessages"]')) {
-        setTimeout(check, 50);
-      }
+      if (event.target?.id === "timerMode" || event.target?.matches?.('[data-timer-pref="motivationalMessages"]')) setTimeout(check, 50);
     }, true);
     globalThis.addEventListener?.("focus", () => setTimeout(check, 100));
     setInterval(check, 500);

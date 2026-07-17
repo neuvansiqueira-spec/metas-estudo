@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260717-login-google-somente-manual-v36",
+  "version": "20260717-espectro-compacto-site-app-v37",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
