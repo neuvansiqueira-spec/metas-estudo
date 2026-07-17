@@ -2,42 +2,45 @@
 
 ## Versão estável atual
 
-`20260717-espectro-continuo-acertos-v34`
+`20260717-login-google-somente-manual-v36`
 
 ## Data
 
 17/07/2026
 
+## Login do Google somente por ação do usuário
+
+Esta versão corrige a abertura repetida da janela **Escolha uma conta** ao abrir, atualizar, focar ou retornar ao site.
+
+As verificações automáticas da nuvem agora:
+
+- identificam quando a autorização do Google Drive expirou;
+- exibem a orientação no painel de Backup;
+- preservam alterações pendentes no dispositivo;
+- não abrem janela, popup ou seletor de conta.
+
+A autenticação interativa somente pode ser iniciada quando o usuário:
+
+- toca em **Conectar Google Drive**;
+- executa uma sincronização manual que exige renovação da autorização.
+
+Salvar dados com a autorização expirada mantém a alteração local e marca o envio como pendente, sem interromper o trabalho com uma janela de login.
+
 ## Espectro contínuo no Total Calculado
 
-Na aba **Registrar sessão de questões**, o quadro **Total calculado** passa a refletir visualmente o percentual de acertos com uma transição contínua.
-
-O componente apresenta:
-
-- espectro suave vermelho → laranja → amarelo → verde → azul;
-- marcador posicionado na porcentagem exata de acertos;
-- tonalidade de fundo e borda calculada continuamente, sem faixas rígidas;
-- atualização imediata ao alterar total, acertos, erros ou brancos;
-- comportamento responsivo no computador, aplicativo instalado e celular;
-- atributos de acessibilidade com valor percentual do indicador.
-
-A escala visual não altera o cálculo já utilizado pelo sistema. O percentual continua sendo calculado a partir dos valores informados na sessão.
+Na aba **Registrar sessão de questões**, o quadro **Total calculado** reflete visualmente o percentual de acertos com uma transição contínua vermelho → laranja → amarelo → verde → azul, marcador na porcentagem exata e atualização imediata.
 
 ## Salvamento integral do tempo
 
-A versão mantém a correção em que uma sessão salva pelo cronômetro atualiza imediatamente o total da meta, preserva o histórico completo e reconstrói os minutos de estudo e de questões com base nas sessões registradas.
+Uma sessão salva pelo cronômetro atualiza imediatamente o total da meta, preserva o histórico completo e reconstrói os minutos de estudo e de questões com base nas sessões registradas.
 
 ## Atualização entre o app e o site no mesmo computador
 
 O app instalado e a aba comum do navegador continuam escutando alterações do armazenamento da mesma origem. Quando o tempo é salvo em um deles, o outro incorpora e renderiza o estado atualizado sem depender da nuvem.
 
-## Autorização do Google Drive
-
-Quando o dispositivo continua marcado como conectado, mas o token expirou, o sistema tenta renovar a autorização antes de interromper a sincronização. Se a renovação silenciosa não for aceita pelo navegador, é exibida orientação para tocar em **Conectar Google Drive**.
-
 ## Sincronização integral entre dispositivos
 
-A versão mantém a mesclagem por conteúdo completo e preserva:
+A mesclagem por conteúdo completo preserva:
 
 - sessões de estudo e de questões;
 - tempos registrados e totais acumulados;
@@ -53,4 +56,4 @@ A correção do Cronômetro Livre permanece ativa. As mensagens aparecem nos mar
 
 ## Segurança dos dados
 
-A alteração visual do percentual não modifica sessões, metas, históricos, totais nem dados de sincronização.
+A correção do login atua apenas no fluxo de autorização. Não remove nem altera sessões, metas, históricos, totais ou dados locais.
