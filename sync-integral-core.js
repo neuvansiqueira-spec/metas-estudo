@@ -33,11 +33,16 @@ function syncPrimitiveArray(local = [], remote = []) {
 function syncCollectionKey(item = {}, collection = "records") {
   const directId = (["studies", "questionBankSessions"].includes(collection) ? (item.sessionId || item.id) : (item.id || item.sessionId)) || item.uuid || item.key;
   if (directId) return `${collection}:id:${String(directId)}`;
+  const preciseStart = item.startedAt || item.startTime || "";
+  const preciseEnd = item.endedAt || item.endTime || "";
+  if (["studies", "questionLogs", "questionBankSessions"].includes(collection) && !preciseStart && !preciseEnd) {
+    return `${collection}:legacy:${JSON.stringify(item)}`;
+  }
   const fieldSets = {
-    studies: [item.goalId, item.startedAt || item.startTime, item.endedAt || item.endTime, item.date, item.discipline || item.disciplina, item.topic || item.subject || item.assunto],
+    studies: [item.goalId, preciseStart, preciseEnd, item.date, item.discipline || item.disciplina, item.topic || item.subject || item.assunto],
     dailyGoals: [item.date || item.data, item.discipline || item.disciplina, item.subject || item.assunto, item.type || item.tipo, item.syllabusItemId],
-    questionLogs: [item.goalId || item.dailyGoalId, item.date, item.discipline || item.disciplina, item.subject || item.assunto, item.startedAt, item.endedAt, item.trainingType],
-    questionBankSessions: [item.startedAt, item.endedAt, item.date, item.mode, item.discipline],
+    questionLogs: [item.goalId || item.dailyGoalId, item.date, item.discipline || item.disciplina, item.subject || item.assunto, preciseStart, preciseEnd, item.trainingType],
+    questionBankSessions: [preciseStart, preciseEnd, item.date, item.mode, item.discipline],
     smartReviews: [item.date, item.syllabusItemId, item.discipline, item.subject, item.status],
     simulados: [item.date, item.name, item.board],
     materials: [item.link, item.title, item.discipline, item.subject, item.type],
