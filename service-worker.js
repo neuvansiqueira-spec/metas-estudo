@@ -1,6 +1,7 @@
-// versão anterior: metas-estudo-20260717-numero-qc-v26
-const CACHE_NAME = "metas-estudo-20260717-cronometro-livre-motivacao-v27";
-const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v1`;
+const PREVIOUS_VERSION = "20260717-numero-qc-v26";
+const CURRENT_VERSION = "20260717-cronometro-livre-motivacao-v27";
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
+const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v2`;
 const FILES_TO_CACHE = [
   "./",
   "index.html",
@@ -44,25 +45,43 @@ function cacheResponse(request, response) {
   caches.open(ASSET_CACHE_NAME).then((cache) => cache.put(request, response));
 }
 
-function networkFirstNavigation(request) {
-  return fetch(request)
-    .then((response) => {
-      cacheResponse(request, response.clone());
-      return response;
-    })
-    .catch(() => caches.match(request).then((cachedResponse) => cachedResponse || caches.match("index.html")));
+function replaceVersion(source) {
+  return String(source || "").split(PREVIOUS_VERSION).join(CURRENT_VERSION);
 }
 
-function staleWhileRevalidate(request) {
-  return caches.match(request).then((cachedResponse) => {
-    const networkResponse = fetch(request)
-      .then((response) => {
-        cacheResponse(request, response.clone());
-        return response;
-      })
-      .catch(() => cachedResponse);
-    return cachedResponse || networkResponse;
+function patchHtmlSource(source) {
+  return replaceVersion(source);
+}
+
+function patchAppScriptSource(source) {
+  const oldGuard = 'if (!goal || !supportedMode || !planned || state.settings?.timerPreferences?.motivationalMessages === false) return;';
+  const newGuard = 'if ((floatingTimer.mode !== "free" && !goal) || !supportedMode || !planned || state.settings?.timerPreferences?.motivationalMessages === false) return;';
+  return replaceVersion(source)
+    .replace(oldGuard, newGuard)
+    .replace("const TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 5000;", "const TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 30000;");
+}
+
+async function patchTextResponse(response, transform, contentType) {
+  if (!response || !response.ok) return response;
+  const source = await response.text();
+  const headers = new Headers(response.headers);
+  headers.delete("content-length");
+  headers.delete("content-encoding");
+  headers.delete("etag");
+  headers.set("content-type", contentType);
+  return new Response(transform(source), {
+    status: response.status,
+    statusText: response.statusText,
+    headers
   });
+}
+
+function patchHtmlResponse(response) {
+  return patchTextResponse(response, patchHtmlSource, "text/html; charset=utf-8");
+}
+
+function patchAppScriptResponse(response) {
+  return patchTextResponse(response, patchAppScriptSource, "application/javascript; charset=utf-8");
 }
 
 function isMainAppScript(request) {
@@ -73,27 +92,16 @@ function isMainAppScript(request) {
   }
 }
 
-function patchAppScriptSource(source) {
-  const oldGuard = 'if (!goal || !supportedMode || !planned || state.settings?.timerPreferences?.motivationalMessages === false) return;';
-  const newGuard = 'if ((floatingTimer.mode !== "free" && !goal) || !supportedMode || !planned || state.settings?.timerPreferences?.motivationalMessages === false) return;';
-  return source
-    .replace(oldGuard, newGuard)
-    .replace("const TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 5000;", "const TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 30000;");
-}
-
-async function patchAppScriptResponse(response) {
-  if (!response || !response.ok) return response;
-  const source = await response.text();
-  const headers = new Headers(response.headers);
-  headers.delete("content-length");
-  headers.delete("content-encoding");
-  headers.delete("etag");
-  headers.set("content-type", "application/javascript; charset=utf-8");
-  return new Response(patchAppScriptSource(source), {
-    status: response.status,
-    statusText: response.statusText,
-    headers
-  });
+async function networkFirstNavigation(request) {
+  try {
+    const networkResponse = await fetch(request);
+    const patchedResponse = await patchHtmlResponse(networkResponse);
+    cacheResponse(request, patchedResponse.clone());
+    return patchedResponse;
+  } catch (error) {
+    const cachedResponse = await caches.match(request) || await caches.match("index.html");
+    return cachedResponse ? patchHtmlResponse(cachedResponse) : cachedResponse;
+  }
 }
 
 async function patchedAppScript(request) {
@@ -108,6 +116,18 @@ async function patchedAppScript(request) {
   }
 }
 
+function staleWhileRevalidate(request) {
+  return caches.match(request).then((cachedResponse) => {
+    const networkResponse = fetch(request)
+      .then((response) => {
+        cacheResponse(request, response.clone());
+        return response;
+      })
+      .catch(() => cachedResponse);
+    return cachedResponse || networkResponse;
+  });
+}
+
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
@@ -116,8 +136,6 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // HTML remains network-first so deployments are visible immediately. App assets use
-  // stale-while-revalidate: a warm cache opens instantly and is refreshed in background.
   if (shouldPreferNetwork(event.request) && (event.request.mode === "navigate" || event.request.destination === "document")) {
     event.respondWith(networkFirstNavigation(event.request));
     return;
