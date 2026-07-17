@@ -37,8 +37,8 @@ for (const file of ["service-worker.js", "docs/service-worker.js"]) {
     ].join("\n");
 
     const result = patch.patchAppScriptSource(original);
-    assert.equal(patch.CURRENT_VERSION, "20260717-sincronizacao-automatica-dispositivos-v32");
-    assert.match(result, /APP_VERSION = "20260717-sincronizacao-automatica-dispositivos-v32"/);
+    assert.equal(patch.CURRENT_VERSION, "20260717-salvamento-integral-tempo-v33");
+    assert.match(result, /APP_VERSION = "20260717-salvamento-integral-tempo-v33"/);
     assert.match(result, /TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 30000/);
     assert.match(result, /floatingTimer\.mode !== "free" && !goal/);
     assert.doesNotMatch(result, /if \(!goal \|\| !supportedMode/);
@@ -53,10 +53,10 @@ for (const file of ["service-worker.js", "docs/service-worker.js"]) {
     assert.match(result, /const plannedMinutes = Number\(floatingTimer\.sessionGoalMinutes\) \|\| Number\(goal\?\.minutes\) \|\| 0/);
 
     const html = patch.patchHtmlSource('<p>Versão: 20260717-numero-qc-v26</p>');
-    assert.equal(html, '<p>Versão: 20260717-sincronizacao-automatica-dispositivos-v32</p>');
+    assert.equal(html, '<p>Versão: 20260717-salvamento-integral-tempo-v33</p>');
     assert.equal(
-      patch.patchHtmlSource('<p>Versão: 20260717-mensagens-cronometro-livre-pwa-v31</p>'),
-      '<p>Versão: 20260717-sincronizacao-automatica-dispositivos-v32</p>'
+      patch.patchHtmlSource('<p>Versão: 20260717-sincronizacao-automatica-dispositivos-v32</p>'),
+      '<p>Versão: 20260717-salvamento-integral-tempo-v33</p>'
     );
   });
 }
