@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260717-espectro-continuo-acertos-v34",
+  "version": "20260717-login-google-somente-manual-v36",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
