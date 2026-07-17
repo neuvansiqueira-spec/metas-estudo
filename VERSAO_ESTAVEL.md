@@ -2,30 +2,28 @@
 
 ## Versão estável atual
 
-`20260717-mensagens-cronometro-livre-pwa-v31`
+`20260717-sincronizacao-automatica-dispositivos-v32`
 
 ## Data
 
 17/07/2026
 
-## Mensagens motivacionais no aplicativo instalado
+## Atualização automática entre dispositivos
 
-Esta versão corrige a falha observada no aplicativo instalado para Windows, em que o Cronômetro Livre avançava normalmente, mas não apresentava as mensagens motivacionais ao alcançar os marcos de progresso.
+Esta versão corrige a situação em que um tempo salvo e enviado pelo computador permanecia desatualizado no celular enquanto a página já estava aberta.
 
-O sistema passa a usar duas verificações complementares:
+O celular, tablet ou computador conectado ao Google Drive passa a consultar e mesclar alterações da nuvem automaticamente:
 
-- a verificação normal integrada ao cronômetro;
-- um verificador independente para o PWA, executado a cada segundo.
+- ao abrir ou retornar para a página;
+- ao recuperar a conexão com a internet;
+- ao voltar o foco para a janela;
+- a cada 20 segundos enquanto a página estiver visível e sem edição ativa.
 
-No Cronômetro Livre com duração definida, o verificador usa a duração da sessão ou, como recuperação, a duração planejada da própria meta. As mensagens aparecem nos marcos de 10%, 25%, 40%, 50%, 65%, 75%, 90% e 100% e permanecem visíveis por 30 segundos.
+A atualização periódica é suspensa durante a execução ativa do cronômetro e enquanto o usuário estiver digitando em um formulário, evitando interrupções. Ao finalizar ou pausar essas atividades, a próxima verificação incorpora as alterações existentes na nuvem.
 
-A mensagem recebe prioridade visual elevada no aplicativo instalado, evitando que fique escondida atrás do cronômetro, do menu ou de outra camada da interface.
+A sincronização continua baseada na assinatura do conteúdo completo. Quando os conteúdos forem diferentes, ocorre uma mesclagem segura, e não uma substituição simples.
 
-## Convergência real entre dispositivos
-
-A versão mantém a sincronização integral por conteúdo. O sistema somente informa “Tudo sincronizado” quando os registros do dispositivo e da nuvem são realmente equivalentes.
-
-Quando o conteúdo for diferente, a mesclagem preserva:
+A mesclagem preserva:
 
 - sessões de estudo e de questões;
 - tempos registrados e totais acumulados;
@@ -35,6 +33,10 @@ Quando o conteúdo for diferente, a mesclagem preserva:
 
 Depois da mesclagem, os totais das metas são reconstruídos com base nas sessões preservadas. Antes de cada mesclagem permanece a criação de uma cópia local de segurança. Nenhum `localStorage` é limpo automaticamente.
 
+## Mensagens motivacionais no aplicativo instalado
+
+A versão mantém a correção do Cronômetro Livre no PWA. As mensagens aparecem nos marcos de 10%, 25%, 40%, 50%, 65%, 75%, 90% e 100% e permanecem visíveis por 30 segundos.
+
 ## Segurança dos dados
 
-A correção das mensagens atua apenas durante a execução visual do cronômetro. Não altera tempos salvos, sessões, metas, histórico ou dados de sincronização.
+A atualização automática apenas consulta, mescla e salva os dados já existentes nos dispositivos e na nuvem. Ela não limpa o navegador nem remove sessões, metas ou históricos.
