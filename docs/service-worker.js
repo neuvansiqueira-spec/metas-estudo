@@ -25,9 +25,10 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260718-numeracao-qc-filtros-v54",
   "20260718-indicacao-qc-explicita-v55",
   "20260718-numeracao-qc-catalogo-v56",
-  "20260718-cruzamento-qc-completo-v57"
+  "20260718-cruzamento-qc-completo-v57",
+  "20260718-revisao-visual-global-v58"
 ];
-const CURRENT_VERSION = "20260718-revisao-visual-global-v58";
+const CURRENT_VERSION = "20260718-planejamento-contraste-v59";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v23`;
 const FILES_TO_CACHE = [
@@ -40,6 +41,7 @@ const FILES_TO_CACHE = [
   "aldus-responsive-v52.css",
   "aldus-contrast-v53.css",
   "aldus-visual-v58.css",
+  "aldus-planning-v59.css",
   "script.js",
   "qconcursos-crosswalk.js",
   "question-history-pie.js",
@@ -108,6 +110,9 @@ function patchHtmlSource(source) {
   }
   if (!patched.includes("aldus-visual-v58.css")) {
     patched = patched.replace("</head>", `<link id="aldusVisualV58" rel="stylesheet" href="aldus-visual-v58.css?v=${CURRENT_VERSION}" />\n</head>`);
+  }
+  if (!patched.includes("aldus-planning-v59.css")) {
+    patched = patched.replace("</head>", `<link id="aldusPlanningV59" rel="stylesheet" href="aldus-planning-v59.css?v=${CURRENT_VERSION}" />\n</head>`);
   }
   return patched.replace(
     "</body>",

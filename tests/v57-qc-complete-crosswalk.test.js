@@ -59,9 +59,10 @@ test("manual continua tendo prioridade sobre a auditoria", () => {
 });
 
 test("auditoria v57 permanece sincronizada após versões posteriores", () => {
-  assert.match(version, /revisao-visual-global-v58$/);
+  assert.match(version, /planejamento-contraste-v59$/);
   assert.match(worker, new RegExp(`const CURRENT_VERSION = "${version}"`));
   assert.match(worker, /"20260718-cruzamento-qc-completo-v57"/);
+  assert.match(worker, /"20260718-revisao-visual-global-v58"/);
   assert.match(worker, /"qconcursos-crosswalk\.js"/);
   assert.match(html, new RegExp(`qconcursos-crosswalk\\.js\\?v=${version}`));
   assert.match(html, new RegExp(`Versão: ${version}`));

@@ -51,11 +51,12 @@ test("interface exibe número automático e permite confirmação ou correção"
 });
 
 test("catálogo v56 permanece coberto após versões posteriores", () => {
-  assert.match(version, /revisao-visual-global-v58$/);
+  assert.match(version, /planejamento-contraste-v59$/);
   assert.match(worker, new RegExp(`const CURRENT_VERSION = "${version}"`));
   assert.match(worker, /"20260718-indicacao-qc-explicita-v55"/);
   assert.match(worker, /"20260718-numeracao-qc-catalogo-v56"/);
   assert.match(worker, /"20260718-cruzamento-qc-completo-v57"/);
+  assert.match(worker, /"20260718-revisao-visual-global-v58"/);
   assert.match(html, new RegExp(`Versão: ${version}`));
   for (const file of ["index.html", "script.js", "service-worker.js", "header-brand-fix.js", "sync-integral-time-protection.js"]) {
     assert.equal(fs.readFileSync(file, "utf8"), fs.readFileSync(`docs/${file}`, "utf8"), `${file} deve ser idêntico em docs`);
