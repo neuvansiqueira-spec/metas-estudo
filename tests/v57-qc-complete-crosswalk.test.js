@@ -58,9 +58,10 @@ test("manual continua tendo prioridade sobre a auditoria", () => {
   assert.deepEqual(catalogApi().qconcursosNumberResolution({ discipline: item.d, topic: item.t, subject: item.s, qconcursosNumber: "8.8" }), { number: "8.8", source: "saved" });
 });
 
-test("versão v57, cache e publicação em docs permanecem sincronizados", () => {
-  assert.match(version, /cruzamento-qc-completo-v57$/);
+test("auditoria v57 permanece sincronizada após versões posteriores", () => {
+  assert.match(version, /revisao-visual-global-v58$/);
   assert.match(worker, new RegExp(`const CURRENT_VERSION = "${version}"`));
+  assert.match(worker, /"20260718-cruzamento-qc-completo-v57"/);
   assert.match(worker, /"qconcursos-crosswalk\.js"/);
   assert.match(html, new RegExp(`qconcursos-crosswalk\\.js\\?v=${version}`));
   assert.match(html, new RegExp(`Versão: ${version}`));
