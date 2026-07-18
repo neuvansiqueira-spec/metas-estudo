@@ -21,6 +21,7 @@ const FILES_TO_CACHE = [
   "style.css",
   "script.js",
   "question-history-pie.js",
+  "header-brand-fix.js",
   "question-accuracy-spectrum.js",
   "timer-material-link-fix.js",
   "sync-integral-core.js",
@@ -66,6 +67,8 @@ function patchHtmlSource(source) {
   [
     "question-accuracy-spectrum.js",
     "timer-material-link-fix.js",
+    "question-history-pie.js",
+    "header-brand-fix.js",
     "aldus-meta-branding.js"
   ].forEach((filename) => {
     const escaped = filename.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -75,6 +78,8 @@ function patchHtmlSource(source) {
     "</body>",
     `<script src="question-accuracy-spectrum.js?v=${CURRENT_VERSION}"></script>
 <script src="timer-material-link-fix.js?v=${CURRENT_VERSION}" data-timer-material-link-fix="v40"></script>
+<script src="question-history-pie.js?v=${CURRENT_VERSION}"></script>
+<script src="header-brand-fix.js?v=${CURRENT_VERSION}"></script>
 </body>`
   );
 }
@@ -152,7 +157,7 @@ async function loadSyncIntegralSource() {
 
 async function networkFirstNavigation(request) {
   try {
-    const response = await patchTextResponse(await fetch(request), patchHtmlSource, "text/html; charset=utf-8");
+    const response = await patchTextResponse(await fetch(request, { cache: "no-store" }), patchHtmlSource, "text/html; charset=utf-8");
     cacheResponse(request, response.clone());
     return response;
   } catch (error) {
@@ -176,7 +181,7 @@ async function networkFirstAppScript(request) {
     });
   };
   try {
-    const response = await transform(await fetch(request));
+    const response = await transform(await fetch(request, { cache: "no-store" }));
     cacheResponse(request, response.clone());
     return response;
   } catch (error) {
