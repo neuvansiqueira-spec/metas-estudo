@@ -71,13 +71,34 @@ function mergeProtectedTimeStates(baseState, incomingState, prefer = "remote") {
   return { ...timeProtectionClone(baseState || {}), ...timeProtectionClone(incomingState || {}) };
 }
 
+function mergeTimeOnlyRecoveryBackup(currentState, backupState) {
+  if (!timeProtectionHasUserData(backupState)) return timeProtectionClone(currentState || {});
+  const current = timeProtectionClone(currentState || {}) || {};
+  const candidate = {
+    ...timeProtectionClone(current),
+    studies: timeProtectionClone(backupState.studies || []),
+    dailyGoals: timeProtectionClone(backupState.dailyGoals || []),
+    questionLogs: timeProtectionClone(backupState.questionLogs || []),
+    syncTombstones: timeProtectionClone(current.syncTombstones || {})
+  };
+  return mergeProtectedTimeStates(current, candidate, "remote");
+}
+
 function installPrimaryStorageMergeProtection() {
   if (globalThis.__aldusPrimaryStorageMergeProtectionV48 || typeof loadPrimaryStateFromIndexedDB !== "function") return;
   globalThis.__aldusPrimaryStorageMergeProtectionV48 = true;
   const originalLoadPrimaryStateFromIndexedDB = loadPrimaryStateFromIndexedDB;
 
   loadPrimaryStateFromIndexedDB = async function loadPrimaryStateWithRecoveryCandidates() {
-    const result = await originalLoadPrimaryStateFromIndexedDB();
+    let result;
+    let indexedDBError = null;
+    try {
+      result = await originalLoadPrimaryStateFromIndexedDB();
+    } catch (error) {
+      indexedDBError = error;
+      result = { valid: false, empty: true, record: null, data: null };
+    }
+
     const sources = [];
     let protectedState = result?.valid && timeProtectionHasUserData(result.data) ? timeProtectionClone(result.data) : null;
     if (protectedState) sources.push("IndexedDB");
@@ -95,11 +116,14 @@ function installPrimaryStorageMergeProtection() {
 
     const backupState = readTimeProtectionBackupState();
     if (timeProtectionHasUserData(backupState)) {
-      protectedState = mergeProtectedTimeStates(backupState, protectedState, "remote");
-      sources.push("backup-antes-da-mesclagem");
+      protectedState = mergeTimeOnlyRecoveryBackup(protectedState, backupState);
+      sources.push("backup-de-tempo-antes-da-mesclagem");
     }
 
-    if (!timeProtectionHasUserData(protectedState)) return result;
+    if (!timeProtectionHasUserData(protectedState)) {
+      if (indexedDBError) throw indexedDBError;
+      return result;
+    }
 
     const originalSummary = timeProtectionSummary(result?.data || {});
     const protectedSummary = timeProtectionSummary(protectedState);
@@ -113,7 +137,8 @@ function installPrimaryStorageMergeProtection() {
       sources: [...new Set(sources)],
       original: originalSummary,
       recovered: protectedSummary,
-      recoveredAt: changed ? new Date().toISOString() : ""
+      recoveredAt: changed ? new Date().toISOString() : "",
+      indexedDBError: indexedDBError ? String(indexedDBError.message || indexedDBError) : ""
     };
 
     return { ...result, valid: true, empty: false, data: protectedState, recoveredFrom: [...new Set(sources)] };
@@ -157,9 +182,11 @@ function installRecoveredTimePersistence() {
       saveData({ markLocalChange: true });
       render();
       if (typeof showDailyGoalMessage === "function") {
-        showDailyGoalMessage("Tempos preservados e recuperados das cópias locais disponíveis.", "success");
+        showDailyGoalMessage("Tempos recuperados localmente. Revise antes de enviar à nuvem.", "success");
       }
-      if (typeof autoSyncAfterSave === "function") autoSyncAfterSave("time-storage-recovery");
+      if (typeof markPendingSync === "function") {
+        markPendingSync("time-storage-recovery", "Tempo recuperado localmente; revise os totais antes de sincronizar com outros dispositivos.");
+      }
     } catch (error) {
       console.warn("[Aldus Meta] Não foi possível persistir automaticamente o tempo recuperado.", error);
     }
