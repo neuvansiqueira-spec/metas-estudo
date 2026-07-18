@@ -1,0 +1,73 @@
+name: Publicar tema premium Aldus v44
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/publish-premium-theme-v44.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Aplicar tema e renovar publicação
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          version = "20260717-tema-premium-aldus-v44"
+          previous = "20260717-grafico-periodo-recolhivel-v43"
+
+          for filename in ["index.html", "docs/index.html"]:
+              path = Path(filename)
+              text = path.read_text(encoding="utf-8")
+              text = re.sub(r'\s*<link[^>]+aldus-premium-theme\.css[^>]*>', '', text, flags=re.I)
+              theme_link = f'  <link rel="stylesheet" href="aldus-premium-theme.css?v={version}" />\n'
+              style_match = re.search(r'(\s*<link[^>]+href="style\.css[^>]*>\s*)', text, flags=re.I)
+              if style_match:
+                  end = style_match.end()
+                  text = text[:end] + theme_link + text[end:]
+              else:
+                  text = text.replace("</head>", theme_link + "</head>")
+              text = text.replace('<meta name="theme-color" content="#082b49" />', '<meta name="theme-color" content="#031426" />')
+              text = text.replace('<title>Metas de Estudo para Concurso</title>', '<title>Aldus Metas Concurso — Painel de Estudos</title>')
+              path.write_text(text, encoding="utf-8")
+
+          root = Path("service-worker.js")
+          text = root.read_text(encoding="utf-8")
+          if previous not in text.split("];", 1)[0]:
+              text = text.replace('  "20260717-cabecalho-estavel-v42"\n];', '  "20260717-cabecalho-estavel-v42",\n  "20260717-grafico-periodo-recolhivel-v43"\n];')
+          text = re.sub(r'const CURRENT_VERSION = "[^"]+";', f'const CURRENT_VERSION = "{version}";', text, count=1)
+          text = re.sub(r'const ASSET_CACHE_NAME = `\$\{CACHE_NAME\}-startup-v\d+`;', 'const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v18`;', text, count=1)
+          if '  "aldus-premium-theme.css",' not in text:
+              text = text.replace('  "style.css",\n', '  "style.css",\n  "aldus-premium-theme.css",\n', 1)
+
+          marker = 'function patchHtmlSource(source) {\n  let patched = replaceVersion(source);\n'
+          injected = (
+              'function patchHtmlSource(source) {\n'
+              '  let patched = replaceVersion(source);\n'
+              '  patched = patched.replace(/\\s*<link[^>]*aldus-premium-theme\\.css[^>]*>/gi, "");\n'
+              f'  patched = patched.replace("</head>", `  <link rel="stylesheet" href="aldus-premium-theme.css?v=${{CURRENT_VERSION}}" />\\n</head>`);\n'
+          )
+          if 'patched = patched.replace(/\\s*<link[^>]*aldus-premium-theme' not in text:
+              text = text.replace(marker, injected, 1)
+
+          root.write_text(text, encoding="utf-8")
+          Path("docs/service-worker.js").write_text(text, encoding="utf-8")
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html docs/index.html service-worker.js docs/service-worker.js aldus-premium-theme.css docs/aldus-premium-theme.css
+          git commit -m "Aplica tema visual premium Aldus v44"
+          git push
