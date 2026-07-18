@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260718-integridade-recuperacao-visual-v50",
+  "version": "20260718-recuperacao-drive-redesign-v51",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

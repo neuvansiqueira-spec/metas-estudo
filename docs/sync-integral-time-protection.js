@@ -1,4 +1,4 @@
-const TIME_STORAGE_PROTECTION_VERSION = "20260718-integridade-recuperacao-visual-v50";
+const TIME_STORAGE_PROTECTION_VERSION = "20260718-recuperacao-drive-redesign-v51";
 const TIME_STORAGE_BACKUP_KEY = "metasEstudoBackupAntesDaMesclagem";
 const TIME_STORAGE_MANUAL_RECOVERY_BACKUP_KEY = "metasEstudoBackupAntesDaRecuperacaoTempoV49";
 const TIME_RECOVERY_COLLECTIONS = ["studies", "dailyGoals", "questionLogs"];
@@ -414,7 +414,92 @@ async function collectTimeRecoveryCandidates() {
     console.warn("[Aldus Meta] Falha ao examinar outras chaves locais.", error);
   }
 
+  const driveCandidates = Array.isArray(globalThis.__aldusDriveTimeRecoveryCandidatesV51)
+    ? globalThis.__aldusDriveTimeRecoveryCandidatesV51
+    : [];
+  driveCandidates.forEach((candidate) => {
+    timeProtectionAddCandidate(candidates, seen, candidate.label, candidate.payload);
+  });
+
   return candidates;
+}
+
+async function listGoogleDriveSyncRevisions(fileId) {
+  const revisions = [];
+  let pageToken = "";
+  do {
+    const params = new URLSearchParams({
+      pageSize: "100",
+      fields: "nextPageToken,revisions(id,modifiedTime,keepForever,size)"
+    });
+    if (pageToken) params.set("pageToken", pageToken);
+    const response = await driveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/revisions?${params}`);
+    const result = await response.json();
+    revisions.push(...(Array.isArray(result?.revisions) ? result.revisions : []));
+    pageToken = result?.nextPageToken || "";
+  } while (pageToken);
+  return revisions;
+}
+
+async function downloadGoogleDriveSyncRevision(fileId, revisionId) {
+  const response = await driveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/revisions/${encodeURIComponent(revisionId)}?alt=media`);
+  return response.json();
+}
+
+function timeProtectionDriveRevisionLabel(revision = {}, index = 0) {
+  const date = revision.modifiedTime ? new Date(revision.modifiedTime) : null;
+  const formatted = date && !Number.isNaN(date.getTime())
+    ? date.toLocaleString("pt-BR")
+    : `revisão ${index + 1}`;
+  return `Google Drive — histórico de ${formatted}`;
+}
+
+async function scanGoogleDriveTimeRecoveryHistory() {
+  const host = ensureTimeRecoveryDiagnosticHost();
+  const button = host?.querySelector("[data-time-recovery-drive-scan]");
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Examinando Google Drive...";
+  }
+  globalThis.__aldusDriveTimeRecoveryScanStatusV51 = { state: "loading", message: "Examinando o arquivo atual e o histórico de revisões do Google Drive..." };
+  try {
+    await getAccessToken({ prompt: hasValidGoogleDriveAccessToken() ? "" : "consent" });
+    const file = await findSyncFile();
+    if (!file?.id) throw new Error("Nenhum arquivo de sincronização foi encontrado no Google Drive desta conta.");
+
+    const found = [];
+    try {
+      const currentPayload = await downloadSyncFile(file.id);
+      found.push({ label: `Google Drive — arquivo atual${file.modifiedTime ? ` (${new Date(file.modifiedTime).toLocaleString("pt-BR")})` : ""}`, payload: currentPayload });
+    } catch (error) {
+      console.warn("[Aldus Meta] Não foi possível examinar o arquivo atual do Google Drive.", error);
+    }
+
+    const revisions = await listGoogleDriveSyncRevisions(file.id);
+    for (let index = 0; index < revisions.length; index += 1) {
+      const revision = revisions[index];
+      try {
+        found.push({
+          label: timeProtectionDriveRevisionLabel(revision, index),
+          payload: await downloadGoogleDriveSyncRevision(file.id, revision.id)
+        });
+      } catch (error) {
+        console.warn(`[Aldus Meta] Revisão ${revision.id} do Google Drive indisponível.`, error);
+      }
+    }
+
+    globalThis.__aldusDriveTimeRecoveryCandidatesV51 = found;
+    globalThis.__aldusDriveTimeRecoveryScanStatusV51 = {
+      state: "success",
+      message: `${found.length} cópia(s) do Google Drive examinada(s), incluindo o arquivo atual e revisões disponíveis.`
+    };
+  } catch (error) {
+    const message = typeof syncErrorMessage === "function"
+      ? syncErrorMessage(error, "Não foi possível examinar o histórico do Google Drive.")
+      : String(error?.message || error);
+    globalThis.__aldusDriveTimeRecoveryScanStatusV51 = { state: "error", message };
+  }
+  await renderTimeRecoveryDiagnostic();
 }
 
 function buildTimeRecoveryPreview(candidates = []) {
@@ -481,6 +566,10 @@ async function renderTimeRecoveryDiagnostic() {
     const questionTimeGain = Math.max(0, recovered.questionLogMinutes - current.questionLogMinutes);
     const hasGain = studyGain > 0 || sessionGain > 0 || goalGain > 0 || questionTimeGain > 0;
     const tombstones = timeProtectionTombstoneCount(typeof state !== "undefined" ? state : {});
+    const driveStatus = globalThis.__aldusDriveTimeRecoveryScanStatusV51 || null;
+    const driveCopies = Array.isArray(globalThis.__aldusDriveTimeRecoveryCandidatesV51)
+      ? globalThis.__aldusDriveTimeRecoveryCandidatesV51.length
+      : 0;
     const candidateRows = candidates.map((candidate) => {
       const summary = candidate.summary;
       return `<li><strong>${timeProtectionEscape(candidate.labels.join(" / "))}</strong>: ${summary.studies} sessões • ${timeProtectionFormatMinutes(summary.archivedStudyMinutes)} nas sessões • ${timeProtectionFormatMinutes(summary.goalStudyMinutes)} de estudo nas metas</li>`;
@@ -504,9 +593,12 @@ async function renderTimeRecoveryDiagnostic() {
         <span>Sessões após recuperação: <strong>${recovered.studies}</strong></span>
         <span>Marcadores de exclusão ligados ao tempo: <strong>${tombstones}</strong></span>
         <span>Cópias distintas examinadas: <strong>${candidates.length}</strong></span>
+        <span>Cópias lidas do Google Drive: <strong>${driveCopies}</strong></span>
       </div>
+      ${driveStatus ? `<p class="notice ${driveStatus.state === "error" ? "warning-notice" : ""}">${timeProtectionEscape(driveStatus.message)}</p>` : `<p class="notice">A verificação local terminou. Para procurar tempos que já não existem neste navegador, examine também o arquivo atual e as revisões disponíveis no Google Drive.</p>`}
       <div class="actions">
         <button type="button" class="secondary-button" data-time-recovery-scan>Verificar novamente</button>
+        <button type="button" class="secondary-button" data-time-recovery-drive-scan>Examinar histórico do Google Drive</button>
         <button type="button" data-time-recovery-apply ${hasGain ? "" : "disabled"}>Recuperar maior tempo encontrado</button>
       </div>
       <details><summary>Ver fontes e totais encontrados</summary><ul>${candidateRows || "<li>Nenhuma fonte local com registros de tempo foi encontrada.</li>"}</ul></details>
@@ -560,6 +652,10 @@ function installTimeRecoveryDiagnosticUI() {
     if (event.target.closest("[data-time-recovery-apply]")) {
       event.preventDefault();
       applyTimeRecoveryDiagnostic();
+    }
+    if (event.target.closest("[data-time-recovery-drive-scan]")) {
+      event.preventDefault();
+      scanGoogleDriveTimeRecoveryHistory();
     }
   });
   const schedule = () => setTimeout(renderTimeRecoveryDiagnostic, 250);
