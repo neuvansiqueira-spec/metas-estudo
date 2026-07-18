@@ -2,46 +2,42 @@
 
 ## Versão estável atual
 
-`20260718-protecao-recuperacao-tempo-v48`
+`20260718-diagnostico-recuperacao-tempo-v49`
 
 ## Data
 
 18/07/2026
 
-## Proteção e recuperação do tempo de estudo
+## Diagnóstico ampliado e recuperação controlada do tempo
 
-Esta versão impede que um total de estudo já registrado seja substituído por um valor menor durante a normalização, abertura ou mesclagem das bases locais.
+Esta versão mantém as proteções da v48 e acrescenta uma ferramenta visível na aba **Backup → Recuperação de Tempos Antigos**.
 
-Na abertura, o sistema passa a comparar e mesclar com segurança:
+O diagnóstico examina:
 
-- a cópia principal do IndexedDB;
-- a cópia de compatibilidade do localStorage;
-- os registros de tempo existentes no backup automático anterior à mesclagem.
+- o estado atualmente carregado;
+- o IndexedDB;
+- o localStorage principal;
+- o backup automático anterior à mesclagem;
+- outras chaves locais que ainda contenham sessões, metas ou registros de tempo.
 
-Do backup histórico são recuperados apenas:
+## Marcadores de exclusão
 
-- sessões de estudo;
-- metas diárias e seus totais;
-- registros de questões com tempo.
+A v48 respeitava os marcadores de exclusão da sincronização. Isso podia fazer com que uma sessão existente no backup fosse novamente descartada durante a tentativa de recuperação.
 
-Materiais, configurações, biblioteca de prompts e demais áreas não são restaurados pelo mecanismo de recuperação do tempo.
+A v49 mostra quantos marcadores ligados ao tempo foram encontrados e oferece a ação **Recuperar maior tempo encontrado**.
 
-## Segurança da recuperação
+A recuperação manual:
 
-Quando forem encontrados dados adicionais, a recuperação é salva primeiro neste dispositivo. O envio para a nuvem fica pendente para revisão, evitando que uma recuperação ainda não conferida substitua automaticamente o conteúdo dos outros dispositivos.
-
-O sistema mantém um relatório técnico interno com as fontes examinadas, a quantidade de sessões e os totais encontrados antes e depois da recuperação.
+- ignora somente os marcadores correspondentes aos registros de tempo efetivamente recuperados;
+- mantém os demais marcadores de exclusão;
+- preserva materiais, configurações, biblioteca de prompts e outras áreas;
+- cria uma cópia integral antes de qualquer alteração;
+- mantém o envio para a nuvem pendente até conferência do usuário.
 
 ## Precisão das novas sessões
 
-As novas sessões do cronômetro continuam mantendo os minutos usados pela interface atual, mas passam a arquivar também:
+As novas sessões continuam arquivando minutos e também preservam os segundos efetivamente executados, os segundos decorridos e a duração real em segundos.
 
-- segundos efetivamente executados;
-- segundos decorridos;
-- duração real em segundos.
+## Compatibilidade
 
-Isso evita que a precisão original seja perdida no momento do salvamento.
-
-## Compatibilidade e preservação
-
-A alteração não remove metas, sessões, materiais, históricos ou registros existentes. A raiz do projeto e a publicação em `docs/` usam os mesmos arquivos e a mesma versão de cache.
+A raiz do projeto e a publicação em `docs/` usam arquivos idênticos e o cache `startup-v22`.
