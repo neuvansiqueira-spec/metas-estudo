@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260717-sincronizacao-completa-dispositivos-v39",
+  "version": "20260717-material-cronometro-v40",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
