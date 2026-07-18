@@ -6,11 +6,13 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260717-sincronizacao-automatica-dispositivos-v32",
   "20260717-salvamento-integral-tempo-v33",
   "20260717-espectro-continuo-acertos-v34",
-  "20260717-login-google-somente-manual-v36"
+  "20260717-login-google-somente-manual-v36",
+  "20260717-espectro-compacto-site-app-v37",
+  "20260717-aviso-sonoro-motivacional-v38"
 ];
-const CURRENT_VERSION = "20260717-espectro-compacto-site-app-v37";
+const CURRENT_VERSION = "20260717-sincronizacao-completa-dispositivos-v39";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
-const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v12`;
+const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v13`;
 const FILES_TO_CACHE = [
   "./",
   "index.html",
@@ -18,6 +20,7 @@ const FILES_TO_CACHE = [
   "script.js",
   "question-accuracy-spectrum.js",
   "sync-integral-core.js",
+  "sync-integral-deletions.js",
   "sync-integral-state.js",
   "sync-integral-cloud.js",
   "analytics-engine.js",
@@ -207,7 +210,7 @@ function patchHtmlResponse(response) {
 }
 
 async function loadSyncIntegralSource() {
-  const files = ["sync-integral-core.js", "sync-integral-state.js", "sync-integral-cloud.js"];
+  const files = ["sync-integral-core.js", "sync-integral-deletions.js", "sync-integral-state.js", "sync-integral-cloud.js"];
   const parts = [];
   for (const file of files) {
     try {

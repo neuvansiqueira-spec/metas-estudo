@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260717-espectro-compacto-site-app-v37",
+  "version": "20260717-sincronizacao-completa-dispositivos-v39",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
