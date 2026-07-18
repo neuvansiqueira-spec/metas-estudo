@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const THEME_VERSION = "20260717-premium-estavel-v46";
+  const THEME_VERSION = "20260718-premium-refinado-v47";
   const DESIRED_HTML = `
     <div class="brand-copy">
       <strong>Aldus Metas Concurso</strong>
@@ -9,6 +9,31 @@
     </div>
     <span class="brand-icon" aria-hidden="true"><img src="icons/logo-mark.svg" alt="" /></span>
   `;
+
+  function ensureStylesheet(id, href, required = false) {
+    let link = document.getElementById(id);
+    if (!link) {
+      link = document.createElement("link");
+      link.id = id;
+      link.rel = "stylesheet";
+      document.head.appendChild(link);
+    }
+
+    if (!link.getAttribute("href")?.includes(THEME_VERSION)) {
+      link.href = `${href}?v=${THEME_VERSION}`;
+    }
+
+    if (required && link.dataset.fallbackBound !== "true") {
+      link.dataset.fallbackBound = "true";
+      link.addEventListener("error", () => {
+        delete document.documentElement.dataset.aldusTheme;
+        link.remove();
+        console.warn("[Aldus] Tema premium indisponível; visual clássico preservado.");
+      }, { once: true });
+    }
+
+    return link;
+  }
 
   function enablePremiumTheme() {
     const root = document.documentElement;
@@ -18,19 +43,8 @@
     const themeColor = document.querySelector('meta[name="theme-color"]');
     if (themeColor) themeColor.setAttribute("content", "#031426");
 
-    let link = document.getElementById("aldusPremiumStableTheme");
-    if (!link) {
-      link = document.createElement("link");
-      link.id = "aldusPremiumStableTheme";
-      link.rel = "stylesheet";
-      link.href = `aldus-premium-theme.css?v=${THEME_VERSION}`;
-      link.addEventListener("error", () => {
-        delete root.dataset.aldusTheme;
-        link.remove();
-        console.warn("[Aldus] Tema premium indisponível; visual clássico preservado.");
-      }, { once: true });
-      document.head.appendChild(link);
-    }
+    ensureStylesheet("aldusPremiumStableTheme", "aldus-premium-theme.css", true);
+    ensureStylesheet("aldusPremiumRefinement", "aldus-premium-refinement-v47.css");
   }
 
   function applyCorrectHeader() {
