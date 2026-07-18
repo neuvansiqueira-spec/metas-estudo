@@ -1,5 +1,6 @@
 const SYNC_TOMBSTONE_SCHEMA_VERSION = 1;
 const SYNC_REVISION_FIELDS = new Set(["updatedAt", "modifiedAt", "savedAt", "syncedAt", "_syncUpdatedAt"]);
+const SYNC_APPEND_ONLY_ARRAY_FIELDS = new Set(["history", "historico", "events", "logs", "auditTrail"]);
 
 function syncComparableValue(value) {
   if (Array.isArray(value)) return value.map(syncComparableValue);
@@ -163,7 +164,13 @@ function syncMergeRecordVersioned(localValue = {}, remoteValue = {}, prefer = "r
     const left = localValue[key];
     const right = remoteValue[key];
     if (Array.isArray(left) || Array.isArray(right)) {
-      result[key] = syncPrimitiveArray(Array.isArray(left) ? left : [], Array.isArray(right) ? right : []);
+      if ((localTime || remoteTime) && localTime !== remoteTime && !SYNC_APPEND_ONLY_ARRAY_FIELDS.has(key)) {
+        const preferredArray = remotePreferred ? right : left;
+        const fallbackArray = remotePreferred ? left : right;
+        result[key] = syncClone(Array.isArray(preferredArray) ? preferredArray : (Array.isArray(fallbackArray) ? fallbackArray : []));
+      } else {
+        result[key] = syncPrimitiveArray(Array.isArray(left) ? left : [], Array.isArray(right) ? right : []);
+      }
       return;
     }
     if (left && right && typeof left === "object" && typeof right === "object") {
