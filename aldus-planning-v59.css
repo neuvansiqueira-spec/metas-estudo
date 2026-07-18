@@ -1,0 +1,223 @@
+/* Aldus Metas — correção visual da aba Planejamento v59
+   Neutraliza superfícies claras legadas e recompõe os controles no celular. */
+
+html[data-aldus-theme="premium-stable"] #view-planejamento {
+  --planning-surface: #08263f;
+  --planning-surface-raised: #0c3150;
+  --planning-surface-soft: #102f49;
+  --planning-line: rgba(133, 181, 220, .28);
+  --planning-text: #f6f9fc;
+  --planning-soft: #d8e4ee;
+  --planning-muted: #afc2d2;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-planejamento :is(
+  .planning-form-stack,
+  .planning-section,
+  .planning-section-content,
+  .planning-summary-grid,
+  .day-mode-grid,
+  .planning-forecast-grid,
+  #planningPreview
+) {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-planejamento .planning-section {
+  border-color: var(--planning-line) !important;
+  background: rgba(5, 28, 47, .74) !important;
+  box-shadow: 0 14px 32px rgba(0, 8, 20, .16) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-planejamento .planning-section-summary {
+  border-color: var(--planning-line) !important;
+  background: linear-gradient(135deg, rgba(12, 49, 80, .98), rgba(7, 31, 52, .98)) !important;
+  color: var(--planning-text) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-planejamento :is(
+  .planning-summary-card,
+  .day-mode-card,
+  .planning-forecast-card,
+  .planning-preview-card,
+  .planning-insight-card,
+  .planning-highlight-card,
+  .question-goal-card
+) {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  height: auto !important;
+  border: 1px solid var(--planning-line) !important;
+  background: linear-gradient(145deg, rgba(12, 49, 80, .98), rgba(6, 29, 49, .99)) !important;
+  color: var(--planning-text) !important;
+  box-shadow: 0 10px 24px rgba(0, 8, 20, .16) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-planejamento :is(
+  .planning-summary-value,
+  .planning-insight-value,
+  .planning-highlight-value,
+  .day-mode-card legend,
+  .planning-preview-card strong,
+  .planning-forecast-card strong
+) {
+  color: var(--planning-text) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-planejamento :is(
+  .planning-summary-label,
+  .planning-section-resume,
+  .day-mode-card p,
+  .planning-preview-card p,
+  .planning-forecast-card p,
+  small
+) {
+  color: var(--planning-muted) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-planejamento .day-mode-card fieldset {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-planejamento .day-mode-option {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 52px !important;
+  padding: 10px 12px !important;
+  gap: 12px !important;
+  border-color: var(--planning-line) !important;
+  background: rgba(3, 22, 38, .62) !important;
+  color: var(--planning-soft) !important;
+  font-size: .96rem !important;
+  line-height: 1.3 !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-planejamento .day-mode-option:has(input:checked) {
+  border-color: rgba(108, 175, 255, .74) !important;
+  background: rgba(42, 105, 184, .24) !important;
+  color: var(--planning-text) !important;
+  box-shadow: inset 4px 0 0 #6cafff !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-planejamento .day-mode-option input[type="radio"],
+html[data-aldus-theme="premium-stable"] #view-planejamento input[type="checkbox"] {
+  flex: 0 0 22px !important;
+  width: 22px !important;
+  min-width: 22px !important;
+  max-width: 22px !important;
+  height: 22px !important;
+  min-height: 22px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  accent-color: #6cafff;
+  box-shadow: none !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-planejamento .question-target-field {
+  color: var(--planning-soft) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-planejamento .planning-actions {
+  border-color: var(--planning-line) !important;
+  background: rgba(4, 24, 41, .94) !important;
+}
+
+@media (max-width: 768px) {
+  html[data-aldus-theme="premium-stable"] #view-planejamento {
+    padding-bottom: calc(180px + env(safe-area-inset-bottom, 0px)) !important;
+    scroll-padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-planejamento .planning-form-stack {
+    gap: 12px !important;
+    padding-bottom: 32px !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-planejamento .planning-section-summary {
+    min-height: 66px !important;
+    padding: 12px 13px !important;
+    gap: 9px !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-planejamento .planning-section-title {
+    font-size: .98rem !important;
+    line-height: 1.25 !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-planejamento .planning-section-resume {
+    font-size: .78rem !important;
+    line-height: 1.35 !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-planejamento .planning-section-content {
+    padding: 0 12px 12px !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-planejamento .planning-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-planejamento .planning-summary-card {
+    min-height: 96px !important;
+    padding: 13px !important;
+    gap: 7px !important;
+    border-radius: 15px !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-planejamento .planning-summary-label {
+    font-size: .69rem !important;
+    line-height: 1.25 !important;
+    letter-spacing: .055em !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-planejamento .planning-summary-value {
+    font-size: .96rem !important;
+    line-height: 1.28 !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-planejamento .day-mode-grid,
+  html[data-aldus-theme="premium-stable"] #view-planejamento .planning-forecast-grid,
+  html[data-aldus-theme="premium-stable"] #view-planejamento :is(.form-grid, .form-grid.compact) {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 11px !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-planejamento .day-mode-card {
+    width: 100% !important;
+    padding: 14px !important;
+    border-radius: 16px !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-planejamento .day-mode-card legend {
+    font-size: 1rem !important;
+    line-height: 1.25 !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-planejamento .day-mode-card > p {
+    font-size: .9rem !important;
+    line-height: 1.45 !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-planejamento .planning-actions {
+    position: static !important;
+    width: 100% !important;
+    padding: 10px !important;
+  }
+}
+
+@media (max-width: 350px) {
+  html[data-aldus-theme="premium-stable"] #view-planejamento .planning-summary-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}

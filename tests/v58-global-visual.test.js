@@ -8,8 +8,8 @@ const visual = fs.readFileSync("aldus-visual-v58.css", "utf8");
 const worker = fs.readFileSync("service-worker.js", "utf8");
 const headerFix = fs.readFileSync("header-brand-fix.js", "utf8");
 
-test("v58 é a última camada visual e possui cache busting próprio", () => {
-  assert.match(version, /revisao-visual-global-v58$/);
+test("v58 permanece carregada antes das correções visuais posteriores", () => {
+  assert.match(version, /planejamento-contraste-v59$/);
   const contrastPosition = html.indexOf("aldus-contrast-v53.css");
   const visualPosition = html.indexOf("aldus-visual-v58.css");
   assert.ok(contrastPosition >= 0);
@@ -61,6 +61,7 @@ test("gráfico de rosca preserva contraste no centro claro", () => {
 test("service worker, reforço de tema e cópia publicada conhecem a v58", () => {
   assert.match(worker, new RegExp(`const CURRENT_VERSION = "${version}"`));
   assert.match(worker, /"20260718-cruzamento-qc-completo-v57"/);
+  assert.match(worker, /"20260718-revisao-visual-global-v58"/);
   assert.match(worker, /"aldus-visual-v58\.css"/);
   assert.match(worker, /id="aldusVisualV58"/);
   assert.match(headerFix, new RegExp(`const THEME_VERSION = "${version}"`));

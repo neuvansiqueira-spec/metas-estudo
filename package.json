@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260718-revisao-visual-global-v58",
+  "version": "20260718-planejamento-contraste-v59",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
