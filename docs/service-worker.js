@@ -20,9 +20,10 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260718-diagnostico-recuperacao-tempo-v49",
   "20260718-integridade-recuperacao-visual-v50",
   "20260718-recuperacao-drive-redesign-v51",
-  "20260718-correcao-visual-responsiva-v52"
+  "20260718-correcao-visual-responsiva-v52",
+  "20260718-contraste-interno-v53"
 ];
-const CURRENT_VERSION = "20260718-contraste-interno-v53";
+const CURRENT_VERSION = "20260718-numeracao-qc-filtros-v54";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v23`;
 const FILES_TO_CACHE = [
