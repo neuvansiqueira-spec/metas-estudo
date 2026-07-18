@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const THEME_VERSION = "20260718-planejamento-contraste-v59";
+  const THEME_VERSION = "20260718-historico-planejamento-v60";
   const DESIRED_HTML = `
     <div class="brand-copy">
       <strong>Aldus Metas Concurso</strong>
@@ -47,6 +47,7 @@
     ensureStylesheet("aldusPremiumRefinement", "aldus-premium-refinement-v47.css");
     ensureStylesheet("aldusVisualV58", "aldus-visual-v58.css");
     ensureStylesheet("aldusPlanningV59", "aldus-planning-v59.css");
+    ensureStylesheet("aldusPlanningHistoryV60", "aldus-planning-history-v60.css");
   }
 
   function applyCorrectHeader() {

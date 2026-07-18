@@ -9,7 +9,7 @@ const worker = fs.readFileSync("service-worker.js", "utf8");
 const headerFix = fs.readFileSync("header-brand-fix.js", "utf8");
 
 test("v59 carrega depois da revisão visual global", () => {
-  assert.match(version, /planejamento-contraste-v59$/);
+  assert.match(version, /historico-planejamento-v60$/);
   const visualPosition = html.indexOf("aldus-visual-v58.css");
   const planningPosition = html.indexOf("aldus-planning-v59.css");
   assert.ok(visualPosition >= 0);
@@ -41,6 +41,7 @@ test("Planejamento usa uma coluna real e espaço inferior no celular", () => {
 test("cache, reforço de tema e cópia publicada incluem a v59", () => {
   assert.match(worker, new RegExp(`const CURRENT_VERSION = "${version}"`));
   assert.match(worker, /"20260718-revisao-visual-global-v58"/);
+  assert.match(worker, /"20260718-planejamento-contraste-v59"/);
   assert.match(worker, /"aldus-planning-v59\.css"/);
   assert.match(worker, /aldusPlanningV59/);
   assert.match(headerFix, /ensureStylesheet\("aldusPlanningV59", "aldus-planning-v59\.css"\)/);
