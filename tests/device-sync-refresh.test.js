@@ -43,13 +43,16 @@ test("total anterior maior nunca é reduzido pela normalização", () => {
   assert.match(rootTimeProtection, /normalized\.tempo_real_minutos = Math\.max/);
 });
 
-test("abertura mescla IndexedDB, localStorage e backup antes de escolher o estado", () => {
+test("abertura mescla IndexedDB, localStorage e somente dados de tempo do backup", () => {
   assert.match(rootTimeProtection, /function installPrimaryStorageMergeProtection\(\)/);
   assert.match(rootTimeProtection, /const originalLoadPrimaryStateFromIndexedDB = loadPrimaryStateFromIndexedDB/);
   assert.match(rootTimeProtection, /sources\.push\("IndexedDB"\)/);
   assert.match(rootTimeProtection, /sources\.push\("localStorage"\)/);
-  assert.match(rootTimeProtection, /sources\.push\("backup-antes-da-mesclagem"\)/);
-  assert.match(rootTimeProtection, /mergeProtectedTimeStates\(backupState, protectedState, "remote"\)/);
+  assert.match(rootTimeProtection, /sources\.push\("backup-de-tempo-antes-da-mesclagem"\)/);
+  assert.match(rootTimeProtection, /function mergeTimeOnlyRecoveryBackup\(currentState, backupState\)/);
+  assert.match(rootTimeProtection, /studies: timeProtectionClone\(backupState\.studies \|\| \[\]\)/);
+  assert.match(rootTimeProtection, /dailyGoals: timeProtectionClone\(backupState\.dailyGoals \|\| \[\]\)/);
+  assert.match(rootTimeProtection, /questionLogs: timeProtectionClone\(backupState\.questionLogs \|\| \[\]\)/);
   assert.match(rootTimeProtection, /__aldusTimeStorageRecoveryReport/);
 });
 
@@ -61,11 +64,12 @@ test("sessões novas preservam também os segundos exatos", () => {
   assert.match(rootTimeProtection, /autoSyncAfterSave\("timer-exact-seconds"\)/);
 });
 
-test("tempo recuperado é persistido e sincronizado somente quando houve mudança", () => {
+test("tempo recuperado fica local e pendente de revisão antes da nuvem", () => {
   assert.match(rootTimeProtection, /if \(!report\?\.changed\) return/);
   assert.match(rootTimeProtection, /reconcileSavedTimerTotals\(\)/);
   assert.match(rootTimeProtection, /saveData\(\{ markLocalChange: true \}\)/);
-  assert.match(rootTimeProtection, /autoSyncAfterSave\("time-storage-recovery"\)/);
+  assert.match(rootTimeProtection, /markPendingSync\("time-storage-recovery"/);
+  assert.doesNotMatch(rootTimeProtection, /autoSyncAfterSave\("time-storage-recovery"\)/);
 });
 
 test("app instalado e aba comum trocam o estado local sem depender da nuvem", () => {
