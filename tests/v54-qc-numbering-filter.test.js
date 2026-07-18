@@ -52,7 +52,8 @@ test("salvar ou remover a numeração atualiza a lista e a rota imediatamente", 
 
 test("a rota e o vínculo ativo destacam o código usado no QConcursos", () => {
   assert.match(script, /Número para filtrar no QConcursos: QC/);
-  assert.match(script, /route\.qcNumber \? `QC \$\{route\.qcNumber\}\$\{/);
+  assert.match(script, /const auditedNumberText = route\.qcNumber/);
+  assert.match(script, /`QC \$\{route\.qcNumber\}\$\{/);
   assert.match(html, /Assunto do edital \(com número QC automático ou confirmado\)/);
   assert.match(html, /sugere automaticamente os números já confirmados/);
 });

@@ -23,9 +23,10 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260718-correcao-visual-responsiva-v52",
   "20260718-contraste-interno-v53",
   "20260718-numeracao-qc-filtros-v54",
-  "20260718-indicacao-qc-explicita-v55"
+  "20260718-indicacao-qc-explicita-v55",
+  "20260718-numeracao-qc-catalogo-v56"
 ];
-const CURRENT_VERSION = "20260718-numeracao-qc-catalogo-v56";
+const CURRENT_VERSION = "20260718-cruzamento-qc-completo-v57";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v23`;
 const FILES_TO_CACHE = [
@@ -38,6 +39,7 @@ const FILES_TO_CACHE = [
   "aldus-responsive-v52.css",
   "aldus-contrast-v53.css",
   "script.js",
+  "qconcursos-crosswalk.js",
   "question-history-pie.js",
   "header-brand-fix.js",
   "question-accuracy-spectrum.js",
