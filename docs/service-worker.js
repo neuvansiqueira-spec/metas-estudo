@@ -13,15 +13,17 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260717-logo-aldus-meta-v41",
   "20260717-cabecalho-estavel-v42",
   "20260717-grafico-periodo-recolhivel-v43",
-  "20260717-tema-premium-aldus-v44"
+  "20260717-tema-premium-aldus-v44",
+  "20260717-restauracao-estavel-v45"
 ];
-const CURRENT_VERSION = "20260717-restauracao-estavel-v45";
+const CURRENT_VERSION = "20260717-premium-estavel-v46";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
-const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v19`;
+const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v20`;
 const FILES_TO_CACHE = [
   "./",
   "index.html",
   "style.css",
+  "aldus-premium-theme.css",
   "script.js",
   "question-history-pie.js",
   "header-brand-fix.js",
@@ -194,6 +196,16 @@ async function networkFirstAppScript(request) {
   }
 }
 
+async function networkFirstStableAsset(request) {
+  try {
+    const response = await fetch(request, { cache: "no-store" });
+    cacheResponse(request, response.clone());
+    return response;
+  } catch (error) {
+    return caches.match(request);
+  }
+}
+
 function staleWhileRevalidate(request) {
   return caches.match(request).then((cached) => {
     const network = fetch(request)
@@ -212,6 +224,10 @@ self.addEventListener("fetch", (event) => {
 
   if (url.pathname.endsWith("/script.js")) {
     event.respondWith(networkFirstAppScript(event.request));
+    return;
+  }
+  if (url.pathname.endsWith("/header-brand-fix.js") || url.pathname.endsWith("/aldus-premium-theme.css")) {
+    event.respondWith(networkFirstStableAsset(event.request));
     return;
   }
   if (event.request.mode === "navigate" || event.request.destination === "document") {
