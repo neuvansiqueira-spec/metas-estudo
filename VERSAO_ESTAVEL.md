@@ -1,37 +1,39 @@
-# Versão estável do Metas Estudo
+# Versão estável do Aldus Meta
 
 ## Versão estável atual
 
-`20260717-material-cronometro-v40`
+`20260717-logo-aldus-meta-v41`
 
 ## Data
 
 17/07/2026
 
-## Material vinculado no cronômetro
+## Nova identidade visual
 
-O formulário aberto ao salvar o tempo do cronômetro passa a consultar a mesma fonte central de materiais utilizada pelo Plano do Dia.
+A identidade visual anterior foi substituída pela marca **Aldus Meta**.
 
-A correção:
+A atualização aplica:
 
-- reconhece materiais cadastrados diretamente na Biblioteca;
-- reconhece materiais provenientes da Fábrica de Resumos;
-- usa o vínculo pelo item do edital quando disponível;
-- utiliza disciplina e assunto como alternativa segura de associação;
-- elimina duplicações do mesmo arquivo;
-- seleciona automaticamente o material já vinculado à meta ou, na ausência desse identificador, o primeiro material realmente disponível para o assunto;
-- atualiza a lista ao trocar a disciplina ou o assunto no formulário do cronômetro.
+- o logotipo completo Aldus Meta no cabeçalho do site;
+- o símbolo Aldus Meta como favicon;
+- novos ícones do aplicativo instalado;
+- novo ícone adaptável para Android;
+- o nome Aldus Meta no título da página e no manifesto do aplicativo;
+- a mesma identidade visual no site, no PWA e na publicação em `docs/`.
 
-Assim, quando o Plano do Dia mostra material disponível para uma meta, o formulário do cronômetro não deve mais apresentar apenas “Sem material vinculado”.
+## Preservação das funcionalidades
 
-## Sincronização completa entre dispositivos
+A atualização é exclusivamente visual e não altera nem remove:
 
-Permanece ativo o tratamento de inclusões, edições e exclusões como alterações reais do estado compartilhado. Exclusões continuam gerando marcadores de remoção, e conflitos de edição continuam sendo resolvidos pela alteração mais recente.
-
-## Segurança
-
-A atualização não altera nem remove materiais, metas, sessões, tempos, históricos, localStorage ou IndexedDB. Ela corrige somente a localização e a seleção do material no formulário de salvamento do cronômetro.
+- metas;
+- materiais;
+- sessões;
+- tempos;
+- históricos;
+- sincronização;
+- localStorage;
+- IndexedDB.
 
 ## Recursos preservados
 
-A versão mantém a sincronização completa da v39, o espectro contínuo compacto, as mensagens motivacionais por 30 segundos, o aviso sonoro opcional e o login do Google Drive somente por ação do usuário.
+Permanecem ativos o vínculo de materiais no cronômetro da v40, a sincronização completa da v39, o espectro contínuo compacto, as mensagens motivacionais por 30 segundos, o aviso sonoro opcional e o login do Google Drive somente por ação do usuário.
