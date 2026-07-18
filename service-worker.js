@@ -9,19 +9,20 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260717-espectro-compacto-site-app-v37",
   "20260717-aviso-sonoro-motivacional-v38",
   "20260717-sincronizacao-completa-dispositivos-v39",
-  "20260717-material-cronometro-v40"
+  "20260717-material-cronometro-v40",
+  "20260717-logo-aldus-meta-v41"
 ];
-const CURRENT_VERSION = "20260717-logo-aldus-meta-v41";
+const CURRENT_VERSION = "20260717-cabecalho-estavel-v42";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
-const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v15`;
+const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v16`;
 const FILES_TO_CACHE = [
   "./",
   "index.html",
   "style.css",
   "script.js",
+  "question-history-pie.js",
   "question-accuracy-spectrum.js",
   "timer-material-link-fix.js",
-  "aldus-meta-branding.js",
   "sync-integral-core.js",
   "sync-integral-deletions.js",
   "sync-integral-state.js",
@@ -31,7 +32,6 @@ const FILES_TO_CACHE = [
   "advisor-navigation-engine.js",
   "storage-indexeddb.js",
   "manifest.json",
-  "icons/aldus-meta-logo.svg",
   "icons/logo-mark.svg",
   "icons/icon.svg",
   "icons/icon-maskable.svg"
@@ -75,7 +75,6 @@ function patchHtmlSource(source) {
     "</body>",
     `<script src="question-accuracy-spectrum.js?v=${CURRENT_VERSION}"></script>
 <script src="timer-material-link-fix.js?v=${CURRENT_VERSION}" data-timer-material-link-fix="v40"></script>
-<script src="aldus-meta-branding.js?v=${CURRENT_VERSION}" data-aldus-meta-branding="v41"></script>
 </body>`
   );
 }
