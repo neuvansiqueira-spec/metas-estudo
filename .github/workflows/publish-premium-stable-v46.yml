@@ -1,0 +1,119 @@
+name: Publicar Premium Estável v46
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/publish-premium-stable-v46.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Publicar tema premium sem alterar a lógica do site
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cp aldus-premium-theme.css aldus-premium-stable-v46.css
+          cp aldus-premium-theme.css docs/aldus-premium-theme.css
+          cp aldus-premium-theme.css docs/aldus-premium-stable-v46.css
+          cp header-brand-fix.js docs/header-brand-fix.js
+          cp premium-stable-loader.js docs/premium-stable-loader.js
+
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          version = "20260717-premium-estavel-v46"
+          theme_link = f'  <link id="aldusPremiumStableTheme" rel="stylesheet" href="aldus-premium-stable-v46.css?v={version}" />\n'
+          loader = f'  <script src="premium-stable-loader.js?v={version}"></script>\n'
+
+          for filename in ["index.html", "docs/index.html"]:
+              path = Path(filename)
+              text = path.read_text(encoding="utf-8")
+              text = re.sub(r'\s*<link[^>]*(?:aldus-premium-theme|aldus-premium-stable-v46)\.css[^>]*>', '', text, flags=re.I)
+              text = re.sub(r'\s*<script[^>]*premium-stable-loader\.js[^>]*></script>', '', text, flags=re.I)
+              text = re.sub(r'<html\s+lang="pt-BR"(?:\s+data-aldus-theme="[^"]*")?>', '<html lang="pt-BR" data-aldus-theme="premium-stable">', text, count=1)
+              text = re.sub(r'<title>.*?</title>', '<title>Aldus Metas Concurso — Painel de Estudos</title>', text, count=1, flags=re.S)
+              text = re.sub(r'<meta\s+name="theme-color"\s+content="[^"]*"\s*/>', '<meta name="theme-color" content="#031426" />', text, count=1, flags=re.I)
+              text = text.replace('</head>', theme_link + loader + '</head>', 1)
+              path.write_text(text, encoding="utf-8")
+
+          sw_path = Path("service-worker.js")
+          sw = sw_path.read_text(encoding="utf-8")
+
+          if '"20260717-restauracao-estavel-v45"' not in sw.split('];', 1)[0]:
+              sw = sw.replace(
+                  '  "20260717-tema-premium-aldus-v44"\n];',
+                  '  "20260717-tema-premium-aldus-v44",\n  "20260717-restauracao-estavel-v45"\n];'
+              )
+
+          sw = re.sub(r'const CURRENT_VERSION = "[^"]+";', f'const CURRENT_VERSION = "{version}";', sw, count=1)
+          sw = re.sub(r'const ASSET_CACHE_NAME = `\$\{CACHE_NAME\}-startup-v\d+`;', 'const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v20`;', sw, count=1)
+
+          for asset in ['aldus-premium-stable-v46.css', 'premium-stable-loader.js']:
+              line = f'  "{asset}",\n'
+              if line not in sw:
+                  sw = sw.replace('  "style.css",\n', '  "style.css",\n' + line, 1)
+
+          patch_marker = 'function patchHtmlSource(source) {\n  let patched = replaceVersion(source);\n'
+          patch_insert = (
+              'function patchHtmlSource(source) {\n'
+              '  let patched = replaceVersion(source);\n'
+              '  patched = patched.replace(/\\s*<link[^>]*aldus-premium-stable-v46\\.css[^>]*>/gi, "");\n'
+              '  patched = patched.replace(/\\s*<script[^>]*premium-stable-loader\\.js[^>]*><\\/script>/gi, "");\n'
+              '  patched = patched.replace(/<html\\s+lang="pt-BR"(?:\\s+data-aldus-theme="[^"]*")?>/i, \'<html lang="pt-BR" data-aldus-theme="premium-stable">\');\n'
+              f'  patched = patched.replace("</head>", `  <link id="aldusPremiumStableTheme" rel="stylesheet" href="aldus-premium-stable-v46.css?v=${{CURRENT_VERSION}}" />\\n  <script src="premium-stable-loader.js?v=${{CURRENT_VERSION}}"></script>\\n</head>`);\n'
+          )
+          if 'patched = patched.replace(/\\s*<link[^>]*aldus-premium-stable-v46' not in sw:
+              sw = sw.replace(patch_marker, patch_insert, 1)
+
+          if 'async function networkFirstStableAsset(request)' not in sw:
+              sw = sw.replace(
+                  'function staleWhileRevalidate(request) {',
+                  '''async function networkFirstStableAsset(request) {
+  try {
+    const response = await fetch(request, { cache: "no-store" });
+    cacheResponse(request, response.clone());
+    return response;
+  } catch (error) {
+    return caches.match(request);
+  }
+}
+
+function staleWhileRevalidate(request) {''',
+                  1
+              )
+
+          route_marker = '  if (url.pathname.endsWith("/script.js")) {\n    event.respondWith(networkFirstAppScript(event.request));\n    return;\n  }\n'
+          route_insert = route_marker + '''  if (url.pathname.endsWith("/premium-stable-loader.js")
+      || url.pathname.endsWith("/aldus-premium-stable-v46.css")
+      || url.pathname.endsWith("/header-brand-fix.js")) {
+    event.respondWith(networkFirstStableAsset(event.request));
+    return;
+  }
+'''
+          if 'url.pathname.endsWith("/premium-stable-loader.js")' not in sw:
+              sw = sw.replace(route_marker, route_insert, 1)
+
+          sw_path.write_text(sw, encoding="utf-8")
+          Path("docs/service-worker.js").write_text(sw, encoding="utf-8")
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html docs/index.html service-worker.js docs/service-worker.js \
+            aldus-premium-theme.css docs/aldus-premium-theme.css \
+            aldus-premium-stable-v46.css docs/aldus-premium-stable-v46.css \
+            premium-stable-loader.js docs/premium-stable-loader.js \
+            header-brand-fix.js docs/header-brand-fix.js
+          git commit -m "Publica tema premium estável v46"
+          git push
