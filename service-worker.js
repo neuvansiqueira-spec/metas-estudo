@@ -8,17 +8,19 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260717-espectro-continuo-acertos-v34",
   "20260717-login-google-somente-manual-v36",
   "20260717-espectro-compacto-site-app-v37",
-  "20260717-aviso-sonoro-motivacional-v38"
+  "20260717-aviso-sonoro-motivacional-v38",
+  "20260717-sincronizacao-completa-dispositivos-v39"
 ];
-const CURRENT_VERSION = "20260717-sincronizacao-completa-dispositivos-v39";
+const CURRENT_VERSION = "20260717-material-cronometro-v40";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
-const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v13`;
+const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v14`;
 const FILES_TO_CACHE = [
   "./",
   "index.html",
   "style.css",
   "script.js",
   "question-accuracy-spectrum.js",
+  "timer-material-link-fix.js",
   "sync-integral-core.js",
   "sync-integral-deletions.js",
   "sync-integral-state.js",
@@ -65,9 +67,10 @@ function replaceVersion(source) {
 function patchHtmlSource(source) {
   let patched = replaceVersion(source);
   patched = patched.replace(/\s*<script[^>]*question-accuracy-spectrum\.js[^>]*><\/script>/gi, "");
+  patched = patched.replace(/\s*<script[^>]*timer-material-link-fix\.js[^>]*><\/script>/gi, "");
   return patched.replace(
     "</body>",
-    `<script src="question-accuracy-spectrum.js?v=${CURRENT_VERSION}"></script>\n</body>`
+    `<script src="question-accuracy-spectrum.js?v=${CURRENT_VERSION}"></script>\n<script src="timer-material-link-fix.js?v=${CURRENT_VERSION}" data-timer-material-link-fix="v40"></script>\n</body>`
   );
 }
 
