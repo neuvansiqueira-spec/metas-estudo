@@ -1,0 +1,120 @@
+/* Aldus Metas — Calendário de Metas v62
+   Mantém o resumo de disciplinas compacto e deixa a distribuição sob demanda. */
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas :is(
+  #goalCalendarStats,
+  #goalCalendarWeeklyStats,
+  #goalCalendarMonthlyStats
+) {
+  align-items: stretch !important;
+  grid-auto-rows: minmax(112px, auto) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-discipline-stat {
+  grid-column: span 3 !important;
+  display: grid !important;
+  grid-template-columns: minmax(90px, auto) minmax(0, 1fr) !important;
+  grid-template-rows: auto 1fr !important;
+  align-items: center !important;
+  gap: 6px 18px !important;
+  min-width: 0 !important;
+  min-height: 112px !important;
+  padding: 16px 18px !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-discipline-stat > span {
+  grid-column: 1 / -1 !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-discipline-stat > strong {
+  grid-column: 1 !important;
+  margin: 0 !important;
+  font-size: clamp(2rem, 4vw, 3rem) !important;
+  line-height: 1 !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-discipline-details {
+  grid-column: 2 !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-discipline-details > summary {
+  min-height: 42px !important;
+  padding: 10px 13px !important;
+  border: 1px solid rgba(133, 181, 220, .3) !important;
+  border-radius: 12px !important;
+  background: rgba(5, 25, 43, .7) !important;
+  color: #dbe9f4 !important;
+  font-size: .88rem !important;
+  font-weight: 800 !important;
+  line-height: 1.25 !important;
+  cursor: pointer !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-discipline-details > ul {
+  display: grid !important;
+  gap: 6px !important;
+  max-height: 210px !important;
+  margin: 9px 0 0 !important;
+  padding: 8px !important;
+  overflow: auto !important;
+  list-style: none !important;
+  border: 1px solid rgba(133, 181, 220, .22) !important;
+  border-radius: 12px !important;
+  background: rgba(3, 20, 38, .74) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-discipline-details li {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 8px 9px !important;
+  border-radius: 9px !important;
+  background: rgba(21, 57, 86, .62) !important;
+  color: #d8e4ee !important;
+  font-size: .84rem !important;
+  line-height: 1.3 !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-discipline-details li > span {
+  min-width: 0 !important;
+  overflow-wrap: anywhere !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-discipline-details li > strong {
+  margin: 0 !important;
+  font-size: .86rem !important;
+  line-height: 1 !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-discipline-empty {
+  grid-column: 2 !important;
+  margin: 0 !important;
+  color: #afc2d2 !important;
+}
+
+@media (max-width: 768px) {
+  html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-discipline-stat {
+    grid-column: auto !important;
+    grid-template-columns: 68px minmax(0, 1fr) !important;
+    min-height: 104px !important;
+    padding: 14px !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-discipline-stat > strong {
+    font-size: clamp(1.7rem, 9vw, 2.25rem) !important;
+  }
+}
+
+@media (max-width: 380px) {
+  html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-discipline-stat {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto auto auto !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-discipline-stat > :is(strong, .calendar-discipline-details, .calendar-discipline-empty) {
+    grid-column: 1 !important;
+  }
+}

@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260718-calendario-contraste-v61";
+const APP_VERSION = "20260718-calendario-disciplinas-v62";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -5434,7 +5434,11 @@ function goalCalendarPeriod(date, mode) {
   return { mode, start, end, dates, goals, planned, actual, completed, percent: completionRate(goals), disciplines };
 }
 function goalCalendarStatsHTML(period) {
-  return `<article class="stat-card"><span>Planejado</span><strong>${formatHours(period.planned)}</strong></article><article class="stat-card"><span>Realizado</span><strong>${formatHours(period.actual)}</strong></article><article class="stat-card"><span>Metas</span><strong>${period.goals.length}</strong></article><article class="stat-card"><span>Concluídas</span><strong>${period.completed}</strong></article><article class="stat-card"><span>Cumprimento</span><strong>${period.percent}%</strong></article><article class="stat-card wide-stat"><span>Disciplinas</span><strong>${Object.entries(period.disciplines).map(([name, count]) => `${escapeHTML(name)} (${count})`).join(", ") || "Sem metas"}</strong></article>`;
+  const disciplines = Object.entries(period.disciplines).sort(([nameA], [nameB]) => nameA.localeCompare(nameB, "pt-BR"));
+  const disciplineBreakdown = disciplines.length
+    ? `<details class="calendar-discipline-details"><summary>Ver disciplinas</summary><ul>${disciplines.map(([name, count]) => `<li><span>${escapeHTML(name)}</span><strong>${count}</strong></li>`).join("")}</ul></details>`
+    : `<small class="calendar-discipline-empty">Nenhuma disciplina no período</small>`;
+  return `<article class="stat-card"><span>Planejado</span><strong>${formatHours(period.planned)}</strong></article><article class="stat-card"><span>Realizado</span><strong>${formatHours(period.actual)}</strong></article><article class="stat-card"><span>Metas</span><strong>${period.goals.length}</strong></article><article class="stat-card"><span>Concluídas</span><strong>${period.completed}</strong></article><article class="stat-card"><span>Cumprimento</span><strong>${period.percent}%</strong></article><article class="stat-card calendar-discipline-stat"><span>Disciplinas</span><strong>${disciplines.length}</strong>${disciplineBreakdown}</article>`;
 }
 function goalCalendarContentHTML(period) {
   if (period.mode === "daily") { const date = period.start, av = availabilityForDate(date); return `<div class="section-heading inline"><div><h3>${formatDateBR(date)} — ${escapeHTML(dayTypeLabel(av))}</h3><p class="item-meta">Horas disponíveis: ${av.hours}h</p></div><button type="button" data-open-day-plan="${date}">Abrir Plano do Dia</button></div>${period.goals.map(goalCalendarCard).join("") || "Nenhuma meta para a data."}`; }
