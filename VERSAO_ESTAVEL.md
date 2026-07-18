@@ -2,36 +2,36 @@
 
 ## Versão estável atual
 
-`20260717-sincronizacao-completa-dispositivos-v39`
+`20260717-material-cronometro-v40`
 
 ## Data
 
 17/07/2026
 
+## Material vinculado no cronômetro
+
+O formulário aberto ao salvar o tempo do cronômetro passa a consultar a mesma fonte central de materiais utilizada pelo Plano do Dia.
+
+A correção:
+
+- reconhece materiais cadastrados diretamente na Biblioteca;
+- reconhece materiais provenientes da Fábrica de Resumos;
+- usa o vínculo pelo item do edital quando disponível;
+- utiliza disciplina e assunto como alternativa segura de associação;
+- elimina duplicações do mesmo arquivo;
+- seleciona automaticamente o material já vinculado à meta ou, na ausência desse identificador, o primeiro material realmente disponível para o assunto;
+- atualiza a lista ao trocar a disciplina ou o assunto no formulário do cronômetro.
+
+Assim, quando o Plano do Dia mostra material disponível para uma meta, o formulário do cronômetro não deve mais apresentar apenas “Sem material vinculado”.
+
 ## Sincronização completa entre dispositivos
 
-A sincronização passa a tratar inclusões, edições e exclusões como alterações reais do estado compartilhado.
+Permanece ativo o tratamento de inclusões, edições e exclusões como alterações reais do estado compartilhado. Exclusões continuam gerando marcadores de remoção, e conflitos de edição continuam sendo resolvidos pela alteração mais recente.
 
-### Inclusões
+## Segurança
 
-Registros criados em dispositivos diferentes são reunidos sem que um conjunto substitua o outro.
-
-### Edições
-
-Cada registro alterado recebe uma data técnica de atualização. Quando dois dispositivos modificam o mesmo registro, prevalece a edição mais recente. Isso também permite reduzir valores numéricos; a sincronização não mantém automaticamente o maior número quando existe uma edição posterior.
-
-### Exclusões
-
-Toda exclusão gera um marcador de remoção sincronizável. Esse marcador impede que uma cópia antiga existente em outro dispositivo faça o registro apagado reaparecer. Caso o mesmo registro seja conscientemente recriado ou editado depois da exclusão, a alteração posterior pode restaurá-lo.
-
-### Coleções protegidas
-
-O mecanismo cobre disciplinas, estudos, itens do edital, metas diárias, sessões de questões, revisões, simulados, materiais, Banco de Questões, sessões do Banco, Caderno de Erros e itens da Fábrica de Resumos.
-
-### Segurança
-
-Antes das mesclagens continua sendo criada uma cópia local de segurança. A atualização não limpa localStorage, IndexedDB, tempos, sessões ou históricos.
+A atualização não altera nem remove materiais, metas, sessões, tempos, históricos, localStorage ou IndexedDB. Ela corrige somente a localização e a seleção do material no formulário de salvamento do cronômetro.
 
 ## Recursos preservados
 
-A versão mantém o espectro contínuo compacto, as mensagens motivacionais por 30 segundos, o aviso sonoro opcional e o login do Google Drive somente por ação do usuário.
+A versão mantém a sincronização completa da v39, o espectro contínuo compacto, as mensagens motivacionais por 30 segundos, o aviso sonoro opcional e o login do Google Drive somente por ação do usuário.
