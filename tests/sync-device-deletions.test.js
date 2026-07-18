@@ -60,12 +60,20 @@ test("edição numérica mais recente pode reduzir um valor", () => {
   assert.equal(merged.dailyGoals[0].minutes, 60);
 });
 
+test("lista editável mais recente pode remover valores antigos", () => {
+  const sync = loadSyncEngine();
+  const local = { materials: [{ id: "m1", tags: ["resumo"], updatedAt: "2026-07-17T12:00:00.000Z" }] };
+  const remote = { materials: [{ id: "m1", tags: ["resumo", "antigo"], updatedAt: "2026-07-17T10:00:00.000Z" }] };
+  const merged = sync.mergeSyncStates(local, remote, "remote");
+  assert.deepEqual(Array.from(merged.materials[0].tags), ["resumo"]);
+});
+
 test("adições diferentes nos dois dispositivos são preservadas", () => {
   const sync = loadSyncEngine();
   const local = { materials: [{ id: "local", title: "PC", updatedAt: "2026-07-17T10:00:00.000Z" }] };
   const remote = { materials: [{ id: "remote", title: "Celular", updatedAt: "2026-07-17T10:01:00.000Z" }] };
   const merged = sync.mergeSyncStates(local, remote, "remote");
-  assert.deepEqual(merged.materials.map((item) => item.id).sort(), ["local", "remote"]);
+  assert.deepEqual(Array.from(merged.materials, (item) => item.id).sort(), ["local", "remote"]);
 });
 
 test("rastreador cria marcador de exclusão e data de edição", () => {
