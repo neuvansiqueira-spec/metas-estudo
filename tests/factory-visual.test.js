@@ -65,8 +65,9 @@ test('arquivos públicos permanecem sincronizados e cache usa a nova versão', (
   assert.ok(html.includes(`script.js?v=${packageJson.version}`));
   assert.ok(docsHtml.includes(`style.css?v=${packageJson.version}`));
   assert.ok(docsHtml.includes(`script.js?v=${packageJson.version}`));
-  assert.ok(sw.includes(`metas-estudo-${packageJson.version}`));
-  assert.ok(docsSw.includes(`metas-estudo-${packageJson.version}`));
+  assert.ok(sw.includes(`const CURRENT_VERSION = "${packageJson.version}"`));
+  assert.ok(docsSw.includes(`const CURRENT_VERSION = "${packageJson.version}"`));
+  assert.match(sw, /const CACHE_NAME = `metas-estudo-\$\{CURRENT_VERSION\}`/);
 });
 
 test('funções da Fábrica seguem presentes após a alteração visual', () => {

@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 
 function patchFunctionsFrom(source) {
-  const start = source.indexOf('const PREVIOUS_VERSION =');
+  const start = source.indexOf('const PREVIOUS_DEPLOYMENT_VERSIONS =');
   const endMarker = '\nasync function patchTextResponse';
   const end = source.indexOf(endMarker, start);
   assert.notEqual(start, -1, "constantes de versão não encontradas");
@@ -19,14 +19,15 @@ function patchFunctionsFrom(source) {
     URL,
     console
   };
-  vm.runInNewContext(`${block}; result = { replaceVersion, patchHtmlSource, patchAppScriptSource, CURRENT_VERSION, TIMER_MOTIVATION_PWA_FALLBACK };`, context);
+  vm.runInNewContext(`${block}; result = { replaceVersion, patchHtmlSource, patchAppScriptSource, CURRENT_VERSION };`, context);
   return context.result;
 }
 
 for (const file of ["service-worker.js", "docs/service-worker.js"]) {
-  test(`${file}: mantém correções e publica o espectro compacto`, () => {
+  test(`${file}: mantém correções históricas na versão atual`, () => {
     const source = fs.readFileSync(file, "utf8");
     const patch = patchFunctionsFrom(source);
+    const currentVersion = JSON.parse(fs.readFileSync("package.json", "utf8")).version;
     const original = [
       'const APP_VERSION = "20260717-numero-qc-v26";',
       'const TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 5000;',
@@ -36,8 +37,8 @@ for (const file of ["service-worker.js", "docs/service-worker.js"]) {
     ].join("\n");
 
     const result = patch.patchAppScriptSource(original);
-    assert.equal(patch.CURRENT_VERSION, "20260717-espectro-compacto-site-app-v37");
-    assert.match(result, /APP_VERSION = "20260717-espectro-compacto-site-app-v37"/);
+    assert.equal(patch.CURRENT_VERSION, currentVersion);
+    assert.match(result, new RegExp(`APP_VERSION = "${currentVersion}"`));
     assert.match(result, /TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 30000/);
     assert.match(result, /floatingTimer\.mode !== "free" && !goal/);
     assert.match(result, /sessionGoalMinutes = selectedMode === "free" \? Math\.max\(0, Number\(goal\.minutes\) \|\| 0\) : 0/);
@@ -45,13 +46,13 @@ for (const file of ["service-worker.js", "docs/service-worker.js"]) {
     assert.doesNotMatch(result, /__timerMotivationPwaFallbackV31/);
 
     const html = patch.patchHtmlSource('<p>Versão: 20260717-numero-qc-v26</p></body>');
-    assert.match(html, /Versão: 20260717-espectro-compacto-site-app-v37/);
-    assert.match(html, /question-accuracy-spectrum\.js\?v=20260717-espectro-compacto-site-app-v37/);
+    assert.match(html, new RegExp(`Versão: ${currentVersion}`));
+    assert.match(html, new RegExp(`question-accuracy-spectrum\\.js\\?v=${currentVersion}`));
     assert.equal((html.match(/question-accuracy-spectrum\.js/g) || []).length, 1);
 
     const oldInjected = patch.patchHtmlSource('<script src="question-accuracy-spectrum.js?v=antiga"></script></body>');
     assert.equal((oldInjected.match(/question-accuracy-spectrum\.js/g) || []).length, 1);
-    assert.match(oldInjected, /question-accuracy-spectrum\.js\?v=20260717-espectro-compacto-site-app-v37/);
+    assert.match(oldInjected, new RegExp(`question-accuracy-spectrum\\.js\\?v=${currentVersion}`));
   });
 }
 

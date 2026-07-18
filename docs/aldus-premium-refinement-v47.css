@@ -8,6 +8,7 @@
   --aldus-panel-highlight: inset 0 1px 0 rgba(255, 255, 255, .045);
 }
 
+/* Navegação lateral: estrutura mais limpa e integrada */
 html[data-aldus-theme="premium-stable"] .side-nav {
   position: sticky;
   isolation: isolate;
@@ -57,6 +58,7 @@ html[data-aldus-theme="premium-stable"] .side-nav::-webkit-scrollbar-thumb:hover
   background-clip: padding-box;
 }
 
+/* Título principal com uma única linha de apoio */
 html[data-aldus-theme="premium-stable"] .side-nav-title {
   position: relative;
   padding: 7px 12px 24px;
@@ -75,9 +77,14 @@ html[data-aldus-theme="premium-stable"] .side-nav-title::after {
   right: 12px;
   bottom: 7px;
   height: 1px;
-  background: linear-gradient(90deg, var(--aldus-gold) 0 24%, rgba(112, 170, 222, .19) 24% 100%);
+  background: linear-gradient(
+    90deg,
+    var(--aldus-gold) 0 24%,
+    rgba(112, 170, 222, .19) 24% 100%
+  );
 }
 
+/* Grupos sem faixas brancas e sem excesso de linhas */
 html[data-aldus-theme="premium-stable"] .side-nav-group {
   position: relative;
   display: grid;
@@ -117,6 +124,7 @@ html[data-aldus-theme="premium-stable"] .side-nav-group > span::before {
   box-shadow: 0 0 10px rgba(223, 182, 76, .38);
 }
 
+/* Itens de navegação */
 html[data-aldus-theme="premium-stable"] .side-nav a {
   position: relative;
   display: flex;
@@ -135,7 +143,12 @@ html[data-aldus-theme="premium-stable"] .side-nav a {
   text-decoration: none;
   box-shadow: none;
   transform: none;
-  transition: color .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+  transition:
+    color .18s ease,
+    background .18s ease,
+    border-color .18s ease,
+    box-shadow .18s ease,
+    transform .18s ease;
 }
 
 html[data-aldus-theme="premium-stable"] .side-nav a::before {
@@ -163,6 +176,7 @@ html[data-aldus-theme="premium-stable"] .side-nav a:hover::before {
   background: rgba(92, 153, 210, .35);
 }
 
+/* Seleção ativa elegante, sem contorno excessivo */
 html[data-aldus-theme="premium-stable"] .side-nav a.active,
 html[data-aldus-theme="premium-stable"] .side-nav a[aria-current="page"] {
   color: #ffffff;
@@ -170,7 +184,9 @@ html[data-aldus-theme="premium-stable"] .side-nav a[aria-current="page"] {
   background:
     linear-gradient(90deg, rgba(223, 182, 76, .12), transparent 34%),
     linear-gradient(145deg, rgba(18, 52, 82, .97), rgba(10, 39, 67, .97));
-  box-shadow: 0 9px 22px rgba(0, 8, 21, .19), inset 0 1px 0 rgba(255,255,255,.055);
+  box-shadow:
+    0 9px 22px rgba(0, 8, 21, .19),
+    inset 0 1px 0 rgba(255,255,255,.055);
   transform: none;
 }
 
@@ -187,10 +203,13 @@ html[data-aldus-theme="premium-stable"] .side-nav a[aria-current="page"]::before
   box-shadow: 0 0 13px rgba(223, 182, 76, .44);
 }
 
+/* Harmonia dos contornos em todas as abas */
 html[data-aldus-theme="premium-stable"] .dashboard,
 html[data-aldus-theme="premium-stable"] .panel {
   border-color: rgba(108, 167, 220, .22);
-  box-shadow: 0 20px 48px rgba(0, 9, 24, .29), inset 0 1px 0 rgba(255,255,255,.035);
+  box-shadow:
+    0 20px 48px rgba(0, 9, 24, .29),
+    inset 0 1px 0 rgba(255,255,255,.035);
 }
 
 html[data-aldus-theme="premium-stable"] .dashboard-block,
@@ -206,7 +225,9 @@ html[data-aldus-theme="premium-stable"] .progress-dashboard-card,
 html[data-aldus-theme="premium-stable"] .smart-review-panel,
 html[data-aldus-theme="premium-stable"] .interface-collapsible {
   border-color: rgba(108, 167, 220, .19);
-  box-shadow: 0 11px 27px rgba(0, 8, 21, .18), inset 0 1px 0 rgba(255,255,255,.026);
+  box-shadow:
+    0 11px 27px rgba(0, 8, 21, .18),
+    inset 0 1px 0 rgba(255,255,255,.026);
 }
 
 html[data-aldus-theme="premium-stable"] .section-heading {
@@ -234,10 +255,13 @@ html[data-aldus-theme="premium-stable"] .button-link {
   border-radius: 12px;
 }
 
+/* Menu móvel com a mesma linguagem */
 @media (max-width: 900px) {
   html[data-aldus-theme="premium-stable"] .nav-links {
     border: 1px solid rgba(111, 174, 230, .25);
-    background: radial-gradient(circle at 15% 0%, rgba(46,101,154,.16), transparent 14rem), linear-gradient(180deg, #061f38, #031426);
+    background:
+      radial-gradient(circle at 15% 0%, rgba(46,101,154,.16), transparent 14rem),
+      linear-gradient(180deg, #061f38, #031426);
     box-shadow: 0 20px 44px rgba(0,9,24,.34);
   }
 
@@ -264,5 +288,110 @@ html[data-aldus-theme="premium-stable"] .button-link {
   html[data-aldus-theme="premium-stable"] .side-nav a {
     min-height: 43px;
     padding-block: 9px;
+  }
+}
+
+/* v50 — composição mais equilibrada e recuperação de dados mais legível. */
+html[data-aldus-theme="premium-stable"] .time-recovery-diagnostic {
+  padding: clamp(16px, 2vw, 22px);
+  border: 1px solid rgba(223, 182, 76, .34);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 92% 4%, rgba(76, 141, 255, .12), transparent 18rem),
+    linear-gradient(145deg, rgba(13, 44, 73, .95), rgba(6, 28, 50, .97));
+  box-shadow: 0 14px 34px rgba(0, 8, 21, .22), inset 0 1px 0 rgba(255, 255, 255, .035);
+}
+
+html[data-aldus-theme="premium-stable"] .time-recovery-diagnostic .card-meta-grid {
+  gap: 10px;
+}
+
+html[data-aldus-theme="premium-stable"] .time-recovery-diagnostic .card-meta-grid > span {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(112, 170, 222, .18);
+  border-radius: 13px;
+  background: rgba(3, 20, 38, .42);
+  color: var(--aldus-muted);
+}
+
+html[data-aldus-theme="premium-stable"] .time-recovery-diagnostic details {
+  margin-top: 14px;
+  border-color: rgba(112, 170, 222, .2);
+  background: rgba(3, 20, 38, .34);
+}
+
+@media (min-width: 901px) {
+  html[data-aldus-theme="premium-stable"] .hero {
+    padding: 24px min(5vw, 68px) 60px;
+  }
+
+  html[data-aldus-theme="premium-stable"] .topbar .brand {
+    justify-content: flex-end;
+    gap: 18px;
+  }
+
+  html[data-aldus-theme="premium-stable"] .topbar .brand-icon {
+    margin-left: 0;
+  }
+
+  html[data-aldus-theme="premium-stable"] .hero-content {
+    align-items: center;
+    padding-top: 34px;
+  }
+
+  html[data-aldus-theme="premium-stable"] .hero h1 {
+    max-width: 780px;
+    font-size: clamp(2.75rem, 4.15vw, 3.65rem);
+    line-height: 1.055;
+  }
+
+  html[data-aldus-theme="premium-stable"] .hero-text {
+    max-width: 760px;
+    line-height: 1.62;
+  }
+
+  html[data-aldus-theme="premium-stable"] .goal-card {
+    align-self: center;
+    max-width: 340px;
+    padding: 24px;
+  }
+
+  html[data-aldus-theme="premium-stable"] .container {
+    margin-top: -30px;
+  }
+
+  html[data-aldus-theme="premium-stable"] .app-layout {
+    gap: 24px;
+  }
+}
+
+@media (max-width: 900px) {
+  html[data-aldus-theme="premium-stable"] .hero {
+    padding-bottom: 48px;
+  }
+
+  html[data-aldus-theme="premium-stable"] .hero-content {
+    gap: 22px;
+    padding-top: 28px;
+  }
+
+  html[data-aldus-theme="premium-stable"] .goal-card {
+    width: 100%;
+    max-width: none;
+    padding: 20px;
+  }
+
+  html[data-aldus-theme="premium-stable"] .container {
+    margin-top: -24px;
+  }
+
+  html[data-aldus-theme="premium-stable"] .time-recovery-diagnostic .actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  html[data-aldus-theme="premium-stable"] .time-recovery-diagnostic .actions button {
+    width: 100%;
   }
 }

@@ -14,7 +14,7 @@ const rootWorker = fs.readFileSync("service-worker.js", "utf8");
 const docsWorker = fs.readFileSync("docs/service-worker.js", "utf8");
 const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
 
-const VERSION = "20260718-diagnostico-recuperacao-tempo-v49";
+const VERSION = packageJson.version;
 
 test("sessão nova do cronômetro recompõe e grava o total da meta", () => {
   assert.match(rootCore, /function installTimerSaveTotalReconciliation\(\)/);
@@ -92,7 +92,7 @@ test("atualização automática só roda em condição segura", () => {
   assert.match(rootCloud, /\["INPUT", "TEXTAREA", "SELECT"\]\.includes\(activeTag\)/);
 });
 
-test("publicação da v49 permanece sincronizada entre raiz e docs", () => {
+test("publicação atual permanece sincronizada entre raiz e docs", () => {
   assert.equal(rootCore, docsCore);
   assert.equal(rootState, docsState);
   assert.equal(rootCloud, docsCloud);
@@ -100,7 +100,7 @@ test("publicação da v49 permanece sincronizada entre raiz e docs", () => {
   assert.equal(rootWorker, docsWorker);
   assert.equal(packageJson.version, VERSION);
   assert.match(rootWorker, new RegExp(VERSION));
-  assert.match(rootWorker, /startup-v22/);
+  assert.match(rootWorker, /startup-v23/);
   assert.match(rootWorker, /20260718-protecao-recuperacao-tempo-v48/);
   assert.match(rootWorker, /sync-integral-time-protection\.js/);
 });

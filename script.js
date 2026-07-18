@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260717-numero-qc-v26";
+const APP_VERSION = "20260718-integridade-recuperacao-visual-v50";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -6767,7 +6767,82 @@ window.addEventListener("beforeunload", persistFloatingTimerSession);
 window.addEventListener("hashchange", () => showView(hashToView()));
 enhanceCollapsibleSections();
 restoreFloatingTimerSession();
-bootstrapApplication().catch(handleBootstrapFailure);
+
+const INTEGRAL_SYNC_ENHANCEMENT_FILES = [
+  "sync-integral-core.js",
+  "sync-integral-deletions.js",
+  "sync-integral-state.js",
+  "sync-integral-cloud.js",
+  "sync-integral-time-protection.js"
+];
+
+function activateIntegralSyncEnhancements() {
+  const ready = [
+    "mergeSyncStates",
+    "uploadSyncPayloadIntegral",
+    "applyCloudPayloadIntegral",
+    "syncNowIntegral",
+    "checkCloudForNewerVersionIntegral"
+  ].every((name) => typeof globalThis[name] === "function");
+  if (!ready) return false;
+
+  uploadSyncPayload = function uploadSyncPayloadWithIntegralMerge(payload = makeSyncPayload(), options = {}) {
+    return uploadSyncPayloadIntegral(payload, options);
+  };
+  applyCloudPayload = function applyCloudPayloadWithIntegralMerge(payload) {
+    return applyCloudPayloadIntegral(payload);
+  };
+  syncNow = function syncNowWithIntegralMerge() {
+    return syncNowIntegral();
+  };
+  checkCloudForNewerVersion = function checkCloudForNewerVersionWithIntegralMerge(context = "open") {
+    return checkCloudForNewerVersionIntegral(context);
+  };
+  return true;
+}
+
+function loadIntegralSyncEnhancementFile(filename) {
+  return new Promise((resolve, reject) => {
+    const selector = `script[data-integral-sync-file="${filename}"]`;
+    const existing = document.querySelector(selector);
+    if (existing?.dataset.loaded === "true") return resolve();
+    const script = existing || document.createElement("script");
+    script.async = true;
+    script.dataset.integralSyncFile = filename;
+    script.addEventListener("load", () => {
+      script.dataset.loaded = "true";
+      resolve();
+    }, { once: true });
+    script.addEventListener("error", () => reject(new Error(`Não foi possível carregar ${filename}.`)), { once: true });
+    if (!existing) {
+      script.src = `${filename}?v=${APP_VERSION}`;
+      (document.head || document.documentElement).appendChild(script);
+    }
+  });
+}
+
+async function ensureIntegralSyncEnhancements() {
+  if (activateIntegralSyncEnhancements()) return true;
+  const [coreFile, ...dependentFiles] = INTEGRAL_SYNC_ENHANCEMENT_FILES;
+  await loadIntegralSyncEnhancementFile(coreFile);
+  for (const filename of dependentFiles) {
+    await loadIntegralSyncEnhancementFile(filename);
+  }
+  if (!activateIntegralSyncEnhancements()) throw new Error("Os módulos de integridade foram carregados de forma incompleta.");
+  return true;
+}
+
+async function startApplicationWithIntegrity() {
+  try {
+    await ensureIntegralSyncEnhancements();
+  } catch (error) {
+    console.error("[Aldus Meta] A proteção integral não pôde ser iniciada; o salvamento local básico foi preservado.", error);
+    globalThis.__aldusIntegralSyncLoadError = String(error?.message || error);
+  }
+  return bootstrapApplication();
+}
+
+startApplicationWithIntegrity().catch(handleBootstrapFailure);
 
 function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
