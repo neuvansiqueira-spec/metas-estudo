@@ -1,0 +1,187 @@
+name: Corrigir cabeçalho e cache inicial
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/fix-header-cache-v42.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Corrigir cabeçalho, publicação e service worker
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          VERSION = "20260717-cabecalho-estavel-v42"
+          desired_brand = '''      <div class="brand">
+                <div class="brand-copy">
+                  <strong>Aldus Metas Concurso</strong>
+                  <small>Planeje, Registre e Revise</small>
+                </div>
+                <span class="brand-icon" aria-hidden="true"><img src="icons/logo-mark.svg" alt="" /></span>
+              </div>'''
+
+          brand_pattern = re.compile(
+              r'      <div class="brand">\s*'
+              r'<div class="brand-copy">\s*'
+              r'<strong>.*?</strong>\s*'
+              r'<small>.*?</small>\s*'
+              r'</div>\s*'
+              r'<span class="brand-icon" aria-hidden="true"><img src="icons/logo-mark\.svg" alt="" /></span>\s*'
+              r'</div>',
+              re.S,
+          )
+
+          header_fix = r'''(() => {
+            "use strict";
+
+            const DESIRED_HTML = `
+              <div class="brand-copy">
+                <strong>Aldus Metas Concurso</strong>
+                <small>Planeje, Registre e Revise</small>
+              </div>
+              <span class="brand-icon" aria-hidden="true"><img src="icons/logo-mark.svg" alt="" /></span>
+            `;
+
+            let applying = false;
+
+            function applyCorrectHeader() {
+              if (applying) return;
+              const brand = document.querySelector(".topbar .brand");
+              if (!brand) return;
+
+              const title = brand.querySelector(".brand-copy strong")?.textContent?.trim();
+              const subtitle = brand.querySelector(".brand-copy small")?.textContent?.trim();
+              const hasCorrectIcon = Boolean(brand.querySelector('.brand-icon img[src*="icons/logo-mark.svg"]'));
+              const correct = title === "Aldus Metas Concurso" && subtitle === "Planeje, Registre e Revise" && hasCorrectIcon;
+
+              applying = true;
+              document.getElementById("aldusMetaBrandStyles")?.remove();
+              brand.classList.remove("aldus-meta-brand");
+              brand.removeAttribute("data-aldus-meta-brand");
+              if (!correct) brand.innerHTML = DESIRED_HTML;
+              applying = false;
+            }
+
+            function start() {
+              applyCorrectHeader();
+              const observer = new MutationObserver(applyCorrectHeader);
+              observer.observe(document.documentElement, { childList: true, subtree: true });
+              setTimeout(applyCorrectHeader, 0);
+              setTimeout(applyCorrectHeader, 150);
+              setTimeout(applyCorrectHeader, 600);
+            }
+
+            if (document.readyState === "loading") {
+              document.addEventListener("DOMContentLoaded", start, { once: true });
+            } else {
+              start();
+            }
+
+            window.addEventListener("load", applyCorrectHeader);
+
+            if ("serviceWorker" in navigator) {
+              navigator.serviceWorker.register("service-worker.js", { updateViaCache: "none" })
+                .then((registration) => registration.update())
+                .catch(() => {});
+            }
+          })();
+          '''
+
+          Path("header-brand-fix.js").write_text(header_fix, encoding="utf-8")
+          Path("docs/header-brand-fix.js").write_text(header_fix, encoding="utf-8")
+
+          root_pie = Path("question-history-pie.js")
+          if root_pie.exists():
+              Path("docs/question-history-pie.js").write_text(root_pie.read_text(encoding="utf-8"), encoding="utf-8")
+
+          for filename in ["index.html", "docs/index.html"]:
+              path = Path(filename)
+              text = path.read_text(encoding="utf-8")
+              text, count = brand_pattern.subn(desired_brand, text, count=1)
+              if count != 1:
+                  raise SystemExit(f"Cabeçalho não localizado em {filename}")
+
+              for script_name in ["header-brand-fix.js", "question-history-pie.js"]:
+                  text = re.sub(
+                      rf'\s*<script[^>]*{re.escape(script_name)}[^>]*></script>',
+                      "",
+                      text,
+                      flags=re.I,
+                  )
+
+              scripts = f'''  <script src="question-history-pie.js?v={VERSION}"></script>
+            <script src="header-brand-fix.js?v={VERSION}"></script>
+          '''
+              text = text.replace("</body>", scripts + "</body>")
+              path.write_text(text, encoding="utf-8")
+
+          for filename in ["service-worker.js", "docs/service-worker.js"]:
+              path = Path(filename)
+              text = path.read_text(encoding="utf-8")
+
+              if '"20260717-logo-aldus-meta-v41"' not in text.split("];", 1)[0]:
+                  text = text.replace(
+                      '  "20260717-material-cronometro-v40"\n];',
+                      '  "20260717-material-cronometro-v40",\n  "20260717-logo-aldus-meta-v41"\n];',
+                  )
+
+              text = re.sub(r'const CURRENT_VERSION = ".*?";', f'const CURRENT_VERSION = "{VERSION}";', text, count=1)
+              text = re.sub(r'const ASSET_CACHE_NAME = `\$\{CACHE_NAME\}-startup-v\d+`;', 'const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v16`;', text, count=1)
+
+              text = text.replace('  "aldus-meta-branding.js",\n', '')
+              text = text.replace('  "icons/aldus-meta-logo.svg",\n', '')
+
+              if '  "question-history-pie.js",' not in text:
+                  text = text.replace('  "timer-material-link-fix.js",\n', '  "timer-material-link-fix.js",\n  "question-history-pie.js",\n  "header-brand-fix.js",\n')
+              elif '  "header-brand-fix.js",' not in text:
+                  text = text.replace('  "question-history-pie.js",\n', '  "question-history-pie.js",\n  "header-brand-fix.js",\n')
+
+              old_list = '''    "question-accuracy-spectrum.js",
+              "timer-material-link-fix.js",
+              "aldus-meta-branding.js"'''
+              new_list = '''    "question-accuracy-spectrum.js",
+              "timer-material-link-fix.js",
+              "question-history-pie.js",
+              "header-brand-fix.js",
+              "aldus-meta-branding.js"'''
+              text = text.replace(old_list, new_list)
+
+              text = re.sub(
+                  r'<script src="aldus-meta-branding\.js\?v=\$\{CURRENT_VERSION\}" data-aldus-meta-branding="v41"></script>\n?',
+                  '',
+                  text,
+              )
+
+              old_timer_line = '<script src="timer-material-link-fix.js?v=${CURRENT_VERSION}" data-timer-material-link-fix="v40"></script>'
+              new_timer_lines = old_timer_line + '\n<script src="question-history-pie.js?v=${CURRENT_VERSION}"></script>\n<script src="header-brand-fix.js?v=${CURRENT_VERSION}"></script>'
+              if '<script src="header-brand-fix.js?v=${CURRENT_VERSION}"></script>' not in text:
+                  text = text.replace(old_timer_line, new_timer_lines)
+
+              text = text.replace('await fetch(request), patchHtmlSource', 'await fetch(request, { cache: "no-store" }), patchHtmlSource')
+              text = text.replace('await transform(await fetch(request));', 'await transform(await fetch(request, { cache: "no-store" }));')
+
+              path.write_text(text, encoding="utf-8")
+
+          # Mantém raiz e docs com o mesmo service worker.
+          Path("docs/service-worker.js").write_text(Path("service-worker.js").read_text(encoding="utf-8"), encoding="utf-8")
+          PY
+
+      - name: Salvar correção
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html docs/index.html service-worker.js docs/service-worker.js header-brand-fix.js docs/header-brand-fix.js question-history-pie.js docs/question-history-pie.js
+          git diff --cached --quiet || git commit -m "Corrigir cabeçalho antigo exibido pelo cache"
+          git push
