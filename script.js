@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260718-indicacao-qc-explicita-v55";
+const APP_VERSION = "20260718-numeracao-qc-catalogo-v56";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -4984,7 +4984,27 @@ document.addEventListener("click", (event) => { const assoc = event.target.close
 function syllabusLabel(item) { return `${item.discipline} — ${item.subject}${item.subtopic ? ` • ${item.subtopic}` : ""}`; }
 function getSyllabusById(id) { return state.syllabusItems.find((item) => item.id === id); }
 function optionsForDiscipline(select, current = "") { const ds = getAllDisciplines(); select.innerHTML = '<option value="">Selecione</option>' + ds.map((d) => `<option value="${escapeHTML(d)}" ${d === current ? "selected" : ""}>${escapeHTML(d)}</option>`).join(""); }
-function qconcursosNumberForItem(item = {}) { return String(item.qconcursosNumber || item.qcSubjectNumber || "").trim(); }
+const QCONCURSOS_CONFIRMED_SUBJECTS = [
+  { discipline: "direito administrativo", number: "2.3", aliases: ["principios legalidade impessoalidade moralidade publicidade e eficiencia"] },
+  { discipline: "direito administrativo", number: "2.4", aliases: ["principios contraditorio e ampla defesa", "contraditorio e ampla defesa"] },
+  { discipline: "direito administrativo", number: "2.2", aliases: ["principios da administracao publica"] },
+  { discipline: "direito administrativo", number: "2.1", aliases: ["conceito de administracao publica"] },
+  { discipline: "direito administrativo", number: "2", aliases: ["regime juridico administrativo"] },
+  { discipline: "direito administrativo", number: "1", aliases: ["conceitos iniciais de direito administrativo", "conceito fontes e principios do direito administrativo", "fontes do direito administrativo"] }
+];
+function normalizeQconcursosCatalogText(value = "") { return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); }
+function qconcursosCatalogMatch(item = {}) {
+  const discipline = normalizeQconcursosCatalogText(item.discipline || item.disciplina);
+  const searchable = [item.subject || item.assunto, item.subtopic || item.subtema, item.topic || item.topico, item.reference || item.referencia].map(normalizeQconcursosCatalogText).filter(Boolean).join(" | ");
+  return QCONCURSOS_CONFIRMED_SUBJECTS.find((entry) => entry.discipline === discipline && entry.aliases.some((alias) => searchable.includes(alias))) || null;
+}
+function qconcursosNumberResolution(item = {}) {
+  const saved = String(item.qconcursosNumber || item.qcSubjectNumber || "").trim();
+  if (saved) return { number: saved, source: "saved" };
+  const catalog = qconcursosCatalogMatch(item);
+  return catalog ? { number: catalog.number, source: "catalog" } : { number: "", source: "missing" };
+}
+function qconcursosNumberForItem(item = {}) { return qconcursosNumberResolution(item).number; }
 function questionItemOptionLabel(item = {}, showQconcursosNumber = false) { const base = `${item.subject || item.assunto || "Assunto sem nome"}${item.subtopic || item.subtema ? ` • ${item.subtopic || item.subtema}` : ""}`; const qcNumber = qconcursosNumberForItem(item); return showQconcursosNumber && qcNumber ? `[QC ${qcNumber}] ${base}` : base; }
 function optionsForItems(select, discipline, current = "", options = {}) { const items = state.syllabusItems.filter((item) => !discipline || item.discipline === discipline); select.innerHTML = '<option value="">Selecione</option>' + items.map((item) => `<option value="${item.id}" ${item.id === current ? "selected" : ""}>${escapeHTML(questionItemOptionLabel(item, options.showQconcursosNumber === true))}</option>`).join(""); }
 function renderGoalSelectors() { const gd = elements.goalDiscipline.value; const gi = elements.goalSyllabusItem.value; optionsForDiscipline(elements.goalDiscipline, gd); optionsForItems(elements.goalSyllabusItem, elements.goalDiscipline.value || gd, gi); }
@@ -5687,8 +5707,8 @@ function buildQconcursosFilterRoute(item = {}, board = "") {
   const subtopic = numericSubtopicReference ? "" : rawSubtopic;
   const editalReference = String(item.reference || item.referencia || (numericSubtopicReference ? rawSubtopic : "")).trim();
   const selectedBoard = board && board !== "Outra" ? board : "Todas inicialmente";
-  const qcNumber = String(item.qconcursosNumber || item.qcSubjectNumber || "").trim();
-  return { discipline, theme, subject, subtopic, editalReference, board: selectedBoard, qcNumber, url: QCONCURSOS_DELEGADO_URL, searchTerm: [subject, subtopic].filter(Boolean).join(" — ") };
+  const qcResolution = qconcursosNumberResolution(item);
+  return { discipline, theme, subject, subtopic, editalReference, board: selectedBoard, qcNumber: qcResolution.number, qcNumberSource: qcResolution.source, url: QCONCURSOS_DELEGADO_URL, searchTerm: [subject, subtopic].filter(Boolean).join(" — ") };
 }
 function renderQuestionRegistrationLink(item = null) {
   if (!elements.questionRegistrationLinkSummary) return;
@@ -5702,7 +5722,7 @@ function syncQuestionQcNumberField(item = null) {
   const itemId = item?.id || "";
   if (elements.questionQcNumber.dataset.syllabusItemId !== itemId) {
     elements.questionQcNumber.dataset.syllabusItemId = itemId;
-    elements.questionQcNumber.value = item ? String(item.qconcursosNumber || item.qcSubjectNumber || "") : "";
+    elements.questionQcNumber.value = item ? qconcursosNumberForItem(item) : "";
   }
 }
 function renderQconcursosFilterRoute() {
@@ -5714,7 +5734,7 @@ function renderQconcursosFilterRoute() {
     ["DISCIPLINA", portugueseTitleCase(route.discipline)],
     ["TEMA PRINCIPAL", portugueseTitleCase(route.theme || route.subject)],
     ["ASSUNTO PARA BUSCAR NO QCONCURSOS", `QC • ${portugueseTitleCase(route.subject)}`],
-    ["CÓDIGO DO ASSUNTO NO QCONCURSOS", route.qcNumber ? `QC ${route.qcNumber}` : "Ainda não cadastrado"],
+    ["NÚMERO DO ASSUNTO NO QCONCURSOS", route.qcNumber ? `QC ${route.qcNumber}${route.qcNumberSource === "catalog" ? " • conforme catálogo do QC" : " • confirmado por você"}` : "Ainda não localizado no catálogo"],
     ["REFERÊNCIA DO EDITAL — NÃO É QC", route.editalReference || "Não informada"],
     route.subtopic ? ["SUBTEMA TEXTUAL PARA BUSCA", portugueseTitleCase(route.subtopic)] : null
   ].filter(Boolean);
@@ -5722,7 +5742,7 @@ function renderQconcursosFilterRoute() {
     ["1", "Cargo", "Delegado de Polícia — já aplicado pelo botão abaixo"],
     ["2", "Disciplina", portugueseTitleCase(route.discipline)],
     ["3", "Assunto no QConcursos", `QC • ${portugueseTitleCase(route.searchTerm || route.subject)}`],
-    ["4", "Código do Assunto no QC", route.qcNumber ? `QC ${route.qcNumber}` : "Ainda não cadastrado — procure pelo nome acima no QConcursos e salve o código exibido na lista"],
+    ["4", "Número do Assunto no QC", route.qcNumber ? `QC ${route.qcNumber}${route.qcNumberSource === "catalog" ? " — correspondência automática pelo catálogo" : " — número confirmado"}` : "Ainda não localizado — procure pelo nome acima no QConcursos e confirme o número exibido na lista"],
     ["5", "Banca", route.board],
     ["6", "Período", "Comece pelos últimos 5 anos; amplie se houver menos de 20 questões"],
     ["7", "Ordenação", "Relevância para o tema; depois, data da prova mais recente"]

@@ -4,19 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Aldus Metas Concurso — Painel de Estudos</title>
-  <link rel="manifest" href="manifest.json?v=20260718-indicacao-qc-explicita-v55" />
+  <link rel="manifest" href="manifest.json?v=20260718-numeracao-qc-catalogo-v56" />
   <meta name="theme-color" content="#031426" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Aldus Metas" />
-  <link rel="apple-touch-icon" href="icons/icon.svg?v=20260718-indicacao-qc-explicita-v55" />
-  <link rel="icon" type="image/svg+xml" href="icons/logo-mark.svg?v=20260718-indicacao-qc-explicita-v55" />
-  <link rel="stylesheet" href="style.css?v=20260718-indicacao-qc-explicita-v55" />
-  <link id="aldusPremiumStableTheme" rel="stylesheet" href="aldus-premium-theme.css?v=20260718-indicacao-qc-explicita-v55" />
-  <link id="aldusPremiumRefinement" rel="stylesheet" href="aldus-premium-refinement-v47.css?v=20260718-indicacao-qc-explicita-v55" />
-  <link id="aldusInterfaceV51" rel="stylesheet" href="aldus-interface-v51.css?v=20260718-indicacao-qc-explicita-v55" />
-  <link id="aldusResponsiveV52" rel="stylesheet" href="aldus-responsive-v52.css?v=20260718-indicacao-qc-explicita-v55" />
-  <link id="aldusContrastV53" rel="stylesheet" href="aldus-contrast-v53.css?v=20260718-indicacao-qc-explicita-v55" />
+  <link rel="apple-touch-icon" href="icons/icon.svg?v=20260718-numeracao-qc-catalogo-v56" />
+  <link rel="icon" type="image/svg+xml" href="icons/logo-mark.svg?v=20260718-numeracao-qc-catalogo-v56" />
+  <link rel="stylesheet" href="style.css?v=20260718-numeracao-qc-catalogo-v56" />
+  <link id="aldusPremiumStableTheme" rel="stylesheet" href="aldus-premium-theme.css?v=20260718-numeracao-qc-catalogo-v56" />
+  <link id="aldusPremiumRefinement" rel="stylesheet" href="aldus-premium-refinement-v47.css?v=20260718-numeracao-qc-catalogo-v56" />
+  <link id="aldusInterfaceV51" rel="stylesheet" href="aldus-interface-v51.css?v=20260718-numeracao-qc-catalogo-v56" />
+  <link id="aldusResponsiveV52" rel="stylesheet" href="aldus-responsive-v52.css?v=20260718-numeracao-qc-catalogo-v56" />
+  <link id="aldusContrastV53" rel="stylesheet" href="aldus-contrast-v53.css?v=20260718-numeracao-qc-catalogo-v56" />
 </head>
 <body>
   <header class="hero">
@@ -555,10 +555,10 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
           <summary><span><small>ETAPA 1 • BUSCA E CONTEÚDO</small><strong>Encontrar e Filtrar Questões para Delegado</strong><em>Escolha o conteúdo e siga a rota recomendada no QConcursos</em></span></summary>
           <div class="question-register-content form-grid">
             <label>Disciplina<select id="questionDiscipline" required></select></label>
-            <label class="wide">Assunto do edital (com código QC, quando salvo)<select id="questionSyllabusItem" required></select></label>
+            <label class="wide">Assunto do edital (com número QC automático ou confirmado)<select id="questionSyllabusItem" required></select></label>
             <label>Banca<select id="questionBoard"><option>Cebraspe</option><option>FGV</option><option>FCC</option><option>Vunesp</option><option>Instituto AOCP</option><option>Cesgranrio</option><option>Outra</option></select></label>
-            <label>Número do assunto no QC<input id="questionQcNumber" type="text" inputmode="decimal" placeholder="Ex.: 1.1 ou 12.3.2" aria-describedby="questionQcNumberHelp" /></label>
-            <div class="wide question-qc-number-actions"><button id="saveQuestionQcNumber" class="secondary-button" type="button">Salvar Número do QC Neste Assunto</button><p id="questionQcNumberHelp" class="item-meta">Use o código mostrado na lista de assuntos do QConcursos. Não copie automaticamente a referência do edital (por exemplo, 9.1.1): ela não é o código QC. Depois de salvar, o código aparecerá como [QC 1.2] antes do assunto neste seletor, na rota e no filtro do histórico.</p><p id="questionQcNumberStatus" class="file-info" aria-live="polite" hidden></p></div>
+            <label>Número do assunto no QC<input id="questionQcNumber" type="text" inputmode="decimal" placeholder="Ex.: 1, 2.2 ou 12.3.2" aria-describedby="questionQcNumberHelp" /></label>
+            <div class="wide question-qc-number-actions"><button id="saveQuestionQcNumber" class="secondary-button" type="button">Confirmar ou Corrigir Número do QC</button><p id="questionQcNumberHelp" class="item-meta">O site sugere automaticamente os números já confirmados no catálogo do QConcursos. Você pode corrigir a sugestão conforme a lista do QC. Não copie a referência do edital (por exemplo, 9.1.1): ela não é o número QC.</p><p id="questionQcNumberStatus" class="file-info" aria-live="polite" hidden></p></div>
             <section id="questionSubjectSummary" class="notice wide" aria-live="polite">Selecione disciplina e assunto para consultar o histórico deste assunto.</section>
             <div id="questionQconcursosRoute" class="wide" aria-live="polite"></div>
           </div>
@@ -992,13 +992,13 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </section>
   </div>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260718-indicacao-qc-explicita-v55</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260718-numeracao-qc-catalogo-v56</p></footer>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="storage-indexeddb.js?v=20260718-indicacao-qc-explicita-v55"></script>
-  <script src="analytics-engine.js?v=20260718-indicacao-qc-explicita-v55"></script>
-  <script src="study-advisor.js?v=20260718-indicacao-qc-explicita-v55"></script>
-  <script src="advisor-navigation-engine.js?v=20260718-indicacao-qc-explicita-v55"></script>
-  <script src="script.js?v=20260718-indicacao-qc-explicita-v55"></script>
+  <script src="storage-indexeddb.js?v=20260718-numeracao-qc-catalogo-v56"></script>
+  <script src="analytics-engine.js?v=20260718-numeracao-qc-catalogo-v56"></script>
+  <script src="study-advisor.js?v=20260718-numeracao-qc-catalogo-v56"></script>
+  <script src="advisor-navigation-engine.js?v=20260718-numeracao-qc-catalogo-v56"></script>
+  <script src="script.js?v=20260718-numeracao-qc-catalogo-v56"></script>
   <div id="legacyTimerRecoveryModal" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="legacyTimerRecoveryModalTitle" hidden>
     <div class="app-modal-backdrop" data-legacy-recovery-cancel></div>
     <section class="app-modal-card">
@@ -1007,9 +1007,9 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
       <div class="modal-actions"><button type="button" class="secondary-button" data-legacy-recovery-cancel>Cancelar</button><button type="button" id="legacyTimerRecoveryConfirm">Confirmar associação</button></div>
     </section>
   </div>
-  <script src="question-accuracy-spectrum.js?v=20260718-indicacao-qc-explicita-v55"></script>
-  <script src="timer-material-link-fix.js?v=20260718-indicacao-qc-explicita-v55" data-timer-material-link-fix="v40"></script>
-  <script src="question-history-pie.js?v=20260718-indicacao-qc-explicita-v55"></script>
-  <script src="header-brand-fix.js?v=20260718-indicacao-qc-explicita-v55"></script>
+  <script src="question-accuracy-spectrum.js?v=20260718-numeracao-qc-catalogo-v56"></script>
+  <script src="timer-material-link-fix.js?v=20260718-numeracao-qc-catalogo-v56" data-timer-material-link-fix="v40"></script>
+  <script src="question-history-pie.js?v=20260718-numeracao-qc-catalogo-v56"></script>
+  <script src="header-brand-fix.js?v=20260718-numeracao-qc-catalogo-v56"></script>
 </body>
 </html>
