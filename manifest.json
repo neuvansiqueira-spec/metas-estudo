@@ -1,6 +1,6 @@
 {
-  "name": "Metas de Estudo para Concurso",
-  "short_name": "Metas Estudo",
+  "name": "Aldus Meta — Metas de Estudo",
+  "short_name": "Aldus Meta",
   "description": "Controle pessoal de metas, edital, questões, simulados e planejamento de estudos.",
   "start_url": "./",
   "scope": "./",
