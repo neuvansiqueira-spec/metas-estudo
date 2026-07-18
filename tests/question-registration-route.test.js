@@ -7,9 +7,11 @@ const script = fs.readFileSync('script.js', 'utf8');
 const style = fs.readFileSync('style.css', 'utf8');
 
 function routeLogic() {
-  const start = script.indexOf('const QCONCURSOS_DELEGADO_URL');
-  const end = script.indexOf('function renderQconcursosFilterRoute', start);
-  return new Function(`${script.slice(start, end)}; return { buildQconcursosFilterRoute, QCONCURSOS_DELEGADO_URL };`)();
+  const catalogStart = script.indexOf('const QCONCURSOS_CONFIRMED_SUBJECTS');
+  const catalogEnd = script.indexOf('function questionItemOptionLabel', catalogStart);
+  const routeStart = script.indexOf('const QCONCURSOS_DELEGADO_URL');
+  const routeEnd = script.indexOf('function renderQconcursosFilterRoute', routeStart);
+  return new Function(`${script.slice(catalogStart, catalogEnd)}\n${script.slice(routeStart, routeEnd)}; return { buildQconcursosFilterRoute, QCONCURSOS_DELEGADO_URL };`)();
 }
 
 test('registro de questões possui duas etapas recolhíveis sem duplicar o formulário', () => {
@@ -48,7 +50,7 @@ test('rota inclui numeração própria do QC e não reaproveita referência do e
   const unmapped = api.buildQconcursosFilterRoute({ discipline:'Direito Penal', subject:'Princípios', reference:'9.4' }, 'Cebraspe');
   assert.equal(mapped.qcNumber, '1.2');
   assert.equal(unmapped.qcNumber, '');
-  assert.match(script, /Código do Assunto no QC/);
+  assert.match(script, /Número do Assunto no QC/);
 });
 
 test('resultado mostra vínculo ativo e salvamento mantém syllabusItemId, disciplina e assunto', () => {

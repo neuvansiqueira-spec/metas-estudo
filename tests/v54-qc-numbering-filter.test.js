@@ -8,7 +8,7 @@ const script = fs.readFileSync("script.js", "utf8");
 const worker = fs.readFileSync("service-worker.js", "utf8");
 
 function optionApi(items) {
-  const start = script.indexOf("function qconcursosNumberForItem");
+  const start = script.indexOf("const QCONCURSOS_CONFIRMED_SUBJECTS");
   const end = script.indexOf("function renderGoalSelectors", start);
   const source = script.slice(start, end);
   return new Function("state", "escapeHTML", `${source}; return { qconcursosNumberForItem, questionItemOptionLabel, optionsForItems };`)(
@@ -52,9 +52,10 @@ test("salvar ou remover a numeração atualiza a lista e a rota imediatamente", 
 
 test("a rota e o vínculo ativo destacam o código usado no QConcursos", () => {
   assert.match(script, /Número para filtrar no QConcursos: QC/);
-  assert.match(script, /route\.qcNumber \? `QC \$\{route\.qcNumber\}`/);
-  assert.match(html, /Assunto do edital \(com código QC, quando salvo\)/);
-  assert.match(html, /aparecerá como \[QC 1\.2\] antes do assunto/);
+  assert.match(script, /const auditedNumberText = route\.qcNumber/);
+  assert.match(script, /`QC \$\{route\.qcNumber\}\$\{/);
+  assert.match(html, /Assunto do edital \(com número QC automático ou confirmado\)/);
+  assert.match(html, /sugere automaticamente os números já confirmados/);
 });
 
 test("versão v54 e publicação permanecem sincronizadas", () => {

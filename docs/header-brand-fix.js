@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const THEME_VERSION = "20260718-indicacao-qc-explicita-v55";
+  const THEME_VERSION = "20260718-numeracao-qc-catalogo-v56";
   const DESIRED_HTML = `
     <div class="brand-copy">
       <strong>Aldus Metas Concurso</strong>

@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260718-indicacao-qc-explicita-v55",
+  "version": "20260718-cruzamento-qc-completo-v57",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
