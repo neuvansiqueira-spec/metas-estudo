@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const THEME_VERSION = "20260718-calendario-contraste-v61";
+  const THEME_VERSION = "20260718-calendario-disciplinas-v62";
   const DESIRED_HTML = `
     <div class="brand-copy">
       <strong>Aldus Metas Concurso</strong>
@@ -49,6 +49,7 @@
     ensureStylesheet("aldusPlanningV59", "aldus-planning-v59.css");
     ensureStylesheet("aldusPlanningHistoryV60", "aldus-planning-history-v60.css");
     ensureStylesheet("aldusCalendarV61", "aldus-calendar-v61.css");
+    ensureStylesheet("aldusCalendarV62", "aldus-calendar-v62.css");
   }
 
   function applyCorrectHeader() {

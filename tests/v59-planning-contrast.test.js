@@ -9,7 +9,7 @@ const worker = fs.readFileSync("service-worker.js", "utf8");
 const headerFix = fs.readFileSync("header-brand-fix.js", "utf8");
 
 test("v59 carrega depois da revisão visual global", () => {
-  assert.match(version, /calendario-contraste-v61$/);
+  assert.match(version, /calendario-disciplinas-v62$/);
   const visualPosition = html.indexOf("aldus-visual-v58.css");
   const planningPosition = html.indexOf("aldus-planning-v59.css");
   assert.ok(visualPosition >= 0);
