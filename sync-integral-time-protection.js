@@ -1,4 +1,4 @@
-const TIME_STORAGE_PROTECTION_VERSION = "20260718-cruzamento-qc-completo-v57";
+const TIME_STORAGE_PROTECTION_VERSION = "20260718-revisao-visual-global-v58";
 const TIME_STORAGE_BACKUP_KEY = "metasEstudoBackupAntesDaMesclagem";
 const TIME_STORAGE_MANUAL_RECOVERY_BACKUP_KEY = "metasEstudoBackupAntesDaRecuperacaoTempoV49";
 const TIME_RECOVERY_COLLECTIONS = ["studies", "dailyGoals", "questionLogs"];
