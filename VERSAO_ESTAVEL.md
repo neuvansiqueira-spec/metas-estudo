@@ -2,38 +2,46 @@
 
 ## Versão estável atual
 
-`20260717-logo-aldus-meta-v41`
+`20260718-protecao-recuperacao-tempo-v48`
 
 ## Data
 
-17/07/2026
+18/07/2026
 
-## Nova identidade visual
+## Proteção e recuperação do tempo de estudo
 
-A identidade visual anterior foi substituída pela marca **Aldus Meta**.
+Esta versão impede que um total de estudo já registrado seja substituído por um valor menor durante a normalização, abertura ou mesclagem das bases locais.
 
-A atualização aplica:
+Na abertura, o sistema passa a comparar e mesclar com segurança:
 
-- o logotipo completo Aldus Meta no cabeçalho do site;
-- o símbolo Aldus Meta como favicon;
-- novos ícones do aplicativo instalado;
-- novo ícone adaptável para Android;
-- o nome Aldus Meta no título da página e no manifesto do aplicativo;
-- a mesma identidade visual no site, no PWA e na publicação em `docs/`.
+- a cópia principal do IndexedDB;
+- a cópia de compatibilidade do localStorage;
+- os registros de tempo existentes no backup automático anterior à mesclagem.
 
-## Preservação das funcionalidades
+Do backup histórico são recuperados apenas:
 
-A atualização é exclusivamente visual e não altera nem remove:
+- sessões de estudo;
+- metas diárias e seus totais;
+- registros de questões com tempo.
 
-- metas;
-- materiais;
-- sessões;
-- tempos;
-- históricos;
-- sincronização;
-- localStorage;
-- IndexedDB.
+Materiais, configurações, biblioteca de prompts e demais áreas não são restaurados pelo mecanismo de recuperação do tempo.
 
-## Recursos preservados
+## Segurança da recuperação
 
-Permanecem ativos o vínculo de materiais no cronômetro da v40, a sincronização completa da v39, o espectro contínuo compacto, as mensagens motivacionais por 30 segundos, o aviso sonoro opcional e o login do Google Drive somente por ação do usuário.
+Quando forem encontrados dados adicionais, a recuperação é salva primeiro neste dispositivo. O envio para a nuvem fica pendente para revisão, evitando que uma recuperação ainda não conferida substitua automaticamente o conteúdo dos outros dispositivos.
+
+O sistema mantém um relatório técnico interno com as fontes examinadas, a quantidade de sessões e os totais encontrados antes e depois da recuperação.
+
+## Precisão das novas sessões
+
+As novas sessões do cronômetro continuam mantendo os minutos usados pela interface atual, mas passam a arquivar também:
+
+- segundos efetivamente executados;
+- segundos decorridos;
+- duração real em segundos.
+
+Isso evita que a precisão original seja perdida no momento do salvamento.
+
+## Compatibilidade e preservação
+
+A alteração não remove metas, sessões, materiais, históricos ou registros existentes. A raiz do projeto e a publicação em `docs/` usam os mesmos arquivos e a mesma versão de cache.
