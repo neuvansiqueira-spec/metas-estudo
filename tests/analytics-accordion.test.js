@@ -7,7 +7,7 @@ const script = fs.readFileSync('script.js','utf8');
 const html = fs.readFileSync('index.html','utf8');
 const style = fs.readFileSync('style.css','utf8');
 const sw = fs.readFileSync('service-worker.js','utf8');
-const version = '20260717-numero-qc-v26';
+const version = JSON.parse(fs.readFileSync('package.json','utf8')).version;
 
 function logic(){
   const start = script.indexOf('function formatExportDuration(minutes');
@@ -99,7 +99,8 @@ test('versão, cache, raiz e docs sincronizados', () => {
   assert.match(fs.readFileSync('package.json','utf8'), new RegExp(version));
   assert.match(html, new RegExp(`style\\.css\\?v=${version}`));
   assert.match(html, new RegExp(`script\\.js\\?v=${version}`));
-  assert.match(sw, new RegExp(`CACHE_NAME = "metas-estudo-${version}"`));
+  assert.match(sw, new RegExp(`const CURRENT_VERSION = "${version}"`));
+  assert.match(sw, /const CACHE_NAME = `metas-estudo-\$\{CURRENT_VERSION\}`/);
   for (const f of ['script.js','style.css','analytics-engine.js','index.html','service-worker.js']) assert.equal(fs.readFileSync(f,'utf8'), fs.readFileSync('docs/'+f,'utf8'));
 });
 

@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 
-const VERSION = "20260717-logo-aldus-meta-v41";
+const VERSION = JSON.parse(fs.readFileSync("package.json", "utf8")).version;
 const rootLogo = fs.readFileSync("icons/aldus-meta-logo.svg", "utf8");
 const docsLogo = fs.readFileSync("docs/icons/aldus-meta-logo.svg", "utf8");
 const rootBranding = fs.readFileSync("aldus-meta-branding.js", "utf8");
@@ -30,12 +30,11 @@ test("manifesto e ícones usam Aldus Meta", () => {
   assert.match(fs.readFileSync("icons/icon-maskable.svg", "utf8"), /Ícone adaptável Aldus Meta/);
 });
 
-test("v41 renova cache e carrega a marca no site e no app", () => {
-  assert.match(rootServiceWorker, new RegExp(VERSION));
-  assert.match(rootServiceWorker, /startup-v15/);
-  assert.match(rootServiceWorker, /aldus-meta-branding\.js/);
-  assert.match(rootServiceWorker, /icons\/aldus-meta-logo\.svg/);
-  assert.match(rootServiceWorker, /data-aldus-meta-branding="v41"/);
+test("versão atual renova cache e carrega a marca no site e no app", () => {
+  assert.match(rootServiceWorker, new RegExp(`const CURRENT_VERSION = "${VERSION}"`));
+  assert.match(rootServiceWorker, /startup-v23/);
+  assert.match(rootServiceWorker, /header-brand-fix\.js/);
+  assert.match(rootServiceWorker, /icons\/logo-mark\.svg/);
 });
 
 test("raiz e docs publicam arquivos idênticos", () => {

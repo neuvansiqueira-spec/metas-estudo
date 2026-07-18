@@ -79,7 +79,8 @@ test('backup, mesclagem, interface e publicação preservam campos da estimativa
   assert.equal(script, docsScript);
   assert.equal(html, docsHtml);
   assert.equal(sw, docsSw);
-  assert.match(sw, new RegExp(`metas-estudo-${pkg.version}`));
+  assert.match(sw, new RegExp(`const CURRENT_VERSION = "${pkg.version}"`));
+  assert.match(sw, /const CACHE_NAME = `metas-estudo-\$\{CURRENT_VERSION\}`/);
 });
 
 

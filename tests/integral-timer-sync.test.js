@@ -35,7 +35,8 @@ function loadSyncFunctions(files) {
   return context.result;
 }
 
-const helperFiles = ["sync-integral-core.js", "sync-integral-state.js", "sync-integral-cloud.js"];
+const helperFiles = ["sync-integral-core.js", "sync-integral-deletions.js", "sync-integral-state.js", "sync-integral-cloud.js"];
+const currentVersion = JSON.parse(fs.readFileSync("package.json", "utf8")).version;
 
 test("mescla sessões de dispositivos diferentes e recompõe o total da meta", () => {
   const { mergeSyncStates } = loadSyncFunctions(helperFiles);
@@ -107,7 +108,7 @@ test("service worker substitui verificações baseadas só em horário por compa
     'async function forcePullFromCloud() { if (!confirm("Baixar dados da nuvem e substituir os dados deste dispositivo? Um backup local automático será criado antes.")) return; }'
   ].join("\n");
   const patched = sw.patchAppScriptSource(original, helper);
-  assert.equal(sw.CURRENT_VERSION, "20260717-sincronizacao-conteudo-v30");
+  assert.equal(sw.CURRENT_VERSION, currentVersion);
   assert.match(patched, /function syncStateFingerprint/);
   assert.match(patched, /return uploadSyncPayloadIntegral\(payload, options\)/);
   assert.match(patched, /return applyCloudPayloadIntegral\(payload\)/);

@@ -1,4 +1,4 @@
-const TIME_STORAGE_PROTECTION_VERSION = "20260718-diagnostico-recuperacao-tempo-v49";
+const TIME_STORAGE_PROTECTION_VERSION = "20260718-integridade-recuperacao-visual-v50";
 const TIME_STORAGE_BACKUP_KEY = "metasEstudoBackupAntesDaMesclagem";
 const TIME_STORAGE_MANUAL_RECOVERY_BACKUP_KEY = "metasEstudoBackupAntesDaRecuperacaoTempoV49";
 const TIME_RECOVERY_COLLECTIONS = ["studies", "dailyGoals", "questionLogs"];
@@ -168,15 +168,15 @@ function timeProtectionMergeArrays(left, right) {
 }
 
 function timeProtectionMergeRecordMaximum(current = {}, candidate = {}) {
-  const merged = typeof syncMergeRecord === "function"
-    ? syncMergeRecord(current || {}, candidate || {}, "remote")
-    : { ...timeProtectionClone(current || {}), ...timeProtectionClone(candidate || {}) };
+  const merged = timeProtectionClone(current || {}) || {};
   const keys = new Set([...Object.keys(current || {}), ...Object.keys(candidate || {})]);
   keys.forEach((key) => {
     if (TIME_RECOVERY_NUMERIC_FIELDS.has(key)) {
       merged[key] = Math.max(Number(current?.[key]) || 0, Number(candidate?.[key]) || 0);
     } else if (["history", "historico", "events", "logs", "auditTrail"].includes(key)) {
       merged[key] = timeProtectionMergeArrays(current?.[key], candidate?.[key]);
+    } else if ((merged[key] === undefined || merged[key] === null || merged[key] === "") && candidate?.[key] !== undefined) {
+      merged[key] = timeProtectionClone(candidate[key]);
     }
   });
   return merged;

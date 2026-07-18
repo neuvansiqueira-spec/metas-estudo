@@ -216,6 +216,7 @@ test('script publicado, docs e cache carregam a nova versão sem divergência', 
   assert.equal(sw, docsSw);
   assert.equal(html.includes(`script.js?v=${packageJson.version}`), true);
   assert.equal(docsHtml.includes(`script.js?v=${packageJson.version}`), true);
-  assert.equal(sw.includes(`metas-estudo-${packageJson.version}`), true);
-  assert.equal(docsSw.includes(`metas-estudo-${packageJson.version}`), true);
+  assert.equal(sw.includes(`const CURRENT_VERSION = "${packageJson.version}"`), true);
+  assert.equal(docsSw.includes(`const CURRENT_VERSION = "${packageJson.version}"`), true);
+  assert.match(sw, /const CACHE_NAME = `metas-estudo-\$\{CURRENT_VERSION\}`/);
 });

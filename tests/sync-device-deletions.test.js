@@ -87,12 +87,13 @@ test("rastreador cria marcador de exclusão e data de edição", () => {
   assert.equal(currentState.subjects[0].updatedAt, changedAt);
 });
 
-test("arquivos publicados permanecem idênticos e cache usa v39", () => {
+test("arquivos publicados permanecem idênticos e cache usa a versão atual", () => {
   assert.equal(fs.readFileSync("sync-integral-deletions.js", "utf8"), fs.readFileSync("docs/sync-integral-deletions.js", "utf8"));
   assert.equal(fs.readFileSync("sync-integral-state.js", "utf8"), fs.readFileSync("docs/sync-integral-state.js", "utf8"));
   assert.equal(fs.readFileSync("service-worker.js", "utf8"), fs.readFileSync("docs/service-worker.js", "utf8"));
   const worker = fs.readFileSync("service-worker.js", "utf8");
-  assert.match(worker, /20260717-sincronizacao-completa-dispositivos-v39/);
+  const version = JSON.parse(fs.readFileSync("package.json", "utf8")).version;
+  assert.match(worker, new RegExp(`const CURRENT_VERSION = "${version}"`));
   assert.match(worker, /sync-integral-deletions\.js/);
-  assert.match(worker, /\["sync-integral-core\.js", "sync-integral-deletions\.js", "sync-integral-state\.js", "sync-integral-cloud\.js"\]/);
+  assert.match(worker, /\["sync-integral-core\.js", "sync-integral-deletions\.js", "sync-integral-state\.js", "sync-integral-cloud\.js", "sync-integral-time-protection\.js"\]/);
 });

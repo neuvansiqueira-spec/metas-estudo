@@ -6,6 +6,8 @@ const vm = require('node:vm');
 const html = fs.readFileSync('index.html', 'utf8');
 const css = fs.readFileSync('style.css', 'utf8');
 const script = fs.readFileSync('script.js', 'utf8');
+const premiumCss = fs.readFileSync('aldus-premium-theme.css', 'utf8');
+const version = JSON.parse(fs.readFileSync('package.json', 'utf8')).version;
 
 const screens = [
   { hash: '#dashboard', view: 'view-dashboard', title: 'Dashboard' },
@@ -38,34 +40,32 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão atual', () => {
-  assert.match(html, /style\.css\?v=20260717-numero-qc-v26/);
-  assert.match(html, /storage-indexeddb\.js\?v=20260717-numero-qc-v26/);
-  assert.match(html, /script\.js\?v=20260717-numero-qc-v26/);
-  assert.match(html, /Versão: 20260717-numero-qc-v26/);
+  assert.match(html, new RegExp(`style\\.css\\?v=${version}`));
+  assert.match(html, new RegExp(`storage-indexeddb\\.js\\?v=${version}`));
+  assert.match(html, new RegExp(`script\\.js\\?v=${version}`));
+  assert.match(html, new RegExp(`Versão: ${version}`));
 });
 
-test('identidade visual policial usa paleta institucional sem marca oficial', () => {
-  assert.match(html, /<meta name="theme-color" content="#082b49"/);
-  assert.match(css, /--primary-deep:\s*#041b2d/);
-  assert.match(css, /--accent:\s*#c5a253/);
-  assert.match(css, /Identidade visual 20260716-preparacao-policial-v14/);
-  assert.match(css, /\.mobile-quick-nav[\s\S]*background:\s*rgba\(4,27,45,\.97\)/);
+test('identidade visual premium usa a paleta Aldus desde a primeira renderização', () => {
+  assert.match(html, /<html[^>]+data-aldus-theme="premium-stable"/);
+  assert.match(html, /<meta name="theme-color" content="#031426"/);
+  assert.match(html, new RegExp(`aldus-premium-theme\\.css\\?v=${version}`));
+  assert.match(html, new RegExp(`aldus-premium-refinement-v47\\.css\\?v=${version}`));
+  assert.match(premiumCss, /--aldus-deep:\s*#031426/);
+  assert.match(premiumCss, /--aldus-gold:\s*#dfb64c/);
 });
 
-test('logo original aparece no cabeçalho, favicon e cache do aplicativo', () => {
+test('logo Aldus Meta aparece no cabeçalho, favicon e cache do aplicativo', () => {
   const logo = fs.readFileSync('icons/logo-mark.svg', 'utf8');
   const sw = fs.readFileSync('service-worker.js', 'utf8');
   assert.match(html, /rel="icon"[^>]+icons\/logo-mark\.svg/);
   assert.match(html, /class="brand-icon"[\s\S]*?<img src="icons\/logo-mark\.svg"/);
-  assert.match(logo, /Emblema hexagonal moderno com monograma NS e chevron dourado/);
-  assert.match(logo, /#041b2d/);
-  assert.match(logo, /#c5a253/);
-  assert.match(logo, />NS<\/text>/);
-  assert.doesNotMatch(logo, /livro|espada/i);
+  assert.match(logo, /Símbolo Aldus Meta/);
+  assert.match(logo, /formato de A com estrela azul/);
+  assert.doesNotMatch(logo, />NS<\/text>/);
   assert.match(html, /class="brand-copy"[\s\S]*?class="brand-icon"/);
-  assert.match(css, /@media \(min-width: 1051px\) \{[\s\S]*?\.topbar \.brand \{ width: 100%; \}[\s\S]*?\.topbar \.brand-icon \{ width: 112px; height: 122px; \}/);
-  assert.match(css, /\.brand-icon\s*\{\s*width:\s*94px;\s*height:\s*103px;/);
-  assert.match(css, /\.hero-text\s*\{[\s\S]*?hyphens:\s*none;/);
+  assert.match(premiumCss, /\.brand-icon[\s\S]*?width:\s*70px;[\s\S]*?height:\s*70px;/);
+  assert.match(premiumCss, /\.brand-icon img[\s\S]*?object-fit:\s*contain/);
   assert.match(sw, /icons\/logo-mark\.svg/);
 });
 
@@ -255,10 +255,12 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker prioriza rede para app shell versionado', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /metas-estudo-20260717-numero-qc-v26/);
-  assert.match(sw, /shouldPreferNetwork/);
+  assert.match(sw, new RegExp(`const CURRENT_VERSION = "${version}"`));
+  assert.match(sw, /const CACHE_NAME = `metas-estudo-\$\{CURRENT_VERSION\}`/);
+  assert.match(sw, /networkFirstNavigation/);
+  assert.match(sw, /networkFirstAppScript/);
   assert.match(sw, /request\.mode === "navigate"/);
-  assert.match(sw, /\["document", "script", "style", "worker"\]/);
+  assert.match(sw, /\["script", "style", "worker", "image", "manifest"\]/);
   assert.match(sw, /self\.skipWaiting\(\)/);
   assert.match(sw, /self\.clients\.claim\(\)/);
 });

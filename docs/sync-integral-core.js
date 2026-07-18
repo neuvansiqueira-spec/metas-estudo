@@ -206,7 +206,7 @@ function installTimerSaveTotalReconciliation() {
 }
 
 function installSavedTimerTotalsStartupRecovery() {
-  if (globalThis.__metasSavedTimerTotalsStartupRecoveryV33) return;
+  if (globalThis.__metasSavedTimerTotalsStartupRecoveryV33 || typeof setTimeout !== "function") return;
   globalThis.__metasSavedTimerTotalsStartupRecoveryV33 = true;
   setTimeout(() => {
     try {

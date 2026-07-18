@@ -16,16 +16,18 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260717-tema-premium-aldus-v44",
   "20260717-restauracao-estavel-v45",
   "20260717-premium-estavel-v46",
-  "20260718-protecao-recuperacao-tempo-v48"
+  "20260718-protecao-recuperacao-tempo-v48",
+  "20260718-diagnostico-recuperacao-tempo-v49"
 ];
-const CURRENT_VERSION = "20260718-diagnostico-recuperacao-tempo-v49";
+const CURRENT_VERSION = "20260718-integridade-recuperacao-visual-v50";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
-const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v22`;
+const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v23`;
 const FILES_TO_CACHE = [
   "./",
   "index.html",
   "style.css",
   "aldus-premium-theme.css",
+  "aldus-premium-refinement-v47.css",
   "script.js",
   "question-history-pie.js",
   "header-brand-fix.js",
@@ -72,7 +74,6 @@ function replaceVersion(source) {
 
 function patchHtmlSource(source) {
   let patched = replaceVersion(source);
-  patched = patched.replace(/\s*<link[^>]*aldus-premium-theme\.css[^>]*>/gi, "");
   [
     "question-accuracy-spectrum.js",
     "timer-material-link-fix.js",
@@ -229,7 +230,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(networkFirstAppScript(event.request));
     return;
   }
-  if (url.pathname.endsWith("/header-brand-fix.js") || url.pathname.endsWith("/aldus-premium-theme.css")) {
+  if (url.pathname.endsWith("/header-brand-fix.js") || url.pathname.endsWith("/aldus-premium-theme.css") || url.pathname.endsWith("/aldus-premium-refinement-v47.css")) {
     event.respondWith(networkFirstStableAsset(event.request));
     return;
   }
