@@ -48,7 +48,7 @@ test('rota inclui numeração própria do QC e não reaproveita referência do e
   const unmapped = api.buildQconcursosFilterRoute({ discipline:'Direito Penal', subject:'Princípios', reference:'9.4' }, 'Cebraspe');
   assert.equal(mapped.qcNumber, '1.2');
   assert.equal(unmapped.qcNumber, '');
-  assert.match(script, /Numeração do Assunto no QC/);
+  assert.match(script, /Código do Assunto no QC/);
 });
 
 test('resultado mostra vínculo ativo e salvamento mantém syllabusItemId, disciplina e assunto', () => {
