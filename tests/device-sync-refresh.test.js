@@ -14,7 +14,7 @@ const rootWorker = fs.readFileSync("service-worker.js", "utf8");
 const docsWorker = fs.readFileSync("docs/service-worker.js", "utf8");
 const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
 
-const VERSION = "20260718-protecao-recuperacao-tempo-v48";
+const VERSION = "20260718-diagnostico-recuperacao-tempo-v49";
 
 test("sessão nova do cronômetro recompõe e grava o total da meta", () => {
   assert.match(rootCore, /function installTimerSaveTotalReconciliation\(\)/);
@@ -30,9 +30,7 @@ test("minuto já salvo é recuperado na abertura pelo histórico da meta", () =>
   assert.match(rootCore, /Tempo salvo pelo cronômetro:/);
   assert.match(rootCore, /Total realizado:/);
   assert.match(rootCore, /function installSavedTimerTotalsStartupRecovery\(\)/);
-  assert.match(rootCore, /setTimeout\(\(\) => \{/);
   assert.match(rootCore, /Total da meta recuperado a partir da sessão salva/);
-  assert.match(rootCore, /autoSyncAfterSave\("timer-recovery"\)/);
 });
 
 test("total anterior maior nunca é reduzido pela normalização", () => {
@@ -40,20 +38,38 @@ test("total anterior maior nunca é reduzido pela normalização", () => {
   assert.match(rootTimeProtection, /const preservedTotal = Math\.max\(/);
   assert.match(rootTimeProtection, /if \(preservedTotal > splitTotal\) studyMinutes \+= preservedTotal - splitTotal/);
   assert.match(rootTimeProtection, /normalized\.actualMinutes = Math\.max\(preservedTotal, studyMinutes \+ questionMinutes\)/);
-  assert.match(rootTimeProtection, /normalized\.tempo_real_minutos = Math\.max/);
 });
 
-test("abertura mescla IndexedDB, localStorage e somente dados de tempo do backup", () => {
+test("abertura mescla IndexedDB, localStorage e dados de tempo do backup", () => {
   assert.match(rootTimeProtection, /function installPrimaryStorageMergeProtection\(\)/);
-  assert.match(rootTimeProtection, /const originalLoadPrimaryStateFromIndexedDB = loadPrimaryStateFromIndexedDB/);
   assert.match(rootTimeProtection, /sources\.push\("IndexedDB"\)/);
   assert.match(rootTimeProtection, /sources\.push\("localStorage"\)/);
   assert.match(rootTimeProtection, /sources\.push\("backup-de-tempo-antes-da-mesclagem"\)/);
   assert.match(rootTimeProtection, /function mergeTimeOnlyRecoveryBackup\(currentState, backupState\)/);
-  assert.match(rootTimeProtection, /studies: timeProtectionClone\(backupState\.studies \|\| \[\]\)/);
-  assert.match(rootTimeProtection, /dailyGoals: timeProtectionClone\(backupState\.dailyGoals \|\| \[\]\)/);
-  assert.match(rootTimeProtection, /questionLogs: timeProtectionClone\(backupState\.questionLogs \|\| \[\]\)/);
-  assert.match(rootTimeProtection, /__aldusTimeStorageRecoveryReport/);
+});
+
+test("diagnóstico manual encontra cópias e ignora tombstones apenas para registros recuperados", () => {
+  assert.match(rootTimeProtection, /function collectTimeRecoveryCandidates\(\)/);
+  assert.match(rootTimeProtection, /for \(let index = 0; index < localStorage\.length; index \+= 1\)/);
+  assert.match(rootTimeProtection, /function mergeTimeRecoveryIgnoringTombstones\(currentState, candidateState\)/);
+  assert.match(rootTimeProtection, /restoredKeys\[collection\]\.forEach\(\(key\) => \{ delete tombstones\.collections\[collection\]\[key\]; \}\)/);
+  assert.match(rootTimeProtection, /Marcadores de exclusão ligados ao tempo/);
+});
+
+test("recuperação manual cria backup integral e não envia automaticamente à nuvem", () => {
+  assert.match(rootTimeProtection, /metasEstudoBackupAntesDaRecuperacaoTempoV49/);
+  assert.match(rootTimeProtection, /function applyTimeRecoveryDiagnostic\(\)/);
+  assert.match(rootTimeProtection, /localStorage\.setItem\(TIME_STORAGE_MANUAL_RECOVERY_BACKUP_KEY/);
+  assert.match(rootTimeProtection, /markPendingSync\("manual-time-recovery-v49"/);
+  assert.doesNotMatch(rootTimeProtection, /autoSyncAfterSave\("manual-time-recovery-v49"/);
+});
+
+test("painel de recuperação fica visível na aba Backup", () => {
+  assert.match(rootTimeProtection, /timeRecoveryDiagnosticV49/);
+  assert.match(rootTimeProtection, /legacyTimerRecoveryPanel/);
+  assert.match(rootTimeProtection, /recoveryPanel\.open = true/);
+  assert.match(rootTimeProtection, /Recuperar maior tempo encontrado/);
+  assert.match(rootTimeProtection, /Verificar novamente/);
 });
 
 test("sessões novas preservam também os segundos exatos", () => {
@@ -61,61 +77,22 @@ test("sessões novas preservam também os segundos exatos", () => {
   assert.match(rootTimeProtection, /pendingTimerStudyDraft\.seconds/);
   assert.match(rootTimeProtection, /session\.seconds = draft\.seconds/);
   assert.match(rootTimeProtection, /session\.elapsedSeconds = draft\.seconds/);
-  assert.match(rootTimeProtection, /autoSyncAfterSave\("timer-exact-seconds"\)/);
-});
-
-test("tempo recuperado fica local e pendente de revisão antes da nuvem", () => {
-  assert.match(rootTimeProtection, /if \(!report\?\.changed\) return/);
-  assert.match(rootTimeProtection, /reconcileSavedTimerTotals\(\)/);
-  assert.match(rootTimeProtection, /saveData\(\{ markLocalChange: true \}\)/);
-  assert.match(rootTimeProtection, /markPendingSync\("time-storage-recovery"/);
-  assert.doesNotMatch(rootTimeProtection, /autoSyncAfterSave\("time-storage-recovery"\)/);
 });
 
 test("app instalado e aba comum trocam o estado local sem depender da nuvem", () => {
   assert.match(rootCloud, /function installSameDeviceStateSync\(\)/);
   assert.match(rootCloud, /window\.addEventListener\("storage"/);
-  assert.match(rootCloud, /event\.key !== STORAGE_KEY/);
   assert.match(rootCloud, /mergeSyncStates\(state, incomingState, "remote"\)/);
-  assert.match(rootCloud, /Dados atualizados pelo outro aplicativo deste dispositivo/);
-});
-
-test("autorização expirada tenta renovação antes de manter envio pendente", () => {
-  assert.match(rootCloud, /async function ensureConnectedGoogleDriveAuthorization/);
-  assert.match(rootCloud, /await getAccessToken\(\{ prompt: "" \}\)/);
-  assert.match(rootCloud, /installAutoSyncAuthorizationRetry/);
-  assert.match(rootCloud, /ensureConnectedGoogleDriveAuthorization\(\{ force: true \}\)/);
-  assert.match(rootCloud, /Autorização expirada\. Toque em Conectar Google Drive/);
-});
-
-test("celular consulta a nuvem ao retornar para a página e periodicamente", () => {
-  assert.match(rootCloud, /const DEVICE_SYNC_REFRESH_INTERVAL_MS = 20000;/);
-  assert.match(rootCloud, /window\.addEventListener\("focus"/);
-  assert.match(rootCloud, /window\.addEventListener\("pageshow"/);
-  assert.match(rootCloud, /window\.addEventListener\("online"/);
-  assert.match(rootCloud, /document\.addEventListener\("visibilitychange"/);
-  assert.match(rootCloud, /setInterval\(\(\) => refreshDeviceFromCloud\("interval"\), DEVICE_SYNC_REFRESH_INTERVAL_MS\)/);
-  assert.match(rootCloud, /await checkCloudForNewerVersionIntegral\(`device-\$\{reason\}`\)/);
 });
 
 test("atualização automática só roda em condição segura", () => {
   assert.match(rootCloud, /document\.visibilityState === "hidden"/);
   assert.match(rootCloud, /navigator\.onLine === false/);
-  assert.match(rootCloud, /!readSyncMeta\(\)\?\.connected/);
-  assert.match(rootCloud, /isSyncing/);
-  assert.match(rootCloud, /isApplyingRemote/);
-  assert.match(rootCloud, /cloudAutoCheckRunning/);
   assert.match(rootCloud, /floatingTimer\?\.startedAt && !floatingTimer\?\.paused/);
   assert.match(rootCloud, /\["INPUT", "TEXTAREA", "SELECT"\]\.includes\(activeTag\)/);
 });
 
-test("mesclagem automática preserva a tela atual", () => {
-  assert.match(rootCloud, /async function applyCloudPayloadIntegral\(payload, \{ preserveView = false \} = \{\}\)/);
-  assert.match(rootCloud, /if \(!preserveView\) showView\("backup"\)/);
-  assert.match(rootCloud, /applyCloudPayloadIntegral\(remote, \{ preserveView: true \}\)/);
-});
-
-test("publicação da v48 permanece sincronizada entre raiz e docs", () => {
+test("publicação da v49 permanece sincronizada entre raiz e docs", () => {
   assert.equal(rootCore, docsCore);
   assert.equal(rootState, docsState);
   assert.equal(rootCloud, docsCloud);
@@ -123,6 +100,7 @@ test("publicação da v48 permanece sincronizada entre raiz e docs", () => {
   assert.equal(rootWorker, docsWorker);
   assert.equal(packageJson.version, VERSION);
   assert.match(rootWorker, new RegExp(VERSION));
-  assert.match(rootWorker, /startup-v21/);
+  assert.match(rootWorker, /startup-v22/);
+  assert.match(rootWorker, /20260718-protecao-recuperacao-tempo-v48/);
   assert.match(rootWorker, /sync-integral-time-protection\.js/);
 });

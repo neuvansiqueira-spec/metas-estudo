@@ -15,11 +15,12 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260717-grafico-periodo-recolhivel-v43",
   "20260717-tema-premium-aldus-v44",
   "20260717-restauracao-estavel-v45",
-  "20260717-premium-estavel-v46"
+  "20260717-premium-estavel-v46",
+  "20260718-protecao-recuperacao-tempo-v48"
 ];
-const CURRENT_VERSION = "20260718-protecao-recuperacao-tempo-v48";
+const CURRENT_VERSION = "20260718-diagnostico-recuperacao-tempo-v49";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
-const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v21`;
+const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v22`;
 const FILES_TO_CACHE = [
   "./",
   "index.html",
