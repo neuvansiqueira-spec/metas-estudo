@@ -62,6 +62,13 @@ function mergeSyncStates(localState = {}, remoteState = {}, prefer = "remote") {
   merged.migrations = syncMergeObject(local.migrations || {}, remote.migrations || {}, prefer);
   merged.timerSession = syncMergeRecord(local.timerSession || {}, remote.timerSession || {}, prefer);
   if (!merged.timerSession?.goalId) merged.timerSession = local.timerSession?.goalId ? syncClone(local.timerSession) : (remote.timerSession?.goalId ? syncClone(remote.timerSession) : null);
+  merged.syncTombstones = syncMergeTombstones(local.syncTombstones, remote.syncTombstones);
+  globalThis.__metasSyncTombstoneApplyingV39 = true;
+  try {
+    syncApplyTombstones(merged, merged.syncTombstones);
+  } finally {
+    globalThis.__metasSyncTombstoneApplyingV39 = false;
+  }
   return syncRebuildGoalTotals(merged);
 }
 
