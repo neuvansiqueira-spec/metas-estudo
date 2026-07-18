@@ -1,0 +1,46 @@
+name: Carregar gráficos 3D de desempenho
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/load-question-history-pie.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  update-index:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Inserir arquivo de gráficos no site
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          path = Path("index.html")
+          content = path.read_text(encoding="utf-8")
+          script_tag = '<script src="question-history-pie.js?v=20260717-pizza3d-v1"></script>'
+
+          if script_tag not in content:
+              pattern = r'(<script\s+src="script\.js\?v=[^"]+"\s*></script>)'
+              updated, count = re.subn(pattern, r'\1\n  ' + script_tag, content, count=1)
+              if count == 0:
+                  updated = content.replace("</body>", "  " + script_tag + "\n</body>")
+              path.write_text(updated, encoding="utf-8")
+
+      - name: Publicar alteração
+        run: |
+          if git diff --quiet; then
+            echo "Nenhuma alteração necessária."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Carrega gráficos 3D na aba de desempenho"
+          git push
