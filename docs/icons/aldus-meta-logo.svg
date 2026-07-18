@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 440" role="img" aria-labelledby="title desc">
+  <title id="title">Aldus Meta</title>
+  <desc id="desc">Logotipo Aldus Meta com símbolo em formato de A e estrela azul.</desc>
+  <defs>
+    <linearGradient id="aldusNavy" x1="130" y1="55" x2="430" y2="400" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0a2c66"/>
+      <stop offset="1" stop-color="#001c4d"/>
+    </linearGradient>
+    <linearGradient id="aldusStar" x1="225" y1="225" x2="300" y2="330" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6e95ff"/>
+      <stop offset="1" stop-color="#3f73ed"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="440" fill="#ffffff"/>
+  <g transform="translate(36 16)">
+    <path d="M220 18 430 405 330 348 220 135 110 348 10 405Z" fill="url(#aldusNavy)"/>
+    <path d="M220 158c-15 54-44 99-70 143-22 37-12 65 22 89l48 35 48-35c34-24 44-52 22-89-26-44-55-89-70-143Z" fill="#ffffff"/>
+    <path d="m220 236 18 44 44 18-44 18-18 44-18-44-44-18 44-18Z" fill="url(#aldusStar)"/>
+  </g>
+  <text x="455" y="255" fill="#08265f" font-family="Avenir Next, Montserrat, Poppins, Inter, Segoe UI, Arial, sans-serif" font-size="190" font-weight="500" letter-spacing="-8">Aldus</text>
+  <line x1="455" y1="352" x2="650" y2="352" stroke="#0a2c66" stroke-width="8"/>
+  <text x="680" y="380" fill="#143775" font-family="Avenir Next, Montserrat, Poppins, Inter, Segoe UI, Arial, sans-serif" font-size="92" font-weight="400" letter-spacing="1">Meta</text>
+  <line x1="895" y1="352" x2="1145" y2="352" stroke="#0a2c66" stroke-width="8"/>
+</svg>
