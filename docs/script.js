@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260718-numeracao-qc-filtros-v54";
+const APP_VERSION = "20260718-indicacao-qc-explicita-v55";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -5664,6 +5664,9 @@ function getUnifiedQuestionPerformanceRecords() {
 }
 function questionRecordTotals(records) { return records.reduce((a,r)=>({sessions:a.sessions+1,total:a.total+r.total,correct:a.correct+r.correct,wrong:a.wrong+r.wrong,blank:a.blank+r.blank,minutes:a.minutes+r.minutes,net:a.net+r.net}),{sessions:0,total:0,correct:0,wrong:0,blank:0,minutes:0,net:0}); }
 const QCONCURSOS_DELEGADO_URL = "https://www.qconcursos.com/questoes-de-concursos/questoes?job_ids%5B%5D=169&sort=relevance";
+function isNumericSyllabusReference(value = "") {
+  return /^\d+(?:\.\d+)+$/.test(String(value || "").trim());
+}
 function portugueseTitleCase(value = "") {
   const lowerWords = new Set(["a", "o", "as", "os", "e", "de", "da", "do", "das", "dos", "em", "no", "na", "nos", "nas", "por", "para", "com", "sem", "sob", "sobre", "entre"]);
   const words = String(value || "").trim().toLocaleLowerCase("pt-BR").split(/(\s+|[-–—/:])/);
@@ -5679,10 +5682,13 @@ function buildQconcursosFilterRoute(item = {}, board = "") {
   const discipline = String(item.discipline || item.disciplina || "").trim();
   const theme = String(item.topic || item.topico || item.subject || item.assunto || "").trim();
   const subject = String(item.subject || item.assunto || theme).trim();
-  const subtopic = String(item.subtopic || item.subtema || "").trim();
+  const rawSubtopic = String(item.subtopic || item.subtema || "").trim();
+  const numericSubtopicReference = isNumericSyllabusReference(rawSubtopic);
+  const subtopic = numericSubtopicReference ? "" : rawSubtopic;
+  const editalReference = String(item.reference || item.referencia || (numericSubtopicReference ? rawSubtopic : "")).trim();
   const selectedBoard = board && board !== "Outra" ? board : "Todas inicialmente";
   const qcNumber = String(item.qconcursosNumber || item.qcSubjectNumber || "").trim();
-  return { discipline, theme, subject, subtopic, board: selectedBoard, qcNumber, url: QCONCURSOS_DELEGADO_URL, searchTerm: [subject, subtopic].filter(Boolean).join(" — ") };
+  return { discipline, theme, subject, subtopic, editalReference, board: selectedBoard, qcNumber, url: QCONCURSOS_DELEGADO_URL, searchTerm: [subject, subtopic].filter(Boolean).join(" — ") };
 }
 function renderQuestionRegistrationLink(item = null) {
   if (!elements.questionRegistrationLinkSummary) return;
@@ -5705,13 +5711,18 @@ function renderQconcursosFilterRoute() {
   syncQuestionQcNumberField(item); renderQuestionRegistrationLink(item);
   if (!route.discipline || !route.subject) { elements.questionQconcursosRoute.innerHTML = `<p class="empty-message">Selecione a disciplina e o assunto na Etapa 1 para montar uma rota específica.</p><a class="button-link secondary-button" href="${QCONCURSOS_DELEGADO_URL}" target="_blank" rel="noopener noreferrer">Abrir filtro de Delegado no QConcursos</a>`; return; }
   const hierarchy = [
-    ["DISCIPLINA", portugueseTitleCase(route.discipline)], ["TEMA PRINCIPAL", portugueseTitleCase(route.theme || route.subject)], ["ASSUNTO", portugueseTitleCase(route.subject)], ["SUBTEMA", route.subtopic ? portugueseTitleCase(route.subtopic) : "Não Informado no Edital"]
-  ];
+    ["DISCIPLINA", portugueseTitleCase(route.discipline)],
+    ["TEMA PRINCIPAL", portugueseTitleCase(route.theme || route.subject)],
+    ["ASSUNTO PARA BUSCAR NO QCONCURSOS", `QC • ${portugueseTitleCase(route.subject)}`],
+    ["CÓDIGO DO ASSUNTO NO QCONCURSOS", route.qcNumber ? `QC ${route.qcNumber}` : "Ainda não cadastrado"],
+    ["REFERÊNCIA DO EDITAL — NÃO É QC", route.editalReference || "Não informada"],
+    route.subtopic ? ["SUBTEMA TEXTUAL PARA BUSCA", portugueseTitleCase(route.subtopic)] : null
+  ].filter(Boolean);
   const steps = [
     ["1", "Cargo", "Delegado de Polícia — já aplicado pelo botão abaixo"],
     ["2", "Disciplina", portugueseTitleCase(route.discipline)],
-    ["3", "Assunto", portugueseTitleCase(route.searchTerm || route.subject)],
-    ["4", "Numeração do Assunto no QC", route.qcNumber ? `QC ${route.qcNumber}` : "Não Cadastrada — Informe e Salve Acima"],
+    ["3", "Assunto no QConcursos", `QC • ${portugueseTitleCase(route.searchTerm || route.subject)}`],
+    ["4", "Código do Assunto no QC", route.qcNumber ? `QC ${route.qcNumber}` : "Ainda não cadastrado — procure pelo nome acima no QConcursos e salve o código exibido na lista"],
     ["5", "Banca", route.board],
     ["6", "Período", "Comece pelos últimos 5 anos; amplie se houver menos de 20 questões"],
     ["7", "Ordenação", "Relevância para o tema; depois, data da prova mais recente"]

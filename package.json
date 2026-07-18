@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260718-numeracao-qc-filtros-v54",
+  "version": "20260718-indicacao-qc-explicita-v55",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
