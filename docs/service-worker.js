@@ -11,15 +11,17 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260717-sincronizacao-completa-dispositivos-v39",
   "20260717-material-cronometro-v40",
   "20260717-logo-aldus-meta-v41",
-  "20260717-cabecalho-estavel-v42"
+  "20260717-cabecalho-estavel-v42",
+  "20260717-grafico-periodo-recolhivel-v43"
 ];
-const CURRENT_VERSION = "20260717-grafico-periodo-recolhivel-v43";
+const CURRENT_VERSION = "20260717-tema-premium-aldus-v44";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
-const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v17`;
+const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v18`;
 const FILES_TO_CACHE = [
   "./",
   "index.html",
   "style.css",
+  "aldus-premium-theme.css",
   "script.js",
   "question-history-pie.js",
   "header-brand-fix.js",
@@ -65,6 +67,11 @@ function replaceVersion(source) {
 
 function patchHtmlSource(source) {
   let patched = replaceVersion(source);
+  patched = patched.replace(/\s*<link[^>]*aldus-premium-theme\.css[^>]*>/gi, "");
+  patched = patched.replace(
+    "</head>",
+    `  <link id="aldusPremiumTheme" rel="stylesheet" href="aldus-premium-theme.css?v=${CURRENT_VERSION}" />\n</head>`
+  );
   [
     "question-accuracy-spectrum.js",
     "timer-material-link-fix.js",
@@ -191,6 +198,16 @@ async function networkFirstAppScript(request) {
   }
 }
 
+async function networkFirstAsset(request) {
+  try {
+    const response = await fetch(request, { cache: "no-store" });
+    cacheResponse(request, response.clone());
+    return response;
+  } catch (error) {
+    return caches.match(request);
+  }
+}
+
 function staleWhileRevalidate(request) {
   return caches.match(request).then((cached) => {
     const network = fetch(request)
@@ -209,6 +226,10 @@ self.addEventListener("fetch", (event) => {
 
   if (url.pathname.endsWith("/script.js")) {
     event.respondWith(networkFirstAppScript(event.request));
+    return;
+  }
+  if (url.pathname.endsWith("/header-brand-fix.js") || url.pathname.endsWith("/aldus-premium-theme.css")) {
+    event.respondWith(networkFirstAsset(event.request));
     return;
   }
   if (event.request.mode === "navigate" || event.request.destination === "document") {
