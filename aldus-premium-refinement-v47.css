@@ -1,0 +1,292 @@
+/* Aldus Metas Concurso — Refinamento Premium v47
+   Ajustes exclusivamente visuais para harmonia, contornos e navegação. */
+
+:root {
+  --aldus-line-soft: rgba(112, 170, 222, .16);
+  --aldus-line-medium: rgba(112, 170, 222, .27);
+  --aldus-gold-line: rgba(223, 182, 76, .52);
+  --aldus-panel-highlight: inset 0 1px 0 rgba(255, 255, 255, .045);
+}
+
+/* Navegação lateral: estrutura mais limpa e integrada */
+html[data-aldus-theme="premium-stable"] .side-nav {
+  position: sticky;
+  isolation: isolate;
+  top: 18px;
+  padding: 22px 16px 26px;
+  border: 1px solid rgba(111, 174, 230, .25);
+  border-radius: 27px;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(46, 101, 154, .16), transparent 15rem),
+    linear-gradient(180deg, rgba(5, 29, 52, .985), rgba(3, 21, 39, .99));
+  box-shadow:
+    0 20px 46px rgba(0, 9, 24, .28),
+    var(--aldus-panel-highlight);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(91, 145, 195, .48) transparent;
+}
+
+html[data-aldus-theme="premium-stable"] .side-nav::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 25px;
+  border: 1px solid rgba(255, 255, 255, .018);
+}
+
+html[data-aldus-theme="premium-stable"] .side-nav::-webkit-scrollbar {
+  width: 8px;
+}
+
+html[data-aldus-theme="premium-stable"] .side-nav::-webkit-scrollbar-track {
+  margin-block: 14px;
+  background: transparent;
+}
+
+html[data-aldus-theme="premium-stable"] .side-nav::-webkit-scrollbar-thumb {
+  min-height: 54px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(91, 145, 195, .48);
+  background-clip: padding-box;
+}
+
+html[data-aldus-theme="premium-stable"] .side-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(115, 174, 225, .66);
+  background-clip: padding-box;
+}
+
+/* Título principal com uma única linha de apoio */
+html[data-aldus-theme="premium-stable"] .side-nav-title {
+  position: relative;
+  padding: 7px 12px 24px;
+  border: 0;
+  color: #f7fbff;
+  font-size: 1.08rem;
+  font-weight: 900;
+  letter-spacing: .105em;
+  text-transform: uppercase;
+}
+
+html[data-aldus-theme="premium-stable"] .side-nav-title::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 7px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    var(--aldus-gold) 0 24%,
+    rgba(112, 170, 222, .19) 24% 100%
+  );
+}
+
+/* Grupos sem faixas brancas e sem excesso de linhas */
+html[data-aldus-theme="premium-stable"] .side-nav-group {
+  position: relative;
+  display: grid;
+  gap: 7px;
+  margin-top: 19px;
+}
+
+html[data-aldus-theme="premium-stable"] .side-nav-group + .side-nav-group {
+  margin-top: 23px;
+  padding-top: 21px;
+  border-top: 1px solid var(--aldus-line-soft);
+}
+
+html[data-aldus-theme="premium-stable"] .side-nav-group > span {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 25px;
+  padding: 0 12px 4px;
+  border: 0;
+  background: transparent;
+  color: #e8bd55;
+  font-size: .75rem;
+  font-weight: 850;
+  letter-spacing: .105em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+html[data-aldus-theme="premium-stable"] .side-nav-group > span::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  flex: 0 0 5px;
+  border-radius: 50%;
+  background: var(--aldus-gold);
+  box-shadow: 0 0 10px rgba(223, 182, 76, .38);
+}
+
+/* Itens de navegação */
+html[data-aldus-theme="premium-stable"] .side-nav a {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 45px;
+  padding: 10px 13px 10px 17px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+  color: #c6d5e4;
+  font-size: .88rem;
+  font-weight: 720;
+  line-height: 1.28;
+  letter-spacing: -.006em;
+  text-decoration: none;
+  box-shadow: none;
+  transform: none;
+  transition:
+    color .18s ease,
+    background .18s ease,
+    border-color .18s ease,
+    box-shadow .18s ease,
+    transform .18s ease;
+}
+
+html[data-aldus-theme="premium-stable"] .side-nav a::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  flex: 0 0 5px;
+  margin-right: 11px;
+  border: 1px solid rgba(111, 166, 218, .54);
+  border-radius: 50%;
+  background: rgba(73, 126, 176, .15);
+  transition: inherit;
+}
+
+html[data-aldus-theme="premium-stable"] .side-nav a:hover {
+  color: #f6f9fc;
+  border-color: rgba(112, 170, 222, .18);
+  background: rgba(53, 104, 151, .115);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
+  transform: translateX(2px);
+}
+
+html[data-aldus-theme="premium-stable"] .side-nav a:hover::before {
+  border-color: rgba(132, 188, 239, .76);
+  background: rgba(92, 153, 210, .35);
+}
+
+/* Seleção ativa elegante, sem contorno excessivo */
+html[data-aldus-theme="premium-stable"] .side-nav a.active,
+html[data-aldus-theme="premium-stable"] .side-nav a[aria-current="page"] {
+  color: #ffffff;
+  border-color: rgba(223, 182, 76, .48);
+  background:
+    linear-gradient(90deg, rgba(223, 182, 76, .12), transparent 34%),
+    linear-gradient(145deg, rgba(18, 52, 82, .97), rgba(10, 39, 67, .97));
+  box-shadow:
+    0 9px 22px rgba(0, 8, 21, .19),
+    inset 0 1px 0 rgba(255,255,255,.055);
+  transform: none;
+}
+
+html[data-aldus-theme="premium-stable"] .side-nav a.active::before,
+html[data-aldus-theme="premium-stable"] .side-nav a[aria-current="page"]::before {
+  width: 4px;
+  height: 24px;
+  flex-basis: 4px;
+  margin-left: -10px;
+  margin-right: 12px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #f1d47d, #d9a932);
+  box-shadow: 0 0 13px rgba(223, 182, 76, .44);
+}
+
+/* Harmonia dos contornos em todas as abas */
+html[data-aldus-theme="premium-stable"] .dashboard,
+html[data-aldus-theme="premium-stable"] .panel {
+  border-color: rgba(108, 167, 220, .22);
+  box-shadow:
+    0 20px 48px rgba(0, 9, 24, .29),
+    inset 0 1px 0 rgba(255,255,255,.035);
+}
+
+html[data-aldus-theme="premium-stable"] .dashboard-block,
+html[data-aldus-theme="premium-stable"] .stat-card,
+html[data-aldus-theme="premium-stable"] .daily-message-card,
+html[data-aldus-theme="premium-stable"] .bulk-box,
+html[data-aldus-theme="premium-stable"] .syllabus-card,
+html[data-aldus-theme="premium-stable"] .subject-item,
+html[data-aldus-theme="premium-stable"] .review-item,
+html[data-aldus-theme="premium-stable"] .alert-item,
+html[data-aldus-theme="premium-stable"] .sync-card,
+html[data-aldus-theme="premium-stable"] .progress-dashboard-card,
+html[data-aldus-theme="premium-stable"] .smart-review-panel,
+html[data-aldus-theme="premium-stable"] .interface-collapsible {
+  border-color: rgba(108, 167, 220, .19);
+  box-shadow:
+    0 11px 27px rgba(0, 8, 21, .18),
+    inset 0 1px 0 rgba(255,255,255,.026);
+}
+
+html[data-aldus-theme="premium-stable"] .section-heading {
+  position: relative;
+}
+
+html[data-aldus-theme="premium-stable"] .section-heading::after {
+  content: "";
+  display: block;
+  width: min(100%, 170px);
+  height: 1px;
+  margin-top: 12px;
+  background: linear-gradient(90deg, rgba(223,182,76,.66), rgba(112,170,222,.12));
+}
+
+html[data-aldus-theme="premium-stable"] input,
+html[data-aldus-theme="premium-stable"] select,
+html[data-aldus-theme="premium-stable"] textarea,
+html[data-aldus-theme="premium-stable"] .table-wrapper {
+  border-color: rgba(112, 170, 222, .25);
+}
+
+html[data-aldus-theme="premium-stable"] button,
+html[data-aldus-theme="premium-stable"] .button-link {
+  border-radius: 12px;
+}
+
+/* Menu móvel com a mesma linguagem */
+@media (max-width: 900px) {
+  html[data-aldus-theme="premium-stable"] .nav-links {
+    border: 1px solid rgba(111, 174, 230, .25);
+    background:
+      radial-gradient(circle at 15% 0%, rgba(46,101,154,.16), transparent 14rem),
+      linear-gradient(180deg, #061f38, #031426);
+    box-shadow: 0 20px 44px rgba(0,9,24,.34);
+  }
+
+  html[data-aldus-theme="premium-stable"] .mobile-menu-group {
+    border-color: var(--aldus-line-soft);
+  }
+
+  html[data-aldus-theme="premium-stable"] .mobile-menu-group > span {
+    background: transparent;
+    color: var(--aldus-gold-soft);
+  }
+}
+
+@media (max-width: 620px) {
+  html[data-aldus-theme="premium-stable"] .side-nav {
+    padding: 18px 13px 22px;
+    border-radius: 22px;
+  }
+
+  html[data-aldus-theme="premium-stable"] .side-nav-title {
+    padding-inline: 10px;
+  }
+
+  html[data-aldus-theme="premium-stable"] .side-nav a {
+    min-height: 43px;
+    padding-block: 9px;
+  }
+}
