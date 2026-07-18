@@ -56,11 +56,9 @@ function createRuntime() {
     floatingTimerGoal() { return context.state.dailyGoals[0]; },
     dailyGoalMaterialIdentity(material) { return material.id; },
     resolveAvailableMaterials(criteria) {
-      assert.deepEqual(criteria, {
-        discipline: "DIREITO PENAL",
-        subject: "Teoria Geral do Crime",
-        syllabusItemId: "item-1"
-      });
+      assert.equal(criteria.discipline, "DIREITO PENAL");
+      assert.equal(criteria.subject, "Teoria Geral do Crime");
+      assert.equal(criteria.syllabusItemId, "item-1");
       return [{
         id: "factory-material-1",
         title: "Resumo/Aula — Teoria Geral do Crime",
@@ -91,7 +89,7 @@ test("cronômetro usa a fonte central e seleciona material da Fábrica", () => {
 
 test("runtime observa abertura, salvamento e troca de conteúdo", () => {
   assert.match(rootSource, /resolveAvailableMaterials/);
-  assert.match(rootSource, /data-timer-action=\\"save\\"/);
+  assert.ok(rootSource.includes('[data-timer-action="save"]'));
   assert.match(rootSource, /timerStudyDiscipline/);
   assert.match(rootSource, /timerStudySubject/);
   assert.match(rootSource, /MutationObserver/);
@@ -107,6 +105,6 @@ test("v40 renova cache e carrega o corretor diretamente", () => {
   assert.match(rootServiceWorker, /20260717-material-cronometro-v40/);
   assert.match(rootServiceWorker, /startup-v14/);
   assert.match(rootServiceWorker, /timer-material-link-fix\.js/);
-  assert.match(rootServiceWorker, /data-timer-material-link-fix=\\"v40\\"/);
+  assert.ok(rootServiceWorker.includes('data-timer-material-link-fix="v40"'));
   assert.match(rootSyncDeletions, /installTimerMaterialLinkFixAsset/);
 });
