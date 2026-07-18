@@ -117,3 +117,5 @@ function staleWhileRevalidate(request) {''',
             header-brand-fix.js docs/header-brand-fix.js
           git commit -m "Publica tema premium estável v46"
           git push
+
+# Disparo confirmado após a criação inicial do fluxo.
