@@ -1,0 +1,248 @@
+/* Aldus Metas — Calendário de Metas v61
+   Unifica contraste, contenção e densidade das visões diária, semanal e mensal. */
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas {
+  --calendar-surface: #08263f;
+  --calendar-surface-raised: #0c3150;
+  --calendar-surface-soft: #102f49;
+  --calendar-line: rgba(133, 181, 220, .28);
+  --calendar-text: #f6f9fc;
+  --calendar-soft: #d8e4ee;
+  --calendar-muted: #afc2d2;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas :is(
+  .calendar-toolbar,
+  .calendar-export-scope,
+  .calendar-export-actions,
+  .goal-calendar-section,
+  .goal-calendar-section-content,
+  .goal-calendar,
+  .calendar-grid,
+  .calendar-settings-section .bulk-box
+) {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-toolbar {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(180px, .9fr) !important;
+  align-items: end !important;
+  gap: 14px !important;
+  padding: 16px !important;
+  border: 1px solid var(--calendar-line) !important;
+  border-radius: 18px !important;
+  background: linear-gradient(145deg, rgba(12, 49, 80, .98), rgba(6, 29, 49, .99)) !important;
+  color: var(--calendar-text) !important;
+  box-shadow: 0 12px 28px rgba(0, 8, 20, .18) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-toolbar label,
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-export-scope label {
+  min-width: 0 !important;
+  color: var(--calendar-soft) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-toolbar > button {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 50px !important;
+  margin: 0 !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-export-scope {
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 10px !important;
+  padding: 14px !important;
+  border: 1px solid var(--calendar-line) !important;
+  border-radius: 16px !important;
+  background: linear-gradient(145deg, rgba(10, 43, 71, .94), rgba(5, 27, 46, .98)) !important;
+  color: var(--calendar-text) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-export-actions {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  margin-bottom: 16px !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-export-actions > button {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 46px !important;
+  margin: 0 !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .goal-calendar-section,
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .goal-calendar-section[data-goal-calendar-section="weekly"],
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .goal-calendar-section[data-goal-calendar-section="monthly"],
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-settings-section {
+  border: 1px solid var(--calendar-line) !important;
+  border-radius: 18px !important;
+  background: linear-gradient(145deg, rgba(9, 39, 65, .96), rgba(5, 27, 46, .99)) !important;
+  color: var(--calendar-text) !important;
+  box-shadow: 0 10px 26px rgba(0, 8, 20, .16) !important;
+  overflow: hidden !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .goal-calendar-section > summary {
+  min-height: 62px !important;
+  padding: 14px 16px !important;
+  border: 0 !important;
+  background: rgba(10, 43, 72, .9) !important;
+  color: var(--calendar-text) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .goal-calendar-section > summary strong {
+  color: var(--calendar-text) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .goal-calendar-section > summary small {
+  color: var(--calendar-muted) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .goal-calendar-section-content {
+  padding: 0 14px 16px !important;
+  overflow: hidden !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-grid {
+  gap: 11px !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-grid article {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  min-height: 112px !important;
+  padding: 13px !important;
+  border: 1px solid var(--calendar-line) !important;
+  border-radius: 16px !important;
+  background: linear-gradient(145deg, rgba(12, 49, 80, .98), rgba(6, 29, 49, .99)) !important;
+  color: var(--calendar-text) !important;
+  box-shadow: 0 9px 22px rgba(0, 8, 20, .15) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-grid article.unavailable {
+  border-color: rgba(151, 165, 181, .26) !important;
+  background: linear-gradient(145deg, rgba(39, 52, 65, .9), rgba(21, 34, 47, .96)) !important;
+  color: #b7c3cf !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-grid article :is(h3, h4, strong) {
+  color: var(--calendar-text) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-grid article :is(p, small) {
+  color: var(--calendar-muted) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .goal-pill {
+  max-width: 100% !important;
+  padding: 9px 10px !important;
+  border: 1px solid rgba(108, 175, 255, .4) !important;
+  background: rgba(42, 105, 184, .24) !important;
+  color: #d7e8ff !important;
+  line-height: 1.35 !important;
+  overflow-wrap: break-word !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas :is(.goal-pill.done, .goal-status-concluida) {
+  border-color: rgba(53, 211, 153, .46) !important;
+  background: rgba(18, 105, 75, .3) !important;
+  color: #c9fbe9 !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas :is(.goal-pill.warn, .goal-status-adiada) {
+  border-color: rgba(237, 205, 115, .48) !important;
+  background: rgba(119, 86, 21, .3) !important;
+  color: #ffe8a3 !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas :is(.goal-status-nao-cumprida, .goal-status-ignorada) {
+  border-color: rgba(255, 132, 143, .48) !important;
+  background: rgba(126, 35, 47, .32) !important;
+  color: #ffd7db !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .weight-row,
+html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-settings-section .bulk-box {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  border-color: var(--calendar-line) !important;
+  background: linear-gradient(145deg, rgba(12, 49, 80, .94), rgba(6, 29, 49, .98)) !important;
+  color: var(--calendar-text) !important;
+}
+
+@media (max-width: 768px) {
+  html[data-aldus-theme="premium-stable"] #view-calendario-metas {
+    padding-bottom: calc(170px + env(safe-area-inset-bottom, 0px)) !important;
+    scroll-padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-toolbar {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 11px !important;
+    padding: 14px !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-export-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-calendario-metas #exportGoalCalendarPdf {
+    grid-column: 1 / -1 !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-calendario-metas .goal-calendar-section > summary {
+    min-height: 58px !important;
+    padding: 12px 13px !important;
+    gap: 9px !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-calendario-metas .goal-calendar-section > summary strong {
+    font-size: .98rem !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-calendario-metas .goal-calendar-section > summary small {
+    font-size: .78rem !important;
+    line-height: 1.35 !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-calendario-metas .goal-calendar-section-content {
+    padding: 0 10px 12px !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-calendario-metas .week-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-calendario-metas .month-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-grid article {
+    min-height: 0 !important;
+    padding: 12px !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-calendario-metas .weight-row {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+@media (max-width: 350px) {
+  html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-export-actions,
+  html[data-aldus-theme="premium-stable"] #view-calendario-metas .month-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-calendario-metas #exportGoalCalendarPdf {
+    grid-column: auto !important;
+  }
+}

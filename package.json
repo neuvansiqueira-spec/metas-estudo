@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260718-historico-planejamento-v60",
+  "version": "20260718-calendario-contraste-v61",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
