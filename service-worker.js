@@ -18,9 +18,10 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260717-premium-estavel-v46",
   "20260718-protecao-recuperacao-tempo-v48",
   "20260718-diagnostico-recuperacao-tempo-v49",
-  "20260718-integridade-recuperacao-visual-v50"
+  "20260718-integridade-recuperacao-visual-v50",
+  "20260718-recuperacao-drive-redesign-v51"
 ];
-const CURRENT_VERSION = "20260718-recuperacao-drive-redesign-v51";
+const CURRENT_VERSION = "20260718-correcao-visual-responsiva-v52";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v23`;
 const FILES_TO_CACHE = [
@@ -30,6 +31,7 @@ const FILES_TO_CACHE = [
   "aldus-premium-theme.css",
   "aldus-premium-refinement-v47.css",
   "aldus-interface-v51.css",
+  "aldus-responsive-v52.css",
   "script.js",
   "question-history-pie.js",
   "header-brand-fix.js",
@@ -88,6 +90,9 @@ function patchHtmlSource(source) {
   });
   if (!patched.includes("aldus-interface-v51.css")) {
     patched = patched.replace("</head>", `<link id="aldusInterfaceV51" rel="stylesheet" href="aldus-interface-v51.css?v=${CURRENT_VERSION}" />\n</head>`);
+  }
+  if (!patched.includes("aldus-responsive-v52.css")) {
+    patched = patched.replace("</head>", `<link id="aldusResponsiveV52" rel="stylesheet" href="aldus-responsive-v52.css?v=${CURRENT_VERSION}" />\n</head>`);
   }
   return patched.replace(
     "</body>",
@@ -235,7 +240,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(networkFirstAppScript(event.request));
     return;
   }
-  if (url.pathname.endsWith("/header-brand-fix.js") || url.pathname.endsWith("/aldus-premium-theme.css") || url.pathname.endsWith("/aldus-premium-refinement-v47.css") || url.pathname.endsWith("/aldus-interface-v51.css")) {
+  if (url.pathname.endsWith("/header-brand-fix.js") || url.pathname.endsWith("/aldus-premium-theme.css") || url.pathname.endsWith("/aldus-premium-refinement-v47.css") || url.pathname.endsWith("/aldus-interface-v51.css") || url.pathname.endsWith("/aldus-responsive-v52.css")) {
     event.respondWith(networkFirstStableAsset(event.request));
     return;
   }

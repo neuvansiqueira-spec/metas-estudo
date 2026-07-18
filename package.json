@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260718-recuperacao-drive-redesign-v51",
+  "version": "20260718-correcao-visual-responsiva-v52",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
