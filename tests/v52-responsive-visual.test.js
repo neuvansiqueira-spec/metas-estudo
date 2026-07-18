@@ -7,10 +7,10 @@ const html = fs.readFileSync("index.html", "utf8");
 const worker = fs.readFileSync("service-worker.js", "utf8");
 const css = fs.readFileSync("aldus-responsive-v52.css", "utf8");
 
-test("correção responsiva v52 é a última camada visual publicada", () => {
+test("correção responsiva v52 permanece como base da camada de contraste v53", () => {
   assert.ok(html.includes(`aldus-responsive-v52.css?v=${version}`));
   assert.ok(html.indexOf("aldus-interface-v51.css") < html.indexOf("aldus-responsive-v52.css"));
-  assert.ok(html.indexOf("aldus-responsive-v52.css") < html.indexOf("script.js"));
+  assert.ok(html.indexOf("aldus-responsive-v52.css") < html.indexOf("aldus-contrast-v53.css"));
   assert.match(worker, /"aldus-responsive-v52\.css"/);
   assert.match(worker, /aldus-responsive-v52\.css\?v=\$\{CURRENT_VERSION\}/);
   assert.match(worker, /endsWith\("\/aldus-responsive-v52\.css"\)/);

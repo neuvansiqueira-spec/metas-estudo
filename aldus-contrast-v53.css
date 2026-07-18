@@ -1,0 +1,162 @@
+/* Aldus Metas — contraste interno v53
+   Corrige textos que ainda herdavam a paleta clara antiga dentro das superfícies escuras. */
+
+:root {
+  --v53-text: #f7fbff;
+  --v53-text-soft: #dce7f0;
+  --v53-muted: #b3c5d4;
+  --v53-muted-strong: #c5d3df;
+  --v53-light-surface-text: #173b77;
+}
+
+/* Títulos de conteúdo: as abas usam superfícies escuras na interface premium. */
+html[data-aldus-theme="premium-stable"] .app-view.active :is(h2, h3, h4, h5),
+html[data-aldus-theme="premium-stable"] .app-view.active :is(
+  .dashboard-block-title,
+  .daily-plan-title,
+  .daily-message-text,
+  .material-item-summary-main,
+  .question-topic-hierarchy strong,
+  .question-filter-route li strong,
+  .question-registration-link strong,
+  .factory-theme-recorte strong,
+  .advisor-message.bot,
+  .performance-chart-value
+) {
+  color: var(--v53-text) !important;
+}
+
+/* Acordeões e resumos eram a principal origem de texto quase preto. */
+html[data-aldus-theme="premium-stable"] .app-view.active details > summary,
+html[data-aldus-theme="premium-stable"] .app-view.active :is(
+  .interface-collapsible-summary,
+  .daily-plan-summary,
+  .daily-goal-summary,
+  .manual-goal-panel summary,
+  .day-smart-review-summary,
+  .daily-goal-materials summary,
+  .daily-goal-history summary,
+  .daily-goal-more-actions summary,
+  .planning-history-details summary,
+  .planning-estimate-item > summary,
+  .goal-calendar-section > summary,
+  .qb-details-card > summary,
+  .question-register-section > summary,
+  .factory-modules summary,
+  .factory-theme-details summary,
+  .analytics-filters-section > summary,
+  .analytics-section > summary,
+  .analytics-subsection > summary,
+  .analytics-table-details summary,
+  .material-item-summary
+) {
+  color: var(--v53-text) !important;
+}
+
+html[data-aldus-theme="premium-stable"] .app-view.active details > summary :is(strong, h3, h4, h5),
+html[data-aldus-theme="premium-stable"] .app-view.active :is(
+  .daily-plan-title,
+  .daily-goal-summary > span:first-child > strong,
+  .day-smart-review-summary strong
+) {
+  color: var(--v53-text) !important;
+}
+
+html[data-aldus-theme="premium-stable"] .app-view.active :is(
+  .daily-plan-resume,
+  .daily-goal-summary > span:last-child,
+  .daily-goal-summary > span:first-child span,
+  .material-item-summary-meta,
+  .planning-history-date,
+  details > summary small
+) {
+  color: var(--v53-muted) !important;
+}
+
+/* Cartões numéricos: rótulo claro e valor branco, sem perder a hierarquia. */
+html[data-aldus-theme="premium-stable"] .app-view.active .stat-card > :is(span, small),
+html[data-aldus-theme="premium-stable"] .app-view.active .stat-card .stat-label {
+  color: var(--v53-muted-strong) !important;
+}
+
+html[data-aldus-theme="premium-stable"] .app-view.active .stat-card > strong,
+html[data-aldus-theme="premium-stable"] .app-view.active .stat-card .stat-value {
+  color: var(--v53-text) !important;
+}
+
+/* Texto auxiliar dos módulos principais. */
+html[data-aldus-theme="premium-stable"] .app-view.active :is(
+  .item-meta,
+  .empty-message,
+  .file-info,
+  .planning-section-resume,
+  .question-bank-meta,
+  .advisor-kv small,
+  .analytics-note,
+  .daily-goal-placeholder p
+) {
+  color: var(--v53-muted) !important;
+}
+
+html[data-aldus-theme="premium-stable"] .app-view.active label {
+  color: var(--v53-text-soft) !important;
+}
+
+/* Ícones de abrir/fechar continuam visíveis sobre os resumos escuros. */
+html[data-aldus-theme="premium-stable"] .app-view.active :is(
+  .interface-collapsible-summary,
+  .goal-calendar-section > summary
+)::after {
+  border: 1px solid rgba(230, 189, 88, .32) !important;
+  background: rgba(230, 189, 88, .12) !important;
+  color: #f1d47b !important;
+}
+
+/* Superfícies deliberadamente claras preservam texto escuro e contraste AA. */
+html[data-aldus-theme="premium-stable"] .app-view.active .selected-day-banner,
+html[data-aldus-theme="premium-stable"] .app-view.active .selected-day-banner :is(strong, span, small, p) {
+  color: var(--v53-light-surface-text) !important;
+}
+
+html[data-aldus-theme="premium-stable"] .app-view.active :is(
+  .linked-materials,
+  .goal-material-estimate
+) :is(strong, h3, h4) {
+  color: #183f78 !important;
+}
+
+@media (max-width: 620px) {
+  html[data-aldus-theme="premium-stable"] .app-view.active details > summary,
+  html[data-aldus-theme="premium-stable"] .app-view.active .daily-plan-summary,
+  html[data-aldus-theme="premium-stable"] .app-view.active .daily-goal-summary {
+    gap: 7px !important;
+    padding: 14px !important;
+    line-height: 1.3 !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] .app-view.active .daily-plan-title {
+    font-size: 1rem !important;
+    line-height: 1.3 !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] .app-view.active :is(
+    .daily-plan-resume,
+    .daily-goal-summary > span:last-child,
+    details > summary small
+  ) {
+    font-size: .86rem !important;
+    line-height: 1.35 !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  html[data-aldus-theme="premium-stable"] .app-view.active :is(
+    .daily-plan-resume,
+    .daily-goal-summary > span:last-child,
+    .item-meta,
+    .empty-message,
+    details > summary small
+  ) {
+    color: #e1ebf3 !important;
+  }
+}
