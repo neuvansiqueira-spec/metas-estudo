@@ -1,6 +1,7 @@
 (() => {
   "use strict";
 
+  const THEME_VERSION = "20260717-tema-premium-aldus-v44";
   const DESIRED_HTML = `
     <div class="brand-copy">
       <strong>Aldus Metas Concurso</strong>
@@ -10,6 +11,33 @@
   `;
 
   let applying = false;
+
+  function ensurePremiumTheme() {
+    document.documentElement.dataset.aldusTheme = "premium";
+    document.title = "Aldus Metas Concurso — Painel de Estudos";
+
+    const themeColor = document.querySelector('meta[name="theme-color"]');
+    if (themeColor) themeColor.setAttribute("content", "#031426");
+
+    if (!document.getElementById("aldusPremiumCriticalStyle")) {
+      const critical = document.createElement("style");
+      critical.id = "aldusPremiumCriticalStyle";
+      critical.textContent = `html,body{background:#031426;color:#f7fbff}.hero{background:#061c33}`;
+      document.head.appendChild(critical);
+    }
+
+    let link = document.getElementById("aldusPremiumTheme");
+    if (!link) {
+      link = document.createElement("link");
+      link.id = "aldusPremiumTheme";
+      link.rel = "stylesheet";
+      link.addEventListener("load", () => document.getElementById("aldusPremiumCriticalStyle")?.remove(), { once: true });
+      document.head.appendChild(link);
+    }
+
+    const expectedHref = `aldus-premium-theme.css?v=${THEME_VERSION}`;
+    if (!link.getAttribute("href")?.includes(THEME_VERSION)) link.href = expectedHref;
+  }
 
   function applyCorrectHeader() {
     if (applying) return;
@@ -30,13 +58,19 @@
   }
 
   function start() {
+    ensurePremiumTheme();
     applyCorrectHeader();
-    const observer = new MutationObserver(applyCorrectHeader);
+    const observer = new MutationObserver(() => {
+      ensurePremiumTheme();
+      applyCorrectHeader();
+    });
     observer.observe(document.documentElement, { childList: true, subtree: true });
     setTimeout(applyCorrectHeader, 0);
     setTimeout(applyCorrectHeader, 150);
     setTimeout(applyCorrectHeader, 600);
   }
+
+  ensurePremiumTheme();
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", start, { once: true });
@@ -44,7 +78,10 @@
     start();
   }
 
-  window.addEventListener("load", applyCorrectHeader);
+  window.addEventListener("load", () => {
+    ensurePremiumTheme();
+    applyCorrectHeader();
+  });
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("service-worker.js", { updateViaCache: "none" })
