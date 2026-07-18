@@ -125,6 +125,112 @@ html[data-aldus-theme="premium-stable"] .app-view.active :is(
   color: #183f78 !important;
 }
 
+/* Fábrica: remove as últimas ilhas da antiga interface clara. */
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos :is(
+  .factory-do-now,
+  .factory-today-queue,
+  .factory-module-summary,
+  .factory-modules-form,
+  .factory-prompt-actions,
+  .factory-prompt-box,
+  .factory-today-subtopics
+) {
+  border-color: rgba(135, 186, 228, .22) !important;
+  background: linear-gradient(145deg, rgba(10, 42, 68, .96), rgba(5, 27, 47, .98)) !important;
+  color: var(--v53-text) !important;
+  box-shadow: 0 12px 30px rgba(0, 8, 20, .2) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-do-now {
+  border: 1px solid rgba(92, 160, 255, .38) !important;
+  border-left: 4px solid #5c9fff !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-theme-highlight {
+  border-color: rgba(135, 186, 228, .22) !important;
+  border-left-color: var(--v52-gold) !important;
+  background: linear-gradient(135deg, rgba(9, 38, 63, .98), rgba(12, 48, 77, .94)) !important;
+  color: var(--v53-text) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .035) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-theme-label {
+  color: #f0d57f !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-theme-title {
+  color: var(--v53-text) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos :is(
+  .factory-theme-discipline,
+  .factory-theme-recorte,
+  .factory-module-summary li,
+  .factory-progress-line + .item-meta
+) {
+  color: var(--v53-muted) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos :is(
+  .factory-theme-discipline,
+  .factory-theme-recorte,
+  .factory-module-summary
+) strong {
+  color: var(--v53-text-soft) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-progress-line {
+  color: var(--v53-muted-strong) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-arrow {
+  color: #89a5bb !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-step {
+  border: 1px solid rgba(135, 186, 228, .2) !important;
+  background: rgba(111, 151, 185, .13) !important;
+  color: #c4d3df !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-step.current {
+  border-color: rgba(230, 189, 88, .46) !important;
+  background: rgba(230, 189, 88, .14) !important;
+  color: #f2d986 !important;
+  outline: 1px solid rgba(230, 189, 88, .2) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-step.done {
+  border-color: rgba(52, 211, 153, .32) !important;
+  background: rgba(26, 151, 108, .14) !important;
+  color: #9ee4c8 !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-step.redo {
+  border-color: rgba(248, 113, 113, .32) !important;
+  background: rgba(185, 45, 45, .14) !important;
+  color: #ffc0c0 !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-step.na {
+  border-color: rgba(148, 163, 184, .16) !important;
+  background: rgba(100, 116, 139, .1) !important;
+  color: #8ea2b3 !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos button:disabled {
+  border-color: rgba(135, 160, 180, .2) !important;
+  background: rgba(111, 137, 158, .1) !important;
+  color: #8ea3b5 !important;
+  box-shadow: none !important;
+  opacity: .78 !important;
+  transform: none !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-do-now > .card-actions {
+  margin-top: 12px;
+}
+
 @media (max-width: 620px) {
   html[data-aldus-theme="premium-stable"] .app-view.active details > summary,
   html[data-aldus-theme="premium-stable"] .app-view.active .daily-plan-summary,
@@ -146,6 +252,17 @@ html[data-aldus-theme="premium-stable"] .app-view.active :is(
   ) {
     font-size: .86rem !important;
     line-height: 1.35 !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-do-now {
+    padding: 13px !important;
+    border-radius: 18px !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-do-now > .card-actions {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 9px !important;
   }
 }
 

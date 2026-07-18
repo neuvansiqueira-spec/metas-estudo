@@ -44,6 +44,14 @@ test("superfícies claras e modo de alto contraste continuam protegidos", () => 
   assert.match(css, /@media \(max-width: 620px\)/);
 });
 
+test("Fábrica não mantém ilhas brancas nem botões desativados ilegíveis", () => {
+  assert.match(css, /#view-fabrica-resumos :is\([\s\S]*\.factory-do-now[\s\S]*\.factory-prompt-box/);
+  assert.match(css, /#view-fabrica-resumos \.factory-theme-highlight[\s\S]*background: linear-gradient/);
+  assert.match(css, /#view-fabrica-resumos \.factory-step\.current/);
+  assert.match(css, /#view-fabrica-resumos button:disabled[\s\S]*color: #8ea3b5 !important/);
+  assert.match(css, /#view-fabrica-resumos \.factory-do-now > \.card-actions[\s\S]*grid-template-columns: 1fr !important/);
+});
+
 test("versão v53 e publicação docs permanecem idênticas", () => {
   assert.match(worker, new RegExp(`const CURRENT_VERSION = "${version}"`));
   assert.match(html, new RegExp(`Versão: ${version}`));
