@@ -10,11 +10,12 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260717-aviso-sonoro-motivacional-v38",
   "20260717-sincronizacao-completa-dispositivos-v39",
   "20260717-material-cronometro-v40",
-  "20260717-logo-aldus-meta-v41"
+  "20260717-logo-aldus-meta-v41",
+  "20260717-cabecalho-estavel-v42"
 ];
-const CURRENT_VERSION = "20260717-cabecalho-estavel-v42";
+const CURRENT_VERSION = "20260717-grafico-periodo-recolhivel-v43";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
-const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v16`;
+const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v17`;
 const FILES_TO_CACHE = [
   "./",
   "index.html",
