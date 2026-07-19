@@ -1,0 +1,145 @@
+/* Aldus Metas — Plano do Dia: tempo e contraste v66 */
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia {
+  --v66-surface: #08243d;
+  --v66-surface-strong: #0b3151;
+  --v66-line: rgba(130, 184, 226, .32);
+  --v66-text: #f7fbff;
+  --v66-muted: #c6d8e7;
+  --v66-accent: #f2d273;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia :is(
+  .goal-material-estimate,
+  .linked-materials,
+  .goal-time-comparison,
+  .daily-goal-materials,
+  .daily-goal-history,
+  .daily-goal-more-actions
+) {
+  border: 1px solid var(--v66-line) !important;
+  border-left: 4px solid #2c8fc5 !important;
+  background: linear-gradient(145deg, var(--v66-surface-strong), var(--v66-surface)) !important;
+  color: var(--v66-text) !important;
+  box-shadow: 0 10px 24px rgba(0, 10, 24, .18) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .goal-material-estimate {
+  margin: 0;
+  padding: 15px 17px !important;
+  min-height: 0;
+  line-height: 1.5;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .goal-material-estimate.empty-message {
+  display: block;
+  color: var(--v66-muted) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia :is(
+  .goal-material-estimate,
+  .linked-materials,
+  .goal-time-comparison,
+  .daily-goal-materials,
+  .daily-goal-history,
+  .daily-goal-more-actions
+) :is(h3, h4, strong, summary) {
+  color: var(--v66-text) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia :is(
+  .goal-material-estimate,
+  .linked-materials,
+  .goal-time-comparison,
+  .daily-goal-materials,
+  .daily-goal-history,
+  .daily-goal-more-actions
+) :is(p, small, .item-meta) {
+  color: var(--v66-muted) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .goal-material-estimate > strong {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--v66-accent) !important;
+  font-size: .82rem;
+  letter-spacing: .08em;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .goal-material-estimate .card-meta-grid {
+  border: 1px solid rgba(130, 184, 226, .24) !important;
+  background: rgba(2, 18, 33, .42) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .goal-material-estimate .card-meta-grid > span {
+  color: var(--v66-text) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .daily-goal-content > .card-meta-grid {
+  border: 1px solid var(--v66-line) !important;
+  background: rgba(3, 22, 39, .58) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .daily-goal-content > .card-meta-grid > span {
+  color: var(--v66-text) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .daily-goal-content > .card-meta-grid > span:nth-child(6),
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .daily-goal-content > .card-meta-grid > span:nth-child(7),
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .daily-goal-content > .card-meta-grid > span:nth-child(8) {
+  border-radius: 10px;
+  background: rgba(44, 143, 197, .12);
+  color: #ffffff !important;
+  font-weight: 850;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .daily-goal-summary > span:last-child {
+  color: #d8e6f1 !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .daily-goal-summary > span:first-child > strong {
+  color: #ffffff !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .daily-goal-summary > span:first-child > span {
+  color: #c4d7e6 !important;
+}
+
+@media (min-width: 769px) {
+  html[data-aldus-theme="premium-stable"] #view-metas-do-dia .daily-goal-content > .card-meta-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  html[data-aldus-theme="premium-stable"] #view-metas-do-dia .goal-material-estimate {
+    padding: 13px 14px !important;
+    border-radius: 14px !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-metas-do-dia .daily-goal-content > .card-meta-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-metas-do-dia .daily-goal-content > .card-meta-grid > span {
+    padding: 7px 9px;
+  }
+}
+
+@media (prefers-contrast: more) {
+  html[data-aldus-theme="premium-stable"] #view-metas-do-dia :is(
+    .goal-material-estimate,
+    .linked-materials,
+    .goal-time-comparison,
+    .daily-goal-materials,
+    .daily-goal-history,
+    .daily-goal-more-actions
+  ) {
+    border-color: #9bc8e8 !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-metas-do-dia :is(p, span, small, strong, summary) {
+    color: #ffffff !important;
+  }
+}
+

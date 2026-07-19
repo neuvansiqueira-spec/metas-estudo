@@ -32,9 +32,10 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260718-calendario-contraste-v61",
   "20260718-calendario-disciplinas-v62",
   "20260718-logo-exportacoes-v63",
-  "20260718-logo-exportacoes-visivel-v64"
+  "20260718-logo-exportacoes-visivel-v64",
+  "20260718-grafico-respostas-3d-v65"
 ];
-const CURRENT_VERSION = "20260718-grafico-respostas-3d-v65";
+const CURRENT_VERSION = "20260719-tempo-visibilidade-v66";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v23`;
 const FILES_TO_CACHE = [
@@ -53,6 +54,7 @@ const FILES_TO_CACHE = [
   "aldus-calendar-v62.css",
   "aldus-export-brand-v63.css",
   "aldus-export-brand-v64.css",
+  "aldus-daily-goals-v66.css",
   "script.js",
   "qconcursos-crosswalk.js",
   "question-history-pie.js",

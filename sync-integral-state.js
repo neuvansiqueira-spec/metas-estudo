@@ -20,24 +20,92 @@ function syncMergeObject(localValue = {}, remoteValue = {}, prefer = "remote") {
   });
   return result;
 }
+function syncExecutionDate(value) {
+  const direct = String(value || "").match(/^(\d{4}-\d{2}-\d{2})/);
+  if (direct) return direct[1];
+  const parsed = new Date(value || "");
+  if (Number.isNaN(parsed.getTime())) return "";
+  return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
+}
+function syncExecutionText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[–—−]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+function syncExecutionSessionKey(record = {}) {
+  return String(record.timerSessionId || record.sessionId || record.id || "");
+}
+function syncGoalForExecutionRecord(record = {}, goals = [], goalById = new Map(), migrations = {}) {
+  const directGoalId = record.goalId || record.dailyGoalId || record.metaId || "";
+  if (directGoalId && goalById.has(directGoalId)) return goalById.get(directGoalId);
+
+  const assignedGoalId = migrations?.legacyTimerRecoveryV2?.assignments?.[syncExecutionSessionKey(record)]?.goalId || "";
+  if (assignedGoalId && goalById.has(assignedGoalId)) return goalById.get(assignedGoalId);
+
+  const date = syncExecutionDate(record.date || record.data || record.startedAt || record.startTime || record.endedAt || record.endTime);
+  if (!date) return null;
+  const sameDate = goals.filter((goal) => syncExecutionDate(goal.date || goal.data) === date);
+  const syllabusItemId = String(record.syllabusItemId || "").trim();
+  if (syllabusItemId) {
+    const syllabusMatches = sameDate.filter((goal) => String(goal.syllabusItemId || "").trim() === syllabusItemId);
+    if (syllabusMatches.length === 1) return syllabusMatches[0];
+    if (syllabusMatches.length > 1) return null;
+  }
+
+  const discipline = syncExecutionText(record.discipline || record.disciplina);
+  const topic = syncExecutionText(record.topic || record.subject || record.assunto);
+  if (!discipline || !topic) return null;
+  const exactMatches = sameDate.filter((goal) => {
+    const goalDiscipline = syncExecutionText(goal.discipline || goal.disciplina);
+    const goalTopic = syncExecutionText(goal.baseSubject || goal.subject || goal.assunto);
+    return goalDiscipline === discipline && goalTopic === topic;
+  });
+  return exactMatches.length === 1 ? exactMatches[0] : null;
+}
+function syncRelinkExecutionRecord(record, goal) {
+  if (!record || !goal?.id || record.goalId === goal.id) return false;
+  record.previousGoalId ||= record.goalId || record.dailyGoalId || "";
+  record.goalId = goal.id;
+  record.dailyGoalId = goal.id;
+  record.timeRelinkedAt ||= new Date().toISOString();
+  return true;
+}
 function syncRebuildGoalTotals(mergedState) {
   const studyTotals = new Map();
   const questionTotals = new Map();
+  const goals = mergedState.dailyGoals || [];
+  const goalById = new Map(goals.filter((goal) => goal?.id).map((goal) => [goal.id, goal]));
+  const seenStudySessions = new Set();
+  const seenQuestionSessions = new Set();
   (mergedState.studies || []).forEach((study) => {
     if (study.updatesGoal === false) return;
-    const goalId = study.goalId || study.dailyGoalId;
-    if (!goalId) return;
+    const sessionKey = syncExecutionSessionKey(study) || JSON.stringify(study);
+    if (seenStudySessions.has(sessionKey)) return;
+    seenStudySessions.add(sessionKey);
+    const goal = syncGoalForExecutionRecord(study, goals, goalById, mergedState.migrations || {});
+    if (!goal) return;
+    syncRelinkExecutionRecord(study, goal);
+    const goalId = goal.id;
     const minutes = Math.max(0, Number(study.minutes) || Math.round((Number(study.seconds) || 0) / 60));
     const isQuestions = study.timerKind === "questions" || study.kind === "questions";
     const map = isQuestions ? questionTotals : studyTotals;
     map.set(goalId, (map.get(goalId) || 0) + minutes);
   });
   (mergedState.questionLogs || []).forEach((log) => {
-    const goalId = log.goalId || log.dailyGoalId;
-    if (!goalId) return;
+    const sessionKey = String(log.id || log.sessionId || JSON.stringify(log));
+    if (seenQuestionSessions.has(sessionKey)) return;
+    seenQuestionSessions.add(sessionKey);
+    const goal = syncGoalForExecutionRecord(log, goals, goalById, mergedState.migrations || {});
+    if (!goal) return;
+    syncRelinkExecutionRecord(log, goal);
+    const goalId = goal.id;
     questionTotals.set(goalId, (questionTotals.get(goalId) || 0) + Math.max(0, Number(log.minutes) || 0));
   });
-  mergedState.dailyGoals = (mergedState.dailyGoals || []).map((goal) => {
+  mergedState.dailyGoals = goals.map((goal) => {
     const studyMinutes = Math.max(Number(goal.studyActualMinutes) || 0, studyTotals.get(goal.id) || 0);
     const questionMinutes = Math.max(Number(goal.questionActualMinutes) || 0, questionTotals.get(goal.id) || 0);
     const total = Math.max(Number(goal.actualMinutes) || 0, Number(goal.tempo_real_minutos) || 0, studyMinutes + questionMinutes);

@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260718-grafico-respostas-3d-v65";
+const APP_VERSION = "20260719-tempo-visibilidade-v66";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -1806,6 +1806,8 @@ async function initializePrimaryStorage() {
         indexedDBStatus.activeSource = "IndexedDB";
         indexedDBStatus.lastLoadedSource = "IndexedDB";
         replaceState(idb.data);
+        recoverLegacyTimerMinutesForGoals(state);
+        recoverOrphanLegacyTimerMinutesForGoals(state);
         render();
       }
     } else if (localHasData || stateHasUserData(state)) {
@@ -2144,7 +2146,7 @@ function writeCloudStateTransaction(nextState, payload) {
   }
 }
 async function pullSyncPayload() { if (isSyncing) throw new Error("sincronização em andamento"); isSyncing = true; try { let file; try { file = await findSyncFile(); } catch (error) { throw cloudSyncError("query", "Erro ao consultar a nuvem. Verifique a conexão e tente novamente.", error); } if (!file) throw cloudSyncError("query", "Arquivo remoto inexistente."); let payload; try { payload = await downloadSyncFile(file.id); } catch (error) { throw cloudSyncError("download", "Erro ao baixar o arquivo do Google Drive. Tente novamente.", error); } validateCloudPayload(payload); const cloudDataUpdatedAt = syncPayloadUpdatedAt(payload, file.modifiedTime); writeSyncMeta({ connected: true, remoteUpdatedAt: cloudDataUpdatedAt, cloudDataUpdatedAt, remoteDeviceName: payload.deviceName || "", error: "", errorDetails: "" }); renderSyncStatus("Dados da nuvem encontrados."); return payload; } finally { isSyncing = false; } }
-async function applyCloudPayload(payload) { isApplyingRemote = true; try { validateCloudPayload(payload); const cloudDataUpdatedAt = syncPayloadUpdatedAt(payload); replaceState(payload.state); const snapshot = cloneData(state); const saved = await saveStateToIndexedDB(snapshot); const reloaded = await loadStateFromIndexedDB(); if (!statesMatchIndexedDBRecord(snapshot, reloaded)) throw new Error("A validação da restauração no IndexedDB falhou."); indexedDBStatus.available = true; indexedDBStatus.activeSource = "IndexedDB"; indexedDBStatus.lastLoadedSource = "Google Drive"; indexedDBStatus.lastCopyAt = saved.savedAt; indexedDBStatus.validation = "Google Drive gravado e validado no IndexedDB"; indexedDBStatus.size = estimateSerializedStateSize(snapshot); writeCloudStateTransaction(snapshot, payload); writeSyncMeta({ connected: true, pendingSync: false, pendingSyncReason: null, localDirty: false, lastLocalUpdateAt: cloudDataUpdatedAt, localDataUpdatedAt: cloudDataUpdatedAt, lastSyncAt: new Date().toISOString(), lastAutoSyncError: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", remoteUpdatedAt: cloudDataUpdatedAt, cloudDataUpdatedAt, remoteDeviceName: payload.deviceName || "", error: "", errorDetails: "", lastCloudDialogAt: "" }); suppressAutoChecksAfterSync(); render(); showView("backup"); renderSyncStatus("Dados atualizados pela nuvem."); } catch (error) { if (!error.cloudSyncKind) throw cloudSyncError("apply", "Erro ao aplicar os dados da nuvem. Os dados locais foram preservados.", error); throw error; } finally { isApplyingRemote = false; } }
+async function applyCloudPayload(payload) { isApplyingRemote = true; try { validateCloudPayload(payload); const cloudDataUpdatedAt = syncPayloadUpdatedAt(payload); replaceState(payload.state); recoverLegacyTimerMinutesForGoals(state); recoverOrphanLegacyTimerMinutesForGoals(state); const snapshot = cloneData(state); const saved = await saveStateToIndexedDB(snapshot); const reloaded = await loadStateFromIndexedDB(); if (!statesMatchIndexedDBRecord(snapshot, reloaded)) throw new Error("A validação da restauração no IndexedDB falhou."); indexedDBStatus.available = true; indexedDBStatus.activeSource = "IndexedDB"; indexedDBStatus.lastLoadedSource = "Google Drive"; indexedDBStatus.lastCopyAt = saved.savedAt; indexedDBStatus.validation = "Google Drive gravado, reconciliado e validado no IndexedDB"; indexedDBStatus.size = estimateSerializedStateSize(snapshot); writeCloudStateTransaction(snapshot, payload); writeSyncMeta({ connected: true, pendingSync: false, pendingSyncReason: null, localDirty: false, lastLocalUpdateAt: cloudDataUpdatedAt, localDataUpdatedAt: cloudDataUpdatedAt, lastSyncAt: new Date().toISOString(), lastAutoSyncError: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", remoteUpdatedAt: cloudDataUpdatedAt, cloudDataUpdatedAt, remoteDeviceName: payload.deviceName || "", error: "", errorDetails: "", lastCloudDialogAt: "" }); suppressAutoChecksAfterSync(); render(); showView("backup"); renderSyncStatus("Dados atualizados pela nuvem, com o tempo executado reconciliado."); } catch (error) { if (!error.cloudSyncKind) throw cloudSyncError("apply", "Erro ao aplicar os dados da nuvem. Os dados locais foram preservados.", error); throw error; } finally { isApplyingRemote = false; } }
 async function syncNow() { if (!canRunAutoSyncChecks()) return; try { const remote = await pullSyncPayload(); const meta = readSyncMeta(); const localDate = new Date(localDataUpdatedAt(meta) || 0); const remoteDate = new Date(syncPayloadUpdatedAt(remote) || 0); if (+remoteDate === +localDate) return renderSyncStatus("Tudo sincronizado."); if (hasLocalSyncPending(meta) && remote.deviceId !== getDeviceId()) { const pendingChoice = await resolvePendingLocalSyncBeforeCloudDownload(meta); if (pendingChoice === "download") await applyCloudPayload(remote); return; } if (remoteDate > localDate) { const choice = askSyncChoice("Existem dados mais recentes no Google Drive.", ["Baixar versão da nuvem", "Cancelar"]); if (choice === "Baixar versão da nuvem") await applyCloudPayload(remote); else renderSyncStatus("Sincronização cancelada pelo usuário."); } else if (localDate > remoteDate) { const choice = askSyncChoice("Este dispositivo tem versão mais nova. Deseja enviar para a nuvem?", ["Enviar este dispositivo para a nuvem", "Cancelar"]); if (choice === "Enviar este dispositivo para a nuvem") await uploadSyncPayload(makeSyncPayload()); else renderSyncStatus("Sincronização cancelada pelo usuário."); } } catch (error) { recordCloudSyncError(error, "Erro ao sincronizar."); } }
 function hasPendingLocalChanges(meta = readSyncMeta()) { return new Date(localDataUpdatedAt(meta) || 0) > new Date(meta.cloudDataUpdatedAt || meta.remoteUpdatedAt || 0); }
 async function handleCloudConflict(remote, contextMessage = "Existem dados mais recentes no Google Drive.") {
@@ -2389,6 +2391,8 @@ function restoreBackup(payload, mode) {
   if (mode === "replace") { clearProjectLocalStorage(); replaceState(payload.data); }
   if (mode === "merge") mergeBackupData(payload.data);
   recoverLegacyTimerMinutesForGoals(state);
+  recoverOrphanLegacyTimerMinutesForGoals(state);
+  if (typeof syncRebuildGoalTotals === "function") syncRebuildGoalTotals(state);
   indexedDBStatus.lastLoadedSource = "backup";
   saveData({ markLocalChange: true });
   render(); showView("backup"); elements.backupPreview.innerHTML += `<p class="notice">Backup ${mode === "replace" ? "substituído" : "mesclado"} com sucesso.</p>`; autoSyncAfterSave("backup-import");
@@ -2537,7 +2541,9 @@ function recoverLegacyTimerMinutesForGoals(targetState = state) {
     if (legacyGoalHasExistingTime(goal)) { report.preservedGoals++; return; }
     const seenSessions = new Set(); const recoverable = [];
     (studiesByGoalId.get(goal.id) || []).forEach((study) => {
-      const sessionKey = legacyTimerSessionKey(study); if (!sessionKey || migration.assignments[sessionKey] || migration.ignored[sessionKey]) return;
+      const sessionKey = legacyTimerSessionKey(study); const assignment = migration.assignments[sessionKey];
+      const assignedGoalStillExists = assignment?.goalId && targetState.dailyGoals.some((item) => item.id === assignment.goalId);
+      if (!sessionKey || migration.ignored[sessionKey] || (assignment?.goalId && assignment.goalId !== goal.id && assignedGoalStillExists)) return;
       if (seenSessions.has(sessionKey)) { report.ignoredDuplicates++; return; }
       seenSessions.add(sessionKey); const minutes = legacyTimerStudyMinutes(study); if (minutes > 0) recoverable.push({ sessionKey, minutes });
     });
@@ -2563,7 +2569,10 @@ function recoverOrphanLegacyTimerMinutesForGoals(targetState = state) {
     if (!isLegacyTimerStudy(study)) return;
     const sessionKey = legacyTimerSessionKey(study); const minutes = legacyTimerStudyMinutes(study);
     if (!sessionKey || !minutes) return;
-    if (migration.assignments[sessionKey] || migration.ignored[sessionKey] || usedThisRun.has(sessionKey)) { report.ignoredDuplicates++; return; }
+    const assignment = migration.assignments[sessionKey];
+    const assignedGoalStillExists = assignment?.goalId && targetState.dailyGoals.some((goal) => goal.id === assignment.goalId);
+    if (migration.ignored[sessionKey] || assignedGoalStillExists || usedThisRun.has(sessionKey)) { report.ignoredDuplicates++; return; }
+    if (assignment && !assignedGoalStillExists) delete migration.assignments[sessionKey];
     usedThisRun.add(sessionKey);
     const date = legacyStudyDate(study); const studySyllabus = legacyStableId(study.syllabusItemId);
     let candidates = [];
