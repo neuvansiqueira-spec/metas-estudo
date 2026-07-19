@@ -37,9 +37,10 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260719-tempo-visibilidade-v66",
   "20260719-tempo-acumulado-backup-v67",
   "20260719-contraste-integral-v68",
-  "20260719-contraste-componentes-v69"
+  "20260719-contraste-componentes-v69",
+  "20260719-conselheiro-layout-v70"
 ];
-const CURRENT_VERSION = "20260719-conselheiro-layout-v70";
+const CURRENT_VERSION = "20260719-backup-contraste-v71";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v23`;
 const FILES_TO_CACHE = [
@@ -63,6 +64,7 @@ const FILES_TO_CACHE = [
   "aldus-contrast-system-v68.css",
   "aldus-component-contrast-v69.css",
   "aldus-advisor-layout-v70.css",
+  "aldus-backup-contrast-v71.css",
   "script.js",
   "qconcursos-crosswalk.js",
   "question-history-pie.js",
@@ -161,6 +163,9 @@ function patchHtmlSource(source) {
   }
   if (!patched.includes("aldus-advisor-layout-v70.css")) {
     patched = patched.replace("</head>", `<link id="aldusAdvisorLayoutV70" rel="stylesheet" href="aldus-advisor-layout-v70.css?v=${CURRENT_VERSION}" />\n</head>`);
+  }
+  if (!patched.includes("aldus-backup-contrast-v71.css")) {
+    patched = patched.replace("</head>", `<link id="aldusBackupContrastV71" rel="stylesheet" href="aldus-backup-contrast-v71.css?v=${CURRENT_VERSION}" />\n</head>`);
   }
   return patched.replace(
     "</body>",
@@ -308,7 +313,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(networkFirstAppScript(event.request));
     return;
   }
-  if (url.pathname.endsWith("/header-brand-fix.js") || url.pathname.endsWith("/aldus-premium-theme.css") || url.pathname.endsWith("/aldus-premium-refinement-v47.css") || url.pathname.endsWith("/aldus-interface-v51.css") || url.pathname.endsWith("/aldus-responsive-v52.css") || url.pathname.endsWith("/aldus-contrast-v53.css") || url.pathname.endsWith("/aldus-contrast-system-v68.css") || url.pathname.endsWith("/aldus-component-contrast-v69.css") || url.pathname.endsWith("/aldus-advisor-layout-v70.css")) {
+  if (url.pathname.endsWith("/header-brand-fix.js") || url.pathname.endsWith("/aldus-premium-theme.css") || url.pathname.endsWith("/aldus-premium-refinement-v47.css") || url.pathname.endsWith("/aldus-interface-v51.css") || url.pathname.endsWith("/aldus-responsive-v52.css") || url.pathname.endsWith("/aldus-contrast-v53.css") || url.pathname.endsWith("/aldus-contrast-system-v68.css") || url.pathname.endsWith("/aldus-component-contrast-v69.css") || url.pathname.endsWith("/aldus-advisor-layout-v70.css") || url.pathname.endsWith("/aldus-backup-contrast-v71.css")) {
     event.respondWith(networkFirstStableAsset(event.request));
     return;
   }
