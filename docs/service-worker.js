@@ -31,9 +31,10 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260718-historico-planejamento-v60",
   "20260718-calendario-contraste-v61",
   "20260718-calendario-disciplinas-v62",
-  "20260718-logo-exportacoes-v63"
+  "20260718-logo-exportacoes-v63",
+  "20260718-logo-exportacoes-visivel-v64"
 ];
-const CURRENT_VERSION = "20260718-logo-exportacoes-visivel-v64";
+const CURRENT_VERSION = "20260718-grafico-respostas-3d-v65";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v23`;
 const FILES_TO_CACHE = [
