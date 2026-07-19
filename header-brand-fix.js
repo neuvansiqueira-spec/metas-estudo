@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const THEME_VERSION = "20260718-logo-exportacoes-v63";
+  const THEME_VERSION = "20260718-logo-exportacoes-visivel-v64";
   const DESIRED_HTML = `
     <div class="brand-copy">
       <strong>Aldus Metas Concurso</strong>
@@ -51,6 +51,7 @@
     ensureStylesheet("aldusCalendarV61", "aldus-calendar-v61.css");
     ensureStylesheet("aldusCalendarV62", "aldus-calendar-v62.css");
     ensureStylesheet("aldusExportBrandV63", "aldus-export-brand-v63.css");
+    ensureStylesheet("aldusExportBrandV64", "aldus-export-brand-v64.css");
   }
 
   function applyCorrectHeader() {

@@ -1,0 +1,36 @@
+/* Aldus Meta — logotipo completo e visível nas exportações v64 */
+
+@media print {
+  .generated-file-brand {
+    float: right !important;
+    display: block !important;
+    width: 52mm !important;
+    max-width: 42% !important;
+    height: auto !important;
+    margin: 0 0 5mm 8mm !important;
+    padding: 1.5mm !important;
+    border-radius: 3mm !important;
+    background: #fff !important;
+    box-sizing: border-box !important;
+  }
+
+  .generated-file-brand svg {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  .performance-print-hero {
+    min-height: 40mm !important;
+    padding-right: 10mm !important;
+  }
+
+  .calendar-print-report > header {
+    min-height: 40mm !important;
+  }
+
+  .performance-print-hero::after {
+    display: none !important;
+    content: none !important;
+  }
+}

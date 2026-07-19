@@ -9,7 +9,7 @@ const worker = fs.readFileSync("service-worker.js", "utf8");
 const headerFix = fs.readFileSync("header-brand-fix.js", "utf8");
 
 test("v61 carrega por último e identifica a correção do calendário", () => {
-  assert.match(version, /logo-exportacoes-v63$/);
+  assert.match(version, /logo-exportacoes-visivel-v64$/);
   const v60 = html.indexOf("aldus-planning-history-v60.css");
   const v61 = html.indexOf("aldus-calendar-v61.css");
   assert.ok(v60 >= 0);

@@ -30,9 +30,10 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260718-planejamento-contraste-v59",
   "20260718-historico-planejamento-v60",
   "20260718-calendario-contraste-v61",
-  "20260718-calendario-disciplinas-v62"
+  "20260718-calendario-disciplinas-v62",
+  "20260718-logo-exportacoes-v63"
 ];
-const CURRENT_VERSION = "20260718-logo-exportacoes-v63";
+const CURRENT_VERSION = "20260718-logo-exportacoes-visivel-v64";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v23`;
 const FILES_TO_CACHE = [
@@ -50,6 +51,7 @@ const FILES_TO_CACHE = [
   "aldus-calendar-v61.css",
   "aldus-calendar-v62.css",
   "aldus-export-brand-v63.css",
+  "aldus-export-brand-v64.css",
   "script.js",
   "qconcursos-crosswalk.js",
   "question-history-pie.js",
@@ -133,6 +135,9 @@ function patchHtmlSource(source) {
   }
   if (!patched.includes("aldus-export-brand-v63.css")) {
     patched = patched.replace("</head>", `<link id="aldusExportBrandV63" rel="stylesheet" href="aldus-export-brand-v63.css?v=${CURRENT_VERSION}" />\n</head>`);
+  }
+  if (!patched.includes("aldus-export-brand-v64.css")) {
+    patched = patched.replace("</head>", `<link id="aldusExportBrandV64" rel="stylesheet" href="aldus-export-brand-v64.css?v=${CURRENT_VERSION}" />\n</head>`);
   }
   return patched.replace(
     "</body>",
