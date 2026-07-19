@@ -92,9 +92,10 @@ test('Plano do Dia separa tempo de estudo e questões sem concluir automaticamen
   assert.match(script, /goal\.actualMinutes = goal\.studyActualMinutes \+ goal\.questionActualMinutes/);
   assert.match(script, /Registrar estudo/);
   assert.match(script, /Tempo de questões/);
-  assert.match(script, /Estudo realizado: \$\{Number\(goal\.studyActualMinutes\|\|0\)\} min/);
-  assert.match(script, /Questões realizadas: \$\{Number\(goal\.questionActualMinutes\|\|0\)\} min/);
-  assert.match(script, /Total realizado: \$\{Number\(goal\.actualMinutes\|\|0\)\} min/);
+  assert.match(script, /Estudo nesta meta: \$\{Number\(goal\.studyActualMinutes\|\|0\)\} min/);
+  assert.match(script, /Questões nesta meta: \$\{Number\(goal\.questionActualMinutes\|\|0\)\} min/);
+  assert.match(script, /Total nesta meta: \$\{Number\(goal\.actualMinutes\|\|0\)\} min/);
+  assert.match(script, /Tempo acumulado neste assunto/);
   assert.match(script, /registerGoalTime\(goal, "study"\)/);
   assert.match(script, /registerGoalTime\(goal, "questions"\)/);
   assert.doesNotMatch(script, /Deseja concluir esta meta agora/);

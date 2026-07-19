@@ -1,0 +1,89 @@
+/* Aldus Metas — separação entre tempo do dia e histórico v67 */
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .goal-execution-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 14px;
+  margin: 18px 0;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .goal-execution-summary article {
+  display: grid;
+  align-content: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 126px;
+  padding: 19px 21px;
+  border: 1px solid rgba(126, 185, 228, .38);
+  border-radius: 18px;
+  background: linear-gradient(145deg, #0b3151, #071f36);
+  box-shadow: 0 14px 28px rgba(0, 9, 22, .2);
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .goal-execution-summary .goal-execution-total {
+  border-color: rgba(242, 210, 115, .68);
+  background: linear-gradient(145deg, #163d57, #09263e);
+  box-shadow: inset 5px 0 0 #f2d273, 0 14px 28px rgba(0, 9, 22, .22);
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .goal-execution-summary span {
+  color: #d9e8f4 !important;
+  font-size: .78rem;
+  font-weight: 850;
+  letter-spacing: .065em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .goal-execution-summary strong {
+  color: #ffffff !important;
+  font-size: clamp(1.75rem, 3vw, 2.55rem);
+  font-weight: 950;
+  line-height: 1;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .goal-execution-total strong {
+  color: #f8dc83 !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .goal-execution-summary small {
+  color: #bad0e1 !important;
+  font-size: .82rem;
+  font-weight: 700;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .historical-time-stat {
+  border-color: rgba(242, 210, 115, .58) !important;
+  box-shadow: inset 4px 0 0 #f2d273;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .historical-time-stat strong {
+  color: #f8dc83 !important;
+}
+
+@media (max-width: 768px) {
+  html[data-aldus-theme="premium-stable"] #view-metas-do-dia .goal-execution-summary {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin: 14px 0;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-metas-do-dia .goal-execution-summary article {
+    min-height: 0;
+    padding: 16px 17px;
+    border-radius: 15px;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-metas-do-dia .goal-execution-summary strong {
+    font-size: 1.85rem;
+  }
+}
+
+@media (prefers-contrast: more) {
+  html[data-aldus-theme="premium-stable"] #view-metas-do-dia .goal-execution-summary article {
+    border-width: 2px;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-metas-do-dia .goal-execution-summary :is(span, strong, small) {
+    color: #ffffff !important;
+  }
+}

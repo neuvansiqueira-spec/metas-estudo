@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const THEME_VERSION = "20260719-tempo-visibilidade-v66";
+  const THEME_VERSION = "20260719-tempo-acumulado-backup-v67";
   const DESIRED_HTML = `
     <div class="brand-copy">
       <strong>Aldus Metas Concurso</strong>
