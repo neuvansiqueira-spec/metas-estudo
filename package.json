@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260718-logo-exportacoes-visivel-v64",
+  "version": "20260718-grafico-respostas-3d-v65",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const THEME_VERSION = "20260718-logo-exportacoes-visivel-v64";
+  const THEME_VERSION = "20260718-grafico-respostas-3d-v65";
   const DESIRED_HTML = `
     <div class="brand-copy">
       <strong>Aldus Metas Concurso</strong>

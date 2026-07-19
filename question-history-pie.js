@@ -171,97 +171,94 @@
       }
 
       .qh-chart-visual {
+        position: relative;
         display: grid;
         place-items: center;
         min-width: 0;
-        min-height: 305px;
-        padding: .5rem;
+        min-height: 330px;
+        padding: .65rem;
+        overflow: hidden;
         border-radius: 16px;
         background:
-          radial-gradient(circle at 50% 44%, rgba(21,155,99,.08), transparent 44%),
+          radial-gradient(ellipse at 50% 48%, rgba(21,155,99,.12), transparent 46%),
           linear-gradient(180deg, #fbfdff, #f3f7fa);
-        perspective: 1000px;
+        isolation: isolate;
+      }
+
+      .qh-chart-visual::before {
+        content: "";
+        position: absolute;
+        inset: 12% 8% 9%;
+        z-index: -1;
+        border-radius: 50%;
+        background: radial-gradient(ellipse, rgba(8,43,73,.07), transparent 68%);
+        filter: blur(8px);
       }
 
       .qh-donut-wrap {
         position: relative;
         display: grid;
         place-items: center;
-        width: 280px;
-        height: 250px;
+        width: min(100%, 440px);
+        aspect-ratio: 44 / 30;
       }
 
-      .qh-donut-shadow {
-        position: absolute;
-        left: 50%;
-        bottom: 28px;
-        width: 210px;
-        height: 40px;
-        border-radius: 50%;
-        background: rgba(8, 43, 73, .17);
-        filter: blur(12px);
-        transform: translateX(-50%);
+      .qh-donut-svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        overflow: visible;
       }
 
-      .qh-donut {
-        --qh-pie-gradient: conic-gradient(${COLORS.empty} 0 100%);
-        position: relative;
-        z-index: 1;
-        width: 220px;
-        aspect-ratio: 1;
-        border-radius: 50%;
-        background: var(--qh-pie-gradient);
-        transform: rotateX(47deg) rotateZ(-3deg);
-        transform-style: preserve-3d;
-        box-shadow:
-          0 18px 0 rgba(8, 43, 73, .22),
-          0 26px 22px rgba(8, 43, 73, .17),
-          inset 0 4px 3px rgba(255,255,255,.62);
+      .qh-donut-ground-shadow {
+        fill: rgba(8, 43, 73, .24);
+        filter: url(#qhDonutShadow);
       }
 
-      .qh-donut::before {
-        content: "";
-        position: absolute;
-        inset: 38px;
-        border-radius: 50%;
-        background: #fff;
-        box-shadow:
-          inset 0 4px 10px rgba(8,43,73,.13),
-          0 2px 0 rgba(255,255,255,.8);
+      .qh-donut-depth path {
+        stroke: rgba(4, 23, 39, .16);
+        stroke-width: 1;
       }
 
-      .qh-donut::after {
-        content: "";
-        position: absolute;
-        inset: 4px;
-        border-radius: 50%;
-        border: 2px solid rgba(255,255,255,.44);
+      .qh-donut-top path {
+        stroke: rgba(247, 251, 255, .94);
+        stroke-width: 3;
+        stroke-linejoin: round;
+      }
+
+      .qh-donut-rim {
+        fill: none;
+        stroke: rgba(255, 255, 255, .48);
+        stroke-width: 3;
         pointer-events: none;
       }
 
-      .qh-donut-center {
-        position: absolute;
-        z-index: 3;
-        display: grid;
-        place-items: center;
-        align-content: center;
-        width: 120px;
-        height: 92px;
-        text-align: center;
-        pointer-events: none;
+      .qh-donut-center-shadow {
+        fill: rgba(4, 23, 39, .34);
+        filter: url(#qhCenterBlur);
       }
 
-      .qh-donut-center strong {
-        color: ${COLORS.navy};
-        font-size: 2rem;
-        line-height: 1;
+      .qh-donut-center-disc {
+        fill: #fff;
+        stroke: #dce8f0;
+        stroke-width: 2;
       }
 
-      .qh-donut-center span {
-        margin-top: .28rem;
-        color: #657a8e;
-        font-size: .78rem;
-        font-weight: 700;
+      .qh-donut-center-value {
+        fill: ${COLORS.navy};
+        font: 900 39px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        letter-spacing: -1.5px;
+      }
+
+      .qh-donut-center-label {
+        fill: #526b7f;
+        font: 800 15px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        letter-spacing: .3px;
+      }
+
+      .qh-donut-caption {
+        fill: #7a8fa1;
+        font: 700 13px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
 
       .qh-chart-info {
@@ -416,13 +413,39 @@
         font-size: 1.05rem;
       }
 
+      html[data-aldus-theme="premium-stable"] .qh-chart-visual {
+        background:
+          radial-gradient(ellipse at 50% 48%, rgba(39, 194, 130, .14), transparent 48%),
+          linear-gradient(180deg, rgba(3, 20, 38, .84), rgba(6, 30, 53, .96)) !important;
+      }
+
+      html[data-aldus-theme="premium-stable"] .qh-result-label,
+      html[data-aldus-theme="premium-stable"] .qh-accuracy-line {
+        color: #e9f2f8 !important;
+      }
+
+      html[data-aldus-theme="premium-stable"] .qh-result-row {
+        border-color: rgba(111, 169, 214, .24) !important;
+        background: rgba(3, 20, 38, .58) !important;
+      }
+
+      html[data-aldus-theme="premium-stable"] .qh-result-values strong {
+        color: #fff !important;
+      }
+
+      html[data-aldus-theme="premium-stable"] .qh-result-values small,
+      html[data-aldus-theme="premium-stable"] .qh-donut-caption {
+        color: #b9cad7 !important;
+        fill: #b9cad7 !important;
+      }
+
       @media (max-width: 820px) {
         .qh-chart-card {
           grid-template-columns: 1fr;
         }
 
         .qh-chart-visual {
-          min-height: 275px;
+          min-height: 290px;
         }
       }
 
@@ -459,12 +482,7 @@
         }
 
         .qh-donut-wrap {
-          width: 240px;
-          height: 220px;
-        }
-
-        .qh-donut {
-          width: 190px;
+          width: min(100%, 390px);
         }
 
         .qh-chart-heading {
@@ -672,18 +690,106 @@
     return `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(percentNumber(value, total))}%`;
   }
 
-  function gradientFor(values) {
+  function ellipsePoint(cx, cy, radiusX, radiusY, angle) {
+    const radians = angle * Math.PI / 180;
+    return {
+      x: Number((cx + radiusX * Math.cos(radians)).toFixed(3)),
+      y: Number((cy + radiusY * Math.sin(radians)).toFixed(3))
+    };
+  }
+
+  function donutSegmentPath(startAngle, endAngle) {
+    const cx = 220;
+    const cy = 126;
+    const outerX = 158;
+    const outerY = 82;
+    const innerX = 88;
+    const innerY = 46;
+    const safeEnd = endAngle - startAngle >= 359.999 ? startAngle + 359.99 : endAngle;
+    const largeArc = safeEnd - startAngle > 180 ? 1 : 0;
+    const outerStart = ellipsePoint(cx, cy, outerX, outerY, startAngle);
+    const outerEnd = ellipsePoint(cx, cy, outerX, outerY, safeEnd);
+    const innerEnd = ellipsePoint(cx, cy, innerX, innerY, safeEnd);
+    const innerStart = ellipsePoint(cx, cy, innerX, innerY, startAngle);
+    return [
+      `M ${outerStart.x} ${outerStart.y}`,
+      `A ${outerX} ${outerY} 0 ${largeArc} 1 ${outerEnd.x} ${outerEnd.y}`,
+      `L ${innerEnd.x} ${innerEnd.y}`,
+      `A ${innerX} ${innerY} 0 ${largeArc} 0 ${innerStart.x} ${innerStart.y}`,
+      "Z"
+    ].join(" ");
+  }
+
+  function donutSegments(values) {
     const total = values.correct + values.wrong + values.null;
-    if (!total) return `conic-gradient(${COLORS.empty} 0 100%)`;
+    const definitions = [
+      { key: "correct", singular: "Acerto", label: "Acertos", value: values.correct, top: "url(#qhCorrectTop)", depth: "#087348" },
+      { key: "wrong", singular: "Erro", label: "Erros", value: values.wrong, top: "url(#qhWrongTop)", depth: "#a92d35" },
+      { key: "null", singular: "Nulo", label: "Nulos", value: values.null, top: "url(#qhNullTop)", depth: "#9a7000" }
+    ];
+    let angle = -90;
+    return definitions.flatMap((definition) => {
+      if (!definition.value || !total) return [];
+      const span = definition.value / total * 360;
+      const segment = {
+        ...definition,
+        path: donutSegmentPath(angle, angle + span),
+        percent: formatPercent(definition.value, total)
+      };
+      angle += span;
+      return [segment];
+    });
+  }
 
-    const correctEnd = percentNumber(values.correct, total);
-    const wrongEnd = correctEnd + percentNumber(values.wrong, total);
+  function donutSvg(period, values, total) {
+    const segments = donutSegments(values);
+    const titleId = `qhDonutTitle-${period.key}`;
+    const descriptionId = `qhDonutDescription-${period.key}`;
+    const depth = [22, 18, 14, 10, 6].map((offset) => `
+      <g transform="translate(0 ${offset})">
+        ${segments.map((segment) => `<path d="${segment.path}" fill="${segment.depth}"></path>`).join("")}
+      </g>
+    `).join("");
+    const top = segments.map((segment) => `
+      <path d="${segment.path}" fill="${segment.top}">
+        <title>${segment.value === 1 ? segment.singular : segment.label}: ${formatInteger(segment.value)} (${segment.percent})</title>
+      </path>
+    `).join("");
+    const countLabel = (value, singular, plural) => `${formatInteger(value)} ${value === 1 ? singular : plural}`;
+    const description = `${countLabel(values.correct, "acerto", "acertos")}, ${countLabel(values.wrong, "erro", "erros")} e ${countLabel(values.null, "nulo", "nulos")} em ${countLabel(total, "questão", "questões")}.`;
 
-    return `conic-gradient(
-      ${COLORS.correct} 0 ${correctEnd}%,
-      ${COLORS.wrong} ${correctEnd}% ${wrongEnd}%,
-      ${COLORS.null} ${wrongEnd}% 100%
-    )`;
+    return `
+      <svg class="qh-donut-svg" viewBox="0 0 440 300" role="img" aria-labelledby="${titleId} ${descriptionId}">
+        <title id="${titleId}">Distribuição 3D das respostas — ${period.label}</title>
+        <desc id="${descriptionId}">${description}</desc>
+        <defs>
+          <linearGradient id="qhCorrectTop" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#35d892"></stop><stop offset="1" stop-color="#0b8a56"></stop>
+          </linearGradient>
+          <linearGradient id="qhWrongTop" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#ff7a7a"></stop><stop offset="1" stop-color="#c83b44"></stop>
+          </linearGradient>
+          <linearGradient id="qhNullTop" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#ffd45c"></stop><stop offset="1" stop-color="#c18c00"></stop>
+          </linearGradient>
+          <filter id="qhDonutShadow" x="-30%" y="-80%" width="160%" height="260%">
+            <feGaussianBlur stdDeviation="12"></feGaussianBlur>
+          </filter>
+          <filter id="qhCenterBlur" x="-25%" y="-45%" width="150%" height="190%">
+            <feGaussianBlur stdDeviation="5"></feGaussianBlur>
+          </filter>
+        </defs>
+        <ellipse class="qh-donut-ground-shadow" cx="220" cy="226" rx="152" ry="20"></ellipse>
+        <g class="qh-donut-depth" aria-hidden="true">${depth}</g>
+        <g class="qh-donut-top">${top}</g>
+        <ellipse class="qh-donut-rim" cx="220" cy="126" rx="155" ry="79"></ellipse>
+        <ellipse class="qh-donut-center-shadow" cx="220" cy="134" rx="87" ry="47"></ellipse>
+        <ellipse class="qh-donut-center-disc" cx="220" cy="126" rx="83" ry="43"></ellipse>
+        <text class="qh-donut-center-value" x="220" y="122" text-anchor="middle">${formatPercent(values.correct, total)}</text>
+        <text class="qh-donut-center-label" x="220" y="148" text-anchor="middle">de acertos</text>
+        <text class="qh-donut-caption" x="220" y="280" text-anchor="middle">Proporção das ${formatInteger(total)} questões selecionadas</text>
+      </svg>
+    `;
   }
 
   function resultRow(className, label, value, total) {
@@ -712,14 +818,9 @@
 
     return `
       <article class="qh-chart-card">
-        <div class="qh-chart-visual" aria-label="Gráfico de ${period.label}: ${formatInteger(values.correct)} acertos, ${formatInteger(values.wrong)} erros e ${formatInteger(values.null)} nulos">
+        <div class="qh-chart-visual">
           <div class="qh-donut-wrap">
-            <div class="qh-donut-shadow" aria-hidden="true"></div>
-            <div class="qh-donut" style="--qh-pie-gradient: ${gradientFor(values)}" aria-hidden="true"></div>
-            <div class="qh-donut-center">
-              <strong>${formatPercent(values.correct, total)}</strong>
-              <span>de acertos</span>
-            </div>
+            ${donutSvg(period, values, total)}
           </div>
         </div>
         <div class="qh-chart-info">
