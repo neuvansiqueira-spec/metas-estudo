@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 
-const version = '20260719-contraste-componentes-v69';
+const version = '20260719-conselheiro-layout-v70';
 const html = fs.readFileSync('index.html', 'utf8');
 const worker = fs.readFileSync('service-worker.js', 'utf8');
 const chartSource = fs.readFileSync('question-history-pie.js', 'utf8');
