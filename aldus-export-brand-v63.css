@@ -1,0 +1,27 @@
+/* Aldus Metas — identidade visual dos arquivos exportados v63 */
+
+@media print {
+  .generated-file-brand svg {
+    display: block !important;
+    width: 22mm !important;
+    height: 22mm !important;
+    flex: 0 0 22mm !important;
+  }
+
+  .generated-file-brand strong {
+    max-width: 44mm !important;
+    color: #fff !important;
+    font-size: 9pt !important;
+    line-height: 1.25 !important;
+  }
+
+  .performance-print-hero::after {
+    display: none !important;
+    content: none !important;
+  }
+
+  .calendar-print-report > header,
+  .performance-print-hero {
+    min-height: 34mm !important;
+  }
+}

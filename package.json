@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260718-calendario-disciplinas-v62",
+  "version": "20260718-logo-exportacoes-v63",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
