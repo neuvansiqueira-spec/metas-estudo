@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260718-logo-exportacoes-v63",
+  "version": "20260718-logo-exportacoes-visivel-v64",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
