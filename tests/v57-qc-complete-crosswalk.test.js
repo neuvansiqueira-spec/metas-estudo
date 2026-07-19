@@ -59,7 +59,7 @@ test("manual continua tendo prioridade sobre a auditoria", () => {
 });
 
 test("auditoria v57 permanece sincronizada após versões posteriores", () => {
-  assert.match(version, /contraste-integral-v68$/);
+  assert.match(version, /contraste-componentes-v69$/);
   assert.match(worker, new RegExp(`const CURRENT_VERSION = "${version}"`));
   assert.match(worker, /"20260718-cruzamento-qc-completo-v57"/);
   assert.match(worker, /"20260718-revisao-visual-global-v58"/);

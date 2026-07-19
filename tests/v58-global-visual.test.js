@@ -9,7 +9,7 @@ const worker = fs.readFileSync("service-worker.js", "utf8");
 const headerFix = fs.readFileSync("header-brand-fix.js", "utf8");
 
 test("v58 permanece carregada antes das correções visuais posteriores", () => {
-  assert.match(version, /contraste-integral-v68$/);
+  assert.match(version, /contraste-componentes-v69$/);
   const contrastPosition = html.indexOf("aldus-contrast-v53.css");
   const visualPosition = html.indexOf("aldus-visual-v58.css");
   assert.ok(contrastPosition >= 0);

@@ -1,0 +1,241 @@
+/* Aldus Metas — contrato de contraste por componente v69
+   Camada final de tela para componentes estáticos e gerados por JavaScript. */
+
+@media screen {
+  html[data-aldus-theme="premium-stable"] {
+    --v69-bg: #04182a;
+    --v69-surface: #08263f;
+    --v69-surface-raised: #0d3453;
+    --v69-surface-soft: #123c5d;
+    --v69-border: rgba(143, 191, 229, .42);
+    --v69-border-strong: rgba(167, 207, 237, .62);
+    --v69-text: #f8fbff;
+    --v69-soft: #dce8f1;
+    --v69-muted: #bfd0de;
+    --v69-gold: #f4d77d;
+    --v69-blue: #78b8ff;
+    color-scheme: dark;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card, .export-dialog-card) {
+    color-scheme: dark;
+  }
+
+  /* Superfícies nomeadas: cobre cartões e módulos criados dinamicamente. */
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(
+    [class$="-card"],
+    [class*="-card "],
+    [class$="-panel"],
+    [class*="-panel "],
+    [class$="-section"],
+    [class*="-section "],
+    [class$="-box"],
+    [class*="-box "],
+    [class$="-item"],
+    [class*="-item "],
+    [class$="-summary"],
+    [class*="-summary "]
+  ):not(.analytics-svg-chart):not(.qh-donut):not(.qh-donut-center) {
+    border-color: var(--v69-border) !important;
+    background-color: var(--v69-surface) !important;
+    background-image: linear-gradient(145deg, var(--v69-surface-raised), var(--v69-bg)) !important;
+    color: var(--v69-text) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(
+    [class$="-card"], [class*="-card "],
+    [class$="-panel"], [class*="-panel "],
+    [class$="-section"], [class*="-section "],
+    [class$="-box"], [class*="-box "],
+    [class$="-item"], [class*="-item "],
+    [class$="-summary"], [class*="-summary "]
+  ) :is(h1, h2, h3, h4, h5, h6, strong) {
+    color: var(--v69-text) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(
+    [class$="-card"], [class*="-card "],
+    [class$="-panel"], [class*="-panel "],
+    [class$="-section"], [class*="-section "],
+    [class$="-box"], [class*="-box "],
+    [class$="-item"], [class*="-item "],
+    [class$="-summary"], [class*="-summary "]
+  ) :is(p, li, dt, dd, small) {
+    color: var(--v69-soft) !important;
+  }
+
+  /* Campos e rótulos: remove cápsulas brancas ao redor de select e checkbox. */
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) label:has(> :is(input, select, textarea)) {
+    color: var(--v69-text) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(.card-actions, .actions) > label {
+    border: 1px solid var(--v69-border) !important;
+    background: rgba(4, 24, 42, .86) !important;
+    color: var(--v69-text) !important;
+    box-shadow: none !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(.card-actions, .actions) > label:has(> select) {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    min-height: 48px !important;
+    padding: 5px 6px 5px 12px !important;
+    border-radius: 16px !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(.card-actions, .actions) > label:has(> input:is([type="checkbox"], [type="radio"])) {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 10px !important;
+    min-width: 190px !important;
+    min-height: 48px !important;
+    padding: 10px 14px !important;
+    border-radius: 16px !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(input, select, textarea) {
+    border: 1px solid var(--v69-border-strong) !important;
+    background-color: var(--v69-bg) !important;
+    background-image: none !important;
+    color: var(--v69-text) !important;
+    -webkit-text-fill-color: var(--v69-text) !important;
+    box-shadow: none !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(.card-actions, .actions) > label > select {
+    width: auto !important;
+    min-width: 170px !important;
+    margin: 0 !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) input:is([type="checkbox"], [type="radio"]) {
+    appearance: auto !important;
+    flex: 0 0 auto !important;
+    width: 19px !important;
+    min-width: 19px !important;
+    height: 19px !important;
+    min-height: 19px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    accent-color: #5aa4ff !important;
+    -webkit-text-fill-color: initial !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) input:is([type="date"], [type="time"], [type="datetime-local"]) {
+    color-scheme: dark !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) input[type="file"]::file-selector-button {
+    border: 1px solid rgba(120, 184, 255, .55) !important;
+    border-radius: 10px !important;
+    background: #174f83 !important;
+    color: #fff !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(input, textarea)::placeholder {
+    color: #adc1d1 !important;
+    -webkit-text-fill-color: #adc1d1 !important;
+    opacity: 1 !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(input, select, textarea):is(:hover, :focus, :focus-visible) {
+    border-color: var(--v69-blue) !important;
+    background-color: #062139 !important;
+    outline: 3px solid rgba(120, 184, 255, .24) !important;
+  }
+
+  /* Código, atalhos e marcações deixam de usar o fundo claro do CSS-base. */
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(code, kbd, samp) {
+    border: 1px solid var(--v69-border) !important;
+    border-radius: 8px !important;
+    background: #031725 !important;
+    color: #e7f2fb !important;
+    -webkit-text-fill-color: #e7f2fb !important;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) pre {
+    overflow: auto !important;
+    border: 1px solid var(--v69-border) !important;
+    border-radius: 14px !important;
+    background: #031725 !important;
+    color: #e7f2fb !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) mark {
+    background: rgba(244, 215, 125, .22) !important;
+    color: #fff1b8 !important;
+  }
+
+  /* Estados vazios, barras e elementos auxiliares antes não alcançados. */
+  html[data-aldus-theme="premium-stable"] .app-view.active .empty-message:empty::before,
+  html[data-aldus-theme="premium-stable"] .app-view.active :is(.backup-preview, .import-preview, .discipline-list):not(:empty) {
+    border-color: var(--v69-border) !important;
+    background: rgba(4, 24, 42, .84) !important;
+    color: var(--v69-muted) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] .app-view.active :is(.progress, progress) {
+    border-color: var(--v69-border) !important;
+    background: #031725 !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] .app-view.active .question-register-section > summary::after,
+  html[data-aldus-theme="premium-stable"] .app-view.active .interface-collapsible-summary::after {
+    border-color: var(--v69-border) !important;
+    background: #103b5c !important;
+    color: var(--v69-text) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] .app-view.active :is(.calendar-grid article, .goal-pill, .day-mode-option, .planning-section, .floating-timer) {
+    border-color: var(--v69-border) !important;
+    background-color: var(--v69-surface) !important;
+    background-image: linear-gradient(145deg, var(--v69-surface-raised), var(--v69-bg)) !important;
+    color: var(--v69-text) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] .app-view.active :is(.badge.neutral, .goal-status-pendente) {
+    border-color: rgba(167, 207, 237, .46) !important;
+    background: rgba(72, 112, 144, .32) !important;
+    color: #e5f0f8 !important;
+  }
+
+  /* O gráfico pode permanecer claro, mas seu texto deve permanecer escuro. */
+  html[data-aldus-theme="premium-stable"] .app-view.active .analytics-svg-chart {
+    border-color: #adc3d4 !important;
+    background: #f8fbff !important;
+    color: #17324a !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] .app-view.active .analytics-svg-chart :is(text, tspan) {
+    fill: #17324a !important;
+    color: #17324a !important;
+  }
+
+  @media (max-width: 768px) {
+    html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(.card-actions, .actions) > label,
+    html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(.card-actions, .actions) > label > select {
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(.card-actions, .actions) > label:has(> :is(input, select, textarea)) {
+      border-radius: 14px !important;
+    }
+  }
+
+  @media (prefers-contrast: more) {
+    html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(
+      input, select, textarea, code, kbd, samp, pre,
+      .card-actions > label, .actions > label
+    ) {
+      border-color: #cce8ff !important;
+      border-width: 2px !important;
+    }
+  }
+}
