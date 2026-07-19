@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260719-conselheiro-layout-v70",
+  "version": "20260719-backup-contraste-v71",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

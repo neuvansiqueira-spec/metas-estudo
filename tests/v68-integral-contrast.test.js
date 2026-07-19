@@ -9,7 +9,7 @@ const worker = fs.readFileSync("service-worker.js", "utf8");
 const headerFix = fs.readFileSync("header-brand-fix.js", "utf8");
 
 test("v68 é a última camada visual e usa a versão atual", () => {
-  assert.equal(version, "20260719-conselheiro-layout-v70");
+  assert.equal(version, "20260719-backup-contraste-v71");
   assert.match(html, new RegExp(`aldus-contrast-system-v68\\.css\\?v=${version}`));
   assert.ok(html.indexOf("aldus-contrast-system-v68.css") > html.indexOf("aldus-daily-time-v67.css"));
   assert.match(html, new RegExp(`Versão: ${version}`));
@@ -61,7 +61,7 @@ test("celular, alto contraste e impressão são protegidos", () => {
 });
 
 test("cache, reforço do tema e cópia publicada carregam a v68", () => {
-  assert.match(worker, /const CURRENT_VERSION = "20260719-conselheiro-layout-v70"/);
+  assert.match(worker, /const CURRENT_VERSION = "20260719-backup-contraste-v71"/);
   assert.match(worker, /"20260719-tempo-acumulado-backup-v67"/);
   assert.match(worker, /"aldus-contrast-system-v68\.css"/);
   assert.match(worker, /id="aldusContrastSystemV68"/);

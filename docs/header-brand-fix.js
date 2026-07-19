@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const THEME_VERSION = "20260719-conselheiro-layout-v70";
+  const THEME_VERSION = "20260719-backup-contraste-v71";
   const DESIRED_HTML = `
     <div class="brand-copy">
       <strong>Aldus Metas Concurso</strong>
@@ -55,6 +55,7 @@
     ensureStylesheet("aldusContrastSystemV68", "aldus-contrast-system-v68.css");
     ensureStylesheet("aldusComponentContrastV69", "aldus-component-contrast-v69.css");
     ensureStylesheet("aldusAdvisorLayoutV70", "aldus-advisor-layout-v70.css");
+    ensureStylesheet("aldusBackupContrastV71", "aldus-backup-contrast-v71.css");
   }
 
   function applyCorrectHeader() {
