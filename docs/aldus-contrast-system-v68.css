@@ -1,0 +1,426 @@
+/* Aldus Metas — contrato integral de contraste v68
+   Camada final de tela: elimina superfícies claras residuais sem alterar impressão/exportação. */
+
+@media screen {
+  html[data-aldus-theme="premium-stable"] {
+    --v68-surface: #08263f;
+    --v68-surface-raised: #0d3453;
+    --v68-surface-deep: #051d32;
+    --v68-surface-soft: #123a58;
+    --v68-line: rgba(143, 191, 229, .34);
+    --v68-line-strong: rgba(143, 191, 229, .54);
+    --v68-text: #f8fbff;
+    --v68-text-soft: #dce8f1;
+    --v68-muted: #bfd0de;
+    --v68-gold: #f4d77d;
+    --v68-blue: #78b8ff;
+    --v68-success: #bff5df;
+    --v68-warning: #ffe7a3;
+    --v68-danger: #ffd0d5;
+  }
+
+  /* Hierarquia tipográfica única para todas as abas e subabas. */
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(h1, h2, h3, h4, h5, h6) {
+    color: var(--v68-text) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(p, li, dt, dd, figcaption) {
+    color: var(--v68-text-soft) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(
+    label,
+    legend,
+    summary,
+    .card-label,
+    .dashboard-block-title,
+    .planning-section-title,
+    .analytics-section-title
+  ) {
+    color: var(--v68-text) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(
+    small,
+    .item-meta,
+    .file-info,
+    .empty-message,
+    .planning-section-resume,
+    .analytics-section-resume,
+    .material-item-summary-meta,
+    .goal-completion-subject
+  ) {
+    color: var(--v68-muted) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) .eyebrow {
+    color: var(--v68-gold) !important;
+  }
+
+  /* Famílias de superfícies que ainda podiam herdar o branco do CSS-base. */
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(
+    .stat-card,
+    .wide-stat,
+    .daily-message-card,
+    .dashboard-block,
+    .syllabus-card,
+    .subject-item,
+    .review-item,
+    .alert-item,
+    .discipline-entry,
+    .sync-card,
+    .progress-dashboard-card,
+    .goal-central-card,
+    .day-plan-panel,
+    .today-study-panel,
+    .manual-goal-panel,
+    .next-goal-card,
+    .daily-plan-section,
+    .daily-goal-section,
+    .weekly-plan-day-card,
+    .planning-history-card,
+    .planning-estimate-item,
+    .planning-summary-card,
+    .planning-forecast-card,
+    .planning-preview-card,
+    .day-mode-card,
+    .smart-review-panel,
+    .smart-review-card,
+    .smart-review-sections > section,
+    .question-bank-card,
+    .question-bank-item,
+    .qb-section,
+    .qb-details-card,
+    .qb-filters-card,
+    .qb-preview-item,
+    .qb-syllabus-item,
+    .question-register-section,
+    .factory-card,
+    .factory-section,
+    .factory-modules-panel,
+    .factory-prompt-panel,
+    .factory-today-queue,
+    .compact-factory-card .factory-theme-details,
+    .material-card,
+    .material-collapsible-item,
+    .materials-collapsible-section,
+    .advisor-nav-panel,
+    .advisor-message,
+    .analytics-filters-section,
+    .analytics-section,
+    .analytics-subsection,
+    .analytics-table-details,
+    .analytics-compact-header,
+    .performance-central,
+    .performance-chart-row.horizontal,
+    .performance-line-chart,
+    .performance-bars,
+    .net-discipline-row,
+    .discipline-performance-card,
+    .export-dialog-card
+  ) {
+    border-color: var(--v68-line) !important;
+    background: linear-gradient(145deg, var(--v68-surface-raised), var(--v68-surface-deep)) !important;
+    color: var(--v68-text) !important;
+    box-shadow: 0 12px 28px rgba(0, 8, 20, .2) !important;
+  }
+
+  /* Caixas, avisos, filtros e blocos internos. */
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(
+    .notice,
+    .file-info:not(:empty),
+    .bulk-box,
+    .filters,
+    .bulk-priority-box,
+    .calculation-box,
+    .backup-preview:not(:empty),
+    .imported-syllabus-groups:not(:empty),
+    #importMessage:not(:empty),
+    .discipline-list:not(:empty),
+    .linked-materials,
+    .progress-main,
+    .calendar-export-scope,
+    .calendar-toolbar,
+    .goal-calendar-section,
+    .calendar-settings-section,
+    .weight-row,
+    .planning-subblock,
+    .instructions-grid > article,
+    .scale-work-block,
+    .goal-time-comparison,
+    .factory-module-summary,
+    .factory-prompt-box,
+    .factory-do-now,
+    .material-estimate-box,
+    .material-estimate-feedback,
+    .material-estimate-mode-hint,
+    .privacy-note,
+    .advisor-kv > div,
+    .analytics-filters,
+    .analytics-plan-preview,
+    .goal-material-estimate,
+    .daily-goal-materials,
+    .daily-goal-history,
+    .daily-goal-more-actions,
+    .planning-history-details,
+    .timer-study-summary,
+    .timer-alert,
+    .timer-completion
+  ) {
+    border-color: var(--v68-line) !important;
+    background: linear-gradient(145deg, rgba(13, 52, 83, .96), rgba(5, 29, 50, .98)) !important;
+    color: var(--v68-text-soft) !important;
+    box-shadow: none !important;
+  }
+
+  /* Elementos pequenos que eram brancos dentro de cartões escuros. */
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(
+    .card-meta-grid,
+    .card-meta-grid > span,
+    .tag-list > span,
+    .question-bank-meta > span,
+    .qb-diagnostics-grid > section,
+    .question-topic-hierarchy > span,
+    .question-filter-tip,
+    .question-registration-link,
+    .goal-completion-grid > span,
+    .goal-completion-zero,
+    .goal-time-comparison-grid > span,
+    .review-time-grid > span,
+    .strategic-analysis-grid > div,
+    .sync-status-grid > div
+  ) {
+    border-color: var(--v68-line) !important;
+    background: rgba(4, 26, 45, .74) !important;
+    color: var(--v68-text) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(
+    .card-meta-grid,
+    .question-topic-hierarchy,
+    .question-filter-route,
+    .goal-completion-grid,
+    .goal-time-comparison-grid
+  ) :is(strong, span) {
+    color: var(--v68-text) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(
+    .card-meta-grid,
+    .question-topic-hierarchy,
+    .question-filter-route,
+    .goal-completion-grid,
+    .goal-time-comparison-grid
+  ) small,
+  html[data-aldus-theme="premium-stable"] .goal-completion-grid strong {
+    color: var(--v68-muted) !important;
+  }
+
+  /* Acordeões mantêm o mesmo contraste abertos ou fechados. */
+  html[data-aldus-theme="premium-stable"] .app-view.active details {
+    border-color: var(--v68-line) !important;
+    color: var(--v68-text-soft) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] .app-view.active details > summary {
+    border-color: var(--v68-line) !important;
+    background: rgba(10, 43, 71, .94) !important;
+    color: var(--v68-text) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] .app-view.active details > summary :is(strong, span) {
+    color: inherit !important;
+  }
+
+  /* Tabelas: nenhuma linha clara com números invisíveis. */
+  html[data-aldus-theme="premium-stable"] .app-view.active :is(.table-wrapper, .responsive-table) {
+    border-color: var(--v68-line) !important;
+    background: var(--v68-surface-deep) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] .app-view.active table :is(th, td) {
+    border-color: rgba(143, 191, 229, .2) !important;
+    color: var(--v68-text-soft) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] .app-view.active table th {
+    background: #103b5c !important;
+    color: var(--v68-gold) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] .app-view.active table tbody tr:nth-child(odd) td {
+    background: rgba(5, 29, 50, .92) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] .app-view.active table tbody tr:nth-child(even) td {
+    background: rgba(15, 55, 86, .78) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] .app-view.active table tbody tr:hover td {
+    background: rgba(34, 88, 128, .78) !important;
+  }
+
+  /* Controles sempre escuros e seus rótulos sempre legíveis. */
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(input, select, textarea) {
+    border-color: var(--v68-line-strong) !important;
+    background: #041a2d !important;
+    color: var(--v68-text) !important;
+    caret-color: var(--v68-text) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(input, textarea)::placeholder {
+    color: #a8bccd !important;
+    opacity: 1 !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) select option {
+    background: #061f35 !important;
+    color: var(--v68-text) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(input, select, textarea):focus {
+    border-color: var(--v68-blue) !important;
+    outline: 3px solid rgba(120, 184, 255, .24) !important;
+  }
+
+  /* Modais: corrige o exemplo de conclusão e mantém o conteúdo dentro da tela. */
+  html[data-aldus-theme="premium-stable"] .app-modal-card {
+    width: min(620px, calc(100vw - 28px)) !important;
+    max-height: min(88dvh, 820px) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    border: 1px solid var(--v68-line-strong) !important;
+    background: linear-gradient(145deg, #0b3151, #061d33) !important;
+    color: var(--v68-text) !important;
+    scrollbar-color: #7994a8 #09253e;
+  }
+
+  html[data-aldus-theme="premium-stable"] .goal-completion-summary h3 {
+    color: var(--v68-text) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] .goal-completion-notice {
+    color: var(--v68-text-soft) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(button, .button-link).secondary-button,
+  html[data-aldus-theme="premium-stable"] button.secondary-button {
+    border-color: rgba(244, 215, 125, .54) !important;
+    background: rgba(244, 215, 125, .12) !important;
+    color: var(--v68-gold) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(button, .button-link):disabled {
+    border-color: rgba(171, 190, 205, .34) !important;
+    background: #17344a !important;
+    color: #c5d3de !important;
+    opacity: .76 !important;
+  }
+
+  /* Estados sem regressar para fundos pastel quase brancos. */
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(
+    .badge.success,
+    .goal-hit,
+    .sync-success,
+    .material-estimate-feedback.success,
+    .goal-status-concluida
+  ) {
+    border-color: rgba(76, 220, 165, .46) !important;
+    background: rgba(18, 105, 75, .32) !important;
+    color: var(--v68-success) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(
+    .badge.warn,
+    .warning-notice,
+    .sync-error,
+    .timer-alert,
+    .goal-status-adiada
+  ) {
+    border-color: rgba(244, 215, 125, .5) !important;
+    background: rgba(120, 86, 20, .34) !important;
+    color: var(--v68-warning) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(
+    .badge.danger,
+    .timer-alert.strong,
+    .material-estimate-feedback.error,
+    .goal-status-nao-cumprida,
+    .goal-status-ignorada
+  ) {
+    border-color: rgba(255, 133, 145, .5) !important;
+    background: rgba(126, 35, 47, .36) !important;
+    color: var(--v68-danger) !important;
+  }
+
+  /* Gráficos deliberadamente claros preservam texto escuro. */
+  html[data-aldus-theme="premium-stable"] :is(.analytics-svg-chart, .qh-donut::before) {
+    background-color: #f8fbff !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] .analytics-svg-chart :is(text, tspan) {
+    fill: #17324a !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] .qh-donut-center strong {
+    color: #082b49 !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] .qh-donut-center span {
+    color: #526b7f !important;
+  }
+
+  @media (max-width: 768px) {
+    html[data-aldus-theme="premium-stable"] .app-modal-card {
+      width: calc(100vw - 18px) !important;
+      max-height: calc(100dvh - 34px) !important;
+      padding: 20px 16px !important;
+      border-radius: 20px !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] .goal-completion-grid,
+    html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(
+      .card-meta-grid,
+      .review-time-grid,
+      .strategic-analysis-grid,
+      .sync-status-grid
+    ) {
+      grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] .app-modal-card .modal-actions {
+      display: grid !important;
+      grid-template-columns: minmax(0, 1fr) !important;
+      gap: 10px !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] .app-modal-card .modal-actions > :is(button, .button-link) {
+      width: 100% !important;
+      min-width: 0 !important;
+    }
+  }
+
+  @media (prefers-contrast: more) {
+    html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(p, li, small, label, span, strong, summary) {
+      color: #ffffff !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) :is(
+      .stat-card,
+      .daily-plan-section,
+      .daily-goal-section,
+      .app-modal-card,
+      details
+    ) {
+      border-color: #acd5f1 !important;
+      border-width: 2px !important;
+    }
+  }
+}
+
+@media (forced-colors: active) {
+  html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) * {
+    forced-color-adjust: auto;
+  }
+}
