@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 
-const version = '20260718-grafico-respostas-3d-v65';
+const version = '20260719-tempo-visibilidade-v66';
 const html = fs.readFileSync('index.html', 'utf8');
 const script = fs.readFileSync('script.js', 'utf8');
 const serviceWorker = fs.readFileSync('service-worker.js', 'utf8');

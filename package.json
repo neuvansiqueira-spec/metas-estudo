@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260718-grafico-respostas-3d-v65",
+  "version": "20260719-tempo-visibilidade-v66",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
