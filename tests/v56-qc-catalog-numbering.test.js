@@ -51,7 +51,7 @@ test("interface exibe número automático e permite confirmação ou correção"
 });
 
 test("catálogo v56 permanece coberto após versões posteriores", () => {
-  assert.match(version, /tempo-visibilidade-v66$/);
+  assert.match(version, /tempo-acumulado-backup-v67$/);
   assert.match(worker, new RegExp(`const CURRENT_VERSION = "${version}"`));
   assert.match(worker, /"20260718-indicacao-qc-explicita-v55"/);
   assert.match(worker, /"20260718-numeracao-qc-catalogo-v56"/);
