@@ -9,12 +9,12 @@ const worker = fs.readFileSync("service-worker.js", "utf8");
 const header = fs.readFileSync("header-brand-fix.js", "utf8");
 
 test("v69 carrega depois do contrato v68 e usa uma nova chave de cache", () => {
-  assert.equal(version, "20260719-contraste-componentes-v69");
+  assert.equal(version, "20260719-conselheiro-layout-v70");
   const v68 = html.indexOf("aldus-contrast-system-v68.css");
   const v69 = html.indexOf("aldus-component-contrast-v69.css");
   assert.ok(v68 >= 0);
   assert.ok(v69 > v68);
-  assert.match(worker, /const CURRENT_VERSION = "20260719-contraste-componentes-v69"/);
+  assert.match(worker, /const CURRENT_VERSION = "20260719-conselheiro-layout-v70"/);
   assert.match(worker, /"20260719-contraste-integral-v68"/);
   assert.match(worker, /"aldus-component-contrast-v69\.css"/);
   assert.match(header, /ensureStylesheet\("aldusComponentContrastV69", "aldus-component-contrast-v69\.css"\)/);
