@@ -114,7 +114,7 @@ test('Exportação de desempenho possui arquitetura, UI acessível e paridade ra
   assert.match(html, /id="performanceExportDialog"[^>]*role="dialog"[^>]*aria-modal="true"/);
   assert.match(html, /data-performance-export="pdf"/);
   assert.match(html, /data-performance-export="png"/);
-  assert.match(html, /data-performance-export="csv"/);
+  assert.match(html, /data-performance-export="xlsx"/);
   assert.match(script, /function buildPerformanceExportPayload\(dashboard, filters/);
   assert.match(script, /function buildPerformanceCsv\(payload\)/);
   assert.match(script, /function buildChartSvg\(chartType, data, metadata/);
@@ -267,10 +267,11 @@ test('Exportação real dos gráficos usa payload completo, botões reais e um a
   const individualExportBlock = script.slice(script.indexOf('async function handleChartExportAction'), script.indexOf('function setupPerformanceExportControls'));
   assert.match(individualExportBlock, /if \(format === 'svg'\) downloadGeneratedFile/);
   assert.match(individualExportBlock, /if \(format === 'png'\) await exportChartToPng/);
+  assert.match(individualExportBlock, /if \(format === 'xlsx'\) await downloadGeneratedExcel/);
   assert.match(individualExportBlock, /if \(format === 'csv'\) downloadGeneratedFile/);
 });
 
-test('PDF, CSV e imagem usam leitura didática, cores semânticas e relatório próprio', () => {
+test('PDF, Excel e imagem usam leitura didática, cores semânticas e relatório próprio', () => {
   const start = script.indexOf('function formatExportDuration(minutes');
   const end = script.indexOf('function setPerformanceExportStatus');
   const logic = new Function('formatDateBR', 'escapeHTML', 'traduzirRotuloAnalise', `${script.slice(start, end)}; return { buildPerformanceCsv, buildFullPerformanceReportSvg, buildPerformancePrintHtml };`)(

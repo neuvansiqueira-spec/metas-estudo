@@ -18,17 +18,17 @@ test('calendário possui seções recolhíveis independentes para dia, semana e 
   assert.match(style, /\.goal-calendar-section\[open\] > summary::after/);
 });
 
-test('calendário didático exporta PDF, CSV e imagem com os três períodos', () => {
-  for (const id of ['exportGoalCalendarPdf', 'exportGoalCalendarCsv', 'exportGoalCalendarImage']) assert.match(html, new RegExp(`id="${id}"`));
+test('calendário didático exporta PDF, Excel e imagem com os três períodos', () => {
+  for (const id of ['exportGoalCalendarPdf', 'exportGoalCalendarExcel', 'exportGoalCalendarImage']) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(script, /function buildGoalCalendarExportPayload/);
   assert.match(script, /function buildGoalCalendarCsv/);
   assert.match(script, /function buildGoalCalendarSvg/);
   assert.match(script, /function buildGoalCalendarPrintHTML/);
   assert.match(html, /id="goalCalendarExportScope"/);
   for (const option of ['Somente dia', 'Somente semana', 'Somente mês', 'Dia + semana + mês']) assert.ok(html.includes(option));
-  assert.match(script, /buildGoalCalendarCsv\(payload, scope\)/);
+  assert.match(script, /downloadGeneratedExcel\(buildGoalCalendarCsv\(payload, scope\)/);
   assert.match(script, /buildScopedGoalCalendarSvg\(payload, scope\)/);
-  assert.match(script, /calendario-\$\{goalCalendarScopeLabel\(scope\)\}-\$\{payload\.referenceDate\}\.csv/);
+  assert.match(script, /calendario-\$\{goalCalendarScopeLabel\(scope\)\}-\$\{payload\.referenceDate\}\.xlsx/);
   assert.match(script, /calendario-\$\{goalCalendarScopeLabel\(scope\)\}-\$\{payload\.referenceDate\}\.png/);
   assert.match(script, /window\.print\(\)/);
   assert.match(script, /DIA.*SEMANA.*MÊS/s);
