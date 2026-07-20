@@ -1,13 +1,9 @@
 (() => {
   "use strict";
 
-  const THEME_VERSION = "20260720-espaco-mensagem-cronometro-v88";
+  const THEME_VERSION = "20260720-identidade-aldus-v89";
   const DESIRED_HTML = `
-    <div class="brand-copy">
-      <strong>Aldus Metas Concurso</strong>
-      <small>Planeje, Registre e Revise</small>
-    </div>
-    <span class="brand-icon" aria-hidden="true"><img src="icons/logo-mark.svg" alt="" /></span>
+    <img class="aldus-visual-brand-image" src="icons/aldus-visual.png?v=${THEME_VERSION}" alt="Aldus — Conhecimento, Meta e Sabedoria" width="1254" height="1254" fetchpriority="high" decoding="async" />
   `;
 
   function ensureStylesheet(id, href, required = false) {
@@ -63,15 +59,12 @@
     const brand = document.querySelector(".topbar .brand");
     if (!brand) return;
 
-    const title = brand.querySelector(".brand-copy strong")?.textContent?.trim();
-    const subtitle = brand.querySelector(".brand-copy small")?.textContent?.trim();
-    const hasCorrectIcon = Boolean(brand.querySelector('.brand-icon img[src*="icons/logo-mark.svg"]'));
-    const correct = title === "Aldus Metas Concurso"
-      && subtitle === "Planeje, Registre e Revise"
-      && hasCorrectIcon;
+    const visual = brand.querySelector('.aldus-visual-brand-image[src*="icons/aldus-visual.png"]');
+    const correct = Boolean(visual);
 
     document.getElementById("aldusMetaBrandStyles")?.remove();
     brand.classList.remove("aldus-meta-brand");
+    brand.classList.add("aldus-visual-brand");
     brand.removeAttribute("data-aldus-meta-brand");
     if (!correct) brand.innerHTML = DESIRED_HTML;
   }

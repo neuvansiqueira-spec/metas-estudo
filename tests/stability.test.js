@@ -55,17 +55,18 @@ test('identidade visual premium usa a paleta Aldus desde a primeira renderizaç�
   assert.match(premiumCss, /--aldus-gold:\s*#dfb64c/);
 });
 
-test('logo Aldus Meta aparece no cabeçalho, favicon e cache do aplicativo', () => {
+test('identidade Aldus aparece no cabeçalho e o símbolo permanece no favicon', () => {
   const logo = fs.readFileSync('icons/logo-mark.svg', 'utf8');
   const sw = fs.readFileSync('service-worker.js', 'utf8');
   assert.match(html, /rel="icon"[^>]+icons\/logo-mark\.svg/);
-  assert.match(html, /class="brand-icon"[\s\S]*?<img src="icons\/logo-mark\.svg"/);
+  assert.match(html, /class="brand aldus-visual-brand"[\s\S]*?<img class="aldus-visual-brand-image"[^>]+icons\/aldus-visual\.png/);
+  assert.match(html, /alt="Aldus — Conhecimento, Meta e Sabedoria"/);
   assert.match(logo, /Símbolo Aldus Meta/);
   assert.match(logo, /formato de A com estrela azul/);
   assert.doesNotMatch(logo, />NS<\/text>/);
-  assert.match(html, /class="brand-copy"[\s\S]*?class="brand-icon"/);
-  assert.match(premiumCss, /\.brand-icon[\s\S]*?width:\s*70px;[\s\S]*?height:\s*70px;/);
-  assert.match(premiumCss, /\.brand-icon img[\s\S]*?object-fit:\s*contain/);
+  assert.match(css, /\.aldus-visual-brand-image[\s\S]*object-fit:\s*cover/);
+  assert.match(css, /\.aldus-visual-brand-image[\s\S]*object-position:\s*center center/);
+  assert.match(sw, /icons\/aldus-visual\.png/);
   assert.match(sw, /icons\/logo-mark\.svg/);
 });
 
