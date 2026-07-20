@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260720-identidade-aldus-v89",
+  "version": "20260720-identidade-metas-concursos-v90",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

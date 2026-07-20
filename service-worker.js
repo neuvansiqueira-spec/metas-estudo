@@ -56,9 +56,10 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260720-fabrica-materiais-reparo-v85",
   "20260720-cronometro-mobile-v86",
   "20260720-mensagem-motivacional-v87",
-  "20260720-espaco-mensagem-cronometro-v88"
+  "20260720-espaco-mensagem-cronometro-v88",
+  "20260720-identidade-aldus-v89"
 ];
-const CURRENT_VERSION = "20260720-identidade-aldus-v89";
+const CURRENT_VERSION = "20260720-identidade-metas-concursos-v90";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 // Cache anterior reconhecido para limpeza: startup-v25.
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v26`;

@@ -1,9 +1,9 @@
 (() => {
   "use strict";
 
-  const THEME_VERSION = "20260720-identidade-aldus-v89";
+  const THEME_VERSION = "20260720-identidade-metas-concursos-v90";
   const DESIRED_HTML = `
-    <img class="aldus-visual-brand-image" src="icons/aldus-visual.png?v=${THEME_VERSION}" alt="Aldus — Conhecimento, Meta e Sabedoria" width="1254" height="1254" fetchpriority="high" decoding="async" />
+    <img class="aldus-visual-brand-image" src="icons/aldus-visual.png?v=${THEME_VERSION}" alt="Aldus — Metas Concursos" width="1254" height="1254" fetchpriority="high" decoding="async" />
   `;
 
   function ensureStylesheet(id, href, required = false) {
