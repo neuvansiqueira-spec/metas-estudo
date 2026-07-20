@@ -584,7 +584,7 @@ test('alarme regressivo é robusto em áudio, vibração, aba em segundo plano e
 test('toast motivacional é único, some automaticamente e é acessível', () => {
   assert.match(html, /id="timerMotivationalToast" class="timer-motivational-toast" aria-live="polite" aria-atomic="true" hidden/);
   assert.match(script, /clearTimeout\(timerMotivationalToastTimeout\)/);
-  assert.match(script, /TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 5000/);
+  assert.match(script, /TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 30000/);
   assert.match(script, /elements\.timerMotivationalToast\.hidden = true/);
   assert.match(css, /\.timer-motivational-toast[\s\S]*pointer-events:\s*none/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);

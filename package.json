@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260720-cronometro-mobile-v86",
+  "version": "20260720-mensagem-motivacional-v87",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
