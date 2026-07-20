@@ -4784,7 +4784,7 @@ html[data-aldus-theme="premium-stable"] body .side-nav .side-nav-brand-link {
     outline-offset: 3px;
   }
 
-  html[data-side-nav-collapsed="true"][data-aldus-theme="premium-stable"] body .side-nav-brand-mark {
+html[data-side-nav-collapsed="true"][data-aldus-theme="premium-stable"] body .side-nav-brand-mark {
     display: block;
     width: 44px;
     height: 44px;
@@ -4801,6 +4801,45 @@ html[data-aldus-theme="premium-stable"] body .side-nav .side-nav-brand-link {
   html[data-side-nav-collapsed="true"][data-aldus-theme="premium-stable"] body .side-nav-groups {
     display: none !important;
   }
+}
+
+/* V96: cabeçalho do cronômetro legível e sem controles deformados. */
+html[data-aldus-theme="premium-stable"] body #floatingTimer .floating-timer-header > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+html[data-aldus-theme="premium-stable"] body #floatingTimer .timer-mode-label {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  max-width: 260px;
+  margin-top: 8px;
+  line-height: 1.2;
+}
+
+html[data-aldus-theme="premium-stable"] body #floatingTimer .timer-mode-label select {
+  display: block;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 260px;
+  margin: 0 !important;
+  padding: 9px 34px 9px 12px !important;
+  font-size: .92rem !important;
+  line-height: 1.25 !important;
+}
+
+html[data-aldus-theme="premium-stable"] body #floatingTimer .floating-timer-header .timer-icon-button {
+  flex: 0 0 42px !important;
+  width: 42px !important;
+  min-width: 42px !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  padding: 0 !important;
+  place-items: center;
+  border-radius: 13px !important;
+  font-size: 1.3rem !important;
+  line-height: 1 !important;
 }
 
 /* V94: as logos do cabeçalho e da barra recolhida levam ao Dashboard. */
