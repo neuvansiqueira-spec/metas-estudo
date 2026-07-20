@@ -4675,6 +4675,10 @@ html[data-aldus-theme="premium-stable"] .aldus-visual-brand-image {
     font-size: 1.14rem !important;
   }
 
+  html[data-aldus-theme="premium-stable"] body .side-nav-brand-mark {
+    display: none;
+  }
+
   html[data-aldus-theme="premium-stable"] body .side-nav-group > span {
     font-size: .8rem !important;
   }
@@ -4728,20 +4732,32 @@ html[data-aldus-theme="premium-stable"] .aldus-visual-brand-image {
 
   html[data-side-nav-collapsed="true"][data-aldus-theme="premium-stable"] body .side-nav-heading {
     display: flex;
-    min-height: 210px;
+    min-height: 118px;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
+    gap: 18px;
   }
 
   html[data-side-nav-collapsed="true"][data-aldus-theme="premium-stable"] body .side-nav-title {
-    flex: 1;
-    padding: 4px 0 !important;
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    transform: rotate(180deg);
-    font-size: .86rem !important;
-    letter-spacing: .13em;
+    display: grid;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    padding: 0 !important;
+    place-items: center;
+  }
+
+  html[data-side-nav-collapsed="true"][data-aldus-theme="premium-stable"] body .side-nav-title-text {
+    display: none;
+  }
+
+  html[data-side-nav-collapsed="true"][data-aldus-theme="premium-stable"] body .side-nav-brand-mark {
+    display: block;
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(223, 182, 76, .42);
+    border-radius: 13px;
+    box-shadow: 0 8px 18px rgba(0, 12, 28, .3), inset 0 1px 0 rgba(255, 255, 255, .12);
   }
 
   html[data-side-nav-collapsed="true"][data-aldus-theme="premium-stable"] body .side-nav-title::after,
@@ -4749,6 +4765,8 @@ html[data-aldus-theme="premium-stable"] .aldus-visual-brand-image {
     display: none !important;
   }
 }
+
+/* V92: o símbolo oficial substitui o título vertical quando a barra é recolhida. */
 
 @media (prefers-reduced-motion: reduce) {
   html[data-aldus-theme="premium-stable"] body .app-layout {
