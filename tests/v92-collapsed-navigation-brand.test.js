@@ -18,7 +18,7 @@ test("barra recolhida troca o título vertical pelo símbolo oficial da marca", 
 });
 
 test("V92 renova o cache e mantém raiz e publicação em paridade", () => {
-  const version = "20260720-logos-link-inicio-v94";
+  const version = "20260720-logo-recolhida-visibilidade-v95";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(html, new RegExp(version));
   assert.match(read("service-worker.js"), new RegExp(`CURRENT_VERSION = "${version}"`));

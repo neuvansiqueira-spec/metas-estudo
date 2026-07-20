@@ -4651,8 +4651,8 @@ html[data-aldus-theme="premium-stable"] .brand-home-link:focus-visible {
   outline-offset: 4px;
 }
 
-.side-nav-brand-link {
-  display: none;
+html[data-aldus-theme="premium-stable"] body .side-nav .side-nav-brand-link {
+  display: none !important;
 }
 
 @media (max-width: 1050px) {
@@ -4767,7 +4767,7 @@ html[data-aldus-theme="premium-stable"] .brand-home-link:focus-visible {
   }
 
   html[data-side-nav-collapsed="true"][data-aldus-theme="premium-stable"] body .side-nav .side-nav-brand-link {
-    display: grid;
+    display: grid !important;
     width: 44px;
     height: 44px;
     min-height: 44px !important;

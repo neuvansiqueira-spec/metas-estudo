@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260720-logos-link-inicio-v94",
+  "version": "20260720-logo-recolhida-visibilidade-v95",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
