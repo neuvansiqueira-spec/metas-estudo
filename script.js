@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260720-logos-link-inicio-v94";
+const APP_VERSION = "20260720-cronometro-bip-layout-v96";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -1462,6 +1462,31 @@ async function playTimerCompletionAlarm(type = "completed") {
   } catch (error) { console.warn("Falha no som do cronômetro", error); timerAudioUserMessage = "O navegador não permitiu o som. O aviso visual continuará funcionando. Toque em ‘Testar alarme’ para tentar novamente."; return false; }
 }
 async function playTimerBeep(type = "completed") { return playTimerCompletionAlarm(type); }
+async function playTimerControlBeep(type = "start") {
+  if (!state.settings?.timerPreferences?.sound) return false;
+  try {
+    const ctx = await prepareTimerAudio();
+    if (!ctx || ctx.state !== "running") return false;
+    const start = ctx.currentTime;
+    const duration = type === "pause" ? 0.11 : 0.13;
+    const frequency = type === "pause" ? 440 : 720;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(frequency, start);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(Math.min(0.12, 0.065 * timerAlertVolumeGain()), start + 0.018);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(start);
+    osc.stop(start + duration + 0.025);
+    return true;
+  } catch (error) {
+    console.warn("Falha no bip de controle do cronômetro", error);
+    return false;
+  }
+}
 function timerAlertTitle(type) { return ({ "five-minutes": "Faltam 5 minutos", "one-minute": "Falta 1 minuto", completed: "Tempo de estudo concluído", test: "Teste de alertas do cronômetro" }[type]) || "Alerta do cronômetro"; }
 async function sendTimerNotification(type, goal = floatingTimerGoal()) {
   if (!state.settings?.timerPreferences?.browserNotifications) return "desativada";
@@ -1589,11 +1614,13 @@ function startFloatingTimer(goal, kind = "study") {
   prepareTimerAudio();
   floatingTimer = { sessionId: createId(), goalId: goal.id, goalDate: goal.date || goal.data, discipline: goal.discipline, subject: goal.subject, material: goal.estimateSourceId || "", plannedMinutes: Number(goal.minutes) || 0, origin: "Plano do Dia", kind, elapsedSeconds: 0, startedAt: Date.now(), paused: false, intervalId: null, completed: false, completionAlarmPlayed: false, previousRemainingSeconds: null, warnedFive: false, warnedOne: false, completionDismissed: false, displayedMotivationalMilestones: [], mode: selectedMode, sessionGoalMinutes, pauses: [], resumes: [], openedAt: Date.now() };
   floatingTimer.intervalId = setInterval(renderFloatingTimer, 1000);
+  playTimerControlBeep("start");
   persistFloatingTimerSession();
   renderFloatingTimer();
 }
 function pauseOrResumeFloatingTimer() {
   if (!floatingTimer.goalId) return;
+  const controlSound = floatingTimer.paused ? "resume" : "pause";
   if (floatingTimer.paused) {
     floatingTimer.resumes = [...(floatingTimer.resumes || []), new Date().toISOString()];
     floatingTimer.startedAt = Date.now();
@@ -1604,6 +1631,7 @@ function pauseOrResumeFloatingTimer() {
     floatingTimer.startedAt = null;
     floatingTimer.paused = true;
   }
+  playTimerControlBeep(controlSound);
   persistFloatingTimerSession();
   renderFloatingTimer();
 }
@@ -6906,7 +6934,6 @@ elements.nextDailyGoal?.addEventListener("toggle", handleDailyPlanToggle, true);
 elements.floatingTimer?.addEventListener("click", (event) => {
   const action = event.target.closest("button[data-timer-action]")?.dataset.timerAction;
   if (!action) return;
-  if (["pause", "continue"].includes(action)) prepareTimerAudio();
   if (action === "pause") pauseOrResumeFloatingTimer();
   if (action === "save") saveFloatingTimerTime();
   if (action === "reset") resetFloatingTimer();

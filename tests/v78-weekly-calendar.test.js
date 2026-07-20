@@ -100,7 +100,7 @@ test("a primeira abertura da V78 corrige a semana atual automaticamente", () => 
 });
 
 test("V83 mantém a distribuição semanal da V78 e os arquivos publicados em paridade", () => {
-  const version = "20260720-logo-recolhida-visibilidade-v95";
+  const version = "20260720-cronometro-bip-layout-v96";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(read("index.html"), new RegExp(version));
   assert.match(read("service-worker.js"), new RegExp(`CURRENT_VERSION = "${version}"`));
