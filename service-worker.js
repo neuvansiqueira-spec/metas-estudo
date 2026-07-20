@@ -41,9 +41,10 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260719-conselheiro-layout-v70",
   "20260719-backup-contraste-v71",
   "20260719-inicializacao-rapida-v72",
-  "20260719-rolagem-navegacao-v73"
+  "20260719-rolagem-navegacao-v73",
+  "20260719-integracao-metas-v74"
 ];
-const CURRENT_VERSION = "20260719-integracao-metas-v74";
+const CURRENT_VERSION = "20260719-correcao-metas-v75";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 // Cache anterior reconhecido para limpeza: startup-v25.
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v26`;
@@ -70,6 +71,7 @@ const FILES_TO_CACHE = [
   "aldus-advisor-layout-v70.css",
   "aldus-backup-contrast-v71.css",
   "aldus-navigation-scroll-v73.css",
+  "aldus-goal-integrity-v75.css",
   "script.js",
   "qconcursos-crosswalk.js",
   "question-history-pie.js",
@@ -186,6 +188,9 @@ function patchHtmlSource(source) {
   }
   if (!patched.includes("aldus-navigation-scroll-v73.css")) {
     patched = patched.replace("</head>", `<link id="aldusNavigationScrollV73" rel="stylesheet" href="aldus-navigation-scroll-v73.css?v=${CURRENT_VERSION}" />\n</head>`);
+  }
+  if (!patched.includes("aldus-goal-integrity-v75.css")) {
+    patched = patched.replace("</head>", `<link id="aldusGoalIntegrityV75" rel="stylesheet" href="aldus-goal-integrity-v75.css?v=${CURRENT_VERSION}" />\n</head>`);
   }
   return patched.replace(
     "</body>",
