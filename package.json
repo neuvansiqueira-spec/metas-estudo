@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260720-calendario-mensal-v79",
+  "version": "20260720-integracao-fabrica-materiais-v80",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
