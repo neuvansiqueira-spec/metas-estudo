@@ -39,7 +39,7 @@ test("painel distingue material pronto de produção pendente", () => {
 });
 
 test("V83 mantém cache anterior e publicação em paridade", () => {
-  const version = "20260720-identidade-metas-concursos-v90";
+  const version = "20260720-navegacao-lateral-recolhivel-v91";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(read("index.html"), new RegExp(version));
   assert.match(read("service-worker.js"), new RegExp(`CURRENT_VERSION = "${version}"`));
