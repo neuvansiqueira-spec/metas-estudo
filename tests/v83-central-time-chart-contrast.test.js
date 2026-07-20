@@ -38,7 +38,7 @@ test("contraste da Fábrica diferencia painéis e Faça Agora", () => {
 });
 
 test("V83 mantém cache anterior e arquivos publicados em paridade", () => {
-  const version = "20260720-logos-link-inicio-v94";
+  const version = "20260720-logo-recolhida-visibilidade-v95";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(html, new RegExp(version));
   assert.match(read("service-worker.js"), new RegExp(`CURRENT_VERSION = "${version}"`));

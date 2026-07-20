@@ -61,9 +61,10 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260720-identidade-metas-concursos-v90",
   "20260720-navegacao-lateral-recolhivel-v91",
   "20260720-navegacao-recolhida-logo-v92",
-  "20260720-navegacao-recolhida-nova-marca-v93"
+  "20260720-navegacao-recolhida-nova-marca-v93",
+  "20260720-logos-link-inicio-v94"
 ];
-const CURRENT_VERSION = "20260720-logos-link-inicio-v94";
+const CURRENT_VERSION = "20260720-logo-recolhida-visibilidade-v95";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 // Cache anterior reconhecido para limpeza: startup-v25.
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v26`;
