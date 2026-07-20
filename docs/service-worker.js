@@ -55,9 +55,10 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260720-fabrica-materiais-rolagem-v84",
   "20260720-fabrica-materiais-reparo-v85",
   "20260720-cronometro-mobile-v86",
-  "20260720-mensagem-motivacional-v87"
+  "20260720-mensagem-motivacional-v87",
+  "20260720-espaco-mensagem-cronometro-v88"
 ];
-const CURRENT_VERSION = "20260720-espaco-mensagem-cronometro-v88";
+const CURRENT_VERSION = "20260720-identidade-aldus-v89";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 // Cache anterior reconhecido para limpeza: startup-v25.
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v26`;
@@ -102,6 +103,7 @@ const FILES_TO_CACHE = [
   "advisor-navigation-engine.js",
   "storage-indexeddb.js",
   "manifest.json",
+  "icons/aldus-visual.png",
   "icons/logo-mark.svg",
   "icons/icon.svg",
   "icons/icon-maskable.svg"

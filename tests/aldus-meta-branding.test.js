@@ -34,6 +34,7 @@ test("versão atual renova cache e carrega a marca no site e no app", () => {
   assert.match(rootServiceWorker, new RegExp(`const CURRENT_VERSION = "${VERSION}"`));
   assert.match(rootServiceWorker, /startup-v25/);
   assert.match(rootServiceWorker, /header-brand-fix\.js/);
+  assert.match(rootServiceWorker, /icons\/aldus-visual\.png/);
   assert.match(rootServiceWorker, /icons\/logo-mark\.svg/);
 });
 
@@ -41,6 +42,7 @@ test("raiz e docs publicam arquivos idênticos", () => {
   assert.equal(rootLogo, docsLogo);
   assert.equal(rootBranding, docsBranding);
   assert.equal(rootServiceWorker, docsServiceWorker);
+  assert.deepEqual(fs.readFileSync("icons/aldus-visual.png"), fs.readFileSync("docs/icons/aldus-visual.png"));
   assert.equal(fs.readFileSync("icons/logo-mark.svg", "utf8"), fs.readFileSync("docs/icons/logo-mark.svg", "utf8"));
   assert.equal(fs.readFileSync("icons/icon.svg", "utf8"), fs.readFileSync("docs/icons/icon.svg", "utf8"));
   assert.equal(fs.readFileSync("icons/icon-maskable.svg", "utf8"), fs.readFileSync("docs/icons/icon-maskable.svg", "utf8"));

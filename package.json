@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260720-espaco-mensagem-cronometro-v88",
+  "version": "20260720-identidade-aldus-v89",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
