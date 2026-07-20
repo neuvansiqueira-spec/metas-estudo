@@ -1,0 +1,33 @@
+/* V76 — assuntos concluídos fora das metas futuras e visibilidade móvel. */
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .selected-day-banner {
+  border-color: #a9c9ee !important;
+  background: #f7fbff !important;
+  color: #173b74 !important;
+  text-shadow: none !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .selected-day-banner #selectedGoalDateLabel {
+  color: #173b74 !important;
+  -webkit-text-fill-color: #173b74 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+@media (max-width: 768px) {
+  html[data-aldus-theme="premium-stable"] #view-metas-do-dia {
+    padding-bottom: calc(170px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-metas-do-dia :is(
+    .next-goal-card,
+    .today-study-panel,
+    .manual-goal-panel,
+    .daily-plan-section:last-child
+  ) {
+    scroll-margin-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-metas-do-dia > :last-child {
+    margin-bottom: calc(100px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
