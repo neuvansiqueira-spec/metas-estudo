@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260719-integracao-metas-v74",
+  "version": "20260719-correcao-metas-v75",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
