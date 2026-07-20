@@ -32,7 +32,7 @@ test("manifesto e ícones usam Aldus Meta", () => {
 
 test("versão atual renova cache e carrega a marca no site e no app", () => {
   assert.match(rootServiceWorker, new RegExp(`const CURRENT_VERSION = "${VERSION}"`));
-  assert.match(rootServiceWorker, /startup-v24/);
+  assert.match(rootServiceWorker, /startup-v25/);
   assert.match(rootServiceWorker, /header-brand-fix\.js/);
   assert.match(rootServiceWorker, /icons\/logo-mark\.svg/);
 });

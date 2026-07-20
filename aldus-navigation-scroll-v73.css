@@ -1,0 +1,18 @@
+/* Aldus Metas Concurso — Rolagem estável da navegação v73.
+   Os títulos das seções seguem a ordem natural do menu e não se sobrepõem aos links. */
+
+@media screen {
+  html[data-aldus-theme="premium-stable"] .side-nav .side-nav-group > span {
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    z-index: auto !important;
+    background: transparent !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] .side-nav {
+    scroll-padding-block: 16px;
+  }
+}

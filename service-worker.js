@@ -39,11 +39,12 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260719-contraste-integral-v68",
   "20260719-contraste-componentes-v69",
   "20260719-conselheiro-layout-v70",
-  "20260719-backup-contraste-v71"
+  "20260719-backup-contraste-v71",
+  "20260719-inicializacao-rapida-v72"
 ];
-const CURRENT_VERSION = "20260719-inicializacao-rapida-v72";
+const CURRENT_VERSION = "20260719-rolagem-navegacao-v73";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
-const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v24`;
+const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v25`;
 const FILES_TO_CACHE = [
   "./",
   "index.html",
@@ -66,6 +67,7 @@ const FILES_TO_CACHE = [
   "aldus-component-contrast-v69.css",
   "aldus-advisor-layout-v70.css",
   "aldus-backup-contrast-v71.css",
+  "aldus-navigation-scroll-v73.css",
   "script.js",
   "qconcursos-crosswalk.js",
   "question-history-pie.js",
@@ -179,6 +181,9 @@ function patchHtmlSource(source) {
   }
   if (!patched.includes("aldus-backup-contrast-v71.css")) {
     patched = patched.replace("</head>", `<link id="aldusBackupContrastV71" rel="stylesheet" href="aldus-backup-contrast-v71.css?v=${CURRENT_VERSION}" />\n</head>`);
+  }
+  if (!patched.includes("aldus-navigation-scroll-v73.css")) {
+    patched = patched.replace("</head>", `<link id="aldusNavigationScrollV73" rel="stylesheet" href="aldus-navigation-scroll-v73.css?v=${CURRENT_VERSION}" />\n</head>`);
   }
   return patched.replace(
     "</body>",
