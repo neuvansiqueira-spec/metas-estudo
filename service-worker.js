@@ -43,9 +43,10 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260719-inicializacao-rapida-v72",
   "20260719-rolagem-navegacao-v73",
   "20260719-integracao-metas-v74",
-  "20260719-correcao-metas-v75"
+  "20260719-correcao-metas-v75",
+  "20260720-concluidas-visibilidade-v76"
 ];
-const CURRENT_VERSION = "20260720-concluidas-visibilidade-v76";
+const CURRENT_VERSION = "20260720-distribuicao-reposicao-v77";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 // Cache anterior reconhecido para limpeza: startup-v25.
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v26`;
