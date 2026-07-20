@@ -10,9 +10,9 @@ const worker = fs.readFileSync("service-worker.js", "utf8");
 const header = fs.readFileSync("header-brand-fix.js", "utf8");
 
 test("v71 carrega depois do layout do Conselheiro e renova o cache", () => {
-  assert.equal(version, "20260719-inicializacao-rapida-v72");
+  assert.equal(version, "20260719-rolagem-navegacao-v73");
   assert.ok(html.indexOf("aldus-backup-contrast-v71.css") > html.indexOf("aldus-advisor-layout-v70.css"));
-  assert.match(worker, /const CURRENT_VERSION = "20260719-inicializacao-rapida-v72"/);
+  assert.match(worker, /const CURRENT_VERSION = "20260719-rolagem-navegacao-v73"/);
   assert.match(worker, /"20260719-conselheiro-layout-v70"/);
   assert.match(worker, /"aldus-backup-contrast-v71\.css"/);
   assert.match(header, /ensureStylesheet\("aldusBackupContrastV71", "aldus-backup-contrast-v71\.css"\)/);
