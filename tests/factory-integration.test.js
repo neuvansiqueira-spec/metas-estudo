@@ -38,7 +38,7 @@ test('prompt do módulo PEÇA exige varredura de especificidades temáticas e fo
   assert.equal(script, docsScript, 'script.js e docs/script.js devem permanecer sincronizados');
 });
 
-test('materiais automáticos da Fábrica usam chave única e não tratam pasta como arquivo', () => {
+test('materiais automáticos usam chave única e a pasta é identificada como pasta, não como arquivo', () => {
   assert.match(script, /function factoryMaterialUniqueKey\(factoryItemId, factoryModuleKey, factoryFormat\)/);
   assert.match(script, /function syncFactoryModuleMaterials\(item\)/);
   assert.match(script, /source: "factory"/);
@@ -49,7 +49,9 @@ test('materiais automáticos da Fábrica usam chave única e não tratam pasta c
   assert.match(script, /available: true/);
   assert.match(script, /function markFactoryMaterialUnavailable/);
   assert.match(script, /markFactoryMaterialUnavailable\(normalized\.id, moduleKey, format\)/);
-  assert.doesNotMatch(script, /factoryDestinationFolder[^\n]+factoryFormat/);
+  assert.match(script, /factoryFormat: folderFormat/);
+  assert.match(script, /Pasta no Google Drive/);
+  assert.match(script, /Vincule o Word\/PDF individual/);
 });
 
 test('metas, registro de estudo e fábrica reutilizam resolvedor central de materiais', () => {
@@ -86,12 +88,12 @@ test('Fábrica operacional organiza faça agora, fila, triagem e resumo pronto c
   assert.match(script, /let factoryCurrentFilter = "faca-agora"/);
   assert.match(script, /FACTORY_TRIAGEM_STATUSES = \["Não iniciada", "Em andamento", "Concluída", "Precisa refazer"\]/);
   assert.match(script, /function factoryResumoAulaReady\(item = \{\}\)/);
-  assert.match(script, /material\.factoryModuleKey === "resumoAula"/);
+  assert.match(script, /materialMatchesAssociation/);
   assert.match(script, /function factoryCurrentStage\(item = \{\}\)/);
   assert.match(script, /function factoryNextAction\(item = \{\}\)/);
   assert.match(script, /function factoryTodayQueue\(agenda = ensureFactoryAgenda\(\)\)/);
   assert.match(script, /ASSUNTO EM PRODUÇÃO/);
-  assert.match(script, /Recorte programado hoje/);
+  assert.match(script, /Recorte da meta/);
   assert.match(script, /SUBTEMAS ABRANGIDOS|Subtemas abrangidos/);
   assert.match(script, /DETALHES DO TEMA/);
   assert.match(script, /factoryOpenDetailId/);
