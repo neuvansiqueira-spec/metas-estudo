@@ -9,7 +9,7 @@ const worker = fs.readFileSync("service-worker.js", "utf8");
 const header = fs.readFileSync("header-brand-fix.js", "utf8");
 
 test("v73 mantém os títulos amarelos na ordem natural durante a rolagem", () => {
-  assert.equal(version, "20260719-rolagem-navegacao-v73");
+  assert.equal(version, "20260719-integracao-metas-v74");
   assert.match(css, /\.side-nav \.side-nav-group > span/);
   assert.match(css, /position: relative !important/);
   assert.match(css, /top: auto !important/);

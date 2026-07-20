@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const THEME_VERSION = "20260719-rolagem-navegacao-v73";
+  const THEME_VERSION = "20260719-integracao-metas-v74";
   const DESIRED_HTML = `
     <div class="brand-copy">
       <strong>Aldus Metas Concurso</strong>

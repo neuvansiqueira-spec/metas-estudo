@@ -104,7 +104,7 @@ test('integração da estimativa às metas preserva prioridades e proteções', 
   assert.match(script, /segmentCount/);
   assert.match(script, /estimateSourceId/);
   assert.match(script, /Carga planejada recalculada após atualização do material/);
-  assert.match(script, /shouldRecalculateDailyGoal\(g\)/);
+  assert.match(script, /shouldRecalculateDailyGoal\(goal\)/);
 });
 
 test('migração segmentada é idempotente e preserva cronômetro, backup e sincronização', () => {
