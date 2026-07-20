@@ -31,7 +31,7 @@ test("painéis recolhíveis têm contraste e ajuste para celular", () => {
 });
 
 test("V83 preserva cache anterior e arquivos publicados em paridade", () => {
-  const version = "20260720-fabrica-materiais-rolagem-v84";
+  const version = "20260720-fabrica-materiais-reparo-v85";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(html, new RegExp(version));
   assert.match(read("service-worker.js"), new RegExp(`CURRENT_VERSION = "${version}"`));

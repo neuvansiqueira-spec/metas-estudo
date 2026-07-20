@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260720-fabrica-materiais-rolagem-v84";
+const APP_VERSION = "20260720-fabrica-materiais-reparo-v85";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -4121,6 +4121,7 @@ function syncFactoryModuleMaterials(item) {
 }
 function syncAllFactoryMaterials() { ensureFactoryAgenda().forEach(syncFactoryModuleMaterials); }
 const FACTORY_MATERIALS_WORKFLOW_MIGRATION_V80 = "factoryMaterialsPlanningV80";
+const FACTORY_MATERIAL_LINK_REPAIR_MIGRATION_V85 = "factoryMaterialLinkRepairV85";
 function syncFactoryMaterialsPlanningV80(targetState = state) {
   if (targetState !== state) return { changed: false, factoryItems: 0, linkedGoals: 0, linkedMaterials: 0 };
   targetState.factoryAgenda ||= []; targetState.factoryItems ||= []; targetState.materials ||= []; targetState.dailyGoals ||= []; targetState.migrations ||= {};
@@ -4173,6 +4174,18 @@ function migrateFactoryMaterialsPlanningV80(targetState = state) {
   if (targetState.migrations[FACTORY_MATERIALS_WORKFLOW_MIGRATION_V80]) return { skipped: true, changed: false };
   const report = syncFactoryMaterialsPlanningV80(targetState);
   targetState.migrations[FACTORY_MATERIALS_WORKFLOW_MIGRATION_V80] = { executedAt: new Date().toISOString(), factoryItems: report.factoryItems, linkedGoals: report.linkedGoals, linkedMaterials: report.linkedMaterials };
+  return { ...report, skipped: false };
+}
+function repairExistingFactoryMaterialLinksV85(targetState = state) {
+  targetState.migrations ||= {};
+  if (targetState.migrations[FACTORY_MATERIAL_LINK_REPAIR_MIGRATION_V85]) return { skipped: true, changed: false };
+  const report = syncFactoryMaterialsPlanningV80(targetState);
+  targetState.migrations[FACTORY_MATERIAL_LINK_REPAIR_MIGRATION_V85] = {
+    executedAt: new Date().toISOString(),
+    factoryItems: report.factoryItems,
+    linkedGoals: report.linkedGoals,
+    linkedMaterials: report.linkedMaterials
+  };
   return { ...report, skipped: false };
 }
 function materialAvailable(m) { return m && m.available !== false; }
@@ -7181,6 +7194,9 @@ async function bootstrapApplication() {
     const factoryMaterialsWorkflowReport = migrateFactoryMaterialsPlanningV80(state);
     window.__factoryMaterialsWorkflowReportV80 = factoryMaterialsWorkflowReport;
     if (!factoryMaterialsWorkflowReport.skipped) saveData({ markLocalChange: true });
+    const factoryMaterialLinkRepairReport = repairExistingFactoryMaterialLinksV85(state);
+    window.__factoryMaterialLinkRepairReportV85 = factoryMaterialLinkRepairReport;
+    if (!factoryMaterialLinkRepairReport.skipped) saveData({ markLocalChange: true });
     renderMotivationalPhrase();
     indexedDBStatus.size = estimateSerializedStateSize(state);
     indexedDBStatus.migration = indexedDBStatus.migration === "erro" ? "erro" : "concluída";
