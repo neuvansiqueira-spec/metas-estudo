@@ -38,8 +38,8 @@ test("painel distingue material pronto de produção pendente", () => {
   assert.match(render, /filter\(\(entry\) => !isGoalDone\(entry\.goal\)/);
 });
 
-test("V82 mantém cache anterior e publicação em paridade", () => {
-  const version = "20260720-fabrica-recolhivel-v82";
+test("V83 mantém cache anterior e publicação em paridade", () => {
+  const version = "20260720-grafico-tempo-contraste-v83";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(read("index.html"), new RegExp(version));
   assert.match(read("service-worker.js"), new RegExp(`CURRENT_VERSION = "${version}"`));

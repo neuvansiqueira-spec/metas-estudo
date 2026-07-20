@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260720-fabrica-recolhivel-v82";
+const APP_VERSION = "20260720-grafico-tempo-contraste-v83";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -6196,10 +6196,66 @@ function renderCentralGoals() {
     <article class="goal-central-card"><h3>Hoje</h3><div class="card-meta-grid"><span>Data: ${formatDateBR(today)}</span><span>Tipo: ${escapeHTML(dayTypeLabel(av))}</span><span>Horas previstas: ${formatHours(dayStats.target || av.hours*60)}</span><span>Disciplinas previstas: ${dayDisciplines}</span><span>Assuntos previstos: ${dayGoals.length}</span><span>Pendentes: ${dayStats.pending}</span><span>Concluídas: ${dayStats.completed}</span></div><button data-central-open-day type="button">Abrir Plano do Dia</button></article>
     <article class="goal-central-card"><h3>Esta semana</h3><div class="card-meta-grid"><span>Semana: ${formatDateBR(ws)} a ${formatDateBR(addDays(ws,6))}</span><span>Horas previstas: ${formatHours(week.planned)}</span><span>Horas já cumpridas: ${formatHours(week.done)}</span><span>Assuntos: ${week.subjects} de ${Number(planningConfig().topicsPerWeek) || 0}</span><span>Assuntos concluídos: ${week.completed}</span><span>Disciplinas: ${week.disciplines} de ${Number(planningConfig().disciplinesPerWeek) || 0}</span><span>Percentual: ${week.percent}%</span></div><button data-central-week type="button">Completar metas da semana</button></article>
     <article class="goal-central-card"><h3>Este mês</h3><div class="card-meta-grid"><span>Mês: ${today.slice(5,7)}/${today.slice(0,4)}</span><span>Horas planejadas: ${formatHours(month.planned)}${monthlyTarget.hours ? ` de ${monthlyTarget.hours}h` : ""}</span><span>Assuntos: ${month.subjects} de ${monthlyTarget.topics}</span><span>Assuntos concluídos: ${month.completed}</span><span>Disciplinas: ${month.disciplines} de ${Number(planningConfig().disciplinesPerMonth) || 0}</span><span>Percentual: ${month.percent}%</span></div><button data-central-month type="button">Completar metas do mês</button></article>`;
+  renderCentralTimeChart();
   if (elements.centralScaleSummary) elements.centralScaleSummary.innerHTML = `<article class="stat-card"><span>Tipo de escala</span><strong>${escapeHTML(planningConfig().scaleType)}</strong></article><article class="stat-card"><span>Ponto hoje</span><strong>${escapeHTML(dayTypeLabel(av))}</strong></article><article class="stat-card"><span>Próximo plantão</span><strong class="stat-value-date">${nextDateByType('plantão') ? formatDateBR(nextDateByType('plantão')) : '-'}</strong></article><article class="stat-card"><span>Próxima folga</span><strong class="stat-value-date">${nextDateByType('folga') ? formatDateBR(nextDateByType('folga')) : '-'}</strong></article>`;
   if (elements.centralNextDates) elements.centralNextDates.innerHTML = daysBetween(today, 10).map((date) => { const availability = availabilityForDate(date), goals = state.dailyGoals.filter((goal) => goalDateValue(goal) === date), target = planningTargetsForDate(date).topics; const goalLabel = goals.length ? `${goals.length} gerada(s)` : target ? `${target} prevista(s) • a gerar` : "Sem metas de estudo"; return `<tr><td>${formatDateBR(date)}</td><td>${parseDate(date).toLocaleDateString('pt-BR',{weekday:'long'})}</td><td>${escapeHTML(dayTypeLabel(availability))}</td><td>${availability.hours}h</td><td>${escapeHTML(goalLabel)}</td></tr>`; }).join('');
   renderSmartReviewBlock(elements.centralSmartReview);
   if (elements.dashboardGoalsScaleSummary) elements.dashboardGoalsScaleSummary.innerHTML = `<article class="stat-card"><span>Hoje</span><strong>${escapeHTML(dayTypeLabel(av))}</strong></article><article class="stat-card"><span>Meta de hoje</span><strong class="stat-value-compact">${formatHours(dayStats.target || av.hours*60)}</strong></article><article class="stat-card"><span>Meta da semana</span><strong class="stat-value-compact">${formatHours(week.planned)}</strong></article><article class="stat-card"><span>Meta do mês</span><strong class="stat-value-compact">${formatHours(month.planned)}</strong></article><article class="stat-card"><span>Próximo plantão</span><strong class="stat-value-date">${nextDateByType('plantão') ? formatDateBR(nextDateByType('plantão')) : '-'}</strong></article><article class="stat-card"><span>Próxima folga</span><strong class="stat-value-date">${nextDateByType('folga') ? formatDateBR(nextDateByType('folga')) : '-'}</strong></article>`;
+}
+
+const CENTRAL_TIME_CHART_COLORS = ["#38bdf8", "#facc15", "#34d399", "#a78bfa", "#fb7185", "#22d3ee", "#f97316", "#60a5fa", "#e879f9", "#84cc16", "#f43f5e", "#14b8a6"];
+function centralTimeLogSyllabusItem(log = {}) {
+  const exact = log.syllabusItemId ? (state.syllabusItems || []).find((item) => item.id === log.syllabusItemId) : null;
+  if (exact) return exact;
+  return (state.syllabusItems || []).find((item) => dailyPlanCanonical(item.discipline) === dailyPlanCanonical(log.discipline) && dailyPlanSubjectsCompatible(item.subject, log.subject)) || null;
+}
+function centralTimeLogEdital(log = {}) {
+  const item = centralTimeLogSyllabusItem(log);
+  if (item && isImportedSyllabusItem(item)) return importedSyllabusGroupName(item);
+  return state.edital?.contestName || "Edital principal";
+}
+function centralTimeChartLogs() {
+  const subjectById = new Map((state.subjects || []).map((subject) => [subject.id, subject.name]));
+  const studies = (state.studies || []).map((study) => ({ id: study.id, date: study.date, discipline: study.discipline || subjectById.get(study.subjectId) || "Sem disciplina", subject: study.topic || study.subject || "Sem assunto", syllabusItemId: study.syllabusItemId || "", minutes: Number(study.minutes) || 0, type: study.timerKind === "questions" ? "Questões" : studyOriginLabel(study) }));
+  const goals = (state.dailyGoals || []).map((goal) => ({ id: `goal-${goal.id}`, date: goalDateValue(goal), discipline: goal.discipline || goal.disciplina || "Sem disciplina", subject: goal.subject || goal.assunto || "Sem assunto", syllabusItemId: goal.syllabusItemId || "", minutes: goalUnloggedActualMinutes(goal), type: goal.type || goal.tipo || "Meta" })).filter((goal) => goal.minutes > 0);
+  const questions = (state.questionLogs || []).filter((log) => Number(log.minutes) > 0).map((log) => ({ id: `questions-${log.id || createId()}`, date: log.date || log.data, discipline: log.discipline || "Sem disciplina", subject: log.subject || "Sem assunto", syllabusItemId: log.syllabusItemId || "", minutes: Number(log.minutes) || 0, type: log.trainingType || "Questões" }));
+  return [...studies, ...goals, ...questions].filter((log) => log.date && log.minutes > 0).map((log) => ({ ...log, edital: centralTimeLogEdital(log) }));
+}
+function centralTimePeriodBounds(period = "day") {
+  const today = todayISO();
+  if (period === "week") return [weekStart(today), addDays(weekStart(today), 6)];
+  if (period === "month") return [`${today.slice(0, 7)}-01`, `${today.slice(0, 7)}-${String(new Date(parseDate(today).getFullYear(), parseDate(today).getMonth() + 1, 0).getDate()).padStart(2, "0")}`];
+  if (period === "total") return ["0000-01-01", "9999-12-31"];
+  return [today, today];
+}
+function setCentralTimeSelectOptions(select, values, emptyLabel) {
+  if (!select) return;
+  const current = select.value;
+  const options = [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  select.innerHTML = `<option value="">${emptyLabel}</option>` + options.map((value) => `<option value="${escapeHTML(value)}">${escapeHTML(value)}</option>`).join("");
+  select.value = options.includes(current) ? current : "";
+}
+function renderCentralTimeChart() {
+  const chart = document.getElementById("centralTimeChart");
+  if (!chart) return;
+  const period = document.getElementById("centralTimePeriod")?.value || "day";
+  const disciplineSelect = document.getElementById("centralTimeDiscipline"), subjectSelect = document.getElementById("centralTimeSubject"), editalSelect = document.getElementById("centralTimeEdital"), typeSelect = document.getElementById("centralTimeType");
+  const allLogs = centralTimeChartLogs();
+  setCentralTimeSelectOptions(disciplineSelect, allLogs.map((log) => log.discipline), "Todas");
+  const discipline = disciplineSelect?.value || "";
+  setCentralTimeSelectOptions(subjectSelect, allLogs.filter((log) => !discipline || log.discipline === discipline).map((log) => log.subject), "Todos");
+  setCentralTimeSelectOptions(editalSelect, allLogs.map((log) => log.edital), "Todos");
+  setCentralTimeSelectOptions(typeSelect, allLogs.map((log) => log.type), "Todos");
+  const [start, end] = centralTimePeriodBounds(period), subject = subjectSelect?.value || "", edital = editalSelect?.value || "", type = typeSelect?.value || "";
+  const logs = allLogs.filter((log) => log.date >= start && log.date <= end && (!discipline || log.discipline === discipline) && (!subject || log.subject === subject) && (!edital || log.edital === edital) && (!type || log.type === type));
+  const groupField = discipline ? "subject" : "discipline", grouped = new Map();
+  logs.forEach((log) => grouped.set(log[groupField], (grouped.get(log[groupField]) || 0) + log.minutes));
+  const slices = [...grouped].sort((a, b) => b[1] - a[1]), total = slices.reduce((sum, [, minutes]) => sum + minutes, 0);
+  if (!total) { chart.innerHTML = `<div class="central-time-empty"><strong>0 min</strong><p>Nenhum tempo encontrado com estes filtros.</p></div>`; return; }
+  let cursor = 0;
+  const gradient = slices.map(([, minutes], index) => { const startPct = cursor; cursor += minutes / total * 100; return `${CENTRAL_TIME_CHART_COLORS[index % CENTRAL_TIME_CHART_COLORS.length]} ${startPct.toFixed(2)}% ${cursor.toFixed(2)}%`; }).join(", ");
+  const periodLabel = ({ day: "Hoje", week: "Esta semana", month: "Este mês", total: "Todo o período" })[period] || "Período";
+  chart.innerHTML = `<div class="central-time-chart-layout"><div class="central-time-pie" role="img" aria-label="Distribuição de ${formatHours(total)} de estudo" style="--central-time-gradient: conic-gradient(${gradient})"><div><strong>${formatHours(total)}</strong><span>${escapeHTML(periodLabel)}</span></div></div><div class="central-time-legend"><h4>Distribuição por ${discipline ? "assunto" : "disciplina"}</h4>${slices.map(([label, minutes], index) => `<div class="central-time-legend-row"><i style="background:${CENTRAL_TIME_CHART_COLORS[index % CENTRAL_TIME_CHART_COLORS.length]}"></i><span>${escapeHTML(label)}</span><strong>${formatHours(minutes)} • ${Math.round(minutes / total * 100)}%</strong></div>`).join("")}<p class="item-meta">${logs.length} registro(s) considerado(s), sem duplicar o tempo já incorporado às metas.</p></div></div>`;
 }
 
 function factoryEntryForDailyGoal(goal = {}) {
@@ -6620,6 +6676,7 @@ try { const saved = JSON.parse(sessionStorage.getItem("planningOpenSections") ||
 elements.planningScaleType?.addEventListener("change", () => { if (elements.scale3x6Fields) elements.scale3x6Fields.hidden = elements.planningScaleType.value !== "3 dias de trabalho / 6 dias de folga"; });
 elements.centralOpenDayPlan?.addEventListener("click", () => { elements.goalDate.value=todayISO(); renderDailyGoals(); showView("metas-do-dia"); });
 elements.centralGoalsCards?.addEventListener("click", (event) => { if (event.target.closest("[data-central-open-day]")) { elements.goalDate.value=todayISO(); renderDailyGoals(); showView("metas-do-dia"); } if (event.target.closest("[data-central-week]")) { if(elements.calendarDate) elements.calendarDate.value=todayISO(); generateWeekGoals(); } if (event.target.closest("[data-central-month]")) { if(elements.calendarDate) elements.calendarDate.value=todayISO(); generateMonthGoals(); } });
+document.getElementById("view-central-metas")?.addEventListener("change", (event) => { if (event.target.closest(".central-time-chart-filters")) renderCentralTimeChart(); });
 elements.goalDate?.addEventListener("change", () => { renderDailyGoals(); renderGoalDashboardCards(); });
 elements.generateCalendarGoals?.addEventListener("click", generateCalendarGoals);
 [elements.calendarDate, elements.goalGenerationScope].filter(Boolean).forEach((el)=>el.addEventListener("change", renderGoalCalendar));

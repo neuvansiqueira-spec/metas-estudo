@@ -65,8 +65,8 @@ test("Fábrica mostra data e estado do planejamento sem confundir produção com
   assert.match(script, /status = factoryOverallStatus/);
 });
 
-test("V82 mantém cache, versão anterior e arquivos publicados em paridade", () => {
-  const version = "20260720-fabrica-recolhivel-v82";
+test("V83 mantém cache, versão anterior e arquivos publicados em paridade", () => {
+  const version = "20260720-grafico-tempo-contraste-v83";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(read("index.html"), new RegExp(version));
   assert.match(read("service-worker.js"), new RegExp(`CURRENT_VERSION = "${version}"`));

@@ -30,8 +30,8 @@ test("painéis recolhíveis têm contraste e ajuste para celular", () => {
   assert.match(css, /@media \(max-width: 760px\)[\s\S]*\.factory-collapsible > summary/);
 });
 
-test("V82 preserva cache anterior e arquivos publicados em paridade", () => {
-  const version = "20260720-fabrica-recolhivel-v82";
+test("V83 preserva cache anterior e arquivos publicados em paridade", () => {
+  const version = "20260720-grafico-tempo-contraste-v83";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(html, new RegExp(version));
   assert.match(read("service-worker.js"), new RegExp(`CURRENT_VERSION = "${version}"`));

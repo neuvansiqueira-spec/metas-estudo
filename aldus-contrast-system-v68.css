@@ -419,6 +419,30 @@
   }
 }
 
+/* V83: contraste reforçado especificamente para a Fábrica. */
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-collapsible {
+  border: 2px solid #4b89b8 !important;
+  background: #061d31 !important;
+  box-shadow: 0 12px 30px rgba(0, 5, 14, .42) !important;
+}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-collapsible > summary {
+  color: #ffffff !important;
+  background: #123f61 !important;
+  border-bottom-color: #f2c94c !important;
+}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-collapsible > summary::marker { color: #f2c94c !important; }
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-collapsible > summary small {
+  color: #06213a !important;
+  background: #d8edff !important;
+}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-do-now {
+  border-color: #f2c94c !important;
+}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-do-now > summary {
+  color: #071827 !important;
+  background: #f2c94c !important;
+}
+
 @media (forced-colors: active) {
   html[data-aldus-theme="premium-stable"] :is(.app-view.active, .app-modal-card) * {
     forced-color-adjust: auto;
