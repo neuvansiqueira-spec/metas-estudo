@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260720-concluidas-visibilidade-v76";
+const APP_VERSION = "20260720-distribuicao-reposicao-v77";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -2900,7 +2900,16 @@ function isWeakItem(item) {
   const cebraspeNet = performance.correct - performance.wrong;
   return item.domain === "Fraco" || (answered > 0 && accuracy < 0.7) || (performance.wrong >= 3 && performance.wrong > performance.correct) || (performance.questions >= 5 && cebraspeNet <= 0);
 }
-function setItemStatus(id, status) { const item = state.syllabusItems.find((entry) => entry.id === id); if (item) { item.status = status; render(); } }
+function setItemStatus(id, status) {
+  const item = state.syllabusItems.find((entry) => entry.id === id);
+  if (!item) return;
+  const wasCompleted = completedStatus(item);
+  item.status = status;
+  if (!wasCompleted && completedStatus(item)) replanFutureGoalsAfterCompletionV77(item, state);
+  saveData({ markLocalChange: true });
+  autoSyncAfterSave("syllabus-status");
+  render();
+}
 function setItemDomain(id, domain, manualWeak = false) { const item = state.syllabusItems.find((entry) => entry.id === id); if (item) { item.domain = domain; item.manualWeak = manualWeak || item.manualWeak; render(); } }
 function toggleItemSchedulable(id) { const setting = settingFor(id); setting.availability = setting.availability === "Agendável" ? "Não agendável" : "Agendável"; render(); }
 function editSyllabusItem(id) {
@@ -4234,7 +4243,13 @@ function renderDashboardProgressSummary() {
   const m = progressMetrics(); const lag = m.disciplines[0];
   elements.dashboardProgressSummary.innerHTML = `<div><strong>${m.percent}%</strong><span>${m.studied}/${m.total} assuntos estudados</span>${progressBar(m.percent)}</div><div class="card-meta-grid"><span>Previsão: ${escapeHTML(formatDateBR(m.forecastDate))}</span><span>Mais atrasada: ${escapeHTML(lag ? `${lag.discipline} (${lag.percent}%)` : "-")}</span><span>Horas restantes: ${formatHours(m.remainingMinutes)}</span><span>Situação: ${escapeHTML(m.situation)}</span></div>`;
 }
-function updateItemProgress(id, patch = {}) { const item = getSyllabusById(id); if (!item) return; Object.assign(item, patch, { updatedAt: new Date().toISOString() }); }
+function updateItemProgress(id, patch = {}) {
+  const item = getSyllabusById(id);
+  if (!item) return null;
+  const wasCompleted = completedStatus(item);
+  Object.assign(item, patch, { updatedAt: new Date().toISOString() });
+  return !wasCompleted && completedStatus(item) ? replanFutureGoalsAfterCompletionV77(item, state) : null;
+}
 function findSyllabusItemByStudy(subjectId, topic) { const discipline = subjectNameById(subjectId); return state.syllabusItems.find((item) => canonical(item.discipline) === canonical(discipline) && (canonical(topic).includes(canonical(item.subject)) || canonical(item.subject).includes(canonical(topic)))); }
 
 function planningForecastCard(label, value) {
@@ -4987,11 +5002,29 @@ elements.changeMotivation?.addEventListener("click", () => renderMotivationalPhr
 elements.subjectForm.addEventListener("submit", (event) => { event.preventDefault(); state.subjects.push({ id: createId(), name: elements.subjectName.value.trim(), goalHours: Number(elements.subjectGoal.value) }); elements.subjectForm.reset(); render(); });
 elements.studyForm.addEventListener("submit", (event) => { event.preventDefault(); if (!elements.studySubject.value) return alert("Cadastre uma disciplina antes de registrar o estudo."); const questions = Number(elements.questionsDone.value); const correct = Number(elements.correctAnswers.value); const wrong = Number(elements.wrongAnswers.value); const blank = Number(elements.blankAnswers.value); if (correct + wrong + blank !== questions) return alert("A soma de acertos, erros e brancos deve ser igual ao total de questões feitas."); const studyTopic = elements.studyTopic.value.trim(); const linkedItem = findSyllabusItemByStudy(elements.studySubject.value, studyTopic); state.studies.push({ id: createId(), date: elements.studyDate.value, subjectId: elements.studySubject.value, syllabusItemId: linkedItem?.id || "", topic: studyTopic, minutes: Number(elements.studyMinutes.value), plannedMinutes: Number(elements.studyPlannedMinutes?.value) || 0, topicStatus: elements.studyTopicStatus?.value || "Iniciado", difficultyNotes: elements.studyDifficultyNotes?.value.trim() || "", materialId: elements.studyMaterial?.value || "", questions, correct, wrong, blank }); if (linkedItem) updateItemProgress(linkedItem.id, { status: isCompletedStatusValue(elements.studyTopicStatus?.value) ? "Concluído" : (completedStatus(linkedItem) ? linkedItem.status : "Em andamento") }); elements.studyForm.reset(); elements.studyDate.value = todayISO();
 elements.goalDate.value = todayISO();
-elements.questionDate.value = todayISO(); render(); });
+elements.questionDate.value = todayISO(); saveData({ markLocalChange: true }); autoSyncAfterSave("study-log"); render(); });
 elements.editalForm.addEventListener("submit", (event) => { event.preventDefault(); ["contestName", "agency", "role", "board", "examDate", "officialLink", "generalNotes"].forEach((key) => { state.edital[key] = elements[key].value.trim(); }); render(); });
 elements.editalPdf.addEventListener("change", () => { const file = elements.editalPdf.files[0]; if (!file) return; state.edital.pdf = { name: file.name, size: file.size, type: file.type, attachedAt: new Date().toLocaleString("pt-BR") }; render(); });
 elements.removePdf.addEventListener("click", () => { state.edital.pdf = null; elements.editalPdf.value = ""; render(); });
-elements.syllabusForm.addEventListener("submit", (event) => { event.preventDefault(); const payload = { id: editingSyllabusId || createId(), discipline: elements.itemDiscipline.value.trim(), topic: elements.itemTopic.value.trim(), subject: elements.itemSubject.value.trim(), subtopic: elements.itemSubtopic.value.trim(), reference: elements.itemReference.value.trim(), priority: elements.itemPriority.value, weight: normalizeSubjectIncidence(elements.itemWeight.value), status: elements.itemStatus.value, domain: elements.itemDomain.value, manualWeak: elements.itemDomain.value === "Fraco", notes: elements.itemNotes.value.trim() }; const existingIndex = state.syllabusItems.findIndex((item) => item.id === editingSyllabusId); if (existingIndex >= 0) state.syllabusItems[existingIndex] = { ...state.syllabusItems[existingIndex], ...payload }; else state.syllabusItems.push(payload); editingSyllabusId = null; elements.syllabusForm.reset(); elements.itemPriority.value = "Média"; elements.itemWeight.value = 3; elements.itemStatus.value = "Não iniciado"; elements.itemDomain.value = "Sem diagnóstico"; render(); });
+elements.syllabusForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const payload = { id: editingSyllabusId || createId(), discipline: elements.itemDiscipline.value.trim(), topic: elements.itemTopic.value.trim(), subject: elements.itemSubject.value.trim(), subtopic: elements.itemSubtopic.value.trim(), reference: elements.itemReference.value.trim(), priority: elements.itemPriority.value, weight: normalizeSubjectIncidence(elements.itemWeight.value), status: elements.itemStatus.value, domain: elements.itemDomain.value, manualWeak: elements.itemDomain.value === "Fraco", notes: elements.itemNotes.value.trim() };
+  const existingIndex = state.syllabusItems.findIndex((item) => item.id === editingSyllabusId);
+  const wasCompleted = existingIndex >= 0 && completedStatus(state.syllabusItems[existingIndex]);
+  if (existingIndex >= 0) state.syllabusItems[existingIndex] = { ...state.syllabusItems[existingIndex], ...payload };
+  else state.syllabusItems.push(payload);
+  const savedItem = state.syllabusItems.find((item) => item.id === payload.id);
+  if (!wasCompleted && completedStatus(savedItem)) replanFutureGoalsAfterCompletionV77(savedItem, state);
+  editingSyllabusId = null;
+  elements.syllabusForm.reset();
+  elements.itemPriority.value = "Média";
+  elements.itemWeight.value = 3;
+  elements.itemStatus.value = "Não iniciado";
+  elements.itemDomain.value = "Sem diagnóstico";
+  saveData({ markLocalChange: true });
+  autoSyncAfterSave("syllabus-item");
+  render();
+});
 elements.applyIncidenceTableButton?.addEventListener("click", handleApplyIncidenceTable);
 elements.previewBulk.addEventListener("click", () => { bulkDraft = elements.bulkInput.value.split("\n").map((line) => line.trim()).filter(Boolean).map((line) => syllabusFromValues(line.split(";"))); elements.saveBulk.disabled = !bulkDraft.length; elements.bulkPreview.innerHTML = bulkDraft.length ? `<table><thead><tr><th>Disciplina</th><th>Tópico</th><th>Assunto</th><th>Prioridade</th><th>Status</th><th>Domínio</th></tr></thead><tbody>${bulkDraft.map((item) => `<tr><td>${escapeHTML(item.discipline)}</td><td>${escapeHTML(item.topic)}</td><td>${escapeHTML(item.subject)}</td><td>${escapeHTML(item.priority)}</td><td>${escapeHTML(item.status)}</td><td>${escapeHTML(item.domain)}</td></tr>`).join("")}</tbody></table>` : ""; });
 elements.saveBulk.addEventListener("click", () => { state.syllabusItems.push(...bulkDraft); bulkDraft = []; elements.bulkInput.value = ""; elements.bulkPreview.innerHTML = ""; elements.saveBulk.disabled = true; render(); });
@@ -5170,8 +5203,8 @@ function normalizeDisciplineWeight(value, discipline = "") {
   const weight = Math.round(Number(value));
   return DISCIPLINE_WEIGHT_OPTIONS.some((option) => option.value === weight) ? weight : defaultDisciplineWeight(discipline);
 }
-function disciplineWeightValue(discipline) {
-  const stored = state.disciplineWeights?.[discipline];
+function disciplineWeightValue(discipline, targetState = state) {
+  const stored = targetState.disciplineWeights?.[discipline];
   return stored === undefined || stored === null || stored === "" ? defaultDisciplineWeight(discipline) : normalizeDisciplineWeight(stored, discipline);
 }
 function disciplineWeightOptions(discipline) {
@@ -5284,6 +5317,39 @@ function repairCompletedPlanningGoalsV76(targetState = state) {
   return { removed: removed.size, changed: removed.size > 0 };
 }
 function isPlanningStudyGoal(goal = {}) { return ["estudo novo", "revisão", "revisao", "reforço", "reforco", "questões", "questoes", "simulado", "meta"].includes(canonical(goal.type || goal.tipo || "Meta")); }
+function planningDistributionProfileV77(targetState = state, date = todayISO()) {
+  const windowStart = addDays(date, -28);
+  const counts = new Map(), lastDates = new Map();
+  (targetState.dailyGoals || []).forEach((goal) => {
+    const goalDate = goalDateValue(goal);
+    if (!isPlanningStudyGoal(goal) || !goalDate || goalDate < windowStart || goalDate >= date || ["Ignorada", "Não cumprida"].includes(goal.status || "")) return;
+    const discipline = canonical(goal.discipline || goal.disciplina);
+    if (!discipline) return;
+    counts.set(discipline, (counts.get(discipline) || 0) + 1);
+    if (!lastDates.get(discipline) || goalDate > lastDates.get(discipline)) lastDates.set(discipline, goalDate);
+  });
+  return { counts, lastDates, yesterday: addDays(date, -1) };
+}
+function planningDistributionOrderV77(records = [], targetState = state, date = todayISO(), scoreContext = null) {
+  const profile = planningDistributionProfileV77(targetState, date);
+  const indexed = records.map((record, index) => ({ record, index }));
+  const scoreFor = (record) => Number(scoreContext?.scores?.get(record.syllabusItemId || record.id)) || 0;
+  return indexed.sort((left, right) => {
+    const a = left.record, b = right.record;
+    const disciplineA = canonical(a.discipline || a.disciplina), disciplineB = canonical(b.discipline || b.disciplina);
+    const repeatedYesterdayA = profile.lastDates.get(disciplineA) === profile.yesterday ? 1 : 0;
+    const repeatedYesterdayB = profile.lastDates.get(disciplineB) === profile.yesterday ? 1 : 0;
+    if (repeatedYesterdayA !== repeatedYesterdayB) return repeatedYesterdayA - repeatedYesterdayB;
+    const loadA = (profile.counts.get(disciplineA) || 0) / Math.max(3, disciplineWeightValue(a.discipline || a.disciplina, targetState));
+    const loadB = (profile.counts.get(disciplineB) || 0) / Math.max(3, disciplineWeightValue(b.discipline || b.disciplina, targetState));
+    if (Math.abs(loadA - loadB) > 0.0001) return loadA - loadB;
+    const lastA = profile.lastDates.get(disciplineA) || "";
+    const lastB = profile.lastDates.get(disciplineB) || "";
+    if (lastA !== lastB) return lastA.localeCompare(lastB);
+    const scoreDifference = scoreFor(b) - scoreFor(a);
+    return scoreDifference || left.index - right.index;
+  }).map(({ record }) => record);
+}
 function planningTargetsForDate(date, targetState = state, opts = {}) {
   // Compatibilidade dos modos: const expected = dayModeIncludesGoals(dayContent.mode) ? Math.max
   // Compatibilidade da seleção: const candidates = dayModeIncludesGoals(dayContent.mode) ?
@@ -5311,7 +5377,7 @@ function eligiblePlanningGoalsForDate(date, opts = {}) {
     const [goal] = makeGoal(item, date, context.itemMetrics.get(item.id)?.weakItem ? "Reforço" : goalTypeForItem(item), context, targetState);
     if (goal) eligible.push(goal);
   }
-  return eligible;
+  return planningDistributionOrderV77(eligible, targetState, date, context);
 }
 function selectDistinctPlanningItems({ count, eligibleGoals, eligibleItems, existingGoals = [], date = todayISO(), recentHistory = [] } = {}) {
   const requested = Math.max(0, Number(count) || Number(planningConfig().disciplinesPerDay) || 1);
@@ -5457,7 +5523,7 @@ function generateGoalsForDate(date, opts = {}) {
   const existing = new Set(opts.reservedSyllabusIds || []);
   (targetState.dailyGoals || []).filter((goal) => goalDateValue(goal) === date).forEach((goal) => { const key = goalSyllabusReservationKey(goal); if (key) existing.add(key); });
   const pendingByDiscipline = context.pendingByDiscipline;
-  const candidates = context.candidates.filter((item) => !existing.has(String(item.id)));
+  const candidates = planningDistributionOrderV77(context.candidates.filter((item) => !existing.has(planningItemKey(item))), targetState, date, context);
   const c = planningConfig(targetState);
   const baseMaxGoals = opts.maxGoals || (dayType === "plantão" ? Math.min(2, Number(c.topicsPerDay)||2) : dayType === "folga" || dayType === "estudo forte" ? 6 : dayType === "estudo leve" ? 3 : 4);
   const requestedTopicLimit = Number(opts.topicLimit ?? c.topicsPerDay);
@@ -5508,6 +5574,33 @@ function shouldRecalculateDailyGoal(goal) {
 }
 function isPreservableDailyGoal(goal) {
   return !shouldRecalculateDailyGoal(goal);
+}
+function replanFutureGoalsAfterCompletionV77(completedRecord, targetState = state, opts = {}) {
+  const fromDate = opts.fromDate || todayISO();
+  const completedSyllabusId = String(completedRecord?.syllabusItemId || completedRecord?.id || "");
+  const matchesCompleted = (goal) => completedSyllabusId && String(goal.syllabusItemId || "") === completedSyllabusId
+    || planningRecordMatchesCompletedSubject(goal, [completedRecord]);
+  const staleGoals = (targetState.dailyGoals || []).filter((goal) => goal !== completedRecord
+    && goalDateValue(goal) >= fromDate
+    && !isManualDailyGoal(goal)
+    && shouldRecalculateDailyGoal(goal)
+    && matchesCompleted(goal));
+  const affectedDates = [...new Set(staleGoals.map(goalDateValue).filter(Boolean))].sort();
+  if (!staleGoals.length) return { removed: [], added: [], affectedDates, warnings: [] };
+  const staleSet = new Set(staleGoals);
+  targetState.dailyGoals = targetState.dailyGoals.filter((goal) => !staleSet.has(goal));
+  const rebuilt = reconcilePlanningDates(targetState, affectedDates, { scoreContext: buildPlanningScoreContext(targetState) });
+  return { removed: staleGoals.map((goal) => goal.id), added: rebuilt.added, affectedDates, warnings: rebuilt.warnings };
+}
+function rebalanceFuturePlanningGoalsV77(targetState = state) {
+  targetState.migrations ||= {};
+  if (targetState.migrations.planningDistributionV77) return { changed: false, skipped: true, dates: [], added: [], removed: [], warnings: [] };
+  const dates = [...new Set((targetState.dailyGoals || [])
+    .filter((goal) => goalDateValue(goal) >= todayISO() && !isManualDailyGoal(goal) && isAutomaticIntactDailyGoal(goal) && isPlanningStudyGoal(goal))
+    .map(goalDateValue).filter(Boolean))].sort();
+  const rebuilt = dates.length ? reconcilePlanningDates(targetState, dates, { rebuildAutomatic: true }) : { added: [], removed: [], warnings: [] };
+  targetState.migrations.planningDistributionV77 = { executedAt: new Date().toISOString(), dates: dates.length, added: rebuilt.added.length, removed: rebuilt.removed.length };
+  return { changed: Boolean(rebuilt.added.length || rebuilt.removed.length), skipped: false, dates, added: rebuilt.added, removed: rebuilt.removed, warnings: rebuilt.warnings };
 }
 function generateDailyGoals() {
   try {
@@ -5608,11 +5701,15 @@ function confirmGoalCompletion(goalId = goalCompletionActiveGoalId) {
   goal.completed = true;
   goal.completedAt = goal.completedAt || new Date().toISOString();
   appendGoalHistory(goal, `Concluída em ${new Date().toLocaleString("pt-BR")}. Tempo preservado: ${actualMinutes} min.`);
-  saveData();
+  const replanReport = typeof replanFutureGoalsAfterCompletionV77 === "function"
+    ? replanFutureGoalsAfterCompletionV77(goal, state)
+    : { removed: [], added: [], affectedDates: [], warnings: [] };
+  saveData({ markLocalChange: true });
   render();
   autoSyncAfterSave("daily-goal");
   closeGoalCompletionModal();
-  showDailyGoalMessage(actualMinutes > 0 ? `Meta concluída. Os ${actualMinutes} minutos registrados foram mantidos.` : "Meta concluída sem tempo registrado.", "success");
+  const replacementMessage = replanReport.removed.length ? ` ${replanReport.removed.length} meta(s) futura(s) deste assunto foram substituída(s) por ${replanReport.added.length} novo(s) assunto(s) pendente(s).` : "";
+  showDailyGoalMessage(`${actualMinutes > 0 ? `Meta concluída. Os ${actualMinutes} minutos registrados foram mantidos.` : "Meta concluída sem tempo registrado."}${replacementMessage}`, "success");
   goalCompletionInProgress.delete(goalId);
 }
 function updateGoalDone(goal) {
@@ -6764,6 +6861,9 @@ async function bootstrapApplication() {
     const completedGoalIntegrityReport = repairCompletedPlanningGoalsV76(state);
     window.__completedGoalIntegrityReportV76 = completedGoalIntegrityReport;
     if (completedGoalIntegrityReport.changed) saveData({ markLocalChange: true });
+    const planningDistributionReport = rebalanceFuturePlanningGoalsV77(state);
+    window.__planningDistributionReportV77 = planningDistributionReport;
+    if (!planningDistributionReport.skipped) saveData({ markLocalChange: true });
     renderMotivationalPhrase();
     indexedDBStatus.size = estimateSerializedStateSize(state);
     indexedDBStatus.migration = indexedDBStatus.migration === "erro" ? "erro" : "concluída";

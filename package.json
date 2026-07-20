@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260720-concluidas-visibilidade-v76",
+  "version": "20260720-distribuicao-reposicao-v77",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
