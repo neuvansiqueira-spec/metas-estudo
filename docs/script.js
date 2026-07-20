@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260720-cronometro-mobile-v86";
+const APP_VERSION = "20260720-mensagem-motivacional-v87";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -1049,7 +1049,7 @@ const FACTORY_DOCX_EMOJI_FONT_INSTRUCTIONS = `## FONTES E EMOJIS NO WORD
 - Aplicar a regra ao documento inteiro, inclusive títulos, subtítulos e rodapé.`;
 const defaultState = { subjects: [], studies: [], edital: { pdf: null }, syllabusItems: [], schedulableSettings: {}, dailyGoals: [], questionLogs: [], smartReviews: [], simulados: [], advisorMission: {}, advisorNavigation: { version: 1, autonomyMode: "copilot", activeRoute: null, routeHistory: [], lastProjection: null, lastRecalculatedAt: "", sourceFingerprint: "", userLimits: {} }, planning: cloneData(defaultPlanning), settings: { defaultMockGoal: 92, timerPreferences: cloneData(defaultTimerPreferences) }, materials: [], questionBank: [], questionBankSessions: [], questionErrorNotebook: [], disciplineWeights: {}, monthlyGoals: {}, timerSession: null, factoryItems: [], factoryAgenda: [], factoryPromptLibrary: cloneData(defaultFactoryPromptLibrary) };
 const TIMER_MOTIVATIONAL_HISTORY_KEY = "metasEstudoTimerMotivationalHistory";
-const TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 5000;
+const TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 30000;
 const TIMER_MOTIVATIONAL_MILESTONES = [10, 25, 40, 50, 65, 75, 90, 100];
 const TIMER_MOTIVATIONAL_MESSAGES = {
   10: ["Vamos lá. O mais difícil era começar.", "Você já saiu do zero. Continue.", "O primeiro passo já ficou para trás.", "O ritmo está sendo construído agora.", "Não pense no caminho inteiro. Vença este momento.", "Você começou. Agora deixe a constância trabalhar.", "Mais uma sessão começou do jeito certo.", "O início já foi vencido. Continue presente."],
@@ -1344,6 +1344,7 @@ function showTimerMotivationalToast(milestone, phrase = chooseTimerMotivationalM
   elements.timerMotivationalToast.innerHTML = `<strong>${milestone}% CONCLUÍDO</strong><span>${phrase}</span>`;
   elements.timerMotivationalToast.hidden = false;
   elements.timerMotivationalToast.classList.add("visible");
+  void globalThis.MetasQuestionAccuracySpectrum?.playMotivationalChime?.(milestone);
   timerMotivationalToastTimeout = setTimeout(() => {
     elements.timerMotivationalToast.classList.remove("visible");
     timerMotivationalToastTimeout = setTimeout(() => { elements.timerMotivationalToast.hidden = true; }, 260);

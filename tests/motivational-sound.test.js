@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 
 const source = fs.readFileSync("question-accuracy-spectrum.js", "utf8");
+const script = fs.readFileSync("script.js", "utf8");
 
 test("aviso sonoro é ativado por padrão e pode ser desativado", () => {
   assert.match(source, /metasEstudoMotivationalSoundEnabled/);
@@ -22,10 +23,10 @@ test("toque é curto, suave e gerado sem arquivo externo", () => {
 });
 
 test("cada mensagem chama o som e 100% usa conclusão especial", () => {
-  assert.match(source, /void playMotivationalChime\(milestone\)/);
+  assert.match(script, /MetasQuestionAccuracySpectrum\?\.playMotivationalChime\?\.\(milestone\)/);
   assert.match(source, /Number\(milestone\) >= 100/);
   assert.match(source, /987\.77/);
-  assert.match(source, /30000/);
+  assert.match(script, /TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 30000/);
 });
 
 test("raiz e versão publicada permanecem idênticas", () => {
