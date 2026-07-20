@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260720-calendario-semanal-v78";
+const APP_VERSION = "20260720-calendario-mensal-v79";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -5799,7 +5799,8 @@ function setGoalCalendarGenerationStatus(message, tone = "success") {
 function saveGeneratedGoals(kind, made, options = {}) {
   const balancedPlan = options.balancedPlan || null;
   if (balancedPlan && !balancedPlan.complete) {
-    const message = `Não foi possível redistribuir a semana com segurança: foram encontrados ${balancedPlan.protectedGoals.length + balancedPlan.made.length} de ${balancedPlan.targetTopics} assunto(s). Nenhuma meta existente foi removida.`;
+    const periodLabel = balancedPlan.scope === "monthly" ? "o mês" : "a semana";
+    const message = `Não foi possível redistribuir ${periodLabel} com segurança: foram encontrados ${balancedPlan.protectedGoals.length + balancedPlan.made.length} de ${balancedPlan.targetTopics} assunto(s). Nenhuma meta existente foi removida.`;
     setGoalCalendarGenerationStatus(message, "warning");
     return alert(message);
   }
@@ -5812,15 +5813,18 @@ function saveGeneratedGoals(kind, made, options = {}) {
   if (!confirm(`${previewGoals(kind, made)}${replacementPreview}`)) return;
   if (balancedPlan) {
     const applied = applyBalancedWeekGenerationV78(state, balancedPlan);
+    const periodLabel = balancedPlan.scope === "monthly" ? "Mês" : "Semana";
+    const syncEvent = balancedPlan.scope === "monthly" ? "calendar-monthly-balanced-generation" : "calendar-weekly-balanced-generation";
     if (!applied.changed) {
-      setGoalCalendarGenerationStatus("A semana já estava distribuída conforme a meta configurada.");
+      setGoalCalendarGenerationStatus(`${periodLabel} já estava distribuído conforme a meta configurada.`);
       return;
     }
     saveData({ markLocalChange: true });
     render();
     showView("calendario-metas");
-    setGoalCalendarGenerationStatus(`Semana redistribuída: ${applied.added.length} meta(s) salvas em ${balancedPlan.usedDates.length} dia(s); ${applied.removed.length} meta(s) automática(s) antiga(s) reposicionada(s).`);
-    autoSyncAfterSave("calendar-weekly-balanced-generation");
+    const shortage = balancedPlan.fulfilledTarget === false ? ` A capacidade ou os assuntos disponíveis permitiram ${balancedPlan.protectedGoals.length + applied.added.length} de ${balancedPlan.targetTopics} meta(s).` : "";
+    setGoalCalendarGenerationStatus(`${periodLabel} redistribuído: ${applied.added.length} meta(s) salvas em ${balancedPlan.usedDates.length} dia(s); ${applied.removed.length} meta(s) automática(s) antiga(s) reposicionada(s).${shortage}`);
+    autoSyncAfterSave(syncEvent);
     return;
   }
   const existing = new Set((state.dailyGoals || []).map((goal) => `${goalDateValue(goal)}|${planningItemKey(goal)}`));
@@ -5844,8 +5848,8 @@ function saveGeneratedGoals(kind, made, options = {}) {
   setGoalCalendarGenerationStatus(`${unique.length} meta(s) gerada(s), salvas e compartilhadas com o Plano do Dia e a Central de Metas.`);
   autoSyncAfterSave("calendar-goals-generation");
 }
-function monthlyPlanningTarget(date = elements.calendarDate?.value || todayISO()) {
-  const key = date.slice(0, 7), saved = state.monthlyGoals[key] || {}, config = planningConfig();
+function monthlyPlanningTarget(date = elements.calendarDate?.value || todayISO(), targetState = state) {
+  const key = date.slice(0, 7), saved = targetState.monthlyGoals?.[key] || {}, config = planningConfig(targetState);
   const hasTopics = saved.topics !== undefined && saved.topics !== null && saved.topics !== "";
   const hasHours = saved.hours !== undefined && saved.hours !== null && saved.hours !== "";
   return { key, topics: hasTopics ? Math.max(0, Number(saved.topics) || 0) : Math.max(0, Number(config.topicsPerMonth) || 0), hours: hasHours ? Math.max(0, Number(saved.hours) || 0) : 0 };
@@ -5933,6 +5937,58 @@ function rebalanceCurrentWeekV78(targetState = state) {
   targetState.migrations.balancedWeeklyCalendarV78 = { executedAt: new Date().toISOString(), start: plan.start, end: plan.end, targetTopics: plan.targetTopics, daysUsed: plan.usedDates.length, removed: applied.removed.length, added: applied.added.length, complete: plan.complete };
   return { ...applied, skipped: false, plan };
 }
+function buildBalancedMonthGenerationV79(targetState = state, referenceDate = todayISO()) {
+  const ref = parseDate(referenceDate);
+  const start = `${ref.getFullYear()}-${String(ref.getMonth() + 1).padStart(2, "0")}-01`;
+  const dayCount = new Date(ref.getFullYear(), ref.getMonth() + 1, 0).getDate();
+  const end = addDays(start, dayCount - 1), dates = daysBetween(start, dayCount), today = todayISO();
+  const distributionStart = end < today ? "" : start <= today ? today : start;
+  const monthGoals = (targetState.dailyGoals || []).filter((goal) => goalDateValue(goal) >= start && goalDateValue(goal) <= end && isPlanningStudyGoal(goal));
+  const replaceableGoals = distributionStart ? monthGoals.filter((goal) => !isManualDailyGoal(goal) && isAutomaticIntactDailyGoal(goal)) : [];
+  const replaceableSet = new Set(replaceableGoals);
+  const protectedGoals = monthGoals.filter((goal) => !replaceableSet.has(goal));
+  const config = planningConfig(targetState), target = monthlyPlanningTarget(referenceDate, targetState);
+  const targetTopics = Math.max(0, Number(target.topics) || 0);
+  const targetDisciplines = Math.min(Math.max(targetTopics, monthGoals.length), Math.max(0, Number(config.disciplinesPerMonth) || 0));
+  const distributionDates = distributionStart ? dates.filter((date) => date >= distributionStart && planningTargetsForDate(date, targetState).topics > 0) : [];
+  const capacityByDate = new Map(distributionDates.map((date) => [date, planningTargetsForDate(date, targetState).topics]));
+  const initialCounts = new Map(distributionDates.map((date) => [date, protectedGoals.filter((goal) => goalDateValue(goal) === date).length]));
+  const desiredTotal = Math.max(targetTopics, protectedGoals.length + replaceableGoals.length);
+  const needed = Math.max(0, desiredTotal - protectedGoals.length);
+  const slots = balancedWeeklyDateSlotsV78(distributionDates, capacityByDate, initialCounts, needed);
+  const virtualState = { ...targetState, dailyGoals: (targetState.dailyGoals || []).filter((goal) => !replaceableSet.has(goal)) };
+  const scoreContext = buildPlanningScoreContext(virtualState), reservedSyllabusIds = new Set();
+  reserveGeneratedSyllabus(reservedSyllabusIds, virtualState.dailyGoals);
+  const made = [], periodDisciplines = new Set(protectedGoals.map((goal) => canonical(goal.discipline || goal.disciplina)).filter(Boolean));
+  slots.forEach((date) => {
+    const existingGoals = [...protectedGoals, ...made].filter((goal) => goalDateValue(goal) === date);
+    let eligibleGoals = eligiblePlanningGoalsForDate(date, { targetState: virtualState, scoreContext, reservedSyllabusIds, existingGoals });
+    if (periodDisciplines.size < targetDisciplines) eligibleGoals = [...eligibleGoals].sort((a, b) => Number(periodDisciplines.has(canonical(a.discipline || a.disciplina))) - Number(periodDisciplines.has(canonical(b.discipline || b.disciplina))));
+    const targets = planningTargetsForDate(date, targetState);
+    const selected = selectPlanningGoalsForTargets({ date, topicTarget: existingGoals.length + 1, disciplineTarget: targets.disciplines, eligibleGoals, existingGoals }).selected[0];
+    if (!selected) return;
+    selected.origin = selected.origem = "planejamento";
+    selected.createdAt ||= new Date().toISOString();
+    selected.updatedAt = selected.createdAt;
+    made.push(selected); virtualState.dailyGoals.push(selected);
+    const key = goalSyllabusReservationKey(selected);
+    if (key) reservedSyllabusIds.add(key);
+    periodDisciplines.add(canonical(selected.discipline || selected.disciplina));
+  });
+  const complete = made.length >= replaceableGoals.length;
+  const fulfilledTarget = protectedGoals.length + made.length >= targetTopics;
+  const usedDates = [...new Set([...protectedGoals, ...made].map(goalDateValue).filter((date) => date >= start && date <= end))].sort();
+  return { scope: "monthly", start, end, dates, distributionDates, targetTopics, targetDisciplines, desiredTotal, needed, slots, made, protectedGoals, replaceableGoals, complete, fulfilledTarget, usedDates };
+}
+function rebalanceCurrentMonthV79(targetState = state) {
+  targetState.migrations ||= {};
+  if (targetState.migrations.balancedMonthlyCalendarV79) return { skipped: true, changed: false, removed: [], added: [] };
+  const plan = buildBalancedMonthGenerationV79(targetState, todayISO());
+  const canApply = plan.targetTopics > 0 && plan.complete && (plan.made.length || plan.replaceableGoals.length);
+  const applied = canApply ? applyBalancedWeekGenerationV78(targetState, plan) : { changed: false, removed: [], added: [] };
+  targetState.migrations.balancedMonthlyCalendarV79 = { executedAt: new Date().toISOString(), start: plan.start, end: plan.end, targetTopics: plan.targetTopics, fulfilledTarget: plan.fulfilledTarget, daysUsed: plan.usedDates.length, removed: applied.removed.length, added: applied.added.length, complete: plan.complete };
+  return { ...applied, skipped: false, plan };
+}
 function generateDayGoals() {
   const config = planningConfig(), date = elements.calendarDate?.value || todayISO();
   const existing = (state.dailyGoals || []).filter((goal) => goalDateValue(goal) === date && isPlanningStudyGoal(goal));
@@ -5954,30 +6010,15 @@ function generateWeekGoals() {
   saveGeneratedGoals("Pré-visualização semanal equilibrada", plan.made, { balancedPlan: plan });
 }
 function generateMonthGoals() {
-  const config = planningConfig(), reference = elements.calendarDate?.value || todayISO(), ref = parseDate(reference);
-  const start = `${ref.getFullYear()}-${String(ref.getMonth() + 1).padStart(2, "0")}-01`, days = new Date(ref.getFullYear(), ref.getMonth() + 1, 0).getDate(), end = addDays(start, days - 1);
-  const target = monthlyPlanningTarget(reference), targetTopics = target.topics, targetDisciplines = Math.max(0, Number(config.disciplinesPerMonth) || 0);
-  const existing = goalsBetween(start, end).filter(isPlanningStudyGoal), made = [], scoreContext = buildPlanningScoreContext();
-  const reservedSyllabusIds = new Set(); reserveGeneratedSyllabus(reservedSyllabusIds, existing);
-  daysBetween(start, days).forEach((date) => {
-    const periodDisciplines = new Set([...existing, ...made].map((goal) => goal.discipline));
-    const remainingTopics = targetTopics - existing.length - made.length;
-    if (remainingTopics <= 0) return;
-    const dateGoals = [...existing, ...made].filter((goal) => goalDateValue(goal) === date);
-    const dateTargets = planningTargetsForDate(date);
-    const dateRemainingTopics = Math.max(0, dateTargets.topics - dateGoals.length);
-    if (!dateRemainingTopics) return;
-    const dateDisciplines = new Set(dateGoals.map((goal) => goal.discipline));
-    const remainingDailyDisciplines = Math.max(0, dateTargets.disciplines - dateDisciplines.size);
-    const remainingNewDisciplines = Math.max(0, targetDisciplines - periodDisciplines.size);
-    const allowedDisciplines = remainingDailyDisciplines <= 0 ? dateDisciplines : remainingNewDisciplines <= 0 ? periodDisciplines : null;
-    const generated = generateGoalsForDate(date, { scoreContext, reservedSyllabusIds, maxGoals: availabilityForDate(date).type === "folga" ? 5 : undefined, topicLimit: Math.min(dateRemainingTopics, remainingTopics), disciplineLimit: Math.max(1, remainingDailyDisciplines), allowedDisciplines });
-    made.push(...generated); reserveGeneratedSyllabus(reservedSyllabusIds, generated);
-  });
-  const existingDisciplines = new Set(existing.map((goal) => goal.discipline));
-  const limited = limitGeneratedGoals(made, { topicLimit: Math.max(0, targetTopics - existing.length), disciplineLimit: targetDisciplines, reservedDisciplines: existingDisciplines });
-  if (existing.length + limited.length < targetTopics) alert(generationShortageMessage([...existing, ...limited], targetTopics, "o mês").trim());
-  saveGeneratedGoals("Pré-visualização mensal", limited);
+  const reference = elements.calendarDate?.value || todayISO();
+  const plan = buildBalancedMonthGenerationV79(state, reference);
+  if (!plan.distributionDates.length) {
+    const message = "O mês escolhido já terminou ou não possui dias disponíveis para metas de estudo.";
+    setGoalCalendarGenerationStatus(message, "warning");
+    return alert(message);
+  }
+  if (!plan.fulfilledTarget) alert(generationShortageMessage([...plan.protectedGoals, ...plan.made], plan.targetTopics, "o mês").trim());
+  saveGeneratedGoals("Pré-visualização mensal equilibrada", plan.made, { balancedPlan: plan });
 }
 function generateCalendarGoals() {
   const scope = elements.goalGenerationScope?.value || "daily";
@@ -6955,6 +6996,9 @@ async function bootstrapApplication() {
     const balancedWeeklyReport = rebalanceCurrentWeekV78(state);
     window.__balancedWeeklyReportV78 = balancedWeeklyReport;
     if (!balancedWeeklyReport.skipped) saveData({ markLocalChange: true });
+    const balancedMonthlyReport = rebalanceCurrentMonthV79(state);
+    window.__balancedMonthlyReportV79 = balancedMonthlyReport;
+    if (!balancedMonthlyReport.skipped) saveData({ markLocalChange: true });
     renderMotivationalPhrase();
     indexedDBStatus.size = estimateSerializedStateSize(state);
     indexedDBStatus.migration = indexedDBStatus.migration === "erro" ? "erro" : "concluída";

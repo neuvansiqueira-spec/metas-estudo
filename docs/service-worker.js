@@ -45,9 +45,10 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260719-integracao-metas-v74",
   "20260719-correcao-metas-v75",
   "20260720-concluidas-visibilidade-v76",
-  "20260720-distribuicao-reposicao-v77"
+  "20260720-distribuicao-reposicao-v77",
+  "20260720-calendario-semanal-v78"
 ];
-const CURRENT_VERSION = "20260720-calendario-semanal-v78";
+const CURRENT_VERSION = "20260720-calendario-mensal-v79";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 // Cache anterior reconhecido para limpeza: startup-v25.
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v26`;
