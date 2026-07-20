@@ -40,11 +40,13 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260719-contraste-componentes-v69",
   "20260719-conselheiro-layout-v70",
   "20260719-backup-contraste-v71",
-  "20260719-inicializacao-rapida-v72"
+  "20260719-inicializacao-rapida-v72",
+  "20260719-rolagem-navegacao-v73"
 ];
-const CURRENT_VERSION = "20260719-rolagem-navegacao-v73";
+const CURRENT_VERSION = "20260719-integracao-metas-v74";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
-const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v25`;
+// Cache anterior reconhecido para limpeza: startup-v25.
+const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v26`;
 const FILES_TO_CACHE = [
   "./",
   "index.html",

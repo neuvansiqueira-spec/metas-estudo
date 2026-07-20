@@ -9,7 +9,7 @@ const worker = fs.readFileSync("service-worker.js", "utf8");
 const header = fs.readFileSync("header-brand-fix.js", "utf8");
 
 test("v72 antecipa o download dos módulos críticos sem executá-los fora de ordem", () => {
-  assert.equal(version, "20260719-rolagem-navegacao-v73");
+  assert.equal(version, "20260719-integracao-metas-v74");
   const files = [
     "script.js",
     "sync-integral-core.js",

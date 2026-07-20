@@ -10,7 +10,7 @@ const worker = fs.readFileSync("service-worker.js", "utf8");
 const headerFix = fs.readFileSync("header-brand-fix.js", "utf8");
 
 test("v60 carrega depois das camadas visuais v58 e v59", () => {
-  assert.match(version, /rolagem-navegacao-v73$/);
+  assert.match(version, /integracao-metas-v74$/);
   const v58 = html.indexOf("aldus-visual-v58.css");
   const v59 = html.indexOf("aldus-planning-v59.css");
   const v60 = html.indexOf("aldus-planning-history-v60.css");

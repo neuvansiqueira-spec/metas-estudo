@@ -62,9 +62,9 @@ test('Mobile abre somente uma seção e uma meta; desktop permite múltiplas', (
 test('SessionStorage mantém seção/meta após ações sem usar persistência principal', () => {
   assert.match(script, /sessionStorage\.setItem\(dailyPlanStorageKey\("section"/);
   assert.match(script, /sessionStorage\.setItem\(dailyPlanStorageKey\("goal"/);
-  assert.match(script, /function registerGoalTime\(goal, kind = "study"\) \{\n  rememberDailyPlanSection\("goals", goal\.date\);\n  rememberDailyPlanGoal\(goal\.id, goal\.date\);/);
+  assert.match(script, /function registerGoalTime\(goal, kind = "study"\) \{\n  rememberDailyPlanSection\("goals", goalDateValue\(goal\)\);\n  rememberDailyPlanGoal\(goal\.id, goalDateValue\(goal\)\);/);
   assert.match(script, /function fillQuestionForDate\(date\) \{ rememberDailyPlanSection\("questions"/);
-  assert.match(script, /function fillQuestionFromGoal\(goalId\).*rememberDailyPlanGoal\(goal\.id, goal\.date\)/s);
+  assert.match(script, /function fillQuestionFromGoal\(goalId\).*const date = goalDateValue\(goal\).*rememberDailyPlanGoal\(goal\.id, date\)/s);
   assert.doesNotMatch(script, /localStorage\.setItem\(dailyPlanStorageKey/);
 });
 
