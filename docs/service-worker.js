@@ -60,9 +60,10 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260720-identidade-aldus-v89",
   "20260720-identidade-metas-concursos-v90",
   "20260720-navegacao-lateral-recolhivel-v91",
-  "20260720-navegacao-recolhida-logo-v92"
+  "20260720-navegacao-recolhida-logo-v92",
+  "20260720-navegacao-recolhida-nova-marca-v93"
 ];
-const CURRENT_VERSION = "20260720-navegacao-recolhida-nova-marca-v93";
+const CURRENT_VERSION = "20260720-logos-link-inicio-v94";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 // Cache anterior reconhecido para limpeza: startup-v25.
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v26`;
@@ -153,6 +154,20 @@ function replaceVersion(source) {
 
 function patchHtmlSource(source) {
   let patched = replaceVersion(source);
+  patched = patched.replace(
+    /<div class="brand aldus-visual-brand">\s*(<img class="aldus-visual-brand-image"[^>]*>)\s*<\/div>/i,
+    '<a class="brand aldus-visual-brand brand-home-link" href="#dashboard" data-view-link="dashboard" aria-label="Ir para o início">$1</a>'
+  );
+  patched = patched.replace(
+    /(<img class="side-nav-brand-mark" src=")icons\/logo-mark\.svg\?v=[^"]+/i,
+    `$1icons/aldus-brand-mark-v93.png?v=${CURRENT_VERSION}`
+  );
+  if (!patched.includes('class="side-nav-brand-link"')) {
+    patched = patched.replace(
+      /(<img class="side-nav-brand-mark"[^>]*>)/i,
+      '<a class="side-nav-brand-link" href="#dashboard" data-view-link="dashboard" aria-label="Ir para o início">$1</a>'
+    );
+  }
   [
     "question-accuracy-spectrum.js",
     "timer-material-link-fix.js",

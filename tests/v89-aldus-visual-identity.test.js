@@ -11,7 +11,7 @@ const style = read("style.css");
 const headerFix = read("header-brand-fix.js");
 
 test("nova identidade completa aparece no cabeçalho com texto alternativo", () => {
-  assert.match(html, /class="brand aldus-visual-brand"/);
+  assert.match(html, /class="brand aldus-visual-brand[^"]*"/);
   assert.match(html, /class="aldus-visual-brand-image"[^>]+icons\/aldus-visual\.png/);
   assert.match(html, /Aldus — Metas Concursos/);
   assert.doesNotMatch(html, /Conhecimento, Meta e Sabedoria/);
@@ -36,7 +36,7 @@ test("arte é responsiva, recortada sem deformação e preservada integralmente 
 });
 
 test("V90 renova cache e mantém raiz e publicação em paridade", () => {
-  const version = "20260720-navegacao-recolhida-nova-marca-v93";
+  const version = "20260720-logos-link-inicio-v94";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(html, new RegExp(version));
   assert.match(read("service-worker.js"), new RegExp(`CURRENT_VERSION = "${version}"`));
