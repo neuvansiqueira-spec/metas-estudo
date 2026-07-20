@@ -66,7 +66,7 @@ test("Fábrica mostra data e estado do planejamento sem confundir produção com
 });
 
 test("V83 mantém cache, versão anterior e arquivos publicados em paridade", () => {
-  const version = "20260720-fabrica-materiais-reparo-v85";
+  const version = "20260720-cronometro-mobile-v86";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(read("index.html"), new RegExp(version));
   assert.match(read("service-worker.js"), new RegExp(`CURRENT_VERSION = "${version}"`));
