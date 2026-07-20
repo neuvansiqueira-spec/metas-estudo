@@ -4755,8 +4755,12 @@ html[data-aldus-theme="premium-stable"] .aldus-visual-brand-image {
     display: block;
     width: 44px;
     height: 44px;
+    box-sizing: border-box;
+    padding: 3px;
     border: 1px solid rgba(223, 182, 76, .42);
     border-radius: 13px;
+    background: rgba(0, 8, 20, .38);
+    object-fit: contain;
     box-shadow: 0 8px 18px rgba(0, 12, 28, .3), inset 0 1px 0 rgba(255, 255, 255, .12);
   }
 
@@ -4766,7 +4770,7 @@ html[data-aldus-theme="premium-stable"] .aldus-visual-brand-image {
   }
 }
 
-/* V92: o símbolo oficial substitui o título vertical quando a barra é recolhida. */
+/* V93: o novo A azul da marca substitui o símbolo anterior na barra recolhida. */
 
 @media (prefers-reduced-motion: reduce) {
   html[data-aldus-theme="premium-stable"] body .app-layout {

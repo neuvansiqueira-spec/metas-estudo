@@ -59,9 +59,10 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260720-espaco-mensagem-cronometro-v88",
   "20260720-identidade-aldus-v89",
   "20260720-identidade-metas-concursos-v90",
-  "20260720-navegacao-lateral-recolhivel-v91"
+  "20260720-navegacao-lateral-recolhivel-v91",
+  "20260720-navegacao-recolhida-logo-v92"
 ];
-const CURRENT_VERSION = "20260720-navegacao-recolhida-logo-v92";
+const CURRENT_VERSION = "20260720-navegacao-recolhida-nova-marca-v93";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 // Cache anterior reconhecido para limpeza: startup-v25.
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v26`;
@@ -108,6 +109,7 @@ const FILES_TO_CACHE = [
   "storage-indexeddb.js",
   "manifest.json",
   "icons/aldus-visual.png",
+  "icons/aldus-brand-mark-v93.png",
   "icons/logo-mark.svg",
   "icons/icon.svg",
   "icons/icon-maskable.svg"
