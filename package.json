@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260720-mensagem-motivacional-v87",
+  "version": "20260720-espaco-mensagem-cronometro-v88",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const THEME_VERSION = "20260720-mensagem-motivacional-v87";
+  const THEME_VERSION = "20260720-espaco-mensagem-cronometro-v88";
   const DESIRED_HTML = `
     <div class="brand-copy">
       <strong>Aldus Metas Concurso</strong>
