@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260720-fabrica-pendencias-reais-v81";
+const APP_VERSION = "20260720-fabrica-recolhivel-v82";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -3938,7 +3938,7 @@ function renderFactory() {
     const activeAgenda = agenda.filter((item) => item.editalActive !== false);
     const selectedDate = elements.goalDate?.value || todayISO();
     const dailyProjection = buildDailyPlanProjection(selectedDate).filter((entry) => !isGoalDone(entry.goal) && !planningRecordMatchesCompletedSubject(entry.goal));
-    const todayPlanPanel = `<section class="factory-section factory-today-plan"><h3>📚 MATERIAIS DAS METAS PENDENTES</h3>${dailyProjection.length ? dailyProjection.map((entry) => { const count = entry.materialGroups.reduce((total, group) => total + group.materials.length, 0); const status = !count ? "Precisa produzir" : "Material já disponível"; return `<article class="syllabus-card factory-card"><h3>${escapeHTML(entry.goal.discipline)} — ${escapeHTML(entry.goal.subject)}</h3><p class="item-meta">${escapeHTML(status)} • ${count} arquivo(s)</p>${entry.materialGroups.length ? entry.materialGroups.map((group) => `<p><strong>${escapeHTML(group.label === "resumoAula" ? "RESUMO/AULA" : group.label.toUpperCase())}:</strong> ${group.materials.map((material) => escapeHTML(materialButtonLabel(material))).join(" • ")}</p>`).join("") : `<p class="item-meta">Nenhum material vinculado.</p>`}</article>`; }).join("") : `<p class="empty-message">Nenhuma meta pendente para esta data.</p>`}</section>`;
+    const todayPlanPanel = `<details class="factory-section factory-today-plan factory-collapsible"><summary>📚 MATERIAIS DAS METAS PENDENTES <small>${dailyProjection.length}</small></summary><div class="factory-collapsible-content">${dailyProjection.length ? dailyProjection.map((entry) => { const count = entry.materialGroups.reduce((total, group) => total + group.materials.length, 0); const status = !count ? "Precisa produzir" : "Material já disponível"; return `<article class="syllabus-card factory-card"><h3>${escapeHTML(entry.goal.discipline)} — ${escapeHTML(entry.goal.subject)}</h3><p class="item-meta">${escapeHTML(status)} • ${count} arquivo(s)</p>${entry.materialGroups.length ? entry.materialGroups.map((group) => `<p><strong>${escapeHTML(group.label === "resumoAula" ? "RESUMO/AULA" : group.label.toUpperCase())}:</strong> ${group.materials.map((material) => escapeHTML(materialButtonLabel(material))).join(" • ")}</p>`).join("") : `<p class="item-meta">Nenhum material vinculado.</p>`}</article>`; }).join("") : `<p class="empty-message">Nenhuma meta pendente para esta data.</p>`}</div></details>`;
     const todayQueue = factoryTodayQueue(activeAgenda);
     const queue = factoryDoNowQueue(activeAgenda);
     const completedCount = activeAgenda.filter((item) => factoryThemeIsCompleted(normalizeFactoryModules(item.modules || {}))).length;
@@ -3974,13 +3974,13 @@ function renderFactory() {
       const modules = normalizeFactoryModules(item.modules || {}, item);
       return !factoryThemeIsCompleted(modules) && !factoryResumoAulaReady({ ...item, modules });
     })?.item.id || "";
-    const nowPanel = nowEntry ? `<section id="factoryDoNow" class="factory-do-now"><h3>🎯 FAÇA AGORA</h3>${cardFor(nowEntry, queue.indexOf(nowEntry))}<div class="card-actions"><button type="button" class="secondary-button" data-open-url="${escapeHTML(factorySourceFolderLink(nowEntry.item) || "")}" ${factorySourceFolderLink(nowEntry.item) ? "" : "disabled"}>Abrir pasta das fontes</button><button type="button" class="secondary-button" data-open-url="${escapeHTML(factoryDestinationFolderLink(nowEntry.item) || "")}" ${factoryDestinationFolderLink(nowEntry.item) ? "" : "disabled"}>Abrir pasta de destino</button><button type="button" class="secondary-button" data-factory-next="${nowEntry.item.id}">Ir para o próximo tema</button></div></section>` : `<section id="factoryDoNow" class="factory-do-now"><h3>🎯 FAÇA AGORA</h3><p class="empty-message">Nenhum resumo/aula pendente de hoje ou de dias anteriores.</p></section>`;
-    const queuePanel = `<section class="factory-today-queue"><h3>📋 FILA RESUMIDA DE PENDÊNCIAS</h3>${queue.length ? `<ol>${queue.map((entry, index) => {
+    const nowPanel = nowEntry ? `<details id="factoryDoNow" class="factory-do-now factory-collapsible" open><summary>🎯 FAÇA AGORA</summary><div class="factory-collapsible-content">${cardFor(nowEntry, queue.indexOf(nowEntry))}<div class="card-actions"><button type="button" class="secondary-button" data-open-url="${escapeHTML(factorySourceFolderLink(nowEntry.item) || "")}" ${factorySourceFolderLink(nowEntry.item) ? "" : "disabled"}>Abrir pasta das fontes</button><button type="button" class="secondary-button" data-open-url="${escapeHTML(factoryDestinationFolderLink(nowEntry.item) || "")}" ${factoryDestinationFolderLink(nowEntry.item) ? "" : "disabled"}>Abrir pasta de destino</button><button type="button" class="secondary-button" data-factory-next="${nowEntry.item.id}">Ir para o próximo tema</button></div></div></details>` : `<details id="factoryDoNow" class="factory-do-now factory-collapsible" open><summary>🎯 FAÇA AGORA</summary><div class="factory-collapsible-content"><p class="empty-message">Nenhum resumo/aula pendente de hoje ou de dias anteriores.</p></div></details>`;
+    const queuePanel = `<details class="factory-today-queue factory-collapsible"><summary>📋 FILA RESUMIDA DE PENDÊNCIAS <small>${queue.length}</small></summary><div class="factory-collapsible-content">${queue.length ? `<ol>${queue.map((entry, index) => {
       const modules = normalizeFactoryModules(entry.item.modules || {}, entry.item);
       const status = factoryOverallStatus(modules);
       const isOpen = factoryOpenDetailId === entry.item.id;
       return `<li><div class="factory-queue-theme">${factoryThemeHighlightHTML(entry.item, factoryRecorteHoje(entry))}</div><div class="item-meta"><strong>${escapeHTML(factoryQueueItemLabel({ ...entry.item, modules }, index, firstPendingId))}</strong> • Etapa: ${escapeHTML(factoryCurrentStage({ ...entry.item, modules }))} • Status: ${escapeHTML(status)}</div><button type="button" class="secondary-button" data-factory-toggle-detail="${entry.item.id}" aria-expanded="${isOpen ? "true" : "false"}">${isOpen ? "Fechar" : "Abrir"}</button></li>`;
-    }).join("")}</ol>` : `<p class="empty-message">Nenhum resumo/aula pendente na fila.</p>`}</section>`;
+    }).join("")}</ol>` : `<p class="empty-message">Nenhum resumo/aula pendente na fila.</p>`}</div></details>`;
     let entries = activeAgenda.map((item) => ({ item, subtopics: [] }));
     if (factoryCurrentFilter === "faca-agora") entries = queue;
     if (factoryCurrentFilter === "fila-hoje") entries = todayQueue;
@@ -3990,8 +3990,8 @@ function renderFactory() {
     if (factoryCurrentFilter === "aguardando-revisao") entries = entries.filter(({ item }) => factoryOverallStatus(item.modules) === "Aguardando revisão");
     if (factoryCurrentFilter === "precisa-refazer") entries = entries.filter(({ item }) => normalizeFactoryTriagemStatus(item, item.modules) === "Precisa refazer" || factoryOverallStatus(item.modules) === "Precisa refazer");
     if (factoryCurrentFilter === "prontos") entries = entries.filter(({ item }) => factoryResumoAulaReady(item));
-    const listPanel = factoryCurrentFilter === "faca-agora" ? "" : `<section class="factory-section"><h3>${factoryCurrentFilter === "fila-hoje" ? "📋 FILA RESUMIDA DE PENDÊNCIAS" : "Temas"}</h3>${entries.length ? entries.slice(0, factoryVisibleCount).map(cardFor).join("") + (entries.length > factoryVisibleCount ? `<button type="button" class="secondary-button" data-show-factory-more>Mostrar mais 20</button>` : "") : `<p class="empty-message">Nenhum tema nesta lista.</p>`}</section>`;
-    elements.factoryList.innerHTML = todayPlanPanel + (factoryCurrentFilter === "faca-agora" ? nowPanel + queuePanel : listPanel.replace("<h3>", "<h3>FILA GERAL DA FÁBRICA — "));
+    const listPanel = factoryCurrentFilter === "faca-agora" ? "" : `<details class="factory-section factory-collapsible" open><summary>${factoryCurrentFilter === "fila-hoje" ? "📋 FILA RESUMIDA DE PENDÊNCIAS" : "Temas"} <small>${entries.length}</small></summary><div class="factory-collapsible-content">${entries.length ? entries.slice(0, factoryVisibleCount).map(cardFor).join("") + (entries.length > factoryVisibleCount ? `<button type="button" class="secondary-button" data-show-factory-more>Mostrar mais 20</button>` : "") : `<p class="empty-message">Nenhum tema nesta lista.</p>`}</div></details>`;
+    elements.factoryList.innerHTML = todayPlanPanel + (factoryCurrentFilter === "faca-agora" ? nowPanel + queuePanel : listPanel);
   } catch (error) {
     console.error("[Metas Estudo] Erro ao carregar Fábrica de Resumos", error);
     showFactoryErrorMessage();
