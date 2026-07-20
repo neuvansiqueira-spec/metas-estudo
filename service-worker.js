@@ -51,9 +51,10 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260720-integracao-fabrica-materiais-v80",
   "20260720-fabrica-pendencias-reais-v81",
   "20260720-fabrica-recolhivel-v82",
-  "20260720-grafico-tempo-contraste-v83"
+  "20260720-grafico-tempo-contraste-v83",
+  "20260720-fabrica-materiais-rolagem-v84"
 ];
-const CURRENT_VERSION = "20260720-fabrica-materiais-rolagem-v84";
+const CURRENT_VERSION = "20260720-fabrica-materiais-reparo-v85";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 // Cache anterior reconhecido para limpeza: startup-v25.
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v26`;
