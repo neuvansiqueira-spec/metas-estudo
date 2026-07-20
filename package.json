@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260719-backup-contraste-v71",
+  "version": "20260719-inicializacao-rapida-v72",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

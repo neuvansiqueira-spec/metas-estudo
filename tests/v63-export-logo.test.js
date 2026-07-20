@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 
-const version = '20260719-backup-contraste-v71';
+const version = '20260719-inicializacao-rapida-v72';
 const html = fs.readFileSync('index.html', 'utf8');
 const script = fs.readFileSync('script.js', 'utf8');
 const serviceWorker = fs.readFileSync('service-worker.js', 'utf8');

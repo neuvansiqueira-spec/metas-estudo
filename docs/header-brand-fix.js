@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const THEME_VERSION = "20260719-backup-contraste-v71";
+  const THEME_VERSION = "20260719-inicializacao-rapida-v72";
   const DESIRED_HTML = `
     <div class="brand-copy">
       <strong>Aldus Metas Concurso</strong>
@@ -92,9 +92,4 @@
 
   window.addEventListener("load", applyCorrectHeader, { once: true });
 
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("service-worker.js", { updateViaCache: "none" })
-      .then((registration) => registration.update())
-      .catch(() => {});
-  }
 })();

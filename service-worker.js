@@ -38,11 +38,12 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260719-tempo-acumulado-backup-v67",
   "20260719-contraste-integral-v68",
   "20260719-contraste-componentes-v69",
-  "20260719-conselheiro-layout-v70"
+  "20260719-conselheiro-layout-v70",
+  "20260719-backup-contraste-v71"
 ];
-const CURRENT_VERSION = "20260719-backup-contraste-v71";
+const CURRENT_VERSION = "20260719-inicializacao-rapida-v72";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
-const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v23`;
+const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v24`;
 const FILES_TO_CACHE = [
   "./",
   "index.html",
@@ -99,8 +100,20 @@ self.addEventListener("activate", (event) => {
 });
 
 function cacheResponse(request, response) {
-  if (!response?.ok) return;
-  caches.open(ASSET_CACHE_NAME).then((cache) => cache.put(request, response));
+  if (!response?.ok) return Promise.resolve(false);
+  return caches.open(ASSET_CACHE_NAME)
+    .then((cache) => cache.put(request, response))
+    .then(() => true)
+    .catch(() => false);
+}
+
+function requestTargetsCurrentVersion(request) {
+  try {
+    const requestedVersion = new URL(request.url).searchParams.get("v");
+    return !requestedVersion || requestedVersion === CURRENT_VERSION;
+  } catch (error) {
+    return true;
+  }
 }
 
 function replaceVersion(source) {
@@ -231,77 +244,85 @@ async function patchTextResponse(response, transform, contentType) {
   });
 }
 
-async function loadSyncIntegralSource() {
+async function loadSyncIntegralSource({ preferCache = true } = {}) {
   const files = ["sync-integral-core.js", "sync-integral-deletions.js", "sync-integral-state.js", "sync-integral-cloud.js", "sync-integral-time-protection.js"];
-  const parts = [];
-  for (const file of files) {
+  const loadPart = async (file) => {
+    const cached = await caches.match(file, { ignoreSearch: true });
+    if (preferCache && cached) return cached.text();
     try {
       const response = await fetch(file, { cache: "no-store" });
       if (response.ok) {
-        parts.push(await response.text());
-        continue;
+        const source = await response.clone().text();
+        await cacheResponse(new Request(new URL(file, self.registration.scope)), response);
+        return source;
       }
     } catch (error) {}
-    const cached = await caches.match(file);
-    if (cached) parts.push(await cached.text());
-  }
-  return parts.join("\n");
-}
-
-async function networkFirstNavigation(request) {
-  try {
-    const response = await patchTextResponse(await fetch(request, { cache: "no-store" }), patchHtmlSource, "text/html; charset=utf-8");
-    cacheResponse(request, response.clone());
-    return response;
-  } catch (error) {
-    const cached = await caches.match(request) || await caches.match("index.html");
-    return cached ? patchTextResponse(cached, patchHtmlSource, "text/html; charset=utf-8") : cached;
-  }
-}
-
-async function networkFirstAppScript(request) {
-  const transform = async (response) => {
-    if (!response?.ok) return response;
-    const source = await response.text();
-    const syncSource = await loadSyncIntegralSource();
-    const headers = new Headers(response.headers);
-    ["content-length", "content-encoding", "etag"].forEach((name) => headers.delete(name));
-    headers.set("content-type", "application/javascript; charset=utf-8");
-    return new Response(patchAppScriptSource(source, syncSource), {
-      status: response.status,
-      statusText: response.statusText,
-      headers
-    });
+    return cached ? cached.text() : "";
   };
+  const parts = await Promise.all(files.map(loadPart));
+  return parts.filter(Boolean).join("\n");
+}
+
+async function fetchFreshNavigation(request) {
+  const response = await patchTextResponse(await fetch(request, { cache: "no-store" }), patchHtmlSource, "text/html; charset=utf-8");
+  await cacheResponse(request, response.clone());
+  return response;
+}
+
+async function cacheFirstNavigation(request, networkPromise) {
+  const cached = await caches.match(request, { ignoreSearch: true }) || await caches.match("index.html", { ignoreSearch: true });
+  if (cached) return patchTextResponse(cached, patchHtmlSource, "text/html; charset=utf-8");
   try {
-    const response = await transform(await fetch(request, { cache: "no-store" }));
-    cacheResponse(request, response.clone());
-    return response;
+    return await networkPromise;
   } catch (error) {
-    const cached = await caches.match(request);
-    return cached ? transform(cached) : cached;
+    return new Response("Aplicativo indisponível temporariamente.", { status: 503, headers: { "content-type": "text/plain; charset=utf-8" } });
   }
 }
 
-async function networkFirstStableAsset(request) {
-  try {
-    const response = await fetch(request, { cache: "no-store" });
-    cacheResponse(request, response.clone());
-    return response;
-  } catch (error) {
-    return caches.match(request);
-  }
+async function transformAppScriptResponse(response, { preferCache = true } = {}) {
+  if (!response?.ok) return response;
+  const source = await response.text();
+  const syncSource = await loadSyncIntegralSource({ preferCache });
+  const headers = new Headers(response.headers);
+  ["content-length", "content-encoding", "etag"].forEach((name) => headers.delete(name));
+  headers.set("content-type", "application/javascript; charset=utf-8");
+  return new Response(patchAppScriptSource(source, syncSource), {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
 }
 
-function staleWhileRevalidate(request) {
-  return caches.match(request).then((cached) => {
-    const network = fetch(request)
+async function cacheFirstAppScript(request) {
+  const exact = await caches.match(request);
+  if (exact) return exact;
+  const cached = requestTargetsCurrentVersion(request)
+    ? await caches.match(request, { ignoreSearch: true })
+    : null;
+  if (cached) {
+    const transformed = await transformAppScriptResponse(cached, { preferCache: true });
+    await cacheResponse(request, transformed.clone());
+    return transformed;
+  }
+  const response = await transformAppScriptResponse(await fetch(request, { cache: "no-store" }), { preferCache: false });
+  await cacheResponse(request, response.clone());
+  return response;
+}
+
+function staleWhileRevalidate(request, event) {
+  const cachedPromise = caches.match(request).then((exact) => (
+    exact || (requestTargetsCurrentVersion(request) ? caches.match(request, { ignoreSearch: true }) : null)
+  ));
+  const network = fetch(request, { cache: "no-store" })
       .then((response) => {
-        cacheResponse(request, response.clone());
-        return response;
+        if (!response?.ok) return response;
+        return cacheResponse(request, response.clone()).then(() => response);
       })
-      .catch(() => cached);
-    return cached || network;
+      .catch(() => null);
+  event?.waitUntil(network.then(() => undefined));
+  return cachedPromise.then((cached) => {
+    if (cached) return cached;
+    return network.then((response) => response || new Response("Recurso indisponível.", { status: 503 }));
   });
 }
 
@@ -310,18 +331,20 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
   if (url.pathname.endsWith("/script.js")) {
-    event.respondWith(networkFirstAppScript(event.request));
+    event.respondWith(cacheFirstAppScript(event.request));
     return;
   }
   if (url.pathname.endsWith("/header-brand-fix.js") || url.pathname.endsWith("/aldus-premium-theme.css") || url.pathname.endsWith("/aldus-premium-refinement-v47.css") || url.pathname.endsWith("/aldus-interface-v51.css") || url.pathname.endsWith("/aldus-responsive-v52.css") || url.pathname.endsWith("/aldus-contrast-v53.css") || url.pathname.endsWith("/aldus-contrast-system-v68.css") || url.pathname.endsWith("/aldus-component-contrast-v69.css") || url.pathname.endsWith("/aldus-advisor-layout-v70.css") || url.pathname.endsWith("/aldus-backup-contrast-v71.css")) {
-    event.respondWith(networkFirstStableAsset(event.request));
+    event.respondWith(staleWhileRevalidate(event.request, event));
     return;
   }
   if (event.request.mode === "navigate" || event.request.destination === "document") {
-    event.respondWith(networkFirstNavigation(event.request));
+    const freshNavigation = fetchFreshNavigation(event.request);
+    event.waitUntil(freshNavigation.then(() => undefined).catch(() => undefined));
+    event.respondWith(cacheFirstNavigation(event.request, freshNavigation));
     return;
   }
   if (["script", "style", "worker", "image", "manifest"].includes(event.request.destination)) {
-    event.respondWith(staleWhileRevalidate(event.request));
+    event.respondWith(staleWhileRevalidate(event.request, event));
   }
 });

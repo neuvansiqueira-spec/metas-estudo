@@ -99,7 +99,7 @@ test("restauração e nuvem executam a reconciliação antes de exibir os dados"
 });
 
 test("Plano do Dia usa superfícies escuras com texto legível", () => {
-  assert.match(index, /aldus-daily-goals-v66\.css\?v=20260719-backup-contraste-v71/);
+  assert.match(index, /aldus-daily-goals-v66\.css\?v=20260719-inicializacao-rapida-v72/);
   assert.match(css, /--v66-text: #f7fbff/);
   assert.match(css, /\.goal-material-estimate/);
   assert.match(css, /\.daily-goal-content > \.card-meta-grid > span/);
@@ -108,8 +108,8 @@ test("Plano do Dia usa superfícies escuras com texto legível", () => {
 });
 
 test("cache, versão e cópias de publicação permanecem em paridade", () => {
-  assert.equal(packageJson.version, "20260719-backup-contraste-v71");
-  assert.match(worker, /const CURRENT_VERSION = "20260719-backup-contraste-v71"/);
+  assert.equal(packageJson.version, "20260719-inicializacao-rapida-v72");
+  assert.match(worker, /const CURRENT_VERSION = "20260719-inicializacao-rapida-v72"/);
   assert.match(worker, /aldus-daily-goals-v66\.css/);
   assert.equal(fs.readFileSync("script.js", "utf8"), fs.readFileSync("docs/script.js", "utf8"));
   assert.equal(fs.readFileSync("sync-integral-state.js", "utf8"), fs.readFileSync("docs/sync-integral-state.js", "utf8"));
