@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260719-correcao-metas-v75",
+  "version": "20260720-concluidas-visibilidade-v76",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

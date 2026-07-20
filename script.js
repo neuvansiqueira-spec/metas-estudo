@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260719-correcao-metas-v75";
+const APP_VERSION = "20260720-concluidas-visibilidade-v76";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -5216,7 +5216,8 @@ function buildPlanningScoreContext(targetState = state) {
     const pending = pendingByDiscipline[item.discipline] || 0, total = totalByDiscipline[item.discipline] || 1, weakness = weaknesses[item.discipline] || {}, reviewDue = item.status === "Revisar" || item.lastReviewedAt && addDays(item.lastReviewedAt, 7) <= todayISO() ? 30 : 0;
     scores.set(item.id, disciplineWeightValue(item.discipline) * 18 + pending / total * 40 + (item.status === "Não iniciado" ? 35 : 0) + (!diagnosed ? 18 : 0) + (weakItem ? 42 : 0) + (weakness.question || 0) * .7 + (weakness.mock || 0) * .4 + (normalizeSubjectIncidence(item.weight) - 3) * 10 + reviewDue + examBoost); itemMetrics.set(item.id, { diagnosed, minutes, performance: { ...performance, net }, weakItem }); if (typeof performanceCounters !== "undefined") { performanceCounters.scoreExecutions++; performanceCounters.scoredItems++; }
   });
-  const candidates = (targetState.syllabusItems || []).filter((item) => isSchedulable(item.id) && item.status !== "Ignorado").sort((a, b) => (scores.get(b.id) || 0) - (scores.get(a.id) || 0));
+  const completedRecords = completedPlanningSubjectRecords(targetState);
+  const candidates = (targetState.syllabusItems || []).filter((item) => isSchedulable(item.id) && item.status !== "Ignorado" && !planningRecordMatchesCompletedSubject(item, completedRecords)).sort((a, b) => (scores.get(b.id) || 0) - (scores.get(a.id) || 0));
   return { studiesBySyllabusItemId, goalsBySyllabusItemId, questionLogsBySyllabusItemId, studiesByDisciplineSubject, goalsByDisciplineSubject, questionsByDisciplineSubject, materialsBySyllabusItemId, materialsByParentSyllabusItemId, materialsByDisciplineSubject, materialEstimateBySyllabusItemId, pendingByDiscipline, totalByDiscipline, weaknesses, itemMetrics, scores, candidates };
 }
 function disciplineQuestionWeakness(discipline) { return buildPlanningScoreContext().weaknesses[discipline]?.question || 0; }
@@ -5242,6 +5243,18 @@ function planningItemKey(record = {}) {
   return discipline && subject ? `${discipline}|${subject}` : String(record.syllabusItemId || record.id || "");
 }
 function goalSyllabusReservationKey(goal = {}) { return planningItemKey(goal); }
+function completedPlanningSubjectRecords(targetState = state) {
+  const subjectById = new Map((targetState.subjects || []).map((subject) => [subject.id, subject.name]));
+  const syllabus = (targetState.syllabusItems || []).filter(completedStatus);
+  const studies = (targetState.studies || []).filter((study) => isCompletedStatusValue(study.topicStatus || study.status)).map((study) => ({ discipline: study.discipline || subjectById.get(study.subjectId) || "", subject: study.topic || study.subject || "" }));
+  const goals = (targetState.dailyGoals || []).filter(isGoalDone);
+  return [...syllabus, ...studies, ...goals];
+}
+function planningRecordMatchesCompletedSubject(record = {}, completedRecords = completedPlanningSubjectRecords()) {
+  const discipline = dailyPlanCanonical(record.discipline || record.disciplina);
+  const subject = planningBaseSubject(record);
+  return Boolean(discipline && subject && completedRecords.some((completed) => dailyPlanCanonical(completed.discipline || completed.disciplina) === discipline && dailyPlanSubjectsCompatible(subject, planningBaseSubject(completed))));
+}
 function repairAutomaticGoalDuplicatesV75(targetState = state) {
   const goals = [...(targetState.dailyGoals || [])].sort((a, b) => goalDateValue(a).localeCompare(goalDateValue(b)));
   const seen = new Set(), removed = new Set();
@@ -5261,6 +5274,14 @@ function repairAutomaticGoalDuplicatesV75(targetState = state) {
   targetState.migrations ||= {};
   targetState.migrations.goalSubjectIntegrityV75 = { executedAt: new Date().toISOString(), removed: removed.size, normalized };
   return { removed: removed.size, normalized, changed: Boolean(removed.size || normalized) };
+}
+function repairCompletedPlanningGoalsV76(targetState = state) {
+  const completedRecords = completedPlanningSubjectRecords(targetState);
+  const removed = new Set((targetState.dailyGoals || []).filter((goal) => !isManualDailyGoal(goal) && !isGoalDone(goal) && goalTotalActualMinutes(goal) <= 0 && planningRecordMatchesCompletedSubject(goal, completedRecords)));
+  if (removed.size) targetState.dailyGoals = (targetState.dailyGoals || []).filter((goal) => !removed.has(goal));
+  targetState.migrations ||= {};
+  targetState.migrations.completedSubjectIntegrityV76 = { executedAt: new Date().toISOString(), removed: removed.size };
+  return { removed: removed.size, changed: removed.size > 0 };
 }
 function isPlanningStudyGoal(goal = {}) { return ["estudo novo", "revisão", "revisao", "reforço", "reforco", "questões", "questoes", "simulado", "meta"].includes(canonical(goal.type || goal.tipo || "Meta")); }
 function planningTargetsForDate(date, targetState = state, opts = {}) {
@@ -6740,6 +6761,9 @@ async function bootstrapApplication() {
     const goalIntegrityReport = repairAutomaticGoalDuplicatesV75(state);
     window.__goalIntegrityReportV75 = goalIntegrityReport;
     if (goalIntegrityReport.changed) saveData({ markLocalChange: true });
+    const completedGoalIntegrityReport = repairCompletedPlanningGoalsV76(state);
+    window.__completedGoalIntegrityReportV76 = completedGoalIntegrityReport;
+    if (completedGoalIntegrityReport.changed) saveData({ markLocalChange: true });
     renderMotivationalPhrase();
     indexedDBStatus.size = estimateSerializedStateSize(state);
     indexedDBStatus.migration = indexedDBStatus.migration === "erro" ? "erro" : "concluída";
