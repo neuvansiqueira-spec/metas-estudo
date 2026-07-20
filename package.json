@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260720-fabrica-pendencias-reais-v81",
+  "version": "20260720-fabrica-recolhivel-v82",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

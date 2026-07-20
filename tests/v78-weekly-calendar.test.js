@@ -99,8 +99,8 @@ test("a primeira abertura da V78 corrige a semana atual automaticamente", () => 
   assert.match(script, /!isManualDailyGoal\(goal\) && isAutomaticIntactDailyGoal\(goal\)/);
 });
 
-test("V81 mantém a distribuição semanal da V78 e os arquivos publicados em paridade", () => {
-  const version = "20260720-fabrica-pendencias-reais-v81";
+test("V82 mantém a distribuição semanal da V78 e os arquivos publicados em paridade", () => {
+  const version = "20260720-fabrica-recolhivel-v82";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(read("index.html"), new RegExp(version));
   assert.match(read("service-worker.js"), new RegExp(`CURRENT_VERSION = "${version}"`));

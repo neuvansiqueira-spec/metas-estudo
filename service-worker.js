@@ -48,9 +48,10 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260720-distribuicao-reposicao-v77",
   "20260720-calendario-semanal-v78",
   "20260720-calendario-mensal-v79",
-  "20260720-integracao-fabrica-materiais-v80"
+  "20260720-integracao-fabrica-materiais-v80",
+  "20260720-fabrica-pendencias-reais-v81"
 ];
-const CURRENT_VERSION = "20260720-fabrica-pendencias-reais-v81";
+const CURRENT_VERSION = "20260720-fabrica-recolhivel-v82";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 // Cache anterior reconhecido para limpeza: startup-v25.
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v26`;
