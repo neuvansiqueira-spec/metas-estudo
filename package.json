@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260720-integracao-fabrica-materiais-v80",
+  "version": "20260720-fabrica-pendencias-reais-v81",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
