@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260720-grafico-tempo-contraste-v83";
+const APP_VERSION = "20260720-fabrica-materiais-rolagem-v84";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -3443,16 +3443,33 @@ function normalizeFactoryModule(module = {}, legacyItem = {}) {
     leiObservacoes: module.leiObservacoes || module.lei_observacoes || legacyItem.leiObservacoes || legacyItem.lei_observacoes || ""
   };
 }
+function factoryLegacyResumoLinks(item = {}) {
+  const genericLink = String(item.finalLink || item.linkFinal || item.factoryFinalLink || item.materialLink || "").trim();
+  const explicitWord = String(item.wordLink || item.linkWord || item.linkDoWord || item.word || "").trim();
+  const explicitPdf = String(item.pdfLink || item.linkPdf || item.linkDoPDF || item.pdf || "").trim();
+  const genericIsPdf = /\.pdf(?:$|[?#])/i.test(genericLink);
+  return {
+    wordLink: explicitWord || (!explicitPdf && genericLink && !genericIsPdf ? genericLink : ""),
+    pdfLink: explicitPdf || (genericLink && genericIsPdf ? genericLink : "")
+  };
+}
 function normalizeFactoryModules(modules = {}, legacyItem = {}) {
   const hasModules = modules && typeof modules === "object" && Object.keys(modules).length > 0;
   const migratedLegacyStatus = legacyItem.status === "Finalizado" ? "Aprovado" : (FACTORY_STATUSES.includes(legacyItem.status) ? legacyItem.status : "Não iniciado");
   return Object.fromEntries(FACTORY_MODULES.filter(({ virtual }) => !virtual).map(({ key }) => {
-    const incoming = modules?.[key] || modules?.[key.toUpperCase?.()] || (!hasModules && key === "resumoAula" ? { status: migratedLegacyStatus, observacao: legacyItem.observacao || legacyItem.notes || "" } : {});
+    let incoming = modules?.[key] || modules?.[key.toUpperCase?.()] || (!hasModules && key === "resumoAula" ? { status: migratedLegacyStatus, observacao: legacyItem.observacao || legacyItem.notes || "" } : {});
+    if (key === "resumoAula") {
+      const legacyLinks = factoryLegacyResumoLinks(legacyItem);
+      incoming = { ...incoming, wordLink: incoming.wordLink || legacyLinks.wordLink, pdfLink: incoming.pdfLink || legacyLinks.pdfLink };
+    }
     return [key, normalizeFactoryModule(incoming, key === "lei" ? legacyItem : {})];
   }));
 }
 function factoryApplicableCompletionStatus(status) {
   return ["Aprovado", "PDF gerado", "Não se aplica"].includes(status);
+}
+function factoryResumoAulaStatusRequiresFile(status) {
+  return ["Aprovado", "PDF gerado"].includes(status);
 }
 function factoryThemeIsCompleted(modules = {}) {
   const normalized = normalizeFactoryModules(modules || {});
@@ -3465,15 +3482,19 @@ function factoryAnyStageStarted(modules = {}, item = {}) {
 }
 function factoryThemeVisualLabel(item = {}) {
   const modules = normalizeFactoryModules(item.modules || {}, item);
-  if (factoryThemeIsCompleted(modules)) return "ASSUNTO CONCLUÍDO";
-  if (factoryResumoAulaReady({ ...item, modules })) return "RESUMO/AULA CONCLUÍDO";
+  const resumoReady = factoryResumoAulaReady({ ...item, modules });
+  if (factoryThemeIsCompleted(modules) && (resumoReady || modules.resumoAula?.status === "Não se aplica")) return "ASSUNTO CONCLUÍDO";
+  if (resumoReady) return "RESUMO/AULA CONCLUÍDO";
+  if (factoryResumoAulaStatusRequiresFile(modules.resumoAula?.status)) return "RESUMO/AULA SEM ARQUIVO VINCULADO";
   if (factoryAnyStageStarted(modules, item)) return "ASSUNTO EM PRODUÇÃO";
   return "ASSUNTO PENDENTE";
 }
 function factoryQueueItemLabel(item = {}, index = 0, firstPendingId = "") {
   const modules = normalizeFactoryModules(item.modules || {}, item);
-  if (factoryThemeIsCompleted(modules)) return "Assunto concluído";
-  if (factoryResumoAulaReady({ ...item, modules })) return "Resumo/Aula pronto";
+  const resumoReady = factoryResumoAulaReady({ ...item, modules });
+  if (factoryThemeIsCompleted(modules) && (resumoReady || modules.resumoAula?.status === "Não se aplica")) return "Assunto concluído";
+  if (resumoReady) return "Resumo/Aula pronto";
+  if (factoryResumoAulaStatusRequiresFile(modules.resumoAula?.status)) return "Vincular arquivo do Resumo/Aula";
   if (item.id && item.id === firstPendingId) return "Fazer agora";
   return index === 1 ? "Próximo" : "Depois";
 }
@@ -3759,10 +3780,18 @@ function closeFactoryPrompt(id) {
   if (panel) panel.innerHTML = "";
 }
 
-function factoryValidMaterialLink(material = {}) { return materialAvailable(material); }
+function factoryValidMaterialLink(material = {}) {
+  return materialAvailable(material) && isValidHttpUrl(String(material.link || material.url || "").trim());
+}
+function factoryResumoAulaFolderMaterialLink(item = {}) {
+  const module = normalizeFactoryModules(item.modules || {}, item).resumoAula;
+  const folderLink = factoryDestinationFolderLink(item);
+  return factoryResumoAulaStatusRequiresFile(module.status) && isValidHttpUrl(folderLink) ? folderLink : "";
+}
 function factoryResumoAulaReady(item = {}) {
-  const module = normalizeFactoryModule(item.modules?.resumoAula || {}, item);
-  if (["Aprovado", "PDF gerado"].includes(module.status) || Boolean(module.wordLink) || Boolean(module.pdfLink)) return true;
+  const module = normalizeFactoryModules(item.modules || {}, item).resumoAula;
+  if ([module.wordLink, module.pdfLink].some((link) => isValidHttpUrl(String(link || "").trim()))) return true;
+  if (factoryResumoAulaFolderMaterialLink({ ...item, modules: { ...(item.modules || {}), resumoAula: module } })) return true;
   return (state.materials || []).some((material) => factoryValidMaterialLink(material) && materialMatchesAssociation(material, {
     discipline: item.disciplina || item.discipline,
     subject: item.tema || item.subject,
@@ -3816,7 +3845,7 @@ function factoryProgressHTML(item = {}) {
   return `<div class="factory-progress-line">${html}</div><p class="item-meta">${escapeHTML(info.text)}</p>`;
 }
 function factoryModuleLinksHTML(item = {}) {
-  const modules = normalizeFactoryModules(item.modules || {});
+  const modules = normalizeFactoryModules(item.modules || {}, item);
   const links = FACTORY_MODULES.filter(({ virtual }) => !virtual).flatMap(({ key, label }) => {
     const module = modules[key] || {};
     return [
@@ -3824,7 +3853,9 @@ function factoryModuleLinksHTML(item = {}) {
       module.pdfLink ? `<a href="${escapeHTML(module.pdfLink)}" target="_blank" rel="noopener">PDF — ${escapeHTML(label)}</a>` : ""
     ].filter(Boolean);
   });
-  return links.length ? `<div class="card-actions factory-ready-links">${links.join("")}</div>` : `<p class="item-meta">Links Word/PDF ainda não cadastrados.</p>`;
+  const folderLink = factoryResumoAulaFolderMaterialLink(item);
+  if (folderLink && !links.length) links.push(`<a href="${escapeHTML(folderLink)}" target="_blank" rel="noopener">Abrir pasta do material produzido</a>`);
+  return links.length ? `<div class="card-actions factory-ready-links">${links.join("")}</div>` : `<p class="item-meta">Arquivo ou pasta do material ainda não vinculado.</p>`;
 }
 function factoryGoalSubtopic(goal = {}) {
   const syllabus = (state.syllabusItems || []).find((item) => item.id === goal.syllabusItemId);
@@ -3878,13 +3909,12 @@ function factoryTodayQueue(agenda = ensureFactoryAgenda()) { return factoryQueue
 function factoryResumoAulaPending(entry = {}) {
   const item = entry.item || entry;
   const modules = normalizeFactoryModules(item.modules || {}, item);
-  return !factorySubjectAlreadyStudied(item) && !factoryThemeIsCompleted(modules) && !factoryResumoAulaReady({ ...item, modules });
+  return modules.resumoAula?.status !== "Não se aplica" && !factorySubjectAlreadyStudied(item) && !factoryResumoAulaReady({ ...item, modules });
 }
 function factoryCanAppearInDoNow(entry = {}, queue = factoryDoNowQueue()) {
   const item = entry.item || entry;
   const modules = normalizeFactoryModules(item.modules || {}, item);
   return Boolean(item.id)
-    && !factoryThemeIsCompleted(modules)
     && factoryResumoAulaPending({ ...item, modules })
     && queue.some(({ item: queuedItem }) => queuedItem.id === item.id);
 }
@@ -3972,7 +4002,7 @@ function renderFactory() {
     const nowEntry = selectedEntry || firstResumoPendingEntry || queue[0];
     const firstPendingId = queue.find(({ item }) => {
       const modules = normalizeFactoryModules(item.modules || {}, item);
-      return !factoryThemeIsCompleted(modules) && !factoryResumoAulaReady({ ...item, modules });
+      return modules.resumoAula?.status !== "Não se aplica" && !factoryResumoAulaReady({ ...item, modules });
     })?.item.id || "";
     const nowPanel = nowEntry ? `<details id="factoryDoNow" class="factory-do-now factory-collapsible" open><summary>🎯 FAÇA AGORA</summary><div class="factory-collapsible-content">${cardFor(nowEntry, queue.indexOf(nowEntry))}<div class="card-actions"><button type="button" class="secondary-button" data-open-url="${escapeHTML(factorySourceFolderLink(nowEntry.item) || "")}" ${factorySourceFolderLink(nowEntry.item) ? "" : "disabled"}>Abrir pasta das fontes</button><button type="button" class="secondary-button" data-open-url="${escapeHTML(factoryDestinationFolderLink(nowEntry.item) || "")}" ${factoryDestinationFolderLink(nowEntry.item) ? "" : "disabled"}>Abrir pasta de destino</button><button type="button" class="secondary-button" data-factory-next="${nowEntry.item.id}">Ir para o próximo tema</button></div></div></details>` : `<details id="factoryDoNow" class="factory-do-now factory-collapsible" open><summary>🎯 FAÇA AGORA</summary><div class="factory-collapsible-content"><p class="empty-message">Nenhum resumo/aula pendente de hoje ou de dias anteriores.</p></div></details>`;
     const queuePanel = `<details class="factory-today-queue factory-collapsible"><summary>📋 FILA RESUMIDA DE PENDÊNCIAS <small>${queue.length}</small></summary><div class="factory-collapsible-content">${queue.length ? `<ol>${queue.map((entry, index) => {
@@ -4049,7 +4079,7 @@ function syncFactoryModuleMaterials(item) {
     [["Word", module.wordLink], ["PDF", module.pdfLink]].forEach(([format, link]) => {
       const unique = factoryMaterialUniqueKey(normalized.id, moduleKey, format);
       const idx = state.materials.findIndex((m) => m.source === "factory" && (m.factoryUniqueKey === unique || (m.factoryItemId === normalized.id && m.factoryModuleKey === moduleKey && m.factoryFormat === format)));
-      if (!String(link || "").trim()) { markFactoryMaterialUnavailable(normalized.id, moduleKey, format); return; }
+      if (!isValidHttpUrl(String(link || "").trim())) { markFactoryMaterialUnavailable(normalized.id, moduleKey, format); return; }
       const payload = {
         id: idx >= 0 ? state.materials[idx].id : `factory-${normalized.id}-${moduleKey}-${canonical(format)}`,
         title: factoryModuleMaterialTitle(normalized, moduleKey, format), source: "factory", factoryUniqueKey: unique,
@@ -4064,6 +4094,30 @@ function syncFactoryModuleMaterials(item) {
       else state.materials.push(normalizeMaterialEstimateFields(payload));
     });
   });
+  const summaryModule = normalizeFactoryModules(normalized.modules || {}, normalized).resumoAula;
+  const folderFormat = "Pasta";
+  const folderUnique = factoryMaterialUniqueKey(normalized.id, "resumoAula", folderFormat);
+  const folderIndex = state.materials.findIndex((material) => material.source === "factory" && (material.factoryUniqueKey === folderUnique || (material.factoryItemId === normalized.id && material.factoryModuleKey === "resumoAula" && material.factoryFormat === folderFormat)));
+  const directFileLinked = [summaryModule.wordLink, summaryModule.pdfLink].some((link) => isValidHttpUrl(String(link || "").trim()));
+  const folderLink = directFileLinked ? "" : factoryResumoAulaFolderMaterialLink(normalized);
+  if (!folderLink) {
+    markFactoryMaterialUnavailable(normalized.id, "resumoAula", folderFormat);
+  } else {
+    const folderPayload = {
+      id: folderIndex >= 0 ? state.materials[folderIndex].id : `factory-${normalized.id}-resumoaula-pasta`,
+      title: `${normalized.tema || normalized.subject || "Material"} — RESUMO/AULA — Pasta no Google Drive`,
+      source: "factory", factoryUniqueKey: folderUnique,
+      factoryItemId: normalized.id, factoryModuleKey: "resumoAula", factoryFormat: folderFormat,
+      goalId: normalized.goalId || "", discipline: normalized.disciplina, subject: normalized.tema,
+      syllabusItemId: normalized.syllabusItemId || syllabusItemIds[0] || "", syllabusItemIds,
+      parentSyllabusItemId: normalized.parentSyllabusItemId || "",
+      link: folderLink, type: folderFormat, origin: "Google Drive", date: summaryModule.dataConclusao || todayISO(), updatedAt: now, available: true,
+      notes: "Pasta de destino da Fábrica com o material produzido. Vincule o Word/PDF individual quando desejar acesso direto ao arquivo.",
+      tags: ["Fábrica de Resumos", "resumoAula", folderFormat]
+    };
+    if (folderIndex >= 0) state.materials[folderIndex] = normalizeMaterialEstimateFields({ ...state.materials[folderIndex], ...folderPayload });
+    else state.materials.push(normalizeMaterialEstimateFields(folderPayload));
+  }
 }
 function syncAllFactoryMaterials() { ensureFactoryAgenda().forEach(syncFactoryModuleMaterials); }
 const FACTORY_MATERIALS_WORKFLOW_MIGRATION_V80 = "factoryMaterialsPlanningV80";

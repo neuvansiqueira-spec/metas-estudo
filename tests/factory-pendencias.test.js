@@ -26,14 +26,16 @@ test('Faça agora considera somente resumo/aula pendente, inclui atrasados, excl
   assert.match(fn, /seen\.has\(entry\.item\.id\)/); // não duplica
   assert.match(fn, /!factoryResumoAulaPending\(entry\)/); // concluidos/prontos fora
   assert.match(script, /function factoryResumoAulaPending/);
-  assert.match(bodyOf('factoryResumoAulaReady'), /\["Aprovado", "PDF gerado"\]/);
-  assert.match(bodyOf('factoryResumoAulaReady'), /material\.factoryModuleKey === "resumoAula"/);
+  assert.match(bodyOf('factoryResumoAulaReady'), /isValidHttpUrl/);
+  assert.match(bodyOf('factoryResumoAulaReady'), /factoryResumoAulaFolderMaterialLink/);
+  assert.match(bodyOf('factoryResumoAulaReady'), /materialMatchesAssociation/);
 });
 
-test('Inquérito Policial aprovado fica fora por regra geral, sem exceção nominal', () => {
+test('status aprovado sem arquivo continua pendente, enquanto assunto estudado fica fora', () => {
   assert.doesNotMatch(script, /Inquérito Policial|Inquerito Policial/i);
   assert.match(bodyOf('factoryDoNowQueue'), /factoryResumoAulaPending/);
-  assert.match(bodyOf('factoryResumoAulaPending'), /!factoryThemeIsCompleted\(modules\) && !factoryResumoAulaReady/);
+  assert.match(bodyOf('factoryResumoAulaPending'), /!factorySubjectAlreadyStudied\(item\)/);
+  assert.match(bodyOf('factoryResumoAulaPending'), /!factoryResumoAulaReady/);
 });
 
 test('Abrir usa fila de pendências, seleciona o item clicado no painel principal e filtros não duplicam cards', () => {
@@ -65,7 +67,6 @@ test('cópia IndexedDB preserva backup, sincronização e não remove chaves aut
 test('painel Faça Agora usa elegibilidade central, sem fallback da agenda geral e sem persistir a seleção temporária', () => {
   const eligibility = bodyOf('factoryCanAppearInDoNow');
   const render = bodyOf('renderFactory');
-  assert.match(eligibility, /!factoryThemeIsCompleted\(modules\)/);
   assert.match(eligibility, /factoryResumoAulaPending\(\{ \.\.\.item, modules \}\)/);
   assert.match(eligibility, /queue\.some\(\(\{ item: queuedItem \}\) => queuedItem\.id === item\.id\)/);
   assert.match(render, /if \(factoryCurrentFilter === "faca-agora" && factoryOpenDetailId\)/);
@@ -79,7 +80,8 @@ test('conclusão com módulos Não se aplica permanece concluída e não elegív
   const eligibility = bodyOf('factoryCanAppearInDoNow');
   assert.match(completion, /"Não se aplica"/);
   assert.match(bodyOf('factoryThemeIsCompleted'), /every\(\(\{ key \}\) => factoryApplicableCompletionStatus/);
-  assert.match(eligibility, /!factoryThemeIsCompleted\(modules\)/);
+  assert.match(bodyOf('factoryResumoAulaPending'), /modules\.resumoAula\?\.status !== "Não se aplica"/);
+  assert.match(eligibility, /factoryResumoAulaPending/);
 });
 
 test('ao concluir o item aberto, a fila usa o próximo pendente ou a mensagem de fila vazia', () => {

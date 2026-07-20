@@ -3060,6 +3060,8 @@ th {
   border-radius: 18px;
   margin-bottom: 18px;
   overflow: hidden;
+  overflow: clip;
+  overscroll-behavior: auto;
   background: var(--surface, #fff);
 }
 .factory-collapsible > summary {
@@ -3136,6 +3138,22 @@ th {
 .factory-today-queue li { padding: 10px; border-bottom: 1px solid var(--border); }
 @media (max-width: 760px) { .factory-do-now { order: -1; } .factory-main-actions, .factory-main-actions button, .factory-primary-action { width: 100%; } .factory-progress-line { font-size: .95rem; } .compact-factory-card { padding: 14px; } .factory-collapsible > summary { padding: 13px 14px; font-size: .95rem; } .factory-collapsible-content, .factory-filter-panel > .factory-filter-actions, .factory-register-panel > .factory-form { padding: 12px; } }
 @media (max-width: 760px) { .central-time-chart-content { padding: 12px; } .central-time-chart-layout { grid-template-columns: 1fr; gap: 18px; } .central-time-legend-row { grid-template-columns: 14px minmax(0, 1fr); } .central-time-legend-row strong { grid-column: 2; } }
+
+/* V84: a roda do mouse continua a rolagem da página sobre os painéis da Fábrica. */
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos,
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-list,
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-collapsible,
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-collapsible-content {
+  overscroll-behavior-y: auto !important;
+  touch-action: pan-y;
+}
+
+@media (min-width: 1051px) {
+  html[data-aldus-theme="premium-stable"] .screen-stage,
+  html[data-aldus-theme="premium-stable"] .side-nav {
+    overscroll-behavior-y: auto !important;
+  }
+}
 
 .timer-motivational-toast {
   position: fixed;

@@ -436,11 +436,13 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-collapsib
   background: #d8edff !important;
 }
 html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-do-now {
-  border-color: #f2c94c !important;
+  border-color: #4b89b8 !important;
 }
 html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-do-now > summary {
-  color: #071827 !important;
-  background: #f2c94c !important;
+  color: #ffffff !important;
+  background: linear-gradient(90deg, #174a70, #123f61) !important;
+  border-bottom-color: #4b89b8 !important;
+  box-shadow: inset 6px 0 0 #f2c94c !important;
 }
 
 @media (forced-colors: active) {
