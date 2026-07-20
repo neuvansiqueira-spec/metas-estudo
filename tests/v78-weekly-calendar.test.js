@@ -99,12 +99,12 @@ test("a primeira abertura da V78 corrige a semana atual automaticamente", () => 
   assert.match(script, /!isManualDailyGoal\(goal\) && isAutomaticIntactDailyGoal\(goal\)/);
 });
 
-test("V78 mantém versão, cache e arquivos publicados em paridade", () => {
-  const version = "20260720-calendario-semanal-v78";
+test("V79 mantém a distribuição semanal da V78 e os arquivos publicados em paridade", () => {
+  const version = "20260720-calendario-mensal-v79";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(read("index.html"), new RegExp(version));
   assert.match(read("service-worker.js"), new RegExp(`CURRENT_VERSION = "${version}"`));
-  assert.match(read("service-worker.js"), /"20260720-distribuicao-reposicao-v77"/);
+  assert.match(read("service-worker.js"), /"20260720-calendario-semanal-v78"/);
   for (const file of ["script.js", "index.html", "service-worker.js", "header-brand-fix.js", "sync-integral-time-protection.js"]) {
     assert.equal(read(file), read(path.join("docs", file)), file);
   }

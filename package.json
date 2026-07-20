@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260720-calendario-semanal-v78",
+  "version": "20260720-calendario-mensal-v79",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
