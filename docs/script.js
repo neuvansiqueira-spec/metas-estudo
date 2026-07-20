@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260720-integracao-fabrica-materiais-v80";
+const APP_VERSION = "20260720-fabrica-pendencias-reais-v81";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -3763,8 +3763,15 @@ function factoryValidMaterialLink(material = {}) { return materialAvailable(mate
 function factoryResumoAulaReady(item = {}) {
   const module = normalizeFactoryModule(item.modules?.resumoAula || {}, item);
   if (["Aprovado", "PDF gerado"].includes(module.status) || Boolean(module.wordLink) || Boolean(module.pdfLink)) return true;
-  return (state.materials || []).some((material) => material.source === "factory" && material.factoryItemId === item.id && material.factoryModuleKey === "resumoAula" && material.available !== false && factoryValidMaterialLink(material));
+  return (state.materials || []).some((material) => factoryValidMaterialLink(material) && materialMatchesAssociation(material, {
+    discipline: item.disciplina || item.discipline,
+    subject: item.tema || item.subject,
+    syllabusItemId: item.syllabusItemId,
+    syllabusItemIds: factorySyllabusItemIds(item),
+    factoryItemId: item.id
+  }));
 }
+function factorySubjectAlreadyStudied(item = {}) { return planningRecordMatchesCompletedSubject(item); }
 function factorySourceConfigured(item = {}) { return Boolean(factorySourceFolderLink(item)); }
 function factoryCurrentStage(item = {}) {
   const modules = normalizeFactoryModules(item.modules || {});
@@ -3842,7 +3849,7 @@ function exactFactoryGoalMatches(goal = {}, agenda = []) {
   return { items: exact, mode: exact.length ? "correspondência exata normalizada por disciplina, assunto principal e subassunto" : "sem vínculo exato" };
 }
 function factoryGoalGroupsForDate(date = todayISO(), agenda = []) {
-  const dayGoals = (state.dailyGoals || []).filter((goal) => (goal.date || goal.data) === date);
+  const dayGoals = (state.dailyGoals || []).filter((goal) => (goal.date || goal.data) === date && !isGoalDone(goal) && !planningRecordMatchesCompletedSubject(goal));
   const groups = new Map();
   const modes = new Set();
   dayGoals.forEach((goal) => {
@@ -3871,7 +3878,7 @@ function factoryTodayQueue(agenda = ensureFactoryAgenda()) { return factoryQueue
 function factoryResumoAulaPending(entry = {}) {
   const item = entry.item || entry;
   const modules = normalizeFactoryModules(item.modules || {}, item);
-  return !factoryThemeIsCompleted(modules) && !factoryResumoAulaReady({ ...item, modules });
+  return !factorySubjectAlreadyStudied(item) && !factoryThemeIsCompleted(modules) && !factoryResumoAulaReady({ ...item, modules });
 }
 function factoryCanAppearInDoNow(entry = {}, queue = factoryDoNowQueue()) {
   const item = entry.item || entry;
@@ -3930,8 +3937,8 @@ function renderFactory() {
     });
     const activeAgenda = agenda.filter((item) => item.editalActive !== false);
     const selectedDate = elements.goalDate?.value || todayISO();
-    const dailyProjection = buildDailyPlanProjection(selectedDate);
-    const todayPlanPanel = `<section class="factory-section factory-today-plan"><h3>📚 MATERIAIS PARA O PLANO DE HOJE</h3>${dailyProjection.length ? dailyProjection.map((entry) => { const count = entry.materialGroups.reduce((total, group) => total + group.materials.length, 0); const status = !count ? "Pendente" : entry.factoryItems.length && entry.materialGroups.length ? "Pronto" : "Parcial"; return `<article class="syllabus-card factory-card"><h3>${escapeHTML(entry.goal.discipline)} — ${escapeHTML(entry.goal.subject)}</h3><p class="item-meta">${escapeHTML(status)} • ${count} arquivo(s)</p>${entry.materialGroups.length ? entry.materialGroups.map((group) => `<p><strong>${escapeHTML(group.label === "resumoAula" ? "RESUMO/AULA" : group.label.toUpperCase())}:</strong> ${group.materials.map((material) => escapeHTML(materialButtonLabel(material))).join(" • ")}</p>`).join("") : `<p class="item-meta">Nenhum material vinculado.</p>`}</article>`; }).join("") : `<p class="empty-message">Nenhuma meta cadastrada para esta data.</p>`}</section>`;
+    const dailyProjection = buildDailyPlanProjection(selectedDate).filter((entry) => !isGoalDone(entry.goal) && !planningRecordMatchesCompletedSubject(entry.goal));
+    const todayPlanPanel = `<section class="factory-section factory-today-plan"><h3>📚 MATERIAIS DAS METAS PENDENTES</h3>${dailyProjection.length ? dailyProjection.map((entry) => { const count = entry.materialGroups.reduce((total, group) => total + group.materials.length, 0); const status = !count ? "Precisa produzir" : "Material já disponível"; return `<article class="syllabus-card factory-card"><h3>${escapeHTML(entry.goal.discipline)} — ${escapeHTML(entry.goal.subject)}</h3><p class="item-meta">${escapeHTML(status)} • ${count} arquivo(s)</p>${entry.materialGroups.length ? entry.materialGroups.map((group) => `<p><strong>${escapeHTML(group.label === "resumoAula" ? "RESUMO/AULA" : group.label.toUpperCase())}:</strong> ${group.materials.map((material) => escapeHTML(materialButtonLabel(material))).join(" • ")}</p>`).join("") : `<p class="item-meta">Nenhum material vinculado.</p>`}</article>`; }).join("") : `<p class="empty-message">Nenhuma meta pendente para esta data.</p>`}</section>`;
     const todayQueue = factoryTodayQueue(activeAgenda);
     const queue = factoryDoNowQueue(activeAgenda);
     const completedCount = activeAgenda.filter((item) => factoryThemeIsCompleted(normalizeFactoryModules(item.modules || {}))).length;
