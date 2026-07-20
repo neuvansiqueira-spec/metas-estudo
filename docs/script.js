@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260720-calendario-mensal-v79";
+const APP_VERSION = "20260720-integracao-fabrica-materiais-v80";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -1894,7 +1894,10 @@ function persistStateSafely(options = {}) {
   }
 }
 
-function saveData(options = {}) { persistStateSafely(options); }
+function saveData(options = {}) {
+  if (typeof syncFactoryMaterialsPlanningV80 === "function") syncFactoryMaterialsPlanningV80(state);
+  persistStateSafely(options);
+}
 
 async function initializeIndexedDBBackup() {
   if (typeof migrateLocalStorageStateToIndexedDB !== "function") { recordIndexedDBWarning("Módulo IndexedDB não carregado."); return; }
@@ -3512,6 +3515,8 @@ function normalizeFactoryItem(item = {}) {
     prioridade: item.prioridade || item.priority || "Média",
     status,
     dataPlanejada: item.dataPlanejada || item.plannedDate || item.date || "",
+    planningStatus: item.planningStatus || "Sem meta planejada",
+    planningDates: Array.isArray(item.planningDates) ? item.planningDates : [],
     observacao: item.observacao || item.observacoes || item.notes || "",
     triagemStatus,
     triagemCompletedAt: item.triagemCompletedAt || item.triagem_completed_at || item.triagem?.completedAt || "",
@@ -3905,13 +3910,14 @@ function factoryActionButtonHTML(item, primary = true) {
 function factoryRecorteHoje(entry = {}) { return entry.subtopics?.length ? entry.subtopics.join("; ") : "Meta do dia"; }
 function factoryThemeHighlightHTML(item = {}, recorte = "", { position = "" } = {}) {
   const positionText = position ? ` • ${position}` : "";
-  return `<div class="factory-theme-highlight"><p class="factory-theme-label">${escapeHTML(factoryThemeVisualLabel(item))}</p><h3 class="factory-theme-title">${escapeHTML(item.tema || "-")}</h3><p class="factory-theme-discipline"><strong>Disciplina:</strong> ${escapeHTML(item.disciplina || "-")}${escapeHTML(positionText)}</p>${recorte ? `<p class="factory-theme-recorte"><strong>Recorte programado hoje:</strong> ${escapeHTML(recorte)}</p>` : ""}</div>`;
+  const planningText = item.planningStatus === "Planejado" && item.dataPlanejada ? `${item.planningStatus} para ${formatDateBR(item.dataPlanejada)}` : (item.planningStatus || "Sem meta planejada");
+  return `<div class="factory-theme-highlight"><p class="factory-theme-label">${escapeHTML(factoryThemeVisualLabel(item))}</p><h3 class="factory-theme-title">${escapeHTML(item.tema || "-")}</h3><p class="factory-theme-discipline"><strong>Disciplina:</strong> ${escapeHTML(item.disciplina || "-")}${escapeHTML(positionText)}</p><p class="item-meta"><strong>Planejamento integrado:</strong> ${escapeHTML(planningText)}</p>${recorte ? `<p class="factory-theme-recorte"><strong>Recorte da meta:</strong> ${escapeHTML(recorte)}</p>` : ""}</div>`;
 }
 function renderFactory() {
   if (!elements.factoryList) return;
   try {
-    const syncInfo = { subjects: 0, changed: false };
     const agenda = (state.factoryAgenda?.length ? state.factoryAgenda : (state.factoryItems || [])).map(normalizeFactoryItem);
+    const syncInfo = { subjects: agenda.filter((item) => item.editalActive !== false).length, changed: false };
     [elements.factoryStatus].filter(Boolean).forEach((select) => {
       const keep = select.value || "Não iniciado";
       select.innerHTML = FACTORY_STATUSES.map((status)=>`<option>${status}</option>`).join("");
@@ -4053,6 +4059,61 @@ function syncFactoryModuleMaterials(item) {
   });
 }
 function syncAllFactoryMaterials() { ensureFactoryAgenda().forEach(syncFactoryModuleMaterials); }
+const FACTORY_MATERIALS_WORKFLOW_MIGRATION_V80 = "factoryMaterialsPlanningV80";
+function syncFactoryMaterialsPlanningV80(targetState = state) {
+  if (targetState !== state) return { changed: false, factoryItems: 0, linkedGoals: 0, linkedMaterials: 0 };
+  targetState.factoryAgenda ||= []; targetState.factoryItems ||= []; targetState.materials ||= []; targetState.dailyGoals ||= []; targetState.migrations ||= {};
+  const before = JSON.stringify({ factoryAgenda: targetState.factoryAgenda, materials: targetState.materials, goalLinks: targetState.dailyGoals.map((goal) => ({ id: goal.id, factoryItemId: goal.factoryItemId || "", materialIds: goal.materialIds || [], hasMaterial: Boolean(goal.hasMaterial) })) });
+  const editalReport = syncFactoryWithActiveEdital();
+  const agenda = ensureFactoryAgenda();
+  syncAllFactoryMaterials();
+  const activeAgenda = agenda.filter((item) => item.editalActive !== false);
+  const goals = targetState.dailyGoals.filter(isPlanningStudyGoal);
+  const itemMatchesGoal = (item, goal) => {
+    const ids = new Set(factorySyllabusItemIds(item));
+    return Boolean((goal.syllabusItemId && ids.has(goal.syllabusItemId)) || dailyPlanRecordsShareSubject(item, goal));
+  };
+  activeAgenda.forEach((item) => {
+    const linkedGoals = goals.filter((goal) => itemMatchesGoal(item, goal));
+    const pendingGoals = linkedGoals.filter((goal) => !isGoalDone(goal)).sort((left, right) => goalDateValue(left).localeCompare(goalDateValue(right)));
+    const nextGoal = pendingGoals.find((goal) => goalDateValue(goal) >= todayISO()) || pendingGoals[0] || null;
+    const linkedSyllabusIds = [...new Set([...factorySyllabusItemIds(item), ...linkedGoals.map((goal) => goal.syllabusItemId).filter(Boolean)])];
+    item.syllabusItemIds = linkedSyllabusIds;
+    item.syllabusItemId = item.syllabusItemId || linkedSyllabusIds[0] || "";
+    item.goalId = nextGoal?.id || "";
+    item.planningDates = [...new Set(linkedGoals.map(goalDateValue).filter(Boolean))].sort();
+    item.planningStatus = pendingGoals.length ? "Planejado" : linkedGoals.length ? "Concluído no planejamento" : "Sem meta planejada";
+    if (nextGoal) {
+      item.dataPlanejada = goalDateValue(nextGoal);
+      item.prioridade = nextGoal.priority || nextGoal.prioridade || item.prioridade;
+    }
+  });
+  targetState.materials.forEach((material) => {
+    const matchingItems = (targetState.syllabusItems || []).filter((item) => canonical(item.discipline || item.disciplina) === canonical(material.discipline || material.disciplina) && dailyPlanSubjectsCompatible(item.subject || item.assunto || item.topic, material.subject || material.assunto));
+    const ids = [...new Set([material.syllabusItemId, ...(material.syllabusItemIds || []), ...matchingItems.map((item) => item.id)].filter(Boolean))];
+    material.syllabusItemIds = ids;
+    material.syllabusItemId = material.syllabusItemId || ids[0] || "";
+    material.planningGoalIds = [...new Set(goals.filter((goal) => materialMatchesAssociation(material, { discipline: goal.discipline || goal.disciplina, subject: goal.subject || goal.assunto, syllabusItemId: goal.syllabusItemId, goalId: goal.id })).map((goal) => goal.id).filter(Boolean))];
+  });
+  goals.forEach((goal) => {
+    const exactItems = activeAgenda.filter((item) => factorySyllabusItemIds(item).includes(goal.syllabusItemId));
+    const compatibleItems = exactItems.length ? exactItems : activeAgenda.filter((item) => dailyPlanRecordsShareSubject(item, goal));
+    goal.factoryItemId = compatibleItems[0]?.id || "";
+    goal.materialIds = [...new Set(targetState.materials.filter(materialAvailable).filter((material) => materialMatchesAssociation(material, { discipline: goal.discipline || goal.disciplina, subject: goal.subject || goal.assunto, syllabusItemId: goal.syllabusItemId, factoryItemId: goal.factoryItemId, goalId: goal.id })).map((material) => material.id))];
+    goal.hasMaterial = goal.materialIds.length > 0;
+  });
+  targetState.factoryAgenda = agenda.map(normalizeFactoryItem);
+  targetState.factoryItems = targetState.factoryAgenda;
+  const after = JSON.stringify({ factoryAgenda: targetState.factoryAgenda, materials: targetState.materials, goalLinks: targetState.dailyGoals.map((goal) => ({ id: goal.id, factoryItemId: goal.factoryItemId || "", materialIds: goal.materialIds || [], hasMaterial: Boolean(goal.hasMaterial) })) });
+  return { changed: before !== after, factoryItems: activeAgenda.length, linkedGoals: goals.filter((goal) => goal.factoryItemId).length, linkedMaterials: targetState.materials.filter((material) => material.planningGoalIds?.length).length, editalReport };
+}
+function migrateFactoryMaterialsPlanningV80(targetState = state) {
+  targetState.migrations ||= {};
+  if (targetState.migrations[FACTORY_MATERIALS_WORKFLOW_MIGRATION_V80]) return { skipped: true, changed: false };
+  const report = syncFactoryMaterialsPlanningV80(targetState);
+  targetState.migrations[FACTORY_MATERIALS_WORKFLOW_MIGRATION_V80] = { executedAt: new Date().toISOString(), factoryItems: report.factoryItems, linkedGoals: report.linkedGoals, linkedMaterials: report.linkedMaterials };
+  return { ...report, skipped: false };
+}
 function materialAvailable(m) { return m && m.available !== false; }
 function dailyPlanCanonical(value) { return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " "); }
 function dailyPlanSubjectKey(value) { return dailyPlanCanonical(value).replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " "); }
@@ -6999,6 +7060,9 @@ async function bootstrapApplication() {
     const balancedMonthlyReport = rebalanceCurrentMonthV79(state);
     window.__balancedMonthlyReportV79 = balancedMonthlyReport;
     if (!balancedMonthlyReport.skipped) saveData({ markLocalChange: true });
+    const factoryMaterialsWorkflowReport = migrateFactoryMaterialsPlanningV80(state);
+    window.__factoryMaterialsWorkflowReportV80 = factoryMaterialsWorkflowReport;
+    if (!factoryMaterialsWorkflowReport.skipped) saveData({ markLocalChange: true });
     renderMotivationalPhrase();
     indexedDBStatus.size = estimateSerializedStateSize(state);
     indexedDBStatus.migration = indexedDBStatus.migration === "erro" ? "erro" : "concluída";

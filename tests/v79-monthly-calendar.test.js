@@ -84,12 +84,12 @@ test("primeira abertura da V79 redistribui o mês atual uma única vez", () => {
   assert.match(script, /rebalanceCurrentMonthV79\(state\)/);
 });
 
-test("V79 mantém versão, cache e publicação em paridade", () => {
-  const version = "20260720-calendario-mensal-v79";
+test("V80 mantém a distribuição mensal da V79, cache e publicação em paridade", () => {
+  const version = "20260720-integracao-fabrica-materiais-v80";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(read("index.html"), new RegExp(version));
   assert.match(read("service-worker.js"), new RegExp(`CURRENT_VERSION = "${version}"`));
-  assert.match(read("service-worker.js"), /"20260720-calendario-semanal-v78"/);
+  assert.match(read("service-worker.js"), /"20260720-calendario-mensal-v79"/);
   for (const file of ["script.js", "index.html", "service-worker.js", "header-brand-fix.js", "sync-integral-time-protection.js"]) {
     assert.equal(read(file), read(path.join("docs", file)), file);
   }
