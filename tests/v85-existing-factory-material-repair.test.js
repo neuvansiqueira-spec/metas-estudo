@@ -38,7 +38,7 @@ test("reparo V85 ocorre na abertura antes da renderização e é persistido", ()
 });
 
 test("V85 renova o cache, reconhece V84 e preserva a publicação em paridade", () => {
-  const version = "20260720-identidade-metas-concursos-v90";
+  const version = "20260720-navegacao-lateral-recolhivel-v91";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(read("index.html"), new RegExp(version));
   assert.match(read("service-worker.js"), new RegExp(`CURRENT_VERSION = "${version}"`));
