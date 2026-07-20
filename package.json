@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260720-navegacao-recolhida-nova-marca-v93",
+  "version": "20260720-logos-link-inicio-v94",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

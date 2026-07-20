@@ -24,7 +24,7 @@ test("o aviso móvel permanece acima do cronômetro sem bloquear controles", () 
 });
 
 test("V87 renova o cache e mantém a publicação em paridade", () => {
-  const version = "20260720-navegacao-recolhida-nova-marca-v93";
+  const version = "20260720-logos-link-inicio-v94";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(read("index.html"), new RegExp(version));
   assert.match(read("service-worker.js"), new RegExp(`CURRENT_VERSION = "${version}"`));

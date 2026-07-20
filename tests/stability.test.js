@@ -59,7 +59,7 @@ test('identidade Aldus aparece no cabeçalho e o símbolo permanece no favicon',
   const logo = fs.readFileSync('icons/logo-mark.svg', 'utf8');
   const sw = fs.readFileSync('service-worker.js', 'utf8');
   assert.match(html, /rel="icon"[^>]+icons\/logo-mark\.svg/);
-  assert.match(html, /class="brand aldus-visual-brand"[\s\S]*?<img class="aldus-visual-brand-image"[^>]+icons\/aldus-visual\.png/);
+  assert.match(html, /class="brand aldus-visual-brand[^"]*"[\s\S]*?<img class="aldus-visual-brand-image"[^>]+icons\/aldus-visual\.png/);
   assert.match(html, /alt="Aldus — Metas Concursos"/);
   assert.match(logo, /Símbolo Aldus Meta/);
   assert.match(logo, /formato de A com estrela azul/);

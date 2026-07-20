@@ -4640,6 +4640,21 @@ html[data-aldus-theme="premium-stable"] .aldus-visual-brand-image {
   object-position: center center;
 }
 
+html[data-aldus-theme="premium-stable"] .brand-home-link {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+html[data-aldus-theme="premium-stable"] .brand-home-link:focus-visible {
+  outline: 3px solid rgba(80, 146, 214, .72);
+  outline-offset: 4px;
+}
+
+.side-nav-brand-link {
+  display: none;
+}
+
 @media (max-width: 1050px) {
   html[data-aldus-theme="premium-stable"] .topbar .brand.aldus-visual-brand {
     flex: 1 1 100% !important;
@@ -4751,6 +4766,24 @@ html[data-aldus-theme="premium-stable"] .aldus-visual-brand-image {
     display: none;
   }
 
+  html[data-side-nav-collapsed="true"][data-aldus-theme="premium-stable"] body .side-nav .side-nav-brand-link {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    min-height: 44px !important;
+    padding: 0 !important;
+    place-items: center;
+    border-radius: 13px;
+    background: transparent !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+  }
+
+  html[data-side-nav-collapsed="true"][data-aldus-theme="premium-stable"] body .side-nav .side-nav-brand-link:focus-visible {
+    outline: 3px solid rgba(80, 146, 214, .72);
+    outline-offset: 3px;
+  }
+
   html[data-side-nav-collapsed="true"][data-aldus-theme="premium-stable"] body .side-nav-brand-mark {
     display: block;
     width: 44px;
@@ -4770,7 +4803,7 @@ html[data-aldus-theme="premium-stable"] .aldus-visual-brand-image {
   }
 }
 
-/* V93: o novo A azul da marca substitui o símbolo anterior na barra recolhida. */
+/* V94: as logos do cabeçalho e da barra recolhida levam ao Dashboard. */
 
 @media (prefers-reduced-motion: reduce) {
   html[data-aldus-theme="premium-stable"] body .app-layout {
