@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const THEME_VERSION = "20260720-navegacao-lateral-recolhivel-v91";
+  const THEME_VERSION = "20260720-navegacao-recolhida-logo-v92";
   const DESIRED_HTML = `
     <img class="aldus-visual-brand-image" src="icons/aldus-visual.png?v=${THEME_VERSION}" alt="Aldus — Metas Concursos" width="1254" height="1254" fetchpriority="high" decoding="async" />
   `;

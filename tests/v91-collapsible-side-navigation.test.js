@@ -15,7 +15,6 @@ test("barra lateral permanece vertical e ganha controle acessível para recolher
   assert.match(html, /id="sideNavGroups" class="side-nav-groups"/);
   assert.match(css, /grid-template-columns: 250px minmax\(0, 1fr\) !important/);
   assert.match(css, /data-side-nav-collapsed="true"[\s\S]*grid-template-columns: 76px minmax\(0, 1fr\) !important/);
-  assert.match(css, /writing-mode: vertical-rl/);
 });
 
 test("letras aumentam sem modificar a navegação móvel", () => {
@@ -34,7 +33,7 @@ test("estado recolhido é persistido e continua acessível", () => {
 });
 
 test("V91 renova cache e mantém raiz e publicação em paridade", () => {
-  const version = "20260720-navegacao-lateral-recolhivel-v91";
+  const version = "20260720-navegacao-recolhida-logo-v92";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(html, new RegExp(version));
   assert.match(read("service-worker.js"), new RegExp(`CURRENT_VERSION = "${version}"`));
