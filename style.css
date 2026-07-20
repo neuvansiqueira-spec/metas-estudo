@@ -3192,19 +3192,8 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-collapsib
 }
 @media (max-width: 720px) {
   .timer-motivational-toast {
-    top: max(82px, calc(env(safe-area-inset-top, 0px) + 72px));
-    width: calc(100vw - 40px);
-    max-width: 520px;
-    padding: 10px 14px;
-    border-radius: 16px;
-  }
-  .timer-motivational-toast strong {
-    font-size: .72rem;
-  }
-  .timer-motivational-toast span {
-    margin-top: 3px;
-    font-size: .88rem;
-    line-height: 1.28;
+    top: max(10px, calc(env(safe-area-inset-top, 0px) + 10px));
+    width: calc(100vw - 24px);
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -4543,6 +4532,11 @@ tbody tr:hover { background: #f2f6f8; }
     overflow-y: auto !important;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
+  }
+
+  /* V88: ao aparecer a mensagem, o cronômetro cede somente o espaço necessário. */
+  html[data-aldus-theme="premium-stable"] body:has(#timerMotivationalToast.visible) #floatingTimer:not([hidden]) {
+    top: max(96px, calc(env(safe-area-inset-top, 0px) + 88px)) !important;
   }
 
   html[data-aldus-theme="premium-stable"] #timerSettings {

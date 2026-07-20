@@ -18,15 +18,13 @@ test("a mensagem motivacional possui um único controlador", () => {
   assert.doesNotMatch(spectrum, /setInterval\(check, 500\)/);
 });
 
-test("o aviso móvel fica acima do cronômetro sem bloquear controles", () => {
+test("o aviso móvel permanece acima do cronômetro sem bloquear controles", () => {
   assert.match(style, /\.timer-motivational-toast[\s\S]*z-index: 2700/);
   assert.match(style, /\.timer-motivational-toast[\s\S]*pointer-events: none/);
-  assert.match(style, /@media \(max-width: 720px\)[\s\S]*\.timer-motivational-toast[\s\S]*top: max\(82px/);
-  assert.match(style, /\.timer-motivational-toast span[\s\S]*font-size: \.88rem/);
 });
 
 test("V87 renova o cache e mantém a publicação em paridade", () => {
-  const version = "20260720-mensagem-motivacional-v87";
+  const version = "20260720-espaco-mensagem-cronometro-v88";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(read("index.html"), new RegExp(version));
   assert.match(read("service-worker.js"), new RegExp(`CURRENT_VERSION = "${version}"`));
