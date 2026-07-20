@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260719-backup-contraste-v71";
+const APP_VERSION = "20260719-inicializacao-rapida-v72";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -2580,6 +2580,7 @@ function recoverLegacyTimerMinutesForGoals(targetState = state) {
   targetState.dailyGoals ||= []; targetState.studies ||= [];
   const migration = legacyTimerMigrationState(targetState);
   const report = legacyRecoveryReportBase(targetState);
+  const currentGoalIds = new Set(targetState.dailyGoals.filter((goal) => goal?.id).map((goal) => goal.id));
   const studiesByGoalId = new Map();
   targetState.studies.forEach((study) => { if (!study?.goalId || !isLegacyTimerStudy(study)) return; if (!studiesByGoalId.has(study.goalId)) studiesByGoalId.set(study.goalId, []); studiesByGoalId.get(study.goalId).push(study); });
   targetState.dailyGoals.forEach((goal) => {
@@ -2588,7 +2589,7 @@ function recoverLegacyTimerMinutesForGoals(targetState = state) {
     const seenSessions = new Set(); const recoverable = [];
     (studiesByGoalId.get(goal.id) || []).forEach((study) => {
       const sessionKey = legacyTimerSessionKey(study); const assignment = migration.assignments[sessionKey];
-      const assignedGoalStillExists = assignment?.goalId && targetState.dailyGoals.some((item) => item.id === assignment.goalId);
+      const assignedGoalStillExists = assignment?.goalId && currentGoalIds.has(assignment.goalId);
       if (!sessionKey || migration.ignored[sessionKey] || (assignment?.goalId && assignment.goalId !== goal.id && assignedGoalStillExists)) return;
       if (seenSessions.has(sessionKey)) { report.ignoredDuplicates++; return; }
       seenSessions.add(sessionKey); const minutes = legacyTimerStudyMinutes(study); if (minutes > 0) recoverable.push({ sessionKey, minutes });
@@ -2611,22 +2612,40 @@ function recoverOrphanLegacyTimerMinutesForGoals(targetState = state) {
   const migration = legacyTimerMigrationState(targetState);
   const report = legacyRecoveryReportBase(targetState);
   const usedThisRun = new Set();
+  const currentGoalIds = new Set(targetState.dailyGoals.filter((goal) => goal?.id).map((goal) => goal.id));
+  const goalsByDateAndSyllabus = new Map();
+  const goalsByDateAndFields = new Map();
+  const addCandidate = (map, key, goal) => {
+    if (!key) return;
+    if (!map.has(key)) map.set(key, []);
+    map.get(key).push(goal);
+  };
+  targetState.dailyGoals.forEach((goal) => {
+    if (legacyGoalHasExistingTime(goal)) return;
+    const date = legacyGoalDate(goal);
+    const syllabus = legacyStableId(goal.syllabusItemId);
+    if (date && syllabus) addCandidate(goalsByDateAndSyllabus, `${date}|${syllabus}`, goal);
+    const discipline = legacyNormalized(legacyGoalDiscipline(goal));
+    const topic = legacyNormalized(legacyGoalTopic(goal));
+    if (date && discipline && topic) addCandidate(goalsByDateAndFields, `${date}|${discipline}|${topic}`, goal);
+  });
+  const activeCandidates = (items = []) => items.filter((goal) => !legacyGoalHasExistingTime(goal));
   targetState.studies.forEach((study) => {
     if (!isLegacyTimerStudy(study)) return;
     const sessionKey = legacyTimerSessionKey(study); const minutes = legacyTimerStudyMinutes(study);
     if (!sessionKey || !minutes) return;
     const assignment = migration.assignments[sessionKey];
-    const assignedGoalStillExists = assignment?.goalId && targetState.dailyGoals.some((goal) => goal.id === assignment.goalId);
+    const assignedGoalStillExists = assignment?.goalId && currentGoalIds.has(assignment.goalId);
     if (migration.ignored[sessionKey] || assignedGoalStillExists || usedThisRun.has(sessionKey)) { report.ignoredDuplicates++; return; }
     if (assignment && !assignedGoalStillExists) delete migration.assignments[sessionKey];
     usedThisRun.add(sessionKey);
     const date = legacyStudyDate(study); const studySyllabus = legacyStableId(study.syllabusItemId);
     let candidates = [];
-    if (date && studySyllabus) candidates = targetState.dailyGoals.filter((goal) => !legacyGoalHasExistingTime(goal) && legacyGoalDate(goal) === date && legacyStableId(goal.syllabusItemId) === studySyllabus);
+    if (date && studySyllabus) candidates = activeCandidates(goalsByDateAndSyllabus.get(`${date}|${studySyllabus}`));
     if (candidates.length === 1) { applyLegacyTimerRecovery(candidates[0], minutes, "syllabus-item", sessionKey, migration, report); delete migration.pending[sessionKey]; return; }
     if (candidates.length > 1) { migration.pending[sessionKey] = { reason: "Mais de uma meta candidata por identificador do edital", date, discipline: legacyStudyDiscipline(study), topic: legacyStudyTopic(study), minutes, candidateGoalIds: candidates.map((g)=>g.id) }; report.ambiguousSessions++; return; }
     const discipline = legacyNormalized(legacyStudyDiscipline(study)); const topic = legacyNormalized(legacyStudyTopic(study));
-    if (date && discipline && topic) candidates = targetState.dailyGoals.filter((goal) => !legacyGoalHasExistingTime(goal) && legacyGoalDate(goal) === date && legacyNormalized(legacyGoalDiscipline(goal)) === discipline && legacyNormalized(legacyGoalTopic(goal)) === topic);
+    if (date && discipline && topic) candidates = activeCandidates(goalsByDateAndFields.get(`${date}|${discipline}|${topic}`));
     if (candidates.length === 1) { applyLegacyTimerRecovery(candidates[0], minutes, "exact-date-discipline-topic", sessionKey, migration, report); delete migration.pending[sessionKey]; return; }
     if (candidates.length > 1) { migration.pending[sessionKey] = { reason: "Mais de uma meta candidata por data, disciplina e assunto", date, discipline: legacyStudyDiscipline(study), topic: legacyStudyTopic(study), minutes, startedAt: study.startedAt || study.startTime || "", endedAt: study.endedAt || study.endTime || "", candidateGoalIds: candidates.map((g)=>g.id) }; report.ambiguousSessions++; return; }
     migration.pending[sessionKey] = { reason: "Nenhuma correspondência automática segura", date, discipline: legacyStudyDiscipline(study), topic: legacyStudyTopic(study), minutes, startedAt: study.startedAt || study.startTime || "", endedAt: study.endedAt || study.endTime || "", candidateGoalIds: [] };
@@ -7052,7 +7071,9 @@ function loadIntegralSyncEnhancementFile(filename) {
     const existing = document.querySelector(selector);
     if (existing?.dataset.loaded === "true") return resolve();
     const script = existing || document.createElement("script");
-    script.async = true;
+    // Scripts dinâmicos com async=false começam a baixar em paralelo, mas
+    // continuam sendo executados na ordem de inserção definida abaixo.
+    script.async = false;
     script.dataset.integralSyncFile = filename;
     script.addEventListener("load", () => {
       script.dataset.loaded = "true";
@@ -7068,11 +7089,8 @@ function loadIntegralSyncEnhancementFile(filename) {
 
 async function ensureIntegralSyncEnhancements() {
   if (activateIntegralSyncEnhancements()) return true;
-  const [coreFile, ...dependentFiles] = INTEGRAL_SYNC_ENHANCEMENT_FILES;
-  await loadIntegralSyncEnhancementFile(coreFile);
-  for (const filename of dependentFiles) {
-    await loadIntegralSyncEnhancementFile(filename);
-  }
+  const pendingFiles = INTEGRAL_SYNC_ENHANCEMENT_FILES.map(loadIntegralSyncEnhancementFile);
+  await Promise.all(pendingFiles);
   if (!activateIntegralSyncEnhancements()) throw new Error("Os módulos de integridade foram carregados de forma incompleta.");
   return true;
 }
@@ -7093,7 +7111,7 @@ function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("service-worker.js")
+    navigator.serviceWorker.register("service-worker.js", { updateViaCache: "none" })
       .then((registration) => {
         registration.update();
         console.log("[Metas Estudo] Service worker registrado.");

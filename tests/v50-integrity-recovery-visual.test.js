@@ -61,8 +61,10 @@ test("integridade de sincronização é ativada antes do bootstrap e inclui prot
   const integrityEnd = script.indexOf("startApplicationWithIntegrity().catch", integrityStart);
   const integrityBody = script.slice(integrityStart, integrityEnd);
   assert.ok(integrityBody.indexOf("await ensureIntegralSyncEnhancements()") < integrityBody.indexOf("return bootstrapApplication()"));
-  assert.match(script, /await loadIntegralSyncEnhancementFile\(coreFile\);[\s\S]*?for \(const filename of dependentFiles\)[\s\S]*?await loadIntegralSyncEnhancementFile\(filename\)/);
-  assert.doesNotMatch(html, /sync-integral-(?:core|deletions|state|cloud|time-protection)\.js/);
+  assert.match(script, /const pendingFiles = INTEGRAL_SYNC_ENHANCEMENT_FILES\.map\(loadIntegralSyncEnhancementFile\)/);
+  assert.match(script, /await Promise\.all\(pendingFiles\)/);
+  assert.match(script, /script\.async = false/);
+  for (const file of expectedFiles) assert.match(html, new RegExp(`<link rel="preload" as="script" href="${file.replaceAll(".", "\\.")}\\?v=`));
 });
 
 test("recuperação usa o maior tempo sem sobrescrever metadados atuais", () => {

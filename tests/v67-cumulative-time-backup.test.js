@@ -53,15 +53,15 @@ test("Plano do Dia diferencia o valor diário do acumulado com contraste respons
   assert.match(script, /Nesta meta de/);
   assert.match(script, /Histórico de estudo registrado/);
   assert.match(script, /mergeBackupDailyGoals\(data\.dailyGoals \|\| \[\]\)/);
-  assert.match(index, /aldus-daily-time-v67\.css\?v=20260719-backup-contraste-v71/);
+  assert.match(index, /aldus-daily-time-v67\.css\?v=20260719-inicializacao-rapida-v72/);
   assert.match(css, /\.goal-execution-summary/);
   assert.match(css, /grid-template-columns: minmax\(0, 1\.25fr\)/);
   assert.match(css, /@media \(max-width: 768px\)/);
 });
 
 test("versão, cache e publicação em docs estão em paridade", () => {
-  assert.equal(packageJson.version, "20260719-backup-contraste-v71");
-  assert.match(worker, /const CURRENT_VERSION = "20260719-backup-contraste-v71"/);
+  assert.equal(packageJson.version, "20260719-inicializacao-rapida-v72");
+  assert.match(worker, /const CURRENT_VERSION = "20260719-inicializacao-rapida-v72"/);
   assert.match(worker, /aldus-daily-time-v67\.css/);
   assert.equal(script, fs.readFileSync("docs/script.js", "utf8"));
   assert.equal(index, fs.readFileSync("docs/index.html", "utf8"));
