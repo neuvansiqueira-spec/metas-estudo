@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260720-cronometro-scroll-motivacao-v97";
+const APP_VERSION = "20260720-qconcursos-filtros-automaticos-v98";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -6622,6 +6622,38 @@ function getUnifiedQuestionPerformanceRecords() {
 }
 function questionRecordTotals(records) { return records.reduce((a,r)=>({sessions:a.sessions+1,total:a.total+r.total,correct:a.correct+r.correct,wrong:a.wrong+r.wrong,blank:a.blank+r.blank,minutes:a.minutes+r.minutes,net:a.net+r.net}),{sessions:0,total:0,correct:0,wrong:0,blank:0,minutes:0,net:0}); }
 const QCONCURSOS_DELEGADO_URL = "https://www.qconcursos.com/questoes-de-concursos/questoes?job_ids%5B%5D=169&sort=relevance";
+const QCONCURSOS_DISCIPLINE_IDS = Object.freeze({
+  "direito administrativo": "2",
+  "direito constitucional": "3",
+  "direito penal": "9"
+});
+const QCONCURSOS_BOARD_IDS = Object.freeze({
+  "cebraspe": "2",
+  "cespe": "2",
+  "cespe / cebraspe": "2",
+  "fgv": "63"
+});
+function normalizeQconcursosFilterKey(value = "") {
+  return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLocaleLowerCase("pt-BR");
+}
+function qconcursosRecentYears(referenceDate = new Date()) {
+  const currentYear = referenceDate.getFullYear();
+  return Array.from({ length: 5 }, (_, index) => currentYear - index);
+}
+function buildQconcursosUrl({ discipline = "", board = "", searchTerm = "" } = {}) {
+  const params = new URLSearchParams();
+  params.append("job_ids[]", "169");
+  const disciplineId = QCONCURSOS_DISCIPLINE_IDS[normalizeQconcursosFilterKey(discipline)];
+  const boardId = QCONCURSOS_BOARD_IDS[normalizeQconcursosFilterKey(board)];
+  if (disciplineId) params.append("discipline_ids[]", disciplineId);
+  if (boardId) params.append("examining_board_ids[]", boardId);
+  qconcursosRecentYears().forEach((year) => params.append("publication_year[]", String(year)));
+  if (searchTerm) params.set("q", searchTerm);
+  params.set("exclude_nullified", "true");
+  params.set("exclude_outdated", "true");
+  params.set("sort", "relevance");
+  return `https://www.qconcursos.com/questoes-de-concursos/questoes?${params.toString()}`;
+}
 function isNumericSyllabusReference(value = "") {
   return /^\d+(?:\.\d+)+$/.test(String(value || "").trim());
 }
@@ -6646,7 +6678,10 @@ function buildQconcursosFilterRoute(item = {}, board = "") {
   const editalReference = String(item.reference || item.referencia || (numericSubtopicReference ? rawSubtopic : "")).trim();
   const selectedBoard = board && board !== "Outra" ? board : "Todas inicialmente";
   const qcResolution = qconcursosNumberResolution(item);
-  return { discipline, theme, subject, subtopic, editalReference, board: selectedBoard, qcNumber: qcResolution.number, qcNumberSource: qcResolution.source, url: QCONCURSOS_DELEGADO_URL, searchTerm: [subject, subtopic].filter(Boolean).join(" — ") };
+  const searchTerm = [subject, subtopic].filter(Boolean).join(" — ");
+  const disciplineId = QCONCURSOS_DISCIPLINE_IDS[normalizeQconcursosFilterKey(discipline)] || "";
+  const boardId = QCONCURSOS_BOARD_IDS[normalizeQconcursosFilterKey(selectedBoard)] || "";
+  return { discipline, theme, subject, subtopic, editalReference, board: selectedBoard, qcNumber: qcResolution.number, qcNumberSource: qcResolution.source, url: buildQconcursosUrl({ discipline, board: selectedBoard, searchTerm }), searchTerm, automaticFilters: { cargo:true, discipline:Boolean(disciplineId), board:Boolean(boardId), period:true, search:Boolean(searchTerm), sort:true } };
 }
 function renderQuestionRegistrationLink(item = null) {
   if (!elements.questionRegistrationLinkSummary) return;
@@ -6695,7 +6730,7 @@ function renderQconcursosFilterRoute() {
     ["6", "Período", "Comece pelos últimos 5 anos; amplie se houver menos de 20 questões"],
     ["7", "Ordenação", "Relevância para o tema; depois, data da prova mais recente"]
   ];
-  elements.questionQconcursosRoute.innerHTML = `<div class="question-topic-hierarchy">${hierarchy.map(([label,value])=>`<span><small>${label}</small><strong>${escapeHTML(value)}</strong></span>`).join("")}</div><ol class="question-filter-route">${steps.map(([number,label,value])=>`<li><b>${number}</b><span><small>${label}</small><strong>${escapeHTML(value)}</strong></span></li>`).join("")}</ol><p class="question-filter-tip"><strong>Se aparecerem poucas questões:</strong> retire primeiro o período, depois a banca e somente depois o subtema. Preserve Cargo + Disciplina + Assunto para manter o treino voltado a Delegado.</p><div class="actions"><a class="button-link" href="${route.url}" target="_blank" rel="noopener noreferrer">Abrir QConcursos com cargo Delegado</a></div><p class="item-meta">O QConcursos será aberto em outra aba. Confirme os nomes dos filtros porque a classificação de assuntos pode variar dentro da plataforma.</p>`;
+  elements.questionQconcursosRoute.innerHTML = `<div class="question-topic-hierarchy">${hierarchy.map(([label,value])=>`<span><small>${label}</small><strong>${escapeHTML(value)}</strong></span>`).join("")}</div><ol class="question-filter-route">${steps.map(([number,label,value])=>`<li><b>${number}</b><span><small>${label}</small><strong>${escapeHTML(value)}</strong></span></li>`).join("")}</ol><p class="question-filter-tip"><strong>Se aparecerem poucas questões:</strong> retire primeiro o período, depois a banca e somente depois o subtema. Preserve Cargo + Disciplina + Assunto para manter o treino voltado a Delegado.</p><div class="actions"><a class="button-link" href="${route.url}" target="_blank" rel="noopener noreferrer">Abrir QConcursos com filtros automáticos</a></div><p class="item-meta">O QConcursos será aberto em outra aba com cargo, disciplina e banca compatíveis, últimos cinco anos, assunto pesquisado e relevância. A classificação de assuntos pode variar dentro da plataforma.</p>`;
 }
 function renderQuestionSubjectSummary() { if (!elements.questionSubjectSummary) return; const id=elements.questionSyllabusItem.value; renderQconcursosFilterRoute(); if (!id) { elements.questionSubjectSummary.textContent='Selecione disciplina e assunto para consultar o histórico deste assunto.'; return; } const rows=getUnifiedQuestionPerformanceRecords().filter(r=>r.syllabusItemId===id); if(!rows.length) { elements.questionSubjectSummary.innerHTML=' <strong>Histórico deste assunto</strong><br>Nenhum resultado anterior encontrado para este assunto. O formulário abaixo criará o primeiro lançamento.'; return; } const t=questionRecordTotals(rows), last=rows.map(r=>r.date).filter(Boolean).sort().pop(), origins=[...new Set(rows.map(r=>r.source==='banco'?'Banco de Questões':'Registro manual'))].join(' • '); elements.questionSubjectSummary.innerHTML=`<strong>Histórico deste assunto</strong><br>${t.sessions} sessões • ${t.total} questões<br>${t.correct} acertos • ${t.wrong} erros • ${t.blank} brancos<br>${t.total?(t.correct/t.total*100).toFixed(1):0}% de acerto • líquido ${t.net}<br>Tempo total: ${formatHours(t.minutes)}<br>Último treino: ${last?formatDateBR(last):'-'}<br>Origem: ${escapeHTML(origins)}<br><button type="button" data-view-question-performance="${escapeHTML(id)}">Ver desempenho deste assunto</button>`; }
 function getQuestionTotals() { return questionRecordTotals(getUnifiedQuestionPerformanceRecords()); }
