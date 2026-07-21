@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260721-recomposicao-metas-dia-v116",
+  "version": "20260721-metodologia-metas-v117",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

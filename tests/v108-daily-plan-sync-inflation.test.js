@@ -173,6 +173,83 @@ test("recomposição não cria metas quando o alvo diário está temporariamente
   assert.equal(targetState.dailyGoals.length, 1);
 });
 
+test("metodologia diária usa disciplinas por dia como quantidade exata de metas", () => {
+  const script = read("script.js");
+  const context = {
+    state: {},
+    planningConfig: () => ({ disciplinesPerDay: 5, topicsPerDay: 3 }),
+    getDayContentConfig: () => ({ mode: "goals_only" }),
+    availabilityForDate: () => ({ type: "dia normal" }),
+    dayModeIncludesGoals: () => true,
+    Math, Number
+  };
+  vm.runInNewContext(`${extractFunction(script, "planningTargetsForDate")}; result = planningTargetsForDate('2026-07-21');`, context);
+
+  assert.equal(context.result.topics, 5);
+  assert.equal(context.result.disciplines, 5);
+  assert.equal(context.result.oneGoalPerDiscipline, true);
+});
+
+test("metodologia não repete disciplina já entregue no mesmo dia", () => {
+  const script = read("script.js");
+  const context = {
+    todayISO: () => "2026-07-21",
+    canonical: (value) => String(value || "").toLowerCase(),
+    planningItemKey: (goal) => `${String(goal.discipline || "").toLowerCase()}|${String(goal.subject || "").toLowerCase()}`,
+    Math, Number, Set
+  };
+  const existingGoals = [{ discipline: "Direitos Humanos", subject: "Segurança Pública", status: "Concluída" }];
+  const eligibleGoals = [
+    { discipline: "Direitos Humanos", subject: "Dignidade da Pessoa Humana" },
+    { discipline: "Direito Administrativo", subject: "Licitações" },
+    { discipline: "Direito Penal", subject: "Teoria do Crime" },
+    { discipline: "Direito Constitucional", subject: "Direitos Fundamentais" },
+    { discipline: "Medicina Legal", subject: "Traumatologia" }
+  ];
+  const runtime = { ...context, eligibleGoals, existingGoals };
+  vm.runInNewContext(`${extractFunction(script, "selectPlanningGoalsForTargets")}; result = selectPlanningGoalsForTargets({ topicTarget: 5, disciplineTarget: 5, eligibleGoals, existingGoals, distinctDisciplinesOnly: true });`, runtime);
+  assert.equal(runtime.result.selected.length, 4);
+  assert.equal(runtime.result.selected.some((goal) => goal.discipline === "Direitos Humanos"), false);
+  assert.equal(new Set(runtime.result.selected.map((goal) => goal.discipline)).size, 4);
+});
+
+test("ativação V117 corrige a tela mostrada sem alterar a meta concluída", () => {
+  const targetState = { dailyGoals: [
+    { id: "administrativo", date: "2026-07-21", discipline: "Direito Administrativo", subject: "Lei nº 14.133/2021", status: "Pendente", origin: "planejamento" },
+    { id: "dh-repetida", date: "2026-07-21", discipline: "Direitos Humanos", subject: "Dignidade da pessoa humana", status: "Pendente", origin: "planejamento" },
+    { id: "dh-concluida", date: "2026-07-21", discipline: "Direitos Humanos", subject: "Segurança Pública", status: "Concluída", actualMinutes: 71, origin: "planejamento" }
+  ], migrations: {} };
+  let intervalCallback = null;
+  const windowObject = {
+    setInterval(callback) { intervalCallback = callback; return 1; },
+    clearInterval() {}, setTimeout() {}
+  };
+  const additions = ["Penal", "Constitucional", "Medicina Legal", "Processo Penal"].map((discipline, index) => ({ id: `nova-${index}`, date: "2026-07-21", discipline, subject: `Assunto ${index}`, status: "Pendente" }));
+  const context = {
+    state: targetState,
+    indexedDBStatus: { bootstrap: "concluída" },
+    planningConfig: () => ({ disciplinesPerDay: 5 }),
+    goalDateValue: (goal) => goal.date,
+    isPlanningStudyGoal: () => true,
+    isProtectedDailyGoal: (goal) => goal.status === "Concluída" || Number(goal.actualMinutes) > 0,
+    canonical: (value) => String(value || "").toLowerCase(),
+    buildPlanningScoreContext: () => ({}),
+    eligiblePlanningGoalsForDate: () => additions,
+    todayISO: () => "2026-07-21",
+    saveData() {}, render() {}, autoSyncAfterSave() {},
+    document: { querySelectorAll: () => [] },
+    navigator: {}, window: windowObject,
+    Date, Math, Number, Set
+  };
+  vm.runInNewContext(read("daily-goal-methodology-v117.js"), context);
+  intervalCallback();
+
+  assert.equal(targetState.dailyGoals.length, 5);
+  assert.equal(targetState.dailyGoals.some((goal) => goal.id === "dh-repetida"), false);
+  assert.equal(targetState.dailyGoals.find((goal) => goal.id === "dh-concluida").actualMinutes, 71);
+  assert.equal(new Set(targetState.dailyGoals.map((goal) => goal.discipline)).size, 5);
+});
+
 test("reparo V108 permanece ativo na publicação atual", () => {
   const version = JSON.parse(read("package.json")).version;
   assert.equal(JSON.parse(read("package.json")).version, version);

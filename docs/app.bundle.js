@@ -4617,7 +4617,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260721-recomposicao-metas-dia-v116";
+const APP_VERSION = "20260721-metodologia-metas-v117";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -10181,9 +10181,9 @@ function planningTargetsForDate(date, targetState = state, opts = {}) {
   const dayContent = getDayContentConfig(date, targetState);
   const unavailable = availabilityForDate(date, targetState).type === "indisponível";
   const enabled = dayModeIncludesGoals(dayContent.mode) && (!unavailable || opts.manual);
-  const topics = enabled ? Math.max(1, Number(config.topicsPerDay) || 1) : 0;
-  const disciplines = topics ? Math.min(topics, Math.max(1, Number(config.disciplinesPerDay) || 1)) : 0;
-  return { topics, disciplines, dayContent, unavailable };
+  const disciplines = enabled ? Math.max(1, Number(config.disciplinesPerDay) || 1) : 0;
+  const topics = disciplines;
+  return { topics, disciplines, dayContent, unavailable, oneGoalPerDiscipline: true };
 }
 function eligiblePlanningGoalsForDate(date, opts = {}) {
   const targetState = opts.targetState || state;
@@ -10224,7 +10224,7 @@ function selectDistinctPlanningItems({ count, eligibleGoals, eligibleItems, exis
 function selectDistinctPlanningDisciplines({ date, count, eligibleItems, existingGoals = [], recentHistory = [] } = {}) {
   return selectDistinctPlanningItems({ date, count, eligibleGoals: eligibleItems, existingGoals, recentHistory });
 }
-function selectPlanningGoalsForTargets({ date = todayISO(), topicTarget = 0, disciplineTarget = 0, eligibleGoals = [], existingGoals = [] } = {}) {
+function selectPlanningGoalsForTargets({ date = todayISO(), topicTarget = 0, disciplineTarget = 0, eligibleGoals = [], existingGoals = [], distinctDisciplinesOnly = false } = {}) {
   const targetTopics = Math.max(0, Number(topicTarget) || 0);
   const targetDisciplines = Math.min(targetTopics, Math.max(0, Number(disciplineTarget) || 0));
   const selected = [];
@@ -10233,7 +10233,7 @@ function selectPlanningGoalsForTargets({ date = todayISO(), topicTarget = 0, dis
   const add = (goal) => {
     const discipline = canonical(goal.discipline || goal.disciplina);
     const subject = planningItemKey(goal);
-    if (!discipline || !subject || usedSubjects.has(subject)) return false;
+    if (!discipline || !subject || usedSubjects.has(subject) || (distinctDisciplinesOnly && usedDisciplines.has(discipline))) return false;
     if (!usedDisciplines.has(discipline) && usedDisciplines.size >= targetDisciplines) return false;
     selected.push(goal); usedSubjects.add(subject); usedDisciplines.add(discipline); return true;
   };
@@ -10382,6 +10382,16 @@ function reconcileDailyGoalsWithPlanning(targetState = state, date = todayISO(),
     automatic.forEach((goal) => { const key = planningItemKey(goal); if (key && seenAuto.has(key)) duplicates.push(goal); else if (key) seenAuto.add(key); });
     removeGoals(duplicates);
   }
+  if (targets.oneGoalPerDiscipline) {
+    const usedDisciplines = new Set(dayGoals.filter((goal) => isPlanningStudyGoal(goal) && isProtectedDailyGoal(goal)).map((goal) => canonical(goal.discipline || goal.disciplina)).filter(Boolean));
+    const repeatedAutomaticDisciplines = [];
+    dayGoals.filter((goal) => isPlanningStudyGoal(goal) && !isManualDailyGoal(goal) && isAutomaticIntactDailyGoal(goal)).forEach((goal) => {
+      const discipline = canonical(goal.discipline || goal.disciplina);
+      if (!discipline || usedDisciplines.has(discipline)) repeatedAutomaticDisciplines.push(goal);
+      else usedDisciplines.add(discipline);
+    });
+    removeGoals(repeatedAutomaticDisciplines);
+  }
   let studyGoals = dayGoals.filter(isPlanningStudyGoal);
   automatic = dayGoals.filter((goal) => !isManualDailyGoal(goal) && isAutomaticIntactDailyGoal(goal) && isPlanningStudyGoal(goal));
   const excess = [];
@@ -10399,7 +10409,7 @@ function reconcileDailyGoalsWithPlanning(targetState = state, date = todayISO(),
   removeGoals(disciplineExcess);
   studyGoals = dayGoals.filter(isPlanningStudyGoal);
   const eligibleGoals = eligiblePlanningGoalsForDate(date, { targetState, scoreContext: opts.scoreContext, existingGoals: studyGoals, reservedSyllabusIds: opts.reservedSyllabusIds, manual: opts.manual });
-  const selection = selectPlanningGoalsForTargets({ date, topicTarget: targets.topics, disciplineTarget: targets.disciplines, eligibleGoals, existingGoals: studyGoals });
+  const selection = selectPlanningGoalsForTargets({ date, topicTarget: targets.topics, disciplineTarget: targets.disciplines, eligibleGoals, existingGoals: studyGoals, distinctDisciplinesOnly: targets.oneGoalPerDiscipline });
   const now = new Date().toISOString();
   selection.selected.forEach((goal) => {
     goal.origin = goal.origem = "planejamento";
@@ -12095,9 +12105,9 @@ async function bootstrapApplication() {
       reports: [...(replacementRepairReportV108.reports || []), ...(legacyDailyPlanningRepairV108.reports || [])]
     };
     window.__dailyPlanningInflationRepairV108 = dailyPlanningRepairV108;
-    const dailyPlanningReplenishmentV116 = replenishMissingDailyPlanningGoalsV116(state, todayISO());
-    window.__dailyPlanningReplenishmentV116 = dailyPlanningReplenishmentV116;
-    if (dailyPlanningRepairV108.changed || dailyPlanningReplenishmentV116.changed) saveData({ markLocalChange: true });
+    const dailyPlanningMethodologyV117 = reconcileDailyGoalsWithPlanning(state, todayISO());
+    window.__dailyPlanningMethodologyV117 = dailyPlanningMethodologyV117;
+    if (dailyPlanningRepairV108.changed || dailyPlanningMethodologyV117.added.length || dailyPlanningMethodologyV117.removed.length) saveData({ markLocalChange: true });
     const legacyGoalIdRecoveryReport = recoverLegacyTimerMinutesForGoals(state);
     const legacyOrphanRecoveryReport = recoverOrphanLegacyTimerMinutesForGoals(state);
     const legacyTimerRecoveryReport = mergeLegacyTimerRecoveryReports(legacyGoalIdRecoveryReport, legacyOrphanRecoveryReport);
@@ -12979,7 +12989,7 @@ function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register(`service-worker-v116.js?v=${encodeURIComponent(APP_VERSION)}`, { updateViaCache: "none" })
+    navigator.serviceWorker.register(`service-worker-v117.js?v=${encodeURIComponent(APP_VERSION)}`, { updateViaCache: "none" })
       .then((registration) => {
         registration.update();
         console.log("[Metas Estudo] Service worker registrado.");
