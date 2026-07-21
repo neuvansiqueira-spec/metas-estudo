@@ -4869,6 +4869,18 @@ html[data-aldus-theme="premium-stable"] body #timerSettings[open] {
   scroll-margin-block: 12px 90px;
 }
 
+/* V99: contraste reforçado nas barras do acompanhamento do edital. */
+html[data-aldus-theme="premium-stable"] body #view-progresso .progress {
+  background: #020f1b !important;
+  border-color: #5dc9f5 !important;
+  box-shadow: inset 0 0 0 1px rgba(93, 201, 245, .16) !important;
+}
+
+html[data-aldus-theme="premium-stable"] body #view-progresso .progress > span {
+  background: linear-gradient(90deg, #20d9ff 0%, #2f8cff 58%, #ffd65a 100%) !important;
+  box-shadow: 0 0 10px rgba(32, 217, 255, .72) !important;
+}
+
 /* V94: as logos do cabeçalho e da barra recolhida levam ao Dashboard. */
 
 @media (prefers-reduced-motion: reduce) {
