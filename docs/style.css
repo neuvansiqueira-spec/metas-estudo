@@ -4909,6 +4909,28 @@ html[data-aldus-theme="premium-stable"] body #view-progresso .progress > span {
 .question-history-notebook-content { max-width: 620px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .question-history-notebook-content ul { padding-left: 20px; }
 
+/* V102: produção da Fábrica separada entre Plano do Dia e semana. */
+.factory-production-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 18px 0;
+  padding: 10px;
+  border: 1px solid #3f6d8e;
+  border-radius: 16px;
+  background: rgba(3, 23, 37, .72);
+}
+.factory-production-tabs button { min-width: 190px; }
+.factory-production-tabs button.active,
+.factory-production-tabs button[aria-pressed="true"] {
+  background: linear-gradient(135deg, #347ee6, #255fc1) !important;
+  border-color: #66b8ff !important;
+  color: #fff !important;
+  box-shadow: 0 0 0 2px rgba(102, 184, 255, .16);
+}
+.factory-scope-notice { border-left-color: #5dc9f5 !important; }
+@media (max-width: 620px) { .factory-production-tabs button { width: 100%; min-width: 0; } }
+
 /* V94: as logos do cabeçalho e da barra recolhida levam ao Dashboard. */
 
 @media (prefers-reduced-motion: reduce) {
