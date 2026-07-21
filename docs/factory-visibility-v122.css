@@ -1,0 +1,150 @@
+/* V122: leitura estável da Fábrica em desktop, tablet e celular. */
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos {
+  overflow-x: clip;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary {
+  grid-template-columns: minmax(460px, 2.8fr) repeat(3, minmax(125px, .65fr)) !important;
+  align-items: stretch !important;
+  gap: 10px !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary > .stat-card {
+  min-height: 132px !important;
+  padding: 14px 16px !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary-now {
+  min-width: 0 !important;
+  padding: 0 !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary-now .factory-theme-highlight {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  align-content: center !important;
+  gap: 5px 16px !important;
+  padding: 15px 18px !important;
+  box-sizing: border-box !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary-now :is(.factory-theme-label, .factory-theme-title) {
+  grid-column: 1 / -1 !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary-now .factory-theme-title {
+  font-size: clamp(1.25rem, 1.55vw, 1.65rem) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary > .stat-card:not(.factory-summary-now) {
+  min-height: 132px !important;
+  justify-content: center !important;
+  align-items: flex-start !important;
+  gap: 12px !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary > .stat-card:not(.factory-summary-now) > strong {
+  margin: 0 !important;
+  font-size: clamp(1.9rem, 2.5vw, 2.35rem) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos #factoryDoNow > .factory-collapsible-content {
+  padding: 20px 22px 24px !important;
+  overflow: visible !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos #factoryDoNow .compact-factory-card {
+  width: 100% !important;
+  padding: 16px 18px !important;
+  overflow: visible !important;
+  border: 1px solid rgba(135, 186, 228, .24) !important;
+  border-radius: 16px !important;
+  background: rgba(3, 23, 38, .46) !important;
+  box-sizing: border-box !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos #factoryDoNow .factory-card-header {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 18px !important;
+  padding: 0 0 16px !important;
+  overflow: visible !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos #factoryDoNow .factory-card-heading {
+  min-width: 0 !important;
+  padding: 0 2px !important;
+  overflow: visible !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos #factoryDoNow .compact-factory-card .factory-theme-highlight {
+  width: 100% !important;
+  padding: 4px 8px 8px !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos #factoryDoNow .compact-factory-card .factory-theme-title {
+  font-size: clamp(1.4rem, 2.25vw, 1.85rem) !important;
+  line-height: 1.2 !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos #factoryDoNow .factory-status-badge {
+  justify-self: end;
+  align-self: start;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos #factoryDoNow .factory-compact-grid {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 1080px) {
+  html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary-now {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+@media (max-width: 700px) {
+  html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary-now .factory-theme-highlight {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary-now :is(.factory-theme-label, .factory-theme-title) {
+    grid-column: auto !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-fabrica-resumos #factoryDoNow > .factory-collapsible-content {
+    padding: 14px !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-fabrica-resumos #factoryDoNow .compact-factory-card {
+    padding: 14px !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-fabrica-resumos #factoryDoNow .factory-card-header {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-fabrica-resumos #factoryDoNow .factory-status-badge {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 430px) {
+  html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary > .stat-card:not(.factory-summary-now) {
+    min-height: 88px !important;
+  }
+}

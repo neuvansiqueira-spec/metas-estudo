@@ -88,9 +88,10 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260721-metodologia-metas-v117",
   "20260721-estabilidade-v118",
   "20260721-prompt-lei-didatico-v119",
-  "20260721-prompt-lei-modelo-v120"
+  "20260721-prompt-lei-modelo-v120",
+  "20260721-prompt-lei-modelo-v121"
 ];
-const CURRENT_VERSION = "20260721-prompt-lei-modelo-v121";
+const CURRENT_VERSION = "20260721-fabrica-visibilidade-v122";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 // Caches anteriores reconhecidos para limpeza: startup-v25 a startup-v28.
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v29`;
@@ -98,8 +99,9 @@ const FILES_TO_CACHE = [
   `./?v=${CURRENT_VERSION}`,
   `index.html?v=${CURRENT_VERSION}`,
   `app-v118.css?v=${CURRENT_VERSION}`,
+  `factory-visibility-v122.css?v=${CURRENT_VERSION}`,
   `app-v118.js?v=${CURRENT_VERSION}`,
-  `factory-lei-prompt-v121.js?v=${CURRENT_VERSION}`,
+  `factory-lei-prompt-v122.js?v=${CURRENT_VERSION}`,
   "manifest.json",
   "icons/aldus-visual.png",
   "icons/aldus-brand-mark-v93.png",
