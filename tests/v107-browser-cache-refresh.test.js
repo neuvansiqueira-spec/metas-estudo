@@ -7,14 +7,11 @@ const root = path.resolve(__dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const serviceWorker = read("service-worker.js");
 
-test("navegação e script principal consultam a rede antes do cache", () => {
+test("navegação consulta a rede antes do cache", () => {
   const navigation = serviceWorker.match(/async function cacheFirstNavigation[\s\S]*?\n\}/)?.[0] || "";
-  const appScript = serviceWorker.match(/async function cacheFirstAppScript[\s\S]*?\n\}/)?.[0] || "";
 
   assert.ok(navigation.indexOf("await networkPromise") < navigation.indexOf("caches.match(request"));
-  assert.ok(appScript.indexOf('fetch(request, { cache: "no-store" })') < appScript.indexOf("caches.match(request"));
   assert.match(navigation, /Aplicativo indisponível temporariamente/);
-  assert.match(appScript, /Script indisponível temporariamente/);
 });
 
 test("versões recentes podem ser migradas para a publicação atual", () => {

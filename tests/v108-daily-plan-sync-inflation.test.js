@@ -100,11 +100,12 @@ test("reparo reduz 12 metas para as 5 planejadas e preserva a concluída", () =>
   assert.equal(targetState.dailyGoals.filter((goal) => goal.status === "Pendente").length, 4);
 });
 
-test("V108 publica raiz e docs em paridade", () => {
-  const version = "20260721-plano-dia-sincronizacao-v108";
+test("reparo V108 permanece ativo na publicação atual", () => {
+  const version = JSON.parse(read("package.json")).version;
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(read("script.js"), new RegExp(`APP_VERSION = "${version}"`));
   assert.match(read("service-worker.js"), new RegExp(`CURRENT_VERSION = "${version}"`));
+  assert.match(read("service-worker.js"), /"20260721-plano-dia-sincronizacao-v108"/);
   for (const file of ["index.html", "script.js", "service-worker.js", ...syncFiles]) {
     assert.equal(read(file), read(`docs/${file}`), file);
   }

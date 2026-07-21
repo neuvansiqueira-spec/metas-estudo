@@ -75,9 +75,10 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260721-fabrica-visual-resumo-v104",
   "20260721-mobile-salvar-cores-tempo-v105",
   "20260721-dashboard-central-metas-v106",
-  "20260721-browser-cache-atualizacao-v107"
+  "20260721-browser-cache-atualizacao-v107",
+  "20260721-plano-dia-sincronizacao-v108"
 ];
-const CURRENT_VERSION = "20260721-plano-dia-sincronizacao-v108";
+const CURRENT_VERSION = "20260721-carregamento-rapido-v109";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 // Cache anterior reconhecido para limpeza: startup-v25.
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v26`;
@@ -362,6 +363,19 @@ async function transformAppScriptResponse(response, { preferCache = true } = {})
 }
 
 async function cacheFirstAppScript(request) {
+  const targetsCurrentVersion = requestTargetsCurrentVersion(request);
+  if (targetsCurrentVersion) {
+    const exact = await caches.match(request);
+    if (exact) return exact;
+
+    const cachedCurrent = await caches.match(request, { ignoreSearch: true });
+    if (cachedCurrent) {
+      const transformed = await transformAppScriptResponse(cachedCurrent, { preferCache: true });
+      await cacheResponse(request, transformed.clone());
+      return transformed;
+    }
+  }
+
   let networkResponse = null;
   try {
     networkResponse = await transformAppScriptResponse(
@@ -374,13 +388,9 @@ async function cacheFirstAppScript(request) {
     }
   } catch (error) {}
 
-  const exact = await caches.match(request);
-  if (exact) return exact;
-  const cached = requestTargetsCurrentVersion(request)
-    ? await caches.match(request, { ignoreSearch: true })
-    : null;
-  if (cached) {
-    const transformed = await transformAppScriptResponse(cached, { preferCache: true });
+  const offlineFallback = await caches.match(request, { ignoreSearch: true });
+  if (offlineFallback) {
+    const transformed = await transformAppScriptResponse(offlineFallback, { preferCache: true });
     await cacheResponse(request, transformed.clone());
     return transformed;
   }
