@@ -76,59 +76,43 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260721-mobile-salvar-cores-tempo-v105",
   "20260721-dashboard-central-metas-v106",
   "20260721-browser-cache-atualizacao-v107",
-  "20260721-plano-dia-sincronizacao-v108"
+  "20260721-plano-dia-sincronizacao-v108",
+  "20260721-carregamento-rapido-v109"
 ];
-const CURRENT_VERSION = "20260721-carregamento-rapido-v109";
+const CURRENT_VERSION = "20260721-inicializacao-ultrarrapida-v110";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 // Cache anterior reconhecido para limpeza: startup-v25.
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v26`;
 const FILES_TO_CACHE = [
-  "./",
-  "index.html",
-  "style.css",
-  "aldus-premium-theme.css",
-  "aldus-premium-refinement-v47.css",
-  "aldus-interface-v51.css",
-  "aldus-responsive-v52.css",
-  "aldus-contrast-v53.css",
-  "aldus-visual-v58.css",
-  "aldus-planning-v59.css",
-  "aldus-planning-history-v60.css",
-  "aldus-calendar-v61.css",
-  "aldus-calendar-v62.css",
-  "aldus-export-brand-v63.css",
-  "aldus-export-brand-v64.css",
-  "aldus-daily-goals-v66.css",
-  "aldus-daily-time-v67.css",
-  "aldus-contrast-system-v68.css",
-  "aldus-component-contrast-v69.css",
-  "aldus-advisor-layout-v70.css",
-  "aldus-backup-contrast-v71.css",
-  "aldus-navigation-scroll-v73.css",
-  "aldus-goal-integrity-v75.css",
-  "aldus-completed-visibility-v76.css",
-  "script.js",
-  "qconcursos-crosswalk.js",
-  "question-history-pie.js",
-  "header-brand-fix.js",
-  "side-nav-collapse-v91.js",
-  "question-accuracy-spectrum.js",
-  "timer-material-link-fix.js",
-  "sync-integral-core.js",
-  "sync-integral-deletions.js",
-  "sync-integral-state.js",
-  "sync-integral-cloud.js",
-  "sync-integral-time-protection.js",
-  "analytics-engine.js",
-  "study-advisor.js",
-  "advisor-navigation-engine.js",
-  "storage-indexeddb.js",
+  `./?v=${CURRENT_VERSION}`,
+  `index.html?v=${CURRENT_VERSION}`,
+  `app.bundle.css?v=${CURRENT_VERSION}`,
+  `app.bundle.js?v=${CURRENT_VERSION}`,
   "manifest.json",
   "icons/aldus-visual.png",
   "icons/aldus-brand-mark-v93.png",
   "icons/logo-mark.svg",
   "icons/icon.svg",
   "icons/icon-maskable.svg"
+];
+
+// Fontes mantidas separadamente no repositório para testes, manutenção e
+// compatibilidade com páginas antigas. A versão atual as entrega nos bundles.
+const LEGACY_SOURCE_FILES = [
+  "style.css", "aldus-premium-theme.css", "aldus-premium-refinement-v47.css",
+  "aldus-interface-v51.css", "aldus-responsive-v52.css", "aldus-contrast-v53.css",
+  "aldus-visual-v58.css", "aldus-planning-v59.css", "aldus-planning-history-v60.css",
+  "aldus-calendar-v61.css", "aldus-calendar-v62.css", "aldus-export-brand-v63.css",
+  "aldus-export-brand-v64.css", "aldus-daily-goals-v66.css", "aldus-daily-time-v67.css",
+  "aldus-contrast-system-v68.css", "aldus-component-contrast-v69.css",
+  "aldus-advisor-layout-v70.css", "aldus-backup-contrast-v71.css",
+  "aldus-navigation-scroll-v73.css", "aldus-goal-integrity-v75.css",
+  "aldus-completed-visibility-v76.css", "script.js", "qconcursos-crosswalk.js",
+  "question-history-pie.js", "header-brand-fix.js", "side-nav-collapse-v91.js",
+  "question-accuracy-spectrum.js", "timer-material-link-fix.js", "sync-integral-core.js",
+  "sync-integral-deletions.js", "sync-integral-state.js", "sync-integral-cloud.js",
+  "sync-integral-time-protection.js", "analytics-engine.js", "study-advisor.js",
+  "advisor-navigation-engine.js", "storage-indexeddb.js"
 ];
 
 self.addEventListener("install", (event) => {
@@ -183,6 +167,7 @@ function patchHtmlSource(source) {
       '<a class="side-nav-brand-link" href="#dashboard" data-view-link="dashboard" aria-label="Ir para o início">$1</a>'
     );
   }
+  if (patched.includes('id="aldusAppBundleScript"')) return patched;
   [
     "question-accuracy-spectrum.js",
     "timer-material-link-fix.js",
@@ -337,14 +322,14 @@ async function fetchFreshNavigation(request) {
 }
 
 async function cacheFirstNavigation(request, networkPromise) {
+  const cached = await caches.match(request, { ignoreSearch: true }) || await caches.match("index.html", { ignoreSearch: true });
+  if (cached) return patchTextResponse(cached, patchHtmlSource, "text/html; charset=utf-8");
+
   let networkResponse = null;
   try {
     networkResponse = await networkPromise;
     if (networkResponse?.ok) return networkResponse;
   } catch (error) {}
-
-  const cached = await caches.match(request, { ignoreSearch: true }) || await caches.match("index.html", { ignoreSearch: true });
-  if (cached) return patchTextResponse(cached, patchHtmlSource, "text/html; charset=utf-8");
   return networkResponse || new Response("Aplicativo indisponível temporariamente.", { status: 503, headers: { "content-type": "text/plain; charset=utf-8" } });
 }
 

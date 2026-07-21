@@ -7,6 +7,7 @@ const html = fs.readFileSync("index.html", "utf8");
 const css = fs.readFileSync("aldus-navigation-scroll-v73.css", "utf8");
 const worker = fs.readFileSync("service-worker.js", "utf8");
 const header = fs.readFileSync("header-brand-fix.js", "utf8");
+const bundleCss = fs.readFileSync("app.bundle.css", "utf8");
 
 test("v73 mantém os títulos amarelos na ordem natural durante a rolagem", () => {
   assert.equal(version, "20260719-integracao-metas-v74");
@@ -18,9 +19,10 @@ test("v73 mantém os títulos amarelos na ordem natural durante a rolagem", () =
 });
 
 test("correção v73 é a última camada visual e integra o cache da publicação", () => {
-  const navigationPosition = html.indexOf("aldus-navigation-scroll-v73.css");
-  assert.ok(navigationPosition > html.indexOf("aldus-backup-contrast-v71.css"));
-  assert.match(html, new RegExp(`aldus-navigation-scroll-v73\\.css\\?v=${version}`));
+  const navigationPosition = bundleCss.indexOf("Aldus source: aldus-navigation-scroll-v73.css");
+  assert.ok(navigationPosition > bundleCss.indexOf("Aldus source: aldus-backup-contrast-v71.css"));
+  assert.match(html, new RegExp(`app\\.bundle\\.css\\?v=${version}`));
+  assert.ok(worker.includes('`app.bundle.css?v=${CURRENT_VERSION}`'));
   assert.match(worker, /"aldus-navigation-scroll-v73\.css"/);
   assert.match(worker, /id="aldusNavigationScrollV73"/);
   assert.match(worker, /"20260719-inicializacao-rapida-v72"/);

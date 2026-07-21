@@ -28,11 +28,12 @@ test("versão diferente ignora cache antigo e só o usa como contingência offli
   assert.match(appScriptCache, /const targetsCurrentVersion = requestTargetsCurrentVersion\(request\)/);
 });
 
-test("V109 preserva atualização segura e paridade da publicação", () => {
-  const version = "20260721-carregamento-rapido-v109";
+test("V109 permanece reconhecida e a publicação atual preserva paridade", () => {
+  const version = JSON.parse(read("package.json")).version;
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(read("script.js"), new RegExp(`APP_VERSION = "${version}"`));
   assert.match(worker, new RegExp(`CURRENT_VERSION = "${version}"`));
+  assert.match(worker, /"20260721-carregamento-rapido-v109"/);
   assert.match(worker, /"20260721-plano-dia-sincronizacao-v108"/);
   for (const file of ["index.html", "script.js", "service-worker.js"]) {
     assert.equal(read(file), read(`docs/${file}`), file);

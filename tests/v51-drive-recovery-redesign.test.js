@@ -9,6 +9,7 @@ const script = fs.readFileSync("script.js", "utf8");
 const worker = fs.readFileSync("service-worker.js", "utf8");
 const recovery = fs.readFileSync("sync-integral-time-protection.js", "utf8");
 const interfaceCss = fs.readFileSync("aldus-interface-v51.css", "utf8");
+const bundleCss = fs.readFileSync("app.bundle.css", "utf8");
 
 test("recuperação do Drive é manual e examina arquivo atual e histórico de revisões", () => {
   assert.match(recovery, /data-time-recovery-drive-scan/);
@@ -38,8 +39,9 @@ test("recuperação continua protegida por confirmação, backup e ausência de 
 });
 
 test("nova interface cobre estrutura, cartões, formulários, tabelas e responsividade", () => {
-  assert.ok(html.includes(`aldus-interface-v51.css?v=${version}`));
-  assert.ok(html.indexOf("aldus-interface-v51.css") < html.indexOf("script.js"));
+  assert.ok(html.includes(`app.bundle.css?v=${version}`));
+  assert.ok(html.indexOf("app.bundle.css") < html.indexOf("app.bundle.js"));
+  assert.ok(bundleCss.includes("/* Aldus source: aldus-interface-v51.css */"));
   assert.match(script, /document\.documentElement\.dataset\.activeView = target/);
   assert.match(interfaceCss, /:not\(\[data-active-view="dashboard"\]\) \.hero-content/);
   assert.match(interfaceCss, /\.app-layout\s*\{[\s\S]*grid-template-columns: 218px minmax\(0, 1fr\)/);
@@ -49,6 +51,7 @@ test("nova interface cobre estrutura, cartões, formulários, tabelas e responsi
   assert.match(interfaceCss, /:is\(input, select, textarea\)/);
   assert.match(interfaceCss, /@media \(max-width: 620px\)/);
   assert.match(interfaceCss, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.ok(worker.includes('`app.bundle.css?v=${CURRENT_VERSION}`'));
   assert.match(worker, /"aldus-interface-v51\.css"/);
 });
 

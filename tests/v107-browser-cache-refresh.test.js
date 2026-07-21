@@ -7,10 +7,10 @@ const root = path.resolve(__dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
 const serviceWorker = read("service-worker.js");
 
-test("navegação consulta a rede antes do cache", () => {
+test("navegação abre o cache antes de aguardar a atualização da rede", () => {
   const navigation = serviceWorker.match(/async function cacheFirstNavigation[\s\S]*?\n\}/)?.[0] || "";
 
-  assert.ok(navigation.indexOf("await networkPromise") < navigation.indexOf("caches.match(request"));
+  assert.ok(navigation.indexOf("caches.match(request") < navigation.indexOf("await networkPromise"));
   assert.match(navigation, /Aplicativo indisponível temporariamente/);
 });
 

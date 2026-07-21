@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260721-carregamento-rapido-v109";
+const APP_VERSION = "20260721-inicializacao-ultrarrapida-v110";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -2002,6 +2002,32 @@ function renderSyncStatus(message = "") {
 let googleDriveAccessToken = "";
 let googleDriveTokenExpiresAt = 0;
 let googleDriveTokenClient = null;
+let googleIdentityServicesPromise = null;
+
+function loadGoogleIdentityServices() {
+  if (window.google?.accounts?.oauth2) return Promise.resolve(true);
+  if (googleIdentityServicesPromise) return googleIdentityServicesPromise;
+  googleIdentityServicesPromise = new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[data-google-identity-services]');
+    const loader = existing || document.createElement("script");
+    const finish = () => window.google?.accounts?.oauth2
+      ? resolve(true)
+      : reject(new Error("Google Identity Services não carregou. Verifique a conexão."));
+    loader.addEventListener("load", finish, { once: true });
+    loader.addEventListener("error", () => reject(new Error("Google Identity Services não carregou. Verifique a conexão.")), { once: true });
+    if (!existing) {
+      loader.src = "https://accounts.google.com/gsi/client";
+      loader.async = true;
+      loader.defer = true;
+      loader.dataset.googleIdentityServices = "lazy";
+      document.head.appendChild(loader);
+    }
+  }).catch((error) => {
+    googleIdentityServicesPromise = null;
+    throw error;
+  });
+  return googleIdentityServicesPromise;
+}
 
 function clearGoogleDriveAccessToken() { googleDriveAccessToken = ""; googleDriveTokenExpiresAt = 0; }
 function hasValidGoogleDriveAccessToken() { return Boolean(googleDriveAccessToken && Date.now() < googleDriveTokenExpiresAt - 60000); }
@@ -2015,6 +2041,7 @@ function syncErrorMessage(error, fallback) {
 async function getAccessToken({ prompt = "" } = {}) {
   if (hasValidGoogleDriveAccessToken()) return googleDriveAccessToken;
   if (!isGoogleClientConfigured()) throw new Error(googleClientConfigMessage());
+  await loadGoogleIdentityServices();
   if (!window.google?.accounts?.oauth2) throw new Error("Google Identity Services não carregou. Verifique a conexão.");
   return new Promise((resolve, reject) => {
     googleDriveTokenClient = googleDriveTokenClient || google.accounts.oauth2.initTokenClient({

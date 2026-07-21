@@ -8,17 +8,23 @@ const script = fs.readFileSync("script.js", "utf8");
 const worker = fs.readFileSync("service-worker.js", "utf8");
 const header = fs.readFileSync("header-brand-fix.js", "utf8");
 
-test("v72 antecipa o download dos módulos críticos sem executá-los fora de ordem", () => {
-  assert.equal(version, "20260719-integracao-metas-v74");
+test("a publicação atual antecipa um único bundle sem alterar a ordem dos módulos", () => {
   const files = [
-    "script.js",
     "sync-integral-core.js",
     "sync-integral-deletions.js",
     "sync-integral-state.js",
     "sync-integral-cloud.js",
-    "sync-integral-time-protection.js"
+    "sync-integral-time-protection.js",
+    "script.js"
   ];
-  files.forEach((file) => assert.match(html, new RegExp(`<link rel="preload" as="script" href="${file.replaceAll(".", "\\.")}\\?v=${version}"`)));
+  assert.match(html, new RegExp(`<link rel="preload" as="script" href="app\\.bundle\\.js\\?v=${version}"`));
+  const bundle = fs.readFileSync("app.bundle.js", "utf8");
+  let previousIndex = -1;
+  files.forEach((file) => {
+    const index = bundle.indexOf(`Aldus source: ${file}`);
+    assert.ok(index > previousIndex, `${file} deve permanecer na ordem de execução`);
+    previousIndex = index;
+  });
   assert.match(script, /script\.async = false/);
   assert.match(script, /INTEGRAL_SYNC_ENHANCEMENT_FILES\.map\(loadIntegralSyncEnhancementFile\)/);
   assert.match(script, /await Promise\.all\(pendingFiles\)/);

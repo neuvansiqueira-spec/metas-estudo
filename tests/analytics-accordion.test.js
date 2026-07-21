@@ -97,8 +97,8 @@ test('exportar gráfico escolhe somente um formato', () => {
 
 test('versão, cache, raiz e docs sincronizados', () => {
   assert.match(fs.readFileSync('package.json','utf8'), new RegExp(version));
-  assert.match(html, new RegExp(`style\\.css\\?v=${version}`));
-  assert.match(html, new RegExp(`script\\.js\\?v=${version}`));
+  assert.match(html, new RegExp(`app\\.bundle\\.css\\?v=${version}`));
+  assert.match(html, new RegExp(`app\\.bundle\\.js\\?v=${version}`));
   assert.match(sw, new RegExp(`const CURRENT_VERSION = "${version}"`));
   assert.match(sw, /const CACHE_NAME = `metas-estudo-\$\{CURRENT_VERSION\}`/);
   for (const f of ['script.js','style.css','analytics-engine.js','index.html','service-worker.js']) assert.equal(fs.readFileSync(f,'utf8'), fs.readFileSync('docs/'+f,'utf8'));

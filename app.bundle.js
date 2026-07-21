@@ -1,3 +1,4615 @@
+/* Aldus source: storage-indexeddb.js */
+const STUDY_DB_NAME = "metas-estudo-db";
+const STUDY_DB_VERSION = 1;
+const STUDY_DB_APP_STATE_STORE = "appState";
+const STUDY_DB_METADATA_STORE = "storageMetadata";
+const STUDY_DB_CURRENT_ID = "current";
+const STUDY_DB_MIGRATION_STATUS_ID = "migration-status";
+const STUDY_DB_SCHEMA_VERSION = 1;
+
+function indexedDBAvailable() {
+  return typeof indexedDB !== "undefined" && typeof indexedDB.open === "function";
+}
+
+function stableSerialize(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(stableSerialize).join(",")}]`;
+  return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableSerialize(value[key])}`).join(",")}}`;
+}
+
+function checksumForState(state) {
+  const text = stableSerialize(state || {});
+  let hash = 2166136261;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `fnv1a-${(hash >>> 0).toString(16).padStart(8, "0")}-${text.length}`;
+}
+
+function estimateSerializedStateSize(state) {
+  const text = JSON.stringify(state || {});
+  if (typeof Blob !== "undefined") return new Blob([text]).size;
+  return text.length;
+}
+
+function openStudyDatabase() {
+  return new Promise((resolve, reject) => {
+    if (!indexedDBAvailable()) {
+      reject(new Error("IndexedDB indisponível neste navegador."));
+      return;
+    }
+    const request = indexedDB.open(STUDY_DB_NAME, STUDY_DB_VERSION);
+    request.onupgradeneeded = () => {
+      const database = request.result;
+      if (!database.objectStoreNames.contains(STUDY_DB_APP_STATE_STORE)) database.createObjectStore(STUDY_DB_APP_STATE_STORE, { keyPath: "id" });
+      if (!database.objectStoreNames.contains(STUDY_DB_METADATA_STORE)) database.createObjectStore(STUDY_DB_METADATA_STORE, { keyPath: "id" });
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error("Falha ao abrir IndexedDB."));
+    request.onblocked = () => reject(new Error("A abertura do IndexedDB foi bloqueada por outra aba."));
+  });
+}
+
+function runStoreOperation(storeName, mode, operation) {
+  return openStudyDatabase().then((database) => new Promise((resolve, reject) => {
+    const transaction = database.transaction(storeName, mode);
+    const store = transaction.objectStore(storeName);
+    let request;
+    transaction.oncomplete = () => { database.close(); resolve(request?.result); };
+    transaction.onerror = () => { database.close(); reject(transaction.error || request?.error || new Error("Falha na transação IndexedDB.")); };
+    transaction.onabort = () => { database.close(); reject(transaction.error || request?.error || new Error("Transação IndexedDB abortada.")); };
+    request = operation(store);
+  }));
+}
+
+function indexedDBStateHasUserData(state = {}) {
+  return ["subjects", "studies", "syllabusItems", "dailyGoals", "questionLogs", "materials", "questionBank", "simulados", "smartReviews", "factoryAgenda", "factoryItems"].some((key) => Array.isArray(state?.[key]) && state[key].length);
+}
+
+async function saveStateToIndexedDB(state) {
+  const data = JSON.parse(JSON.stringify(state || {}));
+  const existing = await loadStateFromIndexedDB().catch(() => null);
+  if (validateIndexedDBState(existing) && indexedDBStateHasUserData(existing.data) && !indexedDBStateHasUserData(data)) throw new Error("Proteção ativada: estado vazio não substitui IndexedDB válido.");
+  const record = { id: STUDY_DB_CURRENT_ID, schemaVersion: STUDY_DB_SCHEMA_VERSION, savedAt: new Date().toISOString(), checksum: checksumForState(data), data };
+  return runStoreOperation(STUDY_DB_APP_STATE_STORE, "readwrite", (store) => store.put(record)).then(() => record);
+}
+
+function loadStateFromIndexedDB() {
+  return runStoreOperation(STUDY_DB_APP_STATE_STORE, "readonly", (store) => store.get(STUDY_DB_CURRENT_ID)).then((record) => record || null);
+}
+
+function getIndexedDBMetadata() {
+  return runStoreOperation(STUDY_DB_METADATA_STORE, "readonly", (store) => store.get(STUDY_DB_MIGRATION_STATUS_ID)).then((record) => record || null);
+}
+
+function saveIndexedDBMetadata(metadata) {
+  return runStoreOperation(STUDY_DB_METADATA_STORE, "readwrite", (store) => store.put({ id: STUDY_DB_MIGRATION_STATUS_ID, ...metadata }));
+}
+
+function validateIndexedDBState(record) {
+  if (!record || record.id !== STUDY_DB_CURRENT_ID || record.schemaVersion !== STUDY_DB_SCHEMA_VERSION || !record.data || typeof record.data !== "object" || Array.isArray(record.data)) return false;
+  const arrayKeys = ["subjects", "studies", "syllabusItems", "dailyGoals", "questionLogs", "smartReviews", "simulados", "materials", "questionBank", "questionBankSessions", "questionErrorNotebook"];
+  if (!arrayKeys.every((key) => record.data[key] === undefined || Array.isArray(record.data[key]))) return false;
+  return record.checksum === checksumForState(record.data);
+}
+
+function statesMatchIndexedDBRecord(state, record) {
+  return validateIndexedDBState(record) && record.checksum === checksumForState(state || {});
+}
+
+async function migrateLocalStorageStateToIndexedDB(state) {
+  const existing = await loadStateFromIndexedDB().catch(() => null);
+  if (statesMatchIndexedDBRecord(state, existing)) return { completed: true, reused: true, record: existing };
+  const saved = await saveStateToIndexedDB(state);
+  const reloaded = await loadStateFromIndexedDB();
+  if (!statesMatchIndexedDBRecord(state, reloaded)) throw new Error("A validação da cópia no IndexedDB falhou.");
+  const metadata = { id: STUDY_DB_MIGRATION_STATUS_ID, completed: true, migratedAt: new Date().toISOString(), source: "localStorage", verified: true, checksum: saved.checksum, savedAt: saved.savedAt };
+  await saveIndexedDBMetadata(metadata);
+  return { completed: true, reused: false, record: reloaded, metadata };
+}
+
+if (typeof window !== "undefined") Object.assign(window, { openStudyDatabase, saveStateToIndexedDB, loadStateFromIndexedDB, getIndexedDBMetadata, validateIndexedDBState, estimateSerializedStateSize, migrateLocalStorageStateToIndexedDB, statesMatchIndexedDBRecord, indexedDBStateHasUserData });
+if (typeof module !== "undefined") module.exports = { openStudyDatabase, saveStateToIndexedDB, loadStateFromIndexedDB, getIndexedDBMetadata, validateIndexedDBState, estimateSerializedStateSize, migrateLocalStorageStateToIndexedDB, checksumForState, statesMatchIndexedDBRecord, indexedDBStateHasUserData };
+
+/* Aldus source: analytics-engine.js */
+(function (root, factory) {
+  if (typeof module === "object" && module.exports) module.exports = factory();
+  else root.AnalyticsEngine = factory();
+})(typeof globalThis !== "undefined" ? globalThis : this, function () {
+  "use strict";
+  const DAY = 86400000;
+  const DEFAULT_OPTIONS = { minStrongQuestions: 20, preliminaryQuestions: 20, confirmedQuestions: 50, neglectDays: 14, today: null };
+  const clone = (v) => JSON.parse(JSON.stringify(v || {}));
+  const num = (v) => Number.isFinite(Number(v)) ? Number(v) : 0;
+  const pct = (a, b) => b ? Number((a / b * 100).toFixed(1)) : 0;
+  const iso = (d) => new Date(d).toISOString().slice(0, 10);
+  const parse = (d) => new Date(`${String(d).slice(0, 10)}T00:00:00Z`);
+  const daysBetween = (a, b) => Math.max(0, Math.round((parse(b) - parse(a)) / DAY) + 1);
+  const addDays = (date, days) => iso(new Date(parse(date).getTime() + days * DAY));
+  const inPeriod = (date, period) => date && String(date).slice(0, 10) >= period.start && String(date).slice(0, 10) <= period.end;
+  const key = (v) => String(v || "").trim().toLowerCase();
+  const done = (v) => ["concluída", "concluido", "concluído", "dominado", "estudado", "revisado"].includes(key(v));
+  const ignored = (v) => ["ignorado", "ignorada"].includes(key(v));
+  function getAnalyticsPeriod(selection = "30d", custom = {}, options = {}) {
+    const today = options.today || iso(new Date());
+    if (selection === "custom") {
+      const start = custom.start || today, end = custom.end || start;
+      return { type: "custom", start: start <= end ? start : end, end: end >= start ? end : start, days: daysBetween(start <= end ? start : end, end >= start ? end : start) };
+    }
+    if (selection === "month") return { type: "month", start: today.slice(0, 8) + "01", end: today, days: daysBetween(today.slice(0, 8) + "01", today) };
+    if (selection === "all") {
+      const s = normalizeState(options.state || {}), dates = [];
+      s.studies.forEach(x => dates.push(validDate(x.date))); s.questionLogs.forEach(x => dates.push(validDate(x.date))); s.dailyGoals.forEach(x => dates.push(validDate(x.date || x.data))); s.simulados.forEach(x => dates.push(validDate(x.date || x.createdAt)));
+      const start = dates.filter(Boolean).sort()[0] || today;
+      return { type: "all", start, end: today, days: daysBetween(start, today) };
+    }
+    const days = selection === "7d" ? 7 : selection === "90d" ? 90 : 30;
+    return { type: selection, start: addDays(today, -(days - 1)), end: today, days };
+  }
+  function previousPeriod(period) { return { type: "previous", start: addDays(period.start, -period.days), end: addDays(period.start, -1), days: period.days }; }
+  function normalizeState(state = {}) { return { subjects: state.subjects || [], studies: state.studies || [], questionLogs: state.questionLogs || [], dailyGoals: state.dailyGoals || [], syllabusItems: state.syllabusItems || [], smartReviews: state.smartReviews || [], simulados: state.simulados || [] }; }
+  function filterDataByPeriod(state, period) { const s = normalizeState(state); return { ...s, studies: s.studies.filter(x => inPeriod(x.date, period)), questionLogs: s.questionLogs.filter(x => inPeriod(x.date, period)), dailyGoals: s.dailyGoals.filter(x => inPeriod(x.date || x.data, period)), smartReviews: s.smartReviews.filter(x => inPeriod(x.date || x.doneAt || x.updatedAt, period)), simulados: s.simulados.filter(x => inPeriod(x.date, period)) }; }
+  function studyDiscipline(study, state) { return study.discipline || state.subjects.find(s => s.id === study.subjectId)?.name || "Sem disciplina"; }
+  function timerSessionKey(study={}) { return String(study.timerSessionId || study.sessionId || study.id || ""); }
+  function linkedTimerStudyMinutes(goal, studies=[]) { const seen=new Set(); return studies.reduce((sum,study)=>{ if(study.goalId!==goal.id || study.origin!=="timer" || study.timerKind==="questions" || study.updatesGoal===false) return sum; const sessionKey=timerSessionKey(study); if(sessionKey&&seen.has(sessionKey)) return sum; if(sessionKey) seen.add(sessionKey); return sum+num(study.minutes); },0); }
+  function unloggedGoalStudyMinutes(goal, studies=[]) { const studyMinutes=goal.studyActualMinutes!==undefined&&goal.studyActualMinutes!==null ? num(goal.studyActualMinutes) : Math.max(0,num(goal.actualMinutes)-num(goal.questionActualMinutes)); return Math.max(0,studyMinutes-linkedTimerStudyMinutes(goal,studies)); }
+  function calculateStudySummary(state, period) { const s=normalizeState(state), f=filterDataByPeriod(s, period), studies=f.studies.filter(study=>study.feedAnalytics!==false), days = new Set(studies.filter(study=>num(study.minutes)>0).map(study=>study.date)); const minutes = studies.reduce((a,study)=>a+num(study.minutes),0) + f.dailyGoals.reduce((a,goal)=>a+unloggedGoalStudyMinutes(goal,s.studies),0); return { minutes, hours: Number((minutes/60).toFixed(2)), sessions: studies.length, studyDays: days.size, dailyAverageHours: Number((minutes/60/Math.max(1, period.days)).toFixed(2)), reviews: f.smartReviews.filter(r=>done(r.status)||r.status==="revisado").length }; }
+  function firstValid(obj, names) { for (const n of names) if (obj && Object.prototype.hasOwnProperty.call(obj,n) && Number.isFinite(Number(obj[n]))) return Number(obj[n]); return null; }
+  function firstText(obj, names) { for (const n of names) if (obj && obj[n] !== undefined && obj[n] !== null && String(obj[n]).trim()) return String(obj[n]).trim(); return ""; }
+  function mockRowsArray(m) { return [m?.disciplineResults, m?.disciplines, m?.resultadosPorDisciplina].find(Array.isArray) || []; }
+  function hasMockQuestionDetails(obj) { return firstValid(obj,["correct","acertos"]) !== null || firstValid(obj,["wrong","erros"]) !== null || firstValid(obj,["blank","brancos"]) !== null || firstValid(obj,["total","totalQuestions","questoes"]) !== null; }
+  function buildMockQuestionRow(m, source, discipline, detailed) { const correct=firstValid(source,["correct","acertos"]), wrong=firstValid(source,["wrong","erros"]), blank=firstValid(source,["blank","brancos"]), rawTotal=firstValid(source,["total","totalQuestions","questoes"]); const c=correct??0,w=wrong??0,b=blank??0, parts=c+w+b; const quality=[]; let total=rawTotal; if(total===null && parts>0){ total=parts; quality.push("simulado sem total; total calculado por acertos + erros + brancos"); } if(rawTotal!==null && parts>0 && rawTotal!==parts) quality.push("total incompatível com acertos, erros e brancos"); if(!firstText(m,["board","banca"])) quality.push("simulado sem banca"); const sufficient=total!==null && total>0; if(!sufficient) quality.push(hasMockQuestionDetails(source)?"simulado sem total":"simulado apenas com nota líquida ou sem detalhamento suficiente"); if(!detailed) quality.push("simulado sem detalhamento por disciplina"); return { source:"simulado", sourceId:m.id||m.sourceId||m.mockExamId||"", mockExamId:m.mockExamId||m.id||"", date:firstText(m,["date","data","createdAt"]), title:firstText(m,["title","name","nome"])||"Simulado", discipline:discipline||"Simulado — sem detalhamento por disciplina", total:sufficient?total:0, correct:sufficient?c:0, wrong:sufficient?w:0, blank:sufficient?b:0, board:firstText(source,["board","banca"])||firstText(m,["board","banca"]), detailed:!!detailed, dataQuality:quality }; }
+  function normalizeMockExamQuestionRows(state = {}, period) { const s=normalizeState(state); return s.simulados.filter(m=>!period||inPeriod(firstText(m,["date","data","createdAt"]),period)).flatMap(m=>{ const details=mockRowsArray(m).filter(hasMockQuestionDetails); if(details.length) return details.map(d=>buildMockQuestionRow(m,d,firstText(d,["discipline","disciplina","name","nome"]),true)); return [buildMockQuestionRow(m,m,"Simulado — sem detalhamento por disciplina",false)]; }); }
+  function isDuplicateQuestionSource(mockRow, rows = []) { const ids=[mockRow.sourceId,mockRow.mockExamId].filter(Boolean).map(String); if(mockRow.alreadyInQuestionBank) return true; return rows.some(r=>[r.sourceId,r.mockExamId,r.linkedSimuladoId,r.originId,r.questionLogId].filter(Boolean).map(String).some(id=>ids.includes(id))); }
+  function sourceSum(rows) { const sum=rows.reduce((a,r)=>(a.total+=num(r.total),a.correct+=num(r.correct),a.wrong+=num(r.wrong),a.blank+=num(r.blank),a),{total:0,correct:0,wrong:0,blank:0}); sum.accuracyPct=pct(sum.correct,sum.correct+sum.wrong); sum.cebraspeNet=rows.filter(r=>!r.board||/cebraspe|cespe/i.test(r.board)).reduce((a,r)=>a+num(r.correct)-num(r.wrong),0); return sum; }
+  function calculateQuestionSummary(state, period) { const f = filterDataByPeriod(state, period); const studyRows = f.studies.map(s=>({source:"studySession",sourceId:s.id||"",total:num(s.questions)||num(s.correct)+num(s.wrong)+num(s.blank), correct:num(s.correct), wrong:num(s.wrong), blank:num(s.blank), discipline:studyDiscipline(s,state), date:s.date, board:s.board, linkedSimuladoId:s.linkedSimuladoId, originId:s.originId})); const logRows = f.questionLogs.map(q=>({source:"questionLog",sourceId:q.id||"",questionLogId:q.id||"",total:num(q.total)||num(q.questions)||num(q.correct)+num(q.wrong)+num(q.blank), correct:num(q.correct), wrong:num(q.wrong), blank:num(q.blank), discipline:q.discipline||"Sem disciplina", date:q.date, board:q.board, linkedSimuladoId:q.linkedSimuladoId, mockExamId:q.mockExamId, originId:q.originId})); const mockAll=normalizeMockExamQuestionRows(state,period); const nonMock=[...studyRows,...logRows]; const excludedMockExams=[]; const mockRows=mockAll.filter(r=>{ const m=f.simulados.find(x=>String(x.id||x.mockExamId||"")===String(r.mockExamId||r.sourceId||""))||{}; const marked=!!(m.alreadyInQuestionBank||m.questionsAlreadyInBank||m.jaLancadoBancoQuestoes); if(marked||isDuplicateQuestionSource(r,nonMock)){ excludedMockExams.push({...r, reason: marked?"simulado marcado como já lançado no Banco de Questões":"possível duplicidade explicitamente vinculada"}); return false; } return r.total>0; }); const rows=[...nonMock,...mockRows]; const sum=sourceSum(rows); return {...sum, bySource:{studySessions:sourceSum(studyRows), questionLogs:sourceSum(logRows), mockExams:sourceSum(mockRows)}, consolidatedRows:rows, excludedMockExams, dataQuality:[...mockAll.flatMap(r=>r.dataQuality||[]),...excludedMockExams.map(x=>x.reason)], rows}; }
+  function calculateGoalStats(state, period) { const goals = filterDataByPeriod(state, period).dailyGoals; const completed = goals.filter(g=>done(g.status)).length; return { planned: goals.length, completed, completionPct: pct(completed, goals.length), pending: goals.length - completed }; }
+  function calculateCebraspeStats(state, period) { const q = calculateQuestionSummary(state, period); const byDiscipline = {}; q.rows.filter(r=>!r.board || /cebraspe|cespe/i.test(r.board)).forEach(r=>{ const d=r.discipline||"Sem disciplina"; byDiscipline[d] ||= {discipline:d, net:0, correct:0, wrong:0, blank:0, total:0}; byDiscipline[d].net += r.correct-r.wrong; byDiscipline[d].correct+=r.correct; byDiscipline[d].wrong+=r.wrong; byDiscipline[d].blank+=r.blank; byDiscipline[d].total+=r.total; }); const weekly = {}; q.rows.forEach(r=>{ const w = addDays(r.date, -(parse(r.date).getUTCDay())); weekly[w]=(weekly[w]||0)+r.correct-r.wrong; }); const entries=Object.entries(weekly).map(([week,net])=>({week,net})); return { net: q.cebraspeNet, byDiscipline:Object.values(byDiscipline).sort((a,b)=>b.net-a.net), weeklyEvolution: entries, bestPeriod: entries.sort((a,b)=>b.net-a.net)[0]||null, worstPeriod: entries.sort((a,b)=>a.net-b.net)[0]||null, topAdders:Object.values(byDiscipline).filter(d=>d.net>0).sort((a,b)=>b.net-a.net).slice(0,5), topSubtractors:Object.values(byDiscipline).filter(d=>d.net<0).sort((a,b)=>a.net-b.net).slice(0,5) }; }
+  function calculateDisciplinePerformance(state, period, prev = previousPeriod(period), options = {}) { const opt={...DEFAULT_OPTIONS,...options}, s=normalizeState(state), q=calculateQuestionSummary(s, period), qp=calculateQuestionSummary(s, prev), study=filterDataByPeriod(s,period).studies, goals=filterDataByPeriod(s,period).dailyGoals; const map={}; function row(d){ map[d] ||= {discipline:d,hours:0,questions:0,correct:0,wrong:0,blank:0,net:0,goals:0,goalsDone:0,regularity:0,evolution:null,justification:""}; return map[d]; } study.forEach(x=>{ row(studyDiscipline(x,s)).hours += num(x.minutes)/60; }); q.rows.filter(x=>!(x.source==="simulado" && !x.detailed)).forEach(x=>{ const r=row(x.discipline); r.questions+=x.total; r.correct+=x.correct; r.wrong+=x.wrong; r.blank+=x.blank; r.net+=x.correct-x.wrong; }); goals.forEach(g=>{ const r=row(g.discipline||"Sem disciplina"); r.goals++; if(done(g.status)) r.goalsDone++; }); Object.values(map).forEach(r=>{ const prevRows=qp.rows.filter(x=>key(x.discipline)===key(r.discipline)); const prevAcc=pct(prevRows.reduce((a,x)=>a+x.correct,0), prevRows.reduce((a,x)=>a+x.correct+x.wrong,0)); r.accuracyPct=pct(r.correct,r.correct+r.wrong); r.goalPct=pct(r.goalsDone,r.goals); const prevTotal=prevRows.reduce((a,x)=>a+x.total,0); r.evolution = (prevRows.length && prevTotal>=20 && r.questions>=20) ? Number((r.accuracyPct-prevAcc).toFixed(1)) : null; r.isStrong = r.questions >= opt.minStrongQuestions && r.accuracyPct >= 70 && r.net > 0 && (r.goalPct >= 60 || !r.goals); r.isCritical = (r.questions >= 5 && (r.accuracyPct < 55 || r.net <= 0 || r.wrong > r.correct)) || (r.goals >= 2 && r.goalPct < 50) || (r.evolution !== null && r.evolution <= -10); r.justification = r.isStrong ? `${r.questions} questões, ${r.accuracyPct}% de acerto e líquido ${r.net}.` : r.isCritical ? `${r.accuracyPct}% de acerto, líquido ${r.net}${r.evolution!==null?` e evolução ${r.evolution} p.p.`:""}.` : r.questions < opt.minStrongQuestions ? `Amostra de ${r.questions} questões abaixo do mínimo de ${opt.minStrongQuestions}.` : "Indicadores intermediários."; r.hours=Number(r.hours.toFixed(2)); }); return Object.values(map).sort((a,b)=>b.questions-a.questions); }
+  function calculateSubjectNeglect(state, period, options={}) { const opt={...DEFAULT_OPTIONS,...options}, s=normalizeState(state), today=period.end; return s.syllabusItems.filter(i=>!done(i.status)&&!ignored(i.status)).map(i=>{ const studies=s.studies.filter(x=>(x.syllabusItemId&&x.syllabusItemId===i.id)||key(x.topic)===key(i.subject)); const qs=s.questionLogs.filter(x=>(x.syllabusItemId&&x.syllabusItemId===i.id)||(key(x.subject)===key(i.subject)&&key(x.discipline)===key(i.discipline))); const lastStudy=studies.map(x=>x.date).sort().at(-1)||""; const lastQuestion=qs.map(x=>x.date).sort().at(-1)||""; const pending=s.dailyGoals.filter(g=>(g.syllabusItemId===i.id||(key(g.subject)===key(i.subject)&&key(g.discipline)===key(i.discipline)))&&!done(g.status)).length; const days=lastStudy?daysBetween(lastStudy,today)-1:999; return {discipline:i.discipline||"Sem disciplina", subject:i.subject||i.topic||"Assunto", daysSinceLastStudy:days, lastQuestionDate:lastQuestion||"Sem registro", pendingGoals:pending, fact:!lastStudy?"Não há estudo registrado para este assunto.":`Último estudo registrado em ${lastStudy}.`, inference:(!lastStudy||pending||days>=opt.neglectDays)?"Isso pode indicar negligência.":"", reason: !lastStudy?"Fato: Não há estudo registrado para este assunto. Inferência: Isso pode indicar negligência.": days>=opt.neglectDays?`Fato: ${days} dias sem estudo. Inferência: Isso pode indicar negligência.`: pending?"Fato: há meta pendente. Inferência: Isso pode indicar negligência.":""}; }).filter(x=>x.daysSinceLastStudy>=opt.neglectDays||x.pendingGoals>0||x.lastQuestionDate==="Sem registro"); }
+  function calculateStudyEfficiency(state, period) { const study=calculateStudySummary(state,period), q=calculateQuestionSummary(state,period), hours=study.hours; return { warning:"Eficiência é uma medida complementar e não substitui a importância ou dificuldade da disciplina.", questionsPerHour: hours?pct(q.total,hours)/100:null, correctPerHour: hours?pct(q.correct,hours)/100:null, netPerHour: hours?Number((q.cebraspeNet/hours).toFixed(2)):null, averageMinutesPerQuestion:q.total?Number((study.minutes/q.total).toFixed(1)):null }; }
+  function calculateMockExamStats(state, period) { const mocks=filterDataByPeriod(state,period).simulados.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))); const nets=mocks.map(m=>num(m.net ?? m.score ?? m.result)).filter(Number.isFinite); const avg=nets.length?Number((nets.reduce((a,b)=>a+b,0)/nets.length).toFixed(1)):0; return { count:mocks.length, averageNet:avg, bestNet:nets.length?Math.max(...nets):0, worstNet:nets.length?Math.min(...nets):0, trend:nets.length<2?"dados insuficientes":nets.at(-1)>nets[0]?"aumento":nets.at(-1)<nets[0]?"queda":"estabilidade", goalDistance:mocks.at(-1)?num(mocks.at(-1).net)-num(mocks.at(-1).goal):null, byDiscipline:[] }; }
+  function calculateDisciplineSampleConfidence(questions) { const q=num(questions); if(q<20) return { sampleConfidence:"low", sampleLabel:"CONFIANÇA BAIXA", classificationStatus:"insufficient" }; if(q<50) return { sampleConfidence:"medium", sampleLabel:"CONFIANÇA MÉDIA", classificationStatus:"preliminary" }; return { sampleConfidence:"high", sampleLabel:"CONFIANÇA ALTA", classificationStatus:"confirmed" }; }
+  function validDate(v){ const d=String(v||'').slice(0,10); return /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(parse(d).getTime()) ? d : ""; }
+  function calculateBaseline(state={}) { const s=normalizeState(state); const dates=[]; s.studies.forEach(x=>dates.push(validDate(x.date))); s.questionLogs.forEach(x=>dates.push(validDate(x.date))); s.dailyGoals.forEach(x=>dates.push(validDate(x.date||x.data||x.createdAt))); s.smartReviews.forEach(x=>dates.push(validDate(x.date||x.doneAt||x.updatedAt||x.createdAt))); s.simulados.forEach(x=>dates.push(validDate(x.date||x.createdAt))); const firstRecordDate=dates.filter(Boolean).sort()[0]||""; if(!firstRecordDate) return { firstRecordDate:"", daysSinceFirstRecord:0, checkpoint7Days:"", checkpoint14Days:"", checkpoint30Days:"" }; const today=iso(new Date()); return { firstRecordDate, daysSinceFirstRecord:daysBetween(firstRecordDate,today), checkpoint7Days:addDays(firstRecordDate,6), checkpoint14Days:addDays(firstRecordDate,13), checkpoint30Days:addDays(firstRecordDate,29) }; }
+  function plural(n,s,p){return `${n} ${n===1?s:p}`;}
+  function calculateNextDataMilestones(state, period, analysis, components) { const milestones=[]; const q=components.questions.value; if(q<100) milestones.push(`Registrar mais ${plural(100-q,"questão","questões")} para atingir 100.`); else if(q<200) milestones.push(`Registrar mais ${plural(200-q,"questão","questões")} para atingir 200.`); const d=components.activeDays.value; if(d<10) milestones.push(`Completar mais ${plural(10-d,"dia ativo","dias ativos")} de estudo.`); const ses=components.sessions.value; if(ses<12) milestones.push(`Registrar mais ${plural(12-ses,"sessão de estudo","sessões de estudo")}.`); const low=(analysis?.disciplines||[]).filter(x=>x.questions>0&&x.questions<20).sort((a,b)=>b.questions-a.questions)[0]; if(low) milestones.push(`Alcançar 20 questões em ${low.discipline}.`); if(components.mockExams.value<1) milestones.push("Registrar o primeiro simulado quando possível."); return milestones.slice(0,5); }
+  function calculateDataMaturity(state={}, period, analysis={}) { const s=normalizeState(state); const filtered=period?filterDataByPeriod(s,period):s; const q=analysis.summary?.questionsTotal ?? calculateQuestionSummary(s,period||getAnalyticsPeriod()).total; const active=(analysis.summary?.studyDays ?? calculateStudySummary(s,period||getAnalyticsPeriod()).studyDays); const sessions=(analysis.summary?.sessions ?? calculateStudySummary(s,period||getAnalyticsPeriod()).sessions); const disc=(analysis.disciplines||[]); const relevantExisting=Math.max(1, Math.min(4, disc.filter(d=>d.questions>0).length)); const covered=disc.filter(d=>d.questions>=20).length; const mocks=analysis.summary?.mockExams ?? filtered.simulados.length; const components={ questions:{value:q,target:200,points:Number((Math.min(q/200,1)*35).toFixed(2))}, activeDays:{value:active,target:10,points:Number((Math.min(active/10,1)*25).toFixed(2))}, sessions:{value:sessions,target:12,points:Number((Math.min(sessions/12,1)*20).toFixed(2))}, disciplineCoverage:{value:covered,target:relevantExisting,points:Number((Math.min(covered/relevantExisting,1)*10).toFixed(2))}, mockExams:{value:mocks,target:2,points:Number((Math.min(mocks/2,1)*10).toFixed(2))} }; const score=Math.max(0,Math.min(100,Math.round(Object.values(components).reduce((a,c)=>a+c.points,0)))); const level=score<35?"low":score<70?"medium":"high"; const phase=score<35?"calibration":score<70?"developing":"reliable"; const label=phase==="calibration"?"FASE DE CALIBRAÇÃO":phase==="developing"?"BASE EM DESENVOLVIMENTO":"ANÁLISE CONSISTENTE"; const explanation=phase==="calibration"?"A base ainda está em formação; os números são reais, mas funcionam como sinais iniciais.":phase==="developing"?"A base já permite identificar sinais iniciais, mas ainda não sustenta conclusões definitivas sobre todas as disciplinas.":"A amostra atual permite uma leitura estratégica mais consistente, mantendo revisão contínua dos dados."; const baseline=calculateBaseline(s); const missingData=[]; if(q<200) missingData.push("mais questões registradas"); if(active<10) missingData.push("mais dias ativos"); if(sessions<12) missingData.push("mais sessões de estudo"); if(covered<relevantExisting) missingData.push("disciplinas com pelo menos 20 questões"); if(mocks<2) missingData.push("simulados para calibrar desempenho"); const out={score,level,phase,label,explanation,components,missingData,nextMilestones:[],baseline}; out.nextMilestones=calculateNextDataMilestones(s,period,analysis,components); return out; }
+  function applyConfidenceToAnalysis(analysis) { const maturity=analysis.dataMaturity; analysis.disciplines=(analysis.disciplines||[]).map(d=>({...d,...calculateDisciplineSampleConfidence(d.questions)})); analysis.strongDisciplines=analysis.disciplines.filter(d=>d.classificationStatus==="confirmed"&&d.isStrong); analysis.criticalDisciplines=analysis.disciplines.filter(d=>d.classificationStatus==="confirmed"&&d.isCritical); analysis.preliminarySignals=analysis.disciplines.filter(d=>d.questions>0&&d.classificationStatus!=="confirmed").map(d=>({discipline:d.discipline,questions:d.questions,accuracyPct:d.accuracyPct,net:d.net,sampleLabel:d.sampleLabel,message:`Sinal inicial: ${d.discipline} teve ${d.accuracyPct}% de acerto, mas a amostra contém apenas ${d.questions} questões.`})); if(maturity.phase==="calibration" && !analysis.dataQuality?.insufficient) analysis.overallSituation={classification:"BASE INICIAL EM FORMAÇÃO", explanation:"Os números abaixo são reais, mas a amostra ainda é pequena para uma avaliação estratégica definitiva."}; else if(maturity.phase==="developing") analysis.overallSituation={classification:"SINAIS INICIAIS", explanation:"Há sinais iniciais e possíveis tendências, com amostra ainda em desenvolvimento."}; return analysis; }
+  function compareAnalyticsPeriods(state, period) { const prev=previousPeriod(period), a={study:calculateStudySummary(state,period), q:calculateQuestionSummary(state,period), g:calculateGoalStats(state,period), m:calculateMockExamStats(state,period)}, b={study:calculateStudySummary(state,prev), q:calculateQuestionSummary(state,prev), g:calculateGoalStats(state,prev), m:calculateMockExamStats(state,prev)}; const cmp=(cur,old)=>({current:cur,previous:old,direction: old===0&&cur===0?"ausência de dados suficientes":old===0?"dados insuficientes para tendência confiável":Math.abs(cur-old)<0.01?"estabilidade":cur>old?"aumento":"queda", delta:Number((cur-old).toFixed(2)), percentChange:old?Number(((cur-old)/Math.abs(old)*100).toFixed(1)):null}); return { hours:cmp(a.study.hours,b.study.hours), questions:cmp(a.q.total,b.q.total), accuracyPct:cmp(a.q.accuracyPct,b.q.accuracyPct), cebraspeNet:cmp(a.q.cebraspeNet,b.q.cebraspeNet), goalsCompleted:cmp(a.g.completed,b.g.completed), studyDays:cmp(a.study.studyDays,b.study.studyDays), mockAverage:cmp(a.m.averageNet,b.m.averageNet) }; }
+
+  function resolveDashboardPeriod(selection="30d", custom={}, options={}) {
+    const today = options.today || iso(new Date());
+    if (selection === "all") {
+      const st=normalizeState(options.state||{}), dates=[];
+      [...st.studies,...st.questionLogs,...st.dailyGoals,...st.smartReviews,...st.simulados].forEach(x=>{ const d=validDate(x.date||x.data||x.doneAt||x.updatedAt||x.createdAt); if(d) dates.push(d); });
+      const start=dates.sort()[0]||today; return { type:"all", start, end:today, days:daysBetween(start,today) };
+    }
+    if (selection === "month") return { type:"month", start: today.slice(0,8)+"01", end: today, days: daysBetween(today.slice(0,8)+"01", today) };
+    return getAnalyticsPeriod(selection, custom, options);
+  }
+  function dashboardPeriod(selection="30d", custom={}, options={}) { return selection && selection.start && selection.end ? selection : resolveDashboardPeriod(selection, custom, options); }
+  function matchesFilters(row, filters={}) { const d=key(filters.discipline||"all"), o=key(filters.origin||"consolidated"); const rd=key(row.discipline||row.disciplina||""); const ro=key(row.source||row.origin||""); return (!d||d==="all"||rd===d) && (!o||o==="consolidated"||o==="consolidado"||ro===o||((o==="estudos"||o==="studies")&&ro==="studysession")||((o==="questões"||o==="questoes"||o==="questions")&&ro==="questionlog")||((o==="simulados"||o==="mocks")&&ro==="simulado")); }
+  function filteredQuestionRows(state, period, filters={}) { return calculateQuestionSummary(state, period).rows.filter(r=>matchesFilters(r,filters)); }
+  function filteredStudies(state, period, filters={}) { const s=normalizeState(state), f=filterDataByPeriod(s,period); return f.studies.map(x=>({...x, discipline:studyDiscipline(x,s), source:"studies"})).filter(r=>matchesFilters(r,filters) && ["consolidated","consolidado","estudos","studies",""].includes(key(filters.origin||"consolidated"))); }
+  function summarizeRows(rows){ const out=sourceSum(rows); return {...out, answered:out.correct+out.wrong, accuracyPct:pct(out.correct,out.correct+out.wrong), cebraspeNet:out.correct-out.wrong, sufficientSample:out.correct+out.wrong>=20}; }
+  function buildPerformanceSummary(state, period, filters={}) { const studies=filteredStudies(state,period,filters), qrows=filteredQuestionRows(state,period,filters), q=summarizeRows(qrows), f=filterDataByPeriod(state,period); const days=new Set(studies.filter(x=>num(x.minutes)>0).map(x=>validDate(x.date))).size; const minutes=studies.reduce((a,x)=>a+num(x.minutes),0); const goals=f.dailyGoals.filter(g=>matchesFilters({discipline:g.discipline,source:"goals"},{discipline:filters.discipline,origin:"consolidated"})); const mocks=(key(filters.origin||"consolidated")==="consolidated"||key(filters.origin)==="consolidado"||key(filters.origin)==="simulados")?f.simulados.length:0; const activeWeeks=Math.max(1,Math.ceil(period.days/7)); return { minutes, timeLabel:`${Math.floor(minutes/60)}h ${minutes%60}min`, sessions:studies.length, activeDays:days, questions:q.total, correct:q.correct, wrong:q.wrong, blank:q.blank, answered:q.answered, accuracyPct:q.accuracyPct, accuracyLabel:q.sufficientSample?`${q.accuracyPct}%`:"Amostra em desenvolvimento", cebraspeNet:q.cebraspeNet, mockExams:mocks, goalsCompleted:goals.filter(g=>done(g.status)).length, goalsPlanned:goals.length, weeklyRegularityPct:pct(days,Math.min(period.days,activeWeeks*7)), sufficientSample:q.sufficientSample, sampleMessage:q.sufficientSample?"Amostra suficiente para leitura inicial.":"Amostra em desenvolvimento" }; }
+  function buildDailyPerformanceSeries(state, period, filters={}) { const out=[]; for(let d=period.start; d<=period.end; d=addDays(d,1)) out.push({date:d, minutes:0, questions:0}); const by=Object.fromEntries(out.map(x=>[x.date,x])); filteredStudies(state,period,filters).forEach(s=>{ const d=validDate(s.date); if(by[d]) by[d].minutes+=num(s.minutes); }); filteredQuestionRows(state,period,filters).forEach(r=>{ const d=validDate(r.date); if(by[d]) by[d].questions+=num(r.total); }); return out; }
+  function buildDisciplinePerformanceSeries(state, period, filters={}) { const rows={}; const get=d=>rows[d]||(rows[d]={discipline:d,minutes:0,hours:0,questions:0,correct:0,wrong:0,blank:0,accuracyPct:0,net:0,sampleSize:0}); filteredStudies(state,period,filters).forEach(s=>get(s.discipline||"Sem disciplina").minutes+=num(s.minutes)); filteredQuestionRows(state,period,filters).forEach(q=>{ const r=get(q.discipline||"Sem disciplina"); r.questions+=num(q.total); r.correct+=num(q.correct); r.wrong+=num(q.wrong); r.blank+=num(q.blank); r.net+=num(q.correct)-num(q.wrong); }); return Object.values(rows).map(r=>({...r,hours:Number((r.minutes/60).toFixed(2)),accuracyPct:pct(r.correct,r.correct+r.wrong),sampleSize:r.correct+r.wrong,...calculateDisciplineSampleConfidence(r.correct+r.wrong)})); }
+  function buildMockExamEvolutionSeries(state, period) { return filterDataByPeriod(state,period).simulados.slice().sort((a,b)=>String(a.date||a.data||'').localeCompare(String(b.date||b.data||''))).map(m=>{ const rows=normalizeMockExamQuestionRows({simulados:[m]},period); const sum=summarizeRows(rows.filter(r=>r.total>0)); return {date:firstText(m,["date","data","createdAt"]), name:firstText(m,["name","nome","title"])||"Simulado", correct:sum.correct, wrong:sum.wrong, blank:sum.blank, net:sum.correct-sum.wrong || num(m.net??m.score??m.result), accuracyPct:sum.answered?pct(sum.correct,sum.answered):0, details:rows.filter(r=>r.detailed)}; }); }
+  function buildPlannedVsActualSeries(state, period, filters={}) { const days=period.days>45?[]:buildDailyPerformanceSeries(state,period,filters).map(x=>({date:x.date, bucket:x.date, actualMinutes:x.minutes, plannedMinutes:0, plannedGoals:0, completedGoals:0})); const map=Object.fromEntries(days.map(x=>[x.date,x])); filterDataByPeriod(state,period).dailyGoals.forEach(g=>{ const d=validDate(g.date||g.data); if(map[d] && matchesFilters({discipline:g.discipline,source:"goals"},{discipline:filters.discipline,origin:"consolidated"})){ map[d].plannedMinutes+=num(g.minutes||g.plannedMinutes); map[d].plannedGoals++; if(done(g.status)) map[d].completedGoals++; }}); return days; }
+  function comparePerformancePeriods(current, previous) { const cmp=(cur,prev)=>({current:cur,previous:prev,delta:Number((cur-prev).toFixed(2)),percentChange:prev?Number(((cur-prev)/Math.abs(prev)*100).toFixed(1)):null,trend:prev===0&&cur===0?"estável":prev===0?"sem base anterior para comparação":cur>prev?"aumentou":cur<prev?"diminuiu":"permaneceu estável"}); return {minutes:cmp(current.minutes,previous.minutes),sessions:cmp(current.sessions,previous.sessions),activeDays:cmp(current.activeDays,previous.activeDays),questions:cmp(current.questions,previous.questions),accuracyPct:cmp(current.accuracyPct,previous.accuracyPct),cebraspeNet:cmp(current.cebraspeNet,previous.cebraspeNet),goalsCompleted:cmp(current.goalsCompleted,previous.goalsCompleted)}; }
+  function buildDeterministicPerformanceInsights(summary, comparison, maturity, disciplines=[], planned=[]) { const out=[]; if(!summary.questions&&!summary.minutes) out.push("Não há dados suficientes para comparar este período."); if(comparison?.minutes && comparison.minutes.percentChange!==null) out.push(`Você estudou ${Math.abs(comparison.minutes.percentChange)}% ${comparison.minutes.delta>=0?"mais":"menos"} tempo que no período anterior.`); if(comparison?.questions&&comparison?.accuracyPct&&comparison.questions.delta>0&&comparison.accuracyPct.delta<0) out.push("A quantidade de questões aumentou, mas o percentual de acerto caiu."); const top=disciplines.filter(d=>d.minutes>0).sort((a,b)=>b.minutes-a.minutes)[0]; if(top) out.push(`${top.discipline} concentrou o maior tempo de estudo.`); const low=disciplines.find(d=>d.sampleSize>0&&d.classificationStatus==="insufficient"); if(low) out.push(`${low.discipline} possui resultado inicial, mas a amostra ainda é insuficiente.`); const p=planned.reduce((a,x)=>(a.planned+=x.plannedMinutes,a.actual+=x.actualMinutes,a),{planned:0,actual:0}); if(p.planned||p.actual) out.push(`Foram planejados ${p.planned} minutos e realizados ${p.actual} minutos.`); if(maturity?.phase==="calibration") out.push("A leitura está em fase de calibração e deve ser usada como sinal inicial."); return [...new Set(out)].slice(0,6); }
+  function buildPerformanceDashboard(state, selection="30d", filters={}, options={}) { const before=JSON.stringify(state); const period=dashboardPeriod(selection, filters.custom||{}, {...options,state}); const summary=buildPerformanceSummary(state,period,filters); const previous=["7d","30d","90d"].includes(period.type)?previousPeriod(period):null; const comparison=previous?comparePerformancePeriods(summary,buildPerformanceSummary(state,previous,filters)):null; const daily=buildDailyPerformanceSeries(state,period,filters), disciplines=buildDisciplinePerformanceSeries(state,period,filters), mocks=buildMockExamEvolutionSeries(state,period), plannedVsActual=buildPlannedVsActualSeries(state,period,filters); const maturity=calculateDataMaturity(state,period,{summary:{questionsTotal:summary.questions,studyDays:summary.activeDays,sessions:summary.sessions,mockExams:summary.mockExams},disciplines}); return {version:"20260714-analise-acordeao-portugues-v3",period,filters,summary,comparison,daily,questions:summarizeRows(filteredQuestionRows(state,period,filters)),disciplines,mockExams:mocks,plannedVsActual,insights:buildDeterministicPerformanceInsights(summary,comparison,maturity,disciplines,plannedVsActual),maturity,stateUnchanged:before===JSON.stringify(state)}; }
+
+  function classifyOverallSituation(summary, evolution, disciplines, dataQuality) { if (dataQuality.insufficient) return { classification:"DADOS INSUFICIENTES", explanation:"Há poucos lançamentos no período para um diagnóstico confiável." }; const critical=disciplines.filter(d=>d.isCritical).length, strong=disciplines.filter(d=>d.isStrong).length; if (summary.questionsTotal>=20 && summary.accuracyPct>=70 && summary.cebraspeNet>0 && critical===0) return {classification:"FAVORÁVEL", explanation:"O período combina volume mínimo, acerto elevado e líquido Cebraspe positivo."}; if (critical>=3 || summary.cebraspeNet<0 || summary.accuracyPct<50) return {classification:"CRÍTICA", explanation:`Desempenho exige atenção: líquido ${summary.cebraspeNet}, ${summary.accuracyPct}% de acerto e ${critical} disciplina(s) crítica(s).`}; return {classification:"ATENÇÃO", explanation:`Há ${strong} disciplina(s) forte(s), mas ${critical} ponto(s) crítico(s) ou lacunas de regularidade.`}; }
+  function generateStrategicRecommendations(analysis) { if(analysis.dataMaturity?.phase==="calibration") return { highPriority:["Equilibrar disciplinas ativas e ampliar a coleta mínima de questões."], maintenance:["Registrar três sessões de estudo e manter continuidade."], reduceExcess:[], prioritySubjects:analysis.neglectedSubjects.slice(0,5).map(s=>`${s.discipline} — ${s.subject}: ${s.reason}`), weeklyDistribution:"Distribua a semana entre disciplinas, assuntos sem estudo e metas pendentes.", reviewSuggestions:"Concluir metas pendentes e registrar estudos sem criar metas automáticas.", suggestedQuestions:"Realizar pelo menos 20 questões em duas disciplinas, se possível.", imbalanceAlerts:analysis.dataQuality.metricsUnavailable }; let high=analysis.criticalDisciplines.map(d=>`${d.discipline}: ${d.justification}`).slice(0,5); if(!high.length) high=(analysis.preliminarySignals||[]).slice(0,3).map(s=>s.message); const subjects=analysis.neglectedSubjects.slice(0,5).map(s=>`${s.discipline} — ${s.subject}: ${s.reason}`); return { highPriority: high, maintenance: analysis.strongDisciplines.slice(0,5).map(d=>`${d.discipline}: manter revisões e questões.`), reduceExcess: analysis.disciplines.filter(d=>d.hours>0 && d.accuracyPct>=75 && d.questions>=20).slice(0,3).map(d=>`${d.discipline}: desempenho estabilizado; evitar concentração excessiva.`), prioritySubjects: subjects, weeklyDistribution: high.length?"Reserve 50% a 60% da semana para críticas/negligenciadas, 25% para manutenção e 15% para revisão geral.":"Distribua a semana entre manutenção, revisão e cobertura de assuntos pendentes.", reviewSuggestions: subjects.length?"Revisar assuntos negligenciados antes de novas frentes.":"Manter revisões espaçadas.", suggestedQuestions: high.length?"Priorize 30 a 50 questões semanais nas disciplinas críticas, ajustando ao tempo disponível.":"Manter lote semanal de questões por disciplina ativa.", imbalanceAlerts: analysis.dataQuality.metricsUnavailable }; }
+  function dataQuality(state, period, summary, disciplines=[]) { const s=normalizeState(state); const fp=filterDataByPeriod(s,period); const disciplinesSet = new Set([...s.subjects.map(x=>x.name), ...s.syllabusItems.map(x=>x.discipline)].filter(Boolean)); const launched = new Set([...fp.studies.map(x=>studyDiscipline(x,s)), ...fp.questionLogs.map(x=>x.discipline)].filter(Boolean)); const inconsistentQuestionTotals=[...s.studies,...s.questionLogs].filter(x=>num(x.total||x.questions)>0 && num(x.correct)+num(x.wrong)+num(x.blank)>0 && num(x.total||x.questions)!==num(x.correct)+num(x.wrong)+num(x.blank)).length; const mockExamsWithoutResult=s.simulados.filter(x=>num(x.net??x.score??x.result)===0 && !("net" in x) && !("score" in x) && !("result" in x)).length; const mockQuestionQuality=summary.questionSummary?.dataQuality||[]; return { disciplinesWithoutEntries:[...disciplinesSet].filter(d=>!launched.has(d)), studiesWithoutSubject:s.studies.filter(x=>!x.subjectId&&!x.discipline).length, studiesWithoutTopic:s.studies.filter(x=>!x.topic&&!x.subject&&!x.syllabusItemId).length, questionsWithoutDiscipline:s.questionLogs.filter(x=>!x.discipline).length, questionsWithoutSubject:s.questionLogs.filter(x=>!x.subject&&!x.topic&&!x.syllabusItemId).length, inconsistentQuestionTotals, mockExamsWithoutResult, disciplinesBelow20Questions:disciplines.filter(d=>d.questions>0&&d.questions<20).map(d=>`${d.discipline} (${d.questions})`), insufficient: summary.sessions<2 && summary.questionsTotal<10 && summary.mockExams===0, metricsUnavailable:mockQuestionQuality, mockQuestionQuality }; }
+  function buildStrategicAnalysis(state, selection="30d", custom={}, options={}) { const before=JSON.stringify(state); const period=getAnalyticsPeriod(selection,custom,options), previous=previousPeriod(period); const study=calculateStudySummary(state,period), questions=calculateQuestionSummary(state,period), goals=calculateGoalStats(state,period), mockExams=calculateMockExamStats(state,period); const summary={...study, questionSummary:questions, questionsBySource:questions.bySource, questionsTotal:questions.total, correct:questions.correct, wrong:questions.wrong, blank:questions.blank, accuracyPct:questions.accuracyPct, cebraspeNet:questions.cebraspeNet, goalsPlanned:goals.planned, goalsCompleted:goals.completed, goalCompletionPct:goals.completionPct, mockExams:mockExams.count}; const disciplines=calculateDisciplinePerformance(state,period,previous,options); const dq=dataQuality(state,period,summary,disciplines); const analysis={ period, previousPeriod:previous, overallSituation:null, summary, evolution:compareAnalyticsPeriods(state,period), disciplines, strongDisciplines:disciplines.filter(d=>d.isStrong), criticalDisciplines:disciplines.filter(d=>d.isCritical), neglectedSubjects:calculateSubjectNeglect(state,period,options), efficiency:calculateStudyEfficiency(state,period), cebraspe:calculateCebraspeStats(state,period), mockExams, recommendations:null, dataQuality:dq, dataMaturity:null, baseline:null, preliminarySignals:[] }; analysis.overallSituation=classifyOverallSituation(summary,analysis.evolution,disciplines,dq); analysis.dataMaturity=calculateDataMaturity(state,period,analysis); analysis.baseline=analysis.dataMaturity.baseline; applyConfidenceToAnalysis(analysis); analysis.recommendations=generateStrategicRecommendations(analysis); analysis.stateUnchanged = before === JSON.stringify(state); return analysis; }
+  return { getAnalyticsPeriod, resolveDashboardPeriod, buildPerformanceDashboard, buildDailyPerformanceSeries, buildDisciplinePerformanceSeries, buildMockExamEvolutionSeries, buildPlannedVsActualSeries, comparePerformancePeriods, buildDeterministicPerformanceInsights, calculateDataMaturity, calculateDisciplineSampleConfidence, calculateBaseline, calculateNextDataMilestones, applyConfidenceToAnalysis, filterDataByPeriod, calculateStudySummary, normalizeMockExamQuestionRows, isDuplicateQuestionSource, calculateQuestionSummary, calculateCebraspeStats, calculateGoalStats, calculateDisciplinePerformance, calculateSubjectNeglect, calculateStudyEfficiency, calculateMockExamStats, compareAnalyticsPeriods, classifyOverallSituation, generateStrategicRecommendations, buildStrategicAnalysis };
+});
+
+/* Aldus source: study-advisor.js */
+(function(root,factory){ if(typeof module==='object'&&module.exports) module.exports=factory(); else root.StudyAdvisor=factory(); })(typeof globalThis!=='undefined'?globalThis:this,function(){
+'use strict';
+const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+const fmtH=h=>{const m=Math.round(Number(h||0)*60),hh=Math.floor(m/60),mm=m%60;return hh&&mm?`${hh}h${String(mm).padStart(2,'0')}`:hh?`${hh}h`:`${mm}min`;};
+const ptxt=p=>p?`${p.days||''} dias (${p.start} a ${p.end})`:'período analisado';
+function normalizeAdvisorQuestion(q){return norm(q).replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();}
+function detectAdvisorIntent(q){const n=normalizeAdvisorQuestion(q); if(/(semana|fazer|plano|priori[dz]ar|prioridade)/.test(n))return'weekly_plan'; if(/(cebraspe|cespe|liquido|saldo)/.test(n))return'cebraspe'; if(/(quest(ao|oes)|fiz|realizei)/.test(n))return'questions'; if(/(hora|estudei|tempo)/.test(n))return'hours'; if(/(pior|critica|tirando pontos|fraca|ruim)/.test(n))return'critical_discipline'; if(/(forte|melhor|boa)/.test(n))return'strong_discipline'; if(/(neglig|revis|assunto|dias sem)/.test(n))return'neglected'; if(/(evolu|melhor que|periodo anterior|queda|aumento)/.test(n))return'evolution'; if(/(simulado)/.test(n))return'mocks'; if(/(meta)/.test(n))return'goals'; if(/(eficien)/.test(n))return'efficiency'; if(/(qualidade|suficient|confiav)/.test(n))return'data_quality'; if(/(acerto|erro|branco|desempenho de|quanto estudei|materia|disciplina)/.test(n))return'discipline_performance'; if(/(como estou|situacao|desempenho|resumo|geral)/.test(n))return'overall'; return'unsupported';}
+function namesFromAnalysis(analysis){return (analysis?.disciplines||[]).map(d=>d.discipline).filter(Boolean);}
+function matchName(question,names){const q=normalizeAdvisorQuestion(question); const matches=names.filter(n=>{const nn=normalizeAdvisorQuestion(n); return q.includes(nn)||nn.split(/\s+/).some(w=>w.length>3&&q.includes(w))||nn.includes(q);}); const uniq=[...new Set(matches)]; const exact=uniq.find(n=>q.includes(normalizeAdvisorQuestion(n))); return exact?{name:exact,ambiguous:false,matches:[exact]}:uniq.length===1?{name:uniq[0],ambiguous:false,matches:uniq}:uniq.length>1?{ambiguous:true,matches:uniq}:{name:null,ambiguous:false,matches:[]};}
+function extractDisciplineFromQuestion(question,analysis,state){const names=[...namesFromAnalysis(analysis),...(state?.subjects||[]).map(s=>s.name),...(state?.syllabusItems||[]).map(i=>i.discipline)].filter(Boolean);return matchName(question,names);}
+function extractSubjectFromQuestion(question,analysis,state){const names=(state?.syllabusItems||[]).map(i=>i.subject||i.topic).filter(Boolean);return matchName(question,names);}
+function maturity(ctx){return ctx?.analysis?.dataMaturity||{level:'low',phase:'calibration',label:'FASE DE CALIBRAÇÃO',score:0,nextMilestones:[]};}
+function confidenceLabel(m){return m.level==='high'?'Confiança alta':m.level==='medium'?'Confiança média':'Confiança baixa';}
+function withConfidence(ctx, text){const m=maturity(ctx); const next=m.nextMilestones?.[0]?` Próximo marco: ${m.nextMilestones[0]}`:''; return `${confidenceLabel(m)} (${m.score}/100). ${text}${next}`;}
+function base(intent,title,answer,evidence=[],suggestions=[],ok=true,level='high'){return{intent,title,answer,evidence,suggestions:suggestions.slice(0,3),confidence:level,dataSufficient:ok};}
+function insufficient(intent,period,ctx={}){return base(intent,'Dados insuficientes',withConfidence(ctx, `No período de ${ptxt(period)}, não há dados suficientes para responder com segurança. Fato: a análise local encontrou poucos registros. Recomendação: registre estudos, questões, simulados ou metas antes de concluir tendências.`),[`Período: ${ptxt(period)}`],['Como está meu desempenho?'],false,maturity(ctx).level);}
+function answerOverallSituation({analysis,period}){if(!analysis||analysis.dataQuality?.insufficient)return insufficient('overall',period,{analysis});const s=analysis.summary,c=analysis.overallSituation;const pri=(analysis.criticalDisciplines||[]).slice(0,2).map(d=>d.discipline).join(' e ')||'nenhuma prioridade definitiva por desempenho';const text=`Nos últimos ${ptxt(period)}, fase atual: ${analysis.dataMaturity?.label||'FASE DE CALIBRAÇÃO'}. Fatos: você estudou ${fmtH(s.hours)}, realizou ${s.questionsTotal} questões, teve ${s.accuracyPct}% de acerto e líquido Cebraspe ${s.cebraspeNet}. O que já pode ser lido: ${c.explanation} O que ainda não pode ser concluído: classificações definitivas dependem de amostra mínima por disciplina. Orientação: ${pri}.`;return base('overall','Situação geral',withConfidence({analysis},text),[`Horas: ${fmtH(s.hours)}`,`${s.questionsTotal} questões`,`${s.accuracyPct}% de acerto`,`líquido ${s.cebraspeNet}`],['Qual disciplina devo priorizar?','Estou melhor que no período anterior?','O que devo fazer nesta semana?'],true,analysis.dataMaturity?.level);}
+function plural(n,s,p){return `${n} ${n===1?s:p}`;}
+function answerStudyHours({analysis,period}){const s=analysis?.summary;if(!s||!s.sessions)return insufficient('hours',period);return base('hours','Horas estudadas',`No período de ${ptxt(period)}, você estudou ${fmtH(s.hours)} em ${plural(s.sessions,'sessão','sessões')}. Fato obtido dos registros de estudo e metas com tempo realizado. Motivo: a média diária foi ${s.dailyAverageHours}h e houve ${plural(s.studyDays,'dia ativo','dias ativos')}.`,[`Horas: ${fmtH(s.hours)}`,`Sessões: ${s.sessions}`,`Dias com estudo: ${s.studyDays}`],['Quantas questões fiz?','Como está meu desempenho?']);}
+function answerQuestionStats({analysis,period}){const s=analysis?.summary;if(!s||!s.questionsTotal)return insufficient('questions',period);const bs=s.questionsBySource||{};const av=bs.questionLogs?.total||0,ss=bs.studySessions?.total||0,mk=bs.mockExams?.total||0;return base('questions','Questões e acertos',`Você registrou ${s.questionsTotal} questões no período: ${av} no Banco de Questões, ${ss} em sessões de estudo e ${mk} em simulados detalhados. Acertos: ${s.correct}; erros: ${s.wrong}; brancos: ${s.blank}. O percentual de acerto foi ${s.accuracyPct}% e o líquido Cebraspe foi ${s.cebraspeNet}.`,[`${s.questionsTotal} questões`,`${av} Banco de Questões`,`${ss} sessões de estudo`,`${mk} simulados detalhados`,`${s.accuracyPct}% de acerto`,`líquido ${s.cebraspeNet}`],['Como está meu desempenho Cebraspe?','Qual disciplina mais está tirando pontos?']);}
+function answerDisciplinePerformance(ctx){const m=extractDisciplineFromQuestion(ctx.question,ctx.analysis,ctx.state);if(m.ambiguous)return base('discipline_performance','Disciplina ambígua',`Você mencionou uma disciplina de forma ambígua. Selecione: ${m.matches.join(', ')}.`,m.matches,[],false);const d=(ctx.analysis?.disciplines||[]).find(x=>x.discipline===m.name);if(!d)return insufficient('discipline_performance',ctx.period);return base('discipline_performance',d.discipline,`No período de ${ptxt(ctx.period)}, ${d.discipline} recebeu ${fmtH(d.hours)}, com ${d.questions} questões, ${d.accuracyPct}% de acerto e líquido ${d.net}. Fato: dados agregados por disciplina. Motivo: ${d.justification}`, [`${fmtH(d.hours)} estudadas`,`${d.questions} questões`,`${d.accuracyPct}% de acerto`,`líquido ${d.net}`],[`Como evoluiu ${d.discipline}?`,`Quais assuntos precisam de revisão?`]);}
+function answerCriticalDiscipline(ctx){const d=ctx.analysis?.criticalDisciplines?.[0];if(!d){const sig=(ctx.analysis?.preliminarySignals||[])[0];return base('critical_discipline','Sinal inicial',withConfidence(ctx, sig?`Ainda não existe amostra suficiente para determinar a pior disciplina. O maior sinal inicial é ${sig.discipline}, baseado em ${sig.questions} questões.`:'Ainda não existe amostra suficiente para determinar a pior disciplina.'),sig?[sig.message]:[],['Como está meu desempenho?'],false,maturity(ctx).level);}return base('critical_discipline','Disciplina crítica',withConfidence(ctx,`${d.discipline} apresenta o quadro mais crítico no período de ${ptxt(ctx.period)}: ${d.accuracyPct}% de acerto, líquido ${d.net} e ${d.evolution===null?'sem base anterior':`evolução de ${d.evolution} p.p.`}. Motivo: ${d.justification}`),[`Disciplina: ${d.discipline}`,`${d.questions} questões`,`${d.accuracyPct}%`,`líquido ${d.net}`],[`Quanto estudei ${d.discipline}?`,`O que devo fazer nesta semana?`],true,maturity(ctx).level);}
+function answerStrongDiscipline(ctx){const d=ctx.analysis?.strongDisciplines?.[0];if(!d)return insufficient('strong_discipline',ctx.period);return base('strong_discipline','Disciplina forte',`${d.discipline} foi a disciplina mais forte no período de ${ptxt(ctx.period)}: ${d.accuracyPct}% de acerto, líquido ${d.net} e ${fmtH(d.hours)} estudadas.`,[`${d.questions} questões`,`${d.accuracyPct}%`,`líquido ${d.net}`],['Onde estou estudando demais?']);}
+function answerNeglectedSubjects(ctx){const rows=ctx.analysis?.neglectedSubjects||[];if(!rows.length)return insufficient('neglected',ctx.period);return base('neglected','Assuntos negligenciados',`No período de ${ptxt(ctx.period)}, os principais assuntos negligenciados são: ${rows.slice(0,5).map(s=>`${s.discipline} — ${s.subject} (${s.reason})`).join('; ')}. Fato: itens pendentes sem estudo recente, sem questões ou com metas pendentes.`,rows.slice(0,5).map(s=>`${s.discipline} — ${s.subject}: ${s.reason}`),['Quais assuntos precisam de revisão?','O que devo fazer nesta semana?']);}
+function answerEvolution(ctx){const e=ctx.analysis?.evolution;if(!e)return insufficient('evolution',ctx.period);return base('evolution','Evolução',`Comparando ${ptxt(ctx.period)} com o período anterior, horas tiveram ${e.hours.direction} (${e.hours.delta}), questões tiveram ${e.questions.direction} (${e.questions.delta}), acerto teve ${e.accuracyPct.direction} (${e.accuracyPct.delta} p.p.) e líquido Cebraspe teve ${e.cebraspeNet.direction} (${e.cebraspeNet.delta}).`,[`Comparação com período anterior`, `Acerto: ${e.accuracyPct.delta}`,`Líquido: ${e.cebraspeNet.delta}`],['Como está meu desempenho?']);}
+function answerCebraspe(ctx){const c=ctx.analysis?.cebraspe;if(!c)return insufficient('cebraspe',ctx.period);return base('cebraspe','Desempenho Cebraspe',`No período de ${ptxt(ctx.period)}, seu líquido Cebraspe foi ${c.net}. Fato: acertos menos erros, com brancos neutros. Principais somadores: ${(c.topAdders||[]).map(d=>d.discipline).join(', ')||'nenhum'}. Principais redutores: ${(c.topSubtractors||[]).map(d=>d.discipline).join(', ')||'nenhum'}.`,[`Líquido: ${c.net}`],['Qual disciplina mais está tirando pontos?']);}
+function answerMockExams(ctx){const m=ctx.analysis?.mockExams;if(!m||!m.count)return insufficient('mocks',ctx.period);return base('mocks','Simulados',`No período de ${ptxt(ctx.period)}, foram ${plural(m.count,'simulado','simulados')}, média líquida ${m.averageNet}, melhor ${m.bestNet}, pior ${m.worstNet} e tendência de ${m.trend}.`,[`Simulados: ${m.count}`,`Média: ${m.averageNet}`],['Estou melhor que no período anterior?']);}
+function answerGoals(ctx){const s=ctx.analysis?.summary;if(!s||!s.goalsPlanned)return insufficient('goals',ctx.period);return base('goals','Metas',`No período de ${ptxt(ctx.period)}, havia ${plural(s.goalsPlanned,'meta prevista','metas previstas')} e ${plural(s.goalsCompleted,'concluída','concluídas')}, com cumprimento de ${s.goalCompletionPct}%.`,[`Metas previstas: ${s.goalsPlanned}`,`Concluídas: ${s.goalsCompleted}`],['O que devo fazer nesta semana?']);}
+function answerEfficiency(ctx){const e=ctx.analysis?.efficiency;if(!e)return insufficient('efficiency',ctx.period);return base('efficiency','Eficiência',`No período de ${ptxt(ctx.period)}, a eficiência foi: ${e.questionsPerHour??'sem dados'} questões/hora, ${e.correctPerHour??'sem dados'} acertos/hora e líquido/hora ${e.netPerHour??'sem dados'}. Aviso: ${e.warning}`,Object.entries(e).map(([k,v])=>`${k}: ${v}`),['Onde estou estudando demais?']);}
+function answerWeeklyPlan(ctx){const r=ctx.analysis?.recommendations;if(!r)return insufficient('weekly_plan',ctx.period,ctx);const text=`PRIORIDADE ALTA\n${(r.highPriority||[]).map(x=>'- '+x).join('\n')||'- Sem prioridade crítica identificada.'}\n\nMANUTENÇÃO\n${(r.maintenance||[]).map(x=>'- '+x).join('\n')||'- Manter distribuição equilibrada.'}\n\nREVISÕES\n- ${r.reviewSuggestions}\n\nALERTA\n${(r.prioritySubjects||[]).map(x=>'- '+x).join('\n')||'- Sem alerta específico.'}\n\nFato: plano baseado nas recomendações do analytics-engine para ${ptxt(ctx.period)}. Recomendação: revise antes de aplicar; nenhuma meta é alterada automaticamente.`;return base('weekly_plan','Plano semanal',withConfidence(ctx,text),[...(r.highPriority||[]),...(r.prioritySubjects||[]),r.weeklyDistribution,r.suggestedQuestions].filter(Boolean),['Quais assuntos precisam de revisão?','Qual disciplina devo priorizar?'],true,maturity(ctx).level);}
+function answerDataQuality(ctx){const d=ctx.analysis?.dataQuality;if(!d)return insufficient('data_quality',ctx.period);return base('data_quality','Qualidade dos dados',`No período de ${ptxt(ctx.period)}, dados insuficientes: ${d.insufficient?'sim':'não'}. Estudos sem vínculo: ${d.studiesWithoutSubject}. Questões sem disciplina: ${d.questionsWithoutDiscipline}. Isso limita conclusões quando há poucos registros.`,[`Insuficiente: ${d.insufficient}`,`Estudos sem vínculo: ${d.studiesWithoutSubject}`,`Questões sem disciplina: ${d.questionsWithoutDiscipline}`],['Como está meu desempenho?'],!d.insufficient);}
+function buildAdvisorAnswer(ctx){const intent=detectAdvisorIntent(ctx.question);const map={overall:answerOverallSituation,hours:answerStudyHours,questions:answerQuestionStats,discipline_performance:answerDisciplinePerformance,critical_discipline:answerCriticalDiscipline,strong_discipline:answerStrongDiscipline,neglected:answerNeglectedSubjects,evolution:answerEvolution,cebraspe:answerCebraspe,mocks:answerMockExams,goals:answerGoals,efficiency:answerEfficiency,weekly_plan:answerWeeklyPlan,data_quality:answerDataQuality}; if(!map[intent])return base('unsupported','Pergunta não suportada','Consigo analisar apenas seus dados de estudo, questões, metas, simulados, revisões e evolução. Tente perguntar qual disciplina priorizar ou como foi seu desempenho nos últimos 30 dias.',[],['Como está meu desempenho?','Qual disciplina devo priorizar?','O que devo fazer nesta semana?'],false);return map[intent](ctx);}
+return {normalizeAdvisorQuestion,detectAdvisorIntent,extractDisciplineFromQuestion,extractSubjectFromQuestion,answerOverallSituation,answerStudyHours,answerQuestionStats,answerDisciplinePerformance,answerCriticalDiscipline,answerStrongDiscipline,answerNeglectedSubjects,answerEvolution,answerCebraspe,answerMockExams,answerGoals,answerEfficiency,answerWeeklyPlan,answerDataQuality,buildAdvisorAnswer};
+});
+
+/* Aldus source: advisor-navigation-engine.js */
+(function(root,factory){ if(typeof module==='object'&&module.exports) module.exports=factory(); else root.AdvisorNavigationEngine=factory(); })(typeof globalThis!=='undefined'?globalThis:this,function(){
+'use strict';
+const DAY=86400000; const ROUTES=['equilibrada','cobertura','desempenho','recuperação','revisão','reta final','manutenção'];
+const clone=v=>JSON.parse(JSON.stringify(v||{})); const num=v=>Number.isFinite(Number(v))?Number(v):0; const round=(v,d=1)=>Number(Number(v||0).toFixed(d));
+const iso=d=>new Date(d).toISOString().slice(0,10); const today=o=>o?.today||iso(new Date()); const parse=d=>new Date(`${String(d||today()).slice(0,10)}T00:00:00Z`);
+const days=(a,b)=>Math.max(0,Math.ceil((parse(b)-parse(a))/DAY)); const pct=(a,b)=>b?round(a/b*100,1):0; const key=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+const done=s=>['concluida','concluido','concluído','concluída','dominado','revisado','estudado'].includes(key(s));
+function normalizeAdvisorMission(m={}){return {version:1,contestName:String(m.contestName||'').trim(),positionName:String(m.positionName||'').trim(),institution:String(m.institution||'').trim(),examDate:String(m.examDate||'').slice(0,10),board:String(m.board||'').trim(),totalExamQuestions:num(m.totalExamQuestions),scoringSystem:String(m.scoringSystem||'').trim(),targetNetScore:m.targetNetScore===''||m.targetNetScore==null?null:num(m.targetNetScore),targetAccuracyPct:m.targetAccuracyPct===''||m.targetAccuracyPct==null?null:num(m.targetAccuracyPct),targetSyllabusCoveragePct:m.targetSyllabusCoveragePct===''||m.targetSyllabusCoveragePct==null?100:Math.min(100,Math.max(0,num(m.targetSyllabusCoveragePct))),targetReviewsPct:m.targetReviewsPct===''||m.targetReviewsPct==null?null:Math.min(100,Math.max(0,num(m.targetReviewsPct))),targetMockExams:m.targetMockExams===''||m.targetMockExams==null?null:num(m.targetMockExams),weeklyAvailableMinutes:m.weeklyAvailableMinutes===''||m.weeklyAvailableMinutes==null?null:num(m.weeklyAvailableMinutes),startedAt:String(m.startedAt||'').slice(0,10),notes:String(m.notes||'').trim(),updatedAt:String(m.updatedAt||'').slice(0,10)}}
+function validateAdvisorMission(m={},o={}){const n=normalizeAdvisorMission(m), t=today(o), warnings=[], missing=[]; ['contestName','positionName','examDate'].forEach(f=>{if(!n[f])missing.push(f)}); if(!n.targetNetScore&&n.targetAccuracyPct==null)missing.push('targetNetScore ou targetAccuracyPct'); if(n.examDate&&days(t,n.examDate)<=0)warnings.push('Data da prova está no passado ou é hoje.'); if(!n.weeklyAvailableMinutes)warnings.push('Disponibilidade semanal não informada; usando ritmo atual como referência.'); return {valid:missing.length===0 && warnings.length===0, partial:missing.length>0, missing,warnings,mission:n};}
+function normState(s={}){return {subjects:s.subjects||[],studies:s.studies||[],questionLogs:s.questionLogs||[],dailyGoals:s.dailyGoals||[],syllabusItems:s.syllabusItems||[],smartReviews:s.smartReviews||[],simulados:s.simulados||[]}}
+function buildCurrentPosition(state={},analysis={}){const s=normState(state), sum=analysis.summary||{}; const totalItems=s.syllabusItems.filter(i=>!['ignorado','ignorada'].includes(key(i.status))).length; const covered=s.syllabusItems.filter(i=>done(i.status)).length; const reviewsDue=s.smartReviews.filter(r=>!done(r.status)).length + s.syllabusItems.filter(i=>/revis/i.test(String(i.status||''))&&!done(i.status)).length; const mockCount=s.simulados.length; const accuracy=sum.accuracyPct??pct(sum.correct,sum.correct+sum.wrong); return {hours:round(sum.hours||0,2),minutes:round((sum.hours||0)*60,0),questions:num(sum.questionsTotal),accuracyPct:round(accuracy,1),netScore:round(sum.cebraspeNet||0,1),goalsPlanned:num(sum.goalsPlanned),goalsCompleted:num(sum.goalsCompleted),goalCompletionPct:round(sum.goalCompletionPct||0,1),syllabusTotal:totalItems,syllabusCovered:covered,syllabusCoveragePct:pct(covered,totalItems),reviewsDue,mockExams:mockCount,criticalDisciplines:(analysis.criticalDisciplines||[]).map(d=>d.discipline),strongDisciplines:(analysis.strongDisciplines||[]).map(d=>d.discipline),dataMaturity:analysis.dataMaturity||{level:'low',score:0}};}
+function calculateDistanceToDestination(pos={},mission={}){const m=normalizeAdvisorMission(mission); return {netGap:m.targetNetScore==null?null:round(m.targetNetScore-num(pos.netScore),1),accuracyGap:m.targetAccuracyPct==null?null:round(m.targetAccuracyPct-num(pos.accuracyPct),1),coverageGap:round(m.targetSyllabusCoveragePct-num(pos.syllabusCoveragePct),1),reviewGap:m.targetReviewsPct==null?null:round(m.targetReviewsPct-pct(Math.max(0,num(pos.syllabusCovered)-num(pos.reviewsDue)),Math.max(1,num(pos.syllabusCovered))),1),mockGap:m.targetMockExams==null?null:Math.max(0,m.targetMockExams-num(pos.mockExams))};}
+function calculateCurrentPace(pos={},period={days:30}){const weeks=Math.max(1,num(period.days)/7); return {studyMinutesPerWeek:round(num(pos.minutes)/weeks,0),questionsPerWeek:round(num(pos.questions)/weeks,0),mockExamsPerWeek:round(num(pos.mockExams)/weeks,2),coveragePctPerWeek:round(num(pos.syllabusCoveragePct)/weeks,2)};}
+function calculateRequiredPace(pos={},mission={},o={}){const m=normalizeAdvisorMission(mission), until=m.examDate?Math.max(1,days(today(o),m.examDate)):null, weeks=until?Math.max(1,until/7):null, dist=calculateDistanceToDestination(pos,m); return {daysUntilExam:until,weeksUntilExam:weeks?round(weeks,1):null,studyMinutesPerWeek:m.weeklyAvailableMinutes||null,coveragePctPerWeek:weeks?round(Math.max(0,dist.coverageGap)/weeks,2):null,netGainPerWeek:weeks&&dist.netGap!=null?round(Math.max(0,dist.netGap)/weeks,2):null,accuracyGainPerWeek:weeks&&dist.accuracyGap!=null?round(Math.max(0,dist.accuracyGap)/weeks,2):null,mockExamsPerWeek:weeks&&dist.mockGap!=null?round(Math.max(0,dist.mockGap)/weeks,2):null};}
+function calculateFeasibility(current={},required={},mission={}){const load=required.studyMinutesPerWeek||current.studyMinutesPerWeek||0, available=normalizeAdvisorMission(mission).weeklyAvailableMinutes||load||1; const loadRatio=load/Math.max(1,available), coverageOk=!required.coveragePctPerWeek||required.coveragePctPerWeek<=8, perfOk=(required.netGainPerWeek??0)<=3 && (required.accuracyGainPerWeek??0)<=2.5; const timePressure=required.daysUntilExam&&required.daysUntilExam<=7&&((required.netGainPerWeek||0)>10||(required.accuracyGainPerWeek||0)>5||(required.coveragePctPerWeek||0)>20)?35:0; const score=Math.max(0,Math.min(100,100-(Math.max(0,loadRatio-1)*35)-(!coverageOk?25:0)-(!perfOk?25:0)-timePressure)); return {score:round(score,0),label:score>=75?'alta':score>=50?'média':score>=30?'baixa':'inviável',loadRatio:round(loadRatio,2),coverageOk,performanceOk:perfOk};}
+function generateRouteCandidates(ctx={}){const pos=ctx.position||{}, dist=ctx.distance||{}, req=ctx.requiredPace||{}, cur=ctx.currentPace||{}, mission=normalizeAdvisorMission(ctx.mission||{}); return ROUTES.map((type,i)=>{const focus={equilibrada:'balancear cobertura, questões e revisão',cobertura:'fechar itens pendentes do edital',desempenho:'aumentar acertos e reduzir erros',recuperação:'reduzir atrasos e pendências',revisão:'resolver revisões pendentes', 'reta final':'simulados, revisão e controle de risco','manutenção':'preservar pontos fortes'}[type]; const load=mission.weeklyAvailableMinutes||cur.studyMinutesPerWeek||req.studyMinutesPerWeek||0; return {id:`route-${i+1}-${key(type).replace(/\s+/g,'-')}`,type,focus,weeklyLoadMinutes:round(load*(type==='reta final'?1:type==='recuperação'?0.95:type==='manutenção'?0.75:0.9),0),impact:50,risk:50,confidence:pos.dataMaturity?.score||40,reason:''};});}
+function projectRouteOutcome(route,ctx={}){const d=ctx.distance||{}, pos=ctx.position||{}; const impact={equilibrada:70,cobertura:Math.max(55,80-Math.max(0,d.coverageGap||0)/2),desempenho:pos.questions?75:45,'recuperação':(pos.goalCompletionPct<60||pos.reviewsDue>0)?78:48,'revisão':pos.reviewsDue?76:45,'reta final':ctx.requiredPace?.daysUntilExam&&ctx.requiredPace.daysUntilExam<=45?82:50,'manutenção':pos.strongDisciplines?.length?62:40}[route.type]||50; const risk={equilibrada:30,cobertura:45,desempenho:50,'recuperação':35,'revisão':28,'reta final':ctx.requiredPace?.daysUntilExam<=30?65:45,'manutenção':25}[route.type]||50; return {...route,impact,risk,confidence:Math.min(95,Math.max(20,route.confidence+(route.type==='equilibrada'?10:0))),projected:{coverageGainPct:round((d.coverageGap||0)*(impact/100),1),netGain:round(Math.max(0,d.netGap||0)*(impact/120),1),riskLabel:risk>=60?'alto':risk>=40?'médio':'baixo'}};}
+function scoreRouteCandidate(route,ctx={}){const feas=calculateFeasibility(ctx.currentPace,ctx.requiredPace,ctx.mission); const score=round(route.impact*0.38 + route.confidence*0.25 + feas.score*0.22 - route.risk*0.15,1); return {...route,feasibility:feas,score,reason:`impacto ${route.impact}, confiança ${route.confidence}, viabilidade ${feas.score}, risco ${route.risk}`};}
+function selectBestRoute(routes=[]){return [...routes].sort((a,b)=>b.score-a.score||b.confidence-a.confidence||a.risk-b.risk||String(a.type).localeCompare(String(b.type),'pt-BR'))[0]||null;}
+function buildNextBestAction(best={},ctx={}){const pos=ctx.position||{}; const subject=(ctx.analysis?.criticalDisciplines?.[0]?.discipline)||(ctx.analysis?.neglectedSubjects?.[0]?.discipline)||'a disciplina mais prioritária'; const by={cobertura:`Estude um item pendente do edital em ${subject} e registre questões ao final.`,desempenho:`Faça um bloco curto de questões em ${subject}, corrija erros e registre o resultado.`,recuperação:`Conclua uma meta futura pendente ou reagende apenas metas ainda não iniciadas.`,revisão:`Quite a revisão mais antiga pendente antes de abrir novo conteúdo.`, 'reta final':`Faça ou corrija um simulado e transforme erros em revisão dirigida.`,manutenção:`Mantenha pontos fortes com revisão leve e avance uma pendência menor.`,equilibrada:`Separe o próximo ciclo em conteúdo pendente, questões e revisão, começando por ${subject}.`}; return {title:'Próximo melhor passo',action:by[best.type]||by.equilibrada,estimatedMinutes:Math.min(180,Math.max(30,Math.round((best.weeklyLoadMinutes||120)/5))),guards:['Não altera registros concluídos.','Não promete aprovação.','Recalcule após novos estudos, questões, simulados ou metas.'],reviewsDue:pos.reviewsDue};}
+function detectRouteDeviation(nav={},ctx={}){const pos=ctx.position||{}; const alerts=[]; if(ctx.feasibility?.label==='inviável')alerts.push('rota inviável com a carga atual'); if(pos.goalCompletionPct&&pos.goalCompletionPct<50)alerts.push('atraso em metas'); if(ctx.requiredPace?.studyMinutesPerWeek&&ctx.mission?.weeklyAvailableMinutes&&ctx.requiredPace.studyMinutesPerWeek>ctx.mission.weeklyAvailableMinutes)alerts.push('excesso de carga'); if(ctx.analysis?.evolution?.accuracyPct?.direction==='queda')alerts.push('queda de desempenho'); if(pos.reviewsDue>0)alerts.push('revisões pendentes'); return {deviated:alerts.length>0,alerts};}
+function fingerprint(state={},mission={}){return JSON.stringify({st: [state.studies?.length,state.questionLogs?.length,state.dailyGoals?.length,state.simulados?.length,state.syllabusItems?.length,state.smartReviews?.length], mission:normalizeAdvisorMission(mission)});}
+function auditNavigationDecision(best,routes,ctx){return {decidedAt:today(ctx.options),criteria:['maior pontuação determinística','impacto','confiança','viabilidade','menor risco','desempate alfabético'],selected:best?.type||null,scores:routes.map(r=>({type:r.type,score:r.score,impact:r.impact,risk:r.risk,confidence:r.confidence,feasibility:r.feasibility.label}))};}
+function recalculateActiveRoute(nav={},ctx={}){const g=buildAutonomousGuidance(ctx); return {...clone(nav),activeRoute:g.bestRoute,lastProjection:g,lastRecalculatedAt:today(ctx.options),sourceFingerprint:fingerprint(ctx.state,ctx.mission),routeHistory:[...(nav.routeHistory||[]),{at:today(ctx.options),route:g.bestRoute?.type,score:g.bestRoute?.score}].slice(-20)};}
+function buildAutonomousGuidance(ctx={}){const mission=normalizeAdvisorMission(ctx.mission||{}), validation=validateAdvisorMission(mission,ctx.options); const position=buildCurrentPosition(ctx.state,ctx.analysis); const distance=calculateDistanceToDestination(position,mission); const currentPace=calculateCurrentPace(position,ctx.analysis?.period||{days:30}); const requiredPace=calculateRequiredPace(position,mission,ctx.options); const feasibility=calculateFeasibility(currentPace,requiredPace,mission); const routes=generateRouteCandidates({mission,position,distance,currentPace,requiredPace,analysis:ctx.analysis}).map(r=>scoreRouteCandidate(projectRouteOutcome(r,{mission,position,distance,currentPace,requiredPace,analysis:ctx.analysis}),{mission,currentPace,requiredPace,position})); const bestRoute=selectBestRoute(routes); const nextBestAction=buildNextBestAction(bestRoute,{mission,position,analysis:ctx.analysis}); const deviation=detectRouteDeviation(ctx.navigation,{mission,position,analysis:ctx.analysis,requiredPace,feasibility}); const audit=auditNavigationDecision(bestRoute,routes,{options:ctx.options}); return {version:1,mission,validation,position,distance,currentPace,requiredPace,feasibility,routes,bestRoute,nextBestAction,deviation,audit,autonomyMode:ctx.navigation?.autonomyMode||'copilot',sourceFingerprint:fingerprint(ctx.state,mission),message:`Rota recomendada: ${bestRoute?.type||'equilibrada'}. ${validation.partial?'Destino parcial: complete dados para aumentar a confiança. ':''}${nextBestAction.action}`};}
+return {normalizeAdvisorMission,validateAdvisorMission,buildCurrentPosition,calculateDistanceToDestination,calculateCurrentPace,calculateRequiredPace,calculateFeasibility,generateRouteCandidates,projectRouteOutcome,scoreRouteCandidate,selectBestRoute,buildNextBestAction,detectRouteDeviation,recalculateActiveRoute,auditNavigationDecision,buildAutonomousGuidance};
+});
+
+/* Aldus source: qconcursos-crosswalk.js */
+/*
+ * Cruzamento auditado em 18/07/2026.
+ * Contém apenas os rótulos do edital fornecido pelo usuário e a numeração factual do QC.
+ * k: exact = assunto exato; category = categoria mais ampla; unavailable = sem código próprio confirmado.
+ */
+window.QCONCURSOS_AUDITED_CROSSWALK = [
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.1 Princípios Fundamentais do Processo Penal.",
+    "s": "Princípios Fundamentais do Processo Penal",
+    "n": "2",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.1 Princípios Fundamentais do Processo Penal.",
+    "s": "Princípios Constitucionais do Processo Penal",
+    "n": "2",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.2 Sistemas Processuais Penais.",
+    "s": "Sistemas Processuais Penais",
+    "n": "1.3",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.2 Sistemas Processuais Penais.",
+    "s": "Sistema Acusatório, Inquisitivo e Misto",
+    "n": "1.3",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.3 Inquérito Policial.",
+    "s": "Inquérito Policial",
+    "n": "5",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.3 Inquérito Policial.",
+    "s": "Conceito, Natureza Jurídica, Características e Finalidade",
+    "n": "5",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.3 Inquérito Policial.",
+    "s": "Notitia Criminis",
+    "n": "5",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.3 Inquérito Policial.",
+    "s": "Diligências Policiais",
+    "n": "5",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.3 Inquérito Policial.",
+    "s": "Indiciamento",
+    "n": "5.8",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.3 Inquérito Policial.",
+    "s": "Prazo para Conclusão",
+    "n": "5",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.3 Inquérito Policial.",
+    "s": "Encerramento do Inquérito",
+    "n": "5.9",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.3 Inquérito Policial.",
+    "s": "Arquivamento",
+    "n": "5",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.3 Inquérito Policial.",
+    "s": "Vícios do Inquérito Policial",
+    "n": "5",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.3 Inquérito Policial.",
+    "s": "Valor Probatório do Inquérito",
+    "n": "5.3",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.3 Inquérito Policial.",
+    "s": "Atribuições do Delegado de Polícia no Inquérito Policial",
+    "n": "5",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.4 Ação Penal.",
+    "s": "Ação Penal",
+    "n": "8",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.4 Ação Penal.",
+    "s": "Conceito e Condições da Ação",
+    "n": "8",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.4 Ação Penal.",
+    "s": "Classificação",
+    "n": "8",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.4 Ação Penal.",
+    "s": "Princípios da Ação Penal",
+    "n": "8",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.4 Ação Penal.",
+    "s": "Queixa-Crime",
+    "n": "8",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.5 Competência.",
+    "s": "Competência",
+    "n": "10",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.5 Competência.",
+    "s": "Conceito e Critérios de Fixação",
+    "n": "10",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.5 Competência.",
+    "s": "Conexão e Continência",
+    "n": "10",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.5 Competência.",
+    "s": "Prevenção",
+    "n": "10",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.5 Competência.",
+    "s": "Desaforamento",
+    "n": "10",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.6 Prova.",
+    "s": "Prova",
+    "n": "14",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.6 Prova.",
+    "s": "Conceito, Objeto, Meios e Princípios",
+    "n": "14",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.6 Prova.",
+    "s": "Ônus da Prova",
+    "n": "14.3",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.6 Prova.",
+    "s": "Meios de Prova",
+    "n": "14",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.6 Prova.",
+    "s": "Provas Ilícitas",
+    "n": "14",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.6 Prova.",
+    "s": "Cadeia de Custódia",
+    "n": "14",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.7 Medidas Cautelares Pessoais.",
+    "s": "Medidas Cautelares Pessoais",
+    "n": "11.2",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.7 Medidas Cautelares Pessoais.",
+    "s": "Prisão em Flagrante",
+    "n": "11.2",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.7 Medidas Cautelares Pessoais.",
+    "s": "Prisão Preventiva",
+    "n": "11.2",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.7 Medidas Cautelares Pessoais.",
+    "s": "Prisão Temporária",
+    "n": "11.2",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.7 Medidas Cautelares Pessoais.",
+    "s": "Liberdade Provisória com ou sem Fiança",
+    "n": "11.2",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.7 Medidas Cautelares Pessoais.",
+    "s": "Medidas Cautelares Diversas da Prisão",
+    "n": "11.2",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.8 Prisão e Liberdade Provisória.",
+    "s": "Prisão e Liberdade Provisória",
+    "n": "11",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.8 Prisão e Liberdade Provisória.",
+    "s": "Arts. 283 a 350 do Código de Processo Penal",
+    "n": "11",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.9 Citações e Intimações.",
+    "s": "Citações e Intimações",
+    "n": "16",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.9 Citações e Intimações.",
+    "s": "Conceito, Formas e Finalidades",
+    "n": "16",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.10 Sentença Penal.",
+    "s": "Sentença Penal",
+    "n": "19",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.10 Sentença Penal.",
+    "s": "Conceito, Classificação e Requisitos",
+    "n": "19",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.10 Sentença Penal.",
+    "s": "Nulidades da Sentença",
+    "n": "19",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.11 Recursos.",
+    "s": "Recursos",
+    "n": "22",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.11 Recursos.",
+    "s": "Conceito, Princípios e Espécies",
+    "n": "22",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.11 Recursos.",
+    "s": "Recurso em Sentido Estrito",
+    "n": "22.6",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.11 Recursos.",
+    "s": "Apelação",
+    "n": "22.7",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.11 Recursos.",
+    "s": "Habeas Corpus",
+    "n": "23.1",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.11 Recursos.",
+    "s": "Recurso Especial e Recurso Extraordinário",
+    "n": "22",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.11 Recursos.",
+    "s": "Revisão Criminal",
+    "n": "23.2",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.12 Nulidades.",
+    "s": "Nulidades",
+    "n": "21",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.12 Nulidades.",
+    "s": "Conceito, Princípios e Classificação",
+    "n": "21",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.12 Nulidades.",
+    "s": "Vícios Insanáveis e Sanáveis",
+    "n": "21",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.12 Nulidades.",
+    "s": "Momento para Arguição",
+    "n": "21",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.13 Procedimentos Especiais do Código de Processo Penal.",
+    "s": "Procedimentos Especiais do Código de Processo Penal",
+    "n": "17",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.13 Procedimentos Especiais do Código de Processo Penal.",
+    "s": "Procedimento relativo aos Crimes de Responsabilidade dos Funcionários Públicos",
+    "n": "17.6",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.13 Procedimentos Especiais do Código de Processo Penal.",
+    "s": "Processo e julgamento dos crimes de Calúnia e Injúria",
+    "n": "17.7",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.13 Procedimentos Especiais do Código de Processo Penal.",
+    "s": "Procedimento do Tribunal do Júri",
+    "n": "17.5",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.14 Lei de Prisão Temporária.",
+    "s": "Lei de Prisão Temporária",
+    "n": "11.8",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.15 Lei do Depoimento Especial.",
+    "s": "Lei do Depoimento Especial",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.16 Investigação Criminal Conduzida pelo Delegado de Polícia.",
+    "s": "Investigação Criminal Conduzida pelo Delegado de Polícia",
+    "n": "5",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.17 Lei de Proteção a Vítimas e Testemunhas.",
+    "s": "Lei de Proteção a Vítimas e Testemunhas",
+    "n": "14.10",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.18 Juizados Especiais Criminais.",
+    "s": "Juizados Especiais Criminais",
+    "n": "17.4",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.19 Colaboração Premiada.",
+    "s": "Colaboração Premiada",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.20 Lei de Interceptação Telefônica.",
+    "s": "Lei de Interceptação Telefônica",
+    "n": "24",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.21 Apuração de Atos Infracionais – ECA.",
+    "s": "Apuração de Atos Infracionais – ECA",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.22 Investigação Criminal Digital.",
+    "s": "Investigação Criminal Digital",
+    "n": "6",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.22 Investigação Criminal Digital.",
+    "s": "Busca e Apreensão de Dispositivos Eletrônicos e Evidências Digitais",
+    "n": "14.15",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.22 Investigação Criminal Digital.",
+    "s": "Quebra de Sigilo Telemático e Cadeia de Custódia Digital",
+    "n": "6",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PROCESSUAL PENAL",
+    "t": "2.22 Investigação Criminal Digital.",
+    "s": "Conhecimentos Técnicos aplicados à Investigação Criminal: Redes de Computadores, Protocolos de Internet, Ataques Cibernéticos, Malware, Criptografia, Blockchain e Criptomoedas",
+    "n": "6",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.1 Princípios Fundamentais do Direito Penal.",
+    "s": "Princípios Fundamentais do Direito Penal",
+    "n": "1.2",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.1 Princípios Fundamentais do Direito Penal.",
+    "s": "Princípios da Legalidade, Anterioridade, Irretroatividade, Culpabilidade, Humanidade, Insignificância/Bagatela, Intervenção Mínima, Fragmentariedade e Subsidiariedade",
+    "n": "1.2",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.2 Aplicação da Lei Penal.",
+    "s": "Aplicação da Lei Penal",
+    "n": "1",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.2 Aplicação da Lei Penal.",
+    "s": "Lei Penal no Tempo",
+    "n": "1.5",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.2 Aplicação da Lei Penal.",
+    "s": "Lei Penal no Espaço",
+    "n": "1.6",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.2 Aplicação da Lei Penal.",
+    "s": "Contagem de prazos",
+    "n": "1",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.2 Aplicação da Lei Penal.",
+    "s": "Analogia",
+    "n": "1",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.2 Aplicação da Lei Penal.",
+    "s": "Interpretação da Lei Penal",
+    "n": "1",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.3 Teoria Geral do Crime.",
+    "s": "Teoria Geral do Crime",
+    "n": "2–8",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.3 Teoria Geral do Crime.",
+    "s": "Conceito de crime",
+    "n": "2.2",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.3 Teoria Geral do Crime.",
+    "s": "Fato Típico",
+    "n": "2–8",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.3 Teoria Geral do Crime.",
+    "s": "Dolo e Culpa",
+    "n": "2–8",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.3 Teoria Geral do Crime.",
+    "s": "Erro de Tipo",
+    "n": "3.19",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.3 Teoria Geral do Crime.",
+    "s": "Ilicitude",
+    "n": "2–8",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.3 Teoria Geral do Crime.",
+    "s": "Culpabilidade",
+    "n": "5",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.3 Teoria Geral do Crime.",
+    "s": "Erro de Proibição",
+    "n": "2–8",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.3 Teoria Geral do Crime.",
+    "s": "Coação Irresistível e Obediência Hierárquica",
+    "n": "2–8",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.4 Concurso de Pessoas.",
+    "s": "Concurso de Pessoas",
+    "n": "6",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.4 Concurso de Pessoas.",
+    "s": "Autoria e Participação",
+    "n": "6",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.4 Concurso de Pessoas.",
+    "s": "Teorias",
+    "n": "6",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.4 Concurso de Pessoas.",
+    "s": "Punibilidade do Partícipe",
+    "n": "6",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.5 Teoria da Pena.",
+    "s": "Teoria da Pena",
+    "n": "9–13",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.5 Teoria da Pena.",
+    "s": "Conceito, Finalidades e Espécies de Penas",
+    "n": "17.1",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.5 Teoria da Pena.",
+    "s": "Penas Privativas de Liberdade",
+    "n": "10",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.5 Teoria da Pena.",
+    "s": "Penas Restritivas de Direitos",
+    "n": "9–13",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.5 Teoria da Pena.",
+    "s": "Pena de Multa",
+    "n": "12",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.5 Teoria da Pena.",
+    "s": "Suspensão Condicional da Pena",
+    "n": "9–13",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.5 Teoria da Pena.",
+    "s": "Livramento Condicional",
+    "n": "14",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.5 Teoria da Pena.",
+    "s": "Efeitos da Condenação",
+    "n": "15",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.5 Teoria da Pena.",
+    "s": "Reabilitação",
+    "n": "16",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.5 Teoria da Pena.",
+    "s": "Medidas de Segurança",
+    "n": "9–13",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.6 Extinção da Punibilidade.",
+    "s": "Extinção da Punibilidade",
+    "n": "18",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.6 Extinção da Punibilidade.",
+    "s": "Causas de extinção",
+    "n": "18",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.6 Extinção da Punibilidade.",
+    "s": "Prescrição",
+    "n": "18",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.6 Extinção da Punibilidade.",
+    "s": "Decadência e Perempção",
+    "n": "18.14",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.7 Crimes Contra a Pessoa.",
+    "s": "Crimes Contra a Pessoa",
+    "n": "19–25",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.7 Crimes Contra a Pessoa.",
+    "s": "Homicídio",
+    "n": "19.1",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.7 Crimes Contra a Pessoa.",
+    "s": "Lesões Corporais",
+    "n": "20",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.7 Crimes Contra a Pessoa.",
+    "s": "Periclitação da Vida e da Saúde",
+    "n": "21",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.7 Crimes Contra a Pessoa.",
+    "s": "Rixa",
+    "n": "22",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.7 Crimes Contra a Pessoa.",
+    "s": "Crimes contra a Honra",
+    "n": "23",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.7 Crimes Contra a Pessoa.",
+    "s": "Crimes contra a Liberdade Individual",
+    "n": "19–25",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.8 Crimes Contra o Patrimônio.",
+    "s": "Crimes Contra o Patrimônio",
+    "n": "28",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.8 Crimes Contra o Patrimônio.",
+    "s": "Furto",
+    "n": "28.1",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.8 Crimes Contra o Patrimônio.",
+    "s": "Roubo e Extorsão",
+    "n": "28.2",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.8 Crimes Contra o Patrimônio.",
+    "s": "Dano",
+    "n": "28.7",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.8 Crimes Contra o Patrimônio.",
+    "s": "Apropriação Indébita",
+    "n": "28.8",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.8 Crimes Contra o Patrimônio.",
+    "s": "Estelionato e Outras Fraudes",
+    "n": "28.9",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.8 Crimes Contra o Patrimônio.",
+    "s": "Receptação",
+    "n": "28.12",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.9 Crimes Contra a Propriedade Imaterial.",
+    "s": "Crimes Contra a Propriedade Imaterial",
+    "n": "29",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.9 Crimes Contra a Propriedade Imaterial.",
+    "s": "Crimes contra a Propriedade Industrial",
+    "n": "29",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.9 Crimes Contra a Propriedade Imaterial.",
+    "s": "Crimes contra a Propriedade Intelectual",
+    "n": "40.9",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.10 Crimes Contra a Dignidade Sexual.",
+    "s": "Crimes Contra a Dignidade Sexual",
+    "n": "33",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.10 Crimes Contra a Dignidade Sexual.",
+    "s": "Estupro e demais Crimes Sexuais",
+    "n": "33.1",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.10 Crimes Contra a Dignidade Sexual.",
+    "s": "Satisfação de Lascívia Mediante Presença de Criança ou Adolescente",
+    "n": "33",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.10 Crimes Contra a Dignidade Sexual.",
+    "s": "Registro Não Autorizado de Intimidade Sexual",
+    "n": "33",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.11 Crimes Relacionados à Família e Relações de Dependência.",
+    "s": "Crimes Relacionados à Família e Relações de Dependência",
+    "n": "34",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.11 Crimes Relacionados à Família e Relações de Dependência.",
+    "s": "Bigamia",
+    "n": "34.1",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.11 Crimes Relacionados à Família e Relações de Dependência.",
+    "s": "Falsa Identidade",
+    "n": "34",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.11 Crimes Relacionados à Família e Relações de Dependência.",
+    "s": "Abandono Material",
+    "n": "34.7",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.12 Crimes Contra a Incolumidade Pública.",
+    "s": "Crimes Contra a Incolumidade Pública",
+    "n": "35",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.12 Crimes Contra a Incolumidade Pública.",
+    "s": "Crimes de Perigo Comum",
+    "n": "35.1",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.12 Crimes Contra a Incolumidade Pública.",
+    "s": "Crimes contra a Segurança dos Meios de Comunicação e Transporte",
+    "n": "35",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.12 Crimes Contra a Incolumidade Pública.",
+    "s": "Crimes contra a Saúde Pública",
+    "n": "35.3",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.13 Crimes Contra a Paz Pública.",
+    "s": "Crimes Contra a Paz Pública",
+    "n": "36",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.13 Crimes Contra a Paz Pública.",
+    "s": "Associação Criminosa",
+    "n": "36.3",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.13 Crimes Contra a Paz Pública.",
+    "s": "Constituição de Milícia Privada",
+    "n": "36.4",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.14 Crimes Contra a Fé Pública.",
+    "s": "Crimes Contra a Fé Pública",
+    "n": "37",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.14 Crimes Contra a Fé Pública.",
+    "s": "Moeda Falsa",
+    "n": "37.1",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.14 Crimes Contra a Fé Pública.",
+    "s": "Falsidade de Documento Público e Particular",
+    "n": "37.4",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.14 Crimes Contra a Fé Pública.",
+    "s": "Falsidade Ideológica",
+    "n": "37.6",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.14 Crimes Contra a Fé Pública.",
+    "s": "Falsificação de Carteira de Trabalho e Previdência Social",
+    "n": "37",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.15 Crimes Contra a Administração Pública.",
+    "s": "Crimes Contra a Administração Pública",
+    "n": "38",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.15 Crimes Contra a Administração Pública.",
+    "s": "Crimes Praticados por Funcionário Público Contra a Administração em Geral",
+    "n": "38",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.15 Crimes Contra a Administração Pública.",
+    "s": "Crimes Praticados por Particular Contra a Administração em Geral",
+    "n": "38",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.15 Crimes Contra a Administração Pública.",
+    "s": "Crimes Contra a Administração da Justiça",
+    "n": "38",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.15 Crimes Contra a Administração Pública.",
+    "s": "Crimes Contra as Finanças Públicas",
+    "n": "38.47",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.16 Crimes em Licitações e Contratos Administrativos.",
+    "s": "Crimes em Licitações e Contratos Administrativos",
+    "n": "38.31",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.17 Lei das Contravenções Penais.",
+    "s": "Lei das Contravenções Penais",
+    "n": "40.1",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.18 Crimes de Trânsito.",
+    "s": "Crimes de Trânsito",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.19 Crimes Eleitorais.",
+    "s": "Crimes Eleitorais",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.20 Crimes contra a Ordem Tributária, Econômica e Relações de Consumo.",
+    "s": "Crimes contra a Ordem Tributária, Econômica e Relações de Consumo",
+    "n": "40.7",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.21 Crimes de Abuso de Autoridade.",
+    "s": "Crimes de Abuso de Autoridade",
+    "n": "40.2",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.22 Crimes de Tráfico de Drogas.",
+    "s": "Crimes de Tráfico de Drogas",
+    "n": "40.13",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.23 Crimes Resultantes de Preconceito de Raça ou de Cor.",
+    "s": "Crimes Resultantes de Preconceito de Raça ou de Cor",
+    "n": "40.5",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.24 Organizações Criminosas.",
+    "s": "Organizações Criminosas",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.25 Crimes contra o Meio Ambiente.",
+    "s": "Crimes contra o Meio Ambiente",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.26 Estatuto da Criança e do Adolescente – Crimes.",
+    "s": "Estatuto da Criança e do Adolescente – Crimes",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.27 Estatuto do Idoso – Crimes.",
+    "s": "Estatuto do Idoso – Crimes",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.28 Estatuto do Desarmamento.",
+    "s": "Estatuto do Desarmamento",
+    "n": "40.11",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.29 Crimes de Tortura.",
+    "s": "Crimes de Tortura",
+    "n": "40.8",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.30 Violência Doméstica e Familiar Contra a Mulher.",
+    "s": "Violência Doméstica e Familiar Contra a Mulher",
+    "n": "20.4",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.31 Violência Doméstica e Familiar Contra Criança e Adolescente – Lei Henry Borel.",
+    "s": "Violência Doméstica e Familiar Contra Criança e Adolescente – Lei Henry Borel",
+    "n": "20.4",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.32 Crimes Hediondos.",
+    "s": "Crimes Hediondos",
+    "n": "40.6",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.33 Crimes Contra o Sistema Financeiro Nacional.",
+    "s": "Crimes Contra o Sistema Financeiro Nacional",
+    "n": "40.4",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.34 Lavagem ou Ocultação de Bens, Direitos e Valores.",
+    "s": "Lavagem ou Ocultação de Bens, Direitos e Valores",
+    "n": "40.10",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO PENAL",
+    "t": "1.35 Crimes Cibernéticos.",
+    "s": "Crimes Cibernéticos",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.1 Conceito, fontes e princípios do Direito Administrativo.",
+    "s": "Conceito, fontes e princípios do Direito Administrativo",
+    "n": "1 / 2",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.1 Conceito, fontes e princípios do Direito Administrativo.",
+    "s": "Princípios da Administração Pública",
+    "n": "2.2",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.1 Conceito, fontes e princípios do Direito Administrativo.",
+    "s": "Disposições da Lei de Introdução às Normas do Direito Brasileiro (LINDB) aplicáveis ao Direito Administrativo",
+    "n": "1 / 2",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.2 Administração Pública.",
+    "s": "Administração Pública",
+    "n": "2 / 3",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.2 Administração Pública.",
+    "s": "Administração direta e indireta",
+    "n": "3.2",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.2 Administração Pública.",
+    "s": "Autarquias",
+    "n": "3.5",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.2 Administração Pública.",
+    "s": "Fundações",
+    "n": "3.7",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.2 Administração Pública.",
+    "s": "Empresas públicas",
+    "n": "3.8",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.2 Administração Pública.",
+    "s": "Sociedades de economia mista",
+    "n": "2 / 3",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.3 Atos Administrativos.",
+    "s": "Atos Administrativos",
+    "n": "5",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.3 Atos Administrativos.",
+    "s": "Requisitos",
+    "n": "5.2",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.3 Atos Administrativos.",
+    "s": "Atributos",
+    "n": "5.4",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.3 Atos Administrativos.",
+    "s": "Classificação",
+    "n": "5",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.3 Atos Administrativos.",
+    "s": "Espécies",
+    "n": "5",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.3 Atos Administrativos.",
+    "s": "Revogação",
+    "n": "5",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.3 Atos Administrativos.",
+    "s": "Invalidação",
+    "n": "5",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.3 Atos Administrativos.",
+    "s": "Convalidação",
+    "n": "5",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.4 Poderes Administrativos.",
+    "s": "Poderes Administrativos",
+    "n": "4",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.4 Poderes Administrativos.",
+    "s": "Poder hierárquico",
+    "n": "4",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.4 Poderes Administrativos.",
+    "s": "Poder disciplinar",
+    "n": "4",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.4 Poderes Administrativos.",
+    "s": "Poder regulamentar",
+    "n": "4",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.4 Poderes Administrativos.",
+    "s": "Poder de polícia",
+    "n": "4.4",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.4 Poderes Administrativos.",
+    "s": "Abuso de poder",
+    "n": "4.1",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.4 Poderes Administrativos.",
+    "s": "Lei de Abuso de Autoridade – Lei nº 13.869/2019",
+    "n": "4",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.5 Serviços Públicos.",
+    "s": "Serviços Públicos",
+    "n": "13",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.5 Serviços Públicos.",
+    "s": "Conceito",
+    "n": "13",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.5 Serviços Públicos.",
+    "s": "Características",
+    "n": "13",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.5 Serviços Públicos.",
+    "s": "Formas de prestação",
+    "n": "13",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.6 Licitações e Contratos Administrativos.",
+    "s": "Licitações e Contratos Administrativos",
+    "n": "9 / 10",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.6 Licitações e Contratos Administrativos.",
+    "s": "Lei nº 14.133/2021",
+    "n": "9",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.6 Licitações e Contratos Administrativos.",
+    "s": "Disposições aplicáveis",
+    "n": "9 / 10",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.7 Agentes Públicos.",
+    "s": "Agentes Públicos",
+    "n": "18",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.7 Agentes Públicos.",
+    "s": "Cargos, empregos e funções públicas",
+    "n": "18",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.7 Agentes Públicos.",
+    "s": "Investidura",
+    "n": "18",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.7 Agentes Públicos.",
+    "s": "Direitos",
+    "n": "18",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.7 Agentes Públicos.",
+    "s": "Deveres",
+    "n": "18",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.7 Agentes Públicos.",
+    "s": "Responsabilidades",
+    "n": "18.9",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.7 Agentes Públicos.",
+    "s": "Processo administrativo disciplinar",
+    "n": "18",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.8 Responsabilidade Civil do Estado.",
+    "s": "Responsabilidade Civil do Estado",
+    "n": "15",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.8 Responsabilidade Civil do Estado.",
+    "s": "Teoria do risco administrativo",
+    "n": "15",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.8 Responsabilidade Civil do Estado.",
+    "s": "Responsabilidade por atos de agentes públicos",
+    "n": "15",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.8 Responsabilidade Civil do Estado.",
+    "s": "Causas excludentes",
+    "n": "15",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.9 Improbidade Administrativa.",
+    "s": "Improbidade Administrativa",
+    "n": "17",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.9 Improbidade Administrativa.",
+    "s": "Lei nº 8.429/1992 e alterações posteriores",
+    "n": "17",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.9 Improbidade Administrativa.",
+    "s": "Atos de improbidade",
+    "n": "17.2",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.9 Improbidade Administrativa.",
+    "s": "Penalidades",
+    "n": "17",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.9 Improbidade Administrativa.",
+    "s": "Disposições aplicáveis",
+    "n": "17",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.10 Controle da Administração Pública.",
+    "s": "Controle da Administração Pública",
+    "n": "16",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.10 Controle da Administração Pública.",
+    "s": "Controle administrativo",
+    "n": "16.2",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.10 Controle da Administração Pública.",
+    "s": "Controle judicial",
+    "n": "16",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.10 Controle da Administração Pública.",
+    "s": "Controle legislativo",
+    "n": "16",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO ADMINISTRATIVO",
+    "t": "9.10 Controle da Administração Pública.",
+    "s": "Autotutela administrativa",
+    "n": "16",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.1 Princípios fundamentais da Constituição da República Federativa do Brasil de 1988.",
+    "s": "Princípios fundamentais da Constituição da República Federativa do Brasil de 1988",
+    "n": "3",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.2 Direitos e garantias fundamentais.",
+    "s": "Direitos e garantias fundamentais",
+    "n": "4–10",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.2 Direitos e garantias fundamentais.",
+    "s": "Direitos individuais e coletivos",
+    "n": "5",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.2 Direitos e garantias fundamentais.",
+    "s": "Direitos sociais",
+    "n": "7",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.2 Direitos e garantias fundamentais.",
+    "s": "Nacionalidade",
+    "n": "4–10",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.2 Direitos e garantias fundamentais.",
+    "s": "Direitos políticos",
+    "n": "9",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.2 Direitos e garantias fundamentais.",
+    "s": "Garantias constitucionais",
+    "n": "4–10",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.2 Direitos e garantias fundamentais.",
+    "s": "Devido processo legal",
+    "n": "4–10",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.2 Direitos e garantias fundamentais.",
+    "s": "Inviolabilidade de domicílio",
+    "n": "4–10",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.2 Direitos e garantias fundamentais.",
+    "s": "Sigilo de dados e comunicações",
+    "n": "4–10",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.2 Direitos e garantias fundamentais.",
+    "s": "Prisão e liberdade",
+    "n": "4–10",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.3 Remédios constitucionais.",
+    "s": "Remédios constitucionais",
+    "n": "6",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.3 Remédios constitucionais.",
+    "s": "Habeas corpus",
+    "n": "6.2",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.3 Remédios constitucionais.",
+    "s": "Habeas data",
+    "n": "6.3",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.3 Remédios constitucionais.",
+    "s": "Mandado de segurança",
+    "n": "6.4",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.3 Remédios constitucionais.",
+    "s": "Mandado de injunção",
+    "n": "6.6",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.3 Remédios constitucionais.",
+    "s": "Ação popular",
+    "n": "6.7",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.4 Organização do Estado.",
+    "s": "Organização do Estado",
+    "n": "11",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.4 Organização do Estado.",
+    "s": "União",
+    "n": "11",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.4 Organização do Estado.",
+    "s": "Estados",
+    "n": "11",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.4 Organização do Estado.",
+    "s": "Municípios",
+    "n": "11",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.4 Organização do Estado.",
+    "s": "Distrito Federal",
+    "n": "11",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.4 Organização do Estado.",
+    "s": "Competências constitucionais",
+    "n": "11",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.5 Poderes da União.",
+    "s": "Poderes da União",
+    "n": "13–19",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.5 Poderes da União.",
+    "s": "Poder Executivo",
+    "n": "16",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.5 Poderes da União.",
+    "s": "Poder Legislativo",
+    "n": "14",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.5 Poderes da União.",
+    "s": "Poder Judiciário",
+    "n": "17",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.5 Poderes da União.",
+    "s": "Funções, competências e limites constitucionais",
+    "n": "13–19",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.6 Segurança pública na Constituição Federal.",
+    "s": "Segurança pública na Constituição Federal",
+    "n": "21.3",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.6 Segurança pública na Constituição Federal.",
+    "s": "Disposições do art. 144 da Constituição Federal",
+    "n": "21.3",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.6 Segurança pública na Constituição Federal.",
+    "s": "Organização, competências e atribuições das polícias",
+    "n": "21.3",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.6 Segurança pública na Constituição Federal.",
+    "s": "Polícia Civil",
+    "n": "21.3",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.6 Segurança pública na Constituição Federal.",
+    "s": "Polícia Judiciária e investigação criminal",
+    "n": "21.3",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.7 Controle de constitucionalidade.",
+    "s": "Controle de constitucionalidade",
+    "n": "20",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.7 Controle de constitucionalidade.",
+    "s": "Ação direta de inconstitucionalidade",
+    "n": "20",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.7 Controle de constitucionalidade.",
+    "s": "Ação declaratória de constitucionalidade",
+    "n": "20.8",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.8 Constituição do Estado do Paraná.",
+    "s": "Constituição do Estado do Paraná",
+    "n": "26",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.8 Constituição do Estado do Paraná.",
+    "s": "Disposições relativas à Administração Pública",
+    "n": "26",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.8 Constituição do Estado do Paraná.",
+    "s": "Servidores públicos",
+    "n": "12.2",
+    "k": "exact"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.8 Constituição do Estado do Paraná.",
+    "s": "Segurança pública",
+    "n": "26",
+    "k": "category"
+  },
+  {
+    "d": "DIREITO CONSTITUCIONAL",
+    "t": "8.8 Constituição do Estado do Paraná.",
+    "s": "Polícia Civil do Estado do Paraná",
+    "n": "26",
+    "k": "category"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.1 Medicina Legal.",
+    "s": "Medicina Legal",
+    "n": "1",
+    "k": "exact"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.1 Medicina Legal.",
+    "s": "Conceito e divisão da Medicina Legal",
+    "n": "1",
+    "k": "category"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.1 Medicina Legal.",
+    "s": "Histórico e importância para o Direito",
+    "n": "1",
+    "k": "category"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.1 Medicina Legal.",
+    "s": "Perícia médico-legal",
+    "n": "3.3",
+    "k": "exact"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.2 Antropologia Forense.",
+    "s": "Antropologia Forense",
+    "n": "7",
+    "k": "exact"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.2 Antropologia Forense.",
+    "s": "Identificação humana",
+    "n": "7",
+    "k": "category"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.2 Antropologia Forense.",
+    "s": "Papiloscopia, prosopografia, odontologia legal e identificação por DNA",
+    "n": "7",
+    "k": "category"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.2 Antropologia Forense.",
+    "s": "Reconhecimento facial automatizado",
+    "n": "7",
+    "k": "category"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.2 Antropologia Forense.",
+    "s": "Aplicação de inteligência artificial na identificação pericial",
+    "n": "7",
+    "k": "category"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.3 Sexologia Forense.",
+    "s": "Sexologia Forense",
+    "n": "4",
+    "k": "exact"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.3 Sexologia Forense.",
+    "s": "Hímen, gravidez, parto, aborto e crimes sexuais",
+    "n": "4",
+    "k": "category"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.4 Traumatologia Forense.",
+    "s": "Traumatologia Forense",
+    "n": "3",
+    "k": "exact"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.4 Traumatologia Forense.",
+    "s": "Lesões e suas classificações",
+    "n": "3",
+    "k": "category"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.4 Traumatologia Forense.",
+    "s": "Lesões por instrumentos contundentes, cortantes, perfurantes, perfurocortantes e perfurocontundentes",
+    "n": "3",
+    "k": "category"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.4 Traumatologia Forense.",
+    "s": "Asfixiologia forense",
+    "n": "5",
+    "k": "exact"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.4 Traumatologia Forense.",
+    "s": "Balística forense",
+    "n": "3.4",
+    "k": "exact"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.5 Tanatologia Forense.",
+    "s": "Tanatologia Forense",
+    "n": "6",
+    "k": "exact"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.5 Tanatologia Forense.",
+    "s": "Morte",
+    "n": "6",
+    "k": "category"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.5 Tanatologia Forense.",
+    "s": "Fenômenos cadavéricos",
+    "n": "6",
+    "k": "category"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.5 Tanatologia Forense.",
+    "s": "Data da morte",
+    "n": "6",
+    "k": "category"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.5 Tanatologia Forense.",
+    "s": "Causas jurídicas da morte",
+    "n": "6",
+    "k": "category"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.5 Tanatologia Forense.",
+    "s": "Necropsia",
+    "n": "6",
+    "k": "category"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.6 Toxicologia Forense.",
+    "s": "Toxicologia Forense",
+    "n": "11",
+    "k": "exact"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.6 Toxicologia Forense.",
+    "s": "Conceito e importância",
+    "n": "11",
+    "k": "category"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.6 Toxicologia Forense.",
+    "s": "Intoxicações por álcool, entorpecentes e outras substâncias",
+    "n": "11",
+    "k": "category"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.6 Toxicologia Forense.",
+    "s": "Exames toxicológicos",
+    "n": "11",
+    "k": "category"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.7 Psicopatologia Forense.",
+    "s": "Psicopatologia Forense",
+    "n": "8",
+    "k": "category"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.7 Psicopatologia Forense.",
+    "s": "Sanidade mental e imputabilidade penal",
+    "n": "8",
+    "k": "category"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.7 Psicopatologia Forense.",
+    "s": "Doenças mentais e transtornos de personalidade com repercussão penal",
+    "n": "8",
+    "k": "category"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.7 Psicopatologia Forense.",
+    "s": "Simulação e dissimulação",
+    "n": "8",
+    "k": "category"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.7 Psicopatologia Forense.",
+    "s": "Perícia psiquiátrica forense",
+    "n": "3.3",
+    "k": "exact"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.8 Criminologia e Vitimologia Forense.",
+    "s": "Criminologia e Vitimologia Forense",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "MEDICINA LEGAL",
+    "t": "8.8 Criminologia e Vitimologia Forense.",
+    "s": "Aspectos médico-legais da criminalidade e da vitimização",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "DIREITOS HUMANOS",
+    "t": "10.1 Teoria Geral dos Direitos Humanos.",
+    "s": "Teoria Geral dos Direitos Humanos",
+    "n": "1",
+    "k": "category"
+  },
+  {
+    "d": "DIREITOS HUMANOS",
+    "t": "10.1 Teoria Geral dos Direitos Humanos.",
+    "s": "Conceito, características, princípios e evolução histórica dos Direitos Humanos",
+    "n": "1",
+    "k": "category"
+  },
+  {
+    "d": "DIREITOS HUMANOS",
+    "t": "10.2 Sistemas de Proteção dos Direitos Humanos.",
+    "s": "Sistemas de Proteção dos Direitos Humanos",
+    "n": "2–7",
+    "k": "category"
+  },
+  {
+    "d": "DIREITOS HUMANOS",
+    "t": "10.2 Sistemas de Proteção dos Direitos Humanos.",
+    "s": "Sistema global de proteção dos Direitos Humanos",
+    "n": "2–7",
+    "k": "category"
+  },
+  {
+    "d": "DIREITOS HUMANOS",
+    "t": "10.2 Sistemas de Proteção dos Direitos Humanos.",
+    "s": "Sistema interamericano de proteção dos Direitos Humanos",
+    "n": "2–7",
+    "k": "category"
+  },
+  {
+    "d": "DIREITOS HUMANOS",
+    "t": "10.2 Sistemas de Proteção dos Direitos Humanos.",
+    "s": "Tratados internacionais de proteção dos Direitos Humanos",
+    "n": "2–7",
+    "k": "category"
+  },
+  {
+    "d": "DIREITOS HUMANOS",
+    "t": "10.2 Sistemas de Proteção dos Direitos Humanos.",
+    "s": "Constituição da República Federativa do Brasil de 1988 e Direitos Humanos",
+    "n": "2–7",
+    "k": "category"
+  },
+  {
+    "d": "DIREITOS HUMANOS",
+    "t": "10.3 Democracia, cidadania e Direitos Humanos.",
+    "s": "Democracia, cidadania e Direitos Humanos",
+    "n": "9 / 11",
+    "k": "category"
+  },
+  {
+    "d": "DIREITOS HUMANOS",
+    "t": "10.4 Direitos Humanos e grupos vulneráveis.",
+    "s": "Direitos Humanos e grupos vulneráveis",
+    "n": "5 / 7",
+    "k": "category"
+  },
+  {
+    "d": "DIREITOS HUMANOS",
+    "t": "10.4 Direitos Humanos e grupos vulneráveis.",
+    "s": "Mulheres",
+    "n": "5 / 7",
+    "k": "category"
+  },
+  {
+    "d": "DIREITOS HUMANOS",
+    "t": "10.4 Direitos Humanos e grupos vulneráveis.",
+    "s": "Idosos",
+    "n": "5 / 7",
+    "k": "category"
+  },
+  {
+    "d": "DIREITOS HUMANOS",
+    "t": "10.4 Direitos Humanos e grupos vulneráveis.",
+    "s": "Crianças e adolescentes",
+    "n": "5 / 7",
+    "k": "category"
+  },
+  {
+    "d": "DIREITOS HUMANOS",
+    "t": "10.4 Direitos Humanos e grupos vulneráveis.",
+    "s": "Povos indígenas e comunidades tradicionais",
+    "n": "5 / 7",
+    "k": "category"
+  },
+  {
+    "d": "DIREITOS HUMANOS",
+    "t": "10.4 Direitos Humanos e grupos vulneráveis.",
+    "s": "Pessoas com deficiência",
+    "n": "5 / 7",
+    "k": "category"
+  },
+  {
+    "d": "DIREITOS HUMANOS",
+    "t": "10.4 Direitos Humanos e grupos vulneráveis.",
+    "s": "População LGBTQIA+",
+    "n": "5 / 7",
+    "k": "category"
+  },
+  {
+    "d": "DIREITOS HUMANOS",
+    "t": "10.4 Direitos Humanos e grupos vulneráveis.",
+    "s": "Refugiados",
+    "n": "5 / 7",
+    "k": "category"
+  },
+  {
+    "d": "DIREITOS HUMANOS",
+    "t": "10.5 Segurança pública e Direitos Humanos.",
+    "s": "Segurança pública e Direitos Humanos",
+    "n": "9",
+    "k": "category"
+  },
+  {
+    "d": "DIREITOS HUMANOS",
+    "t": "10.5 Segurança pública e Direitos Humanos.",
+    "s": "Dignidade da pessoa humana",
+    "n": "9",
+    "k": "category"
+  },
+  {
+    "d": "DIREITOS HUMANOS",
+    "t": "10.5 Segurança pública e Direitos Humanos.",
+    "s": "Uso proporcional da força",
+    "n": "9",
+    "k": "category"
+  },
+  {
+    "d": "DIREITOS HUMANOS",
+    "t": "10.5 Segurança pública e Direitos Humanos.",
+    "s": "Prevenção da tortura",
+    "n": "9",
+    "k": "category"
+  },
+  {
+    "d": "DIREITOS HUMANOS",
+    "t": "10.5 Segurança pública e Direitos Humanos.",
+    "s": "Direitos da pessoa presa",
+    "n": "9",
+    "k": "category"
+  },
+  {
+    "d": "DIREITOS HUMANOS",
+    "t": "10.5 Segurança pública e Direitos Humanos.",
+    "s": "Atuação policial e Direitos Humanos",
+    "n": "9",
+    "k": "category"
+  },
+  {
+    "d": "DIREITOS HUMANOS",
+    "t": "10.6 Política Nacional de Direitos Humanos.",
+    "s": "Política Nacional de Direitos Humanos",
+    "n": "10",
+    "k": "category"
+  },
+  {
+    "d": "DIREITOS HUMANOS",
+    "t": "10.6 Política Nacional de Direitos Humanos.",
+    "s": "Educação em Direitos Humanos",
+    "n": "10",
+    "k": "category"
+  },
+  {
+    "d": "DIREITOS HUMANOS",
+    "t": "10.6 Política Nacional de Direitos Humanos.",
+    "s": "Cultura de proteção dos Direitos Humanos",
+    "n": "10",
+    "k": "category"
+  },
+  {
+    "d": "DIREITOS HUMANOS",
+    "t": "10.7 Agenda 2030 e Objetivos de Desenvolvimento Sustentável – ODS.",
+    "s": "Agenda 2030 e Objetivos de Desenvolvimento Sustentável – ODS",
+    "n": "5.26",
+    "k": "exact"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECIAL – DIREITO ADMINISTRATIVO",
+    "t": "Legislação específica",
+    "s": "Lei Federal nº 14.735/2023",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECIAL – DIREITO ADMINISTRATIVO",
+    "t": "Legislação específica",
+    "s": "Lei nº 13.869/2019",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECIAL – DIREITO ADMINISTRATIVO",
+    "t": "Legislação específica",
+    "s": "Lei nº 12.037/2009",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECIAL – DIREITO ADMINISTRATIVO",
+    "t": "Legislação específica",
+    "s": "Lei nº 13.709/2018",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECIAL – DIREITO ADMINISTRATIVO",
+    "t": "Legislação específica",
+    "s": "Lei nº 12.527/2011",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PENAL",
+    "t": "Legislação específica",
+    "s": "Decreto-Lei nº 2.848/1940",
+    "n": "1–39",
+    "k": "category"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PENAL",
+    "t": "Legislação específica",
+    "s": "Decreto-Lei nº 3.688/1941",
+    "n": "40.1",
+    "k": "exact"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PENAL",
+    "t": "Legislação específica",
+    "s": "Lei nº 9.503/1997",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PENAL",
+    "t": "Legislação específica",
+    "s": "Lei nº 4.737/1965",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PENAL",
+    "t": "Legislação específica",
+    "s": "Lei nº 8.137/1990",
+    "n": "40.7",
+    "k": "exact"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PENAL",
+    "t": "Legislação específica",
+    "s": "Lei nº 13.869/2019",
+    "n": "40.2",
+    "k": "exact"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PENAL",
+    "t": "Legislação específica",
+    "s": "Lei nº 11.343/2006",
+    "n": "40.13",
+    "k": "exact"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PENAL",
+    "t": "Legislação específica",
+    "s": "Lei nº 7.716/1989",
+    "n": "40.5",
+    "k": "exact"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PENAL",
+    "t": "Legislação específica",
+    "s": "Lei nº 12.850/2013",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PENAL",
+    "t": "Legislação específica",
+    "s": "Lei nº 9.605/1998",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PENAL",
+    "t": "Legislação específica",
+    "s": "Lei nº 8.069/1990",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PENAL",
+    "t": "Legislação específica",
+    "s": "Lei nº 10.741/2003",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PENAL",
+    "t": "Legislação específica",
+    "s": "Lei nº 10.826/2003",
+    "n": "40.11",
+    "k": "exact"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PENAL",
+    "t": "Legislação específica",
+    "s": "Lei nº 9.455/1997",
+    "n": "40.8",
+    "k": "exact"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PENAL",
+    "t": "Legislação específica",
+    "s": "Lei nº 11.340/2006",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PENAL",
+    "t": "Legislação específica",
+    "s": "Lei nº 14.344/2022",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PENAL",
+    "t": "Legislação específica",
+    "s": "Lei nº 8.072/1990",
+    "n": "40.6",
+    "k": "exact"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PENAL",
+    "t": "Legislação específica",
+    "s": "Lei nº 7.492/1986",
+    "n": "40.4",
+    "k": "exact"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PENAL",
+    "t": "Legislação específica",
+    "s": "Lei nº 9.613/1998",
+    "n": "40.10",
+    "k": "exact"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PENAL",
+    "t": "Legislação específica",
+    "s": "Crimes cibernéticos",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PROCESSUAL PENAL",
+    "t": "Legislação específica",
+    "s": "Decreto-Lei nº 3.689/1941",
+    "n": "1–24",
+    "k": "category"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PROCESSUAL PENAL",
+    "t": "Legislação específica",
+    "s": "Lei nº 7.960/1989",
+    "n": "11.8",
+    "k": "exact"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PROCESSUAL PENAL",
+    "t": "Legislação específica",
+    "s": "Lei nº 13.431/2017",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PROCESSUAL PENAL",
+    "t": "Legislação específica",
+    "s": "Lei nº 12.830/2013",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PROCESSUAL PENAL",
+    "t": "Legislação específica",
+    "s": "Lei nº 9.807/1999",
+    "n": "14.10",
+    "k": "exact"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PROCESSUAL PENAL",
+    "t": "Legislação específica",
+    "s": "Lei nº 9.099/1995",
+    "n": "17.4",
+    "k": "exact"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PROCESSUAL PENAL",
+    "t": "Legislação específica",
+    "s": "Lei nº 12.850/2013",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PROCESSUAL PENAL",
+    "t": "Legislação específica",
+    "s": "Lei nº 9.296/1996",
+    "n": "24",
+    "k": "exact"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PROCESSUAL PENAL",
+    "t": "Legislação específica",
+    "s": "Lei nº 8.069/1990",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO PROCESSUAL PENAL",
+    "t": "Legislação específica",
+    "s": "Investigação Criminal Digital",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITOS HUMANOS",
+    "t": "Legislação específica",
+    "s": "Constituição da República Federativa do Brasil de 1988",
+    "n": "9",
+    "k": "category"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITOS HUMANOS",
+    "t": "Legislação específica",
+    "s": "Tratados internacionais de proteção dos Direitos Humanos",
+    "n": "5 / 7",
+    "k": "category"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITOS HUMANOS",
+    "t": "Legislação específica",
+    "s": "Política Nacional de Direitos Humanos",
+    "n": "10",
+    "k": "exact"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITOS HUMANOS",
+    "t": "Legislação específica",
+    "s": "Agenda 2030",
+    "n": "5.26",
+    "k": "exact"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO CONSTITUCIONAL",
+    "t": "Constituição da República Federativa do Brasil de 1988",
+    "s": "Art. 1º ao art. 4º",
+    "n": "3",
+    "k": "exact"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO CONSTITUCIONAL",
+    "t": "Constituição da República Federativa do Brasil de 1988",
+    "s": "Art. 5º",
+    "n": "5",
+    "k": "exact"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO CONSTITUCIONAL",
+    "t": "Constituição da República Federativa do Brasil de 1988",
+    "s": "Art. 6º ao art. 11",
+    "n": "7",
+    "k": "exact"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO CONSTITUCIONAL",
+    "t": "Constituição da República Federativa do Brasil de 1988",
+    "s": "Art. 12 e art. 13",
+    "n": "8",
+    "k": "exact"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO CONSTITUCIONAL",
+    "t": "Constituição da República Federativa do Brasil de 1988",
+    "s": "Art. 14 ao art. 16",
+    "n": "9",
+    "k": "exact"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO CONSTITUCIONAL",
+    "t": "Constituição da República Federativa do Brasil de 1988",
+    "s": "Art. 18 ao art. 36",
+    "n": "11",
+    "k": "exact"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO CONSTITUCIONAL",
+    "t": "Constituição da República Federativa do Brasil de 1988",
+    "s": "Art. 44 ao art. 135",
+    "n": "13–19",
+    "k": "category"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO CONSTITUCIONAL",
+    "t": "Constituição da República Federativa do Brasil de 1988",
+    "s": "Art. 102 e art. 103",
+    "n": "17",
+    "k": "category"
+  },
+  {
+    "d": "LEGISLAÇÃO ESPECÍFICA – DIREITO CONSTITUCIONAL",
+    "t": "Constituição da República Federativa do Brasil de 1988",
+    "s": "Art. 144",
+    "n": "21.3",
+    "k": "exact"
+  },
+  {
+    "d": "PEÇA PARA DELEGADO DE POLÍCIA CIVIL",
+    "t": "Peças práticas",
+    "s": "Representação por Prisão Temporária",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "PEÇA PARA DELEGADO DE POLÍCIA CIVIL",
+    "t": "Peças práticas",
+    "s": "Representação por Prisão Preventiva",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "PEÇA PARA DELEGADO DE POLÍCIA CIVIL",
+    "t": "Peças práticas",
+    "s": "Representação por Busca e Apreensão",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "PEÇA PARA DELEGADO DE POLÍCIA CIVIL",
+    "t": "Peças práticas",
+    "s": "Representação por Interceptação Telefônica",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "PEÇA PARA DELEGADO DE POLÍCIA CIVIL",
+    "t": "Peças práticas",
+    "s": "Representação por Interceptação Telemática",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "PEÇA PARA DELEGADO DE POLÍCIA CIVIL",
+    "t": "Peças práticas",
+    "s": "Representação por Interceptação Ambiental",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "PEÇA PARA DELEGADO DE POLÍCIA CIVIL",
+    "t": "Peças práticas",
+    "s": "Representação por Quebra de Sigilo Financeiro",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "PEÇA PARA DELEGADO DE POLÍCIA CIVIL",
+    "t": "Peças práticas",
+    "s": "Representação por Quebra de Sigilo Bancário",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "PEÇA PARA DELEGADO DE POLÍCIA CIVIL",
+    "t": "Peças práticas",
+    "s": "Representação por Quebra de Sigilo Fiscal",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "PEÇA PARA DELEGADO DE POLÍCIA CIVIL",
+    "t": "Peças práticas",
+    "s": "Representação por Quebra de Sigilo Telefônico",
+    "n": "",
+    "k": "unavailable"
+  },
+  {
+    "d": "PEÇA PARA DELEGADO DE POLÍCIA CIVIL",
+    "t": "Peças práticas",
+    "s": "Representação por Quebra de Sigilo Telemático",
+    "n": "",
+    "k": "unavailable"
+  }
+];
+
+/* Aldus source: sync-integral-core.js */
+const SYNC_COLLECTIONS = [
+  "subjects", "studies", "syllabusItems", "dailyGoals", "questionLogs",
+  "smartReviews", "simulados", "materials", "questionBank",
+  "questionBankSessions", "questionErrorNotebook", "factoryItems", "factoryAgenda"
+];
+const SYNC_MAX_NUMERIC_FIELDS = new Set([
+  "minutes", "seconds", "elapsedSeconds", "plannedMinutes", "actualMinutes",
+  "studyActualMinutes", "questionActualMinutes", "tempo_real_minutos",
+  "performedMinutes", "tempoRealizado", "tempo_realizado", "realizedMinutes",
+  "questions", "total", "correct", "wrong", "blank", "net", "attempts",
+  "usefulPages", "estimatedMinutes", "manualEstimatedMinutes",
+  "automaticEstimatedMinutes", "sessionGoalMinutes"
+]);
+function syncClone(value) { return cloneData(value ?? null); }
+function syncValueEmpty(value) { return value === undefined || value === null || value === ""; }
+function syncTimestamp(value = {}) {
+  const dates = [value.updatedAt, value.savedAt, value.endedAt, value.completedAt, value.modifiedAt, value.createdAt, value.startedAt, value.openedAt, value.date]
+    .map((entry) => Date.parse(entry || ""))
+    .filter(Number.isFinite);
+  return dates.length ? Math.max(...dates) : 0;
+}
+function syncPrimitiveArray(local = [], remote = []) {
+  const result = [];
+  const seen = new Set();
+  [...local, ...remote].forEach((item) => {
+    const key = typeof item === "object" && item !== null ? JSON.stringify(item) : `${typeof item}:${String(item)}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    result.push(syncClone(item));
+  });
+  return result;
+}
+function syncStableSerialize(value) {
+  if (value === null || value === undefined) return String(value);
+  if (Array.isArray(value)) return `[${value.map(syncStableSerialize).sort().join(",")}]`;
+  if (typeof value === "object") {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${syncStableSerialize(value[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+function syncStateFingerprint(value = {}) {
+  const serialized = syncStableSerialize(value || {});
+  let hash = 2166136261;
+  for (let index = 0; index < serialized.length; index += 1) {
+    hash ^= serialized.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `${serialized.length}:${(hash >>> 0).toString(16).padStart(8, "0")}`;
+}
+function syncPayloadFingerprint(payload = {}) {
+  return payload.stateFingerprint || syncStateFingerprint(payload.state || {});
+}
+function syncCollectionText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[–—−]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+function syncAutomaticDailyGoalKey(item = {}) {
+  const automaticOrigins = new Set(["edital verticalizado", "planejamento", "plano do dia"]);
+  if (!automaticOrigins.has(syncCollectionText(item.origin || item.origem || "manual"))) return "";
+  const date = String(item.date || item.data || "").match(/^\d{4}-\d{2}-\d{2}/)?.[0] || "";
+  const discipline = syncCollectionText(item.discipline || item.disciplina);
+  const subject = syncCollectionText(item.baseSubject || item.subject || item.assunto).replace(/\s+-\s+parte\s+\d+\/\d+\s*$/i, "");
+  return date && discipline && subject ? `dailyGoals:auto:${date}|${discipline}|${subject}` : "";
+}
+function syncCollectionKey(item = {}, collection = "records") {
+  if (collection === "dailyGoals") {
+    const automaticKey = syncAutomaticDailyGoalKey(item);
+    if (automaticKey) return automaticKey;
+  }
+  const directId = (["studies", "questionBankSessions"].includes(collection) ? (item.sessionId || item.id) : (item.id || item.sessionId)) || item.uuid || item.key;
+  if (directId) return `${collection}:id:${String(directId)}`;
+  const preciseStart = item.startedAt || item.startTime || "";
+  const preciseEnd = item.endedAt || item.endTime || "";
+  if (["studies", "questionLogs", "questionBankSessions"].includes(collection) && !preciseStart && !preciseEnd) {
+    return `${collection}:legacy:${JSON.stringify(item)}`;
+  }
+  const fieldSets = {
+    studies: [item.goalId, preciseStart, preciseEnd, item.date, item.discipline || item.disciplina, item.topic || item.subject || item.assunto],
+    dailyGoals: [item.date || item.data, item.discipline || item.disciplina, item.subject || item.assunto, item.type || item.tipo, item.syllabusItemId],
+    questionLogs: [item.goalId || item.dailyGoalId, item.date, item.discipline || item.disciplina, item.subject || item.assunto, preciseStart, preciseEnd, item.trainingType],
+    questionBankSessions: [preciseStart, preciseEnd, item.date, item.mode, item.discipline],
+    smartReviews: [item.date, item.syllabusItemId, item.discipline, item.subject, item.status],
+    simulados: [item.date, item.name, item.board],
+    materials: [item.link, item.title, item.discipline, item.subject, item.type],
+    subjects: [item.name],
+    syllabusItems: [item.discipline, item.subject, item.subtopic, item.reference],
+    factoryItems: [item.discipline, item.subject, item.theme, item.module],
+    factoryAgenda: [item.date, item.factoryItemId, item.module]
+  };
+  const fields = (fieldSets[collection] || [item.date, item.name, item.title, item.subject, item.discipline]).map((value) => String(value ?? "").trim());
+  const meaningful = fields.some(Boolean);
+  return meaningful ? `${collection}:fp:${fields.join("|")}` : `${collection}:json:${JSON.stringify(item)}`;
+}
+function syncMergeRecord(localValue = {}, remoteValue = {}, prefer = "remote") {
+  if (!localValue || typeof localValue !== "object") return syncClone(remoteValue);
+  if (!remoteValue || typeof remoteValue !== "object") return syncClone(localValue);
+  const localTime = syncTimestamp(localValue);
+  const remoteTime = syncTimestamp(remoteValue);
+  const remotePreferred = remoteTime === localTime ? prefer === "remote" : remoteTime > localTime;
+  const primary = remotePreferred ? remoteValue : localValue;
+  const secondary = remotePreferred ? localValue : remoteValue;
+  const result = { ...syncClone(secondary), ...syncClone(primary) };
+  const keys = new Set([...Object.keys(localValue), ...Object.keys(remoteValue)]);
+  keys.forEach((key) => {
+    const left = localValue[key];
+    const right = remoteValue[key];
+    if (Array.isArray(left) || Array.isArray(right)) {
+      result[key] = syncPrimitiveArray(Array.isArray(left) ? left : [], Array.isArray(right) ? right : []);
+      return;
+    }
+    if (left && right && typeof left === "object" && typeof right === "object") {
+      result[key] = syncMergeRecord(left, right, remotePreferred ? "remote" : "local");
+      return;
+    }
+    if (SYNC_MAX_NUMERIC_FIELDS.has(key)) {
+      result[key] = Math.max(Number(left) || 0, Number(right) || 0);
+      return;
+    }
+    const preferredValue = remotePreferred ? right : left;
+    const fallbackValue = remotePreferred ? left : right;
+    result[key] = syncValueEmpty(preferredValue) && !syncValueEmpty(fallbackValue) ? syncClone(fallbackValue) : syncClone(preferredValue);
+  });
+  return result;
+}
+
+function timerGoalTotalsSnapshot(goal = {}) {
+  return [
+    Number(goal.studyActualMinutes) || 0,
+    Number(goal.questionActualMinutes) || 0,
+    Number(goal.actualMinutes) || 0,
+    Number(goal.tempo_real_minutos) || 0
+  ].join("|");
+}
+
+function timerHistoryText(entry) {
+  if (typeof entry === "string") return entry;
+  return String(entry?.text || entry?.message || entry?.descricao || "");
+}
+
+function reconcileGoalWithTimerHistory(goal = {}) {
+  let studyMinutes = Number(goal.studyActualMinutes) || 0;
+  let questionMinutes = Number(goal.questionActualMinutes) || 0;
+  let currentTotal = Math.max(Number(goal.actualMinutes) || 0, Number(goal.tempo_real_minutos) || 0, studyMinutes + questionMinutes);
+  let changed = false;
+
+  (goal.history || goal.historico || []).forEach((entry) => {
+    const text = timerHistoryText(entry);
+    const match = text.match(/Tempo salvo pelo cronômetro:\s*\+(\d+)\s*min\s*em\s*(Estudo|Questões).*?Total realizado:\s*(\d+)\s*min/i);
+    if (!match) return;
+    const recordedTotal = Number(match[3]) || 0;
+    if (recordedTotal <= currentTotal) return;
+    const missingMinutes = recordedTotal - currentTotal;
+    if (/quest/i.test(match[2])) questionMinutes += missingMinutes;
+    else studyMinutes += missingMinutes;
+    currentTotal = recordedTotal;
+    changed = true;
+  });
+
+  const rebuiltTotal = Math.max(currentTotal, studyMinutes + questionMinutes);
+  if (studyMinutes !== (Number(goal.studyActualMinutes) || 0)) { goal.studyActualMinutes = studyMinutes; changed = true; }
+  if (questionMinutes !== (Number(goal.questionActualMinutes) || 0)) { goal.questionActualMinutes = questionMinutes; changed = true; }
+  if (rebuiltTotal !== (Number(goal.actualMinutes) || 0)) { goal.actualMinutes = rebuiltTotal; changed = true; }
+  if (rebuiltTotal !== (Number(goal.tempo_real_minutos) || 0)) { goal.tempo_real_minutos = rebuiltTotal; changed = true; }
+  if (changed && (!goal.status || goal.status === "Pendente") && rebuiltTotal > 0) goal.status = "Em andamento";
+  return changed;
+}
+
+function reconcileSavedTimerTotals() {
+  if (typeof state === "undefined" || typeof syncRebuildGoalTotals !== "function") return false;
+  const before = new Map((state.dailyGoals || []).map((goal) => [goal.id, timerGoalTotalsSnapshot(goal)]));
+  syncRebuildGoalTotals(state);
+  let changed = false;
+  (state.dailyGoals || []).forEach((goal) => {
+    reconcileGoalWithTimerHistory(goal);
+    if (before.get(goal.id) !== timerGoalTotalsSnapshot(goal)) changed = true;
+  });
+  return changed;
+}
+
+function installTimerSaveTotalReconciliation() {
+  if (globalThis.__metasTimerSaveTotalReconciliationV33 || typeof submitTimerStudyModal !== "function") return;
+  globalThis.__metasTimerSaveTotalReconciliationV33 = true;
+  const originalSubmitTimerStudyModal = submitTimerStudyModal;
+  submitTimerStudyModal = function submitTimerStudyModalWithTotalReconciliation(event) {
+    const previousSessionIds = new Set((state.studies || []).map((study) => study.timerSessionId || study.sessionId).filter(Boolean));
+    const beforeGoals = new Map((state.dailyGoals || []).map((goal) => [goal.id, {
+      studyActualMinutes: Number(goal.studyActualMinutes) || 0,
+      questionActualMinutes: Number(goal.questionActualMinutes) || 0
+    }]));
+    const result = originalSubmitTimerStudyModal(event);
+    const newlySavedSessions = (state.studies || []).filter((study) => {
+      const sessionId = study.timerSessionId || study.sessionId;
+      return sessionId && !previousSessionIds.has(sessionId) && study.updatesGoal !== false;
+    });
+    if (newlySavedSessions.length) {
+      const addedByGoal = new Map();
+      newlySavedSessions.forEach((study) => {
+        const goalId = study.goalId || study.dailyGoalId;
+        if (!goalId) return;
+        const entry = addedByGoal.get(goalId) || { study: 0, questions: 0 };
+        const minutes = Math.max(0, Number(study.minutes) || Math.round((Number(study.seconds) || 0) / 60));
+        if (study.timerKind === "questions" || study.kind === "questions") entry.questions += minutes;
+        else entry.study += minutes;
+        addedByGoal.set(goalId, entry);
+      });
+      addedByGoal.forEach((added, goalId) => {
+        const goal = (state.dailyGoals || []).find((item) => item.id === goalId);
+        const before = beforeGoals.get(goalId);
+        if (!goal || !before) return;
+        goal.studyActualMinutes = Math.max(Number(goal.studyActualMinutes) || 0, before.studyActualMinutes + added.study);
+        goal.questionActualMinutes = Math.max(Number(goal.questionActualMinutes) || 0, before.questionActualMinutes + added.questions);
+        goal.actualMinutes = Math.max(Number(goal.actualMinutes) || 0, goal.studyActualMinutes + goal.questionActualMinutes);
+        goal.tempo_real_minutos = Math.max(Number(goal.tempo_real_minutos) || 0, goal.actualMinutes);
+      });
+      reconcileSavedTimerTotals();
+      saveData({ markLocalChange: true });
+      render();
+      if (typeof autoSyncAfterSave === "function") autoSyncAfterSave("timer-recovery");
+    }
+    return result;
+  };
+}
+
+function installSavedTimerTotalsStartupRecovery() {
+  if (globalThis.__metasSavedTimerTotalsStartupRecoveryV33 || typeof setTimeout !== "function") return;
+  globalThis.__metasSavedTimerTotalsStartupRecoveryV33 = true;
+  setTimeout(() => {
+    try {
+      if (!reconcileSavedTimerTotals()) return;
+      saveData({ markLocalChange: true });
+      render();
+      if (typeof showDailyGoalMessage === "function") showDailyGoalMessage("Total da meta recuperado a partir da sessão salva.", "success");
+      if (typeof autoSyncAfterSave === "function") autoSyncAfterSave("timer-recovery");
+    } catch (error) {
+      console.warn("[Metas Estudo] Não foi possível reconciliar os totais salvos pelo cronômetro.", error);
+    }
+  }, 1800);
+}
+
+installTimerSaveTotalReconciliation();
+installSavedTimerTotalsStartupRecovery();
+
+/* Aldus source: sync-integral-deletions.js */
+const SYNC_TOMBSTONE_SCHEMA_VERSION = 1;
+const SYNC_REVISION_FIELDS = new Set(["updatedAt", "modifiedAt", "savedAt", "syncedAt", "_syncUpdatedAt"]);
+const SYNC_APPEND_ONLY_ARRAY_FIELDS = new Set(["history", "historico", "events", "logs", "auditTrail"]);
+
+function syncComparableValue(value) {
+  if (Array.isArray(value)) return value.map(syncComparableValue);
+  if (!value || typeof value !== "object") return value;
+  const result = {};
+  Object.keys(value).sort().forEach((key) => {
+    if (SYNC_REVISION_FIELDS.has(key)) return;
+    result[key] = syncComparableValue(value[key]);
+  });
+  return result;
+}
+
+function syncRecordSignature(value) {
+  return syncStableSerialize(syncComparableValue(value));
+}
+
+function syncRecordRevisionTimestamp(value = {}) {
+  const candidates = [value.updatedAt, value.modifiedAt, value.savedAt, value.syncedAt, value._syncUpdatedAt, value.createdAt]
+    .map((entry) => Date.parse(entry || ""))
+    .filter(Number.isFinite);
+  return candidates.length ? Math.max(...candidates) : 0;
+}
+
+function syncEnsureTombstoneStore(targetState = state) {
+  if (!targetState.syncTombstones || typeof targetState.syncTombstones !== "object" || Array.isArray(targetState.syncTombstones)) {
+    targetState.syncTombstones = { schemaVersion: SYNC_TOMBSTONE_SCHEMA_VERSION, collections: {} };
+  }
+  targetState.syncTombstones.schemaVersion = SYNC_TOMBSTONE_SCHEMA_VERSION;
+  if (!targetState.syncTombstones.collections || typeof targetState.syncTombstones.collections !== "object" || Array.isArray(targetState.syncTombstones.collections)) {
+    targetState.syncTombstones.collections = {};
+  }
+  return targetState.syncTombstones;
+}
+
+function syncSnapshotCollections(targetState = state) {
+  const snapshot = {};
+  SYNC_COLLECTIONS.forEach((collection) => {
+    const map = new Map();
+    (Array.isArray(targetState?.[collection]) ? targetState[collection] : []).forEach((item) => {
+      if (!item || typeof item !== "object") return;
+      const key = syncCollectionKey(item, collection);
+      map.set(key, { record: syncClone(item), signature: syncRecordSignature(item) });
+    });
+    snapshot[collection] = map;
+  });
+  return snapshot;
+}
+
+function syncTrackCollectionMutations(previousSnapshot = {}, targetState = state, changedAt = new Date().toISOString()) {
+  const store = syncEnsureTombstoneStore(targetState);
+  let changed = false;
+  SYNC_COLLECTIONS.forEach((collection) => {
+    const previous = previousSnapshot?.[collection] instanceof Map ? previousSnapshot[collection] : new Map();
+    const current = new Map();
+    const list = Array.isArray(targetState?.[collection]) ? targetState[collection] : [];
+    list.forEach((item) => {
+      if (!item || typeof item !== "object") return;
+      current.set(syncCollectionKey(item, collection), item);
+    });
+    const tombstones = store.collections[collection] ||= {};
+
+    previous.forEach((entry, key) => {
+      if (current.has(key)) return;
+      tombstones[key] = {
+        key,
+        collection,
+        deletedAt: changedAt,
+        deviceId: typeof getDeviceId === "function" ? getDeviceId() : ""
+      };
+      changed = true;
+    });
+
+    current.forEach((item, key) => {
+      const before = previous.get(key);
+      if (!before) {
+        item.updatedAt = changedAt;
+        if (tombstones[key]) delete tombstones[key];
+        changed = true;
+        return;
+      }
+      if (before.signature !== syncRecordSignature(item)) {
+        item.updatedAt = changedAt;
+        changed = true;
+      }
+      const tombstoneTime = Date.parse(tombstones[key]?.deletedAt || "");
+      if (Number.isFinite(tombstoneTime) && syncRecordRevisionTimestamp(item) > tombstoneTime) {
+        delete tombstones[key];
+        changed = true;
+      }
+    });
+  });
+  return changed;
+}
+
+function syncNormalizeTombstones(value = {}) {
+  const normalized = { schemaVersion: SYNC_TOMBSTONE_SCHEMA_VERSION, collections: {} };
+  const collections = value?.collections && typeof value.collections === "object" ? value.collections : {};
+  SYNC_COLLECTIONS.forEach((collection) => {
+    const source = collections[collection] && typeof collections[collection] === "object" ? collections[collection] : {};
+    normalized.collections[collection] = {};
+    Object.entries(source).forEach(([key, entry]) => {
+      const deletedAt = entry?.deletedAt || "";
+      if (!Number.isFinite(Date.parse(deletedAt))) return;
+      normalized.collections[collection][key] = { ...syncClone(entry), key, collection, deletedAt };
+    });
+  });
+  return normalized;
+}
+
+function syncMergeTombstones(localValue = {}, remoteValue = {}) {
+  const local = syncNormalizeTombstones(localValue);
+  const remote = syncNormalizeTombstones(remoteValue);
+  const merged = { schemaVersion: SYNC_TOMBSTONE_SCHEMA_VERSION, collections: {} };
+  SYNC_COLLECTIONS.forEach((collection) => {
+    const entries = {};
+    const add = (entry, key) => {
+      if (!entry) return;
+      const current = entries[key];
+      if (!current || Date.parse(entry.deletedAt) > Date.parse(current.deletedAt)) entries[key] = syncClone(entry);
+    };
+    Object.entries(local.collections[collection] || {}).forEach(([key, entry]) => add(entry, key));
+    Object.entries(remote.collections[collection] || {}).forEach(([key, entry]) => add(entry, key));
+    merged.collections[collection] = entries;
+  });
+  return merged;
+}
+
+function syncApplyTombstones(targetState = {}, tombstoneValue = targetState.syncTombstones) {
+  const store = syncNormalizeTombstones(tombstoneValue);
+  targetState.syncTombstones = store;
+  SYNC_COLLECTIONS.forEach((collection) => {
+    const tombstones = store.collections[collection] || {};
+    targetState[collection] = (Array.isArray(targetState[collection]) ? targetState[collection] : []).filter((item) => {
+      if (!item || typeof item !== "object") return true;
+      const key = syncCollectionKey(item, collection);
+      const tombstone = tombstones[key];
+      if (!tombstone) return true;
+      const deletedAt = Date.parse(tombstone.deletedAt || "");
+      const revisedAt = syncRecordRevisionTimestamp(item);
+      if (revisedAt > deletedAt) {
+        delete tombstones[key];
+        return true;
+      }
+      return false;
+    });
+  });
+  return targetState;
+}
+
+function syncMergeRecordVersioned(localValue = {}, remoteValue = {}, prefer = "remote") {
+  if (!localValue || typeof localValue !== "object") return syncClone(remoteValue);
+  if (!remoteValue || typeof remoteValue !== "object") return syncClone(localValue);
+  const localTime = syncTimestamp(localValue);
+  const remoteTime = syncTimestamp(remoteValue);
+  const remotePreferred = remoteTime === localTime ? prefer === "remote" : remoteTime > localTime;
+  const primary = remotePreferred ? remoteValue : localValue;
+  const secondary = remotePreferred ? localValue : remoteValue;
+  const result = { ...syncClone(secondary), ...syncClone(primary) };
+  const keys = new Set([...Object.keys(localValue), ...Object.keys(remoteValue)]);
+  keys.forEach((key) => {
+    const left = localValue[key];
+    const right = remoteValue[key];
+    if (Array.isArray(left) || Array.isArray(right)) {
+      if ((localTime || remoteTime) && localTime !== remoteTime && !SYNC_APPEND_ONLY_ARRAY_FIELDS.has(key)) {
+        const preferredArray = remotePreferred ? right : left;
+        const fallbackArray = remotePreferred ? left : right;
+        result[key] = syncClone(Array.isArray(preferredArray) ? preferredArray : (Array.isArray(fallbackArray) ? fallbackArray : []));
+      } else {
+        result[key] = syncPrimitiveArray(Array.isArray(left) ? left : [], Array.isArray(right) ? right : []);
+      }
+      return;
+    }
+    if (left && right && typeof left === "object" && typeof right === "object") {
+      result[key] = syncMergeRecordVersioned(left, right, remotePreferred ? "remote" : "local");
+      return;
+    }
+    if (SYNC_MAX_NUMERIC_FIELDS.has(key)) {
+      const preferredValue = remotePreferred ? right : left;
+      const fallbackValue = remotePreferred ? left : right;
+      if ((localTime || remoteTime) && localTime !== remoteTime) {
+        if (syncValueEmpty(preferredValue) && !syncValueEmpty(fallbackValue)) result[key] = syncClone(fallbackValue);
+        else {
+          const number = Number(preferredValue);
+          result[key] = Number.isFinite(number) ? number : 0;
+        }
+      } else {
+        result[key] = Math.max(Number(left) || 0, Number(right) || 0);
+      }
+      return;
+    }
+    const preferredValue = remotePreferred ? right : left;
+    const fallbackValue = remotePreferred ? left : right;
+    result[key] = syncValueEmpty(preferredValue) && !syncValueEmpty(fallbackValue) ? syncClone(fallbackValue) : syncClone(preferredValue);
+  });
+  return result;
+}
+
+syncMergeRecord = syncMergeRecordVersioned;
+
+let syncDeletionSnapshot = null;
+let syncDeletionTrackingReady = false;
+
+function syncDeletionTrackingSuppressed() {
+  return Boolean(
+    globalThis.__metasSyncTombstoneApplyingV39 ||
+    (typeof isApplyingRemote !== "undefined" && isApplyingRemote) ||
+    (typeof isSyncing !== "undefined" && isSyncing) ||
+    (typeof sameDeviceStateSyncApplying !== "undefined" && sameDeviceStateSyncApplying)
+  );
+}
+
+function syncRefreshDeletionSnapshot() {
+  if (typeof state === "undefined" || !state) return;
+  syncEnsureTombstoneStore(state);
+  syncDeletionSnapshot = syncSnapshotCollections(state);
+}
+
+function installSyncDeletionTracking() {
+  if (globalThis.__metasSyncDeletionTrackingV39 || typeof saveData !== "function") return;
+  globalThis.__metasSyncDeletionTrackingV39 = true;
+  const originalSaveData = saveData;
+  saveData = function saveDataWithSyncDeletionTracking(...args) {
+    if (syncDeletionTrackingReady && syncDeletionSnapshot && !syncDeletionTrackingSuppressed()) {
+      syncTrackCollectionMutations(syncDeletionSnapshot, state);
+    }
+    const result = originalSaveData.apply(this, args);
+    syncRefreshDeletionSnapshot();
+    return result;
+  };
+  const arm = () => {
+    syncRefreshDeletionSnapshot();
+    syncDeletionTrackingReady = true;
+  };
+  if (typeof window !== "undefined") window.addEventListener("load", () => setTimeout(arm, 400), { once: true });
+  setTimeout(arm, 2500);
+}
+
+const TIMER_MATERIAL_LINK_FIX_VERSION = "20260717-material-cronometro-v40";
+function installTimerMaterialLinkFixAsset() {
+  if (typeof document === "undefined" || globalThis.__metasTimerMaterialLinkFixAssetV40) return;
+  globalThis.__metasTimerMaterialLinkFixAssetV40 = true;
+  const load = () => {
+    if (document.querySelector('script[data-timer-material-link-fix="v40"]')) return;
+    const script = document.createElement("script");
+    script.src = `timer-material-link-fix.js?v=${TIMER_MATERIAL_LINK_FIX_VERSION}`;
+    script.dataset.timerMaterialLinkFix = "v40";
+    script.addEventListener("load", () => {
+      const version = document.querySelector(".app-version");
+      if (version) version.textContent = `Versão: ${TIMER_MATERIAL_LINK_FIX_VERSION}`;
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", load, { once: true });
+  else setTimeout(load, 0);
+}
+
+installSyncDeletionTracking();
+installTimerMaterialLinkFixAsset();
+
+/* Aldus source: sync-integral-state.js */
+function syncMergeCollection(localList = [], remoteList = [], collection = "records", prefer = "remote") {
+  const merged = new Map();
+  const add = (item, side) => {
+    if (!item || typeof item !== "object") return;
+    const key = syncCollectionKey(item, collection);
+    const current = merged.get(key);
+    if (!current) merged.set(key, syncClone(item));
+    else if (collection === "dailyGoals") merged.set(key, side === "remote" ? syncMergeDailyGoalRecord(current, item, prefer) : syncMergeDailyGoalRecord(item, current, prefer));
+    else merged.set(key, side === "remote" ? syncMergeRecord(current, item, prefer) : syncMergeRecord(item, current, prefer));
+  };
+  (Array.isArray(localList) ? localList : []).forEach((item) => add(item, "local"));
+  (Array.isArray(remoteList) ? remoteList : []).forEach((item) => add(item, "remote"));
+  return [...merged.values()];
+}
+function syncDailyGoalExecutionScore(goal = {}) {
+  const completed = syncExecutionText(goal.status) === "concluida" ? 1 : 0;
+  const actual = Math.max(Number(goal.actualMinutes) || 0, Number(goal.tempo_real_minutos) || 0, (Number(goal.studyActualMinutes) || 0) + (Number(goal.questionActualMinutes) || 0));
+  const history = (goal.history || goal.historico || []).length;
+  return completed * 1e9 + actual * 1e5 + history;
+}
+function syncMergeDailyGoalRecord(localGoal = {}, remoteGoal = {}, prefer = "remote") {
+  const merged = syncMergeRecord(localGoal, remoteGoal, prefer);
+  const localScore = syncDailyGoalExecutionScore(localGoal);
+  const remoteScore = syncDailyGoalExecutionScore(remoteGoal);
+  const remotePreferred = syncTimestamp(remoteGoal) === syncTimestamp(localGoal)
+    ? prefer === "remote"
+    : syncTimestamp(remoteGoal) > syncTimestamp(localGoal);
+  const keeper = localScore === remoteScore ? (remotePreferred ? remoteGoal : localGoal) : (remoteScore > localScore ? remoteGoal : localGoal);
+  if (keeper.id) merged.id = keeper.id;
+
+  const study = Math.max(Number(localGoal.studyActualMinutes) || 0, Number(remoteGoal.studyActualMinutes) || 0);
+  const questions = Math.max(Number(localGoal.questionActualMinutes) || 0, Number(remoteGoal.questionActualMinutes) || 0);
+  const actual = Math.max(Number(localGoal.actualMinutes) || 0, Number(remoteGoal.actualMinutes) || 0, Number(localGoal.tempo_real_minutos) || 0, Number(remoteGoal.tempo_real_minutos) || 0, study + questions);
+  merged.studyActualMinutes = study;
+  merged.questionActualMinutes = questions;
+  merged.actualMinutes = actual;
+  merged.tempo_real_minutos = actual;
+  if ([localGoal, remoteGoal].some((goal) => syncExecutionText(goal.status) === "concluida")) merged.status = "Concluída";
+  else if (actual > 0 && (!merged.status || merged.status === "Pendente")) merged.status = "Em andamento";
+  return merged;
+}
+function syncMergeObject(localValue = {}, remoteValue = {}, prefer = "remote") {
+  const result = syncMergeRecord(localValue || {}, remoteValue || {}, prefer);
+  Object.keys(result).forEach((key) => {
+    if (Array.isArray(localValue?.[key]) || Array.isArray(remoteValue?.[key])) {
+      result[key] = syncPrimitiveArray(Array.isArray(localValue?.[key]) ? localValue[key] : [], Array.isArray(remoteValue?.[key]) ? remoteValue[key] : []);
+    }
+  });
+  return result;
+}
+function syncExecutionDate(value) {
+  const direct = String(value || "").match(/^(\d{4}-\d{2}-\d{2})/);
+  if (direct) return direct[1];
+  const parsed = new Date(value || "");
+  if (Number.isNaN(parsed.getTime())) return "";
+  return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
+}
+function syncExecutionText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[–—−]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+function syncExecutionSessionKey(record = {}) {
+  return String(record.timerSessionId || record.sessionId || record.id || "");
+}
+function syncGoalForExecutionRecord(record = {}, goals = [], goalById = new Map(), migrations = {}) {
+  const directGoalId = record.goalId || record.dailyGoalId || record.metaId || "";
+  if (directGoalId && goalById.has(directGoalId)) return goalById.get(directGoalId);
+
+  const assignedGoalId = migrations?.legacyTimerRecoveryV2?.assignments?.[syncExecutionSessionKey(record)]?.goalId || "";
+  if (assignedGoalId && goalById.has(assignedGoalId)) return goalById.get(assignedGoalId);
+
+  const date = syncExecutionDate(record.date || record.data || record.startedAt || record.startTime || record.endedAt || record.endTime);
+  if (!date) return null;
+  const sameDate = goals.filter((goal) => syncExecutionDate(goal.date || goal.data) === date);
+  const syllabusItemId = String(record.syllabusItemId || "").trim();
+  if (syllabusItemId) {
+    const syllabusMatches = sameDate.filter((goal) => String(goal.syllabusItemId || "").trim() === syllabusItemId);
+    if (syllabusMatches.length === 1) return syllabusMatches[0];
+    if (syllabusMatches.length > 1) return null;
+  }
+
+  const discipline = syncExecutionText(record.discipline || record.disciplina);
+  const topic = syncExecutionText(record.topic || record.subject || record.assunto);
+  if (!discipline || !topic) return null;
+  const exactMatches = sameDate.filter((goal) => {
+    const goalDiscipline = syncExecutionText(goal.discipline || goal.disciplina);
+    const goalTopic = syncExecutionText(goal.baseSubject || goal.subject || goal.assunto);
+    return goalDiscipline === discipline && goalTopic === topic;
+  });
+  return exactMatches.length === 1 ? exactMatches[0] : null;
+}
+function syncRelinkExecutionRecord(record, goal) {
+  if (!record || !goal?.id || record.goalId === goal.id) return false;
+  record.previousGoalId ||= record.goalId || record.dailyGoalId || "";
+  record.goalId = goal.id;
+  record.dailyGoalId = goal.id;
+  record.timeRelinkedAt ||= new Date().toISOString();
+  return true;
+}
+function syncRebuildGoalTotals(mergedState) {
+  const studyTotals = new Map();
+  const questionTotals = new Map();
+  const goals = mergedState.dailyGoals || [];
+  const goalById = new Map(goals.filter((goal) => goal?.id).map((goal) => [goal.id, goal]));
+  const seenStudySessions = new Set();
+  const seenQuestionSessions = new Set();
+  (mergedState.studies || []).forEach((study) => {
+    if (study.updatesGoal === false) return;
+    const sessionKey = syncExecutionSessionKey(study) || JSON.stringify(study);
+    if (seenStudySessions.has(sessionKey)) return;
+    seenStudySessions.add(sessionKey);
+    const goal = syncGoalForExecutionRecord(study, goals, goalById, mergedState.migrations || {});
+    if (!goal) return;
+    syncRelinkExecutionRecord(study, goal);
+    const goalId = goal.id;
+    const minutes = Math.max(0, Number(study.minutes) || Math.round((Number(study.seconds) || 0) / 60));
+    const isQuestions = study.timerKind === "questions" || study.kind === "questions";
+    const map = isQuestions ? questionTotals : studyTotals;
+    map.set(goalId, (map.get(goalId) || 0) + minutes);
+  });
+  (mergedState.questionLogs || []).forEach((log) => {
+    const sessionKey = String(log.id || log.sessionId || JSON.stringify(log));
+    if (seenQuestionSessions.has(sessionKey)) return;
+    seenQuestionSessions.add(sessionKey);
+    const goal = syncGoalForExecutionRecord(log, goals, goalById, mergedState.migrations || {});
+    if (!goal) return;
+    syncRelinkExecutionRecord(log, goal);
+    const goalId = goal.id;
+    questionTotals.set(goalId, (questionTotals.get(goalId) || 0) + Math.max(0, Number(log.minutes) || 0));
+  });
+  mergedState.dailyGoals = goals.map((goal) => {
+    const studyMinutes = Math.max(Number(goal.studyActualMinutes) || 0, studyTotals.get(goal.id) || 0);
+    const questionMinutes = Math.max(Number(goal.questionActualMinutes) || 0, questionTotals.get(goal.id) || 0);
+    const total = Math.max(Number(goal.actualMinutes) || 0, Number(goal.tempo_real_minutos) || 0, studyMinutes + questionMinutes);
+    return { ...goal, studyActualMinutes: studyMinutes, questionActualMinutes: questionMinutes, actualMinutes: total, tempo_real_minutos: total };
+  });
+  return mergedState;
+}
+function mergeSyncStates(localState = {}, remoteState = {}, prefer = "remote") {
+  const local = syncClone(localState || {}) || {};
+  const remote = syncClone(remoteState || {}) || {};
+  const merged = syncMergeObject({ ...cloneData(defaultState), ...local }, { ...cloneData(defaultState), ...remote }, prefer);
+  SYNC_COLLECTIONS.forEach((collection) => {
+    merged[collection] = syncMergeCollection(local[collection], remote[collection], collection, prefer);
+  });
+  merged.settings = syncMergeObject(local.settings || {}, remote.settings || {}, prefer);
+  merged.planning = syncMergeObject(local.planning || {}, remote.planning || {}, prefer);
+  merged.edital = syncMergeObject(local.edital || {}, remote.edital || {}, prefer);
+  merged.schedulableSettings = syncMergeObject(local.schedulableSettings || {}, remote.schedulableSettings || {}, prefer);
+  merged.disciplineWeights = syncMergeObject(local.disciplineWeights || {}, remote.disciplineWeights || {}, prefer);
+  merged.monthlyGoals = syncMergeObject(local.monthlyGoals || {}, remote.monthlyGoals || {}, prefer);
+  merged.factoryPromptLibrary = syncMergeObject(local.factoryPromptLibrary || {}, remote.factoryPromptLibrary || {}, prefer);
+  merged.migrations = syncMergeObject(local.migrations || {}, remote.migrations || {}, prefer);
+  merged.timerSession = syncMergeRecord(local.timerSession || {}, remote.timerSession || {}, prefer);
+  if (!merged.timerSession?.goalId) merged.timerSession = local.timerSession?.goalId ? syncClone(local.timerSession) : (remote.timerSession?.goalId ? syncClone(remote.timerSession) : null);
+  merged.syncTombstones = syncMergeTombstones(local.syncTombstones, remote.syncTombstones);
+  globalThis.__metasSyncTombstoneApplyingV39 = true;
+  try {
+    syncApplyTombstones(merged, merged.syncTombstones);
+  } finally {
+    globalThis.__metasSyncTombstoneApplyingV39 = false;
+  }
+  syncRebuildGoalTotals(merged);
+  if (typeof repairDailyPlanningInflationV108 === "function") {
+    repairDailyPlanningInflationV108(merged, { source: "sync-merge" });
+  }
+  return merged;
+}
+
+function syncCreateSafetyBackup(sourceState, sourceLabel = "before-merge") {
+  try {
+    localStorage.setItem("metasEstudoBackupAntesDaMesclagem", JSON.stringify({
+      app: "metas-estudo",
+      createdAt: new Date().toISOString(),
+      source: sourceLabel,
+      state: syncClone(sourceState || {})
+    }));
+    return true;
+  } catch (error) {
+    console.warn("[Metas Estudo] Não foi possível criar a cópia adicional de segurança da mesclagem.", error);
+    return false;
+  }
+}
+
+/* Aldus source: sync-integral-cloud.js */
+function syncPreparePayload(payload = {}) {
+  const prepared = { ...payload, state: cloneData(payload.state || state) };
+  prepared.stateFingerprint = syncStateFingerprint(prepared.state);
+  return prepared;
+}
+
+async function uploadSyncPayloadIntegral(payload = makeSyncPayload(), { statusMessage = "Dados enviados para a nuvem com sucesso." } = {}) {
+  if (isSyncing) return null;
+  isSyncing = true;
+  try {
+    payload = syncPreparePayload(payload);
+    const file = await findSyncFile();
+    if (file) {
+      const remotePayload = await downloadSyncFile(file.id);
+      validateCloudPayload(remotePayload);
+      syncCreateSafetyBackup(state, "before-cloud-upload-merge");
+      const mergedAt = new Date().toISOString();
+      const mergedState = mergeSyncStates(remotePayload.state, payload.state, "local");
+      payload = {
+        ...remotePayload,
+        ...payload,
+        app: "metas-estudo",
+        schemaVersion: 1,
+        updatedAt: mergedAt,
+        cloudDataUpdatedAt: mergedAt,
+        localDataUpdatedAt: mergedAt,
+        deviceId: getDeviceId(),
+        deviceName: getDeviceName(),
+        mergedDeviceIds: [...new Set([...(remotePayload.mergedDeviceIds || []), remotePayload.deviceId, ...(payload.mergedDeviceIds || []), payload.deviceId].filter(Boolean))],
+        state: mergedState,
+        stateFingerprint: syncStateFingerprint(mergedState)
+      };
+    }
+    payload = syncPreparePayload(payload);
+    const saved = file ? await updateSyncFile(file.id, payload) : await createSyncFile(payload);
+    replaceState(payload.state);
+    saveData({ skipSyncTimestamp: true });
+    writeSyncMeta({ connected: true, pendingSync: false, pendingSyncReason: null, localDirty: false, lastSyncAt: new Date().toISOString(), remoteUpdatedAt: syncPayloadUpdatedAt(payload), cloudDataUpdatedAt: syncPayloadUpdatedAt(payload), localDataUpdatedAt: syncPayloadUpdatedAt(payload), lastLocalUpdateAt: syncPayloadUpdatedAt(payload), remoteDeviceName: payload.deviceName, stateFingerprint: payload.stateFingerprint, error: "" });
+    suppressAutoChecksAfterSync();
+    render();
+    renderSyncStatus(statusMessage);
+    return saved;
+  } finally {
+    isSyncing = false;
+  }
+}
+
+async function applyCloudPayloadIntegral(payload, { preserveView = false } = {}) {
+  isApplyingRemote = true;
+  try {
+    validateCloudPayload(payload);
+    syncCreateSafetyBackup(state, "before-cloud-download-merge");
+    const mergedAt = new Date().toISOString();
+    const mergedState = mergeSyncStates(state, payload.state, "remote");
+    const mergedPayload = {
+      ...payload,
+      updatedAt: mergedAt,
+      cloudDataUpdatedAt: mergedAt,
+      localDataUpdatedAt: mergedAt,
+      deviceId: getDeviceId(),
+      deviceName: getDeviceName(),
+      mergedDeviceIds: [...new Set([...(payload.mergedDeviceIds || []), payload.deviceId, getDeviceId()].filter(Boolean))],
+      state: cloneData(mergedState),
+      stateFingerprint: syncStateFingerprint(mergedState)
+    };
+    replaceState(mergedState);
+    const snapshot = cloneData(state);
+    const saved = await saveStateToIndexedDB(snapshot);
+    const reloaded = await loadStateFromIndexedDB();
+    if (!statesMatchIndexedDBRecord(snapshot, reloaded)) throw new Error("A validação da restauração no IndexedDB falhou.");
+    indexedDBStatus.available = true;
+    indexedDBStatus.activeSource = "IndexedDB";
+    indexedDBStatus.lastLoadedSource = "Mesclagem Google Drive";
+    indexedDBStatus.lastCopyAt = saved.savedAt;
+    indexedDBStatus.validation = "Dados locais e da nuvem mesclados e validados no IndexedDB";
+    indexedDBStatus.size = estimateSerializedStateSize(snapshot);
+    writeCloudStateTransaction(snapshot, mergedPayload);
+    let uploadSucceeded = false;
+    try {
+      await uploadSyncPayloadIntegral(mergedPayload, { statusMessage: "Dados dos dispositivos mesclados e enviados para a nuvem." });
+      uploadSucceeded = true;
+    } catch (uploadError) {
+      console.warn("[Metas Estudo] A mesclagem foi preservada localmente, mas o reenvio para a nuvem ficou pendente.", uploadError);
+      markPendingSync("cloud-merge", "Dados mesclados neste dispositivo. Reenvio para a nuvem pendente.");
+    }
+    writeSyncMeta({ connected: true, pendingSync: !uploadSucceeded, pendingSyncReason: uploadSucceeded ? null : "cloud-merge", localDirty: !uploadSucceeded, lastLocalUpdateAt: mergedAt, localDataUpdatedAt: mergedAt, lastSyncAt: new Date().toISOString(), lastAutoSyncError: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", remoteUpdatedAt: mergedAt, cloudDataUpdatedAt: mergedAt, remoteDeviceName: payload.deviceName || "", stateFingerprint: mergedPayload.stateFingerprint, error: uploadSucceeded ? "" : "Dados mesclados; envio para a nuvem pendente.", errorDetails: "", lastCloudDialogAt: "" });
+    suppressAutoChecksAfterSync();
+    render();
+    if (!preserveView) showView("backup");
+    renderSyncStatus(uploadSucceeded ? "Sincronização integral concluída sem perda de sessões." : "Dados mesclados neste dispositivo. Reenvio para a nuvem pendente.");
+  } catch (error) {
+    if (!error.cloudSyncKind) throw cloudSyncError("apply", "Erro ao mesclar os dados da nuvem. Os dados locais foram preservados.", error);
+    throw error;
+  } finally {
+    isApplyingRemote = false;
+  }
+}
+
+const DEVICE_SYNC_AUTH_RETRY_INTERVAL_MS = 10 * 60 * 1000;
+let deviceSyncAuthorizationLastAttemptAt = 0;
+let deviceSyncAuthorizationInFlight = null;
+
+function googleDriveAuthorizationExpiredMessage() {
+  return "Autorização expirada. Toque em Conectar Google Drive para renovar e enviar as alterações pendentes.";
+}
+
+async function ensureConnectedGoogleDriveAuthorization({ force = false, interactive = false } = {}) {
+  const meta = readSyncMeta();
+  if (!meta.connected) return false;
+  if (hasValidGoogleDriveAccessToken()) return true;
+
+  const message = googleDriveAuthorizationExpiredMessage();
+  if (!interactive) {
+    writeSyncMeta({ connected: true, error: message });
+    renderSyncStatus(message);
+    return false;
+  }
+
+  const now = Date.now();
+  if (!force && now - deviceSyncAuthorizationLastAttemptAt < DEVICE_SYNC_AUTH_RETRY_INTERVAL_MS) return false;
+  if (deviceSyncAuthorizationInFlight) return deviceSyncAuthorizationInFlight;
+  deviceSyncAuthorizationLastAttemptAt = now;
+  deviceSyncAuthorizationInFlight = (async () => {
+    try {
+      await getAccessToken({ prompt: "" });
+      if (hasValidGoogleDriveAccessToken()) {
+        writeSyncMeta({ connected: true, error: "", errorDetails: "" });
+        renderSyncStatus("Autorização Google renovada. Sincronização retomada.");
+        return true;
+      }
+    } catch (error) {
+      console.warn("[Metas Estudo] A autorização Google não pôde ser renovada após a ação do usuário.", error);
+    }
+    writeSyncMeta({ connected: true, pendingSync: true, error: message });
+    renderSyncStatus(message);
+    return false;
+  })();
+  try {
+    return await deviceSyncAuthorizationInFlight;
+  } finally {
+    deviceSyncAuthorizationInFlight = null;
+  }
+}
+
+async function syncNowIntegral() {
+  if (!canRunAutoSyncChecks()) return;
+  try {
+    if (readSyncMeta()?.connected && !hasValidGoogleDriveAccessToken()) {
+      const authorized = await ensureConnectedGoogleDriveAuthorization({ force: true, interactive: true });
+      if (!authorized) return;
+    }
+    const remote = await pullSyncPayload();
+    const localFingerprint = syncStateFingerprint(state);
+    const remoteFingerprint = syncPayloadFingerprint(remote);
+    if (localFingerprint === remoteFingerprint) {
+      writeSyncMeta({ connected: true, stateFingerprint: localFingerprint, error: "" });
+      renderSyncStatus("Tudo sincronizado. O conteúdo dos dispositivos é idêntico.");
+      return;
+    }
+    await applyCloudPayloadIntegral(remote);
+  } catch (error) {
+    recordCloudSyncError(error, "Erro ao sincronizar.");
+  }
+}
+
+async function checkCloudForNewerVersionIntegral(context = "open") {
+  if (!canRunAutoSyncChecks()) return;
+  const meta = readSyncMeta();
+  if (!meta.connected) {
+    if (context === "open") renderSyncStatus("Conecte ao Google Drive para verificar atualizações da nuvem.");
+    return;
+  }
+  if (!hasValidGoogleDriveAccessToken()) {
+    const message = googleDriveAuthorizationExpiredMessage();
+    writeSyncMeta({ connected: true, error: message });
+    if (context === "open" || String(context).startsWith("device-")) {
+      renderSyncStatus("Autorização expirada. Toque em Conectar Google Drive para renovar.");
+    }
+    return;
+  }
+  const now = Date.now();
+  if (cloudAutoCheckRunning || now < suppressAutoCheckUntil || (context !== "open" && now - lastCloudAutoCheckAt < 5000)) return;
+  cloudAutoCheckRunning = true;
+  lastCloudAutoCheckAt = now;
+  try {
+    const remote = await pullSyncPayload();
+    const localFingerprint = syncStateFingerprint(state);
+    const remoteFingerprint = syncPayloadFingerprint(remote);
+    if (localFingerprint === remoteFingerprint) {
+      writeSyncMeta({ connected: true, stateFingerprint: localFingerprint, error: "" });
+      renderSyncStatus("Tudo sincronizado. O conteúdo dos dispositivos é idêntico.");
+      return;
+    }
+    await applyCloudPayloadIntegral(remote, { preserveView: true });
+  } catch (error) {
+    recordCloudSyncError(error, "Erro ao consultar a nuvem.");
+  } finally {
+    cloudAutoCheckRunning = false;
+  }
+}
+
+const DEVICE_SYNC_REFRESH_INTERVAL_MS = 20000;
+let deviceSyncRefreshRunning = false;
+let deviceSyncRefreshLastAt = 0;
+
+function deviceSyncRefreshCanRun() {
+  if (typeof document === "undefined" || document.visibilityState === "hidden") return false;
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
+  if (typeof readSyncMeta !== "function" || !readSyncMeta()?.connected) return false;
+  if (typeof isSyncing !== "undefined" && isSyncing) return false;
+  if (typeof isApplyingRemote !== "undefined" && isApplyingRemote) return false;
+  if (typeof cloudAutoCheckRunning !== "undefined" && cloudAutoCheckRunning) return false;
+  if (typeof floatingTimer !== "undefined" && floatingTimer?.startedAt && !floatingTimer?.paused) return false;
+  const activeTag = String(document.activeElement?.tagName || "").toUpperCase();
+  if (["INPUT", "TEXTAREA", "SELECT"].includes(activeTag)) return false;
+  return true;
+}
+
+async function refreshDeviceFromCloud(reason = "interval") {
+  if (!deviceSyncRefreshCanRun() || deviceSyncRefreshRunning) return;
+  const now = Date.now();
+  if (reason === "interval" && now - deviceSyncRefreshLastAt < DEVICE_SYNC_REFRESH_INTERVAL_MS - 1000) return;
+  deviceSyncRefreshRunning = true;
+  deviceSyncRefreshLastAt = now;
+  try {
+    await checkCloudForNewerVersionIntegral(`device-${reason}`);
+  } catch (error) {
+    console.warn("[Metas Estudo] A atualização automática deste dispositivo falhou.", error);
+  } finally {
+    deviceSyncRefreshRunning = false;
+  }
+}
+
+function installDeviceSyncRefresh() {
+  if (typeof window === "undefined" || typeof document === "undefined" || globalThis.__metasDeviceSyncRefreshV33) return;
+  globalThis.__metasDeviceSyncRefreshV33 = true;
+  const schedule = (reason, delay = 250) => setTimeout(() => refreshDeviceFromCloud(reason), delay);
+  window.addEventListener("focus", () => schedule("focus"));
+  window.addEventListener("pageshow", () => schedule("pageshow", 400));
+  window.addEventListener("online", () => schedule("online", 500));
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") schedule("visible", 350);
+  });
+  setInterval(() => refreshDeviceFromCloud("interval"), DEVICE_SYNC_REFRESH_INTERVAL_MS);
+  schedule("startup", 1800);
+}
+
+let sameDeviceStateSyncApplying = false;
+
+function installSameDeviceStateSync() {
+  if (typeof window === "undefined" || globalThis.__metasSameDeviceStateSyncV33) return;
+  globalThis.__metasSameDeviceStateSyncV33 = true;
+  window.addEventListener("storage", (event) => {
+    if (event.key !== STORAGE_KEY || !event.newValue || sameDeviceStateSyncApplying) return;
+    try {
+      const incomingState = JSON.parse(event.newValue);
+      if (!incomingState || typeof incomingState !== "object" || Array.isArray(incomingState)) return;
+      const currentFingerprint = syncStateFingerprint(state);
+      const incomingFingerprint = syncStateFingerprint(incomingState);
+      if (currentFingerprint === incomingFingerprint) return;
+      sameDeviceStateSyncApplying = true;
+      const mergedState = mergeSyncStates(state, incomingState, "remote");
+      replaceState(mergedState);
+      saveData({ skipSyncTimestamp: true });
+      render();
+      if (typeof showDailyGoalMessage === "function") {
+        showDailyGoalMessage("Dados atualizados pelo outro aplicativo deste dispositivo.", "success");
+      }
+    } catch (error) {
+      console.warn("[Metas Estudo] Falha ao atualizar outra janela deste dispositivo.", error);
+    } finally {
+      setTimeout(() => { sameDeviceStateSyncApplying = false; }, 0);
+    }
+  });
+}
+
+function installAutoSyncAuthorizationRetry() {
+  if (globalThis.__metasAutoSyncAuthorizationRetryV36 || typeof runAutoSyncAfterSave !== "function") return;
+  globalThis.__metasAutoSyncAuthorizationRetryV36 = true;
+  const originalRunAutoSyncAfterSave = runAutoSyncAfterSave;
+  runAutoSyncAfterSave = async function runAutoSyncAfterSaveWithoutPopup(reason) {
+    const meta = readSyncMeta();
+    if (meta.connected && !hasValidGoogleDriveAccessToken()) {
+      const message = googleDriveAuthorizationExpiredMessage();
+      markPendingSync(reason || "auto-save", message);
+      renderSyncStatus(message);
+      return;
+    }
+    return originalRunAutoSyncAfterSave(reason);
+  };
+}
+
+installSameDeviceStateSync();
+installAutoSyncAuthorizationRetry();
+installDeviceSyncRefresh();
+
+/* Aldus source: sync-integral-time-protection.js */
+const TIME_STORAGE_PROTECTION_VERSION = "20260720-cronometro-scroll-motivacao-v97";
+const TIME_STORAGE_BACKUP_KEY = "metasEstudoBackupAntesDaMesclagem";
+const TIME_STORAGE_MANUAL_RECOVERY_BACKUP_KEY = "metasEstudoBackupAntesDaRecuperacaoTempoV49";
+const TIME_RECOVERY_COLLECTIONS = ["studies", "dailyGoals", "questionLogs"];
+const TIME_RECOVERY_NUMERIC_FIELDS = new Set([
+  "minutes", "seconds", "elapsedSeconds", "actualDurationSeconds", "actualDuration",
+  "actualMinutes", "studyActualMinutes", "questionActualMinutes", "tempo_real_minutos",
+  "performedMinutes", "tempoRealizado", "tempo_realizado", "realizedMinutes"
+]);
+
+function timeProtectionClone(value) {
+  return typeof cloneData === "function" ? cloneData(value ?? null) : JSON.parse(JSON.stringify(value ?? null));
+}
+
+function timeProtectionHasUserData(value = {}) {
+  if (typeof stateHasUserData === "function") return stateHasUserData(value);
+  return ["subjects", "studies", "syllabusItems", "dailyGoals", "questionLogs", "materials", "questionBank", "simulados", "smartReviews", "factoryAgenda", "factoryItems"]
+    .some((key) => Array.isArray(value?.[key]) && value[key].length);
+}
+
+function timeProtectionHasTimeData(value = {}) {
+  return TIME_RECOVERY_COLLECTIONS.some((key) => Array.isArray(value?.[key]) && value[key].length);
+}
+
+function timeProtectionSessionKey(study = {}) {
+  return String(study.timerSessionId || study.sessionId || study.id || "");
+}
+
+function timeProtectionStudyMinutes(study = {}) {
+  const seconds = Math.max(0, Number(study.seconds) || Number(study.elapsedSeconds) || Number(study.actualDurationSeconds) || 0);
+  return Math.max(0, Number(study.minutes) || (seconds ? Math.round(seconds / 60) : 0));
+}
+
+function timeProtectionGoalStudyMinutes(goal = {}) {
+  if (goal.studyActualMinutes !== undefined && goal.studyActualMinutes !== null && goal.studyActualMinutes !== "") {
+    return Math.max(0, Number(goal.studyActualMinutes) || 0);
+  }
+  return Math.max(0, (Number(goal.actualMinutes ?? goal.tempo_real_minutos) || 0) - (Number(goal.questionActualMinutes) || 0));
+}
+
+function timeProtectionEffectiveStudyMinutes(value = {}) {
+  const studies = Array.isArray(value?.studies) ? value.studies : [];
+  const goals = Array.isArray(value?.dailyGoals) ? value.dailyGoals : [];
+  const seenSessions = new Set();
+  const archived = studies.reduce((sum, study) => {
+    const key = timeProtectionSessionKey(study);
+    if (key && seenSessions.has(key)) return sum;
+    if (key) seenSessions.add(key);
+    const isQuestions = study.timerKind === "questions" || study.kind === "questions";
+    return isQuestions ? sum : sum + timeProtectionStudyMinutes(study);
+  }, 0);
+  const unlogged = goals.reduce((sum, goal) => {
+    const linked = studies.reduce((linkedSum, study) => {
+      if (study.goalId !== goal.id || study.origin !== "timer" || study.updatesGoal === false) return linkedSum;
+      if (study.timerKind === "questions" || study.kind === "questions") return linkedSum;
+      return linkedSum + timeProtectionStudyMinutes(study);
+    }, 0);
+    return sum + Math.max(0, timeProtectionGoalStudyMinutes(goal) - linked);
+  }, 0);
+  return archived + unlogged;
+}
+
+function timeProtectionSummary(value = {}) {
+  const studies = Array.isArray(value?.studies) ? value.studies : [];
+  const goals = Array.isArray(value?.dailyGoals) ? value.dailyGoals : [];
+  const questionLogs = Array.isArray(value?.questionLogs) ? value.questionLogs : [];
+  const archivedMinutes = studies.reduce((sum, study) => sum + timeProtectionStudyMinutes(study), 0);
+  const archivedStudyMinutes = studies.reduce((sum, study) => {
+    const isQuestions = study.timerKind === "questions" || study.kind === "questions";
+    return isQuestions ? sum : sum + timeProtectionStudyMinutes(study);
+  }, 0);
+  const goalMinutes = goals.reduce((sum, goal) => sum + Math.max(
+    Number(goal.actualMinutes) || 0,
+    Number(goal.tempo_real_minutos) || 0,
+    (Number(goal.studyActualMinutes) || 0) + (Number(goal.questionActualMinutes) || 0)
+  ), 0);
+  const goalStudyMinutes = goals.reduce((sum, goal) => sum + timeProtectionGoalStudyMinutes(goal), 0);
+  const questionLogMinutes = questionLogs.reduce((sum, log) => sum + Math.max(0, Number(log.minutes) || 0), 0);
+  return {
+    studies: studies.length,
+    goals: goals.length,
+    questionLogs: questionLogs.length,
+    archivedMinutes,
+    archivedStudyMinutes,
+    goalMinutes,
+    goalStudyMinutes,
+    questionLogMinutes,
+    conservativeStudyMinutes: Math.max(archivedStudyMinutes, goalStudyMinutes),
+    effectiveStudyMinutes: timeProtectionEffectiveStudyMinutes(value)
+  };
+}
+
+function readTimeProtectionBackupState() {
+  try {
+    const raw = localStorage.getItem(TIME_STORAGE_BACKUP_KEY);
+    if (!raw) return null;
+    const payload = JSON.parse(raw);
+    const backupState = payload?.state;
+    return backupState && typeof backupState === "object" && !Array.isArray(backupState) && timeProtectionHasUserData(backupState)
+      ? backupState
+      : null;
+  } catch (error) {
+    console.warn("[Aldus Meta] Não foi possível examinar o backup anterior à mesclagem.", error);
+    return null;
+  }
+}
+
+function installGoalTimeNonRegressionProtection() {
+  if (globalThis.__aldusGoalTimeNonRegressionV49 || typeof normalizeGoalTimeFields !== "function") return;
+  globalThis.__aldusGoalTimeNonRegressionV49 = true;
+  const originalNormalizeGoalTimeFields = normalizeGoalTimeFields;
+
+  normalizeGoalTimeFields = function normalizeGoalTimeFieldsWithoutRegression(goal = {}) {
+    const preservedTotal = Math.max(
+      Number(goal.actualMinutes) || 0,
+      Number(goal.tempo_real_minutos) || 0,
+      (Number(goal.studyActualMinutes) || 0) + (Number(goal.questionActualMinutes) || 0)
+    );
+    const normalized = originalNormalizeGoalTimeFields(goal) || goal;
+    let studyMinutes = Math.max(0, Number(normalized.studyActualMinutes) || 0);
+    const questionMinutes = Math.max(0, Number(normalized.questionActualMinutes) || 0);
+    const splitTotal = studyMinutes + questionMinutes;
+
+    if (preservedTotal > splitTotal) studyMinutes += preservedTotal - splitTotal;
+
+    normalized.studyActualMinutes = studyMinutes;
+    normalized.questionActualMinutes = questionMinutes;
+    normalized.actualMinutes = Math.max(preservedTotal, studyMinutes + questionMinutes);
+    normalized.tempo_real_minutos = Math.max(Number(normalized.tempo_real_minutos) || 0, normalized.actualMinutes);
+    return normalized;
+  };
+}
+
+function mergeProtectedTimeStates(baseState, incomingState, prefer = "remote") {
+  if (!timeProtectionHasUserData(incomingState)) return timeProtectionClone(baseState || {});
+  if (!timeProtectionHasUserData(baseState)) return timeProtectionClone(incomingState || {});
+  if (typeof mergeSyncStates === "function") return mergeSyncStates(baseState, incomingState, prefer);
+  return { ...timeProtectionClone(baseState || {}), ...timeProtectionClone(incomingState || {}) };
+}
+
+function mergeTimeOnlyRecoveryBackup(currentState, backupState) {
+  if (!timeProtectionHasUserData(backupState)) return timeProtectionClone(currentState || {});
+  const current = timeProtectionClone(currentState || {}) || {};
+  const candidate = {
+    ...timeProtectionClone(current),
+    studies: timeProtectionClone(backupState.studies || []),
+    dailyGoals: timeProtectionClone(backupState.dailyGoals || []),
+    questionLogs: timeProtectionClone(backupState.questionLogs || []),
+    syncTombstones: timeProtectionClone(current.syncTombstones || {})
+  };
+  return mergeProtectedTimeStates(current, candidate, "remote");
+}
+
+function timeProtectionCollectionKey(item, collection) {
+  if (typeof syncCollectionKey === "function") return syncCollectionKey(item, collection);
+  return `${collection}:${String(item?.id || item?.sessionId || item?.timerSessionId || JSON.stringify(item || {}))}`;
+}
+
+function timeProtectionMergeArrays(left, right) {
+  if (typeof syncPrimitiveArray === "function") return syncPrimitiveArray(Array.isArray(left) ? left : [], Array.isArray(right) ? right : []);
+  const seen = new Set();
+  return [...(Array.isArray(left) ? left : []), ...(Array.isArray(right) ? right : [])].filter((item) => {
+    const key = typeof item === "object" && item !== null ? JSON.stringify(item) : `${typeof item}:${String(item)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function timeProtectionMergeRecordMaximum(current = {}, candidate = {}) {
+  const merged = timeProtectionClone(current || {}) || {};
+  const keys = new Set([...Object.keys(current || {}), ...Object.keys(candidate || {})]);
+  keys.forEach((key) => {
+    if (TIME_RECOVERY_NUMERIC_FIELDS.has(key)) {
+      merged[key] = Math.max(Number(current?.[key]) || 0, Number(candidate?.[key]) || 0);
+    } else if (["history", "historico", "events", "logs", "auditTrail"].includes(key)) {
+      merged[key] = timeProtectionMergeArrays(current?.[key], candidate?.[key]);
+    } else if ((merged[key] === undefined || merged[key] === null || merged[key] === "") && candidate?.[key] !== undefined) {
+      merged[key] = timeProtectionClone(candidate[key]);
+    }
+  });
+  return merged;
+}
+
+function timeProtectionRecordMinutes(item = {}, collection = "") {
+  if (collection === "studies") return timeProtectionStudyMinutes(item);
+  if (collection === "dailyGoals") return Math.max(
+    Number(item.actualMinutes) || 0,
+    Number(item.tempo_real_minutos) || 0,
+    (Number(item.studyActualMinutes) || 0) + (Number(item.questionActualMinutes) || 0)
+  );
+  return Math.max(0, Number(item.minutes) || 0);
+}
+
+function mergeTimeRecoveryIgnoringTombstones(currentState, candidateState) {
+  const result = timeProtectionClone(currentState || {}) || {};
+  const restoredKeys = { studies: [], dailyGoals: [], questionLogs: [] };
+
+  TIME_RECOVERY_COLLECTIONS.forEach((collection) => {
+    const currentList = Array.isArray(result[collection]) ? result[collection] : [];
+    const candidateList = Array.isArray(candidateState?.[collection]) ? candidateState[collection] : [];
+    const map = new Map(currentList.map((item) => [timeProtectionCollectionKey(item, collection), timeProtectionClone(item)]));
+
+    candidateList.forEach((item) => {
+      if (!item || typeof item !== "object") return;
+      const key = timeProtectionCollectionKey(item, collection);
+      const before = map.get(key);
+      const merged = before ? timeProtectionMergeRecordMaximum(before, item) : timeProtectionClone(item);
+      const gained = !before || timeProtectionRecordMinutes(merged, collection) > timeProtectionRecordMinutes(before, collection);
+      if (gained) restoredKeys[collection].push(key);
+      map.set(key, merged);
+    });
+
+    result[collection] = [...map.values()];
+  });
+
+  const tombstones = timeProtectionClone(result.syncTombstones || {}) || {};
+  tombstones.collections ||= {};
+  TIME_RECOVERY_COLLECTIONS.forEach((collection) => {
+    tombstones.collections[collection] ||= {};
+    restoredKeys[collection].forEach((key) => { delete tombstones.collections[collection][key]; });
+  });
+  result.syncTombstones = tombstones;
+
+  if (typeof syncRebuildGoalTotals === "function") syncRebuildGoalTotals(result);
+  (result.dailyGoals || []).forEach((goal) => {
+    if (typeof reconcileGoalWithTimerHistory === "function") reconcileGoalWithTimerHistory(goal);
+    if (typeof normalizeGoalTimeFields === "function") normalizeGoalTimeFields(goal);
+  });
+
+  return { state: result, restoredKeys };
+}
+
+function installPrimaryStorageMergeProtection() {
+  if (globalThis.__aldusPrimaryStorageMergeProtectionV49 || typeof loadPrimaryStateFromIndexedDB !== "function") return;
+  globalThis.__aldusPrimaryStorageMergeProtectionV49 = true;
+  const originalLoadPrimaryStateFromIndexedDB = loadPrimaryStateFromIndexedDB;
+
+  loadPrimaryStateFromIndexedDB = async function loadPrimaryStateWithRecoveryCandidates() {
+    let result;
+    let indexedDBError = null;
+    try {
+      result = await originalLoadPrimaryStateFromIndexedDB();
+    } catch (error) {
+      indexedDBError = error;
+      result = { valid: false, empty: true, record: null, data: null };
+    }
+
+    const sources = [];
+    let protectedState = result?.valid && timeProtectionHasUserData(result.data) ? timeProtectionClone(result.data) : null;
+    if (protectedState) sources.push("IndexedDB");
+
+    let localState = null;
+    try {
+      localState = typeof readJSONStorage === "function" ? readJSONStorage(STORAGE_KEY, {}) : JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    } catch (error) {
+      console.warn("[Aldus Meta] Não foi possível examinar o localStorage durante a recuperação.", error);
+    }
+    if (timeProtectionHasUserData(localState)) {
+      protectedState = mergeProtectedTimeStates(protectedState, localState, "remote");
+      sources.push("localStorage");
+    }
+
+    const backupState = readTimeProtectionBackupState();
+    if (timeProtectionHasUserData(backupState)) {
+      protectedState = mergeTimeOnlyRecoveryBackup(protectedState, backupState);
+      sources.push("backup-de-tempo-antes-da-mesclagem");
+    }
+
+    if (!timeProtectionHasUserData(protectedState)) {
+      if (indexedDBError) throw indexedDBError;
+      return result;
+    }
+
+    const originalSummary = timeProtectionSummary(result?.data || {});
+    const protectedSummary = timeProtectionSummary(protectedState);
+    const changed = typeof syncStateFingerprint === "function"
+      ? syncStateFingerprint(result?.data || {}) !== syncStateFingerprint(protectedState)
+      : JSON.stringify(result?.data || {}) !== JSON.stringify(protectedState);
+
+    globalThis.__aldusTimeStorageRecoveryReport = {
+      version: TIME_STORAGE_PROTECTION_VERSION,
+      changed,
+      sources: [...new Set(sources)],
+      original: originalSummary,
+      recovered: protectedSummary,
+      recoveredAt: changed ? new Date().toISOString() : "",
+      indexedDBError: indexedDBError ? String(indexedDBError.message || indexedDBError) : ""
+    };
+
+    return { ...result, valid: true, empty: false, data: protectedState, recoveredFrom: [...new Set(sources)] };
+  };
+}
+
+function installExactTimerSecondsArchive() {
+  if (globalThis.__aldusExactTimerSecondsArchiveV49 || typeof submitTimerStudyModal !== "function") return;
+  globalThis.__aldusExactTimerSecondsArchiveV49 = true;
+  const originalSubmitTimerStudyModal = submitTimerStudyModal;
+
+  submitTimerStudyModal = function submitTimerStudyModalWithExactSeconds(event) {
+    const draft = typeof pendingTimerStudyDraft !== "undefined" && pendingTimerStudyDraft
+      ? { sessionId: pendingTimerStudyDraft.sessionId, seconds: Math.max(0, Number(pendingTimerStudyDraft.seconds) || 0) }
+      : null;
+    const result = originalSubmitTimerStudyModal(event);
+    if (!draft?.sessionId || !draft.seconds) return result;
+
+    const session = (state.studies || []).find((study) => String(study.timerSessionId || study.sessionId || "") === String(draft.sessionId));
+    if (!session) return result;
+    const previousSeconds = Math.max(0, Number(session.seconds) || Number(session.elapsedSeconds) || 0);
+    if (previousSeconds >= draft.seconds) return result;
+
+    session.seconds = draft.seconds;
+    session.elapsedSeconds = draft.seconds;
+    session.actualDurationSeconds = draft.seconds;
+    saveData({ markLocalChange: true });
+    if (typeof autoSyncAfterSave === "function") autoSyncAfterSave("timer-exact-seconds");
+    return result;
+  };
+}
+
+function installRecoveredTimePersistence() {
+  if (globalThis.__aldusRecoveredTimePersistenceV49) return;
+  globalThis.__aldusRecoveredTimePersistenceV49 = true;
+  setTimeout(() => {
+    try {
+      const report = globalThis.__aldusTimeStorageRecoveryReport;
+      if (!report?.changed) return;
+      if (typeof reconcileSavedTimerTotals === "function") reconcileSavedTimerTotals();
+      saveData({ markLocalChange: true });
+      render();
+      if (typeof showDailyGoalMessage === "function") {
+        showDailyGoalMessage("Tempos recuperados localmente. Revise antes de enviar à nuvem.", "success");
+      }
+      if (typeof markPendingSync === "function") {
+        markPendingSync("time-storage-recovery", "Tempo recuperado localmente; revise os totais antes de sincronizar com outros dispositivos.");
+      }
+    } catch (error) {
+      console.warn("[Aldus Meta] Não foi possível persistir automaticamente o tempo recuperado.", error);
+    }
+  }, 2400);
+}
+
+function timeProtectionExtractCandidate(parsed, key = "") {
+  if (!parsed) return null;
+  if (parsed.state && typeof parsed.state === "object" && !Array.isArray(parsed.state)) return parsed.state;
+  if (parsed.data && typeof parsed.data === "object" && !Array.isArray(parsed.data)) return parsed.data;
+  if (Array.isArray(parsed)) {
+    if (["metasDoDia", "dailyGoals"].includes(key)) return { dailyGoals: parsed };
+    if (["studies", "sessoesEstudo", "historicoEstudos"].includes(key)) return { studies: parsed };
+    return null;
+  }
+  return typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null;
+}
+
+function timeProtectionAddCandidate(list, seen, label, candidate, key = "") {
+  const extracted = timeProtectionExtractCandidate(candidate, key);
+  if (!timeProtectionHasTimeData(extracted)) return;
+  const fingerprint = typeof syncStateFingerprint === "function"
+    ? syncStateFingerprint({
+      studies: extracted.studies || [],
+      dailyGoals: extracted.dailyGoals || [],
+      questionLogs: extracted.questionLogs || []
+    })
+    : JSON.stringify([extracted.studies || [], extracted.dailyGoals || [], extracted.questionLogs || []]);
+  const existing = seen.get(fingerprint);
+  if (existing) {
+    if (!existing.labels.includes(label)) existing.labels.push(label);
+    return;
+  }
+  const entry = { labels: [label], state: timeProtectionClone(extracted), fingerprint, summary: timeProtectionSummary(extracted) };
+  seen.set(fingerprint, entry);
+  list.push(entry);
+}
+
+async function collectTimeRecoveryCandidates() {
+  const candidates = [];
+  const seen = new Map();
+  timeProtectionAddCandidate(candidates, seen, "Estado atualmente carregado", typeof state !== "undefined" ? state : null);
+
+  try {
+    if (typeof loadStateFromIndexedDB === "function") {
+      const record = await loadStateFromIndexedDB();
+      timeProtectionAddCandidate(candidates, seen, "IndexedDB", record?.data);
+    }
+  } catch (error) {
+    console.warn("[Aldus Meta] Falha ao examinar IndexedDB no diagnóstico de tempo.", error);
+  }
+
+  try {
+    const local = localStorage.getItem(STORAGE_KEY);
+    if (local) timeProtectionAddCandidate(candidates, seen, "localStorage principal", JSON.parse(local), STORAGE_KEY);
+  } catch (error) {
+    console.warn("[Aldus Meta] Falha ao examinar localStorage principal.", error);
+  }
+
+  try {
+    const backup = localStorage.getItem(TIME_STORAGE_BACKUP_KEY);
+    if (backup) timeProtectionAddCandidate(candidates, seen, "Backup anterior à mesclagem", JSON.parse(backup), TIME_STORAGE_BACKUP_KEY);
+  } catch (error) {
+    console.warn("[Aldus Meta] Falha ao examinar backup anterior à mesclagem.", error);
+  }
+
+  try {
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (!key || [STORAGE_KEY, TIME_STORAGE_BACKUP_KEY].includes(key)) continue;
+      const raw = localStorage.getItem(key);
+      if (!raw || raw.length < 2 || (!raw.startsWith("{") && !raw.startsWith("["))) continue;
+      try {
+        timeProtectionAddCandidate(candidates, seen, `Chave local: ${key}`, JSON.parse(raw), key);
+      } catch (error) {}
+    }
+  } catch (error) {
+    console.warn("[Aldus Meta] Falha ao examinar outras chaves locais.", error);
+  }
+
+  const driveCandidates = Array.isArray(globalThis.__aldusDriveTimeRecoveryCandidatesV51)
+    ? globalThis.__aldusDriveTimeRecoveryCandidatesV51
+    : [];
+  driveCandidates.forEach((candidate) => {
+    timeProtectionAddCandidate(candidates, seen, candidate.label, candidate.payload);
+  });
+
+  return candidates;
+}
+
+async function listGoogleDriveSyncRevisions(fileId) {
+  const revisions = [];
+  let pageToken = "";
+  do {
+    const params = new URLSearchParams({
+      pageSize: "100",
+      fields: "nextPageToken,revisions(id,modifiedTime,keepForever,size)"
+    });
+    if (pageToken) params.set("pageToken", pageToken);
+    const response = await driveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/revisions?${params}`);
+    const result = await response.json();
+    revisions.push(...(Array.isArray(result?.revisions) ? result.revisions : []));
+    pageToken = result?.nextPageToken || "";
+  } while (pageToken);
+  return revisions;
+}
+
+async function downloadGoogleDriveSyncRevision(fileId, revisionId) {
+  const response = await driveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}/revisions/${encodeURIComponent(revisionId)}?alt=media`);
+  return response.json();
+}
+
+function timeProtectionDriveRevisionLabel(revision = {}, index = 0) {
+  const date = revision.modifiedTime ? new Date(revision.modifiedTime) : null;
+  const formatted = date && !Number.isNaN(date.getTime())
+    ? date.toLocaleString("pt-BR")
+    : `revisão ${index + 1}`;
+  return `Google Drive — histórico de ${formatted}`;
+}
+
+async function scanGoogleDriveTimeRecoveryHistory() {
+  const host = ensureTimeRecoveryDiagnosticHost();
+  const button = host?.querySelector("[data-time-recovery-drive-scan]");
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Examinando Google Drive...";
+  }
+  globalThis.__aldusDriveTimeRecoveryScanStatusV51 = { state: "loading", message: "Examinando o arquivo atual e o histórico de revisões do Google Drive..." };
+  try {
+    await getAccessToken({ prompt: hasValidGoogleDriveAccessToken() ? "" : "consent" });
+    const file = await findSyncFile();
+    if (!file?.id) throw new Error("Nenhum arquivo de sincronização foi encontrado no Google Drive desta conta.");
+
+    const found = [];
+    try {
+      const currentPayload = await downloadSyncFile(file.id);
+      found.push({ label: `Google Drive — arquivo atual${file.modifiedTime ? ` (${new Date(file.modifiedTime).toLocaleString("pt-BR")})` : ""}`, payload: currentPayload });
+    } catch (error) {
+      console.warn("[Aldus Meta] Não foi possível examinar o arquivo atual do Google Drive.", error);
+    }
+
+    const revisions = await listGoogleDriveSyncRevisions(file.id);
+    for (let index = 0; index < revisions.length; index += 1) {
+      const revision = revisions[index];
+      try {
+        found.push({
+          label: timeProtectionDriveRevisionLabel(revision, index),
+          payload: await downloadGoogleDriveSyncRevision(file.id, revision.id)
+        });
+      } catch (error) {
+        console.warn(`[Aldus Meta] Revisão ${revision.id} do Google Drive indisponível.`, error);
+      }
+    }
+
+    globalThis.__aldusDriveTimeRecoveryCandidatesV51 = found;
+    globalThis.__aldusDriveTimeRecoveryScanStatusV51 = {
+      state: "success",
+      message: `${found.length} cópia(s) do Google Drive examinada(s), incluindo o arquivo atual e revisões disponíveis.`
+    };
+  } catch (error) {
+    const message = typeof syncErrorMessage === "function"
+      ? syncErrorMessage(error, "Não foi possível examinar o histórico do Google Drive.")
+      : String(error?.message || error);
+    globalThis.__aldusDriveTimeRecoveryScanStatusV51 = { state: "error", message };
+  }
+  await renderTimeRecoveryDiagnostic();
+}
+
+function buildTimeRecoveryPreview(candidates = []) {
+  let preview = timeProtectionClone(typeof state !== "undefined" ? state : {}) || {};
+  const restoredKeys = { studies: new Set(), dailyGoals: new Set(), questionLogs: new Set() };
+  candidates.forEach((candidate) => {
+    const merged = mergeTimeRecoveryIgnoringTombstones(preview, candidate.state);
+    preview = merged.state;
+    TIME_RECOVERY_COLLECTIONS.forEach((collection) => merged.restoredKeys[collection].forEach((key) => restoredKeys[collection].add(key)));
+  });
+  return {
+    state: preview,
+    restoredKeys,
+    current: timeProtectionSummary(typeof state !== "undefined" ? state : {}),
+    recovered: timeProtectionSummary(preview)
+  };
+}
+
+function timeProtectionFormatMinutes(minutes) {
+  const total = Math.max(0, Math.round(Number(minutes) || 0));
+  const hours = Math.floor(total / 60);
+  const rest = total % 60;
+  if (!hours) return `${rest} min`;
+  return rest ? `${hours}h ${rest}min` : `${hours}h`;
+}
+
+function timeProtectionTombstoneCount(value = {}) {
+  const collections = value?.syncTombstones?.collections || {};
+  return TIME_RECOVERY_COLLECTIONS.reduce((sum, collection) => sum + Object.keys(collections[collection] || {}).length, 0);
+}
+
+function ensureTimeRecoveryDiagnosticHost() {
+  if (typeof document === "undefined") return null;
+  let host = document.getElementById("timeRecoveryDiagnosticV49");
+  if (host) return host;
+  const review = document.getElementById("legacyTimerRecoveryReview");
+  if (!review) return null;
+  host = document.createElement("section");
+  host.id = "timeRecoveryDiagnosticV49";
+  host.className = "sync-status time-recovery-diagnostic";
+  host.setAttribute("aria-live", "polite");
+  review.insertAdjacentElement("afterend", host);
+  return host;
+}
+
+function timeProtectionEscape(value) {
+  return typeof escapeHTML === "function"
+    ? escapeHTML(String(value ?? ""))
+    : String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char]));
+}
+
+async function renderTimeRecoveryDiagnostic() {
+  const host = ensureTimeRecoveryDiagnosticHost();
+  if (!host) return;
+  host.innerHTML = "<p>Examinando todas as cópias locais de tempo...</p>";
+  try {
+    const candidates = await collectTimeRecoveryCandidates();
+    const preview = buildTimeRecoveryPreview(candidates);
+    const current = preview.current;
+    const recovered = preview.recovered;
+    const studyGain = Math.max(0, recovered.conservativeStudyMinutes - current.conservativeStudyMinutes);
+    const sessionGain = Math.max(0, recovered.studies - current.studies);
+    const goalGain = Math.max(0, recovered.goalStudyMinutes - current.goalStudyMinutes);
+    const questionTimeGain = Math.max(0, recovered.questionLogMinutes - current.questionLogMinutes);
+    const hasGain = studyGain > 0 || sessionGain > 0 || goalGain > 0 || questionTimeGain > 0;
+    const tombstones = timeProtectionTombstoneCount(typeof state !== "undefined" ? state : {});
+    const driveStatus = globalThis.__aldusDriveTimeRecoveryScanStatusV51 || null;
+    const driveCopies = Array.isArray(globalThis.__aldusDriveTimeRecoveryCandidatesV51)
+      ? globalThis.__aldusDriveTimeRecoveryCandidatesV51.length
+      : 0;
+    const candidateRows = candidates.map((candidate) => {
+      const summary = candidate.summary;
+      return `<li><strong>${timeProtectionEscape(candidate.labels.join(" / "))}</strong>: ${summary.studies} sessões • ${timeProtectionFormatMinutes(summary.archivedStudyMinutes)} nas sessões • ${timeProtectionFormatMinutes(summary.goalStudyMinutes)} de estudo nas metas</li>`;
+    }).join("");
+
+    globalThis.__aldusTimeRecoveryDiagnosticV49 = { candidates, preview, hasGain, studyGain, sessionGain, goalGain, questionTimeGain, tombstones };
+    const recoveryPanel = document.getElementById("legacyTimerRecoveryPanel");
+    if (recoveryPanel) recoveryPanel.open = true;
+
+    host.innerHTML = `
+      <div class="section-heading"><div><p class="eyebrow">Diagnóstico ampliado</p><h3>RECUPERAÇÃO CONTROLADA DO TEMPO</h3></div></div>
+      <p class="notice ${hasGain ? "warning-notice" : ""}">
+        ${hasGain
+          ? `Foram encontrados registros que podem acrescentar pelo menos <strong>${timeProtectionFormatMinutes(studyGain)}</strong> ao tempo de estudo preservado e <strong>${sessionGain}</strong> sessão(ões).`
+          : "Nenhuma cópia local examinada apresentou tempo de estudo maior do que o estado atualmente carregado."}
+      </p>
+      <div class="card-meta-grid">
+        <span>Tempo atual preservado: <strong>${timeProtectionFormatMinutes(current.conservativeStudyMinutes)}</strong></span>
+        <span>Maior tempo recuperável: <strong>${timeProtectionFormatMinutes(recovered.conservativeStudyMinutes)}</strong></span>
+        <span>Sessões atuais: <strong>${current.studies}</strong></span>
+        <span>Sessões após recuperação: <strong>${recovered.studies}</strong></span>
+        <span>Marcadores de exclusão ligados ao tempo: <strong>${tombstones}</strong></span>
+        <span>Cópias distintas examinadas: <strong>${candidates.length}</strong></span>
+        <span>Cópias lidas do Google Drive: <strong>${driveCopies}</strong></span>
+      </div>
+      ${driveStatus ? `<p class="notice ${driveStatus.state === "error" ? "warning-notice" : ""}">${timeProtectionEscape(driveStatus.message)}</p>` : `<p class="notice">A verificação local terminou. Para procurar tempos que já não existem neste navegador, examine também o arquivo atual e as revisões disponíveis no Google Drive.</p>`}
+      <div class="actions">
+        <button type="button" class="secondary-button" data-time-recovery-scan>Verificar novamente</button>
+        <button type="button" class="secondary-button" data-time-recovery-drive-scan>Examinar histórico do Google Drive</button>
+        <button type="button" data-time-recovery-apply ${hasGain ? "" : "disabled"}>Recuperar maior tempo encontrado</button>
+      </div>
+      <details><summary>Ver fontes e totais encontrados</summary><ul>${candidateRows || "<li>Nenhuma fonte local com registros de tempo foi encontrada.</li>"}</ul></details>
+      <p class="item-meta">A recuperação ignora somente os marcadores que bloqueiam os registros de tempo escolhidos. Materiais, configurações, prompts e outras áreas permanecem como estão. Antes da alteração será criada uma cópia integral de segurança.</p>
+    `;
+  } catch (error) {
+    console.warn("[Aldus Meta] Falha no diagnóstico ampliado do tempo.", error);
+    host.innerHTML = `<p class="notice warning-notice">Não foi possível concluir o diagnóstico do tempo: ${timeProtectionEscape(error?.message || error)}</p><div class="actions"><button type="button" class="secondary-button" data-time-recovery-scan>Tentar novamente</button></div>`;
+  }
+}
+
+function applyTimeRecoveryDiagnostic() {
+  const diagnostic = globalThis.__aldusTimeRecoveryDiagnosticV49;
+  if (!diagnostic?.hasGain || !diagnostic.preview?.state) return;
+  const message = `Recuperar os registros encontrados?\n\nTempo atual preservado: ${timeProtectionFormatMinutes(diagnostic.preview.current.conservativeStudyMinutes)}\nTempo preservado após recuperação: ${timeProtectionFormatMinutes(diagnostic.preview.recovered.conservativeStudyMinutes)}\n\nSerá criado um backup integral antes da alteração. A nuvem não será atualizada automaticamente.`;
+  if (typeof confirm === "function" && !confirm(message)) return;
+
+  try {
+    localStorage.setItem(TIME_STORAGE_MANUAL_RECOVERY_BACKUP_KEY, JSON.stringify({
+      app: "aldus-meta",
+      version: TIME_STORAGE_PROTECTION_VERSION,
+      createdAt: new Date().toISOString(),
+      state: timeProtectionClone(state)
+    }));
+    if (typeof replaceState === "function") replaceState(diagnostic.preview.state);
+    else Object.assign(state, timeProtectionClone(diagnostic.preview.state));
+    if (typeof reconcileSavedTimerTotals === "function") reconcileSavedTimerTotals();
+    saveData({ markLocalChange: true });
+    if (typeof markPendingSync === "function") {
+      markPendingSync("manual-time-recovery-v49", "Tempo recuperado manualmente neste dispositivo; confira antes de enviar à nuvem.");
+    }
+    render();
+    if (typeof showDailyGoalMessage === "function") {
+      showDailyGoalMessage(`Recuperação concluída: pelo menos ${timeProtectionFormatMinutes(diagnostic.studyGain)} acrescentados ao tempo de estudo preservado.`, "success");
+    }
+    setTimeout(renderTimeRecoveryDiagnostic, 450);
+  } catch (error) {
+    console.error("[Aldus Meta] Não foi possível aplicar a recuperação controlada do tempo.", error);
+    if (typeof showDailyGoalMessage === "function") showDailyGoalMessage("Não foi possível recuperar o tempo. Nenhum envio para a nuvem foi realizado.", "error");
+  }
+}
+
+function installTimeRecoveryDiagnosticUI() {
+  if (typeof document === "undefined" || globalThis.__aldusTimeRecoveryDiagnosticUIV49) return;
+  globalThis.__aldusTimeRecoveryDiagnosticUIV49 = true;
+  document.addEventListener("click", (event) => {
+    if (event.target.closest("[data-time-recovery-scan]")) {
+      event.preventDefault();
+      renderTimeRecoveryDiagnostic();
+    }
+    if (event.target.closest("[data-time-recovery-apply]")) {
+      event.preventDefault();
+      applyTimeRecoveryDiagnostic();
+    }
+    if (event.target.closest("[data-time-recovery-drive-scan]")) {
+      event.preventDefault();
+      scanGoogleDriveTimeRecoveryHistory();
+    }
+  });
+  const schedule = () => setTimeout(renderTimeRecoveryDiagnostic, 250);
+  window.addEventListener("hashchange", () => {
+    if (String(location.hash || "").includes("backup")) schedule();
+  });
+  setTimeout(renderTimeRecoveryDiagnostic, 3300);
+}
+
+installGoalTimeNonRegressionProtection();
+installPrimaryStorageMergeProtection();
+installExactTimerSecondsArchive();
+installRecoveredTimePersistence();
+installTimeRecoveryDiagnosticUI();
+
+/* Aldus source: script.js */
 const STORAGE_KEY = "metasConcursoData";
 const SIMULADOS_STORAGE_KEY = "metasEstudoSimulados";
 const MOTIVATION_STORAGE_KEY = "metasEstudoMensagemDoDia";
@@ -8288,3 +12900,1542 @@ document.addEventListener("keydown", (event) => {
 // Compatibilidade visual: factoryThemeHighlightHTML(item, recorte)
 
 // Compatibilidade de fila: data-factory-detail="${item.id}" ${factoryOpenDetailId === item.id ? "open" : ""}
+
+/* Aldus source: question-accuracy-spectrum.js */
+(() => {
+  "use strict";
+
+  const GLOBAL_KEY = "__metasQuestionAccuracySpectrumV38";
+  const STYLE_ID = "questionAccuracySpectrumStylesV38";
+  const SOUND_STORAGE_KEY = "metasEstudoMotivationalSoundEnabled";
+  const INPUT_IDS = new Set(["questionTotal", "questionCorrect", "questionWrong", "questionBlank"]);
+
+  function clampAccuracyPercent(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return 0;
+    return Math.min(100, Math.max(0, number));
+  }
+
+  function questionAccuracyFromValues(total, correct) {
+    const normalizedTotal = Math.max(0, Number(total) || 0);
+    const normalizedCorrect = Math.max(0, Number(correct) || 0);
+    return normalizedTotal ? clampAccuracyPercent((normalizedCorrect / normalizedTotal) * 100) : 0;
+  }
+
+  function accuracySpectrumHue(percent) {
+    return Number((clampAccuracyPercent(percent) * 1.2).toFixed(2));
+  }
+
+  function readAccuracyPercent() {
+    try {
+      if (typeof globalThis.questionNumbers === "function") {
+        const calculated = globalThis.questionNumbers();
+        if (calculated && Number.isFinite(Number(calculated.accuracy))) {
+          return clampAccuracyPercent(calculated.accuracy);
+        }
+      }
+    } catch (error) {
+      console.warn("[Questões] Não foi possível ler o cálculo original de acertos.", error);
+    }
+    return questionAccuracyFromValues(
+      document.getElementById("questionTotal")?.value,
+      document.getElementById("questionCorrect")?.value
+    );
+  }
+
+  function ensureStyles() {
+    if (document.getElementById(STYLE_ID)) return;
+    const style = document.createElement("style");
+    style.id = STYLE_ID;
+    style.textContent = `
+      #questionCalculated.question-calculated-spectrum {
+        --question-accuracy: 0%;
+        --question-accuracy-hue: 0;
+        position: relative;
+        padding-bottom: 36px !important;
+      }
+      .question-accuracy-spectrum-visual {
+        position: absolute;
+        left: 16px;
+        right: 16px;
+        bottom: 9px;
+        display: grid;
+        grid-template-columns: minmax(120px, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+        pointer-events: none;
+      }
+      .question-accuracy-spectrum-track {
+        position: relative;
+        height: 9px;
+        min-width: 0;
+        border: 1px solid rgba(15, 23, 42, .15);
+        border-radius: 999px;
+        background: linear-gradient(90deg,
+          #dc2626 0%,
+          #f97316 24%,
+          #facc15 50%,
+          #22c55e 76%,
+          #0ea5e9 100%);
+        box-shadow: inset 0 1px 2px rgba(15, 23, 42, .18);
+      }
+      .question-accuracy-spectrum-marker {
+        position: absolute;
+        top: 50%;
+        left: var(--question-accuracy);
+        width: 16px;
+        height: 16px;
+        border: 2px solid #0f172a;
+        border-radius: 50%;
+        background: hsl(var(--question-accuracy-hue) 82% 54%);
+        box-shadow: 0 2px 7px rgba(15, 23, 42, .28);
+        transform: translate(-50%, -50%);
+        transition: left .25s ease, background-color .25s ease;
+      }
+      .question-accuracy-spectrum-label {
+        margin: 0;
+        color: inherit;
+        font-size: .76rem;
+        font-weight: 800;
+        line-height: 1;
+        white-space: nowrap;
+      }
+      .timer-motivational-sound-option {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .timer-motivational-sound-option small {
+        display: block;
+        margin-top: 2px;
+        opacity: .72;
+        font-size: .76rem;
+        font-weight: 600;
+        line-height: 1.25;
+      }
+      @media (max-width: 620px) {
+        #questionCalculated.question-calculated-spectrum { padding-bottom: 52px !important; }
+        .question-accuracy-spectrum-visual {
+          grid-template-columns: 1fr;
+          gap: 6px;
+          bottom: 8px;
+        }
+        .question-accuracy-spectrum-label { font-size: .72rem; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function ensureVisual(box) {
+    let visual = box.querySelector("[data-question-accuracy-spectrum]");
+    if (visual) return visual;
+    visual = document.createElement("div");
+    visual.className = "question-accuracy-spectrum-visual";
+    visual.dataset.questionAccuracySpectrum = "true";
+    visual.innerHTML = `
+      <div class="question-accuracy-spectrum-track" role="progressbar" aria-label="Percentual de acertos" aria-valuemin="0" aria-valuemax="100">
+        <span class="question-accuracy-spectrum-marker" aria-hidden="true"></span>
+      </div>
+      <small class="question-accuracy-spectrum-label">0,0% de acertos</small>
+    `;
+    box.appendChild(visual);
+    return visual;
+  }
+
+  let spectrumRendering = false;
+  function renderQuestionAccuracySpectrum() {
+    const box = document.getElementById("questionCalculated");
+    if (!box || spectrumRendering) return;
+    spectrumRendering = true;
+    try {
+      ensureStyles();
+      const accuracy = readAccuracyPercent();
+      const hue = accuracySpectrumHue(accuracy);
+      const markerPercent = Math.min(99.2, Math.max(.8, accuracy));
+      const visual = ensureVisual(box);
+      const track = visual.querySelector(".question-accuracy-spectrum-track");
+      const label = visual.querySelector(".question-accuracy-spectrum-label");
+      box.classList.add("question-calculated-spectrum");
+      box.style.setProperty("--question-accuracy", `${markerPercent}%`);
+      box.style.setProperty("--question-accuracy-hue", String(hue));
+      if (track) {
+        track.setAttribute("aria-valuenow", accuracy.toFixed(1));
+        track.setAttribute("aria-valuetext", `${accuracy.toFixed(1)}% de acertos`);
+      }
+      if (label) label.textContent = `${accuracy.toFixed(1).replace(".", ",")}% de acertos`;
+    } finally {
+      spectrumRendering = false;
+    }
+  }
+
+  let renderQueued = false;
+  function scheduleRender() {
+    if (renderQueued) return;
+    renderQueued = true;
+    const schedule = globalThis.requestAnimationFrame || ((callback) => setTimeout(callback, 0));
+    schedule(() => {
+      renderQueued = false;
+      renderQuestionAccuracySpectrum();
+      observeCalculatedBox();
+      ensureMotivationalSoundControl();
+    });
+  }
+
+  function observeCalculatedBox() {
+    const box = document.getElementById("questionCalculated");
+    if (!box || box.dataset.accuracySpectrumObservedV38 === "true" || typeof MutationObserver === "undefined") return;
+    box.dataset.accuracySpectrumObservedV38 = "true";
+    const observer = new MutationObserver(() => {
+      if (!spectrumRendering) scheduleRender();
+    });
+    observer.observe(box, { childList: true });
+  }
+
+  function installQuestionAccuracySpectrum() {
+    if (typeof document === "undefined") return;
+    document.addEventListener("input", (event) => {
+      if (INPUT_IDS.has(event.target?.id)) scheduleRender();
+    }, true);
+    document.addEventListener("change", (event) => {
+      if (INPUT_IDS.has(event.target?.id)) scheduleRender();
+    }, true);
+    globalThis.addEventListener?.("hashchange", scheduleRender);
+    document.addEventListener("DOMContentLoaded", scheduleRender, { once: true });
+    scheduleRender();
+  }
+
+  function timerDisplayedPercent() {
+    const text = String(document.getElementById("timerProgressText")?.textContent || "");
+    const match = text.match(/(\d+(?:[.,]\d+)?)\s*%/);
+    if (!match) return 0;
+    return Math.min(100, Math.max(0, Number(match[1].replace(",", ".")) || 0));
+  }
+
+  function timerElapsedSeconds() {
+    const parts = String(document.getElementById("timerTime")?.textContent || "00:00:00").split(":").map((part) => Number(part) || 0);
+    if (parts.length !== 3) return 0;
+    return Math.max(0, parts[0] * 3600 + parts[1] * 60 + parts[2]);
+  }
+
+  function motivationalSoundEnabled() {
+    try {
+      const preference = globalThis.state?.settings?.timerPreferences?.motivationalSound;
+      if (typeof preference === "boolean") return preference;
+    } catch (error) {}
+    try {
+      const stored = globalThis.localStorage?.getItem(SOUND_STORAGE_KEY);
+      return stored === null || stored === undefined ? true : stored !== "false";
+    } catch (error) {
+      return true;
+    }
+  }
+
+  function persistMotivationalSound(enabled) {
+    const normalized = Boolean(enabled);
+    try {
+      globalThis.localStorage?.setItem(SOUND_STORAGE_KEY, String(normalized));
+    } catch (error) {}
+    try {
+      if (typeof globalThis.state === "object" && globalThis.state) {
+        globalThis.state.settings ||= {};
+        globalThis.state.settings.timerPreferences ||= {};
+        globalThis.state.settings.timerPreferences.motivationalSound = normalized;
+        if (typeof globalThis.saveData === "function") globalThis.saveData();
+        if (typeof globalThis.autoSyncAfterSave === "function") globalThis.autoSyncAfterSave("timer-settings");
+      }
+    } catch (error) {
+      console.warn("[Cronômetro] Não foi possível salvar a preferência do aviso sonoro.", error);
+    }
+    return normalized;
+  }
+
+  let motivationalAudioContext = null;
+
+  function getAudioContext() {
+    const AudioContextClass = globalThis.AudioContext || globalThis.webkitAudioContext;
+    if (!AudioContextClass) return null;
+    if (!motivationalAudioContext || motivationalAudioContext.state === "closed") {
+      motivationalAudioContext = new AudioContextClass();
+    }
+    return motivationalAudioContext;
+  }
+
+  async function unlockMotivationalAudio() {
+    if (!motivationalSoundEnabled()) return false;
+    try {
+      const context = getAudioContext();
+      if (!context) return false;
+      if (context.state === "suspended") await context.resume();
+      return context.state === "running";
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function scheduleChimeTone(context, frequency, startAt, duration, peakVolume) {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(frequency, startAt);
+    gain.gain.setValueAtTime(.0001, startAt);
+    gain.gain.exponentialRampToValueAtTime(peakVolume, startAt + .018);
+    gain.gain.exponentialRampToValueAtTime(.0001, startAt + duration);
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start(startAt);
+    oscillator.stop(startAt + duration + .03);
+  }
+
+  async function playMotivationalChime(milestone = 10, { preview = false } = {}) {
+    if (!preview && !motivationalSoundEnabled()) return false;
+    try {
+      const context = getAudioContext();
+      if (!context) return false;
+      if (context.state === "suspended") await context.resume();
+      if (context.state !== "running") return false;
+      const startAt = context.currentTime + .015;
+      const finalMilestone = Number(milestone) >= 100;
+      const tones = finalMilestone
+        ? [{ frequency: 659.25, delay: 0 }, { frequency: 783.99, delay: .12 }, { frequency: 987.77, delay: .24 }]
+        : [{ frequency: 659.25, delay: 0 }, { frequency: 880, delay: .13 }];
+      tones.forEach((tone, index) => {
+        scheduleChimeTone(context, tone.frequency, startAt + tone.delay, index === tones.length - 1 ? .22 : .17, .055);
+      });
+      return true;
+    } catch (error) {
+      console.warn("[Cronômetro] O aviso sonoro não pôde ser reproduzido.", error);
+      return false;
+    }
+  }
+
+  function ensureMotivationalSoundControl() {
+    if (typeof document === "undefined") return null;
+    ensureStyles();
+    const existing = document.querySelector('[data-timer-pref="motivationalSound"]');
+    if (existing) {
+      if (document.activeElement !== existing) existing.checked = motivationalSoundEnabled();
+      return existing;
+    }
+    const motivationalCheckbox = document.querySelector('[data-timer-pref="motivationalMessages"]');
+    if (!motivationalCheckbox) return null;
+    const reference = motivationalCheckbox.closest("label") || motivationalCheckbox.parentElement;
+    if (!reference?.parentElement) return null;
+
+    const label = document.createElement("label");
+    label.className = `${reference.className || ""} timer-motivational-sound-option`.trim();
+    label.dataset.timerMotivationalSoundOption = "true";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = motivationalSoundEnabled();
+    checkbox.dataset.timerPref = "motivationalSound";
+    checkbox.setAttribute("aria-label", "Aviso sonoro das mensagens motivacionais");
+
+    const text = document.createElement("span");
+    text.innerHTML = `Aviso sonoro das mensagens motivacionais<small>Toque curto e suave em cada marco de progresso.</small>`;
+
+    label.append(checkbox, text);
+    reference.insertAdjacentElement("afterend", label);
+
+    checkbox.addEventListener("change", async () => {
+      persistMotivationalSound(checkbox.checked);
+      if (checkbox.checked) {
+        await unlockMotivationalAudio();
+        await playMotivationalChime(10, { preview: true });
+      }
+    });
+    return checkbox;
+  }
+
+  function installMotivationalAudioUnlock() {
+    if (typeof document === "undefined" || globalThis.__metasMotivationalAudioUnlockV38) return;
+    globalThis.__metasMotivationalAudioUnlockV38 = true;
+    const unlock = () => { void unlockMotivationalAudio(); };
+    document.addEventListener("pointerdown", unlock, { capture: true, passive: true });
+    document.addEventListener("touchstart", unlock, { capture: true, passive: true });
+    document.addEventListener("keydown", unlock, { capture: true });
+    document.addEventListener("click", () => ensureMotivationalSoundControl(), { capture: true });
+    if (typeof MutationObserver !== "undefined" && document.body) {
+      const observer = new MutationObserver(() => ensureMotivationalSoundControl());
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
+    setInterval(ensureMotivationalSoundControl, 1500);
+    setTimeout(ensureMotivationalSoundControl, 250);
+  }
+
+  globalThis.MetasQuestionAccuracySpectrum = Object.freeze({
+    clampAccuracyPercent,
+    questionAccuracyFromValues,
+    accuracySpectrumHue,
+    renderQuestionAccuracySpectrum,
+    installQuestionAccuracySpectrum,
+    timerDisplayedPercent,
+    timerElapsedSeconds,
+    motivationalSoundEnabled,
+    persistMotivationalSound,
+    unlockMotivationalAudio,
+    playMotivationalChime,
+    ensureMotivationalSoundControl
+  });
+
+  if (!globalThis[GLOBAL_KEY]) {
+    globalThis[GLOBAL_KEY] = true;
+    installQuestionAccuracySpectrum();
+  }
+  installMotivationalAudioUnlock();
+})();
+
+/* Aldus source: timer-material-link-fix.js */
+(() => {
+  "use strict";
+
+  const RUNTIME_KEY = "__metasTimerMaterialLinkFixV40";
+  if (globalThis[RUNTIME_KEY]) return;
+  globalThis[RUNTIME_KEY] = true;
+
+  function normalizedText(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLowerCase();
+  }
+
+  function currentTimerGoal() {
+    try {
+      if (typeof floatingTimerGoal === "function") {
+        const goal = floatingTimerGoal();
+        if (goal) return goal;
+      }
+    } catch (error) {}
+    try {
+      if (typeof floatingTimer !== "undefined" && typeof state !== "undefined") {
+        return (state.dailyGoals || []).find((goal) => goal.id === floatingTimer.goalId) || null;
+      }
+    } catch (error) {}
+    return null;
+  }
+
+  function materialIdentity(material = {}) {
+    try {
+      if (typeof dailyGoalMaterialIdentity === "function") return dailyGoalMaterialIdentity(material);
+    } catch (error) {}
+    try {
+      if (typeof materialPhysicalFileIdentity === "function") return materialPhysicalFileIdentity(material);
+    } catch (error) {}
+    return String(
+      material.id || material.materialId || material.factoryMaterialId || material.link ||
+      [material.title || material.titulo, material.discipline || material.disciplina, material.subject || material.assunto].join("|")
+    );
+  }
+
+  function materialValue(material = {}) {
+    return String(material.id || material.materialId || material.factoryMaterialId || material.link || materialIdentity(material));
+  }
+
+  function materialLabel(material = {}) {
+    const title = material.title || material.titulo || material.name || material.nome || material.moduleTitle || material.factoryModuleLabel || material.link || "Material disponível";
+    const source = material.source === "factory"
+      ? "Fábrica de Resumos"
+      : (material.origin || material.origem || "");
+    return source ? `${title} — ${source}` : title;
+  }
+
+  function selectedSyllabusItemId(discipline, subject, goal) {
+    if (goal?.syllabusItemId) return goal.syllabusItemId;
+    try {
+      if (typeof state === "undefined") return "";
+      return (state.syllabusItems || []).find((item) =>
+        normalizedText(item.discipline || item.disciplina) === normalizedText(discipline) &&
+        normalizedText(item.subject || item.assunto) === normalizedText(subject)
+      )?.id || "";
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function fallbackMaterials(discipline, subject, syllabusItemId) {
+    try {
+      if (typeof state === "undefined") return [];
+      return (state.materials || []).filter((material) => {
+        if (material.available === false || material.disponivel === false) return false;
+        const ids = [material.syllabusItemId, ...(Array.isArray(material.syllabusItemIds) ? material.syllabusItemIds : [])].filter(Boolean);
+        if (syllabusItemId && ids.includes(syllabusItemId)) return true;
+        return normalizedText(material.discipline || material.disciplina) === normalizedText(discipline) &&
+          normalizedText(material.subject || material.assunto) === normalizedText(subject);
+      });
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function resolvedTimerMaterials() {
+    const goal = currentTimerGoal();
+    const discipline = document.getElementById("timerStudyDiscipline")?.value || goal?.discipline || "";
+    const subject = document.getElementById("timerStudySubject")?.value || goal?.subject || "";
+    const syllabusItemId = selectedSyllabusItemId(discipline, subject, goal);
+    let materials = [];
+    try {
+      if (typeof resolveAvailableMaterials === "function") {
+        materials = resolveAvailableMaterials({ discipline, subject, syllabusItemId }) || [];
+      }
+    } catch (error) {
+      console.warn("[Cronômetro] Não foi possível consultar a fonte central de materiais.", error);
+    }
+    if (!Array.isArray(materials) || !materials.length) materials = fallbackMaterials(discipline, subject, syllabusItemId);
+
+    const unique = new Map();
+    materials.forEach((material) => {
+      if (!material || typeof material !== "object" || material.available === false || material.disponivel === false) return;
+      const identity = materialIdentity(material) || materialValue(material);
+      const existing = unique.get(identity);
+      if (!existing || (!existing.estimatedMinutes && material.estimatedMinutes)) unique.set(identity, material);
+    });
+    return [...unique.values()];
+  }
+
+  function preferredMaterialValues(goal, currentValue) {
+    const values = [currentValue, goal?.estimateSourceId, goal?.materialId, goal?.material];
+    try {
+      if (typeof floatingTimer !== "undefined") values.push(floatingTimer.material);
+    } catch (error) {}
+    return values.filter(Boolean).map(String);
+  }
+
+  function populateTimerMaterialOptions() {
+    const modal = document.getElementById("timerStudyModal");
+    const select = document.getElementById("timerStudyMaterial");
+    if (!modal || modal.hidden || !select) return 0;
+
+    const goal = currentTimerGoal();
+    const previousValue = select.value || "";
+    const preferred = new Set(preferredMaterialValues(goal, previousValue));
+    const materials = resolvedTimerMaterials();
+
+    const options = [new Option("Sem material vinculado", "")];
+    materials.forEach((material) => {
+      const option = new Option(materialLabel(material), materialValue(material));
+      option.dataset.materialIdentity = materialIdentity(material);
+      options.push(option);
+    });
+    select.replaceChildren(...options);
+
+    const directMatch = options.find((option) => preferred.has(option.value));
+    if (directMatch) select.value = directMatch.value;
+    else if (materials.length) select.value = materialValue(materials[0]);
+    else select.value = "";
+
+    select.dataset.timerMaterialResolvedV40 = "true";
+    select.dataset.timerMaterialCount = String(materials.length);
+    return materials.length;
+  }
+
+  let refreshTimer = null;
+  function scheduleMaterialRefresh(delay = 0) {
+    clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(() => {
+      try { populateTimerMaterialOptions(); }
+      catch (error) { console.warn("[Cronômetro] Falha ao atualizar materiais vinculados.", error); }
+    }, delay);
+  }
+
+  function installTimerMaterialLinkFix() {
+    document.addEventListener("click", (event) => {
+      if (event.target?.closest?.('[data-timer-action="save"]')) scheduleMaterialRefresh(30);
+    }, true);
+    document.addEventListener("change", (event) => {
+      if (["timerStudyDiscipline", "timerStudySubject"].includes(event.target?.id)) scheduleMaterialRefresh(0);
+    }, true);
+
+    const modal = document.getElementById("timerStudyModal");
+    if (modal && typeof MutationObserver !== "undefined") {
+      const observer = new MutationObserver(() => scheduleMaterialRefresh(0));
+      observer.observe(modal, { attributes: true, attributeFilter: ["hidden"] });
+    }
+    setTimeout(() => scheduleMaterialRefresh(0), 250);
+  }
+
+  globalThis.MetasTimerMaterialLinkFix = Object.freeze({
+    normalizedText,
+    materialIdentity,
+    materialValue,
+    materialLabel,
+    resolvedTimerMaterials,
+    populateTimerMaterialOptions,
+    installTimerMaterialLinkFix
+  });
+
+  if (typeof document !== "undefined") installTimerMaterialLinkFix();
+})();
+
+/* Aldus source: question-history-pie.js */
+(() => {
+  "use strict";
+
+  const RUNTIME_KEY = "__aldusQuestionHistoryPieV110";
+  if (globalThis[RUNTIME_KEY]) return;
+  globalThis[RUNTIME_KEY] = true;
+
+  const PANEL_ID = "questionHistoryPiePanel";
+  const CHART_ID = "questionHistorySelectedChart";
+  const SELECT_ID = "questionHistoryPeriodFilter";
+  const PERIOD_LABEL_ID = "questionHistoryPeriodLabel";
+  const PERIOD_DESCRIPTION_ID = "questionHistoryPeriodDescription";
+  const TABLE_BODY_ID = "questionHistoryBody";
+  const PERIOD_STORAGE_KEY = "questionHistorySelectedPeriod";
+  const PANEL_STORAGE_KEY = "questionHistoryPeriodPanelOpen";
+  const FILTER_IDS = [
+    "questionFilterDiscipline",
+    "questionFilterSubject",
+    "questionFilterOrigin",
+    "questionFilterBoard"
+  ];
+
+  const COLORS = {
+    correct: "#159b63",
+    wrong: "#d94b4b",
+    null: "#d6a40d",
+    empty: "#dfe7ef",
+    navy: "#082b49"
+  };
+
+  const PERIODS = [
+    { key: "day", label: "Hoje", matches: (date, now) => sameDay(date, now) },
+    { key: "week", label: "Semana", matches: (date, now) => sameWeek(date, now) },
+    { key: "month", label: "Mês", matches: (date, now) => sameMonth(date, now) },
+    { key: "year", label: "Ano", matches: (date, now) => date.getFullYear() === now.getFullYear() },
+    { key: "all", label: "Completo", matches: () => true }
+  ];
+
+  function injectStyles() {
+    if (document.getElementById("questionHistoryPieStyles")) return;
+
+    const style = document.createElement("style");
+    style.id = "questionHistoryPieStyles";
+    style.textContent = `
+      .qh-period-details {
+        margin: 1.25rem 0 1.5rem;
+        border: 1px solid rgba(8, 43, 73, .13);
+        border-radius: 20px;
+        background: linear-gradient(180deg, rgba(255,255,255,.99), rgba(246,250,253,.98));
+        box-shadow: 0 14px 32px rgba(8, 43, 73, .08);
+        overflow: hidden;
+      }
+
+      .qh-period-details > summary {
+        list-style: none;
+      }
+
+      .qh-period-details > summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .qh-period-summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1rem 1.15rem;
+        cursor: pointer;
+        user-select: none;
+        background: rgba(255,255,255,.82);
+      }
+
+      .qh-period-summary:hover {
+        background: #fff;
+      }
+
+      .qh-period-summary-copy {
+        display: grid;
+        gap: .16rem;
+        min-width: 0;
+      }
+
+      .qh-period-summary-copy small {
+        color: #667b8f;
+        font-size: .76rem;
+        font-weight: 700;
+        letter-spacing: .06em;
+      }
+
+      .qh-period-summary-copy strong {
+        color: ${COLORS.navy};
+        font-size: 1.08rem;
+      }
+
+      .qh-period-summary-status {
+        display: flex;
+        align-items: center;
+        gap: .7rem;
+        color: #526b7f;
+        font-size: .84rem;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .qh-period-chevron {
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: #edf4f8;
+        color: ${COLORS.navy};
+        font-size: 1.35rem;
+        line-height: 1;
+        transform: rotate(90deg);
+        transition: transform .2s ease;
+      }
+
+      .qh-period-details[open] .qh-period-chevron {
+        transform: rotate(-90deg);
+      }
+
+      .qh-period-content {
+        padding: 0 1.15rem 1.15rem;
+        border-top: 1px solid rgba(8, 43, 73, .08);
+      }
+
+      .qh-period-toolbar {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1rem 0;
+      }
+
+      .qh-period-filter {
+        display: grid;
+        gap: .38rem;
+        min-width: min(100%, 260px);
+        color: ${COLORS.navy};
+        font-size: .82rem;
+        font-weight: 700;
+      }
+
+      .qh-period-filter select {
+        width: 100%;
+        min-height: 44px;
+        padding: .65rem 2.4rem .65rem .8rem;
+        border: 1px solid rgba(8, 43, 73, .18);
+        border-radius: 12px;
+        background: #fff;
+        color: ${COLORS.navy};
+        font: inherit;
+        font-weight: 700;
+      }
+
+      .qh-period-description {
+        margin: 0;
+        color: #657a8e;
+        font-size: .86rem;
+        text-align: right;
+      }
+
+      .qh-chart-card {
+        display: grid;
+        grid-template-columns: minmax(280px, .95fr) minmax(310px, 1.05fr);
+        align-items: center;
+        gap: 1.4rem;
+        min-height: 350px;
+        padding: 1.2rem;
+        border: 1px solid rgba(8, 43, 73, .11);
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 9px 24px rgba(8, 43, 73, .07);
+      }
+
+      .qh-chart-visual {
+        position: relative;
+        display: grid;
+        place-items: center;
+        min-width: 0;
+        min-height: 330px;
+        padding: .65rem;
+        overflow: hidden;
+        border-radius: 16px;
+        background:
+          radial-gradient(ellipse at 50% 48%, rgba(21,155,99,.12), transparent 46%),
+          linear-gradient(180deg, #fbfdff, #f3f7fa);
+        isolation: isolate;
+      }
+
+      .qh-chart-visual::before {
+        content: "";
+        position: absolute;
+        inset: 12% 8% 9%;
+        z-index: -1;
+        border-radius: 50%;
+        background: radial-gradient(ellipse, rgba(8,43,73,.07), transparent 68%);
+        filter: blur(8px);
+      }
+
+      .qh-donut-wrap {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: min(100%, 440px);
+        aspect-ratio: 44 / 30;
+      }
+
+      .qh-donut-svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        overflow: visible;
+      }
+
+      .qh-donut-ground-shadow {
+        fill: rgba(8, 43, 73, .24);
+        filter: url(#qhDonutShadow);
+      }
+
+      .qh-donut-depth path {
+        stroke: rgba(4, 23, 39, .16);
+        stroke-width: 1;
+      }
+
+      .qh-donut-top path {
+        stroke: rgba(247, 251, 255, .94);
+        stroke-width: 3;
+        stroke-linejoin: round;
+      }
+
+      .qh-donut-rim {
+        fill: none;
+        stroke: rgba(255, 255, 255, .48);
+        stroke-width: 3;
+        pointer-events: none;
+      }
+
+      .qh-donut-center-shadow {
+        fill: rgba(4, 23, 39, .34);
+        filter: url(#qhCenterBlur);
+      }
+
+      .qh-donut-center-disc {
+        fill: #fff;
+        stroke: #dce8f0;
+        stroke-width: 2;
+      }
+
+      .qh-donut-center-value {
+        fill: ${COLORS.navy};
+        font: 900 39px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        letter-spacing: -1.5px;
+      }
+
+      .qh-donut-center-label {
+        fill: #526b7f;
+        font: 800 15px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        letter-spacing: .3px;
+      }
+
+      .qh-donut-caption {
+        fill: #7a8fa1;
+        font: 700 13px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .qh-chart-info {
+        display: grid;
+        gap: 1rem;
+        min-width: 0;
+      }
+
+      .qh-chart-heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      .qh-chart-heading-copy {
+        display: grid;
+        gap: .25rem;
+      }
+
+      .qh-chart-heading-copy small {
+        color: #687d91;
+        font-size: .8rem;
+        font-weight: 700;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+      }
+
+      .qh-chart-heading-copy strong {
+        color: ${COLORS.navy};
+        font-size: 1.35rem;
+      }
+
+      .qh-total-badge {
+        padding: .48rem .7rem;
+        border-radius: 999px;
+        background: #edf4f8;
+        color: ${COLORS.navy};
+        font-size: .82rem;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+
+      .qh-result-grid {
+        display: grid;
+        gap: .7rem;
+      }
+
+      .qh-result-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: .8rem;
+        padding: .82rem .9rem;
+        border: 1px solid rgba(8,43,73,.09);
+        border-radius: 13px;
+        background: #fbfdff;
+      }
+
+      .qh-result-label {
+        display: flex;
+        align-items: center;
+        gap: .58rem;
+        min-width: 0;
+        color: #29465d;
+        font-weight: 700;
+      }
+
+      .qh-result-dot {
+        flex: 0 0 auto;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        box-shadow: inset 0 -2px 2px rgba(0,0,0,.15);
+      }
+
+      .qh-result-dot.correct { background: ${COLORS.correct}; }
+      .qh-result-dot.wrong { background: ${COLORS.wrong}; }
+      .qh-result-dot.null { background: ${COLORS.null}; }
+
+      .qh-result-values {
+        display: flex;
+        align-items: baseline;
+        gap: .55rem;
+        white-space: nowrap;
+      }
+
+      .qh-result-values strong {
+        color: ${COLORS.navy};
+        font-size: 1.05rem;
+      }
+
+      .qh-result-values small {
+        color: #687d91;
+        font-size: .8rem;
+        font-weight: 700;
+      }
+
+      .qh-accuracy-box {
+        padding: .9rem;
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(21,155,99,.10), rgba(8,43,73,.05));
+      }
+
+      .qh-accuracy-line {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: .55rem;
+        color: ${COLORS.navy};
+        font-weight: 800;
+      }
+
+      .qh-accuracy-track {
+        height: 10px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #dfe8ee;
+      }
+
+      .qh-accuracy-fill {
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, ${COLORS.correct}, #38b980);
+        transition: width .35s ease;
+      }
+
+      .qh-chart-empty {
+        display: grid;
+        place-items: center;
+        align-content: center;
+        gap: .75rem;
+        min-height: 315px;
+        padding: 1.4rem;
+        border: 1px dashed rgba(8,43,73,.2);
+        border-radius: 16px;
+        background: #f7fafc;
+        text-align: center;
+        color: #6b8093;
+      }
+
+      .qh-empty-ring {
+        width: 112px;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        border: 20px solid ${COLORS.empty};
+        box-shadow: 0 12px 18px rgba(8,43,73,.10);
+      }
+
+      .qh-chart-empty strong {
+        color: ${COLORS.navy};
+        font-size: 1.05rem;
+      }
+
+      html[data-aldus-theme="premium-stable"] .qh-chart-visual {
+        background:
+          radial-gradient(ellipse at 50% 48%, rgba(39, 194, 130, .14), transparent 48%),
+          linear-gradient(180deg, rgba(3, 20, 38, .84), rgba(6, 30, 53, .96)) !important;
+      }
+
+      html[data-aldus-theme="premium-stable"] .qh-result-label,
+      html[data-aldus-theme="premium-stable"] .qh-accuracy-line {
+        color: #e9f2f8 !important;
+      }
+
+      html[data-aldus-theme="premium-stable"] .qh-result-row {
+        border-color: rgba(111, 169, 214, .24) !important;
+        background: rgba(3, 20, 38, .58) !important;
+      }
+
+      html[data-aldus-theme="premium-stable"] .qh-result-values strong {
+        color: #fff !important;
+      }
+
+      html[data-aldus-theme="premium-stable"] .qh-result-values small,
+      html[data-aldus-theme="premium-stable"] .qh-donut-caption {
+        color: #b9cad7 !important;
+        fill: #b9cad7 !important;
+      }
+
+      @media (max-width: 820px) {
+        .qh-chart-card {
+          grid-template-columns: 1fr;
+        }
+
+        .qh-chart-visual {
+          min-height: 290px;
+        }
+      }
+
+      @media (max-width: 620px) {
+        .qh-period-summary {
+          align-items: flex-start;
+          padding: .9rem;
+        }
+
+        .qh-period-summary-status span:first-child {
+          display: none;
+        }
+
+        .qh-period-content {
+          padding: 0 .9rem .9rem;
+        }
+
+        .qh-period-toolbar {
+          display: grid;
+          align-items: stretch;
+        }
+
+        .qh-period-filter {
+          min-width: 0;
+        }
+
+        .qh-period-description {
+          text-align: left;
+        }
+
+        .qh-chart-card {
+          min-height: 0;
+          padding: .85rem;
+        }
+
+        .qh-donut-wrap {
+          width: min(100%, 390px);
+        }
+
+        .qh-chart-heading {
+          display: grid;
+        }
+
+        .qh-total-badge {
+          justify-self: start;
+        }
+      }
+    `;
+
+    document.head.appendChild(style);
+  }
+
+  function parseNumber(value) {
+    const cleaned = String(value ?? "")
+      .replace(/\./g, "")
+      .replace(/,/g, ".")
+      .replace(/[^\d.-]/g, "");
+    const number = Number(cleaned);
+    return Number.isFinite(number) ? Math.max(0, number) : 0;
+  }
+
+  function parseDate(value) {
+    const text = String(value ?? "").trim();
+    if (!text) return null;
+
+    let match = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (match) return new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]), 12);
+
+    match = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (match) return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12);
+
+    const parsed = new Date(text);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  function normalizedDate(date) {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12);
+  }
+
+  function sameDay(first, second) {
+    return normalizedDate(first).getTime() === normalizedDate(second).getTime();
+  }
+
+  function weekStart(date) {
+    const result = normalizedDate(date);
+    const mondayIndex = (result.getDay() + 6) % 7;
+    result.setDate(result.getDate() - mondayIndex);
+    return result;
+  }
+
+  function sameWeek(first, second) {
+    return weekStart(first).getTime() === weekStart(second).getTime();
+  }
+
+  function sameMonth(first, second) {
+    return first.getFullYear() === second.getFullYear() && first.getMonth() === second.getMonth();
+  }
+
+  function addDays(date, amount) {
+    const result = normalizedDate(date);
+    result.setDate(result.getDate() + amount);
+    return result;
+  }
+
+  function formatDate(date, options = {}) {
+    return new Intl.DateTimeFormat("pt-BR", options).format(date);
+  }
+
+  function selectedPeriodKey() {
+    const select = document.getElementById(SELECT_ID);
+    const fallback = localStorage.getItem(PERIOD_STORAGE_KEY) || "month";
+    return PERIODS.some((period) => period.key === select?.value) ? select.value : fallback;
+  }
+
+  function periodDescription(periodKey, now = new Date()) {
+    if (periodKey === "day") return `Resultados de ${formatDate(now)}`;
+    if (periodKey === "week") {
+      const start = weekStart(now);
+      const end = addDays(start, 6);
+      return `Semana de ${formatDate(start)} a ${formatDate(end)}`;
+    }
+    if (periodKey === "month") {
+      return formatDate(now, { month: "long", year: "numeric" }).replace(/^./, (letter) => letter.toUpperCase());
+    }
+    if (periodKey === "year") return `Resultados de ${now.getFullYear()}`;
+    return "Todo o histórico que corresponde aos filtros da tela";
+  }
+
+  function ensurePanel() {
+    const view = document.getElementById("view-historico-questoes");
+    if (!view) return null;
+
+    let panel = document.getElementById(PANEL_ID);
+    if (panel && !panel.matches("details.qh-period-details")) {
+      panel.remove();
+      panel = null;
+    }
+
+    if (!panel) {
+      panel = document.createElement("details");
+      panel.id = PANEL_ID;
+      panel.className = "qh-period-details";
+      panel.setAttribute("aria-labelledby", "questionHistoryPieTitle");
+      panel.innerHTML = `
+        <summary class="qh-period-summary">
+          <span class="qh-period-summary-copy">
+            <small>VISÃO POR PERÍODO</small>
+            <strong id="questionHistoryPieTitle">Acertos, Erros e Nulos</strong>
+          </span>
+          <span class="qh-period-summary-status">
+            <span id="${PERIOD_LABEL_ID}">Mês</span>
+            <span class="qh-period-chevron" aria-hidden="true">›</span>
+          </span>
+        </summary>
+        <div class="qh-period-content">
+          <div class="qh-period-toolbar">
+            <label class="qh-period-filter">Período do gráfico
+              <select id="${SELECT_ID}" aria-label="Selecionar período do gráfico">
+                ${PERIODS.map((period) => `<option value="${period.key}">${period.label}</option>`).join("")}
+              </select>
+            </label>
+            <p id="${PERIOD_DESCRIPTION_ID}" class="qh-period-description"></p>
+          </div>
+          <div id="${CHART_ID}" aria-live="polite"></div>
+        </div>
+      `;
+
+      const storedOpen = sessionStorage.getItem(PANEL_STORAGE_KEY);
+      panel.open = storedOpen !== "closed";
+      panel.addEventListener("toggle", () => {
+        sessionStorage.setItem(PANEL_STORAGE_KEY, panel.open ? "open" : "closed");
+      });
+
+      const summary = document.getElementById("questionHistorySummary");
+      const filters = view.querySelector(".filters");
+      if (summary) summary.insertAdjacentElement("afterend", panel);
+      else if (filters) view.insertBefore(panel, filters);
+      else view.appendChild(panel);
+    }
+
+    const select = panel.querySelector(`#${SELECT_ID}`);
+    const savedPeriod = localStorage.getItem(PERIOD_STORAGE_KEY) || "month";
+    if (PERIODS.some((period) => period.key === savedPeriod)) select.value = savedPeriod;
+
+    if (select.dataset.periodBound !== "true") {
+      select.dataset.periodBound = "true";
+      select.addEventListener("change", () => {
+        localStorage.setItem(PERIOD_STORAGE_KEY, select.value);
+        render();
+      });
+    }
+
+    return panel.querySelector(`#${CHART_ID}`);
+  }
+
+  function getVisibleRows() {
+    const body = document.getElementById(TABLE_BODY_ID);
+    if (!body) return [];
+
+    return Array.from(body.querySelectorAll("tr")).filter((row) => {
+      const cells = row.querySelectorAll("td");
+      if (cells.length < 8) return false;
+      return row.hidden !== true && getComputedStyle(row).display !== "none";
+    });
+  }
+
+  function collectStats() {
+    const now = new Date();
+    const result = Object.fromEntries(
+      PERIODS.map((period) => [period.key, { correct: 0, wrong: 0, null: 0 }])
+    );
+
+    getVisibleRows().forEach((row) => {
+      const cells = row.querySelectorAll("td");
+      const date = parseDate(cells[0]?.textContent);
+      if (!date) return;
+
+      const correct = parseNumber(cells[5]?.textContent);
+      const wrong = parseNumber(cells[6]?.textContent);
+      const nullAnswers = parseNumber(cells[7]?.textContent);
+
+      PERIODS.forEach((period) => {
+        if (!period.matches(date, now)) return;
+        result[period.key].correct += correct;
+        result[period.key].wrong += wrong;
+        result[period.key].null += nullAnswers;
+      });
+    });
+
+    return result;
+  }
+
+  function formatInteger(value) {
+    return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(value);
+  }
+
+  function percentNumber(value, total) {
+    return total ? (value / total) * 100 : 0;
+  }
+
+  function formatPercent(value, total) {
+    return `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(percentNumber(value, total))}%`;
+  }
+
+  function ellipsePoint(cx, cy, radiusX, radiusY, angle) {
+    const radians = angle * Math.PI / 180;
+    return {
+      x: Number((cx + radiusX * Math.cos(radians)).toFixed(3)),
+      y: Number((cy + radiusY * Math.sin(radians)).toFixed(3))
+    };
+  }
+
+  function donutSegmentPath(startAngle, endAngle) {
+    const cx = 220;
+    const cy = 126;
+    const outerX = 158;
+    const outerY = 82;
+    const innerX = 88;
+    const innerY = 46;
+    const safeEnd = endAngle - startAngle >= 359.999 ? startAngle + 359.99 : endAngle;
+    const largeArc = safeEnd - startAngle > 180 ? 1 : 0;
+    const outerStart = ellipsePoint(cx, cy, outerX, outerY, startAngle);
+    const outerEnd = ellipsePoint(cx, cy, outerX, outerY, safeEnd);
+    const innerEnd = ellipsePoint(cx, cy, innerX, innerY, safeEnd);
+    const innerStart = ellipsePoint(cx, cy, innerX, innerY, startAngle);
+    return [
+      `M ${outerStart.x} ${outerStart.y}`,
+      `A ${outerX} ${outerY} 0 ${largeArc} 1 ${outerEnd.x} ${outerEnd.y}`,
+      `L ${innerEnd.x} ${innerEnd.y}`,
+      `A ${innerX} ${innerY} 0 ${largeArc} 0 ${innerStart.x} ${innerStart.y}`,
+      "Z"
+    ].join(" ");
+  }
+
+  function donutSegments(values) {
+    const total = values.correct + values.wrong + values.null;
+    const definitions = [
+      { key: "correct", singular: "Acerto", label: "Acertos", value: values.correct, top: "url(#qhCorrectTop)", depth: "#087348" },
+      { key: "wrong", singular: "Erro", label: "Erros", value: values.wrong, top: "url(#qhWrongTop)", depth: "#a92d35" },
+      { key: "null", singular: "Nulo", label: "Nulos", value: values.null, top: "url(#qhNullTop)", depth: "#9a7000" }
+    ];
+    let angle = -90;
+    return definitions.flatMap((definition) => {
+      if (!definition.value || !total) return [];
+      const span = definition.value / total * 360;
+      const segment = {
+        ...definition,
+        path: donutSegmentPath(angle, angle + span),
+        percent: formatPercent(definition.value, total)
+      };
+      angle += span;
+      return [segment];
+    });
+  }
+
+  function donutSvg(period, values, total) {
+    const segments = donutSegments(values);
+    const titleId = `qhDonutTitle-${period.key}`;
+    const descriptionId = `qhDonutDescription-${period.key}`;
+    const depth = [22, 18, 14, 10, 6].map((offset) => `
+      <g transform="translate(0 ${offset})">
+        ${segments.map((segment) => `<path d="${segment.path}" fill="${segment.depth}"></path>`).join("")}
+      </g>
+    `).join("");
+    const top = segments.map((segment) => `
+      <path d="${segment.path}" fill="${segment.top}">
+        <title>${segment.value === 1 ? segment.singular : segment.label}: ${formatInteger(segment.value)} (${segment.percent})</title>
+      </path>
+    `).join("");
+    const countLabel = (value, singular, plural) => `${formatInteger(value)} ${value === 1 ? singular : plural}`;
+    const description = `${countLabel(values.correct, "acerto", "acertos")}, ${countLabel(values.wrong, "erro", "erros")} e ${countLabel(values.null, "nulo", "nulos")} em ${countLabel(total, "questão", "questões")}.`;
+
+    return `
+      <svg class="qh-donut-svg" viewBox="0 0 440 300" role="img" aria-labelledby="${titleId} ${descriptionId}">
+        <title id="${titleId}">Distribuição 3D das respostas — ${period.label}</title>
+        <desc id="${descriptionId}">${description}</desc>
+        <defs>
+          <linearGradient id="qhCorrectTop" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#35d892"></stop><stop offset="1" stop-color="#0b8a56"></stop>
+          </linearGradient>
+          <linearGradient id="qhWrongTop" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#ff7a7a"></stop><stop offset="1" stop-color="#c83b44"></stop>
+          </linearGradient>
+          <linearGradient id="qhNullTop" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#ffd45c"></stop><stop offset="1" stop-color="#c18c00"></stop>
+          </linearGradient>
+          <filter id="qhDonutShadow" x="-30%" y="-80%" width="160%" height="260%">
+            <feGaussianBlur stdDeviation="12"></feGaussianBlur>
+          </filter>
+          <filter id="qhCenterBlur" x="-25%" y="-45%" width="150%" height="190%">
+            <feGaussianBlur stdDeviation="5"></feGaussianBlur>
+          </filter>
+        </defs>
+        <ellipse class="qh-donut-ground-shadow" cx="220" cy="226" rx="152" ry="20"></ellipse>
+        <g class="qh-donut-depth" aria-hidden="true">${depth}</g>
+        <g class="qh-donut-top">${top}</g>
+        <ellipse class="qh-donut-rim" cx="220" cy="126" rx="155" ry="79"></ellipse>
+        <ellipse class="qh-donut-center-shadow" cx="220" cy="134" rx="87" ry="47"></ellipse>
+        <ellipse class="qh-donut-center-disc" cx="220" cy="126" rx="83" ry="43"></ellipse>
+        <text class="qh-donut-center-value" x="220" y="122" text-anchor="middle">${formatPercent(values.correct, total)}</text>
+        <text class="qh-donut-center-label" x="220" y="148" text-anchor="middle">de acertos</text>
+        <text class="qh-donut-caption" x="220" y="280" text-anchor="middle">Proporção das ${formatInteger(total)} questões selecionadas</text>
+      </svg>
+    `;
+  }
+
+  function resultRow(className, label, value, total) {
+    return `
+      <div class="qh-result-row">
+        <span class="qh-result-label"><span class="qh-result-dot ${className}"></span>${label}</span>
+        <span class="qh-result-values"><strong>${formatInteger(value)}</strong><small>${formatPercent(value, total)}</small></span>
+      </div>
+    `;
+  }
+
+  function chartFor(period, values) {
+    const total = values.correct + values.wrong + values.null;
+    const accuracy = percentNumber(values.correct, total);
+    const description = periodDescription(period.key);
+
+    if (!total) {
+      return `
+        <div class="qh-chart-empty">
+          <div class="qh-empty-ring" aria-hidden="true"></div>
+          <strong>Nenhum resultado em ${period.label.toLowerCase()}</strong>
+          <span>${description}. Os demais filtros desta tela também são considerados.</span>
+        </div>
+      `;
+    }
+
+    return `
+      <article class="qh-chart-card">
+        <div class="qh-chart-visual">
+          <div class="qh-donut-wrap">
+            ${donutSvg(period, values, total)}
+          </div>
+        </div>
+        <div class="qh-chart-info">
+          <div class="qh-chart-heading">
+            <span class="qh-chart-heading-copy">
+              <small>Período selecionado</small>
+              <strong>${period.label}</strong>
+            </span>
+            <span class="qh-total-badge">${formatInteger(total)} questões</span>
+          </div>
+          <div class="qh-result-grid">
+            ${resultRow("correct", "Acertos", values.correct, total)}
+            ${resultRow("wrong", "Erros", values.wrong, total)}
+            ${resultRow("null", "Nulos", values.null, total)}
+          </div>
+          <div class="qh-accuracy-box">
+            <div class="qh-accuracy-line"><span>Aproveitamento</span><strong>${formatPercent(values.correct, total)}</strong></div>
+            <div class="qh-accuracy-track" aria-hidden="true"><div class="qh-accuracy-fill" style="width: ${Math.min(100, accuracy)}%"></div></div>
+          </div>
+        </div>
+      </article>
+    `;
+  }
+
+  function render() {
+    injectStyles();
+    const host = ensurePanel();
+    if (!host) return;
+
+    const key = selectedPeriodKey();
+    const period = PERIODS.find((item) => item.key === key) || PERIODS[2];
+    const stats = collectStats();
+
+    host.innerHTML = chartFor(period, stats[period.key]);
+    const label = document.getElementById(PERIOD_LABEL_ID);
+    const description = document.getElementById(PERIOD_DESCRIPTION_ID);
+    if (label) label.textContent = period.label;
+    if (description) description.textContent = periodDescription(period.key);
+  }
+
+  function scheduleRender() {
+    window.clearTimeout(scheduleRender.timeoutId);
+    scheduleRender.timeoutId = window.setTimeout(render, 40);
+  }
+
+  function observeTable() {
+    const body = document.getElementById(TABLE_BODY_ID);
+    if (!body || body.dataset.pieObserved === "true") return;
+
+    body.dataset.pieObserved = "true";
+    const observer = new MutationObserver(scheduleRender);
+    observer.observe(body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ["hidden", "style", "class"]
+    });
+  }
+
+  function bindFilters() {
+    FILTER_IDS.forEach((id) => {
+      const element = document.getElementById(id);
+      if (!element || element.dataset.pieBound === "true") return;
+      element.dataset.pieBound = "true";
+      element.addEventListener("change", () => window.setTimeout(render, 0));
+      element.addEventListener("input", () => window.setTimeout(render, 0));
+    });
+  }
+
+  function initialize() {
+    injectStyles();
+    ensurePanel();
+    observeTable();
+    bindFilters();
+    render();
+
+    window.setTimeout(() => {
+      observeTable();
+      bindFilters();
+      render();
+    }, 350);
+
+    window.setTimeout(render, 1100);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initialize, { once: true });
+  } else {
+    initialize();
+  }
+
+  window.addEventListener("hashchange", () => window.setTimeout(render, 80));
+})();
+
+/* Aldus source: side-nav-collapse-v91.js */
+(() => {
+  "use strict";
+
+  const STORAGE_KEY = "aldusSideNavCollapsed";
+  const DESKTOP_QUERY = "(min-width: 1051px)";
+  const root = document.documentElement;
+  const sideNav = document.querySelector("[data-side-nav]");
+  const toggle = document.getElementById("sideNavToggle");
+  const icon = toggle?.querySelector(".side-nav-toggle-icon");
+  const desktop = window.matchMedia(DESKTOP_QUERY);
+
+  if (!sideNav || !toggle || !icon) return;
+
+  function storedPreference() {
+    try {
+      return localStorage.getItem(STORAGE_KEY) === "true";
+    } catch {
+      return false;
+    }
+  }
+
+  function applyCollapsed(collapsed, persist = false) {
+    const active = desktop.matches && Boolean(collapsed);
+    root.dataset.sideNavCollapsed = active ? "true" : "false";
+    sideNav.dataset.collapsed = active ? "true" : "false";
+    toggle.setAttribute("aria-expanded", active ? "false" : "true");
+    toggle.setAttribute("aria-label", active ? "Abrir navegação" : "Recolher navegação");
+    toggle.title = active ? "Abrir navegação" : "Recolher navegação";
+    icon.textContent = active ? "›" : "‹";
+
+    if (persist && desktop.matches) {
+      try {
+        localStorage.setItem(STORAGE_KEY, active ? "true" : "false");
+      } catch {}
+    }
+  }
+
+  toggle.addEventListener("click", () => {
+    applyCollapsed(root.dataset.sideNavCollapsed !== "true", true);
+  });
+
+  const handleViewportChange = () => applyCollapsed(storedPreference());
+  if (typeof desktop.addEventListener === "function") desktop.addEventListener("change", handleViewportChange);
+  else desktop.addListener?.(handleViewportChange);
+  applyCollapsed(storedPreference());
+})();

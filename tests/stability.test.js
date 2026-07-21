@@ -40,17 +40,20 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão atual', () => {
-  assert.match(html, new RegExp(`style\\.css\\?v=${version}`));
-  assert.match(html, new RegExp(`storage-indexeddb\\.js\\?v=${version}`));
-  assert.match(html, new RegExp(`script\\.js\\?v=${version}`));
+  assert.match(html, new RegExp(`app\\.bundle\\.css\\?v=${version}`));
+  assert.match(html, new RegExp(`app\\.bundle\\.js\\?v=${version}`));
+  assert.match(fs.readFileSync('app.bundle.css', 'utf8'), /Aldus source: style\.css/);
+  assert.match(fs.readFileSync('app.bundle.js', 'utf8'), /Aldus source: storage-indexeddb\.js[\s\S]*Aldus source: script\.js/);
   assert.match(html, new RegExp(`Versão: ${version}`));
 });
 
 test('identidade visual premium usa a paleta Aldus desde a primeira renderização', () => {
   assert.match(html, /<html[^>]+data-aldus-theme="premium-stable"/);
   assert.match(html, /<meta name="theme-color" content="#031426"/);
-  assert.match(html, new RegExp(`aldus-premium-theme\\.css\\?v=${version}`));
-  assert.match(html, new RegExp(`aldus-premium-refinement-v47\\.css\\?v=${version}`));
+  assert.match(html, new RegExp(`app\\.bundle\\.css\\?v=${version}`));
+  const bundleCss = fs.readFileSync('app.bundle.css', 'utf8');
+  assert.match(bundleCss, /Aldus source: aldus-premium-theme\.css/);
+  assert.match(bundleCss, /Aldus source: aldus-premium-refinement-v47\.css/);
   assert.match(premiumCss, /--aldus-deep:\s*#031426/);
   assert.match(premiumCss, /--aldus-gold:\s*#dfb64c/);
 });
@@ -303,7 +306,9 @@ test('exclusão de disciplina trata disciplinas automáticas órfãs sem apagar 
 
 
 test('interface publicada expõe sincronização Google Drive', () => {
-  assert.match(html, /https:\/\/accounts\.google\.com\/gsi\/client/);
+  assert.match(script, /https:\/\/accounts\.google\.com\/gsi\/client/);
+  assert.match(script, /function loadGoogleIdentityServices\(\)/);
+  assert.match(script, /await loadGoogleIdentityServices\(\)/);
   assert.match(html, /☁️ SINCRONIZAÇÃO/);
   assert.match(html, /Conectar Google Drive/);
   assert.match(html, /Sincronizar agora/);

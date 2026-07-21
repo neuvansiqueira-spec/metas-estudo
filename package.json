@@ -1,8 +1,9 @@
 {
   "name": "metas-estudo",
-  "version": "20260721-carregamento-rapido-v109",
+  "version": "20260721-inicializacao-ultrarrapida-v110",
   "private": true,
   "scripts": {
+    "build": "node build-bundles.mjs",
     "test": "node --test tests/*.test.js"
   }
 }

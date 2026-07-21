@@ -1,12 +1,15 @@
 (() => {
   "use strict";
 
-  const THEME_VERSION = "20260720-cronometro-scroll-motivacao-v97";
+  const THEME_VERSION = "20260721-inicializacao-ultrarrapida-v110";
   const DESIRED_HTML = `
     <img class="aldus-visual-brand-image" src="icons/aldus-visual.png?v=${THEME_VERSION}" alt="Aldus — Metas Concursos" width="1254" height="1254" fetchpriority="high" decoding="async" />
   `;
 
   function ensureStylesheet(id, href, required = false) {
+    const bundledStyles = document.getElementById("aldusAppBundleStyles");
+    if (bundledStyles) return bundledStyles;
+
     let link = document.getElementById(id);
     if (!link) {
       link = document.createElement("link");

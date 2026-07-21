@@ -1,6 +1,10 @@
 (() => {
   "use strict";
 
+  const RUNTIME_KEY = "__aldusQuestionHistoryPieV110";
+  if (globalThis[RUNTIME_KEY]) return;
+  globalThis[RUNTIME_KEY] = true;
+
   const PANEL_ID = "questionHistoryPiePanel";
   const CHART_ID = "questionHistorySelectedChart";
   const SELECT_ID = "questionHistoryPeriodFilter";

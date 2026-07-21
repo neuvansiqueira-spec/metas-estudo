@@ -6,13 +6,14 @@ const version = JSON.parse(fs.readFileSync("package.json", "utf8")).version;
 const html = fs.readFileSync("index.html", "utf8");
 const worker = fs.readFileSync("service-worker.js", "utf8");
 const css = fs.readFileSync("aldus-responsive-v52.css", "utf8");
+const bundleCss = fs.readFileSync("app.bundle.css", "utf8");
 
 test("correção responsiva v52 permanece como base da camada de contraste v53", () => {
-  assert.ok(html.includes(`aldus-responsive-v52.css?v=${version}`));
-  assert.ok(html.indexOf("aldus-interface-v51.css") < html.indexOf("aldus-responsive-v52.css"));
-  assert.ok(html.indexOf("aldus-responsive-v52.css") < html.indexOf("aldus-contrast-v53.css"));
+  assert.ok(html.includes(`app.bundle.css?v=${version}`));
+  assert.ok(bundleCss.indexOf("Aldus source: aldus-interface-v51.css") < bundleCss.indexOf("Aldus source: aldus-responsive-v52.css"));
+  assert.ok(bundleCss.indexOf("Aldus source: aldus-responsive-v52.css") < bundleCss.indexOf("Aldus source: aldus-contrast-v53.css"));
+  assert.ok(worker.includes('`app.bundle.css?v=${CURRENT_VERSION}`'));
   assert.match(worker, /"aldus-responsive-v52\.css"/);
-  assert.match(worker, /aldus-responsive-v52\.css\?v=\$\{CURRENT_VERSION\}/);
   assert.match(worker, /endsWith\("\/aldus-responsive-v52\.css"\)/);
 });
 

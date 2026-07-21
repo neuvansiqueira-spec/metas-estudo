@@ -24,6 +24,10 @@ function loadTimeRecoveryRecordMerge() {
 
 test("primeira abertura já recebe tema premium e todos os arquivos na versão atual", () => {
   assert.match(html, /<html[^>]+data-aldus-theme="premium-stable"/);
+  assert.ok(html.includes(`app.bundle.css?v=${version}`));
+  assert.ok(html.includes(`app.bundle.js?v=${version}`));
+  const cssBundle = fs.readFileSync("app.bundle.css", "utf8");
+  const jsBundle = fs.readFileSync("app.bundle.js", "utf8");
   for (const asset of [
     "style.css",
     "aldus-premium-theme.css",
@@ -36,9 +40,9 @@ test("primeira abertura já recebe tema premium e todos os arquivos na versão a
     "question-accuracy-spectrum.js",
     "timer-material-link-fix.js",
     "question-history-pie.js",
-    "header-brand-fix.js"
+    "side-nav-collapse-v91.js"
   ]) {
-    assert.ok(html.includes(`${asset}?v=${version}`), `${asset} deve usar a versão pública atual`);
+    assert.ok(cssBundle.includes(`Aldus source: ${asset}`) || jsBundle.includes(`Aldus source: ${asset}`), `${asset} deve integrar o bundle atual`);
   }
   assert.ok(html.indexOf("aldus-premium-theme.css") < html.indexOf("script.js"));
   assert.match(html, new RegExp(`Versão: ${version}`));
@@ -64,7 +68,8 @@ test("integridade de sincronização é ativada antes do bootstrap e inclui prot
   assert.match(script, /const pendingFiles = INTEGRAL_SYNC_ENHANCEMENT_FILES\.map\(loadIntegralSyncEnhancementFile\)/);
   assert.match(script, /await Promise\.all\(pendingFiles\)/);
   assert.match(script, /script\.async = false/);
-  for (const file of expectedFiles) assert.match(html, new RegExp(`<link rel="preload" as="script" href="${file.replaceAll(".", "\\.")}\\?v=`));
+  const jsBundle = fs.readFileSync("app.bundle.js", "utf8");
+  for (const file of expectedFiles) assert.match(jsBundle, new RegExp(`Aldus source: ${file.replaceAll(".", "\\.")}`));
 });
 
 test("recuperação usa o maior tempo sem sobrescrever metadados atuais", () => {
