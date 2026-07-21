@@ -48,12 +48,18 @@ test("navegação usa o shell salvo e atualiza a rede em segundo plano", () => {
   assert.match(worker, /event\.waitUntil\(freshNavigation/);
 });
 
-test("V110 mantém versão e espelhos sincronizados", () => {
-  assert.equal(version, "20260721-inicializacao-ultrarrapida-v110");
+test("a publicação atual mantém versão e espelhos sincronizados", () => {
+  assert.equal(version, "20260721-atualizador-cache-versionado-v111");
   assert.match(read("script.js"), new RegExp(`APP_VERSION = "${version}"`));
   assert.match(worker, new RegExp(`CURRENT_VERSION = "${version}"`));
-  assert.match(worker, /"20260721-carregamento-rapido-v109"/);
+  assert.match(worker, /"20260721-inicializacao-ultrarrapida-v110"/);
   for (const file of ["index.html", "script.js", "service-worker.js", "header-brand-fix.js", "question-history-pie.js"]) {
     assert.equal(read(file), read(`docs/${file}`), file);
   }
+});
+
+test("o atualizador do cache usa URL versionada e corrige o marcador visível", () => {
+  const script = read("script.js");
+  assert.match(script, /register\(`service-worker\.js\?v=\$\{encodeURIComponent\(APP_VERSION\)\}`/);
+  assert.match(script, /element\.textContent = `Versão: \$\{APP_VERSION\}`/);
 });

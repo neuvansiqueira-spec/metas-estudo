@@ -77,12 +77,13 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260721-dashboard-central-metas-v106",
   "20260721-browser-cache-atualizacao-v107",
   "20260721-plano-dia-sincronizacao-v108",
-  "20260721-carregamento-rapido-v109"
+  "20260721-carregamento-rapido-v109",
+  "20260721-inicializacao-ultrarrapida-v110"
 ];
-const CURRENT_VERSION = "20260721-inicializacao-ultrarrapida-v110";
+const CURRENT_VERSION = "20260721-atualizador-cache-versionado-v111";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
-// Cache anterior reconhecido para limpeza: startup-v25.
-const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v26`;
+// Caches anteriores reconhecidos para limpeza: startup-v25 e startup-v26.
+const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v27`;
 const FILES_TO_CACHE = [
   `./?v=${CURRENT_VERSION}`,
   `index.html?v=${CURRENT_VERSION}`,

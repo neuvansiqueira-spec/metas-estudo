@@ -4621,7 +4621,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260721-inicializacao-ultrarrapida-v110";
+const APP_VERSION = "20260721-atualizador-cache-versionado-v111";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -12874,7 +12874,7 @@ function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("service-worker.js", { updateViaCache: "none" })
+    navigator.serviceWorker.register(`service-worker.js?v=${encodeURIComponent(APP_VERSION)}`, { updateViaCache: "none" })
       .then((registration) => {
         registration.update();
         console.log("[Metas Estudo] Service worker registrado.");
@@ -12884,6 +12884,10 @@ function registerServiceWorker() {
 }
 
 registerServiceWorker();
+
+document.querySelectorAll(".app-version").forEach((element) => {
+  element.textContent = `Versão: ${APP_VERSION}`;
+});
 
 ["visibilitychange", "pageshow", "focus"].forEach((eventName) => window.addEventListener(eventName, () => { if (!floatingTimer.goalId) return; renderFloatingTimer(); }));
 

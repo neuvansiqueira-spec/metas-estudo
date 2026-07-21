@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260721-inicializacao-ultrarrapida-v110",
+  "version": "20260721-atualizador-cache-versionado-v111",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
