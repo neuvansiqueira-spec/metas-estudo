@@ -3274,6 +3274,75 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-collapsib
   #view-fabrica-resumos .factory-theme-title { font-size: clamp(1.08rem, 7vw, 1.38rem); }
 }
 
+/* V104: resumo superior da Fábrica compacto e proporcional. */
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary {
+  grid-template-columns: minmax(360px, 2fr) repeat(3, minmax(145px, .78fr)) !important;
+  align-items: stretch !important;
+  gap: 14px !important;
+}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary > .stat-card {
+  min-height: 168px !important;
+  padding: 16px 18px !important;
+  border-radius: 20px !important;
+}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary-now {
+  grid-column: auto !important;
+}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary-now .factory-theme-highlight {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  align-content: start !important;
+  gap: 6px 18px !important;
+  height: 100% !important;
+  padding: 14px 16px !important;
+}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary-now :is(.factory-theme-label, .factory-theme-title) {
+  grid-column: 1 / -1 !important;
+}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary-now .factory-theme-title {
+  font-size: clamp(1.22rem, 1.5vw, 1.6rem) !important;
+  line-height: 1.18 !important;
+}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary-now :is(.factory-theme-discipline, .factory-theme-recorte, .item-meta) {
+  margin: 0 !important;
+  font-size: .9rem !important;
+  line-height: 1.35 !important;
+}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary-now :is(.factory-theme-discipline, .factory-theme-recorte, .item-meta) strong {
+  display: inline !important;
+  margin: 0 !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary > .stat-card:not(.factory-summary-now) {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary > .stat-card:not(.factory-summary-now) > span {
+  font-size: .78rem !important;
+  line-height: 1.3 !important;
+}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary > .stat-card:not(.factory-summary-now) > strong {
+  margin: 12px 0 0 !important;
+  font-size: clamp(2rem, 3vw, 2.6rem) !important;
+  line-height: 1 !important;
+}
+@media (max-width: 1180px) {
+  html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary-now { grid-column: 1 / -1 !important; }
+}
+@media (max-width: 700px) {
+  html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary-now .factory-theme-highlight { grid-template-columns: 1fr !important; }
+  html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary-now :is(.factory-theme-label, .factory-theme-title) { grid-column: auto !important; }
+}
+@media (max-width: 430px) {
+  html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary { grid-template-columns: 1fr !important; }
+  html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary > .stat-card { min-height: 120px !important; }
+}
+
 .material-estimate-feedback { flex-basis: 100%; margin-top: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: #f8fafc; color: var(--text); font-weight: 700; line-height: 1.5; }
 .material-estimate-feedback:empty { display: none; }
 .material-estimate-feedback span { display: block; }
