@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260721-mobile-salvar-cores-tempo-v105";
+const APP_VERSION = "20260721-dashboard-central-metas-v106";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -4564,6 +4564,7 @@ function renderDashboard() {
   if (elements.dashboardMinWeeklyHours) elements.dashboardMinWeeklyHours.textContent = `${planningConfig().minWeeklyHours || 0}h`; if (elements.dashboardIdealWeeklyHours) elements.dashboardIdealWeeklyHours.textContent = `${planningConfig().idealWeeklyHours || 0}h`; if (elements.dashboardProblemDiscipline) elements.dashboardProblemDiscipline.textContent = problemQuestionDiscipline(); const todayGoals = state.dailyGoals.filter((goal)=>goalDateValue(goal)===todayISO()); const wsDash = weekStart(todayISO()), weDash = addDays(wsDash,6), weekGoals = goalsBetween(wsDash,weDash); if (elements.dashboardTodayDisciplines) elements.dashboardTodayDisciplines.textContent = new Set(todayGoals.map((g)=>g.discipline)).size; if (elements.dashboardTodayTopics) elements.dashboardTodayTopics.textContent = todayGoals.length; if (elements.dashboardWeekDisciplines) elements.dashboardWeekDisciplines.textContent = new Set(weekGoals.map((g)=>g.discipline)).size; if (elements.dashboardWeekTopics) elements.dashboardWeekTopics.textContent = weekGoals.length;
   if (elements.materialsTotal) { elements.materialsTotal.textContent = state.materials.length; elements.materialDisciplinesTotal.textContent = new Set(state.materials.map((m)=>canonical(m.discipline)).filter(Boolean)).size; elements.materialTopicsTotal.textContent = new Set(state.materials.map((m)=>`${canonical(m.discipline)}|${canonical(m.subject)}`).filter((v)=>v!=="|")).size; }
   const ms = mockStats(); if (elements.mockTotal) elements.mockTotal.textContent = ms.count; if (elements.mockLastNet) elements.mockLastNet.textContent = ms.last; if (elements.mockBestNet) elements.mockBestNet.textContent = ms.best; if (elements.mockAverageNet) elements.mockAverageNet.textContent = ms.average; if (elements.mockAboveGoal) elements.mockAboveGoal.textContent = ms.aboveGoal; if (elements.mockProblemDiscipline) elements.mockProblemDiscipline.textContent = ms.problemDiscipline;
+  renderDashboardGoalsScaleSummary();
 }
 function renderEdital() { ["contestName", "agency", "role", "board", "examDate", "officialLink", "generalNotes"].forEach((key) => { elements[key].value = state.edital[key] || ""; }); elements.pdfInfo.innerHTML = state.edital.pdf ? `<strong>Arquivo:</strong> ${escapeHTML(state.edital.pdf.name)}<br><span class="item-meta">Anexado em ${escapeHTML(state.edital.pdf.attachedAt)}</span>` : ""; }
 function getFilteredItems() {
@@ -6307,6 +6308,19 @@ function exportGoalCalendarPdf() { const payload = buildGoalCalendarExportPayloa
 async function exportGoalCalendarExcel() { try { const payload = buildGoalCalendarExportPayload(), scope = elements.goalCalendarExportScope?.value || "daily"; await downloadGeneratedExcel(buildGoalCalendarCsv(payload, scope), `calendario-${goalCalendarScopeLabel(scope)}-${payload.referenceDate}.xlsx`, { title: "Calendário didático de metas", sheetName: "Calendário", generatedAt: payload.generatedAt }); setGoalCalendarExportStatus(`Excel de ${goalCalendarScopeLabel(scope)} gerado com a logo Aldus.`); } catch (error) { setGoalCalendarExportStatus(`Não foi possível gerar o Excel: ${error.message}`, true); } }
 async function exportGoalCalendarImage() { try { const payload = buildGoalCalendarExportPayload(), scope = elements.goalCalendarExportScope?.value || "daily", svg = buildScopedGoalCalendarSvg(payload, scope), viewBoxHeight = Number(svg.match(/viewBox="0 0 1600 (\d+)"/)?.[1]) || 1800, blob = await svgToPngBlob(svg, { width: 2400, height: Math.round(viewBoxHeight * 1.5) }); downloadGeneratedFile(blob, `calendario-${goalCalendarScopeLabel(scope)}-${payload.referenceDate}.png`); setGoalCalendarExportStatus(`Imagem de ${goalCalendarScopeLabel(scope)} gerada.`); } catch (error) { setGoalCalendarExportStatus(`Não foi possível gerar a imagem: ${error.message}`, true); } }
 
+function renderDashboardGoalsScaleSummary() {
+  if (!elements.dashboardGoalsScaleSummary) return;
+  const today = todayISO();
+  const av = availabilityForDate(today);
+  const dayGoals = state.dailyGoals.filter((goal) => goalDateValue(goal) === today);
+  const dayStats = goalProgressStats(dayGoals, av);
+  const week = periodSummary(weekStart(today), 7);
+  const monthStart = `${today.slice(0,7)}-01`;
+  const monthDays = new Date(parseDate(today).getFullYear(), parseDate(today).getMonth()+1, 0).getDate();
+  const month = periodSummary(monthStart, monthDays);
+  elements.dashboardGoalsScaleSummary.innerHTML = `<article class="stat-card"><span>Hoje</span><strong>${escapeHTML(dayTypeLabel(av))}</strong></article><article class="stat-card"><span>Meta de hoje</span><strong class="stat-value-compact">${formatHours(dayStats.target || av.hours*60)}</strong></article><article class="stat-card"><span>Meta da semana</span><strong class="stat-value-compact">${formatHours(week.planned)}</strong></article><article class="stat-card"><span>Meta do mês</span><strong class="stat-value-compact">${formatHours(month.planned)}</strong></article><article class="stat-card"><span>Próximo plantão</span><strong class="stat-value-date">${nextDateByType('plantão') ? formatDateBR(nextDateByType('plantão')) : '-'}</strong></article><article class="stat-card"><span>Próxima folga</span><strong class="stat-value-date">${nextDateByType('folga') ? formatDateBR(nextDateByType('folga')) : '-'}</strong></article>`;
+}
+
 function renderCentralGoals() {
   if (!elements.centralGoalsCards && !elements.dashboardGoalsScaleSummary) return;
   const today = todayISO(), av = availabilityForDate(today), ws = weekStart(today), monthStart = `${today.slice(0,7)}-01`, monthDays = new Date(parseDate(today).getFullYear(), parseDate(today).getMonth()+1, 0).getDate();
@@ -6320,7 +6334,7 @@ function renderCentralGoals() {
   if (elements.centralScaleSummary) elements.centralScaleSummary.innerHTML = `<article class="stat-card"><span>Tipo de escala</span><strong>${escapeHTML(planningConfig().scaleType)}</strong></article><article class="stat-card"><span>Ponto hoje</span><strong>${escapeHTML(dayTypeLabel(av))}</strong></article><article class="stat-card"><span>Próximo plantão</span><strong class="stat-value-date">${nextDateByType('plantão') ? formatDateBR(nextDateByType('plantão')) : '-'}</strong></article><article class="stat-card"><span>Próxima folga</span><strong class="stat-value-date">${nextDateByType('folga') ? formatDateBR(nextDateByType('folga')) : '-'}</strong></article>`;
   if (elements.centralNextDates) elements.centralNextDates.innerHTML = daysBetween(today, 10).map((date) => { const availability = availabilityForDate(date), goals = state.dailyGoals.filter((goal) => goalDateValue(goal) === date), target = planningTargetsForDate(date).topics; const goalLabel = goals.length ? `${goals.length} gerada(s)` : target ? `${target} prevista(s) • a gerar` : "Sem metas de estudo"; return `<tr><td>${formatDateBR(date)}</td><td>${parseDate(date).toLocaleDateString('pt-BR',{weekday:'long'})}</td><td>${escapeHTML(dayTypeLabel(availability))}</td><td>${availability.hours}h</td><td>${escapeHTML(goalLabel)}</td></tr>`; }).join('');
   renderSmartReviewBlock(elements.centralSmartReview);
-  if (elements.dashboardGoalsScaleSummary) elements.dashboardGoalsScaleSummary.innerHTML = `<article class="stat-card"><span>Hoje</span><strong>${escapeHTML(dayTypeLabel(av))}</strong></article><article class="stat-card"><span>Meta de hoje</span><strong class="stat-value-compact">${formatHours(dayStats.target || av.hours*60)}</strong></article><article class="stat-card"><span>Meta da semana</span><strong class="stat-value-compact">${formatHours(week.planned)}</strong></article><article class="stat-card"><span>Meta do mês</span><strong class="stat-value-compact">${formatHours(month.planned)}</strong></article><article class="stat-card"><span>Próximo plantão</span><strong class="stat-value-date">${nextDateByType('plantão') ? formatDateBR(nextDateByType('plantão')) : '-'}</strong></article><article class="stat-card"><span>Próxima folga</span><strong class="stat-value-date">${nextDateByType('folga') ? formatDateBR(nextDateByType('folga')) : '-'}</strong></article>`;
+  renderDashboardGoalsScaleSummary();
 }
 
 const CENTRAL_TIME_CHART_COLORS = ["#38bdf8", "#facc15", "#34d399", "#a78bfa", "#fb7185", "#22d3ee", "#f97316", "#60a5fa", "#e879f9", "#84cc16", "#f43f5e", "#14b8a6"];

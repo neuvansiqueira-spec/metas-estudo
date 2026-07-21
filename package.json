@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260721-mobile-salvar-cores-tempo-v105",
+  "version": "20260721-dashboard-central-metas-v106",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

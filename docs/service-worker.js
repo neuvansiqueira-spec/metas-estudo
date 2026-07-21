@@ -71,7 +71,7 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260720-caderno-questao-v100",
   "20260721-fabrica-fontes-v101"
 ];
-const CURRENT_VERSION = "20260721-mobile-salvar-cores-tempo-v105";
+const CURRENT_VERSION = "20260721-dashboard-central-metas-v106";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 // Cache anterior reconhecido para limpeza: startup-v25.
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v26`;
