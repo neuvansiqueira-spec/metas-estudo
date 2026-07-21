@@ -24,8 +24,8 @@ function loadTimeRecoveryRecordMerge() {
 
 test("primeira abertura já recebe tema premium e todos os arquivos na versão atual", () => {
   assert.match(html, /<html[^>]+data-aldus-theme="premium-stable"/);
-  assert.ok(html.includes(`app.bundle.css?v=${version}`));
-  assert.ok(html.includes(`app.bundle.js?v=${version}`));
+  assert.ok(html.includes(`app-v112.css?v=${version}`));
+  assert.ok(html.includes(`app-v112.js?v=${version}`));
   const cssBundle = fs.readFileSync("app.bundle.css", "utf8");
   const jsBundle = fs.readFileSync("app.bundle.js", "utf8");
   for (const asset of [

@@ -2,6 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 
 const root = process.cwd();
+const packageVersion = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).version;
+const releaseSuffix = packageVersion.match(/v\d+$/)?.[0] || "current";
 
 const cssSources = [
   "style.css",
@@ -61,3 +63,14 @@ function bundle(sources, output) {
 
 bundle(cssSources, "app.bundle.css");
 bundle(jsSources, "app.bundle.js");
+
+for (const extension of ["css", "js"]) {
+  const source = path.join(root, `app.bundle.${extension}`);
+  const versionedName = `app-${releaseSuffix}.${extension}`;
+  fs.copyFileSync(source, path.join(root, versionedName));
+  fs.copyFileSync(source, path.join(root, "docs", versionedName));
+}
+
+const versionedWorkerName = `service-worker-${releaseSuffix}.js`;
+fs.copyFileSync(path.join(root, "service-worker.js"), path.join(root, versionedWorkerName));
+fs.copyFileSync(path.join(root, "service-worker.js"), path.join(root, "docs", versionedWorkerName));

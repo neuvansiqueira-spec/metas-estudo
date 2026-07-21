@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const THEME_VERSION = "20260721-atualizador-cache-versionado-v111";
+  const THEME_VERSION = "20260721-cache-legado-eliminado-v112";
   const DESIRED_HTML = `
     <img class="aldus-visual-brand-image" src="icons/aldus-visual.png?v=${THEME_VERSION}" alt="Aldus — Metas Concursos" width="1254" height="1254" fetchpriority="high" decoding="async" />
   `;

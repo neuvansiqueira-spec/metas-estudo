@@ -108,7 +108,7 @@ test('V74 renova cache e mantém raiz e publicação idênticas', () => {
   assert.match(script, /const APP_VERSION = "20260719-integracao-metas-v74"/);
   assert.match(html, /Versão: 20260719-integracao-metas-v74/);
   assert.match(worker, /const CURRENT_VERSION = "20260719-integracao-metas-v74"/);
-  assert.match(worker, /startup-v27/);
+  assert.match(worker, /startup-v28/);
   assert.match(worker, /"20260719-rolagem-navegacao-v73"/);
   assert.equal(script, fs.readFileSync('docs/script.js', 'utf8'));
   assert.equal(html, fs.readFileSync('docs/index.html', 'utf8'));

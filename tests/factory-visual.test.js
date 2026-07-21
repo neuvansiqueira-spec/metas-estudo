@@ -61,10 +61,10 @@ test('arquivos públicos permanecem sincronizados e cache usa a nova versão', (
   assert.equal(css, docsCss, 'style.css e docs/style.css devem estar idênticos');
   assert.equal(html.match(/Versão: ([^<]+)/)?.[1], packageJson.version);
   assert.equal(docsHtml.match(/Versão: ([^<]+)/)?.[1], packageJson.version);
-  assert.ok(html.includes(`app.bundle.css?v=${packageJson.version}`));
-  assert.ok(html.includes(`app.bundle.js?v=${packageJson.version}`));
-  assert.ok(docsHtml.includes(`app.bundle.css?v=${packageJson.version}`));
-  assert.ok(docsHtml.includes(`app.bundle.js?v=${packageJson.version}`));
+  assert.ok(html.includes(`app-v112.css?v=${packageJson.version}`));
+  assert.ok(html.includes(`app-v112.js?v=${packageJson.version}`));
+  assert.ok(docsHtml.includes(`app-v112.css?v=${packageJson.version}`));
+  assert.ok(docsHtml.includes(`app-v112.js?v=${packageJson.version}`));
   assert.ok(sw.includes(`const CURRENT_VERSION = "${packageJson.version}"`));
   assert.ok(docsSw.includes(`const CURRENT_VERSION = "${packageJson.version}"`));
   assert.match(sw, /const CACHE_NAME = `metas-estudo-\$\{CURRENT_VERSION\}`/);
