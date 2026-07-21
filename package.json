@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260721-prompt-lei-modelo-v120",
+  "version": "20260721-prompt-lei-modelo-v121",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
