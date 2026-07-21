@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260721-continuacao-automatica-v114";
+const APP_VERSION = "20260721-protecao-metas-dia-v115";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -5677,6 +5677,12 @@ function repairDailyPlanningInflationV108(targetState = state, opts = {}) {
     const removableAutomatic = dayStudyGoals.filter((goal) => !isManualDailyGoal(goal) && isAutomaticIntactDailyGoal(goal));
     const protectedCount = dayStudyGoals.length - removableAutomatic.length;
     const targetTopics = Math.max(0, Number(planningTargetsForDate(date, targetState).topics) || 0);
+    // Alvo zero pode ser transitório (modo do dia, escala ainda não carregada ou
+    // configuração incompleta). Nunca o trate como autorização para apagar metas.
+    if (targetTopics <= 0) {
+      reports.push({ date, targetTopics, protectedCount, automaticBefore: removableAutomatic.length, automaticAfter: removableAutomatic.length, removed: 0, skipped: "zero-target-safety" });
+      return;
+    }
     const automaticSlots = Math.max(0, targetTopics - protectedCount);
     if (removableAutomatic.length <= automaticSlots) return;
 
@@ -5697,11 +5703,12 @@ function repairDailyPlanningInflationV108(targetState = state, opts = {}) {
       repairedAt: new Date().toISOString(),
       source: opts.source || "runtime",
       removed: removed.length,
-      dates: reports.map((report) => report.date)
+      dates: reports.filter((report) => report.removed).map((report) => report.date)
     };
   }
   return { changed: removed.length > 0, removed, reports };
 }
+
 function reconcileDailyGoalsWithPlanning(targetState = state, date = todayISO(), opts = {}) {
   // Compatibilidade de teste: const expected = Math.max(0, Number(targetState.planning?.config?.disciplinesPerDay)
   targetState.dailyGoals ||= [];
@@ -8320,7 +8327,7 @@ function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register(`service-worker-v114.js?v=${encodeURIComponent(APP_VERSION)}`, { updateViaCache: "none" })
+    navigator.serviceWorker.register(`service-worker-v115.js?v=${encodeURIComponent(APP_VERSION)}`, { updateViaCache: "none" })
       .then((registration) => {
         registration.update();
         console.log("[Metas Estudo] Service worker registrado.");

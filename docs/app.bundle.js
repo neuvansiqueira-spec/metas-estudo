@@ -4617,7 +4617,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260721-versao-cache-definitiva-v113";
+const APP_VERSION = "20260721-protecao-metas-dia-v115";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -10285,6 +10285,12 @@ function repairDailyPlanningInflationV108(targetState = state, opts = {}) {
     const removableAutomatic = dayStudyGoals.filter((goal) => !isManualDailyGoal(goal) && isAutomaticIntactDailyGoal(goal));
     const protectedCount = dayStudyGoals.length - removableAutomatic.length;
     const targetTopics = Math.max(0, Number(planningTargetsForDate(date, targetState).topics) || 0);
+    // Alvo zero pode ser transitório (modo do dia, escala ainda não carregada ou
+    // configuração incompleta). Nunca o trate como autorização para apagar metas.
+    if (targetTopics <= 0) {
+      reports.push({ date, targetTopics, protectedCount, automaticBefore: removableAutomatic.length, automaticAfter: removableAutomatic.length, removed: 0, skipped: "zero-target-safety" });
+      return;
+    }
     const automaticSlots = Math.max(0, targetTopics - protectedCount);
     if (removableAutomatic.length <= automaticSlots) return;
 
@@ -10305,11 +10311,12 @@ function repairDailyPlanningInflationV108(targetState = state, opts = {}) {
       repairedAt: new Date().toISOString(),
       source: opts.source || "runtime",
       removed: removed.length,
-      dates: reports.map((report) => report.date)
+      dates: reports.filter((report) => report.removed).map((report) => report.date)
     };
   }
   return { changed: removed.length > 0, removed, reports };
 }
+
 function reconcileDailyGoalsWithPlanning(targetState = state, date = todayISO(), opts = {}) {
   // Compatibilidade de teste: const expected = Math.max(0, Number(targetState.planning?.config?.disciplinesPerDay)
   targetState.dailyGoals ||= [];
@@ -10535,9 +10542,16 @@ function openGoalCompletionModal(goalId, trigger = null) {
   goalCompletionActiveGoalId = goalId;
   goalCompletionReturnFocus = trigger || document.activeElement;
   els.summary.innerHTML = buildGoalCompletionSummary(goal);
-  els.notice.textContent = total > 0 ? "Os tempos já registrados serão mantidos sem alterações." : "A conclusão não adicionará tempo automaticamente.";
+  const estimatedTotal = validEstimatedMinutes(goal.estimatedTotalMinutes);
+  const accumulated = typeof relatedGoalExecutionMinutes === "function" ? relatedGoalExecutionMinutes(goal) : total;
+  const estimatedRemaining = Math.max(0, estimatedTotal - accumulated);
+  els.notice.textContent = total <= 0
+    ? "A conclusão não adicionará tempo automaticamente."
+    : estimatedRemaining > 0
+      ? `Esta sessão será encerrada e o restante do assunto (${estimatedRemaining} min) será colocado automaticamente em outro dia disponível.`
+      : "O tempo registrado será preservado. Confirme, na etapa seguinte, se o assunto foi integralmente terminado.";
   els.cancel.textContent = total > 0 ? "Cancelar" : "Voltar";
-  els.confirm.textContent = total > 0 ? "Concluir meta" : "Concluir sem registrar tempo";
+  els.confirm.textContent = total > 0 ? (estimatedRemaining > 0 ? "Concluir sessão e continuar depois" : "Finalizar sessão") : "Concluir sem registrar tempo";
   els.confirm.disabled = false;
   els.modal.hidden = false;
   els.modal.focus();
@@ -10565,12 +10579,62 @@ function confirmGoalCompletion(goalId = goalCompletionActiveGoalId) {
   goal.studyActualMinutes = studyActualMinutes;
   goal.questionActualMinutes = questionActualMinutes;
   goal.actualMinutes = actualMinutes;
+
+  const estimatedTotal = validEstimatedMinutes(goal.estimatedTotalMinutes);
+  const accumulated = typeof relatedGoalExecutionMinutes === "function" ? relatedGoalExecutionMinutes(goal) : actualMinutes;
+  const estimatedRemaining = Math.max(0, estimatedTotal - accumulated);
+  let materialFinished = estimatedTotal > 0 ? estimatedRemaining <= 0 : false;
+  if (actualMinutes > 0 && estimatedRemaining <= 0) {
+    materialFinished = window.confirm("Você terminou integralmente este assunto/material?\n\nOK: encerrar o assunto.\nCancelar: encerrar apenas a sessão e continuar em outro dia.");
+  }
+
   goal.status = "Concluída";
-  goal.studyStatus = "Concluído";
+  goal.studyStatus = materialFinished ? "Concluído" : "Sessão concluída";
   goal.completed = true;
+  goal.sessionCompleted = true;
+  goal.materialCompleted = materialFinished;
   goal.completedAt = goal.completedAt || new Date().toISOString();
-  appendGoalHistory(goal, `Concluída em ${new Date().toLocaleString("pt-BR")}. Tempo preservado: ${actualMinutes} min.`);
-  const replanReport = typeof replanFutureGoalsAfterCompletionV77 === "function"
+  appendGoalHistory(goal, `${materialFinished ? "Assunto concluído" : "Sessão concluída; assunto ainda em andamento"} em ${new Date().toLocaleString("pt-BR")}. Tempo preservado: ${actualMinutes} min.`);
+
+  let continuation = null;
+  if (!materialFinished && actualMinutes > 0) {
+    const sameFutureGoal = (state.dailyGoals || []).find((item) => item !== goal
+      && goalDateValue(item) > goalDateValue(goal)
+      && !isGoalDone(item)
+      && planningRecordMatchesCompletedSubject(item, [goal]));
+    if (!sameFutureGoal) {
+      const sessionMinutes = Math.max(30, Number(goal.minutes) || 60);
+      const continuationMinutes = estimatedRemaining > 0 ? Math.min(sessionMinutes, estimatedRemaining) : sessionMinutes;
+      const nextDate = nextSchedulableSegmentDate(addDays(goalDateValue(goal) || todayISO(), 1), 0, continuationMinutes, state);
+      continuation = {
+        ...cloneData(goal),
+        id: createId(),
+        date: nextDate,
+        data: nextDate,
+        minutes: continuationMinutes,
+        tempo_sugerido_minutos: continuationMinutes,
+        segmentMinutes: continuationMinutes,
+        segmentIndex: Math.max(1, Number(goal.segmentIndex) || 1) + 1,
+        segmentCount: estimatedTotal > 0 ? Math.max(2, Math.ceil(estimatedTotal / sessionMinutes)) : Math.max(2, Number(goal.segmentCount) || 2),
+        status: "Pendente",
+        studyStatus: "Pendente",
+        completed: false,
+        sessionCompleted: false,
+        materialCompleted: false,
+        completedAt: "",
+        studyActualMinutes: 0,
+        questionActualMinutes: 0,
+        actualMinutes: 0,
+        history: [{ at: new Date().toISOString(), text: `Continuação automática criada após a sessão de ${formatDateBR(goalDateValue(goal))}. Restante estimado: ${estimatedRemaining || "não informado"} min.` }],
+        notes: `Continuação automática do assunto. Tempo acumulado preservado: ${accumulated} min.`
+      };
+      state.dailyGoals.push(continuation);
+    } else {
+      continuation = sameFutureGoal;
+    }
+  }
+
+  const replanReport = materialFinished && typeof replanFutureGoalsAfterCompletionV77 === "function"
     ? replanFutureGoalsAfterCompletionV77(goal, state)
     : { removed: [], added: [], affectedDates: [], warnings: [] };
   saveData({ markLocalChange: true });
@@ -10578,7 +10642,8 @@ function confirmGoalCompletion(goalId = goalCompletionActiveGoalId) {
   autoSyncAfterSave("daily-goal");
   closeGoalCompletionModal();
   const replacementMessage = replanReport.removed.length ? ` ${replanReport.removed.length} meta(s) futura(s) deste assunto foram substituída(s) por ${replanReport.added.length} novo(s) assunto(s) pendente(s).` : "";
-  showDailyGoalMessage(`${actualMinutes > 0 ? `Meta concluída. Os ${actualMinutes} minutos registrados foram mantidos.` : "Meta concluída sem tempo registrado."}${replacementMessage}`, "success");
+  const continuationMessage = continuation && !materialFinished ? ` A continuação foi encaixada em ${formatDateBR(goalDateValue(continuation))}.` : "";
+  showDailyGoalMessage(`${actualMinutes > 0 ? (materialFinished ? `Assunto concluído. Os ${actualMinutes} minutos desta sessão foram mantidos.` : `Sessão concluída. Os ${actualMinutes} minutos foram mantidos e o assunto continua em andamento.`) : "Meta concluída sem tempo registrado."}${continuationMessage}${replacementMessage}`, "success");
   goalCompletionInProgress.delete(goalId);
 }
 function updateGoalDone(goal) {
@@ -12870,7 +12935,7 @@ function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register(`service-worker-v113.js?v=${encodeURIComponent(APP_VERSION)}`, { updateViaCache: "none" })
+    navigator.serviceWorker.register(`service-worker-v115.js?v=${encodeURIComponent(APP_VERSION)}`, { updateViaCache: "none" })
       .then((registration) => {
         registration.update();
         console.log("[Metas Estudo] Service worker registrado.");

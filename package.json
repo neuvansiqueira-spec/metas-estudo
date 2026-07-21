@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260721-versao-cache-definitiva-v113",
+  "version": "20260721-protecao-metas-dia-v115",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

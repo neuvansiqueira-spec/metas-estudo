@@ -33,7 +33,7 @@ function extractFunction(source, name) {
   throw new Error(`função ${name} incompleta`);
 }
 
-function runInflationRepair(targetState) {
+function runInflationRepair(targetState, topics = 5) {
   const script = read("script.js");
   const source = [
     extractFunction(script, "dailyGoalRepairTimestampV108"),
@@ -48,7 +48,7 @@ function runInflationRepair(targetState) {
     isPlanningStudyGoal: () => true,
     isManualDailyGoal: (goal) => !["edital verticalizado", "planejamento", "plano do dia"].includes(String(goal.origin || goal.origem || "manual").toLowerCase()),
     isAutomaticIntactDailyGoal: (goal) => (goal.status || "Pendente") === "Pendente" && !(Number(goal.actualMinutes) || 0) && !(goal.history || []).length,
-    planningTargetsForDate: () => ({ topics: 5 }),
+    planningTargetsForDate: () => ({ topics }),
     Date, Math, Number, Set
   };
   vm.runInNewContext(source, context);
@@ -98,6 +98,24 @@ test("reparo reduz 12 metas para as 5 planejadas e preserva a concluída", () =>
   assert.equal(targetState.dailyGoals.length, 5);
   assert.ok(targetState.dailyGoals.some((goal) => goal.id === "concluida"));
   assert.equal(targetState.dailyGoals.filter((goal) => goal.status === "Pendente").length, 4);
+});
+
+test("reparo nunca apaga metas quando o alvo diário aparece como zero", () => {
+  const pending = Array.from({ length: 5 }, (_, index) => ({
+    id: `meta-${index + 1}`,
+    date: "2026-07-21",
+    discipline: `Disciplina ${index + 1}`,
+    subject: `Assunto ${index + 1}`,
+    origin: "planejamento",
+    status: "Pendente"
+  }));
+  const targetState = { dailyGoals: pending, migrations: {} };
+  const report = runInflationRepair(targetState, 0);
+
+  assert.equal(report.changed, false);
+  assert.equal(report.removed.length, 0);
+  assert.equal(targetState.dailyGoals.length, 5);
+  assert.equal(report.reports[0].skipped, "zero-target-safety");
 });
 
 test("reparo V108 permanece ativo na publicação atual", () => {
