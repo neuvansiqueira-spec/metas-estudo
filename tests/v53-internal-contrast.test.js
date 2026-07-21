@@ -9,10 +9,10 @@ const css = fs.readFileSync("aldus-contrast-v53.css", "utf8");
 const bundleCss = fs.readFileSync("app.bundle.css", "utf8");
 
 test("v53 é a última camada visual e renova o cache público", () => {
-  assert.ok(html.includes(`app-v112.css?v=${version}`));
+  assert.ok(html.includes(`app-v113.css?v=${version}`));
   assert.ok(bundleCss.indexOf("Aldus source: aldus-responsive-v52.css") < bundleCss.indexOf("Aldus source: aldus-contrast-v53.css"));
-  assert.ok(html.indexOf("app-v112.css") < html.indexOf("app-v112.js"));
-  assert.ok(worker.includes('`app-v112.css?v=${CURRENT_VERSION}`'));
+  assert.ok(html.indexOf("app-v113.css") < html.indexOf("app-v113.js"));
+  assert.ok(worker.includes('`app-v113.css?v=${CURRENT_VERSION}`'));
   assert.match(worker, /"aldus-contrast-v53\.css"/);
   assert.match(worker, /endsWith\("\/aldus-contrast-v53\.css"\)/);
 });

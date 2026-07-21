@@ -17,7 +17,7 @@ test("a publicação atual antecipa um único bundle sem alterar a ordem dos mó
     "sync-integral-time-protection.js",
     "script.js"
   ];
-  assert.match(html, new RegExp(`<link rel="preload" as="script" href="app-v112\\.js\\?v=${version}"`));
+  assert.match(html, new RegExp(`<link rel="preload" as="script" href="app-v113\\.js\\?v=${version}"`));
   const bundle = fs.readFileSync("app.bundle.js", "utf8");
   let previousIndex = -1;
   files.forEach((file) => {

@@ -109,4 +109,6 @@ test("versão atual preserva a correção v40 e carrega o corretor diretamente",
   assert.match(rootServiceWorker, /timer-material-link-fix\.js/);
   assert.ok(rootServiceWorker.includes('data-timer-material-link-fix="v40"'));
   assert.match(rootSyncDeletions, /installTimerMaterialLinkFixAsset/);
+  assert.match(rootSyncDeletions, /globalThis\.MetasTimerMaterialLinkFix/);
+  assert.doesNotMatch(rootSyncDeletions, /querySelector\("\.app-version"\)/);
 });

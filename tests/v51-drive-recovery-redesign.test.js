@@ -39,8 +39,8 @@ test("recuperação continua protegida por confirmação, backup e ausência de 
 });
 
 test("nova interface cobre estrutura, cartões, formulários, tabelas e responsividade", () => {
-  assert.ok(html.includes(`app-v112.css?v=${version}`));
-  assert.ok(html.indexOf("app-v112.css") < html.indexOf("app-v112.js"));
+  assert.ok(html.includes(`app-v113.css?v=${version}`));
+  assert.ok(html.indexOf("app-v113.css") < html.indexOf("app-v113.js"));
   assert.ok(bundleCss.includes("/* Aldus source: aldus-interface-v51.css */"));
   assert.match(script, /document\.documentElement\.dataset\.activeView = target/);
   assert.match(interfaceCss, /:not\(\[data-active-view="dashboard"\]\) \.hero-content/);
@@ -51,7 +51,7 @@ test("nova interface cobre estrutura, cartões, formulários, tabelas e responsi
   assert.match(interfaceCss, /:is\(input, select, textarea\)/);
   assert.match(interfaceCss, /@media \(max-width: 620px\)/);
   assert.match(interfaceCss, /@media \(prefers-reduced-motion: reduce\)/);
-  assert.ok(worker.includes('`app-v112.css?v=${CURRENT_VERSION}`'));
+  assert.ok(worker.includes('`app-v113.css?v=${CURRENT_VERSION}`'));
   assert.match(worker, /"aldus-interface-v51\.css"/);
 });
 

@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260721-cache-legado-eliminado-v112",
+  "version": "20260721-versao-cache-definitiva-v113",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

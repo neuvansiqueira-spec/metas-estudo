@@ -3431,14 +3431,10 @@ function installTimerMaterialLinkFixAsset() {
   if (typeof document === "undefined" || globalThis.__metasTimerMaterialLinkFixAssetV40) return;
   globalThis.__metasTimerMaterialLinkFixAssetV40 = true;
   const load = () => {
-    if (document.querySelector('script[data-timer-material-link-fix="v40"]')) return;
+    if (globalThis.MetasTimerMaterialLinkFix || document.querySelector('script[data-timer-material-link-fix="v40"]')) return;
     const script = document.createElement("script");
     script.src = `timer-material-link-fix.js?v=${TIMER_MATERIAL_LINK_FIX_VERSION}`;
     script.dataset.timerMaterialLinkFix = "v40";
-    script.addEventListener("load", () => {
-      const version = document.querySelector(".app-version");
-      if (version) version.textContent = `Versão: ${TIMER_MATERIAL_LINK_FIX_VERSION}`;
-    }, { once: true });
     (document.head || document.documentElement).appendChild(script);
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", load, { once: true });
@@ -4621,7 +4617,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260721-cache-legado-eliminado-v112";
+const APP_VERSION = "20260721-versao-cache-definitiva-v113";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -12874,7 +12870,7 @@ function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register(`service-worker-v112.js?v=${encodeURIComponent(APP_VERSION)}`, { updateViaCache: "none" })
+    navigator.serviceWorker.register(`service-worker-v113.js?v=${encodeURIComponent(APP_VERSION)}`, { updateViaCache: "none" })
       .then((registration) => {
         registration.update();
         console.log("[Metas Estudo] Service worker registrado.");

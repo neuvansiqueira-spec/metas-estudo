@@ -13,8 +13,8 @@ const jsBundle = read("app.bundle.js");
 test("V110 reduz a entrada a um CSS e um JavaScript locais", () => {
   const stylesheetRequests = [...html.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g)].map((match) => match[1]);
   const localScriptRequests = [...html.matchAll(/<script[^>]+src="(?!https?:\/\/)([^"]+)"/g)].map((match) => match[1]);
-  assert.deepEqual(stylesheetRequests, [`app-v112.css?v=${version}`]);
-  assert.deepEqual(localScriptRequests, [`app-v112.js?v=${version}`]);
+  assert.deepEqual(stylesheetRequests, [`app-v113.css?v=${version}`]);
+  assert.deepEqual(localScriptRequests, [`app-v113.js?v=${version}`]);
   assert.doesNotMatch(html, /<script[^>]+src="https:\/\/accounts\.google\.com\/gsi\/client/);
 });
 
@@ -36,8 +36,8 @@ test("bundle preserva ordem, integridade e paridade de publicação", () => {
 
 test("instalação guarda apenas o shell consolidado", () => {
   const cacheList = worker.match(/const FILES_TO_CACHE = \[[\s\S]*?\n\];/)?.[0] || "";
-  assert.match(cacheList, /app-v112\.css/);
-  assert.match(cacheList, /app-v112\.js/);
+  assert.match(cacheList, /app-v113\.css/);
+  assert.match(cacheList, /app-v113\.js/);
   assert.doesNotMatch(cacheList, /analytics-engine\.js|aldus-premium-theme\.css|sync-integral-core\.js/);
   assert.match(cacheList, /CURRENT_VERSION/);
 });
@@ -49,7 +49,7 @@ test("navegação usa o shell salvo e atualiza a rede em segundo plano", () => {
 });
 
 test("a publicação atual mantém versão e espelhos sincronizados", () => {
-  assert.equal(version, "20260721-cache-legado-eliminado-v112");
+  assert.equal(version, "20260721-versao-cache-definitiva-v113");
   assert.match(read("script.js"), new RegExp(`APP_VERSION = "${version}"`));
   assert.match(worker, new RegExp(`CURRENT_VERSION = "${version}"`));
   assert.match(worker, /"20260721-atualizador-cache-versionado-v111"/);
@@ -60,9 +60,9 @@ test("a publicação atual mantém versão e espelhos sincronizados", () => {
 
 test("o atualizador do cache usa arquivos físicos novos e corrige o marcador visível", () => {
   const script = read("script.js");
-  assert.match(script, /register\(`service-worker-v112\.js\?v=\$\{encodeURIComponent\(APP_VERSION\)\}`/);
+  assert.match(script, /register\(`service-worker-v113\.js\?v=\$\{encodeURIComponent\(APP_VERSION\)\}`/);
   assert.match(script, /element\.textContent = `Versão: \$\{APP_VERSION\}`/);
-  assert.equal(read("app-v112.css"), cssBundle);
-  assert.equal(read("app-v112.js"), jsBundle);
-  assert.equal(read("service-worker-v112.js"), worker);
+  assert.equal(read("app-v113.css"), cssBundle);
+  assert.equal(read("app-v113.js"), jsBundle);
+  assert.equal(read("service-worker-v113.js"), worker);
 });

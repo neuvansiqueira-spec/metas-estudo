@@ -40,8 +40,8 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 });
 
 test('arquivos carregados usam a versão atual', () => {
-  assert.match(html, new RegExp(`app-v112\\.css\\?v=${version}`));
-  assert.match(html, new RegExp(`app-v112\\.js\\?v=${version}`));
+  assert.match(html, new RegExp(`app-v113\\.css\\?v=${version}`));
+  assert.match(html, new RegExp(`app-v113\\.js\\?v=${version}`));
   assert.match(fs.readFileSync('app.bundle.css', 'utf8'), /Aldus source: style\.css/);
   assert.match(fs.readFileSync('app.bundle.js', 'utf8'), /Aldus source: storage-indexeddb\.js[\s\S]*Aldus source: script\.js/);
   assert.match(html, new RegExp(`Versão: ${version}`));
@@ -50,7 +50,7 @@ test('arquivos carregados usam a versão atual', () => {
 test('identidade visual premium usa a paleta Aldus desde a primeira renderização', () => {
   assert.match(html, /<html[^>]+data-aldus-theme="premium-stable"/);
   assert.match(html, /<meta name="theme-color" content="#031426"/);
-  assert.match(html, new RegExp(`app-v112\\.css\\?v=${version}`));
+  assert.match(html, new RegExp(`app-v113\\.css\\?v=${version}`));
   const bundleCss = fs.readFileSync('app.bundle.css', 'utf8');
   assert.match(bundleCss, /Aldus source: aldus-premium-theme\.css/);
   assert.match(bundleCss, /Aldus source: aldus-premium-refinement-v47\.css/);

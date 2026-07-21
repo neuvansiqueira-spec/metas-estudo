@@ -243,14 +243,10 @@ function installTimerMaterialLinkFixAsset() {
   if (typeof document === "undefined" || globalThis.__metasTimerMaterialLinkFixAssetV40) return;
   globalThis.__metasTimerMaterialLinkFixAssetV40 = true;
   const load = () => {
-    if (document.querySelector('script[data-timer-material-link-fix="v40"]')) return;
+    if (globalThis.MetasTimerMaterialLinkFix || document.querySelector('script[data-timer-material-link-fix="v40"]')) return;
     const script = document.createElement("script");
     script.src = `timer-material-link-fix.js?v=${TIMER_MATERIAL_LINK_FIX_VERSION}`;
     script.dataset.timerMaterialLinkFix = "v40";
-    script.addEventListener("load", () => {
-      const version = document.querySelector(".app-version");
-      if (version) version.textContent = `Versão: ${TIMER_MATERIAL_LINK_FIX_VERSION}`;
-    }, { once: true });
     (document.head || document.documentElement).appendChild(script);
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", load, { once: true });

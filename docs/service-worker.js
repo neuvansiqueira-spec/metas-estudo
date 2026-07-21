@@ -79,17 +79,18 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260721-plano-dia-sincronizacao-v108",
   "20260721-carregamento-rapido-v109",
   "20260721-inicializacao-ultrarrapida-v110",
-  "20260721-atualizador-cache-versionado-v111"
+  "20260721-atualizador-cache-versionado-v111",
+  "20260721-cache-legado-eliminado-v112"
 ];
-const CURRENT_VERSION = "20260721-cache-legado-eliminado-v112";
+const CURRENT_VERSION = "20260721-versao-cache-definitiva-v113";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
-// Caches anteriores reconhecidos para limpeza: startup-v25, startup-v26 e startup-v27.
-const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v28`;
+// Caches anteriores reconhecidos para limpeza: startup-v25 a startup-v28.
+const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v29`;
 const FILES_TO_CACHE = [
   `./?v=${CURRENT_VERSION}`,
   `index.html?v=${CURRENT_VERSION}`,
-  `app-v112.css?v=${CURRENT_VERSION}`,
-  `app-v112.js?v=${CURRENT_VERSION}`,
+  `app-v113.css?v=${CURRENT_VERSION}`,
+  `app-v113.js?v=${CURRENT_VERSION}`,
   "manifest.json",
   "icons/aldus-visual.png",
   "icons/aldus-brand-mark-v93.png",
@@ -156,8 +157,8 @@ function replaceVersion(source) {
 function patchHtmlSource(source) {
   let patched = replaceVersion(source);
   patched = patched
-    .replace(/app\.bundle\.css(?:\?v=[^"'\s<>]+)?/gi, `app-v112.css?v=${CURRENT_VERSION}`)
-    .replace(/app\.bundle\.js(?:\?v=[^"'\s<>]+)?/gi, `app-v112.js?v=${CURRENT_VERSION}`);
+    .replace(/app\.bundle\.css(?:\?v=[^"'\s<>]+)?/gi, `app-v113.css?v=${CURRENT_VERSION}`)
+    .replace(/app\.bundle\.js(?:\?v=[^"'\s<>]+)?/gi, `app-v113.js?v=${CURRENT_VERSION}`);
   patched = patched.replace(
     /<div class="brand aldus-visual-brand">\s*(<img class="aldus-visual-brand-image"[^>]*>)\s*<\/div>/i,
     '<a class="brand aldus-visual-brand brand-home-link" href="#dashboard" data-view-link="dashboard" aria-label="Ir para o início">$1</a>'
