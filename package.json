@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260721-fabrica-visual-resumo-v104",
+  "version": "20260721-mobile-salvar-cores-tempo-v105",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"

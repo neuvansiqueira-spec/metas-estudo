@@ -3343,6 +3343,54 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary >
   html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary > .stat-card { min-height: 120px !important; }
 }
 
+/* V105: botão de salvar acessível no modal móvel e tempos com cores semânticas. */
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .planned-today-stat {
+  border-color: rgba(91, 190, 255, .66) !important;
+  box-shadow: inset 4px 0 0 #5bbdff !important;
+  background: linear-gradient(145deg, rgba(8, 42, 69, .98), rgba(8, 52, 84, .94)) !important;
+}
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .planned-today-stat strong {
+  color: #7fd3ff !important;
+}
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .realized-today-stat {
+  border-color: rgba(66, 211, 164, .62) !important;
+  box-shadow: inset 4px 0 0 #42d3a4 !important;
+  background: linear-gradient(145deg, rgba(6, 46, 55, .98), rgba(7, 59, 63, .94)) !important;
+}
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia .realized-today-stat strong {
+  color: #6fe3bd !important;
+}
+@media (max-width: 720px) {
+  html[data-aldus-theme="premium-stable"] body:has(#timerStudyModal:not([hidden])) .mobile-quick-nav {
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  html[data-aldus-theme="premium-stable"] #timerStudyModal {
+    z-index: 3200 !important;
+    padding: max(8px, env(safe-area-inset-top, 0px)) 8px max(8px, env(safe-area-inset-bottom, 0px)) !important;
+  }
+  html[data-aldus-theme="premium-stable"] #timerStudyModal .timer-study-modal-card {
+    width: 100% !important;
+    max-height: calc(100dvh - max(16px, env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px))) !important;
+    padding: 16px 14px calc(18px + env(safe-area-inset-bottom, 0px)) !important;
+    scroll-padding-bottom: 96px;
+  }
+  html[data-aldus-theme="premium-stable"] #timerStudyModal .modal-actions {
+    position: sticky !important;
+    bottom: calc(-18px - env(safe-area-inset-bottom, 0px)) !important;
+    z-index: 3 !important;
+    margin: 4px -14px calc(-18px - env(safe-area-inset-bottom, 0px)) !important;
+    padding: 12px 14px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+    border-top: 1px solid rgba(126, 177, 215, .35) !important;
+    background: rgba(5, 29, 48, .98) !important;
+    box-shadow: 0 -12px 24px rgba(0, 8, 20, .28) !important;
+  }
+  html[data-aldus-theme="premium-stable"] #timerStudyModal .modal-actions button {
+    min-height: 50px !important;
+  }
+}
+
 .material-estimate-feedback { flex-basis: 100%; margin-top: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: #f8fafc; color: var(--text); font-weight: 700; line-height: 1.5; }
 .material-estimate-feedback:empty { display: none; }
 .material-estimate-feedback span { display: block; }

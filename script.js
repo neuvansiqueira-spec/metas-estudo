@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260721-fabrica-visual-resumo-v104";
+const APP_VERSION = "20260721-mobile-salvar-cores-tempo-v105";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -6542,7 +6542,7 @@ function renderDailyGoals() {
   const dayContent = getDayContentConfig(date);
   const questionProgress = questionGoalProgress(date);
   if (elements.selectedGoalDateLabel) elements.selectedGoalDateLabel.textContent = formatDateBR(date);
-  if (elements.dailyGoalsSummary) elements.dailyGoalsSummary.innerHTML = `<details ${dailyPlanSectionAttrs("summary", true)}>${dailyPlanSummaryHTML("Resumo de hoje", `${stats.completed} concluídas • ${stats.pending} pendentes`)}<div class="daily-plan-content daily-goals-summary stats-grid compact"><article class="stat-card"><span>Metas concluídas</span><strong>${stats.completed}</strong></article><article class="stat-card"><span>Metas pendentes</span><strong>${stats.pending}</strong></article><article class="stat-card"><span>Tempo planejado hoje</span><strong>${formatHours(stats.target)}</strong></article><article class="stat-card"><span>Tempo realizado hoje</span><strong>${formatHours(stats.done)}</strong></article><article class="stat-card historical-time-stat"><span>Histórico de estudo registrado</span><strong>${formatExportDuration(totalRecordedStudyMinutes())}</strong></article><article class="stat-card"><span>Questões realizadas</span><strong>${questionProgress.done}</strong></article><article class="stat-card wide-stat"><span>Progresso geral: ${stats.goalsPct}%</span><div class="progress"><span style="width:${stats.goalsPct}%"></span></div></article></div></details>`;
+  if (elements.dailyGoalsSummary) elements.dailyGoalsSummary.innerHTML = `<details ${dailyPlanSectionAttrs("summary", true)}>${dailyPlanSummaryHTML("Resumo de hoje", `${stats.completed} concluídas • ${stats.pending} pendentes`)}<div class="daily-plan-content daily-goals-summary stats-grid compact"><article class="stat-card"><span>Metas concluídas</span><strong>${stats.completed}</strong></article><article class="stat-card"><span>Metas pendentes</span><strong>${stats.pending}</strong></article><article class="stat-card planned-today-stat"><span>Tempo planejado hoje</span><strong>${formatHours(stats.target)}</strong></article><article class="stat-card realized-today-stat"><span>Tempo realizado hoje</span><strong>${formatHours(stats.done)}</strong></article><article class="stat-card historical-time-stat"><span>Histórico de estudo registrado</span><strong>${formatExportDuration(totalRecordedStudyMinutes())}</strong></article><article class="stat-card"><span>Questões realizadas</span><strong>${questionProgress.done}</strong></article><article class="stat-card wide-stat"><span>Progresso geral: ${stats.goalsPct}%</span><div class="progress"><span style="width:${stats.goalsPct}%"></span></div></article></div></details>`;
   renderNextDailyGoal(dayGoals, window.__dailyPlanProjectionByGoalId);
   const notices = [];
   if (availability.type === "indisponível") notices.push(`<p class="notice warning-notice">Dia marcado como indisponível. A geração automática só acontece mediante confirmação.</p>`);
