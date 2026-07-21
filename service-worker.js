@@ -69,9 +69,14 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260720-qconcursos-filtros-automaticos-v98",
   "20260720-edital-progresso-contraste-v99",
   "20260720-caderno-questao-v100",
-  "20260721-fabrica-fontes-v101"
+  "20260721-fabrica-fontes-v101",
+  "20260721-fabrica-plano-semana-v102",
+  "20260721-fabrica-fonte-fila-v103",
+  "20260721-fabrica-visual-resumo-v104",
+  "20260721-mobile-salvar-cores-tempo-v105",
+  "20260721-dashboard-central-metas-v106"
 ];
-const CURRENT_VERSION = "20260721-dashboard-central-metas-v106";
+const CURRENT_VERSION = "20260721-browser-cache-atualizacao-v107";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 // Cache anterior reconhecido para limpeza: startup-v25.
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v26`;
@@ -330,13 +335,15 @@ async function fetchFreshNavigation(request) {
 }
 
 async function cacheFirstNavigation(request, networkPromise) {
+  let networkResponse = null;
+  try {
+    networkResponse = await networkPromise;
+    if (networkResponse?.ok) return networkResponse;
+  } catch (error) {}
+
   const cached = await caches.match(request, { ignoreSearch: true }) || await caches.match("index.html", { ignoreSearch: true });
   if (cached) return patchTextResponse(cached, patchHtmlSource, "text/html; charset=utf-8");
-  try {
-    return await networkPromise;
-  } catch (error) {
-    return new Response("Aplicativo indisponível temporariamente.", { status: 503, headers: { "content-type": "text/plain; charset=utf-8" } });
-  }
+  return networkResponse || new Response("Aplicativo indisponível temporariamente.", { status: 503, headers: { "content-type": "text/plain; charset=utf-8" } });
 }
 
 async function transformAppScriptResponse(response, { preferCache = true } = {}) {
@@ -354,6 +361,18 @@ async function transformAppScriptResponse(response, { preferCache = true } = {})
 }
 
 async function cacheFirstAppScript(request) {
+  let networkResponse = null;
+  try {
+    networkResponse = await transformAppScriptResponse(
+      await fetch(request, { cache: "no-store" }),
+      { preferCache: false }
+    );
+    if (networkResponse?.ok) {
+      await cacheResponse(request, networkResponse.clone());
+      return networkResponse;
+    }
+  } catch (error) {}
+
   const exact = await caches.match(request);
   if (exact) return exact;
   const cached = requestTargetsCurrentVersion(request)
@@ -364,9 +383,10 @@ async function cacheFirstAppScript(request) {
     await cacheResponse(request, transformed.clone());
     return transformed;
   }
-  const response = await transformAppScriptResponse(await fetch(request, { cache: "no-store" }), { preferCache: false });
-  await cacheResponse(request, response.clone());
-  return response;
+  return networkResponse || new Response("Script indisponível temporariamente.", {
+    status: 503,
+    headers: { "content-type": "text/plain; charset=utf-8" }
+  });
 }
 
 function staleWhileRevalidate(request, event) {

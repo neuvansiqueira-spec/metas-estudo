@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260721-dashboard-central-metas-v106",
+  "version": "20260721-browser-cache-atualizacao-v107",
   "private": true,
   "scripts": {
     "test": "node --test tests/*.test.js"
