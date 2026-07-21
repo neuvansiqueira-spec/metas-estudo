@@ -42,6 +42,23 @@ test('rota prioriza cargo Delegado e preserva disciplina, assunto, subtema e ban
   assert.equal(route.subject, 'Prisão temporária');
   assert.equal(route.subtopic, 'Representação');
   assert.equal(route.board, 'Cebraspe');
+  const url = new URL(route.url);
+  assert.deepEqual(url.searchParams.getAll('job_ids[]'), ['169']);
+  assert.deepEqual(url.searchParams.getAll('examining_board_ids[]'), ['2']);
+  assert.equal(url.searchParams.get('q'), 'Prisão temporária — Representação');
+  assert.equal(url.searchParams.getAll('publication_year[]').length, 5);
+  assert.equal(url.searchParams.get('sort'), 'relevance');
+});
+
+test('link do QC aplica disciplina administrativa, Cebraspe e busca textual sem inventar subject_id', () => {
+  const route = routeLogic().buildQconcursosFilterRoute({ discipline:'Direito Administrativo', subject:'Licitações e Contratos Administrativos', qconcursosNumber:'9 / 10' }, 'Cebraspe');
+  const url = new URL(route.url);
+  assert.deepEqual(url.searchParams.getAll('discipline_ids[]'), ['2']);
+  assert.deepEqual(url.searchParams.getAll('examining_board_ids[]'), ['2']);
+  assert.equal(url.searchParams.get('q'), 'Licitações e Contratos Administrativos');
+  assert.deepEqual(url.searchParams.getAll('subject_ids[]'), []);
+  assert.equal(route.automaticFilters.discipline, true);
+  assert.equal(route.automaticFilters.board, true);
 });
 
 test('rota inclui numeração própria do QC e não reaproveita referência do edital', () => {
@@ -74,4 +91,5 @@ test('orientador avisa como ampliar amostra e abre site externo com segurança',
   assert.match(script, /menos de 20 questões/);
   assert.match(script, /retire primeiro o período, depois a banca/);
   assert.match(script, /target="_blank" rel="noopener noreferrer"/);
+  assert.match(script, /Abrir QConcursos com filtros automáticos/);
 });
