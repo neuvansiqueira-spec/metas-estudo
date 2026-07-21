@@ -23,7 +23,7 @@ test("modo regressivo e botão fechar permanecem legíveis no painel", () => {
 });
 
 test("V96 mantém os arquivos publicados em paridade", () => {
-  const version = "20260720-cronometro-bip-layout-v96";
+  const version = "20260720-cronometro-scroll-motivacao-v97";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(script, new RegExp(`APP_VERSION = "${version}"`));
   assert.match(read("service-worker.js"), new RegExp(`CURRENT_VERSION = "${version}"`));

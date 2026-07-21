@@ -20,7 +20,7 @@ test("cronômetro diminui somente enquanto a mensagem está visível", () => {
 });
 
 test("V88 renova o cache e mantém raiz e publicação em paridade", () => {
-  const version = "20260720-cronometro-bip-layout-v96";
+  const version = "20260720-cronometro-scroll-motivacao-v97";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(read("index.html"), new RegExp(version));
   assert.match(read("service-worker.js"), new RegExp(`CURRENT_VERSION = "${version}"`));
