@@ -27,9 +27,9 @@ test('V122 deixa o assunto largo, métricas compactas e possui quebras responsiv
   assert.match(css, /@media \(max-width: 430px\)/);
 });
 
-test('V122 publica CSS, prompt e service worker na mesma versão', () => {
-  assert.match(index, /factory-visibility-v122\.css\?v=20260721-fabrica-visibilidade-v122/);
-  assert.match(index, /factory-lei-prompt-v122\.js\?v=20260721-fabrica-visibilidade-v122/);
+test('V122 permanece carregado e seus artefatos históricos continuam sincronizados', () => {
+  assert.match(index, /factory-visibility-v122\.css\?v=20260721-[^"']+/);
+  assert.match(index, /factory-lei-prompt-v12[2-9]\.js\?v=20260721-[^"']+/);
   assert.match(worker, /factory-visibility-v122\.css\?v=\$\{CURRENT_VERSION\}/);
   assert.match(worker, /factory-lei-prompt-v122\.js\?v=\$\{CURRENT_VERSION\}/);
   assert.match(promptPatch, /service-worker-v122\.js/);

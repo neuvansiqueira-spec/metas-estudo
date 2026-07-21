@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260721-fabrica-visibilidade-v122",
+  "version": "20260721-prompt-lei-fonte-preta-v123",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
