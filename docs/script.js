@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260721-protecao-metas-dia-v115";
+const APP_VERSION = "20260721-recomposicao-metas-dia-v116";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -5709,6 +5709,48 @@ function repairDailyPlanningInflationV108(targetState = state, opts = {}) {
   return { changed: removed.length > 0, removed, reports };
 }
 
+function replenishMissingDailyPlanningGoalsV116(targetState = state, date = todayISO(), opts = {}) {
+  targetState.dailyGoals ||= [];
+  const targets = planningTargetsForDate(date, targetState, opts);
+  const topicTarget = Math.max(0, Number(targets.topics) || 0);
+  const report = { date, topicTarget, before: 0, after: 0, added: [], preserved: [], warnings: [], changed: false, skipped: "" };
+  const studyGoals = targetState.dailyGoals.filter((goal) => goalDateValue(goal) === date && isPlanningStudyGoal(goal));
+  report.before = studyGoals.length;
+  report.after = studyGoals.length;
+  report.preserved = studyGoals.map((goal) => goal.id).filter(Boolean);
+
+  if (topicTarget <= 0) { report.skipped = "zero-target-safety"; return report; }
+  if (studyGoals.length >= topicTarget) { report.skipped = "target-already-met"; return report; }
+
+  const reservedSyllabusIds = new Set();
+  studyGoals.forEach((goal) => { const key = goalSyllabusReservationKey(goal); if (key) reservedSyllabusIds.add(key); });
+  const scoreContext = opts.scoreContext || buildPlanningScoreContext(targetState);
+  const eligibleGoals = eligiblePlanningGoalsForDate(date, { targetState, scoreContext, existingGoals: studyGoals, reservedSyllabusIds });
+  const selection = selectPlanningGoalsForTargets({
+    date,
+    topicTarget,
+    disciplineTarget: Math.max(1, Number(targets.disciplines) || 1),
+    eligibleGoals,
+    existingGoals: studyGoals
+  });
+  const now = new Date().toISOString();
+  selection.selected.forEach((goal) => {
+    goal.origin = goal.origem = "planejamento";
+    goal.createdAt ||= now;
+    goal.updatedAt = now;
+    targetState.dailyGoals.push(goal);
+    report.added.push(goal.id);
+  });
+  report.after = targetState.dailyGoals.filter((goal) => goalDateValue(goal) === date && isPlanningStudyGoal(goal)).length;
+  report.changed = report.added.length > 0;
+  if (report.after < topicTarget) report.warnings.push(`Planejamento prevê ${topicTarget} assunto(s), mas existem apenas ${report.after} assunto(s) elegível(is) sem repetição.`);
+  if (report.changed) {
+    targetState.migrations ||= {};
+    targetState.migrations.dailyPlanningReplenishmentV116 = { executedAt: now, date, before: report.before, after: report.after, added: report.added.length };
+  }
+  return report;
+}
+
 function reconcileDailyGoalsWithPlanning(targetState = state, date = todayISO(), opts = {}) {
   // Compatibilidade de teste: const expected = Math.max(0, Number(targetState.planning?.config?.disciplinesPerDay)
   targetState.dailyGoals ||= [];
@@ -7445,7 +7487,9 @@ async function bootstrapApplication() {
       reports: [...(replacementRepairReportV108.reports || []), ...(legacyDailyPlanningRepairV108.reports || [])]
     };
     window.__dailyPlanningInflationRepairV108 = dailyPlanningRepairV108;
-    if (dailyPlanningRepairV108.changed) saveData({ markLocalChange: true });
+    const dailyPlanningReplenishmentV116 = replenishMissingDailyPlanningGoalsV116(state, todayISO());
+    window.__dailyPlanningReplenishmentV116 = dailyPlanningReplenishmentV116;
+    if (dailyPlanningRepairV108.changed || dailyPlanningReplenishmentV116.changed) saveData({ markLocalChange: true });
     const legacyGoalIdRecoveryReport = recoverLegacyTimerMinutesForGoals(state);
     const legacyOrphanRecoveryReport = recoverOrphanLegacyTimerMinutesForGoals(state);
     const legacyTimerRecoveryReport = mergeLegacyTimerRecoveryReports(legacyGoalIdRecoveryReport, legacyOrphanRecoveryReport);
@@ -8327,7 +8371,7 @@ function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register(`service-worker-v115.js?v=${encodeURIComponent(APP_VERSION)}`, { updateViaCache: "none" })
+    navigator.serviceWorker.register(`service-worker-v116.js?v=${encodeURIComponent(APP_VERSION)}`, { updateViaCache: "none" })
       .then((registration) => {
         registration.update();
         console.log("[Metas Estudo] Service worker registrado.");

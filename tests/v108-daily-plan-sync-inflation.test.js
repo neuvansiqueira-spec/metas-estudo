@@ -55,6 +55,36 @@ function runInflationRepair(targetState, topics = 5) {
   return context.result;
 }
 
+function runMissingGoalsReplenishment(targetState, topics = 5) {
+  const script = read("script.js");
+  const source = [
+    extractFunction(script, "replenishMissingDailyPlanningGoalsV116"),
+    "result = replenishMissingDailyPlanningGoalsV116(targetState, '2026-07-21');"
+  ].join("\n");
+  const additions = ["nova-1", "nova-2", "nova-3"].map((id, index) => ({
+    id,
+    date: "2026-07-21",
+    discipline: `Disciplina ${index + 3}`,
+    subject: `Assunto ${index + 3}`,
+    status: "Pendente"
+  }));
+  const context = {
+    targetState,
+    state: targetState,
+    todayISO: () => "2026-07-21",
+    planningTargetsForDate: () => ({ topics, disciplines: 5 }),
+    goalDateValue: (goal) => goal.date || goal.data || "",
+    isPlanningStudyGoal: () => true,
+    goalSyllabusReservationKey: (goal) => goal.syllabusItemId || goal.id,
+    buildPlanningScoreContext: () => ({}),
+    eligiblePlanningGoalsForDate: () => additions,
+    selectPlanningGoalsForTargets: ({ topicTarget, existingGoals, eligibleGoals }) => ({ selected: eligibleGoals.slice(0, Math.max(0, topicTarget - existingGoals.length)) }),
+    Date, Math, Number, Set
+  };
+  vm.runInNewContext(source, context);
+  return context.result;
+}
+
 test("sincronização reconhece a mesma meta automática mesmo com IDs diferentes", () => {
   const { mergeSyncStates, syncCollectionKey } = loadSyncEngine();
   const base = { date: "2026-07-21", discipline: "Direitos Humanos", subject: "Segurança pública", origin: "planejamento" };
@@ -116,6 +146,31 @@ test("reparo nunca apaga metas quando o alvo diário aparece como zero", () => {
   assert.equal(report.removed.length, 0);
   assert.equal(targetState.dailyGoals.length, 5);
   assert.equal(report.reports[0].skipped, "zero-target-safety");
+});
+
+test("recomposição completa apenas as metas faltantes e preserva as existentes", () => {
+  const existing = [
+    { id: "concluida", date: "2026-07-21", discipline: "Direitos Humanos", subject: "Segurança Pública", status: "Concluída", actualMinutes: 71 },
+    { id: "pendente", date: "2026-07-21", discipline: "Direito Administrativo", subject: "Lei nº 14.133/2021", status: "Pendente" }
+  ];
+  const targetState = { dailyGoals: existing.map((goal) => ({ ...goal })), migrations: {} };
+  const report = runMissingGoalsReplenishment(targetState, 5);
+
+  assert.equal(report.changed, true);
+  assert.equal(report.before, 2);
+  assert.equal(report.after, 5);
+  assert.deepEqual([...report.added], ["nova-1", "nova-2", "nova-3"]);
+  assert.equal(targetState.dailyGoals.find((goal) => goal.id === "concluida").actualMinutes, 71);
+  assert.equal(targetState.dailyGoals.find((goal) => goal.id === "pendente").status, "Pendente");
+});
+
+test("recomposição não cria metas quando o alvo diário está temporariamente zerado", () => {
+  const targetState = { dailyGoals: [{ id: "existente", date: "2026-07-21", status: "Pendente" }], migrations: {} };
+  const report = runMissingGoalsReplenishment(targetState, 0);
+
+  assert.equal(report.changed, false);
+  assert.equal(report.skipped, "zero-target-safety");
+  assert.equal(targetState.dailyGoals.length, 1);
 });
 
 test("reparo V108 permanece ativo na publicação atual", () => {

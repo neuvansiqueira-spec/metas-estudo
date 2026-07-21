@@ -84,7 +84,7 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260721-versao-cache-definitiva-v113",
   "20260721-continuacao-automatica-v114"
 ];
-const CURRENT_VERSION = "20260721-protecao-metas-dia-v115";
+const CURRENT_VERSION = "20260721-recomposicao-metas-dia-v116";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 // Caches anteriores reconhecidos para limpeza: startup-v25 a startup-v28.
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v29`;
@@ -93,6 +93,7 @@ const FILES_TO_CACHE = [
   `index.html?v=${CURRENT_VERSION}`,
   `app-v115.css?v=${CURRENT_VERSION}`,
   `app-v115.js?v=${CURRENT_VERSION}`,
+  `daily-goal-replenishment-v116.js?v=${CURRENT_VERSION}`,
   "manifest.json",
   "icons/aldus-visual.png",
   "icons/aldus-brand-mark-v93.png",
