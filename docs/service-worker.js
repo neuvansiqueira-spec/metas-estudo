@@ -77,7 +77,7 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260721-dashboard-central-metas-v106",
   "20260721-browser-cache-atualizacao-v107",
   "20260721-plano-dia-sincronizacao-v108",
-  "20260721-carregamento-rapido-v109",
+  "20260721-fabrica-visual-v110",
   "20260721-inicializacao-ultrarrapida-v110",
   "20260721-atualizador-cache-versionado-v111",
   "20260721-cache-legado-eliminado-v112"
