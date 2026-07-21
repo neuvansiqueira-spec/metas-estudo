@@ -4842,6 +4842,33 @@ html[data-aldus-theme="premium-stable"] body #floatingTimer .floating-timer-head
   line-height: 1 !important;
 }
 
+/* V97: configurações acessíveis em 100% de zoom, com rolagem própria. */
+@media (min-width: 721px) {
+  html[data-aldus-theme="premium-stable"] body #floatingTimer {
+    right: 18px !important;
+    bottom: 18px !important;
+    width: min(400px, calc(100vw - 36px)) !important;
+    max-height: calc(100dvh - 36px) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+}
+
+html[data-aldus-theme="premium-stable"] body #floatingTimer > .floating-timer-actions {
+  position: sticky;
+  bottom: -16px;
+  z-index: 3;
+  margin: 0 -6px -16px;
+  padding: 12px 6px 16px;
+  background: linear-gradient(180deg, rgba(7, 38, 65, 0), rgba(7, 38, 65, .96) 24%);
+}
+
+html[data-aldus-theme="premium-stable"] body #timerSettings[open] {
+  scroll-margin-block: 12px 90px;
+}
+
 /* V94: as logos do cabeçalho e da barra recolhida levam ao Dashboard. */
 
 @media (prefers-reduced-motion: reduce) {

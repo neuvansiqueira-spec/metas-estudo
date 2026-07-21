@@ -25,7 +25,7 @@ test("cache anterior também recebe os links das logos", () => {
 });
 
 test("V95 oculta o atalho no modo aberto e mantém raiz e publicação em paridade", () => {
-  const version = "20260720-cronometro-bip-layout-v96";
+  const version = "20260720-cronometro-scroll-motivacao-v97";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(html, new RegExp(version));
   assert.match(worker, new RegExp(`CURRENT_VERSION = "${version}"`));

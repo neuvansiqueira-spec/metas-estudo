@@ -296,7 +296,7 @@
         ? [{ frequency: 659.25, delay: 0 }, { frequency: 783.99, delay: .12 }, { frequency: 987.77, delay: .24 }]
         : [{ frequency: 659.25, delay: 0 }, { frequency: 880, delay: .13 }];
       tones.forEach((tone, index) => {
-        scheduleChimeTone(context, tone.frequency, startAt + tone.delay, index === tones.length - 1 ? .22 : .17, .038);
+        scheduleChimeTone(context, tone.frequency, startAt + tone.delay, index === tones.length - 1 ? .22 : .17, .055);
       });
       return true;
     } catch (error) {
