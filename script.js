@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260721-fabrica-plano-semana-v102";
+const APP_VERSION = "20260721-fabrica-fonte-fila-v103";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -3302,9 +3302,10 @@ const FACTORY_PROMPT_TYPES = [
   { key: "peca", label: "Gerar prompt Peça" },
   { key: "consolidacao", label: "Gerar prompt Consolidação Final" }
 ];
+const FACTORY_DEFAULT_SOURCE_FOLDER = "https://drive.google.com/drive/folders/1BTUFtLBf6tuKG6kqWTRIrPT75cltdy-n";
 function factorySourceFolderLink(item = {}) {
   const leiModule = normalizeFactoryModule(item.modules?.lei || {}, item);
-  return String(leiModule.leiFonte || "").trim();
+  return String(leiModule.leiFonte || FACTORY_DEFAULT_SOURCE_FOLDER).trim();
 }
 function factorySourceFolderBlock(item = {}) {
   return `PASTA DAS FONTES NO GOOGLE DRIVE:
@@ -3714,7 +3715,7 @@ function saveFactoryItem(event) {
   state.factoryItems = state.factoryAgenda;
   elements.factoryForm.reset();
   elements.factoryEditingId.value = "";
-  if (elements.factorySourceFolder) elements.factorySourceFolder.value = "";
+  if (elements.factorySourceFolder) elements.factorySourceFolder.value = FACTORY_DEFAULT_SOURCE_FOLDER;
   if (elements.factoryDestinationFolder) elements.factoryDestinationFolder.value = "";
   closeFactoryPrompt(item.id);
   syncFactoryModuleMaterials(item);
@@ -3729,7 +3730,7 @@ function editFactoryItem(id) {
   elements.factoryTheme.value = item.tema;
   elements.factoryPriority.value = item.prioridade;
   elements.factoryPlannedDate.value = item.dataPlanejada || "";
-  if (elements.factorySourceFolder) elements.factorySourceFolder.value = normalizeFactoryModule(item.modules?.lei || {}, item).leiFonte || "";
+  if (elements.factorySourceFolder) elements.factorySourceFolder.value = factorySourceFolderLink(item);
   if (elements.factoryDestinationFolder) elements.factoryDestinationFolder.value = factoryDestinationFolderLink(item);
   elements.factoryStatus.value = item.status;
   elements.factoryNotes.value = item.observacao || "";
@@ -4060,7 +4061,7 @@ function renderFactory() {
       const modules = normalizeFactoryModules(entry.item.modules || {}, entry.item);
       const status = factoryOverallStatus(modules);
       const isOpen = factoryOpenDetailId === entry.item.id;
-      return `<li><div class="factory-queue-theme">${factoryThemeHighlightHTML(entry.item, factoryRecorteHoje(entry))}</div><div class="item-meta"><strong>${escapeHTML(factoryQueueItemLabel({ ...entry.item, modules }, index, firstPendingId))}</strong> • Etapa: ${escapeHTML(factoryCurrentStage({ ...entry.item, modules }))} • Status: ${escapeHTML(status)}</div><button type="button" class="secondary-button" data-factory-toggle-detail="${entry.item.id}" aria-expanded="${isOpen ? "true" : "false"}">${isOpen ? "Fechar" : "Abrir"}</button></li>`;
+      return `<li><details class="factory-queue-item"><summary><span class="factory-queue-theme">${factoryThemeHighlightHTML(entry.item, factoryRecorteHoje(entry))}</span></summary><div class="factory-queue-item-content"><div class="item-meta"><strong>${escapeHTML(factoryQueueItemLabel({ ...entry.item, modules }, index, firstPendingId))}</strong> • Etapa: ${escapeHTML(factoryCurrentStage({ ...entry.item, modules }))} • Status: ${escapeHTML(status)}</div><button type="button" class="secondary-button" data-factory-toggle-detail="${entry.item.id}" aria-expanded="${isOpen ? "true" : "false"}">${isOpen ? "Fechar" : "Abrir"}</button></div></details></li>`;
     }).join("")}</ol>` : `<p class="empty-message">Nenhum resumo/aula pendente na fila.</p>`}</div></details>`;
     let entries = periodEntries;
     if (factoryCurrentFilter === "faca-agora") entries = queue;
