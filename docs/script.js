@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260720-caderno-questao-v100";
+const APP_VERSION = "20260721-fabrica-fontes-v101";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -3732,7 +3732,13 @@ function editFactoryItem(id) {
   if (elements.factoryDestinationFolder) elements.factoryDestinationFolder.value = factoryDestinationFolderLink(item);
   elements.factoryStatus.value = item.status;
   elements.factoryNotes.value = item.observacao || "";
-  elements.factoryForm?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const registerPanel = document.getElementById("factoryRegisterPanel") || elements.factoryForm?.closest("details");
+  if (registerPanel) registerPanel.open = true;
+  (registerPanel || elements.factoryForm)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  window.setTimeout(() => {
+    elements.factorySourceFolder?.focus({ preventScroll: true });
+    elements.factorySourceFolder?.select();
+  }, 250);
 }
 function deleteFactoryItem(id) {
   if (!confirm("Excluir este tema da Fábrica?")) return;
