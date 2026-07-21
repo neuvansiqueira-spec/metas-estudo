@@ -4881,6 +4881,34 @@ html[data-aldus-theme="premium-stable"] body #view-progresso .progress > span {
   box-shadow: 0 0 10px rgba(32, 217, 255, .72) !important;
 }
 
+/* V100: ficha detalhada e recolhível vinculada ao lançamento de questões. */
+.question-notebook-panel {
+  border: 1px solid #527b99;
+  border-radius: 18px;
+  overflow: hidden;
+  background: rgba(4, 29, 49, .74);
+}
+.question-notebook-panel > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 16px 18px;
+  color: #f4d77d;
+}
+.question-notebook-panel > summary::-webkit-details-marker { display: none; }
+.question-notebook-panel > summary span { display: grid; gap: 3px; }
+.question-notebook-panel > summary small { letter-spacing: .11em; }
+.question-notebook-panel > summary strong { color: #f7fbff; font-size: 1.05rem; }
+.question-notebook-panel > summary em { color: #b9ccdc; font-style: normal; font-size: .9rem; }
+.question-notebook-panel > summary::after { content: "+"; float: right; margin-top: -34px; font-size: 1.5rem; }
+.question-notebook-panel[open] > summary::after { content: "−"; }
+.question-notebook-content { padding: 4px 18px 18px; border-top: 1px solid rgba(82, 123, 153, .65); }
+.question-notebook-check { display: flex !important; flex-direction: row !important; align-items: center; gap: 10px; }
+.question-notebook-check input { width: auto !important; }
+.question-history-notebook { margin-top: 8px; min-width: 240px; }
+.question-history-notebook summary { cursor: pointer; color: #f4d77d; font-weight: 800; }
+.question-history-notebook-content { max-width: 620px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.question-history-notebook-content ul { padding-left: 20px; }
+
 /* V94: as logos do cabeçalho e da barra recolhida levam ao Dashboard. */
 
 @media (prefers-reduced-motion: reduce) {

@@ -66,9 +66,10 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260720-logo-recolhida-visibilidade-v95",
   "20260720-cronometro-bip-layout-v96",
   "20260720-cronometro-scroll-motivacao-v97",
-  "20260720-qconcursos-filtros-automaticos-v98"
+  "20260720-qconcursos-filtros-automaticos-v98",
+  "20260720-edital-progresso-contraste-v99"
 ];
-const CURRENT_VERSION = "20260720-edital-progresso-contraste-v99";
+const CURRENT_VERSION = "20260720-caderno-questao-v100";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 // Cache anterior reconhecido para limpeza: startup-v25.
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v26`;
