@@ -50,7 +50,28 @@ function syncStateFingerprint(value = {}) {
 function syncPayloadFingerprint(payload = {}) {
   return payload.stateFingerprint || syncStateFingerprint(payload.state || {});
 }
+function syncCollectionText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[–—−]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+function syncAutomaticDailyGoalKey(item = {}) {
+  const automaticOrigins = new Set(["edital verticalizado", "planejamento", "plano do dia"]);
+  if (!automaticOrigins.has(syncCollectionText(item.origin || item.origem || "manual"))) return "";
+  const date = String(item.date || item.data || "").match(/^\d{4}-\d{2}-\d{2}/)?.[0] || "";
+  const discipline = syncCollectionText(item.discipline || item.disciplina);
+  const subject = syncCollectionText(item.baseSubject || item.subject || item.assunto).replace(/\s+-\s+parte\s+\d+\/\d+\s*$/i, "");
+  return date && discipline && subject ? `dailyGoals:auto:${date}|${discipline}|${subject}` : "";
+}
 function syncCollectionKey(item = {}, collection = "records") {
+  if (collection === "dailyGoals") {
+    const automaticKey = syncAutomaticDailyGoalKey(item);
+    if (automaticKey) return automaticKey;
+  }
   const directId = (["studies", "questionBankSessions"].includes(collection) ? (item.sessionId || item.id) : (item.id || item.sessionId)) || item.uuid || item.key;
   if (directId) return `${collection}:id:${String(directId)}`;
   const preciseStart = item.startedAt || item.startTime || "";

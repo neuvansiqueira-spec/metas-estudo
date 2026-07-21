@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260721-browser-cache-atualizacao-v107";
+const APP_VERSION = "20260721-plano-dia-sincronizacao-v108";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -2393,7 +2393,7 @@ function renderBackupPreview(payload) {
   return normalized;
 }
 function replaceState(nextState) { Object.keys(state).forEach((key) => delete state[key]); Object.assign(state, { ...cloneData(defaultState), ...(nextState || {}) }); state.edital = { ...defaultState.edital, ...(state.edital || {}) }; state.syllabusItems ||= []; state.schedulableSettings ||= {}; state.dailyGoals ||= []; state.dailyGoals.forEach((goal) => { goal.date ||= goal.data || todayISO(); goal.data ||= goal.date; goal.discipline ||= goal.disciplina || "Sem disciplina"; goal.subject ||= goal.assunto || "Assunto"; goal.type ||= goal.tipo || "Meta"; goal.minutes = Number(goal.minutes ?? goal.tempo_sugerido_minutos) || 0; normalizeGoalTimeFields(goal); normalizeSegmentedGoalFields(goal); goal.status ||= "Pendente"; }); state.questionLogs ||= []; state.questionBank ||= []; state.questionBankSessions ||= []; state.questionErrorNotebook ||= carregarCadernoErros();
-state.smartReviews ||= []; state.simulados ||= []; state.advisorMission ||= {}; state.advisorNavigation ||= { version: 1, autonomyMode: "copilot", activeRoute: null, routeHistory: [], lastProjection: null, lastRecalculatedAt: "", sourceFingerprint: "", userLimits: {} }; state.planning = normalizePlanningState(state.planning); state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences); state.settings.timerMode ||= "countdown"; state.materials ||= []; migrateMaterialEstimates(state); migrateSegmentedGoals(state); state.factoryItems ||= []; state.factoryAgenda ||= []; state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) }); state.disciplineWeights ||= {}; state.monthlyGoals ||= {}; }
+state.smartReviews ||= []; state.simulados ||= []; state.advisorMission ||= {}; state.advisorNavigation ||= { version: 1, autonomyMode: "copilot", activeRoute: null, routeHistory: [], lastProjection: null, lastRecalculatedAt: "", sourceFingerprint: "", userLimits: {} }; state.planning = normalizePlanningState(state.planning); state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences); state.settings.timerMode ||= "countdown"; state.materials ||= []; migrateMaterialEstimates(state); migrateSegmentedGoals(state); state.factoryItems ||= []; state.factoryAgenda ||= []; state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) }); state.disciplineWeights ||= {}; state.monthlyGoals ||= {}; globalThis.__dailyPlanningInflationRepairV108 = repairDailyPlanningInflationV108(state, { source: "replace-state" }); }
 function mergeArrays(current = [], incoming = [], keyFn = (item) => item?.id || JSON.stringify(item)) { const seen = new Set(current.map(keyFn)); incoming.forEach((item) => { const key = keyFn(item); if (!seen.has(key)) { current.push(item); seen.add(key); } }); return current; }
 function backupGoalIdentity(goal = {}) {
   return goal.id || [
@@ -5630,6 +5630,51 @@ function selectableDisciplineGoalsForDate(date, opts = {}) {
 function isManualDailyGoal(goal) { return !["edital verticalizado", "planejamento", "plano do dia"].includes(canonical(goal.origin || goal.origem || "manual")); }
 function isProtectedDailyGoal(goal) { return isManualDailyGoal(goal) || isGoalDone(goal) || isGoalInProgress(goal) || goalTotalActualMinutes(goal) > 0 || (goal.history || goal.historico || []).length > 0 || !["", "Pendente"].includes(goal.status || "Pendente"); }
 function isAutomaticIntactDailyGoal(goal) { return !isProtectedDailyGoal(goal); }
+function dailyGoalRepairTimestampV108(goal = {}) {
+  return Math.max(...[goal.updatedAt, goal.modifiedAt, goal.savedAt, goal.createdAt]
+    .map((value) => Date.parse(value || ""))
+    .filter(Number.isFinite), 0);
+}
+function repairDailyPlanningInflationV108(targetState = state, opts = {}) {
+  targetState.dailyGoals ||= [];
+  const fromDate = opts.fromDate || todayISO();
+  const dates = [...new Set(targetState.dailyGoals
+    .map(goalDateValue)
+    .filter((date) => date && date >= fromDate))]
+    .sort();
+  const removed = [];
+  const reports = [];
+
+  dates.forEach((date) => {
+    const dayStudyGoals = targetState.dailyGoals.filter((goal) => goalDateValue(goal) === date && isPlanningStudyGoal(goal));
+    const removableAutomatic = dayStudyGoals.filter((goal) => !isManualDailyGoal(goal) && isAutomaticIntactDailyGoal(goal));
+    const protectedCount = dayStudyGoals.length - removableAutomatic.length;
+    const targetTopics = Math.max(0, Number(planningTargetsForDate(date, targetState).topics) || 0);
+    const automaticSlots = Math.max(0, targetTopics - protectedCount);
+    if (removableAutomatic.length <= automaticSlots) return;
+
+    const ranked = removableAutomatic
+      .map((goal, index) => ({ goal, index, timestamp: dailyGoalRepairTimestampV108(goal) }))
+      .sort((left, right) => right.timestamp - left.timestamp || left.index - right.index);
+    const keep = new Set(ranked.slice(0, automaticSlots).map((entry) => entry.goal));
+    const excess = removableAutomatic.filter((goal) => !keep.has(goal));
+    const excessSet = new Set(excess);
+    targetState.dailyGoals = targetState.dailyGoals.filter((goal) => !excessSet.has(goal));
+    removed.push(...excess.map((goal) => goal.id).filter(Boolean));
+    reports.push({ date, targetTopics, protectedCount, automaticBefore: removableAutomatic.length, automaticAfter: automaticSlots, removed: excess.length });
+  });
+
+  targetState.migrations ||= {};
+  if (removed.length) {
+    targetState.migrations.dailyPlanningInflationV108 = {
+      repairedAt: new Date().toISOString(),
+      source: opts.source || "runtime",
+      removed: removed.length,
+      dates: reports.map((report) => report.date)
+    };
+  }
+  return { changed: removed.length > 0, removed, reports };
+}
 function reconcileDailyGoalsWithPlanning(targetState = state, date = todayISO(), opts = {}) {
   // Compatibilidade de teste: const expected = Math.max(0, Number(targetState.planning?.config?.disciplinesPerDay)
   targetState.dailyGoals ||= [];
@@ -7300,6 +7345,15 @@ async function bootstrapApplication() {
 
     replaceState(chosenState);
     mergeCompatibleLocalStorageData();
+    const replacementRepairReportV108 = globalThis.__dailyPlanningInflationRepairV108 || { changed: false, removed: [], reports: [] };
+    const legacyDailyPlanningRepairV108 = repairDailyPlanningInflationV108(state, { source: "bootstrap-legacy" });
+    const dailyPlanningRepairV108 = {
+      changed: replacementRepairReportV108.changed || legacyDailyPlanningRepairV108.changed,
+      removed: [...(replacementRepairReportV108.removed || []), ...(legacyDailyPlanningRepairV108.removed || [])],
+      reports: [...(replacementRepairReportV108.reports || []), ...(legacyDailyPlanningRepairV108.reports || [])]
+    };
+    window.__dailyPlanningInflationRepairV108 = dailyPlanningRepairV108;
+    if (dailyPlanningRepairV108.changed) saveData({ markLocalChange: true });
     const legacyGoalIdRecoveryReport = recoverLegacyTimerMinutesForGoals(state);
     const legacyOrphanRecoveryReport = recoverOrphanLegacyTimerMinutesForGoals(state);
     const legacyTimerRecoveryReport = mergeLegacyTimerRecoveryReports(legacyGoalIdRecoveryReport, legacyOrphanRecoveryReport);

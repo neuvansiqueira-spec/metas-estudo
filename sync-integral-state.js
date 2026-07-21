@@ -5,11 +5,39 @@ function syncMergeCollection(localList = [], remoteList = [], collection = "reco
     const key = syncCollectionKey(item, collection);
     const current = merged.get(key);
     if (!current) merged.set(key, syncClone(item));
+    else if (collection === "dailyGoals") merged.set(key, side === "remote" ? syncMergeDailyGoalRecord(current, item, prefer) : syncMergeDailyGoalRecord(item, current, prefer));
     else merged.set(key, side === "remote" ? syncMergeRecord(current, item, prefer) : syncMergeRecord(item, current, prefer));
   };
   (Array.isArray(localList) ? localList : []).forEach((item) => add(item, "local"));
   (Array.isArray(remoteList) ? remoteList : []).forEach((item) => add(item, "remote"));
   return [...merged.values()];
+}
+function syncDailyGoalExecutionScore(goal = {}) {
+  const completed = syncExecutionText(goal.status) === "concluida" ? 1 : 0;
+  const actual = Math.max(Number(goal.actualMinutes) || 0, Number(goal.tempo_real_minutos) || 0, (Number(goal.studyActualMinutes) || 0) + (Number(goal.questionActualMinutes) || 0));
+  const history = (goal.history || goal.historico || []).length;
+  return completed * 1e9 + actual * 1e5 + history;
+}
+function syncMergeDailyGoalRecord(localGoal = {}, remoteGoal = {}, prefer = "remote") {
+  const merged = syncMergeRecord(localGoal, remoteGoal, prefer);
+  const localScore = syncDailyGoalExecutionScore(localGoal);
+  const remoteScore = syncDailyGoalExecutionScore(remoteGoal);
+  const remotePreferred = syncTimestamp(remoteGoal) === syncTimestamp(localGoal)
+    ? prefer === "remote"
+    : syncTimestamp(remoteGoal) > syncTimestamp(localGoal);
+  const keeper = localScore === remoteScore ? (remotePreferred ? remoteGoal : localGoal) : (remoteScore > localScore ? remoteGoal : localGoal);
+  if (keeper.id) merged.id = keeper.id;
+
+  const study = Math.max(Number(localGoal.studyActualMinutes) || 0, Number(remoteGoal.studyActualMinutes) || 0);
+  const questions = Math.max(Number(localGoal.questionActualMinutes) || 0, Number(remoteGoal.questionActualMinutes) || 0);
+  const actual = Math.max(Number(localGoal.actualMinutes) || 0, Number(remoteGoal.actualMinutes) || 0, Number(localGoal.tempo_real_minutos) || 0, Number(remoteGoal.tempo_real_minutos) || 0, study + questions);
+  merged.studyActualMinutes = study;
+  merged.questionActualMinutes = questions;
+  merged.actualMinutes = actual;
+  merged.tempo_real_minutos = actual;
+  if ([localGoal, remoteGoal].some((goal) => syncExecutionText(goal.status) === "concluida")) merged.status = "Concluída";
+  else if (actual > 0 && (!merged.status || merged.status === "Pendente")) merged.status = "Em andamento";
+  return merged;
 }
 function syncMergeObject(localValue = {}, remoteValue = {}, prefer = "remote") {
   const result = syncMergeRecord(localValue || {}, remoteValue || {}, prefer);
@@ -137,7 +165,11 @@ function mergeSyncStates(localState = {}, remoteState = {}, prefer = "remote") {
   } finally {
     globalThis.__metasSyncTombstoneApplyingV39 = false;
   }
-  return syncRebuildGoalTotals(merged);
+  syncRebuildGoalTotals(merged);
+  if (typeof repairDailyPlanningInflationV108 === "function") {
+    repairDailyPlanningInflationV108(merged, { source: "sync-merge" });
+  }
+  return merged;
 }
 
 function syncCreateSafetyBackup(sourceState, sourceLabel = "before-merge") {

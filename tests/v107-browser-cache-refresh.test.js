@@ -29,11 +29,12 @@ test("versões recentes podem ser migradas para a publicação atual", () => {
   }
 });
 
-test("V107 renova o cache e mantém a publicação em paridade", () => {
-  const version = "20260721-browser-cache-atualizacao-v107";
+test("cache do navegador mantém a publicação atual em paridade", () => {
+  const version = JSON.parse(read("package.json")).version;
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(read("script.js"), new RegExp(`APP_VERSION = "${version}"`));
   assert.match(serviceWorker, new RegExp(`CURRENT_VERSION = "${version}"`));
+  assert.match(serviceWorker, /"20260721-browser-cache-atualizacao-v107"/);
   assert.match(read("index.html"), new RegExp(version));
 
   for (const file of ["index.html", "script.js", "service-worker.js"]) {
