@@ -82,18 +82,20 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260721-atualizador-cache-versionado-v111",
   "20260721-cache-legado-eliminado-v112",
   "20260721-versao-cache-definitiva-v113",
-  "20260721-continuacao-automatica-v114"
+  "20260721-continuacao-automatica-v114",
+  "20260721-protecao-metas-dia-v115",
+  "20260721-recomposicao-metas-dia-v116",
+  "20260721-metodologia-metas-v117"
 ];
-const CURRENT_VERSION = "20260721-metodologia-metas-v117";
+const CURRENT_VERSION = "20260721-estabilidade-v118";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 // Caches anteriores reconhecidos para limpeza: startup-v25 a startup-v28.
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v29`;
 const FILES_TO_CACHE = [
   `./?v=${CURRENT_VERSION}`,
   `index.html?v=${CURRENT_VERSION}`,
-  `app-v115.css?v=${CURRENT_VERSION}`,
-  `app-v115.js?v=${CURRENT_VERSION}`,
-  `daily-goal-methodology-v117.js?v=${CURRENT_VERSION}`,
+  `app-v118.css?v=${CURRENT_VERSION}`,
+  `app-v118.js?v=${CURRENT_VERSION}`,
   "manifest.json",
   "icons/aldus-visual.png",
   "icons/aldus-brand-mark-v93.png",
@@ -160,8 +162,8 @@ function replaceVersion(source) {
 function patchHtmlSource(source) {
   let patched = replaceVersion(source);
   patched = patched
-    .replace(/app\.bundle\.css(?:\?v=[^"'\s<>]+)?/gi, `app-v115.css?v=${CURRENT_VERSION}`)
-    .replace(/app\.bundle\.js(?:\?v=[^"'\s<>]+)?/gi, `app-v115.js?v=${CURRENT_VERSION}`);
+    .replace(/app\.bundle\.css(?:\?v=[^"'\s<>]+)?/gi, `app-v118.css?v=${CURRENT_VERSION}`)
+    .replace(/app\.bundle\.js(?:\?v=[^"'\s<>]+)?/gi, `app-v118.js?v=${CURRENT_VERSION}`);
   patched = patched.replace(
     /<div class="brand aldus-visual-brand">\s*(<img class="aldus-visual-brand-image"[^>]*>)\s*<\/div>/i,
     '<a class="brand aldus-visual-brand brand-home-link" href="#dashboard" data-view-link="dashboard" aria-label="Ir para o início">$1</a>'
@@ -330,15 +332,14 @@ async function fetchFreshNavigation(request) {
   return response;
 }
 
-async function cacheFirstNavigation(request, networkPromise) {
-  const cached = await caches.match(request, { ignoreSearch: true }) || await caches.match("index.html", { ignoreSearch: true });
-  if (cached) return patchTextResponse(cached, patchHtmlSource, "text/html; charset=utf-8");
-
+async function networkFirstNavigation(request, networkPromise) {
   let networkResponse = null;
   try {
     networkResponse = await networkPromise;
     if (networkResponse?.ok) return networkResponse;
   } catch (error) {}
+  const cached = await caches.match(request, { ignoreSearch: true }) || await caches.match("index.html", { ignoreSearch: true });
+  if (cached) return patchTextResponse(cached, patchHtmlSource, "text/html; charset=utf-8");
   return networkResponse || new Response("Aplicativo indisponível temporariamente.", { status: 503, headers: { "content-type": "text/plain; charset=utf-8" } });
 }
 
@@ -426,7 +427,7 @@ self.addEventListener("fetch", (event) => {
   if (event.request.mode === "navigate" || event.request.destination === "document") {
     const freshNavigation = fetchFreshNavigation(event.request);
     event.waitUntil(freshNavigation.then(() => undefined).catch(() => undefined));
-    event.respondWith(cacheFirstNavigation(event.request, freshNavigation));
+    event.respondWith(networkFirstNavigation(event.request, freshNavigation));
     return;
   }
   if (["script", "style", "worker", "image", "manifest"].includes(event.request.destination)) {

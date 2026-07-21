@@ -250,6 +250,22 @@ test("ativação V117 corrige a tela mostrada sem alterar a meta concluída", ()
   assert.equal(new Set(targetState.dailyGoals.map((goal) => goal.discipline)).size, 5);
 });
 
+test("versão estável consolida a metodologia no bundle e prioriza a página atual", () => {
+  const version = "20260721-estabilidade-v118";
+  const index = read("index.html");
+  const worker = read("service-worker.js");
+  const script = read("script.js");
+
+  assert.match(index, new RegExp(`app-v118\\.js\\?v=${version}`));
+  assert.match(index, new RegExp(`app-v118\\.css\\?v=${version}`));
+  assert.doesNotMatch(index, /daily-goal-(?:replenishment|methodology)-v11[67]\.js/);
+  assert.match(worker, /async function networkFirstNavigation/);
+  assert.match(worker, /event\.respondWith\(networkFirstNavigation\(event\.request, freshNavigation\)\)/);
+  assert.doesNotMatch(worker, /event\.respondWith\(cacheFirstNavigation/);
+  assert.match(script, /const topics = disciplines;/);
+  assert.match(script, /distinctDisciplinesOnly: targets\.oneGoalPerDiscipline/);
+});
+
 test("reparo V108 permanece ativo na publicação atual", () => {
   const version = JSON.parse(read("package.json")).version;
   assert.equal(JSON.parse(read("package.json")).version, version);

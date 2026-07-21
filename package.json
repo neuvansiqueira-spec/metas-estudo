@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260721-metodologia-metas-v117",
+  "version": "20260721-estabilidade-v118",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

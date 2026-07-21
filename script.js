@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260721-metodologia-metas-v117";
+const APP_VERSION = "20260721-estabilidade-v118";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -8381,7 +8381,7 @@ function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register(`service-worker-v117.js?v=${encodeURIComponent(APP_VERSION)}`, { updateViaCache: "none" })
+    navigator.serviceWorker.register(`service-worker-v118.js?v=${encodeURIComponent(APP_VERSION)}`, { updateViaCache: "none" })
       .then((registration) => {
         registration.update();
         console.log("[Metas Estudo] Service worker registrado.");
