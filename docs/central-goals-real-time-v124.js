@@ -138,3 +138,23 @@
   });
   scheduleUpdate();
 })();
+
+(() => {
+  if (window.__aldusFactoryFinalReviewLoaderV128) return;
+  window.__aldusFactoryFinalReviewLoaderV128 = true;
+  const script = document.createElement("script");
+  script.src = "factory-final-review-v128.js?v=20260722-revisao-consolidacao-v128";
+  script.async = false;
+  script.dataset.aldusFactoryFinalReview = "v128";
+  document.head.appendChild(script);
+})();
+
+(() => {
+  if (window.__aldusCalendarMonthVisibilityLoaderV131) return;
+  window.__aldusCalendarMonthVisibilityLoaderV131 = true;
+  const script = document.createElement("script");
+  script.src = "calendar-month-visibility-v131.js?v=20260722-calendario-cache-estavel-v131";
+  script.async = false;
+  script.dataset.aldusCalendarMonthVisibility = "v131";
+  document.head.appendChild(script);
+})();
