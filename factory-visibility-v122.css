@@ -1,4 +1,4 @@
-/* V122: leitura estável da Fábrica em desktop, tablet e celular. */
+/* V122/V124: leitura estável da Fábrica em desktop, tablet e celular. */
 html[data-aldus-theme="premium-stable"] #view-fabrica-resumos {
   overflow-x: clip;
 }
@@ -98,6 +98,30 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos #factoryDoNow .fac
   box-sizing: border-box !important;
 }
 
+/* V124: impede que o botão da fila ocupe toda a linha e esmague o texto. */
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-queue-item-content {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 12px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-queue-item-content > .item-meta {
+  min-width: 0 !important;
+  width: auto !important;
+  max-width: none !important;
+  overflow-wrap: break-word !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-queue-item-content > button {
+  width: auto !important;
+  min-width: 92px !important;
+  max-width: none !important;
+  white-space: nowrap !important;
+}
+
 @media (max-width: 1080px) {
   html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
@@ -136,6 +160,16 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos #factoryDoNow .fac
 
   html[data-aldus-theme="premium-stable"] #view-fabrica-resumos #factoryDoNow .factory-status-badge {
     justify-self: start;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-queue-item-content {
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-items: stretch !important;
+  }
+
+  html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-queue-item-content > button {
+    width: 100% !important;
+    min-width: 0 !important;
   }
 }
 
