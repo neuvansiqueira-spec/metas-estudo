@@ -148,3 +148,13 @@
   script.dataset.aldusFactoryFinalReview = "v128";
   document.head.appendChild(script);
 })();
+
+(() => {
+  if (window.__aldusCalendarMonthVisibilityLoaderV129) return;
+  window.__aldusCalendarMonthVisibilityLoaderV129 = true;
+  const script = document.createElement("script");
+  script.src = "calendar-month-visibility-v129.js?v=20260722-calendario-mensal-visibilidade-v129";
+  script.async = false;
+  script.dataset.aldusCalendarMonthVisibility = "v129";
+  document.head.appendChild(script);
+})();
