@@ -225,20 +225,11 @@ Para cada módulo disponível, confira:
     }
   }
 
-  function showVersion() {
-    document.querySelectorAll(".app-version").forEach((element) => {
-      element.textContent = `Versão: ${VERSION}`;
-    });
-  }
-
   patchPromptFunctions();
   migratePrompt();
   refreshFactory();
-  showVersion();
 
   window.addEventListener("load", () => {
     refreshFactory();
-    showVersion();
-    window.setTimeout(showVersion, 1000);
   });
 })();
