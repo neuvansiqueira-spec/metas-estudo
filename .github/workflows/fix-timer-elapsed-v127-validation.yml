@@ -1,0 +1,45 @@
+name: Corrigir validação do cronômetro crescente v127
+
+on:
+  push:
+    paths:
+      - ".github/workflows/fix-timer-elapsed-v127-validation.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Incluir arquivos novos na validação
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('.github/workflows/apply-timer-elapsed-v127.yml')
+          text = path.read_text(encoding='utf-8')
+          old = '          changed = set(subprocess.check_output(["git", "diff", "--name-only"], text=True).splitlines())\n'
+          new = old + '          changed.update(subprocess.check_output(["git", "ls-files", "--others", "--exclude-standard"], text=True).splitlines())\n'
+          if text.count(old) != 1:
+              raise SystemExit('Âncora de validação não encontrada exatamente uma vez')
+          if 'git", "ls-files", "--others"' in text:
+              raise SystemExit('A correção já está presente')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+          grep -q 'git", "ls-files", "--others", "--exclude-standard"' .github/workflows/apply-timer-elapsed-v127.yml
+          git diff --check
+
+      - name: Publicar correção e remover rotina auxiliar
+        shell: bash
+        run: |
+          git rm .github/workflows/fix-timer-elapsed-v127-validation.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/apply-timer-elapsed-v127.yml
+          git commit -m "Corrige validação de arquivos novos do cronômetro v127"
+          git push
