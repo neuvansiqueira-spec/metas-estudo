@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = "20260722-prompt-lei-negrito-real-v127";
+  const VERSION = "20260722-calendario-cache-estavel-v131";
   const MIGRATION_ID = "factoryLeiNegritoRealWordV1";
   const FALLBACK = "[PROMPT COMPLETO AINDA NÃO CADASTRADO NA BIBLIOTECA DA FÁBRICA]";
   const PROMPT = `TRANSFORME O TEXTO OFICIAL VIGENTE DA LEI EM RESUMO TOPIFICADO, DIDÁTICO E VISUALMENTE HIERARQUIZADO PARA ESTUDO E REVISÃO.
@@ -268,7 +268,7 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
           const current = String(state.factoryPromptLibrary.lei || "").trim();
           if (current && current !== FALLBACK && current !== PROMPT) {
             state.factoryPromptLibraryBackups ||= {};
-            state.factoryPromptLibraryBackups.leiBeforeV127 ||= current;
+            state.factoryPromptLibraryBackups.leiBeforeNegritoRealWordV1 ||= current;
           }
           if (current !== PROMPT) state.factoryPromptLibrary.lei = PROMPT;
           state.migrations[MIGRATION_ID] = new Date().toISOString();
@@ -277,7 +277,7 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
       }
       if (changed && typeof saveData === "function") saveData();
     } catch (error) {
-      console.error("[Aldus] Falha ao aplicar o prompt Lei v127.", error);
+      console.error("[Aldus] Falha ao aplicar a validação de negrito do prompt Lei.", error);
     }
   };
 
@@ -308,7 +308,7 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
       };
     }
   } catch (error) {
-    console.error("[Aldus] Falha ao proteger a geração do prompt Lei v127.", error);
+    console.error("[Aldus] Falha ao proteger a validação de negrito do prompt Lei.", error);
   }
 
   applyPrompt();
