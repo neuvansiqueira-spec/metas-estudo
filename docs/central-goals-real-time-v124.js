@@ -158,14 +158,3 @@
   script.dataset.aldusCalendarMonthVisibility = "v131";
   document.head.appendChild(script);
 })();
-
-(() => {
-  const SITE_VERSION = "20260722-prompt-lei-negrito-real-v132";
-  const showVersion = () => document.querySelectorAll(".app-version").forEach((element) => {
-    element.textContent = `Versão: ${SITE_VERSION}`;
-  });
-  window.addEventListener("load", () => {
-    showVersion();
-    window.setTimeout(showVersion, 1200);
-  });
-})();
