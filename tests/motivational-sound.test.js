@@ -16,7 +16,7 @@ test("toque é curto, suave e gerado sem arquivo externo", () => {
   assert.match(source, /createOscillator\(\)/);
   assert.match(source, /createGain\(\)/);
   assert.match(source, /oscillator\.type = \"sine\"/);
-  assert.match(source, /\.055/);
+  assert.match(source, /\.08/);
   assert.match(source, /659\.25/);
   assert.match(source, /frequency: 880/);
   assert.doesNotMatch(source, /new Audio\(|\.mp3|\.wav|\.ogg/);

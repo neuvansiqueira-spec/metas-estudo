@@ -101,7 +101,7 @@ const FILES_TO_CACHE = [
   `index.html?v=${CURRENT_VERSION}`,
   `app-v118.css?v=${CURRENT_VERSION}`,
   `factory-visibility-v122.css?v=${CURRENT_VERSION}`,
-  `app-v118.js?v=${CURRENT_VERSION}`,
+  "app-v118.js?v=20260721-motivacional-volume-v126",
   `factory-lei-prompt-v123.js?v=${CURRENT_VERSION}`,
   "central-goals-real-time-v124.js?v=20260721-central-tempo-visibilidade-v125",
   "manifest.json",

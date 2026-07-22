@@ -16,7 +16,7 @@ test("painel do cronômetro permanece acessível em 100% de zoom", () => {
 });
 
 test("som motivacional fica mais audível", () => {
-  assert.match(spectrum, /scheduleChimeTone\([^\n]+, \.055\);/);
+  assert.match(spectrum, /scheduleChimeTone\([^\n]+, \.08\);/);
   assert.doesNotMatch(spectrum, /, \.038\);/);
 });
 
