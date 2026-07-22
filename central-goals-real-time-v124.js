@@ -150,11 +150,11 @@
 })();
 
 (() => {
-  if (window.__aldusCalendarMonthVisibilityLoaderV129) return;
-  window.__aldusCalendarMonthVisibilityLoaderV129 = true;
+  if (window.__aldusCalendarMonthVisibilityLoaderV130) return;
+  window.__aldusCalendarMonthVisibilityLoaderV130 = true;
   const script = document.createElement("script");
-  script.src = "calendar-month-visibility-v129.js?v=20260722-calendario-mensal-visibilidade-v129";
+  script.src = "calendar-month-visibility-v130.js?v=20260722-calendario-mensal-legibilidade-v130";
   script.async = false;
-  script.dataset.aldusCalendarMonthVisibility = "v129";
+  script.dataset.aldusCalendarMonthVisibility = "v130";
   document.head.appendChild(script);
 })();
