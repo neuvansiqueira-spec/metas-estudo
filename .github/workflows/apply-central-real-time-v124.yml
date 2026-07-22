@@ -1,0 +1,180 @@
+name: Aplicar tempo real na Central v124
+
+on:
+  push:
+    paths:
+      - ".github/workflows/apply-central-real-time-v124.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Aplicar correção isolada
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          version = "20260721-central-tempo-real-v124"
+          filename = "central-goals-real-time-v124.js"
+          script_tag = f'  <script src="{filename}?v={version}"></script>'
+
+          js = r'''(() => {
+            const PATCH_VERSION = "20260721-central-tempo-real-v124";
+            const container = document.getElementById("centralGoalsCards");
+            if (!container) return;
+
+            function safeLogs() {
+              try {
+                return typeof centralTimeChartLogs === "function" ? centralTimeChartLogs() : [];
+              } catch (error) {
+                console.warn("[Central de Metas] Não foi possível consolidar o tempo real.", error);
+                return [];
+              }
+            }
+
+            function totalBetween(logs, start, end) {
+              return logs.reduce((sum, log) => {
+                const date = String(log?.date || "");
+                if (!date || date < start || date > end) return sum;
+                return sum + Math.max(0, Number(log?.minutes) || 0);
+              }, 0);
+            }
+
+            function formatMinutes(minutes) {
+              if (typeof formatHours === "function") return formatHours(minutes);
+              const hours = Math.floor(minutes / 60);
+              const rest = Math.round(minutes % 60);
+              return hours ? `${hours}h${rest ? ` ${rest}min` : ""}` : `${rest} min`;
+            }
+
+            function findCard(title) {
+              return [...container.querySelectorAll(".goal-central-card")].find(
+                (card) => card.querySelector("h3")?.textContent.trim() === title
+              );
+            }
+
+            function setMetric(card, key, label, minutes) {
+              const grid = card?.querySelector(".card-meta-grid");
+              if (!grid) return;
+              let row = [...grid.querySelectorAll("span")].find(
+                (span) => span.dataset.centralRealTime === key || span.textContent.trim().startsWith(`${label}:`)
+              );
+              if (!row) {
+                row = document.createElement("span");
+                grid.appendChild(row);
+              }
+              row.dataset.centralRealTime = key;
+              row.dataset.centralRealTimeVersion = PATCH_VERSION;
+              const nextText = `${label}: ${formatMinutes(minutes)}`;
+              if (row.textContent !== nextText) row.textContent = nextText;
+            }
+
+            function updateCentralRealTimes() {
+              if (!container.isConnected) return;
+              const today = typeof todayISO === "function"
+                ? todayISO()
+                : new Date().toLocaleDateString("en-CA");
+              const weekStartDate = typeof weekStart === "function" ? weekStart(today) : today;
+              const weekEndDate = typeof addDays === "function" ? addDays(weekStartDate, 6) : today;
+              const parsedToday = typeof parseDate === "function" ? parseDate(today) : new Date(`${today}T00:00:00`);
+              const monthStartDate = `${today.slice(0, 7)}-01`;
+              const monthEndDate = `${today.slice(0, 7)}-${String(new Date(parsedToday.getFullYear(), parsedToday.getMonth() + 1, 0).getDate()).padStart(2, "0")}`;
+              const logs = safeLogs();
+
+              setMetric(findCard("Hoje"), "day", "Horas já cumpridas", totalBetween(logs, today, today));
+              setMetric(findCard("Esta semana"), "week", "Horas já cumpridas", totalBetween(logs, weekStartDate, weekEndDate));
+              setMetric(findCard("Este mês"), "month", "Horas já cumpridas", totalBetween(logs, monthStartDate, monthEndDate));
+            }
+
+            let scheduled = false;
+            function scheduleUpdate() {
+              if (scheduled) return;
+              scheduled = true;
+              requestAnimationFrame(() => {
+                scheduled = false;
+                updateCentralRealTimes();
+              });
+            }
+
+            const observer = new MutationObserver(scheduleUpdate);
+            observer.observe(container, { childList: true, subtree: true, characterData: true });
+            window.addEventListener("storage", scheduleUpdate);
+            document.addEventListener("visibilitychange", () => {
+              if (!document.hidden) scheduleUpdate();
+            });
+            scheduleUpdate();
+          })();
+          '''
+
+          for path in [Path(filename), Path("docs") / filename]:
+              path.parent.mkdir(parents=True, exist_ok=True)
+              path.write_text(js, encoding="utf-8")
+
+          for path in [Path("index.html"), Path("docs/index.html")]:
+              text = path.read_text(encoding="utf-8")
+              if script_tag not in text:
+                  anchor = '  <script src="factory-lei-prompt-v123.js?v=20260721-prompt-lei-fonte-preta-v123"></script>'
+                  if anchor in text:
+                      text = text.replace(anchor, anchor + "\n" + script_tag, 1)
+                  elif "</body>" in text:
+                      text = text.replace("</body>", script_tag + "\n</body>", 1)
+                  else:
+                      raise SystemExit(f"Não foi possível localizar o fechamento do body em {path}")
+              if text.count(script_tag) != 1:
+                  raise SystemExit(f"Quantidade inesperada da nova tag em {path}")
+              path.write_text(text, encoding="utf-8")
+
+          cache_entry = f'  "{filename}?v={version}",'
+          for path in [Path("service-worker.js"), Path("docs/service-worker.js")]:
+              if not path.exists():
+                  continue
+              text = path.read_text(encoding="utf-8")
+              if cache_entry not in text:
+                  anchor = '  `factory-lei-prompt-v123.js?v=${CURRENT_VERSION}`,'
+                  if anchor not in text:
+                      raise SystemExit(f"Âncora do cache não encontrada em {path}")
+                  text = text.replace(anchor, anchor + "\n" + cache_entry, 1)
+              if text.count(cache_entry) != 1:
+                  raise SystemExit(f"Quantidade inesperada da entrada de cache em {path}")
+              path.write_text(text, encoding="utf-8")
+
+          if Path(filename).read_bytes() != (Path("docs") / filename).read_bytes():
+              raise SystemExit("Os scripts da raiz e de docs ficaram diferentes")
+          PY
+
+      - name: Validar JavaScript e testes do projeto
+        shell: bash
+        run: |
+          node --check central-goals-real-time-v124.js
+          npm test
+
+      - name: Confirmar alteração mínima
+        shell: bash
+        run: |
+          git diff --check
+          git diff --stat
+          test "$(grep -c 'central-goals-real-time-v124.js' index.html)" -eq 1
+          test "$(grep -c 'central-goals-real-time-v124.js' docs/index.html)" -eq 1
+          cmp central-goals-real-time-v124.js docs/central-goals-real-time-v124.js
+
+      - name: Publicar correção
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "Correção já aplicada."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html docs/index.html service-worker.js docs/service-worker.js central-goals-real-time-v124.js docs/central-goals-real-time-v124.js
+          git commit -m "Exibe tempo real na Central de Metas sem duplicidade"
+          git push
