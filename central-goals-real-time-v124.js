@@ -1,5 +1,59 @@
 (() => {
-  const PATCH_VERSION = "20260721-central-tempo-real-v124";
+  const PATCH_VERSION = "20260721-central-tempo-visibilidade-v125";
+
+  function ensureCentralTimeVisibilityStyles() {
+    if (document.getElementById("centralTimeVisibilityV125")) return;
+    const style = document.createElement("style");
+    style.id = "centralTimeVisibilityV125";
+    style.textContent = `
+      html[data-aldus-theme="premium-stable"] #view-central-metas .central-time-pie > div {
+        background: #061d31 !important;
+        border-color: #5fa8d8 !important;
+        box-shadow: 0 10px 28px rgba(0, 5, 16, .38) !important;
+      }
+      html[data-aldus-theme="premium-stable"] #view-central-metas .central-time-pie strong {
+        color: #ffffff !important;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, .35) !important;
+      }
+      html[data-aldus-theme="premium-stable"] #view-central-metas .central-time-pie span {
+        color: #c9deed !important;
+      }
+      html[data-aldus-theme="premium-stable"] #view-central-metas .central-time-legend h4 {
+        color: #ffffff !important;
+      }
+      html[data-aldus-theme="premium-stable"] #view-central-metas .central-time-legend-row {
+        border-color: #4b89b8 !important;
+        background: linear-gradient(145deg, #0b2d47, #071f34) !important;
+        color: #ffffff !important;
+        box-shadow: 0 7px 18px rgba(0, 7, 18, .22) !important;
+      }
+      html[data-aldus-theme="premium-stable"] #view-central-metas .central-time-legend-row span {
+        color: #f6fbff !important;
+        font-weight: 800 !important;
+      }
+      html[data-aldus-theme="premium-stable"] #view-central-metas .central-time-legend-row strong {
+        padding: 5px 9px !important;
+        border: 1px solid rgba(95, 168, 216, .42) !important;
+        border-radius: 9px !important;
+        background: rgba(56, 189, 248, .12) !important;
+        color: #e8f7ff !important;
+        font-weight: 900 !important;
+        white-space: nowrap !important;
+      }
+      html[data-aldus-theme="premium-stable"] #view-central-metas .central-time-legend > .item-meta {
+        color: #c6d9e7 !important;
+      }
+      @media (max-width: 760px) {
+        html[data-aldus-theme="premium-stable"] #view-central-metas .central-time-legend-row strong {
+          justify-self: start !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  ensureCentralTimeVisibilityStyles();
+
   const container = document.getElementById("centralGoalsCards");
   if (!container) return;
 

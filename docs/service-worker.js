@@ -103,7 +103,7 @@ const FILES_TO_CACHE = [
   `factory-visibility-v122.css?v=${CURRENT_VERSION}`,
   `app-v118.js?v=${CURRENT_VERSION}`,
   `factory-lei-prompt-v123.js?v=${CURRENT_VERSION}`,
-  "central-goals-real-time-v124.js?v=20260721-central-tempo-real-v124",
+  "central-goals-real-time-v124.js?v=20260721-central-tempo-visibilidade-v125",
   "manifest.json",
   "icons/aldus-visual.png",
   "icons/aldus-brand-mark-v93.png",
