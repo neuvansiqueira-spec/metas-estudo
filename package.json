@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260723-versao-unica-v133",
+  "version": "20260723-resumo-aula-topicos-v134",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
