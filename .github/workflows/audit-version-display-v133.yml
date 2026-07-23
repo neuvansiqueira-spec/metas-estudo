@@ -1,0 +1,30 @@
+name: Auditar exibição de versão v133
+
+on:
+  push:
+    branches:
+      - agent/corrige-versao-carregamento-v133
+    paths:
+      - ".github/workflows/audit-version-display-v133.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Localizar escritores de versão
+        shell: bash
+        run: |
+          echo "=== APP_VERSION e app-version ==="
+          grep -RIn --exclude-dir=.git -E 'APP_VERSION|app-version|Versão: 202607|calendario-cache-estavel-v131|estabilidade-v118' \
+            index.html docs/index.html script.js docs/script.js app-v118.js docs/app-v118.js \
+            central-goals-real-time-v124.js docs/central-goals-real-time-v124.js \
+            calendar-month-visibility-v131.js docs/calendar-month-visibility-v131.js \
+            factory-final-review-v128.js docs/factory-final-review-v128.js || true
+          echo "=== referências no carregamento ==="
+          grep -RIn --exclude-dir=.git -E 'central-goals-real-time-v124|calendar-month-visibility-v131|app-v118.js' \
+            index.html docs/index.html service-worker.js docs/service-worker.js || true
