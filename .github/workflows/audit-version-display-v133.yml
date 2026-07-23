@@ -21,22 +21,34 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Localizar escritores de versão
+        with:
+          ref: agent/corrige-versao-carregamento-v133
+      - name: Gerar relatório curto
         shell: bash
         run: |
-          echo "=== APP_VERSION e app-version ==="
-          grep -RIn --exclude-dir=.git -E 'APP_VERSION|app-version|Versão: 202607|calendario-cache-estavel-v131|estabilidade-v118' \
-            index.html docs/index.html script.js docs/script.js app-v118.js docs/app-v118.js \
-            central-goals-real-time-v124.js docs/central-goals-real-time-v124.js \
-            calendar-month-visibility-v131.js docs/calendar-month-visibility-v131.js \
-            factory-final-review-v128.js docs/factory-final-review-v128.js || true
-          echo "=== referências no carregamento ==="
-          grep -RIn --exclude-dir=.git -E 'central-goals-real-time-v124|calendar-month-visibility-v131|app-v118.js' \
-            index.html docs/index.html service-worker.js docs/service-worker.js || true
+          {
+            echo "=== APP_VERSION e app-version ==="
+            grep -RIn --exclude-dir=.git -E 'APP_VERSION|app-version|Versão: 202607|calendario-cache-estavel-v131|estabilidade-v118' \
+              index.html docs/index.html script.js docs/script.js app-v118.js docs/app-v118.js \
+              central-goals-real-time-v124.js docs/central-goals-real-time-v124.js \
+              calendar-month-visibility-v131.js docs/calendar-month-visibility-v131.js \
+              factory-final-review-v128.js docs/factory-final-review-v128.js || true
+            echo "=== referências no carregamento ==="
+            grep -RIn --exclude-dir=.git -E 'central-goals-real-time-v124|calendar-month-visibility-v131|app-v118.js' \
+              index.html docs/index.html service-worker.js docs/service-worker.js || true
+          } > audit-version-output.txt
+      - name: Publicar relatório apenas na branch isolada
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add audit-version-output.txt
+          git diff --cached --quiet || git commit -m "Registra auditoria da exibição de versão"
+          git push origin HEAD:agent/corrige-versao-carregamento-v133
