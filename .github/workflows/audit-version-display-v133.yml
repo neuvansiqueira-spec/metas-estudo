@@ -1,11 +1,23 @@
 name: Auditar exibição de versão v133
 
 on:
-  push:
+  pull_request:
     branches:
-      - agent/corrige-versao-carregamento-v133
+      - main
     paths:
       - ".github/workflows/audit-version-display-v133.yml"
+      - "index.html"
+      - "docs/index.html"
+      - "script.js"
+      - "docs/script.js"
+      - "app-v118.js"
+      - "docs/app-v118.js"
+      - "central-goals-real-time-v124.js"
+      - "docs/central-goals-real-time-v124.js"
+      - "calendar-month-visibility-v131.js"
+      - "docs/calendar-month-visibility-v131.js"
+      - "factory-final-review-v128.js"
+      - "docs/factory-final-review-v128.js"
   workflow_dispatch:
 
 permissions:
