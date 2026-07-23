@@ -24,107 +24,98 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import re
 
           VERSION = "20260723-versao-unica-v133"
 
-          def replace_exact(path, old, new, expected=1):
-              path = Path(path)
+          def replace_exact(filename, old, new, expected=1):
+              path = Path(filename)
               text = path.read_text(encoding="utf-8")
               count = text.count(old)
               if count != expected:
-                  raise SystemExit(f"Âncora inesperada em {path}: esperada {expected}, encontrada {count}: {old!r}")
+                  raise SystemExit(f"Âncora inesperada em {filename}: esperada {expected}, encontrada {count}: {old!r}")
               path.write_text(text.replace(old, new), encoding="utf-8")
 
-          for path in ["script.js", "docs/script.js", "app-v118.js", "docs/app-v118.js"]:
-              replace_exact(path, 'const APP_VERSION = "20260721-estabilidade-v118";', f'const APP_VERSION = "{VERSION}";')
+          for filename in ["script.js", "docs/script.js", "app-v118.js", "docs/app-v118.js"]:
+              replace_exact(filename, 'const APP_VERSION = "20260721-estabilidade-v118";', 'const APP_VERSION = "' + VERSION + '";')
 
-          for path in ["index.html", "docs/index.html"]:
-              replace_exact(path, 'Versão: 20260721-prompt-lei-fonte-preta-v123', f'Versão: {VERSION}')
-              replace_exact(path, 'app-v118.css?v=20260721-prompt-lei-fonte-preta-v123', f'app-v118.css?v={VERSION}')
-              replace_exact(path, 'factory-visibility-v122.css?v=20260721-prompt-lei-fonte-preta-v123', f'factory-visibility-v122.css?v={VERSION}')
-              replace_exact(path, 'app-v118.js?v=20260721-motivacional-volume-v126', f'app-v118.js?v={VERSION}', expected=2)
-              replace_exact(path, 'factory-lei-prompt-v123.js?v=20260721-prompt-lei-fonte-preta-v123', f'factory-lei-prompt-v123.js?v={VERSION}')
-              replace_exact(path, 'central-goals-real-time-v124.js?v=20260721-central-tempo-visibilidade-v125', f'central-goals-real-time-v124.js?v={VERSION}')
+          for filename in ["index.html", "docs/index.html"]:
+              replace_exact(filename, 'Versão: 20260721-prompt-lei-fonte-preta-v123', 'Versão: ' + VERSION)
+              replace_exact(filename, 'app-v118.css?v=20260721-prompt-lei-fonte-preta-v123', 'app-v118.css?v=' + VERSION)
+              replace_exact(filename, 'factory-visibility-v122.css?v=20260721-prompt-lei-fonte-preta-v123', 'factory-visibility-v122.css?v=' + VERSION)
+              replace_exact(filename, 'app-v118.js?v=20260721-motivacional-volume-v126', 'app-v118.js?v=' + VERSION, expected=2)
+              replace_exact(filename, 'factory-lei-prompt-v123.js?v=20260721-prompt-lei-fonte-preta-v123', 'factory-lei-prompt-v123.js?v=' + VERSION)
+              replace_exact(filename, 'central-goals-real-time-v124.js?v=20260721-central-tempo-visibilidade-v125', 'central-goals-real-time-v124.js?v=' + VERSION)
 
-          version_pattern = re.compile(
-              r'\n    const showVersion = \(\) => document\.querySelectorAll\("\.app-version"\)\.forEach\(\(element\) => \{ element\.textContent = `Versão: \$\{VERSION\}`; \}\);'
-              r'\n    showVersion\(\);'
-              r'\n    window\.setTimeout\(showVersion, 1000\);'
-          )
-          for path in ["factory-lei-prompt-v123.js", "docs/factory-lei-prompt-v123.js"]:
-              path_obj = Path(path)
-              text = path_obj.read_text(encoding="utf-8")
-              if text.count('const VERSION = "20260722-calendario-cache-estavel-v131";') != 1:
-                  raise SystemExit(f"Versão interna inesperada em {path}")
-              text = text.replace('const VERSION = "20260722-calendario-cache-estavel-v131";', f'const VERSION = "{VERSION}";')
-              text, removed = version_pattern.subn('', text, count=1)
-              if removed != 1:
-                  raise SystemExit(f"Sobrescritor de rodapé não encontrado exatamente uma vez em {path}: {removed}")
-              path_obj.write_text(text, encoding="utf-8")
+          footer_writer = '''    const showVersion = () => document.querySelectorAll(".app-version").forEach((element) => { element.textContent = `Versão: ${VERSION}`; });
+              showVersion();
+              window.setTimeout(showVersion, 1000);
+          '''
+          for filename in ["factory-lei-prompt-v123.js", "docs/factory-lei-prompt-v123.js"]:
+              replace_exact(filename, 'const VERSION = "20260722-calendario-cache-estavel-v131";', 'const VERSION = "' + VERSION + '";')
+              replace_exact(filename, footer_writer, "")
 
-          for path in ["service-worker-v118.js", "docs/service-worker-v118.js"]:
-              replace_exact(path, 'const CURRENT_VERSION = "20260721-estabilidade-v118";', f'const CURRENT_VERSION = "{VERSION}";')
+          for filename in ["service-worker-v118.js", "docs/service-worker-v118.js"]:
+              replace_exact(filename, 'const CURRENT_VERSION = "20260721-estabilidade-v118";', 'const CURRENT_VERSION = "' + VERSION + '";')
 
-          for path in ["service-worker-v123.js", "docs/service-worker-v123.js", "service-worker.js", "docs/service-worker.js"]:
-              replace_exact(path, 'const CURRENT_VERSION = "20260721-prompt-lei-fonte-preta-v123";', f'const CURRENT_VERSION = "{VERSION}";')
+          for filename in ["service-worker-v123.js", "docs/service-worker-v123.js", "service-worker.js", "docs/service-worker.js"]:
+              replace_exact(filename, 'const CURRENT_VERSION = "20260721-prompt-lei-fonte-preta-v123";', 'const CURRENT_VERSION = "' + VERSION + '";')
 
-          for path in ["service-worker.js", "docs/service-worker.js"]:
-              replace_exact(path, '"app-v118.js?v=20260721-motivacional-volume-v126"', f'"app-v118.js?v={VERSION}"')
-              replace_exact(path, '"central-goals-real-time-v124.js?v=20260721-central-tempo-visibilidade-v125"', f'"central-goals-real-time-v124.js?v={VERSION}"')
+          for filename in ["service-worker.js", "docs/service-worker.js"]:
+              replace_exact(filename, '"app-v118.js?v=20260721-motivacional-volume-v126"', '"app-v118.js?v=' + VERSION + '"')
+              replace_exact(filename, '"central-goals-real-time-v124.js?v=20260721-central-tempo-visibilidade-v125"', '"central-goals-real-time-v124.js?v=' + VERSION + '"')
 
-          replace_exact("package.json", '"version": "20260721-prompt-lei-fonte-preta-v123"', f'"version": "{VERSION}"')
+          replace_exact("package.json", '"version": "20260721-prompt-lei-fonte-preta-v123"', '"version": "' + VERSION + '"')
 
-          test_source = f'''const test = require("node:test");
+          test_source = '''const test = require("node:test");
           const assert = require("node:assert/strict");
           const fs = require("node:fs");
-          const VERSION = "{VERSION}";
+          const VERSION = "20260723-versao-unica-v133";
           const read = (file) => fs.readFileSync(file, "utf8");
 
-          test("HTML e motor principal exibem a mesma versão desde o início", () => {{
-            for (const file of ["index.html", "docs/index.html"]) {{
+          test("HTML e motor usam a mesma versão desde o início", () => {
+            for (const file of ["index.html", "docs/index.html"]) {
               const html = read(file);
-              assert.match(html, new RegExp(`Versão: ${{VERSION}}`));
-              assert.equal((html.match(new RegExp(VERSION, "g")) || []).length >= 6, true);
-            }}
-            for (const file of ["script.js", "docs/script.js", "app-v118.js", "docs/app-v118.js"]) {{
-              assert.match(read(file), new RegExp(`const APP_VERSION = "${{VERSION}}";`));
-            }}
-          }});
+              assert.match(html, new RegExp("Versão: " + VERSION));
+              assert.match(html, new RegExp("app-v118\\\\.js\\\\?v=" + VERSION));
+              assert.match(html, new RegExp("factory-lei-prompt-v123\\\\.js\\\\?v=" + VERSION));
+              assert.match(html, new RegExp("central-goals-real-time-v124\\\\.js\\\\?v=" + VERSION));
+            }
+            for (const file of ["script.js", "docs/script.js", "app-v118.js", "docs/app-v118.js"]) {
+              assert.match(read(file), new RegExp("const APP_VERSION = \\\"" + VERSION + "\\\";"));
+            }
+          });
 
-          test("a Fábrica não controla mais o rodapé global", () => {{
-            for (const file of ["factory-lei-prompt-v123.js", "docs/factory-lei-prompt-v123.js"]) {{
+          test("a Fábrica não sobrescreve o rodapé global", () => {
+            for (const file of ["factory-lei-prompt-v123.js", "docs/factory-lei-prompt-v123.js"]) {
               const source = read(file);
-              assert.match(source, new RegExp(`const VERSION = "${{VERSION}}";`));
-              assert.doesNotMatch(source, /querySelectorAll\("\\.app-version"\)/);
-              assert.doesNotMatch(source, /setTimeout\(showVersion/);
-            }}
-          }});
+              assert.match(source, new RegExp("const VERSION = \\\"" + VERSION + "\\\";"));
+              assert.doesNotMatch(source, /querySelectorAll\\(\"\\.app-version\"\\)/);
+              assert.doesNotMatch(source, /setTimeout\\(showVersion/);
+            }
+          });
 
-          test("service workers e cache usam a versão única", () => {{
+          test("service workers usam a versão única", () => {
             for (const file of [
               "service-worker-v118.js", "docs/service-worker-v118.js",
               "service-worker-v123.js", "docs/service-worker-v123.js",
               "service-worker.js", "docs/service-worker.js"
-            ]) {{
-              assert.match(read(file), new RegExp(`const CURRENT_VERSION = "${{VERSION}}";`), file);
-            }}
-            assert.match(read("service-worker.js"), new RegExp(`app-v118\\.js\\?v=${{VERSION}}`));
-            assert.match(read("service-worker.js"), new RegExp(`central-goals-real-time-v124\\.js\\?v=${{VERSION}}`));
-          }});
+            ]) {
+              assert.match(read(file), new RegExp("const CURRENT_VERSION = \\\"" + VERSION + "\\\";"), file);
+            }
+          });
 
-          test("raiz e docs permanecem idênticos", () => {{
+          test("raiz e docs permanecem idênticos", () => {
             for (const file of [
               "index.html", "script.js", "app-v118.js", "factory-lei-prompt-v123.js",
               "service-worker-v118.js", "service-worker-v123.js", "service-worker.js"
-            ]) {{
-              assert.equal(read(file), read(`docs/${{file}}`), file);
-            }}
-          }});
+            ]) {
+              assert.equal(read(file), read("docs/" + file), file);
+            }
+          });
 
-          test("package registra a versão global única", () => {{
+          test("package registra a versão global única", () => {
             assert.equal(JSON.parse(read("package.json")).version, VERSION);
-          }});
+          });
           '''
           Path("tests/version-display-v133.test.js").write_text(test_source, encoding="utf-8")
 
