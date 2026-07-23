@@ -140,6 +140,16 @@
 })();
 
 (() => {
+  if (window.__aldusTimerSafetyLoaderV132) return;
+  window.__aldusTimerSafetyLoaderV132 = true;
+  const script = document.createElement("script");
+  script.src = "timer-safety-v132.js?v=20260722-cronometro-seguranca-v132";
+  script.async = false;
+  script.dataset.aldusTimerSafety = "v132";
+  document.head.appendChild(script);
+})();
+
+(() => {
   if (window.__aldusFactoryFinalReviewLoaderV128) return;
   window.__aldusFactoryFinalReviewLoaderV128 = true;
   const script = document.createElement("script");

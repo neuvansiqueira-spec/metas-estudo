@@ -1,0 +1,52 @@
+name: Validar correção segura do cronômetro v132
+
+on:
+  push:
+    branches:
+      - agent/correcao-segura-cronometro
+    paths:
+      - "timer-safety-v132.js"
+      - "docs/timer-safety-v132.js"
+      - "central-goals-real-time-v124.js"
+      - "docs/central-goals-real-time-v124.js"
+      - "tests/timer-safety-v132.test.js"
+      - ".github/workflows/validate-timer-safety-v132.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "timer-safety-v132.js"
+      - "docs/timer-safety-v132.js"
+      - "central-goals-real-time-v124.js"
+      - "docs/central-goals-real-time-v124.js"
+      - "tests/timer-safety-v132.test.js"
+      - ".github/workflows/validate-timer-safety-v132.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar branch isolada
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validar sintaxe dos arquivos alterados
+        run: |
+          node --check timer-safety-v132.js
+          node --check central-goals-real-time-v124.js
+
+      - name: Executar testes focados do cronômetro
+        run: node --test tests/timer-safety-v132.test.js
+
+      - name: Confirmar paridade de publicação
+        run: |
+          cmp timer-safety-v132.js docs/timer-safety-v132.js
+          cmp central-goals-real-time-v124.js docs/central-goals-real-time-v124.js
