@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = "20260722-calendario-cache-estavel-v131";
+  const VERSION = "20260723-versao-unica-v133";
   const MIGRATION_ID = "factoryLeiNegritoRealWordV1";
   const FALLBACK = "[PROMPT COMPLETO AINDA NÃO CADASTRADO NA BIBLIOTECA DA FÁBRICA]";
   const PROMPT = `TRANSFORME O TEXTO OFICIAL VIGENTE DA LEI EM RESUMO TOPIFICADO, DIDÁTICO E VISUALMENTE HIERARQUIZADO PARA ESTUDO E REVISÃO.
@@ -319,8 +319,5 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
         .then((registration) => registration.update())
         .catch(() => undefined);
     }
-    const showVersion = () => document.querySelectorAll(".app-version").forEach((element) => { element.textContent = `Versão: ${VERSION}`; });
-    showVersion();
-    window.setTimeout(showVersion, 1000);
   });
 })();

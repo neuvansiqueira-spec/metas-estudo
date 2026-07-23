@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260721-prompt-lei-fonte-preta-v123",
+  "version": "20260723-versao-unica-v133",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
