@@ -92,7 +92,7 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260721-prompt-lei-modelo-v121",
   "20260721-fabrica-visibilidade-v122"
 ];
-const CURRENT_VERSION = "20260721-prompt-lei-fonte-preta-v123";
+const CURRENT_VERSION = "20260723-versao-unica-v133";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 // Caches anteriores reconhecidos para limpeza: startup-v25 a startup-v28.
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v29`;
