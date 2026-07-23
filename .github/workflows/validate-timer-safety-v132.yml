@@ -11,6 +11,16 @@ on:
       - "docs/central-goals-real-time-v124.js"
       - "tests/timer-safety-v132.test.js"
       - ".github/workflows/validate-timer-safety-v132.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "timer-safety-v132.js"
+      - "docs/timer-safety-v132.js"
+      - "central-goals-real-time-v124.js"
+      - "docs/central-goals-real-time-v124.js"
+      - "tests/timer-safety-v132.test.js"
+      - ".github/workflows/validate-timer-safety-v132.yml"
   workflow_dispatch:
 
 permissions:
