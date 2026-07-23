@@ -1,0 +1,181 @@
+name: Aplicar versão única v133
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/apply-version-unica-v133.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Aplicar correção mínima e determinística
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          VERSION = "20260723-versao-unica-v133"
+
+          def replace_exact(path, old, new, expected=1):
+              path = Path(path)
+              text = path.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != expected:
+                  raise SystemExit(f"Âncora inesperada em {path}: esperada {expected}, encontrada {count}: {old!r}")
+              path.write_text(text.replace(old, new), encoding="utf-8")
+
+          for path in ["script.js", "docs/script.js", "app-v118.js", "docs/app-v118.js"]:
+              replace_exact(path, 'const APP_VERSION = "20260721-estabilidade-v118";', f'const APP_VERSION = "{VERSION}";')
+
+          for path in ["index.html", "docs/index.html"]:
+              replace_exact(path, 'Versão: 20260721-prompt-lei-fonte-preta-v123', f'Versão: {VERSION}')
+              replace_exact(path, 'app-v118.css?v=20260721-prompt-lei-fonte-preta-v123', f'app-v118.css?v={VERSION}')
+              replace_exact(path, 'factory-visibility-v122.css?v=20260721-prompt-lei-fonte-preta-v123', f'factory-visibility-v122.css?v={VERSION}')
+              replace_exact(path, 'app-v118.js?v=20260721-motivacional-volume-v126', f'app-v118.js?v={VERSION}', expected=2)
+              replace_exact(path, 'factory-lei-prompt-v123.js?v=20260721-prompt-lei-fonte-preta-v123', f'factory-lei-prompt-v123.js?v={VERSION}')
+              replace_exact(path, 'central-goals-real-time-v124.js?v=20260721-central-tempo-visibilidade-v125', f'central-goals-real-time-v124.js?v={VERSION}')
+
+          version_pattern = re.compile(
+              r'\n    const showVersion = \(\) => document\.querySelectorAll\("\.app-version"\)\.forEach\(\(element\) => \{ element\.textContent = `Versão: \$\{VERSION\}`; \}\);'
+              r'\n    showVersion\(\);'
+              r'\n    window\.setTimeout\(showVersion, 1000\);'
+          )
+          for path in ["factory-lei-prompt-v123.js", "docs/factory-lei-prompt-v123.js"]:
+              path_obj = Path(path)
+              text = path_obj.read_text(encoding="utf-8")
+              old_version = 'const VERSION = "20260722-calendario-cache-estavel-v131";'
+              if text.count(old_version) != 1:
+                  raise SystemExit(f"Versão interna inesperada em {path}")
+              text = text.replace(old_version, f'const VERSION = "{VERSION}";')
+              text, removed = version_pattern.subn('', text, count=1)
+              if removed != 1:
+                  raise SystemExit(f"Sobrescritor de rodapé não encontrado exatamente uma vez em {path}: {removed}")
+              path_obj.write_text(text, encoding="utf-8")
+
+          for path in ["service-worker-v118.js", "docs/service-worker-v118.js"]:
+              replace_exact(path, 'const CURRENT_VERSION = "20260721-estabilidade-v118";', f'const CURRENT_VERSION = "{VERSION}";')
+
+          for path in ["service-worker-v123.js", "docs/service-worker-v123.js", "service-worker.js", "docs/service-worker.js"]:
+              replace_exact(path, 'const CURRENT_VERSION = "20260721-prompt-lei-fonte-preta-v123";', f'const CURRENT_VERSION = "{VERSION}";')
+
+          for path in ["service-worker.js", "docs/service-worker.js"]:
+              replace_exact(path, '"app-v118.js?v=20260721-motivacional-volume-v126"', f'"app-v118.js?v={VERSION}"')
+              replace_exact(path, '"central-goals-real-time-v124.js?v=20260721-central-tempo-visibilidade-v125"', f'"central-goals-real-time-v124.js?v={VERSION}"')
+
+          replace_exact("package.json", '"version": "20260721-prompt-lei-fonte-preta-v123"', f'"version": "{VERSION}"')
+
+          test_source = f'''const test = require("node:test");
+          const assert = require("node:assert/strict");
+          const fs = require("node:fs");
+          const VERSION = "{VERSION}";
+          const read = (file) => fs.readFileSync(file, "utf8");
+
+          test("HTML e motor usam a mesma versão desde o início", () => {{
+            for (const file of ["index.html", "docs/index.html"]) {{
+              const html = read(file);
+              assert.match(html, new RegExp(`Versão: ${{VERSION}}`));
+              assert.match(html, new RegExp(`app-v118\\.js\\?v=${{VERSION}}`));
+              assert.match(html, new RegExp(`factory-lei-prompt-v123\\.js\\?v=${{VERSION}}`));
+              assert.match(html, new RegExp(`central-goals-real-time-v124\\.js\\?v=${{VERSION}}`));
+            }}
+            for (const file of ["script.js", "docs/script.js", "app-v118.js", "docs/app-v118.js"]) {{
+              assert.match(read(file), new RegExp(`const APP_VERSION = "${{VERSION}}";`));
+            }}
+          }});
+
+          test("a Fábrica não sobrescreve o rodapé global", () => {{
+            for (const file of ["factory-lei-prompt-v123.js", "docs/factory-lei-prompt-v123.js"]) {{
+              const source = read(file);
+              assert.match(source, new RegExp(`const VERSION = "${{VERSION}}";`));
+              assert.doesNotMatch(source, /querySelectorAll\("\\.app-version"\)/);
+              assert.doesNotMatch(source, /setTimeout\(showVersion/);
+            }}
+          }});
+
+          test("service workers e cache usam a versão única", () => {{
+            for (const file of [
+              "service-worker-v118.js", "docs/service-worker-v118.js",
+              "service-worker-v123.js", "docs/service-worker-v123.js",
+              "service-worker.js", "docs/service-worker.js"
+            ]) {{
+              assert.match(read(file), new RegExp(`const CURRENT_VERSION = "${{VERSION}}";`), file);
+            }}
+          }});
+
+          test("raiz e docs permanecem idênticos", () => {{
+            for (const file of [
+              "index.html", "script.js", "app-v118.js", "factory-lei-prompt-v123.js",
+              "service-worker-v118.js", "service-worker-v123.js", "service-worker.js"
+            ]) {{
+              assert.equal(read(file), read(`docs/${{file}}`), file);
+            }}
+          }});
+
+          test("package registra a versão global única", () => {{
+            assert.equal(JSON.parse(read("package.json")).version, VERSION);
+          }});
+          '''
+          Path("tests/version-display-v133.test.js").write_text(test_source, encoding="utf-8")
+          Path(".github/workflows/apply-version-unica-v133.yml").unlink()
+          PY
+
+      - name: Validar sintaxe, comportamento e paridade
+        shell: bash
+        run: |
+          node --check script.js
+          node --check app-v118.js
+          node --check factory-lei-prompt-v123.js
+          node --check service-worker-v118.js
+          node --check service-worker-v123.js
+          node --check service-worker.js
+          node --test tests/version-display-v133.test.js tests/timer-safety-v132.test.js
+          cmp index.html docs/index.html
+          cmp script.js docs/script.js
+          cmp app-v118.js docs/app-v118.js
+          cmp factory-lei-prompt-v123.js docs/factory-lei-prompt-v123.js
+          cmp service-worker-v118.js docs/service-worker-v118.js
+          cmp service-worker-v123.js docs/service-worker-v123.js
+          cmp service-worker.js docs/service-worker.js
+          git diff --check
+
+      - name: Confirmar escopo e publicar
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          allowed = {
+              ".github/workflows/apply-version-unica-v133.yml",
+              "index.html", "docs/index.html",
+              "script.js", "docs/script.js",
+              "app-v118.js", "docs/app-v118.js",
+              "factory-lei-prompt-v123.js", "docs/factory-lei-prompt-v123.js",
+              "service-worker-v118.js", "docs/service-worker-v118.js",
+              "service-worker-v123.js", "docs/service-worker-v123.js",
+              "service-worker.js", "docs/service-worker.js",
+              "package.json", "tests/version-display-v133.test.js",
+          }
+          paths = {line[3:] for line in subprocess.check_output(["git", "status", "--short"], text=True).splitlines()}
+          unexpected = paths - allowed
+          if unexpected:
+              raise SystemExit(f"Arquivos inesperados: {sorted(unexpected)}")
+          required = allowed - {".github/workflows/apply-version-unica-v133.yml"}
+          missing = required - paths
+          if missing:
+              raise SystemExit(f"Arquivos esperados sem alteração: {sorted(missing)}")
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Unifica exibição de versão v133"
+          git push
