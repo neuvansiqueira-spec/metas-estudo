@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
-const VERSION = "20260723-versao-unica-v133";
+const VERSION = "20260723-resumo-aula-topicos-v134";
 const read = (file) => fs.readFileSync(file, "utf8");
 
 test("HTML e motor usam a mesma versão desde o início", () => {
