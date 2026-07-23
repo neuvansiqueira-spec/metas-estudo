@@ -1,0 +1,8 @@
+Escopo validado automaticamente:
+- regra nova apenas em FACTORY_RESUMO_AULA_PROMPT_SEGMENT;
+- títulos ♦️ permanecem integralmente em maiúsculas;
+- cabeçalhos ▶️📚 usam iniciais maiúsculas e palavras de ligação em minúsculas;
+- rótulos internos permanecem inalterados;
+- demais prompts sem inserção da nova regra;
+- raiz e docs idênticos;
+- versão/cache atualizados para 20260723-resumo-aula-topicos-v134.
