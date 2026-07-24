@@ -168,3 +168,13 @@
   script.dataset.aldusCalendarMonthVisibility = "v131";
   document.head.appendChild(script);
 })();
+
+(() => {
+  if (window.__aldusQuestionSearchableSelectLoaderV135) return;
+  window.__aldusQuestionSearchableSelectLoaderV135 = true;
+  const script = document.createElement("script");
+  script.src = "question-searchable-selects-v135.js?v=20260723-pesquisa-registro-questoes-v135";
+  script.async = false;
+  script.dataset.aldusQuestionSearchableSelects = "v135";
+  document.head.appendChild(script);
+})();
