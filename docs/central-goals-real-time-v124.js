@@ -188,3 +188,13 @@
   script.dataset.aldusFactoryExecutiveUi = "v136";
   document.head.appendChild(script);
 })();
+
+(() => {
+  if (window.__aldusDailyStudyCollapsibleLoaderV137) return;
+  window.__aldusDailyStudyCollapsibleLoaderV137 = true;
+  const script = document.createElement("script");
+  script.src = "daily-study-collapsible-v137.js?v=20260724-plano-dia-recolhivel-v137";
+  script.async = false;
+  script.dataset.aldusDailyStudyCollapsible = "v137";
+  document.head.appendChild(script);
+})();
