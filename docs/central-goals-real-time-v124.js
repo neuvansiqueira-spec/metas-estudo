@@ -178,3 +178,13 @@
   script.dataset.aldusQuestionSearchableSelects = "v135";
   document.head.appendChild(script);
 })();
+
+(() => {
+  if (window.__aldusFactoryExecutiveUiLoaderV136) return;
+  window.__aldusFactoryExecutiveUiLoaderV136 = true;
+  const script = document.createElement("script");
+  script.src = "factory-executive-ui-v136.js?v=20260724-fabrica-executiva-v136";
+  script.async = false;
+  script.dataset.aldusFactoryExecutiveUi = "v136";
+  document.head.appendChild(script);
+})();
