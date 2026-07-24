@@ -149,3 +149,13 @@
   panel.dataset.dailyStudyCollapsibleVersion = VERSION;
   setCollapsed(false);
 })();
+
+(() => {
+  if (window.__aldusDailySmartReviewCollapsibleLoaderV138) return;
+  window.__aldusDailySmartReviewCollapsibleLoaderV138 = true;
+  const script = document.createElement("script");
+  script.src = "daily-smart-review-collapsible-v138.js?v=20260724-revisao-diaria-recolhivel-v138";
+  script.async = false;
+  script.dataset.aldusDailySmartReviewCollapsible = "v138";
+  document.head.appendChild(script);
+})();
