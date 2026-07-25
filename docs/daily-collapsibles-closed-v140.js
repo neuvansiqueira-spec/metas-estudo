@@ -61,6 +61,16 @@
 })();
 
 (() => {
+  if (window.__aldusAnalyticsHeaderArrowLoaderV149) return;
+  window.__aldusAnalyticsHeaderArrowLoaderV149 = true;
+  const script = document.createElement("script");
+  script.src = "analytics-header-arrow-v149.js?v=20260725-analise-estrategica-cabecalho-fixo-v149";
+  script.async = false;
+  script.dataset.aldusAnalyticsHeaderArrow = "v149";
+  document.head.appendChild(script);
+})();
+
+(() => {
   if (window.__aldusPerformancePracticalLoaderV143) return;
   window.__aldusPerformancePracticalLoaderV143 = true;
   const script = document.createElement("script");
