@@ -69,23 +69,3 @@
   script.dataset.aldusAnalyticsCollapsibles = "v145";
   document.head.appendChild(script);
 })();
-
-(() => {
-  if (window.__aldusAnalyticsTabsFixLoaderV146) return;
-  window.__aldusAnalyticsTabsFixLoaderV146 = true;
-  const script = document.createElement("script");
-  script.src = "analytics-tabs-fix-v146.js?v=20260725-analise-estrategica-abas-corrigidas-v146";
-  script.async = false;
-  script.dataset.aldusAnalyticsTabsFix = "v146";
-  document.head.appendChild(script);
-})();
-
-(() => {
-  if (window.__aldusReleaseVersionLoaderV147) return;
-  window.__aldusReleaseVersionLoaderV147 = true;
-  const script = document.createElement("script");
-  script.src = "release-version-v147.js?v=20260725-versao-publica-sem-transicao-v147";
-  script.async = false;
-  script.dataset.aldusReleaseVersion = "v147";
-  document.head.appendChild(script);
-})();
