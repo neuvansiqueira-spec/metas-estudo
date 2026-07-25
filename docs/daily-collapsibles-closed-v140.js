@@ -51,6 +51,16 @@
 })();
 
 (() => {
+  if (window.__aldusAnalyticsAccordionFixLoaderV148) return;
+  window.__aldusAnalyticsAccordionFixLoaderV148 = true;
+  const script = document.createElement("script");
+  script.src = "analytics-accordion-fix-v148.js?v=20260725-analise-estrategica-abas-funcionais-v148";
+  script.async = false;
+  script.dataset.aldusAnalyticsAccordionFix = "v148";
+  document.head.appendChild(script);
+})();
+
+(() => {
   if (window.__aldusPerformancePracticalLoaderV143) return;
   window.__aldusPerformancePracticalLoaderV143 = true;
   const script = document.createElement("script");
