@@ -49,3 +49,13 @@
   root.dataset.dailyCollapsiblesClosedV140 = "true";
   root.dataset.dailyCollapsiblesClosedVersion = VERSION;
 })();
+
+(() => {
+  if (window.__aldusPerformancePracticalLoaderV143) return;
+  window.__aldusPerformancePracticalLoaderV143 = true;
+  const script = document.createElement("script");
+  script.src = "performance-practical-v143.js?v=20260725-analise-didatica-pratica-v143";
+  script.async = false;
+  script.dataset.aldusPerformancePractical = "v143";
+  document.head.appendChild(script);
+})();
