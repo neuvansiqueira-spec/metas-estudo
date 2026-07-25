@@ -84,3 +84,13 @@
     start();
   }
 })();
+
+(() => {
+  if (window.__aldusContestCountdownLoaderV151) return;
+  window.__aldusContestCountdownLoaderV151 = true;
+  const script = document.createElement("script");
+  script.src = "contest-countdown-v151.js?v=20260725-contagem-concurso-v151";
+  script.async = false;
+  script.dataset.aldusContestCountdown = "v151";
+  document.head.appendChild(script);
+})();
