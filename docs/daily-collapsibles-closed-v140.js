@@ -71,11 +71,21 @@
 })();
 
 (() => {
-  if (window.__aldusReleaseVersionLoaderV145) return;
-  window.__aldusReleaseVersionLoaderV145 = true;
+  if (window.__aldusAnalyticsTabsFixLoaderV146) return;
+  window.__aldusAnalyticsTabsFixLoaderV146 = true;
   const script = document.createElement("script");
-  script.src = "release-version-v145.js?v=20260725-analise-estrategica-recolhivel-v145";
+  script.src = "analytics-tabs-fix-v146.js?v=20260725-analise-estrategica-abas-corrigidas-v146";
   script.async = false;
-  script.dataset.aldusReleaseVersion = "v145";
+  script.dataset.aldusAnalyticsTabsFix = "v146";
+  document.head.appendChild(script);
+})();
+
+(() => {
+  if (window.__aldusReleaseVersionLoaderV146) return;
+  window.__aldusReleaseVersionLoaderV146 = true;
+  const script = document.createElement("script");
+  script.src = "release-version-v146.js?v=20260725-analise-estrategica-abas-corrigidas-v146";
+  script.async = false;
+  script.dataset.aldusReleaseVersion = "v146";
   document.head.appendChild(script);
 })();
