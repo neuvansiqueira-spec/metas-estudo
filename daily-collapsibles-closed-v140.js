@@ -51,6 +51,16 @@
 })();
 
 (() => {
+  if (window.__aldusAnalyticsAccordionFixLoaderV148) return;
+  window.__aldusAnalyticsAccordionFixLoaderV148 = true;
+  const script = document.createElement("script");
+  script.src = "analytics-accordion-fix-v148.js?v=20260725-analise-estrategica-abas-funcionais-v148";
+  script.async = false;
+  script.dataset.aldusAnalyticsAccordionFix = "v148";
+  document.head.appendChild(script);
+})();
+
+(() => {
   if (window.__aldusPerformancePracticalLoaderV143) return;
   window.__aldusPerformancePracticalLoaderV143 = true;
   const script = document.createElement("script");
@@ -67,25 +77,5 @@
   script.src = "analytics-collapsibles-v145.js?v=20260725-analise-estrategica-recolhivel-v145";
   script.async = false;
   script.dataset.aldusAnalyticsCollapsibles = "v145";
-  document.head.appendChild(script);
-})();
-
-(() => {
-  if (window.__aldusAnalyticsTabsFixLoaderV146) return;
-  window.__aldusAnalyticsTabsFixLoaderV146 = true;
-  const script = document.createElement("script");
-  script.src = "analytics-tabs-fix-v146.js?v=20260725-analise-estrategica-abas-corrigidas-v146";
-  script.async = false;
-  script.dataset.aldusAnalyticsTabsFix = "v146";
-  document.head.appendChild(script);
-})();
-
-(() => {
-  if (window.__aldusReleaseVersionLoaderV147) return;
-  window.__aldusReleaseVersionLoaderV147 = true;
-  const script = document.createElement("script");
-  script.src = "release-version-v147.js?v=20260725-versao-publica-sem-transicao-v147";
-  script.async = false;
-  script.dataset.aldusReleaseVersion = "v147";
   document.head.appendChild(script);
 })();
