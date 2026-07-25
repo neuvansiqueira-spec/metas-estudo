@@ -198,3 +198,13 @@
   script.dataset.aldusDailyStudyCollapsible = "v137";
   document.head.appendChild(script);
 })();
+
+(() => {
+  if (window.__aldusDailyCollapsiblesClosedLoaderV140) return;
+  window.__aldusDailyCollapsiblesClosedLoaderV140 = true;
+  const script = document.createElement("script");
+  script.src = "daily-collapsibles-closed-v140.js?v=20260725-paineis-diarios-fechados-v140";
+  script.async = false;
+  script.dataset.aldusDailyCollapsiblesClosed = "v140";
+  document.head.appendChild(script);
+})();
