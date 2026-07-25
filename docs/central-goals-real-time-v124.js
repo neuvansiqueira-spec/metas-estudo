@@ -218,3 +218,13 @@
   script.dataset.aldusQuestionBoardResult = "v141";
   document.head.appendChild(script);
 })();
+
+(() => {
+  if (window.__aldusQuestionScoringRuleLoaderV142) return;
+  window.__aldusQuestionScoringRuleLoaderV142 = true;
+  const script = document.createElement("script");
+  script.src = "question-scoring-rule-v142.js?v=20260725-regra-pontuacao-questoes-v142";
+  script.async = false;
+  script.dataset.aldusQuestionScoringRule = "v142";
+  document.head.appendChild(script);
+})();
