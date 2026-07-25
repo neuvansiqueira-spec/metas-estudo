@@ -208,3 +208,13 @@
   script.dataset.aldusDailyCollapsiblesClosed = "v140";
   document.head.appendChild(script);
 })();
+
+(() => {
+  if (window.__aldusQuestionBoardResultLoaderV141) return;
+  window.__aldusQuestionBoardResultLoaderV141 = true;
+  const script = document.createElement("script");
+  script.src = "question-board-result-v141.js?v=20260725-resultado-outras-bancas-v141";
+  script.async = false;
+  script.dataset.aldusQuestionBoardResult = "v141";
+  document.head.appendChild(script);
+})();
