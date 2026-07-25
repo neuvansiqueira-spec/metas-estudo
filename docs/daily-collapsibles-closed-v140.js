@@ -81,11 +81,11 @@
 })();
 
 (() => {
-  if (window.__aldusReleaseVersionLoaderV146) return;
-  window.__aldusReleaseVersionLoaderV146 = true;
+  if (window.__aldusReleaseVersionLoaderV147) return;
+  window.__aldusReleaseVersionLoaderV147 = true;
   const script = document.createElement("script");
-  script.src = "release-version-v146.js?v=20260725-analise-estrategica-abas-corrigidas-v146";
+  script.src = "release-version-v147.js?v=20260725-versao-publica-sem-transicao-v147";
   script.async = false;
-  script.dataset.aldusReleaseVersion = "v146";
+  script.dataset.aldusReleaseVersion = "v147";
   document.head.appendChild(script);
 })();
