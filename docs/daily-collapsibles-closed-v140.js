@@ -59,3 +59,13 @@
   script.dataset.aldusPerformancePractical = "v143";
   document.head.appendChild(script);
 })();
+
+(() => {
+  if (window.__aldusReleaseVersionLoaderV144) return;
+  window.__aldusReleaseVersionLoaderV144 = true;
+  const script = document.createElement("script");
+  script.src = "release-version-v144.js?v=20260725-versao-publica-v144";
+  script.async = false;
+  script.dataset.aldusReleaseVersion = "v144";
+  document.head.appendChild(script);
+})();
