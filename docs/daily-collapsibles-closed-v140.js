@@ -61,11 +61,21 @@
 })();
 
 (() => {
-  if (window.__aldusReleaseVersionLoaderV144) return;
-  window.__aldusReleaseVersionLoaderV144 = true;
+  if (window.__aldusAnalyticsCollapsiblesLoaderV145) return;
+  window.__aldusAnalyticsCollapsiblesLoaderV145 = true;
   const script = document.createElement("script");
-  script.src = "release-version-v144.js?v=20260725-versao-publica-v144";
+  script.src = "analytics-collapsibles-v145.js?v=20260725-analise-estrategica-recolhivel-v145";
   script.async = false;
-  script.dataset.aldusReleaseVersion = "v144";
+  script.dataset.aldusAnalyticsCollapsibles = "v145";
+  document.head.appendChild(script);
+})();
+
+(() => {
+  if (window.__aldusReleaseVersionLoaderV145) return;
+  window.__aldusReleaseVersionLoaderV145 = true;
+  const script = document.createElement("script");
+  script.src = "release-version-v145.js?v=20260725-analise-estrategica-recolhivel-v145";
+  script.async = false;
+  script.dataset.aldusReleaseVersion = "v145";
   document.head.appendChild(script);
 })();
