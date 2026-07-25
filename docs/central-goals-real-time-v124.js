@@ -210,10 +210,20 @@
 })();
 
 (() => {
+  if (window.__aldusAnalyticsSingleArrowLoaderV150) return;
+  window.__aldusAnalyticsSingleArrowLoaderV150 = true;
+  const script = document.createElement("script");
+  script.src = "analytics-single-arrow-v150.js?v=20260725-analise-estrategica-seta-unica-v150";
+  script.async = false;
+  script.dataset.aldusAnalyticsSingleArrow = "v150";
+  document.head.appendChild(script);
+})();
+
+(() => {
   if (window.__aldusDailyCollapsiblesClosedLoaderV140) return;
   window.__aldusDailyCollapsiblesClosedLoaderV140 = true;
   const script = document.createElement("script");
-  script.src = "daily-collapsibles-closed-v140.js?v=20260725-analise-estrategica-abas-funcionais-v148";
+  script.src = "daily-collapsibles-closed-v140.js?v=20260725-analise-estrategica-seta-unica-v150";
   script.async = false;
   script.dataset.aldusDailyCollapsiblesClosed = "v140";
   document.head.appendChild(script);

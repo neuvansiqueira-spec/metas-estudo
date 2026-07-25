@@ -71,6 +71,16 @@
 })();
 
 (() => {
+  if (window.__aldusAnalyticsSingleArrowLoaderV150) return;
+  window.__aldusAnalyticsSingleArrowLoaderV150 = true;
+  const script = document.createElement("script");
+  script.src = "analytics-single-arrow-v150.js?v=20260725-analise-estrategica-seta-unica-v150";
+  script.async = false;
+  script.dataset.aldusAnalyticsSingleArrow = "v150";
+  document.head.appendChild(script);
+})();
+
+(() => {
   if (window.__aldusPerformancePracticalLoaderV143) return;
   window.__aldusPerformancePracticalLoaderV143 = true;
   const script = document.createElement("script");
