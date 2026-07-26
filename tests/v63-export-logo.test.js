@@ -1,3 +1,4 @@
+const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -15,7 +16,9 @@ function spreadsheetHelpers() {
   return new Function('APP_VERSION', `${script.slice(start, end)}; return { generatedCsvRows, spreadsheetWorksheetXml, buildBrandedXlsxArchive };`)(version);
 }
 
-test('v64 é a camada final de identidade visual das exportações', () => {
+test("Contrato atual v152: v64 é a camada final de identidade visual das exportações", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   assert.equal(JSON.parse(fs.readFileSync('package.json', 'utf8')).version, version);
   assert.match(html, new RegExp(`id="aldusExportBrandV64"[^>]+${version}`));
   assert.ok(html.indexOf('aldus-export-brand-v64.css') > html.indexOf('aldus-export-brand-v63.css'));

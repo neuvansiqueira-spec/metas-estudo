@@ -11,6 +11,7 @@ const runtimePatchV120 = fs.readFileSync('factory-lei-prompt-v120.js', 'utf8');
 const docsRuntimePatchV120 = fs.readFileSync('docs/factory-lei-prompt-v120.js', 'utf8');
 const runtimePatchV121 = fs.readFileSync('factory-lei-prompt-v121.js', 'utf8');
 const docsRuntimePatchV121 = fs.readFileSync('docs/factory-lei-prompt-v121.js', 'utf8');
+const currentRuntimePatch = fs.readFileSync('factory-lei-prompt-v123.js', 'utf8');
 
 function extractTemplateConst(source, name) {
   const marker = `const ${name} = \``;
@@ -55,47 +56,61 @@ function migrationHarness() {
   `)();
 }
 
-test('prompt oficial Lei transforma a norma em mapa didático sem transcrição mecânica', () => {
-  const prompt = extractTemplateConst(script, 'FACTORY_LEI_PROMPT');
-  assert.match(script, /lei: FACTORY_LEI_PROMPT/);
-  assert.match(prompt, /NÃO PODE SER TRANSCRIÇÃO/);
-  assert.match(prompt, /MÉTODO OBRIGATÓRIO DE TRANSFORMAÇÃO/);
+test('prompt oficial Lei vigente transforma a norma em mapa didático sem transcrição mecânica', () => {
+  const prompt = extractTemplateConst(currentRuntimePatch, 'PROMPT');
+  assert.match(prompt, /CADA ARTIGO COMO UNIDADE CENTRAL OBRIGATÓRIA/);
+  assert.match(prompt, /MÉTODO DE TOPIFICAÇÃO DE CADA ARTIGO/);
   assert.match(prompt, /BARREIRA CONTRA TRANSCRIÇÃO/);
   assert.match(prompt, /QUEM É O DESTINATÁRIO/);
   assert.match(prompt, /O QUE PODE, DEVE OU NÃO PODE SER FEITO/);
   assert.match(prompt, /PRAZO, TERMO INICIAL, TERMO FINAL OU PERIODICIDADE/);
   assert.match(prompt, /EXCEÇÃO, RESSALVA, VEDAÇÃO OU REGIME ESPECIAL/);
   assert.match(prompt, /SANÇÃO, MULTA, LIMITE, CAUSA DE AUMENTO OU DIMINUIÇÃO/);
-  assert.match(prompt, /COPIAR ARTIGOS INTEIROS/);
+  assert.match(prompt, /COPIAR O ARTIGO INTEGRALMENTE/);
   assert.match(prompt, /TROCAR APENAS SINÔNIMOS MANTENDO A MESMA SINTAXE DA LEI/);
-  assert.match(prompt, /📌 PROVA/);
-  assert.match(prompt, /MAPA_HIERARQUICO_LEI_\[FILTRO\]\.docx/);
+  assert.match(prompt, /PONTO DE PROVA/);
+  assert.match(prompt, /RESUMO_TOPIFICADO_LEI_\[NÚMERO\]_\[FILTRO\]\.docx/);
 });
 
-test('migração instala o prompt oficial quando Lei está vazio ou com fallback', () => {
-  const { migrateStateFactoryPromptLibraryLeiDidatica, FACTORY_LEI_PROMPT, FACTORY_LIBRARY_FALLBACK } = migrationHarness();
-  for (const current of ['', FACTORY_LIBRARY_FALLBACK]) {
-    const target = { migrations: {}, factoryPromptLibrary: { lei: current } };
-    assert.equal(migrateStateFactoryPromptLibraryLeiDidatica(target), true);
-    assert.equal(target.factoryPromptLibrary.lei, FACTORY_LEI_PROMPT);
-    assert.ok(target.migrations.factoryLeiDidaticaAntiTranscricaoV1);
+function currentPromptContext(lei = '') {
+  const context = {
+    console,
+    Date,
+    defaultFactoryPromptLibrary: { lei: '' },
+    state: { migrations: {}, factoryPromptLibrary: { lei } },
+    saveData() {},
+    factoryPromptBase() { return ''; },
+    normalizeFactoryPromptLibrary(library = {}) { return { ...library }; },
+    factoryRouterText() { return 'Contexto\nStatus anterior: Não iniciado'; },
+    window: { addEventListener() {} },
+    navigator: {}
+  };
+  vm.createContext(context);
+  vm.runInContext(currentRuntimePatch, context);
+  return context;
+}
+
+test('migração vigente instala o prompt oficial quando Lei está vazio ou com fallback', () => {
+  for (const current of ['', '[PROMPT COMPLETO AINDA NÃO CADASTRADO NA BIBLIOTECA DA FÁBRICA]']) {
+    const context = currentPromptContext(current);
+    assert.match(context.state.factoryPromptLibrary.lei, /COR PRETA PURA #000000/);
+    assert.ok(context.state.migrations.factoryLeiNegritoRealWordV1);
   }
 });
 
-test('migração preserva prompt Lei personalizado do usuário', () => {
-  const { migrateStateFactoryPromptLibraryLeiDidatica } = migrationHarness();
+test('migração vigente preserva prompt Lei personalizado do usuário', () => {
   const custom = 'MEU PROMPT LEI PERSONALIZADO';
-  const target = { migrations: {}, factoryPromptLibrary: { lei: custom } };
-  assert.equal(migrateStateFactoryPromptLibraryLeiDidatica(target), false);
-  assert.equal(target.factoryPromptLibrary.lei, custom);
-  assert.ok(target.migrations.factoryLeiDidaticaAntiTranscricaoV1);
+  const context = currentPromptContext(custom);
+  assert.equal(context.state.factoryPromptLibrary.lei, custom);
+  assert.equal(context.state.factoryPromptLibraryBackups.leiBeforeV123, custom);
+  assert.ok(context.state.migrations.factoryLeiNegritoRealWordV1);
 });
 
-test('prompt Lei usa padrão oficial como proteção e não recebe status administrativo', () => {
-  assert.match(script, /const officialDefault = String\(defaultFactoryPromptLibrary\[type\] \|\| ""\)\.trim\(\)/);
-  assert.match(script, /return text \|\| officialDefault \|\| FACTORY_LIBRARY_FALLBACK/);
-  assert.match(script, /const statusContext = type === "lei" \? ""/);
-  assert.match(script, /state\.factoryPromptLibrary = normalizeFactoryPromptLibrary\(/);
+test('prompt Lei vigente usa padrão oficial como proteção e não recebe status administrativo', () => {
+  const context = currentPromptContext('');
+  assert.match(context.factoryPromptBase('lei'), /COR PRETA PURA #000000/);
+  assert.doesNotMatch(context.factoryRouterText('lei'), /Status anterior/);
+  assert.match(currentRuntimePatch, /normalizeFactoryPromptLibrary/);
 });
 
 test('fonte e publicação permanecem sincronizadas', () => {

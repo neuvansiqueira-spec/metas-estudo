@@ -41,6 +41,8 @@ const jsSources = [
   "sync-integral-state.js",
   "sync-integral-cloud.js",
   "sync-integral-time-protection.js",
+  "pcpr-pcma-2026-catalog.js",
+  "pcpr-pcma-2026-migration.js",
   "script.js",
   "question-accuracy-spectrum.js",
   "timer-material-link-fix.js",
@@ -74,3 +76,11 @@ for (const extension of ["css", "js"]) {
 const versionedWorkerName = `service-worker-${releaseSuffix}.js`;
 fs.copyFileSync(path.join(root, "service-worker.js"), path.join(root, versionedWorkerName));
 fs.copyFileSync(path.join(root, "service-worker.js"), path.join(root, "docs", versionedWorkerName));
+
+for (const filename of [
+  "index.html", "style.css", "script.js", "service-worker.js", "sync-integral-core.js",
+  "sync-integral-state.js", "pcpr-pcma-2026-catalog.js",
+  "pcpr-pcma-2026-migration.js", "factory-lei-prompt-v123.js"
+]) {
+  fs.copyFileSync(path.join(root, filename), path.join(root, "docs", filename));
+}

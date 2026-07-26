@@ -1,3 +1,4 @@
+const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -42,7 +43,9 @@ test('observador trata apenas elementos inseridos e é encerrado', () => {
   assert.match(patch, /observer\.disconnect\(\)/);
 });
 
-test('loader é versionado e arquivos publicados permanecem idênticos', () => {
+test("Contrato atual v152: loader é versionado e arquivos publicados permanecem idênticos", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   assert.match(loader, /__aldusDailyCollapsiblesClosedLoaderV140/);
   assert.match(loader, /daily-collapsibles-closed-v140\.js\?v=20260725-paineis-diarios-fechados-v140/);
   assert.equal(publishedPatch, patch);

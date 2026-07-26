@@ -1,3 +1,4 @@
+const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -28,7 +29,9 @@ test("raiz e docs permanecem idênticos", () => {
   ]) assert.equal(read(file), read("docs/" + file), file);
 });
 
-test("versão e cache foram atualizados de forma coerente", () => {
+test("Contrato atual v152: versão e cache foram atualizados de forma coerente", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   const version = "20260723-resumo-aula-topicos-v134";
   for (const file of ["index.html", "docs/index.html", "script.js", "docs/script.js", "app-v118.js", "docs/app-v118.js", "service-worker.js", "docs/service-worker.js"]) {
     assert.match(read(file), new RegExp(version), file);

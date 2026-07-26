@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260723-resumo-aula-topicos-v134";
+const APP_VERSION = "20260726-pcpr-pcma-integrado-v152";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -167,7 +167,7 @@ function updateFuturePendingGoalsForMaterial(materialId) {
     const planned = Math.min(minutes, Math.max(30, previous || 60));
     goal.subject = goal.assunto = goal.baseSubject = planningBaseSubject(goal);
     goal.minutes = planned; goal.tempo_sugerido_minutos = planned; goal.estimatedTotalMinutes = minutes; goal.segmentMinutes = planned; goal.segmentIndex = 1; goal.segmentCount = 1; goal.estimateSourceId = material.id;
-    appendGoalHistory(goal, `Carga planejada recalculada sem dividir o assunto por material. Estimativa anterior: ${previous} minutos. Nova sessão planejada: ${planned} minutos. Data: ${new Date().toLocaleString("pt-BR")}.`); updated++;
+    appendGoalHistory(goal, `Carga planejada recalculada após atualização do material, sem dividir o assunto por material. Estimativa anterior: ${previous} minutos. Nova sessão planejada: ${planned} minutos. Data: ${new Date().toLocaleString("pt-BR")}.`); updated++;
   });
   saveData(); render(); alert(`${updated} meta(s) futura(s) pendente(s) atualizada(s).`); autoSyncAfterSave("material-estimate-goals");
 }
@@ -1047,7 +1047,7 @@ const FACTORY_DOCX_EMOJI_FONT_INSTRUCTIONS = `## FONTES E EMOJIS NO WORD
 - Preservar negrito, tamanho, recuo, espaçamento e alinhamento.
 - Preservar os seletores Unicode necessários à apresentação colorida dos emojis.
 - Aplicar a regra ao documento inteiro, inclusive títulos, subtítulos e rodapé.`;
-const defaultState = { subjects: [], studies: [], edital: { pdf: null }, syllabusItems: [], schedulableSettings: {}, dailyGoals: [], questionLogs: [], smartReviews: [], simulados: [], advisorMission: {}, advisorNavigation: { version: 1, autonomyMode: "copilot", activeRoute: null, routeHistory: [], lastProjection: null, lastRecalculatedAt: "", sourceFingerprint: "", userLimits: {} }, planning: cloneData(defaultPlanning), settings: { defaultMockGoal: 92, timerPreferences: cloneData(defaultTimerPreferences) }, materials: [], questionBank: [], questionBankSessions: [], questionErrorNotebook: [], disciplineWeights: {}, monthlyGoals: {}, timerSession: null, factoryItems: [], factoryAgenda: [], factoryPromptLibrary: cloneData(defaultFactoryPromptLibrary) };
+const defaultState = { subjects: [], studies: [], edital: { pdf: null }, syllabusItems: [], schedulableSettings: {}, contestProfiles: [], activeContestId: null, contestSyllabusMap: [], contestPlanningProfiles: {}, planningMode: "joint", planningModeHistory: [], dailyGoals: [], questionLogs: [], smartReviews: [], simulados: [], advisorMission: {}, advisorNavigation: { version: 1, autonomyMode: "copilot", activeRoute: null, routeHistory: [], lastProjection: null, lastRecalculatedAt: "", sourceFingerprint: "", userLimits: {} }, planning: cloneData(defaultPlanning), settings: { defaultMockGoal: 92, timerPreferences: cloneData(defaultTimerPreferences) }, materials: [], questionBank: [], questionBankSessions: [], questionErrorNotebook: [], disciplineWeights: {}, monthlyGoals: {}, timerSession: null, factoryItems: [], factoryAgenda: [], factoryPromptLibrary: cloneData(defaultFactoryPromptLibrary) };
 const TIMER_MOTIVATIONAL_HISTORY_KEY = "metasEstudoTimerMotivationalHistory";
 const TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 30000;
 const TIMER_MOTIVATIONAL_MILESTONES = [10, 25, 40, 50, 65, 75, 90, 100];
@@ -1076,6 +1076,12 @@ const state = cloneData(defaultState);
 state.edital = { ...defaultState.edital, ...(state.edital || {}) };
 state.syllabusItems ||= [];
 state.schedulableSettings ||= {};
+state.contestProfiles ||= [];
+state.activeContestId ||= null;
+state.contestSyllabusMap ||= [];
+state.contestPlanningProfiles ||= {};
+state.planningMode ||= "joint";
+state.planningModeHistory ||= [];
 state.dailyGoals ||= [];
 function normalizeGoalTimeFields(goal) {
   const hasStudyActual = goal.studyActualMinutes !== undefined && goal.studyActualMinutes !== null && goal.studyActualMinutes !== "";
@@ -1105,6 +1111,7 @@ state.materials ||= [];
 state.factoryItems ||= [];
 state.factoryAgenda ||= [];
 state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) });
+if (typeof applyPcprPcma2026Migration === "function") applyPcprPcma2026Migration(state);
 let factoryCurrentFilter = "faca-agora";
 let factoryProductionScope = "day";
 let factoryOpenDetailId = "";
@@ -1756,7 +1763,7 @@ const elements = {
   exportBackup: $("#exportBackup"), selectBackupFile: $("#selectBackupFile"), backupFileInput: $("#backupFileInput"), resetSolvedQuestions: $("#resetSolvedQuestions"), clearAllLocalData: $("#clearAllLocalData"), lastBackupDate: $("#lastBackupDate"), backupStorageKeys: $("#backupStorageKeys"), backupSummary: $("#backupSummary"), backupPreview: $("#backupPreview"), storageDiagnostics: $("#storageDiagnostics"), legacyTimerRecoveryReview: $("#legacyTimerRecoveryReview"), legacyTimerRecoveryPanel: $("#legacyTimerRecoveryPanel"), verifyStorage: $("#verifyStorage"),
   mockTotal: $("#mockTotal"), mockLastNet: $("#mockLastNet"), mockBestNet: $("#mockBestNet"), mockAverageNet: $("#mockAverageNet"), mockAboveGoal: $("#mockAboveGoal"), mockProblemDiscipline: $("#mockProblemDiscipline"),
   newMockExam: $("#newMockExam"), mockExamForm: $("#mockExamForm"), mockExamEditingId: $("#mockExamEditingId"), mockName: $("#mockName"), mockDate: $("#mockDate"), mockBoard: $("#mockBoard"), mockInstitution: $("#mockInstitution"), mockNotes: $("#mockNotes"), mockTotalQuestions: $("#mockTotalQuestions"), mockCorrect: $("#mockCorrect"), mockWrong: $("#mockWrong"), mockBlank: $("#mockBlank"), mockGoal: $("#mockGoal"), mockStrategy: $("#mockStrategy"), mockDifficulty: $("#mockDifficulty"), mockCalculated: $("#mockCalculated"), mockDisciplineName: $("#mockDisciplineName"), mockDisciplineTotal: $("#mockDisciplineTotal"), mockDisciplineCorrect: $("#mockDisciplineCorrect"), mockDisciplineWrong: $("#mockDisciplineWrong"), mockDisciplineBlank: $("#mockDisciplineBlank"), mockDisciplineNotes: $("#mockDisciplineNotes"), addMockDiscipline: $("#addMockDiscipline"), clearMockDisciplines: $("#clearMockDisciplines"), mockDisciplineDraft: $("#mockDisciplineDraft"), mockSummary: $("#mockSummary"), mockGeneralResult: $("#mockGeneralResult"), mockDisciplineResults: $("#mockDisciplineResults"), mockDiagnosis: $("#mockDiagnosis"), mockHistory: $("#mockHistory"), mockEvolution: $("#mockEvolution"),
-  planningConfigForm: $("#planningConfigForm"), planningSaveStatus: $("#planningSaveStatus"), planningSummaryResume: $("#planningSummaryResume"), planningSummaryCards: $("#planningSummaryCards"), planningDayModesResume: $("#planningDayModesResume"), planningDayModes: $("#planningDayModes"), planningPreview: $("#planningPreview"), planningMaterialEstimateResume: $("#planningMaterialEstimateResume"), planningMaterialEstimates: $("#planningMaterialEstimates"), planningExamDate: $("#planningExamDate"), planningScaleType: $("#planningScaleType"), planningScaleNotes: $("#planningScaleNotes"), planningShiftHours: $("#planningShiftHours"), planningRestHours: $("#planningRestHours"), planningNormalHours: $("#planningNormalHours"), planningMinWeeklyHours: $("#planningMinWeeklyHours"), planningIdealWeeklyHours: $("#planningIdealWeeklyHours"), planningWeeklyTopics: $("#planningWeeklyTopics"), planningDisciplinesPerDay: $("#planningDisciplinesPerDay"), planningDisciplinesPerWeek: $("#planningDisciplinesPerWeek"), planningDisciplinesPerMonth: $("#planningDisciplinesPerMonth"), planningTopicsPerDay: $("#planningTopicsPerDay"), planningTopicsPerWeek: $("#planningTopicsPerWeek"), planningTopicsPerMonth: $("#planningTopicsPerMonth"), planningSafetyDays: $("#planningSafetyDays"), planningScaleReferenceDate: $("#planningScaleReferenceDate"), planningScaleReferencePosition: $("#planningScaleReferencePosition"), scale3x6Fields: $("#scale3x6Fields"), centralGoalsCards: $("#centralGoalsCards"), centralScaleSummary: $("#centralScaleSummary"), centralNextDates: $("#centralNextDates"), centralOpenDayPlan: $("#centralOpenDayPlan"), dashboardGoalsScaleSummary: $("#dashboardGoalsScaleSummary"), availabilityCalendar: $("#availabilityCalendar"), completionForecast: $("#completionForecast"), completionAlert: $("#completionAlert"), weeklyGoalsPlan: $("#weeklyGoalsPlan"), weeklyGoalsAlert: $("#weeklyGoalsAlert"), timeHistorySummary: $("#timeHistorySummary"), timeHistoryCards: $("#timeHistoryCards"),
+  planningConfigForm: $("#planningConfigForm"), planningModeSelect: $("#planningModeSelect"), planningContestResume: $("#planningContestResume"), planningContestSummary: $("#planningContestSummary"), planningSaveStatus: $("#planningSaveStatus"), planningSummaryResume: $("#planningSummaryResume"), planningSummaryCards: $("#planningSummaryCards"), planningDayModesResume: $("#planningDayModesResume"), planningDayModes: $("#planningDayModes"), planningPreview: $("#planningPreview"), planningMaterialEstimateResume: $("#planningMaterialEstimateResume"), planningMaterialEstimates: $("#planningMaterialEstimates"), planningExamDate: $("#planningExamDate"), planningScaleType: $("#planningScaleType"), planningScaleNotes: $("#planningScaleNotes"), planningShiftHours: $("#planningShiftHours"), planningRestHours: $("#planningRestHours"), planningNormalHours: $("#planningNormalHours"), planningMinWeeklyHours: $("#planningMinWeeklyHours"), planningIdealWeeklyHours: $("#planningIdealWeeklyHours"), planningWeeklyTopics: $("#planningWeeklyTopics"), planningDisciplinesPerDay: $("#planningDisciplinesPerDay"), planningDisciplinesPerWeek: $("#planningDisciplinesPerWeek"), planningDisciplinesPerMonth: $("#planningDisciplinesPerMonth"), planningTopicsPerDay: $("#planningTopicsPerDay"), planningTopicsPerWeek: $("#planningTopicsPerWeek"), planningTopicsPerMonth: $("#planningTopicsPerMonth"), planningSafetyDays: $("#planningSafetyDays"), planningScaleReferenceDate: $("#planningScaleReferenceDate"), planningScaleReferencePosition: $("#planningScaleReferencePosition"), scale3x6Fields: $("#scale3x6Fields"), centralGoalsCards: $("#centralGoalsCards"), centralScaleSummary: $("#centralScaleSummary"), centralNextDates: $("#centralNextDates"), centralOpenDayPlan: $("#centralOpenDayPlan"), dashboardGoalsScaleSummary: $("#dashboardGoalsScaleSummary"), availabilityCalendar: $("#availabilityCalendar"), completionForecast: $("#completionForecast"), completionAlert: $("#completionAlert"), weeklyGoalsPlan: $("#weeklyGoalsPlan"), weeklyGoalsAlert: $("#weeklyGoalsAlert"), timeHistorySummary: $("#timeHistorySummary"), timeHistoryCards: $("#timeHistoryCards"),
   dashboardQuestionBankTotal: $("#dashboardQuestionBankTotal"), dashboardQuestionBankSessions: $("#dashboardQuestionBankSessions"), dashboardQuestionBankLast: $("#dashboardQuestionBankLast"), dashboardQuestionBankPackages: $("#dashboardQuestionBankPackages"), dashboardQuestionBankLinked: $("#dashboardQuestionBankLinked"), dashboardQuestionBankMissing: $("#dashboardQuestionBankMissing"),
   materialsTotal: $("#materialsTotal"), materialDisciplinesTotal: $("#materialDisciplinesTotal"), materialTopicsTotal: $("#materialTopicsTotal"), materialForm: $("#materialForm"), materialEditingId: $("#materialEditingId"), materialTitle: $("#materialTitle"), materialDate: $("#materialDate"), materialDiscipline: $("#materialDiscipline"), materialSubject: $("#materialSubject"), materialType: $("#materialType"), materialOrigin: $("#materialOrigin"), materialLink: $("#materialLink"), materialTags: $("#materialTags"), materialNotes: $("#materialNotes"), materialDisciplineOptions: $("#materialDisciplineOptions"), materialSubjectOptions: $("#materialSubjectOptions"), materialFilterDiscipline: $("#materialFilterDiscipline"), materialFilterSubject: $("#materialFilterSubject"), materialFilterType: $("#materialFilterType"), materialFilterOrigin: $("#materialFilterOrigin"), materialFilterText: $("#materialFilterText"), materialsList: $("#materialsList"), studyMaterial: $("#studyMaterial"),
   editFactoryPromptLibrary: $("#editFactoryPromptLibrary"), factoryForm: $("#factoryForm"), factoryEditingId: $("#factoryEditingId"), factoryDiscipline: $("#factoryDiscipline"), factoryTheme: $("#factoryTheme"), factorySubtheme: $("#factorySubtheme"), factoryPriority: $("#factoryPriority"), factoryPlannedDate: $("#factoryPlannedDate"), factoryStatus: $("#factoryStatus"), factorySourceFolder: $("#factorySourceFolder"), factoryDestinationFolder: $("#factoryDestinationFolder"), factoryFinalLink: $("#factoryFinalLink"), factoryLeiNome: $("#factoryLeiNome"), factoryLeiFonte: $("#factoryLeiFonte"), factoryLeiArtigos: $("#factoryLeiArtigos"), factoryLeiRecorte: $("#factoryLeiRecorte"), factoryLeiObservacoes: $("#factoryLeiObservacoes"), factoryNotes: $("#factoryNotes"), factorySummary: $("#factorySummary"), factoryFilterDiscipline: $("#factoryFilterDiscipline"), factoryFilterPriority: $("#factoryFilterPriority"), factoryFilterStatus: $("#factoryFilterStatus"), factoryFilterDate: $("#factoryFilterDate"), factoryFilterView: $("#factoryFilterView"), factoryFilterText: $("#factoryFilterText"), factoryList: $("#factoryList"), factoryPromptLibraryPanel: $("#factoryPromptLibraryPanel"),
@@ -2419,8 +2426,8 @@ function renderBackupPreview(payload) {
   elements.backupPreview.innerHTML = `<h3>Pré-visualização do backup selecionado</h3><div class="stats-grid compact backup-summary"><article class="stat-card"><span>Data do backup</span><strong class="stat-value-date">${escapeHTML(backupDate)}</strong></article><article class="stat-card"><span>Disciplinas</span><strong>${counts.disciplinas}</strong></article><article class="stat-card"><span>Assuntos</span><strong>${counts.verticalizado}</strong></article><article class="stat-card"><span>Metas</span><strong>${counts.metas}</strong></article><article class="stat-card"><span>Questões</span><strong>${counts.questoes}</strong></article><article class="stat-card"><span>Banco de questões</span><strong>${counts.bancoQuestoes}</strong></article><article class="stat-card"><span>Treinos do banco</span><strong>${counts.treinosBanco}</strong></article><article class="stat-card"><span>Simulados</span><strong>${counts.simulados}</strong></article><article class="stat-card"><span>Revisões</span><strong>${counts.revisoes}</strong></article></div><p class="item-meta"><strong>Disciplinas encontradas:</strong> ${disciplines.slice(0, 20).map(escapeHTML).join(", ") || "nenhuma"}${disciplines.length > 20 ? "..." : ""}</p><div class="actions"><button type="button" data-backup-import="replace" class="danger">Substituir dados atuais</button><button type="button" data-backup-import="merge" class="secondary-button">Mesclar com dados atuais</button><button type="button" data-backup-import="cancel">Cancelar</button></div>`;
   return normalized;
 }
-function replaceState(nextState) { Object.keys(state).forEach((key) => delete state[key]); Object.assign(state, { ...cloneData(defaultState), ...(nextState || {}) }); state.edital = { ...defaultState.edital, ...(state.edital || {}) }; state.syllabusItems ||= []; state.schedulableSettings ||= {}; state.dailyGoals ||= []; state.dailyGoals.forEach((goal) => { goal.date ||= goal.data || todayISO(); goal.data ||= goal.date; goal.discipline ||= goal.disciplina || "Sem disciplina"; goal.subject ||= goal.assunto || "Assunto"; goal.type ||= goal.tipo || "Meta"; goal.minutes = Number(goal.minutes ?? goal.tempo_sugerido_minutos) || 0; normalizeGoalTimeFields(goal); normalizeSegmentedGoalFields(goal); goal.status ||= "Pendente"; }); state.questionLogs ||= []; state.questionBank ||= []; state.questionBankSessions ||= []; state.questionErrorNotebook ||= carregarCadernoErros();
-state.smartReviews ||= []; state.simulados ||= []; state.advisorMission ||= {}; state.advisorNavigation ||= { version: 1, autonomyMode: "copilot", activeRoute: null, routeHistory: [], lastProjection: null, lastRecalculatedAt: "", sourceFingerprint: "", userLimits: {} }; state.planning = normalizePlanningState(state.planning); state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences); state.settings.timerMode ||= "countdown"; state.materials ||= []; migrateMaterialEstimates(state); migrateSegmentedGoals(state); state.factoryItems ||= []; state.factoryAgenda ||= []; state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) }); state.disciplineWeights ||= {}; state.monthlyGoals ||= {}; globalThis.__dailyPlanningInflationRepairV108 = repairDailyPlanningInflationV108(state, { source: "replace-state" }); }
+function replaceState(nextState) { Object.keys(state).forEach((key) => delete state[key]); Object.assign(state, { ...cloneData(defaultState), ...(nextState || {}) }); state.edital = { ...defaultState.edital, ...(state.edital || {}) }; state.syllabusItems ||= []; state.schedulableSettings ||= {}; state.contestProfiles ||= []; state.activeContestId ||= null; state.contestSyllabusMap ||= []; state.contestPlanningProfiles ||= {}; state.planningMode ||= "joint"; state.planningModeHistory ||= []; state.dailyGoals ||= []; state.dailyGoals.forEach((goal) => { goal.date ||= goal.data || todayISO(); goal.data ||= goal.date; goal.discipline ||= goal.disciplina || "Sem disciplina"; goal.subject ||= goal.assunto || "Assunto"; goal.type ||= goal.tipo || "Meta"; goal.minutes = Number(goal.minutes ?? goal.tempo_sugerido_minutos) || 0; normalizeGoalTimeFields(goal); normalizeSegmentedGoalFields(goal); goal.status ||= "Pendente"; }); state.questionLogs ||= []; state.questionBank ||= []; state.questionBankSessions ||= []; state.questionErrorNotebook ||= carregarCadernoErros();
+state.smartReviews ||= []; state.simulados ||= []; state.advisorMission ||= {}; state.advisorNavigation ||= { version: 1, autonomyMode: "copilot", activeRoute: null, routeHistory: [], lastProjection: null, lastRecalculatedAt: "", sourceFingerprint: "", userLimits: {} }; state.planning = normalizePlanningState(state.planning); state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences); state.settings.timerMode ||= "countdown"; state.materials ||= []; migrateMaterialEstimates(state); migrateSegmentedGoals(state); state.factoryItems ||= []; state.factoryAgenda ||= []; state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) }); state.disciplineWeights ||= {}; state.monthlyGoals ||= {}; if (typeof applyPcprPcma2026Migration === "function") applyPcprPcma2026Migration(state); globalThis.__dailyPlanningInflationRepairV108 = repairDailyPlanningInflationV108(state, { source: "replace-state" }); }
 function mergeArrays(current = [], incoming = [], keyFn = (item) => item?.id || JSON.stringify(item)) { const seen = new Set(current.map(keyFn)); incoming.forEach((item) => { const key = keyFn(item); if (!seen.has(key)) { current.push(item); seen.add(key); } }); return current; }
 function backupGoalIdentity(goal = {}) {
   return goal.id || [
@@ -2472,6 +2479,9 @@ function mergeBackupData(data = {}) {
   mergeArrays(state.subjects, data.subjects || [], (item) => canonical(item.name || item.id));
   mergeArrays(state.studies, data.studies || [], (item) => item.id || [item.date, item.subjectId, item.topic, item.minutes].join("|"));
   mergeArrays(state.syllabusItems, data.syllabusItems || [], (item) => item.importKey || importKeyFor(item));
+  mergeArrays(state.contestProfiles, data.contestProfiles || [], (item) => item.id);
+  mergeArrays(state.contestSyllabusMap, data.contestSyllabusMap || [], (item) => item.id || [item.contestId, item.syllabusItemId, item.code].join("|"));
+  if (!state.activeContestId && data.activeContestId) state.activeContestId = data.activeContestId;
   mergeBackupDailyGoals(data.dailyGoals || []);
   mergeArrays(state.questionLogs, data.questionLogs || [], (item) => item.id || [item.date, item.discipline, item.subject, item.total, item.correct, item.wrong].join("|"));
   mergeArrays(state.questionBank, data.questionBank || [], (item) => item.id);
@@ -2501,6 +2511,10 @@ function mergeBackupData(data = {}) {
   state.edital = { ...(data.edital || {}), ...state.edital };
   state.schedulableSettings = { ...(data.schedulableSettings || {}), ...state.schedulableSettings };
   state.settings = { ...(data.settings || {}), ...state.settings };
+  state.contestPlanningProfiles = { ...(data.contestPlanningProfiles || {}), ...(state.contestPlanningProfiles || {}) };
+  state.planningMode ||= data.planningMode || "joint";
+  mergeArrays(state.planningModeHistory ||= [], data.planningModeHistory || [], (item) => item.id || `${item.changedAt}|${item.mode}`);
+  if (typeof applyPcprPcma2026Migration === "function") applyPcprPcma2026Migration(state);
 }
 function clearProjectLocalStorage() { getProjectStorageKeys().forEach((key) => localStorage.removeItem(key)); }
 function restoreBackup(payload, mode) {
@@ -2848,6 +2862,7 @@ function acceptsSchedulableValue(value) {
 }
 function isSchedulable(id) {
   const item = state.syllabusItems.find((entry) => entry.id === id);
+  if (item?.legacyOnly || item?.hiddenFromCatalog) return false;
   const setting = settingFor(id);
   return setting.availability === "Agendável"
     || acceptsSchedulableValue(item?.agendavel)
@@ -3985,12 +4000,19 @@ function factoryCanAppearInDoNow(entry = {}, queue = factoryDoNowQueue()) {
 function factoryDoNowQueue(agenda = ensureFactoryAgenda()) {
   const activeAgenda = agenda.filter((item) => item.editalActive !== false);
   const today = todayISO();
-  const dates = [...new Set((state.dailyGoals || []).map((goal) => goal.date || goal.data).filter((date) => date && date >= today))].sort();
-  for (const date of dates) {
-    const pending = factoryQueueForDate(date, activeAgenda).filter(factoryResumoAulaPending).map((entry) => ({ ...entry, sourceDate: date }));
-    if (pending.length) return pending;
-  }
-  return [];
+  const dates = [...new Set((state.dailyGoals || []).map((goal) => goal.date || goal.data).filter((date) => date && date <= today))].sort();
+  const seen = new Set();
+  const overdue = [];
+  const current = [];
+  dates.forEach((date) => {
+    const target = date < today ? overdue : current;
+    factoryQueueForDate(date, activeAgenda).forEach((entry) => {
+      if (seen.has(entry.item.id) || !factoryResumoAulaPending(entry)) return;
+      seen.add(entry.item.id);
+      target.push({ ...entry, sourceDate: date });
+    });
+  });
+  return [...overdue, ...current];
 }
 function factoryUnlockedDayDate(agenda = ensureFactoryAgenda()) { return factoryDoNowQueue(agenda)[0]?.sourceDate || todayISO(); }
 function factoryWeeklyQueue(agenda = ensureFactoryAgenda()) {
@@ -4036,8 +4058,8 @@ function renderFactory() {
       button.classList.toggle("active", active);
       button.setAttribute("aria-pressed", active ? "true" : "false");
     });
-    document.querySelectorAll("[data-factory-scope]").forEach((button) => {
-      const active = button.dataset.factoryScope === factoryProductionScope;
+    document.querySelectorAll("[data-production-scope]").forEach((button) => {
+      const active = button.dataset.productionScope === factoryProductionScope;
       button.classList.toggle("active", active); button.classList.toggle("secondary-button", !active);
       button.setAttribute("aria-pressed", active ? "true" : "false");
     });
@@ -4045,7 +4067,7 @@ function renderFactory() {
     const unlockedDate = factoryUnlockedDayDate(activeAgenda);
     const scopeDates = factoryProductionScope === "week" ? daysBetween(todayISO(), 7) : [unlockedDate];
     const dailyProjection = scopeDates.flatMap((date) => buildDailyPlanProjection(date).filter((entry) => !isGoalDone(entry.goal) && !planningRecordMatchesCompletedSubject(entry.goal)).map((entry) => ({ ...entry, factoryDate:date })));
-    const todayPlanPanel = `<details class="factory-section factory-today-plan factory-collapsible"><summary>📚 ${factoryProductionScope === "week" ? "MATERIAIS DA SEMANA" : `MATERIAIS DO PLANO — ${formatDateBR(unlockedDate)}`} <small>${dailyProjection.length}</small></summary><div class="factory-collapsible-content">${dailyProjection.length ? dailyProjection.map((entry) => { const count = entry.materialGroups.reduce((total, group) => total + group.materials.length, 0); const status = !count ? "Precisa produzir" : "Material já disponível"; return `<article class="syllabus-card factory-card"><h3>${escapeHTML(entry.goal.discipline)} — ${escapeHTML(entry.goal.subject)}</h3><p class="item-meta">${formatDateBR(entry.factoryDate)} • ${escapeHTML(status)} • ${count} arquivo(s)</p>${entry.materialGroups.length ? entry.materialGroups.map((group) => `<p><strong>${escapeHTML(group.label === "resumoAula" ? "RESUMO/AULA" : group.label.toUpperCase())}:</strong> ${group.materials.map((material) => escapeHTML(materialButtonLabel(material))).join(" • ")}</p>`).join("") : `<p class="item-meta">Nenhum material vinculado.</p>`}</article>`; }).join("") : `<p class="empty-message">Nenhuma meta pendente neste período.</p>`}</div></details>`;
+    const todayPlanPanel = `<details class="factory-section factory-today-plan factory-collapsible"><summary>📚 ${factoryProductionScope === "week" ? "MATERIAIS DAS METAS PENDENTES — SEMANA" : `MATERIAIS DAS METAS PENDENTES — ${formatDateBR(unlockedDate)}`} <small>${dailyProjection.length}</small></summary><div class="factory-collapsible-content">${dailyProjection.length ? dailyProjection.map((entry) => { const count = entry.materialGroups.reduce((total, group) => total + group.materials.length, 0); const status = !count ? "Precisa produzir" : "Material já disponível"; return `<article class="syllabus-card factory-card"><h3>${escapeHTML(entry.goal.discipline)} — ${escapeHTML(entry.goal.subject)}</h3><p class="item-meta">${formatDateBR(entry.factoryDate)} • ${escapeHTML(status)} • ${count} arquivo(s)</p>${entry.materialGroups.length ? entry.materialGroups.map((group) => `<p><strong>${escapeHTML(group.label === "resumoAula" ? "RESUMO/AULA" : group.label.toUpperCase())}:</strong> ${group.materials.map((material) => escapeHTML(materialButtonLabel(material))).join(" • ")}</p>`).join("") : `<p class="item-meta">Nenhum material vinculado.</p>`}</article>`; }).join("") : `<p class="empty-message">Nenhuma meta pendente neste período.</p>`}</div></details>`;
     const seenPeriod = new Set();
     const periodEntries = scopeDates.flatMap((date) => factoryQueueForDate(date, activeAgenda).map((entry) => ({ ...entry, sourceDate:date }))).filter((entry) => { if (seenPeriod.has(entry.item.id)) return false; seenPeriod.add(entry.item.id); return true; });
     const queue = periodEntries.filter(factoryResumoAulaPending);
@@ -4098,7 +4120,7 @@ function renderFactory() {
     if (factoryCurrentFilter === "em-producao") entries = entries.filter(({ item }) => factoryOverallStatus(item.modules) === "Em produção");
     if (factoryCurrentFilter === "aguardando-revisao") entries = entries.filter(({ item }) => factoryOverallStatus(item.modules) === "Aguardando revisão");
     if (factoryCurrentFilter === "precisa-refazer") entries = entries.filter(({ item }) => normalizeFactoryTriagemStatus(item, item.modules) === "Precisa refazer" || factoryOverallStatus(item.modules) === "Precisa refazer");
-    if (factoryCurrentFilter === "prontos") entries = periodEntries.filter(({ item }) => factoryResumoAulaReady(item));
+    if (factoryCurrentFilter === "prontos") entries = entries.filter(({ item }) => factoryResumoAulaReady(item));
     const listPanel = factoryCurrentFilter === "faca-agora" ? "" : `<details class="factory-section factory-collapsible" open><summary>${factoryCurrentFilter === "fila-hoje" ? "📋 FILA RESUMIDA DE PENDÊNCIAS" : "Temas"} <small>${entries.length}</small></summary><div class="factory-collapsible-content">${entries.length ? entries.slice(0, factoryVisibleCount).map(cardFor).join("") + (entries.length > factoryVisibleCount ? `<button type="button" class="secondary-button" data-show-factory-more>Mostrar mais 20</button>` : "") : `<p class="empty-message">Nenhum tema nesta lista.</p>`}</div></details>`;
     const scopeNotice = `<p class="notice factory-scope-notice">${factoryProductionScope === "week" ? `Produção antecipada dos próximos sete dias: ${formatDateBR(scopeDates[0])} a ${formatDateBR(scopeDates[scopeDates.length - 1])}.` : unlockedDate === todayISO() ? "Exibindo somente os resumos pendentes do Plano do Dia." : `Todos os resumos de hoje estão prontos. O dia ${formatDateBR(unlockedDate)} foi liberado automaticamente.`}</p>`;
     elements.factoryList.innerHTML = scopeNotice + todayPlanPanel + (factoryCurrentFilter === "faca-agora" ? nowPanel + queuePanel : listPanel);
@@ -4383,8 +4405,9 @@ function getStudyTimeLogs() {
   return [...studyLogs, ...goalLogs, ...questionLogs];
 }
 function planningMetrics() {
-  const total = state.syllabusItems.length;
-  const completed = state.syllabusItems.filter(isTopicStudied).length;
+  const planningItems = state.syllabusItems.filter((item) => !item.hiddenFromCatalog && (typeof isItemEnabledForPlanning !== "function" || isItemEnabledForPlanning(state, item.id, todayISO())));
+  const total = planningItems.length;
+  const completed = planningItems.filter(isTopicStudied).length;
   const pending = Math.max(0, total - completed);
   const logs = getStudyTimeLogs();
   const totalMinutes = logs.reduce((sum, log) => sum + log.minutes, 0);
@@ -4397,7 +4420,8 @@ function planningMetrics() {
   let forecastDate = "";
   let cursor = todayISO(); let remainingHours = remainingMinutes / 60;
   for (let i = 0; i < 730 && remainingHours > 0; i++) { const av = availabilityForDate(cursor); remainingHours -= Number(av.hours) || 0; if (remainingHours <= 0) forecastDate = cursor; cursor = addDays(cursor, 1); }
-  const exam = planningConfig().examDate || state.edital.examDate || "";
+  const activeProfile = typeof contestPlanningProfile === "function" ? contestPlanningProfile(state, todayISO()) : null;
+  const exam = activeProfile?.examDate || planningConfig().examDate || state.edital.examDate || "";
   const diffDays = forecastDate && exam ? Math.ceil((parseDate(exam) - parseDate(forecastDate)) / 86400000) : null;
   const safeDiff = diffDays === null ? null : diffDays - (Number(planningConfig().safetyDays) || 0);
   return { total, completed, pending, percent: total ? Math.round(completed / total * 100) : 0, avgTopicsWeek, avgMinutes, totalEstimatedMinutes: total * avgMinutes, totalMinutes, remainingMinutes, forecastDate, examDate: exam, diffDays, safeDiff };
@@ -4408,20 +4432,21 @@ function planningSituation(metrics) { return metrics.safeDiff === null ? "sem pr
 function progressStatusClass(status) { return status === "adiantado" ? "success" : status === "atrasado" ? "danger" : "warn"; }
 function progressMetrics() {
   migrateImportedDisciplines();
-  const total = state.syllabusItems.length;
-  const studiedItems = state.syllabusItems.filter(isTopicStudied);
-  const startedItems = state.syllabusItems.filter(isTopicStarted);
-  const reviewedItems = state.syllabusItems.filter(isTopicReviewed);
-  const pendingItems = state.syllabusItems.filter((item) => !isTopicStudied(item));
+  const activeItems = state.syllabusItems.filter((item) => !item.hiddenFromCatalog && (typeof isItemEnabledForPlanning !== "function" || isItemEnabledForPlanning(state, item.id, todayISO())));
+  const total = activeItems.length;
+  const studiedItems = activeItems.filter(isTopicStudied);
+  const startedItems = activeItems.filter(isTopicStarted);
+  const reviewedItems = activeItems.filter(isTopicReviewed);
+  const pendingItems = activeItems.filter((item) => !isTopicStudied(item));
   const studied = studiedItems.length;
   const percent = total ? Math.round((studied / total) * 100) : 0;
-  const totalMinutes = state.syllabusItems.reduce((sum, item) => sum + minutesForItem(item), 0);
+  const totalMinutes = activeItems.reduce((sum, item) => sum + minutesForItem(item), 0);
   const avgMinutes = studied ? totalMinutes / studied : 0;
   const plan = planningMetrics();
   const remainingMinutes = pendingItems.length * (avgMinutes || plan.avgMinutes || 60);
   const forecastDate = plan.forecastDate;
   const situation = planningSituation(plan);
-  const disciplines = Object.values(state.syllabusItems.reduce((acc, item) => {
+  const disciplines = Object.values(activeItems.reduce((acc, item) => {
     const key = item.discipline || "Sem disciplina";
     acc[key] ||= { discipline: key, total: 0, studied: 0, pending: 0, minutes: 0 };
     acc[key].total += 1;
@@ -4515,9 +4540,16 @@ function renderWeeklyGoalsPlanMobile(days) {
 function renderPlanning() {
   if (!elements.planningConfigForm) return;
   const c = planningConfig();
+  const profile = typeof contestPlanningProfile === "function" ? contestPlanningProfile(state, todayISO()) : null;
   const scoreContext = buildPlanningScoreContext();
   c.dayContentModes = normalizeDayContentModes(c.dayContentModes);
-  elements.planningExamDate.value = c.examDate || state.edital.examDate || ""; elements.planningScaleType.value = c.scaleType; if (elements.planningScaleReferenceDate) elements.planningScaleReferenceDate.value = c.scaleReferenceDate || todayISO(); if (elements.planningScaleReferencePosition) elements.planningScaleReferencePosition.value = String(Number(c.scaleReferencePosition)||0); if (elements.scale3x6Fields) elements.scale3x6Fields.hidden = c.scaleType !== "3 dias de trabalho / 6 dias de folga"; elements.planningScaleNotes.value = c.scaleNotes || ""; elements.planningShiftHours.value = c.shiftHours; elements.planningRestHours.value = c.restHours; elements.planningNormalHours.value = c.normalHours; elements.planningMinWeeklyHours.value = c.minWeeklyHours; elements.planningIdealWeeklyHours.value = c.idealWeeklyHours; elements.planningWeeklyTopics.value = c.weeklyTopics; elements.planningDisciplinesPerDay.value = c.disciplinesPerDay; elements.planningDisciplinesPerWeek.value = c.disciplinesPerWeek; elements.planningDisciplinesPerMonth.value = c.disciplinesPerMonth; elements.planningTopicsPerDay.value = c.topicsPerDay; elements.planningTopicsPerWeek.value = c.topicsPerWeek; elements.planningTopicsPerMonth.value = c.topicsPerMonth; elements.planningSafetyDays.value = c.safetyDays;
+  if (elements.planningModeSelect) elements.planningModeSelect.value = state.planningMode || "joint";
+  if (elements.planningContestResume) elements.planningContestResume.textContent = `${profile?.label || "PCPR + PCMA"} • prova principal em ${formatDateBR(profile?.examDate || "")}`;
+  if (elements.planningContestSummary) {
+    const categories = Object.entries(profile?.categories || {}).filter(([, value]) => Number(value) > 0).map(([key, value]) => `${key}: ${value}%`).join(" • ");
+    elements.planningContestSummary.textContent = `${profile?.label || "Planejamento conjunto"}. Conteúdos ativos: ${categories || "configuração histórica"}.${profile?.phase === "post-pcpr" ? " A fase pós-PCPR está ativa; categoria B não gera novas metas." : ""}`;
+  }
+  elements.planningExamDate.value = profile?.examDate || c.examDate || state.edital.examDate || ""; elements.planningScaleType.value = c.scaleType; if (elements.planningScaleReferenceDate) elements.planningScaleReferenceDate.value = c.scaleReferenceDate || todayISO(); if (elements.planningScaleReferencePosition) elements.planningScaleReferencePosition.value = String(Number(c.scaleReferencePosition)||0); if (elements.scale3x6Fields) elements.scale3x6Fields.hidden = c.scaleType !== "3 dias de trabalho / 6 dias de folga"; elements.planningScaleNotes.value = c.scaleNotes || ""; elements.planningShiftHours.value = c.shiftHours; elements.planningRestHours.value = c.restHours; elements.planningNormalHours.value = c.normalHours; elements.planningMinWeeklyHours.value = c.minWeeklyHours; elements.planningIdealWeeklyHours.value = c.idealWeeklyHours; elements.planningWeeklyTopics.value = c.weeklyTopics; elements.planningDisciplinesPerDay.value = c.disciplinesPerDay; elements.planningDisciplinesPerWeek.value = c.disciplinesPerWeek; elements.planningDisciplinesPerMonth.value = c.disciplinesPerMonth; elements.planningTopicsPerDay.value = c.topicsPerDay; elements.planningTopicsPerWeek.value = c.topicsPerWeek; elements.planningTopicsPerMonth.value = c.topicsPerMonth; elements.planningSafetyDays.value = c.safetyDays;
   renderPlanningDayModes(); renderPlanningSummary(); renderPlanningMaterialEstimates(); (window.requestAnimationFrame || ((fn) => setTimeout(fn, 0)))(() => renderPlanningPreview(scoreContext));
   elements.availabilityCalendar.innerHTML = Array.from({length: 21}, (_, i) => { const date = addDays(todayISO(), i); const av = availabilityForDate(date); return `<article class="syllabus-card"><header><div><h3>${formatDateBR(date)}</h3><div class="item-meta">Horas estimadas editáveis para este dia.</div></div></header><div class="card-actions"><label>Tipo <select data-availability-type="${date}">${["plantão","folga","dia normal","indisponível","estudo leve","estudo forte"].map((t)=>`<option ${av.type===t?"selected":""}>${t}</option>`).join("")}</select></label><label>Horas <input data-availability-hours="${date}" type="number" min="0" step="0.5" value="${av.hours}"></label></div></article>`; }).join("");
   const m = planningMetrics();
@@ -4594,9 +4626,26 @@ function renderDashboard() {
   renderDashboardGoalsScaleSummary();
 }
 function renderEdital() { ["contestName", "agency", "role", "board", "examDate", "officialLink", "generalNotes"].forEach((key) => { elements[key].value = state.edital[key] || ""; }); elements.pdfInfo.innerHTML = state.edital.pdf ? `<strong>Arquivo:</strong> ${escapeHTML(state.edital.pdf.name)}<br><span class="item-meta">Anexado em ${escapeHTML(state.edital.pdf.attachedAt)}</span>` : ""; }
+function contestBadgesForItem(item = {}) {
+  const mappings = typeof officialMappingsForItem === "function" ? officialMappingsForItem(state, item.id) : [];
+  const contests = new Set(mappings.map((mapping) => mapping.contestId));
+  const categories = [...new Set(mappings.map((mapping) => mapping.classification))];
+  const badges = [];
+  if (contests.has("pcpr-2026-delegado") && contests.has("pcma-2026-delegado")) badges.push('<span class="badge success">Comum PCPR/PCMA</span>');
+  else if (contests.has("pcpr-2026-delegado")) badges.push('<span class="badge warn">Exclusivo PCPR</span>');
+  else if (contests.has("pcma-2026-delegado")) badges.push('<span class="badge neutral">Exclusivo PCMA</span>');
+  if (categories.length) badges.push(`<span class="badge">Categoria ${escapeHTML(categories.join("/"))}</span>`);
+  return badges.join(" ");
+}
+function officialCoverageHTML(item = {}) {
+  const mappings = typeof officialMappingsForItem === "function" ? officialMappingsForItem(state, item.id) : [];
+  if (!mappings.length) return "";
+  return `<details class="planning-history-details"><summary>Redação oficial vinculada (${mappings.length})</summary>${mappings.map((mapping) => `<p><strong>${mapping.contestId.startsWith("pcpr") ? "PCPR" : "PCMA"} ${escapeHTML(mapping.code)}:</strong> ${escapeHTML(mapping.topic)} <small>${escapeHTML(mapping.reference || "")}</small></p>`).join("")}</details>`;
+}
 function getFilteredItems() {
   const term = canonical(elements.filterSearch.value);
   return state.syllabusItems.filter((item) => {
+    if (item.hiddenFromCatalog) return false;
     const haystack = [item.discipline, item.topic, item.subject, item.subtopic, item.reference, item.notes].map(canonical).join(" ");
     return (!term || haystack.includes(term))
       && (!elements.filterDiscipline.value || item.discipline === elements.filterDiscipline.value)
@@ -4621,11 +4670,11 @@ function renderSyllabus() {
     const undiagnosed = isUndiagnosed(item);
     const card = document.createElement("article"); card.className = "syllabus-card";
     const linked = materialsForTopic(item.discipline, item.subject, item.id);
-    card.innerHTML = `<header><div><h3>${escapeHTML(item.discipline)} — ${escapeHTML(item.subject)}</h3><div class="item-meta">${escapeHTML(item.topic)}${item.subtopic ? ` • ${escapeHTML(item.subtopic)}` : ""}</div></div><span class="badge ${isTopicStudied(item) ? "success" : isTopicStarted(item) ? "warn" : "neutral"}">${escapeHTML(normalizeProgressStatus(item.status))}</span></header><div class="card-meta-grid"><span>Status: ${escapeHTML(item.status)}</span><span>Domínio: ${escapeHTML(item.domain)}</span><span>Diagnóstico: ${undiagnosed ? "Sem diagnóstico" : weak ? "Fraco" : "OK"}</span><span>Tempo no assunto: ${formatHours(minutesForItem(item))}</span><span>Incidência do assunto: ${normalizeSubjectIncidence(item.weight)} = ${escapeHTML(subjectIncidenceLabel(item.weight))}</span><span>Ref.: ${escapeHTML(item.reference || "-")}</span></div>${item.notes ? `<p class="item-meta">${escapeHTML(item.notes)}</p>` : ""}${linkedMaterialsHTML(linked)}<div class="card-actions"><label>Incidência do assunto <select data-incidence-id="${item.id}" title="Incidência do assunto: usada para priorizar o estudo sem alterar a ordem do edital.">${subjectIncidenceOptions(item.weight)}</select></label><button type="button" data-action="edit" data-id="${item.id}">Editar</button><button type="button" data-action="not-started" data-id="${item.id}">Não iniciado</button><button type="button" data-action="started" data-id="${item.id}">Iniciado</button><button type="button" data-action="studied" data-id="${item.id}">Concluído</button><button type="button" data-action="review" data-id="${item.id}">Revisado</button><button type="button" data-action="weak" data-id="${item.id}">Marcar como fraco</button><button type="button" data-action="schedulable" data-id="${item.id}">${setting.availability === "Agendável" ? "Desativar" : "Ativar"} agendável</button><button class="danger" type="button" data-action="delete" data-id="${item.id}">Excluir assunto</button></div><div class="progress-controls"><label>Tempo estudado no assunto (min)<input type="number" min="0" data-progress-field="minutes" data-progress-id="${item.id}" value="${Number(item.studyMinutes) || 0}"></label><label>Observação curta<input type="text" maxlength="140" data-progress-field="notes" data-progress-id="${item.id}" value="${escapeHTML(item.progressNotes || "")}" placeholder="Ex.: revisar exceções"></label></div>`;
+    card.innerHTML = `<header><div><h3>${escapeHTML(item.discipline)} — ${escapeHTML(item.subject)}</h3><div class="item-meta">${escapeHTML(item.topic)}${item.subtopic ? ` • ${escapeHTML(item.subtopic)}` : ""}</div><div class="tag-list">${contestBadgesForItem(item)}</div></div><span class="badge ${isTopicStudied(item) ? "success" : isTopicStarted(item) ? "warn" : "neutral"}">${escapeHTML(normalizeProgressStatus(item.status))}</span></header><div class="card-meta-grid"><span>Status: ${escapeHTML(item.status)}</span><span>Domínio: ${escapeHTML(item.domain)}</span><span>Diagnóstico: ${undiagnosed ? "Sem diagnóstico" : weak ? "Fraco" : "OK"}</span><span>Tempo no assunto: ${formatHours(minutesForItem(item))}</span><span>Incidência do assunto: ${normalizeSubjectIncidence(item.weight)} = ${escapeHTML(subjectIncidenceLabel(item.weight))}</span><span>Ref.: ${escapeHTML(item.reference || "-")}</span></div>${officialCoverageHTML(item)}${item.notes ? `<p class="item-meta">${escapeHTML(item.notes)}</p>` : ""}${linkedMaterialsHTML(linked)}<div class="card-actions"><label>Incidência do assunto <select data-incidence-id="${item.id}" title="Incidência do assunto: usada para priorizar o estudo sem alterar a ordem do edital.">${subjectIncidenceOptions(item.weight)}</select></label><button type="button" data-action="edit" data-id="${item.id}">Editar</button><button type="button" data-action="not-started" data-id="${item.id}">Não iniciado</button><button type="button" data-action="started" data-id="${item.id}">Iniciado</button><button type="button" data-action="studied" data-id="${item.id}">Concluído</button><button type="button" data-action="review" data-id="${item.id}">Revisado</button><button type="button" data-action="weak" data-id="${item.id}">Marcar como fraco</button><button type="button" data-action="schedulable" data-id="${item.id}">${setting.availability === "Agendável" ? "Desativar" : "Ativar"} agendável</button><button class="danger" type="button" data-action="delete" data-id="${item.id}">Excluir assunto</button></div><div class="progress-controls"><label>Tempo estudado no assunto (min)<input type="number" min="0" data-progress-field="minutes" data-progress-id="${item.id}" value="${Number(item.studyMinutes) || 0}"></label><label>Observação curta<input type="text" maxlength="140" data-progress-field="notes" data-progress-id="${item.id}" value="${escapeHTML(item.progressNotes || "")}" placeholder="Ex.: revisar exceções"></label></div>`;
     elements.syllabusList.appendChild(card);
   });
 }
-function renderSchedulable() { elements.schedulableList.innerHTML = ""; state.syllabusItems.forEach((item) => { const setting = settingFor(item.id); const linked = materialsForTopic(item.discipline, item.subject, item.id); const card = document.createElement("article"); card.className = "syllabus-card"; card.innerHTML = `<header><div><h3>${escapeHTML(item.discipline)} — ${escapeHTML(item.subject)}</h3><div class="item-meta">${escapeHTML(item.topic)} • ${escapeHTML(item.status)} • domínio ${escapeHTML(item.domain)}</div></div><span class="badge ${setting.priority ? "danger" : isSchedulable(item.id) ? "success" : "neutral"}">${setting.priority ? "Prioritário" : setting.availability}</span></header><div class="card-actions"><label>Disponibilidade <select data-setting="availability" data-id="${item.id}"><option ${setting.availability === "Agendável" ? "selected" : ""}>Agendável</option><option ${setting.availability === "Não agendável" ? "selected" : ""}>Não agendável</option></select></label><label>Tipo <select data-setting="mode" data-id="${item.id}"><option ${setting.mode === "Revisão apenas" ? "selected" : ""}>Revisão apenas</option><option ${setting.mode === "Questões apenas" ? "selected" : ""}>Questões apenas</option><option ${setting.mode === "Estudo teórico" ? "selected" : ""}>Estudo teórico</option><option ${setting.mode === "Estudo + questões" ? "selected" : ""}>Estudo + questões</option></select></label><label><input type="checkbox" data-setting="priority" data-id="${item.id}" ${setting.priority ? "checked" : ""}> Assunto prioritário</label></div>${linkedMaterialsHTML(linked)}<div class="card-actions"><button type="button" data-create-factory-from-syllabus="${item.id}">Criar na Fábrica</button></div>`; elements.schedulableList.appendChild(card); }); }
+function renderSchedulable() { elements.schedulableList.innerHTML = ""; state.syllabusItems.filter((item) => !item.hiddenFromCatalog).forEach((item) => { const setting = settingFor(item.id); const linked = materialsForTopic(item.discipline, item.subject, item.id); const card = document.createElement("article"); card.className = "syllabus-card"; card.innerHTML = `<header><div><h3>${escapeHTML(item.discipline)} — ${escapeHTML(item.subject)}</h3><div class="item-meta">${escapeHTML(item.topic)} • ${escapeHTML(item.status)} • domínio ${escapeHTML(item.domain)}</div><div class="tag-list">${contestBadgesForItem(item)}</div></div><span class="badge ${setting.priority ? "danger" : isSchedulable(item.id) ? "success" : "neutral"}">${setting.priority ? "Prioritário" : setting.availability}</span></header><div class="card-actions"><label>Disponibilidade <select data-setting="availability" data-id="${item.id}"><option ${setting.availability === "Agendável" ? "selected" : ""}>Agendável</option><option ${setting.availability === "Não agendável" ? "selected" : ""}>Não agendável</option></select></label><label>Tipo <select data-setting="mode" data-id="${item.id}"><option ${setting.mode === "Revisão apenas" ? "selected" : ""}>Revisão apenas</option><option ${setting.mode === "Questões apenas" ? "selected" : ""}>Questões apenas</option><option ${setting.mode === "Estudo teórico" ? "selected" : ""}>Estudo teórico</option><option ${setting.mode === "Estudo + questões" ? "selected" : ""}>Estudo + questões</option></select></label><label><input type="checkbox" data-setting="priority" data-id="${item.id}" ${setting.priority ? "checked" : ""}> Assunto prioritário</label></div>${officialCoverageHTML(item)}${linkedMaterialsHTML(linked)}<div class="card-actions"><button type="button" data-create-factory-from-syllabus="${item.id}">Criar na Fábrica</button></div>`; elements.schedulableList.appendChild(card); }); }
 
 function lastStudyDateForItem(item) {
   const dates = [
@@ -5389,7 +5438,7 @@ function qconcursosNumberResolution(item = {}) {
 }
 function qconcursosNumberForItem(item = {}) { return qconcursosNumberResolution(item).number; }
 function questionItemOptionLabel(item = {}, showQconcursosNumber = false) { const base = `${item.subject || item.assunto || "Assunto sem nome"}${item.subtopic || item.subtema ? ` • ${item.subtopic || item.subtema}` : ""}`; const resolution = qconcursosNumberResolution(item); if (!showQconcursosNumber) return base; if (resolution.number) return `[QC ${resolution.number}] ${base}`; return resolution.source === "reviewed-unavailable" ? `[QC sem código próprio] ${base}` : base; }
-function optionsForItems(select, discipline, current = "", options = {}) { const items = state.syllabusItems.filter((item) => !discipline || item.discipline === discipline); select.innerHTML = '<option value="">Selecione</option>' + items.map((item) => `<option value="${item.id}" ${item.id === current ? "selected" : ""}>${escapeHTML(questionItemOptionLabel(item, options.showQconcursosNumber === true))}</option>`).join(""); }
+function optionsForItems(select, discipline, current = "", options = {}) { const items = state.syllabusItems.filter((item) => !item.hiddenFromCatalog && (!discipline || item.discipline === discipline)); select.innerHTML = '<option value="">Selecione</option>' + items.map((item) => `<option value="${item.id}" ${item.id === current ? "selected" : ""}>${escapeHTML(questionItemOptionLabel(item, options.showQconcursosNumber === true))}</option>`).join(""); }
 function renderGoalSelectors() { const gd = elements.goalDiscipline.value; const gi = elements.goalSyllabusItem.value; optionsForDiscipline(elements.goalDiscipline, gd); optionsForItems(elements.goalSyllabusItem, elements.goalDiscipline.value || gd, gi); }
 function renderQuestionSelectors() { const qd = elements.questionDiscipline.value; const qi = elements.questionSyllabusItem.value; optionsForDiscipline(elements.questionDiscipline, qd); optionsForItems(elements.questionSyllabusItem, elements.questionDiscipline.value || qd, qi, { showQconcursosNumber: true }); const fd = elements.questionFilterDiscipline.value; optionsForDiscipline(elements.questionFilterDiscipline, fd); elements.questionFilterDiscipline.querySelector('option').textContent = 'Todas'; const fs = elements.questionFilterSubject.value; elements.questionFilterSubject.innerHTML = '<option value="">Todos</option>' + state.syllabusItems.filter((item) => !elements.questionFilterDiscipline.value || item.discipline === elements.questionFilterDiscipline.value).map((item) => `<option value="${item.id}" ${item.id === fs ? "selected" : ""}>${escapeHTML(questionItemOptionLabel(item, true))}</option>`).join(''); }
 function goalTypeForItem(item) { const mode = item.importMeta?.tipo_agendamento || item.tipo_agendamento || settingFor(item.id).mode; if (isWeakItem(item)) return "Reforço"; if (mode === "Questões apenas") return "Questões"; if (mode === "Revisão apenas" || item.status === "Revisar") return "Revisão"; return item.status === "Não iniciado" ? "Estudo novo" : "Questões"; }
@@ -5417,15 +5466,19 @@ function defaultDisciplineWeight(discipline) {
 }
 function normalizeDisciplineWeight(value, discipline = "") {
   const weight = Math.round(Number(value));
-  return DISCIPLINE_WEIGHT_OPTIONS.some((option) => option.value === weight) ? weight : defaultDisciplineWeight(discipline);
+  return Number.isFinite(weight) && weight >= 1 && weight <= 100 ? weight : defaultDisciplineWeight(discipline);
 }
 function disciplineWeightValue(discipline, targetState = state) {
+  const profile = typeof contestPlanningProfile === "function" ? contestPlanningProfile(targetState, todayISO()) : null;
+  const profileEntry = Object.entries(profile?.disciplineWeights || {}).find(([name]) => normalizeMatchText(name) === normalizeMatchText(discipline));
+  if (profileEntry) return normalizeDisciplineWeight(profileEntry[1], discipline);
   const stored = targetState.disciplineWeights?.[discipline];
   return stored === undefined || stored === null || stored === "" ? defaultDisciplineWeight(discipline) : normalizeDisciplineWeight(stored, discipline);
 }
 function disciplineWeightOptions(discipline) {
   const current = disciplineWeightValue(discipline);
-  return DISCIPLINE_WEIGHT_OPTIONS.map((option) => `<option value="${option.value}" ${current === option.value ? "selected" : ""}>${option.value} = ${option.label}</option>`).join("");
+  const values = [...new Set([current, ...DISCIPLINE_WEIGHT_OPTIONS.map((option) => option.value)])].sort((a, b) => b - a);
+  return values.map((value) => { const label = DISCIPLINE_WEIGHT_OPTIONS.find((option) => option.value === value)?.label || "Oficial"; return `<option value="${value}" ${current === value ? "selected" : ""}>${value} = ${label}</option>`; }).join("");
 }
 function ensureDefaultDisciplineWeights() {
   state.disciplineWeights ||= {};
@@ -5466,7 +5519,7 @@ function buildPlanningScoreContext(targetState = state) {
     scores.set(item.id, disciplineWeightValue(item.discipline) * 18 + pending / total * 40 + (item.status === "Não iniciado" ? 35 : 0) + (!diagnosed ? 18 : 0) + (weakItem ? 42 : 0) + (weakness.question || 0) * .7 + (weakness.mock || 0) * .4 + (normalizeSubjectIncidence(item.weight) - 3) * 10 + reviewDue + examBoost); itemMetrics.set(item.id, { diagnosed, minutes, performance: { ...performance, net }, weakItem }); if (typeof performanceCounters !== "undefined") { performanceCounters.scoreExecutions++; performanceCounters.scoredItems++; }
   });
   const completedRecords = completedPlanningSubjectRecords(targetState);
-  const candidates = (targetState.syllabusItems || []).filter((item) => isSchedulable(item.id) && item.status !== "Ignorado" && !planningRecordMatchesCompletedSubject(item, completedRecords)).sort((a, b) => (scores.get(b.id) || 0) - (scores.get(a.id) || 0));
+  const candidates = (targetState.syllabusItems || []).filter((item) => isSchedulable(item.id) && !item.hiddenFromCatalog && item.status !== "Ignorado" && !planningRecordMatchesCompletedSubject(item, completedRecords)).sort((a, b) => (scores.get(b.id) || 0) - (scores.get(a.id) || 0));
   return { studiesBySyllabusItemId, goalsBySyllabusItemId, questionLogsBySyllabusItemId, studiesByDisciplineSubject, goalsByDisciplineSubject, questionsByDisciplineSubject, materialsBySyllabusItemId, materialsByParentSyllabusItemId, materialsByDisciplineSubject, materialEstimateBySyllabusItemId, pendingByDiscipline, totalByDiscipline, weaknesses, itemMetrics, scores, candidates };
 }
 function disciplineQuestionWeakness(discipline) { return buildPlanningScoreContext().weaknesses[discipline]?.question || 0; }
@@ -5574,7 +5627,7 @@ function planningTargetsForDate(date, targetState = state, opts = {}) {
   const unavailable = availabilityForDate(date, targetState).type === "indisponível";
   const enabled = dayModeIncludesGoals(dayContent.mode) && (!unavailable || opts.manual);
   const disciplines = enabled ? Math.max(1, Number(config.disciplinesPerDay) || 1) : 0;
-  const topics = disciplines;
+  const topics = enabled ? Math.max(disciplines, Number(config.topicsPerDay) || disciplines) : 0;
   return { topics, disciplines, dayContent, unavailable, oneGoalPerDiscipline: true };
 }
 function eligiblePlanningGoalsForDate(date, opts = {}) {
@@ -5589,6 +5642,7 @@ function eligiblePlanningGoalsForDate(date, opts = {}) {
   });
   const eligible = [];
   for (const item of context.candidates) {
+    if (typeof isItemEnabledForPlanning === "function" && !isItemEnabledForPlanning(targetState, item.id, date)) continue;
     if (reserved.has(planningItemKey(item))) continue;
     const [goal] = makeGoal(item, date, context.itemMetrics.get(item.id)?.weakItem ? "Reforço" : goalTypeForItem(item), context, targetState);
     if (goal) eligible.push(goal);
@@ -6024,13 +6078,10 @@ function confirmGoalCompletion(goalId = goalCompletionActiveGoalId) {
   goal.questionActualMinutes = questionActualMinutes;
   goal.actualMinutes = actualMinutes;
 
-  const estimatedTotal = validEstimatedMinutes(goal.estimatedTotalMinutes);
+  const estimatedTotal = Math.max(0, Number(goal.estimatedTotalMinutes) || 0);
   const accumulated = typeof relatedGoalExecutionMinutes === "function" ? relatedGoalExecutionMinutes(goal) : actualMinutes;
   const estimatedRemaining = Math.max(0, estimatedTotal - accumulated);
-  let materialFinished = estimatedTotal > 0 ? estimatedRemaining <= 0 : false;
-  if (actualMinutes > 0 && estimatedRemaining <= 0) {
-    materialFinished = window.confirm("Você terminou integralmente este assunto/material?\n\nOK: encerrar o assunto.\nCancelar: encerrar apenas a sessão e continuar em outro dia.");
-  }
+  const materialFinished = estimatedTotal <= 0 || estimatedRemaining <= 0;
 
   goal.status = "Concluída";
   goal.studyStatus = materialFinished ? "Concluído" : "Sessão concluída";
@@ -6087,7 +6138,7 @@ function confirmGoalCompletion(goalId = goalCompletionActiveGoalId) {
   closeGoalCompletionModal();
   const replacementMessage = replanReport.removed.length ? ` ${replanReport.removed.length} meta(s) futura(s) deste assunto foram substituída(s) por ${replanReport.added.length} novo(s) assunto(s) pendente(s).` : "";
   const continuationMessage = continuation && !materialFinished ? ` A continuação foi encaixada em ${formatDateBR(goalDateValue(continuation))}.` : "";
-  showDailyGoalMessage(`${actualMinutes > 0 ? (materialFinished ? `Assunto concluído. Os ${actualMinutes} minutos desta sessão foram mantidos.` : `Sessão concluída. Os ${actualMinutes} minutos foram mantidos e o assunto continua em andamento.`) : "Meta concluída sem tempo registrado."}${continuationMessage}${replacementMessage}`, "success");
+  showDailyGoalMessage(`${actualMinutes > 0 ? (materialFinished ? `Meta concluída. Os ${actualMinutes} minutos registrados foram mantidos.` : `Sessão concluída. Os ${actualMinutes} minutos foram mantidos e o assunto continua em andamento.`) : "Meta concluída sem tempo registrado."}${continuationMessage}${replacementMessage}`, "success");
   goalCompletionInProgress.delete(goalId);
 }
 function updateGoalDone(goal) {
@@ -7049,6 +7100,21 @@ if (elements.generateDailyGoals) elements.generateDailyGoals.addEventListener("c
 elements.refreshDailyGoalsFromPlanning?.addEventListener("click", refreshDailyGoalsFromPlanning);
 
 elements.planningDayModes?.addEventListener("change", (event) => { const type = event.target.dataset.dayModeType; if (!type) return; const card = event.target.closest("[data-day-mode-card]"); const targetField = card?.querySelector(".question-target-field"); if (targetField) targetField.hidden = event.target.value === "goals_only"; });
+elements.planningModeSelect?.addEventListener("change", () => {
+  const previous = state.planningMode || "joint";
+  const mode = ["pcpr", "pcma", "joint"].includes(elements.planningModeSelect.value) ? elements.planningModeSelect.value : "joint";
+  if (mode === previous) return;
+  state.planningMode = mode;
+  state.activeContestId = mode === "pcma" ? "pcma-2026-delegado" : "pcpr-2026-delegado";
+  state.planningModeHistory ||= [];
+  state.planningModeHistory.push({ id: createId(), changedAt: new Date().toISOString(), previousMode: previous, mode });
+  const profile = typeof contestPlanningProfile === "function" ? contestPlanningProfile(state, todayISO()) : null;
+  if (profile?.examDate) state.planning.config.examDate = profile.examDate;
+  saveData({ markLocalChange: true });
+  render();
+  setPlanningSaveStatus(`Modo alterado para ${profile?.label || mode}. Metas anteriores foram preservadas; apenas novas metas seguem este perfil.`);
+  autoSyncAfterSave("planning-mode");
+});
 elements.planningConfigForm?.addEventListener("toggle", (event) => { const section = event.target.closest?.("details[data-planning-section]"); if (!section) return; if (section.open && matchMedia("(max-width: 768px)").matches) document.querySelectorAll("#planningConfigForm details[data-planning-section]").forEach((other)=>{ if (other !== section) other.open = false; }); const open = [...document.querySelectorAll("#planningConfigForm details[data-planning-section][open]")].map((el)=>el.dataset.planningSection); sessionStorage.setItem("planningOpenSections", JSON.stringify(open)); }, true);
 try { const saved = JSON.parse(sessionStorage.getItem("planningOpenSections") || "null"); if (Array.isArray(saved)) document.querySelectorAll("#planningConfigForm details[data-planning-section]").forEach((section)=>{ section.open = saved.includes(section.dataset.planningSection); }); } catch {}
 
@@ -7067,7 +7133,13 @@ elements.disciplineWeightsList?.addEventListener("change", (event) => {
   // Compatibilidade: state.disciplineWeights[d]=normalizeDisciplineWeight(event.target.value, d)
   const discipline = event.target.dataset.disciplineWeight;
   if (!discipline) return;
-  state.disciplineWeights[discipline] = normalizeDisciplineWeight(event.target.value, discipline);
+  const weight = normalizeDisciplineWeight(event.target.value, discipline);
+  state.disciplineWeights[discipline] = weight;
+  const mode = state.planningMode || "joint";
+  if (state.contestPlanningProfiles?.[mode]) {
+    state.contestPlanningProfiles[mode].disciplineWeights ||= {};
+    state.contestPlanningProfiles[mode].disciplineWeights[discipline] = weight;
+  }
   saveData({ markLocalChange: true });
   render();
   setGoalCalendarGenerationStatus(`Peso de ${discipline} salvo. Ele será usado nas próximas gerações de metas.`);
@@ -7324,10 +7396,10 @@ function handleFactoryFilterClick(event) {
   } catch (error) { showFactoryEventError("filtro", error); }
 }
 function handleFactoryScopeClick(event) {
-  const button = event.target.closest("[data-factory-scope]");
+  const button = event.target.closest("[data-production-scope]");
   if (!button) return;
   event.preventDefault();
-  factoryProductionScope = button.dataset.factoryScope === "week" ? "week" : "day";
+  factoryProductionScope = button.dataset.productionScope === "week" ? "week" : "day";
   factoryCurrentFilter = "faca-agora"; factoryOpenDetailId = ""; factoryVisibleCount = 20;
   renderFactory();
 }
@@ -7489,6 +7561,12 @@ async function bootstrapApplication() {
 
     replaceState(chosenState);
     mergeCompatibleLocalStorageData();
+    const legacyGoalIdRecoveryReport = recoverLegacyTimerMinutesForGoals(state);
+    const legacyOrphanRecoveryReport = recoverOrphanLegacyTimerMinutesForGoals(state);
+    const legacyTimerRecoveryReport = mergeLegacyTimerRecoveryReports(legacyGoalIdRecoveryReport, legacyOrphanRecoveryReport);
+    window.__legacyTimerRecoveryReport = legacyTimerRecoveryReport;
+    console.info("[Metas Estudo] Recuperação de tempos antigos", legacyTimerRecoveryReport);
+    if (legacyTimerRecoveryReport.recoveredMinutes) saveData({ markLocalChange: true });
     const replacementRepairReportV108 = globalThis.__dailyPlanningInflationRepairV108 || { changed: false, removed: [], reports: [] };
     const legacyDailyPlanningRepairV108 = repairDailyPlanningInflationV108(state, { source: "bootstrap-legacy" });
     const dailyPlanningRepairV108 = {
@@ -7500,12 +7578,6 @@ async function bootstrapApplication() {
     const dailyPlanningMethodologyV117 = reconcileDailyGoalsWithPlanning(state, todayISO());
     window.__dailyPlanningMethodologyV117 = dailyPlanningMethodologyV117;
     if (dailyPlanningRepairV108.changed || dailyPlanningMethodologyV117.added.length || dailyPlanningMethodologyV117.removed.length) saveData({ markLocalChange: true });
-    const legacyGoalIdRecoveryReport = recoverLegacyTimerMinutesForGoals(state);
-    const legacyOrphanRecoveryReport = recoverOrphanLegacyTimerMinutesForGoals(state);
-    const legacyTimerRecoveryReport = mergeLegacyTimerRecoveryReports(legacyGoalIdRecoveryReport, legacyOrphanRecoveryReport);
-    window.__legacyTimerRecoveryReport = legacyTimerRecoveryReport;
-    console.info("[Metas Estudo] Recuperação de tempos antigos", legacyTimerRecoveryReport);
-    if (legacyTimerRecoveryReport.recoveredMinutes) saveData({ markLocalChange: true });
     syncAllFactoryMaterials();
     const goalIntegrityReport = repairAutomaticGoalDuplicatesV75(state);
     window.__goalIntegrityReportV75 = goalIntegrityReport;
@@ -8381,7 +8453,7 @@ function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register(`service-worker-v118.js?v=${encodeURIComponent(APP_VERSION)}`, { updateViaCache: "none" })
+    navigator.serviceWorker.register(`service-worker-v152.js?v=${encodeURIComponent(APP_VERSION)}`, { updateViaCache: "none" })
       .then((registration) => {
         registration.update();
         console.log("[Metas Estudo] Service worker registrado.");

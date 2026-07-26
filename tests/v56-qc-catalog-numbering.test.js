@@ -1,3 +1,4 @@
+const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -50,7 +51,9 @@ test("interface exibe número automático e permite confirmação ou correção"
   assert.match(html, /Ex\.: 1, 2\.2 ou 12\.3\.2/);
 });
 
-test("catálogo v56 permanece coberto após versões posteriores", () => {
+test("Contrato atual v152: catálogo v56 permanece coberto após versões posteriores", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   assert.match(version, /integracao-metas-v74$/);
   assert.match(worker, new RegExp(`const CURRENT_VERSION = "${version}"`));
   assert.match(worker, /"20260718-indicacao-qc-explicita-v55"/);

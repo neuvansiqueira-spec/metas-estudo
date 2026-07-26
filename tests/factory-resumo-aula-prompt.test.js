@@ -1,3 +1,4 @@
+const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -211,12 +212,6 @@ test('migração V4 RESUMO/AULA substitui somente resumoAula, preserva demais pr
   assert.equal(JSON.stringify(state), snapshot);
 });
 
-test('script publicado, docs e cache carregam a nova versão sem divergência', () => {
-  assert.equal(script, docsScript);
-  assert.equal(sw, docsSw);
-  assert.equal(html.includes(`script.js?v=${packageJson.version}`), true);
-  assert.equal(docsHtml.includes(`script.js?v=${packageJson.version}`), true);
-  assert.equal(sw.includes(`const CURRENT_VERSION = "${packageJson.version}"`), true);
-  assert.equal(docsSw.includes(`const CURRENT_VERSION = "${packageJson.version}"`), true);
-  assert.match(sw, /const CACHE_NAME = `metas-estudo-\$\{CURRENT_VERSION\}`/);
+test("Contrato atual v152: script publicado, docs e cache carregam a nova versão sem divergência", () => {
+  assertCurrentReleaseContract();
 });

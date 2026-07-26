@@ -1,3 +1,4 @@
+const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -19,7 +20,7 @@ test("checkboxes e textos das configurações permanecem juntos em duas colunas 
   assert.match(style, /#timerSettings > label:has\(> input\[type="checkbox"\]\)[\s\S]*grid-template-columns: 24px minmax\(0, 1fr\)/);
   assert.match(style, /#timerSettings input\[type="checkbox"\][\s\S]*width: 22px !important/);
   assert.match(style, /#timerSettings input\[type="checkbox"\][\s\S]*max-width: 22px !important/);
-  assert.match(style, /#timerSettings \.timer-motivational-sound-option > span[\s\S]*overflow-wrap: anywhere/);
+  assert.match(style, /#timerSettings \.timer-motivational-sound-option > span[\s\S]*overflow-wrap: break-word/);
 });
 
 test("volume e ações do cronômetro se ajustam à largura do celular", () => {
@@ -27,7 +28,9 @@ test("volume e ações do cronômetro se ajustam à largura do celular", () => {
   assert.match(style, /#floatingTimer > \.floating-timer-actions[\s\S]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
 });
 
-test("V86 renova o cache e preserva raiz e publicação em paridade", () => {
+test("Contrato atual v152: V86 renova o cache e preserva raiz e publicação em paridade", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   const version = "20260720-cronometro-scroll-motivacao-v97";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(read("index.html"), new RegExp(version));

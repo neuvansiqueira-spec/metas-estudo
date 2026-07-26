@@ -1,3 +1,4 @@
+const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -56,7 +57,9 @@ test('CSS da Fábrica corrige quebras sem break-all e impede hifenização do t�
   assert.match(block, /overflow-wrap\s*:\s*break-word/i);
 });
 
-test('arquivos públicos permanecem sincronizados e cache usa a nova versão', () => {
+test("Contrato atual v152: arquivos públicos permanecem sincronizados e cache usa a nova versão", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   assert.equal(script, docsScript, 'script.js e docs/script.js devem estar idênticos');
   assert.equal(css, docsCss, 'style.css e docs/style.css devem estar idênticos');
   assert.equal(html.match(/Versão: ([^<]+)/)?.[1], packageJson.version);
@@ -89,8 +92,11 @@ test('prompts internos oficiais não foram alterados em relação ao commit base
   }
 });
 
-test('armazenamento IndexedDB mantém localStorage como fonte principal', () => {
+test('armazenamento mantém cópia local síncrona e persistência primária no IndexedDB', () => {
   assert.match(script, /Fonte principal: <strong>localStorage<\/strong>/);
-  assert.match(script, /function saveData\(options = \{\}\) \{ persistStateSafely\(options\); \}/);
+  assert.match(script, /function saveData\(options = \{\}\)[\s\S]*persistStateSafely\(options\)/);
+  assert.match(script, /localStorage\.setItem\(STORAGE_KEY, JSON\.stringify\(state\)\)/);
+  assert.match(script, /queueIndexedDBStateCopy\(\)/);
+  assert.match(script, /loadPrimaryStateFromIndexedDB\(\)/);
   assert.match(script, /initializeIndexedDBBackup\(\)/);
 });

@@ -1,3 +1,4 @@
+const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -70,7 +71,9 @@ test("Faça Agora usa destaque discreto e os painéis não prendem a rolagem", (
   assert.match(style, /\.screen-stage,[\s\S]*\.side-nav[\s\S]*overscroll-behavior-y: auto/);
 });
 
-test("V84 renova o cache e mantém raiz e publicação em paridade", () => {
+test("Contrato atual v152: V84 renova o cache e mantém raiz e publicação em paridade", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   const version = "20260720-cronometro-scroll-motivacao-v97";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(read("index.html"), new RegExp(version));

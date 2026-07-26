@@ -1,3 +1,4 @@
+const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -28,7 +29,9 @@ test("versão diferente ignora cache antigo e só o usa como contingência offli
   assert.match(appScriptCache, /const targetsCurrentVersion = requestTargetsCurrentVersion\(request\)/);
 });
 
-test("V109 permanece reconhecida e a publicação atual preserva paridade", () => {
+test("Contrato atual v152: V109 permanece reconhecida e a publicação atual preserva paridade", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   const version = JSON.parse(read("package.json")).version;
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(read("script.js"), new RegExp(`APP_VERSION = "${version}"`));

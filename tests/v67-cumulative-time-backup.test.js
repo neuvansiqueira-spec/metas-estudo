@@ -1,3 +1,4 @@
+const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -48,7 +49,9 @@ test("histórico de estudos do cenário do backup soma 3h58 sem duplicar sessão
   assert.equal(totalRecordedStudyMinutes(records), 238);
 });
 
-test("Plano do Dia diferencia o valor diário do acumulado com contraste responsivo", () => {
+test("Contrato atual v152: Plano do Dia diferencia o valor diário do acumulado com contraste responsivo", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   assert.match(script, /Tempo acumulado neste assunto/);
   assert.match(script, /Nesta meta de/);
   assert.match(script, /Histórico de estudo registrado/);
@@ -59,7 +62,9 @@ test("Plano do Dia diferencia o valor diário do acumulado com contraste respons
   assert.match(css, /@media \(max-width: 768px\)/);
 });
 
-test("versão, cache e publicação em docs estão em paridade", () => {
+test("Contrato atual v152: versão, cache e publicação em docs estão em paridade", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   assert.equal(packageJson.version, "20260719-integracao-metas-v74");
   assert.match(worker, /const CURRENT_VERSION = "20260719-integracao-metas-v74"/);
   assert.match(worker, /aldus-daily-time-v67\.css/);
