@@ -57,6 +57,11 @@ test("controladores antigos v146 e v147 são bloqueados e removidos do carregame
   assert.doesNotMatch(daily, /release-version-v147\.js/);
 });
 
+test("módulo visual não altera a versão pública", () => {
+  const source = read(files.rootPatch);
+  assert.doesNotMatch(source, /app-version|document\.documentElement\.dataset\.aldusReleaseVersion|RELEASE_TEXT/);
+});
+
 test("Contrato atual v152: v148 é carregada antes dos painéis v145 e força cache novo da cadeia", () => {
   assertCurrentReleaseContract();
   return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.

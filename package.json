@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260726-inicializacao-segura-v153",
+  "version": "20260726-versao-unica-cache-v154",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

@@ -67,17 +67,10 @@
     brand.innerHTML = `<img class="aldus-meta-brand-logo" src="icons/aldus-meta-logo.svg?v=${VERSION}" alt="Aldus Meta">`;
   }
 
-  function updateVisibleVersion() {
-    document.querySelectorAll(".app-version").forEach((element) => {
-      element.textContent = `Versão: ${VERSION}`;
-    });
-  }
-
   function applyBranding() {
     installBrandStyles();
     updateDocumentBrand();
     applyHeaderBrand();
-    updateVisibleVersion();
     document.documentElement.dataset.brand = "aldus-meta";
   }
 

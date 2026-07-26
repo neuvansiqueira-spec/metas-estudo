@@ -1,9 +1,5 @@
 /* V147: não exibe versões antigas ou intermediárias durante o carregamento. */
-html:not([data-aldus-release-version="20260725-versao-publica-sem-transicao-v147"]) footer .app-version {
-  visibility: hidden !important;
-}
-
-html[data-aldus-release-version="20260725-versao-publica-sem-transicao-v147"] footer .app-version {
+footer .app-version {
   visibility: visible !important;
 }
 

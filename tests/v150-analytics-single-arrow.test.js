@@ -53,6 +53,11 @@ test("v150 é carregada após v149 e possui cache-buster novo", () => {
   assert.match(central, /daily-collapsibles-closed-v140\.js\?v=20260725-analise-estrategica-seta-unica-v150/);
 });
 
+test("v150 identifica apenas o módulo visual e não sobrescreve o rodapé", () => {
+  const source = read(files.rootPatch);
+  assert.doesNotMatch(source, /app-version|aldusReleaseVersion|RELEASE_TEXT/);
+});
+
 test("correção não acessa dados, armazenamento, sincronização ou rede", () => {
   const source = `${read(files.rootPatch)}\n${read(files.rootDaily)}\n${read(files.rootCentral)}`;
   for (const forbidden of ["localStorage", "sessionStorage", "indexedDB", "saveData", "syncIntegral", "fetch(", "XMLHttpRequest", "WebSocket"]) {

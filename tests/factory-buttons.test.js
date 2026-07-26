@@ -104,7 +104,8 @@ test('arquivos publicados e scripts ficam sincronizados na nova versão pública
   assert.equal(html, docsHtml);
   assert.equal(serviceWorker, docsServiceWorker);
   assert.equal(packageJson.version, version);
-  for (const source of [html, serviceWorker]) assert.match(source, new RegExp(version));
+  for (const source of [html, fs.readFileSync("app-version.js", "utf8")]) assert.match(source, new RegExp(version));
+  assert.match(serviceWorker, /importScripts\("\.\/app-version\.js"\)/);
 });
 
 test('fila da Fábrica abre o item clicado no painel principal e alterna Abrir/Fechar', () => {

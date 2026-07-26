@@ -5,6 +5,83 @@ const root = process.cwd();
 const packageVersion = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")).version;
 const releaseSuffix = packageVersion.match(/v\d+$/)?.[0] || "current";
 
+function appVersionSource(version) {
+  return `(() => {
+  "use strict";
+
+  const VERSION = ${JSON.stringify(version)};
+  const RELEASE_TEXT = \`Versão: \${VERSION}\`;
+  let correctionScheduled = false;
+
+  function applyDocumentVersion() {
+    if (typeof document === "undefined") return;
+    document.documentElement.dataset.aldusReleaseVersion = VERSION;
+    document.querySelectorAll(".app-version").forEach((element) => {
+      if (element.textContent !== RELEASE_TEXT) element.textContent = RELEASE_TEXT;
+    });
+  }
+
+  function scheduleCorrection() {
+    if (correctionScheduled) return;
+    correctionScheduled = true;
+    queueMicrotask(() => {
+      correctionScheduled = false;
+      applyDocumentVersion();
+    });
+  }
+
+  const release = Object.freeze({
+    version: VERSION,
+    text: RELEASE_TEXT,
+    suffix: VERSION.match(/v\\d+$/)?.[0] || "current",
+    apply: applyDocumentVersion
+  });
+
+  Object.defineProperty(globalThis, "__ALDUS_APP_RELEASE__", {
+    value: release,
+    configurable: false,
+    enumerable: false,
+    writable: false
+  });
+
+  if (typeof document === "undefined") return;
+  applyDocumentVersion();
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", applyDocumentVersion, { once: true });
+  }
+
+  if (typeof MutationObserver !== "undefined") {
+    const observer = new MutationObserver((mutations) => {
+      if (mutations.some((mutation) => (
+        mutation.type === "characterData"
+        || mutation.target?.closest?.(".app-version")
+        || [...(mutation.addedNodes || [])].some((node) => (
+          node.nodeType === 1 && (node.matches?.(".app-version") || node.querySelector?.(".app-version"))
+        ))
+      ))) scheduleCorrection();
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+  }
+})();
+`;
+}
+
+function synchronizeIndexVersion() {
+  const indexPath = path.join(root, "index.html");
+  const source = fs.readFileSync(indexPath, "utf8");
+  const synchronized = source
+    .replace(/app-version\.js\?v=[^"]+/g, `app-version.js?v=${packageVersion}`)
+    .replace(/app-v\d+\.css\?v=[^"]+/g, `app-${releaseSuffix}.css?v=${packageVersion}`)
+    .replace(/app-v\d+\.js\?v=[^"]+/g, `app-${releaseSuffix}.js?v=${packageVersion}`)
+    .replace(/(factory-visibility-v122\.css|factory-lei-prompt-v123\.js|central-goals-real-time-v124\.js)\?v=[^"]+/g, `$1?v=${packageVersion}`)
+    .replace(/(<p class="app-version">Versão: )[^<]+(<\/p>)/, `$1${packageVersion}$2`);
+  fs.writeFileSync(indexPath, synchronized);
+}
+
+fs.writeFileSync(path.join(root, "app-version.js"), appVersionSource(packageVersion));
+synchronizeIndexVersion();
+
 const cssSources = [
   "style.css",
   "aldus-premium-theme.css",
@@ -78,10 +155,18 @@ fs.copyFileSync(path.join(root, "service-worker.js"), path.join(root, versionedW
 fs.copyFileSync(path.join(root, "service-worker.js"), path.join(root, "docs", versionedWorkerName));
 
 for (const filename of [
-  "index.html", "style.css", "script.js", "service-worker.js", "sync-integral-core.js",
+  "index.html", "app-version.js", "style.css", "script.js", "service-worker.js", "sync-integral-core.js",
   "sync-integral-deletions.js", "sync-integral-state.js", "pcpr-pcma-2026-catalog.js",
   "pcpr-pcma-2026-migration.js", "factory-lei-prompt-v123.js",
-  "factory-final-review-v128.js"
+  "factory-final-review-v128.js", "factory-visibility-v122.css",
+  "analytics-accordion-fix-v148.js", "analytics-header-arrow-v149.js",
+  "analytics-single-arrow-v150.js", "contest-countdown-v151.js",
+  "aldus-meta-branding.js", "daily-goal-methodology-v117.js",
+  "daily-goal-replenishment-v116.js", "factory-lei-prompt-v119.js",
+  "factory-lei-prompt-v120.js", "factory-lei-prompt-v121.js",
+  "factory-lei-prompt-v122.js", "release-version-v144.js",
+  "release-version-v145.js", "release-version-v146.js",
+  "release-version-v147.js"
 ]) {
   fs.copyFileSync(path.join(root, filename), path.join(root, "docs", filename));
 }

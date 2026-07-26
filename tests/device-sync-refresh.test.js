@@ -99,7 +99,8 @@ test("publicação atual permanece sincronizada entre raiz e docs", () => {
   assert.equal(rootTimeProtection, docsTimeProtection);
   assert.equal(rootWorker, docsWorker);
   assert.equal(packageJson.version, VERSION);
-  assert.match(rootWorker, new RegExp(VERSION));
+  assert.match(fs.readFileSync("app-version.js", "utf8"), new RegExp(VERSION));
+  assert.match(rootWorker, /importScripts\("\.\/app-version\.js"\)/);
   assert.match(rootWorker, /startup-v25/);
   assert.match(rootWorker, /20260718-protecao-recuperacao-tempo-v48/);
   assert.match(rootWorker, /sync-integral-time-protection\.js/);

@@ -263,7 +263,8 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker abre o app shell pelo cache e atualiza a rede em segundo plano', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, new RegExp(`const CURRENT_VERSION = "${version}"`));
+  assert.match(sw, /importScripts\("\.\/app-version\.js"\)/);
+  assert.match(sw, /const CURRENT_VERSION = self\.__ALDUS_APP_RELEASE__\.version/);
   assert.match(sw, /const CACHE_NAME = `metas-estudo-\$\{CURRENT_VERSION\}`/);
   assert.match(sw, /cacheFirstNavigation/);
   assert.match(sw, /cacheFirstAppScript/);

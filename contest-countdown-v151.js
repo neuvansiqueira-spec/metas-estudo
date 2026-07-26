@@ -655,19 +655,12 @@
     else if (action === "import") modal.querySelector("#contestCountdownImportV151")?.click();
   }
 
-  function applyReleaseVersion() {
-    document.documentElement.dataset.aldusReleaseVersion = VERSION;
-    const label = document.querySelector("footer .app-version");
-    if (label) label.textContent = `Versão: ${VERSION}`;
-  }
-
   function start() {
     ensureStyles();
     loadState();
     ensureBlock();
     ensureModal();
     renderBlock();
-    applyReleaseVersion();
 
     if (timerId) clearInterval(timerId);
     timerId = window.setInterval(updateClock, 1000);

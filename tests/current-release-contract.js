@@ -12,6 +12,7 @@ function assertCurrentReleaseContract() {
 
   const html = read("index.html");
   const worker = read("service-worker.js");
+  const appVersion = read("app-version.js");
   const script = read("script.js");
   const jsBundle = read("app.bundle.js");
   const cssBundle = read("app.bundle.css");
@@ -19,13 +20,18 @@ function assertCurrentReleaseContract() {
   assert.equal(html, read("docs/index.html"));
   assert.equal(script, read("docs/script.js"));
   assert.equal(worker, read("docs/service-worker.js"));
+  assert.equal(appVersion, read("docs/app-version.js"));
   assert.equal(jsBundle, read("docs/app.bundle.js"));
   assert.equal(cssBundle, read("docs/app.bundle.css"));
 
+  assert.match(html, new RegExp(`app-version\\.js\\?v=${version}`));
   assert.match(html, new RegExp(`app-${suffix}\\.css\\?v=${version}`));
   assert.match(html, new RegExp(`app-${suffix}\\.js\\?v=${version}`));
-  assert.match(script, new RegExp(`const APP_VERSION = "${version}";`));
-  assert.match(worker, new RegExp(`const CURRENT_VERSION = "${version}";`));
+  assert.ok(html.indexOf("app-version.js") < html.indexOf(`app-${suffix}.js`));
+  assert.match(appVersion, new RegExp(`const VERSION = "${version}";`));
+  assert.match(script, /const APP_VERSION = globalThis\.__ALDUS_APP_RELEASE__\?\.version/);
+  assert.match(worker, /importScripts\("\.\/app-version\.js"\)/);
+  assert.match(worker, /const CURRENT_VERSION = self\.__ALDUS_APP_RELEASE__\.version/);
   assert.ok(fs.existsSync(`app-${suffix}.js`));
   assert.ok(fs.existsSync(`app-${suffix}.css`));
   assert.ok(fs.existsSync(`service-worker-${suffix}.js`));

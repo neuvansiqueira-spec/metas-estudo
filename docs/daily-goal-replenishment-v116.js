@@ -33,13 +33,6 @@
     return report;
   }
 
-  function finishVersionActivation() {
-    document.querySelectorAll(".app-version").forEach((element) => { element.textContent = `Versão: ${VERSION}`; });
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register(`service-worker-v116.js?v=${encodeURIComponent(VERSION)}`, { updateViaCache: "none" }).catch(() => {});
-    }
-  }
-
   function run() {
     if (completed || !window.__dailyPlanningInflationRepairV108) return false;
     if (typeof state === "undefined") return false;
@@ -51,10 +44,9 @@
       render();
       if (typeof autoSyncAfterSave === "function") autoSyncAfterSave("daily-goal-replenishment-v116");
     }
-    finishVersionActivation();
     return true;
   }
 
   const timer = window.setInterval(() => { if (run()) window.clearInterval(timer); }, 100);
-  window.setTimeout(() => { window.clearInterval(timer); run(); finishVersionActivation(); }, 10000);
+  window.setTimeout(() => { window.clearInterval(timer); run(); }, 10000);
 })();

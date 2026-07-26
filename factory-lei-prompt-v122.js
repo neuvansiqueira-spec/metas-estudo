@@ -287,13 +287,5 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
   applyPrompt();
 
   window.addEventListener("load", () => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register(`service-worker-v122.js?v=${encodeURIComponent(VERSION)}`, { updateViaCache: "none" })
-        .then((registration) => registration.update())
-        .catch(() => undefined);
-    }
-    const showVersion = () => document.querySelectorAll(".app-version").forEach((element) => { element.textContent = `Versão: ${VERSION}`; });
-    showVersion();
-    window.setTimeout(showVersion, 1000);
   });
 })();

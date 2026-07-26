@@ -9,7 +9,8 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260726-inicializacao-segura-v153";
+const APP_VERSION = globalThis.__ALDUS_APP_RELEASE__?.version;
+if (!APP_VERSION) throw new Error("[Aldus Meta] Fonte canônica de versão não carregada.");
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -8475,7 +8476,8 @@ function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register(`service-worker-v153.js?v=${encodeURIComponent(APP_VERSION)}`, { updateViaCache: "none" })
+    const workerSuffix = globalThis.__ALDUS_APP_RELEASE__.suffix;
+    navigator.serviceWorker.register(`service-worker-${workerSuffix}.js?v=${encodeURIComponent(APP_VERSION)}`, { updateViaCache: "none" })
       .then((registration) => {
         registration.update();
         console.log("[Metas Estudo] Service worker registrado.");
@@ -8485,15 +8487,6 @@ function registerServiceWorker() {
 }
 
 registerServiceWorker();
-
-function refreshVisibleAppVersion() {
-  document.querySelectorAll(".app-version").forEach((element) => {
-    element.textContent = `Versão: ${APP_VERSION}`;
-  });
-}
-
-refreshVisibleAppVersion();
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", refreshVisibleAppVersion, { once: true });
 
 ["visibilitychange", "pageshow", "focus"].forEach((eventName) => window.addEventListener(eventName, () => { if (!floatingTimer.goalId) return; renderFloatingTimer(); }));
 

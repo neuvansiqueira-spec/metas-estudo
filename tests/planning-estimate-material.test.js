@@ -91,5 +91,6 @@ test('arquivos publicados e versão permanecem sincronizados', () => {
   assert.equal(css, fs.readFileSync('docs/style.css', 'utf8'));
   assert.equal(fs.readFileSync('service-worker.js', 'utf8'), fs.readFileSync('docs/service-worker.js', 'utf8'));
   const version = JSON.parse(fs.readFileSync('package.json', 'utf8')).version;
-  assert.match(script, new RegExp(`const APP_VERSION = "${version}"`));
+  assert.match(script, /const APP_VERSION = globalThis\.__ALDUS_APP_RELEASE__\?\.version/);
+  assert.match(fs.readFileSync('app-version.js', 'utf8'), new RegExp(`const VERSION = "${version}"`));
 });

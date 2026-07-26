@@ -31,7 +31,7 @@ test("v153 impede a frase motivacional de bloquear o dashboard quando o storage 
 test("somente o bootstrap principal registra service worker", () => {
   assert.equal((script.match(/navigator\.serviceWorker\.register\(/g) || []).length, 1);
   assert.doesNotMatch(factoryPrompt, /serviceWorker\.register/);
-  assert.match(script, /service-worker-v153\.js/);
+  assert.match(script, /service-worker-\$\{workerSuffix\}\.js/);
 });
 
 test("migrações auxiliares aguardam o estado autoritativo do bootstrap", () => {

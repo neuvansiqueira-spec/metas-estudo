@@ -28,20 +28,17 @@ test("raiz e docs permanecem idênticos", () => {
   assert.equal(read(files.rootCss), read(files.docsCss));
 });
 
-test("versão antiga fica invisível até a versão final estar pronta", () => {
+test("rodapé permanece visível e é controlado pela fonte canônica", () => {
   const css = read(files.rootCss);
-  assert.match(css, /html:not\(\[data-aldus-release-version="20260725-versao-publica-sem-transicao-v147"\]\) footer \.app-version/);
-  assert.match(css, /visibility: hidden !important/);
-  assert.match(css, /html\[data-aldus-release-version="20260725-versao-publica-sem-transicao-v147"\] footer \.app-version/);
+  assert.match(css, /^footer \.app-version/m);
   assert.match(css, /visibility: visible !important/);
+  assert.doesNotMatch(css, /v147|visibility: hidden/);
 });
 
-test("versão v147 é aplicada antes de liberar a visualização", () => {
+test("compatibilidade v147 não sobrescreve a versão pública", () => {
   const source = read(files.rootRelease);
-  assert.match(source, /document\.documentElement\.dataset\.aldusReleaseVersion = VERSION/);
-  assert.match(source, /preferred\.textContent = DISPLAY/);
-  assert.match(source, /preferred\.hidden = false/);
-  assert.match(source, /20260725-versao-publica-sem-transicao-v147/);
+  assert.match(source, /__ALDUS_APP_RELEASE__\?\.apply\?\.\(\)/);
+  assert.doesNotMatch(source, /textContent|aldusReleaseVersion =|20260725-/);
 });
 
 test("Contrato atual v152: carregador aponta somente para a versão pública v147", () => {

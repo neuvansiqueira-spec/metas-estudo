@@ -1,3 +1,5 @@
+importScripts("./app-version.js");
+
 const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260717-numero-qc-v26",
   "20260717-sincronizacao-conteudo-v30",
@@ -91,18 +93,21 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260721-prompt-lei-modelo-v120",
   "20260721-prompt-lei-modelo-v121",
   "20260721-fabrica-visibilidade-v122",
-  "20260726-pcpr-pcma-integrado-v152"
+  "20260726-pcpr-pcma-integrado-v152",
+  "20260726-inicializacao-segura-v153"
 ];
-const CURRENT_VERSION = "20260726-inicializacao-segura-v153";
+const CURRENT_VERSION = self.__ALDUS_APP_RELEASE__.version;
+const RELEASE_SUFFIX = self.__ALDUS_APP_RELEASE__.suffix;
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 // Caches anteriores reconhecidos para limpeza: startup-v25 a startup-v28.
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v29`;
 const FILES_TO_CACHE = [
   `./?v=${CURRENT_VERSION}`,
   `index.html?v=${CURRENT_VERSION}`,
-  `app-v153.css?v=${CURRENT_VERSION}`,
+  `app-version.js?v=${CURRENT_VERSION}`,
+  `app-${RELEASE_SUFFIX}.css?v=${CURRENT_VERSION}`,
   `factory-visibility-v122.css?v=${CURRENT_VERSION}`,
-  `app-v153.js?v=${CURRENT_VERSION}`,
+  `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`,
   `factory-lei-prompt-v123.js?v=${CURRENT_VERSION}`,
   `central-goals-real-time-v124.js?v=${CURRENT_VERSION}`,
   "manifest.json",
@@ -139,7 +144,9 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(caches.keys().then((cacheNames) => Promise.all(
-    cacheNames.filter((cacheName) => cacheName !== ASSET_CACHE_NAME).map((cacheName) => caches.delete(cacheName))
+    cacheNames
+      .filter((cacheName) => cacheName.startsWith("metas-estudo-") && cacheName !== ASSET_CACHE_NAME)
+      .map((cacheName) => caches.delete(cacheName))
   )));
   self.clients.claim();
 });
@@ -171,8 +178,8 @@ function replaceVersion(source) {
 function patchHtmlSource(source) {
   let patched = replaceVersion(source);
   patched = patched
-    .replace(/app(?:\.bundle|-v\d+)\.css(?:\?v=[^"'\s<>]+)?/gi, `app-v153.css?v=${CURRENT_VERSION}`)
-    .replace(/app(?:\.bundle|-v\d+)\.js(?:\?v=[^"'\s<>]+)?/gi, `app-v153.js?v=${CURRENT_VERSION}`);
+    .replace(/app(?:\.bundle|-v\d+)\.css(?:\?v=[^"'\s<>]+)?/gi, `app-${RELEASE_SUFFIX}.css?v=${CURRENT_VERSION}`)
+    .replace(/app(?:\.bundle|-v\d+)\.js(?:\?v=[^"'\s<>]+)?/gi, `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`);
   patched = patched.replace(
     /<div class="brand aldus-visual-brand">\s*(<img class="aldus-visual-brand-image"[^>]*>)\s*<\/div>/i,
     '<a class="brand aldus-visual-brand brand-home-link" href="#dashboard" data-view-link="dashboard" aria-label="Ir para o início">$1</a>'

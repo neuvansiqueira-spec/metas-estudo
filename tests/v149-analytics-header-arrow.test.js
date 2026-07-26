@@ -50,6 +50,11 @@ test("v149 é carregada depois da correção v148 e antes da transformação v14
   assert.match(daily, /analytics-header-arrow-v149\.js\?v=20260725-analise-estrategica-cabecalho-fixo-v149/);
 });
 
+test("v149 identifica apenas o módulo visual e não sobrescreve o rodapé", () => {
+  const source = read(files.rootPatch);
+  assert.doesNotMatch(source, /app-version|aldusReleaseVersion|RELEASE_TEXT/);
+});
+
 test("refinamento não acessa dados, armazenamento, sincronização ou rede", () => {
   const source = `${read(files.rootPatch)}\n${read(files.rootDaily)}`;
   for (const forbidden of ["localStorage", "sessionStorage", "indexedDB", "saveData", "syncIntegral", "fetch(", "XMLHttpRequest", "WebSocket"]) {

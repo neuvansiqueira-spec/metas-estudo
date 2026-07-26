@@ -6,7 +6,6 @@
 
   const VERSION = "20260725-analise-estrategica-cabecalho-fixo-v149";
   const VIEW_SELECTOR = "#view-analise-estrategica";
-  const RELEASE_TEXT = `Versão: ${VERSION}`;
   let observer = null;
   let scheduled = false;
   let mutating = false;
@@ -110,9 +109,6 @@
       ${VIEW_SELECTOR} > details.analytics-filter-shell-v149[open] > summary {
         border-bottom: 1px solid var(--border, #dbe4f0);
       }
-      html[data-aldus-release-version="${VERSION}"] footer .app-version {
-        visibility: visible !important;
-      }
       @media (max-width: 720px) {
         ${VIEW_SELECTOR} > .analytics-fixed-header-v149 {
           margin-bottom: 20px;
@@ -120,12 +116,6 @@
       }
     `;
     document.head.appendChild(style);
-  }
-
-  function applyReleaseVersion() {
-    document.documentElement.dataset.aldusReleaseVersion = VERSION;
-    const label = document.querySelector("footer .app-version");
-    if (label && label.textContent !== RELEASE_TEXT) label.textContent = RELEASE_TEXT;
   }
 
   function prepare() {
@@ -136,7 +126,6 @@
       ensureStyles();
       fixedHeader(view);
       normalizeFilters(view);
-      applyReleaseVersion();
       view.dataset.analyticsHeaderArrowV149 = "true";
       view.dataset.analyticsHeaderArrowVersion = VERSION;
     } finally {

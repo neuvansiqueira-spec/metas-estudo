@@ -7,7 +7,6 @@
   const VERSION = "20260725-analise-estrategica-seta-unica-v150";
   const VIEW_SELECTOR = "#view-analise-estrategica";
   const FILTER_SELECTOR = `${VIEW_SELECTOR} > details.analytics-filters-section > summary`;
-  const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function ensureStyles() {
     if (document.getElementById("analyticsSingleArrowStylesV150")) return;
@@ -40,22 +39,12 @@
         flex: 0 0 auto !important;
         visibility: visible !important;
       }
-      html[data-aldus-release-version="${VERSION}"] footer .app-version {
-        visibility: visible !important;
-      }
     `;
     document.head.appendChild(style);
   }
 
-  function applyReleaseVersion() {
-    document.documentElement.dataset.aldusReleaseVersion = VERSION;
-    const label = document.querySelector("footer .app-version");
-    if (label && label.textContent !== RELEASE_TEXT) label.textContent = RELEASE_TEXT;
-  }
-
   function apply() {
     ensureStyles();
-    applyReleaseVersion();
 
     const summary = document.querySelector(FILTER_SELECTOR);
     if (!summary) return false;

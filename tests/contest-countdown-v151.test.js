@@ -81,4 +81,5 @@ test("módulo não realiza chamadas de rede nem altera rotinas centrais", () => 
   }
   assert.match(source, /aldus\.contestCountdown\.v151/);
   assert.match(source, /textContent/);
+  assert.doesNotMatch(source, /app-version|aldusReleaseVersion/);
 });

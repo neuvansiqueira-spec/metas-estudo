@@ -42,11 +42,6 @@
     return { date, target, preserved: protectedGoals.map((goal) => goal.id), removed: removed.map((goal) => goal.id), added: added.map((goal) => goal.id), final: targetState.dailyGoals.filter((goal) => goalDateValue(goal) === date && isPlanningStudyGoal(goal)).length, disciplines: usedDisciplines.size };
   }
 
-  function activateVersion() {
-    document.querySelectorAll(".app-version").forEach((element) => { element.textContent = `Versão: ${VERSION}`; });
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register(`service-worker-v117.js?v=${encodeURIComponent(VERSION)}`, { updateViaCache: "none" }).catch(() => {});
-  }
-
   function run() {
     if (completed || typeof state === "undefined" || typeof indexedDBStatus === "undefined" || !["concluída", "erro recuperado"].includes(indexedDBStatus.bootstrap)) return false;
     const report = reconcile(state, todayISO());
@@ -57,10 +52,9 @@
       render();
       if (typeof autoSyncAfterSave === "function") autoSyncAfterSave("daily-goal-methodology-v117");
     }
-    activateVersion();
     return true;
   }
 
   const timer = window.setInterval(() => { if (run()) window.clearInterval(timer); }, 100);
-  window.setTimeout(() => { window.clearInterval(timer); run(); activateVersion(); }, 10000);
+  window.setTimeout(() => { window.clearInterval(timer); run(); }, 10000);
 })();

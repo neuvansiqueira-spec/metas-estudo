@@ -12,7 +12,6 @@
 
   const VERSION = "20260725-analise-estrategica-abas-funcionais-v148";
   const VIEW_SELECTOR = "#view-analise-estrategica";
-  const RELEASE_TEXT = `Versão: ${VERSION}`;
   let observer = null;
   let scheduled = false;
 
@@ -97,15 +96,8 @@
     style.textContent = `
       ${VIEW_SELECTOR} #analyticsCollapseToolbarV145 { display: none !important; }
       ${VIEW_SELECTOR} details > summary { cursor: pointer; touch-action: manipulation; }
-      html[data-aldus-release-version="${VERSION}"] footer .app-version { visibility: visible !important; }
     `;
     document.head.appendChild(style);
-  }
-
-  function applyReleaseVersion() {
-    document.documentElement.dataset.aldusReleaseVersion = VERSION;
-    const label = document.querySelector("footer .app-version");
-    if (label && label.textContent !== RELEASE_TEXT) label.textContent = RELEASE_TEXT;
   }
 
   function start() {
@@ -113,7 +105,6 @@
     if (!view) return;
 
     ensureStyles();
-    applyReleaseVersion();
     prepareView(view);
 
     // O listener fica no documento para funcionar mesmo quando outro código interrompe
@@ -130,7 +121,6 @@
     }
 
     window.addEventListener("pageshow", () => {
-      applyReleaseVersion();
       schedulePrepare(view);
     });
     window.addEventListener("hashchange", () => schedulePrepare(view));

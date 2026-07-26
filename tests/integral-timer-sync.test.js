@@ -5,8 +5,13 @@ const vm = require("node:vm");
 
 function loadServiceWorker(file) {
   const source = fs.readFileSync(file, "utf8");
+  const version = JSON.parse(fs.readFileSync("package.json", "utf8")).version;
   const context = {
-    self: { addEventListener() {}, skipWaiting() {}, clients: { claim() {} } },
+    self: {
+      __ALDUS_APP_RELEASE__: { version, suffix: version.match(/v\d+$/)?.[0] },
+      addEventListener() {}, skipWaiting() {}, clients: { claim() {} }
+    },
+    importScripts() {},
     caches: { open: async () => ({ addAll() {}, put() {} }), keys: async () => [], delete: async () => true, match: async () => null },
     fetch: async () => ({ ok: false }),
     Headers,

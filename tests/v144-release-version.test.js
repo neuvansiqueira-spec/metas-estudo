@@ -20,21 +20,16 @@ test("arquivos v144 possuem sintaxe JavaScript válida", () => {
   execFileSync(process.execPath, ["--check", docsPatch]);
 });
 
-test("versão pública é única e explícita", () => {
+test("módulo legado delega para a versão canônica", () => {
   const source = read(rootPatch);
-  assert.match(source, /20260725-versao-publica-v144/);
-  assert.match(source, /footer \.app-version/);
-  assert.match(source, /preferred\.textContent = DISPLAY/);
-  assert.match(source, /data-app-version/);
+  assert.match(source, /__ALDUS_APP_RELEASE__\?\.apply\?\.\(\)/);
+  assert.doesNotMatch(source, /footer \.app-version|textContent|aldusReleaseVersion =/);
 });
 
-test("correção é idempotente, limitada ao rodapé e temporária", () => {
+test("compatibilidade é idempotente e não instala observador concorrente", () => {
   const source = read(rootPatch);
   assert.match(source, /__aldusReleaseVersionV144/);
-  assert.match(source, /document\.querySelector\("footer"\)/);
-  assert.match(source, /MutationObserver/);
-  assert.match(source, /setTimeout\(stopWatching, 10000\)/);
-  assert.match(source, /observer\?\.disconnect\(\)/);
+  assert.doesNotMatch(source, /MutationObserver|setTimeout|querySelector/);
 });
 
 test("correção não altera armazenamento, dados ou sincronização", () => {
