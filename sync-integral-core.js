@@ -1,8 +1,7 @@
 const SYNC_COLLECTIONS = [
   "subjects", "studies", "syllabusItems", "dailyGoals", "questionLogs",
   "smartReviews", "simulados", "materials", "questionBank",
-  "questionBankSessions", "questionErrorNotebook", "factoryItems", "factoryAgenda",
-  "contestProfiles", "contestSyllabusMap", "planningModeHistory"
+  "questionBankSessions", "questionErrorNotebook", "factoryItems", "factoryAgenda"
 ];
 const SYNC_MAX_NUMERIC_FIELDS = new Set([
   "minutes", "seconds", "elapsedSeconds", "plannedMinutes", "actualMinutes",
@@ -90,9 +89,6 @@ function syncCollectionKey(item = {}, collection = "records") {
     materials: [item.link, item.title, item.discipline, item.subject, item.type],
     subjects: [item.name],
     syllabusItems: [item.discipline, item.subject, item.subtopic, item.reference],
-    contestProfiles: [item.name, item.board, item.examDate],
-    contestSyllabusMap: [item.contestId, item.syllabusItemId, item.code],
-    planningModeHistory: [item.changedAt, item.mode],
     factoryItems: [item.discipline, item.subject, item.theme, item.module],
     factoryAgenda: [item.date, item.factoryItemId, item.module]
   };

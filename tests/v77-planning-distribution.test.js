@@ -1,4 +1,3 @@
-const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -82,9 +81,7 @@ test("a primeira abertura redistribui apenas metas automáticas futuras intactas
   assert.match(script, /!isManualDailyGoal\(goal\) && isAutomaticIntactDailyGoal\(goal\)/);
 });
 
-test("Contrato atual v152: V77 mantém versão, cache e publicação em paridade", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test("V77 mantém versão, cache e publicação em paridade", () => {
   const version = "20260720-distribuicao-reposicao-v77";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(read("index.html"), new RegExp(version));

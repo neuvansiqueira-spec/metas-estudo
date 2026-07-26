@@ -1,5 +1,5 @@
 (() => {
-  const VERSION = "20260726-pcpr-pcma-integrado-v152";
+  const VERSION = "20260723-resumo-aula-topicos-v134";
   const MIGRATION_ID = "factoryLeiNegritoRealWordV1";
   const FALLBACK = "[PROMPT COMPLETO AINDA NÃO CADASTRADO NA BIBLIOTECA DA FÁBRICA]";
   const PROMPT = `TRANSFORME O TEXTO OFICIAL VIGENTE DA LEI EM RESUMO TOPIFICADO, DIDÁTICO E VISUALMENTE HIERARQUIZADO PARA ESTUDO E REVISÃO.
@@ -268,13 +268,11 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
           const current = String(state.factoryPromptLibrary.lei || "").trim();
           if (current && current !== FALLBACK && current !== PROMPT) {
             state.factoryPromptLibraryBackups ||= {};
-            state.factoryPromptLibraryBackups.leiBeforeV123 ||= current;
             state.factoryPromptLibraryBackups.leiBeforeNegritoRealWordV1 ||= current;
           }
-          const shouldInstallOfficial = !current || current === FALLBACK || current === PROMPT;
-          if (shouldInstallOfficial && current !== PROMPT) state.factoryPromptLibrary.lei = PROMPT;
+          if (current !== PROMPT) state.factoryPromptLibrary.lei = PROMPT;
           state.migrations[MIGRATION_ID] = new Date().toISOString();
-          changed = shouldInstallOfficial || Boolean(current && current !== PROMPT);
+          changed = true;
         }
       }
       if (changed && typeof saveData === "function") saveData();

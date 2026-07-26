@@ -1,4 +1,3 @@
-const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -28,9 +27,7 @@ test('V122 deixa o assunto largo, métricas compactas e possui quebras responsiv
   assert.match(css, /@media \(max-width: 430px\)/);
 });
 
-test("Contrato atual v152: V122 permanece carregado e seus artefatos históricos continuam sincronizados", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test('V122 permanece carregado e seus artefatos históricos continuam sincronizados', () => {
   assert.match(index, /factory-visibility-v122\.css\?v=20260721-[^"']+/);
   assert.match(index, /factory-lei-prompt-v12[2-9]\.js\?v=20260721-[^"']+/);
   assert.match(worker, /factory-visibility-v122\.css\?v=\$\{CURRENT_VERSION\}/);

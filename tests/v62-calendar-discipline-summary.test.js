@@ -1,4 +1,3 @@
-const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -10,9 +9,7 @@ const css = fs.readFileSync("aldus-calendar-v62.css", "utf8");
 const worker = fs.readFileSync("service-worker.js", "utf8");
 const headerFix = fs.readFileSync("header-brand-fix.js", "utf8");
 
-test("Contrato atual v152: v62 carrega depois da correção geral do calendário", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test("v62 carrega depois da correção geral do calendário", () => {
   assert.match(version, /integracao-metas-v74$/);
   const v61 = html.indexOf("aldus-calendar-v61.css");
   const v62 = html.indexOf("aldus-calendar-v62.css");

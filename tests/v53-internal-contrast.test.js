@@ -1,4 +1,3 @@
-const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -9,9 +8,7 @@ const worker = fs.readFileSync("service-worker.js", "utf8");
 const css = fs.readFileSync("aldus-contrast-v53.css", "utf8");
 const bundleCss = fs.readFileSync("app.bundle.css", "utf8");
 
-test("Contrato atual v152: v53 é a última camada visual e renova o cache público", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test("v53 é a última camada visual e renova o cache público", () => {
   assert.ok(html.includes(`app-v113.css?v=${version}`));
   assert.ok(bundleCss.indexOf("Aldus source: aldus-responsive-v52.css") < bundleCss.indexOf("Aldus source: aldus-contrast-v53.css"));
   assert.ok(html.indexOf("app-v113.css") < html.indexOf("app-v113.js"));

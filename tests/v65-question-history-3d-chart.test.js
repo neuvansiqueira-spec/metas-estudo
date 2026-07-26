@@ -1,4 +1,3 @@
-const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -15,9 +14,7 @@ function chartHelpers() {
   return new Function(`${chartSource.slice(start, end)}; return { donutSegmentPath, donutSegments, donutSvg };`)();
 }
 
-test("Contrato atual v152: v65 invalida o cache e publica o novo gráfico", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test('v65 invalida o cache e publica o novo gráfico', () => {
   assert.equal(JSON.parse(fs.readFileSync('package.json', 'utf8')).version, version);
   assert.match(html, new RegExp(`question-history-pie\\.js\\?v=${version}`));
   assert.match(html, new RegExp(`Versão: ${version}`));

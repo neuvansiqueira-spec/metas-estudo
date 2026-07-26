@@ -1,4 +1,3 @@
-const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -24,9 +23,7 @@ test("o aviso móvel permanece acima do cronômetro sem bloquear controles", () 
   assert.match(style, /\.timer-motivational-toast[\s\S]*pointer-events: none/);
 });
 
-test("Contrato atual v152: V87 renova o cache e mantém a publicação em paridade", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test("V87 renova o cache e mantém a publicação em paridade", () => {
   const version = "20260720-cronometro-scroll-motivacao-v97";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(read("index.html"), new RegExp(version));

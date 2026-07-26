@@ -1,4 +1,3 @@
-const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -39,9 +38,7 @@ test("recuperação continua protegida por confirmação, backup e ausência de 
   assert.doesNotMatch(body, /uploadSyncPayload|forcePushToCloud|syncNow/);
 });
 
-test("Contrato atual v152: nova interface cobre estrutura, cartões, formulários, tabelas e responsividade", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test("nova interface cobre estrutura, cartões, formulários, tabelas e responsividade", () => {
   assert.ok(html.includes(`app-v113.css?v=${version}`));
   assert.ok(html.indexOf("app-v113.css") < html.indexOf("app-v113.js"));
   assert.ok(bundleCss.includes("/* Aldus source: aldus-interface-v51.css */"));
@@ -58,9 +55,7 @@ test("Contrato atual v152: nova interface cobre estrutura, cartões, formulário
   assert.match(worker, /"aldus-interface-v51\.css"/);
 });
 
-test("Contrato atual v152: versão v51 e arquivos publicados permanecem coerentes", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test("versão v51 e arquivos publicados permanecem coerentes", () => {
   assert.match(script, new RegExp(`const APP_VERSION = "${version}"`));
   assert.match(recovery, new RegExp(`const TIME_STORAGE_PROTECTION_VERSION = "${version}"`));
   assert.match(worker, new RegExp(`const CURRENT_VERSION = "${version}"`));

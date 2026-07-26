@@ -1,13 +1,10 @@
-const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const VERSION = "20260723-resumo-aula-topicos-v134";
 const read = (file) => fs.readFileSync(file, "utf8");
 
-test("Contrato atual v152: HTML e motor usam a mesma versão desde o início", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test("HTML e motor usam a mesma versão desde o início", () => {
   for (const file of ["index.html", "docs/index.html"]) {
     const html = read(file);
     assert.match(html, new RegExp("Versão: " + VERSION));
@@ -20,9 +17,7 @@ test("Contrato atual v152: HTML e motor usam a mesma versão desde o início", (
   }
 });
 
-test("Contrato atual v152: a Fábrica não sobrescreve o rodapé global", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test("a Fábrica não sobrescreve o rodapé global", () => {
   for (const file of ["factory-lei-prompt-v123.js", "docs/factory-lei-prompt-v123.js"]) {
     const source = read(file);
     assert.match(source, new RegExp("const VERSION = \"" + VERSION + "\";"));
@@ -31,9 +26,7 @@ test("Contrato atual v152: a Fábrica não sobrescreve o rodapé global", () => 
   }
 });
 
-test("Contrato atual v152: service workers usam a versão única", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test("service workers usam a versão única", () => {
   for (const file of [
     "service-worker-v118.js", "docs/service-worker-v118.js",
     "service-worker-v123.js", "docs/service-worker-v123.js",
@@ -52,8 +45,6 @@ test("raiz e docs permanecem idênticos", () => {
   }
 });
 
-test("Contrato atual v152: package registra a versão global única", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test("package registra a versão global única", () => {
   assert.equal(JSON.parse(read("package.json")).version, VERSION);
 });

@@ -235,5 +235,5 @@ test('CSS novo das seções recolhíveis fica limitado à aba Materiais', () => 
   assert.match(collapsibleCss, /#view-materiais \.materials-section-content/);
   assert.doesNotMatch(collapsibleCss, /(^|\n)\s*(details|summary|section|h3|button|\.material-card|\.syllabus-card)\b/);
   assert.match(collapsibleCss, /cursor: pointer/);
-  assert.match(collapsibleCss, /overflow-wrap: break-word/);
+  assert.match(collapsibleCss, /overflow-wrap: anywhere/);
 });

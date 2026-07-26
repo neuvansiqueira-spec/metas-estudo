@@ -1,4 +1,3 @@
-const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -30,9 +29,7 @@ test("banco motivacional contempla Tocantins, Maranhão e Paraná", () => {
   assert.ok((script.match(/Paraná/g) || []).length >= 8);
 });
 
-test("Contrato atual v152: V97 renova o cache e mantém publicação em paridade", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test("V97 renova o cache e mantém publicação em paridade", () => {
   const version = "20260720-cronometro-scroll-motivacao-v97";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(script, new RegExp(`APP_VERSION = "${version}"`));

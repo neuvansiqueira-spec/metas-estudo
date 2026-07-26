@@ -1,4 +1,3 @@
-const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -96,8 +95,13 @@ test('exportar gráfico escolhe somente um formato', () => {
   assert.match(body, /if \(format === 'csv'\)/);
 });
 
-test("Contrato atual v152: versão, cache, raiz e docs sincronizados", () => {
-  assertCurrentReleaseContract();
+test('versão, cache, raiz e docs sincronizados', () => {
+  assert.match(fs.readFileSync('package.json','utf8'), new RegExp(version));
+  assert.match(html, new RegExp(`app-v113\\.css\\?v=${version}`));
+  assert.match(html, new RegExp(`app-v113\\.js\\?v=${version}`));
+  assert.match(sw, new RegExp(`const CURRENT_VERSION = "${version}"`));
+  assert.match(sw, /const CACHE_NAME = `metas-estudo-\$\{CURRENT_VERSION\}`/);
+  for (const f of ['script.js','style.css','analytics-engine.js','index.html','service-worker.js']) assert.equal(fs.readFileSync(f,'utf8'), fs.readFileSync('docs/'+f,'utf8'));
 });
 
 test('celular fecha outras seções principais e preserva sessão visual sem state', () => {

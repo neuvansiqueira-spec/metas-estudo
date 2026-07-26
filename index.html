@@ -14,9 +14,9 @@
   <link rel="icon" type="image/svg+xml" href="icons/logo-mark.svg?v=20260721-prompt-lei-fonte-preta-v123" />
   <link rel="preload" as="image" href="icons/aldus-visual.png?v=20260721-prompt-lei-fonte-preta-v123" fetchpriority="high" />
   <!-- Fontes CSS consolidadas, na ordem original: style.css; aldus-premium-theme.css; aldus-premium-refinement-v47.css; aldus-interface-v51.css; aldus-responsive-v52.css; aldus-contrast-v53.css; aldus-visual-v58.css; aldus-planning-v59.css; aldus-planning-history-v60.css; aldus-calendar-v61.css; aldus-calendar-v62.css; aldus-export-brand-v63.css; aldus-export-brand-v64.css; aldus-daily-goals-v66.css; aldus-daily-time-v67.css; aldus-contrast-system-v68.css; aldus-component-contrast-v69.css; aldus-advisor-layout-v70.css; aldus-backup-contrast-v71.css; aldus-navigation-scroll-v73.css; aldus-goal-integrity-v75.css; aldus-completed-visibility-v76.css. -->
-  <link id="aldusAppBundleStyles" rel="stylesheet" href="app-v152.css?v=20260726-pcpr-pcma-integrado-v152" />
-  <link rel="stylesheet" href="factory-visibility-v122.css?v=20260726-pcpr-pcma-integrado-v152" />
-  <link rel="preload" as="script" href="app-v152.js?v=20260726-pcpr-pcma-integrado-v152" />
+  <link id="aldusAppBundleStyles" rel="stylesheet" href="app-v118.css?v=20260723-resumo-aula-topicos-v134" />
+  <link rel="stylesheet" href="factory-visibility-v122.css?v=20260723-resumo-aula-topicos-v134" />
+  <link rel="preload" as="script" href="app-v118.js?v=20260723-resumo-aula-topicos-v134" />
 </head>
 <body>
   <header class="hero">
@@ -369,8 +369,8 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
       <section id="factoryPromptLibraryPanel" class="bulk-box factory-prompt-library" hidden aria-labelledby="factory-prompt-library-title"></section>
       <div id="factorySummary" class="stats-grid compact factory-summary" aria-live="polite"></div>
       <nav class="factory-production-tabs" aria-label="Período de produção da Fábrica">
-        <button type="button" data-production-scope="day" aria-pressed="true">Plano do Dia</button>
-        <button type="button" class="secondary-button" data-production-scope="week" aria-pressed="false">Produção da Semana</button>
+        <button type="button" data-factory-scope="day" aria-pressed="true">Plano do Dia</button>
+        <button type="button" class="secondary-button" data-factory-scope="week" aria-pressed="false">Produção da Semana</button>
       </nav>
       <details class="factory-collapsible factory-filter-panel" open>
         <summary>Filtros e etapas da Fábrica</summary>
@@ -450,13 +450,6 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     <section id="view-planejamento" class="panel app-view" data-view="planejamento" aria-labelledby="planning-title">
       <div class="section-heading"><p class="eyebrow">Plantões</p><h2 id="planning-title">Planejamento</h2></div>
       <form id="planningConfigForm" class="planning-form-stack">
-        <details class="planning-section" data-planning-section="contest" open>
-          <summary class="planning-section-summary"><span class="planning-section-heading"><strong class="planning-section-title">Concurso e estratégia</strong><small id="planningContestResume" class="planning-section-resume">Escolha o planejamento PCPR, PCMA ou conjunto.</small></span><span class="planning-section-chevron" aria-hidden="true">›</span></summary>
-          <div class="planning-section-content form-grid compact">
-            <label>Modo de planejamento<select id="planningModeSelect"><option value="joint">PCPR + PCMA</option><option value="pcpr">Somente PCPR</option><option value="pcma">Somente PCMA</option></select></label>
-            <div id="planningContestSummary" class="notice wide" aria-live="polite"></div>
-          </div>
-        </details>
         <details class="planning-section" data-planning-section="summary" open>
           <summary class="planning-section-summary"><span class="planning-section-heading"><strong class="planning-section-title">Resumo do planejamento</strong><small id="planningSummaryResume" class="planning-section-resume">Resumo rápido do planejamento atual.</small></span><span class="planning-section-chevron" aria-hidden="true">›</span></summary>
           <div id="planningSummaryCards" class="planning-section-content stats-grid compact"></div>
@@ -1053,7 +1046,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </section>
   </div>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260726-pcpr-pcma-integrado-v152</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260723-resumo-aula-topicos-v134</p></footer>
   <div id="legacyTimerRecoveryModal" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="legacyTimerRecoveryModalTitle" hidden>
     <div class="app-modal-backdrop" data-legacy-recovery-cancel></div>
     <section class="app-modal-card">
@@ -1063,8 +1056,8 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </section>
   </div>
   <!-- Fontes JS consolidadas: storage-indexeddb.js; analytics-engine.js; study-advisor.js; advisor-navigation-engine.js; qconcursos-crosswalk.js; sync-integral-core.js; sync-integral-deletions.js; sync-integral-state.js; sync-integral-cloud.js; sync-integral-time-protection.js; script.js?v=20260721-prompt-lei-fonte-preta-v123; question-accuracy-spectrum.js; timer-material-link-fix.js; question-history-pie.js; side-nav-collapse-v91.js. O login do Google é carregado somente quando o usuário toca em Conectar Google Drive. -->
-  <script id="aldusAppBundleScript" src="app-v152.js?v=20260726-pcpr-pcma-integrado-v152"></script>
-  <script src="factory-lei-prompt-v123.js?v=20260726-pcpr-pcma-integrado-v152"></script>
-  <script src="central-goals-real-time-v124.js?v=20260726-pcpr-pcma-integrado-v152"></script>
+  <script id="aldusAppBundleScript" src="app-v118.js?v=20260723-resumo-aula-topicos-v134"></script>
+  <script src="factory-lei-prompt-v123.js?v=20260723-resumo-aula-topicos-v134"></script>
+  <script src="central-goals-real-time-v124.js?v=20260723-resumo-aula-topicos-v134"></script>
 </body>
 </html>

@@ -1,4 +1,3 @@
-const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -9,9 +8,7 @@ const visual = fs.readFileSync("aldus-visual-v58.css", "utf8");
 const worker = fs.readFileSync("service-worker.js", "utf8");
 const headerFix = fs.readFileSync("header-brand-fix.js", "utf8");
 
-test("Contrato atual v152: v58 permanece carregada antes das correções visuais posteriores", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test("v58 permanece carregada antes das correções visuais posteriores", () => {
   assert.match(version, /integracao-metas-v74$/);
   const contrastPosition = html.indexOf("aldus-contrast-v53.css");
   const visualPosition = html.indexOf("aldus-visual-v58.css");
@@ -61,9 +58,7 @@ test("gráfico de rosca preserva contraste no centro claro", () => {
   assert.match(visual, /\.qh-donut-center span \{[\s\S]*color: #526b7f !important/);
 });
 
-test("Contrato atual v152: service worker, reforço de tema e cópia publicada conhecem a v58", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test("service worker, reforço de tema e cópia publicada conhecem a v58", () => {
   assert.match(worker, new RegExp(`const CURRENT_VERSION = "${version}"`));
   assert.match(worker, /"20260718-cruzamento-qc-completo-v57"/);
   assert.match(worker, /"20260718-revisao-visual-global-v58"/);

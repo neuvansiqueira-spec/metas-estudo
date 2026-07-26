@@ -1,4 +1,3 @@
-const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -44,9 +43,7 @@ test("versão v147 é aplicada antes de liberar a visualização", () => {
   assert.match(source, /20260725-versao-publica-sem-transicao-v147/);
 });
 
-test("Contrato atual v152: carregador aponta somente para a versão pública v147", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test("carregador aponta somente para a versão pública v147", () => {
   const loader = read(files.rootLoader);
   assert.match(loader, /release-version-v147\.js\?v=20260725-versao-publica-sem-transicao-v147/);
   assert.match(loader, /dataset\.aldusReleaseVersion = "v147"/);

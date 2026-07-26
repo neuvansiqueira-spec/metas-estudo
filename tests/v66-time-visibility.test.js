@@ -1,4 +1,3 @@
-const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -99,9 +98,7 @@ test("restauração e nuvem executam a reconciliação antes de exibir os dados"
   assert.match(stateModule, /syncRelinkExecutionRecord/);
 });
 
-test("Contrato atual v152: Plano do Dia usa superfícies escuras com texto legível", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test("Plano do Dia usa superfícies escuras com texto legível", () => {
   assert.match(index, /aldus-daily-goals-v66\.css\?v=20260719-integracao-metas-v74/);
   assert.match(css, /--v66-text: #f7fbff/);
   assert.match(css, /\.goal-material-estimate/);
@@ -110,9 +107,7 @@ test("Contrato atual v152: Plano do Dia usa superfícies escuras com texto legí
   assert.match(css, /@media \(max-width: 768px\)/);
 });
 
-test("Contrato atual v152: cache, versão e cópias de publicação permanecem em paridade", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test("cache, versão e cópias de publicação permanecem em paridade", () => {
   assert.equal(packageJson.version, "20260719-integracao-metas-v74");
   assert.match(worker, /const CURRENT_VERSION = "20260719-integracao-metas-v74"/);
   assert.match(worker, /aldus-daily-goals-v66\.css/);

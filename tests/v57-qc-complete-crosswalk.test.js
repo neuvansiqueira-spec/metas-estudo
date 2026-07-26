@@ -1,4 +1,3 @@
-const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -59,9 +58,7 @@ test("manual continua tendo prioridade sobre a auditoria", () => {
   assert.deepEqual(catalogApi().qconcursosNumberResolution({ discipline: item.d, topic: item.t, subject: item.s, qconcursosNumber: "8.8" }), { number: "8.8", source: "saved" });
 });
 
-test("Contrato atual v152: auditoria v57 permanece sincronizada após versões posteriores", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test("auditoria v57 permanece sincronizada após versões posteriores", () => {
   assert.match(version, /integracao-metas-v74$/);
   assert.match(worker, new RegExp(`const CURRENT_VERSION = "${version}"`));
   assert.match(worker, /"20260718-cruzamento-qc-completo-v57"/);

@@ -1,4 +1,3 @@
-const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -9,9 +8,7 @@ const script = fs.readFileSync("script.js", "utf8");
 const worker = fs.readFileSync("service-worker.js", "utf8");
 const header = fs.readFileSync("header-brand-fix.js", "utf8");
 
-test("Contrato atual v152: a publicação atual antecipa um único bundle sem alterar a ordem dos módulos", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test("a publicação atual antecipa um único bundle sem alterar a ordem dos módulos", () => {
   const files = [
     "sync-integral-core.js",
     "sync-integral-deletions.js",
@@ -33,9 +30,7 @@ test("Contrato atual v152: a publicação atual antecipa um único bundle sem al
   assert.match(script, /await Promise\.all\(pendingFiles\)/);
 });
 
-test("Contrato atual v152: navegação e script principal usam o cache atual antes da rede", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test("navegação e script principal usam o cache atual antes da rede", () => {
   assert.match(worker, /async function cacheFirstNavigation\(/);
   assert.match(worker, /async function cacheFirstAppScript\(/);
   assert.match(worker, /caches\.match\(request, \{ ignoreSearch: true \}\)/);

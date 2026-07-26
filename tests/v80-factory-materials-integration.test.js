@@ -1,4 +1,3 @@
-const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -66,9 +65,7 @@ test("Fábrica mostra data e estado do planejamento sem confundir produção com
   assert.match(script, /status = factoryOverallStatus/);
 });
 
-test("Contrato atual v152: V83 mantém cache, versão anterior e arquivos publicados em paridade", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test("V83 mantém cache, versão anterior e arquivos publicados em paridade", () => {
   const version = "20260720-cronometro-scroll-motivacao-v97";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(read("index.html"), new RegExp(version));

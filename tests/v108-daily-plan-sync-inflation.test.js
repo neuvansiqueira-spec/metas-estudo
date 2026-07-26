@@ -1,4 +1,3 @@
-const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -251,9 +250,7 @@ test("ativação V117 corrige a tela mostrada sem alterar a meta concluída", ()
   assert.equal(new Set(targetState.dailyGoals.map((goal) => goal.discipline)).size, 5);
 });
 
-test("Contrato atual v152: versão estável consolida a metodologia no bundle e prioriza a página atual", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test("versão estável consolida a metodologia no bundle e prioriza a página atual", () => {
   const version = "20260721-estabilidade-v118";
   const index = read("index.html");
   const worker = read("service-worker.js");

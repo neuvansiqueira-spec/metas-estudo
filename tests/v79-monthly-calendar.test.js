@@ -1,4 +1,3 @@
-const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -85,9 +84,7 @@ test("primeira abertura da V79 redistribui o mês atual uma única vez", () => {
   assert.match(script, /rebalanceCurrentMonthV79\(state\)/);
 });
 
-test("Contrato atual v152: V83 mantém a distribuição mensal da V79, cache e publicação em paridade", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test("V83 mantém a distribuição mensal da V79, cache e publicação em paridade", () => {
   const version = "20260720-cronometro-scroll-motivacao-v97";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(read("index.html"), new RegExp(version));

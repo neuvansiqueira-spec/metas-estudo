@@ -1,4 +1,3 @@
-const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -23,9 +22,7 @@ function loadTimeRecoveryRecordMerge() {
   return context.result;
 }
 
-test("Contrato atual v152: primeira abertura já recebe tema premium e todos os arquivos na versão atual", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test("primeira abertura já recebe tema premium e todos os arquivos na versão atual", () => {
   assert.match(html, /<html[^>]+data-aldus-theme="premium-stable"/);
   assert.ok(html.includes(`app-v113.css?v=${version}`));
   assert.ok(html.includes(`app-v113.js?v=${version}`));

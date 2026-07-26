@@ -1,4 +1,3 @@
-const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -14,7 +13,7 @@ test('V123 obriga fonte preta e restringe cor a ícones e faixa', () => {
   assert.match(patch, /FORCE A COR #000000 EM CADA RUN NÃO-EMOJI/);
 });
 
-test('V123 preserva prompt personalizado, cria cópia de segurança e marca a migração', () => {
+test('V123 instala uma vez o prompt corrigido e preserva cópia do anterior', () => {
   const context = {
     console,
     Date,
@@ -29,11 +28,13 @@ test('V123 preserva prompt personalizado, cria cópia de segurança e marca a mi
   };
   vm.createContext(context);
   vm.runInContext(patch, context);
-  assert.equal(context.state.factoryPromptLibrary.lei, 'PROMPT ANTERIOR');
+  assert.match(context.state.factoryPromptLibrary.lei, /COR PRETA PURA #000000/);
   assert.equal(context.state.factoryPromptLibraryBackups.leiBeforeV123, 'PROMPT ANTERIOR');
-  assert.ok(context.state.migrations.factoryLeiNegritoRealWordV1);
+  assert.ok(context.state.migrations.factoryLeiFontePretaObrigatoriaV4);
 });
 
-test("Contrato atual v152: V123 mantém raiz e publicação sincronizadas", () => {
-  assertCurrentReleaseContract();
+test('V123 mantém raiz e publicação sincronizadas', () => {
+  assert.equal(patch, docsPatch);
+  assert.match(fs.readFileSync('index.html', 'utf8'), /factory-lei-prompt-v123\.js\?v=20260721-prompt-lei-fonte-preta-v123/);
+  assert.match(fs.readFileSync('service-worker-v123.js', 'utf8'), /factory-lei-prompt-v123\.js\?v=\$\{CURRENT_VERSION\}/);
 });

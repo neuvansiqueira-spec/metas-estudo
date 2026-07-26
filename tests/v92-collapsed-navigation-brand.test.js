@@ -1,4 +1,3 @@
-const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -18,9 +17,7 @@ test("barra recolhida troca o título vertical pelo símbolo oficial da marca", 
   assert.doesNotMatch(css, /data-side-nav-collapsed="true"[^}]*\.side-nav-title\s*\{[^}]*writing-mode/);
 });
 
-test("Contrato atual v152: V92 renova o cache e mantém raiz e publicação em paridade", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test("V92 renova o cache e mantém raiz e publicação em paridade", () => {
   const version = "20260720-cronometro-scroll-motivacao-v97";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(html, new RegExp(version));

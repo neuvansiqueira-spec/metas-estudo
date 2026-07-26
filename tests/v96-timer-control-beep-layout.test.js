@@ -1,4 +1,3 @@
-const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -23,9 +22,7 @@ test("modo regressivo e botão fechar permanecem legíveis no painel", () => {
   assert.match(css, /#floatingTimer \.floating-timer-header > div[\s\S]*?min-width: 0;/);
 });
 
-test("Contrato atual v152: V96 mantém os arquivos publicados em paridade", () => {
-  assertCurrentReleaseContract();
-  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+test("V96 mantém os arquivos publicados em paridade", () => {
   const version = "20260720-cronometro-scroll-motivacao-v97";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(script, new RegExp(`APP_VERSION = "${version}"`));
