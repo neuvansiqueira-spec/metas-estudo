@@ -9,7 +9,7 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
-const APP_VERSION = "20260726-pcpr-pcma-integrado-v152";
+const APP_VERSION = "20260726-inicializacao-segura-v153";
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
@@ -18,6 +18,16 @@ const DAILY_PLAN_COMPAT_LABELS = "META DE QUESTÕES | 📚 ESTUDAR HOJE | 🏭 P
 const LEGACY_STORAGE_COMPAT_LABEL = "Fonte principal: <strong>localStorage</strong>";
 const LEGACY_TIMER_GOAL_MINUTES_RECOVERY_MIGRATION_ID = "legacyTimerGoalMinutesRecoveryV1";
 const LEGACY_TIMER_RECOVERY_V2_MIGRATION_KEY = "legacyTimerRecoveryV2";
+const FACTORY_STATUSES = ["Não iniciado","Em produção","Aguardando revisão","Aprovado","PDF gerado","Não se aplica","Precisa refazer","Atualizar depois"];
+const FACTORY_TRIAGEM_STATUSES = ["Não iniciada", "Em andamento", "Concluída", "Precisa refazer"];
+const FACTORY_MODULES = [
+  { key: "triagem", label: "TRIAGEM", virtual: true },
+  { key: "resumoAula", label: "RESUMO/AULA" },
+  { key: "lei", label: "LEI" },
+  { key: "jurisprudencia", label: "JURISPRUDÊNCIA" },
+  { key: "peca", label: "PEÇA" },
+  { key: "completo", label: "COMPLETO" }
+];
 
 const MATERIAL_ESTIMATE_VERSION = 1;
 const MATERIAL_ESTIMATE_MIGRATION_ID = "materialDynamicTimeEstimateV1";
@@ -1110,8 +1120,6 @@ state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timer
 state.materials ||= [];
 state.factoryItems ||= [];
 state.factoryAgenda ||= [];
-state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) });
-if (typeof applyPcprPcma2026Migration === "function") applyPcprPcma2026Migration(state);
 let factoryCurrentFilter = "faca-agora";
 let factoryProductionScope = "day";
 let factoryOpenDetailId = "";
@@ -1125,16 +1133,20 @@ const indexedDBStatus = { available: false, activeSource: "aguardando bootstrap"
 let indexedDBPersistInFlight = false;
 let indexedDBPersistQueued = false;
 let indexedDBPersistTimer = null;
+let bootstrapStateReady = false;
 
-state.migrations ||= {};
-let shouldSaveAfterFactoryPromptMigrations = migrateStateFactoryPromptLibraryTriagemMetodologiaGeral(state);
-shouldSaveAfterFactoryPromptMigrations = migrateStateFactoryPromptLibraryResumoAulaDidatica(state) || shouldSaveAfterFactoryPromptMigrations;
-shouldSaveAfterFactoryPromptMigrations = migrateStateFactoryPromptLibraryResumoAulaRemoverDuplicacao(state) || shouldSaveAfterFactoryPromptMigrations;
-shouldSaveAfterFactoryPromptMigrations = migrateStateFactoryPromptLibraryResumoAulaEstruturaDidaticaV4(state) || shouldSaveAfterFactoryPromptMigrations;
-shouldSaveAfterFactoryPromptMigrations = migrateStateFactoryPromptLibraryPecaRegimesEspeciaisV2(state) || shouldSaveAfterFactoryPromptMigrations;
-if (!state.migrations.leiRecortePromptV2 && state.factoryPromptLibrary?.lei?.includes(NEW_LEI_RECORTE_PROMPT)) {
-  state.migrations.leiRecortePromptV2 = new Date().toISOString();
-  shouldSaveAfterFactoryPromptMigrations = true;
+function migrateCoreFactoryPrompts(targetState = state) {
+  targetState.migrations ||= {};
+  let changed = migrateStateFactoryPromptLibraryTriagemMetodologiaGeral(targetState);
+  changed = migrateStateFactoryPromptLibraryResumoAulaDidatica(targetState) || changed;
+  changed = migrateStateFactoryPromptLibraryResumoAulaRemoverDuplicacao(targetState) || changed;
+  changed = migrateStateFactoryPromptLibraryResumoAulaEstruturaDidaticaV4(targetState) || changed;
+  changed = migrateStateFactoryPromptLibraryPecaRegimesEspeciaisV2(targetState) || changed;
+  if (!targetState.migrations.leiRecortePromptV2 && targetState.factoryPromptLibrary?.lei?.includes(NEW_LEI_RECORTE_PROMPT)) {
+    targetState.migrations.leiRecortePromptV2 = new Date().toISOString();
+    changed = true;
+  }
+  return changed;
 }
 
 function normalizeTimerPreferences(preferences = {}) {
@@ -1779,15 +1791,21 @@ if (elements.smartReviewDate) elements.smartReviewDate.value = todayISO();
 if (elements.mockDate) elements.mockDate.value = todayISO();
 if (elements.materialDate) elements.materialDate.value = todayISO();
 if (elements.factoryPlannedDate) elements.factoryPlannedDate.value = todayISO();
-if (shouldSaveAfterFactoryPromptMigrations) saveData();
-
-
 function pickMotivationalPhrase() {
-  const lastPhrase = localStorage.getItem(MOTIVATION_STORAGE_KEY);
+  let lastPhrase = "";
+  try {
+    lastPhrase = localStorage.getItem(MOTIVATION_STORAGE_KEY) || "";
+  } catch (error) {
+    console.warn("[Metas Estudo] A frase anterior não pôde ser lida; a inicialização continuará.", error);
+  }
   const availablePhrases = MOTIVATIONAL_PHRASES.filter((phrase) => phrase !== lastPhrase);
   const pool = availablePhrases.length ? availablePhrases : MOTIVATIONAL_PHRASES;
   const phrase = pool[Math.floor(Math.random() * pool.length)];
-  localStorage.setItem(MOTIVATION_STORAGE_KEY, phrase);
+  try {
+    localStorage.setItem(MOTIVATION_STORAGE_KEY, phrase);
+  } catch (error) {
+    console.warn("[Metas Estudo] A frase motivacional não pôde ser salva; a inicialização continuará.", error);
+  }
   return phrase;
 }
 function renderMotivationalPhrase(phrase = pickMotivationalPhrase()) {
@@ -1932,8 +1950,13 @@ function persistStateSafely(options = {}) {
 }
 
 function saveData(options = {}) {
+  if (!bootstrapStateReady) {
+    globalThis.__aldusDeferredPreBootstrapSave = true;
+    return false;
+  }
   if (typeof syncFactoryMaterialsPlanningV80 === "function") syncFactoryMaterialsPlanningV80(state);
   persistStateSafely(options);
+  return true;
 }
 
 async function initializeIndexedDBBackup() {
@@ -3298,18 +3321,6 @@ function periodSummary(start, days) { const dates=daysBetween(start, days), goal
 function studyOriginLabel(study) {
   return ({ manual: "manual", countdown: "cronômetro regressivo", free: "cronômetro livre" }[study.origin]) || "registro geral";
 }
-const FACTORY_STATUSES = ["Não iniciado","Em produção","Aguardando revisão","Aprovado","PDF gerado","Não se aplica","Precisa refazer","Atualizar depois"];
-const FACTORY_TRIAGEM_STATUSES = ["Não iniciada", "Em andamento", "Concluída", "Precisa refazer"];
-const FACTORY_MODULES = [
-  { key: "triagem", label: "TRIAGEM", virtual: true },
-  { key: "resumoAula", label: "RESUMO/AULA" },
-  { key: "lei", label: "LEI" },
-  { key: "jurisprudencia", label: "JURISPRUDÊNCIA" },
-  { key: "peca", label: "PEÇA" },
-  { key: "completo", label: "COMPLETO" }
-];
-
-
 const FACTORY_DRIVE_UPLOAD_INSTRUCTIONS = `FLUXO OBRIGATÓRIO DE GRAVAÇÃO NO GOOGLE DRIVE:
 - Depois de gerar o arquivo DOCX, confirme que ele foi realmente criado antes de tentar gravar.
 - Após gerar o arquivo DOCX, tente gravá-lo no Google Drive utilizando a ação apropriada de importação de documento. Envie o arquivo gerado como referência de arquivo aceita pelo conector e preserve seu formato original. Não envie caminho local bruto para uma ação que exija \`file_uri\`. Após a importação, mova o arquivo para a pasta de destino informada. Somente declare que a gravação foi concluída depois de receber confirmação do Google Drive e obter o link do arquivo.
@@ -7561,6 +7572,16 @@ async function bootstrapApplication() {
 
     replaceState(chosenState);
     mergeCompatibleLocalStorageData();
+    const factoryPromptLibraryBefore = JSON.stringify(state.factoryPromptLibrary || {});
+    state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) });
+    const coreFactoryPromptsChanged = migrateCoreFactoryPrompts(state) || JSON.stringify(state.factoryPromptLibrary || {}) !== factoryPromptLibraryBefore;
+    const contestMigrationReport = typeof applyPcprPcma2026Migration === "function"
+      ? applyPcprPcma2026Migration(state)
+      : { changed: false, blocked: true };
+    bootstrapStateReady = true;
+    globalThis.__aldusBootstrapReady = true;
+    window.dispatchEvent(new CustomEvent("aldus:bootstrap-ready"));
+    saveData();
     const legacyGoalIdRecoveryReport = recoverLegacyTimerMinutesForGoals(state);
     const legacyOrphanRecoveryReport = recoverOrphanLegacyTimerMinutesForGoals(state);
     const legacyTimerRecoveryReport = mergeLegacyTimerRecoveryReports(legacyGoalIdRecoveryReport, legacyOrphanRecoveryReport);
@@ -7624,6 +7645,7 @@ function handleBootstrapFailure(error) {
   showView(hashToView(), { skipScroll: true, keepMenuOpen: true });
   hideBootstrapLoadingState();
   updateStorageDiagnostics();
+  bootstrapStateReady = true;
 }
 
 const viewLinks = [...document.querySelectorAll("[data-view-link]")];
@@ -8453,7 +8475,7 @@ function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register(`service-worker-v152.js?v=${encodeURIComponent(APP_VERSION)}`, { updateViaCache: "none" })
+    navigator.serviceWorker.register(`service-worker-v153.js?v=${encodeURIComponent(APP_VERSION)}`, { updateViaCache: "none" })
       .then((registration) => {
         registration.update();
         console.log("[Metas Estudo] Service worker registrado.");

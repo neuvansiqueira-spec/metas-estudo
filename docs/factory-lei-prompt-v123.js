@@ -1,5 +1,4 @@
 (() => {
-  const VERSION = "20260726-pcpr-pcma-integrado-v152";
   const MIGRATION_ID = "factoryLeiNegritoRealWordV1";
   const FALLBACK = "[PROMPT COMPLETO AINDA NÃO CADASTRADO NA BIBLIOTECA DA FÁBRICA]";
   const PROMPT = `TRANSFORME O TEXTO OFICIAL VIGENTE DA LEI EM RESUMO TOPIFICADO, DIDÁTICO E VISUALMENTE HIERARQUIZADO PARA ESTUDO E REVISÃO.
@@ -313,13 +312,7 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
     console.error("[Aldus] Falha ao proteger a validação de negrito do prompt Lei.", error);
   }
 
-  applyPrompt();
+  if (window.__aldusBootstrapReady) applyPrompt();
+  else window.addEventListener("aldus:bootstrap-ready", applyPrompt, { once: true });
 
-  window.addEventListener("load", () => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register(`service-worker-v123.js?v=${encodeURIComponent(VERSION)}`, { updateViaCache: "none" })
-        .then((registration) => registration.update())
-        .catch(() => undefined);
-    }
-  });
 })();

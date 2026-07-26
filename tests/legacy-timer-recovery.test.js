@@ -101,7 +101,7 @@ test('marcador global não impede recuperação após backup restaurado', () => 
 });
 
 test('recuperação roda depois de replaceState e merge localStorage no bootstrap antes do render', () => {
-  assert.match(script, new RegExp("replaceState\\(chosenState\\);\\n    mergeCompatibleLocalStorageData\\(\\);\\n    const legacyGoalIdRecoveryReport = recoverLegacyTimerMinutesForGoals\\(state\\);\\n    const legacyOrphanRecoveryReport = recoverOrphanLegacyTimerMinutesForGoals\\(state\\);[\\s\\S]*?render\\(\\);"));
+  assert.match(script, new RegExp("replaceState\\(chosenState\\);\\n    mergeCompatibleLocalStorageData\\(\\);[\\s\\S]*?const legacyGoalIdRecoveryReport = recoverLegacyTimerMinutesForGoals\\(state\\);\\n    const legacyOrphanRecoveryReport = recoverOrphanLegacyTimerMinutesForGoals\\(state\\);[\\s\\S]*?render\\(\\);"));
 });
 
 test('bootstrap expõe relatório temporário e console informativo sem dados pessoais', () => {

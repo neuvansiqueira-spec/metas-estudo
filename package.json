@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260726-pcpr-pcma-integrado-v152",
+  "version": "20260726-inicializacao-segura-v153",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

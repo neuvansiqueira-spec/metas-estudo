@@ -90,18 +90,19 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260721-prompt-lei-didatico-v119",
   "20260721-prompt-lei-modelo-v120",
   "20260721-prompt-lei-modelo-v121",
-  "20260721-fabrica-visibilidade-v122"
+  "20260721-fabrica-visibilidade-v122",
+  "20260726-pcpr-pcma-integrado-v152"
 ];
-const CURRENT_VERSION = "20260726-pcpr-pcma-integrado-v152";
+const CURRENT_VERSION = "20260726-inicializacao-segura-v153";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 // Caches anteriores reconhecidos para limpeza: startup-v25 a startup-v28.
 const ASSET_CACHE_NAME = `${CACHE_NAME}-startup-v29`;
 const FILES_TO_CACHE = [
   `./?v=${CURRENT_VERSION}`,
   `index.html?v=${CURRENT_VERSION}`,
-  `app-v152.css?v=${CURRENT_VERSION}`,
+  `app-v153.css?v=${CURRENT_VERSION}`,
   `factory-visibility-v122.css?v=${CURRENT_VERSION}`,
-  `app-v152.js?v=${CURRENT_VERSION}`,
+  `app-v153.js?v=${CURRENT_VERSION}`,
   `factory-lei-prompt-v123.js?v=${CURRENT_VERSION}`,
   `central-goals-real-time-v124.js?v=${CURRENT_VERSION}`,
   "manifest.json",
@@ -170,8 +171,8 @@ function replaceVersion(source) {
 function patchHtmlSource(source) {
   let patched = replaceVersion(source);
   patched = patched
-    .replace(/app\.bundle\.css(?:\?v=[^"'\s<>]+)?/gi, `app-v152.css?v=${CURRENT_VERSION}`)
-    .replace(/app\.bundle\.js(?:\?v=[^"'\s<>]+)?/gi, `app-v152.js?v=${CURRENT_VERSION}`);
+    .replace(/app(?:\.bundle|-v\d+)\.css(?:\?v=[^"'\s<>]+)?/gi, `app-v153.css?v=${CURRENT_VERSION}`)
+    .replace(/app(?:\.bundle|-v\d+)\.js(?:\?v=[^"'\s<>]+)?/gi, `app-v153.js?v=${CURRENT_VERSION}`);
   patched = patched.replace(
     /<div class="brand aldus-visual-brand">\s*(<img class="aldus-visual-brand-image"[^>]*>)\s*<\/div>/i,
     '<a class="brand aldus-visual-brand brand-home-link" href="#dashboard" data-view-link="dashboard" aria-label="Ir para o início">$1</a>'

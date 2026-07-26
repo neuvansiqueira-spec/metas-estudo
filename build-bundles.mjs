@@ -79,8 +79,9 @@ fs.copyFileSync(path.join(root, "service-worker.js"), path.join(root, "docs", ve
 
 for (const filename of [
   "index.html", "style.css", "script.js", "service-worker.js", "sync-integral-core.js",
-  "sync-integral-state.js", "pcpr-pcma-2026-catalog.js",
-  "pcpr-pcma-2026-migration.js", "factory-lei-prompt-v123.js"
+  "sync-integral-deletions.js", "sync-integral-state.js", "pcpr-pcma-2026-catalog.js",
+  "pcpr-pcma-2026-migration.js", "factory-lei-prompt-v123.js",
+  "factory-final-review-v128.js"
 ]) {
   fs.copyFileSync(path.join(root, filename), path.join(root, "docs", filename));
 }

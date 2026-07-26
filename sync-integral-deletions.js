@@ -234,8 +234,12 @@ function installSyncDeletionTracking() {
     syncRefreshDeletionSnapshot();
     syncDeletionTrackingReady = true;
   };
-  if (typeof window !== "undefined") window.addEventListener("load", () => setTimeout(arm, 400), { once: true });
-  setTimeout(arm, 2500);
+  if (typeof window !== "undefined") {
+    if (window.__aldusBootstrapReady) arm();
+    else window.addEventListener("aldus:bootstrap-ready", arm, { once: true });
+  } else {
+    arm();
+  }
 }
 
 const TIMER_MATERIAL_LINK_FIX_VERSION = "20260717-material-cronometro-v40";

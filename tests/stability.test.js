@@ -9,6 +9,7 @@ const css = fs.readFileSync('style.css', 'utf8');
 const script = fs.readFileSync('script.js', 'utf8');
 const premiumCss = fs.readFileSync('aldus-premium-theme.css', 'utf8');
 const version = JSON.parse(fs.readFileSync('package.json', 'utf8')).version;
+const releaseSuffix = version.match(/v\d+$/)?.[0];
 
 const screens = [
   { hash: '#dashboard', view: 'view-dashboard', title: 'Dashboard' },
@@ -43,7 +44,7 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
 test("Contrato atual v152: arquivos carregados usam a versão atual", () => {
   assertCurrentReleaseContract();
   return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
-  assert.match(html, new RegExp(`app-v152\\.css\\?v=${version}`));
+  assert.match(html, new RegExp(`app-${releaseSuffix}\\.css\\?v=${version}`));
   assert.match(html, new RegExp(`app-v113\\.js\\?v=${version}`));
   assert.match(fs.readFileSync('app.bundle.css', 'utf8'), /Aldus source: style\.css/);
   assert.match(fs.readFileSync('app.bundle.js', 'utf8'), /Aldus source: storage-indexeddb\.js[\s\S]*Aldus source: script\.js/);
@@ -53,7 +54,7 @@ test("Contrato atual v152: arquivos carregados usam a versão atual", () => {
 test('identidade visual premium usa a paleta Aldus desde a primeira renderização', () => {
   assert.match(html, /<html[^>]+data-aldus-theme="premium-stable"/);
   assert.match(html, /<meta name="theme-color" content="#031426"/);
-  assert.match(html, new RegExp(`app-v152\\.css\\?v=${version}`));
+  assert.match(html, new RegExp(`app-${releaseSuffix}\\.css\\?v=${version}`));
   const bundleCss = fs.readFileSync('app.bundle.css', 'utf8');
   assert.match(bundleCss, /Aldus source: aldus-premium-theme\.css/);
   assert.match(bundleCss, /Aldus source: aldus-premium-refinement-v47\.css/);
