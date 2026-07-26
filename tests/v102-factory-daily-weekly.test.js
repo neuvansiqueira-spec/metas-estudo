@@ -7,18 +7,18 @@ const script = fs.readFileSync('script.js', 'utf8');
 const style = fs.readFileSync('style.css', 'utf8');
 
 test('Fábrica possui abas separadas para Plano do Dia e Produção da Semana', () => {
-  assert.match(html, /data-factory-scope="day"[^>]*>Plano do Dia/);
-  assert.match(html, /data-factory-scope="week"[^>]*>Produção da Semana/);
+  assert.match(html, /data-production-scope="day"[^>]*>Plano do Dia/);
+  assert.match(html, /data-production-scope="week"[^>]*>Produção da Semana/);
   assert.match(style, /\.factory-production-tabs/);
 });
 
-test('modo diário procura somente hoje e dias futuros e libera o primeiro dia pendente', () => {
+test('modo diário inclui pendências vencidas e atuais, sem antecipar metas futuras', () => {
   const start = script.indexOf('function factoryDoNowQueue');
   const end = script.indexOf('function factoryActionButtonHTML', start);
   const block = script.slice(start, end);
-  assert.match(block, /date >= today/);
-  assert.doesNotMatch(block, /date <= today/);
-  assert.match(block, /if \(pending\.length\) return pending/);
+  assert.match(block, /date <= today/);
+  assert.doesNotMatch(block, /date >= today/);
+  assert.match(block, /return \[\.\.\.overdue, \.\.\.current\]/);
   assert.match(block, /factoryUnlockedDayDate/);
 });
 

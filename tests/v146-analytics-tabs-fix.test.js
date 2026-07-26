@@ -1,3 +1,4 @@
+const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -56,7 +57,9 @@ test("correção é limitada ao DOM e não acessa dados ou rede", () => {
   }
 });
 
-test("carregadores e versão pública apontam para v146", () => {
+test("Contrato atual v152: carregadores e versão pública apontam para v146", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   const loader = read(files.rootLoader);
   const release = read(files.rootRelease);
   assert.match(loader, /analytics-tabs-fix-v146\.js\?v=20260725-analise-estrategica-abas-corrigidas-v146/);

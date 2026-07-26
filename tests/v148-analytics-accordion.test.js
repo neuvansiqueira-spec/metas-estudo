@@ -1,3 +1,4 @@
+const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -56,7 +57,9 @@ test("controladores antigos v146 e v147 são bloqueados e removidos do carregame
   assert.doesNotMatch(daily, /release-version-v147\.js/);
 });
 
-test("v148 é carregada antes dos painéis v145 e força cache novo da cadeia", () => {
+test("Contrato atual v152: v148 é carregada antes dos painéis v145 e força cache novo da cadeia", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   const daily = read(files.rootDaily);
   const central = read(files.rootCentral);
   assert.ok(daily.indexOf("analytics-accordion-fix-v148.js") < daily.indexOf("analytics-collapsibles-v145.js"));

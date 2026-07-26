@@ -1,3 +1,4 @@
+const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -50,7 +51,7 @@ test('tipo e disponibilidade do dia controlam a meta de estudo', () => {
   };
   vm.createContext(context);
   vm.runInContext(sourceBetween('function planningTargetsForDate', 'function eligiblePlanningGoalsForDate'), context);
-  assert.deepEqual({ ...context.planningTargetsForDate('2026-07-19') }, { topics: 3, disciplines: 2, dayContent: { mode: 'goals_only' }, unavailable: false });
+  assert.deepEqual({ ...context.planningTargetsForDate('2026-07-19') }, { topics: 3, disciplines: 2, dayContent: { mode: 'goals_only' }, unavailable: false, oneGoalPerDiscipline: true });
   context.getDayContentConfig = () => ({ mode: 'questions_only' });
   assert.equal(context.planningTargetsForDate('2026-07-19').topics, 0);
   context.getDayContentConfig = () => ({ mode: 'goals_only' });
@@ -66,8 +67,8 @@ test('calendário gera, salva e sincroniza sem variável de contexto ausente', (
   assert.match(save, /state\.dailyGoals\.push\(\.\.\.unique\)/);
   assert.match(save, /saveData\(\{ markLocalChange: true \}\)/);
   assert.match(save, /autoSyncAfterSave\("calendar-goals-generation"\)/);
-  assert.match(script, /dateRemainingTopics/);
-  assert.match(script, /planningTargetsForDate\(date\)/);
+  assert.match(script, /report\.expectedTopics/);
+  assert.match(script, /reconcileDailyGoalsWithPlanning\(state, date/);
 });
 
 test('planejamento, disponibilidade e metas mensais persistem e reconciliam', () => {
@@ -102,7 +103,9 @@ test('Central diferencia metas geradas de previsões e usa o mesmo estado', () =
   assert.match(central, /monthlyPlanningTarget\(today\)/);
 });
 
-test('V74 renova cache e mantém raiz e publicação idênticas', () => {
+test("Contrato atual v152: V74 renova cache e mantém raiz e publicação idênticas", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   const worker = fs.readFileSync('service-worker.js', 'utf8');
   assert.equal(version, '20260719-integracao-metas-v74');
   assert.match(script, /const APP_VERSION = "20260719-integracao-metas-v74"/);

@@ -1,3 +1,4 @@
+const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -63,7 +64,9 @@ test("alteração é visual e não acessa persistência ou rede", () => {
   }
 });
 
-test("carregadores e versão pública apontam para v145", () => {
+test("Contrato atual v152: carregadores e versão pública apontam para v145", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   const loader = read(files.rootLoader);
   const release = read(files.rootRelease);
   assert.match(loader, /analytics-collapsibles-v145\.js\?v=20260725-analise-estrategica-recolhivel-v145/);

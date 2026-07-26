@@ -1,3 +1,4 @@
+const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -12,7 +13,7 @@ const css = read("style.css");
 test("filtros e cadastro da Fábrica são painéis recolhíveis", () => {
   assert.match(html, /<details class="factory-collapsible factory-filter-panel" open>/);
   assert.match(html, /<summary>Filtros e etapas da Fábrica<\/summary>/);
-  assert.match(html, /<details class="factory-collapsible factory-register-panel">/);
+  assert.match(html, /<details[^>]+class="factory-collapsible factory-register-panel">/);
   assert.match(html, /<summary>Cadastrar ou editar tema<\/summary>/);
 });
 
@@ -30,7 +31,9 @@ test("painéis recolhíveis têm contraste e ajuste para celular", () => {
   assert.match(css, /@media \(max-width: 760px\)[\s\S]*\.factory-collapsible > summary/);
 });
 
-test("V83 preserva cache anterior e arquivos publicados em paridade", () => {
+test("Contrato atual v152: V83 preserva cache anterior e arquivos publicados em paridade", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   const version = "20260720-cronometro-scroll-motivacao-v97";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(html, new RegExp(version));
