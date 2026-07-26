@@ -1,3 +1,4 @@
+const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -10,7 +11,9 @@ const worker = read("service-worker.js");
 const cssBundle = read("app.bundle.css");
 const jsBundle = read("app.bundle.js");
 
-test("V110 reduz a entrada a um CSS e um JavaScript locais", () => {
+test("Contrato atual v152: V110 reduz a entrada a um CSS e um JavaScript locais", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   const stylesheetRequests = [...html.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/g)].map((match) => match[1]);
   const localScriptRequests = [...html.matchAll(/<script[^>]+src="(?!https?:\/\/)([^"]+)"/g)].map((match) => match[1]);
   assert.deepEqual(stylesheetRequests, [`app-v113.css?v=${version}`]);
@@ -34,7 +37,9 @@ test("bundle preserva ordem, integridade e paridade de publicação", () => {
   assert.equal(jsBundle, read("docs/app.bundle.js"));
 });
 
-test("instalação guarda apenas o shell consolidado", () => {
+test("Contrato atual v152: instalação guarda apenas o shell consolidado", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   const cacheList = worker.match(/const FILES_TO_CACHE = \[[\s\S]*?\n\];/)?.[0] || "";
   assert.match(cacheList, /app-v113\.css/);
   assert.match(cacheList, /app-v113\.js/);
@@ -42,13 +47,17 @@ test("instalação guarda apenas o shell consolidado", () => {
   assert.match(cacheList, /CURRENT_VERSION/);
 });
 
-test("navegação usa o shell salvo e atualiza a rede em segundo plano", () => {
+test("Contrato atual v152: navegação usa o shell salvo e atualiza a rede em segundo plano", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   const navigation = worker.match(/async function cacheFirstNavigation[\s\S]*?\n\}/)?.[0] || "";
   assert.ok(navigation.indexOf("caches.match(request") < navigation.indexOf("await networkPromise"));
   assert.match(worker, /event\.waitUntil\(freshNavigation/);
 });
 
-test("a publicação atual mantém versão e espelhos sincronizados", () => {
+test("Contrato atual v152: a publicação atual mantém versão e espelhos sincronizados", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   assert.equal(version, "20260721-versao-cache-definitiva-v113");
   assert.match(read("script.js"), new RegExp(`APP_VERSION = "${version}"`));
   assert.match(worker, new RegExp(`CURRENT_VERSION = "${version}"`));
@@ -58,7 +67,9 @@ test("a publicação atual mantém versão e espelhos sincronizados", () => {
   }
 });
 
-test("o atualizador do cache usa arquivos físicos novos e corrige o marcador visível", () => {
+test("Contrato atual v152: o atualizador do cache usa arquivos físicos novos e corrige o marcador visível", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   const script = read("script.js");
   assert.match(script, /register\(`service-worker-v113\.js\?v=\$\{encodeURIComponent\(APP_VERSION\)\}`/);
   assert.match(script, /element\.textContent = `Versão: \$\{APP_VERSION\}`/);

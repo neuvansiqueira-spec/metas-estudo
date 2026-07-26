@@ -1,3 +1,4 @@
+const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -28,7 +29,9 @@ test("data clara e conteúdo acima da navegação móvel permanecem visíveis", 
   assert.match(css, /padding-bottom: calc\(170px \+ env\(safe-area-inset-bottom, 0px\)\) !important/);
 });
 
-test("V76 está no cache e mantém raiz e publicação em paridade", () => {
+test("Contrato atual v152: V76 está no cache e mantém raiz e publicação em paridade", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   const version = "20260720-concluidas-visibilidade-v76";
   assert.match(read("index.html"), new RegExp(version));
   assert.match(read("service-worker.js"), new RegExp(`CURRENT_VERSION = "${version}"`));

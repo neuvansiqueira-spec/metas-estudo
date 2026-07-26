@@ -152,6 +152,13 @@ function mergeSyncStates(localState = {}, remoteState = {}, prefer = "remote") {
   merged.planning = syncMergeObject(local.planning || {}, remote.planning || {}, prefer);
   merged.edital = syncMergeObject(local.edital || {}, remote.edital || {}, prefer);
   merged.schedulableSettings = syncMergeObject(local.schedulableSettings || {}, remote.schedulableSettings || {}, prefer);
+  merged.activeContestId = prefer === "remote"
+    ? (remote.activeContestId || local.activeContestId || null)
+    : (local.activeContestId || remote.activeContestId || null);
+  merged.planningMode = prefer === "remote"
+    ? (remote.planningMode || local.planningMode || "joint")
+    : (local.planningMode || remote.planningMode || "joint");
+  merged.contestPlanningProfiles = syncMergeObject(local.contestPlanningProfiles || {}, remote.contestPlanningProfiles || {}, prefer);
   merged.disciplineWeights = syncMergeObject(local.disciplineWeights || {}, remote.disciplineWeights || {}, prefer);
   merged.monthlyGoals = syncMergeObject(local.monthlyGoals || {}, remote.monthlyGoals || {}, prefer);
   merged.factoryPromptLibrary = syncMergeObject(local.factoryPromptLibrary || {}, remote.factoryPromptLibrary || {}, prefer);
@@ -169,6 +176,7 @@ function mergeSyncStates(localState = {}, remoteState = {}, prefer = "remote") {
   if (typeof repairDailyPlanningInflationV108 === "function") {
     repairDailyPlanningInflationV108(merged, { source: "sync-merge" });
   }
+  if (typeof applyPcprPcma2026Migration === "function") applyPcprPcma2026Migration(merged);
   return merged;
 }
 

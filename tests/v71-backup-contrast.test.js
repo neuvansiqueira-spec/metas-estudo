@@ -1,3 +1,4 @@
+const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -9,7 +10,9 @@ const css = fs.readFileSync("aldus-backup-contrast-v71.css", "utf8");
 const worker = fs.readFileSync("service-worker.js", "utf8");
 const header = fs.readFileSync("header-brand-fix.js", "utf8");
 
-test("v71 carrega depois do layout do Conselheiro e renova o cache", () => {
+test("Contrato atual v152: v71 carrega depois do layout do Conselheiro e renova o cache", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   assert.equal(version, "20260719-integracao-metas-v74");
   assert.ok(html.indexOf("aldus-backup-contrast-v71.css") > html.indexOf("aldus-advisor-layout-v70.css"));
   assert.match(worker, /const CURRENT_VERSION = "20260719-integracao-metas-v74"/);

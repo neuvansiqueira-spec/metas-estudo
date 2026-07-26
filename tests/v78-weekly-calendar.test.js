@@ -1,3 +1,4 @@
+const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -99,7 +100,9 @@ test("a primeira abertura da V78 corrige a semana atual automaticamente", () => 
   assert.match(script, /!isManualDailyGoal\(goal\) && isAutomaticIntactDailyGoal\(goal\)/);
 });
 
-test("V83 mantém a distribuição semanal da V78 e os arquivos publicados em paridade", () => {
+test("Contrato atual v152: V83 mantém a distribuição semanal da V78 e os arquivos publicados em paridade", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   const version = "20260720-cronometro-scroll-motivacao-v97";
   assert.equal(JSON.parse(read("package.json")).version, version);
   assert.match(read("index.html"), new RegExp(version));

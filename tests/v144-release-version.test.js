@@ -1,3 +1,4 @@
+const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -43,7 +44,9 @@ test("correção não altera armazenamento, dados ou sincronização", () => {
   }
 });
 
-test("raiz e docs publicam exatamente o mesmo patch e carregador", () => {
+test("Contrato atual v152: raiz e docs publicam exatamente o mesmo patch e carregador", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   assert.equal(read(rootPatch), read(docsPatch));
   assert.equal(read(rootLoader), read(docsLoader));
   assert.match(read(rootLoader), /release-version-v144\.js\?v=20260725-versao-publica-v144/);

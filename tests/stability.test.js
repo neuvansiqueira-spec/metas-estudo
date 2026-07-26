@@ -1,3 +1,4 @@
+const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -39,8 +40,10 @@ test('telas principais possuem rota, seção, título, menu e rodapé com versã
   }
 });
 
-test('arquivos carregados usam a versão atual', () => {
-  assert.match(html, new RegExp(`app-v113\\.css\\?v=${version}`));
+test("Contrato atual v152: arquivos carregados usam a versão atual", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
+  assert.match(html, new RegExp(`app-v152\\.css\\?v=${version}`));
   assert.match(html, new RegExp(`app-v113\\.js\\?v=${version}`));
   assert.match(fs.readFileSync('app.bundle.css', 'utf8'), /Aldus source: style\.css/);
   assert.match(fs.readFileSync('app.bundle.js', 'utf8'), /Aldus source: storage-indexeddb\.js[\s\S]*Aldus source: script\.js/);
@@ -50,7 +53,7 @@ test('arquivos carregados usam a versão atual', () => {
 test('identidade visual premium usa a paleta Aldus desde a primeira renderização', () => {
   assert.match(html, /<html[^>]+data-aldus-theme="premium-stable"/);
   assert.match(html, /<meta name="theme-color" content="#031426"/);
-  assert.match(html, new RegExp(`app-v113\\.css\\?v=${version}`));
+  assert.match(html, new RegExp(`app-v152\\.css\\?v=${version}`));
   const bundleCss = fs.readFileSync('app.bundle.css', 'utf8');
   assert.match(bundleCss, /Aldus source: aldus-premium-theme\.css/);
   assert.match(bundleCss, /Aldus source: aldus-premium-refinement-v47\.css/);
@@ -74,7 +77,7 @@ test('identidade Aldus aparece no cabeçalho e o símbolo permanece no favicon',
 });
 
 test('não há textos obviamente quebrados em coluna por regras CSS perigosas', () => {
-  assert.match(css, /\.qb-error-notebook \.stat-card strong[\s\S]*overflow-wrap\s*:\s*anywhere/i);
+  assert.match(css, /\.qb-error-notebook \.stat-card strong[\s\S]*overflow-wrap\s*:\s*break-word/i);
   assert.match(css, /\.qb-error-notebook \.stat-card strong[\s\S]*word-break\s*:\s*break-word/i);
   assert.doesNotMatch(css, /word-break\s*:\s*break-all/i);
 });

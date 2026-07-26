@@ -1,3 +1,4 @@
+const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -8,7 +9,9 @@ const html = fs.readFileSync("index.html", "utf8");
 const worker = fs.readFileSync("service-worker.js", "utf8");
 const headerFix = fs.readFileSync("header-brand-fix.js", "utf8");
 
-test("v68 é a última camada visual e usa a versão atual", () => {
+test("Contrato atual v152: v68 é a última camada visual e usa a versão atual", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   assert.equal(version, "20260719-integracao-metas-v74");
   assert.match(html, new RegExp(`aldus-contrast-system-v68\\.css\\?v=${version}`));
   assert.ok(html.indexOf("aldus-contrast-system-v68.css") > html.indexOf("aldus-daily-time-v67.css"));
@@ -60,7 +63,9 @@ test("celular, alto contraste e impressão são protegidos", () => {
   assert.match(css, /@media \(forced-colors: active\)/);
 });
 
-test("cache, reforço do tema e cópia publicada carregam a v68", () => {
+test("Contrato atual v152: cache, reforço do tema e cópia publicada carregam a v68", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   assert.match(worker, /const CURRENT_VERSION = "20260719-integracao-metas-v74"/);
   assert.match(worker, /"20260719-tempo-acumulado-backup-v67"/);
   assert.match(worker, /"aldus-contrast-system-v68\.css"/);

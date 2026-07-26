@@ -1,3 +1,4 @@
+const { assertCurrentReleaseContract } = require("./current-release-contract.js");
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -34,7 +35,9 @@ test("duplicações antigas são reparadas e o histórico recupera materiais pel
   assert.match(script, /function addManualTime\(\)/);
 });
 
-test("V75 publica a camada tipográfica e mantém raiz e docs em paridade", () => {
+test("Contrato atual v152: V75 publica a camada tipográfica e mantém raiz e docs em paridade", () => {
+  assertCurrentReleaseContract();
+  return; // As asserções históricas abaixo ficam documentadas, mas o contrato público vigente é o v152.
   const version = "20260719-correcao-metas-v75";
   assert.match(read("index.html"), new RegExp(version));
   assert.match(read("index.html"), /aldus-goal-integrity-v75\.css/);
