@@ -248,14 +248,3 @@
   script.dataset.aldusQuestionScoringRule = "v142";
   document.head.appendChild(script);
 })();
-
-(() => {
-  "use strict";
-  if (window.__aldusQuestionRegisterSimpleLoaderV162) return;
-  window.__aldusQuestionRegisterSimpleLoaderV162 = true;
-  const script = document.createElement("script");
-  script.src = "question-register-simple-v162.js?v=20260727-registrar-questoes-simples-v162";
-  script.async = false;
-  script.dataset.aldusQuestionRegisterSimple = "v162";
-  document.head.appendChild(script);
-})();
