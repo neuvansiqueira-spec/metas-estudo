@@ -169,3 +169,13 @@
   script.dataset.aldusCollapseChevronFix = "v139";
   document.head.appendChild(script);
 })();
+
+(() => {
+  if (window.__aldusReinforcementGoalPresentationLoaderV156) return;
+  window.__aldusReinforcementGoalPresentationLoaderV156 = true;
+  const script = document.createElement("script");
+  script.src = "reinforcement-goal-presentation-v156.js?v=20260727-meta-reforco-visivel-v156";
+  script.async = false;
+  script.dataset.aldusReinforcementGoalPresentation = "v156";
+  document.head.appendChild(script);
+})();
