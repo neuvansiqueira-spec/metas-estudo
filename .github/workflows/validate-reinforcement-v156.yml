@@ -1,0 +1,47 @@
+name: Validar metas de reforço v156
+
+on:
+  push:
+    branches:
+      - fix/exibir-metas-reforco-v156
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Obter código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Conferir sintaxe dos arquivos alterados
+        run: |
+          node --check reinforcement-goal-presentation-v156.js
+          node --check daily-study-collapsible-v137.js
+          node --check tests/reinforcement-goal-presentation-v156.test.js
+
+      - name: Executar toda a suíte de testes
+        run: npm test
+
+      - name: Validar paridade entre raiz e docs
+        run: |
+          cmp reinforcement-goal-presentation-v156.js docs/reinforcement-goal-presentation-v156.js
+          cmp daily-study-collapsible-v137.js docs/daily-study-collapsible-v137.js
+
+      - name: Validar geração dos bundles sem diferenças inesperadas
+        run: |
+          npm run build
+          git diff --exit-code -- \
+            app.bundle.css app.bundle.js app-v155.css app-v155.js \
+            docs/app.bundle.css docs/app.bundle.js docs/app-v155.css docs/app-v155.js \
+            index.html docs/index.html app-version.js docs/app-version.js
