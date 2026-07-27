@@ -35,32 +35,40 @@ jobs:
       - name: Executar testes específicos da correção
         run: node --test tests/reinforcement-goal-presentation-v156.test.js
 
-      - name: Comparar suíte completa da branch com a v155
+      - name: Executar suíte completa da branch
+        id: branch_tests
+        continue-on-error: true
+        run: npm test > branch-test.log 2>&1
+
+      - name: Executar suíte completa da v155
+        id: main_tests
+        continue-on-error: true
         shell: bash
         run: |
-          set +e
-          npm test > /tmp/branch-test.log 2>&1
-          branch_status=$?
-
           git fetch origin main --depth=1
           git worktree add --detach /tmp/main-v155 origin/main
-          (
-            cd /tmp/main-v155
-            npm test > /tmp/main-test.log 2>&1
-          )
-          main_status=$?
+          cd /tmp/main-v155
+          npm test > "$GITHUB_WORKSPACE/main-test.log" 2>&1
 
-          echo "=== RESULTADO DA BRANCH ==="
-          echo "status=${branch_status}"
-          grep -E "^(not ok|# Subtest:|# tests |# pass |# fail |# cancelled |# skipped |# todo |# duration_ms|  error:|  code:|  stack:)" /tmp/branch-test.log | tail -n 180 || true
+      - name: Salvar relatórios integrais dos testes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reinforcement-v156-test-reports
+          path: |
+            branch-test.log
+            main-test.log
+          if-no-files-found: error
+          retention-days: 7
 
-          echo "=== RESULTADO DA V155/MAIN ==="
-          echo "status=${main_status}"
-          grep -E "^(not ok|# Subtest:|# tests |# pass |# fail |# cancelled |# skipped |# todo |# duration_ms|  error:|  code:|  stack:)" /tmp/main-test.log | tail -n 180 || true
-
-          if [ "$branch_status" -ne 0 ]; then
+      - name: Bloquear publicação em caso de falha
+        shell: bash
+        run: |
+          echo "branch=${{ steps.branch_tests.outcome }}"
+          echo "main=${{ steps.main_tests.outcome }}"
+          if [ "${{ steps.branch_tests.outcome }}" != "success" ]; then
             echo "A publicação permanece bloqueada porque a branch não passou em toda a suíte."
-            exit "$branch_status"
+            exit 1
           fi
 
       - name: Validar paridade entre raiz e docs
