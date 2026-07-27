@@ -47,18 +47,29 @@
     if (globalThis.__ALDUS_FACTORY_PLAN_DAY_V159__) return true;
     if (
       typeof renderFactory !== "function"
+      || typeof factoryGoalGroupsForDate !== "function"
       || typeof factoryQueueForDate !== "function"
       || typeof factoryResumoAulaPending !== "function"
+      || typeof factoryResumoAulaReady !== "function"
+      || typeof normalizeFactoryModules !== "function"
+      || typeof exactFactoryGoalMatches !== "function"
+      || typeof factoryGoalSubtopic !== "function"
       || typeof factoryUnlockedDayDate !== "function"
       || typeof factoryDoNowQueue !== "function"
       || typeof todayISO !== "function"
       || typeof ensureFactoryAgenda !== "function"
     ) return false;
 
+    const originalGoalGroupsForDate = factoryGoalGroupsForDate;
+    const originalResumoAulaPending = factoryResumoAulaPending;
     const originalUnlockedDayDate = factoryUnlockedDayDate;
     const originalDoNowQueue = factoryDoNowQueue;
     const originalRecorteHoje = typeof factoryRecorteHoje === "function" ? factoryRecorteHoje : null;
     const originalRenderFactory = renderFactory;
+
+    function factoryIsDayScopeV159() {
+      return typeof factoryProductionScope === "undefined" || factoryProductionScope === "day";
+    }
 
     function factoryGoalTypeLabelV159(goal = {}) {
       const raw = String(goal.type || goal.tipo || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -85,17 +96,54 @@
       }
     }
 
-    factoryUnlockedDayDate = function factoryUnlockedDayDateV159(agenda = ensureFactoryAgenda()) {
-      if (typeof factoryProductionScope !== "undefined" && factoryProductionScope === "week") {
-        return originalUnlockedDayDate(agenda);
+    factoryGoalGroupsForDate = function factoryGoalGroupsForDateV159(date = todayISO(), agenda = []) {
+      if (!factoryIsDayScopeV159() || date !== todayISO()) return originalGoalGroupsForDate(date, agenda);
+      const dayGoals = (state.dailyGoals || []).filter((goal) => (goal.date || goal.data) === date);
+      const groups = new Map();
+      const modes = new Set();
+      const unmatchedGoals = [];
+      dayGoals.forEach((goal) => {
+        const match = exactFactoryGoalMatches(goal, agenda);
+        if (match.items.length) modes.add(match.mode);
+        else unmatchedGoals.push(goal.id || goal.syllabusItemId || `${goal.discipline || goal.disciplina}|${goal.subject || goal.assunto}`);
+        match.items.forEach((item) => {
+          if (!groups.has(item.id)) groups.set(item.id, { item, goals: [], subtopics: new Set() });
+          const group = groups.get(item.id);
+          group.goals.push(goal);
+          const subtopic = factoryGoalSubtopic(goal);
+          if (subtopic) group.subtopics.add(subtopic);
+        });
+      });
+      if (date === todayISO()) {
+        lastFactoryTodayInfo = {
+          goals: dayGoals.length,
+          matched: groups.size,
+          matchModes: [...modes],
+          unmatchedGoals
+        };
       }
+      return [...groups.values()].map((group) => ({
+        ...group,
+        date,
+        subtopics: [...group.subtopics].sort((left, right) => left.localeCompare(right, "pt-BR"))
+      }));
+    };
+
+    factoryResumoAulaPending = function factoryResumoAulaPendingV159(entry = {}) {
+      if (!factoryIsDayScopeV159()) return originalResumoAulaPending(entry);
+      const item = entry.item || entry;
+      const modules = normalizeFactoryModules(item.modules || {}, item);
+      return modules.resumoAula?.status !== "Não se aplica"
+        && !factoryResumoAulaReady({ ...item, modules });
+    };
+
+    factoryUnlockedDayDate = function factoryUnlockedDayDateV159(agenda = ensureFactoryAgenda()) {
+      if (!factoryIsDayScopeV159()) return originalUnlockedDayDate(agenda);
       return todayISO();
     };
 
     factoryDoNowQueue = function factoryDoNowQueueV159(agenda = ensureFactoryAgenda()) {
-      if (typeof factoryProductionScope !== "undefined" && factoryProductionScope === "week") {
-        return originalDoNowQueue(agenda);
-      }
+      if (!factoryIsDayScopeV159()) return originalDoNowQueue(agenda);
       const date = todayISO();
       const activeAgenda = (agenda || []).filter((item) => item?.editalActive !== false);
       return factoryQueueForDate(date, activeAgenda)
@@ -120,9 +168,12 @@
     renderFactory = function renderFactoryV159(...args) {
       const result = originalRenderFactory.apply(this, args);
       try {
-        if (typeof factoryProductionScope !== "undefined" && factoryProductionScope === "day") {
+        if (factoryIsDayScopeV159()) {
           const notice = document.querySelector(".factory-scope-notice");
-          if (notice) notice.textContent = `Exibindo somente as metas pendentes do Plano do Dia de ${typeof formatDateBR === "function" ? formatDateBR(todayISO()) : todayISO()}. Pendências de outros dias não substituem esta lista.`;
+          const unmatchedCount = Array.isArray(lastFactoryTodayInfo?.unmatchedGoals) ? lastFactoryTodayInfo.unmatchedGoals.length : 0;
+          if (notice) {
+            notice.textContent = `Exibindo somente os temas do Plano do Dia de ${typeof formatDateBR === "function" ? formatDateBR(todayISO()) : todayISO()}. Pendências de outros dias não substituem esta lista.${unmatchedCount ? ` ${unmatchedCount} meta(s) não possuem vínculo exato com tema ativo da Fábrica.` : ""}`;
+          }
         }
       } catch (error) {
         console.warn("[Aldus v159] Falha apenas na mensagem visual da Fábrica.", error);
@@ -145,7 +196,7 @@
 
   function scheduleFactoryPlanDayFix(attempt = 0) {
     if (installFactoryPlanDayFix()) return;
-    if (attempt >= 200) {
+    if (attempt >= 2400) {
       console.error("[Aldus v159] A correção da Fábrica não pôde ser instalada.");
       return;
     }
