@@ -42,3 +42,14 @@
   script.dataset.aldusTimerMotivation = "v161";
   document.head.appendChild(script);
 })();
+
+(() => {
+  "use strict";
+  if (globalThis.__aldusQuestionRegisterSimpleLoaderV162) return;
+  globalThis.__aldusQuestionRegisterSimpleLoaderV162 = true;
+  const script = document.createElement("script");
+  script.src = "question-register-simple-v162.js?v=20260727-registrar-questoes-simples-v162";
+  script.async = false;
+  script.dataset.aldusQuestionRegisterSimple = "v162";
+  document.head.appendChild(script);
+})();
