@@ -318,7 +318,7 @@
         localStorage.removeItem(STORAGE_KEY);
         setStatus("Ficha incorporada ao lançamento completo.", "success");
       }, 350);
-    });
+    }, { capture: true });
   }
 
   function init() {
