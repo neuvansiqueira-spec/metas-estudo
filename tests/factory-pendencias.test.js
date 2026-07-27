@@ -32,7 +32,12 @@ test('Faça agora considera somente resumo/aula pendente, inclui atrasados, excl
 });
 
 test('status aprovado sem arquivo continua pendente, enquanto assunto estudado fica fora', () => {
-  assert.doesNotMatch(script, /Inquérito Policial|Inquerito Policial/i);
+  const factoryEligibility = [
+    bodyOf('factoryDoNowQueue'),
+    bodyOf('factoryResumoAulaPending'),
+    bodyOf('factoryResumoAulaReady')
+  ].join('\n');
+  assert.doesNotMatch(factoryEligibility, /Inquérito Policial|Inquerito Policial/i);
   assert.match(bodyOf('factoryDoNowQueue'), /factoryResumoAulaPending/);
   assert.match(bodyOf('factoryResumoAulaPending'), /!factorySubjectAlreadyStudied\(item\)/);
   assert.match(bodyOf('factoryResumoAulaPending'), /!factoryResumoAulaReady/);

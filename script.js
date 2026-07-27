@@ -1955,6 +1955,7 @@ function saveData(options = {}) {
     globalThis.__aldusDeferredPreBootstrapSave = true;
     return false;
   }
+  if (typeof refreshPlanningPrioritiesForQuestionChangesV155 === "function") refreshPlanningPrioritiesForQuestionChangesV155(state);
   if (typeof syncFactoryMaterialsPlanningV80 === "function") syncFactoryMaterialsPlanningV80(state);
   persistStateSafely(options);
   return true;
@@ -2451,7 +2452,7 @@ function renderBackupPreview(payload) {
   return normalized;
 }
 function replaceState(nextState) { Object.keys(state).forEach((key) => delete state[key]); Object.assign(state, { ...cloneData(defaultState), ...(nextState || {}) }); state.edital = { ...defaultState.edital, ...(state.edital || {}) }; state.syllabusItems ||= []; state.schedulableSettings ||= {}; state.contestProfiles ||= []; state.activeContestId ||= null; state.contestSyllabusMap ||= []; state.contestPlanningProfiles ||= {}; state.planningMode ||= "joint"; state.planningModeHistory ||= []; state.dailyGoals ||= []; state.dailyGoals.forEach((goal) => { goal.date ||= goal.data || todayISO(); goal.data ||= goal.date; goal.discipline ||= goal.disciplina || "Sem disciplina"; goal.subject ||= goal.assunto || "Assunto"; goal.type ||= goal.tipo || "Meta"; goal.minutes = Number(goal.minutes ?? goal.tempo_sugerido_minutos) || 0; normalizeGoalTimeFields(goal); normalizeSegmentedGoalFields(goal); goal.status ||= "Pendente"; }); state.questionLogs ||= []; state.questionBank ||= []; state.questionBankSessions ||= []; state.questionErrorNotebook ||= carregarCadernoErros();
-state.smartReviews ||= []; state.simulados ||= []; state.advisorMission ||= {}; state.advisorNavigation ||= { version: 1, autonomyMode: "copilot", activeRoute: null, routeHistory: [], lastProjection: null, lastRecalculatedAt: "", sourceFingerprint: "", userLimits: {} }; state.planning = normalizePlanningState(state.planning); state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences); state.settings.timerMode ||= "countdown"; state.materials ||= []; migrateMaterialEstimates(state); migrateSegmentedGoals(state); state.factoryItems ||= []; state.factoryAgenda ||= []; state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) }); state.disciplineWeights ||= {}; state.monthlyGoals ||= {}; if (typeof applyPcprPcma2026Migration === "function") applyPcprPcma2026Migration(state); globalThis.__dailyPlanningInflationRepairV108 = repairDailyPlanningInflationV108(state, { source: "replace-state" }); }
+state.smartReviews ||= []; state.simulados ||= []; state.advisorMission ||= {}; state.advisorNavigation ||= { version: 1, autonomyMode: "copilot", activeRoute: null, routeHistory: [], lastProjection: null, lastRecalculatedAt: "", sourceFingerprint: "", userLimits: {} }; state.planning = normalizePlanningState(state.planning); state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences); state.settings.timerMode ||= "countdown"; state.materials ||= []; migrateMaterialEstimates(state); migrateSegmentedGoals(state); state.factoryItems ||= []; state.factoryAgenda ||= []; state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) }); state.disciplineWeights ||= {}; state.monthlyGoals ||= {}; if (typeof applyPcprPcma2026Migration === "function") applyPcprPcma2026Migration(state); if (typeof applyIntegratedPlanningPrioritiesV155 === "function") globalThis.__integratedPlanningPriorityV155 = applyIntegratedPlanningPrioritiesV155(state, { reason: "replace-state" }); globalThis.__dailyPlanningInflationRepairV108 = repairDailyPlanningInflationV108(state, { source: "replace-state" }); }
 function mergeArrays(current = [], incoming = [], keyFn = (item) => item?.id || JSON.stringify(item)) { const seen = new Set(current.map(keyFn)); incoming.forEach((item) => { const key = keyFn(item); if (!seen.has(key)) { current.push(item); seen.add(key); } }); return current; }
 function backupGoalIdentity(goal = {}) {
   return goal.id || [
@@ -2775,7 +2776,7 @@ function isSameWeek(dateString) { const now = new Date(); const date = parseDate
 function createId() { return globalThis.crypto?.randomUUID ? globalThis.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`; }
 function escapeHTML(value) { return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;" })[char]); }
 function subjectNameById(id) { return state.subjects.find((subject) => subject.id === id)?.name || "Disciplina removida"; }
-function settingFor(id) { return state.schedulableSettings[id] ||= { availability: "Não agendável", mode: "Estudo teórico", priority: false }; }
+function settingFor(id, targetState = state) { return targetState.schedulableSettings[id] ||= { availability: "Não agendável", mode: "Estudo teórico", priority: false }; }
 function normalizeText(value) { return String(value ?? "").trim(); }
 
 function normalizeMatchText(text) {
@@ -2884,10 +2885,10 @@ function acceptsSchedulableValue(value) {
   if (value === 1 || value === true) return true;
   return ["true", "sim", "agendável", "agendavel", "1"].includes(String(value ?? "").trim().toLowerCase());
 }
-function isSchedulable(id) {
-  const item = state.syllabusItems.find((entry) => entry.id === id);
+function isSchedulable(id, targetState = state) {
+  const item = targetState.syllabusItems.find((entry) => entry.id === id);
   if (item?.legacyOnly || item?.hiddenFromCatalog) return false;
-  const setting = settingFor(id);
+  const setting = settingFor(id, targetState);
   return setting.availability === "Agendável"
     || acceptsSchedulableValue(item?.agendavel)
     || acceptsSchedulableValue(item?.schedulable)
@@ -5254,7 +5255,7 @@ function renderQbDiagnostics() { if (!elements.qbDiagnostics) return; const pack
 function qbShuffle(list) { const copy=[...list]; for(let i=copy.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [copy[i],copy[j]]=[copy[j],copy[i]];} return copy; }
 function qbStart(items = qbFilteredQuestions(), options = {}) { if (!items.length) return alert(qbSelectedZeroDisciplineMessage() || "Nenhuma questão encontrada com os filtros atuais."); if (elements.qbShuffleTraining?.checked) items = qbShuffle(items); items = items.slice(0, Math.max(1, Number(elements.qbTrainingLimit?.value) || items.length)); questionBankTraining = { id:createId(), createdAt:new Date().toISOString(), index:0, items, answers:{}, cadernoRegistrado:{}, mode:options.mode || "default" }; elements.qbTrainingPanel.hidden = false; elements.qbResultPanel.hidden = true; qbRenderQuestion(); }
 function qbRenderQuestion() { const t=questionBankTraining, q=t.items[t.index], answered=Object.keys(t.answers).length, selected=t.answers[q.id]||"", isNotebook=t.mode==="errorNotebook"; elements.qbTrainingCounter.textContent=`${t.index+1}/${t.items.length}`; elements.qbTrainingProgress.style.width=`${Math.round(answered/t.items.length*100)}%`; const reveal = Boolean(selected) && qbHasKey(q); const msg = qbHasKey(q) ? (reveal ? (selected===q.gabarito ? `Gabarito: ${q.gabarito}. Resposta correta na revisão.` : `Gabarito: ${q.gabarito}. Resposta incorreta na revisão.`) : (isNotebook ? "Modo treino cego: responda antes de ver o gabarito." : "Gabarito disponível após a resposta.")) : "Sem gabarito: salvaremos apenas sua marcação."; const explanation = reveal ? `<div class="notice"><strong>Justificativa/fundamento:</strong> ${escapeHTML(qbExplanationText(q))}</div>` : ""; const notebookActions = isNotebook && reveal && selected===q.gabarito ? `<div class="actions qb-review-actions"><button class="secondary-button" data-qb-review-status="revisado" data-qb-error-id="${escapeHTML(q.id)}" type="button">Marcar como revisada</button><button data-qb-review-status="dominado" data-qb-error-id="${escapeHTML(q.id)}" type="button">Marcar como dominada</button></div>` : ""; elements.qbQuestionCard.innerHTML = `<div class="question-bank-meta"><span>Disciplina: ${escapeHTML(q.disciplina)}</span><span>Assunto: ${escapeHTML(q.assunto)}</span><span>Tema: ${escapeHTML(q.tema)}</span><span>Banca: ${escapeHTML(q.banca||"-")}</span><span>Ano: ${escapeHTML(q.ano||"-")}</span></div><p class="question-bank-text">${escapeHTML(q.enunciado)}</p><p class="notice">${escapeHTML(msg)}</p>${explanation}${notebookActions}<div class="question-bank-actions"><button class="answer-button ${selected==="C"?"selected":""}" data-qb-answer="C" type="button">Certo</button><button class="answer-button ${selected==="E"?"selected":""}" data-qb-answer="E" type="button">Errado</button><button class="answer-button blank-button ${selected==="B"?"selected":""}" data-qb-answer="B" type="button">Branco</button><button class="answer-button doubt-button ${selected==="D"?"selected":""}" data-qb-answer="D" type="button">Dúvida</button></div><div class="training-footer"><span class="item-meta">Respondidas: ${answered}/${t.items.length}</span><div class="actions"><button class="secondary-button" data-qb-nav="prev" ${t.index===0?"disabled":""}>Anterior</button><button class="secondary-button" data-qb-nav="next" ${t.index>=t.items.length-1?"disabled":""}>Próxima</button><button data-qb-finish type="button">Finalizar treino</button></div></div>`; }
-function qbFinish() { const t=questionBankTraining; if(!t) return; const items=t.items.map(q=>({...q, marcado:t.answers[q.id]||""})); const summary=items.reduce((a,q)=>{ if(q.marcado==="B"||!q.marcado)a.blank++; if(qbHasKey(q)&&q.marcado&&q.marcado!=="B"){ q.marcado===q.gabarito ? a.correct++ : a.wrong++; } return a; },{total:items.length,correct:0,wrong:0,blank:0}); summary.net=summary.correct-summary.wrong; summary.accuracyPct=summary.correct+summary.wrong ? Math.round(summary.correct/(summary.correct+summary.wrong)*100) : 0; const session={id:t.id,createdAt:t.createdAt,hasAnyKey:items.some(qbHasKey),summary,items:items.map(q=>({id:q.id,disciplina:q.disciplina,assunto:q.assunto,tema:q.tema,banca:q.banca,ano:q.ano,referencia:q.referencia,marcado:q.marcado,gabarito:q.gabarito||"",status:qbAnswerStatus(q),justificativa:qbExplanationText(q),fundamento:qbExplanationText(q)}))}; state.questionBankSessions.unshift(session); qbSaveNotebookItems(items.filter(q => !t.cadernoRegistrado?.[q.id])); questionBankTraining=null; saveData(); qbRenderResult(session); renderQuestionBank(); elements.qbTrainingPanel.hidden=true; elements.qbResultPanel.hidden=false; }
+function qbFinish() { const t=questionBankTraining; if(!t) return; const items=t.items.map(q=>({...q, marcado:t.answers[q.id]||""})); const summary=items.reduce((a,q)=>{ if(q.marcado==="B"||!q.marcado)a.blank++; if(qbHasKey(q)&&q.marcado&&q.marcado!=="B"){ q.marcado===q.gabarito ? a.correct++ : a.wrong++; } return a; },{total:items.length,correct:0,wrong:0,blank:0}); summary.net=summary.correct-summary.wrong; summary.accuracyPct=summary.correct+summary.wrong ? Math.round(summary.correct/(summary.correct+summary.wrong)*100) : 0; const session={id:t.id,createdAt:t.createdAt,hasAnyKey:items.some(qbHasKey),summary,items:items.map(q=>({id:q.id,syllabusItemId:q.syllabusItemId||resolvePlanningEvidenceItemIdV155(state,q),disciplina:q.disciplina,assunto:q.assunto,tema:q.tema,banca:q.banca,ano:q.ano,referencia:q.referencia,marcado:q.marcado,gabarito:q.gabarito||"",status:qbAnswerStatus(q),justificativa:qbExplanationText(q),fundamento:qbExplanationText(q)}))}; state.questionBankSessions.unshift(session); qbSaveNotebookItems(items.filter(q => !t.cadernoRegistrado?.[q.id])); questionBankTraining=null; saveData(); qbRenderResult(session); renderQuestionBank(); elements.qbTrainingPanel.hidden=true; elements.qbResultPanel.hidden=false; }
 function qbRenderResult(session) { const s=session.summary; const wrongItems=session.items.filter(q=>(q.status || qbAnswerStatus(q))==="errado"), blankItems=session.items.filter(q=>(q.status || qbAnswerStatus(q))==="branco"); elements.qbResultSummary.innerHTML = [["Total",s.total],["Acertos",session.hasAnyKey?s.correct:"Sem gabarito"],["Erros",session.hasAnyKey?s.wrong:"Sem gabarito"],["Brancos",s.blank],["Líquido Cebraspe",session.hasAnyKey?s.net:"Sem gabarito"],["% de acerto",session.hasAnyKey?`${s.accuracyPct}%`:"Sem gabarito"],["Questões erradas",wrongItems.length],["Questões brancas",blankItems.length]].map(([a,b])=>`<article class="stat-card"><span>${a}</span><strong>${escapeHTML(b)}</strong></article>`).join(""); const redo = blankItems.length ? `<div class="actions"><button id="qbResultRedoBlanks" class="secondary-button" type="button">Refazer brancas</button></div>` : ""; elements.qbResultDetails.innerHTML=redo+session.items.slice(0,50).map((q,i)=>`<article class="question-bank-item"><strong>${i+1}. ${escapeHTML(q.disciplina)} — ${escapeHTML(q.assunto)}</strong><div class="item-meta">Resposta marcada: ${escapeHTML(q.marcado||"-")} • ${q.gabarito?`Gabarito: ${escapeHTML(q.gabarito)}`:"Sem gabarito"} • Resultado: ${escapeHTML(q.status || qbAnswerStatus(q))}</div><p><strong>Justificativa/fundamento:</strong> ${escapeHTML(qbExplanationText(q))}</p></article>`).join(""); document.getElementById("qbResultRedoBlanks")?.addEventListener("click", () => qbStart((state.questionBank||[]).filter(q=>new Set(blankItems.map(i=>i.id)).has(q.id)))); }
 function qbNoResultsMessage() { const zero = qbSelectedZeroDisciplineMessage(); if (zero) return zero; if ((state.questionBank||[]).length && (elements.qbTrainingScope?.value||"all") === "syllabus" && !qbScopedBank().length) return "Há questões no banco, mas nenhuma corresponde aos assuntos do edital selecionado."; return "Nenhuma questão encontrada."; }
 function qbPreview() { qbPreviewVisible = true; if (elements.qbPreviewSection) elements.qbPreviewSection.hidden = false; qbRenderCascadingFilters(); const list=qbFilteredQuestions(); const discipline = elements.qbFilterDiscipline?.value || "todas as disciplinas"; const zeroMessage = qbSelectedZeroDisciplineMessage(); if (elements.qbMessage) elements.qbMessage.textContent = zeroMessage || `Escopo: ${qbScopeLabel()} — ${discipline}: ${list.length} questões encontradas.`; if (elements.qbStats) qbRenderQuestionBankStats(); const hidden=Math.max(0,list.length-20); elements.qbFilteredPreview.innerHTML = list.length ? `<p class="item-meta">${list.length} questão(ões) encontrada(s). Exibindo ${Math.min(20,list.length)}.</p>` + list.slice(0,20).map((q,i)=>`<article class="question-bank-item qb-preview-item"><strong>${i+1}. ${escapeHTML(q.disciplina)} — ${escapeHTML(q.assunto)}</strong><div class="item-meta">Tema: ${escapeHTML(q.tema||"-")} • Banca: ${escapeHTML(q.banca||"-")} • Ano: ${escapeHTML(q.ano||"-")}</div><p>${escapeHTML(q.enunciado)}</p></article>`).join("") + (hidden ? `<details><summary>Ver mais ${hidden} item(ns)</summary>${list.slice(20,50).map((q,i)=>`<article class="question-bank-item qb-preview-item"><strong>${i+21}. ${escapeHTML(q.disciplina)} — ${escapeHTML(q.assunto)}</strong><p>${escapeHTML(q.enunciado)}</p></article>`).join("")}</details>` : "") : escapeHTML(qbNoResultsMessage()); }
@@ -5453,7 +5454,7 @@ function questionItemOptionLabel(item = {}, showQconcursosNumber = false) { cons
 function optionsForItems(select, discipline, current = "", options = {}) { const items = state.syllabusItems.filter((item) => !item.hiddenFromCatalog && (!discipline || item.discipline === discipline)); select.innerHTML = '<option value="">Selecione</option>' + items.map((item) => `<option value="${item.id}" ${item.id === current ? "selected" : ""}>${escapeHTML(questionItemOptionLabel(item, options.showQconcursosNumber === true))}</option>`).join(""); }
 function renderGoalSelectors() { const gd = elements.goalDiscipline.value; const gi = elements.goalSyllabusItem.value; optionsForDiscipline(elements.goalDiscipline, gd); optionsForItems(elements.goalSyllabusItem, elements.goalDiscipline.value || gd, gi); }
 function renderQuestionSelectors() { const qd = elements.questionDiscipline.value; const qi = elements.questionSyllabusItem.value; optionsForDiscipline(elements.questionDiscipline, qd); optionsForItems(elements.questionSyllabusItem, elements.questionDiscipline.value || qd, qi, { showQconcursosNumber: true }); const fd = elements.questionFilterDiscipline.value; optionsForDiscipline(elements.questionFilterDiscipline, fd); elements.questionFilterDiscipline.querySelector('option').textContent = 'Todas'; const fs = elements.questionFilterSubject.value; elements.questionFilterSubject.innerHTML = '<option value="">Todos</option>' + state.syllabusItems.filter((item) => !elements.questionFilterDiscipline.value || item.discipline === elements.questionFilterDiscipline.value).map((item) => `<option value="${item.id}" ${item.id === fs ? "selected" : ""}>${escapeHTML(questionItemOptionLabel(item, true))}</option>`).join(''); }
-function goalTypeForItem(item) { const mode = item.importMeta?.tipo_agendamento || item.tipo_agendamento || settingFor(item.id).mode; if (isWeakItem(item)) return "Reforço"; if (mode === "Questões apenas") return "Questões"; if (mode === "Revisão apenas" || item.status === "Revisar") return "Revisão"; return item.status === "Não iniciado" ? "Estudo novo" : "Questões"; }
+function goalTypeForItem(item, targetState = state) { const mode = item.importMeta?.tipo_agendamento || item.tipo_agendamento || settingFor(item.id, targetState).mode; if (isWeakItem(item)) return "Reforço"; if (mode === "Questões apenas") return "Questões"; if (mode === "Revisão apenas" || item.status === "Revisar") return "Revisão"; return item.status === "Não iniciado" ? "Estudo novo" : "Questões"; }
 const DISCIPLINE_WEIGHT_OPTIONS = [
   { value: 18, label: "Altíssima" },
   { value: 14, label: "Peças" },
@@ -5502,6 +5503,132 @@ function ensureDefaultDisciplineWeights() {
     }
   });
 }
+const INTEGRATED_PLANNING_PRIORITY_VERSION_V155 = "pcpr-pcma-integrated-planning-v155";
+const INITIAL_WRONG_TOPICS_V155 = Object.freeze([
+  { key: "public-official-crimes", syllabusItemId: "21b2bf54-3b13-42ad-b8f8-abcf45f06c77", label: "Crimes praticados por funcionário público contra a Administração: concussão e corrupção passiva" },
+  { key: "police-inquiry-archiving", syllabusItemId: "03cba0a2-53af-4577-9616-9e79e521c511", label: "Arquivamento do inquérito policial" },
+  { key: "law-15358-assets", syllabusItemId: "f58838d1-f6d1-56ee-925e-48ee2d7efe44", label: "Lei nº 15.358/2026: medidas patrimoniais e perdimento de bens" },
+  { key: "law-12850-obstruction", syllabusItemId: "a0841c92-7222-430d-a1f9-33d91740b0a3", label: "Lei nº 12.850/2013: organizações criminosas e obstrução da investigação" },
+  { key: "law-11343-financing", syllabusItemId: "4b03d2d4-9194-4984-8a41-c08a3fd17c16", label: "Lei nº 11.343/2006: financiamento e autofinanciamento do tráfico" },
+  { key: "law-9605-environmental", syllabusItemId: "7478bb29-cc69-431f-94d9-c44e85c83302", label: "Lei nº 9.605/1998: crimes ambientais e prova pericial" },
+  { key: "law-8072-heinous", syllabusItemId: "bc4fe379-2d61-45f7-864d-5add3bb87115", label: "Lei nº 8.072/1990: crimes hediondos" },
+  { key: "law-13260-terrorism", syllabusItemId: "80c218d6-7981-5d94-bfe3-b8a626d3c405", label: "Lei nº 13.260/2016: Lei Antiterrorismo" },
+  { key: "law-7210-execution", syllabusItemId: "6fff6953-95bf-5ea6-8fbb-d5d4a70b8c8e", label: "Lei nº 7.210/1984: identificação genética, progressão e saída temporária" },
+  { key: "constituent-power", syllabusItemId: "d3e06e18-3737-52fc-803a-31c525433014", label: "Poder Constituinte: espécies, características e limites" },
+  { key: "law-14133-procurement", syllabusItemId: "96619f38-174d-4d17-b6bd-2f59e4dc5ada", label: "Lei nº 14.133/2021: licitações, contratação direta e agentes" },
+  { key: "administrative-control", syllabusItemId: "7c2b50a4-3e09-4507-ad6f-8d48d213b029", label: "Controle da Administração Pública: controle legislativo e Tribunais de Contas" },
+  { key: "law-12037-identification", syllabusItemId: "a07593c1-f39a-5f94-b0bc-0a843b2eea29", label: "Lei nº 12.037/2009: identificação criminal" },
+  { key: "law-13709-lgpd", syllabusItemId: "d0a2f2f7-7fec-47e5-a1c4-01b7163c649a", label: "Lei nº 13.709/2018: LGPD" },
+  { key: "human-rights-global-system", syllabusItemId: "3211a0ab-83fd-4848-8c3b-1e37bf24d937", label: "Sistema global de proteção dos Direitos Humanos" },
+  { key: "human-rights-interamerican-system", syllabusItemId: "cd83d7ae-1b4d-44f0-8917-fbb1c6926bee", label: "Sistema interamericano de proteção dos Direitos Humanos" },
+  { key: "forensic-ballistics", syllabusItemId: "bd043238-0d53-4cb1-bda8-95d7beb9776b", label: "Balística forense" }
+]);
+function planningPrioritySignalsV155(targetState = state) {
+  targetState.planning ||= normalizePlanningState({});
+  targetState.planning.topicPrioritySignalsV155 ||= {};
+  return targetState.planning.topicPrioritySignalsV155;
+}
+function seedInitialWrongTopicsV155(targetState = state) {
+  const signals = planningPrioritySignalsV155(targetState);
+  const missing = [], inserted = [];
+  INITIAL_WRONG_TOPICS_V155.forEach((entry) => {
+    const item = (targetState.syllabusItems || []).find((candidate) => candidate.id === entry.syllabusItemId);
+    if (!item || item.legacyOnly || item.hiddenFromCatalog) { missing.push(entry); return; }
+    if (!signals[entry.key]) {
+      signals[entry.key] = {
+        syllabusItemId: entry.syllabusItemId,
+        label: entry.label,
+        wrong: 1,
+        correct: 0,
+        source: "simulado-informado-2026-07-26",
+        createdAt: "2026-07-26T00:00:00.000-03:00"
+      };
+      inserted.push(entry);
+    }
+  });
+  return { inserted, missing, signals };
+}
+function officialPlanningMappingsV155(targetState = state, syllabusItemId = "") {
+  return (targetState.contestSyllabusMap || []).filter((mapping) => mapping.syllabusItemId === syllabusItemId);
+}
+function isIntegratedPlanningCandidateV155(item = {}, targetState = state) {
+  if (!item.id || item.legacyOnly || item.hiddenFromCatalog || item.status === "Ignorado") return false;
+  return officialPlanningMappingsV155(targetState, item.id).length > 0 || isSchedulable(item.id, targetState);
+}
+function resolvePlanningEvidenceItemIdV155(targetState = state, record = {}) {
+  const directId = record.syllabusItemId || record.syllabus_item_id || "";
+  if (directId && (targetState.syllabusItems || []).some((item) => item.id === directId)) return directId;
+  const discipline = canonical(record.discipline || record.disciplina || "");
+  const subject = canonical(record.subject || record.assunto || record.tema || "");
+  if (!discipline || !subject) return "";
+  const exact = (targetState.syllabusItems || []).filter((item) => !item.hiddenFromCatalog && canonical(item.discipline) === discipline && canonical(item.subject) === subject);
+  return exact.length === 1 ? exact[0].id : "";
+}
+function planningQuestionEvidenceV155(targetState = state) {
+  const evidence = [];
+  (targetState.questionLogs || []).forEach((log) => {
+    const syllabusItemId = resolvePlanningEvidenceItemIdV155(targetState, log);
+    if (!syllabusItemId) return;
+    evidence.push({
+      key: `log|${log.id || [log.date, log.discipline, log.subject].join("|")}`,
+      syllabusItemId,
+      wrong: Math.max(0, Number(log.wrong) || 0),
+      correct: Math.max(0, Number(log.correct) || 0),
+      at: log.updatedAt || log.date || ""
+    });
+  });
+  (targetState.questionBankSessions || []).forEach((session) => {
+    (session.items || []).forEach((question, index) => {
+      const syllabusItemId = resolvePlanningEvidenceItemIdV155(targetState, question);
+      if (!syllabusItemId || !question.marcado) return;
+      const status = canonical(question.status || "");
+      const correct = status === "certo" || status === "correto" || Boolean(question.gabarito && question.marcado === question.gabarito);
+      const wrong = status === "errado" || Boolean(question.gabarito && !["B", "D"].includes(question.marcado) && question.marcado !== question.gabarito);
+      evidence.push({
+        key: `bank|${session.id || session.createdAt}|${question.id || index}`,
+        syllabusItemId,
+        wrong: wrong ? 1 : 0,
+        correct: correct ? 1 : 0,
+        at: session.createdAt || ""
+      });
+    });
+  });
+  return evidence;
+}
+function planningPriorityMetricsV155(targetState = state) {
+  const metrics = new Map();
+  const add = (syllabusItemId, wrong = 0, correct = 0, at = "", source = "") => {
+    if (!syllabusItemId) return;
+    const metric = metrics.get(syllabusItemId) || { wrong: 0, correct: 0, lastAt: "", sources: new Set() };
+    metric.wrong += Math.max(0, Number(wrong) || 0);
+    metric.correct += Math.max(0, Number(correct) || 0);
+    if (at > metric.lastAt) metric.lastAt = at;
+    if (source) metric.sources.add(source);
+    metrics.set(syllabusItemId, metric);
+  };
+  Object.values(targetState.planning?.topicPrioritySignalsV155 || {}).forEach((signal) => add(signal.syllabusItemId, signal.wrong, signal.correct, signal.createdAt, signal.source));
+  planningQuestionEvidenceV155(targetState).forEach((row) => add(row.syllabusItemId, row.wrong, row.correct, row.at, "questions"));
+  metrics.forEach((metric) => {
+    metric.boost = Math.max(0, Math.min(320, metric.wrong * 72 - metric.correct * 16));
+    metric.netErrors = Math.max(0, metric.wrong - metric.correct * (2 / 9));
+    metric.sources = [...metric.sources];
+  });
+  return metrics;
+}
+function planningPriorityFingerprintV155(targetState = state) {
+  const payload = [
+    INTEGRATED_PLANNING_PRIORITY_VERSION_V155,
+    Object.values(targetState.planning?.topicPrioritySignalsV155 || {}).map((signal) => [signal.syllabusItemId, signal.wrong, signal.correct, signal.source]),
+    planningQuestionEvidenceV155(targetState).map((row) => [row.key, row.syllabusItemId, row.wrong, row.correct, row.at])
+  ];
+  const text = JSON.stringify(payload);
+  let hash = 2166136261;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `${text.length}:${(hash >>> 0).toString(16)}`;
+}
 function buildPlanningScoreContext(targetState = state) {
   const keyFor = (discipline, subject) => `${canonical(discipline)}|${canonical(subject)}`;
   const add = (map, key, value) => { if (!key) return; const values = map.get(key) || []; values.push(value); map.set(key, values); };
@@ -5518,7 +5645,7 @@ function buildPlanningScoreContext(targetState = state) {
   (targetState.simulados || []).flatMap((mock) => mock.disciplines || []).forEach((row) => { const totals = mockTotals[canonical(row.name || row.discipline)] ||= { total: 0, wrong: 0 }; totals.total += Number(row.total || 0); totals.wrong += Number(row.wrong || 0); });
   const weaknesses = Object.fromEntries(Object.keys(totalByDiscipline).map((discipline) => { const questions = questionTotals[canonical(discipline)] || {}, mocks = mockTotals[canonical(discipline)] || {}; return [discipline, { question: questions.total ? questions.wrong / questions.total * 100 : 0, mock: mocks.total ? mocks.wrong / mocks.total * 100 : 0 }]; }));
   const examBoost = targetState.edital?.examDate ? Math.max(0, 20 - Math.ceil((parseDate(targetState.edital.examDate) - new Date()) / 86400000) / 10) : 0;
-  const scores = new Map();
+  const scores = new Map(), diagnosticMetrics = planningPriorityMetricsV155(targetState);
   (targetState.syllabusItems || []).forEach((item) => {
     const key = keyFor(item.discipline, item.subject), studies = [...(studiesBySyllabusItemId.get(item.id) || []), ...(studiesByDisciplineSubject.get(key) || [])], goals = [...(goalsBySyllabusItemId.get(item.id) || []), ...(goalsByDisciplineSubject.get(key) || [])], questions = [...(questionLogsBySyllabusItemId.get(item.id) || []), ...(questionsByDisciplineSubject.get(key) || [])];
     const unique = (rows) => [...new Map(rows.map((row) => [row.id || row, row])).values()]; const itemStudies = unique(studies), itemGoals = unique(goals), itemQuestions = unique(questions);
@@ -5528,11 +5655,12 @@ function buildPlanningScoreContext(targetState = state) {
     const answered = performance.correct + performance.wrong, net = performance.correct - performance.wrong, weakItem = Boolean(item.manualWeak || (diagnosed && (item.domain === "Fraco" || answered > 0 && performance.correct / answered < .7 || performance.wrong >= 3 && performance.wrong > performance.correct || performance.questions >= 5 && net <= 0)));
     const materials = unique([...(materialsBySyllabusItemId.get(item.id) || []), ...(materialsByParentSyllabusItemId.get(item.id) || []), ...(materialsByDisciplineSubject.get(key) || [])]).filter((material) => material.source !== "factory" || material.factoryModuleKey === "resumoAula"); const material = materials.find((row) => validEstimatedMinutes(row.manualEstimatedMinutes)) || materials.find((row) => validEstimatedMinutes(row.estimatedMinutes)); if (material) materialEstimateBySyllabusItemId.set(item.id, { material, minutes: validEstimatedMinutes(material.manualEstimatedMinutes) || validEstimatedMinutes(material.estimatedMinutes), source: validEstimatedMinutes(material.manualEstimatedMinutes) ? "manualEstimatedMinutes" : "estimatedMinutes" });
     const pending = pendingByDiscipline[item.discipline] || 0, total = totalByDiscipline[item.discipline] || 1, weakness = weaknesses[item.discipline] || {}, reviewDue = item.status === "Revisar" || item.lastReviewedAt && addDays(item.lastReviewedAt, 7) <= todayISO() ? 30 : 0;
-    scores.set(item.id, disciplineWeightValue(item.discipline) * 18 + pending / total * 40 + (item.status === "Não iniciado" ? 35 : 0) + (!diagnosed ? 18 : 0) + (weakItem ? 42 : 0) + (weakness.question || 0) * .7 + (weakness.mock || 0) * .4 + (normalizeSubjectIncidence(item.weight) - 3) * 10 + reviewDue + examBoost); itemMetrics.set(item.id, { diagnosed, minutes, performance: { ...performance, net }, weakItem }); if (typeof performanceCounters !== "undefined") { performanceCounters.scoreExecutions++; performanceCounters.scoredItems++; }
+    const diagnostic = diagnosticMetrics.get(item.id) || { wrong: 0, correct: 0, boost: 0, netErrors: 0 };
+    scores.set(item.id, disciplineWeightValue(item.discipline, targetState) * 18 + pending / total * 40 + (item.status === "Não iniciado" ? 35 : 0) + (!diagnosed ? 18 : 0) + (weakItem ? 42 : 0) + (weakness.question || 0) * .7 + (weakness.mock || 0) * .4 + (normalizeSubjectIncidence(item.weight) - 3) * 10 + reviewDue + examBoost + diagnostic.boost); itemMetrics.set(item.id, { diagnosed, minutes, performance: { ...performance, net }, weakItem, diagnostic }); if (typeof performanceCounters !== "undefined") { performanceCounters.scoreExecutions++; performanceCounters.scoredItems++; }
   });
   const completedRecords = completedPlanningSubjectRecords(targetState);
-  const candidates = (targetState.syllabusItems || []).filter((item) => isSchedulable(item.id) && !item.hiddenFromCatalog && item.status !== "Ignorado" && !planningRecordMatchesCompletedSubject(item, completedRecords)).sort((a, b) => (scores.get(b.id) || 0) - (scores.get(a.id) || 0));
-  return { studiesBySyllabusItemId, goalsBySyllabusItemId, questionLogsBySyllabusItemId, studiesByDisciplineSubject, goalsByDisciplineSubject, questionsByDisciplineSubject, materialsBySyllabusItemId, materialsByParentSyllabusItemId, materialsByDisciplineSubject, materialEstimateBySyllabusItemId, pendingByDiscipline, totalByDiscipline, weaknesses, itemMetrics, scores, candidates };
+  const candidates = (targetState.syllabusItems || []).filter((item) => isIntegratedPlanningCandidateV155(item, targetState) && ((diagnosticMetrics.get(item.id)?.boost || 0) > 0 || !planningRecordMatchesCompletedSubject(item, completedRecords))).sort((a, b) => (scores.get(b.id) || 0) - (scores.get(a.id) || 0));
+  return { studiesBySyllabusItemId, goalsBySyllabusItemId, questionLogsBySyllabusItemId, studiesByDisciplineSubject, goalsByDisciplineSubject, questionsByDisciplineSubject, materialsBySyllabusItemId, materialsByParentSyllabusItemId, materialsByDisciplineSubject, materialEstimateBySyllabusItemId, pendingByDiscipline, totalByDiscipline, weaknesses, itemMetrics, diagnosticMetrics, scores, candidates };
 }
 function disciplineQuestionWeakness(discipline) { return buildPlanningScoreContext().weaknesses[discipline]?.question || 0; }
 function mockWeakness(discipline) { return buildPlanningScoreContext().weaknesses[discipline]?.mock || 0; }
@@ -5615,8 +5743,11 @@ function planningDistributionOrderV77(records = [], targetState = state, date = 
   const profile = planningDistributionProfileV77(targetState, date);
   const indexed = records.map((record, index) => ({ record, index }));
   const scoreFor = (record) => Number(scoreContext?.scores?.get(record.syllabusItemId || record.id)) || 0;
+  const diagnosticFor = (record) => Number(scoreContext?.diagnosticMetrics?.get(record.syllabusItemId || record.id)?.boost) || 0;
   return indexed.sort((left, right) => {
     const a = left.record, b = right.record;
+    const diagnosticDifference = diagnosticFor(b) - diagnosticFor(a);
+    if (diagnosticDifference) return diagnosticDifference;
     const disciplineA = canonical(a.discipline || a.disciplina), disciplineB = canonical(b.discipline || b.disciplina);
     const repeatedYesterdayA = profile.lastDates.get(disciplineA) === profile.yesterday ? 1 : 0;
     const repeatedYesterdayB = profile.lastDates.get(disciplineB) === profile.yesterday ? 1 : 0;
@@ -5654,9 +5785,11 @@ function eligiblePlanningGoalsForDate(date, opts = {}) {
   });
   const eligible = [];
   for (const item of context.candidates) {
-    if (typeof isItemEnabledForPlanning === "function" && !isItemEnabledForPlanning(targetState, item.id, date)) continue;
+    const diagnosticBoost = Number(context.diagnosticMetrics?.get(item.id)?.boost) || 0;
+    if (typeof isItemEnabledForPlanning === "function" && !isItemEnabledForPlanning(targetState, item.id, date) && diagnosticBoost <= 0) continue;
     if (reserved.has(planningItemKey(item))) continue;
-    const [goal] = makeGoal(item, date, context.itemMetrics.get(item.id)?.weakItem ? "Reforço" : goalTypeForItem(item), context, targetState);
+    const metrics = context.itemMetrics.get(item.id);
+    const [goal] = makeGoal(item, date, metrics?.weakItem || metrics?.diagnostic?.boost > 0 ? "Reforço" : goalTypeForItem(item, targetState), context, targetState);
     if (goal) eligible.push(goal);
   }
   return planningDistributionOrderV77(eligible, targetState, date, context);
@@ -5960,6 +6093,177 @@ function shouldRecalculateDailyGoal(goal) {
 }
 function isPreservableDailyGoal(goal) {
   return !shouldRecalculateDailyGoal(goal);
+}
+const PLANNING_GOAL_TEMPLATE_FIELDS_V155 = Object.freeze([
+  "date", "data", "discipline", "disciplina", "syllabusItemId", "subject", "assunto", "baseSubject",
+  "referencia_edital", "type", "tipo", "minutes", "tempo_sugerido_minutos", "estimatedTotalMinutes",
+  "segmentMinutes", "segmentIndex", "segmentCount", "estimateSourceId", "priority", "prioridade",
+  "origin", "origem", "notes", "observacoes"
+]);
+const PLANNING_PROTECTED_COLLECTIONS_V155 = Object.freeze([
+  "subjects", "syllabusItems", "schedulableSettings", "studies", "questionLogs", "smartReviews", "simulados",
+  "materials", "questionBank", "questionBankSessions", "questionErrorNotebook", "factoryItems", "factoryAgenda",
+  "disciplineWeights", "contestProfiles", "contestSyllabusMap", "contestPlanningProfiles", "planningModeHistory"
+]);
+function isMutablePendingPlanningGoalV155(goal = {}, fromDate = todayISO()) {
+  return goalDateValue(goal) >= fromDate
+    && !isManualDailyGoal(goal)
+    && isPlanningStudyGoal(goal)
+    && shouldRecalculateDailyGoal(goal);
+}
+function applyPlanningGoalTemplateV155(targetGoal, templateGoal, updatedAt) {
+  PLANNING_GOAL_TEMPLATE_FIELDS_V155.forEach((key) => {
+    if (Object.prototype.hasOwnProperty.call(templateGoal, key)) targetGoal[key] = cloneData(templateGoal[key]);
+    else delete targetGoal[key];
+  });
+  targetGoal.updatedAt = updatedAt;
+  return targetGoal;
+}
+function sameSerializedValueV155(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+function validateIntegratedPlanningCandidateV155(beforeState, candidateState, fromDate, mutableIds, priorityEntries) {
+  const errors = [];
+  PLANNING_PROTECTED_COLLECTIONS_V155.forEach((key) => {
+    if (!sameSerializedValueV155(beforeState[key], candidateState[key])) errors.push(`protected-collection:${key}`);
+  });
+  if (!sameSerializedValueV155(beforeState.planning?.config, candidateState.planning?.config)
+    || !sameSerializedValueV155(beforeState.planning?.availability, candidateState.planning?.availability)
+    || !sameSerializedValueV155(beforeState.planning?.weeklyGoals, candidateState.planning?.weeklyGoals)
+    || !sameSerializedValueV155(beforeState.planning?.forecasts, candidateState.planning?.forecasts)) {
+    errors.push("planning-configuration-changed");
+  }
+  const beforeSyllabusIds = (beforeState.syllabusItems || []).map((item) => item.id);
+  const afterSyllabusIds = (candidateState.syllabusItems || []).map((item) => item.id);
+  if (!sameSerializedValueV155(beforeSyllabusIds, afterSyllabusIds)) errors.push("syllabus-uuid-set-changed");
+  if (new Set(afterSyllabusIds).size !== afterSyllabusIds.length) errors.push("duplicate-syllabus-uuid");
+  const beforeGoalsById = new Map((beforeState.dailyGoals || []).map((goal) => [goal.id, goal]));
+  const afterGoalsById = new Map((candidateState.dailyGoals || []).map((goal) => [goal.id, goal]));
+  if (afterGoalsById.size !== (candidateState.dailyGoals || []).length) errors.push("duplicate-goal-uuid");
+  beforeGoalsById.forEach((beforeGoal, id) => {
+    const afterGoal = afterGoalsById.get(id);
+    if (!afterGoal) { errors.push(`lost-goal:${id}`); return; }
+    if (!mutableIds.has(id) && !sameSerializedValueV155(beforeGoal, afterGoal)) errors.push(`protected-goal-changed:${id}`);
+    if (goalDateValue(beforeGoal) < fromDate && !sameSerializedValueV155(beforeGoal, afterGoal)) errors.push(`past-goal-changed:${id}`);
+  });
+  const futureAutomatic = (candidateState.dailyGoals || []).filter((goal) => goalDateValue(goal) >= fromDate && !isManualDailyGoal(goal) && isPlanningStudyGoal(goal) && !isGoalDone(goal));
+  const futureKeys = futureAutomatic.map(planningItemKey).filter(Boolean);
+  if (new Set(futureKeys).size !== futureKeys.length) errors.push("duplicate-future-planning-topic");
+  const prePcprDate = fromDate <= "2026-10-11" ? fromDate : "2026-10-11";
+  const postPcprDate = "2026-10-12";
+  const activeOfficialItems = (candidateState.syllabusItems || []).filter((item) => isIntegratedPlanningCandidateV155(item, candidateState) && officialPlanningMappingsV155(candidateState, item.id).length);
+  const unreachable = activeOfficialItems.filter((item) => {
+    if (typeof isItemEnabledForPlanning !== "function") return false;
+    return !isItemEnabledForPlanning(candidateState, item.id, prePcprDate) && !isItemEnabledForPlanning(candidateState, item.id, postPcprDate);
+  });
+  if (unreachable.length) errors.push(`unreachable-official-items:${unreachable.length}`);
+  const firstDates = {};
+  priorityEntries.forEach((entry) => {
+    const dates = futureAutomatic.filter((goal) => goal.syllabusItemId === entry.syllabusItemId).map(goalDateValue).filter(Boolean).sort();
+    if (!dates.length) errors.push(`priority-not-planned:${entry.key}`);
+    firstDates[entry.key] = dates[0] || "";
+  });
+  return {
+    ok: errors.length === 0,
+    errors,
+    activeOfficialItems: activeOfficialItems.length,
+    unreachableOfficialItems: unreachable.length,
+    firstDates
+  };
+}
+function prepareIntegratedPlanningPrioritiesV155(targetState = state, opts = {}) {
+  const fromDate = opts.fromDate || todayISO();
+  const beforeState = cloneData(targetState);
+  const simulation = cloneData(targetState);
+  const seed = seedInitialWrongTopicsV155(simulation);
+  if (seed.missing.length) return { ok: false, changed: false, errors: seed.missing.map((entry) => `priority-item-missing:${entry.key}`) };
+
+  const mutableGoals = (beforeState.dailyGoals || []).filter((goal) => isMutablePendingPlanningGoalV155(goal, fromDate));
+  const mutableIds = new Set(mutableGoals.map((goal) => goal.id));
+  const dates = [...new Set(mutableGoals.map(goalDateValue).filter(Boolean))].sort();
+  if (!dates.length) return { ok: false, changed: false, errors: ["no-pending-future-planning-dates"] };
+
+  simulation.dailyGoals = (simulation.dailyGoals || []).filter((goal) => !mutableIds.has(goal.id));
+  const reservedSyllabusIds = new Set(simulation.dailyGoals.map(goalSyllabusReservationKey).filter(Boolean));
+  const rebuilt = reconcilePlanningDates(simulation, dates, {
+    rebuildAutomatic: true,
+    reservedSyllabusIds,
+    scoreContext: buildPlanningScoreContext(simulation)
+  });
+  const generatedIds = new Set(rebuilt.added);
+  const generatedByDate = new Map(dates.map((date) => [date, simulation.dailyGoals.filter((goal) => generatedIds.has(goal.id) && goalDateValue(goal) === date)]));
+  const mutableByDate = new Map(dates.map((date) => [date, mutableGoals.filter((goal) => goalDateValue(goal) === date)]));
+  const shortages = dates.filter((date) => (generatedByDate.get(date) || []).length < (mutableByDate.get(date) || []).length);
+  if (shortages.length) return { ok: false, changed: false, errors: shortages.map((date) => `insufficient-safe-slots:${date}`), warnings: rebuilt.warnings };
+
+  const candidateState = cloneData(beforeState);
+  candidateState.planning.topicPrioritySignalsV155 = cloneData(simulation.planning.topicPrioritySignalsV155);
+  candidateState.planning.prioritySourceFingerprintV155 = planningPriorityFingerprintV155(simulation);
+  const candidateGoalsById = new Map((candidateState.dailyGoals || []).map((goal) => [goal.id, goal]));
+  const updatedAt = new Date().toISOString();
+  let redistributedExisting = 0;
+  let addedGoals = 0;
+  dates.forEach((date) => {
+    const existing = mutableByDate.get(date) || [];
+    const generated = generatedByDate.get(date) || [];
+    existing.forEach((goal, index) => {
+      const targetGoal = candidateGoalsById.get(goal.id);
+      const beforeKey = `${goal.syllabusItemId}|${goal.type}|${goal.minutes}`;
+      applyPlanningGoalTemplateV155(targetGoal, generated[index], updatedAt);
+      const afterKey = `${targetGoal.syllabusItemId}|${targetGoal.type}|${targetGoal.minutes}`;
+      if (beforeKey !== afterKey) redistributedExisting += 1;
+    });
+    generated.slice(existing.length).forEach((goal) => {
+      const newGoal = cloneData(goal);
+      newGoal.createdAt ||= updatedAt;
+      newGoal.updatedAt = updatedAt;
+      candidateState.dailyGoals.push(newGoal);
+      addedGoals += 1;
+    });
+  });
+  const validation = validateIntegratedPlanningCandidateV155(beforeState, candidateState, fromDate, mutableIds, INITIAL_WRONG_TOPICS_V155);
+  if (!validation.ok) return { ok: false, changed: false, errors: validation.errors, validation, warnings: rebuilt.warnings };
+
+  const report = {
+    version: INTEGRATED_PLANNING_PRIORITY_VERSION_V155,
+    appliedAt: updatedAt,
+    reason: opts.reason || "initial-integrated-planning",
+    fromDate,
+    preservedGoalUuids: (beforeState.dailyGoals || []).length,
+    redistributedExisting,
+    addedGoals,
+    recalculatedFutureGoals: mutableGoals.length + addedGoals,
+    priorityTopics: INITIAL_WRONG_TOPICS_V155.length,
+    firstDates: validation.firstDates,
+    activeOfficialItems: validation.activeOfficialItems,
+    unreachableOfficialItems: validation.unreachableOfficialItems,
+    warnings: rebuilt.warnings
+  };
+  candidateState.migrations ||= {};
+  candidateState.migrations[INTEGRATED_PLANNING_PRIORITY_VERSION_V155] = report;
+  return { ok: true, changed: true, candidateState, report, validation, errors: [] };
+}
+function applyIntegratedPlanningPrioritiesV155(targetState = state, opts = {}) {
+  const fingerprint = planningPriorityFingerprintV155(targetState);
+  const existing = targetState.migrations?.[INTEGRATED_PLANNING_PRIORITY_VERSION_V155];
+  if (!opts.force && existing && targetState.planning?.prioritySourceFingerprintV155 === fingerprint) {
+    return { ok: true, changed: false, skipped: true, report: existing, errors: [] };
+  }
+  const prepared = prepareIntegratedPlanningPrioritiesV155(targetState, opts);
+  if (!prepared.ok) return prepared;
+  targetState.dailyGoals = prepared.candidateState.dailyGoals;
+  targetState.planning = prepared.candidateState.planning;
+  targetState.migrations = prepared.candidateState.migrations;
+  return prepared;
+}
+function refreshPlanningPrioritiesForQuestionChangesV155(targetState = state) {
+  if (!targetState.migrations?.[INTEGRATED_PLANNING_PRIORITY_VERSION_V155]) return { ok: true, changed: false, skipped: true };
+  const fingerprint = planningPriorityFingerprintV155(targetState);
+  if (targetState.planning?.prioritySourceFingerprintV155 === fingerprint) return { ok: true, changed: false, skipped: true };
+  const result = applyIntegratedPlanningPrioritiesV155(targetState, { force: true, reason: "question-performance-updated" });
+  globalThis.__integratedPlanningPriorityV155 = result;
+  if (!result.ok) console.error("[Metas Estudo] Replanejamento por desempenho bloqueado; o estado anterior foi preservado.", result.errors);
+  return result;
 }
 function replanFutureGoalsAfterCompletionV77(completedRecord, targetState = state, opts = {}) {
   const fromDate = opts.fromDate || todayISO();
