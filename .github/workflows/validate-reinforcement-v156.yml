@@ -14,10 +14,12 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Obter código
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Configurar Node.js
         uses: actions/setup-node@v4
@@ -33,13 +35,33 @@ jobs:
       - name: Executar testes específicos da correção
         run: node --test tests/reinforcement-goal-presentation-v156.test.js
 
-      - name: Executar toda a suíte de testes
+      - name: Comparar suíte completa da branch com a v155
         shell: bash
         run: |
-          set -o pipefail
-          npm test > /tmp/full-test.log 2>&1 || status=$?
-          tail -n 500 /tmp/full-test.log
-          exit ${status:-0}
+          set +e
+          npm test > /tmp/branch-test.log 2>&1
+          branch_status=$?
+
+          git fetch origin main --depth=1
+          git worktree add --detach /tmp/main-v155 origin/main
+          (
+            cd /tmp/main-v155
+            npm test > /tmp/main-test.log 2>&1
+          )
+          main_status=$?
+
+          echo "=== RESULTADO DA BRANCH ==="
+          echo "status=${branch_status}"
+          grep -E "^(not ok|# Subtest:|# tests |# pass |# fail |# cancelled |# skipped |# todo |# duration_ms|  error:|  code:|  stack:)" /tmp/branch-test.log | tail -n 180 || true
+
+          echo "=== RESULTADO DA V155/MAIN ==="
+          echo "status=${main_status}"
+          grep -E "^(not ok|# Subtest:|# tests |# pass |# fail |# cancelled |# skipped |# todo |# duration_ms|  error:|  code:|  stack:)" /tmp/main-test.log | tail -n 180 || true
+
+          if [ "$branch_status" -ne 0 ]; then
+            echo "A publicação permanece bloqueada porque a branch não passou em toda a suíte."
+            exit "$branch_status"
+          fi
 
       - name: Validar paridade entre raiz e docs
         run: |
