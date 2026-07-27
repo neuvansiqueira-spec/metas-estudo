@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260727-correcao-classificacao-reforco-v157",
+  "version": "20260727-escolher-assunto-dia-v158",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

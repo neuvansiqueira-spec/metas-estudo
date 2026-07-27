@@ -1769,7 +1769,7 @@ const elements = {
   bulkInput: $("#bulkInput"), previewBulk: $("#previewBulk"), saveBulk: $("#saveBulk"), bulkPreview: $("#bulkPreview"), incidenceTableInput: $("#incidenceTableInput"), applyIncidenceTableButton: $("#applyIncidenceTableButton"), incidenceTableResult: $("#incidenceTableResult"), filterSearch: $("#filterSearch"), filterDiscipline: $("#filterDiscipline"), filterPriority: $("#filterPriority"), filterStatus: $("#filterStatus"), filterDomain: $("#filterDomain"), filterSchedulable: $("#filterSchedulable"), filterQuick: $("#filterQuick"), bulkPriority: $("#bulkPriority"), applyBulkPriority: $("#applyBulkPriority"), syllabusCount: $("#syllabusCount"), showMoreSyllabus: $("#showMoreSyllabus"), syllabusList: $("#syllabusList"), schedulableList: $("#schedulableList"), disciplineOptions: $("#disciplineOptions"),
   jsonImportFile: $("#jsonImportFile"), replaceImportedSyllabus: $("#replaceImportedSyllabus"), importMessage: $("#importMessage"), importDisciplineTotal: $("#importDisciplineTotal"), importSubjectTotal: $("#importSubjectTotal"), importFilterDiscipline: $("#importFilterDiscipline"), importFilterStatus: $("#importFilterStatus"), importFilterPriority: $("#importFilterPriority"), importFilterDomain: $("#importFilterDomain"), importJsonButton: $("#importJsonButton"), clearImportedSyllabus: $("#clearImportedSyllabus"), importDisciplineList: $("#importDisciplineList"), importedSyllabusGroups: $("#importedSyllabusGroups"), importPreview: $("#importPreview"),
   generalCebraspeNet: $("#generalCebraspeNet"), todayPendingGoals: $("#todayPendingGoals"), todayDoneGoals: $("#todayDoneGoals"), dashboardTodayGoal: $("#dashboardTodayGoal"), dashboardTodayGoalDetail: $("#dashboardTodayGoalDetail"), dashboardDailyGoalRate: $("#dashboardDailyGoalRate"), dashboardTodayRemaining: $("#dashboardTodayRemaining"), dashboardNextTodayGoal: $("#dashboardNextTodayGoal"), viewDayPlan: $("#viewDayPlan"),
-  selectedGoalDateLabel: $("#selectedGoalDateLabel"), nextDailyGoal: $("#nextDailyGoal"), generateDailyGoals: $("#generateDailyGoals"), refreshDailyGoalsFromPlanning: $("#refreshDailyGoalsFromPlanning"), goalForm: $("#goalForm"), goalEditingId: $("#goalEditingId"), goalDate: $("#goalDate"), goalDiscipline: $("#goalDiscipline"), goalSyllabusItem: $("#goalSyllabusItem"), goalType: $("#goalType"), goalMinutes: $("#goalMinutes"), goalActualMinutes: $("#goalActualMinutes"), goalStudyStatus: $("#goalStudyStatus"), goalPriority: $("#goalPriority"), goalStatus: $("#goalStatus"), goalNotes: $("#goalNotes"), cancelGoalEdit: $("#cancelGoalEdit"), goalSubmitButton: $("#goalSubmitButton"), dailyGoalsSummary: $("#dailyGoalsSummary"), dailyGoalsList: $("#dailyGoalsList"),
+  selectedGoalDateLabel: $("#selectedGoalDateLabel"), nextDailyGoal: $("#nextDailyGoal"), generateDailyGoals: $("#generateDailyGoals"), refreshDailyGoalsFromPlanning: $("#refreshDailyGoalsFromPlanning"), chooseSubjectForDayForm: $("#chooseSubjectForDayForm"), chooseSubjectForDayDate: $("#chooseSubjectForDayDate"), chooseSubjectForDayDiscipline: $("#chooseSubjectForDayDiscipline"), chooseSubjectForDayItem: $("#chooseSubjectForDayItem"), chooseSubjectReplacementField: $("#chooseSubjectReplacementField"), chooseSubjectReplacementGoal: $("#chooseSubjectReplacementGoal"), chooseSubjectForDayStatus: $("#chooseSubjectForDayStatus"), chooseSubjectForDaySubmit: $("#chooseSubjectForDaySubmit"), goalForm: $("#goalForm"), goalEditingId: $("#goalEditingId"), goalDate: $("#goalDate"), goalDiscipline: $("#goalDiscipline"), goalSyllabusItem: $("#goalSyllabusItem"), goalType: $("#goalType"), goalMinutes: $("#goalMinutes"), goalActualMinutes: $("#goalActualMinutes"), goalStudyStatus: $("#goalStudyStatus"), goalPriority: $("#goalPriority"), goalStatus: $("#goalStatus"), goalNotes: $("#goalNotes"), cancelGoalEdit: $("#cancelGoalEdit"), goalSubmitButton: $("#goalSubmitButton"), dailyGoalsSummary: $("#dailyGoalsSummary"), dailyGoalsList: $("#dailyGoalsList"),
   calendarDate: $("#calendarDate"), goalGenerationScope: $("#goalGenerationScope"), generateCalendarGoals: $("#generateCalendarGoals"), goalCalendarGenerationStatus: $("#goalCalendarGenerationStatus"), disciplineWeightsList: $("#disciplineWeightsList"), goalCalendarStats: $("#goalCalendarStats"), goalCalendarContent: $("#goalCalendarContent"), goalCalendarWeeklyStats: $("#goalCalendarWeeklyStats"), goalCalendarWeeklyContent: $("#goalCalendarWeeklyContent"), goalCalendarMonthlyStats: $("#goalCalendarMonthlyStats"), goalCalendarMonthlyContent: $("#goalCalendarMonthlyContent"), goalCalendarDailyResume: $("#goalCalendarDailyResume"), goalCalendarWeeklyResume: $("#goalCalendarWeeklyResume"), goalCalendarMonthlyResume: $("#goalCalendarMonthlyResume"), goalCalendarExportScope: $("#goalCalendarExportScope"), exportGoalCalendarPdf: $("#exportGoalCalendarPdf"), exportGoalCalendarExcel: $("#exportGoalCalendarExcel"), exportGoalCalendarImage: $("#exportGoalCalendarImage"), goalCalendarExportStatus: $("#goalCalendarExportStatus"), monthlyTopicGoal: $("#monthlyTopicGoal"), monthlyHourGoal: $("#monthlyHourGoal"), monthlyPlanSummary: $("#monthlyPlanSummary"), todayGoalsTotal: $("#todayGoalsTotal"), weekGoalsTotal: $("#weekGoalsTotal"), weekGoalRate: $("#weekGoalRate"), monthGoalRate: $("#monthGoalRate"), nextGoalLabel: $("#nextGoalLabel"), weekTopDiscipline: $("#weekTopDiscipline"), mostDelayedDiscipline: $("#mostDelayedDiscipline"),
   questionForm: $("#questionForm"), questionEditingId: $("#questionEditingId"), questionLinkedGoalId: $("#questionLinkedGoalId"), questionOrigin: $("#questionOrigin"), questionDate: $("#questionDate"), questionDiscipline: $("#questionDiscipline"), questionSyllabusItem: $("#questionSyllabusItem"), questionBoard: $("#questionBoard"), questionTrainingType: $("#questionTrainingType"), questionTotal: $("#questionTotal"), questionMinutes: $("#questionMinutes"), questionCorrect: $("#questionCorrect"), questionWrong: $("#questionWrong"), questionBlank: $("#questionBlank"), questionNotes: $("#questionNotes"), questionCalculated: $("#questionCalculated"), questionAnalysis: $("#questionAnalysis"), questionSubjectSummary: $("#questionSubjectSummary"), questionQconcursosRoute: $("#questionQconcursosRoute"), questionQcNumber: $("#questionQcNumber"), saveQuestionQcNumber: $("#saveQuestionQcNumber"), questionQcNumberStatus: $("#questionQcNumberStatus"), questionRegistrationLinkSummary: $("#questionRegistrationLinkSummary"), questionNotebookPanel: $("#questionNotebookPanel"), questionQcCode: $("#questionQcCode"), questionQcLink: $("#questionQcLink"), questionItemResult: $("#questionItemResult"), questionItemDifficulty: $("#questionItemDifficulty"), questionStatement: $("#questionStatement"), questionAlternatives: $("#questionAlternatives"), questionMarkedAnswer: $("#questionMarkedAnswer"), questionAnswerKey: $("#questionAnswerKey"), questionPersonalComment: $("#questionPersonalComment"), questionErrorReason: $("#questionErrorReason"), questionLegalBasis: $("#questionLegalBasis"), questionBizu1: $("#questionBizu1"), questionBizu2: $("#questionBizu2"), questionBizu3: $("#questionBizu3"), questionAddToErrorNotebook: $("#questionAddToErrorNotebook"),
   questionFilterDiscipline: $("#questionFilterDiscipline"), questionFilterSubject: $("#questionFilterSubject"), questionFilterBoard: $("#questionFilterBoard"), questionFilterOrigin: $("#questionFilterOrigin"), questionHistoryBody: $("#questionHistoryBody"), questionHistorySummary: $("#questionHistorySummary"),
@@ -1786,6 +1786,7 @@ const elements = {
 };
 elements.studyDate.value = todayISO();
 elements.goalDate.value = todayISO();
+if (elements.chooseSubjectForDayDate) elements.chooseSubjectForDayDate.value = todayISO();
 elements.questionDate.value = todayISO();
 if (elements.calendarDate) elements.calendarDate.value = todayISO();
 if (elements.smartReviewDate) elements.smartReviewDate.value = todayISO();
@@ -6423,6 +6424,201 @@ function rebalanceFuturePlanningGoalsV77(targetState = state) {
   targetState.migrations.planningDistributionV77 = { executedAt: new Date().toISOString(), dates: dates.length, added: rebuilt.added.length, removed: rebuilt.removed.length };
   return { changed: Boolean(rebuilt.added.length || rebuilt.removed.length), skipped: false, dates, added: rebuilt.added, removed: rebuilt.removed, warnings: rebuilt.warnings };
 }
+const USER_SELECTED_GOAL_ORIGIN_V158 = "escolha do usuário";
+function isValidGoalDateV158(value = "") {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value))) return false;
+  const parsed = new Date(`${value}T00:00:00`);
+  return !Number.isNaN(parsed.getTime()) && localISODate(parsed) === value;
+}
+function isActiveDayStudyGoalV158(goal = {}) {
+  return isPlanningStudyGoal(goal)
+    && !isGoalDone(goal)
+    && !["Não cumprida", "Ignorada", "Adiada", "Reagendada"].includes(goal.status || "");
+}
+function isPendingReplacementGoalV158(goal = {}) {
+  return isActiveDayStudyGoalV158(goal)
+    && !isGoalInProgress(goal)
+    && goalTotalActualMinutes(goal) <= 0
+    && ["", "Pendente"].includes(goal.status || "Pendente");
+}
+function selectedSubjectDayCapacityV158(targetState = state, date = todayISO()) {
+  const targetTopics = Math.max(0, Number(planningTargetsForDate(date, targetState, { manual: true }).topics) || 0);
+  const dayGoals = (targetState.dailyGoals || []).filter((goal) => goalDateValue(goal) === date && isPlanningStudyGoal(goal));
+  const activeGoals = dayGoals.filter(isActiveDayStudyGoalV158);
+  const replacementGoals = activeGoals.filter(isPendingReplacementGoalV158);
+  return {
+    date,
+    targetTopics,
+    dayGoals,
+    activeGoals,
+    replacementGoals,
+    full: targetTopics > 0 && activeGoals.length >= targetTopics
+  };
+}
+function nextReplacementDateV158(targetState, goal, startDate, ignoredGoals = new Set()) {
+  const goalKey = planningItemKey(goal);
+  for (let offset = 1; offset <= 370; offset += 1) {
+    const date = addDays(startDate, offset);
+    const targets = planningTargetsForDate(date, targetState);
+    const targetTopics = Math.max(0, Number(targets.topics) || 0);
+    if (targetTopics <= 0) continue;
+    const dayGoals = (targetState.dailyGoals || []).filter((candidate) => (
+      !ignoredGoals.has(candidate)
+      && candidate !== goal
+      && goalDateValue(candidate) === date
+      && isPlanningStudyGoal(candidate)
+    ));
+    if (dayGoals.some((candidate) => planningItemKey(candidate) === goalKey)) continue;
+    if (dayGoals.filter(isActiveDayStudyGoalV158).length < targetTopics) return date;
+  }
+  return "";
+}
+function pendingFutureGoalForSelectedSubjectV158(targetState, syllabusItemId, date) {
+  return (targetState.dailyGoals || [])
+    .filter((goal) => (
+      String(goal.syllabusItemId || "") === String(syllabusItemId || "")
+      && goalDateValue(goal) > date
+      && isPendingReplacementGoalV158(goal)
+    ))
+    .sort((left, right) => goalDateValue(left).localeCompare(goalDateValue(right)))[0] || null;
+}
+function scheduleSelectedSubjectForDayV158(targetState = state, input = {}) {
+  targetState.dailyGoals ||= [];
+  const date = String(input.date || "");
+  const syllabusItemId = String(input.syllabusItemId || "");
+  if (!isValidGoalDateV158(date)) return { changed: false, code: "invalid-date", message: "Informe uma data válida." };
+  const item = (targetState.syllabusItems || []).find((candidate) => String(candidate.id || "") === syllabusItemId && candidate.status !== "Ignorado" && !candidate.hiddenFromCatalog);
+  if (!item) return { changed: false, code: "invalid-item", message: "Selecione um assunto válido do edital." };
+  const alreadyScheduled = targetState.dailyGoals.find((goal) => goalDateValue(goal) === date && String(goal.syllabusItemId || "") === syllabusItemId);
+  if (alreadyScheduled) return { changed: false, code: "already-scheduled", message: "Este assunto já possui meta nesta data." };
+
+  const capacity = selectedSubjectDayCapacityV158(targetState, date);
+  const replacementId = String(input.replacementGoalId || "");
+  if (capacity.full && !replacementId) {
+    return { changed: false, code: "replacement-required", message: "O dia está cheio. Escolha uma meta pendente para substituir." };
+  }
+  const replacementGoal = capacity.full
+    ? capacity.replacementGoals.find((goal) => String(goal.id || "") === replacementId)
+    : null;
+  if (capacity.full && !replacementGoal) {
+    return { changed: false, code: "invalid-replacement", message: "A meta escolhida para substituição não está mais disponível ou já foi iniciada." };
+  }
+
+  const futureSelectedGoal = pendingFutureGoalForSelectedSubjectV158(targetState, syllabusItemId, date);
+  let replacementDate = "";
+  if (replacementGoal) {
+    const preferredDate = futureSelectedGoal ? goalDateValue(futureSelectedGoal) : "";
+    const replacementKey = planningItemKey(replacementGoal);
+    const preferredCollision = preferredDate && targetState.dailyGoals.some((goal) => (
+      goal !== replacementGoal
+      && goal !== futureSelectedGoal
+      && goalDateValue(goal) === preferredDate
+      && planningItemKey(goal) === replacementKey
+    ));
+    replacementDate = preferredDate && !preferredCollision
+      ? preferredDate
+      : nextReplacementDateV158(targetState, replacementGoal, date, new Set(futureSelectedGoal ? [futureSelectedGoal] : []));
+    if (!replacementDate) {
+      return { changed: false, code: "no-replacement-date", message: "Não foi encontrada uma data futura segura para a meta que sairia deste dia. Nenhum dado foi alterado." };
+    }
+  }
+
+  const now = new Date().toISOString();
+  let selectedGoal = futureSelectedGoal;
+  const selectedPreviousDate = selectedGoal ? goalDateValue(selectedGoal) : "";
+  if (selectedGoal) {
+    selectedGoal.date = date;
+    selectedGoal.data = date;
+    selectedGoal.status = "Pendente";
+    selectedGoal.origin = selectedGoal.origem = USER_SELECTED_GOAL_ORIGIN_V158;
+    selectedGoal.userSelectedForDate = true;
+    selectedGoal.selectedForDateAt = now;
+    selectedGoal.updatedAt = now;
+    appendGoalHistory(selectedGoal, `Assunto escolhido para ${formatDateBR(date)}; antecipado de ${formatDateBR(selectedPreviousDate)}.`);
+  } else {
+    const context = buildPlanningScoreContext(targetState);
+    const metrics = context.itemMetrics.get(item.id) || null;
+    const type = planningGoalTypeForItemV157(item, date, metrics, targetState);
+    [selectedGoal] = makeGoal(item, date, type, context, targetState);
+    selectedGoal.origin = selectedGoal.origem = USER_SELECTED_GOAL_ORIGIN_V158;
+    selectedGoal.userSelectedForDate = true;
+    selectedGoal.selectedForDateAt = now;
+    selectedGoal.createdAt = now;
+    selectedGoal.updatedAt = now;
+    appendGoalHistory(selectedGoal, `Assunto escolhido diretamente para ${formatDateBR(date)}.`);
+    targetState.dailyGoals.push(selectedGoal);
+  }
+
+  if (replacementGoal) {
+    replacementGoal.date = replacementDate;
+    replacementGoal.data = replacementDate;
+    replacementGoal.status = "Pendente";
+    replacementGoal.updatedAt = now;
+    appendGoalHistory(replacementGoal, `Reagendada de ${formatDateBR(date)} para ${formatDateBR(replacementDate)} após substituição solicitada no Plano do Dia.`);
+  }
+
+  return {
+    changed: true,
+    code: replacementGoal ? "replaced" : (futureSelectedGoal ? "anticipated" : "added"),
+    date,
+    selectedGoalId: selectedGoal.id,
+    selectedPreviousDate,
+    reusedFutureGoal: Boolean(futureSelectedGoal),
+    replacementGoalId: replacementGoal?.id || "",
+    replacementDate,
+    message: replacementGoal
+      ? `${item.subject} foi colocado em ${formatDateBR(date)}. A meta retirada foi reagendada para ${formatDateBR(replacementDate)}.`
+      : `${item.subject} foi colocado diretamente em ${formatDateBR(date)}.`
+  };
+}
+function setChooseSubjectForDayStatusV158(message = "", tone = "") {
+  if (!elements.chooseSubjectForDayStatus) return;
+  elements.chooseSubjectForDayStatus.textContent = message;
+  elements.chooseSubjectForDayStatus.classList.toggle("warning-notice", tone === "warning");
+  elements.chooseSubjectForDayStatus.classList.toggle("error", tone === "error");
+}
+function renderChooseSubjectForDayV158() {
+  if (!elements.chooseSubjectForDayForm) return;
+  const date = elements.chooseSubjectForDayDate.value || elements.goalDate?.value || todayISO();
+  elements.chooseSubjectForDayDate.value = date;
+  const availableItems = (state.syllabusItems || []).filter((item) => item.status !== "Ignorado" && !item.hiddenFromCatalog);
+  const disciplines = [...new Set(availableItems.map((item) => item.discipline).filter(Boolean))].sort((left, right) => left.localeCompare(right, "pt-BR"));
+  const currentDiscipline = elements.chooseSubjectForDayDiscipline.value;
+  elements.chooseSubjectForDayDiscipline.innerHTML = '<option value="">Selecione</option>' + disciplines.map((discipline) => `<option value="${escapeHTML(discipline)}">${escapeHTML(discipline)}</option>`).join("");
+  if (disciplines.includes(currentDiscipline)) elements.chooseSubjectForDayDiscipline.value = currentDiscipline;
+  const discipline = elements.chooseSubjectForDayDiscipline.value;
+  const currentItemId = elements.chooseSubjectForDayItem.value;
+  const items = availableItems.filter((item) => !discipline || item.discipline === discipline);
+  elements.chooseSubjectForDayItem.innerHTML = '<option value="">Selecione</option>' + items.map((item) => `<option value="${escapeHTML(item.id)}">${escapeHTML(item.subject)}${item.subtopic ? ` • ${escapeHTML(item.subtopic)}` : ""}</option>`).join("");
+  if (items.some((item) => item.id === currentItemId)) elements.chooseSubjectForDayItem.value = currentItemId;
+
+  const capacity = selectedSubjectDayCapacityV158(state, date);
+  const currentReplacementId = elements.chooseSubjectReplacementGoal.value;
+  elements.chooseSubjectReplacementGoal.innerHTML = '<option value="">Selecione a meta que sairá</option>' + capacity.replacementGoals.map((goal) => `<option value="${escapeHTML(goal.id)}">${escapeHTML(goal.discipline)} — ${escapeHTML(goal.subject)}</option>`).join("");
+  if (capacity.replacementGoals.some((goal) => goal.id === currentReplacementId)) elements.chooseSubjectReplacementGoal.value = currentReplacementId;
+  elements.chooseSubjectReplacementField.hidden = !capacity.full;
+  elements.chooseSubjectReplacementGoal.required = capacity.full;
+
+  const selectedItemId = elements.chooseSubjectForDayItem.value;
+  const duplicate = selectedItemId && state.dailyGoals.some((goal) => goalDateValue(goal) === date && String(goal.syllabusItemId || "") === selectedItemId);
+  let message = "O assunto será inserido exatamente nesta data.";
+  let tone = "";
+  if (duplicate) {
+    message = "Este assunto já possui meta nesta data.";
+    tone = "error";
+  } else if (capacity.full && !capacity.replacementGoals.length) {
+    message = "O dia está cheio, mas não há meta pendente sem execução que possa ser substituída.";
+    tone = "error";
+  } else if (capacity.full) {
+    message = "O dia está cheio. Escolha abaixo a única meta que será retirada e reagendada.";
+    tone = "warning";
+  }
+  setChooseSubjectForDayStatusV158(message, tone);
+  elements.chooseSubjectForDaySubmit.disabled = !selectedItemId
+    || !isValidGoalDateV158(date)
+    || Boolean(duplicate)
+    || (capacity.full && (!capacity.replacementGoals.length || !elements.chooseSubjectReplacementGoal.value));
+}
 function generateDailyGoals() {
   try {
     const date = elements.goalDate.value || todayISO();
@@ -7233,6 +7429,7 @@ function renderDailyGoals() {
   if (!elements.dailyGoalsList) return;
   renderSmartReviewBlock(elements.daySmartReview, elements.goalDate?.value || todayISO());
   const date = elements.goalDate?.value || todayISO();
+  renderChooseSubjectForDayV158();
   const availability = availabilityForDate(date);
   const dayGoals = state.dailyGoals.filter((goal) => goalDateValue(goal) === date).sort((a,b) => isGoalDone(a) - isGoalDone(b) || (a.status || "").localeCompare(b.status || "") || a.discipline.localeCompare(b.discipline));
   const projection = buildDailyPlanProjection(date);
@@ -7545,6 +7742,32 @@ elements.availabilityCalendar?.addEventListener("change", (event) => {
 
 if (elements.generateDailyGoals) elements.generateDailyGoals.addEventListener("click", generateDailyGoals);
 elements.refreshDailyGoalsFromPlanning?.addEventListener("click", refreshDailyGoalsFromPlanning);
+elements.chooseSubjectForDayDiscipline?.addEventListener("change", () => {
+  elements.chooseSubjectForDayItem.value = "";
+  renderChooseSubjectForDayV158();
+});
+[elements.chooseSubjectForDayDate, elements.chooseSubjectForDayItem, elements.chooseSubjectReplacementGoal].filter(Boolean).forEach((element) => {
+  element.addEventListener("change", renderChooseSubjectForDayV158);
+});
+elements.chooseSubjectForDayForm?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const report = scheduleSelectedSubjectForDayV158(state, {
+    date: elements.chooseSubjectForDayDate.value,
+    syllabusItemId: elements.chooseSubjectForDayItem.value,
+    replacementGoalId: elements.chooseSubjectReplacementGoal.value
+  });
+  if (!report.changed) {
+    setChooseSubjectForDayStatusV158(report.message, "error");
+    return;
+  }
+  elements.goalDate.value = report.date;
+  saveData({ markLocalChange: true });
+  render();
+  setChooseSubjectForDayStatusV158(report.message, "success");
+  showDailyGoalMessage(report.message, "success");
+  autoSyncAfterSave("choose-subject-for-day");
+  showView("metas-do-dia");
+});
 
 elements.planningDayModes?.addEventListener("change", (event) => { const type = event.target.dataset.dayModeType; if (!type) return; const card = event.target.closest("[data-day-mode-card]"); const targetField = card?.querySelector(".question-target-field"); if (targetField) targetField.hidden = event.target.value === "goals_only"; });
 elements.planningModeSelect?.addEventListener("change", () => {

@@ -1156,6 +1156,24 @@ details:not([open]) > :not(summary) { display: none !important; }
 .next-goal-card h3 { margin: 0 0 8px; color: var(--primary-dark); }
 .next-goal-card strong { display: block; font-size: 1.25rem; color: #172554; }
 .manual-goal-panel summary { cursor: pointer; font-weight: 900; color: var(--primary-dark); margin-bottom: 12px; }
+.choose-subject-day-panel {
+  margin: 18px 0;
+  padding: 18px;
+  border: 1px solid #60a5fa;
+  border-radius: 22px;
+  background: linear-gradient(180deg, #eff6ff, #fff);
+  box-shadow: 0 16px 36px rgba(30, 64, 175, .1);
+}
+.choose-subject-day-panel > summary {
+  cursor: pointer;
+  color: #172554;
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+.choose-subject-day-panel[open] > summary { margin-bottom: 14px; }
+.choose-subject-day-panel .file-info { margin: 0; }
+.choose-subject-day-panel .file-info.warning-notice { color: #92400e; }
+.choose-subject-day-panel .file-info.error { color: #b91c1c; }
 .daily-goals-board { display: grid; gap: 18px; }
 .goal-status-section { display: grid; gap: 12px; }
 .goal-status-section h3 { margin: 0; color: var(--primary-dark); }
@@ -1165,7 +1183,7 @@ details:not([open]) > :not(summary) { display: none !important; }
 .big-action-button { width: 100%; padding: 16px 20px; font-size: 1.05rem; border-radius: 18px; }
 .daily-goals-summary .wide-stat .progress { margin-top: 10px; }
 @media (max-width: 720px) {
-  .day-plan-panel, .today-study-panel, .manual-goal-panel, .next-goal-card { padding: 14px; }
+  .day-plan-panel, .today-study-panel, .manual-goal-panel, .next-goal-card, .choose-subject-day-panel { padding: 14px; }
 }
 
 /* Organization and operability improvements */

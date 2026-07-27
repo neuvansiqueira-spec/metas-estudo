@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260727-correcao-classificacao-reforco-v157";
+  const VERSION = "20260727-escolher-assunto-dia-v158";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
   let correctionScheduled = false;
 
