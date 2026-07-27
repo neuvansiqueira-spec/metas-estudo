@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260726-edital-fundido-planejamento-v155",
+  "version": "20260727-correcao-classificacao-reforco-v157",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

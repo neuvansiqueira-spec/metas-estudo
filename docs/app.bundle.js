@@ -3653,6 +3653,9 @@ function syncCreateSafetyBackup(sourceState, sourceLabel = "before-merge") {
 /* Aldus source: sync-integral-cloud.js */
 function syncPreparePayload(payload = {}) {
   const prepared = { ...payload, state: cloneData(payload.state || state) };
+  if (typeof repairInvalidReinforcementGoalsV157 === "function") {
+    repairInvalidReinforcementGoalsV157(prepared.state);
+  }
   prepared.stateFingerprint = syncStateFingerprint(prepared.state);
   return prepared;
 }
@@ -38022,6 +38025,7 @@ function saveData(options = {}) {
     return false;
   }
   if (typeof refreshPlanningPrioritiesForQuestionChangesV155 === "function") refreshPlanningPrioritiesForQuestionChangesV155(state);
+  if (typeof repairInvalidReinforcementGoalsV157 === "function") globalThis.__reinforcementClassificationRepairV157 = repairInvalidReinforcementGoalsV157(state);
   if (typeof syncFactoryMaterialsPlanningV80 === "function") syncFactoryMaterialsPlanningV80(state);
   persistStateSafely(options);
   return true;
@@ -38518,7 +38522,7 @@ function renderBackupPreview(payload) {
   return normalized;
 }
 function replaceState(nextState) { Object.keys(state).forEach((key) => delete state[key]); Object.assign(state, { ...cloneData(defaultState), ...(nextState || {}) }); state.edital = { ...defaultState.edital, ...(state.edital || {}) }; state.syllabusItems ||= []; state.schedulableSettings ||= {}; state.contestProfiles ||= []; state.activeContestId ||= null; state.contestSyllabusMap ||= []; state.contestPlanningProfiles ||= {}; state.planningMode ||= "joint"; state.planningModeHistory ||= []; state.dailyGoals ||= []; state.dailyGoals.forEach((goal) => { goal.date ||= goal.data || todayISO(); goal.data ||= goal.date; goal.discipline ||= goal.disciplina || "Sem disciplina"; goal.subject ||= goal.assunto || "Assunto"; goal.type ||= goal.tipo || "Meta"; goal.minutes = Number(goal.minutes ?? goal.tempo_sugerido_minutos) || 0; normalizeGoalTimeFields(goal); normalizeSegmentedGoalFields(goal); goal.status ||= "Pendente"; }); state.questionLogs ||= []; state.questionBank ||= []; state.questionBankSessions ||= []; state.questionErrorNotebook ||= carregarCadernoErros();
-state.smartReviews ||= []; state.simulados ||= []; state.advisorMission ||= {}; state.advisorNavigation ||= { version: 1, autonomyMode: "copilot", activeRoute: null, routeHistory: [], lastProjection: null, lastRecalculatedAt: "", sourceFingerprint: "", userLimits: {} }; state.planning = normalizePlanningState(state.planning); state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences); state.settings.timerMode ||= "countdown"; state.materials ||= []; migrateMaterialEstimates(state); migrateSegmentedGoals(state); state.factoryItems ||= []; state.factoryAgenda ||= []; state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) }); state.disciplineWeights ||= {}; state.monthlyGoals ||= {}; if (typeof applyPcprPcma2026Migration === "function") applyPcprPcma2026Migration(state); if (typeof applyIntegratedPlanningPrioritiesV155 === "function") globalThis.__integratedPlanningPriorityV155 = applyIntegratedPlanningPrioritiesV155(state, { reason: "replace-state" }); globalThis.__dailyPlanningInflationRepairV108 = repairDailyPlanningInflationV108(state, { source: "replace-state" }); }
+state.smartReviews ||= []; state.simulados ||= []; state.advisorMission ||= {}; state.advisorNavigation ||= { version: 1, autonomyMode: "copilot", activeRoute: null, routeHistory: [], lastProjection: null, lastRecalculatedAt: "", sourceFingerprint: "", userLimits: {} }; state.planning = normalizePlanningState(state.planning); state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences); state.settings.timerMode ||= "countdown"; state.materials ||= []; migrateMaterialEstimates(state); migrateSegmentedGoals(state); state.factoryItems ||= []; state.factoryAgenda ||= []; state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) }); state.disciplineWeights ||= {}; state.monthlyGoals ||= {}; if (typeof applyPcprPcma2026Migration === "function") applyPcprPcma2026Migration(state); if (typeof applyIntegratedPlanningPrioritiesV155 === "function") globalThis.__integratedPlanningPriorityV155 = applyIntegratedPlanningPrioritiesV155(state, { reason: "replace-state" }); if (typeof repairInvalidReinforcementGoalsV157 === "function") globalThis.__reinforcementClassificationRepairV157 = repairInvalidReinforcementGoalsV157(state); globalThis.__dailyPlanningInflationRepairV108 = repairDailyPlanningInflationV108(state, { source: "replace-state" }); }
 function mergeArrays(current = [], incoming = [], keyFn = (item) => item?.id || JSON.stringify(item)) { const seen = new Set(current.map(keyFn)); incoming.forEach((item) => { const key = keyFn(item); if (!seen.has(key)) { current.push(item); seen.add(key); } }); return current; }
 function backupGoalIdentity(goal = {}) {
   return goal.id || [
@@ -41520,7 +41524,137 @@ function questionItemOptionLabel(item = {}, showQconcursosNumber = false) { cons
 function optionsForItems(select, discipline, current = "", options = {}) { const items = state.syllabusItems.filter((item) => !item.hiddenFromCatalog && (!discipline || item.discipline === discipline)); select.innerHTML = '<option value="">Selecione</option>' + items.map((item) => `<option value="${item.id}" ${item.id === current ? "selected" : ""}>${escapeHTML(questionItemOptionLabel(item, options.showQconcursosNumber === true))}</option>`).join(""); }
 function renderGoalSelectors() { const gd = elements.goalDiscipline.value; const gi = elements.goalSyllabusItem.value; optionsForDiscipline(elements.goalDiscipline, gd); optionsForItems(elements.goalSyllabusItem, elements.goalDiscipline.value || gd, gi); }
 function renderQuestionSelectors() { const qd = elements.questionDiscipline.value; const qi = elements.questionSyllabusItem.value; optionsForDiscipline(elements.questionDiscipline, qd); optionsForItems(elements.questionSyllabusItem, elements.questionDiscipline.value || qd, qi, { showQconcursosNumber: true }); const fd = elements.questionFilterDiscipline.value; optionsForDiscipline(elements.questionFilterDiscipline, fd); elements.questionFilterDiscipline.querySelector('option').textContent = 'Todas'; const fs = elements.questionFilterSubject.value; elements.questionFilterSubject.innerHTML = '<option value="">Todos</option>' + state.syllabusItems.filter((item) => !elements.questionFilterDiscipline.value || item.discipline === elements.questionFilterDiscipline.value).map((item) => `<option value="${item.id}" ${item.id === fs ? "selected" : ""}>${escapeHTML(questionItemOptionLabel(item, true))}</option>`).join(''); }
-function goalTypeForItem(item, targetState = state) { const mode = item.importMeta?.tipo_agendamento || item.tipo_agendamento || settingFor(item.id, targetState).mode; if (isWeakItem(item)) return "Reforço"; if (mode === "Questões apenas") return "Questões"; if (mode === "Revisão apenas" || item.status === "Revisar") return "Revisão"; return item.status === "Não iniciado" ? "Estudo novo" : "Questões"; }
+const REINFORCEMENT_CLASSIFICATION_VERSION_V157 = "reinforcement-classification-v157";
+function normalGoalTypeForItemV157(item = {}, targetState = state) {
+  const mode = item.importMeta?.tipo_agendamento
+    || item.tipo_agendamento
+    || targetState.schedulableSettings?.[item.id]?.mode
+    || "Estudo teórico";
+  if (mode === "Revisão apenas" || item.status === "Revisar") return "Revisão";
+  if (mode === "Questões apenas") return "Questões";
+  return item.status === "Não iniciado" ? "Estudo novo" : "Questões";
+}
+function reinforcementRecordDateV157(record = {}) {
+  const value = record.date || record.data || record.endedAt || record.completedAt || record.updatedAt || record.createdAt || record.dueDate || "";
+  const match = String(value).match(/^\d{4}-\d{2}-\d{2}/);
+  return match?.[0] || "";
+}
+function reinforcementRecordBelongsToGoalV157(record = {}, goal = {}) {
+  if (!goal.id) return false;
+  return [record.goalId, record.dailyGoalId, record.linkedGoalId, record.previousGoalId]
+    .filter(Boolean)
+    .some((id) => String(id) === String(goal.id));
+}
+function reinforcementRecordIsPriorV157(record = {}, goal = {}) {
+  const recordDate = reinforcementRecordDateV157(record);
+  const goalDate = goalDateValue(goal);
+  return Boolean(recordDate && goalDate && recordDate < goalDate && !reinforcementRecordBelongsToGoalV157(record, goal));
+}
+function reinforcementGoalExecutedV157(goal = {}) {
+  return [goal.studyActualMinutes, goal.questionActualMinutes, goal.actualMinutes, goal.tempo_real_minutos]
+    .some((value) => Number(value) > 0);
+}
+function hasValidPriorStudyForReinforcementV157(item = {}, goal = {}, targetState = state) {
+  const syllabusItemId = String(item.id || goal.syllabusItemId || "");
+  if (!syllabusItemId || !goalDateValue(goal)) return false;
+  const sameItem = (record = {}) => String(record.syllabusItemId || record.syllabus_item_id || "") === syllabusItemId;
+  const prior = (record = {}) => sameItem(record) && reinforcementRecordIsPriorV157(record, goal);
+  if ((targetState.studies || []).some((study) => prior(study) && (Number(study.minutes) > 0 || Number(study.questions) > 0))) return true;
+  if ((targetState.dailyGoals || []).some((candidate) => (
+    candidate !== goal
+    && String(candidate.id || "") !== String(goal.id || "")
+    && prior(candidate)
+    && (candidate.status === "Concluída" || reinforcementGoalExecutedV157(candidate))
+  ))) return true;
+  if ((targetState.questionLogs || []).some((log) => prior(log) && Number(log.total) > 0)) return true;
+  if ((targetState.questionBankSessions || []).some((session) => (
+    reinforcementRecordIsPriorV157(session, goal)
+    && (session.items || []).some((question) => sameItem(question) && String(question.marcado || "").trim())
+  ))) return true;
+  return (targetState.smartReviews || []).some((review) => prior(review) && canonical(review.status) === "revisado");
+}
+function priorReinforcementPerformanceV157(item = {}, goal = {}, targetState = state) {
+  const syllabusItemId = String(item.id || "");
+  const totals = { questions: 0, correct: 0, wrong: 0, blank: 0 };
+  const add = (record = {}, totalField = "questions") => {
+    totals.questions += Math.max(0, Number(record[totalField]) || 0);
+    totals.correct += Math.max(0, Number(record.correct) || 0);
+    totals.wrong += Math.max(0, Number(record.wrong) || 0);
+    totals.blank += Math.max(0, Number(record.blank) || 0);
+  };
+  const prior = (record = {}) => (
+    String(record.syllabusItemId || record.syllabus_item_id || "") === syllabusItemId
+    && reinforcementRecordIsPriorV157(record, goal)
+  );
+  (targetState.studies || []).filter(prior).forEach((study) => add(study, "questions"));
+  (targetState.questionLogs || []).filter(prior).forEach((log) => add(log, "total"));
+  (targetState.questionBankSessions || []).forEach((session) => {
+    if (!reinforcementRecordIsPriorV157(session, goal)) return;
+    (session.items || []).forEach((question) => {
+      if (String(question.syllabusItemId || question.syllabus_item_id || "") !== syllabusItemId || !String(question.marcado || "").trim()) return;
+      totals.questions += 1;
+      const status = canonical(question.status || "");
+      if (status === "certo" || status === "correto" || (question.gabarito && question.marcado === question.gabarito)) totals.correct += 1;
+      else if (status === "errado" || (question.gabarito && !["B", "D"].includes(question.marcado) && question.marcado !== question.gabarito)) totals.wrong += 1;
+      else totals.blank += 1;
+    });
+  });
+  return totals;
+}
+function hasValidReinforcementTriggerV157(item = {}, goal = {}, metrics = null, targetState = state) {
+  if (item.manualWeak || item.domain === "Fraco") return true;
+  const performance = priorReinforcementPerformanceV157(item, goal, targetState);
+  const answered = performance.correct + performance.wrong;
+  const accuracy = answered ? performance.correct / answered : 1;
+  const cebraspeNet = performance.correct - performance.wrong;
+  if (answered > 0 && accuracy < 0.7) return true;
+  if (performance.wrong >= 3 && performance.wrong > performance.correct) return true;
+  if (performance.questions >= 5 && cebraspeNet <= 0) return true;
+  return Number(metrics?.diagnostic?.boost) > 0;
+}
+function planningGoalTypeForItemV157(item = {}, date = todayISO(), metrics = null, targetState = state, goal = {}) {
+  const normalType = normalGoalTypeForItemV157(item, targetState);
+  if (normalType === "Revisão") return normalType;
+  const candidateGoal = { ...goal, date: date || goalDateValue(goal), data: date || goalDateValue(goal), syllabusItemId: item.id || goal.syllabusItemId };
+  if (!hasValidPriorStudyForReinforcementV157(item, candidateGoal, targetState)) return normalType;
+  return hasValidReinforcementTriggerV157(item, candidateGoal, metrics, targetState) ? "Reforço" : normalType;
+}
+function goalTypeForItem(item, targetState = state) {
+  const diagnostic = typeof planningPriorityMetricsV155 === "function"
+    ? planningPriorityMetricsV155(targetState).get(item.id)
+    : null;
+  return planningGoalTypeForItemV157(item, todayISO(), { diagnostic }, targetState);
+}
+function isPendingAutomaticReinforcementGoalV157(goal = {}) {
+  const reinforcement = ["reforço", "reforco"].includes(canonical(goal.type || goal.tipo || ""));
+  return reinforcement
+    && ["", "Pendente"].includes(goal.status || "")
+    && !isManualDailyGoal(goal);
+}
+function repairInvalidReinforcementGoalsV157(targetState = state) {
+  const candidates = (targetState.dailyGoals || []).filter(isPendingAutomaticReinforcementGoalV157);
+  if (!candidates.length) return { version: REINFORCEMENT_CLASSIFICATION_VERSION_V157, changed: false, corrected: [] };
+  const context = buildPlanningScoreContext(targetState);
+  const itemsById = new Map((targetState.syllabusItems || []).map((item) => [String(item.id || ""), item]));
+  const corrected = [];
+  candidates.forEach((goal) => {
+    const item = itemsById.get(String(goal.syllabusItemId || ""));
+    if (!item) return;
+    const expectedType = planningGoalTypeForItemV157(
+      item,
+      goalDateValue(goal),
+      context.itemMetrics.get(item.id) || null,
+      targetState,
+      goal
+    );
+    if (expectedType === "Reforço") return;
+    const before = { type: goal.type, tipo: goal.tipo };
+    goal.type = expectedType;
+    goal.tipo = expectedType.toLowerCase();
+    corrected.push({ id: goal.id, syllabusItemId: goal.syllabusItemId, subject: goal.subject || goal.assunto, before, after: { type: goal.type, tipo: goal.tipo } });
+  });
+  return { version: REINFORCEMENT_CLASSIFICATION_VERSION_V157, changed: corrected.length > 0, corrected };
+}
 const DISCIPLINE_WEIGHT_OPTIONS = [
   { value: 18, label: "Altíssima" },
   { value: 14, label: "Peças" },
@@ -41855,7 +41989,7 @@ function eligiblePlanningGoalsForDate(date, opts = {}) {
     if (typeof isItemEnabledForPlanning === "function" && !isItemEnabledForPlanning(targetState, item.id, date) && diagnosticBoost <= 0) continue;
     if (reserved.has(planningItemKey(item))) continue;
     const metrics = context.itemMetrics.get(item.id);
-    const [goal] = makeGoal(item, date, metrics?.weakItem || metrics?.diagnostic?.boost > 0 ? "Reforço" : goalTypeForItem(item, targetState), context, targetState);
+    const [goal] = makeGoal(item, date, planningGoalTypeForItemV157(item, date, metrics, targetState), context, targetState);
     if (goal) eligible.push(goal);
   }
   return planningDistributionOrderV77(eligible, targetState, date, context);
@@ -42120,10 +42254,10 @@ function generateGoalsForDate(date, opts = {}) {
     [Math.ceil(maxGoals*.4), (i)=>disciplineWeightValue(i.discipline)>=4],
     [Math.ceil(maxGoals*.3), (i)=>pendingByDiscipline[i.discipline] >= Math.max(...Object.values(pendingByDiscipline),0)*.6],
     [Math.ceil(maxGoals*.2), (i)=>context.itemMetrics.get(i.id)?.weakItem || (context.weaknesses[i.discipline]?.question || 0)>=30 || (context.weaknesses[i.discipline]?.mock || 0)>=30],
-    [Math.max(1,Math.floor(maxGoals*.1)), (i)=>i.status==="Revisar" || goalTypeForItem(i)==="Revisão"]
+    [Math.max(1,Math.floor(maxGoals*.1)), (i)=>i.status==="Revisar" || planningGoalTypeForItemV157(i, date, context.itemMetrics.get(i.id), targetState)==="Revisão"]
   ];
   const used = new Set(), chosen = [];
-  const addOne = (pred) => { const item = pickCandidate(candidates, used, pred, chosen, maxGoals, disciplineLimit, allowedDisciplines); if (item && chosen.length < maxGoals) { used.add(item.id); existing.add(String(item.id)); chosen.push(...makeGoal(item, date, context.itemMetrics.get(item.id)?.weakItem ? "Reforço" : goalTypeForItem(item), context, targetState)); } };
+  const addOne = (pred) => { const item = pickCandidate(candidates, used, pred, chosen, maxGoals, disciplineLimit, allowedDisciplines); if (item && chosen.length < maxGoals) { used.add(item.id); existing.add(String(item.id)); chosen.push(...makeGoal(item, date, planningGoalTypeForItemV157(item, date, context.itemMetrics.get(item.id), targetState), context, targetState)); } };
   buckets.forEach(([n,p]) => { for (let i=0;i<n && chosen.length<maxGoals;i++) addOne(p); });
   while (new Set(chosen.map((g)=>g.discipline)).size < minDisc && chosen.length < maxGoals) addOne((i)=>!chosen.some((g)=>g.discipline===i.discipline));
   while (chosen.length < Math.min(maxGoals, candidates.length)) addOne(()=>true);

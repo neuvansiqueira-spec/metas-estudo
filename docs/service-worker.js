@@ -95,7 +95,8 @@ const PREVIOUS_DEPLOYMENT_VERSIONS = [
   "20260721-fabrica-visibilidade-v122",
   "20260726-pcpr-pcma-integrado-v152",
   "20260726-inicializacao-segura-v153",
-  "20260726-versao-unica-cache-v154"
+  "20260726-versao-unica-cache-v154",
+  "20260726-edital-fundido-planejamento-v155"
 ];
 const CURRENT_VERSION = self.__ALDUS_APP_RELEASE__.version;
 const RELEASE_SUFFIX = self.__ALDUS_APP_RELEASE__.suffix;

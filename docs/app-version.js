@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260726-edital-fundido-planejamento-v155";
+  const VERSION = "20260727-correcao-classificacao-reforco-v157";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
   let correctionScheduled = false;
 

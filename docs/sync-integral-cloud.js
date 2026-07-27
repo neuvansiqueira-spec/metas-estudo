@@ -1,5 +1,8 @@
 function syncPreparePayload(payload = {}) {
   const prepared = { ...payload, state: cloneData(payload.state || state) };
+  if (typeof repairInvalidReinforcementGoalsV157 === "function") {
+    repairInvalidReinforcementGoalsV157(prepared.state);
+  }
   prepared.stateFingerprint = syncStateFingerprint(prepared.state);
   return prepared;
 }
