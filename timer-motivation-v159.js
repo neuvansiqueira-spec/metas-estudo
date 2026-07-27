@@ -347,10 +347,7 @@
     const resumeCueDue = justResumed && now - Number(runtime.lastShownAt || 0) > 5000;
     const fallbackDue = active && elapsed >= 30 && now - Number(runtime.lastShownAt || 0) >= FALLBACK_INTERVAL_MS;
     const restoredCueDue = restoredSession && now - Number(runtime.lastShownAt || 0) > 5000;
-    if (!firstCueDue && !resumeCueDue && !fallbackDue && !restoredCueDue) {
-      persistSessionSafely();
-      return;
-    }
+    if (!firstCueDue && !resumeCueDue && !fallbackDue && !restoredCueDue) return;
 
     const nearestMilestone = reached[reached.length - 1] || 10;
     const label = resumeCueDue
