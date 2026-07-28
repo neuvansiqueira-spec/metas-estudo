@@ -3443,11 +3443,6 @@ html[data-aldus-theme="premium-stable"] #view-metas-do-dia .realized-today-stat 
   color: var(--muted);
   font-weight: 700;
 }
-body.app-bootstrapping .app-layout {
-  pointer-events: none;
-  opacity: .45;
-}
-
 /* Versão 20260713-corrige-plano-dia-mobile: ajuste responsivo limitado ao Plano do Dia e ao menu inferior. */
 @media (max-width: 600px) {
   #view-metas-do-dia,
