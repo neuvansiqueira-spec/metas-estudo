@@ -1,3 +1,40 @@
+/* Aldus source: app-version.js */
+(() => {
+  "use strict";
+
+  const VERSION = "20260728-carregamento-direto-v168";
+  const RELEASE_TEXT = `Versão: ${VERSION}`;
+
+  function applyDocumentVersion() {
+    if (typeof document === "undefined") return;
+    document.documentElement.dataset.aldusReleaseVersion = VERSION;
+    document.querySelectorAll(".app-version").forEach((element) => {
+      if (element.textContent !== RELEASE_TEXT) element.textContent = RELEASE_TEXT;
+    });
+  }
+
+  const release = Object.freeze({
+    version: VERSION,
+    text: RELEASE_TEXT,
+    suffix: VERSION.match(/v\d+$/)?.[0] || "current",
+    apply: applyDocumentVersion
+  });
+
+  Object.defineProperty(globalThis, "__ALDUS_APP_RELEASE__", {
+    value: release,
+    configurable: false,
+    enumerable: false,
+    writable: false
+  });
+
+  if (typeof document === "undefined") return;
+  applyDocumentVersion();
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", applyDocumentVersion, { once: true });
+  }
+})();
+
 /* Aldus source: storage-indexeddb.js */
 const STUDY_DB_NAME = "metas-estudo-db";
 const STUDY_DB_VERSION = 1;
@@ -45205,10 +45242,7 @@ function registerServiceWorker() {
   window.addEventListener("load", () => {
     const workerSuffix = globalThis.__ALDUS_APP_RELEASE__.suffix;
     navigator.serviceWorker.register(`service-worker-${workerSuffix}.js?v=${encodeURIComponent(APP_VERSION)}`, { updateViaCache: "none" })
-      .then((registration) => {
-        registration.update();
-        console.log("[Metas Estudo] Service worker registrado.");
-      })
+      .then(() => console.log("[Metas Estudo] Service worker registrado."))
       .catch((error) => console.log("[Metas Estudo] Falha ao registrar service worker.", error));
   });
 }
@@ -46768,4 +46802,2144 @@ document.addEventListener("keydown", (event) => {
   if (typeof desktop.addEventListener === "function") desktop.addEventListener("change", handleViewportChange);
   else desktop.addListener?.(handleViewportChange);
   applyCollapsed(storedPreference());
+})();
+
+/* Aldus source: factory-plan-day-v159.js */
+(() => {
+  "use strict";
+
+  const VERSION = "20260727-fabrica-plano-dia-v159";
+
+  function installFactoryPlanDayFix() {
+    if (globalThis.__ALDUS_FACTORY_PLAN_DAY_V159__) return true;
+    if (
+      typeof renderFactory !== "function"
+      || typeof factoryGoalGroupsForDate !== "function"
+      || typeof factoryQueueForDate !== "function"
+      || typeof factoryResumoAulaPending !== "function"
+      || typeof factoryResumoAulaReady !== "function"
+      || typeof normalizeFactoryModules !== "function"
+      || typeof exactFactoryGoalMatches !== "function"
+      || typeof factoryGoalSubtopic !== "function"
+      || typeof factoryUnlockedDayDate !== "function"
+      || typeof factoryDoNowQueue !== "function"
+      || typeof todayISO !== "function"
+      || typeof ensureFactoryAgenda !== "function"
+    ) return false;
+
+    const originalGoalGroupsForDate = factoryGoalGroupsForDate;
+    const originalResumoAulaPending = factoryResumoAulaPending;
+    const originalUnlockedDayDate = factoryUnlockedDayDate;
+    const originalDoNowQueue = factoryDoNowQueue;
+    const originalRecorteHoje = typeof factoryRecorteHoje === "function" ? factoryRecorteHoje : null;
+    const originalRenderFactory = renderFactory;
+
+    function factoryIsDayScopeV159() {
+      return typeof factoryProductionScope === "undefined" || factoryProductionScope === "day";
+    }
+
+    function factoryGoalTypeLabelV159(goal = {}) {
+      const raw = String(goal.type || goal.tipo || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      if (raw.includes("refor")) return "Meta de reforço";
+      if (raw.includes("revis")) return "Revisão";
+      if (raw.includes("quest")) return "Questões";
+      return "Estudo";
+    }
+
+    function factoryGoalStatusLabelV159(goal = {}) {
+      if (typeof isGoalDone === "function" && isGoalDone(goal)) return "Meta concluída";
+      if (typeof isGoalInProgress === "function" && isGoalInProgress(goal)) return "Em andamento";
+      return "Meta pendente";
+    }
+
+    function factoryGoalHasMaterialV159(goal = {}) {
+      if (goal.hasMaterial === true || (Array.isArray(goal.materialIds) && goal.materialIds.length > 0)) return true;
+      if (typeof getDailyGoalMaterialState !== "function") return false;
+      try {
+        return getDailyGoalMaterialState(goal).hasMaterials === true;
+      } catch (error) {
+        console.warn("[Aldus v159] Não foi possível conferir o material da meta.", error);
+        return false;
+      }
+    }
+
+    factoryGoalGroupsForDate = function factoryGoalGroupsForDateV159(date = todayISO(), agenda = []) {
+      if (!factoryIsDayScopeV159() || date !== todayISO()) return originalGoalGroupsForDate(date, agenda);
+      const dayGoals = (state.dailyGoals || []).filter((goal) => (goal.date || goal.data) === date);
+      const groups = new Map();
+      const modes = new Set();
+      const unmatchedGoals = [];
+      dayGoals.forEach((goal) => {
+        const match = exactFactoryGoalMatches(goal, agenda);
+        if (match.items.length) modes.add(match.mode);
+        else unmatchedGoals.push(goal.id || goal.syllabusItemId || `${goal.discipline || goal.disciplina}|${goal.subject || goal.assunto}`);
+        match.items.forEach((item) => {
+          if (!groups.has(item.id)) groups.set(item.id, { item, goals: [], subtopics: new Set() });
+          const group = groups.get(item.id);
+          group.goals.push(goal);
+          const subtopic = factoryGoalSubtopic(goal);
+          if (subtopic) group.subtopics.add(subtopic);
+        });
+      });
+      if (date === todayISO()) {
+        lastFactoryTodayInfo = {
+          goals: dayGoals.length,
+          matched: groups.size,
+          matchModes: [...modes],
+          unmatchedGoals
+        };
+      }
+      return [...groups.values()].map((group) => ({
+        ...group,
+        date,
+        subtopics: [...group.subtopics].sort((left, right) => left.localeCompare(right, "pt-BR"))
+      }));
+    };
+
+    factoryResumoAulaPending = function factoryResumoAulaPendingV159(entry = {}) {
+      if (!factoryIsDayScopeV159()) return originalResumoAulaPending(entry);
+      const item = entry.item || entry;
+      const modules = normalizeFactoryModules(item.modules || {}, item);
+      return modules.resumoAula?.status !== "Não se aplica"
+        && !factoryResumoAulaReady({ ...item, modules });
+    };
+
+    factoryUnlockedDayDate = function factoryUnlockedDayDateV159(agenda = ensureFactoryAgenda()) {
+      if (!factoryIsDayScopeV159()) return originalUnlockedDayDate(agenda);
+      return todayISO();
+    };
+
+    factoryDoNowQueue = function factoryDoNowQueueV159(agenda = ensureFactoryAgenda()) {
+      if (!factoryIsDayScopeV159()) return originalDoNowQueue(agenda);
+      const date = todayISO();
+      const activeAgenda = (agenda || []).filter((item) => item?.editalActive !== false);
+      return factoryQueueForDate(date, activeAgenda)
+        .filter(factoryResumoAulaPending)
+        .map((entry) => ({ ...entry, sourceDate: date }));
+    };
+
+    if (originalRecorteHoje) {
+      factoryRecorteHoje = function factoryRecorteHojeV159(entry = {}) {
+        const goals = Array.isArray(entry.goals) ? entry.goals.filter(Boolean) : (entry.goal ? [entry.goal] : []);
+        if (!goals.length) return originalRecorteHoje(entry);
+        const unique = (values) => [...new Set(values.filter(Boolean))];
+        const goalSubjects = unique(goals.map((goal) => goal.subject || goal.assunto || goal.baseSubject || ""));
+        const subtopics = unique(entry.subtopics || []);
+        const types = unique(goals.map(factoryGoalTypeLabelV159));
+        const statuses = unique(goals.map(factoryGoalStatusLabelV159));
+        const materialLabel = goals.every(factoryGoalHasMaterialV159) ? "Material já disponível" : "Material a produzir";
+        return [...goalSubjects, ...subtopics, ...types, ...statuses, materialLabel].join(" • ") || originalRecorteHoje(entry);
+      };
+    }
+
+    renderFactory = function renderFactoryV159(...args) {
+      const result = originalRenderFactory.apply(this, args);
+      try {
+        if (factoryIsDayScopeV159()) {
+          const notice = document.querySelector(".factory-scope-notice");
+          const unmatchedCount = Array.isArray(lastFactoryTodayInfo?.unmatchedGoals) ? lastFactoryTodayInfo.unmatchedGoals.length : 0;
+          if (notice) {
+            notice.textContent = `Exibindo somente os temas do Plano do Dia de ${typeof formatDateBR === "function" ? formatDateBR(todayISO()) : todayISO()}. Pendências de outros dias não substituem esta lista.${unmatchedCount ? ` ${unmatchedCount} meta(s) não possuem vínculo exato com tema ativo da Fábrica.` : ""}`;
+          }
+        }
+      } catch (error) {
+        console.warn("[Aldus v159] Falha apenas na mensagem visual da Fábrica.", error);
+      }
+      return result;
+    };
+
+    Object.defineProperty(globalThis, "__ALDUS_FACTORY_PLAN_DAY_V159__", {
+      value: Object.freeze({ version: VERSION, installedAt: new Date().toISOString() }),
+      configurable: false,
+      enumerable: false,
+      writable: false
+    });
+
+    if (location.hash === "#fabrica-resumos" || document.querySelector('[data-view="fabrica-resumos"].active')) {
+      renderFactory();
+    }
+    return true;
+  }
+
+  if (!installFactoryPlanDayFix()) {
+    console.error("[Aldus v168] O núcleo terminou sem disponibilizar a integração da Fábrica com o Plano do Dia.");
+  }
+})();
+
+/* Aldus source: factory-lei-prompt-v123.js */
+(() => {
+  const MIGRATION_ID = "factoryLeiNegritoRealWordV1";
+  const FALLBACK = "[PROMPT COMPLETO AINDA NÃO CADASTRADO NA BIBLIOTECA DA FÁBRICA]";
+  const PROMPT = `TRANSFORME O TEXTO OFICIAL VIGENTE DA LEI EM RESUMO TOPIFICADO, DIDÁTICO E VISUALMENTE HIERARQUIZADO PARA ESTUDO E REVISÃO.
+
+O RESULTADO DEVE PRESERVAR A ARQUITETURA FORMAL DA LEI — TÍTULOS, CAPÍTULOS, SEÇÕES, SUBSEÇÕES E ARTIGOS — E USAR CADA ARTIGO COMO UNIDADE CENTRAL OBRIGATÓRIA.
+
+DENTRO DE CADA ARTIGO, CONVERTA A REDAÇÃO NORMATIVA EM PALAVRAS-NÚCLEO FLEXÍVEIS E RELAÇÕES JURÍDICAS DIRETAS, SEM COPIAR O DISPOSITIVO INTEGRALMENTE.
+
+## REGRA ABSOLUTA DE COR DA FONTE
+
+TODO TEXTO DO DOCUMENTO DEVE USAR EXCLUSIVAMENTE A COR PRETA PURA #000000.
+
+ISSO INCLUI TÍTULO DA LEI, FONTE OFICIAL, TÍTULOS, CAPÍTULOS, SEÇÕES, SUBSEÇÕES, CABEÇALHOS DE ARTIGOS, PALAVRAS-NÚCLEO, EXPLICAÇÕES, PONTO DE PROVA, VETOS, NOTAS DE ATUALIZAÇÃO E RODAPÉ.
+
+É PROIBIDO USAR VERDE, AZUL, CINZA, VERMELHO, DOURADO OU QUALQUER OUTRA COR NAS LETRAS. AS ÚNICAS CORES PERMITIDAS SÃO AS CORES NATIVAS DOS EMOJIS/ÍCONES E O FUNDO AZUL-CLARO DA FAIXA DOS ARTIGOS.
+
+ANTES DE ENTREGAR, INSPECIONE TODOS OS TRECHOS DE TEXTO DO WORD E FORCE A COR #000000 EM CADA RUN NÃO-EMOJI. NÃO CONFIE NA COR AUTOMÁTICA DO TEMA DO WORD.
+
+## ESCOPO E FONTE OFICIAL
+
+PRODUZA SOMENTE O MÓDULO LEI.
+
+USE A TRIAGEM APENAS PARA IDENTIFICAR O DIPLOMA, A FONTE E O RECORTE AUTORIZADO.
+
+TRABALHE SOMENTE OS ARTIGOS E TEMAS EXPRESSAMENTE AUTORIZADOS. LEI INTEGRAL SOMENTE QUANDO ISSO ESTIVER INFORMADO DE FORMA EXPRESSA.
+
+NÃO USE DOUTRINA, JURISPRUDÊNCIA, RESUMO/AULA, PEÇA, COMENTÁRIO DE AUTOR, EXEMPLO INVENTADO OU CONHECIMENTO EXTERNO PARA COMPLETAR O CONTEÚDO.
+
+SE O DIPLOMA, A FONTE OFICIAL OU O RECORTE NÃO ESTIVEREM DISPONÍVEIS COM SEGURANÇA, INTERROMPA A GERAÇÃO E SOLICITE A INFORMAÇÃO FALTANTE.
+
+## ATUALIZAÇÃO NORMATIVA OBRIGATÓRIA
+
+ANTES DE REDIGIR, CONFIRA A REDAÇÃO OFICIAL VIGENTE NA DATA DA GERAÇÃO. PARA LEGISLAÇÃO FEDERAL, USE PREFERENCIALMENTE O TEXTO OFICIAL DO PLANALTO.
+
+VERIFIQUE NO PRÓPRIO TEXTO OFICIAL:
+
+* ALTERAÇÕES DE REDAÇÃO;
+* DISPOSITIVOS INCLUÍDOS OU REVOGADOS;
+* VETOS TOTAIS OU PARCIAIS;
+* SUSPENSÕES OU ANOTAÇÕES OFICIAIS DE VIGÊNCIA;
+* DATA DE PUBLICAÇÃO, VACATIO LEGIS E ENTRADA EM VIGOR;
+* REMISSÕES INTERNAS NECESSÁRIAS À COMPREENSÃO.
+
+NÃO APRESENTE REDAÇÃO REVOGADA, VETADA OU SUPERADA COMO REGRA VIGENTE.
+
+SE HOUVER ALTERAÇÃO RELEVANTE DENTRO DO RECORTE, USE:
+
+🔄 **Atualização normativa:** [situação vigente e dispositivo correspondente].
+
+NÃO PESQUISE AUTOMATICAMENTE DECRETOS, PORTARIAS, RESOLUÇÕES, INSTRUÇÕES NORMATIVAS, JURISPRUDÊNCIA OU OUTRAS LEIS. ESSES CONTEÚDOS SOMENTE ENTRAM QUANDO FOREM FORNECIDOS OU EXPRESSAMENTE AUTORIZADOS COMO ATUALIZAÇÃO/COMPLEMENTO.
+
+## ARQUITETURA OBRIGATÓRIA
+
+PRESERVE A ORDEM DA LEI E APRESENTE, QUANDO EXISTIREM:
+
+1. NOME E NÚMERO DO DIPLOMA;
+2. NOME OFICIAL OU EMENTA SINTÉTICA;
+3. FONTE OFICIAL E INDICAÇÃO DE TEXTO VIGENTE;
+4. TÍTULO;
+5. CAPÍTULO;
+6. SEÇÃO;
+7. SUBSEÇÃO;
+8. ARTIGO;
+9. PARÁGRAFOS, INCISOS E ALÍNEAS RELEVANTES DENTRO DO ARTIGO.
+
+NÃO SUBSTITUA A ORGANIZAÇÃO DA LEI POR GRANDES EIXOS TEMÁTICOS INVENTADOS.
+
+NÃO AGRUPE ARTIGOS DISTINTOS EM UM ÚNICO BLOCO SE ISSO APAGAR A REFERÊNCIA, A ORDEM OU A FUNÇÃO DE CADA DISPOSITIVO.
+
+É PERMITIDO CONSOLIDAR, DENTRO DO MESMO ARTIGO, INCISOS E ALÍNEAS DE FUNÇÃO SEMELHANTE, DESDE QUE NENHUMA REGRA SEJA OMITIDA OU ALTERADA.
+
+## MÉTODO DE TOPIFICAÇÃO DE CADA ARTIGO
+
+CRIE UM CABEÇALHO PARA TODO ARTIGO DO RECORTE:
+
+✅ **ART. [NÚMERO]: [SÍNTESE DA FUNÇÃO DO ARTIGO].**
+
+A SÍNTESE DO CABEÇALHO DEVE INDICAR O ASSUNTO NORMATIVO REAL DO ARTIGO, E NÃO REPETIR SUA PRIMEIRA FRASE.
+
+DEPOIS, IDENTIFIQUE AS PALAVRAS-NÚCLEO ADEQUADAS AO CONTEÚDO. USE RÓTULOS FLEXÍVEIS, COMO:
+
+* DIREÇÃO;
+* NATUREZA;
+* FINALIDADE;
+* REGRA;
+* DESTINATÁRIO;
+* COMPETÊNCIA;
+* INICIATIVA;
+* REQUISITOS;
+* CONDIÇÕES;
+* PROCEDIMENTO;
+* ETAPAS;
+* PRAZO;
+* DIREITOS;
+* DEVERES;
+* VEDAÇÕES;
+* EXCEÇÕES;
+* EFEITOS;
+* CONSEQUÊNCIAS;
+* SANÇÕES;
+* COMPOSIÇÃO;
+* ESTRUTURA;
+* RECURSO;
+* VIGÊNCIA.
+
+NÃO FORCE TODOS OS ARTIGOS A USAR “REGRA”, “REQUISITOS”, “PRAZO” E “EFEITO”. SELECIONE SOMENTE OS RÓTULOS QUE REALMENTE CORRESPONDAM AO DISPOSITIVO.
+
+CADA LINHA DEVE COMEÇAR POR PALAVRA-NÚCLEO EM NEGRITO E MAIÚSCULAS, SEGUIDA DE DOIS-PONTOS E DA EXPLICAÇÃO DIRETA:
+
+1️⃣ **DIREÇÃO:** [quem dirige, condições e forma de nomeação].
+
+2️⃣ **NATUREZA:** [qualificação jurídica essencial].
+
+3️⃣ **FINALIDADE:** [função ou objetivo previsto].
+
+USE A NUMERAÇÃO SOMENTE QUANDO HOUVER ENUMERAÇÃO REAL DE ELEMENTOS DO MESMO ARTIGO. NÃO NUMERE UMA ÚNICA INFORMAÇÃO ISOLADA.
+
+PARÁGRAFO, INCISO OU ALÍNEA COM REGRA AUTÔNOMA PODE SER DESTACADO POR RÓTULO PRÓPRIO, SEM TRANSFORMÁ-LO ARTIFICIALMENTE EM NOVO ARTIGO.
+
+## COMPLETUDE JURÍDICA
+
+PARA CADA ARTIGO, IDENTIFIQUE, QUANDO EXISTIREM:
+
+* QUEM É O DESTINATÁRIO, TITULAR, RESPONSÁVEL OU ÓRGÃO COMPETENTE;
+* O QUE PODE, DEVE OU NÃO PODE SER FEITO;
+* SOBRE QUAL OBJETO A REGRA RECAI;
+* EM QUAL SITUAÇÃO E SOB QUAIS CONDIÇÕES;
+* QUAIS REQUISITOS SÃO CUMULATIVOS OU ALTERNATIVOS;
+* QUAL PROCEDIMENTO, ORDEM OU ETAPA DEVE SER OBSERVADO;
+* QUAL PRAZO, TERMO INICIAL, TERMO FINAL OU PERIODICIDADE SE APLICA;
+* QUAL EFEITO OU CONSEQUÊNCIA JURÍDICA É PRODUZIDO;
+* QUAL EXCEÇÃO, RESSALVA, VEDAÇÃO OU REGIME ESPECIAL EXISTE;
+* QUAL SANÇÃO, MULTA, LIMITE, CAUSA DE AUMENTO OU DIMINUIÇÃO FOI PREVISTA.
+
+NÃO OMITA PARA ENCURTAR PRAZOS, COMPETÊNCIAS, LEGITIMIDADES, REQUISITOS, EXCEÇÕES, PROCEDIMENTOS, EFEITOS, SANÇÕES, VALORES, PERCENTUAIS, QUÓRUNS OU LIMITES NUMÉRICOS.
+
+NÃO TRANSFORME FACULDADE EM OBRIGAÇÃO, POSSIBILIDADE EM VEDAÇÃO, EXCEÇÃO EM REGRA, REQUISITO ALTERNATIVO EM CUMULATIVO OU SANÇÃO EM EFEITO AUTOMÁTICO.
+
+## BARREIRA CONTRA TRANSCRIÇÃO
+
+É PROIBIDO:
+
+* COPIAR O ARTIGO INTEGRALMENTE;
+* REPRODUZIR CAPUT, INCISOS, ALÍNEAS E PARÁGRAFOS EM SEQUÊNCIA SEM TOPIFICAÇÃO;
+* TROCAR APENAS SINÔNIMOS MANTENDO A MESMA SINTAXE DA LEI;
+* CRIAR UMA LINHA PARA CADA INCISO SEM AGRUPAMENTO FUNCIONAL;
+* USAR LONGOS TRECHOS ENTRE ASPAS;
+* REPETIR A MESMA REGRA NO ARTIGO E NO PONTO DE PROVA.
+
+A TRANSCRIÇÃO LITERAL É ADMITIDA SOMENTE PARA EXPRESSÃO CURTA CUJA REDAÇÃO EXATA SEJA INDISPENSÁVEL À FIDELIDADE OU RELEVANTE PARA PROVA.
+
+SE UMA LINHA CONSERVAR A ORDEM, A SINTAXE E A MAIOR PARTE DAS PALAVRAS DO DISPOSITIVO, REESCREVA-A COMO RELAÇÃO JURÍDICA DIRETA.
+
+A TOPIFICAÇÃO NÃO PODE VIRAR UMA LEI APENAS RECORTADA EM PEDAÇOS.
+
+## PONTO DE PROVA
+
+AO FINAL DE CADA ARTIGO, INSIRA UM BLOCO SOMENTE QUANDO HOUVER REGRA, DISTINÇÃO, CONDIÇÃO, PRAZO, EXCEÇÃO, VETO OU PEGADINHA REALMENTE RELEVANTE:
+
+⚠️ **PONTO DE PROVA:** [síntese autossuficiente, precisa e sem repetir mecanicamente o artigo].
+
+O PONTO DE PROVA DEVE MOSTRAR O QUE PODE SER CONFUNDIDO, COBRADO OU INVERTIDO. NÃO INVENTE PEGADINHA E NÃO FORCE DESTAQUE VAZIO.
+
+PARA DISPOSITIVO INTEGRALMENTE VETADO, USE:
+
+✅ **ART. [NÚMERO]: DISPOSITIVO VETADO.**
+
+✅ **Situação:** artigo integralmente vetado.
+
+⚠️ **PONTO DE PROVA:** não há regra vigente no artigo.
+
+## PADRÃO VISUAL DO WORD
+
+REPRODUZA A ORGANIZAÇÃO VISUAL DO MODELO DE REFERÊNCIA, SEM COPIAR SEU CONTEÚDO JURÍDICO:
+
+📘 **LEI Nº [NÚMERO/ANO]**
+
+📍 **[NOME OFICIAL OU TEMA DA LEI]**
+
+📍 FONTE: [FONTE OFICIAL] — TEXTO OFICIAL VIGENTE
+
+🔷 **TÍTULO [NÚMERO] — [NOME]**
+
+♦️ **CAPÍTULO [NÚMERO] — [NOME]**
+
+▶️ **SEÇÃO [NÚMERO] — [NOME]**
+
+✅ **ART. [NÚMERO]: [SÍNTESE FUNCIONAL].**
+
+1️⃣ **[PALAVRA-NÚCLEO]:** [EXPLICAÇÃO DIRETA].
+
+🏛️ **COMPETÊNCIA:** [SUJEITO E ATRIBUIÇÃO].
+
+⏱️ **PRAZO:** [MARCO INICIAL, DURAÇÃO E MARCO FINAL].
+
+⚠️ **PONTO DE PROVA:** [DISTINÇÃO RELEVANTE].
+
+NO ARQUIVO WORD:
+
+* USE FAIXA AZUL-CLARA DISCRETA NO CABEÇALHO DE CADA ARTIGO;
+* MANTENHA CAPÍTULOS E SEÇÕES EM NEGRITO, COM HIERARQUIA VISUAL CLARA;
+* USE NEGRITO NAS PALAVRAS-NÚCLEO SOMENTE ATÉ OS DOIS-PONTOS;
+* USE COR APENAS NOS ÍCONES E NA FAIXA DOS ARTIGOS;
+* MANTENHA TEXTO PRETO, FUNDO BRANCO E ALTO CONTRASTE;
+* USE INDENTAÇÃO PROGRESSIVA REAL;
+* EVITE JUSTIFICAÇÃO QUE CRIE ESPAÇOS EXCESSIVOS ENTRE PALAVRAS;
+* NÃO DEIXE CABEÇALHO DE ARTIGO ISOLADO NO FIM DA PÁGINA;
+* NÃO USE TABELAS.
+
+## VALIDAÇÃO FINAL DO NEGRITO NO DOCX
+
+OS MARCADORES ** DEVEM SERVIR APENAS COMO INSTRUÇÃO DE FORMATAÇÃO E NÃO PODEM APARECER NO DOCUMENTO FINAL.
+
+ANTES DA ENTREGA, INSPECIONE A FORMATAÇÃO REAL DOS RUNS DO WORD E CONFIRME:
+
+* TÍTULO DA LEI, NOME/TEMA, TÍTULOS, CAPÍTULOS, SEÇÕES, SUBSEÇÕES E CABEÇALHOS DE ARTIGOS ESTÃO EM NEGRITO REAL;
+* EM LINHAS DE CONTEÚDO, O EMOJI OU A NUMERAÇÃO E A PALAVRA-NÚCLEO, INCLUINDO OS DOIS-PONTOS, ESTÃO EM NEGRITO REAL;
+* COMPETÊNCIA, PRAZO, VEDAÇÃO, EXCEÇÃO, PONTO DE PROVA, ATUALIZAÇÃO NORMATIVA E RÓTULOS EQUIVALENTES ESTÃO EM NEGRITO SOMENTE ATÉ OS DOIS-PONTOS;
+* A EXPLICAÇÃO APÓS OS DOIS-PONTOS PERMANECE SEM NEGRITO, SALVO QUANDO TODA A LINHA FOR UM CABEÇALHO;
+* NÃO RESTOU NENHUM MARCADOR LITERAL ** NO ARQUIVO.
+
+SE ALGUM DESSES TRECHOS NÃO ESTIVER EM NEGRITO REAL, CORRIJA SOMENTE A PROPRIEDADE DE NEGRITO DOS RUNS CORRESPONDENTES. NÃO ALTERE O CONTEÚDO, A ORDEM, A HIERARQUIA, A FONTE, O TAMANHO, O ESPAÇAMENTO, A INDENTAÇÃO, AS MARGENS, A COR OU A PAGINAÇÃO PARA REALIZAR ESSA CORREÇÃO.
+
+USE O WORD-MODELO ANEXADO COMO REFERÊNCIA DE FONTE, TAMANHO, MARGENS, ESPAÇAMENTO, CORES, ÍCONES, FAIXAS E RODAPÉ.
+
+SE NÃO HOUVER MODELO, USE A4, ARIAL 11, MARGENS DE 2 CM, ESPAÇAMENTO SIMPLES, ALINHAMENTO À ESQUERDA E RODAPÉ CENTRALIZADO EM NEGRITO NO FORMATO “1 DE 20”.
+
+## REVISÃO INTERNA OBRIGATÓRIA
+
+ANTES DE FINALIZAR, COMPARE O RESUMO COM TODO O RECORTE OFICIAL E CONFIRA:
+
+1. A ORDEM FORMAL DA LEI FOI PRESERVADA?
+2. TODOS OS ARTIGOS AUTORIZADOS APARECEM COM REFERÊNCIA PRÓPRIA?
+3. TODOS OS PARÁGRAFOS, INCISOS E ALÍNEAS RELEVANTES FORAM COBERTOS?
+4. ALGUMA REGRA FOI APENAS COPIADA OU LEVEMENTE PARAFRASEADA?
+5. ALGUM PRAZO, REQUISITO, PROCEDIMENTO, EFEITO, EXCEÇÃO, VETO OU SANÇÃO FOI OMITIDO?
+6. ALGUMA REGRA FOI INVERTIDA, AMPLIADA OU DESATUALIZADA?
+7. AS PALAVRAS-NÚCLEO CORRESPONDEM À FUNÇÃO REAL DO ARTIGO?
+8. A NUMERAÇÃO FOI USADA SOMENTE QUANDO EXISTE HIERARQUIA OU ENUMERAÇÃO REAL?
+9. O PONTO DE PROVA ACRESCENTA DISTINÇÃO ÚTIL SEM REPETIR O ARTIGO?
+10. O MATERIAL PODE SER REVISADO SEM NOVA LEITURA INTEGRAL DA LEI?
+11. TODO NEGRITO EXIGIDO FOI APLICADO COMO FORMATAÇÃO REAL NO DOCX?
+12. ALGUM MARCADOR ** PERMANECEU VISÍVEL NO DOCUMENTO?
+13. ALGUMA EXPLICAÇÃO APÓS OS DOIS-PONTOS FICOU INDEVIDAMENTE EM NEGRITO?
+
+SE HOUVER TRANSCRIÇÃO EXCESSIVA, REESCREVA. SE HOUVER OMISSÃO, COMPLETE USANDO SOMENTE O TEXTO OFICIAL DO RECORTE.
+
+EM CASO DE CONFLITO, OBSERVE: FIDELIDADE AO TEXTO OFICIAL VIGENTE; COBERTURA INTEGRAL DO RECORTE; ORDEM DA LEI; CLAREZA DIDÁTICA; CONCISÃO; ESTÉTICA.
+
+## ENTREGA
+
+GERE UM .DOCX EDITÁVEL EXCLUSIVO DO MÓDULO LEI. NÃO CONSOLIDE COM RESUMO/AULA, JURISPRUDÊNCIA OU PEÇA.
+
+NOME: RESUMO_TOPIFICADO_LEI_[NÚMERO]_[FILTRO].docx
+
+ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚDO NO CHAT, SALVO PEDIDO EXPRESSO.`;
+
+  const applyPrompt = () => {
+    let changed = false;
+    try {
+      if (typeof defaultFactoryPromptLibrary === "object") defaultFactoryPromptLibrary.lei = PROMPT;
+      if (typeof state === "object") {
+        state.migrations ||= {};
+        state.factoryPromptLibrary ||= {};
+        if (!state.migrations[MIGRATION_ID]) {
+          const current = String(state.factoryPromptLibrary.lei || "").trim();
+          if (current && current !== FALLBACK && current !== PROMPT) {
+            state.factoryPromptLibraryBackups ||= {};
+            state.factoryPromptLibraryBackups.leiBeforeV123 ||= current;
+            state.factoryPromptLibraryBackups.leiBeforeNegritoRealWordV1 ||= current;
+          }
+          const shouldInstallOfficial = !current || current === FALLBACK || current === PROMPT;
+          if (shouldInstallOfficial && current !== PROMPT) state.factoryPromptLibrary.lei = PROMPT;
+          state.migrations[MIGRATION_ID] = new Date().toISOString();
+          changed = shouldInstallOfficial || Boolean(current && current !== PROMPT);
+        }
+      }
+      if (changed && typeof saveData === "function") saveData();
+    } catch (error) {
+      console.error("[Aldus] Falha ao aplicar a validação de negrito do prompt Lei.", error);
+    }
+  };
+
+  try {
+    if (typeof factoryPromptBase === "function") {
+      const previousBase = factoryPromptBase;
+      factoryPromptBase = function patchedFactoryPromptBase(type) {
+        if (type === "lei") {
+          const current = String(typeof state === "object" ? state.factoryPromptLibrary?.lei || "" : "").trim();
+          return current || PROMPT;
+        }
+        return previousBase(type);
+      };
+    }
+    if (typeof normalizeFactoryPromptLibrary === "function") {
+      const previousNormalize = normalizeFactoryPromptLibrary;
+      normalizeFactoryPromptLibrary = function patchedNormalizeFactoryPromptLibrary(library = {}) {
+        const normalized = previousNormalize(library);
+        if (!String(normalized.lei || "").trim()) normalized.lei = PROMPT;
+        return normalized;
+      };
+    }
+    if (typeof factoryRouterText === "function") {
+      const previousRouter = factoryRouterText;
+      factoryRouterText = function patchedFactoryRouterText(type, item = {}) {
+        const text = previousRouter(type, item);
+        return type === "lei" ? text.replace(/\nStatus anterior:[^\n]*/, "") : text;
+      };
+    }
+  } catch (error) {
+    console.error("[Aldus] Falha ao proteger a validação de negrito do prompt Lei.", error);
+  }
+
+  if (window.__aldusBootstrapReady) applyPrompt();
+  else window.addEventListener("aldus:bootstrap-ready", applyPrompt, { once: true });
+
+})();
+
+/* Aldus source: central-goals-real-time-v124.js */
+(() => {
+  const PATCH_VERSION = "20260721-central-tempo-visibilidade-v125";
+
+  function ensureCentralTimeVisibilityStyles() {
+    if (document.getElementById("centralTimeVisibilityV125")) return;
+    const style = document.createElement("style");
+    style.id = "centralTimeVisibilityV125";
+    style.textContent = `
+      html[data-aldus-theme="premium-stable"] #view-central-metas .central-time-pie > div {
+        background: #061d31 !important;
+        border-color: #5fa8d8 !important;
+        box-shadow: 0 10px 28px rgba(0, 5, 16, .38) !important;
+      }
+      html[data-aldus-theme="premium-stable"] #view-central-metas .central-time-pie strong {
+        color: #ffffff !important;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, .35) !important;
+      }
+      html[data-aldus-theme="premium-stable"] #view-central-metas .central-time-pie span {
+        color: #c9deed !important;
+      }
+      html[data-aldus-theme="premium-stable"] #view-central-metas .central-time-legend h4 {
+        color: #ffffff !important;
+      }
+      html[data-aldus-theme="premium-stable"] #view-central-metas .central-time-legend-row {
+        border-color: #4b89b8 !important;
+        background: linear-gradient(145deg, #0b2d47, #071f34) !important;
+        color: #ffffff !important;
+        box-shadow: 0 7px 18px rgba(0, 7, 18, .22) !important;
+      }
+      html[data-aldus-theme="premium-stable"] #view-central-metas .central-time-legend-row span {
+        color: #f6fbff !important;
+        font-weight: 800 !important;
+      }
+      html[data-aldus-theme="premium-stable"] #view-central-metas .central-time-legend-row strong {
+        padding: 5px 9px !important;
+        border: 1px solid rgba(95, 168, 216, .42) !important;
+        border-radius: 9px !important;
+        background: rgba(56, 189, 248, .12) !important;
+        color: #e8f7ff !important;
+        font-weight: 900 !important;
+        white-space: nowrap !important;
+      }
+      html[data-aldus-theme="premium-stable"] #view-central-metas .central-time-legend > .item-meta {
+        color: #c6d9e7 !important;
+      }
+      @media (max-width: 760px) {
+        html[data-aldus-theme="premium-stable"] #view-central-metas .central-time-legend-row strong {
+          justify-self: start !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  ensureCentralTimeVisibilityStyles();
+
+  const container = document.getElementById("centralGoalsCards");
+  if (!container) return;
+
+  function safeLogs() {
+    try {
+      return typeof centralTimeChartLogs === "function" ? centralTimeChartLogs() : [];
+    } catch (error) {
+      console.warn("[Central de Metas] Não foi possível consolidar o tempo real.", error);
+      return [];
+    }
+  }
+
+  function totalBetween(logs, start, end) {
+    return logs.reduce((sum, log) => {
+      const date = String(log?.date || "");
+      if (!date || date < start || date > end) return sum;
+      return sum + Math.max(0, Number(log?.minutes) || 0);
+    }, 0);
+  }
+
+  function formatMinutes(minutes) {
+    if (typeof formatHours === "function") return formatHours(minutes);
+    const hours = Math.floor(minutes / 60);
+    const rest = Math.round(minutes % 60);
+    return hours ? `${hours}h${rest ? ` ${rest}min` : ""}` : `${rest} min`;
+  }
+
+  function findCard(title) {
+    return [...container.querySelectorAll(".goal-central-card")].find(
+      (card) => card.querySelector("h3")?.textContent.trim() === title
+    );
+  }
+
+  function setMetric(card, key, label, minutes) {
+    const grid = card?.querySelector(".card-meta-grid");
+    if (!grid) return;
+    let row = [...grid.querySelectorAll("span")].find(
+      (span) => span.dataset.centralRealTime === key || span.textContent.trim().startsWith(`${label}:`)
+    );
+    if (!row) {
+      row = document.createElement("span");
+      grid.appendChild(row);
+    }
+    row.dataset.centralRealTime = key;
+    row.dataset.centralRealTimeVersion = PATCH_VERSION;
+    const nextText = `${label}: ${formatMinutes(minutes)}`;
+    if (row.textContent !== nextText) row.textContent = nextText;
+  }
+
+  function updateCentralRealTimes() {
+    if (!container.isConnected) return;
+    const today = typeof todayISO === "function"
+      ? todayISO()
+      : new Date().toLocaleDateString("en-CA");
+    const weekStartDate = typeof weekStart === "function" ? weekStart(today) : today;
+    const weekEndDate = typeof addDays === "function" ? addDays(weekStartDate, 6) : today;
+    const parsedToday = typeof parseDate === "function" ? parseDate(today) : new Date(`${today}T00:00:00`);
+    const monthStartDate = `${today.slice(0, 7)}-01`;
+    const monthEndDate = `${today.slice(0, 7)}-${String(new Date(parsedToday.getFullYear(), parsedToday.getMonth() + 1, 0).getDate()).padStart(2, "0")}`;
+    const logs = safeLogs();
+
+    setMetric(findCard("Hoje"), "day", "Horas já cumpridas", totalBetween(logs, today, today));
+    setMetric(findCard("Esta semana"), "week", "Horas já cumpridas", totalBetween(logs, weekStartDate, weekEndDate));
+    setMetric(findCard("Este mês"), "month", "Horas já cumpridas", totalBetween(logs, monthStartDate, monthEndDate));
+  }
+
+  let scheduled = false;
+  function scheduleUpdate() {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(() => {
+      scheduled = false;
+      updateCentralRealTimes();
+    });
+  }
+
+  const observer = new MutationObserver(scheduleUpdate);
+  observer.observe(container, { childList: true, subtree: true, characterData: true });
+  window.addEventListener("storage", scheduleUpdate);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) scheduleUpdate();
+  });
+  scheduleUpdate();
+})();
+
+(() => {
+  if (window.__aldusTimerSafetyLoaderV132) return;
+  window.__aldusTimerSafetyLoaderV132 = true;
+  const script = document.createElement("script");
+  script.src = "timer-safety-v132.js?v=20260722-cronometro-seguranca-v132";
+  script.async = false;
+  script.dataset.aldusTimerSafety = "v132";
+  document.head.appendChild(script);
+})();
+
+(() => {
+  if (window.__aldusFactoryFinalReviewLoaderV128) return;
+  window.__aldusFactoryFinalReviewLoaderV128 = true;
+  const script = document.createElement("script");
+  script.src = "factory-final-review-v128.js?v=20260722-revisao-consolidacao-v128-rodape-fix1";
+  script.async = false;
+  script.dataset.aldusFactoryFinalReview = "v128";
+  document.head.appendChild(script);
+})();
+
+(() => {
+  if (window.__aldusCalendarMonthVisibilityLoaderV131) return;
+  window.__aldusCalendarMonthVisibilityLoaderV131 = true;
+  const script = document.createElement("script");
+  script.src = "calendar-month-visibility-v131.js?v=20260722-calendario-cache-estavel-v131";
+  script.async = false;
+  script.dataset.aldusCalendarMonthVisibility = "v131";
+  document.head.appendChild(script);
+})();
+
+(() => {
+  if (window.__aldusQuestionSearchableSelectLoaderV135) return;
+  window.__aldusQuestionSearchableSelectLoaderV135 = true;
+  const script = document.createElement("script");
+  script.src = "question-searchable-selects-v135.js?v=20260723-pesquisa-registro-questoes-v135";
+  script.async = false;
+  script.dataset.aldusQuestionSearchableSelects = "v135";
+  document.head.appendChild(script);
+})();
+
+(() => {
+  if (window.__aldusFactoryExecutiveUiLoaderV136) return;
+  window.__aldusFactoryExecutiveUiLoaderV136 = true;
+  const script = document.createElement("script");
+  script.src = "factory-executive-ui-v136.js?v=20260724-fabrica-executiva-v136";
+  script.async = false;
+  script.dataset.aldusFactoryExecutiveUi = "v136";
+  document.head.appendChild(script);
+})();
+
+(() => {
+  if (window.__aldusDailyStudyCollapsibleLoaderV137) return;
+  window.__aldusDailyStudyCollapsibleLoaderV137 = true;
+  const script = document.createElement("script");
+  script.src = "daily-study-collapsible-v137.js?v=20260724-plano-dia-recolhivel-v137";
+  script.async = false;
+  script.dataset.aldusDailyStudyCollapsible = "v137";
+  document.head.appendChild(script);
+})();
+
+(() => {
+  if (window.__aldusAnalyticsAccordionFixLoaderV148) return;
+  window.__aldusAnalyticsAccordionFixLoaderV148 = true;
+  const script = document.createElement("script");
+  script.src = "analytics-accordion-fix-v148.js?v=20260725-analise-estrategica-abas-funcionais-v148";
+  script.async = false;
+  script.dataset.aldusAnalyticsAccordionFix = "v148";
+  document.head.appendChild(script);
+})();
+
+(() => {
+  if (window.__aldusAnalyticsSingleArrowLoaderV150) return;
+  window.__aldusAnalyticsSingleArrowLoaderV150 = true;
+  const script = document.createElement("script");
+  script.src = "analytics-single-arrow-v150.js?v=20260725-analise-estrategica-seta-unica-v150";
+  script.async = false;
+  script.dataset.aldusAnalyticsSingleArrow = "v150";
+  document.head.appendChild(script);
+})();
+
+(() => {
+  if (window.__aldusDailyCollapsiblesClosedLoaderV140) return;
+  window.__aldusDailyCollapsiblesClosedLoaderV140 = true;
+  const script = document.createElement("script");
+  script.src = "daily-collapsibles-closed-v140.js?v=20260725-analise-estrategica-seta-unica-v150";
+  script.async = false;
+  script.dataset.aldusDailyCollapsiblesClosed = "v140";
+  document.head.appendChild(script);
+})();
+
+(() => {
+  if (window.__aldusQuestionBoardResultLoaderV141) return;
+  window.__aldusQuestionBoardResultLoaderV141 = true;
+  const script = document.createElement("script");
+  script.src = "question-board-result-v141.js?v=20260725-resultado-outras-bancas-v141";
+  script.async = false;
+  script.dataset.aldusQuestionBoardResult = "v141";
+  document.head.appendChild(script);
+})();
+
+(() => {
+  if (window.__aldusQuestionScoringRuleLoaderV142) return;
+  window.__aldusQuestionScoringRuleLoaderV142 = true;
+  const script = document.createElement("script");
+  script.src = "question-scoring-rule-v142.js?v=20260725-regra-pontuacao-questoes-v142";
+  script.async = false;
+  script.dataset.aldusQuestionScoringRule = "v142";
+  document.head.appendChild(script);
+})();
+
+/* Aldus source: timer-first-beep-v160.js */
+(() => {
+  "use strict";
+
+  if (globalThis.__ALDUS_TIMER_FIRST_BEEP_V160__) return;
+
+  function installTimerFirstBeepFix() {
+    if (
+      typeof playTimerControlBeep !== "function"
+      || typeof state === "undefined"
+      || typeof timerAlertVolumeGain !== "function"
+      || typeof timerAudioContext === "undefined"
+      || typeof timerAudioPrepared === "undefined"
+      || typeof timerAudioUserMessage === "undefined"
+    ) return false;
+
+    playTimerControlBeep = function playTimerControlBeepV160(type = "start") {
+      if (!state.settings?.timerPreferences?.sound) return Promise.resolve(false);
+
+      try {
+        timerAudioUserMessage = "";
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) {
+          timerAudioUserMessage = "O navegador não permitiu o som. O aviso visual continuará funcionando. Toque em ‘Testar alarme’ para tentar novamente.";
+          return Promise.resolve(false);
+        }
+
+        if (!timerAudioContext || timerAudioContext.state === "closed") {
+          timerAudioContext = new AudioCtx();
+          timerAudioPrepared = false;
+        }
+
+        const ctx = timerAudioContext;
+        const duration = type === "pause" ? 0.11 : 0.13;
+        const frequency = type === "pause" ? 440 : 720;
+        const start = ctx.currentTime + 0.012;
+        const oscillator = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(frequency, start);
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(
+          Math.min(0.12, 0.065 * timerAlertVolumeGain()),
+          start + 0.018
+        );
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+        oscillator.connect(gain);
+        gain.connect(ctx.destination);
+        oscillator.start(start);
+        oscillator.stop(start + duration + 0.025);
+        timerAudioPrepared = true;
+
+        if (ctx.state === "running") return Promise.resolve(true);
+        return Promise.resolve(ctx.resume())
+          .then(() => ctx.state === "running")
+          .catch((error) => {
+            console.warn("Falha ao liberar o áudio do cronômetro", error);
+            return false;
+          });
+      } catch (error) {
+        console.warn("Falha no bip de controle do cronômetro", error);
+        return Promise.resolve(false);
+      }
+    };
+
+    Object.defineProperty(globalThis, "__ALDUS_TIMER_FIRST_BEEP_V160__", {
+      value: Object.freeze({
+        version: "20260727-cronometro-primeiro-bip-v160",
+        installedAt: new Date().toISOString()
+      }),
+      configurable: false,
+      enumerable: false,
+      writable: false
+    });
+    return true;
+  }
+
+  if (!installTimerFirstBeepFix()) {
+    console.error("[Aldus v168] O núcleo terminou sem disponibilizar a correção do primeiro bip.");
+  }
+})();
+
+/* Aldus source: timer-motivation-v161.js */
+(() => {
+  "use strict";
+
+  const VERSION = "20260727-cronometro-motivacao-tempo-v161";
+  const HISTORY_KEY = "metasEstudoTimerMotivationalHistoryV161";
+  const ENABLE_KEY = "metasEstudoTimerMotivationEnabledV161";
+  const FIRST_SECONDS = 30;
+  const REPEAT_SECONDS = 300;
+  const TOAST_MS = 30000;
+
+  if (globalThis.__aldusTimerMotivationV161) return;
+  globalThis.__aldusTimerMotivationV161 = true;
+  globalThis.__aldusTimerMotivationV159 = true;
+
+  const MESSAGES = [
+    "Começar já foi uma vitória; agora mantenha o passo.",
+    "Os primeiros minutos definem o tom da sessão.",
+    "Seu foco já está em movimento.",
+    "Uma sessão consistente começa com presença.",
+    "Você abriu espaço para o que realmente importa.",
+    "Deixe o ritmo crescer sem pressa e sem pausa.",
+    "Este começo já conta a favor da sua aprovação.",
+    "O esforço de agora será lembrado na hora da prova.",
+    "Cada bloco bem estudado reduz a incerteza da prova.",
+    "Continue presente: o resultado nasce dessa sequência.",
+    "Seu planejamento está saindo do papel.",
+    "A constância está fazendo o trabalho silencioso.",
+    "Você entrou no ritmo certo; preserve-o.",
+    "O foco sustentado está produzindo resultado.",
+    "Mais conhecimento consolidado, menos insegurança.",
+    "Continue no assunto atual; profundidade também pontua.",
+    "Seu cérebro aprende melhor quando você permanece.",
+    "Respire fundo e proteja o ritmo conquistado.",
+    "Você está transformando esforço em domínio.",
+    "A disciplina está vencendo a vontade de interromper.",
+    "Continue com qualidade; não acelere o que precisa compreender.",
+    "É nesta etapa que a constância se diferencia.",
+    "Você construiu um ótimo bloco de estudo.",
+    "Não abandone agora o ritmo que levou tempo para formar.",
+    "Cada minuto ajuda a fixar o conteúdo.",
+    "O encerramento bem feito fortalece a próxima revisão.",
+    "Mantenha a atenção; a precisão também se treina.",
+    "Seu compromisso de hoje está virando resultado concreto.",
+    "A aprovação é construída em sessões como esta.",
+    "Você não precisa vencer o edital inteiro agora; avance neste ponto.",
+    "O próximo acerto começa no estudo que você faz hoje.",
+    "A constância de hoje protege sua confiança na prova.",
+    "Um assunto difícil fica menor quando você permanece nele.",
+    "Seu ritmo está estável; continue.",
+    "Mais um intervalo de foco concluído com qualidade.",
+    "O tempo bem usado agora vira decisão segura na prova.",
+    "Você está acumulando conhecimento, não apenas minutos.",
+    "A disciplina transforma uma sessão comum em vantagem.",
+    "Continue firme: o resultado cresce sem fazer barulho.",
+    "Seu avanço é real, mesmo quando parece pequeno.",
+    "Mantenha o foco no próximo trecho, não no cansaço.",
+    "Você está cumprindo o que planejou para si.",
+    "Cada minuto concentrado diminui uma dúvida futura.",
+    "A repetição consciente fortalece a memória.",
+    "O estudo de hoje amplia suas escolhas de amanhã.",
+    "Seu progresso já é maior do que no início da sessão.",
+    "Concentre-se no que está diante de você e siga.",
+    "A rotina que ninguém vê sustenta o resultado que todos verão.",
+    "Você está fazendo a parte que depende de você.",
+    "Continue: consistência também é uma forma de talento."
+  ];
+
+  if (MESSAGES.length !== 50) {
+    console.error(`[Cronômetro] Esperadas 50 mensagens; encontradas ${MESSAGES.length}.`);
+    return;
+  }
+
+  const runtime = {
+    sessionKey: "",
+    firstShown: false,
+    lastInterval: 0,
+    lastPaused: false,
+    lastShownAt: 0,
+    fallbackStartedAt: 0,
+    countdownInitial: 0
+  };
+
+  function shuffle(values) {
+    const result = [...values];
+    for (let index = result.length - 1; index > 0; index -= 1) {
+      const random = Math.floor(Math.random() * (index + 1));
+      [result[index], result[random]] = [result[random], result[index]];
+    }
+    return result;
+  }
+
+  function nextMessage() {
+    let history = {};
+    try { history = JSON.parse(localStorage.getItem(HISTORY_KEY) || "{}"); } catch (error) { history = {}; }
+    let bag = Array.isArray(history.bag) ? history.bag.filter((item) => MESSAGES.includes(item)) : [];
+    if (!bag.length) bag = shuffle(MESSAGES);
+    const recent = Array.isArray(history.recent) ? history.recent : [];
+    let index = bag.findIndex((item) => !recent.includes(item));
+    if (index < 0) index = 0;
+    const [message] = bag.splice(index, 1);
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify({
+        bag,
+        recent: [message, ...recent.filter((item) => item !== message)].slice(0, 12)
+      }));
+    } catch (error) {
+      console.warn("[Cronômetro] Não foi possível salvar o histórico motivacional.", error);
+    }
+    return message || MESSAGES[0];
+  }
+
+  function enableOnce() {
+    try {
+      if (localStorage.getItem(ENABLE_KEY)) return;
+      const checkbox = document.querySelector('[data-timer-pref="motivationalMessages"]');
+      if (checkbox && !checkbox.checked) {
+        checkbox.checked = true;
+        checkbox.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      localStorage.setItem(ENABLE_KEY, VERSION);
+    } catch (error) {
+      console.warn("[Cronômetro] Não foi possível ativar as mensagens automaticamente.", error);
+    }
+  }
+
+  function enabled() {
+    const checkbox = document.querySelector('[data-timer-pref="motivationalMessages"]');
+    return !checkbox || checkbox.checked;
+  }
+
+  function ensureVisuals() {
+    if (!document.getElementById("timerMotivationStyleV161")) {
+      const style = document.createElement("style");
+      style.id = "timerMotivationStyleV161";
+      style.textContent = `
+        #timerMotivationalToast.timer-motivational-toast{z-index:6000!important}
+        .timer-motivation-inline-v161{display:grid;gap:4px;margin:2px 0 8px;padding:11px 13px;border:1px solid rgba(96,165,250,.62);border-radius:14px;background:linear-gradient(145deg,rgba(10,45,73,.98),rgba(6,30,51,.98));box-shadow:0 8px 22px rgba(0,8,22,.28);color:#fff}
+        .timer-motivation-inline-v161[hidden]{display:none!important}
+        .timer-motivation-inline-v161 strong{color:#9fd5ff;font-size:.74rem;letter-spacing:.08em;text-transform:uppercase}
+        .timer-motivation-inline-v161 span{color:#fff;font-size:.94rem;font-weight:800;line-height:1.35}
+      `;
+      document.head.appendChild(style);
+    }
+    let toast = document.getElementById("timerMotivationalToast");
+    if (!toast) {
+      toast = document.createElement("div");
+      toast.id = "timerMotivationalToast";
+      toast.className = "timer-motivational-toast";
+      toast.setAttribute("aria-live", "polite");
+      toast.hidden = true;
+      document.body.appendChild(toast);
+    }
+    let inline = document.getElementById("timerMotivationInlineV161");
+    if (!inline) {
+      const progress = document.getElementById("timerProgressText");
+      if (progress) {
+        inline = document.createElement("div");
+        inline.id = "timerMotivationInlineV161";
+        inline.className = "timer-motivation-inline-v161";
+        inline.setAttribute("aria-live", "polite");
+        inline.hidden = true;
+        progress.insertAdjacentElement("afterend", inline);
+      }
+    }
+    return { toast, inline };
+  }
+
+  function fill(element, label, message) {
+    if (!element) return;
+    element.replaceChildren();
+    const strong = document.createElement("strong");
+    const span = document.createElement("span");
+    strong.textContent = label;
+    span.textContent = message;
+    element.append(strong, span);
+    element.hidden = false;
+    element.classList.add("visible");
+  }
+
+  function show(label) {
+    if (!enabled()) return;
+    const message = nextMessage();
+    const { toast, inline } = ensureVisuals();
+    fill(toast, label, message);
+    fill(inline, label, message);
+    clearTimeout(globalThis.__aldusTimerMotivationToastV161);
+    globalThis.__aldusTimerMotivationToastV161 = setTimeout(() => {
+      if (toast) {
+        toast.classList.remove("visible");
+        toast.hidden = true;
+      }
+    }, TOAST_MS);
+  }
+
+  function parseClock(value) {
+    const parts = String(value || "").trim().split(":").map(Number);
+    return parts.length === 3 && parts.every(Number.isFinite)
+      ? Math.max(0, parts[0] * 3600 + parts[1] * 60 + parts[2])
+      : 0;
+  }
+
+  function coreTimer() {
+    try { return typeof floatingTimer === "object" ? floatingTimer : null; } catch (error) { return null; }
+  }
+
+  function coreElapsed() {
+    try {
+      if (typeof currentTimerSeconds === "function") {
+        const value = Number(currentTimerSeconds());
+        if (Number.isFinite(value)) return Math.max(0, Math.floor(value));
+      }
+    } catch (error) {
+      console.warn("[Cronômetro] Leitura principal do tempo indisponível.", error);
+    }
+    return null;
+  }
+
+  function reset(key = "") {
+    runtime.sessionKey = key;
+    runtime.firstShown = false;
+    runtime.lastInterval = 0;
+    runtime.lastPaused = false;
+    runtime.lastShownAt = 0;
+    runtime.fallbackStartedAt = Date.now();
+    runtime.countdownInitial = parseClock(document.getElementById("timerTime")?.textContent);
+  }
+
+  function monitor() {
+    const panel = document.getElementById("floatingTimer");
+    if (!panel || panel.hidden) {
+      if (runtime.sessionKey) reset();
+      return;
+    }
+
+    const timer = coreTimer();
+    const mode = timer?.mode || document.getElementById("timerMode")?.value || "countdown";
+    const key = String(timer?.sessionId || `${timer?.goalId || document.getElementById("timerSubject")?.textContent}|${timer?.startedAt || mode}`);
+    if (runtime.sessionKey !== key) reset(key);
+
+    const pauseButton = document.getElementById("timerPauseResume");
+    const paused = timer ? Boolean(timer.paused) : /continuar/i.test(pauseButton?.textContent || "");
+    const completed = timer ? Boolean(timer.completed) : !document.getElementById("timerCompletion")?.hidden;
+    const resumed = runtime.lastPaused && !paused;
+    runtime.lastPaused = paused;
+    if (paused || completed || !enabled()) return;
+
+    let elapsed = coreElapsed();
+    if (elapsed === null) {
+      const shown = parseClock(document.getElementById("timerTime")?.textContent);
+      elapsed = mode === "free"
+        ? shown
+        : Math.max(0, runtime.countdownInitial - shown, Math.floor((Date.now() - runtime.fallbackStartedAt) / 1000));
+    }
+
+    const now = Date.now();
+    if (resumed && now - runtime.lastShownAt > 5000) {
+      show("FOCO RETOMADO");
+      runtime.lastShownAt = now;
+      return;
+    }
+    if (!runtime.firstShown && elapsed >= FIRST_SECONDS) {
+      show("BOM COMEÇO");
+      runtime.firstShown = true;
+      runtime.lastShownAt = now;
+    }
+    const interval = Math.floor(elapsed / REPEAT_SECONDS);
+    if (interval > runtime.lastInterval) {
+      runtime.lastInterval = interval;
+      if (interval > 0 && now - runtime.lastShownAt >= 15000) {
+        show(`${interval * 5} MINUTOS DE FOCO`);
+        runtime.lastShownAt = now;
+      }
+    }
+  }
+
+  enableOnce();
+  ensureVisuals();
+  const intervalId = setInterval(monitor, 1000);
+  window.addEventListener("pageshow", monitor);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) monitor(); });
+
+  globalThis.__aldusTimerMotivationV161Status = Object.freeze({
+    version: VERSION,
+    applied: true,
+    messages: MESSAGES.length,
+    firstSeconds: FIRST_SECONDS,
+    repeatSeconds: REPEAT_SECONDS,
+    modes: ["countdown", "free"],
+    intervalId
+  });
+})();
+
+/* Aldus source: question-register-simple-v162.js */
+(() => {
+  "use strict";
+
+  const PATCH_VERSION = "20260727-registrar-questoes-simples-v162";
+  const STORAGE_KEY = "aldus.questionRegistrationDraft.v162";
+  const FIELD_IDS = [
+    "questionDiscipline",
+    "questionSyllabusItem",
+    "questionBoard",
+    "questionQcNumber",
+    "questionDate",
+    "questionTrainingType",
+    "questionTotal",
+    "questionMinutes",
+    "questionCorrect",
+    "questionWrong",
+    "questionBlank",
+    "questionNotes",
+    "questionQcCode",
+    "questionQcLink",
+    "questionItemResult",
+    "questionItemDifficulty",
+    "questionStatement",
+    "questionAlternatives",
+    "questionMarkedAnswer",
+    "questionAnswerKey",
+    "questionPersonalComment",
+    "questionErrorReason",
+    "questionLegalBasis",
+    "questionBizu1",
+    "questionBizu2",
+    "questionBizu3",
+    "questionAddToErrorNotebook"
+  ];
+  const CALCULATION_FIELD_IDS = [
+    "questionTotal",
+    "questionCorrect",
+    "questionWrong",
+    "questionBlank"
+  ];
+
+  if (globalThis.__ALDUS_QUESTION_REGISTER_SIMPLE_V162__) return;
+
+  function field(id) {
+    return document.getElementById(id);
+  }
+
+  function dispatch(element, type) {
+    if (!element) return;
+    element.dispatchEvent(new Event(type, { bubbles: true }));
+  }
+
+  function setStatus(message, type = "neutral") {
+    const status = field("questionNotebookDraftStatus");
+    if (!status) return;
+    status.textContent = message;
+    status.dataset.status = type;
+    status.hidden = !message;
+  }
+
+  function injectStyles() {
+    if (document.getElementById("questionRegisterSimpleStylesV162")) return;
+    const style = document.createElement("style");
+    style.id = "questionRegisterSimpleStylesV162";
+    style.textContent = `
+      #view-questoes.question-register-simple-v162 .question-notebook-save-actions-v162 {
+        display: grid;
+        grid-template-columns: minmax(180px, 280px) minmax(0, 1fr);
+        align-items: center;
+        gap: 12px;
+        margin-top: 4px;
+        padding-top: 16px;
+        border-top: 1px solid rgba(120, 167, 205, .34);
+      }
+      #view-questoes.question-register-simple-v162 #saveQuestionNotebookDraft {
+        width: 100%;
+      }
+      #view-questoes.question-register-simple-v162 #questionNotebookDraftStatus {
+        margin: 0;
+        min-height: 1.35em;
+        color: var(--muted, #9fb5c7);
+        font-size: .9rem;
+        font-weight: 700;
+      }
+      #view-questoes.question-register-simple-v162 #questionNotebookDraftStatus[data-status="success"] {
+        color: var(--success, #7dd3a7);
+      }
+      #view-questoes.question-register-simple-v162 #questionNotebookDraftStatus[data-status="error"] {
+        color: var(--danger, #fca5a5);
+      }
+      @media (max-width: 720px) {
+        #view-questoes.question-register-simple-v162 .question-notebook-save-actions-v162 {
+          grid-template-columns: 1fr;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function setLabelText(controlId, text) {
+    const control = field(controlId);
+    const label = control?.closest("label");
+    if (!label) return;
+    const textNode = [...label.childNodes].find(
+      (node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim()
+    );
+    if (textNode) textNode.textContent = text;
+    else label.insertBefore(document.createTextNode(text), label.firstChild);
+  }
+
+  function simplifyInterface(view) {
+    view.classList.add("question-register-simple-v162");
+
+    const description = view.querySelector(".view-identity-description");
+    if (description) description.hidden = true;
+
+    const directNotice = [...view.children].find(
+      (element) => element.matches?.("p.notice")
+    );
+    if (directNotice) directNotice.hidden = true;
+
+    const form = field("questionForm");
+    const sections = form
+      ? [...form.children].filter((element) => element.matches?.("details.question-register-section"))
+      : [];
+
+    const firstSummary = sections[0]?.querySelector(":scope > summary");
+    const secondSummary = sections[1]?.querySelector(":scope > summary");
+    const firstStrong = firstSummary?.querySelector("strong");
+    const firstHint = firstSummary?.querySelector("em");
+    const secondStrong = secondSummary?.querySelector("strong");
+    const secondHint = secondSummary?.querySelector("em");
+
+    if (firstStrong) firstStrong.textContent = "Conteúdo e filtros";
+    if (firstHint) firstHint.textContent = "Escolha disciplina, assunto e banca";
+    if (secondStrong) secondStrong.textContent = "Resultado da sessão";
+    if (secondHint) secondHint.textContent = "Informe quantidade, desempenho e tempo";
+
+    setLabelText("questionSyllabusItem", "Assunto do edital");
+    setLabelText("questionQcNumber", "Número do assunto no QC");
+
+    const qcButton = field("saveQuestionQcNumber");
+    if (qcButton) qcButton.textContent = "Salvar número do QC";
+
+    const qcHelp = field("questionQcNumberHelp");
+    if (qcHelp) qcHelp.textContent = "O número do QC é diferente da referência do edital.";
+  }
+
+  function ensureSaveControls() {
+    const content = document.querySelector("#questionNotebookPanel .question-notebook-content");
+    if (!content) return false;
+    if (field("saveQuestionNotebookDraft")) return true;
+
+    const actions = document.createElement("div");
+    actions.className = "wide question-notebook-save-actions-v162";
+
+    const button = document.createElement("button");
+    button.id = "saveQuestionNotebookDraft";
+    button.type = "button";
+    button.textContent = "Salvar ficha";
+
+    const status = document.createElement("p");
+    status.id = "questionNotebookDraftStatus";
+    status.setAttribute("role", "status");
+    status.setAttribute("aria-live", "polite");
+    status.hidden = true;
+
+    actions.append(button, status);
+    content.appendChild(actions);
+    return true;
+  }
+
+  function readDraft() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object" || typeof parsed.fields !== "object") return null;
+      return parsed;
+    } catch (error) {
+      console.warn("[Registrar Questões v162] Não foi possível ler a ficha salva.", error);
+      return null;
+    }
+  }
+
+  function collectDraft() {
+    const fields = {};
+    FIELD_IDS.forEach((id) => {
+      const element = field(id);
+      if (!element) return;
+      fields[id] = element.type === "checkbox" ? Boolean(element.checked) : element.value;
+    });
+    return {
+      version: PATCH_VERSION,
+      savedAt: new Date().toISOString(),
+      fields
+    };
+  }
+
+  function saveDraft() {
+    try {
+      const draft = collectDraft();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
+      const time = new Date(draft.savedAt).toLocaleString("pt-BR");
+      setStatus(`Ficha salva neste navegador em ${time}.`, "success");
+    } catch (error) {
+      console.error("[Registrar Questões v162] Falha ao salvar a ficha.", error);
+      setStatus("Não foi possível salvar a ficha. Nenhum lançamento existente foi alterado.", "error");
+    }
+  }
+
+  function meaningfulCurrentInput() {
+    const ids = [
+      "questionNotes",
+      "questionQcCode",
+      "questionQcLink",
+      "questionItemResult",
+      "questionItemDifficulty",
+      "questionStatement",
+      "questionAlternatives",
+      "questionMarkedAnswer",
+      "questionAnswerKey",
+      "questionPersonalComment",
+      "questionErrorReason",
+      "questionLegalBasis",
+      "questionBizu1",
+      "questionBizu2",
+      "questionBizu3"
+    ];
+    return ids.some((id) => String(field(id)?.value || "").trim())
+      || Boolean(field("questionAddToErrorNotebook")?.checked);
+  }
+
+  function setElementValue(id, value) {
+    const element = field(id);
+    if (!element || value === undefined || value === null) return false;
+    if (element.type === "checkbox") {
+      element.checked = Boolean(value);
+      dispatch(element, "change");
+      return true;
+    }
+    if (element.tagName === "SELECT" && value && ![...element.options].some((option) => option.value === value)) {
+      return false;
+    }
+    element.value = String(value);
+    dispatch(element, element.tagName === "SELECT" ? "change" : "input");
+    return true;
+  }
+
+  function restoreRemainingFields(draft) {
+    FIELD_IDS.forEach((id) => {
+      if (["questionDiscipline", "questionSyllabusItem"].includes(id)) return;
+      setElementValue(id, draft.fields[id]);
+    });
+    CALCULATION_FIELD_IDS.forEach((id) => dispatch(field(id), "input"));
+    const savedAt = draft.savedAt ? new Date(draft.savedAt).toLocaleString("pt-BR") : "data não informada";
+    setStatus(`Ficha recuperada automaticamente • salva em ${savedAt}.`, "success");
+  }
+
+  function restoreDraftWhenReady(draft, attempt = 0) {
+    const form = field("questionForm");
+    if (!form || !draft?.fields) return;
+    if (field("questionEditingId")?.value || meaningfulCurrentInput()) return;
+
+    const discipline = field("questionDiscipline");
+    const syllabus = field("questionSyllabusItem");
+    if (!discipline || !syllabus || !discipline.options.length) {
+      if (attempt < 120) setTimeout(() => restoreDraftWhenReady(draft, attempt + 1), 50);
+      return;
+    }
+
+    const savedDiscipline = draft.fields.questionDiscipline;
+    if (savedDiscipline && [...discipline.options].some((option) => option.value === savedDiscipline)) {
+      discipline.value = savedDiscipline;
+      dispatch(discipline, "change");
+    }
+
+    const applySyllabusAndRest = (syllabusAttempt = 0) => {
+      const currentSyllabus = field("questionSyllabusItem");
+      const savedSyllabus = draft.fields.questionSyllabusItem;
+      const canApplySyllabus = !savedSyllabus
+        || (currentSyllabus && [...currentSyllabus.options].some((option) => option.value === savedSyllabus));
+
+      if (!canApplySyllabus && syllabusAttempt < 80) {
+        setTimeout(() => applySyllabusAndRest(syllabusAttempt + 1), 50);
+        return;
+      }
+
+      if (savedSyllabus && currentSyllabus) {
+        currentSyllabus.value = savedSyllabus;
+        dispatch(currentSyllabus, "change");
+      }
+      restoreRemainingFields(draft);
+    };
+
+    setTimeout(() => applySyllabusAndRest(), 0);
+  }
+
+  function clearDraftAfterSuccessfulFullSave() {
+    const form = field("questionForm");
+    if (!form || form.dataset.questionDraftClearBound === "true") return;
+    form.dataset.questionDraftClearBound = "true";
+
+    form.addEventListener("submit", () => {
+      const editingBefore = field("questionEditingId")?.value || "";
+      const logsBefore = typeof state !== "undefined" && Array.isArray(state.questionLogs)
+        ? state.questionLogs.length
+        : null;
+
+      setTimeout(() => {
+        const logsAfter = typeof state !== "undefined" && Array.isArray(state.questionLogs)
+          ? state.questionLogs.length
+          : null;
+        const editingAfter = field("questionEditingId")?.value || "";
+        const newLogSaved = logsBefore !== null && logsAfter !== null && logsAfter > logsBefore;
+        const editedLogSaved = Boolean(editingBefore) && !editingAfter;
+        if (!newLogSaved && !editedLogSaved) return;
+        localStorage.removeItem(STORAGE_KEY);
+        setStatus("Ficha incorporada ao lançamento completo.", "success");
+      }, 350);
+    }, { capture: true });
+  }
+
+  function init() {
+    const view = field("view-questoes");
+    if (!view) return;
+
+    injectStyles();
+    simplifyInterface(view);
+    if (!ensureSaveControls()) return;
+
+    field("saveQuestionNotebookDraft")?.addEventListener("click", saveDraft);
+    clearDraftAfterSuccessfulFullSave();
+
+    const draft = readDraft();
+    if (draft) setTimeout(() => restoreDraftWhenReady(draft), 450);
+
+    window.addEventListener("storage", (event) => {
+      if (event.key !== STORAGE_KEY) return;
+      const updatedDraft = readDraft();
+      if (!updatedDraft) {
+        setStatus("A ficha salva foi removida em outra aba.");
+        return;
+      }
+      const savedAt = updatedDraft.savedAt
+        ? new Date(updatedDraft.savedAt).toLocaleString("pt-BR")
+        : "data não informada";
+      setStatus(`Ficha atualizada em outra aba • ${savedAt}.`, "success");
+    });
+
+    Object.defineProperty(globalThis, "__ALDUS_QUESTION_REGISTER_SIMPLE_V162__", {
+      value: Object.freeze({ version: PATCH_VERSION, storageKey: STORAGE_KEY }),
+      configurable: false,
+      enumerable: false,
+      writable: false
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init, { once: true });
+  } else {
+    init();
+  }
+})();
+
+/* Aldus source: factory-simple-v163.js */
+(() => {
+  "use strict";
+
+  const PATCH_VERSION = "20260727-fabrica-simples-recolhivel-v163";
+  const SESSION_PREFIX = "aldus.factory.ui.v163.";
+
+  if (typeof document === "undefined" || globalThis.__ALDUS_FACTORY_SIMPLE_V163__) return;
+
+  function directChild(view, selector) {
+    return [...view.children].find((element) => element.matches?.(selector)) || null;
+  }
+
+  function injectStyles() {
+    if (document.getElementById("factorySimpleStylesV163")) return;
+    const style = document.createElement("style");
+    style.id = "factorySimpleStylesV163";
+    style.textContent = `
+      #view-fabrica-resumos.factory-simple-v163 {
+        display: grid;
+        gap: 12px;
+      }
+      #view-fabrica-resumos.factory-simple-v163 > .section-heading {
+        margin-bottom: 0;
+      }
+      #view-fabrica-resumos.factory-simple-v163 > .section-heading h2 {
+        margin-bottom: 0;
+      }
+      #view-fabrica-resumos.factory-simple-v163 .factory-simple-intro-v163 {
+        margin: -2px 0 2px;
+        color: var(--muted, #a9bfd0);
+        font-size: .94rem;
+        line-height: 1.45;
+      }
+      #view-fabrica-resumos.factory-simple-v163 > details.factory-top-panel-v163,
+      #view-fabrica-resumos.factory-simple-v163 > details.factory-filter-panel,
+      #view-fabrica-resumos.factory-simple-v163 > details.factory-register-panel {
+        margin: 0;
+        overflow: clip;
+        border: 1px solid rgba(126, 167, 198, .34);
+        border-radius: 16px;
+        background: rgba(4, 29, 49, .56);
+        box-shadow: none;
+      }
+      #view-fabrica-resumos.factory-simple-v163 > details.factory-top-panel-v163 > summary,
+      #view-fabrica-resumos.factory-simple-v163 > details.factory-filter-panel > summary,
+      #view-fabrica-resumos.factory-simple-v163 > details.factory-register-panel > summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        min-height: 58px;
+        padding: 14px 18px;
+        cursor: pointer;
+        list-style: none;
+        color: var(--text, #f4f9fd);
+        font-weight: 800;
+      }
+      #view-fabrica-resumos.factory-simple-v163 > details.factory-top-panel-v163 > summary::-webkit-details-marker,
+      #view-fabrica-resumos.factory-simple-v163 > details.factory-filter-panel > summary::-webkit-details-marker,
+      #view-fabrica-resumos.factory-simple-v163 > details.factory-register-panel > summary::-webkit-details-marker {
+        display: none;
+      }
+      #view-fabrica-resumos.factory-simple-v163 > details.factory-top-panel-v163 > summary::after,
+      #view-fabrica-resumos.factory-simple-v163 > details.factory-filter-panel > summary::after,
+      #view-fabrica-resumos.factory-simple-v163 > details.factory-register-panel > summary::after {
+        content: "⌄";
+        flex: 0 0 auto;
+        font-size: 1.25rem;
+        line-height: 1;
+        transform: rotate(-90deg);
+        transition: transform .18s ease;
+      }
+      #view-fabrica-resumos.factory-simple-v163 > details[open].factory-top-panel-v163 > summary::after,
+      #view-fabrica-resumos.factory-simple-v163 > details[open].factory-filter-panel > summary::after,
+      #view-fabrica-resumos.factory-simple-v163 > details[open].factory-register-panel > summary::after {
+        transform: rotate(0deg);
+      }
+      #view-fabrica-resumos.factory-simple-v163 .factory-panel-title-v163 {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+      }
+      #view-fabrica-resumos.factory-simple-v163 .factory-panel-title-v163 strong {
+        font-size: 1rem;
+      }
+      #view-fabrica-resumos.factory-simple-v163 .factory-panel-title-v163 small {
+        color: var(--muted, #a9bfd0);
+        font-size: .8rem;
+        font-weight: 650;
+      }
+      #view-fabrica-resumos.factory-simple-v163 .factory-top-content-v163,
+      #view-fabrica-resumos.factory-simple-v163 > details.factory-filter-panel > .factory-filter-actions,
+      #view-fabrica-resumos.factory-simple-v163 > details.factory-register-panel > .factory-form {
+        margin: 0;
+        padding: 4px 18px 18px;
+      }
+      #view-fabrica-resumos.factory-simple-v163 #factoryOverviewPanelV163 .factory-summary {
+        margin: 0 0 12px;
+      }
+      #view-fabrica-resumos.factory-simple-v163 #factoryOverviewPanelV163 .factory-production-tabs {
+        margin: 0;
+      }
+      #view-fabrica-resumos.factory-simple-v163 #factoryProductionPanelV163 .factory-list {
+        margin: 0;
+      }
+      #view-fabrica-resumos.factory-simple-v163 #factoryPromptPanelV163 .factory-settings-actions {
+        margin: 0 0 12px;
+      }
+      #view-fabrica-resumos.factory-simple-v163 #factoryPromptPanelV163 .factory-prompt-library {
+        margin: 0;
+      }
+      #view-fabrica-resumos.factory-simple-v163 #factoryInfoPanelV163 .notice {
+        margin: 0;
+        padding: 14px;
+        font-size: .9rem;
+        line-height: 1.5;
+      }
+      #view-fabrica-resumos.factory-simple-v163 .factory-scope-notice {
+        margin-top: 0;
+      }
+      @media (max-width: 720px) {
+        #view-fabrica-resumos.factory-simple-v163 {
+          gap: 10px;
+        }
+        #view-fabrica-resumos.factory-simple-v163 > details.factory-top-panel-v163 > summary,
+        #view-fabrica-resumos.factory-simple-v163 > details.factory-filter-panel > summary,
+        #view-fabrica-resumos.factory-simple-v163 > details.factory-register-panel > summary {
+          min-height: 54px;
+          padding: 13px 14px;
+        }
+        #view-fabrica-resumos.factory-simple-v163 .factory-top-content-v163,
+        #view-fabrica-resumos.factory-simple-v163 > details.factory-filter-panel > .factory-filter-actions,
+        #view-fabrica-resumos.factory-simple-v163 > details.factory-register-panel > .factory-form {
+          padding: 2px 14px 14px;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function summaryMarkup(title, hint) {
+    return `<span class="factory-panel-title-v163"><strong>${title}</strong><small>${hint}</small></span>`;
+  }
+
+  function createPanel(id, title, hint) {
+    const details = document.createElement("details");
+    details.id = id;
+    details.className = "factory-top-panel-v163";
+
+    const summary = document.createElement("summary");
+    summary.innerHTML = summaryMarkup(title, hint);
+
+    const content = document.createElement("div");
+    content.className = "factory-top-content-v163";
+
+    details.append(summary, content);
+    return { details, content };
+  }
+
+  function setExistingSummary(details, title, hint) {
+    const summary = details?.querySelector(":scope > summary");
+    if (!summary) return;
+    summary.innerHTML = summaryMarkup(title, hint);
+  }
+
+  function bindOpenState(details, key, defaultOpen) {
+    if (!details || details.dataset.factoryUiStateV163 === "true") return;
+    details.dataset.factoryUiStateV163 = "true";
+    const storageKey = `${SESSION_PREFIX}${key}`;
+    try {
+      const stored = sessionStorage.getItem(storageKey);
+      details.open = stored === null ? defaultOpen : stored === "open";
+    } catch {
+      details.open = defaultOpen;
+    }
+    details.addEventListener("toggle", () => {
+      try {
+        sessionStorage.setItem(storageKey, details.open ? "open" : "closed");
+      } catch {}
+    });
+  }
+
+  function installFactorySimpleUi() {
+    const view = document.getElementById("view-fabrica-resumos");
+    if (!view) return false;
+    if (view.dataset.factorySimpleV163 === "true") return true;
+
+    const heading = directChild(view, ".section-heading");
+    const notice = directChild(view, "p.notice");
+    const promptActions = directChild(view, ".factory-settings-actions");
+    const promptPanel = document.getElementById("factoryPromptLibraryPanel");
+    const factorySummary = document.getElementById("factorySummary");
+    const productionTabs = directChild(view, ".factory-production-tabs");
+    const filterPanel = directChild(view, "details.factory-filter-panel");
+    const registerPanel = document.getElementById("factoryRegisterPanel");
+    const factoryList = document.getElementById("factoryList");
+
+    if (!heading || !notice || !promptActions || !promptPanel || !factorySummary || !productionTabs || !filterPanel || !registerPanel || !factoryList) {
+      return false;
+    }
+
+    injectStyles();
+    view.classList.add("factory-simple-v163");
+
+    let intro = directChild(view, ".factory-simple-intro-v163");
+    if (!intro) {
+      intro = document.createElement("p");
+      intro.className = "factory-simple-intro-v163";
+      intro.textContent = "Produza, acompanhe e organize os materiais sem alterar os registros já salvos.";
+      heading.after(intro);
+    }
+
+    let overview = document.getElementById("factoryOverviewPanelV163");
+    if (!overview) {
+      const panel = createPanel(
+        "factoryOverviewPanelV163",
+        "Visão geral e período",
+        "Resumo da fila e escolha entre Plano do Dia e semana"
+      );
+      panel.content.append(factorySummary, productionTabs);
+      overview = panel.details;
+    }
+
+    let production = document.getElementById("factoryProductionPanelV163");
+    if (!production) {
+      const panel = createPanel(
+        "factoryProductionPanelV163",
+        "Produção e temas",
+        "Fila, tema atual, materiais e detalhes de cada item"
+      );
+      panel.content.append(factoryList);
+      production = panel.details;
+    }
+
+    let prompts = document.getElementById("factoryPromptPanelV163");
+    if (!prompts) {
+      const panel = createPanel(
+        "factoryPromptPanelV163",
+        "Biblioteca de prompts",
+        "Editar os modelos usados pela Fábrica"
+      );
+      panel.content.append(promptActions, promptPanel);
+      prompts = panel.details;
+    }
+
+    let info = document.getElementById("factoryInfoPanelV163");
+    if (!info) {
+      const panel = createPanel(
+        "factoryInfoPanelV163",
+        "Informações e segurança",
+        "Persistência, backup e sincronização"
+      );
+      panel.content.append(notice);
+      info = panel.details;
+    }
+
+    filterPanel.classList.add("factory-top-existing-v163");
+    registerPanel.classList.add("factory-top-existing-v163");
+    setExistingSummary(filterPanel, "Filtros e etapas", "Mostrar somente o estágio necessário");
+    setExistingSummary(registerPanel, "Cadastrar ou editar tema", "Formulário completo preservado");
+
+    [overview, production, filterPanel, registerPanel, prompts, info].forEach((panel) => view.appendChild(panel));
+
+    bindOpenState(overview, "overview", true);
+    bindOpenState(production, "production", true);
+    bindOpenState(filterPanel, "filters", false);
+    bindOpenState(registerPanel, "register", Boolean(document.getElementById("factoryEditingId")?.value));
+    bindOpenState(prompts, "prompts", false);
+    bindOpenState(info, "info", false);
+
+    view.dataset.factorySimpleV163 = "true";
+    Object.defineProperty(globalThis, "__ALDUS_FACTORY_SIMPLE_V163__", {
+      value: Object.freeze({
+        version: PATCH_VERSION,
+        installedAt: new Date().toISOString(),
+        persistence: "sessionStorage-only-for-open-state"
+      }),
+      configurable: false,
+      enumerable: false,
+      writable: false
+    });
+    return true;
+  }
+
+  function installOnce() {
+    if (installFactorySimpleUi()) return;
+    console.error("[Fábrica v163] A simplificação visual não pôde ser instalada. Nenhum dado foi alterado.");
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", installOnce, { once: true });
+  } else {
+    installOnce();
+  }
+})();
+
+/* Aldus source: factory-polish-v164.js */
+(() => {
+  "use strict";
+
+  const PATCH_VERSION = "20260727-fabrica-polimento-visual-v164";
+  const METADATA_SEGMENTS = new Set([
+    "estudo",
+    "estudo novo",
+    "meta de reforco",
+    "reforco",
+    "revisao",
+    "questoes",
+    "meta concluida",
+    "em andamento",
+    "meta pendente",
+    "material ja disponivel",
+    "material a produzir"
+  ]);
+
+  if (typeof document === "undefined" || globalThis.__ALDUS_FACTORY_POLISH_V164__) return;
+
+  let summaryScheduled = false;
+
+  function canonical(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase("pt-BR")
+      .replace(/[^\p{L}\p{N}]+/gu, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function sameTheme(segment, title) {
+    const left = canonical(segment);
+    const right = canonical(title);
+    if (!left || !right) return false;
+    if (left === right) return true;
+    const shorter = left.length <= right.length ? left : right;
+    const longer = left.length > right.length ? left : right;
+    return longer.startsWith(shorter) && shorter.length / longer.length >= 0.9;
+  }
+
+  function uniqueText(values) {
+    const seen = new Set();
+    return values.filter((value) => {
+      const key = canonical(value);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  function setSummaryLine(paragraph, label, values) {
+    const cleanValues = uniqueText(values);
+    if (!cleanValues.length) {
+      paragraph.hidden = true;
+      return;
+    }
+
+    paragraph.hidden = false;
+    paragraph.replaceChildren();
+    const strong = document.createElement("strong");
+    strong.textContent = label;
+    paragraph.append(strong, document.createTextNode(` ${cleanValues.join(" • ")}`));
+    paragraph.dataset.factoryPolishedV164 = "true";
+  }
+
+  function polishSummaryCard() {
+    const card = document.querySelector("#factorySummary .factory-summary-now");
+    const title = card?.querySelector(".factory-theme-title")?.textContent?.trim() || "";
+    const paragraph = card?.querySelector(".factory-theme-recorte");
+    if (!card || !title || !paragraph || paragraph.dataset.factoryPolishedV164 === "true") return;
+
+    const raw = paragraph.textContent
+      .replace(/^\s*Recorte da meta:\s*/i, "")
+      .trim();
+
+    const segments = uniqueText(
+      raw.split(/\s*•\s*/).map((segment) => segment.trim()).filter(Boolean)
+    ).filter((segment) => !sameTheme(segment, title));
+
+    const metadata = segments.filter((segment) => METADATA_SEGMENTS.has(canonical(segment)));
+    const distinctRecorte = segments.filter((segment) => !METADATA_SEGMENTS.has(canonical(segment)));
+
+    if (distinctRecorte.length) {
+      setSummaryLine(paragraph, "Recorte da meta:", [...distinctRecorte, ...metadata]);
+      return;
+    }
+
+    setSummaryLine(paragraph, "Situação:", metadata);
+  }
+
+  function scheduleSummaryPolish() {
+    if (summaryScheduled) return;
+    summaryScheduled = true;
+    queueMicrotask(() => {
+      summaryScheduled = false;
+      polishSummaryCard();
+    });
+  }
+
+  function injectStyles() {
+    if (document.getElementById("factoryPolishStylesV164")) return;
+    const style = document.createElement("style");
+    style.id = "factoryPolishStylesV164";
+    style.textContent = `
+      #view-fabrica-resumos.factory-simple-v163 > details.factory-top-panel-v163 > summary::after,
+      #view-fabrica-resumos.factory-simple-v163 > details.factory-filter-panel > summary::after,
+      #view-fabrica-resumos.factory-simple-v163 > details.factory-register-panel > summary::after {
+        content: "" !important;
+        display: block;
+        flex: 0 0 auto;
+        width: 9px;
+        height: 9px;
+        margin: 0 5px 3px 12px;
+        border: 0 !important;
+        border-right: 2px solid rgba(221, 235, 245, .88) !important;
+        border-bottom: 2px solid rgba(221, 235, 245, .88) !important;
+        font-size: 0 !important;
+        line-height: 0 !important;
+        opacity: .9;
+        transform: rotate(-45deg) !important;
+        transform-origin: 55% 55%;
+        transition: transform .2s ease, border-color .2s ease, opacity .2s ease !important;
+      }
+      #view-fabrica-resumos.factory-simple-v163 > details[open].factory-top-panel-v163 > summary::after,
+      #view-fabrica-resumos.factory-simple-v163 > details[open].factory-filter-panel > summary::after,
+      #view-fabrica-resumos.factory-simple-v163 > details[open].factory-register-panel > summary::after {
+        transform: rotate(45deg) !important;
+      }
+      #view-fabrica-resumos.factory-simple-v163 > details.factory-top-panel-v163 > summary:hover::after,
+      #view-fabrica-resumos.factory-simple-v163 > details.factory-filter-panel > summary:hover::after,
+      #view-fabrica-resumos.factory-simple-v163 > details.factory-register-panel > summary:hover::after,
+      #view-fabrica-resumos.factory-simple-v163 > details.factory-top-panel-v163 > summary:focus-visible::after,
+      #view-fabrica-resumos.factory-simple-v163 > details.factory-filter-panel > summary:focus-visible::after,
+      #view-fabrica-resumos.factory-simple-v163 > details.factory-register-panel > summary:focus-visible::after {
+        border-color: #f2cf65 !important;
+        opacity: 1;
+      }
+      #view-fabrica-resumos.factory-simple-v163 #factorySummary .factory-summary-now .factory-theme-recorte {
+        max-width: 42rem;
+        line-height: 1.45;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function install() {
+    const view = document.getElementById("view-fabrica-resumos");
+    const summary = document.getElementById("factorySummary");
+    const simpleStyles = document.getElementById("factorySimpleStylesV163");
+
+    if (!view || !summary || !simpleStyles || view.dataset.factorySimpleV163 !== "true") {
+      console.error("[Fábrica v164] O polimento visual não pôde ser instalado. Nenhum dado foi alterado.");
+      return;
+    }
+
+    injectStyles();
+    scheduleSummaryPolish();
+
+    const observer = new MutationObserver(() => scheduleSummaryPolish());
+    observer.observe(summary, { childList: true, subtree: true });
+
+    Object.defineProperty(globalThis, "__ALDUS_FACTORY_POLISH_V164__", {
+      value: Object.freeze({
+        version: PATCH_VERSION,
+        installedAt: new Date().toISOString(),
+        scope: "visual-only"
+      }),
+      configurable: false,
+      enumerable: false,
+      writable: false
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => install(), { once: true });
+  } else {
+    install();
+  }
+})();
+
+/* Aldus source: update-flow-v168.js */
+(() => {
+  "use strict";
+
+  const PATCH_VERSION = "20260728-carregamento-direto-v168";
+  const CHECK_INTERVAL_MS = 15 * 60 * 1000;
+  const BANNER_ID = "aldusUpdateBannerV168";
+  let lastCheckAt = 0;
+  let registrationRef = null;
+  let hadController = Boolean(navigator.serviceWorker?.controller);
+  const watchedRegistrations = new WeakSet();
+
+  if (typeof document === "undefined" || !("serviceWorker" in navigator) || globalThis.__ALDUS_UPDATE_FLOW_V168__) return;
+
+  function injectStyles() {
+    if (document.getElementById("aldusUpdateStylesV168")) return;
+    const style = document.createElement("style");
+    style.id = "aldusUpdateStylesV168";
+    style.textContent = `
+      #${BANNER_ID} {
+        position: fixed;
+        right: 18px;
+        bottom: 18px;
+        z-index: 100000;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 14px;
+        width: min(430px, calc(100vw - 28px));
+        padding: 14px 15px;
+        border: 1px solid rgba(242, 207, 101, .72);
+        border-radius: 16px;
+        background: rgba(4, 29, 49, .97);
+        color: #f4f9fd;
+        box-shadow: 0 18px 48px rgba(0, 0, 0, .34);
+        backdrop-filter: blur(12px);
+      }
+      #${BANNER_ID}[hidden] { display: none !important; }
+      #${BANNER_ID} .aldus-update-copy-v168 { display: grid; gap: 3px; min-width: 0; }
+      #${BANNER_ID} strong { font-size: .96rem; }
+      #${BANNER_ID} small { color: #b8d0e1; font-size: .79rem; line-height: 1.35; }
+      #${BANNER_ID} button { min-height: 40px; padding: 9px 13px; border-radius: 12px; white-space: nowrap; }
+      @media (max-width: 560px) {
+        #${BANNER_ID} { right: 14px; bottom: 14px; grid-template-columns: 1fr; }
+        #${BANNER_ID} button { width: 100%; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function hasActiveTimer() {
+    try {
+      if (typeof floatingTimer !== "undefined") {
+        return Boolean(floatingTimer.goalId)
+          && !floatingTimer.paused
+          && !floatingTimer.completed;
+      }
+    } catch {}
+    const timer = document.getElementById("floatingTimer");
+    const pauseButton = document.getElementById("timerPauseResume");
+    return Boolean(timer && !timer.hidden && /pausar/i.test(pauseButton?.textContent || ""));
+  }
+
+  function hasActiveEditing() {
+    const active = document.activeElement;
+    if (active?.matches?.("input, textarea, select, [contenteditable='true']")) {
+      return Boolean(String(active.value ?? active.textContent ?? "").trim());
+    }
+    return [...document.querySelectorAll("form input, form textarea, form select")]
+      .some((field) => {
+        if (field.disabled || field.type === "hidden" || field.type === "submit" || field.type === "button") return false;
+        if (field.type === "checkbox" || field.type === "radio") return field.checked && field.defaultChecked !== field.checked;
+        return String(field.value ?? "") !== String(field.defaultValue ?? "");
+      });
+  }
+
+  function safeToReload() {
+    return !hasActiveTimer() && !hasActiveEditing();
+  }
+
+  function ensureBanner() {
+    let banner = document.getElementById(BANNER_ID);
+    if (banner) return banner;
+
+    banner = document.createElement("aside");
+    banner.id = BANNER_ID;
+    banner.hidden = true;
+    banner.setAttribute("role", "status");
+    banner.setAttribute("aria-live", "polite");
+    banner.innerHTML = `
+      <span class="aldus-update-copy-v168">
+        <strong>Nova versão pronta</strong>
+        <small data-aldus-update-message-v168>Atualize quando terminar. Os dados já salvos serão preservados.</small>
+      </span>
+      <button type="button" data-aldus-update-now-v168>Atualizar agora</button>
+    `;
+    banner.querySelector("[data-aldus-update-now-v168]")?.addEventListener("click", () => {
+      const message = banner.querySelector("[data-aldus-update-message-v168]");
+      if (!safeToReload()) {
+        if (message) message.textContent = "Finalize o preenchimento ou pause e salve o cronômetro antes de atualizar.";
+        return;
+      }
+      location.reload();
+    });
+    document.body.appendChild(banner);
+    return banner;
+  }
+
+  function showUpdateReady() {
+    injectStyles();
+    ensureBanner().hidden = false;
+  }
+
+  function watchRegistration(registration) {
+    if (!registration || watchedRegistrations.has(registration)) return;
+    watchedRegistrations.add(registration);
+    registration.addEventListener("updatefound", () => {
+      const installing = registration.installing;
+      if (!installing) return;
+      installing.addEventListener("statechange", () => {
+        if (installing.state === "installed" && navigator.serviceWorker.controller) showUpdateReady();
+      });
+    });
+  }
+
+  async function checkForUpdate(force = false) {
+    const now = Date.now();
+    if (!force && now - lastCheckAt < CHECK_INTERVAL_MS) return false;
+    lastCheckAt = now;
+    try {
+      registrationRef ||= await navigator.serviceWorker.ready;
+      watchRegistration(registrationRef);
+      await registrationRef.update();
+      if (registrationRef.waiting) showUpdateReady();
+      return true;
+    } catch (error) {
+      console.warn("[Aldus v168] Não foi possível verificar atualização agora.", error);
+      return false;
+    }
+  }
+
+  function checkAfterFirstRender() {
+    requestAnimationFrame(() => requestAnimationFrame(() => checkForUpdate(true)));
+  }
+
+  function install() {
+    injectStyles();
+    ensureBanner();
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (!hadController) {
+        hadController = true;
+        return;
+      }
+      showUpdateReady();
+    });
+    window.addEventListener("focus", () => checkForUpdate());
+    window.addEventListener("pageshow", (event) => {
+      if (event.persisted) checkForUpdate(true);
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") checkForUpdate();
+    });
+    checkAfterFirstRender();
+
+    Object.defineProperty(globalThis, "__ALDUS_UPDATE_FLOW_V168__", {
+      value: Object.freeze({
+        version: PATCH_VERSION,
+        installedAt: new Date().toISOString(),
+        navigationMode: "cache-first-network-background",
+        reloadMode: "user-confirmed-safe-state"
+      }),
+      configurable: false,
+      enumerable: false,
+      writable: false
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", install, { once: true });
+  } else {
+    install();
+  }
 })();

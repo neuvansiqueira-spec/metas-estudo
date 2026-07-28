@@ -38,22 +38,23 @@ test("service worker remove somente caches estáticos do aplicativo", () => {
   const source = read("service-worker.js");
   assert.match(source, /cacheName\.startsWith\("metas-estudo-"\)/);
   assert.doesNotMatch(source, /localStorage\.(?:clear|removeItem)|indexedDB\.deleteDatabase|sessionStorage\.(?:clear|removeItem)/);
-  assert.match(source, /app-version\.js/);
+  assert.match(source, /app-v168\.js/);
+  assert.match(source, /app-v168\.css/);
+  assert.doesNotMatch(source, /importScripts|patchHtmlSource|transformAppScriptResponse/);
 });
 
 test("ativação preserva caches externos ao aplicativo", async () => {
   const listeners = {};
   const deleted = [];
-  const currentCache = `metas-estudo-${version}-startup-v29`;
+  const currentCache = `metas-estudo-${version}`;
   const context = {
     self: {
-      __ALDUS_APP_RELEASE__: { version, suffix: "v154" },
       addEventListener: (name, callback) => { listeners[name] = callback; },
       skipWaiting() {},
       clients: { claim() {} },
-      registration: { scope: "https://aldus.local/" }
+      registration: { scope: "https://aldus.local/" },
+      location: { origin: "https://aldus.local" }
     },
-    importScripts() {},
     caches: {
       keys: async () => ["metas-estudo-versao-antiga", currentCache, "outro-aplicativo-cache"],
       delete: async (name) => { deleted.push(name); return true; },
@@ -75,10 +76,9 @@ test("ativação preserva caches externos ao aplicativo", async () => {
   assert.deepEqual(deleted, ["metas-estudo-versao-antiga"]);
 });
 
-test("fonte canônica restaura o texto após tentativa de sobrescrita antiga", async () => {
+test("fonte canônica aplica a versão uma vez sem observador contínuo", async () => {
   const label = { textContent: "" };
   const html = { dataset: {} };
-  let callback = null;
   const context = {
     globalThis: null,
     document: {
@@ -87,21 +87,12 @@ test("fonte canônica restaura o texto após tentativa de sobrescrita antiga", a
       querySelectorAll: () => [label],
       addEventListener: () => {}
     },
-    MutationObserver: class {
-      constructor(fn) { callback = fn; }
-      observe() {}
-    },
-    queueMicrotask,
     Object
   };
   context.globalThis = context;
   vm.runInNewContext(read("app-version.js"), context);
   assert.equal(label.textContent, `Versão: ${version}`);
-
-  label.textContent = "Versão: 20260725-analise-estrategica-cabecalho-fixo-v149";
-  callback([{ type: "characterData", target: {} }]);
-  await new Promise((resolve) => queueMicrotask(resolve));
-  assert.equal(label.textContent, `Versão: ${version}`);
+  assert.doesNotMatch(read("app-version.js"), /MutationObserver/);
 });
 
 test("raiz e docs são idênticos nos arquivos responsáveis pela versão e pelo cache", () => {
