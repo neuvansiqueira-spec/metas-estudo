@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260728-interface-sem-escurecimento-v169";
+  const VERSION = "20260728-latencia-operacional-v169";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
