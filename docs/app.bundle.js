@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260728-bundle-unico-v169";
+  const VERSION = "20260728-interatividade-atualizacao-v169";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -44243,6 +44243,118 @@ document.addEventListener("change", (event) => { const mode = event.target.close
 document.addEventListener("click", (event) => { const button = event.target.closest?.("button[data-open-material-estimate]"); if (button) { event.preventDefault(); openMaterialEstimateInPlanning(button.dataset.openMaterialEstimate); } });
 document.addEventListener("click", (event) => { const openUrl = event.target.closest("button[data-open-url]"); if (openUrl && isValidHttpUrl(openUrl.dataset.openUrl)) window.open(openUrl.dataset.openUrl, "_blank", "noopener"); const open = event.target.closest("button[data-open-material]"); const create = event.target.closest("button[data-create-goal-material]"); const edit = event.target.closest("button[data-edit-material]"); const del = event.target.closest("button[data-delete-material]"); const use = event.target.closest("button[data-use-material-study]"); const calcEstimate = event.target.closest("button[data-calculate-material-estimate]"); const saveEstimate = event.target.closest("button[data-save-material-estimate]"); const updateMaterialGoals = event.target.closest("button[data-update-material-goals]"); if (updateMaterialGoals) { event.preventDefault(); updateFuturePendingGoalsForMaterial(updateMaterialGoals.dataset.updateMaterialGoals); } if (calcEstimate) { event.preventDefault(); previewMaterialEstimate(calcEstimate); } if (saveEstimate) { event.preventDefault(); saveMaterialEstimate(saveEstimate); } if (open) openMaterial(open.dataset.openMaterial); if (use) { const material = state.materials.find((m) => m.id === use.dataset.useMaterialStudy); if (material) { showView("dashboard"); const subject = state.subjects.find((item) => canonical(item.name) === canonical(material.discipline)); if (subject) elements.studySubject.value = subject.id; elements.studyTopic.value = material.subject || ""; updateStudyMaterialOptions(); if (elements.studyMaterial) elements.studyMaterial.value = material.id; } } if (create) startMaterialForGoal(create.dataset.discipline, create.dataset.subject); if (edit) editMaterial(edit.dataset.editMaterial); if (del && confirm("Excluir este material?")) { state.materials = state.materials.filter((m)=>m.id!==del.dataset.deleteMaterial); render(); } });
 
+const startupMetricsV169 = globalThis.__aldusStartupMetricsV169 ||= {
+  startedAtMs: Number(performance.now().toFixed(1)),
+  htmlVisibleMs: null,
+  dataRenderedMs: null,
+  interfaceInteractiveMs: null,
+  secondaryInitializationCompleteMs: null,
+  secondarySteps: [],
+  deferredViewModules: {}
+};
+function markStartupMilestoneV169(key) {
+  if (startupMetricsV169[key] !== null) return startupMetricsV169[key];
+  const value = Number(performance.now().toFixed(1));
+  startupMetricsV169[key] = value;
+  try { performance.mark(`aldus:${key}`); } catch {}
+  return value;
+}
+function scheduleHtmlVisibleMilestoneV169() {
+  const mark = () => markStartupMilestoneV169("htmlVisibleMs");
+  if (typeof requestAnimationFrame === "function") requestAnimationFrame(mark);
+  else setTimeout(mark, 0);
+}
+function waitForInteractivePaintV169() {
+  return new Promise((resolve) => {
+    let completed = false;
+    const finish = () => {
+      if (completed) return;
+      completed = true;
+      markStartupMilestoneV169("interfaceInteractiveMs");
+      resolve();
+    };
+    const fallback = setTimeout(finish, 100);
+    if (typeof requestAnimationFrame !== "function") return;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      clearTimeout(fallback);
+      finish();
+    }));
+  });
+}
+function yieldSecondaryInitializationV169() {
+  return new Promise((resolve) => {
+    let completed = false;
+    const finish = () => {
+      if (completed) return;
+      completed = true;
+      resolve();
+    };
+    if (typeof requestIdleCallback === "function") {
+      requestIdleCallback(finish, { timeout: 120 });
+      return;
+    }
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(() => setTimeout(finish, 0));
+      return;
+    }
+    setTimeout(finish, 0);
+  });
+}
+async function runSecondaryStepV169(name, callback) {
+  await yieldSecondaryInitializationV169();
+  const startedAt = performance.now();
+  const result = callback();
+  startupMetricsV169.secondarySteps.push({
+    name,
+    durationMs: Number((performance.now() - startedAt).toFixed(1))
+  });
+  return result;
+}
+function deferViewInitializerV169(name, viewIds, initialize) {
+  const views = new Set(Array.isArray(viewIds) ? viewIds : [viewIds]);
+  const report = startupMetricsV169.deferredViewModules[name] ||= {
+    views: [...views],
+    registeredAtMs: Number(performance.now().toFixed(1)),
+    startedAtMs: null,
+    completedAtMs: null,
+    durationMs: null
+  };
+  let initialized = false;
+  let scheduled = false;
+
+  const activeView = () => document.documentElement.dataset.activeView
+    || String(window.location.hash || "#dashboard").replace(/^#/, "")
+    || "dashboard";
+  const attempt = (event) => {
+    if (initialized || scheduled || !globalThis.__aldusBootstrapReady) return;
+    const target = event?.detail?.view || activeView();
+    if (!views.has(target)) return;
+    scheduled = true;
+    const run = () => {
+      if (initialized) return;
+      scheduled = false;
+      if (!views.has(activeView())) return;
+      const startedAt = performance.now();
+      report.startedAtMs = Number(startedAt.toFixed(1));
+      initialize();
+      initialized = true;
+      report.completedAtMs = Number(performance.now().toFixed(1));
+      report.durationMs = Number((performance.now() - startedAt).toFixed(1));
+    };
+    if (typeof requestIdleCallback === "function") requestIdleCallback(run, { timeout: 200 });
+    else if (typeof requestAnimationFrame === "function") requestAnimationFrame(run);
+    else setTimeout(run, 0);
+  };
+
+  window.addEventListener("aldus:view-active", attempt);
+  window.addEventListener("aldus:core-interactive", attempt, { once: true });
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", attempt, { once: true });
+  else queueMicrotask(() => attempt());
+  return Object.freeze({ name, views: [...views], attempt });
+}
+globalThis.__aldusDeferViewInitializerV169 = deferViewInitializerV169;
+scheduleHtmlVisibleMilestoneV169();
+
 function showBootstrapLoadingState() {
   const loading = document.getElementById("appLoadingState");
   if (loading) loading.hidden = false;
@@ -44375,12 +44487,32 @@ async function bootstrapApplication() {
     indexedDBStatus.migration = indexedDBStatus.migration === "erro" ? "erro" : "concluída";
     indexedDBStatus.bootstrap = recoveredError ? "erro recuperado" : "concluída";
     if (recoveredError) indexedDBStatus.error = "Não foi possível carregar os dados locais. Conecte ao Google Drive ou importe um backup.";
-    render();
+    renderFloatingTimer();
     showStorageWarningIfNeeded();
     showView(hashToView(), { skipScroll: true, keepMenuOpen: true });
-  } finally {
+    markStartupMilestoneV169("dataRenderedMs");
     hideBootstrapLoadingState();
     updateStorageDiagnostics();
+    await waitForInteractivePaintV169();
+    window.dispatchEvent(new CustomEvent("aldus:core-interactive", {
+      detail: { ...startupMetricsV169 }
+    }));
+    await runSecondaryStepV169("deferred-view-initializers", () => {
+      const deferredReports = Object.values(startupMetricsV169.deferredViewModules);
+      startupMetricsV169.secondaryViewModules = {
+        registered: deferredReports.length,
+        initialized: deferredReports.filter((report) => report.completedAtMs !== null).length,
+        deferredUntilOpened: deferredReports
+          .filter((report) => report.completedAtMs === null)
+          .map((report) => report.views)
+      };
+    });
+    markStartupMilestoneV169("secondaryInitializationCompleteMs");
+    window.dispatchEvent(new CustomEvent("aldus:secondary-initialization-complete", {
+      detail: { ...startupMetricsV169 }
+    }));
+  } finally {
+    hideBootstrapLoadingState();
   }
 }
 function handleBootstrapFailure(error) {
@@ -45119,6 +45251,7 @@ function showView(viewId = hashToView(), options = {}) {
   if (!options.keepMenuOpen) setMobileMenuOpen(false);
   else menuToggle?.setAttribute("aria-expanded", mainMenu?.classList.contains("open") ? "true" : "false");
   renderView(target);
+  window.dispatchEvent(new CustomEvent("aldus:view-active", { detail: { view: target } }));
   if (!options.skipScroll) document.querySelector(".screen-stage")?.scrollIntoView({ block: "start" });
 }
 
@@ -48114,7 +48247,9 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
     });
   }
 
-  if (document.readyState === "loading") {
+  if (typeof globalThis.__aldusDeferViewInitializerV169 === "function") {
+    globalThis.__aldusDeferViewInitializerV169("question-register-simple-v162", "questoes", init);
+  } else if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init, { once: true });
   } else {
     init();
@@ -48605,12 +48740,15 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
 (() => {
   "use strict";
 
-  const PATCH_VERSION = "20260728-bundle-unico-v169";
+  const PATCH_VERSION = "20260728-interatividade-atualizacao-v169";
   const CHECK_INTERVAL_MS = 15 * 60 * 1000;
   const BANNER_ID = "aldusUpdateBannerV169";
+  const DIRTY_ATTRIBUTE = "data-aldus-user-edited-v169";
+  const CONTROLLER_RELOAD_GUARD = "aldus:v169:controller-reload";
   let lastCheckAt = 0;
   let registrationRef = null;
   let hadController = Boolean(navigator.serviceWorker?.controller);
+  let deferredControllerReload = false;
   const watchedRegistrations = new WeakSet();
 
   if (typeof document === "undefined" || !("serviceWorker" in navigator) || globalThis.__ALDUS_UPDATE_FLOW_V169__) return;
@@ -48665,20 +48803,108 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
   }
 
   function hasActiveEditing() {
-    const active = document.activeElement;
-    if (active?.matches?.("input, textarea, select, [contenteditable='true']")) {
-      return Boolean(String(active.value ?? active.textContent ?? "").trim());
-    }
-    return [...document.querySelectorAll("form input, form textarea, form select")]
-      .some((field) => {
-        if (field.disabled || field.type === "hidden" || field.type === "submit" || field.type === "button") return false;
-        if (field.type === "checkbox" || field.type === "radio") return field.checked && field.defaultChecked !== field.checked;
-        return String(field.value ?? "") !== String(field.defaultValue ?? "");
-      });
+    return Boolean(document.querySelector(`[${DIRTY_ATTRIBUTE}="true"]`));
+  }
+
+  function editingContainer(target) {
+    if (!target?.closest) return null;
+    return target.closest("form") || target.closest("input, textarea, select, [contenteditable='true']");
+  }
+
+  function markUserEditing(event) {
+    if (!event?.isTrusted) return;
+    const container = editingContainer(event.target);
+    if (container) container.setAttribute(DIRTY_ATTRIBUTE, "true");
+  }
+
+  function clearUserEditing(target) {
+    const container = target?.matches?.(`[${DIRTY_ATTRIBUTE}]`)
+      ? target
+      : editingContainer(target);
+    container?.removeAttribute(DIRTY_ATTRIBUTE);
+  }
+
+  function buttonFinishesEditing(button) {
+    if (!button) return false;
+    if (button.type === "submit" || button.type === "reset") return true;
+    const intent = [
+      button.id,
+      button.name,
+      button.value,
+      button.textContent,
+      ...Object.values(button.dataset || {})
+    ].filter(Boolean).join(" ");
+    return /\b(salvar|cancelar|confirmar|concluir)\b/i.test(intent);
+  }
+
+  function installEditingGuard() {
+    document.addEventListener("input", markUserEditing, true);
+    document.addEventListener("change", markUserEditing, true);
+    document.addEventListener("reset", (event) => clearUserEditing(event.target), true);
+    document.addEventListener("submit", (event) => clearUserEditing(event.target), true);
+    document.addEventListener("click", (event) => {
+      if (!event.isTrusted) return;
+      const button = event.target?.closest?.("button, input[type='submit'], input[type='reset']");
+      if (buttonFinishesEditing(button)) queueMicrotask(() => clearUserEditing(button));
+    }, true);
+    window.addEventListener("aldus:editing-saved", (event) => clearUserEditing(event.detail?.form || event.target));
+    window.addEventListener("aldus:editing-cancelled", (event) => clearUserEditing(event.detail?.form || event.target));
   }
 
   function safeToReload() {
     return !hasActiveTimer() && !hasActiveEditing();
+  }
+
+  function workerSuffix(worker) {
+    const match = String(worker?.scriptURL || "").match(/service-worker-(v\d+)\.js/i);
+    return match?.[1]?.toLowerCase() || "";
+  }
+
+  function visibleSuffix() {
+    return String(globalThis.__ALDUS_APP_RELEASE__?.suffix || "").toLowerCase();
+  }
+
+  function pendingWorker(registration = registrationRef) {
+    const waiting = registration?.waiting;
+    if (waiting) return waiting;
+    const installing = registration?.installing;
+    if (installing && !["redundant", "activated"].includes(installing.state)) return installing;
+    return null;
+  }
+
+  function currentReleaseAlreadyActive(registration = registrationRef) {
+    const visible = visibleSuffix();
+    const controller = workerSuffix(navigator.serviceWorker?.controller);
+    return Boolean(
+      visible
+      && visible === "v169"
+      && controller === visible
+      && !pendingWorker(registration)
+    );
+  }
+
+  function shouldShowUpdateReady(registration = registrationRef) {
+    if (deferredControllerReload) return true;
+    if (!pendingWorker(registration)) return false;
+    return !currentReleaseAlreadyActive(registration);
+  }
+
+  function reloadGuardToken() {
+    return pendingWorker()?.scriptURL
+      || navigator.serviceWorker?.controller?.scriptURL
+      || PATCH_VERSION;
+  }
+
+  function reloadOnce(reason) {
+    const token = reloadGuardToken();
+    try {
+      if (sessionStorage.getItem(CONTROLLER_RELOAD_GUARD) === token) return false;
+      sessionStorage.setItem(CONTROLLER_RELOAD_GUARD, token);
+    } catch {}
+    deferredControllerReload = false;
+    console.info("[Aldus v169] Atualização segura da interface.", { reason });
+    location.reload();
+    return true;
   }
 
   function ensureBanner() {
@@ -48703,15 +48929,28 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
         if (message) message.textContent = "Finalize o preenchimento ou pause e salve o cronômetro antes de atualizar.";
         return;
       }
-      location.reload();
+      const waiting = registrationRef?.waiting;
+      waiting?.postMessage?.({ type: "SKIP_WAITING" });
+      reloadOnce("update-button");
     });
     document.body.appendChild(banner);
     return banner;
   }
 
   function showUpdateReady() {
+    if (!shouldShowUpdateReady()) {
+      const existingBanner = document.getElementById(BANNER_ID);
+      if (existingBanner) existingBanner.hidden = true;
+      return false;
+    }
     injectStyles();
     ensureBanner().hidden = false;
+    return true;
+  }
+
+  function hideRedundantUpdateReady() {
+    const banner = document.getElementById(BANNER_ID);
+    if (banner && !shouldShowUpdateReady()) banner.hidden = true;
   }
 
   function watchRegistration(registration) {
@@ -48722,6 +48961,7 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
       if (!installing) return;
       installing.addEventListener("statechange", () => {
         if (installing.state === "installed" && navigator.serviceWorker.controller) showUpdateReady();
+        if (["activated", "redundant"].includes(installing.state)) hideRedundantUpdateReady();
       });
     });
   }
@@ -48734,7 +48974,8 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
       registrationRef ||= await navigator.serviceWorker.ready;
       watchRegistration(registrationRef);
       await registrationRef.update();
-      if (registrationRef.waiting) showUpdateReady();
+      if (shouldShowUpdateReady(registrationRef)) showUpdateReady();
+      else hideRedundantUpdateReady();
       return true;
     } catch (error) {
       console.warn("[Aldus v169] Não foi possível verificar atualização agora.", error);
@@ -48749,11 +48990,19 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
   function install() {
     injectStyles();
     ensureBanner();
+    installEditingGuard();
     navigator.serviceWorker.addEventListener("controllerchange", () => {
       if (!hadController) {
         hadController = true;
+        hideRedundantUpdateReady();
         return;
       }
+      hadController = true;
+      if (safeToReload()) {
+        reloadOnce("controllerchange");
+        return;
+      }
+      deferredControllerReload = true;
       showUpdateReady();
     });
     window.addEventListener("focus", () => checkForUpdate());
@@ -48770,7 +49019,12 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
         version: PATCH_VERSION,
         installedAt: new Date().toISOString(),
         navigationMode: "cache-first-network-background",
-        reloadMode: "user-confirmed-safe-state"
+        reloadMode: "single-safe-controller-reload",
+        hasActiveEditing,
+        hasActiveTimer,
+        safeToReload,
+        shouldShowUpdateReady,
+        clearUserEditing
       }),
       configurable: false,
       enumerable: false,
@@ -49051,13 +49305,21 @@ Para cada módulo disponível, confira:
   patchPromptFunctions();
   const initializeAfterBootstrap = () => {
     migratePrompt();
-    refreshFactory();
+    if (typeof globalThis.__aldusDeferViewInitializerV169 === "function") {
+      globalThis.__aldusDeferViewInitializerV169(
+        "factory-final-review-v128",
+        "fabrica-resumos",
+        refreshFactory
+      );
+    } else {
+      refreshFactory();
+    }
   };
   if (window.__aldusBootstrapReady) initializeAfterBootstrap();
   else window.addEventListener("aldus:bootstrap-ready", initializeAfterBootstrap, { once: true });
 
   window.addEventListener("load", () => {
-    refreshFactory();
+    if (document.documentElement.dataset.activeView === "fabrica-resumos") refreshFactory();
   });
 })();
 
@@ -49472,8 +49734,17 @@ Para cada módulo disponível, confira:
     Object.entries(FIELD_CONFIG).forEach(([id, config]) => enhanceSelect(document.getElementById(id), config));
   }
 
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initialize, { once: true });
-  else initialize();
+  if (typeof globalThis.__aldusDeferViewInitializerV169 === "function") {
+    globalThis.__aldusDeferViewInitializerV169(
+      "question-searchable-selects-v135",
+      ["questoes", "historico-questoes"],
+      initialize
+    );
+  } else if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initialize, { once: true });
+  } else {
+    initialize();
+  }
 })();
 
 /* Aldus source: factory-executive-ui-v136.js */
@@ -50382,7 +50653,9 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     window.addEventListener("hashchange", () => schedulePrepare(view));
   }
 
-  if (document.readyState === "loading") {
+  if (typeof globalThis.__aldusDeferViewInitializerV169 === "function") {
+    globalThis.__aldusDeferViewInitializerV169("analytics-accordion-fix-v148", "analise-estrategica", start);
+  } else if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", start, { once: true });
   } else {
     start();
@@ -50553,7 +50826,9 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     window.addEventListener("hashchange", schedulePrepare);
   }
 
-  if (document.readyState === "loading") {
+  if (typeof globalThis.__aldusDeferViewInitializerV169 === "function") {
+    globalThis.__aldusDeferViewInitializerV169("analytics-header-arrow-v149", "analise-estrategica", start);
+  } else if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", start, { once: true });
   } else {
     start();
@@ -50630,7 +50905,9 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     window.setTimeout(() => observer.disconnect(), 10000);
   }
 
-  if (document.readyState === "loading") {
+  if (typeof globalThis.__aldusDeferViewInitializerV169 === "function") {
+    globalThis.__aldusDeferViewInitializerV169("analytics-single-arrow-v150", "analise-estrategica", start);
+  } else if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", start, { once: true });
   } else {
     start();
@@ -51321,8 +51598,13 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     });
   }
 
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
-  else start();
+  if (typeof globalThis.__aldusDeferViewInitializerV169 === "function") {
+    globalThis.__aldusDeferViewInitializerV169("contest-countdown-v151", "dashboard", start);
+  } else if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start, { once: true });
+  } else {
+    start();
+  }
 })();
 
 /* Aldus source: performance-practical-v143.js */

@@ -67,7 +67,9 @@
     window.setTimeout(() => observer.disconnect(), 10000);
   }
 
-  if (document.readyState === "loading") {
+  if (typeof globalThis.__aldusDeferViewInitializerV169 === "function") {
+    globalThis.__aldusDeferViewInitializerV169("analytics-single-arrow-v150", "analise-estrategica", start);
+  } else if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", start, { once: true });
   } else {
     start();

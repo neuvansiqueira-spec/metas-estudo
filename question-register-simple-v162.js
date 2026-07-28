@@ -356,7 +356,9 @@
     });
   }
 
-  if (document.readyState === "loading") {
+  if (typeof globalThis.__aldusDeferViewInitializerV169 === "function") {
+    globalThis.__aldusDeferViewInitializerV169("question-register-simple-v162", "questoes", init);
+  } else if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init, { once: true });
   } else {
     init();

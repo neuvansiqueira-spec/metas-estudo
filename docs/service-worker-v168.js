@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20260728-bundle-unico-v169";
+const CURRENT_VERSION = "20260728-interatividade-atualizacao-v169";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 const STATIC_ASSETS = [
   "./",
@@ -19,6 +19,10 @@ const STATIC_PATHS = new Set(STATIC_ASSETS.map((asset) => new URL(asset, self.re
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS)));
   self.skipWaiting();
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {

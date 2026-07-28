@@ -100,8 +100,21 @@ test('marcador global não impede recuperação após backup restaurado', () => 
   assert.equal(state.dailyGoals[0].actualMinutes, 34);
 });
 
-test('recuperação roda depois de replaceState e merge localStorage no bootstrap antes do render', () => {
-  assert.match(script, new RegExp("replaceState\\(chosenState\\);\\n    mergeCompatibleLocalStorageData\\(\\);[\\s\\S]*?const legacyGoalIdRecoveryReport = recoverLegacyTimerMinutesForGoals\\(state\\);\\n    const legacyOrphanRecoveryReport = recoverOrphanLegacyTimerMinutesForGoals\\(state\\);[\\s\\S]*?render\\(\\);"));
+test('recuperação preserva a ordem após replaceState/merge e termina antes de liberar a interface', () => {
+  const bootstrapStart = script.indexOf('async function bootstrapApplication()');
+  const bootstrapEnd = script.indexOf('\nasync function ', bootstrapStart + 1);
+  const bootstrap = script.slice(bootstrapStart, bootstrapEnd > bootstrapStart ? bootstrapEnd : undefined);
+  const replaceStateCall = bootstrap.indexOf('replaceState(chosenState)');
+  const mergeCall = bootstrap.indexOf('mergeCompatibleLocalStorageData()', replaceStateCall);
+  const goalRecoveryCall = bootstrap.indexOf('recoverLegacyTimerMinutesForGoals(state)', mergeCall);
+  const orphanRecoveryCall = bootstrap.indexOf('recoverOrphanLegacyTimerMinutesForGoals(state)', goalRecoveryCall);
+  const unlockCall = bootstrap.indexOf('hideBootstrapLoadingState()', orphanRecoveryCall);
+
+  assert.ok(replaceStateCall >= 0);
+  assert.ok(mergeCall > replaceStateCall);
+  assert.ok(goalRecoveryCall > mergeCall);
+  assert.ok(orphanRecoveryCall > goalRecoveryCall);
+  assert.ok(unlockCall > orphanRecoveryCall);
 });
 
 test('bootstrap expõe relatório temporário e console informativo sem dados pessoais', () => {

@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260728-bundle-unico-v169",
+  "version": "20260728-interatividade-atualizacao-v169",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
