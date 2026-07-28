@@ -11,22 +11,12 @@ function appVersionSource(version) {
 
   const VERSION = ${JSON.stringify(version)};
   const RELEASE_TEXT = \`Versão: \${VERSION}\`;
-  let correctionScheduled = false;
 
   function applyDocumentVersion() {
     if (typeof document === "undefined") return;
     document.documentElement.dataset.aldusReleaseVersion = VERSION;
     document.querySelectorAll(".app-version").forEach((element) => {
       if (element.textContent !== RELEASE_TEXT) element.textContent = RELEASE_TEXT;
-    });
-  }
-
-  function scheduleCorrection() {
-    if (correctionScheduled) return;
-    correctionScheduled = true;
-    queueMicrotask(() => {
-      correctionScheduled = false;
-      applyDocumentVersion();
     });
   }
 
@@ -50,19 +40,6 @@ function appVersionSource(version) {
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", applyDocumentVersion, { once: true });
   }
-
-  if (typeof MutationObserver !== "undefined") {
-    const observer = new MutationObserver((mutations) => {
-      if (mutations.some((mutation) => (
-        mutation.type === "characterData"
-        || mutation.target?.closest?.(".app-version")
-        || [...(mutation.addedNodes || [])].some((node) => (
-          node.nodeType === 1 && (node.matches?.(".app-version") || node.querySelector?.(".app-version"))
-        ))
-      ))) scheduleCorrection();
-    });
-    observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
-  }
 })();
 `;
 }
@@ -71,10 +48,8 @@ function synchronizeIndexVersion() {
   const indexPath = path.join(root, "index.html");
   const source = fs.readFileSync(indexPath, "utf8");
   const synchronized = source
-    .replace(/app-version\.js\?v=[^"]+/g, `app-version.js?v=${packageVersion}`)
     .replace(/app-v\d+\.css\?v=[^"]+/g, `app-${releaseSuffix}.css?v=${packageVersion}`)
     .replace(/app-v\d+\.js\?v=[^"]+/g, `app-${releaseSuffix}.js?v=${packageVersion}`)
-    .replace(/(factory-visibility-v122\.css|factory-lei-prompt-v123\.js|central-goals-real-time-v124\.js)\?v=[^"]+/g, `$1?v=${packageVersion}`)
     .replace(/(<p class="app-version">Versão: )[^<]+(<\/p>)/, `$1${packageVersion}$2`);
   fs.writeFileSync(indexPath, synchronized);
 }
@@ -104,10 +79,12 @@ const cssSources = [
   "aldus-backup-contrast-v71.css",
   "aldus-navigation-scroll-v73.css",
   "aldus-goal-integrity-v75.css",
-  "aldus-completed-visibility-v76.css"
+  "aldus-completed-visibility-v76.css",
+  "factory-visibility-v122.css"
 ];
 
 const jsSources = [
+  "app-version.js",
   "storage-indexeddb.js",
   "analytics-engine.js",
   "study-advisor.js",
@@ -124,7 +101,16 @@ const jsSources = [
   "question-accuracy-spectrum.js",
   "timer-material-link-fix.js",
   "question-history-pie.js",
-  "side-nav-collapse-v91.js"
+  "side-nav-collapse-v91.js",
+  "factory-plan-day-v159.js",
+  "factory-lei-prompt-v123.js",
+  "central-goals-real-time-v124.js",
+  "timer-first-beep-v160.js",
+  "timer-motivation-v161.js",
+  "question-register-simple-v162.js",
+  "factory-simple-v163.js",
+  "factory-polish-v164.js",
+  "update-flow-v168.js"
 ];
 
 function bundle(sources, output) {
@@ -153,6 +139,12 @@ for (const extension of ["css", "js"]) {
 const versionedWorkerName = `service-worker-${releaseSuffix}.js`;
 fs.copyFileSync(path.join(root, "service-worker.js"), path.join(root, versionedWorkerName));
 fs.copyFileSync(path.join(root, "service-worker.js"), path.join(root, "docs", versionedWorkerName));
+
+// Ponte de atualização para clientes ainda registrados no worker V167.
+// O conteúdo é o worker independente V168: não há importação nem execução legada.
+for (const target of ["service-worker-v167.js", path.join("docs", "service-worker-v167.js")]) {
+  fs.copyFileSync(path.join(root, "service-worker.js"), path.join(root, target));
+}
 
 for (const filename of [
   "index.html", "app-version.js", "style.css", "script.js", "service-worker.js", "sync-integral-core.js",

@@ -282,18 +282,14 @@
     return true;
   }
 
-  function schedule(attempt = 0) {
+  function installOnce() {
     if (installFactorySimpleUi()) return;
-    if (attempt >= 240) {
-      console.error("[Fábrica v163] A simplificação visual não pôde ser instalada. Nenhum dado foi alterado.");
-      return;
-    }
-    setTimeout(() => schedule(attempt + 1), 50);
+    console.error("[Fábrica v163] A simplificação visual não pôde ser instalada. Nenhum dado foi alterado.");
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => schedule(), { once: true });
+    document.addEventListener("DOMContentLoaded", installOnce, { once: true });
   } else {
-    schedule();
+    installOnce();
   }
 })();
