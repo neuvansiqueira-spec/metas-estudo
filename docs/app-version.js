@@ -1,9 +1,8 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260727-atualizacao-instantanea-segura-v166";
+  const VERSION = "20260727-inicializacao-unica-segura-v167";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
-  let correctionScheduled = false;
 
   function applyDocumentVersion() {
     if (typeof document === "undefined") return;
@@ -13,12 +12,17 @@
     });
   }
 
-  function scheduleCorrection() {
-    if (correctionScheduled) return;
-    correctionScheduled = true;
-    queueMicrotask(() => {
-      correctionScheduled = false;
-      applyDocumentVersion();
+  function installVersionObservers() {
+    if (typeof MutationObserver === "undefined") return;
+    document.querySelectorAll(".app-version").forEach((element) => {
+      const observer = new MutationObserver(() => {
+        if (element.textContent !== RELEASE_TEXT) {
+          queueMicrotask(() => {
+            if (element.textContent !== RELEASE_TEXT) element.textContent = RELEASE_TEXT;
+          });
+        }
+      });
+      observer.observe(element, { childList: true, subtree: true, characterData: true });
     });
   }
 
@@ -39,8 +43,15 @@
   if (typeof document === "undefined") return;
   applyDocumentVersion();
 
+  function initializeDocumentVersion() {
+    applyDocumentVersion();
+    installVersionObservers();
+  }
+
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", applyDocumentVersion, { once: true });
+    document.addEventListener("DOMContentLoaded", initializeDocumentVersion, { once: true });
+  } else {
+    initializeDocumentVersion();
   }
 
   function installFactoryPlanDayFix() {
@@ -196,59 +207,16 @@
 
   function scheduleFactoryPlanDayFix(attempt = 0) {
     if (installFactoryPlanDayFix()) return;
-    if (attempt >= 2400) {
+    if (attempt >= 600) {
       console.error("[Aldus v159] A correção da Fábrica não pôde ser instalada.");
       return;
     }
     setTimeout(() => scheduleFactoryPlanDayFix(attempt + 1), 25);
   }
 
-  function loadFactorySimpleUiV163() {
-    if (globalThis.__ALDUS_FACTORY_SIMPLE_V163__ || document.querySelector('script[data-aldus-factory-simple="v163"]')) return;
-    const script = document.createElement("script");
-    script.src = `factory-simple-v163.js?v=${VERSION}`;
-    script.async = false;
-    script.dataset.aldusFactorySimple = "v163";
-    script.addEventListener("error", () => {
-      console.warn("[Aldus v163] A simplificação visual da Fábrica não pôde ser carregada. Nenhum dado foi alterado.");
-    }, { once: true });
-    (document.head || document.documentElement).appendChild(script);
-  }
-
-  function loadFactoryPolishV164() {
-    if (globalThis.__ALDUS_FACTORY_POLISH_V164__ || document.querySelector('script[data-aldus-factory-polish="v164"]')) return;
-    const script = document.createElement("script");
-    script.src = `factory-polish-v164.js?v=${VERSION}`;
-    script.async = false;
-    script.dataset.aldusFactoryPolish = "v164";
-    script.addEventListener("error", () => {
-      console.warn("[Aldus v164] O polimento visual da Fábrica não pôde ser carregado. Nenhum dado foi alterado.");
-    }, { once: true });
-    (document.head || document.documentElement).appendChild(script);
-  }
-
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => {
-      scheduleFactoryPlanDayFix();
-      loadFactorySimpleUiV163();
-      loadFactoryPolishV164();
-    }, { once: true });
+    document.addEventListener("DOMContentLoaded", () => scheduleFactoryPlanDayFix(), { once: true });
   } else {
     scheduleFactoryPlanDayFix();
-    loadFactorySimpleUiV163();
-    loadFactoryPolishV164();
-  }
-
-  if (typeof MutationObserver !== "undefined") {
-    const observer = new MutationObserver((mutations) => {
-      if (mutations.some((mutation) => (
-        mutation.type === "characterData"
-        || mutation.target?.closest?.(".app-version")
-        || [...(mutation.addedNodes || [])].some((node) => (
-          node.nodeType === 1 && (node.matches?.(".app-version") || node.querySelector?.(".app-version"))
-        ))
-      ))) scheduleCorrection();
-    });
-    observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
   }
 })();
