@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260727-fabrica-simples-recolhivel-v163";
+  const VERSION = "20260727-fabrica-polimento-visual-v164";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
   let correctionScheduled = false;
 
@@ -215,14 +215,28 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  function loadFactoryPolishV164() {
+    if (globalThis.__ALDUS_FACTORY_POLISH_V164__ || document.querySelector('script[data-aldus-factory-polish="v164"]')) return;
+    const script = document.createElement("script");
+    script.src = `factory-polish-v164.js?v=${VERSION}`;
+    script.async = false;
+    script.dataset.aldusFactoryPolish = "v164";
+    script.addEventListener("error", () => {
+      console.warn("[Aldus v164] O polimento visual da Fábrica não pôde ser carregado. Nenhum dado foi alterado.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => {
       scheduleFactoryPlanDayFix();
       loadFactorySimpleUiV163();
+      loadFactoryPolishV164();
     }, { once: true });
   } else {
     scheduleFactoryPlanDayFix();
     loadFactorySimpleUiV163();
+    loadFactoryPolishV164();
   }
 
   if (typeof MutationObserver !== "undefined") {
