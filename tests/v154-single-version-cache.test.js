@@ -38,8 +38,8 @@ test("service worker remove somente caches estáticos do aplicativo", () => {
   const source = read("service-worker.js");
   assert.match(source, /cacheName\.startsWith\("metas-estudo-"\)/);
   assert.doesNotMatch(source, /localStorage\.(?:clear|removeItem)|indexedDB\.deleteDatabase|sessionStorage\.(?:clear|removeItem)/);
-  assert.match(source, /app-v168\.js/);
-  assert.match(source, /app-v168\.css/);
+  assert.match(source, /app-v169\.js/);
+  assert.match(source, /app-v169\.css/);
   assert.doesNotMatch(source, /importScripts|patchHtmlSource|transformAppScriptResponse/);
 });
 

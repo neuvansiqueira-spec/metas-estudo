@@ -34,10 +34,11 @@ test('patch não altera persistência, dados ou sincronização', () => {
   assert.doesNotMatch(patch, /panel\.open\s*=/);
 });
 
-test('carregamento é idempotente e versionado', () => {
+test('módulo é idempotente e incorporado ao bundle', () => {
   assert.match(patch, /__aldusDailySmartReviewCollapsibleV138/);
-  assert.match(loader, /__aldusDailySmartReviewCollapsibleLoaderV138/);
-  assert.match(loader, /daily-smart-review-collapsible-v138\.js\?v=20260724-revisao-diaria-recolhivel-v138/);
+  const bundle = fs.readFileSync('app-v169.js', 'utf8');
+  assert.equal((bundle.match(/Aldus source: daily-smart-review-collapsible-v138\.js/g) || []).length, 1);
+  assert.doesNotMatch(loader, /daily-smart-review-collapsible-v138\.js|createElement\(["']script/);
 });
 
 test('arquivos publicados permanecem idênticos aos arquivos da raiz', () => {

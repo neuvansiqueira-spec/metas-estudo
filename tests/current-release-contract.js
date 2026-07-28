@@ -50,7 +50,7 @@ function assertCurrentReleaseContract() {
   assert.match(jsBundle, /Aldus source: question-register-simple-v162\.js/);
   assert.match(jsBundle, /Aldus source: factory-simple-v163\.js/);
   assert.match(jsBundle, /Aldus source: factory-polish-v164\.js/);
-  assert.match(jsBundle, /Aldus source: update-flow-v168\.js/);
+  assert.match(jsBundle, /Aldus source: update-flow-v169\.js/);
   assert.match(cssBundle, /Aldus source: aldus-completed-visibility-v76\.css/);
   assert.match(cssBundle, /Aldus source: factory-visibility-v122\.css/);
 }

@@ -21,11 +21,10 @@ test("raiz e docs permanecem byte a byte iguais", () => {
   assert.equal(read(rootLoader), read(docsLoader));
 });
 
-test("loader carrega a v151 uma única vez com cache-buster", () => {
-  const source = read(rootLoader);
-  assert.match(source, /__aldusContestCountdownLoaderV151/);
-  assert.match(source, /contest-countdown-v151\.js\?v=20260725-contagem-concurso-v151/);
-  assert.match(source, /script\.async = false/);
+test("v151 está incorporada uma única vez ao bundle atual", () => {
+  const bundle = read(path.join(rootDir, "app-v169.js"));
+  assert.equal((bundle.match(/Aldus source: contest-countdown-v151\.js/g) || []).length, 1);
+  assert.doesNotMatch(read(rootLoader), /contest-countdown-v151\.js|createElement\(["']script/);
 });
 
 test("valida datas reais e horário opcional", () => {

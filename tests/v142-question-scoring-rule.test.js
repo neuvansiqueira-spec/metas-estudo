@@ -38,9 +38,10 @@ test('não altera persistência, sincronização ou envio do formulário', () =>
   assert.doesNotMatch(patch, /localStorage|indexedDB|saveData|autoSyncAfterSave|submit\s*\(/i);
 });
 
-test('loader é versionado e arquivos publicados são idênticos', () => {
-  assert.match(loader, /__aldusQuestionScoringRuleLoaderV142/);
-  assert.match(loader, /question-scoring-rule-v142\.js\?v=20260725-regra-pontuacao-questoes-v142/);
+test('módulo está incorporado e arquivos publicados são idênticos', () => {
+  const bundle = fs.readFileSync('app-v169.js', 'utf8');
+  assert.equal((bundle.match(/Aldus source: question-scoring-rule-v142\.js/g) || []).length, 1);
+  assert.doesNotMatch(loader, /question-scoring-rule-v142\.js|createElement\(["']script/);
   assert.equal(publishedPatch, patch);
   assert.equal(publishedLoader, loader);
 });

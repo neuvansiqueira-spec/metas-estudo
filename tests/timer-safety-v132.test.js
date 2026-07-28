@@ -58,13 +58,12 @@ test("aplicação é idempotente e registra o estado da correção", () => {
   );
 });
 
-test("raiz, docs e carregador permanecem sincronizados", () => {
+test("raiz, docs e bundle incorporado permanecem sincronizados", () => {
   assert.equal(
     fs.readFileSync("timer-safety-v132.js", "utf8"),
     fs.readFileSync("docs/timer-safety-v132.js", "utf8")
   );
-  const rootLoader = fs.readFileSync("central-goals-real-time-v124.js", "utf8");
-  const docsLoader = fs.readFileSync("docs/central-goals-real-time-v124.js", "utf8");
-  assert.equal(rootLoader, docsLoader);
-  assert.equal((rootLoader.match(/timer-safety-v132\.js\?v=20260722-cronometro-seguranca-v132/g) || []).length, 1);
+  const bundle = fs.readFileSync("app-v169.js", "utf8");
+  assert.equal((bundle.match(/Aldus source: timer-safety-v132\.js/g) || []).length, 1);
+  assert.doesNotMatch(fs.readFileSync("central-goals-real-time-v124.js", "utf8"), /timer-safety-v132\.js|createElement\(["']script/);
 });

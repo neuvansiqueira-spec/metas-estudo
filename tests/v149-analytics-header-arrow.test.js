@@ -43,11 +43,11 @@ test("Filtros da análise usa a mesma estrutura e seta dos demais painéis", () 
   assert.match(source, /aria-expanded/);
 });
 
-test("v149 é carregada depois da correção v148 e antes da transformação v145", () => {
-  const daily = read(files.rootDaily);
-  assert.ok(daily.indexOf("analytics-accordion-fix-v148.js") < daily.indexOf("analytics-header-arrow-v149.js"));
-  assert.ok(daily.indexOf("analytics-header-arrow-v149.js") < daily.indexOf("analytics-collapsibles-v145.js"));
-  assert.match(daily, /analytics-header-arrow-v149\.js\?v=20260725-analise-estrategica-cabecalho-fixo-v149/);
+test("v149 está incorporada depois da correção v148 e antes da transformação v145", () => {
+  const bundle = read(path.join(rootDir, "app-v169.js"));
+  assert.ok(bundle.indexOf("Aldus source: analytics-accordion-fix-v148.js") < bundle.indexOf("Aldus source: analytics-header-arrow-v149.js"));
+  assert.ok(bundle.indexOf("Aldus source: analytics-header-arrow-v149.js") < bundle.indexOf("Aldus source: analytics-collapsibles-v145.js"));
+  assert.doesNotMatch(read(files.rootDaily), /analytics-header-arrow-v149\.js|createElement\(["']script/);
 });
 
 test("v149 identifica apenas o módulo visual e não sobrescreve o rodapé", () => {

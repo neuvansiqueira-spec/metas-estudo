@@ -149,33 +149,3 @@
   panel.dataset.dailyStudyCollapsibleVersion = VERSION;
   setCollapsed(false);
 })();
-
-(() => {
-  if (window.__aldusDailySmartReviewCollapsibleLoaderV138) return;
-  window.__aldusDailySmartReviewCollapsibleLoaderV138 = true;
-  const script = document.createElement("script");
-  script.src = "daily-smart-review-collapsible-v138.js?v=20260724-revisao-diaria-recolhivel-v138";
-  script.async = false;
-  script.dataset.aldusDailySmartReviewCollapsible = "v138";
-  document.head.appendChild(script);
-})();
-
-(() => {
-  if (window.__aldusCollapseChevronFixLoaderV139) return;
-  window.__aldusCollapseChevronFixLoaderV139 = true;
-  const script = document.createElement("script");
-  script.src = "collapse-chevron-fix-v139.js?v=20260724-setas-recolher-v139";
-  script.async = false;
-  script.dataset.aldusCollapseChevronFix = "v139";
-  document.head.appendChild(script);
-})();
-
-(() => {
-  if (window.__aldusReinforcementGoalPresentationLoaderV156) return;
-  window.__aldusReinforcementGoalPresentationLoaderV156 = true;
-  const script = document.createElement("script");
-  script.src = "reinforcement-goal-presentation-v156.js?v=20260727-meta-reforco-visivel-v156";
-  script.async = false;
-  script.dataset.aldusReinforcementGoalPresentation = "v156";
-  document.head.appendChild(script);
-})();

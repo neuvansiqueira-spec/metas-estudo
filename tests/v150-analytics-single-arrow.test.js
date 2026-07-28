@@ -44,13 +44,12 @@ test("seta customizada única permanece visível", () => {
   assert.match(source, /visibility: visible !important/);
 });
 
-test("v150 é carregada após v149 e possui cache-buster novo", () => {
-  const daily = read(files.rootDaily);
-  const central = read(files.rootCentral);
-  assert.ok(daily.indexOf("analytics-header-arrow-v149.js") < daily.indexOf("analytics-single-arrow-v150.js"));
-  assert.match(daily, /analytics-single-arrow-v150\.js\?v=20260725-analise-estrategica-seta-unica-v150/);
-  assert.match(central, /analytics-single-arrow-v150\.js\?v=20260725-analise-estrategica-seta-unica-v150/);
-  assert.match(central, /daily-collapsibles-closed-v140\.js\?v=20260725-analise-estrategica-seta-unica-v150/);
+test("v150 está incorporada após v149", () => {
+  const bundle = read(path.join(rootDir, "app-v169.js"));
+  assert.ok(bundle.indexOf("Aldus source: analytics-header-arrow-v149.js") < bundle.indexOf("Aldus source: analytics-single-arrow-v150.js"));
+  assert.equal((bundle.match(/Aldus source: analytics-single-arrow-v150\.js/g) || []).length, 1);
+  assert.doesNotMatch(read(files.rootDaily), /analytics-single-arrow-v150\.js|createElement\(["']script/);
+  assert.doesNotMatch(read(files.rootCentral), /analytics-single-arrow-v150\.js|daily-collapsibles-closed-v140\.js|createElement\(["']script/);
 });
 
 test("v150 identifica apenas o módulo visual e não sobrescreve o rodapé", () => {

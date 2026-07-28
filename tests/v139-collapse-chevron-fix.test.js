@@ -33,9 +33,10 @@ test('funciona mesmo quando os controles carregam em ordem diferente', () => {
   assert.match(patch, /observer\.disconnect\(\)/);
 });
 
-test('loader é versionado e idempotente', () => {
-  assert.match(loader, /__aldusCollapseChevronFixLoaderV139/);
-  assert.match(loader, /collapse-chevron-fix-v139\.js\?v=20260724-setas-recolher-v139/);
+test('módulo é idempotente e incorporado ao bundle', () => {
+  const bundle = fs.readFileSync('app-v169.js', 'utf8');
+  assert.equal((bundle.match(/Aldus source: collapse-chevron-fix-v139\.js/g) || []).length, 1);
+  assert.doesNotMatch(loader, /collapse-chevron-fix-v139\.js|createElement\(["']script/);
   assert.match(patch, /__aldusCollapseChevronFixV139/);
 });
 

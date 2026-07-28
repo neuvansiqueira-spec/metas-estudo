@@ -9055,14 +9055,6 @@ window.addEventListener("hashchange", () => showView(hashToView()));
 enhanceCollapsibleSections();
 restoreFloatingTimerSession();
 
-const INTEGRAL_SYNC_ENHANCEMENT_FILES = [
-  "sync-integral-core.js",
-  "sync-integral-deletions.js",
-  "sync-integral-state.js",
-  "sync-integral-cloud.js",
-  "sync-integral-time-protection.js"
-];
-
 function activateIntegralSyncEnhancements() {
   const ready = [
     "mergeSyncStates",
@@ -9088,34 +9080,9 @@ function activateIntegralSyncEnhancements() {
   return true;
 }
 
-function loadIntegralSyncEnhancementFile(filename) {
-  return new Promise((resolve, reject) => {
-    const selector = `script[data-integral-sync-file="${filename}"]`;
-    const existing = document.querySelector(selector);
-    if (existing?.dataset.loaded === "true") return resolve();
-    const script = existing || document.createElement("script");
-    // Scripts dinâmicos com async=false começam a baixar em paralelo, mas
-    // continuam sendo executados na ordem de inserção definida abaixo.
-    script.async = false;
-    script.dataset.integralSyncFile = filename;
-    script.addEventListener("load", () => {
-      script.dataset.loaded = "true";
-      resolve();
-    }, { once: true });
-    script.addEventListener("error", () => reject(new Error(`Não foi possível carregar ${filename}.`)), { once: true });
-    if (!existing) {
-      script.src = `${filename}?v=${APP_VERSION}`;
-      (document.head || document.documentElement).appendChild(script);
-    }
-  });
-}
-
 async function ensureIntegralSyncEnhancements() {
   if (activateIntegralSyncEnhancements()) return true;
-  const pendingFiles = INTEGRAL_SYNC_ENHANCEMENT_FILES.map(loadIntegralSyncEnhancementFile);
-  await Promise.all(pendingFiles);
-  if (!activateIntegralSyncEnhancements()) throw new Error("Os módulos de integridade foram carregados de forma incompleta.");
-  return true;
+  throw new Error("Os módulos de integridade incorporados ao bundle estão incompletos.");
 }
 
 async function startApplicationWithIntegrity() {
