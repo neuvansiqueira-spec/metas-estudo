@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260728-bootstrap-interativo-v169";
+  const VERSION = "20260728-interface-sem-escurecimento-v169";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -44366,13 +44366,21 @@ scheduleHtmlVisibleMilestoneV169();
 function showBootstrapLoadingState() {
   const loading = document.getElementById("appLoadingState");
   if (loading) loading.hidden = false;
-  document.querySelector("main.app-layout")?.setAttribute("aria-busy", "true");
-  document.body.classList.add("app-bootstrapping");
+  const layout = document.querySelector("main.app-layout");
+  if (layout) {
+    layout.setAttribute("aria-busy", "true");
+    layout.setAttribute("inert", "");
+  }
+  alignBootstrapShellToRouteV169();
 }
 function hideBootstrapLoadingState() {
   const loading = document.getElementById("appLoadingState");
   if (loading) loading.remove();
-  document.querySelector("main.app-layout")?.removeAttribute("aria-busy");
+  const layout = document.querySelector("main.app-layout");
+  if (layout) {
+    layout.removeAttribute("aria-busy");
+    layout.removeAttribute("inert");
+  }
   document.body.classList.remove("app-bootstrapping");
 }
 function safeReadLocalStorageStateForBootstrap() {
@@ -45255,6 +45263,25 @@ function syncNavigationGroups(target) {
     const containsActiveRoute = [...group.querySelectorAll("[data-view-link]")].some((link) => targetFromLink(link) === target);
     if (containsActiveRoute) group.open = true;
   });
+}
+
+function alignBootstrapShellToRouteV169() {
+  const target = hashToView();
+  document.documentElement.dataset.activeView = target;
+
+  viewPanels.forEach((panel) => {
+    const active = panel.dataset.view === target;
+    panel.classList.toggle("active", active);
+    panel.hidden = !active;
+  });
+
+  viewLinks.forEach((link) => {
+    const active = targetFromLink(link) === target;
+    link.classList.toggle("active", active);
+    if (active) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  });
+  syncNavigationGroups(target);
 }
 
 function enhanceCollapsibleSections() {
@@ -48807,7 +48834,7 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
 (() => {
   "use strict";
 
-  const PATCH_VERSION = "20260728-bootstrap-interativo-v169";
+  const PATCH_VERSION = "20260728-interface-sem-escurecimento-v169";
   const CHECK_INTERVAL_MS = 15 * 60 * 1000;
   const BANNER_ID = "aldusUpdateBannerV169";
   const DIRTY_ATTRIBUTE = "data-aldus-user-edited-v169";
