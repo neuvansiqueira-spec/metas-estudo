@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const PATCH_VERSION = "20260728-interatividade-atualizacao-v169";
+  const PATCH_VERSION = "20260728-bootstrap-interativo-v169";
   const CHECK_INTERVAL_MS = 15 * 60 * 1000;
   const BANNER_ID = "aldusUpdateBannerV169";
   const DIRTY_ATTRIBUTE = "data-aldus-user-edited-v169";
