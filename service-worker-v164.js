@@ -1,1 +1,1 @@
-importScripts("./service-worker-v158.js?v=20260727-fabrica-polimento-visual-v164");
+importScripts("./service-worker-v165.js?v=20260727-atualizacao-rapida-segura-v165");
