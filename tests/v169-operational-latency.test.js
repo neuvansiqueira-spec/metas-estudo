@@ -155,6 +155,7 @@ test("sincronização com Drive consolida salvamentos próximos sem atrasar o cl
   );
   assert.match(autoSync, /clearTimeout\(autoSyncTimer\)/);
   assert.match(autoSync, /autoSyncTimer = setTimeout/);
-  assert.match(autoSync, /\}, 750\)/);
+  assert.match(autoSync, /AUTO_SYNC_DEBOUNCE_MS/);
+  assert.match(autoSync, /requestIdleCallback\(run, \{ timeout: 2000 \}\)/);
   assert.doesNotMatch(autoSync, /return runAutoSyncAfterSave/);
 });

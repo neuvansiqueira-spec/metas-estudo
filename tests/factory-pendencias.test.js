@@ -61,10 +61,12 @@ test('status visual é calculado dos módulos normalizados e não do item.status
 });
 
 test('cópia IndexedDB preserva backup, sincronização e não remove chaves automaticamente', () => {
+  const persistence = bodyOf('persistStateSafely');
   assert.match(script, /function persistStateSafely\(options = \{\}\)/);
-  assert.match(script, /localStorage\.setItem\(STORAGE_KEY, JSON\.stringify\(state\)\)/);
+  assert.match(script, /localStorage\.setItem\(STORAGE_KEY, serializedState\)/);
+  assert.match(script, /serializedState\.length > LOCAL_STORAGE_SAFE_STATE_BYTES/);
   assert.match(script, /queueIndexedDBStateCopy\(\)/);
-  assert.doesNotMatch(script, /indexedDB\.deleteDatabase|localStorage\.clear\(\)/);
+  assert.doesNotMatch(persistence, /indexedDB\.deleteDatabase|localStorage\.(?:clear|removeItem)\(/);
   assert.match(script, /function makeBackupPayload\(\)/);
   assert.match(script, /function makeSyncPayload\(\)/);
 });

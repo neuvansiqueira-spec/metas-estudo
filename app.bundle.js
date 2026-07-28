@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260728-latencia-operacional-v169";
+  const VERSION = "20260728-persistencia-responsiva-v169";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -43,6 +43,7 @@ const STUDY_DB_METADATA_STORE = "storageMetadata";
 const STUDY_DB_CURRENT_ID = "current";
 const STUDY_DB_MIGRATION_STATUS_ID = "migration-status";
 const STUDY_DB_SCHEMA_VERSION = 1;
+const STUDY_DB_CHECKSUM_JSON_V2_PREFIX = "fnv1a-json-v2";
 
 function indexedDBAvailable() {
   return typeof indexedDB !== "undefined" && typeof indexedDB.open === "function";
@@ -54,14 +55,32 @@ function stableSerialize(value) {
   return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableSerialize(value[key])}`).join(",")}}`;
 }
 
-function checksumForState(state) {
-  const text = stableSerialize(state || {});
+function checksumForText(text, prefix = "fnv1a") {
   let hash = 2166136261;
   for (let index = 0; index < text.length; index += 1) {
     hash ^= text.charCodeAt(index);
     hash = Math.imul(hash, 16777619);
   }
-  return `fnv1a-${(hash >>> 0).toString(16).padStart(8, "0")}-${text.length}`;
+  return `${prefix}-${(hash >>> 0).toString(16).padStart(8, "0")}-${text.length}`;
+}
+
+function legacyChecksumForState(state) {
+  return checksumForText(stableSerialize(state || {}));
+}
+
+function checksumForSerializedState(serializedState) {
+  return checksumForText(serializedState, STUDY_DB_CHECKSUM_JSON_V2_PREFIX);
+}
+
+function checksumForState(state) {
+  return checksumForSerializedState(JSON.stringify(state || {}));
+}
+
+function checksumMatchesState(checksum, state) {
+  if (String(checksum || "").startsWith(`${STUDY_DB_CHECKSUM_JSON_V2_PREFIX}-`)) {
+    return checksum === checksumForState(state);
+  }
+  return checksum === legacyChecksumForState(state);
 }
 
 function estimateSerializedStateSize(state) {
@@ -104,11 +123,24 @@ function indexedDBStateHasUserData(state = {}) {
   return ["subjects", "studies", "syllabusItems", "dailyGoals", "questionLogs", "materials", "questionBank", "simulados", "smartReviews", "factoryAgenda", "factoryItems"].some((key) => Array.isArray(state?.[key]) && state[key].length);
 }
 
-async function saveStateToIndexedDB(state) {
-  const data = JSON.parse(JSON.stringify(state || {}));
-  const existing = await loadStateFromIndexedDB().catch(() => null);
-  if (validateIndexedDBState(existing) && indexedDBStateHasUserData(existing.data) && !indexedDBStateHasUserData(data)) throw new Error("Proteção ativada: estado vazio não substitui IndexedDB válido.");
-  const record = { id: STUDY_DB_CURRENT_ID, schemaVersion: STUDY_DB_SCHEMA_VERSION, savedAt: new Date().toISOString(), checksum: checksumForState(data), data };
+async function saveStateToIndexedDB(state, options = {}) {
+  const source = state || {};
+  const data = options.detachedSnapshot
+    ? source
+    : (typeof structuredClone === "function" ? structuredClone(source) : JSON.parse(JSON.stringify(source)));
+  if (!indexedDBStateHasUserData(data)) {
+    const existing = await loadStateFromIndexedDB().catch(() => null);
+    if (validateIndexedDBState(existing) && indexedDBStateHasUserData(existing.data)) throw new Error("Proteção ativada: estado vazio não substitui IndexedDB válido.");
+  }
+  const serializedState = JSON.stringify(data);
+  const record = {
+    id: STUDY_DB_CURRENT_ID,
+    schemaVersion: STUDY_DB_SCHEMA_VERSION,
+    savedAt: new Date().toISOString(),
+    checksum: checksumForSerializedState(serializedState),
+    serializedSize: serializedState.length,
+    data
+  };
   return runStoreOperation(STUDY_DB_APP_STATE_STORE, "readwrite", (store) => store.put(record)).then(() => record);
 }
 
@@ -128,11 +160,17 @@ function validateIndexedDBState(record) {
   if (!record || record.id !== STUDY_DB_CURRENT_ID || record.schemaVersion !== STUDY_DB_SCHEMA_VERSION || !record.data || typeof record.data !== "object" || Array.isArray(record.data)) return false;
   const arrayKeys = ["subjects", "studies", "syllabusItems", "dailyGoals", "questionLogs", "smartReviews", "simulados", "materials", "questionBank", "questionBankSessions", "questionErrorNotebook"];
   if (!arrayKeys.every((key) => record.data[key] === undefined || Array.isArray(record.data[key]))) return false;
-  return record.checksum === checksumForState(record.data);
+  return checksumMatchesState(record.checksum, record.data);
 }
 
-function statesMatchIndexedDBRecord(state, record) {
-  return validateIndexedDBState(record) && record.checksum === checksumForState(state || {});
+function statesMatchIndexedDBRecord(state, record, expectedChecksum = "") {
+  if (!validateIndexedDBState(record)) return false;
+  const stateChecksum = expectedChecksum || (
+    String(record.checksum || "").startsWith(`${STUDY_DB_CHECKSUM_JSON_V2_PREFIX}-`)
+      ? checksumForState(state || {})
+      : legacyChecksumForState(state || {})
+  );
+  return record.checksum === stateChecksum;
 }
 
 async function migrateLocalStorageStateToIndexedDB(state) {
@@ -147,7 +185,7 @@ async function migrateLocalStorageStateToIndexedDB(state) {
 }
 
 if (typeof window !== "undefined") Object.assign(window, { openStudyDatabase, saveStateToIndexedDB, loadStateFromIndexedDB, getIndexedDBMetadata, validateIndexedDBState, estimateSerializedStateSize, migrateLocalStorageStateToIndexedDB, statesMatchIndexedDBRecord, indexedDBStateHasUserData });
-if (typeof module !== "undefined") module.exports = { openStudyDatabase, saveStateToIndexedDB, loadStateFromIndexedDB, getIndexedDBMetadata, validateIndexedDBState, estimateSerializedStateSize, migrateLocalStorageStateToIndexedDB, checksumForState, statesMatchIndexedDBRecord, indexedDBStateHasUserData };
+if (typeof module !== "undefined") module.exports = { openStudyDatabase, saveStateToIndexedDB, loadStateFromIndexedDB, getIndexedDBMetadata, validateIndexedDBState, estimateSerializedStateSize, migrateLocalStorageStateToIndexedDB, checksumForState, legacyChecksumForState, checksumMatchesState, statesMatchIndexedDBRecord, indexedDBStateHasUserData };
 
 /* Aldus source: analytics-engine.js */
 (function (root, factory) {
@@ -36102,6 +36140,7 @@ const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
 const APP_VERSION = globalThis.__ALDUS_APP_RELEASE__?.version;
 if (!APP_VERSION) throw new Error("[Aldus Meta] Fonte canônica de versão não carregada.");
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
+const LOCAL_STORAGE_SAFE_STATE_BYTES = 4 * 1024 * 1024;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
 const FACTORY_UI_COMPAT_LABELS = "RESUMOS A PRODUZIR HOJE | A PRODUZIR | EM PRODUÇÃO | CONCLUÍDOS | MATERIAIS JÁ PRONTOS PARA ESTUDAR | Pasta de destino do Word/PDF:";
@@ -37224,6 +37263,7 @@ const indexedDBStatus = { available: false, activeSource: "aguardando bootstrap"
 let indexedDBPersistInFlight = false;
 let indexedDBPersistQueued = false;
 let indexedDBPersistTimer = null;
+let indexedDBPersistScheduleMode = "";
 let bootstrapStateReady = false;
 
 function migrateCoreFactoryPrompts(targetState = state) {
@@ -37990,8 +38030,22 @@ async function initializePrimaryStorage() {
 function queueIndexedDBStateCopy() {
   if (typeof saveStateToIndexedDB !== "function") return;
   indexedDBPersistQueued = true;
-  if (indexedDBPersistTimer) clearTimeout(indexedDBPersistTimer);
-  indexedDBPersistTimer = setTimeout(processIndexedDBStateCopyQueue, 300);
+  if (indexedDBPersistTimer) {
+    if (indexedDBPersistScheduleMode === "idle" && typeof cancelIdleCallback === "function") cancelIdleCallback(indexedDBPersistTimer);
+    else clearTimeout(indexedDBPersistTimer);
+  }
+  const run = () => {
+    indexedDBPersistTimer = null;
+    indexedDBPersistScheduleMode = "";
+    processIndexedDBStateCopyQueue();
+  };
+  if (typeof requestIdleCallback === "function") {
+    indexedDBPersistScheduleMode = "idle";
+    indexedDBPersistTimer = requestIdleCallback(run, { timeout: 1000 });
+  } else {
+    indexedDBPersistScheduleMode = "timeout";
+    indexedDBPersistTimer = setTimeout(run, 300);
+  }
 }
 
 async function processIndexedDBStateCopyQueue() {
@@ -38001,14 +38055,14 @@ async function processIndexedDBStateCopyQueue() {
   indexedDBPersistInFlight = true;
   try {
     const snapshot = cloneData(state);
-    const record = await saveStateToIndexedDB(snapshot);
+    const record = await saveStateToIndexedDB(snapshot, { detachedSnapshot: true });
     const reloaded = await loadStateFromIndexedDB();
-    if (!statesMatchIndexedDBRecord(snapshot, reloaded)) throw new Error("A validação da gravação no IndexedDB falhou.");
+    if (!statesMatchIndexedDBRecord(snapshot, reloaded, record.checksum)) throw new Error("A validação da gravação no IndexedDB falhou.");
     indexedDBStatus.available = true;
     indexedDBStatus.activeSource = "IndexedDB";
     indexedDBStatus.lastCopyAt = record.savedAt;
     indexedDBStatus.validation = "válido";
-    indexedDBStatus.size = estimateSerializedStateSize(snapshot);
+    indexedDBStatus.size = Number(record.serializedSize) || estimateSerializedStateSize(snapshot);
     if (indexedDBStatus.migration === "pendente") indexedDBStatus.migration = "concluída";
     indexedDBStatus.error = indexedDBStatus.localStorageFull ? "IndexedDB funcionando; cópia localStorage indisponível por falta de espaço." : "";
   } catch (error) {
@@ -38016,7 +38070,7 @@ async function processIndexedDBStateCopyQueue() {
   } finally {
     indexedDBPersistInFlight = false;
     updateStorageDiagnostics();
-    if (indexedDBPersistQueued) processIndexedDBStateCopyQueue();
+    if (indexedDBPersistQueued) queueIndexedDBStateCopy();
   }
 }
 
@@ -38024,21 +38078,35 @@ function persistStateSafely(options = {}) {
   if (options.markLocalChange && !isApplyingRemote) markLocalUpdated();
   state.dailyGoals?.forEach(normalizeGoalTimeFields);
   queueIndexedDBStateCopy();
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    localStorage.setItem(SIMULADOS_STORAGE_KEY, JSON.stringify(state.simulados || []));
-    salvarCadernoErros(state.questionErrorNotebook || []);
-    indexedDBStatus.localStorageAvailable = true;
-    indexedDBStatus.localStorageFull = false;
-    if (indexedDBStatus.error === "IndexedDB funcionando; cópia localStorage indisponível por falta de espaço.") indexedDBStatus.error = "";
-  } catch (error) {
-    console.error("[Metas Estudo] Não foi possível atualizar a cópia localStorage.", error);
+  const knownLargeState = indexedDBStatus.available && indexedDBStatus.size > LOCAL_STORAGE_SAFE_STATE_BYTES;
+  if (knownLargeState || indexedDBStatus.localStorageFull) {
     indexedDBStatus.localStorageAvailable = false;
-    indexedDBStatus.localStorageFull = isQuotaExceededError(error);
-    indexedDBStatus.error = indexedDBStatus.localStorageFull ? "IndexedDB funcionando; cópia localStorage indisponível por falta de espaço." : "Cópia localStorage indisponível; IndexedDB permanece como salvamento principal.";
-  } finally {
-    updateStorageDiagnostics();
+    indexedDBStatus.localStorageFull = true;
+    indexedDBStatus.error = "IndexedDB funcionando; cópia localStorage indisponível por falta de espaço.";
+  } else {
+    try {
+      const serializedState = JSON.stringify(state);
+      if (serializedState.length > LOCAL_STORAGE_SAFE_STATE_BYTES) {
+        indexedDBStatus.localStorageAvailable = false;
+        indexedDBStatus.localStorageFull = true;
+        indexedDBStatus.error = "IndexedDB funcionando; cópia localStorage indisponível por falta de espaço.";
+      } else {
+        localStorage.setItem(STORAGE_KEY, serializedState);
+        localStorage.setItem(SIMULADOS_STORAGE_KEY, JSON.stringify(state.simulados || []));
+        indexedDBStatus.localStorageAvailable = true;
+        indexedDBStatus.localStorageFull = false;
+        if (indexedDBStatus.error === "IndexedDB funcionando; cópia localStorage indisponível por falta de espaço.") indexedDBStatus.error = "";
+      }
+    } catch (error) {
+      console.error("[Metas Estudo] Não foi possível atualizar a cópia localStorage.", error);
+      indexedDBStatus.localStorageAvailable = false;
+      indexedDBStatus.localStorageFull = isQuotaExceededError(error);
+      indexedDBStatus.error = indexedDBStatus.localStorageFull ? "IndexedDB funcionando; cópia localStorage indisponível por falta de espaço." : "Cópia localStorage indisponível; IndexedDB permanece como salvamento principal.";
+    }
   }
+  try { salvarCadernoErros(state.questionErrorNotebook || []); }
+  catch (error) { console.warn("[Metas Estudo] Caderno de erros preservado em memória; cópia local indisponível.", error); }
+  updateStorageDiagnostics();
 }
 
 function saveData(options = {}) {
@@ -38226,7 +38294,7 @@ function multipartBody(payload, fileId) { const boundary = "metas_estudo_sync_bo
 async function createSyncFile(payload) { const { boundary, body } = multipartBody(payload); const r = await driveFetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,modifiedTime", { method: "POST", headers: { "Content-Type": `multipart/related; boundary=${boundary}` }, body }); return r.json(); }
 async function updateSyncFile(fileId, payload) { const { boundary, body } = multipartBody(payload, fileId); const r = await driveFetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart&fields=id,modifiedTime`, { method: "PATCH", headers: { "Content-Type": `multipart/related; boundary=${boundary}` }, body }); return r.json(); }
 async function downloadSyncFile(fileId) { return (await driveFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`)).json(); }
-function makeSyncPayload() { const updatedAt = new Date().toISOString(); markLocalUpdated(updatedAt); saveData({ skipSyncTimestamp: true }); return { app: "metas-estudo", schemaVersion: 1, updatedAt, cloudDataUpdatedAt: updatedAt, localDataUpdatedAt: updatedAt, deviceId: getDeviceId(), deviceName: getDeviceName(), state: cloneData(state) }; }
+function makeSyncPayload() { const updatedAt = new Date().toISOString(); markLocalUpdated(updatedAt); return { app: "metas-estudo", schemaVersion: 1, updatedAt, cloudDataUpdatedAt: updatedAt, localDataUpdatedAt: updatedAt, deviceId: getDeviceId(), deviceName: getDeviceName(), state: cloneData(state) }; }
 function syncPayloadUpdatedAt(payload = {}, fallback = "") { return payload.cloudDataUpdatedAt || payload.updatedAt || fallback || ""; }
 function localDataUpdatedAt(meta = readSyncMeta()) { return meta.localDataUpdatedAt || meta.lastLocalUpdateAt || ""; }
 function writeLocalDataUpdatedAt(date, { dirty = true } = {}) { writeSyncMeta({ lastLocalUpdateAt: date, localDataUpdatedAt: date, localDirty: dirty }); }
@@ -38247,6 +38315,8 @@ function markPendingSync(reason = "alteração", message = autoSyncLocalOnlyMess
   writeSyncMeta({ pendingSync: true, pendingSyncReason: reason, error: message, lastAutoSyncErrorAt: new Date().toISOString(), lastAutoSyncErrorReason: reason, lastAutoSyncError: message });
 }
 let autoSyncTimer = null;
+let autoSyncIdleHandle = null;
+let autoSyncIdleMode = "";
 let pendingAutoSyncReason = "alteração";
 let syncDialogOpen = false;
 let isApplyingRemote = false;
@@ -38306,10 +38376,27 @@ function autoSyncAfterSave(reason = "alteração") {
   if (isSyncLocked()) return;
   pendingAutoSyncReason = reason;
   clearTimeout(autoSyncTimer);
+  if (autoSyncIdleHandle) {
+    if (autoSyncIdleMode === "idle" && typeof cancelIdleCallback === "function") cancelIdleCallback(autoSyncIdleHandle);
+    else clearTimeout(autoSyncIdleHandle);
+    autoSyncIdleHandle = null;
+    autoSyncIdleMode = "";
+  }
   autoSyncTimer = setTimeout(() => {
     autoSyncTimer = null;
-    runAutoSyncAfterSave(pendingAutoSyncReason);
-  }, 750);
+    const run = () => {
+      autoSyncIdleHandle = null;
+      autoSyncIdleMode = "";
+      runAutoSyncAfterSave(pendingAutoSyncReason);
+    };
+    if (typeof requestIdleCallback === "function") {
+      autoSyncIdleMode = "idle";
+      autoSyncIdleHandle = requestIdleCallback(run, { timeout: 2000 });
+    } else {
+      autoSyncIdleMode = "timeout";
+      autoSyncIdleHandle = setTimeout(run, 0);
+    }
+  }, AUTO_SYNC_DEBOUNCE_MS);
   return autoSyncTimer;
 }
 
@@ -48940,7 +49027,7 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
 (() => {
   "use strict";
 
-  const PATCH_VERSION = "20260728-latencia-operacional-v169";
+  const PATCH_VERSION = "20260728-persistencia-responsiva-v169";
   const CHECK_INTERVAL_MS = 15 * 60 * 1000;
   const BANNER_ID = "aldusUpdateBannerV169";
   const DIRTY_ATTRIBUTE = "data-aldus-user-edited-v169";

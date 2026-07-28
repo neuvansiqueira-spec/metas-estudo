@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260728-latencia-operacional-v169",
+  "version": "20260728-persistencia-responsiva-v169",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

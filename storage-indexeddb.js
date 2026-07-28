@@ -5,6 +5,7 @@ const STUDY_DB_METADATA_STORE = "storageMetadata";
 const STUDY_DB_CURRENT_ID = "current";
 const STUDY_DB_MIGRATION_STATUS_ID = "migration-status";
 const STUDY_DB_SCHEMA_VERSION = 1;
+const STUDY_DB_CHECKSUM_JSON_V2_PREFIX = "fnv1a-json-v2";
 
 function indexedDBAvailable() {
   return typeof indexedDB !== "undefined" && typeof indexedDB.open === "function";
@@ -16,14 +17,32 @@ function stableSerialize(value) {
   return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableSerialize(value[key])}`).join(",")}}`;
 }
 
-function checksumForState(state) {
-  const text = stableSerialize(state || {});
+function checksumForText(text, prefix = "fnv1a") {
   let hash = 2166136261;
   for (let index = 0; index < text.length; index += 1) {
     hash ^= text.charCodeAt(index);
     hash = Math.imul(hash, 16777619);
   }
-  return `fnv1a-${(hash >>> 0).toString(16).padStart(8, "0")}-${text.length}`;
+  return `${prefix}-${(hash >>> 0).toString(16).padStart(8, "0")}-${text.length}`;
+}
+
+function legacyChecksumForState(state) {
+  return checksumForText(stableSerialize(state || {}));
+}
+
+function checksumForSerializedState(serializedState) {
+  return checksumForText(serializedState, STUDY_DB_CHECKSUM_JSON_V2_PREFIX);
+}
+
+function checksumForState(state) {
+  return checksumForSerializedState(JSON.stringify(state || {}));
+}
+
+function checksumMatchesState(checksum, state) {
+  if (String(checksum || "").startsWith(`${STUDY_DB_CHECKSUM_JSON_V2_PREFIX}-`)) {
+    return checksum === checksumForState(state);
+  }
+  return checksum === legacyChecksumForState(state);
 }
 
 function estimateSerializedStateSize(state) {
@@ -66,11 +85,24 @@ function indexedDBStateHasUserData(state = {}) {
   return ["subjects", "studies", "syllabusItems", "dailyGoals", "questionLogs", "materials", "questionBank", "simulados", "smartReviews", "factoryAgenda", "factoryItems"].some((key) => Array.isArray(state?.[key]) && state[key].length);
 }
 
-async function saveStateToIndexedDB(state) {
-  const data = JSON.parse(JSON.stringify(state || {}));
-  const existing = await loadStateFromIndexedDB().catch(() => null);
-  if (validateIndexedDBState(existing) && indexedDBStateHasUserData(existing.data) && !indexedDBStateHasUserData(data)) throw new Error("Proteção ativada: estado vazio não substitui IndexedDB válido.");
-  const record = { id: STUDY_DB_CURRENT_ID, schemaVersion: STUDY_DB_SCHEMA_VERSION, savedAt: new Date().toISOString(), checksum: checksumForState(data), data };
+async function saveStateToIndexedDB(state, options = {}) {
+  const source = state || {};
+  const data = options.detachedSnapshot
+    ? source
+    : (typeof structuredClone === "function" ? structuredClone(source) : JSON.parse(JSON.stringify(source)));
+  if (!indexedDBStateHasUserData(data)) {
+    const existing = await loadStateFromIndexedDB().catch(() => null);
+    if (validateIndexedDBState(existing) && indexedDBStateHasUserData(existing.data)) throw new Error("Proteção ativada: estado vazio não substitui IndexedDB válido.");
+  }
+  const serializedState = JSON.stringify(data);
+  const record = {
+    id: STUDY_DB_CURRENT_ID,
+    schemaVersion: STUDY_DB_SCHEMA_VERSION,
+    savedAt: new Date().toISOString(),
+    checksum: checksumForSerializedState(serializedState),
+    serializedSize: serializedState.length,
+    data
+  };
   return runStoreOperation(STUDY_DB_APP_STATE_STORE, "readwrite", (store) => store.put(record)).then(() => record);
 }
 
@@ -90,11 +122,17 @@ function validateIndexedDBState(record) {
   if (!record || record.id !== STUDY_DB_CURRENT_ID || record.schemaVersion !== STUDY_DB_SCHEMA_VERSION || !record.data || typeof record.data !== "object" || Array.isArray(record.data)) return false;
   const arrayKeys = ["subjects", "studies", "syllabusItems", "dailyGoals", "questionLogs", "smartReviews", "simulados", "materials", "questionBank", "questionBankSessions", "questionErrorNotebook"];
   if (!arrayKeys.every((key) => record.data[key] === undefined || Array.isArray(record.data[key]))) return false;
-  return record.checksum === checksumForState(record.data);
+  return checksumMatchesState(record.checksum, record.data);
 }
 
-function statesMatchIndexedDBRecord(state, record) {
-  return validateIndexedDBState(record) && record.checksum === checksumForState(state || {});
+function statesMatchIndexedDBRecord(state, record, expectedChecksum = "") {
+  if (!validateIndexedDBState(record)) return false;
+  const stateChecksum = expectedChecksum || (
+    String(record.checksum || "").startsWith(`${STUDY_DB_CHECKSUM_JSON_V2_PREFIX}-`)
+      ? checksumForState(state || {})
+      : legacyChecksumForState(state || {})
+  );
+  return record.checksum === stateChecksum;
 }
 
 async function migrateLocalStorageStateToIndexedDB(state) {
@@ -109,4 +147,4 @@ async function migrateLocalStorageStateToIndexedDB(state) {
 }
 
 if (typeof window !== "undefined") Object.assign(window, { openStudyDatabase, saveStateToIndexedDB, loadStateFromIndexedDB, getIndexedDBMetadata, validateIndexedDBState, estimateSerializedStateSize, migrateLocalStorageStateToIndexedDB, statesMatchIndexedDBRecord, indexedDBStateHasUserData });
-if (typeof module !== "undefined") module.exports = { openStudyDatabase, saveStateToIndexedDB, loadStateFromIndexedDB, getIndexedDBMetadata, validateIndexedDBState, estimateSerializedStateSize, migrateLocalStorageStateToIndexedDB, checksumForState, statesMatchIndexedDBRecord, indexedDBStateHasUserData };
+if (typeof module !== "undefined") module.exports = { openStudyDatabase, saveStateToIndexedDB, loadStateFromIndexedDB, getIndexedDBMetadata, validateIndexedDBState, estimateSerializedStateSize, migrateLocalStorageStateToIndexedDB, checksumForState, legacyChecksumForState, checksumMatchesState, statesMatchIndexedDBRecord, indexedDBStateHasUserData };
