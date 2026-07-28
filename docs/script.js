@@ -9136,10 +9136,7 @@ function registerServiceWorker() {
   window.addEventListener("load", () => {
     const workerSuffix = globalThis.__ALDUS_APP_RELEASE__.suffix;
     navigator.serviceWorker.register(`service-worker-${workerSuffix}.js?v=${encodeURIComponent(APP_VERSION)}`, { updateViaCache: "none" })
-      .then((registration) => {
-        registration.update();
-        console.log("[Metas Estudo] Service worker registrado.");
-      })
+      .then(() => console.log("[Metas Estudo] Service worker registrado."))
       .catch((error) => console.log("[Metas Estudo] Falha ao registrar service worker.", error));
   });
 }
