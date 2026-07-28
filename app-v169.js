@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260728-interface-sem-escurecimento-v169";
+  const VERSION = "20260728-latencia-operacional-v169";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -38046,10 +38046,37 @@ function saveData(options = {}) {
     globalThis.__aldusDeferredPreBootstrapSave = true;
     return false;
   }
-  if (typeof refreshPlanningPrioritiesForQuestionChangesV155 === "function") refreshPlanningPrioritiesForQuestionChangesV155(state);
-  if (typeof repairInvalidReinforcementGoalsV157 === "function") globalThis.__reinforcementClassificationRepairV157 = repairInvalidReinforcementGoalsV157(state);
-  if (typeof syncFactoryMaterialsPlanningV80 === "function") syncFactoryMaterialsPlanningV80(state);
+  const startedAt = performance.now();
+  const report = {
+    startedAtMs: Number(startedAt.toFixed(1)),
+    planningPriorityMs: 0,
+    reinforcementRepairMs: 0,
+    factoryPlanningMs: 0,
+    persistenceMs: 0,
+    factoryPlanningSkipped: false,
+    totalMs: 0
+  };
+  if (typeof refreshPlanningPrioritiesForQuestionChangesV155 === "function") {
+    const stepStartedAt = performance.now();
+    refreshPlanningPrioritiesForQuestionChangesV155(state);
+    report.planningPriorityMs = Number((performance.now() - stepStartedAt).toFixed(1));
+  }
+  if (typeof repairInvalidReinforcementGoalsV157 === "function") {
+    const stepStartedAt = performance.now();
+    globalThis.__reinforcementClassificationRepairV157 = repairInvalidReinforcementGoalsV157(state);
+    report.reinforcementRepairMs = Number((performance.now() - stepStartedAt).toFixed(1));
+  }
+  if (typeof syncFactoryMaterialsPlanningV80 === "function") {
+    const stepStartedAt = performance.now();
+    const factoryReport = syncFactoryMaterialsPlanningV80(state);
+    report.factoryPlanningMs = Number((performance.now() - stepStartedAt).toFixed(1));
+    report.factoryPlanningSkipped = Boolean(factoryReport?.skipped);
+  }
+  const persistenceStartedAt = performance.now();
   persistStateSafely(options);
+  report.persistenceMs = Number((performance.now() - persistenceStartedAt).toFixed(1));
+  report.totalMs = Number((performance.now() - startedAt).toFixed(1));
+  globalThis.__aldusSavePerformanceV170 = report;
   return true;
 }
 
@@ -38279,7 +38306,11 @@ function autoSyncAfterSave(reason = "alteração") {
   if (isSyncLocked()) return;
   pendingAutoSyncReason = reason;
   clearTimeout(autoSyncTimer);
-  return runAutoSyncAfterSave(pendingAutoSyncReason);
+  autoSyncTimer = setTimeout(() => {
+    autoSyncTimer = null;
+    runAutoSyncAfterSave(pendingAutoSyncReason);
+  }, 750);
+  return autoSyncTimer;
 }
 
 function isQuotaExceededError(error) {
@@ -40329,9 +40360,61 @@ function syncFactoryModuleMaterials(item) {
 function syncAllFactoryMaterials() { ensureFactoryAgenda().forEach(syncFactoryModuleMaterials); }
 const FACTORY_MATERIALS_WORKFLOW_MIGRATION_V80 = "factoryMaterialsPlanningV80";
 const FACTORY_MATERIAL_LINK_REPAIR_MIGRATION_V85 = "factoryMaterialLinkRepairV85";
+let factoryPlanningSyncFingerprintCacheV170 = "";
+function factoryPlanningSyncFingerprintV170(targetState = state) {
+  const payload = [
+    targetState.activeContestId || "",
+    targetState.planningMode || "",
+    (targetState.syllabusItems || []).map((item) => [
+      item.id, item.discipline || item.disciplina, item.subject || item.assunto,
+      item.topic || item.topico, item.parentSyllabusItemId, item.status,
+      item.hiddenFromCatalog, item.archivedReason
+    ]),
+    (targetState.factoryAgenda || targetState.factoryItems || []).map((item) => [
+      item.id, item.disciplina || item.discipline, item.tema || item.subject,
+      item.syllabusItemId, item.syllabusItemIds, item.parentSyllabusItemId,
+      item.editalActive, item.status, item.triagemStatus, item.updatedAt,
+      item.dataPlanejada, item.prioridade, item.modules
+    ]),
+    (targetState.materials || []).map((material) => [
+      material.id, material.source, material.factoryUniqueKey,
+      material.factoryItemId, material.factoryModuleKey, material.factoryFormat,
+      material.syllabusItemId, material.syllabusItemIds, material.parentSyllabusItemId,
+      material.discipline || material.disciplina, material.subject || material.assunto,
+      material.goalId, material.link, material.available, material.updatedAt
+    ]),
+    (targetState.dailyGoals || []).map((goal) => [
+      goal.id, goal.syllabusItemId, goal.discipline || goal.disciplina,
+      goal.subject || goal.assunto, goal.date || goal.data, goal.status,
+      goal.type || goal.tipo, goal.factoryItemId, goal.materialIds, goal.hasMaterial
+    ]),
+    targetState.contestSyllabusMap || []
+  ];
+  const text = JSON.stringify(payload);
+  let hash = 2166136261;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `${text.length}:${(hash >>> 0).toString(16)}`;
+}
+function primeFactoryPlanningSyncFingerprintV170(targetState = state) {
+  factoryPlanningSyncFingerprintCacheV170 = factoryPlanningSyncFingerprintV170(targetState);
+  return factoryPlanningSyncFingerprintCacheV170;
+}
 function syncFactoryMaterialsPlanningV80(targetState = state) {
   if (targetState !== state) return { changed: false, factoryItems: 0, linkedGoals: 0, linkedMaterials: 0 };
   targetState.factoryAgenda ||= []; targetState.factoryItems ||= []; targetState.materials ||= []; targetState.dailyGoals ||= []; targetState.migrations ||= {};
+  const fingerprintBefore = factoryPlanningSyncFingerprintV170(targetState);
+  if (factoryPlanningSyncFingerprintCacheV170 === fingerprintBefore) {
+    return {
+      changed: false,
+      skipped: true,
+      factoryItems: targetState.factoryAgenda.filter((item) => item.editalActive !== false).length,
+      linkedGoals: targetState.dailyGoals.filter((goal) => goal.factoryItemId).length,
+      linkedMaterials: targetState.materials.filter((material) => material.planningGoalIds?.length).length
+    };
+  }
   const before = JSON.stringify({ factoryAgenda: targetState.factoryAgenda, materials: targetState.materials, goalLinks: targetState.dailyGoals.map((goal) => ({ id: goal.id, factoryItemId: goal.factoryItemId || "", materialIds: goal.materialIds || [], hasMaterial: Boolean(goal.hasMaterial) })) });
   const editalReport = syncFactoryWithActiveEdital();
   const agenda = ensureFactoryAgenda();
@@ -40374,7 +40457,8 @@ function syncFactoryMaterialsPlanningV80(targetState = state) {
   targetState.factoryAgenda = agenda.map(normalizeFactoryItem);
   targetState.factoryItems = targetState.factoryAgenda;
   const after = JSON.stringify({ factoryAgenda: targetState.factoryAgenda, materials: targetState.materials, goalLinks: targetState.dailyGoals.map((goal) => ({ id: goal.id, factoryItemId: goal.factoryItemId || "", materialIds: goal.materialIds || [], hasMaterial: Boolean(goal.hasMaterial) })) });
-  return { changed: before !== after, factoryItems: activeAgenda.length, linkedGoals: goals.filter((goal) => goal.factoryItemId).length, linkedMaterials: targetState.materials.filter((material) => material.planningGoalIds?.length).length, editalReport };
+  primeFactoryPlanningSyncFingerprintV170(targetState);
+  return { changed: before !== after, skipped: false, factoryItems: activeAgenda.length, linkedGoals: goals.filter((goal) => goal.factoryItemId).length, linkedMaterials: targetState.materials.filter((material) => material.planningGoalIds?.length).length, editalReport };
 }
 function migrateFactoryMaterialsPlanningV80(targetState = state) {
   targetState.migrations ||= {};
@@ -44475,6 +44559,7 @@ async function runPostInteractiveBootstrapMaintenanceV169(recoveredError) {
     const factoryMaterialLinkRepairReport = repairExistingFactoryMaterialLinksV85(state);
     window.__factoryMaterialLinkRepairReportV85 = factoryMaterialLinkRepairReport;
     if (!factoryMaterialLinkRepairReport.skipped) saveData({ markLocalChange: true });
+    primeFactoryPlanningSyncFingerprintV170(state);
   });
 
   await run("storage-diagnostics-finalization", () => {
@@ -44559,7 +44644,7 @@ async function bootstrapApplication() {
     if (recoveredError) indexedDBStatus.error = "Não foi possível carregar os dados locais. Conecte ao Google Drive ou importe um backup.";
     renderFloatingTimer();
     showStorageWarningIfNeeded();
-    showView(hashToView(), { skipScroll: true, keepMenuOpen: true });
+    showView(hashToView(), { skipScroll: true, keepMenuOpen: true, immediateRender: true });
     markStartupMilestoneV169("dataRenderedMs");
     hideBootstrapLoadingState();
     updateStorageDiagnostics();
@@ -44598,7 +44683,7 @@ function handleBootstrapFailure(error) {
   indexedDBStatus.error = "Não foi possível carregar os dados locais. Conecte ao Google Drive ou importe um backup.";
   render();
   showStorageWarningIfNeeded();
-  showView(hashToView(), { skipScroll: true, keepMenuOpen: true });
+  showView(hashToView(), { skipScroll: true, keepMenuOpen: true, immediateRender: true });
   hideBootstrapLoadingState();
   updateStorageDiagnostics();
   bootstrapStateReady = true;
@@ -45315,6 +45400,22 @@ function enhanceCollapsibleSections() {
   });
 }
 
+let pendingViewRenderTokenV170 = 0;
+function scheduleViewRenderAfterPaintV170(target) {
+  const token = ++pendingViewRenderTokenV170;
+  const run = () => {
+    if (token !== pendingViewRenderTokenV170) return;
+    if (document.documentElement.dataset.activeView !== target) return;
+    renderView(target);
+  };
+  if (typeof requestAnimationFrame === "function") {
+    requestAnimationFrame(() => setTimeout(run, 0));
+  } else {
+    setTimeout(run, 0);
+  }
+  return token;
+}
+
 function showView(viewId = hashToView(), options = {}) {
   const target = resolveViewTarget(viewId);
   document.documentElement.dataset.activeView = target;
@@ -45344,9 +45445,14 @@ function showView(viewId = hashToView(), options = {}) {
 
   if (!options.keepMenuOpen) setMobileMenuOpen(false);
   else menuToggle?.setAttribute("aria-expanded", mainMenu?.classList.contains("open") ? "true" : "false");
-  renderView(target);
   window.dispatchEvent(new CustomEvent("aldus:view-active", { detail: { view: target } }));
   if (!options.skipScroll) document.querySelector(".screen-stage")?.scrollIntoView({ block: "start" });
+  if (options.immediateRender) {
+    pendingViewRenderTokenV170 += 1;
+    renderView(target);
+  } else {
+    scheduleViewRenderAfterPaintV170(target);
+  }
 }
 
 document.addEventListener("click", (event) => {
@@ -48834,7 +48940,7 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
 (() => {
   "use strict";
 
-  const PATCH_VERSION = "20260728-interface-sem-escurecimento-v169";
+  const PATCH_VERSION = "20260728-latencia-operacional-v169";
   const CHECK_INTERVAL_MS = 15 * 60 * 1000;
   const BANNER_ID = "aldusUpdateBannerV169";
   const DIRTY_ATTRIBUTE = "data-aldus-user-edited-v169";

@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20260728-interface-sem-escurecimento-v169";
+const CURRENT_VERSION = "20260728-latencia-operacional-v169";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 const STATIC_ASSETS = [
   "./",
