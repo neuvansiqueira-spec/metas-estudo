@@ -228,12 +228,20 @@ Para cada módulo disponível, confira:
   patchPromptFunctions();
   const initializeAfterBootstrap = () => {
     migratePrompt();
-    refreshFactory();
+    if (typeof globalThis.__aldusDeferViewInitializerV169 === "function") {
+      globalThis.__aldusDeferViewInitializerV169(
+        "factory-final-review-v128",
+        "fabrica-resumos",
+        refreshFactory
+      );
+    } else {
+      refreshFactory();
+    }
   };
   if (window.__aldusBootstrapReady) initializeAfterBootstrap();
   else window.addEventListener("aldus:bootstrap-ready", initializeAfterBootstrap, { once: true });
 
   window.addEventListener("load", () => {
-    refreshFactory();
+    if (document.documentElement.dataset.activeView === "fabrica-resumos") refreshFactory();
   });
 })();

@@ -126,7 +126,9 @@
     window.addEventListener("hashchange", () => schedulePrepare(view));
   }
 
-  if (document.readyState === "loading") {
+  if (typeof globalThis.__aldusDeferViewInitializerV169 === "function") {
+    globalThis.__aldusDeferViewInitializerV169("analytics-accordion-fix-v148", "analise-estrategica", start);
+  } else if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", start, { once: true });
   } else {
     start();

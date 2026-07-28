@@ -681,6 +681,11 @@
     });
   }
 
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
-  else start();
+  if (typeof globalThis.__aldusDeferViewInitializerV169 === "function") {
+    globalThis.__aldusDeferViewInitializerV169("contest-countdown-v151", "dashboard", start);
+  } else if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start, { once: true });
+  } else {
+    start();
+  }
 })();

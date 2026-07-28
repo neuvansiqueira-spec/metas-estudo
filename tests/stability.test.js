@@ -263,7 +263,7 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker abre o app shell pelo cache e atualiza a rede em segundo plano', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /const CURRENT_VERSION = "20260728-bundle-unico-v169"/);
+  assert.match(sw, new RegExp(`const CURRENT_VERSION = "${version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`));
   assert.match(sw, /const CACHE_NAME = `metas-estudo-\$\{CURRENT_VERSION\}`/);
   assert.match(sw, /cachedNavigation/);
   assert.match(sw, /cachedStatic/);
@@ -626,8 +626,14 @@ test('bootstrap restaura o estado local e renderiza sem depender do Google Drive
   assert.match(bootstrap, /await loadPrimaryStateFromIndexedDB\(\)/);
   assert.match(bootstrap, /safeReadLocalStorageStateForBootstrap\(\)/);
   assert.match(bootstrap, /replaceState\(chosenState\)/);
-  assert.match(bootstrap, /render\(\)/);
+  assert.match(bootstrap, /renderFloatingTimer\(\)/);
   assert.match(bootstrap, /showView\(hashToView\(\)/);
+  assert.ok(
+    bootstrap.indexOf('hideBootstrapLoadingState()') < bootstrap.indexOf('runSecondaryStepV169("deferred-view-initializers"'),
+    'a interface deve ser liberada antes das etapas secundárias'
+  );
+  assert.match(bootstrap, /markStartupMilestoneV169\("dataRenderedMs"\)/);
+  assert.match(bootstrap, /markStartupMilestoneV169\("secondaryInitializationCompleteMs"\)/);
   assert.doesNotMatch(bootstrap, /getAccessToken|findSyncFile|downloadSyncFile|driveFetch|checkCloudForUpdatesAfterAuth/);
   assert.doesNotMatch(bootstrap, /ensureStartupGoogleDriveAuthorization|waitForGoogleIdentityServices|waitForStartupAuthorizationChoice|resolveStartupStateWithCloud/);
   assert.doesNotMatch(script, /STARTUP_GOOGLE_IDENTITY_TIMEOUT_MS|STARTUP_SYNC_TIMEOUT_MS|startupDriveVerificationDeferred|startupSyncInProgress|startupSyncResolved|startupSyncWriteQueue/);

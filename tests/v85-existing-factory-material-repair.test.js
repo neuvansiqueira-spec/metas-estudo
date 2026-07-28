@@ -30,12 +30,12 @@ test("V85 reprocessa uma vez os materiais já salvos e seus vínculos com metas"
   assert.match(repair, /skipped: false/);
 });
 
-test("reparo V85 ocorre na abertura antes da renderização e é persistido", () => {
+test("reparo V85 ocorre na abertura antes de liberar a interface e é persistido", () => {
   const repairCall = script.indexOf("repairExistingFactoryMaterialLinksV85(state)");
-  const renderCall = script.indexOf("renderMotivationalPhrase()", repairCall);
+  const unlockCall = script.indexOf("hideBootstrapLoadingState()", repairCall);
   assert.ok(repairCall > 0);
-  assert.ok(renderCall > repairCall);
-  assert.match(script.slice(repairCall, renderCall), /saveData\(\{ markLocalChange: true \}\)/);
+  assert.ok(unlockCall > repairCall);
+  assert.match(script.slice(repairCall, unlockCall), /saveData\(\{ markLocalChange: true \}\)/);
 });
 
 test("Contrato atual v152: V85 renova o cache, reconhece V84 e preserva a publicação em paridade", () => {

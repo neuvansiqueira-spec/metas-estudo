@@ -205,6 +205,15 @@
     Object.entries(FIELD_CONFIG).forEach(([id, config]) => enhanceSelect(document.getElementById(id), config));
   }
 
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initialize, { once: true });
-  else initialize();
+  if (typeof globalThis.__aldusDeferViewInitializerV169 === "function") {
+    globalThis.__aldusDeferViewInitializerV169(
+      "question-searchable-selects-v135",
+      ["questoes", "historico-questoes"],
+      initialize
+    );
+  } else if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initialize, { once: true });
+  } else {
+    initialize();
+  }
 })();

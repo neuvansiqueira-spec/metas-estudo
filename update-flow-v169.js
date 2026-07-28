@@ -1,12 +1,15 @@
 (() => {
   "use strict";
 
-  const PATCH_VERSION = "20260728-bundle-unico-v169";
+  const PATCH_VERSION = "20260728-interatividade-atualizacao-v169";
   const CHECK_INTERVAL_MS = 15 * 60 * 1000;
   const BANNER_ID = "aldusUpdateBannerV169";
+  const DIRTY_ATTRIBUTE = "data-aldus-user-edited-v169";
+  const CONTROLLER_RELOAD_GUARD = "aldus:v169:controller-reload";
   let lastCheckAt = 0;
   let registrationRef = null;
   let hadController = Boolean(navigator.serviceWorker?.controller);
+  let deferredControllerReload = false;
   const watchedRegistrations = new WeakSet();
 
   if (typeof document === "undefined" || !("serviceWorker" in navigator) || globalThis.__ALDUS_UPDATE_FLOW_V169__) return;
@@ -61,20 +64,108 @@
   }
 
   function hasActiveEditing() {
-    const active = document.activeElement;
-    if (active?.matches?.("input, textarea, select, [contenteditable='true']")) {
-      return Boolean(String(active.value ?? active.textContent ?? "").trim());
-    }
-    return [...document.querySelectorAll("form input, form textarea, form select")]
-      .some((field) => {
-        if (field.disabled || field.type === "hidden" || field.type === "submit" || field.type === "button") return false;
-        if (field.type === "checkbox" || field.type === "radio") return field.checked && field.defaultChecked !== field.checked;
-        return String(field.value ?? "") !== String(field.defaultValue ?? "");
-      });
+    return Boolean(document.querySelector(`[${DIRTY_ATTRIBUTE}="true"]`));
+  }
+
+  function editingContainer(target) {
+    if (!target?.closest) return null;
+    return target.closest("form") || target.closest("input, textarea, select, [contenteditable='true']");
+  }
+
+  function markUserEditing(event) {
+    if (!event?.isTrusted) return;
+    const container = editingContainer(event.target);
+    if (container) container.setAttribute(DIRTY_ATTRIBUTE, "true");
+  }
+
+  function clearUserEditing(target) {
+    const container = target?.matches?.(`[${DIRTY_ATTRIBUTE}]`)
+      ? target
+      : editingContainer(target);
+    container?.removeAttribute(DIRTY_ATTRIBUTE);
+  }
+
+  function buttonFinishesEditing(button) {
+    if (!button) return false;
+    if (button.type === "submit" || button.type === "reset") return true;
+    const intent = [
+      button.id,
+      button.name,
+      button.value,
+      button.textContent,
+      ...Object.values(button.dataset || {})
+    ].filter(Boolean).join(" ");
+    return /\b(salvar|cancelar|confirmar|concluir)\b/i.test(intent);
+  }
+
+  function installEditingGuard() {
+    document.addEventListener("input", markUserEditing, true);
+    document.addEventListener("change", markUserEditing, true);
+    document.addEventListener("reset", (event) => clearUserEditing(event.target), true);
+    document.addEventListener("submit", (event) => clearUserEditing(event.target), true);
+    document.addEventListener("click", (event) => {
+      if (!event.isTrusted) return;
+      const button = event.target?.closest?.("button, input[type='submit'], input[type='reset']");
+      if (buttonFinishesEditing(button)) queueMicrotask(() => clearUserEditing(button));
+    }, true);
+    window.addEventListener("aldus:editing-saved", (event) => clearUserEditing(event.detail?.form || event.target));
+    window.addEventListener("aldus:editing-cancelled", (event) => clearUserEditing(event.detail?.form || event.target));
   }
 
   function safeToReload() {
     return !hasActiveTimer() && !hasActiveEditing();
+  }
+
+  function workerSuffix(worker) {
+    const match = String(worker?.scriptURL || "").match(/service-worker-(v\d+)\.js/i);
+    return match?.[1]?.toLowerCase() || "";
+  }
+
+  function visibleSuffix() {
+    return String(globalThis.__ALDUS_APP_RELEASE__?.suffix || "").toLowerCase();
+  }
+
+  function pendingWorker(registration = registrationRef) {
+    const waiting = registration?.waiting;
+    if (waiting) return waiting;
+    const installing = registration?.installing;
+    if (installing && !["redundant", "activated"].includes(installing.state)) return installing;
+    return null;
+  }
+
+  function currentReleaseAlreadyActive(registration = registrationRef) {
+    const visible = visibleSuffix();
+    const controller = workerSuffix(navigator.serviceWorker?.controller);
+    return Boolean(
+      visible
+      && visible === "v169"
+      && controller === visible
+      && !pendingWorker(registration)
+    );
+  }
+
+  function shouldShowUpdateReady(registration = registrationRef) {
+    if (deferredControllerReload) return true;
+    if (!pendingWorker(registration)) return false;
+    return !currentReleaseAlreadyActive(registration);
+  }
+
+  function reloadGuardToken() {
+    return pendingWorker()?.scriptURL
+      || navigator.serviceWorker?.controller?.scriptURL
+      || PATCH_VERSION;
+  }
+
+  function reloadOnce(reason) {
+    const token = reloadGuardToken();
+    try {
+      if (sessionStorage.getItem(CONTROLLER_RELOAD_GUARD) === token) return false;
+      sessionStorage.setItem(CONTROLLER_RELOAD_GUARD, token);
+    } catch {}
+    deferredControllerReload = false;
+    console.info("[Aldus v169] Atualização segura da interface.", { reason });
+    location.reload();
+    return true;
   }
 
   function ensureBanner() {
@@ -99,15 +190,28 @@
         if (message) message.textContent = "Finalize o preenchimento ou pause e salve o cronômetro antes de atualizar.";
         return;
       }
-      location.reload();
+      const waiting = registrationRef?.waiting;
+      waiting?.postMessage?.({ type: "SKIP_WAITING" });
+      reloadOnce("update-button");
     });
     document.body.appendChild(banner);
     return banner;
   }
 
   function showUpdateReady() {
+    if (!shouldShowUpdateReady()) {
+      const existingBanner = document.getElementById(BANNER_ID);
+      if (existingBanner) existingBanner.hidden = true;
+      return false;
+    }
     injectStyles();
     ensureBanner().hidden = false;
+    return true;
+  }
+
+  function hideRedundantUpdateReady() {
+    const banner = document.getElementById(BANNER_ID);
+    if (banner && !shouldShowUpdateReady()) banner.hidden = true;
   }
 
   function watchRegistration(registration) {
@@ -118,6 +222,7 @@
       if (!installing) return;
       installing.addEventListener("statechange", () => {
         if (installing.state === "installed" && navigator.serviceWorker.controller) showUpdateReady();
+        if (["activated", "redundant"].includes(installing.state)) hideRedundantUpdateReady();
       });
     });
   }
@@ -130,7 +235,8 @@
       registrationRef ||= await navigator.serviceWorker.ready;
       watchRegistration(registrationRef);
       await registrationRef.update();
-      if (registrationRef.waiting) showUpdateReady();
+      if (shouldShowUpdateReady(registrationRef)) showUpdateReady();
+      else hideRedundantUpdateReady();
       return true;
     } catch (error) {
       console.warn("[Aldus v169] Não foi possível verificar atualização agora.", error);
@@ -145,11 +251,19 @@
   function install() {
     injectStyles();
     ensureBanner();
+    installEditingGuard();
     navigator.serviceWorker.addEventListener("controllerchange", () => {
       if (!hadController) {
         hadController = true;
+        hideRedundantUpdateReady();
         return;
       }
+      hadController = true;
+      if (safeToReload()) {
+        reloadOnce("controllerchange");
+        return;
+      }
+      deferredControllerReload = true;
       showUpdateReady();
     });
     window.addEventListener("focus", () => checkForUpdate());
@@ -166,7 +280,12 @@
         version: PATCH_VERSION,
         installedAt: new Date().toISOString(),
         navigationMode: "cache-first-network-background",
-        reloadMode: "user-confirmed-safe-state"
+        reloadMode: "single-safe-controller-reload",
+        hasActiveEditing,
+        hasActiveTimer,
+        safeToReload,
+        shouldShowUpdateReady,
+        clearUserEditing
       }),
       configurable: false,
       enumerable: false,

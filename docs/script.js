@@ -8153,6 +8153,118 @@ document.addEventListener("change", (event) => { const mode = event.target.close
 document.addEventListener("click", (event) => { const button = event.target.closest?.("button[data-open-material-estimate]"); if (button) { event.preventDefault(); openMaterialEstimateInPlanning(button.dataset.openMaterialEstimate); } });
 document.addEventListener("click", (event) => { const openUrl = event.target.closest("button[data-open-url]"); if (openUrl && isValidHttpUrl(openUrl.dataset.openUrl)) window.open(openUrl.dataset.openUrl, "_blank", "noopener"); const open = event.target.closest("button[data-open-material]"); const create = event.target.closest("button[data-create-goal-material]"); const edit = event.target.closest("button[data-edit-material]"); const del = event.target.closest("button[data-delete-material]"); const use = event.target.closest("button[data-use-material-study]"); const calcEstimate = event.target.closest("button[data-calculate-material-estimate]"); const saveEstimate = event.target.closest("button[data-save-material-estimate]"); const updateMaterialGoals = event.target.closest("button[data-update-material-goals]"); if (updateMaterialGoals) { event.preventDefault(); updateFuturePendingGoalsForMaterial(updateMaterialGoals.dataset.updateMaterialGoals); } if (calcEstimate) { event.preventDefault(); previewMaterialEstimate(calcEstimate); } if (saveEstimate) { event.preventDefault(); saveMaterialEstimate(saveEstimate); } if (open) openMaterial(open.dataset.openMaterial); if (use) { const material = state.materials.find((m) => m.id === use.dataset.useMaterialStudy); if (material) { showView("dashboard"); const subject = state.subjects.find((item) => canonical(item.name) === canonical(material.discipline)); if (subject) elements.studySubject.value = subject.id; elements.studyTopic.value = material.subject || ""; updateStudyMaterialOptions(); if (elements.studyMaterial) elements.studyMaterial.value = material.id; } } if (create) startMaterialForGoal(create.dataset.discipline, create.dataset.subject); if (edit) editMaterial(edit.dataset.editMaterial); if (del && confirm("Excluir este material?")) { state.materials = state.materials.filter((m)=>m.id!==del.dataset.deleteMaterial); render(); } });
 
+const startupMetricsV169 = globalThis.__aldusStartupMetricsV169 ||= {
+  startedAtMs: Number(performance.now().toFixed(1)),
+  htmlVisibleMs: null,
+  dataRenderedMs: null,
+  interfaceInteractiveMs: null,
+  secondaryInitializationCompleteMs: null,
+  secondarySteps: [],
+  deferredViewModules: {}
+};
+function markStartupMilestoneV169(key) {
+  if (startupMetricsV169[key] !== null) return startupMetricsV169[key];
+  const value = Number(performance.now().toFixed(1));
+  startupMetricsV169[key] = value;
+  try { performance.mark(`aldus:${key}`); } catch {}
+  return value;
+}
+function scheduleHtmlVisibleMilestoneV169() {
+  const mark = () => markStartupMilestoneV169("htmlVisibleMs");
+  if (typeof requestAnimationFrame === "function") requestAnimationFrame(mark);
+  else setTimeout(mark, 0);
+}
+function waitForInteractivePaintV169() {
+  return new Promise((resolve) => {
+    let completed = false;
+    const finish = () => {
+      if (completed) return;
+      completed = true;
+      markStartupMilestoneV169("interfaceInteractiveMs");
+      resolve();
+    };
+    const fallback = setTimeout(finish, 100);
+    if (typeof requestAnimationFrame !== "function") return;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      clearTimeout(fallback);
+      finish();
+    }));
+  });
+}
+function yieldSecondaryInitializationV169() {
+  return new Promise((resolve) => {
+    let completed = false;
+    const finish = () => {
+      if (completed) return;
+      completed = true;
+      resolve();
+    };
+    if (typeof requestIdleCallback === "function") {
+      requestIdleCallback(finish, { timeout: 120 });
+      return;
+    }
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(() => setTimeout(finish, 0));
+      return;
+    }
+    setTimeout(finish, 0);
+  });
+}
+async function runSecondaryStepV169(name, callback) {
+  await yieldSecondaryInitializationV169();
+  const startedAt = performance.now();
+  const result = callback();
+  startupMetricsV169.secondarySteps.push({
+    name,
+    durationMs: Number((performance.now() - startedAt).toFixed(1))
+  });
+  return result;
+}
+function deferViewInitializerV169(name, viewIds, initialize) {
+  const views = new Set(Array.isArray(viewIds) ? viewIds : [viewIds]);
+  const report = startupMetricsV169.deferredViewModules[name] ||= {
+    views: [...views],
+    registeredAtMs: Number(performance.now().toFixed(1)),
+    startedAtMs: null,
+    completedAtMs: null,
+    durationMs: null
+  };
+  let initialized = false;
+  let scheduled = false;
+
+  const activeView = () => document.documentElement.dataset.activeView
+    || String(window.location.hash || "#dashboard").replace(/^#/, "")
+    || "dashboard";
+  const attempt = (event) => {
+    if (initialized || scheduled || !globalThis.__aldusBootstrapReady) return;
+    const target = event?.detail?.view || activeView();
+    if (!views.has(target)) return;
+    scheduled = true;
+    const run = () => {
+      if (initialized) return;
+      scheduled = false;
+      if (!views.has(activeView())) return;
+      const startedAt = performance.now();
+      report.startedAtMs = Number(startedAt.toFixed(1));
+      initialize();
+      initialized = true;
+      report.completedAtMs = Number(performance.now().toFixed(1));
+      report.durationMs = Number((performance.now() - startedAt).toFixed(1));
+    };
+    if (typeof requestIdleCallback === "function") requestIdleCallback(run, { timeout: 200 });
+    else if (typeof requestAnimationFrame === "function") requestAnimationFrame(run);
+    else setTimeout(run, 0);
+  };
+
+  window.addEventListener("aldus:view-active", attempt);
+  window.addEventListener("aldus:core-interactive", attempt, { once: true });
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", attempt, { once: true });
+  else queueMicrotask(() => attempt());
+  return Object.freeze({ name, views: [...views], attempt });
+}
+globalThis.__aldusDeferViewInitializerV169 = deferViewInitializerV169;
+scheduleHtmlVisibleMilestoneV169();
+
 function showBootstrapLoadingState() {
   const loading = document.getElementById("appLoadingState");
   if (loading) loading.hidden = false;
@@ -8285,12 +8397,32 @@ async function bootstrapApplication() {
     indexedDBStatus.migration = indexedDBStatus.migration === "erro" ? "erro" : "concluída";
     indexedDBStatus.bootstrap = recoveredError ? "erro recuperado" : "concluída";
     if (recoveredError) indexedDBStatus.error = "Não foi possível carregar os dados locais. Conecte ao Google Drive ou importe um backup.";
-    render();
+    renderFloatingTimer();
     showStorageWarningIfNeeded();
     showView(hashToView(), { skipScroll: true, keepMenuOpen: true });
-  } finally {
+    markStartupMilestoneV169("dataRenderedMs");
     hideBootstrapLoadingState();
     updateStorageDiagnostics();
+    await waitForInteractivePaintV169();
+    window.dispatchEvent(new CustomEvent("aldus:core-interactive", {
+      detail: { ...startupMetricsV169 }
+    }));
+    await runSecondaryStepV169("deferred-view-initializers", () => {
+      const deferredReports = Object.values(startupMetricsV169.deferredViewModules);
+      startupMetricsV169.secondaryViewModules = {
+        registered: deferredReports.length,
+        initialized: deferredReports.filter((report) => report.completedAtMs !== null).length,
+        deferredUntilOpened: deferredReports
+          .filter((report) => report.completedAtMs === null)
+          .map((report) => report.views)
+      };
+    });
+    markStartupMilestoneV169("secondaryInitializationCompleteMs");
+    window.dispatchEvent(new CustomEvent("aldus:secondary-initialization-complete", {
+      detail: { ...startupMetricsV169 }
+    }));
+  } finally {
+    hideBootstrapLoadingState();
   }
 }
 function handleBootstrapFailure(error) {
@@ -9029,6 +9161,7 @@ function showView(viewId = hashToView(), options = {}) {
   if (!options.keepMenuOpen) setMobileMenuOpen(false);
   else menuToggle?.setAttribute("aria-expanded", mainMenu?.classList.contains("open") ? "true" : "false");
   renderView(target);
+  window.dispatchEvent(new CustomEvent("aldus:view-active", { detail: { view: target } }));
   if (!options.skipScroll) document.querySelector(".screen-stage")?.scrollIntoView({ block: "start" });
 }
 
