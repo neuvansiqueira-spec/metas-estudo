@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260728-interatividade-atualizacao-v169";
+  const VERSION = "20260728-bootstrap-interativo-v169";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -44252,10 +44252,18 @@ const startupMetricsV169 = globalThis.__aldusStartupMetricsV169 ||= {
   secondarySteps: [],
   deferredViewModules: {}
 };
+const startupMetricAttributesV169 = {
+  htmlVisibleMs: "data-aldus-html-visible-ms",
+  dataRenderedMs: "data-aldus-data-rendered-ms",
+  interfaceInteractiveMs: "data-aldus-interface-interactive-ms",
+  secondaryInitializationCompleteMs: "data-aldus-secondary-complete-ms"
+};
 function markStartupMilestoneV169(key) {
   if (startupMetricsV169[key] !== null) return startupMetricsV169[key];
   const value = Number(performance.now().toFixed(1));
   startupMetricsV169[key] = value;
+  const attribute = startupMetricAttributesV169[key];
+  if (attribute) document.documentElement?.setAttribute(attribute, String(value));
   try { performance.mark(`aldus:${key}`); } catch {}
   return value;
 }
@@ -44386,6 +44394,97 @@ async function persistBootstrapStateToIndexedDB(snapshot) {
   if (!validateIndexedDBState(reloaded)) throw new Error("A validação do bootstrap no IndexedDB falhou.");
   return result;
 }
+async function runPostInteractiveBootstrapMaintenanceV169(recoveredError) {
+  const report = startupMetricsV169.bootstrapMaintenance ||= {
+    startedAtMs: null,
+    completedAtMs: null,
+    durationMs: null,
+    errors: []
+  };
+  const startedAt = performance.now();
+  report.startedAtMs = Number(startedAt.toFixed(1));
+
+  const run = async (name, callback) => {
+    try {
+      return await runSecondaryStepV169(name, callback);
+    } catch (error) {
+      const message = String(error?.message || error);
+      report.errors.push({ name, message });
+      console.error(`[Metas Estudo] Manutenção secundária falhou em ${name}.`, error);
+      return null;
+    }
+  };
+
+  await run("daily-planning-repairs", () => {
+    const replacementRepairReportV108 = globalThis.__dailyPlanningInflationRepairV108 || { changed: false, removed: [], reports: [] };
+    const legacyDailyPlanningRepairV108 = repairDailyPlanningInflationV108(state, { source: "bootstrap-legacy" });
+    const dailyPlanningRepairV108 = {
+      changed: replacementRepairReportV108.changed || legacyDailyPlanningRepairV108.changed,
+      removed: [...(replacementRepairReportV108.removed || []), ...(legacyDailyPlanningRepairV108.removed || [])],
+      reports: [...(replacementRepairReportV108.reports || []), ...(legacyDailyPlanningRepairV108.reports || [])]
+    };
+    window.__dailyPlanningInflationRepairV108 = dailyPlanningRepairV108;
+    const dailyPlanningMethodologyV117 = reconcileDailyGoalsWithPlanning(state, todayISO());
+    window.__dailyPlanningMethodologyV117 = dailyPlanningMethodologyV117;
+    if (dailyPlanningRepairV108.changed || dailyPlanningMethodologyV117.added.length || dailyPlanningMethodologyV117.removed.length) saveData({ markLocalChange: true });
+  });
+
+  await run("factory-material-sync", () => {
+    syncAllFactoryMaterials();
+  });
+
+  await run("goal-integrity-repairs", () => {
+    const goalIntegrityReport = repairAutomaticGoalDuplicatesV75(state);
+    window.__goalIntegrityReportV75 = goalIntegrityReport;
+    if (goalIntegrityReport.changed) saveData({ markLocalChange: true });
+    const completedGoalIntegrityReport = repairCompletedPlanningGoalsV76(state);
+    window.__completedGoalIntegrityReportV76 = completedGoalIntegrityReport;
+    if (completedGoalIntegrityReport.changed) saveData({ markLocalChange: true });
+  });
+
+  await run("future-planning-rebalance", () => {
+    const planningDistributionReport = rebalanceFuturePlanningGoalsV77(state);
+    window.__planningDistributionReportV77 = planningDistributionReport;
+    if (!planningDistributionReport.skipped) saveData({ markLocalChange: true });
+  });
+
+  await run("weekly-planning-rebalance", () => {
+    const balancedWeeklyReport = rebalanceCurrentWeekV78(state);
+    window.__balancedWeeklyReportV78 = balancedWeeklyReport;
+    if (!balancedWeeklyReport.skipped) saveData({ markLocalChange: true });
+  });
+
+  await run("monthly-planning-rebalance", () => {
+    const balancedMonthlyReport = rebalanceCurrentMonthV79(state);
+    window.__balancedMonthlyReportV79 = balancedMonthlyReport;
+    if (!balancedMonthlyReport.skipped) saveData({ markLocalChange: true });
+  });
+
+  await run("factory-planning-maintenance", () => {
+    const factoryMaterialsWorkflowReport = migrateFactoryMaterialsPlanningV80(state);
+    window.__factoryMaterialsWorkflowReportV80 = factoryMaterialsWorkflowReport;
+    if (!factoryMaterialsWorkflowReport.skipped) saveData({ markLocalChange: true });
+    const factoryMaterialLinkRepairReport = repairExistingFactoryMaterialLinksV85(state);
+    window.__factoryMaterialLinkRepairReportV85 = factoryMaterialLinkRepairReport;
+    if (!factoryMaterialLinkRepairReport.skipped) saveData({ markLocalChange: true });
+  });
+
+  await run("storage-diagnostics-finalization", () => {
+    indexedDBStatus.size = estimateSerializedStateSize(state);
+    indexedDBStatus.migration = indexedDBStatus.migration === "erro" ? "erro" : "concluída";
+    indexedDBStatus.bootstrap = recoveredError ? "erro recuperado" : "concluída";
+    if (recoveredError) indexedDBStatus.error = "Não foi possível carregar os dados locais. Conecte ao Google Drive ou importe um backup.";
+    updateStorageDiagnostics();
+  });
+
+  report.completedAtMs = Number(performance.now().toFixed(1));
+  report.durationMs = Number((performance.now() - startedAt).toFixed(1));
+  document.documentElement?.setAttribute("data-aldus-bootstrap-maintenance-ms", String(report.durationMs));
+  window.dispatchEvent(new CustomEvent("aldus:post-bootstrap-maintenance-complete", {
+    detail: { ...report }
+  }));
+  return report;
+}
 async function bootstrapApplication() {
   showBootstrapLoadingState();
   let chosenState = null;
@@ -44441,51 +44540,14 @@ async function bootstrapApplication() {
       : { changed: false, blocked: true };
     bootstrapStateReady = true;
     globalThis.__aldusBootstrapReady = true;
-    window.dispatchEvent(new CustomEvent("aldus:bootstrap-ready"));
-    saveData();
     const legacyGoalIdRecoveryReport = recoverLegacyTimerMinutesForGoals(state);
     const legacyOrphanRecoveryReport = recoverOrphanLegacyTimerMinutesForGoals(state);
     const legacyTimerRecoveryReport = mergeLegacyTimerRecoveryReports(legacyGoalIdRecoveryReport, legacyOrphanRecoveryReport);
     window.__legacyTimerRecoveryReport = legacyTimerRecoveryReport;
     console.info("[Metas Estudo] Recuperação de tempos antigos", legacyTimerRecoveryReport);
     if (legacyTimerRecoveryReport.recoveredMinutes) saveData({ markLocalChange: true });
-    const replacementRepairReportV108 = globalThis.__dailyPlanningInflationRepairV108 || { changed: false, removed: [], reports: [] };
-    const legacyDailyPlanningRepairV108 = repairDailyPlanningInflationV108(state, { source: "bootstrap-legacy" });
-    const dailyPlanningRepairV108 = {
-      changed: replacementRepairReportV108.changed || legacyDailyPlanningRepairV108.changed,
-      removed: [...(replacementRepairReportV108.removed || []), ...(legacyDailyPlanningRepairV108.removed || [])],
-      reports: [...(replacementRepairReportV108.reports || []), ...(legacyDailyPlanningRepairV108.reports || [])]
-    };
-    window.__dailyPlanningInflationRepairV108 = dailyPlanningRepairV108;
-    const dailyPlanningMethodologyV117 = reconcileDailyGoalsWithPlanning(state, todayISO());
-    window.__dailyPlanningMethodologyV117 = dailyPlanningMethodologyV117;
-    if (dailyPlanningRepairV108.changed || dailyPlanningMethodologyV117.added.length || dailyPlanningMethodologyV117.removed.length) saveData({ markLocalChange: true });
-    syncAllFactoryMaterials();
-    const goalIntegrityReport = repairAutomaticGoalDuplicatesV75(state);
-    window.__goalIntegrityReportV75 = goalIntegrityReport;
-    if (goalIntegrityReport.changed) saveData({ markLocalChange: true });
-    const completedGoalIntegrityReport = repairCompletedPlanningGoalsV76(state);
-    window.__completedGoalIntegrityReportV76 = completedGoalIntegrityReport;
-    if (completedGoalIntegrityReport.changed) saveData({ markLocalChange: true });
-    const planningDistributionReport = rebalanceFuturePlanningGoalsV77(state);
-    window.__planningDistributionReportV77 = planningDistributionReport;
-    if (!planningDistributionReport.skipped) saveData({ markLocalChange: true });
-    const balancedWeeklyReport = rebalanceCurrentWeekV78(state);
-    window.__balancedWeeklyReportV78 = balancedWeeklyReport;
-    if (!balancedWeeklyReport.skipped) saveData({ markLocalChange: true });
-    const balancedMonthlyReport = rebalanceCurrentMonthV79(state);
-    window.__balancedMonthlyReportV79 = balancedMonthlyReport;
-    if (!balancedMonthlyReport.skipped) saveData({ markLocalChange: true });
-    const factoryMaterialsWorkflowReport = migrateFactoryMaterialsPlanningV80(state);
-    window.__factoryMaterialsWorkflowReportV80 = factoryMaterialsWorkflowReport;
-    if (!factoryMaterialsWorkflowReport.skipped) saveData({ markLocalChange: true });
-    const factoryMaterialLinkRepairReport = repairExistingFactoryMaterialLinksV85(state);
-    window.__factoryMaterialLinkRepairReportV85 = factoryMaterialLinkRepairReport;
-    if (!factoryMaterialLinkRepairReport.skipped) saveData({ markLocalChange: true });
     renderMotivationalPhrase();
-    indexedDBStatus.size = estimateSerializedStateSize(state);
-    indexedDBStatus.migration = indexedDBStatus.migration === "erro" ? "erro" : "concluída";
-    indexedDBStatus.bootstrap = recoveredError ? "erro recuperado" : "concluída";
+    indexedDBStatus.bootstrap = recoveredError ? "erro recuperado" : "núcleo interativo";
     if (recoveredError) indexedDBStatus.error = "Não foi possível carregar os dados locais. Conecte ao Google Drive ou importe um backup.";
     renderFloatingTimer();
     showStorageWarningIfNeeded();
@@ -44497,6 +44559,11 @@ async function bootstrapApplication() {
     window.dispatchEvent(new CustomEvent("aldus:core-interactive", {
       detail: { ...startupMetricsV169 }
     }));
+    await runSecondaryStepV169("bootstrap-ready-persistence", () => {
+      window.dispatchEvent(new CustomEvent("aldus:bootstrap-ready"));
+      saveData();
+    });
+    await runPostInteractiveBootstrapMaintenanceV169(recoveredError);
     await runSecondaryStepV169("deferred-view-initializers", () => {
       const deferredReports = Object.values(startupMetricsV169.deferredViewModules);
       startupMetricsV169.secondaryViewModules = {
@@ -48740,7 +48807,7 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
 (() => {
   "use strict";
 
-  const PATCH_VERSION = "20260728-interatividade-atualizacao-v169";
+  const PATCH_VERSION = "20260728-bootstrap-interativo-v169";
   const CHECK_INTERVAL_MS = 15 * 60 * 1000;
   const BANNER_ID = "aldusUpdateBannerV169";
   const DIRTY_ATTRIBUTE = "data-aldus-user-edited-v169";

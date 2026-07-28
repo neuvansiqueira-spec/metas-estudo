@@ -184,7 +184,9 @@ for (const filename of [
   "reinforcement-goal-presentation-v156.js", "contest-countdown-v151.js",
   "performance-practical-v143.js", "analytics-collapsibles-v145.js",
   "calendar-month-visibility-v131.js", "factory-executive-ui-v136.js",
-  "question-board-result-v141.js", "question-scoring-rule-v142.js"
+  "question-board-result-v141.js", "question-scoring-rule-v142.js",
+  "question-register-simple-v162.js", "factory-simple-v163.js",
+  "factory-polish-v164.js"
 ]) {
   fs.copyFileSync(path.join(root, filename), path.join(root, "docs", filename));
 }
