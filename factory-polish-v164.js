@@ -145,17 +145,13 @@
     document.head.appendChild(style);
   }
 
-  function install(attempt = 0) {
+  function install() {
     const view = document.getElementById("view-fabrica-resumos");
     const summary = document.getElementById("factorySummary");
     const simpleStyles = document.getElementById("factorySimpleStylesV163");
 
     if (!view || !summary || !simpleStyles || view.dataset.factorySimpleV163 !== "true") {
-      if (attempt >= 240) {
-        console.error("[Fábrica v164] O polimento visual não pôde ser instalado. Nenhum dado foi alterado.");
-        return;
-      }
-      setTimeout(() => install(attempt + 1), 50);
+      console.error("[Fábrica v164] O polimento visual não pôde ser instalado. Nenhum dado foi alterado.");
       return;
     }
 

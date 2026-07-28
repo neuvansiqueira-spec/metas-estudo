@@ -1,70 +1,84 @@
 "use strict";
 
-const ALDUS_V167_RELEASE = "20260727-inicializacao-unica-segura-v167";
+const CURRENT_VERSION = "20260728-carregamento-direto-v168";
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
+const STATIC_ASSETS = [
+  "./",
+  "index.html",
+  `app-v168.css?v=${CURRENT_VERSION}`,
+  `app-v168.js?v=${CURRENT_VERSION}`,
+  "manifest.json",
+  "icons/aldus-visual.png",
+  "icons/aldus-brand-mark-v93.png",
+  "icons/logo-mark.svg",
+  "icons/icon.svg",
+  "icons/icon-maskable.svg"
+];
+const STATIC_PATHS = new Set(STATIC_ASSETS.map((asset) => new URL(asset, self.registration.scope).pathname));
 
-async function aldusInstantNavigationV167(event) {
-  const request = event.request;
-  const networkPromise = fetchFreshNavigation(request).catch(() => null);
-  event.waitUntil(networkPromise.then(() => undefined));
+self.addEventListener("install", (event) => {
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS)));
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys()
+      .then((cacheNames) => Promise.all(
+        cacheNames
+          .filter((cacheName) => cacheName.startsWith("metas-estudo-") && cacheName !== CACHE_NAME)
+          .map((cacheName) => caches.delete(cacheName))
+      ))
+      .then(() => self.clients.claim())
+  );
+});
+
+async function putStaticResponse(request, response) {
+  if (!response?.ok) return response;
+  const cache = await caches.open(CACHE_NAME);
+  await cache.put(request, response.clone());
+  return response;
+}
+
+function fetchAndCache(request) {
+  return fetch(request, { cache: "no-store" })
+    .then((response) => putStaticResponse(request, response));
+}
+
+async function cachedNavigation(request, event) {
+  const network = fetchAndCache(request).catch(() => null);
+  event.waitUntil(network.then(() => undefined));
 
   const cached = await caches.match(request, { ignoreSearch: true })
-    || await caches.match("index.html", { ignoreSearch: true });
+    || await caches.match(new URL("index.html", self.registration.scope).href, { ignoreSearch: true });
+  if (cached) return cached;
 
-  if (cached) {
-    return patchTextResponse(cached, patchHtmlSource, "text/html; charset=utf-8");
-  }
-
-  const fresh = await networkPromise;
-  if (fresh?.ok) return fresh;
-
-  return new Response("Aplicativo indisponível temporariamente.", {
+  const fresh = await network;
+  return fresh || new Response("Aplicativo indisponível temporariamente.", {
     status: 503,
     headers: { "content-type": "text/plain; charset=utf-8" }
   });
 }
 
-async function aldusCurrentVersionV167(event) {
-  const request = event.request;
-  const networkPromise = fetch(request, { cache: "no-store" })
-    .then(async (response) => {
-      if (response?.ok) await cacheResponse(request, response.clone());
-      return response;
-    })
-    .catch(() => null);
-
-  event.waitUntil(networkPromise.then(() => undefined));
-
-  const exact = await caches.match(request);
-  if (exact) return exact;
-
-  const compatible = requestTargetsCurrentVersion(request)
-    ? await caches.match(request, { ignoreSearch: true })
-    : null;
-  if (compatible) return compatible;
-
-  const fresh = await networkPromise;
-  if (fresh?.ok) return fresh;
-
-  return new Response("Versão indisponível temporariamente.", {
-    status: 503,
-    headers: { "content-type": "application/javascript; charset=utf-8" }
-  });
+async function cachedStatic(request, event) {
+  const network = fetchAndCache(request).catch(() => null);
+  event.waitUntil(network.then(() => undefined));
+  const cached = await caches.match(request, { ignoreSearch: true });
+  return cached || await network || new Response("Recurso indisponível temporariamente.", { status: 503 });
 }
 
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
-  const url = new URL(event.request.url);
+  const request = event.request;
+  if (request.method !== "GET") return;
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
 
-  if (event.request.mode === "navigate" || event.request.destination === "document") {
-    event.respondWith(aldusInstantNavigationV167(event));
-    event.stopImmediatePropagation();
+  if (request.mode === "navigate" || request.destination === "document") {
+    event.respondWith(cachedNavigation(request, event));
     return;
   }
 
-  if (url.pathname.endsWith("/app-version.js")) {
-    event.respondWith(aldusCurrentVersionV167(event));
-    event.stopImmediatePropagation();
+  if (STATIC_PATHS.has(url.pathname)) {
+    event.respondWith(cachedStatic(request, event));
   }
 });
-
-importScripts(`./service-worker-v158.js?v=${ALDUS_V167_RELEASE}`);
