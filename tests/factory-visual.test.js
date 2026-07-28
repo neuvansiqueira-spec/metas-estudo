@@ -95,7 +95,8 @@ test('prompts internos oficiais não foram alterados em relação ao commit base
 test('armazenamento mantém cópia local síncrona e persistência primária no IndexedDB', () => {
   assert.match(script, /Fonte principal: <strong>localStorage<\/strong>/);
   assert.match(script, /function saveData\(options = \{\}\)[\s\S]*persistStateSafely\(options\)/);
-  assert.match(script, /localStorage\.setItem\(STORAGE_KEY, JSON\.stringify\(state\)\)/);
+  assert.match(script, /localStorage\.setItem\(STORAGE_KEY, serializedState\)/);
+  assert.match(script, /serializedState\.length > LOCAL_STORAGE_SAFE_STATE_BYTES/);
   assert.match(script, /queueIndexedDBStateCopy\(\)/);
   assert.match(script, /loadPrimaryStateFromIndexedDB\(\)/);
   assert.match(script, /initializeIndexedDBBackup\(\)/);
