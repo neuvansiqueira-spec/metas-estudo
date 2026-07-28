@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260728-carregamento-direto-v168";
+  const VERSION = "20260728-bundle-unico-v169";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260728-carregamento-direto-v168";
+  const VERSION = "20260728-bundle-unico-v169";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -3471,23 +3471,7 @@ function installSyncDeletionTracking() {
   }
 }
 
-const TIMER_MATERIAL_LINK_FIX_VERSION = "20260717-material-cronometro-v40";
-function installTimerMaterialLinkFixAsset() {
-  if (typeof document === "undefined" || globalThis.__metasTimerMaterialLinkFixAssetV40) return;
-  globalThis.__metasTimerMaterialLinkFixAssetV40 = true;
-  const load = () => {
-    if (globalThis.MetasTimerMaterialLinkFix || document.querySelector('script[data-timer-material-link-fix="v40"]')) return;
-    const script = document.createElement("script");
-    script.src = `timer-material-link-fix.js?v=${TIMER_MATERIAL_LINK_FIX_VERSION}`;
-    script.dataset.timerMaterialLinkFix = "v40";
-    (document.head || document.documentElement).appendChild(script);
-  };
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", load, { once: true });
-  else setTimeout(load, 0);
-}
-
 installSyncDeletionTracking();
-installTimerMaterialLinkFixAsset();
 
 /* Aldus source: sync-integral-state.js */
 function syncMergeCollection(localList = [], remoteList = [], collection = "records", prefer = "remote") {
@@ -45161,14 +45145,6 @@ window.addEventListener("hashchange", () => showView(hashToView()));
 enhanceCollapsibleSections();
 restoreFloatingTimerSession();
 
-const INTEGRAL_SYNC_ENHANCEMENT_FILES = [
-  "sync-integral-core.js",
-  "sync-integral-deletions.js",
-  "sync-integral-state.js",
-  "sync-integral-cloud.js",
-  "sync-integral-time-protection.js"
-];
-
 function activateIntegralSyncEnhancements() {
   const ready = [
     "mergeSyncStates",
@@ -45194,34 +45170,9 @@ function activateIntegralSyncEnhancements() {
   return true;
 }
 
-function loadIntegralSyncEnhancementFile(filename) {
-  return new Promise((resolve, reject) => {
-    const selector = `script[data-integral-sync-file="${filename}"]`;
-    const existing = document.querySelector(selector);
-    if (existing?.dataset.loaded === "true") return resolve();
-    const script = existing || document.createElement("script");
-    // Scripts dinâmicos com async=false começam a baixar em paralelo, mas
-    // continuam sendo executados na ordem de inserção definida abaixo.
-    script.async = false;
-    script.dataset.integralSyncFile = filename;
-    script.addEventListener("load", () => {
-      script.dataset.loaded = "true";
-      resolve();
-    }, { once: true });
-    script.addEventListener("error", () => reject(new Error(`Não foi possível carregar ${filename}.`)), { once: true });
-    if (!existing) {
-      script.src = `${filename}?v=${APP_VERSION}`;
-      (document.head || document.documentElement).appendChild(script);
-    }
-  });
-}
-
 async function ensureIntegralSyncEnhancements() {
   if (activateIntegralSyncEnhancements()) return true;
-  const pendingFiles = INTEGRAL_SYNC_ENHANCEMENT_FILES.map(loadIntegralSyncEnhancementFile);
-  await Promise.all(pendingFiles);
-  if (!activateIntegralSyncEnhancements()) throw new Error("Os módulos de integridade foram carregados de forma incompleta.");
-  return true;
+  throw new Error("Os módulos de integridade incorporados ao bundle estão incompletos.");
 }
 
 async function startApplicationWithIntegrity() {
@@ -47428,116 +47379,6 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
   scheduleUpdate();
 })();
 
-(() => {
-  if (window.__aldusTimerSafetyLoaderV132) return;
-  window.__aldusTimerSafetyLoaderV132 = true;
-  const script = document.createElement("script");
-  script.src = "timer-safety-v132.js?v=20260722-cronometro-seguranca-v132";
-  script.async = false;
-  script.dataset.aldusTimerSafety = "v132";
-  document.head.appendChild(script);
-})();
-
-(() => {
-  if (window.__aldusFactoryFinalReviewLoaderV128) return;
-  window.__aldusFactoryFinalReviewLoaderV128 = true;
-  const script = document.createElement("script");
-  script.src = "factory-final-review-v128.js?v=20260722-revisao-consolidacao-v128-rodape-fix1";
-  script.async = false;
-  script.dataset.aldusFactoryFinalReview = "v128";
-  document.head.appendChild(script);
-})();
-
-(() => {
-  if (window.__aldusCalendarMonthVisibilityLoaderV131) return;
-  window.__aldusCalendarMonthVisibilityLoaderV131 = true;
-  const script = document.createElement("script");
-  script.src = "calendar-month-visibility-v131.js?v=20260722-calendario-cache-estavel-v131";
-  script.async = false;
-  script.dataset.aldusCalendarMonthVisibility = "v131";
-  document.head.appendChild(script);
-})();
-
-(() => {
-  if (window.__aldusQuestionSearchableSelectLoaderV135) return;
-  window.__aldusQuestionSearchableSelectLoaderV135 = true;
-  const script = document.createElement("script");
-  script.src = "question-searchable-selects-v135.js?v=20260723-pesquisa-registro-questoes-v135";
-  script.async = false;
-  script.dataset.aldusQuestionSearchableSelects = "v135";
-  document.head.appendChild(script);
-})();
-
-(() => {
-  if (window.__aldusFactoryExecutiveUiLoaderV136) return;
-  window.__aldusFactoryExecutiveUiLoaderV136 = true;
-  const script = document.createElement("script");
-  script.src = "factory-executive-ui-v136.js?v=20260724-fabrica-executiva-v136";
-  script.async = false;
-  script.dataset.aldusFactoryExecutiveUi = "v136";
-  document.head.appendChild(script);
-})();
-
-(() => {
-  if (window.__aldusDailyStudyCollapsibleLoaderV137) return;
-  window.__aldusDailyStudyCollapsibleLoaderV137 = true;
-  const script = document.createElement("script");
-  script.src = "daily-study-collapsible-v137.js?v=20260724-plano-dia-recolhivel-v137";
-  script.async = false;
-  script.dataset.aldusDailyStudyCollapsible = "v137";
-  document.head.appendChild(script);
-})();
-
-(() => {
-  if (window.__aldusAnalyticsAccordionFixLoaderV148) return;
-  window.__aldusAnalyticsAccordionFixLoaderV148 = true;
-  const script = document.createElement("script");
-  script.src = "analytics-accordion-fix-v148.js?v=20260725-analise-estrategica-abas-funcionais-v148";
-  script.async = false;
-  script.dataset.aldusAnalyticsAccordionFix = "v148";
-  document.head.appendChild(script);
-})();
-
-(() => {
-  if (window.__aldusAnalyticsSingleArrowLoaderV150) return;
-  window.__aldusAnalyticsSingleArrowLoaderV150 = true;
-  const script = document.createElement("script");
-  script.src = "analytics-single-arrow-v150.js?v=20260725-analise-estrategica-seta-unica-v150";
-  script.async = false;
-  script.dataset.aldusAnalyticsSingleArrow = "v150";
-  document.head.appendChild(script);
-})();
-
-(() => {
-  if (window.__aldusDailyCollapsiblesClosedLoaderV140) return;
-  window.__aldusDailyCollapsiblesClosedLoaderV140 = true;
-  const script = document.createElement("script");
-  script.src = "daily-collapsibles-closed-v140.js?v=20260725-analise-estrategica-seta-unica-v150";
-  script.async = false;
-  script.dataset.aldusDailyCollapsiblesClosed = "v140";
-  document.head.appendChild(script);
-})();
-
-(() => {
-  if (window.__aldusQuestionBoardResultLoaderV141) return;
-  window.__aldusQuestionBoardResultLoaderV141 = true;
-  const script = document.createElement("script");
-  script.src = "question-board-result-v141.js?v=20260725-resultado-outras-bancas-v141";
-  script.async = false;
-  script.dataset.aldusQuestionBoardResult = "v141";
-  document.head.appendChild(script);
-})();
-
-(() => {
-  if (window.__aldusQuestionScoringRuleLoaderV142) return;
-  window.__aldusQuestionScoringRuleLoaderV142 = true;
-  const script = document.createElement("script");
-  script.src = "question-scoring-rule-v142.js?v=20260725-regra-pontuacao-questoes-v142";
-  script.async = false;
-  script.dataset.aldusQuestionScoringRule = "v142";
-  document.head.appendChild(script);
-})();
-
 /* Aldus source: timer-first-beep-v160.js */
 (() => {
   "use strict";
@@ -48760,24 +48601,24 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
   }
 })();
 
-/* Aldus source: update-flow-v168.js */
+/* Aldus source: update-flow-v169.js */
 (() => {
   "use strict";
 
-  const PATCH_VERSION = "20260728-carregamento-direto-v168";
+  const PATCH_VERSION = "20260728-bundle-unico-v169";
   const CHECK_INTERVAL_MS = 15 * 60 * 1000;
-  const BANNER_ID = "aldusUpdateBannerV168";
+  const BANNER_ID = "aldusUpdateBannerV169";
   let lastCheckAt = 0;
   let registrationRef = null;
   let hadController = Boolean(navigator.serviceWorker?.controller);
   const watchedRegistrations = new WeakSet();
 
-  if (typeof document === "undefined" || !("serviceWorker" in navigator) || globalThis.__ALDUS_UPDATE_FLOW_V168__) return;
+  if (typeof document === "undefined" || !("serviceWorker" in navigator) || globalThis.__ALDUS_UPDATE_FLOW_V169__) return;
 
   function injectStyles() {
-    if (document.getElementById("aldusUpdateStylesV168")) return;
+    if (document.getElementById("aldusUpdateStylesV169")) return;
     const style = document.createElement("style");
-    style.id = "aldusUpdateStylesV168";
+    style.id = "aldusUpdateStylesV169";
     style.textContent = `
       #${BANNER_ID} {
         position: fixed;
@@ -48798,7 +48639,7 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
         backdrop-filter: blur(12px);
       }
       #${BANNER_ID}[hidden] { display: none !important; }
-      #${BANNER_ID} .aldus-update-copy-v168 { display: grid; gap: 3px; min-width: 0; }
+      #${BANNER_ID} .aldus-update-copy-v169 { display: grid; gap: 3px; min-width: 0; }
       #${BANNER_ID} strong { font-size: .96rem; }
       #${BANNER_ID} small { color: #b8d0e1; font-size: .79rem; line-height: 1.35; }
       #${BANNER_ID} button { min-height: 40px; padding: 9px 13px; border-radius: 12px; white-space: nowrap; }
@@ -48850,14 +48691,14 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
     banner.setAttribute("role", "status");
     banner.setAttribute("aria-live", "polite");
     banner.innerHTML = `
-      <span class="aldus-update-copy-v168">
+      <span class="aldus-update-copy-v169">
         <strong>Nova versão pronta</strong>
-        <small data-aldus-update-message-v168>Atualize quando terminar. Os dados já salvos serão preservados.</small>
+        <small data-aldus-update-message-v169>Atualize quando terminar. Os dados já salvos serão preservados.</small>
       </span>
-      <button type="button" data-aldus-update-now-v168>Atualizar agora</button>
+      <button type="button" data-aldus-update-now-v169>Atualizar agora</button>
     `;
-    banner.querySelector("[data-aldus-update-now-v168]")?.addEventListener("click", () => {
-      const message = banner.querySelector("[data-aldus-update-message-v168]");
+    banner.querySelector("[data-aldus-update-now-v169]")?.addEventListener("click", () => {
+      const message = banner.querySelector("[data-aldus-update-message-v169]");
       if (!safeToReload()) {
         if (message) message.textContent = "Finalize o preenchimento ou pause e salve o cronômetro antes de atualizar.";
         return;
@@ -48896,7 +48737,7 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
       if (registrationRef.waiting) showUpdateReady();
       return true;
     } catch (error) {
-      console.warn("[Aldus v168] Não foi possível verificar atualização agora.", error);
+      console.warn("[Aldus v169] Não foi possível verificar atualização agora.", error);
       return false;
     }
   }
@@ -48924,7 +48765,7 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
     });
     checkAfterFirstRender();
 
-    Object.defineProperty(globalThis, "__ALDUS_UPDATE_FLOW_V168__", {
+    Object.defineProperty(globalThis, "__ALDUS_UPDATE_FLOW_V169__", {
       value: Object.freeze({
         version: PATCH_VERSION,
         installedAt: new Date().toISOString(),
@@ -48942,4 +48783,3837 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
   } else {
     install();
   }
+})();
+
+/* Aldus source: timer-safety-v132.js */
+(() => {
+  "use strict";
+
+  const PATCH_VERSION = "20260722-cronometro-seguranca-v132";
+  if (globalThis.__aldusTimerSafetyV132) return;
+  globalThis.__aldusTimerSafetyV132 = true;
+
+  if (typeof timerPlannedSeconds !== "function" || typeof timerAlertMessage !== "function") {
+    console.warn("[Cronômetro] Correção de segurança v132 não aplicada: motor do cronômetro indisponível.");
+    globalThis.__aldusTimerSafetyV132Status = { version: PATCH_VERSION, applied: false };
+    return;
+  }
+
+  const originalTimerPlannedSeconds = timerPlannedSeconds;
+  timerPlannedSeconds = function timerPlannedSecondsV132(goal = typeof floatingTimerGoal === "function" ? floatingTimerGoal() : null) {
+    if (typeof floatingTimer !== "undefined" && floatingTimer?.mode === "free") {
+      const targetMinutes = Math.max(
+        0,
+        Number(floatingTimer.sessionGoalMinutes) || Number(goal?.minutes) || 0
+      );
+      return Math.round(targetMinutes * 60);
+    }
+    return originalTimerPlannedSeconds(goal);
+  };
+
+  const originalTimerAlertMessage = timerAlertMessage;
+  timerAlertMessage = function timerAlertMessageV132(goal = typeof floatingTimerGoal === "function" ? floatingTimerGoal() : null) {
+    const message = originalTimerAlertMessage(goal);
+    return message === "🚨 Faltam 1 minuto" ? "🚨 Falta 1 minuto" : message;
+  };
+
+  globalThis.__aldusTimerSafetyV132Status = { version: PATCH_VERSION, applied: true };
+})();
+
+/* Aldus source: factory-final-review-v128.js */
+(() => {
+  "use strict";
+
+  if (window.__aldusFactoryFinalReviewV128) return;
+  window.__aldusFactoryFinalReviewV128 = true;
+
+  const VERSION = "20260722-revisao-consolidacao-v128";
+  const MIGRATION_ID = "factoryFinalReviewConsolidationV128";
+  const FALLBACK = "[PROMPT COMPLETO AINDA NÃO CADASTRADO NA BIBLIOTECA DA FÁBRICA]";
+  const FINAL_TYPE = "consolidacao";
+  const FINAL_LABEL = "Gerar prompt Revisão e Consolidação Final";
+  const MODULES = [
+    { key: "resumoAula", label: "RESUMO/AULA" },
+    { key: "lei", label: "LEI" },
+    { key: "jurisprudencia", label: "JURISPRUDÊNCIA" },
+    { key: "peca", label: "PEÇA" }
+  ];
+  const PRODUCED_STATUSES = new Set(["Aguardando revisão", "Aprovado", "PDF gerado"]);
+
+  const BASE_PROMPT = `REALIZE A REVISÃO FINAL DO MATERIAL DISPONÍVEL E, SOMENTE QUANDO HOUVER DOIS OU MAIS MÓDULOS EFETIVAMENTE PRODUZIDOS, FAÇA TAMBÉM A CONSOLIDAÇÃO FINAL.
+
+## REGRA DE DECISÃO OBRIGATÓRIA
+
+1. SE HOUVER APENAS UM MÓDULO PRODUZIDO E ACESSÍVEL:
+- faça o REFINAMENTO FINAL EXCLUSIVAMENTE DESSE MÓDULO;
+- não exija os demais módulos;
+- não crie, complete, simule ou invente módulos ausentes;
+- não transforme o módulo em outro tipo de material.
+
+2. SE HOUVER DOIS OU MAIS MÓDULOS PRODUZIDOS E ACESSÍVEIS:
+- revise cada módulo separadamente antes de reuni-los;
+- consolide somente os módulos efetivamente disponíveis;
+- preserve a identidade, o método e as limitações de fonte de cada módulo;
+- mantenha a ordem: RESUMO/AULA, LEI, JURISPRUDÊNCIA e PEÇA, omitindo os que não existirem ou estiverem marcados como “Não se aplica”.
+
+3. SE NÃO HOUVER NENHUM MÓDULO PRODUZIDO E ACESSÍVEL:
+- interrompa a tarefa;
+- não gere Word nem PDF;
+- informe que é necessário produzir ou disponibilizar ao menos um módulo.
+
+## PRINCÍPIO DE PRESERVAÇÃO
+
+NÃO REESCREVA CONTEÚDO CORRETO APENAS PARA MODIFICÁ-LO.
+
+Altere somente o que tiver motivo verificável: erro jurídico, omissão relevante, contradição, repetição desnecessária, perda de sentido, problema de hierarquia, falha didática ou defeito de formatação.
+
+Antes de alterar qualquer trecho, verifique se a mudança aumenta a fidelidade, a completude ou a clareza. Se não aumentar, preserve o texto original.
+
+## LIMITES DE FONTE E CONTEÚDO
+
+- use somente os módulos produzidos e as fontes autorizadas para o tema;
+- não pesquise conteúdo externo para ampliar o material;
+- não use módulos ausentes como pretexto para acrescentar conhecimento por memória;
+- não misture lei com doutrina;
+- não apresentar jurisprudência como texto legal;
+- não transformar estrutura de peça em comentário teórico;
+- no módulo LEI, confira apenas o texto oficial vigente e o recorte expressamente autorizado;
+- no módulo JURISPRUDÊNCIA, preserve tribunal, súmula, informativo, tema, ano, tese e distinções quando constarem nas fontes;
+- no módulo RESUMO/AULA, preserve a explicação didática sem inserir jurisprudência, lei topificada ou peça não autorizadas;
+- no módulo PEÇA, preserve estrutura, requisitos, fundamentos, pedidos e determinações sem criar peça pronta ou fundamento não fornecido.
+
+## AUDITORIA OBRIGATÓRIA
+
+Para cada módulo disponível, confira:
+- fidelidade ao recorte autorizado;
+- ausência de omissões relevantes;
+- prazos, competências, legitimidades, requisitos, exceções, vedações, efeitos, sanções, valores, percentuais, quóruns e limites numéricos;
+- distinção entre regra, exceção, faculdade, obrigação e consequência;
+- repetição, contradição e duplicação;
+- clareza, hierarquia e utilidade para revisão;
+- títulos, subtítulos, negritos, indentações e alinhamentos;
+- fonte textual exclusivamente preta #000000, salvo as cores nativas dos emojis e fundos expressamente autorizados;
+- fonte compatível com emojis, sem quadrados, símbolos quebrados ou substituições indevidas.
+
+## ARQUIVOS E SEGURANÇA
+
+- preserve todos os arquivos originais;
+- não sobrescreva nem exclua módulos já produzidos;
+- gere novos arquivos identificados como REVISADO FINAL ou CONSOLIDADO REVISADO FINAL;
+- não altere automaticamente o status dos módulos no site;
+- não afirme que salvou no Google Drive sem gravação efetiva;
+- use ferramenta autorizada para salvar na pasta de destino e devolva os links exatos;
+- se não houver ferramenta autorizada, gere os arquivos para download e informe que o envio à pasta deverá ser manual;
+- se algum arquivo estiver inacessível, informe exatamente qual e prossiga apenas quando o material restante permitir uma revisão segura.
+
+## ENTREGA
+
+- módulo único: gerar Word e PDF do módulo refinado, sem acrescentar módulos ausentes;
+- múltiplos módulos: gerar Word e PDF consolidados somente com os módulos disponíveis;
+- apresentar uma nota breve das correções realmente efetuadas;
+- não listar mudanças inexistentes;
+- não apresentar como corrigido aquilo que não pôde ser verificado.`;
+
+  function safeModules(item = {}) {
+    try {
+      if (typeof normalizeFactoryModules === "function") {
+        return normalizeFactoryModules(item.modules || {}, item);
+      }
+    } catch (error) {
+      console.warn("[Aldus] Não foi possível normalizar os módulos para a revisão final.", error);
+    }
+    return item.modules && typeof item.modules === "object" ? item.modules : {};
+  }
+
+  function moduleInfo(item = {}) {
+    const modules = safeModules(item);
+    return MODULES.map(({ key, label }) => {
+      const module = modules[key] || {};
+      const status = String(module.status || "Não iniciado");
+      const wordLink = String(module.wordLink || module.linkWord || module.word || "").trim();
+      const pdfLink = String(module.pdfLink || module.linkPdf || module.pdf || "").trim();
+      const hasFile = Boolean(wordLink || pdfLink);
+      const produced = status !== "Não se aplica" && (PRODUCED_STATUSES.has(status) || hasFile);
+      return { key, label, status, wordLink, pdfLink, hasFile, produced };
+    });
+  }
+
+  function moduleLine(module) {
+    const links = [
+      module.wordLink ? `Word: ${module.wordLink}` : "",
+      module.pdfLink ? `PDF: ${module.pdfLink}` : ""
+    ].filter(Boolean).join(" | ");
+    return `- ${module.label}: status “${module.status}”${links ? ` | ${links}` : " | sem link individual cadastrado; verificar a pasta de destino"}`;
+  }
+
+  function dynamicFinalRouter(item = {}, previousRouter) {
+    const common = typeof previousRouter === "function"
+      ? previousRouter(FINAL_TYPE, item)
+      : `Disciplina: ${item.disciplina || "[DISCIPLINA]"}\nTema: ${item.tema || "[TEMA]"}`;
+    const info = moduleInfo(item);
+    const produced = info.filter((module) => module.produced);
+    const unavailable = info.filter((module) => !module.produced);
+    const inventory = info.map(moduleLine).join("\n");
+
+    if (!produced.length) {
+      return `${common}\n\nREVISÃO E CONSOLIDAÇÃO FINAL — BLOQUEADA COM SEGURANÇA.\n\nINVENTÁRIO DOS MÓDULOS:\n${inventory}\n\nNão há módulo produzido e acessível identificado. Interrompa a tarefa, não gere Word nem PDF e solicite que ao menos um módulo seja produzido, vinculado ou marcado como aguardando revisão/aprovado. Não crie conteúdo para suprir a ausência.`;
+    }
+
+    const producedList = produced.map((module, index) => `${index + 1}. ${module.label}`).join("\n");
+    const unavailableList = unavailable.length
+      ? unavailable.map((module) => `- ${module.label}: ${module.status}`).join("\n")
+      : "- nenhum";
+
+    if (produced.length === 1) {
+      const only = produced[0];
+      return `${common}\n\nMODO AUTOMÁTICO: REFINAMENTO FINAL DE MÓDULO ÚNICO.\n\nMÓDULO AUTORIZADO PARA ESTA ETAPA:\n1. ${only.label}\n\nINVENTÁRIO DOS MÓDULOS:\n${inventory}\n\nMÓDULOS QUE NÃO DEVEM SER CRIADOS NESTA ETAPA:\n${unavailableList}\n\nFaça auditoria e refinamento somente do módulo ${only.label}. Não exija, não produza e não simule RESUMO/AULA, LEI, JURISPRUDÊNCIA ou PEÇA que não estejam disponíveis. Preserve o conteúdo correto e modifique apenas falhas comprovadas.\n\nENTREGA OBRIGATÓRIA:\n- gerar novo Word e novo PDF do módulo ${only.label} revisado;\n- usar no nome do arquivo a indicação REVISADO_FINAL;\n- preservar os arquivos originais;\n- salvar na pasta de destino somente com ferramenta autorizada;\n- devolver separadamente os links exatos do Word e do PDF, ou informar claramente a necessidade de upload manual.`;
+    }
+
+    return `${common}\n\nMODO AUTOMÁTICO: REVISÃO E CONSOLIDAÇÃO FINAL DE MÚLTIPLOS MÓDULOS.\n\nMÓDULOS AUTORIZADOS E DISPONÍVEIS:\n${producedList}\n\nINVENTÁRIO DOS MÓDULOS:\n${inventory}\n\nMÓDULOS AUSENTES OU NÃO PRONTOS — NÃO CRIAR NEM COMPLETAR:\n${unavailableList}\n\nRevise individualmente os módulos disponíveis e depois os reúna, na ordem canônica, omitindo os módulos ausentes ou marcados como “Não se aplica”. Não declare que todos os quatro módulos foram aprovados quando isso não estiver demonstrado. Preserve as diferenças metodológicas entre os módulos.\n\nENTREGA OBRIGATÓRIA:\n- gerar novo Word consolidado e novo PDF consolidado;\n- usar no nome dos arquivos a indicação CONSOLIDADO_REVISADO_FINAL;\n- preservar os arquivos originais;\n- salvar na pasta de destino somente com ferramenta autorizada;\n- devolver separadamente os links exatos do Word e do PDF, ou informar claramente a necessidade de upload manual.`;
+  }
+
+  function migratePrompt() {
+    let changed = false;
+    try {
+      if (typeof defaultFactoryPromptLibrary === "object" && defaultFactoryPromptLibrary) {
+        defaultFactoryPromptLibrary[FINAL_TYPE] = BASE_PROMPT;
+      }
+      if (typeof state === "object" && state) {
+        state.migrations ||= {};
+        state.factoryPromptLibrary ||= {};
+        state.factoryPromptLibraryBackups ||= {};
+        if (!state.migrations[MIGRATION_ID]) {
+          const current = String(state.factoryPromptLibrary[FINAL_TYPE] || "").trim();
+          if (current && current !== FALLBACK && current !== BASE_PROMPT) {
+            state.factoryPromptLibraryBackups.consolidacaoBeforeV128 ||= current;
+          }
+          state.factoryPromptLibrary[FINAL_TYPE] = BASE_PROMPT;
+          state.migrations[MIGRATION_ID] = new Date().toISOString();
+          changed = true;
+        }
+      }
+      if (changed && typeof saveData === "function") saveData();
+    } catch (error) {
+      console.error("[Aldus] Falha ao migrar o prompt de revisão e consolidação final v128.", error);
+    }
+  }
+
+  function patchPromptFunctions() {
+    try {
+      if (typeof FACTORY_PROMPT_TYPES !== "undefined" && Array.isArray(FACTORY_PROMPT_TYPES)) {
+        const finalType = FACTORY_PROMPT_TYPES.find((entry) => entry.key === FINAL_TYPE);
+        if (finalType) finalType.label = FINAL_LABEL;
+      }
+
+      if (typeof factoryPromptBase === "function") {
+        const previousBase = factoryPromptBase;
+        factoryPromptBase = function patchedFactoryPromptBase(type) {
+          if (type === FINAL_TYPE) {
+            const current = String(typeof state === "object" ? state.factoryPromptLibrary?.[FINAL_TYPE] || "" : "").trim();
+            return current || BASE_PROMPT;
+          }
+          return previousBase(type);
+        };
+      }
+
+      if (typeof normalizeFactoryPromptLibrary === "function") {
+        const previousNormalize = normalizeFactoryPromptLibrary;
+        normalizeFactoryPromptLibrary = function patchedNormalizeFactoryPromptLibrary(library = {}) {
+          const normalized = previousNormalize(library);
+          if (!String(normalized[FINAL_TYPE] || "").trim()) normalized[FINAL_TYPE] = BASE_PROMPT;
+          return normalized;
+        };
+      }
+
+      if (typeof factoryRouterText === "function") {
+        const previousRouter = factoryRouterText;
+        factoryRouterText = function patchedFactoryRouterText(type, item = {}) {
+          if (type !== FINAL_TYPE) return previousRouter(type, item);
+          return dynamicFinalRouter(item, previousRouter);
+        };
+      }
+    } catch (error) {
+      console.error("[Aldus] Falha ao proteger a revisão e consolidação final v128.", error);
+    }
+  }
+
+  function refreshFactory() {
+    try {
+      if (typeof renderFactory === "function") renderFactory();
+      if (typeof renderFactoryPromptLibrary === "function" && typeof elements !== "undefined" && elements?.factoryPromptLibraryPanel && !elements.factoryPromptLibraryPanel.hidden) {
+        renderFactoryPromptLibrary();
+      }
+    } catch (error) {
+      console.warn("[Aldus] Não foi possível atualizar imediatamente a interface da Fábrica.", error);
+    }
+  }
+
+  patchPromptFunctions();
+  const initializeAfterBootstrap = () => {
+    migratePrompt();
+    refreshFactory();
+  };
+  if (window.__aldusBootstrapReady) initializeAfterBootstrap();
+  else window.addEventListener("aldus:bootstrap-ready", initializeAfterBootstrap, { once: true });
+
+  window.addEventListener("load", () => {
+    refreshFactory();
+  });
+})();
+
+/* Aldus source: calendar-month-visibility-v131.js */
+(() => {
+  if (window.__aldusCalendarMonthVisibilityV131) return;
+  window.__aldusCalendarMonthVisibilityV131 = true;
+
+  document.getElementById("aldusCalendarMonthVisibilityV129")?.remove();
+  document.getElementById("aldusCalendarMonthVisibilityV130")?.remove();
+
+  const styleId = "aldusCalendarMonthVisibilityV131";
+  if (document.getElementById(styleId)) return;
+
+  const style = document.createElement("style");
+  style.id = styleId;
+  style.textContent = `
+    html[data-aldus-theme="premium-stable"] #view-calendario-metas .month-grid {
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)) !important;
+      align-items: stretch !important;
+      gap: 12px !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] #view-calendario-metas .month-grid > article.clickable-day {
+      position: relative !important;
+      isolation: isolate !important;
+      display: grid !important;
+      grid-template-columns: 64px minmax(0, 1fr) !important;
+      grid-template-areas:
+        "day type"
+        "goals goals"
+        "done done" !important;
+      align-content: start !important;
+      align-items: center !important;
+      gap: 10px 12px !important;
+      min-width: 0 !important;
+      min-height: 146px !important;
+      padding: 16px !important;
+      overflow: hidden !important;
+      border: 1px solid rgba(112, 174, 220, .36) !important;
+      border-radius: 18px !important;
+      background:
+        radial-gradient(circle at 90% 10%, rgba(66, 153, 225, .14), transparent 42%),
+        linear-gradient(145deg, rgba(12, 49, 80, .99), rgba(5, 27, 46, .99)) !important;
+      box-shadow: 0 10px 24px rgba(0, 8, 20, .18) !important;
+      cursor: pointer !important;
+      transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] #view-calendario-metas .month-grid > article.clickable-day::after {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto;
+      height: 3px;
+      z-index: -1;
+      background: linear-gradient(90deg, #4d9df5, #57d4c3);
+      opacity: .8;
+    }
+
+    html[data-aldus-theme="premium-stable"] #view-calendario-metas .month-grid > article.clickable-day:hover {
+      transform: translateY(-2px) !important;
+      border-color: rgba(118, 190, 246, .68) !important;
+      box-shadow: 0 14px 30px rgba(0, 8, 20, .26) !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] #view-calendario-metas .month-grid > article.clickable-day:focus-visible {
+      outline: 3px solid rgba(95, 178, 255, .5) !important;
+      outline-offset: 2px !important;
+      border-color: #7fc5ff !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] #view-calendario-metas .month-grid > article.clickable-day > strong {
+      grid-area: day !important;
+      align-self: center !important;
+      margin: 0 !important;
+      color: #ffffff !important;
+      font-size: clamp(2.25rem, 3.4vw, 2.85rem) !important;
+      font-weight: 900 !important;
+      line-height: .95 !important;
+      letter-spacing: -.045em !important;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, .24) !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] #view-calendario-metas .month-grid > article.clickable-day > small {
+      grid-area: type !important;
+      justify-self: start !important;
+      align-self: center !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+      margin: 0 !important;
+      padding: 7px 11px !important;
+      overflow: visible !important;
+      border: 1px solid rgba(116, 177, 238, .3) !important;
+      border-radius: 999px !important;
+      background: rgba(44, 105, 177, .24) !important;
+      color: #e6f3ff !important;
+      font-size: .82rem !important;
+      font-weight: 850 !important;
+      line-height: 1.15 !important;
+      text-overflow: clip !important;
+      white-space: nowrap !important;
+      word-break: normal !important;
+      overflow-wrap: normal !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] #view-calendario-metas .month-grid > article.clickable-day > span {
+      position: relative !important;
+      grid-column: 1 / -1 !important;
+      display: flex !important;
+      align-items: center !important;
+      min-width: 0 !important;
+      min-height: 40px !important;
+      margin: 0 !important;
+      padding: 10px 12px 10px 40px !important;
+      overflow: visible !important;
+      border: 1px solid rgba(103, 165, 229, .25) !important;
+      border-radius: 12px !important;
+      background: rgba(7, 31, 53, .58) !important;
+      color: #edf6ff !important;
+      font-size: .92rem !important;
+      font-weight: 800 !important;
+      line-height: 1.2 !important;
+      white-space: nowrap !important;
+      word-break: normal !important;
+      overflow-wrap: normal !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] #view-calendario-metas .month-grid > article.clickable-day > span:nth-of-type(1) {
+      grid-area: goals !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] #view-calendario-metas .month-grid > article.clickable-day > span:nth-of-type(1)::before {
+      content: "";
+      position: absolute;
+      left: 15px;
+      width: 9px;
+      height: 9px;
+      border: 2px solid #69aaff;
+      border-radius: 50%;
+      box-shadow: 0 0 0 3px rgba(105, 170, 255, .13);
+    }
+
+    html[data-aldus-theme="premium-stable"] #view-calendario-metas .month-grid > article.clickable-day > span:nth-of-type(2) {
+      grid-area: done !important;
+      border-color: rgba(70, 210, 167, .26) !important;
+      background: rgba(13, 82, 67, .25) !important;
+      color: #dcfff4 !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] #view-calendario-metas .month-grid > article.clickable-day > span:nth-of-type(2)::before {
+      content: "";
+      position: absolute;
+      left: 15px;
+      width: 12px;
+      height: 7px;
+      border-left: 2px solid #54dfb0;
+      border-bottom: 2px solid #54dfb0;
+      transform: rotate(-45deg) translateY(-1px);
+      transform-origin: center;
+    }
+
+    html[data-aldus-theme="premium-stable"] #view-calendario-metas .month-grid > article.clickable-day.unavailable {
+      border-color: rgba(154, 169, 184, .25) !important;
+      background: linear-gradient(145deg, rgba(38, 51, 64, .94), rgba(20, 33, 46, .98)) !important;
+      box-shadow: 0 8px 20px rgba(0, 8, 20, .14) !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] #view-calendario-metas .month-grid > article.clickable-day.unavailable::after {
+      background: linear-gradient(90deg, #778899, #526273);
+      opacity: .48;
+    }
+
+    html[data-aldus-theme="premium-stable"] #view-calendario-metas .month-grid > article.clickable-day.unavailable > small {
+      border-color: rgba(181, 194, 207, .2) !important;
+      background: rgba(97, 112, 126, .2) !important;
+      color: #d2dce5 !important;
+    }
+
+    @media (max-width: 540px) {
+      html[data-aldus-theme="premium-stable"] #view-calendario-metas .month-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+        gap: 10px !important;
+      }
+
+      html[data-aldus-theme="premium-stable"] #view-calendario-metas .month-grid > article.clickable-day {
+        min-height: 0 !important;
+        grid-template-columns: 66px minmax(0, 1fr) !important;
+        padding: 14px !important;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html[data-aldus-theme="premium-stable"] #view-calendario-metas .month-grid > article.clickable-day {
+        transition: none !important;
+      }
+
+      html[data-aldus-theme="premium-stable"] #view-calendario-metas .month-grid > article.clickable-day:hover {
+        transform: none !important;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
+/* Aldus source: question-searchable-selects-v135.js */
+(() => {
+  if (window.__aldusQuestionSearchableSelectsV135) return;
+  window.__aldusQuestionSearchableSelectsV135 = true;
+
+  const VERSION = "20260723-pesquisa-registro-questoes-v135";
+  const FIELD_CONFIG = {
+    questionDiscipline: { name: "disciplina", placeholder: "Pesquisar disciplina..." },
+    questionSyllabusItem: { name: "assunto do edital", placeholder: "Pesquisar assunto, número ou palavra-chave..." },
+    questionBoard: { name: "banca", placeholder: "Pesquisar banca..." },
+    questionTrainingType: { name: "tipo de treino", placeholder: "Pesquisar tipo de treino..." },
+    questionItemResult: { name: "resultado da questão", placeholder: "Pesquisar resultado..." },
+    questionItemDifficulty: { name: "dificuldade", placeholder: "Pesquisar dificuldade..." }
+  };
+
+  const originalDisabled = new WeakMap();
+
+  function normalizeSearchText(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase("pt-BR")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function ensureStyles() {
+    if (document.getElementById("questionSearchableSelectStylesV135")) return;
+    const style = document.createElement("style");
+    style.id = "questionSearchableSelectStylesV135";
+    style.textContent = `
+      #view-questoes .question-searchable-select-v135 {
+        align-content: start;
+      }
+      #view-questoes .question-select-search-v135 {
+        width: 100%;
+        min-height: 46px;
+        margin: 7px 0 2px;
+        padding: 11px 14px 11px 42px;
+        border: 1px solid var(--border, #8eb8d6);
+        border-radius: 14px;
+        background-color: var(--surface, #ffffff);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%235f8fb2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: 14px center;
+        color: var(--text, #172033);
+        font: inherit;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04);
+      }
+      #view-questoes .question-select-search-v135::placeholder {
+        color: var(--muted, #64748b);
+        opacity: .95;
+      }
+      #view-questoes .question-select-search-v135:focus {
+        outline: none;
+        border-color: #60a5fa;
+        box-shadow: 0 0 0 3px rgba(96, 165, 250, .2);
+      }
+      #view-questoes .question-select-search-status-v135 {
+        display: block;
+        min-height: 1.1em;
+        margin: 2px 2px 0;
+        color: var(--muted, #64748b);
+        font-size: .78rem;
+        font-weight: 700;
+      }
+      #view-questoes .question-select-search-status-v135[data-empty="true"] {
+        color: var(--warning, #f59e0b);
+      }
+      html[data-aldus-theme="premium-stable"] #view-questoes .question-select-search-v135 {
+        border-color: #5f8fb2;
+        background-color: #061f34;
+        color: #f4f9fd;
+      }
+      html[data-aldus-theme="premium-stable"] #view-questoes .question-select-search-v135::placeholder,
+      html[data-aldus-theme="premium-stable"] #view-questoes .question-select-search-status-v135 {
+        color: #b8d0e1;
+      }
+      @media (max-width: 700px) {
+        #view-questoes .question-select-search-v135 {
+          min-height: 48px;
+          font-size: 16px;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function rememberOptionState(option) {
+    if (!originalDisabled.has(option)) originalDisabled.set(option, Boolean(option.disabled));
+  }
+
+  function enhanceSelect(select, config) {
+    if (!select || select.dataset.questionSearchV135 === "true") return;
+    const label = select.closest("label");
+    if (!label) return;
+
+    select.dataset.questionSearchV135 = "true";
+    select.dataset.questionSearchVersion = VERSION;
+    label.classList.add("question-searchable-select-v135");
+
+    const search = document.createElement("input");
+    search.type = "search";
+    search.className = "question-select-search-v135";
+    search.placeholder = config.placeholder;
+    search.autocomplete = "off";
+    search.spellcheck = false;
+    search.setAttribute("aria-label", `Pesquisar ${config.name}`);
+    search.setAttribute("aria-controls", select.id);
+
+    const status = document.createElement("small");
+    status.className = "question-select-search-status-v135";
+    status.setAttribute("aria-live", "polite");
+    status.hidden = true;
+
+    select.before(search);
+    select.after(status);
+
+    function restoreOptions() {
+      [...select.options].forEach((option) => {
+        rememberOptionState(option);
+        option.hidden = false;
+        option.disabled = originalDisabled.get(option);
+      });
+    }
+
+    function matchingOptions(query) {
+      return [...select.options].filter((option) => {
+        const searchable = normalizeSearchText(`${option.textContent || ""} ${option.value || ""}`);
+        return searchable.includes(query);
+      });
+    }
+
+    function applyFilter() {
+      const query = normalizeSearchText(search.value);
+      restoreOptions();
+
+      if (!query) {
+        status.hidden = true;
+        status.textContent = "";
+        status.dataset.empty = "false";
+        return;
+      }
+
+      const matches = matchingOptions(query);
+      const matchSet = new Set(matches);
+      let selectableMatches = 0;
+
+      [...select.options].forEach((option) => {
+        const keepSelected = option.selected;
+        const isMatch = matchSet.has(option);
+        const shouldShow = isMatch || keepSelected;
+        option.hidden = !shouldShow;
+        option.disabled = originalDisabled.get(option) || (!shouldShow && !keepSelected);
+        if (isMatch && !originalDisabled.get(option) && option.value !== "") selectableMatches += 1;
+      });
+
+      status.hidden = false;
+      status.dataset.empty = String(selectableMatches === 0);
+      status.textContent = selectableMatches === 0
+        ? "Nenhuma opção encontrada. Limpe ou ajuste a pesquisa."
+        : `${selectableMatches} ${selectableMatches === 1 ? "opção encontrada" : "opções encontradas"}. Pressione Enter para escolher a primeira.`;
+    }
+
+    function selectFirstMatch() {
+      const first = [...select.options].find((option) => !option.hidden && !option.disabled && option.value !== "");
+      if (!first) return false;
+      select.value = first.value;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+      return true;
+    }
+
+    search.addEventListener("input", applyFilter);
+    search.addEventListener("search", applyFilter);
+    search.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        search.value = "";
+        applyFilter();
+        event.preventDefault();
+        return;
+      }
+      if (event.key === "Enter") {
+        if (normalizeSearchText(search.value) && selectFirstMatch()) event.preventDefault();
+        return;
+      }
+      if (event.key === "ArrowDown") {
+        select.focus();
+        event.preventDefault();
+      }
+    });
+
+    select.addEventListener("change", () => {
+      search.value = "";
+      applyFilter();
+    });
+
+    const observer = new MutationObserver(() => queueMicrotask(applyFilter));
+    observer.observe(select, { childList: true, subtree: true, characterData: true });
+    applyFilter();
+  }
+
+  function initialize() {
+    const form = document.getElementById("questionForm");
+    if (!form) return;
+    ensureStyles();
+    Object.entries(FIELD_CONFIG).forEach(([id, config]) => enhanceSelect(document.getElementById(id), config));
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initialize, { once: true });
+  else initialize();
+})();
+
+/* Aldus source: factory-executive-ui-v136.js */
+(() => {
+  if (window.__aldusFactoryExecutiveUiV136) return;
+  window.__aldusFactoryExecutiveUiV136 = true;
+
+  const VERSION = "20260724-fabrica-executiva-v136";
+  const root = document.getElementById("view-fabrica-resumos");
+  if (!root) return;
+
+  const FLOW_FILTERS = {
+    pending: ["faca-agora", "fila-hoje", "aguardando-triagem", "resumo-aula", "todos"],
+    production: ["em-producao"],
+    review: ["aguardando-revisao", "precisa-refazer"],
+    ready: ["prontos"]
+  };
+
+  function normalize(value) {
+    return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase("pt-BR").replace(/\s+/g, " ").trim();
+  }
+
+  function ensureStyles() {
+    if (document.getElementById("factoryExecutiveStylesV136")) return;
+    const style = document.createElement("style");
+    style.id = "factoryExecutiveStylesV136";
+    style.textContent = `
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos{--fx-line:rgba(116,177,220,.24);--fx-line2:rgba(116,177,220,.44);--fx-surface:rgba(5,29,48,.86);--fx-text:#f5f9fc;--fx-muted:#b8cedd;--fx-accent:#69b7ea;--fx-gold:#e8c96d}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos>.section-heading{margin-bottom:4px!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos>.section-heading h2{margin-bottom:6px!important;font-size:clamp(1.65rem,2.4vw,2rem)!important;letter-spacing:-.025em}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos>.notice{max-width:980px;line-height:1.55}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary{grid-template-columns:minmax(390px,2.25fr) repeat(3,minmax(118px,.72fr))!important;gap:10px!important;margin-bottom:14px!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary>.stat-card{min-height:112px!important;border:1px solid var(--fx-line)!important;border-radius:17px!important;background:linear-gradient(145deg,rgba(9,41,66,.92),rgba(4,26,44,.96))!important;box-shadow:0 12px 30px rgba(0,8,20,.18)!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary-now{min-height:112px!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary-now .factory-theme-highlight{border-left-color:var(--fx-gold)!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary>.stat-card:not(.factory-summary-now){gap:8px!important;padding:14px 15px!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary>.stat-card:not(.factory-summary-now)>span{color:var(--fx-muted)!important;font-size:.72rem!important;line-height:1.35}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary>.stat-card:not(.factory-summary-now)>strong{color:var(--fx-text)!important;font-size:clamp(1.8rem,2.5vw,2.2rem)!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-executive-toolbar-v136{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:14px;margin:0 0 10px;padding:14px;border:1px solid var(--fx-line);border-radius:18px;background:radial-gradient(circle at 8% 0%,rgba(105,183,234,.10),transparent 20rem),linear-gradient(145deg,rgba(7,35,57,.84),rgba(4,25,42,.94));box-shadow:0 12px 28px rgba(0,8,20,.14)}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-executive-search-v136{display:grid;gap:6px;min-width:0;color:var(--fx-text)!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-executive-search-v136>span:first-child{color:#dceaf3;font-size:.76rem;font-weight:900;letter-spacing:.045em;text-transform:uppercase}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-search-row-v136{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos #factoryExecutiveSearchV136{min-height:46px;padding:11px 14px 11px 43px;border:1px solid rgba(118,179,222,.46)!important;border-radius:13px!important;background-color:#061f34!important;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='19' height='19' viewBox='0 0 24 24' fill='none' stroke='%238fc8eb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:14px center;color:#fff!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.035)!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos #factoryExecutiveSearchV136::placeholder{color:#9fb9ca!important;opacity:1}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos #factoryExecutiveSearchV136:focus{outline:none!important;border-color:#6db8e8!important;box-shadow:0 0 0 3px rgba(105,183,234,.20)!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-search-clear-v136{width:auto!important;min-width:88px;min-height:46px;padding:10px 14px;border:1px solid var(--fx-line2)!important;border-radius:13px!important;background:rgba(8,43,69,.84)!important;color:#dcebf4!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-search-status-v136{min-height:1.1em;color:var(--fx-muted);font-size:.78rem;font-weight:700}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-executive-actions-v136{display:flex;gap:8px;align-items:center}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-executive-actions-v136 button{width:auto!important;min-height:46px;padding:10px 15px;border-radius:13px!important;white-space:nowrap}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-filter-toggle-v136{border:1px solid var(--fx-line2)!important;background:rgba(11,52,82,.78)!important;color:#dcebf4!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-register-toggle-v136{border:1px solid rgba(105,183,234,.54)!important;background:linear-gradient(135deg,#17679b,#11527f)!important;color:#fff!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-stage-flow-v136{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 12px}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-stage-flow-v136 button{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px;min-height:56px;padding:9px 12px;border:1px solid var(--fx-line)!important;border-radius:14px!important;background:rgba(4,27,46,.74)!important;color:#d8e7f0!important;text-align:left;box-shadow:none!important;transform:none!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-stage-flow-v136 button:hover,html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-stage-flow-v136 button:focus-visible{border-color:var(--fx-line2)!important;background:rgba(8,43,69,.86)!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-stage-flow-v136 button[aria-pressed="true"]{border-color:rgba(105,183,234,.66)!important;background:linear-gradient(145deg,rgba(19,81,123,.90),rgba(9,50,80,.94))!important;color:#fff!important;box-shadow:0 8px 20px rgba(0,9,22,.18)!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-stage-dot-v136{width:10px;height:10px;border:2px solid #8db7d2;border-radius:999px;background:transparent;box-shadow:0 0 0 4px rgba(105,183,234,.08)}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-stage-flow-v136 button[aria-pressed="true"] .factory-stage-dot-v136{border-color:#dff3ff;background:#75c4f2}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-stage-copy-v136{display:grid;gap:2px;min-width:0}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-stage-copy-v136 strong{color:inherit;font-size:.82rem;line-height:1.2}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-stage-copy-v136 small{color:#a9c1d1;font-size:.68rem;line-height:1.25}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-filter-panel{margin-bottom:10px!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-filter-actions{display:flex!important;gap:7px!important;padding-top:2px!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-filter-actions button{min-height:34px!important;padding:7px 11px!important;border:1px solid var(--fx-line)!important;background:rgba(5,31,51,.78)!important;color:#bfd2df!important;font-size:.69rem!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-filter-actions button.active{border-color:rgba(105,183,234,.62)!important;background:rgba(21,91,137,.78)!important;color:#fff!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .compact-factory-card{gap:0!important;padding:18px!important;border:1px solid var(--fx-line)!important;border-radius:18px!important;background:radial-gradient(circle at 100% 0%,rgba(105,183,234,.075),transparent 18rem),linear-gradient(150deg,rgba(5,31,51,.96),rgba(3,22,38,.98))!important;box-shadow:0 14px 34px rgba(0,7,18,.20)!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-card-header{align-items:start!important;padding-bottom:14px!important;border-bottom:1px solid var(--fx-line)!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-theme-label{margin:0 0 4px!important;color:var(--fx-gold)!important;font-size:.68rem!important;font-weight:900!important;letter-spacing:.075em;text-transform:uppercase}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-theme-title{margin:0 0 6px!important;color:#fff!important;font-size:clamp(1.35rem,2.2vw,1.8rem)!important;line-height:1.18!important;letter-spacing:-.02em}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-theme-discipline,html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-theme-recorte,html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-theme-highlight>.item-meta{margin:2px 0!important;color:#b9cedc!important;line-height:1.42}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-status-badge{min-width:112px;justify-content:center;border:1px solid var(--fx-line2);background:rgba(10,49,77,.78)!important;color:#e4f1f8!important;white-space:nowrap}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-compact-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;margin:14px 0 12px!important;border-color:var(--fx-line)!important;background:var(--fx-line)!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-compact-grid>span{min-height:58px!important;padding:10px 12px!important;background:rgba(4,27,46,.92)!important;color:#c5d7e2!important;line-height:1.35}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-compact-grid>span strong{display:block;margin-bottom:3px;color:#f2f7fa!important;font-size:.72rem;letter-spacing:.025em;text-transform:uppercase}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-progress-line{display:flex!important;align-items:center;gap:5px!important;margin:11px 0 7px!important;overflow-x:auto;scrollbar-width:thin}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-step{flex:0 0 auto;min-height:29px;padding:6px 9px!important;border:1px solid var(--fx-line)!important;border-radius:999px!important;background:rgba(4,27,46,.72)!important;color:#9fb6c6!important;font-size:.65rem!important;white-space:nowrap}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-step.done{border-color:rgba(86,184,133,.34)!important;background:rgba(30,101,69,.34)!important;color:#cef1dd!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-step.current{border-color:rgba(105,183,234,.72)!important;background:rgba(27,100,146,.68)!important;color:#fff!important;box-shadow:0 0 0 3px rgba(105,183,234,.09)}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-step.redo{border-color:rgba(232,119,119,.48)!important;background:rgba(122,39,46,.42)!important;color:#ffdadd!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-step.na{opacity:.54}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-arrow{flex:0 0 auto;color:#5f8298!important;font-size:.72rem}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-main-actions{display:grid!important;grid-template-columns:minmax(190px,1fr) auto;gap:9px!important;align-items:stretch;margin-top:13px!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-main-actions>button{min-height:44px;border-radius:12px!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-primary-action{width:100%!important;border:1px solid rgba(105,183,234,.58)!important;background:linear-gradient(135deg,#176b9f,#0f5686)!important;color:#fff!important;box-shadow:0 8px 18px rgba(0,10,25,.18)!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-main-actions>.secondary-button{width:auto!important;min-width:122px;border:1px solid var(--fx-line)!important;background:rgba(7,39,63,.74)!important;color:#c9dce8!important}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-theme-details{margin-top:12px;border-top:1px solid var(--fx-line)}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-theme-details>summary{padding:12px 2px 4px!important;color:#aec5d4!important;font-size:.72rem;letter-spacing:.055em}
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-search-hidden-v136="true"]{display:none!important}
+@media(max-width:1080px){html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary{grid-template-columns:repeat(3,minmax(0,1fr))!important}html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary-now{grid-column:1/-1!important}}
+@media(max-width:760px){html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-executive-toolbar-v136{grid-template-columns:minmax(0,1fr);align-items:stretch}html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-executive-actions-v136,html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-stage-flow-v136{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-executive-actions-v136 button{width:100%!important}html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-card-header{grid-template-columns:minmax(0,1fr)!important}html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-status-badge{justify-self:start!important;min-width:0}html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-main-actions{grid-template-columns:minmax(0,1fr)!important}html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-main-actions>.secondary-button{width:100%!important}}
+@media(max-width:520px){html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary,html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-stage-flow-v136,html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-search-row-v136,html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-compact-grid{grid-template-columns:minmax(0,1fr)!important}html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-summary-now{grid-column:auto!important}html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-search-clear-v136{width:100%!important}}
+@media(prefers-reduced-motion:reduce){html[data-aldus-theme="premium-stable"] #view-fabrica-resumos *,html[data-aldus-theme="premium-stable"] #view-fabrica-resumos *:before,html[data-aldus-theme="premium-stable"] #view-fabrica-resumos *:after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}}
+`;
+    document.head.appendChild(style);
+  }
+
+  function ensureToolbar() {
+    const tabs = root.querySelector(".factory-production-tabs");
+    if (!tabs) return {};
+    let toolbar = root.querySelector(".factory-executive-toolbar-v136");
+    if (!toolbar) {
+      toolbar = document.createElement("section");
+      toolbar.className = "factory-executive-toolbar-v136";
+      toolbar.dataset.factoryExecutiveVersion = VERSION;
+      toolbar.setAttribute("aria-label", "Pesquisa e ações principais da Fábrica");
+      toolbar.innerHTML = `<label class="factory-executive-search-v136" for="factoryExecutiveSearchV136"><span>Localizar tema</span><span class="factory-search-row-v136"><input id="factoryExecutiveSearchV136" type="search" autocomplete="off" spellcheck="false" placeholder="Pesquisar disciplina, tema, etapa ou palavra-chave..." aria-describedby="factoryExecutiveSearchStatusV136"><button type="button" class="factory-search-clear-v136" data-factory-search-clear-v136 hidden>Limpar</button></span><small id="factoryExecutiveSearchStatusV136" class="factory-search-status-v136" aria-live="polite">Pesquise na lista atualmente exibida.</small></label><div class="factory-executive-actions-v136" aria-label="Ações rápidas da Fábrica"><button type="button" class="factory-filter-toggle-v136" data-factory-command-v136="filters" aria-expanded="false">Filtros</button><button type="button" class="factory-register-toggle-v136" data-factory-command-v136="register" aria-expanded="false">+ Novo tema</button></div>`;
+      tabs.before(toolbar);
+    }
+    let flow = root.querySelector(".factory-stage-flow-v136");
+    if (!flow) {
+      flow = document.createElement("nav");
+      flow.className = "factory-stage-flow-v136";
+      flow.dataset.factoryExecutiveVersion = VERSION;
+      flow.setAttribute("aria-label", "Fluxo de produção da Fábrica");
+      flow.innerHTML = `<button type="button" data-factory-flow-v136="pending" data-factory-target-filter-v136="fila-hoje" aria-pressed="false"><span class="factory-stage-dot-v136" aria-hidden="true"></span><span class="factory-stage-copy-v136"><strong>Pendentes</strong><small>Fila do período</small></span></button><button type="button" data-factory-flow-v136="production" data-factory-target-filter-v136="em-producao" aria-pressed="false"><span class="factory-stage-dot-v136" aria-hidden="true"></span><span class="factory-stage-copy-v136"><strong>Em produção</strong><small>Trabalho iniciado</small></span></button><button type="button" data-factory-flow-v136="review" data-factory-target-filter-v136="aguardando-revisao" aria-pressed="false"><span class="factory-stage-dot-v136" aria-hidden="true"></span><span class="factory-stage-copy-v136"><strong>Revisão</strong><small>Conferir ou refazer</small></span></button><button type="button" data-factory-flow-v136="ready" data-factory-target-filter-v136="prontos" aria-pressed="false"><span class="factory-stage-dot-v136" aria-hidden="true"></span><span class="factory-stage-copy-v136"><strong>Prontos</strong><small>Materiais disponíveis</small></span></button>`;
+      toolbar.after(flow);
+    }
+    return { toolbar, flow };
+  }
+
+  function targets() {
+    const set = new Set(root.querySelectorAll("#factoryList .compact-factory-card"));
+    root.querySelectorAll("#factoryList .factory-queue-item").forEach((item) => set.add(item.closest("li") || item));
+    return [...set];
+  }
+
+  function applySearch() {
+    const input = root.querySelector("#factoryExecutiveSearchV136");
+    const clear = root.querySelector("[data-factory-search-clear-v136]");
+    const status = root.querySelector("#factoryExecutiveSearchStatusV136");
+    if (!input || !status) return;
+    const query = normalize(input.value);
+    let visible = 0;
+    targets().forEach((target) => {
+      const match = !query || normalize(target.textContent).includes(query);
+      target.dataset.factorySearchHiddenV136 = String(!match);
+      if (match) visible += 1;
+    });
+    if (clear) clear.hidden = !query;
+    status.textContent = !query ? "Pesquise na lista atualmente exibida." : visible
+      ? `${visible} ${visible === 1 ? "resultado encontrado" : "resultados encontrados"} nesta visualização.`
+      : "Nenhum tema encontrado nesta visualização. Ajuste a pesquisa ou o filtro.";
+  }
+
+  function syncUi() {
+    const active = root.querySelector('[data-factory-filter][aria-pressed="true"]')?.dataset.factoryFilter || "faca-agora";
+    root.querySelectorAll("[data-factory-flow-v136]").forEach((button) => {
+      button.setAttribute("aria-pressed", (FLOW_FILTERS[button.dataset.factoryFlowV136] || []).includes(active) ? "true" : "false");
+    });
+    const filterPanel = root.querySelector(".factory-filter-panel");
+    const registerPanel = root.querySelector("#factoryRegisterPanel");
+    const filterButton = root.querySelector('[data-factory-command-v136="filters"]');
+    const registerButton = root.querySelector('[data-factory-command-v136="register"]');
+    if (filterButton && filterPanel) filterButton.setAttribute("aria-expanded", filterPanel.open ? "true" : "false");
+    if (registerButton && registerPanel) {
+      registerButton.setAttribute("aria-expanded", registerPanel.open ? "true" : "false");
+      registerButton.textContent = registerPanel.open ? "Fechar cadastro" : "+ Novo tema";
+    }
+  }
+
+  function enhancePanels() {
+    const filterPanel = root.querySelector(".factory-filter-panel");
+    if (filterPanel && filterPanel.dataset.factoryExecutiveV136 !== "true") {
+      filterPanel.dataset.factoryExecutiveV136 = "true";
+      filterPanel.open = false;
+      const summary = filterPanel.querySelector(":scope > summary");
+      if (summary) summary.textContent = "Filtros avançados e etapas";
+      filterPanel.addEventListener("toggle", syncUi);
+    }
+    const registerPanel = root.querySelector("#factoryRegisterPanel");
+    if (registerPanel && registerPanel.dataset.factoryExecutiveV136 !== "true") {
+      registerPanel.dataset.factoryExecutiveV136 = "true";
+      registerPanel.addEventListener("toggle", syncUi);
+    }
+    root.querySelectorAll("#factoryList .compact-factory-card").forEach((card) => card.dataset.factoryExecutiveV136 = "true");
+  }
+
+  function bind(toolbar, flow) {
+    if (toolbar && toolbar.dataset.factoryExecutiveBoundV136 !== "true") {
+      toolbar.dataset.factoryExecutiveBoundV136 = "true";
+      toolbar.addEventListener("input", (event) => { if (event.target.id === "factoryExecutiveSearchV136") applySearch(); });
+      toolbar.addEventListener("search", (event) => { if (event.target.id === "factoryExecutiveSearchV136") applySearch(); });
+      toolbar.addEventListener("click", (event) => {
+        if (event.target.closest("[data-factory-search-clear-v136]")) {
+          const input = root.querySelector("#factoryExecutiveSearchV136");
+          if (input) { input.value = ""; input.focus(); applySearch(); }
+          return;
+        }
+        const command = event.target.closest("[data-factory-command-v136]")?.dataset.factoryCommandV136;
+        const panel = command === "filters" ? root.querySelector(".factory-filter-panel") : command === "register" ? root.querySelector("#factoryRegisterPanel") : null;
+        if (panel) {
+          panel.open = !panel.open;
+          if (panel.open) {
+            panel.scrollIntoView({ behavior: "smooth", block: command === "register" ? "start" : "nearest" });
+            if (command === "register") setTimeout(() => root.querySelector("#factoryDiscipline")?.focus(), 180);
+          }
+          syncUi();
+        }
+      });
+    }
+    if (flow && flow.dataset.factoryExecutiveBoundV136 !== "true") {
+      flow.dataset.factoryExecutiveBoundV136 = "true";
+      flow.addEventListener("click", (event) => {
+        const filter = event.target.closest("[data-factory-target-filter-v136]")?.dataset.factoryTargetFilterV136;
+        if (filter) root.querySelector(`[data-factory-filter="${CSS.escape(filter)}"]`)?.click();
+      });
+    }
+  }
+
+  let scheduled = false;
+  function refresh() {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(() => {
+      scheduled = false;
+      ensureStyles();
+      const { toolbar, flow } = ensureToolbar();
+      enhancePanels();
+      bind(toolbar, flow);
+      syncUi();
+      applySearch();
+    });
+  }
+
+  new MutationObserver(refresh).observe(root, { childList: true, subtree: true });
+  root.addEventListener("click", (event) => { if (event.target.closest("[data-factory-filter], [data-factory-scope]")) refresh(); });
+  refresh();
+})();
+
+/* Aldus source: daily-study-collapsible-v137.js */
+(() => {
+  if (window.__aldusDailyStudyCollapsibleV137) return;
+  window.__aldusDailyStudyCollapsibleV137 = true;
+
+  const VERSION = "20260724-plano-dia-recolhivel-v137";
+  const root = document.getElementById("view-metas-do-dia");
+  const panel = root?.querySelector(".today-study-panel");
+  const heading = panel?.querySelector(":scope > .section-heading");
+  const list = document.getElementById("dailyGoalsList");
+  if (!root || !panel || !heading || !list) return;
+  if (panel.dataset.dailyStudyCollapsibleV137 === "true") return;
+
+  function ensureStyles() {
+    if (document.getElementById("dailyStudyCollapsibleStylesV137")) return;
+    const style = document.createElement("style");
+    style.id = "dailyStudyCollapsibleStylesV137";
+    style.textContent = `
+      #view-metas-do-dia .today-study-panel.today-study-collapsible-v137 {
+        overflow: hidden;
+      }
+      #view-metas-do-dia .today-study-heading-v137 {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 0 !important;
+        padding-bottom: 18px;
+        border-bottom: 1px solid var(--border, #dbe4f0);
+      }
+      #view-metas-do-dia .today-study-heading-copy-v137 {
+        min-width: 0;
+      }
+      #view-metas-do-dia .today-study-heading-copy-v137 .eyebrow {
+        margin-bottom: 8px;
+      }
+      #view-metas-do-dia .today-study-heading-copy-v137 h2 {
+        margin-bottom: 0 !important;
+      }
+      #view-metas-do-dia .today-study-toggle-v137 {
+        display: inline-grid;
+        grid-template-columns: auto auto;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        width: auto !important;
+        min-width: 118px;
+        min-height: 42px;
+        padding: 9px 14px;
+        border: 1px solid var(--border, #dbe4f0) !important;
+        border-radius: 13px !important;
+        background: var(--surface, #ffffff) !important;
+        color: var(--primary-dark, #1d4ed8) !important;
+        box-shadow: none !important;
+        transform: none !important;
+      }
+      #view-metas-do-dia .today-study-toggle-v137:hover,
+      #view-metas-do-dia .today-study-toggle-v137:focus-visible {
+        border-color: var(--primary, #2563eb) !important;
+        background: rgba(37, 99, 235, .08) !important;
+      }
+      #view-metas-do-dia .today-study-toggle-icon-v137 {
+        display: inline-block;
+        font-size: 1.15rem;
+        line-height: 1;
+        transition: transform .18s ease;
+      }
+      #view-metas-do-dia .today-study-toggle-v137[aria-expanded="false"] .today-study-toggle-icon-v137 {
+        transform: rotate(-90deg);
+      }
+      #view-metas-do-dia .today-study-content-v137 {
+        padding-top: 22px;
+      }
+      #view-metas-do-dia .today-study-content-v137[hidden] {
+        display: none !important;
+      }
+      #view-metas-do-dia .today-study-collapsible-v137[data-collapsed="true"] .today-study-heading-v137 {
+        padding-bottom: 0;
+        border-bottom-color: transparent;
+      }
+      html[data-aldus-theme="premium-stable"] #view-metas-do-dia .today-study-heading-v137 {
+        border-bottom-color: rgba(111, 175, 219, .26);
+      }
+      html[data-aldus-theme="premium-stable"] #view-metas-do-dia .today-study-toggle-v137 {
+        border-color: rgba(104, 173, 220, .46) !important;
+        background: rgba(7, 39, 64, .82) !important;
+        color: #e7f3fa !important;
+      }
+      html[data-aldus-theme="premium-stable"] #view-metas-do-dia .today-study-toggle-v137:hover,
+      html[data-aldus-theme="premium-stable"] #view-metas-do-dia .today-study-toggle-v137:focus-visible {
+        border-color: #70b6e5 !important;
+        background: rgba(14, 62, 96, .92) !important;
+      }
+      @media (max-width: 620px) {
+        #view-metas-do-dia .today-study-heading-v137 {
+          grid-template-columns: minmax(0, 1fr);
+          align-items: stretch;
+          gap: 12px;
+        }
+        #view-metas-do-dia .today-study-toggle-v137 {
+          width: 100% !important;
+        }
+        #view-metas-do-dia .today-study-content-v137 {
+          padding-top: 16px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #view-metas-do-dia .today-study-toggle-icon-v137 {
+          transition: none;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  ensureStyles();
+
+  const headingCopy = document.createElement("div");
+  headingCopy.className = "today-study-heading-copy-v137";
+  [...heading.children].forEach((child) => headingCopy.appendChild(child));
+  heading.appendChild(headingCopy);
+  heading.classList.add("today-study-heading-v137");
+
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "today-study-toggle-v137";
+  toggle.setAttribute("aria-controls", "dailyGoalsList");
+  toggle.setAttribute("aria-expanded", "true");
+  toggle.innerHTML = '<span class="today-study-toggle-label-v137">Recolher</span><span class="today-study-toggle-icon-v137" aria-hidden="true">⌄</span>';
+  heading.appendChild(toggle);
+
+  const content = document.createElement("div");
+  content.className = "today-study-content-v137";
+  list.before(content);
+  content.appendChild(list);
+
+  function setCollapsed(collapsed) {
+    const isCollapsed = Boolean(collapsed);
+    content.hidden = isCollapsed;
+    panel.dataset.collapsed = String(isCollapsed);
+    toggle.setAttribute("aria-expanded", String(!isCollapsed));
+    toggle.querySelector(".today-study-toggle-label-v137").textContent = isCollapsed ? "Abrir" : "Recolher";
+    toggle.setAttribute("aria-label", isCollapsed ? "Abrir O que estudar hoje" : "Recolher O que estudar hoje");
+    toggle.title = isCollapsed ? "Abrir O que estudar hoje" : "Recolher O que estudar hoje";
+  }
+
+  toggle.addEventListener("click", () => setCollapsed(toggle.getAttribute("aria-expanded") === "true"));
+  panel.classList.add("today-study-collapsible-v137");
+  panel.dataset.dailyStudyCollapsibleV137 = "true";
+  panel.dataset.dailyStudyCollapsibleVersion = VERSION;
+  setCollapsed(false);
+})();
+
+/* Aldus source: daily-smart-review-collapsible-v138.js */
+(() => {
+  if (window.__aldusDailySmartReviewCollapsibleV138) return;
+  window.__aldusDailySmartReviewCollapsibleV138 = true;
+
+  const VERSION = "20260724-revisao-diaria-recolhivel-v138";
+  const root = document.getElementById("view-metas-do-dia");
+  const panel = root?.querySelector("details.day-smart-review-panel");
+  const summary = panel?.querySelector(":scope > summary.day-smart-review-summary");
+  const toggle = summary?.querySelector(".day-smart-review-toggle");
+  const content = document.getElementById("daySmartReview");
+  if (!root || !panel || !summary || !toggle || !content) return;
+  if (panel.dataset.dailySmartReviewCollapsibleV138 === "true") return;
+
+  function ensureStyles() {
+    if (document.getElementById("dailySmartReviewCollapsibleStylesV138")) return;
+    const style = document.createElement("style");
+    style.id = "dailySmartReviewCollapsibleStylesV138";
+    style.textContent = `
+      #view-metas-do-dia .day-smart-review-panel.day-smart-review-collapsible-v138 {
+        overflow: hidden;
+      }
+      #view-metas-do-dia .day-smart-review-summary.day-smart-review-summary-v138 {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 16px;
+        cursor: pointer;
+        list-style: none;
+      }
+      #view-metas-do-dia .day-smart-review-summary-v138::-webkit-details-marker {
+        display: none;
+      }
+      #view-metas-do-dia .day-smart-review-toggle.day-smart-review-toggle-v138 {
+        display: inline-grid;
+        grid-template-columns: auto auto;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        min-width: 118px;
+        min-height: 42px;
+        padding: 9px 14px;
+        border: 1px solid var(--border, #dbe4f0);
+        border-radius: 13px;
+        background: var(--surface, #ffffff);
+        color: var(--primary-dark, #1d4ed8);
+        font-weight: 800;
+        line-height: 1;
+      }
+      #view-metas-do-dia .day-smart-review-summary-v138:hover .day-smart-review-toggle-v138,
+      #view-metas-do-dia .day-smart-review-summary-v138:focus-visible .day-smart-review-toggle-v138 {
+        border-color: var(--primary, #2563eb);
+        background: rgba(37, 99, 235, .08);
+      }
+      #view-metas-do-dia .day-smart-review-toggle-icon-v138 {
+        display: inline-block;
+        font-size: 1.15rem;
+        line-height: 1;
+        transition: transform .18s ease;
+      }
+      #view-metas-do-dia .day-smart-review-summary-v138[aria-expanded="false"] .day-smart-review-toggle-icon-v138 {
+        transform: rotate(-90deg);
+      }
+      html[data-aldus-theme="premium-stable"] #view-metas-do-dia .day-smart-review-toggle-v138 {
+        border-color: rgba(104, 173, 220, .46);
+        background: rgba(7, 39, 64, .82);
+        color: #e7f3fa;
+      }
+      html[data-aldus-theme="premium-stable"] #view-metas-do-dia .day-smart-review-summary-v138:hover .day-smart-review-toggle-v138,
+      html[data-aldus-theme="premium-stable"] #view-metas-do-dia .day-smart-review-summary-v138:focus-visible .day-smart-review-toggle-v138 {
+        border-color: #70b6e5;
+        background: rgba(14, 62, 96, .92);
+      }
+      @media (max-width: 620px) {
+        #view-metas-do-dia .day-smart-review-summary.day-smart-review-summary-v138 {
+          grid-template-columns: minmax(0, 1fr);
+          align-items: stretch;
+          gap: 12px;
+        }
+        #view-metas-do-dia .day-smart-review-toggle-v138 {
+          width: 100%;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #view-metas-do-dia .day-smart-review-toggle-icon-v138 {
+          transition: none;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function updateState() {
+    const isOpen = panel.open;
+    summary.setAttribute("aria-expanded", String(isOpen));
+    toggle.querySelector(".day-smart-review-toggle-label-v138").textContent = isOpen ? "Recolher" : "Abrir";
+    toggle.setAttribute("aria-hidden", "true");
+    summary.setAttribute("aria-label", isOpen ? "Recolher Revisão Inteligente de Hoje" : "Abrir Revisão Inteligente de Hoje");
+    summary.title = isOpen ? "Recolher Revisão Inteligente de Hoje" : "Abrir Revisão Inteligente de Hoje";
+  }
+
+  ensureStyles();
+  summary.classList.add("day-smart-review-summary-v138");
+  summary.setAttribute("aria-controls", "daySmartReview");
+  toggle.classList.add("day-smart-review-toggle-v138");
+  toggle.innerHTML = '<span class="day-smart-review-toggle-label-v138"></span><span class="day-smart-review-toggle-icon-v138" aria-hidden="true">⌄</span>';
+
+  panel.addEventListener("toggle", updateState);
+  panel.classList.add("day-smart-review-collapsible-v138");
+  panel.dataset.dailySmartReviewCollapsibleV138 = "true";
+  panel.dataset.dailySmartReviewCollapsibleVersion = VERSION;
+  updateState();
+})();
+
+/* Aldus source: collapse-chevron-fix-v139.js */
+(() => {
+  if (window.__aldusCollapseChevronFixV139) return;
+  window.__aldusCollapseChevronFixV139 = true;
+
+  const VERSION = "20260724-setas-recolher-v139";
+  const root = document.getElementById("view-metas-do-dia");
+  if (!root) return;
+
+  function ensureStyles() {
+    if (document.getElementById("collapseChevronFixStylesV139")) return;
+    const style = document.createElement("style");
+    style.id = "collapseChevronFixStylesV139";
+    style.textContent = `
+      #view-metas-do-dia .day-smart-review-summary-v138::marker {
+        content: "";
+      }
+      #view-metas-do-dia .today-study-toggle-icon-v137,
+      #view-metas-do-dia .day-smart-review-toggle-icon-v138 {
+        display: inline-block !important;
+        width: 9px !important;
+        height: 9px !important;
+        flex: 0 0 9px;
+        border-right: 2px solid currentColor;
+        border-bottom: 2px solid currentColor;
+        border-radius: 1px;
+        font-size: 0 !important;
+        line-height: 0 !important;
+        text-indent: -9999px;
+        overflow: hidden;
+        transform: rotate(45deg) !important;
+        transform-origin: 50% 50%;
+        transition: transform .18s ease;
+      }
+      #view-metas-do-dia .today-study-toggle-v137[aria-expanded="false"] .today-study-toggle-icon-v137,
+      #view-metas-do-dia .day-smart-review-summary-v138[aria-expanded="false"] .day-smart-review-toggle-icon-v138 {
+        transform: rotate(-45deg) !important;
+      }
+      #view-metas-do-dia .today-study-toggle-v137[aria-expanded="true"] .today-study-toggle-icon-v137,
+      #view-metas-do-dia .day-smart-review-summary-v138[aria-expanded="true"] .day-smart-review-toggle-icon-v138 {
+        transform: rotate(45deg) !important;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #view-metas-do-dia .today-study-toggle-icon-v137,
+        #view-metas-do-dia .day-smart-review-toggle-icon-v138 {
+          transition: none;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function normalizeIcon(icon) {
+    if (!icon) return false;
+    icon.textContent = "";
+    icon.setAttribute("aria-hidden", "true");
+    icon.dataset.collapseChevronFixV139 = "true";
+    icon.dataset.collapseChevronFixVersion = VERSION;
+    return true;
+  }
+
+  function applyFix() {
+    const studyIcon = root.querySelector(".today-study-toggle-icon-v137");
+    const reviewIcon = root.querySelector(".day-smart-review-toggle-icon-v138");
+    normalizeIcon(studyIcon);
+    normalizeIcon(reviewIcon);
+    return Boolean(studyIcon && reviewIcon);
+  }
+
+  ensureStyles();
+  if (applyFix()) return;
+
+  const observer = new MutationObserver(() => {
+    if (applyFix()) observer.disconnect();
+  });
+  observer.observe(root, { childList: true, subtree: true });
+  window.setTimeout(() => observer.disconnect(), 10000);
+})();
+
+/* Aldus source: reinforcement-goal-presentation-v156.js */
+(() => {
+  "use strict";
+  if (window.__aldusReinforcementGoalPresentationV156) return;
+  window.__aldusReinforcementGoalPresentationV156 = true;
+
+  const VERSION = "20260727-meta-reforco-visivel-v156";
+  const LABEL = "META DE REFORÇO";
+
+  function canonical(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLowerCase();
+  }
+
+  function isReinforcementGoal(goal) {
+    return canonical(goal?.type || goal?.tipo) === "reforco";
+  }
+
+  function goalFromProjection(goalId) {
+    const projection = window.__dailyPlanProjectionByGoalId;
+    if (!goalId || !projection || typeof projection.get !== "function") return null;
+    return projection.get(goalId)?.goal || null;
+  }
+
+  function goalFromState(goalId) {
+    if (!goalId) return null;
+    try {
+      if (typeof state === "undefined" || !Array.isArray(state?.dailyGoals)) return null;
+      return state.dailyGoals.find((goal) => goal?.id === goalId) || null;
+    } catch {
+      return null;
+    }
+  }
+
+  function goalById(goalId) {
+    return goalFromProjection(goalId) || goalFromState(goalId);
+  }
+
+  function ensureStyles() {
+    if (document.getElementById("reinforcementGoalPresentationStylesV156")) return;
+    const style = document.createElement("style");
+    style.id = "reinforcementGoalPresentationStylesV156";
+    style.textContent = `
+      #view-metas-do-dia .reinforcement-goal-v156 {
+        border-color: rgba(245, 190, 72, .72) !important;
+      }
+      #view-metas-do-dia .reinforcement-goal-badge-v156 {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        margin: 0 0 8px;
+        padding: 5px 10px;
+        border: 1px solid rgba(245, 190, 72, .78);
+        border-radius: 999px;
+        background: rgba(245, 190, 72, .14);
+        color: #fff1bd;
+        font-size: .78rem;
+        font-weight: 900;
+        letter-spacing: .055em;
+        line-height: 1.2;
+        text-transform: uppercase;
+      }
+      #view-metas-do-dia .daily-goal-summary .reinforcement-goal-badge-v156 {
+        margin: 0 0 5px;
+      }
+      #view-metas-do-dia .reinforcement-goal-callout-v156 {
+        display: grid;
+        gap: 3px;
+        margin: 0 0 14px;
+        padding: 12px 14px;
+        border: 1px solid rgba(245, 190, 72, .58);
+        border-radius: 14px;
+        background: rgba(245, 190, 72, .09);
+      }
+      #view-metas-do-dia .reinforcement-goal-callout-v156 strong {
+        color: #fff1bd;
+        font-size: .86rem;
+        letter-spacing: .04em;
+      }
+      #view-metas-do-dia .reinforcement-goal-callout-v156 span {
+        color: inherit;
+        font-size: .9rem;
+      }
+      @media (max-width: 620px) {
+        #view-metas-do-dia .reinforcement-goal-badge-v156 {
+          font-size: .73rem;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function createBadge(location) {
+    const badge = document.createElement("span");
+    badge.className = "reinforcement-goal-badge-v156";
+    badge.dataset.reinforcementGoalLabel = location;
+    badge.dataset.reinforcementGoalVersion = VERSION;
+    badge.textContent = LABEL;
+    return badge;
+  }
+
+  function removeLabels(container) {
+    container?.querySelectorAll?.("[data-reinforcement-goal-label]").forEach((element) => element.remove());
+  }
+
+  function markGoalDetails(details) {
+    const goalId = details?.dataset?.dailyGoalDetails || "";
+    const goal = goalById(goalId);
+    const reinforcement = isReinforcementGoal(goal);
+    details?.classList.toggle("reinforcement-goal-v156", reinforcement);
+
+    if (!reinforcement) {
+      removeLabels(details);
+      return;
+    }
+
+    const summaryMain = details.querySelector(".daily-goal-summary > span:first-child");
+    if (summaryMain && !summaryMain.querySelector('[data-reinforcement-goal-label="summary"]')) {
+      summaryMain.prepend(createBadge("summary"));
+    }
+
+    const content = details.querySelector("[data-daily-goal-body] .daily-goal-content");
+    if (content && !content.querySelector('[data-reinforcement-goal-label="details"]')) {
+      const callout = document.createElement("div");
+      callout.className = "reinforcement-goal-callout-v156";
+      callout.dataset.reinforcementGoalLabel = "details";
+      callout.dataset.reinforcementGoalVersion = VERSION;
+      const title = document.createElement("strong");
+      title.textContent = LABEL;
+      const description = document.createElement("span");
+      description.textContent = "Atividade adicional para reforçar este assunto; não é uma meta de estudo novo nem uma revisão automática.";
+      callout.append(title, description);
+      content.prepend(callout);
+    }
+  }
+
+  function nextGoalId(container) {
+    return container?.querySelector?.("[data-goal-timer][data-id]")?.dataset?.id
+      || container?.querySelector?.("[data-goal-action][data-id]")?.dataset?.id
+      || container?.querySelector?.("[data-open-goal-material]")?.dataset?.openGoalMaterial
+      || "";
+  }
+
+  function markNextGoal() {
+    const container = document.getElementById("nextDailyGoal");
+    if (!container) return;
+    const goal = goalById(nextGoalId(container));
+    const reinforcement = isReinforcementGoal(goal);
+    container.classList.toggle("reinforcement-goal-v156", reinforcement);
+
+    if (!reinforcement) {
+      removeLabels(container);
+      return;
+    }
+
+    const content = container.querySelector(".daily-plan-content");
+    if (content && !content.querySelector('[data-reinforcement-goal-label="next"]')) {
+      content.prepend(createBadge("next"));
+    }
+  }
+
+  function applyPresentation() {
+    ensureStyles();
+    document.querySelectorAll("#view-metas-do-dia [data-daily-goal-details]").forEach(markGoalDetails);
+    markNextGoal();
+  }
+
+  let scheduled = false;
+  function schedulePresentation() {
+    if (scheduled) return;
+    scheduled = true;
+    (window.requestAnimationFrame || window.setTimeout)(() => {
+      scheduled = false;
+      applyPresentation();
+    }, 0);
+  }
+
+  [document.getElementById("dailyGoalsList"), document.getElementById("nextDailyGoal")]
+    .filter(Boolean)
+    .forEach((container) => {
+      if (typeof MutationObserver !== "undefined") {
+        new MutationObserver(schedulePresentation).observe(container, {
+          childList: true,
+          subtree: true,
+          characterData: true
+        });
+      }
+    });
+
+  window.addEventListener("hashchange", schedulePresentation);
+  window.addEventListener("storage", schedulePresentation);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) schedulePresentation();
+  });
+  document.addEventListener("toggle", (event) => {
+    if (event.target?.matches?.("#view-metas-do-dia [data-daily-goal-details]")) schedulePresentation();
+  }, true);
+
+  schedulePresentation();
+})();
+
+/* Aldus source: analytics-accordion-fix-v148.js */
+(() => {
+  "use strict";
+
+  if (window.__aldusAnalyticsAccordionFixV148) return;
+  window.__aldusAnalyticsAccordionFixV148 = true;
+
+  // Impede que os controladores antigos e conflitantes sejam carregados novamente.
+  window.__aldusAnalyticsTabsFixV146 = true;
+  window.__aldusAnalyticsTabsFixLoaderV146 = true;
+  window.__aldusReleaseVersionV147 = true;
+  window.__aldusReleaseVersionLoaderV147 = true;
+
+  const VERSION = "20260725-analise-estrategica-abas-funcionais-v148";
+  const VIEW_SELECTOR = "#view-analise-estrategica";
+  let observer = null;
+  let scheduled = false;
+
+  function elementFromTarget(target) {
+    if (target instanceof Element) return target;
+    return target?.parentElement instanceof Element ? target.parentElement : null;
+  }
+
+  function viewForTarget(target) {
+    return elementFromTarget(target)?.closest?.(VIEW_SELECTOR) || null;
+  }
+
+  function directDetailsForSummary(summary, view) {
+    if (!(summary instanceof HTMLElement) || summary.tagName !== "SUMMARY") return null;
+    const details = summary.parentElement;
+    if (!(details instanceof HTMLDetailsElement) || !view.contains(details)) return null;
+    return details.firstElementChild === summary ? details : null;
+  }
+
+  function interactiveChild(target, summary) {
+    const element = elementFromTarget(target);
+    if (!element || element === summary) return false;
+    const interactive = element.closest("a,button,input,select,textarea,label,[role='button'],[contenteditable='true']");
+    return Boolean(interactive && summary.contains(interactive));
+  }
+
+  function syncDetails(details) {
+    const summary = details.firstElementChild;
+    if (summary?.tagName !== "SUMMARY") return;
+    summary.setAttribute("aria-expanded", details.open ? "true" : "false");
+    summary.dataset.analyticsAccordionV148 = "true";
+    details.dataset.analyticsAccordionV148 = "true";
+    details.dataset.analyticsAccordionVersion = VERSION;
+  }
+
+  function prepareView(view) {
+    view.querySelector("#analyticsCollapseToolbarV145")?.remove();
+    view.querySelectorAll("details").forEach(syncDetails);
+    view.dataset.analyticsAccordionV148 = "true";
+    view.dataset.analyticsAccordionVersion = VERSION;
+  }
+
+  function schedulePrepare(view) {
+    if (scheduled) return;
+    scheduled = true;
+    (window.requestAnimationFrame || window.setTimeout)(() => {
+      scheduled = false;
+      if (view?.isConnected) prepareView(view);
+    }, 0);
+  }
+
+  function toggleFromEvent(event) {
+    const view = viewForTarget(event.target);
+    if (!view) return;
+
+    const element = elementFromTarget(event.target);
+    const summary = element?.closest?.("summary");
+    const details = directDetailsForSummary(summary, view);
+    if (!details || interactiveChild(element, summary)) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+
+    const nextOpen = !details.open;
+    details.open = nextOpen;
+    syncDetails(details);
+
+    // Confirma o estado no próximo quadro, protegendo contra controladores antigos em cache.
+    window.requestAnimationFrame?.(() => {
+      if (details.isConnected && details.open !== nextOpen) {
+        details.open = nextOpen;
+        syncDetails(details);
+      }
+    });
+  }
+
+  function ensureStyles() {
+    if (document.getElementById("analyticsAccordionFixStylesV148")) return;
+    const style = document.createElement("style");
+    style.id = "analyticsAccordionFixStylesV148";
+    style.textContent = `
+      ${VIEW_SELECTOR} #analyticsCollapseToolbarV145 { display: none !important; }
+      ${VIEW_SELECTOR} details > summary { cursor: pointer; touch-action: manipulation; }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function start() {
+    const view = document.querySelector(VIEW_SELECTOR);
+    if (!view) return;
+
+    ensureStyles();
+    prepareView(view);
+
+    // O listener fica no documento para funcionar mesmo quando outro código interrompe
+    // o clique antes de ele alcançar a própria aba.
+    document.addEventListener("click", toggleFromEvent, true);
+
+    view.addEventListener("toggle", (event) => {
+      if (event.target instanceof HTMLDetailsElement) syncDetails(event.target);
+    }, true);
+
+    if (typeof MutationObserver !== "undefined") {
+      observer = new MutationObserver(() => schedulePrepare(view));
+      observer.observe(view, { childList: true, subtree: true });
+    }
+
+    window.addEventListener("pageshow", () => {
+      schedulePrepare(view);
+    });
+    window.addEventListener("hashchange", () => schedulePrepare(view));
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start, { once: true });
+  } else {
+    start();
+  }
+})();
+
+/* Aldus source: analytics-header-arrow-v149.js */
+(() => {
+  "use strict";
+
+  if (window.__aldusAnalyticsHeaderArrowV149) return;
+  window.__aldusAnalyticsHeaderArrowV149 = true;
+
+  const VERSION = "20260725-analise-estrategica-cabecalho-fixo-v149";
+  const VIEW_SELECTOR = "#view-analise-estrategica";
+  let observer = null;
+  let scheduled = false;
+  let mutating = false;
+
+  function fixedHeader(view) {
+    let wrapper = view.querySelector(":scope > .analytics-fixed-header-v149");
+    if (wrapper) return wrapper;
+
+    const introShell = view.querySelector(':scope > details[data-analytics-collapsible-key-v145="shell:intro"]');
+    const heading = introShell?.querySelector(".section-heading")
+      || [...view.children].find((child) => child.classList?.contains("section-heading"));
+    if (!heading) return null;
+
+    wrapper = document.createElement("div");
+    wrapper.className = "analytics-fixed-header-v149";
+    wrapper.dataset.analyticsFixedHeaderVersion = VERSION;
+
+    heading.classList.remove("analytics-intro-source-v145");
+    heading.classList.add("view-identity-heading");
+    const title = heading.querySelector("h2");
+    if (title) title.id = "analise-estrategica-title";
+
+    const anchor = introShell || heading;
+    anchor.before(wrapper);
+    wrapper.appendChild(heading);
+    if (introShell) introShell.remove();
+    return wrapper;
+  }
+
+  function normalizeFilters(view) {
+    const details = view.querySelector(":scope > details.analytics-filters-section");
+    if (!details) return null;
+
+    details.classList.add("analytics-collapsible-v145", "analytics-filter-shell-v149");
+    details.dataset.analyticsFilterArrowVersion = VERSION;
+
+    const summary = details.querySelector(":scope > summary");
+    if (!summary) return details;
+
+    summary.classList.add("analytics-collapsible-summary-v145");
+    let heading = summary.querySelector(":scope > .analytics-collapsible-heading-v145");
+    let chevron = summary.querySelector(":scope > .analytics-collapsible-chevron-v145");
+
+    if (!heading) {
+      const titleText = summary.textContent.trim() || "Filtros da análise";
+      heading = document.createElement("span");
+      heading.className = "analytics-collapsible-heading-v145";
+      const strong = document.createElement("strong");
+      strong.textContent = titleText;
+      heading.appendChild(strong);
+    }
+
+    if (!chevron) {
+      chevron = document.createElement("span");
+      chevron.className = "analytics-collapsible-chevron-v145";
+      chevron.setAttribute("aria-hidden", "true");
+    }
+
+    if (summary.firstElementChild !== heading || summary.lastElementChild !== chevron || summary.children.length !== 2) {
+      summary.replaceChildren(heading, chevron);
+    }
+    summary.setAttribute("aria-expanded", details.open ? "true" : "false");
+    return details;
+  }
+
+  function ensureStyles() {
+    if (document.getElementById("analyticsHeaderArrowStylesV149")) return;
+    const style = document.createElement("style");
+    style.id = "analyticsHeaderArrowStylesV149";
+    style.textContent = `
+      ${VIEW_SELECTOR} > .analytics-fixed-header-v149 {
+        margin: 0 0 28px;
+      }
+      ${VIEW_SELECTOR} > .analytics-fixed-header-v149 > .section-heading {
+        margin: 0;
+      }
+      ${VIEW_SELECTOR} > .analytics-fixed-header-v149 .eyebrow,
+      ${VIEW_SELECTOR} > .analytics-fixed-header-v149 h2 {
+        display: block !important;
+      }
+      ${VIEW_SELECTOR} > .analytics-fixed-header-v149 .privacy-note {
+        margin: 0;
+      }
+      ${VIEW_SELECTOR} > details.analytics-filter-shell-v149 > summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        min-height: 62px;
+        padding: 14px 17px;
+        cursor: pointer;
+        list-style: none;
+        user-select: none;
+      }
+      ${VIEW_SELECTOR} > details.analytics-filter-shell-v149 > summary::-webkit-details-marker {
+        display: none;
+      }
+      ${VIEW_SELECTOR} > details.analytics-filter-shell-v149 > summary::marker {
+        content: "";
+      }
+      ${VIEW_SELECTOR} > details.analytics-filter-shell-v149[open] > summary {
+        border-bottom: 1px solid var(--border, #dbe4f0);
+      }
+      @media (max-width: 720px) {
+        ${VIEW_SELECTOR} > .analytics-fixed-header-v149 {
+          margin-bottom: 20px;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function prepare() {
+    const view = document.querySelector(VIEW_SELECTOR);
+    if (!view || mutating) return;
+    mutating = true;
+    try {
+      ensureStyles();
+      fixedHeader(view);
+      normalizeFilters(view);
+      view.dataset.analyticsHeaderArrowV149 = "true";
+      view.dataset.analyticsHeaderArrowVersion = VERSION;
+    } finally {
+      mutating = false;
+    }
+  }
+
+  function schedulePrepare() {
+    if (scheduled) return;
+    scheduled = true;
+    (window.requestAnimationFrame || window.setTimeout)(() => {
+      scheduled = false;
+      prepare();
+    }, 0);
+  }
+
+  function start() {
+    prepare();
+    const view = document.querySelector(VIEW_SELECTOR);
+    if (view && typeof MutationObserver !== "undefined") {
+      observer = new MutationObserver(() => {
+        if (!mutating) schedulePrepare();
+      });
+      observer.observe(view, { childList: true, subtree: true });
+    }
+    view?.addEventListener("toggle", (event) => {
+      const details = event.target;
+      if (details?.matches?.("details.analytics-filter-shell-v149")) {
+        details.querySelector(":scope > summary")?.setAttribute("aria-expanded", details.open ? "true" : "false");
+      }
+    }, true);
+    window.addEventListener("pageshow", schedulePrepare);
+    window.addEventListener("hashchange", schedulePrepare);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start, { once: true });
+  } else {
+    start();
+  }
+})();
+
+/* Aldus source: analytics-single-arrow-v150.js */
+(() => {
+  "use strict";
+
+  if (window.__aldusAnalyticsSingleArrowV150) return;
+  window.__aldusAnalyticsSingleArrowV150 = true;
+
+  const VERSION = "20260725-analise-estrategica-seta-unica-v150";
+  const VIEW_SELECTOR = "#view-analise-estrategica";
+  const FILTER_SELECTOR = `${VIEW_SELECTOR} > details.analytics-filters-section > summary`;
+
+  function ensureStyles() {
+    if (document.getElementById("analyticsSingleArrowStylesV150")) return;
+
+    const style = document.createElement("style");
+    style.id = "analyticsSingleArrowStylesV150";
+    style.textContent = `
+      ${FILTER_SELECTOR} {
+        list-style: none !important;
+      }
+      ${FILTER_SELECTOR}::-webkit-details-marker {
+        display: none !important;
+      }
+      ${FILTER_SELECTOR}::marker {
+        content: "" !important;
+        display: none !important;
+      }
+      ${FILTER_SELECTOR}::before,
+      ${FILTER_SELECTOR}::after {
+        content: none !important;
+        display: none !important;
+        border: 0 !important;
+        width: 0 !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      ${FILTER_SELECTOR} > .analytics-collapsible-chevron-v145 {
+        display: inline-block !important;
+        flex: 0 0 auto !important;
+        visibility: visible !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function apply() {
+    ensureStyles();
+
+    const summary = document.querySelector(FILTER_SELECTOR);
+    if (!summary) return false;
+
+    summary.dataset.analyticsSingleArrowV150 = "true";
+    summary.dataset.analyticsSingleArrowVersion = VERSION;
+    return true;
+  }
+
+  function start() {
+    if (apply() || typeof MutationObserver === "undefined") return;
+
+    const view = document.querySelector(VIEW_SELECTOR);
+    if (!view) return;
+
+    const observer = new MutationObserver(() => {
+      if (apply()) observer.disconnect();
+    });
+    observer.observe(view, { childList: true, subtree: true });
+    window.setTimeout(() => observer.disconnect(), 10000);
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start, { once: true });
+  } else {
+    start();
+  }
+})();
+
+/* Aldus source: contest-countdown-v151.js */
+(() => {
+  "use strict";
+
+  const VERSION = "20260725-contagem-concurso-v151";
+  const STORAGE_KEY = "aldus.contestCountdown.v151";
+  const MAX_ITEMS = 120;
+
+  function cleanText(value, maxLength = 100) {
+    return String(value ?? "").replace(/[\u0000-\u001F\u007F]/g, " ").replace(/\s+/g, " ").trim().slice(0, maxLength);
+  }
+
+  function validDateText(value) {
+    const text = String(value || "");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return false;
+    const [year, month, day] = text.split("-").map(Number);
+    const date = new Date(year, month - 1, day);
+    return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
+  }
+
+  function validTimeText(value) {
+    return value === "" || /^([01]\d|2[0-3]):[0-5]\d$/.test(String(value || ""));
+  }
+
+  function targetDate(record) {
+    if (!record || !validDateText(record.date) || !validTimeText(record.time || "")) return null;
+    const [year, month, day] = record.date.split("-").map(Number);
+    const [hour, minute] = (record.time || "23:59").split(":").map(Number);
+    const date = new Date(year, month - 1, day, hour, minute, record.time ? 0 : 59, 0);
+    return Number.isFinite(date.getTime()) ? date : null;
+  }
+
+  function remainingParts(target, now = new Date()) {
+    const milliseconds = Math.max(0, target.getTime() - now.getTime());
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    return {
+      milliseconds,
+      days: Math.floor(totalSeconds / 86400),
+      hours: Math.floor((totalSeconds % 86400) / 3600),
+      minutes: Math.floor((totalSeconds % 3600) / 60),
+      seconds: totalSeconds % 60
+    };
+  }
+
+  function normalizeRecord(input) {
+    const record = {
+      id: cleanText(input?.id, 80),
+      contest: cleanText(input?.contest, 80),
+      phase: cleanText(input?.phase, 100),
+      date: cleanText(input?.date, 10),
+      time: cleanText(input?.time, 5),
+      kind: input?.kind === "estimated" ? "estimated" : "official",
+      pinned: Boolean(input?.pinned),
+      createdAt: cleanText(input?.createdAt, 40),
+      updatedAt: cleanText(input?.updatedAt, 40)
+    };
+    if (!record.id || !record.contest || !record.phase || !validDateText(record.date) || !validTimeText(record.time)) return null;
+    return record;
+  }
+
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    if (typeof module !== "undefined") module.exports = { cleanText, validDateText, validTimeText, targetDate, remainingParts, normalizeRecord };
+    return;
+  }
+
+  if (window.__aldusContestCountdownV151) return;
+  window.__aldusContestCountdownV151 = true;
+
+  let state = { items: [], updatedAt: "" };
+  let editingId = "";
+  let timerId = 0;
+  let modal = null;
+  let block = null;
+
+  function makeId() {
+    if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+    return `countdown-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  }
+
+  function loadState() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+      const items = Array.isArray(parsed?.items) ? parsed.items.map(normalizeRecord).filter(Boolean).slice(0, MAX_ITEMS) : [];
+      let pinnedSeen = false;
+      for (const item of items) {
+        if (item.pinned && !pinnedSeen) pinnedSeen = true;
+        else if (item.pinned) item.pinned = false;
+      }
+      state = { items, updatedAt: cleanText(parsed?.updatedAt, 40) };
+    } catch (error) {
+      console.warn("[Contagem do concurso] Dados locais inválidos foram ignorados.", error);
+      state = { items: [], updatedAt: "" };
+    }
+  }
+
+  function saveState() {
+    state.updatedAt = new Date().toISOString();
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      window.dispatchEvent(new CustomEvent("aldus:contest-countdown-changed", { detail: { version: VERSION } }));
+      return true;
+    } catch (error) {
+      console.error("[Contagem do concurso] Não foi possível salvar.", error);
+      showStatus("Não foi possível salvar os prazos neste navegador.", true);
+      return false;
+    }
+  }
+
+  function formatDate(record) {
+    const date = targetDate(record);
+    if (!date) return "Data inválida";
+    const options = { day: "2-digit", month: "2-digit", year: "numeric" };
+    const formatted = new Intl.DateTimeFormat("pt-BR", options).format(date);
+    return record.time ? `${formatted}, ${record.time}` : `${formatted} · horário não informado`;
+  }
+
+  function sortItems(items, now = new Date()) {
+    return [...items].sort((a, b) => {
+      const aTime = targetDate(a)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+      const bTime = targetDate(b)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+      const aEnded = aTime < now.getTime();
+      const bEnded = bTime < now.getTime();
+      if (aEnded !== bEnded) return aEnded ? 1 : -1;
+      return aEnded ? bTime - aTime : aTime - bTime;
+    });
+  }
+
+  function primaryItem(now = new Date()) {
+    const valid = state.items.filter((item) => targetDate(item));
+    const pinned = valid.find((item) => item.pinned);
+    if (pinned) return pinned;
+    return sortItems(valid, now).find((item) => targetDate(item).getTime() >= now.getTime()) || sortItems(valid, now)[0] || null;
+  }
+
+  function createElement(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function ensureStyles() {
+    if (document.getElementById("contestCountdownStylesV151")) return;
+    const style = document.createElement("style");
+    style.id = "contestCountdownStylesV151";
+    style.textContent = `
+      #contestCountdownBlockV151 { grid-column: 1 / -1; overflow: hidden; }
+      #contestCountdownBlockV151 .contest-countdown-head { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+      #contestCountdownBlockV151 .contest-countdown-title { display:flex; align-items:center; gap:9px; min-width:0; }
+      #contestCountdownBlockV151 .contest-countdown-title span[aria-hidden="true"] { font-size:1.25rem; }
+      #contestCountdownBlockV151 .contest-countdown-actions { display:flex; gap:8px; flex-wrap:wrap; }
+      #contestCountdownBlockV151 .contest-primary { margin-top:14px; padding:18px; border:1px solid rgba(95,168,216,.48); border-radius:16px; background:linear-gradient(145deg,rgba(11,45,71,.96),rgba(4,24,42,.96)); box-shadow:0 12px 28px rgba(0,7,18,.2); }
+      #contestCountdownBlockV151 .contest-primary-top { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; }
+      #contestCountdownBlockV151 .contest-primary-name { margin:0; font-size:clamp(1rem,2vw,1.35rem); color:#fff; overflow-wrap:anywhere; }
+      #contestCountdownBlockV151 .contest-primary-phase { margin:4px 0 0; color:#c9deed; font-weight:700; overflow-wrap:anywhere; }
+      #contestCountdownBlockV151 .contest-kind { display:inline-flex; align-items:center; border:1px solid rgba(125,211,252,.4); border-radius:999px; padding:5px 9px; color:#e8f7ff; background:rgba(56,189,248,.12); font-size:.78rem; font-weight:800; }
+      #contestCountdownBlockV151 .contest-clock { display:grid; grid-template-columns:repeat(4,minmax(64px,1fr)); gap:8px; margin-top:16px; }
+      #contestCountdownBlockV151 .contest-clock-unit { min-width:0; padding:10px 7px; border-radius:12px; background:rgba(1,12,25,.62); text-align:center; border:1px solid rgba(95,168,216,.25); }
+      #contestCountdownBlockV151 .contest-clock-unit strong { display:block; color:#fff; font-size:clamp(1.25rem,4vw,2.15rem); line-height:1; font-variant-numeric:tabular-nums; }
+      #contestCountdownBlockV151 .contest-clock-unit span { display:block; margin-top:5px; color:#bcd3e3; font-size:.75rem; text-transform:uppercase; letter-spacing:.04em; }
+      #contestCountdownBlockV151 .contest-date-line { margin:12px 0 0; color:#d7e9f5; font-size:.9rem; }
+      #contestCountdownBlockV151 .contest-empty { margin-top:12px; padding:16px; border:1px dashed rgba(95,168,216,.5); border-radius:14px; text-align:center; }
+      #contestCountdownBlockV151 .contest-list { display:grid; gap:8px; margin-top:12px; }
+      #contestCountdownBlockV151 .contest-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:center; padding:10px 12px; border-radius:12px; border:1px solid rgba(95,168,216,.22); background:rgba(4,24,42,.55); }
+      #contestCountdownBlockV151 .contest-row-main { min-width:0; }
+      #contestCountdownBlockV151 .contest-row strong, #contestCountdownBlockV151 .contest-row span { display:block; overflow-wrap:anywhere; }
+      #contestCountdownBlockV151 .contest-row span { color:#c4d8e6; font-size:.82rem; margin-top:2px; }
+      #contestCountdownBlockV151 .contest-row-time { color:#fff; font-weight:900; white-space:nowrap; font-variant-numeric:tabular-nums; }
+      #contestCountdownBlockV151 .contest-ended { opacity:.7; }
+      #contestCountdownBlockV151 .contest-more { margin-top:10px; color:#bcd3e3; font-size:.82rem; text-align:right; }
+      #contestCountdownModalV151[hidden] { display:none !important; }
+      #contestCountdownModalV151 { position:fixed; inset:0; z-index:10020; display:grid; place-items:center; padding:16px; }
+      #contestCountdownModalV151 .contest-modal-backdrop { position:absolute; inset:0; background:rgba(0,8,18,.76); }
+      #contestCountdownModalV151 .contest-modal-card { position:relative; width:min(760px,100%); max-height:min(88vh,850px); overflow:auto; border-radius:18px; padding:18px; background:#071f34; color:#fff; border:1px solid rgba(95,168,216,.5); box-shadow:0 24px 70px rgba(0,0,0,.42); }
+      #contestCountdownModalV151 .contest-modal-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+      #contestCountdownModalV151 .contest-modal-heading h3 { margin:0; color:#fff; }
+      #contestCountdownModalV151 .contest-close { min-width:42px; min-height:42px; }
+      #contestCountdownModalV151 .contest-form { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
+      #contestCountdownModalV151 .contest-form label { display:grid; gap:6px; color:#dbeaf4; font-weight:700; }
+      #contestCountdownModalV151 .contest-form .wide { grid-column:1 / -1; }
+      #contestCountdownModalV151 .contest-form input, #contestCountdownModalV151 .contest-form select { width:100%; min-height:44px; box-sizing:border-box; }
+      #contestCountdownModalV151 .contest-check { display:flex !important; grid-column:1 / -1; align-items:center; gap:8px; }
+      #contestCountdownModalV151 .contest-check input { width:auto; min-height:0; }
+      #contestCountdownModalV151 .contest-form-actions, #contestCountdownModalV151 .contest-backup-actions { grid-column:1 / -1; display:flex; flex-wrap:wrap; gap:8px; }
+      #contestCountdownModalV151 .contest-manage-list { display:grid; gap:8px; margin-top:18px; }
+      #contestCountdownModalV151 .contest-manage-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:center; padding:12px; border:1px solid rgba(95,168,216,.25); border-radius:12px; background:rgba(1,12,25,.45); }
+      #contestCountdownModalV151 .contest-manage-row p { margin:3px 0 0; color:#bdd4e4; font-size:.84rem; overflow-wrap:anywhere; }
+      #contestCountdownModalV151 .contest-manage-buttons { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+      #contestCountdownModalV151 .contest-status { min-height:1.3em; margin:10px 0 0; color:#bfe4ff; }
+      #contestCountdownModalV151 .contest-status.error { color:#ffb4b4; }
+      #contestCountdownImportV151 { display:none; }
+      @media (max-width:620px) {
+        #contestCountdownBlockV151 .contest-clock { grid-template-columns:repeat(2,minmax(0,1fr)); }
+        #contestCountdownModalV151 .contest-form { grid-template-columns:1fr; }
+        #contestCountdownModalV151 .contest-form .wide, #contestCountdownModalV151 .contest-check, #contestCountdownModalV151 .contest-form-actions, #contestCountdownModalV151 .contest-backup-actions { grid-column:1; }
+        #contestCountdownModalV151 .contest-manage-row { grid-template-columns:1fr; }
+        #contestCountdownModalV151 .contest-manage-buttons { justify-content:flex-start; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function ensureBlock() {
+    if (block?.isConnected) return block;
+    const dashboardBlocks = document.querySelector("#view-dashboard .dashboard-blocks");
+    if (!dashboardBlocks) return null;
+
+    block = createElement("article", "dashboard-block");
+    block.id = "contestCountdownBlockV151";
+    block.dataset.version = VERSION;
+
+    const head = createElement("div", "contest-countdown-head");
+    const titleWrap = createElement("div", "contest-countdown-title");
+    titleWrap.append(createElement("span", "", "⏳"));
+    titleWrap.lastChild.setAttribute("aria-hidden", "true");
+    titleWrap.append(createElement("div", "dashboard-block-title", "Contagem Regressiva do Concurso"));
+    const actions = createElement("div", "contest-countdown-actions");
+    const add = createElement("button", "secondary-button", "Adicionar fase");
+    add.type = "button";
+    add.dataset.countdownAction = "add";
+    const manage = createElement("button", "secondary-button", "Gerenciar");
+    manage.type = "button";
+    manage.dataset.countdownAction = "manage";
+    actions.append(add, manage);
+    head.append(titleWrap, actions);
+
+    const content = createElement("div", "contest-countdown-content");
+    content.setAttribute("aria-live", "polite");
+    block.append(head, content);
+    dashboardBlocks.prepend(block);
+    block.addEventListener("click", onBlockClick);
+    return block;
+  }
+
+  function ensureModal() {
+    if (modal?.isConnected) return modal;
+    modal = createElement("div");
+    modal.id = "contestCountdownModalV151";
+    modal.hidden = true;
+    modal.setAttribute("role", "dialog");
+    modal.setAttribute("aria-modal", "true");
+    modal.setAttribute("aria-labelledby", "contestCountdownModalTitleV151");
+
+    const backdrop = createElement("div", "contest-modal-backdrop");
+    backdrop.dataset.countdownClose = "true";
+    const card = createElement("section", "contest-modal-card");
+    const heading = createElement("div", "contest-modal-heading");
+    const headingText = createElement("div");
+    headingText.append(createElement("p", "eyebrow", "CONCURSO E FASES"));
+    const title = createElement("h3", "", "Gerenciar contagem regressiva");
+    title.id = "contestCountdownModalTitleV151";
+    headingText.append(title);
+    const close = createElement("button", "secondary-button contest-close", "×");
+    close.type = "button";
+    close.setAttribute("aria-label", "Fechar");
+    close.dataset.countdownClose = "true";
+    heading.append(headingText, close);
+
+    const form = createElement("form", "contest-form");
+    form.id = "contestCountdownFormV151";
+    form.noValidate = true;
+
+    function field(labelText, input) {
+      const label = createElement("label");
+      label.append(document.createTextNode(labelText), input);
+      return label;
+    }
+
+    const contest = document.createElement("input");
+    contest.id = "contestCountdownContestV151";
+    contest.name = "contest";
+    contest.maxLength = 80;
+    contest.required = true;
+    contest.placeholder = "Ex.: PCPR Delegado";
+    const phase = document.createElement("input");
+    phase.id = "contestCountdownPhaseV151";
+    phase.name = "phase";
+    phase.maxLength = 100;
+    phase.required = true;
+    phase.placeholder = "Ex.: Prova objetiva";
+    const date = document.createElement("input");
+    date.id = "contestCountdownDateV151";
+    date.name = "date";
+    date.type = "date";
+    date.required = true;
+    const time = document.createElement("input");
+    time.id = "contestCountdownTimeV151";
+    time.name = "time";
+    time.type = "time";
+    const kind = document.createElement("select");
+    kind.id = "contestCountdownKindV151";
+    kind.name = "kind";
+    const official = document.createElement("option");
+    official.value = "official";
+    official.textContent = "Data oficial";
+    const estimated = document.createElement("option");
+    estimated.value = "estimated";
+    estimated.textContent = "Data prevista/estimada";
+    kind.append(official, estimated);
+
+    const contestLabel = field("Concurso", contest);
+    contestLabel.className = "wide";
+    const phaseLabel = field("Fase", phase);
+    phaseLabel.className = "wide";
+    const dateLabel = field("Data", date);
+    const timeLabel = field("Horário (opcional)", time);
+    const kindLabel = field("Classificação da data", kind);
+    kindLabel.className = "wide";
+    const pinLabel = createElement("label", "contest-check");
+    const pin = document.createElement("input");
+    pin.id = "contestCountdownPinnedV151";
+    pin.name = "pinned";
+    pin.type = "checkbox";
+    pinLabel.append(pin, document.createTextNode(" Fixar esta fase como contagem principal"));
+
+    const formActions = createElement("div", "contest-form-actions");
+    const cancelEdit = createElement("button", "secondary-button", "Limpar");
+    cancelEdit.type = "button";
+    cancelEdit.dataset.countdownAction = "reset-form";
+    const save = createElement("button", "", "Salvar fase");
+    save.type = "submit";
+    save.id = "contestCountdownSaveV151";
+    formActions.append(cancelEdit, save);
+
+    form.append(contestLabel, phaseLabel, dateLabel, timeLabel, kindLabel, pinLabel, formActions);
+
+    const status = createElement("p", "contest-status");
+    status.id = "contestCountdownStatusV151";
+    status.setAttribute("aria-live", "polite");
+
+    const backupActions = createElement("div", "contest-backup-actions");
+    const exportButton = createElement("button", "secondary-button", "Exportar prazos");
+    exportButton.type = "button";
+    exportButton.dataset.countdownAction = "export";
+    const importButton = createElement("button", "secondary-button", "Importar prazos");
+    importButton.type = "button";
+    importButton.dataset.countdownAction = "import";
+    const importInput = document.createElement("input");
+    importInput.id = "contestCountdownImportV151";
+    importInput.type = "file";
+    importInput.accept = "application/json,.json";
+    backupActions.append(exportButton, importButton, importInput);
+
+    const list = createElement("div", "contest-manage-list");
+    list.id = "contestCountdownManageListV151";
+    card.append(heading, form, status, backupActions, list);
+    modal.append(backdrop, card);
+    document.body.appendChild(modal);
+
+    modal.addEventListener("click", onModalClick);
+    form.addEventListener("submit", onFormSubmit);
+    importInput.addEventListener("change", onImportFile);
+    return modal;
+  }
+
+  function renderBlock() {
+    const currentBlock = ensureBlock();
+    if (!currentBlock) return;
+    const content = currentBlock.querySelector(".contest-countdown-content");
+    content.replaceChildren();
+    const now = new Date();
+    const primary = primaryItem(now);
+
+    if (!primary) {
+      const empty = createElement("div", "contest-empty");
+      empty.append(createElement("strong", "", "Nenhuma fase cadastrada."));
+      empty.append(createElement("p", "item-meta", "Adicione datas oficiais ou previstas para acompanhar o próximo marco do concurso."));
+      content.append(empty);
+      return;
+    }
+
+    const target = targetDate(primary);
+    const ended = target.getTime() < now.getTime();
+    const primaryCard = createElement("section", "contest-primary");
+    if (ended) primaryCard.classList.add("contest-ended");
+    const top = createElement("div", "contest-primary-top");
+    const names = createElement("div");
+    names.append(createElement("h3", "contest-primary-name", primary.contest));
+    names.append(createElement("p", "contest-primary-phase", `${primary.phase}${primary.pinned ? " · Fixada" : ""}`));
+    const kind = createElement("span", "contest-kind", primary.kind === "estimated" ? "Prevista/estimada" : "Oficial");
+    top.append(names, kind);
+    primaryCard.append(top);
+
+    const clock = createElement("div", "contest-clock");
+    clock.dataset.targetId = primary.id;
+    const labels = [["days", "dias"], ["hours", "horas"], ["minutes", "minutos"], ["seconds", "segundos"]];
+    for (const [key, label] of labels) {
+      const unit = createElement("div", "contest-clock-unit");
+      const value = createElement("strong", "", "00");
+      value.dataset.countdownUnit = key;
+      unit.append(value, createElement("span", "", label));
+      clock.append(unit);
+    }
+    primaryCard.append(clock);
+    primaryCard.append(createElement("p", "contest-date-line", ended ? `Fase encerrada em ${formatDate(primary)}.` : `${formatDate(primary)}.`));
+    content.append(primaryCard);
+
+    const ordered = sortItems(state.items, now).filter((item) => item.id !== primary.id);
+    if (ordered.length) {
+      const list = createElement("div", "contest-list");
+      for (const item of ordered.slice(0, 4)) {
+        const itemTarget = targetDate(item);
+        const itemEnded = itemTarget && itemTarget.getTime() < now.getTime();
+        const row = createElement("div", `contest-row${itemEnded ? " contest-ended" : ""}`);
+        const main = createElement("div", "contest-row-main");
+        main.append(createElement("strong", "", `${item.contest} — ${item.phase}`));
+        main.append(createElement("span", "", `${formatDate(item)} · ${item.kind === "estimated" ? "Prevista" : "Oficial"}${item.pinned ? " · Fixada" : ""}`));
+        const remaining = createElement("div", "contest-row-time", itemEnded ? "Encerrada" : compactRemaining(itemTarget, now));
+        row.append(main, remaining);
+        list.append(row);
+      }
+      content.append(list);
+      if (ordered.length > 4) content.append(createElement("div", "contest-more", `+ ${ordered.length - 4} fase(s) em Gerenciar`));
+    }
+    updateClock();
+  }
+
+  function compactRemaining(target, now = new Date()) {
+    const parts = remainingParts(target, now);
+    if (parts.days > 0) return `${parts.days}d ${String(parts.hours).padStart(2, "0")}h`;
+    if (parts.hours > 0) return `${parts.hours}h ${String(parts.minutes).padStart(2, "0")}min`;
+    return `${parts.minutes}min`;
+  }
+
+  function updateClock() {
+    const clock = block?.querySelector(".contest-clock");
+    if (!clock) return;
+    const item = state.items.find((candidate) => candidate.id === clock.dataset.targetId);
+    const target = targetDate(item);
+    if (!target) return;
+    const now = new Date();
+    const ended = target.getTime() < now.getTime();
+    const parts = remainingParts(target, now);
+    const values = ended ? { days: "—", hours: "—", minutes: "—", seconds: "—" } : {
+      days: String(parts.days),
+      hours: String(parts.hours).padStart(2, "0"),
+      minutes: String(parts.minutes).padStart(2, "0"),
+      seconds: String(parts.seconds).padStart(2, "0")
+    };
+    for (const node of clock.querySelectorAll("[data-countdown-unit]")) node.textContent = values[node.dataset.countdownUnit] ?? "00";
+    if (ended && !clock.dataset.endedRendered) {
+      clock.dataset.endedRendered = "true";
+      window.setTimeout(renderBlock, 50);
+    }
+  }
+
+  function renderManageList() {
+    ensureModal();
+    const list = modal.querySelector("#contestCountdownManageListV151");
+    list.replaceChildren();
+    const items = sortItems(state.items);
+    if (!items.length) {
+      list.append(createElement("p", "notice", "Nenhuma fase cadastrada."));
+      return;
+    }
+    for (const item of items) {
+      const row = createElement("div", "contest-manage-row");
+      const info = createElement("div");
+      info.append(createElement("strong", "", `${item.contest} — ${item.phase}`));
+      info.append(createElement("p", "", `${formatDate(item)} · ${item.kind === "estimated" ? "Prevista/estimada" : "Oficial"}${item.pinned ? " · Fixada" : ""}`));
+      const buttons = createElement("div", "contest-manage-buttons");
+      const pin = createElement("button", "secondary-button", item.pinned ? "Desafixar" : "Fixar");
+      pin.type = "button";
+      pin.dataset.countdownAction = "toggle-pin";
+      pin.dataset.id = item.id;
+      const edit = createElement("button", "secondary-button", "Editar");
+      edit.type = "button";
+      edit.dataset.countdownAction = "edit";
+      edit.dataset.id = item.id;
+      const remove = createElement("button", "secondary-button", "Excluir");
+      remove.type = "button";
+      remove.dataset.countdownAction = "delete";
+      remove.dataset.id = item.id;
+      buttons.append(pin, edit, remove);
+      row.append(info, buttons);
+      list.append(row);
+    }
+  }
+
+  function showModal(mode = "manage") {
+    ensureModal();
+    modal.hidden = false;
+    document.documentElement.style.overflow = "hidden";
+    if (mode === "add") resetForm();
+    renderManageList();
+    window.setTimeout(() => modal.querySelector(mode === "add" ? "#contestCountdownContestV151" : ".contest-close")?.focus(), 0);
+  }
+
+  function closeModal() {
+    if (!modal) return;
+    modal.hidden = true;
+    document.documentElement.style.overflow = "";
+    editingId = "";
+    showStatus("");
+  }
+
+  function resetForm() {
+    ensureModal();
+    editingId = "";
+    const form = modal.querySelector("#contestCountdownFormV151");
+    form.reset();
+    modal.querySelector("#contestCountdownKindV151").value = "official";
+    modal.querySelector("#contestCountdownSaveV151").textContent = "Salvar fase";
+    showStatus("");
+  }
+
+  function editItem(id) {
+    const item = state.items.find((candidate) => candidate.id === id);
+    if (!item) return;
+    editingId = item.id;
+    ensureModal();
+    modal.querySelector("#contestCountdownContestV151").value = item.contest;
+    modal.querySelector("#contestCountdownPhaseV151").value = item.phase;
+    modal.querySelector("#contestCountdownDateV151").value = item.date;
+    modal.querySelector("#contestCountdownTimeV151").value = item.time;
+    modal.querySelector("#contestCountdownKindV151").value = item.kind;
+    modal.querySelector("#contestCountdownPinnedV151").checked = item.pinned;
+    modal.querySelector("#contestCountdownSaveV151").textContent = "Atualizar fase";
+    showStatus("Editando fase selecionada.");
+    modal.querySelector("#contestCountdownContestV151").focus();
+  }
+
+  function showStatus(message, error = false) {
+    const status = modal?.querySelector("#contestCountdownStatusV151");
+    if (!status) return;
+    status.textContent = message;
+    status.classList.toggle("error", error);
+  }
+
+  function onFormSubmit(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const now = new Date().toISOString();
+    const draft = normalizeRecord({
+      id: editingId || makeId(),
+      contest: data.get("contest"),
+      phase: data.get("phase"),
+      date: data.get("date"),
+      time: data.get("time"),
+      kind: data.get("kind"),
+      pinned: data.get("pinned") === "on",
+      createdAt: editingId ? state.items.find((item) => item.id === editingId)?.createdAt || now : now,
+      updatedAt: now
+    });
+    if (!draft) {
+      showStatus("Preencha concurso, fase e uma data válida.", true);
+      return;
+    }
+    if (!editingId && state.items.length >= MAX_ITEMS) {
+      showStatus(`Limite de ${MAX_ITEMS} fases atingido.`, true);
+      return;
+    }
+    if (draft.pinned) state.items.forEach((item) => { item.pinned = false; });
+    const index = state.items.findIndex((item) => item.id === draft.id);
+    if (index >= 0) state.items[index] = draft;
+    else state.items.push(draft);
+    if (!saveState()) return;
+    resetForm();
+    renderManageList();
+    renderBlock();
+    showStatus(index >= 0 ? "Fase atualizada com segurança." : "Fase adicionada com segurança.");
+  }
+
+  function togglePin(id) {
+    const item = state.items.find((candidate) => candidate.id === id);
+    if (!item) return;
+    const next = !item.pinned;
+    state.items.forEach((candidate) => { candidate.pinned = next ? candidate.id === id : false; });
+    item.updatedAt = new Date().toISOString();
+    if (saveState()) {
+      renderManageList();
+      renderBlock();
+      showStatus(next ? "Fase fixada como principal." : "Fixação removida; a próxima fase será exibida automaticamente.");
+    }
+  }
+
+  function deleteItem(id) {
+    const item = state.items.find((candidate) => candidate.id === id);
+    if (!item) return;
+    if (!window.confirm(`Excluir a fase “${item.phase}” do concurso “${item.contest}”?`)) return;
+    state.items = state.items.filter((candidate) => candidate.id !== id);
+    if (editingId === id) resetForm();
+    if (saveState()) {
+      renderManageList();
+      renderBlock();
+      showStatus("Fase excluída.");
+    }
+  }
+
+  function exportData() {
+    const payload = JSON.stringify({ schema: VERSION, exportedAt: new Date().toISOString(), items: state.items }, null, 2);
+    const blob = new Blob([payload], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `aldus-contagem-concurso-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    showStatus("Arquivo de prazos exportado.");
+  }
+
+  async function onImportFile(event) {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file) return;
+    if (file.size > 1024 * 1024) {
+      showStatus("O arquivo excede o limite de 1 MB.", true);
+      return;
+    }
+    try {
+      const parsed = JSON.parse(await file.text());
+      const source = Array.isArray(parsed) ? parsed : parsed?.items;
+      if (!Array.isArray(source)) throw new Error("Formato incompatível");
+      const imported = source.map(normalizeRecord).filter(Boolean).slice(0, MAX_ITEMS);
+      if (!imported.length && source.length) throw new Error("Nenhuma fase válida");
+      if (!window.confirm(`Substituir os ${state.items.length} prazo(s) atuais por ${imported.length} prazo(s) do arquivo?`)) return;
+      let pinnedSeen = false;
+      imported.forEach((item) => {
+        if (item.pinned && !pinnedSeen) pinnedSeen = true;
+        else if (item.pinned) item.pinned = false;
+      });
+      state.items = imported;
+      if (saveState()) {
+        resetForm();
+        renderManageList();
+        renderBlock();
+        showStatus("Prazos importados com sucesso.");
+      }
+    } catch (error) {
+      console.warn("[Contagem do concurso] Falha na importação.", error);
+      showStatus("Arquivo inválido ou incompatível.", true);
+    }
+  }
+
+  function onBlockClick(event) {
+    const action = event.target.closest("[data-countdown-action]")?.dataset.countdownAction;
+    if (action === "add" || action === "manage") showModal(action);
+  }
+
+  function onModalClick(event) {
+    const close = event.target.closest("[data-countdown-close]");
+    if (close) return closeModal();
+    const actionNode = event.target.closest("[data-countdown-action]");
+    if (!actionNode) return;
+    const action = actionNode.dataset.countdownAction;
+    const id = actionNode.dataset.id;
+    if (action === "reset-form") resetForm();
+    else if (action === "edit") editItem(id);
+    else if (action === "delete") deleteItem(id);
+    else if (action === "toggle-pin") togglePin(id);
+    else if (action === "export") exportData();
+    else if (action === "import") modal.querySelector("#contestCountdownImportV151")?.click();
+  }
+
+  function start() {
+    ensureStyles();
+    loadState();
+    ensureBlock();
+    ensureModal();
+    renderBlock();
+
+    if (timerId) clearInterval(timerId);
+    timerId = window.setInterval(updateClock, 1000);
+    window.addEventListener("storage", (event) => {
+      if (event.key !== STORAGE_KEY) return;
+      loadState();
+      renderBlock();
+      if (!modal.hidden) renderManageList();
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) {
+        loadState();
+        renderBlock();
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && modal && !modal.hidden) closeModal();
+    });
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
+  else start();
+})();
+
+/* Aldus source: performance-practical-v143.js */
+(() => {
+  "use strict";
+
+  const VERSION = "20260725-analise-didatica-pratica-v143";
+  const root = typeof window !== "undefined" ? window : null;
+
+  const num = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, num(value)));
+  const escapeXml = (value) => String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+  const formatPercent = (value) => new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(num(value));
+
+  function formatDuration(minutes) {
+    const total = Math.max(0, Math.round(num(minutes)));
+    const hours = Math.floor(total / 60);
+    const rest = total % 60;
+    if (hours && rest) return `${hours}h ${rest}min`;
+    if (hours) return `${hours}h`;
+    return `${rest} min`;
+  }
+
+  function formatDate(value) {
+    const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return match ? `${match[3]}/${match[2]}/${match[1]}` : String(value || "");
+  }
+
+  function questionCount(row = {}) {
+    const explicit = num(row.questions);
+    return explicit > 0 ? explicit : Math.max(0, num(row.correct) + num(row.wrong) + num(row.blank));
+  }
+
+  function accuracyOf(row = {}) {
+    const total = questionCount(row);
+    if (!total) return 0;
+    return Number.isFinite(Number(row.accuracyPct)) ? clamp(row.accuracyPct, 0, 100) : clamp(num(row.correct) / total * 100, 0, 100);
+  }
+
+  function balanceOf(row = {}) {
+    return num(row.correct) - num(row.wrong);
+  }
+
+  function sampleLabel(total) {
+    const size = Math.max(0, Math.round(num(total)));
+    if (!size) return "Sem amostra";
+    if (size < 20) return "Amostra inicial";
+    if (size < 50) return "Amostra em formação";
+    return "Amostra mais consistente";
+  }
+
+  function actionFor(row = {}) {
+    const total = questionCount(row);
+    const accuracy = accuracyOf(row);
+    if (!total) return "Criar amostra com questões após a próxima revisão.";
+    if (total < 20) return "Ampliar a amostra antes de concluir sobre o desempenho.";
+    if (accuracy < 70) return "Revisar teoria e refazer as questões erradas.";
+    if (accuracy < 85) return "Consolidar com treino e revisão dos pontos de erro.";
+    return "Manter revisão periódica e variar o nível das questões.";
+  }
+
+  function plannedTotals(payload = {}) {
+    return (payload.plannedVsActual || []).reduce((sum, row) => {
+      sum.planned += Math.max(0, num(row.plannedMinutes));
+      sum.actual += Math.max(0, num(row.actualMinutes));
+      return sum;
+    }, { planned: 0, actual: 0 });
+  }
+
+  function buildPracticalDiagnosis(payload = {}) {
+    const disciplines = (payload.disciplines || []).map((row) => ({
+      ...row,
+      questionsValue: questionCount(row),
+      accuracyValue: accuracyOf(row),
+      minutesValue: Math.max(0, num(row.minutes))
+    }));
+    const reliable = disciplines.filter((row) => row.questionsValue >= 20);
+    const withQuestions = disciplines.filter((row) => row.questionsValue > 0);
+    const strongest = (reliable.length ? reliable : withQuestions).slice().sort((a, b) => b.accuracyValue - a.accuracyValue || b.questionsValue - a.questionsValue)[0]
+      || disciplines.slice().sort((a, b) => b.minutesValue - a.minutesValue)[0]
+      || null;
+    const weakest = (reliable.length ? reliable : withQuestions).slice().sort((a, b) => a.accuracyValue - b.accuracyValue || b.questionsValue - a.questionsValue)[0] || null;
+    const questionTotal = questionCount(payload.questions || {}) || num(payload.summary?.questions);
+    const plans = plannedTotals(payload);
+    const executionPct = plans.planned ? plans.actual / plans.planned * 100 : null;
+    const mocksCount = (payload.mockExams || []).length;
+
+    let advance = "A base ainda está em construção; mantenha registros regulares para comparar períodos.";
+    if (strongest?.questionsValue >= 20) advance = `${strongest.discipline} apresenta o melhor resultado atual: ${formatPercent(strongest.accuracyValue)}% em ${strongest.questionsValue} questões.`;
+    else if (strongest?.questionsValue > 0) advance = `${strongest.discipline} tem o melhor resultado inicial, mas a amostra de ${strongest.questionsValue} questões ainda é pequena.`;
+    else if (strongest?.minutesValue > 0) advance = `${strongest.discipline} concentrou o maior tempo registrado: ${formatDuration(strongest.minutesValue)}.`;
+
+    let attention = "Ainda não há uma fragilidade confirmada; amplie as amostras antes de tirar conclusões.";
+    if (weakest?.questionsValue >= 20 && weakest.accuracyValue < 70) attention = `${weakest.discipline} merece prioridade: ${formatPercent(weakest.accuracyValue)}% em ${weakest.questionsValue} questões.`;
+    else if (executionPct !== null && executionPct < 70) attention = `A execução alcançou ${formatPercent(executionPct)}% do tempo planejado; o volume previsto está acima do ritmo realizado.`;
+    else if (weakest?.questionsValue > 0 && weakest.questionsValue < 20) attention = `${weakest.discipline} possui somente ${weakest.questionsValue} questões; a amostra ainda não permite diagnóstico firme.`;
+
+    let nextAction = "Continue registrando tempo e questões para tornar as comparações mais confiáveis.";
+    if (weakest?.questionsValue >= 20 && weakest.accuracyValue < 70) nextAction = `Faça uma revisão em ${weakest.discipline} e depois resolva de 10 a 20 questões focadas nos erros.`;
+    else if (questionTotal < 20) nextAction = "Complete uma amostra inicial de pelo menos 20 questões no conteúdo prioritário.";
+    else if (executionPct !== null && executionPct < 70) nextAction = "Redimensione a próxima meta e proteja um bloco curto que possa ser cumprido integralmente.";
+    else if (!mocksCount) nextAction = "Inclua um simulado para medir integração, ritmo e estratégia de prova.";
+
+    return {
+      advance,
+      attention,
+      nextAction,
+      today: weakest ? `${weakest.discipline}: revisão curta e questões focadas antes de ampliar o conteúdo.` : "Faça um bloco curto e registre o resultado para iniciar uma linha de comparação.",
+      week: !mocksCount ? "Agende um simulado e mantenha dois treinos de questões em dias diferentes." : executionPct !== null && executionPct < 80 ? "Ajuste a carga planejada ao ritmo real e compare novamente no fim da semana." : "Repita a medição das disciplinas prioritárias e compare com este período.",
+      maintain: strongest ? `${strongest.discipline}: mantenha no ciclo de revisões sem retirar tempo das prioridades.` : "Mantenha constância de registro para permitir a identificação de tendências.",
+      strongest,
+      weakest,
+      questionTotal,
+      plans,
+      executionPct,
+      mocksCount
+    };
+  }
+
+  function wrapText(value, maxChars = 48, maxLines = 4) {
+    const words = String(value || "").split(/\s+/).filter(Boolean);
+    const lines = [];
+    let line = "";
+    for (const word of words) {
+      const next = `${line} ${word}`.trim();
+      if (line && next.length > maxChars) {
+        lines.push(line);
+        line = word;
+        if (lines.length >= maxLines) break;
+      } else line = next;
+    }
+    if (line && lines.length < maxLines) lines.push(line);
+    if (words.join(" ").length > lines.join(" ").length && lines.length) lines[lines.length - 1] = `${lines[lines.length - 1].replace(/[.…]+$/, "")}…`;
+    return lines.length ? lines : [""];
+  }
+
+  function svgText(value, x, y, cls = "note", maxChars = 48, lineHeight = 24, maxLines = 4) {
+    return wrapText(value, maxChars, maxLines).map((line, index) => `<text x="${x}" y="${y + index * lineHeight}" class="${cls}">${escapeXml(line)}</text>`).join("");
+  }
+
+  function buildPracticalReportSvg(payload = {}, metadata = {}) {
+    const W = 1600;
+    const margin = 64;
+    const contentW = W - margin * 2;
+    const summary = payload.summary || {};
+    const questions = payload.questions || {};
+    const diagnosis = buildPracticalDiagnosis(payload);
+    const timeRows = (payload.disciplines || []).slice().sort((a, b) => num(b.minutes) - num(a.minutes)).slice(0, 8);
+    const resultRows = (payload.disciplines || []).slice().sort((a, b) => questionCount(b) - questionCount(a) || accuracyOf(a) - accuracyOf(b)).slice(0, 6);
+    const daily = (payload.daily || []).slice(-10);
+    const mocks = (payload.mockExams || []).slice(-4);
+    const generated = new Date(metadata.generatedAt || payload.generatedAt || new Date().toISOString()).toLocaleString("pt-BR");
+    const period = metadata.period || payload.filters?.periodLabel || payload.filters?.mode || "Período selecionado";
+    const discipline = payload.filters?.discipline && payload.filters.discipline !== "all" ? payload.filters.discipline : "Todas as disciplinas";
+    const totalQuestions = questionCount(questions);
+    const accuracy = accuracyOf(questions);
+    const balance = balanceOf(questions);
+    const maxTime = Math.max(1, ...timeRows.map((row) => num(row.minutes)));
+    const maxDaily = Math.max(1, ...daily.map((row) => num(row.minutes)));
+    let y = 210;
+    let body = "";
+
+    const section = (title, subtitle = "") => {
+      body += `<rect x="${margin}" y="${y}" width="${contentW}" height="58" rx="17" fill="#eff6ff"/><rect x="${margin}" y="${y}" width="10" height="58" rx="5" fill="#2563eb"/><text x="${margin + 30}" y="${y + 28}" class="section">${escapeXml(title)}</text><text x="${margin + 30}" y="${y + 48}" class="hint">${escapeXml(subtitle)}</text>`;
+      y += 76;
+    };
+
+    section("Diagnóstico em 30 segundos", "O que avançou, o que exige atenção e qual é o próximo passo");
+    [["Principal avanço", diagnosis.advance, "#16a34a", "#ecfdf5"], ["Principal atenção", diagnosis.attention, "#d97706", "#fffbeb"], ["Próxima ação", diagnosis.nextAction, "#2563eb", "#eff6ff"]].forEach((item, index) => {
+      const x = margin + index * 500;
+      body += `<rect x="${x}" y="${y}" width="468" height="158" rx="22" fill="${item[3]}" stroke="${item[2]}" stroke-opacity=".28"/><circle cx="${x + 32}" cy="${y + 34}" r="11" fill="${item[2]}"/><text x="${x + 55}" y="${y + 41}" class="cardLabel">${escapeXml(item[0])}</text>${svgText(item[1], x + 24, y + 78, "note", 40, 25, 4)}`;
+    });
+    y += 184;
+
+    section("Resumo essencial", "Indicadores principais sem repetição");
+    const metrics = [
+      ["Tempo estudado", summary.timeLabel || formatDuration(summary.minutes), "#2563eb", "#dbeafe"],
+      ["Dias ativos", summary.activeDays || 0, "#7c3aed", "#ede9fe"],
+      ["Sessões", summary.sessions || 0, "#0891b2", "#cffafe"],
+      ["Questões", summary.questions ?? totalQuestions, "#d97706", "#fef3c7"],
+      ["Saldo A−E", `${balance > 0 ? "+" : ""}${balance}`, "#16a34a", "#dcfce7"],
+      ["Metas concluídas", summary.goalsCompleted || 0, "#db2777", "#fce7f3"]
+    ];
+    metrics.forEach((metric, index) => {
+      const x = margin + (index % 3) * 500;
+      const cy = y + Math.floor(index / 3) * 96;
+      body += `<rect x="${x}" y="${cy}" width="468" height="78" rx="18" fill="${metric[3]}"/><circle cx="${x + 31}" cy="${cy + 29}" r="12" fill="${metric[2]}"/><text x="${x + 53}" y="${cy + 34}" class="cardLabel">${escapeXml(metric[0])}</text><text x="${x + 24}" y="${cy + 65}" class="cardValue" fill="${metric[2]}">${escapeXml(metric[1])}</text>`;
+    });
+    y += 210;
+
+    section("Questões e execução", "Desempenho e capacidade real de cumprir o plano");
+    const leftX = margin;
+    const rightX = margin + 750;
+    const trackW = 672;
+    body += `<rect x="${leftX}" y="${y}" width="720" height="224" rx="22" fill="#fff" stroke="#cbd5e1"/><text x="${leftX + 24}" y="${y + 36}" class="cardLabel">Questões e saldo comparativo</text><text x="${leftX + 24}" y="${y + 72}" class="bigValue">${formatPercent(accuracy)}%</text><text x="${leftX + 180}" y="${y + 68}" class="note">${escapeXml(sampleLabel(totalQuestions))} • ${totalQuestions} questões</text>`;
+    let segmentX = leftX + 24;
+    [[num(questions.correct), "#16a34a"], [num(questions.wrong), "#dc2626"], [num(questions.blank), "#94a3b8"]].forEach(([value, color]) => {
+      const width = totalQuestions ? value / totalQuestions * trackW : 0;
+      if (width > 0) body += `<rect x="${segmentX}" y="${y + 94}" width="${Math.max(5, width)}" height="34" fill="${color}"/>`;
+      segmentX += width;
+    });
+    body += `<text x="${leftX + 24}" y="${y + 158}" class="note">${num(questions.correct)} acertos • ${num(questions.wrong)} erros • ${num(questions.blank)} brancos • saldo ${balance > 0 ? "+" : ""}${balance}</text>${svgText("Saldo A−E é comparativo. A pontuação oficial depende do edital e do modelo de correção.", leftX + 24, y + 191, "hint", 76, 21, 2)}`;
+
+    const plans = diagnosis.plans;
+    const planMax = Math.max(1, plans.planned, plans.actual);
+    const executionLabel = diagnosis.executionPct === null ? "Sem planejamento" : `${formatPercent(diagnosis.executionPct)}% cumprido`;
+    const gap = plans.actual - plans.planned;
+    body += `<rect x="${rightX}" y="${y}" width="720" height="224" rx="22" fill="#fff" stroke="#cbd5e1"/><text x="${rightX + 24}" y="${y + 36}" class="cardLabel">Planejado x realizado</text><text x="${rightX + 24}" y="${y + 72}" class="bigValue">${escapeXml(executionLabel)}</text><text x="${rightX + 24}" y="${y + 108}" class="hint">Planejado: ${escapeXml(formatDuration(plans.planned))}</text><rect x="${rightX + 180}" y="${y + 89}" width="${plans.planned / planMax * 500}" height="22" rx="9" fill="#94a3b8"/><text x="${rightX + 24}" y="${y + 146}" class="hint">Realizado: ${escapeXml(formatDuration(plans.actual))}</text><rect x="${rightX + 180}" y="${y + 127}" width="${plans.actual / planMax * 500}" height="22" rx="9" fill="#2563eb"/><text x="${rightX + 24}" y="${y + 183}" class="note">Diferença: ${gap >= 0 ? "+" : "−"}${escapeXml(formatDuration(Math.abs(gap)))}</text>${svgText(diagnosis.executionPct !== null && diagnosis.executionPct < 70 ? "Ajuste o volume planejado ao ritmo real antes de aumentar a carga." : "Use esta relação para calibrar a próxima semana.", rightX + 24, y + 211, "hint", 70, 20, 1)}`;
+    y += 250;
+
+    section("Tempo por disciplina", "Onde o esforço foi concentrado");
+    if (timeRows.length) {
+      timeRows.forEach((row, index) => {
+        const rowY = y + index * 47;
+        const width = Math.max(7, num(row.minutes) / maxTime * 720);
+        body += `<text x="${margin}" y="${rowY + 22}" class="label">${escapeXml(String(row.discipline || "Sem disciplina").slice(0, 44))}</text><rect x="670" y="${rowY + 2}" width="${width}" height="26" rx="9" fill="${index % 2 ? "#0ea5e9" : "#2563eb"}"/><text x="${Math.min(1480, 690 + width)}" y="${rowY + 23}" class="barValue">${escapeXml(formatDuration(row.minutes))}</text>`;
+      });
+      y += timeRows.length * 47 + 18;
+    } else {
+      body += `<text x="${margin}" y="${y + 32}" class="empty">Sem tempo por disciplina neste período.</text>`;
+      y += 70;
+    }
+
+    section("Resultado por disciplina", "Amostra, resultado e ação prática; os níveis são orientativos");
+    if (resultRows.length) {
+      resultRows.forEach((row, index) => {
+        const rowY = y + index * 74;
+        const total = questionCount(row);
+        const rowAccuracy = accuracyOf(row);
+        const fill = !total ? "#f1f5f9" : total < 20 ? "#fffbeb" : rowAccuracy < 70 ? "#fef2f2" : rowAccuracy < 85 ? "#eff6ff" : "#ecfdf5";
+        body += `<rect x="${margin}" y="${rowY}" width="${contentW}" height="62" rx="16" fill="${fill}"/><text x="${margin + 20}" y="${rowY + 25}" class="label">${escapeXml(String(row.discipline || "Sem disciplina").slice(0, 44))}</text><text x="${margin + 20}" y="${rowY + 49}" class="hint">${total} questões • ${formatPercent(rowAccuracy)}% • saldo ${balanceOf(row) > 0 ? "+" : ""}${balanceOf(row)} • ${escapeXml(sampleLabel(total))}</text><text x="${margin + 840}" y="${rowY + 37}" class="action">${escapeXml(actionFor(row).slice(0, 75))}</text>`;
+      });
+      y += resultRows.length * 74 + 15;
+    } else {
+      body += `<text x="${margin}" y="${y + 32}" class="empty">Sem resultados por disciplina.</text>`;
+      y += 70;
+    }
+
+    section("Evolução diária", "Compare tendência e constância, não apenas o maior pico");
+    if (daily.length) {
+      daily.forEach((row, index) => {
+        const slot = contentW / daily.length;
+        const x = margin + index * slot;
+        const width = Math.max(24, slot - 14);
+        const height = Math.max(5, num(row.minutes) / maxDaily * 135);
+        body += `<rect x="${x}" y="${y + 145 - height}" width="${width}" height="${height}" rx="8" fill="url(#blueBar)"/><text x="${x}" y="${y + 171}" class="axis">${escapeXml(formatDate(row.date).slice(0, 5))}</text><text x="${x}" y="${y + 137 - height}" class="tinyValue">${escapeXml(formatDuration(row.minutes))}</text>`;
+      });
+      y += 200;
+    } else {
+      body += `<text x="${margin}" y="${y + 32}" class="empty">Ainda não há registros diários neste período.</text>`;
+      y += 70;
+    }
+
+    section("Plano prático", "Ações pequenas e verificáveis");
+    [["Hoje", diagnosis.today, "#eff6ff"], ["Nesta semana", diagnosis.week, "#f5f3ff"], ["Manter", diagnosis.maintain, "#ecfdf5"]].forEach((item, index) => {
+      const x = margin + index * 500;
+      body += `<rect x="${x}" y="${y}" width="468" height="154" rx="22" fill="${item[2]}"/><text x="${x + 24}" y="${y + 38}" class="cardLabel">${escapeXml(item[0])}</text>${svgText(item[1], x + 24, y + 76, "note", 41, 25, 3)}`;
+    });
+    y += 180;
+
+    section("Simulados", `${mocks.length} registro(s) no período`);
+    if (mocks.length) {
+      mocks.forEach((mock, index) => {
+        const rowY = y + index * 36;
+        body += `<text x="${margin}" y="${rowY + 23}" class="label">${escapeXml(formatDate(mock.date))} — ${escapeXml(mock.name || "Simulado")}</text><text x="${margin + 1130}" y="${rowY + 23}" class="value">Resultado ${escapeXml(mock.net ?? balanceOf(mock))}</text>`;
+      });
+      y += mocks.length * 36 + 12;
+    } else {
+      body += `<rect x="${margin}" y="${y}" width="${contentW}" height="64" rx="16" fill="#f1f5f9"/><text x="${margin + 22}" y="${y + 27}" class="label">Nenhum simulado registrado.</text><text x="${margin + 22}" y="${y + 50}" class="hint">Ação sugerida: agende um simulado para medir integração, tempo e estratégia.</text>`;
+      y += 82;
+    }
+
+    section("Como interpretar", "Critérios transparentes desta leitura");
+    body += `${svgText("Amostra: 0 = sem amostra; 1–19 = inicial; 20–49 = em formação; 50 ou mais = mais consistente. Limites didáticos, não certificação estatística.", margin, y + 4, "note", 118, 24, 2)}${svgText("Saldo A−E = acertos menos erros, usado para comparação histórica. A nota oficial depende do edital, dos pesos, das anulações e do modelo de correção.", margin, y + 62, "note", 118, 24, 2)}`;
+    y += 125;
+
+    const H = Math.max(1200, y + 70);
+    return `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" role="img"><title>Relatório didático e prático de desempenho</title><defs><linearGradient id="headerV143" x1="0" x2="1"><stop stop-color="#172554"/><stop offset=".55" stop-color="#1d4ed8"/><stop offset="1" stop-color="#0ea5e9"/></linearGradient><linearGradient id="blueBar" x1="0" y1="1" x2="0" y2="0"><stop stop-color="#2563eb"/><stop offset="1" stop-color="#38bdf8"/></linearGradient></defs><style>text{font-family:Arial,Helvetica,sans-serif}.heroTitle{font-size:46px;font-weight:900;fill:#fff}.heroMeta{font-size:21px;fill:#dbeafe}.section{font-size:25px;font-weight:900;fill:#172554}.hint{font-size:16px;fill:#64748b}.cardLabel{font-size:20px;font-weight:800;fill:#334155}.cardValue{font-size:27px;font-weight:900}.bigValue{font-size:34px;font-weight:900;fill:#1d4ed8}.label{font-size:18px;font-weight:800;fill:#0f172a}.value,.barValue{font-size:18px;font-weight:800;fill:#334155}.note{font-size:18px;fill:#475569}.action{font-size:16px;font-weight:800;fill:#334155}.axis{font-size:15px;fill:#64748b}.tinyValue{font-size:14px;font-weight:800;fill:#334155}.empty{font-size:19px;font-weight:700;fill:#64748b}</style><rect width="100%" height="100%" fill="#f8fafc"/><rect width="100%" height="190" fill="url(#headerV143)"/><text x="${margin}" y="70" class="heroTitle">Painel didático de desempenho</text><text x="${margin}" y="113" class="heroMeta">Período: ${escapeXml(period)} • ${escapeXml(discipline)}</text><text x="${margin}" y="151" class="heroMeta">Gerado em ${escapeXml(generated)} • leitura prática, critérios transparentes e dados processados localmente</text>${body}<text x="${margin}" y="${H - 30}" class="hint">Relatório gerado com dados locais. Nenhum registro foi alterado durante a análise.</text></svg>`;
+  }
+
+  function saferLabels(value) {
+    return String(value || "")
+      .replace(/QUESTÕES E LÍQUIDO CEBRASPE/gi, "QUESTÕES E SALDO A-E (COMPARATIVO)")
+      .replace(/Questões e desempenho Cebraspe/gi, "Questões e desempenho")
+      .replace(/Questões e líquido Cebraspe/gi, "Questões e saldo A−E")
+      .replace(/Resultado Cebraspe/gi, "Resultado comparativo A−E")
+      .replace(/Líquido por disciplina/gi, "Saldo A−E por disciplina")
+      .replace(/Líquido Cebraspe/gi, "Saldo A−E (comparativo)")
+      .replace(/líquido Cebraspe/gi, "saldo A−E comparativo");
+  }
+
+  function enhanceCsv(csv) {
+    const source = saferLabels(csv).replace(/;Líquido;/g, ";Saldo A-E (comparativo);");
+    const note = "\n\nMETODOLOGIA\nSaldo A-E = acertos menos erros; indicador comparativo. A pontuação oficial depende do edital e do modelo de correção.";
+    return source.includes("Saldo A-E = acertos menos erros") ? source : `${source}${note}`;
+  }
+
+  function ensureStyles() {
+    if (!root?.document || document.getElementById("performancePracticalStylesV143")) return;
+    const style = document.createElement("style");
+    style.id = "performancePracticalStylesV143";
+    style.textContent = `
+      #analyticsPracticalReadingV143{display:grid;gap:14px;margin:0 0 20px;padding:18px;border:1px solid var(--border,#dbe4f0);border-radius:20px;background:var(--surface,#fff)}
+      #analyticsPracticalReadingV143 .practical-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+      #analyticsPracticalReadingV143 .practical-head small{display:block;margin-bottom:4px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--muted,#64748b)}
+      #analyticsPracticalReadingV143 .practical-grid,#analyticsPracticalReadingV143 .practical-plan{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+      #analyticsPracticalReadingV143 article{padding:14px;border:1px solid var(--border,#dbe4f0);border-radius:15px;background:rgba(37,99,235,.05)}
+      #analyticsPracticalReadingV143 article strong{display:block;margin-bottom:7px}
+      #analyticsPracticalReadingV143 article p{margin:0;line-height:1.5}
+      #analyticsPracticalReadingV143 .practical-plan span{padding:11px 12px;border-radius:13px;background:rgba(124,58,237,.07);line-height:1.45}
+      #analyticsPracticalReadingV143 .practical-method{margin:0;color:var(--muted,#64748b);font-size:.82rem}
+      html[data-aldus-theme="premium-stable"] #analyticsPracticalReadingV143{border-color:rgba(104,173,220,.44);background:rgba(7,39,64,.82)}
+      html[data-aldus-theme="premium-stable"] #analyticsPracticalReadingV143 article{border-color:rgba(104,173,220,.32);background:rgba(10,54,86,.72)}
+      html[data-aldus-theme="premium-stable"] #analyticsPracticalReadingV143 .practical-plan span{background:rgba(37,99,235,.18)}
+      @media(max-width:820px){#analyticsPracticalReadingV143 .practical-grid,#analyticsPracticalReadingV143 .practical-plan{grid-template-columns:1fr}}
+    `;
+    document.head.appendChild(style);
+  }
+
+  let renderingPanel = false;
+  function renderLivePanel(payload) {
+    if (!root?.document || !payload || renderingPanel) return;
+    const host = document.getElementById("analyticsContent");
+    if (!host) return;
+    renderingPanel = true;
+    try {
+      ensureStyles();
+      const diagnosis = buildPracticalDiagnosis(payload);
+      let panel = document.getElementById("analyticsPracticalReadingV143");
+      if (!panel) {
+        panel = document.createElement("section");
+        panel.id = "analyticsPracticalReadingV143";
+        panel.dataset.performancePracticalVersion = VERSION;
+        host.prepend(panel);
+      }
+      const markup = `<div class="practical-head"><div><small>LEITURA PRÁTICA</small><strong>Diagnóstico em 30 segundos</strong></div><span>${escapeXml(sampleLabel(diagnosis.questionTotal))}</span></div><div class="practical-grid"><article><strong>Principal avanço</strong><p>${escapeXml(diagnosis.advance)}</p></article><article><strong>Principal atenção</strong><p>${escapeXml(diagnosis.attention)}</p></article><article><strong>Próxima ação</strong><p>${escapeXml(diagnosis.nextAction)}</p></article></div><div class="practical-plan"><span><strong>Hoje:</strong> ${escapeXml(diagnosis.today)}</span><span><strong>Nesta semana:</strong> ${escapeXml(diagnosis.week)}</span><span><strong>Manter:</strong> ${escapeXml(diagnosis.maintain)}</span></div><p class="practical-method">Saldo A−E é comparativo. A pontuação oficial depende do edital. Os níveis de amostra são referências didáticas, não certificação estatística.</p>`;
+      if (panel.innerHTML !== markup) panel.innerHTML = markup;
+      relabelAnalytics(host);
+    } finally {
+      renderingPanel = false;
+    }
+  }
+
+  let relabeling = false;
+  function relabelAnalytics(scope = document.getElementById("view-analise-estrategica")) {
+    if (!scope || relabeling || typeof document.createTreeWalker !== "function") return;
+    relabeling = true;
+    try {
+      const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT);
+      const nodes = [];
+      while (walker.nextNode()) nodes.push(walker.currentNode);
+      nodes.forEach((node) => {
+        const source = node.textContent || "";
+        const next = saferLabels(source)
+          .replace(/Fórmula: acertos menos erros\. Questões em branco são neutras\./gi, "Indicador comparativo: acertos − erros. A pontuação oficial depende do edital.")
+          .replace(/Metodologia: líquido Cebraspe = acertos - erros; brancos são neutros; filtros e período vêm da Análise Estratégica\./gi, "Metodologia: saldo A−E é comparativo; a pontuação oficial depende do edital e do modelo de correção.");
+        if (next !== source) node.textContent = next;
+      });
+    } finally {
+      relabeling = false;
+    }
+  }
+
+  let latestPayload = null;
+  let installed = false;
+  const originals = {};
+
+  function currentPayload() {
+    try { if (typeof currentPerformanceExportPayload === "function") return currentPerformanceExportPayload(); } catch {}
+    try { if (typeof latestPerformanceExportPayload !== "undefined") return latestPerformanceExportPayload; } catch {}
+    return latestPayload;
+  }
+
+  function installOverrides() {
+    if (!root || installed || typeof root.buildFullPerformanceReportSvg !== "function") return false;
+    originals.buildFullPerformanceReportSvg = root.buildFullPerformanceReportSvg;
+    root.buildFullPerformanceReportSvg = buildPracticalReportSvg;
+
+    if (typeof root.buildPerformanceCsv === "function") {
+      originals.buildPerformanceCsv = root.buildPerformanceCsv;
+      root.buildPerformanceCsv = function (...args) { return enhanceCsv(originals.buildPerformanceCsv.apply(this, args)); };
+    }
+    if (typeof root.buildIndividualChartCsv === "function") {
+      originals.buildIndividualChartCsv = root.buildIndividualChartCsv;
+      root.buildIndividualChartCsv = function (...args) { return enhanceCsv(originals.buildIndividualChartCsv.apply(this, args)); };
+    }
+    if (typeof root.buildChartSvg === "function") {
+      originals.buildChartSvg = root.buildChartSvg;
+      root.buildChartSvg = function (type, data, metadata = {}) { return saferLabels(originals.buildChartSvg.call(this, type, data, { ...metadata, title: saferLabels(metadata.title) })); };
+    }
+    if (typeof root.setupPerformanceExportControls === "function") {
+      originals.setupPerformanceExportControls = root.setupPerformanceExportControls;
+      root.setupPerformanceExportControls = function (payload, ...rest) {
+        latestPayload = payload;
+        const result = originals.setupPerformanceExportControls.call(this, payload, ...rest);
+        window.setTimeout(() => renderLivePanel(payload), 0);
+        return result;
+      };
+    }
+    if (typeof root.openChartPickerMenu === "function") {
+      originals.openChartPickerMenu = root.openChartPickerMenu;
+      root.openChartPickerMenu = function (...args) {
+        const result = originals.openChartPickerMenu.apply(this, args);
+        window.setTimeout(() => relabelAnalytics(document.getElementById("chartExportFormatMenu") || document.body), 0);
+        return result;
+      };
+    }
+
+    installed = true;
+    root.__aldusPerformancePracticalV143 = true;
+    const payload = currentPayload();
+    if (payload) renderLivePanel(payload);
+    else relabelAnalytics();
+    return true;
+  }
+
+  const api = { VERSION, sampleLabel, actionFor, buildPracticalDiagnosis, buildPracticalReportSvg, saferLabels, enhanceCsv };
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  if (!root?.document || root.__aldusPerformancePracticalV143) return;
+
+  let attempts = 0;
+  const retry = () => {
+    attempts += 1;
+    if (installOverrides() || attempts >= 40) return;
+    window.setTimeout(retry, 250);
+  };
+  retry();
+
+  document.addEventListener("click", (event) => {
+    if (event.target.closest('[data-performance-export="methodology"], [data-performance-export="charts"], [data-chart-export]')) window.setTimeout(() => relabelAnalytics(), 0);
+  }, true);
+  window.addEventListener("hashchange", () => {
+    const payload = currentPayload();
+    if (payload) window.setTimeout(() => renderLivePanel(payload), 0);
+  });
+})();
+
+/* Aldus source: analytics-collapsibles-v145.js */
+(() => {
+  "use strict";
+
+  if (window.__aldusAnalyticsCollapsiblesV145) return;
+  window.__aldusAnalyticsCollapsiblesV145 = true;
+
+  const VERSION = "20260725-analise-estrategica-recolhivel-v145";
+  const view = document.getElementById("view-analise-estrategica");
+  if (!view) return;
+
+  const openState = new Map();
+  let observer = null;
+  let scheduled = false;
+  let mutating = false;
+
+  function ensureStyles() {
+    if (document.getElementById("analyticsCollapsiblesStylesV145")) return;
+    const style = document.createElement("style");
+    style.id = "analyticsCollapsiblesStylesV145";
+    style.textContent = `
+      #view-analise-estrategica .analytics-collapse-toolbar-v145 {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 9px;
+        margin: 0 0 14px;
+      }
+      #view-analise-estrategica .analytics-collapse-toolbar-v145 button {
+        min-height: 38px;
+        padding: 8px 13px;
+        border-radius: 11px;
+      }
+      #view-analise-estrategica details.analytics-collapsible-v145 {
+        overflow: clip;
+        margin: 0 0 14px;
+        border: 1px solid var(--border, #dbe4f0);
+        border-radius: 18px;
+        background: var(--surface, #ffffff);
+        box-shadow: 0 8px 22px rgba(15, 23, 42, .06);
+      }
+      #view-analise-estrategica details.analytics-collapsible-v145 > summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        min-height: 62px;
+        padding: 14px 17px;
+        cursor: pointer;
+        list-style: none;
+        user-select: none;
+      }
+      #view-analise-estrategica details.analytics-collapsible-v145 > summary::-webkit-details-marker { display: none; }
+      #view-analise-estrategica .analytics-collapsible-heading-v145 {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+      }
+      #view-analise-estrategica .analytics-collapsible-heading-v145 strong {
+        color: var(--text, #0f172a);
+        font-size: 1rem;
+        line-height: 1.25;
+      }
+      #view-analise-estrategica .analytics-collapsible-heading-v145 small {
+        overflow: hidden;
+        color: var(--muted, #64748b);
+        font-size: .79rem;
+        line-height: 1.35;
+        text-overflow: ellipsis;
+      }
+      #view-analise-estrategica .analytics-collapsible-chevron-v145 {
+        width: 11px;
+        height: 11px;
+        flex: 0 0 11px;
+        border-right: 2px solid currentColor;
+        border-bottom: 2px solid currentColor;
+        color: var(--muted, #64748b);
+        transform: rotate(-45deg);
+        transition: transform .18s ease;
+      }
+      #view-analise-estrategica details.analytics-collapsible-v145[open] > summary .analytics-collapsible-chevron-v145 {
+        transform: rotate(45deg) translate(-2px, -2px);
+      }
+      #view-analise-estrategica details.analytics-collapsible-v145[open] > summary {
+        border-bottom: 1px solid var(--border, #dbe4f0);
+      }
+      #view-analise-estrategica .analytics-collapsible-body-v145 {
+        padding: 16px 17px 18px;
+      }
+      #view-analise-estrategica .analytics-intro-shell-v145 {
+        border-color: rgba(213, 169, 29, .78) !important;
+      }
+      #view-analise-estrategica .analytics-intro-source-v145 {
+        margin: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+      }
+      #view-analise-estrategica .analytics-intro-source-v145 > .eyebrow,
+      #view-analise-estrategica .analytics-intro-source-v145 > h2 {
+        display: none !important;
+      }
+      #view-analise-estrategica .analytics-intro-source-v145 .privacy-note,
+      #view-analise-estrategica .analytics-export-toolbar,
+      #view-analise-estrategica .analytics-compact-header,
+      #view-analise-estrategica #analyticsPracticalReadingV143,
+      #view-analise-estrategica #analyticsPlanPreview {
+        margin: 0 !important;
+      }
+      #view-analise-estrategica .analytics-export-shell-v145 .analytics-collapsible-body-v145 {
+        padding-top: 12px;
+      }
+      html[data-aldus-theme="premium-stable"] #view-analise-estrategica details.analytics-collapsible-v145 {
+        border-color: rgba(95, 168, 216, .42);
+        background: rgba(6, 30, 49, .86);
+        box-shadow: 0 12px 28px rgba(0, 7, 18, .28);
+      }
+      html[data-aldus-theme="premium-stable"] #view-analise-estrategica details.analytics-collapsible-v145 > summary {
+        background: linear-gradient(145deg, rgba(9, 49, 78, .92), rgba(7, 35, 58, .96));
+      }
+      html[data-aldus-theme="premium-stable"] #view-analise-estrategica .analytics-collapsible-heading-v145 strong {
+        color: #f8fbff;
+      }
+      html[data-aldus-theme="premium-stable"] #view-analise-estrategica .analytics-collapsible-heading-v145 small,
+      html[data-aldus-theme="premium-stable"] #view-analise-estrategica .analytics-collapsible-chevron-v145 {
+        color: #c9deed;
+      }
+      @media (max-width: 720px) {
+        #view-analise-estrategica .analytics-collapse-toolbar-v145 { justify-content: stretch; }
+        #view-analise-estrategica .analytics-collapse-toolbar-v145 button { flex: 1 1 140px; }
+        #view-analise-estrategica details.analytics-collapsible-v145 > summary { padding: 13px 14px; }
+        #view-analise-estrategica .analytics-collapsible-body-v145 { padding: 14px; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #view-analise-estrategica .analytics-collapsible-chevron-v145 { transition: none; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function directChildWithClass(parent, className) {
+    return [...parent.children].find((child) => child.classList?.contains(className)) || null;
+  }
+
+  function detailsKey(details) {
+    if (!details || details.tagName !== "DETAILS") return "";
+    if (details.dataset.analyticsCollapsibleKeyV145) return details.dataset.analyticsCollapsibleKeyV145;
+    if (details.classList.contains("analytics-filters-section")) return "core:filters";
+    if (details.dataset.analyticsSection) return `core:${details.dataset.analyticsSection}`;
+    if (details.classList.contains("analytics-subsection")) {
+      const parent = details.closest("details[data-analytics-section]");
+      const title = details.querySelector(":scope > summary")?.textContent?.trim() || "subsecao";
+      return `sub:${parent?.dataset.analyticsSection || "geral"}:${title}`;
+    }
+    return "";
+  }
+
+  function registerDetails(details, key, defaultOpen = details.open) {
+    if (!details || details.tagName !== "DETAILS" || !key) return;
+    details.dataset.analyticsCollapsibleKeyV145 = key;
+    details.dataset.analyticsCollapsibleVersion = VERSION;
+    if (openState.has(key)) details.open = openState.get(key);
+    else openState.set(key, Boolean(defaultOpen));
+  }
+
+  function shellSummary(title, resume) {
+    const summary = document.createElement("summary");
+    summary.className = "analytics-collapsible-summary-v145";
+
+    const heading = document.createElement("span");
+    heading.className = "analytics-collapsible-heading-v145";
+
+    const strong = document.createElement("strong");
+    strong.textContent = title;
+    heading.appendChild(strong);
+
+    if (resume) {
+      const small = document.createElement("small");
+      small.textContent = resume;
+      heading.appendChild(small);
+    }
+
+    const chevron = document.createElement("span");
+    chevron.className = "analytics-collapsible-chevron-v145";
+    chevron.setAttribute("aria-hidden", "true");
+    summary.append(heading, chevron);
+    return summary;
+  }
+
+  function wrapNode(node, { key, title, resume = "", defaultOpen = false, className = "" } = {}) {
+    if (!node || !node.isConnected) return null;
+    const existing = node.closest("details.analytics-collapsible-v145");
+    if (existing) {
+      registerDetails(existing, key || detailsKey(existing), defaultOpen);
+      return existing;
+    }
+
+    const details = document.createElement("details");
+    details.className = `analytics-collapsible-v145 ${className}`.trim();
+    const summary = shellSummary(title || "Painel da análise", resume);
+    const body = document.createElement("div");
+    body.className = "analytics-collapsible-body-v145";
+
+    node.before(details);
+    details.append(summary, body);
+    body.appendChild(node);
+    node.dataset.analyticsCollapsibleWrappedV145 = "true";
+    registerDetails(details, key, defaultOpen);
+    return details;
+  }
+
+  function ensureIntroShell() {
+    const intro = directChildWithClass(view, "section-heading");
+    if (!intro) return view.querySelector('details[data-analytics-collapsible-key-v145="shell:intro"]');
+
+    const eyebrow = intro.querySelector(":scope > .eyebrow")?.textContent?.trim() || "Diagnóstico local";
+    const titleNode = intro.querySelector(":scope > h2");
+    const title = titleNode?.textContent?.trim() || "Análise Estratégica";
+    intro.classList.add("analytics-intro-source-v145");
+
+    const shell = wrapNode(intro, {
+      key: "shell:intro",
+      title,
+      resume: `${eyebrow} • privacidade e processamento local`,
+      defaultOpen: false,
+      className: "analytics-intro-shell-v145"
+    });
+
+    const summaryTitle = shell?.querySelector(".analytics-collapsible-heading-v145 strong");
+    if (titleNode?.id && summaryTitle) {
+      summaryTitle.id = titleNode.id;
+      titleNode.removeAttribute("id");
+    }
+    return shell;
+  }
+
+  function ensureExportShell() {
+    const toolbar = directChildWithClass(view, "analytics-export-toolbar");
+    if (!toolbar) return view.querySelector('details[data-analytics-collapsible-key-v145="shell:export"]');
+    return wrapNode(toolbar, {
+      key: "shell:export",
+      title: "Exportação e compartilhamento",
+      resume: "PDF, imagem, Excel e demais opções",
+      defaultOpen: false,
+      className: "analytics-export-shell-v145"
+    });
+  }
+
+  function dynamicPanelConfig(node) {
+    if (node.classList?.contains("analytics-compact-header")) {
+      return { key: "dynamic:context", title: "Contexto da análise", resume: "Período, disciplina e origem", defaultOpen: false, className: "analytics-context-shell-v145" };
+    }
+    if (node.id === "analyticsPracticalReadingV143") {
+      return { key: "dynamic:practical", title: "Leitura prática", resume: "Avanço, atenção e próxima ação", defaultOpen: true, className: "analytics-practical-shell-v145" };
+    }
+    const heading = node.querySelector?.("h2, h3, h4")?.textContent?.trim();
+    const identity = node.id || [...(node.classList || [])].find(Boolean) || String([...node.parentElement.children].indexOf(node));
+    return { key: `dynamic:${identity}`, title: heading || "Painel da análise", resume: "Conteúdo complementar", defaultOpen: false, className: "analytics-generic-shell-v145" };
+  }
+
+  function ensureDynamicShells() {
+    const host = document.getElementById("analyticsContent");
+    if (!host) return;
+
+    [...host.children].forEach((child) => {
+      if (child.tagName === "DETAILS") return;
+      if (!child.matches("article, section")) return;
+      const config = dynamicPanelConfig(child);
+      wrapNode(child, config);
+    });
+  }
+
+  function ensurePlanPreviewShell() {
+    const preview = document.getElementById("analyticsPlanPreview");
+    if (!preview) return;
+    const shell = wrapNode(preview, {
+      key: "shell:plan-preview",
+      title: "Plano sugerido",
+      resume: "Ações geradas a partir da análise",
+      defaultOpen: true,
+      className: "analytics-plan-shell-v145"
+    });
+    if (shell) shell.hidden = preview.hidden || !preview.textContent.trim();
+  }
+
+  function ensureControls() {
+    if (document.getElementById("analyticsCollapseToolbarV145")) return;
+    const toolbar = document.createElement("div");
+    toolbar.id = "analyticsCollapseToolbarV145";
+    toolbar.className = "analytics-collapse-toolbar-v145";
+    toolbar.setAttribute("aria-label", "Organização dos painéis da análise");
+    toolbar.innerHTML = '<button type="button" class="secondary-button" data-analytics-collapse-v145="close">Recolher tudo</button><button type="button" class="secondary-button" data-analytics-collapse-v145="open">Abrir tudo</button>';
+
+    const introShell = view.querySelector('details[data-analytics-collapsible-key-v145="shell:intro"]');
+    if (introShell) introShell.after(toolbar);
+    else view.prepend(toolbar);
+  }
+
+  function normalizeNativeDetails() {
+    view.querySelectorAll("details.analytics-filters-section, details.analytics-section, details.analytics-subsection, details.analytics-collapsible-v145").forEach((details) => {
+      const key = detailsKey(details);
+      if (!key) return;
+      registerDetails(details, key, details.open);
+    });
+  }
+
+  function topLevelDetails() {
+    const host = document.getElementById("analyticsContent");
+    const direct = [...view.children].filter((child) => child.tagName === "DETAILS");
+    const dynamic = host ? [...host.children].filter((child) => child.tagName === "DETAILS") : [];
+    return [...new Set([...direct, ...dynamic])].filter((details) => !details.hidden);
+  }
+
+  function setAll(open) {
+    topLevelDetails().forEach((details) => {
+      details.open = open;
+      const key = detailsKey(details);
+      if (key) openState.set(key, open);
+    });
+  }
+
+  function processPanels() {
+    if (mutating) return;
+    mutating = true;
+    try {
+      ensureStyles();
+      ensureIntroShell();
+      ensureControls();
+      ensureExportShell();
+      ensureDynamicShells();
+      ensurePlanPreviewShell();
+      normalizeNativeDetails();
+    } finally {
+      mutating = false;
+    }
+  }
+
+  function scheduleProcess() {
+    if (scheduled) return;
+    scheduled = true;
+    (window.requestAnimationFrame || window.setTimeout)(() => {
+      scheduled = false;
+      processPanels();
+    }, 0);
+  }
+
+  view.addEventListener("toggle", (event) => {
+    const details = event.target;
+    if (details?.tagName !== "DETAILS") return;
+    const key = detailsKey(details);
+    if (key) openState.set(key, details.open);
+  }, true);
+
+  view.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-analytics-collapse-v145]");
+    if (!button) return;
+    setAll(button.dataset.analyticsCollapseV145 === "open");
+  });
+
+  processPanels();
+  observer = new MutationObserver(scheduleProcess);
+  observer.observe(view, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden"] });
+  window.addEventListener("hashchange", scheduleProcess);
+  window.addEventListener("pageshow", scheduleProcess);
+
+  view.dataset.analyticsCollapsiblesV145 = "true";
+  view.dataset.analyticsCollapsiblesVersion = VERSION;
+})();
+
+/* Aldus source: daily-collapsibles-closed-v140.js */
+(() => {
+  if (window.__aldusDailyCollapsiblesClosedV140) return;
+  window.__aldusDailyCollapsiblesClosedV140 = true;
+
+  const VERSION = "20260725-paineis-diarios-fechados-v140";
+  const root = document.getElementById("view-metas-do-dia");
+  if (!root) return;
+
+  function collapseNativeDetails(panel) {
+    if (!panel || panel.tagName !== "DETAILS") return false;
+    if (panel.dataset.defaultCollapsedV140 === "true") return true;
+
+    panel.open = false;
+    panel.removeAttribute("open");
+    panel.dataset.defaultCollapsedV140 = "true";
+    panel.dataset.defaultCollapsedVersion = VERSION;
+    return true;
+  }
+
+  function collapseTodayStudy() {
+    const panel = root.querySelector(".today-study-panel.today-study-collapsible-v137");
+    const toggle = panel?.querySelector(".today-study-toggle-v137");
+    if (!panel || !toggle) return false;
+    if (panel.dataset.defaultCollapsedV140 === "true") return true;
+
+    if (toggle.getAttribute("aria-expanded") === "true") {
+      toggle.click();
+    }
+    panel.dataset.defaultCollapsedV140 = "true";
+    panel.dataset.defaultCollapsedVersion = VERSION;
+    return true;
+  }
+
+  function applyCollapsedDefaults() {
+    root.querySelectorAll("details").forEach(collapseNativeDetails);
+    collapseTodayStudy();
+  }
+
+  applyCollapsedDefaults();
+
+  const observer = new MutationObserver(applyCollapsedDefaults);
+  observer.observe(root, { childList: true, subtree: true });
+
+  window.setTimeout(() => {
+    applyCollapsedDefaults();
+    observer.disconnect();
+  }, 10000);
+
+  root.dataset.dailyCollapsiblesClosedV140 = "true";
+  root.dataset.dailyCollapsiblesClosedVersion = VERSION;
+})();
+
+/* Aldus source: question-board-result-v141.js */
+(() => {
+  "use strict";
+
+  if (window.__aldusQuestionBoardResultV141) return;
+  window.__aldusQuestionBoardResultV141 = true;
+
+  const VERSION = "20260725-resultado-outras-bancas-v141";
+  const FIELD_IDS = new Set([
+    "questionBoard",
+    "questionTotal",
+    "questionCorrect",
+    "questionWrong",
+    "questionBlank"
+  ]);
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function readNumber(id) {
+    const value = Number(document.getElementById(id)?.value);
+    return Number.isFinite(value) ? Math.max(0, value) : 0;
+  }
+
+  function formatPercent(value) {
+    return Number(value || 0).toLocaleString("pt-BR", {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1
+    });
+  }
+
+  function ensureStyles() {
+    if (document.getElementById("questionBoardResultStylesV141")) return;
+    const style = document.createElement("style");
+    style.id = "questionBoardResultStylesV141";
+    style.textContent = `
+      #view-questoes .question-board-result-v141 {
+        --question-board-result: .8%;
+        display: grid;
+        gap: 10px;
+        padding: 16px 18px;
+        border: 1px solid var(--border, #dbe4f0);
+        border-radius: 18px;
+        background: var(--surface, #ffffff);
+      }
+      #view-questoes .question-board-result-v141[hidden] {
+        display: none !important;
+      }
+      #view-questoes .question-board-result-heading-v141 {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 14px;
+        min-width: 0;
+      }
+      #view-questoes .question-board-result-heading-v141 span {
+        color: var(--muted, #64748b);
+        font-size: .72rem;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+      }
+      #view-questoes .question-board-result-heading-v141 strong {
+        min-width: 0;
+        color: inherit;
+        font-size: .95rem;
+        font-weight: 900;
+        text-align: right;
+      }
+      #view-questoes .question-board-result-track-v141 {
+        position: relative;
+        height: 10px;
+        border: 1px solid rgba(15, 23, 42, .15);
+        border-radius: 999px;
+        background: linear-gradient(90deg,
+          #dc2626 0%,
+          #f97316 24%,
+          #facc15 50%,
+          #22c55e 76%,
+          #0ea5e9 100%);
+        box-shadow: inset 0 1px 2px rgba(15, 23, 42, .18);
+      }
+      #view-questoes .question-board-result-marker-v141 {
+        position: absolute;
+        top: 50%;
+        left: var(--question-board-result);
+        width: 16px;
+        height: 16px;
+        border: 2px solid #0f172a;
+        border-radius: 50%;
+        background: #ffffff;
+        box-shadow: 0 2px 7px rgba(15, 23, 42, .28);
+        transform: translate(-50%, -50%);
+        transition: left .22s ease;
+      }
+      #view-questoes .question-board-result-details-v141 {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 14px;
+        margin: 0;
+        color: var(--muted, #64748b);
+        font-size: .78rem;
+        font-weight: 700;
+        line-height: 1.35;
+      }
+      #view-questoes .question-board-result-details-v141 [data-board-result-check="warning"] {
+        color: #b45309;
+      }
+      html[data-aldus-theme="premium-stable"] #view-questoes .question-board-result-v141 {
+        border-color: rgba(104, 173, 220, .46);
+        background: rgba(7, 39, 64, .82);
+      }
+      html[data-aldus-theme="premium-stable"] #view-questoes .question-board-result-heading-v141 span,
+      html[data-aldus-theme="premium-stable"] #view-questoes .question-board-result-details-v141 {
+        color: #c9deed;
+      }
+      html[data-aldus-theme="premium-stable"] #view-questoes .question-board-result-marker-v141 {
+        border-color: #061d31;
+        background: #f7fbff;
+      }
+      html[data-aldus-theme="premium-stable"] #view-questoes .question-board-result-details-v141 [data-board-result-check="warning"] {
+        color: #facc15;
+      }
+      @media (max-width: 620px) {
+        #view-questoes .question-board-result-heading-v141 {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 5px;
+        }
+        #view-questoes .question-board-result-heading-v141 strong {
+          text-align: left;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #view-questoes .question-board-result-marker-v141 {
+          transition: none;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function ensurePanel() {
+    const calculated = document.getElementById("questionCalculated");
+    if (!calculated) return null;
+
+    let panel = document.getElementById("questionBoardResultV141");
+    if (panel) return panel;
+
+    panel = document.createElement("section");
+    panel.id = "questionBoardResultV141";
+    panel.className = "question-board-result-v141 wide";
+    panel.hidden = true;
+    panel.setAttribute("aria-live", "polite");
+    panel.dataset.questionBoardResultVersion = VERSION;
+    panel.innerHTML = `
+      <div class="question-board-result-heading-v141">
+        <span>Resultado da banca selecionada</span>
+        <strong data-board-result-summary>Preencha os números da sessão</strong>
+      </div>
+      <div class="question-board-result-track-v141" role="progressbar" aria-label="Aproveitamento em questões de outras bancas" aria-valuemin="0" aria-valuemax="100">
+        <span class="question-board-result-marker-v141" aria-hidden="true"></span>
+      </div>
+      <p class="question-board-result-details-v141">
+        <span data-board-result-breakdown></span>
+        <span data-board-result-method></span>
+        <span data-board-result-check></span>
+      </p>
+    `;
+    calculated.insertAdjacentElement("afterend", panel);
+    return panel;
+  }
+
+  let rendering = false;
+  function render() {
+    if (rendering) return;
+    rendering = true;
+    try {
+      ensureStyles();
+      const panel = ensurePanel();
+      const boardSelect = document.getElementById("questionBoard");
+      if (!panel || !boardSelect) return;
+
+      const board = String(boardSelect.value || "").trim();
+      const isCebraspe = board.toLocaleLowerCase("pt-BR") === "cebraspe";
+      panel.hidden = !board || isCebraspe;
+      if (panel.hidden) return;
+
+      const total = readNumber("questionTotal");
+      const correct = readNumber("questionCorrect");
+      const wrong = readNumber("questionWrong");
+      const blank = readNumber("questionBlank");
+      const informed = correct + wrong + blank;
+      const accuracy = total ? clamp((correct / total) * 100, 0, 100) : 0;
+      const marker = clamp(accuracy, .8, 99.2);
+      const boardLabel = board === "Outra" ? "Outra banca" : board;
+
+      panel.style.setProperty("--question-board-result", `${marker}%`);
+      const summary = panel.querySelector("[data-board-result-summary]");
+      const track = panel.querySelector(".question-board-result-track-v141");
+      const breakdown = panel.querySelector("[data-board-result-breakdown]");
+      const method = panel.querySelector("[data-board-result-method]");
+      const check = panel.querySelector("[data-board-result-check]");
+
+      if (summary) {
+        summary.textContent = total
+          ? `${boardLabel} • ${correct} de ${total} • ${formatPercent(accuracy)}%`
+          : `${boardLabel} • preencha o total de questões`;
+      }
+      if (track) {
+        track.setAttribute("aria-valuenow", accuracy.toFixed(1));
+        track.setAttribute("aria-valuetext", `${formatPercent(accuracy)}% de acertos em ${boardLabel}`);
+      }
+      if (breakdown) breakdown.textContent = `Acertos: ${correct} • Erros: ${wrong} • Brancos: ${blank}`;
+      if (method) method.textContent = "Cálculo geral: acertos ÷ total, sem penalização.";
+      if (check) {
+        const mismatch = total > 0 && informed !== total;
+        check.dataset.boardResultCheck = mismatch ? "warning" : "ok";
+        check.textContent = mismatch
+          ? `Conferência: acertos + erros + brancos = ${informed}, mas o total informado é ${total}.`
+          : "Pesos, anulações e regras específicas do edital não estão incluídos.";
+      }
+    } finally {
+      rendering = false;
+    }
+  }
+
+  let queued = false;
+  function scheduleRender() {
+    if (queued) return;
+    queued = true;
+    const schedule = window.requestAnimationFrame || ((callback) => window.setTimeout(callback, 0));
+    schedule(() => {
+      queued = false;
+      render();
+    });
+  }
+
+  document.addEventListener("input", (event) => {
+    if (FIELD_IDS.has(event.target?.id)) scheduleRender();
+  }, true);
+  document.addEventListener("change", (event) => {
+    if (FIELD_IDS.has(event.target?.id)) scheduleRender();
+  }, true);
+  window.addEventListener("hashchange", scheduleRender);
+  document.addEventListener("DOMContentLoaded", scheduleRender, { once: true });
+
+  const calculated = document.getElementById("questionCalculated");
+  if (calculated && typeof MutationObserver !== "undefined") {
+    const observer = new MutationObserver(scheduleRender);
+    observer.observe(calculated, { childList: true, subtree: true, characterData: true });
+  }
+
+  scheduleRender();
+})();
+
+/* Aldus source: question-scoring-rule-v142.js */
+(() => {
+  "use strict";
+  if (window.__aldusQuestionScoringRuleV142) return;
+  window.__aldusQuestionScoringRuleV142 = true;
+
+  const VERSION = "20260725-regra-pontuacao-questoes-v142";
+  const watched = new Set([
+    "questionBoard", "questionTotal", "questionCorrect", "questionWrong", "questionBlank",
+    "questionScoringRuleV142", "questionScoreCorrectWeightV142",
+    "questionScoreWrongWeightV142", "questionScoreBlankWeightV142"
+  ]);
+  const choices = new Map();
+  let boardSeen = "";
+  let rendering = false;
+  let queued = false;
+
+  const read = (id) => {
+    const value = Number(document.getElementById(id)?.value);
+    return Number.isFinite(value) ? Math.max(0, value) : 0;
+  };
+  const weight = (id, fallback) => {
+    const value = Number(document.getElementById(id)?.value);
+    return Number.isFinite(value) ? value : fallback;
+  };
+  const numberBR = (value) => new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: Number.isInteger(Number(value)) ? 0 : 2,
+    maximumFractionDigits: 2
+  }).format(Number(value) || 0);
+  const percentBR = (value) => new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1
+  }).format(Number(value) || 0);
+  const defaultRule = (board) => String(board || "").trim().toLowerCase() === "cebraspe" ? "ce" : "simple";
+
+  function ensureStyles() {
+    if (document.getElementById("questionScoringRuleStylesV142")) return;
+    const style = document.createElement("style");
+    style.id = "questionScoringRuleStylesV142";
+    style.textContent = `
+      #questionBoardResultV141{display:none!important}
+      #questionScoringRulePanelV142{display:grid;gap:14px;padding:18px;border:1px solid var(--border,#dbe4f0);border-radius:18px;background:var(--surface,#fff)}
+      #questionScoringRulePanelV142 .score-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
+      #questionScoringRulePanelV142 .score-head strong{display:block;margin-top:3px}
+      #questionScoringRulePanelV142 .score-fields{display:grid;grid-template-columns:minmax(220px,1.3fr) repeat(3,minmax(120px,.7fr));gap:12px;align-items:end}
+      #questionScoringRulePanelV142 .score-custom[hidden]{display:none!important}
+      #questionScoringRulePanelV142 .score-results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+      #questionScoringRulePanelV142 .score-results span{padding:11px 12px;border:1px solid var(--border,#dbe4f0);border-radius:13px;background:rgba(37,99,235,.05)}
+      #questionScoringRulePanelV142 .score-results small{display:block;margin-bottom:4px;opacity:.72;font-weight:700}
+      #questionScoringRulePanelV142 [data-score-check="warning"]{color:#b45309;font-weight:800}
+      html[data-aldus-theme="premium-stable"] #questionScoringRulePanelV142{border-color:rgba(104,173,220,.44);background:rgba(7,39,64,.72)}
+      html[data-aldus-theme="premium-stable"] #questionScoringRulePanelV142 .score-results span{border-color:rgba(104,173,220,.34);background:rgba(10,54,86,.72)}
+      @media(max-width:820px){#questionScoringRulePanelV142 .score-fields{grid-template-columns:repeat(2,minmax(0,1fr))}#questionScoringRulePanelV142 .score-fields>label:first-child{grid-column:1/-1}}
+      @media(max-width:620px){#questionScoringRulePanelV142 .score-head{flex-direction:column}#questionScoringRulePanelV142 .score-fields,#questionScoringRulePanelV142 .score-results{grid-template-columns:1fr}#questionScoringRulePanelV142 .score-fields>label:first-child{grid-column:auto}}
+    `;
+    document.head.appendChild(style);
+  }
+
+  function ensurePanel() {
+    const calculated = document.getElementById("questionCalculated");
+    if (!calculated) return null;
+    let panel = document.getElementById("questionScoringRulePanelV142");
+    if (panel) return panel;
+    panel = document.createElement("section");
+    panel.id = "questionScoringRulePanelV142";
+    panel.className = "wide";
+    panel.setAttribute("aria-live", "polite");
+    panel.dataset.questionScoringRuleVersion = VERSION;
+    panel.innerHTML = `
+      <div class="score-head"><div><small>CRITÉRIO DE CORREÇÃO</small><strong>Defina como a sessão deve ser pontuada</strong></div><small>A regra ajusta o cálculo exibido nesta sessão; prevalece sempre o edital.</small></div>
+      <div class="score-fields">
+        <label>Modelo de pontuação<select id="questionScoringRuleV142"><option value="simple">Pontuação por acertos — erro não desconta</option><option value="ce">Certo/Errado com penalização — erro desconta 1</option><option value="custom">Regra personalizada do edital</option></select></label>
+        <label class="score-custom" hidden>Valor do acerto<input id="questionScoreCorrectWeightV142" type="number" step="0.01" value="1"></label>
+        <label class="score-custom" hidden>Valor do erro<input id="questionScoreWrongWeightV142" type="number" step="0.01" value="0"></label>
+        <label class="score-custom" hidden>Valor do branco<input id="questionScoreBlankWeightV142" type="number" step="0.01" value="0"></label>
+      </div>
+      <div class="score-results"><span><small>Aproveitamento</small><strong data-score-accuracy>0,0%</strong></span><span><small data-score-label>Pontuação simples</small><strong data-score-value>0</strong></span><span><small>Conferência</small><strong data-score-counts>0 de 0 respostas informadas</strong></span></div>
+      <p class="item-meta" data-score-method></p><p class="item-meta" data-score-check></p>`;
+    calculated.insertAdjacentElement("beforebegin", panel);
+    return panel;
+  }
+
+  function selectedRule(panel, board) {
+    const select = panel.querySelector("#questionScoringRuleV142");
+    if (board !== boardSeen) {
+      boardSeen = board;
+      select.value = choices.get(board) || defaultRule(board);
+    }
+    return select.value || defaultRule(board);
+  }
+
+  function weights(rule) {
+    if (rule === "ce") return { correct: 1, wrong: -1, blank: 0 };
+    if (rule === "custom") return {
+      correct: weight("questionScoreCorrectWeightV142", 1),
+      wrong: weight("questionScoreWrongWeightV142", 0),
+      blank: weight("questionScoreBlankWeightV142", 0)
+    };
+    return { correct: 1, wrong: 0, blank: 0 };
+  }
+
+  function labels(rule) {
+    if (rule === "ce") return { score: "Líquido C/E", rule: "Certo/Errado com penalização" };
+    if (rule === "custom") return { score: "Pontuação personalizada", rule: "Regra personalizada" };
+    return { score: "Pontuação simples", rule: "Pontuação por acertos" };
+  }
+
+  function updateOriginalSummary(label, score) {
+    const box = document.getElementById("questionCalculated");
+    if (!box || typeof document.createTreeWalker !== "function") return;
+    const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
+    let node = null;
+    while (walker.nextNode()) {
+      if (/Total calculado:/i.test(walker.currentNode.textContent || "")) { node = walker.currentNode; break; }
+    }
+    if (!node) return;
+    const source = String(node.textContent || "");
+    const replacement = `• ${label}: ${numberBR(score)}`;
+    const pattern = /•\s*(?:Líquido\s+Cebraspe|Líquido\s+C\/E|Pontuação\s+simples|Pontuação\s+personalizada):\s*-?\d+(?:[.,]\d+)?/i;
+    const next = pattern.test(source) ? source.replace(pattern, replacement) : `${source.trim()} ${replacement}`;
+    if (next !== source) node.textContent = next;
+  }
+
+  function render() {
+    if (rendering) return;
+    rendering = true;
+    try {
+      ensureStyles();
+      const panel = ensurePanel();
+      if (!panel) return;
+      const board = String(document.getElementById("questionBoard")?.value || "").trim();
+      const rule = selectedRule(panel, board);
+      panel.querySelectorAll(".score-custom").forEach((field) => { field.hidden = rule !== "custom"; });
+
+      const total = read("questionTotal");
+      const correct = read("questionCorrect");
+      const wrong = read("questionWrong");
+      const blank = read("questionBlank");
+      const informed = correct + wrong + blank;
+      const accuracy = total ? Math.min(100, Math.max(0, correct / total * 100)) : 0;
+      const ruleWeights = weights(rule);
+      const score = correct * ruleWeights.correct + wrong * ruleWeights.wrong + blank * ruleWeights.blank;
+      const text = labels(rule);
+
+      panel.querySelector("[data-score-accuracy]").textContent = `${percentBR(accuracy)}%`;
+      panel.querySelector("[data-score-label]").textContent = text.score;
+      panel.querySelector("[data-score-value]").textContent = numberBR(score);
+      panel.querySelector("[data-score-counts]").textContent = `${numberBR(informed)} de ${numberBR(total)} respostas informadas`;
+      panel.querySelector("[data-score-method]").textContent = `${board || "Banca não informada"} • ${text.rule} • acerto ${numberBR(ruleWeights.correct)}, erro ${numberBR(ruleWeights.wrong)}, branco ${numberBR(ruleWeights.blank)}.`;
+
+      const check = panel.querySelector("[data-score-check]");
+      const mismatch = total > 0 && informed !== total;
+      check.dataset.scoreCheck = mismatch ? "warning" : "ok";
+      check.textContent = mismatch ? `Confira: acertos + erros + brancos = ${numberBR(informed)}, mas o total é ${numberBR(total)}.` : "Cálculo conferido pelos valores informados. Pesos, anulações e regras adicionais devem ser confirmados no edital.";
+      updateOriginalSummary(text.score, score);
+    } finally { rendering = false; }
+  }
+
+  function schedule() {
+    if (queued) return;
+    queued = true;
+    (window.requestAnimationFrame || window.setTimeout)(() => { queued = false; render(); }, 0);
+  }
+
+  document.addEventListener("input", (event) => { if (watched.has(event.target?.id)) schedule(); }, true);
+  document.addEventListener("change", (event) => {
+    if (!watched.has(event.target?.id)) return;
+    if (event.target.id === "questionScoringRuleV142") choices.set(String(document.getElementById("questionBoard")?.value || "").trim(), event.target.value);
+    schedule();
+  }, true);
+  document.getElementById("questionForm")?.addEventListener("reset", () => { boardSeen = ""; window.setTimeout(schedule, 0); });
+  window.addEventListener("hashchange", schedule);
+  document.addEventListener("DOMContentLoaded", schedule, { once: true });
+  const calculated = document.getElementById("questionCalculated");
+  if (calculated && typeof MutationObserver !== "undefined") new MutationObserver(() => { if (!rendering) schedule(); }).observe(calculated, { childList: true, characterData: true, subtree: true });
+  schedule();
 })();

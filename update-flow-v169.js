@@ -1,20 +1,20 @@
 (() => {
   "use strict";
 
-  const PATCH_VERSION = "20260728-carregamento-direto-v168";
+  const PATCH_VERSION = "20260728-bundle-unico-v169";
   const CHECK_INTERVAL_MS = 15 * 60 * 1000;
-  const BANNER_ID = "aldusUpdateBannerV168";
+  const BANNER_ID = "aldusUpdateBannerV169";
   let lastCheckAt = 0;
   let registrationRef = null;
   let hadController = Boolean(navigator.serviceWorker?.controller);
   const watchedRegistrations = new WeakSet();
 
-  if (typeof document === "undefined" || !("serviceWorker" in navigator) || globalThis.__ALDUS_UPDATE_FLOW_V168__) return;
+  if (typeof document === "undefined" || !("serviceWorker" in navigator) || globalThis.__ALDUS_UPDATE_FLOW_V169__) return;
 
   function injectStyles() {
-    if (document.getElementById("aldusUpdateStylesV168")) return;
+    if (document.getElementById("aldusUpdateStylesV169")) return;
     const style = document.createElement("style");
-    style.id = "aldusUpdateStylesV168";
+    style.id = "aldusUpdateStylesV169";
     style.textContent = `
       #${BANNER_ID} {
         position: fixed;
@@ -35,7 +35,7 @@
         backdrop-filter: blur(12px);
       }
       #${BANNER_ID}[hidden] { display: none !important; }
-      #${BANNER_ID} .aldus-update-copy-v168 { display: grid; gap: 3px; min-width: 0; }
+      #${BANNER_ID} .aldus-update-copy-v169 { display: grid; gap: 3px; min-width: 0; }
       #${BANNER_ID} strong { font-size: .96rem; }
       #${BANNER_ID} small { color: #b8d0e1; font-size: .79rem; line-height: 1.35; }
       #${BANNER_ID} button { min-height: 40px; padding: 9px 13px; border-radius: 12px; white-space: nowrap; }
@@ -87,14 +87,14 @@
     banner.setAttribute("role", "status");
     banner.setAttribute("aria-live", "polite");
     banner.innerHTML = `
-      <span class="aldus-update-copy-v168">
+      <span class="aldus-update-copy-v169">
         <strong>Nova versão pronta</strong>
-        <small data-aldus-update-message-v168>Atualize quando terminar. Os dados já salvos serão preservados.</small>
+        <small data-aldus-update-message-v169>Atualize quando terminar. Os dados já salvos serão preservados.</small>
       </span>
-      <button type="button" data-aldus-update-now-v168>Atualizar agora</button>
+      <button type="button" data-aldus-update-now-v169>Atualizar agora</button>
     `;
-    banner.querySelector("[data-aldus-update-now-v168]")?.addEventListener("click", () => {
-      const message = banner.querySelector("[data-aldus-update-message-v168]");
+    banner.querySelector("[data-aldus-update-now-v169]")?.addEventListener("click", () => {
+      const message = banner.querySelector("[data-aldus-update-message-v169]");
       if (!safeToReload()) {
         if (message) message.textContent = "Finalize o preenchimento ou pause e salve o cronômetro antes de atualizar.";
         return;
@@ -133,7 +133,7 @@
       if (registrationRef.waiting) showUpdateReady();
       return true;
     } catch (error) {
-      console.warn("[Aldus v168] Não foi possível verificar atualização agora.", error);
+      console.warn("[Aldus v169] Não foi possível verificar atualização agora.", error);
       return false;
     }
   }
@@ -161,7 +161,7 @@
     });
     checkAfterFirstRender();
 
-    Object.defineProperty(globalThis, "__ALDUS_UPDATE_FLOW_V168__", {
+    Object.defineProperty(globalThis, "__ALDUS_UPDATE_FLOW_V169__", {
       value: Object.freeze({
         version: PATCH_VERSION,
         installedAt: new Date().toISOString(),

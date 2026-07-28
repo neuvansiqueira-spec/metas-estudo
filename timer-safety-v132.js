@@ -31,14 +31,3 @@
 
   globalThis.__aldusTimerSafetyV132Status = { version: PATCH_VERSION, applied: true };
 })();
-
-(() => {
-  "use strict";
-  if (globalThis.__aldusTimerMotivationLoaderV161) return;
-  globalThis.__aldusTimerMotivationLoaderV161 = true;
-  const script = document.createElement("script");
-  script.src = "timer-motivation-v161.js?v=20260727-cronometro-motivacao-tempo-v161";
-  script.async = false;
-  script.dataset.aldusTimerMotivation = "v161";
-  document.head.appendChild(script);
-})();

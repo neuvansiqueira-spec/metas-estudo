@@ -110,7 +110,25 @@ const jsSources = [
   "question-register-simple-v162.js",
   "factory-simple-v163.js",
   "factory-polish-v164.js",
-  "update-flow-v168.js"
+  "update-flow-v169.js",
+  "timer-safety-v132.js",
+  "factory-final-review-v128.js",
+  "calendar-month-visibility-v131.js",
+  "question-searchable-selects-v135.js",
+  "factory-executive-ui-v136.js",
+  "daily-study-collapsible-v137.js",
+  "daily-smart-review-collapsible-v138.js",
+  "collapse-chevron-fix-v139.js",
+  "reinforcement-goal-presentation-v156.js",
+  "analytics-accordion-fix-v148.js",
+  "analytics-header-arrow-v149.js",
+  "analytics-single-arrow-v150.js",
+  "contest-countdown-v151.js",
+  "performance-practical-v143.js",
+  "analytics-collapsibles-v145.js",
+  "daily-collapsibles-closed-v140.js",
+  "question-board-result-v141.js",
+  "question-scoring-rule-v142.js"
 ];
 
 function bundle(sources, output) {
@@ -140,9 +158,9 @@ const versionedWorkerName = `service-worker-${releaseSuffix}.js`;
 fs.copyFileSync(path.join(root, "service-worker.js"), path.join(root, versionedWorkerName));
 fs.copyFileSync(path.join(root, "service-worker.js"), path.join(root, "docs", versionedWorkerName));
 
-// Ponte de atualização para clientes ainda registrados no worker V167.
-// O conteúdo é o worker independente V168: não há importação nem execução legada.
-for (const target of ["service-worker-v167.js", path.join("docs", "service-worker-v167.js")]) {
+// Ponte de atualização para clientes ainda registrados no worker V168.
+// O conteúdo é o worker independente V169: não há importação nem execução legada.
+for (const target of ["service-worker-v168.js", path.join("docs", "service-worker-v168.js")]) {
   fs.copyFileSync(path.join(root, "service-worker.js"), path.join(root, target));
 }
 
@@ -158,7 +176,15 @@ for (const filename of [
   "factory-lei-prompt-v120.js", "factory-lei-prompt-v121.js",
   "factory-lei-prompt-v122.js", "release-version-v144.js",
   "release-version-v145.js", "release-version-v146.js",
-  "release-version-v147.js"
+  "release-version-v147.js", "central-goals-real-time-v124.js",
+  "timer-safety-v132.js", "question-searchable-selects-v135.js",
+  "daily-study-collapsible-v137.js", "analytics-single-arrow-v150.js",
+  "daily-collapsibles-closed-v140.js", "update-flow-v169.js",
+  "daily-smart-review-collapsible-v138.js", "collapse-chevron-fix-v139.js",
+  "reinforcement-goal-presentation-v156.js", "contest-countdown-v151.js",
+  "performance-practical-v143.js", "analytics-collapsibles-v145.js",
+  "calendar-month-visibility-v131.js", "factory-executive-ui-v136.js",
+  "question-board-result-v141.js", "question-scoring-rule-v142.js"
 ]) {
   fs.copyFileSync(path.join(root, filename), path.join(root, "docs", filename));
 }

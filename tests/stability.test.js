@@ -263,17 +263,17 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
 
 test('service worker abre o app shell pelo cache e atualiza a rede em segundo plano', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
-  assert.match(sw, /importScripts\("\.\/app-version\.js"\)/);
-  assert.match(sw, /const CURRENT_VERSION = self\.__ALDUS_APP_RELEASE__\.version/);
+  assert.match(sw, /const CURRENT_VERSION = "20260728-bundle-unico-v169"/);
   assert.match(sw, /const CACHE_NAME = `metas-estudo-\$\{CURRENT_VERSION\}`/);
-  assert.match(sw, /cacheFirstNavigation/);
-  assert.match(sw, /cacheFirstAppScript/);
-  assert.match(sw, /fetchFreshNavigation/);
+  assert.match(sw, /cachedNavigation/);
+  assert.match(sw, /cachedStatic/);
+  assert.match(sw, /fetchAndCache/);
   assert.match(sw, /ignoreSearch: true/);
   assert.match(sw, /request\.mode === "navigate"/);
-  assert.match(sw, /\["script", "style", "worker", "image", "manifest"\]/);
+  assert.match(sw, /STATIC_PATHS\.has\(url\.pathname\)/);
   assert.match(sw, /self\.skipWaiting\(\)/);
   assert.match(sw, /self\.clients\.claim\(\)/);
+  assert.doesNotMatch(sw, /importScripts|localStorage|indexedDB/);
 });
 
 test('Fábrica mínima fica habilitada e não bloqueia telas principais', () => {

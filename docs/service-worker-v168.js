@@ -1,12 +1,12 @@
 "use strict";
 
-const CURRENT_VERSION = "20260728-carregamento-direto-v168";
+const CURRENT_VERSION = "20260728-bundle-unico-v169";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 const STATIC_ASSETS = [
   "./",
   "index.html",
-  `app-v168.css?v=${CURRENT_VERSION}`,
-  `app-v168.js?v=${CURRENT_VERSION}`,
+  `app-v169.css?v=${CURRENT_VERSION}`,
+  `app-v169.js?v=${CURRENT_VERSION}`,
   "manifest.json",
   "icons/aldus-visual.png",
   "icons/aldus-brand-mark-v93.png",
