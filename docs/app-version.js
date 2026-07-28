@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260727-fabrica-polimento-visual-v164";
+  const VERSION = "20260727-atualizacao-rapida-segura-v165";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
   let correctionScheduled = false;
 
