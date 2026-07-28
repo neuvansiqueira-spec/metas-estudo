@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260727-atualizacao-rapida-segura-v165";
+  const VERSION = "20260727-atualizacao-instantanea-segura-v166";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
   let correctionScheduled = false;
 
