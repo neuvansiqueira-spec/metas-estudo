@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260727-fabrica-plano-dia-v159";
+  const VERSION = "20260727-fabrica-simples-recolhivel-v163";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
   let correctionScheduled = false;
 
@@ -203,10 +203,26 @@
     setTimeout(() => scheduleFactoryPlanDayFix(attempt + 1), 25);
   }
 
+  function loadFactorySimpleUiV163() {
+    if (globalThis.__ALDUS_FACTORY_SIMPLE_V163__ || document.querySelector('script[data-aldus-factory-simple="v163"]')) return;
+    const script = document.createElement("script");
+    script.src = `factory-simple-v163.js?v=${VERSION}`;
+    script.async = false;
+    script.dataset.aldusFactorySimple = "v163";
+    script.addEventListener("error", () => {
+      console.warn("[Aldus v163] A simplificação visual da Fábrica não pôde ser carregada. Nenhum dado foi alterado.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => scheduleFactoryPlanDayFix(), { once: true });
+    document.addEventListener("DOMContentLoaded", () => {
+      scheduleFactoryPlanDayFix();
+      loadFactorySimpleUiV163();
+    }, { once: true });
   } else {
     scheduleFactoryPlanDayFix();
+    loadFactorySimpleUiV163();
   }
 
   if (typeof MutationObserver !== "undefined") {
