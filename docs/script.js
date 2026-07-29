@@ -5708,10 +5708,12 @@ function qbRenderCapturePreview() {
         <label>Resultado
           <select data-qb-capture-status>${qbCaptureStatusOptions(match.status)}</select>
         </label>
+      </div>
+      <div class="qb-capture-type-strip">
         <label>Tipo confirmado
           <select data-qb-capture-type>${qbCaptureTypeOptions(suggestedType)}</select>
-          <small class="qb-capture-type-note" data-qb-capture-type-note>${escapeHTML(qbCaptureTypeNote(question, suggestedType, match))}</small>
         </label>
+        <small class="qb-capture-type-note" data-qb-capture-type-note>${escapeHTML(qbCaptureTypeNote(question, suggestedType, match))}</small>
       </div>
       <label>Comentário ou resumo visível na captura
         <textarea data-qb-capture-comment placeholder="Opcional; revise o texto identificado antes de salvar.">${escapeHTML(match.comment || "")}</textarea>

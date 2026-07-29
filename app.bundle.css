@@ -10899,16 +10899,28 @@ html[data-aldus-theme="premium-stable"] #view-metas-do-dia .selected-day-banner 
 
 #view-banco-questoes .qb-capture-row-grid {
   display: grid;
-  grid-template-columns: minmax(220px, 2fr) repeat(4, minmax(115px, 1fr));
+  grid-template-columns: minmax(260px, 2fr) repeat(3, minmax(130px, 1fr));
   gap: 10px;
+}
+
+#view-banco-questoes .qb-capture-type-strip {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  align-items: end;
+  gap: 12px;
+  padding: 11px 13px;
+  border: 1px solid color-mix(in srgb, var(--accent, #45b8ff) 22%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent, #45b8ff) 5%, transparent);
 }
 
 #view-banco-questoes .qb-capture-type-note {
   display: block;
-  margin-top: 6px;
+  align-self: center;
+  margin: 0;
   color: var(--muted, #b9cad8);
-  font-size: 0.78rem;
-  line-height: 1.35;
+  font-size: 0.82rem;
+  line-height: 1.4;
 }
 
 #view-banco-questoes .qb-capture-row textarea {
@@ -10918,6 +10930,11 @@ html[data-aldus-theme="premium-stable"] #view-metas-do-dia .selected-day-banner 
 @media (max-width: 900px) {
   #view-banco-questoes .qb-capture-row-grid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  #view-banco-questoes .qb-capture-type-strip {
+    grid-template-columns: 1fr;
+    align-items: stretch;
   }
 }
 
