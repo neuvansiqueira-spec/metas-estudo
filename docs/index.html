@@ -693,7 +693,40 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
       </section>
 
       <details id="qbManageBank" class="qb-section qb-details-card">
-        <summary><span><strong>Importar e gerenciar banco</strong><small>JSON local, exportações e limpeza controlada</small></span></summary>
+        <summary><span><strong>Importar e gerenciar banco</strong><small>PDF ou JSON local, exportações e limpeza controlada</small></span></summary>
+        <section class="qb-pdf-import-card" aria-labelledby="qb-pdf-import-title">
+          <div class="qb-pdf-import-heading">
+            <div>
+              <h4 id="qb-pdf-import-title">Importar PDF do QConcursos</h4>
+              <p class="item-meta">O arquivo é processado no seu aparelho. Confira a prévia antes de adicionar ao banco.</p>
+            </div>
+            <span class="badge neutral">Piloto local</span>
+          </div>
+          <label class="wide">Selecionar PDF exportado
+            <input id="qbPdfFile" type="file" accept="application/pdf,.pdf" />
+          </label>
+          <div id="qbPdfImportStatus" class="file-info empty-message" aria-live="polite">Nenhum PDF selecionado.</div>
+          <div id="qbPdfImportPreview" class="qb-pdf-import-preview" hidden>
+            <div id="qbPdfImportStats" class="qb-pdf-import-stats"></div>
+            <div class="form-grid compact">
+              <label class="wide">Vincular a um assunto do edital
+                <select id="qbPdfSyllabusItem"><option value="">Usar a classificação presente no PDF</option></select>
+              </label>
+              <label>Relação com a classificação do site
+                <select id="qbPdfMappingType">
+                  <option value="same">Mesma classificação</option>
+                  <option value="analogous">Disciplina ou assunto análogo</option>
+                </select>
+              </label>
+            </div>
+            <p id="qbPdfClassification" class="notice"></p>
+            <div id="qbPdfPreviewList" class="qb-pdf-preview-list"></div>
+            <div class="actions">
+              <button id="qbPdfImportConfirm" type="button">Adicionar questões novas</button>
+              <button id="qbPdfImportCancel" class="secondary-button" type="button">Cancelar prévia</button>
+            </div>
+          </div>
+        </section>
         <div class="form-grid">
           <label class="wide">Importar JSON<input id="qbFile" type="file" accept="application/json,.json" /></label>
         </div>

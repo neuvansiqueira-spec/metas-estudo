@@ -10697,6 +10697,141 @@ html[data-aldus-theme="premium-stable"] #view-metas-do-dia .selected-day-banner 
   }
 }
 
+/* Aldus source: question-bank-pdf-import-v181.css */
+#view-banco-questoes .qb-pdf-import-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--accent, #45b8ff) 38%, transparent);
+  border-radius: 18px;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--accent, #45b8ff) 10%, transparent), transparent 58%),
+    color-mix(in srgb, var(--panel, #0d2c42) 92%, transparent);
+}
+
+#view-banco-questoes .qb-pdf-import-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#view-banco-questoes .qb-pdf-import-heading h4,
+#view-banco-questoes .qb-pdf-import-heading p {
+  margin: 0;
+}
+
+#view-banco-questoes .qb-pdf-import-heading p {
+  margin-top: 4px;
+}
+
+#view-banco-questoes .qb-pdf-import-preview {
+  display: grid;
+  gap: 14px;
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in srgb, var(--text, #eaf5ff) 14%, transparent);
+}
+
+#view-banco-questoes .qb-pdf-import-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+#view-banco-questoes .qb-pdf-import-stat {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid color-mix(in srgb, var(--text, #eaf5ff) 12%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--panel, #0d2c42) 82%, transparent);
+}
+
+#view-banco-questoes .qb-pdf-import-stat span {
+  color: var(--muted, #b7cada);
+  font-size: 0.78rem;
+}
+
+#view-banco-questoes .qb-pdf-import-stat strong {
+  font-size: 1.18rem;
+}
+
+#view-banco-questoes .qb-pdf-preview-list {
+  display: grid;
+  gap: 8px;
+  max-height: 330px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+#view-banco-questoes .qb-pdf-preview-item {
+  display: grid;
+  gap: 5px;
+  padding: 11px 12px;
+  border: 1px solid color-mix(in srgb, var(--text, #eaf5ff) 11%, transparent);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--panel, #0d2c42) 76%, transparent);
+}
+
+#view-banco-questoes .qb-pdf-preview-item p {
+  margin: 0;
+  color: var(--muted, #b7cada);
+}
+
+#view-banco-questoes .qb-choice-list {
+  display: grid;
+  gap: 9px;
+  margin-top: 14px;
+}
+
+#view-banco-questoes .qb-choice-button {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+#view-banco-questoes .qb-choice-key {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  font-weight: 800;
+}
+
+#view-banco-questoes .qb-choice-text {
+  align-self: center;
+  line-height: 1.42;
+}
+
+@media (max-width: 760px) {
+  #view-banco-questoes .qb-pdf-import-heading {
+    display: grid;
+  }
+
+  #view-banco-questoes .qb-pdf-import-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  #view-banco-questoes .qb-pdf-import-card {
+    padding: 13px;
+    border-radius: 15px;
+  }
+
+  #view-banco-questoes .qb-pdf-import-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Aldus source: factory-visibility-v122.css */
 /* V147: não exibe versões antigas ou intermediárias durante o carregamento. */
 footer .app-version {
