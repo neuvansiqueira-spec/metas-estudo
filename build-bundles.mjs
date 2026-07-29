@@ -80,7 +80,8 @@ const cssSources = [
   "aldus-navigation-scroll-v73.css",
   "aldus-goal-integrity-v75.css",
   "aldus-completed-visibility-v76.css",
-  "factory-visibility-v122.css"
+  "factory-visibility-v122.css",
+  "aldus-desktop-refinement-v178.css"
 ];
 
 const jsSources = [
@@ -186,7 +187,7 @@ for (const filename of [
   "calendar-month-visibility-v131.js", "factory-executive-ui-v136.js",
   "question-board-result-v141.js", "question-scoring-rule-v142.js",
   "question-register-simple-v162.js", "factory-simple-v163.js",
-  "factory-polish-v164.js"
+  "factory-polish-v164.js", "aldus-desktop-refinement-v178.css"
 ]) {
   fs.copyFileSync(path.join(root, filename), path.join(root, "docs", filename));
 }
