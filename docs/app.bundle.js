@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260729-bootstrap-visual-estavel-v169";
+  const VERSION = "20260729-cores-semanticas-metas-v169";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -43682,8 +43682,17 @@ function renderGoalCalendar() {
   const forecastDate = planningMetrics().forecastDate, topicPct = monthlyTarget.topics ? Math.min(100, Math.round(periods.monthly.goals.length / monthlyTarget.topics * 100)) : 0, hourPct = monthlyTarget.hours ? Math.min(100, Math.round(periods.monthly.planned / (monthlyTarget.hours * 60) * 100)) : 0;
   elements.monthlyPlanSummary.innerHTML = `<article class="stat-card"><span>Meta mensal de assuntos</span><strong>${monthlyTarget.topics}</strong></article><article class="stat-card"><span>Assuntos no calendário</span><strong>${periods.monthly.goals.length} • ${topicPct}%</strong></article><article class="stat-card"><span>Meta mensal de horas</span><strong>${monthlyTarget.hours ? `${monthlyTarget.hours}h` : "Não definida"}</strong></article><article class="stat-card"><span>Horas planejadas</span><strong>${formatHours(periods.monthly.planned)}${monthlyTarget.hours ? ` • ${hourPct}%` : ""}</strong></article><article class="stat-card"><span>Previsão de conclusão</span><strong>${forecastDate ? formatDateBR(forecastDate) : "-"}</strong></article>`;
 }
-function goalCalendarMini(g){ const descriptor = canonicalStudyDescriptor(g); return `<p class="goal-pill ${g.status==='Concluída'?'done':g.status==='Adiada'?'warn':''}">${escapeHTML(descriptor.discipline)} — ${escapeHTML(descriptor.subject)}</p>`; }
-function goalCalendarCard(goal){ normalizeGoalTimeFields(goal); const descriptor = canonicalStudyDescriptor(goal); return `<article class="syllabus-card goal-status-${canonical(goal.status)}"><header><div><h3>${escapeHTML(descriptor.discipline)} — ${escapeHTML(descriptor.subject)}</h3><div class="item-meta">${escapeHTML(goal.type)} • planejado ${goal.minutes||0} min • estudo ${goal.studyActualMinutes||0} min • questões ${goal.questionActualMinutes||0} min • total ${goal.actualMinutes||0} min • status ${escapeHTML(goal.status)}</div></div></header><div class="card-actions"><button data-calendar-action="done" data-id="${goal.id}">Concluir meta</button><button data-calendar-action="postpone" data-id="${goal.id}">Adiar</button><button data-calendar-action="edit" data-id="${goal.id}">Editar</button><button data-calendar-action="study-time" data-id="${goal.id}">Registrar estudo</button><button data-calendar-action="question-time" data-id="${goal.id}">Tempo de questões</button><button data-calendar-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button data-calendar-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button data-register-goal="${goal.id}">Registrar questões</button></div></article>`; }
+function goalCalendarVisualState(goal, referenceDate = todayISO()) {
+  if (isGoalDone(goal)) return "done";
+  const date = goalDateValue(goal);
+  return date && date < referenceDate ? "missed" : "pending";
+}
+function goalCalendarVisualLabel(goal) {
+  return ({ done: "Meta realizada", missed: "Meta não realizada em dia anterior", pending: "Meta para fazer" })[goalCalendarVisualState(goal)];
+}
+function goalCalendarVisualClass(goal) { return `calendar-goal-state-${goalCalendarVisualState(goal)}`; }
+function goalCalendarMini(g){ const descriptor = canonicalStudyDescriptor(g); return `<p class="goal-pill ${goalCalendarVisualClass(g)}" aria-label="${escapeHTML(goalCalendarVisualLabel(g))}: ${escapeHTML(descriptor.discipline)} — ${escapeHTML(descriptor.subject)}">${escapeHTML(descriptor.discipline)} — ${escapeHTML(descriptor.subject)}</p>`; }
+function goalCalendarCard(goal){ normalizeGoalTimeFields(goal); const descriptor = canonicalStudyDescriptor(goal); return `<article class="syllabus-card goal-status-${canonical(goal.status)} ${goalCalendarVisualClass(goal)}" aria-label="${escapeHTML(goalCalendarVisualLabel(goal))}: ${escapeHTML(descriptor.discipline)} — ${escapeHTML(descriptor.subject)}"><header><div><h3>${escapeHTML(descriptor.discipline)} — ${escapeHTML(descriptor.subject)}</h3><div class="item-meta">${escapeHTML(goal.type)} • planejado ${goal.minutes||0} min • estudo ${goal.studyActualMinutes||0} min • questões ${goal.questionActualMinutes||0} min • total ${goal.actualMinutes||0} min</div></div></header><div class="card-actions"><button data-calendar-action="done" data-id="${goal.id}">Concluir meta</button><button data-calendar-action="postpone" data-id="${goal.id}">Adiar</button><button data-calendar-action="edit" data-id="${goal.id}">Editar</button><button data-calendar-action="study-time" data-id="${goal.id}">Registrar estudo</button><button data-calendar-action="question-time" data-id="${goal.id}">Tempo de questões</button><button data-calendar-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button data-calendar-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button data-register-goal="${goal.id}">Registrar questões</button></div></article>`; }
 
 function buildGoalCalendarExportPayload(date = elements.calendarDate?.value || todayISO()) {
   const build = (mode) => { const period = goalCalendarPeriod(date, mode); return { ...period, days: period.dates.map((day) => { const goals = state.dailyGoals.filter((goal) => goalDateValue(goal) === day).map((goal) => { const descriptor = canonicalStudyDescriptor(goal); return { date: day, syllabusItemId: descriptor.syllabusItemId, discipline: descriptor.discipline, subject: descriptor.subject, type: goal.type || "Estudo", plannedMinutes: Number(goal.minutes) || 0, actualMinutes: Number(goal.actualMinutes) || 0, status: goal.status || "Pendente", priority: goal.priority || "-" }; }); const av = availabilityForDate(day); return { date: day, dayType: dayTypeLabel(av), availableHours: Number(av.hours) || 0, goals }; }) }; };
@@ -49359,7 +49368,7 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
 (() => {
   "use strict";
 
-  const PATCH_VERSION = "20260729-bootstrap-visual-estavel-v169";
+  const PATCH_VERSION = "20260729-cores-semanticas-metas-v169";
   const CHECK_INTERVAL_MS = 15 * 60 * 1000;
   const BANNER_ID = "aldusUpdateBannerV169";
   const DIRTY_ATTRIBUTE = "data-aldus-user-edited-v169";
