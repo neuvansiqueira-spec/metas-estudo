@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260728-cronometro-imediato-v169";
+  const VERSION = "20260729-vinculos-integrados-v169";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

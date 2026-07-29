@@ -14,8 +14,8 @@
   <link rel="icon" type="image/svg+xml" href="icons/logo-mark.svg?v=20260728-carregamento-direto-v168" />
   <link rel="preload" as="image" href="icons/aldus-visual.png?v=20260728-carregamento-direto-v168" fetchpriority="high" />
   <!-- Fontes CSS consolidadas, na ordem original: style.css; aldus-premium-theme.css; aldus-premium-refinement-v47.css; aldus-interface-v51.css; aldus-responsive-v52.css; aldus-contrast-v53.css; aldus-visual-v58.css; aldus-planning-v59.css; aldus-planning-history-v60.css; aldus-calendar-v61.css; aldus-calendar-v62.css; aldus-export-brand-v63.css; aldus-export-brand-v64.css; aldus-daily-goals-v66.css; aldus-daily-time-v67.css; aldus-contrast-system-v68.css; aldus-component-contrast-v69.css; aldus-advisor-layout-v70.css; aldus-backup-contrast-v71.css; aldus-navigation-scroll-v73.css; aldus-goal-integrity-v75.css; aldus-completed-visibility-v76.css. -->
-  <link id="aldusAppBundleStyles" rel="stylesheet" href="app-v169.css?v=20260728-cronometro-imediato-v169" />
-  <link rel="preload" as="script" href="app-v169.js?v=20260728-cronometro-imediato-v169" />
+  <link id="aldusAppBundleStyles" rel="stylesheet" href="app-v169.css?v=20260729-vinculos-integrados-v169" />
+  <link rel="preload" as="script" href="app-v169.js?v=20260729-vinculos-integrados-v169" />
 </head>
 <body>
   <header class="hero">
@@ -342,6 +342,12 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
         <datalist id="materialDisciplineOptions"></datalist>
         <label>Assunto<input id="materialSubject" type="text" list="materialSubjectOptions" required /></label>
         <datalist id="materialSubjectOptions"></datalist>
+        <label class="wide">Vínculo exato com o edital
+          <select id="materialSyllabusItem">
+            <option value="">Material avulso, sem item do edital</option>
+          </select>
+          <small>Selecione o item exato para o material aparecer apenas nas metas correspondentes.</small>
+        </label>
         <label>Tipo de material<select id="materialType"><option>PDF</option><option>Word</option><option>Imagem</option><option>Mapa mental</option><option>Resumo</option><option>Aula</option><option>Questões</option><option>Outro</option></select></label>
         <label>Origem<select id="materialOrigin"><option>Google Drive</option><option>OneDrive</option><option>Link externo</option><option>Arquivo local/referência manual</option><option>Outro</option></select></label>
         <label class="wide">Link do arquivo<input id="materialLink" type="text" placeholder="https://drive.google.com/... ou referência manual" required /></label>
@@ -537,7 +543,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
         </form>
       </details>
       <article class="day-plan-panel" aria-labelledby="day-plan-title">
-        <div class="section-heading"><p class="eyebrow">Agenda diária</p><h2 id="day-plan-title">Plano do Dia</h2></div>
+        <div class="section-heading"><p class="eyebrow">Visão geral</p><h2 id="day-plan-title">Resumo do dia</h2></div>
         <div id="dailyGoalsSummary" class="stats-grid compact daily-goals-summary" aria-live="polite"></div>
       </article>
       <article id="nextDailyGoal" class="next-goal-card" aria-live="polite"></article>
@@ -1066,7 +1072,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </section>
   </div>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260728-cronometro-imediato-v169</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260729-vinculos-integrados-v169</p></footer>
   <div id="legacyTimerRecoveryModal" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="legacyTimerRecoveryModalTitle" hidden>
     <div class="app-modal-backdrop" data-legacy-recovery-cancel></div>
     <section class="app-modal-card">
@@ -1076,6 +1082,6 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </section>
   </div>
   <!-- Inicialização V168 consolidada em um único JavaScript. O login do Google é carregado somente quando o usuário toca em Conectar Google Drive. -->
-  <script id="aldusAppBundleScript" src="app-v169.js?v=20260728-cronometro-imediato-v169"></script>
+  <script id="aldusAppBundleScript" src="app-v169.js?v=20260729-vinculos-integrados-v169"></script>
 </body>
 </html>

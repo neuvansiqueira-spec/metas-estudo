@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260728-cronometro-imediato-v169";
+  const VERSION = "20260729-vinculos-integrados-v169";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -37719,8 +37719,9 @@ function renderFloatingTimer() {
   const isActive = Boolean(goal && floatingTimer.goalId);
   elements.floatingTimer.hidden = !isActive;
   if (!isActive) return;
-  elements.timerDiscipline.textContent = goal.discipline || "Sem disciplina";
-  elements.timerSubject.textContent = goal.subject || "Assunto";
+  const descriptor = canonicalStudyDescriptor(goal);
+  elements.timerDiscipline.textContent = descriptor.discipline;
+  elements.timerSubject.textContent = descriptor.subject;
   elements.timerKind.textContent = `${floatingTimer.mode === "free" ? "Cronômetro livre" : "Contagem regressiva"} • ${timerKindLabel(floatingTimer.kind)}`;
   const planned = timerPlannedSeconds(goal);
   const progress = timerProgressPercent(goal);
@@ -37816,9 +37817,11 @@ function startFloatingTimer(goal, kind = "study") {
   stopFloatingTimerInterval();
   const selectedMode = state.settings?.timerMode || elements.timerMode?.value || "countdown";
   const sessionGoalMinutes = selectedMode === "free" ? 0 : 0;
+  const descriptor = canonicalStudyDescriptor(goal);
+  goal = { ...goal, discipline: descriptor.discipline, subject: descriptor.subject };
   state.settings.timerMode = selectedMode;
   prepareTimerAudio();
-  floatingTimer = { sessionId: createId(), goalId: goal.id, goalDate: goal.date || goal.data, discipline: goal.discipline, subject: goal.subject, material: goal.estimateSourceId || "", plannedMinutes: Number(goal.minutes) || 0, origin: "Plano do Dia", kind, elapsedSeconds: 0, startedAt: Date.now(), paused: false, intervalId: null, completed: false, completionAlarmPlayed: false, previousRemainingSeconds: null, warnedFive: false, warnedOne: false, completionDismissed: false, displayedMotivationalMilestones: [], mode: selectedMode, sessionGoalMinutes, pauses: [], resumes: [], openedAt: Date.now() };
+  floatingTimer = { sessionId: createId(), goalId: goal.id, goalDate: goal.date || goal.data, discipline: goal.discipline, subject: goal.subject, syllabusItemId: descriptor.syllabusItemId, material: goal.estimateSourceId || "", plannedMinutes: Number(goal.minutes) || 0, origin: "Plano do Dia", kind, elapsedSeconds: 0, startedAt: Date.now(), paused: false, intervalId: null, completed: false, completionAlarmPlayed: false, previousRemainingSeconds: null, warnedFive: false, warnedOne: false, completionDismissed: false, displayedMotivationalMilestones: [], mode: selectedMode, sessionGoalMinutes, pauses: [], resumes: [], openedAt: Date.now() };
   floatingTimer.intervalId = setInterval(renderFloatingTimer, 1000);
   renderFloatingTimer();
   playTimerControlBeep("start");
@@ -37885,11 +37888,11 @@ function saveFloatingTimerTime() { openTimerStudyModal(); }
 function openDailyDisciplines() {
   const today = todayISO();
   const open = state.dailyGoals.filter((goal) => (goal.date || goal.data) === today && !isCompletedStatusValue(goal.status));
-  return [...new Set(open.map((goal) => goal.discipline).filter(Boolean))];
+  return [...new Set(open.map((goal) => canonicalStudyDescriptor(goal).discipline).filter(Boolean))];
 }
 function optionHTML(value, label = value) { return `<option value="${escapeHTML(value)}">${escapeHTML(label)}</option>`; }
 function subjectsForDiscipline(discipline) {
-  const fromGoals = state.dailyGoals.filter((goal) => canonical(goal.discipline) === canonical(discipline)).map((goal) => goal.subject).filter(Boolean);
+  const fromGoals = state.dailyGoals.map((goal) => canonicalStudyDescriptor(goal)).filter((descriptor) => canonical(descriptor.discipline) === canonical(discipline)).map((descriptor) => descriptor.subject).filter(Boolean);
   const fromSyllabus = state.syllabusItems.filter((item) => canonical(item.discipline) === canonical(discipline)).map((item) => item.subject).filter(Boolean);
   return [...new Set([...fromGoals, ...fromSyllabus])];
 }
@@ -37901,16 +37904,17 @@ function populateTimerStudySubjects(selected = "") {
 }
 function populateTimerStudyModal(draft) {
   const goal = draft.goal;
+  const descriptor = canonicalStudyDescriptor(goal);
   const openDisciplines = openDailyDisciplines();
-  const disciplines = [...new Set([...(openDisciplines.length === 1 ? openDisciplines : []), goal.discipline, ...state.subjects.map((s) => s.name)].filter(Boolean))];
+  const disciplines = [...new Set([...(openDisciplines.length === 1 ? openDisciplines : []), descriptor.discipline, ...state.subjects.map((s) => s.name)].filter(Boolean))];
   elements.timerStudyStartedAt.textContent = new Date(draft.startedAt).toLocaleString("pt-BR");
   elements.timerStudyEndedAt.textContent = new Date(draft.endedAt).toLocaleString("pt-BR");
   elements.timerStudySessionTime.textContent = `${draft.minutes} min (${formatTimerSeconds(draft.seconds)})`;
   elements.timerStudySessionMode.textContent = timerModeLabel(draft.mode);
   elements.timerStudyMinutes.value = `${draft.minutes} min`;
   elements.timerStudyDiscipline.innerHTML = disciplines.map((discipline) => optionHTML(discipline)).join("");
-  elements.timerStudyDiscipline.value = openDisciplines.length === 1 ? openDisciplines[0] : goal.discipline;
-  populateTimerStudySubjects(goal.subject || "");
+  elements.timerStudyDiscipline.value = descriptor.exact ? descriptor.discipline : (openDisciplines.length === 1 ? openDisciplines[0] : descriptor.discipline);
+  populateTimerStudySubjects(descriptor.subject);
   elements.timerStudyMaterial.innerHTML = optionHTML("", "Sem material vinculado") + state.materials.map((m) => optionHTML(m.id, m.title || m.link || "Material")).join("");
   elements.timerStudyNotes.value = "";
   elements.timerStudyUpdateGoal.checked = true;
@@ -37922,6 +37926,9 @@ function submitTimerStudyModal(event) {
   const draft = pendingTimerStudyDraft;
   if (!draft?.goal || !draft.sessionId || state.studies.some((study) => study.timerSessionId === draft.sessionId)) { showDailyGoalMessage("Esta sessão do cronômetro já foi salva.", "warning"); return; }
   const goal = draft.goal;
+  const descriptor = canonicalStudyDescriptor(goal);
+  const savedDiscipline = descriptor.exact ? descriptor.discipline : elements.timerStudyDiscipline.value;
+  const savedSubject = descriptor.exact ? descriptor.subject : (elements.timerStudySubject.value || descriptor.subject);
   rememberDailyPlanSection("goals", goal.date);
   rememberDailyPlanGoal(goal.id, goal.date);
   normalizeGoalTimeFields(goal);
@@ -37935,7 +37942,7 @@ function submitTimerStudyModal(event) {
     if (goal.actualMinutes > 0 && goal.status === "Pendente") goal.status = "Em andamento";
     appendGoalHistory(goal, `Tempo salvo pelo cronômetro: +${minutes} min em ${label} em ${new Date(draft.endedAt).toLocaleString("pt-BR")}. Total realizado: ${goal.actualMinutes} min.`);
   }
-  state.studies.push({ id: createId(), sessionId: draft.sessionId, timerSessionId: draft.sessionId, date: draft.goalDate || goal.date || goal.data || todayISO(), startedAt: new Date(draft.startedAt).toISOString(), endedAt: new Date(draft.endedAt).toISOString(), startTime: new Date(draft.startedAt).toISOString(), endTime: new Date(draft.endedAt).toISOString(), subjectId: state.subjects.find((s) => canonical(s.name) === canonical(elements.timerStudyDiscipline.value))?.id || "", discipline: elements.timerStudyDiscipline.value, syllabusItemId: goal.syllabusItemId || "", topic: elements.timerStudySubject.value || goal.subject || "Assunto", material: elements.timerStudyMaterial.value || "", minutes, plannedMinutes: draft.plannedMinutes, timerMode: draft.mode, timerKind: draft.kind, updatesGoal: elements.timerStudyUpdateGoal.checked, plannedDuration: draft.plannedMinutes, actualDuration: minutes, pauses: draft.pauses, resumes: draft.resumes, topicStatus: "Iniciado", difficultyNotes: elements.timerStudyNotes.value.trim(), materialId: elements.timerStudyMaterial.value || "", questions: 0, correct: 0, wrong: 0, blank: 0, origin: "timer", timerSource: "Plano do Dia", timerOrigin: draft.mode, goalId: goal.id, feedAnalytics: elements.timerStudyFeedAnalytics.checked, feedAdvisor: elements.timerStudyFeedAdvisor.checked });
+  state.studies.push({ id: createId(), sessionId: draft.sessionId, timerSessionId: draft.sessionId, date: draft.goalDate || goal.date || goal.data || todayISO(), startedAt: new Date(draft.startedAt).toISOString(), endedAt: new Date(draft.endedAt).toISOString(), startTime: new Date(draft.startedAt).toISOString(), endTime: new Date(draft.endedAt).toISOString(), subjectId: state.subjects.find((s) => canonical(s.name) === canonical(savedDiscipline))?.id || "", discipline: savedDiscipline, syllabusItemId: descriptor.syllabusItemId, topic: savedSubject, material: elements.timerStudyMaterial.value || "", minutes, plannedMinutes: draft.plannedMinutes, timerMode: draft.mode, timerKind: draft.kind, updatesGoal: elements.timerStudyUpdateGoal.checked, plannedDuration: draft.plannedMinutes, actualDuration: minutes, pauses: draft.pauses, resumes: draft.resumes, topicStatus: "Iniciado", difficultyNotes: elements.timerStudyNotes.value.trim(), materialId: elements.timerStudyMaterial.value || "", questions: 0, correct: 0, wrong: 0, blank: 0, origin: "timer", timerSource: "Plano do Dia", timerOrigin: draft.mode, goalId: goal.id, feedAnalytics: elements.timerStudyFeedAnalytics.checked, feedAdvisor: elements.timerStudyFeedAdvisor.checked });
   saveData();
   render();
   showDailyGoalMessage(`Tempo salvo: ${minutes} min em ${label}.`, "success");
@@ -37964,7 +37971,7 @@ const elements = {
   newMockExam: $("#newMockExam"), mockExamForm: $("#mockExamForm"), mockExamEditingId: $("#mockExamEditingId"), mockName: $("#mockName"), mockDate: $("#mockDate"), mockBoard: $("#mockBoard"), mockInstitution: $("#mockInstitution"), mockNotes: $("#mockNotes"), mockTotalQuestions: $("#mockTotalQuestions"), mockCorrect: $("#mockCorrect"), mockWrong: $("#mockWrong"), mockBlank: $("#mockBlank"), mockGoal: $("#mockGoal"), mockStrategy: $("#mockStrategy"), mockDifficulty: $("#mockDifficulty"), mockCalculated: $("#mockCalculated"), mockDisciplineName: $("#mockDisciplineName"), mockDisciplineTotal: $("#mockDisciplineTotal"), mockDisciplineCorrect: $("#mockDisciplineCorrect"), mockDisciplineWrong: $("#mockDisciplineWrong"), mockDisciplineBlank: $("#mockDisciplineBlank"), mockDisciplineNotes: $("#mockDisciplineNotes"), addMockDiscipline: $("#addMockDiscipline"), clearMockDisciplines: $("#clearMockDisciplines"), mockDisciplineDraft: $("#mockDisciplineDraft"), mockSummary: $("#mockSummary"), mockGeneralResult: $("#mockGeneralResult"), mockDisciplineResults: $("#mockDisciplineResults"), mockDiagnosis: $("#mockDiagnosis"), mockHistory: $("#mockHistory"), mockEvolution: $("#mockEvolution"),
   planningConfigForm: $("#planningConfigForm"), planningModeSelect: $("#planningModeSelect"), planningContestResume: $("#planningContestResume"), planningContestSummary: $("#planningContestSummary"), planningSaveStatus: $("#planningSaveStatus"), planningSummaryResume: $("#planningSummaryResume"), planningSummaryCards: $("#planningSummaryCards"), planningDayModesResume: $("#planningDayModesResume"), planningDayModes: $("#planningDayModes"), planningPreview: $("#planningPreview"), planningMaterialEstimateResume: $("#planningMaterialEstimateResume"), planningMaterialEstimates: $("#planningMaterialEstimates"), planningExamDate: $("#planningExamDate"), planningScaleType: $("#planningScaleType"), planningScaleNotes: $("#planningScaleNotes"), planningShiftHours: $("#planningShiftHours"), planningRestHours: $("#planningRestHours"), planningNormalHours: $("#planningNormalHours"), planningMinWeeklyHours: $("#planningMinWeeklyHours"), planningIdealWeeklyHours: $("#planningIdealWeeklyHours"), planningWeeklyTopics: $("#planningWeeklyTopics"), planningDisciplinesPerDay: $("#planningDisciplinesPerDay"), planningDisciplinesPerWeek: $("#planningDisciplinesPerWeek"), planningDisciplinesPerMonth: $("#planningDisciplinesPerMonth"), planningTopicsPerDay: $("#planningTopicsPerDay"), planningTopicsPerWeek: $("#planningTopicsPerWeek"), planningTopicsPerMonth: $("#planningTopicsPerMonth"), planningSafetyDays: $("#planningSafetyDays"), planningScaleReferenceDate: $("#planningScaleReferenceDate"), planningScaleReferencePosition: $("#planningScaleReferencePosition"), scale3x6Fields: $("#scale3x6Fields"), centralGoalsCards: $("#centralGoalsCards"), centralScaleSummary: $("#centralScaleSummary"), centralNextDates: $("#centralNextDates"), centralOpenDayPlan: $("#centralOpenDayPlan"), dashboardGoalsScaleSummary: $("#dashboardGoalsScaleSummary"), availabilityCalendar: $("#availabilityCalendar"), completionForecast: $("#completionForecast"), completionAlert: $("#completionAlert"), weeklyGoalsPlan: $("#weeklyGoalsPlan"), weeklyGoalsAlert: $("#weeklyGoalsAlert"), timeHistorySummary: $("#timeHistorySummary"), timeHistoryCards: $("#timeHistoryCards"),
   dashboardQuestionBankTotal: $("#dashboardQuestionBankTotal"), dashboardQuestionBankSessions: $("#dashboardQuestionBankSessions"), dashboardQuestionBankLast: $("#dashboardQuestionBankLast"), dashboardQuestionBankPackages: $("#dashboardQuestionBankPackages"), dashboardQuestionBankLinked: $("#dashboardQuestionBankLinked"), dashboardQuestionBankMissing: $("#dashboardQuestionBankMissing"),
-  materialsTotal: $("#materialsTotal"), materialDisciplinesTotal: $("#materialDisciplinesTotal"), materialTopicsTotal: $("#materialTopicsTotal"), materialForm: $("#materialForm"), materialEditingId: $("#materialEditingId"), materialTitle: $("#materialTitle"), materialDate: $("#materialDate"), materialDiscipline: $("#materialDiscipline"), materialSubject: $("#materialSubject"), materialType: $("#materialType"), materialOrigin: $("#materialOrigin"), materialLink: $("#materialLink"), materialTags: $("#materialTags"), materialNotes: $("#materialNotes"), materialDisciplineOptions: $("#materialDisciplineOptions"), materialSubjectOptions: $("#materialSubjectOptions"), materialFilterDiscipline: $("#materialFilterDiscipline"), materialFilterSubject: $("#materialFilterSubject"), materialFilterType: $("#materialFilterType"), materialFilterOrigin: $("#materialFilterOrigin"), materialFilterText: $("#materialFilterText"), materialsList: $("#materialsList"), studyMaterial: $("#studyMaterial"),
+  materialsTotal: $("#materialsTotal"), materialDisciplinesTotal: $("#materialDisciplinesTotal"), materialTopicsTotal: $("#materialTopicsTotal"), materialForm: $("#materialForm"), materialEditingId: $("#materialEditingId"), materialTitle: $("#materialTitle"), materialDate: $("#materialDate"), materialDiscipline: $("#materialDiscipline"), materialSubject: $("#materialSubject"), materialSyllabusItem: $("#materialSyllabusItem"), materialType: $("#materialType"), materialOrigin: $("#materialOrigin"), materialLink: $("#materialLink"), materialTags: $("#materialTags"), materialNotes: $("#materialNotes"), materialDisciplineOptions: $("#materialDisciplineOptions"), materialSubjectOptions: $("#materialSubjectOptions"), materialFilterDiscipline: $("#materialFilterDiscipline"), materialFilterSubject: $("#materialFilterSubject"), materialFilterType: $("#materialFilterType"), materialFilterOrigin: $("#materialFilterOrigin"), materialFilterText: $("#materialFilterText"), materialsList: $("#materialsList"), studyMaterial: $("#studyMaterial"),
   editFactoryPromptLibrary: $("#editFactoryPromptLibrary"), factoryForm: $("#factoryForm"), factoryEditingId: $("#factoryEditingId"), factoryDiscipline: $("#factoryDiscipline"), factoryTheme: $("#factoryTheme"), factorySubtheme: $("#factorySubtheme"), factoryPriority: $("#factoryPriority"), factoryPlannedDate: $("#factoryPlannedDate"), factoryStatus: $("#factoryStatus"), factorySourceFolder: $("#factorySourceFolder"), factoryDestinationFolder: $("#factoryDestinationFolder"), factoryFinalLink: $("#factoryFinalLink"), factoryLeiNome: $("#factoryLeiNome"), factoryLeiFonte: $("#factoryLeiFonte"), factoryLeiArtigos: $("#factoryLeiArtigos"), factoryLeiRecorte: $("#factoryLeiRecorte"), factoryLeiObservacoes: $("#factoryLeiObservacoes"), factoryNotes: $("#factoryNotes"), factorySummary: $("#factorySummary"), factoryFilterDiscipline: $("#factoryFilterDiscipline"), factoryFilterPriority: $("#factoryFilterPriority"), factoryFilterStatus: $("#factoryFilterStatus"), factoryFilterDate: $("#factoryFilterDate"), factoryFilterView: $("#factoryFilterView"), factoryFilterText: $("#factoryFilterText"), factoryList: $("#factoryList"), factoryPromptLibraryPanel: $("#factoryPromptLibraryPanel"),
   qbSyllabusPackages: $("#qbSyllabusPackages"), qbSyllabusVerticalized: $("#qbSyllabusVerticalized"), qbPreviewSection: $("#qbPreviewSection"), qbSyllabusSummary: $("#qbSyllabusSummary"), qbPackagesSummary: $("#qbPackagesSummary"), qbFile: $("#qbFile"), qbNewTraining: $("#qbNewTraining"), qbRedoBlanks: $("#qbRedoBlanks"), qbExportBank: $("#qbExportBank"), qbExportResults: $("#qbExportResults"), qbClearBank: $("#qbClearBank"), qbMessage: $("#qbMessage"), qbStats: $("#qbStats"), qbDiagnostics: $("#qbDiagnostics"), qbTrainingScope: $("#qbTrainingScope"), qbReviewTypeWrapper: $("#qbReviewTypeWrapper"), qbReviewType: $("#qbReviewType"), qbFilterDiscipline: $("#qbFilterDiscipline"), qbFilterSubject: $("#qbFilterSubject"), qbFilterTheme: $("#qbFilterTheme"), qbFilterBoard: $("#qbFilterBoard"), qbFilterYear: $("#qbFilterYear"), qbFilterSearch: $("#qbFilterSearch"), qbTrainingLimit: $("#qbTrainingLimit"), qbShuffleTraining: $("#qbShuffleTraining"), qbStartTraining: $("#qbStartTraining"), qbPreviewFiltered: $("#qbPreviewFiltered"), qbFilteredPreview: $("#qbFilteredPreview"), qbTrainingPanel: $("#qbTrainingPanel"), qbTrainingCounter: $("#qbTrainingCounter"), qbTrainingProgress: $("#qbTrainingProgress"), qbQuestionCard: $("#qbQuestionCard"), qbResultPanel: $("#qbResultPanel"), qbResultSummary: $("#qbResultSummary"), qbResultDetails: $("#qbResultDetails"), qbErrorStats: $("#qbErrorStats"), qbErrorNotebookList: $("#qbErrorNotebookList"), qbErrorFilterDiscipline: $("#qbErrorFilterDiscipline"), qbErrorFilterSubject: $("#qbErrorFilterSubject"), qbErrorFilterStatus: $("#qbErrorFilterStatus"), qbErrorFilterReason: $("#qbErrorFilterReason"), qbStartErrorNotebook: $("#qbStartErrorNotebook"), qbReviewByDiscipline: $("#qbReviewByDiscipline"), qbReviewBySubject: $("#qbReviewBySubject"), qbToggleErrorHistory: $("#qbToggleErrorHistory"), qbErrorHistory: $("#qbErrorHistory"),
   connectGoogleDrive: $("#connectGoogleDrive"), syncNowButton: $("#syncNow"), pushToCloud: $("#pushToCloud"), pullFromCloud: $("#pullFromCloud"), disconnectGoogleDrive: $("#disconnectGoogleDrive"), syncStatus: $("#syncStatus"),
@@ -39585,7 +39592,7 @@ function scale3x6Info(date, targetState = state) {
 function availabilityForDate(date, targetState = state) { const existing = targetState.planning.availability[date]; if (existing) return existing; const scale = scale3x6Info(date, targetState); if (scale) return { type: scale.type, label: scale.label, hours: scale.hours, scalePosition: scale.position }; return { type: "dia normal", label: "Normal", hours: availabilityDefaults("dia normal", targetState) }; }
 function dayTypeLabel(av) { return av.label || ({"plantão":"Plantão","folga":"Folga","dia normal":"Normal","indisponível":"Indisponível"}[av.type] || av.type || "Normal"); }
 function nextDateByType(type) { for (let i=0;i<60;i++){ const d=addDays(todayISO(), i); if (availabilityForDate(d).type===type) return d; } return ""; }
-function periodSummary(start, days) { const dates=daysBetween(start, days), goals=goalsBetween(start, addDays(start, days-1)); const planned=goals.reduce((a,g)=>a+Number(g.minutes||0),0); const done=goals.reduce((a,g)=>a+goalTotalActualMinutes(g),0); return { dates, goals, planned, done, pending: goals.filter(g=>!isGoalDone(g)).length, completed: goals.filter(isGoalDone).length, disciplines: new Set(goals.map(g=>g.discipline)).size, percent: planned ? Math.min(100, Math.round(done/planned*100)) : completionRate(goals), subjects: goals.length }; }
+function periodSummary(start, days) { const dates=daysBetween(start, days), goals=goalsBetween(start, addDays(start, days-1)); const planned=goals.reduce((a,g)=>a+Number(g.minutes||0),0); const done=goals.reduce((a,g)=>a+goalTotalActualMinutes(g),0); return { dates, goals, planned, done, pending: goals.filter(g=>!isGoalDone(g)).length, completed: goals.filter(isGoalDone).length, disciplines: new Set(goals.map(g=>canonicalStudyDescriptor(g).discipline)).size, percent: planned ? Math.min(100, Math.round(done/planned*100)) : completionRate(goals), subjects: goals.length }; }
 
 
 function studyOriginLabel(study) {
@@ -39951,13 +39958,17 @@ function syncFactoryWithActiveEdital() {
     const recorte = group.subtopics.length ? `Subtemas do edital: ${group.subtopics.join("; ")}` : "";
     const existing = byKey.get(group.key);
     if (existing) {
-      const previousSignature = JSON.stringify({ link: existing.editalLink, subtemas: existing.editalSubtemas, active: existing.editalActive, archived: existing.archivedReason, observacao: existing.observacao });
+      const previousSignature = JSON.stringify({ disciplina: existing.disciplina, tema: existing.tema, syllabusItemId: existing.syllabusItemId, syllabusItemIds: existing.syllabusItemIds, link: existing.editalLink, subtemas: existing.editalSubtemas, active: existing.editalActive, archived: existing.archivedReason, observacao: existing.observacao });
+      existing.disciplina = group.discipline;
+      existing.tema = group.subject;
+      existing.syllabusItemId = group.itemIds[0] || existing.syllabusItemId || "";
+      existing.syllabusItemIds = group.itemIds;
       existing.editalLink = { ...(existing.editalLink || {}), groupKey: group.key, itemIds: group.itemIds, itemKeys: group.itemKeys, discipline: group.discipline, subject: group.subject, references: group.references, topics: group.topics };
       existing.editalSubtemas = group.subtopics;
       existing.editalActive = true;
       existing.archivedReason = "";
       if (recorte && !existing.observacao?.includes(recorte)) existing.observacao = [existing.observacao, recorte].filter(Boolean).join("\n");
-      if (previousSignature !== JSON.stringify({ link: existing.editalLink, subtemas: existing.editalSubtemas, active: existing.editalActive, archived: existing.archivedReason, observacao: existing.observacao })) changed = true;
+      if (previousSignature !== JSON.stringify({ disciplina: existing.disciplina, tema: existing.tema, syllabusItemId: existing.syllabusItemId, syllabusItemIds: existing.syllabusItemIds, link: existing.editalLink, subtemas: existing.editalSubtemas, active: existing.editalActive, archived: existing.archivedReason, observacao: existing.observacao })) changed = true;
       existing.updatedAt = existing.updatedAt || now;
       return;
     }
@@ -40229,8 +40240,8 @@ function exactFactoryGoalMatches(goal = {}, agenda = []) {
   if (byId.length) return { items: byId, mode: "identificador original do item do edital" };
   const byKey = stableKey ? agenda.filter((item) => (item.editalLink?.itemKeys || []).includes(stableKey)) : [];
   if (byKey.length) return { items: byKey, mode: "identificador original do item do edital" };
-  const discipline = canonical(goal.discipline || goal.disciplina || syllabus?.discipline || syllabus?.disciplina || "");
-  const subject = canonical(goal.subject || goal.assunto || (syllabus ? factorySyllabusMainSubject(syllabus) : ""));
+  const discipline = canonical(syllabus?.discipline || syllabus?.disciplina || goal.discipline || goal.disciplina || "");
+  const subject = canonical(syllabus ? factorySyllabusMainSubject(syllabus) : (goal.subject || goal.assunto || ""));
   const subtopic = canonical(factoryGoalSubtopic(goal));
   const exact = agenda.filter((item) => {
     if (canonical(item.disciplina) !== discipline || canonical(item.tema) !== subject) return false;
@@ -40322,7 +40333,9 @@ function factoryRecorteHoje(entry = {}) { return entry.subtopics?.length ? entry
 function factoryThemeHighlightHTML(item = {}, recorte = "", { position = "" } = {}) {
   const positionText = position ? ` • ${position}` : "";
   const planningText = item.planningStatus === "Planejado" && item.dataPlanejada ? `${item.planningStatus} para ${formatDateBR(item.dataPlanejada)}` : (item.planningStatus || "Sem meta planejada");
-  return `<div class="factory-theme-highlight"><p class="factory-theme-label">${escapeHTML(factoryThemeVisualLabel(item))}</p><h3 class="factory-theme-title">${escapeHTML(item.tema || "-")}</h3><p class="factory-theme-discipline"><strong>Disciplina:</strong> ${escapeHTML(item.disciplina || "-")}${escapeHTML(positionText)}</p><p class="item-meta"><strong>Planejamento integrado:</strong> ${escapeHTML(planningText)}</p>${recorte ? `<p class="factory-theme-recorte"><strong>Recorte da meta:</strong> ${escapeHTML(recorte)}</p>` : ""}</div>`;
+  const discipline = item.editalLink?.discipline || item.disciplina || "-";
+  const subject = item.editalLink?.subject || item.tema || "-";
+  return `<div class="factory-theme-highlight"><p class="factory-theme-label">${escapeHTML(factoryThemeVisualLabel(item))}</p><h3 class="factory-theme-title">${escapeHTML(subject)}</h3><p class="factory-theme-discipline"><strong>Disciplina:</strong> ${escapeHTML(discipline)}${escapeHTML(positionText)}</p><p class="item-meta"><strong>Planejamento integrado:</strong> ${escapeHTML(planningText)}</p>${recorte ? `<p class="factory-theme-recorte"><strong>Recorte da meta:</strong> ${escapeHTML(recorte)}</p>` : ""}</div>`;
 }
 function renderFactory() {
   if (!elements.factoryList) return;
@@ -40348,7 +40361,7 @@ function renderFactory() {
     const unlockedDate = factoryUnlockedDayDate(activeAgenda);
     const scopeDates = factoryProductionScope === "week" ? daysBetween(todayISO(), 7) : [unlockedDate];
     const dailyProjection = scopeDates.flatMap((date) => buildDailyPlanProjection(date).filter((entry) => !isGoalDone(entry.goal) && !planningRecordMatchesCompletedSubject(entry.goal)).map((entry) => ({ ...entry, factoryDate:date })));
-    const todayPlanPanel = `<details class="factory-section factory-today-plan factory-collapsible"><summary>📚 ${factoryProductionScope === "week" ? "MATERIAIS DAS METAS PENDENTES — SEMANA" : `MATERIAIS DAS METAS PENDENTES — ${formatDateBR(unlockedDate)}`} <small>${dailyProjection.length}</small></summary><div class="factory-collapsible-content">${dailyProjection.length ? dailyProjection.map((entry) => { const count = entry.materialGroups.reduce((total, group) => total + group.materials.length, 0); const status = !count ? "Precisa produzir" : "Material já disponível"; return `<article class="syllabus-card factory-card"><h3>${escapeHTML(entry.goal.discipline)} — ${escapeHTML(entry.goal.subject)}</h3><p class="item-meta">${formatDateBR(entry.factoryDate)} • ${escapeHTML(status)} • ${count} arquivo(s)</p>${entry.materialGroups.length ? entry.materialGroups.map((group) => `<p><strong>${escapeHTML(group.label === "resumoAula" ? "RESUMO/AULA" : group.label.toUpperCase())}:</strong> ${group.materials.map((material) => escapeHTML(materialButtonLabel(material))).join(" • ")}</p>`).join("") : `<p class="item-meta">Nenhum material vinculado.</p>`}</article>`; }).join("") : `<p class="empty-message">Nenhuma meta pendente neste período.</p>`}</div></details>`;
+    const todayPlanPanel = `<details class="factory-section factory-today-plan factory-collapsible"><summary>📚 ${factoryProductionScope === "week" ? "MATERIAIS DAS METAS PENDENTES — SEMANA" : `MATERIAIS DAS METAS PENDENTES — ${formatDateBR(unlockedDate)}`} <small>${dailyProjection.length}</small></summary><div class="factory-collapsible-content">${dailyProjection.length ? dailyProjection.map((entry) => { const count = entry.materialGroups.reduce((total, group) => total + group.materials.length, 0); const status = !count ? "Precisa produzir" : "Material já disponível"; const descriptor = canonicalStudyDescriptor(entry.goal); return `<article class="syllabus-card factory-card"><h3>${escapeHTML(descriptor.discipline)} — ${escapeHTML(descriptor.subject)}</h3><p class="item-meta">${formatDateBR(entry.factoryDate)} • ${escapeHTML(status)} • ${count} arquivo(s)</p>${entry.materialGroups.length ? entry.materialGroups.map((group) => `<p><strong>${escapeHTML(group.label === "resumoAula" ? "RESUMO/AULA" : group.label.toUpperCase())}:</strong> ${group.materials.map((material) => escapeHTML(materialButtonLabel(material))).join(" • ")}</p>`).join("") : `<p class="item-meta">Nenhum material vinculado.</p>`}</article>`; }).join("") : `<p class="empty-message">Nenhuma meta pendente neste período.</p>`}</div></details>`;
     const seenPeriod = new Set();
     const periodEntries = scopeDates.flatMap((date) => factoryQueueForDate(date, activeAgenda).map((entry) => ({ ...entry, sourceDate:date }))).filter((entry) => { if (seenPeriod.has(entry.item.id)) return false; seenPeriod.add(entry.item.id); return true; });
     const queue = periodEntries.filter(factoryResumoAulaPending);
@@ -40627,14 +40640,73 @@ function repairExistingFactoryMaterialLinksV85(targetState = state) {
 function materialAvailable(m) { return m && m.available !== false; }
 function dailyPlanCanonical(value) { return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " "); }
 function dailyPlanSubjectKey(value) { return dailyPlanCanonical(value).replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " "); }
+function dailyPlanSubjectAliases(value = "") {
+  const key = dailyPlanSubjectKey(value);
+  if (!key) return [];
+  const aliases = new Set([key]);
+  ["representacao por "].forEach((prefix) => {
+    if (key.startsWith(prefix) && key.length > prefix.length) aliases.add(key.slice(prefix.length));
+  });
+  return [...aliases];
+}
+function linkedSyllabusItem(record = {}, targetState = state) {
+  const ids = [record.syllabusItemId, record.editalItemId, record.itemId].filter(Boolean).map(String);
+  if (!ids.length) return null;
+  return (targetState.syllabusItems || []).find((item) => ids.includes(String(item.id))) || null;
+}
+function canonicalStudyDescriptor(record = {}, targetState = state) {
+  const item = linkedSyllabusItem(record, targetState);
+  const discipline = String(item?.discipline || item?.disciplina || record.discipline || record.disciplina || "Sem disciplina").trim() || "Sem disciplina";
+  const subject = String(item?.subject || item?.assunto || record.baseSubject || record.subject || record.assunto || record.tema || "Sem assunto").trim() || "Sem assunto";
+  const originalDiscipline = String(record.discipline || record.disciplina || "").trim();
+  const originalSubject = String(record.baseSubject || record.subject || record.assunto || record.tema || "").trim();
+  return {
+    item,
+    syllabusItemId: item?.id || record.syllabusItemId || record.editalItemId || "",
+    discipline,
+    subject,
+    topic: String(item?.topic || record.topic || record.topico || "").trim(),
+    subtopic: String(item?.subtopic || record.subtopic || record.subassunto || "").trim(),
+    reference: String(item?.reference || record.referencia_edital || record.reference || "").trim(),
+    exact: Boolean(item),
+    descriptionDrift: Boolean(item && (
+      (originalDiscipline && dailyPlanCanonical(originalDiscipline) !== dailyPlanCanonical(discipline))
+      || (originalSubject && dailyPlanSubjectKey(originalSubject) !== dailyPlanSubjectKey(subject))
+    ))
+  };
+}
+function recordSyllabusAssociationIds(record = {}) {
+  return [...new Set([
+    record.syllabusItemId,
+    ...(Array.isArray(record.syllabusItemIds) ? record.syllabusItemIds : []),
+    ...(Array.isArray(record.editalLink?.itemIds) ? record.editalLink.itemIds : []),
+    record.parentSyllabusItemId
+  ].filter(Boolean).map(String))];
+}
+function buildCrossAreaLinkageReportV173(targetState = state) {
+  const syllabusIds = new Set((targetState.syllabusItems || []).map((item) => String(item.id)));
+  const inspect = (records = []) => records.reduce((summary, record) => {
+    const ids = recordSyllabusAssociationIds(record);
+    const validIds = ids.filter((id) => syllabusIds.has(id));
+    const descriptor = canonicalStudyDescriptor(record, targetState);
+    if (validIds.length) summary.exact += 1;
+    else if (ids.length) summary.orphan += 1;
+    else summary.legacyWithoutId += 1;
+    if (descriptor.descriptionDrift) summary.descriptionDrift += 1;
+    return summary;
+  }, { total: records.length, exact: 0, orphan: 0, legacyWithoutId: 0, descriptionDrift: 0 });
+  return {
+    generatedAt: new Date().toISOString(),
+    syllabus: { total: (targetState.syllabusItems || []).length },
+    goals: inspect(targetState.dailyGoals || []),
+    materials: inspect(targetState.materials || []),
+    factory: inspect(targetState.factoryAgenda?.length ? targetState.factoryAgenda : (targetState.factoryItems || [])),
+    studies: inspect(targetState.studies || [])
+  };
+}
 function dailyPlanSubjectsCompatible(left = "", right = "") {
-  const leftKey = dailyPlanSubjectKey(left); const rightKey = dailyPlanSubjectKey(right);
-  if (!leftKey || !rightKey) return false;
-  if (leftKey === rightKey) return true;
-  const [shorter, longer] = leftKey.length <= rightKey.length ? [leftKey, rightKey] : [rightKey, leftKey];
-  const ignored = new Set(["a", "o", "as", "os", "e", "de", "da", "do", "das", "dos", "em", "por", "para", "com"]);
-  const meaningful = shorter.split(" ").filter((term) => term.length >= 3 && !ignored.has(term));
-  return meaningful.length >= 2 && ` ${longer} `.includes(` ${shorter} `);
+  const leftAliases = dailyPlanSubjectAliases(left); const rightAliases = new Set(dailyPlanSubjectAliases(right));
+  return leftAliases.some((alias) => rightAliases.has(alias));
 }
 function dailyPlanRecordsShareSubject(left = {}, right = {}) {
   const leftDiscipline = dailyPlanCanonical(left.disciplina || left.discipline); const rightDiscipline = dailyPlanCanonical(right.disciplina || right.discipline);
@@ -40648,16 +40720,17 @@ function buildDailyPlanProjection(date, targetState = state) { if (typeof perfor
   const materials = (targetState.materials || []).filter(materialAvailable);
   const factoryItems = targetState.factoryAgenda?.length ? targetState.factoryAgenda : (targetState.factoryItems || []);
   const add = (map, key, value) => { if (!key) return; const list = map.get(key) || []; list.push(value); map.set(key, list); };
-  const factoryByGoalId = new Map(), factoryBySyllabusItemId = new Map(), factoryByParentSyllabusItemId = new Map(), factoryByCombination = new Map();
-  const materialsByGoalId = new Map(), materialsByFactoryItemId = new Map(), materialsBySyllabusItemId = new Map(), materialsByParentSyllabusItemId = new Map(), materialsByEstimateSourceId = new Map(), materialsByCombination = new Map();
-  const combination = (r) => `${dailyPlanCanonical(r.disciplina || r.discipline)}|${dailyPlanCanonical(r.tema || r.subject || r.assunto)}`;
-  factoryItems.forEach((item) => { add(factoryByGoalId, item.goalId, item); [item.syllabusItemId, ...(item.syllabusItemIds || []), ...(item.editalLink?.itemIds || [])].forEach((id) => add(factoryBySyllabusItemId, id, item)); add(factoryByParentSyllabusItemId, item.parentSyllabusItemId, item); add(factoryByCombination, combination(item), item); });
-  materials.forEach((material) => { add(materialsByGoalId, material.goalId, material); add(materialsByFactoryItemId, material.factoryItemId, material); [material.syllabusItemId, ...(material.syllabusItemIds || [])].forEach((id) => add(materialsBySyllabusItemId, id, material)); add(materialsByParentSyllabusItemId, material.parentSyllabusItemId, material); add(materialsByEstimateSourceId, material.id, material); add(materialsByCombination, combination(material), material); });
-  const only = (map, key) => { const list = map.get(key) || []; return list.length === 1 ? list : []; };
+  const factoryByGoalId = new Map(), factoryBySyllabusItemId = new Map(), factoryByParentSyllabusItemId = new Map();
+  const materialsByGoalId = new Map(), materialsByFactoryItemId = new Map(), materialsBySyllabusItemId = new Map(), materialsByParentSyllabusItemId = new Map(), materialsByEstimateSourceId = new Map();
+  factoryItems.forEach((item) => { add(factoryByGoalId, item.goalId, item); [item.syllabusItemId, ...(item.syllabusItemIds || []), ...(item.editalLink?.itemIds || [])].forEach((id) => add(factoryBySyllabusItemId, id, item)); add(factoryByParentSyllabusItemId, item.parentSyllabusItemId, item); });
+  materials.forEach((material) => { add(materialsByGoalId, material.goalId, material); add(materialsByFactoryItemId, material.factoryItemId, material); [material.syllabusItemId, ...(material.syllabusItemIds || [])].forEach((id) => add(materialsBySyllabusItemId, id, material)); add(materialsByParentSyllabusItemId, material.parentSyllabusItemId, material); add(materialsByEstimateSourceId, material.id, material); });
   return goals.map((goal) => {
-    const linkedFactory = new Set([...(factoryByGoalId.get(goal.id) || []), ...(factoryBySyllabusItemId.get(goal.syllabusItemId) || []), ...(factoryByParentSyllabusItemId.get(goal.syllabusItemId) || []), ...only(factoryByCombination, combination(goal)), ...factoryItems.filter((item) => dailyPlanRecordsShareSubject(item, goal))]);
+    const descriptor = canonicalStudyDescriptor(goal, targetState);
+    const legacyFactory = factoryItems.filter((item) => !recordSyllabusAssociationIds(item).length && dailyPlanRecordsShareSubject(item, descriptor));
+    const linkedFactory = new Set([...(factoryByGoalId.get(goal.id) || []), ...(factoryBySyllabusItemId.get(goal.syllabusItemId) || []), ...(factoryByParentSyllabusItemId.get(goal.syllabusItemId) || []), ...legacyFactory]);
     const factoryIds = new Set([...linkedFactory].map((item) => item.id));
-    const linked = new Set([...(materialsByGoalId.get(goal.id) || []), ...(materialsByEstimateSourceId.get(goal.estimateSourceId) || []), ...(materialsBySyllabusItemId.get(goal.syllabusItemId) || []), ...(materialsByParentSyllabusItemId.get(goal.syllabusItemId) || []), ...only(materialsByCombination, combination(goal)), ...materials.filter((material) => dailyPlanRecordsShareSubject(material, goal))]);
+    const legacyMaterials = materials.filter((material) => !recordSyllabusAssociationIds(material).length && dailyPlanRecordsShareSubject(material, descriptor));
+    const linked = new Set([...(materialsByGoalId.get(goal.id) || []), ...(materialsByEstimateSourceId.get(goal.estimateSourceId) || []), ...(materialsBySyllabusItemId.get(goal.syllabusItemId) || []), ...(materialsByParentSyllabusItemId.get(goal.syllabusItemId) || []), ...legacyMaterials]);
     factoryIds.forEach((id) => (materialsByFactoryItemId.get(id) || []).forEach((m) => linked.add(m)));
     const uniqueByIdentity = new Map(); [...linked].forEach((material) => { const key = dailyPlanMaterialIdentity(material); const current = uniqueByIdentity.get(key); if (!current || (Number(material.estimatedMinutes) || 0) > (Number(current.estimatedMinutes) || 0)) uniqueByIdentity.set(key, material); }); const uniqueMaterials = [...uniqueByIdentity.values()];
     const groups = new Map(); uniqueMaterials.forEach((material) => { const key = `${goal.id}|${material.factoryItemId || "manual"}|${material.factoryModuleKey || "material"}`; if (!groups.has(key)) groups.set(key, { key, moduleKey: material.factoryModuleKey || "material", label: material.factoryModuleKey || "MATERIAL", materials: [], subtopic: material.parentSyllabusItemId === goal.syllabusItemId ? material.subject : "" }); groups.get(key).materials.push(material); });
@@ -40684,12 +40757,13 @@ function getDailyGoalMaterialState(goal = {}, projectionEntry = null) {
   return { materials, count: materials.length, hasMaterials: materials.length > 0, estimatedMaterials, estimatedMinutes, hasEstimate: estimatedMinutes > 0 };
 }
 function materialsForFactoryItem(item) { const id = item?.id || item; return (state.materials || []).filter((m) => materialAvailable(m) && m.source === "factory" && m.factoryItemId === id); }
-function materialAssociationIds(material = {}) { return [...new Set([material.syllabusItemId, ...(Array.isArray(material.syllabusItemIds) ? material.syllabusItemIds : []), material.parentSyllabusItemId].filter(Boolean))]; }
+function materialAssociationIds(material = {}) { return [...new Set([material.syllabusItemId, ...(Array.isArray(material.syllabusItemIds) ? material.syllabusItemIds : []), material.parentSyllabusItemId].filter(Boolean).map(String))]; }
 function materialMatchesAssociation(material = {}, { discipline = "", subject = "", syllabusItemId = "", syllabusItemIds = [], factoryItemId = "", goalId = "" } = {}) {
   if (factoryItemId && material.factoryItemId === factoryItemId) return true;
   if (goalId && material.goalId === goalId) return true;
   const requestedIds = [...new Set([syllabusItemId, ...(Array.isArray(syllabusItemIds) ? syllabusItemIds : [])].filter(Boolean))];
   if (requestedIds.some((id) => materialAssociationIds(material).includes(id))) return true;
+  if (requestedIds.length) return false;
   const normalizedDiscipline = dailyPlanCanonical(discipline); const normalizedSubject = dailyPlanCanonical(subject);
   return Boolean(normalizedDiscipline && normalizedSubject && dailyPlanCanonical(material.discipline) === normalizedDiscipline && dailyPlanSubjectsCompatible(material.subject, subject));
 }
@@ -40829,7 +40903,7 @@ function findSyllabusItemByStudy(subjectId, topic) { const discipline = subjectN
 function planningForecastCard(label, value) {
   return `<article class="planning-forecast-card"><span class="planning-forecast-label">${escapeHTML(label)}</span><strong class="planning-forecast-value">${escapeHTML(value)}</strong></article>`;
 }
-function planningGoalDisplayKey(goal) { return canonical(`${goal.date || goal.data}|${goal.discipline || goal.disciplina}|${goal.subject || goal.assunto || goal.baseSubject || ""}`); }
+function planningGoalDisplayKey(goal) { const descriptor = canonicalStudyDescriptor(goal); return canonical(`${goal.date || goal.data}|${descriptor.discipline}|${descriptor.subject}`); }
 function dedupeWeeklyGoalsForDisplay(goals = []) {
   const seen = new Set();
   return goals.filter((goal) => {
@@ -40864,11 +40938,11 @@ function weeklyPlanDays(requested = Number(planningConfig().disciplinesPerDay) |
   });
 }
 function renderWeeklyGoalsPlanDesktop(days) {
-  const rows = days.flatMap((day)=>day.goals.map((goal)=>`<tr><td>${formatDateBR(day.date)}</td><td>${escapeHTML(goal.discipline || goal.disciplina || "-")}</td><td>${escapeHTML(goal.subject || goal.assunto || goal.baseSubject || "Assunto previsto")}</td></tr>`));
+  const rows = days.flatMap((day)=>day.goals.map((goal)=>{ const descriptor = canonicalStudyDescriptor(goal); goal = { ...goal, discipline: descriptor.discipline, subject: descriptor.subject }; return `<tr><td>${formatDateBR(day.date)}</td><td>${escapeHTML(goal.discipline)}</td><td>${escapeHTML(goal.subject)}</td></tr>`; }));
   return `<div class="weekly-plan-desktop"><table><thead><tr><th>Data</th><th>Disciplina</th><th>Assunto</th></tr></thead><tbody>${rows.length ? rows.join("") : `<tr><td colspan="3">Sem metas elegíveis para a semana.</td></tr>`}</tbody></table></div>`;
 }
 function renderWeeklyGoalsPlanMobile(days) {
-  return `<div class="weekly-plan-mobile">${days.map((day)=>`<article class="weekly-plan-day-card"><header><strong>${formatDateBR(day.date)}</strong><span>${day.goals.length} ${day.goals.length === 1 ? "meta" : "metas"} • ${day.saved ? "salvas" : "prévia"}</span></header>${day.goals.length ? `<ul>${day.goals.map((goal)=>`<li><strong>${escapeHTML(goal.discipline || goal.disciplina || "-")}</strong><span>${escapeHTML(goal.subject || goal.assunto || goal.baseSubject || "Assunto previsto")}</span></li>`).join("")}</ul>` : `<p class="empty-message">Sem metas elegíveis para este dia.</p>`}</article>`).join("")}</div>`;
+  return `<div class="weekly-plan-mobile">${days.map((day)=>`<article class="weekly-plan-day-card"><header><strong>${formatDateBR(day.date)}</strong><span>${day.goals.length} ${day.goals.length === 1 ? "meta" : "metas"} • ${day.saved ? "salvas" : "prévia"}</span></header>${day.goals.length ? `<ul>${day.goals.map((goal)=>{ const descriptor = canonicalStudyDescriptor(goal); goal = { ...goal, discipline: descriptor.discipline, subject: descriptor.subject }; return `<li><strong>${escapeHTML(goal.discipline)}</strong><span>${escapeHTML(goal.subject)}</span></li>`; }).join("")}</ul>` : `<p class="empty-message">Sem metas elegíveis para este dia.</p>`}</article>`).join("")}</div>`;
 }
 
 function renderPlanning() {
@@ -40934,7 +41008,7 @@ function renderPlanningPreview(scoreContext = buildPlanningScoreContext()) {
     reserveGeneratedSyllabus(reservedSyllabusIds, studyGoals);
     const disciplineCount = new Set(studyGoals.map((goal) => canonical(goal.discipline || goal.disciplina))).size;
     const warning = targets.topics && (studyGoals.length < targets.topics || disciplineCount < targets.disciplines) ? `<p class="notice">Disponíveis: ${studyGoals.length} de ${targets.topics} assunto(s), em ${disciplineCount} de ${targets.disciplines} disciplina(s).</p>` : "";
-    return `<article class="planning-preview-card"><header class="planning-preview-card-header"><strong>${formatDateBR(date)}</strong><span class="planning-preview-day-type badge">${escapeHTML(DAY_TYPE_LABELS[type])}</span></header><p><strong>Origem:</strong> ${savedGoals.length ? "Metas já salvas" : "Prévia ainda não salva"}</p><p><strong>Modo:</strong> ${escapeHTML(DAY_CONTENT_MODE_LABELS[dayContent.mode])}</p><p><strong>Meta de questões:</strong> ${dayModeIncludesQuestions(dayContent.mode) ? escapeHTML(String(dayContent.questionTarget)) : "Sem meta de questões"}</p><div class="planning-preview-disciplines"><strong>Metas de estudo</strong>${studyGoals.length ? `<ul>${studyGoals.map((goal) => `<li>${escapeHTML(goal.discipline)} — ${escapeHTML(goal.subject || goal.assunto || "Assunto previsto")}</li>`).join("")}</ul>` : `<p>Sem metas automáticas de estudo</p>`}${warning}</div></article>`;
+    return `<article class="planning-preview-card"><header class="planning-preview-card-header"><strong>${formatDateBR(date)}</strong><span class="planning-preview-day-type badge">${escapeHTML(DAY_TYPE_LABELS[type])}</span></header><p><strong>Origem:</strong> ${savedGoals.length ? "Metas já salvas" : "Prévia ainda não salva"}</p><p><strong>Modo:</strong> ${escapeHTML(DAY_CONTENT_MODE_LABELS[dayContent.mode])}</p><p><strong>Meta de questões:</strong> ${dayModeIncludesQuestions(dayContent.mode) ? escapeHTML(String(dayContent.questionTarget)) : "Sem meta de questões"}</p><div class="planning-preview-disciplines"><strong>Metas de estudo</strong>${studyGoals.length ? `<ul>${studyGoals.map((goal) => { const descriptor = canonicalStudyDescriptor(goal); return `<li>${escapeHTML(descriptor.discipline)} — ${escapeHTML(descriptor.subject)}</li>`; }).join("")}</ul>` : `<p>Sem metas automáticas de estudo</p>`}${warning}</div></article>`;
   }).join("");
 }
 
@@ -41270,7 +41344,8 @@ function materialButtonLabel(material) {
   return "Abrir material";
 }
 function goalMaterialsHTML(goal, materialState) {
-  if (!materialState.hasMaterials) return `<div class="linked-materials goal-materials"><strong>📚 MATERIAIS DISPONÍVEIS:</strong><p class="item-meta">Nenhum material vinculado a esta meta.</p><button type="button" data-create-goal-material data-discipline="${escapeHTML(goal.discipline || "")}" data-subject="${escapeHTML(goal.subject || "")}">Cadastrar material</button><a class="button-link" href="#fabrica-resumos" data-view-link="fabrica-resumos">Produzir material</a></div>`;
+  const descriptor = canonicalStudyDescriptor(goal);
+  if (!materialState.hasMaterials) return `<div class="linked-materials goal-materials"><strong>📚 MATERIAIS DISPONÍVEIS:</strong><p class="item-meta">Nenhum material vinculado a esta meta.</p><button type="button" data-create-goal-material data-discipline="${escapeHTML(descriptor.discipline)}" data-subject="${escapeHTML(descriptor.subject)}" data-syllabus-item-id="${escapeHTML(descriptor.syllabusItemId)}">Cadastrar material</button><a class="button-link" href="#fabrica-resumos" data-view-link="fabrica-resumos">Produzir material</a></div>`;
   return `<div class="linked-materials goal-materials"><strong>📚 MATERIAIS DISPONÍVEIS:</strong><div class="card-actions">${materialState.materials.map((material) => `<button type="button" data-open-goal-material="${goal.id}" data-material-id="${material.id}">${escapeHTML(materialButtonLabel(material))}</button>`).join("")}</div></div>`;
 }
 function linkedMaterialsHTML(materials) {
@@ -41300,24 +41375,40 @@ function openGoalMaterial(goalId, materialId = "") {
   return true;
 }
 function openMaterial(id) { const material = state.materials.find((m) => m.id === id); if (!material) return; if (!isValidHttpUrl(material.link)) return alert("Este material não possui link válido com http/https."); window.open(material.link, "_blank", "noopener"); }
-function startMaterialForGoal(discipline, subject) {
+function startMaterialForGoal(discipline, subject, syllabusItemId = "") {
   if (!elements.materialForm) return;
   elements.materialForm.reset();
   elements.materialEditingId.value = "";
   elements.materialDate.value = todayISO();
   elements.materialDiscipline.value = discipline || "";
   elements.materialSubject.value = subject || "";
-  renderMaterialSelectors();
+  renderMaterialSelectors(syllabusItemId);
   showView("materiais");
   elements.materialTitle?.focus();
 }
-function renderMaterialSelectors() {
+function materialSyllabusOptionLabel(item = {}) {
+  return [item.discipline, item.subject, item.topic, item.subtopic, item.reference].filter(Boolean).join(" • ");
+}
+function renderMaterialSelectors(preferredSyllabusItemId = "") {
   if (!elements.materialForm) return;
   const disciplines = getAllDisciplines();
   elements.materialDisciplineOptions.innerHTML = disciplines.map((d) => `<option value="${escapeHTML(d)}"></option>`).join("");
   const selected = elements.materialDiscipline.value;
-  const subjects = state.syllabusItems.filter((i) => !selected || canonical(i.discipline) === canonical(selected)).map((i) => i.subject);
+  const items = state.syllabusItems.filter((i) => !selected || canonical(i.discipline) === canonical(selected));
+  const subjects = items.map((i) => i.subject);
   elements.materialSubjectOptions.innerHTML = [...new Set(subjects.filter(Boolean))].sort().map((a) => `<option value="${escapeHTML(a)}"></option>`).join("");
+  if (elements.materialSyllabusItem) {
+    const current = preferredSyllabusItemId || elements.materialSyllabusItem.value;
+    elements.materialSyllabusItem.innerHTML = '<option value="">Material avulso, sem item do edital</option>' + items.map((item) => `<option value="${escapeHTML(item.id)}">${escapeHTML(materialSyllabusOptionLabel(item))}</option>`).join("");
+    if (items.some((item) => String(item.id) === String(current))) elements.materialSyllabusItem.value = current;
+  }
+}
+function applyMaterialSyllabusSelection() {
+  const item = getSyllabusById(elements.materialSyllabusItem?.value);
+  if (!item) return;
+  elements.materialDiscipline.value = item.discipline || "";
+  elements.materialSubject.value = item.subject || "";
+  renderMaterialSelectors(item.id);
 }
 function renderMaterialFilters() {
   if (!elements.materialFilterDiscipline) return;
@@ -41423,8 +41514,43 @@ function updateStudyMaterialOptions() {
   const mats = resolveAvailableMaterials({ discipline, subject: elements.studyTopic.value.trim(), syllabusItemId: linkedItem?.id || "" });
   elements.studyMaterial.innerHTML = '<option value="">Nenhum material vinculado</option>' + mats.map((m)=>`<option value="${m.id}">${escapeHTML(m.type)} — ${escapeHTML(m.title)}</option>`).join("");
 }
-function editMaterial(id) { const m = state.materials.find((x)=>x.id===id); if (!m) return; elements.materialEditingId.value=m.id; elements.materialTitle.value=m.title; elements.materialDate.value=m.date||todayISO(); elements.materialDiscipline.value=m.discipline; elements.materialSubject.value=m.subject; elements.materialType.value=m.type; elements.materialOrigin.value=m.origin; elements.materialLink.value=m.link; elements.materialTags.value=materialTagsArray(m.tags).join(", "); elements.materialNotes.value=m.notes||""; renderMaterialSelectors(); showView("materiais"); }
-function saveMaterial(event) { event.preventDefault(); if (!elements.materialLink.value.trim()) return alert("Informe o link do material."); if (!isValidHttpUrl(elements.materialLink.value.trim())) return alert("O link do material deve começar com http:// ou https://."); const syllabusItem = state.syllabusItems.find((i)=>canonical(i.discipline)===canonical(elements.materialDiscipline.value) && canonical(i.subject)===canonical(elements.materialSubject.value)); const material = normalizeMaterialEstimateFields({ ...state.materials.find((m)=>m.id===elements.materialEditingId.value), id: elements.materialEditingId.value || createId(), title: elements.materialTitle.value.trim(), discipline: elements.materialDiscipline.value.trim(), subject: elements.materialSubject.value.trim(), syllabusItemId: syllabusItem?.id || "", type: elements.materialType.value, link: elements.materialLink.value.trim(), origin: elements.materialOrigin.value, notes: elements.materialNotes.value.trim(), date: elements.materialDate.value || todayISO(), tags: materialTagsArray(elements.materialTags.value), updatedAt: new Date().toISOString() }); const idx = state.materials.findIndex((m)=>m.id===material.id); if (idx>=0) state.materials[idx]=material; else state.materials.push(material); elements.materialForm.reset(); elements.materialEditingId.value=""; elements.materialDate.value=todayISO(); render(); showView("materiais"); autoSyncAfterSave("material"); }
+function editMaterial(id) { const m = state.materials.find((x)=>x.id===id); if (!m) return; const descriptor = canonicalStudyDescriptor(m); elements.materialEditingId.value=m.id; elements.materialTitle.value=m.title; elements.materialDate.value=m.date||todayISO(); elements.materialDiscipline.value=descriptor.discipline; elements.materialSubject.value=descriptor.subject; elements.materialType.value=m.type; elements.materialOrigin.value=m.origin; elements.materialLink.value=m.link; elements.materialTags.value=materialTagsArray(m.tags).join(", "); elements.materialNotes.value=m.notes||""; renderMaterialSelectors(descriptor.syllabusItemId); showView("materiais"); }
+function saveMaterial(event) {
+  event.preventDefault();
+  if (!elements.materialLink.value.trim()) return alert("Informe o link do material.");
+  if (!isValidHttpUrl(elements.materialLink.value.trim())) return alert("O link do material deve começar com http:// ou https://.");
+  const selectedItemId = elements.materialSyllabusItem?.value || "";
+  let syllabusItem = selectedItemId ? getSyllabusById(selectedItemId) : null;
+  if (selectedItemId && !syllabusItem) return alert("O item selecionado não existe mais no edital. Selecione outro vínculo.");
+  if (!syllabusItem) {
+    const exactMatches = state.syllabusItems.filter((item) => canonical(item.discipline) === canonical(elements.materialDiscipline.value) && canonical(item.subject) === canonical(elements.materialSubject.value));
+    if (exactMatches.length > 1) return alert("Existem vários itens do edital com esta disciplina e assunto. Selecione o vínculo exato antes de salvar.");
+    syllabusItem = exactMatches[0] || null;
+  }
+  const material = normalizeMaterialEstimateFields({
+    ...state.materials.find((m)=>m.id===elements.materialEditingId.value),
+    id: elements.materialEditingId.value || createId(),
+    title: elements.materialTitle.value.trim(),
+    discipline: syllabusItem?.discipline || elements.materialDiscipline.value.trim(),
+    subject: syllabusItem?.subject || elements.materialSubject.value.trim(),
+    syllabusItemId: syllabusItem?.id || "",
+    type: elements.materialType.value,
+    link: elements.materialLink.value.trim(),
+    origin: elements.materialOrigin.value,
+    notes: elements.materialNotes.value.trim(),
+    date: elements.materialDate.value || todayISO(),
+    tags: materialTagsArray(elements.materialTags.value),
+    updatedAt: new Date().toISOString()
+  });
+  const idx = state.materials.findIndex((m)=>m.id===material.id);
+  if (idx>=0) state.materials[idx]=material; else state.materials.push(material);
+  elements.materialForm.reset();
+  elements.materialEditingId.value="";
+  elements.materialDate.value=todayISO();
+  render();
+  showView("materiais");
+  autoSyncAfterSave("material");
+}
 
 let questionBankTraining = null;
 let qbPreviewVisible = false;
@@ -43426,7 +43552,7 @@ function goalCalendarPeriod(date, mode) {
   const planned = goals.reduce((sum, goal) => sum + Number(goal.minutes || 0), 0);
   const actual = goals.reduce((sum, goal) => sum + goalTotalActualMinutes(goal), 0);
   const completed = goals.filter(isGoalDone).length;
-  const disciplines = goals.reduce((map, goal) => (map[goal.discipline] = (map[goal.discipline] || 0) + 1, map), {});
+  const disciplines = goals.reduce((map, goal) => { const name = canonicalStudyDescriptor(goal).discipline; map[name] = (map[name] || 0) + 1; return map; }, {});
   return { mode, start, end, dates, goals, planned, actual, completed, percent: completionRate(goals), disciplines };
 }
 function goalCalendarStatsHTML(period) {
@@ -43459,11 +43585,11 @@ function renderGoalCalendar() {
   const forecastDate = planningMetrics().forecastDate, topicPct = monthlyTarget.topics ? Math.min(100, Math.round(periods.monthly.goals.length / monthlyTarget.topics * 100)) : 0, hourPct = monthlyTarget.hours ? Math.min(100, Math.round(periods.monthly.planned / (monthlyTarget.hours * 60) * 100)) : 0;
   elements.monthlyPlanSummary.innerHTML = `<article class="stat-card"><span>Meta mensal de assuntos</span><strong>${monthlyTarget.topics}</strong></article><article class="stat-card"><span>Assuntos no calendário</span><strong>${periods.monthly.goals.length} • ${topicPct}%</strong></article><article class="stat-card"><span>Meta mensal de horas</span><strong>${monthlyTarget.hours ? `${monthlyTarget.hours}h` : "Não definida"}</strong></article><article class="stat-card"><span>Horas planejadas</span><strong>${formatHours(periods.monthly.planned)}${monthlyTarget.hours ? ` • ${hourPct}%` : ""}</strong></article><article class="stat-card"><span>Previsão de conclusão</span><strong>${forecastDate ? formatDateBR(forecastDate) : "-"}</strong></article>`;
 }
-function goalCalendarMini(g){ return `<p class="goal-pill ${g.status==='Concluída'?'done':g.status==='Adiada'?'warn':''}">${escapeHTML(g.discipline)} — ${escapeHTML(g.subject)}</p>`; }
-function goalCalendarCard(goal){ normalizeGoalTimeFields(goal); return `<article class="syllabus-card goal-status-${canonical(goal.status)}"><header><div><h3>${escapeHTML(goal.discipline)} — ${escapeHTML(goal.subject)}</h3><div class="item-meta">${escapeHTML(goal.type)} • planejado ${goal.minutes||0} min • estudo ${goal.studyActualMinutes||0} min • questões ${goal.questionActualMinutes||0} min • total ${goal.actualMinutes||0} min • status ${escapeHTML(goal.status)}</div></div></header><div class="card-actions"><button data-calendar-action="done" data-id="${goal.id}">Concluir meta</button><button data-calendar-action="postpone" data-id="${goal.id}">Adiar</button><button data-calendar-action="edit" data-id="${goal.id}">Editar</button><button data-calendar-action="study-time" data-id="${goal.id}">Registrar estudo</button><button data-calendar-action="question-time" data-id="${goal.id}">Tempo de questões</button><button data-calendar-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button data-calendar-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button data-register-goal="${goal.id}">Registrar questões</button></div></article>`; }
+function goalCalendarMini(g){ const descriptor = canonicalStudyDescriptor(g); return `<p class="goal-pill ${g.status==='Concluída'?'done':g.status==='Adiada'?'warn':''}">${escapeHTML(descriptor.discipline)} — ${escapeHTML(descriptor.subject)}</p>`; }
+function goalCalendarCard(goal){ normalizeGoalTimeFields(goal); const descriptor = canonicalStudyDescriptor(goal); return `<article class="syllabus-card goal-status-${canonical(goal.status)}"><header><div><h3>${escapeHTML(descriptor.discipline)} — ${escapeHTML(descriptor.subject)}</h3><div class="item-meta">${escapeHTML(goal.type)} • planejado ${goal.minutes||0} min • estudo ${goal.studyActualMinutes||0} min • questões ${goal.questionActualMinutes||0} min • total ${goal.actualMinutes||0} min • status ${escapeHTML(goal.status)}</div></div></header><div class="card-actions"><button data-calendar-action="done" data-id="${goal.id}">Concluir meta</button><button data-calendar-action="postpone" data-id="${goal.id}">Adiar</button><button data-calendar-action="edit" data-id="${goal.id}">Editar</button><button data-calendar-action="study-time" data-id="${goal.id}">Registrar estudo</button><button data-calendar-action="question-time" data-id="${goal.id}">Tempo de questões</button><button data-calendar-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button data-calendar-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button data-register-goal="${goal.id}">Registrar questões</button></div></article>`; }
 
 function buildGoalCalendarExportPayload(date = elements.calendarDate?.value || todayISO()) {
-  const build = (mode) => { const period = goalCalendarPeriod(date, mode); return { ...period, days: period.dates.map((day) => { const goals = state.dailyGoals.filter((goal) => goalDateValue(goal) === day).map((goal) => ({ date: day, discipline: goal.discipline || "Sem disciplina", subject: goal.subject || "Sem assunto", type: goal.type || "Estudo", plannedMinutes: Number(goal.minutes) || 0, actualMinutes: Number(goal.actualMinutes) || 0, status: goal.status || "Pendente", priority: goal.priority || "-" })); const av = availabilityForDate(day); return { date: day, dayType: dayTypeLabel(av), availableHours: Number(av.hours) || 0, goals }; }) }; };
+  const build = (mode) => { const period = goalCalendarPeriod(date, mode); return { ...period, days: period.dates.map((day) => { const goals = state.dailyGoals.filter((goal) => goalDateValue(goal) === day).map((goal) => { const descriptor = canonicalStudyDescriptor(goal); return { date: day, syllabusItemId: descriptor.syllabusItemId, discipline: descriptor.discipline, subject: descriptor.subject, type: goal.type || "Estudo", plannedMinutes: Number(goal.minutes) || 0, actualMinutes: Number(goal.actualMinutes) || 0, status: goal.status || "Pendente", priority: goal.priority || "-" }; }); const av = availabilityForDate(day); return { date: day, dayType: dayTypeLabel(av), availableHours: Number(av.hours) || 0, goals }; }) }; };
   return { generatedAt: new Date().toISOString(), referenceDate: date, daily: build("daily"), weekly: build("weekly"), monthly: build("monthly") };
 }
 function calendarCsvCell(value) { const text = String(value ?? ""); return /[;"\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text; }
@@ -43528,7 +43654,8 @@ function renderCentralGoals() {
   if (!elements.centralGoalsCards && !elements.dashboardGoalsScaleSummary) return;
   const today = todayISO(), av = availabilityForDate(today), ws = weekStart(today), monthStart = `${today.slice(0,7)}-01`, monthDays = new Date(parseDate(today).getFullYear(), parseDate(today).getMonth()+1, 0).getDate();
   const dayGoals = state.dailyGoals.filter((goal) => goalDateValue(goal) === today), dayStats = goalProgressStats(dayGoals, av), week = periodSummary(ws, 7), month = periodSummary(monthStart, monthDays), monthlyTarget = monthlyPlanningTarget(today);
-  const dayDisciplines = new Set(dayGoals.map(g=>g.discipline)).size;
+  const dayDisciplines = new Set(dayGoals.map((goal) => canonicalStudyDescriptor(goal).discipline)).size;
+  globalThis.__crossAreaLinkageReportV173 = buildCrossAreaLinkageReportV173(state);
   if (elements.centralGoalsCards) elements.centralGoalsCards.innerHTML = `
     <article class="goal-central-card"><h3>Hoje</h3><div class="card-meta-grid"><span>Data: ${formatDateBR(today)}</span><span>Tipo: ${escapeHTML(dayTypeLabel(av))}</span><span>Horas previstas: ${formatHours(dayStats.target || av.hours*60)}</span><span>Disciplinas previstas: ${dayDisciplines}</span><span>Assuntos previstos: ${dayGoals.length}</span><span>Pendentes: ${dayStats.pending}</span><span>Concluídas: ${dayStats.completed}</span></div><button data-central-open-day type="button">Abrir Plano do Dia</button></article>
     <article class="goal-central-card"><h3>Esta semana</h3><div class="card-meta-grid"><span>Semana: ${formatDateBR(ws)} a ${formatDateBR(addDays(ws,6))}</span><span>Horas previstas: ${formatHours(week.planned)}</span><span>Horas já cumpridas: ${formatHours(week.done)}</span><span>Assuntos: ${week.subjects} de ${Number(planningConfig().topicsPerWeek) || 0}</span><span>Assuntos concluídos: ${week.completed}</span><span>Disciplinas: ${week.disciplines} de ${Number(planningConfig().disciplinesPerWeek) || 0}</span><span>Percentual: ${week.percent}%</span></div><button data-central-week type="button">Completar metas da semana</button></article>
@@ -43553,8 +43680,8 @@ function centralTimeLogEdital(log = {}) {
 }
 function centralTimeChartLogs() {
   const subjectById = new Map((state.subjects || []).map((subject) => [subject.id, subject.name]));
-  const studies = (state.studies || []).map((study) => ({ id: study.id, date: study.date, discipline: study.discipline || subjectById.get(study.subjectId) || "Sem disciplina", subject: study.topic || study.subject || "Sem assunto", syllabusItemId: study.syllabusItemId || "", minutes: Number(study.minutes) || 0, type: study.timerKind === "questions" ? "Questões" : studyOriginLabel(study) }));
-  const goals = (state.dailyGoals || []).map((goal) => ({ id: `goal-${goal.id}`, date: goalDateValue(goal), discipline: goal.discipline || goal.disciplina || "Sem disciplina", subject: goal.subject || goal.assunto || "Sem assunto", syllabusItemId: goal.syllabusItemId || "", minutes: goalUnloggedActualMinutes(goal), type: goal.type || goal.tipo || "Meta" })).filter((goal) => goal.minutes > 0);
+  const studies = (state.studies || []).map((study) => { const descriptor = canonicalStudyDescriptor({ ...study, subject: study.topic || study.subject || "Sem assunto", discipline: study.discipline || subjectById.get(study.subjectId) || "Sem disciplina" }); return { id: study.id, date: study.date, discipline: descriptor.discipline, subject: descriptor.subject, syllabusItemId: descriptor.syllabusItemId, minutes: Number(study.minutes) || 0, type: study.timerKind === "questions" ? "Questões" : studyOriginLabel(study) }; });
+  const goals = (state.dailyGoals || []).map((goal) => { const descriptor = canonicalStudyDescriptor(goal); return { id: `goal-${goal.id}`, date: goalDateValue(goal), discipline: descriptor.discipline, subject: descriptor.subject, syllabusItemId: descriptor.syllabusItemId, minutes: goalUnloggedActualMinutes(goal), type: goal.type || goal.tipo || "Meta" }; }).filter((goal) => goal.minutes > 0);
   const questions = (state.questionLogs || []).filter((log) => Number(log.minutes) > 0).map((log) => ({ id: `questions-${log.id || createId()}`, date: log.date || log.data, discipline: log.discipline || "Sem disciplina", subject: log.subject || "Sem assunto", syllabusItemId: log.syllabusItemId || "", minutes: Number(log.minutes) || 0, type: log.trainingType || "Questões" }));
   return [...studies, ...goals, ...questions].filter((log) => log.date && log.minutes > 0).map((log) => ({ ...log, edital: centralTimeLogEdital(log) }));
 }
@@ -43609,7 +43736,8 @@ function dailyGoalFactoryStage(goal = {}) {
   return factoryItem ? factoryCurrentStage(factoryItem) : "Criar tema na Fábrica";
 }
 function dailyGoalProductionCard(goal, number = 1) {
-  return `<article class="syllabus-card daily-goal-card"><header><div><span class="goal-number">Produção ${number}</span><h3>${escapeHTML(goal.discipline)}</h3><div class="goal-subject">${escapeHTML(goal.subject)}</div><div class="item-meta">Recorte: ${escapeHTML(factoryGoalSubtopic(goal) || goal.topic || "Meta do dia")}</div></div><span class="badge warn">${escapeHTML(dailyGoalFactoryStage(goal))}</span></header><div class="card-meta-grid"><span>Disciplina: ${escapeHTML(goal.discipline)}</span><span>Assunto: ${escapeHTML(goal.subject)}</span><span>Recorte: ${escapeHTML(factoryGoalSubtopic(goal) || "-")}</span><span>Etapa atual da Fábrica: ${escapeHTML(dailyGoalFactoryStage(goal))}</span></div><div class="card-actions"><a class="button-link" href="#fabrica-resumos" data-view-link="fabrica-resumos">Ir para a Fábrica</a></div></article>`;
+  const descriptor = canonicalStudyDescriptor(goal);
+  return `<article class="syllabus-card daily-goal-card"><header><div><span class="goal-number">Produção ${number}</span><h3>${escapeHTML(descriptor.discipline)}</h3><div class="goal-subject">${escapeHTML(descriptor.subject)}</div><div class="item-meta">Recorte: ${escapeHTML(factoryGoalSubtopic(goal) || descriptor.topic || "Meta do dia")}</div></div><span class="badge warn">${escapeHTML(dailyGoalFactoryStage(goal))}</span></header><div class="card-meta-grid"><span>Disciplina: ${escapeHTML(descriptor.discipline)}</span><span>Assunto: ${escapeHTML(descriptor.subject)}</span><span>Recorte: ${escapeHTML(factoryGoalSubtopic(goal) || "-")}</span><span>Etapa atual da Fábrica: ${escapeHTML(dailyGoalFactoryStage(goal))}</span></div><div class="card-actions"><a class="button-link" href="#fabrica-resumos" data-view-link="fabrica-resumos">Ir para a Fábrica</a></div></article>`;
 }
 
 function dailyPlanStorageKey(kind, date) { return `dailyPlan:${kind}:${date || elements.goalDate?.value || todayISO()}`; }
@@ -43716,18 +43844,20 @@ function goalMaterialsDetailsHTML(goal, entry, materialState = getDailyGoalMater
 }
 function dailyGoalDetailsBodyHTML(goal, projectionEntry = null) {
   const status = goal.status || "Pendente";
+  const descriptor = canonicalStudyDescriptor(goal);
   const history = (goal.history || goal.historico || []).slice(-3).map((entry) => `<li>${escapeHTML(typeof entry === "string" ? entry : entry.message || entry.text || JSON.stringify(entry))}</li>`).join("");
   const materialState = getDailyGoalMaterialState(goal, projectionEntry);
-  return `<div class="daily-goal-content">${goalExecutionSummaryHTML(goal, projectionEntry, materialState)}<div class="card-meta-grid"><span>Disciplina: ${escapeHTML(goal.discipline)}</span><span>Assunto: ${escapeHTML(goal.subject)}</span><span>Tipo: ${escapeHTML(goal.type || goal.tipo || "-")}</span><span>Prioridade: ${escapeHTML(goal.priority || goal.prioridade || "-")}</span><span>Planejado nesta meta: ${Number(goal.minutes||0)} min</span><span>Estudo nesta meta: ${Number(goal.studyActualMinutes||0)} min</span><span>Questões nesta meta: ${Number(goal.questionActualMinutes||0)} min</span><span>Total nesta meta: ${Number(goal.actualMinutes||0)} min</span><span>Status: ${escapeHTML(status)}</span><span>Referência: ${escapeHTML(goal.referencia_edital || getSyllabusById(goal.syllabusItemId)?.reference || "-")}</span></div><div class="progress"><span style="width:${Math.min(100, Math.round((goalTotalActualMinutes(goal) / Math.max(1, Number(goal.minutes)||1)) * 100))}%"></span></div>${dailyGoalMaterialAvailabilityHTML(materialState)}${goalMaterialEstimateHTML(goal, projectionEntry, materialState)}${goalTimeComparisonHTML(goal, projectionEntry, materialState)}${goalMaterialsDetailsHTML(goal, projectionEntry, materialState)}<p class="notice" data-goal-material-notice="${goal.id}" ${goalMaterialNotices.has(goal.id) ? "" : "hidden"}>${escapeHTML(goalMaterialNotices.get(goal.id) || "")}</p><details class="daily-goal-history"><summary>Histórico resumido</summary><ul>${history || "<li>Sem histórico registrado.</li>"}</ul></details><div class="card-actions">${materialState.hasMaterials ? `<button type="button" data-open-goal-material="${goal.id}">Abrir material</button>` : `<button type="button" data-create-goal-material data-discipline="${escapeHTML(goal.discipline || "")}" data-subject="${escapeHTML(goal.subject || "")}">Cadastrar material</button><a class="button-link" href="#fabrica-resumos" data-view-link="fabrica-resumos">Produzir material</a>`}<button type="button" data-goal-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button type="button" data-goal-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button type="button" data-goal-action="Concluída" data-id="${goal.id}">Concluir meta</button></div><details class="daily-goal-more-actions"><summary>Mais ações</summary><div class="card-actions"><button type="button" data-goal-action="Estudo" data-id="${goal.id}">Registrar estudo manualmente</button><button type="button" data-goal-action="QuestoesTempo" data-id="${goal.id}">Registrar tempo de questões</button><button type="button" data-register-goal="${goal.id}">Registrar questões</button><button type="button" data-goal-history="${goal.id}">Ver histórico</button><button type="button" data-goal-action="Adiada" data-id="${goal.id}">Reagendar ou adiar</button><button type="button" data-goal-action="Não cumprida" data-id="${goal.id}">Não cumprir</button></div></details></div>`;
+  return `<div class="daily-goal-content">${goalExecutionSummaryHTML(goal, projectionEntry, materialState)}<div class="card-meta-grid"><span>Disciplina: ${escapeHTML(descriptor.discipline)}</span><span>Assunto: ${escapeHTML(descriptor.subject)}</span><span>Tipo: ${escapeHTML(goal.type || goal.tipo || "-")}</span><span>Prioridade: ${escapeHTML(goal.priority || goal.prioridade || "-")}</span><span>Planejado nesta meta: ${Number(goal.minutes||0)} min</span><span>Estudo nesta meta: ${Number(goal.studyActualMinutes||0)} min</span><span>Questões nesta meta: ${Number(goal.questionActualMinutes||0)} min</span><span>Total nesta meta: ${Number(goal.actualMinutes||0)} min</span><span>Status: ${escapeHTML(status)}</span><span>Referência: ${escapeHTML(descriptor.reference || "-")}</span></div><div class="progress"><span style="width:${Math.min(100, Math.round((goalTotalActualMinutes(goal) / Math.max(1, Number(goal.minutes)||1)) * 100))}%"></span></div>${dailyGoalMaterialAvailabilityHTML(materialState)}${goalMaterialEstimateHTML(goal, projectionEntry, materialState)}${goalTimeComparisonHTML(goal, projectionEntry, materialState)}${goalMaterialsDetailsHTML(goal, projectionEntry, materialState)}<p class="notice" data-goal-material-notice="${goal.id}" ${goalMaterialNotices.has(goal.id) ? "" : "hidden"}>${escapeHTML(goalMaterialNotices.get(goal.id) || "")}</p><details class="daily-goal-history"><summary>Histórico resumido</summary><ul>${history || "<li>Sem histórico registrado.</li>"}</ul></details><div class="card-actions">${materialState.hasMaterials ? `<button type="button" data-open-goal-material="${goal.id}">Abrir material</button>` : `<button type="button" data-create-goal-material data-discipline="${escapeHTML(descriptor.discipline)}" data-subject="${escapeHTML(descriptor.subject)}" data-syllabus-item-id="${escapeHTML(descriptor.syllabusItemId)}">Cadastrar material</button><a class="button-link" href="#fabrica-resumos" data-view-link="fabrica-resumos">Produzir material</a>`}<button type="button" data-goal-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button type="button" data-goal-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button type="button" data-goal-action="Concluída" data-id="${goal.id}">Concluir meta</button></div><details class="daily-goal-more-actions"><summary>Mais ações</summary><div class="card-actions"><button type="button" data-goal-action="Estudo" data-id="${goal.id}">Registrar estudo manualmente</button><button type="button" data-goal-action="QuestoesTempo" data-id="${goal.id}">Registrar tempo de questões</button><button type="button" data-register-goal="${goal.id}">Registrar questões</button><button type="button" data-goal-history="${goal.id}">Ver histórico</button><button type="button" data-goal-action="Adiada" data-id="${goal.id}">Reagendar ou adiar</button><button type="button" data-goal-action="Não cumprida" data-id="${goal.id}">Não cumprir</button></div></details></div>`;
 }
 function dailyGoalDetailsCard(goal, number = 1, projectionEntry = null) {
   normalizeGoalTimeFields(goal);
+  const descriptor = canonicalStudyDescriptor(goal);
   const remembered = rememberedDailyPlanGoal(goalDateValue(goal)) === goal.id;
   const inProgress = !isGoalDone(goal) && (goal.status === "Em andamento" || goalTotalActualMinutes(goal) > 0);
   const hydrated = remembered || inProgress;
   const status = goal.status || "Pendente";
   const resume = `${goal.actualMinutes || 0} de ${Number(goal.minutes || 0)} min • ${status}`;
-  return `<details class="daily-goal-section goal-status-${canonical(status)}" data-daily-goal-details="${goal.id}" data-daily-goal-hydrated="${hydrated}"${hydrated ? " open" : ""}><summary class="daily-goal-summary"><span><strong>${escapeHTML(goal.discipline)}</strong><span>${escapeHTML(goal.subject)}</span></span><span>${escapeHTML(resume)}</span></summary><div data-daily-goal-body="${goal.id}">${hydrated ? dailyGoalDetailsBodyHTML(goal, projectionEntry) : '<div class="daily-goal-content daily-goal-placeholder"><p class="item-meta">Abra esta meta para carregar os detalhes e ações.</p></div>'}</div></details>`;
+  return `<details class="daily-goal-section goal-status-${canonical(status)}" data-daily-goal-details="${goal.id}" data-daily-goal-hydrated="${hydrated}"${hydrated ? " open" : ""}><summary class="daily-goal-summary"><span><strong>${escapeHTML(descriptor.discipline)}</strong><span>${escapeHTML(descriptor.subject)}</span></span><span>${escapeHTML(resume)}</span></summary><div data-daily-goal-body="${goal.id}">${hydrated ? dailyGoalDetailsBodyHTML(goal, projectionEntry) : '<div class="daily-goal-content daily-goal-placeholder"><p class="item-meta">Abra esta meta para carregar os detalhes e ações.</p></div>'}</div></details>`;
 }
 function ensureDailyGoalEditAction(container, goalId) {
   if (!container || !goalId || container.querySelector(`[data-edit-goal="${goalId}"]`)) return;
@@ -43772,7 +43902,7 @@ function renderDailyGoals() {
   const reviewSection = `<details ${dailyPlanSectionAttrs("review", rememberedDailyPlanSection(date) === "review").replace("daily-plan-section", "daily-plan-section daily-review-section")}><summary class="daily-plan-summary"><span class="daily-plan-heading"><strong class="daily-plan-title">Revisão do dia</strong><span class="daily-plan-resume">${reviewCount} itens sugeridos</span></span></summary><div class="daily-plan-content"><div id="dailyPlanReviewMount"></div><p class="item-meta">Revisão inteligente, revisões pendentes, conteúdos para reforçar e caderno de erros relacionado seguem a lógica existente.</p></div></details>`;
   const pending = dayGoals.filter((g) => ["Não cumprida", "Adiada", "Reagendada"].includes(g.status || ""));
   const history = dayGoals.filter((g) => (g.history || g.historico || []).length);
-  const pendingSection = (pending.length || history.length) ? `<details ${dailyPlanSectionAttrs("history", rememberedDailyPlanSection(date) === "history")}><summary class="daily-plan-summary"><span class="daily-plan-heading"><strong class="daily-plan-title">Pendências e histórico</strong><span class="daily-plan-resume">${pending.length + history.length} registros</span></span></summary><div class="daily-plan-content">${pending.map((g)=>`<p class="item-meta">${escapeHTML(g.status)}: ${escapeHTML(g.discipline)} — ${escapeHTML(g.subject)}</p>`).join("")}${history.map((g)=>`<p class="item-meta">Histórico: ${escapeHTML(g.discipline)} — ${escapeHTML(g.subject)}</p>`).join("")}</div></details>` : "";
+  const pendingSection = (pending.length || history.length) ? `<details ${dailyPlanSectionAttrs("history", rememberedDailyPlanSection(date) === "history")}><summary class="daily-plan-summary"><span class="daily-plan-heading"><strong class="daily-plan-title">Pendências e histórico</strong><span class="daily-plan-resume">${pending.length + history.length} registros</span></span></summary><div class="daily-plan-content">${pending.map((g)=>{ const descriptor = canonicalStudyDescriptor(g); return `<p class="item-meta">${escapeHTML(g.status)}: ${escapeHTML(descriptor.discipline)} — ${escapeHTML(descriptor.subject)}</p>`; }).join("")}${history.map((g)=>{ const descriptor = canonicalStudyDescriptor(g); return `<p class="item-meta">Histórico: ${escapeHTML(descriptor.discipline)} — ${escapeHTML(descriptor.subject)}</p>`; }).join("")}</div></details>` : "";
   elements.dailyGoalsList.innerHTML = notices.join("") + questionsSection + goalsSection + reviewSection + pendingSection;
   elements.dailyGoalsList.querySelectorAll('[data-daily-goal-details][data-daily-goal-hydrated="true"]').forEach((details) => ensureDailyGoalEditAction(details, details.dataset.dailyGoalDetails));
 }
@@ -43781,9 +43911,10 @@ function renderNextDailyGoal(dayGoals, projectionByGoalId = new Map()) {
   dayGoals.forEach(normalizeGoalTimeFields);
   const next = dayGoals.find((g)=>!isGoalDone(g) && !["Não cumprida", "Ignorada", "Adiada", "Reagendada"].includes(g.status || ""));
   if (!next) { elements.nextDailyGoal.innerHTML = `<details ${dailyPlanSectionAttrs("next", true)}>${dailyPlanSummaryHTML("Próxima atividade", "Todas concluídas")}<div class="daily-plan-content"><p>Todas as metas do dia foram concluídas.</p></div></details>`; return; }
+  const descriptor = canonicalStudyDescriptor(next);
   const materialState = getDailyGoalMaterialState(next, projectionByGoalId.get(next.id));
-  const materialActions = materialState.hasMaterials ? `<button type="button" data-open-goal-material="${next.id}">Abrir material</button>` : `<button type="button" data-create-goal-material data-discipline="${escapeHTML(next.discipline || "")}" data-subject="${escapeHTML(next.subject || "")}">Cadastrar material</button><a class="button-link" href="#fabrica-resumos" data-view-link="fabrica-resumos">Produzir material</a>`;
-  elements.nextDailyGoal.innerHTML = `<details ${dailyPlanSectionAttrs("next", true)}>${dailyPlanSummaryHTML("Próxima atividade", `${next.discipline} • ${next.subject}`)}<div class="daily-plan-content"><strong>${escapeHTML(next.discipline)}</strong><p>${escapeHTML(next.subject)}</p>${goalExecutionSummaryHTML(next, projectionByGoalId.get(next.id), materialState)}<div class="card-meta-grid"><span>Planejado nesta meta: ${Number(next.minutes||0)} min</span>${nextGoalEstimateHTML(next, projectionByGoalId.get(next.id), materialState)}<span>Prioridade: ${escapeHTML(next.priority || next.prioridade || "-")}</span></div><p class="notice" data-goal-material-notice="${next.id}" ${goalMaterialNotices.has(next.id) ? "" : "hidden"}>${escapeHTML(goalMaterialNotices.get(next.id) || "")}</p><div class="card-actions">${materialActions}<button type="button" data-goal-timer="study" data-id="${next.id}">Iniciar cronômetro</button><button type="button" data-goal-action="Estudo" data-id="${next.id}">Registrar estudo</button><button type="button" data-goal-action="Concluída" data-id="${next.id}">Concluir meta</button></div></div></details>`;
+  const materialActions = materialState.hasMaterials ? `<button type="button" data-open-goal-material="${next.id}">Abrir material</button>` : `<button type="button" data-create-goal-material data-discipline="${escapeHTML(descriptor.discipline)}" data-subject="${escapeHTML(descriptor.subject)}" data-syllabus-item-id="${escapeHTML(descriptor.syllabusItemId)}">Cadastrar material</button><a class="button-link" href="#fabrica-resumos" data-view-link="fabrica-resumos">Produzir material</a>`;
+  elements.nextDailyGoal.innerHTML = `<details ${dailyPlanSectionAttrs("next", true)}>${dailyPlanSummaryHTML("Próxima atividade", `${descriptor.discipline} • ${descriptor.subject}`)}<div class="daily-plan-content"><strong>${escapeHTML(descriptor.discipline)}</strong><p>${escapeHTML(descriptor.subject)}</p>${goalExecutionSummaryHTML(next, projectionByGoalId.get(next.id), materialState)}<div class="card-meta-grid"><span>Planejado nesta meta: ${Number(next.minutes||0)} min</span>${nextGoalEstimateHTML(next, projectionByGoalId.get(next.id), materialState)}<span>Prioridade: ${escapeHTML(next.priority || next.prioridade || "-")}</span></div><p class="notice" data-goal-material-notice="${next.id}" ${goalMaterialNotices.has(next.id) ? "" : "hidden"}>${escapeHTML(goalMaterialNotices.get(next.id) || "")}</p><div class="card-actions">${materialActions}<button type="button" data-goal-timer="study" data-id="${next.id}">Iniciar cronômetro</button><button type="button" data-goal-action="Estudo" data-id="${next.id}">Registrar estudo</button><button type="button" data-goal-action="Concluída" data-id="${next.id}">Concluir meta</button></div></div></details>`;
   ensureDailyGoalEditAction(elements.nextDailyGoal, next.id);
 }
 function dailyGoalCard(goal, number = 1) { return dailyGoalDetailsCard(goal, number); }
@@ -44360,7 +44491,8 @@ elements.qbExportResults?.addEventListener("click", () => qbDownload("metas-estu
 elements.qbClearBank?.addEventListener("click", () => { if(!confirm("Apagar banco de questões e treinos locais?")) return; state.questionBank=[]; state.questionBankSessions=[]; saveData(); renderQuestionBank(); qbPreviewVisible=false; if (elements.qbPreviewSection) elements.qbPreviewSection.hidden = true; elements.qbFilteredPreview.innerHTML="Clique em “Pré-visualizar” para listar as questões encontradas."; elements.qbTrainingPanel.hidden=true; elements.qbResultPanel.hidden=true; elements.qbMessage.textContent="Banco local limpo."; });
 
 if (elements.materialForm) elements.materialForm.addEventListener("submit", saveMaterial);
-elements.materialDiscipline?.addEventListener("input", renderMaterialSelectors);
+elements.materialDiscipline?.addEventListener("input", () => renderMaterialSelectors());
+elements.materialSyllabusItem?.addEventListener("change", applyMaterialSyllabusSelection);
 elements.studySubject?.addEventListener("change", updateStudyMaterialOptions);
 elements.studyTopic?.addEventListener("input", updateStudyMaterialOptions);
 function showFactoryEventError(action, error) {
@@ -44471,7 +44603,7 @@ initFactoryEvents();
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin].filter(Boolean).forEach((filter) => filter.addEventListener("change", renderMaterials));
 document.addEventListener("change", (event) => { const mode = event.target.closest?.('[data-material-estimate-field="estimateMode"]'); if (mode) updateMaterialEstimateModeUI(mode.closest(".material-estimate-box")); });
 document.addEventListener("click", (event) => { const button = event.target.closest?.("button[data-open-material-estimate]"); if (button) { event.preventDefault(); openMaterialEstimateInPlanning(button.dataset.openMaterialEstimate); } });
-document.addEventListener("click", (event) => { const openUrl = event.target.closest("button[data-open-url]"); if (openUrl && isValidHttpUrl(openUrl.dataset.openUrl)) window.open(openUrl.dataset.openUrl, "_blank", "noopener"); const open = event.target.closest("button[data-open-material]"); const create = event.target.closest("button[data-create-goal-material]"); const edit = event.target.closest("button[data-edit-material]"); const del = event.target.closest("button[data-delete-material]"); const use = event.target.closest("button[data-use-material-study]"); const calcEstimate = event.target.closest("button[data-calculate-material-estimate]"); const saveEstimate = event.target.closest("button[data-save-material-estimate]"); const updateMaterialGoals = event.target.closest("button[data-update-material-goals]"); if (updateMaterialGoals) { event.preventDefault(); updateFuturePendingGoalsForMaterial(updateMaterialGoals.dataset.updateMaterialGoals); } if (calcEstimate) { event.preventDefault(); previewMaterialEstimate(calcEstimate); } if (saveEstimate) { event.preventDefault(); saveMaterialEstimate(saveEstimate); } if (open) openMaterial(open.dataset.openMaterial); if (use) { const material = state.materials.find((m) => m.id === use.dataset.useMaterialStudy); if (material) { showView("dashboard"); const subject = state.subjects.find((item) => canonical(item.name) === canonical(material.discipline)); if (subject) elements.studySubject.value = subject.id; elements.studyTopic.value = material.subject || ""; updateStudyMaterialOptions(); if (elements.studyMaterial) elements.studyMaterial.value = material.id; } } if (create) startMaterialForGoal(create.dataset.discipline, create.dataset.subject); if (edit) editMaterial(edit.dataset.editMaterial); if (del && confirm("Excluir este material?")) { state.materials = state.materials.filter((m)=>m.id!==del.dataset.deleteMaterial); render(); } });
+document.addEventListener("click", (event) => { const openUrl = event.target.closest("button[data-open-url]"); if (openUrl && isValidHttpUrl(openUrl.dataset.openUrl)) window.open(openUrl.dataset.openUrl, "_blank", "noopener"); const open = event.target.closest("button[data-open-material]"); const create = event.target.closest("button[data-create-goal-material]"); const edit = event.target.closest("button[data-edit-material]"); const del = event.target.closest("button[data-delete-material]"); const use = event.target.closest("button[data-use-material-study]"); const calcEstimate = event.target.closest("button[data-calculate-material-estimate]"); const saveEstimate = event.target.closest("button[data-save-material-estimate]"); const updateMaterialGoals = event.target.closest("button[data-update-material-goals]"); if (updateMaterialGoals) { event.preventDefault(); updateFuturePendingGoalsForMaterial(updateMaterialGoals.dataset.updateMaterialGoals); } if (calcEstimate) { event.preventDefault(); previewMaterialEstimate(calcEstimate); } if (saveEstimate) { event.preventDefault(); saveMaterialEstimate(saveEstimate); } if (open) openMaterial(open.dataset.openMaterial); if (use) { const material = state.materials.find((m) => m.id === use.dataset.useMaterialStudy); if (material) { showView("dashboard"); const subject = state.subjects.find((item) => canonical(item.name) === canonical(material.discipline)); if (subject) elements.studySubject.value = subject.id; elements.studyTopic.value = material.subject || ""; updateStudyMaterialOptions(); if (elements.studyMaterial) elements.studyMaterial.value = material.id; } } if (create) startMaterialForGoal(create.dataset.discipline, create.dataset.subject, create.dataset.syllabusItemId); if (edit) editMaterial(edit.dataset.editMaterial); if (del && confirm("Excluir este material?")) { state.materials = state.materials.filter((m)=>m.id!==del.dataset.deleteMaterial); render(); } });
 
 const startupMetricsV169 = globalThis.__aldusStartupMetricsV169 ||= {
   startedAtMs: Number(performance.now().toFixed(1)),
@@ -49105,7 +49237,7 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
 (() => {
   "use strict";
 
-  const PATCH_VERSION = "20260728-cronometro-imediato-v169";
+  const PATCH_VERSION = "20260729-vinculos-integrados-v169";
   const CHECK_INTERVAL_MS = 15 * 60 * 1000;
   const BANNER_ID = "aldusUpdateBannerV169";
   const DIRTY_ATTRIBUTE = "data-aldus-user-edited-v169";
