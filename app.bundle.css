@@ -625,6 +625,10 @@ tbody tr.goal-hit { background: rgba(22, 163, 74, .08); }
   }
 }
 
+html[data-aldus-theme="premium-stable"] {
+  scrollbar-gutter: stable;
+}
+
 @media (max-width: 620px) {
   .hero h1 { font-size: clamp(2rem, 12vw, 3.15rem); }
   .dashboard, .panel { padding: 18px; }
