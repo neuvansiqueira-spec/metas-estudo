@@ -81,6 +81,7 @@ const cssSources = [
   "aldus-goal-integrity-v75.css",
   "aldus-completed-visibility-v76.css",
   "aldus-question-register-v180.css",
+  "question-bank-pdf-import-v181.css",
   "factory-visibility-v122.css",
   "aldus-desktop-refinement-v178.css"
 ];
@@ -99,6 +100,7 @@ const jsSources = [
   "sync-integral-time-protection.js",
   "pcpr-pcma-2026-catalog.js",
   "pcpr-pcma-2026-migration.js",
+  "qconcursos-pdf-import-v181.js",
   "script.js",
   "question-accuracy-spectrum.js",
   "timer-material-link-fix.js",
@@ -145,6 +147,19 @@ function bundle(sources, output) {
 bundle(cssSources, "app.bundle.css");
 bundle(jsSources, "app.bundle.js");
 
+const vendorDir = path.join(root, "vendor");
+const docsVendorDir = path.join(root, "docs", "vendor");
+fs.mkdirSync(vendorDir, { recursive: true });
+fs.mkdirSync(docsVendorDir, { recursive: true });
+for (const [source, target] of [
+  [path.join(root, "node_modules", "pdfjs-dist", "build", "pdf.mjs"), "pdf.mjs"],
+  [path.join(root, "node_modules", "pdfjs-dist", "build", "pdf.worker.mjs"), "pdf.worker.mjs"],
+  [path.join(root, "node_modules", "pdfjs-dist", "LICENSE"), "pdfjs-LICENSE.txt"]
+]) {
+  fs.copyFileSync(source, path.join(vendorDir, target));
+  fs.copyFileSync(source, path.join(docsVendorDir, target));
+}
+
 for (const extension of ["css", "js"]) {
   const source = path.join(root, `app.bundle.${extension}`);
   const versionedName = `app-${releaseSuffix}.${extension}`;
@@ -186,7 +201,8 @@ for (const filename of [
   "question-board-result-v141.js", "question-scoring-rule-v142.js",
   "question-register-simple-v162.js", "factory-simple-v163.js",
   "factory-polish-v164.js", "aldus-desktop-refinement-v178.css",
-  "aldus-question-register-v180.css"
+  "aldus-question-register-v180.css", "qconcursos-pdf-import-v181.js",
+  "question-bank-pdf-import-v181.css"
 ]) {
   fs.copyFileSync(path.join(root, filename), path.join(root, "docs", filename));
 }
