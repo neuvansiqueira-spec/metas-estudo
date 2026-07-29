@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260728-persistencia-responsiva-v169";
+  const VERSION = "20260728-cronometro-imediato-v169";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -36137,10 +36137,13 @@ const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";
 const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";
 const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";
 const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";
+const TIMER_SESSION_SAFETY_STORAGE_KEY = "metasEstudoTimerSessionSafety";
 const APP_VERSION = globalThis.__ALDUS_APP_RELEASE__?.version;
 if (!APP_VERSION) throw new Error("[Aldus Meta] Fonte canônica de versão não carregada.");
 const AUTO_SYNC_DEBOUNCE_MS = 4000;
 const LOCAL_STORAGE_SAFE_STATE_BYTES = 4 * 1024 * 1024;
+const VIEW_RENDER_CACHE_TTL_MS_V172 = 60 * 1000;
+let viewDataRevisionV172 = 0;
 const QB_RENDER_LIMIT = 20;
 const ENABLE_FACTORY = true;
 const FACTORY_UI_COMPAT_LABELS = "RESUMOS A PRODUZIR HOJE | A PRODUZIR | EM PRODUÇÃO | CONCLUÍDOS | MATERIAIS JÁ PRONTOS PARA ESTUDAR | Pasta de destino do Word/PDF:";
@@ -37741,14 +37744,68 @@ ${timerAudioUserMessage}` : alertMessage);
   elements.timerSettings?.querySelectorAll("input[data-timer-pref]").forEach((input) => { input.checked = Boolean(state.settings?.timerPreferences?.[input.dataset.timerPref]); });
   elements.timerSettings?.querySelectorAll("select[data-timer-pref]").forEach((select) => { select.value = state.settings?.timerPreferences?.[select.dataset.timerPref] || "medium"; });
 }
-function persistFloatingTimerSession() {
-  if (!floatingTimer.goalId) { state.timerSession = null; saveData(); return; }
-  state.timerSession = { ...floatingTimer, elapsedSeconds: currentTimerSeconds(), startedAt: floatingTimer.paused ? null : Date.now(), intervalId: null };
-  saveData();
+let floatingTimerPersistenceToken = 0;
+function floatingTimerSessionSnapshot() {
+  const snapshotAt = Date.now();
+  if (!floatingTimer.goalId) return { closed: true, snapshotAt };
+  return {
+    ...floatingTimer,
+    elapsedSeconds: currentTimerSeconds(),
+    startedAt: floatingTimer.paused ? null : snapshotAt,
+    intervalId: null,
+    snapshotAt
+  };
+}
+function readFloatingTimerSafetySnapshot() {
+  try {
+    const snapshot = JSON.parse(localStorage.getItem(TIMER_SESSION_SAFETY_STORAGE_KEY) || "null");
+    return snapshot && typeof snapshot === "object" ? snapshot : null;
+  } catch (error) {
+    console.warn("[Cronômetro] Snapshot local de segurança inválido; o estado principal será preservado.", error);
+    return null;
+  }
+}
+function writeFloatingTimerSafetySnapshot(snapshot) {
+  try {
+    localStorage.setItem(TIMER_SESSION_SAFETY_STORAGE_KEY, JSON.stringify(snapshot));
+    return true;
+  } catch (error) {
+    console.warn("[Cronômetro] Não foi possível atualizar o snapshot local de segurança.", error);
+    return false;
+  }
+}
+function persistFloatingTimerSession(options = {}) {
+  const snapshot = floatingTimerSessionSnapshot();
+  state.timerSession = snapshot.closed ? null : snapshot;
+  writeFloatingTimerSafetySnapshot(snapshot);
+  if (!options.storageOnly) saveData({ skipDerivedRefresh: true });
+  return snapshot;
+}
+function scheduleFloatingTimerSessionPersistenceAfterPaint() {
+  const token = ++floatingTimerPersistenceToken;
+  persistFloatingTimerSession({ storageOnly: true });
+  const persistAfterPaint = () => {
+    if (token !== floatingTimerPersistenceToken) return;
+    persistFloatingTimerSession();
+  };
+  if (typeof requestAnimationFrame === "function") {
+    requestAnimationFrame(() => setTimeout(persistAfterPaint, 0));
+  } else {
+    setTimeout(persistAfterPaint, 0);
+  }
 }
 function restoreFloatingTimerSession() {
-  const saved = state.timerSession;
+  const mainSnapshot = state.timerSession;
+  const safetySnapshot = readFloatingTimerSafetySnapshot();
+  const mainSnapshotAt = Number(mainSnapshot?.snapshotAt) || 0;
+  const safetySnapshotAt = Number(safetySnapshot?.snapshotAt) || 0;
+  const saved = safetySnapshot && safetySnapshotAt >= mainSnapshotAt ? safetySnapshot : mainSnapshot;
+  if (saved?.closed) {
+    state.timerSession = null;
+    return;
+  }
   if (!saved?.goalId || !state.dailyGoals.some((g) => g.id === saved.goalId)) return;
+  state.timerSession = saved;
   floatingTimer = { ...saved, intervalId: null, startedAt: saved.paused ? null : Date.now(), pauses: saved.pauses || [], resumes: saved.resumes || [], openedAt: saved.openedAt || Date.now() };
   floatingTimer.intervalId = setInterval(renderFloatingTimer, 1000);
   renderFloatingTimer();
@@ -37760,14 +37817,13 @@ function startFloatingTimer(goal, kind = "study") {
   const selectedMode = state.settings?.timerMode || elements.timerMode?.value || "countdown";
   const sessionGoalMinutes = selectedMode === "free" ? 0 : 0;
   state.settings.timerMode = selectedMode;
-  saveData();
-  autoSyncAfterSave("timer-settings");
   prepareTimerAudio();
   floatingTimer = { sessionId: createId(), goalId: goal.id, goalDate: goal.date || goal.data, discipline: goal.discipline, subject: goal.subject, material: goal.estimateSourceId || "", plannedMinutes: Number(goal.minutes) || 0, origin: "Plano do Dia", kind, elapsedSeconds: 0, startedAt: Date.now(), paused: false, intervalId: null, completed: false, completionAlarmPlayed: false, previousRemainingSeconds: null, warnedFive: false, warnedOne: false, completionDismissed: false, displayedMotivationalMilestones: [], mode: selectedMode, sessionGoalMinutes, pauses: [], resumes: [], openedAt: Date.now() };
   floatingTimer.intervalId = setInterval(renderFloatingTimer, 1000);
-  playTimerControlBeep("start");
-  persistFloatingTimerSession();
   renderFloatingTimer();
+  playTimerControlBeep("start");
+  scheduleFloatingTimerSessionPersistenceAfterPaint();
+  autoSyncAfterSave("timer-settings");
 }
 function pauseOrResumeFloatingTimer() {
   if (!floatingTimer.goalId) return;
@@ -37782,9 +37838,9 @@ function pauseOrResumeFloatingTimer() {
     floatingTimer.startedAt = null;
     floatingTimer.paused = true;
   }
-  playTimerControlBeep(controlSound);
-  persistFloatingTimerSession();
   renderFloatingTimer();
+  playTimerControlBeep(controlSound);
+  scheduleFloatingTimerSessionPersistenceAfterPaint();
 }
 function resetFloatingTimer() {
   if (!floatingTimer.goalId) return;
@@ -37800,15 +37856,15 @@ function resetFloatingTimer() {
   floatingTimer.pauses = [];
   floatingTimer.resumes = [];
   floatingTimer.openedAt = Date.now();
-  persistFloatingTimerSession();
   renderFloatingTimer();
+  scheduleFloatingTimerSessionPersistenceAfterPaint();
 }
 function closeFloatingTimer() {
   stopFloatingTimerInterval();
   floatingTimer = { goalId: null, kind: null, elapsedSeconds: 0, startedAt: null, paused: false, intervalId: null, completed: false, completionAlarmPlayed: false, previousRemainingSeconds: null, warnedFive: false, warnedOne: false, completionDismissed: false, displayedMotivationalMilestones: [], mode: state.settings?.timerMode || "countdown", pauses: [], resumes: [], openedAt: null };
   state.timerSession = null;
-  saveData();
   renderFloatingTimer();
+  scheduleFloatingTimerSessionPersistenceAfterPaint();
 }
 function openTimerStudyModal() {
   const draft = timerSessionDraft();
@@ -38114,6 +38170,7 @@ function saveData(options = {}) {
     globalThis.__aldusDeferredPreBootstrapSave = true;
     return false;
   }
+  viewDataRevisionV172 += 1;
   const startedAt = performance.now();
   const report = {
     startedAtMs: Number(startedAt.toFixed(1)),
@@ -38121,20 +38178,21 @@ function saveData(options = {}) {
     reinforcementRepairMs: 0,
     factoryPlanningMs: 0,
     persistenceMs: 0,
+    derivedRefreshSkipped: options.skipDerivedRefresh === true,
     factoryPlanningSkipped: false,
     totalMs: 0
   };
-  if (typeof refreshPlanningPrioritiesForQuestionChangesV155 === "function") {
+  if (!report.derivedRefreshSkipped && typeof refreshPlanningPrioritiesForQuestionChangesV155 === "function") {
     const stepStartedAt = performance.now();
     refreshPlanningPrioritiesForQuestionChangesV155(state);
     report.planningPriorityMs = Number((performance.now() - stepStartedAt).toFixed(1));
   }
-  if (typeof repairInvalidReinforcementGoalsV157 === "function") {
+  if (!report.derivedRefreshSkipped && typeof repairInvalidReinforcementGoalsV157 === "function") {
     const stepStartedAt = performance.now();
     globalThis.__reinforcementClassificationRepairV157 = repairInvalidReinforcementGoalsV157(state);
     report.reinforcementRepairMs = Number((performance.now() - stepStartedAt).toFixed(1));
   }
-  if (typeof syncFactoryMaterialsPlanningV80 === "function") {
+  if (!report.derivedRefreshSkipped && typeof syncFactoryMaterialsPlanningV80 === "function") {
     const stepStartedAt = performance.now();
     const factoryReport = syncFactoryMaterialsPlanningV80(state);
     report.factoryPlanningMs = Number((performance.now() - stepStartedAt).toFixed(1));
@@ -41533,6 +41591,7 @@ elements.qbToggleErrorHistory?.addEventListener("click", () => { if (elements.qb
 // Atualiza somente a tela aberta. A renderização completa de todas as telas na inicialização
 // bloqueava a interação mesmo quando o usuário precisava apenas do Dashboard.
 function render() {
+  viewDataRevisionV172 += 1;
   renderFloatingTimer();
   const activeView = typeof hashToView === "function" ? hashToView() : "dashboard";
   renderView(typeof resolveViewTarget === "function" ? resolveViewTarget(activeView) : activeView);
@@ -44259,8 +44318,8 @@ elements.timerMode?.addEventListener("change", () => {
     floatingTimer.previousRemainingSeconds = null;
     floatingTimer.warnedFive = false;
     floatingTimer.warnedOne = false;
-    persistFloatingTimerSession();
     renderFloatingTimer();
+    scheduleFloatingTimerSessionPersistenceAfterPaint();
     showDailyGoalMessage(selectedMode === "free" ? "Cronômetro livre ativado. O tempo continuará contando para cima." : "Contagem regressiva ativada. O tempo já decorrido foi preservado.", "success");
   } else saveData();
   autoSyncAfterSave("timer-settings");
@@ -45379,7 +45438,21 @@ document.addEventListener("click",(event)=>{ const btn=event.target.closest("[da
 document.getElementById("analyticsPeriodForm")?.addEventListener("submit", (event) => { event.preventDefault(); renderStrategicAnalysis(); });
 document.getElementById("analyticsPeriodSelect")?.addEventListener("change", renderStrategicAnalysis);
 
-function renderView(viewId) {
+const viewRenderCacheV172 = new Map();
+function renderView(viewId, options = {}) {
+  const cachedView = viewRenderCacheV172.get(viewId);
+  const now = Date.now();
+  if (
+    options.reuseIfFresh
+    && cachedView?.revision === viewDataRevisionV172
+    && now - cachedView.renderedAt < VIEW_RENDER_CACHE_TTL_MS_V172
+  ) {
+    const cachedReport = window.__viewPerformanceReport ||= { lastView: "", lastDurationMs: 0, views: {} };
+    cachedReport.lastView = viewId;
+    cachedReport.lastDurationMs = 0;
+    cachedReport.lastReused = true;
+    return;
+  }
   const renderers = {
     dashboard: () => { renderDashboard(); renderSubjects(); },
     edital: renderEdital,
@@ -45412,7 +45485,8 @@ function renderView(viewId) {
   safeRenderView(viewId, renderers[viewId]);
   const durationMs = performance.now() - startedAt;
   const report = window.__viewPerformanceReport ||= { lastView: "", lastDurationMs: 0, views: {} };
-  report.lastView = viewId; report.lastDurationMs = durationMs; if (heavyView) performanceCounters.initialDurationMs = durationMs;
+  report.lastView = viewId; report.lastDurationMs = durationMs; report.lastReused = false; if (heavyView) performanceCounters.initialDurationMs = durationMs;
+  viewRenderCacheV172.set(viewId, { revision: viewDataRevisionV172, renderedAt: now });
   if (["metas-do-dia", "fabrica-resumos", "planejamento"].includes(viewId)) {
     const view = report.views[viewId] ||= {}; view.durationMs = durationMs; Object.assign(view, performanceCounters);
     if (viewId === "metas-do-dia") Object.assign(view, { projectionBuilds: performanceCounters.projectionBuilds, renderedGoals: document.querySelectorAll("[data-daily-goal-details]").length, hydratedGoals: document.querySelectorAll("[data-daily-goal-hydrated=true]").length, materials: (state.materials || []).length, factoryItems: (state.factoryAgenda || state.factoryItems || []).length });
@@ -45493,7 +45567,7 @@ function scheduleViewRenderAfterPaintV170(target) {
   const run = () => {
     if (token !== pendingViewRenderTokenV170) return;
     if (document.documentElement.dataset.activeView !== target) return;
-    renderView(target);
+    renderView(target, { reuseIfFresh: true });
   };
   if (typeof requestAnimationFrame === "function") {
     requestAnimationFrame(() => setTimeout(run, 0));
@@ -45560,7 +45634,11 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") setMobileMenuOpen(false);
 });
 
-window.addEventListener("beforeunload", persistFloatingTimerSession);
+window.addEventListener("beforeunload", () => persistFloatingTimerSession({ storageOnly: true }));
+window.addEventListener("pagehide", () => persistFloatingTimerSession({ storageOnly: true }));
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") persistFloatingTimerSession({ storageOnly: true });
+});
 window.addEventListener("hashchange", () => showView(hashToView()));
 enhanceCollapsibleSections();
 restoreFloatingTimerSession();
@@ -49027,7 +49105,7 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
 (() => {
   "use strict";
 
-  const PATCH_VERSION = "20260728-persistencia-responsiva-v169";
+  const PATCH_VERSION = "20260728-cronometro-imediato-v169";
   const CHECK_INTERVAL_MS = 15 * 60 * 1000;
   const BANNER_ID = "aldusUpdateBannerV169";
   const DIRTY_ATTRIBUTE = "data-aldus-user-edited-v169";
