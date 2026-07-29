@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260729-vinculos-integrados-v169";
+  const VERSION = "20260729-plano-dia-alinhado-v169";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -42610,6 +42610,99 @@ function reconcilePlanningDates(targetState = state, dates = [], opts = {}) {
   const reports = uniqueDates.map((date) => reconcileDailyGoalsWithPlanning(targetState, date, { ...opts, scoreContext, reservedSyllabusIds }));
   return { reports, added: reports.flatMap((report) => report.added), removed: reports.flatMap((report) => report.removed), warnings: reports.flatMap((report) => report.warnings) };
 }
+const DAILY_PLAN_ALIGNMENT_VERSION_V174 = "v174";
+function dailyPlanFingerprintV174(value) {
+  const text = JSON.stringify(value);
+  let hash = 2166136261;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `${text.length}:${(hash >>> 0).toString(16)}`;
+}
+function dailyPlanPlanningFingerprintV174(targetState = state, date = todayISO()) {
+  const targets = planningTargetsForDate(date, targetState);
+  const syllabus = (targetState.syllabusItems || []).map((item) => [
+    item.id,
+    item.discipline,
+    item.subject,
+    item.status,
+    item.domain,
+    item.priority,
+    item.weight,
+    item.manualWeak,
+    item.customStudyMinutes || item.customMinutes || item.plannedMinutes || 0,
+    targetState.schedulableSettings?.[item.id]
+  ]).sort((left, right) => String(left[0]).localeCompare(String(right[0])));
+  return dailyPlanFingerprintV174({
+    version: DAILY_PLAN_ALIGNMENT_VERSION_V174,
+    date,
+    targets: { topics: targets.topics, disciplines: targets.disciplines, mode: targets.dayContent?.mode, unavailable: targets.unavailable },
+    config: targetState.planning?.config || {},
+    availability: targetState.planning?.availability?.[date] || null,
+    planningMode: targetState.planningMode || "joint",
+    activeContestId: targetState.activeContestId || "",
+    disciplineWeights: targetState.disciplineWeights || {},
+    syllabus
+  });
+}
+function dailyPlanGoalFingerprintV174(targetState = state, date = todayISO()) {
+  const rows = (targetState.dailyGoals || [])
+    .filter((goal) => goalDateValue(goal) === date && isPlanningStudyGoal(goal) && !isManualDailyGoal(goal))
+    .map((goal) => [
+      goal.id,
+      goal.syllabusItemId || "",
+      planningItemKey(goal),
+      goal.status || "Pendente",
+      goalTotalActualMinutes(goal),
+      (goal.history || goal.historico || []).length
+    ])
+    .sort((left, right) => String(left[0]).localeCompare(String(right[0])));
+  return dailyPlanFingerprintV174(rows);
+}
+function dailyPlanAlignmentStatusV174(targetState = state, date = todayISO()) {
+  const targets = planningTargetsForDate(date, targetState);
+  if (targets.topics <= 0) return { aligned: true, skipped: "zero-target-safety", targets };
+  const marker = targetState.planning?.dailyPlanAlignmentV174?.[date] || null;
+  const planningFingerprint = dailyPlanPlanningFingerprintV174(targetState, date);
+  const goalFingerprint = dailyPlanGoalFingerprintV174(targetState, date);
+  return {
+    aligned: Boolean(marker
+      && marker.version === DAILY_PLAN_ALIGNMENT_VERSION_V174
+      && marker.planningFingerprint === planningFingerprint
+      && marker.goalFingerprint === goalFingerprint),
+    marker,
+    planningFingerprint,
+    goalFingerprint,
+    targets
+  };
+}
+function markDailyPlanAlignmentV174(targetState = state, date = todayISO()) {
+  targetState.planning ||= normalizePlanningState({});
+  targetState.planning.dailyPlanAlignmentV174 ||= {};
+  const marker = {
+    version: DAILY_PLAN_ALIGNMENT_VERSION_V174,
+    planningFingerprint: dailyPlanPlanningFingerprintV174(targetState, date),
+    goalFingerprint: dailyPlanGoalFingerprintV174(targetState, date),
+    alignedAt: new Date().toISOString()
+  };
+  targetState.planning.dailyPlanAlignmentV174[date] = marker;
+  return marker;
+}
+function ensureDailyPlanAlignedWithPlanningV174(targetState = state, date = todayISO(), opts = {}) {
+  const status = dailyPlanAlignmentStatusV174(targetState, date);
+  if (status.aligned && !opts.force) return { changed: false, skipped: status.skipped || "already-aligned", date, status, report: null };
+  if (status.targets.topics <= 0) return { changed: false, skipped: "zero-target-safety", date, status, report: null };
+  const report = reconcileDailyGoalsWithPlanning(targetState, date, { ...opts, rebuildAutomatic: true });
+  markDailyPlanAlignmentV174(targetState, date);
+  return {
+    changed: Boolean(report.added.length || report.removed.length || !status.aligned),
+    skipped: "",
+    date,
+    status,
+    report
+  };
+}
 function generateGoalsForDate(date, opts = {}) {
   ensureDefaultDisciplineWeights();
   const targetState = opts.targetState || state;
@@ -43079,7 +43172,8 @@ function generateDailyGoals() {
     }
     // Compatibilidade: const report = reconcileDailyGoalsWithPlanning(state, date, { manual: availabilityForDate(date).type === "indisponível" })
     const report = reconcileDailyGoalsWithPlanning(state, date, { manual: manualUnavailable });
-    if (!report.added.length) { showDailyGoalMessage(existingToday.length ? `Nenhuma meta nova foi adicionada: o Plano do Dia já está reconciliado para ${formatDateBR(date)}.` : "Nenhuma meta gerada. Verifique assuntos agendáveis, duplicidades ou disponibilidade do dia.", report.warnings.length ? "warning" : "success"); return; }
+    markDailyPlanAlignmentV174(state, date);
+    if (!report.added.length) { saveData({ markLocalChange: true }); showDailyGoalMessage(existingToday.length ? `Nenhuma meta nova foi adicionada: o Plano do Dia já está reconciliado para ${formatDateBR(date)}.` : "Nenhuma meta gerada. Verifique assuntos agendáveis, duplicidades ou disponibilidade do dia.", report.warnings.length ? "warning" : "success"); return; }
     saveData({ markLocalChange: true });
     render();
     autoSyncAfterSave("daily-goal-generation");
@@ -43092,6 +43186,7 @@ function refreshDailyGoalsFromPlanning() {
     const date = elements.goalDate.value || todayISO();
     if (!state.syllabusItems.length) { showDailyGoalMessage("Não foi possível atualizar. Verifique se o edital foi importado.", "error"); return; }
     const report = reconcileDailyGoalsWithPlanning(state, date, { rebuildAutomatic: true });
+    markDailyPlanAlignmentV174(state, date);
     saveData({ markLocalChange: true });
     render();
     autoSyncAfterSave("daily-goal-planning-refresh");
@@ -43244,6 +43339,8 @@ function postponeGoal(goal) {
   elements.goalDate.value = nextDate;
   reconcileDailyGoalsWithPlanning(state, oldDate);
   reconcileDailyGoalsWithPlanning(state, nextDate);
+  markDailyPlanAlignmentV174(state, oldDate);
+  markDailyPlanAlignmentV174(state, nextDate);
   saveData({ markLocalChange: true });
   showDailyGoalMessage(`Meta adiada para ${formatDateBR(nextDate)}.`, "success");
   autoSyncAfterSave("daily-goal");
@@ -43877,14 +43974,16 @@ function hydrateDailyGoal(goalId) {
 }
 function renderDailyGoals() {
   if (!elements.dailyGoalsList) return;
-  renderSmartReviewBlock(elements.daySmartReview, elements.goalDate?.value || todayISO());
   const date = elements.goalDate?.value || todayISO();
+  const alignment = ensureDailyPlanAlignedWithPlanningV174(state, date);
+  if (alignment.changed) saveData({ markLocalChange: true });
+  renderSmartReviewBlock(elements.daySmartReview, date);
   renderChooseSubjectForDayV158();
   const availability = availabilityForDate(date);
   const dayGoals = state.dailyGoals.filter((goal) => goalDateValue(goal) === date).sort((a,b) => isGoalDone(a) - isGoalDone(b) || (a.status || "").localeCompare(b.status || "") || a.discipline.localeCompare(b.discipline));
   const projection = buildDailyPlanProjection(date);
   window.__dailyPlanProjectionByGoalId = new Map(projection.map((entry) => [entry.goal.id, entry]));
-  window.__dailyPlanConsistencyReport = { date, dailyGoals: dayGoals.length, projectedGoals: projection.length, factoryItemsForToday: projection.reduce((sum, entry) => sum + entry.factoryItems.length, 0), materialsForToday: projection.reduce((sum, entry) => sum + entry.materialGroups.reduce((total, group) => total + group.materials.length, 0), 0), goalsWithoutMaterial: projection.filter((entry) => !entry.materialGroups.length).map((entry) => entry.goal.id), ambiguousMaterials: projection.filter((entry) => entry.warnings.length).length, visualDuplicatesRemoved: projection.reduce((sum, entry) => sum + entry.warnings.length, 0), stateMutatedDuringRender: false };
+  window.__dailyPlanConsistencyReport = { date, dailyGoals: dayGoals.length, projectedGoals: projection.length, factoryItemsForToday: projection.reduce((sum, entry) => sum + entry.factoryItems.length, 0), materialsForToday: projection.reduce((sum, entry) => sum + entry.materialGroups.reduce((total, group) => total + group.materials.length, 0), 0), goalsWithoutMaterial: projection.filter((entry) => !entry.materialGroups.length).map((entry) => entry.goal.id), ambiguousMaterials: projection.filter((entry) => entry.warnings.length).length, visualDuplicatesRemoved: projection.reduce((sum, entry) => sum + entry.warnings.length, 0), stateMutatedDuringRender: alignment.changed, alignment: alignment.report ? { added: alignment.report.added.length, removed: alignment.report.removed.length, preserved: alignment.report.preserved.length } : { skipped: alignment.skipped } };
   const otherDates = state.dailyGoals.some((goal) => goalDateValue(goal) !== date);
   const stats = goalProgressStats(dayGoals, availability);
   const dayContent = getDayContentConfig(date);
@@ -43904,6 +44003,7 @@ function renderDailyGoals() {
   const history = dayGoals.filter((g) => (g.history || g.historico || []).length);
   const pendingSection = (pending.length || history.length) ? `<details ${dailyPlanSectionAttrs("history", rememberedDailyPlanSection(date) === "history")}><summary class="daily-plan-summary"><span class="daily-plan-heading"><strong class="daily-plan-title">Pendências e histórico</strong><span class="daily-plan-resume">${pending.length + history.length} registros</span></span></summary><div class="daily-plan-content">${pending.map((g)=>{ const descriptor = canonicalStudyDescriptor(g); return `<p class="item-meta">${escapeHTML(g.status)}: ${escapeHTML(descriptor.discipline)} — ${escapeHTML(descriptor.subject)}</p>`; }).join("")}${history.map((g)=>{ const descriptor = canonicalStudyDescriptor(g); return `<p class="item-meta">Histórico: ${escapeHTML(descriptor.discipline)} — ${escapeHTML(descriptor.subject)}</p>`; }).join("")}</div></details>` : "";
   elements.dailyGoalsList.innerHTML = notices.join("") + questionsSection + goalsSection + reviewSection + pendingSection;
+  document.getElementById("view-metas-do-dia")?.removeAttribute("aria-busy");
   elements.dailyGoalsList.querySelectorAll('[data-daily-goal-details][data-daily-goal-hydrated="true"]').forEach((details) => ensureDailyGoalEditAction(details, details.dataset.dailyGoalDetails));
 }
 function renderNextDailyGoal(dayGoals, projectionByGoalId = new Map()) {
@@ -44162,6 +44262,7 @@ elements.planningConfigForm?.addEventListener("submit", (event) => {
   const selectedDate = elements.goalDate?.value || todayISO();
   const horizon = Math.max(21, Number(c.safetyDays) || 21);
   const integration = reconcilePlanningDates(state, [selectedDate, ...daysBetween(todayISO(), horizon)], { rebuildAutomatic: true });
+  integration.reports.forEach((item) => markDailyPlanAlignmentV174(state, item.date));
   const report = integration.reports.find((item) => item.date === selectedDate) || integration.reports[0] || { found: 0, expected: 0, foundTopics: 0, expectedTopics: 0, warnings: [] };
   // Compatibilidade: const report = reconcileDailyGoalsWithPlanning(state, elements.goalDate?.value || todayISO())
   // Compatibilidade: Planejamento salvo e Plano do Dia atualizado
@@ -44184,6 +44285,7 @@ elements.availabilityCalendar?.addEventListener("change", (event) => {
   if (typeDate) state.planning.availability[date] = { type: event.target.value, hours: availabilityDefaults(event.target.value, state) };
   if (hoursDate) state.planning.availability[date] = { ...current, hours: Number(event.target.value) || 0 };
   const report = reconcileDailyGoalsWithPlanning(state, date, { rebuildAutomatic: true });
+  markDailyPlanAlignmentV174(state, date);
   saveData({ markLocalChange: true });
   render();
   const message = `Disponibilidade de ${formatDateBR(date)} salva e integrada: ${report.foundTopics} de ${report.expectedTopics} assunto(s) planejado(s).${report.warnings.length ? ` ${report.warnings.join(" ")}` : ""}`;
@@ -44387,8 +44489,12 @@ elements.goalForm.addEventListener("submit", (event) => {
     appendGoalHistory(payload, `Meta manual criada em ${new Date().toLocaleString("pt-BR")}.`);
     state.dailyGoals.push(payload);
   }
-  if (oldDate !== selectedDate) reconcileDailyGoalsWithPlanning(state, oldDate);
+  if (oldDate !== selectedDate) {
+    reconcileDailyGoalsWithPlanning(state, oldDate);
+    markDailyPlanAlignmentV174(state, oldDate);
+  }
   reconcileDailyGoalsWithPlanning(state, selectedDate);
+  markDailyPlanAlignmentV174(state, selectedDate);
   saveData({ markLocalChange: true });
   resetGoalFormEditing(selectedDate);
   render();
@@ -44794,9 +44900,16 @@ async function runPostInteractiveBootstrapMaintenanceV169(recoveredError) {
       reports: [...(replacementRepairReportV108.reports || []), ...(legacyDailyPlanningRepairV108.reports || [])]
     };
     window.__dailyPlanningInflationRepairV108 = dailyPlanningRepairV108;
-    const dailyPlanningMethodologyV117 = reconcileDailyGoalsWithPlanning(state, todayISO());
+    const dailyPlanningAlignmentV174 = ensureDailyPlanAlignedWithPlanningV174(state, todayISO());
+    // Compatibilidade histórica: reconcileDailyGoalsWithPlanning(state, todayISO())
+    const dailyPlanningMethodologyV117 = dailyPlanningAlignmentV174.report || { added: [], removed: [], preserved: [], warnings: [], found: 0, foundTopics: 0 };
     window.__dailyPlanningMethodologyV117 = dailyPlanningMethodologyV117;
-    if (dailyPlanningRepairV108.changed || dailyPlanningMethodologyV117.added.length || dailyPlanningMethodologyV117.removed.length) saveData({ markLocalChange: true });
+    window.__dailyPlanningAlignmentV174 = dailyPlanningAlignmentV174;
+    if (dailyPlanningRepairV108.changed || dailyPlanningAlignmentV174.changed) saveData({ markLocalChange: true });
+    if (dailyPlanningAlignmentV174.changed && document.documentElement.dataset.activeView === "metas-do-dia") {
+      viewRenderCacheV172.delete("metas-do-dia");
+      renderView("metas-do-dia");
+    }
   });
 
   await run("factory-material-sync", () => {
@@ -45711,6 +45824,9 @@ function scheduleViewRenderAfterPaintV170(target) {
 
 function showView(viewId = hashToView(), options = {}) {
   const target = resolveViewTarget(viewId);
+  const dailyPlanNeedsAlignment = target === "metas-do-dia"
+    && !dailyPlanAlignmentStatusV174(state, elements.goalDate?.value || todayISO()).aligned;
+  if (dailyPlanNeedsAlignment) viewRenderCacheV172.delete(target);
   document.documentElement.dataset.activeView = target;
 
   viewPanels.forEach((panel) => {
@@ -45722,6 +45838,12 @@ function showView(viewId = hashToView(), options = {}) {
   if (activePanel?.classList.contains("app-view")) {
     activePanel.classList.add("active");
     activePanel.hidden = false;
+    if (dailyPlanNeedsAlignment) {
+      activePanel.setAttribute("aria-busy", "true");
+      if (elements.dailyGoalsSummary) elements.dailyGoalsSummary.innerHTML = '<p class="notice">Alinhando as metas ao planejamento vigente…</p>';
+      if (elements.nextDailyGoal) elements.nextDailyGoal.innerHTML = "";
+      if (elements.dailyGoalsList) elements.dailyGoalsList.innerHTML = "";
+    }
   }
 
   viewLinks.forEach((link) => {
@@ -45740,7 +45862,7 @@ function showView(viewId = hashToView(), options = {}) {
   else menuToggle?.setAttribute("aria-expanded", mainMenu?.classList.contains("open") ? "true" : "false");
   window.dispatchEvent(new CustomEvent("aldus:view-active", { detail: { view: target } }));
   if (!options.skipScroll) document.querySelector(".screen-stage")?.scrollIntoView({ block: "start" });
-  if (options.immediateRender) {
+  if (options.immediateRender && !dailyPlanNeedsAlignment) {
     pendingViewRenderTokenV170 += 1;
     renderView(target);
   } else {
@@ -49237,7 +49359,7 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
 (() => {
   "use strict";
 
-  const PATCH_VERSION = "20260729-vinculos-integrados-v169";
+  const PATCH_VERSION = "20260729-plano-dia-alinhado-v169";
   const CHECK_INTERVAL_MS = 15 * 60 * 1000;
   const BANNER_ID = "aldusUpdateBannerV169";
   const DIRTY_ATTRIBUTE = "data-aldus-user-edited-v169";
