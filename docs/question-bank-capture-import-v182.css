@@ -64,8 +64,16 @@
 
 #view-banco-questoes .qb-capture-row-grid {
   display: grid;
-  grid-template-columns: minmax(220px, 2fr) repeat(3, minmax(115px, 1fr));
+  grid-template-columns: minmax(220px, 2fr) repeat(4, minmax(115px, 1fr));
   gap: 10px;
+}
+
+#view-banco-questoes .qb-capture-type-note {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted, #b9cad8);
+  font-size: 0.78rem;
+  line-height: 1.35;
 }
 
 #view-banco-questoes .qb-capture-row textarea {

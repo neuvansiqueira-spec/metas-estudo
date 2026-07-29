@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260729-feedback-validacao-captura-v169";
+  const VERSION = "20260729-captura-multipla-escolha-v169";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -36566,6 +36566,10 @@ globalThis.PCPR_PCMA_2026_CATALOG = {
         questionId: best?.question?.id || "",
         matchScore: best?.score || 0,
         matchMethod: best?.score >= 0.28 ? "texto" : "ordem",
+        optionCount: Number(visual.optionCount) || 0,
+        detectedType: Number(visual.optionCount) >= 4
+          ? "multipla"
+          : (Number(visual.optionCount) === 2 ? "ce" : ""),
         marked,
         officialKey: result.officialKey || questionKey,
         status: result.status || (marked && questionKey ? (marked === questionKey ? "certo" : "errado") : "revisar"),
@@ -42163,7 +42167,7 @@ function qbFillSelect(select, values, label) { if (!select) return false; const 
 function qbFillSelectWithLabels(select, options, label) { if (!select) return false; const current = select.value; const values = options.map((option) => option.value); select.innerHTML = `<option value="">${label}</option>` + options.map((option)=>`<option value="${escapeHTML(option.value)}">${escapeHTML(option.label)}</option>`).join(""); if (values.includes(current)) { select.value = current; return false; } select.value = ""; return Boolean(current); }
 function qbDownload(filename, payload) { const brandedPayload = { ...payload, branding: generatedFileBranding() }; const blob = new Blob([JSON.stringify(brandedPayload, null, 2)], { type: "application/json;charset=utf-8" }); const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = filename; link.click(); URL.revokeObjectURL(link.href); }
 function qbIsMultipleChoice(q) { return Object.keys(q?.alternativas || {}).length >= 2 || canonical(q?.tipo || "").includes("multipla escolha"); }
-function qbChoiceKeys(q) { const keys = Object.keys(q?.alternativas || {}).filter((key) => /^[A-E]$/.test(key)).sort(); if (qbIsMultipleChoice(q)) return keys.length ? keys : ["A","B","C","D","E"]; return ["C", "E"]; }
+function qbChoiceKeys(q) { const keys = Object.keys(q?.alternativas || {}).filter((key) => /^[A-E]$/.test(key)).sort(); if (qbIsMultipleChoice(q)) return keys.length >= 2 ? keys : ["A","B","C","D","E"]; return ["C", "E"]; }
 function qbHasKey(q) { return qbChoiceKeys(q).includes(q.gabarito); }
 function qbIsBlankMark(q, mark = q?.marcado) { return !mark || mark === QB_MARK_BLANK || (!qbIsMultipleChoice(q) && mark === "B"); }
 function qbIsDoubtMark(q, mark = q?.marcado) { return mark === QB_MARK_DOUBT || (!qbIsMultipleChoice(q) && mark === "D"); }
@@ -42282,6 +42286,55 @@ function qbCaptureStatusOptions(selected = "revisar") {
     .map(([value, label]) => `<option value="${value}" ${value === selected ? "selected" : ""}>${label}</option>`)
     .join("");
 }
+function qbCaptureStoredType(question) {
+  return qbIsMultipleChoice(question) ? "multipla" : "ce";
+}
+function qbCaptureSuggestedType(question, match = {}) {
+  const optionCount = Number(match.optionCount) || 0;
+  const answers = [match.marked, match.officialKey].map((value) => String(value || "").toUpperCase());
+  if (optionCount >= 4 || answers.some((value) => ["A", "B", "D"].includes(value))) return "multipla";
+  if (optionCount === 2) return "ce";
+  return qbCaptureStoredType(question);
+}
+function qbCaptureTypeLabel(value) {
+  return value === "multipla" ? "Múltipla escolha" : "Certo/Errado";
+}
+function qbCaptureTypeOptions(selected = "ce") {
+  return [
+    ["multipla", "Múltipla escolha (A–E)"],
+    ["ce", "Certo/Errado (C/E)"]
+  ].map(([value, label]) => `<option value="${value}" ${value === selected ? "selected" : ""}>${label}</option>`).join("");
+}
+function qbCaptureTypeNote(question, selectedType, match = {}) {
+  const storedType = qbCaptureStoredType(question);
+  const detectedType = Number(match.optionCount) >= 4 ? "multipla" : (Number(match.optionCount) === 2 ? "ce" : "");
+  if (selectedType !== storedType) {
+    return `O banco registra ${qbCaptureTypeLabel(storedType)}, mas a captura indica ${qbCaptureTypeLabel(selectedType)}. Ao registrar, somente o tipo técnico da questão será corrigido.`;
+  }
+  if (detectedType) return `A captura confirmou ${qbCaptureTypeLabel(detectedType)}.`;
+  return `Tipo atual do banco: ${qbCaptureTypeLabel(storedType)}.`;
+}
+function qbCaptureMatchForRow(row) {
+  const index = Number(row?.dataset?.qbCaptureRow);
+  const match = qbCaptureImportDraft?.matches?.[index] || {};
+  return {
+    ...match,
+    optionCount: Number(row?.dataset?.qbCaptureOptionCount) || Number(match.optionCount) || 0,
+    marked: row?.querySelector("[data-qb-capture-marked]")?.value || match.marked || "",
+    officialKey: row?.querySelector("[data-qb-capture-key]")?.value || match.officialKey || ""
+  };
+}
+function qbRefreshCaptureTypeRow(row, syncType = false) {
+  if (!row) return;
+  const questionId = row.querySelector("[data-qb-capture-question]")?.value || "";
+  const question = qbQuestionById(questionId);
+  const match = qbCaptureMatchForRow(row);
+  const typeSelect = row.querySelector("[data-qb-capture-type]");
+  if (!typeSelect) return;
+  if (syncType) typeSelect.value = qbCaptureSuggestedType(question, match);
+  const note = row.querySelector("[data-qb-capture-type-note]");
+  if (note) note.textContent = qbCaptureTypeNote(question, typeSelect.value, match);
+}
 function qbRenderCapturePreview() {
   if (!qbCaptureImportDraft || !elements.qbCapturePreview) return;
   const matches = qbCaptureImportDraft.matches || [];
@@ -42296,7 +42349,9 @@ function qbRenderCapturePreview() {
   ].map(([label, value]) => `<article class="qb-pdf-import-stat"><span>${label}</span><strong>${escapeHTML(value)}</strong></article>`).join("");
   elements.qbCapturePreviewList.innerHTML = matches.map((match, index) => {
     const confidence = match.matchMethod === "texto" ? `${Math.round(match.matchScore * 100)}% por texto` : "sugerido pela ordem";
-    return `<article class="qb-capture-row" data-qb-capture-row="${index}">
+    const question = qbQuestionById(match.questionId);
+    const suggestedType = qbCaptureSuggestedType(question, match);
+    return `<article class="qb-capture-row" data-qb-capture-row="${index}" data-qb-capture-option-count="${Number(match.optionCount) || 0}">
       <div class="qb-capture-row-heading">
         <label class="qb-check"><input type="checkbox" data-qb-capture-include checked /> Incluir resultado ${index + 1}</label>
         <span class="badge neutral">${escapeHTML(confidence)}</span>
@@ -42313,6 +42368,10 @@ function qbRenderCapturePreview() {
         </label>
         <label>Resultado
           <select data-qb-capture-status>${qbCaptureStatusOptions(match.status)}</select>
+        </label>
+        <label>Tipo confirmado
+          <select data-qb-capture-type>${qbCaptureTypeOptions(suggestedType)}</select>
+          <small class="qb-capture-type-note" data-qb-capture-type-note>${escapeHTML(qbCaptureTypeNote(question, suggestedType, match))}</small>
         </label>
       </div>
       <label>Comentário ou resumo visível na captura
@@ -42362,9 +42421,13 @@ function qbCaptureRowsForConfirmation() {
       const marked = row.querySelector("[data-qb-capture-marked]")?.value || "";
       const officialKey = row.querySelector("[data-qb-capture-key]")?.value || "";
       const status = row.querySelector("[data-qb-capture-status]")?.value || "revisar";
+      const questionType = row.querySelector("[data-qb-capture-type]")?.value || qbCaptureStoredType(question);
       const comment = row.querySelector("[data-qb-capture-comment]")?.value.trim() || "";
-      return { displayIndex, rowElement: row, questionId, question, marked, officialKey, status, comment };
+      return { displayIndex, rowElement: row, questionId, question, marked, officialKey, status, questionType, comment };
     });
+}
+function qbCaptureChoiceKeys(row) {
+  return row.questionType === "multipla" ? ["A", "B", "C", "D", "E"] : ["C", "E"];
 }
 function qbValidateCaptureRows(rows) {
   if (!rows.length) return { message: "Selecione ao menos um resultado para registrar." };
@@ -42375,7 +42438,8 @@ function qbValidateCaptureRows(rows) {
   if (duplicate) return { message: `A questão vinculada ao resultado ${duplicate.displayIndex} já foi usada em outro resultado.`, row: duplicate, field: "[data-qb-capture-question]" };
   for (const row of rows) {
     if (row.status === "revisar") return { message: `Revise a situação da questão ${row.displayIndex} antes de salvar.`, row, field: "[data-qb-capture-status]" };
-    const choices = qbChoiceKeys(row.question);
+    if (!["multipla", "ce"].includes(row.questionType)) return { message: `Confirme o tipo da questão ${row.displayIndex}.`, row, field: "[data-qb-capture-type]" };
+    const choices = qbCaptureChoiceKeys(row);
     if (row.marked && row.marked !== QB_MARK_BLANK && !choices.includes(row.marked)) return { message: `A resposta marcada na questão ${row.displayIndex} não corresponde ao tipo da questão.`, row, field: "[data-qb-capture-marked]" };
     if (row.officialKey && !choices.includes(row.officialKey)) return { message: `O gabarito da questão ${row.displayIndex} não corresponde ao tipo da questão.`, row, field: "[data-qb-capture-key]" };
     if (["certo", "errado"].includes(row.status) && (!row.marked || row.marked === QB_MARK_BLANK || !row.officialKey)) return { message: `Informe resposta e gabarito na questão ${row.displayIndex}.`, row, field: !row.marked || row.marked === QB_MARK_BLANK ? "[data-qb-capture-marked]" : "[data-qb-capture-key]" };
@@ -42440,6 +42504,7 @@ function qbConfirmCaptureImport() {
     const marked = row.status === "branco" ? QB_MARK_BLANK : row.marked;
     return {
       ...row.question,
+      tipo: qbCaptureTypeLabel(row.questionType),
       marcado: marked,
       gabarito: row.officialKey || row.question.gabarito || "",
       status: row.status,
@@ -42450,6 +42515,11 @@ function qbConfirmCaptureImport() {
   enriched.forEach((item) => {
     const bankQuestion = qbQuestionById(item.id);
     if (!bankQuestion) return;
+    if (item.tipo && bankQuestion.tipo !== item.tipo) {
+      bankQuestion.tipo = item.tipo;
+      bankQuestion.tipoConfirmadoPor = "captura-qconcursos";
+      bankQuestion.tipoConfirmadoEm = new Date().toISOString();
+    }
     if (!bankQuestion.gabarito && item.gabarito) bankQuestion.gabarito = item.gabarito;
     if (!bankQuestion.comentarioQc && item.comentarioQc) bankQuestion.comentarioQc = item.comentarioQc;
     bankQuestion.capturaFonte = qbCaptureImportDraft.fileName;
@@ -45391,7 +45461,12 @@ elements.qbCaptureFile?.addEventListener("change", (event) => qbReadCaptureImpor
 elements.qbCaptureConfirm?.addEventListener("click", qbConfirmCaptureImport);
 elements.qbCaptureCancel?.addEventListener("click", () => qbResetCaptureImport());
 elements.qbCapturePreviewList?.addEventListener("input", qbClearCaptureValidation);
-elements.qbCapturePreviewList?.addEventListener("change", qbClearCaptureValidation);
+elements.qbCapturePreviewList?.addEventListener("change", (event) => {
+  const row = event.target.closest?.("[data-qb-capture-row]");
+  if (event.target.matches?.("[data-qb-capture-question]")) qbRefreshCaptureTypeRow(row, true);
+  else if (event.target.matches?.("[data-qb-capture-type]")) qbRefreshCaptureTypeRow(row);
+  qbClearCaptureValidation();
+});
 elements.qbFile?.addEventListener("change", async (event) => { const file=event.target.files?.[0]; if(!file) return; try { const incoming=questionBankFromPayload(JSON.parse(await file.text())); if(!incoming.length) throw new Error("Nenhuma questão válida encontrada no JSON."); const map=new Map((state.questionBank||[]).map(q=>[q.id,q])); incoming.forEach(q=>map.set(q.id,q)); state.questionBank=[...map.values()]; elements.qbMessage.textContent=`${incoming.length} questão(ões) importada(s). Banco atual: ${state.questionBank.length}.`; saveData(); renderQuestionBank(); } catch(error) { elements.qbMessage.textContent=`Erro ao importar: ${error.message}`; } finally { event.target.value=""; } });
 elements.qbStartTraining?.addEventListener("click", () => qbStart());
 elements.qbNewTraining?.addEventListener("click", () => { elements.qbResultPanel.hidden = true; qbStart(); });

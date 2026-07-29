@@ -208,6 +208,10 @@
         questionId: best?.question?.id || "",
         matchScore: best?.score || 0,
         matchMethod: best?.score >= 0.28 ? "texto" : "ordem",
+        optionCount: Number(visual.optionCount) || 0,
+        detectedType: Number(visual.optionCount) >= 4
+          ? "multipla"
+          : (Number(visual.optionCount) === 2 ? "ce" : ""),
         marked,
         officialKey: result.officialKey || questionKey,
         status: result.status || (marked && questionKey ? (marked === questionKey ? "certo" : "errado") : "revisar"),
