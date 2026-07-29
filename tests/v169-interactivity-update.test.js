@@ -335,9 +335,7 @@ test("inicializadores pesados ficam no bundle e aguardam a tela correspondente",
     "question-searchable-selects-v135.js": /"questoes", "historico-questoes"/,
     "question-register-simple-v162.js": /"questoes"/,
     "factory-final-review-v128.js": /"fabrica-resumos"/,
-    "analytics-accordion-fix-v148.js": /"analise-estrategica"/,
-    "analytics-header-arrow-v149.js": /"analise-estrategica"/,
-    "analytics-single-arrow-v150.js": /"analise-estrategica"/,
+    "analytics-view-controller-v179.js": /VIEW_ID/,
     "contest-countdown-v151.js": /"dashboard"/
   };
   for (const [file, viewPattern] of Object.entries(deferredModules)) {

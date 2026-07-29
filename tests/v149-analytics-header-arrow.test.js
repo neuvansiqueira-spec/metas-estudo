@@ -43,10 +43,12 @@ test("Filtros da análise usa a mesma estrutura e seta dos demais painéis", () 
   assert.match(source, /aria-expanded/);
 });
 
-test("v149 está incorporada depois da correção v148 e antes da transformação v145", () => {
+test("comportamento v149 foi absorvido pelo controlador único atual", () => {
   const bundle = read(path.join(rootDir, "app-v169.js"));
-  assert.ok(bundle.indexOf("Aldus source: analytics-accordion-fix-v148.js") < bundle.indexOf("Aldus source: analytics-header-arrow-v149.js"));
-  assert.ok(bundle.indexOf("Aldus source: analytics-header-arrow-v149.js") < bundle.indexOf("Aldus source: analytics-collapsibles-v145.js"));
+  assert.match(bundle, /Aldus source: analytics-view-controller-v179\.js/);
+  assert.doesNotMatch(bundle, /Aldus source: analytics-header-arrow-v149\.js/);
+  assert.match(bundle, /analytics-fixed-header-v149/);
+  assert.match(bundle, /analytics-filter-shell-v149/);
   assert.doesNotMatch(read(files.rootDaily), /analytics-header-arrow-v149\.js|createElement\(["']script/);
 });
 

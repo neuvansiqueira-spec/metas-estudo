@@ -121,14 +121,10 @@ const jsSources = [
   "daily-smart-review-collapsible-v138.js",
   "collapse-chevron-fix-v139.js",
   "reinforcement-goal-presentation-v156.js",
-  "analytics-accordion-fix-v148.js",
-  "analytics-header-arrow-v149.js",
-  "analytics-single-arrow-v150.js",
+  "analytics-view-controller-v179.js",
   "contest-countdown-v151.js",
   "performance-practical-v143.js",
-  "analytics-collapsibles-v145.js",
   "daily-collapsibles-closed-v140.js",
-  "question-board-result-v141.js",
   "question-scoring-rule-v142.js"
 ];
 
@@ -172,6 +168,7 @@ for (const filename of [
   "factory-final-review-v128.js", "factory-visibility-v122.css",
   "analytics-accordion-fix-v148.js", "analytics-header-arrow-v149.js",
   "analytics-single-arrow-v150.js", "contest-countdown-v151.js",
+  "analytics-view-controller-v179.js",
   "aldus-meta-branding.js", "daily-goal-methodology-v117.js",
   "daily-goal-replenishment-v116.js", "factory-lei-prompt-v119.js",
   "factory-lei-prompt-v120.js", "factory-lei-prompt-v121.js",

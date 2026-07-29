@@ -37,7 +37,6 @@
     const style = document.createElement("style");
     style.id = "questionScoringRuleStylesV142";
     style.textContent = `
-      #questionBoardResultV141{display:none!important}
       #questionScoringRulePanelV142{display:grid;gap:14px;padding:18px;border:1px solid var(--border,#dbe4f0);border-radius:18px;background:var(--surface,#fff)}
       #questionScoringRulePanelV142 .score-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
       #questionScoringRulePanelV142 .score-head strong{display:block;margin-top:3px}
