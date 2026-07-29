@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260729-vinculos-integrados-v169",
+  "version": "20260729-plano-dia-alinhado-v169",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
