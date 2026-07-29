@@ -5339,6 +5339,25 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-today-que
   }
 }
 
+/* V175: uma única rolagem vertical desde o primeiro quadro.
+   Regras legadas limitaram temporariamente a altura do palco no desktop,
+   criando uma segunda barra enquanto os dados ainda eram hidratados. */
+html[data-aldus-theme="premium-stable"] .screen-stage {
+  height: auto !important;
+  max-height: none !important;
+  overflow-y: visible !important;
+  scrollbar-gutter: auto !important;
+}
+
+@media (min-width: 1051px) {
+  html[data-aldus-theme="premium-stable"] .app-layout {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+}
+
 /* Aldus source: aldus-premium-theme.css */
 /* Aldus Metas Concurso — Premium Estável v46
    Camada exclusivamente visual. Não altera lógica, dados ou navegação. */
