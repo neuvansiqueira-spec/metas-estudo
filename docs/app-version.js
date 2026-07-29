@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260729-refinamento-desktop-v169";
+  const VERSION = "20260729-importacao-captura-qconcursos-v169";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

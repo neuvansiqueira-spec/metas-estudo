@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260729-refinamento-desktop-v169";
+  const VERSION = "20260729-importacao-captura-qconcursos-v169";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -36355,6 +36355,305 @@ globalThis.PCPR_PCMA_2026_CATALOG = {
   });
 })();
 
+/* Aldus source: qconcursos-capture-import-v182.js */
+(() => {
+  "use strict";
+
+  const OCR_SCRIPT_URL = "https://cdn.jsdelivr.net/npm/tesseract.js@7/dist/tesseract.min.js";
+  const TOKEN_STOPWORDS = new Set([
+    "a", "as", "ao", "aos", "com", "como", "da", "das", "de", "do", "dos", "e", "em",
+    "entre", "é", "foi", "na", "nas", "no", "nos", "o", "os", "ou", "para", "por", "que",
+    "se", "sem", "sob", "sobre", "um", "uma"
+  ]);
+
+  function canonical(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function tokenSet(value) {
+    return new Set(canonical(value)
+      .split(" ")
+      .filter((token) => token.length >= 3 && !TOKEN_STOPWORDS.has(token)));
+  }
+
+  function questionMatchScore(segment, question) {
+    const source = tokenSet(segment);
+    const target = tokenSet([
+      question?.enunciado,
+      question?.disciplina,
+      question?.assunto,
+      question?.banca,
+      question?.ano
+    ].filter(Boolean).join(" "));
+    if (!source.size || !target.size) return 0;
+    let common = 0;
+    target.forEach((token) => {
+      if (source.has(token)) common += 1;
+    });
+    return common / Math.max(1, Math.min(target.size, 45));
+  }
+
+  function groupRows(rows, maxGap) {
+    const groups = [];
+    rows.forEach((row) => {
+      const current = groups.at(-1);
+      if (!current || row - current.at(-1) > maxGap) groups.push([row]);
+      else current.push(row);
+    });
+    return groups;
+  }
+
+  function analyzeImageData(imageData, sourceWidth, sourceHeight) {
+    const { data, width, height } = imageData;
+    const scale = Math.max(0.5, sourceWidth / 1896);
+    const rowCounts = new Uint32Array(height);
+    const xStart = Math.max(0, Math.floor(sourceWidth * 0.085));
+    const xEnd = Math.min(sourceWidth, Math.ceil(sourceWidth * 0.135));
+    const yFloor = Math.floor(sourceHeight * 0.18);
+    const localXStart = Math.max(0, xStart - Math.floor(sourceWidth * 0.075));
+    const localXEnd = Math.min(width, xEnd - Math.floor(sourceWidth * 0.075));
+
+    for (let y = Math.max(0, yFloor - Math.floor(sourceHeight * 0.18)); y < height; y += 1) {
+      let count = 0;
+      for (let x = localXStart; x < localXEnd; x += 1) {
+        const offset = (y * width + x) * 4;
+        const red = data[offset];
+        const green = data[offset + 1];
+        const blue = data[offset + 2];
+        if (red > 220 && green > 70 && green < 190 && blue < 120 && red - green > 60) count += 1;
+      }
+      rowCounts[y] = count;
+    }
+
+    const activeRows = [];
+    const minimumRowPixels = Math.max(2, Math.round(2 * scale));
+    rowCounts.forEach((count, row) => {
+      if (count >= minimumRowPixels) activeRows.push(row);
+    });
+
+    const rowGroups = groupRows(activeRows, Math.max(2, Math.round(3 * scale)));
+    const circleRows = rowGroups.map((rows) => {
+      const first = rows[0];
+      const last = rows.at(-1);
+      let total = 0;
+      let maximum = 0;
+      rows.forEach((row) => {
+        total += rowCounts[row];
+        maximum = Math.max(maximum, rowCounts[row]);
+      });
+      return {
+        y: Math.round((first + last) / 2 + yFloor),
+        height: last - first + 1,
+        total,
+        maximum,
+        filled: total >= 420 * scale * scale || maximum >= 20 * scale
+      };
+    }).filter((row) => (
+      row.height >= 18 * scale
+      && row.height <= 55 * scale
+      && row.total >= 35 * scale * scale
+    ));
+
+    const optionGroups = [];
+    circleRows.forEach((row) => {
+      const current = optionGroups.at(-1);
+      if (!current || row.y - current.at(-1).y > 210 * scale) optionGroups.push([row]);
+      else current.push(row);
+    });
+
+    return optionGroups
+      .filter((group) => group.length === 2 || (group.length >= 4 && group.length <= 5))
+      .map((group, index) => {
+        const selectedIndex = group.findIndex((row) => row.filled);
+        const keys = group.length === 2 ? ["C", "E"] : ["A", "B", "C", "D", "E"];
+        return {
+          index,
+          optionCount: group.length,
+          marked: selectedIndex >= 0 ? keys[selectedIndex] : "",
+          selectedIndex,
+          yStart: group[0].y,
+          yEnd: group.at(-1).y,
+          confidence: selectedIndex >= 0 ? "alta" : "revisar"
+        };
+      });
+  }
+
+  async function imageAnalysis(file) {
+    const bitmap = await createImageBitmap(file);
+    const sourceWidth = bitmap.width;
+    const sourceHeight = bitmap.height;
+    const x = Math.floor(sourceWidth * 0.075);
+    const y = Math.floor(sourceHeight * 0.18);
+    const width = Math.max(1, Math.ceil(sourceWidth * 0.085));
+    const height = Math.max(1, sourceHeight - y);
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    context.drawImage(bitmap, x, y, width, height, 0, 0, width, height);
+    bitmap.close?.();
+    return {
+      width: sourceWidth,
+      height: sourceHeight,
+      answers: analyzeImageData(context.getImageData(0, 0, width, height), sourceWidth, sourceHeight)
+    };
+  }
+
+  function parseOcrText(text) {
+    const lines = String(text || "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    const statusIndexes = [];
+    lines.forEach((line, index) => {
+      const normalized = canonical(line);
+      if ((normalized.includes("parabens") && normalized.includes("acertou"))
+        || (normalized.includes("incorreta") && normalized.includes("gabarito"))) {
+        statusIndexes.push(index);
+      }
+    });
+
+    return statusIndexes.map((statusIndex, resultIndex) => {
+      const previousStatus = resultIndex ? statusIndexes[resultIndex - 1] : -1;
+      const nextStatus = statusIndexes[resultIndex + 1] ?? lines.length;
+      const statusLine = lines[statusIndex];
+      const normalizedStatus = canonical(statusLine);
+      const officialKey = statusLine.match(/gabarito[^:]*:\s*([A-E])/i)?.[1]?.toUpperCase() || "";
+      const tail = lines.slice(statusIndex + 1, nextStatus);
+      const relatedIndex = tail.findIndex((line) => canonical(line).includes("resumo relacionado"));
+      let comment = "";
+      if (relatedIndex >= 0) {
+        const related = tail.slice(relatedIndex + 1);
+        const stopIndex = related.findIndex((line, index) => (
+          index > 0 && (/^ano\s*:/i.test(line) || /^direito\s+/i.test(line))
+        ));
+        comment = related.slice(0, stopIndex >= 0 ? stopIndex : 4).join(" ").slice(0, 900);
+      }
+      return {
+        index: resultIndex,
+        correct: normalizedStatus.includes("parabens") && normalizedStatus.includes("acertou"),
+        status: normalizedStatus.includes("incorreta") ? "errado" : "certo",
+        officialKey,
+        segment: lines.slice(previousStatus + 1, statusIndex).join(" "),
+        comment
+      };
+    });
+  }
+
+  function matchResults(ocrResults, visualResults, questions) {
+    const sourceResults = ocrResults.length
+      ? ocrResults
+      : visualResults.map((_, index) => ({ index, status: "", correct: false, officialKey: "", segment: "", comment: "" }));
+    const usedQuestionIds = new Set();
+    return sourceResults.map((result, index) => {
+      const visual = visualResults[index] || {};
+      const ranked = (questions || [])
+        .filter((question) => !usedQuestionIds.has(question.id))
+        .map((question) => ({ question, score: questionMatchScore(result.segment, question) }))
+        .sort((a, b) => b.score - a.score);
+      const fallback = (questions || []).find((question) => !usedQuestionIds.has(question.id));
+      const best = ranked[0]?.score >= 0.28 ? ranked[0] : (questions?.[index] && !usedQuestionIds.has(questions[index].id)
+        ? { question: questions[index], score: 0 }
+        : (fallback ? { question: fallback, score: 0 } : null));
+      if (best?.question?.id) usedQuestionIds.add(best.question.id);
+      const questionKey = String(best?.question?.gabarito || "").toUpperCase();
+      const marked = visual.marked || (result.correct ? questionKey : "");
+      return {
+        index,
+        questionId: best?.question?.id || "",
+        matchScore: best?.score || 0,
+        matchMethod: best?.score >= 0.28 ? "texto" : "ordem",
+        marked,
+        officialKey: result.officialKey || questionKey,
+        status: result.status || (marked && questionKey ? (marked === questionKey ? "certo" : "errado") : "revisar"),
+        comment: result.comment || "",
+        visualConfidence: visual.confidence || "revisar",
+        segment: result.segment || ""
+      };
+    });
+  }
+
+  function loadOcrScript() {
+    if (globalThis.Tesseract?.createWorker) return Promise.resolve(globalThis.Tesseract);
+    if (globalThis.__ALDUS_TESSERACT_LOADING__) return globalThis.__ALDUS_TESSERACT_LOADING__;
+    globalThis.__ALDUS_TESSERACT_LOADING__ = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = OCR_SCRIPT_URL;
+      script.async = true;
+      script.crossOrigin = "anonymous";
+      script.addEventListener("load", () => resolve(globalThis.Tesseract));
+      script.addEventListener("error", () => reject(new Error("Não foi possível carregar o leitor de texto. A prévia visual continuará disponível.")));
+      document.head.append(script);
+    });
+    return globalThis.__ALDUS_TESSERACT_LOADING__;
+  }
+
+  async function recognizeText(file, onProgress) {
+    const Tesseract = await loadOcrScript();
+    if (!Tesseract?.createWorker) throw new Error("O leitor de texto não ficou disponível.");
+    const worker = await Tesseract.createWorker("por", 1, {
+      logger(message) {
+        if (message?.status && typeof onProgress === "function") onProgress(message);
+      }
+    });
+    try {
+      await worker.setParameters({ tessedit_pageseg_mode: Tesseract.PSM?.SINGLE_BLOCK || "6" });
+      const result = await worker.recognize(file);
+      return result?.data?.text || "";
+    } finally {
+      await worker.terminate();
+    }
+  }
+
+  async function fileFingerprint(file) {
+    if (!globalThis.crypto?.subtle) return `${file.name}|${file.size}|${file.lastModified}`;
+    const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+    return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+
+  async function readFile(file, options = {}) {
+    if (!file || !/png/i.test(file.type || file.name || "")) throw new Error("Selecione a captura original em PNG.");
+    const fingerprint = await fileFingerprint(file);
+    if (options.existingFingerprints?.has?.(fingerprint)) {
+      throw new Error("Esta captura já foi registrada anteriormente.");
+    }
+    options.onProgress?.({ status: "analisando marcações", progress: 0.05 });
+    const visual = await imageAnalysis(file);
+    let text = "";
+    let ocrError = "";
+    try {
+      text = await recognizeText(file, options.onProgress);
+    } catch (error) {
+      ocrError = error.message;
+    }
+    const ocrResults = parseOcrText(text);
+    const matches = matchResults(ocrResults, visual.answers, options.questions || []);
+    if (!matches.length) throw new Error("Não foi possível identificar resultados na captura.");
+    return {
+      fileName: file.name,
+      fingerprint,
+      width: visual.width,
+      height: visual.height,
+      visualAnswers: visual.answers,
+      ocrResults,
+      matches,
+      ocrError
+    };
+  }
+
+  globalThis.AldusQconcursosCaptureImport = Object.freeze({
+    analyzeImageData,
+    parseOcrText,
+    questionMatchScore,
+    matchResults,
+    fileFingerprint,
+    readFile
+  });
+})();
+
 /* Aldus source: script.js */
 const STORAGE_KEY = "metasConcursoData";
 const SIMULADOS_STORAGE_KEY = "metasEstudoSimulados";
@@ -38203,11 +38502,12 @@ const elements = {
   dashboardQuestionBankTotal: $("#dashboardQuestionBankTotal"), dashboardQuestionBankSessions: $("#dashboardQuestionBankSessions"), dashboardQuestionBankLast: $("#dashboardQuestionBankLast"), dashboardQuestionBankPackages: $("#dashboardQuestionBankPackages"), dashboardQuestionBankLinked: $("#dashboardQuestionBankLinked"), dashboardQuestionBankMissing: $("#dashboardQuestionBankMissing"),
   materialsTotal: $("#materialsTotal"), materialDisciplinesTotal: $("#materialDisciplinesTotal"), materialTopicsTotal: $("#materialTopicsTotal"), materialForm: $("#materialForm"), materialEditingId: $("#materialEditingId"), materialTitle: $("#materialTitle"), materialDate: $("#materialDate"), materialDiscipline: $("#materialDiscipline"), materialSubject: $("#materialSubject"), materialSyllabusItem: $("#materialSyllabusItem"), materialType: $("#materialType"), materialOrigin: $("#materialOrigin"), materialLink: $("#materialLink"), materialTags: $("#materialTags"), materialNotes: $("#materialNotes"), materialDisciplineOptions: $("#materialDisciplineOptions"), materialSubjectOptions: $("#materialSubjectOptions"), materialFilterDiscipline: $("#materialFilterDiscipline"), materialFilterSubject: $("#materialFilterSubject"), materialFilterType: $("#materialFilterType"), materialFilterOrigin: $("#materialFilterOrigin"), materialFilterText: $("#materialFilterText"), materialsList: $("#materialsList"), studyMaterial: $("#studyMaterial"),
   editFactoryPromptLibrary: $("#editFactoryPromptLibrary"), factoryForm: $("#factoryForm"), factoryEditingId: $("#factoryEditingId"), factoryDiscipline: $("#factoryDiscipline"), factoryTheme: $("#factoryTheme"), factorySubtheme: $("#factorySubtheme"), factoryPriority: $("#factoryPriority"), factoryPlannedDate: $("#factoryPlannedDate"), factoryStatus: $("#factoryStatus"), factorySourceFolder: $("#factorySourceFolder"), factoryDestinationFolder: $("#factoryDestinationFolder"), factoryFinalLink: $("#factoryFinalLink"), factoryLeiNome: $("#factoryLeiNome"), factoryLeiFonte: $("#factoryLeiFonte"), factoryLeiArtigos: $("#factoryLeiArtigos"), factoryLeiRecorte: $("#factoryLeiRecorte"), factoryLeiObservacoes: $("#factoryLeiObservacoes"), factoryNotes: $("#factoryNotes"), factorySummary: $("#factorySummary"), factoryFilterDiscipline: $("#factoryFilterDiscipline"), factoryFilterPriority: $("#factoryFilterPriority"), factoryFilterStatus: $("#factoryFilterStatus"), factoryFilterDate: $("#factoryFilterDate"), factoryFilterView: $("#factoryFilterView"), factoryFilterText: $("#factoryFilterText"), factoryList: $("#factoryList"), factoryPromptLibraryPanel: $("#factoryPromptLibraryPanel"),
-  qbSyllabusPackages: $("#qbSyllabusPackages"), qbSyllabusVerticalized: $("#qbSyllabusVerticalized"), qbPreviewSection: $("#qbPreviewSection"), qbSyllabusSummary: $("#qbSyllabusSummary"), qbPackagesSummary: $("#qbPackagesSummary"), qbFile: $("#qbFile"), qbPdfFile: $("#qbPdfFile"), qbPdfImportStatus: $("#qbPdfImportStatus"), qbPdfImportPreview: $("#qbPdfImportPreview"), qbPdfImportStats: $("#qbPdfImportStats"), qbPdfSyllabusItem: $("#qbPdfSyllabusItem"), qbPdfMappingType: $("#qbPdfMappingType"), qbPdfClassification: $("#qbPdfClassification"), qbPdfPreviewList: $("#qbPdfPreviewList"), qbPdfImportConfirm: $("#qbPdfImportConfirm"), qbPdfImportCancel: $("#qbPdfImportCancel"), qbNewTraining: $("#qbNewTraining"), qbRedoBlanks: $("#qbRedoBlanks"), qbExportBank: $("#qbExportBank"), qbExportResults: $("#qbExportResults"), qbClearBank: $("#qbClearBank"), qbMessage: $("#qbMessage"), qbStats: $("#qbStats"), qbDiagnostics: $("#qbDiagnostics"), qbTrainingScope: $("#qbTrainingScope"), qbReviewTypeWrapper: $("#qbReviewTypeWrapper"), qbReviewType: $("#qbReviewType"), qbFilterDiscipline: $("#qbFilterDiscipline"), qbFilterSubject: $("#qbFilterSubject"), qbFilterTheme: $("#qbFilterTheme"), qbFilterBoard: $("#qbFilterBoard"), qbFilterYear: $("#qbFilterYear"), qbFilterSearch: $("#qbFilterSearch"), qbTrainingLimit: $("#qbTrainingLimit"), qbShuffleTraining: $("#qbShuffleTraining"), qbStartTraining: $("#qbStartTraining"), qbPreviewFiltered: $("#qbPreviewFiltered"), qbFilteredPreview: $("#qbFilteredPreview"), qbTrainingPanel: $("#qbTrainingPanel"), qbTrainingCounter: $("#qbTrainingCounter"), qbTrainingProgress: $("#qbTrainingProgress"), qbQuestionCard: $("#qbQuestionCard"), qbResultPanel: $("#qbResultPanel"), qbResultSummary: $("#qbResultSummary"), qbResultDetails: $("#qbResultDetails"), qbErrorStats: $("#qbErrorStats"), qbErrorNotebookList: $("#qbErrorNotebookList"), qbErrorFilterDiscipline: $("#qbErrorFilterDiscipline"), qbErrorFilterSubject: $("#qbErrorFilterSubject"), qbErrorFilterStatus: $("#qbErrorFilterStatus"), qbErrorFilterReason: $("#qbErrorFilterReason"), qbStartErrorNotebook: $("#qbStartErrorNotebook"), qbReviewByDiscipline: $("#qbReviewByDiscipline"), qbReviewBySubject: $("#qbReviewBySubject"), qbToggleErrorHistory: $("#qbToggleErrorHistory"), qbErrorHistory: $("#qbErrorHistory"),
+  qbSyllabusPackages: $("#qbSyllabusPackages"), qbSyllabusVerticalized: $("#qbSyllabusVerticalized"), qbPreviewSection: $("#qbPreviewSection"), qbSyllabusSummary: $("#qbSyllabusSummary"), qbPackagesSummary: $("#qbPackagesSummary"), qbFile: $("#qbFile"), qbPdfFile: $("#qbPdfFile"), qbPdfImportStatus: $("#qbPdfImportStatus"), qbPdfImportPreview: $("#qbPdfImportPreview"), qbPdfImportStats: $("#qbPdfImportStats"), qbPdfSyllabusItem: $("#qbPdfSyllabusItem"), qbPdfMappingType: $("#qbPdfMappingType"), qbPdfClassification: $("#qbPdfClassification"), qbPdfPreviewList: $("#qbPdfPreviewList"), qbPdfImportConfirm: $("#qbPdfImportConfirm"), qbPdfImportCancel: $("#qbPdfImportCancel"), qbCaptureFile: $("#qbCaptureFile"), qbCaptureDate: $("#qbCaptureDate"), qbCaptureStatus: $("#qbCaptureStatus"), qbCaptureProgress: $("#qbCaptureProgress"), qbCapturePreview: $("#qbCapturePreview"), qbCaptureStats: $("#qbCaptureStats"), qbCapturePreviewList: $("#qbCapturePreviewList"), qbCaptureConfirm: $("#qbCaptureConfirm"), qbCaptureCancel: $("#qbCaptureCancel"), qbNewTraining: $("#qbNewTraining"), qbRedoBlanks: $("#qbRedoBlanks"), qbExportBank: $("#qbExportBank"), qbExportResults: $("#qbExportResults"), qbClearBank: $("#qbClearBank"), qbMessage: $("#qbMessage"), qbStats: $("#qbStats"), qbDiagnostics: $("#qbDiagnostics"), qbTrainingScope: $("#qbTrainingScope"), qbReviewTypeWrapper: $("#qbReviewTypeWrapper"), qbReviewType: $("#qbReviewType"), qbFilterDiscipline: $("#qbFilterDiscipline"), qbFilterSubject: $("#qbFilterSubject"), qbFilterTheme: $("#qbFilterTheme"), qbFilterBoard: $("#qbFilterBoard"), qbFilterYear: $("#qbFilterYear"), qbFilterSearch: $("#qbFilterSearch"), qbTrainingLimit: $("#qbTrainingLimit"), qbShuffleTraining: $("#qbShuffleTraining"), qbStartTraining: $("#qbStartTraining"), qbPreviewFiltered: $("#qbPreviewFiltered"), qbFilteredPreview: $("#qbFilteredPreview"), qbTrainingPanel: $("#qbTrainingPanel"), qbTrainingCounter: $("#qbTrainingCounter"), qbTrainingProgress: $("#qbTrainingProgress"), qbQuestionCard: $("#qbQuestionCard"), qbResultPanel: $("#qbResultPanel"), qbResultSummary: $("#qbResultSummary"), qbResultDetails: $("#qbResultDetails"), qbErrorStats: $("#qbErrorStats"), qbErrorNotebookList: $("#qbErrorNotebookList"), qbErrorFilterDiscipline: $("#qbErrorFilterDiscipline"), qbErrorFilterSubject: $("#qbErrorFilterSubject"), qbErrorFilterStatus: $("#qbErrorFilterStatus"), qbErrorFilterReason: $("#qbErrorFilterReason"), qbStartErrorNotebook: $("#qbStartErrorNotebook"), qbReviewByDiscipline: $("#qbReviewByDiscipline"), qbReviewBySubject: $("#qbReviewBySubject"), qbToggleErrorHistory: $("#qbToggleErrorHistory"), qbErrorHistory: $("#qbErrorHistory"),
   connectGoogleDrive: $("#connectGoogleDrive"), syncNowButton: $("#syncNow"), pushToCloud: $("#pushToCloud"), pullFromCloud: $("#pullFromCloud"), disconnectGoogleDrive: $("#disconnectGoogleDrive"), syncStatus: $("#syncStatus"),
   floatingTimer: $("#floatingTimer"), timerDiscipline: $("#timerDiscipline"), timerSubject: $("#timerSubject"), timerKind: $("#timerKind"), timerTime: $("#timerTime"), timerPauseResume: $("#timerPauseResume"), timerProgressBar: $("#timerProgressBar"), timerProgressText: $("#timerProgressText"), timerAlert: $("#timerAlert"), timerCompletion: $("#timerCompletion"), timerSettings: $("#timerSettings"), timerMode: $("#timerMode"), timerMotivationalToast: $("#timerMotivationalToast"), timerStudyModal: $("#timerStudyModal"), timerStudyForm: $("#timerStudyForm"), timerStudyStartedAt: $("#timerStudyStartedAt"), timerStudyEndedAt: $("#timerStudyEndedAt"), timerStudySessionTime: $("#timerStudySessionTime"), timerStudySessionMode: $("#timerStudySessionMode"), timerStudyMinutes: $("#timerStudyMinutes"), timerStudyDiscipline: $("#timerStudyDiscipline"), timerStudySubject: $("#timerStudySubject"), timerStudyMaterial: $("#timerStudyMaterial"), timerStudyNotes: $("#timerStudyNotes"), timerStudyUpdateGoal: $("#timerStudyUpdateGoal"), timerStudyFeedAnalytics: $("#timerStudyFeedAnalytics"), timerStudyFeedAdvisor: $("#timerStudyFeedAdvisor"), addManualTime: $("#addManualTime"), timeUndoNotice: $("#timeUndoNotice"), undoTimeAction: $("#undoTimeAction")
 };
 elements.studyDate.value = todayISO();
+if (elements.qbCaptureDate) elements.qbCaptureDate.value = todayISO();
 elements.goalDate.value = todayISO();
 if (elements.chooseSubjectForDayDate) elements.chooseSubjectForDayDate.value = todayISO();
 elements.questionDate.value = todayISO();
@@ -41785,12 +42085,13 @@ function saveMaterial(event) {
 let questionBankTraining = null;
 let qbPreviewVisible = false;
 let qbPdfImportDraft = null;
+let qbCaptureImportDraft = null;
 const QB_MARK_BLANK = "__blank__";
 const QB_MARK_DOUBT = "__doubt__";
 function normalizeQuestionBankAnswer(value) { if (value === true) return "C"; if (value === false) return "E"; const raw = canonical(String(value ?? "")).replace(/[^a-z]/g, ""); if (["c","certo","correto","verdadeiro","v"].includes(raw)) return "C"; if (["e","errado","incorreto","falso","f"].includes(raw)) return "E"; if (/^[abcde]$/.test(raw)) return raw.toUpperCase(); return ""; }
 function normalizeQuestionBankAlternatives(raw = {}) { const source = raw?.alternativas ?? raw?.alternatives ?? raw?.options ?? {}; if (Array.isArray(source)) return source.reduce((acc, option, index) => { const key = String(option?.letra || option?.key || option?.id || String.fromCharCode(65 + index)).toUpperCase(); const text = String(option?.texto ?? option?.text ?? option ?? "").trim(); if (/^[A-E]$/.test(key) && text) acc[key] = text; return acc; }, {}); if (!source || typeof source !== "object") return {}; return Object.entries(source).reduce((acc, [key, value]) => { const normalizedKey = String(key).trim().toUpperCase(); const text = String(value?.texto ?? value?.text ?? value ?? "").trim(); if (/^[A-E]$/.test(normalizedKey) && text) acc[normalizedKey] = text; return acc; }, {}); }
 function questionBankExplanation(raw = {}) { return String(raw.justificativa ?? raw.fundamento ?? raw.comentario ?? raw.comentário ?? raw.explanation ?? raw.notes ?? raw.observacoes ?? raw.observations ?? "").trim(); }
-function normalizeQuestionBankItem(raw = {}, index = 0) { const justificativa = questionBankExplanation(raw); const alternativas = normalizeQuestionBankAlternatives(raw); return { id: String(raw.id || raw.codigo || raw.referencia || `qb-${index + 1}-${createId()}`), disciplina: String(raw.disciplina || raw.discipline || "Sem disciplina"), assunto: String(raw.assunto || raw.subject || raw.topico || raw.topic || "Sem assunto"), tema: String(raw.tema || raw.theme || raw.subassunto || raw.subtopic || "Geral"), syllabusItemId: String(raw.syllabusItemId || ""), banca: String(raw.banca || raw.board || ""), ano: raw.ano || raw.year || "", orgao: String(raw.orgao || raw.agency || ""), cargo: String(raw.cargo || raw.role || ""), prova: String(raw.prova || raw.exam || ""), referencia: String(raw.referencia || raw.reference || raw.codigo || ""), tipo: String(raw.tipo || raw.type || (Object.keys(alternativas).length ? "Múltipla escolha" : "Certo/Errado")), enunciado: String(raw.enunciado || raw.statement || raw.texto || raw.question || ""), alternativas, gabarito: normalizeQuestionBankAnswer(raw.gabarito ?? raw.resposta ?? raw.answer ?? raw.correctAnswer), justificativa, fundamento: justificativa, observacoes: String(raw.observacoes || raw.notes || ""), tags: Array.isArray(raw.tags) ? raw.tags : [], fonte: String(raw.fonte || raw.source || ""), arquivoFonte: String(raw.arquivoFonte || raw.sourceFileName || ""), qcCodigo: String(raw.qcCodigo || raw.codigoQc || ""), qcNumeroNoArquivo: raw.qcNumeroNoArquivo || "", qcDisciplina: String(raw.qcDisciplina || ""), qcAssunto: String(raw.qcAssunto || ""), qcClassificacao: String(raw.qcClassificacao || ""), correspondenciaQc: String(raw.correspondenciaQc || "") }; }
+function normalizeQuestionBankItem(raw = {}, index = 0) { const justificativa = questionBankExplanation(raw); const alternativas = normalizeQuestionBankAlternatives(raw); return { id: String(raw.id || raw.codigo || raw.referencia || `qb-${index + 1}-${createId()}`), disciplina: String(raw.disciplina || raw.discipline || "Sem disciplina"), assunto: String(raw.assunto || raw.subject || raw.topico || raw.topic || "Sem assunto"), tema: String(raw.tema || raw.theme || raw.subassunto || raw.subtopic || "Geral"), syllabusItemId: String(raw.syllabusItemId || ""), banca: String(raw.banca || raw.board || ""), ano: raw.ano || raw.year || "", orgao: String(raw.orgao || raw.agency || ""), cargo: String(raw.cargo || raw.role || ""), prova: String(raw.prova || raw.exam || ""), referencia: String(raw.referencia || raw.reference || raw.codigo || ""), tipo: String(raw.tipo || raw.type || (Object.keys(alternativas).length ? "Múltipla escolha" : "Certo/Errado")), enunciado: String(raw.enunciado || raw.statement || raw.texto || raw.question || ""), alternativas, gabarito: normalizeQuestionBankAnswer(raw.gabarito ?? raw.resposta ?? raw.answer ?? raw.correctAnswer), justificativa, fundamento: justificativa, comentarioQc: String(raw.comentarioQc || ""), observacoes: String(raw.observacoes || raw.notes || ""), tags: Array.isArray(raw.tags) ? raw.tags : [], fonte: String(raw.fonte || raw.source || ""), arquivoFonte: String(raw.arquivoFonte || raw.sourceFileName || ""), capturaFonte: String(raw.capturaFonte || ""), qcCodigo: String(raw.qcCodigo || raw.codigoQc || ""), qcNumeroNoArquivo: raw.qcNumeroNoArquivo || "", qcDisciplina: String(raw.qcDisciplina || ""), qcAssunto: String(raw.qcAssunto || ""), qcClassificacao: String(raw.qcClassificacao || ""), correspondenciaQc: String(raw.correspondenciaQc || "") }; }
 function questionBankFromPayload(payload) { const source = Array.isArray(payload) ? payload : payload?.questionBank || payload?.questoes || payload?.questions || payload?.items || []; return Array.isArray(source) ? source.map(normalizeQuestionBankItem).filter((q) => q.enunciado.trim()) : []; }
 
 function qbSafePartialMatch(a, b) {
@@ -41867,7 +42168,7 @@ function qbIsBlankMark(q, mark = q?.marcado) { return !mark || mark === QB_MARK_
 function qbIsDoubtMark(q, mark = q?.marcado) { return mark === QB_MARK_DOUBT || (!qbIsMultipleChoice(q) && mark === "D"); }
 function qbIsAnswerChoice(q, mark = q?.marcado) { return qbChoiceKeys(q).includes(mark); }
 function qbMarkedAnswerLabel(q, mark = q?.marcado) { if (qbIsBlankMark(q, mark)) return "Branco"; if (qbIsDoubtMark(q, mark)) return "Dúvida"; return mark || "-"; }
-function qbExplanation(q) { return String(q?.justificativa || q?.fundamento || q?.comentario || q?.comentário || q?.explanation || q?.notes || "").trim(); }
+function qbExplanation(q) { return String(q?.justificativa || q?.fundamento || q?.comentario || q?.comentário || q?.comentarioQc || q?.explanation || q?.notes || "").trim(); }
 function qbExplanationText(q) { return qbExplanation(q) || "Sem justificativa cadastrada"; }
 function qbAnswerStatus(q) { if (qbIsDoubtMark(q)) return "duvida"; if (qbIsBlankMark(q)) return "branco"; if (!qbHasKey(q)) return "sem gabarito"; return q.marcado === q.gabarito ? "certo" : "errado"; }
 function qbActiveSyllabusItems() { return (state.syllabusItems || []).filter((item) => canonical(item.status || item.situacao) !== "ignorado"); }
@@ -41946,6 +42247,223 @@ function qbRenderPdfSyllabusOptions() { if(!elements.qbPdfSyllabusItem) return; 
 function qbRenderPdfImportPreview() { if(!qbPdfImportDraft || !elements.qbPdfImportPreview) return; const questions=qbPdfUniqueQuestions(qbPdfImportDraft.questions); const existing=qbPdfExistingIds(); const duplicates=questions.filter((question)=>existing.has(canonical(question.id))).length; const multiple=questions.filter(qbIsMultipleChoice).length; const classifications=qbUnique(questions.map((question)=>question.qcClassificacao)); elements.qbPdfImportPreview.hidden=false; elements.qbPdfImportStats.innerHTML=[["Páginas",qbPdfImportDraft.pageCount],["Questões",questions.length],["Já existentes",duplicates],["Múltipla escolha",multiple]].map(([label,value])=>`<article class="qb-pdf-import-stat"><span>${label}</span><strong>${value}</strong></article>`).join(""); qbRenderPdfSyllabusOptions(); elements.qbPdfClassification.textContent=`Classificação encontrada no PDF: ${classifications.join(" • ") || "não identificada"}. Os códigos já existentes serão ignorados.`; elements.qbPdfPreviewList.innerHTML=questions.slice(0,12).map((question)=>`<article class="qb-pdf-preview-item"><strong>${escapeHTML(question.id)} • ${escapeHTML(question.tipo)}</strong><p>${escapeHTML(question.qcDisciplina||question.disciplina)} — ${escapeHTML(question.qcAssunto||question.assunto)}</p><p>${escapeHTML(String(question.enunciado||"").slice(0,180))}${String(question.enunciado||"").length>180?"…":""}</p></article>`).join("")+(questions.length>12?`<p class="item-meta">Mais ${questions.length-12} questão(ões) identificada(s).</p>`:""); elements.qbPdfImportStatus.textContent=`Prévia pronta: ${questions.length-duplicates} questão(ões) nova(s) e ${duplicates} já existente(s).`; }
 async function qbReadPdfImportFile(file) { if(!file) return; qbResetPdfImport("Lendo e organizando o PDF no seu aparelho…"); try { const importer=globalThis.AldusQconcursosPdfImport; if(!importer?.readFile) throw new Error("O leitor local de PDF não foi carregado."); const parsed=await importer.readFile(file); qbPdfImportDraft={fileName:file.name,pageCount:parsed.pageCount,questions:parsed.questions}; qbRenderPdfImportPreview(); } catch(error) { qbResetPdfImport(`Erro ao ler o PDF: ${error.message}`); } }
 function qbConfirmPdfImport() { if(!qbPdfImportDraft) return; const existing=qbPdfExistingIds(); const syllabusItem=elements.qbPdfSyllabusItem?.value ? getSyllabusById(elements.qbPdfSyllabusItem.value) : null; const relation=elements.qbPdfMappingType?.value || "same"; const incoming=qbPdfUniqueQuestions(qbPdfImportDraft.questions).filter((question)=>!existing.has(canonical(question.id))).map((question,index)=>normalizeQuestionBankItem({ ...question, disciplina:syllabusItem ? qbItemDiscipline(syllabusItem) : (question.qcDisciplina||question.disciplina), assunto:syllabusItem ? (syllabusItem.subject||syllabusItem.assunto||syllabusItem.topic) : (question.qcAssunto||question.assunto), tema:syllabusItem ? (syllabusItem.subtopic||syllabusItem.subassunto||syllabusItem.subject||syllabusItem.assunto) : (question.qcAssunto||question.tema), syllabusItemId:syllabusItem?.id||"", correspondenciaQc:relation, arquivoFonte:qbPdfImportDraft.fileName },index)); if(!incoming.length){ qbResetPdfImport("Nenhuma questão nova para adicionar; todos os códigos já existem no banco."); return; } state.questionBank=[...(state.questionBank||[]),...incoming]; saveData(); renderQuestionBank(); const message=`${incoming.length} questão(ões) nova(s) adicionada(s). Banco atual: ${state.questionBank.length}.`; qbResetPdfImport(message); if(elements.qbMessage) elements.qbMessage.textContent=message; }
+function qbSetCaptureProgress(value = 0, message = "") {
+  const progress = Math.max(0, Math.min(1, Number(value) || 0));
+  if (elements.qbCaptureProgress) elements.qbCaptureProgress.style.width = `${Math.round(progress * 100)}%`;
+  if (message && elements.qbCaptureStatus) elements.qbCaptureStatus.textContent = message;
+}
+function qbResetCaptureImport(message = "Nenhuma captura selecionada.") {
+  qbCaptureImportDraft = null;
+  if (elements.qbCaptureFile) elements.qbCaptureFile.value = "";
+  if (elements.qbCapturePreview) elements.qbCapturePreview.hidden = true;
+  if (elements.qbCapturePreviewList) elements.qbCapturePreviewList.innerHTML = "";
+  if (elements.qbCaptureStatus) elements.qbCaptureStatus.textContent = message;
+  qbSetCaptureProgress(0);
+}
+function qbCaptureQuestionLabel(question) {
+  const reference = question.qcCodigo || question.referencia || question.id;
+  return `${reference ? `${reference} • ` : ""}${question.disciplina} — ${question.assunto}`;
+}
+function qbCaptureQuestionOptions(selectedId = "") {
+  const questions = (state.questionBank || []).slice().sort((a, b) => qbCaptureQuestionLabel(a).localeCompare(qbCaptureQuestionLabel(b), "pt-BR"));
+  return '<option value="">Selecione a questão correspondente</option>' + questions.map((question) => (
+    `<option value="${escapeHTML(question.id)}" ${question.id === selectedId ? "selected" : ""}>${escapeHTML(qbCaptureQuestionLabel(question))}</option>`
+  )).join("");
+}
+function qbCaptureAnswerOptions(selected = "", includeEmpty = true) {
+  const options = includeEmpty ? [["", "Não identificado"], [QB_MARK_BLANK, "Branco"]] : [["", "Sem gabarito"]];
+  ["A", "B", "C", "D", "E"].forEach((key) => options.push([key, key]));
+  return options.map(([value, label]) => `<option value="${escapeHTML(value)}" ${value === selected ? "selected" : ""}>${label}</option>`).join("");
+}
+function qbCaptureStatusOptions(selected = "revisar") {
+  return [["certo", "Certo"], ["errado", "Errado"], ["branco", "Branco"], ["revisar", "Revisar antes de salvar"]]
+    .map(([value, label]) => `<option value="${value}" ${value === selected ? "selected" : ""}>${label}</option>`)
+    .join("");
+}
+function qbRenderCapturePreview() {
+  if (!qbCaptureImportDraft || !elements.qbCapturePreview) return;
+  const matches = qbCaptureImportDraft.matches || [];
+  const textMatches = matches.filter((match) => match.matchMethod === "texto").length;
+  const reviewed = matches.filter((match) => match.status !== "revisar").length;
+  elements.qbCapturePreview.hidden = false;
+  elements.qbCaptureStats.innerHTML = [
+    ["Dimensões", `${qbCaptureImportDraft.width} × ${qbCaptureImportDraft.height}`],
+    ["Resultados", matches.length],
+    ["Situação identificada", reviewed],
+    ["Vínculos por texto", textMatches]
+  ].map(([label, value]) => `<article class="qb-pdf-import-stat"><span>${label}</span><strong>${escapeHTML(value)}</strong></article>`).join("");
+  elements.qbCapturePreviewList.innerHTML = matches.map((match, index) => {
+    const confidence = match.matchMethod === "texto" ? `${Math.round(match.matchScore * 100)}% por texto` : "sugerido pela ordem";
+    return `<article class="qb-capture-row" data-qb-capture-row="${index}">
+      <div class="qb-capture-row-heading">
+        <label class="qb-check"><input type="checkbox" data-qb-capture-include checked /> Incluir resultado ${index + 1}</label>
+        <span class="badge neutral">${escapeHTML(confidence)}</span>
+      </div>
+      <div class="qb-capture-row-grid">
+        <label>Questão no banco
+          <select data-qb-capture-question>${qbCaptureQuestionOptions(match.questionId)}</select>
+        </label>
+        <label>Resposta marcada
+          <select data-qb-capture-marked>${qbCaptureAnswerOptions(match.marked)}</select>
+        </label>
+        <label>Gabarito
+          <select data-qb-capture-key>${qbCaptureAnswerOptions(match.officialKey, false)}</select>
+        </label>
+        <label>Resultado
+          <select data-qb-capture-status>${qbCaptureStatusOptions(match.status)}</select>
+        </label>
+      </div>
+      <label>Comentário ou resumo visível na captura
+        <textarea data-qb-capture-comment placeholder="Opcional; revise o texto identificado antes de salvar.">${escapeHTML(match.comment || "")}</textarea>
+      </label>
+    </article>`;
+  }).join("");
+  const warning = qbCaptureImportDraft.ocrError ? ` A leitura de texto ficou parcial: ${qbCaptureImportDraft.ocrError}` : "";
+  elements.qbCaptureStatus.textContent = `Prévia pronta com ${matches.length} resultado(s). Confira todos os vínculos antes de registrar.${warning}`;
+  qbSetCaptureProgress(1);
+}
+async function qbReadCaptureImportFile(file) {
+  if (!file) return;
+  qbResetCaptureImport("Analisando a captura no seu aparelho…");
+  if (!(state.questionBank || []).length) {
+    qbResetCaptureImport("Importe primeiro as questões por PDF ou JSON; a captura registra resultados em questões já existentes.");
+    return;
+  }
+  try {
+    const importer = globalThis.AldusQconcursosCaptureImport;
+    if (!importer?.readFile) throw new Error("O leitor de captura não foi carregado.");
+    const filtered = qbFilteredQuestions();
+    const questions = filtered.length ? filtered : (state.questionBank || []);
+    const existingFingerprints = new Set((state.questionBankSessions || []).map((session) => session.sourceFingerprint).filter(Boolean));
+    qbSetCaptureProgress(0.02, "Preparando a leitura local…");
+    const parsed = await importer.readFile(file, {
+      questions,
+      existingFingerprints,
+      onProgress(message = {}) {
+        const progress = Math.max(0.08, Number(message.progress) || 0);
+        qbSetCaptureProgress(progress, `Reconhecendo marcações e resultados… ${Math.round(progress * 100)}%`);
+      }
+    });
+    qbCaptureImportDraft = { ...parsed, fileName: file.name };
+    qbRenderCapturePreview();
+  } catch (error) {
+    qbResetCaptureImport(`Erro ao ler a captura: ${error.message}`);
+  }
+}
+function qbCaptureRowsForConfirmation() {
+  return [...(elements.qbCapturePreviewList?.querySelectorAll("[data-qb-capture-row]") || [])]
+    .filter((row) => row.querySelector("[data-qb-capture-include]")?.checked)
+    .map((row, index) => {
+      const questionId = row.querySelector("[data-qb-capture-question]")?.value || "";
+      const question = qbQuestionById(questionId);
+      const marked = row.querySelector("[data-qb-capture-marked]")?.value || "";
+      const officialKey = row.querySelector("[data-qb-capture-key]")?.value || "";
+      const status = row.querySelector("[data-qb-capture-status]")?.value || "revisar";
+      const comment = row.querySelector("[data-qb-capture-comment]")?.value.trim() || "";
+      return { index, questionId, question, marked, officialKey, status, comment };
+    });
+}
+function qbValidateCaptureRows(rows) {
+  if (!rows.length) return "Selecione ao menos um resultado para registrar.";
+  if (rows.some((row) => !row.question)) return "Há resultado sem questão vinculada.";
+  if (new Set(rows.map((row) => row.questionId)).size !== rows.length) return "A mesma questão foi vinculada a mais de um resultado.";
+  for (const row of rows) {
+    if (row.status === "revisar") return `Revise a situação da questão ${row.index + 1} antes de salvar.`;
+    const choices = qbChoiceKeys(row.question);
+    if (row.marked && row.marked !== QB_MARK_BLANK && !choices.includes(row.marked)) return `A resposta marcada na questão ${row.index + 1} não corresponde ao tipo da questão.`;
+    if (row.officialKey && !choices.includes(row.officialKey)) return `O gabarito da questão ${row.index + 1} não corresponde ao tipo da questão.`;
+    if (["certo", "errado"].includes(row.status) && (!row.marked || row.marked === QB_MARK_BLANK || !row.officialKey)) return `Informe resposta e gabarito na questão ${row.index + 1}.`;
+    if (row.status === "certo" && row.marked !== row.officialKey) return `Na questão ${row.index + 1}, o resultado está como certo, mas resposta e gabarito são diferentes.`;
+    if (row.status === "errado" && row.marked === row.officialKey) return `Na questão ${row.index + 1}, o resultado está como errado, mas resposta e gabarito são iguais.`;
+  }
+  return "";
+}
+function qbCaptureCreatedAt(dateValue) {
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(dateValue || "") ? new Date(`${dateValue}T12:00:00`) : new Date();
+  return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
+}
+function qbCaptureSummary(items) {
+  const summary = items.reduce((result, item) => {
+    if (item.status === "certo") result.correct += 1;
+    else if (item.status === "errado") result.wrong += 1;
+    else if (item.status === "branco") result.blank += 1;
+    if (!qbIsMultipleChoice(item) && item.status === "certo") result.ceCorrect += 1;
+    if (!qbIsMultipleChoice(item) && item.status === "errado") result.ceWrong += 1;
+    return result;
+  }, { total: items.length, correct: 0, wrong: 0, blank: 0, doubt: 0, ceCorrect: 0, ceWrong: 0 });
+  summary.net = summary.ceCorrect - summary.ceWrong;
+  summary.accuracyPct = summary.correct + summary.wrong ? Math.round(summary.correct / (summary.correct + summary.wrong) * 100) : 0;
+  return summary;
+}
+function qbConfirmCaptureImport() {
+  if (!qbCaptureImportDraft) return;
+  if ((state.questionBankSessions || []).some((session) => session.sourceFingerprint === qbCaptureImportDraft.fingerprint)) {
+    qbResetCaptureImport("Esta captura já foi registrada anteriormente.");
+    return;
+  }
+  const rows = qbCaptureRowsForConfirmation();
+  const validation = qbValidateCaptureRows(rows);
+  if (validation) {
+    elements.qbCaptureStatus.textContent = validation;
+    return;
+  }
+  const enriched = rows.map((row) => {
+    const marked = row.status === "branco" ? QB_MARK_BLANK : row.marked;
+    return {
+      ...row.question,
+      marcado: marked,
+      gabarito: row.officialKey || row.question.gabarito || "",
+      status: row.status,
+      comentarioQc: row.comment,
+      capturaFonte: qbCaptureImportDraft.fileName
+    };
+  });
+  enriched.forEach((item) => {
+    const bankQuestion = qbQuestionById(item.id);
+    if (!bankQuestion) return;
+    if (!bankQuestion.gabarito && item.gabarito) bankQuestion.gabarito = item.gabarito;
+    if (!bankQuestion.comentarioQc && item.comentarioQc) bankQuestion.comentarioQc = item.comentarioQc;
+    bankQuestion.capturaFonte = qbCaptureImportDraft.fileName;
+  });
+  const summary = qbCaptureSummary(enriched);
+  const session = {
+    id: createId(),
+    createdAt: qbCaptureCreatedAt(elements.qbCaptureDate?.value),
+    origin: "qconcursos-captura",
+    arquivoFonte: qbCaptureImportDraft.fileName,
+    sourceFingerprint: qbCaptureImportDraft.fingerprint,
+    hasAnyKey: enriched.some(qbHasKey),
+    hasCebraspeNet: enriched.some((item) => qbHasKey(item) && !qbIsMultipleChoice(item)),
+    summary,
+    items: enriched.map((item) => ({
+      id: item.id,
+      syllabusItemId: item.syllabusItemId || resolvePlanningEvidenceItemIdV155(state, item),
+      disciplina: item.disciplina,
+      assunto: item.assunto,
+      tema: item.tema,
+      banca: item.banca,
+      ano: item.ano,
+      referencia: item.referencia,
+      tipo: item.tipo,
+      marcado: item.marcado,
+      gabarito: item.gabarito,
+      status: item.status,
+      comentarioQc: item.comentarioQc,
+      justificativa: qbExplanationText(item),
+      fundamento: qbExplanationText(item)
+    }))
+  };
+  state.questionBankSessions.unshift(session);
+  qbSaveNotebookItems(enriched.filter((item) => item.status === "errado" || item.status === "branco"));
+  saveData();
+  renderQuestionBank();
+  qbRenderResult(session);
+  elements.qbTrainingPanel.hidden = true;
+  elements.qbResultPanel.hidden = false;
+  const message = `${summary.total} resultado(s) registrado(s): ${summary.correct} acerto(s), ${summary.wrong} erro(s) e ${summary.blank} em branco.`;
+  qbResetCaptureImport(message);
+  if (elements.qbMessage) elements.qbMessage.textContent = message;
+}
 function renderQbDiagnostics() { if (!elements.qbDiagnostics) return; const packages = qbSyllabusPackages(); const withQuestions = packages.filter((pkg)=>pkg.questions.length).map((pkg)=>`${pkg.discipline} (${pkg.questions.length})`); const withoutQuestions = packages.filter((pkg)=>!pkg.questions.length).map((pkg)=>pkg.discipline); const missingSubjects = packages.flatMap((pkg)=>pkg.missing.map((item)=>`${pkg.discipline} — ${item.subject || item.assunto || item.topic || "Assunto"}`)); elements.qbDiagnostics.innerHTML = `<article class="question-bank-item qb-diagnostics-card"><header><h4>Diagnóstico do edital no banco</h4><span class="badge neutral">${packages.length} disciplina(s)</span></header><div class="qb-diagnostics-grid"><section><h5>Disciplinas do edital com questões</h5>${qbLimitedList(withQuestions, "nenhuma")}</section><section><h5>Disciplinas do edital sem questões</h5>${qbLimitedList(withoutQuestions, "nenhuma")}</section><section><h5>Assuntos do edital sem questões</h5>${qbLimitedList(missingSubjects, "nenhum")}</section></div></article>`; }
 function qbShuffle(list) { const copy=[...list]; for(let i=copy.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [copy[i],copy[j]]=[copy[j],copy[i]];} return copy; }
 function qbStart(items = qbFilteredQuestions(), options = {}) { if (!items.length) return alert(qbSelectedZeroDisciplineMessage() || "Nenhuma questão encontrada com os filtros atuais."); if (elements.qbShuffleTraining?.checked) items = qbShuffle(items); items = items.slice(0, Math.max(1, Number(elements.qbTrainingLimit?.value) || items.length)); questionBankTraining = { id:createId(), createdAt:new Date().toISOString(), index:0, items, answers:{}, cadernoRegistrado:{}, mode:options.mode || "default" }; elements.qbTrainingPanel.hidden = false; elements.qbResultPanel.hidden = true; qbRenderQuestion(); }
@@ -44840,6 +45358,9 @@ elements.questionHistoryBody.addEventListener("click", (event) => { const edit =
 elements.qbPdfFile?.addEventListener("change", (event) => qbReadPdfImportFile(event.target.files?.[0]));
 elements.qbPdfImportConfirm?.addEventListener("click", qbConfirmPdfImport);
 elements.qbPdfImportCancel?.addEventListener("click", () => qbResetPdfImport());
+elements.qbCaptureFile?.addEventListener("change", (event) => qbReadCaptureImportFile(event.target.files?.[0]));
+elements.qbCaptureConfirm?.addEventListener("click", qbConfirmCaptureImport);
+elements.qbCaptureCancel?.addEventListener("click", () => qbResetCaptureImport());
 elements.qbFile?.addEventListener("change", async (event) => { const file=event.target.files?.[0]; if(!file) return; try { const incoming=questionBankFromPayload(JSON.parse(await file.text())); if(!incoming.length) throw new Error("Nenhuma questão válida encontrada no JSON."); const map=new Map((state.questionBank||[]).map(q=>[q.id,q])); incoming.forEach(q=>map.set(q.id,q)); state.questionBank=[...map.values()]; elements.qbMessage.textContent=`${incoming.length} questão(ões) importada(s). Banco atual: ${state.questionBank.length}.`; saveData(); renderQuestionBank(); } catch(error) { elements.qbMessage.textContent=`Erro ao importar: ${error.message}`; } finally { event.target.value=""; } });
 elements.qbStartTraining?.addEventListener("click", () => qbStart());
 elements.qbNewTraining?.addEventListener("click", () => { elements.qbResultPanel.hidden = true; qbStart(); });

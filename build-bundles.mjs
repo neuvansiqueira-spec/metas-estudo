@@ -82,6 +82,7 @@ const cssSources = [
   "aldus-completed-visibility-v76.css",
   "aldus-question-register-v180.css",
   "question-bank-pdf-import-v181.css",
+  "question-bank-capture-import-v182.css",
   "factory-visibility-v122.css",
   "aldus-desktop-refinement-v178.css"
 ];
@@ -101,6 +102,7 @@ const jsSources = [
   "pcpr-pcma-2026-catalog.js",
   "pcpr-pcma-2026-migration.js",
   "qconcursos-pdf-import-v181.js",
+  "qconcursos-capture-import-v182.js",
   "script.js",
   "question-accuracy-spectrum.js",
   "timer-material-link-fix.js",
@@ -202,7 +204,8 @@ for (const filename of [
   "question-register-simple-v162.js", "factory-simple-v163.js",
   "factory-polish-v164.js", "aldus-desktop-refinement-v178.css",
   "aldus-question-register-v180.css", "qconcursos-pdf-import-v181.js",
-  "question-bank-pdf-import-v181.css"
+  "question-bank-pdf-import-v181.css", "qconcursos-capture-import-v182.js",
+  "question-bank-capture-import-v182.css"
 ]) {
   fs.copyFileSync(path.join(root, filename), path.join(root, "docs", filename));
 }
