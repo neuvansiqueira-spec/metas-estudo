@@ -67,7 +67,7 @@ test("interface oferece prévia, vínculo análogo e deduplicação sem remover 
   assert.match(script, /const QB_MARK_BLANK = "__blank__"/);
   assert.match(script, /function qbIsMultipleChoice/);
   assert.match(script, /Object\.keys\(q\?\.alternativas \|\| \{\}\)/);
-  assert.match(script, /if \(qbIsMultipleChoice\(q\)\) return keys\.length \? keys : \["A","B","C","D","E"\]/);
+  assert.match(script, /if \(qbIsMultipleChoice\(q\)\) return keys\.length >= 2 \? keys : \["A","B","C","D","E"\]/);
   assert.match(build, /qconcursos-pdf-import-v181\.js/);
   assert.match(build, /question-bank-pdf-import-v181\.css/);
   assert.match(worker, /vendor\/pdf\.worker\.mjs/);

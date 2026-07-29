@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20260729-feedback-validacao-captura-v169";
+const CURRENT_VERSION = "20260729-captura-multipla-escolha-v169";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 const STATIC_ASSETS = [
   "./",

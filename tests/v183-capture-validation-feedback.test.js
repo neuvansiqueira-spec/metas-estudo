@@ -30,7 +30,8 @@ test("validação da captura aparece junto ao botão e direciona ao campo incons
 test("alterar um campo remove o destaque antigo e preserva nova validação no próximo envio", () => {
   const script = read("script.js");
   assert.match(script, /qbCapturePreviewList\?\.addEventListener\("input", qbClearCaptureValidation\)/);
-  assert.match(script, /qbCapturePreviewList\?\.addEventListener\("change", qbClearCaptureValidation\)/);
+  assert.match(script, /qbCapturePreviewList\?\.addEventListener\("change", \(event\) =>/);
+  assert.match(script, /qbClearCaptureValidation\(\);\n\}\);/);
   assert.match(script, /const validationIssue = qbValidateCaptureRows\(rows\)/);
   assert.match(script, /qbShowCaptureValidation\(validationIssue\)/);
 });
@@ -41,12 +42,13 @@ test("inconsistência certo com resposta diferente do gabarito é executada e ap
     QB_MARK_BLANK: "__blank__",
     qbChoiceKeys: () => ["C", "E"]
   };
-  vm.runInNewContext(between(source, "qbValidateCaptureRows", "qbClearCaptureValidation"), context);
+  vm.runInNewContext(between(source, "qbCaptureChoiceKeys", "qbClearCaptureValidation"), context);
 
   const inconsistent = context.qbValidateCaptureRows([{
     displayIndex: 5,
     question: { id: "Q5" },
     questionId: "Q5",
+    questionType: "ce",
     marked: "C",
     officialKey: "E",
     status: "certo"
@@ -58,6 +60,7 @@ test("inconsistência certo com resposta diferente do gabarito é executada e ap
     displayIndex: 5,
     question: { id: "Q5" },
     questionId: "Q5",
+    questionType: "ce",
     marked: "C",
     officialKey: "C",
     status: "certo"
