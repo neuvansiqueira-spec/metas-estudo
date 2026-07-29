@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260729-cores-semanticas-metas-v169",
+  "version": "20260729-refinamento-desktop-v169",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260729-cores-semanticas-metas-v169";
+  const VERSION = "20260729-refinamento-desktop-v169";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -49368,7 +49368,7 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
 (() => {
   "use strict";
 
-  const PATCH_VERSION = "20260729-cores-semanticas-metas-v169";
+  const PATCH_VERSION = "20260729-refinamento-desktop-v169";
   const CHECK_INTERVAL_MS = 15 * 60 * 1000;
   const BANNER_ID = "aldusUpdateBannerV169";
   const DIRTY_ATTRIBUTE = "data-aldus-user-edited-v169";
