@@ -1846,6 +1846,7 @@ const elements = {
   materialsTotal: $("#materialsTotal"), materialDisciplinesTotal: $("#materialDisciplinesTotal"), materialTopicsTotal: $("#materialTopicsTotal"), materialForm: $("#materialForm"), materialEditingId: $("#materialEditingId"), materialTitle: $("#materialTitle"), materialDate: $("#materialDate"), materialDiscipline: $("#materialDiscipline"), materialSubject: $("#materialSubject"), materialSyllabusItem: $("#materialSyllabusItem"), materialType: $("#materialType"), materialOrigin: $("#materialOrigin"), materialLink: $("#materialLink"), materialTags: $("#materialTags"), materialNotes: $("#materialNotes"), materialDisciplineOptions: $("#materialDisciplineOptions"), materialSubjectOptions: $("#materialSubjectOptions"), materialFilterDiscipline: $("#materialFilterDiscipline"), materialFilterSubject: $("#materialFilterSubject"), materialFilterType: $("#materialFilterType"), materialFilterOrigin: $("#materialFilterOrigin"), materialFilterText: $("#materialFilterText"), materialsList: $("#materialsList"), studyMaterial: $("#studyMaterial"),
   editFactoryPromptLibrary: $("#editFactoryPromptLibrary"), factoryForm: $("#factoryForm"), factoryEditingId: $("#factoryEditingId"), factoryDiscipline: $("#factoryDiscipline"), factoryTheme: $("#factoryTheme"), factorySubtheme: $("#factorySubtheme"), factoryPriority: $("#factoryPriority"), factoryPlannedDate: $("#factoryPlannedDate"), factoryStatus: $("#factoryStatus"), factorySourceFolder: $("#factorySourceFolder"), factoryDestinationFolder: $("#factoryDestinationFolder"), factoryFinalLink: $("#factoryFinalLink"), factoryLeiNome: $("#factoryLeiNome"), factoryLeiFonte: $("#factoryLeiFonte"), factoryLeiArtigos: $("#factoryLeiArtigos"), factoryLeiRecorte: $("#factoryLeiRecorte"), factoryLeiObservacoes: $("#factoryLeiObservacoes"), factoryNotes: $("#factoryNotes"), factorySummary: $("#factorySummary"), factoryFilterDiscipline: $("#factoryFilterDiscipline"), factoryFilterPriority: $("#factoryFilterPriority"), factoryFilterStatus: $("#factoryFilterStatus"), factoryFilterDate: $("#factoryFilterDate"), factoryFilterView: $("#factoryFilterView"), factoryFilterText: $("#factoryFilterText"), factoryList: $("#factoryList"), factoryPromptLibraryPanel: $("#factoryPromptLibraryPanel"),
   qbSyllabusPackages: $("#qbSyllabusPackages"), qbSyllabusVerticalized: $("#qbSyllabusVerticalized"), qbPreviewSection: $("#qbPreviewSection"), qbSyllabusSummary: $("#qbSyllabusSummary"), qbPackagesSummary: $("#qbPackagesSummary"), qbFile: $("#qbFile"), qbPdfFile: $("#qbPdfFile"), qbPdfImportStatus: $("#qbPdfImportStatus"), qbPdfImportPreview: $("#qbPdfImportPreview"), qbPdfImportStats: $("#qbPdfImportStats"), qbPdfSyllabusItem: $("#qbPdfSyllabusItem"), qbPdfMappingType: $("#qbPdfMappingType"), qbPdfClassification: $("#qbPdfClassification"), qbPdfPreviewList: $("#qbPdfPreviewList"), qbPdfImportConfirm: $("#qbPdfImportConfirm"), qbPdfImportCancel: $("#qbPdfImportCancel"), qbCaptureFile: $("#qbCaptureFile"), qbCaptureDate: $("#qbCaptureDate"), qbCaptureStatus: $("#qbCaptureStatus"), qbCaptureProgress: $("#qbCaptureProgress"), qbCapturePreview: $("#qbCapturePreview"), qbCaptureStats: $("#qbCaptureStats"), qbCapturePreviewList: $("#qbCapturePreviewList"), qbCaptureConfirm: $("#qbCaptureConfirm"), qbCaptureCancel: $("#qbCaptureCancel"), qbNewTraining: $("#qbNewTraining"), qbRedoBlanks: $("#qbRedoBlanks"), qbExportBank: $("#qbExportBank"), qbExportResults: $("#qbExportResults"), qbClearBank: $("#qbClearBank"), qbMessage: $("#qbMessage"), qbStats: $("#qbStats"), qbDiagnostics: $("#qbDiagnostics"), qbTrainingScope: $("#qbTrainingScope"), qbReviewTypeWrapper: $("#qbReviewTypeWrapper"), qbReviewType: $("#qbReviewType"), qbFilterDiscipline: $("#qbFilterDiscipline"), qbFilterSubject: $("#qbFilterSubject"), qbFilterTheme: $("#qbFilterTheme"), qbFilterBoard: $("#qbFilterBoard"), qbFilterYear: $("#qbFilterYear"), qbFilterSearch: $("#qbFilterSearch"), qbTrainingLimit: $("#qbTrainingLimit"), qbShuffleTraining: $("#qbShuffleTraining"), qbStartTraining: $("#qbStartTraining"), qbPreviewFiltered: $("#qbPreviewFiltered"), qbFilteredPreview: $("#qbFilteredPreview"), qbTrainingPanel: $("#qbTrainingPanel"), qbTrainingCounter: $("#qbTrainingCounter"), qbTrainingProgress: $("#qbTrainingProgress"), qbQuestionCard: $("#qbQuestionCard"), qbResultPanel: $("#qbResultPanel"), qbResultSummary: $("#qbResultSummary"), qbResultDetails: $("#qbResultDetails"), qbErrorStats: $("#qbErrorStats"), qbErrorNotebookList: $("#qbErrorNotebookList"), qbErrorFilterDiscipline: $("#qbErrorFilterDiscipline"), qbErrorFilterSubject: $("#qbErrorFilterSubject"), qbErrorFilterStatus: $("#qbErrorFilterStatus"), qbErrorFilterReason: $("#qbErrorFilterReason"), qbStartErrorNotebook: $("#qbStartErrorNotebook"), qbReviewByDiscipline: $("#qbReviewByDiscipline"), qbReviewBySubject: $("#qbReviewBySubject"), qbToggleErrorHistory: $("#qbToggleErrorHistory"), qbErrorHistory: $("#qbErrorHistory"),
+  qbCaptureValidation: $("#qbCaptureValidation"),
   connectGoogleDrive: $("#connectGoogleDrive"), syncNowButton: $("#syncNow"), pushToCloud: $("#pushToCloud"), pullFromCloud: $("#pullFromCloud"), disconnectGoogleDrive: $("#disconnectGoogleDrive"), syncStatus: $("#syncStatus"),
   floatingTimer: $("#floatingTimer"), timerDiscipline: $("#timerDiscipline"), timerSubject: $("#timerSubject"), timerKind: $("#timerKind"), timerTime: $("#timerTime"), timerPauseResume: $("#timerPauseResume"), timerProgressBar: $("#timerProgressBar"), timerProgressText: $("#timerProgressText"), timerAlert: $("#timerAlert"), timerCompletion: $("#timerCompletion"), timerSettings: $("#timerSettings"), timerMode: $("#timerMode"), timerMotivationalToast: $("#timerMotivationalToast"), timerStudyModal: $("#timerStudyModal"), timerStudyForm: $("#timerStudyForm"), timerStudyStartedAt: $("#timerStudyStartedAt"), timerStudyEndedAt: $("#timerStudyEndedAt"), timerStudySessionTime: $("#timerStudySessionTime"), timerStudySessionMode: $("#timerStudySessionMode"), timerStudyMinutes: $("#timerStudyMinutes"), timerStudyDiscipline: $("#timerStudyDiscipline"), timerStudySubject: $("#timerStudySubject"), timerStudyMaterial: $("#timerStudyMaterial"), timerStudyNotes: $("#timerStudyNotes"), timerStudyUpdateGoal: $("#timerStudyUpdateGoal"), timerStudyFeedAnalytics: $("#timerStudyFeedAnalytics"), timerStudyFeedAdvisor: $("#timerStudyFeedAdvisor"), addManualTime: $("#addManualTime"), timeUndoNotice: $("#timeUndoNotice"), undoTimeAction: $("#undoTimeAction")
 };
@@ -5600,6 +5601,7 @@ function qbResetCaptureImport(message = "Nenhuma captura selecionada.") {
   if (elements.qbCaptureFile) elements.qbCaptureFile.value = "";
   if (elements.qbCapturePreview) elements.qbCapturePreview.hidden = true;
   if (elements.qbCapturePreviewList) elements.qbCapturePreviewList.innerHTML = "";
+  qbClearCaptureValidation();
   if (elements.qbCaptureStatus) elements.qbCaptureStatus.textContent = message;
   qbSetCaptureProgress(0);
 }
@@ -5696,30 +5698,57 @@ async function qbReadCaptureImportFile(file) {
 function qbCaptureRowsForConfirmation() {
   return [...(elements.qbCapturePreviewList?.querySelectorAll("[data-qb-capture-row]") || [])]
     .filter((row) => row.querySelector("[data-qb-capture-include]")?.checked)
-    .map((row, index) => {
+    .map((row) => {
+      const displayIndex = Number(row.dataset.qbCaptureRow) + 1;
       const questionId = row.querySelector("[data-qb-capture-question]")?.value || "";
       const question = qbQuestionById(questionId);
       const marked = row.querySelector("[data-qb-capture-marked]")?.value || "";
       const officialKey = row.querySelector("[data-qb-capture-key]")?.value || "";
       const status = row.querySelector("[data-qb-capture-status]")?.value || "revisar";
       const comment = row.querySelector("[data-qb-capture-comment]")?.value.trim() || "";
-      return { index, questionId, question, marked, officialKey, status, comment };
+      return { displayIndex, rowElement: row, questionId, question, marked, officialKey, status, comment };
     });
 }
 function qbValidateCaptureRows(rows) {
-  if (!rows.length) return "Selecione ao menos um resultado para registrar.";
-  if (rows.some((row) => !row.question)) return "Há resultado sem questão vinculada.";
-  if (new Set(rows.map((row) => row.questionId)).size !== rows.length) return "A mesma questão foi vinculada a mais de um resultado.";
+  if (!rows.length) return { message: "Selecione ao menos um resultado para registrar." };
+  const missingQuestion = rows.find((row) => !row.question);
+  if (missingQuestion) return { message: `Selecione a questão correspondente ao resultado ${missingQuestion.displayIndex}.`, row: missingQuestion, field: "[data-qb-capture-question]" };
+  const seenQuestionIds = new Set();
+  const duplicate = rows.find((row) => seenQuestionIds.has(row.questionId) || !seenQuestionIds.add(row.questionId));
+  if (duplicate) return { message: `A questão vinculada ao resultado ${duplicate.displayIndex} já foi usada em outro resultado.`, row: duplicate, field: "[data-qb-capture-question]" };
   for (const row of rows) {
-    if (row.status === "revisar") return `Revise a situação da questão ${row.index + 1} antes de salvar.`;
+    if (row.status === "revisar") return { message: `Revise a situação da questão ${row.displayIndex} antes de salvar.`, row, field: "[data-qb-capture-status]" };
     const choices = qbChoiceKeys(row.question);
-    if (row.marked && row.marked !== QB_MARK_BLANK && !choices.includes(row.marked)) return `A resposta marcada na questão ${row.index + 1} não corresponde ao tipo da questão.`;
-    if (row.officialKey && !choices.includes(row.officialKey)) return `O gabarito da questão ${row.index + 1} não corresponde ao tipo da questão.`;
-    if (["certo", "errado"].includes(row.status) && (!row.marked || row.marked === QB_MARK_BLANK || !row.officialKey)) return `Informe resposta e gabarito na questão ${row.index + 1}.`;
-    if (row.status === "certo" && row.marked !== row.officialKey) return `Na questão ${row.index + 1}, o resultado está como certo, mas resposta e gabarito são diferentes.`;
-    if (row.status === "errado" && row.marked === row.officialKey) return `Na questão ${row.index + 1}, o resultado está como errado, mas resposta e gabarito são iguais.`;
+    if (row.marked && row.marked !== QB_MARK_BLANK && !choices.includes(row.marked)) return { message: `A resposta marcada na questão ${row.displayIndex} não corresponde ao tipo da questão.`, row, field: "[data-qb-capture-marked]" };
+    if (row.officialKey && !choices.includes(row.officialKey)) return { message: `O gabarito da questão ${row.displayIndex} não corresponde ao tipo da questão.`, row, field: "[data-qb-capture-key]" };
+    if (["certo", "errado"].includes(row.status) && (!row.marked || row.marked === QB_MARK_BLANK || !row.officialKey)) return { message: `Informe resposta e gabarito na questão ${row.displayIndex}.`, row, field: !row.marked || row.marked === QB_MARK_BLANK ? "[data-qb-capture-marked]" : "[data-qb-capture-key]" };
+    if (row.status === "certo" && row.marked !== row.officialKey) return { message: `Na questão ${row.displayIndex}, o resultado está como certo, mas resposta e gabarito são diferentes.`, row, field: "[data-qb-capture-key]" };
+    if (row.status === "errado" && row.marked === row.officialKey) return { message: `Na questão ${row.displayIndex}, o resultado está como errado, mas resposta e gabarito são iguais.`, row, field: "[data-qb-capture-status]" };
   }
-  return "";
+  return null;
+}
+function qbClearCaptureValidation() {
+  elements.qbCapturePreviewList?.querySelectorAll(".has-validation-error").forEach((row) => row.classList.remove("has-validation-error"));
+  if (!elements.qbCaptureValidation) return;
+  elements.qbCaptureValidation.hidden = true;
+  elements.qbCaptureValidation.textContent = "";
+}
+function qbShowCaptureValidation(issue) {
+  if (!issue?.message) return;
+  qbClearCaptureValidation();
+  if (elements.qbCaptureStatus) elements.qbCaptureStatus.textContent = issue.message;
+  if (elements.qbCaptureValidation) {
+    elements.qbCaptureValidation.textContent = issue.message;
+    elements.qbCaptureValidation.hidden = false;
+  }
+  const row = issue.row?.rowElement;
+  row?.classList.add("has-validation-error");
+  const field = row?.querySelector(issue.field || "select, input, textarea");
+  const target = field || row || elements.qbCaptureValidation || elements.qbCaptureStatus;
+  requestAnimationFrame(() => {
+    target.scrollIntoView?.({ behavior: "smooth", block: "center" });
+    setTimeout(() => (field || elements.qbCaptureValidation)?.focus?.({ preventScroll: true }), 220);
+  });
 }
 function qbCaptureCreatedAt(dateValue) {
   const date = /^\d{4}-\d{2}-\d{2}$/.test(dateValue || "") ? new Date(`${dateValue}T12:00:00`) : new Date();
@@ -5745,9 +5774,9 @@ function qbConfirmCaptureImport() {
     return;
   }
   const rows = qbCaptureRowsForConfirmation();
-  const validation = qbValidateCaptureRows(rows);
-  if (validation) {
-    elements.qbCaptureStatus.textContent = validation;
+  const validationIssue = qbValidateCaptureRows(rows);
+  if (validationIssue) {
+    qbShowCaptureValidation(validationIssue);
     return;
   }
   const enriched = rows.map((row) => {
@@ -8704,6 +8733,8 @@ elements.qbPdfImportCancel?.addEventListener("click", () => qbResetPdfImport());
 elements.qbCaptureFile?.addEventListener("change", (event) => qbReadCaptureImportFile(event.target.files?.[0]));
 elements.qbCaptureConfirm?.addEventListener("click", qbConfirmCaptureImport);
 elements.qbCaptureCancel?.addEventListener("click", () => qbResetCaptureImport());
+elements.qbCapturePreviewList?.addEventListener("input", qbClearCaptureValidation);
+elements.qbCapturePreviewList?.addEventListener("change", qbClearCaptureValidation);
 elements.qbFile?.addEventListener("change", async (event) => { const file=event.target.files?.[0]; if(!file) return; try { const incoming=questionBankFromPayload(JSON.parse(await file.text())); if(!incoming.length) throw new Error("Nenhuma questão válida encontrada no JSON."); const map=new Map((state.questionBank||[]).map(q=>[q.id,q])); incoming.forEach(q=>map.set(q.id,q)); state.questionBank=[...map.values()]; elements.qbMessage.textContent=`${incoming.length} questão(ões) importada(s). Banco atual: ${state.questionBank.length}.`; saveData(); renderQuestionBank(); } catch(error) { elements.qbMessage.textContent=`Erro ao importar: ${error.message}`; } finally { event.target.value=""; } });
 elements.qbStartTraining?.addEventListener("click", () => qbStart());
 elements.qbNewTraining?.addEventListener("click", () => { elements.qbResultPanel.hidden = true; qbStart(); });

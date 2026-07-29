@@ -10870,6 +10870,24 @@ html[data-aldus-theme="premium-stable"] #view-metas-do-dia .selected-day-banner 
   border: 1px solid color-mix(in srgb, var(--text, #eaf5ff) 12%, transparent);
   border-radius: 14px;
   background: color-mix(in srgb, var(--panel, #0d2c42) 78%, transparent);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+#view-banco-questoes .qb-capture-row.has-validation-error {
+  border-color: var(--danger, #ff7b8a);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger, #ff7b8a) 22%, transparent);
+}
+
+#view-banco-questoes .qb-capture-validation {
+  margin: 14px 0 2px;
+  border-color: color-mix(in srgb, var(--danger, #ff7b8a) 60%, transparent);
+  background: color-mix(in srgb, var(--danger, #ff7b8a) 14%, var(--panel, #0d2c42));
+  color: var(--text, #eaf5ff);
+  font-weight: 700;
+}
+
+#view-banco-questoes .qb-capture-validation[hidden] {
+  display: none;
 }
 
 #view-banco-questoes .qb-capture-row-heading {
