@@ -51152,179 +51152,124 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   schedulePresentation();
 })();
 
-/* Aldus source: analytics-accordion-fix-v148.js */
+/* Aldus source: analytics-view-controller-v179.js */
 (() => {
   "use strict";
 
-  if (window.__aldusAnalyticsAccordionFixV148) return;
-  window.__aldusAnalyticsAccordionFixV148 = true;
+  if (globalThis.__aldusAnalyticsViewControllerV179) return;
 
-  // Impede que os controladores antigos e conflitantes sejam carregados novamente.
-  window.__aldusAnalyticsTabsFixV146 = true;
-  window.__aldusAnalyticsTabsFixLoaderV146 = true;
-  window.__aldusReleaseVersionV147 = true;
-  window.__aldusReleaseVersionLoaderV147 = true;
-
-  const VERSION = "20260725-analise-estrategica-abas-funcionais-v148";
-  const VIEW_SELECTOR = "#view-analise-estrategica";
+  const VERSION = "20260729-analise-controlador-unico-v179";
+  const VIEW_ID = "analise-estrategica";
+  const VIEW_SELECTOR = `#view-${VIEW_ID}`;
+  const openState = new Map();
+  const runtime = {
+    version: VERSION,
+    initialized: false,
+    observerCount: 0,
+    processRuns: 0,
+    scheduledRuns: 0
+  };
   let observer = null;
   let scheduled = false;
+  let mutating = false;
 
   function elementFromTarget(target) {
     if (target instanceof Element) return target;
     return target?.parentElement instanceof Element ? target.parentElement : null;
   }
 
-  function viewForTarget(target) {
-    return elementFromTarget(target)?.closest?.(VIEW_SELECTOR) || null;
+  function directChildWithClass(parent, className) {
+    return [...(parent?.children || [])].find((child) => child.classList?.contains(className)) || null;
   }
 
-  function directDetailsForSummary(summary, view) {
-    if (!(summary instanceof HTMLElement) || summary.tagName !== "SUMMARY") return null;
-    const details = summary.parentElement;
-    if (!(details instanceof HTMLDetailsElement) || !view.contains(details)) return null;
-    return details.firstElementChild === summary ? details : null;
+  function detailsKey(details) {
+    if (!details || details.tagName !== "DETAILS") return "";
+    if (details.dataset.analyticsControllerKeyV179) return details.dataset.analyticsControllerKeyV179;
+    if (details.dataset.analyticsCollapsibleKeyV145) return details.dataset.analyticsCollapsibleKeyV145;
+    if (details.classList.contains("analytics-filters-section")) return "core:filters";
+    if (details.dataset.analyticsSection) return `core:${details.dataset.analyticsSection}`;
+    if (details.classList.contains("analytics-subsection")) {
+      const parent = details.closest("details[data-analytics-section]");
+      const title = details.querySelector(":scope > summary")?.textContent?.trim() || "subsecao";
+      return `sub:${parent?.dataset.analyticsSection || "geral"}:${title}`;
+    }
+    return "";
   }
 
-  function interactiveChild(target, summary) {
-    const element = elementFromTarget(target);
-    if (!element || element === summary) return false;
-    const interactive = element.closest("a,button,input,select,textarea,label,[role='button'],[contenteditable='true']");
-    return Boolean(interactive && summary.contains(interactive));
+  function registerDetails(details, key, defaultOpen = details?.open) {
+    if (!details || details.tagName !== "DETAILS" || !key) return;
+    details.dataset.analyticsControllerKeyV179 = key;
+    details.dataset.analyticsControllerVersion = VERSION;
+    if (openState.has(key)) details.open = openState.get(key);
+    else openState.set(key, Boolean(defaultOpen));
   }
 
-  function syncDetails(details) {
-    const summary = details.firstElementChild;
-    if (summary?.tagName !== "SUMMARY") return;
-    summary.setAttribute("aria-expanded", details.open ? "true" : "false");
-    summary.dataset.analyticsAccordionV148 = "true";
-    details.dataset.analyticsAccordionV148 = "true";
-    details.dataset.analyticsAccordionVersion = VERSION;
-  }
+  function shellSummary(title, resume) {
+    const summary = document.createElement("summary");
+    summary.className = "analytics-collapsible-summary-v145";
 
-  function prepareView(view) {
-    view.querySelector("#analyticsCollapseToolbarV145")?.remove();
-    view.querySelectorAll("details").forEach(syncDetails);
-    view.dataset.analyticsAccordionV148 = "true";
-    view.dataset.analyticsAccordionVersion = VERSION;
-  }
+    const heading = document.createElement("span");
+    heading.className = "analytics-collapsible-heading-v145";
 
-  function schedulePrepare(view) {
-    if (scheduled) return;
-    scheduled = true;
-    (window.requestAnimationFrame || window.setTimeout)(() => {
-      scheduled = false;
-      if (view?.isConnected) prepareView(view);
-    }, 0);
-  }
+    const strong = document.createElement("strong");
+    strong.textContent = title;
+    heading.appendChild(strong);
 
-  function toggleFromEvent(event) {
-    const view = viewForTarget(event.target);
-    if (!view) return;
-
-    const element = elementFromTarget(event.target);
-    const summary = element?.closest?.("summary");
-    const details = directDetailsForSummary(summary, view);
-    if (!details || interactiveChild(element, summary)) return;
-
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-
-    const nextOpen = !details.open;
-    details.open = nextOpen;
-    syncDetails(details);
-
-    // Confirma o estado no próximo quadro, protegendo contra controladores antigos em cache.
-    window.requestAnimationFrame?.(() => {
-      if (details.isConnected && details.open !== nextOpen) {
-        details.open = nextOpen;
-        syncDetails(details);
-      }
-    });
-  }
-
-  function ensureStyles() {
-    if (document.getElementById("analyticsAccordionFixStylesV148")) return;
-    const style = document.createElement("style");
-    style.id = "analyticsAccordionFixStylesV148";
-    style.textContent = `
-      ${VIEW_SELECTOR} #analyticsCollapseToolbarV145 { display: none !important; }
-      ${VIEW_SELECTOR} details > summary { cursor: pointer; touch-action: manipulation; }
-    `;
-    document.head.appendChild(style);
-  }
-
-  function start() {
-    const view = document.querySelector(VIEW_SELECTOR);
-    if (!view) return;
-
-    ensureStyles();
-    prepareView(view);
-
-    // O listener fica no documento para funcionar mesmo quando outro código interrompe
-    // o clique antes de ele alcançar a própria aba.
-    document.addEventListener("click", toggleFromEvent, true);
-
-    view.addEventListener("toggle", (event) => {
-      if (event.target instanceof HTMLDetailsElement) syncDetails(event.target);
-    }, true);
-
-    if (typeof MutationObserver !== "undefined") {
-      observer = new MutationObserver(() => schedulePrepare(view));
-      observer.observe(view, { childList: true, subtree: true });
+    if (resume) {
+      const small = document.createElement("small");
+      small.textContent = resume;
+      heading.appendChild(small);
     }
 
-    window.addEventListener("pageshow", () => {
-      schedulePrepare(view);
-    });
-    window.addEventListener("hashchange", () => schedulePrepare(view));
+    const chevron = document.createElement("span");
+    chevron.className = "analytics-collapsible-chevron-v145";
+    chevron.setAttribute("aria-hidden", "true");
+    summary.append(heading, chevron);
+    return summary;
   }
 
-  if (typeof globalThis.__aldusDeferViewInitializerV169 === "function") {
-    globalThis.__aldusDeferViewInitializerV169("analytics-accordion-fix-v148", "analise-estrategica", start);
-  } else if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", start, { once: true });
-  } else {
-    start();
+  function wrapNode(node, { key, title, resume = "", defaultOpen = false, className = "" } = {}) {
+    if (!node || !node.isConnected) return null;
+    const existing = node.closest("details.analytics-collapsible-v145");
+    if (existing) {
+      registerDetails(existing, key || detailsKey(existing), defaultOpen);
+      return existing;
+    }
+
+    const details = document.createElement("details");
+    details.className = `analytics-collapsible-v145 ${className}`.trim();
+    const body = document.createElement("div");
+    body.className = "analytics-collapsible-body-v145";
+
+    node.before(details);
+    details.append(shellSummary(title || "Painel da análise", resume), body);
+    body.appendChild(node);
+    node.dataset.analyticsControllerWrappedV179 = "true";
+    registerDetails(details, key, defaultOpen);
+    return details;
   }
-})();
-
-/* Aldus source: analytics-header-arrow-v149.js */
-(() => {
-  "use strict";
-
-  if (window.__aldusAnalyticsHeaderArrowV149) return;
-  window.__aldusAnalyticsHeaderArrowV149 = true;
-
-  const VERSION = "20260725-analise-estrategica-cabecalho-fixo-v149";
-  const VIEW_SELECTOR = "#view-analise-estrategica";
-  let observer = null;
-  let scheduled = false;
-  let mutating = false;
 
   function fixedHeader(view) {
     let wrapper = view.querySelector(":scope > .analytics-fixed-header-v149");
     if (wrapper) return wrapper;
 
-    const introShell = view.querySelector(':scope > details[data-analytics-collapsible-key-v145="shell:intro"]');
-    const heading = introShell?.querySelector(".section-heading")
-      || [...view.children].find((child) => child.classList?.contains("section-heading"));
+    const legacyIntroShell = view.querySelector(':scope > details[data-analytics-collapsible-key-v145="shell:intro"]');
+    const heading = legacyIntroShell?.querySelector(".section-heading")
+      || directChildWithClass(view, "section-heading");
     if (!heading) return null;
 
     wrapper = document.createElement("div");
     wrapper.className = "analytics-fixed-header-v149";
-    wrapper.dataset.analyticsFixedHeaderVersion = VERSION;
-
+    wrapper.dataset.analyticsControllerVersion = VERSION;
     heading.classList.remove("analytics-intro-source-v145");
     heading.classList.add("view-identity-heading");
     const title = heading.querySelector("h2");
     if (title) title.id = "analise-estrategica-title";
 
-    const anchor = introShell || heading;
+    const anchor = legacyIntroShell || heading;
     anchor.before(wrapper);
     wrapper.appendChild(heading);
-    if (introShell) introShell.remove();
+    legacyIntroShell?.remove();
     return wrapper;
   }
 
@@ -51333,7 +51278,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     if (!details) return null;
 
     details.classList.add("analytics-collapsible-v145", "analytics-filter-shell-v149");
-    details.dataset.analyticsFilterArrowVersion = VERSION;
+    registerDetails(details, "core:filters", details.open);
 
     const summary = details.querySelector(":scope > summary");
     if (!summary) return details;
@@ -51360,185 +51305,247 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     if (summary.firstElementChild !== heading || summary.lastElementChild !== chevron || summary.children.length !== 2) {
       summary.replaceChildren(heading, chevron);
     }
-    summary.setAttribute("aria-expanded", details.open ? "true" : "false");
+    summary.dataset.analyticsSingleArrowV150 = "consolidated-v179";
     return details;
   }
 
+  function ensureExportShell(view) {
+    const toolbar = directChildWithClass(view, "analytics-export-toolbar");
+    if (!toolbar) return view.querySelector('[data-analytics-controller-key-v179="shell:export"]');
+    return wrapNode(toolbar, {
+      key: "shell:export",
+      title: "Exportação e compartilhamento",
+      resume: "PDF, imagem, Excel e demais opções",
+      defaultOpen: false,
+      className: "analytics-export-shell-v145"
+    });
+  }
+
+  function dynamicPanelConfig(node) {
+    if (node.classList?.contains("analytics-compact-header")) {
+      return {
+        key: "dynamic:context",
+        title: "Contexto da análise",
+        resume: "Período, disciplina e origem",
+        defaultOpen: false,
+        className: "analytics-context-shell-v145"
+      };
+    }
+    if (node.id === "analyticsPracticalReadingV143") {
+      return {
+        key: "dynamic:practical",
+        title: "Leitura prática",
+        resume: "Avanço, atenção e próxima ação",
+        defaultOpen: true,
+        className: "analytics-practical-shell-v145"
+      };
+    }
+    const heading = node.querySelector?.("h2, h3, h4")?.textContent?.trim();
+    const identity = node.id
+      || [...(node.classList || [])].find(Boolean)
+      || String([...node.parentElement.children].indexOf(node));
+    return {
+      key: `dynamic:${identity}`,
+      title: heading || "Painel da análise",
+      resume: "Conteúdo complementar",
+      defaultOpen: false,
+      className: "analytics-generic-shell-v145"
+    };
+  }
+
+  function ensureDynamicShells() {
+    const host = document.getElementById("analyticsContent");
+    if (!host) return;
+    [...host.children].forEach((child) => {
+      if (child.tagName === "DETAILS" || !child.matches("article, section")) return;
+      wrapNode(child, dynamicPanelConfig(child));
+    });
+  }
+
+  function ensurePlanPreviewShell() {
+    const preview = document.getElementById("analyticsPlanPreview");
+    if (!preview) return;
+    const shell = wrapNode(preview, {
+      key: "shell:plan-preview",
+      title: "Plano sugerido",
+      resume: "Ações geradas a partir da análise",
+      defaultOpen: true,
+      className: "analytics-plan-shell-v145"
+    });
+    if (shell) shell.hidden = preview.hidden || !preview.textContent.trim();
+  }
+
+  function syncDetails(details) {
+    const summary = details?.firstElementChild;
+    if (summary?.tagName !== "SUMMARY") return;
+    summary.setAttribute("aria-expanded", details.open ? "true" : "false");
+    summary.dataset.analyticsControllerV179 = "true";
+    details.dataset.analyticsControllerV179 = "true";
+    details.dataset.analyticsControllerVersion = VERSION;
+  }
+
+  function normalizeDetails(view) {
+    view.querySelectorAll(
+      "details.analytics-filters-section, details.analytics-section, details.analytics-subsection, details.analytics-collapsible-v145"
+    ).forEach((details) => {
+      const key = detailsKey(details);
+      if (key) registerDetails(details, key, details.open);
+      syncDetails(details);
+    });
+  }
+
   function ensureStyles() {
-    if (document.getElementById("analyticsHeaderArrowStylesV149")) return;
+    if (document.getElementById("analyticsViewControllerStylesV179")) return;
     const style = document.createElement("style");
-    style.id = "analyticsHeaderArrowStylesV149";
+    style.id = "analyticsViewControllerStylesV179";
     style.textContent = `
-      ${VIEW_SELECTOR} > .analytics-fixed-header-v149 {
-        margin: 0 0 28px;
-      }
-      ${VIEW_SELECTOR} > .analytics-fixed-header-v149 > .section-heading {
-        margin: 0;
-      }
+      ${VIEW_SELECTOR} > .analytics-fixed-header-v149{margin:0 0 28px}
+      ${VIEW_SELECTOR} > .analytics-fixed-header-v149 > .section-heading{margin:0}
       ${VIEW_SELECTOR} > .analytics-fixed-header-v149 .eyebrow,
-      ${VIEW_SELECTOR} > .analytics-fixed-header-v149 h2 {
-        display: block !important;
+      ${VIEW_SELECTOR} > .analytics-fixed-header-v149 h2{display:block!important}
+      ${VIEW_SELECTOR} > .analytics-fixed-header-v149 .privacy-note{margin:0}
+      ${VIEW_SELECTOR} details.analytics-collapsible-v145{overflow:clip;margin:0 0 14px;border:1px solid var(--border,#dbe4f0);border-radius:18px;background:var(--surface,#fff);box-shadow:0 8px 22px rgba(15,23,42,.06)}
+      ${VIEW_SELECTOR} details.analytics-collapsible-v145 > summary{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:62px;padding:14px 17px;cursor:pointer;list-style:none;user-select:none;touch-action:manipulation}
+      ${VIEW_SELECTOR} details.analytics-collapsible-v145 > summary::-webkit-details-marker{display:none}
+      ${VIEW_SELECTOR} details.analytics-collapsible-v145 > summary::marker{content:""}
+      ${VIEW_SELECTOR} details.analytics-collapsible-v145 > summary::before,
+      ${VIEW_SELECTOR} details.analytics-collapsible-v145 > summary::after{content:none!important;display:none!important}
+      ${VIEW_SELECTOR} .analytics-collapsible-heading-v145{display:grid;gap:3px;min-width:0}
+      ${VIEW_SELECTOR} .analytics-collapsible-heading-v145 strong{color:var(--text,#0f172a);font-size:1rem;line-height:1.25}
+      ${VIEW_SELECTOR} .analytics-collapsible-heading-v145 small{overflow:hidden;color:var(--muted,#64748b);font-size:.79rem;line-height:1.35;text-overflow:ellipsis}
+      ${VIEW_SELECTOR} .analytics-collapsible-chevron-v145{display:inline-block!important;width:11px;height:11px;flex:0 0 11px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;color:var(--muted,#64748b);visibility:visible!important;transform:rotate(-45deg);transition:transform .18s ease}
+      ${VIEW_SELECTOR} details.analytics-collapsible-v145[open] > summary .analytics-collapsible-chevron-v145{transform:rotate(45deg) translate(-2px,-2px)}
+      ${VIEW_SELECTOR} details.analytics-collapsible-v145[open] > summary{border-bottom:1px solid var(--border,#dbe4f0)}
+      ${VIEW_SELECTOR} .analytics-collapsible-body-v145{padding:16px 17px 18px}
+      ${VIEW_SELECTOR} .analytics-export-toolbar,
+      ${VIEW_SELECTOR} .analytics-compact-header,
+      ${VIEW_SELECTOR} #analyticsPracticalReadingV143,
+      ${VIEW_SELECTOR} #analyticsPlanPreview{margin:0!important}
+      ${VIEW_SELECTOR} .analytics-export-shell-v145 .analytics-collapsible-body-v145{padding-top:12px}
+      html[data-aldus-theme="premium-stable"] ${VIEW_SELECTOR} details.analytics-collapsible-v145{border-color:rgba(95,168,216,.42);background:rgba(6,30,49,.86);box-shadow:0 12px 28px rgba(0,7,18,.28)}
+      html[data-aldus-theme="premium-stable"] ${VIEW_SELECTOR} details.analytics-collapsible-v145 > summary{background:linear-gradient(145deg,rgba(9,49,78,.92),rgba(7,35,58,.96))}
+      html[data-aldus-theme="premium-stable"] ${VIEW_SELECTOR} .analytics-collapsible-heading-v145 strong{color:#f8fbff}
+      html[data-aldus-theme="premium-stable"] ${VIEW_SELECTOR} .analytics-collapsible-heading-v145 small,
+      html[data-aldus-theme="premium-stable"] ${VIEW_SELECTOR} .analytics-collapsible-chevron-v145{color:#c9deed}
+      @media(max-width:720px){
+        ${VIEW_SELECTOR} > .analytics-fixed-header-v149{margin-bottom:20px}
+        ${VIEW_SELECTOR} details.analytics-collapsible-v145 > summary{padding:13px 14px}
+        ${VIEW_SELECTOR} .analytics-collapsible-body-v145{padding:14px}
       }
-      ${VIEW_SELECTOR} > .analytics-fixed-header-v149 .privacy-note {
-        margin: 0;
-      }
-      ${VIEW_SELECTOR} > details.analytics-filter-shell-v149 > summary {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        min-height: 62px;
-        padding: 14px 17px;
-        cursor: pointer;
-        list-style: none;
-        user-select: none;
-      }
-      ${VIEW_SELECTOR} > details.analytics-filter-shell-v149 > summary::-webkit-details-marker {
-        display: none;
-      }
-      ${VIEW_SELECTOR} > details.analytics-filter-shell-v149 > summary::marker {
-        content: "";
-      }
-      ${VIEW_SELECTOR} > details.analytics-filter-shell-v149[open] > summary {
-        border-bottom: 1px solid var(--border, #dbe4f0);
-      }
-      @media (max-width: 720px) {
-        ${VIEW_SELECTOR} > .analytics-fixed-header-v149 {
-          margin-bottom: 20px;
-        }
+      @media(prefers-reduced-motion:reduce){
+        ${VIEW_SELECTOR} .analytics-collapsible-chevron-v145{transition:none}
       }
     `;
     document.head.appendChild(style);
   }
 
-  function prepare() {
-    const view = document.querySelector(VIEW_SELECTOR);
-    if (!view || mutating) return;
+  function processView(view) {
+    if (!view?.isConnected || mutating) return;
     mutating = true;
+    runtime.processRuns += 1;
     try {
       ensureStyles();
       fixedHeader(view);
       normalizeFilters(view);
-      view.dataset.analyticsHeaderArrowV149 = "true";
-      view.dataset.analyticsHeaderArrowVersion = VERSION;
+      ensureExportShell(view);
+      ensureDynamicShells();
+      ensurePlanPreviewShell();
+      normalizeDetails(view);
+      view.querySelector("#analyticsCollapseToolbarV145")?.remove();
+      view.dataset.analyticsViewControllerV179 = "true";
+      view.dataset.analyticsViewControllerVersion = VERSION;
     } finally {
       mutating = false;
     }
   }
 
-  function schedulePrepare() {
+  function scheduleProcess(view) {
     if (scheduled) return;
     scheduled = true;
-    (window.requestAnimationFrame || window.setTimeout)(() => {
+    runtime.scheduledRuns += 1;
+    const schedule = globalThis.requestAnimationFrame || ((callback) => globalThis.setTimeout(callback, 0));
+    schedule(() => {
       scheduled = false;
-      prepare();
-    }, 0);
-  }
-
-  function start() {
-    prepare();
-    const view = document.querySelector(VIEW_SELECTOR);
-    if (view && typeof MutationObserver !== "undefined") {
-      observer = new MutationObserver(() => {
-        if (!mutating) schedulePrepare();
-      });
-      observer.observe(view, { childList: true, subtree: true });
-    }
-    view?.addEventListener("toggle", (event) => {
-      const details = event.target;
-      if (details?.matches?.("details.analytics-filter-shell-v149")) {
-        details.querySelector(":scope > summary")?.setAttribute("aria-expanded", details.open ? "true" : "false");
-      }
-    }, true);
-    window.addEventListener("pageshow", schedulePrepare);
-    window.addEventListener("hashchange", schedulePrepare);
-  }
-
-  if (typeof globalThis.__aldusDeferViewInitializerV169 === "function") {
-    globalThis.__aldusDeferViewInitializerV169("analytics-header-arrow-v149", "analise-estrategica", start);
-  } else if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", start, { once: true });
-  } else {
-    start();
-  }
-})();
-
-/* Aldus source: analytics-single-arrow-v150.js */
-(() => {
-  "use strict";
-
-  if (window.__aldusAnalyticsSingleArrowV150) return;
-  window.__aldusAnalyticsSingleArrowV150 = true;
-
-  const VERSION = "20260725-analise-estrategica-seta-unica-v150";
-  const VIEW_SELECTOR = "#view-analise-estrategica";
-  const FILTER_SELECTOR = `${VIEW_SELECTOR} > details.analytics-filters-section > summary`;
-
-  function ensureStyles() {
-    if (document.getElementById("analyticsSingleArrowStylesV150")) return;
-
-    const style = document.createElement("style");
-    style.id = "analyticsSingleArrowStylesV150";
-    style.textContent = `
-      ${FILTER_SELECTOR} {
-        list-style: none !important;
-      }
-      ${FILTER_SELECTOR}::-webkit-details-marker {
-        display: none !important;
-      }
-      ${FILTER_SELECTOR}::marker {
-        content: "" !important;
-        display: none !important;
-      }
-      ${FILTER_SELECTOR}::before,
-      ${FILTER_SELECTOR}::after {
-        content: none !important;
-        display: none !important;
-        border: 0 !important;
-        width: 0 !important;
-        height: 0 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-      }
-      ${FILTER_SELECTOR} > .analytics-collapsible-chevron-v145 {
-        display: inline-block !important;
-        flex: 0 0 auto !important;
-        visibility: visible !important;
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  function apply() {
-    ensureStyles();
-
-    const summary = document.querySelector(FILTER_SELECTOR);
-    if (!summary) return false;
-
-    summary.dataset.analyticsSingleArrowV150 = "true";
-    summary.dataset.analyticsSingleArrowVersion = VERSION;
-    return true;
-  }
-
-  function start() {
-    if (apply() || typeof MutationObserver === "undefined") return;
-
-    const view = document.querySelector(VIEW_SELECTOR);
-    if (!view) return;
-
-    const observer = new MutationObserver(() => {
-      if (apply()) observer.disconnect();
+      processView(view);
     });
-    observer.observe(view, { childList: true, subtree: true });
-    window.setTimeout(() => observer.disconnect(), 10000);
   }
 
+  function directDetailsForSummary(summary, view) {
+    if (!(summary instanceof HTMLElement) || summary.tagName !== "SUMMARY") return null;
+    const details = summary.parentElement;
+    if (!(details instanceof HTMLDetailsElement) || !view.contains(details)) return null;
+    return details.firstElementChild === summary ? details : null;
+  }
+
+  function interactiveChild(target, summary) {
+    const element = elementFromTarget(target);
+    if (!element || element === summary) return false;
+    const interactive = element.closest("a,button,input,select,textarea,label,[role='button'],[contenteditable='true']");
+    return Boolean(interactive && summary.contains(interactive));
+  }
+
+  function toggleFromEvent(event) {
+    const element = elementFromTarget(event.target);
+    const view = element?.closest?.(VIEW_SELECTOR);
+    if (!view) return;
+    const summary = element.closest?.("summary");
+    const details = directDetailsForSummary(summary, view);
+    if (!details || interactiveChild(element, summary)) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    details.open = !details.open;
+    syncDetails(details);
+    const key = detailsKey(details);
+    if (key) openState.set(key, details.open);
+  }
+
+  function initialize() {
+    const view = document.querySelector(VIEW_SELECTOR);
+    if (!view || runtime.initialized) return;
+
+    processView(view);
+    document.addEventListener("click", toggleFromEvent, true);
+    view.addEventListener("toggle", (event) => {
+      if (!(event.target instanceof HTMLDetailsElement)) return;
+      syncDetails(event.target);
+      const key = detailsKey(event.target);
+      if (key) openState.set(key, event.target.open);
+    }, true);
+
+    if (typeof MutationObserver !== "undefined") {
+      observer = new MutationObserver(() => {
+        if (!mutating) scheduleProcess(view);
+      });
+      observer.observe(view, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["hidden"]
+      });
+      runtime.observerCount = 1;
+    }
+    runtime.initialized = true;
+  }
+
+  Object.defineProperty(globalThis, "__aldusAnalyticsViewControllerV179", {
+    value: runtime,
+    configurable: false,
+    enumerable: false,
+    writable: false
+  });
+
   if (typeof globalThis.__aldusDeferViewInitializerV169 === "function") {
-    globalThis.__aldusDeferViewInitializerV169("analytics-single-arrow-v150", "analise-estrategica", start);
+    globalThis.__aldusDeferViewInitializerV169(
+      "analytics-view-controller-v179",
+      VIEW_ID,
+      initialize
+    );
   } else if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", start, { once: true });
+    document.addEventListener("DOMContentLoaded", initialize, { once: true });
   } else {
-    start();
+    initialize();
   }
 })();
 
@@ -52670,376 +52677,6 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   });
 })();
 
-/* Aldus source: analytics-collapsibles-v145.js */
-(() => {
-  "use strict";
-
-  if (window.__aldusAnalyticsCollapsiblesV145) return;
-  window.__aldusAnalyticsCollapsiblesV145 = true;
-
-  const VERSION = "20260725-analise-estrategica-recolhivel-v145";
-  const view = document.getElementById("view-analise-estrategica");
-  if (!view) return;
-
-  const openState = new Map();
-  let observer = null;
-  let scheduled = false;
-  let mutating = false;
-
-  function ensureStyles() {
-    if (document.getElementById("analyticsCollapsiblesStylesV145")) return;
-    const style = document.createElement("style");
-    style.id = "analyticsCollapsiblesStylesV145";
-    style.textContent = `
-      #view-analise-estrategica .analytics-collapse-toolbar-v145 {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: flex-end;
-        gap: 9px;
-        margin: 0 0 14px;
-      }
-      #view-analise-estrategica .analytics-collapse-toolbar-v145 button {
-        min-height: 38px;
-        padding: 8px 13px;
-        border-radius: 11px;
-      }
-      #view-analise-estrategica details.analytics-collapsible-v145 {
-        overflow: clip;
-        margin: 0 0 14px;
-        border: 1px solid var(--border, #dbe4f0);
-        border-radius: 18px;
-        background: var(--surface, #ffffff);
-        box-shadow: 0 8px 22px rgba(15, 23, 42, .06);
-      }
-      #view-analise-estrategica details.analytics-collapsible-v145 > summary {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        min-height: 62px;
-        padding: 14px 17px;
-        cursor: pointer;
-        list-style: none;
-        user-select: none;
-      }
-      #view-analise-estrategica details.analytics-collapsible-v145 > summary::-webkit-details-marker { display: none; }
-      #view-analise-estrategica .analytics-collapsible-heading-v145 {
-        display: grid;
-        gap: 3px;
-        min-width: 0;
-      }
-      #view-analise-estrategica .analytics-collapsible-heading-v145 strong {
-        color: var(--text, #0f172a);
-        font-size: 1rem;
-        line-height: 1.25;
-      }
-      #view-analise-estrategica .analytics-collapsible-heading-v145 small {
-        overflow: hidden;
-        color: var(--muted, #64748b);
-        font-size: .79rem;
-        line-height: 1.35;
-        text-overflow: ellipsis;
-      }
-      #view-analise-estrategica .analytics-collapsible-chevron-v145 {
-        width: 11px;
-        height: 11px;
-        flex: 0 0 11px;
-        border-right: 2px solid currentColor;
-        border-bottom: 2px solid currentColor;
-        color: var(--muted, #64748b);
-        transform: rotate(-45deg);
-        transition: transform .18s ease;
-      }
-      #view-analise-estrategica details.analytics-collapsible-v145[open] > summary .analytics-collapsible-chevron-v145 {
-        transform: rotate(45deg) translate(-2px, -2px);
-      }
-      #view-analise-estrategica details.analytics-collapsible-v145[open] > summary {
-        border-bottom: 1px solid var(--border, #dbe4f0);
-      }
-      #view-analise-estrategica .analytics-collapsible-body-v145 {
-        padding: 16px 17px 18px;
-      }
-      #view-analise-estrategica .analytics-intro-shell-v145 {
-        border-color: rgba(213, 169, 29, .78) !important;
-      }
-      #view-analise-estrategica .analytics-intro-source-v145 {
-        margin: 0 !important;
-        padding: 0 !important;
-        border: 0 !important;
-        background: transparent !important;
-        box-shadow: none !important;
-      }
-      #view-analise-estrategica .analytics-intro-source-v145 > .eyebrow,
-      #view-analise-estrategica .analytics-intro-source-v145 > h2 {
-        display: none !important;
-      }
-      #view-analise-estrategica .analytics-intro-source-v145 .privacy-note,
-      #view-analise-estrategica .analytics-export-toolbar,
-      #view-analise-estrategica .analytics-compact-header,
-      #view-analise-estrategica #analyticsPracticalReadingV143,
-      #view-analise-estrategica #analyticsPlanPreview {
-        margin: 0 !important;
-      }
-      #view-analise-estrategica .analytics-export-shell-v145 .analytics-collapsible-body-v145 {
-        padding-top: 12px;
-      }
-      html[data-aldus-theme="premium-stable"] #view-analise-estrategica details.analytics-collapsible-v145 {
-        border-color: rgba(95, 168, 216, .42);
-        background: rgba(6, 30, 49, .86);
-        box-shadow: 0 12px 28px rgba(0, 7, 18, .28);
-      }
-      html[data-aldus-theme="premium-stable"] #view-analise-estrategica details.analytics-collapsible-v145 > summary {
-        background: linear-gradient(145deg, rgba(9, 49, 78, .92), rgba(7, 35, 58, .96));
-      }
-      html[data-aldus-theme="premium-stable"] #view-analise-estrategica .analytics-collapsible-heading-v145 strong {
-        color: #f8fbff;
-      }
-      html[data-aldus-theme="premium-stable"] #view-analise-estrategica .analytics-collapsible-heading-v145 small,
-      html[data-aldus-theme="premium-stable"] #view-analise-estrategica .analytics-collapsible-chevron-v145 {
-        color: #c9deed;
-      }
-      @media (max-width: 720px) {
-        #view-analise-estrategica .analytics-collapse-toolbar-v145 { justify-content: stretch; }
-        #view-analise-estrategica .analytics-collapse-toolbar-v145 button { flex: 1 1 140px; }
-        #view-analise-estrategica details.analytics-collapsible-v145 > summary { padding: 13px 14px; }
-        #view-analise-estrategica .analytics-collapsible-body-v145 { padding: 14px; }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        #view-analise-estrategica .analytics-collapsible-chevron-v145 { transition: none; }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  function directChildWithClass(parent, className) {
-    return [...parent.children].find((child) => child.classList?.contains(className)) || null;
-  }
-
-  function detailsKey(details) {
-    if (!details || details.tagName !== "DETAILS") return "";
-    if (details.dataset.analyticsCollapsibleKeyV145) return details.dataset.analyticsCollapsibleKeyV145;
-    if (details.classList.contains("analytics-filters-section")) return "core:filters";
-    if (details.dataset.analyticsSection) return `core:${details.dataset.analyticsSection}`;
-    if (details.classList.contains("analytics-subsection")) {
-      const parent = details.closest("details[data-analytics-section]");
-      const title = details.querySelector(":scope > summary")?.textContent?.trim() || "subsecao";
-      return `sub:${parent?.dataset.analyticsSection || "geral"}:${title}`;
-    }
-    return "";
-  }
-
-  function registerDetails(details, key, defaultOpen = details.open) {
-    if (!details || details.tagName !== "DETAILS" || !key) return;
-    details.dataset.analyticsCollapsibleKeyV145 = key;
-    details.dataset.analyticsCollapsibleVersion = VERSION;
-    if (openState.has(key)) details.open = openState.get(key);
-    else openState.set(key, Boolean(defaultOpen));
-  }
-
-  function shellSummary(title, resume) {
-    const summary = document.createElement("summary");
-    summary.className = "analytics-collapsible-summary-v145";
-
-    const heading = document.createElement("span");
-    heading.className = "analytics-collapsible-heading-v145";
-
-    const strong = document.createElement("strong");
-    strong.textContent = title;
-    heading.appendChild(strong);
-
-    if (resume) {
-      const small = document.createElement("small");
-      small.textContent = resume;
-      heading.appendChild(small);
-    }
-
-    const chevron = document.createElement("span");
-    chevron.className = "analytics-collapsible-chevron-v145";
-    chevron.setAttribute("aria-hidden", "true");
-    summary.append(heading, chevron);
-    return summary;
-  }
-
-  function wrapNode(node, { key, title, resume = "", defaultOpen = false, className = "" } = {}) {
-    if (!node || !node.isConnected) return null;
-    const existing = node.closest("details.analytics-collapsible-v145");
-    if (existing) {
-      registerDetails(existing, key || detailsKey(existing), defaultOpen);
-      return existing;
-    }
-
-    const details = document.createElement("details");
-    details.className = `analytics-collapsible-v145 ${className}`.trim();
-    const summary = shellSummary(title || "Painel da análise", resume);
-    const body = document.createElement("div");
-    body.className = "analytics-collapsible-body-v145";
-
-    node.before(details);
-    details.append(summary, body);
-    body.appendChild(node);
-    node.dataset.analyticsCollapsibleWrappedV145 = "true";
-    registerDetails(details, key, defaultOpen);
-    return details;
-  }
-
-  function ensureIntroShell() {
-    const intro = directChildWithClass(view, "section-heading");
-    if (!intro) return view.querySelector('details[data-analytics-collapsible-key-v145="shell:intro"]');
-
-    const eyebrow = intro.querySelector(":scope > .eyebrow")?.textContent?.trim() || "Diagnóstico local";
-    const titleNode = intro.querySelector(":scope > h2");
-    const title = titleNode?.textContent?.trim() || "Análise Estratégica";
-    intro.classList.add("analytics-intro-source-v145");
-
-    const shell = wrapNode(intro, {
-      key: "shell:intro",
-      title,
-      resume: `${eyebrow} • privacidade e processamento local`,
-      defaultOpen: false,
-      className: "analytics-intro-shell-v145"
-    });
-
-    const summaryTitle = shell?.querySelector(".analytics-collapsible-heading-v145 strong");
-    if (titleNode?.id && summaryTitle) {
-      summaryTitle.id = titleNode.id;
-      titleNode.removeAttribute("id");
-    }
-    return shell;
-  }
-
-  function ensureExportShell() {
-    const toolbar = directChildWithClass(view, "analytics-export-toolbar");
-    if (!toolbar) return view.querySelector('details[data-analytics-collapsible-key-v145="shell:export"]');
-    return wrapNode(toolbar, {
-      key: "shell:export",
-      title: "Exportação e compartilhamento",
-      resume: "PDF, imagem, Excel e demais opções",
-      defaultOpen: false,
-      className: "analytics-export-shell-v145"
-    });
-  }
-
-  function dynamicPanelConfig(node) {
-    if (node.classList?.contains("analytics-compact-header")) {
-      return { key: "dynamic:context", title: "Contexto da análise", resume: "Período, disciplina e origem", defaultOpen: false, className: "analytics-context-shell-v145" };
-    }
-    if (node.id === "analyticsPracticalReadingV143") {
-      return { key: "dynamic:practical", title: "Leitura prática", resume: "Avanço, atenção e próxima ação", defaultOpen: true, className: "analytics-practical-shell-v145" };
-    }
-    const heading = node.querySelector?.("h2, h3, h4")?.textContent?.trim();
-    const identity = node.id || [...(node.classList || [])].find(Boolean) || String([...node.parentElement.children].indexOf(node));
-    return { key: `dynamic:${identity}`, title: heading || "Painel da análise", resume: "Conteúdo complementar", defaultOpen: false, className: "analytics-generic-shell-v145" };
-  }
-
-  function ensureDynamicShells() {
-    const host = document.getElementById("analyticsContent");
-    if (!host) return;
-
-    [...host.children].forEach((child) => {
-      if (child.tagName === "DETAILS") return;
-      if (!child.matches("article, section")) return;
-      const config = dynamicPanelConfig(child);
-      wrapNode(child, config);
-    });
-  }
-
-  function ensurePlanPreviewShell() {
-    const preview = document.getElementById("analyticsPlanPreview");
-    if (!preview) return;
-    const shell = wrapNode(preview, {
-      key: "shell:plan-preview",
-      title: "Plano sugerido",
-      resume: "Ações geradas a partir da análise",
-      defaultOpen: true,
-      className: "analytics-plan-shell-v145"
-    });
-    if (shell) shell.hidden = preview.hidden || !preview.textContent.trim();
-  }
-
-  function ensureControls() {
-    if (document.getElementById("analyticsCollapseToolbarV145")) return;
-    const toolbar = document.createElement("div");
-    toolbar.id = "analyticsCollapseToolbarV145";
-    toolbar.className = "analytics-collapse-toolbar-v145";
-    toolbar.setAttribute("aria-label", "Organização dos painéis da análise");
-    toolbar.innerHTML = '<button type="button" class="secondary-button" data-analytics-collapse-v145="close">Recolher tudo</button><button type="button" class="secondary-button" data-analytics-collapse-v145="open">Abrir tudo</button>';
-
-    const introShell = view.querySelector('details[data-analytics-collapsible-key-v145="shell:intro"]');
-    if (introShell) introShell.after(toolbar);
-    else view.prepend(toolbar);
-  }
-
-  function normalizeNativeDetails() {
-    view.querySelectorAll("details.analytics-filters-section, details.analytics-section, details.analytics-subsection, details.analytics-collapsible-v145").forEach((details) => {
-      const key = detailsKey(details);
-      if (!key) return;
-      registerDetails(details, key, details.open);
-    });
-  }
-
-  function topLevelDetails() {
-    const host = document.getElementById("analyticsContent");
-    const direct = [...view.children].filter((child) => child.tagName === "DETAILS");
-    const dynamic = host ? [...host.children].filter((child) => child.tagName === "DETAILS") : [];
-    return [...new Set([...direct, ...dynamic])].filter((details) => !details.hidden);
-  }
-
-  function setAll(open) {
-    topLevelDetails().forEach((details) => {
-      details.open = open;
-      const key = detailsKey(details);
-      if (key) openState.set(key, open);
-    });
-  }
-
-  function processPanels() {
-    if (mutating) return;
-    mutating = true;
-    try {
-      ensureStyles();
-      ensureIntroShell();
-      ensureControls();
-      ensureExportShell();
-      ensureDynamicShells();
-      ensurePlanPreviewShell();
-      normalizeNativeDetails();
-    } finally {
-      mutating = false;
-    }
-  }
-
-  function scheduleProcess() {
-    if (scheduled) return;
-    scheduled = true;
-    (window.requestAnimationFrame || window.setTimeout)(() => {
-      scheduled = false;
-      processPanels();
-    }, 0);
-  }
-
-  view.addEventListener("toggle", (event) => {
-    const details = event.target;
-    if (details?.tagName !== "DETAILS") return;
-    const key = detailsKey(details);
-    if (key) openState.set(key, details.open);
-  }, true);
-
-  view.addEventListener("click", (event) => {
-    const button = event.target.closest("button[data-analytics-collapse-v145]");
-    if (!button) return;
-    setAll(button.dataset.analyticsCollapseV145 === "open");
-  });
-
-  processPanels();
-  observer = new MutationObserver(scheduleProcess);
-  observer.observe(view, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden"] });
-  window.addEventListener("hashchange", scheduleProcess);
-  window.addEventListener("pageshow", scheduleProcess);
-
-  view.dataset.analyticsCollapsiblesV145 = "true";
-  view.dataset.analyticsCollapsiblesVersion = VERSION;
-})();
-
 /* Aldus source: daily-collapsibles-closed-v140.js */
 (() => {
   if (window.__aldusDailyCollapsiblesClosedV140) return;
@@ -53093,263 +52730,6 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   root.dataset.dailyCollapsiblesClosedVersion = VERSION;
 })();
 
-/* Aldus source: question-board-result-v141.js */
-(() => {
-  "use strict";
-
-  if (window.__aldusQuestionBoardResultV141) return;
-  window.__aldusQuestionBoardResultV141 = true;
-
-  const VERSION = "20260725-resultado-outras-bancas-v141";
-  const FIELD_IDS = new Set([
-    "questionBoard",
-    "questionTotal",
-    "questionCorrect",
-    "questionWrong",
-    "questionBlank"
-  ]);
-
-  function clamp(value, min, max) {
-    return Math.min(max, Math.max(min, value));
-  }
-
-  function readNumber(id) {
-    const value = Number(document.getElementById(id)?.value);
-    return Number.isFinite(value) ? Math.max(0, value) : 0;
-  }
-
-  function formatPercent(value) {
-    return Number(value || 0).toLocaleString("pt-BR", {
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1
-    });
-  }
-
-  function ensureStyles() {
-    if (document.getElementById("questionBoardResultStylesV141")) return;
-    const style = document.createElement("style");
-    style.id = "questionBoardResultStylesV141";
-    style.textContent = `
-      #view-questoes .question-board-result-v141 {
-        --question-board-result: .8%;
-        display: grid;
-        gap: 10px;
-        padding: 16px 18px;
-        border: 1px solid var(--border, #dbe4f0);
-        border-radius: 18px;
-        background: var(--surface, #ffffff);
-      }
-      #view-questoes .question-board-result-v141[hidden] {
-        display: none !important;
-      }
-      #view-questoes .question-board-result-heading-v141 {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 14px;
-        min-width: 0;
-      }
-      #view-questoes .question-board-result-heading-v141 span {
-        color: var(--muted, #64748b);
-        font-size: .72rem;
-        font-weight: 900;
-        letter-spacing: .08em;
-        text-transform: uppercase;
-      }
-      #view-questoes .question-board-result-heading-v141 strong {
-        min-width: 0;
-        color: inherit;
-        font-size: .95rem;
-        font-weight: 900;
-        text-align: right;
-      }
-      #view-questoes .question-board-result-track-v141 {
-        position: relative;
-        height: 10px;
-        border: 1px solid rgba(15, 23, 42, .15);
-        border-radius: 999px;
-        background: linear-gradient(90deg,
-          #dc2626 0%,
-          #f97316 24%,
-          #facc15 50%,
-          #22c55e 76%,
-          #0ea5e9 100%);
-        box-shadow: inset 0 1px 2px rgba(15, 23, 42, .18);
-      }
-      #view-questoes .question-board-result-marker-v141 {
-        position: absolute;
-        top: 50%;
-        left: var(--question-board-result);
-        width: 16px;
-        height: 16px;
-        border: 2px solid #0f172a;
-        border-radius: 50%;
-        background: #ffffff;
-        box-shadow: 0 2px 7px rgba(15, 23, 42, .28);
-        transform: translate(-50%, -50%);
-        transition: left .22s ease;
-      }
-      #view-questoes .question-board-result-details-v141 {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px 14px;
-        margin: 0;
-        color: var(--muted, #64748b);
-        font-size: .78rem;
-        font-weight: 700;
-        line-height: 1.35;
-      }
-      #view-questoes .question-board-result-details-v141 [data-board-result-check="warning"] {
-        color: #b45309;
-      }
-      html[data-aldus-theme="premium-stable"] #view-questoes .question-board-result-v141 {
-        border-color: rgba(104, 173, 220, .46);
-        background: rgba(7, 39, 64, .82);
-      }
-      html[data-aldus-theme="premium-stable"] #view-questoes .question-board-result-heading-v141 span,
-      html[data-aldus-theme="premium-stable"] #view-questoes .question-board-result-details-v141 {
-        color: #c9deed;
-      }
-      html[data-aldus-theme="premium-stable"] #view-questoes .question-board-result-marker-v141 {
-        border-color: #061d31;
-        background: #f7fbff;
-      }
-      html[data-aldus-theme="premium-stable"] #view-questoes .question-board-result-details-v141 [data-board-result-check="warning"] {
-        color: #facc15;
-      }
-      @media (max-width: 620px) {
-        #view-questoes .question-board-result-heading-v141 {
-          align-items: flex-start;
-          flex-direction: column;
-          gap: 5px;
-        }
-        #view-questoes .question-board-result-heading-v141 strong {
-          text-align: left;
-        }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        #view-questoes .question-board-result-marker-v141 {
-          transition: none;
-        }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  function ensurePanel() {
-    const calculated = document.getElementById("questionCalculated");
-    if (!calculated) return null;
-
-    let panel = document.getElementById("questionBoardResultV141");
-    if (panel) return panel;
-
-    panel = document.createElement("section");
-    panel.id = "questionBoardResultV141";
-    panel.className = "question-board-result-v141 wide";
-    panel.hidden = true;
-    panel.setAttribute("aria-live", "polite");
-    panel.dataset.questionBoardResultVersion = VERSION;
-    panel.innerHTML = `
-      <div class="question-board-result-heading-v141">
-        <span>Resultado da banca selecionada</span>
-        <strong data-board-result-summary>Preencha os números da sessão</strong>
-      </div>
-      <div class="question-board-result-track-v141" role="progressbar" aria-label="Aproveitamento em questões de outras bancas" aria-valuemin="0" aria-valuemax="100">
-        <span class="question-board-result-marker-v141" aria-hidden="true"></span>
-      </div>
-      <p class="question-board-result-details-v141">
-        <span data-board-result-breakdown></span>
-        <span data-board-result-method></span>
-        <span data-board-result-check></span>
-      </p>
-    `;
-    calculated.insertAdjacentElement("afterend", panel);
-    return panel;
-  }
-
-  let rendering = false;
-  function render() {
-    if (rendering) return;
-    rendering = true;
-    try {
-      ensureStyles();
-      const panel = ensurePanel();
-      const boardSelect = document.getElementById("questionBoard");
-      if (!panel || !boardSelect) return;
-
-      const board = String(boardSelect.value || "").trim();
-      const isCebraspe = board.toLocaleLowerCase("pt-BR") === "cebraspe";
-      panel.hidden = !board || isCebraspe;
-      if (panel.hidden) return;
-
-      const total = readNumber("questionTotal");
-      const correct = readNumber("questionCorrect");
-      const wrong = readNumber("questionWrong");
-      const blank = readNumber("questionBlank");
-      const informed = correct + wrong + blank;
-      const accuracy = total ? clamp((correct / total) * 100, 0, 100) : 0;
-      const marker = clamp(accuracy, .8, 99.2);
-      const boardLabel = board === "Outra" ? "Outra banca" : board;
-
-      panel.style.setProperty("--question-board-result", `${marker}%`);
-      const summary = panel.querySelector("[data-board-result-summary]");
-      const track = panel.querySelector(".question-board-result-track-v141");
-      const breakdown = panel.querySelector("[data-board-result-breakdown]");
-      const method = panel.querySelector("[data-board-result-method]");
-      const check = panel.querySelector("[data-board-result-check]");
-
-      if (summary) {
-        summary.textContent = total
-          ? `${boardLabel} • ${correct} de ${total} • ${formatPercent(accuracy)}%`
-          : `${boardLabel} • preencha o total de questões`;
-      }
-      if (track) {
-        track.setAttribute("aria-valuenow", accuracy.toFixed(1));
-        track.setAttribute("aria-valuetext", `${formatPercent(accuracy)}% de acertos em ${boardLabel}`);
-      }
-      if (breakdown) breakdown.textContent = `Acertos: ${correct} • Erros: ${wrong} • Brancos: ${blank}`;
-      if (method) method.textContent = "Cálculo geral: acertos ÷ total, sem penalização.";
-      if (check) {
-        const mismatch = total > 0 && informed !== total;
-        check.dataset.boardResultCheck = mismatch ? "warning" : "ok";
-        check.textContent = mismatch
-          ? `Conferência: acertos + erros + brancos = ${informed}, mas o total informado é ${total}.`
-          : "Pesos, anulações e regras específicas do edital não estão incluídos.";
-      }
-    } finally {
-      rendering = false;
-    }
-  }
-
-  let queued = false;
-  function scheduleRender() {
-    if (queued) return;
-    queued = true;
-    const schedule = window.requestAnimationFrame || ((callback) => window.setTimeout(callback, 0));
-    schedule(() => {
-      queued = false;
-      render();
-    });
-  }
-
-  document.addEventListener("input", (event) => {
-    if (FIELD_IDS.has(event.target?.id)) scheduleRender();
-  }, true);
-  document.addEventListener("change", (event) => {
-    if (FIELD_IDS.has(event.target?.id)) scheduleRender();
-  }, true);
-  window.addEventListener("hashchange", scheduleRender);
-  document.addEventListener("DOMContentLoaded", scheduleRender, { once: true });
-
-  const calculated = document.getElementById("questionCalculated");
-  if (calculated && typeof MutationObserver !== "undefined") {
-    const observer = new MutationObserver(scheduleRender);
-    observer.observe(calculated, { childList: true, subtree: true, characterData: true });
-  }
-
-  scheduleRender();
-})();
-
 /* Aldus source: question-scoring-rule-v142.js */
 (() => {
   "use strict";
@@ -53390,7 +52770,6 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     const style = document.createElement("style");
     style.id = "questionScoringRuleStylesV142";
     style.textContent = `
-      #questionBoardResultV141{display:none!important}
       #questionScoringRulePanelV142{display:grid;gap:14px;padding:18px;border:1px solid var(--border,#dbe4f0);border-radius:18px;background:var(--surface,#fff)}
       #questionScoringRulePanelV142 .score-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
       #questionScoringRulePanelV142 .score-head strong{display:block;margin-top:3px}

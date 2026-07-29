@@ -44,10 +44,12 @@ test("seta customizada única permanece visível", () => {
   assert.match(source, /visibility: visible !important/);
 });
 
-test("v150 está incorporada após v149", () => {
+test("comportamento v150 foi absorvido pelo controlador único atual", () => {
   const bundle = read(path.join(rootDir, "app-v169.js"));
-  assert.ok(bundle.indexOf("Aldus source: analytics-header-arrow-v149.js") < bundle.indexOf("Aldus source: analytics-single-arrow-v150.js"));
-  assert.equal((bundle.match(/Aldus source: analytics-single-arrow-v150\.js/g) || []).length, 1);
+  assert.match(bundle, /Aldus source: analytics-view-controller-v179\.js/);
+  assert.doesNotMatch(bundle, /Aldus source: analytics-single-arrow-v150\.js/);
+  assert.match(bundle, /summary::before/);
+  assert.match(bundle, /analytics-collapsible-chevron-v145/);
   assert.doesNotMatch(read(files.rootDaily), /analytics-single-arrow-v150\.js|createElement\(["']script/);
   assert.doesNotMatch(read(files.rootCentral), /analytics-single-arrow-v150\.js|daily-collapsibles-closed-v140\.js|createElement\(["']script/);
 });

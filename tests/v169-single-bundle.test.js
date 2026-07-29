@@ -13,10 +13,7 @@ const incorporatedModules = [
   "question-searchable-selects-v135.js",
   "factory-executive-ui-v136.js",
   "daily-study-collapsible-v137.js",
-  "analytics-accordion-fix-v148.js",
-  "analytics-single-arrow-v150.js",
   "daily-collapsibles-closed-v140.js",
-  "question-board-result-v141.js",
   "question-scoring-rule-v142.js",
   "timer-motivation-v161.js",
   "question-register-simple-v162.js",
@@ -24,9 +21,16 @@ const incorporatedModules = [
   "collapse-chevron-fix-v139.js",
   "reinforcement-goal-presentation-v156.js",
   "contest-countdown-v151.js",
-  "analytics-header-arrow-v149.js",
+  "analytics-view-controller-v179.js",
   "performance-practical-v143.js",
-  "analytics-collapsibles-v145.js"
+];
+
+const retiredRuntimeModules = [
+  "analytics-collapsibles-v145.js",
+  "analytics-accordion-fix-v148.js",
+  "analytics-header-arrow-v149.js",
+  "analytics-single-arrow-v150.js",
+  "question-board-result-v141.js"
 ];
 
 test("V169 usa um JS, um CSS, um bootstrap e um registro de service worker", () => {
@@ -41,10 +45,14 @@ test("V169 usa um JS, um CSS, um bootstrap e um registro de service worker", () 
   assert.doesNotMatch(html, /app-v(?:128|131|132|135|136|137|138|139|140|141|142|143|145|148|149|150|151|156|161|162|168)|service-worker-v168/i);
 });
 
-test("V169 incorpora os 20 módulos antigos sem carregadores internos", () => {
+test("V169 incorpora os módulos operacionais atuais sem carregadores internos", () => {
   const app = read("app-v169.js");
   for (const filename of incorporatedModules) {
     assert.match(app, new RegExp(`Aldus source: ${filename.replaceAll(".", "\\.")}`), filename);
+  }
+  for (const filename of retiredRuntimeModules) {
+    assert.doesNotMatch(app, new RegExp(`Aldus source: ${filename.replaceAll(".", "\\.")}`), filename);
+    assert.equal(fs.existsSync(filename), true, `${filename} deve permanecer disponível para reversão`);
   }
   assert.doesNotMatch(app, /script\.src\s*=\s*["'`](?:timer|factory|calendar|question|analytics|daily|sync|performance|contest|reinforcement|collapse|central)-/);
   assert.doesNotMatch(app, /data-integral-sync-file|loadIntegralSyncEnhancementFile|INTEGRAL_SYNC_ENHANCEMENT_FILES/);
