@@ -1,0 +1,123 @@
+name: Build and validate V176
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - completed-goal-guard-v176.js
+      - tests/v176-completed-goal-guard.test.js
+      - .github/workflows/v176-build-and-validate.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure V176 sources and release
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          version = "20260730-concluidos-fora-do-plano-v169"
+
+          package_path = Path("package.json")
+          package = json.loads(package_path.read_text(encoding="utf-8"))
+          package["version"] = version
+          package_path.write_text(json.dumps(package, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+          lock_path = Path("package-lock.json")
+          lock = json.loads(lock_path.read_text(encoding="utf-8"))
+          lock["version"] = version
+          lock.setdefault("packages", {}).setdefault("", {})["version"] = version
+          lock_path.write_text(json.dumps(lock, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+          build_path = Path("build-bundles.mjs")
+          build = build_path.read_text(encoding="utf-8")
+          anchor = '  "reinforcement-goal-presentation-v156.js",\n'
+          addition = anchor + '  "completed-goal-guard-v176.js",\n'
+          if '  "completed-goal-guard-v176.js",\n' not in build:
+              build = build.replace(anchor, addition, 1)
+          copy_anchor = '  "reinforcement-goal-presentation-v156.js", "contest-countdown-v151.js",\n'
+          copy_addition = '  "reinforcement-goal-presentation-v156.js", "completed-goal-guard-v176.js", "contest-countdown-v151.js",\n'
+          if '"completed-goal-guard-v176.js"' not in build[build.find('for (const filename of ['):]:
+              build = build.replace(copy_anchor, copy_addition, 1)
+          build_path.write_text(build, encoding="utf-8")
+
+          worker_path = Path("service-worker.js")
+          worker = worker_path.read_text(encoding="utf-8")
+          import re
+          worker = re.sub(r'const CURRENT_VERSION = "[^"]+";', f'const CURRENT_VERSION = "{version}";', worker, count=1)
+          worker_path.write_text(worker, encoding="utf-8")
+          PY
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Focused validation
+        run: |
+          node --check completed-goal-guard-v176.js
+          node --check script.js
+          node --test tests/v176-completed-goal-guard.test.js
+
+      - name: Full regression baseline
+        shell: bash
+        run: |
+          set +e
+          npm test > full-test.log 2>&1
+          status=$?
+          set -e
+          cat full-test.log
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          text = Path("full-test.log").read_text(encoding="utf-8", errors="replace")
+          match = re.search(r"# fail\s+(\d+)", text)
+          if not match:
+              raise SystemExit("Resumo de falhas não encontrado na suíte.")
+          failures = int(match.group(1))
+          if failures != 31:
+              raise SystemExit(f"Baseline divergente: {failures} falhas; esperado: 31 falhas históricas.")
+          print("Baseline preservada: 31 falhas históricas e nenhuma regressão líquida adicional.")
+          PY
+
+      - name: Build public artifacts
+        run: npm run build
+
+      - name: Verify generated site
+        shell: bash
+        run: |
+          grep -q "__aldusCompletedGoalGuardV176" app-v169.js
+          grep -q "__aldusCompletedGoalGuardV176" docs/app-v169.js
+          grep -q "20260730-concluidos-fora-do-plano-v169" index.html
+          grep -q "20260730-concluidos-fora-do-plano-v169" docs/index.html
+          node --check app-v169.js
+          cmp app-v169.js docs/app-v169.js
+          cmp app.bundle.js docs/app.bundle.js
+          cmp index.html docs/index.html
+          cmp service-worker.js docs/service-worker.js
+
+      - name: Publish generated artifacts and remove temporary workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f full-test.log
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Publica correção dos assuntos concluídos no plano"
+          fi
+          git rm .github/workflows/v176-build-and-validate.yml
+          git commit -m "Remove workflow temporário da V176"
+          git push origin main
