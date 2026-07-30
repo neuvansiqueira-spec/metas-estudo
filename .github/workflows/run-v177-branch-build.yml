@@ -28,6 +28,27 @@ jobs:
           ref: agent/v177-correcao-segura-metas-concluidas
           fetch-depth: 0
 
+      - name: Capture current main failure baseline
+        shell: bash
+        run: |
+          git worktree add --detach /tmp/metas-main origin/main
+          cd /tmp/metas-main
+          npm ci
+          set +e
+          npm test > /tmp/main-test.log 2>&1
+          set -e
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          text = Path('/tmp/main-test.log').read_text(encoding='utf-8', errors='replace')
+          failures = re.findall(r'^not ok \d+ - (.+)$', text, flags=re.MULTILINE)
+          print(f'Baseline main: {len(failures)} falhas')
+          for name in failures:
+              print(f'BASELINE_FAIL: {name}')
+          if len(failures) != 31:
+              raise SystemExit(f'A main restaurada não corresponde à baseline aceita: {len(failures)} falhas; esperado: 31.')
+          PY
+
       - name: Configure V177 source and release
         shell: bash
         run: |
@@ -81,25 +102,36 @@ jobs:
       - name: Build public artifacts
         run: npm run build
 
-      - name: Full regression baseline after build
+      - name: Compare full failure sets after build
         shell: bash
         run: |
           set +e
-          npm test > full-test.log 2>&1
-          status=$?
+          npm test > branch-test.log 2>&1
           set -e
-          cat full-test.log
           python3 - <<'PY'
           import re
           from pathlib import Path
-          text = Path("full-test.log").read_text(encoding="utf-8", errors="replace")
-          match = re.search(r"# fail\s+(\d+)", text)
-          if not match:
-              raise SystemExit("Resumo de falhas não encontrado na suíte.")
-          failures = int(match.group(1))
-          if failures != 31:
-              raise SystemExit(f"Baseline divergente após o build: {failures} falhas; esperado: 31 falhas históricas.")
-          print("Baseline preservada: 31 falhas históricas e nenhuma regressão nova líquida.")
+
+          def failure_names(path):
+              text = Path(path).read_text(encoding='utf-8', errors='replace')
+              return re.findall(r'^not ok \d+ - (.+)$', text, flags=re.MULTILINE)
+
+          main_failures = failure_names('/tmp/main-test.log')
+          branch_failures = failure_names('branch-test.log')
+          main_set = set(main_failures)
+          branch_set = set(branch_failures)
+          new_failures = sorted(branch_set - main_set)
+          missing_failures = sorted(main_set - branch_set)
+
+          print(f'Main: {len(main_failures)} falhas; V177: {len(branch_failures)} falhas')
+          for name in new_failures:
+              print(f'NEW_FAILURE: {name}')
+          for name in missing_failures:
+              print(f'MISSING_BASELINE_FAILURE: {name}')
+
+          if new_failures or missing_failures or len(branch_failures) != len(main_failures):
+              raise SystemExit('A lista de falhas da V177 diverge da baseline da main.')
+          print('Baseline nominal preservada: mesmas 31 falhas históricas, sem falha nova.')
           PY
 
       - name: Verify generated site
@@ -126,7 +158,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          rm -f full-test.log
+          rm -f branch-test.log
           rm -f .github/workflows/v177-build-and-validate.yml
           git add -A
           git commit -m "Gera pacote seguro da correção de metas concluídas"
