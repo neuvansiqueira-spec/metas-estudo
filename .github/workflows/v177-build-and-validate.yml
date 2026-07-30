@@ -1,4 +1,4 @@
-# Sincronização nominal da baseline para a PR #345.
+# Validação contra o último commit estável 9e09f986 para a PR #345.
 name: Build and validate V177
 
 on:
