@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260730-metas-concluidas-seguras-v169",
+  "version": "20260730-meta-diaria-peca-delegado-v169",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
