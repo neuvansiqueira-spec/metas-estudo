@@ -1,0 +1,131 @@
+name: Build and validate V177
+
+on:
+  push:
+    branches:
+      - agent/v177-correcao-segura-metas-concluidas
+    paths:
+      - completed-goal-guard-v177.js
+      - tests/v177-completed-goal-guard.test.js
+      - .github/workflows/v177-build-and-validate.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-validate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure V177 source and release
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          version = "20260730-metas-concluidas-seguras-v169"
+
+          package_path = Path("package.json")
+          package = json.loads(package_path.read_text(encoding="utf-8"))
+          package["version"] = version
+          package_path.write_text(json.dumps(package, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+          lock_path = Path("package-lock.json")
+          lock = json.loads(lock_path.read_text(encoding="utf-8"))
+          lock["version"] = version
+          lock.setdefault("packages", {}).setdefault("", {})["version"] = version
+          lock_path.write_text(json.dumps(lock, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+          build_path = Path("build-bundles.mjs")
+          build = build_path.read_text(encoding="utf-8")
+          source_anchor = '  "reinforcement-goal-presentation-v156.js",\n'
+          source_line = '  "completed-goal-guard-v177.js",\n'
+          if source_line not in build:
+              build = build.replace(source_anchor, source_anchor + source_line, 1)
+          copy_anchor = '  "reinforcement-goal-presentation-v156.js", "contest-countdown-v151.js",\n'
+          copy_replacement = '  "reinforcement-goal-presentation-v156.js", "completed-goal-guard-v177.js", "contest-countdown-v151.js",\n'
+          if '"completed-goal-guard-v177.js"' not in build[build.find('for (const filename of ['):]:
+              build = build.replace(copy_anchor, copy_replacement, 1)
+          build_path.write_text(build, encoding="utf-8")
+
+          worker_path = Path("service-worker.js")
+          worker = worker_path.read_text(encoding="utf-8")
+          worker = re.sub(r'const CURRENT_VERSION = "[^"]+";', f'const CURRENT_VERSION = "{version}";', worker, count=1)
+          if "RUNTIME_PATCH_ASSET" in worker or "appendRuntimePatch" in worker:
+              raise SystemExit("O service worker não está limpo; build interrompido.")
+          worker_path.write_text(worker, encoding="utf-8")
+          PY
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Focused validation
+        run: |
+          node --check completed-goal-guard-v177.js
+          node --check script.js
+          node --test tests/v175-no-automatic-reinforcement.test.js tests/v177-completed-goal-guard.test.js
+
+      - name: Full regression baseline
+        shell: bash
+        run: |
+          set +e
+          npm test > full-test.log 2>&1
+          status=$?
+          set -e
+          cat full-test.log
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          text = Path("full-test.log").read_text(encoding="utf-8", errors="replace")
+          match = re.search(r"# fail\s+(\d+)", text)
+          if not match:
+              raise SystemExit("Resumo de falhas não encontrado na suíte.")
+          failures = int(match.group(1))
+          if failures != 31:
+              raise SystemExit(f"Baseline divergente: {failures} falhas; esperado: 31 falhas históricas.")
+          print("Baseline preservada: 31 falhas históricas e nenhuma regressão nova líquida.")
+          PY
+
+      - name: Build public artifacts
+        run: npm run build
+
+      - name: Verify generated site
+        shell: bash
+        run: |
+          grep -q "__aldusCompletedGoalGuardV177" app-v169.js
+          grep -q "__aldusCompletedGoalGuardV177" docs/app-v169.js
+          grep -q "20260730-metas-concluidas-seguras-v169" index.html
+          grep -q "20260730-metas-concluidas-seguras-v169" docs/index.html
+          grep -q "20260730-metas-concluidas-seguras-v169" service-worker.js
+          ! grep -q "RUNTIME_PATCH_ASSET" service-worker.js
+          ! grep -q "appendRuntimePatch" service-worker.js
+          node --check app-v169.js
+          node --check docs/app-v169.js
+          cmp app-v169.js docs/app-v169.js
+          cmp app.bundle.js docs/app.bundle.js
+          cmp index.html docs/index.html
+          cmp service-worker.js docs/service-worker.js
+          cmp service-worker-v169.js docs/service-worker-v169.js
+          cmp service-worker-v168.js docs/service-worker-v168.js
+
+      - name: Publish generated artifacts and remove temporary workflow
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f full-test.log
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Gera pacote seguro da correção de metas concluídas"
+          fi
+          git rm .github/workflows/v177-build-and-validate.yml
+          git commit -m "Remove workflow temporário da V177"
+          git push origin HEAD
