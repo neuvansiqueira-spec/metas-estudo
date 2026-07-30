@@ -7,6 +7,7 @@ const RUNTIME_SAVE_ASSET = "./save-performance-v186.js";
 const RUNTIME_DAILY_AUDIT_ASSET = "./daily-piece-audit-performance-v186.js";
 const RUNTIME_CAPTURE_READER_ASSET = "./qconcursos-capture-segmented-v188.js";
 const RUNTIME_CAPTURE_BANK_ASSET = "./qconcursos-capture-bank-v188.js";
+const RUNTIME_CAPTURE_REPROCESS_ASSET = "./qconcursos-capture-reprocess-v188.js";
 const STATIC_ASSETS = [
   "./",
   "index.html",
@@ -17,6 +18,7 @@ const STATIC_ASSETS = [
   RUNTIME_DAILY_AUDIT_ASSET,
   RUNTIME_CAPTURE_READER_ASSET,
   RUNTIME_CAPTURE_BANK_ASSET,
+  RUNTIME_CAPTURE_REPROCESS_ASSET,
   "vendor/pdf.mjs",
   "vendor/pdf.worker.mjs",
   "vendor/pdfjs-LICENSE.txt",
@@ -109,19 +111,29 @@ async function patchedApplicationResponse(request, event) {
   const response = await cachedStatic(request, event);
   if (!response?.ok) return response;
   try {
-    const [applicationSource, preludeSource, saveSource, dailyAuditSource, captureReaderSource, captureBankSource] = await Promise.all([
+    const [
+      applicationSource,
+      preludeSource,
+      saveSource,
+      dailyAuditSource,
+      captureReaderSource,
+      captureBankSource,
+      captureReprocessSource
+    ] = await Promise.all([
       response.text(),
       runtimeAssetText(RUNTIME_PRELUDE_ASSET),
       runtimeAssetText(RUNTIME_SAVE_ASSET),
       runtimeAssetText(RUNTIME_DAILY_AUDIT_ASSET),
       runtimeAssetText(RUNTIME_CAPTURE_READER_ASSET),
-      runtimeAssetText(RUNTIME_CAPTURE_BANK_ASSET)
+      runtimeAssetText(RUNTIME_CAPTURE_BANK_ASSET),
+      runtimeAssetText(RUNTIME_CAPTURE_REPROCESS_ASSET)
     ]);
 
     let patchedSource = applicationSource
       .replaceAll("20260730-meta-diaria-peca-delegado-v169", CURRENT_VERSION)
       .replaceAll("20260730-carregamento-salvamento-rapido-v169", CURRENT_VERSION)
-      .replaceAll("20260730-importacao-completa-captura-v169", CURRENT_VERSION);
+      .replaceAll("20260730-importacao-completa-captura-v169", CURRENT_VERSION)
+      .replaceAll("20260730-segmentacao-cartoes-qconcursos-v169", CURRENT_VERSION);
 
     if (!patchedSource.includes("/* Aldus runtime source: save-performance-v186.js */")) {
       patchedSource = injectBeforeMarker(
@@ -152,7 +164,8 @@ async function patchedApplicationResponse(request, event) {
       patchedSource,
       [
         "/* Aldus source: qconcursos-capture-import-v182.js */",
-        "/* Aldus runtime source: qconcursos-capture-complete-v187.js */"
+        "/* Aldus runtime source: qconcursos-capture-complete-v187.js */",
+        "/* Aldus runtime source: qconcursos-capture-segmented-v188.js */"
       ],
       "/* Aldus source: script.js */",
       "/* Aldus runtime source: qconcursos-capture-segmented-v188.js */",
@@ -163,8 +176,8 @@ async function patchedApplicationResponse(request, event) {
       patchedSource = injectBeforeMarker(
         patchedSource,
         'elements.qbPdfFile?.addEventListener("change", (event) => qbReadPdfImportFile(event.target.files?.[0]));',
-        `/* Aldus runtime source: qconcursos-capture-bank-v188.js */\n${captureBankSource}`,
-        "integração do cadastro segmentado por captura"
+        `/* Aldus runtime source: qconcursos-capture-bank-v188.js */\n${captureBankSource}\n\n/* Aldus runtime source: qconcursos-capture-reprocess-v188.js */\n${captureReprocessSource}`,
+        "integração do cadastro segmentado e releitura corretiva"
       );
     }
 
