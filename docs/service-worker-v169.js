@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20260730-ocr-conservador-qconcursos-v169";
+const CURRENT_VERSION = "20260730-importacao-json-completa-qconcursos-v169";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 const RUNTIME_PRELUDE_ASSET = "./daily-piece-audit-prelude-v186.js";
 const RUNTIME_SAVE_ASSET = "./save-performance-v186.js";
@@ -10,11 +10,12 @@ const RUNTIME_CAPTURE_ACCURACY_ASSET = "./qconcursos-capture-accuracy-v190.js";
 const RUNTIME_CAPTURE_BANK_ASSET = "./qconcursos-capture-bank-v188.js";
 const RUNTIME_CAPTURE_REPROCESS_ASSET = "./qconcursos-capture-reprocess-v188.js";
 const RUNTIME_CAPTURE_UI_STRICT_ASSET = "./qconcursos-capture-ui-strict-v190.js";
+const RUNTIME_QB_JSON_IMPORT_ASSET = "./question-bank-json-import-v191.js";
 const STATIC_ASSETS = [
   "./", "index.html", `app-v169.css?v=${CURRENT_VERSION}`, `app-v169.js?v=${CURRENT_VERSION}`,
   RUNTIME_PRELUDE_ASSET, RUNTIME_SAVE_ASSET, RUNTIME_DAILY_AUDIT_ASSET,
   RUNTIME_CAPTURE_READER_ASSET, RUNTIME_CAPTURE_ACCURACY_ASSET, RUNTIME_CAPTURE_BANK_ASSET,
-  RUNTIME_CAPTURE_REPROCESS_ASSET, RUNTIME_CAPTURE_UI_STRICT_ASSET,
+  RUNTIME_CAPTURE_REPROCESS_ASSET, RUNTIME_CAPTURE_UI_STRICT_ASSET, RUNTIME_QB_JSON_IMPORT_ASSET,
   "vendor/pdf.mjs", "vendor/pdf.worker.mjs", "vendor/pdfjs-LICENSE.txt", "manifest.json",
   "icons/aldus-visual.png", "icons/aldus-brand-mark-v93.png", "icons/logo-mark.svg", "icons/icon.svg", "icons/icon-maskable.svg"
 ];
@@ -75,10 +76,10 @@ async function patchedApplicationResponse(request, event) {
   const response = await cachedStatic(request, event);
   if (!response?.ok) return response;
   try {
-    const [applicationSource, preludeSource, saveSource, dailyAuditSource, captureReaderSource, captureAccuracySource, captureBankSource, captureReprocessSource, captureUiStrictSource] = await Promise.all([
+    const [applicationSource, preludeSource, saveSource, dailyAuditSource, captureReaderSource, captureAccuracySource, captureBankSource, captureReprocessSource, captureUiStrictSource, qbJsonImportSource] = await Promise.all([
       response.text(), runtimeAssetText(RUNTIME_PRELUDE_ASSET), runtimeAssetText(RUNTIME_SAVE_ASSET), runtimeAssetText(RUNTIME_DAILY_AUDIT_ASSET),
       runtimeAssetText(RUNTIME_CAPTURE_READER_ASSET), runtimeAssetText(RUNTIME_CAPTURE_ACCURACY_ASSET), runtimeAssetText(RUNTIME_CAPTURE_BANK_ASSET),
-      runtimeAssetText(RUNTIME_CAPTURE_REPROCESS_ASSET), runtimeAssetText(RUNTIME_CAPTURE_UI_STRICT_ASSET)
+      runtimeAssetText(RUNTIME_CAPTURE_REPROCESS_ASSET), runtimeAssetText(RUNTIME_CAPTURE_UI_STRICT_ASSET), runtimeAssetText(RUNTIME_QB_JSON_IMPORT_ASSET)
     ]);
     const repairedReader = repairCaptureReaderSource(captureReaderSource);
     let patchedSource = applicationSource
@@ -87,7 +88,8 @@ async function patchedApplicationResponse(request, event) {
       .replaceAll("20260730-importacao-completa-captura-v169", CURRENT_VERSION)
       .replaceAll("20260730-segmentacao-cartoes-qconcursos-v169", CURRENT_VERSION)
       .replaceAll("20260730-correcao-alternativas-qconcursos-v169", CURRENT_VERSION)
-      .replaceAll("20260730-ocr-conservador-qconcursos-v169", CURRENT_VERSION);
+      .replaceAll("20260730-ocr-conservador-qconcursos-v169", CURRENT_VERSION)
+      .replaceAll("20260730-importacao-json-completa-qconcursos-v169", CURRENT_VERSION);
 
     if (!patchedSource.includes("/* Aldus runtime source: save-performance-v186.js */")) patchedSource = injectBeforeMarker(patchedSource, "/* Aldus source: question-accuracy-spectrum.js */", `/* Aldus runtime source: save-performance-v186.js */\n${saveSource}`, "salvamento responsivo");
     if (!patchedSource.includes("/* Aldus runtime source: daily-piece-audit-prelude-v186.js */")) patchedSource = injectBeforeMarker(patchedSource, "/* Aldus source: daily-delegate-piece-goal-v183.js */", `/* Aldus runtime source: daily-piece-audit-prelude-v186.js */\n${preludeSource}`, "preâmbulo da auditoria de Peças");
@@ -101,12 +103,21 @@ async function patchedApplicationResponse(request, event) {
       `${repairedReader}\n\n${captureAccuracySource}`
     );
 
+    const qbEventsMarker = 'elements.qbPdfFile?.addEventListener("change", (event) => qbReadPdfImportFile(event.target.files?.[0]));';
     if (!patchedSource.includes("/* Aldus runtime source: qconcursos-capture-bank-v188.js */")) {
       patchedSource = injectBeforeMarker(
         patchedSource,
-        'elements.qbPdfFile?.addEventListener("change", (event) => qbReadPdfImportFile(event.target.files?.[0]));',
+        qbEventsMarker,
         `/* Aldus runtime source: qconcursos-capture-bank-v188.js */\n${captureBankSource}\n\n/* Aldus runtime source: qconcursos-capture-reprocess-v188.js */\n${captureReprocessSource}\n\n/* Aldus runtime source: qconcursos-capture-ui-strict-v190.js */\n${captureUiStrictSource}`,
         "integração do OCR conservador e revisão obrigatória"
+      );
+    }
+    if (!patchedSource.includes("/* Aldus runtime source: question-bank-json-import-v191.js */")) {
+      patchedSource = injectBeforeMarker(
+        patchedSource,
+        qbEventsMarker,
+        `/* Aldus runtime source: question-bank-json-import-v191.js */\n${qbJsonImportSource}`,
+        "importação JSON completa do QConcursos"
       );
     }
 
@@ -116,7 +127,7 @@ async function patchedApplicationResponse(request, event) {
     headers.set("x-aldus-runtime-patch", CURRENT_VERSION);
     return new Response(patchedSource, { status: response.status, statusText: response.statusText, headers });
   } catch (error) {
-    console.warn("[Aldus V190] Não foi possível aplicar o OCR conservador; o aplicativo original será mantido.", error);
+    console.warn("[Aldus V191] Não foi possível aplicar a importação JSON completa; o aplicativo original será mantido.", error);
     return response;
   }
 }
