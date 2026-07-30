@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260729-layout-captura-resultados-v169",
+  "version": "20260729-sem-reforco-automatico-v169",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
