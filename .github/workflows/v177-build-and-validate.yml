@@ -1,3 +1,4 @@
+# Sincronização para executar o workflow rastreável da PR #345.
 name: Build and validate V177
 
 on:
