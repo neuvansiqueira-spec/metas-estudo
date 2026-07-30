@@ -1,0 +1,144 @@
+name: V186 performance build
+
+on:
+  push:
+    branches:
+      - agent/v186-carregamento-salvamento-rapido
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Integrate performance modules and version
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const version = '20260730-carregamento-salvamento-rapido-v169';
+
+          const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          packageJson.version = version;
+          fs.writeFileSync('package.json', `${JSON.stringify(packageJson, null, 2)}\n`);
+
+          const worker = fs.readFileSync('service-worker.js', 'utf8')
+            .replace(/const CURRENT_VERSION = "[^"]+";/, `const CURRENT_VERSION = "${version}";`);
+          fs.writeFileSync('service-worker.js', worker);
+
+          let build = fs.readFileSync('build-bundles.mjs', 'utf8');
+          const replacements = [
+            [
+              '  "script.js",\n  "question-accuracy-spectrum.js",',
+              '  "script.js",\n  "save-performance-v186.js",\n  "question-accuracy-spectrum.js",'
+            ],
+            [
+              '  "completed-goal-guard-v177.js",\n  "daily-delegate-piece-goal-v183.js",\n  "analytics-view-controller-v179.js",',
+              '  "completed-goal-guard-v177.js",\n  "daily-piece-audit-prelude-v186.js",\n  "daily-delegate-piece-goal-v183.js",\n  "daily-piece-audit-performance-v186.js",\n  "analytics-view-controller-v179.js",'
+            ],
+            [
+              '  "reinforcement-goal-presentation-v156.js", "completed-goal-guard-v177.js", "daily-delegate-piece-goal-v183.js", "contest-countdown-v151.js",',
+              '  "reinforcement-goal-presentation-v156.js", "completed-goal-guard-v177.js", "daily-piece-audit-prelude-v186.js", "daily-delegate-piece-goal-v183.js", "daily-piece-audit-performance-v186.js", "save-performance-v186.js", "contest-countdown-v151.js",'
+            ]
+          ];
+          for (const [before, after] of replacements) {
+            if (!build.includes(before)) throw new Error(`Trecho de build não encontrado: ${before}`);
+            build = build.replace(before, after);
+          }
+          fs.writeFileSync('build-bundles.mjs', build);
+          NODE
+
+          npm install --package-lock-only --ignore-scripts
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run targeted V186 tests
+        run: node --test tests/v186-save-performance.test.js tests/v186-piece-audit-performance.test.js
+
+      - name: Compare full suite with main baseline
+        shell: bash
+        run: |
+          set +e
+          npm test > /tmp/branch.tap 2>&1
+          branch_status=$?
+          set -e
+
+          git worktree add /tmp/main-baseline origin/main
+          pushd /tmp/main-baseline
+          npm ci
+          set +e
+          npm test > /tmp/main.tap 2>&1
+          main_status=$?
+          set -e
+          popd
+
+          grep -E '^not ok [0-9]+ - ' /tmp/branch.tap | sed -E 's/^not ok [0-9]+ - //' | sort > /tmp/branch-failures.txt || true
+          grep -E '^not ok [0-9]+ - ' /tmp/main.tap | sed -E 's/^not ok [0-9]+ - //' | sort > /tmp/main-failures.txt || true
+
+          echo "Branch test exit: ${branch_status}"
+          echo "Main test exit: ${main_status}"
+          echo "Falhas na branch: $(wc -l < /tmp/branch-failures.txt)"
+          echo "Falhas na main: $(wc -l < /tmp/main-failures.txt)"
+          diff -u /tmp/main-failures.txt /tmp/branch-failures.txt
+
+      - name: Build public package
+        run: npm run build
+
+      - name: Validate syntax, order and parity
+        shell: bash
+        run: |
+          node --check save-performance-v186.js
+          node --check daily-piece-audit-prelude-v186.js
+          node --check daily-piece-audit-performance-v186.js
+          node --check app-v169.js
+          node --check docs/app-v169.js
+          node --check service-worker.js
+          node --check docs/service-worker.js
+
+          node <<'NODE'
+          const fs = require('node:fs');
+          const bundle = fs.readFileSync('app-v169.js', 'utf8');
+          const ordered = [
+            '/* Aldus source: script.js */',
+            '/* Aldus source: save-performance-v186.js */',
+            '/* Aldus source: daily-piece-audit-prelude-v186.js */',
+            '/* Aldus source: daily-delegate-piece-goal-v183.js */',
+            '/* Aldus source: daily-piece-audit-performance-v186.js */'
+          ];
+          let previous = -1;
+          for (const marker of ordered) {
+            const current = bundle.indexOf(marker);
+            if (current < 0 || current <= previous) throw new Error(`Ordem inválida no bundle: ${marker}`);
+            previous = current;
+          }
+          NODE
+
+          cmp app-v169.js docs/app-v169.js
+          cmp app-v169.css docs/app-v169.css
+          cmp index.html docs/index.html
+          cmp service-worker.js docs/service-worker.js
+          cmp service-worker-v169.js docs/service-worker-v169.js
+          grep -q '20260730-carregamento-salvamento-rapido-v169' docs/index.html
+          grep -q '20260730-carregamento-salvamento-rapido-v169' docs/service-worker-v169.js
+
+      - name: Commit generated public files
+        shell: bash
+        run: |
+          rm -f .github/workflows/v186-performance-build.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Publica otimização de carregamento e salvamento V186"
+          git push origin HEAD
