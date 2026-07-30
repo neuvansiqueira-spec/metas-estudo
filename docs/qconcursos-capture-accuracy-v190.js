@@ -159,7 +159,7 @@
     if (!type) warnings.push("Tipo não identificado com segurança.");
     if (type === "multipla" && Object.keys(alternatives).length < 4) warnings.push("Nem todas as alternativas foram lidas.");
     return {
-      index, ...taxonomy, ...metadata, enunciado: strictStatement(text), alternativas,
+      index, ...taxonomy, ...metadata, enunciado: strictStatement(text), alternativas: alternatives,
       comentarioQc: strictComment(text), justificativa: strictComment(text), fundamento: strictComment(text),
       tipo: type, officialKey, status, correct: status === "certo", segment: text,
       confidence: Math.max(0, 100 - warnings.length * 22), reviewRequired: warnings.length > 0 || !strictStatement(text),
