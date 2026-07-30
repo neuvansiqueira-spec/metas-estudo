@@ -39,7 +39,7 @@ async function appendRuntimePatch(request, response) {
     const patchText = await patchResponse.text();
     const headers = new Headers(response.headers);
     headers.set("content-type", "text/javascript; charset=utf-8");
-    headers.delete("content-length");
+    ["content-length", "content-encoding", "etag", "last-modified"].forEach((name) => headers.delete(name));
     return new Response(`${appText}\n\n/* Aldus runtime patch: completed-goal-guard-v176.js */\n${patchText}\n`, {
       status: response.status,
       statusText: response.statusText,
