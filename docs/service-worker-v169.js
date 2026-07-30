@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20260730-confirmacao-final-json-v169";
+const CURRENT_VERSION = "20260730-estabiliza-rolagem-carregamento-v169";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 const RUNTIME_PRELUDE_ASSET = "./daily-piece-audit-prelude-v186.js";
 const RUNTIME_SAVE_ASSET = "./save-performance-v186.js";
@@ -15,13 +15,14 @@ const RUNTIME_QB_JSON_REVIEW_ASSET = "./question-bank-json-review-v192.js";
 const RUNTIME_QB_JSON_CONTRAST_ASSET = "./question-bank-json-contrast-v193.js";
 const RUNTIME_QB_JSON_PRIORITY_ASSET = "./question-bank-json-priority-v195.js";
 const RUNTIME_QB_JSON_COMPLETION_ASSET = "./question-bank-json-completion-v196.js";
+const RUNTIME_SCROLL_STABILITY_ASSET = "./loading-scrollbar-stability-v197.css";
 const STATIC_ASSETS = [
   "./", "index.html", `app-v169.css?v=${CURRENT_VERSION}`, `app-v169.js?v=${CURRENT_VERSION}`,
   RUNTIME_PRELUDE_ASSET, RUNTIME_SAVE_ASSET, RUNTIME_DAILY_AUDIT_ASSET,
   RUNTIME_CAPTURE_READER_ASSET, RUNTIME_CAPTURE_ACCURACY_ASSET, RUNTIME_CAPTURE_BANK_ASSET,
   RUNTIME_CAPTURE_REPROCESS_ASSET, RUNTIME_CAPTURE_UI_STRICT_ASSET, RUNTIME_QB_JSON_IMPORT_ASSET,
   RUNTIME_QB_JSON_REVIEW_ASSET, RUNTIME_QB_JSON_CONTRAST_ASSET, RUNTIME_QB_JSON_PRIORITY_ASSET,
-  RUNTIME_QB_JSON_COMPLETION_ASSET,
+  RUNTIME_QB_JSON_COMPLETION_ASSET, RUNTIME_SCROLL_STABILITY_ASSET,
   "vendor/pdf.mjs", "vendor/pdf.worker.mjs", "vendor/pdfjs-LICENSE.txt", "manifest.json",
   "icons/aldus-visual.png", "icons/aldus-brand-mark-v93.png", "icons/logo-mark.svg", "icons/icon.svg", "icons/icon-maskable.svg"
 ];
@@ -102,7 +103,8 @@ async function patchedApplicationResponse(request, event) {
       .replaceAll("20260730-contraste-revisao-json-qconcursos-v169", CURRENT_VERSION)
       .replaceAll("20260730-restaura-carregamento-json-v169", CURRENT_VERSION)
       .replaceAll("20260730-prioridade-revisao-json-v169", CURRENT_VERSION)
-      .replaceAll("20260730-confirmacao-final-json-v169", CURRENT_VERSION);
+      .replaceAll("20260730-confirmacao-final-json-v169", CURRENT_VERSION)
+      .replaceAll("20260730-estabiliza-rolagem-carregamento-v169", CURRENT_VERSION);
 
     if (!patchedSource.includes("/* Aldus runtime source: save-performance-v186.js */")) patchedSource = injectBeforeMarker(patchedSource, "/* Aldus source: question-accuracy-spectrum.js */", `/* Aldus runtime source: save-performance-v186.js */\n${saveSource}`, "salvamento responsivo");
     if (!patchedSource.includes("/* Aldus runtime source: daily-piece-audit-prelude-v186.js */")) patchedSource = injectBeforeMarker(patchedSource, "/* Aldus source: daily-delegate-piece-goal-v183.js */", `/* Aldus runtime source: daily-piece-audit-prelude-v186.js */\n${preludeSource}`, "preâmbulo da auditoria de Peças");
@@ -187,7 +189,30 @@ async function patchedApplicationResponse(request, event) {
     headers.set("x-aldus-runtime-patch", CURRENT_VERSION);
     return new Response(patchedSource, { status: response.status, statusText: response.statusText, headers });
   } catch (error) {
-    console.warn("[Aldus V196] Não foi possível mostrar a confirmação final da importação JSON; o bundle original será mantido.", error);
+    console.warn("[Aldus V197] Não foi possível montar os módulos do aplicativo; o bundle original será mantido.", error);
+    return response;
+  }
+}
+
+async function patchedStylesheetResponse(request, event) {
+  const response = await cachedStatic(request, event);
+  if (!response?.ok) return response;
+  try {
+    const [stylesheetSource, stabilitySource] = await Promise.all([
+      response.text(),
+      runtimeAssetText(RUNTIME_SCROLL_STABILITY_ASSET)
+    ]);
+    const marker = "/* Aldus runtime source: loading-scrollbar-stability-v197.css */";
+    const patchedSource = stylesheetSource.includes(marker)
+      ? stylesheetSource
+      : `${stylesheetSource.trim()}\n\n${marker}\n${stabilitySource.trim()}\n`;
+    const headers = new Headers(response.headers);
+    for (const name of ["content-length", "content-encoding", "etag", "last-modified"]) headers.delete(name);
+    headers.set("content-type", "text/css; charset=utf-8");
+    headers.set("x-aldus-runtime-style-patch", CURRENT_VERSION);
+    return new Response(patchedSource, { status: response.status, statusText: response.statusText, headers });
+  } catch (error) {
+    console.warn("[Aldus V197] Não foi possível estabilizar a rolagem durante o carregamento; o CSS original será mantido.", error);
     return response;
   }
 }
@@ -198,6 +223,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
   if (request.mode === "navigate" || request.destination === "document") { event.respondWith(cachedNavigation(request, event)); return; }
+  if (url.pathname.endsWith("/app-v169.css")) { event.respondWith(patchedStylesheetResponse(request, event)); return; }
   if (url.pathname.endsWith("/app-v169.js")) { event.respondWith(patchedApplicationResponse(request, event)); return; }
   if (STATIC_PATHS.has(url.pathname)) event.respondWith(cachedStatic(request, event));
 });
