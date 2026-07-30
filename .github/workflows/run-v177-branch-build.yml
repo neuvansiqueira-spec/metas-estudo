@@ -6,12 +6,20 @@ on:
       - main
     paths:
       - .github/workflows/run-v177-branch-build.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - completed-goal-guard-v177.js
+      - tests/v177-completed-goal-guard.test.js
+      - .github/workflows/v177-build-and-validate.yml
 
 permissions:
   contents: write
 
 jobs:
   build-branch:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout isolated V177 branch
