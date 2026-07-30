@@ -4,6 +4,7 @@
   if (globalThis.__aldusCompletedGoalGuardV176) return;
 
   const VERSION = "20260730-concluidos-fora-do-plano-v176";
+  const PUBLIC_VERSION = "20260730-concluidos-fora-do-plano-v169";
   const MIGRATION_KEY = "completedSubjectsOutsideAutomaticPlanV176";
 
   function canonicalValue(value) {
@@ -199,11 +200,25 @@
     }
   }
 
+  function applyPublicVersion() {
+    if (typeof document === "undefined") return;
+    document.documentElement.dataset.aldusReleaseVersion = PUBLIC_VERSION;
+    document.querySelectorAll(".app-version").forEach((element) => {
+      element.textContent = `Versão: ${PUBLIC_VERSION}`;
+    });
+  }
+
+  applyPublicVersion();
+  if (typeof MutationObserver !== "undefined" && typeof document !== "undefined") {
+    new MutationObserver(applyPublicVersion).observe(document.documentElement, { childList: true, subtree: true });
+  }
+
   const candidateGuardInstalled = installCandidateGuard();
   const repair = repairExistingAutomaticGoals();
 
   globalThis.__aldusCompletedGoalGuardV176 = Object.freeze({
     version: VERSION,
+    publicVersion: PUBLIC_VERSION,
     candidateGuardInstalled,
     repair
   });
