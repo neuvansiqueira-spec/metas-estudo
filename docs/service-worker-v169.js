@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20260730-restaura-carregamento-json-v169";
+const CURRENT_VERSION = "20260730-prioridade-revisao-json-v169";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 const RUNTIME_PRELUDE_ASSET = "./daily-piece-audit-prelude-v186.js";
 const RUNTIME_SAVE_ASSET = "./save-performance-v186.js";
@@ -13,11 +13,13 @@ const RUNTIME_CAPTURE_UI_STRICT_ASSET = "./qconcursos-capture-ui-strict-v190.js"
 const RUNTIME_QB_JSON_IMPORT_ASSET = "./question-bank-json-import-v191.js";
 const RUNTIME_QB_JSON_REVIEW_ASSET = "./question-bank-json-review-v192.js";
 const RUNTIME_QB_JSON_CONTRAST_ASSET = "./question-bank-json-contrast-v193.js";
+const RUNTIME_QB_JSON_PRIORITY_ASSET = "./question-bank-json-priority-v195.js";
 const STATIC_ASSETS = [
   "./", "index.html", `app-v169.css?v=${CURRENT_VERSION}`, `app-v169.js?v=${CURRENT_VERSION}`,
   RUNTIME_PRELUDE_ASSET, RUNTIME_SAVE_ASSET, RUNTIME_DAILY_AUDIT_ASSET,
   RUNTIME_CAPTURE_READER_ASSET, RUNTIME_CAPTURE_ACCURACY_ASSET, RUNTIME_CAPTURE_BANK_ASSET,
-  RUNTIME_CAPTURE_REPROCESS_ASSET, RUNTIME_CAPTURE_UI_STRICT_ASSET, RUNTIME_QB_JSON_IMPORT_ASSET, RUNTIME_QB_JSON_REVIEW_ASSET, RUNTIME_QB_JSON_CONTRAST_ASSET,
+  RUNTIME_CAPTURE_REPROCESS_ASSET, RUNTIME_CAPTURE_UI_STRICT_ASSET, RUNTIME_QB_JSON_IMPORT_ASSET,
+  RUNTIME_QB_JSON_REVIEW_ASSET, RUNTIME_QB_JSON_CONTRAST_ASSET, RUNTIME_QB_JSON_PRIORITY_ASSET,
   "vendor/pdf.mjs", "vendor/pdf.worker.mjs", "vendor/pdfjs-LICENSE.txt", "manifest.json",
   "icons/aldus-visual.png", "icons/aldus-brand-mark-v93.png", "icons/logo-mark.svg", "icons/icon.svg", "icons/icon-maskable.svg"
 ];
@@ -78,10 +80,11 @@ async function patchedApplicationResponse(request, event) {
   const response = await cachedStatic(request, event);
   if (!response?.ok) return response;
   try {
-    const [applicationSource, preludeSource, saveSource, dailyAuditSource, captureReaderSource, captureAccuracySource, captureBankSource, captureReprocessSource, captureUiStrictSource, qbJsonImportSource, qbJsonReviewSource, qbJsonContrastSource] = await Promise.all([
+    const [applicationSource, preludeSource, saveSource, dailyAuditSource, captureReaderSource, captureAccuracySource, captureBankSource, captureReprocessSource, captureUiStrictSource, qbJsonImportSource, qbJsonReviewSource, qbJsonContrastSource, qbJsonPrioritySource] = await Promise.all([
       response.text(), runtimeAssetText(RUNTIME_PRELUDE_ASSET), runtimeAssetText(RUNTIME_SAVE_ASSET), runtimeAssetText(RUNTIME_DAILY_AUDIT_ASSET),
       runtimeAssetText(RUNTIME_CAPTURE_READER_ASSET), runtimeAssetText(RUNTIME_CAPTURE_ACCURACY_ASSET), runtimeAssetText(RUNTIME_CAPTURE_BANK_ASSET),
-      runtimeAssetText(RUNTIME_CAPTURE_REPROCESS_ASSET), runtimeAssetText(RUNTIME_CAPTURE_UI_STRICT_ASSET), runtimeAssetText(RUNTIME_QB_JSON_IMPORT_ASSET), runtimeAssetText(RUNTIME_QB_JSON_REVIEW_ASSET), runtimeAssetText(RUNTIME_QB_JSON_CONTRAST_ASSET)
+      runtimeAssetText(RUNTIME_CAPTURE_REPROCESS_ASSET), runtimeAssetText(RUNTIME_CAPTURE_UI_STRICT_ASSET), runtimeAssetText(RUNTIME_QB_JSON_IMPORT_ASSET),
+      runtimeAssetText(RUNTIME_QB_JSON_REVIEW_ASSET), runtimeAssetText(RUNTIME_QB_JSON_CONTRAST_ASSET), runtimeAssetText(RUNTIME_QB_JSON_PRIORITY_ASSET)
     ]);
     const repairedReader = repairCaptureReaderSource(captureReaderSource);
     let patchedSource = applicationSource
@@ -94,7 +97,8 @@ async function patchedApplicationResponse(request, event) {
       .replaceAll("20260730-importacao-json-completa-qconcursos-v169", CURRENT_VERSION)
       .replaceAll("20260730-revisao-visivel-json-qconcursos-v169", CURRENT_VERSION)
       .replaceAll("20260730-contraste-revisao-json-qconcursos-v169", CURRENT_VERSION)
-      .replaceAll("20260730-restaura-carregamento-json-v169", CURRENT_VERSION);
+      .replaceAll("20260730-restaura-carregamento-json-v169", CURRENT_VERSION)
+      .replaceAll("20260730-prioridade-revisao-json-v169", CURRENT_VERSION);
 
     if (!patchedSource.includes("/* Aldus runtime source: save-performance-v186.js */")) patchedSource = injectBeforeMarker(patchedSource, "/* Aldus source: question-accuracy-spectrum.js */", `/* Aldus runtime source: save-performance-v186.js */\n${saveSource}`, "salvamento responsivo");
     if (!patchedSource.includes("/* Aldus runtime source: daily-piece-audit-prelude-v186.js */")) patchedSource = injectBeforeMarker(patchedSource, "/* Aldus source: daily-delegate-piece-goal-v183.js */", `/* Aldus runtime source: daily-piece-audit-prelude-v186.js */\n${preludeSource}`, "preâmbulo da auditoria de Peças");
@@ -117,12 +121,12 @@ async function patchedApplicationResponse(request, event) {
         "integração do OCR conservador e revisão obrigatória"
       );
     }
-    if (!patchedSource.includes("/* Aldus runtime source: question-bank-json-import-v191.js */")) {
+    if (!patchedSource.includes("/* Aldus runtime source: question-bank-json-review-v192.js */")) {
       patchedSource = injectBeforeMarker(
         patchedSource,
         qbEventsMarker,
-        `/* Aldus runtime source: question-bank-json-import-v191.js */\n${qbJsonImportSource}`,
-        "importação JSON completa do QConcursos"
+        `/* Aldus runtime source: question-bank-json-review-v192.js */\n${qbJsonReviewSource}`,
+        "painel visível de revisão da importação JSON"
       );
     }
     if (!patchedSource.includes("/* Aldus runtime source: question-bank-json-contrast-v193.js */")) {
@@ -133,22 +137,35 @@ async function patchedApplicationResponse(request, event) {
         "contraste legível do painel de revisão JSON"
       );
     }
-    if (!patchedSource.includes("/* Aldus runtime source: question-bank-json-review-v192.js */")) {
+    if (!patchedSource.includes("/* Aldus runtime source: question-bank-json-priority-v195.js */")) {
       patchedSource = injectBeforeMarker(
         patchedSource,
         qbEventsMarker,
-        `/* Aldus runtime source: question-bank-json-review-v192.js */\n${qbJsonReviewSource}`,
-        "painel visível de revisão da importação JSON"
+        `/* Aldus runtime source: question-bank-json-priority-v195.js */\n${qbJsonPrioritySource}`,
+        "prioridade da revisão JSON sobre importadores antigos"
+      );
+    }
+    if (!patchedSource.includes("/* Aldus runtime source: question-bank-json-import-v191.js */")) {
+      patchedSource = injectBeforeMarker(
+        patchedSource,
+        qbEventsMarker,
+        `/* Aldus runtime source: question-bank-json-import-v191.js */\n${qbJsonImportSource}`,
+        "importação JSON completa do QConcursos"
       );
     }
 
     const requiredMarkers = [
       "/* Aldus runtime source: question-bank-json-review-v192.js */",
       "/* Aldus runtime source: question-bank-json-contrast-v193.js */",
+      "/* Aldus runtime source: question-bank-json-priority-v195.js */",
       "/* Aldus runtime source: question-bank-json-import-v191.js */"
     ];
     const missingMarkers = requiredMarkers.filter((marker) => !patchedSource.includes(marker));
     if (missingMarkers.length) throw new Error(`Módulos obrigatórios ausentes: ${missingMarkers.join(", ")}`);
+    const reviewIndex = patchedSource.indexOf(requiredMarkers[0]);
+    const priorityIndex = patchedSource.indexOf(requiredMarkers[2]);
+    const importIndex = patchedSource.indexOf(requiredMarkers[3]);
+    if (!(reviewIndex < importIndex && priorityIndex < importIndex)) throw new Error("A revisão JSON não recebeu prioridade sobre o importador direto.");
 
     const headers = new Headers(response.headers);
     for (const name of ["content-length", "content-encoding", "etag", "last-modified"]) headers.delete(name);
@@ -156,7 +173,7 @@ async function patchedApplicationResponse(request, event) {
     headers.set("x-aldus-runtime-patch", CURRENT_VERSION);
     return new Response(patchedSource, { status: response.status, statusText: response.statusText, headers });
   } catch (error) {
-    console.warn("[Aldus V194] Não foi possível montar os módulos do aplicativo; o bundle original será mantido.", error);
+    console.warn("[Aldus V195] Não foi possível priorizar a revisão JSON; o bundle original será mantido.", error);
     return response;
   }
 }
