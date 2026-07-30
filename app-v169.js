@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260729-layout-captura-resultados-v169";
+  const VERSION = "20260729-sem-reforco-automatico-v169";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -51834,7 +51834,8 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   if (window.__aldusReinforcementGoalPresentationV156) return;
   window.__aldusReinforcementGoalPresentationV156 = true;
 
-  const VERSION = "20260727-meta-reforco-visivel-v156";
+  const VERSION = "20260729-sem-reforco-automatico-v175";
+  const MIGRATION_KEY = "noAutomaticReinforcementV175";
   const LABEL = "META DE REFORÇO";
 
   function canonical(value) {
@@ -51848,6 +51849,128 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   function isReinforcementGoal(goal) {
     return canonical(goal?.type || goal?.tipo) === "reforco";
   }
+
+  function normalTypeForItem(item = {}, targetState = null) {
+    try {
+      if (typeof normalGoalTypeForItemV157 === "function") {
+        return normalGoalTypeForItemV157(item, targetState || state);
+      }
+    } catch {}
+    const mode = item?.importMeta?.tipo_agendamento
+      || item?.tipo_agendamento
+      || targetState?.schedulableSettings?.[item?.id]?.mode
+      || "Estudo teórico";
+    if (mode === "Revisão apenas" || item?.status === "Revisar") return "Revisão";
+    if (mode === "Questões apenas") return "Questões";
+    return "Estudo novo";
+  }
+
+  function disableAutomaticReinforcementClassification() {
+    try {
+      if (typeof planningGoalTypeForItemV157 !== "function") return false;
+      planningGoalTypeForItemV157 = function noAutomaticReinforcementV175(item = {}, date = "", metrics = null, targetState = state) {
+        return normalTypeForItem(item, targetState);
+      };
+      return true;
+    } catch (error) {
+      console.warn("[Aldus v175] Não foi possível desativar a classificação automática de reforço.", error);
+      return false;
+    }
+  }
+
+  function hasExecution(goal = {}) {
+    return [
+      goal.studyActualMinutes,
+      goal.questionActualMinutes,
+      goal.actualMinutes,
+      goal.tempo_real_minutos,
+      goal.minutesDone,
+      goal.performedMinutes
+    ].some((value) => Number(value) > 0);
+  }
+
+  function hasHistory(goal = {}) {
+    const history = goal.history || goal.historico;
+    return Array.isArray(history) ? history.length > 0 : Boolean(String(history || "").trim());
+  }
+
+  function isManualGoal(goal = {}) {
+    try {
+      if (typeof isManualDailyGoal === "function") return isManualDailyGoal(goal);
+    } catch {}
+    const origin = canonical(goal.origin || goal.origem);
+    return origin.includes("manual") || goal.manual === true || goal.isManual === true;
+  }
+
+  function isUntouchedAutomaticPendingReinforcement(goal = {}) {
+    if (!isReinforcementGoal(goal) || isManualGoal(goal)) return false;
+    const status = canonical(goal.status || "Pendente");
+    if (!["", "pendente"].includes(status)) return false;
+    if (hasExecution(goal) || hasHistory(goal)) return false;
+    if (goal.completed || goal.completedAt || goal.startedAt || goal.iniciadoEm) return false;
+    return true;
+  }
+
+  function repairPendingAutomaticReinforcementGoals() {
+    try {
+      if (typeof state === "undefined" || !Array.isArray(state?.dailyGoals)) {
+        return { changed: false, corrected: [] };
+      }
+      state.migrations ||= {};
+      if (state.migrations[MIGRATION_KEY]?.completedAt) {
+        return { changed: false, corrected: [], alreadyApplied: true };
+      }
+
+      const syllabusById = new Map(
+        (state.syllabusItems || []).map((item) => [String(item?.id || ""), item])
+      );
+      const corrected = [];
+
+      state.dailyGoals.forEach((goal) => {
+        if (!isUntouchedAutomaticPendingReinforcement(goal)) return;
+        const item = syllabusById.get(String(goal.syllabusItemId || "")) || {};
+        const nextType = normalTypeForItem(item, state);
+        const previousType = goal.type || goal.tipo || "Reforço";
+        goal.type = nextType;
+        goal.tipo = String(nextType).toLowerCase();
+        goal.updatedAt = new Date().toISOString();
+        corrected.push({
+          id: goal.id,
+          syllabusItemId: goal.syllabusItemId || "",
+          previousType,
+          nextType
+        });
+      });
+
+      state.migrations[MIGRATION_KEY] = {
+        completedAt: new Date().toISOString(),
+        corrected: corrected.length,
+        policy: "automatic-pending-untouched-only",
+        preserved: "manual, completed, started, executed and historical goals"
+      };
+
+      if (corrected.length) {
+        if (typeof saveData === "function") saveData({ markLocalChange: true });
+        if (typeof render === "function") render();
+        if (typeof autoSyncAfterSave === "function") autoSyncAfterSave("disable-automatic-reinforcement-v175");
+      } else if (typeof saveData === "function") {
+        saveData({ markLocalChange: true });
+      }
+
+      return { changed: corrected.length > 0, corrected };
+    } catch (error) {
+      console.warn("[Aldus v175] Não foi possível corrigir as metas automáticas de reforço.", error);
+      return { changed: false, corrected: [], error };
+    }
+  }
+
+  const classificationDisabled = disableAutomaticReinforcementClassification();
+  const migrationResult = repairPendingAutomaticReinforcementGoals();
+  window.__aldusNoAutomaticReinforcementV175 = Object.freeze({
+    version: VERSION,
+    classificationDisabled,
+    migration: migrationResult
+  });
 
   function goalFromProjection(goalId) {
     const projection = window.__dailyPlanProjectionByGoalId;
@@ -51961,7 +52084,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
       const title = document.createElement("strong");
       title.textContent = LABEL;
       const description = document.createElement("span");
-      description.textContent = "Atividade adicional para reforçar este assunto; não é uma meta de estudo novo nem uma revisão automática.";
+      description.textContent = "Atividade adicional criada manualmente para reforçar este assunto.";
       callout.append(title, description);
       content.prepend(callout);
     }

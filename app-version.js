@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260729-layout-captura-resultados-v169";
+  const VERSION = "20260729-sem-reforco-automatico-v169";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
