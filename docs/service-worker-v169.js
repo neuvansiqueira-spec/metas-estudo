@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20260730-segmentacao-cartoes-qconcursos-v169";
+const CURRENT_VERSION = "20260730-correcao-alternativas-qconcursos-v169";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 const RUNTIME_PRELUDE_ASSET = "./daily-piece-audit-prelude-v186.js";
 const RUNTIME_SAVE_ASSET = "./save-performance-v186.js";
@@ -107,6 +107,17 @@ function replaceSourceModule(source, possibleMarkers, nextMarker, newMarker, rep
   return `${source.slice(0, start)}${newMarker}\n${replacementSource.trim()}\n\n${source.slice(end)}`;
 }
 
+function repairCaptureReaderSource(source) {
+  const repaired = source.replace(
+    /(\n\s*)alternativas,(\n\s*comentarioQc:)/,
+    "$1alternativas: alternatives,$2"
+  );
+  if (!repaired.includes("alternativas: alternatives")) {
+    throw new Error("Não foi possível aplicar a correção do campo alternativas.");
+  }
+  return repaired;
+}
+
 async function patchedApplicationResponse(request, event) {
   const response = await cachedStatic(request, event);
   if (!response?.ok) return response;
@@ -129,11 +140,13 @@ async function patchedApplicationResponse(request, event) {
       runtimeAssetText(RUNTIME_CAPTURE_REPROCESS_ASSET)
     ]);
 
+    const repairedCaptureReaderSource = repairCaptureReaderSource(captureReaderSource);
     let patchedSource = applicationSource
       .replaceAll("20260730-meta-diaria-peca-delegado-v169", CURRENT_VERSION)
       .replaceAll("20260730-carregamento-salvamento-rapido-v169", CURRENT_VERSION)
       .replaceAll("20260730-importacao-completa-captura-v169", CURRENT_VERSION)
-      .replaceAll("20260730-segmentacao-cartoes-qconcursos-v169", CURRENT_VERSION);
+      .replaceAll("20260730-segmentacao-cartoes-qconcursos-v169", CURRENT_VERSION)
+      .replaceAll("20260730-correcao-alternativas-qconcursos-v169", CURRENT_VERSION);
 
     if (!patchedSource.includes("/* Aldus runtime source: save-performance-v186.js */")) {
       patchedSource = injectBeforeMarker(
@@ -169,7 +182,7 @@ async function patchedApplicationResponse(request, event) {
       ],
       "/* Aldus source: script.js */",
       "/* Aldus runtime source: qconcursos-capture-segmented-v188.js */",
-      captureReaderSource
+      repairedCaptureReaderSource
     );
 
     if (!patchedSource.includes("/* Aldus runtime source: qconcursos-capture-bank-v188.js */")) {
@@ -191,7 +204,7 @@ async function patchedApplicationResponse(request, event) {
       headers
     });
   } catch (error) {
-    console.warn("[Aldus V188] Não foi possível aplicar a segmentação de cartões; o aplicativo original será mantido.", error);
+    console.warn("[Aldus V189] Não foi possível aplicar a correção das alternativas; o aplicativo original será mantido.", error);
     return response;
   }
 }
