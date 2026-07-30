@@ -1,4 +1,4 @@
-# Validação contra o último commit estável 9e09f986 para a PR #345.
+# Comparação nominal contra o commit estável 9e09f986 para a PR #345.
 name: Build and validate V177
 
 on:
