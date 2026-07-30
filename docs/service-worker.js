@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20260730-restaura-abertura-v169";
+const CURRENT_VERSION = "20260730-metas-concluidas-seguras-v169";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 const STATIC_ASSETS = [
   "./",
