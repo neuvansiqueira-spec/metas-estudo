@@ -1,12 +1,14 @@
 "use strict";
 
-const CURRENT_VERSION = "20260729-sem-reforco-automatico-v169";
+const CURRENT_VERSION = "20260730-concluidos-fora-do-plano-v169";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
+const RUNTIME_PATCH_ASSET = `completed-goal-guard-v176.js?v=${CURRENT_VERSION}`;
 const STATIC_ASSETS = [
   "./",
   "index.html",
   `app-v169.css?v=${CURRENT_VERSION}`,
   `app-v169.js?v=${CURRENT_VERSION}`,
+  RUNTIME_PATCH_ASSET,
   "vendor/pdf.mjs",
   "vendor/pdf.worker.mjs",
   "vendor/pdfjs-LICENSE.txt",
@@ -19,8 +21,54 @@ const STATIC_ASSETS = [
 ];
 const STATIC_PATHS = new Set(STATIC_ASSETS.map((asset) => new URL(asset, self.registration.scope).pathname));
 
+function isMainApplicationScript(request) {
+  return new URL(request.url).pathname.endsWith("/app-v169.js");
+}
+
+async function appendRuntimePatch(request, response) {
+  if (!response?.ok || !isMainApplicationScript(request)) return response;
+  try {
+    const appText = await response.text();
+    const patchUrl = new URL(RUNTIME_PATCH_ASSET, self.registration.scope);
+    const patchResponse = await fetch(patchUrl, { cache: "no-store" });
+    if (!patchResponse.ok) return new Response(appText, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers
+    });
+    const patchText = await patchResponse.text();
+    const headers = new Headers(response.headers);
+    headers.set("content-type", "text/javascript; charset=utf-8");
+    headers.delete("content-length");
+    return new Response(`${appText}\n\n/* Aldus runtime patch: completed-goal-guard-v176.js */\n${patchText}\n`, {
+      status: response.status,
+      statusText: response.statusText,
+      headers
+    });
+  } catch (error) {
+    console.warn("[Aldus V176] Falha ao anexar a correção ao aplicativo.", error);
+    return response;
+  }
+}
+
+async function putStaticResponse(request, response) {
+  if (!response?.ok) return response;
+  const prepared = await appendRuntimePatch(request, response);
+  const cache = await caches.open(CACHE_NAME);
+  await cache.put(request, prepared.clone());
+  return prepared;
+}
+
+async function precacheApplication() {
+  const cache = await caches.open(CACHE_NAME);
+  await cache.addAll(STATIC_ASSETS);
+  const appRequest = new Request(new URL(`app-v169.js?v=${CURRENT_VERSION}`, self.registration.scope));
+  const appResponse = await fetch(appRequest, { cache: "no-store" });
+  await putStaticResponse(appRequest, appResponse);
+}
+
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS)));
+  event.waitUntil(precacheApplication());
   self.skipWaiting();
 });
 
@@ -39,13 +87,6 @@ self.addEventListener("activate", (event) => {
       .then(() => self.clients.claim())
   );
 });
-
-async function putStaticResponse(request, response) {
-  if (!response?.ok) return response;
-  const cache = await caches.open(CACHE_NAME);
-  await cache.put(request, response.clone());
-  return response;
-}
 
 function fetchAndCache(request) {
   return fetch(request, { cache: "no-store" })
@@ -70,6 +111,10 @@ async function cachedNavigation(request, event) {
 async function cachedStatic(request, event) {
   const network = fetchAndCache(request).catch(() => null);
   event.waitUntil(network.then(() => undefined));
+  if (isMainApplicationScript(request)) {
+    const fresh = await network;
+    if (fresh) return fresh;
+  }
   const cached = await caches.match(request, { ignoreSearch: true });
   return cached || await network || new Response("Recurso indisponível temporariamente.", { status: 503 });
 }
