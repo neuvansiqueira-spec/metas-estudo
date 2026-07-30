@@ -78,7 +78,10 @@ jobs:
           node --check script.js
           node --test tests/v175-no-automatic-reinforcement.test.js tests/v177-completed-goal-guard.test.js
 
-      - name: Full regression baseline
+      - name: Build public artifacts
+        run: npm run build
+
+      - name: Full regression baseline after build
         shell: bash
         run: |
           set +e
@@ -95,12 +98,9 @@ jobs:
               raise SystemExit("Resumo de falhas não encontrado na suíte.")
           failures = int(match.group(1))
           if failures != 31:
-              raise SystemExit(f"Baseline divergente: {failures} falhas; esperado: 31 falhas históricas.")
+              raise SystemExit(f"Baseline divergente após o build: {failures} falhas; esperado: 31 falhas históricas.")
           print("Baseline preservada: 31 falhas históricas e nenhuma regressão nova líquida.")
           PY
-
-      - name: Build public artifacts
-        run: npm run build
 
       - name: Verify generated site
         shell: bash
