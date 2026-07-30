@@ -6,6 +6,12 @@ on:
       - main
     paths:
       - .github/workflows/run-v183-daily-piece-build.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - daily-delegate-piece-goal-v183.js
+      - tests/v183-daily-delegate-piece.test.js
 
 permissions:
   contents: write
