@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260729-sem-reforco-automatico-v169";
+  const VERSION = "20260730-metas-concluidas-seguras-v169";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
