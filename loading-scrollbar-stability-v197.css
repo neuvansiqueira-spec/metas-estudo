@@ -1,0 +1,34 @@
+/* V197: o aviso de carregamento não participa mais da altura da página.
+   Isso evita a criação e remoção momentânea da barra vertical durante a hidratação. */
+html[data-aldus-theme="premium-stable"] {
+  scrollbar-gutter: stable !important;
+}
+
+html[data-aldus-theme="premium-stable"] .app-loading-state {
+  position: fixed !important;
+  top: 12px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 2147482000 !important;
+  width: min(1180px, calc(100vw - 32px)) !important;
+  max-width: calc(100vw - 32px) !important;
+  margin: 0 !important;
+  pointer-events: none !important;
+  contain: layout paint !important;
+}
+
+html[data-aldus-theme="premium-stable"] .screen-stage {
+  height: auto !important;
+  max-height: none !important;
+  overflow-y: visible !important;
+  scrollbar-gutter: stable !important;
+}
+
+@media (max-width: 620px) {
+  html[data-aldus-theme="premium-stable"] .app-loading-state {
+    top: 8px !important;
+    width: calc(100vw - 20px) !important;
+    max-width: calc(100vw - 20px) !important;
+    padding: 10px 12px !important;
+  }
+}
