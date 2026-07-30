@@ -3,17 +3,16 @@
 const CURRENT_VERSION = "20260730-carregamento-salvamento-rapido-v169";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 const RUNTIME_PRELUDE_ASSET = "./daily-piece-audit-prelude-v186.js";
-const RUNTIME_POST_ASSETS = [
-  "./save-performance-v186.js",
-  "./daily-piece-audit-performance-v186.js"
-];
+const RUNTIME_SAVE_ASSET = "./save-performance-v186.js";
+const RUNTIME_DAILY_AUDIT_ASSET = "./daily-piece-audit-performance-v186.js";
 const STATIC_ASSETS = [
   "./",
   "index.html",
   `app-v169.css?v=${CURRENT_VERSION}`,
   `app-v169.js?v=${CURRENT_VERSION}`,
   RUNTIME_PRELUDE_ASSET,
-  ...RUNTIME_POST_ASSETS,
+  RUNTIME_SAVE_ASSET,
+  RUNTIME_DAILY_AUDIT_ASSET,
   "vendor/pdf.mjs",
   "vendor/pdf.worker.mjs",
   "vendor/pdfjs-LICENSE.txt",
@@ -89,28 +88,56 @@ async function runtimeAssetText(asset) {
   return response.text();
 }
 
+function injectBeforeMarker(source, marker, injectedSource, label) {
+  const position = source.indexOf(marker);
+  if (position < 0) throw new Error(`Marcador ausente para ${label}: ${marker}`);
+  return `${source.slice(0, position)}${injectedSource}\n\n${source.slice(position)}`;
+}
+
 async function patchedApplicationResponse(request, event) {
   const response = await cachedStatic(request, event);
   if (!response?.ok) return response;
 
   try {
-    const [applicationSource, preludeSource, ...postSources] = await Promise.all([
+    const [applicationSource, preludeSource, saveSource, dailyAuditSource] = await Promise.all([
       response.text(),
       runtimeAssetText(RUNTIME_PRELUDE_ASSET),
-      ...RUNTIME_POST_ASSETS.map(runtimeAssetText)
+      runtimeAssetText(RUNTIME_SAVE_ASSET),
+      runtimeAssetText(RUNTIME_DAILY_AUDIT_ASSET)
     ]);
-    const versionedApplication = applicationSource.replaceAll(
+
+    let patchedSource = applicationSource.replaceAll(
       "20260730-meta-diaria-peca-delegado-v169",
       CURRENT_VERSION
     );
+    patchedSource = injectBeforeMarker(
+      patchedSource,
+      "/* Aldus source: question-accuracy-spectrum.js */",
+      `/* Aldus runtime source: save-performance-v186.js */\n${saveSource}`,
+      "salvamento responsivo"
+    );
+    patchedSource = injectBeforeMarker(
+      patchedSource,
+      "/* Aldus source: daily-delegate-piece-goal-v183.js */",
+      `/* Aldus runtime source: daily-piece-audit-prelude-v186.js */\n${preludeSource}`,
+      "preâmbulo da auditoria de Peças"
+    );
+    patchedSource = injectBeforeMarker(
+      patchedSource,
+      "/* Aldus source: analytics-view-controller-v179.js */",
+      `/* Aldus runtime source: daily-piece-audit-performance-v186.js */\n${dailyAuditSource}`,
+      "auditoria consolidada de Peças"
+    );
+
     const headers = new Headers(response.headers);
     for (const name of ["content-length", "content-encoding", "etag", "last-modified"]) headers.delete(name);
     headers.set("content-type", "text/javascript; charset=utf-8");
     headers.set("x-aldus-runtime-patch", CURRENT_VERSION);
-    return new Response(
-      `${preludeSource}\n\n${versionedApplication}\n\n${postSources.join("\n\n")}\n`,
-      { status: response.status, statusText: response.statusText, headers }
-    );
+    return new Response(patchedSource, {
+      status: response.status,
+      statusText: response.statusText,
+      headers
+    });
   } catch (error) {
     console.warn("[Aldus V186] Não foi possível aplicar a otimização em tempo de execução.", error);
     return response;
