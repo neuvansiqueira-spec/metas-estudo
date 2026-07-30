@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20260730-contraste-revisao-json-qconcursos-v169";
+const CURRENT_VERSION = "20260730-restaura-carregamento-json-v169";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 const RUNTIME_PRELUDE_ASSET = "./daily-piece-audit-prelude-v186.js";
 const RUNTIME_SAVE_ASSET = "./save-performance-v186.js";
@@ -93,7 +93,8 @@ async function patchedApplicationResponse(request, event) {
       .replaceAll("20260730-ocr-conservador-qconcursos-v169", CURRENT_VERSION)
       .replaceAll("20260730-importacao-json-completa-qconcursos-v169", CURRENT_VERSION)
       .replaceAll("20260730-revisao-visivel-json-qconcursos-v169", CURRENT_VERSION)
-      .replaceAll("20260730-contraste-revisao-json-qconcursos-v169", CURRENT_VERSION);
+      .replaceAll("20260730-contraste-revisao-json-qconcursos-v169", CURRENT_VERSION)
+      .replaceAll("20260730-restaura-carregamento-json-v169", CURRENT_VERSION);
 
     if (!patchedSource.includes("/* Aldus runtime source: save-performance-v186.js */")) patchedSource = injectBeforeMarker(patchedSource, "/* Aldus source: question-accuracy-spectrum.js */", `/* Aldus runtime source: save-performance-v186.js */\n${saveSource}`, "salvamento responsivo");
     if (!patchedSource.includes("/* Aldus runtime source: daily-piece-audit-prelude-v186.js */")) patchedSource = injectBeforeMarker(patchedSource, "/* Aldus source: daily-delegate-piece-goal-v183.js */", `/* Aldus runtime source: daily-piece-audit-prelude-v186.js */\n${preludeSource}`, "preâmbulo da auditoria de Peças");
@@ -112,24 +113,8 @@ async function patchedApplicationResponse(request, event) {
       patchedSource = injectBeforeMarker(
         patchedSource,
         qbEventsMarker,
-        `/* Aldus runtime source: qconcursos-capture-bankv188.js */\n${captureBankSource}\n\n/* Aldus runtime source: qconcursos-capture-reprocess-v188.js */\n${captureReprocessSource}\n\n/* Aldus runtime source: qconcursos-capture-ui-strict-v190.js */\n${captureUiStrictSource}`,
+        `/* Aldus runtime source: qconcursos-capture-bank-v188.js */\n${captureBankSource}\n\n/* Aldus runtime source: qconcursos-capture-reprocess-v188.js */\n${captureReprocessSource}\n\n/* Aldus runtime source: qconcursos-capture-ui-strict-v190.js */\n${captureUiStrictSource}`,
         "integração do OCR conservador e revisão obrigatória"
-      );
-    }
-    if (!patchedSource.includes("/* Aldus runtime source: question-bank-json-review-v192.js */")) {
-      patchedSource = injectBeforeMarker(
-        patchedSource,
-        qBEventsMarker,
-        `/* Aldus runtime source: question-bank-json-review-v192.js */\n${qbJsonReviewSource}`,
-        "painel visível de revisão da importação JSON"
-      );
-    }
-    if (!patchedSource.includes("/* Aldus runtime source: question-bank-json-contrast-v193.js */")) {
-      patchedSource = injectBeforeMarker(
-        patchedSource,
-        qbEventsMarker,
-        `/* Aldus runtime source: question-bank-json-contrast-v193.js */\n${qbJsonContrastSource}`,
-        "contraste legível do painel de revisão JSON"
       );
     }
     if (!patchedSource.includes("/* Aldus runtime source: question-bank-json-import-v191.js */")) {
@@ -140,6 +125,30 @@ async function patchedApplicationResponse(request, event) {
         "importação JSON completa do QConcursos"
       );
     }
+    if (!patchedSource.includes("/* Aldus runtime source: question-bank-json-contrast-v193.js */")) {
+      patchedSource = injectBeforeMarker(
+        patchedSource,
+        qbEventsMarker,
+        `/* Aldus runtime source: question-bank-json-contrast-v193.js */\n${qbJsonContrastSource}`,
+        "contraste legível do painel de revisão JSON"
+      );
+    }
+    if (!patchedSource.includes("/* Aldus runtime source: question-bank-json-review-v192.js */")) {
+      patchedSource = injectBeforeMarker(
+        patchedSource,
+        qbEventsMarker,
+        `/* Aldus runtime source: question-bank-json-review-v192.js */\n${qbJsonReviewSource}`,
+        "painel visível de revisão da importação JSON"
+      );
+    }
+
+    const requiredMarkers = [
+      "/* Aldus runtime source: question-bank-json-review-v192.js */",
+      "/* Aldus runtime source: question-bank-json-contrast-v193.js */",
+      "/* Aldus runtime source: question-bank-json-import-v191.js */"
+    ];
+    const missingMarkers = requiredMarkers.filter((marker) => !patchedSource.includes(marker));
+    if (missingMarkers.length) throw new Error(`Módulos obrigatórios ausentes: ${missingMarkers.join(", ")}`);
 
     const headers = new Headers(response.headers);
     for (const name of ["content-length", "content-encoding", "etag", "last-modified"]) headers.delete(name);
@@ -147,7 +156,7 @@ async function patchedApplicationResponse(request, event) {
     headers.set("x-aldus-runtime-patch", CURRENT_VERSION);
     return new Response(patchedSource, { status: response.status, statusText: response.statusText, headers });
   } catch (error) {
-    console.warn("[Aldus V193] Não foi possível aplicar o contraste da revisão JSON; o aplicativo original será mantido.", error);
+    console.warn("[Aldus V194] Não foi possível montar os módulos do aplicativo; o bundle original será mantido.", error);
     return response;
   }
 }
