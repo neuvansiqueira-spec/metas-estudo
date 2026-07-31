@@ -60,7 +60,7 @@
         html[data-side-nav-collapsed="false"] .${MODULE_CLASS} .side-nav-title-text{
           opacity:0;
           transform:translateX(-6px);
-          animation:aldusSideNavTitleRevealV207 .14s ease .16s forwards;
+          animation:aldusSideNavTitleRevealV207 .14s ease .22s forwards;
         }
         #sideNavToggle[data-side-nav-auto-hover="true"]{
           display:none !important;
