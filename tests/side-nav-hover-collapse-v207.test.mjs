@@ -9,7 +9,7 @@ const workerSource = fs.readFileSync(new URL("../service-worker-v169.js", import
 
 test("título Navegação só aparece após a barra ganhar largura", () => {
   assert.match(moduleSource, /side-nav-title-text/);
-  assert.match(moduleSource, /animation:aldusSideNavTitleRevealV207 \.14s ease \.16s forwards/);
+  assert.match(moduleSource, /animation:aldusSideNavTitleRevealV207 \.14s ease \.22s forwards/);
   assert.match(moduleSource, /white-space:nowrap/);
   assert.match(moduleSource, /overflow:hidden/);
 });
