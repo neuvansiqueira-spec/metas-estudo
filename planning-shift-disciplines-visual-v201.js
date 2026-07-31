@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260731-remove-nota-disciplinas-plantao-v202";
+  const VERSION = "20260731-alinha-altura-disciplinas-plantao-v203";
   const STYLE_ID = "planningShiftDisciplinesPerDayStyle";
   const FIELD_ID = "planningShiftDisciplinesPerDay";
   const LABEL_SELECTOR = "[data-planning-shift-disciplines-v200]";
@@ -18,32 +18,22 @@
     style.textContent = `
       ${LABEL_SELECTOR}{
         position:relative;
-        display:flex;
-        flex-direction:column;
-        gap:0;
+        display:grid;
+        gap:7px;
         min-width:0;
         padding:0;
         border:0;
         border-radius:0;
         background:none;
-        color:inherit;
       }
       #${FIELD_ID}{
         width:100%;
-        min-height:68px;
-        margin-top:10px;
-        font:inherit;
-        font-weight:800;
-      }
-      #${FIELD_ID}:focus{
-        outline:3px solid color-mix(in srgb, currentColor 18%, transparent);
-        outline-offset:1px;
-      }
-      @media (max-width:768px){
-        #${FIELD_ID}{min-height:58px}
+        min-height:0;
+        height:auto;
+        margin:0;
       }
     `;
-    label.dataset.planningShiftVisualV202 = "true";
+    label.dataset.planningShiftVisualV203 = "true";
     return true;
   }
 
@@ -56,7 +46,7 @@
     }, 100);
   }
 
-  globalThis.AldusPlanningShiftVisualV202 = Object.freeze({
+  globalThis.AldusPlanningShiftVisualV203 = Object.freeze({
     version: VERSION,
     applyVisualFix,
     initialize
