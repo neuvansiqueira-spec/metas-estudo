@@ -1,5 +1,6 @@
 "use strict";
 
+const ALDUS_V211_VERSION = "20260731-variedade-mensagens-cronometro-v169";
 const ALDUS_V210_VERSION = "20260731-refina-titulo-cronometro-v169";
 const ALDUS_V209_VERSION = "20260731-contraste-titulo-cronometro-v169";
 const ALDUS_V208_VERSION = "20260731-borda-ativa-cronometro-v169";
@@ -14,12 +15,14 @@ const ALDUS_V207_NAV_MODULE = "./side-nav-hover-collapse-v207.js";
 const ALDUS_V208_TIMER_BORDER_MODULE = "./floating-timer-active-border-v208.js";
 const ALDUS_V209_TIMER_LABEL_MODULE = "./floating-timer-label-contrast-v209.js";
 const ALDUS_V210_TIMER_LABEL_MODULE = "./floating-timer-label-quality-v210.js";
+const ALDUS_V211_TIMER_MESSAGE_MODULE = "./timer-message-variety-v211.js";
 const ALDUS_V200_MARKER = "/* Aldus runtime source: planning-shift-disciplines-v200.js */";
 const ALDUS_V203_VISUAL_MARKER = "/* Aldus runtime source: planning-shift-disciplines-visual-v203.js */";
 const ALDUS_V207_NAV_MARKER = "/* Aldus runtime source: side-nav-hover-collapse-v207.js */";
 const ALDUS_V208_TIMER_BORDER_MARKER = "/* Aldus runtime source: floating-timer-active-border-v208.js */";
 const ALDUS_V209_TIMER_LABEL_MARKER = "/* Aldus runtime source: floating-timer-label-contrast-v209.js */";
 const ALDUS_V210_TIMER_LABEL_MARKER = "/* Aldus runtime source: floating-timer-label-quality-v210.js */";
+const ALDUS_V211_TIMER_MESSAGE_MARKER = "/* Aldus runtime source: timer-message-variety-v211.js */";
 
 let aldusBaseFetchListener = null;
 const aldusNativeAddEventListener = self.addEventListener.bind(self);
@@ -35,35 +38,63 @@ self.addEventListener = function interceptBaseRuntimeListener(type, listener, op
 importScripts("./runtime-shell-base-v199.js");
 self.addEventListener = aldusNativeAddEventListener;
 
-async function aldusV210ApplicationResponse(baseResponse) {
+async function aldusV211ApplicationResponse(baseResponse) {
   if (!baseResponse?.ok) return baseResponse;
   try {
-    const [moduleResponse, visualResponse, navResponse, timerBorderResponse, timerLabelResponse, timerLabelQualityResponse] = await Promise.all([
+    const [
+      moduleResponse,
+      visualResponse,
+      navResponse,
+      timerBorderResponse,
+      timerLabelResponse,
+      timerLabelQualityResponse,
+      timerMessageResponse
+    ] = await Promise.all([
       fetch(new URL(ALDUS_V200_MODULE, self.registration.scope), { cache: "no-store" }),
       fetch(new URL(ALDUS_V203_VISUAL_MODULE, self.registration.scope), { cache: "no-store" }),
       fetch(new URL(ALDUS_V207_NAV_MODULE, self.registration.scope), { cache: "no-store" }),
       fetch(new URL(ALDUS_V208_TIMER_BORDER_MODULE, self.registration.scope), { cache: "no-store" }),
       fetch(new URL(ALDUS_V209_TIMER_LABEL_MODULE, self.registration.scope), { cache: "no-store" }),
-      fetch(new URL(ALDUS_V210_TIMER_LABEL_MODULE, self.registration.scope), { cache: "no-store" })
+      fetch(new URL(ALDUS_V210_TIMER_LABEL_MODULE, self.registration.scope), { cache: "no-store" }),
+      fetch(new URL(ALDUS_V211_TIMER_MESSAGE_MODULE, self.registration.scope), { cache: "no-store" })
     ]);
-    if (!moduleResponse?.ok || !visualResponse?.ok || !navResponse?.ok || !timerBorderResponse?.ok || !timerLabelResponse?.ok || !timerLabelQualityResponse?.ok) return baseResponse;
-    const [source, moduleSource, visualSource, navSource, timerBorderSource, timerLabelSource, timerLabelQualitySource] = await Promise.all([
+    if (
+      !moduleResponse?.ok ||
+      !visualResponse?.ok ||
+      !navResponse?.ok ||
+      !timerBorderResponse?.ok ||
+      !timerLabelResponse?.ok ||
+      !timerLabelQualityResponse?.ok ||
+      !timerMessageResponse?.ok
+    ) return baseResponse;
+    const [
+      source,
+      moduleSource,
+      visualSource,
+      navSource,
+      timerBorderSource,
+      timerLabelSource,
+      timerLabelQualitySource,
+      timerMessageSource
+    ] = await Promise.all([
       baseResponse.text(),
       moduleResponse.text(),
       visualResponse.text(),
       navResponse.text(),
       timerBorderResponse.text(),
       timerLabelResponse.text(),
-      timerLabelQualityResponse.text()
+      timerLabelQualityResponse.text(),
+      timerMessageResponse.text()
     ]);
     let patchedSource = source
-      .replaceAll(ALDUS_V199_VERSION, ALDUS_V210_VERSION)
-      .replaceAll(ALDUS_V204_VERSION, ALDUS_V210_VERSION)
-      .replaceAll(ALDUS_V205_VERSION, ALDUS_V210_VERSION)
-      .replaceAll(ALDUS_V206_VERSION, ALDUS_V210_VERSION)
-      .replaceAll(ALDUS_V207_VERSION, ALDUS_V210_VERSION)
-      .replaceAll(ALDUS_V208_VERSION, ALDUS_V210_VERSION)
-      .replaceAll(ALDUS_V209_VERSION, ALDUS_V210_VERSION);
+      .replaceAll(ALDUS_V199_VERSION, ALDUS_V211_VERSION)
+      .replaceAll(ALDUS_V204_VERSION, ALDUS_V211_VERSION)
+      .replaceAll(ALDUS_V205_VERSION, ALDUS_V211_VERSION)
+      .replaceAll(ALDUS_V206_VERSION, ALDUS_V211_VERSION)
+      .replaceAll(ALDUS_V207_VERSION, ALDUS_V211_VERSION)
+      .replaceAll(ALDUS_V208_VERSION, ALDUS_V211_VERSION)
+      .replaceAll(ALDUS_V209_VERSION, ALDUS_V211_VERSION)
+      .replaceAll(ALDUS_V210_VERSION, ALDUS_V211_VERSION);
     if (!patchedSource.includes(ALDUS_V200_MARKER)) {
       patchedSource = `${patchedSource.trim()}\n\n${ALDUS_V200_MARKER}\n${moduleSource.trim()}\n`;
     }
@@ -82,17 +113,20 @@ async function aldusV210ApplicationResponse(baseResponse) {
     if (!patchedSource.includes(ALDUS_V210_TIMER_LABEL_MARKER)) {
       patchedSource = `${patchedSource.trim()}\n\n${ALDUS_V210_TIMER_LABEL_MARKER}\n${timerLabelQualitySource.trim()}\n`;
     }
+    if (!patchedSource.includes(ALDUS_V211_TIMER_MESSAGE_MARKER)) {
+      patchedSource = `${patchedSource.trim()}\n\n${ALDUS_V211_TIMER_MESSAGE_MARKER}\n${timerMessageSource.trim()}\n`;
+    }
     const headers = new Headers(baseResponse.headers);
     for (const name of ["content-length", "content-encoding", "etag", "last-modified"]) headers.delete(name);
     headers.set("content-type", "text/javascript; charset=utf-8");
-    headers.set("x-aldus-runtime-patch", ALDUS_V210_VERSION);
+    headers.set("x-aldus-runtime-patch", ALDUS_V211_VERSION);
     return new Response(patchedSource, {
       status: baseResponse.status,
       statusText: baseResponse.statusText,
       headers
     });
   } catch (error) {
-    console.warn("[Aldus V210] Não foi possível refinar o título do cronômetro; a versão anterior será mantida.", error);
+    console.warn("[Aldus V211] Não foi possível ampliar a variedade das mensagens do cronômetro; a versão anterior será mantida.", error);
     return baseResponse;
   }
 }
@@ -109,5 +143,5 @@ aldusNativeAddEventListener("fetch", (event) => {
   if (!baseResponsePromise) return;
   const url = new URL(event.request.url);
   const isApplication = url.origin === self.location.origin && url.pathname.endsWith("/app-v169.js");
-  event.respondWith(isApplication ? baseResponsePromise.then(aldusV210ApplicationResponse) : baseResponsePromise);
+  event.respondWith(isApplication ? baseResponsePromise.then(aldusV211ApplicationResponse) : baseResponsePromise);
 });
