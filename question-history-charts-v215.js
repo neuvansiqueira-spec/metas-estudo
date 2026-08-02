@@ -6,13 +6,13 @@
   const STYLE_ID = "questionHistoryChartsStylesV215";
   const RESULT_ID = "questionHistoryFilterExportResultV198";
   const COLORS = Object.freeze([
-    "#1f70b3",
-    "#35a37a",
-    "#c79a3b",
-    "#0b4f7a",
-    "#6289ad",
-    "#5f8d7b",
-    "#9b7d3e"
+    "#1769aa",
+    "#16705c",
+    "#94620b",
+    "#6b4b99",
+    "#1e7582",
+    "#a9444e",
+    "#46638e"
   ]);
 
   let lastFingerprint = "";
@@ -34,37 +34,47 @@
     style.id = STYLE_ID;
     style.textContent = `
       #${PANEL_ID}{
-        margin:20px 0 18px;
-        padding:18px;
+        margin:22px 0 20px;
+        padding:clamp(16px,2.2vw,24px);
         border:1px solid rgba(199,154,59,.42);
-        border-radius:21px;
+        border-radius:24px;
         background:linear-gradient(180deg,#f9fcff 0%,#eef5fa 100%);
-        box-shadow:0 12px 28px rgba(3,32,58,.15),inset 0 3px 0 rgba(199,154,59,.78);
+        box-shadow:0 16px 36px rgba(3,32,58,.14),inset 0 3px 0 rgba(199,154,59,.78);
         color:#17324d;
         box-sizing:border-box;
       }
-      #${PANEL_ID} .qhcv215-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:16px}
-      #${PANEL_ID} .qhcv215-title{margin:0;color:#082b49;font-size:clamp(1.08rem,1.8vw,1.36rem);font-weight:900;line-height:1.2;text-shadow:none}
-      #${PANEL_ID} .qhcv215-subtitle{margin:5px 0 0;color:#506b84;font-size:.84rem;font-weight:700;line-height:1.4}
-      #${PANEL_ID} .qhcv215-badge{flex:0 0 auto;padding:6px 10px;border:1px solid rgba(199,154,59,.5);border-radius:999px;background:#fff7e7;color:#6f5310;font-size:.7rem;font-weight:900;letter-spacing:.025em;text-transform:uppercase}
-      #${PANEL_ID} .qhcv215-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:stretch}
-      #${PANEL_ID} .qhcv215-card{min-width:0;padding:15px;border:1px solid #d5e1eb;border-radius:17px;background:#fff;box-shadow:0 7px 18px rgba(3,32,58,.1)}
-      #${PANEL_ID} .qhcv215-card h4{margin:0 0 12px;padding-bottom:10px;border-bottom:1px solid #e0e8ef;color:#0b3154;font-size:1rem;font-weight:900;line-height:1.25;text-shadow:none;opacity:1}
-      #${PANEL_ID} .qhcv215-chart-row{display:grid;grid-template-columns:132px minmax(0,1fr);gap:13px;align-items:center}
-      #${PANEL_ID} .qhcv215-donut{display:block;width:132px;height:132px;overflow:visible}
-      #${PANEL_ID} .qhcv215-donut-bg{fill:none;stroke:#e6edf3;stroke-width:15}
-      #${PANEL_ID} .qhcv215-segment{fill:none;stroke-width:15;transform-origin:60px 60px;transition:stroke-dasharray .35s ease,stroke-dashoffset .35s ease}
-      #${PANEL_ID} .qhcv215-total{fill:#082b49;font-size:18px;font-weight:900;text-anchor:middle}
+      #${PANEL_ID} .qhcv215-header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:20px;padding-bottom:17px;border-bottom:1px solid rgba(11,49,84,.12)}
+      #${PANEL_ID} .qhcv215-title{margin:0;color:#082b49;font-size:clamp(1.18rem,2vw,1.52rem);font-weight:900;line-height:1.2;letter-spacing:-.018em;text-shadow:none}
+      #${PANEL_ID} .qhcv215-subtitle{max-width:680px;margin:6px 0 0;color:#506b84;font-size:clamp(.84rem,1.2vw,.94rem);font-weight:700;line-height:1.5}
+      #${PANEL_ID} .qhcv215-badge{display:inline-flex;align-items:center;gap:7px;flex:0 0 auto;padding:7px 11px;border:1px solid rgba(35,134,111,.3);border-radius:999px;background:#e7f5f0;color:#17644f;font-size:.7rem;font-weight:900;letter-spacing:.025em;text-transform:uppercase;white-space:nowrap}
+      #${PANEL_ID} .qhcv215-badge::before{content:"";width:7px;height:7px;border-radius:50%;background:#23866f;box-shadow:0 0 0 3px rgba(35,134,111,.13)}
+      #${PANEL_ID} .qhcv215-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:stretch}
+      #${PANEL_ID} .qhcv215-card{min-width:0;padding:18px;border:1px solid #d5e1eb;border-radius:20px;background:#fff;box-shadow:0 8px 22px rgba(3,32,58,.1);overflow:hidden}
+      #${PANEL_ID} .qhcv215-card:first-child{grid-column:1/-1}
+      #${PANEL_ID} .qhcv215-card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:0 0 16px;padding-bottom:12px;border-bottom:1px solid #e0e8ef}
+      #${PANEL_ID} .qhcv215-card h4{margin:0;color:#0b3154;font-size:clamp(1rem,1.45vw,1.15rem);font-weight:900;line-height:1.25;text-shadow:none;opacity:1}
+      #${PANEL_ID} .qhcv215-category-count{flex:0 0 auto;padding:5px 9px;border-radius:999px;background:#e6eef5;color:#46627c;font-size:.68rem;font-weight:850;white-space:nowrap}
+      #${PANEL_ID} .qhcv215-chart-row{display:grid;grid-template-columns:168px minmax(0,1fr);gap:20px;align-items:center}
+      #${PANEL_ID} .qhcv215-card:first-child .qhcv215-chart-row{grid-template-columns:190px minmax(0,1fr);gap:28px}
+      #${PANEL_ID} .qhcv215-donut{display:block;width:168px;height:168px;overflow:visible;filter:drop-shadow(0 8px 10px rgba(3,32,58,.11))}
+      #${PANEL_ID} .qhcv215-card:first-child .qhcv215-donut{width:190px;height:190px}
+      #${PANEL_ID} .qhcv215-donut-bg{fill:none;stroke:#e6edf3;stroke-width:13}
+      #${PANEL_ID} .qhcv215-segment{fill:none;stroke-width:13;stroke-linecap:butt;transform-origin:60px 60px;transition:stroke-dasharray .35s ease,stroke-dashoffset .35s ease}
+      #${PANEL_ID} .qhcv215-total{fill:#082b49;font-size:18px;font-weight:900;text-anchor:middle;letter-spacing:-.03em}
       #${PANEL_ID} .qhcv215-total-label{fill:#5d748a;font-size:7px;font-weight:800;text-anchor:middle;text-transform:uppercase;letter-spacing:.04em}
-      #${PANEL_ID} .qhcv215-legend{display:grid;gap:7px;min-width:0;max-height:178px;overflow:auto;padding-right:2px;scrollbar-width:thin}
-      #${PANEL_ID} .qhcv215-legend-item{display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:7px;align-items:center;min-width:0}
-      #${PANEL_ID} .qhcv215-dot{width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 1px rgba(3,32,58,.12)}
-      #${PANEL_ID} .qhcv215-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#334f6b;font-size:.72rem;font-weight:750;line-height:1.25}
-      #${PANEL_ID} .qhcv215-value{color:#082b49;font-size:.72rem;font-weight:900;text-align:right;white-space:nowrap}
-      #${PANEL_ID} .qhcv215-value small{color:#6b8195;font-size:.62rem;font-weight:800}
-      #${PANEL_ID} .qhcv215-empty{margin:0;color:#60768b;font-size:.82rem;font-weight:700}
-      @media(max-width:1080px){#${PANEL_ID} .qhcv215-grid{grid-template-columns:1fr}#${PANEL_ID} .qhcv215-chart-row{grid-template-columns:145px minmax(0,1fr)}}
-      @media(max-width:560px){#${PANEL_ID}{padding:14px}#${PANEL_ID} .qhcv215-header{display:block}#${PANEL_ID} .qhcv215-badge{display:inline-block;margin-top:10px}#${PANEL_ID} .qhcv215-chart-row{grid-template-columns:1fr}#${PANEL_ID} .qhcv215-donut{margin:0 auto;width:150px;height:150px}#${PANEL_ID} .qhcv215-legend{max-height:none}}
+      #${PANEL_ID} .qhcv215-legend{display:grid;gap:8px;min-width:0;max-height:228px;overflow:auto;padding:2px 5px 2px 0;scrollbar-width:thin;scrollbar-color:#9db2c3 transparent}
+      #${PANEL_ID} .qhcv215-card:first-child .qhcv215-legend{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:12px;max-height:250px}
+      #${PANEL_ID} .qhcv215-legend-item{display:grid;grid-template-columns:25px minmax(0,1fr) auto;grid-template-areas:"rank label value" "rank track value";gap:4px 8px;align-items:center;min-width:0;padding:9px 10px;border:1px solid #dce6ee;border-radius:13px;background:rgba(255,255,255,.66)}
+      #${PANEL_ID} .qhcv215-rank{grid-area:rank;display:grid;place-items:center;width:25px;height:25px;border-radius:8px;background:var(--qhcv-color);color:#fff;font-size:.68rem;font-weight:900;box-shadow:0 3px 8px rgba(3,32,58,.18)}
+      #${PANEL_ID} .qhcv215-label{grid-area:label;min-width:0;color:#284762;font-size:.76rem;font-weight:820;line-height:1.28;overflow-wrap:anywhere}
+      #${PANEL_ID} .qhcv215-value{grid-area:value;align-self:center;color:#082b49;font-size:.78rem;font-weight:900;text-align:right;white-space:nowrap}
+      #${PANEL_ID} .qhcv215-value small{display:block;margin-top:2px;color:#60788e;font-size:.66rem;font-weight:850}
+      #${PANEL_ID} .qhcv215-share-track{grid-area:track;display:block;height:5px;border-radius:999px;background:#dce6ee;overflow:hidden}
+      #${PANEL_ID} .qhcv215-share-track i{display:block;width:var(--qhcv-share);height:100%;min-width:3px;border-radius:inherit;background:var(--qhcv-color)}
+      #${PANEL_ID} .qhcv215-empty{margin:0;padding:18px;border:1px dashed #bdcedc;border-radius:14px;background:rgba(255,255,255,.5);color:#60768b;font-size:.86rem;font-weight:700;text-align:center}
+      @media(max-width:1120px){#${PANEL_ID} .qhcv215-card:first-child .qhcv215-legend{grid-template-columns:1fr}}
+      @media(max-width:900px){#${PANEL_ID} .qhcv215-grid{grid-template-columns:1fr}#${PANEL_ID} .qhcv215-card:first-child{grid-column:auto}#${PANEL_ID} .qhcv215-card:first-child .qhcv215-chart-row,#${PANEL_ID} .qhcv215-chart-row{grid-template-columns:168px minmax(0,1fr);gap:20px}#${PANEL_ID} .qhcv215-card:first-child .qhcv215-donut,#${PANEL_ID} .qhcv215-donut{width:168px;height:168px}}
+      @media(max-width:620px){#${PANEL_ID}{padding:14px;border-radius:19px}#${PANEL_ID} .qhcv215-header{display:block;margin-bottom:14px;padding-bottom:14px}#${PANEL_ID} .qhcv215-badge{margin-top:11px}#${PANEL_ID} .qhcv215-card{padding:14px;border-radius:16px}#${PANEL_ID} .qhcv215-card:first-child .qhcv215-chart-row,#${PANEL_ID} .qhcv215-chart-row{grid-template-columns:1fr;gap:12px}#${PANEL_ID} .qhcv215-card:first-child .qhcv215-donut,#${PANEL_ID} .qhcv215-donut{margin:0 auto;width:172px;height:172px}#${PANEL_ID} .qhcv215-legend,#${PANEL_ID} .qhcv215-card:first-child .qhcv215-legend{grid-template-columns:1fr;max-height:none;overflow:visible;padding-right:0}#${PANEL_ID} .qhcv215-card-header{align-items:center}}
       @media(prefers-reduced-motion:reduce){#${PANEL_ID} .qhcv215-segment{transition:none}}
     `;
     document.head.appendChild(style);
@@ -82,7 +92,8 @@
             label: row.querySelector(".qhfe-bar-copy-v198 span")?.textContent?.trim() || "Sem identificação",
             value: Number.parseFloat(row.querySelector(":scope > strong")?.textContent?.replace(",", ".") || "0") || 0
           }))
-          .filter((entry) => entry.value > 0);
+          .filter((entry) => entry.value > 0)
+          .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, "pt-BR"));
         return { title, entries };
       });
     return { container, groups };
@@ -107,15 +118,17 @@
     const total = entries.reduce((sum, entry) => sum + entry.value, 0);
     return `<div class="qhcv215-legend">${entries.map((entry, index) => {
       const percentage = total ? (entry.value / total) * 100 : 0;
-      return `<div class="qhcv215-legend-item" title="${escapeHtml(entry.label)}"><span class="qhcv215-dot" style="background:${COLORS[index % COLORS.length]}"></span><span class="qhcv215-label">${escapeHtml(entry.label)}</span><span class="qhcv215-value">${entry.value} <small>${percentage.toFixed(1)}%</small></span></div>`;
+      const color = COLORS[index % COLORS.length];
+      return `<div class="qhcv215-legend-item" title="${escapeHtml(entry.label)}" style="--qhcv-color:${color};--qhcv-share:${percentage.toFixed(1)}%"><span class="qhcv215-rank">${index + 1}</span><span class="qhcv215-label">${escapeHtml(entry.label)}</span><span class="qhcv215-value">${entry.value} <small>${percentage.toFixed(1)}%</small></span><span class="qhcv215-share-track" aria-hidden="true"><i></i></span></div>`;
     }).join("")}</div>`;
   }
 
-  function cardHtml(group) {
+  function cardHtml(group, index) {
+    const categoryLabel = `${group.entries.length} ${group.entries.length === 1 ? "categoria" : "categorias"}`;
     if (!group.entries.length) {
-      return `<article class="qhcv215-card"><h4>${escapeHtml(group.title)}</h4><p class="qhcv215-empty">Nenhum dado disponível para este filtro.</p></article>`;
+      return `<article class="qhcv215-card"><div class="qhcv215-card-header"><h4>${escapeHtml(group.title)}</h4><span class="qhcv215-category-count">Sem dados</span></div><p class="qhcv215-empty">Nenhum dado disponível para este filtro.</p></article>`;
     }
-    return `<article class="qhcv215-card"><h4>${escapeHtml(group.title)}</h4><div class="qhcv215-chart-row">${donutSvg(group.entries, group.title)}${legendHtml(group.entries)}</div></article>`;
+    return `<article class="qhcv215-card${index === 0 ? " qhcv215-card-featured" : ""}"><div class="qhcv215-card-header"><h4>${escapeHtml(group.title)}</h4><span class="qhcv215-category-count">${categoryLabel}</span></div><div class="qhcv215-chart-row">${donutSvg(group.entries, group.title)}${legendHtml(group.entries)}</div></article>`;
   }
 
   function render() {
@@ -131,7 +144,7 @@
     const panel = existing || document.createElement("section");
     panel.id = PANEL_ID;
     panel.setAttribute("aria-labelledby", `${PANEL_ID}Title`);
-    panel.innerHTML = `<div class="qhcv215-header"><div><h3 id="${PANEL_ID}Title" class="qhcv215-title">Distribuição visual das questões</h3><p class="qhcv215-subtitle">Comparação didática conforme os filtros atuais do histórico.</p></div><span class="qhcv215-badge">Gráfico restaurado</span></div><div class="qhcv215-grid">${data.groups.map(cardHtml).join("")}</div>`;
+    panel.innerHTML = `<div class="qhcv215-header"><div><h3 id="${PANEL_ID}Title" class="qhcv215-title">Distribuição visual das questões</h3><p class="qhcv215-subtitle">Veja onde suas questões estão concentradas. Os valores acompanham automaticamente os filtros aplicados ao histórico.</p></div><span class="qhcv215-badge">Filtros sincronizados</span></div><div class="qhcv215-grid">${data.groups.map(cardHtml).join("")}</div>`;
 
     if (!existing?.isConnected) data.container.parentElement?.insertBefore(panel, data.container);
   }
