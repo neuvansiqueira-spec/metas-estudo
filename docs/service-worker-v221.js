@@ -5,12 +5,15 @@ const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
+const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
+const HISTORY_LAYOUT_STYLESHEET = `question-history-layout-v223.css?v=${HISTORY_LAYOUT_VERSION}`;
 const STATIC_ASSETS = [
   "./",
   "index.html",
   `app-${RELEASE_SUFFIX}.css?v=${CURRENT_VERSION}`,
   `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`,
   CONTRAST_STYLESHEET,
+  HISTORY_LAYOUT_STYLESHEET,
   "vendor/pdf.mjs",
   "vendor/pdf.worker.mjs",
   "vendor/pdfjs-LICENSE.txt",
@@ -60,26 +63,27 @@ async function cacheResponse(request, response) {
   return response;
 }
 
-async function ensureContrastStylesheet(response) {
+async function ensurePageStylesheets(response) {
   if (!response?.ok) return response;
   const contentType = response.headers.get("content-type") || "";
   if (!contentType.includes("text/html")) return response;
 
   const html = await response.text();
-  if (html.includes("question-history-contrast-v222.css")) {
-    const headers = new Headers(response.headers);
-    headers.delete("content-length");
-    return new Response(html, {
-      status: response.status,
-      statusText: response.statusText,
-      headers
-    });
+  const missingTags = [];
+
+  if (!html.includes("question-history-contrast-v222.css")) {
+    missingTags.push(`<link rel="stylesheet" href="${CONTRAST_STYLESHEET}" />`);
+  }
+  if (!html.includes("question-history-layout-v223.css")) {
+    missingTags.push(`<link rel="stylesheet" href="${HISTORY_LAYOUT_STYLESHEET}" />`);
   }
 
-  const stylesheetTag = `<link rel="stylesheet" href="${CONTRAST_STYLESHEET}" />`;
-  const patchedHtml = html.includes("</head>")
-    ? html.replace("</head>", `  ${stylesheetTag}\n</head>`)
-    : `${stylesheetTag}\n${html}`;
+  const patchedHtml = missingTags.length === 0
+    ? html
+    : html.includes("</head>")
+      ? html.replace("</head>", `  ${missingTags.join("\n  ")}\n</head>`)
+      : `${missingTags.join("\n")}\n${html}`;
+
   const headers = new Headers(response.headers);
   headers.delete("content-length");
   headers.set("content-type", "text/html; charset=utf-8");
@@ -95,14 +99,14 @@ async function networkFirstNavigation(request) {
   try {
     const response = await fetch(request, { cache: "no-store" });
     if (response?.ok) {
-      const patchedResponse = await ensureContrastStylesheet(response);
+      const patchedResponse = await ensurePageStylesheets(response);
       return cacheResponse(request, patchedResponse);
     }
   } catch {}
 
   const cached = await caches.match(request, { ignoreSearch: true })
     || await caches.match(new URL("index.html", self.registration.scope).href, { ignoreSearch: true });
-  if (cached) return ensureContrastStylesheet(cached);
+  if (cached) return ensurePageStylesheets(cached);
 
   return new Response("Aplicativo indisponível temporariamente.", {
     status: 503,
