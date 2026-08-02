@@ -1,0 +1,63 @@
+/* Aldus Meta — compactação da tabela abaixo dos gráficos do histórico (V223) */
+
+/*
+ * O espaço observado não é uma margem dos gráficos: as linhas do histórico
+ * estavam absorvendo a altura disponível do contêiner. Estes ajustes mantêm
+ * cada registro somente com a altura necessária para o seu conteúdo.
+ */
+#view-historico-questoes table,
+#view-historico-questoes table tbody {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  block-size: auto !important;
+  min-block-size: 0 !important;
+  align-self: start !important;
+  align-content: start !important;
+  justify-content: flex-start !important;
+}
+
+#view-historico-questoes table tbody {
+  grid-template-rows: none !important;
+  grid-auto-rows: max-content !important;
+}
+
+#view-historico-questoes table tbody tr {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  block-size: auto !important;
+  min-block-size: 0 !important;
+  flex: 0 0 auto !important;
+  align-self: start !important;
+}
+
+#view-historico-questoes table tbody td {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  block-size: auto !important;
+  min-block-size: 0 !important;
+  padding-top: 18px !important;
+  padding-bottom: 18px !important;
+  vertical-align: top !important;
+  line-height: 1.45 !important;
+}
+
+#view-historico-questoes [class*="table-container"],
+#view-historico-questoes [class*="table-wrapper"],
+#view-historico-questoes [class*="table-responsive"] {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  block-size: auto !important;
+  min-block-size: 0 !important;
+  align-self: start !important;
+}
+
+@media (max-width: 720px) {
+  #view-historico-questoes table tbody td {
+    padding-top: 14px !important;
+    padding-bottom: 14px !important;
+  }
+}
