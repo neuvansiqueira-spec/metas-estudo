@@ -59,9 +59,18 @@
     }
 
     #questionHistoryChartsV215 .qhcv215-badge {
-      background: #f2e8c8 !important;
-      border-color: rgba(159, 119, 34, .38) !important;
-      color: #664b0d !important;
+      background: #dcefe9 !important;
+      border-color: rgba(35, 134, 111, .32) !important;
+      color: #165c49 !important;
+    }
+
+    #questionHistoryChartsV215 .qhcv215-legend-item {
+      background: rgba(244, 249, 252, .78) !important;
+      border-color: #cbdbe6 !important;
+    }
+
+    #questionHistoryChartsV215 .qhcv215-share-track {
+      background: #ccdae4 !important;
     }
   `;
   document.head.appendChild(style);

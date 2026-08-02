@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20260802-versionamento-publicacao-estavel-v219";
+const CURRENT_VERSION = "20260802-distribuicao-visual-questoes-v220";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 const STATIC_ASSETS = [

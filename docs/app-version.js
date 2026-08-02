@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260802-versionamento-publicacao-estavel-v219";
+  const VERSION = "20260802-distribuicao-visual-questoes-v220";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
