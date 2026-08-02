@@ -1,0 +1,119 @@
+/* Aldus Meta — correção de contraste da distribuição visual das questões (V222) */
+
+html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215,
+#questionHistoryChartsV215 {
+  color: #17324d !important;
+}
+
+html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-title,
+#questionHistoryChartsV215 .qhcv215-title {
+  color: #062845 !important;
+  -webkit-text-fill-color: #062845 !important;
+  opacity: 1 !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  text-shadow: none !important;
+}
+
+html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-subtitle,
+#questionHistoryChartsV215 .qhcv215-subtitle {
+  color: #304f68 !important;
+  -webkit-text-fill-color: #304f68 !important;
+  opacity: 1 !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  text-shadow: none !important;
+}
+
+html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-card h4,
+#questionHistoryChartsV215 .qhcv215-card h4 {
+  color: #0b3154 !important;
+  -webkit-text-fill-color: #0b3154 !important;
+  opacity: 1 !important;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  text-shadow: none !important;
+}
+
+html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-category-count,
+#questionHistoryChartsV215 .qhcv215-category-count {
+  color: #2d4e68 !important;
+  -webkit-text-fill-color: #2d4e68 !important;
+  background: #d9e6ef !important;
+  border: 1px solid #bccfdd !important;
+  opacity: 1 !important;
+}
+
+html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-label,
+#questionHistoryChartsV215 .qhcv215-label {
+  color: #193b56 !important;
+  -webkit-text-fill-color: #193b56 !important;
+  opacity: 1 !important;
+  filter: none !important;
+  text-shadow: none !important;
+}
+
+html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-value,
+#questionHistoryChartsV215 .qhcv215-value {
+  color: #062845 !important;
+  -webkit-text-fill-color: #062845 !important;
+  opacity: 1 !important;
+  filter: none !important;
+  text-shadow: none !important;
+}
+
+html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-value small,
+#questionHistoryChartsV215 .qhcv215-value small {
+  color: #425f77 !important;
+  -webkit-text-fill-color: #425f77 !important;
+  opacity: 1 !important;
+  filter: none !important;
+  text-shadow: none !important;
+}
+
+html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-badge,
+#questionHistoryChartsV215 .qhcv215-badge {
+  color: #0d5b48 !important;
+  -webkit-text-fill-color: #0d5b48 !important;
+  background: #d7eee7 !important;
+  border-color: #91c7b8 !important;
+  opacity: 1 !important;
+  filter: none !important;
+  text-shadow: none !important;
+}
+
+html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-legend-item,
+#questionHistoryChartsV215 .qhcv215-legend-item {
+  background: rgba(248, 252, 255, .94) !important;
+  border-top-color: #b8ccda !important;
+  border-right-color: #b8ccda !important;
+  border-bottom-color: #b8ccda !important;
+}
+
+html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-share-track,
+#questionHistoryChartsV215 .qhcv215-share-track {
+  background: #bdcfdb !important;
+  box-shadow: inset 0 1px 2px rgba(3, 32, 58, .14) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-total,
+#questionHistoryChartsV215 .qhcv215-total {
+  fill: #062845 !important;
+  opacity: 1 !important;
+}
+
+html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-total-label,
+html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-dominant,
+#questionHistoryChartsV215 .qhcv215-total-label,
+#questionHistoryChartsV215 .qhcv215-dominant {
+  fill: #425f77 !important;
+  opacity: 1 !important;
+}
+
+@media (forced-colors: active) {
+  #questionHistoryChartsV215,
+  #questionHistoryChartsV215 .qhcv215-card,
+  #questionHistoryChartsV215 .qhcv215-legend-item {
+    forced-color-adjust: auto;
+  }
+}
