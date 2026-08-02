@@ -1,2 +1,2 @@
-/* Aldus service worker entry: 20260801-carregamento-compilado-v213 */
+/* Aldus service worker entry: 20260802-visibilidade-historico-questoes-v214 */
 importScripts("./runtime-entry-v200.js");
