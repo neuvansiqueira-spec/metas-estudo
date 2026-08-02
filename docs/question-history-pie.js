@@ -184,8 +184,10 @@
         overflow: hidden;
         border-radius: 16px;
         background:
-          radial-gradient(ellipse at 50% 48%, rgba(21,155,99,.12), transparent 46%),
-          linear-gradient(180deg, #fbfdff, #f3f7fa);
+          radial-gradient(ellipse at 50% 42%, rgba(62,157,213,.18), transparent 43%),
+          linear-gradient(155deg, #f9fcff 0%, #e5f0f7 54%, #d7e7f1 100%);
+        border: 1px solid rgba(146, 180, 204, .56);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.92), 0 11px 24px rgba(3,32,58,.10);
         isolation: isolate;
       }
 
@@ -195,8 +197,20 @@
         inset: 12% 8% 9%;
         z-index: -1;
         border-radius: 50%;
-        background: radial-gradient(ellipse, rgba(8,43,73,.07), transparent 68%);
+        background: radial-gradient(ellipse, rgba(8,43,73,.12), transparent 67%);
         filter: blur(8px);
+      }
+
+      .qh-chart-visual::after {
+        content: "";
+        position: absolute;
+        left: 16%;
+        right: 16%;
+        bottom: 12%;
+        z-index: -1;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(199,154,59,.55), transparent);
+        box-shadow: 0 13px 24px rgba(3,32,58,.14);
       }
 
       .qh-donut-wrap {
@@ -205,6 +219,8 @@
         place-items: center;
         width: min(100%, 440px);
         aspect-ratio: 44 / 30;
+        border-radius: 50%;
+        background: radial-gradient(ellipse at 50% 45%, rgba(255,255,255,.74), rgba(206,225,238,.28) 49%, transparent 70%);
       }
 
       .qh-donut-svg {
@@ -212,6 +228,7 @@
         width: 100%;
         height: auto;
         overflow: visible;
+        filter: drop-shadow(0 9px 8px rgba(3,32,58,.13));
       }
 
       .qh-donut-ground-shadow {
@@ -228,12 +245,32 @@
         stroke: rgba(247, 251, 255, .94);
         stroke-width: 3;
         stroke-linejoin: round;
+        filter: url(#qhSegmentShadow);
+        transform-box: fill-box;
+        transform-origin: center;
+        transition: filter .18s ease, opacity .18s ease;
       }
+
+      .qh-donut-top:hover path { opacity: .9; }
+      .qh-donut-top path:hover { opacity: 1; filter: url(#qhSegmentHoverShadow); }
 
       .qh-donut-rim {
         fill: none;
-        stroke: rgba(255, 255, 255, .48);
-        stroke-width: 3;
+        stroke: rgba(199, 154, 59, .58);
+        stroke-width: 2.4;
+        pointer-events: none;
+      }
+
+      .qh-donut-inner-rim {
+        fill: none;
+        stroke: rgba(255, 255, 255, .66);
+        stroke-width: 2;
+        pointer-events: none;
+      }
+
+      .qh-donut-gloss {
+        fill: url(#qhDonutGloss);
+        opacity: .34;
         pointer-events: none;
       }
 
@@ -243,9 +280,9 @@
       }
 
       .qh-donut-center-disc {
-        fill: #fff;
-        stroke: #dce8f0;
-        stroke-width: 2;
+        fill: url(#qhCenterDiscGradient);
+        stroke: rgba(199,154,59,.68);
+        stroke-width: 2.2;
       }
 
       .qh-donut-center-value {
@@ -318,9 +355,17 @@
         gap: .8rem;
         padding: .82rem .9rem;
         border: 1px solid rgba(8,43,73,.09);
+        border-left: 4px solid var(--qh-result-accent, #7b91a5);
         border-radius: 13px;
         background: #fbfdff;
+        box-shadow: 0 4px 10px rgba(3,32,58,.055);
+        transition: transform .18s ease, box-shadow .18s ease;
       }
+
+      .qh-result-row:hover { transform: translateY(-1px); box-shadow: 0 8px 16px rgba(3,32,58,.09); }
+      .qh-result-row.correct { --qh-result-accent: ${COLORS.correct}; background: linear-gradient(90deg, rgba(21,155,99,.09), #fbfdff 42%); }
+      .qh-result-row.wrong { --qh-result-accent: ${COLORS.wrong}; background: linear-gradient(90deg, rgba(217,75,75,.09), #fbfdff 42%); }
+      .qh-result-row.null { --qh-result-accent: ${COLORS.null}; background: linear-gradient(90deg, rgba(214,164,13,.10), #fbfdff 42%); }
 
       .qh-result-label {
         display: flex;
@@ -339,9 +384,9 @@
         box-shadow: inset 0 -2px 2px rgba(0,0,0,.15);
       }
 
-      .qh-result-dot.correct { background: ${COLORS.correct}; }
-      .qh-result-dot.wrong { background: ${COLORS.wrong}; }
-      .qh-result-dot.null { background: ${COLORS.null}; }
+      .qh-result-dot.correct { background: linear-gradient(145deg, #3bd693, ${COLORS.correct}); }
+      .qh-result-dot.wrong { background: linear-gradient(145deg, #ff8585, ${COLORS.wrong}); }
+      .qh-result-dot.null { background: linear-gradient(145deg, #ffd866, ${COLORS.null}); }
 
       .qh-result-values {
         display: flex;
@@ -377,17 +422,29 @@
       }
 
       .qh-accuracy-track {
-        height: 10px;
+        height: 12px;
         overflow: hidden;
         border-radius: 999px;
-        background: #dfe8ee;
+        border: 1px solid #cbdbe6;
+        background: #dbe7ef;
+        box-shadow: inset 0 1px 3px rgba(3,32,58,.14);
       }
 
       .qh-accuracy-fill {
+        position: relative;
         height: 100%;
         border-radius: inherit;
         background: linear-gradient(90deg, ${COLORS.correct}, #38b980);
+        box-shadow: 0 0 12px rgba(21,155,99,.3);
         transition: width .35s ease;
+      }
+
+      .qh-accuracy-fill::after {
+        content: "";
+        position: absolute;
+        inset: 0 0 48%;
+        border-radius: inherit;
+        background: rgba(255,255,255,.32);
       }
 
       .qh-chart-empty {
@@ -417,30 +474,69 @@
         font-size: 1.05rem;
       }
 
+      html[data-aldus-theme="premium-stable"] .qh-chart-card {
+        border-color: rgba(199,154,59,.44) !important;
+        background: linear-gradient(155deg, #eef6fb 0%, #dfeaf3 100%) !important;
+        box-shadow: 0 14px 30px rgba(3,32,58,.18), inset 0 2px 0 rgba(199,154,59,.56) !important;
+      }
+
       html[data-aldus-theme="premium-stable"] .qh-chart-visual {
         background:
-          radial-gradient(ellipse at 50% 48%, rgba(39, 194, 130, .14), transparent 48%),
-          linear-gradient(180deg, rgba(3, 20, 38, .84), rgba(6, 30, 53, .96)) !important;
+          radial-gradient(ellipse at 50% 42%, rgba(60,158,214,.19), transparent 44%),
+          linear-gradient(155deg, #f8fcff 0%, #dfedf6 56%, #cfdfeb 100%) !important;
+        border-color: #b9cedd !important;
       }
 
       html[data-aldus-theme="premium-stable"] .qh-result-label,
       html[data-aldus-theme="premium-stable"] .qh-accuracy-line {
-        color: #e9f2f8 !important;
+        color: #173a58 !important;
       }
 
       html[data-aldus-theme="premium-stable"] .qh-result-row {
-        border-color: rgba(111, 169, 214, .24) !important;
-        background: rgba(3, 20, 38, .58) !important;
+        border-color: #bfd1df !important;
+        border-left-color: var(--qh-result-accent) !important;
+      }
+
+      html[data-aldus-theme="premium-stable"] .qh-result-row.correct {
+        background: linear-gradient(90deg, rgba(21,155,99,.11), rgba(249,252,255,.96) 44%) !important;
+      }
+
+      html[data-aldus-theme="premium-stable"] .qh-result-row.wrong {
+        background: linear-gradient(90deg, rgba(217,75,75,.11), rgba(249,252,255,.96) 44%) !important;
+      }
+
+      html[data-aldus-theme="premium-stable"] .qh-result-row.null {
+        background: linear-gradient(90deg, rgba(214,164,13,.13), rgba(249,252,255,.96) 44%) !important;
+      }
+
+      html[data-aldus-theme="premium-stable"] .qh-chart-heading-copy strong,
+      html[data-aldus-theme="premium-stable"] .qh-total-badge {
+        color: #082b49 !important;
+      }
+
+      html[data-aldus-theme="premium-stable"] .qh-chart-heading-copy small {
+        color: #5c7489 !important;
+      }
+
+      html[data-aldus-theme="premium-stable"] .qh-total-badge {
+        border: 1px solid #bfd2df !important;
+        background: linear-gradient(180deg, #f8fcff, #dceaf3) !important;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.88) !important;
+      }
+
+      html[data-aldus-theme="premium-stable"] .qh-accuracy-box {
+        border: 1px solid #bfd6d0 !important;
+        background: linear-gradient(135deg, rgba(21,155,99,.12), rgba(255,255,255,.5)) !important;
       }
 
       html[data-aldus-theme="premium-stable"] .qh-result-values strong {
-        color: #fff !important;
+        color: #082b49 !important;
       }
 
       html[data-aldus-theme="premium-stable"] .qh-result-values small,
       html[data-aldus-theme="premium-stable"] .qh-donut-caption {
-        color: #b9cad7 !important;
-        fill: #b9cad7 !important;
+        color: #526b7f !important;
+        fill: #526b7f !important;
       }
 
       @media (max-width: 820px) {
@@ -768,13 +864,19 @@
         <desc id="${descriptionId}">${description}</desc>
         <defs>
           <linearGradient id="qhCorrectTop" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#35d892"></stop><stop offset="1" stop-color="#0b8a56"></stop>
+            <stop offset="0" stop-color="#58e8aa"></stop><stop offset=".48" stop-color="#20b977"></stop><stop offset="1" stop-color="#08764a"></stop>
           </linearGradient>
           <linearGradient id="qhWrongTop" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#ff7a7a"></stop><stop offset="1" stop-color="#c83b44"></stop>
+            <stop offset="0" stop-color="#ff9a9a"></stop><stop offset=".48" stop-color="#eb5d65"></stop><stop offset="1" stop-color="#ad2933"></stop>
           </linearGradient>
           <linearGradient id="qhNullTop" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#ffd45c"></stop><stop offset="1" stop-color="#c18c00"></stop>
+            <stop offset="0" stop-color="#ffe186"></stop><stop offset=".5" stop-color="#e7b933"></stop><stop offset="1" stop-color="#a77700"></stop>
+          </linearGradient>
+          <radialGradient id="qhCenterDiscGradient" cx="42%" cy="32%" r="74%">
+            <stop offset="0" stop-color="#ffffff"></stop><stop offset=".66" stop-color="#edf6fb"></stop><stop offset="1" stop-color="#cfdfeb"></stop>
+          </radialGradient>
+          <linearGradient id="qhDonutGloss" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#ffffff" stop-opacity=".72"></stop><stop offset="1" stop-color="#ffffff" stop-opacity="0"></stop>
           </linearGradient>
           <filter id="qhDonutShadow" x="-30%" y="-80%" width="160%" height="260%">
             <feGaussianBlur stdDeviation="12"></feGaussianBlur>
@@ -782,11 +884,19 @@
           <filter id="qhCenterBlur" x="-25%" y="-45%" width="150%" height="190%">
             <feGaussianBlur stdDeviation="5"></feGaussianBlur>
           </filter>
+          <filter id="qhSegmentShadow" x="-30%" y="-40%" width="160%" height="190%">
+            <feDropShadow dx="0" dy="2" stdDeviation="2.2" flood-color="#031a2d" flood-opacity=".22"></feDropShadow>
+          </filter>
+          <filter id="qhSegmentHoverShadow" x="-35%" y="-45%" width="170%" height="200%">
+            <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#031a2d" flood-opacity=".34"></feDropShadow>
+          </filter>
         </defs>
         <ellipse class="qh-donut-ground-shadow" cx="220" cy="226" rx="152" ry="20"></ellipse>
         <g class="qh-donut-depth" aria-hidden="true">${depth}</g>
         <g class="qh-donut-top">${top}</g>
+        <ellipse class="qh-donut-gloss" cx="220" cy="101" rx="140" ry="52"></ellipse>
         <ellipse class="qh-donut-rim" cx="220" cy="126" rx="155" ry="79"></ellipse>
+        <ellipse class="qh-donut-inner-rim" cx="220" cy="126" rx="88" ry="46"></ellipse>
         <ellipse class="qh-donut-center-shadow" cx="220" cy="134" rx="87" ry="47"></ellipse>
         <ellipse class="qh-donut-center-disc" cx="220" cy="126" rx="83" ry="43"></ellipse>
         <text class="qh-donut-center-value" x="220" y="122" text-anchor="middle">${formatPercent(values.correct, total)}</text>
@@ -798,7 +908,7 @@
 
   function resultRow(className, label, value, total) {
     return `
-      <div class="qh-result-row">
+      <div class="qh-result-row ${className}">
         <span class="qh-result-label"><span class="qh-result-dot ${className}"></span>${label}</span>
         <span class="qh-result-values"><strong>${formatInteger(value)}</strong><small>${formatPercent(value, total)}</small></span>
       </div>

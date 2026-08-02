@@ -380,7 +380,7 @@ for (const filename of [
   "factory-polish-v164.js", "aldus-desktop-refinement-v178.css",
   "aldus-question-register-v180.css", "qconcursos-pdf-import-v181.js",
   "question-bank-pdf-import-v181.css", "qconcursos-capture-import-v182.js",
-  "question-bank-capture-import-v182.css", "question-history-charts-v215.js",
+  "question-bank-capture-import-v182.css", "question-history-pie.js", "question-history-charts-v215.js",
   "question-history-tone-v216.js"
 ]) {
   fs.copyFileSync(path.join(root, filename), path.join(root, "docs", filename));

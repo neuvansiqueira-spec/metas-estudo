@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260802-distribuicao-visual-questoes-v220",
+  "version": "20260802-graficos-premium-historico-v221",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

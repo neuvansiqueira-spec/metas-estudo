@@ -6,8 +6,8 @@ const read = (file) => fs.readFileSync(file, "utf8");
 const version = JSON.parse(read("package.json")).version;
 const suffix = version.match(/v\d+$/)?.[0];
 
-test("V220 publica uma versão única no HTML, bundle e worker", () => {
-  assert.equal(suffix, "v220");
+test("V221 publica uma versão única no HTML, bundle e worker", () => {
+  assert.equal(suffix, "v221");
   const html = read("index.html");
   const app = read(`app-${suffix}.js`);
   const worker = read(`service-worker-${suffix}.js`);
@@ -20,9 +20,9 @@ test("V220 publica uma versão única no HTML, bundle e worker", () => {
   assert.match(worker, new RegExp(`const CURRENT_VERSION = "${version}"`));
 });
 
-test("V220 consolida os recursos recentes sem remendos no service worker", () => {
-  const app = read("app-v220.js");
-  const worker = read("service-worker-v220.js");
+test("V221 consolida os recursos recentes sem remendos no service worker", () => {
+  const app = read(`app-${suffix}.js`);
+  const worker = read(`service-worker-${suffix}.js`);
   for (const marker of [
     "qconcursos-capture-accuracy-v190.js",
     "question-bank-json-review-v192.js",
@@ -38,19 +38,19 @@ test("V220 consolida os recursos recentes sem remendos no service worker", () =>
   assert.match(worker, /await fetch\(request, \{ cache: "no-store" \}\)/);
 });
 
-test("V220 mantém raiz, docs e pontes antigas byte a byte iguais", () => {
+test("V221 mantém raiz, docs e pontes antigas byte a byte iguais", () => {
   for (const file of [
     "index.html",
-    "app-v220.js",
-    "app-v220.css",
+    `app-${suffix}.js`,
+    `app-${suffix}.css`,
     "service-worker.js",
-    "service-worker-v220.js"
+    `service-worker-${suffix}.js`
   ]) {
     assert.equal(read(file), read(`docs/${file}`), file);
   }
   for (const legacy of ["v168", "v169"]) {
-    assert.equal(read(`service-worker-${legacy}.js`), read("service-worker-v220.js"), legacy);
-    assert.equal(read(`docs/service-worker-${legacy}.js`), read("service-worker-v220.js"), `docs/${legacy}`);
+    assert.equal(read(`service-worker-${legacy}.js`), read(`service-worker-${suffix}.js`), legacy);
+    assert.equal(read(`docs/service-worker-${legacy}.js`), read(`service-worker-${suffix}.js`), `docs/${legacy}`);
   }
 });
 
