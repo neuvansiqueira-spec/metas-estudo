@@ -49,13 +49,14 @@ test('rosca usa segmentos elípticos e profundidade real em SVG', () => {
   assert.match(svg, /Proporção das 10 questões selecionadas/);
 });
 
-test('gráfico é didático, acessível e legível no tema escuro', () => {
+test('gráfico é didático, acessível e legível no tema premium', () => {
   assert.match(chartSource, /role="img" aria-labelledby=/);
   assert.match(chartSource, /<desc id=/);
   assert.match(chartSource, /Distribuição 3D das respostas/);
   assert.match(chartSource, /\.qh-donut-center-value/);
   assert.match(chartSource, /html\[data-aldus-theme="premium-stable"\] \.qh-result-label/);
-  assert.match(chartSource, /color: #e9f2f8 !important/);
+  assert.match(chartSource, /color: #173a58 !important/);
+  assert.match(chartSource, /linear-gradient\(155deg, #f8fcff 0%, #dfedf6 56%, #cfdfeb 100%\)/);
   assert.doesNotMatch(chartSource, /--qh-pie-gradient/);
 });
 
