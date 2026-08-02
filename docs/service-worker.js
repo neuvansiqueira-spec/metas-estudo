@@ -3,11 +3,14 @@
 const CURRENT_VERSION = "20260802-graficos-premium-historico-v221";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
+const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
+const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const STATIC_ASSETS = [
   "./",
   "index.html",
   `app-${RELEASE_SUFFIX}.css?v=${CURRENT_VERSION}`,
   `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`,
+  CONTRAST_STYLESHEET,
   "vendor/pdf.mjs",
   "vendor/pdf.worker.mjs",
   "vendor/pdfjs-LICENSE.txt",
@@ -57,15 +60,51 @@ async function cacheResponse(request, response) {
   return response;
 }
 
+async function ensureContrastStylesheet(response) {
+  if (!response?.ok) return response;
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("text/html")) return response;
+
+  const html = await response.text();
+  if (html.includes("question-history-contrast-v222.css")) {
+    const headers = new Headers(response.headers);
+    headers.delete("content-length");
+    return new Response(html, {
+      status: response.status,
+      statusText: response.statusText,
+      headers
+    });
+  }
+
+  const stylesheetTag = `<link rel="stylesheet" href="${CONTRAST_STYLESHEET}" />`;
+  const patchedHtml = html.includes("</head>")
+    ? html.replace("</head>", `  ${stylesheetTag}\n</head>`)
+    : `${stylesheetTag}\n${html}`;
+  const headers = new Headers(response.headers);
+  headers.delete("content-length");
+  headers.set("content-type", "text/html; charset=utf-8");
+
+  return new Response(patchedHtml, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
+}
+
 async function networkFirstNavigation(request) {
   try {
     const response = await fetch(request, { cache: "no-store" });
-    if (response?.ok) return cacheResponse(request, response);
+    if (response?.ok) {
+      const patchedResponse = await ensureContrastStylesheet(response);
+      return cacheResponse(request, patchedResponse);
+    }
   } catch {}
 
   const cached = await caches.match(request, { ignoreSearch: true })
     || await caches.match(new URL("index.html", self.registration.scope).href, { ignoreSearch: true });
-  return cached || new Response("Aplicativo indisponível temporariamente.", {
+  if (cached) return ensureContrastStylesheet(cached);
+
+  return new Response("Aplicativo indisponível temporariamente.", {
     status: 503,
     headers: { "content-type": "text/plain; charset=utf-8" }
   });
