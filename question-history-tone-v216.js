@@ -77,6 +77,7 @@
       background: linear-gradient(180deg, #e8f2f8 0%, #d9e7f1 100%) !important;
       border-color: rgba(199, 154, 59, .38) !important;
       box-shadow: 0 12px 28px rgba(3, 32, 58, .14), inset 0 3px 0 rgba(199, 154, 59, .70) !important;
+      color: #17324d !important;
     }
 
     #questionHistoryChartsV215 .qhcv215-card {
@@ -104,35 +105,108 @@
     }
 
     #questionHistoryChartsV215 .qhcv215-total {
-      fill: #082b49 !important;
+      fill: #062845 !important;
+      opacity: 1 !important;
     }
 
     #questionHistoryChartsV215 .qhcv215-total-label,
     #questionHistoryChartsV215 .qhcv215-dominant {
-      fill: #587086 !important;
+      fill: #425f77 !important;
+      opacity: 1 !important;
     }
 
     #questionHistoryChartsV215 .qhcv215-badge {
-      background: #dcefe9 !important;
-      border-color: rgba(35, 134, 111, .32) !important;
-      color: #165c49 !important;
+      background: #d7eee7 !important;
+      border-color: #91c7b8 !important;
+      color: #0d5b48 !important;
+      -webkit-text-fill-color: #0d5b48 !important;
+      opacity: 1 !important;
+      filter: none !important;
+      text-shadow: none !important;
     }
 
     #questionHistoryChartsV215 .qhcv215-legend-item {
-      background: rgba(244, 249, 252, .78) !important;
-      border-top-color: #cbdbe6 !important;
-      border-right-color: #cbdbe6 !important;
-      border-bottom-color: #cbdbe6 !important;
+      background: rgba(248, 252, 255, .94) !important;
+      border-top-color: #b8ccda !important;
+      border-right-color: #b8ccda !important;
+      border-bottom-color: #b8ccda !important;
     }
 
     #questionHistoryChartsV215 .qhcv215-share-track {
-      background: #ccdae4 !important;
+      background: #bdcfdb !important;
+      box-shadow: inset 0 1px 2px rgba(3, 32, 58, .14) !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-title,
+    #questionHistoryChartsV215 .qhcv215-title {
+      color: #062845 !important;
+      -webkit-text-fill-color: #062845 !important;
+      opacity: 1 !important;
+      filter: none !important;
+      mix-blend-mode: normal !important;
+      text-shadow: none !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-subtitle,
+    #questionHistoryChartsV215 .qhcv215-subtitle {
+      color: #304f68 !important;
+      -webkit-text-fill-color: #304f68 !important;
+      opacity: 1 !important;
+      filter: none !important;
+      mix-blend-mode: normal !important;
+      text-shadow: none !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-card h4,
+    #questionHistoryChartsV215 .qhcv215-card h4 {
+      color: #0b3154 !important;
+      -webkit-text-fill-color: #0b3154 !important;
+      opacity: 1 !important;
+      filter: none !important;
+      mix-blend-mode: normal !important;
+      text-shadow: none !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-category-count,
+    #questionHistoryChartsV215 .qhcv215-category-count {
+      color: #2d4e68 !important;
+      -webkit-text-fill-color: #2d4e68 !important;
+      background: #d9e6ef !important;
+      border: 1px solid #bccfdd !important;
+      opacity: 1 !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-label,
+    #questionHistoryChartsV215 .qhcv215-label {
+      color: #193b56 !important;
+      -webkit-text-fill-color: #193b56 !important;
+      opacity: 1 !important;
+      filter: none !important;
+      text-shadow: none !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-value,
+    #questionHistoryChartsV215 .qhcv215-value {
+      color: #062845 !important;
+      -webkit-text-fill-color: #062845 !important;
+      opacity: 1 !important;
+      filter: none !important;
+      text-shadow: none !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-value small,
+    #questionHistoryChartsV215 .qhcv215-value small {
+      color: #425f77 !important;
+      -webkit-text-fill-color: #425f77 !important;
+      opacity: 1 !important;
+      filter: none !important;
+      text-shadow: none !important;
     }
   `;
   document.head.appendChild(style);
 
   globalThis.__ALDUS_QUESTION_HISTORY_TONE_V216__ = Object.freeze({
     styleId: STYLE_ID,
-    version: "20260802-tons-azulados-historico-v216"
+    version: "20260802-contraste-distribuicao-v222"
   });
 })();
