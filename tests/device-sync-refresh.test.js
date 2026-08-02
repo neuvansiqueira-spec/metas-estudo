@@ -100,7 +100,7 @@ test("publicação atual permanece sincronizada entre raiz e docs", () => {
   assert.equal(rootWorker, docsWorker);
   assert.equal(packageJson.version, VERSION);
   assert.match(fs.readFileSync("app-version.js", "utf8"), new RegExp(VERSION));
-  assert.match(rootWorker, /app-v169\.js/);
-  assert.match(rootWorker, /app-v169\.css/);
+  assert.match(rootWorker, /app-\$\{RELEASE_SUFFIX\}\.js/);
+  assert.match(rootWorker, /app-\$\{RELEASE_SUFFIX\}\.css/);
   assert.doesNotMatch(rootWorker, /importScripts|sync-integral-time-protection\.js/);
 });

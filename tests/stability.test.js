@@ -261,13 +261,13 @@ test('Backup permite zerar somente questões resolvidas preservando dados princi
   assert.match(script, /Questões resolvidas zeradas com sucesso\./);
 });
 
-test('service worker abre o app shell pelo cache e atualiza a rede em segundo plano', () => {
+test('service worker busca HTML novo primeiro e mantém fallback offline do app shell', () => {
   const sw = fs.readFileSync('service-worker.js', 'utf8');
   assert.match(sw, new RegExp(`const CURRENT_VERSION = "${version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`));
   assert.match(sw, /const CACHE_NAME = `metas-estudo-\$\{CURRENT_VERSION\}`/);
-  assert.match(sw, /cachedNavigation/);
-  assert.match(sw, /cachedStatic/);
-  assert.match(sw, /fetchAndCache/);
+  assert.match(sw, /networkFirstNavigation/);
+  assert.match(sw, /cacheFirstStatic/);
+  assert.match(sw, /await fetch\(request, \{ cache: "no-store" \}\)/);
   assert.match(sw, /ignoreSearch: true/);
   assert.match(sw, /request\.mode === "navigate"/);
   assert.match(sw, /STATIC_PATHS\.has\(url\.pathname\)/);
