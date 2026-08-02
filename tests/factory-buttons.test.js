@@ -105,8 +105,8 @@ test('arquivos publicados e scripts ficam sincronizados na nova versão pública
   assert.equal(serviceWorker, docsServiceWorker);
   assert.equal(packageJson.version, version);
   for (const source of [html, fs.readFileSync("app-version.js", "utf8")]) assert.match(source, new RegExp(version));
-  assert.match(serviceWorker, /app-v169\.js/);
-  assert.match(serviceWorker, /app-v169\.css/);
+  assert.match(serviceWorker, /app-\$\{RELEASE_SUFFIX\}\.js/);
+  assert.match(serviceWorker, /app-\$\{RELEASE_SUFFIX\}\.css/);
   assert.doesNotMatch(serviceWorker, /importScripts/);
 });
 

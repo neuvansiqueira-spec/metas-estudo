@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const PATCH_VERSION = "20260729-refinamento-desktop-v169";
+  const PATCH_VERSION = globalThis.__ALDUS_APP_RELEASE__?.version || "release-atual";
   const CHECK_INTERVAL_MS = 15 * 60 * 1000;
   const BANNER_ID = "aldusUpdateBannerV169";
   const DIRTY_ATTRIBUTE = "data-aldus-user-edited-v169";
@@ -138,7 +138,6 @@
     const controller = workerSuffix(navigator.serviceWorker?.controller);
     return Boolean(
       visible
-      && visible === "v169"
       && controller === visible
       && !pendingWorker(registration)
     );

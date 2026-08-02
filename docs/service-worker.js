@@ -1,23 +1,98 @@
 "use strict";
 
-const CURRENT_VERSION = "20260730-importacao-completa-captura-v169";
+const CURRENT_VERSION = "20260802-versionamento-publicacao-estavel-v219";
+const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
-const RUNTIME_PRELUDE_ASSET = "./daily-piece-audit-prelude-v186.js";
-const RUNTIME_SAVE_ASSET = "./save-performance-v186.js";
-const RUNTIME_DAILY_AUDIT_ASSET = "./daily-piece-audit-performance-v186.js";
-const RUNTIME_CAPTURE_READER_ASSET = "./qconcursos-capture-complete-v187.js";
-const RUNTIME_CAPTURE_BANK_ASSET = "./qconcursos-capture-bank-v187.js";
-const STATIC_ASSETS = ["./","index.html",`app-v169.css?v=${CURRENT_VERSION}`,`app-v169.js?v=${CURRENT_VERSION}`,RUNTIME_PRELUDE_ASSET,RUNTIME_SAVE_ASSET,RUNTIME_DAILY_AUDIT_ASSET,RUNTIME_CAPTURE_READER_ASSET,RUNTIME_CAPTURE_BANK_ASSET,"vendor/pdf.mjs","vendor/pdf.worker.mjs","vendor/pdfjs-LICENSE.txt","manifest.json","icons/aldus-visual.png","icons/aldus-brand-mark-v93.png","icons/logo-mark.svg","icons/icon.svg","icons/icon-maskable.svg"];
-const STATIC_PATHS = new Set(STATIC_ASSETS.map((asset) => new URL(asset, self.registration.scope).pathname));
-self.addEventListener("install",(event)=>{event.waitUntil(caches.open(CACHE_NAME).then((cache)=>cache.addAll(STATIC_ASSETS)));self.skipWaiting();});
-self.addEventListener("message",(event)=>{if(event.data?.type==="SKIP_WAITING")self.skipWaiting();});
-self.addEventListener("activate",(event)=>{event.waitUntil(caches.keys().then((names)=>Promise.all(names.filter((name)=>name.startsWith("metas-estudo-")&&name!==CACHE_NAME).map((name)=>caches.delete(name)))).then(()=>self.clients.claim()));});
-async function putStaticResponse(request,response){if(!response?.ok)return response;const cache=await caches.open(CACHE_NAME);await cache.put(request,response.clone());return response;}
-function fetchAndCache(request){return fetch(request,{cache:"no-store"}).then((response)=>putStaticResponse(request,response));}
-async function cachedNavigation(request,event){const network=fetchAndCache(request).catch(()=>null);event.waitUntil(network.then(()=>undefined));const cached=await caches.match(request,{ignoreSearch:true})||await caches.match(new URL("index.html",self.registration.scope).href,{ignoreSearch:true});if(cached)return cached;const fresh=await network;return fresh||new Response("Aplicativo indisponível temporariamente.",{status:503,headers:{"content-type":"text/plain; charset=utf-8"}});}
-async function cachedStatic(request,event){const network=fetchAndCache(request).catch(()=>null);event.waitUntil(network.then(()=>undefined));const cached=await caches.match(request,{ignoreSearch:true});return cached||await network||new Response("Recurso indisponível temporariamente.",{status:503});}
-async function runtimeAssetText(asset){const request=new Request(new URL(asset,self.registration.scope),{cache:"no-store"});const cached=await caches.match(request,{ignoreSearch:true});const response=cached||await fetch(request);if(!response?.ok)throw new Error(`Falha ao carregar módulo: ${asset}`);return response.text();}
-function injectBeforeMarker(source,marker,injectedSource,label){if(source.includes(injectedSource.slice(0,80)))return source;const position=source.indexOf(marker);if(position<0)throw new Error(`Marcador ausente para ${label}: ${marker}`);return `${source.slice(0,position)}${injectedSource}\n\n${source.slice(position)}`;}
-function replaceSourceModule(source,oldMarker,nextMarker,newMarker,replacementSource){if(source.includes(newMarker))return source;const start=source.indexOf(oldMarker),end=source.indexOf(nextMarker,start+oldMarker.length);if(start<0||end<0)throw new Error(`Não foi possível substituir o módulo ${oldMarker}`);return `${source.slice(0,start)}${newMarker}\n${replacementSource.trim()}\n\n${source.slice(end)}`;}
-async function patchedApplicationResponse(request,event){const response=await cachedStatic(request,event);if(!response?.ok)return response;try{const[applicationSource,preludeSource,saveSource,dailyAuditSource,captureReaderSource,captureBankSource]=await Promise.all([response.text(),runtimeAssetText(RUNTIME_PRELUDE_ASSET),runtimeAssetText(RUNTIME_SAVE_ASSET),runtimeAssetText(RUNTIME_DAILY_AUDIT_ASSET),runtimeAssetText(RUNTIME_CAPTURE_READER_ASSET),runtimeAssetText(RUNTIME_CAPTURE_BANK_ASSET)]);let patchedSource=applicationSource.replaceAll("20260730-meta-diaria-peca-delegado-v169",CURRENT_VERSION).replaceAll("20260730-carregamento-salvamento-rapido-v169",CURRENT_VERSION);if(!patchedSource.includes("/* Aldus runtime source: save-performance-v186.js */"))patchedSource=injectBeforeMarker(patchedSource,"/* Aldus source: question-accuracy-spectrum.js */",`/* Aldus runtime source: save-performance-v186.js */\n${saveSource}`,"salvamento responsivo");if(!patchedSource.includes("/* Aldus runtime source: daily-piece-audit-prelude-v186.js */"))patchedSource=injectBeforeMarker(patchedSource,"/* Aldus source: daily-delegate-piece-goal-v183.js */",`/* Aldus runtime source: daily-piece-audit-prelude-v186.js */\n${preludeSource}`,"preâmbulo da auditoria de Peças");if(!patchedSource.includes("/* Aldus runtime source: daily-piece-audit-performance-v186.js */"))patchedSource=injectBeforeMarker(patchedSource,"/* Aldus source: analytics-view-controller-v179.js */",`/* Aldus runtime source: daily-piece-audit-performance-v186.js */\n${dailyAuditSource}`,"auditoria consolidada de Peças");patchedSource=replaceSourceModule(patchedSource,"/* Aldus source: qconcursos-capture-import-v182.js */","/* Aldus source: script.js */","/* Aldus runtime source: qconcursos-capture-complete-v187.js */",captureReaderSource);if(!patchedSource.includes("/* Aldus runtime source: qconcursos-capture-bank-v187.js */")){patchedSource=injectBeforeMarker(patchedSource,'elements.qbPdfFile?.addEventListener("change", (event) => qbReadPdfImportFile(event.target.files?.[0]));',`/* Aldus runtime source: qconcursos-capture-bank-v187.js */\nglobalThis.textMatches ??= 0;\n${captureBankSource}\n;(() => {\n  const originalConfirmV187 = qbConfirmCaptureImport;\n  qbConfirmCaptureImport = function duplicateSafeCaptureConfirmV187() {\n    const canonical = (value) => String(value || "").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\\s+/g, " ").trim();\n    [...(elements.qbCapturePreviewList?.querySelectorAll("[data-qb-capture-row]") || [])].forEach((row) => {\n      if (!row.querySelector("[data-qb-capture-include]")?.checked) return;\n      const action = row.querySelector("[data-qb-capture-action]");\n      const questionSelect = row.querySelector("[data-qb-capture-question]");\n      if (!action || action.value !== "create") return;\n      const reference = canonical(row.querySelector('[data-qb-capture-field="referencia"]')?.value);\n      const statement = canonical(row.querySelector('[data-qb-capture-field="enunciado"]')?.value).slice(0, 420);\n      const board = canonical(row.querySelector('[data-qb-capture-field="banca"]')?.value);\n      const year = canonical(row.querySelector('[data-qb-capture-field="ano"]')?.value);\n      const duplicate = (state.questionBank || []).find((question) => {\n        const questionReference = canonical(question.referencia || question.qcCodigo || question.id);\n        if (reference && questionReference && reference === questionReference) return true;\n        return statement.length > 80 && canonical(question.enunciado).slice(0, 420) === statement && (!board || canonical(question.banca) === board) && (!year || canonical(question.ano) === year);\n      });\n      if (!duplicate) return;\n      questionSelect.value = duplicate.id;\n      action.value = "update";\n    });\n    return originalConfirmV187.apply(this, arguments);\n  };\n})();`,"integração do cadastro completo por captura");}const headers=new Headers(response.headers);for(const name of["content-length","content-encoding","etag","last-modified"])headers.delete(name);headers.set("content-type","text/javascript; charset=utf-8");headers.set("x-aldus-runtime-patch",CURRENT_VERSION);return new Response(patchedSource,{status:response.status,statusText:response.statusText,headers});}catch(error){console.warn("[Aldus V187] Não foi possível aplicar a importação completa; o aplicativo original será mantido.",error);return response;}}
-self.addEventListener("fetch",(event)=>{const request=event.request;if(request.method!=="GET")return;const url=new URL(request.url);if(url.origin!==self.location.origin)return;if(request.mode==="navigate"||request.destination==="document"){event.respondWith(cachedNavigation(request,event));return;}if(url.pathname.endsWith("/app-v169.js")){event.respondWith(patchedApplicationResponse(request,event));return;}if(STATIC_PATHS.has(url.pathname))event.respondWith(cachedStatic(request,event));});
+const STATIC_ASSETS = [
+  "./",
+  "index.html",
+  `app-${RELEASE_SUFFIX}.css?v=${CURRENT_VERSION}`,
+  `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`,
+  "vendor/pdf.mjs",
+  "vendor/pdf.worker.mjs",
+  "vendor/pdfjs-LICENSE.txt",
+  "manifest.json",
+  "icons/aldus-visual.png",
+  "icons/aldus-brand-mark-v93.png",
+  "icons/logo-mark.svg",
+  "icons/icon.svg",
+  "icons/icon-maskable.svg"
+];
+const STATIC_PATHS = new Set(
+  STATIC_ASSETS.map((asset) => new URL(asset, self.registration.scope).pathname)
+);
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys()
+      .then((names) => Promise.all(
+        names
+          .filter((name) =>
+            (name.startsWith("metas-estudo-") && name !== CACHE_NAME)
+            || name.startsWith("aldus-runtime-modules-")
+            || name.startsWith("aldus-compiled-app-")
+          )
+          .map((name) => caches.delete(name))
+      ))
+      .then(() => self.clients.claim())
+  );
+});
+
+async function cacheResponse(request, response) {
+  if (!response?.ok) return response;
+  const cache = await caches.open(CACHE_NAME);
+  await cache.put(request, response.clone());
+  return response;
+}
+
+async function networkFirstNavigation(request) {
+  try {
+    const response = await fetch(request, { cache: "no-store" });
+    if (response?.ok) return cacheResponse(request, response);
+  } catch {}
+
+  const cached = await caches.match(request, { ignoreSearch: true })
+    || await caches.match(new URL("index.html", self.registration.scope).href, { ignoreSearch: true });
+  return cached || new Response("Aplicativo indisponível temporariamente.", {
+    status: 503,
+    headers: { "content-type": "text/plain; charset=utf-8" }
+  });
+}
+
+async function cacheFirstStatic(request) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+  try {
+    return await cacheResponse(request, await fetch(request, { cache: "no-store" }));
+  } catch {
+    return new Response("Recurso indisponível temporariamente.", { status: 503 });
+  }
+}
+
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
+  if (request.method !== "GET") return;
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+
+  if (request.mode === "navigate" || request.destination === "document") {
+    event.respondWith(networkFirstNavigation(request));
+    return;
+  }
+
+  if (STATIC_PATHS.has(url.pathname)) {
+    event.respondWith(cacheFirstStatic(request));
+  }
+});

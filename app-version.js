@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260730-meta-diaria-peca-delegado-v169";
+  const VERSION = "20260802-versionamento-publicacao-estavel-v219";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

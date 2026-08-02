@@ -54,8 +54,22 @@ function synchronizeIndexVersion() {
   fs.writeFileSync(indexPath, synchronized);
 }
 
+function synchronizeServiceWorkerVersion() {
+  const workerPath = path.join(root, "service-worker.js");
+  const source = fs.readFileSync(workerPath, "utf8");
+  const synchronized = source.replace(
+    /const CURRENT_VERSION = "[^"]+";/,
+    `const CURRENT_VERSION = ${JSON.stringify(packageVersion)};`
+  );
+  if (synchronized === source && !source.includes(`const CURRENT_VERSION = ${JSON.stringify(packageVersion)};`)) {
+    throw new Error("Não foi possível sincronizar a versão do service worker.");
+  }
+  fs.writeFileSync(workerPath, synchronized);
+}
+
 fs.writeFileSync(path.join(root, "app-version.js"), appVersionSource(packageVersion));
 synchronizeIndexVersion();
+synchronizeServiceWorkerVersion();
 
 const cssSources = [
   "style.css",
@@ -135,21 +149,178 @@ const jsSources = [
   "question-scoring-rule-v142.js"
 ];
 
-function bundle(sources, output) {
+function readRuntimeSource(filename) {
+  return fs.readFileSync(path.join(root, filename), "utf8")
+    .replace(/[ \t]+$/gm, "")
+    .trim();
+}
+
+function injectBeforeMarker(source, marker, injectedSource, label) {
+  if (source.includes(injectedSource.split("\n", 1)[0])) return source;
+  const position = source.indexOf(marker);
+  if (position < 0) throw new Error(`Marcador ausente para ${label}: ${marker}`);
+  return `${source.slice(0, position)}${injectedSource.trim()}\n\n${source.slice(position)}`;
+}
+
+function replaceSourceModule(source, possibleMarkers, nextMarker, newMarker, replacementSource) {
+  if (source.includes(newMarker)) return source;
+  const marker = possibleMarkers.find((candidate) => source.includes(candidate));
+  if (!marker) throw new Error(`Módulo-base ausente para ${newMarker}`);
+  const start = source.indexOf(marker);
+  const end = source.indexOf(nextMarker, start + marker.length);
+  if (end < 0) throw new Error(`Limite final ausente para ${newMarker}`);
+  return `${source.slice(0, start)}${newMarker}\n${replacementSource.trim()}\n\n${source.slice(end)}`;
+}
+
+function appendRuntimeModule(source, filename, marker = `/* Aldus runtime source: ${filename} */`) {
+  if (source.includes(marker)) return source;
+  return `${source.trim()}\n\n${marker}\n${readRuntimeSource(filename)}\n`;
+}
+
+function consolidateApplication(baseSource) {
+  const qbEventsMarker = 'elements.qbPdfFile?.addEventListener("change", (event) => qbReadPdfImportFile(event.target.files?.[0]));';
+  const captureReader = readRuntimeSource("qconcursos-capture-segmented-v188.js")
+    .replace(/(\n\s*)alternativas,(\n\s*comentarioQc:)/, "$1alternativas: alternatives,$2");
+  if (!captureReader.includes("alternativas: alternatives")) {
+    throw new Error("A correção do campo alternativas não foi incorporada.");
+  }
+
+  let source = baseSource;
+  source = injectBeforeMarker(
+    source,
+    "/* Aldus source: question-accuracy-spectrum.js */",
+    `/* Aldus runtime source: save-performance-v186.js */\n${readRuntimeSource("save-performance-v186.js")}`,
+    "salvamento responsivo"
+  );
+  source = injectBeforeMarker(
+    source,
+    "/* Aldus source: daily-delegate-piece-goal-v183.js */",
+    `/* Aldus runtime source: daily-piece-audit-prelude-v186.js */\n${readRuntimeSource("daily-piece-audit-prelude-v186.js")}`,
+    "preâmbulo da auditoria de Peças"
+  );
+  source = injectBeforeMarker(
+    source,
+    "/* Aldus source: analytics-view-controller-v179.js */",
+    `/* Aldus runtime source: daily-piece-audit-performance-v186.js */\n${readRuntimeSource("daily-piece-audit-performance-v186.js")}`,
+    "auditoria consolidada de Peças"
+  );
+  source = replaceSourceModule(
+    source,
+    [
+      "/* Aldus source: qconcursos-capture-import-v182.js */",
+      "/* Aldus runtime source: qconcursos-capture-complete-v187.js */",
+      "/* Aldus runtime source: qconcursos-capture-segmented-v188.js */",
+      "/* Aldus runtime source: qconcursos-capture-accuracy-v190.js */"
+    ],
+    "/* Aldus source: script.js */",
+    "/* Aldus runtime source: qconcursos-capture-accuracy-v190.js */",
+    `${captureReader}\n\n${readRuntimeSource("qconcursos-capture-accuracy-v190.js")}`
+  );
+
+  const orderedBeforeQuestionEvents = [
+    {
+      marker: "/* Aldus runtime source: qconcursos-capture-bank-v188.js */",
+      content: `${readRuntimeSource("qconcursos-capture-bank-v188.js")}\n\n/* Aldus runtime source: qconcursos-capture-reprocess-v188.js */\n${readRuntimeSource("qconcursos-capture-reprocess-v188.js")}\n\n/* Aldus runtime source: qconcursos-capture-ui-strict-v190.js */\n${readRuntimeSource("qconcursos-capture-ui-strict-v190.js")}`
+    },
+    { marker: "/* Aldus runtime source: question-bank-json-review-v192.js */", content: readRuntimeSource("question-bank-json-review-v192.js") },
+    { marker: "/* Aldus runtime source: question-bank-json-contrast-v193.js */", content: readRuntimeSource("question-bank-json-contrast-v193.js") },
+    { marker: "/* Aldus runtime source: question-bank-json-priority-v195.js */", content: readRuntimeSource("question-bank-json-priority-v195.js") },
+    { marker: "/* Aldus runtime source: question-bank-json-completion-v196.js */", content: readRuntimeSource("question-bank-json-completion-v196.js") },
+    {
+      marker: "/* Aldus runtime source: question-history-report-core-v198.js */",
+      content: `${readRuntimeSource("question-history-report-core-v198.js")}\n\n/* Aldus runtime source: question-history-report-export-v198.js */\n${readRuntimeSource("question-history-report-export-v198.js")}\n\n/* Aldus runtime source: question-history-report-ui-v198.js */\n${readRuntimeSource("question-history-report-ui-v198.js")}`
+    },
+    { marker: "/* Aldus runtime source: question-bank-json-import-v191.js */", content: readRuntimeSource("question-bank-json-import-v191.js") }
+  ];
+  for (const { marker, content } of orderedBeforeQuestionEvents) {
+    source = injectBeforeMarker(source, qbEventsMarker, `${marker}\n${content}`, marker);
+  }
+
+  const appendedModules = [
+    ["planning-shift-disciplines-v200.js"],
+    ["planning-shift-disciplines-visual-v201.js", "/* Aldus runtime source: planning-shift-disciplines-visual-v203.js */"],
+    ["side-nav-hover-collapse-v207.js"],
+    ["floating-timer-active-border-v208.js"],
+    ["floating-timer-label-contrast-v209.js"],
+    ["floating-timer-label-quality-v210.js"],
+    ["timer-message-variety-v211.js"],
+    ["question-history-charts-v215.js"],
+    ["question-history-tone-v216.js"]
+  ];
+  for (const [filename, marker] of appendedModules) {
+    source = appendRuntimeModule(source, filename, marker);
+  }
+
+  const publicVersions = [
+    "20260730-meta-diaria-peca-delegado-v169",
+    "20260730-carregamento-salvamento-rapido-v169",
+    "20260730-importacao-completa-captura-v169",
+    "20260730-segmentacao-cartoes-qconcursos-v169",
+    "20260730-correcao-alternativas-qconcursos-v169",
+    "20260730-ocr-conservador-qconcursos-v169",
+    "20260730-importacao-json-completa-qconcursos-v169",
+    "20260730-revisao-visivel-json-qconcursos-v169",
+    "20260730-contraste-revisao-json-qconcursos-v169",
+    "20260730-restaura-carregamento-json-v169",
+    "20260730-prioridade-revisao-json-v169",
+    "20260730-confirmacao-final-json-v169",
+    "20260730-estabiliza-rolagem-carregamento-v169",
+    "20260730-filtro-relatorio-historico-questoes-v169",
+    "20260730-contraste-resultado-liquido-v169",
+    "20260731-menu-lateral-hover-v169",
+    "20260731-corrige-menu-lateral-hover-v169",
+    "20260731-remove-agulha-menu-lateral-v169",
+    "20260731-suaviza-titulo-navegacao-v169",
+    "20260731-borda-ativa-cronometro-v169",
+    "20260731-contraste-titulo-cronometro-v169",
+    "20260731-refina-titulo-cronometro-v169",
+    "20260731-variedade-mensagens-cronometro-v169",
+    "20260731-restaura-carregamento-rapido-v169",
+    "20260801-carregamento-compilado-v169",
+    "20260802-restaura-graficos-historico-v169",
+    "20260802-tons-azulados-historico-v169",
+    "20260802-corrige-atualizacao-versao-v217",
+    "20260802-recupera-atualizacao-presa-v218"
+  ];
+  for (const version of publicVersions) source = source.replaceAll(version, packageVersion);
+
+  const requiredMarkers = [
+    "/* Aldus runtime source: qconcursos-capture-accuracy-v190.js */",
+    "/* Aldus runtime source: question-bank-json-review-v192.js */",
+    "/* Aldus runtime source: question-history-report-ui-v198.js */",
+    "/* Aldus runtime source: planning-shift-disciplines-v200.js */",
+    "/* Aldus runtime source: question-history-charts-v215.js */",
+    "/* Aldus runtime source: question-history-tone-v216.js */"
+  ];
+  const missing = requiredMarkers.filter((marker) => !source.includes(marker));
+  if (missing.length) throw new Error(`Bundle consolidado incompleto: ${missing.join(", ")}`);
+  return `${source.trim()}\n`;
+}
+
+function consolidateStylesheet(baseSource) {
+  let source = baseSource;
+  for (const [filename, marker] of [
+    ["loading-scrollbar-stability-v197.css", "/* Aldus runtime source: loading-scrollbar-stability-v197.css */"],
+    ["question-history-visual-fix-v199.css", "/* Aldus runtime source: question-history-visual-fix-v199.css */"]
+  ]) {
+    if (!source.includes(marker)) source = `${source.trim()}\n\n${marker}\n${readRuntimeSource(filename)}\n`;
+  }
+  return source;
+}
+
+function bundle(sources, output, transform = (content) => content) {
   const content = sources
     .map((filename) => {
-      const source = fs.readFileSync(path.join(root, filename), "utf8")
-        .replace(/[ \t]+$/gm, "")
-        .trim();
+      const source = readRuntimeSource(filename);
       return `/* Aldus source: ${filename} */\n${source}`;
     })
     .join("\n\n");
-  fs.writeFileSync(path.join(root, output), `${content}\n`);
+  fs.writeFileSync(path.join(root, output), transform(`${content}\n`));
   fs.copyFileSync(path.join(root, output), path.join(root, "docs", output));
 }
 
-bundle(cssSources, "app.bundle.css");
-bundle(jsSources, "app.bundle.js");
+bundle(cssSources, "app.bundle.css", consolidateStylesheet);
+bundle(jsSources, "app.bundle.js", consolidateApplication);
 
 const vendorDir = path.join(root, "vendor");
 const docsVendorDir = path.join(root, "docs", "vendor");
@@ -175,10 +346,12 @@ const versionedWorkerName = `service-worker-${releaseSuffix}.js`;
 fs.copyFileSync(path.join(root, "service-worker.js"), path.join(root, versionedWorkerName));
 fs.copyFileSync(path.join(root, "service-worker.js"), path.join(root, "docs", versionedWorkerName));
 
-// Ponte de atualização para clientes ainda registrados no worker V168.
-// O conteúdo é o worker independente V169: não há importação nem execução legada.
-for (const target of ["service-worker-v168.js", path.join("docs", "service-worker-v168.js")]) {
-  fs.copyFileSync(path.join(root, "service-worker.js"), path.join(root, target));
+// Pontes para instalações antigas. Ao detectar a mudança no mesmo URL do worker,
+// elas passam a servir o HTML e os bundles da versão atual sem cadeia de runtimes.
+for (const legacySuffix of ["v168", "v169"]) {
+  for (const target of [`service-worker-${legacySuffix}.js`, path.join("docs", `service-worker-${legacySuffix}.js`)]) {
+    fs.copyFileSync(path.join(root, "service-worker.js"), path.join(root, target));
+  }
 }
 
 for (const filename of [
