@@ -4,8 +4,8 @@ const fs = require('node:fs');
 
 const patch = fs.readFileSync('question-board-result-v141.js', 'utf8');
 const publishedPatch = fs.readFileSync('docs/question-board-result-v141.js', 'utf8');
-const loader = fs.readFileSync('central-goals-real-time-v124.js', 'utf8');
-const publishedLoader = fs.readFileSync('docs/central-goals-real-time-v124.js', 'utf8');
+const bundle = fs.readFileSync('app.bundle.js', 'utf8');
+const publishedBundle = fs.readFileSync('docs/app.bundle.js', 'utf8');
 
 test('resultado de outras bancas possui sintaxe JavaScript válida', () => {
   assert.doesNotThrow(() => new Function(patch));
@@ -39,13 +39,12 @@ test('alteração é somente visual e não modifica persistência ou sincroniza�
   assert.doesNotMatch(patch, /addEventListener\("submit"/);
 });
 
-test('loader é versionado e idempotente', () => {
-  assert.match(loader, /__aldusQuestionBoardResultLoaderV141/);
-  assert.match(loader, /question-board-result-v141\.js\?v=20260725-resultado-outras-bancas-v141/);
+test('módulo é compilado e idempotente', () => {
+  assert.match(bundle, /Aldus source: question-board-result-v141\.js/);
   assert.match(patch, /__aldusQuestionBoardResultV141/);
 });
 
 test('arquivos publicados permanecem idênticos aos arquivos da raiz', () => {
   assert.equal(publishedPatch, patch);
-  assert.equal(publishedLoader, loader);
+  assert.equal(publishedBundle, bundle);
 });

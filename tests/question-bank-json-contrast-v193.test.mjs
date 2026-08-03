@@ -2,8 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const contrast = fs.readFileSync("/mnt/data/question-bank-json-contrast-v193.js", "utf8");
-const worker = fs.readFileSync("/mnt/data/service-worker-v169.js", "utf8");
+const contrast = fs.readFileSync(new URL("../question-bank-json-contrast-v193.js", import.meta.url), "utf8");
+const bundle = fs.readFileSync(new URL("../app.bundle.js", import.meta.url), "utf8");
 
 test("V193 força contraste legível no painel sem alterar o site inteiro", () => {
   assert.match(contrast, /\.aldus-json-review-v192 \.aldus-json-review-card-v192/);
@@ -20,16 +20,13 @@ test("V193 diferencia linhas, aviso e botões", () => {
   assert.match(contrast, /data-json-review-cancel/);
 });
 
-test("worker renova cache e injeta V193", () => {
-  assert.match(worker, /20260730-contraste-revisao-json-qconcursos-v169/);
-  assert.match(worker, /question-bank-json-contrast-v193\.js/);
-  assert.match(worker, /qbJsonContrastSource/);
-  assert.match(worker, /Aldus runtime source: question-bank-json-contrast-v193\.js/);
+test("bundle publica V193", () => {
+  assert.match(bundle, /20260730-contraste-revisao-json-qconcursos-v193/);
+  assert.match(bundle, /Aldus runtime source: question-bank-json-contrast-v193\.js/);
 });
 
-test("worker mantém V191 e V192 ao adicionar V193", () => {
-  assert.match(worker, /question-bank-json-import-v191\.js/);
-  assert.match(worker, /question-bank-json-review-v192\.js/);
-  assert.match(worker, /question-bank-json-contrast-v193\.js/);
-  assert.match(worker, /Promise\.allSettled/);
+test("bundle mantém V191 e V192 ao adicionar V193", () => {
+  assert.match(bundle, /question-bank-json-import-v191\.js/);
+  assert.match(bundle, /question-bank-json-review-v192\.js/);
+  assert.match(bundle, /question-bank-json-contrast-v193\.js/);
 });

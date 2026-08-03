@@ -33,3 +33,11 @@ test("atalhos e feedback imediato preservam o caderno de erros", () => {
   assert.match(source, /event\.key === "\?"/);
   assert.match(source, /answerCurrent\(QB_MARK_BLANK\)/);
 });
+
+test("avanço automático não pula questões e conclusão sincroniza somente após salvar", () => {
+  assert.match(source, /clearTimeout\(autoAdvanceTimer\)/);
+  assert.match(source, /expectedQuestionId/);
+  assert.match(source, /questionBankTraining\.index !== expectedIndex/);
+  assert.match(source, /if \(!questionBankTraining\) \{[\s\S]*localStorage\.removeItem\(DRAFT_KEY\)/);
+  assert.match(source, /autoSyncAfterSave\("question-bank-training"\)/);
+});

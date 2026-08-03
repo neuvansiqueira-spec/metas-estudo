@@ -100,29 +100,22 @@ test("protege todos os filtros relevantes e reforça a abertura", () => {
   assert.match(source, /z-index: 3 !important/);
 });
 
-test("não substitui as opções enquanto o filtro está aberto", async () => {
+test("não sombreia os acessores nativos nem bloqueia a atualização das opções", () => {
   const { select } = createRuntime();
   assert.equal(select.dataset.qbFilterOpenV226, "true");
 
   select.dispatch("pointerdown");
   select.innerHTML = '<option value="">Todos</option><option value="B">B</option>';
 
-  assert.match(select.innerHTML, /value="A"/);
-  assert.doesNotMatch(select.innerHTML, /value="B"/);
-
-  select.dispatch("blur");
-  await new Promise((resolve) => setTimeout(resolve, 5));
-
   assert.match(select.innerHTML, /value="B"/);
-  assert.equal(select.value, "");
+  assert.equal(Object.hasOwn(select, "innerHTML"), false);
+  assert.equal(Object.hasOwn(select, "value"), false);
 });
 
-test("ignora reconstrução idêntica e mantém o campo habilitado", () => {
-  const { select } = createRuntime();
-  const original = select.innerHTML;
-  select.innerHTML = original;
-
-  assert.equal(select.innerHTML, original);
-  assert.equal(select.disabled, false);
+test("preserva o estado disabled definido pela cascata", () => {
+  const { select, context } = createRuntime();
+  select.disabled = true;
+  context.__aldusQuestionBankFilterOpenV226Api.ensureFiltersAreInteractive();
+  assert.equal(select.disabled, true);
   assert.equal(select.style.pointerEvents, "auto");
 });

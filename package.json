@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260803-corrige-abertura-filtros-v226",
+  "version": "20260803-corrige-banco-questoes-integral-v227",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

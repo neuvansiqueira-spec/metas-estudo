@@ -475,7 +475,7 @@
       referencia: reference,
       qcCodigo: reference,
       enunciado,
-      alternativas,
+      alternativas: alternatives,
       comentarioQc: commentary.comment,
       justificativa: commentary.comment,
       fundamento: commentary.comment,
