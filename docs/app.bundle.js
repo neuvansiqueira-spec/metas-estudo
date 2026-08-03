@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260803-corrige-funcionamento-banco-questoes-v228";
+  const VERSION = "20260803-corrige-filtro-banca-fgv-v229";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -42610,7 +42610,9 @@ const QB_MARK_DOUBT = "__doubt__";
 function normalizeQuestionBankAnswer(value) { if (value === true) return "C"; if (value === false) return "E"; const raw = canonical(String(value ?? "")).replace(/[^a-z]/g, ""); if (["c","certo","correto","verdadeiro","v"].includes(raw)) return "C"; if (["e","errado","incorreto","falso","f"].includes(raw)) return "E"; if (/^[abcde]$/.test(raw)) return raw.toUpperCase(); return ""; }
 function normalizeQuestionBankAlternatives(raw = {}) { const source = raw?.alternativas ?? raw?.alternatives ?? raw?.options ?? {}; if (Array.isArray(source)) return source.reduce((acc, option, index) => { const key = String(option?.letra || option?.key || option?.id || String.fromCharCode(65 + index)).toUpperCase(); const text = String(option?.texto ?? option?.text ?? option ?? "").trim(); if (/^[A-E]$/.test(key) && text) acc[key] = text; return acc; }, {}); if (!source || typeof source !== "object") return {}; return Object.entries(source).reduce((acc, [key, value]) => { const normalizedKey = String(key).trim().toUpperCase(); const text = String(value?.texto ?? value?.text ?? value ?? "").trim(); if (/^[A-E]$/.test(normalizedKey) && text) acc[normalizedKey] = text; return acc; }, {}); }
 function questionBankExplanation(raw = {}) { return String(raw.justificativa ?? raw.fundamento ?? raw.comentario ?? raw.comentário ?? raw.explanation ?? raw.notes ?? raw.observacoes ?? raw.observations ?? "").trim(); }
-function normalizeQuestionBankItem(raw = {}, index = 0) { const justificativa = questionBankExplanation(raw); const alternativas = normalizeQuestionBankAlternatives(raw); return { id: String(raw.id || raw.codigo || raw.referencia || `qb-${index + 1}-${createId()}`), disciplina: String(raw.disciplina || raw.discipline || "Sem disciplina"), assunto: String(raw.assunto || raw.subject || raw.topico || raw.topic || "Sem assunto"), tema: String(raw.tema || raw.theme || raw.subassunto || raw.subtopic || "Geral"), syllabusItemId: String(raw.syllabusItemId || ""), banca: String(raw.banca || raw.board || ""), ano: raw.ano || raw.year || "", orgao: String(raw.orgao || raw.agency || ""), cargo: String(raw.cargo || raw.role || ""), prova: String(raw.prova || raw.exam || ""), referencia: String(raw.referencia || raw.reference || raw.codigo || ""), tipo: String(raw.tipo || raw.type || (Object.keys(alternativas).length ? "Múltipla escolha" : "Certo/Errado")), enunciado: String(raw.enunciado || raw.statement || raw.texto || raw.question || ""), alternativas, gabarito: normalizeQuestionBankAnswer(raw.gabarito ?? raw.resposta ?? raw.answer ?? raw.correctAnswer), justificativa, fundamento: justificativa, comentarioQc: String(raw.comentarioQc || ""), observacoes: String(raw.observacoes || raw.notes || ""), tags: Array.isArray(raw.tags) ? raw.tags : [], fonte: String(raw.fonte || raw.source || ""), arquivoFonte: String(raw.arquivoFonte || raw.sourceFileName || ""), capturaFonte: String(raw.capturaFonte || ""), qcCodigo: String(raw.qcCodigo || raw.codigoQc || ""), qcNumeroNoArquivo: raw.qcNumeroNoArquivo || "", qcDisciplina: String(raw.qcDisciplina || ""), qcAssunto: String(raw.qcAssunto || ""), qcClassificacao: String(raw.qcClassificacao || ""), correspondenciaQc: String(raw.correspondenciaQc || "") }; }
+function questionBankMetadataText(value) { if (Array.isArray(value)) return value.map(questionBankMetadataText).find(Boolean) || ""; if (value && typeof value === "object") return questionBankMetadataText(value.nome ?? value.name ?? value.label ?? value.sigla ?? value.value); return String(value ?? "").trim(); }
+function questionBankBoard(raw = {}) { return [raw.banca, raw.board, raw.examiningBoard, raw.examining_board, raw.organizadora, raw.metadados?.banca, raw.metadados?.board, raw.metadata?.banca, raw.metadata?.board].map(questionBankMetadataText).find(Boolean) || ""; }
+function normalizeQuestionBankItem(raw = {}, index = 0) { const justificativa = questionBankExplanation(raw); const alternativas = normalizeQuestionBankAlternatives(raw); return { id: String(raw.id || raw.codigo || raw.referencia || `qb-${index + 1}-${createId()}`), disciplina: String(raw.disciplina || raw.discipline || "Sem disciplina"), assunto: String(raw.assunto || raw.subject || raw.topico || raw.topic || "Sem assunto"), tema: String(raw.tema || raw.theme || raw.subassunto || raw.subtopic || "Geral"), syllabusItemId: String(raw.syllabusItemId || ""), banca: questionBankBoard(raw), ano: raw.ano || raw.year || "", orgao: String(raw.orgao || raw.agency || ""), cargo: String(raw.cargo || raw.role || ""), prova: String(raw.prova || raw.exam || ""), referencia: String(raw.referencia || raw.reference || raw.codigo || ""), tipo: String(raw.tipo || raw.type || (Object.keys(alternativas).length ? "Múltipla escolha" : "Certo/Errado")), enunciado: String(raw.enunciado || raw.statement || raw.texto || raw.question || ""), alternativas, gabarito: normalizeQuestionBankAnswer(raw.gabarito ?? raw.resposta ?? raw.answer ?? raw.correctAnswer), justificativa, fundamento: justificativa, comentarioQc: String(raw.comentarioQc || ""), observacoes: String(raw.observacoes || raw.notes || ""), tags: Array.isArray(raw.tags) ? raw.tags : [], fonte: String(raw.fonte || raw.source || ""), arquivoFonte: String(raw.arquivoFonte || raw.sourceFileName || ""), capturaFonte: String(raw.capturaFonte || ""), qcCodigo: String(raw.qcCodigo || raw.codigoQc || ""), qcNumeroNoArquivo: raw.qcNumeroNoArquivo || "", qcDisciplina: String(raw.qcDisciplina || ""), qcAssunto: String(raw.qcAssunto || ""), qcClassificacao: String(raw.qcClassificacao || ""), correspondenciaQc: String(raw.correspondenciaQc || "") }; }
 function questionBankFromPayload(payload) { const source = Array.isArray(payload) ? payload : payload?.questionBank || payload?.questoes || payload?.questions || payload?.items || []; return Array.isArray(source) ? source.map(normalizeQuestionBankItem).filter((q) => q.enunciado.trim()) : []; }
 
 function qbSafePartialMatch(a, b) {
@@ -58554,7 +58556,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   if (globalThis.__aldusQuestionBankTrainingV223) return;
   globalThis.__aldusQuestionBankTrainingV223 = true;
 
-  const VERSION = "20260803-corrige-funcionamento-banco-questoes-v228";
+  const VERSION = "20260803-corrige-filtro-banca-fgv-v229";
   const DRAFT_KEY = "aldusQuestionBankTrainingDraftV223";
   const PREFS_KEY = "aldusQuestionBankTrainingPrefsV223";
   const MAX_DRAFT_AGE_MS = 14 * 24 * 60 * 60 * 1000;
@@ -59476,7 +59478,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   if (globalThis.__aldusQuestionBankFiltersV225) return;
   globalThis.__aldusQuestionBankFiltersV225 = true;
 
-  const VERSION = "20260803-corrige-funcionamento-banco-questoes-v228";
+  const VERSION = "20260803-corrige-filtro-banca-fgv-v229";
   const UNMAPPED_SUBJECT = "__qb_unmapped_subject_v225__";
   const FILTER_IDS = {
     scope: "qbTrainingScope",
@@ -59572,7 +59574,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     if (!raw) return "";
     if (key === "board") {
       if (normalized.includes("cebraspe") || normalized.includes("cespe")) return "CEBRASPE";
-      if (normalized.includes("fundacao getulio vargas") || normalized === "fgv") return "FGV";
+      if (normalized.includes("fundacao getulio vargas") || /(^|[^a-z0-9])fgv([^a-z0-9]|$)/.test(normalized)) return "FGV";
       return raw;
     }
     if (key === "type") {
@@ -59586,6 +59588,39 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     }
     if (key === "agency") return raw.toUpperCase().replace(/^PC\s*[-/]?\s*/i, "PC-").replace(/\s+/g, "");
     return raw;
+  }
+
+  function metadataText(value) {
+    if (Array.isArray(value)) return value.map(metadataText).find(Boolean) || "";
+    if (value && typeof value === "object") {
+      return metadataText(value.nome ?? value.name ?? value.label ?? value.sigla ?? value.value);
+    }
+    return text(value);
+  }
+
+  function detectedBoard(value) {
+    const raw = metadataText(value);
+    if (!raw) return "";
+    const normalized = normalizeFacetValue("board", raw);
+    return ["CEBRASPE", "FGV"].includes(normalized) ? normalized : "";
+  }
+
+  function questionBoard(question) {
+    const explicit = [
+      question?.banca,
+      question?.board,
+      question?.examiningBoard,
+      question?.examining_board,
+      question?.organizadora,
+      question?.metadados?.banca,
+      question?.metadados?.board,
+      question?.metadata?.banca,
+      question?.metadata?.board
+    ].map(metadataText).find(Boolean);
+    if (explicit) return normalizeFacetValue("board", explicit);
+    return [question?.prova, question?.exam, question?.fonte, question?.source, question?.arquivoFonte]
+      .map(detectedBoard)
+      .find(Boolean) || "";
   }
 
   function questionDiscipline(question) { return text(question?.disciplina || question?.discipline); }
@@ -59612,7 +59647,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   }
   function questionFacet(question, key) {
     if (key === "discipline") return questionDiscipline(question);
-    if (key === "board") return normalizeFacetValue(key, question?.banca || question?.board);
+    if (key === "board") return questionBoard(question);
     if (key === "year") return text(question?.ano || question?.year);
     if (key === "agency") return normalizeFacetValue(key, question?.orgao || question?.órgão || question?.agency || question?.instituicao);
     if (key === "role") return normalizeFacetValue(key, question?.cargo || question?.job || question?.funcao);
@@ -59903,6 +59938,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     normalizeFacetValue,
     questionSubjectValues,
     questionThemeValues,
+    questionBoard,
     disciplineMatches,
     fuzzyTextMatch,
     questionMatchesItem,
@@ -59930,7 +59966,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   if (globalThis.__aldusQuestionBankFilterOpenV226) return;
   globalThis.__aldusQuestionBankFilterOpenV226 = true;
 
-  const VERSION = "20260803-corrige-funcionamento-banco-questoes-v228";
+  const VERSION = "20260803-corrige-filtro-banca-fgv-v229";
   const FILTER_IDS = [
     "qbTrainingScope",
     "qbReviewType",

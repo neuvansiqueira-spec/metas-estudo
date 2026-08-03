@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20260803-corrige-funcionamento-banco-questoes-v228";
+const CURRENT_VERSION = "20260803-corrige-filtro-banca-fgv-v229";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
