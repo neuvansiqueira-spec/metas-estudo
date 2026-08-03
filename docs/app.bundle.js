@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260803-corrige-abertura-filtros-v226";
+  const VERSION = "20260803-corrige-banco-questoes-integral-v227";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -42712,7 +42712,7 @@ function qbMissingSyllabusWithoutQuestions() { const scoped = qbScopedBank(); re
 function qbFilteredQuestions() { const search = canonical(elements.qbFilterSearch?.value || ""); const discipline = elements.qbFilterDiscipline?.value || ""; return qbScopedBank().filter((q)=> (!discipline || (qbIsSyllabusScope() ? qbQuestionMatchesSyllabusDiscipline(q, discipline) : q.disciplina === discipline)) && (!elements.qbFilterSubject?.value || q.assunto === elements.qbFilterSubject.value) && (!elements.qbFilterTheme?.value || q.tema === elements.qbFilterTheme.value) && (!elements.qbFilterBoard?.value || q.banca === elements.qbFilterBoard.value) && (!elements.qbFilterYear?.value || String(q.ano) === elements.qbFilterYear.value) && (!search || canonical([q.enunciado,q.disciplina,q.assunto,q.tema,q.banca,q.ano,q.referencia,q.orgao,q.cargo].join(" ")).includes(search))); }
 function normalizeStoredQuestionBank() { state.questionBank = (state.questionBank || []).map((q, index) => { const normalized = normalizeQuestionBankItem(q, index); return { ...q, ...normalized, id: q.id || normalized.id }; }); }
 
-function qbErrorReason(q) { if (qbIsBlankMark(q)) return "branco"; if (qbIsDoubtMark(q)) return "duvida"; if (qbHasKey(q) && q.marcado !== q.gabarito) return "erro"; return ""; }
+function qbErrorReason(q) { const status = canonical(q?.status || q?.resultado || ""); if (status === "certo" || status === "correto" || status === "acerto") return ""; if (status === "errado" || status === "erro" || status === "incorreto") return "erro"; if (status === "branco" || status.includes("nao respond")) return "branco"; if (status === "duvida") return "duvida"; if (qbIsBlankMark(q)) return "branco"; if (qbIsDoubtMark(q)) return "duvida"; if (qbHasKey(q) && q.marcado !== q.gabarito) return "erro"; return ""; }
 function qbErrorReasonLabel(reason) { return ({ erro:"Erro", branco:"Branco", duvida:"Dúvida" }[reason] || reason || "-"); }
 function qbQuestionById(id) { return (state.questionBank || []).find((q) => q.id === id); }
 function qbNotebookEntryFromAnswer(q) { const reason = qbErrorReason(q); if (!reason) return null; return normalizarItemCadernoErros({ id:q.id, disciplina:q.disciplina, assunto:q.assunto, banca:q.banca||"", cargo:q.cargo||"", enunciado:q.enunciado, respostaMarcada:q.marcado||"", gabaritoCorreto:q.gabarito||"", justificativa:qbExplanationText(q), motivo:reason, dataRegistro:new Date().toISOString(), status:"pendente", quantidadeErros:1 }); }
@@ -46800,7 +46800,7 @@ elements.questionHistoryBody.addEventListener("click", (event) => { const edit =
         : (plan.session ? ` ${plan.counts.results} resultado(s) registrado(s) no histórico.` : " Nenhum resultado de desempenho foi identificado.");
       if (typeof elements !== "undefined" && elements.qbMessage) elements.qbMessage.textContent = `${plan.counts.created} questão(ões) nova(s), ${plan.counts.updated} atualizada(s) e ${plan.counts.unchanged} sem alteração.${performanceMessage} Banco atual: ${state.questionBank.length}.`;
     } catch (error) {
-      console.error("[Aldus V192] Falha na revisão da importpãão JSON.", error);
+      console.error("[Aldus V192] Falha na revisão da importação JSON.", error);
       if (typeof elements !== "undefined" && elements.qbMessage) elements.qbMessage.textContent = `Erro ao importar: ${error.message}`;
     } finally {
       target.value = "";
@@ -47568,8 +47568,17 @@ elements.questionHistoryBody.addEventListener("click", (event) => { const edit =
   }
 
   function normalizeStringArray(value) {
-    const source = Array.isArray(value) ? value : (text(value) ? text(value).split(/\s*;\s*/) : []);
+    const source = Array.isArray(value)
+      ? value.flat(Infinity)
+      : (value && typeof value === "object")
+        ? Object.entries(value).filter(([, enabled]) => Boolean(enabled)).map(([key]) => key)
+        : (text(value) ? text(value).split(/\s*(?:;|•|\||\n)\s*/) : []);
     return [...new Set(source.map(text).filter(Boolean))];
+  }
+
+  function booleanFlag(value) {
+    if (typeof value === "boolean") return value;
+    return ["1", "true", "sim", "yes"].includes(canonicalJson(value));
   }
 
   function hasPerformanceEvidence(raw = {}) {
@@ -47579,10 +47588,11 @@ elements.questionHistoryBody.addEventListener("click", (event) => { const edit =
 
   function resultStatus(raw = {}) {
     const result = canonicalJson(firstNonEmpty(raw.resultado, raw.status_resultado, raw.statusResultado, raw.status));
+    if (result.includes("anulad") || result.includes("cancelad")) return "anulada";
     if (result.includes("nao respond") || result.includes("em branco") || result === "branco") return "branco";
     if (result.includes("duvida") || result.includes("revisar")) return "duvida";
-    if (result.includes("errad") || result.includes("incorret")) return "errado";
-    if (result.includes("cert") || result.includes("corret") || result.includes("acert")) return "certo";
+    if (result === "erro" || result.includes("errad") || result.includes("incorret")) return "errado";
+    if (result === "acerto" || result.includes("cert") || result.includes("corret") || result.includes("acert")) return "certo";
     if (raw.acertou === true) return "certo";
     if (raw.acertou === false) return "errado";
     if (raw.nao_respondida === true || raw["não_respondida"] === true) return "branco";
@@ -47693,10 +47703,11 @@ elements.questionHistoryBody.addEventListener("click", (event) => { const edit =
       numero_qconcursos: text(raw.numero_qconcursos || qcNumber),
       numeroQconcursos: text(raw.numeroQconcursos || raw.numero_qconcursos || qcNumber),
       assuntos,
+      temas: normalizeStringArray(raw.temas || raw.tema || raw.theme),
       alternativas_eliminadas: eliminated,
       alternativasEliminadas: eliminated,
-      revisao_manual: raw.revisao_manual === true,
-      revisaoManual: raw.revisaoManual === true || raw.revisao_manual === true,
+      revisao_manual: booleanFlag(raw.revisao_manual ?? raw.revisaoManual),
+      revisaoManual: booleanFlag(raw.revisaoManual ?? raw.revisao_manual),
       origem_tipo: text(firstNonEmpty(raw.origem_tipo, raw.origemTipo)),
       origemTipo: text(firstNonEmpty(raw.origemTipo, raw.origem_tipo)),
       resposta_marcada: performance ? importedMarkedAnswer(raw) : text(raw.resposta_marcada),
@@ -47805,6 +47816,22 @@ elements.questionHistoryBody.addEventListener("click", (event) => { const edit =
     return summary;
   }
 
+  function importCreatedAt(payload = {}, performanceRows = []) {
+    const metadata = payload?.metadata || {};
+    const candidate = firstNonEmpty(
+      metadata.data_resolucao,
+      metadata.data_captura,
+      metadata.data_conversao,
+      performanceRows[0]?.raw?.data_resolucao,
+      performanceRows[0]?.raw?.data,
+      performanceRows[0]?.raw?.date
+    );
+    const raw = text(candidate);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return new Date(`${raw}T12:00:00`).toISOString();
+    const parsed = Date.parse(raw);
+    return Number.isFinite(parsed) ? new Date(parsed).toISOString() : new Date().toISOString();
+  }
+
   function buildImportPlan(payload = {}, currentBank = [], currentSessions = []) {
     const source = Array.isArray(payload) ? payload : (payload.questionBank || payload.questoes || payload.questions || payload.items || []);
     if (!Array.isArray(source)) throw new Error("O JSON não contém uma lista de questões reconhecida.");
@@ -47836,7 +47863,7 @@ elements.questionHistoryBody.addEventListener("click", (event) => { const edit =
         bank.push(storedQuestion);
         counts.created += 1;
       }
-      if (hasPerformanceEvidence(raw)) {
+      if (hasPerformanceEvidence(raw) && resultStatus(raw) !== "anulada") {
         performanceRows.push({ raw, question: storedQuestion });
         counts.results += 1;
         const status = resultStatus(raw);
@@ -47856,7 +47883,7 @@ elements.questionHistoryBody.addEventListener("click", (event) => { const edit =
       const summary = summarizeSession(items);
       session = {
         id: fingerprint,
-        createdAt: new Date().toISOString(),
+        createdAt: importCreatedAt(payload, performanceRows),
         source: "qconcursos-json",
         sourceType: "qconcursos-json",
         schema: payload.schema || SCHEMA,
@@ -47929,6 +47956,7 @@ elements.questionHistoryBody.addEventListener("click", (event) => { const edit =
     findExistingQuestionIndex,
     importFingerprint,
     summarizeSession,
+    importCreatedAt,
     buildImportPlan,
     previewMessage,
     importJsonEvent
@@ -58085,6 +58113,263 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   root.dataset.dailyCollapsiblesClosedVersion = VERSION;
 })();
 
+/* Aldus source: question-board-result-v141.js */
+(() => {
+  "use strict";
+
+  if (window.__aldusQuestionBoardResultV141) return;
+  window.__aldusQuestionBoardResultV141 = true;
+
+  const VERSION = "20260725-resultado-outras-bancas-v141";
+  const FIELD_IDS = new Set([
+    "questionBoard",
+    "questionTotal",
+    "questionCorrect",
+    "questionWrong",
+    "questionBlank"
+  ]);
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function readNumber(id) {
+    const value = Number(document.getElementById(id)?.value);
+    return Number.isFinite(value) ? Math.max(0, value) : 0;
+  }
+
+  function formatPercent(value) {
+    return Number(value || 0).toLocaleString("pt-BR", {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1
+    });
+  }
+
+  function ensureStyles() {
+    if (document.getElementById("questionBoardResultStylesV141")) return;
+    const style = document.createElement("style");
+    style.id = "questionBoardResultStylesV141";
+    style.textContent = `
+      #view-questoes .question-board-result-v141 {
+        --question-board-result: .8%;
+        display: grid;
+        gap: 10px;
+        padding: 16px 18px;
+        border: 1px solid var(--border, #dbe4f0);
+        border-radius: 18px;
+        background: var(--surface, #ffffff);
+      }
+      #view-questoes .question-board-result-v141[hidden] {
+        display: none !important;
+      }
+      #view-questoes .question-board-result-heading-v141 {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 14px;
+        min-width: 0;
+      }
+      #view-questoes .question-board-result-heading-v141 span {
+        color: var(--muted, #64748b);
+        font-size: .72rem;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+      }
+      #view-questoes .question-board-result-heading-v141 strong {
+        min-width: 0;
+        color: inherit;
+        font-size: .95rem;
+        font-weight: 900;
+        text-align: right;
+      }
+      #view-questoes .question-board-result-track-v141 {
+        position: relative;
+        height: 10px;
+        border: 1px solid rgba(15, 23, 42, .15);
+        border-radius: 999px;
+        background: linear-gradient(90deg,
+          #dc2626 0%,
+          #f97316 24%,
+          #facc15 50%,
+          #22c55e 76%,
+          #0ea5e9 100%);
+        box-shadow: inset 0 1px 2px rgba(15, 23, 42, .18);
+      }
+      #view-questoes .question-board-result-marker-v141 {
+        position: absolute;
+        top: 50%;
+        left: var(--question-board-result);
+        width: 16px;
+        height: 16px;
+        border: 2px solid #0f172a;
+        border-radius: 50%;
+        background: #ffffff;
+        box-shadow: 0 2px 7px rgba(15, 23, 42, .28);
+        transform: translate(-50%, -50%);
+        transition: left .22s ease;
+      }
+      #view-questoes .question-board-result-details-v141 {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 14px;
+        margin: 0;
+        color: var(--muted, #64748b);
+        font-size: .78rem;
+        font-weight: 700;
+        line-height: 1.35;
+      }
+      #view-questoes .question-board-result-details-v141 [data-board-result-check="warning"] {
+        color: #b45309;
+      }
+      html[data-aldus-theme="premium-stable"] #view-questoes .question-board-result-v141 {
+        border-color: rgba(104, 173, 220, .46);
+        background: rgba(7, 39, 64, .82);
+      }
+      html[data-aldus-theme="premium-stable"] #view-questoes .question-board-result-heading-v141 span,
+      html[data-aldus-theme="premium-stable"] #view-questoes .question-board-result-details-v141 {
+        color: #c9deed;
+      }
+      html[data-aldus-theme="premium-stable"] #view-questoes .question-board-result-marker-v141 {
+        border-color: #061d31;
+        background: #f7fbff;
+      }
+      html[data-aldus-theme="premium-stable"] #view-questoes .question-board-result-details-v141 [data-board-result-check="warning"] {
+        color: #facc15;
+      }
+      @media (max-width: 620px) {
+        #view-questoes .question-board-result-heading-v141 {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 5px;
+        }
+        #view-questoes .question-board-result-heading-v141 strong {
+          text-align: left;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #view-questoes .question-board-result-marker-v141 {
+          transition: none;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function ensurePanel() {
+    const calculated = document.getElementById("questionCalculated");
+    if (!calculated) return null;
+
+    let panel = document.getElementById("questionBoardResultV141");
+    if (panel) return panel;
+
+    panel = document.createElement("section");
+    panel.id = "questionBoardResultV141";
+    panel.className = "question-board-result-v141 wide";
+    panel.hidden = true;
+    panel.setAttribute("aria-live", "polite");
+    panel.dataset.questionBoardResultVersion = VERSION;
+    panel.innerHTML = `
+      <div class="question-board-result-heading-v141">
+        <span>Resultado da banca selecionada</span>
+        <strong data-board-result-summary>Preencha os números da sessão</strong>
+      </div>
+      <div class="question-board-result-track-v141" role="progressbar" aria-label="Aproveitamento em questões de outras bancas" aria-valuemin="0" aria-valuemax="100">
+        <span class="question-board-result-marker-v141" aria-hidden="true"></span>
+      </div>
+      <p class="question-board-result-details-v141">
+        <span data-board-result-breakdown></span>
+        <span data-board-result-method></span>
+        <span data-board-result-check></span>
+      </p>
+    `;
+    calculated.insertAdjacentElement("afterend", panel);
+    return panel;
+  }
+
+  let rendering = false;
+  function render() {
+    if (rendering) return;
+    rendering = true;
+    try {
+      ensureStyles();
+      const panel = ensurePanel();
+      const boardSelect = document.getElementById("questionBoard");
+      if (!panel || !boardSelect) return;
+
+      const board = String(boardSelect.value || "").trim();
+      const isCebraspe = board.toLocaleLowerCase("pt-BR") === "cebraspe";
+      panel.hidden = !board || isCebraspe;
+      if (panel.hidden) return;
+
+      const total = readNumber("questionTotal");
+      const correct = readNumber("questionCorrect");
+      const wrong = readNumber("questionWrong");
+      const blank = readNumber("questionBlank");
+      const informed = correct + wrong + blank;
+      const accuracy = total ? clamp((correct / total) * 100, 0, 100) : 0;
+      const marker = clamp(accuracy, .8, 99.2);
+      const boardLabel = board === "Outra" ? "Outra banca" : board;
+
+      panel.style.setProperty("--question-board-result", `${marker}%`);
+      const summary = panel.querySelector("[data-board-result-summary]");
+      const track = panel.querySelector(".question-board-result-track-v141");
+      const breakdown = panel.querySelector("[data-board-result-breakdown]");
+      const method = panel.querySelector("[data-board-result-method]");
+      const check = panel.querySelector("[data-board-result-check]");
+
+      if (summary) {
+        summary.textContent = total
+          ? `${boardLabel} • ${correct} de ${total} • ${formatPercent(accuracy)}%`
+          : `${boardLabel} • preencha o total de questões`;
+      }
+      if (track) {
+        track.setAttribute("aria-valuenow", accuracy.toFixed(1));
+        track.setAttribute("aria-valuetext", `${formatPercent(accuracy)}% de acertos em ${boardLabel}`);
+      }
+      if (breakdown) breakdown.textContent = `Acertos: ${correct} • Erros: ${wrong} • Brancos: ${blank}`;
+      if (method) method.textContent = "Cálculo geral: acertos ÷ total, sem penalização.";
+      if (check) {
+        const mismatch = total > 0 && informed !== total;
+        check.dataset.boardResultCheck = mismatch ? "warning" : "ok";
+        check.textContent = mismatch
+          ? `Conferência: acertos + erros + brancos = ${informed}, mas o total informado é ${total}.`
+          : "Pesos, anulações e regras específicas do edital não estão incluídos.";
+      }
+    } finally {
+      rendering = false;
+    }
+  }
+
+  let queued = false;
+  function scheduleRender() {
+    if (queued) return;
+    queued = true;
+    const schedule = window.requestAnimationFrame || ((callback) => window.setTimeout(callback, 0));
+    schedule(() => {
+      queued = false;
+      render();
+    });
+  }
+
+  document.addEventListener("input", (event) => {
+    if (FIELD_IDS.has(event.target?.id)) scheduleRender();
+  }, true);
+  document.addEventListener("change", (event) => {
+    if (FIELD_IDS.has(event.target?.id)) scheduleRender();
+  }, true);
+  window.addEventListener("hashchange", scheduleRender);
+  document.addEventListener("DOMContentLoaded", scheduleRender, { once: true });
+
+  const calculated = document.getElementById("questionCalculated");
+  if (calculated && typeof MutationObserver !== "undefined") {
+    const observer = new MutationObserver(scheduleRender);
+    observer.observe(calculated, { childList: true, subtree: true, characterData: true });
+  }
+
+  scheduleRender();
+})();
+
 /* Aldus source: question-scoring-rule-v142.js */
 (() => {
   "use strict";
@@ -58269,10 +58554,11 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   if (globalThis.__aldusQuestionBankTrainingV223) return;
   globalThis.__aldusQuestionBankTrainingV223 = true;
 
-  const VERSION = "20260803-treino-em-andamento-v223";
+  const VERSION = "20260803-corrige-banco-questoes-integral-v227";
   const DRAFT_KEY = "aldusQuestionBankTrainingDraftV223";
   const PREFS_KEY = "aldusQuestionBankTrainingPrefsV223";
   const MAX_DRAFT_AGE_MS = 14 * 24 * 60 * 60 * 1000;
+  let autoAdvanceTimer = 0;
 
   if (
     typeof qbStart !== "function"
@@ -58389,6 +58675,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   }
 
   function discardDraft() {
+    clearTimeout(autoAdvanceTimer);
     questionBankTraining = null;
     try { localStorage.removeItem(DRAFT_KEY); } catch {}
     if (elements.qbTrainingPanel) elements.qbTrainingPanel.hidden = true;
@@ -58592,9 +58879,12 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     persistDraft();
     enhancedRenderQuestion();
 
+    clearTimeout(autoAdvanceTimer);
     if (trainingAutoAdvance(questionBankTraining) && questionBankTraining.index < questionBankTraining.items.length - 1) {
-      window.setTimeout(() => {
-        if (!questionBankTraining) return;
+      const expectedQuestionId = question.id;
+      const expectedIndex = questionBankTraining.index;
+      autoAdvanceTimer = window.setTimeout(() => {
+        if (!questionBankTraining || questionBankTraining.index !== expectedIndex || questionBankTraining.items[expectedIndex]?.id !== expectedQuestionId) return;
         questionBankTraining.index += 1;
         persistDraft();
         enhancedRenderQuestion();
@@ -58604,6 +58894,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
 
   function navigateTraining(direction) {
     if (!questionBankTraining) return;
+    clearTimeout(autoAdvanceTimer);
     const next = direction === "prev" ? questionBankTraining.index - 1 : questionBankTraining.index + 1;
     questionBankTraining.index = Math.min(Math.max(0, next), questionBankTraining.items.length - 1);
     persistDraft();
@@ -58614,13 +58905,18 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     if (!questionBankTraining) return;
     const pending = unansweredCount(questionBankTraining);
     if (pending && !confirm(`Ainda há ${pending} questão(ões) sem resposta. Finalizar mesmo assim?`)) return;
-    try { localStorage.removeItem(DRAFT_KEY); } catch {}
+    clearTimeout(autoAdvanceTimer);
     originalFinish();
+    if (!questionBankTraining) {
+      try { localStorage.removeItem(DRAFT_KEY); } catch {}
+      if (typeof autoSyncAfterSave === "function") autoSyncAfterSave("question-bank-training");
+    }
     updateResumeBar();
   }
 
   function saveAndExitTraining() {
     if (!questionBankTraining) return;
+    clearTimeout(autoAdvanceTimer);
     persistDraft();
     if (elements.qbTrainingPanel) elements.qbTrainingPanel.hidden = true;
     if (elements.qbResultPanel) elements.qbResultPanel.hidden = true;
@@ -58635,6 +58931,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
       if (!confirm("Há um treino em andamento. Deseja substituí-lo por um novo treino?")) return;
     }
     const preferences = selectedPreferences();
+    clearTimeout(autoAdvanceTimer);
     originalStart(items, options);
     if (!questionBankTraining) return;
     questionBankTraining.feedbackMode = options.mode === "errorNotebook" ? "study" : preferences.feedbackMode;
@@ -59179,7 +59476,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   if (globalThis.__aldusQuestionBankFiltersV225) return;
   globalThis.__aldusQuestionBankFiltersV225 = true;
 
-  const VERSION = "20260803-corrige-filtros-treino-v225";
+  const VERSION = "20260803-corrige-banco-questoes-integral-v227";
   const UNMAPPED_SUBJECT = "__qb_unmapped_subject_v225__";
   const FILTER_IDS = {
     scope: "qbTrainingScope",
@@ -59447,12 +59744,16 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     }
     if (key === "subject") {
       const catalog = itemsForSelection(filters.discipline);
+      if (catalogItems().length && !filters.discipline) return [];
       if (!catalog.length) return unique(base.flatMap(questionSubjectValues));
       const values = unique(catalog.map(itemSubject));
       if (base.some((question) => !questionMappedToCatalog(question, filters.discipline))) values.push(UNMAPPED_SUBJECT);
       return values;
     }
-    if (key === "theme") return unique(base.flatMap(questionThemeValues));
+    if (key === "theme") {
+      if (!filters.subject) return [];
+      return unique(base.flatMap(questionThemeValues));
+    }
     if (key === "keyStatus") return ["with", "without"];
     return unique(base.map((question) => questionFacet(question, key)));
   }
@@ -59473,7 +59774,13 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     const select = control(key);
     if (!select) return;
     const current = text(select.value);
-    const emptyLabel = ({ discipline:"Todas", subject:"Todos", theme:"Todos", board:"Todas", year:"Todos", agency:"Todos", role:"Todos", type:"Todos", keyStatus:"Todos" })[key] || "Todos";
+    const waitingForDiscipline = key === "subject" && catalogItems().length > 0 && !filters.discipline;
+    const waitingForSubject = key === "theme" && !filters.subject;
+    const emptyLabel = waitingForDiscipline
+      ? "Escolha primeiro a disciplina"
+      : waitingForSubject
+        ? "Escolha primeiro o assunto"
+        : ({ discipline:"Todas", subject:"Todos", theme:"Todos", board:"Todas", year:"Todos", agency:"Todos", role:"Todos", type:"Todos", keyStatus:"Todos" })[key] || "Todos";
     select.innerHTML = `<option value="">${emptyLabel}</option>` + values.map((value) => {
       const count = countForOption(key, value, filters);
       const label = optionLabel(key, value);
@@ -59482,6 +59789,9 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     }).join("");
     const replacement = values.find((value) => canon(value) === canon(current));
     select.value = replacement || "";
+    select.disabled = waitingForDiscipline || waitingForSubject;
+    if (select.disabled) select.setAttribute?.("aria-disabled", "true");
+    else select.removeAttribute?.("aria-disabled");
   }
 
   function renderFilters() {
@@ -59612,7 +59922,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   if (globalThis.__aldusQuestionBankFilterOpenV226) return;
   globalThis.__aldusQuestionBankFilterOpenV226 = true;
 
-  const VERSION = "20260803-corrige-abertura-filtros-v226";
+  const VERSION = "20260803-corrige-banco-questoes-integral-v227";
   const FILTER_IDS = [
     "qbTrainingScope",
     "qbReviewType",
@@ -59627,133 +59937,17 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     "qbFilterKeyStatusV224"
   ];
 
-  const elementInnerHTML = Object.getOwnPropertyDescriptor(Element.prototype, "innerHTML");
-  const selectValue = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value");
   const protectedSelects = new WeakMap();
-
-  function originalHTML(select) {
-    return elementInnerHTML?.get ? elementInnerHTML.get.call(select) : "";
-  }
-
-  function setOriginalHTML(select, value) {
-    if (elementInnerHTML?.set) elementInnerHTML.set.call(select, value);
-  }
-
-  function originalValue(select) {
-    return selectValue?.get ? selectValue.get.call(select) : "";
-  }
-
-  function setOriginalValue(select, value) {
-    if (selectValue?.set) selectValue.set.call(select, value);
-  }
-
-  function hasOption(select, value) {
-    return [...(select.options || [])].some((option) => String(option.value) === String(value));
-  }
-
-  function flush(select) {
-    const state = protectedSelects.get(select);
-    if (!state || state.applying) return;
-    state.locked = false;
-    state.applying = true;
-    try {
-      const previousValue = originalValue(select);
-      if (state.pendingHTML !== null) {
-        setOriginalHTML(select, state.pendingHTML);
-        state.pendingHTML = null;
-      }
-      const desiredValue = state.pendingValue !== null ? state.pendingValue : previousValue;
-      state.pendingValue = null;
-      if (hasOption(select, desiredValue)) setOriginalValue(select, desiredValue);
-      else if (hasOption(select, "")) setOriginalValue(select, "");
-    } finally {
-      state.applying = false;
-    }
-  }
-
-  function lock(select) {
-    const state = protectedSelects.get(select);
-    if (!state) return;
-    state.locked = true;
-    clearTimeout(state.releaseTimer);
-  }
-
-  function releaseSoon(select, delay = 40) {
-    const state = protectedSelects.get(select);
-    if (!state) return;
-    clearTimeout(state.releaseTimer);
-    state.releaseTimer = setTimeout(() => flush(select), delay);
-  }
 
   function protectSelect(select) {
     if (!select || protectedSelects.has(select)) return;
-    const state = {
-      locked: false,
-      applying: false,
-      pendingHTML: null,
-      pendingValue: null,
-      releaseTimer: 0
-    };
-    protectedSelects.set(select, state);
-
-    try {
-      Object.defineProperty(select, "innerHTML", {
-        configurable: true,
-        enumerable: false,
-        get() {
-          return originalHTML(this);
-        },
-        set(next) {
-          const incoming = String(next ?? "");
-          const current = originalHTML(this);
-          if (incoming === current) return;
-          const currentState = protectedSelects.get(this);
-          if (currentState?.locked && !currentState.applying) {
-            currentState.pendingHTML = incoming;
-            return;
-          }
-          setOriginalHTML(this, incoming);
-        }
-      });
-
-      Object.defineProperty(select, "value", {
-        configurable: true,
-        enumerable: true,
-        get() {
-          return originalValue(this);
-        },
-        set(next) {
-          const incoming = String(next ?? "");
-          const current = originalValue(this);
-          if (incoming === current) return;
-          const currentState = protectedSelects.get(this);
-          if (currentState?.locked && !currentState.applying) {
-            currentState.pendingValue = incoming;
-            return;
-          }
-          setOriginalValue(this, incoming);
-        }
-      });
-    } catch {
-      // Navegadores que não permitem sombrear acessores continuam com o reforço visual abaixo.
-    }
-
-    select.disabled = false;
-    select.removeAttribute?.("aria-disabled");
+    protectedSelects.set(select, true);
+    if (!select.disabled) select.removeAttribute?.("aria-disabled");
     select.style.pointerEvents = "auto";
     select.style.position = select.style.position || "relative";
     select.style.zIndex = "3";
     select.dataset.qbFilterOpenV226 = "true";
 
-    select.addEventListener("pointerdown", () => lock(select), true);
-    select.addEventListener("mousedown", () => lock(select), true);
-    select.addEventListener("touchstart", () => lock(select), { capture: true, passive: true });
-    select.addEventListener("focus", () => lock(select), true);
-    select.addEventListener("change", () => releaseSoon(select, 0), true);
-    select.addEventListener("blur", () => releaseSoon(select, 0), true);
-    select.addEventListener("keydown", (event) => {
-      if (["Escape", "Enter", "Tab"].includes(event.key)) releaseSoon(select, 0);
-    }, true);
   }
 
   function ensureFiltersAreInteractive() {
@@ -59787,12 +59981,9 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   function initialize() {
     installStyles();
     ensureFiltersAreInteractive();
-    const observer = new MutationObserver(() => ensureFiltersAreInteractive());
-    observer.observe(document.body, { childList: true, subtree: true });
-    globalThis.__aldusQuestionBankFilterOpenV226Observer = observer;
   }
 
-  const api = Object.freeze({ VERSION, protectSelect, flush, ensureFiltersAreInteractive });
+  const api = Object.freeze({ VERSION, protectSelect, ensureFiltersAreInteractive });
   Object.defineProperty(globalThis, "__aldusQuestionBankFilterOpenV226Api", {
     value: api,
     configurable: true

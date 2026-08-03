@@ -5,13 +5,15 @@ import fs from "node:fs";
 const reader = fs.readFileSync(new URL("../qconcursos-capture-segmented-v188.js", import.meta.url), "utf8");
 const bank = fs.readFileSync(new URL("../qconcursos-capture-bank-v188.js", import.meta.url), "utf8");
 const reprocess = fs.readFileSync(new URL("../qconcursos-capture-reprocess-v188.js", import.meta.url), "utf8");
-const worker = fs.readFileSync(new URL("../service-worker-v169.js", import.meta.url), "utf8");
+const bundle = fs.readFileSync(new URL("../app.bundle.js", import.meta.url), "utf8");
 
-test("worker carrega parser, cadastro e releitura na ordem correta", () => {
-  assert.match(worker, /qconcursos-capture-segmented-v188\.js/);
-  assert.match(worker, /qconcursos-capture-bank-v188\.js/);
-  assert.match(worker, /qconcursos-capture-reprocess-v188\.js/);
-  assert.ok(worker.indexOf("captureBankSource") < worker.indexOf("captureReprocessSource}`"));
+test("bundle carrega parser, cadastro e releitura na ordem correta", () => {
+  const parserPosition = bundle.indexOf("segmentacao-cartoes-qconcursos-v188");
+  const bankPosition = bundle.indexOf("/* Aldus runtime source: qconcursos-capture-bank-v188.js */");
+  const reprocessPosition = bundle.indexOf("/* Aldus runtime source: qconcursos-capture-reprocess-v188.js */");
+  assert.ok(parserPosition >= 0);
+  assert.ok(bankPosition > parserPosition);
+  assert.ok(reprocessPosition > bankPosition);
 });
 
 test("módulos expõem versões V188 coerentes", () => {

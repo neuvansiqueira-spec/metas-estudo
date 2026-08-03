@@ -148,6 +148,7 @@ const jsSources = [
   "contest-countdown-v151.js",
   "performance-practical-v143.js",
   "daily-collapsibles-closed-v140.js",
+  "question-board-result-v141.js",
   "question-scoring-rule-v142.js",
   "question-bank-training-v223.js",
   "question-bank-filters-v224.js",
@@ -185,8 +186,7 @@ function appendRuntimeModule(source, filename, marker = `/* Aldus runtime source
 
 function consolidateApplication(baseSource) {
   const qbEventsMarker = 'elements.qbPdfFile?.addEventListener("change", (event) => qbReadPdfImportFile(event.target.files?.[0]));';
-  const captureReader = readRuntimeSource("qconcursos-capture-segmented-v188.js")
-    .replace(/(\n\s*)alternativas,(\n\s*comentarioQc:)/, "$1alternativas: alternatives,$2");
+  const captureReader = readRuntimeSource("qconcursos-capture-segmented-v188.js");
   if (!captureReader.includes("alternativas: alternatives")) {
     throw new Error("A correção do campo alternativas não foi incorporada.");
   }
@@ -297,6 +297,7 @@ function consolidateApplication(baseSource) {
     "/* Aldus runtime source: planning-shift-disciplines-v200.js */",
     "/* Aldus runtime source: question-history-charts-v215.js */",
     "/* Aldus runtime source: question-history-tone-v216.js */",
+    "/* Aldus source: question-board-result-v141.js */",
     "/* Aldus source: question-bank-training-v223.js */",
     "/* Aldus source: question-bank-filters-v224.js */",
     "/* Aldus source: question-bank-filters-v225.js */",
@@ -391,8 +392,9 @@ for (const filename of [
   "factory-polish-v164.js", "aldus-desktop-refinement-v178.css",
   "aldus-question-register-v180.css", "qconcursos-pdf-import-v181.js",
   "question-bank-pdf-import-v181.css", "qconcursos-capture-import-v182.js",
+  "qconcursos-capture-segmented-v188.js", "qconcursos-capture-bank-v188.js", "qconcursos-capture-reprocess-v188.js",
   "question-bank-capture-import-v182.css", "question-history-pie.js", "question-history-charts-v215.js",
-  "question-history-tone-v216.js", "question-bank-training-v223.js", "question-bank-filters-v224.js", "question-bank-filters-v225.js", "question-bank-filter-open-v226.js"
+  "question-history-tone-v216.js", "question-bank-json-review-v192.js", "question-bank-json-import-v191.js", "question-bank-training-v223.js", "question-bank-filters-v224.js", "question-bank-filters-v225.js", "question-bank-filter-open-v226.js"
 ]) {
   fs.copyFileSync(path.join(root, filename), path.join(root, "docs", filename));
 }

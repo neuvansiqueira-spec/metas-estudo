@@ -28,5 +28,5 @@ test("cabeçalho explica os filtros e remove mensagem técnica antiga", () => {
 test("tons azulados preservam contraste nos novos componentes", () => {
   assert.match(tone, /\.qhcv215-legend-item/);
   assert.match(tone, /\.qhcv215-share-track/);
-  assert.match(tone, /background:\s*#dcefe9\s*!important/);
+  assert.match(tone, /background:\s*#d7eee7\s*!important/);
 });

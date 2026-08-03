@@ -1,0 +1,94 @@
+name: Build Question Bank v227
+
+on:
+  push:
+    branches:
+      - agent/corrige-banco-questoes-integral
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: question-bank-v227-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-test-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout correction branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: agent/corrige-banco-questoes-integral
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Apply source correction
+        run: node tools/apply-question-bank-v227.mjs
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build release
+        run: npm run build
+
+      - name: Test complete question domain
+        run: >-
+          node --test
+          tests/qconcursos-capture-reprocess-v188.test.mjs
+          tests/qconcursos-capture-segmented-v188.test.mjs
+          tests/question-accuracy-spectrum.test.js
+          tests/question-bank-filter-open-v226.test.js
+          tests/question-bank-filters-v224.test.js
+          tests/question-bank-filters-v225.test.js
+          tests/question-bank-json-completion-v196.test.mjs
+          tests/question-bank-json-contrast-v193.test.mjs
+          tests/question-bank-json-import-v191.test.mjs
+          tests/question-bank-json-priority-v195.test.mjs
+          tests/question-bank-json-review-v192.test.mjs
+          tests/question-bank-training-v223.test.js
+          tests/question-history-charts-v221.test.js
+          tests/question-history-contrast-v222.test.js
+          tests/question-history-distribution-v220.test.mjs
+          tests/question-history-layout-v223.test.js
+          tests/question-history-report-v198.test.mjs
+          tests/question-history-visual-v199.test.mjs
+          tests/question-performance-unified.test.js
+          tests/question-registration-route.test.js
+          tests/v100-question-notebook.test.js
+          tests/v141-question-board-result.test.js
+          tests/v142-question-scoring-rule.test.js
+          tests/v180-question-register-visual.test.js
+          tests/v181-qconcursos-pdf-import.test.js
+          tests/v182-qconcursos-capture-import.test.js
+          tests/v65-question-history-3d-chart.test.js
+
+      - name: Validate generated release
+        run: |
+          node --check app-v227.js
+          node --check service-worker-v227.js
+          grep -q '20260803-corrige-banco-questoes-integral-v227' docs/index.html
+          cmp -s app.bundle.js docs/app.bundle.js
+          cmp -s qconcursos-capture-segmented-v188.js docs/qconcursos-capture-segmented-v188.js
+
+      - name: Commit generated release
+        if: github.event_name == 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração adicional para publicar."
+            exit 0
+          fi
+          git commit -m "build: publica correção integral do banco de questões v227"
+          git push origin HEAD:agent/corrige-banco-questoes-integral

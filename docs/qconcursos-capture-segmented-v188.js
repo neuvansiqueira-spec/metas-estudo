@@ -238,7 +238,7 @@
       script.crossOrigin = "anonymous";
       script.addEventListener("load", () => resolve(globalThis.Tesseract));
       script.addEventListener("error", () => reject(new Error("Não foi possível carregar o leitor de texto.")));
-      document.head.appendChild(script);
+      document.head.append(script);
     });
     return globalThis.__ALDUS_TESSERACT_LOADING__;
   }
@@ -475,7 +475,7 @@
       referencia: reference,
       qcCodigo: reference,
       enunciado,
-      alternativas,
+      alternativas: alternatives,
       comentarioQc: commentary.comment,
       justificativa: commentary.comment,
       fundamento: commentary.comment,

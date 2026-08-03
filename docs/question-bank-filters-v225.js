@@ -3,7 +3,7 @@
   if (globalThis.__aldusQuestionBankFiltersV225) return;
   globalThis.__aldusQuestionBankFiltersV225 = true;
 
-  const VERSION = "20260803-corrige-filtros-treino-v225";
+  const VERSION = "20260803-corrige-banco-questoes-integral-v227";
   const UNMAPPED_SUBJECT = "__qb_unmapped_subject_v225__";
   const FILTER_IDS = {
     scope: "qbTrainingScope",
@@ -271,12 +271,16 @@
     }
     if (key === "subject") {
       const catalog = itemsForSelection(filters.discipline);
+      if (catalogItems().length && !filters.discipline) return [];
       if (!catalog.length) return unique(base.flatMap(questionSubjectValues));
       const values = unique(catalog.map(itemSubject));
       if (base.some((question) => !questionMappedToCatalog(question, filters.discipline))) values.push(UNMAPPED_SUBJECT);
       return values;
     }
-    if (key === "theme") return unique(base.flatMap(questionThemeValues));
+    if (key === "theme") {
+      if (!filters.subject) return [];
+      return unique(base.flatMap(questionThemeValues));
+    }
     if (key === "keyStatus") return ["with", "without"];
     return unique(base.map((question) => questionFacet(question, key)));
   }
@@ -297,7 +301,13 @@
     const select = control(key);
     if (!select) return;
     const current = text(select.value);
-    const emptyLabel = ({ discipline:"Todas", subject:"Todos", theme:"Todos", board:"Todas", year:"Todos", agency:"Todos", role:"Todos", type:"Todos", keyStatus:"Todos" })[key] || "Todos";
+    const waitingForDiscipline = key === "subject" && catalogItems().length > 0 && !filters.discipline;
+    const waitingForSubject = key === "theme" && !filters.subject;
+    const emptyLabel = waitingForDiscipline
+      ? "Escolha primeiro a disciplina"
+      : waitingForSubject
+        ? "Escolha primeiro o assunto"
+        : ({ discipline:"Todas", subject:"Todos", theme:"Todos", board:"Todas", year:"Todos", agency:"Todos", role:"Todos", type:"Todos", keyStatus:"Todos" })[key] || "Todos";
     select.innerHTML = `<option value="">${emptyLabel}</option>` + values.map((value) => {
       const count = countForOption(key, value, filters);
       const label = optionLabel(key, value);
@@ -306,6 +316,9 @@
     }).join("");
     const replacement = values.find((value) => canon(value) === canon(current));
     select.value = replacement || "";
+    select.disabled = waitingForDiscipline || waitingForSubject;
+    if (select.disabled) select.setAttribute?.("aria-disabled", "true");
+    else select.removeAttribute?.("aria-disabled");
   }
 
   function renderFilters() {

@@ -75,10 +75,37 @@ test("arquivo de banco com resposta/gabarito, mas sem resultado, não cria hist�
   assert.equal(plan.bank[0].gabarito, "E");
 });
 
-const worker = fs.readFileSync(new URL("../service-worker-v169.js", import.meta.url), "utf8");
-test("worker carrega e injeta o adaptador JSON antes dos eventos do banco", () => {
-  assert.match(worker, /question-bank-json-import-v191\.js/);
-  assert.match(worker, /qbJsonImportSource/);
-  assert.match(worker, /importação JSON completa do QConcursos/);
-  assert.match(worker, /injectBeforeMarker\(\s*patchedSource,\s*qbEventsMarker,[\s\S]*question-bank-json-import-v191\.js/);
+test("normaliza variantes reais, preserva temas e usa a data da captura", () => {
+  const variant = {
+    schema: "metas-estudo-question-bank-v1",
+    metadata: { data_captura: "2026-08-03" },
+    questionBank: [{
+      id: "Q9", disciplina: "Administrativo", assunto: "Controle; Recursos", temas: "Autotutela • Revisão",
+      enunciado: "Item", resposta_marcada: "E", gabarito: "C", resultado: "Erro", revisao_manual: "sim"
+    }]
+  };
+  const plan = api.buildImportPlan(variant, [], []);
+  assert.equal(plan.counts.wrong, 1);
+  assert.deepEqual([...plan.bank[0].assuntos], ["Controle", "Recursos"]);
+  assert.deepEqual([...plan.bank[0].temas], ["Autotutela", "Revisão"]);
+  assert.equal(plan.bank[0].revisao_manual, true);
+  assert.equal(plan.session.createdAt.slice(0, 10), "2026-08-03");
+});
+
+test("questão anulada não contamina o histórico de desempenho", () => {
+  const annulled = { questionBank: [{ id:"QA", disciplina:"Penal", assunto:"Lei", enunciado:"Item", resultado:"Anulada", gabarito:"C" }] };
+  const plan = api.buildImportPlan(annulled, [], []);
+  assert.equal(plan.counts.read, 1);
+  assert.equal(plan.counts.results, 0);
+  assert.equal(plan.session, null);
+});
+
+const buildSource = fs.readFileSync(new URL("../build-bundles.mjs", import.meta.url), "utf8");
+test("build atual injeta o adaptador JSON antes dos eventos do banco", () => {
+  const importerPosition = buildSource.indexOf('question-bank-json-import-v191.js');
+  const injectionPosition = buildSource.indexOf('for (const { marker, content } of orderedBeforeQuestionEvents)');
+  assert.ok(importerPosition >= 0, "importador JSON não registrado no build");
+  assert.ok(injectionPosition > importerPosition, "importador JSON precisa ser preparado antes da injeção");
+  assert.match(buildSource, /const orderedBeforeQuestionEvents = \[/);
+  assert.match(buildSource, /source = injectBeforeMarker\(source, qbEventsMarker/);
 });

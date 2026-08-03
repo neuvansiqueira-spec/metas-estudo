@@ -181,7 +181,7 @@
         : (plan.session ? ` ${plan.counts.results} resultado(s) registrado(s) no histórico.` : " Nenhum resultado de desempenho foi identificado.");
       if (typeof elements !== "undefined" && elements.qbMessage) elements.qbMessage.textContent = `${plan.counts.created} questão(ões) nova(s), ${plan.counts.updated} atualizada(s) e ${plan.counts.unchanged} sem alteração.${performanceMessage} Banco atual: ${state.questionBank.length}.`;
     } catch (error) {
-      console.error("[Aldus V192] Falha na revisão da importpãão JSON.", error);
+      console.error("[Aldus V192] Falha na revisão da importação JSON.", error);
       if (typeof elements !== "undefined" && elements.qbMessage) elements.qbMessage.textContent = `Erro ao importar: ${error.message}`;
     } finally {
       target.value = "";

@@ -23,5 +23,6 @@ test("percentuais, rótulos e contadores não herdam texto branco", () => {
 test("fonte estrutural e publicação carregam o hotfix de contraste", () => {
   assert.match(tone, /20260802-contraste-distribuicao-v222/);
   assert.match(worker, /question-history-contrast-v222\.css/);
-  assert.match(worker, /ensureContrastStylesheet/);
+  assert.match(worker, /CONTRAST_STYLESHEET/);
+  assert.match(worker, /ensurePageStylesheets/);
 });

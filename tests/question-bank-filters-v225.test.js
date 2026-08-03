@@ -76,6 +76,15 @@ test("cascata depende somente dos filtros anteriores", () => {
   assert.ok(api.optionValues("subject", filters).includes("Fato Típico"));
 });
 
+test("assuntos do edital aguardam a escolha da disciplina", () => {
+  const { api } = runtime();
+  const filters = { discipline:"", subject:"", theme:"", board:"", year:"", agency:"", role:"", type:"", keyStatus:"" };
+  assert.deepEqual([...api.optionValues("subject", filters)], []);
+  filters.discipline = "DIREITO PENAL";
+  assert.ok(api.optionValues("subject", filters).includes("Fato Típico"));
+  assert.deepEqual([...api.optionValues("theme", filters)], []);
+});
+
 test("questões sem vínculo direto continuam disponíveis para diagnóstico", () => {
   const { api } = runtime();
   const filters = { discipline:"DIREITO PENAL", subject:"", theme:"", board:"", year:"", agency:"", role:"", type:"", keyStatus:"" };
