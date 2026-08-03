@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260803-corrige-prompt-jurisprudencia-v231";
+  const VERSION = "20260803-pastas-destino-temas-exatos-v232";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

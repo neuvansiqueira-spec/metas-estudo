@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260803-corrige-prompt-jurisprudencia-v231";
+  const VERSION = "20260803-pastas-destino-temas-exatos-v232";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -50027,15 +50027,15 @@ document.addEventListener("keydown", (event) => {
   window.addEventListener("hashchange", () => { if (location.hash === "#fabrica-resumos") applyFactoryDestinationFolders(); });
 })();
 
-/* Aldus source: factory-destination-recursive-v230.js */
-/* Vinculação recursiva e exata das pastas de destino da Fábrica de Resumos — v230. */
+/* Aldus source: factory-destination-recursive-v232.js */
+/* Vinculação recursiva e exata das pastas de destino da Fábrica de Resumos — v232. */
 (() => {
   "use strict";
 
-  const VERSION = "20260803-pastas-destino-recursivas-v230";
+  const VERSION = "20260803-pastas-destino-temas-exatos-v232";
   const ROOT_FOLDER_ID = "1fBp2Ibx4_acuP4fvIK26SKkVtLJmEcOJ";
   const MANAGED_VERSION_FIELD = "factoryDestinationFolderCatalogVersion";
-  const CACHE_KEY = "aldusFactoryDestinationTreeV230";
+  const CACHE_KEY = "aldusFactoryDestinationTreeV232";
   const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
   const MAX_FOLDER_COUNT = 10000;
   const STOP_WORDS = new Set([
@@ -50331,7 +50331,8 @@ document.addEventListener("keydown", (event) => {
     if (!item || typeof item !== "object") return { changed: false, status: "invalid" };
     const existing = existingDestination(item);
     const managed = isManagedDestination(item);
-    if (existing && !managed && !options.overwriteManual) return { changed: false, status: "manual-preserved", url: existing };
+    const preserveExisting = Boolean(existing && !managed && options.preserveExisting === true);
+    if (preserveExisting) return { changed: false, status: "manual-preserved", url: existing };
 
     const disciplineMatch = resolveDiscipline(item, tree);
     const topicMatch = disciplineMatch ? resolveTopic(item, tree, disciplineMatch) : null;
@@ -50359,6 +50360,11 @@ document.addEventListener("keydown", (event) => {
       && Number(item.factoryDestinationFolderMatchScore || 0) === matchScore;
     if (alreadyCurrent) return { changed: false, status: "topic", url: destinationUrl, title: destination.name, score: matchScore };
 
+    if (existing && existing !== destinationUrl) {
+      item.factoryDestinationFolderPreviousUrl = existing;
+      item.factoryDestinationFolderReplacedAt = new Date().toISOString();
+      item.factoryDestinationFolderReplacementReason = "tema-especifico-recursivo";
+    }
     item.factoryDestinationFolder = destinationUrl;
     item[MANAGED_VERSION_FIELD] = VERSION;
     item.factoryDestinationFolderCatalogKey = catalogKey;
@@ -50373,7 +50379,7 @@ document.addEventListener("keydown", (event) => {
 
   function saveAndRender(report) {
     if (!report.changed) return;
-    try { if (typeof saveData === "function") saveData(); } catch (error) { console.warn("[Fábrica v230] Falha ao salvar vínculos de destino.", error); }
+    try { if (typeof saveData === "function") saveData(); } catch (error) { console.warn("[Fábrica v232] Falha ao salvar vínculos de destino.", error); }
     try {
       if (typeof renderFactory === "function" && (typeof location === "undefined" || location.hash === "#fabrica-resumos")) renderFactory();
       else if (typeof render === "function") render();
@@ -50410,8 +50416,8 @@ document.addEventListener("keydown", (event) => {
     targetState.factoryAgenda = agenda;
     targetState.factoryItems = agenda;
     targetState.migrations ||= {};
-    targetState.migrations.factoryDestinationFoldersV230 = report;
-    globalThis.__factoryDestinationFoldersV230Report = report;
+    targetState.migrations.factoryDestinationFoldersV232 = report;
+    globalThis.__factoryDestinationFoldersV232Report = report;
     saveAndRender(report);
     return { applied: true, ...report };
   }
@@ -50430,7 +50436,7 @@ document.addEventListener("keydown", (event) => {
       targetState.factoryAgenda = agenda;
       targetState.factoryItems = agenda;
       targetState.migrations ||= {};
-      targetState.migrations.factoryDestinationFallbackCleanupV230 = { version: VERSION, changed, appliedAt: new Date().toISOString() };
+      targetState.migrations.factoryDestinationFallbackCleanupV232 = { version: VERSION, changed, appliedAt: new Date().toISOString() };
       saveAndRender({ changed });
     }
     return { changed };
@@ -50440,7 +50446,7 @@ document.addEventListener("keydown", (event) => {
     try {
       localStorage.setItem(CACHE_KEY, JSON.stringify({ cachedAt: Date.now(), tree }));
     } catch (error) {
-      console.warn("[Fábrica v230] Não foi possível armazenar o catálogo recursivo em cache.", error);
+      console.warn("[Fábrica v232] Não foi possível armazenar o catálogo recursivo em cache.", error);
     }
   }
 
@@ -50502,10 +50508,10 @@ document.addEventListener("keydown", (event) => {
       } catch (error) {
         const cached = loadCachedTree({ allowExpired: true });
         if (cached) {
-          console.warn("[Fábrica v230] Leitura atual do Drive falhou; usando o último catálogo válido.", error);
+          console.warn("[Fábrica v232] Leitura atual do Drive falhou; usando o último catálogo válido.", error);
           return applyTree(cached, options);
         }
-        console.warn("[Fábrica v230] Autorize novamente o Google Drive para localizar as subpastas específicas dos temas.", error);
+        console.warn("[Fábrica v232] Autorize novamente o Google Drive para localizar as subpastas específicas dos temas.", error);
         return { applied: false, reason: "drive-read-failed", error: String(error?.message || error), changed: 0 };
       }
     })();
@@ -50525,7 +50531,7 @@ document.addEventListener("keydown", (event) => {
 
   function wrapEditalSync() {
     try {
-      if (typeof syncFactoryWithActiveEdital !== "function" || syncFactoryWithActiveEdital.__destinationFoldersV230Wrapped) return;
+      if (typeof syncFactoryWithActiveEdital !== "function" || syncFactoryWithActiveEdital.__destinationFoldersV232Wrapped) return;
       const original = syncFactoryWithActiveEdital;
       const wrapped = function (...args) {
         const result = original.apply(this, args);
@@ -50535,38 +50541,38 @@ document.addEventListener("keydown", (event) => {
         });
         return result;
       };
-      Object.defineProperty(wrapped, "__destinationFoldersV230Wrapped", { value: true });
+      Object.defineProperty(wrapped, "__destinationFoldersV232Wrapped", { value: true });
       syncFactoryWithActiveEdital = wrapped;
     } catch (error) {
-      console.warn("[Fábrica v230] A integração com o edital será aplicada pelas tentativas programadas.", error);
+      console.warn("[Fábrica v232] A integração com o edital será aplicada pelas tentativas programadas.", error);
     }
   }
 
   function wrapPostAuthorizationRefresh() {
     try {
-      if (typeof checkCloudForUpdatesAfterAuth !== "function" || checkCloudForUpdatesAfterAuth.__destinationFoldersV230Wrapped) return;
+      if (typeof checkCloudForUpdatesAfterAuth !== "function" || checkCloudForUpdatesAfterAuth.__destinationFoldersV232Wrapped) return;
       const original = checkCloudForUpdatesAfterAuth;
       const wrapped = async function (...args) {
         const result = await original.apply(this, args);
         await refreshFromDrive({ force: true });
         return result;
       };
-      Object.defineProperty(wrapped, "__destinationFoldersV230Wrapped", { value: true });
+      Object.defineProperty(wrapped, "__destinationFoldersV232Wrapped", { value: true });
       checkCloudForUpdatesAfterAuth = wrapped;
     } catch (error) {
-      console.warn("[Fábrica v230] A atualização das pastas ocorrerá ao abrir a Fábrica.", error);
+      console.warn("[Fábrica v232] A atualização das pastas ocorrerá ao abrir a Fábrica.", error);
     }
   }
 
   Object.defineProperties(globalThis, {
-    __FACTORY_DESTINATION_ROOT_V230__: { value: ROOT_FOLDER_ID, configurable: true },
-    __buildFactoryDestinationTreeV230: { value: buildDestinationTree, configurable: true },
-    __resolveFactoryDestinationDisciplineV230: { value: resolveDiscipline, configurable: true },
-    __resolveFactoryDestinationTopicV230: { value: resolveTopic, configurable: true },
-    __applyFactoryDestinationToItemV230: { value: applyToItem, configurable: true },
-    __applyFactoryDestinationTreeV230: { value: applyTree, configurable: true },
-    __refreshFactoryDestinationFoldersV230: { value: refreshFromDrive, configurable: true },
-    __removeFactoryDisciplineFallbacksV230: { value: removeLegacyDisciplineFallbacks, configurable: true }
+    __FACTORY_DESTINATION_ROOT_V232__: { value: ROOT_FOLDER_ID, configurable: true },
+    __buildFactoryDestinationTreeV232: { value: buildDestinationTree, configurable: true },
+    __resolveFactoryDestinationDisciplineV232: { value: resolveDiscipline, configurable: true },
+    __resolveFactoryDestinationTopicV232: { value: resolveTopic, configurable: true },
+    __applyFactoryDestinationToItemV232: { value: applyToItem, configurable: true },
+    __applyFactoryDestinationTreeV232: { value: applyTree, configurable: true },
+    __refreshFactoryDestinationFoldersV232: { value: refreshFromDrive, configurable: true },
+    __removeFactoryDisciplineFallbacksV232: { value: removeLegacyDisciplineFallbacks, configurable: true }
   });
 
   wrapEditalSync();

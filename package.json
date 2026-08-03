@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260803-corrige-prompt-jurisprudencia-v231",
+  "version": "20260803-pastas-destino-temas-exatos-v232",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
