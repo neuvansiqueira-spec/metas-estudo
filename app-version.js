@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260803-corrige-filtro-banca-fgv-v229";
+  const VERSION = "20260803-pastas-destino-recursivas-v230";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

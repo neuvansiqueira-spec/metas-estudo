@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260803-corrige-filtro-banca-fgv-v229",
+  "version": "20260803-pastas-destino-recursivas-v230",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
