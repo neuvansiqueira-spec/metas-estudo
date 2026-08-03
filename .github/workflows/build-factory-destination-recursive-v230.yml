@@ -1,0 +1,68 @@
+name: Build Factory Destination Recursive v230
+
+on:
+  push:
+    branches:
+      - codex/factory-destination-recursive-v230
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: factory-destination-recursive-v230-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: codex/factory-destination-recursive-v230
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Prepare v230 sources
+        run: node tools/apply-factory-destination-recursive-v230.mjs
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run focused tests
+        run: node --test tests/factory-destination-recursive-v230.test.js
+
+      - name: Build bundles
+        run: npm run build
+
+      - name: Validate generated release
+        run: |
+          node --check factory-destination-recursive-v230.js
+          node --check app-v230.js
+          grep -q '__refreshFactoryDestinationFoldersV230' app-v230.js
+          grep -q 'drive.metadata.readonly' app-v230.js
+          grep -q '20260803-pastas-destino-recursivas-v230' index.html
+          grep -q 'app-v230.js' docs/index.html
+          ! grep -q 'const destination = topicMatch?.folder || disciplineMatch.entry.folder' app-v230.js
+
+      - name: Commit generated v230 release
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração adicional para publicar."
+            exit 0
+          fi
+          git commit -m "build: publish recursive factory destinations v230"
+          git push origin HEAD:codex/factory-destination-recursive-v230
