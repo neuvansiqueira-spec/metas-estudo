@@ -175,35 +175,39 @@
     const topicMatch = resolveTopic(item, disciplineMatch.entry);
     const destination = topicMatch?.folder || disciplineMatch.entry.folder;
     const matchType = topicMatch ? "topic" : "discipline-fallback";
-    const previousSnapshot = JSON.stringify([
-      item.factoryDestinationFolder,
-      item[MANAGED_VERSION_FIELD],
-      item.factoryDestinationFolderCatalogKey,
-      item.factoryDestinationFolderMatchType,
-      item.factoryDestinationFolderMatchTitle
-    ]);
+    const matchScore = Math.round(topicMatch?.score || disciplineMatch.score || 0);
+
+    const alreadyCurrent = existing === destination.url
+      && item[MANAGED_VERSION_FIELD] === MIGRATION_VERSION
+      && item.factoryDestinationFolderCatalogKey === disciplineMatch.entry.key
+      && item.factoryDestinationFolderMatchType === matchType
+      && item.factoryDestinationFolderMatchTitle === destination.title
+      && Number(item.factoryDestinationFolderMatchScore || 0) === matchScore;
+
+    if (alreadyCurrent) {
+      return {
+        changed: false,
+        status: matchType,
+        url: destination.url,
+        title: destination.title,
+        score: matchScore
+      };
+    }
 
     item.factoryDestinationFolder = destination.url;
     item[MANAGED_VERSION_FIELD] = MIGRATION_VERSION;
     item.factoryDestinationFolderCatalogKey = disciplineMatch.entry.key;
     item.factoryDestinationFolderMatchType = matchType;
     item.factoryDestinationFolderMatchTitle = destination.title;
-    item.factoryDestinationFolderMatchScore = Math.round(topicMatch?.score || disciplineMatch.score || 0);
+    item.factoryDestinationFolderMatchScore = matchScore;
     item.factoryDestinationFolderMatchedAt ||= new Date().toISOString();
 
-    const nextSnapshot = JSON.stringify([
-      item.factoryDestinationFolder,
-      item[MANAGED_VERSION_FIELD],
-      item.factoryDestinationFolderCatalogKey,
-      item.factoryDestinationFolderMatchType,
-      item.factoryDestinationFolderMatchTitle
-    ]);
     return {
-      changed: previousSnapshot !== nextSnapshot,
+      changed: true,
       status: matchType,
       url: destination.url,
       title: destination.title,
-      score: item.factoryDestinationFolderMatchScore
+      score: matchScore
     };
   }
 
