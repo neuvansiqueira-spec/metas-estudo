@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260802-graficos-premium-historico-v221";
+  const VERSION = "20260803-pastas-destino-fabrica-v222";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -49347,6 +49347,651 @@ document.addEventListener("keydown", (event) => {
 
 // Compatibilidade de fila: data-factory-detail="${item.id}" ${factoryOpenDetailId === item.id ? "open" : ""}
 
+/* Aldus source: factory-destination-catalog-v222.js */
+/* Catálogo de pastas de destino da Fábrica de Resumos — Google Drive, versão v222. */
+(() => {
+  "use strict";
+
+  const ROOT_FOLDER = "https://drive.google.com/drive/folders/1fBp2Ibx4_acuP4fvIK26SKkVtLJmEcOJ";
+  const folder = (id, title) => Object.freeze({ id, title, url: `https://drive.google.com/drive/folders/${id}` });
+  const discipline = (key, id, title, aliases, topics) => Object.freeze({
+    key,
+    folder: folder(id, title),
+    aliases: Object.freeze(aliases),
+    topics: Object.freeze(topics.map(([topicId, topicTitle]) => folder(topicId, topicTitle)))
+  });
+
+  const catalog = [
+    discipline("direito-penal", "1Y9vWWHJGWgMkXPpVpXDFscnRbUoI2v0O", "01_DIREITO_PENAL", ["DIREITO PENAL"], [
+      ["1hT-lnLId9qGb-zxK7IXxSzEdzoWiwPqV", "9_DISPOSICOES_CONSTITUCIONAIS_APLICAVEIS_AO_DIREITO_PENAL"],
+      ["1y9IB7pE6XKRFRvvDgY4DiG01eC94_9tc", "10_ENTENDIMENTO_DOS_TRIBUNAIS_SUPERIORES_ACERCA_DOS_INSTITUTOS_DE_DIREITO_PENAL"],
+      ["1GQOUu5CCREuUVxk_QmdDEbOCDffQFzCu", "4_ESCOLAS_PENAIS"],
+      ["1Wug-M2GgEWm7ppCB-g6QOXQzBIiN5PpL", "3_EVOLUCAO_EPISTEMOLOGICA_DO_DIREITO_PENAL"],
+      ["1KHdyc7ip6ZamiVupsq0mcq975CBnvmIG", "2_DIREITO_PENAL_E_POLITICA_CRIMINAL"],
+      ["1GL5R8XSKuDSqrFYpciakq0SQCxeQN3at", "1_PRINCIPIOS_E_GARANTIAS_PENAIS_FUNDAMENTAIS"],
+      ["1cEZsxgSSXZY-IgqU9bZYl08l6b88sOG8", "1_2_APLICACAO_DA_LEI_PENAL"],
+      ["1RUYPtqgnn4NuWbptfHAI0wsBxpGL9oKr", "1_1_PRINCIPIOS_FUNDAMENTAIS_DO_DIREITO_PENAL"],
+      ["1NdrgPLWFc2PX9nDq45yR14Ssbx88QEE_", "1_35_CRIMES_CIBERNETICOS"],
+      ["11NPr0T2pcAGrtO-rL5S3nli4de2Q3YYm", "1_33_CRIMES_CONTRA_O_SISTEMA_FINANCEIRO_NACIONAL"],
+      ["12fWZlgaA9W85eGkNzn2dGm67XO27MK33", "1_34_LAVAGEM_OU_OCULTACAO_DE_BENS_DIREITOS_E_VALORES"],
+      ["1y3QkYOmQY2WpK7DgtIRG8LjhWeATVed2", "1_32_CRIMES_HEDIONDOS"],
+      ["133wgoxmChcJnlbbgWXAy-lv00BBKM64_", "1_31_VIOLENCIA_DOMESTICA_E_FAMILIAR_CONTRA_CRIANCA_E_ADOLESCENTE_LEI_HENRY_BOREL"],
+      ["1lhOBNzuDT55qJ43kwPq70d-xExLUcQWc", "1_30_VIOLENCIA_DOMESTICA_E_FAMILIAR_CONTRA_A_MULHER"],
+      ["1RWIFeUh-27H2-hY_kNClu-7_0GtkS7U5", "1_29_CRIMES_DE_TORTURA"],
+      ["16tn7jZ6wiZMIzdALTPxJlxR2uEaXijSH", "1_28_ESTATUTO_DO_DESARMAMENTO"],
+      ["1gqtB-z6OeR7EmD75ahxQRmOGjKoDAVH3", "1_27_ESTATUTO_DO_IDOSO_CRIMES"],
+      ["1zK5CxVf6V7BgHZ9DjRA7Im1gtnO-RWGg", "1_25_CRIMES_CONTRA_O_MEIO_AMBIENTE"],
+      ["1UrBfaxHBYXiAowWFIhMWWlryJqxI4h72", "1_26_ESTATUTO_DA_CRIANCA_E_DO_ADOLESCENTE_CRIMES"],
+      ["12Isede5RLXlMHJMCkqDXXtqrKOvhGSDn", "1_24_ORGANIZACOES_CRIMINOSAS"],
+      ["1htwVMY6C1NM1NDN7Jh6V-9O0AwFyzVyg", "1_22_CRIMES_DE_TRAFICO_DE_DROGAS"],
+      ["1pSazTECZJRB9lyzratqdTqZJV8hRDAaZ", "1_23_CRIMES_RESULTANTES_DE_PRECONCEITO_DE_RACA_OU_DE_COR"],
+      ["1u8F9Y43PFihLACYqI3ouxkZAAHzqgeR8", "1_21_CRIMES_DE_ABUSO_DE_AUTORIDADE"],
+      ["1uf96Ho_2tro9kokUM_PzknCMwxt4thTW", "1_20_CRIMES_CONTRA_A_ORDEM_TRIBUTARIA_ECONOMICA_E_RELACOES_DE_CONSUMO"],
+      ["1lFOmapgy8KmULsB09P8uzlkF0Ur_YAwK", "1_19_CRIMES_ELEITORAIS"],
+      ["14NG8Etsdon6whtvgYMotEWeFrSmh3oLm", "1_16_CRIMES_EM_LICITACOES_E_CONTRATOS_ADMINISTRATIVOS"],
+      ["1wvKMRqoD6lt6GgjdGKUYGRPgit_ZcwAf", "1_18_CRIMES_DE_TRANSITO"],
+      ["1WQji84B2Wrxbo6_eKF6CaicniXzyuGJm", "1_17_LEI_DAS_CONTRAVENCOES_PENAIS"],
+      ["1WcgT_lDdmtCdP46U3LJyHSLDPO4QoUKm", "1_15_CRIMES_CONTRA_A_ADMINISTRACAO_PUBLICA"],
+      ["1LvpMm67_vNfVyD628bd6zv2s_oqZrNqj", "1_14_CRIMES_CONTRA_A_FE_PUBLICA"],
+      ["1hZ4wKEkE1BI0CmY10I_4LV-QXG19GfQ8", "1_13_CRIMES_CONTRA_A_PAZ_PUBLICA"],
+      ["1N1gr1SNAFtJY5IFWWFyJGo7DALQAjsZv", "1_12_CRIMES_CONTRA_A_INCOLUMIDADE_PUBLICA"],
+      ["1YHuMg-ryr7YCu2TAAK3XXt4g0AcjbfTD", "1_11_CRIMES_RELACIONADOS_A_FAMILIA_E_RELACOES_DE_DEPENDENCIA"],
+      ["1UKJD0t00kD6vM0l1nWx4QNSCOMAoZ1dX", "1_10_CRIMES_CONTRA_A_DIGNIDADE_SEXUAL"],
+      ["1gBCyXVtAc9m06DnGEy26Mz-BO_Rk6lZj", "1_9_CRIMES_CONTRA_A_PROPRIEDADE_IMATERIAL"],
+      ["1oG-IfUwArzsZGcj-i-dd5oFPiWQNSPpm", "1_8_CRIMES_CONTRA_O_PATRIMONIO"],
+      ["1ViT4-zZQlFfYLZierEWg7LrsgzExfbEd", "1_7_CRIMES_CONTRA_A_PESSOA"],
+      ["1SDlo1ZEMPBYkKESYGXskWEVXfiZmwEQC", "1_6_EXTINCAO_DA_PUNIBILIDADE"],
+      ["1eCq9Jge0QcP5dHv9lqn5aZkw9GR6Hy-5", "1_5_TEORIA_DA_PENA"],
+      ["1NxKY18f8PEj6CLBDBgNfoyf6qIZDr_u2", "1_4_CONCURSO_DE_PESSOAS"],
+      ["1_zPDkFfjSjmKbp8tExqJusP_aoU6eIQe", "1_3_TEORIA_GERAL_DO_CRIME"]
+    ]),
+
+    discipline("direito-processual-penal", "1H9u60GtGtZDa2f0Q5Et8FhDkYiH2twss", "02_DIREITO_PROCESSUAL_PENAL", ["DIREITO PROCESSUAL PENAL", "PROCESSO PENAL"], [
+      ["1o-GlgvcRYjYRtRBpva3Z7_KGxgOavMbM", "26_ENTENDIMENTO_DOS_TRIBUNAIS_SUPERIORES_ACERCA_DOS_INSTITUTOS_DE_DIREITO_PROCESSUAL_PENAL"],
+      ["1K2q2-7jc-KxFaaq_OpIKyr77jt551Px_", "29_DISPOSICOES_CONSTITUCIONAIS_APLICAVEIS_AO_DIREITO_PROCESSUAL_PENAL"],
+      ["13tAiSn384KEZD3CQe6fvASssFc-M6uyu", "18_PROCESSO_PROCEDIMENTO_E_RELACAO_JURIDICA_PROCESSUAL"],
+      ["1yFGM0CQzde5T4_bBR8eT4QBHR2tay-Cg", "30_ENTENDIMENTO_DOS_TRIBUNAIS_SUPERIORES_ACERCA_DOS_INSTITUTOS_DE_DIREITO_PROCESSUAL_PENAL"],
+      ["1YfyvghelJ83WmIFrTkLo5FI7_uf7tdah", "19_ELEMENTOS_IDENTIFICADORES_DA_RELACAO_PROCESSUAL"],
+      ["1DaIl8CGyHgRipoljJyZPfGGKLpSziCcY", "20_ACAO_CIVIL_EX_DELICTO"],
+      ["19AmBdh_8KkihciogAXlRojPQDtFATXAO", "17_DISPOSICOES_PRELIMINARES_DO_CODIGO_DE_PROCESSO_PENAL"],
+      ["1Ew7Ipa2RTlcebTf6nkpQNSDjca032wHH", "16_APLICACAO_DA_LEI_PROCESSUAL_NO_TEMPO_NO_ESPACO_E_EM_RELACAO_AS_PESSOAS"],
+      ["1f_s89QIM_rKFg02ZEuYBOplNN4TidZSt", "10_SENTENCA_CRIMINAL"],
+      ["14fy8zfCbuX6YaYncGt0-k1_OY7KS7rA5", "11_CITACAO_INTIMACAO_INTERDICAO_DE_DIREITO"],
+      ["1bJS1DMF4Bo-HhDnGFHpYxHSm38G7NVyP", "14_PROCESSO_CRIMINAL_DE_CRIMES_COMUNS"],
+      ["1S9lOoFPOpiBizXv8pd2iN3GBWInQOdBv", "8_TERMO_CIRCUNSTANCIADO_DE_OCORRENCIA"],
+      ["1u5dHzeKPFmYf___q0jEwZqEmg8YJRTOA", "6_SUJEITOS_DO_PROCESSO"],
+      ["1WCa-K-1zI6aVRUwjN7Joti8fmDnt6ATV", "1_DIRETO_PROCESSUAL_PENAL"],
+      ["1ydt2hQySDX3E8yyeNPL1U9xLGUkzHeK-", "2_22_INVESTIGACAO_CRIMINAL_DIGITAL"],
+      ["1cd-yGYq7ZZ8vp_KBKWA9f0xLRJIlx2uc", "2_21_APURACAO_DE_ATOS_INFRACIONAIS_ECA"],
+      ["1NaGXtFiAJBMx3gA04d3uZw729BRE30Zg", "2_20_LEI_DE_INTERCEPTACAO_TELEFONICA"],
+      ["1IcaQ864rWjBYKzVUu8gDHN8F_FBulh6d", "2_19_COLABORACAO_PREMIADA"],
+      ["1qBFrbaRKWzMM1ULNABtVV3hpaB2nPsm9", "2_15_LEI_DO_DEPOIMENTO_ESPECIAL"],
+      ["1v-JUoEPIvRUV9I3nU8vWL4a5PlSl31pP", "2_18_JUIZADOS_ESPECIAIS_CRIMINAIS"],
+      ["1Fg5Zh62OO6vEHLfrx7EipZsF6EbprSSb", "2_16_INVESTIGACAO_CRIMINAL_CONDUZIDA_PELO_DELEGADO_DE_POLICIA"],
+      ["1gyyUMkj6t1O7du1cLsRwzQwEzlbTe2jr", "2_17_LEI_DE_PROTECAO_A_VITIMAS_E_TESTEMUNHAS"],
+      ["1CEqCRJ3B9jP1LJoMoxzPkXP2PLPKGinV", "2_14_LEI_DE_PRISAO_TEMPORARIA"],
+      ["1skzl5nzhTFKJJea8R9hTlXVTKW4bHFSe", "2_13_PROCEDIMENTOS_ESPECIAIS_DO_CODIGO_DE_PROCESSO_PENAL"],
+      ["1P8oxBsNgjtmVpquB-mAwKVN9VERVfIhl", "2_12_NULIDADES"],
+      ["1RexHMpyQl_EmnRZ0yNBwA8W8UUcxBCkG", "2_11_RECURSOS"],
+      ["1vDshV2hIlmwXlJRxRiUvt5AjoyxxoD-m", "2_10_SENTENCA_PENAL"],
+      ["1PXarznxfYXnxEY0gJviy_N-SslhvbvRh", "2_8_PRISAO_E_LIBERDADE_PROVISORIA"],
+      ["1NqbFxMZe6ZQ2FZI1CkjSsCgB7nArrIFm", "2_9_CITACOES_E_INTIMACOES"],
+      ["1LDwxoCXR1_WPDNqwN4p9jaxT-ZG7BCcB", "2_7_MEDIDAS_CAUTELARES_PESSOAIS"],
+      ["1-xC_b3wPDBGLzXOARFSu8hOmlAvk-f6z", "2_6_PROVA"],
+      ["1SlFX7o294g6RDASeMDJkmKnmXf6Bom1k", "2_5_COMPETENCIA"],
+      ["143GsUJ-IbBEujZ_WOmepu3NZYw7KjIXK", "2_4_ACAO_PENAL"],
+      ["1_yXmxfqVJnSEKx6JuvtIiGTdy2U5f_r7", "2_2_SISTEMAS_PROCESSUAIS_PENAIS"],
+      ["17_dc_BIsbfY4_LVLdtFnQnfXblRxecqZ", "2_3_INQUERITO_POLICIAL"],
+      ["1iKPv4i3ZeQn107_BoHlbkwlwiSNXE3gR", "2_1_PRINCIPIOS_FUNDAMENTAIS_DO_PROCESSO_PENAL"]
+    ]),
+
+    discipline("legislacao-extravagante", "1BUnSeaPTKVgjgyrfo48rYQ19AuSgSCpr", "03_LEGISLACAO_PENAL_E_LEGISLACAO_PROCESSUAL_PENAL_EXTRAVAGANTE", ["LEGISLACAO PENAL E LEGISLACAO PROCESSUAL PENAL EXTRAVAGANTE", "LEGISLACAO PENAL E PROCESSUAL PENAL EXTRAVAGANTE"], [
+      ["1IbrRp1PCBl5jM4QdyZ42UHn71c3kcTou", "3_19_ESTATUTO_DA_ADVOCACIA_E_ORDEM_DOS_ADVOGADOS_DO_BRASIL_LEI_N_8_906_1994_ASPECTOS_PENAIS_E_PROCESSUAIS_PENAIS"],
+      ["1WgUTiA3gjoRWhBuptTsiE8l5b3vumFG1", "3_18_MARCO_LEGAL_DO_COMBATE_AO_CRIME_ORGANIZADO_NO_BRASIL_LEI_N_15_358_2026"],
+      ["1qeH5acXiTbbRvBBtwiny7EtdKUM7a5yk", "3_17_COLABORACAO_PREMIADA_INFILTRACAO_DE_AGENTES_ACAO_CONTROLADA_CADEIA_DE_CUSTODIA_INVESTIGACAO_CRIMINAL_MEIOS_ESPECIAIS_DE_OBTENCAO_DE_PROVA_E_COOPERACAO_INTERINSTITUCIONAL_PREVISTOS_NA_LEGISLACAO_EXTRAVAGANTE"],
+      ["1lcKyksT_OS9bru927cizPOuI_rEuPURe", "3_16_LEI_N_14_155_2021_CRIMES_ELETRONICOS_FRAUDES_ELETRONICAS_E_INVASAO_DE_DISPOSITIVO_INFORMATICO"],
+      ["1RwcornzmTSL8aNC6C0ywfcaQFSOZwj1Y", "3_15_PACOTE_ANTICRIME_LEI_N_13_964_2019"],
+      ["1sjxIHJYeMM523WAqbdIH1tSlzf-tfR3W", "3_14_LEI_DE_ABUSO_DE_AUTORIDADE_LEI_N_13_869_2019"],
+      ["1gJx-LFyMPOgL4YMqSZcBEP0yhKSgothO", "3_13_LEI_ANTITERRORISMO_LEI_N_13_260_2016"],
+      ["1mqxo8gZbMFwPAbUeYOM9kp_gaHAf0Qdj", "3_12_LEI_DAS_ORGANIZACOES_CRIMINOSAS_LEI_N_12_850_2013"],
+      ["1YW9GR1QTclGtNqhzMnm0V1nL7-qcLGU2", "3_11_LEI_DE_MIGRACAO_LEI_N_13_445_2017_DISPOSICOES_PENAIS_E_PROCESSUAIS_PENAIS_APLICAVEIS"],
+      ["1Cx0VvYSrPCBRb7vv3V2cLBRsaFqV6zVj", "3_10_LEI_DE_DROGAS_LEI_N_11_343_2006"],
+      ["1uhLcQa7Vad1dLF86cmxuztol8Hzmyb6f", "3_9_LEI_MARIA_DA_PENHA_LEI_N_11_340_2006"],
+      ["1Fybk6R9_FSD3Jp1fkRcxOFB-ESEZJpxV", "3_8_ESTATUTO_DO_DESARMAMENTO_LEI_N_10_826_2003"],
+      ["1gAEl1R-PaqcryPWR60OcML2Wo_H0G_HH", "3_7_CODIGO_DE_TRANSITO_BRASILEIRO_CTB_LEI_N_9_503_1997_CRIMES_DE_TRANSITO_E_DISPOSICOES_PENAIS_E_PROCESSUAIS_PENAIS_APLICAVEIS"],
+      ["1_4l4bCZxYSTMtG9MZSaba7ITQXvDYFIW", "3_6_LEI_DE_LAVAGEM_DE_DINHEIRO_LEI_N_9_613_1998"],
+      ["1spSNKPMLwea8KK0eE2y3EIYhNZzttI3u", "3_5_LEI_DE_TORTURA_LEI_N_9_455_1997"],
+      ["1ZFKQYJEdTXvlRkkxE77xsLB2YiBBDhuI", "3_4_LEI_DE_INTERCEPTACAO_TELEFONICA_LEI_N_9_296_1996"],
+      ["10Ztj83K6D30wJYfPeGmd3TqMUzpCc4nz", "3_3_LEI_DOS_CRIMES_CONTRA_A_ORDEM_TRIBUTARIA_ECONOMICA_E_RELACOES_DE_CONSUMO_LEI_N_8_137_1990"],
+      ["1xoSbI71f_9TXm9hnr_a2sSq2tgD0Rhio", "3_2_LEI_DOS_CRIMES_HEDIONDOS_LEI_N_8_072_1990"],
+      ["1oVMpyVC8suxMGYSe0sOnlvKHrIg4MXJG", "3_1_LEI_DE_EXECUCAO_PENAL_LEP_LEI_N_7_210_1984"]
+    ]),
+
+    discipline("direito-constitucional", "1y3bie8cMpTvJoJAGJRig-gZ1i7r0cT3L", "04_DIREITO_CONSTITUCIONAL", ["DIREITO CONSTITUCIONAL"], [
+      ["1kHJbu0KY_0g_2CHGF9XKGo5Birk27Vfv", "16_CONSTITUICAO_DO_ESTADO_DO_MARANHAO"],
+      ["1pX95Ng2u9yQ2-72VyybIVSglppYaCJHt", "15_CONSTITUICAO_DO_ESTADO_DO_PARANA"],
+      ["1hjRbYcD7rOBjnpxMyXQnkWRa7CE2Sn9g", "14_ORDEM_SOCIAL"],
+      ["12QQtQZlehuH0OnBNAIxvgVkS8mIEj7WV", "13_ORDEM_ECONOMICA_E_FINANCEIRA"],
+      ["1-QYcx9gr4mi3RFsZ6sjkNjVwwE8Uo7Un", "12_FINANCAS_PUBLICAS"],
+      ["1avokbfc5dNVDDB8NXfof1Bo0cN8ztg3X", "11_SISTEMA_TRIBUTARIO_NACIONAL"],
+      ["164hd9hBk3V6315KdKvaTUGiNVRsYwkJk", "03_INTERPRETACAO_CONSTITUCIONAL"],
+      ["1_sEAkJrNWkeeRCmfAW1qK7C08lpD4SXw", "02_PODER_CONSTITUINTE_E_REFORMA"],
+      ["1Gl5o2iEncYlVbf84-8dOhGw3-YBuahl4", "01_TEORIA_CONSTITUCIONAL_E_CLASSIFICACOES"],
+      ["19VYmWPPgXGDWH0IoNmk62wiAv_CqF8dH", "10_CONTROLE_DE_CONSTITUCIONALIDADE"],
+      ["1ebULMStfCOIFhjHcZidbUNDnOcTz9FKs", "09_SEGURANCA_PUBLICA_E_DEFESA_DO_ESTADO"],
+      ["1ReLw3uUR23T6slwHxS_pmPhnRz2CTZCp", "08_PODERES_DA_UNIAO"],
+      ["1zmo4QSBNRRb1qo6tQr3QFeJECk8uaPhq", "07_ORGANIZACAO_DO_ESTADO_E_FEDERACAO"],
+      ["1DL3v4IQs77f9fbpR5l6myVvyhxOTIQav", "06_REMEDIOS_CONSTITUCIONAIS"],
+      ["1a09wpOPXXzQUdpArmqPmJbO_b8p4cYC-", "05_DIREITOS_E_GARANTIAS_FUNDAMENTAIS"],
+      ["1c8TGE0Snr3ZA6r4jNmgMlrFL3y-9gcBn", "04_PRINCIPIOS_FUNDAMENTAIS"]
+    ]),
+
+    discipline("administrativo-gestao", "1u5QOY9Hu0PYTT_Mu41y5LZt8efvsVw-H", "05_DIREITO_ADMINISTRATIVO_E_GESTAO_PUBLICA", ["DIREITO ADMINISTRATIVO E GESTAO PUBLICA", "ADMINISTRATIVO E GESTAO PUBLICA"], [
+      ["1XR6znsPZ5Yxx3IGWdPuce85FJOqrKNlX", "5_12_ORGANIZACAO_ADMINISTRATIVA_DA_POLICIA_CIVIL_DO_ESTADO_DO_PARANA"],
+      ["1PFX1xx8W6PRHLQtXvILFK88bXOw6FQTn", "5_11_GESTAO_PUBLICA"],
+      ["1PEc8cGDQ5wUeLueOQJ0uvz_MGZiZFjnk", "5_10_IMPROBIDADE_ADMINISTRATIVA"],
+      ["1Jp2QvtrQt4wMuQeKQbxxBJhe8X5fgz-G", "5_9_CONTROLE_DA_ADMINISTRACAO_PUBLICA"],
+      ["1YvLNNlTeVhsXp4aA5NO5MF83R_Olru_z", "5_8_RESPONSABILIDADE_CIVIL_DO_ESTADO"],
+      ["1PPaLAtXeX-ibXfh3f3jHphyS3v6Kd7Wc", "5_7_LICITACOES_E_CONTRATOS_ADMINISTRATIVOS"],
+      ["1wmUfIyuXW9aSZtpmavaNqcw2_ANv8soR", "5_6_SERVICOS_PUBLICOS"],
+      ["1k_vHv6wgBhKqI5HlbfemLrVZCZ2aFViK", "5_5_PODERES_DA_ADMINISTRACAO_PUBLICA"],
+      ["1MLQwA0yoZOW0vnCc_Frb0pZddqSstoCB", "5_4_ATOS_ADMINISTRATIVOS"],
+      ["1xnYm1UGIeT1DvPsflm4Ohum9LD3sf-rV", "5_3_ADMINISTRACAO_PUBLICA"],
+      ["1hjdmozoKu-mwObPjyR2uLKjS1JtVYTjl", "5_2_PRINCIPIOS_DA_ADMINISTRACAO_PUBLICA"],
+      ["17qCXdRGqz9ieLTeouk4W-4Mq-x06CUtW", "5_1_CONCEITO_E_FONTES_DO_DIREITO_ADMINISTRATIVO"]
+    ]),
+
+    discipline("legislacao-estadual-institucional", "11rMkYAnmP9XMtieM4dCQ9ii5zn7RheSt", "06_LEGISLACAO_ESTADUAL_E_INSTITUCIONAL", ["LEGISLACAO ESTADUAL E INSTITUCIONAL", "LEGISLACAO INSTITUCIONAL E ESTADUAL"], [
+      ["12T5FsfcvIUky2Y-oB19Wpn3c4OAkzydK", "6_7_LEGISLACAO_APLICADA_A_ATIVIDADE_INSTITUCIONAL_E_POLICIAL_LEIS_13_869_2019_12_037_2009_13_709_2018_E_12_527_2011"],
+      ["1DOKOBVvorwl0h-30cITnca3kq0typbWc", "6_6_REGIME_JURIDICO_DOS_SERVIDORES_PUBLICOS_DO_ESTADO_DO_PARANA_LEI_ESTADUAL_N_6_174_1970"],
+      ["1EUDkOWmtve7gGOnuW5PYOVgT9PH8PMfv", "6_5_CODIGO_DISCIPLINAR_DA_POLICIA_CIVIL_DO_PARANA_LEI_ESTADUAL_N_21_894_2024"],
+      ["1-D7vUCs6YLVH7Chwj4P9ckCtvMuYOorx", "6_4_LEI_ORGANICA_DA_POLICIA_CIVIL_DO_ESTADO_DO_PARANA_LEI_ESTADUAL_N_23_213_2026"],
+      ["1GqkARRVR1KKId_2gHnO5GxcTycfeARcl", "6_3_LEI_ORGANICA_NACIONAL_DAS_POLICIAS_CIVIS_LEI_FEDERAL_N_14_735_2023"],
+      ["1ieFoFow9TaovcY6nl0tXh-9vWFCgEX38", "6_2_ESTRUTURACAO_DAS_CARREIRAS_DA_POLICIA_CIVIL_DO_PARANA_LEI_COMPLEMENTAR_ESTADUAL_N_259_2023"],
+      ["1YGivTmo9RxsAMHoGJGe862JpUCsBJ37l", "6_1_CONSTITUICAO_DO_ESTADO_DO_PARANA_ADMINISTRACAO_SERVIDORES_SEGURANCA_PUBLICA_E_POLICIA_CIVIL"]
+    ]),
+
+    discipline("direitos-humanos", "1BRHTJaRS87crPv5D9fxjQm3QTCEgTzEF", "07_DIREITOS_HUMANOS", ["DIREITOS HUMANOS"], [
+      ["1RrpGKs1qJQ8ToMhEEHg2U-OJ6rgjZZcx", "2_DIREITO_INTERNACIONAL_DOS_DIREITOS_HUMANOS_E_O_DIREITO_BRASILEIRO"],
+      ["1CUESor5BnyvRK8_9hvOkgeNOxPXxLC6a", "5_CONTROLE_DE_CONVENCIONALIDADE"],
+      ["1BYMMbe4TZ10ZVtSZSDxrG1kZs2NdJXNJ", "10_7_AGENDA_2030_E_OBJETIVOS_DE_DESENVOLVIMENTO_SUSTENTAVEL_ODS"],
+      ["1tT4fivE-jwxYHh-0AkHrspOjwu5Buxzf", "10_5_SEGURANCA_PUBLICA_E_DIREITOS_HUMANOS"],
+      ["1y1PF_bNgwPHoDivZYo3tu4Th3WbxWSPy", "10_6_POLITICA_NACIONAL_DE_DIREITOS_HUMANOS"],
+      ["132qJaVr-aQAaDSCGE2acX2mdpqSzo0Tr", "10_4_DIREITOS_HUMANOS_E_GRUPOS_VULNERAVEIS"],
+      ["1WAT4RbeEtIYFa37whO0rHCcfBVE8GB8f", "10_3_DEMOCRACIA_CIDADANIA_E_DIREITOS_HUMANOS"],
+      ["1HRI-_aN2e41gDgKkmI5AVihmHPWIF924", "10_2_SISTEMAS_DE_PROTECAO_DOS_DIREITOS_HUMANOS"],
+      ["1EyUqoPBe3bqpRiXi_byRaH8PaWxsYkbv", "10_1_TEORIA_GERAL_DOS_DIREITOS_HUMANOS"]
+    ]),
+
+    discipline("ciencias-forenses", "1UXzrreLWhOIAK8LbCFAR0xtw4dpIJUyt", "08_CIENCIAS_FORENSES", ["CIENCIAS FORENSES", "NOCOES DE CIENCIAS FORENSES"], [
+      ["1Mvu0SzLoI2ithklxMqelfgaRtDaRV4DZ", "8_16_CRIMINOLOGIA_DIGITAL"],
+      ["1fmuiAcQ3ClwmL0j5EAnIOsswCkhvEddN", "8_15_CRIMINOLOGIA_E_ATUACAO_POLICIAL"],
+      ["1bC6a_vkeVQRnbBvmJzaAN6qqjlezFdmF", "8_14_CRIMINOLOGIA_E_POLITICA_CRIMINAL"],
+      ["1AAPD8pwdicmAgVPHasivXgI0rW5qx8wS", "8_13_CONTROLE_SOCIAL_DO_CRIME"],
+      ["1BUiSc7eocWdoW4LSv_PdKL_eemx9PZdh", "8_12_VITIMOLOGIA"],
+      ["1bOAijtxWhBO3snm4ncjqM_OPOJ7Fv16i", "8_11_ESCOLAS_CRIMINOLOGICAS"],
+      ["12DuyfF6OeYO_GGfopXtCUhyePcSyaav9", "8_10_CRIMINOLOGIA"],
+      ["1-u0EJVDDmOx09vWg5bzkKohwItq3sfj_", "8_9_DOCUMENTOSCOPIA_E_GRAFOSCOPIA"],
+      ["1LbaR_1beLP2YEaymvrP-TORJu4VPs5mz", "8_8_CRIMINOLOGIA_E_VITIMOLOGIA_FORENSE"],
+      ["1XlLrXx-neYK8Kab0fViqv5Ir8dFY2v8o", "8_7_PSICOPATOLOGIA_FORENSE"],
+      ["1-ECG3yfpHeruK_cm8RPSRxUPFxvgVkrx", "8_6_TOXICOLOGIA_FORENSE"],
+      ["1wVcUqSEGURoox2tTDWGdchv-lBgC3MCK", "8_5_TANATOLOGIA_FORENSE"],
+      ["1uMeF-J66qIzeSBDyQ9pdOMY3ld2szblk", "8_4_TRAUMATOLOGIA_FORENSE"],
+      ["1QvyDT1tJsSFApUh5mQFAk9J1CIdam7o0", "8_3_SEXOLOGIA_FORENSE"],
+      ["1EBhIRjbbTG1f8k_hTDKQZSmuJH1w0DLU", "8_2_ANTROPOLOGIA_FORENSE"],
+      ["1rpiFp7f_1dVPbQR-s4k-PasdcOHLmTWE", "8_1_MEDICINA_LEGAL"]
+    ]),
+
+    discipline("direito-digital", "13l1RBskLyTZlajUtJl0wpDD-9m6ZpOzg", "09_DIREITO_DIGITAL", ["DIREITO DIGITAL", "NOCOES DE DIREITO DIGITAL"], [
+      ["1OzIixefL5B7P9kDaifGywqQ0IojTX9Gp", "7_ASPECTOS_DO_DIREITO_DIGITAL_NO_CAMPO_PROCESSUAL"],
+      ["19cQuop1t92coB6fWgSQFcwkCG64Em3Gy", "6_ASPECTOS_DO_DIREITO_DIGITAL_E_NOVAS_TECNOLOGIAS"],
+      ["1mglKa8jQ63rm6ahZSzTU4_q2iVLuELGR", "5_ASPECTOS_DO_DIREITO_DIGITAL_NO_AMBITO_CIVEL_E_CONSUMERISTA"],
+      ["1vb2uNgGK93X5ucmQ0rYsqm46CeY4mhEB", "4_REGULAMENTACAO_DA_ANPD"],
+      ["1BwnXEuXoaJGagA81GX6ThSjG8Jt6TF_6", "3_ASPECTOS_REGULATORIOS_LGPD"],
+      ["1zZ2LO9uN2ZdX0NqLD4lHBO3eRriSactC", "2_ASPECTOS_REGULATORIOS_MARCO_CIVIL_DA_INTERNET"],
+      ["1vCJWSneDutH5PqIhKMwAIC1L_Q97pKFk", "1_ASPECTOS_INTRODUTORIOS_AO_DIREITO_DIGITAL"]
+    ]),
+
+    discipline("direito-civil", "1m0B1eno3dw851gvQAWEgSBqi5JjziQa_", "10_DIREITO_CIVIL", ["DIREITO CIVIL"], [
+      ["1vLyGD0HjNXVi-bDypro1VvHY9XRQ9JfA", "9_LEGISLACAO_COMPLEMENTAR"],
+      ["14KsOu3OovI1WtC2paRpgxUI_NvaqGzpJ", "8_DIREITO_DE_EMPRESA"],
+      ["1IoKASdcxC-r5mFswtLac8bfesHPER2aU", "7_RESPONSABILIDADE_CIVIL"],
+      ["19Jigw_ICnu_eSLDNRCkD6uc3QBeBFkc6", "6_DIREITO_DAS_COISAS"],
+      ["116GJ4uF0xZJv-WonBHTFLGwi1seU-ZmV", "5_PRESCRICAO_E_DECADENCIA"],
+      ["18sGmecolei8OgE2FeBO3NhQNoJlisdAh", "4_FATO_JURIDICO"],
+      ["1BKh3Pcu_bvYS-51dEKtaAtRRX0f4ef0o", "3_BENS"],
+      ["1BrCB1mf9AP4Yzd5HTy6pft3BeqhLqiB6", "2_PESSOAS"],
+      ["1W1XzeFw1p9x04mDx1sn5NGAVj26ZD4aO", "1_LEI_DE_INTRODUCAO_AS_NORMAS_DO_DIREITO_BRASILEIRO"]
+    ]),
+
+    discipline("direito-processual-civil", "130slEt9D1I0bKydHBtgZKDUy8iBcEakn", "11_DIREITO_PROCESSUAL_CIVIL", ["DIREITO PROCESSUAL CIVIL", "PROCESSO CIVIL"], [
+      ["1SakpeGMqsCjcBKA25CNWxgvyZd4yiJ1o", "5_PODER_GERAL_DE_CAUTELA"],
+      ["1eWiuaPDLr7XQFJlwlg-fYvgJpx3P5C4V", "4_TUTELA_PROVISORIA"],
+      ["10B6w9BmjLiv0Wc-dq70JpQX39DQAw3sw", "3_COMPETENCIA_INTERNA_E_INTERNACIONAL_E_HOMOLOGACAO_DE_SENTENCA_ESTRANGEIRA"],
+      ["1mmrfeYaAeYgS9P_UwSk_tkAhYOUe1Jt9", "2_COMPETENCIA"],
+      ["18BQlsE-hCkGDfEtP3ecS79BhfpS9Knhe", "1_JURISDICAO_E_DA_ACAO"]
+    ]),
+
+    discipline("direito-agrario", "15e8dr4mzXhVhjrXR7PcgCOvHnyKVGr8m", "12_DIREITO_AGRARIO", ["DIREITO AGRARIO"], [
+      ["1JRDZkVb3pNR_Ze-w1StFlq0tx7lj0z2H", "6_CONTRATOS_AGRARIOS_TIPICOS_E_ATIPICOS"],
+      ["1-sc3CMcqTmQYw6ij3k8Ad8sf2nEWE_Sl", "5_TERRAS_INDIGENAS_E_QUILOMBOLAS"],
+      ["1siMDs_tn2B7NXhtS7LXXmCh6d1QbvRnC", "4_REGULARIZACAO_FUNDIARIA_LEI_N_11_952_2009_E_DECRETO_N_10_592_2020"],
+      ["1tT0HawSVdbQbbiGvx0FN5SJiZGPRqCEF", "3_PROCESSO_DE_DESAPROPRIACAO_PARA_FINS_DE_REFORMA_AGRARIA_LC_76_1993_E_DL_3_365_1941"],
+      ["1LAMcadLNOtC9a5TxwNAY40Sf7a1ybaKy", "2_FUNCAO_SOCIAL_DA_PROPRIEDADE"],
+      ["1a-iITbtwo6m1xtVAI8T9o4k66AvCsBoB", "1_TEORIA_GERAL_DO_DIREITO_AGRARIO_ORIGEM_CONCEITO_E_PRINCIPIOS"]
+    ]),
+
+    discipline("direito-ambiental", "1oo_ONgYUjNo86XqHj7wLm-EStbvUXuaR", "13_DIREITO_AMBIENTAL", ["DIREITO AMBIENTAL"], [
+      ["1Nk0Z5fSQ4EYpdw3bxnaI4Pd-IYYzOYvg", "8_UNIDADES_DE_CONSERVACAO_AMBIENTAL_NO_MARANHAO"],
+      ["1W33xB-ANK9nwoy3GVCmXz0cdUfA7N32K", "7_RESPONSABILIDADE_AMBIENTAL"],
+      ["1u0biRJwZ5vHPADmyyX0f2bAWddohRdQ6", "6_SISNAMA_SNUC_E_INSTRUMENTOS_DA_POLITICA_NACIONAL_DO_MEIO_AMBIENTE"],
+      ["1jDB0sbBGQvx613A6AW6FWP9A9kWcrs5O", "5_PODER_DE_POLICIA_AMBIENTAL"],
+      ["1M77I5TdmvgHmpl-svxUroT7_w9ju_gBw", "4_UNIDADES_DE_CONSERVACAO_BIODIVERSIDADE_LEIS_N_9_985_2000_E_N_11_516_2007"],
+      ["1eYZOhz7QdLB6OtXOR4T8QyIcQSLBjq5p", "3_LEGISLACAO_BRASILEIRA_FLORESTAL_LEIS_N_12_651_2012_E_N_11_428_2006"],
+      ["1ubHIQiMRDNM-D9QoIqlf5abhqZ9MNWXv", "2_MEIO_AMBIENTE_NA_CONSTITUICAO_FEDERAL"],
+      ["1iBmbyUfYwIdNy0HBdOROtyNE-hzDVSAQ", "1_PRINCIPIOS_DO_DIREITO_AMBIENTAL"]
+    ]),
+
+    discipline("direito-administrativo", "1xnzmOhZSQYffoOPgiQejz3d8-Z3vUWdY", "14_DIREITO_ADMINISTRATIVO", ["DIREITO ADMINISTRATIVO"], [
+      ["1ao5JsRPCyZZSyXjTb17SBEdG6ZE1k9ih", "17_AGENCIAS_REGULADORAS"],
+      ["1GnhVmMAgAd7ld213Q1UDOYHRasMMhMGD", "14_SISTEMAS_ADMINISTRATIVOS_SISTEMA_INGLES_SISTEMA_FRANCES_E_SISTEMA_ADOTADO_NO_BRASIL"],
+      ["1xQAm3KgIboHf-XvRvyia0NDI6eo8IJLL", "9_LICITACOES_MODALIDADES_E_PROCEDIMENTOS"],
+      ["1SwwwbfTCoKUrD0r9c-zd9OTNrfTfZNcu", "11_CONVENIOS_E_CONSORCIOS_ADMINISTRATIVOS"],
+      ["1FGVVAUbIya1zLno84hgkI-6LP10Gq4o7", "8_BENS_PUBLICOS"],
+      ["1RQOCmcM4tQNeIoIKsEj--NcgF6MyZACw", "7_INTERVENCAO_DO_ESTADO_SOBRE_A_PROPRIEDADE_PRIVADA"],
+      ["1nSogVkMhIt-jH7dxTqC_a6KN-X1V-NrH", "20_LEGISLACAO_COMPLEMENTAR"],
+      ["1BLU55XlMooaZqcJXbXgFXzDeBdVkeKcf", "16_REGIME_JURIDICO_ADMINISTRATIVO"],
+      ["1MHTyhHdj8gfre0P7RD15wWK8F-_szaB_", "4_LEI_NO_13_709_2018"],
+      ["12jNWyEadLzZm63ePxw5wXE7thF9F33wM", "9_10_CONTROLE_DA_ADMINISTRACAO_PUBLICA"],
+      ["1Q27j6MUlIY6IJwo5xbIJuMg8uOYRif6B", "9_9_IMPROBIDADE_ADMINISTRATIVA"],
+      ["1Brqsq_n92qgGiPeThajcDOfS9Zm0laS6", "9_8_RESPONSABILIDADE_CIVIL_DO_ESTADO"],
+      ["1EI4C2AzoGrAsTKVLgoyGSCnLeqCggT6p", "9_6_LICITACOES_E_CONTRATOS_ADMINISTRATIVOS"],
+      ["1cOXZU0VGZLvodKZO75lSMJelhIQkIDr1", "9_7_AGENTES_PUBLICOS"],
+      ["1FZL55yTzreZIJ4qjdYZnV7aUpwYJEl2d", "9_5_SERVICOS_PUBLICOS"],
+      ["1UMeAA465G4nrMEpYrYgit4n7m8Z1NXYy", "9_4_PODERES_ADMINISTRATIVOS"],
+      ["18chefj1fPsmjNjZb54MYaTo1Csdbl1G7", "9_3_ATOS_ADMINISTRATIVOS"],
+      ["1bFxkWkKXHU6ZYR3lPznrpe-YNoG4ZSun", "9_2_ADMINISTRACAO_PUBLICA"],
+      ["1l8pbPop8EXwkD-d_o6S_w2Y2n6QbB3px", "9_1_CONCEITO_FONTES_E_PRINCIPIOS_DO_DIREITO_ADMINISTRATIVO"]
+    ]),
+
+    discipline("medicina-legal", "1ohso1lDYGhF_R9UfrTCFypu9LO5lZ3jL", "15_MEDICINA_LEGAL", ["MEDICINA LEGAL"], [
+      ["1rdUFC1KVuzP6FWl9LRaOj82lvnT9PSnE", "8_8_CRIMINOLOGIA_E_VITIMOLOGIA_FORENSE"],
+      ["14qLtGP-7RWrGvMFYd2qYycxJeB-wlJaH", "8_7_PSICOPATOLOGIA_FORENSE"],
+      ["1_yrn-P91fbHdWMynrP29mwuR7EnRGRI0", "8_6_TOXICOLOGIA_FORENSE"],
+      ["1CevpY12OJAts3sC3hPxWQXAqV12EqCNA", "8_5_TANATOLOGIA_FORENSE"],
+      ["1B9VDeFPL1z77ny4VmjcxDlOSUTTXjQ3l", "8_4_TRAUMATOLOGIA_FORENSE"],
+      ["1PMmrOHLpzusB3JgRaDJr7R2vP_DR6rbD", "8_3_SEXOLOGIA_FORENSE"],
+      ["1ox8GlgNqOGNFAvNEylnMlKfpYME2FiyD", "8_2_ANTROPOLOGIA_FORENSE"],
+      ["1djeIx71Hoh15lm5SCLtMOIGVaOcZhixr", "8_1_MEDICINA_LEGAL"]
+    ]),
+
+    discipline("legislacao-penal-especial", "1h32SI1Gu8GRUGmScMI5Ag7c98gC6A5xC", "16_LEGISLACAO_PENAL_E_PROCESSUAL_PENAL_ESPECIAL", ["LEGISLACAO PENAL E PROCESSUAL PENAL ESPECIAL", "DIREITO PENAL E PROCESSUAL PENAL ESPECIAL"], [
+      ["1B4vlvaAuKGou2MulQR1JOlZe9mCvFgJJ", "51_ALIENACAO_PARENTAL_LEI_N_12_318_2010"],
+      ["132ebVm6ZBlB-UFwTfal98zDnemOZDN5S", "50_TRAFICO_DE_PESSOAS_LEI_N_13_344_2016"],
+      ["1a4FBBEE4PhXFc2CT9TiUenfT9OEXR_N7", "49_LEI_ANTITERRORISMO_LEI_N_13_260_2016"],
+      ["1B9zVjNHIN-ZjwkmppXSNx3qoP4hLbqiT", "48_CRIMES_NA_LEI_BRASILEIRA_DE_INCLUSAO_DA_PESSOA_COM_DEFICIENCIA_LEI_N_13_146_2015"],
+      ["1NepPa0TEJim5hQnPxgfJFoYeMSllsDb_", "47_DELITOS_INFORMATICOS_LEI_N_12_737_2012"],
+      ["19kWJbkETYM58uYRyd9IiGw_dE7Kvsnl5", "46_CORRUPCAO_DE_MENORES_LEI_N_12_015_2009"],
+      ["1ufB6twh7DpFbuZ3_aX14T-wSZZH_WdRu", "45_RESPONSABILIDADE_ADMINISTRATIVA_E_CIVIL_DE_PESSOAS_JURIDICAS_LEI_N_12_846_2013"],
+      ["1Kj65OWg2WoRu7HpI3QF83ON9L90dxHdu", "44_RESPONSABILIDADE_DE_PREFEITOS_E_VEREADORES_DECRETO_LEI_N_201_1967"],
+      ["1T8ySNvPP9R9kesnBZTgnSEyTgm9gs61H", "43_ESTATUTO_DA_OAB_LEI_N_8_906_1994"],
+      ["1f7L61kx8AmzCWj1TR2BdC6ZWDkqkoYnz", "42_PRISAO_TEMPORARIA_LEI_N_7_960_1989"],
+      ["1qYcwg1rxgs5yDGJWMHbvgeaZBX25yoQK", "41_INFRACOES_PENAIS_DE_REPERCUSSAO_INTERESTADUAL_LEI_N_10_446_2002"],
+      ["1I2GUn_YnrjqQVKS8v6Yqmc6OLm7iitam", "40_ORGANISMOS_GENETICAMENTE_MODIFICADOS_LEI_N_11_105_2005"],
+      ["1xIHIQtmu7qo5mlpkmBoEXuW6FLvQ5q9U", "39_CRIMES_FALIMENTARES_LEI_N_11_101_2005"],
+      ["1cPH9aVg3K7Yg-GxKbo-VUW496cSFS1PU", "38_CRIMES_NA_LEI_GERAL_DO_ESPORTE_LEI_N_14_597_2023"],
+      ["1fKjNgAp4bD0F2F1gH3p7Ws4wXgYfybZD", "37_PROTECAO_A_VITIMAS_E_TESTEMUNHAS_LEI_N_9_807_1999"],
+      ["1N4pjcCmDt_WgFjn_JP5eyHqhYbiDBfR8", "36_LAVAGEM_DE_DINHEIRO_LEI_N_9_613_1998"],
+      ["1GYBIW2zRUCQ2djdUBM3Q4GwOyBa0hK41", "35_DIREITOS_AUTORAIS_LEI_N_9_610_1998"],
+      ["1Bc8D3pdP4GQ-Mdp_8e8vRgC_PaQWlIzy", "34_PROPRIEDADE_INTELECTUAL_E_PROGRAMA_DE_COMPUTADOR_LEI_N_9_609_1998"],
+      ["1snekxHa7Erz_NGQjWXr2fffmQI_8DLT9", "33_REMOCAO_DE_ORGAOS_LEI_N_9_434_1997"],
+      ["1cHKq7Q6UvkH1mRF4IWsmK2XM3wZN0rJg", "32_PRATICAS_DISCRIMINATORIAS_LEI_N_9_029_1995"],
+      ["1djhZeYGgMXgWwDkjueqYRONJQOlBabJk", "31_CRIMES_NA_LEI_DE_LICITACOES_LEI_N_14_133_2021"],
+      ["1J-epbUZ9_yBpYSiHBHdLhmx-uoM9zMDT", "30_CRIMES_CONTRA_A_ORDEM_ECONOMICA_E_SISTEMA_DE_COMBUSTIVEL_LEI_N_8_176_1991"],
+      ["1bbxH5sELnJyxCjAqj566jEcbO89LWIxb", "29_ESTATUTO_DO_INDIO_LEI_N_6_001_1973"],
+      ["1Bzi96XdZEEpE-u7qw_UhvoknKVEm6Sqs", "28_GENOCIDIO_LEI_N_2_889_1956"],
+      ["1K62wcurh0iCbS6RzWLedZ6YWMqjcJfhj", "27_CRIMES_CONTRA_A_ECONOMIA_POPULAR_LEI_N_1_521_1951"],
+      ["1cba0mEObtUlAYzBG_ylC-rCA6OiWx8q5", "26_IGUALDADE_RACIAL_LEI_N_12_288_2010"],
+      ["1HxCD-tkRFlPMPzOf5oTCex8sU4yT9ybS", "25_IDENTIFICACAO_CRIMINAL_LEI_N_12_037_2009"],
+      ["1FohDgZJJASoJvW4x6iyJVNbprXbEx8np", "24_ENRIQUECIMENTO_ILICITO_LEI_N_8_429_1992"],
+      ["1r9MEtYzo4L27ZPV5vJAm0JQF89b5cS5F", "23_JUIZADOS_ESPECIAIS_CRIMINAIS_LEI_N_9_099_1995"],
+      ["1dMrq5Cdcf-qGr1K5XDCveJt4pOaLEthh", "22_LEI_DE_EXECUCAO_PENAL_LEI_N_7_210_1984"],
+      ["10mp1eLx38ujI-2udLJRkxa5VAAu9NP0E", "21_CRIMES_ELEITORAIS_LEIS_N_4_737_1965_N_6_091_1974_E_N_9_504_1997"],
+      ["1pwPXGt-3V6KXbujLp_-cZMppe0ILwwG2", "20_CRIMES_CONTRA_O_SISTEMA_FINANCEIRO_NACIONAL_LEI_N_7_492_1986"],
+      ["1mUZW-wtUtIx2A9lPNwwc2M2JKrOc_NKH", "19_INTERCEPTACAO_TELEFONICA_TELEMATICA_E_AMBIENTAL_LEI_N_9_296_1996"],
+      ["1o6laYGj1LjONvXcejZDqnHbPiYRVZFNj", "18_APRESENTACAO_E_USO_DE_DOCUMENTOS_DE_IDENTIFICACAO_PESSOAL_LEI_N_5_553_1968"],
+      ["1j5r6L5S3JQxuvl8BPRc3RwD0-NiB-Pt-", "17_ESTATUTO_DA_CRIANCA_E_DO_ADOLESCENTE_LEI_N_8_069_1990"],
+      ["1Y7r8aC4adaNqD7gmX-04R8hg4zI07yWw", "16_LEI_MARIA_DA_PENHA_LEI_N_11_340_2006_ASPECTOS_PENAIS_E_PROCESSUAIS"],
+      ["1OaN9ny3m3d_l758Gmtf26Hg5r2xMyH4H", "15_CRIMES_CONTRA_AS_RELACOES_DE_CONSUMO_LEIS_N_8_078_1990_E_N_8_137_1990"],
+      ["1bjrIgKZu-T2hTZBgNmRpvyXjE3a3Cxgj", "14_LEI_N_10_826_2003"],
+      ["1_nLKcHSY4PGV_Cb-OryRlC2rZU7nnsl4", "13_ABUSO_DE_AUTORIDADE_LEI_N_13_869_2019"],
+      ["1USZ02_tfEyvJ7QgQypWAz3jse9vBa27b", "12_LEI_N_11_343_2006"],
+      ["1gopAeEg0wS7c6k8qylD1bUjxEaOdqG0E", "11_CRIMES_DE_TRANSITO_LEI_N_9_503_1997"],
+      ["18K2LaoDtP7QhA_x4bjOX0OeO5iVWkfpx", "10_CRIMES_CONTRA_O_MEIO_AMBIENTE_LEI_N_9_605_1998"],
+      ["13EfFx4rI47lg5PDY38jC1YLkjL_wqDzu", "9_MARCO_LEGAL_DO_COMBATE_AO_CRIME_ORGANIZADO_LEI_N_15_358_2026"],
+      ["172vb5mv3ZP4wHnynDFk4Ut6UU6gf5vxi", "8_CRIME_ORGANIZADO_LEIS_N_12_694_2012_E_N_12_850_2013"],
+      ["180X_5fTjNzdi27nCg3aEYxDdW2SGv-je", "7_CRIMES_DE_TORTURA_LEI_N_9_455_1997"],
+      ["1b8pM44nzQ2iyVLwzY2oQgXKVKGrJGOcZ", "6_CRIMES_RESULTANTES_DE_PRECONCEITO_DE_RACA_OU_COR_LEI_N_7_716_1989"],
+      ["1QjozmkSEoMrDUR6H7jvTMsTyzFCWIfRn", "5_CRIMES_HEDIONDOS_LEI_N_8_072_1990_ASPECTOS_PROCESSUAIS_PENAIS"],
+      ["1SOFKe9psfYlyH3_feeDJf3HnLu9Ektxe", "4_CRIMES_CONTRA_A_ORDEM_TRIBUTARIA_LEI_N_8_137_1990"],
+      ["17OzJFCzirvwYii4Xf_TkyyYtJ5P7j5E8", "3_CRIMES_NO_ESTATUTO_DA_PESSOA_IDOSA_LEI_N_10_741_2003"],
+      ["1S-E48JbiBOI7n4vWDw7rJkfXgi9mobqC", "2_CONTRAVENCOES_PENAIS_DECRETO_LEI_N_3_688_1941"],
+      ["1iAgCWqxjAJfeWjA9K8XIbDHdm-2kxSzf", "1_LEI_DE_INTRODUCAO_AO_CODIGO_PENAL_DECRETO_LEI_N_3_914_1941"]
+    ]),
+
+    discipline("criminologia", "1Q-sx2L667jqez8E8LJ4e4msu1PNN_H_4", "17_CRIMINOLOGIA", ["CRIMINOLOGIA"], [
+      ["1zauRjpxik3qw0FVlNYsXqaiO5DUhA3e5", "3_MODELOS_TEORICOS_DA_CRIMINOLOGIA"],
+      ["1rfZ2Nwz5I4pOS3i97UQmKeN47vJ3fWmo", "2_FUNCOES_DA_CRIMINOLOGIA"],
+      ["1AjbzCbME1V1ByfXzDlhLDEQbuEBnGjwU", "1_CRIMINOLOGIA"]
+    ]),
+
+    discipline("peca-delegado", "1lzFW6Z5Ip0m5l5fuUhkw6D8Oi6AWRulO", "90_PECA_PARA_DELEGADO_DE_POLICIA_CIVIL", ["PECA PARA DELEGADO DE POLICIA CIVIL", "PECA PROFISSIONAL", "PECA PARA DELEGADO"], [
+      ["15oHbh86ndaWmEv5Btg4Btk1QvGEL25aI", "11_REPRESENTACAO_POR_QUEBRA_DE_SIGILO_TELEMATICO"],
+      ["1yMdX2Z54a33QYgZOTv3JGwyPSxyY6rQj", "9_REPRESENTACAO_POR_QUEBRA_DE_SIGILO_FISCAL"],
+      ["1cqMylVWoUwyNM-xNtfGaNuzeVVkRemAM", "10_REPRESENTACAO_POR_QUEBRA_DE_SIGILO_TELEFONICO"],
+      ["1hqNOtsBTSMwKv9MKS22Gnn9sQaWXEwpp", "7_REPRESENTACAO_POR_QUEBRA_DE_SIGILO_FINANCEIRO"],
+      ["1wK1bpVqopOzMAKN4sJ4uQyF_nGbsDE7K", "6_REPRESENTACAO_POR_INTERCEPTACAO_AMBIENTAL"],
+      ["1miwQLZ7G09p25Rj10JNM0htsz04WOqnO", "5_REPRESENTACAO_POR_INTERCEPTACAO_TELEMATICA"],
+      ["1EeZXX_lBDudGth-TtXud2suDXzz4AtKb", "8_REPRESENTACAO_POR_QUEBRA_DE_SIGILO_BANCARIO"],
+      ["1qrItBcc8weZGdzUBmLjPATRto2ttqjhm", "3_REPRESENTACAO_POR_BUSCA_E_APREENSAO"],
+      ["1xRrwq_MwKKYF_F-zBcsnctx29htbTv8A", "4_REPRESENTACAO_POR_INTERCEPTACAO_TELEFONICA"],
+      ["1BN-Ufub9KOePMlJr0npbunSAoRaHa8vj", "2_REPRESENTACAO_POR_PRISAO_PREVENTIVA"],
+      ["1aMkj7Z_3Hwmckr3RAy0S91Zq6rCbQK1S", "1_REPRESENTACAO_POR_PRISAO_TEMPORARIA"]
+    ])
+  ];
+
+  Object.defineProperty(globalThis, "__FACTORY_DESTINATION_CATALOG_V222__", {
+    value: Object.freeze({ version: "20260803-pastas-destino-fabrica-v222", rootFolder: ROOT_FOLDER, disciplines: Object.freeze(catalog) }),
+    configurable: true,
+    enumerable: false,
+    writable: false
+  });
+})();
+
+/* Aldus source: factory-destination-folders-v222.js */
+/* Vinculação automática das pastas de destino da Fábrica de Resumos — v222. */
+(() => {
+  "use strict";
+
+  const MIGRATION_VERSION = "20260803-pastas-destino-fabrica-v222";
+  const MANAGED_VERSION_FIELD = "factoryDestinationFolderCatalogVersion";
+  const RETRY_DELAYS = [0, 800, 2500, 7000];
+  const STOP_WORDS = new Set([
+    "a", "ao", "aos", "as", "com", "da", "das", "de", "do", "dos", "e", "em", "na", "nas", "no", "nos", "o", "os", "para", "por",
+    "aplicavel", "aplicaveis", "aspecto", "aspectos", "brasil", "brasileira", "brasileiro", "direito", "estadual", "federal", "lei", "leis", "n", "no"
+  ]);
+
+  function canonicalText(value = "") {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toUpperCase()
+      .replace(/[º°ª]/g, "")
+      .replace(/[^A-Z0-9]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function stripLeadingCode(value = "") {
+    return canonicalText(value).replace(/^\d+(?:\s+\d+){0,3}\s+/, "").trim();
+  }
+
+  function leadingCode(value = "") {
+    const raw = String(value || "").trim();
+    const match = raw.match(/^(?:ITEM\s*)?(\d+(?:[._-]\d+){0,3})(?=\D|$)/i);
+    if (!match) return "";
+    return match[1].split(/[._-]+/).map((part) => String(Number(part))).join(".");
+  }
+
+  function tokenSet(value = "") {
+    return new Set(stripLeadingCode(value).split(" ").filter((token) => token.length > 1 && !STOP_WORDS.has(token.toLowerCase())));
+  }
+
+  function jaccard(left, right) {
+    const a = tokenSet(left);
+    const b = tokenSet(right);
+    if (!a.size || !b.size) return 0;
+    let intersection = 0;
+    a.forEach((token) => { if (b.has(token)) intersection += 1; });
+    return intersection / (a.size + b.size - intersection);
+  }
+
+  function relevantNumbers(value = "") {
+    return new Set(canonicalText(value).split(" ").filter((token) => /^\d{3,4}$/.test(token)));
+  }
+
+  function numberOverlap(left, right) {
+    const a = relevantNumbers(left);
+    const b = relevantNumbers(right);
+    return [...a].filter((number) => b.has(number));
+  }
+
+  function disciplineTexts(item = {}) {
+    return [
+      item.disciplina, item.discipline, item.materia, item.subjectDiscipline,
+      item.editalLink?.discipline, item.editalVinculo?.discipline
+    ].filter(Boolean);
+  }
+
+  function topicTexts(item = {}) {
+    const values = [
+      item.tema, item.theme, item.assunto, item.subject, item.topico, item.topic,
+      item.subtema, item.subtheme, item.reference, item.referencia,
+      item.editalLink?.subject, item.editalLink?.topic, item.editalLink?.groupKey,
+      item.editalVinculo?.subject, item.editalVinculo?.topic
+    ];
+    if (Array.isArray(item.editalSubtemas)) values.push(...item.editalSubtemas);
+    if (Array.isArray(item.subtemasEdital)) values.push(...item.subtemasEdital);
+    return values.filter(Boolean).map(String);
+  }
+
+  function disciplineScore(input, entry) {
+    const normalized = canonicalText(input);
+    if (!normalized) return 0;
+    const candidates = [entry.folder?.title, ...(entry.aliases || [])].map(canonicalText).filter(Boolean);
+    let score = 0;
+    candidates.forEach((candidate) => {
+      if (normalized === candidate) score = Math.max(score, 100);
+      else if (normalized.includes(candidate) || candidate.includes(normalized)) {
+        const ratio = Math.min(normalized.length, candidate.length) / Math.max(normalized.length, candidate.length);
+        score = Math.max(score, 72 + ratio * 18);
+      } else {
+        score = Math.max(score, jaccard(normalized, candidate) * 72);
+      }
+    });
+    return score;
+  }
+
+  function resolveDiscipline(item, catalog) {
+    const inputs = disciplineTexts(item);
+    if (!inputs.length) return null;
+    const ranked = (catalog.disciplines || []).map((entry) => ({
+      entry,
+      score: Math.max(...inputs.map((input) => disciplineScore(input, entry)))
+    })).sort((left, right) => right.score - left.score);
+    if (!ranked[0] || ranked[0].score < 58) return null;
+    if (ranked[1] && ranked[0].score < 96 && ranked[0].score - ranked[1].score < 5) return null;
+    return ranked[0];
+  }
+
+  function topicScore(input, folder) {
+    const inputCode = leadingCode(input);
+    const folderCode = leadingCode(folder.title);
+    const inputText = stripLeadingCode(input);
+    const folderText = stripLeadingCode(folder.title);
+    if (!inputText || !folderText) return { score: 0, reason: "none" };
+    if (inputCode && folderCode && inputCode === folderCode) return { score: 130, reason: "code" };
+    if (inputText === folderText) return { score: 115, reason: "exact" };
+    if (inputText.includes(folderText) || folderText.includes(inputText)) {
+      const ratio = Math.min(inputText.length, folderText.length) / Math.max(inputText.length, folderText.length);
+      return { score: 88 + ratio * 16, reason: "containment" };
+    }
+    const numbers = numberOverlap(inputText, folderText);
+    const similarity = jaccard(inputText, folderText);
+    if (numbers.length >= 2 && similarity >= 0.18) return { score: 84 + Math.min(8, numbers.length * 2) + similarity * 8, reason: "law-number" };
+    if (numbers.length >= 2) return { score: 78 + Math.min(8, numbers.length * 2), reason: "law-number" };
+    return { score: similarity * 100, reason: "tokens" };
+  }
+
+  function resolveTopic(item, disciplineEntry) {
+    const inputs = topicTexts(item);
+    if (!inputs.length || !disciplineEntry?.topics?.length) return null;
+    const ranked = disciplineEntry.topics.map((folder) => {
+      let best = { score: 0, reason: "none", input: "" };
+      inputs.forEach((input) => {
+        const current = topicScore(input, folder);
+        if (current.score > best.score) best = { ...current, input };
+      });
+      return { folder, ...best };
+    }).sort((left, right) => right.score - left.score);
+    const best = ranked[0];
+    const second = ranked[1];
+    if (!best || best.score < 54) return null;
+    if (second && best.score < 110 && best.score - second.score < 4) return null;
+    return best;
+  }
+
+  function currentState() {
+    try {
+      if (typeof state !== "undefined" && state) return state;
+    } catch {}
+    return globalThis.__FACTORY_DESTINATION_STATE__ || null;
+  }
+
+  function currentAgenda(targetState) {
+    try {
+      if (typeof ensureFactoryAgenda === "function") return ensureFactoryAgenda();
+    } catch {}
+    if (Array.isArray(targetState?.factoryAgenda) && targetState.factoryAgenda.length) return targetState.factoryAgenda;
+    if (Array.isArray(targetState?.factoryItems)) return targetState.factoryItems;
+    return [];
+  }
+
+  function existingDestination(item = {}) {
+    return String(item.factoryDestinationFolder || item.pastaDestinoWordPdf || item.destinationFolder || item.finalFilesFolder || "").trim();
+  }
+
+  function isManagedDestination(item = {}) {
+    return Boolean(item[MANAGED_VERSION_FIELD] || item.factoryDestinationFolderCatalogKey || item.factoryDestinationFolderMatchType);
+  }
+
+  function applyToItem(item, catalog, options = {}) {
+    if (!item || typeof item !== "object") return { changed: false, status: "invalid" };
+    const existing = existingDestination(item);
+    const managed = isManagedDestination(item);
+    if (existing && !managed && !options.overwriteManual) return { changed: false, status: "manual-preserved", url: existing };
+
+    const disciplineMatch = resolveDiscipline(item, catalog);
+    if (!disciplineMatch?.entry?.folder?.url) return { changed: false, status: "discipline-unmatched" };
+    const topicMatch = resolveTopic(item, disciplineMatch.entry);
+    const destination = topicMatch?.folder || disciplineMatch.entry.folder;
+    const matchType = topicMatch ? "topic" : "discipline-fallback";
+    const previousSnapshot = JSON.stringify([
+      item.factoryDestinationFolder,
+      item[MANAGED_VERSION_FIELD],
+      item.factoryDestinationFolderCatalogKey,
+      item.factoryDestinationFolderMatchType,
+      item.factoryDestinationFolderMatchTitle
+    ]);
+
+    item.factoryDestinationFolder = destination.url;
+    item[MANAGED_VERSION_FIELD] = MIGRATION_VERSION;
+    item.factoryDestinationFolderCatalogKey = disciplineMatch.entry.key;
+    item.factoryDestinationFolderMatchType = matchType;
+    item.factoryDestinationFolderMatchTitle = destination.title;
+    item.factoryDestinationFolderMatchScore = Math.round(topicMatch?.score || disciplineMatch.score || 0);
+    item.factoryDestinationFolderMatchedAt ||= new Date().toISOString();
+
+    const nextSnapshot = JSON.stringify([
+      item.factoryDestinationFolder,
+      item[MANAGED_VERSION_FIELD],
+      item.factoryDestinationFolderCatalogKey,
+      item.factoryDestinationFolderMatchType,
+      item.factoryDestinationFolderMatchTitle
+    ]);
+    return {
+      changed: previousSnapshot !== nextSnapshot,
+      status: matchType,
+      url: destination.url,
+      title: destination.title,
+      score: item.factoryDestinationFolderMatchScore
+    };
+  }
+
+  function applyFactoryDestinationFolders(options = {}) {
+    const catalog = globalThis.__FACTORY_DESTINATION_CATALOG_V222__;
+    const targetState = currentState();
+    if (!catalog?.disciplines?.length || !targetState) return { applied: false, reason: "not-ready", changed: 0 };
+    const agenda = currentAgenda(targetState);
+    if (!Array.isArray(agenda)) return { applied: false, reason: "agenda-unavailable", changed: 0 };
+
+    const report = {
+      version: MIGRATION_VERSION,
+      appliedAt: new Date().toISOString(),
+      total: agenda.length,
+      changed: 0,
+      topic: 0,
+      disciplineFallback: 0,
+      manualPreserved: 0,
+      unmatched: 0
+    };
+
+    agenda.forEach((item) => {
+      const result = applyToItem(item, catalog, options);
+      if (result.changed) report.changed += 1;
+      if (result.status === "topic") report.topic += 1;
+      else if (result.status === "discipline-fallback") report.disciplineFallback += 1;
+      else if (result.status === "manual-preserved") report.manualPreserved += 1;
+      else if (result.status === "discipline-unmatched") report.unmatched += 1;
+    });
+
+    targetState.factoryAgenda = agenda;
+    targetState.factoryItems = agenda;
+    targetState.migrations ||= {};
+    targetState.migrations.factoryDestinationFoldersV222 = report;
+    globalThis.__factoryDestinationFoldersV222Report = report;
+
+    if (report.changed > 0) {
+      try { if (typeof saveData === "function") saveData(); } catch (error) { console.warn("[Fábrica v222] Não foi possível salvar imediatamente.", error); }
+      try { if (typeof renderFactory === "function" && location.hash === "#fabrica-resumos") renderFactory(); } catch {}
+    }
+    return { applied: true, ...report };
+  }
+
+  function scheduleApplication() {
+    RETRY_DELAYS.forEach((delay) => setTimeout(() => applyFactoryDestinationFolders(), delay));
+  }
+
+  function wrapEditalSync() {
+    try {
+      if (typeof syncFactoryWithActiveEdital !== "function" || syncFactoryWithActiveEdital.__destinationFoldersV222Wrapped) return;
+      const original = syncFactoryWithActiveEdital;
+      const wrapped = function (...args) {
+        const result = original.apply(this, args);
+        queueMicrotask(() => applyFactoryDestinationFolders());
+        return result;
+      };
+      Object.defineProperty(wrapped, "__destinationFoldersV222Wrapped", { value: true });
+      syncFactoryWithActiveEdital = wrapped;
+    } catch (error) {
+      console.warn("[Fábrica v222] Integração com o edital será aplicada pelas tentativas programadas.", error);
+    }
+  }
+
+  Object.defineProperties(globalThis, {
+    __applyFactoryDestinationFoldersV222: { value: applyFactoryDestinationFolders, configurable: true },
+    __resolveFactoryDestinationDisciplineV222: { value: resolveDiscipline, configurable: true },
+    __resolveFactoryDestinationTopicV222: { value: resolveTopic, configurable: true },
+    __applyFactoryDestinationToItemV222: { value: applyToItem, configurable: true }
+  });
+
+  wrapEditalSync();
+  if (typeof document === "undefined") return;
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", scheduleApplication, { once: true });
+  else scheduleApplication();
+  window.addEventListener("hashchange", () => { if (location.hash === "#fabrica-resumos") applyFactoryDestinationFolders(); });
+})();
+
 /* Aldus runtime source: save-performance-v186.js */
 (() => {
   "use strict";
@@ -58789,6 +59434,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
       background: linear-gradient(180deg, #e8f2f8 0%, #d9e7f1 100%) !important;
       border-color: rgba(199, 154, 59, .38) !important;
       box-shadow: 0 12px 28px rgba(3, 32, 58, .14), inset 0 3px 0 rgba(199, 154, 59, .70) !important;
+      color: #17324d !important;
     }
 
     #questionHistoryChartsV215 .qhcv215-card {
@@ -58816,35 +59462,108 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     }
 
     #questionHistoryChartsV215 .qhcv215-total {
-      fill: #082b49 !important;
+      fill: #062845 !important;
+      opacity: 1 !important;
     }
 
     #questionHistoryChartsV215 .qhcv215-total-label,
     #questionHistoryChartsV215 .qhcv215-dominant {
-      fill: #587086 !important;
+      fill: #425f77 !important;
+      opacity: 1 !important;
     }
 
     #questionHistoryChartsV215 .qhcv215-badge {
-      background: #dcefe9 !important;
-      border-color: rgba(35, 134, 111, .32) !important;
-      color: #165c49 !important;
+      background: #d7eee7 !important;
+      border-color: #91c7b8 !important;
+      color: #0d5b48 !important;
+      -webkit-text-fill-color: #0d5b48 !important;
+      opacity: 1 !important;
+      filter: none !important;
+      text-shadow: none !important;
     }
 
     #questionHistoryChartsV215 .qhcv215-legend-item {
-      background: rgba(244, 249, 252, .78) !important;
-      border-top-color: #cbdbe6 !important;
-      border-right-color: #cbdbe6 !important;
-      border-bottom-color: #cbdbe6 !important;
+      background: rgba(248, 252, 255, .94) !important;
+      border-top-color: #b8ccda !important;
+      border-right-color: #b8ccda !important;
+      border-bottom-color: #b8ccda !important;
     }
 
     #questionHistoryChartsV215 .qhcv215-share-track {
-      background: #ccdae4 !important;
+      background: #bdcfdb !important;
+      box-shadow: inset 0 1px 2px rgba(3, 32, 58, .14) !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-title,
+    #questionHistoryChartsV215 .qhcv215-title {
+      color: #062845 !important;
+      -webkit-text-fill-color: #062845 !important;
+      opacity: 1 !important;
+      filter: none !important;
+      mix-blend-mode: normal !important;
+      text-shadow: none !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-subtitle,
+    #questionHistoryChartsV215 .qhcv215-subtitle {
+      color: #304f68 !important;
+      -webkit-text-fill-color: #304f68 !important;
+      opacity: 1 !important;
+      filter: none !important;
+      mix-blend-mode: normal !important;
+      text-shadow: none !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-card h4,
+    #questionHistoryChartsV215 .qhcv215-card h4 {
+      color: #0b3154 !important;
+      -webkit-text-fill-color: #0b3154 !important;
+      opacity: 1 !important;
+      filter: none !important;
+      mix-blend-mode: normal !important;
+      text-shadow: none !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-category-count,
+    #questionHistoryChartsV215 .qhcv215-category-count {
+      color: #2d4e68 !important;
+      -webkit-text-fill-color: #2d4e68 !important;
+      background: #d9e6ef !important;
+      border: 1px solid #bccfdd !important;
+      opacity: 1 !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-label,
+    #questionHistoryChartsV215 .qhcv215-label {
+      color: #193b56 !important;
+      -webkit-text-fill-color: #193b56 !important;
+      opacity: 1 !important;
+      filter: none !important;
+      text-shadow: none !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-value,
+    #questionHistoryChartsV215 .qhcv215-value {
+      color: #062845 !important;
+      -webkit-text-fill-color: #062845 !important;
+      opacity: 1 !important;
+      filter: none !important;
+      text-shadow: none !important;
+    }
+
+    html[data-aldus-theme="premium-stable"] #questionHistoryChartsV215 .qhcv215-value small,
+    #questionHistoryChartsV215 .qhcv215-value small {
+      color: #425f77 !important;
+      -webkit-text-fill-color: #425f77 !important;
+      opacity: 1 !important;
+      filter: none !important;
+      text-shadow: none !important;
     }
   `;
   document.head.appendChild(style);
 
   globalThis.__ALDUS_QUESTION_HISTORY_TONE_V216__ = Object.freeze({
     styleId: STYLE_ID,
-    version: "20260802-tons-azulados-historico-v216"
+    version: "20260802-contraste-distribuicao-v222"
   });
 })();

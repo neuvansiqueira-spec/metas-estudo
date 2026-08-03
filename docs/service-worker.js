@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20260802-graficos-premium-historico-v221";
+const CURRENT_VERSION = "20260803-pastas-destino-fabrica-v222";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";

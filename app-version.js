@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260802-graficos-premium-historico-v221";
+  const VERSION = "20260803-pastas-destino-fabrica-v222";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
