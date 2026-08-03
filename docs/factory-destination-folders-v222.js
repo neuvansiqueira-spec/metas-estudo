@@ -173,9 +173,10 @@
     const disciplineMatch = resolveDiscipline(item, catalog);
     if (!disciplineMatch?.entry?.folder?.url) return { changed: false, status: "discipline-unmatched" };
     const topicMatch = resolveTopic(item, disciplineMatch.entry);
-    const destination = topicMatch?.folder || disciplineMatch.entry.folder;
-    const matchType = topicMatch ? "topic" : "discipline-fallback";
-    const matchScore = Math.round(topicMatch?.score || disciplineMatch.score || 0);
+    if (!topicMatch?.folder?.url) return { changed: false, status: "topic-unmatched" };
+    const destination = topicMatch.folder;
+    const matchType = "topic";
+    const matchScore = Math.round(topicMatch.score || 0);
 
     const alreadyCurrent = existing === destination.url
       && item[MANAGED_VERSION_FIELD] === MIGRATION_VERSION

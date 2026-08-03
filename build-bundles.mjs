@@ -120,6 +120,7 @@ const jsSources = [
   "script.js",
   "factory-destination-catalog-v222.js",
   "factory-destination-folders-v222.js",
+  "factory-destination-recursive-v230.js",
   "question-accuracy-spectrum.js",
   "timer-material-link-fix.js",
   "question-history-pie.js",
@@ -367,7 +368,7 @@ for (const legacySuffix of ["v168", "v169"]) {
 
 for (const filename of [
   "index.html", "app-version.js", "style.css", "script.js", "service-worker.js", "sync-integral-core.js",
-  "factory-destination-catalog-v222.js", "factory-destination-folders-v222.js",
+  "factory-destination-catalog-v222.js", "factory-destination-folders-v222.js", "factory-destination-recursive-v230.js",
   "sync-integral-deletions.js", "sync-integral-state.js", "pcpr-pcma-2026-catalog.js",
   "pcpr-pcma-2026-migration.js", "factory-lei-prompt-v123.js",
   "factory-final-review-v128.js", "factory-visibility-v122.css",
