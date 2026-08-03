@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260803-treino-em-andamento-v223",
+  "version": "20260803-filtros-treino-completos-v224",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
