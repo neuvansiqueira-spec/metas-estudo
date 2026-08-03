@@ -4,10 +4,11 @@
   if (globalThis.__aldusQuestionBankTrainingV223) return;
   globalThis.__aldusQuestionBankTrainingV223 = true;
 
-  const VERSION = "20260803-treino-em-andamento-v223";
+  const VERSION = "20260803-corrige-banco-questoes-integral-v227";
   const DRAFT_KEY = "aldusQuestionBankTrainingDraftV223";
   const PREFS_KEY = "aldusQuestionBankTrainingPrefsV223";
   const MAX_DRAFT_AGE_MS = 14 * 24 * 60 * 60 * 1000;
+  let autoAdvanceTimer = 0;
 
   if (
     typeof qbStart !== "function"
@@ -124,6 +125,7 @@
   }
 
   function discardDraft() {
+    clearTimeout(autoAdvanceTimer);
     questionBankTraining = null;
     try { localStorage.removeItem(DRAFT_KEY); } catch {}
     if (elements.qbTrainingPanel) elements.qbTrainingPanel.hidden = true;
@@ -327,9 +329,12 @@
     persistDraft();
     enhancedRenderQuestion();
 
+    clearTimeout(autoAdvanceTimer);
     if (trainingAutoAdvance(questionBankTraining) && questionBankTraining.index < questionBankTraining.items.length - 1) {
-      window.setTimeout(() => {
-        if (!questionBankTraining) return;
+      const expectedQuestionId = question.id;
+      const expectedIndex = questionBankTraining.index;
+      autoAdvanceTimer = window.setTimeout(() => {
+        if (!questionBankTraining || questionBankTraining.index !== expectedIndex || questionBankTraining.items[expectedIndex]?.id !== expectedQuestionId) return;
         questionBankTraining.index += 1;
         persistDraft();
         enhancedRenderQuestion();
@@ -339,6 +344,7 @@
 
   function navigateTraining(direction) {
     if (!questionBankTraining) return;
+    clearTimeout(autoAdvanceTimer);
     const next = direction === "prev" ? questionBankTraining.index - 1 : questionBankTraining.index + 1;
     questionBankTraining.index = Math.min(Math.max(0, next), questionBankTraining.items.length - 1);
     persistDraft();
@@ -349,13 +355,18 @@
     if (!questionBankTraining) return;
     const pending = unansweredCount(questionBankTraining);
     if (pending && !confirm(`Ainda há ${pending} questão(ões) sem resposta. Finalizar mesmo assim?`)) return;
-    try { localStorage.removeItem(DRAFT_KEY); } catch {}
+    clearTimeout(autoAdvanceTimer);
     originalFinish();
+    if (!questionBankTraining) {
+      try { localStorage.removeItem(DRAFT_KEY); } catch {}
+      if (typeof autoSyncAfterSave === "function") autoSyncAfterSave("question-bank-training");
+    }
     updateResumeBar();
   }
 
   function saveAndExitTraining() {
     if (!questionBankTraining) return;
+    clearTimeout(autoAdvanceTimer);
     persistDraft();
     if (elements.qbTrainingPanel) elements.qbTrainingPanel.hidden = true;
     if (elements.qbResultPanel) elements.qbResultPanel.hidden = true;
@@ -370,6 +381,7 @@
       if (!confirm("Há um treino em andamento. Deseja substituí-lo por um novo treino?")) return;
     }
     const preferences = selectedPreferences();
+    clearTimeout(autoAdvanceTimer);
     originalStart(items, options);
     if (!questionBankTraining) return;
     questionBankTraining.feedbackMode = options.mode === "errorNotebook" ? "study" : preferences.feedbackMode;

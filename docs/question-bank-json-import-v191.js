@@ -39,8 +39,17 @@
   }
 
   function normalizeStringArray(value) {
-    const source = Array.isArray(value) ? value : (text(value) ? text(value).split(/\s*;\s*/) : []);
+    const source = Array.isArray(value)
+      ? value.flat(Infinity)
+      : (value && typeof value === "object")
+        ? Object.entries(value).filter(([, enabled]) => Boolean(enabled)).map(([key]) => key)
+        : (text(value) ? text(value).split(/\s*(?:;|•|\||\n)\s*/) : []);
     return [...new Set(source.map(text).filter(Boolean))];
+  }
+
+  function booleanFlag(value) {
+    if (typeof value === "boolean") return value;
+    return ["1", "true", "sim", "yes"].includes(canonicalJson(value));
   }
 
   function hasPerformanceEvidence(raw = {}) {
@@ -50,10 +59,11 @@
 
   function resultStatus(raw = {}) {
     const result = canonicalJson(firstNonEmpty(raw.resultado, raw.status_resultado, raw.statusResultado, raw.status));
+    if (result.includes("anulad") || result.includes("cancelad")) return "anulada";
     if (result.includes("nao respond") || result.includes("em branco") || result === "branco") return "branco";
     if (result.includes("duvida") || result.includes("revisar")) return "duvida";
-    if (result.includes("errad") || result.includes("incorret")) return "errado";
-    if (result.includes("cert") || result.includes("corret") || result.includes("acert")) return "certo";
+    if (result === "erro" || result.includes("errad") || result.includes("incorret")) return "errado";
+    if (result === "acerto" || result.includes("cert") || result.includes("corret") || result.includes("acert")) return "certo";
     if (raw.acertou === true) return "certo";
     if (raw.acertou === false) return "errado";
     if (raw.nao_respondida === true || raw["não_respondida"] === true) return "branco";
@@ -164,10 +174,11 @@
       numero_qconcursos: text(raw.numero_qconcursos || qcNumber),
       numeroQconcursos: text(raw.numeroQconcursos || raw.numero_qconcursos || qcNumber),
       assuntos,
+      temas: normalizeStringArray(raw.temas || raw.tema || raw.theme),
       alternativas_eliminadas: eliminated,
       alternativasEliminadas: eliminated,
-      revisao_manual: raw.revisao_manual === true,
-      revisaoManual: raw.revisaoManual === true || raw.revisao_manual === true,
+      revisao_manual: booleanFlag(raw.revisao_manual ?? raw.revisaoManual),
+      revisaoManual: booleanFlag(raw.revisaoManual ?? raw.revisao_manual),
       origem_tipo: text(firstNonEmpty(raw.origem_tipo, raw.origemTipo)),
       origemTipo: text(firstNonEmpty(raw.origemTipo, raw.origem_tipo)),
       resposta_marcada: performance ? importedMarkedAnswer(raw) : text(raw.resposta_marcada),
@@ -276,6 +287,22 @@
     return summary;
   }
 
+  function importCreatedAt(payload = {}, performanceRows = []) {
+    const metadata = payload?.metadata || {};
+    const candidate = firstNonEmpty(
+      metadata.data_resolucao,
+      metadata.data_captura,
+      metadata.data_conversao,
+      performanceRows[0]?.raw?.data_resolucao,
+      performanceRows[0]?.raw?.data,
+      performanceRows[0]?.raw?.date
+    );
+    const raw = text(candidate);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return new Date(`${raw}T12:00:00`).toISOString();
+    const parsed = Date.parse(raw);
+    return Number.isFinite(parsed) ? new Date(parsed).toISOString() : new Date().toISOString();
+  }
+
   function buildImportPlan(payload = {}, currentBank = [], currentSessions = []) {
     const source = Array.isArray(payload) ? payload : (payload.questionBank || payload.questoes || payload.questions || payload.items || []);
     if (!Array.isArray(source)) throw new Error("O JSON não contém uma lista de questões reconhecida.");
@@ -307,7 +334,7 @@
         bank.push(storedQuestion);
         counts.created += 1;
       }
-      if (hasPerformanceEvidence(raw)) {
+      if (hasPerformanceEvidence(raw) && resultStatus(raw) !== "anulada") {
         performanceRows.push({ raw, question: storedQuestion });
         counts.results += 1;
         const status = resultStatus(raw);
@@ -327,7 +354,7 @@
       const summary = summarizeSession(items);
       session = {
         id: fingerprint,
-        createdAt: new Date().toISOString(),
+        createdAt: importCreatedAt(payload, performanceRows),
         source: "qconcursos-json",
         sourceType: "qconcursos-json",
         schema: payload.schema || SCHEMA,
@@ -400,6 +427,7 @@
     findExistingQuestionIndex,
     importFingerprint,
     summarizeSession,
+    importCreatedAt,
     buildImportPlan,
     previewMessage,
     importJsonEvent

@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260803-corrige-abertura-filtros-v226";
+  const VERSION = "20260803-corrige-banco-questoes-integral-v227";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
