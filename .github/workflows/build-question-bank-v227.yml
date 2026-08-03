@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - agent/corrige-banco-questoes-integral
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
