@@ -52,6 +52,18 @@ function updateBuildSources() {
   fs.writeFileSync(buildPath, source);
 }
 
+function normalizeEditalCodes() {
+  const migrationPath = path.join(root, MIGRATION_SOURCE);
+  let source = fs.readFileSync(migrationPath, "utf8");
+  const previous = '    return match ? match[1].replace(/[._-]+/g, ".") : "";';
+  const next = '    if (!match) return "";\n    return match[1].split(/[._-]+/).map((part) => String(Number(part))).join(".");';
+  if (source.includes(previous)) source = source.replace(previous, next);
+  if (!source.includes('map((part) => String(Number(part))).join(".")')) {
+    throw new Error("Não foi possível normalizar os códigos do edital.");
+  }
+  fs.writeFileSync(migrationPath, source);
+}
+
 function validateRequiredFiles() {
   for (const filename of [CATALOG_SOURCE, MIGRATION_SOURCE]) {
     if (!fs.existsSync(path.join(root, filename))) throw new Error(`Arquivo obrigatório ausente: ${filename}`);
@@ -59,6 +71,7 @@ function validateRequiredFiles() {
 }
 
 validateRequiredFiles();
+normalizeEditalCodes();
 updatePackageVersions();
 updateBuildSources();
 console.log(`Versão ${VERSION} preparada com o catálogo de pastas da Fábrica.`);
