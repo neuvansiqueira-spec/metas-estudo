@@ -4,25 +4,8 @@ import path from "node:path";
 const root = process.cwd();
 const scriptPath = path.join(root, "script.js");
 const source = fs.readFileSync(scriptPath, "utf8");
-const previous = `function qbErrorReason(item) {
-  const marked = qbNormalizedAnswer(item?.marcado || item?.resposta || item?.answer || "");
-  const correct = qbNormalizedAnswer(item?.gabarito || item?.correctAnswer || item?.officialKey || "");
-  if (!marked || marked === "__blank__") return "branco";
-  if (correct && marked === correct) return "";
-  return "erro";
-}`;
-const corrected = `function qbErrorReason(item) {
-  const explicitStatus = qbNormalize(item?.status || item?.resultado || item?.result);
-  if (["certo", "correto", "acerto"].includes(explicitStatus)) return "";
-  if (["errado", "incorreto", "erro"].includes(explicitStatus)) return "erro";
-  if (["branco", "nao respondida", "não respondida"].includes(explicitStatus)) return "branco";
-  if (["duvida", "dúvida", "revisar"].includes(explicitStatus)) return "duvida";
-  const marked = qbNormalizedAnswer(item?.marcado || item?.resposta || item?.answer || "");
-  const correct = qbNormalizedAnswer(item?.gabarito || item?.correctAnswer || item?.officialKey || "");
-  if (!marked || marked === "__blank__") return "branco";
-  if (correct && marked === correct) return "";
-  return "erro";
-}`;
+const previous = 'function qbErrorReason(q) { if (qbIsBlankMark(q)) return "branco"; if (qbIsDoubtMark(q)) return "duvida"; if (qbHasKey(q) && q.marcado !== q.gabarito) return "erro"; return ""; }';
+const corrected = 'function qbErrorReason(q) { const status = canonical(q?.status || q?.resultado || ""); if (status === "certo" || status === "correto" || status === "acerto") return ""; if (status === "errado" || status === "erro" || status === "incorreto") return "erro"; if (status === "branco" || status.includes("nao respond")) return "branco"; if (status === "duvida") return "duvida"; if (qbIsBlankMark(q)) return "branco"; if (qbIsDoubtMark(q)) return "duvida"; if (qbHasKey(q) && q.marcado !== q.gabarito) return "erro"; return ""; }';
 
 if (source.includes(corrected)) {
   console.log("Classificação explícita do caderno já está corrigida.");
