@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260803-corrige-funcionamento-banco-questoes-v228",
+  "version": "20260803-corrige-filtro-banca-fgv-v229",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

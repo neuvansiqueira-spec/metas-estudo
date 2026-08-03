@@ -3,7 +3,7 @@
   if (globalThis.__aldusQuestionBankFiltersV225) return;
   globalThis.__aldusQuestionBankFiltersV225 = true;
 
-  const VERSION = "20260803-corrige-funcionamento-banco-questoes-v228";
+  const VERSION = "20260803-corrige-filtro-banca-fgv-v229";
   const UNMAPPED_SUBJECT = "__qb_unmapped_subject_v225__";
   const FILTER_IDS = {
     scope: "qbTrainingScope",
@@ -99,7 +99,7 @@
     if (!raw) return "";
     if (key === "board") {
       if (normalized.includes("cebraspe") || normalized.includes("cespe")) return "CEBRASPE";
-      if (normalized.includes("fundacao getulio vargas") || normalized === "fgv") return "FGV";
+      if (normalized.includes("fundacao getulio vargas") || /(^|[^a-z0-9])fgv([^a-z0-9]|$)/.test(normalized)) return "FGV";
       return raw;
     }
     if (key === "type") {
@@ -113,6 +113,39 @@
     }
     if (key === "agency") return raw.toUpperCase().replace(/^PC\s*[-/]?\s*/i, "PC-").replace(/\s+/g, "");
     return raw;
+  }
+
+  function metadataText(value) {
+    if (Array.isArray(value)) return value.map(metadataText).find(Boolean) || "";
+    if (value && typeof value === "object") {
+      return metadataText(value.nome ?? value.name ?? value.label ?? value.sigla ?? value.value);
+    }
+    return text(value);
+  }
+
+  function detectedBoard(value) {
+    const raw = metadataText(value);
+    if (!raw) return "";
+    const normalized = normalizeFacetValue("board", raw);
+    return ["CEBRASPE", "FGV"].includes(normalized) ? normalized : "";
+  }
+
+  function questionBoard(question) {
+    const explicit = [
+      question?.banca,
+      question?.board,
+      question?.examiningBoard,
+      question?.examining_board,
+      question?.organizadora,
+      question?.metadados?.banca,
+      question?.metadados?.board,
+      question?.metadata?.banca,
+      question?.metadata?.board
+    ].map(metadataText).find(Boolean);
+    if (explicit) return normalizeFacetValue("board", explicit);
+    return [question?.prova, question?.exam, question?.fonte, question?.source, question?.arquivoFonte]
+      .map(detectedBoard)
+      .find(Boolean) || "";
   }
 
   function questionDiscipline(question) { return text(question?.disciplina || question?.discipline); }
@@ -139,7 +172,7 @@
   }
   function questionFacet(question, key) {
     if (key === "discipline") return questionDiscipline(question);
-    if (key === "board") return normalizeFacetValue(key, question?.banca || question?.board);
+    if (key === "board") return questionBoard(question);
     if (key === "year") return text(question?.ano || question?.year);
     if (key === "agency") return normalizeFacetValue(key, question?.orgao || question?.órgão || question?.agency || question?.instituicao);
     if (key === "role") return normalizeFacetValue(key, question?.cargo || question?.job || question?.funcao);
@@ -430,6 +463,7 @@
     normalizeFacetValue,
     questionSubjectValues,
     questionThemeValues,
+    questionBoard,
     disciplineMatches,
     fuzzyTextMatch,
     questionMatchesItem,

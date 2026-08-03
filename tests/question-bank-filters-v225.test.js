@@ -25,8 +25,9 @@ function runtime() {
     { id:"q1", disciplina:"Direito Penal", assunto:"Tipicidade", tema:"Teoria da imputação objetiva", banca:"CESPE / CEBRASPE", ano:2025, orgao:"PCDF", cargo:"Delegado de Polícia Civil", tipo:"Certo ou Errado", gabarito:"C", enunciado:"Item." },
     { id:"q2", disciplina:"Direito Penal", assunto:"Legislação Penal Especial; Lei de Tóxicos — Lei nº 11.343/2006", assuntos:["Legislação Penal Especial","Lei de Tóxicos — Lei nº 11.343/2006"], tema:"Lei de Drogas • Tráfico privilegiado", banca:"CEBRASPE", ano:2026, orgao:"PC-DF", cargo:"Delegado de Polícia", tipo:"Certo/Errado", gabarito:"E", enunciado:"Item." },
     { id:"q3", disciplina:"Direito Penal", assunto:"Prevaricação; art. 319-A; art. 349-A", tema:"Crimes funcionais", banca:"CEBRASPE", ano:2024, orgao:"PC-PE", cargo:"Delegado de Polícia Civil", tipo:"Certo/Errado", gabarito:"C", enunciado:"Item." },
-    { id:"q4", disciplina:"Direito Penal", assunto:"Assunto externo", tema:"Tema externo", banca:"FGV", ano:2023, orgao:"PC-MA", cargo:"Delegado de Polícia", tipo:"Múltipla escolha", alternativas:{A:"a",B:"b"}, gabarito:"A", enunciado:"Item." },
-    { id:"q5", disciplina:"Direito Processual Penal", assunto:"Provas", tema:"Cadeia de custódia", banca:"CEBRASPE", ano:2026, orgao:"PC-PR", cargo:"Delegado de Polícia", tipo:"Certo/Errado", gabarito:"C", enunciado:"Item." }
+    { id:"q4", disciplina:"Direito Penal", assunto:"Assunto externo", tema:"Tema externo", banca:"FGV Conhecimento", ano:2023, orgao:"PC-MA", cargo:"Delegado de Polícia", tipo:"Múltipla escolha", alternativas:{A:"a",B:"b"}, gabarito:"A", enunciado:"Item." },
+    { id:"q5", disciplina:"Direito Processual Penal", assunto:"Provas", tema:"Cadeia de custódia", banca:"CEBRASPE", ano:2026, orgao:"PC-PR", cargo:"Delegado de Polícia", tipo:"Certo/Errado", gabarito:"C", enunciado:"Item." },
+    { id:"q6", disciplina:"Direito Penal", assunto:"Fato típico", tema:"Tipicidade", examiningBoard:{ name:"Fundação Getúlio Vargas (FGV)" }, ano:2024, orgao:"PC-PR", cargo:"Delegado de Polícia", tipo:"Múltipla escolha", alternativas:{A:"a",B:"b"}, gabarito:"B", enunciado:"Item." }
   ];
   const canonical = (value) => String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
   const oldMatch = (question, item) => canonical(question.disciplina).includes(canonical(item.discipline))
@@ -53,7 +54,7 @@ function runtime() {
 
 test("escopo do edital não elimina questões antes da classificação", () => {
   const { api } = runtime();
-  assert.equal(api.scopeBank().length, 5);
+  assert.equal(api.scopeBank().length, 6);
 });
 
 test("assuntos e temas compostos são separados sem códigos do edital", () => {
@@ -72,15 +73,22 @@ test("disciplinas próximas não são misturadas", () => {
   assert.equal(api.itemsForSelection("DIREITO PROCESSUAL PENAL").length, 1);
   controls.qbTrainingScope.value = "all";
   controls.qbFilterDiscipline.value = "DIREITO PENAL";
-  assert.equal(api.filteredQuestions().length, 4);
+  assert.equal(api.filteredQuestions().length, 5);
 });
 
 test("banca, tipo, órgão e cargo equivalentes são unificados", () => {
-  const { api } = runtime();
+  const { api, controls } = runtime();
   assert.equal(api.normalizeFacetValue("board", "CESPE / CEBRASPE"), "CEBRASPE");
+  assert.equal(api.normalizeFacetValue("board", "FGV Conhecimento"), "FGV");
+  assert.equal(api.questionBoard({ examiningBoard:{ name:"Fundação Getúlio Vargas (FGV)" } }), "FGV");
+  assert.equal(api.questionBoard({ metadata:{ board:"FGV" } }), "FGV");
   assert.equal(api.normalizeFacetValue("type", "Certo ou Errado"), "Certo/Errado");
   assert.equal(api.normalizeFacetValue("agency", "PCDF"), "PC-DF");
   assert.equal(api.normalizeFacetValue("role", "Delegado de Polícia Civil"), "Delegado de Polícia");
+  controls.qbTrainingScope.value = "all";
+  assert.ok(api.optionValues("board", { discipline:"", subject:"", theme:"", board:"", year:"", agency:"", role:"", type:"", keyStatus:"" }).includes("FGV"));
+  controls.qbFilterBoard.value = "FGV";
+  assert.equal(api.filteredQuestions().length, 2);
 });
 
 test("cascata depende somente dos filtros anteriores", () => {
