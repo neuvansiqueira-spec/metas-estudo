@@ -1,0 +1,61 @@
+name: Build Jurisprudence Prompt v231
+
+on:
+  push:
+    branches:
+      - agent/corrige-prompt-jurisprudencia-v231
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: jurisprudence-prompt-v231-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-test-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout correction branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: agent/corrige-prompt-jurisprudencia-v231
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build release
+        run: npm run build
+
+      - name: Test jurisprudence prompt migration
+        run: node --test tests/factory-jurisprudencia-prompt-v231.test.js
+
+      - name: Validate generated release
+        run: |
+          node --check factory-jurisprudencia-prompt-v231.js
+          node --check app-v231.js
+          grep -q '20260803-corrige-prompt-jurisprudencia-v231' docs/index.html
+          grep -q 'factory-jurisprudencia-prompt-v231.js' app-v231.js
+          cmp -s app.bundle.js docs/app.bundle.js
+          cmp -s factory-jurisprudencia-prompt-v231.js docs/factory-jurisprudencia-prompt-v231.js
+
+      - name: Commit generated release
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração adicional para publicar."
+            exit 0
+          fi
+          git commit -m "fix: corrige prompt de jurisprudência v231"
+          git push origin HEAD:agent/corrige-prompt-jurisprudencia-v231
+
