@@ -148,7 +148,8 @@ const jsSources = [
   "contest-countdown-v151.js",
   "performance-practical-v143.js",
   "daily-collapsibles-closed-v140.js",
-  "question-scoring-rule-v142.js"
+  "question-scoring-rule-v142.js",
+  "question-bank-training-v223.js"
 ];
 
 function readRuntimeSource(filename) {
@@ -292,7 +293,8 @@ function consolidateApplication(baseSource) {
     "/* Aldus runtime source: question-history-report-ui-v198.js */",
     "/* Aldus runtime source: planning-shift-disciplines-v200.js */",
     "/* Aldus runtime source: question-history-charts-v215.js */",
-    "/* Aldus runtime source: question-history-tone-v216.js */"
+    "/* Aldus runtime source: question-history-tone-v216.js */",
+    "/* Aldus source: question-bank-training-v223.js */"
   ];
   const missing = requiredMarkers.filter((marker) => !source.includes(marker));
   if (missing.length) throw new Error(`Bundle consolidado incompleto: ${missing.join(", ")}`);
@@ -384,7 +386,7 @@ for (const filename of [
   "aldus-question-register-v180.css", "qconcursos-pdf-import-v181.js",
   "question-bank-pdf-import-v181.css", "qconcursos-capture-import-v182.js",
   "question-bank-capture-import-v182.css", "question-history-pie.js", "question-history-charts-v215.js",
-  "question-history-tone-v216.js"
+  "question-history-tone-v216.js", "question-bank-training-v223.js"
 ]) {
   fs.copyFileSync(path.join(root, filename), path.join(root, "docs", filename));
 }

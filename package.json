@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260803-pastas-destino-fabrica-v222",
+  "version": "20260803-treino-em-andamento-v223",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
