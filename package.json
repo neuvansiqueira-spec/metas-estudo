@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260803-corrige-filtros-treino-v225",
+  "version": "20260803-corrige-abertura-filtros-v226",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

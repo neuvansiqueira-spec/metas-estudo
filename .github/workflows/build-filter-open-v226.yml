@@ -1,0 +1,66 @@
+name: Build Filter Open v226
+
+on:
+  push:
+    branches:
+      - codex/corrige-abertura-filtros-v226
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: filter-open-v226-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: codex/corrige-abertura-filtros-v226
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Prepare v226 release
+        run: node tools/apply-filter-open-v226.mjs
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run focused tests
+        run: node --test tests/question-bank-filter-open-v226.test.js tests/question-bank-filters-v225.test.js tests/question-bank-filters-v224.test.js tests/question-bank-training-v223.test.js
+
+      - name: Build bundles
+        run: npm run build
+
+      - name: Validate generated release
+        run: |
+          node --check question-bank-filter-open-v226.js
+          node --check app-v226.js
+          grep -q '__aldusQuestionBankFilterOpenV226' app-v226.js
+          grep -q '20260803-corrige-abertura-filtros-v226' index.html
+          grep -q 'app-v226.js' docs/index.html
+          grep -q 'question-bank-filter-open-v226.js' build-bundles.mjs
+
+      - name: Commit generated v226 release
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração adicional para publicar."
+            exit 0
+          fi
+          git commit -m "build: publish correção de abertura dos filtros v226"
+          git push origin HEAD:codex/corrige-abertura-filtros-v226
