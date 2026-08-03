@@ -1,0 +1,69 @@
+name: Build Filters v225
+
+on:
+  push:
+    branches:
+      - codex/corrige-filtros-treino-v225
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: filters-v225-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: codex/corrige-filtros-treino-v225
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Materialize v225 sources
+        run: node tools/materialize-filters-v225.mjs
+
+      - name: Prepare v225 release
+        run: node tools/apply-filters-v225.mjs
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run focused tests
+        run: node --test tests/question-bank-filters-v225.test.js tests/question-bank-filters-v224.test.js tests/question-bank-training-v223.test.js
+
+      - name: Build bundles
+        run: npm run build
+
+      - name: Validate generated release
+        run: |
+          node --check question-bank-filters-v225.js
+          node --check app-v225.js
+          grep -q '__aldusQuestionBankFiltersV225' app-v225.js
+          grep -q '20260803-corrige-filtros-treino-v225' index.html
+          grep -q 'app-v225.js' docs/index.html
+          grep -q 'question-bank-filters-v225.js' build-bundles.mjs
+
+      - name: Commit generated v225 release
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração adicional para publicar."
+            exit 0
+          fi
+          git commit -m "build: publish correção dos filtros do treino v225"
+          git push origin HEAD:codex/corrige-filtros-treino-v225

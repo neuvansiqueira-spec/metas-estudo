@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260803-filtros-treino-completos-v224";
+  const VERSION = "20260803-corrige-filtros-treino-v225";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
