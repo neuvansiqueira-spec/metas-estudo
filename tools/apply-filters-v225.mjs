@@ -50,8 +50,8 @@ function updateBuildSources() {
 
   source = replaceRequired(
     source,
-    '  "question-bank-training-v223.js", "question-bank-filters-v224.js"\n]) {',
-    '  "question-bank-training-v223.js", "question-bank-filters-v224.js", "question-bank-filters-v225.js"\n]) {',
+    '"question-bank-filters-v224.js"\n]) {',
+    '"question-bank-filters-v224.js", "question-bank-filters-v225.js"\n]) {',
     "cópia dos filtros v225 para docs"
   );
 
