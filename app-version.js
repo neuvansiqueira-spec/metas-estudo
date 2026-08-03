@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260803-corrige-banco-questoes-integral-v227";
+  const VERSION = "20260803-corrige-funcionamento-banco-questoes-v228";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

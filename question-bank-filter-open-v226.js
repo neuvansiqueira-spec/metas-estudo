@@ -3,7 +3,7 @@
   if (globalThis.__aldusQuestionBankFilterOpenV226) return;
   globalThis.__aldusQuestionBankFilterOpenV226 = true;
 
-  const VERSION = "20260803-corrige-banco-questoes-integral-v227";
+  const VERSION = "20260803-corrige-funcionamento-banco-questoes-v228";
   const FILTER_IDS = [
     "qbTrainingScope",
     "qbReviewType",

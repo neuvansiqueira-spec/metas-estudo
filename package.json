@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260803-corrige-banco-questoes-integral-v227",
+  "version": "20260803-corrige-funcionamento-banco-questoes-v228",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

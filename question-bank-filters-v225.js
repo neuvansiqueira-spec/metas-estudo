@@ -3,7 +3,7 @@
   if (globalThis.__aldusQuestionBankFiltersV225) return;
   globalThis.__aldusQuestionBankFiltersV225 = true;
 
-  const VERSION = "20260803-corrige-banco-questoes-integral-v227";
+  const VERSION = "20260803-corrige-funcionamento-banco-questoes-v228";
   const UNMAPPED_SUBJECT = "__qb_unmapped_subject_v225__";
   const FILTER_IDS = {
     scope: "qbTrainingScope",
@@ -116,20 +116,26 @@
   }
 
   function questionDiscipline(question) { return text(question?.disciplina || question?.discipline); }
+  function withoutFallbackValues(values, fallbacks) {
+    const normalizedFallbacks = new Set(fallbacks.map(canon));
+    const meaningful = values.filter((value) => !normalizedFallbacks.has(canon(value)));
+    return meaningful.length ? meaningful : values;
+  }
   function questionSubjectValues(question) {
-    return unique([
+    return withoutFallbackValues(unique([
       ...splitValues(question?.assuntos),
       ...splitValues(question?.assunto),
       ...splitValues(question?.subject)
-    ]);
+    ]), ["Sem assunto", "Assunto não informado"]);
   }
   function questionThemeValues(question) {
-    return unique([
+    const values = unique([
       ...splitValues(question?.temas),
       ...splitValues(question?.tema),
       ...splitValues(question?.theme),
       ...splitValues(question?.subtema)
     ]).filter((value) => !/^\d+(?:\.\d+)*$/.test(value));
+    return withoutFallbackValues(values, ["Geral", "Sem tema", "Tema não informado"]);
   }
   function questionFacet(question, key) {
     if (key === "discipline") return questionDiscipline(question);
@@ -167,7 +173,8 @@
   }
 
   function disciplineMatches(question, discipline) {
-    return !discipline || fuzzyTextMatch(questionDiscipline(question), discipline);
+    if (!discipline) return true;
+    return canon(questionDiscipline(question)) === canon(discipline);
   }
 
   function questionMatchesItem(question, item) {
@@ -180,7 +187,7 @@
 
   function itemsForSelection(discipline, subject = "") {
     return catalogItems().filter((item) => {
-      if (discipline && !fuzzyTextMatch(itemDiscipline(item), discipline)) return false;
+      if (discipline && canon(itemDiscipline(item)) !== canon(discipline)) return false;
       if (subject && subject !== UNMAPPED_SUBJECT && !fuzzyTextMatch(itemSubject(item), subject)) return false;
       return true;
     });
@@ -423,6 +430,7 @@
     normalizeFacetValue,
     questionSubjectValues,
     questionThemeValues,
+    disciplineMatches,
     fuzzyTextMatch,
     questionMatchesItem,
     questionMappedToCatalog,

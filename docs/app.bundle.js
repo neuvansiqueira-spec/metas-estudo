@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260803-corrige-banco-questoes-integral-v227";
+  const VERSION = "20260803-corrige-funcionamento-banco-questoes-v228";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -58554,7 +58554,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   if (globalThis.__aldusQuestionBankTrainingV223) return;
   globalThis.__aldusQuestionBankTrainingV223 = true;
 
-  const VERSION = "20260803-corrige-banco-questoes-integral-v227";
+  const VERSION = "20260803-corrige-funcionamento-banco-questoes-v228";
   const DRAFT_KEY = "aldusQuestionBankTrainingDraftV223";
   const PREFS_KEY = "aldusQuestionBankTrainingPrefsV223";
   const MAX_DRAFT_AGE_MS = 14 * 24 * 60 * 60 * 1000;
@@ -59476,7 +59476,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   if (globalThis.__aldusQuestionBankFiltersV225) return;
   globalThis.__aldusQuestionBankFiltersV225 = true;
 
-  const VERSION = "20260803-corrige-banco-questoes-integral-v227";
+  const VERSION = "20260803-corrige-funcionamento-banco-questoes-v228";
   const UNMAPPED_SUBJECT = "__qb_unmapped_subject_v225__";
   const FILTER_IDS = {
     scope: "qbTrainingScope",
@@ -59589,20 +59589,26 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   }
 
   function questionDiscipline(question) { return text(question?.disciplina || question?.discipline); }
+  function withoutFallbackValues(values, fallbacks) {
+    const normalizedFallbacks = new Set(fallbacks.map(canon));
+    const meaningful = values.filter((value) => !normalizedFallbacks.has(canon(value)));
+    return meaningful.length ? meaningful : values;
+  }
   function questionSubjectValues(question) {
-    return unique([
+    return withoutFallbackValues(unique([
       ...splitValues(question?.assuntos),
       ...splitValues(question?.assunto),
       ...splitValues(question?.subject)
-    ]);
+    ]), ["Sem assunto", "Assunto não informado"]);
   }
   function questionThemeValues(question) {
-    return unique([
+    const values = unique([
       ...splitValues(question?.temas),
       ...splitValues(question?.tema),
       ...splitValues(question?.theme),
       ...splitValues(question?.subtema)
     ]).filter((value) => !/^\d+(?:\.\d+)*$/.test(value));
+    return withoutFallbackValues(values, ["Geral", "Sem tema", "Tema não informado"]);
   }
   function questionFacet(question, key) {
     if (key === "discipline") return questionDiscipline(question);
@@ -59640,7 +59646,8 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   }
 
   function disciplineMatches(question, discipline) {
-    return !discipline || fuzzyTextMatch(questionDiscipline(question), discipline);
+    if (!discipline) return true;
+    return canon(questionDiscipline(question)) === canon(discipline);
   }
 
   function questionMatchesItem(question, item) {
@@ -59653,7 +59660,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
 
   function itemsForSelection(discipline, subject = "") {
     return catalogItems().filter((item) => {
-      if (discipline && !fuzzyTextMatch(itemDiscipline(item), discipline)) return false;
+      if (discipline && canon(itemDiscipline(item)) !== canon(discipline)) return false;
       if (subject && subject !== UNMAPPED_SUBJECT && !fuzzyTextMatch(itemSubject(item), subject)) return false;
       return true;
     });
@@ -59896,6 +59903,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     normalizeFacetValue,
     questionSubjectValues,
     questionThemeValues,
+    disciplineMatches,
     fuzzyTextMatch,
     questionMatchesItem,
     questionMappedToCatalog,
@@ -59922,7 +59930,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   if (globalThis.__aldusQuestionBankFilterOpenV226) return;
   globalThis.__aldusQuestionBankFilterOpenV226 = true;
 
-  const VERSION = "20260803-corrige-banco-questoes-integral-v227";
+  const VERSION = "20260803-corrige-funcionamento-banco-questoes-v228";
   const FILTER_IDS = [
     "qbTrainingScope",
     "qbReviewType",

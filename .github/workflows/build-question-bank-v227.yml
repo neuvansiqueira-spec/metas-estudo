@@ -1,9 +1,9 @@
-name: Build Question Bank v227
+name: Build Question Bank v228
 
 on:
   push:
     branches:
-      - agent/corrige-banco-questoes-integral
+      - agent/corrige-filtros-banco-v228
   pull_request:
     branches:
       - main
@@ -13,7 +13,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: question-bank-v227-${{ github.ref }}
+  group: question-bank-v228-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: agent/corrige-banco-questoes-integral
+          ref: agent/corrige-filtros-banco-v228
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -32,7 +32,7 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Apply source correction
+      - name: Apply filter correction
         run: node tools/apply-question-bank-v227.mjs
 
       - name: Install dependencies
@@ -74,11 +74,11 @@ jobs:
 
       - name: Validate generated release
         run: |
-          node --check app-v227.js
-          node --check service-worker-v227.js
-          grep -q '20260803-corrige-banco-questoes-integral-v227' docs/index.html
+          node --check app-v228.js
+          node --check service-worker-v228.js
+          grep -q '20260803-corrige-funcionamento-banco-questoes-v228' docs/index.html
           cmp -s app.bundle.js docs/app.bundle.js
-          cmp -s qconcursos-capture-segmented-v188.js docs/qconcursos-capture-segmented-v188.js
+          cmp -s question-bank-filters-v225.js docs/question-bank-filters-v225.js
 
       - name: Commit generated release
         if: github.event_name == 'push'
@@ -90,5 +90,5 @@ jobs:
             echo "Nenhuma alteração adicional para publicar."
             exit 0
           fi
-          git commit -m "build: publica correção integral do banco de questões v227"
-          git push origin HEAD:agent/corrige-banco-questoes-integral
+          git commit -m "fix: corrige filtros do banco de questões v228"
+          git push origin HEAD:agent/corrige-filtros-banco-v228
