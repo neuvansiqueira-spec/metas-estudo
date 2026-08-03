@@ -42,6 +42,12 @@ for (const file of ["package.json", "package-lock.json", "question-bank-filter-o
   );
   source = replaceRequired(
     source,
+    '      if (discipline && !fuzzyTextMatch(itemDiscipline(item), discipline)) return false;',
+    '      if (discipline && canon(itemDiscipline(item)) !== canon(discipline)) return false;',
+    "catálogo estrito por disciplina"
+  );
+  source = replaceRequired(
+    source,
     '    questionThemeValues,\n    fuzzyTextMatch,',
     '    questionThemeValues,\n    disciplineMatches,\n    fuzzyTextMatch,',
     "API de teste dos filtros"
@@ -54,6 +60,12 @@ for (const file of ["package.json", "package-lock.json", "question-bank-filter-o
   let source = read(file);
   source = replaceRequired(
     source,
+    '    { id:"s3", discipline:"DIREITO PENAL", topic:"1.15 Crimes contra a Administração Pública.", subject:"Crimes contra a Administração Pública", subtopic:"1.15", reference:"1.15 Crimes contra a Administração Pública." }',
+    '    { id:"s3", discipline:"DIREITO PENAL", topic:"1.15 Crimes contra a Administração Pública.", subject:"Crimes contra a Administração Pública", subtopic:"1.15", reference:"1.15 Crimes contra a Administração Pública." },\n    { id:"s4", discipline:"DIREITO PROCESSUAL PENAL", topic:"2.1 Provas.", subject:"Provas", subtopic:"2.1", reference:"2.1 Provas." }',
+    "item de regressão processual penal"
+  );
+  source = replaceRequired(
+    source,
     '    { id:"q4", disciplina:"Direito Penal", assunto:"Assunto externo", tema:"Tema externo", banca:"FGV", ano:2023, orgao:"PC-MA", cargo:"Delegado de Polícia", tipo:"Múltipla escolha", alternativas:{A:"a",B:"b"}, gabarito:"A", enunciado:"Item." }',
     '    { id:"q4", disciplina:"Direito Penal", assunto:"Assunto externo", tema:"Tema externo", banca:"FGV", ano:2023, orgao:"PC-MA", cargo:"Delegado de Polícia", tipo:"Múltipla escolha", alternativas:{A:"a",B:"b"}, gabarito:"A", enunciado:"Item." },\n    { id:"q5", disciplina:"Direito Processual Penal", assunto:"Provas", tema:"Cadeia de custódia", banca:"CEBRASPE", ano:2026, orgao:"PC-PR", cargo:"Delegado de Polícia", tipo:"Certo/Errado", gabarito:"C", enunciado:"Item." }',
     "questão de regressão processual penal"
@@ -61,8 +73,20 @@ for (const file of ["package.json", "package-lock.json", "question-bank-filter-o
   source = replaceRequired(
     source,
     '  assert.equal(JSON.stringify(api.questionThemeValues({ tema:"Tema 1 • Tema 2", subtema:"2.1.1" })), JSON.stringify(["Tema 1","Tema 2"]));\n});',
-    '  assert.equal(JSON.stringify(api.questionThemeValues({ tema:"Tema 1 • Tema 2", subtema:"2.1.1" })), JSON.stringify(["Tema 1","Tema 2"]));\n  assert.equal(JSON.stringify(api.questionSubjectValues({ assunto:"Sem assunto", assuntos:["Provas","Cadeia de custódia"] })), JSON.stringify(["Cadeia de custódia","Provas"]));\n  assert.equal(JSON.stringify(api.questionThemeValues({ tema:"Geral", temas:["Vestígio","Rastreabilidade"] })), JSON.stringify(["Rastreabilidade","Vestígio"]));\n});\n\ntest("disciplinas próximas não são misturadas", () => {\n  const { api, controls } = runtime();\n  assert.equal(api.disciplineMatches({ disciplina:"Direito Penal" }, "DIREITO PENAL"), true);\n  assert.equal(api.disciplineMatches({ disciplina:"Direito Processual Penal" }, "DIREITO PENAL"), false);\n  controls.qbTrainingScope.value = "all";\n  controls.qbFilterDiscipline.value = "DIREITO PENAL";\n  assert.equal(api.filteredQuestions().length, 4);\n});',
+    '  assert.equal(JSON.stringify(api.questionThemeValues({ tema:"Tema 1 • Tema 2", subtema:"2.1.1" })), JSON.stringify(["Tema 1","Tema 2"]));\n  assert.equal(JSON.stringify(api.questionSubjectValues({ assunto:"Sem assunto", assuntos:["Provas","Cadeia de custódia"] })), JSON.stringify(["Cadeia de custódia","Provas"]));\n  assert.equal(JSON.stringify(api.questionThemeValues({ tema:"Geral", temas:["Vestígio","Rastreabilidade"] })), JSON.stringify(["Rastreabilidade","Vestígio"]));\n});\n\ntest("disciplinas próximas não são misturadas", () => {\n  const { api, controls } = runtime();\n  assert.equal(api.disciplineMatches({ disciplina:"Direito Penal" }, "DIREITO PENAL"), true);\n  assert.equal(api.disciplineMatches({ disciplina:"Direito Processual Penal" }, "DIREITO PENAL"), false);\n  assert.equal(api.itemsForSelection("DIREITO PENAL").length, 3);\n  assert.equal(api.itemsForSelection("DIREITO PROCESSUAL PENAL").length, 1);\n  controls.qbTrainingScope.value = "all";\n  controls.qbFilterDiscipline.value = "DIREITO PENAL";\n  assert.equal(api.filteredQuestions().length, 4);\n});',
     "casos de regressão dos filtros"
+  );
+  source = replaceRequired(
+    source,
+    '  assert.equal(api.scopeBank().length, 4);',
+    '  assert.equal(api.scopeBank().length, 5);',
+    "escopo integral das disciplinas"
+  );
+  source = replaceRequired(
+    source,
+    '  assert.equal(JSON.stringify(api.optionValues("discipline", filters)), JSON.stringify(["DIREITO PENAL"]));',
+    '  assert.equal(JSON.stringify(api.optionValues("discipline", filters)), JSON.stringify(["DIREITO PENAL","DIREITO PROCESSUAL PENAL"]));',
+    "catálogo integral da cascata"
   );
   write(file, source);
 }
