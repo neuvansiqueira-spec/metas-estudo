@@ -18,7 +18,8 @@ function runtime() {
   const syllabusItems = [
     { id:"s1", discipline:"DIREITO PENAL", topic:"1.3 Teoria Geral do Crime.", subject:"Fato Típico", subtopic:"1.3.2", reference:"1.3.2 Fato Típico." },
     { id:"s2", discipline:"DIREITO PENAL", topic:"1.22 Crimes de Tráfico de Drogas.", subject:"Crimes de Tráfico de Drogas", subtopic:"1.22", reference:"1.22 Crimes de Tráfico de Drogas." },
-    { id:"s3", discipline:"DIREITO PENAL", topic:"1.15 Crimes contra a Administração Pública.", subject:"Crimes contra a Administração Pública", subtopic:"1.15", reference:"1.15 Crimes contra a Administração Pública." }
+    { id:"s3", discipline:"DIREITO PENAL", topic:"1.15 Crimes contra a Administração Pública.", subject:"Crimes contra a Administração Pública", subtopic:"1.15", reference:"1.15 Crimes contra a Administração Pública." },
+    { id:"s4", discipline:"DIREITO PROCESSUAL PENAL", topic:"2.1 Provas.", subject:"Provas", subtopic:"2.1", reference:"2.1 Provas." }
   ];
   const questionBank = [
     { id:"q1", disciplina:"Direito Penal", assunto:"Tipicidade", tema:"Teoria da imputação objetiva", banca:"CESPE / CEBRASPE", ano:2025, orgao:"PCDF", cargo:"Delegado de Polícia Civil", tipo:"Certo ou Errado", gabarito:"C", enunciado:"Item." },
@@ -52,7 +53,7 @@ function runtime() {
 
 test("escopo do edital não elimina questões antes da classificação", () => {
   const { api } = runtime();
-  assert.equal(api.scopeBank().length, 4);
+  assert.equal(api.scopeBank().length, 5);
 });
 
 test("assuntos e temas compostos são separados sem códigos do edital", () => {
@@ -67,6 +68,8 @@ test("disciplinas próximas não são misturadas", () => {
   const { api, controls } = runtime();
   assert.equal(api.disciplineMatches({ disciplina:"Direito Penal" }, "DIREITO PENAL"), true);
   assert.equal(api.disciplineMatches({ disciplina:"Direito Processual Penal" }, "DIREITO PENAL"), false);
+  assert.equal(api.itemsForSelection("DIREITO PENAL").length, 3);
+  assert.equal(api.itemsForSelection("DIREITO PROCESSUAL PENAL").length, 1);
   controls.qbTrainingScope.value = "all";
   controls.qbFilterDiscipline.value = "DIREITO PENAL";
   assert.equal(api.filteredQuestions().length, 4);
@@ -83,7 +86,7 @@ test("banca, tipo, órgão e cargo equivalentes são unificados", () => {
 test("cascata depende somente dos filtros anteriores", () => {
   const { api } = runtime();
   const filters = { discipline:"", subject:"", theme:"", board:"BANCA INEXISTENTE", year:"2099", agency:"", role:"", type:"", keyStatus:"" };
-  assert.equal(JSON.stringify(api.optionValues("discipline", filters)), JSON.stringify(["DIREITO PENAL"]));
+  assert.equal(JSON.stringify(api.optionValues("discipline", filters)), JSON.stringify(["DIREITO PENAL","DIREITO PROCESSUAL PENAL"]));
   filters.discipline = "DIREITO PENAL";
   assert.ok(api.optionValues("subject", filters).includes("Fato Típico"));
 });

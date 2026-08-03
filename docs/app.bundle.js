@@ -59660,7 +59660,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
 
   function itemsForSelection(discipline, subject = "") {
     return catalogItems().filter((item) => {
-      if (discipline && !fuzzyTextMatch(itemDiscipline(item), discipline)) return false;
+      if (discipline && canon(itemDiscipline(item)) !== canon(discipline)) return false;
       if (subject && subject !== UNMAPPED_SUBJECT && !fuzzyTextMatch(itemSubject(item), subject)) return false;
       return true;
     });
