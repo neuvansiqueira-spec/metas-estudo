@@ -1,0 +1,68 @@
+name: Build Factory Destination v222
+
+on:
+  push:
+    branches:
+      - codex/factory-destination-folders-v222
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: factory-destination-v222-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: codex/factory-destination-folders-v222
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Prepare v222 sources
+        run: node tools/apply-factory-destination-v222.mjs
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run focused tests
+        run: node --test tests/factory-destination-folders-v222.test.js
+
+      - name: Build bundles
+        run: npm run build
+
+      - name: Validate generated release
+        run: |
+          node --check factory-destination-catalog-v222.js
+          node --check factory-destination-folders-v222.js
+          node --check app-v222.js
+          grep -q '__FACTORY_DESTINATION_CATALOG_V222__' app-v222.js
+          grep -q '__applyFactoryDestinationFoldersV222' app-v222.js
+          grep -q '20260803-pastas-destino-fabrica-v222' index.html
+          grep -q 'app-v222.js' docs/index.html
+
+      - name: Commit generated v222 release
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração adicional para publicar."
+            exit 0
+          fi
+          git commit -m "build: publish factory destination folders v222"
+          git push origin HEAD:codex/factory-destination-folders-v222
