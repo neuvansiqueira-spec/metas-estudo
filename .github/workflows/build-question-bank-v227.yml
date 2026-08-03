@@ -81,6 +81,7 @@ jobs:
           cmp -s qconcursos-capture-segmented-v188.js docs/qconcursos-capture-segmented-v188.js
 
       - name: Commit generated release
+        if: github.event_name == 'push'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
