@@ -24,7 +24,8 @@ function runtime() {
     { id:"q1", disciplina:"Direito Penal", assunto:"Tipicidade", tema:"Teoria da imputação objetiva", banca:"CESPE / CEBRASPE", ano:2025, orgao:"PCDF", cargo:"Delegado de Polícia Civil", tipo:"Certo ou Errado", gabarito:"C", enunciado:"Item." },
     { id:"q2", disciplina:"Direito Penal", assunto:"Legislação Penal Especial; Lei de Tóxicos — Lei nº 11.343/2006", assuntos:["Legislação Penal Especial","Lei de Tóxicos — Lei nº 11.343/2006"], tema:"Lei de Drogas • Tráfico privilegiado", banca:"CEBRASPE", ano:2026, orgao:"PC-DF", cargo:"Delegado de Polícia", tipo:"Certo/Errado", gabarito:"E", enunciado:"Item." },
     { id:"q3", disciplina:"Direito Penal", assunto:"Prevaricação; art. 319-A; art. 349-A", tema:"Crimes funcionais", banca:"CEBRASPE", ano:2024, orgao:"PC-PE", cargo:"Delegado de Polícia Civil", tipo:"Certo/Errado", gabarito:"C", enunciado:"Item." },
-    { id:"q4", disciplina:"Direito Penal", assunto:"Assunto externo", tema:"Tema externo", banca:"FGV", ano:2023, orgao:"PC-MA", cargo:"Delegado de Polícia", tipo:"Múltipla escolha", alternativas:{A:"a",B:"b"}, gabarito:"A", enunciado:"Item." }
+    { id:"q4", disciplina:"Direito Penal", assunto:"Assunto externo", tema:"Tema externo", banca:"FGV", ano:2023, orgao:"PC-MA", cargo:"Delegado de Polícia", tipo:"Múltipla escolha", alternativas:{A:"a",B:"b"}, gabarito:"A", enunciado:"Item." },
+    { id:"q5", disciplina:"Direito Processual Penal", assunto:"Provas", tema:"Cadeia de custódia", banca:"CEBRASPE", ano:2026, orgao:"PC-PR", cargo:"Delegado de Polícia", tipo:"Certo/Errado", gabarito:"C", enunciado:"Item." }
   ];
   const canonical = (value) => String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
   const oldMatch = (question, item) => canonical(question.disciplina).includes(canonical(item.discipline))
@@ -58,6 +59,17 @@ test("assuntos e temas compostos são separados sem códigos do edital", () => {
   const { api } = runtime();
   assert.equal(JSON.stringify(api.questionSubjectValues({ assunto:"A; B", assuntos:["C"] })), JSON.stringify(["A","B","C"]));
   assert.equal(JSON.stringify(api.questionThemeValues({ tema:"Tema 1 • Tema 2", subtema:"2.1.1" })), JSON.stringify(["Tema 1","Tema 2"]));
+  assert.equal(JSON.stringify(api.questionSubjectValues({ assunto:"Sem assunto", assuntos:["Provas","Cadeia de custódia"] })), JSON.stringify(["Cadeia de custódia","Provas"]));
+  assert.equal(JSON.stringify(api.questionThemeValues({ tema:"Geral", temas:["Vestígio","Rastreabilidade"] })), JSON.stringify(["Rastreabilidade","Vestígio"]));
+});
+
+test("disciplinas próximas não são misturadas", () => {
+  const { api, controls } = runtime();
+  assert.equal(api.disciplineMatches({ disciplina:"Direito Penal" }, "DIREITO PENAL"), true);
+  assert.equal(api.disciplineMatches({ disciplina:"Direito Processual Penal" }, "DIREITO PENAL"), false);
+  controls.qbTrainingScope.value = "all";
+  controls.qbFilterDiscipline.value = "DIREITO PENAL";
+  assert.equal(api.filteredQuestions().length, 4);
 });
 
 test("banca, tipo, órgão e cargo equivalentes são unificados", () => {

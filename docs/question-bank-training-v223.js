@@ -4,7 +4,7 @@
   if (globalThis.__aldusQuestionBankTrainingV223) return;
   globalThis.__aldusQuestionBankTrainingV223 = true;
 
-  const VERSION = "20260803-corrige-banco-questoes-integral-v227";
+  const VERSION = "20260803-corrige-funcionamento-banco-questoes-v228";
   const DRAFT_KEY = "aldusQuestionBankTrainingDraftV223";
   const PREFS_KEY = "aldusQuestionBankTrainingPrefsV223";
   const MAX_DRAFT_AGE_MS = 14 * 24 * 60 * 60 * 1000;
