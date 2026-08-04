@@ -111,14 +111,15 @@
 
   function addOption(select, label = DISCIPLINE_NAME) {
     if (!(select instanceof HTMLSelectElement)) return null;
+    const displayLabel = select.id === "studySubject" ? "SIMULADOS" : label;
     let option = [...select.options].find((item) => optionText(item) === "simulados");
     if (!option) {
       option = document.createElement("option");
       option.value = DISCIPLINE_ID;
-      option.textContent = label;
       option.dataset.operationalDiscipline = "simulados";
       select.append(option);
     }
+    if (option.textContent !== displayLabel) option.textContent = displayLabel;
     return option;
   }
 
