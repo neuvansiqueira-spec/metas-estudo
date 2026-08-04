@@ -8,6 +8,8 @@
   const FACTORY_HOTFIX = "factory-queue-integrity-hotfix3";
   const TIMER_AUDIO_SCRIPT_ID = "aldusTimerAudioRecoveryV236";
   const TIMER_AUDIO_HOTFIX = "timer-audio-recovery-hotfix2";
+  const TIMER_SESSION_SCRIPT_ID = "aldusTimerSessionIntegrityV236";
+  const TIMER_SESSION_HOTFIX = "timer-session-integrity-hotfix1";
   let loaded = false;
 
   function bootstrapReady() {
@@ -111,6 +113,20 @@
     return true;
   }
 
+  function loadTimerSessionIntegrity(releaseVersion) {
+    if (globalThis.__ALDUS_TIMER_SESSION_INTEGRITY_V236__ || document.getElementById(TIMER_SESSION_SCRIPT_ID)) return true;
+    const script = document.createElement("script");
+    script.id = TIMER_SESSION_SCRIPT_ID;
+    script.src = `timer-session-integrity-v236.js?v=${encodeURIComponent(releaseVersion)}&hotfix=${encodeURIComponent(TIMER_SESSION_HOTFIX)}`;
+    script.async = false;
+    script.addEventListener("error", () => {
+      script.remove();
+      console.warn("[Aldus V236] A proteção do tempo do cronômetro será tentada novamente na próxima abertura.");
+    }, { once: true });
+    document.body.appendChild(script);
+    return true;
+  }
+
   function loadIntegrityCore() {
     if (loaded || document.getElementById(SCRIPT_ID)) return true;
     if (!bootstrapReady()) return false;
@@ -119,6 +135,7 @@
     const releaseVersion = globalThis.__ALDUS_APP_RELEASE__?.version || VERSION;
     loadFactoryQueueIntegrity(releaseVersion);
     loadTimerAudioRecovery(releaseVersion);
+    loadTimerSessionIntegrity(releaseVersion);
     const script = document.createElement("script");
     script.id = SCRIPT_ID;
     script.src = `planning-integrity-v235.js?v=${encodeURIComponent(releaseVersion)}`;
@@ -128,6 +145,7 @@
       window.setTimeout(() => {
         enforceSnapshot();
         loadTimerAudioRecovery(releaseVersion);
+        loadTimerSessionIntegrity(releaseVersion);
         try {
           if (typeof ensureDailyPlanAlignedWithPlanningV174 === "function") {
             const date = typeof todayISO === "function" ? todayISO() : new Date().toISOString().slice(0, 10);
