@@ -7,6 +7,7 @@ function loadServiceWorker(file) {
   const source = fs.readFileSync(file, "utf8");
   const version = JSON.parse(fs.readFileSync("package.json", "utf8")).version;
   const context = {
+    result: null,
     self: {
       __ALDUS_APP_RELEASE__: { version, suffix: version.match(/v\d+$/)?.[0] },
       registration: { scope: "https://aldus.test/" },
