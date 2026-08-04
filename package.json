@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260803-pastas-destino-temas-exatos-v232",
+  "version": "20260804-disciplina-operacional-simulados-v233",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
