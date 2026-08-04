@@ -24,14 +24,17 @@
   function calculateTimelineElapsedSeconds(session = {}, now = Date.now()) {
     const stored = Math.max(0, Number(session.elapsedSeconds) || 0);
     if (!session?.goalId || session.closed || session.completed || session.completionAlarmPlayed) return stored;
+
     const openedAt = timestamp(session.openedAt);
     const currentAt = Number(now);
     if (!openedAt || !Number.isFinite(currentAt) || currentAt <= openedAt) return stored;
+
     const pauses = Array.isArray(session.pauses) ? session.pauses.map(timestamp).filter(Boolean) : [];
     const resumes = Array.isArray(session.resumes) ? session.resumes.map(timestamp).filter(Boolean) : [];
     const lastPause = pauses.at(-1) || 0;
     const endAt = session.paused && lastPause >= openedAt ? Math.min(lastPause, currentAt) : currentAt;
     if (endAt <= openedAt) return stored;
+
     let pausedMilliseconds = 0;
     for (let index = 0; index < pauses.length; index += 1) {
       const pauseAt = pauses[index];
@@ -40,16 +43,23 @@
       if (!resumeAt || resumeAt <= pauseAt) continue;
       pausedMilliseconds += Math.max(0, Math.min(resumeAt, endAt) - pauseAt);
     }
+
     const timeline = Math.max(0, Math.floor((endAt - openedAt - pausedMilliseconds) / 1000));
     return Math.max(stored, timeline);
   }
 
   function activeTimer() {
-    try { return typeof floatingTimer === "object" && floatingTimer ? floatingTimer : null; } catch { return null; }
+    try {
+      return typeof floatingTimer === "object" && floatingTimer ? floatingTimer : null;
+    } catch {
+      return null;
+    }
   }
 
   function activeTimerSeconds(timer) {
-    try { if (typeof currentTimerSeconds === "function") return Math.max(0, Number(currentTimerSeconds()) || 0); } catch {}
+    try {
+      if (typeof currentTimerSeconds === "function") return Math.max(0, Number(currentTimerSeconds()) || 0);
+    } catch {}
     return Math.max(0, Number(timer?.elapsedSeconds) || 0);
   }
 
@@ -68,17 +78,27 @@
   function reconcileTimerTimeline(now = Date.now()) {
     const timer = activeTimer();
     if (!timer?.goalId || timer.closed || timer.completed || timer.completionAlarmPlayed) return false;
+
     const current = activeTimerSeconds(timer);
     const recovered = calculateTimelineElapsedSeconds(timer, now);
     if (recovered <= current) return false;
+
     const addedSeconds = recovered - current;
     timer.elapsedSeconds = recovered;
     timer.startedAt = timer.paused ? null : Number(now);
     timer.timelineRecoveredAtV237 = new Date(Number(now)).toISOString();
     timer.timelineRecoveredSecondsV237 = Math.max(0, Number(timer.timelineRecoveredSecondsV237) || 0) + addedSeconds;
+
     persistReconciledTimer();
     try { if (typeof renderFloatingTimer === "function") renderFloatingTimer(); } catch {}
-    lastReport = Object.freeze({ goalId: String(timer.goalId || ""), beforeSeconds: current, recoveredSeconds: recovered, addedSeconds, recoveredAt: timer.timelineRecoveredAtV237 });
+
+    lastReport = Object.freeze({
+      goalId: String(timer.goalId || ""),
+      beforeSeconds: current,
+      recoveredSeconds: recovered,
+      addedSeconds,
+      recoveredAt: timer.timelineRecoveredAtV237
+    });
     globalThis.__aldusTimerTimelineRecoveryReportV237 = lastReport;
     return true;
   }
@@ -86,9 +106,15 @@
   function installRestoreWrapper() {
     if (restoreWrapped) return true;
     let original = null;
-    try { if (typeof restoreFloatingTimerSession === "function") original = restoreFloatingTimerSession; } catch {}
+    try {
+      if (typeof restoreFloatingTimerSession === "function") original = restoreFloatingTimerSession;
+    } catch {}
     if (!original) return false;
-    if (original[CONTROL_FLAG]) { restoreWrapped = true; return true; }
+    if (original[CONTROL_FLAG]) {
+      restoreWrapped = true;
+      return true;
+    }
+
     const replacement = function restoreFloatingTimerSessionWithTimelineV237(...args) {
       const result = original.apply(this, args);
       reconcileTimerTimeline();
@@ -120,6 +146,7 @@
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") reconcileTimerTimeline();
   }, { capture: true });
+
   retryId = window.setInterval(install, RETRY_INTERVAL_MS);
   install();
 
