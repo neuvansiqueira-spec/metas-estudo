@@ -7,13 +7,15 @@ const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
 const HISTORY_LAYOUT_STYLESHEET = `question-history-layout-v223.css?v=${HISTORY_LAYOUT_VERSION}`;
-const INTEGRITY_SCRIPT = `planning-integrity-v235.js?v=${CURRENT_VERSION}`;
+const INTEGRITY_LOADER = `planning-integrity-loader-v235.js?v=${CURRENT_VERSION}`;
+const INTEGRITY_CORE = `planning-integrity-v235.js?v=${CURRENT_VERSION}`;
 const STATIC_ASSETS = [
   "./",
   "index.html",
   `app-v234.css?v=${APP_RELEASE}`,
   `app-v234.js?v=${APP_RELEASE}`,
-  INTEGRITY_SCRIPT,
+  INTEGRITY_LOADER,
+  INTEGRITY_CORE,
   CONTRAST_STYLESHEET,
   HISTORY_LAYOUT_STYLESHEET,
   "vendor/pdf.mjs",
@@ -85,8 +87,8 @@ async function ensurePageAssets(response) {
       ? html.replace("</head>", `  ${missingHeadTags.join("\n  ")}\n</head>`)
       : `${missingHeadTags.join("\n")}\n${html}`;
 
-  if (!patchedHtml.includes("planning-integrity-v235.js")) {
-    const scriptTag = `<script id="aldusPlanningIntegrityV235" src="${INTEGRITY_SCRIPT}"></script>`;
+  if (!patchedHtml.includes("planning-integrity-loader-v235.js")) {
+    const scriptTag = `<script id="aldusPlanningIntegrityLoaderV235" src="${INTEGRITY_LOADER}"></script>`;
     patchedHtml = patchedHtml.includes("</body>")
       ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`)
       : `${patchedHtml}\n${scriptTag}`;
