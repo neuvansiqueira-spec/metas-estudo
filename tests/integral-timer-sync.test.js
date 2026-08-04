@@ -7,8 +7,11 @@ function loadServiceWorker(file) {
   const source = fs.readFileSync(file, "utf8");
   const version = JSON.parse(fs.readFileSync("package.json", "utf8")).version;
   const context = {
+    result: null,
     self: {
       __ALDUS_APP_RELEASE__: { version, suffix: version.match(/v\d+$/)?.[0] },
+      registration: { scope: "https://aldus.test/" },
+      location: { origin: "https://aldus.test" },
       addEventListener() {}, skipWaiting() {}, clients: { claim() {} }
     },
     importScripts() {},
@@ -19,7 +22,7 @@ function loadServiceWorker(file) {
     URL,
     console
   };
-  vm.runInNewContext(`${source}; result = { CURRENT_VERSION, patchAppScriptSource };`, context);
+  vm.runInNewContext(`${source}; result = { CURRENT_VERSION, STATIC_ASSETS };`, context);
   return context.result;
 }
 
@@ -98,29 +101,16 @@ test("fingerprint ignora apenas diferenças de ordem das coleções", () => {
   assert.equal(syncStateFingerprint(a), syncStateFingerprint(b));
 });
 
-test("service worker substitui verificações baseadas só em horário por comparação de conteúdo", () => {
+test("service worker publica a versão atual e a sincronização integral continua baseada em conteúdo", () => {
   const sw = loadServiceWorker("service-worker.js");
   const helper = helperFiles.map((file) => fs.readFileSync(file, "utf8")).join("\n");
-  const original = [
-    'const APP_VERSION = "20260717-numero-qc-v26";',
-    'async function uploadSyncPayload(payload = makeSyncPayload(), { statusMessage = "Dados enviados para a nuvem com sucesso." } = {}) { if (isSyncing) return null; isSyncing = true; try { const file = await findSyncFile(); const saved = file ? await updateSyncFile(file.id, payload) : await createSyncFile(payload); return saved; } finally { isSyncing = false; } }',
-    'async function runAutoSyncAfterSave(reason) {}',
-    'async function applyCloudPayload(payload) { isApplyingRemote = true; try { replaceState(payload.state); } finally { isApplyingRemote = false; } }',
-    'async function syncNow() { const localDate = new Date(0); const remoteDate = new Date(0); if (+remoteDate === +localDate) return renderSyncStatus("Tudo sincronizado."); }',
-    'function hasPendingLocalChanges() {}',
-    'async function checkCloudForNewerVersion(context = "open") { const localDate = new Date(0); const remoteDate = new Date(0); if (+remoteDate === +localDate) renderSyncStatus("Tudo sincronizado."); }',
-    'async function checkCloudForUpdatesAfterAuth() {}',
-    'async function forcePullFromCloud() { if (!confirm("Baixar dados da nuvem e substituir os dados deste dispositivo? Um backup local automático será criado antes.")) return; }'
-  ].join("\n");
-  const patched = sw.patchAppScriptSource(original, helper);
   assert.equal(sw.CURRENT_VERSION, currentVersion);
-  assert.match(patched, /function syncStateFingerprint/);
-  assert.match(patched, /return uploadSyncPayloadIntegral\(payload, options\)/);
-  assert.match(patched, /return applyCloudPayloadIntegral\(payload\)/);
-  assert.match(patched, /return syncNowIntegral\(\)/);
-  assert.match(patched, /return checkCloudForNewerVersionIntegral\(context\)/);
-  assert.doesNotMatch(patched, /\+remoteDate === \+localDate/);
-  assert.match(patched, /Mesclar os dados da nuvem com os dados deste dispositivo/);
+  assert.ok(sw.STATIC_ASSETS.some((asset) => String(asset).includes(`app-${currentVersion.match(/v\d+$/)?.[0]}.js`)));
+  assert.match(helper, /function syncStateFingerprint/);
+  assert.match(helper, /function syncPayloadFingerprint/);
+  assert.match(helper, /function mergeSyncStates/);
+  assert.doesNotMatch(helper, /\+remoteDate === \+localDate/);
+  assert.match(helper, /Dados dos dispositivos mesclados|Erro ao mesclar os dados da nuvem/);
 });
 
 test("arquivos publicados permanecem sincronizados", () => {
