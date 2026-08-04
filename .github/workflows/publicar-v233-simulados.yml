@@ -65,12 +65,6 @@ jobs:
 
           let worker = read('service-worker.js')
             .replace(/const CURRENT_VERSION = "[^"]+";/, `const CURRENT_VERSION = "${VERSION}";`);
-          if (!worker.includes('simulados-edital-integration.js')) {
-            worker = worker.replace(
-              '  "manifest.json",',
-              '  "manifest.json",\n  "simulados-edital-integration.js",'
-            );
-          }
           write('service-worker.js', worker);
           write('docs/service-worker.js', worker);
           write(`service-worker-${NEW_SUFFIX}.js`, worker);
@@ -86,7 +80,31 @@ jobs:
           NODE
 
           node --check app-v233.js
-          npm test
+          node <<'NODE'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const { assertCurrentReleaseContract } = require('./tests/current-release-contract');
+
+          const VERSION = '20260804-disciplina-operacional-simulados-v233';
+          const read = (file) => fs.readFileSync(file, 'utf8');
+
+          assertCurrentReleaseContract();
+
+          const app = read('app-v233.js');
+          const html = read('index.html');
+          const worker = read('service-worker-v233.js');
+
+          assert.match(app, /Aldus source: simulados-edital-integration\.js/);
+          assert.match(app, /select\.id === "studySubject" \? "SIMULADOS" : label/);
+          assert.match(app, /const DISCIPLINE_NAME = "Simulados"/);
+          assert.match(app, /const DEFAULT_SUBJECT = "Realização de simulado"/);
+          assert.doesNotMatch(html, /src="simulados-edital-integration\.js/);
+          assert.match(html, new RegExp(`Versão: ${VERSION}`));
+          assert.match(worker, new RegExp(`const CURRENT_VERSION = "${VERSION}"`));
+          assert.equal(read('app-v233.js'), read('docs/app-v233.js'));
+          assert.equal(read('service-worker-v233.js'), read('docs/service-worker-v233.js'));
+          console.log('Contratos da v233 e da integração Simulados validados.');
+          NODE
 
       - name: Publicar arquivos gerados na branch
         shell: bash
