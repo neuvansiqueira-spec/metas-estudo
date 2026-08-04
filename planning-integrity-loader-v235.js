@@ -6,6 +6,8 @@
   const SCRIPT_ID = "aldusPlanningIntegrityCoreV235";
   const FACTORY_SCRIPT_ID = "aldusFactoryQueueIntegrityV236";
   const FACTORY_HOTFIX = "factory-queue-integrity-hotfix3";
+  const TIMER_AUDIO_SCRIPT_ID = "aldusTimerAudioRecoveryV236";
+  const TIMER_AUDIO_HOTFIX = "timer-audio-recovery-hotfix1";
   let loaded = false;
 
   function bootstrapReady() {
@@ -95,6 +97,20 @@
     return true;
   }
 
+  function loadTimerAudioRecovery(releaseVersion) {
+    if (globalThis.__ALDUS_TIMER_AUDIO_RECOVERY_V236__ || document.getElementById(TIMER_AUDIO_SCRIPT_ID)) return true;
+    const script = document.createElement("script");
+    script.id = TIMER_AUDIO_SCRIPT_ID;
+    script.src = `timer-audio-recovery-v236.js?v=${encodeURIComponent(releaseVersion)}&hotfix=${encodeURIComponent(TIMER_AUDIO_HOTFIX)}`;
+    script.async = false;
+    script.addEventListener("error", () => {
+      script.remove();
+      console.warn("[Aldus V236] A recuperação do áudio do cronômetro será tentada novamente na próxima abertura.");
+    }, { once: true });
+    document.body.appendChild(script);
+    return true;
+  }
+
   function loadIntegrityCore() {
     if (loaded || document.getElementById(SCRIPT_ID)) return true;
     if (!bootstrapReady()) return false;
@@ -102,6 +118,7 @@
     installPersistenceGuards();
     const releaseVersion = globalThis.__ALDUS_APP_RELEASE__?.version || VERSION;
     loadFactoryQueueIntegrity(releaseVersion);
+    loadTimerAudioRecovery(releaseVersion);
     const script = document.createElement("script");
     script.id = SCRIPT_ID;
     script.src = `planning-integrity-v235.js?v=${encodeURIComponent(releaseVersion)}`;
@@ -110,6 +127,7 @@
       installPersistenceGuards();
       window.setTimeout(() => {
         enforceSnapshot();
+        loadTimerAudioRecovery(releaseVersion);
         try {
           if (typeof ensureDailyPlanAlignedWithPlanningV174 === "function") {
             const date = typeof todayISO === "function" ? todayISO() : new Date().toISOString().slice(0, 10);
