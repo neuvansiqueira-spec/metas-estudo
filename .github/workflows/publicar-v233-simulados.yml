@@ -1,0 +1,96 @@
+name: Publicar v233 Simulados
+
+on:
+  push:
+    branches:
+      - agent/publicar-v233-simulados
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publicar:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gerar artefatos completos da v233
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+
+          const VERSION = '20260804-disciplina-operacional-simulados-v233';
+          const OLD_VERSION = '20260803-pastas-destino-temas-exatos-v232';
+          const OLD_SUFFIX = 'v232';
+          const NEW_SUFFIX = 'v233';
+
+          const read = (file) => fs.readFileSync(file, 'utf8');
+          const write = (file, content) => fs.writeFileSync(file, content, 'utf8');
+
+          const packageJson = JSON.parse(read('package.json'));
+          packageJson.version = VERSION;
+          write('package.json', `${JSON.stringify(packageJson, null, 2)}\n`);
+
+          const packageLock = JSON.parse(read('package-lock.json'));
+          packageLock.version = VERSION;
+          if (packageLock.packages?.['']) packageLock.packages[''].version = VERSION;
+          write('package-lock.json', `${JSON.stringify(packageLock, null, 2)}\n`);
+
+          let appVersion = read('app-version.js')
+            .replace(/const VERSION = "[^"]+";/, `const VERSION = "${VERSION}";`);
+          write('app-version.js', appVersion);
+          write('docs/app-version.js', appVersion);
+
+          let appBundle = `${read(`app-${OLD_SUFFIX}.js`).trimEnd()}\n\n/* Aldus source: simulados-edital-integration.js */\n${read('simulados-edital-integration.js').trim()}\n`;
+          appBundle = appBundle
+            .replaceAll(OLD_VERSION, VERSION)
+            .replaceAll(`service-worker-${OLD_SUFFIX}.js`, `service-worker-${NEW_SUFFIX}.js`);
+          write(`app-${NEW_SUFFIX}.js`, appBundle);
+          write(`docs/app-${NEW_SUFFIX}.js`, appBundle);
+
+          const cssBundle = read(`app-${OLD_SUFFIX}.css`);
+          write(`app-${NEW_SUFFIX}.css`, cssBundle);
+          write(`docs/app-${NEW_SUFFIX}.css`, cssBundle);
+
+          let worker = read('service-worker.js')
+            .replace(/const CURRENT_VERSION = "[^"]+";/, `const CURRENT_VERSION = "${VERSION}";`);
+          if (!worker.includes('simulados-edital-integration.js')) {
+            worker = worker.replace(
+              '  "manifest.json",',
+              '  "manifest.json",\n  "simulados-edital-integration.js",'
+            );
+          }
+          write('service-worker.js', worker);
+          write('docs/service-worker.js', worker);
+          write(`service-worker-${NEW_SUFFIX}.js`, worker);
+          write(`docs/service-worker-${NEW_SUFFIX}.js`, worker);
+
+          let html = read('index.html')
+            .replaceAll(`app-${OLD_SUFFIX}.css?v=${OLD_VERSION}`, `app-${NEW_SUFFIX}.css?v=${VERSION}`)
+            .replaceAll(`app-${OLD_SUFFIX}.js?v=${OLD_VERSION}`, `app-${NEW_SUFFIX}.js?v=${VERSION}`)
+            .replace(/\n\s*<script src="simulados-edital-integration\.js[^"]*"><\/script>/, '')
+            .replace(/<p class="app-version">Versão: [^<]+<\/p>/, `<p class="app-version">Versão: ${VERSION}</p>`);
+          write('index.html', html);
+          write('docs/index.html', html);
+          NODE
+
+          node --check app-v233.js
+          npm test
+
+      - name: Publicar arquivos gerados na branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/publicar-v233-simulados.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Publicar disciplina Simulados na v233"
+          git push
