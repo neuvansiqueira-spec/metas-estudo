@@ -1,0 +1,34 @@
+name: Verificar página pública v233
+
+on:
+  push:
+    branches:
+      - agent/publicar-v233-simulados
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirmar versão pública sem cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://neuvansiqueira-spec.github.io/metas-estudo/"
+          for tentativa in $(seq 1 18); do
+            HTML="$(curl -fsSL -H 'Cache-Control: no-cache' -H 'Pragma: no-cache' "${URL}?verificacao-v233=${GITHUB_RUN_ID}-${tentativa}")"
+            VERSAO="$(printf '%s' "$HTML" | grep -o 'Versão: [^<]*' | head -n 1 || true)"
+            BUNDLE="$(printf '%s' "$HTML" | grep -o 'app-v[0-9]*\.js?v=[^"]*' | tail -n 1 || true)"
+            echo "Tentativa ${tentativa}: ${VERSAO:-versão não localizada} | ${BUNDLE:-bundle não localizado}"
+            if printf '%s' "$HTML" | grep -q 'Versão: 20260804-disciplina-operacional-simulados-v233' \
+              && printf '%s' "$HTML" | grep -q 'app-v233.js?v=20260804-disciplina-operacional-simulados-v233'; then
+              echo 'PUBLICACAO_V233_CONFIRMADA'
+              exit 0
+            fi
+            sleep 10
+          done
+          echo 'A página pública ainda não entregou a v233.' >&2
+          exit 1
