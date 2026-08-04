@@ -2,11 +2,12 @@
 
 const CURRENT_VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-visible-version-hotfix1`;
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-queue-hotfix2`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
 const HISTORY_LAYOUT_STYLESHEET = `question-history-layout-v223.css?v=${HISTORY_LAYOUT_VERSION}`;
+const FACTORY_QUEUE_INTEGRITY = `factory-queue-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=factory-queue-integrity-hotfix2`;
 const INTEGRITY_LOADER = `planning-integrity-loader-v235.js?v=${CURRENT_VERSION}`;
 const INTEGRITY_CORE = `planning-integrity-v235.js?v=${CURRENT_VERSION}`;
 const STATIC_ASSETS = [
@@ -14,6 +15,7 @@ const STATIC_ASSETS = [
   "index.html",
   `app-${RELEASE_SUFFIX}.css?v=${CURRENT_VERSION}`,
   `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`,
+  FACTORY_QUEUE_INTEGRITY,
   INTEGRITY_LOADER,
   INTEGRITY_CORE,
   CONTRAST_STYLESHEET,
@@ -99,6 +101,7 @@ async function ensurePageStylesheets(response) {
   headers.delete("content-length");
   headers.set("content-type", "text/html; charset=utf-8");
   headers.set("x-aldus-integrity-version", CURRENT_VERSION);
+  headers.set("x-aldus-factory-queue-hotfix", "factory-queue-integrity-hotfix2");
 
   return new Response(patchedHtml, {
     status: response.status,
