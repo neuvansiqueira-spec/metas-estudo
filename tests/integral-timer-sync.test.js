@@ -110,7 +110,7 @@ test("service worker publica a versão atual e a sincronização integral contin
   assert.match(helper, /function syncPayloadFingerprint/);
   assert.match(helper, /function mergeSyncStates/);
   assert.doesNotMatch(helper, /\+remoteDate === \+localDate/);
-  assert.match(helper, /Mesclar os dados da nuvem com os dados deste dispositivo/);
+  assert.match(helper, /Dados dos dispositivos mesclados|Erro ao mesclar os dados da nuvem/);
 });
 
 test("arquivos publicados permanecem sincronizados", () => {
