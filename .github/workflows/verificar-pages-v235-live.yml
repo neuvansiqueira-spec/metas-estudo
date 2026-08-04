@@ -1,0 +1,57 @@
+name: Verificar página pública v235
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirmar arquivos públicos da v235 sem cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://neuvansiqueira-spec.github.io/metas-estudo"
+          VERSION="20260804-planejamento-metas-fabrica-integridade-v235"
+
+          for tentativa in $(seq 1 24); do
+            TOKEN="${GITHUB_RUN_ID}-${tentativa}-$(date +%s)"
+            SW="$(curl -fsSL -H 'Cache-Control: no-cache' -H 'Pragma: no-cache' "${BASE}/service-worker-v234.js?verificacao-v235=${TOKEN}" || true)"
+            LOADER="$(curl -fsSL -H 'Cache-Control: no-cache' -H 'Pragma: no-cache' "${BASE}/planning-integrity-loader-v235.js?verificacao-v235=${TOKEN}" || true)"
+            CORE="$(curl -fsSL -H 'Cache-Control: no-cache' -H 'Pragma: no-cache' "${BASE}/planning-integrity-v235.js?verificacao-v235=${TOKEN}" || true)"
+
+            SW_OK=false
+            LOADER_OK=false
+            CORE_OK=false
+
+            printf '%s' "$SW" | grep -q "const CURRENT_VERSION = \"${VERSION}\"" \
+              && printf '%s' "$SW" | grep -q 'planning-integrity-loader-v235.js' \
+              && SW_OK=true
+
+            printf '%s' "$LOADER" | grep -q "const VERSION = \"${VERSION}\"" \
+              && printf '%s' "$LOADER" | grep -q 'planning-integrity-v235.js' \
+              && LOADER_OK=true
+
+            printf '%s' "$CORE" | grep -q "const VERSION = \"${VERSION}\"" \
+              && printf '%s' "$CORE" | grep -q 'const USER_RESTORE_DATE = "2026-08-04"' \
+              && printf '%s' "$CORE" | grep -q 'const USER_RESTORE_COUNT = 5' \
+              && CORE_OK=true
+
+            echo "Tentativa ${tentativa}: service-worker=${SW_OK} loader=${LOADER_OK} core=${CORE_OK}"
+
+            if [[ "$SW_OK" == true && "$LOADER_OK" == true && "$CORE_OK" == true ]]; then
+              echo 'PUBLICACAO_V235_CONFIRMADA'
+              exit 0
+            fi
+
+            sleep 10
+          done
+
+          echo 'A página pública ainda não entregou integralmente a v235.' >&2
+          exit 1
