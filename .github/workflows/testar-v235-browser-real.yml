@@ -2,8 +2,7 @@ name: Testar v235 em navegador real
 
 on:
   pull_request:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -14,17 +13,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Preparar Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 24
 
-      - name: Instalar Playwright
+      - name: Instalar Chromium
         run: |
           npm install --no-save playwright@1.54.1
           npx playwright install --with-deps chromium
 
-      - name: Executar teste funcional no GitHub Pages
+      - name: Validar restauração, preservação e persistência
         shell: bash
         run: |
           set -euo pipefail
@@ -36,49 +34,30 @@ jobs:
             const browser = await chromium.launch({ headless: true });
             const context = await browser.newContext({ timezoneId: 'America/Sao_Paulo' });
             const page = await context.newPage();
-            const pageErrors = [];
-            page.on('pageerror', (error) => pageErrors.push(String(error)));
-            page.on('console', (message) => {
-              if (message.type() === 'error') pageErrors.push(`console: ${message.text()}`);
-            });
             page.on('dialog', (dialog) => dialog.dismiss());
 
             const base = 'https://neuvansiqueira-spec.github.io/metas-estudo/';
-            const token = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-            await page.goto(`${base}?teste-browser-v235=${token}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
-            await page.evaluate(async () => {
-              if ('serviceWorker' in navigator) await navigator.serviceWorker.ready;
-            });
+            await page.goto(`${base}?browser-v235=${Date.now()}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+            await page.evaluate(async () => { if ('serviceWorker' in navigator) await navigator.serviceWorker.ready; });
             await page.reload({ waitUntil: 'domcontentloaded', timeout: 120000 });
-
             await page.waitForFunction(() => Boolean(globalThis.__ALDUS_PLANNING_INTEGRITY_V235__), null, { timeout: 60000 });
-            await page.waitForFunction(() => {
-              try { return typeof bootstrapStateReady === 'undefined' || bootstrapStateReady === true; }
-              catch { return false; }
-            }, null, { timeout: 60000 });
 
-            const initial = await page.evaluate(() => {
-              const current = typeof todayISO === 'function' ? todayISO() : '';
-              const targets = typeof planningTargetsForDate === 'function' ? planningTargetsForDate('2026-08-04', state) : null;
-              return {
-                current,
-                runtime: globalThis.__ALDUS_PLANNING_INTEGRITY_V235__ || null,
-                footer: document.querySelector('.app-version')?.textContent || '',
-                disciplines: Number(state?.planning?.config?.disciplinesPerDay),
-                topics: Number(state?.planning?.config?.topicsPerDay),
-                override: state?.planning?.dailyGoalOverridesV235?.['2026-08-04'] || null,
-                targets
-              };
-            });
-
-            console.log('Estado inicial:', JSON.stringify(initial, null, 2));
+            const initial = await page.evaluate(() => ({
+              today: todayISO(),
+              runtime: globalThis.__ALDUS_PLANNING_INTEGRITY_V235__,
+              footer: document.querySelector('.app-version')?.textContent || '',
+              config: state.planning.config,
+              override: state.planning.dailyGoalOverridesV235?.['2026-08-04'],
+              targets: planningTargetsForDate('2026-08-04', state)
+            }));
+            assert.equal(initial.today, '2026-08-04');
             assert.equal(initial.runtime.version, '20260804-planejamento-metas-fabrica-integridade-v235');
             assert.match(initial.footer, /v235/);
-            assert.equal(initial.disciplines, 5);
-            assert.ok(initial.topics >= 5);
+            assert.equal(Number(initial.config.disciplinesPerDay), 5);
+            assert.equal(Number(initial.config.topicsPerDay), 5);
             assert.equal(Number(initial.override?.disciplines), 5);
-            assert.equal(Number(initial.targets?.disciplines), 5);
-            assert.equal(Number(initial.targets?.topics), 5);
+            assert.equal(Number(initial.targets.disciplines), 5);
+            assert.equal(Number(initial.targets.topics), 5);
 
             const alignment = await page.evaluate(() => {
               const date = '2026-08-04';
@@ -94,107 +73,76 @@ jobs:
                 weight: 5
               }));
               state.schedulableSettings = Object.fromEntries(state.syllabusItems.map((item) => [item.id, {
-                availability: 'Agendável',
-                mode: 'Estudo + questões',
-                priority: true
+                availability: 'Agendável', mode: 'Estudo + questões', priority: true
               }]));
               state.contestSyllabusMap = [];
               state.dailyGoals = [
                 {
-                  id: 'meta-concluida-preservada-v235',
-                  date,
-                  data: date,
-                  discipline: 'DISCIPLINA TESTE 1',
-                  subject: 'Assunto teste 1',
-                  syllabusItemId: 'teste-v235-1',
-                  origin: 'planejamento',
-                  status: 'Concluída',
-                  actualMinutes: 60,
-                  minutes: 60
+                  id: 'concluida-v235', date, data: date,
+                  discipline: 'DISCIPLINA TESTE 1', subject: 'Assunto teste 1', syllabusItemId: 'teste-v235-1',
+                  origin: 'planejamento', status: 'Concluída', actualMinutes: 60, minutes: 60
                 },
                 {
-                  id: 'meta-automatica-antiga-v235',
-                  date,
-                  data: date,
-                  discipline: 'ANTIGA',
-                  subject: 'Meta automática antiga',
-                  syllabusItemId: 'antiga-v235',
-                  origin: 'planejamento',
-                  status: 'Pendente',
-                  actualMinutes: 0,
-                  minutes: 60
+                  id: 'automatica-antiga-v235', date, data: date,
+                  discipline: 'ANTIGA', subject: 'Meta antiga', syllabusItemId: 'antiga-v235',
+                  origin: 'planejamento', status: 'Pendente', actualMinutes: 0, minutes: 60
                 }
               ];
-              if (state.planning?.dailyPlanAlignmentV174) delete state.planning.dailyPlanAlignmentV174[date];
+              if (state.planning.dailyPlanAlignmentV174) delete state.planning.dailyPlanAlignmentV174[date];
               const candidates = buildPlanningScoreContext(state).candidates.map((item) => item.id);
-              const eligible = eligiblePlanningGoalsForDate(date, { targetState: state, existingGoals: state.dailyGoals }).map((goal) => goal.syllabusItemId);
               const result = ensureDailyPlanAlignedWithPlanningV174(state, date);
               const goals = state.dailyGoals.filter((goal) => (goal.date || goal.data) === date);
               return {
                 candidates,
-                eligible,
-                result,
+                report: result.report,
                 total: goals.length,
-                ids: goals.map((goal) => goal.id),
-                preserved: goals.some((goal) => goal.id === 'meta-concluida-preservada-v235'),
-                removedOld: !goals.some((goal) => goal.id === 'meta-automatica-antiga-v235'),
-                completedMinutes: goals.find((goal) => goal.id === 'meta-concluida-preservada-v235')?.actualMinutes || 0
+                preserved: goals.find((goal) => goal.id === 'concluida-v235'),
+                removedOld: !goals.some((goal) => goal.id === 'automatica-antiga-v235')
               };
             });
-
-            console.log('Alinhamento:', JSON.stringify(alignment, null, 2));
-            assert.equal(alignment.candidates.length, 5);
+            assert.equal(alignment.candidates.length, 4, 'o assunto já concluído não deve voltar como candidato');
             assert.equal(alignment.total, 5);
-            assert.equal(alignment.preserved, true);
+            assert.equal(alignment.report.foundTopics, 5);
+            assert.equal(alignment.report.found, 5);
             assert.equal(alignment.removedOld, true);
-            assert.equal(alignment.completedMinutes, 60);
+            assert.equal(alignment.preserved.actualMinutes, 60);
 
             await page.evaluate(() => {
-              const disciplineInput = document.getElementById('planningDisciplinesPerDay');
-              const topicInput = document.getElementById('planningTopicsPerDay');
-              const form = document.getElementById('planningConfigForm');
-              if (!disciplineInput || !topicInput || !form) throw new Error('Formulário de Planejamento não localizado.');
-              disciplineInput.value = '6';
-              topicInput.value = '6';
-              form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+              document.getElementById('planningDisciplinesPerDay').value = '6';
+              document.getElementById('planningTopicsPerDay').value = '6';
+              document.getElementById('planningConfigForm').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
             });
             await page.waitForTimeout(1500);
 
-            const afterSave = await page.evaluate(() => ({
-              disciplines: Number(state?.planning?.config?.disciplinesPerDay),
-              topics: Number(state?.planning?.config?.topicsPerDay),
+            const saved = await page.evaluate(() => ({
+              config: state.planning.config,
               snapshot: JSON.parse(localStorage.getItem('aldusPlanningManualGoalsV235') || 'null'),
-              override: state?.planning?.dailyGoalOverridesV235?.['2026-08-04'] || null
+              override: state.planning.dailyGoalOverridesV235?.['2026-08-04']
             }));
-            console.log('Após salvar:', JSON.stringify(afterSave, null, 2));
-            assert.equal(afterSave.disciplines, 6);
-            assert.equal(afterSave.topics, 6);
-            assert.equal(Number(afterSave.snapshot?.disciplines), 6);
-            assert.equal(Number(afterSave.snapshot?.topics), 6);
-            assert.equal(Number(afterSave.override?.disciplines), 6);
+            assert.equal(Number(saved.config.disciplinesPerDay), 6);
+            assert.equal(Number(saved.config.topicsPerDay), 6);
+            assert.equal(Number(saved.snapshot.disciplines), 6);
+            assert.equal(Number(saved.snapshot.topics), 6);
+            assert.equal(Number(saved.override.disciplines), 6);
 
             await page.reload({ waitUntil: 'domcontentloaded', timeout: 120000 });
             await page.waitForFunction(() => Boolean(globalThis.__ALDUS_PLANNING_INTEGRITY_V235__), null, { timeout: 60000 });
             await page.waitForTimeout(1500);
 
             const persisted = await page.evaluate(() => ({
-              disciplines: Number(state?.planning?.config?.disciplinesPerDay),
-              topics: Number(state?.planning?.config?.topicsPerDay),
+              config: state.planning.config,
               snapshot: JSON.parse(localStorage.getItem('aldusPlanningManualGoalsV235') || 'null'),
               targets: planningTargetsForDate('2026-08-04', state),
               footer: document.querySelector('.app-version')?.textContent || ''
             }));
-            console.log('Após recarregar:', JSON.stringify(persisted, null, 2));
-            assert.equal(persisted.disciplines, 6);
-            assert.equal(persisted.topics, 6);
-            assert.equal(Number(persisted.snapshot?.disciplines), 6);
-            assert.equal(Number(persisted.targets?.disciplines), 6);
-            assert.equal(Number(persisted.targets?.topics), 6);
+            assert.equal(Number(persisted.config.disciplinesPerDay), 6);
+            assert.equal(Number(persisted.config.topicsPerDay), 6);
+            assert.equal(Number(persisted.snapshot.disciplines), 6);
+            assert.equal(Number(persisted.targets.disciplines), 6);
+            assert.equal(Number(persisted.targets.topics), 6);
             assert.match(persisted.footer, /v235/);
 
-            const relevantErrors = pageErrors.filter((entry) => !/favicon|google|identity|notification/i.test(entry));
-            if (relevantErrors.length) console.log('Erros observados no navegador:', relevantErrors);
-
+            console.log(JSON.stringify({ initial, alignment, saved, persisted }, null, 2));
             console.log('TESTE_BROWSER_V235_APROVADO');
             await browser.close();
           })().catch((error) => {
