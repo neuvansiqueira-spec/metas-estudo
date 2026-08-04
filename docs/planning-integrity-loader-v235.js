@@ -5,7 +5,7 @@
   const SNAPSHOT_KEY = "aldusPlanningManualGoalsV235";
   const SCRIPT_ID = "aldusPlanningIntegrityCoreV235";
   const FACTORY_SCRIPT_ID = "aldusFactoryQueueIntegrityV236";
-  const FACTORY_HOTFIX = "factory-queue-integrity-hotfix2";
+  const FACTORY_HOTFIX = "factory-queue-integrity-hotfix3";
   let loaded = false;
 
   function bootstrapReady() {
