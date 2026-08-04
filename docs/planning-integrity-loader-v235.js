@@ -4,6 +4,8 @@
   const VERSION = "20260804-planejamento-metas-fabrica-integridade-v235";
   const SNAPSHOT_KEY = "aldusPlanningManualGoalsV235";
   const SCRIPT_ID = "aldusPlanningIntegrityCoreV235";
+  const FACTORY_SCRIPT_ID = "aldusFactoryQueueIntegrityV236";
+  const FACTORY_HOTFIX = "factory-queue-integrity-hotfix2";
   let loaded = false;
 
   function bootstrapReady() {
@@ -79,14 +81,29 @@
     }
   }
 
+  function loadFactoryQueueIntegrity(releaseVersion) {
+    if (globalThis.__ALDUS_FACTORY_QUEUE_INTEGRITY_V236__ || document.getElementById(FACTORY_SCRIPT_ID)) return true;
+    const script = document.createElement("script");
+    script.id = FACTORY_SCRIPT_ID;
+    script.src = `factory-queue-integrity-v236.js?v=${encodeURIComponent(releaseVersion)}&hotfix=${encodeURIComponent(FACTORY_HOTFIX)}`;
+    script.async = false;
+    script.addEventListener("error", () => {
+      script.remove();
+      console.warn("[Aldus V236] A correção da fila da Fábrica será tentada novamente na próxima abertura.");
+    }, { once: true });
+    document.body.appendChild(script);
+    return true;
+  }
+
   function loadIntegrityCore() {
     if (loaded || document.getElementById(SCRIPT_ID)) return true;
     if (!bootstrapReady()) return false;
     loaded = true;
     installPersistenceGuards();
+    const releaseVersion = globalThis.__ALDUS_APP_RELEASE__?.version || VERSION;
+    loadFactoryQueueIntegrity(releaseVersion);
     const script = document.createElement("script");
     script.id = SCRIPT_ID;
-    const releaseVersion = globalThis.__ALDUS_APP_RELEASE__?.version || VERSION;
     script.src = `planning-integrity-v235.js?v=${encodeURIComponent(releaseVersion)}`;
     script.async = false;
     script.addEventListener("load", () => {
