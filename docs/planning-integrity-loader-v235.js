@@ -86,7 +86,8 @@
     installPersistenceGuards();
     const script = document.createElement("script");
     script.id = SCRIPT_ID;
-    script.src = `planning-integrity-v235.js?v=${encodeURIComponent(VERSION)}`;
+    const releaseVersion = globalThis.__ALDUS_APP_RELEASE__?.version || VERSION;
+    script.src = `planning-integrity-v235.js?v=${encodeURIComponent(releaseVersion)}`;
     script.async = false;
     script.addEventListener("load", () => {
       installPersistenceGuards();

@@ -268,6 +268,11 @@
 
   function applyVisibleVersion() {
     document.documentElement.dataset.aldusIntegrityVersion = VERSION;
+    const release = globalThis.__ALDUS_APP_RELEASE__;
+    if (release?.apply) {
+      release.apply();
+      return;
+    }
     document.querySelectorAll(".app-version").forEach((element) => {
       element.textContent = `Versão: ${VERSION}`;
     });
