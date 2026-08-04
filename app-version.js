@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260804-disciplina-operacional-simulados-v233";
+  const VERSION = "20260804-simulados-meta-manual-planejamento-preservado-v234";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

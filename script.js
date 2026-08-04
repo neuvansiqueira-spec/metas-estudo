@@ -1063,6 +1063,7 @@ const FACTORY_DOCX_EMOJI_FONT_INSTRUCTIONS = `## FONTES E EMOJIS NO WORD
 - Preservar os seletores Unicode necessários à apresentação colorida dos emojis.
 - Aplicar a regra ao documento inteiro, inclusive títulos, subtítulos e rodapé.`;
 const defaultState = { subjects: [], studies: [], edital: { pdf: null }, syllabusItems: [], schedulableSettings: {}, contestProfiles: [], activeContestId: null, contestSyllabusMap: [], contestPlanningProfiles: {}, planningMode: "joint", planningModeHistory: [], dailyGoals: [], questionLogs: [], smartReviews: [], simulados: [], advisorMission: {}, advisorNavigation: { version: 1, autonomyMode: "copilot", activeRoute: null, routeHistory: [], lastProjection: null, lastRecalculatedAt: "", sourceFingerprint: "", userLimits: {} }, planning: cloneData(defaultPlanning), settings: { defaultMockGoal: 92, timerPreferences: cloneData(defaultTimerPreferences) }, materials: [], questionBank: [], questionBankSessions: [], questionErrorNotebook: [], disciplineWeights: {}, monthlyGoals: {}, timerSession: null, factoryItems: [], factoryAgenda: [], factoryPromptLibrary: cloneData(defaultFactoryPromptLibrary) };
+const SIMULADOS_OPERATIONAL = globalThis.AldusSimuladosOperational;
 const TIMER_MOTIVATIONAL_HISTORY_KEY = "metasEstudoTimerMotivationalHistory";
 const TIMER_MOTIVATIONAL_TOAST_DURATION_MS = 30000;
 const TIMER_MOTIVATIONAL_MILESTONES = [10, 25, 40, 50, 65, 75, 90, 100];
@@ -2051,6 +2052,7 @@ function saveData(options = {}) {
     globalThis.__aldusDeferredPreBootstrapSave = true;
     return false;
   }
+  SIMULADOS_OPERATIONAL?.removeLegacyInjectedSubject(state);
   viewDataRevisionV172 += 1;
   const startedAt = performance.now();
   const report = {
@@ -2601,7 +2603,7 @@ function renderBackupPreview(payload) {
   return normalized;
 }
 function replaceState(nextState) { Object.keys(state).forEach((key) => delete state[key]); Object.assign(state, { ...cloneData(defaultState), ...(nextState || {}) }); state.edital = { ...defaultState.edital, ...(state.edital || {}) }; state.syllabusItems ||= []; state.schedulableSettings ||= {}; state.contestProfiles ||= []; state.activeContestId ||= null; state.contestSyllabusMap ||= []; state.contestPlanningProfiles ||= {}; state.planningMode ||= "joint"; state.planningModeHistory ||= []; state.dailyGoals ||= []; state.dailyGoals.forEach((goal) => { goal.date ||= goal.data || todayISO(); goal.data ||= goal.date; goal.discipline ||= goal.disciplina || "Sem disciplina"; goal.subject ||= goal.assunto || "Assunto"; goal.type ||= goal.tipo || "Meta"; goal.minutes = Number(goal.minutes ?? goal.tempo_sugerido_minutos) || 0; normalizeGoalTimeFields(goal); normalizeSegmentedGoalFields(goal); goal.status ||= "Pendente"; }); state.questionLogs ||= []; state.questionBank ||= []; state.questionBankSessions ||= []; state.questionErrorNotebook ||= carregarCadernoErros();
-state.smartReviews ||= []; state.simulados ||= []; state.advisorMission ||= {}; state.advisorNavigation ||= { version: 1, autonomyMode: "copilot", activeRoute: null, routeHistory: [], lastProjection: null, lastRecalculatedAt: "", sourceFingerprint: "", userLimits: {} }; state.planning = normalizePlanningState(state.planning); state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences); state.settings.timerMode ||= "countdown"; state.materials ||= []; migrateMaterialEstimates(state); migrateSegmentedGoals(state); state.factoryItems ||= []; state.factoryAgenda ||= []; state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) }); state.disciplineWeights ||= {}; state.monthlyGoals ||= {}; if (typeof applyPcprPcma2026Migration === "function") applyPcprPcma2026Migration(state); if (typeof applyIntegratedPlanningPrioritiesV155 === "function") globalThis.__integratedPlanningPriorityV155 = applyIntegratedPlanningPrioritiesV155(state, { reason: "replace-state" }); if (typeof repairInvalidReinforcementGoalsV157 === "function") globalThis.__reinforcementClassificationRepairV157 = repairInvalidReinforcementGoalsV157(state); globalThis.__dailyPlanningInflationRepairV108 = repairDailyPlanningInflationV108(state, { source: "replace-state" }); }
+state.smartReviews ||= []; state.simulados ||= []; state.advisorMission ||= {}; state.advisorNavigation ||= { version: 1, autonomyMode: "copilot", activeRoute: null, routeHistory: [], lastProjection: null, lastRecalculatedAt: "", sourceFingerprint: "", userLimits: {} }; state.planning = normalizePlanningState(state.planning); state.settings ||= {}; state.settings.defaultMockGoal ||= 92; state.settings.timerPreferences = normalizeTimerPreferences(state.settings.timerPreferences); state.settings.timerMode ||= "countdown"; state.materials ||= []; migrateMaterialEstimates(state); migrateSegmentedGoals(state); state.factoryItems ||= []; state.factoryAgenda ||= []; state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) }); state.disciplineWeights ||= {}; state.monthlyGoals ||= {}; SIMULADOS_OPERATIONAL?.removeLegacyInjectedSubject(state); if (typeof applyPcprPcma2026Migration === "function") applyPcprPcma2026Migration(state); if (typeof applyIntegratedPlanningPrioritiesV155 === "function") globalThis.__integratedPlanningPriorityV155 = applyIntegratedPlanningPrioritiesV155(state, { reason: "replace-state" }); if (typeof repairInvalidReinforcementGoalsV157 === "function") globalThis.__reinforcementClassificationRepairV157 = repairInvalidReinforcementGoalsV157(state); globalThis.__dailyPlanningInflationRepairV108 = repairDailyPlanningInflationV108(state, { source: "replace-state" }); }
 function mergeArrays(current = [], incoming = [], keyFn = (item) => item?.id || JSON.stringify(item)) { const seen = new Set(current.map(keyFn)); incoming.forEach((item) => { const key = keyFn(item); if (!seen.has(key)) { current.push(item); seen.add(key); } }); return current; }
 function backupGoalIdentity(goal = {}) {
   return goal.id || [
@@ -3051,6 +3053,35 @@ function normalizeProgressStatus(status) { const value = String(status || "").to
 function canonical(value) { return normalizeText(value).toLowerCase(); }
 function getSyllabusDisciplines() { return [...new Set(state.syllabusItems.map((item) => normalizeText(item.discipline)).filter(Boolean))].sort((a, b) => a.localeCompare(b)); }
 function getAllDisciplines() { return [...new Set([...state.subjects.map((subject) => normalizeText(subject.name)), ...getSyllabusDisciplines()].filter(Boolean))].sort((a, b) => a.localeCompare(b)); }
+function isOperationalSimuladosDiscipline(value) { return SIMULADOS_OPERATIONAL?.isOperationalDiscipline(value) === true; }
+function isOperationalSimuladosSubject(value) { return SIMULADOS_OPERATIONAL?.isOperationalSubject(value) === true; }
+function appendOperationalSimuladosDisciplineOption(select, current = "") {
+  if (!(select instanceof HTMLSelectElement) || !SIMULADOS_OPERATIONAL) return null;
+  let option = [...select.options].find((item) => isOperationalSimuladosDiscipline(item.value) || isOperationalSimuladosDiscipline(item.textContent));
+  if (!option) {
+    option = document.createElement("option");
+    select.append(option);
+  }
+  option.value = select.id === "studySubject" ? SIMULADOS_OPERATIONAL.STUDY_OPTION_ID : SIMULADOS_OPERATIONAL.DISCIPLINE;
+  option.textContent = SIMULADOS_OPERATIONAL.DISCIPLINE;
+  option.dataset.operationalDiscipline = "simulados";
+  if (isOperationalSimuladosDiscipline(current)) select.value = option.value;
+  return option;
+}
+function populateOperationalSimuladosGoalSubject(current = "") {
+  if (!elements.goalSyllabusItem || !SIMULADOS_OPERATIONAL) return;
+  elements.goalSyllabusItem.replaceChildren();
+  const option = document.createElement("option");
+  option.value = SIMULADOS_OPERATIONAL.SUBJECT_OPTION_ID;
+  option.textContent = SIMULADOS_OPERATIONAL.SUBJECT;
+  option.dataset.operationalSubject = "simulados";
+  elements.goalSyllabusItem.append(option);
+  elements.goalSyllabusItem.value = option.value;
+}
+function populateGoalSubjectsForDiscipline(discipline, current = "") {
+  if (isOperationalSimuladosDiscipline(discipline)) populateOperationalSimuladosGoalSubject(current);
+  else optionsForItems(elements.goalSyllabusItem, discipline, current);
+}
 function subjectForDiscipline(discipline) { return state.subjects.find((subject) => canonical(subject.name) === canonical(discipline)); }
 function ensureSubjectForDiscipline(discipline) {
   const name = normalizeText(discipline) || "Sem disciplina";
@@ -3450,6 +3481,7 @@ function renderSubjects() {
     const imported = getSyllabusDisciplines().some((name) => canonical(name) === canonical(subject.name));
     const li = document.createElement("li"); li.className = "subject-item"; li.innerHTML = `<div><strong>${escapeHTML(subject.name)}</strong><div class="item-meta">${imported ? "Disciplina do edital importado • " : ""}Meta: ${subject.goalHours}h/semana • Atual: ${formatHours(weeklyMinutes)}</div></div><div class="card-actions"><span class="badge">${Math.min(100, Math.round((weeklyMinutes / (subject.goalHours * 60 || 1)) * 100))}%</span><button class="danger" type="button" data-delete-discipline="${escapeHTML(subject.name)}">Excluir disciplina</button></div>`; elements.subjectList.appendChild(li);
   });
+  appendOperationalSimuladosDisciplineOption(elements.studySubject);
 }
 
 function planningConfig(targetState = state) { return targetState.planning.config; }
@@ -5934,7 +5966,7 @@ function syllabusFromValues(values) { return { id: createId(), discipline: value
 
 elements.changeMotivation?.addEventListener("click", () => renderMotivationalPhrase());
 elements.subjectForm.addEventListener("submit", (event) => { event.preventDefault(); state.subjects.push({ id: createId(), name: elements.subjectName.value.trim(), goalHours: Number(elements.subjectGoal.value) }); elements.subjectForm.reset(); render(); });
-elements.studyForm.addEventListener("submit", (event) => { event.preventDefault(); if (!elements.studySubject.value) return alert("Cadastre uma disciplina antes de registrar o estudo."); const questions = Number(elements.questionsDone.value); const correct = Number(elements.correctAnswers.value); const wrong = Number(elements.wrongAnswers.value); const blank = Number(elements.blankAnswers.value); if (correct + wrong + blank !== questions) return alert("A soma de acertos, erros e brancos deve ser igual ao total de questões feitas."); const studyTopic = elements.studyTopic.value.trim(); const linkedItem = findSyllabusItemByStudy(elements.studySubject.value, studyTopic); state.studies.push({ id: createId(), date: elements.studyDate.value, subjectId: elements.studySubject.value, syllabusItemId: linkedItem?.id || "", topic: studyTopic, minutes: Number(elements.studyMinutes.value), plannedMinutes: Number(elements.studyPlannedMinutes?.value) || 0, topicStatus: elements.studyTopicStatus?.value || "Iniciado", difficultyNotes: elements.studyDifficultyNotes?.value.trim() || "", materialId: elements.studyMaterial?.value || "", questions, correct, wrong, blank }); if (linkedItem) updateItemProgress(linkedItem.id, { status: isCompletedStatusValue(elements.studyTopicStatus?.value) ? "Concluído" : (completedStatus(linkedItem) ? linkedItem.status : "Em andamento") }); elements.studyForm.reset(); elements.studyDate.value = todayISO();
+elements.studyForm.addEventListener("submit", (event) => { event.preventDefault(); if (!elements.studySubject.value) return alert("Cadastre uma disciplina antes de registrar o estudo."); const questions = Number(elements.questionsDone.value); const correct = Number(elements.correctAnswers.value); const wrong = Number(elements.wrongAnswers.value); const blank = Number(elements.blankAnswers.value); if (correct + wrong + blank !== questions) return alert("A soma de acertos, erros e brancos deve ser igual ao total de questões feitas."); const studyTopic = elements.studyTopic.value.trim(); const operationalSimulado = isOperationalSimuladosDiscipline(elements.studySubject.value); const linkedItem = operationalSimulado ? null : findSyllabusItemByStudy(elements.studySubject.value, studyTopic); state.studies.push({ id: createId(), date: elements.studyDate.value, subjectId: operationalSimulado ? "" : elements.studySubject.value, discipline: operationalSimulado ? SIMULADOS_OPERATIONAL.DISCIPLINE : undefined, syllabusItemId: linkedItem?.id || "", topic: studyTopic, minutes: Number(elements.studyMinutes.value), plannedMinutes: Number(elements.studyPlannedMinutes?.value) || 0, topicStatus: elements.studyTopicStatus?.value || "Iniciado", difficultyNotes: elements.studyDifficultyNotes?.value.trim() || "", materialId: elements.studyMaterial?.value || "", questions, correct, wrong, blank, operationalDiscipline: operationalSimulado, linkedView: operationalSimulado ? "simulados" : undefined }); if (linkedItem) updateItemProgress(linkedItem.id, { status: isCompletedStatusValue(elements.studyTopicStatus?.value) ? "Concluído" : (completedStatus(linkedItem) ? linkedItem.status : "Em andamento") }); elements.studyForm.reset(); elements.studyDate.value = todayISO();
 elements.goalDate.value = todayISO();
 elements.questionDate.value = todayISO(); saveData({ markLocalChange: true }); autoSyncAfterSave("study-log"); render(); });
 elements.editalForm.addEventListener("submit", (event) => { event.preventDefault(); ["contestName", "agency", "role", "board", "examDate", "officialLink", "generalNotes"].forEach((key) => { state.edital[key] = elements[key].value.trim(); }); render(); });
@@ -6108,7 +6140,13 @@ function qconcursosNumberResolution(item = {}) {
 function qconcursosNumberForItem(item = {}) { return qconcursosNumberResolution(item).number; }
 function questionItemOptionLabel(item = {}, showQconcursosNumber = false) { const base = `${item.subject || item.assunto || "Assunto sem nome"}${item.subtopic || item.subtema ? ` • ${item.subtopic || item.subtema}` : ""}`; const resolution = qconcursosNumberResolution(item); if (!showQconcursosNumber) return base; if (resolution.number) return `[QC ${resolution.number}] ${base}`; return resolution.source === "reviewed-unavailable" ? `[QC sem código próprio] ${base}` : base; }
 function optionsForItems(select, discipline, current = "", options = {}) { const items = state.syllabusItems.filter((item) => !item.hiddenFromCatalog && (!discipline || item.discipline === discipline)); select.innerHTML = '<option value="">Selecione</option>' + items.map((item) => `<option value="${item.id}" ${item.id === current ? "selected" : ""}>${escapeHTML(questionItemOptionLabel(item, options.showQconcursosNumber === true))}</option>`).join(""); }
-function renderGoalSelectors() { const gd = elements.goalDiscipline.value; const gi = elements.goalSyllabusItem.value; optionsForDiscipline(elements.goalDiscipline, gd); optionsForItems(elements.goalSyllabusItem, elements.goalDiscipline.value || gd, gi); }
+function renderGoalSelectors() {
+  const gd = elements.goalDiscipline.value;
+  const gi = elements.goalSyllabusItem.value;
+  optionsForDiscipline(elements.goalDiscipline, gd);
+  appendOperationalSimuladosDisciplineOption(elements.goalDiscipline, gd);
+  populateGoalSubjectsForDiscipline(elements.goalDiscipline.value || gd, gi);
+}
 function renderQuestionSelectors() { const qd = elements.questionDiscipline.value; const qi = elements.questionSyllabusItem.value; optionsForDiscipline(elements.questionDiscipline, qd); optionsForItems(elements.questionSyllabusItem, elements.questionDiscipline.value || qd, qi, { showQconcursosNumber: true }); const fd = elements.questionFilterDiscipline.value; optionsForDiscipline(elements.questionFilterDiscipline, fd); elements.questionFilterDiscipline.querySelector('option').textContent = 'Todas'; const fs = elements.questionFilterSubject.value; elements.questionFilterSubject.innerHTML = '<option value="">Todos</option>' + state.syllabusItems.filter((item) => !elements.questionFilterDiscipline.value || item.discipline === elements.questionFilterDiscipline.value).map((item) => `<option value="${item.id}" ${item.id === fs ? "selected" : ""}>${escapeHTML(questionItemOptionLabel(item, true))}</option>`).join(''); }
 const REINFORCEMENT_CLASSIFICATION_VERSION_V157 = "reinforcement-classification-v157";
 function normalGoalTypeForItemV157(item = {}, targetState = state) {
@@ -6511,7 +6549,11 @@ function repairCompletedPlanningGoalsV76(targetState = state) {
   targetState.migrations.completedSubjectIntegrityV76 = { executedAt: new Date().toISOString(), removed: removed.size };
   return { removed: removed.size, changed: removed.size > 0 };
 }
-function isPlanningStudyGoal(goal = {}) { return ["estudo novo", "revisão", "revisao", "reforço", "reforco", "questões", "questoes", "simulado", "meta"].includes(canonical(goal.type || goal.tipo || "Meta")); }
+function isPlanningStudyGoal(goal = {}) {
+  const discipline = goal.discipline || goal.disciplina || "";
+  if (goal.operationalDiscipline === true || isOperationalSimuladosDiscipline(discipline)) return false;
+  return ["estudo novo", "revisão", "revisao", "reforço", "reforco", "questões", "questoes", "simulado", "meta"].includes(canonical(goal.type || goal.tipo || "Meta"));
+}
 function planningDistributionProfileV77(targetState = state, date = todayISO()) {
   const windowStart = addDays(date, -28);
   const counts = new Map(), lastDates = new Map();
@@ -7578,9 +7620,12 @@ function editGoal(goal) {
   normalizeGoalTimeFields(goal);
   elements.goalEditingId.value = goal.id;
   elements.goalDate.value = goalDateValue(goal) || todayISO();
-  elements.goalDiscipline.value = goal.discipline || goal.disciplina || "";
-  optionsForItems(elements.goalSyllabusItem, elements.goalDiscipline.value, goal.syllabusItemId);
-  elements.goalSyllabusItem.value = goal.syllabusItemId || "";
+  const goalDiscipline = goal.discipline || goal.disciplina || "";
+  optionsForDiscipline(elements.goalDiscipline, goalDiscipline);
+  appendOperationalSimuladosDisciplineOption(elements.goalDiscipline, goalDiscipline);
+  elements.goalDiscipline.value = isOperationalSimuladosDiscipline(goalDiscipline) ? SIMULADOS_OPERATIONAL.DISCIPLINE : goalDiscipline;
+  populateGoalSubjectsForDiscipline(elements.goalDiscipline.value, isOperationalSimuladosDiscipline(goalDiscipline) ? SIMULADOS_OPERATIONAL.SUBJECT_OPTION_ID : goal.syllabusItemId);
+  elements.goalSyllabusItem.value = isOperationalSimuladosDiscipline(goalDiscipline) ? SIMULADOS_OPERATIONAL.SUBJECT_OPTION_ID : (goal.syllabusItemId || "");
   elements.goalType.value = goal.type || goal.tipo || "Estudo novo";
   elements.goalMinutes.value = Number(goal.minutes) || 50;
   elements.goalActualMinutes.value = goalTotalActualMinutes(goal);
@@ -8601,7 +8646,10 @@ elements.disciplineWeightsList?.addEventListener("change", (event) => {
 function handleGoalCalendarClick(event) { const openPlan=event.target.closest("[data-open-day-plan]"); if(openPlan){ elements.goalDate.value=openPlan.dataset.openDayPlan; renderDailyGoals(); return showView("metas-do-dia"); } const timerButton=event.target.closest("button[data-calendar-timer]"); if(timerButton){ const goal=state.dailyGoals.find(g=>g.id===timerButton.dataset.id); if(goal) startFloatingTimer(goal, timerButton.dataset.calendarTimer); return; } const b=event.target.closest("button[data-calendar-action],button[data-register-goal]"); if(!b) return; if(b.dataset.registerGoal) return fillQuestionFromGoal(b.dataset.registerGoal); const goal=state.dailyGoals.find(g=>g.id===b.dataset.id); if(!goal) return; if(b.dataset.calendarAction==="edit") return editGoal(goal); if(b.dataset.calendarAction==="done") openGoalCompletionModal(goal.id, b); if(b.dataset.calendarAction==="postpone") postponeGoal(goal); if(b.dataset.calendarAction==="study-time") registerGoalTime(goal, "study"); if(b.dataset.calendarAction==="question-time") registerGoalTime(goal, "questions"); render(); }
 function handleGoalCalendarKeydown(event) { if (!["Enter", " "].includes(event.key)) return; const openPlan=event.target.closest("[data-open-day-plan]"); if (!openPlan) return; event.preventDefault(); elements.goalDate.value=openPlan.dataset.openDayPlan; renderDailyGoals(); showView("metas-do-dia"); }
 [elements.goalCalendarContent, elements.goalCalendarWeeklyContent, elements.goalCalendarMonthlyContent].filter(Boolean).forEach((content) => { content.addEventListener("click", handleGoalCalendarClick); content.addEventListener("keydown", handleGoalCalendarKeydown); });
-elements.goalDiscipline.addEventListener("change", () => optionsForItems(elements.goalSyllabusItem, elements.goalDiscipline.value));
+elements.goalDiscipline.addEventListener("change", () => {
+  populateGoalSubjectsForDiscipline(elements.goalDiscipline.value);
+  if (isOperationalSimuladosDiscipline(elements.goalDiscipline.value)) elements.goalType.value = "Simulado";
+});
 elements.questionDiscipline.addEventListener("change", () => { optionsForItems(elements.questionSyllabusItem, elements.questionDiscipline.value, "", { showQconcursosNumber: true }); renderQuestionSubjectSummary(); });
 elements.questionSyllabusItem.addEventListener("change", renderQuestionSubjectSummary);
 elements.questionBoard?.addEventListener("change", renderQconcursosFilterRoute);
@@ -8615,7 +8663,24 @@ elements.saveQuestionQcNumber?.addEventListener("click", () => {
   elements.questionQcNumberStatus.hidden = false; elements.questionQcNumberStatus.textContent = number ? `Numeração ${number} salva neste assunto.` : "Numeração do QC removida deste assunto.";
 });
 elements.questionSubjectSummary?.addEventListener("click", (event) => { const button=event.target.closest("[data-view-question-performance]"); if (!button) return; elements.questionFilterDiscipline.value=elements.questionDiscipline.value; renderQuestionSelectors(); elements.questionFilterSubject.value=button.dataset.viewQuestionPerformance; showView("historico-questoes"); });
-elements.goalSyllabusItem.addEventListener("change", () => { const item = getSyllabusById(elements.goalSyllabusItem.value); if (item) { elements.goalDiscipline.value = item.discipline; elements.goalPriority.value = item.priority; elements.goalType.value = goalTypeForItem(item); } });
+elements.goalSyllabusItem.addEventListener("change", () => { if (isOperationalSimuladosSubject(elements.goalSyllabusItem.value)) { elements.goalType.value = "Simulado"; return; } const item = getSyllabusById(elements.goalSyllabusItem.value); if (item) { elements.goalDiscipline.value = item.discipline; elements.goalPriority.value = item.priority; elements.goalType.value = goalTypeForItem(item); } });
+
+document.getElementById("openSimuladosManualGoal")?.addEventListener("click", () => {
+  showView("metas-do-dia");
+  elements.goalDate.value = todayISO();
+  renderGoalSelectors();
+  elements.goalDiscipline.value = SIMULADOS_OPERATIONAL.DISCIPLINE;
+  populateOperationalSimuladosGoalSubject();
+  elements.goalType.value = "Simulado";
+  elements.goalForm.closest("details")?.setAttribute("open", "");
+  elements.goalForm.scrollIntoView?.({ behavior: "smooth", block: "start" });
+});
+
+elements.studySubject.addEventListener("change", () => {
+  if (!isOperationalSimuladosDiscipline(elements.studySubject.value)) return;
+  if (!elements.studyTopic.value.trim()) elements.studyTopic.value = SIMULADOS_OPERATIONAL.SUBJECT;
+  elements.studyTopicStatus.value = "Concluído";
+});
 
 function handleDailyGoalActionClick(event) {
   const openedMaterial = event.target.closest("button[data-open-goal-material]");
@@ -8654,8 +8719,10 @@ function handleDailyGoalActionClick(event) {
 }
 elements.goalForm.addEventListener("submit", (event) => {
   event.preventDefault();
-  const item = getSyllabusById(elements.goalSyllabusItem.value);
-  if (!item) return alert("Selecione um assunto do edital verticalizado.");
+  const operationalSimulado = isOperationalSimuladosDiscipline(elements.goalDiscipline.value)
+    && isOperationalSimuladosSubject(elements.goalSyllabusItem.value);
+  const item = operationalSimulado ? null : getSyllabusById(elements.goalSyllabusItem.value);
+  if (!operationalSimulado && !item) return alert("Selecione um assunto do edital verticalizado.");
   const selectedDate = elements.goalDate.value || todayISO();
   const plannedMinutes = Number(elements.goalMinutes.value);
   if (!Number.isFinite(plannedMinutes) || plannedMinutes < 1) return alert("Informe um tempo planejado válido.");
@@ -8669,18 +8736,20 @@ elements.goalForm.addEventListener("submit", (event) => {
   const actualMinutes = Math.max(questionActualMinutes, enteredActualMinutes);
   const now = new Date().toISOString();
   const status = elements.goalStatus.value || existing?.status || "Pendente";
-  const subject = existing?.syllabusItemId === item.id ? (existing.subject || item.subject) : item.subject;
+  const subject = operationalSimulado
+    ? SIMULADOS_OPERATIONAL.SUBJECT
+    : (existing?.syllabusItemId === item.id ? (existing.subject || item.subject) : item.subject);
   const payload = {
     id: existing?.id || createId(),
     date: selectedDate,
     data: selectedDate,
-    discipline: elements.goalDiscipline.value,
-    disciplina: elements.goalDiscipline.value,
-    syllabusItemId: item.id,
+    discipline: operationalSimulado ? SIMULADOS_OPERATIONAL.DISCIPLINE : elements.goalDiscipline.value,
+    disciplina: operationalSimulado ? SIMULADOS_OPERATIONAL.DISCIPLINE : elements.goalDiscipline.value,
+    syllabusItemId: operationalSimulado ? "" : item.id,
     subject,
     assunto: subject,
-    baseSubject: item.subject,
-    referencia_edital: item.reference || "",
+    baseSubject: operationalSimulado ? SIMULADOS_OPERATIONAL.SUBJECT : item.subject,
+    referencia_edital: operationalSimulado ? "" : (item.reference || ""),
     type: elements.goalType.value,
     tipo: elements.goalType.value.toLowerCase(),
     minutes: plannedMinutes,
@@ -8697,7 +8766,9 @@ elements.goalForm.addEventListener("submit", (event) => {
     createdAt: existing?.createdAt || now,
     updatedAt: now,
     completed: status === "Concluída",
-    completedAt: status === "Concluída" ? (existing?.completedAt || now) : null
+    completedAt: status === "Concluída" ? (existing?.completedAt || now) : null,
+    operationalDiscipline: operationalSimulado,
+    linkedView: operationalSimulado ? "simulados" : (existing?.linkedView || "")
   };
   if (existing) {
     Object.assign(existing, payload);
@@ -9246,6 +9317,7 @@ async function bootstrapApplication() {
 
     replaceState(chosenState);
     mergeCompatibleLocalStorageData();
+    SIMULADOS_OPERATIONAL?.removeLegacyInjectedSubject(state);
     const factoryPromptLibraryBefore = JSON.stringify(state.factoryPromptLibrary || {});
     state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) });
     const coreFactoryPromptsChanged = migrateCoreFactoryPrompts(state) || JSON.stringify(state.factoryPromptLibrary || {}) !== factoryPromptLibraryBefore;

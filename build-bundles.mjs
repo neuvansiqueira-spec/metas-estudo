@@ -117,6 +117,7 @@ const jsSources = [
   "pcpr-pcma-2026-migration.js",
   "qconcursos-pdf-import-v181.js",
   "qconcursos-capture-import-v182.js",
+  "simulados-edital-integration.js",
   "script.js",
   "factory-destination-catalog-v222.js",
   "factory-destination-folders-v222.js",
@@ -344,8 +345,14 @@ for (const [source, target] of [
   [path.join(root, "node_modules", "pdfjs-dist", "build", "pdf.worker.mjs"), "pdf.worker.mjs"],
   [path.join(root, "node_modules", "pdfjs-dist", "LICENSE"), "pdfjs-LICENSE.txt"]
 ]) {
-  fs.copyFileSync(source, path.join(vendorDir, target));
-  fs.copyFileSync(source, path.join(docsVendorDir, target));
+  const rootTarget = path.join(vendorDir, target);
+  const docsTarget = path.join(docsVendorDir, target);
+  if (fs.existsSync(source)) {
+    fs.copyFileSync(source, rootTarget);
+    fs.copyFileSync(source, docsTarget);
+  } else if (!fs.existsSync(rootTarget) || !fs.existsSync(docsTarget)) {
+    throw new Error(`Dependência ausente e sem cópia versionada disponível: ${target}`);
+  }
 }
 
 for (const extension of ["css", "js"]) {
@@ -392,6 +399,7 @@ for (const filename of [
   "question-board-result-v141.js", "question-scoring-rule-v142.js",
   "question-register-simple-v162.js", "factory-simple-v163.js",
   "factory-polish-v164.js", "aldus-desktop-refinement-v178.css",
+  "simulados-edital-integration.js",
   "aldus-question-register-v180.css", "qconcursos-pdf-import-v181.js",
   "question-bank-pdf-import-v181.css", "qconcursos-capture-import-v182.js",
   "qconcursos-capture-segmented-v188.js", "qconcursos-capture-bank-v188.js", "qconcursos-capture-reprocess-v188.js",

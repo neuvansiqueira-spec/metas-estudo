@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20260804-disciplina-operacional-simulados-v233";
+const CURRENT_VERSION = "20260804-simulados-meta-manual-planejamento-preservado-v234";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";

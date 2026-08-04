@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260804-disciplina-operacional-simulados-v233",
+  "version": "20260804-simulados-meta-manual-planejamento-preservado-v234",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
