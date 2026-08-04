@@ -17,7 +17,7 @@ jobs:
       - name: Preparar Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Instalar Playwright
         run: |
@@ -41,6 +41,7 @@ jobs:
             page.on('console', (message) => {
               if (message.type() === 'error') pageErrors.push(`console: ${message.text()}`);
             });
+            page.on('dialog', (dialog) => dialog.dismiss());
 
             const base = 'https://neuvansiqueira-spec.github.io/metas-estudo/';
             const token = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -70,6 +71,7 @@ jobs:
               };
             });
 
+            console.log('Estado inicial:', JSON.stringify(initial, null, 2));
             assert.equal(initial.runtime.version, '20260804-planejamento-metas-fabrica-integridade-v235');
             assert.match(initial.footer, /v235/);
             assert.equal(initial.disciplines, 5);
@@ -83,11 +85,20 @@ jobs:
               state.syllabusItems = Array.from({ length: 5 }, (_, index) => ({
                 id: `teste-v235-${index + 1}`,
                 discipline: `DISCIPLINA TESTE ${index + 1}`,
+                topic: `Assunto teste ${index + 1}`,
                 subject: `Assunto teste ${index + 1}`,
                 status: 'Não iniciado',
-                editalActive: true
+                editalActive: true,
+                agendavel: true,
+                schedulable: true,
+                weight: 5
               }));
-              state.schedulableSettings = Object.fromEntries(state.syllabusItems.map((item) => [item.id, true]));
+              state.schedulableSettings = Object.fromEntries(state.syllabusItems.map((item) => [item.id, {
+                availability: 'Agendável',
+                mode: 'Estudo + questões',
+                priority: true
+              }]));
+              state.contestSyllabusMap = [];
               state.dailyGoals = [
                 {
                   id: 'meta-concluida-preservada-v235',
@@ -115,17 +126,24 @@ jobs:
                 }
               ];
               if (state.planning?.dailyPlanAlignmentV174) delete state.planning.dailyPlanAlignmentV174[date];
+              const candidates = buildPlanningScoreContext(state).candidates.map((item) => item.id);
+              const eligible = eligiblePlanningGoalsForDate(date, { targetState: state, existingGoals: state.dailyGoals }).map((goal) => goal.syllabusItemId);
               const result = ensureDailyPlanAlignedWithPlanningV174(state, date);
               const goals = state.dailyGoals.filter((goal) => (goal.date || goal.data) === date);
               return {
+                candidates,
+                eligible,
                 result,
                 total: goals.length,
+                ids: goals.map((goal) => goal.id),
                 preserved: goals.some((goal) => goal.id === 'meta-concluida-preservada-v235'),
                 removedOld: !goals.some((goal) => goal.id === 'meta-automatica-antiga-v235'),
                 completedMinutes: goals.find((goal) => goal.id === 'meta-concluida-preservada-v235')?.actualMinutes || 0
               };
             });
 
+            console.log('Alinhamento:', JSON.stringify(alignment, null, 2));
+            assert.equal(alignment.candidates.length, 5);
             assert.equal(alignment.total, 5);
             assert.equal(alignment.preserved, true);
             assert.equal(alignment.removedOld, true);
@@ -140,7 +158,7 @@ jobs:
               topicInput.value = '6';
               form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
             });
-            await page.waitForTimeout(1000);
+            await page.waitForTimeout(1500);
 
             const afterSave = await page.evaluate(() => ({
               disciplines: Number(state?.planning?.config?.disciplinesPerDay),
@@ -148,6 +166,7 @@ jobs:
               snapshot: JSON.parse(localStorage.getItem('aldusPlanningManualGoalsV235') || 'null'),
               override: state?.planning?.dailyGoalOverridesV235?.['2026-08-04'] || null
             }));
+            console.log('Após salvar:', JSON.stringify(afterSave, null, 2));
             assert.equal(afterSave.disciplines, 6);
             assert.equal(afterSave.topics, 6);
             assert.equal(Number(afterSave.snapshot?.disciplines), 6);
@@ -156,7 +175,7 @@ jobs:
 
             await page.reload({ waitUntil: 'domcontentloaded', timeout: 120000 });
             await page.waitForFunction(() => Boolean(globalThis.__ALDUS_PLANNING_INTEGRITY_V235__), null, { timeout: 60000 });
-            await page.waitForTimeout(1000);
+            await page.waitForTimeout(1500);
 
             const persisted = await page.evaluate(() => ({
               disciplines: Number(state?.planning?.config?.disciplinesPerDay),
@@ -165,6 +184,7 @@ jobs:
               targets: planningTargetsForDate('2026-08-04', state),
               footer: document.querySelector('.app-version')?.textContent || ''
             }));
+            console.log('Após recarregar:', JSON.stringify(persisted, null, 2));
             assert.equal(persisted.disciplines, 6);
             assert.equal(persisted.topics, 6);
             assert.equal(Number(persisted.snapshot?.disciplines), 6);
@@ -173,11 +193,8 @@ jobs:
             assert.match(persisted.footer, /v235/);
 
             const relevantErrors = pageErrors.filter((entry) => !/favicon|google|identity|notification/i.test(entry));
-            if (relevantErrors.length) {
-              console.log('Erros observados no navegador:', relevantErrors);
-            }
+            if (relevantErrors.length) console.log('Erros observados no navegador:', relevantErrors);
 
-            console.log(JSON.stringify({ initial, alignment, afterSave, persisted }, null, 2));
             console.log('TESTE_BROWSER_V235_APROVADO');
             await browser.close();
           })().catch((error) => {
