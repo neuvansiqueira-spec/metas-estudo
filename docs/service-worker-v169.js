@@ -1,17 +1,21 @@
 "use strict";
 
-const CURRENT_VERSION = "20260804-simulados-meta-manual-planejamento-preservado-v234";
+const CURRENT_VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
 const HISTORY_LAYOUT_STYLESHEET = `question-history-layout-v223.css?v=${HISTORY_LAYOUT_VERSION}`;
+const INTEGRITY_LOADER = `planning-integrity-loader-v235.js?v=${CURRENT_VERSION}`;
+const INTEGRITY_CORE = `planning-integrity-v235.js?v=${CURRENT_VERSION}`;
 const STATIC_ASSETS = [
   "./",
   "index.html",
   `app-${RELEASE_SUFFIX}.css?v=${CURRENT_VERSION}`,
   `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`,
+  INTEGRITY_LOADER,
+  INTEGRITY_CORE,
   CONTRAST_STYLESHEET,
   HISTORY_LAYOUT_STYLESHEET,
   "vendor/pdf.mjs",
@@ -78,15 +82,23 @@ async function ensurePageStylesheets(response) {
     missingTags.push(`<link rel="stylesheet" href="${HISTORY_LAYOUT_STYLESHEET}" />`);
   }
 
-  const patchedHtml = missingTags.length === 0
+  let patchedHtml = missingTags.length === 0
     ? html
     : html.includes("</head>")
       ? html.replace("</head>", `  ${missingTags.join("\n  ")}\n</head>`)
       : `${missingTags.join("\n")}\n${html}`;
 
+  if (!patchedHtml.includes("planning-integrity-loader-v235.js")) {
+    const scriptTag = `<script id="aldusPlanningIntegrityLoaderV235" src="${INTEGRITY_LOADER}"></script>`;
+    patchedHtml = patchedHtml.includes("</body>")
+      ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`)
+      : `${patchedHtml}\n${scriptTag}`;
+  }
+
   const headers = new Headers(response.headers);
   headers.delete("content-length");
   headers.set("content-type", "text/html; charset=utf-8");
+  headers.set("x-aldus-integrity-version", CURRENT_VERSION);
 
   return new Response(patchedHtml, {
     status: response.status,
