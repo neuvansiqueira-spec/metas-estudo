@@ -84,7 +84,7 @@
     const removed = before - targetState.subjects.length;
     if (removed) {
       targetState.migrations ||= {};
-      targetState.migrations.simuladosOperationalDecoupledV236 = {
+      const migration = {
         version: VERSION,
         executedAt: new Date().toISOString(),
         removedSubjects: removed,
@@ -95,13 +95,18 @@
           ? targetState.dailyGoals.filter((goal) => isOperationalDiscipline(goal.discipline || goal.disciplina)).length
           : 0
       };
+      targetState.migrations.simuladosOperationalDecoupledV234 = migration;
+      targetState.migrations.simuladosOperationalDecoupledV236 = migration;
     }
     return { changed: removed > 0, removed };
   }
 
   function currentState() {
     try {
-      return typeof root.state === "object" ? root.state : null;
+      if (typeof state !== "undefined" && state && typeof state === "object") return state;
+    } catch {}
+    try {
+      return root?.state && typeof root.state === "object" ? root.state : null;
     } catch {
       return null;
     }
