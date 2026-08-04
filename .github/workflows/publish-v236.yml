@@ -1,0 +1,65 @@
+name: Publicar V236 sem SIMULADOS na Fábrica
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/publish-v236.yml
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Atualizar lock e instalar dependências
+        run: |
+          npm install --package-lock-only --ignore-scripts
+          npm ci
+
+      - name: Preparar e gerar a V236
+        run: |
+          node prepare-v236.mjs
+          node build-bundles.mjs
+
+      - name: Validar correções
+        run: |
+          node --check simulados-edital-integration.js
+          node --check app-v236.js
+          node --check service-worker-v236.js
+          node --test tests/simulados-factory-v236.test.js tests/simulados-operational-v234.test.js tests/current-release-contract.js
+          grep -q '20260804-simulados-sem-fabrica-cache-unico-v236' index.html
+          grep -q '20260804-simulados-sem-fabrica-cache-unico-v236' app-version.js
+          grep -q 'planning-integrity-loader-v235.js' index.html
+          grep -q 'planning-integrity-loader-v235.js' service-worker-v236.js
+          ! grep -q 'Versão: 20260804-simulados-meta-manual-planejamento-preservado-v234' index.html
+          cmp index.html docs/index.html
+          cmp app-v236.js docs/app-v236.js
+          cmp service-worker-v236.js docs/service-worker-v236.js
+
+      - name: Publicar artefatos gerados
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            package-lock.json app-version.js app.bundle.css app.bundle.js app-v236.css app-v236.js \
+            index.html service-worker.js service-worker-v236.js service-worker-v168.js service-worker-v169.js \
+            docs/app-version.js docs/app.bundle.css docs/app.bundle.js docs/app-v236.css docs/app-v236.js \
+            docs/index.html docs/service-worker.js docs/service-worker-v236.js docs/service-worker-v168.js docs/service-worker-v169.js \
+            docs/simulados-edital-integration.js
+          if ! git diff --cached --quiet; then
+            git commit -m "Publicar V236 sem SIMULADOS na Fábrica e sem piscar V234"
+            git push
+          fi
