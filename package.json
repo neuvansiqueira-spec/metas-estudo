@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260804-simulados-meta-manual-planejamento-preservado-v234",
+  "version": "20260804-simulados-sem-fabrica-cache-unico-v236",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
