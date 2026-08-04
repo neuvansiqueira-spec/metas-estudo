@@ -2,7 +2,7 @@
   "use strict";
 
   const VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
-  const HOTFIX = "timer-audio-recovery-hotfix1";
+  const HOTFIX = "timer-audio-recovery-hotfix2";
   const GLOBAL_KEY = "__ALDUS_TIMER_AUDIO_RECOVERY_V236__";
   const CONTROL_FLAG = "__aldusTimerAudioRecoveryV236";
   const MOTIVATION_STORAGE_KEY = "metasEstudoMotivationalSoundEnabled";
@@ -196,6 +196,11 @@
     return String(element.textContent || "").trim().replace(/\s+/g, " ");
   }
 
+  function percentageMessageAlreadyHandledByApi(signature) {
+    return Boolean(globalThis.MetasQuestionAccuracySpectrum?.[CONTROL_FLAG])
+      && /\d+(?:[.,]\d+)?\s*%\s*(?:conclu[ií]do)?/i.test(signature);
+  }
+
   function inspectMotivationalMessages() {
     const candidates = [
       document.getElementById("timerMotivationalToast"),
@@ -204,6 +209,11 @@
     for (const element of candidates) {
       const signature = visibleMessageSignature(element);
       if (!signature || signature === lastMessageSignature) continue;
+      if (percentageMessageAlreadyHandledByApi(signature)) {
+        lastMessageSignature = signature;
+        lastMessageAt = Date.now();
+        continue;
+      }
       const percent = Number(signature.match(/(\d+(?:[.,]\d+)?)\s*%/)?.[1]?.replace(",", ".")) || 10;
       void playMotivationalSound(signature, percent);
       return;
@@ -231,13 +241,6 @@
     document.addEventListener("pointerdown", unlock, { capture: true, passive: true });
     document.addEventListener("touchstart", unlock, { capture: true, passive: true });
     document.addEventListener("keydown", unlock, { capture: true });
-
-    document.addEventListener("click", (event) => {
-      const button = event.target?.closest?.("#timerPauseResume");
-      if (!button) return;
-      const type = /continuar/i.test(button.textContent || "") ? "resume" : "pause";
-      void playControlSound(type);
-    }, true);
   }
 
   function install() {
