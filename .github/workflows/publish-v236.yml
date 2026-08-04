@@ -1,8 +1,7 @@
 name: Publicar V236 sem SIMULADOS na Fábrica
 
-# Execução final autorizada em 04/08/2026.
 on:
-  push:
+  pull_request:
     branches:
       - main
     paths:
@@ -16,8 +15,10 @@ jobs:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout da branch da publicação
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Configurar Node
         uses: actions/setup-node@v4
@@ -50,7 +51,7 @@ jobs:
           cmp app-v236.js docs/app-v236.js
           cmp service-worker-v236.js docs/service-worker-v236.js
 
-      - name: Publicar artefatos gerados
+      - name: Publicar artefatos gerados na branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -62,5 +63,5 @@ jobs:
             docs/simulados-edital-integration.js
           if ! git diff --cached --quiet; then
             git commit -m "Publicar V236 sem SIMULADOS na Fábrica e sem piscar V234"
-            git push
+            git push origin HEAD:${{ github.event.pull_request.head.ref }}
           fi
