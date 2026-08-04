@@ -1,6 +1,6 @@
 name: Publicar V236 sem SIMULADOS na Fábrica
 
-# Execução autorizada em 04/08/2026.
+# Execução final autorizada em 04/08/2026.
 on:
   push:
     branches:
