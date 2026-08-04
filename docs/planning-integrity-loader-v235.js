@@ -7,7 +7,7 @@
   const FACTORY_SCRIPT_ID = "aldusFactoryQueueIntegrityV236";
   const FACTORY_HOTFIX = "factory-queue-integrity-hotfix3";
   const TIMER_AUDIO_SCRIPT_ID = "aldusTimerAudioRecoveryV236";
-  const TIMER_AUDIO_HOTFIX = "timer-audio-recovery-hotfix1";
+  const TIMER_AUDIO_HOTFIX = "timer-audio-recovery-hotfix2";
   let loaded = false;
 
   function bootstrapReady() {
