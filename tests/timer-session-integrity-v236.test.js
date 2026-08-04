@@ -134,7 +134,7 @@ test("recupera exatamente os 15 minutos faltantes e fecha a meta em 20 minutos",
   assert.equal(goal.history.length, 1);
   assert.match(goal.history[0].text, /Recuperação automática de 15 minuto/);
   assert.equal(runtime.saves.length, 1);
-  assert.deepEqual(runtime.saves[0], { markLocalChange: true });
+  assert.equal(JSON.stringify(runtime.saves[0]), JSON.stringify({ markLocalChange: true }));
   assert.deepEqual(runtime.syncs, ["timer-session-recovery-v236"]);
   assert.equal(runtime.renders(), 1);
 });
