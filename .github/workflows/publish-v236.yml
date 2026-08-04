@@ -1,5 +1,6 @@
 name: Publicar V236 sem SIMULADOS na Fábrica
 
+# Solicitação final de execução da V236.
 on:
   pull_request:
     branches:
