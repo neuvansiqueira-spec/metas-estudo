@@ -1,0 +1,60 @@
+name: Corrigir retorno visual da V236 para V235
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/fix-version-regression-v236.yml
+
+permissions:
+  contents: write
+
+jobs:
+  corrigir-e-publicar:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar a versão publicada
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Corrigir regressão V236 para V235
+        run: node fix-version-regression-v236.mjs
+
+      - name: Validar arquivos corrigidos
+        run: |
+          node --check planning-integrity-v235.js
+          node --check planning-integrity-loader-v235.js
+          node --check service-worker.js
+          node --check service-worker-v236.js
+          grep -q 'const release = globalThis.__ALDUS_APP_RELEASE__' planning-integrity-v235.js
+          grep -q 'release.apply();' planning-integrity-v235.js
+          grep -q '__ALDUS_APP_RELEASE__?.version || VERSION' planning-integrity-loader-v235.js
+          grep -q 'visible-version-hotfix1' service-worker.js
+          grep -q '20260804-simulados-sem-fabrica-cache-unico-v236' service-worker.js
+          cmp planning-integrity-v235.js docs/planning-integrity-v235.js
+          cmp planning-integrity-loader-v235.js docs/planning-integrity-loader-v235.js
+          cmp service-worker.js service-worker-v236.js
+          cmp service-worker.js docs/service-worker-v236.js
+          node --test tests/simulados-factory-v236.test.js tests/simulados-operational-v234.test.js tests/current-release-contract.js
+
+      - name: Publicar correção
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            planning-integrity-v235.js planning-integrity-loader-v235.js \
+            service-worker.js service-worker-v236.js service-worker-v168.js service-worker-v169.js \
+            docs/planning-integrity-v235.js docs/planning-integrity-loader-v235.js \
+            docs/service-worker.js docs/service-worker-v236.js docs/service-worker-v168.js docs/service-worker-v169.js
+          if ! git diff --cached --quiet; then
+            git commit -m "Corrigir retorno visual da V236 para V235"
+            git push origin main
+          fi
