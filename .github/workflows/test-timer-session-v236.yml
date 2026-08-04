@@ -1,0 +1,55 @@
+name: Testar integridade do tempo V236
+
+on:
+  push:
+    branches:
+      - agent/testar-integridade-tempo-v236
+    paths:
+      - timer-session-integrity-v236.js
+      - docs/timer-session-integrity-v236.js
+      - planning-integrity-loader-v235.js
+      - docs/planning-integrity-loader-v235.js
+      - service-worker-v236.js
+      - docs/service-worker-v236.js
+      - tests/timer-session-integrity-v236.test.js
+      - .github/workflows/test-timer-session-v236.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  targeted-and-regression-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Baixar código da branch de testes
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Validar sintaxe dos módulos alterados
+        run: |
+          node --check timer-session-integrity-v236.js
+          node --check timer-audio-recovery-v236.js
+          node --check planning-integrity-loader-v235.js
+          node --check service-worker-v236.js
+
+      - name: Executar testes específicos da recuperação de tempo
+        run: node --test tests/timer-session-integrity-v236.test.js
+
+      - name: Executar toda a suíte de regressão
+        run: npm test
+
+      - name: Verificar paridade da publicação
+        run: |
+          cmp timer-session-integrity-v236.js docs/timer-session-integrity-v236.js
+          cmp planning-integrity-loader-v235.js docs/planning-integrity-loader-v235.js
+          cmp service-worker-v236.js docs/service-worker-v236.js
