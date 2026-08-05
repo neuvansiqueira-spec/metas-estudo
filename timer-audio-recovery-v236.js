@@ -68,7 +68,8 @@
         ? parsed.events
         : {};
       const previousAt = Number(previousEvents[key] || 0);
-      if (previousAt > 0 && now - previousAt < dedupeMs) return false;
+      const elapsed = now - previousAt;
+      if (previousAt > 0 && elapsed >= 0 && elapsed < dedupeMs) return false;
 
       const cutoff = now - SHARED_EVENT_RETENTION_MS;
       const events = {};
