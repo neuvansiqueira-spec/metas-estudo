@@ -2,13 +2,15 @@
 
 const CURRENT_VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-dashboard-central-metas-cores-v246`;
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-dashboard-hoje-cores-v247`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
 const HISTORY_LAYOUT_STYLESHEET = `question-history-layout-v223.css?v=${HISTORY_LAYOUT_VERSION}`;
 const CENTRAL_GOALS_PALETTE_VERSION = "20260805-dashboard-central-metas-cores-v246";
 const CENTRAL_GOALS_PALETTE_STYLESHEET = `central-goals-palette-v245.css?v=${CENTRAL_GOALS_PALETTE_VERSION}`;
+const DASHBOARD_TODAY_PALETTE_VERSION = "20260805-dashboard-hoje-cores-v247";
+const DASHBOARD_TODAY_PALETTE_STYLESHEET = `dashboard-today-palette-v247.css?v=${DASHBOARD_TODAY_PALETTE_VERSION}`;
 const FACTORY_QUEUE_INTEGRITY = `factory-queue-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=factory-queue-integrity-hotfix3`;
 const TIMER_AUDIO_RECOVERY = `timer-audio-recovery-v236.js?v=${CURRENT_VERSION}&hotfix=timer-audio-recovery-hotfix2`;
 const TIMER_SESSION_INTEGRITY = `timer-session-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=timer-session-integrity-hotfix1`;
@@ -27,6 +29,7 @@ const STATIC_ASSETS = [
   CONTRAST_STYLESHEET,
   HISTORY_LAYOUT_STYLESHEET,
   CENTRAL_GOALS_PALETTE_STYLESHEET,
+  DASHBOARD_TODAY_PALETTE_STYLESHEET,
   "vendor/pdf.mjs",
   "vendor/pdf.worker.mjs",
   "vendor/pdfjs-LICENSE.txt",
@@ -93,6 +96,9 @@ async function ensurePageStylesheets(response) {
   if (!html.includes(CENTRAL_GOALS_PALETTE_VERSION)) {
     missingTags.push(`<link id="aldusCentralGoalsPaletteV246" rel="stylesheet" href="${CENTRAL_GOALS_PALETTE_STYLESHEET}" />`);
   }
+  if (!html.includes(DASHBOARD_TODAY_PALETTE_VERSION)) {
+    missingTags.push(`<link id="aldusDashboardTodayPaletteV247" rel="stylesheet" href="${DASHBOARD_TODAY_PALETTE_STYLESHEET}" />`);
+  }
 
   let patchedHtml = missingTags.length === 0
     ? html
@@ -122,6 +128,7 @@ async function ensurePageStylesheets(response) {
   headers.set("x-aldus-timer-audio-hotfix", "timer-audio-recovery-hotfix2");
   headers.set("x-aldus-timer-session-hotfix", "timer-session-integrity-hotfix1");
   headers.set("x-aldus-central-goals-palette", CENTRAL_GOALS_PALETTE_VERSION);
+  headers.set("x-aldus-dashboard-today-palette", DASHBOARD_TODAY_PALETTE_VERSION);
 
   return new Response(patchedHtml, {
     status: response.status,
