@@ -1,0 +1,59 @@
+name: Testar e publicar tempo estudado hoje V253
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - dashboard-today-time-sync-v253.js
+      - docs/dashboard-today-time-sync-v253.js
+      - scripts/apply-dashboard-today-time-sync-v253.mjs
+      - tests/dashboard-today-time-sync-v253.test.mjs
+      - .github/workflows/test-dashboard-today-time-sync-v253.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-publish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Aplicar V253 aos alvos reais
+        run: node scripts/apply-dashboard-today-time-sync-v253.mjs
+
+      - name: Validar sintaxe
+        run: |
+          node --check dashboard-today-time-sync-v253.js
+          node --check docs/dashboard-today-time-sync-v253.js
+          node --check scripts/apply-dashboard-today-time-sync-v253.mjs
+          node --check service-worker-v236.js
+          node --check docs/service-worker-v236.js
+
+      - name: Executar testes
+        run: node --test tests/dashboard-today-time-sync-v253.test.mjs
+
+      - name: Validar arquivos publicados
+        run: |
+          git diff --check
+          cmp index.html docs/index.html
+          cmp dashboard-today-time-sync-v253.js docs/dashboard-today-time-sync-v253.js
+          cmp service-worker-v236.js docs/service-worker-v236.js
+
+      - name: Publicar V253
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html docs/index.html service-worker-v236.js docs/service-worker-v236.js
+          if ! git diff --cached --quiet; then
+            git commit -m "Publica sincronização V253 do tempo estudado hoje"
+            git push origin HEAD:main
+          fi
