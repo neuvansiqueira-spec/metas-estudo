@@ -1,0 +1,57 @@
+name: Testar e publicar estilo elegante V249
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - elegant-card-style-v249.css
+      - docs/elegant-card-style-v249.css
+      - scripts/apply-elegant-card-style-v249.mjs
+      - tests/elegant-card-style-v249.test.mjs
+      - .github/workflows/test-elegant-card-style-v249.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-publish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Aplicar V249
+        run: node scripts/apply-elegant-card-style-v249.mjs
+
+      - name: Validar sintaxe
+        run: |
+          node --check scripts/apply-elegant-card-style-v249.mjs
+          node --check service-worker-v236.js
+          node --check docs/service-worker-v236.js
+
+      - name: Executar testes de regressão
+        run: node --test tests/elegant-card-style-v249.test.mjs
+
+      - name: Validar arquivos publicados
+        run: |
+          git diff --check
+          cmp index.html docs/index.html
+          cmp elegant-card-style-v249.css docs/elegant-card-style-v249.css
+          cmp service-worker-v236.js docs/service-worker-v236.js
+
+      - name: Publicar V249
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html docs/index.html service-worker-v236.js docs/service-worker-v236.js
+          if ! git diff --cached --quiet; then
+            git commit -m "Publica estilo elegante V249 nos cartões coloridos"
+            git push origin HEAD:main
+          fi
