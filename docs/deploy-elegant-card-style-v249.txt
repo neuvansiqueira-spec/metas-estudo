@@ -1,0 +1,4 @@
+20260805-elegant-card-style-v249
+Estilo: fundo azul-escuro uniforme, borda lateral e valor na cor semântica.
+Áreas: Dashboard/Central de Metas, Dashboard/Hoje e Central de Metas/Hoje-Esta semana-Este mês.
+Commit funcional anterior: 9a97bc9
