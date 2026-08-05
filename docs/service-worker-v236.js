@@ -2,7 +2,7 @@
 
 const CURRENT_VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-elegant-card-style-v249`;
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-daily-summary-elegant-v250`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
@@ -20,6 +20,11 @@ const CENTRAL_PERIOD_CARDS_SCRIPT = `central-goals-period-palette-v248.js?v=${CE
 const ELEGANT_CARD_VERSION = "20260805-elegant-card-style-v249";
 const ELEGANT_CARD_STYLESHEET = `elegant-card-style-v249.css?v=${ELEGANT_CARD_VERSION}`;
 // END ELEGANT_CARD_V249_CONSTANTS
+// BEGIN DAILY_SUMMARY_ELEGANT_V250_CONSTANTS
+const DAILY_SUMMARY_ELEGANT_VERSION = "20260805-daily-summary-elegant-v250";
+const DAILY_SUMMARY_ELEGANT_STYLESHEET = `daily-summary-elegant-v250.css?v=${DAILY_SUMMARY_ELEGANT_VERSION}`;
+const DAILY_SUMMARY_ELEGANT_SCRIPT = `daily-summary-elegant-v250.js?v=${DAILY_SUMMARY_ELEGANT_VERSION}`;
+// END DAILY_SUMMARY_ELEGANT_V250_CONSTANTS
 const FACTORY_QUEUE_INTEGRITY = `factory-queue-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=factory-queue-integrity-hotfix3`;
 const TIMER_AUDIO_RECOVERY = `timer-audio-recovery-v236.js?v=${CURRENT_VERSION}&hotfix=timer-audio-recovery-hotfix2`;
 const TIMER_SESSION_INTEGRITY = `timer-session-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=timer-session-integrity-hotfix1`;
@@ -42,6 +47,8 @@ const STATIC_ASSETS = [
   CENTRAL_PERIOD_CARDS_STYLESHEET,
   CENTRAL_PERIOD_CARDS_SCRIPT,
   ELEGANT_CARD_STYLESHEET,
+  DAILY_SUMMARY_ELEGANT_STYLESHEET,
+  DAILY_SUMMARY_ELEGANT_SCRIPT,
   "vendor/pdf.mjs",
   "vendor/pdf.worker.mjs",
   "vendor/pdfjs-LICENSE.txt",
@@ -121,6 +128,12 @@ async function ensurePageStylesheets(response) {
     missingTags.push(`<link id="aldusElegantCardStyleV249" rel="stylesheet" href="${ELEGANT_CARD_STYLESHEET}" />`);
   }
   // END ELEGANT_CARD_V249_STYLE
+  // BEGIN DAILY_SUMMARY_ELEGANT_V250_STYLE
+  if (!html.includes(DAILY_SUMMARY_ELEGANT_VERSION)) {
+    missingTags.push(`<link id="aldusDailySummaryElegantV250" rel="stylesheet" href="${DAILY_SUMMARY_ELEGANT_STYLESHEET}" />`);
+  }
+  // END DAILY_SUMMARY_ELEGANT_V250_STYLE
+
 
 
 
@@ -137,6 +150,15 @@ async function ensurePageStylesheets(response) {
       : `${patchedHtml}\n${centralPeriodScript}`;
   }
   // END CENTRAL_PERIOD_V248_SCRIPT
+  // BEGIN DAILY_SUMMARY_ELEGANT_V250_SCRIPT
+  if (!patchedHtml.includes("daily-summary-elegant-v250.js")) {
+    const dailySummaryElegantScript = `<script id="aldusDailySummaryElegantScriptV250" src="${DAILY_SUMMARY_ELEGANT_SCRIPT}"><\/script>`;
+    patchedHtml = patchedHtml.includes("</body>")
+      ? patchedHtml.replace("</body>", `  ${dailySummaryElegantScript}\n</body>`)
+      : `${patchedHtml}\n${dailySummaryElegantScript}`;
+  }
+  // END DAILY_SUMMARY_ELEGANT_V250_SCRIPT
+
 
 
   if (!patchedHtml.includes("planning-integrity-loader-v235.js")) {
@@ -168,6 +190,10 @@ async function ensurePageStylesheets(response) {
   // BEGIN ELEGANT_CARD_V249_HEADER
   headers.set("x-aldus-elegant-card-style", ELEGANT_CARD_VERSION);
   // END ELEGANT_CARD_V249_HEADER
+  // BEGIN DAILY_SUMMARY_ELEGANT_V250_HEADER
+  headers.set("x-aldus-daily-summary-elegant", DAILY_SUMMARY_ELEGANT_VERSION);
+  // END DAILY_SUMMARY_ELEGANT_V250_HEADER
+
 
 
 
