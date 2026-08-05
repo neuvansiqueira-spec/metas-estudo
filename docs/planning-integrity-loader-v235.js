@@ -10,7 +10,7 @@
   const FACTORY_DESTINATION_VERSION = "20260804-pastas-destino-classificacao-exata-v237";
   const FACTORY_DESTINATION_HOTFIX = "discipline-topic-exact1";
   const TIMER_AUDIO_SCRIPT_ID = "aldusTimerAudioRecoveryV236";
-  const TIMER_AUDIO_HOTFIX = "timer-audio-recovery-hotfix3";
+  const TIMER_AUDIO_HOTFIX = "timer-audio-recovery-hotfix4";
   const TIMER_SESSION_SCRIPT_ID = "aldusTimerSessionIntegrityV236";
   const TIMER_SESSION_HOTFIX = "timer-session-integrity-hotfix1";
   let loaded = false;
