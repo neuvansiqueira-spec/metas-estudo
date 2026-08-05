@@ -53,8 +53,7 @@ jobs:
               text = text.replace('"daily-summary-time-format-hotfix1"', '"daily-summary-time-format-hotfix2"')
               path.write_text(text, encoding='utf-8')
 
-          test_path = Path('tests/daily-summary-direct-publication-v244.test.js')
-          test_path.write_text(r'''const test = require("node:test");
+          Path('tests/daily-summary-direct-publication-v244.test.js').write_text(r'''const test = require("node:test");
           const assert = require("node:assert/strict");
           const fs = require("node:fs");
 
@@ -94,18 +93,6 @@ jobs:
             assert.match(source, /return `\$\{total\}min`/);
           });
           ''', encoding='utf-8')
-
-          workflow = Path('.github/workflows/timer-regression.yml')
-          text = workflow.read_text(encoding='utf-8')
-          candidate = '          tests/daily-summary-direct-publication-v244.test.js\n'
-          anchor = '          tests/daily-summary-time-format-v243.test.js\n'
-          if candidate not in text:
-              if anchor not in text:
-                  raise SystemExit('Âncora de testes V243 não encontrada')
-              text = text.replace(anchor, anchor + candidate)
-          workflow.write_text(text, encoding='utf-8')
-
-          Path('.github/workflows/apply-v243-direct-publication.yml').unlink()
           PY
 
       - name: Commit generated patch
@@ -117,6 +104,6 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html docs/index.html planning-integrity-loader-v235.js docs/planning-integrity-loader-v235.js service-worker.js docs/service-worker.js tests/daily-summary-direct-publication-v244.test.js .github/workflows/timer-regression.yml .github/workflows/apply-v243-direct-publication.yml
+          git add index.html docs/index.html planning-integrity-loader-v235.js docs/planning-integrity-loader-v235.js service-worker.js docs/service-worker.js tests/daily-summary-direct-publication-v244.test.js
           git commit -m "fix: força carregamento direto da V243"
           git push origin HEAD:fix/force-v243-publication-v244
