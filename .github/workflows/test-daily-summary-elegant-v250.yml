@@ -1,0 +1,62 @@
+name: Testar e publicar Resumo do Dia elegante V250
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - daily-summary-elegant-v250.css
+      - docs/daily-summary-elegant-v250.css
+      - daily-summary-elegant-v250.js
+      - docs/daily-summary-elegant-v250.js
+      - scripts/apply-daily-summary-elegant-v250.mjs
+      - tests/daily-summary-elegant-v250.test.mjs
+      - .github/workflows/test-daily-summary-elegant-v250.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-publish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Aplicar V250 ao Resumo do Dia real
+        run: node scripts/apply-daily-summary-elegant-v250.mjs
+
+      - name: Validar sintaxe
+        run: |
+          node --check scripts/apply-daily-summary-elegant-v250.mjs
+          node --check daily-summary-elegant-v250.js
+          node --check docs/daily-summary-elegant-v250.js
+          node --check service-worker-v236.js
+          node --check docs/service-worker-v236.js
+
+      - name: Executar testes
+        run: node --test tests/daily-summary-elegant-v250.test.mjs
+
+      - name: Validar arquivos publicados
+        run: |
+          git diff --check
+          cmp index.html docs/index.html
+          cmp daily-summary-elegant-v250.css docs/daily-summary-elegant-v250.css
+          cmp daily-summary-elegant-v250.js docs/daily-summary-elegant-v250.js
+          cmp service-worker-v236.js docs/service-worker-v236.js
+
+      - name: Publicar V250
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html docs/index.html service-worker-v236.js docs/service-worker-v236.js
+          if ! git diff --cached --quiet; then
+            git commit -m "Publica estilo elegante V250 no Resumo do Dia"
+            git push origin HEAD:main
+          fi
