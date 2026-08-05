@@ -1,0 +1,79 @@
+/* Aldus Meta — Resumo do Dia elegante na estrutura real aninhada
+   Versão: 20260805-daily-summary-elegant-nested-v252 */
+
+/*
+  Estrutura real renderizada pelo app:
+  #dailyGoalsSummary > details > .daily-plan-content.daily-goals-summary > .stat-card
+*/
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary .daily-goals-summary > .stat-card:nth-child(1) {
+  --daily-nested-accent: #2dd4bf;
+  --daily-nested-border: #0d9488;
+}
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary .daily-goals-summary > .stat-card:nth-child(2) {
+  --daily-nested-accent: #fb923c;
+  --daily-nested-border: #ea580c;
+}
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary .daily-goals-summary > .stat-card:nth-child(3),
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary .daily-goals-summary > .planned-today-stat {
+  --daily-nested-accent: #58b8ff;
+  --daily-nested-border: #279ddd;
+}
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary .daily-goals-summary > .stat-card:nth-child(4),
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary .daily-goals-summary > .realized-today-stat {
+  --daily-nested-accent: #34d399;
+  --daily-nested-border: #10b981;
+}
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary .daily-goals-summary > .stat-card:nth-child(5),
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary .daily-goals-summary > .historical-time-stat {
+  --daily-nested-accent: #f7d462;
+  --daily-nested-border: #d8ad2f;
+}
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary .daily-goals-summary > .stat-card:nth-child(6) {
+  --daily-nested-accent: #a78bfa;
+  --daily-nested-border: #8b5cf6;
+}
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary .daily-goals-summary > .stat-card:nth-child(7) {
+  --daily-nested-accent: #d9e7ef;
+  --daily-nested-border: #a9c0cd;
+}
+
+/* Fundo uniforme elegante: a cor aparece apenas no contorno, lateral e valor. */
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary .daily-goals-summary > .stat-card:nth-child(-n+7) {
+  border: 1px solid var(--daily-nested-border) !important;
+  border-left: 7px solid var(--daily-nested-accent) !important;
+  background: linear-gradient(145deg, #103954 0%, #0b2b43 100%) !important;
+  background-color: #0b2b43 !important;
+  box-shadow: 0 12px 28px rgba(0, 6, 18, .28) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary .daily-goals-summary > .stat-card:nth-child(-n+7)::before {
+  background: var(--daily-nested-accent) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary .daily-goals-summary > .stat-card:nth-child(-n+7) > span,
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary .daily-goals-summary > .stat-card:nth-child(-n+7) > small {
+  color: #c9dceb !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary .daily-goals-summary > .stat-card:nth-child(-n+7) > strong {
+  color: var(--daily-nested-accent) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .32) !important;
+}
+
+/* Sobrescrita explícita dos três fundos temáticos antigos. */
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary .daily-goals-summary > .planned-today-stat,
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary .daily-goals-summary > .realized-today-stat,
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary .daily-goals-summary > .historical-time-stat {
+  background: linear-gradient(145deg, #103954 0%, #0b2b43 100%) !important;
+  background-color: #0b2b43 !important;
+  box-shadow: 0 12px 28px rgba(0, 6, 18, .28) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary .daily-goals-summary > .stat-card:nth-child(7) .progress {
+  border-color: rgba(169, 192, 205, .55) !important;
+  background: rgba(1, 12, 23, .46) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary .daily-goals-summary > .stat-card:nth-child(7) .progress > span {
+  background: linear-gradient(90deg, #58b8ff, #d9e7ef) !important;
+}
