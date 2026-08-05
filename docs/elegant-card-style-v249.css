@@ -1,0 +1,90 @@
+/* Aldus Meta — cartões elegantes com fundo uniforme e destaque cromático
+   Versão: 20260805-elegant-card-style-v249 */
+
+/* Paleta semântica preservada — Dashboard / Central de Metas */
+html[data-aldus-theme="premium-stable"] #dashboardGoalsScaleSummary > .stat-card:nth-child(1) { --elegant-accent: #a78bfa; --elegant-border: #8b5cf6; }
+html[data-aldus-theme="premium-stable"] #dashboardGoalsScaleSummary > .stat-card:nth-child(2) { --elegant-accent: #f7d462; --elegant-border: #d8ad2f; }
+html[data-aldus-theme="premium-stable"] #dashboardGoalsScaleSummary > .stat-card:nth-child(3) { --elegant-accent: #58b8ff; --elegant-border: #279ddd; }
+html[data-aldus-theme="premium-stable"] #dashboardGoalsScaleSummary > .stat-card:nth-child(4) { --elegant-accent: #d9e7ef; --elegant-border: #a9c0cd; }
+
+/* Paleta semântica preservada — Dashboard / Hoje */
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayGoalsTotal) { --elegant-accent: #34d399; --elegant-border: #10b981; }
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#dashboardTodayGoal) { --elegant-accent: #f7d462; --elegant-border: #d8ad2f; }
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayHours) { --elegant-accent: #58b8ff; --elegant-border: #279ddd; }
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#dashboardTodayRemaining) { --elegant-accent: #d9e7ef; --elegant-border: #a9c0cd; }
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayPendingGoals) { --elegant-accent: #fb923c; --elegant-border: #ea580c; }
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayDoneGoals) { --elegant-accent: #2dd4bf; --elegant-border: #0d9488; }
+
+/* Paleta semântica preservada — Central de Metas / Hoje, semana e mês */
+html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card[data-central-period="today"] { --elegant-accent: #a78bfa; --elegant-border: #8b5cf6; }
+html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card[data-central-period="week"] { --elegant-accent: #58b8ff; --elegant-border: #279ddd; }
+html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card[data-central-period="month"] { --elegant-accent: #d9e7ef; --elegant-border: #a9c0cd; }
+
+/* Fundo azul-escuro uniforme; a cor fica apenas no contorno, lateral e valor. */
+html[data-aldus-theme="premium-stable"] #dashboardGoalsScaleSummary > .stat-card:nth-child(-n+4),
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayGoalsTotal),
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#dashboardTodayGoal),
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayHours),
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#dashboardTodayRemaining),
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayPendingGoals),
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayDoneGoals),
+html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card[data-central-period] {
+  border: 1px solid var(--elegant-border) !important;
+  border-left: 7px solid var(--elegant-accent) !important;
+  background: linear-gradient(145deg, #103954 0%, #0b2b43 100%) !important;
+  box-shadow: 0 12px 28px rgba(0, 6, 18, .28) !important;
+}
+
+/* Títulos e textos auxiliares permanecem neutros e legíveis. */
+html[data-aldus-theme="premium-stable"] #dashboardGoalsScaleSummary > .stat-card:nth-child(-n+4) > span,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayGoalsTotal) > span,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#dashboardTodayGoal) > span,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayHours) > span,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#dashboardTodayRemaining) > span,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayPendingGoals) > span,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayDoneGoals) > span {
+  color: #c9dceb !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayGoalsTotal) > small,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#dashboardTodayGoal) > small,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayHours) > small,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#dashboardTodayRemaining) > small,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayPendingGoals) > small,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayDoneGoals) > small {
+  color: #aec7da !important;
+}
+
+/* Valores recebem o destaque cromático, como no cartão de tempo acumulado. */
+html[data-aldus-theme="premium-stable"] #dashboardGoalsScaleSummary > .stat-card:nth-child(-n+4) > strong,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayGoalsTotal) > strong,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#dashboardTodayGoal) > strong,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayHours) > strong,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#dashboardTodayRemaining) > strong,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayPendingGoals) > strong,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayDoneGoals) > strong {
+  color: var(--elegant-accent) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .32) !important;
+}
+
+/* Cartões de período: cabeçalho branco, informações neutras e ênfases na cor do período. */
+html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card[data-central-period] > h3 {
+  color: #f7fbff !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .30) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card[data-central-period] .card-meta-grid {
+  border-color: rgba(169, 192, 205, .42) !important;
+  background: rgba(2, 18, 32, .54) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card[data-central-period] .card-meta-grid span {
+  color: #d8e5ef !important;
+  background: rgba(1, 12, 23, .28) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card[data-central-period] .card-meta-grid strong {
+  color: var(--elegant-accent) !important;
+}
+
+/* Botões permanecem com o padrão azul original do site. */
