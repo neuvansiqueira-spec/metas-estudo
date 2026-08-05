@@ -71,6 +71,7 @@ jobs:
             tests/timer-alarm-audio-edge-v240.test.js
             tests/timer-audio-unifier-v241.test.js
             tests/daily-summary-time-format-v243.test.js
+            tests/daily-summary-direct-publication-v244.test.js
             tests/v102-factory-daily-weekly.test.js
             tests/factory-weekly-subject-dedupe-v237.test.js
             tests/factory-weekly-subject-dedupe-extended-v237.test.js

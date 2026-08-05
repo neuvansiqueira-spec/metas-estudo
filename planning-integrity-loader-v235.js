@@ -19,7 +19,7 @@
   const TIMER_MESSAGE_HOTFIX = "timer-message-last-five-hotfix1";
   const DAILY_SUMMARY_TIME_SCRIPT_ID = "aldusDailySummaryTimeFormatV243";
   const DAILY_SUMMARY_TIME_VERSION = "20260805-daily-summary-hours-minutes-v243";
-  const DAILY_SUMMARY_TIME_HOTFIX = "daily-summary-time-format-hotfix1";
+  const DAILY_SUMMARY_TIME_HOTFIX = "daily-summary-time-format-hotfix2";
   const TIMER_SESSION_SCRIPT_ID = "aldusTimerSessionIntegrityV236";
   const TIMER_SESSION_HOTFIX = "timer-session-integrity-hotfix1";
   let loaded = false;

@@ -84,8 +84,10 @@ test("loader e service worker carregam e renovam a V243", () => {
   const worker = fs.readFileSync("service-worker.js", "utf8");
   assert.match(loader, /daily-summary-time-format-v243\.js/);
   assert.match(loader, /__ALDUS_DAILY_SUMMARY_TIME_FORMAT_V243__/);
+  assert.match(loader, /daily-summary-time-format-hotfix2/);
   assert.match(worker, /daily-summary-time-format-v243\.js/);
-  assert.match(worker, /daily-summary-time-v243-hotfix1/);
+  assert.match(worker, /daily-summary-direct-v244-hotfix2/);
+  assert.match(worker, /daily-summary-time-format-hotfix2/);
   assert.equal(loader, fs.readFileSync("docs/planning-integrity-loader-v235.js", "utf8"));
   assert.equal(worker, fs.readFileSync("docs/service-worker.js", "utf8"));
 });
