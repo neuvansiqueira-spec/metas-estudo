@@ -1,0 +1,62 @@
+name: Testar e publicar períodos da Central de Metas V248
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - central-goals-period-palette-v248.css
+      - docs/central-goals-period-palette-v248.css
+      - central-goals-period-palette-v248.js
+      - docs/central-goals-period-palette-v248.js
+      - scripts/apply-central-goals-period-palette-v248.mjs
+      - tests/central-goals-period-palette-v248.test.mjs
+      - .github/workflows/test-central-goals-period-palette-v248.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-publish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Aplicar V248 ao componente real
+        run: node scripts/apply-central-goals-period-palette-v248.mjs
+
+      - name: Validar sintaxe
+        run: |
+          node --check scripts/apply-central-goals-period-palette-v248.mjs
+          node --check central-goals-period-palette-v248.js
+          node --check docs/central-goals-period-palette-v248.js
+          node --check service-worker-v236.js
+          node --check docs/service-worker-v236.js
+
+      - name: Executar testes de regressão
+        run: node --test tests/central-goals-period-palette-v248.test.mjs
+
+      - name: Validar arquivos publicados
+        run: |
+          git diff --check
+          cmp index.html docs/index.html
+          cmp central-goals-period-palette-v248.css docs/central-goals-period-palette-v248.css
+          cmp central-goals-period-palette-v248.js docs/central-goals-period-palette-v248.js
+          cmp service-worker-v236.js docs/service-worker-v236.js
+
+      - name: Publicar V248
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html docs/index.html service-worker-v236.js docs/service-worker-v236.js
+          if ! git diff --cached --quiet; then
+            git commit -m "Publica paleta V248 em Hoje semana e mês"
+            git push origin HEAD:main
+          fi
