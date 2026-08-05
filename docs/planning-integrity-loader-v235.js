@@ -6,6 +6,9 @@
   const SCRIPT_ID = "aldusPlanningIntegrityCoreV235";
   const FACTORY_SCRIPT_ID = "aldusFactoryQueueIntegrityV236";
   const FACTORY_HOTFIX = "factory-queue-integrity-hotfix3";
+  const FACTORY_DESTINATION_SCRIPT_ID = "aldusFactoryDestinationIntegrityV237";
+  const FACTORY_DESTINATION_VERSION = "20260804-pastas-destino-classificacao-exata-v237";
+  const FACTORY_DESTINATION_HOTFIX = "discipline-topic-exact1";
   const TIMER_AUDIO_SCRIPT_ID = "aldusTimerAudioRecoveryV236";
   const TIMER_AUDIO_HOTFIX = "timer-audio-recovery-hotfix2";
   const TIMER_SESSION_SCRIPT_ID = "aldusTimerSessionIntegrityV236";
@@ -99,6 +102,20 @@
     return true;
   }
 
+  function loadFactoryDestinationIntegrity() {
+    if (globalThis.__ALDUS_FACTORY_DESTINATION_INTEGRITY_V237__ || document.getElementById(FACTORY_DESTINATION_SCRIPT_ID)) return true;
+    const script = document.createElement("script");
+    script.id = FACTORY_DESTINATION_SCRIPT_ID;
+    script.src = `factory-destination-integrity-v237.js?v=${encodeURIComponent(FACTORY_DESTINATION_VERSION)}&hotfix=${encodeURIComponent(FACTORY_DESTINATION_HOTFIX)}`;
+    script.async = false;
+    script.addEventListener("error", () => {
+      script.remove();
+      console.warn("[Aldus V237] A correção das pastas de destino será tentada novamente na próxima abertura.");
+    }, { once: true });
+    document.body.appendChild(script);
+    return true;
+  }
+
   function loadTimerAudioRecovery(releaseVersion) {
     if (globalThis.__ALDUS_TIMER_AUDIO_RECOVERY_V236__ || document.getElementById(TIMER_AUDIO_SCRIPT_ID)) return true;
     const script = document.createElement("script");
@@ -134,6 +151,7 @@
     installPersistenceGuards();
     const releaseVersion = globalThis.__ALDUS_APP_RELEASE__?.version || VERSION;
     loadFactoryQueueIntegrity(releaseVersion);
+    loadFactoryDestinationIntegrity();
     loadTimerAudioRecovery(releaseVersion);
     loadTimerSessionIntegrity(releaseVersion);
     const script = document.createElement("script");
@@ -144,6 +162,7 @@
       installPersistenceGuards();
       window.setTimeout(() => {
         enforceSnapshot();
+        loadFactoryDestinationIntegrity();
         loadTimerAudioRecovery(releaseVersion);
         loadTimerSessionIntegrity(releaseVersion);
         try {
