@@ -1,0 +1,40 @@
+/* Aldus Meta — Resumo do Dia no padrão elegante
+   Versão: 20260805-daily-summary-elegant-v250 */
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary > .stat-card[data-daily-summary-kind="completed"] { --daily-accent: #2dd4bf; --daily-border: #0d9488; }
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary > .stat-card[data-daily-summary-kind="pending"] { --daily-accent: #fb923c; --daily-border: #ea580c; }
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary > .stat-card[data-daily-summary-kind="planned"] { --daily-accent: #58b8ff; --daily-border: #279ddd; }
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary > .stat-card[data-daily-summary-kind="realized"] { --daily-accent: #34d399; --daily-border: #10b981; }
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary > .stat-card[data-daily-summary-kind="history"] { --daily-accent: #f7d462; --daily-border: #d8ad2f; }
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary > .stat-card[data-daily-summary-kind="questions"] { --daily-accent: #a78bfa; --daily-border: #8b5cf6; }
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary > .stat-card[data-daily-summary-kind="progress"] { --daily-accent: #d9e7ef; --daily-border: #a9c0cd; }
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary > .stat-card[data-daily-summary-kind] {
+  border: 1px solid var(--daily-border) !important;
+  border-left: 7px solid var(--daily-accent) !important;
+  background: linear-gradient(145deg, #103954 0%, #0b2b43 100%) !important;
+  box-shadow: 0 12px 28px rgba(0, 6, 18, .28) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary > .stat-card[data-daily-summary-kind]::before {
+  background: var(--daily-accent) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary > .stat-card[data-daily-summary-kind] > span,
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary > .stat-card[data-daily-summary-kind] > small {
+  color: #c9dceb !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary > .stat-card[data-daily-summary-kind] > strong {
+  color: var(--daily-accent) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .32) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary > .stat-card[data-daily-summary-kind="progress"] .progress {
+  border-color: rgba(169, 192, 205, .55) !important;
+  background: rgba(1, 12, 23, .46) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary > .stat-card[data-daily-summary-kind="progress"] .progress > span {
+  background: linear-gradient(90deg, #58b8ff, #d9e7ef) !important;
+}
