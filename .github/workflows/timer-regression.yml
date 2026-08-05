@@ -7,13 +7,18 @@ on:
       - 'script.js'
       - 'app-v*.js'
       - 'timer-*.js'
+      - 'factory-*.js'
+      - 'planning-integrity-loader-*.js'
       - 'service-worker.js'
       - 'docs/script.js'
       - 'docs/app-v*.js'
       - 'docs/timer-*.js'
+      - 'docs/factory-*.js'
+      - 'docs/planning-integrity-loader-*.js'
       - 'docs/service-worker.js'
       - 'tests/*timer*'
       - 'tests/*motivational*'
+      - 'tests/*factory*'
       - 'package.json'
       - 'package-lock.json'
   workflow_dispatch:
@@ -22,7 +27,7 @@ permissions:
   contents: read
 
 jobs:
-  timer-tests:
+  regression-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -32,30 +37,43 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Check timer syntax
+      - name: Check changed runtime syntax
         run: |
-          for file in timer-*.js docs/timer-*.js service-worker.js docs/service-worker.js; do
+          for file in timer-*.js factory-*.js planning-integrity-loader-*.js service-worker.js docs/timer-*.js docs/factory-*.js docs/planning-integrity-loader-*.js docs/service-worker.js; do
             [ -f "$file" ] && node --check "$file"
           done
 
-      - name: Run timer regression tests
-        run: >-
-          node --test
-          tests/timer-modern-flow.test.js
-          tests/integral-timer-sync.test.js
-          tests/legacy-timer-recovery.test.js
-          tests/motivational-sound.test.js
-          tests/v87-motivational-toast-single-runtime.test.js
-          tests/v96-timer-control-beep-layout.test.js
-          tests/timer-safety-v132.test.js
-          tests/timer-timeline-recovery-v237.test.js
-          tests/timer-timeline-publication-v237.test.js
+      - name: Run available focused regressions
+        shell: bash
+        run: |
+          candidates=(
+            tests/timer-modern-flow.test.js
+            tests/integral-timer-sync.test.js
+            tests/legacy-timer-recovery.test.js
+            tests/motivational-sound.test.js
+            tests/v87-motivational-toast-single-runtime.test.js
+            tests/v96-timer-control-beep-layout.test.js
+            tests/timer-safety-v132.test.js
+            tests/timer-timeline-recovery-v237.test.js
+            tests/timer-timeline-publication-v237.test.js
+            tests/v102-factory-daily-weekly.test.js
+            tests/factory-weekly-subject-dedupe-v237.test.js
+          )
+          existing=()
+          for file in "${candidates[@]}"; do
+            [ -f "$file" ] && existing+=("$file")
+          done
+          if [ "${#existing[@]}" -eq 0 ]; then
+            echo "Nenhum teste focado disponível."
+            exit 1
+          fi
+          node --test "${existing[@]}"
 
       - name: Run full test suite
         run: npm test
