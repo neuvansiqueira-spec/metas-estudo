@@ -22,7 +22,7 @@ function createCard(title, metaText) {
   };
 }
 
-function loadRuntime(cards = []) {
+function loadRuntime(cards = [], scope = "week") {
   const badge = { textContent: String(cards.length) };
   const content = {
     querySelectorAll() { return cards.filter((card) => !card.removed); }
@@ -44,7 +44,7 @@ function loadRuntime(cards = []) {
     console,
     document,
     location: { hash: "" },
-    factoryProductionScope: "week",
+    factoryProductionScope: scope,
     window: {
       setInterval() { return 1; },
       clearInterval() {},
@@ -94,17 +94,18 @@ test("diferenças apenas de caixa, acento e espaços não recriam cartão duplic
   assert.deepEqual([...collapsed[0].dates], ["04/08/2026", "07/08/2026"]);
 });
 
-test("modo diário não remove cartões", () => {
+test("modo diário preserva cartões separados", () => {
   const cards = [
     createCard("DIREITO PENAL — Teoria do Crime", "04/08/2026 • Precisa produzir • 0 arquivo(s)"),
     createCard("DIREITO PENAL — Teoria do Crime", "04/08/2026 • Precisa produzir • 0 arquivo(s)")
   ];
-  const runtime = loadRuntime(cards);
-  const contextApi = runtime.api;
-  // A função pura continua disponível, mas o saneamento visual só atua no modo semanal.
-  const sourceDay = source.replace('factoryProductionScope: "week"', 'factoryProductionScope: "day"');
-  assert.ok(contextApi);
-  assert.ok(sourceDay.length > 0);
+  const { api, badge } = loadRuntime(cards, "day");
+  const result = api.dedupeWeeklyProjection();
+
+  assert.equal(result.removed, 0);
+  assert.equal(cards[0].removed, false);
+  assert.equal(cards[1].removed, false);
+  assert.equal(badge.textContent, "2");
 });
 
 test("publicação e carregadores apontam para o hotfix4 sem divergência entre raiz e docs", () => {
