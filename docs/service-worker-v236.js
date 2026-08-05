@@ -2,12 +2,12 @@
 
 const CURRENT_VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-central-goals-palette-v245`;
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-dashboard-central-metas-cores-v246`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
 const HISTORY_LAYOUT_STYLESHEET = `question-history-layout-v223.css?v=${HISTORY_LAYOUT_VERSION}`;
-const CENTRAL_GOALS_PALETTE_VERSION = "20260805-central-goals-palette-v245";
+const CENTRAL_GOALS_PALETTE_VERSION = "20260805-dashboard-central-metas-cores-v246";
 const CENTRAL_GOALS_PALETTE_STYLESHEET = `central-goals-palette-v245.css?v=${CENTRAL_GOALS_PALETTE_VERSION}`;
 const FACTORY_QUEUE_INTEGRITY = `factory-queue-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=factory-queue-integrity-hotfix3`;
 const TIMER_AUDIO_RECOVERY = `timer-audio-recovery-v236.js?v=${CURRENT_VERSION}&hotfix=timer-audio-recovery-hotfix2`;
@@ -90,8 +90,8 @@ async function ensurePageStylesheets(response) {
   if (!html.includes("question-history-layout-v223.css")) {
     missingTags.push(`<link rel="stylesheet" href="${HISTORY_LAYOUT_STYLESHEET}" />`);
   }
-  if (!html.includes("central-goals-palette-v245.css")) {
-    missingTags.push(`<link id="aldusCentralGoalsPaletteV245" rel="stylesheet" href="${CENTRAL_GOALS_PALETTE_STYLESHEET}" />`);
+  if (!html.includes(CENTRAL_GOALS_PALETTE_VERSION)) {
+    missingTags.push(`<link id="aldusCentralGoalsPaletteV246" rel="stylesheet" href="${CENTRAL_GOALS_PALETTE_STYLESHEET}" />`);
   }
 
   let patchedHtml = missingTags.length === 0
