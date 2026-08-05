@@ -100,7 +100,8 @@ test("controlador anterior preserva marcos, retomadas e permanência de 30 segun
   assert.match(motivation, /displayedMotivationalMilestones/);
   assert.match(motivation, /pending = reached\.filter\(\(milestone\) => !shown\.includes\(milestone\)\)/);
   assert.match(motivation, /justResumed = runtime\.lastPaused === true && floatingTimer\.paused === false/);
-  assert.match(motivation, /TIMER_MOTIVATIONAL_TOAST_DURATION_MS/);
+  assert.match(motivation, /const DISPLAY_DURATION_MS = 30000/);
+  assert.match(motivation, /}, DISPLAY_DURATION_MS\);/);
 });
 
 test("publicação renova cache, carrega diretamente e mantém paridade", () => {
