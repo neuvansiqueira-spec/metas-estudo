@@ -17,6 +17,9 @@
   const TIMER_MESSAGE_SCRIPT_ID = "aldusTimerMessageDedupeV239";
   const TIMER_MESSAGE_VERSION = "20260805-timer-message-last-five-v242";
   const TIMER_MESSAGE_HOTFIX = "timer-message-last-five-hotfix1";
+  const DAILY_SUMMARY_TIME_SCRIPT_ID = "aldusDailySummaryTimeFormatV243";
+  const DAILY_SUMMARY_TIME_VERSION = "20260805-daily-summary-hours-minutes-v243";
+  const DAILY_SUMMARY_TIME_HOTFIX = "daily-summary-time-format-hotfix1";
   const TIMER_SESSION_SCRIPT_ID = "aldusTimerSessionIntegrityV236";
   const TIMER_SESSION_HOTFIX = "timer-session-integrity-hotfix1";
   let loaded = false;
@@ -164,6 +167,20 @@
     return true;
   }
 
+  function loadDailySummaryTimeFormat() {
+    if (globalThis.__ALDUS_DAILY_SUMMARY_TIME_FORMAT_V243__ || document.getElementById(DAILY_SUMMARY_TIME_SCRIPT_ID)) return true;
+    const script = document.createElement("script");
+    script.id = DAILY_SUMMARY_TIME_SCRIPT_ID;
+    script.src = `daily-summary-time-format-v243.js?v=${encodeURIComponent(DAILY_SUMMARY_TIME_VERSION)}&hotfix=${encodeURIComponent(DAILY_SUMMARY_TIME_HOTFIX)}`;
+    script.async = false;
+    script.addEventListener("error", () => {
+      script.remove();
+      console.warn("[Aldus V243] O formato de horas e minutos será tentado novamente na próxima abertura.");
+    }, { once: true });
+    document.body.appendChild(script);
+    return true;
+  }
+
   function loadTimerSessionIntegrity(releaseVersion) {
     if (globalThis.__ALDUS_TIMER_SESSION_INTEGRITY_V236__ || document.getElementById(TIMER_SESSION_SCRIPT_ID)) return true;
     const script = document.createElement("script");
@@ -189,6 +206,7 @@
     loadTimerAudioRecovery(releaseVersion);
     loadTimerAudioUnifier();
     loadTimerMessageDedupe();
+    loadDailySummaryTimeFormat();
     loadTimerSessionIntegrity(releaseVersion);
     const script = document.createElement("script");
     script.id = SCRIPT_ID;
@@ -202,6 +220,7 @@
         loadTimerAudioRecovery(releaseVersion);
         loadTimerAudioUnifier();
         loadTimerMessageDedupe();
+        loadDailySummaryTimeFormat();
         loadTimerSessionIntegrity(releaseVersion);
         try {
           if (typeof ensureDailyPlanAlignedWithPlanningV174 === "function") {

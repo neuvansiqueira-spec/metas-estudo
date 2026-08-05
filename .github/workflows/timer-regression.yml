@@ -8,17 +8,20 @@ on:
       - 'app-v*.js'
       - 'timer-*.js'
       - 'factory-*.js'
+      - 'daily-summary-*.js'
       - 'planning-integrity-loader-*.js'
       - 'service-worker.js'
       - 'docs/script.js'
       - 'docs/app-v*.js'
       - 'docs/timer-*.js'
       - 'docs/factory-*.js'
+      - 'docs/daily-summary-*.js'
       - 'docs/planning-integrity-loader-*.js'
       - 'docs/service-worker.js'
       - 'tests/*timer*'
       - 'tests/*motivational*'
       - 'tests/*factory*'
+      - 'tests/*daily-summary*'
       - 'package.json'
       - 'package-lock.json'
   workflow_dispatch:
@@ -45,7 +48,7 @@ jobs:
 
       - name: Check changed runtime syntax
         run: |
-          for file in timer-*.js factory-*.js planning-integrity-loader-*.js service-worker.js docs/timer-*.js docs/factory-*.js docs/planning-integrity-loader-*.js docs/service-worker.js; do
+          for file in timer-*.js factory-*.js daily-summary-*.js planning-integrity-loader-*.js service-worker.js docs/timer-*.js docs/factory-*.js docs/daily-summary-*.js docs/planning-integrity-loader-*.js docs/service-worker.js; do
             [ -f "$file" ] && node --check "$file"
           done
 
@@ -67,6 +70,7 @@ jobs:
             tests/timer-alarm-audio-extended-v240.test.js
             tests/timer-alarm-audio-edge-v240.test.js
             tests/timer-audio-unifier-v241.test.js
+            tests/daily-summary-time-format-v243.test.js
             tests/v102-factory-daily-weekly.test.js
             tests/factory-weekly-subject-dedupe-v237.test.js
             tests/factory-weekly-subject-dedupe-extended-v237.test.js
