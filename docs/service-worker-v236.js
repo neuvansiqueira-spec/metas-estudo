@@ -2,7 +2,7 @@
 
 const CURRENT_VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-daily-summary-elegant-nested-v252`;
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-dashboard-today-time-sync-v253`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
@@ -33,6 +33,10 @@ const DAILY_SUMMARY_DIRECT_STYLESHEET = `daily-summary-elegant-direct-v251.css?v
 const DAILY_SUMMARY_NESTED_VERSION = "20260805-daily-summary-elegant-nested-v252";
 const DAILY_SUMMARY_NESTED_STYLESHEET = `daily-summary-elegant-nested-v252.css?v=${DAILY_SUMMARY_NESTED_VERSION}`;
 // END DAILY_SUMMARY_NESTED_V252_CONSTANTS
+// BEGIN DASHBOARD_TODAY_TIME_SYNC_V253_CONSTANTS
+const DASHBOARD_TODAY_TIME_SYNC_VERSION = "20260805-dashboard-today-time-sync-v253";
+const DASHBOARD_TODAY_TIME_SYNC_SCRIPT = `dashboard-today-time-sync-v253.js?v=${DASHBOARD_TODAY_TIME_SYNC_VERSION}&hotfix=dashboard-today-time-sync-hotfix1`;
+// END DASHBOARD_TODAY_TIME_SYNC_V253_CONSTANTS
 const FACTORY_QUEUE_INTEGRITY = `factory-queue-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=factory-queue-integrity-hotfix3`;
 const TIMER_AUDIO_RECOVERY = `timer-audio-recovery-v236.js?v=${CURRENT_VERSION}&hotfix=timer-audio-recovery-hotfix2`;
 const TIMER_SESSION_INTEGRITY = `timer-session-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=timer-session-integrity-hotfix1`;
@@ -59,6 +63,7 @@ const STATIC_ASSETS = [
   DAILY_SUMMARY_ELEGANT_SCRIPT,
   DAILY_SUMMARY_DIRECT_STYLESHEET,
   DAILY_SUMMARY_NESTED_STYLESHEET,
+  DASHBOARD_TODAY_TIME_SYNC_SCRIPT,
   "vendor/pdf.mjs",
   "vendor/pdf.worker.mjs",
   "vendor/pdfjs-LICENSE.txt",
@@ -180,6 +185,15 @@ async function ensurePageStylesheets(response) {
       : `${patchedHtml}\n${dailySummaryElegantScript}`;
   }
   // END DAILY_SUMMARY_ELEGANT_V250_SCRIPT
+  // BEGIN DASHBOARD_TODAY_TIME_SYNC_V253_SCRIPT
+  if (!patchedHtml.includes("dashboard-today-time-sync-v253.js")) {
+    const dashboardTodayTimeSyncScript = `<script id="aldusDashboardTodayTimeSyncV253" src="${DASHBOARD_TODAY_TIME_SYNC_SCRIPT}"><\/script>`;
+    patchedHtml = patchedHtml.includes("</body>")
+      ? patchedHtml.replace("</body>", `  ${dashboardTodayTimeSyncScript}\n</body>`)
+      : `${patchedHtml}\n${dashboardTodayTimeSyncScript}`;
+  }
+  // END DASHBOARD_TODAY_TIME_SYNC_V253_SCRIPT
+
 
 
 
@@ -221,6 +235,10 @@ async function ensurePageStylesheets(response) {
   // BEGIN DAILY_SUMMARY_NESTED_V252_HEADER
   headers.set("x-aldus-daily-summary-nested", DAILY_SUMMARY_NESTED_VERSION);
   // END DAILY_SUMMARY_NESTED_V252_HEADER
+  // BEGIN DASHBOARD_TODAY_TIME_SYNC_V253_HEADER
+  headers.set("x-aldus-dashboard-today-time-sync", DASHBOARD_TODAY_TIME_SYNC_VERSION);
+  // END DASHBOARD_TODAY_TIME_SYNC_V253_HEADER
+
 
 
 
