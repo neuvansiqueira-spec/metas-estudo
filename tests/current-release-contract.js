@@ -27,7 +27,12 @@ function assertCurrentReleaseContract() {
   assert.match(html, new RegExp(`app-${suffix}\\.css\\?v=${version}`));
   assert.match(html, new RegExp(`app-${suffix}\\.js\\?v=${version}`));
   assert.doesNotMatch(html, /app-version\.js/);
-  assert.equal((html.match(/<script\b[^>]*\bsrc=/g) || []).length, 1);
+  const externalScripts = [...html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"/g)].map((match) => match[1]);
+  assert.deepEqual(externalScripts, [
+    `app-${suffix}.js?v=${version}`,
+    `planning-integrity-loader-v235.js?v=${version}`
+  ]);
+  assert.equal(new Set(externalScripts).size, externalScripts.length, "Scripts auxiliares não podem ser carregados em duplicidade.");
   assert.equal((html.match(/<link\b[^>]*\brel="stylesheet"/g) || []).length, 1);
   assert.match(appVersion, new RegExp(`const VERSION = "${version}";`));
   assert.doesNotMatch(appVersion, /MutationObserver/);
