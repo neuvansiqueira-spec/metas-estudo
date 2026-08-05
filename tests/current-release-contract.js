@@ -30,7 +30,8 @@ function assertCurrentReleaseContract() {
   const externalScripts = [...html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"/g)].map((match) => match[1]);
   assert.deepEqual(externalScripts, [
     `app-${suffix}.js?v=${version}`,
-    `planning-integrity-loader-v235.js?v=${version}`
+    "daily-summary-time-format-v243.js?v=20260805-daily-summary-hours-minutes-v243&hotfix=daily-summary-time-format-hotfix2",
+    `planning-integrity-loader-v235.js?v=${version}&publication=v244`
   ]);
   assert.equal(new Set(externalScripts).size, externalScripts.length, "Scripts auxiliares não podem ser carregados em duplicidade.");
   assert.equal((html.match(/<link\b[^>]*\brel="stylesheet"/g) || []).length, 1);
