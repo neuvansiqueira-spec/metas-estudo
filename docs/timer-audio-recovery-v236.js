@@ -1,11 +1,15 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
-  const HOTFIX = "timer-audio-recovery-hotfix3";
+  const VERSION = "20260805-timer-alarm-audio-v240";
+  const HOTFIX = "timer-audio-recovery-hotfix4";
   const GLOBAL_KEY = "__ALDUS_TIMER_AUDIO_RECOVERY_V236__";
   const CONTROL_FLAG = "__aldusTimerAudioRecoveryV236";
   const MOTIVATION_STORAGE_KEY = "metasEstudoMotivationalSoundEnabled";
+  const AUDIO_EVENT_STORAGE_KEY = "metasEstudoTimerAudioEventV240";
+  const CONTROL_SHARED_DEDUPE_MS = 350;
+  const MOTIVATION_SHARED_DEDUPE_MS = 1500;
+  const SHARED_EVENT_RETENTION_MS = 15000;
   const SOUND_PRIORITIES = Object.freeze({ control: 1, motivation: 2, final: 3, preview: 4 });
 
   if (globalThis[GLOBAL_KEY]) return;
@@ -46,6 +50,40 @@
     }
   }
 
+  function normalizeAudioEventKey(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
+  }
+
+  function claimSharedAudioEvent(eventKey, dedupeMs, now = Date.now()) {
+    const key = normalizeAudioEventKey(eventKey);
+    if (!key) return true;
+    try {
+      const parsed = JSON.parse(localStorage.getItem(AUDIO_EVENT_STORAGE_KEY) || "null");
+      const previousEvents = parsed?.events && typeof parsed.events === "object"
+        ? parsed.events
+        : {};
+      const previousAt = Number(previousEvents[key] || 0);
+      if (previousAt > 0 && now - previousAt < dedupeMs) return false;
+
+      const cutoff = now - SHARED_EVENT_RETENTION_MS;
+      const events = {};
+      Object.entries(previousEvents).forEach(([storedKey, storedAt]) => {
+        const timestamp = Number(storedAt || 0);
+        if (timestamp >= cutoff && timestamp <= now + 1000) events[storedKey] = timestamp;
+      });
+      events[key] = now;
+      localStorage.setItem(AUDIO_EVENT_STORAGE_KEY, JSON.stringify({ version: 1, events }));
+      return true;
+    } catch {
+      return true;
+    }
+  }
+
   function ensurePreferenceDefaults() {
     const preferences = timerPreferences();
     if (!preferences) return false;
@@ -67,7 +105,7 @@
         if (typeof saveTimerPreferences === "function") saveTimerPreferences();
         else if (typeof saveData === "function") saveData();
       } catch (error) {
-        console.warn("[Aldus V236] Não foi possível persistir os padrões de áudio.", error);
+        console.warn("[Aldus V240] Não foi possível persistir os padrões de áudio.", error);
       }
     }
     return changed;
@@ -89,7 +127,7 @@
       if (context.state === "suspended") await context.resume();
       return context.state === "running" ? context : null;
     } catch (error) {
-      console.warn("[Aldus V236] O navegador não liberou o áudio do cronômetro.", error);
+      console.warn("[Aldus V240] O navegador não liberou o áudio do cronômetro.", error);
       return null;
     }
   }
@@ -157,10 +195,13 @@
     const normalizedType = type === "pause" ? "pause" : (type === "resume" ? "resume" : "start");
     const now = Date.now();
     if (normalizedType === lastControlType && now - lastControlAt < 220) return true;
-    const context = await unlockAudio();
-    if (!context) return false;
+    if (!claimSharedAudioEvent(`control:${normalizedType}`, CONTROL_SHARED_DEDUPE_MS, now)) return true;
+
     lastControlType = normalizedType;
     lastControlAt = now;
+    const context = await unlockAudio();
+    if (!context) return false;
+
     const tone = normalizedType === "pause"
       ? { frequency: 440, duration: 0.13, volume: 0.085 }
       : normalizedType === "resume"
@@ -174,13 +215,18 @@
 
   async function playMotivationalSound(signature = "", milestone = 10, { preview = false } = {}) {
     if (!preview && !motivationalSoundEnabled()) return false;
-    const normalizedSignature = String(signature || milestone || "motivacao");
+    const normalizedSignature = String(signature || milestone || "motivacao").trim().replace(/\s+/g, " ");
     const now = Date.now();
-    if (!preview && normalizedSignature === lastMessageSignature && now - lastMessageAt < 1200) return true;
+
+    if (!preview) {
+      if (normalizedSignature === lastMessageSignature && now - lastMessageAt < 1200) return true;
+      if (!claimSharedAudioEvent(`motivation:${normalizedSignature}`, MOTIVATION_SHARED_DEDUPE_MS, now)) return true;
+      lastMessageSignature = normalizedSignature;
+      lastMessageAt = now;
+    }
+
     const context = await unlockAudio();
     if (!context) return false;
-    lastMessageSignature = normalizedSignature;
-    lastMessageAt = now;
     const finalMessage = Number(milestone) >= 100 || /100\s*%|tempo conclu[ií]do|sess[aã]o conclu[ií]da|final/i.test(normalizedSignature);
     const priority = preview
       ? SOUND_PRIORITIES.preview
@@ -220,7 +266,7 @@
       globalThis.playTimerControlBeep = replacement;
       return true;
     } catch (error) {
-      console.warn("[Aldus V236] Não foi possível substituir o bip antigo do cronômetro.", error);
+      console.warn("[Aldus V240] Não foi possível substituir o bip antigo do cronômetro.", error);
       return false;
     }
   }
@@ -240,7 +286,7 @@
       globalThis.MetasQuestionAccuracySpectrum = replacement;
       return true;
     } catch (error) {
-      console.warn("[Aldus V236] Não foi possível conectar o som motivacional recuperado.", error);
+      console.warn("[Aldus V240] Não foi possível conectar o som motivacional recuperado.", error);
       return false;
     }
   }
@@ -319,6 +365,7 @@
     unlockAudio,
     playControlSound,
     playMotivationalSound,
+    claimSharedAudioEvent,
     stopActiveSound: () => stopSound(activeSound),
     activeSound: () => activeSound ? Object.freeze({ id: activeSound.id, kind: activeSound.kind, priority: activeSound.priority }) : null
   });
