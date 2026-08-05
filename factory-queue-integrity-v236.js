@@ -2,7 +2,7 @@
   "use strict";
 
   const VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
-  const HOTFIX = "factory-queue-integrity-hotfix4";
+  const HOTFIX = "factory-queue-integrity-hotfix5";
   const FLAG = "__aldusFactoryQueueIntegrityV236";
   if (globalThis.__ALDUS_FACTORY_QUEUE_INTEGRITY_V236__) return;
 
@@ -44,6 +44,7 @@
     if (title) return canonical(title);
     const discipline = first(record.discipline, record.disciplina);
     const subject = first(record.subject, record.assunto, record.theme, record.tema);
+    if (!discipline && !subject) return "";
     return canonical(`${discipline}::${subject}`);
   }
 
