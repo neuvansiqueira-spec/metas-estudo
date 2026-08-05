@@ -1,0 +1,4 @@
+20260805-central-period-cards-v248
+Alvo real: #view-central-metas #centralGoalsCards > .goal-central-card
+Identificação por título: Hoje, Esta semana, Este mês
+Commit funcional anterior: 323c3c0
