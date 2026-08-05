@@ -11,6 +11,9 @@
   const FACTORY_DESTINATION_HOTFIX = "discipline-topic-exact1";
   const TIMER_AUDIO_SCRIPT_ID = "aldusTimerAudioRecoveryV236";
   const TIMER_AUDIO_HOTFIX = "timer-audio-recovery-hotfix4";
+  const TIMER_AUDIO_UNIFIER_SCRIPT_ID = "aldusTimerAudioUnifierV241";
+  const TIMER_AUDIO_UNIFIER_VERSION = "20260805-timer-audio-unified-v241";
+  const TIMER_AUDIO_UNIFIER_HOTFIX = "timer-audio-unifier-hotfix1";
   const TIMER_SESSION_SCRIPT_ID = "aldusTimerSessionIntegrityV236";
   const TIMER_SESSION_HOTFIX = "timer-session-integrity-hotfix1";
   let loaded = false;
@@ -130,6 +133,20 @@
     return true;
   }
 
+  function loadTimerAudioUnifier() {
+    if (globalThis.__ALDUS_TIMER_AUDIO_UNIFIER_V241__ || document.getElementById(TIMER_AUDIO_UNIFIER_SCRIPT_ID)) return true;
+    const script = document.createElement("script");
+    script.id = TIMER_AUDIO_UNIFIER_SCRIPT_ID;
+    script.src = `timer-audio-unifier-v241.js?v=${encodeURIComponent(TIMER_AUDIO_UNIFIER_VERSION)}&hotfix=${encodeURIComponent(TIMER_AUDIO_UNIFIER_HOTFIX)}`;
+    script.async = false;
+    script.addEventListener("error", () => {
+      script.remove();
+      console.warn("[Aldus V241] A unificação dos alarmes do cronômetro será tentada novamente na próxima abertura.");
+    }, { once: true });
+    document.body.appendChild(script);
+    return true;
+  }
+
   function loadTimerSessionIntegrity(releaseVersion) {
     if (globalThis.__ALDUS_TIMER_SESSION_INTEGRITY_V236__ || document.getElementById(TIMER_SESSION_SCRIPT_ID)) return true;
     const script = document.createElement("script");
@@ -153,6 +170,7 @@
     loadFactoryQueueIntegrity(releaseVersion);
     loadFactoryDestinationIntegrity();
     loadTimerAudioRecovery(releaseVersion);
+    loadTimerAudioUnifier();
     loadTimerSessionIntegrity(releaseVersion);
     const script = document.createElement("script");
     script.id = SCRIPT_ID;
@@ -164,6 +182,7 @@
         enforceSnapshot();
         loadFactoryDestinationIntegrity();
         loadTimerAudioRecovery(releaseVersion);
+        loadTimerAudioUnifier();
         loadTimerSessionIntegrity(releaseVersion);
         try {
           if (typeof ensureDailyPlanAlignedWithPlanningV174 === "function") {
