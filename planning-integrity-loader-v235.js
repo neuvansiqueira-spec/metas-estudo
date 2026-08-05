@@ -5,7 +5,7 @@
   const SNAPSHOT_KEY = "aldusPlanningManualGoalsV235";
   const SCRIPT_ID = "aldusPlanningIntegrityCoreV235";
   const FACTORY_SCRIPT_ID = "aldusFactoryQueueIntegrityV236";
-  const FACTORY_HOTFIX = "factory-queue-integrity-hotfix4";
+  const FACTORY_HOTFIX = "factory-queue-integrity-hotfix5";
   const FACTORY_DESTINATION_SCRIPT_ID = "aldusFactoryDestinationIntegrityV237";
   const FACTORY_DESTINATION_VERSION = "20260804-pastas-destino-classificacao-exata-v237";
   const FACTORY_DESTINATION_HOTFIX = "discipline-topic-exact1";
