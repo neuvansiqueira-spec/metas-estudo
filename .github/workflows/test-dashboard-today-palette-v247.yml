@@ -1,0 +1,62 @@
+name: Testar e publicar cores do bloco Hoje V247
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - dashboard-today-palette-v247.css
+      - docs/dashboard-today-palette-v247.css
+      - service-worker-v236.js
+      - docs/service-worker-v236.js
+      - index.html
+      - docs/index.html
+      - scripts/apply-dashboard-today-palette-v247.mjs
+      - tests/dashboard-today-palette-v247.test.mjs
+      - .github/workflows/test-dashboard-today-palette-v247.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-publish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Aplicar V247 aos seis cartões visíveis
+        run: node scripts/apply-dashboard-today-palette-v247.mjs
+
+      - name: Validar sintaxe
+        run: |
+          node --check scripts/apply-dashboard-today-palette-v247.mjs
+          node --check service-worker-v236.js
+          node --check docs/service-worker-v236.js
+
+      - name: Executar testes de regressão
+        run: node --test tests/dashboard-today-palette-v247.test.mjs
+
+      - name: Validar arquivos publicados
+        run: |
+          git diff --check
+          cmp index.html docs/index.html
+          cmp dashboard-today-palette-v247.css docs/dashboard-today-palette-v247.css
+          cmp service-worker-v236.js docs/service-worker-v236.js
+
+      - name: Publicar correção V247
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html docs/index.html service-worker-v236.js docs/service-worker-v236.js
+          if ! git diff --cached --quiet; then
+            git commit -m "Publica paleta V247 no bloco Hoje"
+            git push origin HEAD:main
+          fi
