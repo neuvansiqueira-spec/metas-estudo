@@ -76,4 +76,13 @@ jobs:
           node --test "${existing[@]}"
 
       - name: Run full test suite
-        run: npm test
+        shell: bash
+        run: |
+          status=0
+          npm test > full-test.log 2>&1 || status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "A suíte completa falhou. Exibindo somente os blocos relevantes:"
+            grep -n -E 'not ok |failureType:|location:|error:|code:|expected:|actual:|operator:|# tests |# pass |# fail ' full-test.log | tail -n 300 || true
+            exit "$status"
+          fi
+          grep -E '# tests |# pass |# fail ' full-test.log | tail -n 10 || true
