@@ -1,0 +1,4 @@
+Publicação forçada da paleta da Central de Metas.
+Versão visual: 20260805-central-goals-palette-v245
+Motivo: o commit automático que inseriu o link direto no docs/index.html não disparou um novo workflow do GitHub Pages.
+Data da republicação: 2026-08-05T15:48:00-03:00
