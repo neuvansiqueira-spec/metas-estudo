@@ -2,12 +2,13 @@
 
 const CURRENT_VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-timer-session-hotfix1`;
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-destination-v237-hotfix1`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
 const HISTORY_LAYOUT_STYLESHEET = `question-history-layout-v223.css?v=${HISTORY_LAYOUT_VERSION}`;
 const FACTORY_QUEUE_INTEGRITY = `factory-queue-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=factory-queue-integrity-hotfix3`;
+const FACTORY_DESTINATION_INTEGRITY = "factory-destination-integrity-v237.js?v=20260804-pastas-destino-classificacao-exata-v237&hotfix=discipline-topic-exact1";
 const TIMER_AUDIO_RECOVERY = `timer-audio-recovery-v236.js?v=${CURRENT_VERSION}&hotfix=timer-audio-recovery-hotfix2`;
 const TIMER_SESSION_INTEGRITY = `timer-session-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=timer-session-integrity-hotfix1`;
 const INTEGRITY_LOADER = `planning-integrity-loader-v235.js?v=${CURRENT_VERSION}`;
@@ -18,6 +19,7 @@ const STATIC_ASSETS = [
   `app-${RELEASE_SUFFIX}.css?v=${CURRENT_VERSION}`,
   `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`,
   FACTORY_QUEUE_INTEGRITY,
+  FACTORY_DESTINATION_INTEGRITY,
   TIMER_AUDIO_RECOVERY,
   TIMER_SESSION_INTEGRITY,
   INTEGRITY_LOADER,
@@ -113,6 +115,7 @@ async function ensurePageStylesheets(response) {
   headers.set("content-type", "text/html; charset=utf-8");
   headers.set("x-aldus-integrity-version", CURRENT_VERSION);
   headers.set("x-aldus-factory-queue-hotfix", "factory-queue-integrity-hotfix3");
+  headers.set("x-aldus-factory-destination-hotfix", "20260804-pastas-destino-classificacao-exata-v237");
   headers.set("x-aldus-timer-audio-hotfix", "timer-audio-recovery-hotfix2");
   headers.set("x-aldus-timer-session-hotfix", "timer-session-integrity-hotfix1");
 
