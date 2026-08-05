@@ -146,7 +146,7 @@ test("modo diário preserva cartões separados", () => {
   assert.equal(badge.textContent, "2");
 });
 
-test("publicação e carregadores apontam para o hotfix4 sem divergência entre raiz e docs", () => {
+test("publicação e carregadores apontam para o hotfix5 sem divergência entre raiz e docs", () => {
   const docsSource = fs.readFileSync("docs/factory-queue-integrity-v236.js", "utf8");
   const loader = fs.readFileSync("planning-integrity-loader-v235.js", "utf8");
   const docsLoader = fs.readFileSync("docs/planning-integrity-loader-v235.js", "utf8");
@@ -156,8 +156,8 @@ test("publicação e carregadores apontam para o hotfix4 sem divergência entre 
   assert.equal(docsSource, source);
   assert.equal(docsLoader, loader);
   assert.equal(docsWorker, worker);
-  assert.match(source, /factory-queue-integrity-hotfix4/);
-  assert.match(loader, /const FACTORY_HOTFIX = "factory-queue-integrity-hotfix4"/);
-  assert.match(worker, /factory-queue-integrity-hotfix4/);
-  assert.match(worker, /factory-weekly-dedupe-v237-hotfix1/);
+  assert.match(source, /factory-queue-integrity-hotfix5/);
+  assert.match(loader, /const FACTORY_HOTFIX = "factory-queue-integrity-hotfix5"/);
+  assert.match(worker, /factory-queue-integrity-hotfix5/);
+  assert.match(worker, /factory-weekly-dedupe-v237-hotfix2/);
 });
