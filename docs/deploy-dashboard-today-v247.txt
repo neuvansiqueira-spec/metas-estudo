@@ -1,0 +1,3 @@
+20260805-dashboard-hoje-cores-v247
+Alvos reais: todayGoalsTotal, dashboardTodayGoal, todayHours, dashboardTodayRemaining, todayPendingGoals, todayDoneGoals
+Commit funcional anterior: a4f50cdc387217bef24586094922bc962be0204e
