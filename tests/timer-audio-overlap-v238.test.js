@@ -52,6 +52,7 @@ function loadAudioRuntime(source) {
     addEventListener() {}
   };
 
+  const stored = new Map();
   const window = {
     AudioContext: FakeAudioContext,
     getComputedStyle() { return { display: "block", visibility: "visible" }; },
@@ -68,7 +69,10 @@ function loadAudioRuntime(source) {
     console,
     document,
     window,
-    localStorage: { getItem() { return null; } },
+    localStorage: {
+      getItem(key) { return stored.has(key) ? stored.get(key) : null; },
+      setItem(key, value) { stored.set(key, String(value)); }
+    },
     MutationObserver: class { observe() {} },
     state: { settings: { timerPreferences: { sound: true, motivationalSound: true } } },
     playTimerControlBeep() {},
@@ -83,12 +87,13 @@ function loadAudioRuntime(source) {
 }
 
 for (const file of ["timer-audio-recovery-v236.js", "docs/timer-audio-recovery-v236.js"]) {
-  test(`${file}: usa arbitragem única e hotfix3`, () => {
+  test(`${file}: usa arbitragem única e hotfix4`, () => {
     const source = fs.readFileSync(file, "utf8");
-    assert.match(source, /timer-audio-recovery-hotfix3/);
+    assert.match(source, /timer-audio-recovery-hotfix4/);
     assert.match(source, /function beginSound\(/);
     assert.match(source, /if \(priority < activeSound\.priority\) return null/);
     assert.match(source, /stopSound\(activeSound\)/);
+    assert.match(source, /claimSharedAudioEvent/);
   });
 }
 
@@ -148,13 +153,13 @@ test("arquivos publicados permanecem idênticos", () => {
   );
 });
 
-test("loader e service worker publicam o hotfix3 nas duas árvores", () => {
+test("loader e service worker publicam o hotfix4 nas duas árvores", () => {
   for (const file of ["planning-integrity-loader-v235.js", "docs/planning-integrity-loader-v235.js"]) {
-    assert.match(fs.readFileSync(file, "utf8"), /TIMER_AUDIO_HOTFIX = "timer-audio-recovery-hotfix3"/);
+    assert.match(fs.readFileSync(file, "utf8"), /TIMER_AUDIO_HOTFIX = "timer-audio-recovery-hotfix4"/);
   }
   for (const file of ["service-worker.js", "docs/service-worker.js"]) {
     const source = fs.readFileSync(file, "utf8");
-    assert.match(source, /timer-sound-overlap-v238-hotfix3/);
-    assert.match(source, /timer-audio-recovery-hotfix3/);
+    assert.match(source, /timer-alarm-audio-v240-hotfix4/);
+    assert.match(source, /timer-audio-recovery-hotfix4/);
   }
 });
