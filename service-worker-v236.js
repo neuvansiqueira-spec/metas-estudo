@@ -2,7 +2,7 @@
 
 const CURRENT_VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-daily-summary-elegant-direct-v251`;
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-daily-summary-elegant-nested-v252`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
@@ -29,6 +29,10 @@ const DAILY_SUMMARY_ELEGANT_SCRIPT = `daily-summary-elegant-v250.js?v=${DAILY_SU
 const DAILY_SUMMARY_DIRECT_VERSION = "20260805-daily-summary-elegant-direct-v251";
 const DAILY_SUMMARY_DIRECT_STYLESHEET = `daily-summary-elegant-direct-v251.css?v=${DAILY_SUMMARY_DIRECT_VERSION}`;
 // END DAILY_SUMMARY_DIRECT_V251_CONSTANTS
+// BEGIN DAILY_SUMMARY_NESTED_V252_CONSTANTS
+const DAILY_SUMMARY_NESTED_VERSION = "20260805-daily-summary-elegant-nested-v252";
+const DAILY_SUMMARY_NESTED_STYLESHEET = `daily-summary-elegant-nested-v252.css?v=${DAILY_SUMMARY_NESTED_VERSION}`;
+// END DAILY_SUMMARY_NESTED_V252_CONSTANTS
 const FACTORY_QUEUE_INTEGRITY = `factory-queue-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=factory-queue-integrity-hotfix3`;
 const TIMER_AUDIO_RECOVERY = `timer-audio-recovery-v236.js?v=${CURRENT_VERSION}&hotfix=timer-audio-recovery-hotfix2`;
 const TIMER_SESSION_INTEGRITY = `timer-session-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=timer-session-integrity-hotfix1`;
@@ -54,6 +58,7 @@ const STATIC_ASSETS = [
   DAILY_SUMMARY_ELEGANT_STYLESHEET,
   DAILY_SUMMARY_ELEGANT_SCRIPT,
   DAILY_SUMMARY_DIRECT_STYLESHEET,
+  DAILY_SUMMARY_NESTED_STYLESHEET,
   "vendor/pdf.mjs",
   "vendor/pdf.worker.mjs",
   "vendor/pdfjs-LICENSE.txt",
@@ -143,6 +148,12 @@ async function ensurePageStylesheets(response) {
     missingTags.push(`<link id="aldusDailySummaryElegantDirectV251" rel="stylesheet" href="${DAILY_SUMMARY_DIRECT_STYLESHEET}" />`);
   }
   // END DAILY_SUMMARY_DIRECT_V251_STYLE
+  // BEGIN DAILY_SUMMARY_NESTED_V252_STYLE
+  if (!html.includes(DAILY_SUMMARY_NESTED_VERSION)) {
+    missingTags.push(`<link id="aldusDailySummaryElegantNestedV252" rel="stylesheet" href="${DAILY_SUMMARY_NESTED_STYLESHEET}" />`);
+  }
+  // END DAILY_SUMMARY_NESTED_V252_STYLE
+
 
 
 
@@ -207,6 +218,10 @@ async function ensurePageStylesheets(response) {
   // BEGIN DAILY_SUMMARY_DIRECT_V251_HEADER
   headers.set("x-aldus-daily-summary-direct", DAILY_SUMMARY_DIRECT_VERSION);
   // END DAILY_SUMMARY_DIRECT_V251_HEADER
+  // BEGIN DAILY_SUMMARY_NESTED_V252_HEADER
+  headers.set("x-aldus-daily-summary-nested", DAILY_SUMMARY_NESTED_VERSION);
+  // END DAILY_SUMMARY_NESTED_V252_HEADER
+
 
 
 
