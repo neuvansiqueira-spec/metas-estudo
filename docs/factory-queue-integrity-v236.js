@@ -2,7 +2,7 @@
   "use strict";
 
   const VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
-  const HOTFIX = "factory-queue-integrity-hotfix3";
+  const HOTFIX = "factory-queue-integrity-hotfix4";
   const FLAG = "__aldusFactoryQueueIntegrityV236";
   if (globalThis.__ALDUS_FACTORY_QUEUE_INTEGRITY_V236__) return;
 
@@ -37,6 +37,49 @@
     const subtopics = unique([...(entry.subtopics || []), ...(item.editalSubtemas || []), goal.subtopic, goal.subassunto].map(canonical)).sort().join("|");
     if (discipline || theme) return `${discipline}::${theme}::${subtopics}`;
     return first(item.id, entry.id) ? `id::${canonical(first(item.id, entry.id))}` : "";
+  }
+
+  function weeklyProjectionSubjectKey(record = {}) {
+    const title = first(record.title, record.subjectKey);
+    if (title) return canonical(title);
+    const discipline = first(record.discipline, record.disciplina);
+    const subject = first(record.subject, record.assunto, record.theme, record.tema);
+    return canonical(`${discipline}::${subject}`);
+  }
+
+  function collapseWeeklyProjectionRecords(records = []) {
+    const output = [];
+    const positions = new Map();
+    (records || []).forEach((record) => {
+      if (!record) return;
+      const key = weeklyProjectionSubjectKey(record);
+      if (!key) {
+        output.push({ ...record, dates: unique([...(record.dates || []), record.date]), records: [record] });
+        return;
+      }
+      if (!positions.has(key)) {
+        positions.set(key, output.length);
+        output.push({ ...record, subjectKey: key, dates: unique([...(record.dates || []), record.date]), records: [record] });
+        return;
+      }
+      const index = positions.get(key);
+      const previous = output[index];
+      output[index] = {
+        ...previous,
+        dates: unique([...(previous.dates || []), ...(record.dates || []), record.date]),
+        metaRest: first(previous.metaRest, record.metaRest),
+        records: [...(previous.records || []), record]
+      };
+    });
+    return output;
+  }
+
+  function formatMergedDates(dates = []) {
+    const values = unique(dates.map((value) => String(value || "").trim()));
+    if (!values.length) return "";
+    if (values.length === 1) return values[0];
+    if (values.length === 2) return `Datas: ${values[0]} e ${values[1]}`;
+    return `Datas: ${values.slice(0, -1).join(", ")} e ${values.at(-1)}`;
   }
 
   const statusScore = { "pdf gerado": 90, aprovado: 80, "aguardando revisao": 70, "em producao": 60, "precisa refazer": 50, "atualizar depois": 40, "nao iniciado": 20, "nao se aplica": 10 };
@@ -127,6 +170,58 @@
     return wrapped;
   }
 
+  function weeklyScopeActive() {
+    try {
+      if (typeof factoryProductionScope !== "undefined") return factoryProductionScope === "week";
+    } catch {}
+    return Boolean(document.querySelector('[data-production-scope="week"].active, [data-production-scope="week"][aria-pressed="true"]'));
+  }
+
+  function weeklyProjectionRecord(card) {
+    const title = String(card?.querySelector?.("h3")?.textContent || "").trim();
+    const meta = card?.querySelector?.("p.item-meta") || null;
+    const parts = String(meta?.textContent || "").split(" • ").map((value) => value.trim()).filter(Boolean);
+    return {
+      title,
+      date: parts.shift() || "",
+      metaRest: parts.join(" • "),
+      card,
+      meta
+    };
+  }
+
+  function dedupeWeeklyProjection() {
+    if (!weeklyScopeActive()) return { removed: 0, remaining: 0, mergedSubjects: [] };
+    const panel = document.querySelector("#factoryList .factory-today-plan, #view-fabrica-resumos .factory-today-plan");
+    const content = panel?.querySelector?.(":scope > .factory-collapsible-content") || panel?.querySelector?.(".factory-collapsible-content");
+    const cards = content ? [...content.querySelectorAll(":scope > article.factory-card")] : [];
+    if (cards.length < 2) return { removed: 0, remaining: cards.length, mergedSubjects: [] };
+
+    const collapsed = collapseWeeklyProjectionRecords(cards.map(weeklyProjectionRecord));
+    const mergedSubjects = [];
+    let removed = 0;
+    collapsed.forEach((group) => {
+      const target = group.records?.[0]?.card;
+      if (!target) return;
+      const dates = unique(group.dates || []);
+      const dateLabel = formatMergedDates(dates);
+      const meta = group.records?.[0]?.meta;
+      if (meta && dateLabel) meta.textContent = [dateLabel, group.metaRest].filter(Boolean).join(" • ");
+      target.dataset.weeklyMergedSubjectV237 = group.subjectKey || weeklyProjectionSubjectKey(group);
+      target.dataset.weeklyMergedDatesV237 = dates.join("|");
+      const duplicates = (group.records || []).slice(1);
+      if (duplicates.length) mergedSubjects.push(String(group.title || "").trim());
+      duplicates.forEach((record) => {
+        record.card?.remove?.();
+        removed += 1;
+      });
+    });
+
+    const badge = panel?.querySelector?.(":scope > summary small") || panel?.querySelector?.("summary small");
+    if (badge) badge.textContent = String(collapsed.length);
+    return { removed, remaining: collapsed.length, mergedSubjects: unique(mergedSubjects) };
+  }
+
   function removeVisibleResidue() {
     const view = document.querySelector('#view-fabrica-resumos, [data-view="fabrica-resumos"]');
     if (!view) return;
@@ -134,6 +229,7 @@
       const text = canonical(node.textContent);
       if (text.includes("disciplina: simulados") && /(material|produzir|pendente|resumo)/.test(text)) (node.closest("li") || node).remove();
     });
+    dedupeWeeklyProjection();
   }
 
   function install() {
@@ -189,5 +285,16 @@
   if (install()) redraw();
   const timer = window.setInterval(() => { if (install()) redraw(); }, 100);
   window.setTimeout(() => window.clearInterval(timer), 15000);
-  globalThis.__ALDUS_FACTORY_QUEUE_INTEGRITY_V236__ = Object.freeze({ version: VERSION, hotfix: HOTFIX, installedAt: new Date().toISOString(), referencesSimulados, semanticKey, sanitizeFactoryEntries: sanitize });
+  globalThis.__ALDUS_FACTORY_QUEUE_INTEGRITY_V236__ = Object.freeze({
+    version: VERSION,
+    hotfix: HOTFIX,
+    installedAt: new Date().toISOString(),
+    referencesSimulados,
+    semanticKey,
+    sanitizeFactoryEntries: sanitize,
+    weeklyProjectionSubjectKey,
+    collapseWeeklyProjectionRecords,
+    formatMergedDates,
+    dedupeWeeklyProjection
+  });
 })();
