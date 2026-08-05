@@ -2,11 +2,72 @@
   "use strict";
 
   const VERSION = "20260805-daily-summary-hours-minutes-v243";
-  const HOTFIX = "daily-summary-time-format-hotfix1";
+  const HOTFIX = "daily-summary-time-format-hotfix2";
   const GLOBAL_KEY = "__ALDUS_DAILY_SUMMARY_TIME_FORMAT_V243__";
   const PLANNED_SELECTOR = ".planned-today-stat > strong";
   const REALIZED_SELECTOR = ".realized-today-stat > strong";
+  const CENTRAL_PALETTE_STYLE_ID = "aldusCentralGoalsPaletteV245";
+  const CENTRAL_PALETTE_VERSION = "20260805-central-goals-palette-v245";
 
+  function installCentralGoalsPalette() {
+    if (typeof document === "undefined" || document.getElementById(CENTRAL_PALETTE_STYLE_ID)) return false;
+    const style = document.createElement("style");
+    style.id = CENTRAL_PALETTE_STYLE_ID;
+    style.dataset.version = CENTRAL_PALETTE_VERSION;
+    style.textContent = `
+      html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card:nth-child(1) {
+        --central-goal-accent: #a78bfa;
+        --central-goal-border: #8b5cf6;
+        --central-goal-value: #d8c4ff;
+        --central-goal-muted: #ddd2f7;
+        --central-goal-background: linear-gradient(145deg, #2b1d4f 0%, #181a35 100%);
+      }
+      html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card:nth-child(2) {
+        --central-goal-accent: #f6d365;
+        --central-goal-border: #d6a925;
+        --central-goal-value: #ffe681;
+        --central-goal-muted: #f5e9b9;
+        --central-goal-background: linear-gradient(145deg, #46380f 0%, #2b260f 100%);
+      }
+      html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card:nth-child(3) {
+        --central-goal-accent: #59b7ff;
+        --central-goal-border: #2f9edc;
+        --central-goal-value: #75caff;
+        --central-goal-muted: #c6e6fb;
+        --central-goal-background: linear-gradient(145deg, #0b3a5d 0%, #082840 100%);
+      }
+      html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card:nth-child(4) {
+        --central-goal-accent: #d6e5ef;
+        --central-goal-border: #9fb9c8;
+        --central-goal-value: #e6f2f8;
+        --central-goal-muted: #d2e0e8;
+        --central-goal-background: linear-gradient(145deg, #2c4050 0%, #1c2c39 100%);
+      }
+      html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card:nth-child(-n+4) {
+        border: 1px solid var(--central-goal-border) !important;
+        border-left: 7px solid var(--central-goal-accent) !important;
+        background: var(--central-goal-background) !important;
+        box-shadow: 0 10px 26px rgba(0, 6, 18, .28) !important;
+      }
+      html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card:nth-child(-n+4) h3 {
+        color: #f8fbff !important;
+      }
+      html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card:nth-child(-n+4) > strong {
+        color: var(--central-goal-value) !important;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, .28) !important;
+      }
+      html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card:nth-child(-n+4) .card-meta-grid,
+      html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card:nth-child(-n+4) .card-meta-grid span,
+      html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card:nth-child(-n+4) .item-meta,
+      html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card:nth-child(-n+4) small {
+        color: var(--central-goal-muted) !important;
+      }
+    `;
+    document.head.appendChild(style);
+    return true;
+  }
+
+  installCentralGoalsPalette();
   if (globalThis[GLOBAL_KEY]) return;
 
   function formatDurationMinutes(minutes) {
@@ -90,6 +151,7 @@
 
   function apply() {
     if (typeof document === "undefined") return { changed: 0, summary: null };
+    installCentralGoalsPalette();
     const summary = currentSummaryMinutes();
     if (!summary) return { changed: 0, summary: null };
     let changed = 0;
@@ -101,8 +163,10 @@
   const api = Object.freeze({
     version: VERSION,
     hotfix: HOTFIX,
+    centralPaletteVersion: CENTRAL_PALETTE_VERSION,
     formatDurationMinutes,
     calculateSummaryMinutes,
+    installCentralGoalsPalette,
     apply
   });
   globalThis[GLOBAL_KEY] = api;
