@@ -2,7 +2,7 @@
 
 const CURRENT_VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-dashboard-hoje-cores-v247`;
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-central-period-cards-v248`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
@@ -11,6 +11,11 @@ const CENTRAL_GOALS_PALETTE_VERSION = "20260805-dashboard-central-metas-cores-v2
 const CENTRAL_GOALS_PALETTE_STYLESHEET = `central-goals-palette-v245.css?v=${CENTRAL_GOALS_PALETTE_VERSION}`;
 const DASHBOARD_TODAY_PALETTE_VERSION = "20260805-dashboard-hoje-cores-v247";
 const DASHBOARD_TODAY_PALETTE_STYLESHEET = `dashboard-today-palette-v247.css?v=${DASHBOARD_TODAY_PALETTE_VERSION}`;
+// BEGIN CENTRAL_PERIOD_V248_CONSTANTS
+const CENTRAL_PERIOD_CARDS_VERSION = "20260805-central-period-cards-v248";
+const CENTRAL_PERIOD_CARDS_STYLESHEET = `central-goals-period-palette-v248.css?v=${CENTRAL_PERIOD_CARDS_VERSION}`;
+const CENTRAL_PERIOD_CARDS_SCRIPT = `central-goals-period-palette-v248.js?v=${CENTRAL_PERIOD_CARDS_VERSION}`;
+// END CENTRAL_PERIOD_V248_CONSTANTS
 const FACTORY_QUEUE_INTEGRITY = `factory-queue-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=factory-queue-integrity-hotfix3`;
 const TIMER_AUDIO_RECOVERY = `timer-audio-recovery-v236.js?v=${CURRENT_VERSION}&hotfix=timer-audio-recovery-hotfix2`;
 const TIMER_SESSION_INTEGRITY = `timer-session-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=timer-session-integrity-hotfix1`;
@@ -30,6 +35,8 @@ const STATIC_ASSETS = [
   HISTORY_LAYOUT_STYLESHEET,
   CENTRAL_GOALS_PALETTE_STYLESHEET,
   DASHBOARD_TODAY_PALETTE_STYLESHEET,
+  CENTRAL_PERIOD_CARDS_STYLESHEET,
+  CENTRAL_PERIOD_CARDS_SCRIPT,
   "vendor/pdf.mjs",
   "vendor/pdf.worker.mjs",
   "vendor/pdfjs-LICENSE.txt",
@@ -99,12 +106,27 @@ async function ensurePageStylesheets(response) {
   if (!html.includes(DASHBOARD_TODAY_PALETTE_VERSION)) {
     missingTags.push(`<link id="aldusDashboardTodayPaletteV247" rel="stylesheet" href="${DASHBOARD_TODAY_PALETTE_STYLESHEET}" />`);
   }
+  // BEGIN CENTRAL_PERIOD_V248_STYLE
+  if (!html.includes(CENTRAL_PERIOD_CARDS_VERSION)) {
+    missingTags.push(`<link id="aldusCentralPeriodCardsV248" rel="stylesheet" href="${CENTRAL_PERIOD_CARDS_STYLESHEET}" />`);
+  }
+  // END CENTRAL_PERIOD_V248_STYLE
+
 
   let patchedHtml = missingTags.length === 0
     ? html
     : html.includes("</head>")
       ? html.replace("</head>", `  ${missingTags.join("\n  ")}\n</head>`)
       : `${missingTags.join("\n")}\n${html}`;
+  // BEGIN CENTRAL_PERIOD_V248_SCRIPT
+  if (!patchedHtml.includes("central-goals-period-palette-v248.js")) {
+    const centralPeriodScript = `<script id="aldusCentralPeriodCardsScriptV248" src="${CENTRAL_PERIOD_CARDS_SCRIPT}"><\/script>`;
+    patchedHtml = patchedHtml.includes("</body>")
+      ? patchedHtml.replace("</body>", `  ${centralPeriodScript}\n</body>`)
+      : `${patchedHtml}\n${centralPeriodScript}`;
+  }
+  // END CENTRAL_PERIOD_V248_SCRIPT
+
 
   if (!patchedHtml.includes("planning-integrity-loader-v235.js")) {
     const scriptTag = `<script id="aldusPlanningIntegrityLoaderV235" src="${INTEGRITY_LOADER}"></script>`;
@@ -129,6 +151,10 @@ async function ensurePageStylesheets(response) {
   headers.set("x-aldus-timer-session-hotfix", "timer-session-integrity-hotfix1");
   headers.set("x-aldus-central-goals-palette", CENTRAL_GOALS_PALETTE_VERSION);
   headers.set("x-aldus-dashboard-today-palette", DASHBOARD_TODAY_PALETTE_VERSION);
+  // BEGIN CENTRAL_PERIOD_V248_HEADER
+  headers.set("x-aldus-central-period-cards", CENTRAL_PERIOD_CARDS_VERSION);
+  // END CENTRAL_PERIOD_V248_HEADER
+
 
   return new Response(patchedHtml, {
     status: response.status,
