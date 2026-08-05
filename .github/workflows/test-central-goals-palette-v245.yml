@@ -1,0 +1,62 @@
+name: Testar paleta da Central de Metas V245
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - central-goals-palette-v245.css
+      - docs/central-goals-palette-v245.css
+      - service-worker-v236.js
+      - docs/service-worker-v236.js
+      - index.html
+      - docs/index.html
+      - scripts/apply-central-goals-palette-v245.mjs
+      - tests/central-goals-palette-v245.test.mjs
+      - .github/workflows/test-central-goals-palette-v245.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-publish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Aplicar carregamento direto da paleta
+        run: node scripts/apply-central-goals-palette-v245.mjs
+
+      - name: Validar sintaxe
+        run: |
+          node --check scripts/apply-central-goals-palette-v245.mjs
+          node --check service-worker-v236.js
+          node --check docs/service-worker-v236.js
+
+      - name: Executar testes de regressão
+        run: node --test tests/central-goals-palette-v245.test.mjs
+
+      - name: Validar arquivos e diferenças
+        run: |
+          git diff --check
+          cmp index.html docs/index.html
+          cmp central-goals-palette-v245.css docs/central-goals-palette-v245.css
+          cmp service-worker-v236.js docs/service-worker-v236.js
+
+      - name: Publicar link direto corrigido
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html docs/index.html
+          if ! git diff --cached --quiet; then
+            git commit -m "Carrega diretamente a paleta da Central de Metas V245"
+            git push origin HEAD:main
+          fi
