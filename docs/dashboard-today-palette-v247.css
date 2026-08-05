@@ -1,0 +1,87 @@
+/* Aldus Meta — Dashboard: paleta do bloco Hoje
+   Versão: 20260805-dashboard-hoje-cores-v247 */
+
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayGoalsTotal) {
+  --today-card-accent: #34d399;
+  --today-card-border: #10b981;
+  --today-card-value: #6ee7b7;
+  --today-card-muted: #d1fae5;
+  --today-card-bg: linear-gradient(145deg, #064e3b 0%, #062f2a 100%);
+}
+
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#dashboardTodayGoal) {
+  --today-card-accent: #f7d462;
+  --today-card-border: #d8ad2f;
+  --today-card-value: #ffe782;
+  --today-card-muted: #f3e8b6;
+  --today-card-bg: linear-gradient(145deg, #4a3a10 0%, #2c260f 100%);
+}
+
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayHours) {
+  --today-card-accent: #58b8ff;
+  --today-card-border: #279ddd;
+  --today-card-value: #79cbff;
+  --today-card-muted: #c8e7fb;
+  --today-card-bg: linear-gradient(145deg, #0b3d62 0%, #082a44 100%);
+}
+
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#dashboardTodayRemaining) {
+  --today-card-accent: #d9e7ef;
+  --today-card-border: #a9c0cd;
+  --today-card-value: #edf7fb;
+  --today-card-muted: #d8e5eb;
+  --today-card-bg: linear-gradient(145deg, #334957 0%, #21323d 100%);
+}
+
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayPendingGoals) {
+  --today-card-accent: #fb923c;
+  --today-card-border: #ea580c;
+  --today-card-value: #fdba74;
+  --today-card-muted: #ffedd5;
+  --today-card-bg: linear-gradient(145deg, #5a2a0a 0%, #341b0d 100%);
+}
+
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayDoneGoals) {
+  --today-card-accent: #2dd4bf;
+  --today-card-border: #0d9488;
+  --today-card-value: #5eead4;
+  --today-card-muted: #ccfbf1;
+  --today-card-bg: linear-gradient(145deg, #064e4b 0%, #073637 100%);
+}
+
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayGoalsTotal),
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#dashboardTodayGoal),
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayHours),
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#dashboardTodayRemaining),
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayPendingGoals),
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayDoneGoals) {
+  border: 1px solid var(--today-card-border) !important;
+  border-left: 7px solid var(--today-card-accent) !important;
+  background: var(--today-card-bg) !important;
+  box-shadow: 0 12px 28px rgba(0, 6, 18, .30) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayGoalsTotal) > span,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#dashboardTodayGoal) > span,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayHours) > span,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#dashboardTodayRemaining) > span,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayPendingGoals) > span,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayDoneGoals) > span,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayGoalsTotal) > small,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#dashboardTodayGoal) > small,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayHours) > small,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#dashboardTodayRemaining) > small,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayPendingGoals) > small,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayDoneGoals) > small {
+  color: var(--today-card-muted) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayGoalsTotal) > strong,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#dashboardTodayGoal) > strong,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayHours) > strong,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#dashboardTodayRemaining) > strong,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayPendingGoals) > strong,
+html[data-aldus-theme="premium-stable"] #view-dashboard .stat-card:has(> strong#todayDoneGoals) > strong {
+  color: var(--today-card-value) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .30) !important;
+}
