@@ -75,6 +75,21 @@ test("produção semanal funde assuntos exatamente iguais e preserva todas as da
   assert.equal(badge.textContent, "2");
 });
 
+test("repetição no mesmo dia não duplica a data", () => {
+  const cards = [
+    createCard("DIREITO CONSTITUCIONAL — Poder Constituinte", "05/08/2026 • Precisa produzir • 0 arquivo(s)"),
+    createCard("DIREITO CONSTITUCIONAL — Poder Constituinte", "05/08/2026 • Precisa produzir • 0 arquivo(s)")
+  ];
+  const { api, badge } = loadRuntime(cards);
+  const result = api.dedupeWeeklyProjection();
+
+  assert.equal(result.removed, 1);
+  assert.equal(result.remaining, 1);
+  assert.equal(cards[0].meta.textContent, "05/08/2026 • Precisa produzir • 0 arquivo(s)");
+  assert.equal(cards[0].dataset.weeklyMergedDatesV237, "05/08/2026");
+  assert.equal(badge.textContent, "1");
+});
+
 test("disciplinas diferentes não são fundidas mesmo com assunto semelhante", () => {
   const { api } = loadRuntime();
   const collapsed = api.collapseWeeklyProjectionRecords([
