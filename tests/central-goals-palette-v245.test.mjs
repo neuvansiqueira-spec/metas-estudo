@@ -77,7 +77,7 @@ test("o service worker também publica e injeta a paleta como redundância", () 
   assert.match(worker, /const CENTRAL_GOALS_PALETTE_VERSION\s*=\s*"20260805-central-goals-palette-v245"/);
   assert.match(worker, /CENTRAL_GOALS_PALETTE_STYLESHEET,/);
   assert.match(worker, /html\.includes\("central-goals-palette-v245\.css"\)/);
-  assert.match(worker, /id=\\"aldusCentralGoalsPaletteV245\\"/);
+  assert.match(worker, /id="aldusCentralGoalsPaletteV245"/);
   assert.match(worker, /x-aldus-central-goals-palette/);
 });
 
