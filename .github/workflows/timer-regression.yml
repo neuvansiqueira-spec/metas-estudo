@@ -62,6 +62,7 @@ jobs:
             tests/timer-safety-v132.test.js
             tests/timer-timeline-recovery-v237.test.js
             tests/timer-timeline-publication-v237.test.js
+            tests/timer-audio-overlap-v238.test.js
             tests/v102-factory-daily-weekly.test.js
             tests/factory-weekly-subject-dedupe-v237.test.js
             tests/factory-weekly-subject-dedupe-extended-v237.test.js
