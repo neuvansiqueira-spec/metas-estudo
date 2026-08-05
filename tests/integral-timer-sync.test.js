@@ -109,8 +109,8 @@ test("service worker publica a versão atual e a sincronização integral contin
   assert.match(helper, /function syncStateFingerprint/);
   assert.match(helper, /function syncPayloadFingerprint/);
   assert.match(helper, /function mergeSyncStates/);
+  assert.match(helper, /function syncMergeRecord/);
   assert.doesNotMatch(helper, /\+remoteDate === \+localDate/);
-  assert.match(helper, /Mesclar os dados da nuvem com os dados deste dispositivo/);
 });
 
 test("arquivos publicados permanecem sincronizados", () => {
