@@ -1,7 +1,7 @@
-/* Aldus Meta — Central de Metas: paleta por período
-   Versão: 20260805-central-goals-palette-v245 */
+/* Aldus Meta — Central de Metas: paleta dos cartões resumidos
+   Versão: 20260805-dashboard-central-metas-cores-v246 */
 
-html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > :nth-child(1) {
+html[data-aldus-theme="premium-stable"] #dashboardGoalsScaleSummary > .stat-card:nth-child(1) {
   --central-card-accent: #a78bfa;
   --central-card-border: #8b5cf6;
   --central-card-value: #e0d2ff;
@@ -9,7 +9,7 @@ html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards >
   --central-card-bg: linear-gradient(145deg, #302052 0%, #1a1c38 100%);
 }
 
-html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > :nth-child(2) {
+html[data-aldus-theme="premium-stable"] #dashboardGoalsScaleSummary > .stat-card:nth-child(2) {
   --central-card-accent: #f7d462;
   --central-card-border: #d8ad2f;
   --central-card-value: #ffe782;
@@ -17,7 +17,7 @@ html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards >
   --central-card-bg: linear-gradient(145deg, #4a3a10 0%, #2c260f 100%);
 }
 
-html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > :nth-child(3) {
+html[data-aldus-theme="premium-stable"] #dashboardGoalsScaleSummary > .stat-card:nth-child(3) {
   --central-card-accent: #58b8ff;
   --central-card-border: #279ddd;
   --central-card-value: #79cbff;
@@ -25,7 +25,7 @@ html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards >
   --central-card-bg: linear-gradient(145deg, #0b3d62 0%, #082a44 100%);
 }
 
-html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > :nth-child(4) {
+html[data-aldus-theme="premium-stable"] #dashboardGoalsScaleSummary > .stat-card:nth-child(4) {
   --central-card-accent: #d9e7ef;
   --central-card-border: #a9c0cd;
   --central-card-value: #edf7fb;
@@ -33,25 +33,20 @@ html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards >
   --central-card-bg: linear-gradient(145deg, #334957 0%, #21323d 100%);
 }
 
-html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > :nth-child(-n+4) {
+html[data-aldus-theme="premium-stable"] #dashboardGoalsScaleSummary > .stat-card:nth-child(-n+4) {
   border: 1px solid var(--central-card-border) !important;
   border-left: 7px solid var(--central-card-accent) !important;
   background: var(--central-card-bg) !important;
   box-shadow: 0 12px 28px rgba(0, 6, 18, .30) !important;
 }
 
-html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > :nth-child(-n+4) h3 {
-  color: #f9fcff !important;
+html[data-aldus-theme="premium-stable"] #dashboardGoalsScaleSummary > .stat-card:nth-child(-n+4) > span {
+  color: var(--central-card-muted) !important;
 }
 
-html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > :nth-child(-n+4) strong {
+html[data-aldus-theme="premium-stable"] #dashboardGoalsScaleSummary > .stat-card:nth-child(-n+4) > strong {
   color: var(--central-card-value) !important;
   text-shadow: 0 1px 2px rgba(0, 0, 0, .30) !important;
 }
 
-html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > :nth-child(-n+4) .card-meta-grid,
-html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > :nth-child(-n+4) .card-meta-grid span,
-html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > :nth-child(-n+4) .item-meta,
-html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > :nth-child(-n+4) small {
-  color: var(--central-card-muted) !important;
-}
+/* Próximo Plantão e Próxima Folga permanecem com o padrão visual original. */
