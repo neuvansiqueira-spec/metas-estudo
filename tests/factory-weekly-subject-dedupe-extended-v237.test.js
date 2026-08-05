@@ -373,6 +373,6 @@ test("arquivos de publicação expõem a mesma correção ampliada", () => {
   assert.equal(docsWorker, worker);
   assert.match(source, /dedupeWeeklyProjection/);
   assert.match(source, /collapseWeeklyProjectionRecords/);
-  assert.match(loader, /factory-queue-integrity-hotfix4/);
-  assert.match(worker, /factory-weekly-dedupe-v237-hotfix1/);
+  assert.match(loader, /factory-queue-integrity-hotfix5/);
+  assert.match(worker, /factory-weekly-dedupe-v237-hotfix2/);
 });
