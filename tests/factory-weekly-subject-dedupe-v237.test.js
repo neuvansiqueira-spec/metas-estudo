@@ -90,6 +90,14 @@ test("repetição no mesmo dia não duplica a data", () => {
   assert.equal(badge.textContent, "1");
 });
 
+test("três datas são exibidas sem repetição", () => {
+  const { api } = loadRuntime();
+  assert.equal(
+    api.formatMergedDates(["04/08/2026", "05/08/2026", "04/08/2026", "07/08/2026"]),
+    "Datas: 04/08/2026, 05/08/2026 e 07/08/2026"
+  );
+});
+
 test("disciplinas diferentes não são fundidas mesmo com assunto semelhante", () => {
   const { api } = loadRuntime();
   const collapsed = api.collapseWeeklyProjectionRecords([
