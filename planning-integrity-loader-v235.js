@@ -14,6 +14,9 @@
   const TIMER_AUDIO_UNIFIER_SCRIPT_ID = "aldusTimerAudioUnifierV241";
   const TIMER_AUDIO_UNIFIER_VERSION = "20260805-timer-audio-unified-v241";
   const TIMER_AUDIO_UNIFIER_HOTFIX = "timer-audio-unifier-hotfix1";
+  const TIMER_MESSAGE_SCRIPT_ID = "aldusTimerMessageDedupeV239";
+  const TIMER_MESSAGE_VERSION = "20260805-timer-message-last-five-v242";
+  const TIMER_MESSAGE_HOTFIX = "timer-message-last-five-hotfix1";
   const TIMER_SESSION_SCRIPT_ID = "aldusTimerSessionIntegrityV236";
   const TIMER_SESSION_HOTFIX = "timer-session-integrity-hotfix1";
   let loaded = false;
@@ -147,6 +150,20 @@
     return true;
   }
 
+  function loadTimerMessageDedupe() {
+    if (globalThis.__ALDUS_TIMER_MESSAGE_LAST_FIVE_V242__ || document.getElementById(TIMER_MESSAGE_SCRIPT_ID)) return true;
+    const script = document.createElement("script");
+    script.id = TIMER_MESSAGE_SCRIPT_ID;
+    script.src = `timer-message-dedupe-v239.js?v=${encodeURIComponent(TIMER_MESSAGE_VERSION)}&hotfix=${encodeURIComponent(TIMER_MESSAGE_HOTFIX)}`;
+    script.async = false;
+    script.addEventListener("error", () => {
+      script.remove();
+      console.warn("[Aldus V242] A proteção das últimas cinco mensagens será tentada novamente na próxima abertura.");
+    }, { once: true });
+    document.body.appendChild(script);
+    return true;
+  }
+
   function loadTimerSessionIntegrity(releaseVersion) {
     if (globalThis.__ALDUS_TIMER_SESSION_INTEGRITY_V236__ || document.getElementById(TIMER_SESSION_SCRIPT_ID)) return true;
     const script = document.createElement("script");
@@ -171,6 +188,7 @@
     loadFactoryDestinationIntegrity();
     loadTimerAudioRecovery(releaseVersion);
     loadTimerAudioUnifier();
+    loadTimerMessageDedupe();
     loadTimerSessionIntegrity(releaseVersion);
     const script = document.createElement("script");
     script.id = SCRIPT_ID;
@@ -183,6 +201,7 @@
         loadFactoryDestinationIntegrity();
         loadTimerAudioRecovery(releaseVersion);
         loadTimerAudioUnifier();
+        loadTimerMessageDedupe();
         loadTimerSessionIntegrity(releaseVersion);
         try {
           if (typeof ensureDailyPlanAlignedWithPlanningV174 === "function") {

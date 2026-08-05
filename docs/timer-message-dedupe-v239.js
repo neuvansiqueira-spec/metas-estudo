@@ -1,14 +1,16 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260805-timer-message-dedupe-v239";
-  const HOTFIX = "timer-message-dedupe-hotfix1";
-  const GLOBAL_KEY = "__ALDUS_TIMER_MESSAGE_DEDUPE_V239__";
+  const VERSION = "20260805-timer-message-last-five-v242";
+  const HOTFIX = "timer-message-last-five-hotfix1";
+  const GLOBAL_KEY = "__ALDUS_TIMER_MESSAGE_LAST_FIVE_V242__";
   const CHOICE_HISTORY_KEY = "metasEstudoTimerMessageChoiceV239";
   const PRESENTATION_HISTORY_KEY = "metasEstudoTimerMessagePresentationV239";
   const EVENT_HISTORY_KEY = "metasEstudoTimerMessageEventV239";
-  const WRAP_FLAG = "__aldusTimerMessageDedupeV239";
+  const WRAP_FLAG = "__aldusTimerMessageLastFiveV242";
+  const PREVIOUS_WRAP_FLAG = "__aldusTimerMessageDedupeV239";
   const EVENT_DEDUPE_MS = 6000;
+  const RECENT_WINDOW = 5;
   const RECENT_LIMIT = 12;
 
   if (globalThis[GLOBAL_KEY]) return;
@@ -64,35 +66,47 @@
     }
   }
 
+  function recentWindow(history = {}) {
+    return (Array.isArray(history.recent) ? history.recent : [])
+      .filter((phrase) => canonical(phrase))
+      .slice(0, RECENT_WINDOW);
+  }
+
+  function phraseWasRecent(phrase, recent = []) {
+    const key = canonical(phrase);
+    return Boolean(key) && recent.some((item) => canonical(item) === key);
+  }
+
   function pickAlternative(messages, lastPhrase, recent = []) {
     const lastKey = canonical(lastPhrase);
-    const recentKeys = new Set(recent.map(canonical).filter(Boolean));
-    return messages.find((phrase) => canonical(phrase) !== lastKey && !recentKeys.has(canonical(phrase)))
+    const recentKeys = new Set(recent.slice(0, RECENT_WINDOW).map(canonical).filter(Boolean));
+    return messages.find((phrase) => !recentKeys.has(canonical(phrase)))
       || messages.find((phrase) => canonical(phrase) !== lastKey)
       || messages[0]
       || "";
   }
 
-  function selectPhrase(milestone, proposed = "") {
-    const history = readJson(CHOICE_HISTORY_KEY, { lastPhrase: "", recent: [] });
-    const pool = messagePool(milestone);
-    let selected = String(proposed || "").trim();
-
-    if (!selected) {
-      selected = pickAlternative(pool, history.lastPhrase, history.recent);
-    } else if (pool.length > 1 && canonical(selected) === canonical(history.lastPhrase)) {
-      selected = pickAlternative(pool, history.lastPhrase, history.recent);
-    }
-
-    if (!selected) return "";
-
+  function remember(history, selected) {
     history.lastPhrase = selected;
     history.recent = [
       selected,
       ...(Array.isArray(history.recent) ? history.recent : [])
-        .filter((phrase) => canonical(phrase) !== canonical(selected))
     ].slice(0, RECENT_LIMIT);
-    writeJson(CHOICE_HISTORY_KEY, history);
+    return history;
+  }
+
+  function selectPhrase(milestone, proposed = "") {
+    const history = readJson(CHOICE_HISTORY_KEY, { lastPhrase: "", recent: [] });
+    const pool = messagePool(milestone);
+    const recent = recentWindow(history);
+    let selected = String(proposed || "").trim();
+
+    if (!selected || (pool.length > 1 && phraseWasRecent(selected, recent))) {
+      selected = pickAlternative(pool, history.lastPhrase, recent);
+    }
+
+    if (!selected) return "";
+    writeJson(CHOICE_HISTORY_KEY, remember(history, selected));
     return selected;
   }
 
@@ -134,10 +148,11 @@
 
     const history = readJson(PRESENTATION_HISTORY_KEY, { lastPhrase: "", recent: [] });
     const pool = messagePool(rendered.milestone);
+    const recent = recentWindow(history);
     let selected = rendered.phrase;
 
-    if (pool.length > 1 && canonical(selected) === canonical(history.lastPhrase)) {
-      selected = pickAlternative(pool, history.lastPhrase, history.recent);
+    if (pool.length > 1 && phraseWasRecent(selected, recent)) {
+      selected = pickAlternative(pool, history.lastPhrase, recent);
     }
 
     if (selected && canonical(selected) !== canonical(rendered.phrase)) {
@@ -147,15 +162,7 @@
       });
     }
 
-    if (selected) {
-      history.lastPhrase = selected;
-      history.recent = [
-        selected,
-        ...(Array.isArray(history.recent) ? history.recent : [])
-          .filter((phrase) => canonical(phrase) !== canonical(selected))
-      ].slice(0, RECENT_LIMIT);
-      writeJson(PRESENTATION_HISTORY_KEY, history);
-    }
+    if (selected) writeJson(PRESENTATION_HISTORY_KEY, remember(history, selected));
 
     lastRenderedSignature = `${canonical(rendered.title)}|${canonical(selected)}`;
     return {
@@ -183,12 +190,28 @@
       : null;
   }
 
-  function installPresenterGuard() {
-    const original = currentPresenter();
-    if (!original) return false;
-    if (original[WRAP_FLAG]) return true;
+  function unwrapPreviousGuard(presenter) {
+    let current = presenter;
+    let guard = 0;
+    while (
+      typeof current === "function"
+      && typeof current.__aldusOriginal === "function"
+      && (current[PREVIOUS_WRAP_FLAG] || current[WRAP_FLAG])
+      && guard < 5
+    ) {
+      current = current.__aldusOriginal;
+      guard += 1;
+    }
+    return current;
+  }
 
-    const guarded = function showTimerMotivationalToastDedupeV239(milestone, phrase = "") {
+  function installPresenterGuard() {
+    const current = currentPresenter();
+    if (!current) return false;
+    if (current[WRAP_FLAG]) return true;
+    const original = unwrapPreviousGuard(current);
+
+    const guarded = function showTimerMotivationalToastLastFiveV242(milestone, phrase = "") {
       const selected = selectPhrase(milestone, phrase);
       if (!registerEvent(milestone)) return false;
       return original.call(this, milestone, selected);
@@ -224,15 +247,18 @@
     version: VERSION,
     hotfix: HOTFIX,
     eventDedupeMs: EVENT_DEDUPE_MS,
+    recentWindow: RECENT_WINDOW,
     recentLimit: RECENT_LIMIT,
     canonical,
     messagePool,
+    phraseWasRecent,
     pickAlternative,
     selectPhrase,
     registerEvent,
     inspectRenderedMessage,
     installPresenterGuard,
-    installObserver
+    installObserver,
+    unwrapPreviousGuard
   };
   globalThis[GLOBAL_KEY] = Object.freeze(api);
 
@@ -243,9 +269,7 @@
     attempts += 1;
     installPresenterGuard();
     installObserver();
-    if (attempts >= 200 || (globalThis.__aldusTimerMotivationV159 && currentPresenter()?.[WRAP_FLAG])) {
-      clearInterval(timer);
-    }
+    if (attempts >= 200 || currentPresenter()?.[WRAP_FLAG]) clearInterval(timer);
   };
   const timer = setInterval(install, 100);
   install();
