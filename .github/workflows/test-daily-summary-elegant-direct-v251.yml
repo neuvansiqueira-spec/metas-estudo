@@ -1,0 +1,57 @@
+name: Testar e publicar Resumo do Dia direto V251
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - daily-summary-elegant-direct-v251.css
+      - docs/daily-summary-elegant-direct-v251.css
+      - scripts/apply-daily-summary-elegant-direct-v251.mjs
+      - tests/daily-summary-elegant-direct-v251.test.mjs
+      - .github/workflows/test-daily-summary-elegant-direct-v251.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-publish:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Aplicar V251 pelo mesmo caminho das correções anteriores
+        run: node scripts/apply-daily-summary-elegant-direct-v251.mjs
+
+      - name: Validar sintaxe
+        run: |
+          node --check scripts/apply-daily-summary-elegant-direct-v251.mjs
+          node --check service-worker-v236.js
+          node --check docs/service-worker-v236.js
+
+      - name: Executar testes
+        run: node --test tests/daily-summary-elegant-direct-v251.test.mjs
+
+      - name: Validar arquivos publicados
+        run: |
+          git diff --check
+          cmp index.html docs/index.html
+          cmp daily-summary-elegant-direct-v251.css docs/daily-summary-elegant-direct-v251.css
+          cmp service-worker-v236.js docs/service-worker-v236.js
+
+      - name: Publicar V251
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html docs/index.html service-worker-v236.js docs/service-worker-v236.js
+          if ! git diff --cached --quiet; then
+            git commit -m "Publica correção direta V251 no Resumo do Dia"
+            git push origin HEAD:main
+          fi
