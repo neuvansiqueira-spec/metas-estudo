@@ -64,6 +64,7 @@ jobs:
             tests/timer-timeline-publication-v237.test.js
             tests/v102-factory-daily-weekly.test.js
             tests/factory-weekly-subject-dedupe-v237.test.js
+            tests/factory-weekly-subject-dedupe-extended-v237.test.js
           )
           existing=()
           for file in "${candidates[@]}"; do
