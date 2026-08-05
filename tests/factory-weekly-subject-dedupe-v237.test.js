@@ -98,6 +98,21 @@ test("três datas são exibidas sem repetição", () => {
   );
 });
 
+test("a primeira ocorrência mantém a posição e os metadados do cartão consolidado", () => {
+  const { api } = loadRuntime();
+  const collapsed = api.collapseWeeklyProjectionRecords([
+    { title: "DIREITO PENAL — Culpabilidade", date: "04/08/2026", metaRest: "Precisa produzir" },
+    { title: "DIREITO ADMINISTRATIVO — Atos Administrativos", date: "05/08/2026", metaRest: "Material disponível" },
+    { title: "DIREITO PENAL — Culpabilidade", date: "07/08/2026", metaRest: "Outro estado" }
+  ]);
+
+  assert.equal(collapsed.length, 2);
+  assert.equal(collapsed[0].title, "DIREITO PENAL — Culpabilidade");
+  assert.equal(collapsed[0].metaRest, "Precisa produzir");
+  assert.deepEqual([...collapsed[0].dates], ["04/08/2026", "07/08/2026"]);
+  assert.equal(collapsed[1].title, "DIREITO ADMINISTRATIVO — Atos Administrativos");
+});
+
 test("disciplinas diferentes não são fundidas mesmo com assunto semelhante", () => {
   const { api } = loadRuntime();
   const collapsed = api.collapseWeeklyProjectionRecords([
