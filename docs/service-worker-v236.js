@@ -2,7 +2,7 @@
 
 const CURRENT_VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-dashboard-today-time-sync-v253`;
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-storage-recovery-v254`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
@@ -37,6 +37,10 @@ const DAILY_SUMMARY_NESTED_STYLESHEET = `daily-summary-elegant-nested-v252.css?v
 const DASHBOARD_TODAY_TIME_SYNC_VERSION = "20260805-dashboard-today-time-sync-v253";
 const DASHBOARD_TODAY_TIME_SYNC_SCRIPT = `dashboard-today-time-sync-v253.js?v=${DASHBOARD_TODAY_TIME_SYNC_VERSION}&hotfix=dashboard-today-time-sync-hotfix1`;
 // END DASHBOARD_TODAY_TIME_SYNC_V253_CONSTANTS
+// BEGIN STORAGE_RECOVERY_V254_CONSTANTS
+const STORAGE_RECOVERY_VERSION = "20260805-storage-recovery-v254";
+const STORAGE_RECOVERY_SCRIPT = `storage-recovery-v254.js?v=${STORAGE_RECOVERY_VERSION}&hotfix=stale-indexeddb-localstorage-guard1`;
+// END STORAGE_RECOVERY_V254_CONSTANTS
 const FACTORY_QUEUE_INTEGRITY = `factory-queue-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=factory-queue-integrity-hotfix3`;
 const TIMER_AUDIO_RECOVERY = `timer-audio-recovery-v236.js?v=${CURRENT_VERSION}&hotfix=timer-audio-recovery-hotfix2`;
 const TIMER_SESSION_INTEGRITY = `timer-session-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=timer-session-integrity-hotfix1`;
@@ -64,6 +68,7 @@ const STATIC_ASSETS = [
   DAILY_SUMMARY_DIRECT_STYLESHEET,
   DAILY_SUMMARY_NESTED_STYLESHEET,
   DASHBOARD_TODAY_TIME_SYNC_SCRIPT,
+  STORAGE_RECOVERY_SCRIPT,
   "vendor/pdf.mjs",
   "vendor/pdf.worker.mjs",
   "vendor/pdfjs-LICENSE.txt",
@@ -193,6 +198,20 @@ async function ensurePageStylesheets(response) {
       : `${patchedHtml}\n${dashboardTodayTimeSyncScript}`;
   }
   // END DASHBOARD_TODAY_TIME_SYNC_V253_SCRIPT
+  // BEGIN STORAGE_RECOVERY_V254_SCRIPT
+  if (!patchedHtml.includes("storage-recovery-v254.js")) {
+    const storageRecoveryScript = `<script id="aldusStorageRecoveryV254" src="${STORAGE_RECOVERY_SCRIPT}"><\/script>`;
+    const appBundleMatch = patchedHtml.match(/<script\s+id=["']aldusAppBundleScript["'][^>]*><\/script>/i);
+    if (appBundleMatch?.[0]) {
+      patchedHtml = patchedHtml.replace(appBundleMatch[0], `${storageRecoveryScript}\n  ${appBundleMatch[0]}`);
+    } else {
+      patchedHtml = patchedHtml.includes("</body>")
+        ? patchedHtml.replace("</body>", `  ${storageRecoveryScript}\n</body>`)
+        : `${patchedHtml}\n${storageRecoveryScript}`;
+    }
+  }
+  // END STORAGE_RECOVERY_V254_SCRIPT
+
 
 
 
@@ -238,6 +257,10 @@ async function ensurePageStylesheets(response) {
   // BEGIN DASHBOARD_TODAY_TIME_SYNC_V253_HEADER
   headers.set("x-aldus-dashboard-today-time-sync", DASHBOARD_TODAY_TIME_SYNC_VERSION);
   // END DASHBOARD_TODAY_TIME_SYNC_V253_HEADER
+  // BEGIN STORAGE_RECOVERY_V254_HEADER
+  headers.set("x-aldus-storage-recovery", STORAGE_RECOVERY_VERSION);
+  // END STORAGE_RECOVERY_V254_HEADER
+
 
 
 
