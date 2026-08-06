@@ -40,10 +40,10 @@
   }
 
   function masterSoundEnabled() {
-    const preference = timerPreferences()?.sound;
-    if (typeof preference === "boolean") return preference;
     const stored = storedMasterPreference();
-    return typeof stored === "boolean" ? stored : true;
+    if (typeof stored === "boolean") return stored;
+    const preference = timerPreferences()?.sound;
+    return typeof preference === "boolean" ? preference : true;
   }
 
   function syncMasterInputs(enabled = masterSoundEnabled()) {
@@ -127,6 +127,11 @@
     };
     Object.defineProperty(replacement, WRAP_FLAG, { value: true });
     Object.defineProperty(replacement, "__aldusOriginal", { value: current });
+    for (const compatibilityFlag of ["__aldusTimerAudioUnifiedV241", "__aldusTimerAudioRecoveryV236"]) {
+      if (current[compatibilityFlag]) {
+        Object.defineProperty(replacement, compatibilityFlag, { value: true });
+      }
+    }
     return assignGlobalFunction(name, replacement);
   }
 
@@ -244,7 +249,8 @@
 
   install();
   const retryTimer = window.setInterval?.(() => {
-    if (install() || installAttempts >= 200) window.clearInterval?.(retryTimer);
+    install();
+    if (installAttempts >= 200) window.clearInterval?.(retryTimer);
   }, 100);
   window.setTimeout?.(() => {
     window.clearInterval?.(retryTimer);
