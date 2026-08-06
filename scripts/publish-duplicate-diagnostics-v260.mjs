@@ -33,7 +33,7 @@ for (const target of targets) {
   }
 }
 
-if (!engine.includes("__aldusDuplicateDiagnosticsV260") || !engine.includes("runDiagnosis")) {
+if (!engine.includes("__aldusDuplicateDiagnosticsInstalledV260") || !engine.includes("diagnoseState")) {
   throw new Error("O motor do diagnóstico não foi reconstruído corretamente.");
 }
 
