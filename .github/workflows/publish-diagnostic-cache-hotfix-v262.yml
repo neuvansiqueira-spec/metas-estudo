@@ -20,38 +20,20 @@ jobs:
           ref: fix/cache-diagnostico-v262
           fetch-depth: 0
 
-      - name: Publish unique diagnostic loader and refresh cache
+      - name: Mirror assets and patch entrypoints
         run: |
+          mkdir -p docs
+          cp duplicate-diagnostics-loader-v262.js docs/duplicate-diagnostics-loader-v262.js
+          cp duplicate-diagnostics-v260.js docs/duplicate-diagnostics-v260.js
+          cp duplicate-diagnostics-v260.css docs/duplicate-diagnostics-v260.css
+          cp duplicate-diagnostics-ui-v261.js docs/duplicate-diagnostics-ui-v261.js
+          cp duplicate-diagnostics-ui-v261.css docs/duplicate-diagnostics-ui-v261.css
+          cp duplicate-diagnostics-ui-v261-stability.js docs/duplicate-diagnostics-ui-v261-stability.js
+          cp service-worker-v166.js docs/service-worker-v166.js
+          cp service-worker-v262.js docs/service-worker-v262.js
           python - <<'PY'
           from pathlib import Path
           import re
-
-          root = Path('.')
-          docs = root / 'docs'
-          docs.mkdir(exist_ok=True)
-
-          source_loader = (root / 'duplicate-diagnostics-loader-v260.js').read_text(encoding='utf-8')
-          loader = source_loader.replace(
-              '20260806-duplicate-diagnostics-ui-v261',
-              '20260806-duplicate-diagnostics-ui-v262'
-          ).replace(
-              '__aldusDuplicateDiagnosticsLoaderV260',
-              '__aldusDuplicateDiagnosticsLoaderV262'
-          )
-          (root / 'duplicate-diagnostics-loader-v262.js').write_text(loader, encoding='utf-8')
-          (docs / 'duplicate-diagnostics-loader-v262.js').write_text(loader, encoding='utf-8')
-
-          for asset in (
-              'duplicate-diagnostics-v260.js',
-              'duplicate-diagnostics-v260.css',
-              'duplicate-diagnostics-ui-v261.js',
-              'duplicate-diagnostics-ui-v261.css',
-              'duplicate-diagnostics-ui-v261-stability.js',
-          ):
-              source = root / asset
-              if not source.exists():
-                  raise SystemExit(f'Missing required asset: {asset}')
-              (docs / asset).write_bytes(source.read_bytes())
 
           replacement = (
               '  <!-- aldus-duplicate-diagnostics-v262 -->\n'
@@ -64,81 +46,19 @@ jobs:
               re.compile(r'\s*<script id="aldusDuplicateDiagnosticsLoaderV(?:260|261|262)" src="duplicate-diagnostics-loader-v(?:260|261|262)\.js\?v=[^"]+"></script>'),
           ]
 
-          for index_path in (root / 'index.html', docs / 'index.html'):
-              text = index_path.read_text(encoding='utf-8')
-              updated = text
+          for path in (Path('index.html'), Path('docs/index.html')):
+              original = path.read_text(encoding='utf-8')
+              updated = original
               for pattern in patterns:
                   updated, count = pattern.subn('\n' + replacement, updated, count=1)
                   if count:
                       break
-              if updated == text:
-                  raise SystemExit(f'Diagnostic loader tag not found in {index_path}')
-              index_path.write_text(updated, encoding='utf-8')
-
-          worker = '''"use strict";
-
-const CURRENT_VERSION = "20260806-diagnostico-duplicacoes-ui-v262";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
-const NAVIGATION_FALLBACK = new URL("index.html", self.registration.scope).href;
-
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(["./", "index.html"]))
-      .then(() => self.skipWaiting())
-  );
-});
-
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys()
-      .then((names) => Promise.all(
-        names
-          .filter((name) => name.startsWith("metas-estudo-") && name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
-      ))
-      .then(() => self.clients.claim())
-  );
-});
-
-async function networkFirstNavigation(request) {
-  try {
-    const response = await fetch(request, { cache: "no-store" });
-    if (response?.ok) {
-      const cache = await caches.open(CACHE_NAME);
-      await cache.put(request, response.clone());
-      await cache.put(NAVIGATION_FALLBACK, response.clone());
-    }
-    return response;
-  } catch {
-    return await caches.match(request, { ignoreSearch: true })
-      || await caches.match(NAVIGATION_FALLBACK, { ignoreSearch: true })
-      || new Response("Aplicativo indisponível temporariamente.", {
-        status: 503,
-        headers: { "content-type": "text/plain; charset=utf-8" }
-      });
-  }
-}
-
-self.addEventListener("fetch", (event) => {
-  const request = event.request;
-  if (request.method !== "GET") return;
-  const url = new URL(request.url);
-  if (url.origin !== self.location.origin) return;
-  if (request.mode === "navigate" || request.destination === "document") {
-    event.respondWith(networkFirstNavigation(request));
-  }
-});
-'''
-          (root / 'service-worker-v262.js').write_text(worker, encoding='utf-8')
-          (docs / 'service-worker-v262.js').write_text(worker, encoding='utf-8')
-
-          wrapper = 'importScripts("./service-worker-v262.js?v=20260806-diagnostico-duplicacoes-ui-v262");\n'
-          (root / 'service-worker-v166.js').write_text(wrapper, encoding='utf-8')
-          (docs / 'service-worker-v166.js').write_text(wrapper, encoding='utf-8')
+              if updated == original:
+                  raise SystemExit(f'Diagnostic loader tag not found in {path}')
+              path.write_text(updated, encoding='utf-8')
           PY
 
-      - name: Validate hotfix assets
+      - name: Validate hotfix
         run: |
           node --check duplicate-diagnostics-loader-v262.js
           node --check duplicate-diagnostics-ui-v261.js
@@ -146,24 +66,16 @@ self.addEventListener("fetch", (event) => {
           node --check service-worker-v262.js
           grep -q 'duplicate-diagnostics-loader-v262.js?v=20260806-duplicate-diagnostics-ui-v262' index.html
           grep -q 'duplicate-diagnostics-loader-v262.js?v=20260806-duplicate-diagnostics-ui-v262' docs/index.html
-          ! grep -q 'aldusDuplicateDiagnosticsLoaderV260' index.html
+          if grep -q 'aldusDuplicateDiagnosticsLoaderV260' index.html; then exit 1; fi
           cmp duplicate-diagnostics-ui-v261.js docs/duplicate-diagnostics-ui-v261.js
           cmp duplicate-diagnostics-ui-v261.css docs/duplicate-diagnostics-ui-v261.css
+          cmp service-worker-v262.js docs/service-worker-v262.js
 
-      - name: Commit hotfix and remove one-time workflow
+      - name: Commit hotfix
         run: |
           rm .github/workflows/publish-diagnostic-cache-hotfix-v262.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html docs/index.html \
-            duplicate-diagnostics-loader-v262.js docs/duplicate-diagnostics-loader-v262.js \
-            duplicate-diagnostics-v260.js docs/duplicate-diagnostics-v260.js \
-            duplicate-diagnostics-v260.css docs/duplicate-diagnostics-v260.css \
-            duplicate-diagnostics-ui-v261.js docs/duplicate-diagnostics-ui-v261.js \
-            duplicate-diagnostics-ui-v261.css docs/duplicate-diagnostics-ui-v261.css \
-            duplicate-diagnostics-ui-v261-stability.js docs/duplicate-diagnostics-ui-v261-stability.js \
-            service-worker-v166.js docs/service-worker-v166.js \
-            service-worker-v262.js docs/service-worker-v262.js \
-            .github/workflows/publish-diagnostic-cache-hotfix-v262.yml
+          git add -A
           git commit -m "Corrige cache e carregamento do diagnóstico V262"
           git push origin HEAD:fix/cache-diagnostico-v262
