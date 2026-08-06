@@ -1,0 +1,197 @@
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 {
+  --aldus-dup-v263-navy-950: #041a2f;
+  --aldus-dup-v263-navy-900: #082c50;
+  --aldus-dup-v263-blue-700: #0b57b7;
+  --aldus-dup-v263-blue-600: #1467d5;
+  --aldus-dup-v263-blue-500: #2f80ed;
+  --aldus-dup-v263-ink: #16324a;
+  --aldus-dup-v263-muted: #5f7489;
+  --aldus-dup-v263-border: #c7d6e5;
+  --aldus-dup-v263-surface: #ffffff;
+  --aldus-dup-v263-canvas: #f5f9fd;
+  --aldus-dup-v263-soft-blue: #edf5ff;
+  --aldus-dup-v263-disabled: #e7eef6;
+  --aldus-dup-v263-disabled-text: #8297ab;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-dialog {
+  background: var(--aldus-dup-v263-canvas) !important;
+  border-color: rgba(198, 217, 235, 0.92) !important;
+  box-shadow: 0 28px 84px rgba(1, 18, 36, 0.34) !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-dialog-header {
+  color: #ffffff !important;
+  background: linear-gradient(120deg, var(--aldus-dup-v263-navy-950) 0%, var(--aldus-dup-v263-navy-900) 58%, #0b447e 100%) !important;
+  border-bottom: 1px solid rgba(123, 184, 243, 0.22) !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-dialog-header p {
+  color: #c8d8e8 !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-eyebrow {
+  color: #9ed0ff !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-close {
+  border-color: rgba(255, 255, 255, 0.28) !important;
+  background: linear-gradient(180deg, #3489ef, #1e68cb) !important;
+  box-shadow: 0 8px 20px rgba(0, 27, 63, 0.3) !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-close:hover {
+  background: linear-gradient(180deg, #4b98f3, #1a5db8) !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-dialog-content {
+  color: var(--aldus-dup-v263-ink) !important;
+  background: var(--aldus-dup-v263-canvas) !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-toolbar {
+  border-bottom: 1px solid #d7e3ee !important;
+  background: rgba(255, 255, 255, 0.97) !important;
+  box-shadow: 0 8px 22px rgba(24, 55, 85, 0.07) !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-toolbar label,
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-toolbar label > span {
+  color: #294761 !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-toolbar select,
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-toolbar input {
+  border-color: #b7cadc !important;
+  color: var(--aldus-dup-v263-ink) !important;
+  background: var(--aldus-dup-v263-surface) !important;
+  box-shadow: inset 0 1px 1px rgba(12, 42, 70, 0.03) !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-toolbar input::placeholder {
+  color: #8ba0b4 !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-toolbar select:focus,
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-toolbar input:focus {
+  border-color: var(--aldus-dup-v263-blue-500) !important;
+  outline: 3px solid rgba(47, 128, 237, 0.16) !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-run {
+  border-color: var(--aldus-dup-v263-blue-600) !important;
+  color: #ffffff !important;
+  background: linear-gradient(180deg, #1d73df 0%, #0b5ec7 100%) !important;
+  box-shadow: 0 10px 22px rgba(11, 94, 199, 0.24) !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-run:hover:not(:disabled) {
+  border-color: var(--aldus-dup-v263-blue-700) !important;
+  background: linear-gradient(180deg, #1669d2 0%, #094fa8 100%) !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-undo:not(:disabled),
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-export:not(:disabled) {
+  border-color: #9eb7cc !important;
+  color: #173b59 !important;
+  background: #ffffff !important;
+  box-shadow: 0 5px 14px rgba(23, 59, 89, 0.08) !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-undo:hover:not(:disabled),
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-export:hover:not(:disabled) {
+  border-color: var(--aldus-dup-v263-blue-500) !important;
+  color: #0b4f9f !important;
+  background: #f4f9ff !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-toolbar button:disabled,
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-action:disabled {
+  border-color: #d4e0eb !important;
+  color: var(--aldus-dup-v263-disabled-text) !important;
+  background: var(--aldus-dup-v263-disabled) !important;
+  box-shadow: none !important;
+  opacity: 1 !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-status {
+  border-color: #c4d8eb !important;
+  color: #294d6d !important;
+  background: var(--aldus-dup-v263-soft-blue) !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-guide {
+  border-color: #c1d7eb !important;
+  color: #294d6d !important;
+  background: #ffffff !important;
+  box-shadow: 0 7px 20px rgba(22, 50, 74, 0.06) !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-guide strong {
+  color: #0d467d !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-guide span,
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-guide small {
+  color: #58738d !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-summary > div,
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-pair,
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-pager {
+  border-color: var(--aldus-dup-v263-border) !important;
+  background: var(--aldus-dup-v263-surface) !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-summary strong,
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-card-title {
+  color: #123e67 !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-summary span,
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-card-title small {
+  color: var(--aldus-dup-v263-muted) !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-pair-header {
+  background: #ffffff !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-card-toggle {
+  border-color: #1f6fd4 !important;
+  background: linear-gradient(180deg, #3489ef, #1f6fd4) !important;
+  box-shadow: 0 5px 12px rgba(31, 111, 212, 0.22) !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-search-empty {
+  border-color: #b8ccde !important;
+  color: #58738d !important;
+  background: #ffffff !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-dialog,
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-dialog-content {
+    background: #071a2a !important;
+  }
+
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-toolbar,
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-guide,
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-summary > div,
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-pair,
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-pair-header,
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-pager {
+    color: #e8f1f9 !important;
+    border-color: #29445c !important;
+    background: #10263a !important;
+  }
+
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-toolbar label,
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-toolbar label > span,
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-guide span,
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-guide small,
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-summary span,
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-card-title small {
+    color: #aac0d3 !important;
+  }
+}
