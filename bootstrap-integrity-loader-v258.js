@@ -1,601 +1,327 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260805-bootstrap-integrity-v258";
-  const MAIN_DB = "metas-estudo-db";
-  const MAIN_STORE = "appState";
-  const MAIN_ID = "current";
-  const SAFETY_DB = "metas-estudo-safety-v258";
-  const SAFETY_STORE = "snapshots";
-  const MAIN_LOCAL_KEY = "metasConcursoData";
-  const STATUS_KEY = "aldusBootstrapIntegrityV258";
-  const MAX_SNAPSHOTS = 3;
-  const COLLECTION_KEYS = [
-    "subjects",
+  const VERSION = "20260806-canonical-control-admin-v259";
+  const DUPLICATE_ITEM_ID = "7d97fba2-03d5-57ed-bc23-bdd42fb35ae6";
+  const DUPLICATE_MAPPING_ID = "pcpr-2026:direito administrativo e gestao publica:5.9.2";
+  const CORE_SCRIPT = "bootstrap-integrity-loader-v258-core.js?v=20260806-canonical-control-admin-v259";
+  const LINK_FIELDS = new Set([
+    "syllabusItemId",
+    "syllabusId",
+    "editalItemId",
+    "syllabus_item_id",
+    "syllabus_id",
+    "edital_item_id"
+  ]);
+  const protectedCollections = [
     "studies",
-    "syllabusItems",
     "dailyGoals",
     "questionLogs",
+    "smartReviews",
+    "simulados",
     "materials",
     "questionBank",
     "questionBankSessions",
     "questionErrorNotebook",
-    "simulados",
-    "smartReviews",
-    "factoryAgenda",
-    "factoryItems"
+    "factoryItems",
+    "factoryAgenda"
   ];
-  const CRITICAL_KEYS = [
-    "subjects",
-    "studies",
-    "syllabusItems",
-    "dailyGoals",
-    "questionLogs",
-    "questionBank",
-    "questionBankSessions",
-    "simulados"
-  ];
-  const WEIGHTS = {
-    subjects: 5,
-    studies: 18,
-    syllabusItems: 3,
-    dailyGoals: 14,
-    questionLogs: 15,
-    materials: 4,
-    questionBank: 5,
-    questionBankSessions: 12,
-    questionErrorNotebook: 6,
-    simulados: 15,
-    smartReviews: 6,
-    factoryAgenda: 4,
-    factoryItems: 4
+
+  const captured = {
+    duplicateItems: [],
+    duplicateMappings: []
   };
-  const LEGACY_STATE_KEYS = [
-    MAIN_LOCAL_KEY,
-    "metasEstudoBackupAntesDaMesclagem",
-    "aldusEmergencyLocalSnapshotV254",
-    "aldusBeforeStorageRecoveryV254",
-    "aldusBeforeIndexedDBActivationV256",
-    "aldusEmergencyIndexedDBActivationBackupV256"
-  ];
-  const SCRIPT_CHAIN = [
-    ["aldusAppBundleScript", "app-v236.js?v=20260804-simulados-sem-fabrica-cache-unico-v236"],
-    ["aldusDailySummaryTimeFormatV243Direct", "daily-summary-time-format-v243.js?v=20260805-daily-summary-hours-minutes-v243&hotfix=daily-summary-time-format-hotfix3"],
-    ["aldusDashboardTodayTimeSyncV253", "dashboard-today-time-sync-v253.js?v=20260805-dashboard-today-time-sync-v253&hotfix=dashboard-today-time-sync-hotfix1"],
-    ["aldusDashboardTodayQuestionsSyncV257", "dashboard-today-questions-sync-v257.js?v=20260805-dashboard-today-questions-sync-v257&hotfix=question-bank-sessions1"],
-    ["aldusPlanningIntegrityLoaderV235", "planning-integrity-loader-v235.js?v=20260804-simulados-sem-fabrica-cache-unico-v236&publication=v244"],
-    ["aldusCentralPeriodCardsScriptV248", "central-goals-period-palette-v248.js?v=20260805-central-period-cards-v248"],
-    ["aldusDailySummaryElegantScriptV250", "daily-summary-elegant-v250.js?v=20260805-daily-summary-elegant-v250"],
-    ["aldusTimerSessionIntegrityV236", "timer-session-integrity-v236.js?v=20260804-simulados-sem-fabrica-cache-unico-v236&hotfix=timer-session-integrity-hotfix1"]
-  ];
 
-  function safeParse(value) {
-    if (typeof value !== "string") return value;
+  function normalize(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  }
+
+  function textOf(item) {
+    if (!item || typeof item !== "object") return "";
+    return normalize([
+      item.code,
+      item.reference,
+      item.topic,
+      item.subject,
+      item.subtopic,
+      item.title,
+      item.name,
+      item.discipline
+    ].filter(Boolean).join(" "));
+  }
+
+  function isDuplicateItem(item) {
+    if (!item || typeof item !== "object") return false;
+    if (item.id === DUPLICATE_ITEM_ID) return true;
+    const text = textOf(item);
+    return text.includes("5 9 2")
+      && text.includes("controle interno e externo")
+      && text.includes("direito administrativo");
+  }
+
+  function isDuplicateMapping(mapping) {
+    if (!mapping || typeof mapping !== "object") return false;
+    if (mapping.id === DUPLICATE_MAPPING_ID) return true;
+    if (mapping.syllabusItemId === DUPLICATE_ITEM_ID) return true;
+    const text = textOf(mapping);
+    return text.includes("5 9 2")
+      && text.includes("controle interno e externo")
+      && text.includes("direito administrativo");
+  }
+
+  function canonicalScore(item) {
+    if (!item || typeof item !== "object" || isDuplicateItem(item)) return -1;
+    const text = textOf(item);
+    let score = 0;
+    if (text.includes("9 10 1")) score += 12;
+    if (text.includes("controle administrativo")) score += 10;
+    if (normalize(item.discipline) === "direito administrativo") score += 6;
+    if (Array.isArray(item.officialCoverage) && item.officialCoverage.length >= 2) score += 4;
+    if (Number(item.studyTime || item.timeSpent || item.totalHours || 0) > 0) score += 2;
+    if (String(item.contestCategory || item.category || "").toUpperCase() === "A") score += 2;
+    return score;
+  }
+
+  function findCanonicalItem(state) {
+    const items = Array.isArray(state?.syllabusItems) ? state.syllabusItems : [];
+    return items
+      .map((item, index) => ({ item, index, score: canonicalScore(item) }))
+      .filter((entry) => entry.score >= 20)
+      .sort((left, right) => right.score - left.score || left.index - right.index)[0]?.item || null;
+  }
+
+  function clone(value) {
     try {
-      return JSON.parse(value);
+      return typeof structuredClone === "function"
+        ? structuredClone(value)
+        : JSON.parse(JSON.stringify(value));
     } catch {
-      return null;
+      return value;
     }
   }
 
-  function cloneData(value) {
-    if (typeof structuredClone === "function") return structuredClone(value);
-    return JSON.parse(JSON.stringify(value));
-  }
-
-  function counts(state = {}) {
-    return Object.fromEntries(COLLECTION_KEYS.map((key) => [
-      key,
-      Array.isArray(state?.[key]) ? state[key].length : 0
-    ]));
-  }
-
-  function stateHasUserData(state = {}) {
-    const summary = counts(state);
-    return Object.values(summary).some((value) => value > 0);
-  }
-
-  function stateShapeValid(state) {
-    if (!state || typeof state !== "object" || Array.isArray(state)) return false;
-    if (!COLLECTION_KEYS.every((key) => state[key] === undefined || Array.isArray(state[key]))) return false;
-    return stateHasUserData(state);
-  }
-
-  function extractStates(value, path = "raiz", depth = 0, seen = new Set()) {
-    if (depth > 5) return [];
-    const parsed = safeParse(value);
-    if (!parsed || typeof parsed !== "object") return [];
-    if (seen.has(parsed)) return [];
-    seen.add(parsed);
-
-    const found = [];
-    if (stateShapeValid(parsed)) found.push({ state: parsed, path });
-
-    if (Array.isArray(parsed)) {
-      parsed.slice(0, 12).forEach((entry, index) => {
-        found.push(...extractStates(entry, `${path}[${index}]`, depth + 1, seen));
-      });
-      return found;
-    }
-
-    const envelopeKeys = [
-      "state",
-      "data",
-      "raw",
-      "runtime",
-      "indexedDB",
-      "current",
-      "snapshot",
-      "backup",
-      "payload"
-    ];
-    for (const key of envelopeKeys) {
-      if (Object.prototype.hasOwnProperty.call(parsed, key)) {
-        found.push(...extractStates(parsed[key], `${path}.${key}`, depth + 1, seen));
-      }
-    }
-    return found;
-  }
-
-  function checksumText(text) {
-    let hash = 2166136261;
-    for (let index = 0; index < text.length; index += 1) {
-      hash ^= text.charCodeAt(index);
-      hash = Math.imul(hash, 16777619);
-    }
-    return `fnv1a-json-v2-${(hash >>> 0).toString(16).padStart(8, "0")}-${text.length}`;
-  }
-
-  function checksumState(state) {
-    return checksumText(JSON.stringify(state || {}));
-  }
-
-  function parseTimestamp(value, now = Date.now()) {
-    if (value === null || value === undefined || value === "") return 0;
-    const parsed = typeof value === "number" ? value : Date.parse(String(value));
-    if (!Number.isFinite(parsed) || parsed <= 0) return 0;
-    if (parsed > now + 10 * 60 * 1000) return 0;
-    return parsed;
-  }
-
-  function stateTimestamp(state = {}, now = Date.now()) {
-    const timestampKeys = [
-      "updatedAt",
-      "savedAt",
-      "createdAt",
-      "completedAt",
-      "finishedAt",
-      "startedAt",
-      "capturedAt",
-      "importedAt",
-      "lastModifiedAt"
-    ];
-    let latest = 0;
-    const inspect = (object) => {
-      if (!object || typeof object !== "object") return;
-      for (const key of timestampKeys) {
-        latest = Math.max(latest, parseTimestamp(object[key], now));
-      }
-    };
-    inspect(state);
-    inspect(state.syncMeta);
-    inspect(state.meta);
-    inspect(state.planning);
-    for (const key of COLLECTION_KEYS) {
-      const rows = Array.isArray(state[key]) ? state[key] : [];
-      for (const row of rows) inspect(row);
-    }
-    return latest;
-  }
-
-  function scoreState(state = {}) {
-    const summary = counts(state);
-    return COLLECTION_KEYS.reduce(
-      (total, key) => total + summary[key] * (WEIGHTS[key] || 1),
-      0
-    );
-  }
-
-  function makeCandidate(source, state, extra = {}) {
-    const cloned = cloneData(state);
-    const summary = counts(cloned);
-    return {
-      source,
-      state: cloned,
-      counts: summary,
-      score: scoreState(cloned),
-      timestamp: stateTimestamp(cloned),
-      checksum: checksumState(cloned),
-      ...extra
-    };
-  }
-
-  function sameCriticalCounts(left, right) {
-    return CRITICAL_KEYS.every((key) => left.counts[key] === right.counts[key]);
-  }
-
-  function dominates(left, right) {
-    let grew = false;
-    for (const key of CRITICAL_KEYS) {
-      if (left.counts[key] < right.counts[key]) return false;
-      if (left.counts[key] > right.counts[key]) grew = true;
-    }
-    return grew;
-  }
-
-  function candidateOrder(left, right) {
-    if (left.score !== right.score) return right.score - left.score;
-    if (left.timestamp !== right.timestamp) return right.timestamp - left.timestamp;
-    const priority = (source) => source === "indexeddb" ? 3 : source === "localStorage:metasConcursoData" ? 2 : 1;
-    return priority(right.source) - priority(left.source);
-  }
-
-  function chooseCandidate(candidates = []) {
-    const unique = [];
-    const checksums = new Set();
-    for (const candidate of candidates.filter(Boolean)) {
-      if (!candidate.state || !stateShapeValid(candidate.state) || checksums.has(candidate.checksum)) continue;
-      checksums.add(candidate.checksum);
-      unique.push(candidate);
-    }
-    if (!unique.length) return { candidate: null, reason: "nenhuma-copia-valida", conflict: false };
-
-    const indexed = unique.find((candidate) => candidate.source === "indexeddb");
-    if (indexed) {
-      const safeSuperior = unique
-        .filter((candidate) => candidate !== indexed)
-        .filter((candidate) => {
-          if (dominates(candidate, indexed)) {
-            return !indexed.timestamp || !candidate.timestamp || candidate.timestamp >= indexed.timestamp;
-          }
-          return sameCriticalCounts(candidate, indexed)
-            && candidate.timestamp > indexed.timestamp + 1000;
-        })
-        .sort(candidateOrder);
-      if (safeSuperior.length) {
-        return { candidate: safeSuperior[0], reason: "copia-superior-validada", conflict: false };
-      }
-
-      const conflicting = unique.some((candidate) => candidate !== indexed
-        && candidate.checksum !== indexed.checksum
-        && !dominates(candidate, indexed)
-        && !dominates(indexed, candidate)
-        && !sameCriticalCounts(candidate, indexed));
-      return {
-        candidate: indexed,
-        reason: conflicting ? "conflito-conservador-indexeddb-preservado" : "indexeddb-valido-preservado",
-        conflict: conflicting
-      };
-    }
-
-    const nonDominated = unique.filter((candidate) => !unique.some((other) => other !== candidate && dominates(other, candidate)));
-    nonDominated.sort(candidateOrder);
-    return {
-      candidate: nonDominated[0],
-      reason: nonDominated.length > 1 ? "melhor-copia-sem-indexeddb-com-conflito" : "melhor-copia-sem-indexeddb",
-      conflict: nonDominated.length > 1
-    };
-  }
-
-  function openMainDatabase() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(MAIN_DB);
-      request.onupgradeneeded = () => {
-        const database = request.result;
-        if (!database.objectStoreNames.contains(MAIN_STORE)) {
-          database.createObjectStore(MAIN_STORE, { keyPath: "id" });
-        }
-      };
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error || new Error("Falha ao abrir o IndexedDB principal."));
-      request.onblocked = () => reject(new Error("IndexedDB principal bloqueado por outra aba."));
+  function sanitizeCatalog(value) {
+    if (!value || typeof value !== "object") return value;
+    const output = { ...value };
+    ["newItems", "historicalItems"].forEach((key) => {
+      const rows = Array.isArray(value[key]) ? value[key] : [];
+      const removed = rows.filter(isDuplicateItem);
+      captured.duplicateItems.push(...removed.map(clone));
+      output[key] = rows.filter((row) => !isDuplicateItem(row));
     });
+    const mappings = Array.isArray(value.mappings) ? value.mappings : [];
+    const removedMappings = mappings.filter(isDuplicateMapping);
+    captured.duplicateMappings.push(...removedMappings.map(clone));
+    output.mappings = mappings.filter((row) => !isDuplicateMapping(row));
+    return output;
   }
 
-  function readRecord(database, storeName, id) {
-    return new Promise((resolve, reject) => {
-      const transaction = database.transaction(storeName, "readonly");
-      const request = transaction.objectStore(storeName).get(id);
-      request.onsuccess = () => resolve(request.result || null);
-      request.onerror = () => reject(request.error || new Error("Falha ao ler o IndexedDB."));
-      transaction.onabort = () => reject(transaction.error || new Error("Leitura do IndexedDB abortada."));
-    });
-  }
+  function remapLinks(value, duplicateIds, canonicalId, seen = new WeakSet()) {
+    if (!value || typeof value !== "object") return 0;
+    if (seen.has(value)) return 0;
+    seen.add(value);
+    let changed = 0;
 
-  function putRecord(database, storeName, record) {
-    return new Promise((resolve, reject) => {
-      const transaction = database.transaction(storeName, "readwrite");
-      transaction.objectStore(storeName).put(record);
-      transaction.oncomplete = () => resolve(true);
-      transaction.onerror = () => reject(transaction.error || new Error("Falha ao gravar no IndexedDB."));
-      transaction.onabort = () => reject(transaction.error || new Error("Gravação no IndexedDB abortada."));
-    });
-  }
-
-  async function readMainRecord() {
-    const database = await openMainDatabase();
-    try {
-      return await readRecord(database, MAIN_STORE, MAIN_ID);
-    } finally {
-      database.close();
-    }
-  }
-
-  async function writeMainState(state) {
-    const serialized = JSON.stringify(state);
-    const record = {
-      id: MAIN_ID,
-      schemaVersion: 1,
-      savedAt: new Date().toISOString(),
-      checksum: checksumText(serialized),
-      serializedSize: serialized.length,
-      data: cloneData(state)
-    };
-    const database = await openMainDatabase();
-    try {
-      await putRecord(database, MAIN_STORE, record);
-      const verified = await readRecord(database, MAIN_STORE, MAIN_ID);
-      if (!verified || verified.checksum !== record.checksum || checksumState(verified.data) !== record.checksum) {
-        throw new Error("A validação da gravação principal falhou.");
-      }
-      return verified;
-    } finally {
-      database.close();
-    }
-  }
-
-  function openSafetyDatabase() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(SAFETY_DB, 1);
-      request.onupgradeneeded = () => {
-        const database = request.result;
-        if (!database.objectStoreNames.contains(SAFETY_STORE)) {
-          database.createObjectStore(SAFETY_STORE, { keyPath: "id" });
-        }
-      };
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error || new Error("Falha ao abrir banco de segurança."));
-      request.onblocked = () => reject(new Error("Banco de segurança bloqueado por outra aba."));
-    });
-  }
-
-  function getAllRecords(database, storeName) {
-    return new Promise((resolve, reject) => {
-      const transaction = database.transaction(storeName, "readonly");
-      const request = transaction.objectStore(storeName).getAll();
-      request.onsuccess = () => resolve(Array.isArray(request.result) ? request.result : []);
-      request.onerror = () => reject(request.error || new Error("Falha ao listar backups rotativos."));
-    });
-  }
-
-  function deleteRecords(database, storeName, ids) {
-    if (!ids.length) return Promise.resolve();
-    return new Promise((resolve, reject) => {
-      const transaction = database.transaction(storeName, "readwrite");
-      const store = transaction.objectStore(storeName);
-      ids.forEach((id) => store.delete(id));
-      transaction.oncomplete = resolve;
-      transaction.onerror = () => reject(transaction.error || new Error("Falha ao rotacionar backups."));
-      transaction.onabort = () => reject(transaction.error || new Error("Rotação de backups abortada."));
-    });
-  }
-
-  async function saveSafetySnapshot(state, label, source) {
-    if (!stateShapeValid(state)) return null;
-    const checksum = checksumState(state);
-    const database = await openSafetyDatabase();
-    try {
-      const existing = await getAllRecords(database, SAFETY_STORE);
-      if (existing.some((record) => record.checksum === checksum)) return null;
-      const record = {
-        id: `${Date.now()}-${label}-${checksum.slice(-16)}`,
-        version: VERSION,
-        createdAt: new Date().toISOString(),
-        label,
-        source,
-        checksum,
-        counts: counts(state),
-        data: cloneData(state)
-      };
-      try {
-        await putRecord(database, SAFETY_STORE, record);
-      } catch (error) {
-        const old = existing.sort((a, b) => Date.parse(a.createdAt || 0) - Date.parse(b.createdAt || 0));
-        if (old.length) {
-          await deleteRecords(database, SAFETY_STORE, old.slice(0, Math.max(1, old.length - 1)).map((item) => item.id));
-          await putRecord(database, SAFETY_STORE, record);
-        } else {
-          throw error;
-        }
-      }
-      const all = await getAllRecords(database, SAFETY_STORE);
-      const excess = all
-        .sort((a, b) => Date.parse(b.createdAt || 0) - Date.parse(a.createdAt || 0))
-        .slice(MAX_SNAPSHOTS)
-        .map((item) => item.id);
-      await deleteRecords(database, SAFETY_STORE, excess);
-      return record;
-    } finally {
-      database.close();
-    }
-  }
-
-  function localCandidateEntries() {
-    const keys = new Set(LEGACY_STATE_KEYS);
-    try {
-      for (let index = 0; index < localStorage.length; index += 1) {
-        const key = localStorage.key(index) || "";
-        if (/^(aldus|metas)/i.test(key) && /(backup|snapshot|recover|restore|state|mesclagem)/i.test(key)) keys.add(key);
-      }
-    } catch {}
-
-    const candidates = [];
-    for (const key of keys) {
-      let raw = "";
-      try {
-        raw = localStorage.getItem(key) || "";
-      } catch {
-        continue;
-      }
-      if (!raw) continue;
-      for (const entry of extractStates(raw, "raiz")) {
-        candidates.push(makeCandidate(`localStorage:${key}`, entry.state, { path: entry.path }));
-      }
-    }
-    return candidates;
-  }
-
-  function persistStatus(status) {
-    try {
-      localStorage.setItem(STATUS_KEY, JSON.stringify(status));
-    } catch {}
-    globalThis.__ALDUS_BOOTSTRAP_INTEGRITY_V258__ = Object.freeze(status);
-  }
-
-  async function reconcileBeforeBootstrap() {
-    const candidates = [];
-    const mainRecord = await readMainRecord().catch((error) => ({ error }));
-    if (mainRecord?.data && stateShapeValid(mainRecord.data)) {
-      candidates.push(makeCandidate("indexeddb", mainRecord.data, {
-        recordChecksum: mainRecord.checksum || "",
-        checksumValid: !mainRecord.checksum || checksumState(mainRecord.data) === mainRecord.checksum
-      }));
-    }
-    candidates.push(...localCandidateEntries());
-
-    const decision = chooseCandidate(candidates);
-    if (!decision.candidate) {
-      const status = {
-        version: VERSION,
-        checkedAt: new Date().toISOString(),
-        ready: true,
-        source: "nenhuma-copia",
-        reason: decision.reason,
-        conflict: false,
-        snapshots: 0
-      };
-      persistStatus(status);
-      return status;
+    if (Array.isArray(value)) {
+      value.forEach((entry) => { changed += remapLinks(entry, duplicateIds, canonicalId, seen); });
+      return changed;
     }
 
-    const chosen = decision.candidate;
-    const currentIndexed = candidates.find((candidate) => candidate.source === "indexeddb");
-    if (currentIndexed) {
-      await saveSafetySnapshot(currentIndexed.state, "antes-do-bootstrap", currentIndexed.source).catch((error) => {
-        console.warn("[Aldus V258] Backup anterior não pôde ser gravado.", error);
-      });
-    }
-
-    const mustRewrite = chosen.source !== "indexeddb"
-      || !currentIndexed
-      || currentIndexed.checksum !== chosen.checksum
-      || currentIndexed.checksumValid === false;
-    const finalRecord = mustRewrite ? await writeMainState(chosen.state) : mainRecord;
-    if (!finalRecord?.data || checksumState(finalRecord.data) !== finalRecord.checksum) {
-      throw new Error("O estado escolhido não passou pela validação final.");
-    }
-
-    await saveSafetySnapshot(finalRecord.data, "estado-validado", chosen.source).catch((error) => {
-      console.warn("[Aldus V258] Backup validado não pôde ser gravado.", error);
-    });
-
-    try {
-      localStorage.removeItem(MAIN_LOCAL_KEY);
-    } catch {}
-
-    const status = {
-      version: VERSION,
-      checkedAt: new Date().toISOString(),
-      ready: true,
-      source: chosen.source,
-      reason: decision.reason,
-      conflict: decision.conflict,
-      checksum: finalRecord.checksum,
-      counts: chosen.counts,
-      score: chosen.score,
-      timestamp: chosen.timestamp,
-      rewritten: mustRewrite,
-      candidateCount: candidates.length,
-      backupDatabase: SAFETY_DB,
-      maxSnapshots: MAX_SNAPSHOTS
-    };
-    persistStatus(status);
-    return status;
-  }
-
-  function loadScript(id, src) {
-    return new Promise((resolve, reject) => {
-      const existing = document.getElementById(id);
-      if (existing) {
-        if (existing.dataset.aldusLoaded === "true") resolve(existing);
-        else existing.addEventListener("load", () => resolve(existing), { once: true });
+    Object.keys(value).forEach((key) => {
+      const current = value[key];
+      if (LINK_FIELDS.has(key) && duplicateIds.has(current)) {
+        value[key] = canonicalId;
+        changed += 1;
         return;
       }
-      const script = document.createElement("script");
-      script.id = id;
-      script.src = src;
-      script.async = false;
-      script.addEventListener("load", () => {
-        script.dataset.aldusLoaded = "true";
-        resolve(script);
-      }, { once: true });
-      script.addEventListener("error", () => reject(new Error(`Falha ao carregar ${src}.`)), { once: true });
-      document.body.appendChild(script);
+      if (current && typeof current === "object") {
+        changed += remapLinks(current, duplicateIds, canonicalId, seen);
+      }
     });
+    return changed;
   }
 
-  async function loadApplicationChain() {
-    for (const [id, src] of SCRIPT_CHAIN) await loadScript(id, src);
+  function coverageFromMapping(mapping) {
+    return {
+      contestId: mapping.contestId,
+      code: mapping.code,
+      discipline: mapping.discipline,
+      topic: mapping.topic,
+      subtopic: mapping.subtopic,
+      reference: mapping.reference,
+      legislation: mapping.legislation,
+      phase: mapping.phase,
+      questionWeight: mapping.questionWeight,
+      classification: mapping.classification,
+      correspondence: mapping.correspondence,
+      source: mapping.source
+    };
   }
 
-  async function start() {
-    const loading = document.getElementById("appLoadingState");
-    if (loading) loading.textContent = "Validando e protegendo seus dados...";
-    let status;
-    try {
-      status = await reconcileBeforeBootstrap();
-    } catch (error) {
-      status = {
-        version: VERSION,
-        checkedAt: new Date().toISOString(),
-        ready: false,
-        source: "erro",
-        reason: String(error?.message || error),
-        conflict: true
-      };
-      persistStatus(status);
-      console.error("[Aldus V258] Falha na validação anterior ao bootstrap.", error);
+  function coverageKey(row) {
+    return [row?.contestId, row?.code, row?.reference, row?.discipline, row?.topic]
+      .map(normalize)
+      .join("|");
+  }
+
+  function mergeOfficialCoverage(canonical, mappings) {
+    const combined = [
+      ...(Array.isArray(canonical.officialCoverage) ? canonical.officialCoverage : []),
+      ...mappings.map(coverageFromMapping)
+    ];
+    const byKey = new Map();
+    combined.filter(Boolean).forEach((row) => byKey.set(coverageKey(row), row));
+    canonical.officialCoverage = [...byKey.values()];
+    canonical.contestCategories = [...new Set(canonical.officialCoverage.map((row) => row.classification).filter(Boolean))];
+    canonical.contestIds = [...new Set(canonical.officialCoverage.map((row) => row.contestId).filter(Boolean))];
+  }
+
+  function consolidateState(state) {
+    if (!state || typeof state !== "object") {
+      return { changed: false, reason: "estado-invalido" };
     }
 
-    await loadApplicationChain();
-    window.dispatchEvent(new CustomEvent("aldus:bootstrap-integrity-v258-ready", { detail: status }));
-  }
+    state.syllabusItems ||= [];
+    state.contestSyllabusMap ||= [];
+    state.schedulableSettings ||= {};
+    state.migrations ||= {};
 
-  const testApi = {
-    VERSION,
-    counts,
-    stateHasUserData,
-    stateShapeValid,
-    extractStates,
-    checksumState,
-    stateTimestamp,
-    scoreState,
-    makeCandidate,
-    dominates,
-    sameCriticalCounts,
-    chooseCandidate
-  };
+    const canonical = findCanonicalItem(state);
+    if (!canonical?.id) {
+      return { changed: false, reason: "item-canonico-nao-localizado" };
+    }
 
-  if (typeof module !== "undefined" && module.exports) {
-    module.exports = testApi;
-    return;
-  }
+    const duplicateItems = state.syllabusItems.filter(isDuplicateItem);
+    const duplicateIds = new Set([DUPLICATE_ITEM_ID, ...duplicateItems.map((item) => item.id).filter(Boolean)]);
+    const staleMappings = state.contestSyllabusMap.filter((mapping) => isDuplicateMapping(mapping) || duplicateIds.has(mapping?.syllabusItemId));
+    const sourceMappings = [...captured.duplicateMappings, ...staleMappings];
+    const mappingById = new Map(state.contestSyllabusMap.map((mapping) => [mapping?.id, mapping]));
 
-  if (typeof document !== "undefined") {
-    start().catch((error) => {
-      console.error("[Aldus V258] Falha ao iniciar o aplicativo.", error);
-      const loading = document.getElementById("appLoadingState");
-      if (loading) loading.textContent = "Falha ao validar os dados. Recarregue a página.";
+    sourceMappings.forEach((source) => {
+      const retargeted = { ...clone(source), syllabusItemId: canonical.id };
+      const id = retargeted.id || DUPLICATE_MAPPING_ID;
+      retargeted.id = id;
+      const existing = mappingById.get(id);
+      if (existing) Object.assign(existing, retargeted);
+      else {
+        state.contestSyllabusMap.push(retargeted);
+        mappingById.set(id, retargeted);
+      }
     });
+
+    let remappedLinks = 0;
+    protectedCollections.forEach((key) => {
+      if (Array.isArray(state[key])) {
+        remappedLinks += remapLinks(state[key], duplicateIds, canonical.id);
+      }
+    });
+
+    ["selectedSyllabusItemId", "activeSyllabusItemId", "currentSyllabusItemId"].forEach((key) => {
+      if (duplicateIds.has(state[key])) {
+        state[key] = canonical.id;
+        remappedLinks += 1;
+      }
+    });
+
+    const canonicalSetting = state.schedulableSettings[canonical.id];
+    duplicateIds.forEach((duplicateId) => {
+      if (!duplicateId || duplicateId === canonical.id) return;
+      if (!canonicalSetting && state.schedulableSettings[duplicateId]) {
+        state.schedulableSettings[canonical.id] = clone(state.schedulableSettings[duplicateId]);
+      }
+      delete state.schedulableSettings[duplicateId];
+    });
+
+    const beforeCount = state.syllabusItems.length;
+    state.syllabusItems = state.syllabusItems.filter((item) => !duplicateIds.has(item?.id) && !isDuplicateItem(item));
+    const removedItems = beforeCount - state.syllabusItems.length;
+
+    const officialMappings = state.contestSyllabusMap.filter((mapping) => mapping?.syllabusItemId === canonical.id);
+    mergeOfficialCoverage(canonical, officialMappings);
+
+    const previous = state.migrations[VERSION] || {};
+    state.migrations[VERSION] = {
+      ...previous,
+      version: VERSION,
+      appliedAt: previous.appliedAt || new Date().toISOString(),
+      canonicalSyllabusItemId: canonical.id,
+      removedDuplicateSyllabusItemIds: [...duplicateIds].filter((id) => id !== canonical.id),
+      retargetedMappingId: DUPLICATE_MAPPING_ID,
+      remappedLinks,
+      removedItems,
+      preservedCanonicalProgress: true
+    };
+
+    return {
+      changed: removedItems > 0 || sourceMappings.length > 0 || remappedLinks > 0,
+      canonicalSyllabusItemId: canonical.id,
+      removedItems,
+      remappedLinks,
+      officialCoverage: canonical.officialCoverage.length
+    };
   }
+
+  function installInterceptedGlobal(name, transform) {
+    const descriptor = Object.getOwnPropertyDescriptor(globalThis, name);
+    let current = descriptor && "value" in descriptor ? descriptor.value : globalThis[name];
+    if (current !== undefined) current = transform(current);
+
+    try {
+      Object.defineProperty(globalThis, name, {
+        configurable: true,
+        enumerable: descriptor?.enumerable ?? true,
+        get() { return current; },
+        set(value) { current = transform(value); }
+      });
+    } catch (error) {
+      console.error(`[${VERSION}] Não foi possível interceptar ${name}.`, error);
+    }
+  }
+
+  installInterceptedGlobal("PCPR_PCMA_2026_CATALOG", sanitizeCatalog);
+  installInterceptedGlobal("applyPcprPcma2026Migration", (migration) => {
+    if (typeof migration !== "function" || migration.__canonicalControlAdminV259) return migration;
+    const wrapped = function wrappedPcprPcmaMigration(state, ...args) {
+      const report = migration.call(this, state, ...args) || {};
+      const consolidation = consolidateState(state);
+      return {
+        ...report,
+        changed: Boolean(report.changed || consolidation.changed),
+        canonicalControlAdministrative: consolidation
+      };
+    };
+    Object.defineProperty(wrapped, "__canonicalControlAdminV259", { value: true });
+    return wrapped;
+  });
+
+  globalThis.__canonicalControlAdminV259 = Object.freeze({
+    version: VERSION,
+    sanitizeCatalog,
+    consolidateState,
+    findCanonicalItem,
+    isDuplicateItem,
+    isDuplicateMapping
+  });
+
+  const source = document.currentScript;
+  const core = document.createElement("script");
+  const baseUrl = source?.src || document.baseURI;
+  core.src = new URL(CORE_SCRIPT, baseUrl).toString();
+  core.async = false;
+  if (source?.nonce) core.nonce = source.nonce;
+  if (source?.crossOrigin) core.crossOrigin = source.crossOrigin;
+  if (source?.referrerPolicy) core.referrerPolicy = source.referrerPolicy;
+  if (source?.id) {
+    core.id = source.id;
+    source.removeAttribute("id");
+  }
+  core.addEventListener("error", () => {
+    console.error(`[${VERSION}] Falha ao carregar o núcleo de inicialização preservado.`);
+  });
+  (source?.parentNode || document.head || document.documentElement).insertBefore(core, source?.nextSibling || null);
 })();
