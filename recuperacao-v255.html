@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Central de Recuperação V255 — Aldus Meta</title>
+  <!-- Marcadores para impedir que service workers antigos injetem módulos do aplicativo nesta página isolada:
+  question-history-contrast-v222.css question-history-layout-v223.css
+  20260805-dashboard-central-metas-cores-v246 20260805-dashboard-hoje-cores-v247
+  20260805-central-period-cards-v248 20260805-elegant-card-style-v249
+  20260805-daily-summary-elegant-v250 20260805-daily-summary-elegant-direct-v251
+  20260805-daily-summary-elegant-nested-v252 dashboard-today-time-sync-v253.js
+  storage-recovery-v254.js planning-integrity-loader-v235.js timer-session-integrity-v236.js
+  timer-message-dedupe-v239.js timer-audio-unifier-v241.js daily-summary-time-format-v243.js
+  central-goals-period-palette-v248.js daily-summary-elegant-v250.js
+  -->
+  <style>
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #071424; color: #eef7ff; }
+    main { width: min(1180px, calc(100% - 28px)); margin: 0 auto; padding: 28px 0 60px; }
+    .hero, .panel, .candidate { border: 1px solid #27445d; background: #0c2034; border-radius: 18px; box-shadow: 0 14px 44px rgba(0,0,0,.28); }
+    .hero { padding: 22px; margin-bottom: 18px; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { font-size: clamp(1.55rem, 4vw, 2.4rem); margin-bottom: 8px; }
+    h2 { font-size: 1.2rem; }
+    .alert { border-left: 5px solid #ffbf47; background: #332810; color: #fff3cf; padding: 14px 16px; border-radius: 12px; margin: 14px 0; }
+    .safe { border-left-color: #3ddc97; background: #0d3026; color: #d7ffec; }
+    .panel { padding: 18px; margin-bottom: 18px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    button, .file-label { appearance: none; border: 1px solid #5d86a8; border-radius: 12px; padding: 11px 14px; background: #163752; color: #fff; font-weight: 700; cursor: pointer; }
+    button:hover, .file-label:hover { background: #1c4669; }
+    button.danger { border-color: #ffb4ab; background: #6c1d20; }
+    button.good { border-color: #65e5ad; background: #126144; }
+    button.secondary { background: #112a41; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    input[type=file] { display: none; }
+    .status { margin-top: 14px; padding: 12px; border-radius: 12px; background: #071a2c; white-space: pre-wrap; }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-top: 14px; }
+    .metric { border: 1px solid #294d68; background: #091a2b; border-radius: 13px; padding: 12px; }
+    .metric span { display: block; color: #a9c3d8; font-size: .8rem; }
+    .metric strong { display: block; margin-top: 4px; font-size: 1.12rem; }
+    #candidates { display: grid; gap: 14px; }
+    .candidate { padding: 17px; position: relative; }
+    .candidate.best { border-color: #43dda1; box-shadow: 0 0 0 2px rgba(67,221,161,.14), 0 14px 44px rgba(0,0,0,.28); }
+    .candidate.best::before { content: "CÓPIA MAIS PROMISSORA"; display: inline-block; margin-bottom: 10px; background: #1e7355; color: #e7fff5; border-radius: 999px; padding: 5px 9px; font-size: .72rem; font-weight: 900; letter-spacing: .04em; }
+    .candidate-head { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
+    .source { color: #9cc5e4; word-break: break-word; font-size: .88rem; }
+    .candidate .actions { margin-top: 14px; }
+    .empty { padding: 25px; text-align: center; border: 1px dashed #44627a; border-radius: 15px; color: #bdd0df; }
+    details { margin-top: 12px; }
+    summary { cursor: pointer; color: #b9d9f2; }
+    pre { max-height: 260px; overflow: auto; background: #06121f; border-radius: 10px; padding: 10px; font-size: .75rem; white-space: pre-wrap; word-break: break-word; }
+    .muted { color: #a9bdcc; font-size: .9rem; }
+    .progress { height: 8px; overflow: hidden; border-radius: 999px; background: #06111e; margin-top: 12px; }
+    .progress > div { height: 100%; width: 0; background: linear-gradient(90deg, #35c990, #61b8ff); transition: width .2s ease; }
+    .hidden { display: none !important; }
+    @media (max-width: 600px) { main { width: min(100% - 18px, 1180px); padding-top: 12px; } .hero, .panel, .candidate { border-radius: 14px; } button, .file-label { width: 100%; text-align: center; } }
+  </style>
+</head>
+<body>
+<main>
+  <section class="hero">
+    <h1>🚨 Central Forense de Recuperação V255</h1>
+    <p>Esta página funciona separada do Aldus Meta e procura cópias antigas ou ocultas no navegador.</p>
+    <div class="alert"><strong>Não limpe os dados do navegador.</strong> Não use o site normal nem registre novos estudos ou questões até terminar esta verificação.</div>
+    <div class="alert safe">🔒 A análise acontece somente neste computador. Nenhum dado é enviado para servidor, GitHub ou Google Drive.</div>
+  </section>
+
+  <section class="panel">
+    <h2>1. Examinar o navegador</h2>
+    <div class="actions">
+      <button id="scanButton" class="good" type="button">Examinar todas as bases agora</button>
+      <button id="downloadForensicButton" class="secondary" type="button" disabled>Baixar relatório forense completo</button>
+      <label class="file-label" for="backupFile">Examinar arquivo JSON de backup</label>
+      <input id="backupFile" type="file" accept="application/json,.json" multiple />
+    </div>
+    <div id="status" class="status">Preparando a análise…</div>
+    <div class="progress" aria-hidden="true"><div id="progressBar"></div></div>
+    <div id="globalSummary" class="summary-grid"></div>
+  </section>
+
+  <section class="panel">
+    <h2>2. Cópias encontradas</h2>
+    <p class="muted">Compare principalmente “questões de hoje”, “tempo de hoje”, data mais recente e quantidade de registros. A restauração nunca é automática nesta página.</p>
+    <div id="candidates"><div class="empty">A análise ainda não terminou.</div></div>
+  </section>
+</main>
+
+<script>
+(() => {
+  "use strict";
+
+  const VERSION = "20260805-browser-forensic-recovery-v255";
+  const MAIN_STORAGE_KEY = "metasConcursoData";
+  const DB_NAME = "metas-estudo-db";
+  const DB_STATE_STORE = "appState";
+  const DB_META_STORE = "storageMetadata";
+  const CORE_ARRAYS = [
+    "subjects", "studies", "syllabusItems", "dailyGoals", "questionLogs", "materials",
+    "questionBank", "questionBankSessions", "questionErrorNotebook", "simulados",
+    "smartReviews", "factoryAgenda", "factoryItems", "reviews", "studyHistory"
+  ];
+  const PRIORITY_ARRAYS = ["studies", "dailyGoals", "questionLogs", "simulados", "subjects", "syllabusItems"];
+  const state = { candidates: [], raw: { localStorage: {}, sessionStorage: {}, indexedDB: {}, files: [] }, errors: [], scannedAt: "" };
+  const seenFingerprints = new Set();
+
+  const $ = (selector) => document.querySelector(selector);
+  const status = $("#status");
+  const progressBar = $("#progressBar");
+  const candidatesBox = $("#candidates");
+  const summaryBox = $("#globalSummary");
+  const scanButton = $("#scanButton");
+  const forensicButton = $("#downloadForensicButton");
+
+  function setStatus(message) { status.textContent = message; }
+  function setProgress(percent) { progressBar.style.width = `${Math.max(0, Math.min(100, percent))}%`; }
+  function parseJSON(text) { try { return JSON.parse(text); } catch { return null; } }
+  function clone(value) { return typeof structuredClone === "function" ? structuredClone(value) : JSON.parse(JSON.stringify(value)); }
+  function localDateISO() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
+  }
+  function recordDate(item = {}) { return String(item.date || item.data || item.scheduledDate || item.createdAt || item.doneAt || item.updatedAt || "").slice(0,10); }
+  function num(value) { const parsed = Number(value); return Number.isFinite(parsed) ? parsed : 0; }
+  function actualGoalMinutes(goal = {}) {
+    const study = Math.max(0, num(goal.studyActualMinutes));
+    const questions = Math.max(0, num(goal.questionActualMinutes));
+    if (study || questions) return study + questions;
+    return Math.max(0, num(goal.actualMinutes || goal.minutesDone || goal.performedMinutes || goal.completedMinutes));
+  }
+  function studyMinutes(item = {}) { return Math.max(0, num(item.minutes) || Math.round(num(item.seconds) / 60)); }
+  function questionMinutes(item = {}) { return Math.max(0, num(item.minutes || item.actualMinutes || item.durationMinutes)); }
+  function questionAmount(item = {}) {
+    const direct = num(item.total || item.totalQuestions || item.questions || item.questoes || item.quantity || item.quantidade);
+    if (direct > 0) return direct;
+    const parts = num(item.correct || item.acertos) + num(item.wrong || item.erros) + num(item.blank || item.brancos || item.unanswered);
+    return parts > 0 ? parts : 1;
+  }
+  function counts(candidate = {}) { return Object.fromEntries(CORE_ARRAYS.map(key => [key, Array.isArray(candidate[key]) ? candidate[key].length : 0])); }
+  function hasStateShape(candidate) {
+    if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) return false;
+    const present = CORE_ARRAYS.filter(key => Array.isArray(candidate[key]));
+    const populated = present.filter(key => candidate[key].length > 0);
+    return present.length >= 3 || populated.length >= 2 || (populated.length >= 1 && (candidate.updatedAt || candidate.planning || candidate.settings || candidate.factoryPromptLibrary));
+  }
+  function latestTimestamp(candidate = {}) {
+    const values = [candidate.updatedAt, candidate.savedAt, candidate.createdAt, candidate.syncMeta?.updatedAt, candidate.meta?.updatedAt];
+    for (const key of PRIORITY_ARRAYS) {
+      const rows = Array.isArray(candidate[key]) ? candidate[key] : [];
+      const start = Math.max(0, rows.length - 500);
+      for (let i = start; i < rows.length; i += 1) {
+        const row = rows[i] || {};
+        values.push(row.updatedAt, row.savedAt, row.createdAt, row.finishedAt, row.completedAt, row.date, row.data);
+      }
+    }
+    return Math.max(0, ...values.map(value => Date.parse(value || "") || 0));
+  }
+  function candidateMetrics(candidate = {}) {
+    const today = localDateISO();
+    const studies = Array.isArray(candidate.studies) ? candidate.studies : [];
+    const goals = Array.isArray(candidate.dailyGoals) ? candidate.dailyGoals : [];
+    const questionLogs = Array.isArray(candidate.questionLogs) ? candidate.questionLogs : [];
+    const allStudyMinutes = studies.reduce((sum,item) => sum + studyMinutes(item), 0);
+    const allGoalMinutes = goals.reduce((sum,item) => sum + actualGoalMinutes(item), 0);
+    const allQuestionMinutes = questionLogs.reduce((sum,item) => sum + questionMinutes(item), 0);
+    const todayStudyMinutes = studies.filter(item => recordDate(item) === today).reduce((sum,item) => sum + studyMinutes(item), 0);
+    const todayGoalMinutes = goals.filter(item => recordDate(item) === today).reduce((sum,item) => sum + actualGoalMinutes(item), 0);
+    const todayQuestionMinutes = questionLogs.filter(item => recordDate(item) === today).reduce((sum,item) => sum + questionMinutes(item), 0);
+    const todayQuestionLogs = questionLogs.filter(item => recordDate(item) === today);
+    const todayQuestions = todayQuestionLogs.reduce((sum,item) => sum + questionAmount(item), 0);
+    const c = counts(candidate);
+    const populated = Object.values(c).reduce((sum,value) => sum + value, 0);
+    const score = populated * 10 + Math.round((todayStudyMinutes + todayGoalMinutes + todayQuestionMinutes) * 4) + todayQuestions * 8 + Math.floor(latestTimestamp(candidate) / 86400000);
+    return {
+      counts: c,
+      populated,
+      totalMinutesRaw: Math.round(allStudyMinutes + allGoalMinutes + allQuestionMinutes),
+      todayMinutesRaw: Math.round(todayStudyMinutes + todayGoalMinutes + todayQuestionMinutes),
+      todayStudyMinutes,
+      todayGoalMinutes,
+      todayQuestionMinutes,
+      todayQuestionLogs: todayQuestionLogs.length,
+      todayQuestions,
+      latestTimestamp: latestTimestamp(candidate),
+      score
+    };
+  }
+  function fingerprint(value) {
+    let text = "";
+    try { text = JSON.stringify(value); } catch { text = String(value); }
+    let hash = 2166136261;
+    for (let i = 0; i < text.length; i += 1) { hash ^= text.charCodeAt(i); hash = Math.imul(hash, 16777619); }
+    return `${(hash>>>0).toString(16)}-${text.length}`;
+  }
+  function safePreview(candidate) {
+    try {
+      const preview = {};
+      for (const key of ["updatedAt", "savedAt", "syncMeta", ...CORE_ARRAYS]) {
+        if (!(key in candidate)) continue;
+        preview[key] = Array.isArray(candidate[key]) ? `[${candidate[key].length} registros]` : candidate[key];
+      }
+      return JSON.stringify(preview, null, 2);
+    } catch { return "Prévia indisponível."; }
+  }
+  function addCandidate(value, source, path = "raiz") {
+    if (!hasStateShape(value)) return;
+    const fp = fingerprint(value);
+    if (seenFingerprints.has(fp)) return;
+    seenFingerprints.add(fp);
+    state.candidates.push({ id: `candidate-${state.candidates.length+1}`, source, path, fingerprint: fp, data: clone(value), metrics: candidateMetrics(value) });
+  }
+  function walkForCandidates(value, source, path = "raiz", depth = 0, visited = new WeakSet()) {
+    if (depth > 7 || value === null || value === undefined) return;
+    if (typeof value === "string") {
+      if (value.length > 1 && /^[\[{]/.test(value.trim())) {
+        const parsed = parseJSON(value);
+        if (parsed) walkForCandidates(parsed, source, `${path} → JSON`, depth + 1, visited);
+      }
+      return;
+    }
+    if (typeof value !== "object") return;
+    if (visited.has(value)) return;
+    visited.add(value);
+    addCandidate(value, source, path);
+    if (Array.isArray(value)) {
+      const indexes = value.length <= 30 ? value.map((_,i)=>i) : [...Array(15).keys(), ...Array.from({length:15},(_,i)=>value.length-15+i)];
+      for (const index of indexes) walkForCandidates(value[index], source, `${path}[${index}]`, depth + 1, visited);
+      return;
+    }
+    const preferred = ["data", "state", "payload", "runtime", "indexedDB", "previous", "current", "backup", "snapshot", "record", "appState"];
+    const keys = [...new Set([...preferred, ...Object.keys(value)])].slice(0, 180);
+    for (const key of keys) {
+      if (!Object.prototype.hasOwnProperty.call(value,key)) continue;
+      walkForCandidates(value[key], source, `${path}.${key}`, depth + 1, visited);
+    }
+  }
+  function formatMinutes(minutes) {
+    const total = Math.max(0, Math.round(num(minutes)));
+    const h = Math.floor(total / 60), m = total % 60;
+    if (!h) return `${m}min`;
+    return m ? `${h}h ${m}min` : `${h}h`;
+  }
+  function formatDate(timestamp) { return timestamp ? new Date(timestamp).toLocaleString("pt-BR") : "não identificada"; }
+  function escapeHTML(text) { return String(text ?? "").replace(/[&<>'"]/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[char])); }
+  function safeStringify(value) {
+    const seen = new WeakSet();
+    return JSON.stringify(value, (key,item) => {
+      if (typeof item === "bigint") return `${item}n`;
+      if (item && typeof item === "object") { if (seen.has(item)) return "[Circular]"; seen.add(item); }
+      return item;
+    }, 2);
+  }
+  function downloadJSON(filename, value) {
+    const blob = new Blob([safeStringify(value)], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url; link.download = filename; document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
+  function storageDump(storage) {
+    const output = {};
+    for (let i = 0; i < storage.length; i += 1) {
+      const key = storage.key(i);
+      if (key !== null) output[key] = storage.getItem(key);
+    }
+    return output;
+  }
+  function openDatabase(name) {
+    return new Promise((resolve,reject) => {
+      const request = indexedDB.open(name);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error(`Falha ao abrir ${name}`));
+      request.onblocked = () => reject(new Error(`Abertura bloqueada: ${name}`));
+      request.onupgradeneeded = () => { request.transaction?.abort(); reject(new Error(`Banco inexistente ou criação bloqueada: ${name}`)); };
+    });
+  }
+  function readStore(database, storeName) {
+    return new Promise((resolve,reject) => {
+      let transaction;
+      try { transaction = database.transaction(storeName,"readonly"); } catch (error) { reject(error); return; }
+      const store = transaction.objectStore(storeName);
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => reject(request.error || transaction.error || new Error(`Falha em ${storeName}`));
+    });
+  }
+  async function scanIndexedDB() {
+    if (!("indexedDB" in window)) return;
+    let names = [DB_NAME];
+    if (typeof indexedDB.databases === "function") {
+      try {
+        const info = await indexedDB.databases();
+        names = [...new Set([...names, ...info.map(item => item.name).filter(Boolean)])];
+      } catch (error) { state.errors.push(`indexedDB.databases: ${error.message}`); }
+    }
+    for (const name of names) {
+      try {
+        const database = await openDatabase(name);
+        const stores = [...database.objectStoreNames];
+        const dbDump = { version: database.version, stores: {} };
+        for (const storeName of stores) {
+          try {
+            const records = await readStore(database, storeName);
+            dbDump.stores[storeName] = records;
+            walkForCandidates(records, `IndexedDB: ${name}/${storeName}`);
+          } catch (error) {
+            dbDump.stores[storeName] = { error: error.message };
+            state.errors.push(`${name}/${storeName}: ${error.message}`);
+          }
+        }
+        state.raw.indexedDB[name] = dbDump;
+        database.close();
+      } catch (error) { state.errors.push(`${name}: ${error.message}`); }
+    }
+  }
+  async function scanBrowser() {
+    scanButton.disabled = true;
+    forensicButton.disabled = true;
+    setProgress(5);
+    setStatus("Preservando e examinando o localStorage…");
+    state.candidates = []; state.errors = []; state.raw = { localStorage: {}, sessionStorage: {}, indexedDB: {}, files: state.raw.files || [] }; seenFingerprints.clear();
+    try {
+      state.raw.localStorage = storageDump(localStorage);
+      for (const [key,value] of Object.entries(state.raw.localStorage)) walkForCandidates(value, `localStorage: ${key}`);
+    } catch (error) { state.errors.push(`localStorage: ${error.message}`); }
+    setProgress(30);
+    setStatus("Examinando o sessionStorage e cópias temporárias…");
+    try {
+      state.raw.sessionStorage = storageDump(sessionStorage);
+      for (const [key,value] of Object.entries(state.raw.sessionStorage)) walkForCandidates(value, `sessionStorage: ${key}`);
+    } catch (error) { state.errors.push(`sessionStorage: ${error.message}`); }
+    setProgress(48);
+    setStatus("Examinando todos os bancos IndexedDB e seus registros…");
+    await scanIndexedDB();
+    setProgress(88);
+    for (const file of state.raw.files || []) walkForCandidates(file.data, `Arquivo: ${file.name}`);
+    state.candidates.sort((a,b) => b.metrics.score - a.metrics.score || b.metrics.latestTimestamp - a.metrics.latestTimestamp);
+    state.scannedAt = new Date().toISOString();
+    renderResults();
+    setProgress(100);
+    setStatus(`Análise concluída. ${state.candidates.length} cópia(s) de estado encontrada(s).${state.errors.length ? `\nAvisos técnicos: ${state.errors.length}. Eles foram incluídos no relatório forense.` : ""}`);
+    scanButton.disabled = false;
+    forensicButton.disabled = false;
+  }
+  function renderSummary() {
+    const best = state.candidates[0]?.metrics;
+    summaryBox.innerHTML = [
+      ["Cópias encontradas", state.candidates.length],
+      ["Melhor tempo de hoje", best ? formatMinutes(best.todayMinutesRaw) : "—"],
+      ["Mais questões de hoje", best ? best.todayQuestions : "—"],
+      ["Base mais recente", best ? formatDate(best.latestTimestamp) : "—"]
+    ].map(([label,value]) => `<div class="metric"><span>${escapeHTML(label)}</span><strong>${escapeHTML(value)}</strong></div>`).join("");
+  }
+  function countText(metrics) {
+    const c = metrics.counts;
+    return `${c.subjects || 0} disciplinas · ${c.studies || 0} estudos · ${c.dailyGoals || 0} metas · ${c.questionLogs || 0} lançamentos de questões · ${c.simulados || 0} simulados`;
+  }
+  function renderResults() {
+    renderSummary();
+    if (!state.candidates.length) {
+      candidatesBox.innerHTML = `<div class="empty"><strong>Nenhuma cópia completa foi identificada automaticamente.</strong><br>Baixe o relatório forense para preservar todas as chaves brutas antes de qualquer outra ação.</div>`;
+      return;
+    }
+    candidatesBox.innerHTML = state.candidates.map((entry,index) => {
+      const m = entry.metrics;
+      return `<article class="candidate ${index===0 ? "best" : ""}">
+        <div class="candidate-head">
+          <div><h3>Cópia ${index+1}</h3><div class="source">${escapeHTML(entry.source)} — ${escapeHTML(entry.path)}</div></div>
+          <div class="muted">Atualização mais recente: <strong>${escapeHTML(formatDate(m.latestTimestamp))}</strong></div>
+        </div>
+        <div class="summary-grid">
+          <div class="metric"><span>Tempo encontrado hoje</span><strong>${escapeHTML(formatMinutes(m.todayMinutesRaw))}</strong></div>
+          <div class="metric"><span>Questões encontradas hoje</span><strong>${escapeHTML(m.todayQuestions)}</strong></div>
+          <div class="metric"><span>Lançamentos de questões hoje</span><strong>${escapeHTML(m.todayQuestionLogs)}</strong></div>
+          <div class="metric"><span>Total bruto de minutos</span><strong>${escapeHTML(formatMinutes(m.totalMinutesRaw))}</strong></div>
+        </div>
+        <p class="muted" style="margin-top:12px">${escapeHTML(countText(m))}</p>
+        <div class="actions">
+          <button type="button" class="secondary" data-download="${escapeHTML(entry.id)}">Baixar esta cópia</button>
+          <button type="button" class="danger" data-restore="${escapeHTML(entry.id)}">Restaurar esta cópia no Aldus Meta</button>
+        </div>
+        <details><summary>Ver estrutura resumida</summary><pre>${escapeHTML(safePreview(entry.data))}</pre></details>
+      </article>`;
+    }).join("");
+  }
+  function checksumForSerializedState(text) {
+    let hash = 2166136261;
+    for (let i = 0; i < text.length; i += 1) { hash ^= text.charCodeAt(i); hash = Math.imul(hash,16777619); }
+    return `fnv1a-json-v2-${(hash>>>0).toString(16).padStart(8,"0")}-${text.length}`;
+  }
+  function openWritableStudyDB() {
+    return new Promise((resolve,reject) => {
+      const request = indexedDB.open(DB_NAME,1);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(DB_STATE_STORE)) db.createObjectStore(DB_STATE_STORE,{keyPath:"id"});
+        if (!db.objectStoreNames.contains(DB_META_STORE)) db.createObjectStore(DB_META_STORE,{keyPath:"id"});
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error("Falha ao abrir o banco principal."));
+      request.onblocked = () => reject(new Error("Feche outras abas do Aldus Meta e tente novamente."));
+    });
+  }
+  async function writeRecoveredState(data) {
+    const database = await openWritableStudyDB();
+    const serialized = JSON.stringify(data);
+    const savedAt = new Date().toISOString();
+    await new Promise((resolve,reject) => {
+      const transaction = database.transaction([DB_STATE_STORE,DB_META_STORE],"readwrite");
+      transaction.objectStore(DB_STATE_STORE).put({ id:"current", schemaVersion:1, savedAt, checksum:checksumForSerializedState(serialized), serializedSize:serialized.length, data });
+      transaction.objectStore(DB_META_STORE).put({ id:"migration-status", completed:true, migratedAt:savedAt, source:"recuperacao-v255", verified:true, checksum:checksumForSerializedState(serialized), savedAt });
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error || new Error("Falha ao atualizar o IndexedDB."));
+      transaction.onabort = () => reject(transaction.error || new Error("Atualização do IndexedDB abortada."));
+    });
+    database.close();
+  }
+  async function restoreCandidate(entry) {
+    const m = entry.metrics;
+    const confirmation = confirm(`ATENÇÃO: restaurar esta cópia?\n\nFonte: ${entry.source}\nTempo encontrado hoje: ${formatMinutes(m.todayMinutesRaw)}\nQuestões encontradas hoje: ${m.todayQuestions}\nÚltima atualização: ${formatDate(m.latestTimestamp)}\n\nUma cópia forense do estado atual será criada antes da restauração.`);
+    if (!confirmation) return;
+    try {
+      const before = {
+        version: VERSION,
+        createdAt: new Date().toISOString(),
+        sourceSelected: { source: entry.source, path: entry.path, fingerprint: entry.fingerprint },
+        localStorage: storageDump(localStorage),
+        sessionStorage: storageDump(sessionStorage),
+        indexedDB: state.raw.indexedDB
+      };
+      downloadJSON(`aldus-antes-da-restauracao-${Date.now()}.json`, before);
+      try { localStorage.setItem("aldusManualRecoveryBeforeV255", safeStringify(before)); } catch {}
+      const restored = clone(entry.data);
+      const serialized = JSON.stringify(restored);
+      localStorage.setItem(MAIN_STORAGE_KEY, serialized);
+      localStorage.setItem("simuladosConcursoData", JSON.stringify(restored.simulados || []));
+      localStorage.setItem("cadernoErrosConcursoData", JSON.stringify(restored.questionErrorNotebook || []));
+      localStorage.setItem("aldusManualRecoveryReportV255", JSON.stringify({ version:VERSION, restoredAt:new Date().toISOString(), source:entry.source, path:entry.path, metrics:m }));
+      await writeRecoveredState(restored);
+      alert("Cópia restaurada no localStorage e no IndexedDB. O Aldus Meta será aberto agora. Não sincronize com o Drive até conferir os dados.");
+      location.href = `./?recuperado=v255&ts=${Date.now()}`;
+    } catch (error) {
+      console.error(error);
+      alert(`A restauração não foi concluída: ${error.message}\n\nO relatório forense continua disponível nesta página.`);
+    }
+  }
+  candidatesBox.addEventListener("click", event => {
+    const downloadButton = event.target.closest("[data-download]");
+    if (downloadButton) {
+      const entry = state.candidates.find(item => item.id === downloadButton.dataset.download);
+      if (entry) downloadJSON(`aldus-copia-${entry.id}-${Date.now()}.json`, entry.data);
+      return;
+    }
+    const restoreButton = event.target.closest("[data-restore]");
+    if (restoreButton) {
+      const entry = state.candidates.find(item => item.id === restoreButton.dataset.restore);
+      if (entry) restoreCandidate(entry);
+    }
+  });
+  $("#backupFile").addEventListener("change", async event => {
+    const files = [...event.target.files];
+    for (const file of files) {
+      try {
+        const text = await file.text();
+        const data = parseJSON(text);
+        if (!data) throw new Error("JSON inválido");
+        state.raw.files.push({ name:file.name, size:file.size, lastModified:file.lastModified, data });
+      } catch (error) { state.errors.push(`Arquivo ${file.name}: ${error.message}`); }
+    }
+    await scanBrowser();
+  });
+  scanButton.addEventListener("click", scanBrowser);
+  forensicButton.addEventListener("click", () => downloadJSON(`aldus-relatorio-forense-v255-${Date.now()}.json`, { version:VERSION, ...state }));
+
+  window.addEventListener("error", event => state.errors.push(`Página: ${event.message}`));
+  window.addEventListener("unhandledrejection", event => state.errors.push(`Promise: ${event.reason?.message || event.reason}`));
+  scanBrowser().catch(error => {
+    console.error(error);
+    state.errors.push(error.message);
+    setStatus(`A análise encontrou um erro: ${error.message}. Use “Examinar todas as bases agora” novamente.`);
+    scanButton.disabled = false;
+  });
+})();
+</script>
+</body>
+</html>
