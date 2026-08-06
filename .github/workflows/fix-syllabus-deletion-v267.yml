@@ -138,3 +138,5 @@ jobs:
           fi
           git commit -m "Corrige exclusão persistente de assuntos V267"
           git push origin HEAD:main
+
+# Segundo disparo: o workflow já existia antes deste push.
