@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260806-duplicate-relations-global-search-v266";
+  const VERSION = "20260806-duplicate-relations-global-search-v266-r1";
   const source = document.currentScript;
   const baseUrl = source?.src || document.baseURI;
 
