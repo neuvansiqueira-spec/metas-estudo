@@ -19,5 +19,5 @@ jobs:
   release-lock:
     runs-on: ubuntu-latest
     steps:
-      - name: Confirmar publicação legacy
-        run: echo "GitHub Pages é publicado diretamente da raiz da main; nenhum deploy paralelo por Actions é necessário."
+      - name: Confirmar publicação legacy V263
+        run: echo "Liberação do bloqueio de publicação da paleta refinada do diagnóstico V263; GitHub Pages continua publicado pela raiz da main."
