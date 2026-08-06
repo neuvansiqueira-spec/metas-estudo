@@ -1,0 +1,140 @@
+name: Corrigir exclusão persistente de assuntos V267
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/fix-syllabus-deletion-v267.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fix-syllabus-deletion-v267
+  cancel-in-progress: false
+
+jobs:
+  patch-and-test:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Impedir restauração de assuntos excluídos
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          old = '''  const newItems = catalog.syllabusItems.filter((item) => validContestIds.has(item.contestId));
+            const historicalItems = catalog.syllabusItems.filter((item) => !validContestIds.has(item.contestId) && knownContestIds.has(item.contestId));
+            appendMissingRecords(targetState.syllabusItems, newItems);
+            appendMissingRecords(targetState.syllabusItems, historicalItems);'''
+
+          new = '''  const deletedSyllabusIds = new Set(
+              Object.keys(targetState.syncTombstones?.collections?.syllabusItems || {})
+            );
+            const canRestoreSyllabusItem = (item) => !deletedSyllabusIds.has(String(item?.id || ""));
+            const newItems = catalog.syllabusItems
+              .filter((item) => validContestIds.has(item.contestId))
+              .filter(canRestoreSyllabusItem);
+            const historicalItems = catalog.syllabusItems
+              .filter((item) => !validContestIds.has(item.contestId) && knownContestIds.has(item.contestId))
+              .filter(canRestoreSyllabusItem);
+            appendMissingRecords(targetState.syllabusItems, newItems);
+            appendMissingRecords(targetState.syllabusItems, historicalItems);'''
+
+          targets = [
+              Path('app-v236.js'),
+              Path('docs/app-v236.js'),
+              Path('script.js'),
+              Path('docs/script.js'),
+          ]
+          patched = []
+          protected = []
+          for path in targets:
+              if not path.exists():
+                  continue
+              text = path.read_text(encoding='utf-8')
+              if 'const deletedSyllabusIds = new Set(' in text and '.filter(canRestoreSyllabusItem)' in text:
+                  protected.append(str(path))
+                  continue
+              if old not in text:
+                  continue
+              path.write_text(text.replace(old, new), encoding='utf-8')
+              patched.append(str(path))
+
+          required = {'app-v236.js', 'docs/app-v236.js'}
+          ready = set(patched) | set(protected)
+          missing = sorted(required - ready)
+          if missing:
+              raise SystemExit(f'Bloco de migração não localizado/protegido em: {missing}')
+
+          test_path = Path('tests/syllabus-deletion-persistence-v267.test.js')
+          test_path.write_text(r'''const test = require("node:test");
+          const assert = require("node:assert/strict");
+          const fs = require("node:fs");
+
+          const publishedBundles = ["app-v236.js", "docs/app-v236.js"];
+
+          for (const file of publishedBundles) {
+            test(`${file} não restaura assunto marcado como excluído`, () => {
+              const source = fs.readFileSync(file, "utf8");
+              assert.match(source, /const deletedSyllabusIds = new Set\(/);
+              assert.match(source, /targetState\.syncTombstones\?\.collections\?\.syllabusItems/);
+              assert.match(source, /const canRestoreSyllabusItem = \(item\) => !deletedSyllabusIds\.has\(String\(item\?\.id \|\| ""\)\)/);
+
+              const migrationStart = source.indexOf("function applyPcprPcma2026Migration");
+              assert.notEqual(migrationStart, -1, "migração PCPR/PCMA não encontrada");
+              const migrationEnd = source.indexOf("function ", migrationStart + 20);
+              const migration = source.slice(migrationStart, migrationEnd === -1 ? undefined : migrationEnd);
+              const guardedFilters = migration.match(/\.filter\(canRestoreSyllabusItem\)/g) || [];
+              assert.equal(guardedFilters.length, 2, "catálogo atual e histórico devem respeitar a exclusão");
+            });
+          }
+
+          test("regra V267 bloqueia somente IDs excluídos", () => {
+            const tombstones = { "pcpr-item-excluido": { deletedAt: "2026-08-06T17:00:00.000Z" } };
+            const deletedSyllabusIds = new Set(Object.keys(tombstones));
+            const canRestoreSyllabusItem = (item) => !deletedSyllabusIds.has(String(item?.id || ""));
+            const catalog = [
+              { id: "pcpr-item-excluido" },
+              { id: "pcpr-item-novo" },
+            ];
+            assert.deepEqual(catalog.filter(canRestoreSyllabusItem), [{ id: "pcpr-item-novo" }]);
+          });
+          ''', encoding='utf-8')
+
+          print('Arquivos corrigidos:', ', '.join(patched) or 'nenhum (proteção já presente)')
+          print('Arquivos já protegidos:', ', '.join(protected) or 'nenhum')
+          PY
+
+      - name: Executar teste de regressão V267
+        run: node --test tests/syllabus-deletion-persistence-v267.test.js
+
+      - name: Executar suíte integral
+        run: npm test
+
+      - name: Publicar correção no branch main
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app-v236.js docs/app-v236.js script.js docs/script.js tests/syllabus-deletion-persistence-v267.test.js
+          if git diff --cached --quiet; then
+            echo "A correção V267 já estava aplicada."
+            exit 0
+          fi
+          git commit -m "Corrige exclusão persistente de assuntos V267"
+          git push origin HEAD:main
