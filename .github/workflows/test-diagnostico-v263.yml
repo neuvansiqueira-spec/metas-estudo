@@ -83,11 +83,14 @@ jobs:
             const result = await page.evaluate(() => {
               const q = selector => document.querySelector(selector);
               const style = selector => getComputedStyle(q(selector));
+              const root = q('#aldusDuplicateDiagnosticsV260');
+              const rootStyle = getComputedStyle(root);
+              const rootRect = root.getBoundingClientRect();
               return {
                 title: document.title,
                 loaderVersion: globalThis.__aldusDuplicateDiagnosticsLoaderV263?.version || null,
                 paletteHref: q('#aldusDuplicateDiagnosticsPaletteV263')?.href || null,
-                rootClass: q('#aldusDuplicateDiagnosticsV260')?.className || '',
+                rootClass: root?.className || '',
                 contentBg: style('.aldus-dup-dialog-content').backgroundColor,
                 toolbarBg: style('.aldus-dup-toolbar').backgroundColor,
                 guideBg: style('.aldus-dup-v261-guide').backgroundColor,
@@ -100,7 +103,7 @@ jobs:
                 pageSize: q('[data-v261-page-size]')?.value || null,
                 searchPlaceholder: q('[data-v261-search]')?.placeholder || null,
                 guideVisible: Boolean(q('.aldus-dup-v261-guide')?.offsetParent),
-                modalVisible: Boolean(q('#aldusDuplicateDiagnosticsV260')?.offsetParent)
+                modalVisible: Boolean(root && !root.hidden && rootStyle.display !== 'none' && rootStyle.visibility !== 'hidden' && rootRect.width > 0 && rootRect.height > 0)
               };
             });
 
