@@ -1,0 +1,53 @@
+name: Publica recuperação IndexedDB V256
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "storage-quota-guard-v256.js"
+      - "recuperacao-v256.html"
+      - "scripts/apply-storage-v256.mjs"
+      - ".github/workflows/publish-storage-v256.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configura Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Valida JavaScript
+        run: node --check storage-quota-guard-v256.js
+
+      - name: Aplica publicação V256
+        run: node scripts/apply-storage-v256.mjs
+
+      - name: Valida arquivos publicados
+        run: |
+          node --check docs/storage-quota-guard-v256.js
+          grep -q "aldusStorageQuotaGuardV256" index.html
+          grep -q "aldusStorageQuotaGuardV256" docs/index.html
+          test -f recuperacao-v256.html
+          test -f docs/recuperacao-v256.html
+
+      - name: Publica alterações
+        run: |
+          if git diff --quiet; then
+            echo "Nenhuma alteração pendente."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html docs/index.html docs/storage-quota-guard-v256.js docs/recuperacao-v256.html
+          git commit -m "Publica recuperação IndexedDB V256 [skip ci]"
+          git push
