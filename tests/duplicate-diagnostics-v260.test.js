@@ -1,7 +1,7 @@
 "use strict";
 
 const assert = require("node:assert/strict");
-const diagnostics = require("./duplicate-diagnostics-v260.js");
+const diagnostics = require("../duplicate-diagnostics-v260.js");
 
 function buildState() {
   return {
