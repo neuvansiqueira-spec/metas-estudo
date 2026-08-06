@@ -1,0 +1,57 @@
+name: Publica contador diário de questões V257
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - dashboard-today-questions-sync-v257.js
+      - scripts/apply-dashboard-today-questions-v257.mjs
+      - .github/workflows/publish-dashboard-today-questions-v257.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-dashboard-today-questions-v257
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configura Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Valida JavaScript
+        run: node --check dashboard-today-questions-sync-v257.js
+
+      - name: Aplica publicação V257
+        run: node scripts/apply-dashboard-today-questions-v257.mjs
+
+      - name: Valida arquivos publicados
+        run: |
+          node --check docs/dashboard-today-questions-sync-v257.js
+          grep -q 'aldusDashboardTodayQuestionsSyncV257' index.html
+          grep -q 'aldusDashboardTodayQuestionsSyncV257' docs/index.html
+          grep -q 'DASHBOARD_TODAY_QUESTIONS_SYNC_VERSION' service-worker-v236.js
+          grep -q 'DASHBOARD_TODAY_QUESTIONS_SYNC_VERSION' docs/service-worker-v236.js
+
+      - name: Publica alterações
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html docs/index.html service-worker-v236.js docs/service-worker-v236.js docs/dashboard-today-questions-sync-v257.js
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração pendente."
+          else
+            git commit -m "Publica contador diário de questões V257 [skip ci]"
+            git push
+          fi
