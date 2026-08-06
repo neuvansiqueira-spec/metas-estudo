@@ -7,6 +7,7 @@ on:
     paths:
       - "duplicate-diagnostics-ui-v261.js"
       - "duplicate-diagnostics-ui-v261.css"
+      - "duplicate-diagnostics-ui-v261-stability.js"
       - "duplicate-diagnostics-loader-v260.js"
       - ".github/workflows/test-duplicate-diagnostics-ui-v261.yml"
 
@@ -25,12 +26,14 @@ jobs:
         run: |
           node --check duplicate-diagnostics-loader-v260.js
           node --check duplicate-diagnostics-ui-v261.js
+          node --check duplicate-diagnostics-ui-v261-stability.js
       - name: Validate required UI safeguards
         run: |
           node - <<'NODE'
           const fs = require('fs');
           const js = fs.readFileSync('duplicate-diagnostics-ui-v261.js', 'utf8');
           const css = fs.readFileSync('duplicate-diagnostics-ui-v261.css', 'utf8');
+          const stability = fs.readFileSync('duplicate-diagnostics-ui-v261-stability.js', 'utf8');
           const loader = fs.readFileSync('duplicate-diagnostics-loader-v260.js', 'utf8');
           const checks = [
             [js.includes('DEFAULT_FILTER = "probable"'), 'default probable filter'],
@@ -40,8 +43,11 @@ jobs:
             [js.includes('data-v261-pager'), 'pager control'],
             [css.includes('.aldus-dup-v261-pager'), 'pager styling'],
             [css.includes('.aldus-dup-v261-card-title'), 'compact card styling'],
+            [stability.includes('replaceWith(summary.cloneNode(true))'), 'summary observer stabilization'],
+            [stability.includes('replaceWith(status.cloneNode(true))'), 'status observer stabilization'],
             [loader.includes('duplicate-diagnostics-ui-v261.js'), 'enhancer loader'],
-            [loader.includes('duplicate-diagnostics-ui-v261.css'), 'enhancer stylesheet']
+            [loader.includes('duplicate-diagnostics-ui-v261.css'), 'enhancer stylesheet'],
+            [loader.includes('duplicate-diagnostics-ui-v261-stability.js'), 'stability loader']
           ];
           const failed = checks.filter(([ok]) => !ok).map(([, label]) => label);
           if (failed.length) throw new Error(`Missing checks: ${failed.join(', ')}`);
