@@ -1,0 +1,73 @@
+name: Publish Duplicate Diagnostics Palette V263
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/publish-duplicate-diagnostics-palette-v263.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Patch diagnostic entrypoints
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          replacement = (
+              '  <!-- aldus-duplicate-diagnostics-v263 -->\n'
+              '  <script id="aldusDuplicateDiagnosticsLoaderV263" '
+              'src="duplicate-diagnostics-loader-v263.js?v=20260806-duplicate-diagnostics-palette-v263"></script>'
+          )
+
+          patterns = [
+              re.compile(r'\s*<!-- aldus-duplicate-diagnostics-v262 -->\s*<script id="aldusDuplicateDiagnosticsLoaderV262" src="duplicate-diagnostics-loader-v262\.js\?v=[^"]+"></script>'),
+              re.compile(r'\s*<!-- aldus-duplicate-diagnostics-v260 -->\s*<script id="aldusDuplicateDiagnosticsLoaderV260" src="duplicate-diagnostics-loader-v260\.js\?v=[^"]+"></script>'),
+              re.compile(r'\s*<script id="aldusDuplicateDiagnosticsLoaderV(?:260|261|262|263)" src="duplicate-diagnostics-loader-v(?:260|261|262|263)\.js\?v=[^"]+"></script>'),
+          ]
+
+          for path in (Path('index.html'), Path('docs/index.html')):
+              original = path.read_text(encoding='utf-8')
+              updated = original
+              for pattern in patterns:
+                  updated, count = pattern.subn('\n' + replacement, updated, count=1)
+                  if count:
+                      break
+              if updated == original:
+                  raise SystemExit(f'Diagnostic loader tag not found in {path}')
+              path.write_text(updated, encoding='utf-8')
+          PY
+
+      - name: Validate palette publication
+        run: |
+          node --check duplicate-diagnostics-loader-v263.js
+          node --check service-worker-v263.js
+          test -f duplicate-diagnostics-palette-v263.css
+          test -f docs/duplicate-diagnostics-palette-v263.css
+          grep -q 'duplicate-diagnostics-loader-v263.js?v=20260806-duplicate-diagnostics-palette-v263' index.html
+          grep -q 'duplicate-diagnostics-loader-v263.js?v=20260806-duplicate-diagnostics-palette-v263' docs/index.html
+          grep -q 'duplicate-diagnostics-palette-v263.css' duplicate-diagnostics-loader-v263.js
+          cmp duplicate-diagnostics-loader-v263.js docs/duplicate-diagnostics-loader-v263.js
+          cmp duplicate-diagnostics-palette-v263.css docs/duplicate-diagnostics-palette-v263.css
+          cmp service-worker-v263.js docs/service-worker-v263.js
+
+      - name: Commit publication and remove one-time workflow
+        run: |
+          rm .github/workflows/publish-duplicate-diagnostics-palette-v263.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Publica paleta refinada do diagnóstico V263"
+          git push origin HEAD:main
