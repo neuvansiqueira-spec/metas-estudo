@@ -1,9 +1,75 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260806-duplicate-relations-global-search-v266-r1";
+  const VERSION = "20260806-syllabus-deletion-persistence-v267";
   const source = document.currentScript;
   const baseUrl = source?.src || document.baseURI;
+
+  function installSyllabusDeletionPersistenceV267() {
+    if (globalThis.__aldusSyllabusDeletionPersistenceV267) return;
+
+    const getAppState = () => {
+      try {
+        return typeof state !== "undefined" ? state : null;
+      } catch (error) {
+        return null;
+      }
+    };
+
+    const deletedSyllabusIds = (targetState) => new Set(
+      Object.keys(targetState?.syncTombstones?.collections?.syllabusItems || {})
+    );
+
+    const purgeDeletedSyllabusItems = (targetState) => {
+      if (!targetState || !Array.isArray(targetState.syllabusItems)) return 0;
+      const deletedIds = deletedSyllabusIds(targetState);
+      if (!deletedIds.size) return 0;
+      const previousLength = targetState.syllabusItems.length;
+      targetState.syllabusItems = targetState.syllabusItems.filter(
+        (item) => !deletedIds.has(String(item?.id || ""))
+      );
+      return previousLength - targetState.syllabusItems.length;
+    };
+
+    let migrationPatched = false;
+    try {
+      if (typeof applyPcprPcma2026Migration === "function") {
+        const originalMigration = applyPcprPcma2026Migration;
+        applyPcprPcma2026Migration = function applyPcprPcma2026MigrationWithPersistentDeletions(targetState) {
+          const result = originalMigration.apply(this, arguments);
+          purgeDeletedSyllabusItems(targetState || getAppState());
+          return result;
+        };
+        migrationPatched = true;
+      }
+    } catch (error) {
+      console.error("[V267] Não foi possível proteger a migração contra restauração de assuntos excluídos.", error);
+    }
+
+    const repairLoadedState = () => {
+      const targetState = getAppState();
+      const removed = purgeDeletedSyllabusItems(targetState);
+      if (!removed) return;
+      try {
+        if (typeof saveData === "function") saveData({ markLocalChange: true });
+        if (typeof render === "function") render();
+        if (typeof showDailyGoalMessage === "function") {
+          showDailyGoalMessage(`${removed} assunto(s) excluído(s) deixou/deixaram de ser restaurado(s) automaticamente.`, "success");
+        }
+      } catch (error) {
+        console.error("[V267] A limpeza foi aplicada em memória, mas não pôde ser persistida.", error);
+      }
+    };
+
+    setTimeout(repairLoadedState, 0);
+    setTimeout(repairLoadedState, 1200);
+
+    globalThis.__aldusSyllabusDeletionPersistenceV267 = Object.freeze({
+      version: VERSION,
+      migrationPatched,
+      purge: purgeDeletedSyllabusItems
+    });
+  }
 
   function appendStylesheet(id, fileName) {
     if (document.getElementById(id)) return;
@@ -64,6 +130,8 @@
       appendStability
     );
   }
+
+  installSyllabusDeletionPersistenceV267();
 
   appendStylesheet("aldusDuplicateDiagnosticsStylesV260", "duplicate-diagnostics-v260.css");
   appendStylesheet("aldusDuplicateDiagnosticsUiStylesV261", "duplicate-diagnostics-ui-v261.css");
