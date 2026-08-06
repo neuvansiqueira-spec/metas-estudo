@@ -2,7 +2,7 @@
 
 const CURRENT_VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-storage-recovery-v254-dashboard-questions-v257-bootstrap-integrity-v258`;
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-elegant-card-style-v249`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
@@ -73,6 +73,7 @@ const STATIC_ASSETS = [
   CENTRAL_PERIOD_CARDS_STYLESHEET,
   CENTRAL_PERIOD_CARDS_SCRIPT,
   ELEGANT_CARD_STYLESHEET,
+
   DAILY_SUMMARY_ELEGANT_STYLESHEET,
   DAILY_SUMMARY_ELEGANT_SCRIPT,
   DAILY_SUMMARY_DIRECT_STYLESHEET,
@@ -156,11 +157,6 @@ async function ensurePageStylesheets(response) {
     missingTags.push(`<link id="aldusCentralPeriodCardsV248" rel="stylesheet" href="${CENTRAL_PERIOD_CARDS_STYLESHEET}" />`);
   }
   // END CENTRAL_PERIOD_V248_STYLE
-  // BEGIN ELEGANT_CARD_V249_STYLE
-  if (!html.includes(ELEGANT_CARD_VERSION)) {
-    missingTags.push(`<link id="aldusElegantCardStyleV249" rel="stylesheet" href="${ELEGANT_CARD_STYLESHEET}" />`);
-  }
-  // END ELEGANT_CARD_V249_STYLE
   // BEGIN DAILY_SUMMARY_ELEGANT_V250_STYLE
   if (!html.includes(DAILY_SUMMARY_ELEGANT_VERSION)) {
     missingTags.push(`<link id="aldusDailySummaryElegantV250" rel="stylesheet" href="${DAILY_SUMMARY_ELEGANT_STYLESHEET}" />`);
@@ -176,6 +172,12 @@ async function ensurePageStylesheets(response) {
     missingTags.push(`<link id="aldusDailySummaryElegantNestedV252" rel="stylesheet" href="${DAILY_SUMMARY_NESTED_STYLESHEET}" />`);
   }
   // END DAILY_SUMMARY_NESTED_V252_STYLE
+  // BEGIN ELEGANT_CARD_V249_STYLE
+  if (!html.includes(ELEGANT_CARD_VERSION)) {
+    missingTags.push(`<link id="aldusElegantCardStyleV249" rel="stylesheet" href="${ELEGANT_CARD_STYLESHEET}" />`);
+  }
+  // END ELEGANT_CARD_V249_STYLE
+
 
 
 
@@ -281,9 +283,6 @@ async function ensurePageStylesheets(response) {
   // BEGIN CENTRAL_PERIOD_V248_HEADER
   headers.set("x-aldus-central-period-cards", CENTRAL_PERIOD_CARDS_VERSION);
   // END CENTRAL_PERIOD_V248_HEADER
-  // BEGIN ELEGANT_CARD_V249_HEADER
-  headers.set("x-aldus-elegant-card-style", ELEGANT_CARD_VERSION);
-  // END ELEGANT_CARD_V249_HEADER
   // BEGIN DAILY_SUMMARY_ELEGANT_V250_HEADER
   headers.set("x-aldus-daily-summary-elegant", DAILY_SUMMARY_ELEGANT_VERSION);
   // END DAILY_SUMMARY_ELEGANT_V250_HEADER
@@ -306,6 +305,10 @@ async function ensurePageStylesheets(response) {
   // BEGIN STORAGE_RECOVERY_V254_HEADER
   headers.set("x-aldus-storage-recovery", "disabled-by-v258");
   // END STORAGE_RECOVERY_V254_HEADER
+  // BEGIN ELEGANT_CARD_V249_HEADER
+  headers.set("x-aldus-elegant-card-style", ELEGANT_CARD_VERSION);
+  // END ELEGANT_CARD_V249_HEADER
+
 
 
 
