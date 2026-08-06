@@ -1,5 +1,5 @@
 /* Aldus Meta — cartões elegantes com fundo uniforme e destaque cromático
-   Versão: 20260805-elegant-card-style-v249 */
+   Versão: 20260806-factory-module-yellow-highlight-v250 */
 
 /* Paleta semântica preservada — Dashboard / Central de Metas */
 html[data-aldus-theme="premium-stable"] #dashboardGoalsScaleSummary > .stat-card:nth-child(1) { --elegant-accent: #a78bfa; --elegant-border: #8b5cf6; }
@@ -88,3 +88,27 @@ html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards >
 }
 
 /* Botões permanecem com o padrão azul original do site. */
+
+/* Fábrica de Resumos — destaque amarelo dos módulos de produção. */
+#view-fabrica-resumos .factory-module-editor {
+  border-color: rgba(247, 201, 72, .72) !important;
+}
+
+#view-fabrica-resumos .factory-module-editor > legend {
+  display: inline-flex;
+  align-items: center;
+  max-width: calc(100% - 18px);
+  margin-left: 2px;
+  padding: 6px 12px;
+  border: 1px solid #d6aa00 !important;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #ffe783 0%, #f7c948 100%) !important;
+  color: #0b2b43 !important;
+  box-shadow: 0 3px 10px rgba(247, 201, 72, .24);
+  text-shadow: none !important;
+}
+
+#view-fabrica-resumos .factory-module-editor:focus-within {
+  border-color: #f7c948 !important;
+  box-shadow: 0 0 0 3px rgba(247, 201, 72, .18) !important;
+}
