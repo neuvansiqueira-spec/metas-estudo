@@ -1,0 +1,147 @@
+name: Teste visual do diagnóstico V263
+
+on:
+  push:
+    branches:
+      - test/diagnostico-v263-visual
+    paths:
+      - .github/workflows/test-diagnostico-v263.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  visual-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar navegador de teste
+        run: npm install --no-save --ignore-scripts puppeteer-core@24.16.0
+
+      - name: Testar site publicado
+        run: |
+          cat > /tmp/test-diagnostico-v263.cjs <<'NODE'
+          const fs = require('fs');
+          const puppeteer = require('puppeteer-core');
+
+          const SITE = 'https://neuvansiqueira-spec.github.io/metas-estudo/#dashboard';
+          const expected = {
+            contentBg: 'rgb(245, 249, 253)',
+            guideBg: 'rgb(255, 255, 255)',
+            statusBg: 'rgb(237, 245, 255)',
+            disabledBg: 'rgb(231, 238, 246)'
+          };
+
+          function assert(condition, message, details) {
+            if (!condition) {
+              console.error(`FALHA: ${message}`);
+              if (details !== undefined) console.error(details);
+              process.exitCode = 1;
+            } else {
+              console.log(`OK: ${message}`);
+            }
+          }
+
+          (async () => {
+            const executablePath = process.env.CHROME_PATH || '/usr/bin/google-chrome';
+            const browser = await puppeteer.launch({
+              headless: true,
+              executablePath,
+              args: ['--no-sandbox', '--disable-dev-shm-usage']
+            });
+
+            const page = await browser.newPage();
+            await page.setViewport({ width: 1842, height: 810, deviceScaleFactor: 1 });
+
+            const pageErrors = [];
+            const failedCoreRequests = [];
+            page.on('pageerror', error => pageErrors.push(String(error)));
+            page.on('requestfailed', request => {
+              if (/duplicate-diagnostics-(loader-v263|palette-v263|ui-v261|v260)/.test(request.url())) {
+                failedCoreRequests.push(`${request.url()} :: ${request.failure()?.errorText || 'falha'}`);
+              }
+            });
+
+            const response = await page.goto(SITE, { waitUntil: 'domcontentloaded', timeout: 120000 });
+            assert(response && response.ok(), 'Página pública responde com sucesso', response?.status());
+
+            await page.waitForFunction(() => Boolean(globalThis.__aldusDuplicateDiagnosticsLoaderV263), { timeout: 60000 });
+            await page.waitForSelector('[data-duplicate-diagnostics-open]', { timeout: 60000 });
+            await page.evaluate(() => document.querySelector('[data-duplicate-diagnostics-open]')?.click());
+            await page.waitForSelector('#aldusDuplicateDiagnosticsV260:not([hidden])', { visible: true, timeout: 60000 });
+            await page.waitForFunction(() => document.querySelector('#aldusDuplicateDiagnosticsV260')?.classList.contains('aldus-dup-v261'), { timeout: 60000 });
+            await new Promise(resolve => setTimeout(resolve, 2500));
+
+            const result = await page.evaluate(() => {
+              const q = selector => document.querySelector(selector);
+              const style = selector => getComputedStyle(q(selector));
+              return {
+                title: document.title,
+                loaderVersion: globalThis.__aldusDuplicateDiagnosticsLoaderV263?.version || null,
+                paletteHref: q('#aldusDuplicateDiagnosticsPaletteV263')?.href || null,
+                rootClass: q('#aldusDuplicateDiagnosticsV260')?.className || '',
+                contentBg: style('.aldus-dup-dialog-content').backgroundColor,
+                toolbarBg: style('.aldus-dup-toolbar').backgroundColor,
+                guideBg: style('.aldus-dup-v261-guide').backgroundColor,
+                statusBg: style('.aldus-dup-status').backgroundColor,
+                runBackground: style('.aldus-dup-run').backgroundImage,
+                runText: style('.aldus-dup-run').color,
+                undoDisabled: q('.aldus-dup-undo')?.disabled ?? null,
+                undoBg: style('.aldus-dup-undo').backgroundColor,
+                filterValue: q('[data-dup-filter]')?.value || null,
+                pageSize: q('[data-v261-page-size]')?.value || null,
+                searchPlaceholder: q('[data-v261-search]')?.placeholder || null,
+                guideVisible: Boolean(q('.aldus-dup-v261-guide')?.offsetParent),
+                modalVisible: Boolean(q('#aldusDuplicateDiagnosticsV260')?.offsetParent)
+              };
+            });
+
+            fs.writeFileSync('diagnostico-v263-result.json', JSON.stringify({ result, pageErrors, failedCoreRequests }, null, 2));
+            await page.screenshot({ path: 'diagnostico-v263.png', fullPage: false });
+
+            assert(result.loaderVersion === '20260806-duplicate-diagnostics-palette-v263', 'Carregador V263 ativo', result.loaderVersion);
+            assert(result.paletteHref?.includes('duplicate-diagnostics-palette-v263.css'), 'CSS V263 carregado', result.paletteHref);
+            assert(result.rootClass.includes('aldus-dup-v261'), 'Interface compacta V261 ativa', result.rootClass);
+            assert(result.modalVisible, 'Modal visível');
+            assert(result.guideVisible, 'Fila inteligente visível');
+            assert(result.filterValue === 'probable', 'Categoria padrão em duplicidades prováveis', result.filterValue);
+            assert(result.pageSize === '6', 'Paginação padrão em 6 casos', result.pageSize);
+            assert(result.searchPlaceholder === 'Disciplina, tema ou código', 'Campo de busca disponível', result.searchPlaceholder);
+            assert(result.contentBg === expected.contentBg, 'Fundo principal azul-claro aplicado', result.contentBg);
+            assert(result.guideBg === expected.guideBg, 'Bloco informativo branco aplicado', result.guideBg);
+            assert(result.statusBg === expected.statusBg, 'Faixa de status azul suave aplicada', result.statusBg);
+            assert(result.runBackground.includes('linear-gradient'), 'Botão principal usa gradiente azul', result.runBackground);
+            assert(result.runText === 'rgb(255, 255, 255)', 'Texto do botão principal em branco', result.runText);
+            if (result.undoDisabled) {
+              assert(result.undoBg === expected.disabledBg, 'Botão desativado tem cor própria', result.undoBg);
+            }
+            assert(pageErrors.length === 0, 'Sem erros JavaScript fatais', pageErrors);
+            assert(failedCoreRequests.length === 0, 'Sem falhas nos arquivos do diagnóstico', failedCoreRequests);
+
+            await browser.close();
+            if (process.exitCode) process.exit(process.exitCode);
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+          node /tmp/test-diagnostico-v263.cjs
+
+      - name: Salvar evidências
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostico-v263-evidencias
+          path: |
+            diagnostico-v263.png
+            diagnostico-v263-result.json
+          if-no-files-found: warn
