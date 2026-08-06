@@ -1,0 +1,374 @@
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 {
+  --aldus-dup-v261-navy: #082847;
+  --aldus-dup-v261-blue: #0b63ce;
+  --aldus-dup-v261-soft: #eef5fc;
+  --aldus-dup-v261-border: #cfdbe8;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-dialog {
+  inset: 2vh 2.2vw !important;
+  border-radius: 20px !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-dialog-header {
+  min-height: 0 !important;
+  padding: 16px 22px !important;
+  align-items: center !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-dialog-header h2 {
+  margin: 2px 0 3px !important;
+  font-size: clamp(1.28rem, 1.9vw, 1.75rem) !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-dialog-header p {
+  font-size: 0.92rem !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-close {
+  width: 42px !important;
+  min-width: 42px !important;
+  max-width: 42px !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  padding: 0 !important;
+  border-radius: 12px !important;
+  display: grid !important;
+  place-items: center !important;
+  color: #ffffff !important;
+  background: #2f75d8 !important;
+  font-size: 1.65rem !important;
+  line-height: 1 !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-dialog-content {
+  padding: 16px 20px 28px !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-toolbar {
+  top: -16px !important;
+  display: grid !important;
+  grid-template-columns: minmax(220px, 1.25fr) minmax(180px, 0.85fr) minmax(240px, 1.2fr) 130px minmax(180px, 0.85fr) minmax(160px, 0.75fr) !important;
+  align-items: end !important;
+  gap: 10px !important;
+  margin: -16px -20px 14px !important;
+  padding: 12px 20px !important;
+  background: rgba(244, 247, 251, 0.98) !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-toolbar > *,
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-toolbar button,
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-toolbar select,
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-toolbar input {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-toolbar label {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 5px !important;
+  color: #314a64 !important;
+  font-size: 0.75rem !important;
+  font-weight: 800 !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-toolbar label > span {
+  color: #314a64 !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-run,
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-undo,
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-export {
+  min-height: 42px !important;
+  align-self: end !important;
+  white-space: normal !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-toolbar select,
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-toolbar input {
+  min-height: 42px !important;
+  border: 1px solid #aebfd1 !important;
+  border-radius: 10px !important;
+  padding: 9px 11px !important;
+  color: #102d49 !important;
+  background: #ffffff !important;
+  font: 700 0.88rem Arial, sans-serif !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-status {
+  margin-bottom: 12px !important;
+  padding: 10px 13px !important;
+  font-size: 0.88rem !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-guide {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.9fr);
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border: 1px solid #b9d3ec;
+  border-radius: 13px;
+  color: #183a59;
+  background: #edf6ff;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-guide div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-guide strong {
+  color: #0b3f70;
+  font-size: 0.94rem;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-guide span,
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-guide small {
+  color: #49647d;
+  line-height: 1.35;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-summary {
+  grid-template-columns: repeat(5, minmax(115px, 1fr)) !important;
+  gap: 9px !important;
+  margin-bottom: 14px !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-summary > div {
+  min-height: 72px !important;
+  gap: 2px !important;
+  padding: 10px 12px !important;
+  border-radius: 12px !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-summary strong {
+  font-size: 1.36rem !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-summary span {
+  font-size: 0.75rem !important;
+  line-height: 1.2 !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-summary > div.is-informational {
+  border-color: #bfd6e9 !important;
+  background: #f3f9ff !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-summary > div.is-priority {
+  border-color: #f0c45f !important;
+  background: #fff8df !important;
+  box-shadow: inset 0 0 0 1px rgba(240, 196, 95, 0.25) !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-list {
+  gap: 10px !important;
+  scroll-margin-top: 110px;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-pair[hidden],
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-pager[hidden] {
+  display: none !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-pair {
+  border-radius: 14px !important;
+  box-shadow: 0 5px 18px rgba(15, 38, 65, 0.07) !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-pair-header {
+  align-items: flex-start !important;
+  padding: 12px 14px !important;
+  background: #ffffff !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-pair.is-collapsed .aldus-dup-pair-header {
+  border-bottom: 0 !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-pair-header > div {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-pair-header h3 {
+  margin-left: 7px !important;
+  color: #39536d !important;
+  font-size: 0.82rem !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-card-title {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  color: #143b61;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-card-title strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.88rem;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-card-title > span {
+  color: #7190ae;
+  font-weight: 800;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-card-title small {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  color: #647b91;
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-card-toggle {
+  width: 36px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 0 !important;
+  color: #ffffff !important;
+  background: #2f75d8 !important;
+  border-color: #2f75d8 !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-card-body {
+  padding: 14px !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-pager {
+  display: grid;
+  grid-template-columns: auto minmax(180px, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 4px;
+  padding: 10px;
+  border: 1px solid var(--aldus-dup-v261-border);
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-pager button {
+  width: auto !important;
+  min-height: 38px !important;
+  margin: 0 !important;
+  border: 1px solid #9fb4c9 !important;
+  border-radius: 9px !important;
+  padding: 8px 12px !important;
+  color: #173b5d !important;
+  background: #f7fafc !important;
+  font: 700 0.84rem Arial, sans-serif !important;
+  cursor: pointer !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-pager button:disabled {
+  opacity: 0.42 !important;
+  cursor: not-allowed !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-pager span {
+  text-align: center;
+  color: #3d5871;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-search-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 28px 18px;
+  border: 1px dashed #a9bdcf;
+  border-radius: 13px;
+  text-align: center;
+  color: #587086;
+  background: #f8fbfd;
+}
+
+@media (max-width: 1280px) {
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-toolbar {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 900px) {
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-dialog {
+    inset: 1vh 1vw !important;
+  }
+
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-guide {
+    grid-template-columns: 1fr;
+  }
+
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 600px) {
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-dialog {
+    inset: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-dialog-header {
+    padding: 13px 14px !important;
+  }
+
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-dialog-content {
+    padding: 12px 12px 22px !important;
+  }
+
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-toolbar {
+    top: -12px !important;
+    grid-template-columns: 1fr !important;
+    margin: -12px -12px 12px !important;
+    padding: 10px 12px !important;
+  }
+
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-card-title {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-card-title > span {
+    display: none;
+  }
+
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-card-title strong,
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-card-title small {
+    white-space: normal;
+  }
+
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-pager {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-v261-pager span {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+}
