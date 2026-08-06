@@ -1,0 +1,55 @@
+name: Publish Duplicate Diagnostics V260
+
+on:
+  push:
+    branches:
+      - fix/dedupe-controle-administrativo
+    paths:
+      - ".github/workflows/publish-duplicate-diagnostics-v260.yml"
+      - "scripts/publish-duplicate-diagnostics-v260.mjs"
+      - "scripts/duplicate-diagnostics-v260.js.gz.b64.part*"
+      - "duplicate-diagnostics-v260.js"
+      - "duplicate-diagnostics-v260.css"
+      - "duplicate-diagnostics-loader-v260.js"
+      - "docs/duplicate-diagnostics-v260.js"
+      - "docs/duplicate-diagnostics-v260.css"
+      - "docs/duplicate-diagnostics-loader-v260.js"
+      - "bootstrap-integrity-loader-v258.js"
+      - "docs/bootstrap-integrity-loader-v258.js"
+      - "tests/duplicate-diagnostics-v260.test.js"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/dedupe-controle-administrativo
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Rebuild and publish diagnostic engine
+        run: node scripts/publish-duplicate-diagnostics-v260.mjs
+
+      - name: Validate diagnostic engine
+        run: node tests/duplicate-diagnostics-v260.test.js
+
+      - name: Commit generated assets and entrypoints
+        run: |
+          if git diff --quiet -- duplicate-diagnostics-v260.js docs/duplicate-diagnostics-v260.js index.html docs/index.html; then
+            echo "Assets and entrypoints already published."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add duplicate-diagnostics-v260.js docs/duplicate-diagnostics-v260.js index.html docs/index.html
+          git commit -m "Publica diagnóstico integral de duplicações"
+          git push origin HEAD:fix/dedupe-controle-administrativo
