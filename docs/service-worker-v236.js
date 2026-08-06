@@ -2,7 +2,7 @@
 
 const CURRENT_VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-storage-recovery-v254`;
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-storage-recovery-v254-dashboard-questions-v257`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
@@ -37,6 +37,10 @@ const DAILY_SUMMARY_NESTED_STYLESHEET = `daily-summary-elegant-nested-v252.css?v
 const DASHBOARD_TODAY_TIME_SYNC_VERSION = "20260805-dashboard-today-time-sync-v253";
 const DASHBOARD_TODAY_TIME_SYNC_SCRIPT = `dashboard-today-time-sync-v253.js?v=${DASHBOARD_TODAY_TIME_SYNC_VERSION}&hotfix=dashboard-today-time-sync-hotfix1`;
 // END DASHBOARD_TODAY_TIME_SYNC_V253_CONSTANTS
+// BEGIN DASHBOARD_TODAY_QUESTIONS_SYNC_V257_CONSTANTS
+const DASHBOARD_TODAY_QUESTIONS_SYNC_VERSION = "20260805-dashboard-today-questions-sync-v257";
+const DASHBOARD_TODAY_QUESTIONS_SYNC_SCRIPT = `dashboard-today-questions-sync-v257.js?v=20260805-dashboard-today-questions-sync-v257&hotfix=question-bank-sessions1`;
+// END DASHBOARD_TODAY_QUESTIONS_SYNC_V257_CONSTANTS
 // BEGIN STORAGE_RECOVERY_V254_CONSTANTS
 const STORAGE_RECOVERY_VERSION = "20260805-storage-recovery-v254";
 const STORAGE_RECOVERY_SCRIPT = `storage-recovery-v254.js?v=${STORAGE_RECOVERY_VERSION}&hotfix=stale-indexeddb-localstorage-guard1`;
@@ -68,6 +72,7 @@ const STATIC_ASSETS = [
   DAILY_SUMMARY_DIRECT_STYLESHEET,
   DAILY_SUMMARY_NESTED_STYLESHEET,
   DASHBOARD_TODAY_TIME_SYNC_SCRIPT,
+  DASHBOARD_TODAY_QUESTIONS_SYNC_SCRIPT,
   STORAGE_RECOVERY_SCRIPT,
   "vendor/pdf.mjs",
   "vendor/pdf.worker.mjs",
@@ -198,6 +203,14 @@ async function ensurePageStylesheets(response) {
       : `${patchedHtml}\n${dashboardTodayTimeSyncScript}`;
   }
   // END DASHBOARD_TODAY_TIME_SYNC_V253_SCRIPT
+  // BEGIN DASHBOARD_TODAY_QUESTIONS_SYNC_V257_SCRIPT
+  if (!patchedHtml.includes("dashboard-today-questions-sync-v257.js")) {
+    const dashboardTodayQuestionsSyncScript = `<script id="aldusDashboardTodayQuestionsSyncV257" src="${DASHBOARD_TODAY_QUESTIONS_SYNC_SCRIPT}"><\/script>`;
+    patchedHtml = patchedHtml.includes("</body>")
+      ? patchedHtml.replace("</body>", `  ${dashboardTodayQuestionsSyncScript}\n</body>`)
+      : `${patchedHtml}\n${dashboardTodayQuestionsSyncScript}`;
+  }
+  // END DASHBOARD_TODAY_QUESTIONS_SYNC_V257_SCRIPT
   // BEGIN STORAGE_RECOVERY_V254_SCRIPT
   if (!patchedHtml.includes("storage-recovery-v254.js")) {
     const storageRecoveryScript = `<script id="aldusStorageRecoveryV254" src="${STORAGE_RECOVERY_SCRIPT}"><\/script>`;
@@ -257,6 +270,9 @@ async function ensurePageStylesheets(response) {
   // BEGIN DASHBOARD_TODAY_TIME_SYNC_V253_HEADER
   headers.set("x-aldus-dashboard-today-time-sync", DASHBOARD_TODAY_TIME_SYNC_VERSION);
   // END DASHBOARD_TODAY_TIME_SYNC_V253_HEADER
+  // BEGIN DASHBOARD_TODAY_QUESTIONS_SYNC_V257_HEADER
+  headers.set("x-aldus-dashboard-today-questions-sync", DASHBOARD_TODAY_QUESTIONS_SYNC_VERSION);
+  // END DASHBOARD_TODAY_QUESTIONS_SYNC_V257_HEADER
   // BEGIN STORAGE_RECOVERY_V254_HEADER
   headers.set("x-aldus-storage-recovery", STORAGE_RECOVERY_VERSION);
   // END STORAGE_RECOVERY_V254_HEADER
