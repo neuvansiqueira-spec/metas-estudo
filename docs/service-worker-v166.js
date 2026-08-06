@@ -1,1 +1,1 @@
-importScripts("./service-worker-v263.js?v=20260806-diagnostico-duplicacoes-palette-v263");
+importScripts("./service-worker-v264.js?v=20260806-diagnostico-contraste-v264");
