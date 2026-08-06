@@ -19,5 +19,5 @@ jobs:
   release-lock:
     runs-on: ubuntu-latest
     steps:
-      - name: Confirmar publicação legacy V263
-        run: echo "Liberação do bloqueio de publicação da paleta refinada do diagnóstico V263; GitHub Pages continua publicado pela raiz da main."
+      - name: Confirmar publicação legacy V266
+        run: echo "Liberação do bloqueio de publicação das relações e da busca global V266; GitHub Pages continua publicado pela raiz da main."
