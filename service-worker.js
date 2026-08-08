@@ -2,7 +2,8 @@
 
 const CURRENT_VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v240-hotfix4-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274`;
+const PROTECTION_VERSION = "20260808-catastrophic-state-recovery-v275";
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v240-hotfix4-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
@@ -16,6 +17,9 @@ const DAILY_SUMMARY_TIME_FORMAT = "daily-summary-time-format-v243.js?v=20260805-
 const TIMER_SESSION_INTEGRITY = `timer-session-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=timer-session-integrity-hotfix1`;
 const INTEGRITY_LOADER = `planning-integrity-loader-v235.js?v=${CURRENT_VERSION}`;
 const INTEGRITY_CORE = `planning-integrity-v235.js?v=${CURRENT_VERSION}`;
+const CATASTROPHIC_STATE_GUARD = `catastrophic-state-guard-v275.js?v=${PROTECTION_VERSION}`;
+const BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275.js?v=${PROTECTION_VERSION}`;
+const RECOVERY_SAFETY = `recovery-safety-v275.js?v=${PROTECTION_VERSION}`;
 const DUPLICATE_DIAGNOSTICS_LOADER = "duplicate-diagnostics-loader-v269.js?v=20260808-duplicate-manual-overlap-actions-v274";
 const DUPLICATE_DIAGNOSTICS_SEARCH = "duplicate-diagnostics-search-v272.js?v=20260808-duplicate-manual-overlap-actions-v274";
 const DUPLICATE_DIAGNOSTICS_MAP = "duplicate-diagnostics-map-v273.js?v=20260808-duplicate-manual-overlap-actions-v274";
@@ -35,6 +39,9 @@ const STATIC_ASSETS = [
   TIMER_SESSION_INTEGRITY,
   INTEGRITY_LOADER,
   INTEGRITY_CORE,
+  CATASTROPHIC_STATE_GUARD,
+  BOOTSTRAP_PROTECTED,
+  RECOVERY_SAFETY,
   CONTRAST_STYLESHEET,
   HISTORY_LAYOUT_STYLESHEET,
   DUPLICATE_DIAGNOSTICS_LOADER,
@@ -89,6 +96,20 @@ async function cacheResponse(request, response) {
   return response;
 }
 
+function installProtectedBootstrapV275(html) {
+  let patched = html
+    .replace(/<script\s+[^>]*src=["'][^"']*storage-quota-guard-v256\.js[^"']*["'][^>]*><\/script>/gi, "")
+    .replace(/<script\s+[^>]*src=["'][^"']*bootstrap-integrity-loader-v(?:258|275)\.js[^"']*["'][^>]*><\/script>/gi, "")
+    .replace(/<script\s+id=["']aldusCatastrophicStateGuardV275["'][^>]*><\/script>/gi, "")
+    .replace(/<script\s+id=["']aldusBootstrapIntegrityLoaderV275["'][^>]*><\/script>/gi, "");
+
+  const tags = [
+    `<script id="aldusCatastrophicStateGuardV275" src="${CATASTROPHIC_STATE_GUARD}"></script>`,
+    `<script id="aldusBootstrapIntegrityLoaderV275" src="${BOOTSTRAP_PROTECTED}"></script>`
+  ].join("\n  ");
+  return patched.includes("</body>") ? patched.replace("</body>", `  ${tags}\n</body>`) : `${patched}\n${tags}`;
+}
+
 function installDuplicateDiagnosticsV274(html) {
   const tag = `<script id="aldusDuplicateDiagnosticsLoaderV274" src="${DUPLICATE_DIAGNOSTICS_LOADER}"></script>`;
   let patched = html.replace(
@@ -110,7 +131,6 @@ async function ensurePageStylesheets(response) {
 
   const html = await response.text();
   const missingTags = [];
-
   if (!html.includes("question-history-contrast-v222.css")) missingTags.push(`<link rel="stylesheet" href="${CONTRAST_STYLESHEET}" />`);
   if (!html.includes("question-history-layout-v223.css")) missingTags.push(`<link rel="stylesheet" href="${HISTORY_LAYOUT_STYLESHEET}" />`);
 
@@ -120,26 +140,24 @@ async function ensurePageStylesheets(response) {
       ? html.replace("</head>", `  ${missingTags.join("\n  ")}\n</head>`)
       : `${missingTags.join("\n")}\n${html}`;
 
+  patchedHtml = installProtectedBootstrapV275(patchedHtml);
+
   if (!patchedHtml.includes("planning-integrity-loader-v235.js")) {
     const scriptTag = `<script id="aldusPlanningIntegrityLoaderV235" src="${INTEGRITY_LOADER}"></script>`;
     patchedHtml = patchedHtml.includes("</body>") ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`) : `${patchedHtml}\n${scriptTag}`;
   }
-
   if (!patchedHtml.includes("timer-session-integrity-v236.js")) {
     const scriptTag = `<script id="aldusTimerSessionIntegrityV236" src="${TIMER_SESSION_INTEGRITY}"></script>`;
     patchedHtml = patchedHtml.includes("</body>") ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`) : `${patchedHtml}\n${scriptTag}`;
   }
-
   if (!patchedHtml.includes("timer-message-dedupe-v239.js")) {
     const scriptTag = `<script id="aldusTimerMessageDedupeV239" src="${TIMER_MESSAGE_DEDUPE}"></script>`;
     patchedHtml = patchedHtml.includes("</body>") ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`) : `${patchedHtml}\n${scriptTag}`;
   }
-
   if (!patchedHtml.includes("timer-audio-unifier-v241.js")) {
     const scriptTag = `<script id="aldusTimerAudioUnifierV241" src="${TIMER_AUDIO_UNIFIER}"></script>`;
     patchedHtml = patchedHtml.includes("</body>") ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`) : `${patchedHtml}\n${scriptTag}`;
   }
-
   if (!patchedHtml.includes("daily-summary-time-format-v243.js")) {
     const scriptTag = `<script id="aldusDailySummaryTimeFormatV243" src="${DAILY_SUMMARY_TIME_FORMAT}"></script>`;
     patchedHtml = patchedHtml.includes("</body>") ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`) : `${patchedHtml}\n${scriptTag}`;
@@ -151,6 +169,7 @@ async function ensurePageStylesheets(response) {
   headers.delete("content-length");
   headers.set("content-type", "text/html; charset=utf-8");
   headers.set("x-aldus-integrity-version", CURRENT_VERSION);
+  headers.set("x-aldus-data-protection", PROTECTION_VERSION);
   headers.set("x-aldus-duplicate-search", "duplicate-manual-overlap-actions-v274");
 
   return new Response(patchedHtml, {
@@ -199,6 +218,5 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(networkFirstNavigation(request));
     return;
   }
-
   if (STATIC_PATHS.has(url.pathname)) event.respondWith(cacheFirstStatic(request));
 });
