@@ -93,7 +93,7 @@
   }
 
   function appendRelations() {
-    appendScript("aldusDuplicateDiagnosticsRelationsV269", "duplicate-diagnostics-relations-v269.js");
+    appendScript("aldusDuplicateDiagnosticsRelationsV270", "duplicate-diagnostics-relations-v270.js");
   }
 
   function appendStability() {
