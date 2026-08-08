@@ -3,6 +3,7 @@
 const CURRENT_VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const PROTECTION_VERSION = "20260808-catastrophic-state-recovery-v275";
+const PERFORMANCE_VERSION = "20260808-startup-performance-v276";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v240-hotfix4-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
@@ -18,7 +19,7 @@ const TIMER_SESSION_INTEGRITY = `timer-session-integrity-v236.js?v=${CURRENT_VER
 const INTEGRITY_LOADER = `planning-integrity-loader-v235.js?v=${CURRENT_VERSION}`;
 const INTEGRITY_CORE = `planning-integrity-v235.js?v=${CURRENT_VERSION}`;
 const CATASTROPHIC_STATE_GUARD = `catastrophic-state-guard-v275.js?v=${PROTECTION_VERSION}`;
-const BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275.js?v=${PROTECTION_VERSION}`;
+const BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v276.js?v=${PERFORMANCE_VERSION}`;
 const RECOVERY_SAFETY = `recovery-safety-v275.js?v=${PROTECTION_VERSION}`;
 const DUPLICATE_DIAGNOSTICS_LOADER = "duplicate-diagnostics-loader-v269.js?v=20260808-duplicate-manual-overlap-actions-v274";
 const DUPLICATE_DIAGNOSTICS_SEARCH = "duplicate-diagnostics-search-v272.js?v=20260808-duplicate-manual-overlap-actions-v274";
@@ -59,12 +60,13 @@ const STATIC_ASSETS = [
   "icons/icon.svg",
   "icons/icon-maskable.svg"
 ];
+const UPGRADE_ASSETS = [CATASTROPHIC_STATE_GUARD, BOOTSTRAP_PROTECTED, RECOVERY_SAFETY];
 const STATIC_PATHS = new Set(STATIC_ASSETS.map((asset) => new URL(asset, self.registration.scope).pathname));
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(STATIC_ASSETS))
+      .then((cache) => cache.addAll(UPGRADE_ASSETS))
       .then(() => self.skipWaiting())
   );
 });
@@ -96,16 +98,16 @@ async function cacheResponse(request, response) {
   return response;
 }
 
-function installProtectedBootstrapV275(html) {
+function installProtectedBootstrapV276(html) {
   let patched = html
     .replace(/<script\s+[^>]*src=["'][^"']*storage-quota-guard-v256\.js[^"']*["'][^>]*><\/script>/gi, "")
-    .replace(/<script\s+[^>]*src=["'][^"']*bootstrap-integrity-loader-v(?:258|275)\.js[^"']*["'][^>]*><\/script>/gi, "")
+    .replace(/<script\s+[^>]*src=["'][^"']*bootstrap-integrity-loader-v(?:258|275|276)\.js[^"']*["'][^>]*><\/script>/gi, "")
     .replace(/<script\s+id=["']aldusCatastrophicStateGuardV275["'][^>]*><\/script>/gi, "")
-    .replace(/<script\s+id=["']aldusBootstrapIntegrityLoaderV275["'][^>]*><\/script>/gi, "");
+    .replace(/<script\s+id=["']aldusBootstrapIntegrityLoaderV(?:275|276)["'][^>]*><\/script>/gi, "");
 
   const tags = [
     `<script id="aldusCatastrophicStateGuardV275" src="${CATASTROPHIC_STATE_GUARD}"></script>`,
-    `<script id="aldusBootstrapIntegrityLoaderV275" src="${BOOTSTRAP_PROTECTED}"></script>`
+    `<script id="aldusBootstrapIntegrityLoaderV276" src="${BOOTSTRAP_PROTECTED}"></script>`
   ].join("\n  ");
   return patched.includes("</body>") ? patched.replace("</body>", `  ${tags}\n</body>`) : `${patched}\n${tags}`;
 }
@@ -124,6 +126,17 @@ function installDuplicateDiagnosticsV274(html) {
   return patched;
 }
 
+function removeBootstrapOwnedRuntimeTagsV276(html) {
+  const patterns = [
+    /<script\s+[^>]*src=["'][^"']*planning-integrity-loader-v235\.js[^"']*["'][^>]*><\/script>/gi,
+    /<script\s+[^>]*src=["'][^"']*timer-session-integrity-v236\.js[^"']*["'][^>]*><\/script>/gi,
+    /<script\s+[^>]*src=["'][^"']*timer-message-dedupe-v239\.js[^"']*["'][^>]*><\/script>/gi,
+    /<script\s+[^>]*src=["'][^"']*timer-audio-unifier-v241\.js[^"']*["'][^>]*><\/script>/gi,
+    /<script\s+[^>]*src=["'][^"']*daily-summary-time-format-v243\.js[^"']*["'][^>]*><\/script>/gi
+  ];
+  return patterns.reduce((result, pattern) => result.replace(pattern, ""), html);
+}
+
 async function ensurePageStylesheets(response) {
   if (!response?.ok) return response;
   const contentType = response.headers.get("content-type") || "";
@@ -140,29 +153,8 @@ async function ensurePageStylesheets(response) {
       ? html.replace("</head>", `  ${missingTags.join("\n  ")}\n</head>`)
       : `${missingTags.join("\n")}\n${html}`;
 
-  patchedHtml = installProtectedBootstrapV275(patchedHtml);
-
-  if (!patchedHtml.includes("planning-integrity-loader-v235.js")) {
-    const scriptTag = `<script id="aldusPlanningIntegrityLoaderV235" src="${INTEGRITY_LOADER}"></script>`;
-    patchedHtml = patchedHtml.includes("</body>") ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`) : `${patchedHtml}\n${scriptTag}`;
-  }
-  if (!patchedHtml.includes("timer-session-integrity-v236.js")) {
-    const scriptTag = `<script id="aldusTimerSessionIntegrityV236" src="${TIMER_SESSION_INTEGRITY}"></script>`;
-    patchedHtml = patchedHtml.includes("</body>") ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`) : `${patchedHtml}\n${scriptTag}`;
-  }
-  if (!patchedHtml.includes("timer-message-dedupe-v239.js")) {
-    const scriptTag = `<script id="aldusTimerMessageDedupeV239" src="${TIMER_MESSAGE_DEDUPE}"></script>`;
-    patchedHtml = patchedHtml.includes("</body>") ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`) : `${patchedHtml}\n${scriptTag}`;
-  }
-  if (!patchedHtml.includes("timer-audio-unifier-v241.js")) {
-    const scriptTag = `<script id="aldusTimerAudioUnifierV241" src="${TIMER_AUDIO_UNIFIER}"></script>`;
-    patchedHtml = patchedHtml.includes("</body>") ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`) : `${patchedHtml}\n${scriptTag}`;
-  }
-  if (!patchedHtml.includes("daily-summary-time-format-v243.js")) {
-    const scriptTag = `<script id="aldusDailySummaryTimeFormatV243" src="${DAILY_SUMMARY_TIME_FORMAT}"></script>`;
-    patchedHtml = patchedHtml.includes("</body>") ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`) : `${patchedHtml}\n${scriptTag}`;
-  }
-
+  patchedHtml = removeBootstrapOwnedRuntimeTagsV276(patchedHtml);
+  patchedHtml = installProtectedBootstrapV276(patchedHtml);
   patchedHtml = installDuplicateDiagnosticsV274(patchedHtml);
 
   const headers = new Headers(response.headers);
@@ -170,6 +162,7 @@ async function ensurePageStylesheets(response) {
   headers.set("content-type", "text/html; charset=utf-8");
   headers.set("x-aldus-integrity-version", CURRENT_VERSION);
   headers.set("x-aldus-data-protection", PROTECTION_VERSION);
+  headers.set("x-aldus-startup-performance", PERFORMANCE_VERSION);
   headers.set("x-aldus-duplicate-search", "duplicate-manual-overlap-actions-v274");
 
   return new Response(patchedHtml, {
