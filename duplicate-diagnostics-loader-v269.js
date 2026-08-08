@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260808-duplicate-control-coverage-v272";
+  const VERSION = "20260808-duplicate-official-map-diagnostic-v273";
   const source = document.currentScript;
   const baseUrl = source?.src || document.baseURI;
 
@@ -92,9 +92,13 @@
     return script;
   }
 
+  function appendMapV273() {
+    appendScript("aldusDuplicateDiagnosticsMapV273", "duplicate-diagnostics-map-v273.js");
+  }
+
   function appendSearchV272() {
     appendStylesheet("aldusDuplicateDiagnosticsSearchStylesV271", "duplicate-diagnostics-search-v271.css");
-    appendScript("aldusDuplicateDiagnosticsSearchV272", "duplicate-diagnostics-search-v272.js");
+    appendScript("aldusDuplicateDiagnosticsSearchV272", "duplicate-diagnostics-search-v272.js", appendMapV273);
   }
 
   function appendStability() {
@@ -119,5 +123,5 @@
   if (globalThis.AldusDuplicateDiagnosticsV260) appendEnhancer();
   else appendScript("aldusDuplicateDiagnosticsScriptV260", "duplicate-diagnostics-v260.js", appendEnhancer);
 
-  globalThis.__aldusDuplicateDiagnosticsLoaderV272 = Object.freeze({ version: VERSION });
+  globalThis.__aldusDuplicateDiagnosticsLoaderV273 = Object.freeze({ version: VERSION });
 })();
