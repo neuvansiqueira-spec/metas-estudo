@@ -1,10 +1,10 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260808-duplicate-control-coverage-v272";
+  const VERSION = "20260808-duplicate-official-map-diagnostic-v273";
   const source = document.currentScript;
   const baseUrl = source?.src || document.baseURI;
-  const id = "aldusDuplicateDiagnosticsLoaderV272";
+  const id = "aldusDuplicateDiagnosticsLoaderV273";
 
   if (document.getElementById(id)) return;
 
