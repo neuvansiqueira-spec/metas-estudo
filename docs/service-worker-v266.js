@@ -1,14 +1,16 @@
 "use strict";
 
-const CURRENT_VERSION = "20260806-duplicate-relations-global-search-v266";
+const CURRENT_VERSION = "20260808-timer-controls-sound-v268";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}`;
 const NAVIGATION_FALLBACK = new URL("index.html", self.registration.scope).href;
 const TIMER_SOUND_MASTER = "timer-sound-master-v265.js?v=20260806-timer-sound-master-v265&hotfix=master-mute-hotfix1";
+const TIMER_CONTROLS_HARDENING = "timer-controls-hardening-v268.js?v=20260808-timer-controls-sound-v268&hotfix=timer-controls-hardening-hotfix1";
 const DUPLICATE_LOADER = `duplicate-diagnostics-loader-v266.js?v=${CURRENT_VERSION}`;
 const DUPLICATE_RELATIONS = `duplicate-diagnostics-relations-v266.js?v=${CURRENT_VERSION}`;
 const DUPLICATE_RELATIONS_CSS = `duplicate-diagnostics-relations-v266.css?v=${CURRENT_VERSION}`;
 const NETWORK_FIRST_PATHS = new Set([
   TIMER_SOUND_MASTER,
+  TIMER_CONTROLS_HARDENING,
   DUPLICATE_LOADER,
   DUPLICATE_RELATIONS,
   DUPLICATE_RELATIONS_CSS
@@ -21,6 +23,7 @@ self.addEventListener("install", (event) => {
         "./",
         "index.html",
         TIMER_SOUND_MASTER,
+        TIMER_CONTROLS_HARDENING,
         DUPLICATE_LOADER,
         DUPLICATE_RELATIONS,
         DUPLICATE_RELATIONS_CSS
@@ -58,9 +61,11 @@ async function patchHtml(response) {
 
   let html = await response.text();
   const timerTag = `<script id="aldusTimerSoundMasterV265" src="${TIMER_SOUND_MASTER}"></script>`;
+  const controlsTag = `<script id="aldusTimerControlsHardeningV268" src="${TIMER_CONTROLS_HARDENING}"></script>`;
   const loaderTag = `<script id="aldusDuplicateDiagnosticsLoaderV266" src="${DUPLICATE_LOADER}"></script>`;
 
   if (!html.includes("timer-sound-master-v265.js")) html = injectBeforeBody(html, timerTag);
+  if (!html.includes("timer-controls-hardening-v268.js")) html = injectBeforeBody(html, controlsTag);
 
   const oldLoaderPattern = /<script\s+id="aldusDuplicateDiagnosticsLoaderV26[34]"[^>]*><\/script>/i;
   if (oldLoaderPattern.test(html)) html = html.replace(oldLoaderPattern, loaderTag);
@@ -70,6 +75,7 @@ async function patchHtml(response) {
   headers.delete("content-length");
   headers.set("content-type", "text/html; charset=utf-8");
   headers.set("x-aldus-timer-sound-master", "master-mute-hotfix1");
+  headers.set("x-aldus-timer-controls-hardening", "timer-controls-hardening-hotfix1");
   headers.set("x-aldus-duplicate-relations", CURRENT_VERSION);
 
   return new Response(html, {
