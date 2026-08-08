@@ -1,18 +1,19 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260808-duplicate-local-search-v269";
+  const VERSION = "20260808-duplicate-direct-topic-search-v270";
   const ROOT_ID = "aldusDuplicateDiagnosticsV260";
   const CUSTOM_FILTER = "relations";
   const CUSTOM_CONTAINER_CLASS = "aldus-dup-v266-results";
   const CUSTOM_MODE_CLASS = "aldus-dup-v266-custom-mode";
-  const MAX_RENDERED_RESULTS = 120;
-  const SEARCH_DEBOUNCE_MS = 120;
+  const SEARCH_DEBOUNCE_MS = 140;
+  const MAX_DIRECT_MATCHES = 30;
+  const MAX_PAIR_RESULTS = 90;
+  const MAX_RELATION_RESULTS = 120;
 
-  let cachedRelations = null;
-  let cachedState = null;
-  let cachedSignature = "";
   let searchTimer = 0;
+  let profileCache = null;
+  let relationCache = null;
 
   function normalize(value) {
     return String(value ?? "")
@@ -60,6 +61,14 @@
     ].filter(Boolean).join(" "));
   }
 
+  function queryMatches(text, query) {
+    const normalizedQuery = normalize(query);
+    if (!normalizedQuery) return true;
+    const tokens = normalizedQuery.split(" ").filter(Boolean);
+    if (!tokens.length) return true;
+    return tokens.every((token) => text.includes(token));
+  }
+
   function codeRows(profile) {
     const rows = [];
     const add = (code, contestId = "") => {
@@ -74,10 +83,8 @@
   }
 
   function codePrefixRelation(left, right) {
-    const leftCodes = codeRows(left);
-    const rightCodes = codeRows(right);
-    for (const a of leftCodes) {
-      for (const b of rightCodes) {
+    for (const a of codeRows(left)) {
+      for (const b of codeRows(right)) {
         if (a.contestId && b.contestId && a.contestId !== b.contestId) continue;
         if (a.code === b.code) continue;
         if (a.code.startsWith(`${b.code}.`) || b.code.startsWith(`${a.code}.`)) return `${a.code} ↔ ${b.code}`;
@@ -122,87 +129,58 @@
 
   function stateSignature(targetState) {
     const items = Array.isArray(targetState?.syllabusItems) ? targetState.syllabusItems : [];
-    const first = items[0];
-    const last = items[items.length - 1];
-    return [
-      items.length,
-      first?.id || "",
-      first?.updatedAt || "",
-      last?.id || "",
-      last?.updatedAt || "",
-      targetState?.duplicateDiagnostics?.lastScanAt || ""
-    ].join("|");
-  }
-
-  function deriveRelations(targetState, diagnosticsApi) {
-    if (!targetState || !diagnosticsApi) return [];
-    const report = diagnosticsApi.diagnoseState(targetState, { includeDecided: true });
-    const existing = new Map();
-
-    (report?.pairs || []).forEach((pair) => {
-      if (pair?.classification !== "overlap" && pair?.classification !== "related") return;
-      existing.set(pair.key || pairKey(pair.left, pair.right), {
-        key: pair.key || pairKey(pair.left, pair.right),
-        left: pair.left,
-        right: pair.right,
-        classification: pair.classification,
-        confidence: Number(pair.confidence || 0),
-        reasons: Array.isArray(pair.reasons) ? pair.reasons : []
-      });
-    });
-
-    const built = diagnosticsApi.buildProfiles?.(targetState);
-    const profiles = Array.isArray(built) ? built : (Array.isArray(built?.profiles) ? built.profiles : []);
-    for (let i = 0; i < profiles.length; i += 1) {
-      for (let j = i + 1; j < profiles.length; j += 1) {
-        const left = profiles[i];
-        const right = profiles[j];
-        const key = pairKey(left, right);
-        if (existing.has(key)) continue;
-        const prefix = codePrefixRelation(left, right);
-        const semantic = administrativeControlRelation(left, right);
-        if (!prefix && !semantic) continue;
-        existing.set(key, {
-          key,
-          left,
-          right,
-          classification: "relation",
-          confidence: prefix ? 72 : 64,
-          reasons: [relationReason(left, right)]
-        });
+    let hash = 2166136261;
+    for (const item of items) {
+      const text = [item?.id, item?.discipline, item?.disciplina, item?.topic, item?.subject, item?.subtopic, item?.reference, item?.code, item?.updatedAt].join("|");
+      for (let index = 0; index < text.length; index += 1) {
+        hash ^= text.charCodeAt(index);
+        hash = Math.imul(hash, 16777619);
       }
     }
-
-    return [...existing.values()].map((pair) => ({
-      ...pair,
-      searchText: normalize([
-        profileSearchText(pair.left),
-        profileSearchText(pair.right),
-        pair.classification,
-        ...(pair.reasons || [])
-      ].join(" "))
-    })).sort((a, b) => (b.confidence - a.confidence) || profileLabel(a.left).localeCompare(profileLabel(b.left), "pt-BR"));
+    return `${items.length}|${hash >>> 0}|${targetState?.duplicateDiagnostics?.lastScanAt || ""}`;
   }
 
-  function getRelations(targetState, diagnosticsApi) {
+  function getProfileIndex(targetState, diagnosticsApi) {
     const signature = stateSignature(targetState);
-    if (cachedRelations && cachedState === targetState && cachedSignature === signature) return cachedRelations;
-    cachedState = targetState;
-    cachedSignature = signature;
-    cachedRelations = deriveRelations(targetState, diagnosticsApi);
-    return cachedRelations;
-  }
-
-  function invalidateRelations() {
-    cachedRelations = null;
-    cachedState = null;
-    cachedSignature = "";
+    if (profileCache?.state === targetState && profileCache.signature === signature) return profileCache;
+    const built = diagnosticsApi.buildProfiles?.(targetState);
+    const profiles = Array.isArray(built) ? built : (Array.isArray(built?.profiles) ? built.profiles : []);
+    const weights = built?.weights instanceof Map ? built.weights : new Map();
+    profileCache = {
+      state: targetState,
+      signature,
+      profiles,
+      weights,
+      rows: profiles.map((profile) => ({ profile, text: profileSearchText(profile) }))
+    };
+    relationCache = null;
+    return profileCache;
   }
 
   function classificationLabel(classification) {
+    if (classification === "exact") return "Duplicidade exata";
+    if (classification === "probable") return "Duplicidade provável";
     if (classification === "overlap") return "Sobreposição informativa";
     if (classification === "related" || classification === "relation") return "Relação informativa";
     return "Caso relacionado";
+  }
+
+  function renderProfile(profile) {
+    const code = profileCode(profile);
+    return `
+      <article class="aldus-dup-v266-card" data-v270-topic="${escapeHtml(profile?.id || "")}">
+        <header>
+          <span class="aldus-dup-v266-badge">Tema localizado no edital</span>
+          <strong>${escapeHtml(profileDiscipline(profile))}</strong>
+        </header>
+        <div class="aldus-dup-v266-pair-grid" style="grid-template-columns:1fr">
+          <section>
+            <small>${escapeHtml(profileDiscipline(profile))}</small>
+            <h4>${escapeHtml([code, profileLabel(profile)].filter(Boolean).join(" — "))}</h4>
+          </section>
+        </div>
+        <p class="aldus-dup-v266-warning">Localizado diretamente entre as metas do edital, independentemente da categoria do diagnóstico.</p>
+      </article>`;
   }
 
   function renderPair(pair) {
@@ -210,7 +188,7 @@
     const rightCode = profileCode(pair.right);
     const reasons = (pair.reasons || []).map((reason) => `<li>${escapeHtml(reason)}</li>`).join("");
     return `
-      <article class="aldus-dup-v266-card" data-v269-relation="${escapeHtml(pair.key || pairKey(pair.left, pair.right))}">
+      <article class="aldus-dup-v266-card" data-v270-pair="${escapeHtml(pair.key || pairKey(pair.left, pair.right))}">
         <header>
           <span class="aldus-dup-v266-badge">${escapeHtml(classificationLabel(pair.classification))}</span>
           <strong>${Math.max(0, Math.min(100, Number(pair.confidence || 0)))}% de confiança</strong>
@@ -221,7 +199,7 @@
           <section><small>${escapeHtml(profileDiscipline(pair.right))}</small><h4>${escapeHtml([rightCode, profileLabel(pair.right)].filter(Boolean).join(" — "))}</h4></section>
         </div>
         ${reasons ? `<ul class="aldus-dup-v266-reasons">${reasons}</ul>` : ""}
-        <p class="aldus-dup-v266-warning">Informativo: esta relação não oferece consolidação automática.</p>
+        <p class="aldus-dup-v266-warning">A busca localizou este vínculo a partir do tema encontrado. Para consolidar, use a categoria correspondente do diagnóstico.</p>
       </article>`;
   }
 
@@ -247,48 +225,147 @@
     return container;
   }
 
-  function renderRelations(root, query = "") {
+  function directTopicSearch(targetState, diagnosticsApi, query) {
+    const index = getProfileIndex(targetState, diagnosticsApi);
+    const normalizedQuery = normalize(query);
+    const direct = index.rows
+      .filter((row) => queryMatches(row.text, normalizedQuery))
+      .sort((a, b) => {
+        const aLabel = normalize(profileLabel(a.profile));
+        const bLabel = normalize(profileLabel(b.profile));
+        const aRank = aLabel === normalizedQuery ? 3 : aLabel.includes(normalizedQuery) ? 2 : 1;
+        const bRank = bLabel === normalizedQuery ? 3 : bLabel.includes(normalizedQuery) ? 2 : 1;
+        return bRank - aRank || aLabel.localeCompare(bLabel, "pt-BR");
+      });
+
+    const selected = direct.slice(0, MAX_DIRECT_MATCHES).map((row) => row.profile);
+    const pairs = new Map();
+    for (const left of selected) {
+      for (const right of index.profiles) {
+        if (!right || left.id === right.id) continue;
+        const key = pairKey(left, right);
+        if (pairs.has(key)) continue;
+        let pair = diagnosticsApi.evaluatePair?.(left, right, index.weights) || null;
+        const prefix = codePrefixRelation(left, right);
+        const semantic = administrativeControlRelation(left, right);
+        if (!pair && (prefix || semantic)) {
+          pair = {
+            key,
+            left,
+            right,
+            classification: "relation",
+            confidence: prefix ? 72 : 64,
+            reasons: [relationReason(left, right)]
+          };
+        }
+        if (pair) pairs.set(key, pair);
+      }
+    }
+
+    return {
+      direct,
+      selected,
+      pairs: [...pairs.values()].sort((a, b) => (b.confidence - a.confidence) || profileLabel(a.left).localeCompare(profileLabel(b.left), "pt-BR"))
+    };
+  }
+
+  function renderSearch(root, query) {
     const list = root.querySelector("[data-dup-list]");
     const diagnosticsApi = globalThis.AldusDuplicateDiagnosticsV260;
     const currentState = stateReference();
     if (!list) return;
     const container = setCustomMode(list, true);
+    if (!diagnosticsApi || !currentState) {
+      container.innerHTML = customHeading("Busca no edital", "Os dados ainda não terminaram de carregar.", 0);
+      return;
+    }
 
+    const result = directTopicSearch(currentState, diagnosticsApi, query);
+    const directShown = result.selected;
+    const pairShown = result.pairs.slice(0, MAX_PAIR_RESULTS);
+    const directOverflow = Math.max(0, result.direct.length - directShown.length);
+    const pairOverflow = Math.max(0, result.pairs.length - pairShown.length);
+
+    let html = customHeading(
+      "Busca no edital",
+      `“${query}” — primeiro são localizados os temas; depois são mostrados somente os vínculos desses temas.`,
+      result.direct.length
+    );
+
+    if (!result.direct.length) {
+      html += '<p class="aldus-dup-v266-empty">Nenhum tema do edital corresponde à busca.</p>';
+      container.innerHTML = html;
+      return;
+    }
+
+    html += directShown.map(renderProfile).join("");
+    if (directOverflow) html += `<p class="aldus-dup-v266-empty">Há mais ${directOverflow} tema(s) correspondente(s). Refine a pesquisa para reduzir a lista.</p>`;
+    html += customHeading("Vínculos do tema localizado", "Duplicidades, sobreposições e relações encontradas apenas para os temas acima.", result.pairs.length);
+    html += pairShown.length
+      ? pairShown.map(renderPair).join("")
+      : '<p class="aldus-dup-v266-empty">O tema existe no edital, mas não possui vínculo diagnóstico com outra meta.</p>';
+    if (pairOverflow) html += `<p class="aldus-dup-v266-empty">Exibindo ${pairShown.length} de ${result.pairs.length} vínculos. Refine a pesquisa para ver menos resultados.</p>`;
+    container.innerHTML = html;
+  }
+
+  function getAllRelations(targetState, diagnosticsApi) {
+    const index = getProfileIndex(targetState, diagnosticsApi);
+    if (relationCache?.signature === index.signature) return relationCache.rows;
+    const rows = new Map();
+    for (let i = 0; i < index.profiles.length; i += 1) {
+      for (let j = i + 1; j < index.profiles.length; j += 1) {
+        const left = index.profiles[i];
+        const right = index.profiles[j];
+        const prefix = codePrefixRelation(left, right);
+        const semantic = administrativeControlRelation(left, right);
+        if (!prefix && !semantic) continue;
+        const key = pairKey(left, right);
+        rows.set(key, {
+          key,
+          left,
+          right,
+          classification: "relation",
+          confidence: prefix ? 72 : 64,
+          reasons: [relationReason(left, right)]
+        });
+      }
+    }
+    relationCache = { signature: index.signature, rows: [...rows.values()] };
+    return relationCache.rows;
+  }
+
+  function renderRelations(root) {
+    const list = root.querySelector("[data-dup-list]");
+    const diagnosticsApi = globalThis.AldusDuplicateDiagnosticsV260;
+    const currentState = stateReference();
+    if (!list) return;
+    const container = setCustomMode(list, true);
     if (!diagnosticsApi || !currentState) {
       container.innerHTML = customHeading("Relações e sobreposições", "Os dados ainda não terminaram de carregar.", 0);
       return;
     }
+    const all = getAllRelations(currentState, diagnosticsApi);
+    const shown = all.slice(0, MAX_RELATION_RESULTS);
+    container.innerHTML = customHeading("Relações e sobreposições", "Categoria informativa. Use Localizar para encontrar um tema específico sem recalcular todo o diagnóstico.", all.length)
+      + (shown.length ? shown.map(renderPair).join("") : '<p class="aldus-dup-v266-empty">Nenhuma relação informativa foi localizada.</p>')
+      + (all.length > shown.length ? `<p class="aldus-dup-v266-empty">Exibindo ${shown.length} de ${all.length}. Use Localizar para pesquisar um tema específico.</p>` : "");
+  }
 
-    if (!cachedRelations || cachedState !== currentState || cachedSignature !== stateSignature(currentState)) {
-      container.innerHTML = customHeading("Relações e sobreposições", "Preparando o índice desta categoria…", 0);
-    }
-
-    const allRelations = getRelations(currentState, diagnosticsApi);
-    const normalizedQuery = normalize(query);
-    const matches = normalizedQuery ? allRelations.filter((pair) => pair.searchText.includes(normalizedQuery)) : allRelations;
-    const shown = matches.slice(0, MAX_RENDERED_RESULTS);
-    const hidden = Math.max(0, matches.length - shown.length);
-    const detail = normalizedQuery
-      ? `Resultados dentro de Relações e sobreposições para “${query}”.`
-      : "Tema-pai, subitem e assuntos semanticamente próximos. Esta área é somente informativa.";
-    const limitNote = hidden
-      ? `<p class="aldus-dup-v266-empty">Exibindo ${shown.length} de ${matches.length} resultados. Refine o campo Localizar para reduzir a lista.</p>`
-      : "";
-
-    container.innerHTML = customHeading("Relações e sobreposições", detail, matches.length)
-      + (shown.length ? shown.map(renderPair).join("") + limitNote : "<p class=\"aldus-dup-v266-empty\">Nenhum caso corresponde à busca nesta categoria.</p>");
+  function invalidateCaches() {
+    profileCache = null;
+    relationCache = null;
   }
 
   function install(root) {
-    if (!root || root.dataset.v269RelationsInstalled) return;
-    root.dataset.v269RelationsInstalled = "true";
+    if (!root || root.dataset.v270SearchInstalled) return;
+    root.dataset.v270SearchInstalled = "true";
     root.classList.add("aldus-dup-v266");
 
     const filter = root.querySelector("[data-dup-filter]");
     const search = root.querySelector("[data-v261-search]");
     const list = root.querySelector("[data-dup-list]");
     if (!filter || !search || !list) {
-      root.dataset.v269RelationsInstalled = "";
+      root.dataset.v270SearchInstalled = "";
       window.setTimeout(() => install(root), 100);
       return;
     }
@@ -300,41 +377,40 @@
       filter.appendChild(option);
     }
 
-    search.placeholder = "Disciplina, tema ou código";
-    search.setAttribute("aria-label", "Localizar na categoria selecionada");
+    search.placeholder = "Buscar tema, disciplina ou código no edital";
+    search.setAttribute("aria-label", "Buscar diretamente entre os temas do edital");
 
     root.addEventListener("change", (event) => {
       if (event.target !== filter) return;
       window.clearTimeout(searchTimer);
       search.value = "";
-      if (filter.value !== CUSTOM_FILTER) {
+      if (filter.value === CUSTOM_FILTER) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        renderRelations(root);
+      } else {
         setCustomMode(list, false);
-        return;
       }
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      renderRelations(root);
     }, true);
 
     root.addEventListener("input", (event) => {
       if (event.target !== search) return;
-
-      // Nos filtros normais, não intercepta o evento: a UI V261 faz a busca local
-      // apenas nos cartões da categoria já renderizada, sem recalcular o diagnóstico.
-      if (filter.value !== CUSTOM_FILTER) return;
-
       event.stopImmediatePropagation();
       const query = String(search.value || "").trim();
       window.clearTimeout(searchTimer);
-      searchTimer = window.setTimeout(() => renderRelations(root, query), SEARCH_DEBOUNCE_MS);
+      if (!query) {
+        if (filter.value === CUSTOM_FILTER) renderRelations(root);
+        else setCustomMode(list, false);
+        return;
+      }
+      const container = setCustomMode(list, true);
+      container.innerHTML = customHeading("Busca no edital", "Localizando o tema e seus vínculos…", 0);
+      searchTimer = window.setTimeout(() => renderSearch(root, query), SEARCH_DEBOUNCE_MS);
     }, true);
 
     root.querySelector("[data-dup-run]")?.addEventListener("click", () => {
-      invalidateRelations();
+      invalidateCaches();
       window.clearTimeout(searchTimer);
-      if (filter.value === CUSTOM_FILTER) {
-        window.setTimeout(() => renderRelations(root, search.value), 80);
-      }
     });
   }
 
@@ -350,8 +426,9 @@
     observer.observe(document.documentElement, { childList: true, subtree: true });
   }
 
-  const API = Object.freeze({ VERSION, normalize, deriveRelations, invalidateRelations });
+  const API = Object.freeze({ VERSION, normalize, directTopicSearch, invalidateCaches });
   globalThis.__aldusDuplicateRelationsV269 = API;
+  globalThis.__aldusDuplicateSearchV270 = API;
 
   if (typeof document === "undefined") return;
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", waitForRoot, { once: true });
