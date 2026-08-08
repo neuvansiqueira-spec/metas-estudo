@@ -1,0 +1,85 @@
+#aldusDuplicateDiagnosticsV260.aldus-dup-v271 .aldus-dup-v266-results {
+  color: #17324b !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v271 .aldus-dup-v266-card,
+#aldusDuplicateDiagnosticsV260.aldus-dup-v271 .aldus-dup-v266-heading,
+#aldusDuplicateDiagnosticsV260.aldus-dup-v271 .aldus-dup-v266-empty {
+  opacity: 1 !important;
+  color: #17324b !important;
+  background: #ffffff !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v271 .aldus-dup-v266-pair-grid section {
+  opacity: 1 !important;
+  background: #f6f9fd !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v271 .aldus-dup-v266-pair-grid h4 {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  margin: 0 !important;
+  color: #092f55 !important;
+  font-size: 1rem !important;
+  font-weight: 850 !important;
+  line-height: 1.42 !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v271 .aldus-dup-v266-pair-grid small {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  color: #405f7a !important;
+  font-weight: 750 !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v271 .aldus-dup-v266-warning,
+#aldusDuplicateDiagnosticsV260.aldus-dup-v271 .aldus-dup-v266-reasons,
+#aldusDuplicateDiagnosticsV260.aldus-dup-v271 .aldus-dup-v266-heading span {
+  opacity: 1 !important;
+  color: #405f7a !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v271 .aldus-dup-v266-card header strong,
+#aldusDuplicateDiagnosticsV260.aldus-dup-v271 .aldus-dup-v266-heading strong {
+  color: #092f55 !important;
+  opacity: 1 !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v271 .aldus-dup-v266-badge {
+  color: #0b4c85 !important;
+  background: #edf5fd !important;
+  border-color: #8fb6dc !important;
+  opacity: 1 !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v271 .aldus-dup-v271-single {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v271 .aldus-dup-v266-card,
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v271 .aldus-dup-v266-heading,
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v271 .aldus-dup-v266-empty {
+    color: #17324b !important;
+    background: #ffffff !important;
+  }
+
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v271 .aldus-dup-v266-pair-grid section {
+    background: #f6f9fd !important;
+  }
+
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v271 .aldus-dup-v266-pair-grid h4,
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v271 .aldus-dup-v266-card header strong,
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v271 .aldus-dup-v266-heading strong {
+    color: #092f55 !important;
+  }
+
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v271 .aldus-dup-v266-pair-grid small,
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v271 .aldus-dup-v266-warning,
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v271 .aldus-dup-v266-reasons,
+  #aldusDuplicateDiagnosticsV260.aldus-dup-v271 .aldus-dup-v266-heading span {
+    color: #405f7a !important;
+  }
+}
