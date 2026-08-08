@@ -2,7 +2,7 @@
 
 const CURRENT_VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v240-hotfix4-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v270`;
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v240-hotfix4-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v271`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
@@ -16,7 +16,9 @@ const DAILY_SUMMARY_TIME_FORMAT = "daily-summary-time-format-v243.js?v=20260805-
 const TIMER_SESSION_INTEGRITY = `timer-session-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=timer-session-integrity-hotfix1`;
 const INTEGRITY_LOADER = `planning-integrity-loader-v235.js?v=${CURRENT_VERSION}`;
 const INTEGRITY_CORE = `planning-integrity-v235.js?v=${CURRENT_VERSION}`;
-const DUPLICATE_DIAGNOSTICS_LOADER = "duplicate-diagnostics-loader-v269.js?v=20260808-duplicate-direct-topic-search-v270";
+const DUPLICATE_DIAGNOSTICS_LOADER = "duplicate-diagnostics-loader-v269.js?v=20260808-duplicate-cross-discipline-fix-v271";
+const DUPLICATE_DIAGNOSTICS_SEARCH = "duplicate-diagnostics-search-v271.js?v=20260808-duplicate-cross-discipline-fix-v271";
+const DUPLICATE_DIAGNOSTICS_SEARCH_CSS = "duplicate-diagnostics-search-v271.css?v=20260808-duplicate-cross-discipline-fix-v271";
 const STATIC_ASSETS = [
   "./",
   "index.html",
@@ -34,6 +36,8 @@ const STATIC_ASSETS = [
   CONTRAST_STYLESHEET,
   HISTORY_LAYOUT_STYLESHEET,
   DUPLICATE_DIAGNOSTICS_LOADER,
+  DUPLICATE_DIAGNOSTICS_SEARCH,
+  DUPLICATE_DIAGNOSTICS_SEARCH_CSS,
   "vendor/pdf.mjs",
   "vendor/pdf.worker.mjs",
   "vendor/pdfjs-LICENSE.txt",
@@ -81,15 +85,17 @@ async function cacheResponse(request, response) {
   return response;
 }
 
-function installDuplicateDiagnosticsV270(html) {
-  const tag = `<script id="aldusDuplicateDiagnosticsLoaderV269" src="${DUPLICATE_DIAGNOSTICS_LOADER}"></script>`;
+function installDuplicateDiagnosticsV271(html) {
+  const tag = `<script id="aldusDuplicateDiagnosticsLoaderV271" src="${DUPLICATE_DIAGNOSTICS_LOADER}"></script>`;
   let patched = html.replace(
-    /<script\s+id=["']aldusDuplicateDiagnosticsLoaderV266["'][^>]*><\/script>/i,
-    tag
+    /<script\s+id=["']aldusDuplicateDiagnosticsLoaderV(?:266|269|270|271)["'][^>]*><\/script>/gi,
+    ""
   );
-  if (!patched.includes("duplicate-diagnostics-loader-v269.js")) {
-    patched = patched.includes("</body>") ? patched.replace("</body>", `  ${tag}\n</body>`) : `${patched}\n${tag}`;
-  }
+  patched = patched.replace(
+    /<script\s+[^>]*src=["'][^"']*duplicate-diagnostics-loader-v(?:266|269)\.js[^"']*["'][^>]*><\/script>/gi,
+    ""
+  );
+  patched = patched.includes("</body>") ? patched.replace("</body>", `  ${tag}\n</body>`) : `${patched}\n${tag}`;
   return patched;
 }
 
@@ -135,13 +141,13 @@ async function ensurePageStylesheets(response) {
     patchedHtml = patchedHtml.includes("</body>") ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`) : `${patchedHtml}\n${scriptTag}`;
   }
 
-  patchedHtml = installDuplicateDiagnosticsV270(patchedHtml);
+  patchedHtml = installDuplicateDiagnosticsV271(patchedHtml);
 
   const headers = new Headers(response.headers);
   headers.delete("content-length");
   headers.set("content-type", "text/html; charset=utf-8");
   headers.set("x-aldus-integrity-version", CURRENT_VERSION);
-  headers.set("x-aldus-duplicate-search", "duplicate-direct-topic-search-v270");
+  headers.set("x-aldus-duplicate-search", "duplicate-cross-discipline-fix-v271");
 
   return new Response(patchedHtml, {
     status: response.status,

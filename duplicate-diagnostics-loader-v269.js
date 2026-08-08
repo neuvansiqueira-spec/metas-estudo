@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260808-duplicate-direct-topic-search-v270";
+  const VERSION = "20260808-duplicate-cross-discipline-fix-v271";
   const source = document.currentScript;
   const baseUrl = source?.src || document.baseURI;
 
@@ -92,12 +92,13 @@
     return script;
   }
 
-  function appendRelations() {
-    appendScript("aldusDuplicateDiagnosticsRelationsV270", "duplicate-diagnostics-relations-v270.js");
+  function appendSearchV271() {
+    appendStylesheet("aldusDuplicateDiagnosticsSearchStylesV271", "duplicate-diagnostics-search-v271.css");
+    appendScript("aldusDuplicateDiagnosticsSearchV271", "duplicate-diagnostics-search-v271.js");
   }
 
   function appendStability() {
-    appendScript("aldusDuplicateDiagnosticsUiStabilityV261", "duplicate-diagnostics-ui-v261-stability.js", appendRelations);
+    appendScript("aldusDuplicateDiagnosticsUiStabilityV261", "duplicate-diagnostics-ui-v261-stability.js", appendSearchV271);
   }
 
   function appendEnhancer() {
@@ -118,5 +119,5 @@
   if (globalThis.AldusDuplicateDiagnosticsV260) appendEnhancer();
   else appendScript("aldusDuplicateDiagnosticsScriptV260", "duplicate-diagnostics-v260.js", appendEnhancer);
 
-  globalThis.__aldusDuplicateDiagnosticsLoaderV269 = Object.freeze({ version: VERSION });
+  globalThis.__aldusDuplicateDiagnosticsLoaderV271 = Object.freeze({ version: VERSION });
 })();
