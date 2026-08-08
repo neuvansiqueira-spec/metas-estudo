@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-aldusv275'; style-src 'nonce-aldusv275'; worker-src 'self'; connect-src 'self'; img-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
+  <title>Aldus Meta — Recuperação segura V275</title>
+  <style nonce="aldusv275">
+    :root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color-scheme:light}
+    *{box-sizing:border-box}body{margin:0;background:#f4f6f8;color:#17202a}.wrap{max-width:900px;margin:40px auto;padding:0 20px}.card{background:#fff;border:1px solid #d9e0e7;border-radius:18px;padding:24px;box-shadow:0 10px 28px rgba(16,24,40,.08)}h1{margin:0 0 8px;font-size:28px}.lead{margin:0 0 22px;color:#475467;line-height:1.55}.status{border:2px solid #b7791f;background:#fff8e1;color:#513a08;border-radius:14px;padding:14px 16px;margin:16px 0;line-height:1.5}.status.ok{border-color:#198754;background:#eaf8ef;color:#123b24}.status.danger{border-color:#c62828;background:#fff1f2;color:#5f1515}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:16px 0}.metric{border:1px solid #d9e0e7;border-radius:12px;padding:12px}.metric strong{display:block;font-size:20px;margin-top:3px}.actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:18px}.file{display:block;width:100%;padding:14px;border:1px dashed #98a2b3;border-radius:12px;background:#fafafa}button,.link{appearance:none;border:0;border-radius:10px;padding:12px 16px;font-weight:700;font-size:15px;cursor:pointer;text-decoration:none;display:inline-block}button{background:#6941c6;color:#fff}button:disabled{opacity:.55;cursor:not-allowed}.link{background:#eef2f6;color:#344054}.note{font-size:13px;color:#667085;margin-top:18px;line-height:1.5}code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#eef2f6;padding:2px 5px;border-radius:5px}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card" id="recoveryApp">
+      <h1>🛡️ Recuperação segura V275</h1>
+      <p class="lead">Esta página é isolada do aplicativo principal. Ela restaura diretamente o IndexedDB do Aldus Meta, cria um snapshot do estado atual e valida o backup antes de aceitar a gravação.</p>
+      <div id="status" class="status"><strong>Proteção emergencial pronta.</strong> Selecione somente o backup mestre das 10:55 de 08/08/2026.</div>
+      <div class="grid" id="expectedGrid"></div>
+      <label for="backupFileInput"><strong>Backup mestre</strong></label>
+      <input class="file" id="backupFileInput" type="file" accept="application/json,.json">
+      <div class="actions">
+        <button id="restoreButton" type="button" disabled>Restaurar e verificar</button>
+        <a class="link" href="./" id="homeLink">Voltar ao Aldus Meta</a>
+      </div>
+      <p class="note">Arquivo esperado: <code>backup-metas-estudo-2026-08-08-10-55.json</code>. A restauração só será liberada se a data de exportação e os volumes críticos corresponderem ao backup mestre previamente analisado.</p>
+    </section>
+  </main>
+<script nonce="aldusv275">
+(() => {
+  'use strict';
+  const VERSION='20260808-emergency-recovery-v275a';
+  const TARGET_EXPORTED_AT='2026-08-08T13:55:51.448Z';
+  const EXPECTED={studies:96,dailyGoals:167,syllabusItems:843,contestSyllabusMap:940,questionLogs:9,materials:81,questionBank:547,questionBankSessions:9,questionErrorNotebook:54,simulados:2,smartReviews:10,factoryItems:819,factoryAgenda:819};
+  const DB_NAME='metas-estudo-db',STORE='appState',CURRENT='current';
+  const SAFETY_DB='metas-estudo-safety-v275',SAFETY_STORE='snapshots';
+  const status=document.getElementById('status'),input=document.getElementById('backupFileInput'),button=document.getElementById('restoreButton'),grid=document.getElementById('expectedGrid'),home=document.getElementById('homeLink');
+  let selected=null;
+  const labels={studies:'Estudos',dailyGoals:'Metas diárias',syllabusItems:'Itens do edital',contestSyllabusMap:'Mapa oficial',questionLogs:'Registros de questões',materials:'Materiais',questionBank:'Banco de questões',questionBankSessions:'Sessões de questões',questionErrorNotebook:'Caderno de erros',simulados:'Simulados',smartReviews:'Revisões',factoryItems:'Fábrica',factoryAgenda:'Agenda da Fábrica'};
+  grid.innerHTML=Object.entries(EXPECTED).map(([k,v])=>`<div class="metric">${labels[k]||k}<strong>${v}</strong></div>`).join('');
+  function setStatus(html,mode='warning'){status.className='status'+(mode==='ok'?' ok':mode==='danger'?' danger':'');status.innerHTML=html;}
+  function clone(v){return typeof structuredClone==='function'?structuredClone(v):JSON.parse(JSON.stringify(v));}
+  function counts(s={}){const out={};for(const k of Object.keys(EXPECTED))out[k]=Array.isArray(s?.[k])?s[k].length:0;return out;}
+  function checksumText(text){let h=2166136261;for(let i=0;i<text.length;i++){h^=text.charCodeAt(i);h=Math.imul(h,16777619);}return `fnv1a-json-v2-${(h>>>0).toString(16).padStart(8,'0')}-${text.length}`;}
+  function checksumState(s){return checksumText(JSON.stringify(s||{}));}
+  function exactMaster(c){return Object.entries(EXPECTED).every(([k,v])=>Number(c[k]||0)===v);}
+  function openDb(name,store){return new Promise((resolve,reject)=>{const r=indexedDB.open(name,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(store))r.result.createObjectStore(store,{keyPath:'id'});if(name===DB_NAME&&!r.result.objectStoreNames.contains('storageMetadata'))r.result.createObjectStore('storageMetadata',{keyPath:'id'});};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error||new Error('Falha ao abrir IndexedDB.'));r.onblocked=()=>reject(new Error('IndexedDB bloqueado por outra aba. Feche outras abas do Aldus e tente novamente.'));});}
+  function getRec(db,store,id){return new Promise((resolve,reject)=>{const tx=db.transaction(store,'readonly'),r=tx.objectStore(store).get(id);r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error||new Error('Falha ao ler IndexedDB.'));});}
+  function putRec(db,store,rec){return new Promise((resolve,reject)=>{const tx=db.transaction(store,'readwrite');tx.objectStore(store).put(rec);tx.oncomplete=()=>resolve(true);tx.onerror=()=>reject(tx.error||new Error('Falha ao gravar IndexedDB.'));tx.onabort=()=>reject(tx.error||new Error('Gravação abortada.'));});}
+  async function readCurrent(){const db=await openDb(DB_NAME,STORE);try{return await getRec(db,STORE,CURRENT);}finally{db.close();}}
+  async function writeCurrent(state){const text=JSON.stringify(state),record={id:CURRENT,schemaVersion:1,savedAt:new Date().toISOString(),checksum:checksumText(text),serializedSize:text.length,recoveryVersion:VERSION,recoveryReason:'emergency-master-backup-restore',data:clone(state)};const db=await openDb(DB_NAME,STORE);try{await putRec(db,STORE,record);const got=await getRec(db,STORE,CURRENT);if(!got?.data||got.checksum!==record.checksum||checksumState(got.data)!==record.checksum)throw new Error('A verificação pós-gravação do IndexedDB falhou.');return got;}finally{db.close();}}
+  async function snapshot(state,label){if(!state||typeof state!=='object')return;const db=await openDb(SAFETY_DB,SAFETY_STORE);try{const rec={id:`${Date.now()}-${label}`,version:VERSION,createdAt:new Date().toISOString(),label,source:'recovery-v275.html',checksum:checksumState(state),counts:counts(state),data:clone(state)};await putRec(db,SAFETY_STORE,rec);}finally{db.close();}}
+  async function forceWorker(){if(!('serviceWorker'in navigator))return false;const reg=await navigator.serviceWorker.register(`./service-worker.js?v=${encodeURIComponent(VERSION)}`,{scope:'./',updateViaCache:'none'});try{await reg.update();}catch{}const sw=reg.waiting||reg.installing;if(sw){try{sw.postMessage({type:'SKIP_WAITING'});}catch{}await new Promise(resolve=>{if(sw.state==='activated')return resolve();const t=setTimeout(resolve,6000);sw.addEventListener('statechange',()=>{if(sw.state==='activated'){clearTimeout(t);resolve();}});});}return true;}
+  input.addEventListener('change',async()=>{selected=null;button.disabled=true;const file=input.files?.[0];if(!file)return;try{const parsed=JSON.parse(await file.text());const data=parsed?.data;const c=counts(data);const failures=[];if(parsed?.app!=='metas-estudo')failures.push('aplicativo diferente');if(parsed?.storageKey&&parsed.storageKey!=='metasConcursoData')failures.push('storageKey inesperada');if(parsed?.exportedAt!==TARGET_EXPORTED_AT)failures.push(`exportação diferente (${parsed?.exportedAt||'ausente'})`);if(!exactMaster(c))failures.push('contagens não correspondem ao backup mestre');if(failures.length){setStatus(`<strong>🚨 Arquivo recusado.</strong> ${failures.join('; ')}. Nenhum dado foi alterado.`, 'danger');return;}selected={file,parsed,data,c};button.disabled=false;setStatus(`<strong>✅ Backup mestre reconhecido.</strong> ${file.name} corresponde à exportação das 10:55 e às contagens esperadas. Clique em “Restaurar e verificar”.`,'ok');}catch(e){setStatus(`<strong>🚨 Arquivo inválido.</strong> ${String(e?.message||e)}. Nenhum dado foi alterado.`,'danger');}});
+  button.addEventListener('click',async()=>{if(!selected)return;button.disabled=true;input.disabled=true;home.style.pointerEvents='none';try{const current=await readCurrent().catch(()=>null);if(current?.data)await snapshot(current.data,'antes-restauracao-emergencial');setStatus('<strong>⏳ Restaurando...</strong> O estado atual já foi preservado em snapshot. Não feche esta aba.');const restored=clone(selected.data);restored.recoverySafetyV275={version:VERSION,restoredAt:new Date().toISOString(),backupExportedAt:selected.parsed.exportedAt,backupFileName:selected.file.name,restoredCounts:selected.c};const written=await writeCurrent(restored);const verified=counts(written.data);if(!exactMaster(verified))throw new Error('As contagens verificadas após a gravação não correspondem ao backup mestre.');await snapshot(written.data,'backup-mestre-restaurado-validado');try{localStorage.removeItem('metasConcursoData');localStorage.setItem('aldusRecoveryExpectedV275',JSON.stringify({version:VERSION,restoredAt:new Date().toISOString(),fileName:selected.file.name,exportedAt:selected.parsed.exportedAt,counts:selected.c}));}catch{}await forceWorker().catch(()=>false);setStatus('<strong>✅ RECUPERAÇÃO CONCLUÍDA E VERIFICADA.</strong> O IndexedDB contém exatamente os volumes do backup mestre das 10:55, e o estado anterior foi preservado em snapshot. Agora você pode voltar ao Aldus Meta.','ok');home.style.pointerEvents='auto';home.textContent='Abrir Aldus Meta após recuperação';}catch(e){setStatus(`<strong>🚨 Restauração interrompida.</strong> ${String(e?.message||e)}. Não continue usando o site principal até nova verificação.`,'danger');home.style.pointerEvents='none';button.disabled=false;input.disabled=false;}});
+})();
+</script>
+</body>
+</html>
