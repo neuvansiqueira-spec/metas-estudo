@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260808-duplicate-official-map-diagnostic-v273";
+  const VERSION = "20260808-duplicate-manual-overlap-actions-v274";
   const source = document.currentScript;
   const baseUrl = source?.src || document.baseURI;
 
@@ -92,8 +92,12 @@
     return script;
   }
 
+  function appendActionsV274() {
+    appendScript("aldusDuplicateDiagnosticsActionsV274", "duplicate-diagnostics-actions-v274.js");
+  }
+
   function appendMapV273() {
-    appendScript("aldusDuplicateDiagnosticsMapV273", "duplicate-diagnostics-map-v273.js");
+    appendScript("aldusDuplicateDiagnosticsMapV273", "duplicate-diagnostics-map-v273.js", appendActionsV274);
   }
 
   function appendSearchV272() {
@@ -123,5 +127,5 @@
   if (globalThis.AldusDuplicateDiagnosticsV260) appendEnhancer();
   else appendScript("aldusDuplicateDiagnosticsScriptV260", "duplicate-diagnostics-v260.js", appendEnhancer);
 
-  globalThis.__aldusDuplicateDiagnosticsLoaderV273 = Object.freeze({ version: VERSION });
+  globalThis.__aldusDuplicateDiagnosticsLoaderV274 = Object.freeze({ version: VERSION });
 })();
