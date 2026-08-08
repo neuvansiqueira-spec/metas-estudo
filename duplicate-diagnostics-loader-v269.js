@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260808-duplicate-local-search-v269";
+  const VERSION = "20260808-duplicate-direct-topic-search-v270";
   const source = document.currentScript;
   const baseUrl = source?.src || document.baseURI;
 
@@ -31,7 +31,6 @@
       return previousLength - targetState.syllabusItems.length;
     };
 
-    let migrationPatched = false;
     try {
       if (typeof applyPcprPcma2026Migration === "function") {
         const originalMigration = applyPcprPcma2026Migration;
@@ -40,7 +39,6 @@
           purgeDeletedSyllabusItems(targetState || getAppState());
           return result;
         };
-        migrationPatched = true;
       }
     } catch (error) {
       console.error("[V267] Não foi possível proteger a migração contra restauração de assuntos excluídos.", error);
@@ -53,9 +51,6 @@
       try {
         if (typeof saveData === "function") saveData({ markLocalChange: true });
         if (typeof render === "function") render();
-        if (typeof showDailyGoalMessage === "function") {
-          showDailyGoalMessage(`${removed} assunto(s) excluído(s) deixou/deixaram de ser restaurado(s) automaticamente.`, "success");
-        }
       } catch (error) {
         console.error("[V267] A limpeza foi aplicada em memória, mas não pôde ser persistida.", error);
       }
@@ -63,12 +58,7 @@
 
     setTimeout(repairLoadedState, 0);
     setTimeout(repairLoadedState, 1200);
-
-    globalThis.__aldusSyllabusDeletionPersistenceV267 = Object.freeze({
-      version: VERSION,
-      migrationPatched,
-      purge: purgeDeletedSyllabusItems
-    });
+    globalThis.__aldusSyllabusDeletionPersistenceV267 = Object.freeze({ version: VERSION, purge: purgeDeletedSyllabusItems });
   }
 
   function appendStylesheet(id, fileName) {
@@ -97,26 +87,17 @@
       script.dataset.loaded = "true";
       onLoad?.();
     }, { once: true });
-    script.addEventListener("error", () => {
-      console.error(`[${VERSION}] Falha ao carregar ${fileName}.`);
-    }, { once: true });
+    script.addEventListener("error", () => console.error(`[${VERSION}] Falha ao carregar ${fileName}.`), { once: true });
     (document.body || document.documentElement).appendChild(script);
     return script;
   }
 
   function appendRelations() {
-    appendScript(
-      "aldusDuplicateDiagnosticsRelationsV269",
-      "duplicate-diagnostics-relations-v269.js"
-    );
+    appendScript("aldusDuplicateDiagnosticsRelationsV269", "duplicate-diagnostics-relations-v269.js");
   }
 
   function appendStability() {
-    appendScript(
-      "aldusDuplicateDiagnosticsUiStabilityV261",
-      "duplicate-diagnostics-ui-v261-stability.js",
-      appendRelations
-    );
+    appendScript("aldusDuplicateDiagnosticsUiStabilityV261", "duplicate-diagnostics-ui-v261-stability.js", appendRelations);
   }
 
   function appendEnhancer() {
@@ -124,15 +105,10 @@
       appendStability();
       return;
     }
-    appendScript(
-      "aldusDuplicateDiagnosticsUiScriptV261",
-      "duplicate-diagnostics-ui-v261.js",
-      appendStability
-    );
+    appendScript("aldusDuplicateDiagnosticsUiScriptV261", "duplicate-diagnostics-ui-v261.js", appendStability);
   }
 
   installSyllabusDeletionPersistenceV267();
-
   appendStylesheet("aldusDuplicateDiagnosticsStylesV260", "duplicate-diagnostics-v260.css");
   appendStylesheet("aldusDuplicateDiagnosticsUiStylesV261", "duplicate-diagnostics-ui-v261.css");
   appendStylesheet("aldusDuplicateDiagnosticsPaletteV263", "duplicate-diagnostics-palette-v263.css");
@@ -140,11 +116,7 @@
   appendStylesheet("aldusDuplicateDiagnosticsRelationsStylesV266", "duplicate-diagnostics-relations-v266.css");
 
   if (globalThis.AldusDuplicateDiagnosticsV260) appendEnhancer();
-  else appendScript(
-    "aldusDuplicateDiagnosticsScriptV260",
-    "duplicate-diagnostics-v260.js",
-    appendEnhancer
-  );
+  else appendScript("aldusDuplicateDiagnosticsScriptV260", "duplicate-diagnostics-v260.js", appendEnhancer);
 
   globalThis.__aldusDuplicateDiagnosticsLoaderV269 = Object.freeze({ version: VERSION });
 })();
