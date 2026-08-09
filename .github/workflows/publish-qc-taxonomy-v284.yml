@@ -1,0 +1,74 @@
+name: Publish QC taxonomy v284
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - tools/apply-qc-taxonomy-v284.mjs
+      - .github/workflows/publish-qc-taxonomy-v284.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-qc-taxonomy-v284
+  cancel-in-progress: false
+
+jobs:
+  apply-test-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Apply QC taxonomy bridge
+        run: node tools/apply-qc-taxonomy-v284.mjs
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build release
+        run: npm run build
+
+      - name: Test QC taxonomy and question filters
+        run: >-
+          node --test
+          tests/question-bank-filters-v225.test.js
+          tests/v54-qc-numbering-filter.test.js
+          tests/v56-qc-catalog-numbering.test.js
+          tests/v57-qc-complete-crosswalk.test.js
+          tests/v181-qconcursos-pdf-import.test.js
+          tests/question-bank-performance-v282.test.mjs
+
+      - name: Validate generated release
+        run: |
+          node --check app-v284.js
+          node --check service-worker-v284.js
+          grep -q '20260809-qconcursos-taxonomia-filtros-v284' package.json
+          grep -q '20260809-qconcursos-taxonomia-filtros-v284' docs/index.html
+          cmp -s app.bundle.js docs/app.bundle.js
+          cmp -s question-bank-filters-v225.js docs/question-bank-filters-v225.js
+          cmp -s qconcursos-crosswalk.js docs/qconcursos-crosswalk.js
+
+      - name: Commit generated release to main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração adicional para publicar."
+            exit 0
+          fi
+          git commit -m "feat: integra classificação QC aos filtros v284"
+          git push origin HEAD:main
