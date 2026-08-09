@@ -1,11 +1,11 @@
-name: Publish QC subject equivalence v287
+name: Publish QC live link v288
 
 on:
   push:
     branches:
       - main
     paths:
-      - tools/apply-qc-subject-equivalence-v287.mjs
+      - qconcursos-subject-equivalence-v287.js
       - .github/workflows/publish-qc-subject-equivalence-v287.yml
   workflow_dispatch:
 
@@ -13,7 +13,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: publish-qc-subject-equivalence-v287
+  group: publish-qc-live-link-v288
   cancel-in-progress: false
 
 jobs:
@@ -32,8 +32,29 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Apply semantic QC subject equivalence
-        run: node tools/apply-qc-subject-equivalence-v287.mjs
+      - name: Prepare v288 release
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const VERSION = '20260809-qconcursos-link-vivo-v288';
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          pkg.version = VERSION;
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          if (fs.existsSync('package-lock.json')) {
+            const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+            lock.version = VERSION;
+            if (lock.packages?.['']) lock.packages[''].version = VERSION;
+            fs.writeFileSync('package-lock.json', JSON.stringify(lock, null, 2) + '\n');
+          }
+          let bootstrap = fs.readFileSync('bootstrap-integrity-loader-v258-core.js', 'utf8');
+          bootstrap = bootstrap.replace(
+            /\["aldusAppBundleScript",\s*"app-v\d+\.js\?v=[^"]+"\]/,
+            `["aldusAppBundleScript", "app-v288.js?v=${VERSION}"]`
+          );
+          if (!bootstrap.includes(`app-v288.js?v=${VERSION}`)) throw new Error('Bootstrap V288 não sincronizado.');
+          fs.writeFileSync('bootstrap-integrity-loader-v258-core.js', bootstrap);
+          fs.copyFileSync('bootstrap-integrity-loader-v258-core.js', 'docs/bootstrap-integrity-loader-v258-core.js');
+          NODE
 
       - name: Install dependencies
         run: npm ci
@@ -41,7 +62,7 @@ jobs:
       - name: Build release
         run: npm run build
 
-      - name: Test QC subject equivalence
+      - name: Test QC live link
         run: >-
           node --test
           tests/qconcursos-subject-equivalence-v287.test.js
@@ -55,12 +76,13 @@ jobs:
       - name: Validate generated release
         run: |
           node --check qconcursos-subject-equivalence-v287.js
-          node --check app-v287.js
-          node --check service-worker-v287.js
-          grep -q '20260809-qconcursos-assunto-equivalente-v287' package.json
-          grep -q '20260809-qconcursos-assunto-equivalente-v287' docs/index.html
-          grep -q 'app-v287.js?v=20260809-qconcursos-assunto-equivalente-v287' bootstrap-integrity-loader-v258-core.js
-          grep -q 'qconcursos-subject-equivalence-v287.js' app.bundle.js
+          node --check app-v288.js
+          node --check service-worker-v288.js
+          grep -q '20260809-qconcursos-link-vivo-v288' package.json
+          grep -q '20260809-qconcursos-link-vivo-v288' docs/index.html
+          grep -q 'app-v288.js?v=20260809-qconcursos-link-vivo-v288' bootstrap-integrity-loader-v258-core.js
+          grep -q 'refreshVisibleQconcursosLinkV288' app.bundle.js
+          grep -q 'subject_ids\[\]' qconcursos-subject-equivalence-v287.js
           cmp -s app.bundle.js docs/app.bundle.js
           cmp -s bootstrap-integrity-loader-v258-core.js docs/bootstrap-integrity-loader-v258-core.js
 
@@ -73,5 +95,5 @@ jobs:
             echo "Nenhuma alteração adicional para publicar."
             exit 0
           fi
-          git commit -m "fix: aplica assunto equivalente no QC v287"
+          git commit -m "fix: recalcula link QC no clique v288"
           git push origin HEAD:main
