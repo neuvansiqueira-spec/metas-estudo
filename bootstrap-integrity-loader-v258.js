@@ -1,12 +1,13 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260808-timer-controls-sound-v268";
+  const VERSION = "20260809-planejamento-plantao-salvamento-v283";
   const CORE_SCRIPT = "bootstrap-integrity-loader-v258-core.js?v=20260806-duplicate-diagnostics-v260";
   const DIAGNOSTICS_SCRIPT = "duplicate-diagnostics-v260.js?v=20260806-duplicate-diagnostics-v260";
   const DIAGNOSTICS_STYLESHEET = "duplicate-diagnostics-v260.css?v=20260806-duplicate-diagnostics-v260";
   const TIMER_SOUND_MASTER_SCRIPT = "timer-sound-master-v265.js?v=20260806-timer-sound-master-v265&hotfix=master-mute-hotfix1";
   const TIMER_CONTROLS_SCRIPT = "timer-controls-hardening-v268.js?v=20260808-timer-controls-sound-v268&hotfix=timer-controls-hardening-hotfix1";
+  const PLANNING_SHIFT_PERSISTENCE_SCRIPT = "planning-shift-persistence-v283.js?v=20260809-planejamento-plantao-salvamento-v283";
   const PRELOAD_SCRIPTS = [
     "daily-summary-time-format-v243.js?v=20260805-daily-summary-hours-minutes-v243&hotfix=daily-summary-time-format-hotfix3",
     "dashboard-today-time-sync-v253.js?v=20260805-dashboard-today-time-sync-v253&hotfix=dashboard-today-time-sync-hotfix1",
@@ -16,7 +17,8 @@
     "daily-summary-elegant-v250.js?v=20260805-daily-summary-elegant-v250",
     "timer-session-integrity-v236.js?v=20260804-simulados-sem-fabrica-cache-unico-v236&hotfix=timer-session-integrity-hotfix1",
     TIMER_SOUND_MASTER_SCRIPT,
-    TIMER_CONTROLS_SCRIPT
+    TIMER_CONTROLS_SCRIPT,
+    PLANNING_SHIFT_PERSISTENCE_SCRIPT
   ];
 
   function installStylesheet(baseUrl) {
@@ -31,7 +33,7 @@
   function installScriptPreloads(baseUrl) {
     const head = document.head || document.documentElement;
     PRELOAD_SCRIPTS.forEach((sourceUrl, index) => {
-      const id = `aldusBootstrapChainPreloadV268-${index + 1}`;
+      const id = `aldusBootstrapChainPreloadV283-${index + 1}`;
       if (document.getElementById(id)) return;
       const link = document.createElement("link");
       link.id = id;
@@ -68,6 +70,9 @@
   if (source?.id) source.removeAttribute("id");
   core.addEventListener("error", reportLoadError(VERSION, "o núcleo de inicialização preservado"));
 
+  const shiftPersistence = makeScript("aldusPlanningShiftPersistenceV283", PLANNING_SHIFT_PERSISTENCE_SCRIPT, baseUrl, source);
+  shiftPersistence.addEventListener("error", reportLoadError(VERSION, "a persistência das disciplinas de plantão"));
+
   const diagnostics = makeScript("aldusDuplicateDiagnosticsScriptV260", DIAGNOSTICS_SCRIPT, baseUrl, source);
   diagnostics.addEventListener("error", reportLoadError(VERSION, "o diagnóstico de duplicações"));
 
@@ -78,13 +83,15 @@
   timerControls.addEventListener("error", reportLoadError(VERSION, "a proteção dos controles do cronômetro"));
 
   parent.insertBefore(core, source?.nextSibling || null);
-  parent.insertBefore(diagnostics, core.nextSibling);
+  parent.insertBefore(shiftPersistence, core.nextSibling);
+  parent.insertBefore(diagnostics, shiftPersistence.nextSibling);
   parent.insertBefore(soundMaster, diagnostics.nextSibling);
   parent.insertBefore(timerControls, soundMaster.nextSibling);
 
   globalThis.__aldusDuplicateDiagnosticsLoaderV260 = Object.freeze({
     version: VERSION,
     core: CORE_SCRIPT,
+    planningShiftPersistence: PLANNING_SHIFT_PERSISTENCE_SCRIPT,
     script: DIAGNOSTICS_SCRIPT,
     stylesheet: DIAGNOSTICS_STYLESHEET,
     timerSoundMaster: TIMER_SOUND_MASTER_SCRIPT,
