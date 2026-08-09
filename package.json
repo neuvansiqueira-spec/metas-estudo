@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260809-qconcursos-assunto-crosswalk-v289",
+  "version": "20260809-qconcursos-mapeamento-ampliado-v290",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
