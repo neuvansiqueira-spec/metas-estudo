@@ -1,8 +1,9 @@
 "use strict";
 
-const CURRENT_VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
+const CURRENT_VERSION = "20260809-banco-questoes-carregamento-v282";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const PROTECTION_VERSION = "20260808-catastrophic-state-recovery-v275";
+const BOOTSTRAP_VERSION = "20260809-banco-questoes-carregamento-v282";
 const DUPLICATE_CONTINUITY_VERSION = "20260808-duplicate-consolidation-continuity-v276";
 const FACTORY_SCHEDULE_VERSION = "20260808-factory-schedule-scope-v277";
 const FACTORY_SCHEDULE_FILTERS_VERSION = "20260808-factory-schedule-planning-preview-filters-v280";
@@ -25,7 +26,8 @@ const TIMER_SESSION_INTEGRITY = `timer-session-integrity-v236.js?v=${CURRENT_VER
 const INTEGRITY_LOADER = `planning-integrity-loader-v235.js?v=${CURRENT_VERSION}`;
 const INTEGRITY_CORE = `planning-integrity-v235.js?v=${CURRENT_VERSION}`;
 const CATASTROPHIC_STATE_GUARD = `catastrophic-state-guard-v275.js?v=${PROTECTION_VERSION}`;
-const BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275.js?v=${PROTECTION_VERSION}`;
+const BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275.js?v=${BOOTSTRAP_VERSION}`;
+const BOOTSTRAP_CORE = `bootstrap-integrity-loader-v258-core.js?v=${BOOTSTRAP_VERSION}`;
 const RECOVERY_SAFETY = `recovery-safety-v275.js?v=${PROTECTION_VERSION}`;
 const DUPLICATE_DIAGNOSTICS_LOADER = `duplicate-diagnostics-loader-v269.js?v=${DUPLICATE_CONTINUITY_VERSION}`;
 const DUPLICATE_DIAGNOSTICS_SEARCH = `duplicate-diagnostics-search-v272.js?v=${DUPLICATE_CONTINUITY_VERSION}`;
@@ -51,6 +53,7 @@ const STATIC_ASSETS = [
   INTEGRITY_CORE,
   CATASTROPHIC_STATE_GUARD,
   BOOTSTRAP_PROTECTED,
+  BOOTSTRAP_CORE,
   RECOVERY_SAFETY,
   CONTRAST_STYLESHEET,
   HISTORY_LAYOUT_STYLESHEET,

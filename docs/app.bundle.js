@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
+  const VERSION = "20260809-banco-questoes-carregamento-v282";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -42792,7 +42792,76 @@ function qbStartNotebookTraining(items = qbFilteredNotebook().filter(i=>i.status
 function qbCascadeBase(fields = {}) { const discipline = fields.discipline ?? elements.qbFilterDiscipline?.value ?? "", subject = fields.subject ?? elements.qbFilterSubject?.value ?? "", theme = fields.theme ?? elements.qbFilterTheme?.value ?? "", board = fields.board ?? elements.qbFilterBoard?.value ?? ""; return qbScopedBank().filter((q) => (!discipline || (qbIsSyllabusScope() ? qbQuestionMatchesSyllabusDiscipline(q, discipline) : q.disciplina === discipline)) && (!subject || q.assunto === subject) && (!theme || q.tema === theme) && (!board || q.banca === board)); }
 function qbRenderCascadingFilters() { if (elements.qbReviewTypeWrapper) elements.qbReviewTypeWrapper.hidden = (elements.qbTrainingScope?.value || "all") !== "review"; const bank = qbScopedBank(); if (qbIsSyllabusScope()) { const counts = qbSyllabusDisciplineCounts(); qbFillSelectWithLabels(elements.qbFilterDiscipline, qbUnique(qbActiveSyllabusItems().map(qbItemDiscipline)).map((d)=>({ value:d, label:`${d} (${counts[d] || 0})` })), "Todas"); } else qbFillSelect(elements.qbFilterDiscipline, qbUnique(bank.map(q=>q.disciplina)), "Todas"); const discipline = elements.qbFilterDiscipline?.value || ""; const zeroDiscipline = Boolean(qbSelectedZeroDisciplineMessage()); qbSetDependentFiltersDisabled(false); qbFillSelect(elements.qbFilterSubject, qbUnique(qbCascadeBase({ discipline, subject:"", theme:"", board:"" }).map(q=>q.assunto)), "Todos"); const subject = elements.qbFilterSubject?.value || ""; qbFillSelect(elements.qbFilterTheme, qbUnique(qbCascadeBase({ discipline, subject, theme:"", board:"" }).map(q=>q.tema)), "Todos"); if (zeroDiscipline) qbSetDependentFiltersDisabled(true); const theme = elements.qbFilterTheme?.value || ""; qbFillSelect(elements.qbFilterBoard, qbUnique(qbCascadeBase({ discipline, subject, theme, board:"" }).map(q=>q.banca)), "Todas"); const board = elements.qbFilterBoard?.value || ""; qbFillSelect(elements.qbFilterYear, qbUnique(qbCascadeBase({ discipline, subject, theme, board }).map(q=>q.ano)), "Todos"); if (elements.qbStartTraining) elements.qbStartTraining.disabled = !qbCanStartTraining(); }
 function qbRenderQuestionBankStats() { if (!elements.qbStats) return; const bank = state.questionBank || [], scoped = qbScopedBank(), sessions = state.questionBankSessions || [], last = sessions[0]; const filteredTotal = qbFilteredQuestions().length; const lastPerformance = last?.hasAnyKey ? `${last.summary.correct}/${last.summary.total}${last.hasCebraspeNet ? ` • líquido ${last.summary.net}` : ""}` : (last ? `${last.summary.total} questão(ões), sem gabarito` : "Nenhum"); elements.qbStats.innerHTML = [["Questões no banco", bank.length], ["Questões filtradas", filteredTotal], ["Disciplinas", qbUnique(scoped.map(q=>q.disciplina)).length], ["Assuntos", qbUnique(scoped.map(q=>q.assunto)).length], ["Questões com gabarito", scoped.filter(qbHasKey).length], ["Treinos realizados", sessions.length], ["Último desempenho", lastPerformance]].map(([a,b])=>`<article class="stat-card"><span>${a}</span><strong>${escapeHTML(b)}</strong></article>`).join(""); }
-function renderQuestionBank(options = {}) { if (!elements.qbStats) return; const heavy = options.heavy !== false; normalizeStoredQuestionBank(); qbRenderCascadingFilters(); if (heavy) { renderQbSyllabusPackages(); renderQbDiagnostics(); renderQbSyllabusVerticalized(); renderQbAccordionSummaries(); } qbRenderQuestionBankStats(); const bank = state.questionBank || []; const manage = document.getElementById("qbManageBank"); if (manage && bank.length && !manage.dataset.touched) manage.open = false; }
+let qbNormalizedBankSnapshot = null;
+const QB_LAZY_PANELS = [
+  ["qbSyllabusDiagnosticsPanel", "qbDiagnostics", renderQbDiagnostics],
+  ["qbSyllabusPanel", "qbSyllabusVerticalized", renderQbSyllabusVerticalized],
+  ["qbPackagesPanel", "qbSyllabusPackages", renderQbSyllabusPackages]
+];
+function qbQuestionBankRevisionKey() {
+  const bank = state.questionBank || [], syllabus = state.syllabusItems || [];
+  return [bank.length, syllabus.length, bank[0]?.id || "", bank.at(-1)?.id || "", syllabus[0]?.id || "", syllabus.at(-1)?.id || ""].join("|");
+}
+function qbNormalizeBankOnce() {
+  const bank = state.questionBank || [];
+  const key = qbQuestionBankRevisionKey();
+  if (qbNormalizedBankSnapshot?.bank === bank && qbNormalizedBankSnapshot?.key === key) return;
+  normalizeStoredQuestionBank();
+  qbNormalizedBankSnapshot = { bank: state.questionBank, key: qbQuestionBankRevisionKey() };
+}
+function qbRenderLightAccordionSummaries() {
+  const items = qbActiveSyllabusItems();
+  const disciplines = qbUnique(items.map(qbItemDiscipline)).length;
+  if (elements.qbSyllabusSummary) elements.qbSyllabusSummary.textContent = `Edital verticalizado — ${disciplines} disciplina(s), ${items.length} assunto(s)`;
+  if (elements.qbPackagesSummary) elements.qbPackagesSummary.textContent = `Pacotes do Edital — ${disciplines} disciplina(s); abra para calcular a cobertura`;
+}
+function qbRenderLazyPanel(panel, target, renderer) {
+  const revision = qbQuestionBankRevisionKey();
+  if (!panel?.open || panel.dataset.qbRenderedRevisionV282 === revision || panel.dataset.qbRenderingV282 === revision) return;
+  panel.dataset.qbRenderingV282 = revision;
+  if (target && !target.textContent.trim()) target.textContent = "Calculando dados deste painel…";
+  const run = () => {
+    if (panel.dataset.qbRenderingV282 !== revision) return;
+    if (!panel.open) {
+      delete panel.dataset.qbRenderingV282;
+      return;
+    }
+    renderer();
+    panel.dataset.qbRenderedRevisionV282 = revision;
+    delete panel.dataset.qbRenderingV282;
+  };
+  const schedule = () => window.setTimeout(run, 0);
+  if (typeof requestAnimationFrame === "function") requestAnimationFrame(schedule);
+  else schedule();
+}
+function qbInstallLazyPanelRendering() {
+  QB_LAZY_PANELS.forEach(([panelId, targetId, renderer]) => {
+    const panel = document.getElementById(panelId), target = document.getElementById(targetId);
+    if (!panel) return;
+    if (!panel.dataset.qbLazyBoundV282) {
+      panel.dataset.qbLazyBoundV282 = "true";
+      panel.addEventListener("toggle", () => qbRenderLazyPanel(panel, target, renderer));
+    }
+    qbRenderLazyPanel(panel, target, renderer);
+  });
+}
+function renderQuestionBank(options = {}) {
+  if (!elements.qbStats) return;
+  qbNormalizeBankOnce();
+  qbRenderCascadingFilters();
+  qbRenderQuestionBankStats();
+  qbRenderLightAccordionSummaries();
+  qbInstallLazyPanelRendering();
+  if (options.heavy === true) {
+    renderQbSyllabusPackages();
+    renderQbDiagnostics();
+    renderQbSyllabusVerticalized();
+    renderQbAccordionSummaries();
+  }
+  const bank = state.questionBank || [];
+  const manage = document.getElementById("qbManageBank");
+  if (manage && bank.length && !manage.dataset.touched) manage.open = false;
+}
 function qbResetPdfImport(message = "Nenhum PDF selecionado.") { qbPdfImportDraft=null; if(elements.qbPdfFile) elements.qbPdfFile.value=""; if(elements.qbPdfImportPreview) elements.qbPdfImportPreview.hidden=true; if(elements.qbPdfImportStatus) elements.qbPdfImportStatus.textContent=message; if(elements.qbPdfPreviewList) elements.qbPdfPreviewList.innerHTML=""; }
 function qbPdfExistingIds() { return new Set((state.questionBank||[]).map((question)=>canonical(question.id || question.referencia || question.qcCodigo))); }
 function qbPdfUniqueQuestions(questions = []) { const unique=new Map(); questions.forEach((question)=>{ const key=canonical(question.id || question.referencia || question.qcCodigo); if(key && !unique.has(key)) unique.set(key,question); }); return [...unique.values()]; }
@@ -60179,7 +60248,6 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
       const result = originalRenderQuestionBank(options);
       ensureExtraControls();
       bindExtraEvents();
-      enhancedRenderCascadingFilters();
       return result;
     };
   }
@@ -60187,7 +60255,6 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   function initialize() {
     ensureExtraControls();
     bindExtraEvents();
-    enhancedRenderCascadingFilters();
     document.documentElement.dataset.qbFiltersVersion = VERSION;
   }
 
@@ -60201,7 +60268,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   if (globalThis.__aldusQuestionBankFiltersV225) return;
   globalThis.__aldusQuestionBankFiltersV225 = true;
 
-  const VERSION = "20260803-corrige-filtro-banca-fgv-v229";
+  const VERSION = "20260809-banco-questoes-carregamento-v282";
   const UNMAPPED_SUBJECT = "__qb_unmapped_subject_v225__";
   const FILTER_IDS = {
     scope: "qbTrainingScope",
@@ -60219,6 +60286,8 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   };
   const CASCADE_ORDER = ["discipline", "subject", "theme", "board", "year", "agency", "role", "type", "keyStatus"];
   const STOP_WORDS = new Set(["a","as","o","os","de","da","das","do","dos","e","em","no","nos","na","nas","para","por","com","sem","ao","aos","um","uma","lei","direito"]);
+  let filteredCache = null;
+  let questionItemMatchCache = new WeakMap();
 
   const byId = (id) => document.getElementById(id);
   const text = (value) => String(value ?? "").trim();
@@ -60409,11 +60478,24 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   }
 
   function questionMatchesItem(question, item) {
-    if (!disciplineMatches(question, itemDiscipline(item))) return false;
-    if (question?.syllabusItemId && item?.id && question.syllabusItemId === item.id) return true;
-    if (typeof qbMatchesSyllabusItem === "function" && qbMatchesSyllabusItem(question, item)) return true;
-    const questionTexts = [...questionSubjectValues(question), ...questionThemeValues(question)];
-    return itemTexts(item).some((itemTextValue) => questionTexts.some((questionTextValue) => fuzzyTextMatch(itemTextValue, questionTextValue)));
+    const cacheable = question && item && typeof question === "object" && typeof item === "object";
+    const itemCache = cacheable ? questionItemMatchCache.get(question) : null;
+    if (itemCache?.has(item)) return itemCache.get(item);
+
+    let matches = disciplineMatches(question, itemDiscipline(item));
+    if (matches && question?.syllabusItemId && item?.id && question.syllabusItemId === item.id) matches = true;
+    else if (matches && typeof qbMatchesSyllabusItem === "function" && qbMatchesSyllabusItem(question, item)) matches = true;
+    else if (matches) {
+      const questionTexts = [...questionSubjectValues(question), ...questionThemeValues(question)];
+      matches = itemTexts(item).some((itemTextValue) => questionTexts.some((questionTextValue) => fuzzyTextMatch(itemTextValue, questionTextValue)));
+    }
+
+    if (cacheable) {
+      const cache = itemCache || new WeakMap();
+      cache.set(item, matches);
+      if (!itemCache) questionItemMatchCache.set(question, cache);
+    }
+    return matches;
   }
 
   function itemsForSelection(discipline, subject = "") {
@@ -60497,30 +60579,82 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
 
   function filteredQuestions() {
     const filters = selectedFilters();
-    return scopeBank().filter((question) => passes(question, filters));
+    const bank = state.questionBank || [];
+    const syllabus = state.syllabusItems || [];
+    const sessions = state.questionBankSessions || [];
+    const notebook = state.questionErrorNotebook || [];
+    const key = JSON.stringify({
+      scope: scopeValue(),
+      review: reviewValue(),
+      filters,
+      search: canon(control("search")?.value)
+    });
+    if (
+      filteredCache?.bank === bank
+      && filteredCache?.syllabus === syllabus
+      && filteredCache?.sessions === sessions
+      && filteredCache?.notebook === notebook
+      && filteredCache?.key === key
+    ) return filteredCache.value;
+    const value = scopeBank().filter((question) => passes(question, filters));
+    filteredCache = { bank, syllabus, sessions, notebook, key, value };
+    return value;
   }
 
-  function optionValues(key, filters) {
+  function optionEntries(key, filters) {
     const index = CASCADE_ORDER.indexOf(key);
     const base = scopeBank().filter((question) => passes(question, filters, index - 1, false));
+    const counted = new Map();
+    const add = (value) => {
+      const display = text(value);
+      if (!display) return;
+      const normalized = canon(display);
+      const current = counted.get(normalized);
+      if (current) current.count += 1;
+      else counted.set(normalized, { value: display, count: 1 });
+    };
+    const entriesFor = (values) => unique(values).map((value) => ({
+      value,
+      count: counted.get(canon(value))?.count || 0
+    }));
     if (key === "discipline") {
       const catalog = catalogItems();
-      return catalog.length ? unique(catalog.map(itemDiscipline)) : unique(base.map(questionDiscipline));
+      base.forEach((question) => add(questionDiscipline(question)));
+      return entriesFor(catalog.length ? catalog.map(itemDiscipline) : base.map(questionDiscipline));
     }
     if (key === "subject") {
       const catalog = itemsForSelection(filters.discipline);
       if (catalogItems().length && !filters.discipline) return [];
-      if (!catalog.length) return unique(base.flatMap(questionSubjectValues));
+      if (!catalog.length) {
+        base.forEach((question) => questionSubjectValues(question).forEach(add));
+        return [...counted.values()].sort((a, b) => a.value.localeCompare(b.value, "pt-BR", { numeric: true }));
+      }
       const values = unique(catalog.map(itemSubject));
-      if (base.some((question) => !questionMappedToCatalog(question, filters.discipline))) values.push(UNMAPPED_SUBJECT);
-      return values;
+      let unmapped = 0;
+      base.forEach((question) => {
+        const matchedSubjects = unique(catalog.filter((item) => questionMatchesItem(question, item)).map(itemSubject));
+        if (!matchedSubjects.length) unmapped += 1;
+        else matchedSubjects.forEach(add);
+      });
+      const entries = entriesFor(values);
+      if (unmapped) entries.push({ value: UNMAPPED_SUBJECT, count: unmapped });
+      return entries;
     }
     if (key === "theme") {
       if (!filters.subject) return [];
-      return unique(base.flatMap(questionThemeValues));
+      base.forEach((question) => questionThemeValues(question).forEach(add));
+      return [...counted.values()].sort((a, b) => a.value.localeCompare(b.value, "pt-BR", { numeric: true }));
     }
-    if (key === "keyStatus") return ["with", "without"];
-    return unique(base.map((question) => questionFacet(question, key)));
+    if (key === "keyStatus") {
+      base.forEach((question) => add(questionFacet(question, key)));
+      return ["with", "without"].map((value) => ({ value, count: counted.get(canon(value))?.count || 0 }));
+    }
+    base.forEach((question) => add(questionFacet(question, key)));
+    return [...counted.values()].sort((a, b) => a.value.localeCompare(b.value, "pt-BR", { numeric: true }));
+  }
+
+  function optionValues(key, filters) {
+    return optionEntries(key, filters).map((entry) => entry.value);
   }
 
   function optionLabel(key, value) {
@@ -60529,13 +60663,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     return value;
   }
 
-  function countForOption(key, value, filters) {
-    const index = CASCADE_ORDER.indexOf(key);
-    const next = { ...filters, [key]: value };
-    return scopeBank().filter((question) => passes(question, next, index, false)).length;
-  }
-
-  function fillSelect(key, values, filters) {
+  function fillSelect(key, entries, filters) {
     const select = control(key);
     if (!select) return;
     const current = text(select.value);
@@ -60546,12 +60674,12 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
       : waitingForSubject
         ? "Escolha primeiro o assunto"
         : ({ discipline:"Todas", subject:"Todos", theme:"Todos", board:"Todas", year:"Todos", agency:"Todos", role:"Todos", type:"Todos", keyStatus:"Todos" })[key] || "Todos";
-    select.innerHTML = `<option value="">${emptyLabel}</option>` + values.map((value) => {
-      const count = countForOption(key, value, filters);
+    select.innerHTML = `<option value="">${emptyLabel}</option>` + entries.map(({ value, count }) => {
       const label = optionLabel(key, value);
       const suffix = count ? String(count) : "0 — sem questões";
       return `<option value="${html(value)}">${html(label)} (${suffix})</option>`;
     }).join("");
+    const values = entries.map((entry) => entry.value);
     const replacement = values.find((value) => canon(value) === canon(current));
     select.value = replacement || "";
     select.disabled = waitingForDiscipline || waitingForSubject;
@@ -60560,9 +60688,11 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   }
 
   function renderFilters() {
+    filteredCache = null;
+    questionItemMatchCache = new WeakMap();
     const filters = selectedFilters();
     CASCADE_ORDER.forEach((key) => {
-      fillSelect(key, optionValues(key, filters), filters);
+      fillSelect(key, optionEntries(key, filters), filters);
       filters[key] = text(control(key)?.value);
     });
     updateCoverage();
@@ -60648,8 +60778,9 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   qbRenderCascadingFilters = renderFilters;
   if (previousRenderQuestionBank) {
     renderQuestionBank = function renderQuestionBankV225(options = {}) {
+      const extraControlsReady = Boolean(control("agency") && control("role") && control("type") && control("keyStatus"));
       const result = previousRenderQuestionBank(options);
-      renderFilters();
+      if (!extraControlsReady) renderFilters();
       return result;
     };
   }
@@ -60675,7 +60806,6 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
 
   function initialize() {
     bindEvents();
-    renderFilters();
     document.documentElement.dataset.qbFiltersVersion = VERSION;
   }
 

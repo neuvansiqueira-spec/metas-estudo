@@ -1,14 +1,23 @@
 "use strict";
 
-const CURRENT_VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
+const CURRENT_VERSION = "20260809-banco-questoes-carregamento-v282";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v240-hotfix4-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2`;
+const PROTECTION_VERSION = "20260808-catastrophic-state-recovery-v275";
+const BOOTSTRAP_VERSION = "20260809-banco-questoes-carregamento-v282";
+const DUPLICATE_CONTINUITY_VERSION = "20260808-duplicate-consolidation-continuity-v276";
+const FACTORY_SCHEDULE_VERSION = "20260808-factory-schedule-scope-v277";
+const FACTORY_SCHEDULE_FILTERS_VERSION = "20260808-factory-schedule-planning-preview-filters-v280";
+const FACTORY_SCHEDULE_DATES_VERSION = "20260809-factory-schedule-planning-dates-v281";
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v240-hotfix4-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
 const HISTORY_LAYOUT_STYLESHEET = `question-history-layout-v223.css?v=${HISTORY_LAYOUT_VERSION}`;
 const FACTORY_QUEUE_INTEGRITY = `factory-queue-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=factory-queue-integrity-hotfix5`;
 const FACTORY_DESTINATION_INTEGRITY = "factory-destination-integrity-v237.js?v=20260804-pastas-destino-classificacao-exata-v237&hotfix=discipline-topic-exact1";
+const FACTORY_SCHEDULE_SCOPE = `factory-schedule-scope-v277.js?v=${FACTORY_SCHEDULE_VERSION}`;
+const FACTORY_SCHEDULE_FILTERS = `factory-schedule-filters-v279.js?v=${FACTORY_SCHEDULE_FILTERS_VERSION}`;
+const FACTORY_SCHEDULE_DATES = `factory-schedule-dates-v281.js?v=${FACTORY_SCHEDULE_DATES_VERSION}`;
 const TIMER_AUDIO_RECOVERY = `timer-audio-recovery-v236.js?v=${CURRENT_VERSION}&hotfix=timer-audio-recovery-hotfix4`;
 const TIMER_AUDIO_UNIFIER = "timer-audio-unifier-v241.js?v=20260805-timer-audio-unified-v241&hotfix=timer-audio-unifier-hotfix1";
 const TIMER_MESSAGE_DEDUPE = "timer-message-dedupe-v239.js?v=20260805-timer-message-last-five-v242&hotfix=timer-message-last-five-hotfix1";
@@ -16,6 +25,15 @@ const DAILY_SUMMARY_TIME_FORMAT = "daily-summary-time-format-v243.js?v=20260805-
 const TIMER_SESSION_INTEGRITY = `timer-session-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=timer-session-integrity-hotfix1`;
 const INTEGRITY_LOADER = `planning-integrity-loader-v235.js?v=${CURRENT_VERSION}`;
 const INTEGRITY_CORE = `planning-integrity-v235.js?v=${CURRENT_VERSION}`;
+const CATASTROPHIC_STATE_GUARD = `catastrophic-state-guard-v275.js?v=${PROTECTION_VERSION}`;
+const BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275.js?v=${BOOTSTRAP_VERSION}`;
+const BOOTSTRAP_CORE = `bootstrap-integrity-loader-v258-core.js?v=${BOOTSTRAP_VERSION}`;
+const RECOVERY_SAFETY = `recovery-safety-v275.js?v=${PROTECTION_VERSION}`;
+const DUPLICATE_DIAGNOSTICS_LOADER = `duplicate-diagnostics-loader-v269.js?v=${DUPLICATE_CONTINUITY_VERSION}`;
+const DUPLICATE_DIAGNOSTICS_SEARCH = `duplicate-diagnostics-search-v272.js?v=${DUPLICATE_CONTINUITY_VERSION}`;
+const DUPLICATE_DIAGNOSTICS_MAP = `duplicate-diagnostics-map-v273.js?v=${DUPLICATE_CONTINUITY_VERSION}`;
+const DUPLICATE_DIAGNOSTICS_ACTIONS = `duplicate-diagnostics-actions-v274.js?v=${DUPLICATE_CONTINUITY_VERSION}`;
+const DUPLICATE_DIAGNOSTICS_SEARCH_CSS = `duplicate-diagnostics-search-v271.css?v=${DUPLICATE_CONTINUITY_VERSION}`;
 const STATIC_ASSETS = [
   "./",
   "index.html",
@@ -23,6 +41,9 @@ const STATIC_ASSETS = [
   `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`,
   FACTORY_QUEUE_INTEGRITY,
   FACTORY_DESTINATION_INTEGRITY,
+  FACTORY_SCHEDULE_SCOPE,
+  FACTORY_SCHEDULE_FILTERS,
+  FACTORY_SCHEDULE_DATES,
   TIMER_AUDIO_RECOVERY,
   TIMER_AUDIO_UNIFIER,
   TIMER_MESSAGE_DEDUPE,
@@ -30,8 +51,17 @@ const STATIC_ASSETS = [
   TIMER_SESSION_INTEGRITY,
   INTEGRITY_LOADER,
   INTEGRITY_CORE,
+  CATASTROPHIC_STATE_GUARD,
+  BOOTSTRAP_PROTECTED,
+  BOOTSTRAP_CORE,
+  RECOVERY_SAFETY,
   CONTRAST_STYLESHEET,
   HISTORY_LAYOUT_STYLESHEET,
+  DUPLICATE_DIAGNOSTICS_LOADER,
+  DUPLICATE_DIAGNOSTICS_SEARCH,
+  DUPLICATE_DIAGNOSTICS_MAP,
+  DUPLICATE_DIAGNOSTICS_ACTIONS,
+  DUPLICATE_DIAGNOSTICS_SEARCH_CSS,
   "vendor/pdf.mjs",
   "vendor/pdf.worker.mjs",
   "vendor/pdfjs-LICENSE.txt",
@@ -42,9 +72,7 @@ const STATIC_ASSETS = [
   "icons/icon.svg",
   "icons/icon-maskable.svg"
 ];
-const STATIC_PATHS = new Set(
-  STATIC_ASSETS.map((asset) => new URL(asset, self.registration.scope).pathname)
-);
+const STATIC_PATHS = new Set(STATIC_ASSETS.map((asset) => new URL(asset, self.registration.scope).pathname));
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -81,6 +109,64 @@ async function cacheResponse(request, response) {
   return response;
 }
 
+function installProtectedBootstrapV275(html) {
+  let patched = html
+    .replace(/<script\s+[^>]*src=["'][^"']*storage-quota-guard-v256\.js[^"']*["'][^>]*><\/script>/gi, "")
+    .replace(/<script\s+[^>]*src=["'][^"']*bootstrap-integrity-loader-v(?:258|275)\.js[^"']*["'][^>]*><\/script>/gi, "")
+    .replace(/<script\s+id=["']aldusCatastrophicStateGuardV275["'][^>]*><\/script>/gi, "")
+    .replace(/<script\s+id=["']aldusBootstrapIntegrityLoaderV275["'][^>]*><\/script>/gi, "");
+
+  const tags = [
+    `<script id="aldusCatastrophicStateGuardV275" src="${CATASTROPHIC_STATE_GUARD}"></script>`,
+    `<script id="aldusBootstrapIntegrityLoaderV275" src="${BOOTSTRAP_PROTECTED}"></script>`
+  ].join("\n  ");
+  return patched.includes("</body>") ? patched.replace("</body>", `  ${tags}\n</body>`) : `${patched}\n${tags}`;
+}
+
+function installDuplicateDiagnosticsV276(html) {
+  const tag = `<script id="aldusDuplicateDiagnosticsLoaderV276" src="${DUPLICATE_DIAGNOSTICS_LOADER}"></script>`;
+  let patched = html.replace(
+    /<script\s+id=["']aldusDuplicateDiagnosticsLoaderV(?:266|269|270|271|272|273|274|276)["'][^>]*><\/script>/gi,
+    ""
+  );
+  patched = patched.replace(
+    /<script\s+[^>]*src=["'][^"']*duplicate-diagnostics-loader-v(?:266|269)\.js[^"']*["'][^>]*><\/script>/gi,
+    ""
+  );
+  patched = patched.includes("</body>") ? patched.replace("</body>", `  ${tag}\n</body>`) : `${patched}\n${tag}`;
+  return patched;
+}
+
+function installFactoryScheduleV277(html) {
+  const tags = [
+    `<script id="aldusFactoryScheduleScopeV277" src="${FACTORY_SCHEDULE_SCOPE}"></script>`,
+    `<script id="aldusFactoryScheduleFiltersV280" src="${FACTORY_SCHEDULE_FILTERS}"></script>`,
+    `<script id="aldusFactoryScheduleDatesV281" src="${FACTORY_SCHEDULE_DATES}"></script>`
+  ].join("\n  ");
+  let patched = html.replace(
+    /<script\s+id=["']aldusFactoryScheduleScopeV\d+["'][^>]*><\/script>/gi,
+    ""
+  ).replace(
+    /<script\s+id=["']aldusFactoryScheduleFiltersV\d+["'][^>]*><\/script>/gi,
+    ""
+  ).replace(
+    /<script\s+id=["']aldusFactoryScheduleDatesV\d+["'][^>]*><\/script>/gi,
+    ""
+  );
+  patched = patched.replace(
+    /<script\s+[^>]*src=["'][^"']*factory-schedule-scope-v\d+\.js[^"']*["'][^>]*><\/script>/gi,
+    ""
+  ).replace(
+    /<script\s+[^>]*src=["'][^"']*factory-schedule-filters-v\d+\.js[^"']*["'][^>]*><\/script>/gi,
+    ""
+  ).replace(
+    /<script\s+[^>]*src=["'][^"']*factory-schedule-dates-v\d+\.js[^"']*["'][^>]*><\/script>/gi,
+    ""
+  );
+  patched = patched.includes("</body>") ? patched.replace("</body>", `  ${tags}\n</body>`) : `${patched}\n${tags}`;
+  return patched;
+}
+
 async function ensurePageStylesheets(response) {
   if (!response?.ok) return response;
   const contentType = response.headers.get("content-type") || "";
@@ -88,13 +174,8 @@ async function ensurePageStylesheets(response) {
 
   const html = await response.text();
   const missingTags = [];
-
-  if (!html.includes("question-history-contrast-v222.css")) {
-    missingTags.push(`<link rel="stylesheet" href="${CONTRAST_STYLESHEET}" />`);
-  }
-  if (!html.includes("question-history-layout-v223.css")) {
-    missingTags.push(`<link rel="stylesheet" href="${HISTORY_LAYOUT_STYLESHEET}" />`);
-  }
+  if (!html.includes("question-history-contrast-v222.css")) missingTags.push(`<link rel="stylesheet" href="${CONTRAST_STYLESHEET}" />`);
+  if (!html.includes("question-history-layout-v223.css")) missingTags.push(`<link rel="stylesheet" href="${HISTORY_LAYOUT_STYLESHEET}" />`);
 
   let patchedHtml = missingTags.length === 0
     ? html
@@ -102,53 +183,41 @@ async function ensurePageStylesheets(response) {
       ? html.replace("</head>", `  ${missingTags.join("\n  ")}\n</head>`)
       : `${missingTags.join("\n")}\n${html}`;
 
+  patchedHtml = installProtectedBootstrapV275(patchedHtml);
+
   if (!patchedHtml.includes("planning-integrity-loader-v235.js")) {
     const scriptTag = `<script id="aldusPlanningIntegrityLoaderV235" src="${INTEGRITY_LOADER}"></script>`;
-    patchedHtml = patchedHtml.includes("</body>")
-      ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`)
-      : `${patchedHtml}\n${scriptTag}`;
+    patchedHtml = patchedHtml.includes("</body>") ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`) : `${patchedHtml}\n${scriptTag}`;
   }
-
   if (!patchedHtml.includes("timer-session-integrity-v236.js")) {
     const scriptTag = `<script id="aldusTimerSessionIntegrityV236" src="${TIMER_SESSION_INTEGRITY}"></script>`;
-    patchedHtml = patchedHtml.includes("</body>")
-      ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`)
-      : `${patchedHtml}\n${scriptTag}`;
+    patchedHtml = patchedHtml.includes("</body>") ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`) : `${patchedHtml}\n${scriptTag}`;
   }
-
   if (!patchedHtml.includes("timer-message-dedupe-v239.js")) {
     const scriptTag = `<script id="aldusTimerMessageDedupeV239" src="${TIMER_MESSAGE_DEDUPE}"></script>`;
-    patchedHtml = patchedHtml.includes("</body>")
-      ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`)
-      : `${patchedHtml}\n${scriptTag}`;
+    patchedHtml = patchedHtml.includes("</body>") ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`) : `${patchedHtml}\n${scriptTag}`;
   }
-
   if (!patchedHtml.includes("timer-audio-unifier-v241.js")) {
     const scriptTag = `<script id="aldusTimerAudioUnifierV241" src="${TIMER_AUDIO_UNIFIER}"></script>`;
-    patchedHtml = patchedHtml.includes("</body>")
-      ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`)
-      : `${patchedHtml}\n${scriptTag}`;
+    patchedHtml = patchedHtml.includes("</body>") ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`) : `${patchedHtml}\n${scriptTag}`;
   }
-
   if (!patchedHtml.includes("daily-summary-time-format-v243.js")) {
     const scriptTag = `<script id="aldusDailySummaryTimeFormatV243" src="${DAILY_SUMMARY_TIME_FORMAT}"></script>`;
-    patchedHtml = patchedHtml.includes("</body>")
-      ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`)
-      : `${patchedHtml}\n${scriptTag}`;
+    patchedHtml = patchedHtml.includes("</body>") ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`) : `${patchedHtml}\n${scriptTag}`;
   }
+
+  patchedHtml = installDuplicateDiagnosticsV276(patchedHtml);
+  patchedHtml = installFactoryScheduleV277(patchedHtml);
 
   const headers = new Headers(response.headers);
   headers.delete("content-length");
   headers.set("content-type", "text/html; charset=utf-8");
   headers.set("x-aldus-integrity-version", CURRENT_VERSION);
-  headers.set("x-aldus-factory-queue-hotfix", "factory-queue-integrity-hotfix5");
-  headers.set("x-aldus-factory-destination-hotfix", "20260804-pastas-destino-classificacao-exata-v237");
-  headers.set("x-aldus-timer-audio-hotfix", "timer-audio-recovery-hotfix4");
-  headers.set("x-aldus-timer-audio-unifier", "timer-audio-unifier-hotfix1");
-  headers.set("x-aldus-timer-message-hotfix", "timer-message-last-five-hotfix1");
-  headers.set("x-aldus-timer-message-policy", "last-five");
-  headers.set("x-aldus-daily-summary-time", "daily-summary-time-format-hotfix2");
-  headers.set("x-aldus-timer-session-hotfix", "timer-session-integrity-hotfix1");
+  headers.set("x-aldus-data-protection", PROTECTION_VERSION);
+  headers.set("x-aldus-duplicate-search", "duplicate-consolidation-continuity-v276");
+  headers.set("x-aldus-factory-schedule", FACTORY_SCHEDULE_VERSION);
+  headers.set("x-aldus-factory-schedule-filters", FACTORY_SCHEDULE_FILTERS_VERSION);
+  headers.set("x-aldus-factory-schedule-dates", FACTORY_SCHEDULE_DATES_VERSION);
 
   return new Response(patchedHtml, {
     status: response.status,
@@ -196,8 +265,5 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(networkFirstNavigation(request));
     return;
   }
-
-  if (STATIC_PATHS.has(url.pathname)) {
-    event.respondWith(cacheFirstStatic(request));
-  }
+  if (STATIC_PATHS.has(url.pathname)) event.respondWith(cacheFirstStatic(request));
 });

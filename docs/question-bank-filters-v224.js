@@ -397,7 +397,6 @@
       const result = originalRenderQuestionBank(options);
       ensureExtraControls();
       bindExtraEvents();
-      enhancedRenderCascadingFilters();
       return result;
     };
   }
@@ -405,7 +404,6 @@
   function initialize() {
     ensureExtraControls();
     bindExtraEvents();
-    enhancedRenderCascadingFilters();
     document.documentElement.dataset.qbFiltersVersion = VERSION;
   }
 

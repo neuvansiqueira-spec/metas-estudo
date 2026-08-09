@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260808-catastrophic-state-recovery-v275";
+  const VERSION = "20260809-banco-questoes-carregamento-v282";
   const CORE_SCRIPT = `bootstrap-integrity-loader-v258-core.js?v=${VERSION}`;
   const DIAGNOSTICS_SCRIPT = `duplicate-diagnostics-v260.js?v=${VERSION}`;
   const DIAGNOSTICS_STYLESHEET = `duplicate-diagnostics-v260.css?v=${VERSION}`;

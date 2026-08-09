@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
+  const VERSION = "20260809-banco-questoes-carregamento-v282";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

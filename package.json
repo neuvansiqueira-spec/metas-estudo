@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260804-simulados-sem-fabrica-cache-unico-v236",
+  "version": "20260809-banco-questoes-carregamento-v282",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
