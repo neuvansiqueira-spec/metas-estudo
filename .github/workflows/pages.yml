@@ -54,13 +54,14 @@ jobs:
           echo 'Não foi possível alterar a fonte do GitHub Pages.' >&2
           exit 1
 
-      - name: Preparar versão da Central de Metas
+      - name: Preparar paleta sofisticada dos cartões
         shell: bash
         run: |
           set -euo pipefail
 
           cp central-goals-palette-v245.css docs/central-goals-palette-v245.css
           cp central-goals-period-palette-v248.css docs/central-goals-period-palette-v248.css
+          cp aldus-card-palette-v294.css docs/aldus-card-palette-v294.css
 
           python - <<'PY'
           from pathlib import Path
@@ -69,18 +70,18 @@ jobs:
           text = index.read_text(encoding="utf-8")
           text = text.replace(
               "central-goals-palette-v245.css?v=20260805-dashboard-central-metas-cores-v246",
-              "central-goals-palette-v245.css?v=20260809-central-metas-sofisticada-v293",
+              "central-goals-palette-v245.css?v=20260809-paleta-cartoes-global-v294",
           )
           text = text.replace(
               "central-goals-period-palette-v248.css?v=20260805-central-period-cards-v248",
-              "central-goals-period-palette-v248.css?v=20260809-central-period-cards-sofisticada-v293",
+              "central-goals-period-palette-v248.css?v=20260809-paleta-cartoes-global-v294",
           )
           index.write_text(text, encoding="utf-8")
 
           sw = Path("docs/service-worker.js")
           sw_text = sw.read_text(encoding="utf-8")
           old = "-planning-shift-save-v283`;"
-          new = "-planning-shift-save-v283-central-metas-v293`;"
+          new = "-planning-shift-save-v283-paleta-cartoes-v294`;"
           if old in sw_text and new not in sw_text:
               sw_text = sw_text.replace(old, new, 1)
           sw.write_text(sw_text, encoding="utf-8")

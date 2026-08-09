@@ -1,0 +1,347 @@
+/* Aldus Meta — paleta sofisticada global para cartões
+   Referência: violeta, dourado, azul e turquesa sobre superfícies navy.
+   Versão: 20260809-paleta-cartoes-global-v294 */
+
+html[data-aldus-theme="premium-stable"] {
+  --aldus-card-purple: #b46fff;
+  --aldus-card-gold: #f2c957;
+  --aldus-card-blue: #3da3ff;
+  --aldus-card-teal: #36cbc0;
+  --aldus-card-text: #f5f9fd;
+  --aldus-card-muted: #b8cadd;
+  --aldus-card-surface-a: #0d2b45;
+  --aldus-card-surface-b: #061a2d;
+}
+
+/*
+ * A paleta entra somente nas famílias que funcionam visualmente como cartões.
+ * Formulários, avisos, caixas de erro e painéis estruturais mantêm as cores
+ * próprias para que a hierarquia e os significados não sejam confundidos.
+ */
+html[data-aldus-theme="premium-stable"] .app-view.active :is(
+  .stat-card,
+  .syllabus-card,
+  .subject-item,
+  .review-item,
+  .daily-goal-card,
+  .next-goal-card,
+  .question-bank-item,
+  .smart-review-card,
+  .planning-history-card,
+  .compact-factory-card,
+  .material-card,
+  .material-collapsible-item,
+  .planning-estimate-item,
+  .qh-chart-card,
+  .sync-card,
+  .legacy-recovery-session,
+  .advisor-kv > div,
+  .instructions-grid > article,
+  .calendar-grid > article
+) {
+  --aldus-card-accent: var(--aldus-card-blue);
+  --aldus-card-border: rgba(61, 163, 255, .54);
+  --aldus-card-halo: rgba(29, 115, 199, .20);
+  position: relative;
+  border-color: var(--aldus-card-border) !important;
+  background:
+    radial-gradient(circle at 9% 16%, var(--aldus-card-halo) 0%, rgba(0, 0, 0, 0) 40%),
+    linear-gradient(145deg, var(--aldus-card-surface-a) 0%, var(--aldus-card-surface-b) 100%) !important;
+  box-shadow:
+    inset 5px 0 0 var(--aldus-card-accent),
+    inset 0 1px 0 rgba(255, 255, 255, .035),
+    0 13px 30px rgba(0, 7, 19, .24),
+    0 0 22px var(--aldus-card-halo) !important;
+}
+
+/* Distribuição equilibrada da paleta em listas e grades, sem figuras. */
+html[data-aldus-theme="premium-stable"] .app-view.active :is(
+  .stat-card,
+  .syllabus-card,
+  .subject-item,
+  .review-item,
+  .daily-goal-card,
+  .next-goal-card,
+  .question-bank-item,
+  .smart-review-card,
+  .planning-history-card,
+  .compact-factory-card,
+  .material-card,
+  .material-collapsible-item,
+  .planning-estimate-item,
+  .qh-chart-card,
+  .sync-card,
+  .legacy-recovery-session,
+  .advisor-kv > div,
+  .instructions-grid > article,
+  .calendar-grid > article
+):nth-child(4n + 1) {
+  --aldus-card-accent: var(--aldus-card-purple);
+  --aldus-card-border: rgba(180, 111, 255, .60);
+  --aldus-card-halo: rgba(126, 70, 210, .20);
+}
+
+html[data-aldus-theme="premium-stable"] .app-view.active :is(
+  .stat-card,
+  .syllabus-card,
+  .subject-item,
+  .review-item,
+  .daily-goal-card,
+  .next-goal-card,
+  .question-bank-item,
+  .smart-review-card,
+  .planning-history-card,
+  .compact-factory-card,
+  .material-card,
+  .material-collapsible-item,
+  .planning-estimate-item,
+  .qh-chart-card,
+  .sync-card,
+  .legacy-recovery-session,
+  .advisor-kv > div,
+  .instructions-grid > article,
+  .calendar-grid > article
+):nth-child(4n + 2) {
+  --aldus-card-accent: var(--aldus-card-gold);
+  --aldus-card-border: rgba(242, 201, 87, .58);
+  --aldus-card-halo: rgba(199, 151, 43, .17);
+}
+
+html[data-aldus-theme="premium-stable"] .app-view.active :is(
+  .stat-card,
+  .syllabus-card,
+  .subject-item,
+  .review-item,
+  .daily-goal-card,
+  .next-goal-card,
+  .question-bank-item,
+  .smart-review-card,
+  .planning-history-card,
+  .compact-factory-card,
+  .material-card,
+  .material-collapsible-item,
+  .planning-estimate-item,
+  .qh-chart-card,
+  .sync-card,
+  .legacy-recovery-session,
+  .advisor-kv > div,
+  .instructions-grid > article,
+  .calendar-grid > article
+):nth-child(4n + 3) {
+  --aldus-card-accent: var(--aldus-card-blue);
+  --aldus-card-border: rgba(61, 163, 255, .57);
+  --aldus-card-halo: rgba(29, 115, 199, .20);
+}
+
+html[data-aldus-theme="premium-stable"] .app-view.active :is(
+  .stat-card,
+  .syllabus-card,
+  .subject-item,
+  .review-item,
+  .daily-goal-card,
+  .next-goal-card,
+  .question-bank-item,
+  .smart-review-card,
+  .planning-history-card,
+  .compact-factory-card,
+  .material-card,
+  .material-collapsible-item,
+  .planning-estimate-item,
+  .qh-chart-card,
+  .sync-card,
+  .legacy-recovery-session,
+  .advisor-kv > div,
+  .instructions-grid > article,
+  .calendar-grid > article
+):nth-child(4n) {
+  --aldus-card-accent: var(--aldus-card-teal);
+  --aldus-card-border: rgba(54, 203, 192, .54);
+  --aldus-card-halo: rgba(22, 148, 140, .18);
+}
+
+/* Valores numéricos repetem a leitura rápida do modelo anexado. */
+html[data-aldus-theme="premium-stable"] .app-view.active .stat-card > :is(span, .stat-label) {
+  color: var(--aldus-card-accent) !important;
+  font-weight: 850 !important;
+  letter-spacing: .055em;
+}
+
+html[data-aldus-theme="premium-stable"] .app-view.active .stat-card > :is(strong, .stat-value) {
+  color: var(--aldus-card-accent) !important;
+  text-shadow: 0 2px 9px var(--aldus-card-halo) !important;
+}
+
+html[data-aldus-theme="premium-stable"] .app-view.active .stat-card > small {
+  color: var(--aldus-card-muted) !important;
+}
+
+/* Cartões de conteúdo mantêm títulos claros; a cor aparece no contorno e nos dados. */
+html[data-aldus-theme="premium-stable"] .app-view.active :is(
+  .syllabus-card,
+  .subject-item,
+  .review-item,
+  .daily-goal-card,
+  .next-goal-card,
+  .question-bank-item,
+  .smart-review-card,
+  .planning-history-card,
+  .compact-factory-card,
+  .material-card,
+  .legacy-recovery-session
+) :is(h3, h4, h5, summary, .goal-subject) {
+  color: var(--aldus-card-text) !important;
+}
+
+html[data-aldus-theme="premium-stable"] .app-view.active :is(
+  .syllabus-card,
+  .subject-item,
+  .review-item,
+  .daily-goal-card,
+  .next-goal-card,
+  .question-bank-item,
+  .smart-review-card,
+  .planning-history-card,
+  .compact-factory-card,
+  .material-card,
+  .legacy-recovery-session
+) :is(.item-meta, small, .review-reason) {
+  color: var(--aldus-card-muted) !important;
+}
+
+html[data-aldus-theme="premium-stable"] .app-view.active :is(
+  .syllabus-card,
+  .daily-goal-card,
+  .question-bank-item,
+  .planning-history-card,
+  .material-card,
+  .legacy-recovery-session
+) .card-meta-grid {
+  border-color: var(--aldus-card-border) !important;
+  background: rgba(1, 14, 25, .45) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .025) !important;
+}
+
+html[data-aldus-theme="premium-stable"] .app-view.active :is(
+  .syllabus-card,
+  .daily-goal-card,
+  .question-bank-item,
+  .planning-history-card,
+  .material-card,
+  .legacy-recovery-session
+) .card-meta-grid > span {
+  color: #d6e3ee !important;
+  background: rgba(0, 9, 18, .30) !important;
+}
+
+html[data-aldus-theme="premium-stable"] .app-view.active :is(
+  .syllabus-card,
+  .daily-goal-card,
+  .question-bank-item,
+  .planning-history-card,
+  .material-card,
+  .legacy-recovery-session
+) .card-meta-grid strong {
+  color: var(--aldus-card-accent) !important;
+}
+
+/* Estados continuam semânticos e prevalecem sobre a rotação decorativa. */
+html[data-aldus-theme="premium-stable"] .app-view.active :is(
+  .goal-hit,
+  [class*="goal-status-conclu"],
+  [class*="calendar-goal-state-done"]
+) {
+  --aldus-card-accent: var(--aldus-card-teal);
+  --aldus-card-border: rgba(54, 203, 192, .62);
+  --aldus-card-halo: rgba(22, 148, 140, .20);
+}
+
+html[data-aldus-theme="premium-stable"] .app-view.active :is(
+  [class*="goal-status-pendent"],
+  [class*="calendar-goal-state-pending"]
+) {
+  --aldus-card-accent: var(--aldus-card-gold);
+  --aldus-card-border: rgba(242, 201, 87, .62);
+  --aldus-card-halo: rgba(199, 151, 43, .18);
+}
+
+html[data-aldus-theme="premium-stable"] .app-view.active :is(
+  [class*="goal-status-atras"],
+  [class*="goal-status-perdid"],
+  [class*="calendar-goal-state-missed"],
+  .qb-error-notebook-row
+) {
+  --aldus-card-accent: #ff7f8d;
+  --aldus-card-border: rgba(255, 127, 141, .58);
+  --aldus-card-halo: rgba(184, 56, 71, .17);
+}
+
+html[data-aldus-theme="premium-stable"] .app-view.active :is(
+  .syllabus-card,
+  .subject-item,
+  .review-item,
+  .daily-goal-card,
+  .next-goal-card,
+  .question-bank-item,
+  .smart-review-card,
+  .planning-history-card,
+  .material-collapsible-item,
+  .planning-estimate-item,
+  .calendar-grid > article
+):focus-within {
+  border-color: var(--aldus-card-accent) !important;
+  box-shadow:
+    inset 5px 0 0 var(--aldus-card-accent),
+    0 0 0 2px var(--aldus-card-halo),
+    0 15px 34px rgba(0, 7, 19, .28) !important;
+}
+
+@media (max-width: 620px) {
+  html[data-aldus-theme="premium-stable"] .app-view.active :is(
+    .stat-card,
+    .syllabus-card,
+    .subject-item,
+    .review-item,
+    .daily-goal-card,
+    .next-goal-card,
+    .question-bank-item,
+    .smart-review-card,
+    .planning-history-card,
+    .compact-factory-card,
+    .material-card,
+    .material-collapsible-item,
+    .planning-estimate-item,
+    .qh-chart-card,
+    .sync-card,
+    .legacy-recovery-session,
+    .advisor-kv > div,
+    .instructions-grid > article,
+    .calendar-grid > article
+  ) {
+    box-shadow:
+      inset 4px 0 0 var(--aldus-card-accent),
+      inset 0 1px 0 rgba(255, 255, 255, .03),
+      0 10px 23px rgba(0, 7, 19, .22),
+      0 0 16px var(--aldus-card-halo) !important;
+  }
+}
+
+@media print {
+  html[data-aldus-theme="premium-stable"] .app-view.active :is(
+    .stat-card,
+    .syllabus-card,
+    .subject-item,
+    .review-item,
+    .daily-goal-card,
+    .next-goal-card,
+    .question-bank-item,
+    .smart-review-card,
+    .planning-history-card,
+    .material-card,
+    .qh-chart-card
+  ) {
+    border-color: #cbd5e1 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    color: #0f172a !important;
+  }
+}
