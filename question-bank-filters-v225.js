@@ -3,7 +3,7 @@
   if (globalThis.__aldusQuestionBankFiltersV225) return;
   globalThis.__aldusQuestionBankFiltersV225 = true;
 
-  const VERSION = "20260809-banco-questoes-carregamento-v282";
+  const VERSION = "20260809-qconcursos-taxonomia-filtros-v284";
   const UNMAPPED_SUBJECT = "__qb_unmapped_subject_v225__";
   const FILTER_IDS = {
     scope: "qbTrainingScope",
@@ -38,6 +38,18 @@
     : text(value).replace(/[&<>"']/g, (char) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[char]));
   const unique = (values) => [...new Map(values.filter(Boolean).map((value) => [canon(value), text(value)])).values()]
     .sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
+  function orderedUnique(values) {
+    const output = [];
+    const seen = new Set();
+    values.filter(Boolean).forEach((value) => {
+      const display = text(value);
+      const normalized = canon(display);
+      if (!display || seen.has(normalized)) return;
+      seen.add(normalized);
+      output.push(display);
+    });
+    return output;
+  }
 
   function splitValues(value) {
     const input = Array.isArray(value) ? value : [value];
@@ -150,7 +162,45 @@
       .find(Boolean) || "";
   }
 
-  function questionDiscipline(question) { return text(question?.disciplina || question?.discipline); }
+  function questionDiscipline(question) { return text(question?.disciplina || question?.discipline || question?.qcDisciplina || question?.qcDiscipline); }
+  function qcClassificationValues(question) {
+    const raw = text(
+      question?.qcClassificacao
+      || question?.qconcursosClassificacao
+      || question?.qcClassification
+      || question?.classificacaoQc
+      || question?.classificacaoQC
+    );
+    if (!raw) return [];
+    return orderedUnique(raw
+      .split(/\s*(?:>|›|→|»)\s*/u)
+      .map((value) => stripReferencePrefix(value))
+      .filter(Boolean));
+  }
+  function qcTaxonomyValues(question) {
+    const path = qcClassificationValues(question);
+    if (!path.length) return [];
+    const explicitDiscipline = text(question?.qcDisciplina || question?.qcDiscipline || questionDiscipline(question));
+    return path.length > 1 && (canon(path[0]) === canon(explicitDiscipline) || fuzzyTextMatch(path[0], explicitDiscipline))
+      ? path.slice(1)
+      : path;
+  }
+  function qcCrosswalkEntriesForItem(item) {
+    const crosswalk = Array.isArray(globalThis.QCONCURSOS_AUDITED_CROSSWALK)
+      ? globalThis.QCONCURSOS_AUDITED_CROSSWALK
+      : [];
+    const discipline = canon(itemDiscipline(item));
+    const candidates = orderedUnique([
+      itemSubject(item),
+      stripReferencePrefix(item?.topic),
+      stripReferencePrefix(item?.reference)
+    ]);
+    return crosswalk.filter((entry) => {
+      if (canon(entry?.d) !== discipline) return false;
+      return candidates.some((candidate) => [entry?.s, entry?.t].filter(Boolean)
+        .some((mapped) => fuzzyTextMatch(candidate, mapped)));
+    });
+  }
   function withoutFallbackValues(values, fallbacks) {
     const normalizedFallbacks = new Set(fallbacks.map(canon));
     const meaningful = values.filter((value) => !normalizedFallbacks.has(canon(value)));
@@ -160,16 +210,39 @@
     return withoutFallbackValues(unique([
       ...splitValues(question?.assuntos),
       ...splitValues(question?.assunto),
-      ...splitValues(question?.subject)
+      ...splitValues(question?.subject),
+      ...splitValues(question?.qcAssunto),
+      ...splitValues(question?.qcSubject),
+      ...qcTaxonomyValues(question)
     ]), ["Sem assunto", "Assunto não informado"]);
   }
-  function questionThemeValues(question) {
-    const values = unique([
+  function explicitQuestionThemeValues(question) {
+    return unique([
       ...splitValues(question?.temas),
       ...splitValues(question?.tema),
       ...splitValues(question?.theme),
-      ...splitValues(question?.subtema)
+      ...splitValues(question?.subtema),
+      ...splitValues(question?.subassunto),
+      ...splitValues(question?.qcAssunto),
+      ...splitValues(question?.qcSubject)
     ]).filter((value) => !/^\d+(?:\.\d+)*$/.test(value));
+  }
+  function questionThemeValues(question) {
+    const values = unique([
+      ...explicitQuestionThemeValues(question),
+      ...qcTaxonomyValues(question)
+    ]).filter((value) => !/^\d+(?:\.\d+)*$/.test(value));
+    return withoutFallbackValues(values, ["Geral", "Sem tema", "Tema não informado"]);
+  }
+  function questionThemeValuesForSubject(question, subject = "") {
+    if (!subject) return questionThemeValues(question);
+    const explicit = explicitQuestionThemeValues(question)
+      .filter((value) => !fuzzyTextMatch(value, subject));
+    const path = qcTaxonomyValues(question);
+    const matchedIndex = path.findIndex((value) => fuzzyTextMatch(value, subject));
+    const descendants = matchedIndex >= 0 ? path.slice(matchedIndex + 1) : path;
+    const values = unique([...explicit, ...descendants])
+      .filter((value) => !fuzzyTextMatch(value, subject));
     return withoutFallbackValues(values, ["Geral", "Sem tema", "Tema não informado"]);
   }
   function questionFacet(question, key) {
@@ -189,7 +262,13 @@
   function itemDiscipline(item) { return text(item?.discipline || item?.disciplina); }
   function itemSubject(item) { return text(item?.subject || item?.assunto || stripReferencePrefix(item?.reference)); }
   function itemTexts(item) {
-    return unique([itemSubject(item), stripReferencePrefix(item?.topic), stripReferencePrefix(item?.reference)]);
+    const mapped = qcCrosswalkEntriesForItem(item);
+    return unique([
+      itemSubject(item),
+      stripReferencePrefix(item?.topic),
+      stripReferencePrefix(item?.reference),
+      ...mapped.flatMap((entry) => [entry?.s, entry?.t])
+    ]);
   }
 
   function scopeValue() { return text(byId(FILTER_IDS.scope)?.value || elements.qbTrainingScope?.value || "all"); }
@@ -217,13 +296,20 @@
     const itemCache = cacheable ? questionItemMatchCache.get(question) : null;
     if (itemCache?.has(item)) return itemCache.get(item);
 
-    let matches = disciplineMatches(question, itemDiscipline(item));
-    if (matches && question?.syllabusItemId && item?.id && question.syllabusItemId === item.id) matches = true;
-    else if (matches && typeof qbMatchesSyllabusItem === "function" && qbMatchesSyllabusItem(question, item)) matches = true;
-    else if (matches) {
-      const questionTexts = [...questionSubjectValues(question), ...questionThemeValues(question)];
-      matches = itemTexts(item).some((itemTextValue) => questionTexts.some((questionTextValue) => fuzzyTextMatch(itemTextValue, questionTextValue)));
-    }
+    const exactDiscipline = disciplineMatches(question, itemDiscipline(item));
+    const questionTexts = [...questionSubjectValues(question), ...questionThemeValues(question)];
+    const textMatch = itemTexts(item).some((itemTextValue) =>
+      questionTexts.some((questionTextValue) => fuzzyTextMatch(itemTextValue, questionTextValue))
+    );
+    const qcBridge = !exactDiscipline
+      && qcClassificationValues(question).length > 0
+      && qcCrosswalkEntriesForItem(item).length > 0
+      && textMatch;
+
+    let matches = exactDiscipline || qcBridge;
+    if (exactDiscipline && question?.syllabusItemId && item?.id && question.syllabusItemId === item.id) matches = true;
+    else if (exactDiscipline && typeof qbMatchesSyllabusItem === "function" && qbMatchesSyllabusItem(question, item)) matches = true;
+    else matches = matches && textMatch;
 
     if (cacheable) {
       const cache = itemCache || new WeakMap();
@@ -241,6 +327,11 @@
     });
   }
 
+  function questionMatchesDisciplineSelection(question, discipline = "") {
+    if (!discipline || disciplineMatches(question, discipline)) return true;
+    return itemsForSelection(discipline).some((item) => questionMatchesItem(question, item));
+  }
+
   function questionMappedToCatalog(question, discipline = "") {
     const items = itemsForSelection(discipline);
     return items.some((item) => questionMatchesItem(question, item));
@@ -254,7 +345,7 @@
       return qbScopedBank();
     }
     const disciplines = unique(catalogItems().map(itemDiscipline));
-    return bank.filter((question) => disciplines.some((discipline) => disciplineMatches(question, discipline)));
+    return bank.filter((question) => disciplines.some((discipline) => questionMatchesDisciplineSelection(question, discipline)));
   }
 
   function control(key) { return byId(FILTER_IDS[key]); }
@@ -284,7 +375,7 @@
       const key = CASCADE_ORDER[index];
       const selected = filters[key];
       if (!selected) continue;
-      if (key === "discipline" && !disciplineMatches(question, selected)) return false;
+      if (key === "discipline" && !questionMatchesDisciplineSelection(question, selected)) return false;
       if (key === "subject" && !matchesSelectedSubject(question, filters)) return false;
       if (key === "theme" && !matchesSelectedTheme(question, selected)) return false;
       if (["board", "year", "agency", "role", "type"].includes(key) && !facetEquals(key, questionFacet(question, key), selected)) return false;
@@ -354,8 +445,14 @@
     }));
     if (key === "discipline") {
       const catalog = catalogItems();
-      base.forEach((question) => add(questionDiscipline(question)));
-      return entriesFor(catalog.length ? catalog.map(itemDiscipline) : base.map(questionDiscipline));
+      if (!catalog.length) {
+        base.forEach((question) => add(questionDiscipline(question)));
+        return entriesFor(base.map(questionDiscipline));
+      }
+      return unique(catalog.map(itemDiscipline)).map((discipline) => ({
+        value: discipline,
+        count: base.filter((question) => questionMatchesDisciplineSelection(question, discipline)).length
+      }));
     }
     if (key === "subject") {
       const catalog = itemsForSelection(filters.discipline);
@@ -377,7 +474,7 @@
     }
     if (key === "theme") {
       if (!filters.subject) return [];
-      base.forEach((question) => questionThemeValues(question).forEach(add));
+      base.forEach((question) => questionThemeValuesForSubject(question, filters.subject).forEach(add));
       return [...counted.values()].sort((a, b) => a.value.localeCompare(b.value, "pt-BR", { numeric: true }));
     }
     if (key === "keyStatus") {
@@ -527,8 +624,13 @@
     normalizeFacetValue,
     questionSubjectValues,
     questionThemeValues,
+    questionThemeValuesForSubject,
+    qcClassificationValues,
+    qcTaxonomyValues,
+    qcCrosswalkEntriesForItem,
     questionBoard,
     disciplineMatches,
+    questionMatchesDisciplineSelection,
     fuzzyTextMatch,
     questionMatchesItem,
     questionMappedToCatalog,

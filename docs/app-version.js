@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260809-banco-questoes-carregamento-v282";
+  const VERSION = "20260809-qconcursos-taxonomia-filtros-v284";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

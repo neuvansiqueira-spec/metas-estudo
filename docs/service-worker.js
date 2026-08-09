@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20260809-banco-questoes-carregamento-v282";
+const CURRENT_VERSION = "20260809-qconcursos-taxonomia-filtros-v284";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const PROTECTION_VERSION = "20260808-catastrophic-state-recovery-v275";
 const BOOTSTRAP_VERSION = "20260809-planejamento-plantao-salvamento-v283";

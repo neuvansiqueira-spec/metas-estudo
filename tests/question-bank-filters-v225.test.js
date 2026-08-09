@@ -41,6 +41,10 @@ function runtime() {
     qbReviewSyllabusItems: () => syllabusItems,
     qbMatchesSyllabusItem: oldMatch,
     qbScopedBank: () => questionBank.filter((question) => syllabusItems.some((item) => oldMatch(question, item))),
+    QCONCURSOS_AUDITED_CROSSWALK: [
+      { d:"DIREITO PENAL", t:"1.3 Teoria Geral do Crime.", s:"Fato Típico", n:"3", k:"category" },
+      { d:"LEGISLAÇÃO ESPECÍFICA – DIREITO PENAL", t:"Lei nº 11.343/2006.", s:"Lei nº 11.343/2006", n:"40.13", k:"exact" }
+    ],
     qbHasKey: (question) => Boolean(question.gabarito),
     qbIsMultipleChoice: (question) => Boolean(question.alternativas),
     qbFilteredQuestions: () => [], qbRenderCascadingFilters: () => {}, renderQuestionBank: () => {}, qbRenderQuestionBankStats: () => {},
@@ -74,6 +78,41 @@ test("disciplinas próximas não são misturadas", () => {
   controls.qbTrainingScope.value = "all";
   controls.qbFilterDiscipline.value = "DIREITO PENAL";
   assert.equal(api.filteredQuestions().length, 5);
+});
+
+test("hierarquia do QC é projetada no edital mesmo quando os nomes e a disciplina diferem", () => {
+  const { api, context } = runtime();
+  const penalQc = {
+    disciplina:"Direito Penal",
+    qcDisciplina:"Direito Penal",
+    qcAssunto:"Erro do tipo essencial",
+    qcClassificacao:"Direito Penal > Tipicidade > Erro do tipo essencial",
+    assunto:"Erro do tipo essencial",
+    tema:"Erro do tipo essencial"
+  };
+  assert.ok(api.qcClassificationValues(penalQc).includes("Tipicidade"));
+  assert.ok(api.questionSubjectValues(penalQc).includes("Tipicidade"));
+  assert.deepEqual([...api.questionThemeValuesForSubject(penalQc, "Tipicidade")], ["Erro do tipo essencial"]);
+  assert.equal(api.questionMatchesItem(penalQc, { discipline:"DIREITO PENAL", topic:"1.3 Teoria Geral do Crime.", subject:"Fato Típico", reference:"1.3.2 Fato Típico." }), true);
+
+  const leiDrogasItem = {
+    id:"s-qc-lei-drogas",
+    discipline:"LEGISLAÇÃO ESPECÍFICA – DIREITO PENAL",
+    topic:"Lei nº 11.343/2006.",
+    subject:"Lei nº 11.343/2006",
+    reference:"Lei nº 11.343/2006"
+  };
+  context.state.syllabusItems.push(leiDrogasItem);
+  const leiDrogasQc = {
+    disciplina:"Direito Penal",
+    qcDisciplina:"Direito Penal",
+    qcAssunto:"Tráfico privilegiado",
+    qcClassificacao:"Direito Penal > Legislação Penal Especial > Lei de Drogas > Tráfico privilegiado",
+    assunto:"Lei de Drogas",
+    tema:"Tráfico privilegiado"
+  };
+  assert.equal(api.questionMatchesItem(leiDrogasQc, leiDrogasItem), true);
+  assert.equal(api.questionMatchesDisciplineSelection(leiDrogasQc, "LEGISLAÇÃO ESPECÍFICA – DIREITO PENAL"), true);
 });
 
 test("banca, tipo, órgão e cargo equivalentes são unificados", () => {

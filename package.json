@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260809-banco-questoes-carregamento-v282",
+  "version": "20260809-qconcursos-taxonomia-filtros-v284",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

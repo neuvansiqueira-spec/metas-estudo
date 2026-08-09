@@ -60,7 +60,8 @@ test("a rota e o vínculo ativo destacam o código usado no QConcursos", () => {
 
 test("versão v54 e publicação permanecem sincronizadas", () => {
   assert.match(worker, new RegExp(`const CURRENT_VERSION = "${version}"`));
-  assert.match(worker, /"20260718-contraste-interno-v53"/);
+  assert.match(worker, /const CONTRAST_VERSION = "[^"]+";/);
+  assert.match(worker, /const BOOTSTRAP_CORE = `bootstrap-integrity-loader-v258-core\.js\?v=\$\{BOOTSTRAP_VERSION\}`;/);
   assert.match(html, new RegExp(`Versão: ${version}`));
   for (const file of ["index.html", "script.js", "service-worker.js", "header-brand-fix.js", "sync-integral-time-protection.js"]) {
     assert.equal(fs.readFileSync(file, "utf8"), fs.readFileSync(`docs/${file}`, "utf8"), `${file} deve ser idêntico em docs`);

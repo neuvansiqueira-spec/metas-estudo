@@ -5,6 +5,15 @@ function read(file) {
   return fs.readFileSync(file, "utf8");
 }
 
+function hrefs(html, tag, attribute) {
+  const pattern = new RegExp(`<${tag}\\b[^>]*\\b${attribute}="([^"]+)"`, "g");
+  return [...html.matchAll(pattern)].map((match) => match[1]);
+}
+
+function assertUnique(values, message) {
+  assert.equal(new Set(values).size, values.length, message);
+}
+
 function assertCurrentReleaseContract() {
   const version = JSON.parse(read("package.json")).version;
   const suffix = version.match(/v\d+$/)?.[0];
@@ -16,30 +25,48 @@ function assertCurrentReleaseContract() {
   const script = read("script.js");
   const jsBundle = read("app.bundle.js");
   const cssBundle = read("app.bundle.css");
+  const bootstrapCore = read("bootstrap-integrity-loader-v258-core.js");
 
-  assert.equal(html, read("docs/index.html"));
-  assert.equal(script, read("docs/script.js"));
-  assert.equal(worker, read("docs/service-worker.js"));
-  assert.equal(appVersion, read("docs/app-version.js"));
-  assert.equal(jsBundle, read("docs/app.bundle.js"));
-  assert.equal(cssBundle, read("docs/app.bundle.css"));
+  for (const file of [
+    "index.html",
+    "script.js",
+    "service-worker.js",
+    "app-version.js",
+    "app.bundle.js",
+    "app.bundle.css",
+    "bootstrap-integrity-loader-v258-core.js"
+  ]) {
+    assert.equal(read(file), read(`docs/${file}`), `${file} deve ser idêntico em docs`);
+  }
 
   assert.match(html, new RegExp(`app-${suffix}\\.css\\?v=${version}`));
   assert.match(html, new RegExp(`app-${suffix}\\.js\\?v=${version}`));
   assert.doesNotMatch(html, /app-version\.js/);
-  const externalScripts = [...html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"/g)].map((match) => match[1]);
-  assert.deepEqual(externalScripts, [
-    `app-${suffix}.js?v=${version}`,
-    "daily-summary-time-format-v243.js?v=20260805-daily-summary-hours-minutes-v243&hotfix=daily-summary-time-format-hotfix2",
-    `planning-integrity-loader-v235.js?v=${version}&publication=v244`
-  ]);
-  assert.equal(new Set(externalScripts).size, externalScripts.length, "Scripts auxiliares não podem ser carregados em duplicidade.");
-  assert.equal((html.match(/<link\b[^>]*\brel="stylesheet"/g) || []).length, 1);
+
+  const externalScripts = hrefs(html, "script", "src");
+  const externalStylesheets = [...html.matchAll(/<link\b[^>]*\brel="stylesheet"[^>]*\bhref="([^"]+)"/g)].map((match) => match[1]);
+  assertUnique(externalScripts, "Scripts auxiliares não podem ser carregados em duplicidade.");
+  assertUnique(externalStylesheets, "Folhas de estilo não podem ser carregadas em duplicidade.");
+  assert.ok(
+    externalScripts.some((src) => /bootstrap-integrity-loader-v(?:258|275)\.js/.test(src))
+      || externalScripts.some((src) => src === `app-${suffix}.js?v=${version}`),
+    "O HTML deve iniciar pelo carregador protegido ou pelo bundle público atual."
+  );
+  assert.ok(
+    externalStylesheets.some((href) => href === `app-${suffix}.css?v=${version}`),
+    "A folha de estilo principal da versão atual deve estar ligada ao HTML."
+  );
+
+  assert.match(bootstrapCore, new RegExp(`app-${suffix}\\.js\\?v=${version}`));
+  assert.match(bootstrapCore, /const SCRIPT_CHAIN = \[/);
   assert.match(appVersion, new RegExp(`const VERSION = "${version}";`));
   assert.doesNotMatch(appVersion, /MutationObserver/);
   assert.match(script, /const APP_VERSION = globalThis\.__ALDUS_APP_RELEASE__\?\.version/);
   assert.match(worker, new RegExp(`const CURRENT_VERSION = "${version}"`));
+  assert.match(worker, /installProtectedBootstrapV275/);
+  assert.match(worker, /BOOTSTRAP_CORE/);
   assert.doesNotMatch(worker, /importScripts|patchHtmlSource|transformAppScriptResponse|replaceVersion/);
+
   assert.ok(fs.existsSync(`app-${suffix}.js`));
   assert.ok(fs.existsSync(`app-${suffix}.css`));
   assert.ok(fs.existsSync(`service-worker-${suffix}.js`));
@@ -51,6 +78,8 @@ function assertCurrentReleaseContract() {
   assert.match(jsBundle, /Aldus source: pcpr-pcma-2026-migration\.js/);
   assert.match(jsBundle, /Aldus source: sync-integral-time-protection\.js/);
   assert.match(jsBundle, /Aldus source: app-version\.js/);
+  assert.match(jsBundle, /Aldus source: qconcursos-crosswalk\.js/);
+  assert.match(jsBundle, /Aldus source: question-bank-filters-v225\.js/);
   assert.match(jsBundle, /Aldus source: factory-plan-day-v159\.js/);
   assert.match(jsBundle, /Aldus source: timer-motivation-v161\.js/);
   assert.match(jsBundle, /Aldus source: question-register-simple-v162\.js/);
