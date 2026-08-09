@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - tools/apply-qc-taxonomy-v284.mjs
+      - tools/finalize-qc-taxonomy-v284.mjs
       - .github/workflows/publish-qc-taxonomy-v284.yml
   workflow_dispatch:
 
@@ -29,11 +30,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - name: Apply QC taxonomy bridge
         run: node tools/apply-qc-taxonomy-v284.mjs
+
+      - name: Synchronize protected bootstrap and release contract
+        run: node tools/finalize-qc-taxonomy-v284.mjs
 
       - name: Install dependencies
         run: npm ci
@@ -57,9 +61,11 @@ jobs:
           node --check service-worker-v284.js
           grep -q '20260809-qconcursos-taxonomia-filtros-v284' package.json
           grep -q '20260809-qconcursos-taxonomia-filtros-v284' docs/index.html
+          grep -q 'app-v284.js?v=20260809-qconcursos-taxonomia-filtros-v284' bootstrap-integrity-loader-v258-core.js
           cmp -s app.bundle.js docs/app.bundle.js
           cmp -s question-bank-filters-v225.js docs/question-bank-filters-v225.js
           cmp -s qconcursos-crosswalk.js docs/qconcursos-crosswalk.js
+          cmp -s bootstrap-integrity-loader-v258-core.js docs/bootstrap-integrity-loader-v258-core.js
 
       - name: Commit generated release to main
         run: |
