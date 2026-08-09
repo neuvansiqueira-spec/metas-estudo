@@ -1,4 +1,4 @@
-name: Publish QC expanded mapping v290
+name: Publish stale-worker recovery v291
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
     paths:
       - qconcursos-subject-equivalence-v287.js
       - tests/qconcursos-subject-equivalence-v287.test.js
+      - tools/sync-legacy-service-workers-v291.mjs
       - .github/workflows/publish-qc-subject-equivalence-v287.yml
   workflow_dispatch:
 
@@ -14,7 +15,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: publish-qc-expanded-mapping-v290
+  group: publish-stale-worker-recovery-v291
   cancel-in-progress: false
 
 jobs:
@@ -33,11 +34,11 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Prepare v290 release
+      - name: Prepare v291 release
         run: |
           node <<'NODE'
           const fs = require('node:fs');
-          const VERSION = '20260809-qconcursos-mapeamento-ampliado-v290';
+          const VERSION = '20260809-atualizacao-worker-v291';
           const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
           pkg.version = VERSION;
           fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
@@ -50,9 +51,9 @@ jobs:
           let bootstrap = fs.readFileSync('bootstrap-integrity-loader-v258-core.js', 'utf8');
           bootstrap = bootstrap.replace(
             /\["aldusAppBundleScript",\s*"app-v\d+\.js\?v=[^"]+"\]/,
-            `["aldusAppBundleScript", "app-v290.js?v=${VERSION}"]`
+            `["aldusAppBundleScript", "app-v291.js?v=${VERSION}"]`
           );
-          if (!bootstrap.includes(`app-v290.js?v=${VERSION}`)) throw new Error('Bootstrap V290 não sincronizado.');
+          if (!bootstrap.includes(`app-v291.js?v=${VERSION}`)) throw new Error('Bootstrap V291 não sincronizado.');
           fs.writeFileSync('bootstrap-integrity-loader-v258-core.js', bootstrap);
           fs.copyFileSync('bootstrap-integrity-loader-v258-core.js', 'docs/bootstrap-integrity-loader-v258-core.js');
           NODE
@@ -63,7 +64,10 @@ jobs:
       - name: Build release
         run: npm run build
 
-      - name: Test QC expanded mapping
+      - name: Synchronize legacy workers
+        run: node tools/sync-legacy-service-workers-v291.mjs
+
+      - name: Test release
         run: >-
           node --test
           tests/qconcursos-subject-equivalence-v287.test.js
@@ -77,16 +81,18 @@ jobs:
       - name: Validate generated release
         run: |
           node --check qconcursos-subject-equivalence-v287.js
-          node --check app-v290.js
-          node --check service-worker-v290.js
-          grep -q '20260809-qconcursos-mapeamento-ampliado-v290' package.json
-          grep -q '20260809-qconcursos-mapeamento-ampliado-v290' docs/index.html
-          grep -q 'app-v290.js?v=20260809-qconcursos-mapeamento-ampliado-v290' bootstrap-integrity-loader-v258-core.js
+          node --check app-v291.js
+          node --check service-worker-v291.js
+          node --check service-worker-v282.js
+          grep -q '20260809-atualizacao-worker-v291' package.json
+          grep -q '20260809-atualizacao-worker-v291' docs/index.html
+          grep -q 'app-v291.js?v=20260809-atualizacao-worker-v291' bootstrap-integrity-loader-v258-core.js
           grep -q 'refreshVisibleQconcursosLinkV290' app.bundle.js
           grep -q 'VERIFIED_DISCIPLINE_ROUTES' app.bundle.js
           grep -q 'questionQconcursosLinkStatusV290' app.bundle.js
-          grep -q 'audited-crosswalk-canonical-route' app.bundle.js
-          grep -q 'QCONCURSOS_AUDITED_CROSSWALK' qconcursos-subject-equivalence-v287.js
+          grep -q '20260809-atualizacao-worker-v291' service-worker-v282.js
+          cmp -s service-worker.js service-worker-v282.js
+          cmp -s service-worker.js docs/service-worker-v282.js
           cmp -s app.bundle.js docs/app.bundle.js
           cmp -s bootstrap-integrity-loader-v258-core.js docs/bootstrap-integrity-loader-v258-core.js
 
@@ -99,5 +105,5 @@ jobs:
             echo "Nenhuma alteração adicional para publicar."
             exit 0
           fi
-          git commit -m "fix: publica mapeamento QC v290"
+          git commit -m "fix: recupera atualização presa na V282 v291"
           git push origin HEAD:main
