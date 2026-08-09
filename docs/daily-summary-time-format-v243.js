@@ -2,10 +2,11 @@
   "use strict";
 
   const VERSION = "20260805-daily-summary-hours-minutes-v243";
-  const HOTFIX = "daily-summary-time-format-hotfix3";
+  const HOTFIX = "daily-summary-time-format-hotfix4";
   const GLOBAL_KEY = "__ALDUS_DAILY_SUMMARY_TIME_FORMAT_V243__";
   const PLANNED_SELECTOR = ".planned-today-stat > strong";
   const REALIZED_SELECTOR = ".realized-today-stat > strong";
+  const WEEKLY_STATUS_SELECTOR = "#weeklyGoalStatus";
   const CENTRAL_PALETTE_STYLE_ID = "aldusCentralGoalsPaletteV246";
   const CENTRAL_PALETTE_VERSION = "20260805-dashboard-central-metas-cores-v246";
 
@@ -106,6 +107,27 @@
     return { target, done, planned, count: selected.length };
   }
 
+  function calculateRegisteredMinutesBetween(logs, start, end) {
+    return (Array.isArray(logs) ? logs : []).reduce((sum, log) => {
+      const date = String(log?.date || log?.data || "").slice(0, 10);
+      if (!date || date < start || date > end) return sum;
+      return sum + Math.max(0, Number(log?.minutes) || 0);
+    }, 0);
+  }
+
+  function addDaysFallback(dateString, amount) {
+    const date = new Date(`${dateString}T12:00:00`);
+    date.setDate(date.getDate() + amount);
+    return date.toLocaleDateString("en-CA");
+  }
+
+  function weekStartFallback(dateString) {
+    const date = new Date(`${dateString}T12:00:00`);
+    const mondayOffset = (date.getDay() + 6) % 7;
+    date.setDate(date.getDate() - mondayOffset);
+    return date.toLocaleDateString("en-CA");
+  }
+
   function selectedDate() {
     try {
       if (typeof elements !== "undefined" && elements?.goalDate?.value) return String(elements.goalDate.value).slice(0, 10);
@@ -132,6 +154,20 @@
     }
   }
 
+  function currentWeekRegisteredMinutes() {
+    try {
+      if (typeof state === "undefined") return null;
+      if (typeof bootstrapStateReady !== "undefined" && bootstrapStateReady !== true) return null;
+      if (typeof centralTimeChartLogs !== "function") return null;
+      const today = typeof todayISO === "function" ? todayISO() : new Date().toLocaleDateString("en-CA");
+      const start = typeof weekStart === "function" ? weekStart(today) : weekStartFallback(today);
+      const end = typeof addDays === "function" ? addDays(start, 6) : addDaysFallback(start, 6);
+      return calculateRegisteredMinutesBetween(centralTimeChartLogs(), start, end);
+    } catch {
+      return null;
+    }
+  }
+
   function setFormattedValue(selector, minutes) {
     const element = document.querySelector(selector);
     if (!element) return false;
@@ -143,15 +179,31 @@
     return true;
   }
 
+  function setWeeklyRegisteredValue() {
+    const element = document.querySelector(WEEKLY_STATUS_SELECTOR);
+    if (!element) return false;
+    const minutes = currentWeekRegisteredMinutes();
+    if (minutes === null) return false;
+    const nextText = `${formatDurationMinutes(minutes)} registradas`;
+    if (element.textContent === nextText && element.dataset.dailySummaryTimeFormatHotfix === HOTFIX) return false;
+    element.textContent = nextText;
+    element.dataset.dailySummaryTimeFormatV243 = VERSION;
+    element.dataset.dailySummaryTimeFormatHotfix = HOTFIX;
+    element.dataset.weeklyRegisteredMinutes = String(Math.max(0, Math.round(Number(minutes) || 0)));
+    return true;
+  }
+
   function apply() {
-    if (typeof document === "undefined") return { changed: 0, summary: null };
+    if (typeof document === "undefined") return { changed: 0, summary: null, weeklyMinutes: null };
     installCentralGoalsPalette();
     const summary = currentSummaryMinutes();
-    if (!summary) return { changed: 0, summary: null };
     let changed = 0;
-    if (setFormattedValue(PLANNED_SELECTOR, summary.target)) changed += 1;
-    if (setFormattedValue(REALIZED_SELECTOR, summary.done)) changed += 1;
-    return { changed, summary };
+    if (summary) {
+      if (setFormattedValue(PLANNED_SELECTOR, summary.target)) changed += 1;
+      if (setFormattedValue(REALIZED_SELECTOR, summary.done)) changed += 1;
+    }
+    if (setWeeklyRegisteredValue()) changed += 1;
+    return { changed, summary, weeklyMinutes: currentWeekRegisteredMinutes() };
   }
 
   const api = Object.freeze({
@@ -160,6 +212,8 @@
     centralPaletteVersion: CENTRAL_PALETTE_VERSION,
     formatDurationMinutes,
     calculateSummaryMinutes,
+    calculateRegisteredMinutesBetween,
+    currentWeekRegisteredMinutes,
     installCentralGoalsPalette,
     apply
   });
