@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260809-qconcursos-mapeamento-ampliado-v290";
+  const VERSION = "20260809-atualizacao-worker-v291";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
