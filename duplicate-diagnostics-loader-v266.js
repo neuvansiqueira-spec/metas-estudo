@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260808-direct-publish-factory-schedule-v278";
+  const VERSION = "20260808-direct-publish-factory-schedule-filters-v279";
   const source = document.currentScript;
   const baseUrl = source?.src || document.baseURI;
 
@@ -34,7 +34,14 @@
     "Falha ao carregar o modo Cronograma da Fábrica de Resumos."
   );
 
-  globalThis.__aldusDirectPublishLoaderV278 = Object.freeze({
+  appendScript(
+    "aldusFactoryScheduleFiltersV279",
+    "factory-schedule-filters-v279.js",
+    "20260808-factory-schedule-filters-v279",
+    "Falha ao carregar os filtros do Cronograma da Fábrica de Resumos."
+  );
+
+  globalThis.__aldusDirectPublishLoaderV279 = Object.freeze({
     version: VERSION,
     installedAt: new Date().toISOString()
   });
