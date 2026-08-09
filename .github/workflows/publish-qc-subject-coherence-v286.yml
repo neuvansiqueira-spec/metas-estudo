@@ -1,0 +1,76 @@
+name: Publish QC subject coherence v286
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - tools/apply-qc-subject-coherence-v286.mjs
+      - .github/workflows/publish-qc-subject-coherence-v286.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-qc-subject-coherence-v286
+  cancel-in-progress: false
+
+jobs:
+  apply-test-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Apply QC subject coherence guard
+        run: node tools/apply-qc-subject-coherence-v286.mjs
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build release
+        run: npm run build
+
+      - name: Test QC subject coherence
+        run: >-
+          node --test
+          tests/qconcursos-subject-coherence-v286.test.js
+          tests/question-registration-route.test.js
+          tests/question-bank-filters-v225.test.js
+          tests/v56-qc-catalog-numbering.test.js
+          tests/v57-qc-complete-crosswalk.test.js
+          tests/question-bank-performance-v282.test.mjs
+
+      - name: Validate generated release
+        run: |
+          node --check qconcursos-subject-coherence-v286.js
+          node --check app-v286.js
+          node --check service-worker-v286.js
+          grep -q '20260809-qconcursos-assunto-coerente-v286' package.json
+          grep -q '20260809-qconcursos-assunto-coerente-v286' docs/index.html
+          grep -q 'app-v286.js?v=20260809-qconcursos-assunto-coerente-v286' bootstrap-integrity-loader-v258-core.js
+          grep -q 'qconcursos-subject-coherence-v286.js' app.bundle.js
+          cmp -s app.bundle.js docs/app.bundle.js
+          cmp -s bootstrap-integrity-loader-v258-core.js docs/bootstrap-integrity-loader-v258-core.js
+
+      - name: Commit generated release to main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração adicional para publicar."
+            exit 0
+          fi
+          git commit -m "fix: impede assunto QC divergente v286"
+          git push origin HEAD:main
