@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260809-qconcursos-assunto-automatico-v285",
+  "version": "20260809-qconcursos-assunto-coerente-v286",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

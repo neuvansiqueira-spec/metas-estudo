@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260809-qconcursos-assunto-automatico-v285";
+  const VERSION = "20260809-qconcursos-assunto-coerente-v286";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
