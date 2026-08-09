@@ -1,50 +1,75 @@
 /* Aldus Meta — Central de Metas: cartões Hoje, Esta semana e Este mês
-   Versão: 20260805-central-period-cards-v248 */
+   Versão: 20260809-central-period-cards-sofisticada-v292 */
 
 html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card[data-central-period="today"] {
-  --period-accent: #a78bfa;
-  --period-border: #8b5cf6;
-  --period-title: #e0d2ff;
-  --period-muted: #ddd3f4;
-  --period-bg: linear-gradient(145deg, #302052 0%, #1a1c38 100%);
+  --period-accent: #a86cff;
+  --period-border: rgba(168, 108, 255, .72);
+  --period-title: #b882ff;
+  --period-muted: #c9adf3;
+  --period-bg:
+    radial-gradient(circle at 12% 22%, rgba(134, 76, 218, .24) 0%, rgba(134, 76, 218, 0) 42%),
+    linear-gradient(135deg, #17162c 0%, #10192a 52%, #081727 100%);
+  --period-glow: rgba(156, 91, 255, .20);
 }
 
 html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card[data-central-period="week"] {
-  --period-accent: #58b8ff;
-  --period-border: #279ddd;
-  --period-title: #79cbff;
-  --period-muted: #c8e7fb;
-  --period-bg: linear-gradient(145deg, #0b3d62 0%, #082a44 100%);
+  --period-accent: #329bff;
+  --period-border: rgba(50, 155, 255, .72);
+  --period-title: #3da5ff;
+  --period-muted: #9ecbf1;
+  --period-bg:
+    radial-gradient(circle at 12% 22%, rgba(33, 116, 210, .25) 0%, rgba(33, 116, 210, 0) 42%),
+    linear-gradient(135deg, #0b2340 0%, #0a1c31 50%, #071626 100%);
+  --period-glow: rgba(50, 155, 255, .18);
 }
 
 html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card[data-central-period="month"] {
-  --period-accent: #d9e7ef;
-  --period-border: #a9c0cd;
-  --period-title: #edf7fb;
-  --period-muted: #d8e5eb;
-  --period-bg: linear-gradient(145deg, #334957 0%, #21323d 100%);
+  --period-accent: #35c7bd;
+  --period-border: rgba(53, 199, 189, .65);
+  --period-title: #42d1c7;
+  --period-muted: #9ddbd6;
+  --period-bg:
+    radial-gradient(circle at 12% 22%, rgba(31, 154, 145, .24) 0%, rgba(31, 154, 145, 0) 42%),
+    linear-gradient(135deg, #0a292f 0%, #0a202b 50%, #071626 100%);
+  --period-glow: rgba(53, 199, 189, .16);
 }
 
 html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card[data-central-period] {
+  position: relative;
+  overflow: hidden;
   border: 1px solid var(--period-border) !important;
   border-left: 7px solid var(--period-accent) !important;
   background: var(--period-bg) !important;
-  box-shadow: 0 12px 28px rgba(0, 6, 18, .30) !important;
+  box-shadow:
+    0 14px 32px rgba(0, 5, 16, .38),
+    inset 0 1px 0 rgba(255, 255, 255, .035),
+    0 0 22px var(--period-glow) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card[data-central-period]::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: linear-gradient(180deg, rgba(255,255,255,.52), rgba(255,255,255,.04));
+  opacity: .55;
+  pointer-events: none;
 }
 
 html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card[data-central-period] > h3 {
   color: var(--period-title) !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, .30) !important;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, .34) !important;
 }
 
 html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card[data-central-period] .card-meta-grid {
   border-color: var(--period-border) !important;
-  background: rgba(2, 16, 29, .56) !important;
+  background: rgba(2, 14, 25, .55) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
 }
 
 html[data-aldus-theme="premium-stable"] #view-central-metas #centralGoalsCards > .goal-central-card[data-central-period] .card-meta-grid span {
   color: var(--period-muted) !important;
-  background: rgba(1, 12, 23, .34) !important;
+  background: rgba(1, 10, 19, .34) !important;
 }
 
 /* Os botões mantêm o azul padrão do site. */
