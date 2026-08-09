@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260809-qconcursos-assunto-equivalente-v287";
+  const VERSION = "20260809-qconcursos-link-vivo-v288";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
