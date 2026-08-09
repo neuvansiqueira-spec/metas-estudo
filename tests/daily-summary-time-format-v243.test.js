@@ -13,9 +13,9 @@ function runtime() {
   return context.__ALDUS_DAILY_SUMMARY_TIME_FORMAT_V243__;
 }
 
-test("publica a versão V243 e o hotfix do resumo diário", () => {
+test("publica a versão V243 e o hotfix de horas e minutos", () => {
   assert.match(source, /20260805-daily-summary-hours-minutes-v243/);
-  assert.match(source, /daily-summary-time-format-hotfix1/);
+  assert.match(source, /daily-summary-time-format-hotfix4/);
   assert.match(source, /__ALDUS_DAILY_SUMMARY_TIME_FORMAT_V243__/);
 });
 
@@ -63,9 +63,23 @@ test("usa a disponibilidade quando não há metas planejadas", () => {
   assert.equal(api.formatDurationMinutes(summary.target), "6h 30min");
 });
 
-test("altera somente os cartões planejado e realizado", () => {
+test("soma os minutos registrados dentro da semana sem arredondar para horas inteiras", () => {
+  const api = runtime();
+  const logs = [
+    { date: "2026-08-03", minutes: 61 },
+    { date: "2026-08-09", minutes: 47 },
+    { date: "2026-08-10", minutes: 600 }
+  ];
+  const minutes = api.calculateRegisteredMinutesBetween(logs, "2026-08-03", "2026-08-09");
+  assert.equal(minutes, 108);
+  assert.equal(api.formatDurationMinutes(minutes), "1h 48min");
+});
+
+test("mantém o resumo diário e acrescenta horas e minutos ao indicador semanal", () => {
   assert.match(source, /\.planned-today-stat > strong/);
   assert.match(source, /\.realized-today-stat > strong/);
+  assert.match(source, /#weeklyGoalStatus/);
+  assert.match(source, /formatDurationMinutes\(minutes\).*registradas/s);
   assert.doesNotMatch(source, /historical-time-stat > strong/);
 });
 
@@ -84,10 +98,11 @@ test("loader e service worker carregam e renovam a V243", () => {
   const worker = fs.readFileSync("service-worker.js", "utf8");
   assert.match(loader, /daily-summary-time-format-v243\.js/);
   assert.match(loader, /__ALDUS_DAILY_SUMMARY_TIME_FORMAT_V243__/);
-  assert.match(loader, /daily-summary-time-format-hotfix2/);
+  assert.match(loader, /daily-summary-time-format-hotfix4/);
   assert.match(worker, /daily-summary-time-format-v243\.js/);
   assert.match(worker, /daily-summary-direct-v244-hotfix2/);
-  assert.match(worker, /daily-summary-time-format-hotfix2/);
+  assert.match(worker, /daily-summary-time-format-hotfix4/);
+  assert.match(worker, /weekly-registered-minutes-hotfix4/);
   assert.equal(loader, fs.readFileSync("docs/planning-integrity-loader-v235.js", "utf8"));
   assert.equal(worker, fs.readFileSync("docs/service-worker.js", "utf8"));
 });
