@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260809-qconcursos-assunto-equivalente-v287";
+  const VERSION = "20260809-qconcursos-link-vivo-v288";
 
   // IDs abaixo são usados apenas quando a equivalência entre o item do edital
   // e o assunto do QConcursos foi confirmada. O número hierárquico do QC não
@@ -55,7 +55,7 @@
   if (typeof buildQconcursosFilterRoute !== "function") return;
   const previousBuildQconcursosFilterRoute = buildQconcursosFilterRoute;
 
-  buildQconcursosFilterRoute = function buildQconcursosFilterRouteV287(item = {}, board = "") {
+  buildQconcursosFilterRoute = function buildQconcursosFilterRouteV288(item = {}, board = "") {
     const route = previousBuildQconcursosFilterRoute(item, board);
     const equivalence = verifiedEquivalence(item);
     if (!equivalence) return route;
@@ -81,8 +81,42 @@
     };
   };
 
+  function currentQconcursosRouteV288() {
+    if (typeof elements === "undefined" || typeof getSyllabusById !== "function") return null;
+    const item = getSyllabusById(elements.questionSyllabusItem?.value);
+    if (!item) return null;
+    return buildQconcursosFilterRoute(item, elements.questionBoard?.value || "");
+  }
+
+  function refreshVisibleQconcursosLinkV288() {
+    try {
+      if (typeof renderQconcursosFilterRoute === "function") renderQconcursosFilterRoute();
+    } catch (error) {
+      console.warn("[Aldus Meta] Não foi possível atualizar a rota visível do QConcursos.", error);
+    }
+  }
+
+  if (typeof document !== "undefined") {
+    // Corrige seleções restauradas antes de esta camada ser carregada.
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", refreshVisibleQconcursosLinkV288, { once: true });
+    } else {
+      queueMicrotask(refreshVisibleQconcursosLinkV288);
+    }
+
+    // Regra final: imediatamente antes da navegação, recalcula o href usando
+    // disciplina/assunto/banca atualmente selecionados. Assim um href antigo
+    // nunca abre o QC com q= quando já existe subject_ids confirmado.
+    document.addEventListener("click", (event) => {
+      const anchor = event.target?.closest?.("a.button-link");
+      if (!anchor || typeof elements === "undefined" || !elements.questionQconcursosRoute?.contains(anchor)) return;
+      const route = currentQconcursosRouteV288();
+      if (route?.url) anchor.href = route.url;
+    }, true);
+  }
+
   Object.defineProperty(globalThis, "__aldusQconcursosSubjectEquivalenceV287", {
-    value: Object.freeze({ VERSION, verifiedEquivalence, equivalences: VERIFIED_EQUIVALENCES }),
+    value: Object.freeze({ VERSION, verifiedEquivalence, equivalences: VERIFIED_EQUIVALENCES, liveLink: true }),
     configurable: true
   });
 })();
