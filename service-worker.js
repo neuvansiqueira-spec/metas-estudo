@@ -3,7 +3,8 @@
 const CURRENT_VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const PROTECTION_VERSION = "20260808-catastrophic-state-recovery-v275";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v240-hotfix4-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275`;
+const DUPLICATE_CONTINUITY_VERSION = "20260808-duplicate-consolidation-continuity-v276";
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v240-hotfix4-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
@@ -20,11 +21,11 @@ const INTEGRITY_CORE = `planning-integrity-v235.js?v=${CURRENT_VERSION}`;
 const CATASTROPHIC_STATE_GUARD = `catastrophic-state-guard-v275.js?v=${PROTECTION_VERSION}`;
 const BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275.js?v=${PROTECTION_VERSION}`;
 const RECOVERY_SAFETY = `recovery-safety-v275.js?v=${PROTECTION_VERSION}`;
-const DUPLICATE_DIAGNOSTICS_LOADER = "duplicate-diagnostics-loader-v269.js?v=20260808-duplicate-manual-overlap-actions-v274";
-const DUPLICATE_DIAGNOSTICS_SEARCH = "duplicate-diagnostics-search-v272.js?v=20260808-duplicate-manual-overlap-actions-v274";
-const DUPLICATE_DIAGNOSTICS_MAP = "duplicate-diagnostics-map-v273.js?v=20260808-duplicate-manual-overlap-actions-v274";
-const DUPLICATE_DIAGNOSTICS_ACTIONS = "duplicate-diagnostics-actions-v274.js?v=20260808-duplicate-manual-overlap-actions-v274";
-const DUPLICATE_DIAGNOSTICS_SEARCH_CSS = "duplicate-diagnostics-search-v271.css?v=20260808-duplicate-manual-overlap-actions-v274";
+const DUPLICATE_DIAGNOSTICS_LOADER = `duplicate-diagnostics-loader-v269.js?v=${DUPLICATE_CONTINUITY_VERSION}`;
+const DUPLICATE_DIAGNOSTICS_SEARCH = `duplicate-diagnostics-search-v272.js?v=${DUPLICATE_CONTINUITY_VERSION}`;
+const DUPLICATE_DIAGNOSTICS_MAP = `duplicate-diagnostics-map-v273.js?v=${DUPLICATE_CONTINUITY_VERSION}`;
+const DUPLICATE_DIAGNOSTICS_ACTIONS = `duplicate-diagnostics-actions-v274.js?v=${DUPLICATE_CONTINUITY_VERSION}`;
+const DUPLICATE_DIAGNOSTICS_SEARCH_CSS = `duplicate-diagnostics-search-v271.css?v=${DUPLICATE_CONTINUITY_VERSION}`;
 const STATIC_ASSETS = [
   "./",
   "index.html",
@@ -110,10 +111,10 @@ function installProtectedBootstrapV275(html) {
   return patched.includes("</body>") ? patched.replace("</body>", `  ${tags}\n</body>`) : `${patched}\n${tags}`;
 }
 
-function installDuplicateDiagnosticsV274(html) {
-  const tag = `<script id="aldusDuplicateDiagnosticsLoaderV274" src="${DUPLICATE_DIAGNOSTICS_LOADER}"></script>`;
+function installDuplicateDiagnosticsV276(html) {
+  const tag = `<script id="aldusDuplicateDiagnosticsLoaderV276" src="${DUPLICATE_DIAGNOSTICS_LOADER}"></script>`;
   let patched = html.replace(
-    /<script\s+id=["']aldusDuplicateDiagnosticsLoaderV(?:266|269|270|271|272|273|274)["'][^>]*><\/script>/gi,
+    /<script\s+id=["']aldusDuplicateDiagnosticsLoaderV(?:266|269|270|271|272|273|274|276)["'][^>]*><\/script>/gi,
     ""
   );
   patched = patched.replace(
@@ -163,14 +164,14 @@ async function ensurePageStylesheets(response) {
     patchedHtml = patchedHtml.includes("</body>") ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`) : `${patchedHtml}\n${scriptTag}`;
   }
 
-  patchedHtml = installDuplicateDiagnosticsV274(patchedHtml);
+  patchedHtml = installDuplicateDiagnosticsV276(patchedHtml);
 
   const headers = new Headers(response.headers);
   headers.delete("content-length");
   headers.set("content-type", "text/html; charset=utf-8");
   headers.set("x-aldus-integrity-version", CURRENT_VERSION);
   headers.set("x-aldus-data-protection", PROTECTION_VERSION);
-  headers.set("x-aldus-duplicate-search", "duplicate-manual-overlap-actions-v274");
+  headers.set("x-aldus-duplicate-search", "duplicate-consolidation-continuity-v276");
 
   return new Response(patchedHtml, {
     status: response.status,
