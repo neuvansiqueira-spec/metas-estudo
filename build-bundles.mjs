@@ -254,7 +254,8 @@ function consolidateApplication(baseSource) {
     ["floating-timer-label-quality-v210.js"],
     ["timer-message-variety-v211.js"],
     ["question-history-charts-v215.js"],
-    ["question-history-tone-v216.js"]
+    ["question-history-tone-v216.js"],
+    ["qconcursos-subject-filter-v285.js", "/* Aldus runtime source: qconcursos-subject-filter-v285.js */"]
   ];
   for (const [filename, marker] of appendedModules) {
     source = appendRuntimeModule(source, filename, marker);
@@ -304,7 +305,8 @@ function consolidateApplication(baseSource) {
     "/* Aldus source: question-bank-training-v223.js */",
     "/* Aldus source: question-bank-filters-v224.js */",
     "/* Aldus source: question-bank-filters-v225.js */",
-    "/* Aldus source: question-bank-filter-open-v226.js */"
+    "/* Aldus source: question-bank-filter-open-v226.js */",
+    "/* Aldus runtime source: qconcursos-subject-filter-v285.js */"
   ];
   const missing = requiredMarkers.filter((marker) => !source.includes(marker));
   if (missing.length) throw new Error(`Bundle consolidado incompleto: ${missing.join(", ")}`);

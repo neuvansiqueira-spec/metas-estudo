@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260809-qconcursos-taxonomia-filtros-v284",
+  "version": "20260809-qconcursos-assunto-automatico-v285",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
