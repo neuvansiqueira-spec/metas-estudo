@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260808-direct-publish-factory-schedule-v280";
+  const VERSION = "20260808-direct-publish-factory-schedule-v280-hotfix1";
   const source = document.currentScript;
   const baseUrl = source?.src || document.baseURI;
 
