@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260808-duplicate-manual-overlap-actions-v274";
+  const VERSION = "20260808-duplicate-consolidation-continuity-v276";
   const source = document.currentScript;
   const baseUrl = source?.src || document.baseURI;
 
@@ -61,6 +61,72 @@
     globalThis.__aldusSyllabusDeletionPersistenceV267 = Object.freeze({ version: VERSION, purge: purgeDeletedSyllabusItems });
   }
 
+  function installConsolidationContinuityV276() {
+    if (globalThis.__aldusDuplicateConsolidationContinuityV276) return;
+
+    const nativeSetTimeout = window.setTimeout;
+    let armed = false;
+    let safetyTimer = null;
+
+    const restoreTimer = () => {
+      if (window.setTimeout === patchedSetTimeout) window.setTimeout = nativeSetTimeout;
+      armed = false;
+      if (safetyTimer !== null) {
+        window.clearTimeout(safetyTimer);
+        safetyTimer = null;
+      }
+    };
+
+    const refreshDiagnostic = () => {
+      const root = document.getElementById("aldusDuplicateDiagnosticsV260");
+      if (!root || root.hidden) return;
+      const runButton = root.querySelector("[data-dup-run]");
+      if (!runButton) return;
+
+      let attempts = 0;
+      const tryRefresh = () => {
+        attempts += 1;
+        if (!runButton.disabled) {
+          runButton.click();
+          return;
+        }
+        if (attempts < 40) nativeSetTimeout.call(window, tryRefresh, 50);
+      };
+      nativeSetTimeout.call(window, tryRefresh, 25);
+    };
+
+    function patchedSetTimeout(callback, delay, ...args) {
+      const callbackText = typeof callback === "function"
+        ? Function.prototype.toString.call(callback)
+        : String(callback || "");
+      const isConsolidationReload = armed
+        && Number(delay) === 900
+        && /location\.reload\s*\(/.test(callbackText);
+
+      if (isConsolidationReload) {
+        restoreTimer();
+        refreshDiagnostic();
+        return 0;
+      }
+      return nativeSetTimeout.call(window, callback, delay, ...args);
+    }
+
+    document.addEventListener("click", (event) => {
+      const action = event.target.closest?.("#aldusDuplicateDiagnosticsV260 [data-action='keep']");
+      if (!action) return;
+
+      restoreTimer();
+      armed = true;
+      window.setTimeout = patchedSetTimeout;
+      safetyTimer = nativeSetTimeout.call(window, restoreTimer, 15000);
+    }, true);
+
+    globalThis.__aldusDuplicateConsolidationContinuityV276 = Object.freeze({
+      version: VERSION,
+      restore: restoreTimer
+    });
+  }
+
   function appendStylesheet(id, fileName) {
     if (document.getElementById(id)) return;
     const stylesheet = document.createElement("link");
@@ -118,6 +184,7 @@
   }
 
   installSyllabusDeletionPersistenceV267();
+  installConsolidationContinuityV276();
   appendStylesheet("aldusDuplicateDiagnosticsStylesV260", "duplicate-diagnostics-v260.css");
   appendStylesheet("aldusDuplicateDiagnosticsUiStylesV261", "duplicate-diagnostics-ui-v261.css");
   appendStylesheet("aldusDuplicateDiagnosticsPaletteV263", "duplicate-diagnostics-palette-v263.css");
@@ -127,5 +194,5 @@
   if (globalThis.AldusDuplicateDiagnosticsV260) appendEnhancer();
   else appendScript("aldusDuplicateDiagnosticsScriptV260", "duplicate-diagnostics-v260.js", appendEnhancer);
 
-  globalThis.__aldusDuplicateDiagnosticsLoaderV274 = Object.freeze({ version: VERSION });
+  globalThis.__aldusDuplicateDiagnosticsLoaderV276 = Object.freeze({ version: VERSION });
 })();
