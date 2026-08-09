@@ -1,52 +1,80 @@
-/* Aldus Meta — Central de Metas: paleta dos cartões resumidos
-   Versão: 20260805-dashboard-central-metas-cores-v246 */
+/* Aldus Meta — Central de Metas: paleta sofisticada dos cartões resumidos
+   Versão: 20260809-central-metas-sofisticada-v292 */
 
 html[data-aldus-theme="premium-stable"] #dashboardGoalsScaleSummary > .stat-card:nth-child(1) {
-  --central-card-accent: #a78bfa;
-  --central-card-border: #8b5cf6;
-  --central-card-value: #e0d2ff;
-  --central-card-muted: #ddd3f4;
-  --central-card-bg: linear-gradient(145deg, #302052 0%, #1a1c38 100%);
+  --central-card-accent: #a86cff;
+  --central-card-border: rgba(168, 108, 255, .72);
+  --central-card-value: #b882ff;
+  --central-card-muted: #c9adf3;
+  --central-card-bg:
+    radial-gradient(circle at 12% 22%, rgba(134, 76, 218, .24) 0%, rgba(134, 76, 218, 0) 42%),
+    linear-gradient(135deg, #17162c 0%, #10192a 52%, #081727 100%);
+  --central-card-glow: rgba(156, 91, 255, .20);
 }
 
 html[data-aldus-theme="premium-stable"] #dashboardGoalsScaleSummary > .stat-card:nth-child(2) {
-  --central-card-accent: #f7d462;
-  --central-card-border: #d8ad2f;
-  --central-card-value: #ffe782;
-  --central-card-muted: #f3e8b6;
-  --central-card-bg: linear-gradient(145deg, #4a3a10 0%, #2c260f 100%);
+  --central-card-accent: #f4c34d;
+  --central-card-border: rgba(218, 165, 40, .72);
+  --central-card-value: #ffd05a;
+  --central-card-muted: #e9cf88;
+  --central-card-bg:
+    radial-gradient(circle at 12% 22%, rgba(190, 139, 31, .22) 0%, rgba(190, 139, 31, 0) 42%),
+    linear-gradient(135deg, #211f1b 0%, #121a22 52%, #081727 100%);
+  --central-card-glow: rgba(244, 195, 77, .16);
 }
 
 html[data-aldus-theme="premium-stable"] #dashboardGoalsScaleSummary > .stat-card:nth-child(3) {
-  --central-card-accent: #58b8ff;
-  --central-card-border: #279ddd;
-  --central-card-value: #79cbff;
-  --central-card-muted: #c8e7fb;
-  --central-card-bg: linear-gradient(145deg, #0b3d62 0%, #082a44 100%);
+  --central-card-accent: #329bff;
+  --central-card-border: rgba(50, 155, 255, .72);
+  --central-card-value: #3da5ff;
+  --central-card-muted: #9ecbf1;
+  --central-card-bg:
+    radial-gradient(circle at 12% 22%, rgba(33, 116, 210, .25) 0%, rgba(33, 116, 210, 0) 42%),
+    linear-gradient(135deg, #0b2340 0%, #0a1c31 50%, #071626 100%);
+  --central-card-glow: rgba(50, 155, 255, .18);
 }
 
 html[data-aldus-theme="premium-stable"] #dashboardGoalsScaleSummary > .stat-card:nth-child(4) {
-  --central-card-accent: #d9e7ef;
-  --central-card-border: #a9c0cd;
-  --central-card-value: #edf7fb;
-  --central-card-muted: #d8e5eb;
-  --central-card-bg: linear-gradient(145deg, #334957 0%, #21323d 100%);
+  --central-card-accent: #35c7bd;
+  --central-card-border: rgba(53, 199, 189, .65);
+  --central-card-value: #42d1c7;
+  --central-card-muted: #9ddbd6;
+  --central-card-bg:
+    radial-gradient(circle at 12% 22%, rgba(31, 154, 145, .24) 0%, rgba(31, 154, 145, 0) 42%),
+    linear-gradient(135deg, #0a292f 0%, #0a202b 50%, #071626 100%);
+  --central-card-glow: rgba(53, 199, 189, .16);
 }
 
 html[data-aldus-theme="premium-stable"] #dashboardGoalsScaleSummary > .stat-card:nth-child(-n+4) {
+  position: relative;
+  overflow: hidden;
   border: 1px solid var(--central-card-border) !important;
   border-left: 7px solid var(--central-card-accent) !important;
   background: var(--central-card-bg) !important;
-  box-shadow: 0 12px 28px rgba(0, 6, 18, .30) !important;
+  box-shadow:
+    0 14px 32px rgba(0, 5, 16, .38),
+    inset 0 1px 0 rgba(255, 255, 255, .035),
+    0 0 22px var(--central-card-glow) !important;
+}
+
+html[data-aldus-theme="premium-stable"] #dashboardGoalsScaleSummary > .stat-card:nth-child(-n+4)::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: linear-gradient(180deg, rgba(255,255,255,.52), rgba(255,255,255,.04));
+  opacity: .55;
+  pointer-events: none;
 }
 
 html[data-aldus-theme="premium-stable"] #dashboardGoalsScaleSummary > .stat-card:nth-child(-n+4) > span {
   color: var(--central-card-muted) !important;
+  letter-spacing: .08em;
 }
 
 html[data-aldus-theme="premium-stable"] #dashboardGoalsScaleSummary > .stat-card:nth-child(-n+4) > strong {
   color: var(--central-card-value) !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, .30) !important;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, .34) !important;
 }
 
 /* Próximo Plantão e Próxima Folga permanecem com o padrão visual original. */
