@@ -1,11 +1,12 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260809-banco-questoes-carregamento-v282";
+  const VERSION = "20260809-planejamento-plantao-salvamento-v283";
   const CORE_SCRIPT = `bootstrap-integrity-loader-v258-core.js?v=${VERSION}`;
   const DIAGNOSTICS_SCRIPT = `duplicate-diagnostics-v260.js?v=${VERSION}`;
   const DIAGNOSTICS_STYLESHEET = `duplicate-diagnostics-v260.css?v=${VERSION}`;
   const RECOVERY_SCRIPT = `recovery-safety-v275.js?v=${VERSION}`;
+  const PLANNING_SHIFT_PERSISTENCE_SCRIPT = `planning-shift-persistence-v283.js?v=${VERSION}`;
 
   function installStylesheet(baseUrl) {
     if (document.getElementById("aldusDuplicateDiagnosticsStylesV260")) return;
@@ -46,20 +47,24 @@
     }
 
     const core = makeScript("aldusBootstrapIntegrityCoreV275", CORE_SCRIPT, baseUrl, source);
+    const shiftPersistence = makeScript("aldusPlanningShiftPersistenceV283", PLANNING_SHIFT_PERSISTENCE_SCRIPT, baseUrl, source);
     const diagnostics = makeScript("aldusDuplicateDiagnosticsScriptV260", DIAGNOSTICS_SCRIPT, baseUrl, source);
     const recovery = makeScript("aldusRecoverySafetyV275", RECOVERY_SCRIPT, baseUrl, source);
 
     core.addEventListener("error", () => console.error(`[${VERSION}] Falha ao carregar o núcleo de inicialização.`), { once: true });
+    shiftPersistence.addEventListener("error", () => console.error(`[${VERSION}] Falha ao carregar a persistência das disciplinas de plantão.`), { once: true });
     diagnostics.addEventListener("error", () => console.error(`[${VERSION}] Falha ao carregar o diagnóstico de duplicações.`), { once: true });
     recovery.addEventListener("error", () => console.error(`[${VERSION}] Falha ao carregar a recuperação segura.`), { once: true });
 
     parent.insertBefore(core, source?.nextSibling || null);
-    parent.insertBefore(diagnostics, core.nextSibling);
+    parent.insertBefore(shiftPersistence, core.nextSibling);
+    parent.insertBefore(diagnostics, shiftPersistence.nextSibling);
     parent.insertBefore(recovery, diagnostics.nextSibling);
 
     globalThis.__aldusBootstrapIntegrityLoaderV275 = Object.freeze({
       version: VERSION,
       core: CORE_SCRIPT,
+      planningShiftPersistence: PLANNING_SHIFT_PERSISTENCE_SCRIPT,
       diagnostics: DIAGNOSTICS_SCRIPT,
       recovery: RECOVERY_SCRIPT
     });
