@@ -1,0 +1,199 @@
+(() => {
+  "use strict";
+
+  const VERSION = "20260809-planejamento-plantao-salvamento-v283";
+  const FIELD_ID = "planningShiftDisciplinesPerDay";
+  const FORM_ID = "planningConfigForm";
+  const SNAPSHOT_KEY = "aldusPlanningShiftDisciplinesV283";
+  const UPDATED_AT_KEY = "shiftDisciplinesUpdatedAtV283";
+  const MIN_DISCIPLINES = 1;
+  const MAX_DISCIPLINES = 12;
+  let installed = false;
+
+  function validCount(value) {
+    const parsed = Number.parseInt(value, 10);
+    if (!Number.isFinite(parsed) || parsed < MIN_DISCIPLINES || parsed > MAX_DISCIPLINES) return null;
+    return parsed;
+  }
+
+  function timestamp(value) {
+    const parsed = Date.parse(String(value || ""));
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  function planningConfigState() {
+    if (typeof state === "undefined" || !state || typeof state !== "object") return null;
+    state.planning ||= {};
+    state.planning.config ||= {};
+    return state.planning.config;
+  }
+
+  function readSnapshot() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(SNAPSHOT_KEY) || "null");
+      const count = validCount(parsed?.count);
+      if (!count) return null;
+      return { count, savedAt: parsed.savedAt || "" };
+    } catch {
+      return null;
+    }
+  }
+
+  function writeSnapshot(count, savedAt) {
+    try {
+      localStorage.setItem(SNAPSHOT_KEY, JSON.stringify({ version: VERSION, count, savedAt }));
+    } catch {}
+  }
+
+  function refreshVisibleValue(count) {
+    const field = document.getElementById(FIELD_ID);
+    if (field && document.activeElement !== field) field.value = String(count);
+
+    const summary = document.querySelector('[data-planning-shift-summary-v200] .planning-summary-value');
+    if (summary) summary.textContent = String(count);
+
+    const resume = document.getElementById("planningSummaryResume");
+    if (resume) {
+      const base = String(resume.textContent || "")
+        .replace(/\s*•\s*Plantão:\s*\d+\s*disciplina\(s\)\.?/i, "")
+        .trim();
+      resume.textContent = `${base} • Plantão: ${count} disciplina(s).`;
+    }
+  }
+
+  function persistState(reason) {
+    if (typeof saveData !== "function") return false;
+    try {
+      const result = saveData({ markLocalChange: true });
+      const sync = () => {
+        try {
+          if (typeof autoSyncAfterSave === "function") autoSyncAfterSave(reason);
+        } catch (error) {
+          console.warn(`[${VERSION}] A sincronização automática do limite de plantão falhou.`, error);
+        }
+      };
+      if (result && typeof result.then === "function") result.then(sync).catch((error) => {
+        console.error(`[${VERSION}] O salvamento do limite de plantão falhou.`, error);
+      });
+      else if (result !== false) sync();
+      return result !== false;
+    } catch (error) {
+      console.error(`[${VERSION}] O salvamento do limite de plantão falhou.`, error);
+      return false;
+    }
+  }
+
+  function commit(value, reason = "planejamento-plantao-v283", options = {}) {
+    const count = validCount(value);
+    const config = planningConfigState();
+    if (!count || !config) return false;
+
+    const savedAt = options.savedAt || new Date().toISOString();
+    config.shiftDisciplinesPerDay = count;
+    config[UPDATED_AT_KEY] = savedAt;
+    writeSnapshot(count, savedAt);
+    refreshVisibleValue(count);
+
+    if (options.persist !== false) persistState(reason);
+    return true;
+  }
+
+  function restoreLatest() {
+    const config = planningConfigState();
+    if (!config) return false;
+
+    const stateCount = validCount(config.shiftDisciplinesPerDay);
+    const stateSavedAt = String(config[UPDATED_AT_KEY] || "");
+    const snapshot = readSnapshot();
+
+    if (snapshot && (!stateCount || timestamp(snapshot.savedAt) > timestamp(stateSavedAt))) {
+      return commit(snapshot.count, "planejamento-plantao-restaurado-v283", {
+        savedAt: snapshot.savedAt || new Date().toISOString(),
+        persist: true
+      });
+    }
+
+    if (stateCount) {
+      if (!snapshot || snapshot.count !== stateCount || timestamp(stateSavedAt) > timestamp(snapshot.savedAt)) {
+        writeSnapshot(stateCount, stateSavedAt || new Date().toISOString());
+      }
+      refreshVisibleValue(stateCount);
+      return true;
+    }
+    return false;
+  }
+
+  function bindField(field, form) {
+    if (field.dataset.shiftPersistenceV283 === "true") return;
+    field.dataset.shiftPersistenceV283 = "true";
+
+    const validate = () => {
+      const count = validCount(field.value);
+      field.setCustomValidity(count ? "" : `Informe um número inteiro entre ${MIN_DISCIPLINES} e ${MAX_DISCIPLINES}.`);
+      return count;
+    };
+
+    field.addEventListener("input", () => {
+      const count = validate();
+      const config = planningConfigState();
+      if (count && config) config.shiftDisciplinesPerDay = count;
+    });
+
+    field.addEventListener("change", () => {
+      const count = validate();
+      if (count) commit(count, "planejamento-plantao-alterado-v283");
+    });
+
+    if (form.dataset.shiftPersistenceV283 !== "true") {
+      form.dataset.shiftPersistenceV283 = "true";
+      form.addEventListener("submit", () => {
+        const count = validate();
+        if (!count) return;
+
+        // Persiste antes do handler nativo e novamente depois dele. O segundo passo
+        // impede que uma reconstrução de planning.config descarte a chave de plantão.
+        commit(count, "planejamento-plantao-submit-pre-v283", { persist: false });
+        window.setTimeout(() => {
+          commit(count, "planejamento-plantao-submit-post-v283");
+          try {
+            globalThis.AldusPlanningShiftDisciplinesV200?.initialize?.();
+          } catch {}
+        }, 0);
+      }, true);
+    }
+  }
+
+  function install() {
+    if (installed) return true;
+    if (typeof document === "undefined" || typeof state === "undefined") return false;
+
+    const form = document.getElementById(FORM_ID);
+    const field = document.getElementById(FIELD_ID);
+    if (!form || !field) return false;
+
+    restoreLatest();
+    bindField(field, form);
+    document.documentElement.dataset.aldusPlanningShiftPersistence = VERSION;
+    globalThis.__ALDUS_PLANNING_SHIFT_PERSISTENCE_V283__ = Object.freeze({
+      version: VERSION,
+      fieldId: FIELD_ID,
+      snapshotKey: SNAPSHOT_KEY,
+      commit,
+      restoreLatest
+    });
+    installed = true;
+    return true;
+  }
+
+  const timer = window.setInterval(() => {
+    if (install()) window.clearInterval(timer);
+  }, 100);
+
+  window.setTimeout(() => {
+    window.clearInterval(timer);
+    install();
+  }, 20000);
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", install, { once: true });
+  else install();
+})();
