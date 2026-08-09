@@ -4,13 +4,15 @@ const CURRENT_VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const PROTECTION_VERSION = "20260808-catastrophic-state-recovery-v275";
 const DUPLICATE_CONTINUITY_VERSION = "20260808-duplicate-consolidation-continuity-v276";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v240-hotfix4-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276`;
+const FACTORY_SCHEDULE_VERSION = "20260808-factory-schedule-scope-v277";
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v240-hotfix4-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-factory-schedule-v277`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
 const HISTORY_LAYOUT_STYLESHEET = `question-history-layout-v223.css?v=${HISTORY_LAYOUT_VERSION}`;
 const FACTORY_QUEUE_INTEGRITY = `factory-queue-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=factory-queue-integrity-hotfix5`;
 const FACTORY_DESTINATION_INTEGRITY = "factory-destination-integrity-v237.js?v=20260804-pastas-destino-classificacao-exata-v237&hotfix=discipline-topic-exact1";
+const FACTORY_SCHEDULE_SCOPE = `factory-schedule-scope-v277.js?v=${FACTORY_SCHEDULE_VERSION}`;
 const TIMER_AUDIO_RECOVERY = `timer-audio-recovery-v236.js?v=${CURRENT_VERSION}&hotfix=timer-audio-recovery-hotfix4`;
 const TIMER_AUDIO_UNIFIER = "timer-audio-unifier-v241.js?v=20260805-timer-audio-unified-v241&hotfix=timer-audio-unifier-hotfix1";
 const TIMER_MESSAGE_DEDUPE = "timer-message-dedupe-v239.js?v=20260805-timer-message-last-five-v242&hotfix=timer-message-last-five-hotfix1";
@@ -33,6 +35,7 @@ const STATIC_ASSETS = [
   `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`,
   FACTORY_QUEUE_INTEGRITY,
   FACTORY_DESTINATION_INTEGRITY,
+  FACTORY_SCHEDULE_SCOPE,
   TIMER_AUDIO_RECOVERY,
   TIMER_AUDIO_UNIFIER,
   TIMER_MESSAGE_DEDUPE,
@@ -125,6 +128,20 @@ function installDuplicateDiagnosticsV276(html) {
   return patched;
 }
 
+function installFactoryScheduleV277(html) {
+  const tag = `<script id="aldusFactoryScheduleScopeV277" src="${FACTORY_SCHEDULE_SCOPE}"></script>`;
+  let patched = html.replace(
+    /<script\s+id=["']aldusFactoryScheduleScopeV\d+["'][^>]*><\/script>/gi,
+    ""
+  );
+  patched = patched.replace(
+    /<script\s+[^>]*src=["'][^"']*factory-schedule-scope-v\d+\.js[^"']*["'][^>]*><\/script>/gi,
+    ""
+  );
+  patched = patched.includes("</body>") ? patched.replace("</body>", `  ${tag}\n</body>`) : `${patched}\n${tag}`;
+  return patched;
+}
+
 async function ensurePageStylesheets(response) {
   if (!response?.ok) return response;
   const contentType = response.headers.get("content-type") || "";
@@ -165,6 +182,7 @@ async function ensurePageStylesheets(response) {
   }
 
   patchedHtml = installDuplicateDiagnosticsV276(patchedHtml);
+  patchedHtml = installFactoryScheduleV277(patchedHtml);
 
   const headers = new Headers(response.headers);
   headers.delete("content-length");
@@ -172,6 +190,7 @@ async function ensurePageStylesheets(response) {
   headers.set("x-aldus-integrity-version", CURRENT_VERSION);
   headers.set("x-aldus-data-protection", PROTECTION_VERSION);
   headers.set("x-aldus-duplicate-search", "duplicate-consolidation-continuity-v276");
+  headers.set("x-aldus-factory-schedule", FACTORY_SCHEDULE_VERSION);
 
   return new Response(patchedHtml, {
     status: response.status,
