@@ -8,7 +8,16 @@ const DOCS_FILE = "docs/timer-controls-hardening-v268.js";
 const source = fs.readFileSync(ROOT_FILE, "utf8");
 
 function runtime({ confirmResult = true } = {}) {
-  const events = { renders: 0, persists: 0, resets: 0, closes: 0, sounds: [], confirms: 0, listeners: [] };
+  const events = {
+    renders: 0,
+    persists: 0,
+    resets: 0,
+    closes: 0,
+    sounds: [],
+    completionAlarms: 0,
+    confirms: 0,
+    listeners: []
+  };
   const timer = {
     sessionId: "session-1",
     goalId: "goal-1",
@@ -21,7 +30,7 @@ function runtime({ confirmResult = true } = {}) {
     previousRemainingSeconds: 0,
     mode: "countdown",
     plannedMinutes: 60,
-    sessionGoalMinutes: 0,
+    sessionGoalMinutes: 60,
     intervalId: null
   };
   const document = {
@@ -45,9 +54,11 @@ function runtime({ confirmResult = true } = {}) {
       };
     }
   };
+  let now = 10_000;
   const context = {
     console,
     document,
+    Date: class extends Date { static now() { return now; } },
     window: {
       setInterval() { return 17; },
       clearInterval() {},
@@ -55,7 +66,10 @@ function runtime({ confirmResult = true } = {}) {
       confirm() { events.confirms += 1; return confirmResult; }
     },
     floatingTimer: timer,
-    currentTimerSeconds() { return timer.elapsedSeconds; },
+    currentTimerSeconds() {
+      const running = timer.startedAt && !timer.paused ? Math.floor((now - timer.startedAt) / 1000) : 0;
+      return timer.elapsedSeconds + Math.max(0, running);
+    },
     formatTimerSeconds(seconds) {
       const h = Math.floor(seconds / 3600);
       const m = Math.floor((seconds % 3600) / 60);
@@ -65,7 +79,9 @@ function runtime({ confirmResult = true } = {}) {
     stopFloatingTimerInterval() { timer.intervalId = null; },
     renderFloatingTimer() { events.renders += 1; },
     playTimerControlBeep(type) { events.sounds.push(type); return Promise.resolve(true); },
+    playTimerCompletionAlarm() { events.completionAlarms += 1; return Promise.resolve(true); },
     scheduleFloatingTimerSessionPersistenceAfterPaint() { events.persists += 1; },
+    persistFloatingTimerSession() { events.persists += 1; },
     resetFloatingTimer() { events.resets += 1; timer.elapsedSeconds = 0; },
     closeFloatingTimer() { events.closes += 1; timer.goalId = null; },
     silenceTimerAlert() { return true; },
@@ -79,7 +95,13 @@ function runtime({ confirmResult = true } = {}) {
   context.globalThis = context;
   vm.createContext(context);
   vm.runInContext(source, context, { filename: ROOT_FILE });
-  return { context, timer, events, api: context.__ALDUS_TIMER_CONTROLS_HARDENING_V268__ };
+  return {
+    context,
+    timer,
+    events,
+    api: context.__ALDUS_TIMER_CONTROLS_HARDENING_V268__,
+    setNow(value) { now = value; }
+  };
 }
 
 test("continuar após conclusão realmente retoma e passa a contar tempo adicional", () => {
@@ -93,6 +115,59 @@ test("continuar após conclusão realmente retoma e passa a contar tempo adicion
   assert.equal(r.timer.intervalId, 17);
   assert.ok(r.events.persists >= 1);
   assert.deepEqual(r.events.sounds, ["resume"]);
+});
+
+test("pausar e continuar preservam a mesma sessão e o tempo acumulado", () => {
+  const r = runtime();
+  r.timer.completed = false;
+  r.timer.paused = false;
+  r.timer.elapsedSeconds = 125;
+  r.timer.startedAt = 10_000;
+  r.setNow(15_000);
+
+  assert.equal(r.api.pauseActiveTimer(), true);
+  assert.equal(r.timer.sessionId, "session-1");
+  assert.equal(r.timer.elapsedSeconds, 130);
+  assert.equal(r.timer.startedAt, null);
+  assert.equal(r.timer.paused, true);
+
+  r.setNow(20_000);
+  assert.equal(r.api.resumePausedTimer(), true);
+  assert.equal(r.timer.sessionId, "session-1");
+  assert.equal(r.timer.elapsedSeconds, 130);
+  assert.equal(r.timer.startedAt, 20_000);
+  assert.equal(r.timer.paused, false);
+  assert.deepEqual(r.events.sounds, ["pause", "resume"]);
+  assert.ok(r.events.persists >= 2);
+});
+
+test("regressivo em zero conclui e toca o alarme somente uma vez", () => {
+  const r = runtime();
+  r.timer.completed = false;
+  r.timer.paused = false;
+  r.timer.elapsedSeconds = 3600;
+  r.timer.startedAt = 10_000;
+  r.setNow(10_000);
+
+  assert.equal(r.api.ensureCountdownCompletion(), true);
+  assert.equal(r.timer.completed, true);
+  assert.equal(r.timer.paused, true);
+  assert.equal(r.events.completionAlarms, 1);
+
+  assert.equal(r.api.ensureCountdownCompletion(), true);
+  assert.equal(r.events.completionAlarms, 1);
+});
+
+test("se o núcleo já marcou o zero como concluído e pausado, o alarme ainda é reforçado", () => {
+  const r = runtime();
+  r.timer.completed = true;
+  r.timer.paused = true;
+  r.timer.elapsedSeconds = 3600;
+
+  assert.equal(r.api.ensureCountdownCompletion(), true);
+  assert.equal(r.events.completionAlarms, 1);
+  assert.equal(r.api.ensureCountdownCompletion(), true);
+  assert.equal(r.events.completionAlarms, 1);
 });
 
 test("zerar exige confirmação quando existe tempo não salvo", () => {
@@ -117,23 +192,26 @@ test("fechar aviso apenas oculta a conclusão e preserva a sessão", () => {
   assert.ok(r.events.persists >= 1);
 });
 
-test("raiz e docs publicam o mesmo hotfix V268", () => {
+test("raiz e docs publicam o mesmo hardening V295", () => {
   assert.equal(source, fs.readFileSync(DOCS_FILE, "utf8"));
-  assert.match(source, /20260808-timer-controls-sound-v268/);
-  assert.match(source, /timer-controls-hardening-hotfix1/);
-  assert.match(source, /Há tempo não salvo/);
-  assert.match(source, /continuePastCompletion/);
+  assert.match(source, /20260810-timer-runtime-fix-v295/);
+  assert.match(source, /timer-controls-hardening-hotfix2/);
+  assert.match(source, /pauseActiveTimer/);
+  assert.match(source, /resumePausedTimer/);
+  assert.match(source, /ensureCountdownCompletion/);
 });
 
-test("bootstrap e service worker carregam proteção de controles e som mestre", () => {
-  for (const file of ["bootstrap-integrity-loader-v258.js", "docs/bootstrap-integrity-loader-v258.js"]) {
+test("bootstrap protegido e ponte de compatibilidade carregam o runtime do cronômetro", () => {
+  for (const file of ["bootstrap-integrity-loader-v275.js", "docs/bootstrap-integrity-loader-v275.js"]) {
     const loader = fs.readFileSync(file, "utf8");
     assert.match(loader, /timer-sound-master-v265\.js/);
     assert.match(loader, /timer-controls-hardening-v268\.js/);
+    assert.match(loader, /timer-controls-hardening-hotfix2/);
   }
-  for (const file of ["service-worker-v266.js", "docs/service-worker-v266.js"]) {
-    const worker = fs.readFileSync(file, "utf8");
-    assert.match(worker, /timer-controls-hardening-v268\.js/);
-    assert.match(worker, /x-aldus-timer-controls-hardening/);
+  for (const file of ["planning-shift-persistence-v283.js", "docs/planning-shift-persistence-v283.js"]) {
+    const bridge = fs.readFileSync(file, "utf8");
+    assert.match(bridge, /20260810-timer-runtime-fix-v295/);
+    assert.match(bridge, /timer-sound-master-v265\.js/);
+    assert.match(bridge, /timer-controls-hardening-v268\.js/);
   }
 });
