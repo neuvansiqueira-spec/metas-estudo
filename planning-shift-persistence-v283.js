@@ -1,14 +1,35 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260809-planejamento-plantao-salvamento-v283";
+  const VERSION = "20260810-timer-runtime-fix-v295";
   const FIELD_ID = "planningShiftDisciplinesPerDay";
   const FORM_ID = "planningConfigForm";
   const SNAPSHOT_KEY = "aldusPlanningShiftDisciplinesV283";
   const UPDATED_AT_KEY = "shiftDisciplinesUpdatedAtV283";
   const MIN_DISCIPLINES = 1;
   const MAX_DISCIPLINES = 12;
+  const TIMER_SOUND_MASTER_SCRIPT = "timer-sound-master-v265.js?v=20260810-timer-runtime-fix-v295&hotfix=master-mute-hotfix1";
+  const TIMER_CONTROLS_SCRIPT = "timer-controls-hardening-v268.js?v=20260810-timer-runtime-fix-v295&hotfix=timer-controls-hardening-hotfix2";
   let installed = false;
+
+  function ensureRuntimeScript(id, source) {
+    if (document.getElementById(id)) return true;
+    const script = document.createElement("script");
+    script.id = id;
+    script.src = new URL(source, document.baseURI).toString();
+    script.async = false;
+    script.addEventListener("error", () => console.error(`[${VERSION}] Falha ao carregar ${source}.`), { once: true });
+    (document.head || document.body || document.documentElement).appendChild(script);
+    return true;
+  }
+
+  function ensureTimerRuntime() {
+    if (typeof document === "undefined") return false;
+    ensureRuntimeScript("aldusTimerSoundMasterV265BridgeV295", TIMER_SOUND_MASTER_SCRIPT);
+    ensureRuntimeScript("aldusTimerControlsHardeningV268BridgeV295", TIMER_CONTROLS_SCRIPT);
+    document.documentElement.dataset.aldusTimerRuntimeBridgeV295 = "true";
+    return true;
+  }
 
   function validCount(value) {
     const parsed = Number.parseInt(value, 10);
@@ -150,8 +171,6 @@
         const count = validate();
         if (!count) return;
 
-        // Persiste antes do handler nativo e novamente depois dele. O segundo passo
-        // impede que uma reconstrução de planning.config descarte a chave de plantão.
         commit(count, "planejamento-plantao-submit-pre-v283", { persist: false });
         window.setTimeout(() => {
           commit(count, "planejamento-plantao-submit-post-v283");
@@ -164,6 +183,7 @@
   }
 
   function install() {
+    ensureTimerRuntime();
     if (installed) return true;
     if (typeof document === "undefined" || typeof state === "undefined") return false;
 
@@ -178,12 +198,16 @@
       version: VERSION,
       fieldId: FIELD_ID,
       snapshotKey: SNAPSHOT_KEY,
+      timerRuntimeBridge: true,
       commit,
-      restoreLatest
+      restoreLatest,
+      ensureTimerRuntime
     });
     installed = true;
     return true;
   }
+
+  ensureTimerRuntime();
 
   const timer = window.setInterval(() => {
     if (install()) window.clearInterval(timer);
