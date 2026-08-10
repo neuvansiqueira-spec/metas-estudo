@@ -10,7 +10,7 @@
   const FACTORY_DESTINATION_VERSION = "20260804-pastas-destino-classificacao-exata-v237";
   const FACTORY_DESTINATION_HOTFIX = "discipline-topic-exact1";
   const TIMER_AUDIO_SCRIPT_ID = "aldusTimerAudioRecoveryV236";
-  const TIMER_AUDIO_HOTFIX = "timer-audio-recovery-hotfix4";
+  const TIMER_AUDIO_HOTFIX = "timer-audio-recovery-hotfix5";
   const TIMER_AUDIO_UNIFIER_SCRIPT_ID = "aldusTimerAudioUnifierV241";
   const TIMER_AUDIO_UNIFIER_VERSION = "20260805-timer-audio-unified-v241";
   const TIMER_AUDIO_UNIFIER_HOTFIX = "timer-audio-unifier-hotfix1";
