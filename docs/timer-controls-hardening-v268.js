@@ -1,11 +1,12 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260808-timer-controls-sound-v268";
-  const HOTFIX = "timer-controls-hardening-hotfix1";
+  const VERSION = "20260810-timer-runtime-fix-v295";
+  const HOTFIX = "timer-controls-hardening-hotfix2";
   const GLOBAL_KEY = "__ALDUS_TIMER_CONTROLS_HARDENING_V268__";
   const DIALOG_ID = "aldusTimerCloseSafetyV268";
   const STYLE_ID = "aldusTimerCloseSafetyStylesV268";
+  const COMPLETION_WATCH_INTERVAL_MS = 250;
 
   if (globalThis[GLOBAL_KEY]) {
     try { globalThis[GLOBAL_KEY].install?.(); } catch {}
@@ -14,6 +15,8 @@
 
   let captureInstalled = false;
   let installAttempts = 0;
+  let completionWatchId = null;
+  let lastCompletionSessionKey = "";
 
   function timerState() {
     try {
@@ -45,19 +48,20 @@
   }
 
   function persistTimer() {
+    let persisted = false;
+    try {
+      if (typeof persistFloatingTimerSession === "function") {
+        persistFloatingTimerSession({ storageOnly: true });
+        persisted = true;
+      }
+    } catch {}
     try {
       if (typeof scheduleFloatingTimerSessionPersistenceAfterPaint === "function") {
         scheduleFloatingTimerSessionPersistenceAfterPaint();
-        return true;
+        persisted = true;
       }
     } catch {}
-    try {
-      if (typeof persistFloatingTimerSession === "function") {
-        persistFloatingTimerSession();
-        return true;
-      }
-    } catch {}
-    return false;
+    return persisted;
   }
 
   function stopAlarm() {
@@ -74,15 +78,24 @@
       if (!master.masterSoundEnabled?.()) master.stopAllSounds?.();
       return true;
     } catch (error) {
-      console.warn("[Aldus V268] Não foi possível reforçar o controle geral de som.", error);
+      console.warn("[Aldus V295] Não foi possível reforçar o controle geral de som.", error);
       return false;
     }
+  }
+
+  function stopInterval() {
+    const timer = timerState();
+    try { if (typeof stopFloatingTimerInterval === "function") stopFloatingTimerInterval(); } catch {}
+    try {
+      if (timer?.intervalId) window.clearInterval?.(timer.intervalId);
+    } catch {}
+    if (timer) timer.intervalId = null;
   }
 
   function restartInterval() {
     const timer = timerState();
     if (!timer) return false;
-    try { if (typeof stopFloatingTimerInterval === "function") stopFloatingTimerInterval(); } catch {}
+    stopInterval();
     try {
       timer.intervalId = window.setInterval(() => {
         try { if (typeof renderFloatingTimer === "function") renderFloatingTimer(); } catch {}
@@ -91,6 +104,37 @@
     } catch {
       return false;
     }
+  }
+
+  function pauseActiveTimer() {
+    const timer = timerState();
+    if (!timer?.goalId || timer.completed || timer.paused) return false;
+
+    const elapsed = elapsedSeconds();
+    timer.elapsedSeconds = elapsed;
+    timer.startedAt = null;
+    timer.paused = true;
+    stopInterval();
+
+    try { if (typeof renderFloatingTimer === "function") renderFloatingTimer(); } catch {}
+    try { if (typeof playTimerControlBeep === "function") void playTimerControlBeep("pause"); } catch {}
+    persistTimer();
+    return true;
+  }
+
+  function resumePausedTimer() {
+    const timer = timerState();
+    if (!timer?.goalId || timer.completed || !timer.paused) return false;
+
+    timer.elapsedSeconds = Math.max(0, Number(timer.elapsedSeconds) || 0);
+    timer.startedAt = Date.now();
+    timer.paused = false;
+    restartInterval();
+
+    try { if (typeof renderFloatingTimer === "function") renderFloatingTimer(); } catch {}
+    try { if (typeof playTimerControlBeep === "function") void playTimerControlBeep("resume"); } catch {}
+    persistTimer();
+    return true;
   }
 
   function continuePastCompletion() {
@@ -144,6 +188,69 @@
     return true;
   }
 
+  function countdownTargetSeconds(timer = timerState()) {
+    if (!timer || timer.mode !== "countdown") return 0;
+    const candidates = [
+      timer.sessionGoalMinutes,
+      timer.plannedMinutes,
+      timer.targetMinutes,
+      timer.durationMinutes
+    ];
+    const minutes = candidates.map(Number).find((value) => Number.isFinite(value) && value > 0) || 0;
+    return Math.max(0, Math.round(minutes * 60));
+  }
+
+  function completionSessionKey(timer = timerState()) {
+    return String(timer?.sessionId || timer?.timerSessionId || timer?.goalId || "");
+  }
+
+  function playCompletionAlarmOnce(timer = timerState()) {
+    const sessionKey = completionSessionKey(timer);
+    if (!sessionKey || lastCompletionSessionKey === sessionKey) return false;
+    lastCompletionSessionKey = sessionKey;
+    try {
+      if (typeof playTimerCompletionAlarm === "function") {
+        void playTimerCompletionAlarm("completed");
+        return true;
+      }
+    } catch {}
+    try {
+      const recovery = globalThis.__ALDUS_TIMER_AUDIO_RECOVERY_V236__;
+      if (typeof recovery?.playMotivationalSound === "function") {
+        void recovery.playMotivationalSound(`tempo concluído:${sessionKey}`, 100);
+        return true;
+      }
+    } catch {}
+    return false;
+  }
+
+  function ensureCountdownCompletion() {
+    const timer = timerState();
+    if (!timer?.goalId || timer.mode !== "countdown" || timer.paused) return false;
+
+    const target = countdownTargetSeconds(timer);
+    if (!target) return false;
+    const elapsed = elapsedSeconds();
+    if (elapsed < target) return false;
+
+    try { if (typeof renderFloatingTimer === "function") renderFloatingTimer(); } catch {}
+
+    if (!timer.completed) {
+      timer.elapsedSeconds = Math.max(target, elapsed);
+      timer.startedAt = null;
+      timer.paused = true;
+      timer.completed = true;
+      timer.completionDismissed = false;
+      timer.previousRemainingSeconds = 0;
+      stopInterval();
+      try { if (typeof renderFloatingTimer === "function") renderFloatingTimer(); } catch {}
+      persistTimer();
+    }
+
+    playCompletionAlarmOnce(timer);
+    return true;
+  }
+
   function resetWithConfirmation() {
     const timer = timerState();
     if (!timer?.goalId) return false;
@@ -155,6 +262,7 @@
       if (!confirmed) return false;
     }
     stopAlarm();
+    lastCompletionSessionKey = "";
     try {
       if (typeof resetFloatingTimer === "function") {
         resetFloatingTimer();
@@ -299,10 +407,12 @@
       return;
     }
 
-    if (action === "pause" && timer.completed && timer.paused) {
+    if (action === "pause") {
       event.preventDefault();
       event.stopImmediatePropagation();
-      continuePastCompletion();
+      if (timer.completed && timer.paused) continuePastCompletion();
+      else if (timer.paused) resumePausedTimer();
+      else pauseActiveTimer();
       return;
     }
 
@@ -331,25 +441,40 @@
     return true;
   }
 
+  function installCompletionWatch() {
+    if (completionWatchId || typeof window === "undefined") return Boolean(completionWatchId);
+    completionWatchId = window.setInterval(() => {
+      try { ensureCountdownCompletion(); } catch (error) {
+        console.warn("[Aldus V295] Falha no reforço de conclusão do cronômetro.", error);
+      }
+    }, COMPLETION_WATCH_INTERVAL_MS);
+    return true;
+  }
+
   function install() {
     installAttempts += 1;
     const capture = installCapture();
     const master = reinforceSoundMaster();
+    const completionWatch = installCompletionWatch();
     if (document?.documentElement) {
       document.documentElement.dataset.aldusTimerControlsHardeningV268 = HOTFIX;
     }
-    return capture && master;
+    return capture && completionWatch && (master || installAttempts < 200);
   }
 
   const api = Object.freeze({
     version: VERSION,
     hotfix: HOTFIX,
     install,
+    pauseActiveTimer,
+    resumePausedTimer,
     continuePastCompletion,
     dismissCompletionNotice,
     resetWithConfirmation,
     requestCloseWithSafety,
-    elapsedSeconds
+    elapsedSeconds,
+    countdownTargetSeconds,
+    ensureCountdownCompletion
   });
   globalThis[GLOBAL_KEY] = api;
 
