@@ -143,6 +143,14 @@
     root.querySelectorAll?.("a[target='_blank']").forEach(hardenAnchor);
   }
 
+  function simplifyWeeklyGoalStatus() {
+    const status = document.getElementById("weeklyGoalStatus");
+    if (!status) return;
+    const current = String(status.textContent || "");
+    const simplified = current.replace(/\s+registradas\b/iu, "").trim();
+    if (simplified !== current) status.textContent = simplified;
+  }
+
   function guardRapidSubmit(event) {
     const form = event.target;
     if (!(form instanceof HTMLFormElement)) return;
@@ -170,13 +178,18 @@
     document.addEventListener("submit", guardRapidSubmit, true);
     document.addEventListener("pointerdown", requestPersistentStorage, { once: true, capture: true });
     document.addEventListener("keydown", requestPersistentStorage, { once: true, capture: true });
-    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", () => hardenAddedLinks(), { once: true });
-    else hardenAddedLinks();
+    const prepareDocument = () => {
+      hardenAddedLinks();
+      simplifyWeeklyGoalStatus();
+    };
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", prepareDocument, { once: true });
+    else prepareDocument();
 
     const observer = new MutationObserver((records) => {
       for (const record of records) record.addedNodes.forEach((node) => {
         if (node.nodeType === Node.ELEMENT_NODE) hardenAddedLinks(node);
       });
+      simplifyWeeklyGoalStatus();
     });
     observer.observe(document.documentElement, { childList: true, subtree: true });
   }
