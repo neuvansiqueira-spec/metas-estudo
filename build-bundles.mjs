@@ -410,7 +410,7 @@ for (const filename of [
   "question-bank-pdf-import-v181.css", "qconcursos-capture-import-v182.js",
   "qconcursos-capture-segmented-v188.js", "qconcursos-capture-bank-v188.js", "qconcursos-capture-reprocess-v188.js",
   "question-bank-capture-import-v182.css", "question-history-pie.js", "question-history-charts-v215.js",
-  "question-history-tone-v216.js", "question-bank-json-review-v192.js", "question-bank-json-import-v191.js", "question-bank-training-v223.js", "question-bank-filters-v224.js", "question-bank-filters-v225.js", "question-bank-filter-open-v226.js"
+  "question-history-tone-v216.js", "question-bank-json-review-v192.js", "question-bank-json-import-v191.js", "question-bank-json-details-v299.js", "question-bank-training-v223.js", "question-bank-filters-v224.js", "question-bank-filters-v225.js", "question-bank-filter-open-v226.js"
 ]) {
   fs.copyFileSync(path.join(root, filename), path.join(root, "docs", filename));
 }
