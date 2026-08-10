@@ -9,7 +9,7 @@ const DUPLICATE_CONTINUITY_VERSION = "20260808-duplicate-consolidation-continuit
 const FACTORY_SCHEDULE_VERSION = "20260808-factory-schedule-scope-v277";
 const FACTORY_SCHEDULE_FILTERS_VERSION = "20260808-factory-schedule-planning-preview-filters-v280";
 const FACTORY_SCHEDULE_DATES_VERSION = "20260809-factory-schedule-planning-dates-v281";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v240-hotfix4-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4-security-v296`;
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v297-hotfix5-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4-security-v296`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
@@ -19,7 +19,7 @@ const FACTORY_DESTINATION_INTEGRITY = "factory-destination-integrity-v237.js?v=2
 const FACTORY_SCHEDULE_SCOPE = `factory-schedule-scope-v277.js?v=${FACTORY_SCHEDULE_VERSION}`;
 const FACTORY_SCHEDULE_FILTERS = `factory-schedule-filters-v279.js?v=${FACTORY_SCHEDULE_FILTERS_VERSION}`;
 const FACTORY_SCHEDULE_DATES = `factory-schedule-dates-v281.js?v=${FACTORY_SCHEDULE_DATES_VERSION}`;
-const TIMER_AUDIO_RECOVERY = `timer-audio-recovery-v236.js?v=${CURRENT_VERSION}&hotfix=timer-audio-recovery-hotfix4`;
+const TIMER_AUDIO_RECOVERY = "timer-audio-recovery-v236.js?v=20260810-timer-alarm-audio-v297&hotfix=timer-audio-recovery-hotfix5";
 const TIMER_AUDIO_UNIFIER = "timer-audio-unifier-v241.js?v=20260805-timer-audio-unified-v241&hotfix=timer-audio-unifier-hotfix1";
 const TIMER_MESSAGE_DEDUPE = "timer-message-dedupe-v239.js?v=20260805-timer-message-last-five-v242&hotfix=timer-message-last-five-hotfix1";
 const DAILY_SUMMARY_TIME_FORMAT = "daily-summary-time-format-v243.js?v=20260805-daily-summary-hours-minutes-v243&hotfix=daily-summary-time-format-hotfix4";
