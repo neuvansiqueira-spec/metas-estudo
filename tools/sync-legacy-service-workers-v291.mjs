@@ -13,6 +13,7 @@ const currentSuffixMatch = currentVersion.match(/v(\d+)$/);
 if (!currentSuffixMatch) throw new Error(`Sufixo de versão inválido: ${currentVersion}`);
 const currentNumber = Number(currentSuffixMatch[1]);
 const LEGACY_FLOOR = 275;
+const COMPATIBILITY_BRIDGES = ["service-worker-v168.js", "service-worker-v169.js"];
 
 function workerNumber(filename) {
   const match = filename.match(/^service-worker-v(\d+)\.js$/);
@@ -24,14 +25,20 @@ const candidates = fs.readdirSync(root)
   .filter(({ number }) => Number.isInteger(number) && number >= LEGACY_FLOOR && number < currentNumber)
   .sort((a, b) => a.number - b.number);
 
+const targets = [...new Set([
+  ...COMPATIBILITY_BRIDGES,
+  ...candidates.map(({ filename }) => filename),
+  `service-worker-v${currentNumber}.js`
+])];
+
 if (!candidates.some(({ number }) => number === 282)) {
   throw new Error("service-worker-v282.js não encontrado para migração.");
 }
 
-for (const { filename } of candidates) {
+for (const filename of targets) {
   fs.writeFileSync(path.join(root, filename), currentSource);
   const docsTarget = path.join(docs, filename);
   if (fs.existsSync(docsTarget)) fs.writeFileSync(docsTarget, currentSource);
 }
 
-console.log(`Workers legados sincronizados com ${currentVersion}: ${candidates.map(({ filename }) => filename).join(", ")}`);
+console.log(`Workers legados sincronizados com ${currentVersion}: ${targets.join(", ")}`);

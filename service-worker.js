@@ -2,13 +2,14 @@
 
 const CURRENT_VERSION = "20260809-atualizacao-worker-v291";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
+const SECURITY_VERSION = "20260810-seguranca-estabilidade-v296";
 const PROTECTION_VERSION = "20260808-catastrophic-state-recovery-v275";
 const BOOTSTRAP_VERSION = "20260809-planejamento-plantao-salvamento-v283";
 const DUPLICATE_CONTINUITY_VERSION = "20260808-duplicate-consolidation-continuity-v276";
 const FACTORY_SCHEDULE_VERSION = "20260808-factory-schedule-scope-v277";
 const FACTORY_SCHEDULE_FILTERS_VERSION = "20260808-factory-schedule-planning-preview-filters-v280";
 const FACTORY_SCHEDULE_DATES_VERSION = "20260809-factory-schedule-planning-dates-v281";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v240-hotfix4-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4`;
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v240-hotfix4-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4-security-v296`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
@@ -29,6 +30,7 @@ const CATASTROPHIC_STATE_GUARD = `catastrophic-state-guard-v275.js?v=${PROTECTIO
 const BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275.js?v=${BOOTSTRAP_VERSION}`;
 const BOOTSTRAP_CORE = `bootstrap-integrity-loader-v258-core.js?v=${BOOTSTRAP_VERSION}`;
 const RECOVERY_SAFETY = `recovery-safety-v275.js?v=${PROTECTION_VERSION}`;
+const SECURITY_HARDENING = `security-hardening-v296.js?v=${SECURITY_VERSION}`;
 const DUPLICATE_DIAGNOSTICS_LOADER = `duplicate-diagnostics-loader-v269.js?v=${DUPLICATE_CONTINUITY_VERSION}`;
 const DUPLICATE_DIAGNOSTICS_SEARCH = `duplicate-diagnostics-search-v272.js?v=${DUPLICATE_CONTINUITY_VERSION}`;
 const DUPLICATE_DIAGNOSTICS_MAP = `duplicate-diagnostics-map-v273.js?v=${DUPLICATE_CONTINUITY_VERSION}`;
@@ -55,6 +57,7 @@ const STATIC_ASSETS = [
   BOOTSTRAP_PROTECTED,
   BOOTSTRAP_CORE,
   RECOVERY_SAFETY,
+  SECURITY_HARDENING,
   CONTRAST_STYLESHEET,
   HISTORY_LAYOUT_STYLESHEET,
   DUPLICATE_DIAGNOSTICS_LOADER,
@@ -73,13 +76,17 @@ const STATIC_ASSETS = [
   "icons/icon-maskable.svg"
 ];
 const STATIC_PATHS = new Set(STATIC_ASSETS.map((asset) => new URL(asset, self.registration.scope).pathname));
+const ESSENTIAL_ASSETS = ["./", "index.html", `app-${RELEASE_SUFFIX}.css?v=${CURRENT_VERSION}`, `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`, SECURITY_HARDENING, CATASTROPHIC_STATE_GUARD, BOOTSTRAP_PROTECTED, BOOTSTRAP_CORE];
+
+async function precacheAssets() {
+  const cache = await caches.open(CACHE_NAME);
+  await cache.addAll(ESSENTIAL_ASSETS);
+  const essential = new Set(ESSENTIAL_ASSETS);
+  await Promise.allSettled(STATIC_ASSETS.filter((asset) => !essential.has(asset)).map((asset) => cache.add(asset)));
+}
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(STATIC_ASSETS))
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil(precacheAssets().then(() => self.skipWaiting()));
 });
 
 self.addEventListener("message", (event) => {
@@ -121,6 +128,12 @@ function installProtectedBootstrapV275(html) {
     `<script id="aldusBootstrapIntegrityLoaderV275" src="${BOOTSTRAP_PROTECTED}"></script>`
   ].join("\n  ");
   return patched.includes("</body>") ? patched.replace("</body>", `  ${tags}\n</body>`) : `${patched}\n${tags}`;
+}
+
+function installSecurityHardeningV296(html) {
+  if (html.includes("security-hardening-v296.js")) return html;
+  const tag = `<script id="aldusSecurityHardeningV296" src="${SECURITY_HARDENING}"></script>`;
+  return html.includes("</head>") ? html.replace("</head>", `  ${tag}\n</head>`) : `${tag}\n${html}`;
 }
 
 function installDuplicateDiagnosticsV276(html) {
@@ -183,6 +196,7 @@ async function ensurePageStylesheets(response) {
       ? html.replace("</head>", `  ${missingTags.join("\n  ")}\n</head>`)
       : `${missingTags.join("\n")}\n${html}`;
 
+  patchedHtml = installSecurityHardeningV296(patchedHtml);
   patchedHtml = installProtectedBootstrapV275(patchedHtml);
 
   if (!patchedHtml.includes("planning-integrity-loader-v235.js")) {
@@ -218,6 +232,7 @@ async function ensurePageStylesheets(response) {
   headers.set("x-aldus-factory-schedule", FACTORY_SCHEDULE_VERSION);
   headers.set("x-aldus-factory-schedule-filters", FACTORY_SCHEDULE_FILTERS_VERSION);
   headers.set("x-aldus-factory-schedule-dates", FACTORY_SCHEDULE_DATES_VERSION);
+  headers.set("x-aldus-security", SECURITY_VERSION);
 
   return new Response(patchedHtml, {
     status: response.status,
@@ -246,7 +261,7 @@ async function networkFirstNavigation(request) {
 }
 
 async function cacheFirstStatic(request) {
-  const cached = await caches.match(request);
+  const cached = await caches.match(request, { ignoreSearch: true });
   if (cached) return cached;
   try {
     return await cacheResponse(request, await fetch(request, { cache: "no-store" }));
