@@ -1,14 +1,19 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260805-timer-alarm-audio-v240";
-  const HOTFIX = "timer-audio-recovery-hotfix4";
+  const VERSION = "20260810-timer-alarm-audio-v297";
+  const HOTFIX = "timer-audio-recovery-hotfix5";
   const GLOBAL_KEY = "__ALDUS_TIMER_AUDIO_RECOVERY_V236__";
   const CONTROL_FLAG = "__aldusTimerAudioRecoveryV236";
   const MOTIVATION_STORAGE_KEY = "metasEstudoMotivationalSoundEnabled";
   const AUDIO_EVENT_STORAGE_KEY = "metasEstudoTimerAudioEventV240";
+  const MOTIVATION_SESSION_EVENT_STORAGE_KEY = "metasEstudoTimerAudioSessionEventV297";
   const CONTROL_SHARED_DEDUPE_MS = 350;
   const MOTIVATION_SHARED_DEDUPE_MS = 1500;
+  const MOTIVATION_GENERIC_DEDUPE_MS = 60000;
+  const MOTIVATION_RESUME_DEDUPE_SECONDS = 300;
+  const MOTIVATION_FALLBACK_BUCKET_SECONDS = 600;
+  const MOTIVATION_SESSION_RETENTION_MS = 12 * 60 * 60 * 1000;
   const SHARED_EVENT_RETENTION_MS = 15000;
   const SOUND_PRIORITIES = Object.freeze({ control: 1, motivation: 2, final: 3, preview: 4 });
 
@@ -22,6 +27,9 @@
   let messageObserver = null;
   let activeSound = null;
   let activeSoundSequence = 0;
+  let fallbackSessionGeneration = 1;
+  let fallbackSessionGoalId = "";
+  let fallbackSessionLastElapsed = 0;
 
   function timerPreferences() {
     try {
@@ -85,6 +93,110 @@
     }
   }
 
+  function coreTimer() {
+    try {
+      if (typeof floatingTimer === "object" && floatingTimer) return floatingTimer;
+    } catch {}
+    try {
+      return globalThis.floatingTimer && typeof globalThis.floatingTimer === "object"
+        ? globalThis.floatingTimer
+        : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function timerElapsedSeconds() {
+    try {
+      if (typeof currentTimerSeconds === "function") {
+        const value = Number(currentTimerSeconds());
+        if (Number.isFinite(value)) return Math.max(0, Math.floor(value));
+      }
+    } catch {}
+    const timer = coreTimer();
+    const base = Math.max(0, Number(timer?.elapsedSeconds) || 0);
+    if (!timer?.startedAt || timer?.paused) return Math.floor(base);
+    return Math.floor(base + Math.max(0, Date.now() - Number(timer.startedAt || 0)) / 1000);
+  }
+
+  function timerAudioSessionKey() {
+    const timer = coreTimer();
+    const explicit = timer?.sessionId || timer?.timerSessionId || timer?.sessionKey;
+    if (explicit) return `session:${String(explicit)}`;
+
+    const goalId = String(timer?.goalId || timer?.id || "sem-meta");
+    const elapsed = timerElapsedSeconds();
+    if (fallbackSessionGoalId !== goalId || elapsed + 5 < fallbackSessionLastElapsed) {
+      fallbackSessionGeneration += 1;
+    }
+    fallbackSessionGoalId = goalId;
+    fallbackSessionLastElapsed = elapsed;
+    return `goal:${goalId}:generation:${fallbackSessionGeneration}`;
+  }
+
+  function motivationalSessionEvent(signature, milestone) {
+    const normalized = normalizeAudioEventKey(signature);
+    const elapsed = timerElapsedSeconds();
+    const explicitMilestone = normalized.match(/(?:marco\s*[:=-]?\s*|\b)(\d+(?:[.,]\d+)?)\s*%/i)
+      || normalized.match(/\bmarco\s*[:=-]?\s*(\d+(?:[.,]\d+)?)/i);
+    if (explicitMilestone) {
+      const value = Number(String(explicitMilestone[1]).replace(",", "."));
+      if (Number.isFinite(value)) return { key: `milestone:${value}`, dedupeMs: Infinity };
+    }
+    if (/100\s*%|tempo concluido|sessao concluida|\bfinal\b/i.test(normalized) || (Number(milestone) >= 100 && /conclu|final|tempo/i.test(normalized))) {
+      return { key: "completion", dedupeMs: Infinity };
+    }
+    if (/foco retomado/i.test(normalized)) {
+      return { key: `focus-resumed:${Math.floor(elapsed / MOTIVATION_RESUME_DEDUPE_SECONDS)}`, dedupeMs: Infinity };
+    }
+    if (/bom comeco/i.test(normalized)) {
+      return { key: "start-cue", dedupeMs: Infinity };
+    }
+    if (/sessao em andamento/i.test(normalized)) {
+      return { key: "restored-cue", dedupeMs: Infinity };
+    }
+    if (/continue firme/i.test(normalized)) {
+      return { key: `fallback:${Math.floor(elapsed / MOTIVATION_FALLBACK_BUCKET_SECONDS)}`, dedupeMs: Infinity };
+    }
+    return {
+      key: `message:${normalized.slice(0, 180) || String(milestone || "motivacao")}`,
+      dedupeMs: MOTIVATION_GENERIC_DEDUPE_MS
+    };
+  }
+
+  function claimMotivationalSessionEvent(signature, milestone, now = Date.now()) {
+    const sessionKey = timerAudioSessionKey();
+    const event = motivationalSessionEvent(signature, milestone);
+    if (!sessionKey || !event.key) return true;
+    try {
+      const parsed = JSON.parse(localStorage.getItem(MOTIVATION_SESSION_EVENT_STORAGE_KEY) || "null");
+      const sourceSessions = parsed?.sessions && typeof parsed.sessions === "object"
+        ? parsed.sessions
+        : {};
+      const cutoff = now - MOTIVATION_SESSION_RETENTION_MS;
+      const sessions = {};
+      Object.entries(sourceSessions).forEach(([storedSession, value]) => {
+        const touchedAt = Number(value?.touchedAt || 0);
+        if (touchedAt >= cutoff && touchedAt <= now + 1000 && value?.events && typeof value.events === "object") {
+          sessions[storedSession] = { touchedAt, events: { ...value.events } };
+        }
+      });
+
+      const session = sessions[sessionKey] || { touchedAt: now, events: {} };
+      const previousAt = Number(session.events[event.key] || 0);
+      const elapsedSince = now - previousAt;
+      if (previousAt > 0 && elapsedSince >= 0 && elapsedSince < event.dedupeMs) return false;
+
+      session.touchedAt = now;
+      session.events[event.key] = now;
+      sessions[sessionKey] = session;
+      localStorage.setItem(MOTIVATION_SESSION_EVENT_STORAGE_KEY, JSON.stringify({ version: 1, sessions }));
+      return true;
+    } catch {
+      return true;
+    }
+  }
+
   function ensurePreferenceDefaults() {
     const preferences = timerPreferences();
     if (!preferences) return false;
@@ -106,7 +218,7 @@
         if (typeof saveTimerPreferences === "function") saveTimerPreferences();
         else if (typeof saveData === "function") saveData();
       } catch (error) {
-        console.warn("[Aldus V240] Não foi possível persistir os padrões de áudio.", error);
+        console.warn("[Aldus V297] Não foi possível persistir os padrões de áudio.", error);
       }
     }
     return changed;
@@ -128,7 +240,7 @@
       if (context.state === "suspended") await context.resume();
       return context.state === "running" ? context : null;
     } catch (error) {
-      console.warn("[Aldus V240] O navegador não liberou o áudio do cronômetro.", error);
+      console.warn("[Aldus V297] O navegador não liberou o áudio do cronômetro.", error);
       return null;
     }
   }
@@ -221,6 +333,12 @@
 
     if (!preview) {
       if (normalizedSignature === lastMessageSignature && now - lastMessageAt < 1200) return true;
+      if (!claimMotivationalSessionEvent(normalizedSignature, milestone, now)) {
+        stopSound(activeSound);
+        lastMessageSignature = normalizedSignature;
+        lastMessageAt = now;
+        return true;
+      }
       if (!claimSharedAudioEvent(`motivation:${normalizedSignature}`, MOTIVATION_SHARED_DEDUPE_MS, now)) return true;
       lastMessageSignature = normalizedSignature;
       lastMessageAt = now;
@@ -267,7 +385,7 @@
       globalThis.playTimerControlBeep = replacement;
       return true;
     } catch (error) {
-      console.warn("[Aldus V240] Não foi possível substituir o bip antigo do cronômetro.", error);
+      console.warn("[Aldus V297] Não foi possível substituir o bip antigo do cronômetro.", error);
       return false;
     }
   }
@@ -287,7 +405,7 @@
       globalThis.MetasQuestionAccuracySpectrum = replacement;
       return true;
     } catch (error) {
-      console.warn("[Aldus V240] Não foi possível conectar o som motivacional recuperado.", error);
+      console.warn("[Aldus V297] Não foi possível conectar o som motivacional recuperado.", error);
       return false;
     }
   }
@@ -367,6 +485,8 @@
     playControlSound,
     playMotivationalSound,
     claimSharedAudioEvent,
+    claimMotivationalSessionEvent,
+    timerAudioSessionKey,
     stopActiveSound: () => stopSound(activeSound),
     activeSound: () => activeSound ? Object.freeze({ id: activeSound.id, kind: activeSound.kind, priority: activeSound.priority }) : null
   });
