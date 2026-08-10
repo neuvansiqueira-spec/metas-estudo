@@ -18,6 +18,7 @@
   <link rel="preload" as="image" href="icons/aldus-visual.png?v=20260728-carregamento-direto-v168" fetchpriority="high" />
   <!-- Fontes CSS consolidadas, na ordem original: style.css; aldus-premium-theme.css; aldus-premium-refinement-v47.css; aldus-interface-v51.css; aldus-responsive-v52.css; aldus-contrast-v53.css; aldus-visual-v58.css; aldus-planning-v59.css; aldus-planning-history-v60.css; aldus-calendar-v61.css; aldus-calendar-v62.css; aldus-export-brand-v63.css; aldus-export-brand-v64.css; aldus-daily-goals-v66.css; aldus-daily-time-v67.css; aldus-contrast-system-v68.css; aldus-component-contrast-v69.css; aldus-advisor-layout-v70.css; aldus-backup-contrast-v71.css; aldus-navigation-scroll-v73.css; aldus-goal-integrity-v75.css; aldus-completed-visibility-v76.css. -->
   <link id="aldusAppBundleStyles" rel="stylesheet" href="app-v291.css?v=20260809-atualizacao-worker-v291" />
+  <link id="aldusQuestionsHubStylesV298" rel="stylesheet" href="questions-hub-v298.css?v=20260810-questoes-integradas-v298" />
 
   <link id="aldusCentralGoalsPaletteV246" rel="stylesheet" href="central-goals-palette-v245.css?v=20260805-dashboard-central-metas-cores-v246" />
 
@@ -58,9 +59,7 @@
         </div>
         <div class="mobile-menu-group"><span>Desempenho</span>
           <a href="#progresso" data-view-link="progresso">Progresso</a>
-          <a href="#questoes" data-view-link="questoes">Registrar Questões</a>
-          <a href="#historico-questoes" data-view-link="historico-questoes">Desempenho e Histórico</a>
-          <a href="#banco-questoes" data-view-link="banco-questoes">Banco de Questões</a>
+          <a href="#banco-questoes" data-view-link="banco-questoes" data-view-group="questions">Questões</a>
           <a href="#caderno-erros" data-view-link="caderno-erros">Caderno de Erros</a>
           <a href="#simulados" data-view-link="simulados">Simulados</a>
           <a href="#analise-estrategica" data-view-link="analise-estrategica">Análise Estratégica</a>
@@ -117,7 +116,7 @@
         <a href="#edital" data-view-link="edital">Edital</a><a href="#edital-verticalizado" data-view-link="edital-verticalizado">Edital Verticalizado</a><a href="#importar-edital" data-view-link="importar-edital">Importar Edital</a><a href="#assuntos-agendaveis" data-view-link="assuntos-agendaveis">Assuntos Agendáveis</a>
       </div>
       <div class="side-nav-group"><span>Desempenho</span>
-        <a href="#progresso" data-view-link="progresso">Progresso</a><a href="#questoes" data-view-link="questoes">Registrar Questões</a><a href="#historico-questoes" data-view-link="historico-questoes">Desempenho e Histórico</a><a href="#banco-questoes" data-view-link="banco-questoes">Banco de Questões</a><a href="#caderno-erros" data-view-link="caderno-erros">Caderno de Erros</a><a href="#simulados" data-view-link="simulados">Simulados</a><a href="#analise-estrategica" data-view-link="analise-estrategica">Análise Estratégica</a><a href="#conselheiro" data-view-link="conselheiro">Conselheiro</a>
+        <a href="#progresso" data-view-link="progresso">Progresso</a><a href="#banco-questoes" data-view-link="banco-questoes" data-view-group="questions">Questões</a><a href="#caderno-erros" data-view-link="caderno-erros">Caderno de Erros</a><a href="#simulados" data-view-link="simulados">Simulados</a><a href="#analise-estrategica" data-view-link="analise-estrategica">Análise Estratégica</a><a href="#conselheiro" data-view-link="conselheiro">Conselheiro</a>
       </div>
       <div class="side-nav-group"><span>Apoio</span>
         <a href="#materiais" data-view-link="materiais">Materiais</a><a href="#fabrica-resumos" data-view-link="fabrica-resumos">🏭 Fábrica de Resumos</a><a href="#revisao-inteligente" data-view-link="revisao-inteligente">Revisão Inteligente</a><a href="#revisoes" data-view-link="revisoes">Revisões</a><a href="#historico" data-view-link="historico">Histórico Geral</a>
@@ -163,21 +162,18 @@
           <article class="stat-card"><span>Previsão de conclusão</span><strong id="dashboardCompletionForecast" class="stat-value-text">-</strong></article>
           <article class="stat-card wide-stat"><a class="button-link" href="#progresso" data-view-link="progresso">Ver Progresso</a></article>
         </div></article>
-        <article class="dashboard-block"><div class="dashboard-block-title">Desempenho</div><div class="stats-grid compact">
+        <article class="dashboard-block dashboard-questions-hub"><div class="dashboard-block-title">Questões</div><div class="stats-grid compact">
           <article class="stat-card"><span>Questões feitas</span><strong id="totalQuestions" class="stat-value-compact">0</strong></article>
           <article class="stat-card"><span>Percentual de acerto</span><strong id="accuracyRate" class="stat-value-compact">0%</strong></article>
           <article class="stat-card"><span>Líquido Cebraspe geral</span><strong id="generalCebraspeNet" class="stat-value-compact">0</strong></article>
           <article class="stat-card"><span>Disciplina mais problemática</span><strong id="dashboardProblemDiscipline" class="stat-value-text">-</strong></article>
-          <article class="stat-card wide-stat"><a class="button-link" href="#questoes" data-view-link="questoes">Registrar Questões</a></article>
-        </div></article>
-        <article class="dashboard-block"><div class="dashboard-block-title">Banco de Questões</div><div class="stats-grid compact">
           <article class="stat-card"><span>Questões no banco</span><strong id="dashboardQuestionBankTotal" class="stat-value-compact">0</strong></article>
           <article class="stat-card"><span>Treinos realizados</span><strong id="dashboardQuestionBankSessions" class="stat-value-compact">0</strong></article>
           <article class="stat-card"><span>Último treino</span><strong id="dashboardQuestionBankLast" class="stat-value-text">-</strong></article>
           <article class="stat-card"><span>Pacotes disponíveis</span><strong id="dashboardQuestionBankPackages" class="stat-value-compact">0</strong></article>
           <article class="stat-card"><span>Questões vinculadas ao edital</span><strong id="dashboardQuestionBankLinked" class="stat-value-compact">0</strong></article>
           <article class="stat-card"><span>Assuntos do edital sem questões</span><strong id="dashboardQuestionBankMissing" class="stat-value-compact">0</strong></article>
-          <article class="stat-card wide-stat"><a class="button-link" href="#banco-questoes" data-view-link="banco-questoes">Treinar Banco</a><a class="button-link" href="#caderno-erros" data-view-link="caderno-erros">Abrir Caderno de Erros</a></article>
+          <article class="stat-card wide-stat questions-dashboard-actions"><a class="button-link" href="#banco-questoes" data-view-link="banco-questoes">Resolver questões</a><a class="button-link" href="#questoes" data-view-link="questoes">Registrar resultado</a><a class="button-link" href="#historico-questoes" data-view-link="historico-questoes">Ver desempenho</a></article>
         </div></article>
         <article class="dashboard-block"><div class="dashboard-block-title">Simulados</div><div class="stats-grid compact">
           <article class="stat-card"><span>Simulados realizados</span><strong id="mockTotal" class="stat-value-compact">0</strong></article>
@@ -621,6 +617,10 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </section>
 
     <section id="view-questoes" class="panel app-view" data-view="questoes" aria-labelledby="questions-title">
+      <header class="questions-hub" data-questions-hub>
+        <div class="questions-hub-copy"><p class="eyebrow">Módulo integrado</p><strong>Questões</strong><span>Banco, registro e desempenho no mesmo fluxo.</span></div>
+        <nav class="questions-hub-tabs" aria-label="Áreas de questões"><a class="questions-hub-tab" href="#banco-questoes" data-view-link="banco-questoes"><strong>Banco</strong><small>Resolver</small></a><a class="questions-hub-tab" href="#questoes" data-view-link="questoes"><strong>Registrar</strong><small>Resultado externo</small></a><a class="questions-hub-tab" href="#historico-questoes" data-view-link="historico-questoes"><strong>Desempenho</strong><small>Histórico unificado</small></a></nav>
+      </header>
       <div class="section-heading view-identity-heading"><p class="eyebrow">Questões • Registro e estratégia</p><h2 id="questions-title">Registrar sessão de questões</h2><p class="view-identity-description">Escolha o conteúdo, encontre o filtro adequado e registre o resultado sem misturar assunto principal e subtema.</p></div>
       <p class="notice">Use esta tela para cadastrar um novo resultado. A escolha de disciplina e assunto abaixo define onde o novo lançamento será registrado. Os resultados anteriores aparecem no resumo do assunto e em Desempenho e Histórico.</p>
       <form id="questionForm" class="question-registration-flow">
@@ -679,6 +679,10 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
 
 
     <section id="view-banco-questoes" class="panel app-view question-bank-screen" data-view="banco-questoes" aria-labelledby="question-bank-title">
+      <header class="questions-hub" data-questions-hub>
+        <div class="questions-hub-copy"><p class="eyebrow">Módulo integrado</p><strong>Questões</strong><span>Banco, registro e desempenho no mesmo fluxo.</span></div>
+        <nav class="questions-hub-tabs" aria-label="Áreas de questões"><a class="questions-hub-tab" href="#banco-questoes" data-view-link="banco-questoes"><strong>Banco</strong><small>Resolver</small></a><a class="questions-hub-tab" href="#questoes" data-view-link="questoes"><strong>Registrar</strong><small>Resultado externo</small></a><a class="questions-hub-tab" href="#historico-questoes" data-view-link="historico-questoes"><strong>Desempenho</strong><small>Histórico unificado</small></a></nav>
+      </header>
       <div class="section-heading inline"><div><p class="eyebrow">Treino Certo/Errado</p><h2 id="question-bank-title">Banco de Questões</h2><p class="item-meta">Tela reorganizada para montar treinos, diagnosticar cobertura do edital e gerenciar seu banco local sem publicar questões no repositório.</p></div><button id="qbNewTraining" type="button">Novo treino</button></div>
       <p class="notice warning-notice">Não inclua arquivos JSON de questões no GitHub. Use apenas importação local; os dados permanecem no localStorage em <code>metasConcursoData.questionBank</code>.</p>
 
@@ -859,6 +863,10 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </section>
 
     <section id="view-historico-questoes" class="panel app-view" data-view="historico-questoes" aria-labelledby="question-history-title">
+      <header class="questions-hub" data-questions-hub>
+        <div class="questions-hub-copy"><p class="eyebrow">Módulo integrado</p><strong>Questões</strong><span>Banco, registro e desempenho no mesmo fluxo.</span></div>
+        <nav class="questions-hub-tabs" aria-label="Áreas de questões"><a class="questions-hub-tab" href="#banco-questoes" data-view-link="banco-questoes"><strong>Banco</strong><small>Resolver</small></a><a class="questions-hub-tab" href="#questoes" data-view-link="questoes"><strong>Registrar</strong><small>Resultado externo</small></a><a class="questions-hub-tab" href="#historico-questoes" data-view-link="historico-questoes"><strong>Desempenho</strong><small>Histórico unificado</small></a></nav>
+      </header>
       <div class="section-heading"><p class="eyebrow">Desempenho</p><h2 id="question-history-title">Desempenho e Histórico de Questões</h2></div>
       <p class="notice">Consulte resultados registrados manualmente e treinos concluídos no Banco de Questões. Use os filtros para analisar uma disciplina ou assunto.</p>
       <div id="questionHistorySummary" class="stats-grid compact" aria-live="polite"></div>
@@ -1166,6 +1174,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
   <!-- Inicialização V168 consolidada em um único JavaScript. O login do Google é carregado somente quando o usuário toca em Conectar Google Drive. -->
   <script id="aldusStorageQuotaGuardV256" src="storage-quota-guard-v256.js?v=20260805-indexeddb-quota-guard-v256&hotfix=indexeddb-only1"></script>
   <script id="aldusBootstrapIntegrityLoaderV258" src="bootstrap-integrity-loader-v258.js?v=20260805-bootstrap-integrity-v258&hotfix=preboot-atomic-selection1"></script>
+  <script id="aldusQuestionsHubV298" src="questions-hub-v298.js?v=20260810-questoes-integradas-v298"></script>
   <!-- aldus-duplicate-diagnostics-v264 -->
   <script id="aldusDuplicateDiagnosticsLoaderV266" src="duplicate-diagnostics-loader-v266.js?v=20260806-duplicate-relations-global-search-v266"></script>
 </body>

@@ -1,0 +1,192 @@
+
+/* V298: módulo integrado de questões, sem alterar dados, formulários ou cálculos. */
+.questions-hub {
+  display: grid;
+  grid-template-columns: minmax(210px, .72fr) minmax(420px, 1.28fr);
+  gap: 18px;
+  align-items: center;
+  margin: 0 0 24px;
+  padding: 18px;
+  border: 1px solid rgba(65, 116, 158, .24);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(239, 246, 252, .96), rgba(226, 238, 248, .88));
+  box-shadow: 0 12px 30px rgba(18, 52, 78, .08);
+}
+
+.questions-hub-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.questions-hub-copy .eyebrow {
+  margin: 0;
+}
+
+.questions-hub-copy > strong {
+  color: #123a5a;
+  font-size: clamp(1.25rem, 2vw, 1.62rem);
+  line-height: 1.15;
+}
+
+.questions-hub-copy > span {
+  color: #516a7e;
+  font-size: .88rem;
+  line-height: 1.4;
+}
+
+.questions-hub-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.questions-hub-tab {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  min-height: 62px;
+  align-content: center;
+  padding: 10px 12px;
+  border: 1px solid rgba(52, 105, 148, .2);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .72);
+  color: #244b69;
+  text-align: center;
+  text-decoration: none;
+  transition: border-color .18s ease, background .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.questions-hub-tab strong {
+  overflow: hidden;
+  font-size: .9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.questions-hub-tab small {
+  overflow: hidden;
+  color: #6a8193;
+  font-size: .72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.questions-hub-tab:hover,
+.questions-hub-tab:focus-visible {
+  border-color: rgba(28, 103, 160, .46);
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(20, 66, 101, .1);
+  transform: translateY(-1px);
+}
+
+.questions-hub-tab.active,
+.questions-hub-tab[aria-current="page"] {
+  border-color: #1c69a2;
+  background: linear-gradient(135deg, #246fa8, #174f7a);
+  color: #fff;
+  box-shadow: 0 9px 22px rgba(20, 78, 121, .24);
+}
+
+.questions-hub-tab.active small,
+.questions-hub-tab[aria-current="page"] small {
+  color: rgba(255, 255, 255, .82);
+}
+
+.questions-dashboard-actions {
+  display: flex !important;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.questions-dashboard-actions .button-link {
+  flex: 1 1 170px;
+  text-align: center;
+}
+
+html[data-aldus-theme="premium-stable"] .questions-hub {
+  border-color: rgba(126, 185, 229, .26);
+  background: linear-gradient(145deg, rgba(8, 42, 68, .94), rgba(5, 31, 53, .92));
+  box-shadow: 0 14px 32px rgba(0, 12, 26, .24), inset 0 1px 0 rgba(255, 255, 255, .025);
+}
+
+html[data-aldus-theme="premium-stable"] .questions-hub-copy > strong {
+  color: #eef7fd;
+}
+
+html[data-aldus-theme="premium-stable"] .questions-hub-copy > span {
+  color: #a9bfd0;
+}
+
+html[data-aldus-theme="premium-stable"] .questions-hub-tab {
+  border-color: rgba(126, 185, 229, .22);
+  background: rgba(10, 49, 78, .72);
+  color: #dcecf7;
+}
+
+html[data-aldus-theme="premium-stable"] .questions-hub-tab small {
+  color: #9db5c8;
+}
+
+html[data-aldus-theme="premium-stable"] .questions-hub-tab:hover,
+html[data-aldus-theme="premium-stable"] .questions-hub-tab:focus-visible {
+  border-color: rgba(126, 185, 229, .5);
+  background: rgba(15, 65, 102, .9);
+}
+
+html[data-aldus-theme="premium-stable"] .questions-hub-tab.active,
+html[data-aldus-theme="premium-stable"] .questions-hub-tab[aria-current="page"] {
+  border-color: rgba(241, 207, 113, .64);
+  background: linear-gradient(135deg, #2678b6, #174f79);
+  color: #fff;
+}
+
+html[data-aldus-theme="premium-stable"] .questions-hub-tab.active small,
+html[data-aldus-theme="premium-stable"] .questions-hub-tab[aria-current="page"] small {
+  color: rgba(255, 255, 255, .84);
+}
+
+@media (max-width: 820px) {
+  .questions-hub {
+    grid-template-columns: 1fr;
+    gap: 13px;
+    padding: 15px;
+  }
+
+  .questions-hub-copy > span {
+    font-size: .82rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .questions-hub {
+    margin-bottom: 18px;
+    padding: 13px;
+    border-radius: 15px;
+  }
+
+  .questions-hub-tabs {
+    gap: 6px;
+  }
+
+  .questions-hub-tab {
+    min-height: 56px;
+    padding: 8px 6px;
+    border-radius: 11px;
+  }
+
+  .questions-hub-tab strong {
+    font-size: .78rem;
+  }
+
+  .questions-hub-tab small {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .questions-hub-tab {
+    transition: none;
+  }
+}

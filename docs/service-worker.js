@@ -9,7 +9,8 @@ const DUPLICATE_CONTINUITY_VERSION = "20260808-duplicate-consolidation-continuit
 const FACTORY_SCHEDULE_VERSION = "20260808-factory-schedule-scope-v277";
 const FACTORY_SCHEDULE_FILTERS_VERSION = "20260808-factory-schedule-planning-preview-filters-v280";
 const FACTORY_SCHEDULE_DATES_VERSION = "20260809-factory-schedule-planning-dates-v281";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v297-hotfix5-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4-security-v296`;
+const QUESTIONS_HUB_VERSION = "20260810-questoes-integradas-v298";
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v297-hotfix5-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4-security-v296-questions-hub-v298`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
@@ -36,6 +37,8 @@ const DUPLICATE_DIAGNOSTICS_SEARCH = `duplicate-diagnostics-search-v272.js?v=${D
 const DUPLICATE_DIAGNOSTICS_MAP = `duplicate-diagnostics-map-v273.js?v=${DUPLICATE_CONTINUITY_VERSION}`;
 const DUPLICATE_DIAGNOSTICS_ACTIONS = `duplicate-diagnostics-actions-v274.js?v=${DUPLICATE_CONTINUITY_VERSION}`;
 const DUPLICATE_DIAGNOSTICS_SEARCH_CSS = `duplicate-diagnostics-search-v271.css?v=${DUPLICATE_CONTINUITY_VERSION}`;
+const QUESTIONS_HUB_STYLESHEET = `questions-hub-v298.css?v=${QUESTIONS_HUB_VERSION}`;
+const QUESTIONS_HUB_SCRIPT = `questions-hub-v298.js?v=${QUESTIONS_HUB_VERSION}`;
 const STATIC_ASSETS = [
   "./",
   "index.html",
@@ -65,6 +68,8 @@ const STATIC_ASSETS = [
   DUPLICATE_DIAGNOSTICS_MAP,
   DUPLICATE_DIAGNOSTICS_ACTIONS,
   DUPLICATE_DIAGNOSTICS_SEARCH_CSS,
+  QUESTIONS_HUB_STYLESHEET,
+  QUESTIONS_HUB_SCRIPT,
   "vendor/pdf.mjs",
   "vendor/pdf.worker.mjs",
   "vendor/pdfjs-LICENSE.txt",
@@ -76,7 +81,7 @@ const STATIC_ASSETS = [
   "icons/icon-maskable.svg"
 ];
 const STATIC_PATHS = new Set(STATIC_ASSETS.map((asset) => new URL(asset, self.registration.scope).pathname));
-const ESSENTIAL_ASSETS = ["./", "index.html", `app-${RELEASE_SUFFIX}.css?v=${CURRENT_VERSION}`, `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`, SECURITY_HARDENING, CATASTROPHIC_STATE_GUARD, BOOTSTRAP_PROTECTED, BOOTSTRAP_CORE];
+const ESSENTIAL_ASSETS = ["./", "index.html", `app-${RELEASE_SUFFIX}.css?v=${CURRENT_VERSION}`, `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`, QUESTIONS_HUB_STYLESHEET, QUESTIONS_HUB_SCRIPT, SECURITY_HARDENING, CATASTROPHIC_STATE_GUARD, BOOTSTRAP_PROTECTED, BOOTSTRAP_CORE];
 
 async function precacheAssets() {
   const cache = await caches.open(CACHE_NAME);

@@ -381,7 +381,7 @@ for (const legacySuffix of ["v168", "v169"]) {
 }
 
 for (const filename of [
-  "index.html", "app-version.js", "style.css", "script.js", "service-worker.js", "sync-integral-core.js",
+  "index.html", "app-version.js", "style.css", "script.js", "service-worker.js", "questions-hub-v298.css", "questions-hub-v298.js", "sync-integral-core.js",
   "factory-destination-catalog-v222.js", "factory-destination-folders-v222.js", "factory-destination-recursive-v232.js",
   "sync-integral-deletions.js", "sync-integral-state.js", "pcpr-pcma-2026-catalog.js",
   "pcpr-pcma-2026-migration.js", "factory-lei-prompt-v123.js", "factory-jurisprudencia-prompt-v231.js",
