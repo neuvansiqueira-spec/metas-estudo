@@ -229,6 +229,24 @@ test("duas abas não reproduzem duas vezes o mesmo alarme motivacional", async (
   assert.equal(firstTab.events.oscillators.length + secondTab.events.oscillators.length, 2);
 });
 
+test("mesmo marco não volta a tocar quando a mensagem muda depois da janela curta", async () => {
+  const runtime = loadRuntime();
+  await runtime.api.playMotivationalSound("10% concluído — primeira mensagem", 10);
+  runtime.setNow(20_000);
+  await runtime.api.playMotivationalSound("10% concluído — segunda mensagem", 10);
+  assert.equal(runtime.events.oscillators.length, 2);
+  assert.equal(runtime.api.activeSound(), null);
+});
+
+test("FOCO RETOMADO repetido no mesmo trecho não mantém o alarme tocando", async () => {
+  const runtime = loadRuntime();
+  await runtime.api.playMotivationalSound("FOCO RETOMADO Respire fundo e proteja o ritmo conquistado.", 10);
+  runtime.setNow(20_000);
+  await runtime.api.playMotivationalSound("FOCO RETOMADO Continue no ritmo conquistado.", 10);
+  assert.equal(runtime.events.oscillators.length, 2);
+  assert.equal(runtime.api.activeSound(), null);
+});
+
 test("marco seguinte continua emitindo som após o anterior", async () => {
   const runtime = loadRuntime();
   await runtime.api.playMotivationalSound("25% concluído", 25);
@@ -285,16 +303,17 @@ test("singleton impede instalação duplicada do controlador na mesma página", 
 
 test("raiz, docs, loader e cache publicam a proteção ampliada", () => {
   assert.equal(source, fs.readFileSync(DOCS_FILE, "utf8"));
-  assert.match(source, /timer-audio-recovery-hotfix4/);
-  assert.match(source, /metasEstudoTimerAudioEventV240/);
-  assert.match(source, /claimSharedAudioEvent/);
+  assert.match(source, /timer-audio-recovery-hotfix5/);
+  assert.match(source, /metasEstudoTimerAudioSessionEventV297/);
+  assert.match(source, /claimMotivationalSessionEvent/);
+  assert.match(source, /focus-resumed/);
 
   for (const file of ["planning-integrity-loader-v235.js", "docs/planning-integrity-loader-v235.js"]) {
-    assert.match(fs.readFileSync(file, "utf8"), /TIMER_AUDIO_HOTFIX = "timer-audio-recovery-hotfix4"/);
+    assert.match(fs.readFileSync(file, "utf8"), /TIMER_AUDIO_HOTFIX = "timer-audio-recovery-hotfix5"/);
   }
   for (const file of ["service-worker.js", "docs/service-worker.js"]) {
     const worker = fs.readFileSync(file, "utf8");
-    assert.match(worker, /timer-alarm-audio-v240-hotfix4/);
-    assert.match(worker, /timer-audio-recovery-hotfix4/);
+    assert.match(worker, /timer-alarm-audio-v297-hotfix5/);
+    assert.match(worker, /timer-audio-recovery-hotfix5/);
   }
 });
