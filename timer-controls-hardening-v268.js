@@ -226,14 +226,16 @@
 
   function ensureCountdownCompletion() {
     const timer = timerState();
-    if (!timer?.goalId || timer.mode !== "countdown" || timer.paused) return false;
+    if (!timer?.goalId || timer.mode !== "countdown") return false;
 
     const target = countdownTargetSeconds(timer);
     if (!target) return false;
     const elapsed = elapsedSeconds();
-    if (elapsed < target) return false;
+    if (!timer.completed && elapsed < target) return false;
 
-    try { if (typeof renderFloatingTimer === "function") renderFloatingTimer(); } catch {}
+    if (!timer.completed) {
+      try { if (typeof renderFloatingTimer === "function") renderFloatingTimer(); } catch {}
+    }
 
     if (!timer.completed) {
       timer.elapsedSeconds = Math.max(target, elapsed);
