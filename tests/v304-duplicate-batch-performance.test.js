@@ -4,10 +4,10 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const diagnostics = require("../duplicate-diagnostics-v304.js");
-const batch = require("../duplicate-diagnostics-batch-v304.js");
+const batch = require("../duplicate-diagnostics-batch-v305.js");
 
 assert.equal(diagnostics.VERSION, "20260811-duplicate-batch-performance-v304");
-assert.equal(batch.VERSION, "20260811-duplicate-batch-performance-v304");
+assert.equal(batch.VERSION, "20260811-duplicate-batch-commit-v305");
 
 const state = {
   syllabusItems: [
@@ -31,10 +31,10 @@ assert.equal(batch.cachedPlanForState(state, diagnostics).actions.length, 1, "de
 assert.equal(batch.cachedPlanForState({ ...state, syllabusItems: state.syllabusItems.slice(0, 1) }, diagnostics), null, "deve recalcular se o estado mudou");
 
 const coreSource = fs.readFileSync(path.join(__dirname, "..", "duplicate-diagnostics-v304.js"), "utf8");
-const batchSource = fs.readFileSync(path.join(__dirname, "..", "duplicate-diagnostics-batch-v304.js"), "utf8");
+const batchSource = fs.readFileSync(path.join(__dirname, "..", "duplicate-diagnostics-batch-v305.js"), "utf8");
 assert.match(coreSource, /__aldusDuplicateBatchPlanV304/, "o diagnóstico deve publicar o plano já calculado");
 assert.match(batchSource, /cachedPlanForState\(targetState, api\)/, "a confirmação deve reutilizar o plano válido");
-assert.match(batchSource, /sem recalcular o diagnóstico/, "a interface deve informar o início imediatamente");
+assert.match(batchSource, /vinculando a recomendação ao estado persistido/, "a interface deve informar o início imediatamente");
 assert.match(batchSource, /processando \$\{index \+ 1\} de \$\{plan\.actions\.length\}/, "deve mostrar cada avanço do lote");
 assert.match(batchSource, /await readMainIndexedDB\(\)/, "a verificação autoritativa deve permanecer ativa");
 assert.doesNotMatch(batchSource, /window\.location\.reload/, "não deve fechar o diagnóstico");
