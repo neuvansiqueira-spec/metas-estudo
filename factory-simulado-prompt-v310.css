@@ -47,6 +47,62 @@
   background: rgba(255, 255, 255, .72);
 }
 
+.factory-simulado-disciplines {
+  margin: 16px 0;
+  padding: 12px;
+  border: 1px solid #dbe3ef;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .78);
+}
+
+.factory-simulado-disciplines legend {
+  padding: 0 6px;
+  font-weight: 800;
+}
+
+.factory-simulado-disciplines legend span {
+  display: inline-grid;
+  place-items: center;
+  min-width: 25px;
+  min-height: 25px;
+  margin-left: 5px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1e3a8a;
+  font-size: .78rem;
+}
+
+.factory-simulado-discipline-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.factory-simulado-discipline-list label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #f8fbff;
+  color: #172554;
+  cursor: pointer;
+}
+
+.factory-simulado-discipline-list label:has(input:checked) {
+  border-color: #2563eb;
+  background: #dbeafe;
+  box-shadow: 0 0 0 1px #2563eb;
+}
+
+.factory-simulado-discipline-list input {
+  width: auto;
+  margin: 0;
+}
+
 .factory-simulado-chips {
   display: flex;
   flex-wrap: wrap;
@@ -214,10 +270,28 @@
 
 html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-builder .notice,
 html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-empty,
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-disciplines,
 html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-options {
   border-color: rgba(125, 181, 224, .34) !important;
   background: rgba(3, 23, 38, .72) !important;
   color: #d6e3ec !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-disciplines legend span {
+  background: #d8edff;
+  color: #06213a;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-discipline-list label {
+  border-color: rgba(125, 181, 224, .38);
+  background: #0a2b45;
+  color: #f8fbff;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-discipline-list label:has(input:checked) {
+  border-color: #8cc8f4;
+  background: #123f61;
+  box-shadow: 0 0 0 1px #8cc8f4;
 }
 
 html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-chip {

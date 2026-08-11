@@ -1,9 +1,10 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260811-gerador-simulados-v310";
+  const VERSION = "20260811-gerador-simulados-disciplinas-v311";
   const QUESTION_BANK_SCHEMA = "metas-estudo-question-bank-v1";
   const selectedIds = new Set();
+  const selectedDisciplines = new Set();
   const config = {
     banca: "CEBRASPE",
     quantidade: 10,
@@ -185,6 +186,39 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
     return [...selectedIds].map((id) => byId.get(id)).filter(Boolean);
   }
 
+  function disciplineKey(value) {
+    return canonicalText(value);
+  }
+
+  function listDisciplines(items = agenda()) {
+    const disciplines = new Map();
+    for (const item of Array.isArray(items) ? items : []) {
+      const label = text(item?.disciplina) || "Sem disciplina";
+      const key = disciplineKey(label);
+      if (key && !disciplines.has(key)) disciplines.set(key, label);
+    }
+    return [...disciplines].map(([key, label]) => ({ key, label })).sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
+  }
+
+  function filterThemesByDisciplines(items, disciplines = selectedDisciplines) {
+    const source = Array.isArray(items) ? items : [];
+    const active = new Set([...disciplines].map(disciplineKey).filter(Boolean));
+    if (!active.size) return source;
+    return source.filter((item) => active.has(disciplineKey(text(item?.disciplina) || "Sem disciplina")));
+  }
+
+  function disciplineSelectorHtml() {
+    const disciplines = listDisciplines();
+    const selectedCount = selectedDisciplines.size;
+    if (!disciplines.length) return '<p class="factory-simulado-empty">Nenhuma disciplina cadastrada.</p>';
+    return `<fieldset class="factory-simulado-disciplines">
+      <legend>Disciplinas <span>${selectedCount || "Todas"}</span></legend>
+      <p class="item-meta">Escolha uma ou várias. Sem marcação, serão pesquisadas todas as disciplinas.</p>
+      <div class="factory-simulado-discipline-list">${disciplines.map(({ key, label }) => `<label><input type="checkbox" data-factory-simulado-discipline="${escapeHtml(key)}" ${selectedDisciplines.has(key) ? "checked" : ""} /><span>${escapeHtml(label)}</span></label>`).join("")}</div>
+      ${selectedCount ? '<button type="button" class="secondary-button" data-factory-simulado-disciplines-clear>Usar todas as disciplinas</button>' : ""}
+    </fieldset>`;
+  }
+
   function selectedThemeHtml(items) {
     if (!items.length) return '<p class="factory-simulado-empty">Nenhum tema selecionado. Pesquise abaixo ou use “Criar simulado deste tema”.</p>';
     return `<div class="factory-simulado-chips">${items.map((item) => `<span class="factory-simulado-chip"><span><strong>${escapeHtml(item.tema || "Tema")}</strong><small>${escapeHtml(item.disciplina || "Sem disciplina")}</small></span><button type="button" data-factory-simulado-remove="${escapeHtml(item.id)}" aria-label="Remover ${escapeHtml(item.tema || "tema")}">×</button></span>`).join("")}</div>`;
@@ -199,8 +233,9 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
       <summary>GERADOR DE SIMULADOS <small>CEBRASPE • FGV • AOCP</small></summary>
       <div class="factory-collapsible-content">
         <p class="notice">Crie um prompt para um tema específico ou combine vários temas. O resultado será solicitado em JSON compatível com o Banco de Questões.</p>
+        ${disciplineSelectorHtml()}
         <div class="factory-simulado-selected"><div class="factory-simulado-title-row"><h4>Temas selecionados <span>${items.length}</span></h4>${items.length ? '<button type="button" class="secondary-button" data-factory-simulado-clear>Limpar seleção</button>' : ""}</div>${selectedThemeHtml(items)}</div>
-        <div class="factory-simulado-search-box"><label for="factorySimuladoSearchV310">Adicionar tema</label><input id="factorySimuladoSearchV310" type="search" data-factory-simulado-search placeholder="Digite a disciplina ou o tema" autocomplete="off" /><div class="factory-simulado-suggestions" data-factory-simulado-suggestions></div></div>
+        <div class="factory-simulado-search-box"><label for="factorySimuladoSearchV310">Adicionar tema</label><input id="factorySimuladoSearchV310" type="search" data-factory-simulado-search placeholder="Digite o nome do tema" autocomplete="off" /><div class="factory-simulado-suggestions" data-factory-simulado-suggestions></div></div>
         <div class="factory-simulado-grid">
           <label>Banca<select data-factory-simulado-config="banca"><option ${config.banca === "CEBRASPE" ? "selected" : ""}>CEBRASPE</option><option ${config.banca === "FGV" ? "selected" : ""}>FGV</option><option ${config.banca === "AOCP" ? "selected" : ""}>AOCP</option></select></label>
           <label>Quantidade de questões<input type="number" min="1" max="100" inputmode="numeric" value="${config.quantidade}" data-factory-simulado-config="quantidade" /></label>
@@ -244,7 +279,9 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
       panel.hidden = true;
       return;
     }
-    const matches = agenda().filter((item) => !selectedIds.has(text(item.id)) && canonicalText(`${item.disciplina} ${item.tema} ${(item.editalSubtemas || []).join(" ")}`).includes(needle)).slice(0, 12);
+    const matches = filterThemesByDisciplines(agenda())
+      .filter((item) => !selectedIds.has(text(item.id)) && canonicalText(`${item.disciplina} ${item.tema} ${(item.editalSubtemas || []).join(" ")}`).includes(needle))
+      .slice(0, 12);
     panel.innerHTML = matches.length
       ? matches.map((item) => `<button type="button" data-factory-simulado-add="${escapeHtml(item.id)}"><strong>${escapeHtml(item.tema || "Tema")}</strong><span>${escapeHtml(item.disciplina || "Sem disciplina")}</span></button>`).join("")
       : '<p class="item-meta">Nenhum tema encontrado.</p>';
@@ -307,6 +344,14 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
       mountBuilder();
       return;
     }
+    if (target.closest("[data-factory-simulado-disciplines-clear]")) {
+      event.preventDefault();
+      selectedDisciplines.clear();
+      lastPrompt = "";
+      mountBuilder();
+      document.querySelector("[data-factory-simulado-search]")?.focus();
+      return;
+    }
     if (target.closest("[data-factory-simulado-generate]")) {
       event.preventDefault();
       try {
@@ -325,6 +370,15 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
   }
 
   function handleInput(event) {
+    const discipline = event.target.closest?.("[data-factory-simulado-discipline]");
+    if (discipline) {
+      const key = disciplineKey(discipline.dataset.factorySimuladoDiscipline);
+      if (discipline.checked) selectedDisciplines.add(key);
+      else selectedDisciplines.delete(key);
+      lastPrompt = "";
+      mountBuilder();
+      return;
+    }
     const search = event.target.closest?.("[data-factory-simulado-search]");
     if (search) {
       renderSuggestions(search.value);
@@ -344,7 +398,7 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
     const link = document.createElement("link");
     link.id = "aldusFactorySimuladoStylesV310";
     link.rel = "stylesheet";
-    link.href = "factory-simulado-prompt-v310.css?v=20260811-gerador-simulados-v310";
+    link.href = "factory-simulado-prompt-v310.css?v=20260811-gerador-simulados-disciplinas-v311";
     (document.head || document.documentElement).appendChild(link);
   }
 
@@ -372,7 +426,9 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
     schema: QUESTION_BANK_SCHEMA,
     bankProfile,
     buildPrompt,
-    clampQuestionCount
+    clampQuestionCount,
+    listDisciplines,
+    filterThemesByDisciplines
   });
   initBrowser();
 })();
