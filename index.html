@@ -3,26 +3,25 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="aldus-entry-bootstrap-v308" content="20260811-duplicate-batch-core-pin-v308" />
+  <meta name="aldus-entry-bootstrap-v309" content="20260811-duplicate-flow-owner-v309" />
   <title>Aldus Metas Concurso — Painel de Estudos</title>
   <script>
   (() => {
     "use strict";
 
-    const ENTRY_VERSION = "20260811-duplicate-batch-core-pin-v308";
-    const CORE_VERSION = "20260811-duplicate-core-delivery-v307";
-    const BATCH_VERSION = "20260811-duplicate-batch-core-pin-v308";
+    const ENTRY_VERSION = "20260811-duplicate-flow-owner-v309";
+    const CORE_VERSION = "20260811-duplicate-flow-owner-v309";
+    const BATCH_VERSION = "20260811-duplicate-flow-owner-v309";
     const HEAD_CLOSE = "</he" + "ad>";
     const BODY_CLOSE = "</bo" + "dy>";
     const HTML_CLOSE = "</ht" + "ml>";
     const SHELL_URL = `docs/index.html?aldusEntry=${encodeURIComponent(ENTRY_VERSION)}&ts=${Date.now()}`;
-    const CORE_PATTERN = /<script\s+[^>]*src=["'][^"']*duplicate-diagnostics-v(?:260|303|304)\.js[^"']*["'][^>]*><\/script>\s*/gi;
-    const LOADER_PATTERN = /<script\s+[^>]*src=["'][^"']*duplicate-diagnostics-loader-v269\.js[^"']*["'][^>]*><\/script>/i;
+    const CORE_PATTERN = /<script\s+[^>]*src=["'][^"']*duplicate-diagnostics-v(?:260|303|304|309)\.js[^"']*["'][^>]*><\/script>\s*/gi;
     const BATCH_PATTERN = /<script\s+[^>]*src=["'][^"']*duplicate-diagnostics-batch-v(?:302|303|304|305)\.js[^"']*["'][^>]*><\/script>\s*/gi;
 
     function fail(error) {
       console.error(`[${ENTRY_VERSION}] Falha ao carregar o shell corrigido.`, error);
-      const message = "Não foi possível ativar a correção V308 nesta atualização. Recarregue a página com conexão ativa.";
+      const message = "Não foi possível ativar a correção V309 nesta atualização. Recarregue a página com conexão ativa.";
       document.open();
       document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aldus Metas</title>${HEAD_CLOSE}<body style="font-family:Arial,sans-serif;padding:32px;background:#071a2d;color:#fff"><main style="max-width:760px;margin:auto"><h1>Aldus Metas</h1><p>${message}</p><button type="button" onclick="location.reload()" style="padding:12px 18px;font-weight:700">Recarregar</button></main>${BODY_CLOSE}${HTML_CLOSE}`);
       document.close();
@@ -37,36 +36,27 @@
         throw new Error(`Shell indisponível (HTTP ${request.status || 0}).`);
       }
 
-      let html = request.responseText.replace(BATCH_PATTERN, "");
+      let html = request.responseText.replace(BATCH_PATTERN, "").replace(CORE_PATTERN, "");
       if (!html.includes(BODY_CLOSE)) throw new Error("Shell inválido: fechamento do body não encontrado.");
 
-      const coreTag = `<script id="aldusDuplicateDiagnosticsCoreV307" src="duplicate-diagnostics-v304.js?v=${CORE_VERSION}&entry=forced1"><\/script>`;
-      const v305Tag = `<script id="aldusDuplicateBatchAuthoritativeV305" src="duplicate-diagnostics-batch-v305.js?v=${BATCH_VERSION}&entry=forced1"><\/script>`;
-      let coreReplaced = false;
-      html = html.replace(CORE_PATTERN, () => {
-        if (coreReplaced) return "";
-        coreReplaced = true;
-        return `${coreTag}\n  `;
-      });
-      if (!coreReplaced) {
-        if (LOADER_PATTERN.test(html)) html = html.replace(LOADER_PATTERN, `${coreTag}\n  $&`);
-        else html = html.replace(BODY_CLOSE, `  ${coreTag}\n${BODY_CLOSE}`);
-      }
+      const coreTag = `<script id="aldusDuplicateDiagnosticsCoreV309" src="duplicate-diagnostics-v309.js?v=${CORE_VERSION}&entry=forced1"><\/script>`;
+      const v305Tag = `<script id="aldusDuplicateBatchAuthoritativeV309" src="duplicate-diagnostics-batch-v305.js?v=${BATCH_VERSION}&entry=forced1"><\/script>`;
+      html = html.replace(/<head([^>]*)>/i, `<head$1>\n  ${coreTag}`);
       html = html.replace(
         BODY_CLOSE,
-        `  <!-- aldus-entry-forced-v308 -->\n  ${v305Tag}\n${BODY_CLOSE}`
+        `  <!-- aldus-entry-forced-v309 -->\n  ${v305Tag}\n${BODY_CLOSE}`
       );
 
       if (
-        !html.includes(`duplicate-diagnostics-v304.js?v=${CORE_VERSION}`)
+        !html.includes(`duplicate-diagnostics-v309.js?v=${CORE_VERSION}`)
         || /src=["'][^"']*duplicate-diagnostics-v(?:260|303)\.js/i.test(html)
         || !html.includes("duplicate-diagnostics-batch-v305.js")
         || /src=["'][^"']*duplicate-diagnostics-batch-v304\.js/i.test(html)
       ) {
-        throw new Error("A barreira de versão não conseguiu isolar o diagnóstico V307 e o executor V308.");
+        throw new Error("A barreira de versão não conseguiu isolar o fluxo V309.");
       }
 
-      globalThis.__aldusEntryBootstrapV308 = Object.freeze({
+      globalThis.__aldusEntryBootstrapV309 = Object.freeze({
         version: ENTRY_VERSION,
         coreVersion: CORE_VERSION,
         batchVersion: BATCH_VERSION,

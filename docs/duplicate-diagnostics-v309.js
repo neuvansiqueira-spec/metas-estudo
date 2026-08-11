@@ -1,7 +1,8 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260811-duplicate-batch-performance-v304";
+  // V309 owns detection, preview, selection, persistence and undo as one flow.
+  const VERSION = "20260811-duplicate-flow-owner-v309";
   const BACKUP_DB_NAME = "aldus-duplicate-diagnostics-v260";
   const BACKUP_STORE = "snapshots";
   const BACKUP_LIMIT = 10;
@@ -1019,6 +1020,26 @@
     };
   }
 
+  function batchActionKey(action) {
+    return String(action?.pairKey || pairKey(action?.keeperId, action?.removedId));
+  }
+
+  function removeBatchPlanAction(plan, actionKey) {
+    const key = String(actionKey || "");
+    const next = cloneData(plan || { actions: [], groups: [], excluded: {} });
+    next.actions = (Array.isArray(next.actions) ? next.actions : [])
+      .filter((action) => batchActionKey(action) !== key);
+    next.groups = (Array.isArray(next.groups) ? next.groups : [])
+      .map((group) => ({
+        ...group,
+        actions: (Array.isArray(group.actions) ? group.actions : [])
+          .filter((action) => batchActionKey(action) !== key)
+      }))
+      .filter((group) => group.actions.length > 0);
+    next.selectedActions = next.actions.length;
+    return next;
+  }
+
   function stateCounts(state = {}) {
     return {
       syllabusItems: Array.isArray(state.syllabusItems) ? state.syllabusItems.length : 0,
@@ -1206,7 +1227,24 @@
 
   async function restoreBackupSnapshot(record) {
     if (!record?.data || typeof record.data !== "object") throw new Error("Cópia de segurança inválida.");
-    await writeMainIndexedDBState(cloneData(record.data));
+    const restoredState = cloneData(record.data);
+    const runtime = runtimeState();
+    if (runtime) replaceStateContents(runtime, restoredState);
+    try {
+      localStorage.setItem(MAIN_LOCAL_KEY, JSON.stringify(restoredState));
+    } catch {}
+    try {
+      if (runtime && typeof saveData === "function") {
+        await Promise.resolve(saveData({ markLocalChange: true, skipDerivedRefresh: true }));
+      }
+    } catch (error) {
+      console.warn(`[${VERSION}] O salvamento normal do desfazer falhou; mantendo a restauração autoritativa.`, error);
+    }
+    await writeMainIndexedDBState(restoredState);
+    const verified = await readMainIndexedDBRecord();
+    if (!verified?.data || checksumState(verified.data) !== checksumState(restoredState)) {
+      throw new Error("A cópia restaurada não pôde ser validada no armazenamento principal.");
+    }
     try {
       localStorage.setItem("aldusDuplicateDiagnosticsRestoredV260", JSON.stringify({
         backupId: record.id,
@@ -1354,6 +1392,7 @@
     const root = document.createElement("div");
     root.id = "aldusDuplicateDiagnosticsV260";
     root.className = "aldus-dup-root";
+    root.dataset.diagnosticsVersion = VERSION;
     root.hidden = true;
     root.innerHTML = shellHtml();
     document.body.appendChild(root);
@@ -1457,14 +1496,7 @@
     const button = ui.root?.querySelector("[data-dup-batch]");
     if (!button) return;
     const plan = ui.report ? recommendedBatchPlan(ui.report) : null;
-    if (plan) {
-      globalThis.__aldusDuplicateBatchPlanV304 = Object.freeze({
-        version: VERSION,
-        createdAt: new Date().toISOString(),
-        itemCount: Number(ui.report?.counts?.items) || 0,
-        plan: cloneData(plan)
-      });
-    }
+    if (plan) cacheBatchPlan(plan);
     const count = plan?.actions.length || 0;
     button.textContent = count ? `Consolidar recomendações (${count})` : "Consolidar recomendações";
     button.disabled = ui.busy || count === 0;
@@ -1482,16 +1514,24 @@
     ui.batchPlan = null;
   }
 
-  function previewRecommendedBatch() {
-    if (!ui.report || ui.busy) return;
-    const plan = recommendedBatchPlan(ui.report);
-    ui.batchPlan = plan;
-    globalThis.__aldusDuplicateBatchPlanV304 = Object.freeze({
+  function cacheBatchPlan(plan) {
+    globalThis.__aldusDuplicateBatchPlanV309 = Object.freeze({
       version: VERSION,
       createdAt: new Date().toISOString(),
       itemCount: Number(ui.report?.counts?.items) || 0,
       plan: cloneData(plan)
     });
+  }
+
+  function previewRecommendedBatch() {
+    if (!ui.report || ui.busy) return;
+    const plan = recommendedBatchPlan(ui.report);
+    ui.batchPlan = plan;
+    cacheBatchPlan(plan);
+    renderRecommendedBatchPreview(plan);
+  }
+
+  function renderRecommendedBatchPreview(plan) {
     const preview = ui.root?.querySelector("[data-dup-batch-preview]");
     if (!preview) return;
     if (!plan.actions.length) {
@@ -1500,8 +1540,7 @@
       return;
     }
 
-    const shown = plan.actions.slice(0, 30);
-    const remaining = plan.actions.length - shown.length;
+    const shown = plan.actions;
     const excludedSummary = [
       [plan.excluded.lowConfidence, "abaixo do nível de segurança"],
       [plan.excluded.hierarchicalOrBroad, "relações entre tema e subtema"],
@@ -1524,9 +1563,8 @@
         <div><strong>${plan.excluded.indirectConflict}</strong><span>conflitos mantidos para revisão</span></div>
       </div>
       <ol class="aldus-dup-batch-list">
-        ${shown.map((action) => `<li><strong>Manter:</strong> ${escapeHtml(action.keeperLabel || action.keeperId)} <span aria-hidden="true">←</span> <strong>Consolidar:</strong> ${escapeHtml(action.removedLabel || action.removedId)} <small>${escapeHtml(classificationLabel(action.classification))} · ${action.confidence}%</small></li>`).join("")}
+        ${shown.map((action) => `<li data-dup-batch-action="${escapeHtml(batchActionKey(action))}"><span><strong>Manter:</strong> ${escapeHtml(action.keeperLabel || action.keeperId)} <span aria-hidden="true">←</span> <strong>Consolidar:</strong> ${escapeHtml(action.removedLabel || action.removedId)} <small>${escapeHtml(classificationLabel(action.classification))} · ${action.confidence}%</small></span><button type="button" class="aldus-dup-batch-remove" data-dup-batch-remove="${escapeHtml(batchActionKey(action))}">Retirar do lote</button></li>`).join("")}
       </ol>
-      ${remaining > 0 ? `<p class="aldus-dup-batch-more">E mais ${remaining} consolidações incluídas no mesmo lote.</p>` : ""}
       ${excludedSummary ? `<p class="aldus-dup-batch-more"><strong>Fora do lote:</strong> ${escapeHtml(excludedSummary)}.</p>` : ""}
       <p class="aldus-dup-batch-safety">Será criada uma única cópia integral antes do lote. Sobreposições, temas relacionados, decisões anteriores e conflitos indiretos não serão alterados.</p>
       <footer>
@@ -1535,6 +1573,21 @@
       </footer>`;
     preview.hidden = false;
     preview.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
+  }
+
+  function removeRecommendedBatchAction(actionKey) {
+    if (!ui.batchPlan || ui.busy) return;
+    const previousCount = ui.batchPlan.actions.length;
+    ui.batchPlan = removeBatchPlanAction(ui.batchPlan, actionKey);
+    if (ui.batchPlan.actions.length === previousCount) return;
+    cacheBatchPlan(ui.batchPlan);
+    if (!ui.batchPlan.actions.length) {
+      closeBatchPreview();
+      setStatus("Todas as recomendações foram retiradas do lote. Nenhuma consolidação será executada.", "info");
+      return;
+    }
+    renderRecommendedBatchPreview(ui.batchPlan);
+    setStatus(`Recomendação retirada. O lote agora contém ${ui.batchPlan.actions.length} consolidações.`, "success");
   }
 
   function summaryHtml(counts) {
@@ -1750,6 +1803,8 @@
     if (batch) return previewRecommendedBatch();
     const batchCancel = event.target.closest?.("[data-dup-batch-cancel]");
     if (batchCancel) return closeBatchPreview();
+    const batchRemove = event.target.closest?.("[data-dup-batch-remove]");
+    if (batchRemove) return removeRecommendedBatchAction(batchRemove.dataset.dupBatchRemove);
     const batchConfirm = event.target.closest?.("[data-dup-batch-confirm]");
     if (batchConfirm) return applyRecommendedBatch();
     const undo = event.target.closest?.("[data-dup-undo]");
@@ -1773,11 +1828,24 @@
   }
 
   function install() {
-    if (globalThis.__aldusDuplicateDiagnosticsInstalledV260) return;
+    if (globalThis.__aldusDuplicateDiagnosticsUiOwnerV309 === VERSION) return;
+    globalThis.__aldusDuplicateDiagnosticsUiOwnerV309 = VERSION;
     globalThis.__aldusDuplicateDiagnosticsInstalledV260 = true;
     const start = () => {
+      const existingRoot = document.getElementById("aldusDuplicateDiagnosticsV260");
+      if (existingRoot && existingRoot.dataset?.diagnosticsVersion !== VERSION) {
+        existingRoot.remove();
+        ui.root = null;
+      }
       ensureUi();
       injectOpenLinks();
+      document.addEventListener("click", (event) => {
+        const trigger = event.target.closest?.("[data-duplicate-diagnostics-open]");
+        if (!trigger) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        openUi();
+      }, true);
       const observer = new MutationObserver(() => injectOpenLinks());
       observer.observe(document.documentElement, { childList: true, subtree: true });
       document.addEventListener("keydown", (event) => {
@@ -1809,6 +1877,8 @@
     remapItemLinks,
     consolidateItems,
     recommendedBatchPlan,
+    batchActionKey,
+    removeBatchPlanAction,
     replaceStateContents,
     stateCounts,
     checksumState
@@ -1823,6 +1893,7 @@
   // bootstrap fallbacks still publish on the V260 compatibility slot and may
   // load after this file, so the batch must not depend only on that mutable
   // alias.
+  globalThis.AldusDuplicateDiagnosticsV309 = API;
   globalThis.AldusDuplicateDiagnosticsV304 = API;
   globalThis.AldusDuplicateDiagnosticsV260 = API;
   if (typeof document !== "undefined") install();

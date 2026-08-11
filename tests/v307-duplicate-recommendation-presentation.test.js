@@ -4,7 +4,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
-const diagnostics = require("../duplicate-diagnostics-v304.js");
+const diagnostics = require("../duplicate-diagnostics-v309.js");
 
 function stateWithScreenshotTopics() {
   const topics = [
@@ -66,10 +66,10 @@ vm.runInNewContext(inlineScript, sandbox);
 
 assert.doesNotMatch(writtenShell, /duplicate-diagnostics-v260\.js/, "a entrada deve retirar o núcleo antigo que produzia 89%");
 assert.doesNotMatch(writtenShell, /duplicate-diagnostics-batch-v304\.js/, "a entrada deve retirar o handler de lote antigo");
-assert.match(writtenShell, /duplicate-diagnostics-v304\.js\?v=20260811-duplicate-core-delivery-v307/, "a entrada deve forçar o núcleo ampliado");
+assert.match(writtenShell, /duplicate-diagnostics-v309\.js\?v=20260811-duplicate-flow-owner-v309/, "a entrada deve forçar o núcleo ampliado");
 assert.match(writtenShell, /duplicate-diagnostics-batch-v305\.js/, "a entrada deve preservar o commit autoritativo");
 assert.ok(
-  writtenShell.indexOf("duplicate-diagnostics-v304.js") < writtenShell.indexOf("duplicate-diagnostics-loader-v269.js"),
+  writtenShell.indexOf("duplicate-diagnostics-v309.js") < writtenShell.indexOf("duplicate-diagnostics-loader-v269.js"),
   "o núcleo correto deve executar antes do loader que poderia reintroduzir a versão antiga"
 );
 

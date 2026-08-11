@@ -4,17 +4,17 @@ const CURRENT_VERSION = "20260809-atualizacao-worker-v291";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const SECURITY_VERSION = "20260810-seguranca-estabilidade-v296";
 const PROTECTION_VERSION = "20260808-catastrophic-state-recovery-v275";
-const BOOTSTRAP_VERSION = "20260811-duplicate-batch-core-pin-v308";
-const DUPLICATE_CONTINUITY_VERSION = "20260810-duplicate-batch-persistence-v301";
-const DUPLICATE_RECOMMENDATIONS_VERSION = "20260811-duplicate-core-delivery-v307";
-const DUPLICATE_BATCH_HOTFIX_VERSION = "20260811-duplicate-batch-core-pin-v308";
-const ENTRY_RECOVERY_VERSION = "20260811-duplicate-batch-core-pin-v308";
+const BOOTSTRAP_VERSION = "20260811-duplicate-flow-owner-v309";
+const DUPLICATE_CONTINUITY_VERSION = "20260811-duplicate-flow-owner-v309";
+const DUPLICATE_RECOMMENDATIONS_VERSION = "20260811-duplicate-flow-owner-v309";
+const DUPLICATE_BATCH_HOTFIX_VERSION = "20260811-duplicate-flow-owner-v309";
+const ENTRY_RECOVERY_VERSION = "20260811-duplicate-flow-owner-v309";
 const FACTORY_SCHEDULE_VERSION = "20260808-factory-schedule-scope-v277";
 const FACTORY_SCHEDULE_FILTERS_VERSION = "20260808-factory-schedule-planning-preview-filters-v280";
 const FACTORY_SCHEDULE_DATES_VERSION = "20260809-factory-schedule-planning-dates-v281";
 const QUESTIONS_HUB_VERSION = "20260810-questoes-integradas-v298";
 const QUESTION_JSON_DETAILS_VERSION = "20260810-revisao-json-explicacoes-v299";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v297-hotfix5-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-duplicate-recommended-batch-v300-duplicate-batch-persistence-v301-duplicate-batch-performance-v304-duplicate-batch-commit-v305-entry-parser-recovery-v306-duplicate-core-delivery-v307-duplicate-batch-core-pin-v308-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4-security-v296-questions-hub-v298-question-json-details-v299`;
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v297-hotfix5-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-duplicate-recommended-batch-v300-duplicate-batch-persistence-v301-duplicate-batch-performance-v304-duplicate-batch-commit-v305-entry-parser-recovery-v306-duplicate-core-delivery-v307-duplicate-batch-core-pin-v308-duplicate-flow-owner-v309-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4-security-v296-questions-hub-v298-question-json-details-v299`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
@@ -41,7 +41,8 @@ const DUPLICATE_DIAGNOSTICS_SEARCH = `duplicate-diagnostics-search-v272.js?v=${D
 const DUPLICATE_DIAGNOSTICS_MAP = `duplicate-diagnostics-map-v273.js?v=${DUPLICATE_CONTINUITY_VERSION}`;
 const DUPLICATE_DIAGNOSTICS_ACTIONS = `duplicate-diagnostics-actions-v274.js?v=${DUPLICATE_CONTINUITY_VERSION}`;
 const DUPLICATE_DIAGNOSTICS_SEARCH_CSS = `duplicate-diagnostics-search-v271.css?v=${DUPLICATE_CONTINUITY_VERSION}`;
-const DUPLICATE_RECOMMENDATIONS_CORE = `duplicate-diagnostics-v304.js?v=${DUPLICATE_RECOMMENDATIONS_VERSION}`;
+const DUPLICATE_DIAGNOSTICS_CORE_CSS = `duplicate-diagnostics-v260.css?v=${DUPLICATE_RECOMMENDATIONS_VERSION}`;
+const DUPLICATE_RECOMMENDATIONS_CORE = `duplicate-diagnostics-v309.js?v=${DUPLICATE_RECOMMENDATIONS_VERSION}`;
 const DUPLICATE_BATCH_HOTFIX = `duplicate-diagnostics-batch-v305.js?v=${DUPLICATE_BATCH_HOTFIX_VERSION}`;
 const QUESTIONS_HUB_STYLESHEET = `questions-hub-v298.css?v=${QUESTIONS_HUB_VERSION}`;
 const QUESTIONS_HUB_SCRIPT = `questions-hub-v298.js?v=${QUESTIONS_HUB_VERSION}`;
@@ -75,6 +76,7 @@ const STATIC_ASSETS = [
   DUPLICATE_DIAGNOSTICS_MAP,
   DUPLICATE_DIAGNOSTICS_ACTIONS,
   DUPLICATE_DIAGNOSTICS_SEARCH_CSS,
+  DUPLICATE_DIAGNOSTICS_CORE_CSS,
   DUPLICATE_RECOMMENDATIONS_CORE,
   DUPLICATE_BATCH_HOTFIX,
   QUESTIONS_HUB_STYLESHEET,
@@ -91,7 +93,7 @@ const STATIC_ASSETS = [
   "icons/icon-maskable.svg"
 ];
 const STATIC_PATHS = new Set(STATIC_ASSETS.map((asset) => new URL(asset, self.registration.scope).pathname));
-const ESSENTIAL_ASSETS = ["./", "index.html", `app-${RELEASE_SUFFIX}.css?v=${CURRENT_VERSION}`, `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`, QUESTIONS_HUB_STYLESHEET, QUESTIONS_HUB_SCRIPT, QUESTION_JSON_DETAILS_SCRIPT, DUPLICATE_RECOMMENDATIONS_CORE, DUPLICATE_BATCH_HOTFIX, SECURITY_HARDENING, CATASTROPHIC_STATE_GUARD, BOOTSTRAP_PROTECTED, BOOTSTRAP_CORE];
+const ESSENTIAL_ASSETS = ["./", "index.html", `app-${RELEASE_SUFFIX}.css?v=${CURRENT_VERSION}`, `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`, QUESTIONS_HUB_STYLESHEET, QUESTIONS_HUB_SCRIPT, QUESTION_JSON_DETAILS_SCRIPT, DUPLICATE_RECOMMENDATIONS_CORE, DUPLICATE_DIAGNOSTICS_CORE_CSS, DUPLICATE_BATCH_HOTFIX, SECURITY_HARDENING, CATASTROPHIC_STATE_GUARD, BOOTSTRAP_PROTECTED, BOOTSTRAP_CORE];
 
 async function precacheAssets() {
   const cache = await caches.open(CACHE_NAME);
@@ -174,26 +176,19 @@ function installDuplicateDiagnosticsV276(html) {
   return patched;
 }
 
-function installDuplicateRecommendationsV307(html) {
-  const tag = `<script id="aldusDuplicateDiagnosticsCoreV307" src="${DUPLICATE_RECOMMENDATIONS_CORE}"></script>`;
-  const corePattern = /<script\s+[^>]*src=["'][^"']*duplicate-diagnostics-v(?:260|303|304)\.js[^"']*["'][^>]*><\/script>/gi;
-  let installed = false;
-  let patched = html.replace(corePattern, () => {
-    if (installed) return "";
-    installed = true;
-    return tag;
-  });
-  if (installed) return patched;
-
-  const loaderPattern = /<script\s+[^>]*src=["'][^"']*duplicate-diagnostics-loader-v269\.js[^"']*["'][^>]*><\/script>/i;
-  if (loaderPattern.test(patched)) return patched.replace(loaderPattern, `${tag}\n  $&`);
-  return injectBeforeFinalClosingTag(patched, "</body>", tag);
+function installDuplicateRecommendationsV309(html) {
+  const tag = `<script id="aldusDuplicateDiagnosticsCoreV309" src="${DUPLICATE_RECOMMENDATIONS_CORE}"></script>`;
+  const styleTag = `<link id="aldusDuplicateDiagnosticsStylesV309" rel="stylesheet" href="${DUPLICATE_DIAGNOSTICS_CORE_CSS}" />`;
+  const corePattern = /<script\s+[^>]*src=["'][^"']*duplicate-diagnostics-v(?:260|303|304|309)\.js[^"']*["'][^>]*><\/script>/gi;
+  let patched = html.replace(corePattern, "");
+  patched = patched.replace(/<link\s+[^>]*href=["'][^"']*duplicate-diagnostics-v260\.css[^"']*["'][^>]*>/gi, "");
+  return injectBeforeFinalClosingTag(patched, "</head>", `${styleTag}\n  ${tag}`);
 }
 
-function installDuplicateBatchV305(html) {
-  const tag = `<script id="aldusDuplicateBatchAuthoritativeV305" src="${DUPLICATE_BATCH_HOTFIX}"></script>`;
+function installDuplicateBatchV309(html) {
+  const tag = `<script id="aldusDuplicateBatchAuthoritativeV309" src="${DUPLICATE_BATCH_HOTFIX}"></script>`;
   let patched = html.replace(
-    /<script\s+id=["']aldusDuplicateBatchAuthoritativeV(?:302|303|304|305)["'][^>]*><\/script>/gi,
+    /<script\s+id=["']aldusDuplicateBatchAuthoritativeV(?:302|303|304|305|309)["'][^>]*><\/script>/gi,
     ""
   );
   patched = patched.replace(
@@ -274,9 +269,9 @@ async function ensurePageStylesheets(response) {
     patchedHtml = injectBeforeFinalClosingTag(patchedHtml, "</body>", scriptTag);
   }
 
-  patchedHtml = installDuplicateRecommendationsV307(patchedHtml);
+  patchedHtml = installDuplicateRecommendationsV309(patchedHtml);
   patchedHtml = installDuplicateDiagnosticsV276(patchedHtml);
-  patchedHtml = installDuplicateBatchV305(patchedHtml);
+  patchedHtml = installDuplicateBatchV309(patchedHtml);
   patchedHtml = installFactoryScheduleV277(patchedHtml);
 
   const headers = new Headers(response.headers);
@@ -284,7 +279,7 @@ async function ensurePageStylesheets(response) {
   headers.set("content-type", "text/html; charset=utf-8");
   headers.set("x-aldus-integrity-version", CURRENT_VERSION);
   headers.set("x-aldus-data-protection", PROTECTION_VERSION);
-  headers.set("x-aldus-duplicate-search", "duplicate-batch-core-pin-v308");
+  headers.set("x-aldus-duplicate-search", "duplicate-flow-owner-v309");
   headers.set("x-aldus-entry-recovery", ENTRY_RECOVERY_VERSION);
   headers.set("x-aldus-factory-schedule", FACTORY_SCHEDULE_VERSION);
   headers.set("x-aldus-factory-schedule-filters", FACTORY_SCHEDULE_FILTERS_VERSION);

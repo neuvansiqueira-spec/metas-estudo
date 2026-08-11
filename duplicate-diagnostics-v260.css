@@ -112,9 +112,32 @@
 }
 
 #aldusDuplicateDiagnosticsV260 .aldus-dup-batch-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding: 9px 8px;
   border-bottom: 1px solid #d7e8f5;
   line-height: 1.4;
+}
+
+#aldusDuplicateDiagnosticsV260 .aldus-dup-batch-remove {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid #9abbd2;
+  border-radius: 9px;
+  background: #fff;
+  color: #174f75;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+#aldusDuplicateDiagnosticsV260 .aldus-dup-batch-remove:hover,
+#aldusDuplicateDiagnosticsV260 .aldus-dup-batch-remove:focus-visible {
+  border-color: #176ea8;
+  background: #eaf5fc;
 }
 
 #aldusDuplicateDiagnosticsV260 .aldus-dup-batch-list small {
@@ -172,6 +195,15 @@
   }
 
   #aldusDuplicateDiagnosticsV260 .aldus-dup-batch-preview > footer button {
+    width: 100%;
+  }
+
+  #aldusDuplicateDiagnosticsV260 .aldus-dup-batch-list li {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  #aldusDuplicateDiagnosticsV260 .aldus-dup-batch-remove {
     width: 100%;
   }
 }

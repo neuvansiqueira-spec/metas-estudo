@@ -3,11 +3,11 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const diagnostics = require("../duplicate-diagnostics-v304.js");
+const diagnostics = require("../duplicate-diagnostics-v309.js");
 const batch = require("../duplicate-diagnostics-batch-v305.js");
 
-assert.equal(diagnostics.VERSION, "20260811-duplicate-batch-performance-v304");
-assert.equal(batch.VERSION, "20260811-duplicate-batch-core-pin-v308");
+assert.equal(diagnostics.VERSION, "20260811-duplicate-flow-owner-v309");
+assert.equal(batch.VERSION, "20260811-duplicate-flow-owner-v309");
 
 const state = {
   syllabusItems: [
@@ -22,7 +22,7 @@ const report = diagnostics.diagnoseState(state, { includeDecided: true });
 assert.equal(report.pairs[0].classification, "exact", "a otimização não pode perder as recomendações ampliadas");
 const plan = diagnostics.recommendedBatchPlan(report);
 assert.equal(plan.actions.length, 1, "o plano seguro deve continuar disponível");
-globalThis.__aldusDuplicateBatchPlanV304 = {
+globalThis.__aldusDuplicateBatchPlanV309 = {
   version: diagnostics.VERSION,
   itemCount: state.syllabusItems.length,
   plan
@@ -30,11 +30,11 @@ globalThis.__aldusDuplicateBatchPlanV304 = {
 assert.equal(batch.cachedPlanForState(state, diagnostics).actions.length, 1, "deve reutilizar o plano já validado");
 assert.equal(batch.cachedPlanForState({ ...state, syllabusItems: state.syllabusItems.slice(0, 1) }, diagnostics), null, "deve recalcular se o estado mudou");
 
-const coreSource = fs.readFileSync(path.join(__dirname, "..", "duplicate-diagnostics-v304.js"), "utf8");
+const coreSource = fs.readFileSync(path.join(__dirname, "..", "duplicate-diagnostics-v309.js"), "utf8");
 const batchSource = fs.readFileSync(path.join(__dirname, "..", "duplicate-diagnostics-batch-v305.js"), "utf8");
-assert.match(coreSource, /__aldusDuplicateBatchPlanV304/, "o diagnóstico deve publicar o plano já calculado");
+assert.match(coreSource, /__aldusDuplicateBatchPlanV309/, "o diagnóstico deve publicar o plano já calculado");
 assert.match(batchSource, /cachedPlanForState\(targetState, api\)/, "a confirmação deve reutilizar o plano válido");
-assert.match(batchSource, /vinculando a recomendação ao mesmo núcleo da prévia/, "a interface deve informar o vínculo correto imediatamente");
+assert.match(batchSource, /validando a fila exibida antes da consolidação/, "a interface deve informar que executará exatamente a fila exibida");
 assert.match(batchSource, /processando \$\{index \+ 1\} de \$\{plan\.actions\.length\}/, "deve mostrar cada avanço do lote");
 assert.match(batchSource, /await readMainIndexedDB\(\)/, "a verificação autoritativa deve permanecer ativa");
 assert.doesNotMatch(batchSource, /window\.location\.reload/, "não deve fechar o diagnóstico");

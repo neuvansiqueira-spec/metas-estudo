@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260811-duplicate-batch-core-pin-v308";
+  const VERSION = "20260811-duplicate-flow-owner-v309";
   const CORE_SCRIPT = `bootstrap-integrity-loader-v258-core.js?v=${VERSION}`;
   const DIAGNOSTICS_SCRIPT = `duplicate-diagnostics-v260.js?v=${VERSION}`;
   const DIAGNOSTICS_STYLESHEET = `duplicate-diagnostics-v260.css?v=${VERSION}`;
@@ -50,8 +50,8 @@
 
     const core = makeScript("aldusBootstrapIntegrityCoreV275", CORE_SCRIPT, baseUrl, source);
     const shiftPersistence = makeScript("aldusPlanningShiftPersistenceV283", PLANNING_SHIFT_PERSISTENCE_SCRIPT, baseUrl, source);
-    const modernDiagnostics = globalThis.AldusDuplicateDiagnosticsV304;
-    const diagnostics = modernDiagnostics?.VERSION === "20260811-duplicate-batch-performance-v304"
+    const modernDiagnostics = globalThis.AldusDuplicateDiagnosticsV309;
+    const diagnostics = modernDiagnostics?.VERSION === "20260811-duplicate-flow-owner-v309"
       ? null
       : makeScript("aldusDuplicateDiagnosticsScriptV260", DIAGNOSTICS_SCRIPT, baseUrl, source);
     const recovery = makeScript("aldusRecoverySafetyV275", RECOVERY_SCRIPT, baseUrl, source);
@@ -76,7 +76,7 @@
       version: VERSION,
       core: CORE_SCRIPT,
       planningShiftPersistence: PLANNING_SHIFT_PERSISTENCE_SCRIPT,
-      diagnostics: diagnostics ? DIAGNOSTICS_SCRIPT : "duplicate-diagnostics-v304.js (pinned)",
+      diagnostics: diagnostics ? DIAGNOSTICS_SCRIPT : "duplicate-diagnostics-v309.js (pinned)",
       recovery: RECOVERY_SCRIPT,
       timerSoundMaster: TIMER_SOUND_MASTER_SCRIPT,
       timerControls: TIMER_CONTROLS_SCRIPT
