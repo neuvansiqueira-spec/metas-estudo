@@ -1,0 +1,287 @@
+#view-fabrica-resumos .factory-simulado-builder {
+  border-color: color-mix(in srgb, var(--primary, #1e3a8a) 28%, var(--border));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--primary-soft, #eff6ff) 76%, #fff), #fff 180px);
+}
+
+#view-fabrica-resumos .factory-simulado-builder > summary {
+  color: #172554;
+}
+
+#view-fabrica-resumos .factory-simulado-builder > summary small {
+  margin-left: auto;
+  color: #475569;
+  font-size: .75rem;
+  letter-spacing: .02em;
+}
+
+.factory-simulado-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px 0 8px;
+}
+
+.factory-simulado-title-row h4 {
+  margin: 0;
+}
+
+.factory-simulado-title-row h4 span {
+  display: inline-grid;
+  place-items: center;
+  min-width: 25px;
+  min-height: 25px;
+  margin-left: 5px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1e3a8a;
+  font-size: .78rem;
+}
+
+.factory-simulado-empty {
+  margin: 0;
+  padding: 12px;
+  border: 1px dashed #94a3b8;
+  border-radius: 12px;
+  color: #475569;
+  background: rgba(255, 255, 255, .72);
+}
+
+.factory-simulado-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.factory-simulado-chip {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  max-width: 100%;
+  padding: 7px 8px 7px 11px;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  background: #eff6ff;
+  color: #172554;
+}
+
+.factory-simulado-chip > span {
+  display: grid;
+  min-width: 0;
+}
+
+.factory-simulado-chip strong,
+.factory-simulado-chip small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.factory-simulado-chip small {
+  color: #475569;
+}
+
+.factory-simulado-chip button {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #1e3a8a;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.factory-simulado-search-box {
+  position: relative;
+  margin-top: 16px;
+}
+
+.factory-simulado-search-box > label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+
+.factory-simulado-search-box input {
+  width: 100%;
+}
+
+.factory-simulado-suggestions {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  right: 0;
+  left: 0;
+  max-height: 310px;
+  overflow: auto;
+  padding: 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, .15);
+}
+
+.factory-simulado-suggestions:empty,
+.factory-simulado-suggestions[hidden] {
+  display: none;
+}
+
+.factory-simulado-suggestions button {
+  display: grid;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #0f172a;
+  text-align: left;
+}
+
+.factory-simulado-suggestions button:hover,
+.factory-simulado-suggestions button:focus-visible {
+  background: #eff6ff;
+}
+
+.factory-simulado-suggestions button span {
+  color: #64748b;
+  font-size: .8rem;
+}
+
+.factory-simulado-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.factory-simulado-grid label {
+  display: grid;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.factory-simulado-grid .wide {
+  grid-column: 1 / -1;
+}
+
+.factory-simulado-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin: 16px 0;
+  padding: 12px;
+  border: 1px solid #dbe3ef;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .78);
+}
+
+.factory-simulado-options legend {
+  padding: 0 6px;
+  font-weight: 800;
+}
+
+.factory-simulado-options label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.factory-simulado-options input {
+  width: auto;
+}
+
+.factory-simulado-output {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #dbe3ef;
+}
+
+.factory-simulado-output textarea {
+  width: 100%;
+  min-height: 280px;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: .84rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.factory-simulado-single {
+  border-color: #93c5fd;
+  color: #1e3a8a;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-builder .notice,
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-empty,
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-options {
+  border-color: rgba(125, 181, 224, .34) !important;
+  background: rgba(3, 23, 38, .72) !important;
+  color: #d6e3ec !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-chip {
+  border-color: rgba(125, 181, 224, .38);
+  background: #0a2b45;
+  color: #f8fbff;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-chip small {
+  color: #b7cbd9;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-chip button,
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-single {
+  color: #d8edff !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-title-row h4 span {
+  background: #d8edff;
+  color: #06213a;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-suggestions {
+  border-color: #4b89b8;
+  background: #061d31;
+  box-shadow: 0 18px 42px rgba(0, 5, 14, .48);
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-suggestions button {
+  color: #f8fbff;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-suggestions button:hover,
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-suggestions button:focus-visible {
+  background: #123f61;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-suggestions button span {
+  color: #b7cbd9;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-output {
+  border-top-color: rgba(125, 181, 224, .34);
+}
+
+@media (max-width: 700px) {
+  .factory-simulado-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .factory-simulado-grid .wide {
+    grid-column: auto;
+  }
+
+  .factory-simulado-title-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .factory-simulado-chip {
+    width: 100%;
+  }
+
+  .factory-simulado-chip > span {
+    flex: 1;
+  }
+}
