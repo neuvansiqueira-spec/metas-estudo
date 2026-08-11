@@ -19,7 +19,8 @@ function assertCurrentReleaseContract() {
   const suffix = version.match(/v\d+$/)?.[0];
   assert.ok(suffix, "A versão pública deve terminar em vNNN.");
 
-  const html = read("index.html");
+  const entryHtml = read("index.html");
+  const html = read("docs/index.html");
   const worker = read("service-worker.js");
   const appVersion = read("app-version.js");
   const script = read("script.js");
@@ -28,7 +29,6 @@ function assertCurrentReleaseContract() {
   const bootstrapCore = read("bootstrap-integrity-loader-v258-core.js");
 
   for (const file of [
-    "index.html",
     "script.js",
     "service-worker.js",
     "app-version.js",
@@ -37,6 +37,19 @@ function assertCurrentReleaseContract() {
     "bootstrap-integrity-loader-v258-core.js"
   ]) {
     assert.equal(read(file), read(`docs/${file}`), `${file} deve ser idêntico em docs`);
+  }
+
+  if (entryHtml !== html) {
+    assert.match(entryHtml, /aldus-entry-bootstrap-v309/,
+      "uma entrada diferente do shell publicado deve identificar a barreira V309");
+    assert.match(entryHtml, /docs\/index\.html\?aldusEntry=/,
+      "a barreira V309 deve buscar explicitamente o shell publicado em docs");
+    assert.match(entryHtml, /duplicate-diagnostics-v309\.js/,
+      "a barreira V309 deve fixar o núcleo atual do diagnóstico");
+    assert.match(entryHtml, /duplicate-diagnostics-batch-v305\.js/,
+      "a barreira V309 deve fixar o executor autoritativo do lote");
+  } else {
+    assert.equal(entryHtml, html, "index.html deve ser idêntico em docs");
   }
 
   assert.match(html, new RegExp(`app-${suffix}\\.css\\?v=${version}`));

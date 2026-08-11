@@ -42,7 +42,21 @@ jobs:
           node --check security-hardening-v296.js
           node --check service-worker.js
           node --check service-worker-v291.js
-          node --test tests/security-hardening-v296.test.js tests/timer-controls-hardening-v268.test.js tests/legacy-timer-recovery.test.js
+          node --test \
+            tests/security-hardening-v296.test.js \
+            tests/timer-controls-hardening-v268.test.js \
+            tests/legacy-timer-recovery.test.js \
+            tests/duplicate-diagnostics-v260.test.js \
+            tests/duplicate-diagnostics-relations-v266.test.js \
+            tests/v302-duplicate-batch-authoritative.test.js \
+            tests/v303-duplicate-batch-progress.test.js \
+            tests/v303-duplicate-recommendations.test.js \
+            tests/v304-duplicate-batch-performance.test.js \
+            tests/v305-duplicate-batch-commit.test.js \
+            tests/v305-entry-bootstrap.test.js \
+            tests/v307-duplicate-recommendation-presentation.test.js \
+            tests/v308-duplicate-batch-core-pin.test.js \
+            tests/v309-duplicate-flow-owner.test.js
           node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
           cmp security-hardening-v296.js docs/security-hardening-v296.js
           cmp service-worker.js docs/service-worker.js

@@ -176,14 +176,15 @@ test('syllabusItemId, normalização, legado sem origin, parcial, ambíguo, manu
 
 test('associação manual exige confirmação interna e ignorar sessão persiste', () => {
   assert.match(script, /legacyTimerRecoveryModal/);
-  assert.match(fs.readFileSync('index.html', 'utf8'), /Confirmar associação/);
+  assert.match(fs.readFileSync('docs/index.html', 'utf8'), /Confirmar associação/);
   assert.match(script, /data-legacy-recovery-ignore/);
   assert.doesNotMatch(script, /prompt\(".*legacy|confirm\(".*legacy|alert\(".*legacy/i);
 });
 
-test('raiz e docs permanecem iguais na recuperação v3', () => {
+test('artefatos da recuperação v3 permanecem iguais e a entrada V309 encaminha ao shell', () => {
   assert.equal(fs.readFileSync('script.js','utf8'), fs.readFileSync('docs/script.js','utf8'));
-  assert.equal(fs.readFileSync('index.html','utf8'), fs.readFileSync('docs/index.html','utf8'));
+  assert.match(fs.readFileSync('index.html','utf8'), /docs\/index\.html\?aldusEntry=/);
+  assert.match(fs.readFileSync('docs/index.html','utf8'), /Confirmar associação/);
   assert.equal(fs.readFileSync('style.css','utf8'), fs.readFileSync('docs/style.css','utf8'));
   assert.equal(fs.readFileSync('service-worker.js','utf8'), fs.readFileSync('docs/service-worker.js','utf8'));
 });

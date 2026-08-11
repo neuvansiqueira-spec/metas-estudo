@@ -18,7 +18,7 @@ test("V296 é publicada de forma idêntica na raiz e em docs", () => {
 });
 
 test("HTML aplica CSP antes dos scripts da aplicação", () => {
-  for (const path of ["index.html", "docs/index.html"]) {
+  for (const path of ["docs/index.html"]) {
     const html = read(path);
     const cspIndex = html.indexOf("Content-Security-Policy");
     const securityIndex = html.indexOf("security-hardening-v296.js");
@@ -33,10 +33,16 @@ test("HTML aplica CSP antes dos scripts da aplicação", () => {
     assert.match(html, /<meta name="referrer" content="no-referrer"/);
     assert.doesNotMatch(html, /connect-src[^;]*\*/);
   }
+
+  const entry = read("index.html");
+  assert.match(entry, /aldus-entry-bootstrap-v309/,
+    "a entrada da raiz deve permanecer restrita à barreira V309");
+  assert.match(entry, /docs\/index\.html\?aldusEntry=/,
+    "a entrada da raiz deve encaminhar ao shell protegido publicado em docs");
 });
 
 test("service worker atualiza sem perder toda a instalação por recurso opcional", () => {
-  for (const path of ["service-worker.js", "docs/service-worker.js", "service-worker-v291.js", "docs/service-worker-v291.js"]) {
+  for (const path of ["service-worker.js", "docs/service-worker.js"]) {
     const worker = read(path);
     assert.match(worker, /SECURITY_HARDENING/);
     assert.match(worker, /security-hardening-v296\.js/);
@@ -46,6 +52,13 @@ test("service worker atualiza sem perder toda a instalação por recurso opciona
     assert.match(worker, /ignoreSearch: true/);
     assert.match(worker, /x-aldus-security/);
   }
+
+  for (const path of ["service-worker-v291.js", "docs/service-worker-v291.js"]) {
+    const bridge = read(path);
+    assert.match(bridge, /importScripts\("service-worker\.js\?v=20260811-duplicate-flow-owner-v309"\)/,
+      `${path} deve encaminhar ao worker autoritativo V309`);
+  }
+  assert.equal(read("service-worker-v291.js"), read("docs/service-worker-v291.js"));
 });
 
 test("artefatos públicos não contêm segredos de alto risco conhecidos", () => {
