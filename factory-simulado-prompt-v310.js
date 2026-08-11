@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260811-gerador-simulados-disciplinas-v311";
+  const VERSION = "20260811-gerador-simulados-escolha-automatica-v312";
   const QUESTION_BANK_SCHEMA = "metas-estudo-question-bank-v1";
   const selectedIds = new Set();
   const selectedDisciplines = new Set();
@@ -11,6 +11,7 @@
     dificuldade: "Mista",
     distribuicao: "Equilibrada entre os temas",
     distribuicaoPersonalizada: "",
+    escolhaAutomatica: false,
     comentarios: true,
     fundamentoLegal: true,
     jurisprudencia: true
@@ -77,8 +78,13 @@
 
   function buildPrompt(nextConfig = {}, items = []) {
     const normalizedItems = Array.isArray(items) ? items.filter(Boolean) : [];
-    if (!normalizedItems.length) throw new Error("Selecione pelo menos um tema para gerar o simulado.");
     const options = { ...config, ...nextConfig };
+    const automaticSelection = Boolean(options.escolhaAutomatica);
+    if (!normalizedItems.length) {
+      throw new Error(automaticSelection
+        ? "Selecione pelo menos uma disciplina que possua temas cadastrados."
+        : "Selecione pelo menos um tema para gerar o simulado.");
+    }
     const profile = bankProfile(options.banca);
     const amount = clampQuestionCount(options.quantidade);
     const customDistribution = text(options.distribuicaoPersonalizada);
@@ -93,6 +99,13 @@
       ? "Quando houver cobrança jurisprudencial, use somente entendimento seguro e identificável, informando tribunal, precedente ou enunciado e ano. Não invente número de processo, tese, súmula ou julgamento."
       : "Não crie questões cuja resposta dependa de jurisprudência não fornecida nas fontes.";
     const themes = normalizedItems.map(themeLine).join("\n\n");
+    const objective = automaticSelection
+      ? `Crie um simulado INÉDITO com exatamente ${amount} questões no estilo ${profile.banca}. Escolha automaticamente os temas mais adequados entre as opções cadastradas abaixo e distribua as questões de forma coerente.`
+      : `Crie um simulado INÉDITO com exatamente ${amount} questões no estilo ${profile.banca}, cobrindo somente os temas e recortes indicados abaixo.`;
+    const themeHeading = automaticSelection ? "TEMAS DISPONÍVEIS PARA ESCOLHA AUTOMÁTICA" : "TEMAS SELECIONADOS";
+    const themeSelectionRule = automaticSelection
+      ? "Seleção automática: escolha somente entre os temas listados, considere a quantidade de questões, diversifique a cobertura entre as disciplinas escolhidas e não acrescente conteúdo externo ao edital cadastrado."
+      : "Seleção manual: utilize os temas escolhidos pelo usuário e respeite os respectivos recortes.";
     const alternativesExample = profile.tipo === "Certo/Errado"
       ? '"alternativas": {}'
       : '"alternativas": {"A": "texto", "B": "texto", "C": "texto", "D": "texto", "E": "texto"}';
@@ -100,7 +113,7 @@
     return `Você é um elaborador e revisor especializado em questões para concursos jurídicos de alto nível.
 
 OBJETIVO
-Crie um simulado INÉDITO com exatamente ${amount} questões no estilo ${profile.banca}, cobrindo somente os temas e recortes indicados abaixo.
+${objective}
 
 CONFIGURAÇÕES
 - Banca simulada: ${profile.banca}
@@ -108,9 +121,10 @@ CONFIGURAÇÕES
 - Quantidade exata: ${amount}
 - Dificuldade: ${text(options.dificuldade) || "Mista"}
 - Distribuição: ${distribution}
+- Escolha dos temas: ${automaticSelection ? "Automática pelo sistema" : "Manual pelo usuário"}
 - Público: concursos jurídicos, com prioridade para o cargo de Delegado de Polícia quando o conteúdo permitir
 
-TEMAS SELECIONADOS
+${themeHeading}
 ${themes}
 
 PADRÃO DA BANCA
@@ -118,15 +132,16 @@ ${profile.estilo}
 ${profile.alternativas}
 
 REGRAS DE CONTEÚDO E SEGURANÇA JURÍDICA
-1. Use prioritariamente as fontes indicadas para cada tema e respeite rigorosamente o recorte selecionado.
-2. Não invente lei, artigo, prazo, competência, exceção, tese, precedente, súmula, número de processo ou entendimento jurisprudencial.
-3. Se uma informação necessária não puder ser confirmada nas fontes disponíveis, não formule questão dependente dessa informação.
-4. Não copie questão real. Produza conteúdo inédito apenas inspirado no modo de cobrança da banca.
-5. Cada questão deve possuir uma única resposta defensável e não pode depender de opinião doutrinária controvertida sem indicar a corrente adotada.
-6. Evite repetição de enunciados, fundamentos, gabaritos em sequência previsível e cobrança superficial do mesmo ponto.
-7. ${commentsRule}
-8. ${lawRule}
-9. ${precedentRule}
+1. ${themeSelectionRule}
+2. Use prioritariamente as fontes indicadas para cada tema e respeite rigorosamente o recorte cadastrado.
+3. Não invente lei, artigo, prazo, competência, exceção, tese, precedente, súmula, número de processo ou entendimento jurisprudencial.
+4. Se uma informação necessária não puder ser confirmada nas fontes disponíveis, não formule questão dependente dessa informação.
+5. Não copie questão real. Produza conteúdo inédito apenas inspirado no modo de cobrança da banca.
+6. Cada questão deve possuir uma única resposta defensável e não pode depender de opinião doutrinária controvertida sem indicar a corrente adotada.
+7. Evite repetição de enunciados, fundamentos, gabaritos em sequência previsível e cobrança superficial do mesmo ponto.
+8. ${commentsRule}
+9. ${lawRule}
+10. ${precedentRule}
 
 FORMATO OBRIGATÓRIO DE ENTREGA
 Entregue somente JSON válido, sem texto introdutório, sem conclusão e sem cercas de Markdown. O arquivo deve ser diretamente importável no Banco de Questões do Aldus Meta.
@@ -165,7 +180,7 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
 - Confirme internamente que existem exatamente ${amount} objetos em questionBank.
 - Confirme que todos os IDs são únicos e sequenciais.
 - Confirme que o gabarito usa somente ${profile.gabarito}.
-- Confirme que cada questão está vinculada a um dos temas selecionados.
+- Confirme que cada questão está vinculada a um dos temas ${automaticSelection ? "disponibilizados para escolha automática" : "selecionados pelo usuário"}.
 - Confirme a validade sintática do JSON.
 - Não inclua resposta_marcada, resultado, acertou ou qualquer campo que registre desempenho antes de o usuário responder.
 - Não apresente esta validação; entregue somente o JSON final.`;
@@ -207,13 +222,22 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
     return source.filter((item) => active.has(disciplineKey(text(item?.disciplina) || "Sem disciplina")));
   }
 
+  function automaticThemePool() {
+    if (!selectedDisciplines.size) return [];
+    return filterThemesByDisciplines(agenda(), selectedDisciplines);
+  }
+
+  function promptItems() {
+    return config.escolhaAutomatica ? automaticThemePool() : selectedItems();
+  }
+
   function disciplineSelectorHtml() {
     const disciplines = listDisciplines();
     const selectedCount = selectedDisciplines.size;
     if (!disciplines.length) return '<p class="factory-simulado-empty">Nenhuma disciplina cadastrada.</p>';
     return `<fieldset class="factory-simulado-disciplines">
       <legend>Disciplinas <span>${selectedCount || "Todas"}</span></legend>
-      <p class="item-meta">Escolha uma ou várias. Sem marcação, serão pesquisadas todas as disciplinas.</p>
+      <p class="item-meta">${config.escolhaAutomatica ? "No modo automático, marque pelo menos uma disciplina." : "Escolha uma ou várias. Sem marcação, serão pesquisadas todas as disciplinas."}</p>
       <div class="factory-simulado-discipline-list">${disciplines.map(({ key, label }) => `<label><input type="checkbox" data-factory-simulado-discipline="${escapeHtml(key)}" ${selectedDisciplines.has(key) ? "checked" : ""} /><span>${escapeHtml(label)}</span></label>`).join("")}</div>
       ${selectedCount ? '<button type="button" class="secondary-button" data-factory-simulado-disciplines-clear>Usar todas as disciplinas</button>' : ""}
     </fieldset>`;
@@ -226,6 +250,12 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
 
   function builderHtml() {
     const items = selectedItems();
+    const automaticItems = automaticThemePool();
+    const canGenerate = config.escolhaAutomatica ? automaticItems.length > 0 : items.length > 0;
+    const themeControls = config.escolhaAutomatica
+      ? `<div class="factory-simulado-automatic-scope" role="status"><strong>Escolha automática ativada</strong><p>${selectedDisciplines.size ? `${automaticItems.length} tema(s) cadastrado(s) estão disponíveis nas disciplinas escolhidas. O sistema selecionará e distribuirá os mais adequados.` : "Selecione pelo menos uma disciplina para liberar a geração do prompt."}</p></div>`
+      : `<div class="factory-simulado-selected"><div class="factory-simulado-title-row"><h4>Temas selecionados <span>${items.length}</span></h4>${items.length ? '<button type="button" class="secondary-button" data-factory-simulado-clear>Limpar seleção</button>' : ""}</div>${selectedThemeHtml(items)}</div>
+        <div class="factory-simulado-search-box"><label for="factorySimuladoSearchV310">Adicionar tema</label><input id="factorySimuladoSearchV310" type="search" data-factory-simulado-search placeholder="Digite o nome do tema" autocomplete="off" /><div class="factory-simulado-suggestions" data-factory-simulado-suggestions></div></div>`;
     const output = lastPrompt
       ? `<div class="factory-simulado-output"><h4>Prompt pronto</h4><textarea readonly rows="18" data-factory-simulado-output>${escapeHtml(lastPrompt)}</textarea><div class="card-actions"><button type="button" data-factory-simulado-copy>Copiar prompt</button><span class="item-meta" data-factory-simulado-message aria-live="polite"></span></div></div>`
       : "";
@@ -233,9 +263,9 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
       <summary>GERADOR DE SIMULADOS <small>CEBRASPE • FGV • AOCP</small></summary>
       <div class="factory-collapsible-content">
         <p class="notice">Crie um prompt para um tema específico ou combine vários temas. O resultado será solicitado em JSON compatível com o Banco de Questões.</p>
+        <fieldset class="factory-simulado-theme-mode"><legend>Escolha dos temas</legend><label><input type="checkbox" data-factory-simulado-config="escolhaAutomatica" ${config.escolhaAutomatica ? "checked" : ""} /> Deixar o sistema escolher os temas automaticamente</label><p class="item-meta">Desmarcado: você escolhe os temas. Marcado: o sistema escolhe entre os temas cadastrados nas disciplinas selecionadas.</p></fieldset>
         ${disciplineSelectorHtml()}
-        <div class="factory-simulado-selected"><div class="factory-simulado-title-row"><h4>Temas selecionados <span>${items.length}</span></h4>${items.length ? '<button type="button" class="secondary-button" data-factory-simulado-clear>Limpar seleção</button>' : ""}</div>${selectedThemeHtml(items)}</div>
-        <div class="factory-simulado-search-box"><label for="factorySimuladoSearchV310">Adicionar tema</label><input id="factorySimuladoSearchV310" type="search" data-factory-simulado-search placeholder="Digite o nome do tema" autocomplete="off" /><div class="factory-simulado-suggestions" data-factory-simulado-suggestions></div></div>
+        ${themeControls}
         <div class="factory-simulado-grid">
           <label>Banca<select data-factory-simulado-config="banca"><option ${config.banca === "CEBRASPE" ? "selected" : ""}>CEBRASPE</option><option ${config.banca === "FGV" ? "selected" : ""}>FGV</option><option ${config.banca === "AOCP" ? "selected" : ""}>AOCP</option></select></label>
           <label>Quantidade de questões<input type="number" min="1" max="100" inputmode="numeric" value="${config.quantidade}" data-factory-simulado-config="quantidade" /></label>
@@ -248,7 +278,7 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
           <label><input type="checkbox" data-factory-simulado-config="fundamentoLegal" ${config.fundamentoLegal ? "checked" : ""} /> Fundamento legal</label>
           <label><input type="checkbox" data-factory-simulado-config="jurisprudencia" ${config.jurisprudencia ? "checked" : ""} /> Jurisprudência, quando pertinente</label>
         </fieldset>
-        <div class="card-actions"><button type="button" data-factory-simulado-generate ${items.length ? "" : "disabled"}>Gerar prompt do simulado</button></div>
+        <div class="card-actions"><button type="button" data-factory-simulado-generate ${canGenerate ? "" : "disabled"}>Gerar prompt do simulado</button></div>
         ${output}
       </div>
     </details>`;
@@ -313,6 +343,7 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
     const single = target.closest("[data-factory-simulado-single]");
     if (single) {
       event.preventDefault();
+      config.escolhaAutomatica = false;
       selectedIds.clear();
       selectedIds.add(text(single.dataset.factorySimuladoSingle));
       lastPrompt = "";
@@ -355,7 +386,7 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
     if (target.closest("[data-factory-simulado-generate]")) {
       event.preventDefault();
       try {
-        lastPrompt = buildPrompt(config, selectedItems());
+        lastPrompt = buildPrompt(config, promptItems());
         mountBuilder();
         scrollToBuilder();
       } catch (error) {
@@ -391,6 +422,7 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
     else if (key === "quantidade") config[key] = clampQuestionCount(field.value);
     else config[key] = field.value;
     lastPrompt = "";
+    if (key === "escolhaAutomatica") mountBuilder();
   }
 
   function installStylesheet() {
@@ -398,7 +430,7 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
     const link = document.createElement("link");
     link.id = "aldusFactorySimuladoStylesV310";
     link.rel = "stylesheet";
-    link.href = "factory-simulado-prompt-v310.css?v=20260811-gerador-simulados-disciplinas-v311";
+    link.href = "factory-simulado-prompt-v310.css?v=20260811-gerador-simulados-escolha-automatica-v312";
     (document.head || document.documentElement).appendChild(link);
   }
 

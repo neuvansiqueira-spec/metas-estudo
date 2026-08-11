@@ -55,6 +55,49 @@
   background: rgba(255, 255, 255, .78);
 }
 
+.factory-simulado-theme-mode {
+  margin: 16px 0;
+  padding: 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  background: #eff6ff;
+}
+
+.factory-simulado-theme-mode legend {
+  padding: 0 6px;
+  font-weight: 800;
+}
+
+.factory-simulado-theme-mode > label {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.factory-simulado-theme-mode input {
+  width: auto;
+  margin-top: 3px;
+}
+
+.factory-simulado-theme-mode p {
+  margin: 7px 0 0 26px;
+}
+
+.factory-simulado-automatic-scope {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid #86efac;
+  border-radius: 12px;
+  background: #f0fdf4;
+  color: #14532d;
+}
+
+.factory-simulado-automatic-scope p {
+  margin: 5px 0 0;
+}
+
 .factory-simulado-disciplines legend {
   padding: 0 6px;
   font-weight: 800;
@@ -280,6 +323,18 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-
 html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-disciplines legend span {
   background: #d8edff;
   color: #06213a;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-theme-mode {
+  border-color: rgba(125, 181, 224, .38);
+  background: #0a2b45;
+  color: #f8fbff;
+}
+
+html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-automatic-scope {
+  border-color: rgba(134, 239, 172, .48);
+  background: rgba(20, 83, 45, .42);
+  color: #dcfce7;
 }
 
 html[data-aldus-theme="premium-stable"] #view-fabrica-resumos .factory-simulado-discipline-list label {
