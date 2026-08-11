@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260808-duplicate-consolidation-continuity-v276";
+  const VERSION = "20260810-duplicate-recommended-batch-v300";
   const source = document.currentScript;
   const baseUrl = source?.src || document.baseURI;
 
