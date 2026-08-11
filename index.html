@@ -3,14 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="aldus-entry-bootstrap-v305" content="20260811-duplicate-entry-bootstrap-v305" />
+  <meta name="aldus-entry-bootstrap-v306" content="20260811-entry-parser-recovery-v306" />
   <title>Aldus Metas Concurso — Painel de Estudos</title>
   <script>
   (() => {
     "use strict";
 
-    const ENTRY_VERSION = "20260811-duplicate-entry-bootstrap-v305";
+    const ENTRY_VERSION = "20260811-entry-parser-recovery-v306";
     const BATCH_VERSION = "20260811-duplicate-batch-commit-v305";
+    const HEAD_CLOSE = "</he" + "ad>";
+    const BODY_CLOSE = "</bo" + "dy>";
+    const HTML_CLOSE = "</ht" + "ml>";
     const SHELL_URL = `docs/index.html?aldusEntry=${encodeURIComponent(ENTRY_VERSION)}&ts=${Date.now()}`;
     const BATCH_PATTERN = /<script\s+[^>]*src=["'][^"']*duplicate-diagnostics-batch-v(?:302|303|304|305)\.js[^"']*["'][^>]*><\/script>\s*/gi;
 
@@ -18,7 +21,7 @@
       console.error(`[${ENTRY_VERSION}] Falha ao carregar o shell corrigido.`, error);
       const message = "Não foi possível ativar a correção V305 nesta atualização. Recarregue a página com conexão ativa.";
       document.open();
-      document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aldus Metas</title></head><body style="font-family:Arial,sans-serif;padding:32px;background:#071a2d;color:#fff"><main style="max-width:760px;margin:auto"><h1>Aldus Metas</h1><p>${message}</p><button type="button" onclick="location.reload()" style="padding:12px 18px;font-weight:700">Recarregar</button></main></body></html>`);
+      document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aldus Metas</title>${HEAD_CLOSE}<body style="font-family:Arial,sans-serif;padding:32px;background:#071a2d;color:#fff"><main style="max-width:760px;margin:auto"><h1>Aldus Metas</h1><p>${message}</p><button type="button" onclick="location.reload()" style="padding:12px 18px;font-weight:700">Recarregar</button></main>${BODY_CLOSE}${HTML_CLOSE}`);
       document.close();
     }
 
@@ -32,19 +35,19 @@
       }
 
       let html = request.responseText.replace(BATCH_PATTERN, "");
-      if (!html.includes("</body>")) throw new Error("Shell inválido: fechamento do body não encontrado.");
+      if (!html.includes(BODY_CLOSE)) throw new Error("Shell inválido: fechamento do body não encontrado.");
 
       const v305Tag = `<script id="aldusDuplicateBatchAuthoritativeV305" src="duplicate-diagnostics-batch-v305.js?v=${BATCH_VERSION}&entry=forced1"><\/script>`;
       html = html.replace(
-        "</body>",
-        `  <!-- aldus-entry-forced-v305 -->\n  ${v305Tag}\n</body>`
+        BODY_CLOSE,
+        `  <!-- aldus-entry-forced-v305 -->\n  ${v305Tag}\n${BODY_CLOSE}`
       );
 
       if (!html.includes("duplicate-diagnostics-batch-v305.js") || /src=["'][^"']*duplicate-diagnostics-batch-v304\.js/i.test(html)) {
         throw new Error("A barreira de versão não conseguiu isolar o handler V305.");
       }
 
-      globalThis.__aldusEntryBootstrapV305 = Object.freeze({
+      globalThis.__aldusEntryBootstrapV306 = Object.freeze({
         version: ENTRY_VERSION,
         batchVersion: BATCH_VERSION,
         loadedAt: new Date().toISOString()
