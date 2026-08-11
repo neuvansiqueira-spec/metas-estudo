@@ -5,13 +5,13 @@ const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const SECURITY_VERSION = "20260810-seguranca-estabilidade-v296";
 const PROTECTION_VERSION = "20260808-catastrophic-state-recovery-v275";
 const BOOTSTRAP_VERSION = "20260809-planejamento-plantao-salvamento-v283";
-const DUPLICATE_CONTINUITY_VERSION = "20260808-duplicate-consolidation-continuity-v276";
+const DUPLICATE_CONTINUITY_VERSION = "20260810-duplicate-recommended-batch-v300";
 const FACTORY_SCHEDULE_VERSION = "20260808-factory-schedule-scope-v277";
 const FACTORY_SCHEDULE_FILTERS_VERSION = "20260808-factory-schedule-planning-preview-filters-v280";
 const FACTORY_SCHEDULE_DATES_VERSION = "20260809-factory-schedule-planning-dates-v281";
 const QUESTIONS_HUB_VERSION = "20260810-questoes-integradas-v298";
 const QUESTION_JSON_DETAILS_VERSION = "20260810-revisao-json-explicacoes-v299";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v297-hotfix5-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4-security-v296-questions-hub-v298-question-json-details-v299`;
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v297-hotfix5-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-duplicate-recommended-batch-v300-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4-security-v296-questions-hub-v298-question-json-details-v299`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
@@ -145,9 +145,9 @@ function installSecurityHardeningV296(html) {
 }
 
 function installDuplicateDiagnosticsV276(html) {
-  const tag = `<script id="aldusDuplicateDiagnosticsLoaderV276" src="${DUPLICATE_DIAGNOSTICS_LOADER}"></script>`;
+  const tag = `<script id="aldusDuplicateDiagnosticsLoaderV300" src="${DUPLICATE_DIAGNOSTICS_LOADER}"></script>`;
   let patched = html.replace(
-    /<script\s+id=["']aldusDuplicateDiagnosticsLoaderV(?:266|269|270|271|272|273|274|276)["'][^>]*><\/script>/gi,
+    /<script\s+id=["']aldusDuplicateDiagnosticsLoaderV(?:266|269|270|271|272|273|274|276|300)["'][^>]*><\/script>/gi,
     ""
   );
   patched = patched.replace(
@@ -236,7 +236,7 @@ async function ensurePageStylesheets(response) {
   headers.set("content-type", "text/html; charset=utf-8");
   headers.set("x-aldus-integrity-version", CURRENT_VERSION);
   headers.set("x-aldus-data-protection", PROTECTION_VERSION);
-  headers.set("x-aldus-duplicate-search", "duplicate-consolidation-continuity-v276");
+  headers.set("x-aldus-duplicate-search", "duplicate-recommended-batch-v300");
   headers.set("x-aldus-factory-schedule", FACTORY_SCHEDULE_VERSION);
   headers.set("x-aldus-factory-schedule-filters", FACTORY_SCHEDULE_FILTERS_VERSION);
   headers.set("x-aldus-factory-schedule-dates", FACTORY_SCHEDULE_DATES_VERSION);

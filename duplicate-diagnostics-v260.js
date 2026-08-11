@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260806-duplicate-diagnostics-v260";
+  const VERSION = "20260810-duplicate-recommended-batch-v300";
   const BACKUP_DB_NAME = "aldus-duplicate-diagnostics-v260";
   const BACKUP_STORE = "snapshots";
   const BACKUP_LIMIT = 10;
@@ -821,6 +821,120 @@
     };
   }
 
+  const RECOMMENDED_BATCH_PROBABLE_CONFIDENCE = 90;
+
+  function recommendedBatchPlan(report, options = {}) {
+    const probableConfidence = Math.max(72, Math.min(99,
+      Number(options.probableConfidence) || RECOMMENDED_BATCH_PROBABLE_CONFIDENCE
+    ));
+    const pairs = Array.isArray(report?.pairs) ? report.pairs : [];
+    const eligiblePairs = [];
+    const excluded = {
+      overlapOrRelated: 0,
+      lowConfidence: 0,
+      differentDiscipline: 0,
+      alreadyDecided: 0,
+      indirectConflict: 0
+    };
+
+    pairs.forEach((pair) => {
+      if (pair?.decision) {
+        excluded.alreadyDecided += 1;
+        return;
+      }
+      if (pair?.classification !== "exact" && pair?.classification !== "probable") {
+        excluded.overlapOrRelated += 1;
+        return;
+      }
+      if (pair.classification === "probable" && Number(pair.confidence) < probableConfidence) {
+        excluded.lowConfidence += 1;
+        return;
+      }
+      if (pair?.evidence?.sameDiscipline !== true) {
+        excluded.differentDiscipline += 1;
+        return;
+      }
+      if (!pair?.left?.id || !pair?.right?.id || !pair?.recommendation?.keepId || !pair?.recommendation?.removeId) return;
+      eligiblePairs.push(pair);
+    });
+
+    const adjacency = new Map();
+    const profileById = new Map();
+    const pairByKey = new Map();
+    const connect = (from, to) => {
+      if (!adjacency.has(from)) adjacency.set(from, new Set());
+      adjacency.get(from).add(to);
+    };
+    eligiblePairs.forEach((pair) => {
+      profileById.set(pair.left.id, pair.left);
+      profileById.set(pair.right.id, pair.right);
+      connect(pair.left.id, pair.right.id);
+      connect(pair.right.id, pair.left.id);
+      pairByKey.set(pairKey(pair.left.id, pair.right.id), pair);
+    });
+
+    const visited = new Set();
+    const groups = [];
+    const actions = [];
+    [...adjacency.keys()].forEach((startId) => {
+      if (visited.has(startId)) return;
+      const stack = [startId];
+      const memberIds = [];
+      visited.add(startId);
+      while (stack.length) {
+        const currentId = stack.pop();
+        memberIds.push(currentId);
+        (adjacency.get(currentId) || []).forEach((nextId) => {
+          if (visited.has(nextId)) return;
+          visited.add(nextId);
+          stack.push(nextId);
+        });
+      }
+
+      const ranked = memberIds
+        .map((id) => profileById.get(id))
+        .filter(Boolean)
+        .sort((left, right) =>
+          (Number(right.keeperScore) - Number(left.keeperScore))
+          || (Number(right.impact?.references) - Number(left.impact?.references))
+          || (Number(right.impact?.coverageCount) - Number(left.impact?.coverageCount))
+          || (Number(left.index) - Number(right.index))
+        );
+      const keeper = ranked[0];
+      if (!keeper) return;
+
+      const groupActions = [];
+      ranked.slice(1).forEach((removed) => {
+        const directPair = pairByKey.get(pairKey(keeper.id, removed.id));
+        if (!directPair) {
+          excluded.indirectConflict += 1;
+          return;
+        }
+        const action = {
+          keeperId: keeper.id,
+          removedId: removed.id,
+          keeperLabel: keeper.label,
+          removedLabel: removed.label,
+          classification: directPair.classification,
+          confidence: directPair.confidence,
+          pairKey: directPair.key
+        };
+        actions.push(action);
+        groupActions.push(action);
+      });
+      if (groupActions.length) groups.push({ keeperId: keeper.id, keeperLabel: keeper.label, actions: groupActions });
+    });
+
+    return {
+      version: VERSION,
+      probableConfidence,
+      eligiblePairs: eligiblePairs.length,
+      groups,
+      actions,
+      excluded
+    };
+  }
+
   function stateCounts(state = {}) {
     return {
       syllabusItems: Array.isArray(state.syllabusItems) ? state.syllabusItems.length : 0,
@@ -1115,7 +1229,10 @@
         </header>
         <div class="aldus-dup-dialog-content">
           <div class="aldus-dup-toolbar">
-            <button type="button" class="aldus-dup-run is-primary" data-dup-run>Executar novo diagnóstico</button>
+            <div class="aldus-dup-primary-actions">
+              <button type="button" class="aldus-dup-run is-primary" data-dup-run>Executar novo diagnóstico</button>
+              <button type="button" class="aldus-dup-batch is-primary" data-dup-batch disabled>Consolidar recomendações</button>
+            </div>
             <label>Exibir
               <select data-dup-filter>
                 <option value="pending">Pendentes</option>
@@ -1129,6 +1246,7 @@
             <button type="button" class="aldus-dup-undo" data-dup-undo disabled>Desfazer última consolidação</button>
             <button type="button" class="aldus-dup-export" data-dup-export disabled>Exportar diagnóstico</button>
           </div>
+          <section class="aldus-dup-batch-preview" data-dup-batch-preview hidden aria-labelledby="aldusDupBatchTitle"></section>
           <div class="aldus-dup-status" data-dup-status role="status" aria-live="polite">Preparando diagnóstico…</div>
           <div class="aldus-dup-summary" data-dup-summary></div>
           <div class="aldus-dup-list" data-dup-list></div>
@@ -1143,6 +1261,7 @@
     loaded: null,
     filter: "pending",
     busy: false,
+    batchPlan: null,
     lastFocused: null
   };
 
@@ -1194,6 +1313,7 @@
       if (control.matches("[data-dup-undo]") && !value) return;
       control.disabled = Boolean(value);
     });
+    if (!ui.busy) updateBatchButton();
   }
 
   async function openUi() {
@@ -1249,6 +1369,68 @@
     return pairs.filter((pair) => pair.classification === ui.filter && pair.decision?.action !== "not-duplicate" && pair.decision?.action !== "consolidated");
   }
 
+  function updateBatchButton() {
+    const button = ui.root?.querySelector("[data-dup-batch]");
+    if (!button) return;
+    const plan = ui.report ? recommendedBatchPlan(ui.report) : null;
+    const count = plan?.actions.length || 0;
+    button.textContent = count ? `Consolidar recomendações (${count})` : "Consolidar recomendações";
+    button.disabled = ui.busy || count === 0;
+    button.title = count
+      ? `${count} consolidações seguras disponíveis para prévia.`
+      : "Nenhuma recomendação atende aos critérios seguros do lote.";
+  }
+
+  function closeBatchPreview() {
+    const preview = ui.root?.querySelector("[data-dup-batch-preview]");
+    if (preview) {
+      preview.hidden = true;
+      preview.innerHTML = "";
+    }
+    ui.batchPlan = null;
+  }
+
+  function previewRecommendedBatch() {
+    if (!ui.report || ui.busy) return;
+    const plan = recommendedBatchPlan(ui.report);
+    ui.batchPlan = plan;
+    const preview = ui.root?.querySelector("[data-dup-batch-preview]");
+    if (!preview) return;
+    if (!plan.actions.length) {
+      closeBatchPreview();
+      setStatus("Nenhuma recomendação atende aos critérios seguros para consolidação em lote.", "info");
+      return;
+    }
+
+    const shown = plan.actions.slice(0, 30);
+    const remaining = plan.actions.length - shown.length;
+    preview.innerHTML = `
+      <header>
+        <div>
+          <span class="aldus-dup-eyebrow">Revisão antes de aplicar</span>
+          <h3 id="aldusDupBatchTitle">Prévia da consolidação recomendada</h3>
+          <p>Somente duplicidades exatas e prováveis com pelo menos ${plan.probableConfidence}% de confiança, na mesma disciplina e ainda sem decisão.</p>
+        </div>
+        <button type="button" class="aldus-dup-batch-close" data-dup-batch-cancel aria-label="Fechar prévia">×</button>
+      </header>
+      <div class="aldus-dup-batch-metrics">
+        <div><strong>${plan.actions.length}</strong><span>metas a consolidar</span></div>
+        <div><strong>${plan.groups.length}</strong><span>grupos seguros</span></div>
+        <div><strong>${plan.excluded.indirectConflict}</strong><span>conflitos mantidos para revisão</span></div>
+      </div>
+      <ol class="aldus-dup-batch-list">
+        ${shown.map((action) => `<li><strong>Manter:</strong> ${escapeHtml(action.keeperLabel || action.keeperId)} <span aria-hidden="true">←</span> <strong>Consolidar:</strong> ${escapeHtml(action.removedLabel || action.removedId)} <small>${escapeHtml(classificationLabel(action.classification))} · ${action.confidence}%</small></li>`).join("")}
+      </ol>
+      ${remaining > 0 ? `<p class="aldus-dup-batch-more">E mais ${remaining} consolidações incluídas no mesmo lote.</p>` : ""}
+      <p class="aldus-dup-batch-safety">Será criada uma única cópia integral antes do lote. Sobreposições, temas relacionados, decisões anteriores e conflitos indiretos não serão alterados.</p>
+      <footer>
+        <button type="button" class="aldus-dup-batch-cancel" data-dup-batch-cancel>Cancelar</button>
+        <button type="button" class="aldus-dup-batch-confirm is-primary" data-dup-batch-confirm>Confirmar ${plan.actions.length} consolidações</button>
+      </footer>`;
+    preview.hidden = false;
+    preview.scrollIntoView?.({ behavior: "smooth", block: "nearest" });
+  }
+
   function summaryHtml(counts) {
     const cards = [
       [counts.items, "Metas analisadas"],
@@ -1281,6 +1463,7 @@
       ? pairs.map(pairCardHtml).join("")
       : `<div class="aldus-dup-empty"><strong>Nenhum candidato neste filtro.</strong><p>Isso não significa que todas as metas sejam idênticas; apenas que nenhum par alcançou o limiar técnico desta categoria.</p></div>`;
     if (audit) audit.innerHTML = auditHtml(ui.loaded?.state);
+    updateBatchButton();
   }
 
   function pairByIds(leftId, rightId) {
@@ -1335,9 +1518,43 @@
     }
   }
 
+  async function applyRecommendedBatch() {
+    if (!ui.loaded?.state || !ui.batchPlan?.actions?.length || ui.busy) return;
+    const plan = ui.batchPlan;
+    const originalState = ui.loaded.state;
+    const workingState = cloneData(originalState);
+    closeBatchPreview();
+    setBusy(true);
+    setStatus(`Criando cópia integral antes de ${plan.actions.length} consolidações…`);
+    try {
+      const backup = await saveBackupSnapshot(originalState, `before-recommended-batch-${plan.actions.length}`);
+      const decidedAt = new Date().toISOString();
+      let remappedLinks = 0;
+      plan.actions.forEach((action, index) => {
+        const result = consolidateItems(workingState, action.keeperId, action.removedId, {
+          backupId: backup.id,
+          decidedAt,
+          auditId: `batch-${Date.now()}-${index + 1}`
+        });
+        remappedLinks += result.remappedLinks;
+      });
+      setStatus("Validando a gravação do lote e todos os vínculos preservados…");
+      await persistCurrentState(workingState, ui.loaded.source);
+      ui.loaded.state = workingState;
+      setStatus(`Lote concluído: ${plan.actions.length} metas consolidadas e ${remappedLinks} vínculos remapeados. A página será atualizada.`, "success");
+      setTimeout(() => window.location.reload(), 1100);
+    } catch (error) {
+      console.error(`[${VERSION}] Falha na consolidação recomendada em lote.`, error);
+      setStatus(`Nenhuma gravação do lote foi confirmada: ${String(error?.message || error)}`, "error");
+      setBusy(false);
+      updateBatchButton();
+    }
+  }
+
   async function undoLastConsolidation() {
     const backups = await listBackups();
-    const latest = backups[0];
+    const lastAuditBackupId = ui.loaded?.state?.duplicateDiagnostics?.audit?.find?.((row) => row?.action === "consolidated" && row?.backupId)?.backupId;
+    const latest = backups.find((row) => row.id === lastAuditBackupId) || backups[0];
     if (!latest) {
       setStatus("Nenhuma cópia de segurança de consolidação foi encontrada.", "error");
       return;
@@ -1404,6 +1621,12 @@
     if (close) return closeUi();
     const run = event.target.closest?.("[data-dup-run]");
     if (run) return runDiagnostic();
+    const batch = event.target.closest?.("[data-dup-batch]");
+    if (batch) return previewRecommendedBatch();
+    const batchCancel = event.target.closest?.("[data-dup-batch-cancel]");
+    if (batchCancel) return closeBatchPreview();
+    const batchConfirm = event.target.closest?.("[data-dup-batch-confirm]");
+    if (batchConfirm) return applyRecommendedBatch();
     const undo = event.target.closest?.("[data-dup-undo]");
     if (undo) return undoLastConsolidation();
     const exporter = event.target.closest?.("[data-dup-export]");
@@ -1458,6 +1681,7 @@
     mergeSyllabusItems,
     remapItemLinks,
     consolidateItems,
+    recommendedBatchPlan,
     stateCounts,
     checksumState
   });

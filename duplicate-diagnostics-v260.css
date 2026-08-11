@@ -12,6 +12,170 @@
   --aldus-dup-shadow: 0 22px 70px rgba(1, 20, 40, 0.24);
 }
 
+#aldusDuplicateDiagnosticsV260 .aldus-dup-batch-preview[hidden] {
+  display: none !important;
+}
+
+#aldusDuplicateDiagnosticsV260 .aldus-dup-primary-actions {
+  display: grid;
+  gap: 7px;
+}
+
+#aldusDuplicateDiagnosticsV260 .aldus-dup-primary-actions > button {
+  width: 100% !important;
+  min-height: 42px;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-primary-actions {
+  display: grid !important;
+  gap: 7px !important;
+  align-self: stretch !important;
+}
+
+#aldusDuplicateDiagnosticsV260.aldus-dup-v261 .aldus-dup-primary-actions > button {
+  width: 100% !important;
+}
+
+#aldusDuplicateDiagnosticsV260 .aldus-dup-batch-preview {
+  margin: 18px 28px 0;
+  padding: 20px;
+  border: 2px solid #1477c9;
+  border-radius: 18px;
+  background: #f6fbff;
+  color: #082e50;
+  box-shadow: 0 14px 34px rgba(5, 45, 80, 0.14);
+}
+
+#aldusDuplicateDiagnosticsV260 .aldus-dup-batch-preview > header,
+#aldusDuplicateDiagnosticsV260 .aldus-dup-batch-preview > footer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+#aldusDuplicateDiagnosticsV260 .aldus-dup-batch-preview h3 {
+  margin: 4px 0 6px;
+  font-size: 1.28rem;
+}
+
+#aldusDuplicateDiagnosticsV260 .aldus-dup-batch-preview p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+#aldusDuplicateDiagnosticsV260 .aldus-dup-batch-close {
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid #7caed5;
+  border-radius: 12px;
+  background: #fff;
+  color: #0b5d9d;
+  font-size: 1.45rem;
+  cursor: pointer;
+}
+
+#aldusDuplicateDiagnosticsV260 .aldus-dup-batch-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 18px 0;
+}
+
+#aldusDuplicateDiagnosticsV260 .aldus-dup-batch-metrics > div {
+  padding: 12px 14px;
+  border: 1px solid #b8d5eb;
+  border-radius: 12px;
+  background: #fff;
+}
+
+#aldusDuplicateDiagnosticsV260 .aldus-dup-batch-metrics strong,
+#aldusDuplicateDiagnosticsV260 .aldus-dup-batch-metrics span {
+  display: block;
+}
+
+#aldusDuplicateDiagnosticsV260 .aldus-dup-batch-metrics strong {
+  font-size: 1.35rem;
+}
+
+#aldusDuplicateDiagnosticsV260 .aldus-dup-batch-metrics span {
+  margin-top: 2px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+#aldusDuplicateDiagnosticsV260 .aldus-dup-batch-list {
+  max-height: 300px;
+  margin: 0;
+  padding: 0 0 0 24px;
+  overflow: auto;
+}
+
+#aldusDuplicateDiagnosticsV260 .aldus-dup-batch-list li {
+  padding: 9px 8px;
+  border-bottom: 1px solid #d7e8f5;
+  line-height: 1.4;
+}
+
+#aldusDuplicateDiagnosticsV260 .aldus-dup-batch-list small {
+  display: block;
+  margin-top: 3px;
+  color: #426985;
+}
+
+#aldusDuplicateDiagnosticsV260 .aldus-dup-batch-more,
+#aldusDuplicateDiagnosticsV260 .aldus-dup-batch-safety {
+  margin-top: 14px;
+}
+
+#aldusDuplicateDiagnosticsV260 .aldus-dup-batch-safety {
+  padding: 12px 14px;
+  border-left: 4px solid #208052;
+  border-radius: 8px;
+  background: #eaf8f0;
+  font-weight: 650;
+}
+
+#aldusDuplicateDiagnosticsV260 .aldus-dup-batch-preview > footer {
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+#aldusDuplicateDiagnosticsV260 .aldus-dup-batch-preview > footer button {
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid #1477c9;
+  border-radius: 12px;
+  background: #fff;
+  color: #0a4f85;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+#aldusDuplicateDiagnosticsV260 .aldus-dup-batch-preview > footer button.is-primary {
+  background: #0868b7;
+  color: #fff;
+}
+
+@media (max-width: 760px) {
+  #aldusDuplicateDiagnosticsV260 .aldus-dup-batch-preview {
+    margin: 12px 14px 0;
+    padding: 16px;
+  }
+
+  #aldusDuplicateDiagnosticsV260 .aldus-dup-batch-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  #aldusDuplicateDiagnosticsV260 .aldus-dup-batch-preview > footer {
+    flex-direction: column-reverse;
+  }
+
+  #aldusDuplicateDiagnosticsV260 .aldus-dup-batch-preview > footer button {
+    width: 100%;
+  }
+}
+
 html.aldus-dup-open,
 html.aldus-dup-open body {
   overflow: hidden !important;
