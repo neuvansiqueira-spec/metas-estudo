@@ -186,4 +186,13 @@ assert.equal(unsafePlan.actions.length, 0, "lote deve excluir sobreposições e 
 assert.equal(unsafePlan.excluded.overlapOrRelated, 1, "deve contabilizar sobreposição excluída");
 assert.equal(unsafePlan.excluded.differentDiscipline, 1, "deve contabilizar divergência disciplinar");
 
+const activeRuntimeState = buildState();
+const activeRuntimeIdentity = activeRuntimeState;
+const preparedBatchState = buildState();
+diagnostics.consolidateItems(preparedBatchState, "exact-a", "exact-b", { backupId: "batch-runtime-test" });
+const replacedRuntimeState = diagnostics.replaceStateContents(activeRuntimeState, preparedBatchState);
+assert.equal(replacedRuntimeState, activeRuntimeIdentity, "lote deve preservar a referência do estado ativo usada pelo aplicativo");
+assert.equal(activeRuntimeState.syllabusItems.some((item) => item.id === "exact-b"), false, "estado ativo deve receber imediatamente a consolidação preparada");
+assert.equal(activeRuntimeState.duplicateDiagnostics.audit.length, 1, "auditoria do lote deve existir no estado ativo persistido");
+
 console.log("duplicate-diagnostics-v260: batch recommendations covered");
