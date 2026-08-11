@@ -151,4 +151,39 @@ assert.ok(merged.officialCoverage.some((row) => row.code === "9.10.1"), "deve pr
 assert.ok(merged.aliases.some((alias) => alias.id === "duplicate-control"), "deve guardar o item removido como alias de auditoria");
 assert.ok(result.remappedLinks >= 4, "deve informar vínculos remapeados");
 
-console.log("duplicate-diagnostics-v260: 30 assertions passed");
+const batchState = buildState();
+const batchReport = diagnostics.diagnoseState(batchState, { includeDecided: true });
+const batchPlan = diagnostics.recommendedBatchPlan(batchReport);
+assert.ok(batchPlan.actions.some((action) => action.removedId === "exact-b" || action.removedId === "exact-a"), "lote deve incluir duplicidade exata ainda pendente");
+assert.equal(batchPlan.actions.some((action) => action.pairKey === diagnostics.pairKey("canonical-control", "duplicate-control")), false, "lote não deve incluir provável abaixo do limiar seguro");
+
+const unsafeReport = {
+  pairs: [
+    {
+      key: "overlap-a::overlap-b",
+      classification: "overlap",
+      confidence: 99,
+      decision: null,
+      evidence: { sameDiscipline: true },
+      recommendation: { keepId: "overlap-a", removeId: "overlap-b" },
+      left: { id: "overlap-a", label: "Controle administrativo", keeperScore: 10, impact: {}, index: 0 },
+      right: { id: "overlap-b", label: "Controle externo", keeperScore: 5, impact: {}, index: 1 }
+    },
+    {
+      key: "cross-a::cross-b",
+      classification: "exact",
+      confidence: 99,
+      decision: null,
+      evidence: { sameDiscipline: false },
+      recommendation: { keepId: "cross-a", removeId: "cross-b" },
+      left: { id: "cross-a", label: "Tema A", keeperScore: 10, impact: {}, index: 0 },
+      right: { id: "cross-b", label: "Tema B", keeperScore: 5, impact: {}, index: 1 }
+    }
+  ]
+};
+const unsafePlan = diagnostics.recommendedBatchPlan(unsafeReport);
+assert.equal(unsafePlan.actions.length, 0, "lote deve excluir sobreposições e disciplinas diferentes");
+assert.equal(unsafePlan.excluded.overlapOrRelated, 1, "deve contabilizar sobreposição excluída");
+assert.equal(unsafePlan.excluded.differentDiscipline, 1, "deve contabilizar divergência disciplinar");
+
+console.log("duplicate-diagnostics-v260: batch recommendations covered");
