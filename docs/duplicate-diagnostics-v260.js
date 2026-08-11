@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260810-duplicate-recommended-batch-v300";
+  const VERSION = "20260810-duplicate-batch-persistence-v301";
   const BACKUP_DB_NAME = "aldus-duplicate-diagnostics-v260";
   const BACKUP_STORE = "snapshots";
   const BACKUP_LIMIT = 10;
@@ -77,6 +77,16 @@
     } catch {
       return value;
     }
+  }
+
+  function replaceStateContents(targetState, nextState) {
+    if (!targetState || typeof targetState !== "object" || !nextState || typeof nextState !== "object") {
+      throw new Error("Estado inválido para atualização atômica.");
+    }
+    const replacement = cloneData(nextState);
+    Object.keys(targetState).forEach((key) => delete targetState[key]);
+    Object.assign(targetState, replacement);
+    return targetState;
   }
 
   function normalizeText(value) {
@@ -1522,7 +1532,9 @@
     if (!ui.loaded?.state || !ui.batchPlan?.actions?.length || ui.busy) return;
     const plan = ui.batchPlan;
     const originalState = ui.loaded.state;
+    const rollbackState = cloneData(originalState);
     const workingState = cloneData(originalState);
+    let runtimeCommitted = false;
     closeBatchPreview();
     setBusy(true);
     setStatus(`Criando cópia integral antes de ${plan.actions.length} consolidações…`);
@@ -1539,11 +1551,28 @@
         remappedLinks += result.remappedLinks;
       });
       setStatus("Validando a gravação do lote e todos os vínculos preservados…");
-      await persistCurrentState(workingState, ui.loaded.source);
-      ui.loaded.state = workingState;
-      setStatus(`Lote concluído: ${plan.actions.length} metas consolidadas e ${remappedLinks} vínculos remapeados. A página será atualizada.`, "success");
-      setTimeout(() => window.location.reload(), 1100);
+      const persistedState = ui.loaded.source === "runtime"
+        ? replaceStateContents(originalState, workingState)
+        : workingState;
+      runtimeCommitted = persistedState === originalState;
+      await persistCurrentState(persistedState, ui.loaded.source);
+      ui.loaded.state = persistedState;
+      ui.report = diagnoseState(persistedState, { includeDecided: true });
+      ensureDiagnosticsStore(persistedState).lastScanAt = ui.report.scannedAt;
+      renderReport();
+      setBusy(false);
+      const backups = await listBackups();
+      const undo = ui.root?.querySelector("[data-dup-undo]");
+      if (undo) undo.disabled = backups.length === 0;
+      setStatus(`Lote concluído: ${plan.actions.length} metas consolidadas e ${remappedLinks} vínculos remapeados. O diagnóstico foi atualizado sem fechar a página.`, "success");
     } catch (error) {
+      if (runtimeCommitted) {
+        replaceStateContents(originalState, rollbackState);
+        await persistCurrentState(originalState, ui.loaded.source).catch((rollbackError) => {
+          console.error(`[${VERSION}] Falha ao restaurar o estado ativo após erro no lote.`, rollbackError);
+        });
+        ui.loaded.state = originalState;
+      }
       console.error(`[${VERSION}] Falha na consolidação recomendada em lote.`, error);
       setStatus(`Nenhuma gravação do lote foi confirmada: ${String(error?.message || error)}`, "error");
       setBusy(false);
@@ -1682,6 +1711,7 @@
     remapItemLinks,
     consolidateItems,
     recommendedBatchPlan,
+    replaceStateContents,
     stateCounts,
     checksumState
   });
