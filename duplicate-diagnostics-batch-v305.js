@@ -1,7 +1,8 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260811-duplicate-batch-commit-v305";
+  const VERSION = "20260811-duplicate-batch-core-pin-v308";
+  const EXPECTED_API_VERSION = "20260811-duplicate-batch-performance-v304";
   const ROOT_ID = "aldusDuplicateDiagnosticsV260";
   const MAIN_LOCAL_KEY = "metasConcursoData";
   const MAIN_DB_NAME = "metas-estudo-db";
@@ -66,7 +67,10 @@
   }
 
   function diagnosticsApi() {
-    return globalThis.AldusDuplicateDiagnosticsV260 || null;
+    const pinned = globalThis.AldusDuplicateDiagnosticsV304;
+    if (pinned?.VERSION === EXPECTED_API_VERSION) return pinned;
+    const compatible = globalThis.AldusDuplicateDiagnosticsV260;
+    return compatible?.VERSION === EXPECTED_API_VERSION ? compatible : null;
   }
 
   function checksumText(text) {
@@ -75,7 +79,7 @@
       hash ^= text.charCodeAt(index);
       hash = Math.imul(hash, 16777619);
     }
-    return `fnv1a-v305-${(hash >>> 0).toString(16).padStart(8, "0")}-${text.length}`;
+    return `fnv1a-v308-${(hash >>> 0).toString(16).padStart(8, "0")}-${text.length}`;
   }
 
   function checksumState(value) {
@@ -110,7 +114,7 @@
           deviceId: (() => {
             try { return typeof getDeviceId === "function" ? getDeviceId() : ""; } catch { return ""; }
           })(),
-          reason: "duplicate-consolidation-v305",
+          reason: "duplicate-consolidation-v308",
           version: VERSION
         };
       }
@@ -134,7 +138,7 @@
     const serialized = JSON.stringify(data);
     const createdAt = new Date().toISOString();
     const record = {
-      id: `v305-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      id: `v308-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       version: VERSION,
       createdAt,
       label,
@@ -293,9 +297,9 @@
   }
 
   function recordDiagnostic(details) {
-    globalThis.__aldusDuplicateBatchV305LastRun = Object.freeze(cloneData(details));
+    globalThis.__aldusDuplicateBatchV308LastRun = Object.freeze(cloneData(details));
     try {
-      localStorage.setItem("aldusDuplicateBatchV305LastRun", JSON.stringify(details));
+      localStorage.setItem("aldusDuplicateBatchV308LastRun", JSON.stringify(details));
     } catch {}
   }
 
@@ -354,14 +358,14 @@
     const root = document.getElementById(ROOT_ID);
     const api = diagnosticsApi();
     if (!root || !api?.diagnoseState || !api?.recommendedBatchPlan || !api?.consolidateItems) {
-      setStatus(root, `A correção ${VERSION} não encontrou o diagnóstico ativo. Feche outras abas do site e tente novamente.`, "error");
+      setStatus(root, `A correção ${VERSION} bloqueou um núcleo antigo do diagnóstico. Atualize a página uma vez e tente novamente.`, "error");
       return;
     }
 
     globalThis.__aldusDuplicateConsolidationInProgressV305 = true;
     setControlsBusy(root, true);
     closePreview(root);
-    setStatus(root, "V305: vinculando a recomendação ao estado persistido…");
+    setStatus(root, "V308: vinculando a recomendação ao mesmo núcleo da prévia…");
     await yieldToBrowser();
 
     let targetState = null;
@@ -383,20 +387,20 @@
       const workingState = cloneData(targetState);
       const removedIds = removedIdsFromPlan(plan);
       startedAt = new Date().toISOString();
-      setStatus(root, `V305: criando cópia integral antes de ${plan.actions.length} consolidações…`);
+      setStatus(root, `V308: criando cópia integral antes de ${plan.actions.length} consolidações…`);
       await yieldToBrowser();
 
-      const backup = await saveBackupSnapshot(targetState, `before-authoritative-batch-v305-${plan.actions.length}`);
+      const backup = await saveBackupSnapshot(targetState, `before-authoritative-batch-v308-${plan.actions.length}`);
       let remappedLinks = 0;
       for (let index = 0; index < plan.actions.length; index += 1) {
         const action = plan.actions[index];
         const result = api.consolidateItems(workingState, action.keeperId, action.removedId, {
           backupId: backup.id,
           decidedAt: startedAt,
-          auditId: `v305-${Date.now()}-${index + 1}`
+          auditId: `v308-${Date.now()}-${index + 1}`
         });
         remappedLinks += Number(result?.remappedLinks) || 0;
-        setStatus(root, `V305: processando ${index + 1} de ${plan.actions.length} consolidações…`);
+        setStatus(root, `V308: processando ${index + 1} de ${plan.actions.length} consolidações…`);
         await yieldToBrowser();
       }
 
@@ -408,7 +412,7 @@
 
       synchronizeRuntimeStates(workingState);
       if (targetState && typeof targetState === "object") replaceStateContents(targetState, workingState);
-      setStatus(root, "V305: gravando, relendo e estabilizando o estado consolidado…");
+      setStatus(root, "V308: gravando, relendo e estabilizando o estado consolidado…");
       const persisted = await persistAuthoritativeState(targetState || workingState, removedIds);
       const verifiedState = cloneData(persisted.verified);
 
@@ -435,7 +439,7 @@
         runtimeCopies: persisted.runtimeCopies,
         backupId: backup.id
       });
-      setStatus(root, `V305 concluída: ${plan.actions.length} metas consolidadas, ${remappedLinks} vínculos preservados e estado relido com sucesso. Atualizando o diagnóstico…`, "success");
+      setStatus(root, `V308 concluída: ${plan.actions.length} metas consolidadas, ${remappedLinks} vínculos preservados e estado relido com sucesso. Atualizando o diagnóstico…`, "success");
       await yieldToBrowser();
       await refreshDiagnostic(root);
     } catch (error) {
@@ -470,7 +474,7 @@
     const button = root?.querySelector("[data-dup-batch]");
     if (button) {
       button.dataset.authoritativeBatchVersion = VERSION;
-      button.title = "Consolidação V305 com commit persistido, reidratação e barreira contra reaparecimento.";
+      button.title = "Consolidação V308 vinculada ao núcleo da prévia, com commit persistido e barreira contra reaparecimento.";
     }
     return Boolean(root && button);
   }
@@ -509,7 +513,8 @@
     remainingRemovedIds,
     ensureDeletionTombstones,
     validateSnapshot,
-    cachedPlanForState
+    cachedPlanForState,
+    diagnosticsApi
   });
   if (typeof module !== "undefined" && module.exports) {
     module.exports = API;

@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260810-timer-runtime-fix-v295";
+  const VERSION = "20260811-duplicate-batch-core-pin-v308";
   const CORE_SCRIPT = `bootstrap-integrity-loader-v258-core.js?v=${VERSION}`;
   const DIAGNOSTICS_SCRIPT = `duplicate-diagnostics-v260.js?v=${VERSION}`;
   const DIAGNOSTICS_STYLESHEET = `duplicate-diagnostics-v260.css?v=${VERSION}`;
@@ -50,22 +50,25 @@
 
     const core = makeScript("aldusBootstrapIntegrityCoreV275", CORE_SCRIPT, baseUrl, source);
     const shiftPersistence = makeScript("aldusPlanningShiftPersistenceV283", PLANNING_SHIFT_PERSISTENCE_SCRIPT, baseUrl, source);
-    const diagnostics = makeScript("aldusDuplicateDiagnosticsScriptV260", DIAGNOSTICS_SCRIPT, baseUrl, source);
+    const modernDiagnostics = globalThis.AldusDuplicateDiagnosticsV304;
+    const diagnostics = modernDiagnostics?.VERSION === "20260811-duplicate-batch-performance-v304"
+      ? null
+      : makeScript("aldusDuplicateDiagnosticsScriptV260", DIAGNOSTICS_SCRIPT, baseUrl, source);
     const recovery = makeScript("aldusRecoverySafetyV275", RECOVERY_SCRIPT, baseUrl, source);
     const soundMaster = makeScript("aldusTimerSoundMasterV265", TIMER_SOUND_MASTER_SCRIPT, baseUrl, source);
     const timerControls = makeScript("aldusTimerControlsHardeningV268", TIMER_CONTROLS_SCRIPT, baseUrl, source);
 
     core.addEventListener("error", () => console.error(`[${VERSION}] Falha ao carregar o núcleo de inicialização.`), { once: true });
     shiftPersistence.addEventListener("error", () => console.error(`[${VERSION}] Falha ao carregar a persistência das disciplinas de plantão.`), { once: true });
-    diagnostics.addEventListener("error", () => console.error(`[${VERSION}] Falha ao carregar o diagnóstico de duplicações.`), { once: true });
+    diagnostics?.addEventListener("error", () => console.error(`[${VERSION}] Falha ao carregar o diagnóstico de duplicações.`), { once: true });
     recovery.addEventListener("error", () => console.error(`[${VERSION}] Falha ao carregar a recuperação segura.`), { once: true });
     soundMaster.addEventListener("error", () => console.error(`[${VERSION}] Falha ao carregar o controle geral de som do cronômetro.`), { once: true });
     timerControls.addEventListener("error", () => console.error(`[${VERSION}] Falha ao carregar a proteção dos controles do cronômetro.`), { once: true });
 
     parent.insertBefore(core, source?.nextSibling || null);
     parent.insertBefore(shiftPersistence, core.nextSibling);
-    parent.insertBefore(diagnostics, shiftPersistence.nextSibling);
-    parent.insertBefore(recovery, diagnostics.nextSibling);
+    if (diagnostics) parent.insertBefore(diagnostics, shiftPersistence.nextSibling);
+    parent.insertBefore(recovery, (diagnostics || shiftPersistence).nextSibling);
     parent.insertBefore(soundMaster, recovery.nextSibling);
     parent.insertBefore(timerControls, soundMaster.nextSibling);
 
@@ -73,7 +76,7 @@
       version: VERSION,
       core: CORE_SCRIPT,
       planningShiftPersistence: PLANNING_SHIFT_PERSISTENCE_SCRIPT,
-      diagnostics: DIAGNOSTICS_SCRIPT,
+      diagnostics: diagnostics ? DIAGNOSTICS_SCRIPT : "duplicate-diagnostics-v304.js (pinned)",
       recovery: RECOVERY_SCRIPT,
       timerSoundMaster: TIMER_SOUND_MASTER_SCRIPT,
       timerControls: TIMER_CONTROLS_SCRIPT

@@ -1721,6 +1721,8 @@
     return;
   }
 
-  globalThis.AldusDuplicateDiagnosticsV260 = API;
+  if (!globalThis.AldusDuplicateDiagnosticsV304) {
+    globalThis.AldusDuplicateDiagnosticsV260 = API;
+  }
   if (typeof document !== "undefined") install();
 })();

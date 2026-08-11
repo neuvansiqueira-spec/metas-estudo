@@ -1819,6 +1819,11 @@
     return;
   }
 
+  // Keep a version-pinned handle for the authoritative batch executor. Older
+  // bootstrap fallbacks still publish on the V260 compatibility slot and may
+  // load after this file, so the batch must not depend only on that mutable
+  // alias.
+  globalThis.AldusDuplicateDiagnosticsV304 = API;
   globalThis.AldusDuplicateDiagnosticsV260 = API;
   if (typeof document !== "undefined") install();
 })();

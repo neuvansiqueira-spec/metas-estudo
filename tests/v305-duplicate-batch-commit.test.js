@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const batch = require("../duplicate-diagnostics-batch-v305.js");
 
-assert.equal(batch.VERSION, "20260811-duplicate-batch-commit-v305");
+assert.equal(batch.VERSION, "20260811-duplicate-batch-core-pin-v308");
 
 const plan = {
   actions: [
@@ -26,7 +26,7 @@ state.syllabusItems = [{ id: "keeper" }];
 assert.deepEqual(batch.remainingRemovedIds(state, removedIds), []);
 
 batch.ensureDeletionTombstones(state, removedIds, "2026-08-11T10:00:00.000Z");
-assert.equal(state.syncTombstones.collections.syllabusItems["syllabusItems:id:dup-a"].reason, "duplicate-consolidation-v305");
+assert.equal(state.syncTombstones.collections.syllabusItems["syllabusItems:id:dup-a"].reason, "duplicate-consolidation-v308");
 assert.equal(state.syncTombstones.collections.syllabusItems["syllabusItems:id:dup-b"].version, batch.VERSION);
 assert.equal(batch.validateSnapshot(state, removedIds), state);
 assert.throws(
@@ -52,6 +52,6 @@ assert.match(source, /clearCachedPlan\(\)/, "o plano antigo deve ser invalidado 
 assert.match(source, /postReport = api\.diagnoseState\(verifiedState/, "o diagnóstico pós-lote deve usar o snapshot persistido");
 assert.match(workerSource, /duplicate-diagnostics-batch-v305\.js/, "o service worker deve entregar a V305");
 assert.match(workerSource, /installDuplicateBatchV305/, "a navegação deve substituir handlers antigos pelo V305");
-assert.match(workerSource, /duplicate-batch-commit-v305/, "o cache deve ser renovado para a V305");
+assert.match(workerSource, /duplicate-batch-core-pin-v308/, "o cache deve ser renovado para a V308");
 
 console.log("v305 duplicate batch commit: covered");

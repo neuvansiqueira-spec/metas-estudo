@@ -7,7 +7,7 @@ const diagnostics = require("../duplicate-diagnostics-v304.js");
 const batch = require("../duplicate-diagnostics-batch-v305.js");
 
 assert.equal(diagnostics.VERSION, "20260811-duplicate-batch-performance-v304");
-assert.equal(batch.VERSION, "20260811-duplicate-batch-commit-v305");
+assert.equal(batch.VERSION, "20260811-duplicate-batch-core-pin-v308");
 
 const state = {
   syllabusItems: [
@@ -34,7 +34,7 @@ const coreSource = fs.readFileSync(path.join(__dirname, "..", "duplicate-diagnos
 const batchSource = fs.readFileSync(path.join(__dirname, "..", "duplicate-diagnostics-batch-v305.js"), "utf8");
 assert.match(coreSource, /__aldusDuplicateBatchPlanV304/, "o diagnóstico deve publicar o plano já calculado");
 assert.match(batchSource, /cachedPlanForState\(targetState, api\)/, "a confirmação deve reutilizar o plano válido");
-assert.match(batchSource, /vinculando a recomendação ao estado persistido/, "a interface deve informar o início imediatamente");
+assert.match(batchSource, /vinculando a recomendação ao mesmo núcleo da prévia/, "a interface deve informar o vínculo correto imediatamente");
 assert.match(batchSource, /processando \$\{index \+ 1\} de \$\{plan\.actions\.length\}/, "deve mostrar cada avanço do lote");
 assert.match(batchSource, /await readMainIndexedDB\(\)/, "a verificação autoritativa deve permanecer ativa");
 assert.doesNotMatch(batchSource, /window\.location\.reload/, "não deve fechar o diagnóstico");
