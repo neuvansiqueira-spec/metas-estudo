@@ -1,0 +1,156 @@
+(() => {
+  "use strict";
+
+  if (globalThis.__ALDUS_SECURITY_OBSERVABILITY_V318__) return;
+
+  const VERSION = "20260812-security-observability-v318";
+  const MAX_EVENTS_PER_MINUTE = 30;
+  const RATE_WINDOW_MS = 60_000;
+  let windowStartedAt = Date.now();
+  let emittedInWindow = 0;
+  let lastLcpMs = 0;
+  let cumulativeLayoutShift = 0;
+  let performanceReported = false;
+
+  function telemetry() {
+    const api = globalThis.AldusUsage;
+    return api && typeof api.track === "function" ? api : null;
+  }
+
+  function canEmit() {
+    const now = Date.now();
+    if (now - windowStartedAt >= RATE_WINDOW_MS) {
+      windowStartedAt = now;
+      emittedInWindow = 0;
+    }
+    if (emittedInWindow >= MAX_EVENTS_PER_MINUTE) return false;
+    emittedInWindow += 1;
+    return true;
+  }
+
+  function clean(value, fallback = "unknown") {
+    const result = String(value || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9_.-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 70);
+    return result || fallback;
+  }
+
+  function emit(event, feature, action, durationSeconds = null) {
+    const api = telemetry();
+    if (!api || !canEmit()) return null;
+    const detail = {
+      view: "system-health",
+      feature: clean(feature, "system"),
+      action: clean(action, "observe")
+    };
+    if (Number.isFinite(durationSeconds)) detail.durationSeconds = Math.max(0, durationSeconds);
+    return api.track(event, detail);
+  }
+
+  function runtimeErrorKind(error) {
+    const name = String(error?.name || "").toLowerCase();
+    const allowed = new Set([
+      "typeerror", "referenceerror", "syntaxerror", "rangeerror",
+      "urierror", "evalerror", "aborterror", "networkerror",
+      "notallowederror", "quotaexceedederror", "securityerror"
+    ]);
+    return allowed.has(name) ? name : "runtime-error";
+  }
+
+  function installRuntimeMonitoring() {
+    addEventListener("error", (event) => {
+      const target = event.target;
+      if (target && target !== globalThis && target instanceof Element) {
+        const tag = clean(target.tagName, "resource");
+        emit("resource_load_error", `resource-${tag}`, "load-error");
+        return;
+      }
+      emit("client_error", runtimeErrorKind(event.error), "uncaught");
+    }, true);
+
+    addEventListener("unhandledrejection", (event) => {
+      emit("client_error", runtimeErrorKind(event.reason), "unhandled-rejection");
+    });
+  }
+
+  function installSecurityMonitoring() {
+    addEventListener("securitypolicyviolation", (event) => {
+      // Deliberately do not transmit blockedURI, sourceFile or sample.
+      emit("security_event", `csp-${clean(event.effectiveDirective || event.violatedDirective, "directive")}`, "blocked");
+    });
+
+    addEventListener("aldus:unsafe-file-blocked", () => {
+      emit("security_event", "unsafe-file", "blocked");
+    });
+  }
+
+  function installPerformanceMonitoring() {
+    try {
+      const navigation = performance.getEntriesByType?.("navigation")?.[0];
+      if (navigation && Number.isFinite(navigation.responseStart)) {
+        emit("performance_metric", "ttfb", "observe", navigation.responseStart / 1000);
+      }
+    } catch {}
+
+    try {
+      if ("PerformanceObserver" in globalThis) {
+        const lcp = new PerformanceObserver((list) => {
+          const entries = list.getEntries();
+          const last = entries[entries.length - 1];
+          if (last && Number.isFinite(last.startTime)) lastLcpMs = last.startTime;
+        });
+        lcp.observe({ type: "largest-contentful-paint", buffered: true });
+
+        const cls = new PerformanceObserver((list) => {
+          for (const entry of list.getEntries()) {
+            if (!entry.hadRecentInput && Number.isFinite(entry.value)) cumulativeLayoutShift += entry.value;
+          }
+        });
+        cls.observe({ type: "layout-shift", buffered: true });
+      }
+    } catch {}
+  }
+
+  function reportPerformanceOnce() {
+    if (performanceReported) return;
+    performanceReported = true;
+    if (lastLcpMs > 0) emit("performance_metric", "lcp", "observe", lastLcpMs / 1000);
+    if (cumulativeLayoutShift > 0) {
+      // Preserve the existing numeric field without expanding the telemetry schema.
+      emit("performance_metric", "cls-x1000", "observe", cumulativeLayoutShift);
+    }
+    try {
+      const nav = performance.getEntriesByType?.("navigation")?.[0];
+      if (nav && Number.isFinite(nav.loadEventEnd) && nav.loadEventEnd > 0) {
+        emit("performance_metric", "page-load", "observe", nav.loadEventEnd / 1000);
+      }
+    } catch {}
+  }
+
+  function init() {
+    installRuntimeMonitoring();
+    installSecurityMonitoring();
+    installPerformanceMonitoring();
+    addEventListener("pagehide", reportPerformanceOnce, { passive: true });
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") reportPerformanceOnce();
+    }, { passive: true });
+  }
+
+  const api = Object.freeze({
+    version: VERSION,
+    emit,
+    reportPerformance: reportPerformanceOnce
+  });
+  globalThis.__ALDUS_SECURITY_OBSERVABILITY_V318__ = api;
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init, { once: true });
+  } else {
+    init();
+  }
+})();

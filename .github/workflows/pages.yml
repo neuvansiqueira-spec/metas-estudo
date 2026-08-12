@@ -40,6 +40,7 @@ jobs:
         run: |
           npm ci --ignore-scripts
           node --check security-hardening-v296.js
+          node --check security-observability-v318.js
           node --check service-worker.js
           node --check service-worker-v291.js
           node --check usage-telemetry-v315.js
@@ -61,7 +62,8 @@ jobs:
             tests/v315-usage-telemetry.test.js \
             tests/v317-posthog-telemetry.test.js \
             tests/v315-factory-simulado-visibility.test.js \
-            tests/v316-timer-telemetry-security.test.js
+            tests/v316-timer-telemetry-security.test.js \
+            tests/v318-security-observability.test.js
           node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
           cmp security-hardening-v296.js docs/security-hardening-v296.js
           cmp service-worker.js docs/service-worker.js
@@ -75,6 +77,7 @@ jobs:
           cp central-goals-palette-v245.css docs/central-goals-palette-v245.css
           cp central-goals-period-palette-v248.css docs/central-goals-period-palette-v248.css
           cp aldus-card-palette-v294.css docs/aldus-card-palette-v294.css
+          cp security-observability-v318.js docs/security-observability-v318.js
 
           python - <<'PY'
           from pathlib import Path
@@ -89,6 +92,13 @@ jobs:
               "central-goals-period-palette-v248.css?v=20260805-central-period-cards-v248",
               "central-goals-period-palette-v248.css?v=20260809-paleta-cartoes-global-v294",
           )
+          observability = (
+              '  <!-- aldus-security-observability-v318 -->\n'
+              '  <script id="aldusSecurityObservabilityV318" '
+              'src="security-observability-v318.js?v=20260812-security-observability-v318"></script>\n'
+          )
+          if "aldusSecurityObservabilityV318" not in text:
+              text = text.replace("</body>", observability + "</body>", 1)
           index.write_text(text, encoding="utf-8")
 
           sw = Path("docs/service-worker.js")

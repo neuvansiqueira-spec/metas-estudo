@@ -1,0 +1,46 @@
+name: Validar segurança
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  security-check:
+    name: Segurança e telemetria
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Configurar Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependências sem scripts
+        run: npm ci --ignore-scripts
+
+      - name: Validar sintaxe
+        run: |
+          node --check security-hardening-v296.js
+          node --check usage-telemetry-v315.js
+          node --check security-observability-v318.js
+
+      - name: Executar testes de segurança e telemetria
+        run: |
+          node --test \
+            tests/security-hardening-v296.test.js \
+            tests/v315-usage-telemetry.test.js \
+            tests/v317-posthog-telemetry.test.js \
+            tests/v316-timer-telemetry-security.test.js \
+            tests/v318-security-observability.test.js
