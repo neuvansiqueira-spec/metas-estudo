@@ -410,7 +410,7 @@ for (const filename of [
   "factory-destination-catalog-v222.js", "factory-destination-folders-v222.js", "factory-destination-recursive-v232.js",
   "sync-integral-deletions.js", "sync-integral-state.js", "pcpr-pcma-2026-catalog.js",
   "pcpr-pcma-2026-migration.js", "factory-lei-prompt-v123.js", "factory-jurisprudencia-prompt-v231.js",
-  "factory-final-review-v128.js", "factory-visibility-v122.css", "factory-simulado-prompt-v310.js", "factory-simulado-prompt-v310.css", "simulado-interativo-v313.js", "simulado-interativo-v313.css", "simulado-integracao-v314.js",
+  "factory-final-review-v128.js", "factory-visibility-v122.css", "factory-simulado-prompt-v310.js", "factory-simulado-prompt-v310.css", "factory-simulado-visibility-v315.js", "simulado-interativo-v313.js", "simulado-interativo-v313.css", "simulado-integracao-v314.js",
   "analytics-accordion-fix-v148.js", "analytics-header-arrow-v149.js",
   "analytics-single-arrow-v150.js", "contest-countdown-v151.js",
   "analytics-view-controller-v179.js",

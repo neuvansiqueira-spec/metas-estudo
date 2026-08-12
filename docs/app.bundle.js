@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260809-atualizacao-worker-v291";
+  const VERSION = "20260812-gerador-simulados-visibilidade-v315";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -60990,6 +60990,905 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initialize, { once: true });
   else initialize();
+})();
+
+/* Aldus source: factory-simulado-prompt-v310.js */
+(() => {
+  "use strict";
+
+  const VERSION = "20260811-gerador-simulados-escolha-automatica-v312";
+  const QUESTION_BANK_SCHEMA = "metas-estudo-question-bank-v1";
+  const selectedIds = new Set();
+  const selectedDisciplines = new Set();
+  const config = {
+    banca: "CEBRASPE",
+    quantidade: 10,
+    dificuldade: "Mista",
+    distribuicao: "Equilibrada entre os temas",
+    distribuicaoPersonalizada: "",
+    escolhaAutomatica: false,
+    comentarios: true,
+    fundamentoLegal: true,
+    jurisprudencia: true
+  };
+  let lastPrompt = "";
+  let baseRenderFactory = null;
+
+  function text(value) {
+    return String(value ?? "").trim();
+  }
+
+  function escapeHtml(value) {
+    return text(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function canonicalText(value) {
+    return text(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  }
+
+  function clampQuestionCount(value) {
+    const number = Number.parseInt(value, 10);
+    return Number.isFinite(number) ? Math.min(100, Math.max(1, number)) : 10;
+  }
+
+  function bankProfile(banca) {
+    const key = text(banca).toUpperCase();
+    if (key === "FGV") {
+      return {
+        banca: "FGV",
+        tipo: "Múltipla escolha",
+        gabarito: "A, B, C, D ou E",
+        alternativas: "Crie exatamente cinco alternativas (A a E), com uma única correta. Use casos práticos, interpretação jurídica, exceções, distinções e distratores plausíveis, sem ambiguidade ou dupla resposta.",
+        estilo: "Reproduza o padrão de raciocínio da FGV, com enunciados contextualizados e alternativas próximas, sem copiar questões existentes nem atribuir falsamente a questão à banca."
+      };
+    }
+    if (key === "AOCP") {
+      return {
+        banca: "AOCP",
+        tipo: "Múltipla escolha",
+        gabarito: "A, B, C, D ou E",
+        alternativas: "Crie exatamente cinco alternativas (A a E), com uma única correta. Combine literalidade legal, domínio conceitual e aplicação objetiva, mantendo redação clara e distratores tecnicamente plausíveis.",
+        estilo: "Reproduza o padrão de cobrança da AOCP, sem copiar questões existentes nem atribuir falsamente a questão à banca."
+      };
+    }
+    return {
+      banca: "CEBRASPE",
+      tipo: "Certo/Errado",
+      gabarito: "C ou E",
+      alternativas: "Não crie alternativas. Cada item deve conter uma única proposição julgável como CERTA ou ERRADA. Varie equilibradamente os gabaritos e evite tornar a resposta previsível pela redação.",
+      estilo: "Reproduza o padrão de precisão do CEBRASPE, explorando literalidade, finalidade, exceções, jurisprudência e inversões conceituais, sem copiar questões existentes nem atribuir falsamente o item à banca."
+    };
+  }
+
+  function themeLine(item, index) {
+    const subthemes = Array.isArray(item.editalSubtemas) ? item.editalSubtemas.filter(Boolean).join("; ") : text(item.subtema || item.subtheme);
+    const source = typeof factorySourceFolderLink === "function" ? factorySourceFolderLink(item) : text(item.sourceFolder || item.factorySourceFolder);
+    return `${index + 1}. DISCIPLINA: ${text(item.disciplina) || "Não informada"}\n   TEMA: ${text(item.tema) || "Não informado"}\n   SUBTEMAS/RECORTE: ${subthemes || "Usar somente o recorte do tema indicado"}\n   FONTES: ${source || "Utilizar somente as fontes fornecidas pelo usuário durante a execução"}`;
+  }
+
+  function buildPrompt(nextConfig = {}, items = []) {
+    const normalizedItems = Array.isArray(items) ? items.filter(Boolean) : [];
+    const options = { ...config, ...nextConfig };
+    const automaticSelection = Boolean(options.escolhaAutomatica);
+    if (!normalizedItems.length) {
+      throw new Error(automaticSelection
+        ? "Selecione pelo menos uma disciplina que possua temas cadastrados."
+        : "Selecione pelo menos um tema para gerar o simulado.");
+    }
+    const profile = bankProfile(options.banca);
+    const amount = clampQuestionCount(options.quantidade);
+    const customDistribution = text(options.distribuicaoPersonalizada);
+    const distribution = customDistribution || text(options.distribuicao) || "Equilibrada entre os temas";
+    const commentsRule = options.comentarios
+      ? "Inclua comentário didático e justificativa individual após definir o gabarito, explicando também por que os distratores estão errados nas questões de múltipla escolha."
+      : "Mantenha os campos comentario e justificativa como strings vazias, sem comentários adicionais.";
+    const lawRule = options.fundamentoLegal
+      ? "Inclua fundamento legal específico e atualizado quando a questão depender de lei, indicando o diploma e o dispositivo aplicável."
+      : "Não acrescente fundamento legal além do que estiver expressamente nas fontes.";
+    const precedentRule = options.jurisprudencia
+      ? "Quando houver cobrança jurisprudencial, use somente entendimento seguro e identificável, informando tribunal, precedente ou enunciado e ano. Não invente número de processo, tese, súmula ou julgamento."
+      : "Não crie questões cuja resposta dependa de jurisprudência não fornecida nas fontes.";
+    const themes = normalizedItems.map(themeLine).join("\n\n");
+    const objective = automaticSelection
+      ? `Crie um simulado INÉDITO com exatamente ${amount} questões no estilo ${profile.banca}. Escolha automaticamente os temas mais adequados entre as opções cadastradas abaixo e distribua as questões de forma coerente.`
+      : `Crie um simulado INÉDITO com exatamente ${amount} questões no estilo ${profile.banca}, cobrindo somente os temas e recortes indicados abaixo.`;
+    const themeHeading = automaticSelection ? "TEMAS DISPONÍVEIS PARA ESCOLHA AUTOMÁTICA" : "TEMAS SELECIONADOS";
+    const themeSelectionRule = automaticSelection
+      ? "Seleção automática: escolha somente entre os temas listados, considere a quantidade de questões, diversifique a cobertura entre as disciplinas escolhidas e não acrescente conteúdo externo ao edital cadastrado."
+      : "Seleção manual: utilize os temas escolhidos pelo usuário e respeite os respectivos recortes.";
+    const alternativesExample = profile.tipo === "Certo/Errado"
+      ? '"alternativas": {}'
+      : '"alternativas": {"A": "texto", "B": "texto", "C": "texto", "D": "texto", "E": "texto"}';
+
+    return `Você é um elaborador e revisor especializado em questões para concursos jurídicos de alto nível.
+
+OBJETIVO
+${objective}
+
+CONFIGURAÇÕES
+- Banca simulada: ${profile.banca}
+- Formato: ${profile.tipo}
+- Quantidade exata: ${amount}
+- Dificuldade: ${text(options.dificuldade) || "Mista"}
+- Distribuição: ${distribution}
+- Escolha dos temas: ${automaticSelection ? "Automática pelo sistema" : "Manual pelo usuário"}
+- Público: concursos jurídicos, com prioridade para o cargo de Delegado de Polícia quando o conteúdo permitir
+
+${themeHeading}
+${themes}
+
+PADRÃO DA BANCA
+${profile.estilo}
+${profile.alternativas}
+
+REGRAS DE CONTEÚDO E SEGURANÇA JURÍDICA
+1. ${themeSelectionRule}
+2. Use prioritariamente as fontes indicadas para cada tema e respeite rigorosamente o recorte cadastrado.
+3. Não invente lei, artigo, prazo, competência, exceção, tese, precedente, súmula, número de processo ou entendimento jurisprudencial.
+4. Se uma informação necessária não puder ser confirmada nas fontes disponíveis, não formule questão dependente dessa informação.
+5. Não copie questão real. Produza conteúdo inédito apenas inspirado no modo de cobrança da banca.
+6. Cada questão deve possuir uma única resposta defensável e não pode depender de opinião doutrinária controvertida sem indicar a corrente adotada.
+7. Evite repetição de enunciados, fundamentos, gabaritos em sequência previsível e cobrança superficial do mesmo ponto.
+8. ${commentsRule}
+9. ${lawRule}
+10. ${precedentRule}
+
+FORMATO OBRIGATÓRIO DE ENTREGA
+Entregue somente JSON válido, sem texto introdutório, sem conclusão e sem cercas de Markdown. O arquivo deve ser diretamente importável no Banco de Questões do Aldus Meta.
+
+Use exatamente esta estrutura:
+{
+  "schema": "${QUESTION_BANK_SCHEMA}",
+  "metadata": {
+    "titulo": "Simulado temático ${profile.banca}",
+    "banca": "${profile.banca}",
+    "origem": "simulado-inédito-gerado",
+    "quantidade": ${amount},
+    "dificuldade": "${text(options.dificuldade) || "Mista"}",
+    "regra_pontuacao": "${profile.banca === "CEBRASPE" ? "+1 acerto, -1 erro e 0 em branco, salvo regra diferente do edital" : "1 ponto por acerto e 0 por erro ou branco, salvo regra diferente do edital"}"
+  },
+  "questionBank": [
+    {
+      "id": "SIM-${profile.banca}-001",
+      "disciplina": "disciplina exata",
+      "assunto": "assunto principal",
+      "tema": "tema específico",
+      "banca": "${profile.banca}",
+      "tipo": "${profile.tipo}",
+      "enunciado": "enunciado completo",
+      ${alternativesExample},
+      "gabarito": "${profile.gabarito}",
+      "comentario": "comentário conforme as configurações",
+      "justificativa": "justificativa conforme as configurações",
+      "fundamento": "lei, dispositivo ou precedente efetivamente utilizado",
+      "tags": ["simulado inédito", "${profile.banca}", "tema específico"]
+    }
+  ]
+}
+
+VALIDAÇÃO FINAL OBRIGATÓRIA
+- Confirme internamente que existem exatamente ${amount} objetos em questionBank.
+- Confirme que todos os IDs são únicos e sequenciais.
+- Confirme que o gabarito usa somente ${profile.gabarito}.
+- Confirme que cada questão está vinculada a um dos temas ${automaticSelection ? "disponibilizados para escolha automática" : "selecionados pelo usuário"}.
+- Confirme a validade sintática do JSON.
+- Não inclua resposta_marcada, resultado, acertou ou qualquer campo que registre desempenho antes de o usuário responder.
+- Não apresente esta validação; entregue somente o JSON final.`;
+  }
+
+  function agenda() {
+    if (typeof ensureFactoryAgenda !== "function") return [];
+    return ensureFactoryAgenda();
+  }
+
+  function findItem(id) {
+    return agenda().find((item) => text(item.id) === text(id));
+  }
+
+  function selectedItems() {
+    const byId = new Map(agenda().map((item) => [text(item.id), item]));
+    for (const id of [...selectedIds]) if (!byId.has(id)) selectedIds.delete(id);
+    return [...selectedIds].map((id) => byId.get(id)).filter(Boolean);
+  }
+
+  function disciplineKey(value) {
+    return canonicalText(value);
+  }
+
+  function listDisciplines(items = agenda()) {
+    const disciplines = new Map();
+    for (const item of Array.isArray(items) ? items : []) {
+      const label = text(item?.disciplina) || "Sem disciplina";
+      const key = disciplineKey(label);
+      if (key && !disciplines.has(key)) disciplines.set(key, label);
+    }
+    return [...disciplines].map(([key, label]) => ({ key, label })).sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
+  }
+
+  function filterThemesByDisciplines(items, disciplines = selectedDisciplines) {
+    const source = Array.isArray(items) ? items : [];
+    const active = new Set([...disciplines].map(disciplineKey).filter(Boolean));
+    if (!active.size) return source;
+    return source.filter((item) => active.has(disciplineKey(text(item?.disciplina) || "Sem disciplina")));
+  }
+
+  function automaticThemePool() {
+    if (!selectedDisciplines.size) return [];
+    return filterThemesByDisciplines(agenda(), selectedDisciplines);
+  }
+
+  function promptItems() {
+    return config.escolhaAutomatica ? automaticThemePool() : selectedItems();
+  }
+
+  function disciplineSelectorHtml() {
+    const disciplines = listDisciplines();
+    const selectedCount = selectedDisciplines.size;
+    if (!disciplines.length) return '<p class="factory-simulado-empty">Nenhuma disciplina cadastrada.</p>';
+    return `<fieldset class="factory-simulado-disciplines">
+      <legend>Disciplinas <span>${selectedCount || "Todas"}</span></legend>
+      <p class="item-meta">${config.escolhaAutomatica ? "No modo automático, marque pelo menos uma disciplina." : "Escolha uma ou várias. Sem marcação, serão pesquisadas todas as disciplinas."}</p>
+      <div class="factory-simulado-discipline-list">${disciplines.map(({ key, label }) => `<label><input type="checkbox" data-factory-simulado-discipline="${escapeHtml(key)}" ${selectedDisciplines.has(key) ? "checked" : ""} /><span>${escapeHtml(label)}</span></label>`).join("")}</div>
+      ${selectedCount ? '<button type="button" class="secondary-button" data-factory-simulado-disciplines-clear>Usar todas as disciplinas</button>' : ""}
+    </fieldset>`;
+  }
+
+  function selectedThemeHtml(items) {
+    if (!items.length) return '<p class="factory-simulado-empty">Nenhum tema selecionado. Pesquise abaixo ou use “Criar simulado deste tema”.</p>';
+    return `<div class="factory-simulado-chips">${items.map((item) => `<span class="factory-simulado-chip"><span><strong>${escapeHtml(item.tema || "Tema")}</strong><small>${escapeHtml(item.disciplina || "Sem disciplina")}</small></span><button type="button" data-factory-simulado-remove="${escapeHtml(item.id)}" aria-label="Remover ${escapeHtml(item.tema || "tema")}">×</button></span>`).join("")}</div>`;
+  }
+
+  function builderHtml() {
+    const items = selectedItems();
+    const automaticItems = automaticThemePool();
+    const canGenerate = config.escolhaAutomatica ? automaticItems.length > 0 : items.length > 0;
+    const themeControls = config.escolhaAutomatica
+      ? `<div class="factory-simulado-automatic-scope" role="status"><strong>Escolha automática ativada</strong><p>${selectedDisciplines.size ? `${automaticItems.length} tema(s) cadastrado(s) estão disponíveis nas disciplinas escolhidas. O sistema selecionará e distribuirá os mais adequados.` : "Selecione pelo menos uma disciplina para liberar a geração do prompt."}</p></div>`
+      : `<div class="factory-simulado-selected"><div class="factory-simulado-title-row"><h4>Temas selecionados <span>${items.length}</span></h4>${items.length ? '<button type="button" class="secondary-button" data-factory-simulado-clear>Limpar seleção</button>' : ""}</div>${selectedThemeHtml(items)}</div>
+        <div class="factory-simulado-search-box"><label for="factorySimuladoSearchV310">Adicionar tema</label><input id="factorySimuladoSearchV310" type="search" data-factory-simulado-search placeholder="Digite o nome do tema" autocomplete="off" /><div class="factory-simulado-suggestions" data-factory-simulado-suggestions></div></div>`;
+    const output = lastPrompt
+      ? `<div class="factory-simulado-output"><h4>Prompt pronto</h4><textarea readonly rows="18" data-factory-simulado-output>${escapeHtml(lastPrompt)}</textarea><div class="card-actions"><button type="button" data-factory-simulado-copy>Copiar prompt</button><span class="item-meta" data-factory-simulado-message aria-live="polite"></span></div></div>`
+      : "";
+    return `<details id="factorySimuladoBuilderV310" class="factory-section factory-simulado-builder factory-collapsible" open>
+      <summary>GERADOR DE SIMULADOS <small>CEBRASPE • FGV • AOCP</small></summary>
+      <div class="factory-collapsible-content">
+        <p class="notice">Crie um prompt para um tema específico ou combine vários temas. O resultado será solicitado em JSON compatível com o Banco de Questões.</p>
+        <fieldset class="factory-simulado-theme-mode"><legend>Escolha dos temas</legend><label><input type="checkbox" data-factory-simulado-config="escolhaAutomatica" ${config.escolhaAutomatica ? "checked" : ""} /> Deixar o sistema escolher os temas automaticamente</label><p class="item-meta">Desmarcado: você escolhe os temas. Marcado: o sistema escolhe entre os temas cadastrados nas disciplinas selecionadas.</p></fieldset>
+        ${disciplineSelectorHtml()}
+        ${themeControls}
+        <div class="factory-simulado-grid">
+          <label>Banca<select data-factory-simulado-config="banca"><option ${config.banca === "CEBRASPE" ? "selected" : ""}>CEBRASPE</option><option ${config.banca === "FGV" ? "selected" : ""}>FGV</option><option ${config.banca === "AOCP" ? "selected" : ""}>AOCP</option></select></label>
+          <label>Quantidade de questões<input type="number" min="1" max="100" inputmode="numeric" value="${config.quantidade}" data-factory-simulado-config="quantidade" /></label>
+          <label>Dificuldade<select data-factory-simulado-config="dificuldade"><option ${config.dificuldade === "Mista" ? "selected" : ""}>Mista</option><option ${config.dificuldade === "Básica" ? "selected" : ""}>Básica</option><option ${config.dificuldade === "Intermediária" ? "selected" : ""}>Intermediária</option><option ${config.dificuldade === "Avançada" ? "selected" : ""}>Avançada</option></select></label>
+          <label>Distribuição<select data-factory-simulado-config="distribuicao"><option ${config.distribuicao === "Equilibrada entre os temas" ? "selected" : ""}>Equilibrada entre os temas</option><option ${config.distribuicao === "Proporcional à prioridade dos temas" ? "selected" : ""}>Proporcional à prioridade dos temas</option><option ${config.distribuicao === "Aleatória e equilibrada" ? "selected" : ""}>Aleatória e equilibrada</option></select></label>
+          <label class="wide">Distribuição personalizada (opcional)<input type="text" value="${escapeHtml(config.distribuicaoPersonalizada)}" data-factory-simulado-config="distribuicaoPersonalizada" placeholder="Ex.: 6 questões de Penal e 4 de Processo Penal" /></label>
+        </div>
+        <fieldset class="factory-simulado-options"><legend>Conteúdo do gabarito</legend>
+          <label><input type="checkbox" data-factory-simulado-config="comentarios" ${config.comentarios ? "checked" : ""} /> Comentários e justificativas</label>
+          <label><input type="checkbox" data-factory-simulado-config="fundamentoLegal" ${config.fundamentoLegal ? "checked" : ""} /> Fundamento legal</label>
+          <label><input type="checkbox" data-factory-simulado-config="jurisprudencia" ${config.jurisprudencia ? "checked" : ""} /> Jurisprudência, quando pertinente</label>
+        </fieldset>
+        <div class="card-actions"><button type="button" data-factory-simulado-generate ${canGenerate ? "" : "disabled"}>Gerar prompt do simulado</button></div>
+        ${output}
+      </div>
+    </details>`;
+  }
+
+  function mountBuilder() {
+    if (typeof document === "undefined") return;
+    const container = document.getElementById("factoryList");
+    if (!container) return;
+    const current = document.getElementById("factorySimuladoBuilderV310");
+    if (current) current.remove();
+    container.insertAdjacentHTML("afterbegin", builderHtml());
+
+    container.querySelectorAll("[data-factory-card]").forEach((card) => {
+      const id = text(card.dataset.factoryCard);
+      const actions = card.querySelector(".factory-prompt-actions .card-actions");
+      if (!id || !actions || actions.querySelector("[data-factory-simulado-single]")) return;
+      actions.insertAdjacentHTML("beforeend", `<button type="button" class="secondary-button factory-simulado-single" data-factory-simulado-single="${escapeHtml(id)}">Criar simulado deste tema</button>`);
+    });
+  }
+
+  function renderSuggestions(query) {
+    const panel = document.querySelector("[data-factory-simulado-suggestions]");
+    if (!panel) return;
+    const needle = canonicalText(query);
+    if (needle.length < 2) {
+      panel.innerHTML = "";
+      panel.hidden = true;
+      return;
+    }
+    const matches = filterThemesByDisciplines(agenda())
+      .filter((item) => !selectedIds.has(text(item.id)) && canonicalText(`${item.disciplina} ${item.tema} ${(item.editalSubtemas || []).join(" ")}`).includes(needle))
+      .slice(0, 12);
+    panel.innerHTML = matches.length
+      ? matches.map((item) => `<button type="button" data-factory-simulado-add="${escapeHtml(item.id)}"><strong>${escapeHtml(item.tema || "Tema")}</strong><span>${escapeHtml(item.disciplina || "Sem disciplina")}</span></button>`).join("")
+      : '<p class="item-meta">Nenhum tema encontrado.</p>';
+    panel.hidden = false;
+  }
+
+  async function copyPrompt() {
+    const message = document.querySelector("[data-factory-simulado-message]");
+    try {
+      if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(lastPrompt);
+      else {
+        const area = document.querySelector("[data-factory-simulado-output]");
+        area?.select();
+        if (!document.execCommand("copy")) throw new Error("copy indisponível");
+      }
+      if (message) message.textContent = "Prompt copiado.";
+    } catch (_error) {
+      if (message) message.textContent = "Não foi possível copiar automaticamente. Selecione o texto acima.";
+    }
+  }
+
+  function scrollToBuilder() {
+    document.getElementById("factorySimuladoBuilderV310")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function handleClick(event) {
+    const target = event.target.closest?.("button");
+    if (!target) return;
+    const single = target.closest("[data-factory-simulado-single]");
+    if (single) {
+      event.preventDefault();
+      config.escolhaAutomatica = false;
+      selectedIds.clear();
+      selectedIds.add(text(single.dataset.factorySimuladoSingle));
+      lastPrompt = "";
+      mountBuilder();
+      scrollToBuilder();
+      return;
+    }
+    const add = target.closest("[data-factory-simulado-add]");
+    if (add) {
+      event.preventDefault();
+      selectedIds.add(text(add.dataset.factorySimuladoAdd));
+      lastPrompt = "";
+      mountBuilder();
+      document.querySelector("[data-factory-simulado-search]")?.focus();
+      return;
+    }
+    const remove = target.closest("[data-factory-simulado-remove]");
+    if (remove) {
+      event.preventDefault();
+      selectedIds.delete(text(remove.dataset.factorySimuladoRemove));
+      lastPrompt = "";
+      mountBuilder();
+      return;
+    }
+    if (target.closest("[data-factory-simulado-clear]")) {
+      event.preventDefault();
+      selectedIds.clear();
+      lastPrompt = "";
+      mountBuilder();
+      return;
+    }
+    if (target.closest("[data-factory-simulado-disciplines-clear]")) {
+      event.preventDefault();
+      selectedDisciplines.clear();
+      lastPrompt = "";
+      mountBuilder();
+      document.querySelector("[data-factory-simulado-search]")?.focus();
+      return;
+    }
+    if (target.closest("[data-factory-simulado-generate]")) {
+      event.preventDefault();
+      try {
+        lastPrompt = buildPrompt(config, promptItems());
+        mountBuilder();
+        scrollToBuilder();
+      } catch (error) {
+        window.alert(error.message || "Não foi possível gerar o prompt.");
+      }
+      return;
+    }
+    if (target.closest("[data-factory-simulado-copy]")) {
+      event.preventDefault();
+      copyPrompt();
+    }
+  }
+
+  function handleInput(event) {
+    const discipline = event.target.closest?.("[data-factory-simulado-discipline]");
+    if (discipline) {
+      const key = disciplineKey(discipline.dataset.factorySimuladoDiscipline);
+      if (discipline.checked) selectedDisciplines.add(key);
+      else selectedDisciplines.delete(key);
+      lastPrompt = "";
+      mountBuilder();
+      return;
+    }
+    const search = event.target.closest?.("[data-factory-simulado-search]");
+    if (search) {
+      renderSuggestions(search.value);
+      return;
+    }
+    const field = event.target.closest?.("[data-factory-simulado-config]");
+    if (!field) return;
+    const key = field.dataset.factorySimuladoConfig;
+    if (field.type === "checkbox") config[key] = field.checked;
+    else if (key === "quantidade") config[key] = clampQuestionCount(field.value);
+    else config[key] = field.value;
+    lastPrompt = "";
+    if (key === "escolhaAutomatica") mountBuilder();
+  }
+
+  function installStylesheet() {
+    if (typeof document === "undefined" || document.getElementById("aldusFactorySimuladoStylesV310")) return;
+    const link = document.createElement("link");
+    link.id = "aldusFactorySimuladoStylesV310";
+    link.rel = "stylesheet";
+    link.href = "factory-simulado-prompt-v310.css?v=20260811-gerador-simulados-escolha-automatica-v312";
+    (document.head || document.documentElement).appendChild(link);
+  }
+
+  function initBrowser() {
+    if (typeof document === "undefined" || globalThis.__ALDUS_FACTORY_SIMULADO_V310_BROWSER__) return;
+    globalThis.__ALDUS_FACTORY_SIMULADO_V310_BROWSER__ = true;
+    installStylesheet();
+    document.addEventListener("click", handleClick);
+    document.addEventListener("input", handleInput);
+    document.addEventListener("change", handleInput);
+    if (typeof renderFactory === "function") {
+      baseRenderFactory = renderFactory;
+      renderFactory = function renderFactoryWithSimuladoV310(...args) {
+        const result = baseRenderFactory.apply(this, args);
+        mountBuilder();
+        return result;
+      };
+    }
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mountBuilder, { once: true });
+    else mountBuilder();
+  }
+
+  globalThis.__ALDUS_FACTORY_SIMULADO_V310__ = Object.freeze({
+    version: VERSION,
+    schema: QUESTION_BANK_SCHEMA,
+    bankProfile,
+    buildPrompt,
+    clampQuestionCount,
+    listDisciplines,
+    filterThemesByDisciplines
+  });
+  initBrowser();
+})();
+
+/* Aldus source: simulado-interativo-v313.js */
+(() => {
+  "use strict";
+
+  const VERSION = "20260811-simulado-interativo-v313";
+  const STORAGE_KEY = "aldusSimuladosInterativosV313";
+  const SUPPORTED_SCHEMA = "metas-estudo-question-bank-v1";
+  const BLANK_MARK = "__blank__";
+  const MAX_QUESTIONS = 200;
+  const MAX_JSON_BYTES = 5 * 1024 * 1024;
+  const integrations = new Map();
+  let store = { version: 1, exams: [] };
+  let importDraft = null;
+  let activeExamId = "";
+  let timerHandle = null;
+  let timerStartedAt = 0;
+
+  function text(value) { return String(value ?? "").trim(); }
+  function canonical(value) { return text(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); }
+  function escapeHtml(value) { return text(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;"); }
+  function createId(prefix = "simulado") { return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`; }
+  function hashText(value) { let hash = 2166136261; for (const char of text(value)) { hash ^= char.charCodeAt(0); hash = Math.imul(hash, 16777619); } return (hash >>> 0).toString(36); }
+  function formatTime(seconds) { const total = Math.max(0, Math.floor(Number(seconds) || 0)); const h = Math.floor(total / 3600); const m = Math.floor(total % 3600 / 60); const s = total % 60; return h ? `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}` : `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`; }
+  function normalizeBoard(value) { const board = text(value).toUpperCase(); if (board.includes("CEBRASPE") || board.includes("CESPE")) return "CEBRASPE"; if (board.includes("FGV")) return "FGV"; if (board.includes("AOCP")) return "AOCP"; return text(value) || "Não informada"; }
+  function normalizeAnswer(value) { if (value === true) return "C"; if (value === false) return "E"; const answer = canonical(value).replace(/[^a-z]/g, ""); if (["c","certo","correto","verdadeiro","v"].includes(answer)) return "C"; if (["e","errado","incorreto","falso","f"].includes(answer)) return "E"; if (/^[abcde]$/.test(answer)) return answer.toUpperCase(); return ""; }
+  function normalizeAlternatives(raw) { const source = raw?.alternativas ?? raw?.alternatives ?? raw?.options ?? {}; if (Array.isArray(source)) return source.reduce((result, item, index) => { const key = text(item?.letra || item?.key || item?.id || String.fromCharCode(65 + index)).toUpperCase(); const value = text(item?.texto ?? item?.text ?? item); if (/^[A-E]$/.test(key) && value) result[key] = value; return result; }, {}); if (!source || typeof source !== "object") return {}; return Object.entries(source).reduce((result, [key, value]) => { const normalizedKey = text(key).toUpperCase(); const normalizedValue = text(value?.texto ?? value?.text ?? value); if (/^[A-E]$/.test(normalizedKey) && normalizedValue) result[normalizedKey] = normalizedValue; return result; }, {}); }
+  function isMultipleChoice(question) { return Object.keys(question?.alternativas || {}).length >= 2 || canonical(question?.tipo).includes("multipla escolha"); }
+  function choiceKeys(question) { return isMultipleChoice(question) ? Object.keys(question.alternativas || {}).filter((key) => /^[A-E]$/.test(key)).sort() : ["C", "E"]; }
+  function explanation(raw) { return text(raw.justificativa ?? raw.comentario ?? raw.comentário ?? raw.explanation ?? raw.observacoes ?? raw.notes); }
+  function legalBasis(raw) { return text(raw.fundamento ?? raw.fundamentoLegal ?? raw.legalBasis ?? raw.justificativa); }
+
+  function normalizeQuestion(raw, index, metadata = {}) {
+    const alternativas = normalizeAlternatives(raw);
+    const board = normalizeBoard(raw.banca || raw.board || metadata.banca || metadata.board);
+    return {
+      sourceId: text(raw.id || raw.codigo || raw.referencia || `questao-${index + 1}`),
+      disciplina: text(raw.disciplina || raw.discipline) || "Sem disciplina",
+      assunto: text(raw.assunto || raw.subject || raw.topico || raw.topic) || "Sem assunto",
+      tema: text(raw.tema || raw.theme || raw.subassunto || raw.subtopic) || "Geral",
+      banca: board,
+      tipo: text(raw.tipo || raw.type) || (Object.keys(alternativas).length ? "Múltipla escolha" : "Certo/Errado"),
+      enunciado: text(raw.enunciado || raw.statement || raw.texto || raw.question),
+      alternativas,
+      gabarito: normalizeAnswer(raw.gabarito ?? raw.resposta ?? raw.answer ?? raw.correctAnswer),
+      comentario: text(raw.comentario ?? raw.comentário ?? raw.comment),
+      justificativa: explanation(raw),
+      fundamento: legalBasis(raw),
+      tags: Array.isArray(raw.tags) ? raw.tags.map(text).filter(Boolean) : [],
+      referencia: text(raw.referencia || raw.reference || raw.codigo),
+      ano: text(raw.ano || raw.year),
+      cargo: text(raw.cargo || raw.role),
+      orgao: text(raw.orgao || raw.agency)
+    };
+  }
+
+  function sourceQuestions(payload) { return Array.isArray(payload) ? payload : payload?.questionBank || payload?.questoes || payload?.questions || payload?.items || []; }
+
+  function parsePayload(payload) {
+    if (!payload || typeof payload !== "object") throw new Error("O conteúdo precisa ser um JSON válido de simulado.");
+    const rawQuestions = sourceQuestions(payload);
+    if (!Array.isArray(rawQuestions) || !rawQuestions.length) throw new Error("Nenhuma questão foi encontrada no JSON.");
+    if (rawQuestions.length > MAX_QUESTIONS) throw new Error(`O limite é de ${MAX_QUESTIONS} questões por simulado.`);
+    const metadata = payload.metadata || payload.metadados || {};
+    const questions = rawQuestions.map((raw, index) => normalizeQuestion(raw || {}, index, metadata));
+    const errors = [];
+    const warnings = [];
+    const sourceIds = new Set();
+    questions.forEach((question, index) => {
+      const label = `Questão ${index + 1}`;
+      if (!question.enunciado) errors.push(`${label}: enunciado ausente.`);
+      if (sourceIds.has(question.sourceId)) errors.push(`${label}: identificador duplicado (${question.sourceId}).`);
+      sourceIds.add(question.sourceId);
+      const keys = choiceKeys(question);
+      if (!question.gabarito || !keys.includes(question.gabarito)) errors.push(`${label}: gabarito inválido ou incompatível com as opções.`);
+      if (isMultipleChoice(question) && ["FGV","AOCP"].includes(question.banca) && keys.length !== 5) errors.push(`${label}: ${question.banca} exige cinco alternativas de A a E.`);
+      if (!question.justificativa && !question.comentario) warnings.push(`${label}: sem justificativa ou comentário.`);
+      if (!question.fundamento) warnings.push(`${label}: sem fundamento específico.`);
+    });
+    const declaredAmount = Number(metadata.quantidade || metadata.total || 0);
+    if (declaredAmount && declaredAmount !== questions.length) warnings.push(`A quantidade declarada (${declaredAmount}) difere das ${questions.length} questões encontradas.`);
+    const schema = text(payload.schema);
+    if (schema && schema !== SUPPORTED_SCHEMA) warnings.push(`Schema informado: ${schema}. O formato será convertido para ${SUPPORTED_SCHEMA}.`);
+    if (errors.length) { const error = new Error(`O simulado possui ${errors.length} erro(s) que impedem a importação.`); error.issues = errors; error.warnings = warnings; throw error; }
+    const fingerprintSource = JSON.stringify(questions.map((question) => ({ disciplina: question.disciplina, tema: question.tema, enunciado: question.enunciado, alternativas: question.alternativas, gabarito: question.gabarito })));
+    const fingerprint = hashText(fingerprintSource);
+    const id = `simulado-${fingerprint}`;
+    const board = normalizeBoard(metadata.banca || metadata.board || questions[0]?.banca);
+    const normalizedQuestions = questions.map((question, index) => ({ ...question, id: `${id}-q${String(index + 1).padStart(3, "0")}` }));
+    return {
+      exam: {
+        id,
+        fingerprint,
+        schema: SUPPORTED_SCHEMA,
+        name: text(metadata.titulo || metadata.title || payload.titulo || payload.title) || `Simulado ${board}`,
+        board,
+        difficulty: text(metadata.dificuldade || metadata.difficulty) || "Mista",
+        scoringRule: text(metadata.regra_pontuacao || metadata.scoringRule),
+        importedAt: new Date().toISOString(),
+        status: "draft",
+        questions: normalizedQuestions,
+        answers: {},
+        reviewFlags: {},
+        currentIndex: 0,
+        elapsedSeconds: 0,
+        startedAt: "",
+        completedAt: "",
+        summary: null,
+        integratedAt: "",
+        integrationReport: null
+      },
+      warnings
+    };
+  }
+
+  function questionStatus(question, mark) { if (!mark || mark === BLANK_MARK) return "branco"; return mark === question.gabarito ? "certo" : "errado"; }
+
+  function scoreExam(exam) {
+    const summary = { total: exam.questions.length, correct: 0, wrong: 0, blank: 0, review: 0, ceCorrect: 0, ceWrong: 0, score: 0, net: 0, accuracyPct: 0, elapsedSeconds: Math.max(0, Number(exam.elapsedSeconds) || 0) };
+    exam.questions.forEach((question) => {
+      const mark = exam.answers?.[question.id] || "";
+      const status = questionStatus(question, mark);
+      if (status === "certo") summary.correct += 1;
+      else if (status === "errado") summary.wrong += 1;
+      else summary.blank += 1;
+      if (exam.reviewFlags?.[question.id]) summary.review += 1;
+      const cebraspe = normalizeBoard(question.banca || exam.board) === "CEBRASPE" && !isMultipleChoice(question);
+      if (cebraspe && status === "certo") summary.ceCorrect += 1;
+      if (cebraspe && status === "errado") summary.ceWrong += 1;
+    });
+    summary.score = summary.correct - summary.ceWrong;
+    summary.net = summary.score;
+    summary.accuracyPct = summary.total ? Number((summary.correct / summary.total * 100).toFixed(1)) : 0;
+    return summary;
+  }
+
+  function readStore() {
+    try { const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); if (parsed && Array.isArray(parsed.exams)) return { version: 1, exams: parsed.exams }; } catch (_error) {}
+    return { version: 1, exams: [] };
+  }
+  function saveStore() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(store)); return true; } catch (error) { console.error(`[${VERSION}] Falha ao salvar simulados interativos.`, error); return false; } }
+  function examById(id) { return store.exams.find((exam) => exam.id === id); }
+  function checkpointTimer(exam, keepRunning = true) { if (!exam || !timerStartedAt) return; exam.elapsedSeconds = Math.max(0, Number(exam.elapsedSeconds) || 0) + Math.max(0, Math.floor((Date.now() - timerStartedAt) / 1000)); timerStartedAt = keepRunning ? Date.now() : 0; saveStore(); }
+  function stopTimer(exam) { checkpointTimer(exam, false); if (timerHandle) clearInterval(timerHandle); timerHandle = null; }
+  function startTimer(exam) { if (timerHandle) clearInterval(timerHandle); timerStartedAt = Date.now(); timerHandle = setInterval(() => { const node = document.querySelector("[data-interactive-timer]"); if (node) node.textContent = formatTime((exam.elapsedSeconds || 0) + Math.floor((Date.now() - timerStartedAt) / 1000)); }, 1000); }
+
+  function rootNode() { return document.getElementById("aldusInteractiveExamV313"); }
+  function statusClass(exam, question, index) { const mark = exam.answers?.[question.id]; return [index === exam.currentIndex ? "current" : "", mark === BLANK_MARK ? "blank" : mark ? "answered" : "unanswered", exam.reviewFlags?.[question.id] ? "review" : ""].filter(Boolean).join(" "); }
+  function markedLabel(mark) { return !mark || mark === BLANK_MARK ? "Em branco" : mark; }
+  function resultLabel(status) { return ({ certo: "Acerto", errado: "Erro", branco: "Em branco" }[status] || status); }
+
+  function importPanelHtml() {
+    const preview = importDraft ? `<div class="interactive-import-preview"><div class="interactive-summary-grid"><article><span>Questões</span><strong>${importDraft.exam.questions.length}</strong></article><article><span>Banca</span><strong>${escapeHtml(importDraft.exam.board)}</strong></article><article><span>Disciplinas</span><strong>${new Set(importDraft.exam.questions.map((question) => question.disciplina)).size}</strong></article><article><span>Avisos</span><strong>${importDraft.warnings.length}</strong></article></div>${importDraft.warnings.length ? `<details><summary>Ver ${importDraft.warnings.length} aviso(s)</summary><ul>${importDraft.warnings.slice(0, 30).map((warning) => `<li>${escapeHtml(warning)}</li>`).join("")}</ul></details>` : '<p class="notice">Estrutura validada sem avisos.</p>'}<div class="interactive-preview-list">${importDraft.exam.questions.slice(0, 5).map((question, index) => `<article><strong>${index + 1}. ${escapeHtml(question.disciplina)} — ${escapeHtml(question.tema)}</strong><p>${escapeHtml(question.enunciado)}</p><small>Gabarito: ${escapeHtml(question.gabarito)} • ${question.justificativa || question.comentario ? "Com explicação" : "Sem explicação"}</small></article>`).join("")}</div><div class="actions"><button type="button" data-interactive-import-confirm>Importar como simulado</button><button type="button" class="secondary-button" data-interactive-import-cancel>Cancelar prévia</button></div></div>` : '<p class="item-meta" data-interactive-import-message>Selecione o arquivo JSON gerado ou cole o conteúdo para revisar antes de importar.</p>';
+    return `<details class="interactive-import" ${store.exams.length ? "" : "open"}><summary><span><strong>Importar simulado gerado</strong><small>Validação e revisão antes de entrar no site</small></span></summary><div class="interactive-import-content"><label>Arquivo JSON<input type="file" accept="application/json,.json" data-interactive-file /></label><label>Ou cole o JSON<textarea rows="7" data-interactive-json placeholder="Cole aqui o JSON completo do simulado"></textarea></label><div class="actions"><button type="button" data-interactive-analyze>Analisar JSON</button></div>${preview}</div></details>`;
+  }
+
+  function libraryHtml() {
+    if (!store.exams.length) return '<div class="interactive-empty">Nenhum simulado interativo importado.</div>';
+    return `<div class="interactive-library">${[...store.exams].sort((a,b) => text(b.importedAt).localeCompare(text(a.importedAt))).map((exam) => { const answered = Object.keys(exam.answers || {}).length; const completed = exam.status === "completed"; return `<article><header><div><strong>${escapeHtml(exam.name)}</strong><small>${escapeHtml(exam.board)} • ${exam.questions.length} questões</small></div><span class="badge ${completed ? "success" : exam.status === "in_progress" ? "warn" : "neutral"}">${completed ? "Concluído" : exam.status === "in_progress" ? "Em andamento" : "Não iniciado"}</span></header><p class="item-meta">${completed ? `${exam.summary?.correct || 0} acertos • ${exam.summary?.wrong || 0} erros • ${exam.summary?.blank || 0} brancos • pontuação ${exam.summary?.score ?? 0}` : `${answered}/${exam.questions.length} marcações salvas`}</p><div class="actions"><button type="button" data-interactive-open="${escapeHtml(exam.id)}">${completed ? "Ver resultado" : exam.status === "in_progress" ? "Continuar" : "Iniciar"}</button>${completed && !exam.integratedAt ? `<button type="button" class="secondary-button" data-interactive-integrate="${escapeHtml(exam.id)}">Integrar ao site</button>` : ""}<button type="button" class="danger" data-interactive-delete="${escapeHtml(exam.id)}">Excluir</button></div></article>`; }).join("")}</div>`;
+  }
+
+  function examHtml(exam) {
+    const question = exam.questions[exam.currentIndex];
+    const mark = exam.answers?.[question.id] || "";
+    const choices = choiceKeys(question).map((key) => `<button type="button" class="interactive-choice ${mark === key ? "selected" : ""}" data-interactive-answer="${key}"><span>${key}</span><strong>${escapeHtml(isMultipleChoice(question) ? question.alternativas[key] : ({ C:"Certo", E:"Errado" }[key] || key))}</strong></button>`).join("");
+    const card = exam.questions.map((item, index) => `<button type="button" class="${statusClass(exam,item,index)}" data-interactive-index="${index}" aria-label="Ir para a questão ${index + 1}">${index + 1}</button>`).join("");
+    return `<section class="interactive-run"><header class="interactive-run-header"><div><p class="eyebrow">Simulado em andamento</p><h3>${escapeHtml(exam.name)}</h3><p class="item-meta">${escapeHtml(exam.board)} • ${exam.questions.length} questões • tempo <strong data-interactive-timer>${formatTime(exam.elapsedSeconds)}</strong></p></div><button type="button" class="secondary-button" data-interactive-exit>Salvar e sair</button></header><div class="interactive-answer-card" aria-label="Cartão-resposta"><strong>Cartão-resposta</strong><div>${card}</div><p><span class="legend answered"></span> Respondida <span class="legend blank"></span> Branco <span class="legend review"></span> Revisar</p></div><article class="interactive-question"><div class="item-meta">Questão ${exam.currentIndex + 1} de ${exam.questions.length} • ${escapeHtml(question.disciplina)} • ${escapeHtml(question.tema)}</div><p class="interactive-statement">${escapeHtml(question.enunciado)}</p><div class="interactive-choices">${choices}</div><div class="actions"><button type="button" class="secondary-button ${mark === BLANK_MARK ? "selected" : ""}" data-interactive-answer="${BLANK_MARK}">Deixar em branco</button><button type="button" class="secondary-button ${exam.reviewFlags?.[question.id] ? "selected" : ""}" data-interactive-review>Marcar para revisar</button></div></article><footer class="interactive-run-footer"><button type="button" class="secondary-button" data-interactive-nav="prev" ${exam.currentIndex === 0 ? "disabled" : ""}>Anterior</button><button type="button" class="secondary-button" data-interactive-nav="next" ${exam.currentIndex >= exam.questions.length - 1 ? "disabled" : ""}>Próxima</button><button type="button" data-interactive-finish>Finalizar simulado</button></footer></section>`;
+  }
+
+  function resultHtml(exam) {
+    const summary = exam.summary || scoreExam(exam);
+    return `<section class="interactive-result"><header><div><p class="eyebrow">Resultado do simulado</p><h3>${escapeHtml(exam.name)}</h3></div><span class="badge ${exam.integratedAt ? "success" : "warn"}">${exam.integratedAt ? "Integrado ao site" : "Aguardando integração"}</span></header><div class="interactive-summary-grid"><article><span>Acertos</span><strong>${summary.correct}</strong></article><article><span>Erros</span><strong>${summary.wrong}</strong></article><article><span>Brancos</span><strong>${summary.blank}</strong></article><article><span>% de acerto</span><strong>${summary.accuracyPct}%</strong></article><article><span>Pontuação</span><strong>${summary.score}</strong></article><article><span>Tempo</span><strong>${formatTime(summary.elapsedSeconds)}</strong></article></div>${exam.integrationReport?.message ? `<p class="notice">${escapeHtml(exam.integrationReport.message)}</p>` : ""}<div class="actions"><button type="button" class="secondary-button" data-interactive-exit>Voltar à lista</button>${!exam.integratedAt ? `<button type="button" data-interactive-integrate="${escapeHtml(exam.id)}">Integrar questões e resultado ao site</button>` : ""}</div><div class="interactive-result-list">${exam.questions.map((question,index) => { const mark = exam.answers?.[question.id] || BLANK_MARK; const status = questionStatus(question,mark); return `<details class="${status}"><summary><span>${index + 1}. ${escapeHtml(question.disciplina)} — ${escapeHtml(question.tema)}</span><strong>${resultLabel(status)}</strong></summary><p>${escapeHtml(question.enunciado)}</p><div class="item-meta">Resposta marcada: ${escapeHtml(markedLabel(mark))} • Gabarito: ${escapeHtml(question.gabarito)}</div><p><strong>Justificativa:</strong> ${escapeHtml(question.justificativa || question.comentario || "Não informada")}</p><p><strong>Fundamento:</strong> ${escapeHtml(question.fundamento || "Não informado")}</p></details>`; }).join("")}</div></section>`;
+  }
+
+  function render() {
+    const root = rootNode(); if (!root) return;
+    const active = examById(activeExamId);
+    if (active) { root.innerHTML = active.status === "completed" ? resultHtml(active) : examHtml(active); if (active.status !== "completed") startTimer(active); return; }
+    if (timerHandle) clearInterval(timerHandle); timerHandle = null; timerStartedAt = 0;
+    root.innerHTML = `<header class="interactive-main-header"><div><p class="eyebrow">V313 • V314</p><h3>Simulado interativo</h3><p class="item-meta">Importe o JSON, responda pelo cartão e integre o resultado somente após finalizar.</p></div></header>${importPanelHtml()}<h4>Meus simulados interativos</h4>${libraryHtml()}`;
+  }
+
+  function analyzeJson(rawText) {
+    try { const source = text(rawText); if (!source) throw new Error("Cole o JSON ou selecione um arquivo antes de analisar."); if (source.length > MAX_JSON_BYTES) throw new Error("O JSON excede o limite de 5 MB."); importDraft = parsePayload(JSON.parse(source)); render(); }
+    catch (error) { importDraft = null; const root = rootNode(); render(); const message = root?.querySelector("[data-interactive-import-message]"); if (message) message.innerHTML = `<strong>Não foi possível importar.</strong><br>${escapeHtml(error.message)}${error.issues?.length ? `<ul>${error.issues.slice(0,30).map((issue) => `<li>${escapeHtml(issue)}</li>`).join("")}</ul>` : ""}`; }
+  }
+
+  async function runIntegrations(exam) {
+    if (!integrations.size) { exam.integrationReport = { success:false, message:"O integrador V314 ainda não foi carregado. O resultado permanece salvo para nova tentativa." }; saveStore(); render(); return; }
+    try { const reports = []; for (const [name, adapter] of integrations) reports.push(await adapter(exam)); exam.integratedAt = new Date().toISOString(); exam.integrationReport = { success:true, adapters:[...integrations.keys()], reports, message:"Questões, respostas e resultado integrados ao site sem duplicação." }; saveStore(); render(); }
+    catch (error) { exam.integrationReport = { success:false, message:`Integração pendente: ${error.message || error}` }; saveStore(); render(); }
+  }
+
+  async function finishExam(exam) {
+    checkpointTimer(exam, false);
+    const unanswered = exam.questions.filter((question) => !Object.hasOwn(exam.answers || {}, question.id)).length;
+    if (!confirm(unanswered ? `Há ${unanswered} questão(ões) sem marcação. Elas serão contabilizadas como brancas. Finalizar?` : "Finalizar o simulado e revelar o gabarito?")) { startTimer(exam); return; }
+    exam.questions.forEach((question) => { if (!Object.hasOwn(exam.answers || {}, question.id)) exam.answers[question.id] = BLANK_MARK; });
+    exam.status = "completed"; exam.completedAt = new Date().toISOString(); exam.summary = scoreExam(exam); saveStore(); render(); await runIntegrations(exam);
+  }
+
+  async function handleClick(event) {
+    const button = event.target.closest?.("button"); if (!button) return;
+    const analyze = button.closest("[data-interactive-analyze]");
+    if (analyze) return analyzeJson(rootNode()?.querySelector("[data-interactive-json]")?.value || "");
+    if (button.closest("[data-interactive-import-cancel]")) { importDraft = null; return render(); }
+    if (button.closest("[data-interactive-import-confirm]")) {
+      if (!importDraft) return;
+      const existing = examById(importDraft.exam.id);
+      if (existing) { activeExamId = existing.id; importDraft = null; return render(); }
+      store.exams.push(importDraft.exam); activeExamId = importDraft.exam.id; importDraft = null; saveStore(); return render();
+    }
+    const open = button.closest("[data-interactive-open]"); if (open) { const exam = examById(open.dataset.interactiveOpen); if (!exam) return; activeExamId = exam.id; if (exam.status === "draft") { exam.status = "in_progress"; exam.startedAt = new Date().toISOString(); saveStore(); } return render(); }
+    const remove = button.closest("[data-interactive-delete]"); if (remove && confirm("Excluir este simulado interativo e suas respostas locais? Os dados já integrados ao site não serão apagados.")) { store.exams = store.exams.filter((exam) => exam.id !== remove.dataset.interactiveDelete); saveStore(); return render(); }
+    const integrate = button.closest("[data-interactive-integrate]"); if (integrate) { const exam = examById(integrate.dataset.interactiveIntegrate); if (exam) await runIntegrations(exam); return; }
+    const exam = examById(activeExamId); if (!exam) return;
+    if (button.closest("[data-interactive-exit]")) { stopTimer(exam); activeExamId = ""; return render(); }
+    const index = button.closest("[data-interactive-index]"); if (index) { checkpointTimer(exam); exam.currentIndex = Math.max(0,Math.min(exam.questions.length-1,Number(index.dataset.interactiveIndex)||0)); saveStore(); return render(); }
+    const answer = button.closest("[data-interactive-answer]"); if (answer) { checkpointTimer(exam); const question = exam.questions[exam.currentIndex]; exam.answers[question.id] = answer.dataset.interactiveAnswer; saveStore(); if (exam.currentIndex < exam.questions.length - 1) exam.currentIndex += 1; return render(); }
+    if (button.closest("[data-interactive-review]")) { checkpointTimer(exam); const question = exam.questions[exam.currentIndex]; exam.reviewFlags[question.id] = !exam.reviewFlags[question.id]; saveStore(); return render(); }
+    const nav = button.closest("[data-interactive-nav]"); if (nav) { checkpointTimer(exam); exam.currentIndex += nav.dataset.interactiveNav === "prev" ? -1 : 1; exam.currentIndex = Math.max(0,Math.min(exam.questions.length-1,exam.currentIndex)); saveStore(); return render(); }
+    if (button.closest("[data-interactive-finish]")) await finishExam(exam);
+  }
+
+  async function handleChange(event) { const input = event.target.closest?.("[data-interactive-file]"); if (!input?.files?.[0]) return; try { if (input.files[0].size > MAX_JSON_BYTES) throw new Error("O arquivo excede o limite de 5 MB."); analyzeJson(await input.files[0].text()); } catch (error) { importDraft = null; render(); const message = rootNode()?.querySelector("[data-interactive-import-message]"); if (message) message.innerHTML = `<strong>Não foi possível importar.</strong><br>${escapeHtml(error.message || error)}`; } finally { input.value = ""; } }
+
+  function mount() {
+    if (typeof document === "undefined") return;
+    const view = document.getElementById("view-simulados"); if (!view) return;
+    if (!rootNode()) { const section = document.createElement("section"); section.id = "aldusInteractiveExamV313"; section.className = "interactive-exam-shell"; const anchor = view.querySelector("#mockSummary") || view.querySelector("#mockExamForm"); view.insertBefore(section, anchor || null); section.addEventListener("click", handleClick); section.addEventListener("change", handleChange); }
+    store = readStore(); store.exams.forEach((exam) => { if (exam.status !== "completed") exam.elapsedSeconds = Math.max(0,Number(exam.elapsedSeconds)||0); }); render();
+  }
+
+  function registerIntegration(name, adapter) { if (!name || typeof adapter !== "function") throw new Error("Integrador inválido."); integrations.set(String(name), adapter); }
+  function getStoreSnapshot() { return JSON.parse(JSON.stringify(store)); }
+  function installStylesheet() { if (typeof document === "undefined" || document.getElementById("aldusInteractiveExamStylesV313")) return; const link = document.createElement("link"); link.id = "aldusInteractiveExamStylesV313"; link.rel = "stylesheet"; link.href = "simulado-interativo-v313.css?v=20260811-simulado-interativo-v313"; (document.head || document.documentElement).appendChild(link); }
+
+  const api = Object.freeze({ version:VERSION, storageKey:STORAGE_KEY, schema:SUPPORTED_SCHEMA, blankMark:BLANK_MARK, parsePayload, normalizeAnswer, normalizeAlternatives, isMultipleChoice, choiceKeys, questionStatus, scoreExam, registerIntegration, getStoreSnapshot, mount });
+  globalThis.__ALDUS_SIMULADO_INTERATIVO_V313__ = api;
+  if (typeof document !== "undefined") { installStylesheet(); if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount, { once:true }); else mount(); document.addEventListener("visibilitychange", () => { const exam = examById(activeExamId); if (exam && document.hidden) checkpointTimer(exam,false); else if (exam && !document.hidden && exam.status === "in_progress") startTimer(exam); }); }
+})();
+
+/* Aldus source: simulado-integracao-v314.js */
+(() => {
+  "use strict";
+
+  const VERSION = "20260811-simulado-integracao-v314";
+  const ADAPTER_NAME = "aldus-simulado-integracao-v314";
+
+  function text(value) { return String(value ?? "").trim(); }
+  function canonical(value) { return text(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); }
+  function normalizeBoard(value) { const board = text(value).toUpperCase(); if (board.includes("CEBRASPE") || board.includes("CESPE")) return "CEBRASPE"; if (board.includes("FGV")) return "FGV"; if (board.includes("AOCP")) return "AOCP"; return text(value) || "Não informada"; }
+  function statusFor(question, mark, blankMark = "__blank__") { if (!mark || mark === blankMark) return "branco"; return mark === question.gabarito ? "certo" : "errado"; }
+  function isMultipleChoice(question) { return Object.keys(question?.alternativas || {}).length >= 2 || canonical(question?.tipo).includes("multipla escolha"); }
+  function scoreValue(board, question, status) { if (status === "certo") return 1; if (status === "errado" && normalizeBoard(question.banca || board) === "CEBRASPE" && !isMultipleChoice(question)) return -1; return 0; }
+  function percent(value, total) { return total ? Number((Number(value || 0) / total * 100).toFixed(1)) : 0; }
+  function localDate(iso) { const raw = text(iso); return raw ? raw.slice(0, 10) : new Date().toISOString().slice(0, 10); }
+
+  function groupPerformance(exam, blankMark) {
+    const groups = new Map();
+    exam.questions.forEach((question) => {
+      const key = [question.disciplina, question.assunto, question.banca || exam.board].join("|");
+      const group = groups.get(key) || { discipline:question.disciplina, subject:question.assunto, board:question.banca || exam.board, total:0, correct:0, wrong:0, blank:0, score:0, questions:[] };
+      const mark = exam.answers?.[question.id] || blankMark;
+      const status = statusFor(question, mark, blankMark);
+      group.total += 1;
+      if (status === "certo") group.correct += 1;
+      else if (status === "errado") group.wrong += 1;
+      else group.blank += 1;
+      group.score += scoreValue(exam.board, question, status);
+      group.questions.push({ question, mark, status });
+      groups.set(key, group);
+    });
+    return [...groups.values()];
+  }
+
+  function buildIntegrationPayload(exam, core = globalThis.__ALDUS_SIMULADO_INTERATIVO_V313__) {
+    if (!exam?.id || !Array.isArray(exam.questions) || !exam.questions.length) throw new Error("Simulado concluído inválido para integração.");
+    const blankMark = core?.blankMark || "__blank__";
+    const summary = exam.summary || core?.scoreExam?.(exam);
+    if (!summary) throw new Error("O resultado do simulado não pôde ser calculado.");
+    const completedAt = exam.completedAt || new Date().toISOString();
+    const sessionId = `simulado-interativo:${exam.id}`;
+    const groups = groupPerformance(exam, blankMark);
+    const bankQuestions = exam.questions.map((question) => ({
+      id: question.id,
+      disciplina: question.disciplina,
+      assunto: question.assunto,
+      tema: question.tema,
+      banca: question.banca || exam.board,
+      ano: question.ano || "",
+      orgao: question.orgao || "",
+      cargo: question.cargo || "Delegado de Polícia",
+      prova: exam.name,
+      referencia: question.referencia || question.sourceId || "",
+      tipo: question.tipo,
+      enunciado: question.enunciado,
+      alternativas: question.alternativas || {},
+      gabarito: question.gabarito,
+      comentario: question.comentario || "",
+      justificativa: question.justificativa || question.comentario || "",
+      fundamento: question.fundamento || question.justificativa || "",
+      observacoes: `Importada do simulado interativo ${exam.name}.`,
+      tags: [...new Set([...(question.tags || []), "simulado interativo", normalizeBoard(exam.board)])],
+      fonte: "Fábrica de Simulados do Aldus Meta"
+    }));
+    const sessionItems = exam.questions.map((question) => {
+      const mark = exam.answers?.[question.id] || blankMark;
+      return {
+        id:question.id,
+        syllabusItemId:question.syllabusItemId || "",
+        disciplina:question.disciplina,
+        assunto:question.assunto,
+        tema:question.tema,
+        banca:question.banca || exam.board,
+        ano:question.ano || "",
+        referencia:question.referencia || question.sourceId || "",
+        tipo:question.tipo,
+        marcado:mark,
+        gabarito:question.gabarito,
+        status:statusFor(question,mark,blankMark),
+        justificativa:question.justificativa || question.comentario || "",
+        comentario:question.comentario || "",
+        fundamento:question.fundamento || question.justificativa || "",
+        revisar:Boolean(exam.reviewFlags?.[question.id])
+      };
+    });
+    const session = {
+      id:sessionId,
+      source:"simulado-interativo",
+      examId:exam.id,
+      examName:exam.name,
+      startedAt:exam.startedAt || "",
+      createdAt:completedAt,
+      completedAt,
+      hasAnyKey:true,
+      hasCebraspeNet:sessionItems.some((item) => normalizeBoard(item.banca) === "CEBRASPE" && !isMultipleChoice(item)),
+      summary:{ ...summary, doubt:Number(summary.review)||0 },
+      items:sessionItems
+    };
+    const questionLogs = groups.map((group, index) => ({
+      id:`${sessionId}:log:${index + 1}`,
+      date:localDate(completedAt),
+      discipline:group.discipline,
+      subject:group.subject,
+      syllabusItemId:"",
+      board:group.board,
+      minutes:0,
+      total:group.total,
+      correct:group.correct,
+      wrong:group.wrong,
+      blank:group.blank,
+      accuracyRate:percent(group.correct,group.total),
+      errorRate:percent(group.wrong,group.total),
+      blankRate:percent(group.blank,group.total),
+      cebraspeNet:group.score,
+      notes:`Resultado integrado do simulado ${exam.name}.`,
+      trainingType:"Simulado interativo",
+      origin:"simulado_interativo",
+      interactiveExamId:exam.id,
+      createdAt:completedAt,
+      updatedAt:completedAt
+    }));
+    const disciplineGroups = new Map();
+    groups.forEach((group) => { const current = disciplineGroups.get(group.discipline) || { discipline:group.discipline,total:0,correct:0,wrong:0,blank:0,net:0,notes:"Gerado automaticamente pelo cartão-resposta." }; current.total += group.total; current.correct += group.correct; current.wrong += group.wrong; current.blank += group.blank; current.net += group.score; disciplineGroups.set(group.discipline,current); });
+    const disciplines = [...disciplineGroups.values()].map((group) => ({ ...group, accuracyPct:percent(group.correct,group.total), errorPct:percent(group.wrong,group.total), blankPct:percent(group.blank,group.total) }));
+    const goal = Number(exam.goal) || Math.ceil(summary.total * 0.8);
+    const mock = {
+      id:`simulado-interativo:${exam.id}:resumo`,
+      name:exam.name,
+      date:localDate(completedAt),
+      board:exam.board,
+      institution:"Aldus Meta — Fábrica de Simulados",
+      notes:"Resultado calculado pelo cartão-resposta interativo.",
+      total:summary.total,
+      correct:summary.correct,
+      wrong:summary.wrong,
+      blank:summary.blank,
+      answered:summary.correct + summary.wrong,
+      net:summary.score,
+      score:summary.score,
+      goal,
+      accuracyAnswered:percent(summary.correct,summary.correct + summary.wrong),
+      accuracyTotal:percent(summary.correct,summary.total),
+      blankPct:percent(summary.blank,summary.total),
+      goalDiff:summary.score - goal,
+      strategy:`Revisar ${summary.wrong} erro(s), ${summary.blank} questão(ões) em branco e ${summary.review || 0} marcada(s) para revisão.`,
+      difficulty:exam.difficulty || "Mista",
+      disciplines,
+      source:"simulado-interativo",
+      interactiveExamId:exam.id,
+      updatedAt:completedAt
+    };
+    const notebook = sessionItems.filter((item) => item.status !== "certo" || item.revisar).map((item) => ({ question:bankQuestions.find((question) => question.id === item.id), mark:item.marcado === blankMark ? "" : item.marcado, reason:item.status === "errado" ? "erro" : item.status === "branco" ? "branco" : "duvida" }));
+    return { sessionId, bankQuestions, session, questionLogs, mock, notebook, groups };
+  }
+
+  function hasIntegratedSession(targetState, sessionId) { return Boolean((targetState?.questionBankSessions || []).some((session) => session.id === sessionId)); }
+
+  function integrateExam(exam) {
+    if (typeof state === "undefined" || !state) throw new Error("O banco de dados do site ainda não está disponível.");
+    const payload = buildIntegrationPayload(exam);
+    if (hasIntegratedSession(state,payload.sessionId)) return { alreadyIntegrated:true, sessionId:payload.sessionId, message:"Este simulado já estava integrado; nenhum dado foi duplicado." };
+    state.questionBank ||= [];
+    state.questionBankSessions ||= [];
+    state.questionLogs ||= [];
+    state.simulados ||= [];
+    state.questionErrorNotebook ||= [];
+    const bankMap = new Map(state.questionBank.map((question) => [question.id,question]));
+    let newQuestions = 0;
+    payload.bankQuestions.forEach((question) => { if (!bankMap.has(question.id)) { bankMap.set(question.id,question); newQuestions += 1; } });
+    state.questionBank = [...bankMap.values()];
+    state.questionBankSessions.unshift(payload.session);
+    const logIds = new Set(state.questionLogs.map((log) => log.id));
+    state.questionLogs.push(...payload.questionLogs.filter((log) => !logIds.has(log.id)));
+    if (!state.simulados.some((mock) => mock.id === payload.mock.id)) state.simulados.push(payload.mock);
+    if (typeof registrarNoCadernoErros === "function") payload.notebook.forEach((entry) => registrarNoCadernoErros(entry.question,entry.mark,entry.reason));
+    if (typeof saveData !== "function") throw new Error("O salvamento principal do site não está disponível.");
+    saveData({ markLocalChange:true });
+    if (typeof renderQuestionBank === "function") renderQuestionBank();
+    if (typeof renderSimulados === "function") renderSimulados();
+    if (typeof renderQuestionHistory === "function") renderQuestionHistory();
+    if (typeof qbRenderErrorNotebook === "function") qbRenderErrorNotebook();
+    return { alreadyIntegrated:false, sessionId:payload.sessionId, newQuestions, sessionsAdded:1, logsAdded:payload.questionLogs.length, notebookAdded:payload.notebook.length, message:`${newQuestions} questão(ões) e o resultado foram integrados ao site.` };
+  }
+
+  const api = Object.freeze({ version:VERSION, adapterName:ADAPTER_NAME, normalizeBoard, statusFor, scoreValue, groupPerformance, buildIntegrationPayload, hasIntegratedSession, integrateExam });
+  globalThis.__ALDUS_SIMULADO_INTEGRACAO_V314__ = api;
+  const core = globalThis.__ALDUS_SIMULADO_INTERATIVO_V313__;
+  if (core?.registerIntegration) core.registerIntegration(ADAPTER_NAME, integrateExam);
 })();
 
 /* Aldus runtime source: planning-shift-disciplines-v200.js */

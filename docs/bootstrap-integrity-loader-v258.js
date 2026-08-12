@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260809-planejamento-plantao-salvamento-v283";
-  const CORE_SCRIPT = "bootstrap-integrity-loader-v258-core.js?v=20260806-duplicate-diagnostics-v260";
+  const VERSION = "20260812-gerador-simulados-visibilidade-v315";
+  const CORE_SCRIPT = "bootstrap-integrity-loader-v258-core.js?v=20260812-gerador-simulados-visibilidade-v315";
   const DIAGNOSTICS_SCRIPT = "duplicate-diagnostics-v260.js?v=20260806-duplicate-diagnostics-v260";
   const DIAGNOSTICS_STYLESHEET = "duplicate-diagnostics-v260.css?v=20260806-duplicate-diagnostics-v260";
   const TIMER_SOUND_MASTER_SCRIPT = "timer-sound-master-v265.js?v=20260806-timer-sound-master-v265&hotfix=master-mute-hotfix1";
