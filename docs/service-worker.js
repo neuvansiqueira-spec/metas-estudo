@@ -14,7 +14,7 @@ const FACTORY_SCHEDULE_FILTERS_VERSION = "20260808-factory-schedule-planning-pre
 const FACTORY_SCHEDULE_DATES_VERSION = "20260809-factory-schedule-planning-dates-v281";
 const QUESTIONS_HUB_VERSION = "20260810-questoes-integradas-v298";
 const QUESTION_JSON_DETAILS_VERSION = "20260810-revisao-json-explicacoes-v299";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v297-hotfix5-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-duplicate-recommended-batch-v300-duplicate-batch-persistence-v301-duplicate-batch-performance-v304-duplicate-batch-commit-v305-entry-parser-recovery-v306-duplicate-core-delivery-v307-duplicate-batch-core-pin-v308-duplicate-flow-owner-v309-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4-security-v296-questions-hub-v298-question-json-details-v299-factory-simulado-escolha-automatica-v312-simulado-interativo-v313-integracao-v314-factory-simulado-visibility-v315`;
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v297-hotfix5-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-duplicate-recommended-batch-v300-duplicate-batch-persistence-v301-duplicate-batch-performance-v304-duplicate-batch-commit-v305-entry-parser-recovery-v306-duplicate-core-delivery-v307-duplicate-batch-core-pin-v308-duplicate-flow-owner-v309-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4-security-v296-questions-hub-v298-question-json-details-v299-factory-simulado-escolha-automatica-v312-simulado-interativo-v313-integracao-v314-factory-simulado-visibility-v315-posthog-telemetry-v317`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
@@ -51,7 +51,7 @@ const FACTORY_SIMULADO_SCRIPT = "factory-simulado-prompt-v310.js?v=20260811-gera
 const FACTORY_SIMULADO_STYLESHEET = "factory-simulado-prompt-v310.css?v=20260811-gerador-simulados-escolha-automatica-v312";
 const FACTORY_SIMULADO_VISIBILITY_LOADER = "factory-simulado-visibility-v315.js?v=20260812-gerador-simulados-visibilidade-v315";
 const TIMER_RUNTIME_V316 = "timer-runtime-v316.js?v=20260812-timer-diagnostics-security-v316";
-const USAGE_TELEMETRY_V316 = "usage-telemetry-v315.js?v=20260812-usage-telemetry-security-v316";
+const USAGE_TELEMETRY_V317 = "usage-telemetry-v315.js?v=20260812-posthog-telemetry-v317";
 const SIMULADO_INTERATIVO_SCRIPT = "simulado-interativo-v313.js?v=20260811-simulado-interativo-v313";
 const SIMULADO_INTERATIVO_STYLESHEET = "simulado-interativo-v313.css?v=20260811-simulado-interativo-v313";
 const SIMULADO_INTEGRACAO_SCRIPT = "simulado-integracao-v314.js?v=20260811-simulado-integracao-v314";
@@ -94,7 +94,7 @@ const STATIC_ASSETS = [
   FACTORY_SIMULADO_STYLESHEET,
   FACTORY_SIMULADO_VISIBILITY_LOADER,
   TIMER_RUNTIME_V316,
-  USAGE_TELEMETRY_V316,
+  USAGE_TELEMETRY_V317,
   SIMULADO_INTERATIVO_SCRIPT,
   SIMULADO_INTERATIVO_STYLESHEET,
   SIMULADO_INTEGRACAO_SCRIPT,
@@ -109,7 +109,7 @@ const STATIC_ASSETS = [
   "icons/icon-maskable.svg"
 ];
 const STATIC_PATHS = new Set(STATIC_ASSETS.map((asset) => new URL(asset, self.registration.scope).pathname));
-const ESSENTIAL_ASSETS = ["./", "index.html", `app-${RELEASE_SUFFIX}.css?v=${CURRENT_VERSION}`, `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`, QUESTIONS_HUB_STYLESHEET, QUESTIONS_HUB_SCRIPT, QUESTION_JSON_DETAILS_SCRIPT, FACTORY_SIMULADO_SCRIPT, FACTORY_SIMULADO_STYLESHEET, FACTORY_SIMULADO_VISIBILITY_LOADER, TIMER_RUNTIME_V316, USAGE_TELEMETRY_V316, SIMULADO_INTERATIVO_SCRIPT, SIMULADO_INTERATIVO_STYLESHEET, SIMULADO_INTEGRACAO_SCRIPT, DUPLICATE_RECOMMENDATIONS_CORE, DUPLICATE_DIAGNOSTICS_CORE_CSS, DUPLICATE_BATCH_HOTFIX, SECURITY_HARDENING, CATASTROPHIC_STATE_GUARD, BOOTSTRAP_PROTECTED, BOOTSTRAP_CORE];
+const ESSENTIAL_ASSETS = ["./", "index.html", `app-${RELEASE_SUFFIX}.css?v=${CURRENT_VERSION}`, `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`, QUESTIONS_HUB_STYLESHEET, QUESTIONS_HUB_SCRIPT, QUESTION_JSON_DETAILS_SCRIPT, FACTORY_SIMULADO_SCRIPT, FACTORY_SIMULADO_STYLESHEET, FACTORY_SIMULADO_VISIBILITY_LOADER, TIMER_RUNTIME_V316, USAGE_TELEMETRY_V317, SIMULADO_INTERATIVO_SCRIPT, SIMULADO_INTERATIVO_STYLESHEET, SIMULADO_INTEGRACAO_SCRIPT, DUPLICATE_RECOMMENDATIONS_CORE, DUPLICATE_DIAGNOSTICS_CORE_CSS, DUPLICATE_BATCH_HOTFIX, SECURITY_HARDENING, CATASTROPHIC_STATE_GUARD, BOOTSTRAP_PROTECTED, BOOTSTRAP_CORE];
 
 async function precacheAssets() {
   const cache = await caches.open(CACHE_NAME);

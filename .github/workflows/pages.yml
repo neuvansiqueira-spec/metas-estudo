@@ -42,6 +42,7 @@ jobs:
           node --check security-hardening-v296.js
           node --check service-worker.js
           node --check service-worker-v291.js
+          node --check usage-telemetry-v315.js
           node --test \
             tests/security-hardening-v296.test.js \
             tests/timer-controls-hardening-v268.test.js \
@@ -58,11 +59,13 @@ jobs:
             tests/v308-duplicate-batch-core-pin.test.js \
             tests/v309-duplicate-flow-owner.test.js \
             tests/v315-usage-telemetry.test.js \
+            tests/v317-posthog-telemetry.test.js \
             tests/v315-factory-simulado-visibility.test.js \
             tests/v316-timer-telemetry-security.test.js
           node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
           cmp security-hardening-v296.js docs/security-hardening-v296.js
           cmp service-worker.js docs/service-worker.js
+          cmp usage-telemetry-v315.js docs/usage-telemetry-v315.js
 
       - name: Preparar paleta sofisticada dos cartões
         shell: bash

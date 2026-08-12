@@ -41,14 +41,16 @@ test("V316 mantém diagnóstico local limitado e sem conteúdo de estudo", () =>
   assert.doesNotMatch(diagnostic, /discipline|subject|question|notes|material/i);
 });
 
-test("telemetria V316 continua sem envio externo até endpoint explícito", () => {
+test("telemetria V317 envia somente após consentimento e sem conteúdo de estudo", () => {
   const telemetry = read("usage-telemetry-v315.js");
   const entry = read("index.html");
-  assert.match(telemetry, /20260812-usage-telemetry-security-v316/);
-  assert.match(telemetry, /if \(!endpoint \|\| pending\.length === 0\) return false/);
+  assert.match(telemetry, /20260812-posthog-telemetry-v317/);
+  assert.match(telemetry, /trackingAllowed\(\)/);
+  assert.match(telemetry, /if \(!trackingAllowed\(\) \|\| !endpoint \|\| !projectToken/);
+  assert.match(telemetry, /"\$process_person_profile": false/);
   assert.match(telemetry, /credentials: "omit"/);
-  assert.doesNotMatch(telemetry, /navigator\.userAgent|\.value\b|innerText|email|cpf|ipAddress/i);
-  assert.match(entry, /meta name="aldus-usage-endpoint" content=""/);
+  assert.doesNotMatch(telemetry, /\.value\b|innerText|cpf|ipAddress/i);
+  assert.match(entry, /meta name="aldus-usage-endpoint" content="https:\/\/us\.i\.posthog\.com\/batch\/"/);
 });
 
 test("workflows legados não escrevem nem executam e Actions usam SHA fixo", () => {

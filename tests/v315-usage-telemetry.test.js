@@ -7,28 +7,32 @@ const root = path.resolve(__dirname, "..");
 const telemetry = fs.readFileSync(path.join(root, "usage-telemetry-v315.js"), "utf8");
 const entry = fs.readFileSync(path.join(root, "index.html"), "utf8");
 
-test("V315/V316 exposes a privacy-safe usage API", () => {
+test("V315-V317 exposes a privacy-safe usage API", () => {
   assert.match(telemetry, /globalThis\.AldusUsage = api/);
   assert.match(telemetry, /session_start/);
   assert.match(telemetry, /view_open/);
   assert.match(telemetry, /feature_action/);
   assert.match(telemetry, /form_submit/);
   assert.match(telemetry, /endpointConfigured/);
+  assert.match(telemetry, /setConsent/);
 });
 
-test("V315/V316 does not capture typed content or persistent identity", () => {
+test("V317 does not capture typed content or direct identity", () => {
   assert.doesNotMatch(telemetry, /\.value\b/);
   assert.doesNotMatch(telemetry, /innerText/);
-  assert.doesNotMatch(telemetry, /navigator\.userAgent/);
-  assert.doesNotMatch(telemetry, /email/i);
+  assert.doesNotMatch(telemetry, /raw_user_agent|user_agent_raw/i);
   assert.doesNotMatch(telemetry, /cpf/i);
   assert.doesNotMatch(telemetry, /ipAddress|ip_address/i);
+  assert.match(telemetry, /browserKind/);
+  assert.match(telemetry, /operatingSystem/);
 });
 
-test("V315/V316 keeps external delivery disabled until an endpoint is configured", () => {
-  assert.match(telemetry, /if \(!endpoint \|\| pending\.length === 0\) return false/);
+test("V317 sends only after consent and with configured PostHog destination", () => {
+  assert.match(telemetry, /trackingAllowed\(\)/);
+  assert.match(telemetry, /if \(!trackingAllowed\(\) \|\| !endpoint \|\| !projectToken/);
+  assert.match(telemetry, /https:\/\/us\.i\.posthog\.com\/batch\//);
+  assert.match(telemetry, /"\$process_person_profile": false/);
   assert.match(telemetry, /credentials: "omit"/);
-  assert.match(telemetry, /aldus-usage-endpoint/);
 });
 
 test("entrypoint loads telemetry without replacing the current application shell", () => {
