@@ -1,8 +1,9 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260811-simulado-integracao-v314";
+  const VERSION = "20260812-simulado-integracao-v318-reparo";
   const ADAPTER_NAME = "aldus-simulado-integracao-v314";
+  const INTERACTIVE_STORAGE_KEY = "aldusSimuladosInterativosV313";
 
   function text(value) { return String(value ?? "").trim(); }
   function canonical(value) { return text(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); }
@@ -119,7 +120,15 @@
       updatedAt:completedAt
     }));
     const disciplineGroups = new Map();
-    groups.forEach((group) => { const current = disciplineGroups.get(group.discipline) || { discipline:group.discipline,total:0,correct:0,wrong:0,blank:0,net:0,notes:"Gerado automaticamente pelo cartão-resposta." }; current.total += group.total; current.correct += group.correct; current.wrong += group.wrong; current.blank += group.blank; current.net += group.score; disciplineGroups.set(group.discipline,current); });
+    groups.forEach((group) => {
+      const current = disciplineGroups.get(group.discipline) || { discipline:group.discipline,total:0,correct:0,wrong:0,blank:0,net:0,notes:"Gerado automaticamente pelo cartão-resposta." };
+      current.total += group.total;
+      current.correct += group.correct;
+      current.wrong += group.wrong;
+      current.blank += group.blank;
+      current.net += group.score;
+      disciplineGroups.set(group.discipline,current);
+    });
     const disciplines = [...disciplineGroups.values()].map((group) => ({ ...group, accuracyPct:percent(group.correct,group.total), errorPct:percent(group.wrong,group.total), blankPct:percent(group.blank,group.total) }));
     const goal = Number(exam.goal) || Math.ceil(summary.total * 0.8);
     const mock = {
@@ -148,41 +157,178 @@
       interactiveExamId:exam.id,
       updatedAt:completedAt
     };
-    const notebook = sessionItems.filter((item) => item.status !== "certo" || item.revisar).map((item) => ({ question:bankQuestions.find((question) => question.id === item.id), mark:item.marcado === blankMark ? "" : item.marcado, reason:item.status === "errado" ? "erro" : item.status === "branco" ? "branco" : "duvida" }));
+    const notebook = sessionItems
+      .filter((item) => item.status !== "certo" || item.revisar)
+      .map((item) => ({
+        question:bankQuestions.find((question) => question.id === item.id),
+        mark:item.marcado === blankMark ? "" : item.marcado,
+        reason:item.status === "errado" ? "erro" : item.status === "branco" ? "branco" : "duvida"
+      }));
     return { sessionId, bankQuestions, session, questionLogs, mock, notebook, groups };
   }
 
-  function hasIntegratedSession(targetState, sessionId) { return Boolean((targetState?.questionBankSessions || []).some((session) => session.id === sessionId)); }
+  function hasIntegratedSession(targetState, sessionId) {
+    return Boolean((targetState?.questionBankSessions || []).some((session) => session.id === sessionId));
+  }
+
+  function ensureCollections(targetState) {
+    targetState.questionBank ||= [];
+    targetState.questionBankSessions ||= [];
+    targetState.questionLogs ||= [];
+    targetState.simulados ||= [];
+    targetState.questionErrorNotebook ||= [];
+  }
+
+  function ensureBankQuestions(targetState, bankQuestions) {
+    const bankMap = new Map((targetState.questionBank || []).map((question) => [question.id, question]));
+    let added = 0;
+    bankQuestions.forEach((question) => {
+      if (!bankMap.has(question.id)) {
+        bankMap.set(question.id, question);
+        added += 1;
+      }
+    });
+    if (added) targetState.questionBank = [...bankMap.values()];
+    return added;
+  }
+
+  function renderAfterIntegration({ full = false } = {}) {
+    if (typeof renderQuestionBank === "function") renderQuestionBank();
+    if (!full) return;
+    if (typeof renderSimulados === "function") renderSimulados();
+    if (typeof renderQuestionHistory === "function") renderQuestionHistory();
+    if (typeof qbRenderErrorNotebook === "function") qbRenderErrorNotebook();
+  }
+
+  function persistRepair() {
+    if (typeof saveData !== "function") throw new Error("O salvamento principal do site não está disponível.");
+    saveData({ markLocalChange:true });
+  }
 
   function integrateExam(exam) {
     if (typeof state === "undefined" || !state) throw new Error("O banco de dados do site ainda não está disponível.");
     const payload = buildIntegrationPayload(exam);
-    if (hasIntegratedSession(state,payload.sessionId)) return { alreadyIntegrated:true, sessionId:payload.sessionId, message:"Este simulado já estava integrado; nenhum dado foi duplicado." };
-    state.questionBank ||= [];
-    state.questionBankSessions ||= [];
-    state.questionLogs ||= [];
-    state.simulados ||= [];
-    state.questionErrorNotebook ||= [];
-    const bankMap = new Map(state.questionBank.map((question) => [question.id,question]));
-    let newQuestions = 0;
-    payload.bankQuestions.forEach((question) => { if (!bankMap.has(question.id)) { bankMap.set(question.id,question); newQuestions += 1; } });
-    state.questionBank = [...bankMap.values()];
+    ensureCollections(state);
+
+    const sessionAlreadyIntegrated = hasIntegratedSession(state, payload.sessionId);
+    const repairedQuestions = ensureBankQuestions(state, payload.bankQuestions);
+
+    if (sessionAlreadyIntegrated) {
+      if (repairedQuestions > 0) {
+        persistRepair();
+        renderAfterIntegration();
+        return {
+          alreadyIntegrated:true,
+          repaired:true,
+          sessionId:payload.sessionId,
+          newQuestions:repairedQuestions,
+          sessionsAdded:0,
+          logsAdded:0,
+          notebookAdded:0,
+          message:`Integração reparada: ${repairedQuestions} questão(ões) ausente(s) foram restauradas no Banco de Questões sem duplicar o resultado.`
+        };
+      }
+      return {
+        alreadyIntegrated:true,
+        repaired:false,
+        sessionId:payload.sessionId,
+        newQuestions:0,
+        sessionsAdded:0,
+        logsAdded:0,
+        notebookAdded:0,
+        message:"Este simulado já estava integralmente integrado; nenhum dado foi duplicado."
+      };
+    }
+
     state.questionBankSessions.unshift(payload.session);
     const logIds = new Set(state.questionLogs.map((log) => log.id));
-    state.questionLogs.push(...payload.questionLogs.filter((log) => !logIds.has(log.id)));
-    if (!state.simulados.some((mock) => mock.id === payload.mock.id)) state.simulados.push(payload.mock);
-    if (typeof registrarNoCadernoErros === "function") payload.notebook.forEach((entry) => registrarNoCadernoErros(entry.question,entry.mark,entry.reason));
-    if (typeof saveData !== "function") throw new Error("O salvamento principal do site não está disponível.");
-    saveData({ markLocalChange:true });
-    if (typeof renderQuestionBank === "function") renderQuestionBank();
-    if (typeof renderSimulados === "function") renderSimulados();
-    if (typeof renderQuestionHistory === "function") renderQuestionHistory();
-    if (typeof qbRenderErrorNotebook === "function") qbRenderErrorNotebook();
-    return { alreadyIntegrated:false, sessionId:payload.sessionId, newQuestions, sessionsAdded:1, logsAdded:payload.questionLogs.length, notebookAdded:payload.notebook.length, message:`${newQuestions} questão(ões) e o resultado foram integrados ao site.` };
+    const logsToAdd = payload.questionLogs.filter((log) => !logIds.has(log.id));
+    state.questionLogs.push(...logsToAdd);
+    const mockAdded = !state.simulados.some((mock) => mock.id === payload.mock.id);
+    if (mockAdded) state.simulados.push(payload.mock);
+    if (typeof registrarNoCadernoErros === "function") {
+      payload.notebook.forEach((entry) => registrarNoCadernoErros(entry.question, entry.mark, entry.reason));
+    }
+
+    persistRepair();
+    renderAfterIntegration({ full:true });
+
+    return {
+      alreadyIntegrated:false,
+      repaired:false,
+      sessionId:payload.sessionId,
+      newQuestions:repairedQuestions,
+      sessionsAdded:1,
+      logsAdded:logsToAdd.length,
+      notebookAdded:payload.notebook.length,
+      message:`${repairedQuestions} questão(ões) e o resultado foram integrados ao site.`
+    };
   }
 
-  const api = Object.freeze({ version:VERSION, adapterName:ADAPTER_NAME, normalizeBoard, statusFor, scoreValue, groupPerformance, buildIntegrationPayload, hasIntegratedSession, integrateExam });
+  function readStoredCompletedExams() {
+    if (typeof localStorage === "undefined") return [];
+    try {
+      const parsed = JSON.parse(localStorage.getItem(INTERACTIVE_STORAGE_KEY) || "null");
+      if (!parsed || !Array.isArray(parsed.exams)) return [];
+      return parsed.exams.filter((exam) => exam?.status === "completed" && Array.isArray(exam.questions) && exam.questions.length);
+    } catch (error) {
+      console.warn(`[${VERSION}] Não foi possível ler os simulados locais para verificação de integridade.`, error);
+      return [];
+    }
+  }
+
+  function repairStoredExams() {
+    if (typeof state === "undefined" || !state || typeof saveData !== "function") {
+      return { available:false, checked:0, repairedExams:0, repairedQuestions:0, errors:0 };
+    }
+    const exams = readStoredCompletedExams();
+    let repairedExams = 0;
+    let repairedQuestions = 0;
+    let errors = 0;
+    exams.forEach((exam) => {
+      try {
+        const result = integrateExam(exam);
+        if (result?.repaired || (!result?.alreadyIntegrated && Number(result?.newQuestions) > 0)) {
+          repairedExams += 1;
+          repairedQuestions += Number(result.newQuestions) || 0;
+        }
+      } catch (error) {
+        errors += 1;
+        console.warn(`[${VERSION}] Falha ao verificar o simulado ${exam?.id || "sem-id"}.`, error);
+      }
+    });
+    const report = { available:true, checked:exams.length, repairedExams, repairedQuestions, errors };
+    if (repairedQuestions > 0) console.info(`[${VERSION}] Reparo automático concluído.`, report);
+    return report;
+  }
+
+  function scheduleStoredRepair() {
+    if (typeof setTimeout !== "function") return;
+    const delays = [0, 600, 1800, 4000];
+    delays.forEach((delay) => {
+      setTimeout(() => {
+        try { repairStoredExams(); }
+        catch (error) { console.warn(`[${VERSION}] Verificação automática adiada.`, error); }
+      }, delay);
+    });
+  }
+
+  const api = Object.freeze({
+    version:VERSION,
+    adapterName:ADAPTER_NAME,
+    normalizeBoard,
+    statusFor,
+    scoreValue,
+    groupPerformance,
+    buildIntegrationPayload,
+    hasIntegratedSession,
+    ensureBankQuestions,
+    integrateExam,
+    repairStoredExams
+  });
   globalThis.__ALDUS_SIMULADO_INTEGRACAO_V314__ = api;
+
   const core = globalThis.__ALDUS_SIMULADO_INTERATIVO_V313__;
   if (core?.registerIntegration) core.registerIntegration(ADAPTER_NAME, integrateExam);
+  scheduleStoredRepair();
 })();
