@@ -79,6 +79,39 @@ test("V314 integra uma vez no estado real e não duplica ao tentar novamente", (
   assert.equal(saves, 1);
 });
 
+test("V318 repara questões ausentes quando o resultado já estava integrado", () => {
+  const { context, core, integration } = loadApis();
+  let saves = 0;
+  let notebookWrites = 0;
+  const exam = completedExam(core);
+  const payload = integration.buildIntegrationPayload(exam);
+  context.state = {
+    questionBank:[],
+    questionBankSessions:[payload.session],
+    questionLogs:[...payload.questionLogs],
+    simulados:[payload.mock],
+    questionErrorNotebook:[]
+  };
+  context.saveData = () => { saves += 1; return true; };
+  context.registrarNoCadernoErros = () => { notebookWrites += 1; };
+
+  const repaired = integration.integrateExam(exam);
+  const checkedAgain = integration.integrateExam(exam);
+
+  assert.equal(repaired.alreadyIntegrated, true);
+  assert.equal(repaired.repaired, true);
+  assert.equal(repaired.newQuestions, 3);
+  assert.equal(context.state.questionBank.length, 3);
+  assert.equal(context.state.questionBankSessions.length, 1);
+  assert.equal(context.state.questionLogs.length, 2);
+  assert.equal(context.state.simulados.length, 1);
+  assert.equal(notebookWrites, 0);
+  assert.equal(saves, 1);
+  assert.equal(checkedAgain.repaired, false);
+  assert.equal(checkedAgain.newQuestions, 0);
+  assert.equal(saves, 1);
+});
+
 test("V314 é carregado depois do V313 e possui paridade raiz/docs", () => {
   const build = fs.readFileSync("build-bundles.mjs", "utf8");
   const bootstrap = fs.readFileSync("bootstrap-integrity-loader-v258-core.js", "utf8");
