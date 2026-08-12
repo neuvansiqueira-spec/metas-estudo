@@ -15,6 +15,7 @@
     const CORE_VERSION = "20260811-duplicate-flow-owner-v309";
     const BATCH_VERSION = "20260811-duplicate-flow-owner-v309";
     const TELEMETRY_VERSION = "20260812-posthog-telemetry-v317";
+    const OBSERVABILITY_VERSION = "20260812-security-observability-v318";
     const HEAD_CLOSE = "</he" + "ad>";
     const BODY_CLOSE = "</bo" + "dy>";
     const HTML_CLOSE = "</ht" + "ml>";
@@ -22,6 +23,7 @@
     const CORE_PATTERN = /<script\s+[^>]*src=["'][^"']*duplicate-diagnostics-v(?:260|303|304|309)\.js[^"']*["'][^>]*><\/script>\s*/gi;
     const BATCH_PATTERN = /<script\s+[^>]*src=["'][^"']*duplicate-diagnostics-batch-v(?:302|303|304|305)\.js[^"']*["'][^>]*><\/script>\s*/gi;
     const TELEMETRY_PATTERN = /<script\s+[^>]*src=["'][^"']*usage-telemetry-v315\.js[^"']*["'][^>]*><\/script>\s*/gi;
+    const OBSERVABILITY_PATTERN = /<script\s+[^>]*src=["'][^"']*security-observability-v318\.js[^"']*["'][^>]*><\/script>\s*/gi;
 
     function fail(error) {
       console.error(`[${ENTRY_VERSION}] Falha ao carregar o shell corrigido.`, error);
@@ -41,6 +43,7 @@
       }
 
       let html = request.responseText
+        .replace(OBSERVABILITY_PATTERN, "")
         .replace(TELEMETRY_PATTERN, "")
         .replace(BATCH_PATTERN, "")
         .replace(CORE_PATTERN, "");
@@ -49,10 +52,11 @@
       const coreTag = `<script id="aldusDuplicateDiagnosticsCoreV309" src="duplicate-diagnostics-v309.js?v=${CORE_VERSION}&entry=forced1"><\/script>`;
       const v305Tag = `<script id="aldusDuplicateBatchAuthoritativeV309" src="duplicate-diagnostics-batch-v305.js?v=${BATCH_VERSION}&entry=forced1"><\/script>`;
       const telemetryTag = `<script id="aldusUsageTelemetryV317" src="usage-telemetry-v315.js?v=${TELEMETRY_VERSION}"><\/script>`;
+      const observabilityTag = `<script id="aldusSecurityObservabilityV318" src="security-observability-v318.js?v=${OBSERVABILITY_VERSION}"><\/script>`;
       html = html.replace(/<head([^>]*)>/i, `<head$1>\n  ${coreTag}`);
       html = html.replace(
         BODY_CLOSE,
-        `  <!-- aldus-entry-forced-v309 -->\n  ${v305Tag}\n  <!-- aldus-usage-telemetry-v317 -->\n  ${telemetryTag}\n${BODY_CLOSE}`
+        `  <!-- aldus-entry-forced-v309 -->\n  ${v305Tag}\n  <!-- aldus-usage-telemetry-v317 -->\n  ${telemetryTag}\n  <!-- aldus-security-observability-v318 -->\n  ${observabilityTag}\n${BODY_CLOSE}`
       );
 
       if (
@@ -61,8 +65,9 @@
         || !html.includes("duplicate-diagnostics-batch-v305.js")
         || /src=["'][^"']*duplicate-diagnostics-batch-v304\.js/i.test(html)
         || !html.includes(`usage-telemetry-v315.js?v=${TELEMETRY_VERSION}`)
+        || !html.includes(`security-observability-v318.js?v=${OBSERVABILITY_VERSION}`)
       ) {
-        throw new Error("A barreira de versão não conseguiu isolar o fluxo V309/V316.");
+        throw new Error("A barreira de versão não conseguiu isolar o fluxo V309/V318.");
       }
 
       globalThis.__aldusEntryBootstrapV309 = Object.freeze({
@@ -70,6 +75,7 @@
         coreVersion: CORE_VERSION,
         batchVersion: BATCH_VERSION,
         telemetryVersion: TELEMETRY_VERSION,
+        observabilityVersion: OBSERVABILITY_VERSION,
         loadedAt: new Date().toISOString()
       });
 
