@@ -45,13 +45,30 @@ function appVersionSource(version) {
 }
 
 function synchronizeIndexVersion() {
-  const indexPath = path.join(root, "index.html");
-  const source = fs.readFileSync(indexPath, "utf8");
-  const synchronized = source
-    .replace(/app-v\d+\.css\?v=[^"]+/g, `app-${releaseSuffix}.css?v=${packageVersion}`)
-    .replace(/app-v\d+\.js\?v=[^"]+/g, `app-${releaseSuffix}.js?v=${packageVersion}`)
-    .replace(/(<p class="app-version">Versão: )[^<]+(<\/p>)/, `$1${packageVersion}$2`);
-  fs.writeFileSync(indexPath, synchronized);
+  for (const filename of ["index.html", path.join("docs", "index.html")]) {
+    const indexPath = path.join(root, filename);
+    const source = fs.readFileSync(indexPath, "utf8");
+    const synchronized = source
+      .replace(/app-v\d+\.css\?v=[^"]+/g, `app-${releaseSuffix}.css?v=${packageVersion}`)
+      .replace(/app-v\d+\.js\?v=[^"]+/g, `app-${releaseSuffix}.js?v=${packageVersion}`)
+      .replace(/(<p class="app-version">Versão: )[^<]+(<\/p>)/, `$1${packageVersion}$2`);
+    fs.writeFileSync(indexPath, synchronized);
+  }
+}
+
+function synchronizeBootstrapCoreVersion() {
+  for (const filename of ["bootstrap-integrity-loader-v258-core.js", path.join("docs", "bootstrap-integrity-loader-v258-core.js")]) {
+    const filePath = path.join(root, filename);
+    const source = fs.readFileSync(filePath, "utf8");
+    const synchronized = source.replace(
+      /\["aldusAppBundleScript", "app-v\d+\.js\?v=[^"]+"\]/,
+      `["aldusAppBundleScript", "app-${releaseSuffix}.js?v=${packageVersion}"]`
+    );
+    if (!synchronized.includes(`app-${releaseSuffix}.js?v=${packageVersion}`)) {
+      throw new Error(`Não foi possível sincronizar o bundle no bootstrap: ${filename}`);
+    }
+    fs.writeFileSync(filePath, synchronized);
+  }
 }
 
 function synchronizeServiceWorkerVersion() {
@@ -69,6 +86,7 @@ function synchronizeServiceWorkerVersion() {
 
 fs.writeFileSync(path.join(root, "app-version.js"), appVersionSource(packageVersion));
 synchronizeIndexVersion();
+synchronizeBootstrapCoreVersion();
 synchronizeServiceWorkerVersion();
 
 const cssSources = [
@@ -98,7 +116,9 @@ const cssSources = [
   "question-bank-pdf-import-v181.css",
   "question-bank-capture-import-v182.css",
   "factory-visibility-v122.css",
-  "aldus-desktop-refinement-v178.css"
+  "aldus-desktop-refinement-v178.css",
+  "factory-simulado-prompt-v310.css",
+  "simulado-interativo-v313.css"
 ];
 
 const jsSources = [
@@ -156,7 +176,10 @@ const jsSources = [
   "question-bank-training-v223.js",
   "question-bank-filters-v224.js",
   "question-bank-filters-v225.js",
-  "question-bank-filter-open-v226.js"
+  "question-bank-filter-open-v226.js",
+  "factory-simulado-prompt-v310.js",
+  "simulado-interativo-v313.js",
+  "simulado-integracao-v314.js"
 ];
 
 function readRuntimeSource(filename) {
@@ -387,7 +410,7 @@ for (const filename of [
   "factory-destination-catalog-v222.js", "factory-destination-folders-v222.js", "factory-destination-recursive-v232.js",
   "sync-integral-deletions.js", "sync-integral-state.js", "pcpr-pcma-2026-catalog.js",
   "pcpr-pcma-2026-migration.js", "factory-lei-prompt-v123.js", "factory-jurisprudencia-prompt-v231.js",
-  "factory-final-review-v128.js", "factory-visibility-v122.css",
+  "factory-final-review-v128.js", "factory-visibility-v122.css", "factory-simulado-prompt-v310.js", "factory-simulado-prompt-v310.css", "simulado-interativo-v313.js", "simulado-interativo-v313.css", "simulado-integracao-v314.js",
   "analytics-accordion-fix-v148.js", "analytics-header-arrow-v149.js",
   "analytics-single-arrow-v150.js", "contest-countdown-v151.js",
   "analytics-view-controller-v179.js",
