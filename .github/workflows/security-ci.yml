@@ -35,6 +35,7 @@ jobs:
           node --check security-hardening-v296.js
           node --check usage-telemetry-v315.js
           node --check security-observability-v318.js
+          node --check telemetry-security-dashboard-v319.js
 
       - name: Executar testes de segurança e telemetria
         run: |
@@ -43,4 +44,5 @@ jobs:
             tests/v315-usage-telemetry.test.js \
             tests/v317-posthog-telemetry.test.js \
             tests/v316-timer-telemetry-security.test.js \
-            tests/v318-security-observability.test.js
+            tests/v318-security-observability.test.js \
+            tests/v319-telemetry-security-dashboard.test.js
