@@ -18,8 +18,9 @@ test('V318 never transmits error messages, stacks, blocked URLs or source sample
   assert.doesNotMatch(source, /event\.message/);
   assert.doesNotMatch(source, /event\.filename/);
   assert.doesNotMatch(source, /error\?\.stack/);
-  assert.doesNotMatch(source, /blockedURI\s*[,)]/);
-  assert.doesNotMatch(source, /sourceFile\s*[,)]/);
+  assert.doesNotMatch(source, /event\.blockedURI/);
+  assert.doesNotMatch(source, /event\.sourceFile/);
+  assert.doesNotMatch(source, /event\.sample/);
 });
 
 test('V318 observes CSP violations, unsafe imports, runtime failures and performance', () => {
