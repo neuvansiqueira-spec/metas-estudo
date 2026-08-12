@@ -56,7 +56,10 @@ jobs:
             tests/v305-entry-bootstrap.test.js \
             tests/v307-duplicate-recommendation-presentation.test.js \
             tests/v308-duplicate-batch-core-pin.test.js \
-            tests/v309-duplicate-flow-owner.test.js
+            tests/v309-duplicate-flow-owner.test.js \
+            tests/v315-usage-telemetry.test.js \
+            tests/v315-factory-simulado-visibility.test.js \
+            tests/v316-timer-telemetry-security.test.js
           node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
           cmp security-hardening-v296.js docs/security-hardening-v296.js
           cmp service-worker.js docs/service-worker.js

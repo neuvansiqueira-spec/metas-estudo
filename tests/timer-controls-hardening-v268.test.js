@@ -192,9 +192,10 @@ test("fechar aviso apenas oculta a conclusão e preserva a sessão", () => {
   assert.ok(r.events.persists >= 1);
 });
 
-test("raiz e docs publicam o mesmo hardening V295", () => {
+test("raiz e docs publicam o hardening V316 com compatibilidade V295", () => {
   assert.equal(source, fs.readFileSync(DOCS_FILE, "utf8"));
   assert.match(source, /20260810-timer-runtime-fix-v295/);
+  assert.match(source, /20260812-timer-diagnostics-security-v316/);
   assert.match(source, /timer-controls-hardening-hotfix2/);
   assert.match(source, /pauseActiveTimer/);
   assert.match(source, /resumePausedTimer/);

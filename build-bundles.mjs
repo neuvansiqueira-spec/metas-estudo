@@ -420,7 +420,7 @@ for (const filename of [
   "factory-lei-prompt-v122.js", "release-version-v144.js",
   "release-version-v145.js", "release-version-v146.js",
   "release-version-v147.js", "central-goals-real-time-v124.js",
-  "timer-safety-v132.js", "question-searchable-selects-v135.js",
+  "timer-safety-v132.js", "timer-runtime-v316.js", "timer-controls-hardening-v268.js", "usage-telemetry-v315.js", "question-searchable-selects-v135.js",
   "daily-study-collapsible-v137.js", "analytics-single-arrow-v150.js",
   "daily-collapsibles-closed-v140.js", "update-flow-v169.js",
   "daily-smart-review-collapsible-v138.js", "collapse-chevron-fix-v139.js",

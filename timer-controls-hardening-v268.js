@@ -1,7 +1,8 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260810-timer-runtime-fix-v295";
+  const VERSION = "20260812-timer-diagnostics-security-v316";
+  const PREVIOUS_VERSION = "20260810-timer-runtime-fix-v295";
   const HOTFIX = "timer-controls-hardening-hotfix2";
   const GLOBAL_KEY = "__ALDUS_TIMER_CONTROLS_HARDENING_V268__";
   const DIALOG_ID = "aldusTimerCloseSafetyV268";
@@ -125,6 +126,8 @@
   function resumePausedTimer() {
     const timer = timerState();
     if (!timer?.goalId || timer.completed || !timer.paused) return false;
+    const runtimeV316 = globalThis.__ALDUS_TIMER_RUNTIME_V316__;
+    if (runtimeV316?.prepareResume && !runtimeV316.prepareResume("controls-resume")) return false;
 
     timer.elapsedSeconds = Math.max(0, Number(timer.elapsedSeconds) || 0);
     timer.startedAt = Date.now();
@@ -140,6 +143,8 @@
   function continuePastCompletion() {
     const timer = timerState();
     if (!timer?.goalId || !timer.completed) return false;
+    const runtimeV316 = globalThis.__ALDUS_TIMER_RUNTIME_V316__;
+    if (runtimeV316?.prepareResume && !runtimeV316.prepareResume("controls-continue")) return false;
 
     const elapsed = elapsedSeconds();
     stopAlarm();
@@ -209,6 +214,13 @@
     if (!sessionKey || lastCompletionSessionKey === sessionKey) return false;
     lastCompletionSessionKey = sessionKey;
     try {
+      const runtimeV316 = globalThis.__ALDUS_TIMER_RUNTIME_V316__;
+      if (typeof runtimeV316?.emitCompletionOnce === "function") {
+        void runtimeV316.emitCompletionOnce("watchdog");
+        return true;
+      }
+    } catch {}
+    try {
       if (typeof playTimerCompletionAlarm === "function") {
         void playTimerCompletionAlarm("completed");
         return true;
@@ -227,6 +239,7 @@
   function ensureCountdownCompletion() {
     const timer = timerState();
     if (!timer?.goalId || timer.mode !== "countdown") return false;
+    if (globalThis.__ALDUS_TIMER_RUNTIME_V316__?.shouldSuppressAlerts?.()) return false;
 
     const target = countdownTargetSeconds(timer);
     if (!target) return false;
@@ -250,6 +263,7 @@
     }
 
     playCompletionAlarmOnce(timer);
+    timer.completionAlarmPlayed = true;
     return true;
   }
 

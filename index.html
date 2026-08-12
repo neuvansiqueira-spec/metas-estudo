@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="aldus-entry-bootstrap-v309" content="20260811-duplicate-flow-owner-v309" />
+  <meta name="aldus-usage-endpoint" content="" />
   <title>Aldus Metas Concurso — Painel de Estudos</title>
   <script>
   (() => {
@@ -12,12 +13,14 @@
     const ENTRY_VERSION = "20260811-duplicate-flow-owner-v309";
     const CORE_VERSION = "20260811-duplicate-flow-owner-v309";
     const BATCH_VERSION = "20260811-duplicate-flow-owner-v309";
+    const TELEMETRY_VERSION = "20260812-usage-telemetry-security-v316";
     const HEAD_CLOSE = "</he" + "ad>";
     const BODY_CLOSE = "</bo" + "dy>";
     const HTML_CLOSE = "</ht" + "ml>";
     const SHELL_URL = `docs/index.html?aldusEntry=${encodeURIComponent(ENTRY_VERSION)}&ts=${Date.now()}`;
     const CORE_PATTERN = /<script\s+[^>]*src=["'][^"']*duplicate-diagnostics-v(?:260|303|304|309)\.js[^"']*["'][^>]*><\/script>\s*/gi;
     const BATCH_PATTERN = /<script\s+[^>]*src=["'][^"']*duplicate-diagnostics-batch-v(?:302|303|304|305)\.js[^"']*["'][^>]*><\/script>\s*/gi;
+    const TELEMETRY_PATTERN = /<script\s+[^>]*src=["'][^"']*usage-telemetry-v315\.js[^"']*["'][^>]*><\/script>\s*/gi;
 
     function fail(error) {
       console.error(`[${ENTRY_VERSION}] Falha ao carregar o shell corrigido.`, error);
@@ -36,15 +39,19 @@
         throw new Error(`Shell indisponível (HTTP ${request.status || 0}).`);
       }
 
-      let html = request.responseText.replace(BATCH_PATTERN, "").replace(CORE_PATTERN, "");
+      let html = request.responseText
+        .replace(TELEMETRY_PATTERN, "")
+        .replace(BATCH_PATTERN, "")
+        .replace(CORE_PATTERN, "");
       if (!html.includes(BODY_CLOSE)) throw new Error("Shell inválido: fechamento do body não encontrado.");
 
       const coreTag = `<script id="aldusDuplicateDiagnosticsCoreV309" src="duplicate-diagnostics-v309.js?v=${CORE_VERSION}&entry=forced1"><\/script>`;
       const v305Tag = `<script id="aldusDuplicateBatchAuthoritativeV309" src="duplicate-diagnostics-batch-v305.js?v=${BATCH_VERSION}&entry=forced1"><\/script>`;
+      const telemetryTag = `<script id="aldusUsageTelemetryV316" src="usage-telemetry-v315.js?v=${TELEMETRY_VERSION}"><\/script>`;
       html = html.replace(/<head([^>]*)>/i, `<head$1>\n  ${coreTag}`);
       html = html.replace(
         BODY_CLOSE,
-        `  <!-- aldus-entry-forced-v309 -->\n  ${v305Tag}\n${BODY_CLOSE}`
+        `  <!-- aldus-entry-forced-v309 -->\n  ${v305Tag}\n  <!-- aldus-usage-telemetry-v316 -->\n  ${telemetryTag}\n${BODY_CLOSE}`
       );
 
       if (
@@ -52,14 +59,16 @@
         || /src=["'][^"']*duplicate-diagnostics-v(?:260|303)\.js/i.test(html)
         || !html.includes("duplicate-diagnostics-batch-v305.js")
         || /src=["'][^"']*duplicate-diagnostics-batch-v304\.js/i.test(html)
+        || !html.includes(`usage-telemetry-v315.js?v=${TELEMETRY_VERSION}`)
       ) {
-        throw new Error("A barreira de versão não conseguiu isolar o fluxo V309.");
+        throw new Error("A barreira de versão não conseguiu isolar o fluxo V309/V316.");
       }
 
       globalThis.__aldusEntryBootstrapV309 = Object.freeze({
         version: ENTRY_VERSION,
         coreVersion: CORE_VERSION,
         batchVersion: BATCH_VERSION,
+        telemetryVersion: TELEMETRY_VERSION,
         loadedAt: new Date().toISOString()
       });
 
