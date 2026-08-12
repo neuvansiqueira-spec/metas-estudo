@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260809-atualizacao-worker-v291",
+  "version": "20260812-gerador-simulados-visibilidade-v315",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

@@ -1,19 +1,20 @@
 "use strict";
 
-const CURRENT_VERSION = "20260809-atualizacao-worker-v291";
+const CURRENT_VERSION = "20260812-gerador-simulados-visibilidade-v315";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const SECURITY_VERSION = "20260810-seguranca-estabilidade-v296";
 const PROTECTION_VERSION = "20260808-catastrophic-state-recovery-v275";
-const BOOTSTRAP_VERSION = "20260809-planejamento-plantao-salvamento-v283";
-const DUPLICATE_CONTINUITY_VERSION = "20260810-duplicate-batch-persistence-v301";
-const DUPLICATE_RECOMMENDATIONS_VERSION = "20260811-duplicate-batch-performance-v304";
-const DUPLICATE_BATCH_HOTFIX_VERSION = DUPLICATE_RECOMMENDATIONS_VERSION;
+const BOOTSTRAP_VERSION = "20260812-gerador-simulados-visibilidade-v315";
+const DUPLICATE_CONTINUITY_VERSION = "20260811-duplicate-flow-owner-v309";
+const DUPLICATE_RECOMMENDATIONS_VERSION = "20260811-duplicate-flow-owner-v309";
+const DUPLICATE_BATCH_HOTFIX_VERSION = "20260811-duplicate-flow-owner-v309";
+const ENTRY_RECOVERY_VERSION = "20260811-duplicate-flow-owner-v309";
 const FACTORY_SCHEDULE_VERSION = "20260808-factory-schedule-scope-v277";
 const FACTORY_SCHEDULE_FILTERS_VERSION = "20260808-factory-schedule-planning-preview-filters-v280";
 const FACTORY_SCHEDULE_DATES_VERSION = "20260809-factory-schedule-planning-dates-v281";
 const QUESTIONS_HUB_VERSION = "20260810-questoes-integradas-v298";
 const QUESTION_JSON_DETAILS_VERSION = "20260810-revisao-json-explicacoes-v299";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v297-hotfix5-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-duplicate-recommended-batch-v300-duplicate-batch-persistence-v301-duplicate-batch-performance-v304-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4-security-v296-questions-hub-v298-question-json-details-v299`;
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v297-hotfix5-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-duplicate-recommended-batch-v300-duplicate-batch-persistence-v301-duplicate-batch-performance-v304-duplicate-batch-commit-v305-entry-parser-recovery-v306-duplicate-core-delivery-v307-duplicate-batch-core-pin-v308-duplicate-flow-owner-v309-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4-security-v296-questions-hub-v298-question-json-details-v299-factory-simulado-escolha-automatica-v312-simulado-interativo-v313-integracao-v314-factory-simulado-visibility-v315`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
@@ -40,11 +41,20 @@ const DUPLICATE_DIAGNOSTICS_SEARCH = `duplicate-diagnostics-search-v272.js?v=${D
 const DUPLICATE_DIAGNOSTICS_MAP = `duplicate-diagnostics-map-v273.js?v=${DUPLICATE_CONTINUITY_VERSION}`;
 const DUPLICATE_DIAGNOSTICS_ACTIONS = `duplicate-diagnostics-actions-v274.js?v=${DUPLICATE_CONTINUITY_VERSION}`;
 const DUPLICATE_DIAGNOSTICS_SEARCH_CSS = `duplicate-diagnostics-search-v271.css?v=${DUPLICATE_CONTINUITY_VERSION}`;
-const DUPLICATE_RECOMMENDATIONS_CORE = `duplicate-diagnostics-v304.js?v=${DUPLICATE_RECOMMENDATIONS_VERSION}`;
-const DUPLICATE_BATCH_HOTFIX = `duplicate-diagnostics-batch-v304.js?v=${DUPLICATE_BATCH_HOTFIX_VERSION}`;
+const DUPLICATE_DIAGNOSTICS_CORE_CSS = `duplicate-diagnostics-v260.css?v=${DUPLICATE_RECOMMENDATIONS_VERSION}`;
+const DUPLICATE_RECOMMENDATIONS_CORE = `duplicate-diagnostics-v309.js?v=${DUPLICATE_RECOMMENDATIONS_VERSION}`;
+const DUPLICATE_BATCH_HOTFIX = `duplicate-diagnostics-batch-v305.js?v=${DUPLICATE_BATCH_HOTFIX_VERSION}`;
 const QUESTIONS_HUB_STYLESHEET = `questions-hub-v298.css?v=${QUESTIONS_HUB_VERSION}`;
 const QUESTIONS_HUB_SCRIPT = `questions-hub-v298.js?v=${QUESTIONS_HUB_VERSION}`;
 const QUESTION_JSON_DETAILS_SCRIPT = `question-bank-json-details-v299.js?v=${QUESTION_JSON_DETAILS_VERSION}`;
+const FACTORY_SIMULADO_SCRIPT = "factory-simulado-prompt-v310.js?v=20260811-gerador-simulados-escolha-automatica-v312";
+const FACTORY_SIMULADO_STYLESHEET = "factory-simulado-prompt-v310.css?v=20260811-gerador-simulados-escolha-automatica-v312";
+const FACTORY_SIMULADO_VISIBILITY_LOADER = "factory-simulado-visibility-v315.js?v=20260812-gerador-simulados-visibilidade-v315";
+const TIMER_RUNTIME_V316 = "timer-runtime-v316.js?v=20260812-timer-diagnostics-security-v316";
+const USAGE_TELEMETRY_V316 = "usage-telemetry-v315.js?v=20260812-usage-telemetry-security-v316";
+const SIMULADO_INTERATIVO_SCRIPT = "simulado-interativo-v313.js?v=20260811-simulado-interativo-v313";
+const SIMULADO_INTERATIVO_STYLESHEET = "simulado-interativo-v313.css?v=20260811-simulado-interativo-v313";
+const SIMULADO_INTEGRACAO_SCRIPT = "simulado-integracao-v314.js?v=20260811-simulado-integracao-v314";
 const STATIC_ASSETS = [
   "./",
   "index.html",
@@ -74,11 +84,20 @@ const STATIC_ASSETS = [
   DUPLICATE_DIAGNOSTICS_MAP,
   DUPLICATE_DIAGNOSTICS_ACTIONS,
   DUPLICATE_DIAGNOSTICS_SEARCH_CSS,
+  DUPLICATE_DIAGNOSTICS_CORE_CSS,
   DUPLICATE_RECOMMENDATIONS_CORE,
   DUPLICATE_BATCH_HOTFIX,
   QUESTIONS_HUB_STYLESHEET,
   QUESTIONS_HUB_SCRIPT,
   QUESTION_JSON_DETAILS_SCRIPT,
+  FACTORY_SIMULADO_SCRIPT,
+  FACTORY_SIMULADO_STYLESHEET,
+  FACTORY_SIMULADO_VISIBILITY_LOADER,
+  TIMER_RUNTIME_V316,
+  USAGE_TELEMETRY_V316,
+  SIMULADO_INTERATIVO_SCRIPT,
+  SIMULADO_INTERATIVO_STYLESHEET,
+  SIMULADO_INTEGRACAO_SCRIPT,
   "vendor/pdf.mjs",
   "vendor/pdf.worker.mjs",
   "vendor/pdfjs-LICENSE.txt",
@@ -90,7 +109,7 @@ const STATIC_ASSETS = [
   "icons/icon-maskable.svg"
 ];
 const STATIC_PATHS = new Set(STATIC_ASSETS.map((asset) => new URL(asset, self.registration.scope).pathname));
-const ESSENTIAL_ASSETS = ["./", "index.html", `app-${RELEASE_SUFFIX}.css?v=${CURRENT_VERSION}`, `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`, QUESTIONS_HUB_STYLESHEET, QUESTIONS_HUB_SCRIPT, QUESTION_JSON_DETAILS_SCRIPT, DUPLICATE_RECOMMENDATIONS_CORE, DUPLICATE_BATCH_HOTFIX, SECURITY_HARDENING, CATASTROPHIC_STATE_GUARD, BOOTSTRAP_PROTECTED, BOOTSTRAP_CORE];
+const ESSENTIAL_ASSETS = ["./", "index.html", `app-${RELEASE_SUFFIX}.css?v=${CURRENT_VERSION}`, `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`, QUESTIONS_HUB_STYLESHEET, QUESTIONS_HUB_SCRIPT, QUESTION_JSON_DETAILS_SCRIPT, FACTORY_SIMULADO_SCRIPT, FACTORY_SIMULADO_STYLESHEET, FACTORY_SIMULADO_VISIBILITY_LOADER, TIMER_RUNTIME_V316, USAGE_TELEMETRY_V316, SIMULADO_INTERATIVO_SCRIPT, SIMULADO_INTERATIVO_STYLESHEET, SIMULADO_INTEGRACAO_SCRIPT, DUPLICATE_RECOMMENDATIONS_CORE, DUPLICATE_DIAGNOSTICS_CORE_CSS, DUPLICATE_BATCH_HOTFIX, SECURITY_HARDENING, CATASTROPHIC_STATE_GUARD, BOOTSTRAP_PROTECTED, BOOTSTRAP_CORE];
 
 async function precacheAssets() {
   const cache = await caches.open(CACHE_NAME);
@@ -130,6 +149,15 @@ async function cacheResponse(request, response) {
   return response;
 }
 
+function injectBeforeFinalClosingTag(html, closingTag, markup) {
+  const source = String(html || "");
+  const normalized = source.toLowerCase();
+  const marker = String(closingTag || "").toLowerCase();
+  const index = marker ? normalized.lastIndexOf(marker) : -1;
+  if (index < 0) return `${source}\n${markup}`;
+  return `${source.slice(0, index)}  ${markup}\n${source.slice(index)}`;
+}
+
 function installProtectedBootstrapV275(html) {
   let patched = html
     .replace(/<script\s+[^>]*src=["'][^"']*storage-quota-guard-v256\.js[^"']*["'][^>]*><\/script>/gi, "")
@@ -141,13 +169,13 @@ function installProtectedBootstrapV275(html) {
     `<script id="aldusCatastrophicStateGuardV275" src="${CATASTROPHIC_STATE_GUARD}"></script>`,
     `<script id="aldusBootstrapIntegrityLoaderV275" src="${BOOTSTRAP_PROTECTED}"></script>`
   ].join("\n  ");
-  return patched.includes("</body>") ? patched.replace("</body>", `  ${tags}\n</body>`) : `${patched}\n${tags}`;
+  return injectBeforeFinalClosingTag(patched, "</body>", tags);
 }
 
 function installSecurityHardeningV296(html) {
   if (html.includes("security-hardening-v296.js")) return html;
   const tag = `<script id="aldusSecurityHardeningV296" src="${SECURITY_HARDENING}"></script>`;
-  return html.includes("</head>") ? html.replace("</head>", `  ${tag}\n</head>`) : `${tag}\n${html}`;
+  return injectBeforeFinalClosingTag(html, "</head>", tag);
 }
 
 function installDuplicateDiagnosticsV276(html) {
@@ -160,7 +188,30 @@ function installDuplicateDiagnosticsV276(html) {
     /<script\s+[^>]*src=["'][^"']*duplicate-diagnostics-loader-v(?:266|269)\.js[^"']*["'][^>]*><\/script>/gi,
     ""
   );
-  patched = patched.includes("</body>") ? patched.replace("</body>", `  ${tag}\n</body>`) : `${patched}\n${tag}`;
+  patched = injectBeforeFinalClosingTag(patched, "</body>", tag);
+  return patched;
+}
+
+function installDuplicateRecommendationsV309(html) {
+  const tag = `<script id="aldusDuplicateDiagnosticsCoreV309" src="${DUPLICATE_RECOMMENDATIONS_CORE}"></script>`;
+  const styleTag = `<link id="aldusDuplicateDiagnosticsStylesV309" rel="stylesheet" href="${DUPLICATE_DIAGNOSTICS_CORE_CSS}" />`;
+  const corePattern = /<script\s+[^>]*src=["'][^"']*duplicate-diagnostics-v(?:260|303|304|309)\.js[^"']*["'][^>]*><\/script>/gi;
+  let patched = html.replace(corePattern, "");
+  patched = patched.replace(/<link\s+[^>]*href=["'][^"']*duplicate-diagnostics-v260\.css[^"']*["'][^>]*>/gi, "");
+  return injectBeforeFinalClosingTag(patched, "</head>", `${styleTag}\n  ${tag}`);
+}
+
+function installDuplicateBatchV309(html) {
+  const tag = `<script id="aldusDuplicateBatchAuthoritativeV309" src="${DUPLICATE_BATCH_HOTFIX}"></script>`;
+  let patched = html.replace(
+    /<script\s+id=["']aldusDuplicateBatchAuthoritativeV(?:302|303|304|305|309)["'][^>]*><\/script>/gi,
+    ""
+  );
+  patched = patched.replace(
+    /<script\s+[^>]*src=["'][^"']*duplicate-diagnostics-batch-v(?:302|303|304|305)\.js[^"']*["'][^>]*><\/script>/gi,
+    ""
+  );
+  patched = injectBeforeFinalClosingTag(patched, "</body>", tag);
   return patched;
 }
 
@@ -190,7 +241,7 @@ function installFactoryScheduleV277(html) {
     /<script\s+[^>]*src=["'][^"']*factory-schedule-dates-v\d+\.js[^"']*["'][^>]*><\/script>/gi,
     ""
   );
-  patched = patched.includes("</body>") ? patched.replace("</body>", `  ${tags}\n</body>`) : `${patched}\n${tags}`;
+  patched = injectBeforeFinalClosingTag(patched, "</body>", tags);
   return patched;
 }
 
@@ -207,7 +258,7 @@ async function ensurePageStylesheets(response) {
   let patchedHtml = missingTags.length === 0
     ? html
     : html.includes("</head>")
-      ? html.replace("</head>", `  ${missingTags.join("\n  ")}\n</head>`)
+      ? injectBeforeFinalClosingTag(html, "</head>", missingTags.join("\n  "))
       : `${missingTags.join("\n")}\n${html}`;
 
   patchedHtml = installSecurityHardeningV296(patchedHtml);
@@ -215,26 +266,28 @@ async function ensurePageStylesheets(response) {
 
   if (!patchedHtml.includes("planning-integrity-loader-v235.js")) {
     const scriptTag = `<script id="aldusPlanningIntegrityLoaderV235" src="${INTEGRITY_LOADER}"></script>`;
-    patchedHtml = patchedHtml.includes("</body>") ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`) : `${patchedHtml}\n${scriptTag}`;
+    patchedHtml = injectBeforeFinalClosingTag(patchedHtml, "</body>", scriptTag);
   }
   if (!patchedHtml.includes("timer-session-integrity-v236.js")) {
     const scriptTag = `<script id="aldusTimerSessionIntegrityV236" src="${TIMER_SESSION_INTEGRITY}"></script>`;
-    patchedHtml = patchedHtml.includes("</body>") ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`) : `${patchedHtml}\n${scriptTag}`;
+    patchedHtml = injectBeforeFinalClosingTag(patchedHtml, "</body>", scriptTag);
   }
   if (!patchedHtml.includes("timer-message-dedupe-v239.js")) {
     const scriptTag = `<script id="aldusTimerMessageDedupeV239" src="${TIMER_MESSAGE_DEDUPE}"></script>`;
-    patchedHtml = patchedHtml.includes("</body>") ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`) : `${patchedHtml}\n${scriptTag}`;
+    patchedHtml = injectBeforeFinalClosingTag(patchedHtml, "</body>", scriptTag);
   }
   if (!patchedHtml.includes("timer-audio-unifier-v241.js")) {
     const scriptTag = `<script id="aldusTimerAudioUnifierV241" src="${TIMER_AUDIO_UNIFIER}"></script>`;
-    patchedHtml = patchedHtml.includes("</body>") ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`) : `${patchedHtml}\n${scriptTag}`;
+    patchedHtml = injectBeforeFinalClosingTag(patchedHtml, "</body>", scriptTag);
   }
   if (!patchedHtml.includes("daily-summary-time-format-v243.js")) {
     const scriptTag = `<script id="aldusDailySummaryTimeFormatV243" src="${DAILY_SUMMARY_TIME_FORMAT}"></script>`;
-    patchedHtml = patchedHtml.includes("</body>") ? patchedHtml.replace("</body>", `  ${scriptTag}\n</body>`) : `${patchedHtml}\n${scriptTag}`;
+    patchedHtml = injectBeforeFinalClosingTag(patchedHtml, "</body>", scriptTag);
   }
 
+  patchedHtml = installDuplicateRecommendationsV309(patchedHtml);
   patchedHtml = installDuplicateDiagnosticsV276(patchedHtml);
+  patchedHtml = installDuplicateBatchV309(patchedHtml);
   patchedHtml = installFactoryScheduleV277(patchedHtml);
 
   const headers = new Headers(response.headers);
@@ -242,7 +295,8 @@ async function ensurePageStylesheets(response) {
   headers.set("content-type", "text/html; charset=utf-8");
   headers.set("x-aldus-integrity-version", CURRENT_VERSION);
   headers.set("x-aldus-data-protection", PROTECTION_VERSION);
-  headers.set("x-aldus-duplicate-search", "duplicate-batch-performance-v304");
+  headers.set("x-aldus-duplicate-search", "duplicate-flow-owner-v309");
+  headers.set("x-aldus-entry-recovery", ENTRY_RECOVERY_VERSION);
   headers.set("x-aldus-factory-schedule", FACTORY_SCHEDULE_VERSION);
   headers.set("x-aldus-factory-schedule-filters", FACTORY_SCHEDULE_FILTERS_VERSION);
   headers.set("x-aldus-factory-schedule-dates", FACTORY_SCHEDULE_DATES_VERSION);

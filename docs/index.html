@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="aldus-usage-endpoint" content="" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com; script-src-elem 'self' 'unsafe-inline' https://accounts.google.com; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://accounts.google.com https://www.googleapis.com; frame-src https://accounts.google.com; font-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" />
   <meta name="referrer" content="no-referrer" />
   <script id="aldusSecurityHardeningV296" src="security-hardening-v296.js?v=20260810-seguranca-estabilidade-v296"></script>
@@ -21,7 +22,7 @@
   <link rel="icon" type="image/svg+xml" href="icons/logo-mark.svg?v=20260728-carregamento-direto-v168" />
   <link rel="preload" as="image" href="icons/aldus-visual.png?v=20260728-carregamento-direto-v168" fetchpriority="high" />
   <!-- Fontes CSS consolidadas, na ordem original: style.css; aldus-premium-theme.css; aldus-premium-refinement-v47.css; aldus-interface-v51.css; aldus-responsive-v52.css; aldus-contrast-v53.css; aldus-visual-v58.css; aldus-planning-v59.css; aldus-planning-history-v60.css; aldus-calendar-v61.css; aldus-calendar-v62.css; aldus-export-brand-v63.css; aldus-export-brand-v64.css; aldus-daily-goals-v66.css; aldus-daily-time-v67.css; aldus-contrast-system-v68.css; aldus-component-contrast-v69.css; aldus-advisor-layout-v70.css; aldus-backup-contrast-v71.css; aldus-navigation-scroll-v73.css; aldus-goal-integrity-v75.css; aldus-completed-visibility-v76.css. -->
-  <link id="aldusAppBundleStyles" rel="stylesheet" href="app-v291.css?v=20260809-atualizacao-worker-v291" />
+  <link id="aldusAppBundleStyles" rel="stylesheet" href="app-v315.css?v=20260812-gerador-simulados-visibilidade-v315" />
   <link id="aldusQuestionsHubStylesV298" rel="stylesheet" href="questions-hub-v298.css?v=20260810-questoes-integradas-v298" />
 
   <link id="aldusCentralGoalsPaletteV246" rel="stylesheet" href="central-goals-palette-v245.css?v=20260805-dashboard-central-metas-cores-v246" />
@@ -34,7 +35,8 @@
   <link id="aldusDailySummaryElegantDirectV251" rel="stylesheet" href="daily-summary-elegant-direct-v251.css?v=20260805-daily-summary-elegant-direct-v251" />
   <link id="aldusDailySummaryElegantNestedV252" rel="stylesheet" href="daily-summary-elegant-nested-v252.css?v=20260805-daily-summary-elegant-nested-v252" />
   <link id="aldusCardPaletteV294" rel="stylesheet" href="aldus-card-palette-v294.css?v=20260809-paleta-cartoes-global-v294" />
-  <link rel="preload" as="script" href="app-v291.js?v=20260809-atualizacao-worker-v291" />
+  <link rel="preload" as="script" href="app-v315.js?v=20260812-gerador-simulados-visibilidade-v315" />
+  <link rel="preload" as="script" href="factory-simulado-visibility-v315.js?v=20260812-gerador-simulados-visibilidade-v315" />
 </head>
 <body>
   <header class="hero">
@@ -1166,7 +1168,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </section>
   </div>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260809-atualizacao-worker-v291</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260812-gerador-simulados-visibilidade-v315</p></footer>
   <div id="legacyTimerRecoveryModal" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="legacyTimerRecoveryModalTitle" hidden>
     <div class="app-modal-backdrop" data-legacy-recovery-cancel></div>
     <section class="app-modal-card">
@@ -1177,7 +1179,10 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
   </div>
   <!-- Inicialização V168 consolidada em um único JavaScript. O login do Google é carregado somente quando o usuário toca em Conectar Google Drive. -->
   <script id="aldusStorageQuotaGuardV256" src="storage-quota-guard-v256.js?v=20260805-indexeddb-quota-guard-v256&hotfix=indexeddb-only1"></script>
-  <script id="aldusBootstrapIntegrityLoaderV258" src="bootstrap-integrity-loader-v258.js?v=20260811-duplicate-flow-owner-v309&hotfix=preboot-atomic-selection1"></script>
+  <script id="aldusTimerRuntimeV316" src="timer-runtime-v316.js?v=20260812-timer-diagnostics-security-v316"></script>
+  <script id="aldusUsageTelemetryV316" src="usage-telemetry-v315.js?v=20260812-usage-telemetry-security-v316"></script>
+  <script id="aldusFactorySimuladoVisibilityV315" src="factory-simulado-visibility-v315.js?v=20260812-gerador-simulados-visibilidade-v315"></script>
+  <script id="aldusBootstrapIntegrityLoaderV258" src="bootstrap-integrity-loader-v258.js?v=20260812-gerador-simulados-visibilidade-v315&hotfix=preboot-atomic-selection1"></script>
   <script id="aldusQuestionsHubV298" src="questions-hub-v298.js?v=20260810-questoes-integradas-v298"></script>
   <script id="aldusDuplicateDiagnosticsLoaderV309" src="duplicate-diagnostics-loader-v269.js?v=20260811-duplicate-flow-owner-v309"></script>
   <script id="aldusDuplicateBatchAuthoritativeV309" src="duplicate-diagnostics-batch-v305.js?v=20260811-duplicate-flow-owner-v309"></script>

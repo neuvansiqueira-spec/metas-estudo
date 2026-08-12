@@ -13,7 +13,7 @@
     const ENTRY_VERSION = "20260811-duplicate-flow-owner-v309";
     const CORE_VERSION = "20260811-duplicate-flow-owner-v309";
     const BATCH_VERSION = "20260811-duplicate-flow-owner-v309";
-    const TELEMETRY_VERSION = "20260812-usage-telemetry-v315";
+    const TELEMETRY_VERSION = "20260812-usage-telemetry-security-v316";
     const HEAD_CLOSE = "</he" + "ad>";
     const BODY_CLOSE = "</bo" + "dy>";
     const HTML_CLOSE = "</ht" + "ml>";
@@ -47,11 +47,11 @@
 
       const coreTag = `<script id="aldusDuplicateDiagnosticsCoreV309" src="duplicate-diagnostics-v309.js?v=${CORE_VERSION}&entry=forced1"><\/script>`;
       const v305Tag = `<script id="aldusDuplicateBatchAuthoritativeV309" src="duplicate-diagnostics-batch-v305.js?v=${BATCH_VERSION}&entry=forced1"><\/script>`;
-      const telemetryTag = `<script id="aldusUsageTelemetryV315" src="usage-telemetry-v315.js?v=${TELEMETRY_VERSION}"><\/script>`;
+      const telemetryTag = `<script id="aldusUsageTelemetryV316" src="usage-telemetry-v315.js?v=${TELEMETRY_VERSION}"><\/script>`;
       html = html.replace(/<head([^>]*)>/i, `<head$1>\n  ${coreTag}`);
       html = html.replace(
         BODY_CLOSE,
-        `  <!-- aldus-entry-forced-v309 -->\n  ${v305Tag}\n  <!-- aldus-usage-telemetry-v315 -->\n  ${telemetryTag}\n${BODY_CLOSE}`
+        `  <!-- aldus-entry-forced-v309 -->\n  ${v305Tag}\n  <!-- aldus-usage-telemetry-v316 -->\n  ${telemetryTag}\n${BODY_CLOSE}`
       );
 
       if (
@@ -61,7 +61,7 @@
         || /src=["'][^"']*duplicate-diagnostics-batch-v304\.js/i.test(html)
         || !html.includes(`usage-telemetry-v315.js?v=${TELEMETRY_VERSION}`)
       ) {
-        throw new Error("A barreira de versão não conseguiu isolar o fluxo V309/V315.");
+        throw new Error("A barreira de versão não conseguiu isolar o fluxo V309/V316.");
       }
 
       globalThis.__aldusEntryBootstrapV309 = Object.freeze({
