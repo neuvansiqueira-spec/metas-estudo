@@ -2,8 +2,8 @@
   "use strict";
   const VERSION = "20260813-fast-individual-decisions-v321";
   const ROOT = "aldusDuplicateDiagnosticsV260";
-  const local = new Map(), removed = new Set(), resolved = new Set(), running = new Set();
-  let listObserver, summaryObserver, lastList, lastSummary, scheduled = false;
+  const local = new Map(), removed = new Set(), running = new Set();
+  let listObserver, lastList, scheduled = false;
   const api = () => globalThis.AldusDuplicateDiagnosticsV309 || globalThis.AldusDuplicateDiagnosticsV304 || globalThis.AldusDuplicateDiagnosticsV260;
   const root = () => document.getElementById(ROOT);
   const clone = value => { try { return structuredClone(value); } catch { return JSON.parse(JSON.stringify(value)); } };
@@ -76,13 +76,6 @@
   function remember(card, key, action) {
     const classification = card?.dataset.classification || "";
     local.set(key, { action, classification, html: card?.outerHTML || "" });
-    if ((action === "not-duplicate" || action === "consolidated") && /^(exact|probable)$/.test(classification)) resolved.add(key);
-  }
-  function priority() {
-    const cards = [...(root()?.querySelectorAll("[data-dup-summary] > div") || [])]; if (cards.length < 5) return;
-    const num = i => Number(String(cards[i]?.querySelector("strong")?.textContent || "0").replace(/\D/g, "")) || 0;
-    const value = cards[4].querySelector("strong"), label = cards[4].querySelector("span"), next = String(Math.max(0, num(1) + num(2) - resolved.size));
-    if (value?.textContent !== next) value.textContent = next; if (label && label.textContent !== "Casos prioritários") label.textContent = "Casos prioritários";
   }
   function cloneLater(entry, key) {
     const t = document.createElement("template"); t.innerHTML = entry.html.trim(); const card = t.content.firstElementChild; if (!card) return null;
@@ -94,24 +87,23 @@
     scheduled = false; const r = root(), list = r?.querySelector("[data-dup-list]"); if (!list) return; const filter = r.querySelector("[data-dup-filter]")?.value || "probable";
     [...list.querySelectorAll(":scope > .aldus-dup-pair")].forEach(card => {
       const key = String(card.dataset.pairKey || ""), ids = key.split("::"), entry = local.get(key);
-      if (ids.some(id => removed.has(id))) { if (/^(exact|probable)$/.test(card.dataset.classification || "")) resolved.add(key); card.remove(); return; }
+      if (ids.some(id => removed.has(id))) { card.remove(); return; }
       if (!entry) return;
       if (entry.action === "not-duplicate" || entry.action === "consolidated") card.remove();
       else if (entry.action === "later") { card.dataset.decision = "later"; if (filter !== "later") card.remove(); }
     });
     if (filter === "later") local.forEach((entry, key) => { if (entry.action !== "later" || removed.size && key.split("::").some(id => removed.has(id)) || [...list.children].some(c => c.dataset?.pairKey === key)) return; const c = cloneLater(entry, key); if (c) list.appendChild(c); });
-    priority();
   }
   function schedule() { if (!scheduled) { scheduled = true; requestAnimationFrame(reconcile); } }
   function removeItem(id) {
     removed.add(String(id)); const list = root()?.querySelector("[data-dup-list]");
-    [...(list?.querySelectorAll(":scope > .aldus-dup-pair") || [])].forEach(card => { const key = String(card.dataset.pairKey || ""); if (!key.split("::").includes(String(id))) return; if (/^(exact|probable)$/.test(card.dataset.classification || "")) resolved.add(key); card.remove(); });
+    [...(list?.querySelectorAll(":scope > .aldus-dup-pair") || [])].forEach(card => { const key = String(card.dataset.pairKey || ""); if (key.split("::").includes(String(id))) card.remove(); });
   }
 
   async function simple(action, decision) {
     const left = action.dataset.leftId, right = action.dataset.rightId, key = keyOf(left, right), card = action.closest(".aldus-dup-pair");
     if (!left || !right || running.size) return; running.add(key); busy(card, true, decision === "not-duplicate" ? "Registrando decisão…" : "Movendo para analisar depois…");
-    try { const info = await load(); api().setPairDecision(info.state, left, right, decision); await write(info, false); remember(card, key, decision); if (decision === "not-duplicate" || root()?.querySelector("[data-dup-filter]")?.value !== "later") card?.remove(); else busy(card, false); schedule(); status(decision === "not-duplicate" ? "Par marcado como não duplicado. Próximo caso disponível." : "Par separado para analisar depois. Próximo caso disponível.", "success"); }
+    try { const info = await load(); api().setPairDecision(info.state, left, right, decision); await write(info, false); busy(card, false); remember(card, key, decision); if (decision === "not-duplicate" || root()?.querySelector("[data-dup-filter]")?.value !== "later") card?.remove(); schedule(); status(decision === "not-duplicate" ? "Par marcado como não duplicado. Próximo caso disponível." : "Par separado para analisar depois. Próximo caso disponível.", "success"); }
     catch (e) { console.error(`[${VERSION}]`, e); busy(card, false); status(`A decisão não foi salva: ${e?.message || e}`, "error"); }
     finally { running.delete(key); }
   }
@@ -125,14 +117,15 @@
     finally { running.delete(key); }
   }
   function click(event) {
-    const r = root(), action = event.target.closest?.("[data-action]"); if (!r || r.hidden || !action || !r.contains(action) || !["keep","not-duplicate","later"].includes(action.dataset.action)) return;
+    const r = root(); if (!r || r.hidden) return;
+    const run = event.target.closest?.("[data-dup-run]"); if (run && r.contains(run)) { local.clear(); removed.clear(); return; }
+    const action = event.target.closest?.("[data-action]"); if (!action || !r.contains(action) || !["keep","not-duplicate","later"].includes(action.dataset.action)) return;
     event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation();
     if (action.dataset.action === "keep") void consolidate(action); else void simple(action, action.dataset.action);
   }
   function observe() {
-    const r = root(); if (!r) return false; const list = r.querySelector("[data-dup-list]"), summary = r.querySelector("[data-dup-summary]");
+    const r = root(); if (!r) return false; const list = r.querySelector("[data-dup-list]");
     if (list && list !== lastList) { listObserver?.disconnect(); lastList = list; listObserver = new MutationObserver(schedule); listObserver.observe(list, { childList: true }); }
-    if (summary && summary !== lastSummary) { summaryObserver?.disconnect(); lastSummary = summary; summaryObserver = new MutationObserver(schedule); summaryObserver.observe(summary, { childList: true, subtree: true, characterData: true }); }
     return Boolean(list);
   }
   function install() {
