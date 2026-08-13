@@ -20,6 +20,7 @@
     const DASHBOARD_VERSION = "20260812-telemetry-security-dashboard-v319";
     const SIMULADO_RECOVERY_VERSION = "20260812-simulado-recovery-v319";
     const QUESTIONS_HUB_VERSION = "20260813-simulados-integrados-questoes-v322";
+    const SIMULADO_DIFFICULTY_VERSION = "20260813-fgv-alternativas-avancadas-v325";
     const HEAD_CLOSE = "</he" + "ad>";
     const BODY_CLOSE = "</bo" + "dy>";
     const HTML_CLOSE = "</ht" + "ml>";
@@ -32,6 +33,7 @@
     const DASHBOARD_PATTERN = /<script\s+[^>]*src=["'][^"']*telemetry-security-dashboard-v319\.js[^"']*["'][^>]*><\/script>\s*/gi;
     const SIMULADO_RECOVERY_PATTERN = /<script\s+[^>]*src=["'][^"']*simulado-recovery-v319\.js[^"']*["'][^>]*><\/script>\s*/gi;
     const QUESTIONS_HUB_PATTERN = /<script\s+[^>]*src=["'][^"']*questions-hub-v(?:298|322)\.js[^"']*["'][^>]*><\/script>\s*/gi;
+    const SIMULADO_DIFFICULTY_PATTERN = /<script\s+[^>]*src=["'][^"']*factory-simulado-difficulty-v\d+\.js[^"']*["'][^>]*><\/script>\s*/gi;
 
     function fail(error) {
       console.error(`[${ENTRY_VERSION}] Falha ao carregar o shell corrigido.`, error);
@@ -51,6 +53,7 @@
       }
 
       let html = request.responseText
+        .replace(SIMULADO_DIFFICULTY_PATTERN, "")
         .replace(QUESTIONS_HUB_PATTERN, "")
         .replace(SIMULADO_RECOVERY_PATTERN, "")
         .replace(DASHBOARD_PATTERN, "")
@@ -69,10 +72,11 @@
       const dashboardTag = `<script id="aldusTelemetrySecurityDashboardV319" src="telemetry-security-dashboard-v319.js?v=${DASHBOARD_VERSION}"><\/script>`;
       const simuladoRecoveryTag = `<script id="aldusSimuladoRecoveryV319" src="simulado-recovery-v319.js?v=${SIMULADO_RECOVERY_VERSION}"><\/script>`;
       const questionsHubTag = `<script id="aldusQuestionsHubV322" src="questions-hub-v322.js?v=${QUESTIONS_HUB_VERSION}"><\/script>`;
+      const simuladoDifficultyTag = `<script id="aldusFactorySimuladoDifficultyV325" src="factory-simulado-difficulty-v325.js?v=${SIMULADO_DIFFICULTY_VERSION}"><\/script>`;
       html = html.replace(/<head([^>]*)>/i, `<head$1>\n  ${coreTag}`);
       html = html.replace(
         BODY_CLOSE,
-        `  <!-- aldus-entry-forced-v309 -->\n  ${v305Tag}\n  <!-- aldus-fast-individual-decisions-v321 -->\n  ${fastDecisionsTag}\n  <!-- aldus-usage-telemetry-v317 -->\n  ${telemetryTag}\n  <!-- aldus-security-observability-v318 -->\n  ${observabilityTag}\n  <!-- aldus-telemetry-security-dashboard-v319 -->\n  ${dashboardTag}\n  <!-- aldus-simulado-recovery-v319 -->\n  ${simuladoRecoveryTag}\n  <!-- aldus-questions-hub-v322 -->\n  ${questionsHubTag}\n${BODY_CLOSE}`
+        `  <!-- aldus-entry-forced-v309 -->\n  ${v305Tag}\n  <!-- aldus-fast-individual-decisions-v321 -->\n  ${fastDecisionsTag}\n  <!-- aldus-usage-telemetry-v317 -->\n  ${telemetryTag}\n  <!-- aldus-security-observability-v318 -->\n  ${observabilityTag}\n  <!-- aldus-telemetry-security-dashboard-v319 -->\n  ${dashboardTag}\n  <!-- aldus-simulado-recovery-v319 -->\n  ${simuladoRecoveryTag}\n  <!-- aldus-questions-hub-v322 -->\n  ${questionsHubTag}\n  <!-- aldus-fgv-alternativas-avancadas-v325 -->\n  ${simuladoDifficultyTag}\n${BODY_CLOSE}`
       );
 
       if (
@@ -86,9 +90,10 @@
         || !html.includes(`telemetry-security-dashboard-v319.js?v=${DASHBOARD_VERSION}`)
         || !html.includes(`simulado-recovery-v319.js?v=${SIMULADO_RECOVERY_VERSION}`)
         || !html.includes(`questions-hub-v322.js?v=${QUESTIONS_HUB_VERSION}`)
+        || !html.includes(`factory-simulado-difficulty-v325.js?v=${SIMULADO_DIFFICULTY_VERSION}`)
         || /src=["'][^"']*questions-hub-v298\.js/i.test(html)
       ) {
-        throw new Error("A barreira de versão não conseguiu isolar o fluxo V309/V321/V322.");
+        throw new Error("A barreira de versão não conseguiu isolar o fluxo V309/V321/V322/V325.");
       }
 
       globalThis.__aldusEntryBootstrapV309 = Object.freeze({
@@ -101,6 +106,7 @@
         dashboardVersion: DASHBOARD_VERSION,
         simuladoRecoveryVersion: SIMULADO_RECOVERY_VERSION,
         questionsHubVersion: QUESTIONS_HUB_VERSION,
+        simuladoDifficultyVersion: SIMULADO_DIFFICULTY_VERSION,
         loadedAt: new Date().toISOString()
       });
 
