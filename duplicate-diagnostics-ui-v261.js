@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260806-duplicate-diagnostics-ui-v261";
+  const VERSION = "20260813-duplicate-diagnostics-ui-v320";
   const ROOT_ID = "aldusDuplicateDiagnosticsV260";
   const DEFAULT_FILTER = "probable";
   const DEFAULT_PAGE_SIZE = 6;
@@ -51,6 +51,34 @@
     };
   }
 
+  function showPriorityCases() {
+    const filter = view.root?.querySelector("[data-dup-filter]");
+    if (!filter) return;
+    filter.value = "all";
+    filter.dispatchEvent(new Event("change", { bubbles: true }));
+    requestAnimationFrame(() => {
+      view.list?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  function bindPriorityCard(card, priority) {
+    if (!card) return;
+    card.classList.add("is-priority");
+    card.title = `Clique para exibir os ${priority} casos prioritários.`;
+    card.setAttribute("role", "button");
+    card.setAttribute("tabindex", "0");
+    card.setAttribute("aria-label", `Exibir ${priority} casos prioritários`);
+    card.style.cursor = "pointer";
+    if (card.dataset.v320PriorityBound) return;
+    card.dataset.v320PriorityBound = "true";
+    card.addEventListener("click", showPriorityCases);
+    card.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      showPriorityCases();
+    });
+  }
+
   function rewriteSummary() {
     const cards = [...(view.root?.querySelectorAll("[data-dup-summary] > div") || [])];
     if (cards.length < 5) return;
@@ -66,8 +94,7 @@
     const priorityLabel = cards[4].querySelector("span");
     if (priorityValue) priorityValue.textContent = String(priority);
     if (priorityLabel) priorityLabel.textContent = "Casos prioritários";
-    cards[4].classList.add("is-priority");
-    cards[4].title = "Soma de duplicidades exatas e duplicidades prováveis.";
+    bindPriorityCard(cards[4], priority);
   }
 
   function rewriteStatus() {
@@ -101,6 +128,7 @@
     filter.value = DEFAULT_FILTER;
     filter.dispatchEvent(new Event("change", { bubbles: true }));
     filter.innerHTML = `
+      <option value="all">Casos prioritários</option>
       <option value="exact">Duplicidades exatas</option>
       <option value="probable">Duplicidades prováveis</option>
       <option value="later">Analisar depois</option>`;
@@ -208,7 +236,17 @@
       rewriteStatus();
       const cards = [...view.list.querySelectorAll(":scope > .aldus-dup-pair")];
       cards.forEach(enhanceCard);
-      const matches = cards.filter((card) => !view.query || normalize(card.textContent).includes(view.query));
+      const selectedFilter = view.root?.querySelector("[data-dup-filter]")?.value || DEFAULT_FILTER;
+      const candidates = selectedFilter === "all"
+        ? cards.filter((card) => {
+            const classification = card.dataset.classification;
+            const decision = card.dataset.decision;
+            return (classification === "exact" || classification === "probable")
+              && decision !== "not-duplicate"
+              && decision !== "consolidated";
+          })
+        : cards;
+      const matches = candidates.filter((card) => !view.query || normalize(card.textContent).includes(view.query));
       const pages = Math.max(1, Math.ceil(matches.length / view.pageSize));
       view.page = Math.min(Math.max(1, view.page), pages);
       const start = (view.page - 1) * view.pageSize;
