@@ -14,6 +14,7 @@
     const ENTRY_VERSION = "20260811-duplicate-flow-owner-v309";
     const CORE_VERSION = "20260811-duplicate-flow-owner-v309";
     const BATCH_VERSION = "20260811-duplicate-flow-owner-v309";
+    const FAST_DECISIONS_VERSION = "20260813-fast-individual-decisions-v321";
     const TELEMETRY_VERSION = "20260812-posthog-telemetry-v317";
     const OBSERVABILITY_VERSION = "20260812-security-observability-v318";
     const DASHBOARD_VERSION = "20260812-telemetry-security-dashboard-v319";
@@ -24,6 +25,7 @@
     const SHELL_URL = `docs/index.html?aldusEntry=${encodeURIComponent(ENTRY_VERSION)}&ts=${Date.now()}`;
     const CORE_PATTERN = /<script\s+[^>]*src=["'][^"']*duplicate-diagnostics-v(?:260|303|304|309)\.js[^"']*["'][^>]*><\/script>\s*/gi;
     const BATCH_PATTERN = /<script\s+[^>]*src=["'][^"']*duplicate-diagnostics-batch-v(?:302|303|304|305)\.js[^"']*["'][^>]*><\/script>\s*/gi;
+    const FAST_DECISIONS_PATTERN = /<script\s+[^>]*src=["'][^"']*duplicate-diagnostics-fast-decisions-v321\.js[^"']*["'][^>]*><\/script>\s*/gi;
     const TELEMETRY_PATTERN = /<script\s+[^>]*src=["'][^"']*usage-telemetry-v315\.js[^"']*["'][^>]*><\/script>\s*/gi;
     const OBSERVABILITY_PATTERN = /<script\s+[^>]*src=["'][^"']*security-observability-v318\.js[^"']*["'][^>]*><\/script>\s*/gi;
     const DASHBOARD_PATTERN = /<script\s+[^>]*src=["'][^"']*telemetry-security-dashboard-v319\.js[^"']*["'][^>]*><\/script>\s*/gi;
@@ -51,12 +53,14 @@
         .replace(DASHBOARD_PATTERN, "")
         .replace(OBSERVABILITY_PATTERN, "")
         .replace(TELEMETRY_PATTERN, "")
+        .replace(FAST_DECISIONS_PATTERN, "")
         .replace(BATCH_PATTERN, "")
         .replace(CORE_PATTERN, "");
       if (!html.includes(BODY_CLOSE)) throw new Error("Shell inválido: fechamento do body não encontrado.");
 
       const coreTag = `<script id="aldusDuplicateDiagnosticsCoreV309" src="duplicate-diagnostics-v309.js?v=${CORE_VERSION}&entry=forced1"><\/script>`;
       const v305Tag = `<script id="aldusDuplicateBatchAuthoritativeV309" src="duplicate-diagnostics-batch-v305.js?v=${BATCH_VERSION}&entry=forced1"><\/script>`;
+      const fastDecisionsTag = `<script id="aldusFastIndividualDecisionsV321" src="duplicate-diagnostics-fast-decisions-v321.js?v=${FAST_DECISIONS_VERSION}"><\/script>`;
       const telemetryTag = `<script id="aldusUsageTelemetryV317" src="usage-telemetry-v315.js?v=${TELEMETRY_VERSION}"><\/script>`;
       const observabilityTag = `<script id="aldusSecurityObservabilityV318" src="security-observability-v318.js?v=${OBSERVABILITY_VERSION}"><\/script>`;
       const dashboardTag = `<script id="aldusTelemetrySecurityDashboardV319" src="telemetry-security-dashboard-v319.js?v=${DASHBOARD_VERSION}"><\/script>`;
@@ -64,7 +68,7 @@
       html = html.replace(/<head([^>]*)>/i, `<head$1>\n  ${coreTag}`);
       html = html.replace(
         BODY_CLOSE,
-        `  <!-- aldus-entry-forced-v309 -->\n  ${v305Tag}\n  <!-- aldus-usage-telemetry-v317 -->\n  ${telemetryTag}\n  <!-- aldus-security-observability-v318 -->\n  ${observabilityTag}\n  <!-- aldus-telemetry-security-dashboard-v319 -->\n  ${dashboardTag}\n  <!-- aldus-simulado-recovery-v319 -->\n  ${simuladoRecoveryTag}\n${BODY_CLOSE}`
+        `  <!-- aldus-entry-forced-v309 -->\n  ${v305Tag}\n  <!-- aldus-fast-individual-decisions-v321 -->\n  ${fastDecisionsTag}\n  <!-- aldus-usage-telemetry-v317 -->\n  ${telemetryTag}\n  <!-- aldus-security-observability-v318 -->\n  ${observabilityTag}\n  <!-- aldus-telemetry-security-dashboard-v319 -->\n  ${dashboardTag}\n  <!-- aldus-simulado-recovery-v319 -->\n  ${simuladoRecoveryTag}\n${BODY_CLOSE}`
       );
 
       if (
@@ -72,18 +76,20 @@
         || /src=["'][^"']*duplicate-diagnostics-v(?:260|303)\.js/i.test(html)
         || !html.includes("duplicate-diagnostics-batch-v305.js")
         || /src=["'][^"']*duplicate-diagnostics-batch-v304\.js/i.test(html)
+        || !html.includes(`duplicate-diagnostics-fast-decisions-v321.js?v=${FAST_DECISIONS_VERSION}`)
         || !html.includes(`usage-telemetry-v315.js?v=${TELEMETRY_VERSION}`)
         || !html.includes(`security-observability-v318.js?v=${OBSERVABILITY_VERSION}`)
         || !html.includes(`telemetry-security-dashboard-v319.js?v=${DASHBOARD_VERSION}`)
         || !html.includes(`simulado-recovery-v319.js?v=${SIMULADO_RECOVERY_VERSION}`)
       ) {
-        throw new Error("A barreira de versão não conseguiu isolar o fluxo V309/V319.");
+        throw new Error("A barreira de versão não conseguiu isolar o fluxo V309/V321.");
       }
 
       globalThis.__aldusEntryBootstrapV309 = Object.freeze({
         version: ENTRY_VERSION,
         coreVersion: CORE_VERSION,
         batchVersion: BATCH_VERSION,
+        fastDecisionsVersion: FAST_DECISIONS_VERSION,
         telemetryVersion: TELEMETRY_VERSION,
         observabilityVersion: OBSERVABILITY_VERSION,
         dashboardVersion: DASHBOARD_VERSION,
