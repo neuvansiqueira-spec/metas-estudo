@@ -74,7 +74,9 @@ test('V328 usa o prompt-base completo real de RESUMO/AULA, e não uma fixture re
   assert.ok(officialPrompt.length > 12000, `prompt oficial inesperadamente curto: ${officialPrompt.length}`);
   assert.match(officialPrompt, /## PADRÃO OBRIGATÓRIO DE PROFUNDIDADE DIDÁTICA/);
   assert.match(officialPrompt, /## CONTROLE FINAL DE FIDELIDADE, AMBIGUIDADE E COBERTURA/);
-  assert.match(officialPrompt, /▶️📚 Critério Material ou Substancial\. Conteúdo Ofensivo:/);
+  assert.match(officialPrompt, /## FORMATO OBRIGATÓRIO/);
+  assert.match(officialPrompt, /## WORD DO MÓDULO/);
+  assert.match(officialPrompt, /MAPA_HIERARQUICO_RESUMO_AULA_\[FILTRO\]\.docx/);
 });
 
 test('V328 confirma o resultado efetivo do gerador sobre o prompt completo real', () => {
