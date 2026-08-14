@@ -80,17 +80,14 @@ test("V331 preserva prompt personalizado", () => {
   assert.match(context.defaultFactoryPromptLibrary.jurisprudencia, /BUSCA SEMÂNTICA OBRIGATÓRIA EM TRÊS PASSAGENS/);
 });
 
-test("V331 é publicado no bundle e sincronizado entre raiz e docs", () => {
+test("V331 permanece arquivado e o bundle publica o sucessor V332", () => {
   const version = JSON.parse(fs.readFileSync("package.json", "utf8")).version;
   const suffix = version.match(/v\d+$/)?.[0];
   const bundle = fs.readFileSync(`app-${suffix}.js`, "utf8");
 
-  assert.match(bundle, /Aldus source: factory-jurisprudencia-prompt-v331\.js/);
-  assert.match(bundle, /BUSCA SEMÂNTICA OBRIGATÓRIA EM TRÊS PASSAGENS/);
-  assert.match(bundle, /Para súmula, NÃO crie campo PROCESSO/);
+  assert.doesNotMatch(bundle, /Aldus source: factory-jurisprudencia-prompt-v331\.js/);
+  assert.match(bundle, /Aldus source: factory-jurisprudencia-prompt-v332\.js/);
+  assert.match(bundle, /TRANSFORME JURISPRUDÊNCIAS EM MAPA MENTAL HIERÁRQUICO DE PALAVRAS-CHAVE/);
   assert.equal(bundle, fs.readFileSync(`docs/app-${suffix}.js`, "utf8"));
-  assert.equal(
-    fs.readFileSync("factory-jurisprudencia-prompt-v331.js", "utf8"),
-    fs.readFileSync("docs/factory-jurisprudencia-prompt-v331.js", "utf8")
-  );
+  assert.equal(fs.readFileSync("index.html", "utf8"), fs.readFileSync("docs/index.html", "utf8"));
 });
