@@ -69,7 +69,8 @@ jobs:
             tests/v318-security-observability.test.js \
             tests/v320-factory-penalties-prompts.test.js \
             tests/v326-factory-resumo-aula-visual.test.js \
-            tests/v327-factory-resumo-aula-canonical.test.js
+            tests/v327-factory-resumo-aula-canonical.test.js \
+            tests/v328-factory-resumo-aula-entry.test.js
           node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
           cmp security-hardening-v296.js docs/security-hardening-v296.js
           cmp service-worker.js docs/service-worker.js
