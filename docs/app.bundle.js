@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260812-gerador-simulados-visibilidade-v315";
+  const VERSION = "20260814-desempenho-integral-v329";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -42672,14 +42672,37 @@ function qbLastDisciplinePerformance(discipline) {
   const hasMultipleChoice = keyed.some(qbIsMultipleChoice);
   return hasMultipleChoice ? `${correct}/${keyed.length} acertos` : `${correct}/${keyed.length} acertos • líquido ${correct - wrong}`;
 }
+let qbSyllabusPackagesSnapshot = null;
+function qbSyllabusPackagesRevisionKey() {
+  const bank = state.questionBank || [];
+  const syllabus = state.syllabusItems || [];
+  const sessions = state.questionBankSessions || [];
+  const goals = state.dailyGoals || [];
+  return [
+    viewDataRevisionV172,
+    bank.length,
+    syllabus.length,
+    sessions.length,
+    goals.length,
+    bank[0]?.id || "",
+    bank.at(-1)?.id || "",
+    syllabus[0]?.id || "",
+    syllabus.at(-1)?.id || "",
+    sessions[0]?.id || ""
+  ].join("|");
+}
 function qbSyllabusPackages() {
+  const revisionKey = qbSyllabusPackagesRevisionKey();
+  if (qbSyllabusPackagesSnapshot?.revisionKey === revisionKey) return qbSyllabusPackagesSnapshot.packages;
   const grouped = (state.syllabusItems || []).filter((item) => canonical(item.status || item.situacao) !== "ignorado").reduce((acc, item) => { const d = qbItemDiscipline(item); acc[d] ||= []; acc[d].push(item); return acc; }, {});
-  return Object.entries(grouped).sort((a,b)=>a[0].localeCompare(b[0],"pt-BR")).map(([discipline, items]) => {
+  const packages = Object.entries(grouped).sort((a,b)=>a[0].localeCompare(b[0],"pt-BR")).map(([discipline, items]) => {
     const questions = qbSyllabusPackageQuestions(items);
     const covered = items.filter((item) => questions.some((q) => qbMatchesSyllabusItem(q, item)));
     const missing = items.filter((item) => !covered.includes(item));
     return { discipline, items, questions, covered, missing, bankThemes: qbUnique(questions.flatMap(q=>[q.assunto,q.tema].filter(Boolean))), last: qbLastDisciplinePerformance(discipline) };
   });
+  qbSyllabusPackagesSnapshot = { revisionKey, packages };
+  return packages;
 }
 function qbPackageByDiscipline(discipline) { return qbSyllabusPackages().find((pkg) => pkg.discipline === discipline); }
 function qbQuestionsForPackageMode(pkg, mode) {
@@ -42743,7 +42766,15 @@ function qbScopeLabel() { const scope = elements.qbTrainingScope?.value || "all"
 function qbReviewSyllabusItems(type) { if (type === "week") return qbWeekSyllabusItems(); if (type === "weak") return qbWeakSyllabusItems(); if (type === "unseen") return qbUnstudiedSyllabusItems(); return qbActiveSyllabusItems(); }
 function qbScopedBank() { const scope = elements.qbTrainingScope?.value || "all", bank = state.questionBank || []; if (scope === "all") return bank; if (scope === "syllabus") return bank.filter((q) => qbQuestionMatchesAnySyllabusItem(q, qbActiveSyllabusItems())); const type = elements.qbReviewType?.value || "wrong"; if (type === "wrong") { const ids = qbQuestionIdsByReviewStatus(["errado"]); return bank.filter((q) => ids.has(q.id)); } if (type === "blank") { const ids = qbQuestionIdsByReviewStatus(["branco"]); return bank.filter((q) => ids.has(q.id)); } if (type === "wrong_blank") { const ids = qbTroubleQuestionIds(); return bank.filter((q) => ids.has(q.id)); } return bank.filter((q) => qbQuestionMatchesAnySyllabusItem(q, qbReviewSyllabusItems(type))); }
 function qbMissingSyllabusWithoutQuestions() { const scoped = qbScopedBank(); return qbActiveSyllabusItems().filter((item) => !scoped.some((q) => qbMatchesSyllabusItem(q, item))).length; }
-function qbFilteredQuestions() { const search = canonical(elements.qbFilterSearch?.value || ""); const discipline = elements.qbFilterDiscipline?.value || ""; return qbScopedBank().filter((q)=> (!discipline || (qbIsSyllabusScope() ? qbQuestionMatchesSyllabusDiscipline(q, discipline) : q.disciplina === discipline)) && (!elements.qbFilterSubject?.value || q.assunto === elements.qbFilterSubject.value) && (!elements.qbFilterTheme?.value || q.tema === elements.qbFilterTheme.value) && (!elements.qbFilterBoard?.value || q.banca === elements.qbFilterBoard.value) && (!elements.qbFilterYear?.value || String(q.ano) === elements.qbFilterYear.value) && (!search || canonical([q.enunciado,q.disciplina,q.assunto,q.tema,q.banca,q.ano,q.referencia,q.orgao,q.cargo].join(" ")).includes(search))); }
+const qbSearchTextCache = new WeakMap();
+function qbQuestionSearchText(q) {
+  if (!q || typeof q !== "object") return "";
+  if (qbSearchTextCache.has(q)) return qbSearchTextCache.get(q);
+  const text = canonical([q.enunciado,q.disciplina,q.assunto,q.tema,q.banca,q.ano,q.referencia,q.orgao,q.cargo].join(" "));
+  qbSearchTextCache.set(q, text);
+  return text;
+}
+function qbFilteredQuestions() { const search = canonical(elements.qbFilterSearch?.value || ""); const discipline = elements.qbFilterDiscipline?.value || ""; return qbScopedBank().filter((q)=> (!discipline || (qbIsSyllabusScope() ? qbQuestionMatchesSyllabusDiscipline(q, discipline) : q.disciplina === discipline)) && (!elements.qbFilterSubject?.value || q.assunto === elements.qbFilterSubject.value) && (!elements.qbFilterTheme?.value || q.tema === elements.qbFilterTheme.value) && (!elements.qbFilterBoard?.value || q.banca === elements.qbFilterBoard.value) && (!elements.qbFilterYear?.value || String(q.ano) === elements.qbFilterYear.value) && (!search || qbQuestionSearchText(q).includes(search))); }
 function normalizeStoredQuestionBank() { state.questionBank = (state.questionBank || []).map((q, index) => { const normalized = normalizeQuestionBankItem(q, index); return { ...q, ...normalized, id: q.id || normalized.id }; }); }
 
 function qbErrorReason(q) { const status = canonical(q?.status || q?.resultado || ""); if (status === "certo" || status === "correto" || status === "acerto") return ""; if (status === "errado" || status === "erro" || status === "incorreto") return "erro"; if (status === "branco" || status.includes("nao respond")) return "branco"; if (status === "duvida") return "duvida"; if (qbIsBlankMark(q)) return "branco"; if (qbIsDoubtMark(q)) return "duvida"; if (qbHasKey(q) && q.marcado !== q.gabarito) return "erro"; return ""; }
@@ -48254,8 +48285,12 @@ function initFactoryEvents() {
 }
 initFactoryEvents();
 
-[elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin, elements.materialFilterText].filter(Boolean).forEach((filter) => filter.addEventListener("input", renderMaterials));
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin].filter(Boolean).forEach((filter) => filter.addEventListener("change", renderMaterials));
+let materialFilterTextTimerV329;
+elements.materialFilterText?.addEventListener("input", () => {
+  clearTimeout(materialFilterTextTimerV329);
+  materialFilterTextTimerV329 = setTimeout(renderMaterials, 160);
+});
 document.addEventListener("change", (event) => { const mode = event.target.closest?.('[data-material-estimate-field="estimateMode"]'); if (mode) updateMaterialEstimateModeUI(mode.closest(".material-estimate-box")); });
 document.addEventListener("click", (event) => { const button = event.target.closest?.("button[data-open-material-estimate]"); if (button) { event.preventDefault(); openMaterialEstimateInPlanning(button.dataset.openMaterialEstimate); } });
 document.addEventListener("click", (event) => { const openUrl = event.target.closest("button[data-open-url]"); if (openUrl && isValidHttpUrl(openUrl.dataset.openUrl)) window.open(openUrl.dataset.openUrl, "_blank", "noopener"); const open = event.target.closest("button[data-open-material]"); const create = event.target.closest("button[data-create-goal-material]"); const edit = event.target.closest("button[data-edit-material]"); const del = event.target.closest("button[data-delete-material]"); const use = event.target.closest("button[data-use-material-study]"); const calcEstimate = event.target.closest("button[data-calculate-material-estimate]"); const saveEstimate = event.target.closest("button[data-save-material-estimate]"); const updateMaterialGoals = event.target.closest("button[data-update-material-goals]"); if (updateMaterialGoals) { event.preventDefault(); updateFuturePendingGoalsForMaterial(updateMaterialGoals.dataset.updateMaterialGoals); } if (calcEstimate) { event.preventDefault(); previewMaterialEstimate(calcEstimate); } if (saveEstimate) { event.preventDefault(); saveMaterialEstimate(saveEstimate); } if (open) openMaterial(open.dataset.openMaterial); if (use) { const material = state.materials.find((m) => m.id === use.dataset.useMaterialStudy); if (material) { showView("dashboard"); const subject = state.subjects.find((item) => canonical(item.name) === canonical(material.discipline)); if (subject) elements.studySubject.value = subject.id; elements.studyTopic.value = material.subject || ""; updateStudyMaterialOptions(); if (elements.studyMaterial) elements.studyMaterial.value = material.id; } } if (create) startMaterialForGoal(create.dataset.discipline, create.dataset.subject, create.dataset.syllabusItemId); if (edit) editMaterial(edit.dataset.editMaterial); if (del && confirm("Excluir este material?")) { state.materials = state.materials.filter((m)=>m.id!==del.dataset.deleteMaterial); render(); } });
@@ -60996,7 +61031,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
 (() => {
   "use strict";
 
-  const VERSION = "20260811-gerador-simulados-escolha-automatica-v312";
+  const VERSION = "20260814-gerador-simulados-em-questoes-v328";
   const QUESTION_BANK_SCHEMA = "metas-estudo-question-bank-v1";
   const selectedIds = new Set();
   const selectedDisciplines = new Set();
@@ -61239,7 +61274,7 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
   }
 
   function selectedThemeHtml(items) {
-    if (!items.length) return '<p class="factory-simulado-empty">Nenhum tema selecionado. Pesquise abaixo ou use “Criar simulado deste tema”.</p>';
+    if (!items.length) return '<p class="factory-simulado-empty">Nenhum tema selecionado. Pesquise um tema abaixo para adicioná-lo ao simulado.</p>';
     return `<div class="factory-simulado-chips">${items.map((item) => `<span class="factory-simulado-chip"><span><strong>${escapeHtml(item.tema || "Tema")}</strong><small>${escapeHtml(item.disciplina || "Sem disciplina")}</small></span><button type="button" data-factory-simulado-remove="${escapeHtml(item.id)}" aria-label="Remover ${escapeHtml(item.tema || "tema")}">×</button></span>`).join("")}</div>`;
   }
 
@@ -61281,18 +61316,17 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
 
   function mountBuilder() {
     if (typeof document === "undefined") return;
-    const container = document.getElementById("factoryList");
+    const container = document.getElementById("view-simulados");
     if (!container) return;
     const current = document.getElementById("factorySimuladoBuilderV310");
     if (current) current.remove();
-    container.insertAdjacentHTML("afterbegin", builderHtml());
+    const hub = Array.from(container.children).find((child) => child.matches?.("header.questions-hub[data-questions-hub]"));
+    if (hub) hub.insertAdjacentHTML("afterend", builderHtml());
+    else container.insertAdjacentHTML("afterbegin", builderHtml());
 
-    container.querySelectorAll("[data-factory-card]").forEach((card) => {
-      const id = text(card.dataset.factoryCard);
-      const actions = card.querySelector(".factory-prompt-actions .card-actions");
-      if (!id || !actions || actions.querySelector("[data-factory-simulado-single]")) return;
-      actions.insertAdjacentHTML("beforeend", `<button type="button" class="secondary-button factory-simulado-single" data-factory-simulado-single="${escapeHtml(id)}">Criar simulado deste tema</button>`);
-    });
+    // O gerador agora pertence exclusivamente a Questões > Simulados.
+    // Remove atalhos legados que ainda possam existir em uma sessão já aberta.
+    document.querySelectorAll("#factoryList [data-factory-simulado-single]").forEach((button) => button.remove());
   }
 
   function renderSuggestions(query) {
@@ -61425,7 +61459,7 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
     const link = document.createElement("link");
     link.id = "aldusFactorySimuladoStylesV310";
     link.rel = "stylesheet";
-    link.href = "factory-simulado-prompt-v310.css?v=20260811-gerador-simulados-escolha-automatica-v312";
+    link.href = `factory-simulado-prompt-v310.css?v=${VERSION}`;
     (document.head || document.documentElement).appendChild(link);
   }
 
@@ -61705,8 +61739,9 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
 (() => {
   "use strict";
 
-  const VERSION = "20260811-simulado-integracao-v314";
+  const VERSION = "20260812-simulado-integracao-v318-reparo";
   const ADAPTER_NAME = "aldus-simulado-integracao-v314";
+  const INTERACTIVE_STORAGE_KEY = "aldusSimuladosInterativosV313";
 
   function text(value) { return String(value ?? "").trim(); }
   function canonical(value) { return text(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); }
@@ -61823,7 +61858,15 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
       updatedAt:completedAt
     }));
     const disciplineGroups = new Map();
-    groups.forEach((group) => { const current = disciplineGroups.get(group.discipline) || { discipline:group.discipline,total:0,correct:0,wrong:0,blank:0,net:0,notes:"Gerado automaticamente pelo cartão-resposta." }; current.total += group.total; current.correct += group.correct; current.wrong += group.wrong; current.blank += group.blank; current.net += group.score; disciplineGroups.set(group.discipline,current); });
+    groups.forEach((group) => {
+      const current = disciplineGroups.get(group.discipline) || { discipline:group.discipline,total:0,correct:0,wrong:0,blank:0,net:0,notes:"Gerado automaticamente pelo cartão-resposta." };
+      current.total += group.total;
+      current.correct += group.correct;
+      current.wrong += group.wrong;
+      current.blank += group.blank;
+      current.net += group.score;
+      disciplineGroups.set(group.discipline,current);
+    });
     const disciplines = [...disciplineGroups.values()].map((group) => ({ ...group, accuracyPct:percent(group.correct,group.total), errorPct:percent(group.wrong,group.total), blankPct:percent(group.blank,group.total) }));
     const goal = Number(exam.goal) || Math.ceil(summary.total * 0.8);
     const mock = {
@@ -61852,43 +61895,180 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
       interactiveExamId:exam.id,
       updatedAt:completedAt
     };
-    const notebook = sessionItems.filter((item) => item.status !== "certo" || item.revisar).map((item) => ({ question:bankQuestions.find((question) => question.id === item.id), mark:item.marcado === blankMark ? "" : item.marcado, reason:item.status === "errado" ? "erro" : item.status === "branco" ? "branco" : "duvida" }));
+    const notebook = sessionItems
+      .filter((item) => item.status !== "certo" || item.revisar)
+      .map((item) => ({
+        question:bankQuestions.find((question) => question.id === item.id),
+        mark:item.marcado === blankMark ? "" : item.marcado,
+        reason:item.status === "errado" ? "erro" : item.status === "branco" ? "branco" : "duvida"
+      }));
     return { sessionId, bankQuestions, session, questionLogs, mock, notebook, groups };
   }
 
-  function hasIntegratedSession(targetState, sessionId) { return Boolean((targetState?.questionBankSessions || []).some((session) => session.id === sessionId)); }
+  function hasIntegratedSession(targetState, sessionId) {
+    return Boolean((targetState?.questionBankSessions || []).some((session) => session.id === sessionId));
+  }
+
+  function ensureCollections(targetState) {
+    targetState.questionBank ||= [];
+    targetState.questionBankSessions ||= [];
+    targetState.questionLogs ||= [];
+    targetState.simulados ||= [];
+    targetState.questionErrorNotebook ||= [];
+  }
+
+  function ensureBankQuestions(targetState, bankQuestions) {
+    const bankMap = new Map((targetState.questionBank || []).map((question) => [question.id, question]));
+    let added = 0;
+    bankQuestions.forEach((question) => {
+      if (!bankMap.has(question.id)) {
+        bankMap.set(question.id, question);
+        added += 1;
+      }
+    });
+    if (added) targetState.questionBank = [...bankMap.values()];
+    return added;
+  }
+
+  function renderAfterIntegration({ full = false } = {}) {
+    if (typeof renderQuestionBank === "function") renderQuestionBank();
+    if (!full) return;
+    if (typeof renderSimulados === "function") renderSimulados();
+    if (typeof renderQuestionHistory === "function") renderQuestionHistory();
+    if (typeof qbRenderErrorNotebook === "function") qbRenderErrorNotebook();
+  }
+
+  function persistRepair() {
+    if (typeof saveData !== "function") throw new Error("O salvamento principal do site não está disponível.");
+    saveData({ markLocalChange:true });
+  }
 
   function integrateExam(exam) {
     if (typeof state === "undefined" || !state) throw new Error("O banco de dados do site ainda não está disponível.");
     const payload = buildIntegrationPayload(exam);
-    if (hasIntegratedSession(state,payload.sessionId)) return { alreadyIntegrated:true, sessionId:payload.sessionId, message:"Este simulado já estava integrado; nenhum dado foi duplicado." };
-    state.questionBank ||= [];
-    state.questionBankSessions ||= [];
-    state.questionLogs ||= [];
-    state.simulados ||= [];
-    state.questionErrorNotebook ||= [];
-    const bankMap = new Map(state.questionBank.map((question) => [question.id,question]));
-    let newQuestions = 0;
-    payload.bankQuestions.forEach((question) => { if (!bankMap.has(question.id)) { bankMap.set(question.id,question); newQuestions += 1; } });
-    state.questionBank = [...bankMap.values()];
+    ensureCollections(state);
+
+    const sessionAlreadyIntegrated = hasIntegratedSession(state, payload.sessionId);
+    const repairedQuestions = ensureBankQuestions(state, payload.bankQuestions);
+
+    if (sessionAlreadyIntegrated) {
+      if (repairedQuestions > 0) {
+        persistRepair();
+        renderAfterIntegration();
+        return {
+          alreadyIntegrated:true,
+          repaired:true,
+          sessionId:payload.sessionId,
+          newQuestions:repairedQuestions,
+          sessionsAdded:0,
+          logsAdded:0,
+          notebookAdded:0,
+          message:`Integração reparada: ${repairedQuestions} questão(ões) ausente(s) foram restauradas no Banco de Questões sem duplicar o resultado.`
+        };
+      }
+      return {
+        alreadyIntegrated:true,
+        repaired:false,
+        sessionId:payload.sessionId,
+        newQuestions:0,
+        sessionsAdded:0,
+        logsAdded:0,
+        notebookAdded:0,
+        message:"Este simulado já estava integralmente integrado; nenhum dado foi duplicado."
+      };
+    }
+
     state.questionBankSessions.unshift(payload.session);
     const logIds = new Set(state.questionLogs.map((log) => log.id));
-    state.questionLogs.push(...payload.questionLogs.filter((log) => !logIds.has(log.id)));
-    if (!state.simulados.some((mock) => mock.id === payload.mock.id)) state.simulados.push(payload.mock);
-    if (typeof registrarNoCadernoErros === "function") payload.notebook.forEach((entry) => registrarNoCadernoErros(entry.question,entry.mark,entry.reason));
-    if (typeof saveData !== "function") throw new Error("O salvamento principal do site não está disponível.");
-    saveData({ markLocalChange:true });
-    if (typeof renderQuestionBank === "function") renderQuestionBank();
-    if (typeof renderSimulados === "function") renderSimulados();
-    if (typeof renderQuestionHistory === "function") renderQuestionHistory();
-    if (typeof qbRenderErrorNotebook === "function") qbRenderErrorNotebook();
-    return { alreadyIntegrated:false, sessionId:payload.sessionId, newQuestions, sessionsAdded:1, logsAdded:payload.questionLogs.length, notebookAdded:payload.notebook.length, message:`${newQuestions} questão(ões) e o resultado foram integrados ao site.` };
+    const logsToAdd = payload.questionLogs.filter((log) => !logIds.has(log.id));
+    state.questionLogs.push(...logsToAdd);
+    const mockAdded = !state.simulados.some((mock) => mock.id === payload.mock.id);
+    if (mockAdded) state.simulados.push(payload.mock);
+    if (typeof registrarNoCadernoErros === "function") {
+      payload.notebook.forEach((entry) => registrarNoCadernoErros(entry.question, entry.mark, entry.reason));
+    }
+
+    persistRepair();
+    renderAfterIntegration({ full:true });
+
+    return {
+      alreadyIntegrated:false,
+      repaired:false,
+      sessionId:payload.sessionId,
+      newQuestions:repairedQuestions,
+      sessionsAdded:1,
+      logsAdded:logsToAdd.length,
+      notebookAdded:payload.notebook.length,
+      message:`${repairedQuestions} questão(ões) e o resultado foram integrados ao site.`
+    };
   }
 
-  const api = Object.freeze({ version:VERSION, adapterName:ADAPTER_NAME, normalizeBoard, statusFor, scoreValue, groupPerformance, buildIntegrationPayload, hasIntegratedSession, integrateExam });
+  function readStoredCompletedExams() {
+    if (typeof localStorage === "undefined") return [];
+    try {
+      const parsed = JSON.parse(localStorage.getItem(INTERACTIVE_STORAGE_KEY) || "null");
+      if (!parsed || !Array.isArray(parsed.exams)) return [];
+      return parsed.exams.filter((exam) => exam?.status === "completed" && Array.isArray(exam.questions) && exam.questions.length);
+    } catch (error) {
+      console.warn(`[${VERSION}] Não foi possível ler os simulados locais para verificação de integridade.`, error);
+      return [];
+    }
+  }
+
+  function repairStoredExams() {
+    if (typeof state === "undefined" || !state || typeof saveData !== "function") {
+      return { available:false, checked:0, repairedExams:0, repairedQuestions:0, errors:0 };
+    }
+    const exams = readStoredCompletedExams();
+    let repairedExams = 0;
+    let repairedQuestions = 0;
+    let errors = 0;
+    exams.forEach((exam) => {
+      try {
+        const result = integrateExam(exam);
+        if (result?.repaired || (!result?.alreadyIntegrated && Number(result?.newQuestions) > 0)) {
+          repairedExams += 1;
+          repairedQuestions += Number(result.newQuestions) || 0;
+        }
+      } catch (error) {
+        errors += 1;
+        console.warn(`[${VERSION}] Falha ao verificar o simulado ${exam?.id || "sem-id"}.`, error);
+      }
+    });
+    const report = { available:true, checked:exams.length, repairedExams, repairedQuestions, errors };
+    if (repairedQuestions > 0) console.info(`[${VERSION}] Reparo automático concluído.`, report);
+    return report;
+  }
+
+  function scheduleStoredRepair() {
+    if (typeof setTimeout !== "function") return;
+    const delays = [0, 600, 1800, 4000];
+    delays.forEach((delay) => {
+      setTimeout(() => {
+        try { repairStoredExams(); }
+        catch (error) { console.warn(`[${VERSION}] Verificação automática adiada.`, error); }
+      }, delay);
+    });
+  }
+
+  const api = Object.freeze({
+    version:VERSION,
+    adapterName:ADAPTER_NAME,
+    normalizeBoard,
+    statusFor,
+    scoreValue,
+    groupPerformance,
+    buildIntegrationPayload,
+    hasIntegratedSession,
+    ensureBankQuestions,
+    integrateExam,
+    repairStoredExams
+  });
   globalThis.__ALDUS_SIMULADO_INTEGRACAO_V314__ = api;
+
   const core = globalThis.__ALDUS_SIMULADO_INTERATIVO_V313__;
   if (core?.registerIntegration) core.registerIntegration(ADAPTER_NAME, integrateExam);
+  scheduleStoredRepair();
 })();
 
 /* Aldus runtime source: planning-shift-disciplines-v200.js */

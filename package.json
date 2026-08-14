@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260812-gerador-simulados-visibilidade-v315",
+  "version": "20260814-desempenho-integral-v329",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

@@ -183,7 +183,10 @@ test('associação manual exige confirmação interna e ignorar sessão persiste
 
 test('artefatos da recuperação v3 permanecem iguais e a entrada V309 encaminha ao shell', () => {
   assert.equal(fs.readFileSync('script.js','utf8'), fs.readFileSync('docs/script.js','utf8'));
-  assert.match(fs.readFileSync('index.html','utf8'), /docs\/index\.html\?aldusEntry=/);
+  const entry = fs.readFileSync('index.html','utf8');
+  const shell = fs.readFileSync('docs/index.html','utf8');
+  assert.ok(/docs\/index\.html\?aldusEntry=/.test(entry) || entry === shell,
+    'a entrada deve encaminhar ao shell histórico ou publicar diretamente o shell canônico V329');
   assert.match(fs.readFileSync('docs/index.html','utf8'), /Confirmar associação/);
   assert.equal(fs.readFileSync('style.css','utf8'), fs.readFileSync('docs/style.css','utf8'));
   assert.equal(fs.readFileSync('service-worker.js','utf8'), fs.readFileSync('docs/service-worker.js','utf8'));

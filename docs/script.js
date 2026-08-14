@@ -5497,14 +5497,37 @@ function qbLastDisciplinePerformance(discipline) {
   const hasMultipleChoice = keyed.some(qbIsMultipleChoice);
   return hasMultipleChoice ? `${correct}/${keyed.length} acertos` : `${correct}/${keyed.length} acertos • líquido ${correct - wrong}`;
 }
+let qbSyllabusPackagesSnapshot = null;
+function qbSyllabusPackagesRevisionKey() {
+  const bank = state.questionBank || [];
+  const syllabus = state.syllabusItems || [];
+  const sessions = state.questionBankSessions || [];
+  const goals = state.dailyGoals || [];
+  return [
+    viewDataRevisionV172,
+    bank.length,
+    syllabus.length,
+    sessions.length,
+    goals.length,
+    bank[0]?.id || "",
+    bank.at(-1)?.id || "",
+    syllabus[0]?.id || "",
+    syllabus.at(-1)?.id || "",
+    sessions[0]?.id || ""
+  ].join("|");
+}
 function qbSyllabusPackages() {
+  const revisionKey = qbSyllabusPackagesRevisionKey();
+  if (qbSyllabusPackagesSnapshot?.revisionKey === revisionKey) return qbSyllabusPackagesSnapshot.packages;
   const grouped = (state.syllabusItems || []).filter((item) => canonical(item.status || item.situacao) !== "ignorado").reduce((acc, item) => { const d = qbItemDiscipline(item); acc[d] ||= []; acc[d].push(item); return acc; }, {});
-  return Object.entries(grouped).sort((a,b)=>a[0].localeCompare(b[0],"pt-BR")).map(([discipline, items]) => {
+  const packages = Object.entries(grouped).sort((a,b)=>a[0].localeCompare(b[0],"pt-BR")).map(([discipline, items]) => {
     const questions = qbSyllabusPackageQuestions(items);
     const covered = items.filter((item) => questions.some((q) => qbMatchesSyllabusItem(q, item)));
     const missing = items.filter((item) => !covered.includes(item));
     return { discipline, items, questions, covered, missing, bankThemes: qbUnique(questions.flatMap(q=>[q.assunto,q.tema].filter(Boolean))), last: qbLastDisciplinePerformance(discipline) };
   });
+  qbSyllabusPackagesSnapshot = { revisionKey, packages };
+  return packages;
 }
 function qbPackageByDiscipline(discipline) { return qbSyllabusPackages().find((pkg) => pkg.discipline === discipline); }
 function qbQuestionsForPackageMode(pkg, mode) {
@@ -5568,7 +5591,15 @@ function qbScopeLabel() { const scope = elements.qbTrainingScope?.value || "all"
 function qbReviewSyllabusItems(type) { if (type === "week") return qbWeekSyllabusItems(); if (type === "weak") return qbWeakSyllabusItems(); if (type === "unseen") return qbUnstudiedSyllabusItems(); return qbActiveSyllabusItems(); }
 function qbScopedBank() { const scope = elements.qbTrainingScope?.value || "all", bank = state.questionBank || []; if (scope === "all") return bank; if (scope === "syllabus") return bank.filter((q) => qbQuestionMatchesAnySyllabusItem(q, qbActiveSyllabusItems())); const type = elements.qbReviewType?.value || "wrong"; if (type === "wrong") { const ids = qbQuestionIdsByReviewStatus(["errado"]); return bank.filter((q) => ids.has(q.id)); } if (type === "blank") { const ids = qbQuestionIdsByReviewStatus(["branco"]); return bank.filter((q) => ids.has(q.id)); } if (type === "wrong_blank") { const ids = qbTroubleQuestionIds(); return bank.filter((q) => ids.has(q.id)); } return bank.filter((q) => qbQuestionMatchesAnySyllabusItem(q, qbReviewSyllabusItems(type))); }
 function qbMissingSyllabusWithoutQuestions() { const scoped = qbScopedBank(); return qbActiveSyllabusItems().filter((item) => !scoped.some((q) => qbMatchesSyllabusItem(q, item))).length; }
-function qbFilteredQuestions() { const search = canonical(elements.qbFilterSearch?.value || ""); const discipline = elements.qbFilterDiscipline?.value || ""; return qbScopedBank().filter((q)=> (!discipline || (qbIsSyllabusScope() ? qbQuestionMatchesSyllabusDiscipline(q, discipline) : q.disciplina === discipline)) && (!elements.qbFilterSubject?.value || q.assunto === elements.qbFilterSubject.value) && (!elements.qbFilterTheme?.value || q.tema === elements.qbFilterTheme.value) && (!elements.qbFilterBoard?.value || q.banca === elements.qbFilterBoard.value) && (!elements.qbFilterYear?.value || String(q.ano) === elements.qbFilterYear.value) && (!search || canonical([q.enunciado,q.disciplina,q.assunto,q.tema,q.banca,q.ano,q.referencia,q.orgao,q.cargo].join(" ")).includes(search))); }
+const qbSearchTextCache = new WeakMap();
+function qbQuestionSearchText(q) {
+  if (!q || typeof q !== "object") return "";
+  if (qbSearchTextCache.has(q)) return qbSearchTextCache.get(q);
+  const text = canonical([q.enunciado,q.disciplina,q.assunto,q.tema,q.banca,q.ano,q.referencia,q.orgao,q.cargo].join(" "));
+  qbSearchTextCache.set(q, text);
+  return text;
+}
+function qbFilteredQuestions() { const search = canonical(elements.qbFilterSearch?.value || ""); const discipline = elements.qbFilterDiscipline?.value || ""; return qbScopedBank().filter((q)=> (!discipline || (qbIsSyllabusScope() ? qbQuestionMatchesSyllabusDiscipline(q, discipline) : q.disciplina === discipline)) && (!elements.qbFilterSubject?.value || q.assunto === elements.qbFilterSubject.value) && (!elements.qbFilterTheme?.value || q.tema === elements.qbFilterTheme.value) && (!elements.qbFilterBoard?.value || q.banca === elements.qbFilterBoard.value) && (!elements.qbFilterYear?.value || String(q.ano) === elements.qbFilterYear.value) && (!search || qbQuestionSearchText(q).includes(search))); }
 function normalizeStoredQuestionBank() { state.questionBank = (state.questionBank || []).map((q, index) => { const normalized = normalizeQuestionBankItem(q, index); return { ...q, ...normalized, id: q.id || normalized.id }; }); }
 
 function qbErrorReason(q) { const status = canonical(q?.status || q?.resultado || ""); if (status === "certo" || status === "correto" || status === "acerto") return ""; if (status === "errado" || status === "erro" || status === "incorreto") return "erro"; if (status === "branco" || status.includes("nao respond")) return "branco"; if (status === "duvida") return "duvida"; if (qbIsBlankMark(q)) return "branco"; if (qbIsDoubtMark(q)) return "duvida"; if (qbHasKey(q) && q.marcado !== q.gabarito) return "erro"; return ""; }
@@ -9075,8 +9106,12 @@ function initFactoryEvents() {
 }
 initFactoryEvents();
 
-[elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin, elements.materialFilterText].filter(Boolean).forEach((filter) => filter.addEventListener("input", renderMaterials));
 [elements.materialFilterDiscipline, elements.materialFilterSubject, elements.materialFilterType, elements.materialFilterOrigin].filter(Boolean).forEach((filter) => filter.addEventListener("change", renderMaterials));
+let materialFilterTextTimerV329;
+elements.materialFilterText?.addEventListener("input", () => {
+  clearTimeout(materialFilterTextTimerV329);
+  materialFilterTextTimerV329 = setTimeout(renderMaterials, 160);
+});
 document.addEventListener("change", (event) => { const mode = event.target.closest?.('[data-material-estimate-field="estimateMode"]'); if (mode) updateMaterialEstimateModeUI(mode.closest(".material-estimate-box")); });
 document.addEventListener("click", (event) => { const button = event.target.closest?.("button[data-open-material-estimate]"); if (button) { event.preventDefault(); openMaterialEstimateInPlanning(button.dataset.openMaterialEstimate); } });
 document.addEventListener("click", (event) => { const openUrl = event.target.closest("button[data-open-url]"); if (openUrl && isValidHttpUrl(openUrl.dataset.openUrl)) window.open(openUrl.dataset.openUrl, "_blank", "noopener"); const open = event.target.closest("button[data-open-material]"); const create = event.target.closest("button[data-create-goal-material]"); const edit = event.target.closest("button[data-edit-material]"); const del = event.target.closest("button[data-delete-material]"); const use = event.target.closest("button[data-use-material-study]"); const calcEstimate = event.target.closest("button[data-calculate-material-estimate]"); const saveEstimate = event.target.closest("button[data-save-material-estimate]"); const updateMaterialGoals = event.target.closest("button[data-update-material-goals]"); if (updateMaterialGoals) { event.preventDefault(); updateFuturePendingGoalsForMaterial(updateMaterialGoals.dataset.updateMaterialGoals); } if (calcEstimate) { event.preventDefault(); previewMaterialEstimate(calcEstimate); } if (saveEstimate) { event.preventDefault(); saveMaterialEstimate(saveEstimate); } if (open) openMaterial(open.dataset.openMaterial); if (use) { const material = state.materials.find((m) => m.id === use.dataset.useMaterialStudy); if (material) { showView("dashboard"); const subject = state.subjects.find((item) => canonical(item.name) === canonical(material.discipline)); if (subject) elements.studySubject.value = subject.id; elements.studyTopic.value = material.subject || ""; updateStudyMaterialOptions(); if (elements.studyMaterial) elements.studyMaterial.value = material.id; } } if (create) startMaterialForGoal(create.dataset.discipline, create.dataset.subject, create.dataset.syllabusItemId); if (edit) editMaterial(edit.dataset.editMaterial); if (del && confirm("Excluir este material?")) { state.materials = state.materials.filter((m)=>m.id!==del.dataset.deleteMaterial); render(); } });

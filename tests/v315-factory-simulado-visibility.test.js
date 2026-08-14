@@ -12,7 +12,7 @@ test("V315 carrega o recuperador por nome novo antes do bootstrap legado", () =>
   const bootstrap = html.indexOf('id="aldusBootstrapIntegrityLoaderV258"');
   assert.ok(visibility > 0);
   assert.ok(visibility < bootstrap);
-  assert.match(html, /factory-simulado-visibility-v315\.js\?v=20260814-gerador-simulados-em-questoes-v328/);
+  assert.match(html, /factory-simulado-visibility-v315\.js\?v=(?:20260814-gerador-simulados-em-questoes-v328|20260814-desempenho-integral-v329)/);
 });
 
 test("V328 aguarda Simulados e remonta o gerador se uma renderização o remover", () => {

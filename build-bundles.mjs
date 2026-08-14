@@ -45,15 +45,14 @@ function appVersionSource(version) {
 }
 
 function synchronizeIndexVersion() {
-  for (const filename of ["index.html", path.join("docs", "index.html")]) {
-    const indexPath = path.join(root, filename);
-    const source = fs.readFileSync(indexPath, "utf8");
-    const synchronized = source
-      .replace(/app-v\d+\.css\?v=[^"]+/g, `app-${releaseSuffix}.css?v=${packageVersion}`)
-      .replace(/app-v\d+\.js\?v=[^"]+/g, `app-${releaseSuffix}.js?v=${packageVersion}`)
-      .replace(/(<p class="app-version">Versão: )[^<]+(<\/p>)/, `$1${packageVersion}$2`);
-    fs.writeFileSync(indexPath, synchronized);
-  }
+  const canonicalPath = path.join(root, "docs", "index.html");
+  const source = fs.readFileSync(canonicalPath, "utf8");
+  const synchronized = source
+    .replace(/app-v\d+\.css\?v=[^"]+/g, `app-${releaseSuffix}.css?v=${packageVersion}`)
+    .replace(/app-v\d+\.js\?v=[^"]+/g, `app-${releaseSuffix}.js?v=${packageVersion}`)
+    .replace(/(<p class="app-version">Versão: )[^<]+(<\/p>)/, `$1${packageVersion}$2`);
+  fs.writeFileSync(canonicalPath, synchronized);
+  fs.copyFileSync(canonicalPath, path.join(root, "index.html"));
 }
 
 function synchronizeBootstrapCoreVersion() {
@@ -118,7 +117,8 @@ const cssSources = [
   "factory-visibility-v122.css",
   "aldus-desktop-refinement-v178.css",
   "factory-simulado-prompt-v310.css",
-  "simulado-interativo-v313.css"
+  "simulado-interativo-v313.css",
+  "performance-v329.css"
 ];
 
 const jsSources = [
@@ -435,7 +435,13 @@ for (const filename of [
   "question-bank-pdf-import-v181.css", "qconcursos-capture-import-v182.js",
   "qconcursos-capture-segmented-v188.js", "qconcursos-capture-bank-v188.js", "qconcursos-capture-reprocess-v188.js",
   "question-bank-capture-import-v182.css", "question-history-pie.js", "question-history-charts-v215.js",
-  "question-history-tone-v216.js", "question-bank-json-review-v192.js", "question-bank-json-import-v191.js", "question-bank-json-details-v299.js", "question-bank-training-v223.js", "question-bank-filters-v224.js", "question-bank-filters-v225.js", "question-bank-filter-open-v226.js"
+  "question-history-tone-v216.js", "question-bank-json-review-v192.js", "question-bank-json-import-v191.js", "question-bank-json-details-v299.js", "question-bank-training-v223.js", "question-bank-filters-v224.js", "question-bank-filters-v225.js", "question-bank-filter-open-v226.js",
+  "bootstrap-integrity-loader-v258.js", "bootstrap-integrity-loader-v258-core.js", "bootstrap-integrity-loader-v275.js",
+  "storage-quota-guard-v256.js", "catastrophic-state-guard-v275.js", "recovery-safety-v275.js", "security-hardening-v296.js",
+  "questions-hub-v322.js", "factory-simulado-difficulty-v325.js", "factory-penalties-v320.js", "factory-resumo-aula-visual-v326.js", "factory-resumo-aula-canonical-v327.js",
+  "security-observability-v318.js", "telemetry-security-dashboard-v319.js", "simulado-recovery-v319.js"
 ]) {
   fs.copyFileSync(path.join(root, filename), path.join(root, "docs", filename));
 }
+
+fs.copyFileSync(path.join(root, "icons", "aldus-visual-320.webp"), path.join(root, "docs", "icons", "aldus-visual-320.webp"));

@@ -8,8 +8,11 @@ const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8');
 
 test('V318 is loaded by the entry bootstrap with a cache-busted version', () => {
   const index = read('index.html');
-  assert.match(index, /security-observability-v318\.js\?v=\$\{OBSERVABILITY_VERSION\}/);
-  assert.match(index, /20260812-security-observability-v318/);
+  assert.ok(
+    /security-observability-v318\.js\?v=\$\{OBSERVABILITY_VERSION\}/.test(index)
+      || /id="aldusSecurityObservabilityV318" defer src="security-observability-v318\.js\?v=20260814-desempenho-integral-v329"/.test(index),
+    'V318 deve ser carregada pela barreira histórica ou diretamente pelo shell V329'
+  );
 });
 
 test('V318 never transmits error messages, stacks, blocked URLs or source samples', () => {

@@ -1,126 +1,1199 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-aldus-theme="premium-stable">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="aldus-entry-bootstrap-v309" content="20260811-duplicate-flow-owner-v309" />
-  <meta name="aldus-simulado-difficulty" content="20260813-fgv-alternativas-avancadas-v325" />
+  <meta name="aldus-performance-release" content="20260814-desempenho-integral-v329" />
   <meta name="aldus-usage-endpoint" content="https://us.i.posthog.com/batch/" />
   <meta name="aldus-usage-project-token" content="phc_ALLcUsY57Zp3nXGd58NtMAPL3KhD8mZXJ6kyzR9ioqdA" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com; script-src-elem 'self' 'unsafe-inline' https://accounts.google.com; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://accounts.google.com https://www.googleapis.com https://us.i.posthog.com; frame-src https://accounts.google.com; font-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" />
+  <meta name="referrer" content="no-referrer" />
+  <script id="aldusSecurityHardeningV296" defer src="security-hardening-v296.js?v=20260814-desempenho-integral-v329"></script>
+  <script id="aldusQuestionBankJsonDetailsV299" defer src="question-bank-json-details-v299.js?v=20260814-desempenho-integral-v329"></script>
   <title>Aldus Metas Concurso — Painel de Estudos</title>
-  <script>
-  (() => {
-    "use strict";
+  <!-- O núcleo V309 precisa assumir a tela antes de qualquer inicializador legado. -->
+  <link id="aldusDuplicateDiagnosticsStylesV309" rel="stylesheet" href="duplicate-diagnostics-v260.css?v=20260811-duplicate-flow-owner-v309" />
+  <script id="aldusDuplicateDiagnosticsCoreV309" defer src="duplicate-diagnostics-v309.js?v=20260814-desempenho-integral-v329"></script>
+  <link rel="manifest" href="manifest.json?v=20260728-carregamento-direto-v168" />
+  <meta name="theme-color" content="#031426" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Aldus Metas" />
+  <meta name="google-identity-services" content="https://accounts.google.com/gsi/client" />
+  <link rel="apple-touch-icon" href="icons/icon.svg?v=20260728-carregamento-direto-v168" />
+  <link rel="icon" type="image/svg+xml" href="icons/logo-mark.svg?v=20260728-carregamento-direto-v168" />
+  <link rel="preload" as="image" type="image/webp" href="icons/aldus-visual-320.webp?v=20260814-desempenho-integral-v329" fetchpriority="high" />
+  <!-- Fontes CSS consolidadas, na ordem original: style.css; aldus-premium-theme.css; aldus-premium-refinement-v47.css; aldus-interface-v51.css; aldus-responsive-v52.css; aldus-contrast-v53.css; aldus-visual-v58.css; aldus-planning-v59.css; aldus-planning-history-v60.css; aldus-calendar-v61.css; aldus-calendar-v62.css; aldus-export-brand-v63.css; aldus-export-brand-v64.css; aldus-daily-goals-v66.css; aldus-daily-time-v67.css; aldus-contrast-system-v68.css; aldus-component-contrast-v69.css; aldus-advisor-layout-v70.css; aldus-backup-contrast-v71.css; aldus-navigation-scroll-v73.css; aldus-goal-integrity-v75.css; aldus-completed-visibility-v76.css. -->
+  <link id="aldusAppBundleStyles" rel="stylesheet" href="app-v329.css?v=20260814-desempenho-integral-v329" />
+  <link id="aldusQuestionsHubStylesV298" rel="stylesheet" href="questions-hub-v298.css?v=20260814-gerador-simulados-em-questoes-v328" />
 
-    const ENTRY_VERSION = "20260811-duplicate-flow-owner-v309";
-    const CORE_VERSION = "20260811-duplicate-flow-owner-v309";
-    const BATCH_VERSION = "20260811-duplicate-flow-owner-v309";
-    const FAST_DECISIONS_VERSION = "20260813-fast-individual-decisions-v321";
-    const TELEMETRY_VERSION = "20260812-posthog-telemetry-v317";
-    const OBSERVABILITY_VERSION = "20260812-security-observability-v318";
-    const DASHBOARD_VERSION = "20260812-telemetry-security-dashboard-v319";
-    const SIMULADO_RECOVERY_VERSION = "20260812-simulado-recovery-v319";
-    const QUESTIONS_HUB_VERSION = "20260814-gerador-simulados-em-questoes-v328";
-    const SIMULADO_DIFFICULTY_VERSION = "20260813-fgv-alternativas-avancadas-v325";
-    const HEAD_CLOSE = "</he" + "ad>";
-    const BODY_CLOSE = "</bo" + "dy>";
-    const HTML_CLOSE = "</ht" + "ml>";
-    const SHELL_URL = `docs/index.html?aldusEntry=${encodeURIComponent(ENTRY_VERSION)}&ts=${Date.now()}`;
-    const CORE_PATTERN = /<script\s+[^>]*src=["'][^"']*duplicate-diagnostics-v(?:260|303|304|309)\.js[^"']*["'][^>]*><\/script>\s*/gi;
-    const BATCH_PATTERN = /<script\s+[^>]*src=["'][^"']*duplicate-diagnostics-batch-v(?:302|303|304|305)\.js[^"']*["'][^>]*><\/script>\s*/gi;
-    const FAST_DECISIONS_PATTERN = /<script\s+[^>]*src=["'][^"']*duplicate-diagnostics-fast-decisions-v321\.js[^"']*["'][^>]*><\/script>\s*/gi;
-    const TELEMETRY_PATTERN = /<script\s+[^>]*src=["'][^"']*usage-telemetry-v315\.js[^"']*["'][^>]*><\/script>\s*/gi;
-    const OBSERVABILITY_PATTERN = /<script\s+[^>]*src=["'][^"']*security-observability-v318\.js[^"']*["'][^>]*><\/script>\s*/gi;
-    const DASHBOARD_PATTERN = /<script\s+[^>]*src=["'][^"']*telemetry-security-dashboard-v319\.js[^"']*["'][^>]*><\/script>\s*/gi;
-    const SIMULADO_RECOVERY_PATTERN = /<script\s+[^>]*src=["'][^"']*simulado-recovery-v319\.js[^"']*["'][^>]*><\/script>\s*/gi;
-    const QUESTIONS_HUB_PATTERN = /<script\s+[^>]*src=["'][^"']*questions-hub-v(?:298|322)\.js[^"']*["'][^>]*><\/script>\s*/gi;
-    const SIMULADO_DIFFICULTY_PATTERN = /<script\s+[^>]*src=["'][^"']*factory-simulado-difficulty-v\d+\.js[^"']*["'][^>]*><\/script>\s*/gi;
+  <link id="aldusCentralGoalsPaletteV246" rel="stylesheet" href="central-goals-palette-v245.css?v=20260805-dashboard-central-metas-cores-v246" />
 
-    function fail(error) {
-      console.error(`[${ENTRY_VERSION}] Falha ao carregar o shell corrigido.`, error);
-      const message = "Não foi possível ativar a correção V309 nesta atualização. Recarregue a página com conexão ativa.";
-      document.open();
-      document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Aldus Metas</title>${HEAD_CLOSE}<body style="font-family:Arial,sans-serif;padding:32px;background:#071a2d;color:#fff"><main style="max-width:760px;margin:auto"><h1>Aldus Metas</h1><p>${message}</p><button type="button" onclick="location.reload()" style="padding:12px 18px;font-weight:700">Recarregar</button></main>${BODY_CLOSE}${HTML_CLOSE}`);
-      document.close();
-    }
+  <link id="aldusDashboardTodayPaletteV247" rel="stylesheet" href="dashboard-today-palette-v247.css?v=20260805-dashboard-hoje-cores-v247" />
+  <link id="aldusCentralPeriodCardsV248" rel="stylesheet" href="central-goals-period-palette-v248.css?v=20260805-central-period-cards-v248" />
 
-    try {
-      const request = new XMLHttpRequest();
-      request.open("GET", SHELL_URL, false);
-      request.setRequestHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-      request.send(null);
-      if (request.status < 200 || request.status >= 300 || !request.responseText) {
-        throw new Error(`Shell indisponível (HTTP ${request.status || 0}).`);
-      }
-
-      let html = request.responseText
-        .replace(SIMULADO_DIFFICULTY_PATTERN, "")
-        .replace(QUESTIONS_HUB_PATTERN, "")
-        .replace(SIMULADO_RECOVERY_PATTERN, "")
-        .replace(DASHBOARD_PATTERN, "")
-        .replace(OBSERVABILITY_PATTERN, "")
-        .replace(TELEMETRY_PATTERN, "")
-        .replace(FAST_DECISIONS_PATTERN, "")
-        .replace(BATCH_PATTERN, "")
-        .replace(CORE_PATTERN, "");
-      if (!html.includes(BODY_CLOSE)) throw new Error("Shell inválido: fechamento do body não encontrado.");
-
-      const coreTag = `<script id="aldusDuplicateDiagnosticsCoreV309" src="duplicate-diagnostics-v309.js?v=${CORE_VERSION}&entry=forced1"><\/script>`;
-      const v305Tag = `<script id="aldusDuplicateBatchAuthoritativeV309" src="duplicate-diagnostics-batch-v305.js?v=${BATCH_VERSION}&entry=forced1"><\/script>`;
-      const fastDecisionsTag = `<script id="aldusFastIndividualDecisionsV321" src="duplicate-diagnostics-fast-decisions-v321.js?v=${FAST_DECISIONS_VERSION}"><\/script>`;
-      const telemetryTag = `<script id="aldusUsageTelemetryV317" src="usage-telemetry-v315.js?v=${TELEMETRY_VERSION}"><\/script>`;
-      const observabilityTag = `<script id="aldusSecurityObservabilityV318" src="security-observability-v318.js?v=${OBSERVABILITY_VERSION}"><\/script>`;
-      const dashboardTag = `<script id="aldusTelemetrySecurityDashboardV319" src="telemetry-security-dashboard-v319.js?v=${DASHBOARD_VERSION}"><\/script>`;
-      const simuladoRecoveryTag = `<script id="aldusSimuladoRecoveryV319" src="simulado-recovery-v319.js?v=${SIMULADO_RECOVERY_VERSION}"><\/script>`;
-      const questionsHubTag = `<script id="aldusQuestionsHubV322" src="questions-hub-v322.js?v=${QUESTIONS_HUB_VERSION}"><\/script>`;
-      const simuladoDifficultyTag = `<script id="aldusFactorySimuladoDifficultyV325" src="factory-simulado-difficulty-v325.js?v=${SIMULADO_DIFFICULTY_VERSION}"><\/script>`;
-      html = html.replace(/<head([^>]*)>/i, `<head$1>\n  ${coreTag}`);
-      html = html.replace(
-        BODY_CLOSE,
-        `  <!-- aldus-entry-forced-v309 -->\n  ${v305Tag}\n  <!-- aldus-fast-individual-decisions-v321 -->\n  ${fastDecisionsTag}\n  <!-- aldus-usage-telemetry-v317 -->\n  ${telemetryTag}\n  <!-- aldus-security-observability-v318 -->\n  ${observabilityTag}\n  <!-- aldus-telemetry-security-dashboard-v319 -->\n  ${dashboardTag}\n  <!-- aldus-simulado-recovery-v319 -->\n  ${simuladoRecoveryTag}\n  <!-- aldus-questions-hub-v322 -->\n  ${questionsHubTag}\n  <!-- aldus-fgv-alternativas-avancadas-v325 -->\n  ${simuladoDifficultyTag}\n${BODY_CLOSE}`
-      );
-
-      if (
-        !html.includes(`duplicate-diagnostics-v309.js?v=${CORE_VERSION}`)
-        || /src=["'][^"']*duplicate-diagnostics-v(?:260|303)\.js/i.test(html)
-        || !html.includes("duplicate-diagnostics-batch-v305.js")
-        || /src=["'][^"']*duplicate-diagnostics-batch-v304\.js/i.test(html)
-        || !html.includes(`duplicate-diagnostics-fast-decisions-v321.js?v=${FAST_DECISIONS_VERSION}`)
-        || !html.includes(`usage-telemetry-v315.js?v=${TELEMETRY_VERSION}`)
-        || !html.includes(`security-observability-v318.js?v=${OBSERVABILITY_VERSION}`)
-        || !html.includes(`telemetry-security-dashboard-v319.js?v=${DASHBOARD_VERSION}`)
-        || !html.includes(`simulado-recovery-v319.js?v=${SIMULADO_RECOVERY_VERSION}`)
-        || !html.includes(`questions-hub-v322.js?v=${QUESTIONS_HUB_VERSION}`)
-        || !html.includes(`factory-simulado-difficulty-v325.js?v=${SIMULADO_DIFFICULTY_VERSION}`)
-        || /src=["'][^"']*questions-hub-v298\.js/i.test(html)
-      ) {
-        throw new Error("A barreira de versão não conseguiu isolar o fluxo V309/V321/V322/V325.");
-      }
-
-      globalThis.__aldusEntryBootstrapV309 = Object.freeze({
-        version: ENTRY_VERSION,
-        coreVersion: CORE_VERSION,
-        batchVersion: BATCH_VERSION,
-        fastDecisionsVersion: FAST_DECISIONS_VERSION,
-        telemetryVersion: TELEMETRY_VERSION,
-        observabilityVersion: OBSERVABILITY_VERSION,
-        dashboardVersion: DASHBOARD_VERSION,
-        simuladoRecoveryVersion: SIMULADO_RECOVERY_VERSION,
-        questionsHubVersion: QUESTIONS_HUB_VERSION,
-        simuladoDifficultyVersion: SIMULADO_DIFFICULTY_VERSION,
-        loadedAt: new Date().toISOString()
-      });
-
-      document.open();
-      document.write(html);
-      document.close();
-    } catch (error) {
-      fail(error);
-    }
-  })();
-  </script>
+  <link id="aldusElegantCardStyleV249" rel="stylesheet" href="elegant-card-style-v249.css?v=20260805-elegant-card-style-v249" />
+  <link id="aldusDailySummaryElegantV250" rel="stylesheet" href="daily-summary-elegant-v250.css?v=20260805-daily-summary-elegant-v250" />
+  <link id="aldusDailySummaryElegantDirectV251" rel="stylesheet" href="daily-summary-elegant-direct-v251.css?v=20260805-daily-summary-elegant-direct-v251" />
+  <link id="aldusDailySummaryElegantNestedV252" rel="stylesheet" href="daily-summary-elegant-nested-v252.css?v=20260805-daily-summary-elegant-nested-v252" />
+  <link id="aldusCardPaletteV294" rel="stylesheet" href="aldus-card-palette-v294.css?v=20260809-paleta-cartoes-global-v294" />
+  <link rel="preload" as="script" href="app-v329.js?v=20260814-desempenho-integral-v329" />
+  <link rel="preload" as="script" href="factory-simulado-visibility-v315.js?v=20260814-gerador-simulados-em-questoes-v328" />
 </head>
 <body>
-  <noscript>Ative o JavaScript para usar o Aldus Metas Concurso.</noscript>
+  <header class="hero">
+    <nav class="topbar" aria-label="Navegação principal">
+      <a class="brand aldus-visual-brand brand-home-link" href="#dashboard" data-view-link="dashboard" aria-label="Ir para o início">
+        <img class="aldus-visual-brand-image" src="icons/aldus-visual-320.webp?v=20260814-desempenho-integral-v329" alt="Aldus — Metas Concursos" width="320" height="320" fetchpriority="high" decoding="async" />
+      </a>
+      <button id="menuToggle" class="menu-toggle" type="button" aria-expanded="false" aria-controls="mainMenu">☰ Menu</button>
+      <div id="mainMenu" class="nav-links">
+        <div class="mobile-menu-header">
+          <strong>Menu</strong>
+          <button id="menuClose" class="menu-close" type="button" aria-label="Fechar menu">Fechar</button>
+        </div>
+        <div class="mobile-menu-group"><span>Principal</span>
+          <a href="#dashboard" data-view-link="dashboard">Dashboard</a>
+          <a href="#central-metas" data-view-link="central-metas">Central de Metas</a>
+          <a href="#metas-do-dia" data-view-link="metas-do-dia">Plano do Dia</a>
+          <a href="#calendario-metas" data-view-link="calendario-metas">Calendário de Metas</a>
+          <a href="#planejamento" data-view-link="planejamento">Planejamento</a>
+        </div>
+        <div class="mobile-menu-group"><span>Edital</span>
+          <a href="#edital" data-view-link="edital">Edital</a>
+          <a href="#edital-verticalizado" data-view-link="edital-verticalizado">Edital Verticalizado</a>
+          <a href="#importar-edital" data-view-link="importar-edital">Importar Edital</a>
+          <a href="#assuntos-agendaveis" data-view-link="assuntos-agendaveis">Assuntos Agendáveis</a>
+        </div>
+        <div class="mobile-menu-group"><span>Desempenho</span>
+          <a href="#progresso" data-view-link="progresso">Progresso</a>
+          <a href="#banco-questoes" data-view-link="banco-questoes" data-view-group="questions">Questões</a>
+          <a href="#caderno-erros" data-view-link="caderno-erros">Caderno de Erros</a>
+          <a href="#simulados" data-view-link="simulados">Simulados</a>
+          <a href="#analise-estrategica" data-view-link="analise-estrategica">Análise Estratégica</a>
+          <a href="#conselheiro" data-view-link="conselheiro">Conselheiro</a>
+        </div>
+        <div class="mobile-menu-group"><span>Apoio</span>
+          <a href="#materiais" data-view-link="materiais">Materiais</a>
+          <a href="#fabrica-resumos" data-view-link="fabrica-resumos">🏭 Fábrica de Resumos</a>
+          <a href="#revisao-inteligente" data-view-link="revisao-inteligente">Revisão Inteligente</a>
+          <a href="#revisoes" data-view-link="revisoes">Revisões</a>
+          <a href="#historico" data-view-link="historico">Histórico</a>
+        </div>
+        <div class="mobile-menu-group"><span>Sistema</span>
+          <a href="#backup" data-view-link="backup">Backup</a>
+          <a href="#como-usar" data-view-link="como-usar">Como usar</a>
+        </div>
+      </div>
+    </nav>
+
+    <section class="hero-content">
+      <div>
+        <p class="eyebrow">Dashboard de estudos</p>
+        <h1>Controle suas metas de estudo para concurso público</h1>
+        <p class="hero-text">Cadastre disciplinas, registre seus estudos diários, acompanhe questões, organize o edital verticalizado e escolha os assuntos que entram no seu planejamento.</p>
+      </div>
+      <div class="goal-card">
+        <span>Meta semanal</span>
+        <strong id="weeklyGoalStatus" aria-live="polite">Carregando dados…</strong>
+        <small>Dados salvos no navegador com sincronização opcional via Google Drive.</small>
+      </div>
+    </section>
+  </header>
+  <div id="menuOverlay" class="menu-overlay" hidden></div>
+  <div id="appLoadingState" class="app-loading-state" role="status" aria-live="polite">Carregando seus dados...</div>
+
+  <main class="container app-layout">
+    <aside class="side-nav" aria-label="Menu de telas" data-side-nav>
+      <div class="side-nav-heading">
+        <div class="side-nav-title">
+          <span class="side-nav-title-text">Navegação</span>
+          <a class="side-nav-brand-link" href="#dashboard" data-view-link="dashboard" aria-label="Ir para o início">
+            <img class="side-nav-brand-mark" src="icons/aldus-brand-mark-v93.png?v=20260728-carregamento-direto-v168" alt="" width="44" height="44" aria-hidden="true" />
+          </a>
+        </div>
+        <button id="sideNavToggle" class="side-nav-toggle" type="button" aria-controls="sideNavGroups" aria-expanded="true" aria-label="Recolher navegação" title="Recolher navegação">
+          <span class="side-nav-toggle-icon" aria-hidden="true">‹</span>
+        </button>
+      </div>
+      <div id="sideNavGroups" class="side-nav-groups">
+      <div class="side-nav-group"><span>Principal</span>
+        <a href="#dashboard" data-view-link="dashboard">Dashboard</a><a href="#central-metas" data-view-link="central-metas">Central de Metas</a><a href="#metas-do-dia" data-view-link="metas-do-dia">Plano do Dia</a><a href="#calendario-metas" data-view-link="calendario-metas">Calendário de Metas</a><a href="#planejamento" data-view-link="planejamento">Planejamento</a>
+      </div>
+      <div class="side-nav-group"><span>Edital</span>
+        <a href="#edital" data-view-link="edital">Edital</a><a href="#edital-verticalizado" data-view-link="edital-verticalizado">Edital Verticalizado</a><a href="#importar-edital" data-view-link="importar-edital">Importar Edital</a><a href="#assuntos-agendaveis" data-view-link="assuntos-agendaveis">Assuntos Agendáveis</a>
+      </div>
+      <div class="side-nav-group"><span>Desempenho</span>
+        <a href="#progresso" data-view-link="progresso">Progresso</a><a href="#banco-questoes" data-view-link="banco-questoes" data-view-group="questions">Questões</a><a href="#caderno-erros" data-view-link="caderno-erros">Caderno de Erros</a><a href="#simulados" data-view-link="simulados">Simulados</a><a href="#analise-estrategica" data-view-link="analise-estrategica">Análise Estratégica</a><a href="#conselheiro" data-view-link="conselheiro">Conselheiro</a>
+      </div>
+      <div class="side-nav-group"><span>Apoio</span>
+        <a href="#materiais" data-view-link="materiais">Materiais</a><a href="#fabrica-resumos" data-view-link="fabrica-resumos">🏭 Fábrica de Resumos</a><a href="#revisao-inteligente" data-view-link="revisao-inteligente">Revisão Inteligente</a><a href="#revisoes" data-view-link="revisoes">Revisões</a><a href="#historico" data-view-link="historico">Histórico Geral</a>
+      </div>
+      <div class="side-nav-group"><span>Sistema</span><a href="#backup" data-view-link="backup">Backup</a><a href="#como-usar" data-view-link="como-usar">Como usar</a></div>
+      </div>
+    </aside>
+    <div class="screen-stage">
+    <section id="view-dashboard" class="dashboard app-view" data-view="dashboard" aria-labelledby="dashboard-title">
+      <div class="section-heading">
+        <p class="eyebrow">Resumo</p>
+        <h2 id="dashboard-title">Dashboard</h2>
+      </div>
+      <article class="daily-message-card" aria-labelledby="daily-message-title">
+        <div class="daily-message-content">
+          <p class="eyebrow">Mensagem do dia</p>
+          <h3 id="daily-message-title">Mensagem do dia</h3>
+          <p id="dailyMotivationText" class="daily-message-text" aria-live="polite">Carregando frase motivacional...</p>
+        </div>
+        <button id="changeMotivation" class="secondary-button daily-message-button" type="button">Trocar frase</button>
+      </article>
+      <div class="dashboard-blocks" aria-label="Resumo organizado do Dashboard">
+        <article class="dashboard-block"><div class="dashboard-block-title">Central de Metas</div><div id="dashboardGoalsScaleSummary" class="stats-grid compact"></div></article>
+        <article class="dashboard-block"><div class="dashboard-block-title">Hoje</div><div class="stats-grid compact">
+          <article class="stat-card"><span>Plano do Dia</span><strong id="todayGoalsTotal" class="stat-value-compact">0</strong><small>metas planejadas</small></article>
+          <article class="stat-card"><span>Meta de horas hoje</span><strong id="dashboardTodayGoal" class="stat-value-compact">0h</strong><small id="dashboardTodayGoalDetail">Sem metas planejadas.</small></article>
+          <article class="stat-card"><span>Tempo estudado hoje</span><strong id="todayHours" class="stat-value-compact">0h</strong></article>
+          <article class="stat-card"><span>Tempo faltante hoje</span><strong id="dashboardTodayRemaining" class="stat-value-compact">0h</strong></article>
+          <article class="stat-card"><span>Metas pendentes hoje</span><strong id="todayPendingGoals" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Metas concluídas hoje</span><strong id="todayDoneGoals" class="stat-value-compact">0</strong></article>
+          <article class="stat-card wide-stat"><span>Próxima meta</span><strong id="dashboardNextTodayGoal" class="stat-value-text">-</strong><button id="viewDayPlan" class="secondary-button" type="button">Ver Plano do Dia</button></article>
+        </div></article>
+
+        <article class="dashboard-block"><div class="dashboard-block-title">Revisão Inteligente</div><div class="stats-grid compact">
+          <article class="stat-card"><span>Sugeridas hoje</span><strong id="dashboardSmartReviewSuggested" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Concluídas hoje</span><strong id="dashboardSmartReviewDone" class="stat-value-compact">0</strong></article>
+          <article class="stat-card wide-stat"><span>Principal motivo</span><strong id="dashboardSmartReviewReason" class="stat-value-text">-</strong></article>
+        </div></article>
+        <article class="dashboard-block"><div class="dashboard-block-title">Progresso do Edital</div><div class="stats-grid compact">
+          <article class="stat-card"><span>Edital estudado</span><strong id="syllabusStudied" class="stat-value-compact">0%</strong></article>
+          <article class="stat-card"><span>Assuntos estudados/total</span><strong class="stat-value-compact"><span id="dashboardStudiedTopics">0</span>/<span id="syllabusTotal">0</span></strong></article>
+          <article class="stat-card"><span>Disciplina mais atrasada</span><strong id="mostDelayedDiscipline" class="stat-value-text">-</strong></article>
+          <article class="stat-card"><span>Previsão de conclusão</span><strong id="dashboardCompletionForecast" class="stat-value-text">-</strong></article>
+          <article class="stat-card wide-stat"><a class="button-link" href="#progresso" data-view-link="progresso">Ver Progresso</a></article>
+        </div></article>
+        <article class="dashboard-block dashboard-questions-hub"><div class="dashboard-block-title">Questões</div><div class="stats-grid compact">
+          <article class="stat-card"><span>Questões feitas</span><strong id="totalQuestions" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Percentual de acerto</span><strong id="accuracyRate" class="stat-value-compact">0%</strong></article>
+          <article class="stat-card"><span>Líquido Cebraspe geral</span><strong id="generalCebraspeNet" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Disciplina mais problemática</span><strong id="dashboardProblemDiscipline" class="stat-value-text">-</strong></article>
+          <article class="stat-card"><span>Questões no banco</span><strong id="dashboardQuestionBankTotal" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Treinos realizados</span><strong id="dashboardQuestionBankSessions" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Último treino</span><strong id="dashboardQuestionBankLast" class="stat-value-text">-</strong></article>
+          <article class="stat-card"><span>Pacotes disponíveis</span><strong id="dashboardQuestionBankPackages" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Questões vinculadas ao edital</span><strong id="dashboardQuestionBankLinked" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Assuntos do edital sem questões</span><strong id="dashboardQuestionBankMissing" class="stat-value-compact">0</strong></article>
+          <article class="stat-card wide-stat questions-dashboard-actions"><a class="button-link" href="#banco-questoes" data-view-link="banco-questoes">Resolver questões</a><a class="button-link" href="#questoes" data-view-link="questoes">Registrar resultado</a><a class="button-link" href="#historico-questoes" data-view-link="historico-questoes">Ver desempenho</a></article>
+        </div></article>
+        <article class="dashboard-block"><div class="dashboard-block-title">Simulados</div><div class="stats-grid compact">
+          <article class="stat-card"><span>Simulados realizados</span><strong id="mockTotal" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Último líquido</span><strong id="mockLastNet" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Melhor líquido</span><strong id="mockBestNet" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Líquido médio</span><strong id="mockAverageNet" class="stat-value-compact">0</strong></article>
+          <article class="stat-card wide-stat"><a class="button-link" href="#simulados" data-view-link="simulados">Ver Simulados</a></article>
+        </div></article>
+        <article class="dashboard-block"><div class="dashboard-block-title">Planejamento</div><div class="stats-grid compact">
+          <article class="stat-card"><span>Horas na semana</span><strong id="weekHours" class="stat-value-compact">0h</strong></article>
+          <article class="stat-card"><span>Meta semanal mínima</span><strong id="dashboardMinWeeklyHours" class="stat-value-compact">0h</strong></article>
+          <article class="stat-card"><span>Meta semanal ideal</span><strong id="dashboardIdealWeeklyHours" class="stat-value-compact">0h</strong></article>
+          <article class="stat-card"><span>Disciplinas previstas hoje</span><strong id="dashboardTodayDisciplines" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Assuntos previstos hoje</span><strong id="dashboardTodayTopics" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Disciplinas previstas na semana</span><strong id="dashboardWeekDisciplines" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Assuntos previstos na semana</span><strong id="dashboardWeekTopics" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Situação do planejamento</span><strong id="planningStatus" class="stat-value-text">-</strong></article>
+          <article class="stat-card wide-stat"><a class="button-link" href="#planejamento" data-view-link="planejamento">Configurar Planejamento</a></article>
+        </div></article>
+        <article class="dashboard-block"><div class="dashboard-block-title">Materiais</div><div class="stats-grid compact">
+          <article class="stat-card"><span>Materiais cadastrados</span><strong id="materialsTotal" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Disciplinas com materiais</span><strong id="materialDisciplinesTotal" class="stat-value-compact">0</strong></article>
+          <article class="stat-card"><span>Assuntos com materiais</span><strong id="materialTopicsTotal" class="stat-value-compact">0</strong></article>
+          <article class="stat-card wide-stat"><a class="button-link" href="#materiais" data-view-link="materiais">Ver Materiais</a></article>
+        </div></article>
+      </div>
+
+
+      <article class="panel progress-dashboard-card" aria-labelledby="dashboard-progress-title">
+        <div class="section-heading inline"><div><p class="eyebrow">Edital</p><h2 id="dashboard-progress-title">Progresso do Edital</h2></div><a class="text-link" href="#progresso" data-view-link="progresso">Ver painel completo</a></div>
+        <div id="dashboardProgressSummary" class="progress-summary" aria-live="polite"></div>
+      </article>
+
+      <div class="grid-layout dashboard-tools">
+      <article class="panel" aria-labelledby="subjects-title">
+        <div class="section-heading inline"><div><p class="eyebrow">Cadastro</p><h2 id="subjects-title">Disciplinas</h2></div></div>
+        <p class="notice">As disciplinas podem vir do edital importado ou ser cadastradas manualmente.</p>
+        <form id="subjectForm" class="form-stack">
+          <label>Nome da disciplina<input id="subjectName" type="text" placeholder="Ex.: Direito Constitucional" required /></label>
+          <label>Meta semanal em horas<input id="subjectGoal" type="number" min="0" step="0.5" placeholder="Ex.: 6" required /></label>
+          <button type="submit">Adicionar disciplina</button>
+        </form>
+        <ul id="subjectList" class="list empty-message" aria-live="polite"></ul>
+      </article>
+
+      <article class="panel" aria-labelledby="study-title">
+        <div class="section-heading"><p class="eyebrow">Registro diário</p><h2 id="study-title">Novo estudo</h2></div>
+        <form id="studyForm" class="form-grid">
+          <label>Data<input id="studyDate" type="date" required /></label>
+          <label>Disciplina<select id="studySubject" required></select></label>
+          <label class="wide">Assunto<input id="studyTopic" type="text" placeholder="Ex.: Controle de constitucionalidade" required /></label>
+          <label>Minutos estudados<input id="studyMinutes" type="number" min="1" required /></label>
+          <label>Tempo planejado (min)<input id="studyPlannedMinutes" type="number" min="0" value="0" /></label>
+          <label>Status do assunto<select id="studyTopicStatus"><option>Iniciado</option><option>Concluído</option></select></label>
+          <label>Material usado<select id="studyMaterial"><option value="">Nenhum material vinculado</option></select></label>
+          <label class="wide">Observação sobre dificuldade<textarea id="studyDifficultyNotes" rows="2"></textarea></label>
+          <label>Questões feitas<input id="questionsDone" type="number" min="0" value="0" required /></label>
+          <label>Acertos<input id="correctAnswers" type="number" min="0" value="0" required /></label>
+          <label>Erros<input id="wrongAnswers" type="number" min="0" value="0" required /></label>
+          <label>Brancos<input id="blankAnswers" type="number" min="0" value="0" required /></label>
+          <button class="wide" type="submit">Salvar registro</button>
+        </form>
+      </article>
+      </div>
+    </section>
+
+    <section id="view-edital" class="panel app-view" data-view="edital" aria-labelledby="edital-title">
+      <div class="section-heading"><p class="eyebrow">Dados do concurso</p><h2 id="edital-title">Edital</h2></div>
+      <p class="notice">Uso pessoal: as informações do edital ficam salvas apenas neste navegador via localStorage. O sistema salva apenas a referência do arquivo. Para acessar o PDF em outros dispositivos, mantenha-o no Google Drive ou cadastre o link.</p>
+      <form id="editalForm" class="form-grid">
+        <label>Nome do concurso<input id="contestName" type="text" placeholder="Ex.: Concurso Tribunal X 2026" /></label>
+        <label>Órgão<input id="agency" type="text" placeholder="Ex.: Tribunal Regional" /></label>
+        <label>Cargo<input id="role" type="text" placeholder="Ex.: Analista" /></label>
+        <label>Banca<input id="board" type="text" placeholder="Ex.: Banca organizadora" /></label>
+        <label>Data da prova<input id="examDate" type="date" /></label>
+        <label>Link oficial do edital<input id="officialLink" type="url" placeholder="https://..." /></label>
+        <label class="wide">Observações gerais<textarea id="generalNotes" rows="4" placeholder="Informações importantes sobre o edital"></textarea></label>
+        <label class="wide">Anexar PDF do edital<input id="editalPdf" type="file" accept="application/pdf" /></label>
+        <div id="pdfInfo" class="file-info wide empty-message"></div>
+        <button type="submit">Salvar dados do edital</button>
+        <button id="removePdf" class="secondary-button" type="button">Remover PDF anexado</button>
+      </form>
+    </section>
+
+    <section id="view-edital-verticalizado" class="panel app-view" data-view="edital-verticalizado" aria-labelledby="vertical-title">
+      <div class="section-heading"><p class="eyebrow">Organização do conteúdo</p><h2 id="vertical-title">Edital Verticalizado</h2></div>
+      <form id="syllabusForm" class="form-grid">
+        <label>Disciplina<input id="itemDiscipline" type="text" list="disciplineOptions" required /></label>
+        <datalist id="disciplineOptions"></datalist>
+        <label>Tópico principal<input id="itemTopic" type="text" required /></label>
+        <label>Assunto<input id="itemSubject" type="text" required /></label>
+        <label>Subassunto<input id="itemSubtopic" type="text" /></label>
+        <label>Referência do edital<input id="itemReference" type="text" /></label>
+        <label>Prioridade<select id="itemPriority"><option>Alta</option><option selected>Média</option><option>Baixa</option></select></label>
+        <label>Incidência do assunto<select id="itemWeight"><option value="1">1 = Baixíssima</option><option value="2">2 = Baixa</option><option value="3" selected>3 = Média</option><option value="4">4 = Alta</option><option value="5">5 = Altíssima</option></select></label>
+        <label>Status<select id="itemStatus"><option>Não iniciado</option><option>Em andamento</option><option>Estudado</option><option>Revisar</option><option>Dominado</option><option>Ignorado</option></select></label>
+        <label>Domínio<select id="itemDomain"><option selected>Sem diagnóstico</option><option>Não avaliado</option><option>Fraco</option><option>Médio</option><option>Forte</option></select></label>
+        <label class="wide">Observações<textarea id="itemNotes" rows="3"></textarea></label>
+        <p class="notice wide">Incidência do assunto: usada para priorizar o estudo sem alterar a ordem do edital.</p>
+        <button class="wide" type="submit">Adicionar item ao edital</button>
+      </form>
+
+      <div class="bulk-box">
+        <h3>Cadastro em massa</h3>
+        <p class="item-meta">Cole um item por linha. Use ponto e vírgula para separar: disciplina; tópico; assunto; subassunto; referência; prioridade; incidência do assunto (1 a 5); status; domínio; observações. Deixe o domínio vazio para usar Sem diagnóstico.</p>
+        <textarea id="bulkInput" rows="6" placeholder="Português; Gramática; Concordância verbal; Casos especiais; Item 1.2; Alta; 4; Não iniciado; Sem diagnóstico; Revisar exemplos"></textarea>
+        <div class="actions"><button id="previewBulk" type="button">Revisar itens</button><button id="saveBulk" class="secondary-button" type="button" disabled>Salvar itens revisados</button></div>
+        <div id="bulkPreview" class="table-wrapper empty-message"></div>
+      </div>
+
+      <div class="bulk-box" id="incidenceApplyBox">
+        <h3>Aplicar incidências</h3>
+        <p class="item-meta">Cole uma tabela no formato TIPO;DISCIPLINA;ASSUNTO;VALOR;PRIORIDADE. Esta ação apenas atualiza pesos de disciplinas, incidência e prioridade de assuntos já existentes.</p>
+        <textarea id="incidenceTableInput" rows="8" placeholder="TIPO;DISCIPLINA;ASSUNTO;VALOR;PRIORIDADE
+DISCIPLINA;Direito Penal;;18;Altíssima
+ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
+        <div class="actions"><button id="applyIncidenceTableButton" type="button">Aplicar incidências</button></div>
+        <div id="incidenceTableResult" class="empty-message" aria-live="polite"></div>
+      </div>
+
+      <div class="filters form-grid compact">
+        <label class="wide">Busca por palavra-chave<input id="filterSearch" type="search" placeholder="Buscar disciplina, tópico, assunto, referência ou observações" /></label>
+        <label>Disciplina<select id="filterDiscipline"><option value="">Todas</option></select></label>
+        <label>Prioridade<select id="filterPriority"><option value="">Todas</option><option>Alta</option><option>Média</option><option>Baixa</option></select></label>
+        <label>Status<select id="filterStatus"><option value="">Todos</option><option>Não iniciado</option><option>Em andamento</option><option>Estudado</option><option>Revisar</option><option>Dominado</option><option>Ignorado</option></select></label>
+        <label>Domínio<select id="filterDomain"><option value="">Todos</option><option>Sem diagnóstico</option><option>Não avaliado</option><option>Fraco</option><option>Médio</option><option>Forte</option></select></label>
+        <label>Agendável<select id="filterSchedulable"><option value="">Todos</option><option value="yes">Agendável</option><option value="no">Não agendável</option></select></label>
+        <label>Filtro rápido<select id="filterQuick"><option value="">Todos</option><option value="schedulable">Agendáveis</option><option value="notStarted">Não iniciados</option><option value="weak">Fracos</option><option value="undiagnosed">Sem diagnóstico</option></select></label>
+      </div>
+      <div class="bulk-priority-box">
+        <h3>Ajuste de prioridade em massa</h3>
+        <p class="item-meta">Aplique a nova prioridade a todos os assuntos que passam pelos filtros atuais.</p>
+        <div class="actions"><select id="bulkPriority"><option>Alta</option><option selected>Média</option><option>Baixa</option></select><button id="applyBulkPriority" type="button">Aplicar aos itens filtrados</button></div>
+      </div>
+      <p id="syllabusCount" class="item-meta"></p>
+      <div id="syllabusList" class="cards-list empty-message"></div>
+      <button id="showMoreSyllabus" class="secondary-button show-more" type="button">Mostrar mais</button>
+    </section>
+
+
+    <section id="view-importar-edital" class="panel app-view" data-view="importar-edital" aria-labelledby="import-title">
+      <div class="section-heading"><p class="eyebrow">Importação JSON</p><h2 id="import-title">Importar Edital Verticalizado</h2></div>
+      <p class="notice">Selecione um arquivo JSON com os campos do edital verticalizado para revisar os itens antes de salvar no localStorage.</p>
+      <div class="form-grid">
+        <label class="wide">Arquivo JSON<input id="jsonImportFile" type="file" accept="application/json,.json" /></label>
+      </div>
+      <button id="replaceImportedSyllabus" class="secondary-button" type="button">Substituir edital pelo JSON selecionado</button>
+      <div id="importMessage" class="file-info empty-message" aria-live="polite"></div>
+      <div class="import-summary stats-grid compact" aria-label="Resumo da importação">
+        <article class="stat-card"><span>Total de itens encontrados</span><strong id="importSubjectTotal">0</strong></article>
+        <article class="stat-card"><span>Total de disciplinas</span><strong id="importDisciplineTotal">0</strong></article>
+      </div>
+
+      <div class="filters form-grid compact">
+        <label>Disciplina<select id="importFilterDiscipline"><option value="">Todas</option></select></label>
+        <label>Status<select id="importFilterStatus"><option value="">Todos</option></select></label>
+        <label>Prioridade<select id="importFilterPriority"><option value="">Todas</option></select></label>
+        <label>Domínio<select id="importFilterDomain"><option value="">Todos</option></select></label>
+      </div>
+      <div id="importDisciplineList" class="discipline-list empty-message" aria-live="polite"></div>
+      <div id="importedSyllabusGroups" class="imported-syllabus-groups empty-message" aria-live="polite"></div>
+      <div class="actions"><button id="importJsonButton" type="button" disabled>Importar para o Edital Verticalizado</button><button id="clearImportedSyllabus" class="danger" type="button" title="Remove todos os itens importados; use a seção Gerenciar editais importados para excluir apenas um edital específico.">Limpar edital verticalizado importado</button></div>
+      <div id="importPreview" class="table-wrapper empty-message" aria-live="polite"></div>
+    </section>
+
+
+    <section id="view-materiais" class="panel app-view" data-view="materiais" aria-labelledby="materials-title">
+      <div class="section-heading"><p class="eyebrow">Biblioteca</p><h2 id="materials-title">Materiais</h2></div>
+      <p class="notice">Os arquivos não são salvos dentro do site: o sistema salva o link ou referência do material. Para acesso em outros dispositivos, mantenha os arquivos no Google Drive ou outro serviço de nuvem e use a sincronização via Google Drive; exporte backup JSON apenas como cópia extra de segurança.</p>
+      <p class="notice warning-notice">Evite colocar arquivos pessoais ou protegidos por direitos autorais em repositórios públicos.</p>
+      <form id="materialForm" class="form-grid">
+        <input id="materialEditingId" type="hidden" />
+        <label>Título do material<input id="materialTitle" type="text" required /></label>
+        <label>Data de cadastro<input id="materialDate" type="date" required /></label>
+        <label>Disciplina<input id="materialDiscipline" type="text" list="materialDisciplineOptions" required /></label>
+        <datalist id="materialDisciplineOptions"></datalist>
+        <label>Assunto<input id="materialSubject" type="text" list="materialSubjectOptions" required /></label>
+        <datalist id="materialSubjectOptions"></datalist>
+        <label class="wide">Vínculo exato com o edital
+          <select id="materialSyllabusItem">
+            <option value="">Material avulso, sem item do edital</option>
+          </select>
+          <small>Selecione o item exato para o material aparecer apenas nas metas correspondentes.</small>
+        </label>
+        <label>Tipo de material<select id="materialType"><option>PDF</option><option>Word</option><option>Imagem</option><option>Mapa mental</option><option>Resumo</option><option>Aula</option><option>Questões</option><option>Outro</option></select></label>
+        <label>Origem<select id="materialOrigin"><option>Google Drive</option><option>OneDrive</option><option>Link externo</option><option>Arquivo local/referência manual</option><option>Outro</option></select></label>
+        <label class="wide">Link do arquivo<input id="materialLink" type="text" placeholder="https://drive.google.com/... ou referência manual" required /></label>
+        <label class="wide">Tags<input id="materialTags" type="text" placeholder="Separadas por vírgula: resumo, revisão, mapas" /></label>
+        <label class="wide">Observações<textarea id="materialNotes" rows="3"></textarea></label>
+        <button class="wide" type="submit">Salvar material</button>
+      </form>
+
+      <div class="filters form-grid compact">
+        <label>Disciplina<select id="materialFilterDiscipline"><option value="">Todas</option></select></label>
+        <label>Assunto<select id="materialFilterSubject"><option value="">Todos</option></select></label>
+        <label>Tipo<select id="materialFilterType"><option value="">Todos</option></select></label>
+        <label>Origem<select id="materialFilterOrigin"><option value="">Todas</option></select></label>
+        <label class="wide">Texto livre<input id="materialFilterText" type="search" placeholder="Buscar por título, tags, observações ou link" /></label>
+      </div>
+      <div id="materialsList" class="cards-list empty-message" aria-live="polite"></div>
+    </section>
+
+
+    <section id="view-fabrica-resumos" class="panel app-view" data-view="fabrica-resumos" aria-labelledby="factory-title">
+      <div class="section-heading"><p class="eyebrow">Fábrica</p><h2 id="factory-title">🏭 Fábrica de Resumos</h2></div>
+      <p class="notice">Versão mínima e segura para cadastrar, listar, editar, excluir e acompanhar o status dos temas. Os dados são salvos no localStorage, entram no backup manual e seguem na sincronização Google Drive pelo estado do app.</p>
+      <div class="actions factory-settings-actions"><button id="editFactoryPromptLibrary" type="button" class="secondary-button">Editar biblioteca de prompts</button></div>
+      <section id="factoryPromptLibraryPanel" class="bulk-box factory-prompt-library" hidden aria-labelledby="factory-prompt-library-title"></section>
+      <div id="factorySummary" class="stats-grid compact factory-summary" aria-live="polite"></div>
+      <nav class="factory-production-tabs" aria-label="Período de produção da Fábrica">
+        <button type="button" data-production-scope="day" aria-pressed="true">Plano do Dia</button>
+        <button type="button" class="secondary-button" data-production-scope="week" aria-pressed="false">Produção da Semana</button>
+      </nav>
+      <details class="factory-collapsible factory-filter-panel" open>
+        <summary>Filtros e etapas da Fábrica</summary>
+        <div class="actions factory-filter-actions" role="group" aria-label="Filtros da Fábrica">
+        <button type="button" class="secondary-button" data-factory-filter="faca-agora">FAÇA AGORA</button>
+        <button type="button" class="secondary-button" data-factory-filter="fila-hoje">FILA DO PERÍODO</button>
+        <button type="button" class="secondary-button" data-factory-filter="aguardando-triagem">AGUARDANDO TRIAGEM</button>
+        <button type="button" class="secondary-button" data-factory-filter="resumo-aula">RESUMO/AULA</button>
+        <button type="button" class="secondary-button" data-factory-filter="em-producao">EM PRODUÇÃO</button>
+        <button type="button" class="secondary-button" data-factory-filter="aguardando-revisao">AGUARDANDO REVISÃO</button>
+        <button type="button" class="secondary-button" data-factory-filter="precisa-refazer">PRECISA REFAZER</button>
+        <button type="button" class="secondary-button" data-factory-filter="prontos">PRONTOS PARA ESTUDAR</button>
+        <button type="button" class="secondary-button" data-factory-filter="todos">TODOS</button>
+        </div>
+      </details>
+      <details id="factoryRegisterPanel" class="factory-collapsible factory-register-panel">
+        <summary>Cadastrar ou editar tema</summary>
+        <form id="factoryForm" class="form-grid factory-form">
+        <input id="factoryEditingId" type="hidden" />
+        <label>Disciplina<input id="factoryDiscipline" type="text" placeholder="Processo Penal" required /></label>
+        <label>Tema<input id="factoryTheme" type="text" placeholder="Inquérito Policial" required /></label>
+        <label>Prioridade<select id="factoryPriority"><option>Alta</option><option selected>Média</option><option>Baixa</option></select></label>
+        <label>Status<select id="factoryStatus"></select></label>
+        <label>Data planejada<input id="factoryPlannedDate" type="date" /></label>
+        <label class="wide">Link da pasta de fontes no Google Drive<input id="factorySourceFolder" type="url" value="https://drive.google.com/drive/folders/1BTUFtLBf6tuKG6kqWTRIrPT75cltdy-n" placeholder="https://drive.google.com/drive/folders/..." /><small>Esta é a fonte padrão para todos os resumos. Você pode substituir o link em cada tema.</small></label>
+        <label class="wide">Link da pasta de destino do Word/PDF no Google Drive<input id="factoryDestinationFolder" type="url" placeholder="https://drive.google.com/drive/folders/..." /></label>
+        <label class="wide">Observação<textarea id="factoryNotes" rows="3" placeholder="Observações sobre o tema..."></textarea></label>
+        <button class="wide" type="submit">+ Adicionar tema</button>
+        </form>
+      </details>
+      <div id="factoryList" class="cards-list factory-list empty-message" aria-live="polite"></div>
+    </section>
+
+    <section id="view-revisao-inteligente" class="panel app-view" data-view="revisao-inteligente" aria-labelledby="smart-review-title">
+      <div class="section-heading">
+        <p class="eyebrow">Revisão diária</p>
+        <h2 id="smart-review-title">Revisão Inteligente</h2>
+      </div>
+      <p class="notice">Mostra os assuntos sugeridos para revisão na data selecionada, com base no edital, metas e histórico salvo.</p>
+      <div class="form-grid compact">
+        <label>Data da revisão
+          <input id="smartReviewDate" type="date" />
+        </label>
+      </div>
+      <div id="smartReviewStandalone" class="smart-review-list cards-list empty-message" aria-live="polite"></div>
+    </section>
+
+    <section id="view-assuntos-agendaveis" class="panel app-view" data-view="assuntos-agendaveis" aria-labelledby="schedulable-title">
+      <div class="section-heading"><p class="eyebrow">Planejamento futuro</p><h2 id="schedulable-title">Assuntos Agendáveis</h2></div>
+      <p class="item-meta">Esta tela é alimentada pelos itens do edital verticalizado. Defina como cada assunto poderá entrar nas suas metas.</p>
+      <div id="schedulableList" class="cards-list empty-message"></div>
+    </section>
+
+
+    <section id="view-central-metas" class="panel app-view" data-view="central-metas" aria-labelledby="central-goals-title">
+      <div class="section-heading inline"><div><p class="eyebrow">Hoje • Esta semana • Este mês</p><h2 id="central-goals-title">Central de Metas</h2></div><button id="centralOpenDayPlan" type="button">Abrir Plano do Dia</button></div>
+      <p class="notice">Visão didática das metas diárias, semanais e mensais com base na escala configurada no Planejamento.</p>
+      <div id="centralGoalsCards" class="goal-central-grid" aria-live="polite"></div>
+      <details class="central-time-chart-panel" open>
+        <summary><span><strong>Tempo de estudo por período</strong><small>Gráfico de pizza com os registros reais</small></span></summary>
+        <div class="central-time-chart-content">
+          <div class="central-time-chart-filters form-grid compact" aria-label="Filtros do gráfico de tempo">
+            <label>Período<select id="centralTimePeriod"><option value="day">Hoje</option><option value="week">Esta semana</option><option value="month">Este mês</option><option value="total">Todo o período</option></select></label>
+            <label>Disciplina<select id="centralTimeDiscipline"><option value="">Todas</option></select></label>
+            <label>Assunto<select id="centralTimeSubject"><option value="">Todos</option></select></label>
+            <label>Edital<select id="centralTimeEdital"><option value="">Todos</option></select></label>
+            <label>Tipo de estudo<select id="centralTimeType"><option value="">Todos</option></select></label>
+          </div>
+          <div id="centralTimeChart" class="central-time-chart" aria-live="polite"></div>
+        </div>
+      </details>
+      <article class="smart-review-panel" aria-labelledby="central-smart-review-title"><div class="section-heading inline"><div><p class="eyebrow">Revisão diária</p><h3 id="central-smart-review-title">Revisão Inteligente de Hoje</h3></div></div><div id="centralSmartReview" class="smart-review-list" aria-live="polite"></div></article>
+      <article class="bulk-box"><h3>Escala</h3><div id="centralScaleSummary" class="stats-grid compact"></div></article>
+      <article class="bulk-box"><h3>Próximas datas</h3><div class="table-wrapper"><table class="responsive-table"><thead><tr><th>Data</th><th>Dia da semana</th><th>Tipo do dia</th><th>Horas previstas</th><th>Assuntos previstos</th></tr></thead><tbody id="centralNextDates"></tbody></table></div></article>
+    </section>
+
+    <section id="view-planejamento" class="panel app-view" data-view="planejamento" aria-labelledby="planning-title">
+      <div class="section-heading"><p class="eyebrow">Plantões</p><h2 id="planning-title">Planejamento</h2></div>
+      <form id="planningConfigForm" class="planning-form-stack">
+        <details class="planning-section" data-planning-section="contest" open>
+          <summary class="planning-section-summary"><span class="planning-section-heading"><strong class="planning-section-title">Concurso e estratégia</strong><small id="planningContestResume" class="planning-section-resume">Escolha o planejamento PCPR, PCMA ou conjunto.</small></span><span class="planning-section-chevron" aria-hidden="true">›</span></summary>
+          <div class="planning-section-content form-grid compact">
+            <label>Modo de planejamento<select id="planningModeSelect"><option value="joint">PCPR + PCMA</option><option value="pcpr">Somente PCPR</option><option value="pcma">Somente PCMA</option></select></label>
+            <div id="planningContestSummary" class="notice wide" aria-live="polite"></div>
+          </div>
+        </details>
+        <details class="planning-section" data-planning-section="summary" open>
+          <summary class="planning-section-summary"><span class="planning-section-heading"><strong class="planning-section-title">Resumo do planejamento</strong><small id="planningSummaryResume" class="planning-section-resume">Resumo rápido do planejamento atual.</small></span><span class="planning-section-chevron" aria-hidden="true">›</span></summary>
+          <div id="planningSummaryCards" class="planning-section-content stats-grid compact"></div>
+        </details>
+        <details class="planning-section" data-planning-section="day-modes" open>
+          <summary class="planning-section-summary"><span class="planning-section-heading"><strong class="planning-section-title">Conteúdo por tipo de dia</strong><small id="planningDayModesResume" class="planning-section-resume">Normal, folga e plantão com metas próprias.</small></span><span class="planning-section-chevron" aria-hidden="true">›</span></summary>
+          <div id="planningDayModes" class="planning-section-content day-mode-grid"></div>
+        </details>
+        <details class="planning-section" data-planning-section="disciplines">
+          <summary class="planning-section-summary"><span class="planning-section-heading"><strong class="planning-section-title">Disciplinas e distribuição</strong><small class="planning-section-resume">Limites de disciplinas e assuntos por período.</small></span><span class="planning-section-chevron" aria-hidden="true">›</span></summary>
+          <div class="planning-section-content form-grid compact">
+            <label>Disciplinas por dia<input id="planningDisciplinesPerDay" type="number" min="1" /></label>
+            <label>Disciplinas por semana<input id="planningDisciplinesPerWeek" type="number" min="1" /></label>
+            <label>Disciplinas por mês<input id="planningDisciplinesPerMonth" type="number" min="1" /></label>
+            <label>Assuntos por dia<input id="planningTopicsPerDay" type="number" min="1" /></label>
+            <label>Assuntos por semana<input id="planningTopicsPerWeek" type="number" min="1" /></label>
+            <label>Assuntos por mês<input id="planningTopicsPerMonth" type="number" min="1" /></label>
+          </div>
+        </details>
+        <details class="planning-section" data-planning-section="load">
+          <summary class="planning-section-summary"><span class="planning-section-heading"><strong class="planning-section-title">Carga, limites e disponibilidade</strong><small class="planning-section-resume">Horas por tipo de dia e metas semanais.</small></span><span class="planning-section-chevron" aria-hidden="true">›</span></summary>
+          <div class="planning-section-content form-grid compact">
+            <label>Data da prova<input id="planningExamDate" type="date" /></label>
+            <label>Margem de segurança (dias)<input id="planningSafetyDays" type="number" min="0" /></label>
+            <label>Meta de estudo em dia de plantão<input id="planningShiftHours" type="number" min="0" step="0.5" /></label>
+            <label>Meta de estudo em dia de folga<input id="planningRestHours" type="number" min="0" step="0.5" /></label>
+            <label>Meta de estudo em dia normal<input id="planningNormalHours" type="number" min="0" step="0.5" /></label>
+            <label>Meta semanal mínima (h)<input id="planningMinWeeklyHours" type="number" min="0" step="0.5" /></label>
+            <label>Meta semanal ideal (h)<input id="planningIdealWeeklyHours" type="number" min="0" step="0.5" /></label>
+            <label>Meta semanal de assuntos<input id="planningWeeklyTopics" type="number" min="0" /></label>
+          </div>
+        </details>
+        <details class="planning-section" data-planning-section="estimates">
+          <summary class="planning-section-summary"><span class="planning-section-heading"><strong class="planning-section-title">Estimativas de materiais</strong><small id="planningMaterialEstimateResume" class="planning-section-resume">Carga prevista, tempo realizado e projeção pelo ritmo real.</small></span><span class="planning-section-chevron" aria-hidden="true">›</span></summary>
+          <div class="planning-section-content">
+            <p class="notice">A estimativa automática parte das páginas úteis e da densidade. Depois que ao menos uma meta vinculada for concluída, o sistema compara previsto e realizado para projetar se o material tende a terminar antes, dentro ou depois da estimativa.</p>
+            <div id="planningMaterialEstimates" class="planning-material-estimates cards-list" aria-live="polite"></div>
+          </div>
+        </details>
+        <details class="planning-section" data-planning-section="scale">
+          <summary class="planning-section-summary"><span class="planning-section-heading"><strong class="planning-section-title">Escala e classificação dos dias</strong><small class="planning-section-resume">Escala atual e calendário editável dos próximos dias.</small></span><span class="planning-section-chevron" aria-hidden="true">›</span></summary>
+          <div class="planning-section-content form-grid">
+            <label>Tipo de escala<select id="planningScaleType"><option>24x72</option><option>3 dias de trabalho / 6 dias de folga</option><option>manual</option></select></label>
+            <div class="wide planning-subblock scale-work-block"><h4>Escala de Trabalho</h4><p class="item-meta">Informe uma data conhecida da sua escala e em qual ponto da escala você estava nesse dia.</p><div id="scale3x6Fields" class="form-grid compact"><label>Data de referência da escala<input id="planningScaleReferenceDate" type="date" /></label><label>Situação nessa data<select id="planningScaleReferencePosition"><option value="0">Trabalho - dia 1</option><option value="1">Trabalho - dia 2</option><option value="2">Trabalho - dia 3</option><option value="3">Folga - dia 1</option><option value="4">Folga - dia 2</option><option value="5">Folga - dia 3</option><option value="6">Folga - dia 4</option><option value="7">Folga - dia 5</option><option value="8">Folga - dia 6</option></select></label></div></div>
+            <label class="wide">Observações da escala<textarea id="planningScaleNotes" rows="2"></textarea></label>
+            <div id="availabilityCalendar" class="cards-list wide"></div>
+          </div>
+        </details>
+        <details class="planning-section" data-planning-section="preview">
+          <summary class="planning-section-summary"><span class="planning-section-heading"><strong class="planning-section-title">Prévia do planejamento</strong><small class="planning-section-resume">Próximos dias sem alterar dados.</small></span><span class="planning-section-chevron" aria-hidden="true">›</span></summary>
+          <div id="planningPreview" class="planning-section-content cards-list"></div>
+        </details>
+        <details class="planning-section" data-planning-section="advanced">
+          <summary class="planning-section-summary"><span class="planning-section-heading"><strong class="planning-section-title">Ajustes avançados</strong><small class="planning-section-resume">Previsões e alertas calculados.</small></span><span class="planning-section-chevron" aria-hidden="true">›</span></summary>
+          <div class="planning-section-content"><div id="completionForecast" class="stats-grid compact"></div><div id="completionAlert" class="notice"></div><div id="weeklyGoalsPlan" class="stats-grid compact"></div><div id="weeklyGoalsAlert" class="notice"></div></div>
+        </details>
+        <div class="planning-actions"><button type="submit" class="big-action-button">Salvar planejamento e atualizar metas</button></div>
+        <p id="planningSaveStatus" class="file-info" aria-live="polite" hidden></p>
+      </form>
+      <article class="bulk-box"><h3>Metas planejadas e histórico de tempo</h3><div class="card-actions"><button id="addManualTime" type="button">Adicionar tempo manual</button></div><div id="timeUndoNotice" class="notice" hidden>Alteração realizada. <button id="undoTimeAction" type="button">Desfazer</button></div><div id="timeHistorySummary" class="stats-grid compact"></div><div id="timeHistoryCards" class="planning-history-cards" aria-live="polite"></div></article>
+    </section>
+
+    <section id="view-metas-do-dia" class="panel app-view" data-view="metas-do-dia" aria-labelledby="daily-goals-title">
+      <div class="section-heading inline"><div><p class="eyebrow">Planejamento diário</p><h2 id="daily-goals-title">Plano do Dia</h2></div><div class="actions"><button id="refreshDailyGoalsFromPlanning" class="secondary-button" type="button">Atualizar conforme planejamento</button><button id="generateDailyGoals" type="button">Gerar metas do dia</button></div></div>
+      <p class="notice">As metas são criadas a partir dos assuntos agendáveis do edital verticalizado, priorizando alta prioridade, não iniciados, sem diagnóstico, fracos e disciplinas com mais pendências.</p>
+      <div class="selected-day-banner">Exibindo metas de: <strong id="selectedGoalDateLabel">--/--/----</strong></div>
+      <details class="choose-subject-day-panel" open>
+        <summary>Escolher assunto para este dia</summary>
+        <form id="chooseSubjectForDayForm" class="form-grid compact">
+          <label>Data<input id="chooseSubjectForDayDate" type="date" required /></label>
+          <label>Disciplina<select id="chooseSubjectForDayDiscipline" required></select></label>
+          <label class="wide">Assunto<select id="chooseSubjectForDayItem" required></select></label>
+          <label id="chooseSubjectReplacementField" class="wide" hidden>Meta pendente que sairá deste dia
+            <select id="chooseSubjectReplacementGoal"></select>
+            <small>A meta escolhida será reagendada automaticamente, mantendo o mesmo UUID e todos os seus dados.</small>
+          </label>
+          <p id="chooseSubjectForDayStatus" class="file-info wide" aria-live="polite"></p>
+          <div class="actions wide"><button id="chooseSubjectForDaySubmit" type="submit">Colocar no Plano do Dia</button></div>
+        </form>
+      </details>
+      <article class="day-plan-panel" aria-labelledby="day-plan-title">
+        <div class="section-heading"><p class="eyebrow">Visão geral</p><h2 id="day-plan-title">Resumo do dia</h2></div>
+        <div id="dailyGoalsSummary" class="stats-grid compact daily-goals-summary" aria-live="polite"></div>
+      </article>
+      <article id="nextDailyGoal" class="next-goal-card" aria-live="polite"></article>
+      <details class="smart-review-panel day-smart-review-panel" aria-labelledby="day-smart-review-title">
+        <summary class="day-smart-review-summary"><span><span class="eyebrow">Revisão diária</span><strong id="day-smart-review-title">Revisão Inteligente de Hoje</strong></span><span class="day-smart-review-toggle" aria-hidden="true">Abrir</span></summary>
+        <div id="daySmartReview" class="smart-review-list day-smart-review-content" aria-live="polite"></div>
+      </details>
+      <section class="today-study-panel" aria-labelledby="today-study-title">
+        <div class="section-heading"><p class="eyebrow">Execução</p><h2 id="today-study-title">O que estudar hoje</h2></div>
+        <div id="dailyGoalsList" class="daily-goals-board empty-message" aria-live="polite"></div>
+      </section>
+      <details class="manual-goal-panel" open>
+        <summary>Adicionar meta manual</summary>
+      <form id="goalForm" class="form-grid">
+        <input id="goalEditingId" type="hidden" />
+        <label>Data<input id="goalDate" type="date" required /></label>
+        <label>Disciplina<select id="goalDiscipline" required></select></label>
+        <label class="wide">Assunto<select id="goalSyllabusItem" required></select></label>
+        <label>Tipo da meta<select id="goalType"><option>Estudo novo</option><option>Revisão</option><option>Questões</option><option>Simulado</option><option>Reforço</option></select></label>
+        <label>Tempo planejado (min)<input id="goalMinutes" type="number" min="1" value="50" required /></label>
+        <label>Tempo realizado (min)<input id="goalActualMinutes" type="number" min="0" value="0" /></label>
+        <label>Status do estudo<select id="goalStudyStatus"><option>Iniciado</option><option>Concluído</option></select></label>
+        <label>Prioridade<select id="goalPriority"><option>Alta</option><option selected>Média</option><option>Baixa</option></select></label>
+        <label>Status<select id="goalStatus"><option selected>Pendente</option><option>Concluída</option><option>Adiada</option><option>Não cumprida</option><option>Ignorada</option></select></label>
+        <label class="wide">Observações / dificuldade<textarea id="goalNotes" rows="3"></textarea></label>
+        <div class="actions wide"><button id="cancelGoalEdit" class="secondary-button" type="button" hidden>Cancelar edição</button><button id="goalSubmitButton" type="submit">Salvar meta manual</button></div>
+      </form>
+      </details>
+    </section>
+
+    <section id="view-calendario-metas" class="panel app-view" data-view="calendario-metas" aria-labelledby="goal-calendar-title">
+      <div class="section-heading inline"><div><p class="eyebrow">Calendário visual</p><h2 id="goal-calendar-title">Calendário de Metas</h2></div></div>
+      <p class="notice">Alterne entre visão diária, semanal e mensal. A geração automática usa pesos manuais, incidência dos assuntos, atraso, assuntos pendentes, desempenho em questões/simulados, revisões e disponibilidade do Planejamento.</p>
+      <div class="calendar-toolbar form-grid compact">
+        <label>Data de referência<input id="calendarDate" type="date" /></label>
+        <label>Período das metas<select id="goalGenerationScope"><option value="daily">Dia</option><option value="weekly">Semana</option><option value="monthly">Mês</option></select></label>
+        <button id="generateCalendarGoals" type="button">Gerar metas</button>
+      </div>
+      <p id="goalCalendarGenerationStatus" class="file-info" aria-live="polite" hidden></p>
+      <div class="calendar-export-scope form-grid compact"><label>Período do arquivo<select id="goalCalendarExportScope"><option value="daily">Somente dia</option><option value="weekly">Somente semana</option><option value="monthly">Somente mês</option><option value="all">Dia + semana + mês</option></select></label></div>
+      <div class="calendar-export-actions actions" aria-label="Exportar calendário didático">
+        <button id="exportGoalCalendarPdf" type="button">Gerar PDF</button>
+        <button id="exportGoalCalendarExcel" class="secondary-button" type="button">Gerar Excel</button>
+        <button id="exportGoalCalendarImage" class="secondary-button" type="button">Gerar imagem</button>
+      </div>
+      <p id="goalCalendarExportStatus" class="file-info" aria-live="polite" hidden></p>
+      <details class="goal-calendar-section" data-goal-calendar-section="daily" open><summary><span><strong>Calendário do dia</strong><small id="goalCalendarDailyResume">Metas da data escolhida</small></span></summary><div class="goal-calendar-section-content"><div id="goalCalendarStats" class="stats-grid compact"></div><div id="goalCalendarContent" class="goal-calendar empty-message" aria-live="polite"></div></div></details>
+      <details class="goal-calendar-section" data-goal-calendar-section="weekly"><summary><span><strong>Calendário semanal</strong><small id="goalCalendarWeeklyResume">Sete dias de planejamento</small></span></summary><div class="goal-calendar-section-content"><div id="goalCalendarWeeklyStats" class="stats-grid compact"></div><div id="goalCalendarWeeklyContent" class="goal-calendar empty-message" aria-live="polite"></div></div></details>
+      <details class="goal-calendar-section" data-goal-calendar-section="monthly"><summary><span><strong>Calendário mensal</strong><small id="goalCalendarMonthlyResume">Visão geral do mês</small></span></summary><div class="goal-calendar-section-content"><div id="goalCalendarMonthlyStats" class="stats-grid compact"></div><div id="goalCalendarMonthlyContent" class="goal-calendar empty-message" aria-live="polite"></div></div></details>
+      <details class="goal-calendar-section calendar-settings-section"><summary><span><strong>Configurações do calendário</strong><small>Pesos, incidência e metas mensais</small></span></summary><div class="goal-calendar-section-content"><article class="bulk-box"><h3>Peso/incidência por disciplina</h3><p class="item-meta">Configure manualmente a incidência. Sem configuração, o sistema usa peso médio.</p><div id="disciplineWeightsList" class="cards-list"></div></article><article class="bulk-box"><h3>Planejamento mensal</h3><div class="form-grid compact"><label>Meta mensal de assuntos<input id="monthlyTopicGoal" type="number" min="0" /></label><label>Meta mensal de horas<input id="monthlyHourGoal" type="number" min="0" step="0.5" /></label></div><div id="monthlyPlanSummary" class="stats-grid compact"></div></article></div></details>
+    </section>
+
+    <section id="view-progresso" class="panel app-view" data-view="progresso" aria-labelledby="progress-title">
+      <div class="section-heading"><p class="eyebrow">Acompanhamento estratégico</p><h2 id="progress-title">Progresso do Edital</h2></div>
+      <p class="notice">Acompanhe assuntos estudados, pendências, previsão de término e disciplinas mais atrasadas. O painel usa os dados já salvos no localStorage, sem apagar informações antigas.</p>
+      <div id="progressGeneralCards" class="stats-grid compact progress-cards" aria-live="polite"></div>
+      <div id="progressMainBar" class="progress-main" aria-live="polite"></div>
+      <div id="progressAlerts" class="alert-list strategic-alerts" aria-live="polite"></div>
+      <h3>Progresso por disciplina</h3>
+      <div id="progressDisciplines" class="cards-list progress-discipline-list empty-message" aria-live="polite"></div>
+    </section>
+
+    <section id="view-questoes" class="panel app-view" data-view="questoes" aria-labelledby="questions-title">
+      <header class="questions-hub" data-questions-hub>
+        <div class="questions-hub-copy"><p class="eyebrow">Módulo integrado</p><strong>Questões</strong><span>Banco, registro e desempenho no mesmo fluxo.</span></div>
+        <nav class="questions-hub-tabs" aria-label="Áreas de questões"><a class="questions-hub-tab" href="#banco-questoes" data-view-link="banco-questoes"><strong>Banco</strong><small>Resolver</small></a><a class="questions-hub-tab" href="#questoes" data-view-link="questoes"><strong>Registrar</strong><small>Resultado externo</small></a><a class="questions-hub-tab" href="#historico-questoes" data-view-link="historico-questoes"><strong>Desempenho</strong><small>Histórico unificado</small></a></nav>
+      </header>
+      <div class="section-heading view-identity-heading"><p class="eyebrow">Questões • Registro e estratégia</p><h2 id="questions-title">Registrar sessão de questões</h2><p class="view-identity-description">Escolha o conteúdo, encontre o filtro adequado e registre o resultado sem misturar assunto principal e subtema.</p></div>
+      <p class="notice">Use esta tela para cadastrar um novo resultado. A escolha de disciplina e assunto abaixo define onde o novo lançamento será registrado. Os resultados anteriores aparecem no resumo do assunto e em Desempenho e Histórico.</p>
+      <form id="questionForm" class="question-registration-flow">
+        <input id="questionEditingId" type="hidden" /><input id="questionLinkedGoalId" type="hidden" /><input id="questionOrigin" type="hidden" value="avulso" />
+        <details class="question-register-section question-filter-route-section" open>
+          <summary><span><small>ETAPA 1 • BUSCA E CONTEÚDO</small><strong>Encontrar e Filtrar Questões para Delegado</strong><em>Escolha o conteúdo e siga a rota recomendada no QConcursos</em></span></summary>
+          <div class="question-register-content form-grid">
+            <label>Disciplina<select id="questionDiscipline" required></select></label>
+            <label class="wide">Assunto do edital (com número QC automático ou confirmado)<select id="questionSyllabusItem" required></select></label>
+            <label>Banca<select id="questionBoard"><option>Cebraspe</option><option>FGV</option><option>FCC</option><option>Vunesp</option><option>Instituto AOCP</option><option>Cesgranrio</option><option>Outra</option></select></label>
+            <label>Número do assunto no QC<input id="questionQcNumber" type="text" inputmode="decimal" placeholder="Ex.: 1, 2.2 ou 12.3.2" aria-describedby="questionQcNumberHelp" /></label>
+            <div class="wide question-qc-number-actions"><button id="saveQuestionQcNumber" class="secondary-button" type="button">Confirmar ou Corrigir Número do QC</button><p id="questionQcNumberHelp" class="item-meta">O site sugere automaticamente os números já confirmados no catálogo do QConcursos. Você pode corrigir a sugestão conforme a lista do QC. Não copie a referência do edital (por exemplo, 9.1.1): ela não é o número QC.</p><p id="questionQcNumberStatus" class="file-info" aria-live="polite" hidden></p></div>
+            <section id="questionSubjectSummary" class="notice wide" aria-live="polite">Selecione disciplina e assunto para consultar o histórico deste assunto.</section>
+            <div id="questionQconcursosRoute" class="wide" aria-live="polite"></div>
+          </div>
+        </details>
+        <details class="question-register-section" open>
+          <summary><span><small>ETAPA 2 • RESULTADO</small><strong>Registrar Resultado da Nova Sessão</strong><em>Informe data, tipo de treino, quantidade, desempenho e tempo</em></span></summary>
+          <div class="question-register-content form-grid">
+            <div id="questionRegistrationLinkSummary" class="question-registration-link wide" aria-live="polite">Selecione disciplina e assunto na Etapa 1.</div>
+            <label>Data<input id="questionDate" type="date" required /></label>
+            <label>Tipo de treino<select id="questionTrainingType"><option>Questões avulsas</option><option>Caderno de erros</option><option>Simulado</option><option>Revisão</option><option>Pós-aula</option></select></label>
+            <label>Total de questões<input id="questionTotal" type="number" min="1" required /></label>
+            <label>Tempo gasto (min)<input id="questionMinutes" type="number" min="0" value="0" /></label>
+            <label>Acertos<input id="questionCorrect" type="number" min="0" value="0" required /></label>
+            <label>Erros<input id="questionWrong" type="number" min="0" value="0" required /></label>
+            <label>Brancos<input id="questionBlank" type="number" min="0" value="0" required /></label>
+            <label class="wide">Observações<textarea id="questionNotes" rows="3"></textarea></label>
+            <details id="questionNotebookPanel" class="question-notebook-panel wide">
+              <summary><span><small>FICHA OPCIONAL</small><strong>Caderno da questão</strong><em>Guarde o código do QC, enunciado, respostas, comentários e bizus</em></span></summary>
+              <div class="question-notebook-content form-grid compact">
+                <label>Código da questão no QC<input id="questionQcCode" type="text" placeholder="Ex.: Q1234567" /></label>
+                <label>Link direto da questão<input id="questionQcLink" type="url" inputmode="url" placeholder="https://www.qconcursos.com/..." /></label>
+                <label>Resultado da questão<select id="questionItemResult"><option value="">Não informado</option><option value="correct">Acertei</option><option value="wrong">Errei</option><option value="blank">Deixei em branco</option><option value="doubt">Fiquei em dúvida</option></select></label>
+                <label>Dificuldade<select id="questionItemDifficulty"><option value="">Não informada</option><option>Baixa</option><option>Média</option><option>Alta</option><option>Muito alta</option></select></label>
+                <label class="wide">Enunciado<textarea id="questionStatement" rows="5" placeholder="Cole ou escreva o enunciado para sua revisão pessoal"></textarea></label>
+                <label class="wide">Alternativas ou afirmação Certo/Errado<textarea id="questionAlternatives" rows="5" placeholder="A) ...&#10;B) ...&#10;C) ..."></textarea></label>
+                <label>Resposta marcada<input id="questionMarkedAnswer" type="text" placeholder="Ex.: B ou Errado" /></label>
+                <label>Gabarito<input id="questionAnswerKey" type="text" placeholder="Ex.: C ou Certo" /></label>
+                <label class="wide">Comentário pessoal<textarea id="questionPersonalComment" rows="3" placeholder="Explique a resposta com suas palavras"></textarea></label>
+                <label class="wide">Motivo do erro ou da dúvida<textarea id="questionErrorReason" rows="3" placeholder="Ex.: confundi a regra com a exceção"></textarea></label>
+                <label class="wide">Fundamento legal ou jurisprudencial<textarea id="questionLegalBasis" rows="3" placeholder="Lei, artigo, súmula, julgado ou fundamento"></textarea></label>
+                <label>Bizu 1<input id="questionBizu1" type="text" maxlength="240" /></label>
+                <label>Bizu 2<input id="questionBizu2" type="text" maxlength="240" /></label>
+                <label>Bizu 3<input id="questionBizu3" type="text" maxlength="240" /></label>
+                <label class="question-notebook-check"><input id="questionAddToErrorNotebook" type="checkbox" /> Marcar para revisão no Caderno de Erros</label>
+              </div>
+            </details>
+            <div id="questionCalculated" class="calculation-box wide">Preencha os números para calcular percentuais e líquido.</div>
+            <div id="questionAnalysis" class="notice wide"></div>
+            <button class="wide" type="submit">Salvar lançamento de questões</button>
+          </div>
+        </details>
+      </form>
+    </section>
+
+
+    <section id="view-banco-questoes" class="panel app-view question-bank-screen" data-view="banco-questoes" aria-labelledby="question-bank-title">
+      <header class="questions-hub" data-questions-hub>
+        <div class="questions-hub-copy"><p class="eyebrow">Módulo integrado</p><strong>Questões</strong><span>Banco, registro e desempenho no mesmo fluxo.</span></div>
+        <nav class="questions-hub-tabs" aria-label="Áreas de questões"><a class="questions-hub-tab" href="#banco-questoes" data-view-link="banco-questoes"><strong>Banco</strong><small>Resolver</small></a><a class="questions-hub-tab" href="#questoes" data-view-link="questoes"><strong>Registrar</strong><small>Resultado externo</small></a><a class="questions-hub-tab" href="#historico-questoes" data-view-link="historico-questoes"><strong>Desempenho</strong><small>Histórico unificado</small></a></nav>
+      </header>
+      <div class="section-heading inline"><div><p class="eyebrow">Treino Certo/Errado</p><h2 id="question-bank-title">Banco de Questões</h2><p class="item-meta">Tela reorganizada para montar treinos, diagnosticar cobertura do edital e gerenciar seu banco local sem publicar questões no repositório.</p></div><button id="qbNewTraining" type="button">Novo treino</button></div>
+      <p class="notice warning-notice">Não inclua arquivos JSON de questões no GitHub. Use apenas importação local; os dados permanecem no localStorage em <code>metasConcursoData.questionBank</code>.</p>
+
+      <section class="qb-section qb-summary" aria-labelledby="qb-summary-title">
+        <div class="section-heading"><p class="eyebrow">Resumo do Banco</p><h3 id="qb-summary-title">Visão geral</h3></div>
+        <div id="qbStats" class="stats-grid compact qb-stats-grid"></div>
+      </section>
+
+
+      <section class="qb-section qb-filters-card" aria-labelledby="qb-filters-title">
+        <div class="section-heading"><p class="eyebrow">Centro do treino</p><h3 id="qb-filters-title">Filtros do Treino</h3></div>
+        <div class="filters form-grid compact qb-filter-grid">
+          <label>Escopo<select id="qbTrainingScope"><option value="all">Banco completo</option><option value="syllabus">Edital atual</option><option value="review">Revisão direcionada</option></select></label>
+          <label id="qbReviewTypeWrapper" hidden>Tipo de revisão<select id="qbReviewType"><option value="wrong">Erradas</option><option value="blank">Brancas</option><option value="wrong_blank">Erradas + brancas</option><option value="weak">Assuntos fracos</option><option value="unseen">Não estudados</option><option value="week">Assuntos da semana</option></select></label>
+          <label>Disciplina<select id="qbFilterDiscipline"><option value="">Todas</option></select></label>
+          <label>Assunto<select id="qbFilterSubject"><option value="">Todos</option></select></label>
+          <label>Tema<select id="qbFilterTheme"><option value="">Todos</option></select></label>
+          <label>Banca<select id="qbFilterBoard"><option value="">Todas</option></select></label>
+          <label>Ano<select id="qbFilterYear"><option value="">Todos</option></select></label>
+          <label>Quantidade<input id="qbTrainingLimit" type="number" min="1" value="20" /></label>
+          <label class="wide">Busca textual<input id="qbFilterSearch" type="search" placeholder="Enunciado, disciplina, assunto, tema, banca ou referência" /></label>
+          <label class="qb-check"><input id="qbShuffleTraining" type="checkbox" checked /> Embaralhar</label>
+        </div>
+        <div class="actions qb-training-actions"><button id="qbPreviewFiltered" class="secondary-button" type="button">Pré-visualizar</button><button id="qbStartTraining" type="button">Iniciar treino</button><button id="qbRedoBlanks" class="secondary-button" type="button">Refazer brancos</button></div>
+        <div id="qbMessage" class="file-info empty-message" aria-live="polite"></div>
+      </section>
+
+      <details id="qbManageBank" class="qb-section qb-details-card">
+        <summary><span><strong>Importar e gerenciar banco</strong><small>PDF ou JSON local, exportações e limpeza controlada</small></span></summary>
+        <section class="qb-pdf-import-card" aria-labelledby="qb-pdf-import-title">
+          <div class="qb-pdf-import-heading">
+            <div>
+              <h4 id="qb-pdf-import-title">Importar PDF do QConcursos</h4>
+              <p class="item-meta">O arquivo é processado no seu aparelho. Confira a prévia antes de adicionar ao banco.</p>
+            </div>
+            <span class="badge neutral">Piloto local</span>
+          </div>
+          <label class="wide">Selecionar PDF exportado
+            <input id="qbPdfFile" type="file" accept="application/pdf,.pdf" />
+          </label>
+          <div id="qbPdfImportStatus" class="file-info empty-message" aria-live="polite">Nenhum PDF selecionado.</div>
+          <div id="qbPdfImportPreview" class="qb-pdf-import-preview" hidden>
+            <div id="qbPdfImportStats" class="qb-pdf-import-stats"></div>
+            <div class="form-grid compact">
+              <label class="wide">Vincular a um assunto do edital
+                <select id="qbPdfSyllabusItem"><option value="">Usar a classificação presente no PDF</option></select>
+              </label>
+              <label>Relação com a classificação do site
+                <select id="qbPdfMappingType">
+                  <option value="same">Mesma classificação</option>
+                  <option value="analogous">Disciplina ou assunto análogo</option>
+                </select>
+              </label>
+            </div>
+            <p id="qbPdfClassification" class="notice"></p>
+            <div id="qbPdfPreviewList" class="qb-pdf-preview-list"></div>
+            <div class="actions">
+              <button id="qbPdfImportConfirm" type="button">Adicionar questões novas</button>
+              <button id="qbPdfImportCancel" class="secondary-button" type="button">Cancelar prévia</button>
+            </div>
+          </div>
+        </section>
+        <section class="qb-pdf-import-card qb-capture-import-card" aria-labelledby="qb-capture-import-title">
+          <div class="qb-pdf-import-heading">
+            <div>
+              <h4 id="qb-capture-import-title">Importar resultados por captura do QConcursos</h4>
+              <p class="item-meta">Selecione a captura original em PNG. O site identifica suas marcações e os resultados, associa cada item às questões já existentes e exige sua conferência antes de salvar.</p>
+            </div>
+            <span class="badge neutral">Piloto local</span>
+          </div>
+          <div class="form-grid compact">
+            <label class="wide">Captura original da página de resultados
+              <input id="qbCaptureFile" type="file" accept="image/png,.png" />
+            </label>
+            <label>Data da resolução
+              <input id="qbCaptureDate" type="date" />
+            </label>
+          </div>
+          <p class="notice">Envie o PNG diretamente, sem compactar. A imagem permanece no seu aparelho. Na primeira leitura, o navegador baixa o mecanismo de reconhecimento de texto; isso não ocorre ao abrir o site.</p>
+          <div id="qbCaptureStatus" class="file-info empty-message" aria-live="polite">Nenhuma captura selecionada.</div>
+          <div class="qb-capture-progress" aria-hidden="true"><span id="qbCaptureProgress"></span></div>
+          <div id="qbCapturePreview" class="qb-pdf-import-preview" hidden>
+            <div id="qbCaptureStats" class="qb-pdf-import-stats"></div>
+            <p class="notice warning-notice">Confira a questão vinculada, sua resposta, o gabarito e o resultado. Nada será salvo antes da confirmação.</p>
+            <div id="qbCapturePreviewList" class="qb-capture-preview-list"></div>
+            <div id="qbCaptureValidation" class="notice warning-notice qb-capture-validation" role="alert" aria-live="assertive" tabindex="-1" hidden></div>
+            <div class="actions">
+              <button id="qbCaptureConfirm" type="button">Registrar resultados conferidos</button>
+              <button id="qbCaptureCancel" class="secondary-button" type="button">Cancelar prévia</button>
+            </div>
+          </div>
+        </section>
+        <div class="form-grid">
+          <label class="wide">Importar JSON<input id="qbFile" type="file" accept="application/json,.json" /></label>
+        </div>
+        <div class="actions"><button id="qbExportBank" class="secondary-button" type="button">Exportar banco</button><button id="qbExportResults" class="secondary-button" type="button">Exportar resultados</button><button id="qbClearBank" class="danger" type="button">Limpar banco local</button></div>
+      </details>
+
+      <details id="qbSyllabusDiagnosticsPanel" class="qb-section qb-details-card qb-compact-accordion">
+        <summary><span><strong>Diagnóstico do edital no banco</strong><small>Disciplinas e assuntos cobertos pelo banco</small></span></summary>
+        <div id="qbDiagnostics" class="question-bank-list empty-message"></div>
+      </details>
+
+      <details id="qbSyllabusPanel" class="qb-section qb-details-card qb-compact-accordion">
+        <summary><span><strong id="qb-syllabus-title">Edital verticalizado</strong><small id="qbSyllabusSummary">Resumo do edital verticalizado</small></span></summary>
+        <div id="qbSyllabusVerticalized" class="question-bank-list empty-message"></div>
+      </details>
+
+      <details id="qbPackagesPanel" class="qb-section qb-details-card qb-compact-accordion">
+        <summary><span><strong id="qb-packages-title">Pacotes do Edital</strong><small id="qbPackagesSummary">Pacotes prontos para treinar por disciplina</small></span></summary>
+        <p class="notice">Treine disciplinas inteiras usando apenas os assuntos previstos no edital/plano atual. Assuntos com status “Ignorado” não entram nos pacotes.</p>
+        <div id="qbSyllabusPackages" class="question-bank-list empty-message"></div>
+      </details>
+
+      <section id="qbPreviewSection" class="qb-section" aria-labelledby="qb-preview-title" hidden>
+        <div class="section-heading"><p class="eyebrow">Prévia</p><h3 id="qb-preview-title">Prévia das questões filtradas</h3></div>
+        <div id="qbFilteredPreview" class="question-bank-list empty-message">Clique em “Pré-visualizar” para listar as questões encontradas.</div>
+      </section>
+      <section id="qbTrainingPanel" class="question-bank-training qb-section" hidden><div class="section-heading inline"><div><p class="eyebrow">Resolver</p><h3>Treino em andamento</h3></div><strong id="qbTrainingCounter" class="badge">0/0</strong></div><div class="question-bank-progress"><span id="qbTrainingProgress"></span></div><div id="qbQuestionCard" class="question-bank-card"></div></section>
+      <section id="qbResultPanel" class="qb-section" hidden><div class="section-heading"><p class="eyebrow">Resultado</p><h3>Último treino</h3></div><div id="qbResultSummary" class="stats-grid compact"></div><div id="qbResultDetails" class="question-bank-list"></div></section>
+    </section>
+
+    <section id="view-caderno-erros" class="panel app-view question-bank-screen" data-view="caderno-erros" aria-labelledby="caderno-erros-title">
+      <section class="qb-section qb-error-notebook" aria-labelledby="caderno-erros-title">
+        <div class="section-heading inline"><div><p class="eyebrow">Revisão ativa</p><h2 id="caderno-erros-title">Caderno de Erros</h2><p class="item-meta">Revise somente o que você errou, deixou em branco ou marcou como dúvida.</p></div></div>
+        <div id="qbErrorStats" class="stats-grid compact qb-stats-grid"></div>
+        <div class="actions qb-error-actions" aria-label="Ações principais do Caderno de Erros">
+          <button id="qbStartErrorNotebook" type="button">Revisar pendentes</button>
+          <button id="qbReviewByDiscipline" class="secondary-button" type="button">Revisar por disciplina</button>
+          <button id="qbReviewBySubject" class="secondary-button" type="button">Revisar por assunto</button>
+          <button id="qbToggleErrorHistory" class="secondary-button" type="button">Ver histórico detalhado</button>
+        </div>
+        <div class="filters form-grid compact qb-filter-grid" aria-label="Filtros simples do Caderno de Erros">
+          <label>Disciplina<select id="qbErrorFilterDiscipline"><option value="">Todas</option></select></label>
+          <label>Assunto<select id="qbErrorFilterSubject"><option value="">Todos</option></select></label>
+          <label>Motivo<select id="qbErrorFilterReason"><option value="">Todos</option><option value="erro">Erro</option><option value="branco">Branco</option><option value="duvida">Dúvida</option></select></label>
+          <label>Status<select id="qbErrorFilterStatus"><option value="">Todos</option><option value="pendente">Pendente</option><option value="revisado">Revisado</option><option value="dominado">Dominado</option></select></label>
+        </div>
+        <details id="qbErrorHistory" class="qb-details-card qb-error-history">
+          <summary><span><strong>Histórico detalhado</strong><small>Registros ficam recolhidos por padrão; gabarito e justificativa não aparecem automaticamente.</small></span></summary>
+          <div id="qbErrorNotebookList" class="question-bank-list empty-message"></div>
+        </details>
+      </section>
+    </section>
+
+    <section id="view-simulados" class="panel app-view" data-view="simulados" aria-labelledby="mock-title">
+      <div class="section-heading inline"><div><p class="eyebrow">Cebraspe</p><h2 id="mock-title">Simulados</h2></div><button id="newMockExam" type="button">Novo simulado</button></div>
+      <p class="notice">Registre simulados no padrão Cebraspe, acompanhe líquido, meta e desempenho por disciplina. Os dados ficam no localStorage em <code>metasEstudoSimulados</code>.</p>
+      <div class="notice">
+        <strong>⏱ Tempo do simulado</strong>
+        <p>Crie uma meta manual em <strong>SIMULADOS</strong> para contabilizar o tempo. O resultado, o líquido e o diagnóstico permanecem nesta área, sem incluir SIMULADOS no edital ou na distribuição automática do Planejamento.</p>
+        <button id="openSimuladosManualGoal" type="button">Adicionar meta manual de simulado</button>
+      </div>
+      <div id="mockSummary" class="stats-grid compact"></div>
+      <form id="mockExamForm" class="form-grid mock-form">
+        <input id="mockExamEditingId" type="hidden" />
+        <label>Nome do simulado<input id="mockName" type="text" required placeholder="Ex.: Simulado geral 01" /></label>
+        <label>Data do simulado<input id="mockDate" type="date" required /></label>
+        <label>Banca<input id="mockBoard" type="text" value="Cebraspe" required /></label>
+        <label>Instituição/curso<input id="mockInstitution" type="text" /></label>
+        <label>Total de questões<input id="mockTotalQuestions" type="number" min="1" required /></label>
+        <label>Acertos<input id="mockCorrect" type="number" min="0" value="0" required /></label>
+        <label>Erros<input id="mockWrong" type="number" min="0" value="0" required /></label>
+        <label>Brancos<input id="mockBlank" type="number" min="0" value="0" required /></label>
+        <label>Meta de líquido<input id="mockGoal" type="number" value="92" required /></label>
+        <label>Dificuldade percebida<select id="mockDifficulty"><option>Baixa</option><option selected>Média</option><option>Alta</option><option>Muito alta</option></select></label>
+        <label class="wide">Observações<textarea id="mockNotes" rows="3"></textarea></label>
+        <label class="wide">Situação emocional ou observação estratégica<textarea id="mockStrategy" rows="3"></textarea></label>
+        <div id="mockCalculated" class="calculation-box wide">Preencha os números para calcular o resultado geral.</div>
+        <div class="wide discipline-entry"><h3>Resultado por disciplina</h3><div class="form-grid compact"><label>Disciplina<input id="mockDisciplineName" type="text" list="disciplineOptions" /></label><label>Total<input id="mockDisciplineTotal" type="number" min="1" /></label><label>Acertos<input id="mockDisciplineCorrect" type="number" min="0" value="0" /></label><label>Erros<input id="mockDisciplineWrong" type="number" min="0" value="0" /></label><label>Brancos<input id="mockDisciplineBlank" type="number" min="0" value="0" /></label><label class="wide">Observações<input id="mockDisciplineNotes" type="text" /></label></div><div class="actions"><button id="addMockDiscipline" type="button">Adicionar disciplina</button><button id="clearMockDisciplines" class="secondary-button" type="button">Limpar disciplinas</button></div><div id="mockDisciplineDraft" class="table-wrapper empty-message"></div></div>
+        <button class="wide" type="submit">Salvar simulado</button>
+      </form>
+      <h3>Resultado geral</h3><div id="mockGeneralResult" class="calculation-box"></div>
+      <h3>Resultado por disciplina</h3><div id="mockDisciplineResults" class="table-wrapper empty-message"></div>
+      <h3>Diagnóstico do simulado</h3><div id="mockDiagnosis" class="notice"></div>
+      <h3>Histórico de simulados</h3><div id="mockHistory" class="cards-list empty-message"></div>
+      <h3>Evolução</h3><div id="mockEvolution" class="table-wrapper empty-message"></div>
+    </section>
+
+    <section id="view-historico-questoes" class="panel app-view" data-view="historico-questoes" aria-labelledby="question-history-title">
+      <header class="questions-hub" data-questions-hub>
+        <div class="questions-hub-copy"><p class="eyebrow">Módulo integrado</p><strong>Questões</strong><span>Banco, registro e desempenho no mesmo fluxo.</span></div>
+        <nav class="questions-hub-tabs" aria-label="Áreas de questões"><a class="questions-hub-tab" href="#banco-questoes" data-view-link="banco-questoes"><strong>Banco</strong><small>Resolver</small></a><a class="questions-hub-tab" href="#questoes" data-view-link="questoes"><strong>Registrar</strong><small>Resultado externo</small></a><a class="questions-hub-tab" href="#historico-questoes" data-view-link="historico-questoes"><strong>Desempenho</strong><small>Histórico unificado</small></a></nav>
+      </header>
+      <div class="section-heading"><p class="eyebrow">Desempenho</p><h2 id="question-history-title">Desempenho e Histórico de Questões</h2></div>
+      <p class="notice">Consulte resultados registrados manualmente e treinos concluídos no Banco de Questões. Use os filtros para analisar uma disciplina ou assunto.</p>
+      <div id="questionHistorySummary" class="stats-grid compact" aria-live="polite"></div>
+      <div class="filters form-grid compact">
+        <label>Disciplina<select id="questionFilterDiscipline"><option value="">Todas</option></select></label>
+        <label>Assunto<select id="questionFilterSubject"><option value="">Todos</option></select></label>
+        <label>Origem<select id="questionFilterOrigin"><option value="">Todas</option><option value="manual">Registro manual</option><option value="banco">Banco de Questões</option></select></label>
+        <label>Banca<select id="questionFilterBoard"><option value="">Todas</option><option>Cebraspe</option><option>FGV</option><option>FCC</option><option>Vunesp</option><option>Instituto AOCP</option><option>Cesgranrio</option><option>Outra</option></select></label>
+      </div>
+      <div class="table-wrapper"><table><thead><tr><th>Data</th><th>Disciplina</th><th>Assunto</th><th>Banca</th><th>Total</th><th>Acertos</th><th>Erros</th><th>Brancos</th><th>% Acerto</th><th>Líquido</th><th>Origem</th><th>Observações</th><th>Ações</th></tr></thead><tbody id="questionHistoryBody"></tbody></table></div>
+    </section>
+
+    <section id="view-revisoes" class="grid-layout secondary app-view" data-view="revisoes">
+      <article class="panel wide-panel" aria-labelledby="smart-reviews-title"><div class="section-heading"><p class="eyebrow">Revisão inteligente</p><h2 id="smart-reviews-title">Revisões</h2></div><div id="reviewsDashboard" class="smart-review-sections" aria-live="polite"></div></article>
+      <article class="panel" aria-labelledby="reviews-title"><div class="section-heading"><p class="eyebrow">Revisões</p><h2 id="reviews-title">24h, 7 dias e 30 dias</h2></div><div id="reviewList" class="review-list empty-message" aria-live="polite"></div></article>
+      <article class="panel alert-panel" aria-labelledby="alerts-title"><div class="section-heading"><p class="eyebrow">Atrasos</p><h2 id="alerts-title">Disciplinas atrasadas</h2></div><div id="alertList" class="alert-list empty-message" aria-live="polite"></div></article>
+    </section>
+
+    <section id="view-historico" class="panel app-view" data-view="historico" aria-labelledby="history-title">
+      <div class="section-heading inline"><div><p class="eyebrow">Registros recentes</p><h2 id="history-title">Histórico Geral</h2><p class="item-meta">Esta tela mostra registros gerais de estudo. Para lançamentos de questões, use Desempenho → Histórico de Questões.</p></div><button id="clearData" class="danger" type="button">Limpar dados</button></div>
+      <div class="table-wrapper"><table><thead><tr><th>Data</th><th>Disciplina</th><th>Assunto</th><th>Minutos</th><th>Questões</th><th>Acertos</th><th>Erros</th><th>Brancos</th></tr></thead><tbody id="historyBody"></tbody></table></div>
+    </section>
+
+    <section id="view-backup" class="panel app-view" data-view="backup" aria-labelledby="backup-title">
+      <div class="section-heading"><p class="eyebrow">Portabilidade</p><h2 id="backup-title">Backup</h2></div>
+      <p class="notice">Os dados continuam salvos automaticamente neste navegador e agora podem ser sincronizados com o Google Drive pelo arquivo metas-estudo-sync.json. Use Exportar/Importar backup JSON como opção extra de segurança antes de trocar de dispositivo, limpar o navegador ou fazer grandes alterações.</p>
+      <p class="notice warning-notice">Não compartilhe seu arquivo de backup com terceiros se ele contiver dados pessoais ou informações de estudo.</p>
+      <div class="backup-actions actions">
+        <button id="exportBackup" type="button">Exportar backup JSON</button>
+        <button id="selectBackupFile" class="secondary-button" type="button">Importar backup JSON</button>
+        <input id="backupFileInput" type="file" accept="application/json,.json" hidden />
+      </div>
+      <div class="backup-reset-actions actions" aria-label="Ações de redefinição de questões">
+        <button id="resetSolvedQuestions" class="secondary-button" type="button">Zerar questões resolvidas</button>
+        <button id="clearAllLocalData" class="danger" type="button">Limpar todos os dados locais</button>
+      </div>
+      <div class="backup-meta">
+        <article class="stat-card"><span>Último backup exportado</span><strong id="lastBackupDate" class="stat-value-text">Nunca exportado</strong></article>
+        <article class="stat-card"><span>Chaves locais do projeto</span><strong id="backupStorageKeys">0</strong></article>
+      </div>
+
+      <article class="sync-card" aria-labelledby="sync-title">
+        <div class="section-heading"><p class="eyebrow">Google Drive</p><h2 id="sync-title">☁️ SINCRONIZAÇÃO</h2></div>
+        <p class="notice">A sincronização usa o Google Drive para manter o arquivo metas-estudo-sync.json na pasta privada do app. O site continua salvando tudo neste navegador e mantém o backup manual abaixo como segurança.</p>
+        <div class="sync-actions actions">
+          <button id="connectGoogleDrive" type="button">Conectar Google Drive</button>
+          <button id="syncNow" class="secondary-button" type="button">Sincronizar agora</button>
+          <button id="pushToCloud" class="secondary-button" type="button">Enviar este dispositivo para a nuvem</button>
+          <button id="pullFromCloud" class="secondary-button" type="button">Baixar dados da nuvem</button>
+          <button id="disconnectGoogleDrive" class="danger" type="button">Desconectar</button>
+        </div>
+        <div id="syncStatus" class="sync-status" aria-live="polite"></div>
+      </article>
+
+      <article class="sync-card" aria-labelledby="storage-title">
+        <div class="section-heading"><p class="eyebrow">Armazenamento</p><h2 id="storage-title">Armazenamento</h2></div>
+        <div id="storageDiagnostics" class="sync-status" aria-live="polite">Verificando armazenamento...</div>
+        <details id="legacyTimerRecoveryPanel" class="legacy-timer-recovery-panel"><summary>RECUPERAÇÃO DE TEMPOS ANTIGOS</summary><div id="legacyTimerRecoveryReview" class="sync-status" aria-live="polite">Verificando sessões antigas...</div></details>
+        <div class="actions"><button id="verifyStorage" class="secondary-button" type="button">Testar carregamento pelo IndexedDB</button></div>
+      </article>
+      <h3>Resumo dos dados salvos</h3>
+      <div id="backupSummary" class="stats-grid compact backup-summary" aria-live="polite"></div>
+      <div id="backupPreview" class="backup-preview empty-message" aria-live="polite"></div>
+    </section>
+
+    <section id="view-como-usar" class="panel instructions app-view" data-view="como-usar" aria-labelledby="run-title">
+      <h2 id="run-title">Como usar o Metas Estudo</h2>
+      <div class="instructions-grid">
+        <article><h3>1. Primeiro uso</h3><ul><li>Importe o edital verticalizado em <strong>Importar Edital</strong>.</li><li>Revise os itens em <strong>Edital Verticalizado</strong> e marque o que pode entrar no planejamento em <strong>Assuntos Agendáveis</strong>.</li><li>Configure <strong>Planejamento</strong> com data da prova, escala, metas por dia e metas semanais.</li><li>Exporte um <strong>backup JSON</strong> após a configuração inicial.</li></ul></article>
+        <article><h3>2. Uso diário</h3><ul><li>Abra <strong>Plano do Dia</strong>.</li><li>Confira o resumo, a próxima meta e a lista do que estudar hoje.</li><li>Conclua metas, registre tempo realizado e registre questões quando fizer treino.</li></ul></article>
+        <article><h3>3. Uso semanal</h3><ul><li>Revise o <strong>Calendário de Metas</strong>.</li><li>Ajuste o <strong>Planejamento</strong> se houver plantão, folga ou semana atípica.</li><li>Verifique <strong>Progresso</strong> e registre <strong>Simulados</strong>.</li></ul></article>
+        <article><h3>4. Backup e sincronização</h3><ul><li>Use <strong>☁️ SINCRONIZAÇÃO</strong> em Backup para conectar o Google Drive, sincronizar agora, enviar este dispositivo para a nuvem ou baixar dados da nuvem.</li><li>A nuvem usa o arquivo <strong>metas-estudo-sync.json</strong>; o backup JSON exportado/importado continua disponível como cópia manual de segurança.</li><li>Exporte antes de trocar de dispositivo, limpar navegador ou fazer grandes alterações.</li></ul></article>
+        <article><h3>5. Materiais</h3><ul><li>Cadastre links do Google Drive ou páginas http/https em <strong>Materiais</strong>.</li><li>Vincule o material à disciplina e ao assunto.</li><li>Abra materiais diretamente nos cards do Plano do Dia quando houver vínculo.</li></ul></article>
+        <article><h3>6. Observação importante</h3><p>Os dados ficam no navegador via localStorage e podem ser sincronizados pelo Google Drive usando metas-estudo-sync.json. Para máxima segurança, mantenha também backups JSON exportados manualmente.</p></article>
+      </div>
+    </section>
+
+    <section id="view-conselheiro" class="panel app-view advisor-screen" data-view="conselheiro" aria-labelledby="advisor-title" hidden>
+      <div class="section-heading">
+        <p class="eyebrow">Assistente local</p>
+        <h2 id="advisor-title">Conselheiro</h2>
+        <p class="privacy-note">Suas perguntas e seus dados são processados somente neste dispositivo.</p>
+      </div>
+      <form id="advisorPeriodForm" class="analytics-filters analytics-export-actions">
+        <label>Período
+          <select id="advisorPeriodSelect">
+            <option value="7d">Últimos 7 dias</option>
+            <option value="30d" selected>Últimos 30 dias</option>
+            <option value="90d">Últimos 90 dias</option>
+            <option value="month">Mês atual</option>
+            <option value="custom">Período personalizado</option>
+            <option value="all">Todo o histórico</option>
+          </select>
+        </label>
+        <label>Início <input id="advisorStartDate" type="date"></label>
+        <label>Fim <input id="advisorEndDate" type="date"></label>
+        <button type="submit">Recalcular</button>
+      </form>
+      <div id="advisorPeriodInfo" class="notice"></div>
+      <details class="advisor-nav-panel" open>
+        <summary>Meu destino</summary>
+        <form id="advisorMissionForm" class="advisor-mission-grid">
+          <label>Concurso <input id="advisorContestName" name="contestName" autocomplete="off"></label>
+          <label>Cargo <input id="advisorPositionName" name="positionName" autocomplete="off"></label>
+          <label>Instituição <input id="advisorInstitution" name="institution" autocomplete="off"></label>
+          <label>Banca <input id="advisorBoard" name="board" autocomplete="off"></label>
+          <label>Data da prova <input id="advisorExamDate" name="examDate" type="date"></label>
+          <label>Questões da prova <input id="advisorTotalExamQuestions" name="totalExamQuestions" type="number" min="0" step="1"></label>
+          <label>Nota líquida desejada <input id="advisorTargetNetScore" name="targetNetScore" type="number" step="0.1"></label>
+          <label>Acerto desejado (%) <input id="advisorTargetAccuracyPct" name="targetAccuracyPct" type="number" min="0" max="100" step="0.1"></label>
+          <label>Cobertura edital (%) <input id="advisorTargetSyllabusCoveragePct" name="targetSyllabusCoveragePct" type="number" min="0" max="100" step="1" value="100"></label>
+          <label>Revisões desejadas (%) <input id="advisorTargetReviewsPct" name="targetReviewsPct" type="number" min="0" max="100" step="1"></label>
+          <label>Simulados desejados <input id="advisorTargetMockExams" name="targetMockExams" type="number" min="0" step="1"></label>
+          <label>Horas semanais disponíveis <input id="advisorWeeklyHours" name="weeklyHours" type="number" min="0" step="0.5"></label>
+          <label>Modo de autonomia <select id="advisorAutonomyMode"><option value="orientador">Orientador</option><option value="copilot" selected>Copiloto</option><option value="autopilot">Piloto automático (exige ativação expressa)</option></select></label>
+          <label class="wide-field">Observações <textarea id="advisorMissionNotes" name="notes" rows="2"></textarea></label>
+          <div class="card-actions wide-field"><button type="submit">Salvar destino e recalcular</button><button type="button" class="secondary-button" id="advisorRecalculateRoute">Recalcular rota</button></div>
+        </form>
+      </details>
+      <article id="advisorSummary" class="stat-card wide-stat"></article>
+      <div id="advisorNavigationContent" class="advisor-navigation-content" aria-live="polite"></div>
+      <div id="advisorSuggestions" class="advisor-suggestions" aria-label="Perguntas sugeridas"></div>
+      <div id="advisorConversation" class="advisor-conversation" aria-live="polite"></div>
+      <form id="advisorQuestionForm" class="advisor-input">
+        <label for="advisorQuestion">Pergunte sobre seus estudos</label>
+        <textarea id="advisorQuestion" rows="3" placeholder="Ex.: Como está meu desempenho?"></textarea>
+        <div class="card-actions"><button type="submit">Perguntar</button><button type="button" class="secondary-button" id="advisorClear">Limpar conversa</button></div>
+      </form>
+    </section>
+    <section id="view-analise-estrategica" class="dashboard app-view" data-view="analise-estrategica" aria-labelledby="analise-estrategica-title" hidden>
+      <div class="section-heading">
+        <p class="eyebrow">Diagnóstico local</p>
+        <h2 id="analise-estrategica-title">Análise Estratégica</h2>
+        <p class="privacy-note">Esta análise é processada no seu dispositivo. Nenhum dado de estudo é enviado para serviços externos.</p>
+      </div>
+      <details class="analytics-filters-section"><summary>Filtros da análise</summary><form id="analyticsPeriodForm" class="analytics-filters analytics-filter-grid">
+        <label>Período
+          <select id="analyticsPeriodSelect">
+            <option value="7d">Últimos 7 dias</option>
+            <option value="30d" selected>Últimos 30 dias</option>
+            <option value="90d">Últimos 90 dias</option>
+            <option value="month">Mês atual</option>
+            <option value="custom">Período personalizado</option>
+            <option value="all">Todo o histórico</option>
+          </select>
+        </label>
+        <label data-analytics-custom-date hidden>Início <input id="analyticsStartDate" type="date"></label>
+        <label data-analytics-custom-date hidden>Fim <input id="analyticsEndDate" type="date"></label>
+        <label>Disciplina
+          <select id="analyticsDisciplineSelect"><option value="all">Todas</option></select>
+        </label>
+        <label>Origem
+          <select id="analyticsOriginSelect"><option value="consolidated">Consolidado</option><option value="estudos">Estudos</option><option value="questões">Questões</option><option value="simulados">Simulados</option></select>
+        </label>
+        <button type="submit">Atualizar análise</button>
+      </form></details>
+      <div class="analytics-export-toolbar" aria-label="Ações de exportação da análise">
+        <button type="button" class="secondary-button export-direct-button" data-performance-export="pdf">Gerar PDF</button>
+        <button type="button" class="secondary-button export-direct-button" data-performance-export="png">Exportar imagem</button>
+        <button type="button" class="secondary-button export-direct-button" data-performance-export="xlsx">Exportar Excel</button>
+        <button id="performanceExportButton" type="button" class="secondary-button export-main-button" aria-haspopup="dialog" aria-label="Mais opções da análise">Mais opções</button>
+        <span id="performanceExportStatus" class="export-status" aria-live="polite"></span>
+      </div>
+      <div id="performanceExportDialog" class="export-dialog" role="dialog" aria-modal="true" aria-labelledby="performanceExportTitle" hidden>
+        <div class="export-dialog-card">
+          <div class="section-heading inline"><div><p class="eyebrow">Exportação local</p><h3 id="performanceExportTitle">Exportar Central Visual de Desempenho</h3></div><button id="performanceExportClose" type="button" class="secondary-button" aria-label="Fechar menu de exportação">×</button></div>
+          <div class="export-menu-actions">
+            <button type="button" data-performance-export="charts">Exportar gráfico individual</button>
+            <button type="button" data-performance-export="png">Exportar relatório completo em imagem</button>
+            <button type="button" data-performance-export="xlsx">Exportar relatório completo em Excel</button>
+            <button type="button" data-performance-export="pdf">Exportar relatório completo em PDF</button>
+            <button type="button" data-performance-export="share">Compartilhar arquivo</button>
+            <button type="button" data-performance-export="table">Ver dados em tabela</button>
+            <button type="button" data-performance-export="methodology">Ver detalhes metodológicos</button>
+            <button id="performanceExportCancel" type="button" class="secondary-button">Cancelar</button>
+          </div>
+          <p id="performanceExportShareNote" class="notice" hidden>Compartilhamento de arquivos indisponível neste dispositivo. O download normal será usado.</p>
+          <p class="item-meta export-iphone-note">No iPhone, use Compartilhar na tela de impressão e escolha Salvar em Arquivos.</p>
+        </div>
+      </div>
+      <div id="analyticsContent" class="strategic-analysis-grid"></div>
+      <div id="analyticsPlanPreview" class="analytics-plan-preview" hidden></div>
+    </section>
+    </div>
+  </main>
+  <nav class="mobile-quick-nav" aria-label="Atalhos principais">
+    <a href="#metas-do-dia" data-view-link="metas-do-dia">Hoje</a>
+    <a href="#calendario-metas" data-view-link="calendario-metas">Calendário</a>
+    <a href="#planejamento" data-view-link="planejamento">Planejamento</a>
+    <a href="#backup" data-view-link="backup">Backup</a>
+  </nav>
+
+  <aside id="floatingTimer" class="floating-timer" aria-live="polite" hidden>
+    <div class="floating-timer-header">
+      <div>
+        <span class="floating-timer-label">Cronômetro</span><label class="timer-mode-label">Modo: <select id="timerMode"><option value="countdown">Contagem regressiva</option><option value="free">Cronômetro livre</option></select></label>
+        <strong id="timerDiscipline">-</strong>
+      </div>
+      <button type="button" class="timer-icon-button" data-timer-action="close" aria-label="Fechar cronômetro">×</button>
+    </div>
+    <div class="floating-timer-body">
+      <span id="timerSubject" class="floating-timer-subject">-</span>
+      <span id="timerKind" class="badge neutral">Estudo</span>
+      <strong id="timerTime" class="floating-timer-time">00:00:00</strong>
+      <div class="timer-progress" aria-label="Progresso do cronômetro"><span id="timerProgressBar"></span></div>
+      <small id="timerProgressText" class="item-meta">0% do tempo decorrido</small>
+      <div id="timerAlert" class="timer-alert" aria-live="assertive" hidden></div>
+      <section id="timerCompletion" class="timer-completion" aria-live="assertive" hidden>
+        <strong>TEMPO CONCLUÍDO</strong>
+        <p>Seu período terminou. Salve o tempo ou continue somente para concluir o ponto atual.</p>
+        <div class="floating-timer-actions">
+          <button type="button" data-timer-action="save">Salvar tempo</button>
+          <button type="button" class="secondary-button" data-timer-action="continue">Continuar estudando</button>
+          <button type="button" class="secondary-button" data-timer-action="silence-alert">Silenciar alerta</button>
+          <button type="button" class="secondary-button" data-timer-action="close">Fechar aviso</button>
+        </div>
+      </section>
+    </div>
+    <details id="timerSettings" class="timer-settings">
+      <summary>Configurações do cronômetro</summary>
+      <label><input type="checkbox" data-timer-pref="visualAlerts" checked /> Alerta visual</label>
+      <label><input type="checkbox" data-timer-pref="sound" checked /> Alarme ao concluir</label>
+      <label>Volume do alerta: <select data-timer-pref="alertVolume"><option value="low">Baixo</option><option value="medium">Médio</option><option value="high">Alto</option></select></label>
+      <label><input type="checkbox" data-timer-pref="vibration" checked /> Vibração ao concluir</label>
+      <label><input type="checkbox" data-timer-pref="motivationalMessages" checked /> Mensagens de incentivo</label>
+      <label><input type="checkbox" data-timer-pref="browserNotifications" /> Permitir notificações do cronômetro</label>
+      <button type="button" class="secondary-button" data-timer-action="test-alerts">Testar alarme</button>
+      <small class="item-meta" data-timer-audio-status>Toque em “Testar alarme” para liberar o som.</small>
+    </details>
+    <div class="floating-timer-actions">
+      <button id="timerPauseResume" type="button" data-timer-action="pause">Pausar</button>
+      <button type="button" data-timer-action="save">Salvar tempo</button>
+      <button type="button" class="secondary-button" data-timer-action="reset">Zerar</button>
+      <button type="button" class="secondary-button" data-timer-action="close">Fechar</button>
+    </div>
+  </aside>
+  <div id="timerMotivationalToast" class="timer-motivational-toast" aria-live="polite" aria-atomic="true" hidden></div>
+
+  <div id="timerStudyModal" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="timerStudyModalTitle" hidden>
+    <div class="app-modal-backdrop" data-timer-study-cancel></div>
+    <form id="timerStudyForm" class="app-modal-card timer-study-modal-card">
+      <div class="modal-heading">
+        <p class="eyebrow">REGISTRAR ESTUDO</p>
+        <h2 id="timerStudyModalTitle">Registrar estudo</h2>
+      </div>
+      <section class="timer-study-summary" aria-label="Histórico da sessão">
+        <strong>Sessão</strong>
+        <div><span>Início</span><output id="timerStudyStartedAt">-</output></div>
+        <div><span>Fim</span><output id="timerStudyEndedAt">-</output></div>
+        <div><span>Tempo</span><output id="timerStudySessionTime">-</output></div>
+        <div><span>Modo</span><output id="timerStudySessionMode">-</output></div>
+      </section>
+      <label class="timer-readonly-time">⏱ Tempo estudado
+        <input id="timerStudyMinutes" type="text" readonly aria-readonly="true">
+        <small>(origem: cronômetro)</small>
+      </label>
+      <label>📚 Disciplina
+        <select id="timerStudyDiscipline" required></select>
+      </label>
+      <label>📖 Assunto
+        <select id="timerStudySubject" required></select>
+      </label>
+      <label>📄 Material
+        <select id="timerStudyMaterial"><option value="">Sem material vinculado</option></select>
+      </label>
+      <label>📝 Observações
+        <textarea id="timerStudyNotes" rows="3" placeholder="Opcional"></textarea>
+      </label>
+      <label class="checkbox-line"><input id="timerStudyUpdateGoal" type="checkbox" checked> Atualizar meta automaticamente</label>
+      <label class="checkbox-line"><input id="timerStudyFeedAnalytics" type="checkbox" checked> Alimentar análise estratégica</label>
+      <label class="checkbox-line"><input id="timerStudyFeedAdvisor" type="checkbox" checked> Alimentar Conselheiro</label>
+      <div class="modal-actions">
+        <button type="button" class="secondary-button" data-timer-study-cancel>Cancelar</button>
+        <button type="submit">Salvar estudo</button>
+      </div>
+    </form>
+  </div>
+
+
+  <div id="goalCompletionModal" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="goalCompletionTitle" hidden tabindex="-1">
+    <div class="app-modal-backdrop" data-goal-completion-cancel></div>
+    <section class="app-modal-card goal-completion-modal-card" aria-describedby="goalCompletionDescription">
+      <div class="modal-heading">
+        <p class="eyebrow">CONCLUIR META</p>
+        <h2 id="goalCompletionTitle">Concluir meta</h2>
+      </div>
+      <div id="goalCompletionDescription" class="goal-completion-summary"></div>
+      <p id="goalCompletionNotice" class="notice goal-completion-notice">Os tempos já registrados serão mantidos sem alterações.</p>
+      <div class="modal-actions">
+        <button type="button" class="secondary-button" id="goalCompletionCancel" data-goal-completion-cancel>Cancelar</button>
+        <button type="button" id="goalCompletionConfirm">Concluir meta</button>
+      </div>
+    </section>
+  </div>
+
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260814-desempenho-integral-v329</p></footer>
+  <div id="legacyTimerRecoveryModal" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="legacyTimerRecoveryModalTitle" hidden>
+    <div class="app-modal-backdrop" data-legacy-recovery-cancel></div>
+    <section class="app-modal-card">
+      <div class="modal-heading"><p class="eyebrow">RECUPERAÇÃO DE TEMPO ANTIGO</p><h2 id="legacyTimerRecoveryModalTitle">Confirmar associação</h2></div>
+      <div id="legacyTimerRecoveryModalBody" class="goal-completion-summary"></div>
+      <div class="modal-actions"><button type="button" class="secondary-button" data-legacy-recovery-cancel>Cancelar</button><button type="button" id="legacyTimerRecoveryConfirm">Confirmar associação</button></div>
+    </section>
+  </div>
+  <!-- Inicialização V168 consolidada em um único JavaScript. O login do Google é carregado somente quando o usuário toca em Conectar Google Drive. -->
+  <script id="aldusStorageQuotaGuardV256" defer src="storage-quota-guard-v256.js?v=20260814-desempenho-integral-v329&hotfix=indexeddb-only1"></script>
+  <script id="aldusTimerRuntimeV316" defer src="timer-runtime-v316.js?v=20260814-desempenho-integral-v329"></script>
+  <script id="aldusUsageTelemetryV317" defer src="usage-telemetry-v315.js?v=20260814-desempenho-integral-v329"></script>
+  <script id="aldusSecurityObservabilityV318" defer src="security-observability-v318.js?v=20260814-desempenho-integral-v329"></script>
+  <script id="aldusTelemetrySecurityDashboardV319" defer src="telemetry-security-dashboard-v319.js?v=20260814-desempenho-integral-v329"></script>
+  <script id="aldusSimuladoRecoveryV319" defer src="simulado-recovery-v319.js?v=20260814-desempenho-integral-v329"></script>
+  <script id="aldusFactorySimuladoVisibilityV315" defer src="factory-simulado-visibility-v315.js?v=20260814-desempenho-integral-v329"></script>
+  <script id="aldusBootstrapIntegrityLoaderV258" defer src="bootstrap-integrity-loader-v258.js?v=20260814-desempenho-integral-v329&hotfix=preboot-atomic-selection1"></script>
+  <script id="aldusQuestionsHubV322" defer src="questions-hub-v322.js?v=20260814-desempenho-integral-v329"></script>
+  <script id="aldusFactorySimuladoDifficultyV325" defer src="factory-simulado-difficulty-v325.js?v=20260814-desempenho-integral-v329"></script>
+  <script id="aldusFactoryPenaltiesV320" defer src="factory-penalties-v320.js?v=20260814-desempenho-integral-v329"></script>
+  <script id="aldusFactoryResumoAulaVisualV326" defer src="factory-resumo-aula-visual-v326.js?v=20260814-desempenho-integral-v329"></script>
+  <script id="aldusFactoryResumoAulaCanonicalV327" defer src="factory-resumo-aula-canonical-v327.js?v=20260814-desempenho-integral-v329"></script>
+  <script id="aldusDuplicateDiagnosticsLoaderV309" defer src="duplicate-diagnostics-loader-v269.js?v=20260814-desempenho-integral-v329"></script>
+  <script id="aldusDuplicateBatchAuthoritativeV309" defer src="duplicate-diagnostics-batch-v305.js?v=20260814-desempenho-integral-v329"></script>
 </body>
 </html>

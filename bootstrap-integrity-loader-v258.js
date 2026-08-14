@@ -1,25 +1,14 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260814-gerador-simulados-em-questoes-v328";
-  const CORE_SCRIPT = "bootstrap-integrity-loader-v258-core.js?v=20260814-gerador-simulados-em-questoes-v328";
+  const VERSION = "20260814-desempenho-integral-v329";
+  const CORE_SCRIPT = "bootstrap-integrity-loader-v258-core.js?v=20260814-desempenho-integral-v329";
   const DIAGNOSTICS_SCRIPT = "duplicate-diagnostics-v260.js?v=20260806-duplicate-diagnostics-v260";
   const DIAGNOSTICS_STYLESHEET = "duplicate-diagnostics-v260.css?v=20260806-duplicate-diagnostics-v260";
   const TIMER_SOUND_MASTER_SCRIPT = "timer-sound-master-v265.js?v=20260806-timer-sound-master-v265&hotfix=master-mute-hotfix1";
   const TIMER_CONTROLS_SCRIPT = "timer-controls-hardening-v268.js?v=20260808-timer-controls-sound-v268&hotfix=timer-controls-hardening-hotfix1";
   const PLANNING_SHIFT_PERSISTENCE_SCRIPT = "planning-shift-persistence-v283.js?v=20260809-planejamento-plantao-salvamento-v283";
-  const PRELOAD_SCRIPTS = [
-    "daily-summary-time-format-v243.js?v=20260805-daily-summary-hours-minutes-v243&hotfix=daily-summary-time-format-hotfix3",
-    "dashboard-today-time-sync-v253.js?v=20260805-dashboard-today-time-sync-v253&hotfix=dashboard-today-time-sync-hotfix1",
-    "dashboard-today-questions-sync-v257.js?v=20260805-dashboard-today-questions-sync-v257&hotfix=question-bank-sessions1",
-    "planning-integrity-loader-v235.js?v=20260804-simulados-sem-fabrica-cache-unico-v236&publication=v244",
-    "central-goals-period-palette-v248.js?v=20260805-central-period-cards-v248",
-    "daily-summary-elegant-v250.js?v=20260805-daily-summary-elegant-v250",
-    "timer-session-integrity-v236.js?v=20260804-simulados-sem-fabrica-cache-unico-v236&hotfix=timer-session-integrity-hotfix1",
-    TIMER_SOUND_MASTER_SCRIPT,
-    TIMER_CONTROLS_SCRIPT,
-    PLANNING_SHIFT_PERSISTENCE_SCRIPT
-  ];
+  const PRELOAD_SCRIPTS = [];
 
   function installStylesheet(baseUrl) {
     if (document.getElementById("aldusDuplicateDiagnosticsStylesV260")) return;

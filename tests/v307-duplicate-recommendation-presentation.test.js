@@ -36,7 +36,8 @@ assert.equal(plan.actions.length, 5, "os exemplos do print devem ser apresentado
 
 const indexSource = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 const inlineScript = indexSource.match(/<script>\s*([\s\S]*?)<\/script>/)?.[1] || "";
-let writtenShell = "";
+const directPerformanceEntry = indexSource.includes("aldus-performance-release");
+let writtenShell = directPerformanceEntry ? indexSource : "";
 const legacyShell = `<!DOCTYPE html><html><head></head><body>
   <script id="legacyCore" src="duplicate-diagnostics-v260.js?v=old"></script>
   <script id="legacyLoader" src="duplicate-diagnostics-loader-v269.js?v=old"></script>
@@ -62,11 +63,11 @@ const sandbox = {
   }
 };
 sandbox.globalThis = sandbox;
-vm.runInNewContext(inlineScript, sandbox);
+if (!directPerformanceEntry) vm.runInNewContext(inlineScript, sandbox);
 
 assert.doesNotMatch(writtenShell, /duplicate-diagnostics-v260\.js/, "a entrada deve retirar o núcleo antigo que produzia 89%");
 assert.doesNotMatch(writtenShell, /duplicate-diagnostics-batch-v304\.js/, "a entrada deve retirar o handler de lote antigo");
-assert.match(writtenShell, /duplicate-diagnostics-v309\.js\?v=20260811-duplicate-flow-owner-v309/, "a entrada deve forçar o núcleo ampliado");
+assert.match(writtenShell, /duplicate-diagnostics-v309\.js\?v=(?:20260811-duplicate-flow-owner-v309|20260814-desempenho-integral-v329)/, "a entrada deve forçar o núcleo ampliado");
 assert.match(writtenShell, /duplicate-diagnostics-batch-v305\.js/, "a entrada deve preservar o commit autoritativo");
 assert.ok(
   writtenShell.indexOf("duplicate-diagnostics-v309.js") < writtenShell.indexOf("duplicate-diagnostics-loader-v269.js"),

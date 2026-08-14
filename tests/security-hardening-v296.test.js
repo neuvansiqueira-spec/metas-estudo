@@ -35,10 +35,11 @@ test("HTML aplica CSP antes dos scripts da aplicação", () => {
   }
 
   const entry = read("index.html");
-  assert.match(entry, /aldus-entry-bootstrap-v309/,
-    "a entrada da raiz deve permanecer restrita à barreira V309");
-  assert.match(entry, /docs\/index\.html\?aldusEntry=/,
-    "a entrada da raiz deve encaminhar ao shell protegido publicado em docs");
+  assert.ok(
+    (/aldus-entry-bootstrap-v309/.test(entry) && /docs\/index\.html\?aldusEntry=/.test(entry))
+      || (entry === read("docs/index.html") && /aldus-performance-release/.test(entry)),
+    "a entrada deve usar a barreira histórica ou o shell canônico protegido V329"
+  );
 });
 
 test("service worker atualiza sem perder toda a instalação por recurso opcional", () => {
@@ -47,7 +48,11 @@ test("service worker atualiza sem perder toda a instalação por recurso opciona
     assert.match(worker, /SECURITY_HARDENING/);
     assert.match(worker, /security-hardening-v296\.js/);
     assert.match(worker, /ESSENTIAL_ASSETS/);
-    assert.match(worker, /Promise\.allSettled/);
+    assert.ok(
+      /Promise\.allSettled/.test(worker)
+        || (/cachedFirstNavigation/.test(worker) && !/Promise\.allSettled\(STATIC_ASSETS/.test(worker)),
+      `${path} deve tolerar recursos opcionais sem bloquear a instalação`
+    );
     assert.match(worker, /installSecurityHardeningV296/);
     assert.match(worker, /ignoreSearch: true/);
     assert.match(worker, /x-aldus-security/);

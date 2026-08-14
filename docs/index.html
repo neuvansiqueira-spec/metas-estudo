@@ -3,16 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="aldus-performance-release" content="20260814-desempenho-integral-v329" />
   <meta name="aldus-usage-endpoint" content="https://us.i.posthog.com/batch/" />
   <meta name="aldus-usage-project-token" content="phc_ALLcUsY57Zp3nXGd58NtMAPL3KhD8mZXJ6kyzR9ioqdA" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com; script-src-elem 'self' 'unsafe-inline' https://accounts.google.com; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://accounts.google.com https://www.googleapis.com https://us.i.posthog.com; frame-src https://accounts.google.com; font-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" />
   <meta name="referrer" content="no-referrer" />
-  <script id="aldusSecurityHardeningV296" src="security-hardening-v296.js?v=20260810-seguranca-estabilidade-v296"></script>
-  <script id="aldusQuestionBankJsonDetailsV299" src="question-bank-json-details-v299.js?v=20260810-revisao-json-explicacoes-v299"></script>
+  <script id="aldusSecurityHardeningV296" defer src="security-hardening-v296.js?v=20260814-desempenho-integral-v329"></script>
+  <script id="aldusQuestionBankJsonDetailsV299" defer src="question-bank-json-details-v299.js?v=20260814-desempenho-integral-v329"></script>
   <title>Aldus Metas Concurso — Painel de Estudos</title>
   <!-- O núcleo V309 precisa assumir a tela antes de qualquer inicializador legado. -->
   <link id="aldusDuplicateDiagnosticsStylesV309" rel="stylesheet" href="duplicate-diagnostics-v260.css?v=20260811-duplicate-flow-owner-v309" />
-  <script id="aldusDuplicateDiagnosticsCoreV309" src="duplicate-diagnostics-v309.js?v=20260811-duplicate-flow-owner-v309"></script>
+  <script id="aldusDuplicateDiagnosticsCoreV309" defer src="duplicate-diagnostics-v309.js?v=20260814-desempenho-integral-v329"></script>
   <link rel="manifest" href="manifest.json?v=20260728-carregamento-direto-v168" />
   <meta name="theme-color" content="#031426" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -21,9 +22,9 @@
   <meta name="google-identity-services" content="https://accounts.google.com/gsi/client" />
   <link rel="apple-touch-icon" href="icons/icon.svg?v=20260728-carregamento-direto-v168" />
   <link rel="icon" type="image/svg+xml" href="icons/logo-mark.svg?v=20260728-carregamento-direto-v168" />
-  <link rel="preload" as="image" href="icons/aldus-visual.png?v=20260728-carregamento-direto-v168" fetchpriority="high" />
+  <link rel="preload" as="image" type="image/webp" href="icons/aldus-visual-320.webp?v=20260814-desempenho-integral-v329" fetchpriority="high" />
   <!-- Fontes CSS consolidadas, na ordem original: style.css; aldus-premium-theme.css; aldus-premium-refinement-v47.css; aldus-interface-v51.css; aldus-responsive-v52.css; aldus-contrast-v53.css; aldus-visual-v58.css; aldus-planning-v59.css; aldus-planning-history-v60.css; aldus-calendar-v61.css; aldus-calendar-v62.css; aldus-export-brand-v63.css; aldus-export-brand-v64.css; aldus-daily-goals-v66.css; aldus-daily-time-v67.css; aldus-contrast-system-v68.css; aldus-component-contrast-v69.css; aldus-advisor-layout-v70.css; aldus-backup-contrast-v71.css; aldus-navigation-scroll-v73.css; aldus-goal-integrity-v75.css; aldus-completed-visibility-v76.css. -->
-  <link id="aldusAppBundleStyles" rel="stylesheet" href="app-v315.css?v=20260812-gerador-simulados-visibilidade-v315" />
+  <link id="aldusAppBundleStyles" rel="stylesheet" href="app-v329.css?v=20260814-desempenho-integral-v329" />
   <link id="aldusQuestionsHubStylesV298" rel="stylesheet" href="questions-hub-v298.css?v=20260814-gerador-simulados-em-questoes-v328" />
 
   <link id="aldusCentralGoalsPaletteV246" rel="stylesheet" href="central-goals-palette-v245.css?v=20260805-dashboard-central-metas-cores-v246" />
@@ -36,14 +37,14 @@
   <link id="aldusDailySummaryElegantDirectV251" rel="stylesheet" href="daily-summary-elegant-direct-v251.css?v=20260805-daily-summary-elegant-direct-v251" />
   <link id="aldusDailySummaryElegantNestedV252" rel="stylesheet" href="daily-summary-elegant-nested-v252.css?v=20260805-daily-summary-elegant-nested-v252" />
   <link id="aldusCardPaletteV294" rel="stylesheet" href="aldus-card-palette-v294.css?v=20260809-paleta-cartoes-global-v294" />
-  <link rel="preload" as="script" href="app-v315.js?v=20260812-gerador-simulados-visibilidade-v315" />
+  <link rel="preload" as="script" href="app-v329.js?v=20260814-desempenho-integral-v329" />
   <link rel="preload" as="script" href="factory-simulado-visibility-v315.js?v=20260814-gerador-simulados-em-questoes-v328" />
 </head>
 <body>
   <header class="hero">
     <nav class="topbar" aria-label="Navegação principal">
       <a class="brand aldus-visual-brand brand-home-link" href="#dashboard" data-view-link="dashboard" aria-label="Ir para o início">
-        <img class="aldus-visual-brand-image" src="icons/aldus-visual.png?v=20260728-carregamento-direto-v168" alt="Aldus — Metas Concursos" width="1254" height="1254" fetchpriority="high" decoding="async" />
+        <img class="aldus-visual-brand-image" src="icons/aldus-visual-320.webp?v=20260814-desempenho-integral-v329" alt="Aldus — Metas Concursos" width="320" height="320" fetchpriority="high" decoding="async" />
       </a>
       <button id="menuToggle" class="menu-toggle" type="button" aria-expanded="false" aria-controls="mainMenu">☰ Menu</button>
       <div id="mainMenu" class="nav-links">
@@ -1169,7 +1170,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </section>
   </div>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260812-gerador-simulados-visibilidade-v315</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260814-desempenho-integral-v329</p></footer>
   <div id="legacyTimerRecoveryModal" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="legacyTimerRecoveryModalTitle" hidden>
     <div class="app-modal-backdrop" data-legacy-recovery-cancel></div>
     <section class="app-modal-card">
@@ -1179,13 +1180,20 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </section>
   </div>
   <!-- Inicialização V168 consolidada em um único JavaScript. O login do Google é carregado somente quando o usuário toca em Conectar Google Drive. -->
-  <script id="aldusStorageQuotaGuardV256" src="storage-quota-guard-v256.js?v=20260805-indexeddb-quota-guard-v256&hotfix=indexeddb-only1"></script>
-  <script id="aldusTimerRuntimeV316" src="timer-runtime-v316.js?v=20260812-timer-diagnostics-security-v316"></script>
-  <script id="aldusUsageTelemetryV317" src="usage-telemetry-v315.js?v=20260812-posthog-telemetry-v317"></script>
-  <script id="aldusFactorySimuladoVisibilityV315" src="factory-simulado-visibility-v315.js?v=20260814-gerador-simulados-em-questoes-v328"></script>
-  <script id="aldusBootstrapIntegrityLoaderV258" src="bootstrap-integrity-loader-v258.js?v=20260814-gerador-simulados-em-questoes-v328&hotfix=preboot-atomic-selection1"></script>
-  <script id="aldusQuestionsHubV298" src="questions-hub-v298.js?v=20260814-gerador-simulados-em-questoes-v328"></script>
-  <script id="aldusDuplicateDiagnosticsLoaderV309" src="duplicate-diagnostics-loader-v269.js?v=20260811-duplicate-flow-owner-v309"></script>
-  <script id="aldusDuplicateBatchAuthoritativeV309" src="duplicate-diagnostics-batch-v305.js?v=20260811-duplicate-flow-owner-v309"></script>
+  <script id="aldusStorageQuotaGuardV256" defer src="storage-quota-guard-v256.js?v=20260814-desempenho-integral-v329&hotfix=indexeddb-only1"></script>
+  <script id="aldusTimerRuntimeV316" defer src="timer-runtime-v316.js?v=20260814-desempenho-integral-v329"></script>
+  <script id="aldusUsageTelemetryV317" defer src="usage-telemetry-v315.js?v=20260814-desempenho-integral-v329"></script>
+  <script id="aldusSecurityObservabilityV318" defer src="security-observability-v318.js?v=20260814-desempenho-integral-v329"></script>
+  <script id="aldusTelemetrySecurityDashboardV319" defer src="telemetry-security-dashboard-v319.js?v=20260814-desempenho-integral-v329"></script>
+  <script id="aldusSimuladoRecoveryV319" defer src="simulado-recovery-v319.js?v=20260814-desempenho-integral-v329"></script>
+  <script id="aldusFactorySimuladoVisibilityV315" defer src="factory-simulado-visibility-v315.js?v=20260814-desempenho-integral-v329"></script>
+  <script id="aldusBootstrapIntegrityLoaderV258" defer src="bootstrap-integrity-loader-v258.js?v=20260814-desempenho-integral-v329&hotfix=preboot-atomic-selection1"></script>
+  <script id="aldusQuestionsHubV322" defer src="questions-hub-v322.js?v=20260814-desempenho-integral-v329"></script>
+  <script id="aldusFactorySimuladoDifficultyV325" defer src="factory-simulado-difficulty-v325.js?v=20260814-desempenho-integral-v329"></script>
+  <script id="aldusFactoryPenaltiesV320" defer src="factory-penalties-v320.js?v=20260814-desempenho-integral-v329"></script>
+  <script id="aldusFactoryResumoAulaVisualV326" defer src="factory-resumo-aula-visual-v326.js?v=20260814-desempenho-integral-v329"></script>
+  <script id="aldusFactoryResumoAulaCanonicalV327" defer src="factory-resumo-aula-canonical-v327.js?v=20260814-desempenho-integral-v329"></script>
+  <script id="aldusDuplicateDiagnosticsLoaderV309" defer src="duplicate-diagnostics-loader-v269.js?v=20260814-desempenho-integral-v329"></script>
+  <script id="aldusDuplicateBatchAuthoritativeV309" defer src="duplicate-diagnostics-batch-v305.js?v=20260814-desempenho-integral-v329"></script>
 </body>
 </html>

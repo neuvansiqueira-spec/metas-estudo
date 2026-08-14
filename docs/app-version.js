@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260812-gerador-simulados-visibilidade-v315";
+  const VERSION = "20260814-desempenho-integral-v329";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

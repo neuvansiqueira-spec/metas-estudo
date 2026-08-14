@@ -12173,6 +12173,25 @@ html[data-aldus-theme="premium-stable"] .interactive-answer-card button.blank { 
   .interactive-run-footer [data-interactive-finish] { grid-column: 1 / -1; }
 }
 
+/* Aldus source: performance-v329.css */
+/* V329 — contenção visual para coleções longas. */
+@supports (content-visibility: auto) {
+  .syllabus-card,
+  .question-bank-item,
+  .planning-history-card,
+  .history-card,
+  .material-card,
+  [data-factory-card],
+  [data-daily-goal-details] {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 240px;
+  }
+}
+
+html[data-active-view] .app-view[hidden] {
+  display: none !important;
+}
+
 /* Aldus runtime source: loading-scrollbar-stability-v197.css */
 /* V197: o aviso de carregamento não participa mais da altura da página.
    Isso evita a criação e remoção momentânea da barra vertical durante a hidratação. */

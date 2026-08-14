@@ -59,7 +59,7 @@
     "aldusEmergencyIndexedDBActivationBackupV256"
   ];
   const SCRIPT_CHAIN = [
-    ["aldusAppBundleScript", "app-v315.js?v=20260812-gerador-simulados-visibilidade-v315"],
+    ["aldusAppBundleScript", "app-v329.js?v=20260814-desempenho-integral-v329"],
     ["aldusFactorySimuladoVisibilityV315", "factory-simulado-visibility-v315.js?v=20260814-gerador-simulados-em-questoes-v328"],
     ["aldusFactorySimuladoPromptV310", "factory-simulado-prompt-v310.js?v=20260814-gerador-simulados-em-questoes-v328"],
     ["aldusSimuladoInterativoV313", "simulado-interativo-v313.js?v=20260811-simulado-interativo-v313"],
@@ -549,7 +549,9 @@
   }
 
   async function loadApplicationChain() {
-    for (const [id, src] of SCRIPT_CHAIN) await loadScript(id, src);
+    const [application, ...enhancements] = SCRIPT_CHAIN;
+    await loadScript(...application);
+    await Promise.all(enhancements.map(([id, src]) => loadScript(id, src)));
   }
 
   async function start() {

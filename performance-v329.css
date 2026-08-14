@@ -1,0 +1,17 @@
+/* V329 — contenção visual para coleções longas. */
+@supports (content-visibility: auto) {
+  .syllabus-card,
+  .question-bank-item,
+  .planning-history-card,
+  .history-card,
+  .material-card,
+  [data-factory-card],
+  [data-daily-goal-details] {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 240px;
+  }
+}
+
+html[data-active-view] .app-view[hidden] {
+  display: none !important;
+}

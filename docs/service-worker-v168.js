@@ -1,10 +1,10 @@
 "use strict";
 
-const CURRENT_VERSION = "20260812-gerador-simulados-visibilidade-v315";
+const CURRENT_VERSION = "20260814-desempenho-integral-v329";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const SECURITY_VERSION = "20260810-seguranca-estabilidade-v296";
 const PROTECTION_VERSION = "20260808-catastrophic-state-recovery-v275";
-const BOOTSTRAP_VERSION = "20260812-gerador-simulados-visibilidade-v315";
+const BOOTSTRAP_VERSION = "20260814-desempenho-integral-v329";
 const DUPLICATE_CONTINUITY_VERSION = "20260811-duplicate-flow-owner-v309";
 const DUPLICATE_RECOMMENDATIONS_VERSION = "20260811-duplicate-flow-owner-v309";
 const DUPLICATE_BATCH_HOTFIX_VERSION = "20260811-duplicate-flow-owner-v309";
@@ -12,9 +12,9 @@ const ENTRY_RECOVERY_VERSION = "20260811-duplicate-flow-owner-v309";
 const FACTORY_SCHEDULE_VERSION = "20260808-factory-schedule-scope-v277";
 const FACTORY_SCHEDULE_FILTERS_VERSION = "20260808-factory-schedule-planning-preview-filters-v280";
 const FACTORY_SCHEDULE_DATES_VERSION = "20260809-factory-schedule-planning-dates-v281";
-const QUESTIONS_HUB_VERSION = "20260810-questoes-integradas-v298";
+const QUESTIONS_HUB_VERSION = "20260814-desempenho-integral-v329";
 const QUESTION_JSON_DETAILS_VERSION = "20260810-revisao-json-explicacoes-v299";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v297-hotfix5-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-duplicate-recommended-batch-v300-duplicate-batch-persistence-v301-duplicate-batch-performance-v304-duplicate-batch-commit-v305-entry-parser-recovery-v306-duplicate-core-delivery-v307-duplicate-batch-core-pin-v308-duplicate-flow-owner-v309-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4-security-v296-questions-hub-v298-question-json-details-v299-factory-simulado-escolha-automatica-v312-simulado-interativo-v313-integracao-v314-factory-simulado-visibility-v315`;
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v297-hotfix5-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-duplicate-recommended-batch-v300-duplicate-batch-persistence-v301-duplicate-batch-performance-v304-duplicate-batch-commit-v305-entry-parser-recovery-v306-duplicate-core-delivery-v307-duplicate-batch-core-pin-v308-duplicate-flow-owner-v309-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4-security-v296-questions-hub-v298-question-json-details-v299-factory-simulado-escolha-automatica-v312-simulado-interativo-v313-integracao-v318-reparo-factory-simulado-visibility-v315-posthog-telemetry-v317-simulado-location-v328-factory-resumo-aula-canonical-v327`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
@@ -45,16 +45,19 @@ const DUPLICATE_DIAGNOSTICS_CORE_CSS = `duplicate-diagnostics-v260.css?v=${DUPLI
 const DUPLICATE_RECOMMENDATIONS_CORE = `duplicate-diagnostics-v309.js?v=${DUPLICATE_RECOMMENDATIONS_VERSION}`;
 const DUPLICATE_BATCH_HOTFIX = `duplicate-diagnostics-batch-v305.js?v=${DUPLICATE_BATCH_HOTFIX_VERSION}`;
 const QUESTIONS_HUB_STYLESHEET = `questions-hub-v298.css?v=${QUESTIONS_HUB_VERSION}`;
-const QUESTIONS_HUB_SCRIPT = `questions-hub-v298.js?v=${QUESTIONS_HUB_VERSION}`;
+const QUESTIONS_HUB_SCRIPT = `questions-hub-v322.js?v=${QUESTIONS_HUB_VERSION}`;
 const QUESTION_JSON_DETAILS_SCRIPT = `question-bank-json-details-v299.js?v=${QUESTION_JSON_DETAILS_VERSION}`;
-const FACTORY_SIMULADO_SCRIPT = "factory-simulado-prompt-v310.js?v=20260811-gerador-simulados-escolha-automatica-v312";
-const FACTORY_SIMULADO_STYLESHEET = "factory-simulado-prompt-v310.css?v=20260811-gerador-simulados-escolha-automatica-v312";
-const FACTORY_SIMULADO_VISIBILITY_LOADER = "factory-simulado-visibility-v315.js?v=20260812-gerador-simulados-visibilidade-v315";
-const TIMER_RUNTIME_V316 = "timer-runtime-v316.js?v=20260812-timer-diagnostics-security-v316";
-const USAGE_TELEMETRY_V316 = "usage-telemetry-v315.js?v=20260812-usage-telemetry-security-v316";
+const FACTORY_SIMULADO_SCRIPT = "factory-simulado-prompt-v310.js?v=20260814-desempenho-integral-v329";
+const FACTORY_SIMULADO_STYLESHEET = "factory-simulado-prompt-v310.css?v=20260814-desempenho-integral-v329";
+const FACTORY_SIMULADO_VISIBILITY_LOADER = "factory-simulado-visibility-v315.js?v=20260814-desempenho-integral-v329";
+const TIMER_RUNTIME_V316 = "timer-runtime-v316.js?v=20260814-desempenho-integral-v329";
+const USAGE_TELEMETRY_V317 = "usage-telemetry-v315.js?v=20260814-desempenho-integral-v329";
 const SIMULADO_INTERATIVO_SCRIPT = "simulado-interativo-v313.js?v=20260811-simulado-interativo-v313";
 const SIMULADO_INTERATIVO_STYLESHEET = "simulado-interativo-v313.css?v=20260811-simulado-interativo-v313";
-const SIMULADO_INTEGRACAO_SCRIPT = "simulado-integracao-v314.js?v=20260811-simulado-integracao-v314";
+const SIMULADO_INTEGRACAO_SCRIPT = "simulado-integracao-v314.js?v=20260812-simulado-integracao-v318-reparo";
+const FACTORY_PENALTIES_SCRIPT = "factory-penalties-v320.js?v=20260814-desempenho-integral-v329";
+const FACTORY_RESUMO_AULA_VISUAL_SCRIPT = "factory-resumo-aula-visual-v326.js?v=20260814-desempenho-integral-v329";
+const FACTORY_RESUMO_AULA_CANONICAL_SCRIPT = "factory-resumo-aula-canonical-v327.js?v=20260814-desempenho-integral-v329";
 const STATIC_ASSETS = [
   "./",
   "index.html",
@@ -94,14 +97,18 @@ const STATIC_ASSETS = [
   FACTORY_SIMULADO_STYLESHEET,
   FACTORY_SIMULADO_VISIBILITY_LOADER,
   TIMER_RUNTIME_V316,
-  USAGE_TELEMETRY_V316,
+  USAGE_TELEMETRY_V317,
   SIMULADO_INTERATIVO_SCRIPT,
   SIMULADO_INTERATIVO_STYLESHEET,
   SIMULADO_INTEGRACAO_SCRIPT,
+  FACTORY_PENALTIES_SCRIPT,
+  FACTORY_RESUMO_AULA_VISUAL_SCRIPT,
+  FACTORY_RESUMO_AULA_CANONICAL_SCRIPT,
   "vendor/pdf.mjs",
   "vendor/pdf.worker.mjs",
   "vendor/pdfjs-LICENSE.txt",
   "manifest.json",
+  "icons/aldus-visual-320.webp",
   "icons/aldus-visual.png",
   "icons/aldus-brand-mark-v93.png",
   "icons/logo-mark.svg",
@@ -109,13 +116,21 @@ const STATIC_ASSETS = [
   "icons/icon-maskable.svg"
 ];
 const STATIC_PATHS = new Set(STATIC_ASSETS.map((asset) => new URL(asset, self.registration.scope).pathname));
-const ESSENTIAL_ASSETS = ["./", "index.html", `app-${RELEASE_SUFFIX}.css?v=${CURRENT_VERSION}`, `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`, QUESTIONS_HUB_STYLESHEET, QUESTIONS_HUB_SCRIPT, QUESTION_JSON_DETAILS_SCRIPT, FACTORY_SIMULADO_SCRIPT, FACTORY_SIMULADO_STYLESHEET, FACTORY_SIMULADO_VISIBILITY_LOADER, TIMER_RUNTIME_V316, USAGE_TELEMETRY_V316, SIMULADO_INTERATIVO_SCRIPT, SIMULADO_INTERATIVO_STYLESHEET, SIMULADO_INTEGRACAO_SCRIPT, DUPLICATE_RECOMMENDATIONS_CORE, DUPLICATE_DIAGNOSTICS_CORE_CSS, DUPLICATE_BATCH_HOTFIX, SECURITY_HARDENING, CATASTROPHIC_STATE_GUARD, BOOTSTRAP_PROTECTED, BOOTSTRAP_CORE];
+const ESSENTIAL_ASSETS = [
+  "./",
+  "index.html",
+  `app-${RELEASE_SUFFIX}.css?v=${CURRENT_VERSION}`,
+  `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`,
+  "icons/aldus-visual-320.webp",
+  SECURITY_HARDENING,
+  CATASTROPHIC_STATE_GUARD,
+  BOOTSTRAP_PROTECTED,
+  BOOTSTRAP_CORE
+];
 
 async function precacheAssets() {
   const cache = await caches.open(CACHE_NAME);
   await cache.addAll(ESSENTIAL_ASSETS);
-  const essential = new Set(ESSENTIAL_ASSETS);
-  await Promise.allSettled(STATIC_ASSETS.filter((asset) => !essential.has(asset)).map((asset) => cache.add(asset)));
 }
 
 self.addEventListener("install", (event) => {
@@ -309,18 +324,25 @@ async function ensurePageStylesheets(response) {
   });
 }
 
-async function networkFirstNavigation(request) {
-  try {
-    const response = await fetch(request, { cache: "no-store" });
-    if (response?.ok) {
-      const patchedResponse = await ensurePageStylesheets(response);
-      return cacheResponse(request, patchedResponse);
-    }
-  } catch {}
+async function refreshNavigation(request) {
+  const response = await fetch(request, { cache: "no-store" });
+  if (!response?.ok) throw new Error(`Navegação indisponível: ${response?.status || 0}`);
+  const patchedResponse = await ensurePageStylesheets(response);
+  return cacheResponse(request, patchedResponse);
+}
 
+async function cachedFirstNavigation(request, event) {
   const cached = await caches.match(request, { ignoreSearch: true })
     || await caches.match(new URL("index.html", self.registration.scope).href, { ignoreSearch: true });
-  if (cached) return ensurePageStylesheets(cached);
+
+  if (cached) {
+    event?.waitUntil?.(refreshNavigation(request).catch(() => null));
+    return cached;
+  }
+
+  try {
+    return await refreshNavigation(request);
+  } catch {}
 
   return new Response("Aplicativo indisponível temporariamente.", {
     status: 503,
@@ -345,7 +367,7 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === "navigate" || request.destination === "document") {
-    event.respondWith(networkFirstNavigation(request));
+    event.respondWith(cachedFirstNavigation(request, event));
     return;
   }
   if (STATIC_PATHS.has(url.pathname)) event.respondWith(cacheFirstStatic(request));
