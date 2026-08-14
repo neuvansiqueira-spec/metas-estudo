@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260814-fonte-jurisprudencia-exclusiva-v330";
+  const VERSION = "20260814-jurisprudencia-semantica-visual-v331";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

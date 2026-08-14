@@ -58,14 +58,13 @@ test("V231 preserva um prompt personalizado que não corresponde ao modelo ofici
   assert.match(context.defaultFactoryPromptLibrary.jurisprudencia, /## DIVERGÊNCIA JURISPRUDENCIAL/);
 });
 
-test("V231 publica o módulo no bundle e mantém raiz e docs sincronizados", () => {
+test("V231 permanece arquivado e o bundle publica o sucessor V331", () => {
   const version = JSON.parse(fs.readFileSync("package.json", "utf8")).version;
   const suffix = version.match(/v\d+$/)?.[0];
   const bundle = fs.readFileSync(`app-${suffix}.js`, "utf8");
-  assert.match(bundle, /Aldus source: factory-jurisprudencia-prompt-v231\.js/);
-  assert.match(bundle, /## VALIDAÇÃO OBRIGATÓRIA DAS FONTES/);
-  assert.match(bundle, /## DIVERGÊNCIA JURISPRUDENCIAL/);
+  assert.doesNotMatch(bundle, /Aldus source: factory-jurisprudencia-prompt-v231\.js/);
+  assert.match(bundle, /Aldus source: factory-jurisprudencia-prompt-v331\.js/);
+  assert.match(bundle, /## 2\. BUSCA SEMÂNTICA OBRIGATÓRIA EM TRÊS PASSAGENS/);
   assert.equal(bundle, fs.readFileSync(`docs/app-${suffix}.js`, "utf8"));
   assert.equal(fs.readFileSync("index.html", "utf8"), fs.readFileSync("docs/index.html", "utf8"));
 });
-
