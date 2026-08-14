@@ -188,15 +188,12 @@ test('V327 possui guardas de geração, normalização e retentativas contra tim
   ].forEach((fragment) => assert.ok(source.includes(fragment), `faltou: ${fragment}`));
 });
 
-test('deploy da V327 valida, copia, injeta após V326 e renova o cache público', () => {
+test('V327 permanece a política canônica, com ativação pública determinística pela V328', () => {
   assert.match(pagesWorkflow, /node --check factory-resumo-aula-canonical-v327\.js/);
   assert.match(pagesWorkflow, /tests\/v327-factory-resumo-aula-canonical\.test\.js/);
   assert.match(pagesWorkflow, /cp factory-resumo-aula-canonical-v327\.js docs\/factory-resumo-aula-canonical-v327\.js/);
-  assert.match(pagesWorkflow, /aldusFactoryResumoAulaCanonicalV327/);
-  assert.match(pagesWorkflow, /factory-resumo-aula-canonical-v327\.js\?v=20260814-factory-resumo-aula-canonical-v327/);
-  assert.match(pagesWorkflow, /factory-resumo-aula-canonical-v327/);
-  assert.ok(
-    pagesWorkflow.indexOf('aldusFactoryResumoAulaCanonicalV327') > pagesWorkflow.indexOf('aldusFactoryResumoAulaVisualV326'),
-    'a V327 deve ser injetada depois da V326 para assumir a fonte canônica final'
-  );
+  assert.match(pagesWorkflow, /factory-resumo-aula-canonical-v327\.js\?v=20260814-factory-resumo-aula-bootstrap-v328/);
+  assert.match(pagesWorkflow, /cp bootstrap-integrity-loader-v275\.js docs\/bootstrap-integrity-loader-v275\.js/);
+  assert.match(pagesWorkflow, /20260814-factory-resumo-aula-bootstrap-v328/);
+  assert.doesNotMatch(pagesWorkflow, /factory-resumo-aula-canonical-v327\.js\?v=20260814-factory-resumo-aula-canonical-v327/);
 });
