@@ -59,7 +59,7 @@
     "aldusEmergencyIndexedDBActivationBackupV256"
   ];
   const SCRIPT_CHAIN = [
-    ["aldusAppBundleScript", "app-v331.js?v=20260814-jurisprudencia-semantica-visual-v331"],
+    ["aldusAppBundleScript", "app-v332.js?v=20260814-restaura-topificacao-jurisprudencia-v332"],
     ["aldusFactorySimuladoVisibilityV315", "factory-simulado-visibility-v315.js?v=20260814-gerador-simulados-em-questoes-v328"],
     ["aldusFactorySimuladoPromptV310", "factory-simulado-prompt-v310.js?v=20260814-gerador-simulados-em-questoes-v328"],
     ["aldusSimuladoInterativoV313", "simulado-interativo-v313.js?v=20260811-simulado-interativo-v313"],
