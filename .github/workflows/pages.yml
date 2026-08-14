@@ -139,7 +139,7 @@ jobs:
           if old in sw_text and new not in sw_text:
               sw_text = sw_text.replace(old, new, 1)
           sw_text = sw_text.replace(
-              'const QUESTIONS_HUB_VERSION = "20260810-questoes-integrados-v298";',
+              'const QUESTIONS_HUB_VERSION = "20260810-questoes-integradas-v298";',
               'const QUESTIONS_HUB_VERSION = "20260813-simulados-integrados-questoes-v322";',
           )
           sw_text = sw_text.replace(
