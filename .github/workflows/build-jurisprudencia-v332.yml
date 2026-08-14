@@ -1,0 +1,53 @@
+name: Build Jurisprudence Prompt v332
+
+on:
+  push:
+    branches:
+      - agent/restaura-topificacao-jurisprudencia-v332
+
+permissions:
+  contents: write
+
+concurrency:
+  group: jurisprudencia-prompt-v332
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Baixar branch
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: agent/restaura-topificacao-jurisprudencia-v332
+
+      - name: Configurar Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci --ignore-scripts
+
+      - name: Gerar e validar V332
+        run: |
+          node build-bundles.mjs
+          node --test             tests/factory-jurisprudencia-prompt-v231.test.js             tests/factory-jurisprudencia-prompt-v331.test.js             tests/factory-jurisprudencia-prompt-v332.test.js             tests/factory-jurisprudencia-source-v330.test.js             tests/v320-factory-penalties-prompts.test.js             tests/v326-factory-resumo-aula-visual.test.js             tests/v327-factory-resumo-aula-canonical.test.js             tests/v329-integral-performance.test.js
+          node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
+          cmp script.js docs/script.js
+          cmp factory-jurisprudencia-prompt-v332.js docs/factory-jurisprudencia-prompt-v332.js
+
+      - name: Publicar artefatos na branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nenhum artefato novo."
+            exit 0
+          fi
+          git commit -m "build: gera artefatos da V332"
+          git push origin HEAD
