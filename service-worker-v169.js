@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20260814-desempenho-integral-v329";
+const CURRENT_VERSION = "20260814-fonte-jurisprudencia-exclusiva-v330";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const SECURITY_VERSION = "20260810-seguranca-estabilidade-v296";
 const PROTECTION_VERSION = "20260808-catastrophic-state-recovery-v275";

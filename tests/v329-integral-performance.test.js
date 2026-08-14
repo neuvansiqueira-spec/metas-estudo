@@ -5,6 +5,8 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 
 const read = (file) => fs.readFileSync(file, "utf8");
+const currentVersion = JSON.parse(read("package.json")).version;
+const currentSuffix = currentVersion.match(/v\d+$/)?.[0];
 
 test("V329 entrega diretamente o shell canônico sem requisição síncrona", () => {
   const root = read("index.html");
@@ -12,8 +14,8 @@ test("V329 entrega diretamente o shell canônico sem requisição síncrona", ()
   assert.equal(root, docs);
   assert.match(root, /aldus-performance-release" content="20260814-desempenho-integral-v329/);
   assert.doesNotMatch(root, /XMLHttpRequest|docs\/index\.html\?aldusEntry=|document\.write\(/);
-  assert.match(root, /app-v329\.css\?v=20260814-desempenho-integral-v329/);
-  assert.match(root, /app-v329\.js\?v=20260814-desempenho-integral-v329/);
+  assert.ok(root.includes(`app-${currentSuffix}.css?v=${currentVersion}`));
+  assert.ok(root.includes(`app-${currentSuffix}.js?v=${currentVersion}`));
 });
 
 test("V329 não bloqueia o parser com scripts externos", () => {

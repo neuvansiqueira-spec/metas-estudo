@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260814-desempenho-integral-v329",
+  "version": "20260814-fonte-jurisprudencia-exclusiva-v330",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

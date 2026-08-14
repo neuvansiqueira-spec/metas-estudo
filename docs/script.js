@@ -3539,13 +3539,15 @@ const FACTORY_PROMPT_TYPES = [
   { key: "consolidacao", label: "Gerar prompt Consolidação Final" }
 ];
 const FACTORY_DEFAULT_SOURCE_FOLDER = "https://drive.google.com/drive/folders/1BTUFtLBf6tuKG6kqWTRIrPT75cltdy-n";
-function factorySourceFolderLink(item = {}) {
+const FACTORY_JURISPRUDENCIA_SOURCE_FOLDER = "https://drive.google.com/drive/folders/1ECc_otgQKwH7WfPdQr8CtD0kB07pz9Xe";
+function factorySourceFolderLink(item = {}, type = "") {
+  if (type === "jurisprudencia") return FACTORY_JURISPRUDENCIA_SOURCE_FOLDER;
   const leiModule = normalizeFactoryModule(item.modules?.lei || {}, item);
   return String(leiModule.leiFonte || FACTORY_DEFAULT_SOURCE_FOLDER).trim();
 }
-function factorySourceFolderBlock(item = {}) {
+function factorySourceFolderBlock(item = {}, type = "") {
   return `PASTA DAS FONTES NO GOOGLE DRIVE:
-${factorySourceFolderLink(item) || "[LINK DAS FONTES NÃO PREENCHIDO — INFORMAR A PASTA DO GOOGLE DRIVE ANTES DE EXECUTAR]"}`;
+${factorySourceFolderLink(item, type) || "[LINK DAS FONTES NÃO PREENCHIDO — INFORMAR A PASTA DO GOOGLE DRIVE ANTES DE EXECUTAR]"}`;
 }
 function factoryDestinationFolderLink(item = {}) {
   return String(item.factoryDestinationFolder || item.pastaDestinoWordPdf || item.destinationFolder || item.finalFilesFolder || "").trim();
@@ -3556,10 +3558,10 @@ ${factoryDestinationFolderLink(item) || "Pasta de destino não preenchida. O arq
 
 A pasta acima é somente o destino de gravação. Não trate este link como arquivo individual.`;
 }
-function factoryPromptContext(item = {}) {
+function factoryPromptContext(item = {}, type = "") {
   return `Disciplina: ${item.disciplina || "[DISCIPLINA]"}
 Tema: ${item.tema || "[TEMA]"}
-${factorySourceFolderBlock(item)}
+${factorySourceFolderBlock(item, type)}
 
 ${factoryDestinationFolderBlock(item)}`;
 }
@@ -3648,7 +3650,7 @@ function factoryPromptBase(type) {
   return text || FACTORY_LIBRARY_FALLBACK;
 }
 function factoryRouterText(type, item = {}) {
-  const context = factoryPromptContext(item);
+  const context = factoryPromptContext(item, type);
   const theme = item.tema || "[TEMA]";
   const leiModule = normalizeFactoryModule(item.modules?.lei || {}, item);
   const leiValues = [leiModule.leiNome, leiModule.leiFonte, leiModule.leiArtigos, leiModule.leiRecorte, leiModule.leiObservacoes].map((value) => String(value || "").trim());
@@ -3660,6 +3662,8 @@ function factoryRouterText(type, item = {}) {
   const leiDetails = hasAnyLeiField ? `Modo detalhado do módulo LEI:\n- Lei / diploma legal: ${leiModule.leiNome || "[NÃO PREENCHIDO]"}\n- Fonte: ${leiModule.leiFonte || "[NÃO PREENCHIDO]"}\n- Artigos / dispositivos: ${leiModule.leiArtigos || "[NÃO PREENCHIDO]"}\n- Recorte obrigatório: ${leiModule.leiRecorte || "[NÃO PREENCHIDO]"}\n- Observações: ${leiModule.leiObservacoes || "[NÃO PREENCHIDO]"}${hasLeiNome && hasLeiRecorte ? "" : `\n\n${leiAviso}`}` : `Modo rápido do módulo LEI:\n${leiAviso}`;
   const commonSources = type === "triagem"
     ? "Fontes a usar: todos os arquivos efetivamente acessíveis e legíveis na pasta de fontes indicada.\nFontes a não usar: conteúdo externo, arquivos de outras pastas não fornecidas, materiais inacessíveis e arquivos que não possam ser efetivamente examinados."
+    : type === "jurisprudencia"
+      ? "Fontes a usar: exclusivamente os arquivos efetivamente acessíveis e legíveis da pasta jurisprudencial indicada e de todas as suas subpastas, desde que pertinentes à disciplina, ao tema e ao recorte.\nFontes a não usar: a pasta geral da Fábrica, outras pastas do Google Drive, conteúdo externo, pesquisa na internet, memória do modelo e materiais que não possam ser efetivamente examinados."
     : "Fontes a usar: conforme a triagem e as fontes classificadas para este módulo.\nFontes a não usar: fontes de outros módulos, conteúdo externo não fornecido e materiais não aprovados na triagem.";
   const common = `${context}\nStatus anterior: ${item.status || "Não iniciado"}\n${commonSources}\nRegras específicas do tema/módulo: ${item.observacao || "sem observações adicionais cadastradas."}`;
   const routers = {
@@ -3668,7 +3672,7 @@ function factoryRouterText(type, item = {}) {
 MÓDULO: TRIAGEM. A pasta de destino acima é apenas informação para etapas futuras. Faça apenas a TRIAGEM das fontes, aplicando o prompt completo oficial abaixo. Classifique cada fonte por RESUMO/AULA, LEI, JURISPRUDÊNCIA, PEÇA e ATUALIZAÇÃO/COMPLEMENTO, com suficiência separada por módulo. Não gere resumo, lei topificada, jurisprudência, peça, Word, PDF ou módulo final.`,
     resumoAula: `${common}\n\nMÓDULO: RESUMO/AULA. Use apenas as fontes classificadas como RESUMO/AULA na triagem. Não gere os módulos LEI, JURISPRUDÊNCIA ou PEÇA e não faça ainda a consolidação final. Gere somente o arquivo Word correspondente ao MÓDULO RESUMO/AULA. Preserve profundidade, hierarquia, negritos e substitua qualquer referência de banca por “📌 PROVA”.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o MÓDULO RESUMO/AULA;\n- gerar um arquivo Word editável contendo o módulo;\n- não gerar ainda o Word final consolidado;\n- salvar o Word na pasta de destino indicada, somente quando houver ferramenta autorizada para gravação no Google Drive;\n- após salvar, devolver o link exato do arquivo criado;\n- não afirmar que salvou no Google Drive se a gravação não tiver ocorrido;\n- caso não exista ferramenta autorizada para salvar no Drive, gerar o Word para download e informar que ele precisa ser colocado manualmente na pasta.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`,
     lei: `${common}\n\nMÓDULO: LEI.\n${leiDetails}\n\nUse as fontes classificadas como LEI na triagem para identificar o diploma e o recorte. Confira o conteúdo normativo exclusivamente no texto oficial vigente do Planalto.\nRECORTE: trabalhe somente os artigos e temas expressamente indicados. Se o recorte não estiver cadastrado ou estiver impreciso, interrompa a geração e solicite confirmação. Somente trabalhe a lei integralmente quando houver autorização expressa do usuário.\nUse artigo/dispositivo como unidade central, preserve prazos, competências, vedações, exceções, requisitos, sanções e pontos de prova. Não copie a lei integralmente e não faça comentário doutrinário.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o Word do módulo LEI;\n- não gerar consolidação final;\n- salvar o Word na pasta de destino indicada apenas com ferramenta autorizada e devolver o link exato do arquivo criado.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`,
-    jurisprudencia: `${common}\n\nMÓDULO: JURISPRUDÊNCIA. Use apenas fontes classificadas como JURISPRUDÊNCIA. Preserve tribunal, súmula, informativo, tema, ano, tese e distinções STF/STJ quando constarem. Não invente jurisprudência nem pesquise fora das fontes.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o Word do módulo JURISPRUDÊNCIA;\n- não gerar consolidação final;\n- salvar o Word na pasta de destino indicada apenas com ferramenta autorizada e devolver o link exato do arquivo criado.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`,
+    jurisprudencia: `${common}\n\nMÓDULO: JURISPRUDÊNCIA. A pasta jurisprudencial indicada acima é a fonte exclusiva deste módulo e substitui, somente nesta etapa, a pasta geral usada pelos demais módulos. A busca jurisprudencial é autônoma: não a condicione à triagem realizada em pasta diferente e não descarte um arquivo apenas porque ele não apareceu na triagem geral.\n\nBUSCA OBRIGATÓRIA NO ACERVO:\n1. percorra recursivamente a pasta indicada e todas as suas subpastas, sem se limitar aos itens exibidos na primeira listagem;\n2. faça um inventário interno dos arquivos e subpastas potencialmente relacionados à disciplina, ao tema, ao recorte, aos institutos jurídicos correlatos e às variações terminológicas pertinentes;\n3. abra e examine o conteúdo dos arquivos candidatos, sem decidir apenas pelo nome do arquivo;\n4. procure julgados, súmulas, temas, recursos repetitivos, repercussões gerais, informativos e teses tanto nos arquivos avulsos quanto nos acervos resumidos do Supremo Tribunal Federal e do Superior Tribunal de Justiça;\n5. preserve tribunal, processo, ano, súmula, informativo, tema, tese, exceções e distinções entre Supremo Tribunal Federal e Superior Tribunal de Justiça quando constarem nas fontes;\n6. não invente jurisprudência, não complete por memória e não pesquise fora da pasta exclusiva.\n\nCONTROLE DE RESULTADO NEGATIVO: somente informe que não foi localizada jurisprudência depois de concluir a busca recursiva, abrir todos os arquivos candidatos acessíveis e repetir a busca com variações terminológicas do tema. Se ainda assim não houver material pertinente, apresente um relatório curto com subpastas examinadas, quantidade de arquivos candidatos abertos, termos de busca utilizados e eventuais limitações de acesso. Falha de acesso, paginação incompleta, indexação vazia ou leitura parcial não autorizam concluir que inexiste jurisprudência.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o Word do módulo JURISPRUDÊNCIA;\n- não gerar consolidação final;\n- salvar o Word na pasta de destino indicada apenas com ferramenta autorizada e devolver o link exato do arquivo criado.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`,
     peca: `${common}\n\nMÓDULO: PEÇA. Use fontes classificadas como PEÇA como base principal. Permita, apenas como apoio complementar, fontes aprovadas classificadas como LEI, JURISPRUDÊNCIA, RESUMO/AULA ou ATUALIZAÇÃO/COMPLEMENTO quando houver vínculo direto e identificável com a peça atual. Não misture fontes de outros módulos indiscriminadamente. Extraia estrutura, requisitos, fundamentos, pedidos e determinações. Após a estrutura principal, faça a verificação obrigatória de especificidades temáticas prevista no prompt completo. Não faça peça pronta nem aula corrida.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o Word do módulo PEÇA;\n- não gerar consolidação final;\n- salvar o Word na pasta de destino indicada apenas com ferramenta autorizada e devolver o link exato do arquivo criado.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`,
     consolidacao: `${common}\n\nCONSOLIDAÇÃO FINAL. Os módulos aprovados devem ser reunidos na ordem: RESUMO/AULA, LEI, JURISPRUDÊNCIA e PEÇA. Preserve o padrão de cada módulo, elimine repetições e não pesquise fora dos módulos aprovados.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar Word consolidado;\n- gerar PDF consolidado;\n- salvar ambos na pasta de destino, quando houver acesso autorizado;\n- devolver separadamente o link do Word e o link do PDF;\n- se qualquer upload falhar, não apresentar falha como sucesso e indicar o arquivo pendente de upload manual.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`
   };
@@ -3678,7 +3682,8 @@ function factoryPromptText(type, item = {}, mode = "full") {
   const router = factoryRouterText(type, item);
   if (mode === "router") return router;
   const docxEmojiFontInstructions = ["resumoAula", "lei", "jurisprudencia", "peca", "consolidacao"].includes(type) ? `\n\n${FACTORY_DOCX_EMOJI_FONT_INSTRUCTIONS}` : "";
-  return `${router}${docxEmojiFontInstructions}\n\n==============================\nPROMPT COMPLETO DO PROJETO — ${FACTORY_PROMPT_TYPES.find((p) => p.key === type)?.label?.replace("Gerar prompt ", "").toUpperCase() || type.toUpperCase()}\n==============================\n\n${factoryPromptBase(type)}`;
+  const jurisprudenciaSourcePolicy = type === "jurisprudencia" ? `\n\n==============================\nREGRA FINAL E PREVALENTE — FONTE EXCLUSIVA DA JURISPRUDÊNCIA\n==============================\n\nPara este módulo, use exclusivamente a pasta ${FACTORY_JURISPRUDENCIA_SOURCE_FOLDER} e todas as suas subpastas. Qualquer menção anterior a “fontes aprovadas na triagem” ou “fontes classificadas como jurisprudência” deve ser interpretada como referência aos materiais jurisprudenciais pertinentes efetivamente localizados nesse acervo exclusivo. A triagem da pasta geral não limita nem substitui a busca recursiva nesta pasta. Em caso de conflito com qualquer instrução anterior, esta regra final prevalece. Não declare ausência de jurisprudência sem cumprir integralmente o controle de busca negativa descrito no prompt roteador.` : "";
+  return `${router}${docxEmojiFontInstructions}\n\n==============================\nPROMPT COMPLETO DO PROJETO — ${FACTORY_PROMPT_TYPES.find((p) => p.key === type)?.label?.replace("Gerar prompt ", "").toUpperCase() || type.toUpperCase()}\n==============================\n\n${factoryPromptBase(type)}${jurisprudenciaSourcePolicy}`;
 }
 function renderFactoryPromptLibrary() {
   const panel = elements.factoryPromptLibraryPanel;
