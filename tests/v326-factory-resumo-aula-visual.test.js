@@ -171,14 +171,10 @@ test('V326 ignora textos que não sejam o prompt oficial RESUMO/AULA', () => {
   assert.equal(vm.runInContext('saves', context), 0);
 });
 
-test('deploy valida, copia e injeta a V326 após a política de penas', () => {
+test('V326 permanece validada e disponível, mas a ativação pública é assumida pela V328', () => {
   assert.match(pagesWorkflow, /node --check factory-resumo-aula-visual-v326\.js/);
   assert.match(pagesWorkflow, /tests\/v326-factory-resumo-aula-visual\.test\.js/);
   assert.match(pagesWorkflow, /cp factory-resumo-aula-visual-v326\.js docs\/factory-resumo-aula-visual-v326\.js/);
-  assert.match(pagesWorkflow, /aldusFactoryResumoAulaVisualV326/);
-  assert.match(pagesWorkflow, /factory-resumo-aula-visual-v326\.js\?v=20260814-factory-resumo-aula-visual-v326/);
-  assert.ok(
-    pagesWorkflow.indexOf('aldusFactoryResumoAulaVisualV326') > pagesWorkflow.indexOf('aldusFactoryPenaltiesV320'),
-    'a atualização visual deve ser injetada depois da política de penas'
-  );
+  assert.match(pagesWorkflow, /20260814-factory-resumo-aula-bootstrap-v328/);
+  assert.doesNotMatch(pagesWorkflow, /factory-resumo-aula-visual-v326\.js\?v=20260814-factory-resumo-aula-visual-v326/);
 });
