@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260814-jurisprudencia-semantica-visual-v331",
+  "version": "20260814-restaura-topificacao-jurisprudencia-v332",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
