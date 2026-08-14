@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260814-fonte-jurisprudencia-exclusiva-v330";
+  const VERSION = "20260814-jurisprudencia-semantica-visual-v331";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -40847,7 +40847,7 @@ function factoryRouterText(type, item = {}) {
 MÓDULO: TRIAGEM. A pasta de destino acima é apenas informação para etapas futuras. Faça apenas a TRIAGEM das fontes, aplicando o prompt completo oficial abaixo. Classifique cada fonte por RESUMO/AULA, LEI, JURISPRUDÊNCIA, PEÇA e ATUALIZAÇÃO/COMPLEMENTO, com suficiência separada por módulo. Não gere resumo, lei topificada, jurisprudência, peça, Word, PDF ou módulo final.`,
     resumoAula: `${common}\n\nMÓDULO: RESUMO/AULA. Use apenas as fontes classificadas como RESUMO/AULA na triagem. Não gere os módulos LEI, JURISPRUDÊNCIA ou PEÇA e não faça ainda a consolidação final. Gere somente o arquivo Word correspondente ao MÓDULO RESUMO/AULA. Preserve profundidade, hierarquia, negritos e substitua qualquer referência de banca por “📌 PROVA”.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o MÓDULO RESUMO/AULA;\n- gerar um arquivo Word editável contendo o módulo;\n- não gerar ainda o Word final consolidado;\n- salvar o Word na pasta de destino indicada, somente quando houver ferramenta autorizada para gravação no Google Drive;\n- após salvar, devolver o link exato do arquivo criado;\n- não afirmar que salvou no Google Drive se a gravação não tiver ocorrido;\n- caso não exista ferramenta autorizada para salvar no Drive, gerar o Word para download e informar que ele precisa ser colocado manualmente na pasta.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`,
     lei: `${common}\n\nMÓDULO: LEI.\n${leiDetails}\n\nUse as fontes classificadas como LEI na triagem para identificar o diploma e o recorte. Confira o conteúdo normativo exclusivamente no texto oficial vigente do Planalto.\nRECORTE: trabalhe somente os artigos e temas expressamente indicados. Se o recorte não estiver cadastrado ou estiver impreciso, interrompa a geração e solicite confirmação. Somente trabalhe a lei integralmente quando houver autorização expressa do usuário.\nUse artigo/dispositivo como unidade central, preserve prazos, competências, vedações, exceções, requisitos, sanções e pontos de prova. Não copie a lei integralmente e não faça comentário doutrinário.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o Word do módulo LEI;\n- não gerar consolidação final;\n- salvar o Word na pasta de destino indicada apenas com ferramenta autorizada e devolver o link exato do arquivo criado.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`,
-    jurisprudencia: `${common}\n\nMÓDULO: JURISPRUDÊNCIA. A pasta jurisprudencial indicada acima é a fonte exclusiva deste módulo e substitui, somente nesta etapa, a pasta geral usada pelos demais módulos. A busca jurisprudencial é autônoma: não a condicione à triagem realizada em pasta diferente e não descarte um arquivo apenas porque ele não apareceu na triagem geral.\n\nBUSCA OBRIGATÓRIA NO ACERVO:\n1. percorra recursivamente a pasta indicada e todas as suas subpastas, sem se limitar aos itens exibidos na primeira listagem;\n2. faça um inventário interno dos arquivos e subpastas potencialmente relacionados à disciplina, ao tema, ao recorte, aos institutos jurídicos correlatos e às variações terminológicas pertinentes;\n3. abra e examine o conteúdo dos arquivos candidatos, sem decidir apenas pelo nome do arquivo;\n4. procure julgados, súmulas, temas, recursos repetitivos, repercussões gerais, informativos e teses tanto nos arquivos avulsos quanto nos acervos resumidos do Supremo Tribunal Federal e do Superior Tribunal de Justiça;\n5. preserve tribunal, processo, ano, súmula, informativo, tema, tese, exceções e distinções entre Supremo Tribunal Federal e Superior Tribunal de Justiça quando constarem nas fontes;\n6. não invente jurisprudência, não complete por memória e não pesquise fora da pasta exclusiva.\n\nCONTROLE DE RESULTADO NEGATIVO: somente informe que não foi localizada jurisprudência depois de concluir a busca recursiva, abrir todos os arquivos candidatos acessíveis e repetir a busca com variações terminológicas do tema. Se ainda assim não houver material pertinente, apresente um relatório curto com subpastas examinadas, quantidade de arquivos candidatos abertos, termos de busca utilizados e eventuais limitações de acesso. Falha de acesso, paginação incompleta, indexação vazia ou leitura parcial não autorizam concluir que inexiste jurisprudência.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o Word do módulo JURISPRUDÊNCIA;\n- não gerar consolidação final;\n- salvar o Word na pasta de destino indicada apenas com ferramenta autorizada e devolver o link exato do arquivo criado.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`,
+    jurisprudencia: `${common}\n\nMÓDULO: JURISPRUDÊNCIA. A pasta jurisprudencial indicada acima é a fonte exclusiva deste módulo e substitui, somente nesta etapa, a pasta geral usada pelos demais módulos. A busca jurisprudencial é autônoma: não a condicione à triagem realizada em pasta diferente e não descarte um arquivo apenas porque ele não apareceu na triagem geral.\n\nBUSCA OBRIGATÓRIA NO ACERVO:\n1. percorra recursivamente a pasta indicada e todas as suas subpastas, sem se limitar aos itens exibidos na primeira listagem;\n2. faça um inventário interno dos arquivos e subpastas potencialmente relacionados à disciplina, ao tema e ao recorte;\n3. execute três passagens semânticas: termos literais; sinônimos, siglas e nomenclaturas equivalentes; princípios, institutos correlatos, requisitos, exceções, súmulas, temas, repetitivos, repercussões gerais e precedentes paradigmáticos;\n4. abra e examine o conteúdo de todos os arquivos candidatos acessíveis, sem decidir apenas pelo nome do arquivo;\n5. inclua todos os itens diretamente pertinentes, sem limite arbitrário, e deduplique por processo, tema ou súmula, reunindo informações complementares do mesmo item;\n6. preserve tribunal, identificação aplicável, ano, tese, condições, exceções e distinções quando constarem nas fontes;\n7. não invente jurisprudência, não complete por memória e não pesquise fora da pasta exclusiva.\n\nCONTROLE DE RESULTADO NEGATIVO: somente informe que não foi localizada jurisprudência depois de concluir a busca recursiva, as três passagens semânticas e a abertura de todos os arquivos candidatos acessíveis. Se ainda assim não houver material pertinente, apresente um relatório curto com subpastas examinadas, quantidade de arquivos candidatos abertos, termos e variações utilizados e eventuais limitações de acesso. Falha de acesso, paginação incompleta, indexação vazia ou leitura parcial não autorizam concluir que inexiste jurisprudência.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o Word do módulo JURISPRUDÊNCIA;\n- não gerar consolidação final;\n- salvar o Word na pasta de destino indicada apenas com ferramenta autorizada e devolver o link exato do arquivo criado.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`,
     peca: `${common}\n\nMÓDULO: PEÇA. Use fontes classificadas como PEÇA como base principal. Permita, apenas como apoio complementar, fontes aprovadas classificadas como LEI, JURISPRUDÊNCIA, RESUMO/AULA ou ATUALIZAÇÃO/COMPLEMENTO quando houver vínculo direto e identificável com a peça atual. Não misture fontes de outros módulos indiscriminadamente. Extraia estrutura, requisitos, fundamentos, pedidos e determinações. Após a estrutura principal, faça a verificação obrigatória de especificidades temáticas prevista no prompt completo. Não faça peça pronta nem aula corrida.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o Word do módulo PEÇA;\n- não gerar consolidação final;\n- salvar o Word na pasta de destino indicada apenas com ferramenta autorizada e devolver o link exato do arquivo criado.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`,
     consolidacao: `${common}\n\nCONSOLIDAÇÃO FINAL. Os módulos aprovados devem ser reunidos na ordem: RESUMO/AULA, LEI, JURISPRUDÊNCIA e PEÇA. Preserve o padrão de cada módulo, elimine repetições e não pesquise fora dos módulos aprovados.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar Word consolidado;\n- gerar PDF consolidado;\n- salvar ambos na pasta de destino, quando houver acesso autorizado;\n- devolver separadamente o link do Word e o link do PDF;\n- se qualquer upload falhar, não apresentar falha como sucesso e indicar o arquivo pendente de upload manual.\n\n${FACTORY_DRIVE_UPLOAD_INSTRUCTIONS}`
   };
@@ -53049,86 +53049,267 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
 
 })();
 
-/* Aldus source: factory-jurisprudencia-prompt-v231.js */
+/* Aldus source: factory-jurisprudencia-prompt-v331.js */
 (() => {
   "use strict";
 
-  const MIGRATION_ID = "factoryJurisprudenciaMetadadosDivergenciasV231";
-  const PROMPT = "TRANSFORME JURISPRUDÊNCIAS EM MAPA MENTAL HIERÁRQUICO DE PALAVRAS-CHAVE PARA CÓPIA MANUSCRITA.\n\nNÃO PRODUZA RESUMO CORRIDO.\nNÃO COPIE EMENTA.\nNÃO MAPEIE TODO O TEXTO.\nNÃO EXTRAIA CASO CONCRETO, HISTÓRICO PROCESSUAL, ARGUMENTOS DAS PARTES, COMENTÁRIOS DO AUTOR OU FUNDAMENTOS SECUNDÁRIOS.\n\n## ESCOPO DO MÓDULO\n\nUSE APENAS AS FONTES CLASSIFICADAS COMO JURISPRUDÊNCIA NA TRIAGEM.\n\nRESPEITE A DISCIPLINA, O TEMA E O RECORTE TEMÁTICO INFORMADOS.\n\nSE O RECORTE TEMÁTICO ESTIVER AUSENTE OU IMPRECISO, INTERROMPA A GERAÇÃO E SOLICITE CONFIRMAÇÃO.\n\nTRIBUNAL E PERÍODO SOMENTE DEVEM SER LIMITADOS QUANDO EXPRESSAMENTE INDICADOS.\n\nNÃO GERAR MÓDULO RESUMO/AULA, LEI, PEÇA OU CONSOLIDAÇÃO FINAL.\n\nNÃO INSERIR PCDF, BANCA, CONCURSO, PROFESSORA, CURSO OU TURMA.\n\n## VALIDAÇÃO OBRIGATÓRIA DAS FONTES\n\nANTES DE AFIRMAR QUE NÃO EXISTE JURISPRUDÊNCIA:\n\n1. RECUPERE INTEGRALMENTE O RESULTADO DA TRIAGEM.\n2. IDENTIFIQUE TODAS AS FONTES CLASSIFICADAS COMO JURISPRUDÊNCIA.\n3. ABRA E EXAMINE INDIVIDUALMENTE CADA FONTE APROVADA.\n4. PROCURE JULGADOS, SÚMULAS, TEMAS, REPETITIVOS, INFORMATIVOS E TESES NO CONTEÚDO, E NÃO APENAS NO NOME DO ARQUIVO.\n5. NÃO CONFUNDA AUSÊNCIA DE INFORMATIVO, SÚMULA OU TEMA NUMERADO COM AUSÊNCIA DE JURISPRUDÊNCIA.\n6. NÃO CONCLUA PELA INEXISTÊNCIA COM BASE EM LEITURA PARCIAL, RESULTADO VAZIO INICIAL, FALHA DE INDEXAÇÃO OU FALHA DE ACESSO.\n7. REEXAMINE AS FONTES UMA SEGUNDA VEZ QUANDO A TRIAGEM INDICAR EXISTÊNCIA, SUFICIÊNCIA OU CONTEÚDO JURISPRUDENCIAL.\n\nSE A TRIAGEM NÃO PUDER SER RECUPERADA, INFORME:\n“NÃO FOI POSSÍVEL RECUPERAR A CLASSIFICAÇÃO DA TRIAGEM.”\n\nSE ALGUMA FONTE APROVADA ESTIVER INACESSÍVEL, INFORME:\n“A EXISTÊNCIA DE JURISPRUDÊNCIA NÃO PÔDE SER VERIFICADA INTEGRALMENTE, POIS HÁ FONTES INACESSÍVEIS.”\n\nSOMENTE DECLARE “NÃO HÁ JURISPRUDÊNCIA” DEPOIS DE EXAMINAR INTEGRALMENTE TODAS AS FONTES APROVADAS E CONFIRMAR QUE NENHUMA CONTÉM MATERIAL PERTINENTE AO RECORTE.\n\nANTES DESSA CONCLUSÃO NEGATIVA, REGISTRE INTERNAMENTE:\n* QUANTIDADE DE FONTES CLASSIFICADAS COMO JURISPRUDÊNCIA;\n* QUANTIDADE EFETIVAMENTE ABERTA E EXAMINADA;\n* QUANTIDADE DE PRECEDENTES, SÚMULAS, TEMAS, REPETITIVOS, INFORMATIVOS OU TESES LOCALIZADOS.\n\n## OBJETIVO\n\nPARA CADA JULGADO, EXTRAIA SOMENTE O NÚCLEO COBRÁVEL EM PROVA:\n\n* TRIBUNAL;\n* NÚMERO DO PROCESSO;\n* ANO DA DECISÃO;\n* INFORMATIVO, SÚMULA, TEMA, REPETITIVO OU TESE, SE DISPONÍVEL;\n* DISCIPLINA;\n* ASSUNTO;\n* INSTITUTO JURÍDICO PRINCIPAL;\n* RELAÇÃO ENTRE OS INSTITUTOS;\n* CONDIÇÃO ESSENCIAL;\n* CONCLUSÃO DO TRIBUNAL;\n* EXCEÇÃO, DISTINÇÃO, PRAZO, ORDEM OU PEGADINHA INDISPENSÁVEL.\n\nPARA CADA JULGADO, TRIBUNAL, NÚMERO DO PROCESSO E ANO DA DECISÃO SÃO METADADOS OBRIGATÓRIOS QUANDO CONSTAREM EM QUALQUER PARTE DA FONTE.\n\nO ANO DEVE SER EXTRAÍDO DA DATA DO JULGAMENTO, DA IDENTIFICAÇÃO DO PRECEDENTE, DA REFERÊNCIA FINAL OU DE OUTRO TRECHO SEGURO.\n\nSE A FONTE REALMENTE NÃO CONTIVER O ANO, NÃO OMITA O CAMPO. REGISTRE:\n📍 **ANO DA DECISÃO: NÃO IDENTIFICADO NA FONTE**\n\nSE A FONTE REALMENTE NÃO CONTIVER O NÚMERO DO PROCESSO, NÃO INVENTE NEM OMITA O CAMPO. REGISTRE:\n📍 **PROCESSO: NÃO IDENTIFICADO NA FONTE**\n\nNÃO INVENTE INFORMAÇÃO AUSENTE.\n\n## FIDELIDADE\n\nUSE SOMENTE O CONTEÚDO FORNECIDO PELO USUÁRIO E AS FONTES APROVADAS NA TRIAGEM.\n\nNÃO PESQUISAR, ATUALIZAR, CORRIGIR OU COMPLEMENTAR NESTE MÓDULO.\n\nNÃO INVENTAR TESE, FUNDAMENTO, EXCEÇÃO, PRECEDENTE, NÚMERO, TRIBUNAL, TEMA, SÚMULA OU ANO.\n\nSE HOUVER DÚVIDA, PRESERVAR APENAS A IDEIA SEGURA.\n\nSE O ORIGINAL TROUXER INFORMAÇÕES INCOMPATÍVEIS, NÃO REPRODUZIR AUTOMATICAMENTE OS DOIS SENTIDOS COMO SE AMBOS FOSSEM CORRETOS.\n\nPRESERVAR O SENTIDO JURÍDICO PREDOMINANTE DO PRÓPRIO ORIGINAL.\n\nEM CONFLITO ENTRE TEXTO EXPLICATIVO E TABELA, PREFERIR O TEXTO EXPLICATIVO MAIS COMPLETO, SALVO SE A TABELA FOR O ÚNICO LOCAL DO TEMA.\n\nSE A CONTRADIÇÃO INTERNA FOR INSOLÚVEL, INSERIR:\n\n✳️ CONTRADIÇÃO INTERNA NO ORIGINAL\n\n## PROFUNDIDADE\n\nNÃO DEIXE O BLOCO POBRE DEMAIS.\n\nCADA JULGADO DEVE CONTER O SUFICIENTE PARA RECORDAR A TESE NA PROVA.\n\nSE HOUVER PRAZO, LEGITIMIDADE, COMPETÊNCIA, RITO, EXCEÇÃO, ORDEM DE PREFERÊNCIA, DISTINÇÃO STF/STJ OU REGRA GERAL X EXCEÇÃO, ESSA INFORMAÇÃO DEVE APARECER.\n\nA REDUÇÃO NÃO PODE GERAR AMBIGUIDADE JURÍDICA.\n\nNUNCA SACRIFICAR:\n\n* SUJEITO DA TESE;\n* OBJETO DA PERMISSÃO OU VEDAÇÃO;\n* FINALIDADE DA MEDIDA;\n* CONDIÇÃO DE APLICAÇÃO;\n* EXCEÇÃO RELEVANTE;\n* CONSEQUÊNCIA JURÍDICA;\n* DISTINÇÃO ENTRE REGRA GERAL E ESPECIAL.\n\n## FORMATO OBRIGATÓRIO\n\n📍 **TRIBUNAL: [STF/STJ/OUTRO]**\n📍 **PROCESSO: [CLASSE E NÚMERO]**\n📍 **ANO DA DECISÃO: [AAAA]**\n📍 **[INFORMATIVO/SÚMULA/TEMA/REPETITIVO/TESE] [NÚMERO, SE HOUVER]**\n\n♦️ **[DISCIPLINA]:**\n\n▶️ **[ASSUNTO]:**\n\n1️⃣ [INSTITUTO PRINCIPAL]\n\n2️⃣ [ELEMENTO DEPENDENTE]\n\n3️⃣ [CONDIÇÃO / PRAZO / SUJEITO / COMPETÊNCIA / RITO]\n\n4️⃣ [DETALHE ESSENCIAL, SE NECESSÁRIO]\n\n✅ [CONCLUSÃO CENTRAL AUTOSSUFICIENTE]\n\n✅ [COMPLEMENTO INDISPENSÁVEL, SE EXISTIR]\n\n✳️ [EXCEÇÃO / DISTINÇÃO / PEGADINHA / ORDEM]\n\n📌 PROVA: [FRASE CURTA, SE ÚTIL]\n\nNÃO É OBRIGATÓRIO USAR TODAS AS LINHAS. USE SOMENTE AS CAMADAS NECESSÁRIAS.\n\nNÃO OMITA TRIBUNAL, PROCESSO OU ANO. SE ALGUM DESSES METADADOS NÃO PUDER SER IDENTIFICADO APÓS EXAME INTEGRAL DA FONTE, MANTENHA A LINHA E REGISTRE “NÃO IDENTIFICADO NA FONTE”.\n\nA LINHA DE INFORMATIVO, SÚMULA, TEMA, REPETITIVO OU TESE PODE SER OMITIDA APENAS QUANDO NENHUMA DESSAS REFERÊNCIAS EXISTIR NA FONTE. NÃO PREENCHA POR SUPOSIÇÃO.\n\n## HIERARQUIA\n\n1️⃣ INSTITUTO PRINCIPAL.\n2️⃣ ELEMENTO DEPENDENTE.\n3️⃣ CONDIÇÃO, PRAZO, SUJEITO, COMPETÊNCIA OU RITO.\n4️⃣ E 5️⃣ SOMENTE SE NECESSÁRIO.\n✅ RESULTADO DO JULGADO.\n✳️ EXCEÇÃO, DISTINÇÃO, ORDEM, PEGADINHA, RESSALVA OU TESE CONTRÁRIA.\n📌 FRASE FINAL DE PROVA, QUANDO AJUDAR.\n\nNÃO FORCE TODAS AS CAMADAS, MAS NÃO OMITA INFORMAÇÃO ESSENCIAL.\n\n## AMBIGUIDADE JURÍDICA\n\nNÃO USE CONCLUSÕES SOLTAS, COMO:\n\n“NÃO CABE”, “APLICA”, “NÃO APLICA”, “POSSÍVEL”, “IMPOSSÍVEL”, “VÁLIDO”, “INVÁLIDO”, “PROVA LÍCITA”, “PROVA ILÍCITA”, “CONFIGURA”, “NÃO CONFIGURA”.\n\nTODA CONCLUSÃO DEVE INDICAR:\n\n* QUAL INSTITUTO;\n* QUAL ATO, RECURSO, PROVA, MEDIDA OU EFEITO;\n* QUAL ALCANCE;\n* QUAL EXCEÇÃO, SE HOUVER;\n* QUAL SUJEITO, ÓRGÃO OU SITUAÇÃO RELEVANTE.\n\nANTES DE FINALIZAR CADA ✅, RESPONDA:\n\n* NÃO CABE O QUÊ?\n* APLICA A QUÊ?\n* NÃO APLICA EM QUAL SITUAÇÃO?\n* QUEM PODE?\n* QUAL FINALIDADE?\n* QUAL CONSEQUÊNCIA?\n* QUAL EXCEÇÃO?\n\nA LINHA ✅ DEVE SER AUTOSSUFICIENTE.\n\nEXEMPLOS:\n\nERRADO:\n✅ NÃO CABE\n\nCORRETO:\n✅ NÃO CABE: MANDADO DE SEGURANÇA PARA ATRIBUIR EFEITO SUSPENSIVO A RECURSO CRIMINAL DO MINISTÉRIO PÚBLICO\n\nERRADO:\n✅ CLEMÊNCIA: IMPEDE NOVO JÚRI\n\nCORRETO:\n✅ CLEMÊNCIA QUALIFICADA: IMPEDE NOVO JÚRI QUANDO REGISTRADA EM ATA E COMPATÍVEL COM A CONSTITUIÇÃO, A JURISPRUDÊNCIA E AS PROVAS\n\nERRADO:\n✅ PROVA LÍCITA\n\nCORRETO:\n✅ CHIP DESCARTADO EM VIA PÚBLICA: ACESSO AO CHIP, SEM EXAME DO CELULAR, NÃO CONFIGURA QUEBRA DE SIGILO\n\n## REGRA, EXCEÇÃO E DISTINÇÕES\n\nSE HOUVER REGRA GERAL E EXCEÇÃO, SEPARE:\n\n✅ REGRA: [TESE GERAL AUTOSSUFICIENTE]\n✳️ EXCEÇÃO: [HIPÓTESE EXCEPCIONAL]\n✳️ PEGADINHA: [DISTINÇÃO COBRÁVEL]\n\nDEIXE EXPRESSAS DISTINÇÕES COMO:\n\n* RECURSO CABÍVEL X EFEITO SUSPENSIVO;\n* COMPETÊNCIA ORIGINÁRIA X RECURSAL;\n* ACESSO AO CHIP X ACESSO AO CELULAR;\n* CLEMÊNCIA GENÉRICA X QUALIFICADA;\n* NULIDADE ABSOLUTA X RELATIVA;\n* PRISÃO CAUTELAR X PENA;\n* LEGITIMIDADE PRIORITÁRIA X SUBSIDIÁRIA;\n* REGRA STF X REGRA STJ.\n\n## DIVERGÊNCIA JURISPRUDENCIAL\n\nAO EXAMINAR CADA JULGADO, VERIFIQUE SE AS FONTES APRESENTAM ENTENDIMENTO CONTRÁRIO OU SUBSTANCIALMENTE DIFERENTE SOBRE A MESMA QUESTÃO JURÍDICA.\n\nHAVENDO DIVERGÊNCIA, ACRESCENTE IMEDIATAMENTE AO FINAL DO RESUMO DE CADA DECISÃO AFETADA:\n\n⚠️ **DIVERGÊNCIA IDENTIFICADA**\n• **TRIBUNAL DIVERGENTE:** [TRIBUNAL]\n• **DECISÃO DIVERGENTE:** [NOME OU CLASSE PROCESSUAL E NÚMERO]\n• **ANO DA DECISÃO DIVERGENTE:** [AAAA]\n• **TESE DIVERGENTE:** [SÍNTESE OBJETIVA EM UMA OU DUAS LINHAS]\n• **SITUAÇÃO DO ENTENDIMENTO:** [ATUAL, ANTERIOR, ISOLADO, SUPERADO OU COEXISTENTE — SOMENTE QUANDO ISSO PUDER SER COMPROVADO PELA FONTE]\n\nA DIVERGÊNCIA DEVE SER INDICADA NO BLOCO DE CADA JULGADO A QUE SE RELACIONA, COM A IDENTIFICAÇÃO EXATA DA DECISÃO CONTRÁRIA. NÃO APRESENTE APENAS UM ALERTA GENÉRICO AO FINAL DO DOCUMENTO.\n\nANTES DE CLASSIFICAR COMO DIVERGÊNCIA, CONFIRME QUE AS DECISÕES:\n\n* EXAMINAM A MESMA QUESTÃO JURÍDICA;\n* PARTEM DE CONTEXTO FÁTICO E REGIME JURÍDICO COMPARÁVEIS;\n* CHEGAM A CONCLUSÕES INCOMPATÍVEIS OU SUBSTANCIALMENTE DIFERENTES.\n\nNÃO CLASSIFIQUE COMO DIVERGÊNCIA:\n\n* SIMPLES DIFERENÇA ENTRE FATOS;\n* DISTINÇÃO EXPRESSA DO CASO CONCRETO;\n* FUNDAMENTOS SECUNDÁRIOS DIFERENTES COM A MESMA CONCLUSÃO;\n* DECISÕES BASEADAS EM REDAÇÕES LEGISLATIVAS OU REGIMES JURÍDICOS DISTINTOS;\n* MERA AUSÊNCIA DE MANIFESTAÇÃO SOBRE DETERMINADO PONTO.\n\nSE HOUVER EVOLUÇÃO, SUPERAÇÃO OU COEXISTÊNCIA DE ENTENDIMENTOS, INDIQUE A CRONOLOGIA E QUAL POSIÇÃO PREVALECE, MAS SOMENTE QUANDO AS FONTES PERMITIREM ESSA CONCLUSÃO COM SEGURANÇA.\n\nNÃO INVENTE DECISÃO, NÚMERO, ANO, TESE OU SITUAÇÃO DO ENTENDIMENTO. SE ALGUM METADADO DA DECISÃO DIVERGENTE NÃO ESTIVER NA FONTE, MANTENHA O CAMPO E REGISTRE “NÃO IDENTIFICADO NA FONTE”.\n\n## CASO CONCRETO\n\nNÃO MAPEIE CASO CONCRETO.\n\nSÓ USE SITUAÇÃO FÁTICA QUANDO INDISPENSÁVEL PARA DELIMITAR A TESE.\n\nUSE PALAVRAS-CHAVE CURTAS, SEM NARRATIVA.\n\nEXEMPLO:\n\n1️⃣ CHIP DESCARTADO EM VIA PÚBLICA\n2️⃣ CELULAR: NÃO EXAMINADO\n✅ ACESSO AO CHIP: NÃO CONFIGURA QUEBRA DE SIGILO\n\n## REDAÇÃO\n\nUSE PALAVRAS-CHAVE E EXPRESSÕES CURTAS.\n\nCADA LINHA DEVE SER PREFERENCIALMENTE CURTA. PODE ULTRAPASSAR OITO PALAVRAS QUANDO NECESSÁRIO PARA EVITAR AMBIGUIDADE E MANTER A CONCLUSÃO JURIDICAMENTE AUTOSSUFICIENTE.\n\nÉ PERMITIDO USAR DOIS-PONTOS PARA PRESERVAR O SENTIDO JURÍDICO.\n\nEXEMPLOS:\n\n* MINISTÉRIO PÚBLICO: LEGITIMIDADE PRIORITÁRIA\n* INÉRCIA DO MINISTÉRIO PÚBLICO: 90 DIAS\n* FAZENDA PÚBLICA: LEGITIMIDADE SUBSIDIÁRIA\n* CRIME FORMAL: RESULTADO DISPENSÁVEL\n* MANDADO DE SEGURANÇA: NÃO ATRIBUI EFEITO SUSPENSIVO\n\nNÃO ESCREVA PARÁGRAFOS LONGOS.\nNÃO REPITA A MESMA IDEIA.\nNÃO USE PALAVRA GENÉRICA QUE APAGUE O SENTIDO.\n\n## SIGLAS\n\nNÃO USE SIGLAS SOLTAS.\n\nNA PRIMEIRA OCORRÊNCIA, ESCREVA O NOME COMPLETO E A SIGLA ENTRE PARÊNTESES.\n\nEXEMPLOS:\n\nMINISTÉRIO PÚBLICO (MP);\nCÓDIGO DE PROCESSO PENAL (CPP);\nMANDADO DE SEGURANÇA (MS);\nSUPERIOR TRIBUNAL DE JUSTIÇA (STJ);\nSUPREMO TRIBUNAL FEDERAL (STF).\n\nDEPOIS, A SIGLA PODE SER USADA.\n\n## FOCO EM PROVA\n\nPRIORIZAR PEGADINHAS, INVERSÕES DE SUJEITO, EXCEÇÕES, PRAZOS, COMPETÊNCIAS, LEGITIMIDADES, RITOS, ORDEM DE PREFERÊNCIA, DISTINÇÕES STF/STJ, LIMITES DA TESE E CONSEQUÊNCIA JURÍDICA.\n\nUSE “📌 PROVA” SOMENTE QUANDO AJUDAR NA FIXAÇÃO.\n\n## REVISÃO FINAL\n\nANTES DE FINALIZAR, CONFIRA:\n\n* TODAS AS FONTES APROVADAS NA TRIAGEM FORAM ABERTAS E EXAMINADAS?\n* ALGUMA CONCLUSÃO DE AUSÊNCIA FOI BASEADA EM LEITURA PARCIAL OU FALHA DE ACESSO?\n* CADA JULGADO CONTÉM TRIBUNAL, PROCESSO E ANO DA DECISÃO OU A MARCAÇÃO EXPRESSA “NÃO IDENTIFICADO NA FONTE”?\n* A QUANTIDADE DE DECISÕES EXTRAÍDAS É COMPATÍVEL COM O INVENTÁRIO DAS FONTES?\n* AS FONTES REVELAM DECISÕES DIVERGENTES SOBRE A MESMA QUESTÃO JURÍDICA? SE SIM, A DIVERGÊNCIA FOI INDICADA EM CADA JULGADO AFETADO COM TRIBUNAL, IDENTIFICAÇÃO DA DECISÃO, ANO, TESE E SITUAÇÃO DO ENTENDIMENTO?\n\n1. TESE POSITIVA OU NEGATIVA?\n2. CONFIGURA OU NÃO CONFIGURA?\n3. PODE OU NÃO PODE?\n4. HÁ “NÃO”, VEDAÇÃO, EXCEÇÃO OU RESSALVA?\n5. HÁ PRAZO, RITO, COMPETÊNCIA OU LEGITIMIDADE?\n6. HÁ DISTINÇÃO STF/STJ?\n7. ALGUM “NÃO CABE/APLICA/NÃO APLICA” FICOU SEM OBJETO?\n8. A CONCLUSÃO ✅ É AUTOSSUFICIENTE?\n9. ALGUMA CONCLUSÃO FOI INVERTIDA?\n10. ALGUMA SIGLA FICOU SOLTA?\n11. O TÍTULO PRESERVA O CONTEXTO?\n\nSE HOUVER RISCO DE INVERSÃO, REESCREVA.\n\nNUNCA TRANSFORME:\n\n* “NÃO CONFIGURA” EM “CONFIGURA”;\n* “É POSSÍVEL” EM “IMPOSSIBILIDADE”;\n* ARGUMENTO DA DEFESA EM TESE DO TRIBUNAL;\n* HISTÓRICO PROCESSUAL EM CONCLUSÃO;\n* VEDAÇÃO DE FINALIDADE EM VEDAÇÃO DO INSTITUTO INTEIRO.\n\n## PROIBIÇÕES\n\nNÃO CRIE COMO TÍTULOS AUTÔNOMOS:\n\n* JURISPRUDÊNCIA;\n* REGRA;\n* FATO ESSENCIAL;\n* CONDIÇÕES;\n* FUNDAMENTOS;\n* CONSEQUÊNCIA;\n* IDENTIFICAÇÃO;\n* FONTE.\n\nÉ PERMITIDO USAR “✅ REGRA:”, “✳️ EXCEÇÃO:” E “✳️ PEGADINHA:” DENTRO DO BLOCO DO JULGADO.\n\nNÃO INFORME:\n\n* RELATOR;\n* ÓRGÃO JULGADOR;\n* DATA EXATA;\n* NOME DO ARQUIVO;\n* NOMES PRÓPRIOS DO CASO CONCRETO.\n\nSALVO SE O USUÁRIO PEDIR EXPRESSAMENTE.\n\nNÃO INCLUA EXEMPLOS DO AUTOR, DOUTRINA EXTERNA, JURISPRUDÊNCIA NÃO FORNECIDA OU TABELAS.\n\n## ORGANIZAÇÃO\n\nSE O MESMO INFORMATIVO TIVER VÁRIOS JULGADOS, O AGRUPAMENTO POR INFORMATIVO É PERMITIDO, MAS CADA JULGADO DEVE REPETIR OBRIGATORIAMENTE:\n\n* TRIBUNAL;\n* NÚMERO DO PROCESSO;\n* ANO DA DECISÃO.\n\nINFORMATIVO, SÚMULA, TEMA, REPETITIVO OU TESE PODEM APARECER NO CABEÇALHO DO GRUPO, MAS OS TRÊS METADADOS ACIMA DEVEM PERMANECER EM CADA BLOCO INDIVIDUAL.\n\nCADA JULGADO, SÚMULA, TEMA, REPETITIVO OU TESE DEVE FICAR EM BLOCO PRÓPRIO.\n\n## ENTREGA EM WORD\n\nCRIE TAMBÉM UM ARQUIVO EDITÁVEL .DOCX EXCLUSIVO DO MÓDULO JURISPRUDÊNCIA.\n\nNÃO CONSOLIDE COM RESUMO/AULA, LEI OU PEÇA.\n\nCONFIGURAÇÃO:\n\nA4;\nARIAL 11;\nMARGENS 2 CM;\nESPAÇAMENTO SIMPLES;\nALINHAMENTO À ESQUERDA;\nINDENTAÇÃO HIERÁRQUICA;\nSEM TABELAS;\nSEM CABEÇALHO;\nSEM RODAPÉ;\nSEM NUMERAÇÃO AUTOMÁTICA.\n\nNEGRITO SOMENTE EM:\n\nTRIBUNAL;\nNÚMERO DO PROCESSO;\nANO DA DECISÃO;\nDIVERGÊNCIA IDENTIFICADA;\nTRIBUNAL DIVERGENTE;\nDECISÃO DIVERGENTE;\nANO DA DECISÃO DIVERGENTE;\nTESE DIVERGENTE;\nSITUAÇÃO DO ENTENDIMENTO;\nINFORMATIVO;\nSÚMULA;\nTEMA;\nDISCIPLINA;\nASSUNTO.\n\nNÃO COLOQUE AS PALAVRAS-CHAVE NUMERADAS EM NEGRITO.\n\nNOME DO ARQUIVO:\n\nMAPA_MENTAL_JURISPRUDENCIAS_[FILTRO].docx\n\nENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD.";
+  const PROMPT = `TRANSFORME O ACERVO JURISPRUDENCIAL EM MAPA MENTAL HIERÁRQUICO, COMPLETO E VISUALMENTE ESTÁVEL PARA CÓPIA MANUSCRITA.
+
+## 1. ESCOPO E FONTE EXCLUSIVA
+
+USE EXCLUSIVAMENTE a pasta jurisprudencial indicada pelo roteador deste módulo e todas as suas subpastas.
+
+NÃO condicione a busca à triagem da pasta geral. NÃO use internet, outras pastas, conhecimento externo ou memória do modelo para completar dados.
+
+O tema informado pelo usuário define o recorte. Inclua todo precedente que tenha relação jurídica direta e material com a disciplina, o tema, o recorte, seus institutos correlatos, condições, exceções ou efeitos.
+
+## 2. BUSCA SEMÂNTICA OBRIGATÓRIA EM TRÊS PASSAGENS
+
+Antes de redigir, percorra recursivamente o acervo e execute as três passagens abaixo:
+
+1. BUSCA LITERAL
+   - disciplina;
+   - tema e recorte;
+   - expressões exatas informadas pelo usuário.
+
+2. BUSCA POR VARIAÇÕES
+   - sinônimos e flexões;
+   - siglas e nomes por extenso;
+   - nomenclaturas antigas e atuais;
+   - institutos jurídicos equivalentes ou imediatamente relacionados.
+
+3. BUSCA POR CONEXÕES JURISPRUDENCIAIS
+   - princípios aplicáveis;
+   - requisitos, condições e limites;
+   - exceções, distinções e superações;
+   - temas de repercussão geral e recursos repetitivos;
+   - súmulas, informativos e teses vinculadas;
+   - precedentes paradigmáticos do Supremo Tribunal Federal e do Superior Tribunal de Justiça.
+
+Não decida apenas pelo nome do arquivo. Abra e examine o conteúdo de todos os candidatos acessíveis, inclusive compilações e acervos resumidos.
+
+## 3. COBERTURA, RELEVÂNCIA E DEDUPLICAÇÃO
+
+- NÃO imponha limite máximo ou mínimo de julgados.
+- Inclua todos os itens diretamente pertinentes e exclua apenas menções incidentais, genéricas ou sem utilidade para o recorte.
+- Se a primeira passagem produzir poucos resultados, conclua obrigatoriamente a segunda e a terceira antes de redigir.
+- Faça inventário interno de subpastas, arquivos candidatos e itens encontrados.
+- Elimine duplicidades usando como chave o processo, o número do tema ou o número da súmula.
+- Quando o mesmo item aparecer em várias fontes, una as informações sem repetir o bloco e preserve a formulação mais completa compatível com o acervo.
+- Se houver decisões complementares sobre a mesma tese, mantenha-as quando cada uma acrescentar condição, exceção, evolução ou efeito próprio.
+
+## 4. VALIDAÇÃO E FIDELIDADE
+
+Para cada item, confirme no próprio acervo:
+
+- tribunal;
+- tipo do item;
+- identificação aplicável;
+- ano, quando informado;
+- tese ou conclusão;
+- condições, exceções e efeitos relevantes.
+
+É PROIBIDO inventar, presumir ou completar por memória tribunal, número, ano, tese, fundamento ou resultado.
+
+Quando um dado aplicável não estiver na fonte, escreva NÃO IDENTIFICADO NA FONTE. Quando o campo não se aplicar ao tipo do item, simplesmente não o exiba.
+
+## 5. METADADOS CONFORME O TIPO
+
+### JULGADO
+
+Exiba:
+
+📍 TRIBUNAL: [NOME]
+📍 PROCESSO: [CLASSE E NÚMERO]
+📍 ANO DA DECISÃO: [AAAA]
+
+### TEMA, REPERCUSSÃO GERAL OU RECURSO REPETITIVO
+
+Exiba apenas os campos aplicáveis:
+
+📍 TRIBUNAL: [NOME]
+📍 TEMA: [NÚMERO E CLASSIFICAÇÃO]
+📍 PROCESSO PARADIGMA: [CLASSE E NÚMERO, SE INFORMADO]
+📍 ANO: [AAAA, SE INFORMADO]
+
+### SÚMULA
+
+Exiba:
+
+📍 TRIBUNAL: [NOME]
+📍 ENUNCIADO: SÚMULA [NÚMERO]/[TRIBUNAL]
+📍 ANO DE APROVAÇÃO OU PUBLICAÇÃO: [AAAA, SOMENTE SE INFORMADO]
+
+Para súmula, NÃO crie campo PROCESSO e NÃO escreva PROCESSO NÃO IDENTIFICADO, pois esse dado não é aplicável.
+
+### INFORMATIVO OU TESE AUTÔNOMA
+
+Exiba tribunal, identificação oficial disponível e ano apenas quando constarem na fonte. Não converta número de informativo em número de processo.
+
+Padronize o tribunal por extenso na primeira ocorrência, seguido da sigla. Nas ocorrências seguintes, a sigla pode ser usada. Preserve exatamente a classe e o número do processo existentes na fonte.
+
+## 6. ESTRUTURA DO DOCUMENTO
+
+Abra o documento com:
+
+♦️ DISCIPLINA: [NOME]
+▶️ TEMA: [TEMA E RECORTE]
+MAPA MENTAL DE JURISPRUDÊNCIA
+
+Agrupe os itens por tribunal. Dentro de cada tribunal, ordene por conexão temática e coloque primeiro os precedentes paradigmáticos ou de maior utilidade para o recorte.
+
+Use um bloco autônomo para cada item:
+
+🔹 TESE-CENTRAL EM CAIXA ALTA
+   ➜ SUBTESE OU FUNDAMENTO
+      • REGRA OU CONCLUSÃO
+         ↳ CONDIÇÃO, EXCEÇÃO OU EFEITO
+   📍 TRIBUNAL: [NOME]
+   📍 IDENTIFICAÇÃO APLICÁVEL: [DADO]
+   📍 ANO: [AAAA, QUANDO APLICÁVEL]
+
+O exemplo acima define a hierarquia, mas os rótulos de metadados devem seguir o tipo do item descrito na seção anterior.
+
+## 7. REDAÇÃO E PROFUNDIDADE
+
+- Use palavras-chave, frases curtas e conclusões jurídicas autônomas.
+- Preserve todos os núcleos juridicamente relevantes da fonte.
+- Transforme construções negativas vagas em enunciados que deixem claro o que é admitido, vedado, condicionado ou excepcionado.
+- Não acrescente explicação doutrinária que não esteja no acervo.
+- Não repita a mesma tese com palavras diferentes.
+- Diferencie com clareza regra, condição, exceção, consequência e efeito processual.
+- Preserve divergências entre tribunais ou órgãos julgadores quando estiverem expressas nas fontes.
+
+## 8. AMBIGUIDADES E DIVERGÊNCIAS
+
+Quando a redação da fonte admitir leituras relevantes distintas:
+
+⚠️ AMBIGUIDADE — [PONTO]
+   ➜ LEITURA 1: [CONCLUSÃO]
+   ➜ LEITURA 2: [CONCLUSÃO]
+
+Quando houver divergência jurisprudencial real:
+
+⚖️ DIVERGÊNCIA JURISPRUDENCIAL
+   🔹 POSIÇÃO 1: [TESE + TRIBUNAL + IDENTIFICAÇÃO]
+   🔸 POSIÇÃO 2: [TESE + TRIBUNAL + IDENTIFICAÇÃO]
+   🎯 DISTINÇÃO: [CRITÉRIO OBJETIVO]
+
+Não force ambiguidade ou divergência quando ela não existir.
+
+## 9. FORMATAÇÃO WORD E PAGINAÇÃO
+
+Gere arquivo Word editável em A4, com:
+
+- fonte Arial, tamanho 11;
+- margens de 2 cm;
+- espaçamento simples;
+- alinhamento à esquerda;
+- títulos e nomes de tribunais em azul sóbrio;
+- texto principal em preto;
+- emojis preservados com Segoe UI Emoji quando necessário;
+- sem tabelas, caixas de texto, formas flutuantes, cabeçalho, rodapé ou numeração automática.
+
+REGRAS OBRIGATÓRIAS DE ESTABILIDADE:
+
+- mantenha todo o texto dentro da área imprimível;
+- não use recuo esquerdo negativo;
+- não use recuo especial que projete marcadores ou emojis para fora da margem;
+- permita que o corpo de um item se divida naturalmente entre páginas;
+- use manter com o próximo apenas em títulos e somente para prender o título à primeira linha útil subsequente;
+- não marque todos os parágrafos como manter com o próximo ou manter linhas juntas;
+- não use blocos de altura fixa;
+- não insira quebra de página automática entre itens;
+- se um título ficar isolado no fim da página, mova apenas o título e a primeira linha do conteúdo.
+
+## 10. CONTROLE DE RESULTADO NEGATIVO
+
+Somente declare ausência de jurisprudência depois de concluir as três passagens, abrir todos os candidatos acessíveis e revisar as variações terminológicas.
+
+Se nenhum item pertinente for localizado, não gere mapa vazio. Entregue relatório curto com:
+
+- subpastas examinadas;
+- quantidade de arquivos candidatos abertos;
+- termos e variações pesquisados;
+- limitações de acesso ou leitura.
+
+Falha de acesso, paginação incompleta, indexação vazia ou leitura parcial não provam inexistência de jurisprudência.
+
+## 11. REVISÃO FINAL OBRIGATÓRIA
+
+Antes da entrega:
+
+1. confira se todos os itens pertinentes encontrados foram incluídos;
+2. confira deduplicação e metadados conforme o tipo;
+3. verifique se nenhuma informação foi completada fora da fonte;
+4. renderize e inspecione todas as páginas;
+5. corrija cortes laterais, sobreposições, títulos órfãos e espaços em branco superiores a meia página causados por paginação;
+6. repita a renderização após qualquer correção.
+
+## 12. ENTREGA
+
+- Gere somente o módulo JURISPRUDÊNCIA.
+- Gere um único arquivo Word editável.
+- Nome: MAPA_MENTAL_JURISPRUDENCIAS_[FILTRO].docx
+- Não gere consolidação final nem módulos de resumo, lei ou peça.
+- Salve no destino indicado apenas quando houver ferramenta autorizada e devolva o link exato do arquivo criado.
+- Se o upload não ocorrer, forneça o Word para download e informe que o envio ao destino ficou pendente.`.trim();
+
+  const MIGRATION_ID = "factoryJurisprudenciaBuscaSemanticaVisualV331";
+  const PREVIOUS_OFFICIAL_MARKERS = [
+    "TRANSFORME JURISPRUDÊNCIAS EM MAPA MENTAL HIERÁRQUICO DE PALAVRAS-CHAVE PARA CÓPIA MANUSCRITA.",
+    "USE APENAS AS FONTES CLASSIFICADAS COMO JURISPRUDÊNCIA NA TRIAGEM.",
+    "NÃO OMITA TRIBUNAL, PROCESSO OU ANO.",
+    "## DIVERGÊNCIA JURISPRUDENCIAL",
+    "MAPA_MENTAL_JURISPRUDENCIAS_[FILTRO].docx"
+  ];
   const LEGACY_MARKERS = [
     "* ANO, SE DISPONÍVEL;",
     "SE TRIBUNAL, INFORMATIVO, NÚMERO OU ANO NÃO ESTIVEREM DISPONÍVEIS, OMITA A LINHA CORRESPONDENTE.",
     "NÃO INFORME:\n\n* NÚMERO DO PROCESSO;"
   ];
 
-  function isOfficialLegacyPrompt(value) {
+  function isPreviousOfficialPrompt(value) {
     const text = String(value || "").trim();
-    if (!text) return true;
-    if (typeof FACTORY_LIBRARY_FALLBACK === "string" && text === FACTORY_LIBRARY_FALLBACK) return true;
-    return text.includes("TRANSFORME JURISPRUDÊNCIAS EM MAPA MENTAL") &&
-      LEGACY_MARKERS.some((marker) => text.includes(marker));
+    if (!text || text === FACTORY_LIBRARY_FALLBACK || text === PROMPT) return true;
+    const isV231 = PREVIOUS_OFFICIAL_MARKERS.every((marker) => text.includes(marker));
+    const isOlderOfficial = text.includes("TRANSFORME JURISPRUDÊNCIAS EM MAPA MENTAL")
+      && LEGACY_MARKERS.some((marker) => text.includes(marker));
+    return isV231 || isOlderOfficial;
   }
 
-  function installPrompt() {
-    let changed = false;
-    try {
-      if (typeof defaultFactoryPromptLibrary === "object" && defaultFactoryPromptLibrary) {
-        defaultFactoryPromptLibrary.jurisprudencia = PROMPT;
+  function install() {
+    if (typeof defaultFactoryPromptLibrary === "undefined" || typeof state === "undefined") return;
+
+    defaultFactoryPromptLibrary.jurisprudencia = PROMPT;
+    state.migrations = state.migrations || {};
+    state.factoryPromptLibrary = state.factoryPromptLibrary || {};
+    state.factoryPromptLibraryBackups = state.factoryPromptLibraryBackups || {};
+
+    const current = String(state.factoryPromptLibrary.jurisprudencia || "").trim();
+    if (isPreviousOfficialPrompt(current)) {
+      if (current && current !== PROMPT && current !== FACTORY_LIBRARY_FALLBACK) {
+        state.factoryPromptLibraryBackups.jurisprudenciaBeforeV331 = current;
       }
-
-      if (typeof state === "object" && state) {
-        state.migrations ||= {};
-        state.factoryPromptLibrary ||= {};
-        const current = String(state.factoryPromptLibrary.jurisprudencia || "").trim();
-        const shouldInstall = isOfficialLegacyPrompt(current);
-
-        if (shouldInstall && current !== PROMPT) {
-          if (current) {
-            state.factoryPromptLibraryBackups ||= {};
-            state.factoryPromptLibraryBackups.jurisprudenciaBeforeV231 ||= current;
-          }
-          state.factoryPromptLibrary.jurisprudencia = PROMPT;
-          changed = true;
-        }
-
-        if (!state.migrations[MIGRATION_ID]) {
-          state.migrations[MIGRATION_ID] = new Date().toISOString();
-          changed = true;
-        }
-      }
-
-      if (changed && typeof saveData === "function") saveData();
-    } catch (error) {
-      console.error("[Aldus] Falha ao instalar o prompt oficial de jurisprudência V231.", error);
+      state.factoryPromptLibrary.jurisprudencia = PROMPT;
     }
+
+    state.migrations[MIGRATION_ID] = true;
+    state.factoryPromptLibrary = normalizeFactoryPromptLibrary(state.factoryPromptLibrary);
+    if (typeof saveData === "function") saveData();
+
+    const previousPromptBase = factoryPromptBase;
+    factoryPromptBase = function factoryPromptBaseV331(type) {
+      if (type !== "jurisprudencia") return previousPromptBase(type);
+      const text = String(state.factoryPromptLibrary?.jurisprudencia || "").trim();
+      return text || PROMPT;
+    };
+
+    console.info("[Aldus Meta] Prompt de jurisprudência V331 ativo.");
   }
 
-  try {
-    if (typeof factoryPromptBase === "function") {
-      const previousBase = factoryPromptBase;
-      factoryPromptBase = function patchedFactoryPromptBase(type) {
-        if (type === "jurisprudencia") {
-          const current = String(typeof state === "object" ? state.factoryPromptLibrary?.jurisprudencia || "" : "").trim();
-          return current || PROMPT;
-        }
-        return previousBase(type);
-      };
-    }
-
-    if (typeof normalizeFactoryPromptLibrary === "function") {
-      const previousNormalize = normalizeFactoryPromptLibrary;
-      normalizeFactoryPromptLibrary = function patchedNormalizeFactoryPromptLibrary(library = {}) {
-        const normalized = previousNormalize(library);
-        if (!String(normalized.jurisprudencia || "").trim()) normalized.jurisprudencia = PROMPT;
-        return normalized;
-      };
-    }
-  } catch (error) {
-    console.error("[Aldus] Falha ao proteger o prompt oficial de jurisprudência V231.", error);
-  }
-
-  if (typeof window !== "undefined" && window.__aldusBootstrapReady) installPrompt();
-  else if (typeof window !== "undefined") window.addEventListener("aldus:bootstrap-ready", installPrompt, { once: true });
+  if (window.__aldusBootstrapReady) install();
+  else window.addEventListener("aldus:bootstrap-ready", install, { once: true });
 })();
 
 /* Aldus source: central-goals-real-time-v124.js */
