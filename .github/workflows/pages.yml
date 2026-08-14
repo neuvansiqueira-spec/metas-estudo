@@ -45,6 +45,7 @@ jobs:
           node --check service-worker-v291.js
           node --check usage-telemetry-v315.js
           node --check factory-penalties-v320.js
+          node --check factory-resumo-aula-visual-v326.js
           node --test \
             tests/security-hardening-v296.test.js \
             tests/timer-controls-hardening-v268.test.js \
@@ -65,7 +66,8 @@ jobs:
             tests/v315-factory-simulado-visibility.test.js \
             tests/v316-timer-telemetry-security.test.js \
             tests/v318-security-observability.test.js \
-            tests/v320-factory-penalties-prompts.test.js
+            tests/v320-factory-penalties-prompts.test.js \
+            tests/v326-factory-resumo-aula-visual.test.js
           node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
           cmp security-hardening-v296.js docs/security-hardening-v296.js
           cmp service-worker.js docs/service-worker.js
@@ -81,6 +83,7 @@ jobs:
           cp aldus-card-palette-v294.css docs/aldus-card-palette-v294.css
           cp security-observability-v318.js docs/security-observability-v318.js
           cp factory-penalties-v320.js docs/factory-penalties-v320.js
+          cp factory-resumo-aula-visual-v326.js docs/factory-resumo-aula-visual-v326.js
 
           python - <<'PY'
           from pathlib import Path
@@ -119,6 +122,14 @@ jobs:
           )
           if "aldusFactoryPenaltiesV320" not in text:
               text = text.replace("</body>", factory_penalties + "</body>", 1)
+
+          factory_resumo_aula_visual = (
+              '  <!-- aldus-factory-resumo-aula-visual-v326 -->\n'
+              '  <script id="aldusFactoryResumoAulaVisualV326" '
+              'src="factory-resumo-aula-visual-v326.js?v=20260814-factory-resumo-aula-visual-v326"></script>\n'
+          )
+          if "aldusFactoryResumoAulaVisualV326" not in text:
+              text = text.replace("</body>", factory_resumo_aula_visual + "</body>", 1)
           index.write_text(text, encoding="utf-8")
 
           sw = Path("docs/service-worker.js")
