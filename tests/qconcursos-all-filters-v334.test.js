@@ -164,12 +164,12 @@ test("V334 permanece carregada depois da V333 sob a proteção de rota da V335",
     "docs/service-worker.js", "docs/service-worker-v168.js", "docs/service-worker-v169.js", "docs/service-worker-v332.js"
   ]) {
     const worker = fs.readFileSync(file, "utf8");
-    assert.match(worker, /20260814-qconcursos-assunto-nativo-v336/);
+    assert.match(worker, /20260814-qconcursos-catalogo-atual-v337/);
     assert.match(worker, /qconcursos-all-filters-v334\.js/);
-    assert.match(worker, /qconcursos-filter-v336/);
+    assert.match(worker, /qconcursos-filter-v337/);
   }
 
   for (const file of ["index.html", "docs/index.html"]) {
-    assert.match(fs.readFileSync(file, "utf8"), /bootstrap-integrity-loader-v258\.js\?v=20260814-qconcursos-assunto-nativo-v336/);
+    assert.match(fs.readFileSync(file, "utf8"), /bootstrap-integrity-loader-v258\.js\?v=20260814-qconcursos-catalogo-atual-v337/);
   }
 });
