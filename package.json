@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260814-fonte-jurisprudencia-exclusiva-v330",
+  "version": "20260814-jurisprudencia-semantica-visual-v331",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
