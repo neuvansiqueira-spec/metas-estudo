@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260812-gerador-simulados-visibilidade-v315";
+  const VERSION = "20260814-factory-resumo-aula-bootstrap-v328";
   const CORE_SCRIPT = `bootstrap-integrity-loader-v258-core.js?v=${VERSION}`;
   const DIAGNOSTICS_SCRIPT = `duplicate-diagnostics-v260.js?v=${VERSION}`;
   const DIAGNOSTICS_STYLESHEET = `duplicate-diagnostics-v260.css?v=${VERSION}`;
@@ -9,6 +9,7 @@
   const PLANNING_SHIFT_PERSISTENCE_SCRIPT = `planning-shift-persistence-v283.js?v=${VERSION}`;
   const TIMER_SOUND_MASTER_SCRIPT = `timer-sound-master-v265.js?v=${VERSION}&hotfix=master-mute-hotfix1`;
   const TIMER_CONTROLS_SCRIPT = `timer-controls-hardening-v268.js?v=${VERSION}&hotfix=timer-controls-hardening-hotfix2`;
+  const RESUMO_AULA_CANONICAL_SCRIPT = "factory-resumo-aula-canonical-v327.js?v=20260814-factory-resumo-aula-bootstrap-v328";
 
   function installStylesheet(baseUrl) {
     if (document.getElementById("aldusDuplicateDiagnosticsStylesV260")) return;
@@ -28,6 +29,33 @@
     if (source?.crossOrigin) script.crossOrigin = source.crossOrigin;
     if (source?.referrerPolicy) script.referrerPolicy = source.referrerPolicy;
     return script;
+  }
+
+  function installResumoAulaCanonicalAfterBootstrap(baseUrl, source, parent) {
+    let installed = false;
+    const install = () => {
+      if (installed || document.getElementById("aldusFactoryResumoAulaCanonicalBootstrapV328")) return;
+      installed = true;
+      const canonical = makeScript(
+        "aldusFactoryResumoAulaCanonicalBootstrapV328",
+        RESUMO_AULA_CANONICAL_SCRIPT,
+        baseUrl,
+        source
+      );
+      canonical.addEventListener("load", () => {
+        const api = globalThis.__aldusFactoryResumoAulaCanonicalV327;
+        if (!api?.canonical) {
+          console.error(`[${VERSION}] O RESUMO/AULA foi carregado, mas o prompt canônico não foi confirmado.`);
+        }
+      }, { once: true });
+      canonical.addEventListener("error", () => {
+        console.error(`[${VERSION}] Falha ao carregar a política canônica do RESUMO/AULA.`);
+      }, { once: true });
+      parent.appendChild(canonical);
+    };
+
+    window.addEventListener("aldus:bootstrap-integrity-v258-ready", install, { once: true });
+    return install;
   }
 
   async function start() {
@@ -65,6 +93,8 @@
     soundMaster.addEventListener("error", () => console.error(`[${VERSION}] Falha ao carregar o controle geral de som do cronômetro.`), { once: true });
     timerControls.addEventListener("error", () => console.error(`[${VERSION}] Falha ao carregar a proteção dos controles do cronômetro.`), { once: true });
 
+    installResumoAulaCanonicalAfterBootstrap(baseUrl, source, parent);
+
     parent.insertBefore(core, source?.nextSibling || null);
     parent.insertBefore(shiftPersistence, core.nextSibling);
     if (diagnostics) parent.insertBefore(diagnostics, shiftPersistence.nextSibling);
@@ -79,7 +109,9 @@
       diagnostics: diagnostics ? DIAGNOSTICS_SCRIPT : "duplicate-diagnostics-v309.js (pinned)",
       recovery: RECOVERY_SCRIPT,
       timerSoundMaster: TIMER_SOUND_MASTER_SCRIPT,
-      timerControls: TIMER_CONTROLS_SCRIPT
+      timerControls: TIMER_CONTROLS_SCRIPT,
+      resumoAulaCanonical: RESUMO_AULA_CANONICAL_SCRIPT,
+      resumoAulaActivationEvent: "aldus:bootstrap-integrity-v258-ready"
     });
   }
 
