@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260812-gerador-simulados-visibilidade-v315";
+  const VERSION = "20260814-gerador-simulados-em-questoes-v328";
   const CORE_SCRIPT = `bootstrap-integrity-loader-v258-core.js?v=${VERSION}`;
   const DIAGNOSTICS_SCRIPT = `duplicate-diagnostics-v260.js?v=${VERSION}`;
   const DIAGNOSTICS_STYLESHEET = `duplicate-diagnostics-v260.css?v=${VERSION}`;

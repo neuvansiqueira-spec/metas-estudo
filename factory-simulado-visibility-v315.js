@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260812-gerador-simulados-visibilidade-v315";
+  const VERSION = "20260814-gerador-simulados-em-questoes-v328";
   const PROMPT_SCRIPT = `factory-simulado-prompt-v310.js?v=${VERSION}`;
   const RECOVERY_SCRIPT_ID = "aldusFactorySimuladoPromptRecoveryV315";
   const BUILDER_ID = "factorySimuladoBuilderV310";
@@ -12,11 +12,11 @@
 
   function builderIsVisible() {
     const builder = document.getElementById(BUILDER_ID);
-    return Boolean(builder && builder.isConnected && builder.closest("#factoryList"));
+    return Boolean(builder && builder.isConnected && builder.closest("#view-simulados"));
   }
 
-  function factoryIsReady() {
-    return Boolean(document.getElementById("factoryList") && typeof globalThis.renderFactory === "function");
+  function simuladosIsReady() {
+    return Boolean(document.getElementById("view-simulados") && typeof globalThis.renderFactory === "function");
   }
 
   function markReady(reason) {
@@ -45,8 +45,8 @@
     const previous = document.getElementById(RECOVERY_SCRIPT_ID);
     if (previous) previous.remove();
 
-    // A versão antiga pode ter iniciado antes do aplicativo e perdido o bloco
-    // quando a Fábrica renderizou a lista. Liberar apenas a trava visual permite
+    // O módulo pode ter iniciado antes de a área de Simulados estar disponível.
+    // Liberar apenas a trava visual permite
     // remontar o módulo sem tocar nos dados ou no estado de estudo.
     if (globalThis.__ALDUS_FACTORY_SIMULADO_V310_BROWSER__ && !builderIsVisible()) {
       globalThis.__ALDUS_FACTORY_SIMULADO_V310_BROWSER__ = false;
@@ -76,7 +76,7 @@
       markReady("gerador-presente");
       return true;
     }
-    if (!factoryIsReady()) {
+    if (!simuladosIsReady()) {
       attempts += 1;
       if (attempts <= MAX_ACTIVE_ATTEMPTS) schedule(250);
       return false;
@@ -86,7 +86,7 @@
   }
 
   const observer = new MutationObserver(() => {
-    if (!builderIsVisible() && document.getElementById("factoryList")) schedule(80);
+    if (!builderIsVisible() && document.getElementById("view-simulados")) schedule(80);
   });
   observer.observe(document.documentElement, { childList: true, subtree: true });
 
@@ -99,7 +99,7 @@
   globalThis.__ALDUS_FACTORY_SIMULADO_VISIBILITY_V315__ = Object.freeze({
     version: VERSION,
     ready: false,
-    reason: "aguardando-fabrica",
+    reason: "aguardando-simulados",
     checkedAt: new Date().toISOString()
   });
 

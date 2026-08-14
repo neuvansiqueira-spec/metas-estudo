@@ -1,10 +1,10 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260813-simulados-integrados-questoes-v322";
+  const VERSION = "20260814-gerador-simulados-em-questoes-v328";
   const QUESTION_VIEWS = new Set(["banco-questoes", "simulados", "questoes", "historico-questoes"]);
-  const STYLE_ID = "aldusQuestionsHubSimuladosV322";
-  const LAYOUT_VERSION = "v322";
+  const STYLE_ID = "aldusQuestionsHubSimuladosV328";
+  const LAYOUT_VERSION = "v328";
 
   function activeView() {
     return document.documentElement.dataset.activeView
@@ -16,7 +16,7 @@
     return '<div class="questions-hub-copy"><p class="eyebrow">Módulo integrado</p><strong>Questões</strong><span>Banco, simulados, registro e desempenho no mesmo fluxo.</span></div>' +
       '<nav class="questions-hub-tabs" aria-label="Áreas de questões">' +
         '<a class="questions-hub-tab" href="#banco-questoes" data-view-link="banco-questoes"><strong>Banco</strong><small>Resolver</small></a>' +
-        '<a class="questions-hub-tab" href="#simulados" data-view-link="simulados"><strong>Simulados</strong><small>Provas completas</small></a>' +
+        '<a class="questions-hub-tab" href="#simulados" data-view-link="simulados"><strong>Simulados</strong><small>Gerar e resolver</small></a>' +
         '<a class="questions-hub-tab" href="#questoes" data-view-link="questoes"><strong>Registrar</strong><small>Resultado externo</small></a>' +
         '<a class="questions-hub-tab" href="#historico-questoes" data-view-link="historico-questoes"><strong>Desempenho</strong><small>Histórico unificado</small></a>' +
       '</nav>';
@@ -59,10 +59,21 @@
     });
   }
 
+  function placeGeneratorInSimulados() {
+    const builder = document.getElementById("factorySimuladoBuilderV310");
+    const view = document.getElementById("view-simulados");
+    if (!builder || !view || builder.closest("#view-simulados")) return false;
+    const hub = Array.from(view.children).find((child) => child.matches?.("header.questions-hub[data-questions-hub]"));
+    if (hub) hub.insertAdjacentElement("afterend", builder);
+    else view.prepend(builder);
+    return true;
+  }
+
   function integrateQuestionsHub() {
     ensureResponsiveLayout();
     document.querySelectorAll("header.questions-hub[data-questions-hub]").forEach(applyHubLayout);
     ensureSimuladosHub();
+    placeGeneratorInSimulados();
     removeStandaloneSimuladosNavigation();
   }
 
@@ -94,6 +105,9 @@
     syncAll(event.detail?.view || activeView());
   });
   window.addEventListener("hashchange", () => setTimeout(() => syncAll(), 0));
+
+  const generatorObserver = new MutationObserver(() => placeGeneratorInSimulados());
+  generatorObserver.observe(document.documentElement, { childList: true, subtree: true });
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => syncAll(), { once: true });

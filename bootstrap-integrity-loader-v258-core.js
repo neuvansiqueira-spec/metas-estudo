@@ -60,8 +60,8 @@
   ];
   const SCRIPT_CHAIN = [
     ["aldusAppBundleScript", "app-v315.js?v=20260812-gerador-simulados-visibilidade-v315"],
-    ["aldusFactorySimuladoVisibilityV315", "factory-simulado-visibility-v315.js?v=20260812-gerador-simulados-visibilidade-v315"],
-    ["aldusFactorySimuladoPromptV310", "factory-simulado-prompt-v310.js?v=20260812-gerador-simulados-visibilidade-v315"],
+    ["aldusFactorySimuladoVisibilityV315", "factory-simulado-visibility-v315.js?v=20260814-gerador-simulados-em-questoes-v328"],
+    ["aldusFactorySimuladoPromptV310", "factory-simulado-prompt-v310.js?v=20260814-gerador-simulados-em-questoes-v328"],
     ["aldusSimuladoInterativoV313", "simulado-interativo-v313.js?v=20260811-simulado-interativo-v313"],
     ["aldusSimuladoIntegracaoV314", "simulado-integracao-v314.js?v=20260811-simulado-integracao-v314"],
     ["aldusDailySummaryTimeFormatV243Direct", "daily-summary-time-format-v243.js?v=20260805-daily-summary-hours-minutes-v243&hotfix=daily-summary-time-format-hotfix3"],

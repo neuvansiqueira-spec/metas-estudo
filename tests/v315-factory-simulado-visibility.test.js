@@ -12,13 +12,15 @@ test("V315 carrega o recuperador por nome novo antes do bootstrap legado", () =>
   const bootstrap = html.indexOf('id="aldusBootstrapIntegrityLoaderV258"');
   assert.ok(visibility > 0);
   assert.ok(visibility < bootstrap);
-  assert.match(html, /factory-simulado-visibility-v315\.js\?v=20260812-gerador-simulados-visibilidade-v315/);
+  assert.match(html, /factory-simulado-visibility-v315\.js\?v=20260814-gerador-simulados-em-questoes-v328/);
 });
 
-test("V315 aguarda a Fábrica e remonta o gerador se uma renderização o remover", () => {
+test("V328 aguarda Simulados e remonta o gerador se uma renderização o remover", () => {
   const loader = read("factory-simulado-visibility-v315.js");
   assert.match(loader, /typeof globalThis\.renderFactory === "function"/);
   assert.match(loader, /factorySimuladoBuilderV310/);
+  assert.match(loader, /closest\("#view-simulados"\)/);
+  assert.doesNotMatch(loader, /closest\("#factoryList"\)/);
   assert.match(loader, /MutationObserver/);
   assert.match(loader, /__ALDUS_FACTORY_SIMULADO_V310_BROWSER__/);
   assert.doesNotMatch(loader, /localStorage|indexedDB|saveData|state\s*=/);
@@ -43,4 +45,18 @@ test("V315 mantém paridade entre raiz e docs", () => {
   ]) {
     assert.equal(read(file), read(`docs/${file}`), `${file} deve ser idêntico em docs`);
   }
+});
+
+test("V328 monta o gerador somente em Questões > Simulados", () => {
+  const prompt = read("factory-simulado-prompt-v310.js");
+  const hub = read("questions-hub-v322.js");
+  const publicHub = read("questions-hub-v298.js");
+  assert.match(prompt, /document\.getElementById\("view-simulados"\)/);
+  assert.doesNotMatch(prompt, /document\.getElementById\("factoryList"\)/);
+  assert.doesNotMatch(prompt, /Criar simulado deste tema<\/button>/);
+  assert.match(hub, /<strong>Simulados<\/strong><small>Gerar e resolver<\/small>/);
+  assert.match(publicHub, /<strong>Simulados<\/strong><small>Gerar e resolver<\/small>/);
+  assert.match(publicHub, /placeGeneratorInSimulados/);
+  assert.match(publicHub, /insertAdjacentElement\("afterend", builder\)/);
+  assert.match(publicHub, /MutationObserver/);
 });

@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260811-gerador-simulados-escolha-automatica-v312";
+  const VERSION = "20260814-gerador-simulados-em-questoes-v328";
   const QUESTION_BANK_SCHEMA = "metas-estudo-question-bank-v1";
   const selectedIds = new Set();
   const selectedDisciplines = new Set();
@@ -244,7 +244,7 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
   }
 
   function selectedThemeHtml(items) {
-    if (!items.length) return '<p class="factory-simulado-empty">Nenhum tema selecionado. Pesquise abaixo ou use “Criar simulado deste tema”.</p>';
+    if (!items.length) return '<p class="factory-simulado-empty">Nenhum tema selecionado. Pesquise um tema abaixo para adicioná-lo ao simulado.</p>';
     return `<div class="factory-simulado-chips">${items.map((item) => `<span class="factory-simulado-chip"><span><strong>${escapeHtml(item.tema || "Tema")}</strong><small>${escapeHtml(item.disciplina || "Sem disciplina")}</small></span><button type="button" data-factory-simulado-remove="${escapeHtml(item.id)}" aria-label="Remover ${escapeHtml(item.tema || "tema")}">×</button></span>`).join("")}</div>`;
   }
 
@@ -286,18 +286,17 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
 
   function mountBuilder() {
     if (typeof document === "undefined") return;
-    const container = document.getElementById("factoryList");
+    const container = document.getElementById("view-simulados");
     if (!container) return;
     const current = document.getElementById("factorySimuladoBuilderV310");
     if (current) current.remove();
-    container.insertAdjacentHTML("afterbegin", builderHtml());
+    const hub = Array.from(container.children).find((child) => child.matches?.("header.questions-hub[data-questions-hub]"));
+    if (hub) hub.insertAdjacentHTML("afterend", builderHtml());
+    else container.insertAdjacentHTML("afterbegin", builderHtml());
 
-    container.querySelectorAll("[data-factory-card]").forEach((card) => {
-      const id = text(card.dataset.factoryCard);
-      const actions = card.querySelector(".factory-prompt-actions .card-actions");
-      if (!id || !actions || actions.querySelector("[data-factory-simulado-single]")) return;
-      actions.insertAdjacentHTML("beforeend", `<button type="button" class="secondary-button factory-simulado-single" data-factory-simulado-single="${escapeHtml(id)}">Criar simulado deste tema</button>`);
-    });
+    // O gerador agora pertence exclusivamente a Questões > Simulados.
+    // Remove atalhos legados que ainda possam existir em uma sessão já aberta.
+    document.querySelectorAll("#factoryList [data-factory-simulado-single]").forEach((button) => button.remove());
   }
 
   function renderSuggestions(query) {
@@ -430,7 +429,7 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
     const link = document.createElement("link");
     link.id = "aldusFactorySimuladoStylesV310";
     link.rel = "stylesheet";
-    link.href = "factory-simulado-prompt-v310.css?v=20260811-gerador-simulados-escolha-automatica-v312";
+    link.href = `factory-simulado-prompt-v310.css?v=${VERSION}`;
     (document.head || document.documentElement).appendChild(link);
   }
 
