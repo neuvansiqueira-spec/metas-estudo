@@ -37,6 +37,7 @@ jobs:
           node --check security-observability-v318.js
           node --check telemetry-security-dashboard-v319.js
           node --check factory-resumo-aula-visual-v326.js
+          node --check factory-resumo-aula-canonical-v327.js
 
       - name: Executar testes de segurança, telemetria e regressão do prompt
         run: |
@@ -47,4 +48,5 @@ jobs:
             tests/v316-timer-telemetry-security.test.js \
             tests/v318-security-observability.test.js \
             tests/v319-telemetry-security-dashboard.test.js \
-            tests/v326-factory-resumo-aula-visual.test.js
+            tests/v326-factory-resumo-aula-visual.test.js \
+            tests/v327-factory-resumo-aula-canonical.test.js
