@@ -150,7 +150,7 @@ test("V334 não fabrica uma disciplina desconhecida", () => {
   assert.equal(repaired, original);
 });
 
-test("V334 está carregada depois da V333 e protegida pelo cache em todas as cópias publicadas", () => {
+test("V334 permanece carregada depois da V333 sob a proteção de rota da V335", () => {
   const bootstrap = fs.readFileSync("bootstrap-integrity-loader-v258-core.js", "utf8");
   const v333Index = bootstrap.indexOf("qconcursos-filter-route-v333.js");
   const v334Index = bootstrap.indexOf("qconcursos-all-filters-v334.js");
@@ -164,12 +164,12 @@ test("V334 está carregada depois da V333 e protegida pelo cache em todas as có
     "docs/service-worker.js", "docs/service-worker-v168.js", "docs/service-worker-v169.js", "docs/service-worker-v332.js"
   ]) {
     const worker = fs.readFileSync(file, "utf8");
-    assert.match(worker, /20260814-qconcursos-todas-disciplinas-v334/);
+    assert.match(worker, /20260814-qconcursos-rota-segura-v335/);
     assert.match(worker, /qconcursos-all-filters-v334\.js/);
-    assert.match(worker, /qconcursos-filter-v334/);
+    assert.match(worker, /qconcursos-filter-v335/);
   }
 
   for (const file of ["index.html", "docs/index.html"]) {
-    assert.match(fs.readFileSync(file, "utf8"), /bootstrap-integrity-loader-v258\.js\?v=20260814-qconcursos-todas-disciplinas-v334/);
+    assert.match(fs.readFileSync(file, "utf8"), /bootstrap-integrity-loader-v258\.js\?v=20260814-qconcursos-rota-segura-v335/);
   }
 });
