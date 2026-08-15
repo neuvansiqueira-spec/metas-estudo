@@ -62,3 +62,13 @@ test("V329 contém listas longas e evita recomputações repetidas", () => {
   assert.match(script, /qbSearchTextCache = new WeakMap/);
   assert.match(script, /materialFilterTextTimerV329/);
 });
+
+test("logo do cabeçalho mantém nitidez vetorial sem regredir o carregamento", () => {
+  const rootCss = read("elegant-card-style-v249.css");
+  const docsCss = read("docs/elegant-card-style-v249.css");
+  assert.equal(rootCss, docsCss);
+  assert.match(rootCss, /\.topbar \.aldus-visual-brand-image/);
+  assert.match(rootCss, /content:\s*url\("data:image\/svg\+xml;base64,/);
+  assert.match(rootCss, /image-rendering:\s*auto\s*!important/);
+  assert.match(read("index.html"), /icons\/aldus-visual-320\.webp/);
+});
