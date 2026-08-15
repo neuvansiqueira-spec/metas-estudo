@@ -1,9 +1,10 @@
 {
   "name": "metas-estudo",
-  "version": "20260814-restaura-topificacao-jurisprudencia-v332",
+  "version": "20260815-desempenho-protegido-v339",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
+    "check:performance": "node scripts/performance-budget.mjs",
     "test": "node --test tests/*.test.js"
   },
   "dependencies": {

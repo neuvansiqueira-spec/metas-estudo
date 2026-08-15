@@ -12,7 +12,7 @@ test("V329 entrega diretamente o shell canônico sem requisição síncrona", ()
   const root = read("index.html");
   const docs = read("docs/index.html");
   assert.equal(root, docs);
-  assert.match(root, /aldus-performance-release" content="20260814-desempenho-integral-v329/);
+  assert.match(root, new RegExp(`aldus-performance-release" content="${currentVersion}`));
   assert.doesNotMatch(root, /XMLHttpRequest|docs\/index\.html\?aldusEntry=|document\.write\(/);
   assert.ok(root.includes(`app-${currentSuffix}.css?v=${currentVersion}`));
   assert.ok(root.includes(`app-${currentSuffix}.js?v=${currentVersion}`));

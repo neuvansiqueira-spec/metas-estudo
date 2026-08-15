@@ -9384,43 +9384,55 @@ async function bootstrapApplication() {
   let chosenState = null;
   let recoveredError = "";
   try {
-    let idb = { valid: false, empty: true, record: null };
-    try {
-      idb = await loadPrimaryStateFromIndexedDB();
+    const protectedBootstrapState = globalThis.__ALDUS_BOOTSTRAP_STATE_V339__;
+    try { delete globalThis.__ALDUS_BOOTSTRAP_STATE_V339__; } catch {}
+    if (stateHasUserData(protectedBootstrapState)) {
+      chosenState = protectedBootstrapState;
       indexedDBStatus.indexedDBReadBeforeRender = true;
       indexedDBStatus.available = true;
-      indexedDBStatus.lastCopyAt = idb.record?.savedAt || "";
-      indexedDBStatus.validation = idb.valid ? "válido" : (idb.empty ? "vazio" : "inválido");
-    } catch (error) {
-      indexedDBStatus.indexedDBReadBeforeRender = true;
-      recoveredError = "IndexedDB indisponível no bootstrap.";
-      recordIndexedDBWarning(recoveredError, error);
-    }
-
-    if (idb.valid && stateHasUserData(idb.data)) {
-      chosenState = idb.data;
+      indexedDBStatus.validation = "validado pelo bootstrap protegido";
       indexedDBStatus.activeSource = "IndexedDB";
-      indexedDBStatus.lastLoadedSource = "IndexedDB";
-      indexedDBStatus.bootstrapSource = "IndexedDB";
+      indexedDBStatus.lastLoadedSource = "bootstrap protegido";
+      indexedDBStatus.bootstrapSource = "bootstrap protegido";
     } else {
-      const localState = safeReadLocalStorageStateForBootstrap();
-      if (stateHasUserData(localState)) {
-        chosenState = localState;
+      let idb = { valid: false, empty: true, record: null };
+      try {
+        idb = await loadPrimaryStateFromIndexedDB();
+        indexedDBStatus.indexedDBReadBeforeRender = true;
+        indexedDBStatus.available = true;
+        indexedDBStatus.lastCopyAt = idb.record?.savedAt || "";
+        indexedDBStatus.validation = idb.valid ? "válido" : (idb.empty ? "vazio" : "inválido");
+      } catch (error) {
+        indexedDBStatus.indexedDBReadBeforeRender = true;
+        recoveredError = "IndexedDB indisponível no bootstrap.";
+        recordIndexedDBWarning(recoveredError, error);
+      }
+
+      if (idb.valid && stateHasUserData(idb.data)) {
+        chosenState = idb.data;
         indexedDBStatus.activeSource = "IndexedDB";
-        indexedDBStatus.lastLoadedSource = "localStorage migrado";
-        indexedDBStatus.bootstrapSource = "localStorage migrado";
-        try {
-          await persistBootstrapStateToIndexedDB(localState);
-          indexedDBStatus.validation = "localStorage copiado e validado";
-        } catch (error) {
-          recoveredError = "Dados do localStorage carregados, mas a cópia IndexedDB falhou.";
-          recordIndexedDBWarning(recoveredError, error);
-        }
+        indexedDBStatus.lastLoadedSource = "IndexedDB";
+        indexedDBStatus.bootstrapSource = "IndexedDB";
       } else {
-        chosenState = cloneData(defaultState);
-        indexedDBStatus.activeSource = idb.valid ? "IndexedDB vazio" : "estado padrão seguro";
-        indexedDBStatus.lastLoadedSource = "estado padrão";
-        indexedDBStatus.bootstrapSource = "estado padrão";
+        const localState = safeReadLocalStorageStateForBootstrap();
+        if (stateHasUserData(localState)) {
+          chosenState = localState;
+          indexedDBStatus.activeSource = "IndexedDB";
+          indexedDBStatus.lastLoadedSource = "localStorage migrado";
+          indexedDBStatus.bootstrapSource = "localStorage migrado";
+          try {
+            await persistBootstrapStateToIndexedDB(localState);
+            indexedDBStatus.validation = "localStorage copiado e validado";
+          } catch (error) {
+            recoveredError = "Dados do localStorage carregados, mas a cópia IndexedDB falhou.";
+            recordIndexedDBWarning(recoveredError, error);
+          }
+        } else {
+          chosenState = cloneData(defaultState);
+          indexedDBStatus.activeSource = idb.valid ? "IndexedDB vazio" : "estado padrão seguro";
+          indexedDBStatus.lastLoadedSource = "estado padrão";
+          indexedDBStatus.bootstrapSource = "estado padrão";
+        }
       }
     }
 
@@ -10337,6 +10349,42 @@ async function ensureIntegralSyncEnhancements() {
   if (activateIntegralSyncEnhancements()) return true;
   throw new Error("Os módulos de integridade incorporados ao bundle estão incompletos.");
 }
+
+let contestCatalogActivationV339 = null;
+function activateContestCatalogV339() {
+  if (contestCatalogActivationV339) return contestCatalogActivationV339;
+  contestCatalogActivationV339 = Promise.resolve().then(() => {
+    if (typeof applyPcprPcma2026Migration !== "function" || !globalThis.PCPR_PCMA_2026_CATALOG) {
+      throw new Error("Catálogo PCPR/PCMA não ficou disponível após o carregamento diferido.");
+    }
+    const migration = applyPcprPcma2026Migration(state);
+    const priorities = typeof applyIntegratedPlanningPrioritiesV155 === "function"
+      ? applyIntegratedPlanningPrioritiesV155(state, { reason: "catalog-lazy-v339" })
+      : { changed: false };
+    const changed = Boolean(migration?.changed || priorities?.changed);
+    if (!migration?.blocked) saveData({ markLocalChange: changed });
+    viewRenderCacheV172.clear();
+    renderView(hashToView(), { force: true });
+    globalThis.__aldusContestCatalogV339 = Object.freeze({
+      ready: true,
+      loadedAt: new Date().toISOString(),
+      migration,
+      priorities
+    });
+    window.dispatchEvent(new CustomEvent("aldus:contest-catalog-applied-v339", {
+      detail: { changed, blocked: Boolean(migration?.blocked) }
+    }));
+    return globalThis.__aldusContestCatalogV339;
+  }).catch((error) => {
+    contestCatalogActivationV339 = null;
+    console.error("[Aldus Meta] Falha ao ativar o catálogo diferido V339.", error);
+    return null;
+  });
+  return contestCatalogActivationV339;
+}
+
+window.addEventListener("aldus:contest-catalog-ready-v339", activateContestCatalogV339, { once: true });
+if (globalThis.PCPR_PCMA_2026_CATALOG) activateContestCatalogV339();
 
 async function startApplicationWithIntegrity() {
   try {
