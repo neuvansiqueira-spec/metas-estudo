@@ -59,3 +59,13 @@ test("V339 mantém raiz e publicação idênticas", () => {
     "bootstrap-integrity-loader-v258-core.js"
   ]) assert.equal(read(file), read(`docs/${file}`), file);
 });
+
+test("V339 versiona os artefatos ativos para impedir publicação sem CSS ou JavaScript", () => {
+  const workflow = read(".github/workflows/pages.yml");
+  assert.match(workflow, /contents: write/);
+  assert.match(workflow, /persist-credentials: true/);
+  assert.match(workflow, /Versionar artefatos gerados da versão ativa/);
+  assert.match(workflow, /app-\$\{release_suffix\}\.css/);
+  assert.match(workflow, /app-\$\{release_suffix\}\.js/);
+  assert.match(workflow, /git push origin HEAD:main/);
+});
