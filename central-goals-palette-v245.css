@@ -78,3 +78,11 @@ html[data-aldus-theme="premium-stable"] #dashboardGoalsScaleSummary > .stat-card
 }
 
 /* Próximo Plantão e Próxima Folga permanecem com o padrão visual original. */
+
+/* Revisões: um único ponto de entrada nos menus.
+   A rota #revisao-inteligente continua disponível para compatibilidade,
+   enquanto a tela Revisões reúne a revisão inteligente e a revisão tradicional. */
+#mainMenu a[data-view-link="revisao-inteligente"],
+.side-nav a[data-view-link="revisao-inteligente"] {
+  display: none !important;
+}
