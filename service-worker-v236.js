@@ -2,7 +2,7 @@
 
 const CURRENT_VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-dashboard-hoje-cores-v247`;
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-dashboard-hoje-cores-v247-bootstrap-fast-v339`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
@@ -46,8 +46,9 @@ const STORAGE_RECOVERY_VERSION = "20260805-storage-recovery-v254";
 const STORAGE_RECOVERY_SCRIPT = `storage-recovery-v254.js?v=${STORAGE_RECOVERY_VERSION}&hotfix=stale-indexeddb-localstorage-guard1`;
 // END STORAGE_RECOVERY_V254_CONSTANTS
 // BEGIN BOOTSTRAP_INTEGRITY_V258_CONSTANTS
-const BOOTSTRAP_INTEGRITY_VERSION = "20260805-bootstrap-integrity-v258";
-const BOOTSTRAP_INTEGRITY_SCRIPT = `bootstrap-integrity-loader-v258.js?v=20260805-bootstrap-integrity-v258&hotfix=preboot-atomic-selection1`;
+const BOOTSTRAP_INTEGRITY_VERSION = "20260815-bootstrap-fast-path-v339";
+const BOOTSTRAP_INTEGRITY_SCRIPT = `bootstrap-integrity-loader-v258.js?v=20260815-bootstrap-fast-path-v339`;
+const BOOTSTRAP_FAST_SCRIPT = `bootstrap-app-chain-v339.js?v=20260815-bootstrap-fast-path-v339`;
 const STORAGE_QUOTA_GUARD_V256_SCRIPT = `storage-quota-guard-v256.js?v=20260805-indexeddb-quota-guard-v256&hotfix=indexeddb-only1`;
 const BOOTSTRAP_MANAGED_FILENAMES_V258 = ["app-v236.js","daily-summary-time-format-v243.js","dashboard-today-time-sync-v253.js","dashboard-today-questions-sync-v257.js","planning-integrity-loader-v235.js","central-goals-period-palette-v248.js","daily-summary-elegant-v250.js","timer-session-integrity-v236.js","storage-recovery-v254.js"];
 // END BOOTSTRAP_INTEGRITY_V258_CONSTANTS
@@ -83,6 +84,7 @@ const STATIC_ASSETS = [
   STORAGE_RECOVERY_SCRIPT,
   STORAGE_QUOTA_GUARD_V256_SCRIPT,
   BOOTSTRAP_INTEGRITY_SCRIPT,
+  BOOTSTRAP_FAST_SCRIPT,
   "vendor/pdf.mjs",
   "vendor/pdf.worker.mjs",
   "vendor/pdfjs-LICENSE.txt",
@@ -300,7 +302,7 @@ async function ensurePageStylesheets(response) {
   // END DASHBOARD_TODAY_QUESTIONS_SYNC_V257_HEADER
   // BEGIN BOOTSTRAP_INTEGRITY_V258_HEADER
   headers.set("x-aldus-bootstrap-integrity", BOOTSTRAP_INTEGRITY_VERSION);
-  headers.set("x-aldus-bootstrap-policy", "pre-render-atomic-conservative");
+  headers.set("x-aldus-bootstrap-policy", "fast-path-with-24h-safe-validation");
   // END BOOTSTRAP_INTEGRITY_V258_HEADER
   // BEGIN STORAGE_RECOVERY_V254_HEADER
   headers.set("x-aldus-storage-recovery", "disabled-by-v258");
