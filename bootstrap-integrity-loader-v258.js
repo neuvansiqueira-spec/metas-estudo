@@ -8,7 +8,8 @@
   const TIMER_SOUND_MASTER_SCRIPT = "timer-sound-master-v265.js?v=20260806-timer-sound-master-v265&hotfix=master-mute-hotfix1";
   const TIMER_CONTROLS_SCRIPT = "timer-controls-hardening-v268.js?v=20260808-timer-controls-sound-v268&hotfix=timer-controls-hardening-hotfix1";
   const PLANNING_SHIFT_PERSISTENCE_SCRIPT = "planning-shift-persistence-v283.js?v=20260809-planejamento-plantao-salvamento-v283";
-  const PRELOAD_SCRIPTS = [];
+  const HEADER_BRAND_FIX_SCRIPT = "header-brand-fix.js?v=20260815-logo-alta-qualidade-v338";
+  const PRELOAD_SCRIPTS = [HEADER_BRAND_FIX_SCRIPT];
 
   function installStylesheet(baseUrl) {
     if (document.getElementById("aldusDuplicateDiagnosticsStylesV260")) return;
@@ -55,6 +56,9 @@
   installScriptPreloads(baseUrl);
   installStylesheet(baseUrl);
 
+  const brandFix = makeScript("aldusHeaderBrandFixV338", HEADER_BRAND_FIX_SCRIPT, baseUrl, source);
+  brandFix.addEventListener("error", reportLoadError(VERSION, "a restauração da logo em alta qualidade"));
+
   const core = makeScript(source?.id || "aldusBootstrapIntegrityLoaderV258", CORE_SCRIPT, baseUrl, source);
   if (source?.id) source.removeAttribute("id");
   core.addEventListener("error", reportLoadError(VERSION, "o núcleo de inicialização preservado"));
@@ -71,7 +75,8 @@
   const timerControls = makeScript("aldusTimerControlsHardeningV268", TIMER_CONTROLS_SCRIPT, baseUrl, source);
   timerControls.addEventListener("error", reportLoadError(VERSION, "a proteção dos controles do cronômetro"));
 
-  parent.insertBefore(core, source?.nextSibling || null);
+  parent.insertBefore(brandFix, source?.nextSibling || null);
+  parent.insertBefore(core, brandFix.nextSibling);
   parent.insertBefore(shiftPersistence, core.nextSibling);
   parent.insertBefore(diagnostics, shiftPersistence.nextSibling);
   parent.insertBefore(soundMaster, diagnostics.nextSibling);
@@ -79,6 +84,7 @@
 
   globalThis.__aldusDuplicateDiagnosticsLoaderV260 = Object.freeze({
     version: VERSION,
+    headerBrandFix: HEADER_BRAND_FIX_SCRIPT,
     core: CORE_SCRIPT,
     planningShiftPersistence: PLANNING_SHIFT_PERSISTENCE_SCRIPT,
     script: DIAGNOSTICS_SCRIPT,
