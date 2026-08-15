@@ -58,12 +58,8 @@
     "aldusBeforeIndexedDBActivationV256",
     "aldusEmergencyIndexedDBActivationBackupV256"
   ];
-  const CONTEST_CATALOG = [
-    "aldusPcprPcmaCatalogV339",
-    "pcpr-pcma-2026-catalog-v3.min.js?v=pcpr-pcma-2026-v3"
-  ];
   const SCRIPT_CHAIN = [
-    ["aldusAppBundleScript", "app-v339.js?v=20260815-desempenho-protegido-v339"],
+    ["aldusAppBundleScript", "app-v332.js?v=20260814-restaura-topificacao-jurisprudencia-v332"],
     ["aldusQconcursosFilterRouteV333", "qconcursos-filter-route-v333.js?v=20260814-restaura-filtros-qconcursos-v333"],
     ["aldusQconcursosAllFiltersV334", "qconcursos-all-filters-v334.js?v=20260814-qconcursos-todas-disciplinas-v334"],
     ["aldusQconcursosRouteSafetyV335", "qconcursos-route-safety-v335.js?v=20260814-qconcursos-rota-segura-v335"],
@@ -508,10 +504,6 @@
       throw new Error("O estado escolhido não passou pela validação final.");
     }
 
-    // Entrega o estado já validado ao aplicativo para evitar uma segunda abertura
-    // do IndexedDB e uma segunda desserialização antes da primeira pintura útil.
-    globalThis.__ALDUS_BOOTSTRAP_STATE_V339__ = finalRecord.data;
-
     await saveSafetySnapshot(finalRecord.data, "estado-validado", chosen.source).catch((error) => {
       console.warn("[Aldus V258] Backup validado não pôde ser gravado.", error);
     });
@@ -561,47 +553,9 @@
     });
   }
 
-  function waitForCoreInteractive() {
-    if (globalThis.__aldusStartupMetricsV169?.interfaceInteractiveMs !== null
-      && globalThis.__aldusStartupMetricsV169?.interfaceInteractiveMs !== undefined) {
-      return Promise.resolve();
-    }
-    return new Promise((resolve) => {
-      let completed = false;
-      const finish = () => {
-        if (completed) return;
-        completed = true;
-        clearTimeout(fallback);
-        window.removeEventListener("aldus:core-interactive", finish);
-        resolve();
-      };
-      const fallback = setTimeout(finish, 4000);
-      window.addEventListener("aldus:core-interactive", finish, { once: true });
-    });
-  }
-
-  function waitForIdleAfterInteractive() {
-    return new Promise((resolve) => {
-      if (typeof requestIdleCallback === "function") {
-        requestIdleCallback(resolve, { timeout: 1500 });
-        return;
-      }
-      setTimeout(resolve, 0);
-    });
-  }
-
   async function loadApplicationChain() {
     const [application, ...enhancements] = SCRIPT_CHAIN;
-    const interactive = waitForCoreInteractive();
     await loadScript(...application);
-    await interactive;
-    await waitForIdleAfterInteractive();
-    try {
-      await loadScript(...CONTEST_CATALOG);
-      window.dispatchEvent(new CustomEvent("aldus:contest-catalog-ready-v339"));
-    } catch (error) {
-      console.error("[Aldus V339] O catálogo diferido não pôde ser ativado; o núcleo continua disponível.", error);
-    }
     await Promise.all(enhancements.map(([id, src]) => loadScript(id, src)));
   }
 

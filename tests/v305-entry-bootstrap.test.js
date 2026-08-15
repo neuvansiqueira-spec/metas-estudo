@@ -12,10 +12,10 @@ const workerSource = fs.readFileSync(path.join(root, "service-worker.js"), "utf8
 const docsWorkerSource = fs.readFileSync(path.join(root, "docs", "service-worker.js"), "utf8");
 const docsIndexSource = fs.readFileSync(path.join(root, "docs", "index.html"), "utf8");
 
-const directPerformanceEntry = indexSource.includes('aldus-performance-release" content="');
+const directPerformanceEntry = indexSource.includes('aldus-performance-release" content="20260814-desempenho-integral-v329');
 if (directPerformanceEntry) {
-  assert.equal(indexSource, docsIndexSource, "a versão de desempenho deve publicar o shell canônico diretamente, sem uma segunda requisição bloqueante");
-  assert.doesNotMatch(indexSource, /XMLHttpRequest|docs\/index\.html\?aldusEntry=/, "a versão de desempenho não pode restaurar o carregamento síncrono antigo");
+  assert.equal(indexSource, docsIndexSource, "V329 deve publicar o shell canônico diretamente, sem uma segunda requisição bloqueante");
+  assert.doesNotMatch(indexSource, /XMLHttpRequest|docs\/index\.html\?aldusEntry=/, "V329 não pode restaurar o carregamento síncrono antigo");
   assert.match(indexSource, /id="aldusDuplicateDiagnosticsCoreV309" defer src="duplicate-diagnostics-v309\.js\?v=20260814-desempenho-integral-v329"/);
   assert.match(indexSource, /id="aldusDuplicateBatchAuthoritativeV309" defer src="duplicate-diagnostics-batch-v305\.js\?v=20260814-desempenho-integral-v329"/);
 } else {
