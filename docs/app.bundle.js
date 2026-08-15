@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260814-restaura-topificacao-jurisprudencia-v332";
+  const VERSION = "20260815-recupera-interacao-dashboard-v341";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -48426,7 +48426,9 @@ function showBootstrapLoadingState() {
   const layout = document.querySelector("main.app-layout");
   if (layout) {
     layout.setAttribute("aria-busy", "true");
-    layout.setAttribute("inert", "");
+    // V341: o shell permanece utilizável enquanto os dados são validados.
+    // Um bootstrap interrompido não pode deixar toda a aplicação sem cliques.
+    layout.removeAttribute("inert");
   }
   alignBootstrapShellToRouteV169();
 }
@@ -48658,16 +48660,23 @@ async function bootstrapApplication() {
 }
 function handleBootstrapFailure(error) {
   console.error("[Metas Estudo] Falha recuperada no bootstrap.", error);
-  replaceState({});
-  indexedDBStatus.bootstrap = "erro recuperado";
-  indexedDBStatus.bootstrapSource = "estado padrão";
-  indexedDBStatus.error = "Não foi possível carregar os dados locais. Conecte ao Google Drive ou importe um backup.";
-  render();
-  showStorageWarningIfNeeded();
-  showView(hashToView(), { skipScroll: true, keepMenuOpen: true, immediateRender: true });
+  // Libera primeiro: até uma falha durante a própria recuperação deve preservar
+  // navegação, rolagem e controles já renderizados.
   hideBootstrapLoadingState();
-  updateStorageDiagnostics();
-  bootstrapStateReady = true;
+  try {
+    replaceState({});
+    indexedDBStatus.bootstrap = "erro recuperado";
+    indexedDBStatus.bootstrapSource = "estado padrão";
+    indexedDBStatus.error = "Não foi possível carregar os dados locais. Conecte ao Google Drive ou importe um backup.";
+    render();
+    showStorageWarningIfNeeded();
+    showView(hashToView(), { skipScroll: true, keepMenuOpen: true, immediateRender: true });
+    updateStorageDiagnostics();
+  } finally {
+    bootstrapStateReady = true;
+    globalThis.__aldusBootstrapReady = true;
+    hideBootstrapLoadingState();
+  }
 }
 
 const viewLinks = [...document.querySelectorAll("[data-view-link]")];

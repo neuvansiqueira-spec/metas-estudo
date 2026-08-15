@@ -398,7 +398,9 @@ fs.copyFileSync(path.join(root, "service-worker.js"), path.join(root, "docs", ve
 
 // Pontes para instalações antigas. Ao detectar a mudança no mesmo URL do worker,
 // elas passam a servir o HTML e os bundles da versão atual sem cadeia de runtimes.
-for (const legacySuffix of ["v168", "v169"]) {
+// V332 é a versão imediatamente anterior à recuperação V341 e precisa receber a
+// atualização no URL que já está registrado nos navegadores afetados.
+for (const legacySuffix of ["v168", "v169", "v332"]) {
   for (const target of [`service-worker-${legacySuffix}.js`, path.join("docs", `service-worker-${legacySuffix}.js`)]) {
     fs.copyFileSync(path.join(root, "service-worker.js"), path.join(root, target));
   }

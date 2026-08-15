@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20260814-restaura-topificacao-jurisprudencia-v332";
+const CURRENT_VERSION = "20260815-recupera-interacao-dashboard-v341";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const SECURITY_VERSION = "20260810-seguranca-estabilidade-v296";
 const PROTECTION_VERSION = "20260808-catastrophic-state-recovery-v275";

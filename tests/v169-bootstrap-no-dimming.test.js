@@ -20,7 +20,8 @@ test("o bootstrap não escurece a interface", () => {
   );
   const show = functionSource("showBootstrapLoadingState()", "hideBootstrapLoadingState");
   assert.doesNotMatch(show, /app-bootstrapping/);
-  assert.match(show, /layout\.setAttribute\("inert", ""\)/);
+  assert.doesNotMatch(show, /layout\.setAttribute\("inert", ""\)/);
+  assert.match(show, /layout\.removeAttribute\("inert"\)/);
 });
 
 test("a proteção temporária é removida quando o núcleo fica pronto", () => {

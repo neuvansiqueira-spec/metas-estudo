@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260814-restaura-topificacao-jurisprudencia-v332";
+  const VERSION = "20260815-recupera-interacao-dashboard-v341";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

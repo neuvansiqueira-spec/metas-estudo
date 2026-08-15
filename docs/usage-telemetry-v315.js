@@ -401,7 +401,7 @@
     control.type = "button";
     control.textContent = "Privacidade";
     control.title = "Alterar estatísticas anônimas";
-    control.style.cssText = "position:fixed;left:8px;bottom:8px;z-index:2147483645;padding:6px 9px;border:1px solid #90a4b8;border-radius:999px;background:#071a2d;color:#fff;opacity:.78;font:12px Arial,sans-serif;cursor:pointer";
+    control.style.cssText = "position:fixed;left:8px;right:auto;bottom:8px;z-index:2147483645;width:auto;max-width:max-content;padding:6px 9px;border:1px solid #90a4b8;border-radius:999px;background:#071a2d;color:#fff;opacity:.78;font:12px Arial,sans-serif;cursor:pointer";
     control.addEventListener("click", () => showPrivacyNotice(true));
     document.body.appendChild(control);
   }
