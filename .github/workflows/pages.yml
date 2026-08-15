@@ -68,6 +68,7 @@ jobs:
             tests/v316-timer-telemetry-security.test.js \
             tests/v318-security-observability.test.js \
             tests/v329-integral-performance.test.js \
+            tests/v340-multitab-startup.test.js \
             tests/v320-factory-penalties-prompts.test.js \
             tests/v326-factory-resumo-aula-visual.test.js \
             tests/v327-factory-resumo-aula-canonical.test.js
