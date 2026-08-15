@@ -10,8 +10,6 @@
   const MAIN_LOCAL_KEY = "metasConcursoData";
   const STATUS_KEY = "aldusBootstrapIntegrityV258";
   const MAX_SNAPSHOTS = 3;
-  const STARTUP_LOCK = "aldus-startup-v340";
-  const CORE_INTERACTIVE_TIMEOUT_MS = 12000;
   const COLLECTION_KEYS = [
     "subjects",
     "studies",
@@ -555,93 +553,32 @@
     });
   }
 
-  function waitForForegroundStartup() {
-    if (typeof document === "undefined" || !document.hidden) return Promise.resolve();
-    return new Promise((resolve) => {
-      const finish = () => {
-        if (document.hidden) return;
-        document.removeEventListener("visibilitychange", finish);
-        window.removeEventListener("pageshow", finish);
-        resolve();
-      };
-      document.addEventListener("visibilitychange", finish);
-      window.addEventListener("pageshow", finish);
-    });
-  }
-
-  function waitForCoreInteractive() {
-    if (globalThis.__aldusStartupMetricsV169?.interfaceInteractiveMs !== null
-      && globalThis.__aldusStartupMetricsV169?.interfaceInteractiveMs !== undefined) {
-      return Promise.resolve();
-    }
-    return new Promise((resolve) => {
-      let completed = false;
-      const finish = () => {
-        if (completed) return;
-        completed = true;
-        clearTimeout(fallback);
-        window.removeEventListener("aldus:core-interactive", finish);
-        resolve();
-      };
-      const fallback = setTimeout(finish, CORE_INTERACTIVE_TIMEOUT_MS);
-      window.addEventListener("aldus:core-interactive", finish, { once: true });
-    });
-  }
-
-  function waitForIdleAfterCore() {
-    return new Promise((resolve) => {
-      if (typeof requestIdleCallback === "function") {
-        requestIdleCallback(resolve, { timeout: 800 });
-        return;
-      }
-      setTimeout(resolve, 0);
-    });
-  }
-
-  function runWithStartupLock(task) {
-    const locks = globalThis.navigator?.locks;
-    if (!locks?.request) return task();
-    return locks.request(STARTUP_LOCK, { mode: "exclusive" }, task);
-  }
-
-  async function loadCoreApplication() {
+  async function loadApplicationChain() {
     const [application, ...enhancements] = SCRIPT_CHAIN;
-    const interactive = waitForCoreInteractive();
     await loadScript(...application);
-    await interactive;
-    return enhancements;
-  }
-
-  async function loadEnhancements(enhancements) {
-    await waitForIdleAfterCore();
     await Promise.all(enhancements.map(([id, src]) => loadScript(id, src)));
   }
 
   async function start() {
     const loading = document.getElementById("appLoadingState");
-    if (loading && document.hidden) loading.textContent = "Aguardando esta aba ficar visível...";
-    await waitForForegroundStartup();
     if (loading) loading.textContent = "Validando e protegendo seus dados...";
     let status;
-    const enhancements = await runWithStartupLock(async () => {
-      try {
-        status = await reconcileBeforeBootstrap();
-      } catch (error) {
-        status = {
-          version: VERSION,
-          checkedAt: new Date().toISOString(),
-          ready: false,
-          source: "erro",
-          reason: String(error?.message || error),
-          conflict: true
-        };
-        persistStatus(status);
-        console.error("[Aldus V258] Falha na validação anterior ao bootstrap.", error);
-      }
-      return loadCoreApplication();
-    });
+    try {
+      status = await reconcileBeforeBootstrap();
+    } catch (error) {
+      status = {
+        version: VERSION,
+        checkedAt: new Date().toISOString(),
+        ready: false,
+        source: "erro",
+        reason: String(error?.message || error),
+        conflict: true
+      };
+      persistStatus(status);
+      console.error("[Aldus V258] Falha na validação anterior ao bootstrap.", error);
+    }
 
-    await loadEnhancements(enhancements);
+    await loadApplicationChain();
     window.dispatchEvent(new CustomEvent("aldus:bootstrap-integrity-v258-ready", { detail: status }));
   }
 
