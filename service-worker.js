@@ -1,11 +1,10 @@
 "use strict";
 
-const CURRENT_VERSION = "20260815-desempenho-protegido-v339";
+const CURRENT_VERSION = "20260814-restaura-topificacao-jurisprudencia-v332";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const SECURITY_VERSION = "20260810-seguranca-estabilidade-v296";
 const PROTECTION_VERSION = "20260808-catastrophic-state-recovery-v275";
-const BOOTSTRAP_VERSION = "20260815-desempenho-protegido-v339";
-const QCONCURSOS_VERSION = "20260814-qconcursos-catalogo-atual-v337";
+const BOOTSTRAP_VERSION = "20260814-qconcursos-catalogo-atual-v337";
 const DUPLICATE_CONTINUITY_VERSION = "20260811-duplicate-flow-owner-v309";
 const DUPLICATE_RECOMMENDATIONS_VERSION = "20260811-duplicate-flow-owner-v309";
 const DUPLICATE_BATCH_HOTFIX_VERSION = "20260811-duplicate-flow-owner-v309";
@@ -35,12 +34,11 @@ const INTEGRITY_CORE = `planning-integrity-v235.js?v=${CURRENT_VERSION}`;
 const CATASTROPHIC_STATE_GUARD = `catastrophic-state-guard-v275.js?v=${PROTECTION_VERSION}`;
 const BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275.js?v=${BOOTSTRAP_VERSION}`;
 const BOOTSTRAP_CORE = `bootstrap-integrity-loader-v258-core.js?v=${BOOTSTRAP_VERSION}`;
-const QCONCURSOS_FILTER_ROUTE_V333 = `qconcursos-filter-route-v333.js?v=${QCONCURSOS_VERSION}`;
-const QCONCURSOS_ALL_FILTERS_V334 = `qconcursos-all-filters-v334.js?v=${QCONCURSOS_VERSION}`;
-const QCONCURSOS_ROUTE_SAFETY_V335 = `qconcursos-route-safety-v335.js?v=${QCONCURSOS_VERSION}`;
-const QCONCURSOS_NATIVE_SUBJECT_V336 = `qconcursos-native-subject-v336.js?v=${QCONCURSOS_VERSION}`;
-const QCONCURSOS_CURRENT_CATALOG_V337 = `qconcursos-current-catalog-v337.js?v=${QCONCURSOS_VERSION}`;
-const PCPR_PCMA_CATALOG_V339 = "pcpr-pcma-2026-catalog-v3.min.js?v=pcpr-pcma-2026-v3";
+const QCONCURSOS_FILTER_ROUTE_V333 = `qconcursos-filter-route-v333.js?v=${BOOTSTRAP_VERSION}`;
+const QCONCURSOS_ALL_FILTERS_V334 = `qconcursos-all-filters-v334.js?v=${BOOTSTRAP_VERSION}`;
+const QCONCURSOS_ROUTE_SAFETY_V335 = `qconcursos-route-safety-v335.js?v=${BOOTSTRAP_VERSION}`;
+const QCONCURSOS_NATIVE_SUBJECT_V336 = `qconcursos-native-subject-v336.js?v=${BOOTSTRAP_VERSION}`;
+const QCONCURSOS_CURRENT_CATALOG_V337 = `qconcursos-current-catalog-v337.js?v=${BOOTSTRAP_VERSION}`;
 const RECOVERY_SAFETY = `recovery-safety-v275.js?v=${PROTECTION_VERSION}`;
 const SECURITY_HARDENING = `security-hardening-v296.js?v=${SECURITY_VERSION}`;
 const DUPLICATE_DIAGNOSTICS_LOADER = `duplicate-diagnostics-loader-v269.js?v=${DUPLICATE_CONTINUITY_VERSION}`;
@@ -90,7 +88,6 @@ const STATIC_ASSETS = [
   QCONCURSOS_ROUTE_SAFETY_V335,
   QCONCURSOS_NATIVE_SUBJECT_V336,
   QCONCURSOS_CURRENT_CATALOG_V337,
-  PCPR_PCMA_CATALOG_V339,
   RECOVERY_SAFETY,
   SECURITY_HARDENING,
   CONTRAST_STYLESHEET,
@@ -138,8 +135,7 @@ const ESSENTIAL_ASSETS = [
   SECURITY_HARDENING,
   CATASTROPHIC_STATE_GUARD,
   BOOTSTRAP_PROTECTED,
-  BOOTSTRAP_CORE,
-  PCPR_PCMA_CATALOG_V339
+  BOOTSTRAP_CORE
 ];
 
 async function precacheAssets() {

@@ -88,28 +88,6 @@ synchronizeIndexVersion();
 synchronizeBootstrapCoreVersion();
 synchronizeServiceWorkerVersion();
 
-function writeCompactContestCatalog() {
-  const source = fs.readFileSync(path.join(root, "pcpr-pcma-2026-catalog.js"), "utf8");
-  const objectStart = source.indexOf("{");
-  const objectEnd = source.lastIndexOf("}");
-  if (objectStart < 0 || objectEnd <= objectStart) {
-    throw new Error("Catálogo PCPR/PCMA inválido: objeto principal ausente.");
-  }
-  const catalog = JSON.parse(source.slice(objectStart, objectEnd + 1));
-  if (catalog.version !== "pcpr-pcma-2026-v3" || !Array.isArray(catalog.mappings)) {
-    throw new Error("Catálogo PCPR/PCMA inválido: versão ou mapeamentos incompatíveis.");
-  }
-  const compact = `/* Catálogo PCPR/PCMA 2026 compacto; gerado de pcpr-pcma-2026-catalog.js. */\nglobalThis.PCPR_PCMA_2026_CATALOG=${JSON.stringify(catalog)};\n`;
-  for (const target of [
-    "pcpr-pcma-2026-catalog-v3.min.js",
-    path.join("docs", "pcpr-pcma-2026-catalog-v3.min.js")
-  ]) {
-    fs.writeFileSync(path.join(root, target), compact);
-  }
-}
-
-writeCompactContestCatalog();
-
 const cssSources = [
   "style.css",
   "aldus-premium-theme.css",
@@ -140,16 +118,7 @@ const cssSources = [
   "aldus-desktop-refinement-v178.css",
   "factory-simulado-prompt-v310.css",
   "simulado-interativo-v313.css",
-  "performance-v329.css",
-  "questions-hub-v298.css",
-  "central-goals-palette-v245.css",
-  "dashboard-today-palette-v247.css",
-  "central-goals-period-palette-v248.css",
-  "elegant-card-style-v249.css",
-  "daily-summary-elegant-v250.css",
-  "daily-summary-elegant-direct-v251.css",
-  "daily-summary-elegant-nested-v252.css",
-  "aldus-card-palette-v294.css"
+  "performance-v329.css"
 ];
 
 const jsSources = [
@@ -164,6 +133,7 @@ const jsSources = [
   "sync-integral-state.js",
   "sync-integral-cloud.js",
   "sync-integral-time-protection.js",
+  "pcpr-pcma-2026-catalog.js",
   "pcpr-pcma-2026-migration.js",
   "qconcursos-pdf-import-v181.js",
   "qconcursos-capture-import-v182.js",

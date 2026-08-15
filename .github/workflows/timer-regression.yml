@@ -46,9 +46,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build release artifacts
-        run: npm run build
-
       - name: Check changed runtime syntax
         run: |
           for file in timer-*.js factory-*.js daily-summary-*.js planning-integrity-loader-*.js service-worker.js docs/timer-*.js docs/factory-*.js docs/daily-summary-*.js docs/planning-integrity-loader-*.js docs/service-worker.js; do
