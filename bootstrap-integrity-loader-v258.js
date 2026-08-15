@@ -1,8 +1,11 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260814-restaura-filtros-qconcursos-v333";
-  const CORE_SCRIPT = "bootstrap-integrity-loader-v258-core.js?v=20260814-restaura-filtros-qconcursos-v333";
+  const VERSION = "20260815-bootstrap-fast-path-v339";
+  const STATUS_KEY = "aldusBootstrapIntegrityV258";
+  const FULL_VALIDATION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+  const FAST_CORE_SCRIPT = "bootstrap-app-chain-v339.js?v=20260815-bootstrap-fast-path-v339";
+  const SAFE_CORE_SCRIPT = "bootstrap-integrity-loader-v258-core.js?v=20260814-restaura-filtros-qconcursos-v333";
   const DIAGNOSTICS_SCRIPT = "duplicate-diagnostics-v260.js?v=20260806-duplicate-diagnostics-v260";
   const DIAGNOSTICS_STYLESHEET = "duplicate-diagnostics-v260.css?v=20260806-duplicate-diagnostics-v260";
   const TIMER_SOUND_MASTER_SCRIPT = "timer-sound-master-v265.js?v=20260806-timer-sound-master-v265&hotfix=master-mute-hotfix1";
@@ -10,6 +13,22 @@
   const PLANNING_SHIFT_PERSISTENCE_SCRIPT = "planning-shift-persistence-v283.js?v=20260809-planejamento-plantao-salvamento-v283";
   const HEADER_BRAND_FIX_SCRIPT = "header-brand-fix.js?v=20260815-logo-alta-qualidade-v338";
   const PRELOAD_SCRIPTS = [HEADER_BRAND_FIX_SCRIPT];
+
+  function readIntegrityStatus() {
+    try {
+      return JSON.parse(localStorage.getItem(STATUS_KEY) || "null");
+    } catch {
+      return null;
+    }
+  }
+
+  function canUseFastPath(now = Date.now()) {
+    const status = readIntegrityStatus();
+    if (!status || status.ready !== true || status.conflict === true || status.source === "erro") return false;
+    const checkedAt = Date.parse(status.checkedAt || "");
+    if (!Number.isFinite(checkedAt) || checkedAt <= 0 || checkedAt > now + 5 * 60 * 1000) return false;
+    return now - checkedAt < FULL_VALIDATION_MAX_AGE_MS;
+  }
 
   function installStylesheet(baseUrl) {
     if (document.getElementById("aldusDuplicateDiagnosticsStylesV260")) return;
@@ -52,6 +71,8 @@
   const source = document.currentScript;
   const baseUrl = source?.src || document.baseURI;
   const parent = source?.parentNode || document.head || document.documentElement;
+  const fastPath = canUseFastPath();
+  const coreScript = fastPath ? FAST_CORE_SCRIPT : SAFE_CORE_SCRIPT;
 
   installScriptPreloads(baseUrl);
   installStylesheet(baseUrl);
@@ -59,9 +80,10 @@
   const brandFix = makeScript("aldusHeaderBrandFixV338", HEADER_BRAND_FIX_SCRIPT, baseUrl, source);
   brandFix.addEventListener("error", reportLoadError(VERSION, "a restauração da logo em alta qualidade"));
 
-  const core = makeScript(source?.id || "aldusBootstrapIntegrityLoaderV258", CORE_SCRIPT, baseUrl, source);
+  const core = makeScript(source?.id || "aldusBootstrapIntegrityLoaderV258", coreScript, baseUrl, source);
+  core.dataset.aldusBootstrapMode = fastPath ? "fast" : "safe";
   if (source?.id) source.removeAttribute("id");
-  core.addEventListener("error", reportLoadError(VERSION, "o núcleo de inicialização preservado"));
+  core.addEventListener("error", reportLoadError(VERSION, fastPath ? "o caminho rápido de inicialização" : "o núcleo de inicialização preservado"));
 
   const shiftPersistence = makeScript("aldusPlanningShiftPersistenceV283", PLANNING_SHIFT_PERSISTENCE_SCRIPT, baseUrl, source);
   shiftPersistence.addEventListener("error", reportLoadError(VERSION, "a persistência das disciplinas de plantão"));
@@ -85,7 +107,9 @@
   globalThis.__aldusDuplicateDiagnosticsLoaderV260 = Object.freeze({
     version: VERSION,
     headerBrandFix: HEADER_BRAND_FIX_SCRIPT,
-    core: CORE_SCRIPT,
+    core: coreScript,
+    bootstrapMode: fastPath ? "fast" : "safe",
+    fullValidationMaxAgeMs: FULL_VALIDATION_MAX_AGE_MS,
     planningShiftPersistence: PLANNING_SHIFT_PERSISTENCE_SCRIPT,
     script: DIAGNOSTICS_SCRIPT,
     stylesheet: DIAGNOSTICS_STYLESHEET,
@@ -93,4 +117,8 @@
     timerControls: TIMER_CONTROLS_SCRIPT,
     preloadedScripts: PRELOAD_SCRIPTS.length
   });
+
+  if (typeof module !== "undefined" && module.exports) {
+    module.exports = { VERSION, FULL_VALIDATION_MAX_AGE_MS, canUseFastPath };
+  }
 })();
