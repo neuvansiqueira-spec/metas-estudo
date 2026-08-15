@@ -35,6 +35,7 @@
     return new Promise((resolve, reject) => {
       const existing = document.getElementById(id);
       if (existing) {
+        // Scripts declarados antes do bootstrap já executaram por causa da ordem de `defer`.
         resolve(existing);
         return;
       }
