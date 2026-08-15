@@ -27,6 +27,7 @@ function assertCurrentReleaseContract() {
   const jsBundle = read("app.bundle.js");
   const cssBundle = read("app.bundle.css");
   const bootstrapCore = read("bootstrap-integrity-loader-v258-core.js");
+  const compactCatalog = read("pcpr-pcma-2026-catalog-v3.min.js");
 
   for (const file of [
     "script.js",
@@ -87,8 +88,12 @@ function assertCurrentReleaseContract() {
   assert.equal(read(`app-${suffix}.css`), read(`docs/app-${suffix}.css`));
   assert.equal(read(`service-worker-${suffix}.js`), read(`docs/service-worker-${suffix}.js`));
 
-  assert.match(jsBundle, /Aldus source: pcpr-pcma-2026-catalog\.js/);
+  assert.doesNotMatch(jsBundle, /Aldus source: pcpr-pcma-2026-catalog\.js/);
   assert.match(jsBundle, /Aldus source: pcpr-pcma-2026-migration\.js/);
+  assert.match(bootstrapCore, /pcpr-pcma-2026-catalog-v3\.min\.js\?v=pcpr-pcma-2026-v3/);
+  assert.match(compactCatalog, /^\/\* Catálogo PCPR\/PCMA 2026 compacto;/);
+  assert.match(compactCatalog, /globalThis\.PCPR_PCMA_2026_CATALOG=/);
+  assert.equal(compactCatalog, read("docs/pcpr-pcma-2026-catalog-v3.min.js"));
   assert.match(jsBundle, /Aldus source: sync-integral-time-protection\.js/);
   assert.match(jsBundle, /Aldus source: app-version\.js/);
   assert.match(jsBundle, /Aldus source: qconcursos-crosswalk\.js/);

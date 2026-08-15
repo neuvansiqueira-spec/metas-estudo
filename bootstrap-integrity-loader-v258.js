@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260814-restaura-filtros-qconcursos-v333";
-  const CORE_SCRIPT = "bootstrap-integrity-loader-v258-core.js?v=20260814-restaura-filtros-qconcursos-v333";
+  const VERSION = "20260815-desempenho-protegido-v339";
+  const CORE_SCRIPT = "bootstrap-integrity-loader-v258-core.js?v=20260815-desempenho-protegido-v339";
   const DIAGNOSTICS_SCRIPT = "duplicate-diagnostics-v260.js?v=20260806-duplicate-diagnostics-v260";
   const DIAGNOSTICS_STYLESHEET = "duplicate-diagnostics-v260.css?v=20260806-duplicate-diagnostics-v260";
   const TIMER_SOUND_MASTER_SCRIPT = "timer-sound-master-v265.js?v=20260806-timer-sound-master-v265&hotfix=master-mute-hotfix1";
@@ -12,7 +12,8 @@
   const PRELOAD_SCRIPTS = [HEADER_BRAND_FIX_SCRIPT];
 
   function installStylesheet(baseUrl) {
-    if (document.getElementById("aldusDuplicateDiagnosticsStylesV260")) return;
+    if (document.getElementById("aldusDuplicateDiagnosticsStylesV260")
+      || document.getElementById("aldusDuplicateDiagnosticsStylesV309")) return;
     const link = document.createElement("link");
     link.id = "aldusDuplicateDiagnosticsStylesV260";
     link.rel = "stylesheet";

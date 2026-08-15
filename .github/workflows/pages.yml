@@ -39,6 +39,7 @@ jobs:
       - name: Validar segurança e regressões antes da publicação
         run: |
           npm ci --ignore-scripts
+          npm run build
           node --check security-hardening-v296.js
           node --check security-observability-v318.js
           node --check service-worker.js
@@ -68,10 +69,12 @@ jobs:
             tests/v316-timer-telemetry-security.test.js \
             tests/v318-security-observability.test.js \
             tests/v329-integral-performance.test.js \
+            tests/v339-performance-guard.test.js \
             tests/v320-factory-penalties-prompts.test.js \
             tests/v326-factory-resumo-aula-visual.test.js \
             tests/v327-factory-resumo-aula-canonical.test.js
           node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
+          npm run check:performance
           cmp security-hardening-v296.js docs/security-hardening-v296.js
           cmp service-worker.js docs/service-worker.js
           cmp usage-telemetry-v315.js docs/usage-telemetry-v315.js
