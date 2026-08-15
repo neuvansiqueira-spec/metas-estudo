@@ -159,16 +159,19 @@ jobs:
               "-questions-hub-v322-question-json-details-v299",
           )
           # V327: cria um cache novo para impedir que o navegador continue servindo a cópia antiga do prompt.
-          if "-factory-resumo-aula-canonical-v327`" not in sw_text:
+          if "factory-resumo-aula-canonical-v327" not in sw_text:
+              old_cache_tail = "-posthog-telemetry-v317`;"
+              if old_cache_tail not in sw_text:
+                  raise SystemExit("V327: não foi possível localizar o cache-base do service worker")
               sw_text = sw_text.replace(
-                  "-posthog-telemetry-v317`;",
+                  old_cache_tail,
                   "-posthog-telemetry-v317-factory-resumo-aula-canonical-v327`;",
                   1,
               )
           v327_asset = '  "factory-resumo-aula-canonical-v327.js?v=20260814-factory-resumo-aula-canonical-v327",\n'
           if "factory-resumo-aula-canonical-v327.js?v=20260814-factory-resumo-aula-canonical-v327" not in sw_text:
               sw_text = sw_text.replace('  "vendor/pdf.mjs",', v327_asset + '  "vendor/pdf.mjs",', 1)
-          if "-factory-resumo-aula-canonical-v327`" not in sw_text:
+          if "factory-resumo-aula-canonical-v327" not in sw_text:
               raise SystemExit("V327: não foi possível renovar o cache do service worker")
           sw.write_text(sw_text, encoding="utf-8")
           PY
