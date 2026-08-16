@@ -3,46 +3,9 @@
 
   const SOURCE_FOLDER = "https://drive.google.com/drive/folders/1ECc_otgQKwH7WfPdQr8CtD0kB07pz9Xe";
   const MIGRATION_ID = "factoryJurisprudenciaFonteCoberturaV332";
-  const BASE_PROMPT = String(defaultFactoryPromptLibrary?.jurisprudencia || "").trim();
-
-  const OLD_SOURCE_BLOCK = `## ESCOPO DO MÓDULO
-
-USE APENAS AS FONTES CLASSIFICADAS COMO JURISPRUDÊNCIA NA TRIAGEM.
-
-RESPEITE A DISCIPLINA, O TEMA E O RECORTE TEMÁTICO INFORMADOS.
-
-SE O RECORTE TEMÁTICO ESTIVER AUSENTE OU IMPRECISO, INTERROMPA A GERAÇÃO E SOLICITE CONFIRMAÇÃO.
-
-TRIBUNAL E PERÍODO SOMENTE DEVEM SER LIMITADOS QUANDO EXPRESSAMENTE INDICADOS.
-
-NÃO GERAR MÓDULO RESUMO/AULA, LEI, PEÇA OU CONSOLIDAÇÃO FINAL.
-
-NÃO INSERIR PCDF, BANCA, CONCURSO, PROFESSORA, CURSO OU TURMA.
-
-## VALIDAÇÃO OBRIGATÓRIA DAS FONTES
-
-ANTES DE AFIRMAR QUE NÃO EXISTE JURISPRUDÊNCIA:
-
-1. RECUPERE INTEGRALMENTE O RESULTADO DA TRIAGEM.
-2. IDENTIFIQUE TODAS AS FONTES CLASSIFICADAS COMO JURISPRUDÊNCIA.
-3. ABRA E EXAMINE INDIVIDUALMENTE CADA FONTE APROVADA.
-4. PROCURE JULGADOS, SÚMULAS, TEMAS, REPETITIVOS, INFORMATIVOS E TESES NO CONTEÚDO, E NÃO APENAS NO NOME DO ARQUIVO.
-5. NÃO CONFUNDA AUSÊNCIA DE INFORMATIVO, SÚMULA OU TEMA NUMERADO COM AUSÊNCIA DE JURISPRUDÊNCIA.
-6. NÃO CONCLUA PELA INEXISTÊNCIA COM BASE EM LEITURA PARCIAL, RESULTADO VAZIO INICIAL, FALHA DE INDEXAÇÃO OU FALHA DE ACESSO.
-7. REEXAMINE AS FONTES UMA SEGUNDA VEZ QUANDO A TRIAGEM INDICAR EXISTÊNCIA, SUFICIÊNCIA OU CONTEÚDO JURISPRUDENCIAL.
-
-SE A TRIAGEM NÃO PUDER SER RECUPERADA, INFORME:
-“NÃO FOI POSSÍVEL RECUPERAR A CLASSIFICAÇÃO DA TRIAGEM.”
-
-SE ALGUMA FONTE APROVADA ESTIVER INACESSÍVEL, INFORME:
-“A EXISTÊNCIA DE JURISPRUDÊNCIA NÃO PÔDE SER VERIFICADA INTEGRALMENTE, POIS HÁ FONTES INACESSÍVEIS.”
-
-SOMENTE DECLARE “NÃO HÁ JURISPRUDÊNCIA” DEPOIS DE EXAMINAR INTEGRALMENTE TODAS AS FONTES APROVADAS E CONFIRMAR QUE NENHUMA CONTÉM MATERIAL PERTINENTE AO RECORTE.
-
-ANTES DESSA CONCLUSÃO NEGATIVA, REGISTRE INTERNAMENTE:
-* QUANTIDADE DE FONTES CLASSIFICADAS COMO JURISPRUDÊNCIA;
-* QUANTIDADE EFETIVAMENTE ABERTA E EXAMINADA;
-* QUANTIDADE DE PRECEDENTES, SÚMULAS, TEMAS, REPETITIVOS, INFORMATIVOS OU TESES LOCALIZADOS.`;
+  const VERSION = "20260816-runtime-stability-v349";
+  const SCOPE_MARKER = "## ESCOPO DO MÓDULO";
+  const NEXT_SECTION_MARKER = "## OBJETIVO";
 
   const NEW_SOURCE_BLOCK = `## ESCOPO DO MÓDULO
 
@@ -93,19 +56,25 @@ ANTES DESSA CONCLUSÃO NEGATIVA, REGISTRE INTERNAMENTE:
   const OLD_REVIEW_SOURCE = "* TODAS AS FONTES APROVADAS NA TRIAGEM FORAM ABERTAS E EXAMINADAS?";
   const NEW_REVIEW_SOURCE = "* A PASTA JURISPRUDENCIAL EXCLUSIVA, AS SUBPASTAS “JULGADOS STF RESUMIDOS” E “JULGADOS STJ RESUMIDOS” E TODOS OS ARQUIVOS CANDIDATOS ACESSÍVEIS FORAM PERCORRIDOS E EXAMINADOS?";
 
-  const PROMPT = BASE_PROMPT
-    .replace(OLD_SOURCE_BLOCK, NEW_SOURCE_BLOCK)
-    .replace(OLD_FIDELITY_SOURCE, NEW_FIDELITY_SOURCE)
-    .replace(OLD_REVIEW_SOURCE, NEW_REVIEW_SOURCE);
+  function buildPrompt(basePrompt) {
+    const base = String(basePrompt || "").trim();
+    if (!base) return { ok: false, prompt: "", reason: "empty-base" };
 
-  if (!BASE_PROMPT.includes(OLD_SOURCE_BLOCK) || PROMPT === BASE_PROMPT) {
-    console.error("[Aldus] A V332 não localizou o bloco de fontes do prompt topificado V231.");
-    return;
+    const start = base.indexOf(SCOPE_MARKER);
+    const end = start >= 0 ? base.indexOf(NEXT_SECTION_MARKER, start + SCOPE_MARKER.length) : -1;
+    if (start < 0 || end < 0) return { ok: false, prompt: base, reason: "scope-boundary-not-found" };
+
+    let prompt = `${base.slice(0, start)}${NEW_SOURCE_BLOCK}\n\n${base.slice(end)}`.trim();
+    prompt = prompt
+      .replace(OLD_FIDELITY_SOURCE, NEW_FIDELITY_SOURCE)
+      .replace(OLD_REVIEW_SOURCE, NEW_REVIEW_SOURCE);
+
+    return { ok: true, prompt, reason: prompt === base ? "already-current" : "migrated" };
   }
 
-  function isOfficialPreviousPrompt(value) {
+  function isOfficialPreviousPrompt(value, basePrompt, prompt) {
     const text = String(value || "").trim();
-    if (!text || text === FACTORY_LIBRARY_FALLBACK || text === BASE_PROMPT || text === PROMPT) return true;
+    if (!text || text === FACTORY_LIBRARY_FALLBACK || text === basePrompt || text === prompt) return true;
     const isV231 = text.includes("TRANSFORME JURISPRUDÊNCIAS EM MAPA MENTAL HIERÁRQUICO DE PALAVRAS-CHAVE")
       && text.includes("## FORMATO OBRIGATÓRIO")
       && text.includes("## ENTREGA EM WORD");
@@ -117,31 +86,48 @@ ANTES DESSA CONCLUSÃO NEGATIVA, REGISTRE INTERNAMENTE:
   function install() {
     if (typeof defaultFactoryPromptLibrary === "undefined" || typeof state === "undefined") return;
 
-    defaultFactoryPromptLibrary.jurisprudencia = PROMPT;
-    state.migrations = state.migrations || {};
-    state.factoryPromptLibrary = state.factoryPromptLibrary || {};
-    state.factoryPromptLibraryBackups = state.factoryPromptLibraryBackups || {};
+    const basePrompt = String(defaultFactoryPromptLibrary?.jurisprudencia || "").trim();
+    const built = buildPrompt(basePrompt);
+    if (!built.ok) {
+      console.warn("[Aldus V349] O prompt de jurisprudência foi preservado porque sua estrutura não corresponde ao modelo oficial conhecido.", built.reason);
+      return;
+    }
+    const prompt = built.prompt;
+
+    state.migrations ||= {};
+    state.factoryPromptLibrary ||= {};
+    state.factoryPromptLibraryBackups ||= {};
+    let changed = defaultFactoryPromptLibrary.jurisprudencia !== prompt;
+    defaultFactoryPromptLibrary.jurisprudencia = prompt;
 
     const current = String(state.factoryPromptLibrary.jurisprudencia || "").trim();
-    if (isOfficialPreviousPrompt(current)) {
-      if (current && current !== PROMPT && current !== FACTORY_LIBRARY_FALLBACK) {
+    if (isOfficialPreviousPrompt(current, basePrompt, prompt)) {
+      if (current && current !== prompt && current !== FACTORY_LIBRARY_FALLBACK) {
         state.factoryPromptLibraryBackups.jurisprudenciaBeforeV332 = current;
       }
-      state.factoryPromptLibrary.jurisprudencia = PROMPT;
+      if (current !== prompt) changed = true;
+      state.factoryPromptLibrary.jurisprudencia = prompt;
     }
 
+    if (state.migrations[MIGRATION_ID] !== true) changed = true;
     state.migrations[MIGRATION_ID] = true;
     state.factoryPromptLibrary = normalizeFactoryPromptLibrary(state.factoryPromptLibrary);
-    if (typeof saveData === "function") saveData();
+    if (changed && typeof saveData === "function") saveData();
 
     const previousPromptBase = factoryPromptBase;
-    factoryPromptBase = function factoryPromptBaseV332(type) {
+    factoryPromptBase = function factoryPromptBaseV349(type) {
       if (type !== "jurisprudencia") return previousPromptBase(type);
       const text = String(state.factoryPromptLibrary?.jurisprudencia || "").trim();
-      return text || PROMPT;
+      return text || prompt;
     };
 
-    console.info("[Aldus Meta] Prompt topificado de jurisprudência V332 ativo.");
+    globalThis.__aldusFactoryJurisprudenciaV349 = Object.freeze({
+      version: VERSION,
+      sourceFolder: SOURCE_FOLDER,
+      migration: built.reason,
+      appliedAt: new Date().toISOString()
+    });
+    console.info("[Aldus Meta] Prompt de jurisprudência V349 ativo.");
   }
 
   if (window.__aldusBootstrapReady) install();
