@@ -19,6 +19,73 @@ jobs:
           ref: fix/storage-performance-v346
           fetch-depth: 0
 
+      - name: Apply V346 semantic and release fixes
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+
+          const syncPath = 'sync-integral-deletions.js';
+          let source = fs.readFileSync(syncPath, 'utf8');
+          const oldSignature = `function syncRecordSignature(value) {
+            return JSON.stringify(value ?? null, (key, entry) => SYNC_REVISION_FIELDS.has(key) ? undefined : entry);
+          }`;
+          const stableSignature = `function syncRecordSignature(value) {
+            if (value === null || value === undefined) return "null";
+            if (Array.isArray(value)) {
+              return \`[\${value.map(syncRecordSignature).sort().join(",")}]\`;
+            }
+            if (typeof value === "object") {
+              return \`{\${Object.keys(value)
+                .filter((key) => !SYNC_REVISION_FIELDS.has(key))
+                .sort()
+                .map((key) => \`\${JSON.stringify(key)}:\${syncRecordSignature(value[key])}\`)
+                .join(",")}}\`;
+            }
+            return JSON.stringify(value);
+          }`;
+          if (source.includes(oldSignature)) {
+            source = source.replace(oldSignature, stableSignature);
+          } else if (!source.includes(stableSignature)) {
+            throw new Error('syncRecordSignature atual não corresponde à V346 esperada.');
+          }
+          fs.writeFileSync(syncPath, source);
+          fs.copyFileSync(syncPath, 'docs/sync-integral-deletions.js');
+
+          const testPath = 'tests/sync-device-deletions.test.js';
+          let tests = fs.readFileSync(testPath, 'utf8');
+          const marker = 'test("arquivos publicados permanecem idênticos e cache usa a versão atual", () => {';
+          const semanticTests = `test("assinatura permanece estável com ordem diferente das propriedades", () => {
+            const sync = loadSyncEngine();
+            const a = { id: "m1", title: "Material", nested: { a: 1, b: 2 } };
+            const b = { nested: { b: 2, a: 1 }, title: "Material", id: "m1" };
+            assert.equal(sync.syncRecordSignature(a), sync.syncRecordSignature(b));
+          });
+
+          test("assinatura preserva semântica estável de arrays da sincronização", () => {
+            const sync = loadSyncEngine();
+            assert.equal(
+              sync.syncRecordSignature({ id: "m1", tags: ["a", "b"] }),
+              sync.syncRecordSignature({ tags: ["b", "a"], id: "m1" })
+            );
+          });
+
+          `;
+          if (!tests.includes('assinatura permanece estável com ordem diferente das propriedades')) {
+            const position = tests.indexOf(marker);
+            if (position < 0) throw new Error('Marcador para inserir testes V346 não encontrado.');
+            tests = tests.slice(0, position) + semanticTests + tests.slice(position);
+            fs.writeFileSync(testPath, tests);
+          }
+
+          const release = JSON.parse(fs.readFileSync('package.json', 'utf8')).version;
+          if (release !== '20260816-storage-performance-v346') {
+            throw new Error(`Versão inesperada em package.json: ${release}`);
+          }
+          let lock = fs.readFileSync('package-lock.json', 'utf8');
+          lock = lock.replaceAll('20260816-storage-consistency-v345', release);
+          fs.writeFileSync('package-lock.json', lock);
+          NODE
+
       - name: Environment
         run: |
           node --version
@@ -76,8 +143,16 @@ jobs:
           if (source.includes('return syncStableSerialize(syncComparableValue(value));')) {
             throw new Error('Assinatura de registro ainda usa o hotspot antigo.');
           }
+          if (source.includes('return JSON.stringify(value ?? null, (key, entry) =>')) {
+            throw new Error('Assinatura V346 ainda usa JSON.stringify simples e perdeu a semântica estável.');
+          }
           if (fs.readFileSync('sync-integral-deletions.js', 'utf8') !== fs.readFileSync('docs/sync-integral-deletions.js', 'utf8')) {
             throw new Error('Fonte publicada de deleções divergiu da fonte raiz.');
+          }
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          if (lock.version !== pkg.version || lock.packages?.['']?.version !== pkg.version) {
+            throw new Error('package-lock não acompanha a versão V346.');
           }
           NODE
           git diff --check
