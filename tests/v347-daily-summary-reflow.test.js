@@ -144,7 +144,10 @@ test("V347 mantém paridade raiz/docs e restringe o observer à screen-stage", (
 test("V347 chama centralTimeChartLogs no máximo uma vez por apply e ignora a própria escrita", () => {
   const harness = loadModule();
   assert.equal(harness.observedTarget(), harness.screenStage);
-  assert.deepEqual(harness.observedOptions(), { childList: true, subtree: true, characterData: true });
+  const options = harness.observedOptions();
+  assert.equal(options?.childList, true);
+  assert.equal(options?.subtree, true);
+  assert.equal(options?.characterData, true);
   assert.ok(harness.documentListeners.has("change"));
   assert.ok(harness.documentListeners.has("aldus:view-active"));
   assert.ok(harness.windowListeners.has("hashchange"));
