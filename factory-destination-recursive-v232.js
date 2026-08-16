@@ -1,4 +1,156 @@
-/* Vinculação recursiva e exata das pastas de destino da Fábrica de Resumos — v232. */
+/* Compatibilidade V349 das prioridades históricas com o catálogo atual do edital. */
+(() => {
+  "use strict";
+
+  const VERSION = "20260816-runtime-stability-v349";
+  const HINTS = Object.freeze({
+    "police-inquiry-archiving": { terms: ["arquivamento", "inquerito", "policial"] },
+    "law-12850-obstruction": { law: "12850", terms: ["obstrucao", "investigacao", "organizacao", "criminosa"] },
+    "law-9605-environmental": { law: "9605", terms: ["crime", "ambiental", "pericia"] },
+    "law-8072-heinous": { law: "8072", terms: ["hediondo"] },
+    "law-14133-procurement": { law: "14133", terms: ["licitacao", "contratacao", "agente"] },
+    "human-rights-global-system": { terms: ["sistema", "global", "protecao", "direitos", "humanos"] }
+  });
+  const STOP_WORDS = new Set(["a", "ao", "aos", "as", "com", "da", "das", "de", "do", "dos", "e", "em", "na", "nas", "no", "nos", "o", "os", "para", "por", "lei", "leis", "direito", "direitos"]);
+
+  if (typeof seedInitialWrongTopicsV155 !== "function"
+      || typeof planningPrioritySignalsV155 !== "function"
+      || typeof INITIAL_WRONG_TOPICS_V155 === "undefined") return;
+
+  function normalizeText(value = "") {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[º°ª]/g, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function compactDigits(value = "") {
+    return String(value || "").replace(/\D+/g, "");
+  }
+
+  function itemText(item = {}) {
+    return [
+      item.discipline, item.disciplina, item.subject, item.assunto, item.topic, item.topico,
+      item.subtopic, item.subtema, item.reference, item.referencia, item.notes, item.observacoes
+    ].filter(Boolean).join(" ");
+  }
+
+  function tokens(value = "") {
+    return new Set(normalizeText(value).split(" ").filter((token) => token.length > 2 && !STOP_WORDS.has(token)));
+  }
+
+  function scoreCandidate(entry, item) {
+    const candidateRaw = itemText(item);
+    const candidate = normalizeText(candidateRaw);
+    const label = normalizeText(entry.label);
+    if (!candidate) return -Infinity;
+
+    const hint = HINTS[entry.key] || {};
+    if (hint.law && !compactDigits(candidateRaw).includes(hint.law)) return -Infinity;
+
+    let score = hint.law ? 95 : 0;
+    if (candidate === label) score += 220;
+    else if (candidate.includes(label) || label.includes(candidate)) score += 145;
+
+    const labelTokens = tokens(entry.label);
+    const candidateTokens = tokens(candidateRaw);
+    let overlap = 0;
+    labelTokens.forEach((token) => { if (candidateTokens.has(token)) overlap += 1; });
+    if (labelTokens.size) score += (overlap / labelTokens.size) * 100;
+
+    const hintTerms = Array.isArray(hint.terms) ? hint.terms : [];
+    let hintMatches = 0;
+    hintTerms.forEach((term) => { if (candidate.includes(normalizeText(term))) hintMatches += 1; });
+    score += hintMatches * 28;
+
+    if (hint.law && hintTerms.length && hintMatches === 0) score -= 35;
+    return score;
+  }
+
+  function resolveCurrentItem(targetState, entry, signals) {
+    const items = (targetState.syllabusItems || []).filter((item) => item?.id && !item.legacyOnly && !item.hiddenFromCatalog && item.status !== "Ignorado");
+    const direct = items.find((item) => item.id === entry.syllabusItemId);
+    if (direct) return { item: direct, reason: "historical-id", score: Infinity };
+
+    const signalId = signals?.[entry.key]?.syllabusItemId || "";
+    const signaled = signalId && items.find((item) => item.id === signalId);
+    if (signaled) return { item: signaled, reason: "current-signal-id", score: Infinity };
+
+    const ranked = items
+      .map((item) => ({ item, score: scoreCandidate(entry, item) }))
+      .filter((candidate) => Number.isFinite(candidate.score))
+      .sort((left, right) => right.score - left.score || String(left.item.id).localeCompare(String(right.item.id)));
+    const best = ranked[0];
+    const second = ranked[1];
+    if (!best || best.score < 105) return null;
+    if (second && best.score < 180 && best.score - second.score < 12) return null;
+    return { ...best, reason: "catalog-match" };
+  }
+
+  seedInitialWrongTopicsV155 = function seedInitialWrongTopicsCompatV349(targetState = state) {
+    const signals = planningPrioritySignalsV155(targetState);
+    const inserted = [];
+    const resolved = [];
+    const unavailable = [];
+
+    INITIAL_WRONG_TOPICS_V155.forEach((entry) => {
+      const match = resolveCurrentItem(targetState, entry, signals);
+      if (!match?.item) {
+        unavailable.push(entry);
+        return;
+      }
+
+      const currentSignal = signals[entry.key];
+      if (!currentSignal) {
+        signals[entry.key] = {
+          syllabusItemId: match.item.id,
+          label: entry.label,
+          wrong: 1,
+          correct: 0,
+          source: "simulado-informado-2026-07-26",
+          createdAt: "2026-07-26T00:00:00.000-03:00",
+          legacySyllabusItemId: match.item.id === entry.syllabusItemId ? "" : entry.syllabusItemId,
+          resolvedBy: match.reason === "historical-id" ? "historical-id" : VERSION
+        };
+        inserted.push({ ...entry, resolvedSyllabusItemId: match.item.id, reason: match.reason });
+        return;
+      }
+
+      if (currentSignal.syllabusItemId !== match.item.id) {
+        signals[entry.key] = {
+          ...currentSignal,
+          syllabusItemId: match.item.id,
+          legacySyllabusItemId: currentSignal.legacySyllabusItemId || currentSignal.syllabusItemId || entry.syllabusItemId,
+          resolvedBy: VERSION,
+          resolvedAt: new Date().toISOString()
+        };
+        resolved.push({ ...entry, previousSyllabusItemId: currentSignal.syllabusItemId || "", resolvedSyllabusItemId: match.item.id, reason: match.reason });
+      }
+    });
+
+    const unavailableKeys = unavailable.map((entry) => entry.key).sort();
+    const previousUnavailable = globalThis.__aldusPlanningPriorityCompatV349?.unavailableKeys || [];
+    if (unavailableKeys.join("|") !== previousUnavailable.join("|") && unavailableKeys.length) {
+      console.warn("[Metas Estudo] Prioridades históricas sem correspondente atual foram ignoradas sem bloquear o planejamento.", unavailableKeys);
+    }
+
+    globalThis.__aldusPlanningPriorityCompatV349 = Object.freeze({
+      version: VERSION,
+      inserted: inserted.map((entry) => entry.key),
+      resolved: resolved.map((entry) => entry.key),
+      unavailableKeys,
+      appliedAt: new Date().toISOString()
+    });
+
+    return { inserted, resolved, unavailable, missing: [], signals };
+  };
+})();
+
+/* Vinculação recursiva e exata das pastas de destino da Fábrica de Resumos — v232, estabilizada pela V349. */
 (() => {
   "use strict";
 
@@ -112,6 +264,42 @@
 
   function driveFolderUrl(id) {
     return `https://drive.google.com/drive/folders/${id}`;
+  }
+
+  function clearManagedMetadata(item) {
+    let changed = false;
+    [
+      "factoryDestinationFolderCatalogVersion",
+      "factoryDestinationFolderCatalogKey",
+      "factoryDestinationFolderMatchType",
+      "factoryDestinationFolderMatchTitle",
+      "factoryDestinationFolderMatchScore",
+      "factoryDestinationFolderMatchedAt",
+      "factoryDestinationFolderMatchPath",
+      "factoryDestinationFolderMatchId"
+    ].forEach((key) => {
+      if (Object.prototype.hasOwnProperty.call(item, key)) {
+        delete item[key];
+        changed = true;
+      }
+    });
+    return changed;
+  }
+
+  function isManualDestinationV349(item = {}, existing = existingDestination(item)) {
+    if (!existing) return false;
+    if (item.factoryDestinationFolderManual === true) return true;
+    if (!isManagedDestination(item)) return true;
+    const matchId = String(item.factoryDestinationFolderMatchId || "").trim();
+    if (matchId && existing !== driveFolderUrl(matchId)) return true;
+    return false;
+  }
+
+  function markManualDestinationV349(item) {
+    let changed = item.factoryDestinationFolderManual !== true;
+    item.factoryDestinationFolderManual = true;
+    if (clearManagedMetadata(item)) changed = true;
+    return changed;
   }
 
   function normalizeFolderRecord(folder = {}) {
@@ -287,22 +475,21 @@
 
   function clearManagedFields(item) {
     delete item.factoryDestinationFolder;
-    delete item.factoryDestinationFolderCatalogVersion;
-    delete item.factoryDestinationFolderCatalogKey;
-    delete item.factoryDestinationFolderMatchType;
-    delete item.factoryDestinationFolderMatchTitle;
-    delete item.factoryDestinationFolderMatchScore;
-    delete item.factoryDestinationFolderMatchedAt;
-    delete item.factoryDestinationFolderMatchPath;
-    delete item.factoryDestinationFolderMatchId;
+    delete item.factoryDestinationFolderManual;
+    clearManagedMetadata(item);
   }
 
   function applyToItem(item, tree, options = {}) {
     if (!item || typeof item !== "object") return { changed: false, status: "invalid" };
     const existing = existingDestination(item);
-    const managed = isManagedDestination(item);
-    const preserveExisting = Boolean(existing && !managed && options.preserveExisting === true);
-    if (preserveExisting) return { changed: false, status: "manual-preserved", url: existing };
+    const manual = isManualDestinationV349(item, existing);
+    if (manual) {
+      const changed = markManualDestinationV349(item);
+      return { changed, status: "manual-preserved", url: existing };
+    }
+    if (existing && options.preserveExisting === true) {
+      return { changed: false, status: "manual-preserved", url: existing };
+    }
 
     const disciplineMatch = resolveDiscipline(item, tree);
     const topicMatch = disciplineMatch ? resolveTopic(item, tree, disciplineMatch) : null;
@@ -335,6 +522,7 @@
       item.factoryDestinationFolderReplacedAt = new Date().toISOString();
       item.factoryDestinationFolderReplacementReason = "tema-especifico-recursivo";
     }
+    delete item.factoryDestinationFolderManual;
     item.factoryDestinationFolder = destinationUrl;
     item[MANAGED_VERSION_FIELD] = VERSION;
     item.factoryDestinationFolderCatalogKey = catalogKey;
