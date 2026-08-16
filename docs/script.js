@@ -9167,7 +9167,37 @@ function waitForInteractivePaintV169() {
     }));
   });
 }
+/* V344 — prioridade de interação: trabalho secundário não deve disputar a thread com mouse, toque ou teclado. */
+const INTERACTION_QUIET_WINDOW_MS_V344 = 90;
+const INTERACTION_MAX_DEFER_MS_V344 = 800;
+let lastUserInteractionAtV344 = performance.now();
+function markUserInteractionV344() {
+  lastUserInteractionAtV344 = performance.now();
+}
+["pointerdown", "pointermove", "wheel", "keydown", "touchstart"].forEach((type) => {
+  document.addEventListener(type, markUserInteractionV344, {
+    capture: true,
+    passive: type !== "keydown"
+  });
+});
+function interactionQuietForV344() {
+  return Math.max(0, performance.now() - lastUserInteractionAtV344);
+}
+function hasPendingUserInputV344() {
+  try {
+    return Boolean(navigator.scheduling?.isInputPending?.({ includeContinuous: true }));
+  } catch {
+    return false;
+  }
+}
+function shouldKeepYieldingToInputV344(startedAt) {
+  const elapsed = performance.now() - startedAt;
+  if (elapsed >= INTERACTION_MAX_DEFER_MS_V344) return false;
+  return interactionQuietForV344() < INTERACTION_QUIET_WINDOW_MS_V344 || hasPendingUserInputV344();
+}
+
 function yieldSecondaryInitializationV169() {
+  const startedAt = performance.now();
   return new Promise((resolve) => {
     let completed = false;
     const finish = () => {
@@ -9175,15 +9205,30 @@ function yieldSecondaryInitializationV169() {
       completed = true;
       resolve();
     };
-    if (typeof requestIdleCallback === "function") {
-      requestIdleCallback(finish, { timeout: 120 });
-      return;
-    }
-    if (typeof requestAnimationFrame === "function") {
-      requestAnimationFrame(() => setTimeout(finish, 0));
-      return;
-    }
-    setTimeout(finish, 0);
+    const schedule = () => {
+      if (completed) return;
+      const elapsed = performance.now() - startedAt;
+      const remaining = Math.max(50, INTERACTION_MAX_DEFER_MS_V344 - elapsed);
+      if (typeof requestIdleCallback === "function") {
+        requestIdleCallback(runWhenIdle, { timeout: remaining });
+        return;
+      }
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(() => setTimeout(() => runWhenIdle({ didTimeout: elapsed >= INTERACTION_MAX_DEFER_MS_V344 }), 0));
+        return;
+      }
+      setTimeout(() => runWhenIdle({ didTimeout: elapsed >= INTERACTION_MAX_DEFER_MS_V344 }), 0);
+    };
+    const runWhenIdle = (deadline = { didTimeout: false }) => {
+      if (completed) return;
+      if (!deadline.didTimeout && shouldKeepYieldingToInputV344(startedAt)) {
+        const quietDelay = Math.max(16, Math.ceil(INTERACTION_QUIET_WINDOW_MS_V344 - interactionQuietForV344()));
+        setTimeout(schedule, Math.min(INTERACTION_QUIET_WINDOW_MS_V344, quietDelay));
+        return;
+      }
+      finish();
+    };
+    schedule();
   });
 }
 async function runSecondaryStepV169(name, callback) {
@@ -10229,16 +10274,39 @@ function enhanceCollapsibleSections() {
 let pendingViewRenderTokenV170 = 0;
 function scheduleViewRenderAfterPaintV170(target) {
   const token = ++pendingViewRenderTokenV170;
-  const run = () => {
-    if (token !== pendingViewRenderTokenV170) return;
-    if (document.documentElement.dataset.activeView !== target) return;
+  const requestedAt = performance.now();
+  const stillCurrent = () => token === pendingViewRenderTokenV170
+    && document.documentElement.dataset.activeView === target;
+  const performRender = () => {
+    if (!stillCurrent()) return;
     renderView(target, { reuseIfFresh: true });
   };
-  if (typeof requestAnimationFrame === "function") {
-    requestAnimationFrame(() => setTimeout(run, 0));
-  } else {
-    setTimeout(run, 0);
-  }
+  const queueIdle = () => {
+    if (!stillCurrent()) return;
+    const elapsed = performance.now() - requestedAt;
+    const remaining = Math.max(50, INTERACTION_MAX_DEFER_MS_V344 - elapsed);
+    if (typeof requestIdleCallback === "function") {
+      requestIdleCallback(runWhenIdle, { timeout: remaining });
+    } else {
+      setTimeout(() => runWhenIdle({ didTimeout: elapsed >= INTERACTION_MAX_DEFER_MS_V344 }), 0);
+    }
+  };
+  const runWhenIdle = (deadline = { didTimeout: false }) => {
+    if (!stillCurrent()) return;
+    if (!deadline.didTimeout && shouldKeepYieldingToInputV344(requestedAt)) {
+      const quietDelay = Math.max(16, Math.ceil(INTERACTION_QUIET_WINDOW_MS_V344 - interactionQuietForV344()));
+      setTimeout(queueIdle, Math.min(INTERACTION_QUIET_WINDOW_MS_V344, quietDelay));
+      return;
+    }
+    performRender();
+  };
+  const afterFirstPaint = () => {
+    if (!stillCurrent()) return;
+    if (typeof requestAnimationFrame === "function") requestAnimationFrame(queueIdle);
+    else queueIdle();
+  };
+  if (typeof requestAnimationFrame === "function") requestAnimationFrame(afterFirstPaint);
+  else setTimeout(queueIdle, 0);
   return token;
 }
 
