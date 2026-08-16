@@ -38,8 +38,29 @@ jobs:
           node --check docs/app-v346.js
           node --check sync-integral-deletions.js
 
-      - name: Run full test suite
-        run: npm test
+      - name: Capture full test suite output
+        run: |
+          set +e
+          npm test > v346-test-output.txt 2>&1
+          status=$?
+          echo "$status" > v346-test-status.txt
+          cat v346-test-output.txt
+          exit 0
+
+      - name: Persist failing test diagnostics
+        run: |
+          status="$(cat v346-test-status.txt)"
+          if [ "$status" = "0" ]; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add v346-test-output.txt v346-test-status.txt
+          git commit -m "V346 capture failing test diagnostics [skip v346-ci]"
+          git push origin HEAD:fix/storage-performance-v346
+
+      - name: Require full test suite success
+        run: test "$(cat v346-test-status.txt)" = "0"
 
       - name: Verify storage performance invariants
         run: |
@@ -66,6 +87,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git rm .github/workflows/v346-storage-performance-build-test.yml
+          rm -f v346-test-output.txt v346-test-status.txt
           git add -A
           if git diff --cached --quiet; then
             echo "Nenhuma alteração gerada para commit."
