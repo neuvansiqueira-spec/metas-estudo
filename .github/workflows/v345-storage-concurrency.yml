@@ -1,0 +1,57 @@
+name: V345 storage concurrency validation
+
+on:
+  push:
+    branches:
+      - fix/storage-concurrency-v345
+
+permissions:
+  contents: write
+
+jobs:
+  build-test-commit:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+      - name: Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Apply V345
+        run: node tools/apply-v345-storage-concurrency.mjs
+      - name: Refresh lock
+        run: npm install --package-lock-only --ignore-scripts
+      - name: Build bundles
+        run: node build-bundles.mjs
+      - name: Syntax checks
+        run: |
+          node --check storage-concurrency-v345.js
+          node --check bootstrap-integrity-loader-v345-core.js
+          node --check script.js
+          node --check service-worker.js
+      - name: Focused tests
+        run: |
+          node --test tests/v345-storage-concurrency.test.js
+          node --test tests/timer-modern-flow.test.js
+          node --test tests/legacy-timer-recovery.test.js
+          node --test tests/v169-bootstrap-interactive-release.test.js
+          node --test tests/v174-daily-plan-open-alignment.test.js
+          node --test tests/v341-startup-interaction-recovery.test.js
+          node --test tests/v344-interaction-responsiveness.test.js
+      - name: Diff check
+        run: git diff --check
+      - name: Commit generated V345
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "V345: protege persistência e acelera bootstrap"
+          git push
