@@ -59,7 +59,7 @@ test("V314 reconhece sessão já integrada para impedir duplicação", () => {
   assert.equal(integration.hasIntegratedSession({ questionBankSessions:[] },payload.sessionId),false);
 });
 
-test("V314 integra uma vez no estado real e não duplica ao tentar novamente", () => {
+test("V314 integra uma vez no estado real e não duplica ao tentar novamente", async () => {
   const { context, core, integration } = loadApis();
   const notebook = [];
   let saves = 0;
@@ -67,8 +67,8 @@ test("V314 integra uma vez no estado real e não duplica ao tentar novamente", (
   context.saveData = () => { saves += 1; return true; };
   context.registrarNoCadernoErros = (question, mark, reason) => notebook.push({ id:question.id, mark, reason });
   const exam = completedExam(core);
-  const first = integration.integrateExam(exam);
-  const second = integration.integrateExam(exam);
+  const first = await integration.integrateExam(exam);
+  const second = await integration.integrateExam(exam);
   assert.equal(first.alreadyIntegrated, false);
   assert.equal(second.alreadyIntegrated, true);
   assert.equal(context.state.questionBank.length, 3);
@@ -79,7 +79,7 @@ test("V314 integra uma vez no estado real e não duplica ao tentar novamente", (
   assert.equal(saves, 1);
 });
 
-test("V318 repara questões ausentes quando o resultado já estava integrado", () => {
+test("V318 repara questões ausentes quando o resultado já estava integrado", async () => {
   const { context, core, integration } = loadApis();
   let saves = 0;
   let notebookWrites = 0;
@@ -95,8 +95,8 @@ test("V318 repara questões ausentes quando o resultado já estava integrado", (
   context.saveData = () => { saves += 1; return true; };
   context.registrarNoCadernoErros = () => { notebookWrites += 1; };
 
-  const repaired = integration.integrateExam(exam);
-  const checkedAgain = integration.integrateExam(exam);
+  const repaired = await integration.integrateExam(exam);
+  const checkedAgain = await integration.integrateExam(exam);
 
   assert.equal(repaired.alreadyIntegrated, true);
   assert.equal(repaired.repaired, true);

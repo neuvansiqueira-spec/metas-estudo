@@ -200,16 +200,87 @@
     if (typeof qbRenderErrorNotebook === "function") qbRenderErrorNotebook();
   }
 
-  function persistRepair() {
-    if (typeof saveData !== "function") throw new Error("O salvamento principal do site não está disponível.");
-    saveData({ markLocalChange:true });
+  function mergeNotebookSnapshot(targetState, entries = []) {
+    targetState.questionErrorNotebook ||= [];
+    const byId = new Map(targetState.questionErrorNotebook.map((entry) => [String(entry?.id || ""), entry]));
+    entries.forEach((entry) => {
+      const id = String(entry?.id || "");
+      if (!id) return;
+      const existing = byId.get(id);
+      if (!existing) {
+        const copy = JSON.parse(JSON.stringify(entry));
+        targetState.questionErrorNotebook.unshift(copy);
+        byId.set(id, copy);
+        return;
+      }
+      const previousErrors = Number(existing.quantidadeErros) || 0;
+      Object.assign(existing, JSON.parse(JSON.stringify(entry)));
+      existing.quantidadeErros = Math.max(previousErrors, Number(entry.quantidadeErros) || 0);
+    });
   }
 
-  function integrateExam(exam) {
+  function applyIntegratedPayloadLocally(targetState, payload, result = {}) {
+    ensureCollections(targetState);
+    ensureBankQuestions(targetState, payload.bankQuestions);
+
+    if (!hasIntegratedSession(targetState, payload.sessionId) && payload.session) {
+      targetState.questionBankSessions.unshift(payload.session);
+    }
+
+    const logIds = new Set(targetState.questionLogs.map((log) => log.id));
+    payload.questionLogs.filter((log) => !logIds.has(log.id)).forEach((log) => targetState.questionLogs.push(log));
+
+    if (payload.mock && !targetState.simulados.some((mock) => mock.id === payload.mock.id)) {
+      targetState.simulados.push(payload.mock);
+    }
+
+    mergeNotebookSnapshot(targetState, result.notebookEntries || []);
+  }
+
+  function persistRepair() {
+    if (typeof saveData !== "function") throw new Error("O salvamento principal do site não está disponível.");
+    const saved = saveData({ markLocalChange:true });
+    if (saved === false) throw new Error("A aba atual não possui autorização para gravar o estado geral.");
+    return saved;
+  }
+
+  async function integrateExam(exam) {
     if (typeof state === "undefined" || !state) throw new Error("O banco de dados do site ainda não está disponível.");
     const payload = buildIntegrationPayload(exam);
-    ensureCollections(state);
+    const concurrency = globalThis.AldusStorageConcurrencyV345;
 
+    if (concurrency?.commitSimulationState) {
+      const result = await concurrency.commitSimulationState(payload);
+      if (!result?.durable) {
+        throw new Error(`O resultado do simulado ainda não foi confirmado no armazenamento (${result?.reason || "falha desconhecida"}).`);
+      }
+
+      applyIntegratedPayloadLocally(state, payload, result);
+      renderAfterIntegration({ full: !result.alreadyIntegrated || Number(result.repairedQuestions) > 0 });
+
+      const repairedQuestions = Number(result.repairedQuestions) || 0;
+      const alreadyIntegrated = Boolean(result.alreadyIntegrated);
+      const repaired = alreadyIntegrated && repairedQuestions > 0;
+      const notebookAdded = Array.isArray(result.notebookEntries) ? result.notebookEntries.length : 0;
+      const message = alreadyIntegrated
+        ? (repaired
+            ? `Integração reparada: ${repairedQuestions} questão(ões) ausente(s) foram restauradas no Banco de Questões sem duplicar o resultado.`
+            : "Este simulado já estava integralmente integrado; nenhum dado foi duplicado.")
+        : `${repairedQuestions} questão(ões) e o resultado foram integrados ao site.`;
+
+      return {
+        alreadyIntegrated,
+        repaired,
+        sessionId:payload.sessionId,
+        newQuestions:repairedQuestions,
+        sessionsAdded:Number(result.sessionsAdded) || 0,
+        logsAdded:Number(result.logsAdded) || 0,
+        notebookAdded,
+        message
+      };
+    }
+
+    ensureCollections(state);
     const sessionAlreadyIntegrated = hasIntegratedSession(state, payload.sessionId);
     const repairedQuestions = ensureBankQuestions(state, payload.bankQuestions);
 
@@ -277,7 +348,7 @@
     }
   }
 
-  function repairStoredExams() {
+  async function repairStoredExams() {
     if (typeof state === "undefined" || !state || typeof saveData !== "function") {
       return { available:false, checked:0, repairedExams:0, repairedQuestions:0, errors:0 };
     }
@@ -285,9 +356,9 @@
     let repairedExams = 0;
     let repairedQuestions = 0;
     let errors = 0;
-    exams.forEach((exam) => {
+    for (const exam of exams) {
       try {
-        const result = integrateExam(exam);
+        const result = await integrateExam(exam);
         if (result?.repaired || (!result?.alreadyIntegrated && Number(result?.newQuestions) > 0)) {
           repairedExams += 1;
           repairedQuestions += Number(result.newQuestions) || 0;
@@ -296,7 +367,7 @@
         errors += 1;
         console.warn(`[${VERSION}] Falha ao verificar o simulado ${exam?.id || "sem-id"}.`, error);
       }
-    });
+    }
     const report = { available:true, checked:exams.length, repairedExams, repairedQuestions, errors };
     if (repairedQuestions > 0) console.info(`[${VERSION}] Reparo automático concluído.`, report);
     return report;
@@ -307,8 +378,8 @@
     const delays = [0, 600, 1800, 4000];
     delays.forEach((delay) => {
       setTimeout(() => {
-        try { repairStoredExams(); }
-        catch (error) { console.warn(`[${VERSION}] Verificação automática adiada.`, error); }
+        Promise.resolve(repairStoredExams())
+          .catch((error) => console.warn(`[${VERSION}] Verificação automática adiada.`, error));
       }, delay);
     });
   }
