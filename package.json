@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260816-storage-consistency-v345",
+  "version": "20260816-runtime-stability-v349",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
