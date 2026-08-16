@@ -1,0 +1,70 @@
+name: V344 interaction responsiveness
+
+on:
+  push:
+    branches:
+      - fix/interaction-responsiveness-v344
+
+permissions:
+  contents: write
+
+jobs:
+  build-test-commit:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Dependências
+        run: npm ci
+
+      - name: Aplicar V344
+        run: node tools/apply-v344-interaction-responsiveness.mjs
+
+      - name: Gerar bundles públicos
+        run: npm run build
+
+      - name: Validar sintaxe
+        run: |
+          node --check script.js
+          node --check app-v344.js
+          node --check bootstrap-integrity-loader-v258-core.js
+          node --check service-worker.js
+
+      - name: Testes focados de interação
+        run: |
+          node --test \
+            tests/v169-operational-latency.test.js \
+            tests/v169-bootstrap-interactive-release.test.js \
+            tests/v174-daily-plan-open-alignment.test.js \
+            tests/v341-startup-interaction-recovery.test.js \
+            tests/v344-interaction-responsiveness.test.js \
+            tests/stability.test.js
+
+      - name: Regressão completa
+        run: npm test
+
+      - name: Revisar diff estrutural
+        run: git diff --check
+
+      - name: Gravar build validado na branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração gerada."
+            exit 0
+          fi
+          git commit -m "V344: prioriza interação durante navegação"
+          git push origin HEAD:${GITHUB_REF_NAME}
