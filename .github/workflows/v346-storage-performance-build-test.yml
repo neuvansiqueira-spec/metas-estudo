@@ -19,10 +19,18 @@ jobs:
           ref: fix/storage-performance-v346
           fetch-depth: 0
 
+      - name: Remove temporary CI from validation tree
+        run: |
+          git rm -f .github/workflows/v346-storage-performance-build-test.yml
+          git rm -f v346-test-output.txt v346-test-status.txt || true
+
       - name: Apply only pending V346 fixes
         run: |
           node <<'NODE'
           const fs = require('node:fs');
+
+          const release = JSON.parse(fs.readFileSync('package.json', 'utf8')).version;
+          if (release !== '20260816-storage-performance-v346') throw new Error(`Versão inesperada em package.json: ${release}`);
 
           const syncPath = 'sync-integral-deletions.js';
           let source = fs.readFileSync(syncPath, 'utf8');
@@ -48,9 +56,9 @@ jobs:
           fs.writeFileSync(syncPath, source);
           fs.copyFileSync(syncPath, 'docs/sync-integral-deletions.js');
 
-          const testPath = 'tests/sync-device-deletions.test.js';
-          let tests = fs.readFileSync(testPath, 'utf8');
-          const marker = 'test("arquivos publicados permanecem idênticos e cache usa a versão atual", () => {';
+          const syncTestPath = 'tests/sync-device-deletions.test.js';
+          let syncTests = fs.readFileSync(syncTestPath, 'utf8');
+          const syncMarker = 'test("arquivos publicados permanecem idênticos e cache usa a versão atual", () => {';
           const semanticTests = `test("assinatura permanece estável com ordem diferente das propriedades", () => {
             const sync = loadSyncEngine();
             const a = { id: "m1", title: "Material", nested: { a: 1, b: 2 } };
@@ -67,18 +75,145 @@ jobs:
           });
 
           `;
-          if (!tests.includes('assinatura permanece estável com ordem diferente das propriedades')) {
-            const position = tests.indexOf(marker);
+          if (!syncTests.includes('assinatura permanece estável com ordem diferente das propriedades')) {
+            const position = syncTests.indexOf(syncMarker);
             if (position < 0) throw new Error('Marcador para inserir testes V346 não encontrado.');
-            tests = tests.slice(0, position) + semanticTests + tests.slice(position);
-            fs.writeFileSync(testPath, tests);
+            syncTests = syncTests.slice(0, position) + semanticTests + syncTests.slice(position);
+            fs.writeFileSync(syncTestPath, syncTests);
           }
 
-          const release = JSON.parse(fs.readFileSync('package.json', 'utf8')).version;
-          if (release !== '20260816-storage-performance-v346') throw new Error(`Versão inesperada em package.json: ${release}`);
           let lock = fs.readFileSync('package-lock.json', 'utf8');
           lock = lock.replaceAll('20260816-storage-consistency-v345', release);
           fs.writeFileSync('package-lock.json', lock);
+
+          const buildPath = 'build-bundles.mjs';
+          let build = fs.readFileSync(buildPath, 'utf8');
+
+          const oldIndexSync = `  const synchronized = source
+            .replace(/app-v\\d+\\.css\\?v=[^\"]+/g, \`app-\${releaseSuffix}.css?v=\${packageVersion}\`)
+            .replace(/app-v\\d+\\.js\\?v=[^\"]+/g, \`app-\${releaseSuffix}.js?v=\${packageVersion}\`)
+            .replace(/(<p class=\"app-version\">Versão: )[^<]+(<\\/p>)/, \`$1\${packageVersion}$2\`);`;
+          const newIndexSync = `  const synchronized = source
+            .replace(/app-v\\d+\\.css\\?v=[^\"]+/g, \`app-\${releaseSuffix}.css?v=\${packageVersion}\`)
+            .replace(/app-v\\d+\\.js\\?v=[^\"]+/g, \`app-\${releaseSuffix}.js?v=\${packageVersion}\`)
+            .replace(/bootstrap-integrity-loader-v258\\.js\\?v=[^\"]+/g, \`bootstrap-integrity-loader-v258.js?v=\${packageVersion}\`)
+            .replace(/(<p class=\"app-version\">Versão: )[^<]+(<\\/p>)/, \`$1\${packageVersion}$2\`);`;
+          if (build.includes(oldIndexSync)) build = build.replace(oldIndexSync, newIndexSync);
+          else if (!build.includes('bootstrap-integrity-loader-v258.js?v=${packageVersion}')) throw new Error('Sincronização do index não corresponde ao estado esperado.');
+
+          const bootstrapStart = build.indexOf('function synchronizeBootstrapCoreVersion() {');
+          const serviceWorkerStart = build.indexOf('function synchronizeServiceWorkerVersion() {', bootstrapStart);
+          if (bootstrapStart < 0 || serviceWorkerStart < 0) throw new Error('Funções de sincronização do bootstrap não encontradas.');
+          const bootstrapReplacement = `function synchronizeBootstrapCoreVersion() {
+            for (const filename of ["bootstrap-integrity-loader-v258-core.js", "bootstrap-integrity-loader-v345-core.js"]) {
+              const filePath = path.join(root, filename);
+              const source = fs.readFileSync(filePath, "utf8");
+              let synchronized = source.replace(
+                /\\["aldusAppBundleScript", "app-v\\d+\\.js\\?v=[^\"]+"\\]/,
+                \`["aldusAppBundleScript", "app-\${releaseSuffix}.js?v=\${packageVersion}"]\`
+              );
+              if (filename === "bootstrap-integrity-loader-v345-core.js") {
+                synchronized = synchronized.replace(
+                  /(bootstrap-integrity-loader-v258-core\\.js\\?v=)[^\"&]+/,
+                  \`$1\${packageVersion}\`
+                );
+              }
+              if (!synchronized.includes(\`app-\${releaseSuffix}.js?v=\${packageVersion}\`)) {
+                throw new Error(\`Não foi possível sincronizar o bundle no bootstrap: \${filename}\`);
+              }
+              fs.writeFileSync(filePath, synchronized);
+              fs.copyFileSync(filePath, path.join(root, "docs", filename));
+            }
+          }
+
+          function synchronizeBootstrapLoaderVersion() {
+            for (const filename of ["bootstrap-integrity-loader-v258.js", "bootstrap-integrity-loader-v275.js"]) {
+              const filePath = path.join(root, filename);
+              const source = fs.readFileSync(filePath, "utf8");
+              let synchronized = source;
+              if (filename === "bootstrap-integrity-loader-v258.js") {
+                synchronized = synchronized.replace(
+                  /const CORE_SCRIPT = "bootstrap-integrity-loader-v258-core\\.js\\?v=[^\"]+";/,
+                  \`const CORE_SCRIPT = "bootstrap-integrity-loader-v258-core.js?v=\${packageVersion}";\`
+                );
+              } else {
+                synchronized = synchronized.replace(
+                  /const VERSION = "[^"]+";/,
+                  \`const VERSION = \${JSON.stringify(packageVersion)};\`
+                );
+              }
+              fs.writeFileSync(filePath, synchronized);
+              fs.copyFileSync(filePath, path.join(root, "docs", filename));
+            }
+          }
+
+          `;
+          build = build.slice(0, bootstrapStart) + bootstrapReplacement + build.slice(serviceWorkerStart);
+
+          const oldWorkerSync = `  const synchronized = source.replace(
+            /const CURRENT_VERSION = "[^"]+";/,
+            \`const CURRENT_VERSION = \${JSON.stringify(packageVersion)};\`
+          );`;
+          const newWorkerSync = `  const synchronized = source
+            .replace(
+              /const CURRENT_VERSION = "[^"]+";/,
+              \`const CURRENT_VERSION = \${JSON.stringify(packageVersion)};\`
+            )
+            .replace(
+              /const BOOTSTRAP_VERSION = "[^"]+";/,
+              \`const BOOTSTRAP_VERSION = \${JSON.stringify(packageVersion)};\`
+            );`;
+          if (build.includes(oldWorkerSync)) build = build.replace(oldWorkerSync, newWorkerSync);
+          else if (!build.includes('const BOOTSTRAP_VERSION = ${JSON.stringify(packageVersion)};')) throw new Error('Sincronização do service worker não corresponde ao estado esperado.');
+
+          const oldCalls = `synchronizeIndexVersion();
+          synchronizeBootstrapCoreVersion();
+          synchronizeServiceWorkerVersion();`;
+          const newCalls = `synchronizeIndexVersion();
+          synchronizeBootstrapCoreVersion();
+          synchronizeBootstrapLoaderVersion();
+          synchronizeServiceWorkerVersion();`;
+          if (build.includes(oldCalls)) build = build.replace(oldCalls, newCalls);
+          else if (!build.includes('synchronizeBootstrapLoaderVersion();')) throw new Error('Chamada de sincronização dos loaders ausente.');
+          fs.writeFileSync(buildPath, build);
+
+          const v345TestPath = 'tests/v345-storage-concurrency.test.js';
+          let v345Tests = fs.readFileSync(v345TestPath, 'utf8');
+          const oldPublicationTest = `test("publicação V345 referencia artefatos e cache corretos", () => {
+            const pkg = JSON.parse(read("package.json"));
+            const index = read("index.html");
+            const sw = read("service-worker.js");
+            const loader = read("bootstrap-integrity-loader-v275.js");
+            assert.equal(pkg.version, "20260816-storage-consistency-v345");
+            assert.match(index, /app-v345\\.js\\?v=20260816-storage-consistency-v345/);
+            assert.match(index, /app-v345\\.css\\?v=20260816-storage-consistency-v345/);
+            assert.match(loader, /bootstrap-integrity-loader-v345-core\\.js/);
+            assert.match(sw, /CURRENT_VERSION = "20260816-storage-consistency-v345"/);
+            assert.match(sw, /STORAGE_CONCURRENCY_V345/);
+            assert.match(sw, /bootstrap-integrity-loader-v345-core\\.js/);
+          });`;
+          const newPublicationTest = `test("proteções V345 permanecem incorporadas na publicação atual", () => {
+            const pkg = JSON.parse(read("package.json"));
+            const version = pkg.version;
+            const suffix = version.match(/v\\d+$/)?.[0];
+            const index = read("index.html");
+            const sw = read("service-worker.js");
+            const loader = read("bootstrap-integrity-loader-v275.js");
+            const core = read("bootstrap-integrity-loader-v345-core.js");
+            assert.ok(suffix);
+            assert.match(index, new RegExp(\`app-\${suffix}\\\\.js\\\\?v=\${version}\`));
+            assert.match(index, new RegExp(\`app-\${suffix}\\\\.css\\\\?v=\${version}\`));
+            assert.match(loader, /bootstrap-integrity-loader-v345-core\\.js/);
+            assert.match(loader, new RegExp(\`const VERSION = "\${version}"\`));
+            assert.match(core, new RegExp(\`app-\${suffix}\\\\.js\\\\?v=\${version}\`));
+            assert.match(sw, new RegExp(\`CURRENT_VERSION = "\${version}"\`));
+            assert.match(sw, new RegExp(\`BOOTSTRAP_VERSION = "\${version}"\`));
+            assert.match(sw, /STORAGE_CONCURRENCY_V345/);
+            assert.match(sw, /bootstrap-integrity-loader-v345-core\\.js/);
+          });`;
+          if (v345Tests.includes(oldPublicationTest)) v345Tests = v345Tests.replace(oldPublicationTest, newPublicationTest);
+          else if (!v345Tests.includes('proteções V345 permanecem incorporadas na publicação atual')) throw new Error('Teste de publicação V345 não corresponde ao estado esperado.');
+          fs.writeFileSync(v345TestPath, v345Tests);
           NODE
 
       - name: Install dependencies
@@ -94,12 +229,20 @@ jobs:
           node --check app-v346.js
           node --check docs/app-v346.js
           node --check sync-integral-deletions.js
+          node --check bootstrap-integrity-loader-v258.js
+          node --check bootstrap-integrity-loader-v258-core.js
+          node --check bootstrap-integrity-loader-v275.js
+          node --check bootstrap-integrity-loader-v345-core.js
+          node --check service-worker.js
 
-      - name: Run focused V346 sync tests
+      - name: Run focused V346 and release-chain tests
         run: |
           node --test \
-            --test-name-pattern="exclusão mais recente|edição posterior|edição numérica|lista editável|adições diferentes|rastreador cria|snapshot de exclusões|rastreador atualiza|campos de revisão|assinatura permanece|assinatura preserva" \
-            tests/sync-device-deletions.test.js
+            --test-name-pattern="exclusão mais recente|edição posterior|edição numérica|lista editável|adições diferentes|rastreador cria|snapshot de exclusões|rastreador atualiza|campos de revisão|assinatura permanece|assinatura preserva|V344 permanece incorporada|proteções V345 permanecem|workflows legados não escrevem" \
+            tests/sync-device-deletions.test.js \
+            tests/v344-interaction-responsiveness.test.js \
+            tests/v345-storage-concurrency.test.js \
+            tests/v316-timer-telemetry-security.test.js
 
       - name: Capture V346 full-suite baseline
         run: |
@@ -157,7 +300,7 @@ jobs:
           if (newFailures.length) process.exit(1);
           NODE
 
-      - name: Verify storage performance invariants
+      - name: Verify storage and bootstrap performance invariants
         run: |
           node - <<'NODE'
           const fs = require('node:fs');
@@ -169,7 +312,18 @@ jobs:
           if (fs.readFileSync('sync-integral-deletions.js', 'utf8') !== fs.readFileSync('docs/sync-integral-deletions.js', 'utf8')) throw new Error('Fonte publicada divergiu da fonte raiz.');
           const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
           const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          const suffix = pkg.version.match(/v\d+$/)?.[0];
           if (lock.version !== pkg.version || lock.packages?.['']?.version !== pkg.version) throw new Error('package-lock não acompanha V346.');
+          const index = fs.readFileSync('index.html', 'utf8');
+          const core258 = fs.readFileSync('bootstrap-integrity-loader-v258-core.js', 'utf8');
+          const core345 = fs.readFileSync('bootstrap-integrity-loader-v345-core.js', 'utf8');
+          const loader275 = fs.readFileSync('bootstrap-integrity-loader-v275.js', 'utf8');
+          const worker = fs.readFileSync('service-worker.js', 'utf8');
+          for (const text of [index, core258, core345]) {
+            if (!text.includes(`app-${suffix}.js?v=${pkg.version}`)) throw new Error('Cadeia de bootstrap não referencia o bundle V346 atual.');
+          }
+          if (!loader275.includes(`const VERSION = "${pkg.version}"`)) throw new Error('Loader protegido não renovou a versão de cache.');
+          if (!worker.includes(`const BOOTSTRAP_VERSION = "${pkg.version}"`)) throw new Error('Service worker não renovou a cadeia de bootstrap.');
           NODE
           git diff --check
 
@@ -177,7 +331,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm -f .github/workflows/v346-storage-performance-build-test.yml v346-test-output.txt v346-test-status.txt
           rm -f v346-regression-report.json
           git add -A
           git commit -m "V346 build verified storage performance artifacts [skip v346-ci]"
