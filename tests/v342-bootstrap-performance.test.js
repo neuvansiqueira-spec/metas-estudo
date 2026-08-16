@@ -30,15 +30,19 @@ test("V342 usa apenas chaves do banco de snapshots no núcleo normal", () => {
   assert.match(flow, /knownChecksum \|\| checksumState\(state\)/);
 });
 
-test("V342 cria caminho rápido na proteção catastrófica quando a contagem anterior continua íntegra", () => {
+test("V342/V345 mantém caminho rápido na proteção catastrófica antes da varredura forense", () => {
   const start = guardSource.indexOf("async function reconcilePrebootstrap");
   const end = guardSource.indexOf("function destructiveWriteAllowed", start);
   const flow = guardSource.slice(start, end);
   assert.ok(start >= 0 && end > start);
   assert.match(flow, /previousStatus\?\.ready === true/);
   assert.match(flow, /catastrophicRegressionFromCounts\(mainState, previousStatus\.counts\)/);
-  assert.match(flow, /action: "preserved-fast"/);
-  assert.ok(flow.indexOf("preserved-fast") < flow.indexOf("readSafetyCandidates"));
+  assert.match(flow, /if \(!regression\.catastrophic\)/);
+  assert.match(flow, /"preserved-fast"/);
+  assert.match(flow, /"preserved-fast-no-baseline"/);
+  const fastPath = flow.indexOf("if (!regression.catastrophic)");
+  const forensicScan = flow.indexOf("const candidates = [");
+  assert.ok(fastPath >= 0 && forensicScan > fastPath, "a varredura forense deve permanecer fora do caminho rápido");
 });
 
 test("V342 não carrega snapshots completos só para detectar duplicidade durante gravações", () => {
