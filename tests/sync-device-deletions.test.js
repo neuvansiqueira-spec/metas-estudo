@@ -11,7 +11,7 @@ function loadSyncEngine() {
     fs.readFileSync("sync-integral-core.js", "utf8"),
     fs.readFileSync("sync-integral-deletions.js", "utf8"),
     fs.readFileSync("sync-integral-state.js", "utf8"),
-    "globalThis.__syncExports = { SYNC_COLLECTIONS, mergeSyncStates, syncSnapshotCollections, syncTrackCollectionMutations, syncCollectionKey };"
+    "globalThis.__syncExports = { SYNC_COLLECTIONS, mergeSyncStates, syncSnapshotCollections, syncTrackCollectionMutations, syncCollectionKey, syncRecordSignature };"
   ].join("\n");
   const context = {
     console,
@@ -85,6 +85,36 @@ test("rastreador cria marcador de exclusão e data de edição", () => {
   sync.syncTrackCollectionMutations(snapshot, currentState, changedAt);
   assert.equal(currentState.syncTombstones.collections.materials["materials:id:m1"].deletedAt, changedAt);
   assert.equal(currentState.subjects[0].updatedAt, changedAt);
+});
+
+test("snapshot de exclusões guarda apenas assinatura e não clona o registro inteiro", () => {
+  const sync = loadSyncEngine();
+  const source = { materials: [{ id: "m1", title: "Material", nested: { tags: ["a", "b"] } }] };
+  const snapshot = sync.syncSnapshotCollections(source);
+  const entry = snapshot.materials.get("materials:id:m1");
+  assert.equal(typeof entry.signature, "string");
+  assert.equal(Object.prototype.hasOwnProperty.call(entry, "record"), false);
+});
+
+test("rastreador atualiza o próprio snapshot e não redetecta a mesma edição no save seguinte", () => {
+  const sync = loadSyncEngine();
+  const previousState = { materials: [{ id: "m1", title: "Antes", nested: { tags: ["a"] } }] };
+  const snapshot = sync.syncSnapshotCollections(previousState);
+  const currentState = { materials: [{ id: "m1", title: "Antes", nested: { tags: ["a"] } }] };
+
+  assert.equal(sync.syncTrackCollectionMutations(snapshot, currentState, "2026-07-17T13:00:00.000Z"), false);
+  currentState.materials[0].nested.tags.push("b");
+  assert.equal(sync.syncTrackCollectionMutations(snapshot, currentState, "2026-07-17T13:01:00.000Z"), true);
+  assert.equal(currentState.materials[0].updatedAt, "2026-07-17T13:01:00.000Z");
+  assert.equal(sync.syncTrackCollectionMutations(snapshot, currentState, "2026-07-17T13:02:00.000Z"), false);
+  assert.equal(currentState.materials[0].updatedAt, "2026-07-17T13:01:00.000Z");
+});
+
+test("campos de revisão não alteram a assinatura usada para detectar conteúdo", () => {
+  const sync = loadSyncEngine();
+  const before = { id: "m1", title: "Material", updatedAt: "2026-07-17T10:00:00.000Z", savedAt: "2026-07-17T10:00:01.000Z" };
+  const after = { ...before, updatedAt: "2026-07-17T11:00:00.000Z", savedAt: "2026-07-17T11:00:01.000Z" };
+  assert.equal(sync.syncRecordSignature(before), sync.syncRecordSignature(after));
 });
 
 test("arquivos publicados permanecem idênticos e cache usa a versão atual", () => {
