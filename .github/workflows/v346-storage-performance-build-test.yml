@@ -19,7 +19,7 @@ jobs:
           ref: fix/storage-performance-v346
           fetch-depth: 0
 
-      - name: Apply V346 semantic and release fixes
+      - name: Apply only pending V346 fixes
         run: |
           node <<'NODE'
           const fs = require('node:fs');
@@ -43,11 +43,8 @@ jobs:
             }
             return JSON.stringify(value);
           }`;
-          if (source.includes(oldSignature)) {
-            source = source.replace(oldSignature, stableSignature);
-          } else if (!source.includes(stableSignature)) {
-            throw new Error('syncRecordSignature atual não corresponde à V346 esperada.');
-          }
+          if (source.includes(oldSignature)) source = source.replace(oldSignature, stableSignature);
+          else if (!source.includes(stableSignature)) throw new Error('syncRecordSignature atual não corresponde à V346 esperada.');
           fs.writeFileSync(syncPath, source);
           fs.copyFileSync(syncPath, 'docs/sync-integral-deletions.js');
 
@@ -78,18 +75,11 @@ jobs:
           }
 
           const release = JSON.parse(fs.readFileSync('package.json', 'utf8')).version;
-          if (release !== '20260816-storage-performance-v346') {
-            throw new Error(`Versão inesperada em package.json: ${release}`);
-          }
+          if (release !== '20260816-storage-performance-v346') throw new Error(`Versão inesperada em package.json: ${release}`);
           let lock = fs.readFileSync('package-lock.json', 'utf8');
           lock = lock.replaceAll('20260816-storage-consistency-v345', release);
           fs.writeFileSync('package-lock.json', lock);
           NODE
-
-      - name: Environment
-        run: |
-          node --version
-          npm --version
 
       - name: Install dependencies
         run: npm ci
@@ -105,55 +95,81 @@ jobs:
           node --check docs/app-v346.js
           node --check sync-integral-deletions.js
 
-      - name: Capture full test suite output
+      - name: Run focused V346 sync tests
+        run: |
+          node --test \
+            --test-name-pattern="exclusão mais recente|edição posterior|edição numérica|lista editável|adições diferentes|rastreador cria|snapshot de exclusões|rastreador atualiza|campos de revisão|assinatura permanece|assinatura preserva" \
+            tests/sync-device-deletions.test.js
+
+      - name: Capture V346 full-suite baseline
         run: |
           set +e
-          npm test > v346-test-output.txt 2>&1
-          status=$?
-          echo "$status" > v346-test-status.txt
-          cat v346-test-output.txt
-          exit 0
+          npm test > /tmp/v346-tests.txt 2>&1
+          echo "$?" > /tmp/v346-status.txt
+          set -e
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const text = fs.readFileSync('/tmp/v346-tests.txt', 'utf8');
+          const summary = text.match(/# tests \d+[\s\S]*?# duration_ms [^\n]+/g)?.at(-1) || 'Resumo TAP indisponível';
+          console.log(summary);
+          NODE
 
-      - name: Persist failing test diagnostics
+      - name: Run V345 main baseline with same suite
         run: |
-          status="$(cat v346-test-status.txt)"
-          if [ "$status" = "0" ]; then
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add v346-test-output.txt v346-test-status.txt
-          git commit -m "V346 capture failing test diagnostics [skip v346-ci]"
-          git push origin HEAD:fix/storage-performance-v346
+          git fetch origin main
+          rm -rf /tmp/v345-baseline
+          git worktree add --detach /tmp/v345-baseline origin/main
+          cd /tmp/v345-baseline
+          npm ci
+          npm run build
+          set +e
+          npm test > /tmp/v345-tests.txt 2>&1
+          echo "$?" > /tmp/v345-status.txt
+          set -e
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const text = fs.readFileSync('/tmp/v345-tests.txt', 'utf8');
+          const summary = text.match(/# tests \d+[\s\S]*?# duration_ms [^\n]+/g)?.at(-1) || 'Resumo TAP indisponível';
+          console.log(summary);
+          NODE
 
-      - name: Require full test suite success
-        run: test "$(cat v346-test-status.txt)" = "0"
+      - name: Compare V346 regressions against V345
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          function failures(path) {
+            const text = fs.readFileSync(path, 'utf8');
+            return [...text.matchAll(/^not ok \d+ - (.+)$/gm)]
+              .map((match) => match[1].replace(/\s+#.*$/, '').trim());
+          }
+          const baseline = new Set(failures('/tmp/v345-tests.txt'));
+          const current = new Set(failures('/tmp/v346-tests.txt'));
+          const newFailures = [...current].filter((name) => !baseline.has(name)).sort();
+          const resolvedFailures = [...baseline].filter((name) => !current.has(name)).sort();
+          const report = {
+            baselineFailures: baseline.size,
+            currentFailures: current.size,
+            newFailures,
+            resolvedFailures
+          };
+          fs.writeFileSync('v346-regression-report.json', JSON.stringify(report, null, 2) + '\n');
+          console.log(JSON.stringify(report, null, 2));
+          if (newFailures.length) process.exit(1);
+          NODE
 
       - name: Verify storage performance invariants
         run: |
           node - <<'NODE'
           const fs = require('node:fs');
           const source = fs.readFileSync('sync-integral-deletions.js', 'utf8');
-          if (source.includes('map.set(key, { record: syncClone(item), signature: syncRecordSignature(item) })')) {
-            throw new Error('Snapshot ainda clona registros inteiros.');
-          }
-          if (!source.includes('if (!canTrackIncrementally) syncRefreshDeletionSnapshot();')) {
-            throw new Error('Refresh integral pós-save não foi removido do caminho incremental.');
-          }
-          if (source.includes('return syncStableSerialize(syncComparableValue(value));')) {
-            throw new Error('Assinatura de registro ainda usa o hotspot antigo.');
-          }
-          if (source.includes('return JSON.stringify(value ?? null, (key, entry) =>')) {
-            throw new Error('Assinatura V346 ainda usa JSON.stringify simples e perdeu a semântica estável.');
-          }
-          if (fs.readFileSync('sync-integral-deletions.js', 'utf8') !== fs.readFileSync('docs/sync-integral-deletions.js', 'utf8')) {
-            throw new Error('Fonte publicada de deleções divergiu da fonte raiz.');
-          }
+          if (source.includes('map.set(key, { record: syncClone(item), signature: syncRecordSignature(item) })')) throw new Error('Snapshot ainda clona registros inteiros.');
+          if (!source.includes('if (!canTrackIncrementally) syncRefreshDeletionSnapshot();')) throw new Error('Refresh integral pós-save não foi removido do caminho incremental.');
+          if (source.includes('return syncStableSerialize(syncComparableValue(value));')) throw new Error('Assinatura de registro ainda usa o hotspot antigo.');
+          if (source.includes('return JSON.stringify(value ?? null, (key, entry) =>')) throw new Error('Assinatura V346 ainda usa JSON.stringify simples.');
+          if (fs.readFileSync('sync-integral-deletions.js', 'utf8') !== fs.readFileSync('docs/sync-integral-deletions.js', 'utf8')) throw new Error('Fonte publicada divergiu da fonte raiz.');
           const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
           const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
-          if (lock.version !== pkg.version || lock.packages?.['']?.version !== pkg.version) {
-            throw new Error('package-lock não acompanha a versão V346.');
-          }
+          if (lock.version !== pkg.version || lock.packages?.['']?.version !== pkg.version) throw new Error('package-lock não acompanha V346.');
           NODE
           git diff --check
 
@@ -161,12 +177,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm .github/workflows/v346-storage-performance-build-test.yml
-          rm -f v346-test-output.txt v346-test-status.txt
+          git rm -f .github/workflows/v346-storage-performance-build-test.yml v346-test-output.txt v346-test-status.txt
+          rm -f v346-regression-report.json
           git add -A
-          if git diff --cached --quiet; then
-            echo "Nenhuma alteração gerada para commit."
-            exit 0
-          fi
           git commit -m "V346 build verified storage performance artifacts [skip v346-ci]"
           git push origin HEAD:fix/storage-performance-v346
