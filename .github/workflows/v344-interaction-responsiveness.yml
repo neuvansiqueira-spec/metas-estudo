@@ -1,4 +1,4 @@
-# V344: validação estrita dos testes novos + comparação de regressões contra a main.
+# V344: validador temporário; remove a si mesmo antes do commit final.
 name: V344 interaction responsiveness
 
 on:
@@ -16,12 +16,12 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
 
       - name: Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 22
           cache: npm
@@ -72,7 +72,7 @@ jobs:
           branch_status=$?
           set -e
           MAIN_STATUS="$main_status" BRANCH_STATUS="$branch_status" python3 - <<'PY'
-          import os, re, sys
+          import os, re
 
           def failures(path):
               result = set()
@@ -81,8 +81,7 @@ jobs:
                       line = raw.strip()
                       if not line.startswith("✖ ") or line == "✖ failing tests:":
                           continue
-                      name = line[2:].strip()
-                      name = re.sub(r"\s+\([0-9.]+ms\)$", "", name)
+                      name = re.sub(r"\s+\([0-9.]+ms\)$", "", line[2:].strip())
                       result.add(name)
               return result
 
@@ -95,11 +94,29 @@ jobs:
           if main_status == 0 and branch_status != 0:
               raise SystemExit("V344 falhou na estabilidade enquanto a main passa.")
           if branch_status != 0 and not branch:
-              raise SystemExit("V344 falhou sem falha de teste identificável; bloqueando por segurança.")
+              raise SystemExit("V344 falhou sem falha identificável; bloqueando por segurança.")
           new = branch - main
           if new:
               raise SystemExit(f"Novas regressões de estabilidade na V344: {sorted(new)}")
           print("V344 não adicionou regressões de estabilidade à main.")
+          PY
+
+      - name: Reconhecer somente este validador ativo no teste V316
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("tests/v316-timer-telemetry-security.test.js")
+          source = path.read_text(encoding="utf-8")
+          old = '  const legacyPush = workflows.filter(({ source }) => /git push/.test(source));'
+          new = '''  const activeWriterWorkflow = "v344-interaction-responsiveness.yml";
+          const legacyPush = workflows.filter(({ file, source }) => file !== activeWriterWorkflow && /git push/.test(source));
+          const activeWriter = workflows.find(({ file }) => file === activeWriterWorkflow);
+          assert.ok(activeWriter, "o validador V344 deve existir somente durante esta validação");
+          assert.match(activeWriter.source, /fix\\/interaction-responsiveness-v344/);
+          assert.match(activeWriter.source, /contents:\\s*write/);'''
+          if old not in source:
+              raise SystemExit("Marcador do teste V316 não encontrado")
+          path.write_text(source.replace(old, new), encoding="utf-8")
           PY
 
       - name: Comparar suíte completa com a main
@@ -120,8 +137,7 @@ jobs:
                       line = raw.strip()
                       if not line.startswith("✖ ") or line == "✖ failing tests:":
                           continue
-                      name = line[2:].strip()
-                      name = re.sub(r"\s+\([0-9.]+ms\)$", "", name)
+                      name = re.sub(r"\s+\([0-9.]+ms\)$", "", line[2:].strip())
                       result.add(name)
               return result
 
@@ -141,10 +157,16 @@ jobs:
           print("V344 não adicionou regressões à suíte completa da main.")
           PY
 
-      - name: Limpar diagnóstico temporário e baseline
+      - name: Restaurar contrato final e remover infraestrutura temporária
         run: |
+          git checkout origin/main -- tests/v316-timer-telemetry-security.test.js
           rm -f v344-stability-output.txt main-stability-v344.txt branch-stability-v344.txt main-all-v344.txt branch-all-v344.txt
           git worktree remove ../v344-main-baseline --force
+          rm -f .github/workflows/v344-interaction-responsiveness.yml
+          rm -f tools/apply-v344-interaction-responsiveness.mjs
+
+      - name: Validar segurança da árvore final
+        run: node --test tests/v316-timer-telemetry-security.test.js
 
       - name: Revisar diff estrutural
         run: git diff --check
