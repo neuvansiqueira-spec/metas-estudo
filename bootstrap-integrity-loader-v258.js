@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260815-bootstrap-performance-v342";
+  const VERSION = "20260816-sync-save-performance-v348";
   const CORE_SCRIPT = "bootstrap-integrity-loader-v258-core.js?v=20260815-bootstrap-performance-v342";
   const DIAGNOSTICS_SCRIPT = "duplicate-diagnostics-v260.js?v=20260806-duplicate-diagnostics-v260";
   const DIAGNOSTICS_STYLESHEET = "duplicate-diagnostics-v260.css?v=20260806-duplicate-diagnostics-v260";
@@ -9,7 +9,8 @@
   const TIMER_CONTROLS_SCRIPT = "timer-controls-hardening-v268.js?v=20260808-timer-controls-sound-v268&hotfix=timer-controls-hardening-hotfix1";
   const PLANNING_SHIFT_PERSISTENCE_SCRIPT = "planning-shift-persistence-v283.js?v=20260809-planejamento-plantao-salvamento-v283";
   const HEADER_BRAND_FIX_SCRIPT = "header-brand-fix.js?v=20260815-logo-alta-qualidade-v338";
-  const PRELOAD_SCRIPTS = [HEADER_BRAND_FIX_SCRIPT];
+  const SYNC_SAVE_PERFORMANCE_SCRIPT = "sync-save-performance-v348.js?v=20260816-sync-save-performance-v348";
+  const PRELOAD_SCRIPTS = [HEADER_BRAND_FIX_SCRIPT, SYNC_SAVE_PERFORMANCE_SCRIPT];
 
   function installStylesheet(baseUrl) {
     if (document.getElementById("aldusDuplicateDiagnosticsStylesV260")) return;
@@ -63,6 +64,9 @@
   if (source?.id) source.removeAttribute("id");
   core.addEventListener("error", reportLoadError(VERSION, "o núcleo de inicialização preservado"));
 
+  const syncSavePerformance = makeScript("aldusSyncSavePerformanceV348", SYNC_SAVE_PERFORMANCE_SCRIPT, baseUrl, source);
+  syncSavePerformance.addEventListener("error", reportLoadError(VERSION, "a otimização de persistência e sincronização V348"));
+
   const shiftPersistence = makeScript("aldusPlanningShiftPersistenceV283", PLANNING_SHIFT_PERSISTENCE_SCRIPT, baseUrl, source);
   shiftPersistence.addEventListener("error", reportLoadError(VERSION, "a persistência das disciplinas de plantão"));
 
@@ -77,7 +81,8 @@
 
   parent.insertBefore(brandFix, source?.nextSibling || null);
   parent.insertBefore(core, brandFix.nextSibling);
-  parent.insertBefore(shiftPersistence, core.nextSibling);
+  parent.insertBefore(syncSavePerformance, core.nextSibling);
+  parent.insertBefore(shiftPersistence, syncSavePerformance.nextSibling);
   parent.insertBefore(diagnostics, shiftPersistence.nextSibling);
   parent.insertBefore(soundMaster, diagnostics.nextSibling);
   parent.insertBefore(timerControls, soundMaster.nextSibling);
@@ -86,6 +91,7 @@
     version: VERSION,
     headerBrandFix: HEADER_BRAND_FIX_SCRIPT,
     core: CORE_SCRIPT,
+    syncSavePerformance: SYNC_SAVE_PERFORMANCE_SCRIPT,
     planningShiftPersistence: PLANNING_SHIFT_PERSISTENCE_SCRIPT,
     script: DIAGNOSTICS_SCRIPT,
     stylesheet: DIAGNOSTICS_STYLESHEET,
