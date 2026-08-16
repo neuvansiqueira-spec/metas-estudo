@@ -8,9 +8,9 @@
   const MAIN_LOCAL_KEY = "metasConcursoData";
   const STATUS_KEY = "aldusBootstrapFastPathV345";
   const CONCURRENCY_SCRIPT = "storage-concurrency-v345.js?v=20260816-storage-consistency-v345";
-  const FALLBACK_CORE = "bootstrap-integrity-loader-v258-core.js?v=20260816-storage-consistency-v345&fallback=v345";
+  const FALLBACK_CORE = "bootstrap-integrity-loader-v258-core.js?v=20260816-storage-performance-v346&fallback=v345";
   const SCRIPT_CHAIN = [
-    ["aldusAppBundleScript", "app-v345.js?v=20260816-storage-consistency-v345"],
+    ["aldusAppBundleScript", "app-v346.js?v=20260816-storage-performance-v346"],
     ["aldusQconcursosFilterRouteV333", "qconcursos-filter-route-v333.js?v=20260814-restaura-filtros-qconcursos-v333"],
     ["aldusQconcursosAllFiltersV334", "qconcursos-all-filters-v334.js?v=20260814-qconcursos-todas-disciplinas-v334"],
     ["aldusQconcursosRouteSafetyV335", "qconcursos-route-safety-v335.js?v=20260814-qconcursos-rota-segura-v335"],

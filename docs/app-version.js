@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260816-storage-consistency-v345";
+  const VERSION = "20260816-storage-performance-v346";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

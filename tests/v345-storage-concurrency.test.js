@@ -42,16 +42,22 @@ test("cronômetro só confirma depois da proteção durável V345", () => {
   assert.match(script, /O tempo ainda não foi confirmado no armazenamento/);
 });
 
-test("publicação V345 referencia artefatos e cache corretos", () => {
+test("proteções V345 permanecem incorporadas na publicação atual", () => {
   const pkg = JSON.parse(read("package.json"));
+  const version = pkg.version;
+  const suffix = version.match(/v\d+$/)?.[0];
   const index = read("index.html");
   const sw = read("service-worker.js");
   const loader = read("bootstrap-integrity-loader-v275.js");
-  assert.equal(pkg.version, "20260816-storage-consistency-v345");
-  assert.match(index, /app-v345\.js\?v=20260816-storage-consistency-v345/);
-  assert.match(index, /app-v345\.css\?v=20260816-storage-consistency-v345/);
+  const core = read("bootstrap-integrity-loader-v345-core.js");
+  assert.ok(suffix);
+  assert.match(index, new RegExp(`app-${suffix}\\.js\\?v=${version}`));
+  assert.match(index, new RegExp(`app-${suffix}\\.css\\?v=${version}`));
   assert.match(loader, /bootstrap-integrity-loader-v345-core\.js/);
-  assert.match(sw, /CURRENT_VERSION = "20260816-storage-consistency-v345"/);
+  assert.match(loader, new RegExp(`const VERSION = "${version}"`));
+  assert.match(core, new RegExp(`app-${suffix}\\.js\\?v=${version}`));
+  assert.match(sw, new RegExp(`CURRENT_VERSION = "${version}"`));
+  assert.match(sw, new RegExp(`BOOTSTRAP_VERSION = "${version}"`));
   assert.match(sw, /STORAGE_CONCURRENCY_V345/);
   assert.match(sw, /bootstrap-integrity-loader-v345-core\.js/);
 });

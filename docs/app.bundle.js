@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260816-storage-consistency-v345";
+  const VERSION = "20260816-storage-performance-v346";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -3281,7 +3281,18 @@ function syncComparableValue(value) {
 }
 
 function syncRecordSignature(value) {
-  return syncStableSerialize(syncComparableValue(value));
+  if (value === null || value === undefined) return "null";
+  if (Array.isArray(value)) {
+    return `[${value.map(syncRecordSignature).sort().join(",")}]`;
+  }
+  if (typeof value === "object") {
+    return `{${Object.keys(value)
+      .filter((key) => !SYNC_REVISION_FIELDS.has(key))
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${syncRecordSignature(value[key])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value);
 }
 
 function syncRecordRevisionTimestamp(value = {}) {
@@ -3309,7 +3320,7 @@ function syncSnapshotCollections(targetState = state) {
     (Array.isArray(targetState?.[collection]) ? targetState[collection] : []).forEach((item) => {
       if (!item || typeof item !== "object") return;
       const key = syncCollectionKey(item, collection);
-      map.set(key, { record: syncClone(item), signature: syncRecordSignature(item) });
+      map.set(key, { signature: syncRecordSignature(item) });
     });
     snapshot[collection] = map;
   });
@@ -3318,6 +3329,7 @@ function syncSnapshotCollections(targetState = state) {
 
 function syncTrackCollectionMutations(previousSnapshot = {}, targetState = state, changedAt = new Date().toISOString()) {
   const store = syncEnsureTombstoneStore(targetState);
+  const nextSnapshot = {};
   let changed = false;
   SYNC_COLLECTIONS.forEach((collection) => {
     const previous = previousSnapshot?.[collection] instanceof Map ? previousSnapshot[collection] : new Map();
@@ -3325,7 +3337,8 @@ function syncTrackCollectionMutations(previousSnapshot = {}, targetState = state
     const list = Array.isArray(targetState?.[collection]) ? targetState[collection] : [];
     list.forEach((item) => {
       if (!item || typeof item !== "object") return;
-      current.set(syncCollectionKey(item, collection), item);
+      const key = syncCollectionKey(item, collection);
+      current.set(key, { item, signature: syncRecordSignature(item) });
     });
     const tombstones = store.collections[collection] ||= {};
 
@@ -3340,15 +3353,13 @@ function syncTrackCollectionMutations(previousSnapshot = {}, targetState = state
       changed = true;
     });
 
-    current.forEach((item, key) => {
+    current.forEach(({ item, signature }, key) => {
       const before = previous.get(key);
       if (!before) {
         item.updatedAt = changedAt;
         if (tombstones[key]) delete tombstones[key];
         changed = true;
-        return;
-      }
-      if (before.signature !== syncRecordSignature(item)) {
+      } else if (before.signature !== signature) {
         item.updatedAt = changedAt;
         changed = true;
       }
@@ -3358,7 +3369,17 @@ function syncTrackCollectionMutations(previousSnapshot = {}, targetState = state
         changed = true;
       }
     });
+
+    const next = new Map();
+    current.forEach(({ signature }, key) => next.set(key, { signature }));
+    nextSnapshot[collection] = next;
   });
+
+  if (previousSnapshot && typeof previousSnapshot === "object") {
+    SYNC_COLLECTIONS.forEach((collection) => {
+      previousSnapshot[collection] = nextSnapshot[collection] || new Map();
+    });
+  }
   return changed;
 }
 
@@ -3490,11 +3511,12 @@ function installSyncDeletionTracking() {
   globalThis.__metasSyncDeletionTrackingV39 = true;
   const originalSaveData = saveData;
   saveData = function saveDataWithSyncDeletionTracking(...args) {
-    if (syncDeletionTrackingReady && syncDeletionSnapshot && !syncDeletionTrackingSuppressed()) {
+    const canTrackIncrementally = syncDeletionTrackingReady && syncDeletionSnapshot && !syncDeletionTrackingSuppressed();
+    if (canTrackIncrementally) {
       syncTrackCollectionMutations(syncDeletionSnapshot, state);
     }
     const result = originalSaveData.apply(this, args);
-    syncRefreshDeletionSnapshot();
+    if (!canTrackIncrementally) syncRefreshDeletionSnapshot();
     return result;
   };
   const arm = () => {

@@ -14,7 +14,18 @@ function syncComparableValue(value) {
 }
 
 function syncRecordSignature(value) {
-  return JSON.stringify(value ?? null, (key, entry) => SYNC_REVISION_FIELDS.has(key) ? undefined : entry);
+  if (value === null || value === undefined) return "null";
+  if (Array.isArray(value)) {
+    return `[${value.map(syncRecordSignature).sort().join(",")}]`;
+  }
+  if (typeof value === "object") {
+    return `{${Object.keys(value)
+      .filter((key) => !SYNC_REVISION_FIELDS.has(key))
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${syncRecordSignature(value[key])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value);
 }
 
 function syncRecordRevisionTimestamp(value = {}) {

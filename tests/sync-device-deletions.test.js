@@ -117,6 +117,21 @@ test("campos de revisão não alteram a assinatura usada para detectar conteúdo
   assert.equal(sync.syncRecordSignature(before), sync.syncRecordSignature(after));
 });
 
+test("assinatura permanece estável com ordem diferente das propriedades", () => {
+  const sync = loadSyncEngine();
+  const a = { id: "m1", title: "Material", nested: { a: 1, b: 2 } };
+  const b = { nested: { b: 2, a: 1 }, title: "Material", id: "m1" };
+  assert.equal(sync.syncRecordSignature(a), sync.syncRecordSignature(b));
+});
+
+test("assinatura preserva semântica estável de arrays da sincronização", () => {
+  const sync = loadSyncEngine();
+  assert.equal(
+    sync.syncRecordSignature({ id: "m1", tags: ["a", "b"] }),
+    sync.syncRecordSignature({ tags: ["b", "a"], id: "m1" })
+  );
+});
+
 test("arquivos publicados permanecem idênticos e cache usa a versão atual", () => {
   assert.equal(fs.readFileSync("sync-integral-deletions.js", "utf8"), fs.readFileSync("docs/sync-integral-deletions.js", "utf8"));
   assert.equal(fs.readFileSync("sync-integral-state.js", "utf8"), fs.readFileSync("docs/sync-integral-state.js", "utf8"));
