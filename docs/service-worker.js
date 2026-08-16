@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20260816-storage-consistency-v345";
+const CURRENT_VERSION = "20260816-runtime-stability-v349";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const SECURITY_VERSION = "20260810-seguranca-estabilidade-v296";
 const PROTECTION_VERSION = "20260816-storage-consistency-v345";

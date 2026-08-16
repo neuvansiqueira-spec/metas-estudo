@@ -1,6 +1,11 @@
 const SYNC_TOMBSTONE_SCHEMA_VERSION = 1;
 const SYNC_REVISION_FIELDS = new Set(["updatedAt", "modifiedAt", "savedAt", "syncedAt", "_syncUpdatedAt"]);
 const SYNC_APPEND_ONLY_ARRAY_FIELDS = new Set(["history", "historico", "events", "logs", "auditTrail"]);
+const SYNC_POST_SAVE_REFRESH_COLLECTIONS_V349 = new Set(["dailyGoals"]);
+
+let syncPendingDeletionSnapshotV349 = null;
+let syncPendingDeletionShapesV349 = null;
+let syncPendingDeletionStateV349 = null;
 
 function syncComparableValue(value) {
   if (Array.isArray(value)) return value.map(syncComparableValue);
@@ -35,27 +40,51 @@ function syncEnsureTombstoneStore(targetState = state) {
   return targetState.syncTombstones;
 }
 
-function syncSnapshotCollections(targetState = state) {
+function syncSnapshotCollections(targetState = state, collections = SYNC_COLLECTIONS) {
   const snapshot = {};
-  SYNC_COLLECTIONS.forEach((collection) => {
+  collections.forEach((collection) => {
     const map = new Map();
     (Array.isArray(targetState?.[collection]) ? targetState[collection] : []).forEach((item) => {
       if (!item || typeof item !== "object") return;
       const key = syncCollectionKey(item, collection);
-      map.set(key, { record: syncClone(item), signature: syncRecordSignature(item) });
+      map.set(key, { signature: syncRecordSignature(item) });
     });
     snapshot[collection] = map;
   });
   return snapshot;
 }
 
-function syncTrackCollectionMutations(previousSnapshot = {}, targetState = state, changedAt = new Date().toISOString()) {
+function syncCollectionShapeV349(targetState, collection) {
+  const list = Array.isArray(targetState?.[collection]) ? targetState[collection] : null;
+  return { length: list?.length || 0, items: list ? list.slice() : [] };
+}
+
+function syncCollectionEquivalentV349(before, current) {
+  if (!before || !current || before.length !== current.length) return false;
+  for (let index = 0; index < before.items.length; index += 1) {
+    if (before.items[index] !== current[index]) return false;
+  }
+  return true;
+}
+
+function syncTrackCollectionMutations(
+  previousSnapshot = {},
+  targetState = state,
+  changedAt = new Date().toISOString(),
+  nextSnapshot = null
+) {
   const store = syncEnsureTombstoneStore(targetState);
+  const next = nextSnapshot || {};
+  const shapes = nextSnapshot ? null : new Map();
   let changed = false;
+
   SYNC_COLLECTIONS.forEach((collection) => {
     const previous = previousSnapshot?.[collection] instanceof Map ? previousSnapshot[collection] : new Map();
     const current = new Map();
+    const nextMap = new Map();
     const list = Array.isArray(targetState?.[collection]) ? targetState[collection] : [];
+    if (shapes) shapes.set(collection, syncCollectionShapeV349(targetState, collection));
+
     list.forEach((item) => {
       if (!item || typeof item !== "object") return;
       current.set(syncCollectionKey(item, collection), item);
@@ -75,13 +104,12 @@ function syncTrackCollectionMutations(previousSnapshot = {}, targetState = state
 
     current.forEach((item, key) => {
       const before = previous.get(key);
+      const signature = syncRecordSignature(item);
       if (!before) {
         item.updatedAt = changedAt;
         if (tombstones[key]) delete tombstones[key];
         changed = true;
-        return;
-      }
-      if (before.signature !== syncRecordSignature(item)) {
+      } else if (before.signature !== signature) {
         item.updatedAt = changedAt;
         changed = true;
       }
@@ -90,8 +118,16 @@ function syncTrackCollectionMutations(previousSnapshot = {}, targetState = state
         delete tombstones[key];
         changed = true;
       }
+      nextMap.set(key, { signature });
     });
+    next[collection] = nextMap;
   });
+
+  if (!nextSnapshot) {
+    syncPendingDeletionSnapshotV349 = next;
+    syncPendingDeletionShapesV349 = shapes;
+    syncPendingDeletionStateV349 = targetState;
+  }
   return changed;
 }
 
@@ -215,7 +251,23 @@ function syncDeletionTrackingSuppressed() {
 function syncRefreshDeletionSnapshot() {
   if (typeof state === "undefined" || !state) return;
   syncEnsureTombstoneStore(state);
-  syncDeletionSnapshot = syncSnapshotCollections(state);
+
+  if (syncPendingDeletionSnapshotV349 && syncPendingDeletionStateV349 === state && syncPendingDeletionShapesV349) {
+    const refreshCollections = new Set(SYNC_POST_SAVE_REFRESH_COLLECTIONS_V349);
+    SYNC_COLLECTIONS.forEach((collection) => {
+      const before = syncPendingDeletionShapesV349.get(collection);
+      const current = Array.isArray(state?.[collection]) ? state[collection] : null;
+      if (!syncCollectionEquivalentV349(before, current)) refreshCollections.add(collection);
+    });
+    Object.assign(syncPendingDeletionSnapshotV349, syncSnapshotCollections(state, [...refreshCollections]));
+    syncDeletionSnapshot = syncPendingDeletionSnapshotV349;
+  } else {
+    syncDeletionSnapshot = syncSnapshotCollections(state);
+  }
+
+  syncPendingDeletionSnapshotV349 = null;
+  syncPendingDeletionShapesV349 = null;
+  syncPendingDeletionStateV349 = null;
 }
 
 function installSyncDeletionTracking() {
@@ -241,5 +293,16 @@ function installSyncDeletionTracking() {
     arm();
   }
 }
+
+Object.defineProperty(globalThis, "__aldusSyncSavePerformanceV348", {
+  value: Object.freeze({
+    version: "20260816-runtime-stability-v349",
+    integrated: true,
+    postSaveRefreshCollections: [...SYNC_POST_SAVE_REFRESH_COLLECTIONS_V349]
+  }),
+  configurable: true,
+  enumerable: false,
+  writable: false
+});
 
 installSyncDeletionTracking();

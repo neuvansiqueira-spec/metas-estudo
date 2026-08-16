@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260816-storage-consistency-v345";
+  const VERSION = "20260816-runtime-stability-v349";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -3268,6 +3268,11 @@ installSavedTimerTotalsStartupRecovery();
 const SYNC_TOMBSTONE_SCHEMA_VERSION = 1;
 const SYNC_REVISION_FIELDS = new Set(["updatedAt", "modifiedAt", "savedAt", "syncedAt", "_syncUpdatedAt"]);
 const SYNC_APPEND_ONLY_ARRAY_FIELDS = new Set(["history", "historico", "events", "logs", "auditTrail"]);
+const SYNC_POST_SAVE_REFRESH_COLLECTIONS_V349 = new Set(["dailyGoals"]);
+
+let syncPendingDeletionSnapshotV349 = null;
+let syncPendingDeletionShapesV349 = null;
+let syncPendingDeletionStateV349 = null;
 
 function syncComparableValue(value) {
   if (Array.isArray(value)) return value.map(syncComparableValue);
@@ -3302,27 +3307,51 @@ function syncEnsureTombstoneStore(targetState = state) {
   return targetState.syncTombstones;
 }
 
-function syncSnapshotCollections(targetState = state) {
+function syncSnapshotCollections(targetState = state, collections = SYNC_COLLECTIONS) {
   const snapshot = {};
-  SYNC_COLLECTIONS.forEach((collection) => {
+  collections.forEach((collection) => {
     const map = new Map();
     (Array.isArray(targetState?.[collection]) ? targetState[collection] : []).forEach((item) => {
       if (!item || typeof item !== "object") return;
       const key = syncCollectionKey(item, collection);
-      map.set(key, { record: syncClone(item), signature: syncRecordSignature(item) });
+      map.set(key, { signature: syncRecordSignature(item) });
     });
     snapshot[collection] = map;
   });
   return snapshot;
 }
 
-function syncTrackCollectionMutations(previousSnapshot = {}, targetState = state, changedAt = new Date().toISOString()) {
+function syncCollectionShapeV349(targetState, collection) {
+  const list = Array.isArray(targetState?.[collection]) ? targetState[collection] : null;
+  return { length: list?.length || 0, items: list ? list.slice() : [] };
+}
+
+function syncCollectionEquivalentV349(before, current) {
+  if (!before || !current || before.length !== current.length) return false;
+  for (let index = 0; index < before.items.length; index += 1) {
+    if (before.items[index] !== current[index]) return false;
+  }
+  return true;
+}
+
+function syncTrackCollectionMutations(
+  previousSnapshot = {},
+  targetState = state,
+  changedAt = new Date().toISOString(),
+  nextSnapshot = null
+) {
   const store = syncEnsureTombstoneStore(targetState);
+  const next = nextSnapshot || {};
+  const shapes = nextSnapshot ? null : new Map();
   let changed = false;
+
   SYNC_COLLECTIONS.forEach((collection) => {
     const previous = previousSnapshot?.[collection] instanceof Map ? previousSnapshot[collection] : new Map();
     const current = new Map();
+    const nextMap = new Map();
     const list = Array.isArray(targetState?.[collection]) ? targetState[collection] : [];
+    if (shapes) shapes.set(collection, syncCollectionShapeV349(targetState, collection));
+
     list.forEach((item) => {
       if (!item || typeof item !== "object") return;
       current.set(syncCollectionKey(item, collection), item);
@@ -3342,13 +3371,12 @@ function syncTrackCollectionMutations(previousSnapshot = {}, targetState = state
 
     current.forEach((item, key) => {
       const before = previous.get(key);
+      const signature = syncRecordSignature(item);
       if (!before) {
         item.updatedAt = changedAt;
         if (tombstones[key]) delete tombstones[key];
         changed = true;
-        return;
-      }
-      if (before.signature !== syncRecordSignature(item)) {
+      } else if (before.signature !== signature) {
         item.updatedAt = changedAt;
         changed = true;
       }
@@ -3357,8 +3385,16 @@ function syncTrackCollectionMutations(previousSnapshot = {}, targetState = state
         delete tombstones[key];
         changed = true;
       }
+      nextMap.set(key, { signature });
     });
+    next[collection] = nextMap;
   });
+
+  if (!nextSnapshot) {
+    syncPendingDeletionSnapshotV349 = next;
+    syncPendingDeletionShapesV349 = shapes;
+    syncPendingDeletionStateV349 = targetState;
+  }
   return changed;
 }
 
@@ -3482,7 +3518,23 @@ function syncDeletionTrackingSuppressed() {
 function syncRefreshDeletionSnapshot() {
   if (typeof state === "undefined" || !state) return;
   syncEnsureTombstoneStore(state);
-  syncDeletionSnapshot = syncSnapshotCollections(state);
+
+  if (syncPendingDeletionSnapshotV349 && syncPendingDeletionStateV349 === state && syncPendingDeletionShapesV349) {
+    const refreshCollections = new Set(SYNC_POST_SAVE_REFRESH_COLLECTIONS_V349);
+    SYNC_COLLECTIONS.forEach((collection) => {
+      const before = syncPendingDeletionShapesV349.get(collection);
+      const current = Array.isArray(state?.[collection]) ? state[collection] : null;
+      if (!syncCollectionEquivalentV349(before, current)) refreshCollections.add(collection);
+    });
+    Object.assign(syncPendingDeletionSnapshotV349, syncSnapshotCollections(state, [...refreshCollections]));
+    syncDeletionSnapshot = syncPendingDeletionSnapshotV349;
+  } else {
+    syncDeletionSnapshot = syncSnapshotCollections(state);
+  }
+
+  syncPendingDeletionSnapshotV349 = null;
+  syncPendingDeletionShapesV349 = null;
+  syncPendingDeletionStateV349 = null;
 }
 
 function installSyncDeletionTracking() {
@@ -3508,6 +3560,17 @@ function installSyncDeletionTracking() {
     arm();
   }
 }
+
+Object.defineProperty(globalThis, "__aldusSyncSavePerformanceV348", {
+  value: Object.freeze({
+    version: "20260816-runtime-stability-v349",
+    integrated: true,
+    postSaveRefreshCollections: [...SYNC_POST_SAVE_REFRESH_COLLECTIONS_V349]
+  }),
+  configurable: true,
+  enumerable: false,
+  writable: false
+});
 
 installSyncDeletionTracking();
 
@@ -50299,7 +50362,159 @@ document.addEventListener("keydown", (event) => {
 })();
 
 /* Aldus source: factory-destination-recursive-v232.js */
-/* Vinculação recursiva e exata das pastas de destino da Fábrica de Resumos — v232. */
+/* Compatibilidade V349 das prioridades históricas com o catálogo atual do edital. */
+(() => {
+  "use strict";
+
+  const VERSION = "20260816-runtime-stability-v349";
+  const HINTS = Object.freeze({
+    "police-inquiry-archiving": { terms: ["arquivamento", "inquerito", "policial"] },
+    "law-12850-obstruction": { law: "12850", terms: ["obstrucao", "investigacao", "organizacao", "criminosa"] },
+    "law-9605-environmental": { law: "9605", terms: ["crime", "ambiental", "pericia"] },
+    "law-8072-heinous": { law: "8072", terms: ["hediondo"] },
+    "law-14133-procurement": { law: "14133", terms: ["licitacao", "contratacao", "agente"] },
+    "human-rights-global-system": { terms: ["sistema", "global", "protecao", "direitos", "humanos"] }
+  });
+  const STOP_WORDS = new Set(["a", "ao", "aos", "as", "com", "da", "das", "de", "do", "dos", "e", "em", "na", "nas", "no", "nos", "o", "os", "para", "por", "lei", "leis", "direito", "direitos"]);
+
+  if (typeof seedInitialWrongTopicsV155 !== "function"
+      || typeof planningPrioritySignalsV155 !== "function"
+      || typeof INITIAL_WRONG_TOPICS_V155 === "undefined") return;
+
+  function normalizeText(value = "") {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[º°ª]/g, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function compactDigits(value = "") {
+    return String(value || "").replace(/\D+/g, "");
+  }
+
+  function itemText(item = {}) {
+    return [
+      item.discipline, item.disciplina, item.subject, item.assunto, item.topic, item.topico,
+      item.subtopic, item.subtema, item.reference, item.referencia, item.notes, item.observacoes
+    ].filter(Boolean).join(" ");
+  }
+
+  function tokens(value = "") {
+    return new Set(normalizeText(value).split(" ").filter((token) => token.length > 2 && !STOP_WORDS.has(token)));
+  }
+
+  function scoreCandidate(entry, item) {
+    const candidateRaw = itemText(item);
+    const candidate = normalizeText(candidateRaw);
+    const label = normalizeText(entry.label);
+    if (!candidate) return -Infinity;
+
+    const hint = HINTS[entry.key] || {};
+    if (hint.law && !compactDigits(candidateRaw).includes(hint.law)) return -Infinity;
+
+    let score = hint.law ? 95 : 0;
+    if (candidate === label) score += 220;
+    else if (candidate.includes(label) || label.includes(candidate)) score += 145;
+
+    const labelTokens = tokens(entry.label);
+    const candidateTokens = tokens(candidateRaw);
+    let overlap = 0;
+    labelTokens.forEach((token) => { if (candidateTokens.has(token)) overlap += 1; });
+    if (labelTokens.size) score += (overlap / labelTokens.size) * 100;
+
+    const hintTerms = Array.isArray(hint.terms) ? hint.terms : [];
+    let hintMatches = 0;
+    hintTerms.forEach((term) => { if (candidate.includes(normalizeText(term))) hintMatches += 1; });
+    score += hintMatches * 28;
+
+    if (hint.law && hintTerms.length && hintMatches === 0) score -= 35;
+    return score;
+  }
+
+  function resolveCurrentItem(targetState, entry, signals) {
+    const items = (targetState.syllabusItems || []).filter((item) => item?.id && !item.legacyOnly && !item.hiddenFromCatalog && item.status !== "Ignorado");
+    const direct = items.find((item) => item.id === entry.syllabusItemId);
+    if (direct) return { item: direct, reason: "historical-id", score: Infinity };
+
+    const signalId = signals?.[entry.key]?.syllabusItemId || "";
+    const signaled = signalId && items.find((item) => item.id === signalId);
+    if (signaled) return { item: signaled, reason: "current-signal-id", score: Infinity };
+
+    const ranked = items
+      .map((item) => ({ item, score: scoreCandidate(entry, item) }))
+      .filter((candidate) => Number.isFinite(candidate.score))
+      .sort((left, right) => right.score - left.score || String(left.item.id).localeCompare(String(right.item.id)));
+    const best = ranked[0];
+    const second = ranked[1];
+    if (!best || best.score < 105) return null;
+    if (second && best.score < 180 && best.score - second.score < 12) return null;
+    return { ...best, reason: "catalog-match" };
+  }
+
+  seedInitialWrongTopicsV155 = function seedInitialWrongTopicsCompatV349(targetState = state) {
+    const signals = planningPrioritySignalsV155(targetState);
+    const inserted = [];
+    const resolved = [];
+    const unavailable = [];
+
+    INITIAL_WRONG_TOPICS_V155.forEach((entry) => {
+      const match = resolveCurrentItem(targetState, entry, signals);
+      if (!match?.item) {
+        unavailable.push(entry);
+        return;
+      }
+
+      const currentSignal = signals[entry.key];
+      if (!currentSignal) {
+        signals[entry.key] = {
+          syllabusItemId: match.item.id,
+          label: entry.label,
+          wrong: 1,
+          correct: 0,
+          source: "simulado-informado-2026-07-26",
+          createdAt: "2026-07-26T00:00:00.000-03:00",
+          legacySyllabusItemId: match.item.id === entry.syllabusItemId ? "" : entry.syllabusItemId,
+          resolvedBy: match.reason === "historical-id" ? "historical-id" : VERSION
+        };
+        inserted.push({ ...entry, resolvedSyllabusItemId: match.item.id, reason: match.reason });
+        return;
+      }
+
+      if (currentSignal.syllabusItemId !== match.item.id) {
+        signals[entry.key] = {
+          ...currentSignal,
+          syllabusItemId: match.item.id,
+          legacySyllabusItemId: currentSignal.legacySyllabusItemId || currentSignal.syllabusItemId || entry.syllabusItemId,
+          resolvedBy: VERSION,
+          resolvedAt: new Date().toISOString()
+        };
+        resolved.push({ ...entry, previousSyllabusItemId: currentSignal.syllabusItemId || "", resolvedSyllabusItemId: match.item.id, reason: match.reason });
+      }
+    });
+
+    const unavailableKeys = unavailable.map((entry) => entry.key).sort();
+    const previousUnavailable = globalThis.__aldusPlanningPriorityCompatV349?.unavailableKeys || [];
+    if (unavailableKeys.join("|") !== previousUnavailable.join("|") && unavailableKeys.length) {
+      console.warn("[Metas Estudo] Prioridades históricas sem correspondente atual foram ignoradas sem bloquear o planejamento.", unavailableKeys);
+    }
+
+    globalThis.__aldusPlanningPriorityCompatV349 = Object.freeze({
+      version: VERSION,
+      inserted: inserted.map((entry) => entry.key),
+      resolved: resolved.map((entry) => entry.key),
+      unavailableKeys,
+      appliedAt: new Date().toISOString()
+    });
+
+    return { inserted, resolved, unavailable, missing: [], signals };
+  };
+})();
+
+/* Vinculação recursiva e exata das pastas de destino da Fábrica de Resumos — v232, estabilizada pela V349. */
 (() => {
   "use strict";
 
@@ -50413,6 +50628,42 @@ document.addEventListener("keydown", (event) => {
 
   function driveFolderUrl(id) {
     return `https://drive.google.com/drive/folders/${id}`;
+  }
+
+  function clearManagedMetadata(item) {
+    let changed = false;
+    [
+      "factoryDestinationFolderCatalogVersion",
+      "factoryDestinationFolderCatalogKey",
+      "factoryDestinationFolderMatchType",
+      "factoryDestinationFolderMatchTitle",
+      "factoryDestinationFolderMatchScore",
+      "factoryDestinationFolderMatchedAt",
+      "factoryDestinationFolderMatchPath",
+      "factoryDestinationFolderMatchId"
+    ].forEach((key) => {
+      if (Object.prototype.hasOwnProperty.call(item, key)) {
+        delete item[key];
+        changed = true;
+      }
+    });
+    return changed;
+  }
+
+  function isManualDestinationV349(item = {}, existing = existingDestination(item)) {
+    if (!existing) return false;
+    if (item.factoryDestinationFolderManual === true) return true;
+    if (!isManagedDestination(item)) return true;
+    const matchId = String(item.factoryDestinationFolderMatchId || "").trim();
+    if (matchId && existing !== driveFolderUrl(matchId)) return true;
+    return false;
+  }
+
+  function markManualDestinationV349(item) {
+    let changed = item.factoryDestinationFolderManual !== true;
+    item.factoryDestinationFolderManual = true;
+    if (clearManagedMetadata(item)) changed = true;
+    return changed;
   }
 
   function normalizeFolderRecord(folder = {}) {
@@ -50588,22 +50839,21 @@ document.addEventListener("keydown", (event) => {
 
   function clearManagedFields(item) {
     delete item.factoryDestinationFolder;
-    delete item.factoryDestinationFolderCatalogVersion;
-    delete item.factoryDestinationFolderCatalogKey;
-    delete item.factoryDestinationFolderMatchType;
-    delete item.factoryDestinationFolderMatchTitle;
-    delete item.factoryDestinationFolderMatchScore;
-    delete item.factoryDestinationFolderMatchedAt;
-    delete item.factoryDestinationFolderMatchPath;
-    delete item.factoryDestinationFolderMatchId;
+    delete item.factoryDestinationFolderManual;
+    clearManagedMetadata(item);
   }
 
   function applyToItem(item, tree, options = {}) {
     if (!item || typeof item !== "object") return { changed: false, status: "invalid" };
     const existing = existingDestination(item);
-    const managed = isManagedDestination(item);
-    const preserveExisting = Boolean(existing && !managed && options.preserveExisting === true);
-    if (preserveExisting) return { changed: false, status: "manual-preserved", url: existing };
+    const manual = isManualDestinationV349(item, existing);
+    if (manual) {
+      const changed = markManualDestinationV349(item);
+      return { changed, status: "manual-preserved", url: existing };
+    }
+    if (existing && options.preserveExisting === true) {
+      return { changed: false, status: "manual-preserved", url: existing };
+    }
 
     const disciplineMatch = resolveDiscipline(item, tree);
     const topicMatch = disciplineMatch ? resolveTopic(item, tree, disciplineMatch) : null;
@@ -50636,6 +50886,7 @@ document.addEventListener("keydown", (event) => {
       item.factoryDestinationFolderReplacedAt = new Date().toISOString();
       item.factoryDestinationFolderReplacementReason = "tema-especifico-recursivo";
     }
+    delete item.factoryDestinationFolderManual;
     item.factoryDestinationFolder = destinationUrl;
     item[MANAGED_VERSION_FIELD] = VERSION;
     item.factoryDestinationFolderCatalogKey = catalogKey;
@@ -53227,46 +53478,9 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
 
   const SOURCE_FOLDER = "https://drive.google.com/drive/folders/1ECc_otgQKwH7WfPdQr8CtD0kB07pz9Xe";
   const MIGRATION_ID = "factoryJurisprudenciaFonteCoberturaV332";
-  const BASE_PROMPT = String(defaultFactoryPromptLibrary?.jurisprudencia || "").trim();
-
-  const OLD_SOURCE_BLOCK = `## ESCOPO DO MÓDULO
-
-USE APENAS AS FONTES CLASSIFICADAS COMO JURISPRUDÊNCIA NA TRIAGEM.
-
-RESPEITE A DISCIPLINA, O TEMA E O RECORTE TEMÁTICO INFORMADOS.
-
-SE O RECORTE TEMÁTICO ESTIVER AUSENTE OU IMPRECISO, INTERROMPA A GERAÇÃO E SOLICITE CONFIRMAÇÃO.
-
-TRIBUNAL E PERÍODO SOMENTE DEVEM SER LIMITADOS QUANDO EXPRESSAMENTE INDICADOS.
-
-NÃO GERAR MÓDULO RESUMO/AULA, LEI, PEÇA OU CONSOLIDAÇÃO FINAL.
-
-NÃO INSERIR PCDF, BANCA, CONCURSO, PROFESSORA, CURSO OU TURMA.
-
-## VALIDAÇÃO OBRIGATÓRIA DAS FONTES
-
-ANTES DE AFIRMAR QUE NÃO EXISTE JURISPRUDÊNCIA:
-
-1. RECUPERE INTEGRALMENTE O RESULTADO DA TRIAGEM.
-2. IDENTIFIQUE TODAS AS FONTES CLASSIFICADAS COMO JURISPRUDÊNCIA.
-3. ABRA E EXAMINE INDIVIDUALMENTE CADA FONTE APROVADA.
-4. PROCURE JULGADOS, SÚMULAS, TEMAS, REPETITIVOS, INFORMATIVOS E TESES NO CONTEÚDO, E NÃO APENAS NO NOME DO ARQUIVO.
-5. NÃO CONFUNDA AUSÊNCIA DE INFORMATIVO, SÚMULA OU TEMA NUMERADO COM AUSÊNCIA DE JURISPRUDÊNCIA.
-6. NÃO CONCLUA PELA INEXISTÊNCIA COM BASE EM LEITURA PARCIAL, RESULTADO VAZIO INICIAL, FALHA DE INDEXAÇÃO OU FALHA DE ACESSO.
-7. REEXAMINE AS FONTES UMA SEGUNDA VEZ QUANDO A TRIAGEM INDICAR EXISTÊNCIA, SUFICIÊNCIA OU CONTEÚDO JURISPRUDENCIAL.
-
-SE A TRIAGEM NÃO PUDER SER RECUPERADA, INFORME:
-“NÃO FOI POSSÍVEL RECUPERAR A CLASSIFICAÇÃO DA TRIAGEM.”
-
-SE ALGUMA FONTE APROVADA ESTIVER INACESSÍVEL, INFORME:
-“A EXISTÊNCIA DE JURISPRUDÊNCIA NÃO PÔDE SER VERIFICADA INTEGRALMENTE, POIS HÁ FONTES INACESSÍVEIS.”
-
-SOMENTE DECLARE “NÃO HÁ JURISPRUDÊNCIA” DEPOIS DE EXAMINAR INTEGRALMENTE TODAS AS FONTES APROVADAS E CONFIRMAR QUE NENHUMA CONTÉM MATERIAL PERTINENTE AO RECORTE.
-
-ANTES DESSA CONCLUSÃO NEGATIVA, REGISTRE INTERNAMENTE:
-* QUANTIDADE DE FONTES CLASSIFICADAS COMO JURISPRUDÊNCIA;
-* QUANTIDADE EFETIVAMENTE ABERTA E EXAMINADA;
-* QUANTIDADE DE PRECEDENTES, SÚMULAS, TEMAS, REPETITIVOS, INFORMATIVOS OU TESES LOCALIZADOS.`;
+  const VERSION = "20260816-runtime-stability-v349";
+  const SCOPE_MARKER = "## ESCOPO DO MÓDULO";
+  const NEXT_SECTION_MARKER = "## OBJETIVO";
 
   const NEW_SOURCE_BLOCK = `## ESCOPO DO MÓDULO
 
@@ -53317,19 +53531,25 @@ ANTES DESSA CONCLUSÃO NEGATIVA, REGISTRE INTERNAMENTE:
   const OLD_REVIEW_SOURCE = "* TODAS AS FONTES APROVADAS NA TRIAGEM FORAM ABERTAS E EXAMINADAS?";
   const NEW_REVIEW_SOURCE = "* A PASTA JURISPRUDENCIAL EXCLUSIVA, AS SUBPASTAS “JULGADOS STF RESUMIDOS” E “JULGADOS STJ RESUMIDOS” E TODOS OS ARQUIVOS CANDIDATOS ACESSÍVEIS FORAM PERCORRIDOS E EXAMINADOS?";
 
-  const PROMPT = BASE_PROMPT
-    .replace(OLD_SOURCE_BLOCK, NEW_SOURCE_BLOCK)
-    .replace(OLD_FIDELITY_SOURCE, NEW_FIDELITY_SOURCE)
-    .replace(OLD_REVIEW_SOURCE, NEW_REVIEW_SOURCE);
+  function buildPrompt(basePrompt) {
+    const base = String(basePrompt || "").trim();
+    if (!base) return { ok: false, prompt: "", reason: "empty-base" };
 
-  if (!BASE_PROMPT.includes(OLD_SOURCE_BLOCK) || PROMPT === BASE_PROMPT) {
-    console.error("[Aldus] A V332 não localizou o bloco de fontes do prompt topificado V231.");
-    return;
+    const start = base.indexOf(SCOPE_MARKER);
+    const end = start >= 0 ? base.indexOf(NEXT_SECTION_MARKER, start + SCOPE_MARKER.length) : -1;
+    if (start < 0 || end < 0) return { ok: false, prompt: base, reason: "scope-boundary-not-found" };
+
+    let prompt = `${base.slice(0, start)}${NEW_SOURCE_BLOCK}\n\n${base.slice(end)}`.trim();
+    prompt = prompt
+      .replace(OLD_FIDELITY_SOURCE, NEW_FIDELITY_SOURCE)
+      .replace(OLD_REVIEW_SOURCE, NEW_REVIEW_SOURCE);
+
+    return { ok: true, prompt, reason: prompt === base ? "already-current" : "migrated" };
   }
 
-  function isOfficialPreviousPrompt(value) {
+  function isOfficialPreviousPrompt(value, basePrompt, prompt) {
     const text = String(value || "").trim();
-    if (!text || text === FACTORY_LIBRARY_FALLBACK || text === BASE_PROMPT || text === PROMPT) return true;
+    if (!text || text === FACTORY_LIBRARY_FALLBACK || text === basePrompt || text === prompt) return true;
     const isV231 = text.includes("TRANSFORME JURISPRUDÊNCIAS EM MAPA MENTAL HIERÁRQUICO DE PALAVRAS-CHAVE")
       && text.includes("## FORMATO OBRIGATÓRIO")
       && text.includes("## ENTREGA EM WORD");
@@ -53341,31 +53561,48 @@ ANTES DESSA CONCLUSÃO NEGATIVA, REGISTRE INTERNAMENTE:
   function install() {
     if (typeof defaultFactoryPromptLibrary === "undefined" || typeof state === "undefined") return;
 
-    defaultFactoryPromptLibrary.jurisprudencia = PROMPT;
-    state.migrations = state.migrations || {};
-    state.factoryPromptLibrary = state.factoryPromptLibrary || {};
-    state.factoryPromptLibraryBackups = state.factoryPromptLibraryBackups || {};
+    const basePrompt = String(defaultFactoryPromptLibrary?.jurisprudencia || "").trim();
+    const built = buildPrompt(basePrompt);
+    if (!built.ok) {
+      console.warn("[Aldus V349] O prompt de jurisprudência foi preservado porque sua estrutura não corresponde ao modelo oficial conhecido.", built.reason);
+      return;
+    }
+    const prompt = built.prompt;
+
+    state.migrations ||= {};
+    state.factoryPromptLibrary ||= {};
+    state.factoryPromptLibraryBackups ||= {};
+    let changed = defaultFactoryPromptLibrary.jurisprudencia !== prompt;
+    defaultFactoryPromptLibrary.jurisprudencia = prompt;
 
     const current = String(state.factoryPromptLibrary.jurisprudencia || "").trim();
-    if (isOfficialPreviousPrompt(current)) {
-      if (current && current !== PROMPT && current !== FACTORY_LIBRARY_FALLBACK) {
+    if (isOfficialPreviousPrompt(current, basePrompt, prompt)) {
+      if (current && current !== prompt && current !== FACTORY_LIBRARY_FALLBACK) {
         state.factoryPromptLibraryBackups.jurisprudenciaBeforeV332 = current;
       }
-      state.factoryPromptLibrary.jurisprudencia = PROMPT;
+      if (current !== prompt) changed = true;
+      state.factoryPromptLibrary.jurisprudencia = prompt;
     }
 
+    if (state.migrations[MIGRATION_ID] !== true) changed = true;
     state.migrations[MIGRATION_ID] = true;
     state.factoryPromptLibrary = normalizeFactoryPromptLibrary(state.factoryPromptLibrary);
-    if (typeof saveData === "function") saveData();
+    if (changed && typeof saveData === "function") saveData();
 
     const previousPromptBase = factoryPromptBase;
-    factoryPromptBase = function factoryPromptBaseV332(type) {
+    factoryPromptBase = function factoryPromptBaseV349(type) {
       if (type !== "jurisprudencia") return previousPromptBase(type);
       const text = String(state.factoryPromptLibrary?.jurisprudencia || "").trim();
-      return text || PROMPT;
+      return text || prompt;
     };
 
-    console.info("[Aldus Meta] Prompt topificado de jurisprudência V332 ativo.");
+    globalThis.__aldusFactoryJurisprudenciaV349 = Object.freeze({
+      version: VERSION,
+      sourceFolder: SOURCE_FOLDER,
+      migration: built.reason,
+      appliedAt: new Date().toISOString()
+    });
+    console.info("[Aldus Meta] Prompt de jurisprudência V349 ativo.");
   }
 
   if (window.__aldusBootstrapReady) install();
@@ -62184,16 +62421,87 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
     if (typeof qbRenderErrorNotebook === "function") qbRenderErrorNotebook();
   }
 
-  function persistRepair() {
-    if (typeof saveData !== "function") throw new Error("O salvamento principal do site não está disponível.");
-    saveData({ markLocalChange:true });
+  function mergeNotebookSnapshot(targetState, entries = []) {
+    targetState.questionErrorNotebook ||= [];
+    const byId = new Map(targetState.questionErrorNotebook.map((entry) => [String(entry?.id || ""), entry]));
+    entries.forEach((entry) => {
+      const id = String(entry?.id || "");
+      if (!id) return;
+      const existing = byId.get(id);
+      if (!existing) {
+        const copy = JSON.parse(JSON.stringify(entry));
+        targetState.questionErrorNotebook.unshift(copy);
+        byId.set(id, copy);
+        return;
+      }
+      const previousErrors = Number(existing.quantidadeErros) || 0;
+      Object.assign(existing, JSON.parse(JSON.stringify(entry)));
+      existing.quantidadeErros = Math.max(previousErrors, Number(entry.quantidadeErros) || 0);
+    });
   }
 
-  function integrateExam(exam) {
+  function applyIntegratedPayloadLocally(targetState, payload, result = {}) {
+    ensureCollections(targetState);
+    ensureBankQuestions(targetState, payload.bankQuestions);
+
+    if (!hasIntegratedSession(targetState, payload.sessionId) && payload.session) {
+      targetState.questionBankSessions.unshift(payload.session);
+    }
+
+    const logIds = new Set(targetState.questionLogs.map((log) => log.id));
+    payload.questionLogs.filter((log) => !logIds.has(log.id)).forEach((log) => targetState.questionLogs.push(log));
+
+    if (payload.mock && !targetState.simulados.some((mock) => mock.id === payload.mock.id)) {
+      targetState.simulados.push(payload.mock);
+    }
+
+    mergeNotebookSnapshot(targetState, result.notebookEntries || []);
+  }
+
+  function persistRepair() {
+    if (typeof saveData !== "function") throw new Error("O salvamento principal do site não está disponível.");
+    const saved = saveData({ markLocalChange:true });
+    if (saved === false) throw new Error("A aba atual não possui autorização para gravar o estado geral.");
+    return saved;
+  }
+
+  async function integrateExam(exam) {
     if (typeof state === "undefined" || !state) throw new Error("O banco de dados do site ainda não está disponível.");
     const payload = buildIntegrationPayload(exam);
-    ensureCollections(state);
+    const concurrency = globalThis.AldusStorageConcurrencyV345;
 
+    if (concurrency?.commitSimulationState) {
+      const result = await concurrency.commitSimulationState(payload);
+      if (!result?.durable) {
+        throw new Error(`O resultado do simulado ainda não foi confirmado no armazenamento (${result?.reason || "falha desconhecida"}).`);
+      }
+
+      applyIntegratedPayloadLocally(state, payload, result);
+      renderAfterIntegration({ full: !result.alreadyIntegrated || Number(result.repairedQuestions) > 0 });
+
+      const repairedQuestions = Number(result.repairedQuestions) || 0;
+      const alreadyIntegrated = Boolean(result.alreadyIntegrated);
+      const repaired = alreadyIntegrated && repairedQuestions > 0;
+      const notebookAdded = Array.isArray(result.notebookEntries) ? result.notebookEntries.length : 0;
+      const message = alreadyIntegrated
+        ? (repaired
+            ? `Integração reparada: ${repairedQuestions} questão(ões) ausente(s) foram restauradas no Banco de Questões sem duplicar o resultado.`
+            : "Este simulado já estava integralmente integrado; nenhum dado foi duplicado.")
+        : `${repairedQuestions} questão(ões) e o resultado foram integrados ao site.`;
+
+      return {
+        alreadyIntegrated,
+        repaired,
+        sessionId:payload.sessionId,
+        newQuestions:repairedQuestions,
+        sessionsAdded:Number(result.sessionsAdded) || 0,
+        logsAdded:Number(result.logsAdded) || 0,
+        notebookAdded,
+        message
+      };
+    }
+
+    ensureCollections(state);
     const sessionAlreadyIntegrated = hasIntegratedSession(state, payload.sessionId);
     const repairedQuestions = ensureBankQuestions(state, payload.bankQuestions);
 
@@ -62261,7 +62569,7 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
     }
   }
 
-  function repairStoredExams() {
+  async function repairStoredExams() {
     if (typeof state === "undefined" || !state || typeof saveData !== "function") {
       return { available:false, checked:0, repairedExams:0, repairedQuestions:0, errors:0 };
     }
@@ -62269,9 +62577,9 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
     let repairedExams = 0;
     let repairedQuestions = 0;
     let errors = 0;
-    exams.forEach((exam) => {
+    for (const exam of exams) {
       try {
-        const result = integrateExam(exam);
+        const result = await integrateExam(exam);
         if (result?.repaired || (!result?.alreadyIntegrated && Number(result?.newQuestions) > 0)) {
           repairedExams += 1;
           repairedQuestions += Number(result.newQuestions) || 0;
@@ -62280,7 +62588,7 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
         errors += 1;
         console.warn(`[${VERSION}] Falha ao verificar o simulado ${exam?.id || "sem-id"}.`, error);
       }
-    });
+    }
     const report = { available:true, checked:exams.length, repairedExams, repairedQuestions, errors };
     if (repairedQuestions > 0) console.info(`[${VERSION}] Reparo automático concluído.`, report);
     return report;
@@ -62291,8 +62599,8 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
     const delays = [0, 600, 1800, 4000];
     delays.forEach((delay) => {
       setTimeout(() => {
-        try { repairStoredExams(); }
-        catch (error) { console.warn(`[${VERSION}] Verificação automática adiada.`, error); }
+        Promise.resolve(repairStoredExams())
+          .catch((error) => console.warn(`[${VERSION}] Verificação automática adiada.`, error));
       }, delay);
     });
   }
