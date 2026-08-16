@@ -19,6 +19,12 @@ function replaceRequired(source, search, replacement, label) {
 const packageJson = JSON.parse(read("package.json"));
 packageJson.version = VERSION;
 write("package.json", `${JSON.stringify(packageJson, null, 2)}\n`);
+if (fs.existsSync("package-lock.json")) {
+  const lock = JSON.parse(read("package-lock.json"));
+  lock.version = VERSION;
+  if (lock.packages?.[""]) lock.packages[""].version = VERSION;
+  write("package-lock.json", `${JSON.stringify(lock, null, 2)}\n`);
+}
 
 let script = read("script.js");
 
