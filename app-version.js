@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260815-recupera-interacao-dashboard-v341";
+  const VERSION = "20260815-interacao-responsiva-v344";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

@@ -29,9 +29,12 @@ test("troca de tela libera a navegação antes da renderização pesada", () => 
       showView.indexOf("scheduleViewRenderAfterPaintV170(target)")
   );
   assert.match(showView, /options\.immediateRender/);
-  assert.match(scheduler, /requestAnimationFrame\(\(\) => setTimeout\(run, 0\)\)/);
-  assert.match(scheduler, /token !== pendingViewRenderTokenV170/);
-  assert.match(scheduler, /dataset\.activeView !== target/);
+  assert.match(scheduler, /requestAnimationFrame\(afterFirstPaint\)/);
+  assert.match(scheduler, /requestAnimationFrame\(queueIdle\)/);
+  assert.match(scheduler, /requestIdleCallback\(runWhenIdle/);
+  assert.match(scheduler, /shouldKeepYieldingToInputV344/);
+  assert.match(scheduler, /token === pendingViewRenderTokenV170/);
+  assert.match(scheduler, /dataset\.activeView === target/);
 });
 
 test("bootstrap continua renderizando os dados antes de declarar o núcleo pronto", () => {

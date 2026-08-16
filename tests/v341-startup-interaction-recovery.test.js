@@ -41,10 +41,11 @@ test("V341 mantém o controle de privacidade compacto", () => {
   assert.match(telemetry, /max-width:max-content/);
 });
 
-test("V341 renova o cache e os artefatos da versão pública", () => {
+test("release pública preserva a recuperação da V341 e sincroniza cache", () => {
   const version = JSON.parse(read("package.json")).version;
+  const suffix = version.match(/v\d+$/)?.[0];
 
-  assert.match(version, /-v341$/);
+  assert.ok(suffix, "a versão pública deve terminar em vN");
   assert.match(read("service-worker.js"), new RegExp(`const CURRENT_VERSION = "${version}"`));
-  assert.match(read("bootstrap-integrity-loader-v258-core.js"), new RegExp(`app-v341\\.js\\?v=${version}`));
+  assert.match(read("bootstrap-integrity-loader-v258-core.js"), new RegExp(`app-${suffix}\\.js\\?v=${version}`));
 });
