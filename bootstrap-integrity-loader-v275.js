@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260815-bootstrap-performance-v342";
-  const CORE_SCRIPT = `bootstrap-integrity-loader-v258-core.js?v=${VERSION}`;
+  const VERSION = "20260816-storage-consistency-v345";
+  const CORE_SCRIPT = `bootstrap-integrity-loader-v345-core.js?v=${VERSION}`;
   const DIAGNOSTICS_SCRIPT = `duplicate-diagnostics-v260.js?v=${VERSION}`;
   const DIAGNOSTICS_STYLESHEET = `duplicate-diagnostics-v260.css?v=${VERSION}`;
   const RECOVERY_SCRIPT = `recovery-safety-v275.js?v=${VERSION}`;

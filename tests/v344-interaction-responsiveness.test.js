@@ -61,14 +61,18 @@ test("V344 preserva o shell imediato e cancela renderizações antigas", () => {
   assert.match(showView, /pendingViewRenderTokenV170 \+= 1/);
 });
 
-test("V344 gera bundle público, service worker e cópia docs sincronizados", () => {
+test("V344 permanece incorporada no bundle público atual", () => {
   const version = JSON.parse(read("package.json")).version;
-  assert.match(version, /-v344$/);
-  assert.ok(fs.existsSync("app-v344.js"));
-  assert.match(read("app-v344.js"), /INTERACTION_QUIET_WINDOW_MS_V344/);
-  assert.equal(read("app-v344.js"), read("docs/app-v344.js"));
+  const index = read("index.html");
+  const bundleMatch = index.match(/app-(v\d+)\.js\?v=([^"']+)/);
+  assert.ok(bundleMatch, "bundle público atual não identificado no index.html");
+  const suffix = bundleMatch[1];
+  assert.equal(bundleMatch[2], version);
+  const bundle = `app-${suffix}.js`;
+  assert.ok(fs.existsSync(bundle));
+  assert.match(read(bundle), /INTERACTION_QUIET_WINDOW_MS_V344/);
+  assert.equal(read(bundle), read(`docs/${bundle}`));
   assert.match(read("service-worker.js"), new RegExp(`const CURRENT_VERSION = "${version}"`));
-  assert.match(read("bootstrap-integrity-loader-v258-core.js"), new RegExp(`app-v344\\.js\\?v=${version}`));
-  assert.match(read("index.html"), new RegExp(`app-v344\\.js\\?v=${version}`));
+  assert.match(read("bootstrap-integrity-loader-v345-core.js"), new RegExp(`app-${suffix}\\.js\\?v=${version}`));
   assert.equal(read("index.html"), read("docs/index.html"));
 });
