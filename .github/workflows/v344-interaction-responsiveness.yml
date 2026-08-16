@@ -42,43 +42,22 @@ jobs:
           node --check service-worker.js
 
       - name: Teste V169 latência operacional
-        id: test_v169_latency
-        continue-on-error: true
         run: node --test tests/v169-operational-latency.test.js
 
       - name: Teste V169 bootstrap interativo
-        id: test_v169_bootstrap
-        continue-on-error: true
         run: node --test tests/v169-bootstrap-interactive-release.test.js
 
       - name: Teste V174 abertura do plano diário
-        id: test_v174
-        continue-on-error: true
         run: node --test tests/v174-daily-plan-open-alignment.test.js
 
       - name: Teste V341 recuperação de interação
-        id: test_v341
-        continue-on-error: true
         run: node --test tests/v341-startup-interaction-recovery.test.js
 
       - name: Teste V344 responsividade
-        id: test_v344
-        continue-on-error: true
         run: node --test tests/v344-interaction-responsiveness.test.js
 
       - name: Teste estabilidade
-        id: test_stability
-        continue-on-error: true
         run: node --test tests/stability.test.js
-
-      - name: Validar testes focados
-        run: |
-          test "${{ steps.test_v169_latency.outcome }}" = "success"
-          test "${{ steps.test_v169_bootstrap.outcome }}" = "success"
-          test "${{ steps.test_v174.outcome }}" = "success"
-          test "${{ steps.test_v341.outcome }}" = "success"
-          test "${{ steps.test_v344.outcome }}" = "success"
-          test "${{ steps.test_stability.outcome }}" = "success"
 
       - name: Regressão completa
         run: npm test
