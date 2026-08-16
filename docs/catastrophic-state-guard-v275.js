@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260808-catastrophic-state-recovery-v275";
+  const VERSION = "20260815-bootstrap-performance-v342";
   const MAIN_KEY = "metasConcursoData";
   const META_KEY = "aldusIndexedDBOnlyStateV256";
   const STATUS_KEY = "aldusCatastrophicStateGuardV275";
@@ -81,8 +81,8 @@
   let pendingReason = "";
   let pendingTimer = 0;
   let persistInFlight = false;
-  let goldenState = null;
   let goldenCounts = null;
+  let goldenScore = 0;
   let destructiveBypassUntil = 0;
 
   function cloneData(value) {
@@ -103,9 +103,12 @@
     return Object.fromEntries(COLLECTION_KEYS.map((key) => [key, Array.isArray(state?.[key]) ? state[key].length : 0]));
   }
 
+  function scoreCounts(summary = {}) {
+    return COLLECTION_KEYS.reduce((total, key) => total + (summary[key] || 0) * (WEIGHTS[key] || 1), 0);
+  }
+
   function score(state = {}) {
-    const summary = counts(state);
-    return COLLECTION_KEYS.reduce((total, key) => total + summary[key] * (WEIGHTS[key] || 1), 0);
+    return scoreCounts(counts(state));
   }
 
   function stateShapeValid(state) {
@@ -126,14 +129,12 @@
     return checksumForText(JSON.stringify(state || {}));
   }
 
-  function catastrophicRegression(nextState = {}, referenceState = {}) {
-    if (!stateShapeValid(referenceState)) return { catastrophic: false, losses: [] };
+  function catastrophicRegressionFromCounts(nextState = {}, reference = {}) {
     const next = counts(nextState);
-    const reference = counts(referenceState);
     const losses = [];
 
     for (const [key, rule] of Object.entries(COLLAPSE_RULES)) {
-      const previous = reference[key] || 0;
+      const previous = Number(reference?.[key]) || 0;
       const current = next[key] || 0;
       if (previous < rule.minReference) continue;
       const ratio = previous ? current / previous : 1;
@@ -146,7 +147,7 @@
     const broadCollapse = losses.length >= 3;
     const multiHistoryCollapse = historyCollapse.length >= 2;
     const emptyHistoryCluster = ["studies", "questionLogs", "questionBank", "simulados"]
-      .filter((key) => (reference[key] || 0) > 0 && (next[key] || 0) === 0).length >= 2;
+      .filter((key) => (Number(reference?.[key]) || 0) > 0 && (next[key] || 0) === 0).length >= 2;
 
     return {
       catastrophic: broadCollapse || multiHistoryCollapse || emptyHistoryCluster,
@@ -154,6 +155,11 @@
       reference,
       next
     };
+  }
+
+  function catastrophicRegression(nextState = {}, referenceState = {}) {
+    if (!stateShapeValid(referenceState)) return { catastrophic: false, losses: [] };
+    return catastrophicRegressionFromCounts(nextState, counts(referenceState));
   }
 
   function extractStates(value, depth = 0, seen = new Set()) {
@@ -229,6 +235,15 @@
     });
   }
 
+  function getAllKeys(database, storeName) {
+    return new Promise((resolve, reject) => {
+      const transaction = database.transaction(storeName, "readonly");
+      const request = transaction.objectStore(storeName).getAllKeys();
+      request.onsuccess = () => resolve(Array.isArray(request.result) ? request.result : []);
+      request.onerror = () => reject(request.error || new Error("Falha ao listar chaves dos snapshots."));
+    });
+  }
+
   function deleteRecords(database, storeName, ids) {
     if (!ids.length) return Promise.resolve();
     return new Promise((resolve, reject) => {
@@ -239,6 +254,11 @@
       transaction.onerror = () => reject(transaction.error || new Error("Falha ao rotacionar snapshots."));
       transaction.onabort = () => reject(transaction.error || new Error("Rotação de snapshots abortada."));
     });
+  }
+
+  function snapshotKeyTimestamp(id) {
+    const timestamp = Number(String(id || "").split("-", 1)[0]);
+    return Number.isFinite(timestamp) ? timestamp : 0;
   }
 
   async function readMainRecord() {
@@ -275,34 +295,34 @@
     }
   }
 
-  async function saveSafetySnapshot(state, label = "snapshot", source = "runtime") {
+  async function saveSafetySnapshot(state, label = "snapshot", source = "runtime", knownChecksum = "") {
     if (!stateShapeValid(state)) return null;
+    const checksum = knownChecksum || checksumState(state);
+    const checksumSuffix = checksum.slice(-12);
     const database = await openDatabase(SAFETY_DB, 1, SAFETY_STORE);
     try {
-      const existing = await getAllRecords(database, SAFETY_STORE);
-      const checksum = checksumState(state);
-      if (existing.some((item) => item.checksum === checksum)) return null;
+      const existingKeys = await getAllKeys(database, SAFETY_STORE);
+      if (existingKeys.some((id) => String(id).endsWith(checksumSuffix))) return null;
+      const summary = counts(state);
+      const stateScore = scoreCounts(summary);
       const record = {
-        id: `${Date.now()}-${label}-${checksum.slice(-12)}`,
+        id: `${Date.now()}-${String(stateScore).padStart(12, "0")}-${label}-${checksumSuffix}`,
         version: VERSION,
         createdAt: new Date().toISOString(),
         label,
         source,
         checksum,
-        counts: counts(state),
-        score: score(state),
+        counts: summary,
+        score: stateScore,
         data: cloneData(state)
       };
       await putRecord(database, SAFETY_STORE, record);
-      const all = await getAllRecords(database, SAFETY_STORE);
-      const ranked = all.sort((a, b) => {
-        const aScore = Number(a.score || score(a.data || {}));
-        const bScore = Number(b.score || score(b.data || {}));
-        if (aScore !== bScore) return bScore - aScore;
-        return Date.parse(b.createdAt || 0) - Date.parse(a.createdAt || 0);
-      });
-      const keepIds = new Set(ranked.slice(0, MAX_SNAPSHOTS).map((item) => item.id));
-      await deleteRecords(database, SAFETY_STORE, all.filter((item) => !keepIds.has(item.id)).map((item) => item.id));
+      const allKeys = await getAllKeys(database, SAFETY_STORE);
+      const excess = allKeys
+        .slice()
+        .sort((left, right) => snapshotKeyTimestamp(right) - snapshotKeyTimestamp(left))
+        .slice(MAX_SNAPSHOTS);
+      await deleteRecords(database, SAFETY_STORE, excess);
       return record;
     } finally {
       database.close();
@@ -315,7 +335,7 @@
       try {
         return (await getAllRecords(database, storeName))
           .filter((item) => stateShapeValid(item?.data))
-          .map((item) => ({ source: `${name}:${item.id}`, state: item.data, score: score(item.data) }));
+          .map((item) => ({ source: `${name}:${item.id}`, state: item.data, score: Number(item.score) || score(item.data) }));
       } finally {
         database.close();
       }
@@ -346,9 +366,20 @@
 
   function setGolden(state) {
     if (!stateShapeValid(state)) return;
-    if (!goldenState || score(state) > score(goldenState)) {
-      goldenState = cloneData(state);
-      goldenCounts = counts(state);
+    const summary = counts(state);
+    const stateScore = scoreCounts(summary);
+    if (!goldenCounts || stateScore >= goldenScore) {
+      goldenCounts = summary;
+      goldenScore = stateScore;
+    }
+  }
+
+  function readPreviousStatus() {
+    try {
+      const parsed = safeParse(localStorage.getItem(STATUS_KEY) || "");
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch {
+      return null;
     }
   }
 
@@ -362,8 +393,28 @@
   async function reconcilePrebootstrap() {
     const mainRecord = await readMainRecord().catch(() => null);
     const mainState = stateShapeValid(mainRecord?.data) ? mainRecord.data : null;
+    const previousStatus = readPreviousStatus();
+
+    if (mainState && previousStatus?.ready === true && previousStatus?.counts && typeof previousStatus.counts === "object") {
+      const regression = catastrophicRegressionFromCounts(mainState, previousStatus.counts);
+      if (!regression.catastrophic) {
+        const summary = counts(mainState);
+        setGolden(mainState);
+        return writeStatus({
+          ready: true,
+          action: "preserved-fast",
+          recovery: null,
+          candidateCount: 1,
+          chosenSource: "indexeddb",
+          counts: summary,
+          score: scoreCounts(summary),
+          previousVersion: previousStatus.version || ""
+        });
+      }
+    }
+
     const candidates = [
-      ...(mainState ? [{ source: "indexeddb", state: mainState, score: score(mainState) }] : []),
+      ...(mainState ? [{ source: "indexeddb", state: mainState, score: score(mainState), recordChecksum: mainRecord?.checksum || "" }] : []),
       ...localCandidates(),
       ...(await readSafetyCandidates(LEGACY_SAFETY_DB, LEGACY_SAFETY_STORE)),
       ...(await readSafetyCandidates(SAFETY_DB, SAFETY_STORE))
@@ -372,14 +423,14 @@
     const unique = [];
     const checksums = new Set();
     for (const candidate of candidates) {
-      const checksum = checksumState(candidate.state);
+      const checksum = candidate.recordChecksum || checksumState(candidate.state);
       if (checksums.has(checksum)) continue;
       checksums.add(checksum);
       unique.push({ ...candidate, checksum });
     }
 
     if (!unique.length) {
-      writeStatus({ ready: true, action: "no-state-found", candidateCount: 0 });
+      writeStatus({ ready: true, action: "no-state-found", candidateCount: 0, counts: {} });
       return { ready: true, action: "no-state-found" };
     }
 
@@ -401,9 +452,9 @@
 
       if (catastrophicCandidates.length) {
         const best = catastrophicCandidates[0];
-        await saveSafetySnapshot(mainState, "estado-degradado-antes-recuperacao", "indexeddb").catch(() => null);
-        await writeMainState(best.item.state, "prebootstrap-catastrophic-recovery");
-        chosen = best.item;
+        await saveSafetySnapshot(mainState, "estado-degradado-antes-recuperacao", "indexeddb", mainRecord?.checksum || "").catch(() => null);
+        const recoveredRecord = await writeMainState(best.item.state, "prebootstrap-catastrophic-recovery");
+        chosen = { ...best.item, checksum: recoveredRecord.checksum };
         recovery = {
           reason: "catastrophic-regression-detected",
           source: best.item.source,
@@ -413,15 +464,16 @@
     }
 
     setGolden(chosen.state);
-    await saveSafetySnapshot(chosen.state, "estado-dourado-prebootstrap", chosen.source).catch(() => null);
+    await saveSafetySnapshot(chosen.state, "estado-dourado-prebootstrap", chosen.source, chosen.checksum || "").catch(() => null);
+    const summary = counts(chosen.state);
     const status = writeStatus({
       ready: true,
       action: recovery ? "recovered" : "preserved",
       recovery,
       candidateCount: unique.length,
       chosenSource: chosen.source,
-      counts: counts(chosen.state),
-      score: chosen.score
+      counts: summary,
+      score: scoreCounts(summary)
     });
     return status;
   }
@@ -436,8 +488,8 @@
   }
 
   function shouldBlockState(nextState) {
-    if (destructiveWriteAllowed() || !goldenState || !stateShapeValid(nextState)) return { block: false, regression: null };
-    const regression = catastrophicRegression(nextState, goldenState);
+    if (destructiveWriteAllowed() || !goldenCounts || !stateShapeValid(nextState)) return { block: false, regression: null };
+    const regression = catastrophicRegressionFromCounts(nextState, goldenCounts);
     return { block: regression.catastrophic, regression };
   }
 
@@ -460,10 +512,11 @@
     }
 
     const current = await readMainRecord().catch(() => null);
-    if (stateShapeValid(current?.data)) await saveSafetySnapshot(current.data, "antes-da-gravacao", reason).catch(() => null);
+    if (stateShapeValid(current?.data)) {
+      await saveSafetySnapshot(current.data, "antes-da-gravacao", reason, current.checksum || "").catch(() => null);
+    }
     const record = await writeMainState(data, reason);
     setGolden(data);
-    await saveSafetySnapshot(data, "apos-gravacao-validada", reason).catch(() => null);
 
     try {
       nativeRemoveItem.call(localStorage, MAIN_KEY);
@@ -495,7 +548,7 @@
         await persistSerialized(current, currentReason);
       } catch (error) {
         console.error("[Aldus V275] Falha ao persistir estado no IndexedDB.", error);
-        writeStatus({ ready: true, action: "persist-error", reason: String(error?.message || error) });
+        writeStatus({ ready: true, action: "persist-error", reason: String(error?.message || error), counts: goldenCounts || {} });
       } finally {
         persistInFlight = false;
         if (pendingSerialized) schedulePersist(pendingSerialized, pendingReason || "queued");
@@ -540,7 +593,7 @@
 
   const readyPromise = reconcilePrebootstrap().catch((error) => {
     console.error("[Aldus V275] Falha na reconciliação preventiva.", error);
-    return writeStatus({ ready: false, action: "prebootstrap-error", reason: String(error?.message || error) });
+    return writeStatus({ ready: false, action: "prebootstrap-error", reason: String(error?.message || error), counts: goldenCounts || {} });
   });
 
   const api = Object.freeze({
