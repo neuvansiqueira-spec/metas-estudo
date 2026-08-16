@@ -1,10 +1,10 @@
 "use strict";
 
-const CURRENT_VERSION = "20260815-interacao-responsiva-v344";
+const CURRENT_VERSION = "20260816-storage-consistency-v345";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const SECURITY_VERSION = "20260810-seguranca-estabilidade-v296";
-const PROTECTION_VERSION = "20260815-bootstrap-performance-v342";
-const BOOTSTRAP_VERSION = "20260815-bootstrap-performance-v342";
+const PROTECTION_VERSION = "20260816-storage-consistency-v345";
+const BOOTSTRAP_VERSION = "20260816-storage-consistency-v345";
 const DUPLICATE_CONTINUITY_VERSION = "20260811-duplicate-flow-owner-v309";
 const DUPLICATE_RECOMMENDATIONS_VERSION = "20260811-duplicate-flow-owner-v309";
 const DUPLICATE_BATCH_HOTFIX_VERSION = "20260811-duplicate-flow-owner-v309";
@@ -33,7 +33,8 @@ const INTEGRITY_LOADER = `planning-integrity-loader-v235.js?v=${CURRENT_VERSION}
 const INTEGRITY_CORE = `planning-integrity-v235.js?v=${CURRENT_VERSION}`;
 const CATASTROPHIC_STATE_GUARD = `catastrophic-state-guard-v275.js?v=${PROTECTION_VERSION}`;
 const BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275.js?v=${BOOTSTRAP_VERSION}`;
-const BOOTSTRAP_CORE = `bootstrap-integrity-loader-v258-core.js?v=${BOOTSTRAP_VERSION}`;
+const BOOTSTRAP_CORE = `bootstrap-integrity-loader-v345-core.js?v=${BOOTSTRAP_VERSION}`;
+const STORAGE_CONCURRENCY_V345 = `storage-concurrency-v345.js?v=${CURRENT_VERSION}`;
 const QCONCURSOS_FILTER_ROUTE_V333 = `qconcursos-filter-route-v333.js?v=${BOOTSTRAP_VERSION}`;
 const QCONCURSOS_ALL_FILTERS_V334 = `qconcursos-all-filters-v334.js?v=${BOOTSTRAP_VERSION}`;
 const QCONCURSOS_ROUTE_SAFETY_V335 = `qconcursos-route-safety-v335.js?v=${BOOTSTRAP_VERSION}`;
@@ -83,6 +84,7 @@ const STATIC_ASSETS = [
   CATASTROPHIC_STATE_GUARD,
   BOOTSTRAP_PROTECTED,
   BOOTSTRAP_CORE,
+  STORAGE_CONCURRENCY_V345,
   QCONCURSOS_FILTER_ROUTE_V333,
   QCONCURSOS_ALL_FILTERS_V334,
   QCONCURSOS_ROUTE_SAFETY_V335,
@@ -135,7 +137,8 @@ const ESSENTIAL_ASSETS = [
   SECURITY_HARDENING,
   CATASTROPHIC_STATE_GUARD,
   BOOTSTRAP_PROTECTED,
-  BOOTSTRAP_CORE
+  BOOTSTRAP_CORE,
+  STORAGE_CONCURRENCY_V345
 ];
 
 async function precacheAssets() {
