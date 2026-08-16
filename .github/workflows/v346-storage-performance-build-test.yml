@@ -1,0 +1,75 @@
+name: V346 storage performance build and test
+
+on:
+  push:
+    branches:
+      - fix/storage-performance-v346
+
+permissions:
+  contents: write
+
+jobs:
+  build-test:
+    if: ${{ !contains(github.event.head_commit.message, '[skip v346-ci]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: fix/storage-performance-v346
+          fetch-depth: 0
+
+      - name: Environment
+        run: |
+          node --version
+          npm --version
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build V346 bundles
+        run: npm run build
+
+      - name: Validate generated JavaScript
+        run: |
+          test -f app-v346.js
+          test -f docs/app-v346.js
+          node --check app-v346.js
+          node --check docs/app-v346.js
+          node --check sync-integral-deletions.js
+
+      - name: Run full test suite
+        run: npm test
+
+      - name: Verify storage performance invariants
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const source = fs.readFileSync('sync-integral-deletions.js', 'utf8');
+          if (source.includes('map.set(key, { record: syncClone(item), signature: syncRecordSignature(item) })')) {
+            throw new Error('Snapshot ainda clona registros inteiros.');
+          }
+          if (!source.includes('if (!canTrackIncrementally) syncRefreshDeletionSnapshot();')) {
+            throw new Error('Refresh integral pós-save não foi removido do caminho incremental.');
+          }
+          if (source.includes('return syncStableSerialize(syncComparableValue(value));')) {
+            throw new Error('Assinatura de registro ainda usa o hotspot antigo.');
+          }
+          if (fs.readFileSync('sync-integral-deletions.js', 'utf8') !== fs.readFileSync('docs/sync-integral-deletions.js', 'utf8')) {
+            throw new Error('Fonte publicada de deleções divergiu da fonte raiz.');
+          }
+          NODE
+          git diff --check
+
+      - name: Commit verified V346 generated assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/v346-storage-performance-build-test.yml
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração gerada para commit."
+            exit 0
+          fi
+          git commit -m "V346 build verified storage performance artifacts [skip v346-ci]"
+          git push origin HEAD:fix/storage-performance-v346
