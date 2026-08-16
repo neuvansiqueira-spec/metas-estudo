@@ -158,7 +158,19 @@ latencyTest = replaceRequired(
   latencyTest,
   '  assert.match(scheduler, /requestAnimationFrame\\(\\(\\) => setTimeout\\(run, 0\\)\\)/);',
   '  assert.match(scheduler, /requestAnimationFrame\\(afterFirstPaint\\)/);\n  assert.match(scheduler, /requestAnimationFrame\\(queueIdle\\)/);\n  assert.match(scheduler, /requestIdleCallback\\(runWhenIdle/);\n  assert.match(scheduler, /shouldKeepYieldingToInputV344/);',
-  "teste de latência operacional"
+  "agendamento responsivo no teste V169"
+);
+latencyTest = replaceRequired(
+  latencyTest,
+  '  assert.match(scheduler, /token !== pendingViewRenderTokenV170/);',
+  '  assert.match(scheduler, /token === pendingViewRenderTokenV170/);',
+  "guard de token no teste V169"
+);
+latencyTest = replaceRequired(
+  latencyTest,
+  '  assert.match(scheduler, /dataset\\.activeView !== target/);',
+  '  assert.match(scheduler, /dataset\\.activeView === target/);',
+  "guard de tela ativa no teste V169"
 );
 write("tests/v169-operational-latency.test.js", latencyTest);
 
