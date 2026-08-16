@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260814-restaura-filtros-qconcursos-v333";
+  const VERSION = "20260815-bootstrap-performance-v342";
   const CORE_SCRIPT = `bootstrap-integrity-loader-v258-core.js?v=${VERSION}`;
   const DIAGNOSTICS_SCRIPT = `duplicate-diagnostics-v260.js?v=${VERSION}`;
   const DIAGNOSTICS_STYLESHEET = `duplicate-diagnostics-v260.css?v=${VERSION}`;

@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260805-bootstrap-integrity-v258";
+  const VERSION = "20260815-bootstrap-performance-v342";
   const MAIN_DB = "metas-estudo-db";
   const MAIN_STORE = "appState";
   const MAIN_ID = "current";
@@ -205,16 +205,22 @@
     );
   }
 
+  function scoreCounts(summary = {}) {
+    return COLLECTION_KEYS.reduce(
+      (total, key) => total + (summary[key] || 0) * (WEIGHTS[key] || 1),
+      0
+    );
+  }
+
   function makeCandidate(source, state, extra = {}) {
-    const cloned = cloneData(state);
-    const summary = counts(cloned);
+    const summary = counts(state);
     return {
       source,
-      state: cloned,
+      state,
       counts: summary,
-      score: scoreState(cloned),
-      timestamp: stateTimestamp(cloned),
-      checksum: checksumState(cloned),
+      score: scoreCounts(summary),
+      timestamp: stateTimestamp(state),
+      checksum: checksumState(state),
       ...extra
     };
   }
@@ -377,6 +383,15 @@
     });
   }
 
+  function getAllKeys(database, storeName) {
+    return new Promise((resolve, reject) => {
+      const transaction = database.transaction(storeName, "readonly");
+      const request = transaction.objectStore(storeName).getAllKeys();
+      request.onsuccess = () => resolve(Array.isArray(request.result) ? request.result : []);
+      request.onerror = () => reject(request.error || new Error("Falha ao listar chaves dos backups rotativos."));
+    });
+  }
+
   function deleteRecords(database, storeName, ids) {
     if (!ids.length) return Promise.resolve();
     return new Promise((resolve, reject) => {
@@ -389,15 +404,21 @@
     });
   }
 
-  async function saveSafetySnapshot(state, label, source) {
+  function snapshotKeyTimestamp(id) {
+    const timestamp = Number(String(id || "").split("-", 1)[0]);
+    return Number.isFinite(timestamp) ? timestamp : 0;
+  }
+
+  async function saveSafetySnapshot(state, label, source, knownChecksum = "") {
     if (!stateShapeValid(state)) return null;
-    const checksum = checksumState(state);
+    const checksum = knownChecksum || checksumState(state);
+    const checksumSuffix = checksum.slice(-16);
     const database = await openSafetyDatabase();
     try {
-      const existing = await getAllRecords(database, SAFETY_STORE);
-      if (existing.some((record) => record.checksum === checksum)) return null;
+      const existingKeys = await getAllKeys(database, SAFETY_STORE);
+      if (existingKeys.some((id) => String(id).endsWith(checksumSuffix))) return null;
       const record = {
-        id: `${Date.now()}-${label}-${checksum.slice(-16)}`,
+        id: `${Date.now()}-${label}-${checksumSuffix}`,
         version: VERSION,
         createdAt: new Date().toISOString(),
         label,
@@ -409,19 +430,21 @@
       try {
         await putRecord(database, SAFETY_STORE, record);
       } catch (error) {
-        const old = existing.sort((a, b) => Date.parse(a.createdAt || 0) - Date.parse(b.createdAt || 0));
+        const old = existingKeys
+          .slice()
+          .sort((left, right) => snapshotKeyTimestamp(left) - snapshotKeyTimestamp(right));
         if (old.length) {
-          await deleteRecords(database, SAFETY_STORE, old.slice(0, Math.max(1, old.length - 1)).map((item) => item.id));
+          await deleteRecords(database, SAFETY_STORE, old.slice(0, Math.max(1, old.length - 1)));
           await putRecord(database, SAFETY_STORE, record);
         } else {
           throw error;
         }
       }
-      const all = await getAllRecords(database, SAFETY_STORE);
-      const excess = all
-        .sort((a, b) => Date.parse(b.createdAt || 0) - Date.parse(a.createdAt || 0))
-        .slice(MAX_SNAPSHOTS)
-        .map((item) => item.id);
+      const allKeys = await getAllKeys(database, SAFETY_STORE);
+      const excess = allKeys
+        .slice()
+        .sort((left, right) => snapshotKeyTimestamp(right) - snapshotKeyTimestamp(left))
+        .slice(MAX_SNAPSHOTS);
       await deleteRecords(database, SAFETY_STORE, excess);
       return record;
     } finally {
@@ -465,10 +488,11 @@
     const candidates = [];
     const mainRecord = await readMainRecord().catch((error) => ({ error }));
     if (mainRecord?.data && stateShapeValid(mainRecord.data)) {
-      candidates.push(makeCandidate("indexeddb", mainRecord.data, {
-        recordChecksum: mainRecord.checksum || "",
-        checksumValid: !mainRecord.checksum || checksumState(mainRecord.data) === mainRecord.checksum
-      }));
+      const indexedCandidate = makeCandidate("indexeddb", mainRecord.data, {
+        recordChecksum: mainRecord.checksum || ""
+      });
+      indexedCandidate.checksumValid = !mainRecord.checksum || indexedCandidate.checksum === mainRecord.checksum;
+      candidates.push(indexedCandidate);
     }
     candidates.push(...localCandidateEntries());
 
@@ -490,21 +514,28 @@
     const chosen = decision.candidate;
     const currentIndexed = candidates.find((candidate) => candidate.source === "indexeddb");
     if (currentIndexed) {
-      await saveSafetySnapshot(currentIndexed.state, "antes-do-bootstrap", currentIndexed.source).catch((error) => {
+      await saveSafetySnapshot(currentIndexed.state, "antes-do-bootstrap", currentIndexed.source, currentIndexed.checksum).catch((error) => {
         console.warn("[Aldus V258] Backup anterior não pôde ser gravado.", error);
       });
     }
 
     const mustRewrite = chosen.source !== "indexeddb"
       || !currentIndexed
+      || !mainRecord?.checksum
       || currentIndexed.checksum !== chosen.checksum
       || currentIndexed.checksumValid === false;
     const finalRecord = mustRewrite ? await writeMainState(chosen.state) : mainRecord;
-    if (!finalRecord?.data || checksumState(finalRecord.data) !== finalRecord.checksum) {
+    if (!finalRecord?.data || !finalRecord.checksum) {
       throw new Error("O estado escolhido não passou pela validação final.");
     }
+    if (mustRewrite && finalRecord.checksum !== chosen.checksum) {
+      throw new Error("A cópia gravada divergiu do estado escolhido.");
+    }
+    if (!mustRewrite && currentIndexed?.checksum !== finalRecord.checksum) {
+      throw new Error("O estado principal mudou durante a validação.");
+    }
 
-    await saveSafetySnapshot(finalRecord.data, "estado-validado", chosen.source).catch((error) => {
+    await saveSafetySnapshot(finalRecord.data, "estado-validado", chosen.source, finalRecord.checksum).catch((error) => {
       console.warn("[Aldus V258] Backup validado não pôde ser gravado.", error);
     });
 

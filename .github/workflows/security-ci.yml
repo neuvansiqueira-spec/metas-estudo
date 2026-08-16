@@ -38,6 +38,11 @@ jobs:
           node --check telemetry-security-dashboard-v319.js
           node --check factory-resumo-aula-visual-v326.js
           node --check factory-resumo-aula-canonical-v327.js
+          node --check catastrophic-state-guard-v275.js
+          node --check bootstrap-integrity-loader-v258-core.js
+          node --check bootstrap-integrity-loader-v258.js
+          node --check bootstrap-integrity-loader-v275.js
+          node --check service-worker.js
 
       - name: Executar testes de segurança, telemetria e regressão do prompt
         run: |
@@ -50,4 +55,5 @@ jobs:
             tests/v319-telemetry-security-dashboard.test.js \
             tests/v329-integral-performance.test.js \
             tests/v326-factory-resumo-aula-visual.test.js \
-            tests/v327-factory-resumo-aula-canonical.test.js
+            tests/v327-factory-resumo-aula-canonical.test.js \
+            tests/v342-bootstrap-performance.test.js
