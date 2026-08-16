@@ -1,3 +1,4 @@
+# V344: validação estrita; qualquer teste focado interrompe o build.
 name: V344 interaction responsiveness
 
 on:
