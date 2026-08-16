@@ -57,7 +57,25 @@ jobs:
       - name: Teste V344 responsividade
         run: node --test tests/v344-interaction-responsiveness.test.js
 
-      - name: Teste estabilidade
+      - name: Estabilidade — contrato da release pública
+        run: node --test --test-name-pattern="Contrato atual" tests/stability.test.js
+
+      - name: Estabilidade — arquivos críticos
+        run: node --test --test-name-pattern="Arquivos críticos existem" tests/stability.test.js
+
+      - name: Estabilidade — backup e restauração
+        run: node --test --test-name-pattern="Lógica crítica" tests/stability.test.js
+
+      - name: Estabilidade — proteção contra exclusões
+        run: node --test --test-name-pattern="Proteções contra exclusões" tests/stability.test.js
+
+      - name: Estabilidade — busca nativa
+        run: node --test --test-name-pattern="Guardas de busca nativa" tests/stability.test.js
+
+      - name: Estabilidade — sintaxe dos críticos
+        run: node --test --test-name-pattern="Arquivos críticos passam" tests/stability.test.js
+
+      - name: Teste estabilidade completo
         run: node --test tests/stability.test.js
 
       - name: Regressão completa
