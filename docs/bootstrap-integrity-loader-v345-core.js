@@ -7,7 +7,7 @@
   const MAIN_ID = "current";
   const MAIN_LOCAL_KEY = "metasConcursoData";
   const STATUS_KEY = "aldusBootstrapFastPathV345";
-  const CONCURRENCY_SCRIPT = "storage-concurrency-v345.js?v=20260816-storage-consistency-v345";
+  const CONCURRENCY_SCRIPT = "storage-concurrency-v345.js?v=20260816-multitab-timer-simulado-v346";
   const FALLBACK_CORE = "bootstrap-integrity-loader-v258-core.js?v=20260816-storage-consistency-v345&fallback=v345";
   const SCRIPT_CHAIN = [
     ["aldusAppBundleScript", "app-v345.js?v=20260816-storage-consistency-v345"],
@@ -19,7 +19,7 @@
     ["aldusFactorySimuladoVisibilityV315", "factory-simulado-visibility-v315.js?v=20260814-gerador-simulados-em-questoes-v328"],
     ["aldusFactorySimuladoPromptV310", "factory-simulado-prompt-v310.js?v=20260814-gerador-simulados-em-questoes-v328"],
     ["aldusSimuladoInterativoV313", "simulado-interativo-v313.js?v=20260811-simulado-interativo-v313"],
-    ["aldusSimuladoIntegracaoV314", "simulado-integracao-v314.js?v=20260811-simulado-integracao-v314"],
+    ["aldusSimuladoIntegracaoV314", "simulado-integracao-v314.js?v=20260816-multitab-timer-simulado-v346"],
     ["aldusDailySummaryTimeFormatV243Direct", "daily-summary-time-format-v243.js?v=20260805-daily-summary-hours-minutes-v243&hotfix=daily-summary-time-format-hotfix3"],
     ["aldusDashboardTodayTimeSyncV253", "dashboard-today-time-sync-v253.js?v=20260805-dashboard-today-time-sync-v253&hotfix=dashboard-today-time-sync-hotfix1"],
     ["aldusDashboardTodayQuestionsSyncV257", "dashboard-today-questions-sync-v257.js?v=20260805-dashboard-today-questions-sync-v257&hotfix=question-bank-sessions1"],

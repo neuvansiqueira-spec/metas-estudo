@@ -14,7 +14,7 @@ const FACTORY_SCHEDULE_FILTERS_VERSION = "20260808-factory-schedule-planning-pre
 const FACTORY_SCHEDULE_DATES_VERSION = "20260809-factory-schedule-planning-dates-v281";
 const QUESTIONS_HUB_VERSION = "20260814-desempenho-integral-v329";
 const QUESTION_JSON_DETAILS_VERSION = "20260810-revisao-json-explicacoes-v299";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v297-hotfix5-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-duplicate-recommended-batch-v300-duplicate-batch-persistence-v301-duplicate-batch-performance-v304-duplicate-batch-commit-v305-entry-parser-recovery-v306-duplicate-core-delivery-v307-duplicate-batch-core-pin-v308-duplicate-flow-owner-v309-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4-security-v296-questions-hub-v298-question-json-details-v299-factory-simulado-escolha-automatica-v312-simulado-interativo-v313-integracao-v318-reparo-factory-simulado-visibility-v315-posthog-telemetry-v317-simulado-location-v328-factory-resumo-aula-canonical-v327-qconcursos-filter-v337-bootstrap-performance-v342`;
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v297-hotfix5-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-duplicate-recommended-batch-v300-duplicate-batch-persistence-v301-duplicate-batch-performance-v304-duplicate-batch-commit-v305-entry-parser-recovery-v306-duplicate-core-delivery-v307-duplicate-batch-core-pin-v308-duplicate-flow-owner-v309-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4-security-v296-questions-hub-v298-question-json-details-v299-factory-simulado-escolha-automatica-v312-simulado-interativo-v313-integracao-v318-reparo-factory-simulado-visibility-v315-posthog-telemetry-v317-simulado-location-v328-factory-resumo-aula-canonical-v327-qconcursos-filter-v337-bootstrap-performance-v342-multitab-v346`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
@@ -34,7 +34,7 @@ const INTEGRITY_CORE = `planning-integrity-v235.js?v=${CURRENT_VERSION}`;
 const CATASTROPHIC_STATE_GUARD = `catastrophic-state-guard-v275.js?v=${PROTECTION_VERSION}`;
 const BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275.js?v=${BOOTSTRAP_VERSION}`;
 const BOOTSTRAP_CORE = `bootstrap-integrity-loader-v345-core.js?v=${BOOTSTRAP_VERSION}`;
-const STORAGE_CONCURRENCY_V345 = `storage-concurrency-v345.js?v=${CURRENT_VERSION}`;
+const STORAGE_CONCURRENCY_V345 = "storage-concurrency-v345.js?v=20260816-multitab-timer-simulado-v346";
 const QCONCURSOS_FILTER_ROUTE_V333 = `qconcursos-filter-route-v333.js?v=${BOOTSTRAP_VERSION}`;
 const QCONCURSOS_ALL_FILTERS_V334 = `qconcursos-all-filters-v334.js?v=${BOOTSTRAP_VERSION}`;
 const QCONCURSOS_ROUTE_SAFETY_V335 = `qconcursos-route-safety-v335.js?v=${BOOTSTRAP_VERSION}`;
@@ -60,7 +60,7 @@ const TIMER_RUNTIME_V316 = "timer-runtime-v316.js?v=20260814-desempenho-integral
 const USAGE_TELEMETRY_V317 = "usage-telemetry-v315.js?v=20260814-desempenho-integral-v329";
 const SIMULADO_INTERATIVO_SCRIPT = "simulado-interativo-v313.js?v=20260811-simulado-interativo-v313";
 const SIMULADO_INTERATIVO_STYLESHEET = "simulado-interativo-v313.css?v=20260811-simulado-interativo-v313";
-const SIMULADO_INTEGRACAO_SCRIPT = "simulado-integracao-v314.js?v=20260812-simulado-integracao-v318-reparo";
+const SIMULADO_INTEGRACAO_SCRIPT = "simulado-integracao-v314.js?v=20260816-multitab-timer-simulado-v346";
 const FACTORY_PENALTIES_SCRIPT = "factory-penalties-v320.js?v=20260814-desempenho-integral-v329";
 const FACTORY_RESUMO_AULA_VISUAL_SCRIPT = "factory-resumo-aula-visual-v326.js?v=20260814-desempenho-integral-v329";
 const FACTORY_RESUMO_AULA_CANONICAL_SCRIPT = "factory-resumo-aula-canonical-v327.js?v=20260814-desempenho-integral-v329";
