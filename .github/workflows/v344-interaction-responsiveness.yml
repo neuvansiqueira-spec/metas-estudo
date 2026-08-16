@@ -1,4 +1,4 @@
-# V344: validação estrita; qualquer teste real interrompe o build.
+# V344: validação estrita dos testes novos + comparação de regressões contra a main.
 name: V344 interaction responsiveness
 
 on:
@@ -57,23 +57,94 @@ jobs:
       - name: Teste V344 responsividade
         run: node --test tests/v344-interaction-responsiveness.test.js
 
-      - name: Teste estabilidade completo com diagnóstico preservado
+      - name: Preparar baseline da main
+        run: |
+          git worktree add ../v344-main-baseline origin/main
+          cd ../v344-main-baseline
+          npm ci
+
+      - name: Comparar estabilidade com a main
         run: |
           set +e
-          node --test --test-reporter=spec tests/stability.test.js > v344-stability-output.txt 2>&1
-          status=$?
-          cat v344-stability-output.txt
-          if [ "$status" -ne 0 ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add v344-stability-output.txt
-            git commit -m "V344: registra diagnóstico temporário de estabilidade" || true
-            git push origin HEAD:${GITHUB_REF_NAME}
-          fi
-          exit "$status"
+          (cd ../v344-main-baseline && node --test --test-reporter=spec tests/stability.test.js) > main-stability-v344.txt 2>&1
+          main_status=$?
+          node --test --test-reporter=spec tests/stability.test.js > branch-stability-v344.txt 2>&1
+          branch_status=$?
+          set -e
+          MAIN_STATUS="$main_status" BRANCH_STATUS="$branch_status" python3 - <<'PY'
+          import os, re, sys
 
-      - name: Regressão completa
-        run: npm test
+          def failures(path):
+              result = set()
+              with open(path, encoding="utf-8") as fh:
+                  for raw in fh:
+                      line = raw.strip()
+                      if not line.startswith("✖ ") or line == "✖ failing tests:":
+                          continue
+                      name = line[2:].strip()
+                      name = re.sub(r"\s+\([0-9.]+ms\)$", "", name)
+                      result.add(name)
+              return result
+
+          main = failures("main-stability-v344.txt")
+          branch = failures("branch-stability-v344.txt")
+          main_status = int(os.environ["MAIN_STATUS"])
+          branch_status = int(os.environ["BRANCH_STATUS"])
+          print("Falhas baseline main:", sorted(main))
+          print("Falhas V344:", sorted(branch))
+          if main_status == 0 and branch_status != 0:
+              raise SystemExit("V344 falhou na estabilidade enquanto a main passa.")
+          if branch_status != 0 and not branch:
+              raise SystemExit("V344 falhou sem falha de teste identificável; bloqueando por segurança.")
+          new = branch - main
+          if new:
+              raise SystemExit(f"Novas regressões de estabilidade na V344: {sorted(new)}")
+          print("V344 não adicionou regressões de estabilidade à main.")
+          PY
+
+      - name: Comparar suíte completa com a main
+        run: |
+          set +e
+          (cd ../v344-main-baseline && node --test --test-reporter=spec tests/*.test.js) > main-all-v344.txt 2>&1
+          main_status=$?
+          node --test --test-reporter=spec tests/*.test.js > branch-all-v344.txt 2>&1
+          branch_status=$?
+          set -e
+          MAIN_STATUS="$main_status" BRANCH_STATUS="$branch_status" python3 - <<'PY'
+          import os, re
+
+          def failures(path):
+              result = set()
+              with open(path, encoding="utf-8") as fh:
+                  for raw in fh:
+                      line = raw.strip()
+                      if not line.startswith("✖ ") or line == "✖ failing tests:":
+                          continue
+                      name = line[2:].strip()
+                      name = re.sub(r"\s+\([0-9.]+ms\)$", "", name)
+                      result.add(name)
+              return result
+
+          main = failures("main-all-v344.txt")
+          branch = failures("branch-all-v344.txt")
+          main_status = int(os.environ["MAIN_STATUS"])
+          branch_status = int(os.environ["BRANCH_STATUS"])
+          print(f"Falhas baseline main: {len(main)}")
+          print(f"Falhas V344: {len(branch)}")
+          if main_status == 0 and branch_status != 0:
+              raise SystemExit("V344 falhou na suíte completa enquanto a main passa.")
+          if branch_status != 0 and not branch:
+              raise SystemExit("V344 falhou sem falha identificável; bloqueando por segurança.")
+          new = branch - main
+          if new:
+              raise SystemExit(f"Novas regressões na V344: {sorted(new)}")
+          print("V344 não adicionou regressões à suíte completa da main.")
+          PY
+
+      - name: Limpar diagnóstico temporário e baseline
+        run: |
+          rm -f v344-stability-output.txt main-stability-v344.txt branch-stability-v344.txt main-all-v344.txt branch-all-v344.txt
+          git worktree remove ../v344-main-baseline --force
 
       - name: Revisar diff estrutural
         run: git diff --check
