@@ -1,0 +1,572 @@
+✔ telas principais possuem rota, seção, título, menu e rodapé com versão (4.557552ms)
+✔ Contrato atual v152: arquivos carregados usam a versão atual (76.300671ms)
+✔ identidade visual premium usa a paleta Aldus desde a primeira renderização (1.640234ms)
+✖ identidade Aldus aparece no cabeçalho e o símbolo permanece no favicon (1.632048ms)
+✔ não há textos obviamente quebrados em coluna por regras CSS perigosas (0.993281ms)
+✔ CSS preserva regras esperadas para dados compactos e tabelas grandes (0.208631ms)
+✔ importação de edital preserva prévia, domínio e integração com agendáveis (1.359919ms)
+✔ tempo de revisão sugerido e realizado é salvo e exibido em Dashboard/Revisões (1.118246ms)
+✔ Banco de Questões possui rota SPA e suporte a justificativas (3.488327ms)
+✔ Banco de Questões recalcula filtros em cascata por disciplina (4.937123ms)
+✔ Banco de Questões possui Pacotes do Edital vinculados ao edital verticalizado (1.25944ms)
+✖ rotas Backup e Caderno de Erros não compartilham destinos (0.630822ms)
+✔ Backup permite zerar somente questões resolvidas preservando dados principais (1.121411ms)
+✖ service worker busca HTML novo primeiro e mantém fallback offline do app shell (0.995285ms)
+✔ Fábrica mínima fica habilitada e não bloqueia telas principais (0.547446ms)
+✔ exclusão de disciplina trata disciplinas automáticas órfãs sem apagar históricos (0.964618ms)
+✖ interface publicada expõe sincronização Google Drive (1.41941ms)
+✔ auto-sync do cronômetro mantém pendência quando autorização Google expira (2.416679ms)
+✔ Fábrica integra automaticamente o edital ativo sem duplicidades e preservando dados (1.497025ms)
+✔ Fábrica salva pasta de destino independente e injeta destino nos prompts (0.806381ms)
+✔ Fábrica conclui tema com módulos aplicáveis e inclui backup/sincronização (0.599182ms)
+✔ alertas do cronômetro disparam uma única vez e usam flags de controle (0.258244ms)
+✔ alertas do cronômetro são resilientes e não ocorrem em modo livre sem meta (0.365374ms)
+✔ modo livre com meta dispara alerta completed uma única vez ao atingir a meta (1.914839ms)
+✔ modo livre pode ser ativado na sessão atual sem perder o tempo decorrido (1.522333ms)
+✔ teste de alertas do cronômetro não é bloqueante e renderiza imediatamente (1.149885ms)
+✔ áudio do cronômetro aguarda resume e reporta bloqueio (0.460964ms)
+✔ alerta final tem sequência curta e intensidades distintas dos avisos (0.21305ms)
+✔ botão silenciar interrompe sons programados (0.352491ms)
+✔ preferência de volume do alerta é preservada (0.350377ms)
+✔ teste de notificações solicita permissão e tolera ausência da API (0.312466ms)
+✔ interface do cronômetro permite testar alertas e mantém scripts publicados idênticos (3.619323ms)
+✔ sincronização da nuvem trata aplicação transacional e erros específicos (1.765057ms)
+✔ mensagens motivacionais do cronômetro regressivo cobrem marcos e estado da sessão (0.348173ms)
+✔ mensagens motivacionais disparam no regressivo e livre com meta, mantendo só o maior marco pendente (0.374872ms)
+✔ alarme regressivo é robusto em áudio, vibração, aba em segundo plano e preferências (4.239806ms)
+✔ toast motivacional é único, some automaticamente e é acessível (0.737031ms)
+✔ banco motivacional varia frases e tolera banco vazio (0.226244ms)
+✔ bootstrap restaura o estado local e renderiza sem depender do Google Drive (2.364461ms)
+ℹ tests 39
+ℹ suites 0
+ℹ pass 35
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 256.435721
+
+✖ failing tests:
+
+test at tests/stability.test.js:65:1
+✖ identidade Aldus aparece no cabeçalho e o símbolo permanece no favicon (1.632048ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /class="brand aldus-visual-brand[^"]*"[\s\S]*?<img class="aldus-visual-brand-image"[^>]+icons\/aldus-visual\.png/. Input:
+  
+  '<!DOCTYPE html>\n' +
+    '<html lang="pt-BR" data-aldus-theme="premium-stable">\n' +
+    '<head>\n' +
+    '  <meta charset="UTF-8" />\n' +
+    '  <meta name="viewport" content="width=device-width, initial-scale=1.0" />\n' +
+    '  <meta name="aldus-performance-release" content="20260814-desempenho-integral-v329" />\n' +
+    '  <meta name="aldus-usage-endpoint" content="https://us.i.posthog.com/batch/" />\n' +
+    '  <meta name="aldus-usage-project-token" content="phc_ALLcUsY57Zp3nXGd58NtMAPL3KhD8mZXJ6kyzR9ioqdA" />\n' +
+    `  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com; script-src-elem 'self' 'unsafe-inline' https://accounts.google.com; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://accounts.google.com https://www.googleapis.com https://us.i.posthog.com; frame-src https://accounts.google.com; font-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" />\n` +
+    '  <meta name="referrer" content="no-referrer" />\n' +
+    '  <script id="aldusSecurityHardeningV296" defer src="security-hardening-v296.js?v=20260814-desempenho-integral-v329"></script>\n' +
+    '  <script id="aldusQuestionBankJsonDetailsV299" defer src="question-bank-json-details-v299.js?v=20260814-desempenho-integral-v329"></script>\n' +
+    '  <title>Aldus Metas Concurso — Painel de Estudos</title>\n' +
+    '  <!-- O núcleo V309 precisa assumir a tela antes de qualquer inicializador legado. -->\n' +
+    '  <link id="aldusDuplicateDiagnosticsStylesV309" rel="stylesheet" href="duplicate-diagnostics-v260.css?v=20260811-duplicate-flow-owner-v309" />\n' +
+    '  <script id="aldusDuplicateDiagnosticsCoreV309" defer src="duplicate-diagnostics-v309.js?v=20260814-desempenho-integral-v329"></script>\n' +
+    '  <link rel="manifest" href="manifest.json?v=20260728-carregamento-direto-v168" />\n' +
+    '  <meta name="theme-color" content="#031426" />\n' +
+    '  <meta name="apple-mobile-web-app-capable" content="yes" />\n' +
+    '  <meta name="apple-mobile-web-app-status-bar-style" content="default" />\n' +
+    '  <meta name="apple-mobile-web-app-title" content="Aldus Metas" />\n' +
+    '  <meta name="google-identity-services" content="https://accounts.google.com/gsi/client" />\n' +
+    '  <link rel="apple-touch-icon" href="icons/icon.svg?v=20260728-carregamento-direto-v168" />\n' +
+    '  <link rel="icon" type="image/svg+xml" href="icons/logo-mark.svg?v=20260728-carregamento-direto-v168" />\n' +
+    '  <link rel="preload" as="image" type="image/webp" href="icons/aldus-visual-320.webp?v=20260814-desempenho-integral-v329" fetchpriority="high" />\n' +
+    '  <!-- Fontes CSS consolidadas, na ordem original: style.css; aldus-premium-theme.css; aldus-premium-refinement-v47.css; aldus-interface-v51.css; aldus-responsive-v52.css; aldus-contrast-v53.css; aldus-visual-v58.css; aldus-planning-v59.css; aldus-planning-history-v60.css; aldus-calendar-v61.css; aldus-calendar-v62.css; aldus-export-brand-v63.css; aldus-export-brand-v64.css; aldus-daily-goals-v66.css; aldus-daily-time-v67.css; aldus-contrast-system-v68.css; aldus-component-contrast-v69.css; aldus-advisor-layout-v70.css; aldus-backup-contrast-v71.css; aldus-navigation-scroll-v73.css; aldus-goal-integrity-v75.css; aldus-completed-visibility-v76.css. -->\n' +
+    '  <link id="aldusAppBundleStyles" rel="stylesheet" href="app-v344.css?v=20260815-interacao-responsiva-v344" />\n' +
+    '  <link id="aldusQuestionsHubStylesV298" rel="stylesheet" href="questions-hub-v298.css?v=20260814-gerador-simulados-em-questoes-v328" />\n' +
+    '\n' +
+    '  <link id="aldusCentralGoalsPaletteV246" rel="stylesheet" href="central-goals-palette-v245.css?v=20260805-dashboard-central-metas-cores-v246" />\n' +
+    '\n' +
+    '  <link id="aldusDashboardTodayPaletteV247" rel="stylesheet" href="dashboard-today-palette-v247.css?v=20260805-dashboard-hoje-cores-v247" />\n' +
+    '  <link id="aldusCentralPeriodCardsV248" rel="stylesheet" href="central-goals-period-palette-v248.css?v=20260805-central-period-cards-v248" />\n' +
+    '\n' +
+    '  <link id="aldusElegantCardStyleV249" rel="stylesheet" href="elegant-card-style-v249.css?v=20260805-elegant-card-style-v249" />\n' +
+    '  <link id="aldusDailySummaryElegantV250" rel="stylesheet" href="daily-summary-elegant-v250.css?v=20260805-daily-summary-elegant-v250" />\n' +
+    '  <link id="aldusDailySummaryElegantDirectV251" rel="stylesheet" href="daily-summary-elegant-direct-v251.css?v=20260805-daily-summary-elegant-direct-v251" />\n' +
+    '  <link id="aldusDailySummaryElegantNestedV252" rel="stylesheet" href="daily-summary-elegant-nested-v252.css?v=20260805-daily-summary-elegant-nested-v252" />\n' +
+    '  <link id="aldusCardPaletteV294" rel="stylesheet" href="aldus-card-palette-v294.css?v=20260809-paleta-cartoes-global-v294" />\n' +
+    '  <link rel="preload" as="script" href="app-v344.js?v=20260815-interacao-responsiva-v344" />\n' +
+    '  <link rel="preload" as="script" href="factory-simulado-visibility-v315.js?v=20260814-gerador-simulados-em-questoes-v328" />\n' +
+    '</head>\n' +
+    '<body>\n' +
+    '  <header class="hero">\n' +
+    '    <nav class="topbar" aria-label="Navegação principal">\n' +
+    '      <a class="brand aldus-visual-brand brand-home-link" href="#dashboard" data-view-link="dashboard" aria-label="Ir para o início">\n' +
+    '        <img class="aldus-visual-brand-image" src="icons/aldus-visual-320.webp?v=20260814-desempenho-integral-v329" alt="Aldus — Metas Concursos" width="320" height="320" fetchpriority="high" decoding="async" />\n' +
+    '      </a>\n' +
+    '      <button id="menuToggle" class="menu-toggle" type="button" aria-expanded="false" aria-controls="mainMenu">☰ Menu</button>\n' +
+    '      <div id="mainMenu" class="nav-links">\n' +
+    '        <div class="mobile-menu-header">\n' +
+    '          <strong>Menu</strong>\n' +
+    '          <button id="menuClose" class="menu-close" type="button" aria-label="Fechar menu">Fechar</button>\n' +
+    '        </div>\n' +
+    '        <div class="mobile-menu-group"><span>Principal</span>\n' +
+    '          <a href="#dashboard" data-view-link="dashboard">Dashboard</a>\n' +
+    '          <a href="#central-metas" data-view-link="central-metas">Central de Metas</a>\n' +
+    '          <a href="#metas-do-dia" data-view-link="metas-do-dia">Plano do Dia</a>\n' +
+    '          <a href="#calendario-metas" data-view-link="calendario-metas">Calendário de Metas</a>\n' +
+    '          <a href="#planejamento" data-view-link="planejamento">Planejamento</a>\n' +
+    '        </div>\n' +
+    '        <div class="mobile-menu-group"><span>Edital</span>\n' +
+    '          <a href="#edital" data-view-link="edital">Edital</a>\n' +
+    '          <a href="#edital-verticalizado" data-view-link="edital-verticalizado">Edital Verticalizado</a>\n' +
+    '          <a href="#importar-edital" data-view-link="importar-edital">Importar Edital</a>\n' +
+    '          <a href="#assuntos-agendaveis" data-view-link="assuntos-agendaveis">Assuntos Agendáveis</a>\n' +
+    '        </div>\n' +
+    '        <div class="mobile-menu-group"><span>Desempenho</span>\n' +
+    '          <a href="#progresso" data-view-link="progresso">Progresso</a>\n' +
+    '          <a href="#banco-questoes" data-view-link="banco-questoes" data-view-group="questions">Questões</a>\n' +
+    '          <a href="#caderno-erros" data-view-link="caderno-erros">Caderno de Erros</a>\n' +
+    '          <a href="#simulados" data-view-link="simulados">Simulados</a>\n' +
+    '          <a href="#analise-estrategica" data-view-link="analise-estrategica">Análise Estratégica</a>\n' +
+    '          <a href="#conselheiro" data-view-link="conselheiro">Conselheiro</a>\n' +
+    '        </div>\n' +
+    '        <div class="mobile-menu-group"><span>Apoio</span>\n' +
+    '          <a href="#materiais" data-view-link="materiais">Materiais</a>\n' +
+    '          <a href="#fabrica-resumos" data-view-link="fabrica-resumos">🏭 Fábrica de Resumos</a>\n' +
+    '          <a href="#revisao-inteligente" data-view-link="revisao-inteligente">Revisão Inteligente</a>\n' +
+    '          <a href="#revisoes" data-view-link="revisoes">Revisões</a>\n' +
+    '          <a href="#historico" data-view-link="historico">Histórico</a>\n' +
+    '        </div>\n' +
+    '        <div class="mobile-menu-group"><span>Sistema</span>\n' +
+    '          <a href="#backup" data-view-link="backup">Backup</a>\n' +
+    '          <a href="#como-usar" data-view-link="como-usar">Como usar</a>\n' +
+    '        </div>\n' +
+    '      </div>\n' +
+    '    </nav>\n' +
+    '\n' +
+    '    <section class="hero-content">\n' +
+    '      <div>\n' +
+    '        <p class="eyebrow">Dashboard de estudos</p>\n' +
+    '        <h1>Controle suas metas de estudo para concurso público</h1>\n' +
+    '        <p class="hero-text">Cadastre disciplinas, registre seus estudos diários, acompanhe questões, organize o edital verticalizado e escolha os assuntos que entram no seu planejamento.</p>\n' +
+    '      </div>\n' +
+    '      <div class="goal-card">\n' +
+    '        <span>Meta semanal</span>\n' +
+    '        <strong id="weeklyGoalStatus" aria-live="polite">Carregando dados…</strong>\n' +
+    '        <small>Dados salvos no navegador com sincronização opcional via Google Drive.</small>\n' +
+    '      </div>\n' +
+    '    </section>\n' +
+    '  </header>\n' +
+    '  <div id="menuOverlay" class="menu-overlay" hidden></div>\n' +
+    '  <div id="appLoadingState" class="app-loading-state" role="status" aria-live="polite">Carregando seus dados...</div>\n' +
+    '\n' +
+    '  <main class="container app-layout">\n' +
+    '    <aside class="side-nav" aria-label="Menu de telas" data-side-nav>\n' +
+    '      <div class="side-nav-heading">\n' +
+    '        <div class="side-nav-title">\n' +
+    '          <span class="side-nav-title-text">Navegação</span>\n' +
+    '          <a class="side-nav-brand-link" href="#dashboard" data-view-link="dashboard" aria-label="Ir para o início">\n' +
+    '            <img class="side-nav-brand-mark" src="icons/aldus-brand-mark-v93.png?v=20260728-carregamento-direto-v168" alt="" width="44" height="44" aria-hidden="true" />\n' +
+    '          </a>\n' +
+    '        </div>\n' +
+    '        <button id="sideNavToggle" class="side-nav-toggle" type="button" aria-controls="sideNavGroups" aria-expanded="true" aria-label="Recolher navegação" title="Recolher navegação">\n' +
+    '          <span class="side-nav-toggle-icon" aria-hidden="true">‹</span>\n' +
+    '        </button>\n' +
+    '      </div>\n' +
+    '      <div id="sideNavGroups" class="side-nav-groups">\n' +
+    '      <div class="side-nav-group"><span>Principal</span>\n' +
+    '        <a href="#dashboard" data-view-link="dashboard">Dashboard</a><a href="#central-metas" data-view-link="central-metas">Central de Metas</a><a href="#metas-do-dia" data-view-link="metas-do-dia">Plano do Dia</a><a href="#calendario-metas" data-view-link="calendario-metas">Calendário de Metas</a'... 108028 more characters
+  
+      at TestContext.<anonymous> (/home/runner/work/metas-estudo/metas-estudo/tests/stability.test.js:69:10)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1047:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+      at Test.postRun (node:internal/test_runner/test:1173:19)
+      at Test.run (node:internal/test_runner/test:1101:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:744:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: `<!DOCTYPE html>\n<html lang="pt-BR" data-aldus-theme="premium-stable">\n<head>\n  <meta charset="UTF-8" />\n  <meta name="viewport" content="width=device-width, initial-scale=1.0" />\n  <meta name="aldus-performance-release" content="20260814-desempenho-integral-v329" />\n  <meta name="aldus-usage-endpoint" content="https://us.i.posthog.com/batch/" />\n  <meta name="aldus-usage-project-token" content="phc_ALLcUsY57Zp3nXGd58NtMAPL3KhD8mZXJ6kyzR9ioqdA" />\n  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com; script-src-elem 'self' 'unsafe-inline' https://accounts.google.com; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://accounts.google.com https://www.googleapis.com https://us.i.posthog.com; frame-src https://accounts.google.com; font-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" />\n  <meta name="referrer" content="no-referrer" />\n  <script id="aldusSecurityHardeningV296" defer src="security-hardening-v296.js?v=20260814-desempenho-integral-v329"></script>\n  <script id="aldusQuestionBankJsonDetailsV299" defer src="question-bank-json-details-v299.js?v=20260814-desempenho-integral-v329"></script>\n  <title>Aldus Metas Concurso — Painel de Estudos</title>\n  <!-- O núcleo V309 precisa assumir a tela antes de qualquer inicializador legado. -->\n  <link id="aldusDuplicateDiagnosticsStylesV309" rel="stylesheet" href="duplicate-diagnostics-v260.css?v=20260811-duplicate-flow-owner-v309" />\n  <script id="aldusDuplicateDiagnosticsCoreV309" defer src="duplicate-diagnostics-v309.js?v=20260814-desempenho-integral-v329"></script>\n  <link rel="manifest" href="manifest.json?v=20260728-carregamento-direto-v168" />\n  <meta name="theme-color" content="#031426" />\n  <meta name="apple-mobile-web-app-capable" content="yes" />\n  <meta name="apple-mobile-web-app-status-bar-style" content="default" />\n  <meta name="apple-mobile-web-app-title" content="Aldus Metas" />\n  <meta name="google-identity-services" content="https://accounts.google.com/gsi/client" />\n  <link rel="apple-touch-icon" href="icons/icon.svg?v=20260728-carregamento-direto-v168" />\n  <link rel="icon" type="image/svg+xml" href="icons/logo-mark.svg?v=20260728-carregamento-direto-v168" />\n  <link rel="preload" as="image" type="image/webp" href="icons/aldus-visual-320.webp?v=20260814-desempenho-integral-v329" fetchpriority="high" />\n  <!-- Fontes CSS consolidadas, na ordem original: style.css; aldus-premium-theme.css; aldus-premium-refinement-v47.css; aldus-interface-v51.css; aldus-responsive-v52.css; aldus-contrast-v53.css; aldus-visual-v58.css; aldus-planning-v59.css; aldus-planning-history-v60.css; aldus-calendar-v61.css; aldus-calendar-v62.css; aldus-export-brand-v63.css; aldus-export-brand-v64.css; aldus-daily-goals-v66.css; aldus-daily-time-v67.css; aldus-contrast-system-v68.css; aldus-component-contrast-v69.css; aldus-advisor-layout-v70.css; aldus-backup-contrast-v71.css; aldus-navigation-scroll-v73.css; aldus-goal-integrity-v75.css; aldus-completed-visibility-v76.css. -->\n  <link id="aldusAppBundleStyles" rel="stylesheet" href="app-v344.css?v=20260815-interacao-responsiva-v344" />\n  <link id="aldusQuestionsHubStylesV298" rel="stylesheet" href="questions-hub-v298.css?v=20260814-gerador-simulados-em-questoes-v328" />\n\n  <link id="aldusCentralGoalsPaletteV246" rel="stylesheet" href="central-goals-palette-v245.css?v=20260805-dashboard-central-metas-cores-v246" />\n\n  <link id="aldusDashboardTodayPaletteV247" rel="stylesheet" href="dashboard-today-palette-v247.css?v=20260805-dashboard-hoje-cores-v247" />\n  <link id="aldusCentralPeriodCardsV248" rel="stylesheet" href="central-goals-period-palette-v248.css?v=20260805-central-period-cards-v248" />\n\n  <link id="aldusElegantCardStyleV249" rel="stylesheet" href="elegant-card-style-v249.css?v=20260805-elegant-card-style-v249" />\n  <link id="aldusDailySummaryElegantV250" rel="stylesheet" href="daily-summary-elegant-v250.css?v=20260805-daily-summary-elegant-v250" />\n  <link id="aldusDailySummaryElegantDirectV251" rel="stylesheet" href="daily-summary-elegant-direct-v251.css?v=20260805-daily-summary-elegant-direct-v251" />\n  <link id="aldusDailySummaryElegantNestedV252" rel="stylesheet" href="daily-summary-elegant-nested-v252.css?v=20260805-daily-summary-elegant-nested-v252" />\n  <link id="aldusCardPaletteV294" rel="stylesheet" href="aldus-card-palette-v294.css?v=20260809-paleta-cartoes-global-v294" />\n  <link rel="preload" as="script" href="app-v344.js?v=20260815-interacao-responsiva-v344" />\n  <link rel="preload" as="script" href="factory-simulado-visibility-v315.js?v=20260814-gerador-simulados-em-questoes-v328" />\n</head>\n<body>\n  <header class="hero">\n    <nav class="topbar" aria-label="Navegação principal">\n      <a class="brand aldus-visual-brand brand-home-link" href="#dashboard" data-view-link="dashboard" aria-label="Ir para o início">\n        <img class="aldus-visual-brand-image" src="icons/aldus-visual-320.webp?v=20260814-desempenho-integral-v329" alt="Aldus — Metas Concursos" width="320" height="320" fetchpriority="high" decoding="async" />\n      </a>\n      <button id="menuToggle" class="menu-toggle" type="button" aria-expanded="false" aria-controls="mainMenu">☰ Menu</button>\n      <div id="mainMenu" class="nav-links">\n        <div class="mobile-menu-header">\n          <strong>Menu</strong>\n          <button id="menuClose" class="menu-close" type="button" aria-label="Fechar menu">Fechar</button>\n        </div>\n        <div class="mobile-menu-group"><span>Principal</span>\n          <a href="#dashboard" data-view-link="dashboard">Dashboard</a>\n          <a href="#central-metas" data-view-link="central-metas">Central de Metas</a>\n          <a href="#metas-do-dia" data-view-link="metas-do-dia">Plano do Dia</a>\n          <a href="#calendario-metas" data-view-link="calendario-metas">Calendário de Metas</a>\n          <a href="#planejamento" data-view-link="planejamento">Planejamento</a>\n        </div>\n        <div class="mobile-menu-group"><span>Edital</span>\n          <a href="#edital" data-view-link="edital">Edital</a>\n          <a href="#edital-verticalizado" data-view-link="edital-verticalizado">Edital Verticalizado</a>\n          <a href="#importar-edital" data-view-link="importar-edital">Importar Edital</a>\n          <a href="#assuntos-agendaveis" data-view-link="assuntos-agendaveis">Assuntos Agendáveis</a>\n        </div>\n        <div class="mobile-menu-group"><span>Desempenho</span>\n          <a href="#progresso" data-view-link="progresso">Progresso</a>\n          <a href="#banco-questoes" data-view-link="banco-questoes" data-view-group="questions">Questões</a>\n          <a href="#caderno-erros" data-view-link="caderno-erros">Caderno de Erros</a>\n          <a href="#simulados" data-view-link="simulados">Simulados</a>\n          <a href="#analise-estrategica" data-view-link="analise-estrategica">Análise Estratégica</a>\n          <a href="#conselheiro" data-view-link="conselheiro">Conselheiro</a>\n        </div>\n        <div class="mobile-menu-group"><span>Apoio</span>\n          <a href="#materiais" data-view-link="materiais">Materiais</a>\n          <a href="#fabrica-resumos" data-view-link="fabrica-resumos">🏭 Fábrica de Resumos</a>\n          <a href="#revisao-inteligente" data-view-link="revisao-inteligente">Revisão Inteligente</a>\n          <a href="#revisoes" data-view-link="revisoes">Revisões</a>\n          <a href="#historico" data-view-link="historico">Histórico</a>\n        </div>\n        <div class="mobile-menu-group"><span>Sistema</span>\n          <a href="#backup" data-view-link="backup">Backup</a>\n          <a href="#como-usar" data-view-link="como-usar">Como usar</a>\n        </div>\n      </div>\n    </nav>\n\n    <section class="hero-content">\n      <div>\n        <p class="eyebrow">Dashboard de estudos</p>\n        <h1>Controle suas metas de estudo para concurso público</h1>\n        <p class="hero-text">Cadastre disciplinas, registre seus estudos diários, acompanhe questões, organize o edital verticalizado e escolha os assuntos que entram no seu planejamento.</p>\n      </div>\n      <div class="goal-card">\n        <span>Meta semanal</span>\n        <strong id="weeklyGoalStatus" aria-live="polite">Carregando dados…</strong>\n        <small>Dados salvos no navegador com sincronização opcional via Google Drive.</small>\n      </div>\n    </section>\n  </header>\n  <div id="menuOverlay" class="menu-overlay" hidden></div>\n  <div id="appLoadingState" class="app-loading-state" role="status" aria-live="polite">Carregando seus dados...</div>\n\n  <main class="container app-layout">\n    <aside class="side-nav" aria-label="Menu de telas" data-side-nav>\n      <div class="side-nav-heading">\n        <div class="side-nav-title">\n          <span class="side-nav-title-text">Navegação</span>\n          <a class="side-nav-brand-link" href="#dashboard" data-view-link="dashboard" aria-label="Ir para o início">\n            <img class="side-nav-brand-mark" src="icons/aldus-brand-mark-v93.png?v=20260728-carregamento-direto-v168" alt="" width="44" height="44" aria-hidden="true" />\n          </a>\n        </div>\n        <button id="sideNavToggle" class="side-nav-toggle" type="button" aria-controls="sideNavGroups" aria-expanded="true" aria-label="Recolher navegação" title="Recolher navegação">\n          <span class="side-nav-toggle-icon" aria-hidden="true">‹</span>\n        </button>\n      </div>\n      <div id="sideNavGroups" class="side-nav-groups">\n      <div class="side-nav-group"><span>Principal</span>\n        <a href="#dashboard" data-view-link="dashboard">Dashboard</a><a href="#central-metas" data-view-link="central-metas">Central de Metas</a><a href="#metas-do-dia" data-view-link="metas-do-dia">Plano do Dia</a><a href="#calendario-metas" data-view-link="calendario-metas">Calendário de Metas</a`... 108028 more characters,
+    expected: /class="brand aldus-visual-brand[^"]*"[\s\S]*?<img class="aldus-visual-brand-image"[^>]+icons\/aldus-visual\.png/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at tests/stability.test.js:216:1
+✖ rotas Backup e Caderno de Erros não compartilham destinos (0.630822ms)
+  AssertionError [ERR_ASSERTION]: deve existir Caderno de Erros nos links visíveis
+      at TestContext.<anonymous> (/home/runner/work/metas-estudo/metas-estudo/tests/stability.test.js:226:10)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1047:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+      at Test.postRun (node:internal/test_runner/test:1173:19)
+      at Test.run (node:internal/test_runner/test:1101:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:744:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests/stability.test.js:264:1
+✖ service worker busca HTML novo primeiro e mantém fallback offline do app shell (0.995285ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /const CACHE_NAME = `metas-estudo-\$\{CURRENT_VERSION\}`/. Input:
+  
+  '"use strict";\n' +
+    '\n' +
+    'const CURRENT_VERSION = "20260815-interacao-responsiva-v344";\n' +
+    'const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\\d+$/)?.[0] || "current";\n' +
+    'const SECURITY_VERSION = "20260810-seguranca-estabilidade-v296";\n' +
+    'const PROTECTION_VERSION = "20260815-bootstrap-performance-v342";\n' +
+    'const BOOTSTRAP_VERSION = "20260815-bootstrap-performance-v342";\n' +
+    'const DUPLICATE_CONTINUITY_VERSION = "20260811-duplicate-flow-owner-v309";\n' +
+    'const DUPLICATE_RECOMMENDATIONS_VERSION = "20260811-duplicate-flow-owner-v309";\n' +
+    'const DUPLICATE_BATCH_HOTFIX_VERSION = "20260811-duplicate-flow-owner-v309";\n' +
+    'const ENTRY_RECOVERY_VERSION = "20260811-duplicate-flow-owner-v309";\n' +
+    'const FACTORY_SCHEDULE_VERSION = "20260808-factory-schedule-scope-v277";\n' +
+    'const FACTORY_SCHEDULE_FILTERS_VERSION = "20260808-factory-schedule-planning-preview-filters-v280";\n' +
+    'const FACTORY_SCHEDULE_DATES_VERSION = "20260809-factory-schedule-planning-dates-v281";\n' +
+    'const QUESTIONS_HUB_VERSION = "20260814-desempenho-integral-v329";\n' +
+    'const QUESTION_JSON_DETAILS_VERSION = "20260810-revisao-json-explicacoes-v299";\n' +
+    'const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v297-hotfix5-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-duplicate-recommended-batch-v300-duplicate-batch-persistence-v301-duplicate-batch-performance-v304-duplicate-batch-commit-v305-entry-parser-recovery-v306-duplicate-core-delivery-v307-duplicate-batch-core-pin-v308-duplicate-flow-owner-v309-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4-security-v296-questions-hub-v298-question-json-details-v299-factory-simulado-escolha-automatica-v312-simulado-interativo-v313-integracao-v318-reparo-factory-simulado-visibility-v315-posthog-telemetry-v317-simulado-location-v328-factory-resumo-aula-canonical-v327-qconcursos-filter-v337-bootstrap-performance-v342`;\n' +
+    'const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";\n' +
+    'const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;\n' +
+    'const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";\n' +
+    'const HISTORY_LAYOUT_STYLESHEET = `question-history-layout-v223.css?v=${HISTORY_LAYOUT_VERSION}`;\n' +
+    'const FACTORY_QUEUE_INTEGRITY = `factory-queue-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=factory-queue-integrity-hotfix5`;\n' +
+    'const FACTORY_DESTINATION_INTEGRITY = "factory-destination-integrity-v237.js?v=20260804-pastas-destino-classificacao-exata-v237&hotfix=discipline-topic-exact1";\n' +
+    'const FACTORY_SCHEDULE_SCOPE = `factory-schedule-scope-v277.js?v=${FACTORY_SCHEDULE_VERSION}`;\n' +
+    'const FACTORY_SCHEDULE_FILTERS = `factory-schedule-filters-v279.js?v=${FACTORY_SCHEDULE_FILTERS_VERSION}`;\n' +
+    'const FACTORY_SCHEDULE_DATES = `factory-schedule-dates-v281.js?v=${FACTORY_SCHEDULE_DATES_VERSION}`;\n' +
+    'const TIMER_AUDIO_RECOVERY = "timer-audio-recovery-v236.js?v=20260810-timer-alarm-audio-v297&hotfix=timer-audio-recovery-hotfix5";\n' +
+    'const TIMER_AUDIO_UNIFIER = "timer-audio-unifier-v241.js?v=20260805-timer-audio-unified-v241&hotfix=timer-audio-unifier-hotfix1";\n' +
+    'const TIMER_MESSAGE_DEDUPE = "timer-message-dedupe-v239.js?v=20260805-timer-message-last-five-v242&hotfix=timer-message-last-five-hotfix1";\n' +
+    'const DAILY_SUMMARY_TIME_FORMAT = "daily-summary-time-format-v243.js?v=20260805-daily-summary-hours-minutes-v243&hotfix=daily-summary-time-format-hotfix4";\n' +
+    'const TIMER_SESSION_INTEGRITY = `timer-session-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=timer-session-integrity-hotfix1`;\n' +
+    'const INTEGRITY_LOADER = `planning-integrity-loader-v235.js?v=${CURRENT_VERSION}`;\n' +
+    'const INTEGRITY_CORE = `planning-integrity-v235.js?v=${CURRENT_VERSION}`;\n' +
+    'const CATASTROPHIC_STATE_GUARD = `catastrophic-state-guard-v275.js?v=${PROTECTION_VERSION}`;\n' +
+    'const BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275.js?v=${BOOTSTRAP_VERSION}`;\n' +
+    'const BOOTSTRAP_CORE = `bootstrap-integrity-loader-v258-core.js?v=${BOOTSTRAP_VERSION}`;\n' +
+    'const QCONCURSOS_FILTER_ROUTE_V333 = `qconcursos-filter-route-v333.js?v=${BOOTSTRAP_VERSION}`;\n' +
+    'const QCONCURSOS_ALL_FILTERS_V334 = `qconcursos-all-filters-v334.js?v=${BOOTSTRAP_VERSION}`;\n' +
+    'const QCONCURSOS_ROUTE_SAFETY_V335 = `qconcursos-route-safety-v335.js?v=${BOOTSTRAP_VERSION}`;\n' +
+    'const QCONCURSOS_NATIVE_SUBJECT_V336 = `qconcursos-native-subject-v336.js?v=${BOOTSTRAP_VERSION}`;\n' +
+    'const QCONCURSOS_CURRENT_CATALOG_V337 = `qconcursos-current-catalog-v337.js?v=${BOOTSTRAP_VERSION}`;\n' +
+    'const RECOVERY_SAFETY = `recovery-safety-v275.js?v=${PROTECTION_VERSION}`;\n' +
+    'const SECURITY_HARDENING = `security-hardening-v296.js?v=${SECURITY_VERSION}`;\n' +
+    'const DUPLICATE_DIAGNOSTICS_LOADER = `duplicate-diagnostics-loader-v269.js?v=${DUPLICATE_CONTINUITY_VERSION}`;\n' +
+    'const DUPLICATE_DIAGNOSTICS_SEARCH = `duplicate-diagnostics-search-v272.js?v=${DUPLICATE_CONTINUITY_VERSION}`;\n' +
+    'const DUPLICATE_DIAGNOSTICS_MAP = `duplicate-diagnostics-map-v273.js?v=${DUPLICATE_CONTINUITY_VERSION}`;\n' +
+    'const DUPLICATE_DIAGNOSTICS_ACTIONS = `duplicate-diagnostics-actions-v274.js?v=${DUPLICATE_CONTINUITY_VERSION}`;\n' +
+    'const DUPLICATE_DIAGNOSTICS_SEARCH_CSS = `duplicate-diagnostics-search-v271.css?v=${DUPLICATE_CONTINUITY_VERSION}`;\n' +
+    'const DUPLICATE_DIAGNOSTICS_CORE_CSS = `duplicate-diagnostics-v260.css?v=${DUPLICATE_RECOMMENDATIONS_VERSION}`;\n' +
+    'const DUPLICATE_RECOMMENDATIONS_CORE = `duplicate-diagnostics-v309.js?v=${DUPLICATE_RECOMMENDATIONS_VERSION}`;\n' +
+    'const DUPLICATE_BATCH_HOTFIX = `duplicate-diagnostics-batch-v305.js?v=${DUPLICATE_BATCH_HOTFIX_VERSION}`;\n' +
+    'const QUESTIONS_HUB_STYLESHEET = `questions-hub-v298.css?v=${QUESTIONS_HUB_VERSION}`;\n' +
+    'const QUESTIONS_HUB_SCRIPT = `questions-hub-v322.js?v=${QUESTIONS_HUB_VERSION}`;\n' +
+    'const QUESTION_JSON_DETAILS_SCRIPT = `question-bank-json-details-v299.js?v=${QUESTION_JSON_DETAILS_VERSION}`;\n' +
+    'const FACTORY_SIMULADO_SCRIPT = "factory-simulado-prompt-v310.js?v=20260814-desempenho-integral-v329";\n' +
+    'const FACTORY_SIMULADO_STYLESHEET = "factory-simulado-prompt-v310.css?v=20260814-desempenho-integral-v329";\n' +
+    'const FACTORY_SIMULADO_VISIBILITY_LOADER = "factory-simulado-visibility-v315.js?v=20260814-desempenho-integral-v329";\n' +
+    'const TIMER_RUNTIME_V316 = "timer-runtime-v316.js?v=20260814-desempenho-integral-v329";\n' +
+    'const USAGE_TELEMETRY_V317 = "usage-telemetry-v315.js?v=20260814-desempenho-integral-v329";\n' +
+    'const SIMULADO_INTERATIVO_SCRIPT = "simulado-interativo-v313.js?v=20260811-simulado-interativo-v313";\n' +
+    'const SIMULADO_INTERATIVO_STYLESHEET = "simulado-interativo-v313.css?v=20260811-simulado-interativo-v313";\n' +
+    'const SIMULADO_INTEGRACAO_SCRIPT = "simulado-integracao-v314.js?v=20260812-simulado-integracao-v318-reparo";\n' +
+    'const FACTORY_PENALTIES_SCRIPT = "factory-penalties-v320.js?v=20260814-desempenho-integral-v329";\n' +
+    'const FACTORY_RESUMO_AULA_VISUAL_SCRIPT = "factory-resumo-aula-visual-v326.js?v=20260814-desempenho-integral-v329";\n' +
+    'const FACTORY_RESUMO_AULA_CANONICAL_SCRIPT = "factory-resumo-aula-canonical-v327.js?v=20260814-desempenho-integral-v329";\n' +
+    'const STATIC_ASSETS = [\n' +
+    '  "./",\n' +
+    '  "index.html",\n' +
+    '  `app-${RELEASE_SUFFIX}.css?v=${CURRENT_VERSION}`,\n' +
+    '  `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`,\n' +
+    '  FACTORY_QUEUE_INTEGRITY,\n' +
+    '  FACTORY_DESTINATION_INTEGRITY,\n' +
+    '  FACTORY_SCHEDULE_SCOPE,\n' +
+    '  FACTORY_SCHEDULE_FILTERS,\n' +
+    '  FACTORY_SCHEDULE_DATES,\n' +
+    '  TIMER_AUDIO_RECOVERY,\n' +
+    '  TIMER_AUDIO_UNIFIER,\n' +
+    '  TIMER_MESSAGE_DEDUPE,\n' +
+    '  DAILY_SUMMARY_TIME_FORMAT,\n' +
+    '  TIMER_SESSION_INTEGRITY,\n' +
+    '  INTEGRITY_LOADER,\n' +
+    '  INTEGRITY_CORE,\n' +
+    '  CATASTROPHIC_STATE_GUARD,\n' +
+    '  BOOTSTRAP_PROTECTED,\n' +
+    '  BOOTSTRAP_CORE,\n' +
+    '  QCONCURSOS_FILTER_ROUTE_V333,\n' +
+    '  QCONCURSOS_ALL_FILTERS_V334,\n' +
+    '  QCONCURSOS_ROUTE_SAFETY_V335,\n' +
+    '  QCONCURSOS_NATIVE_SUBJECT_V336,\n' +
+    '  QCONCURSOS_CURRENT_CATALOG_V337,\n' +
+    '  RECOVERY_SAFETY,\n' +
+    '  SECURITY_HARDENING,\n' +
+    '  CONTRAST_STYLESHEET,\n' +
+    '  HISTORY_LAYOUT_STYLESHEET,\n' +
+    '  DUPLICATE_DIAGNOSTICS_LOADER,\n' +
+    '  DUPLICATE_DIAGNOSTICS_SEARCH,\n' +
+    '  DUPLICATE_DIAGNOSTICS_MAP,\n' +
+    '  DUPLICATE_DIAGNOSTICS_ACTIONS,\n' +
+    '  DUPLICATE_DIAGNOSTICS_SEARCH_CSS,\n' +
+    '  DUPLICATE_DIAGNOSTICS_CORE_CSS,\n' +
+    '  DUPLICATE_RECOMMENDATIONS_CORE,\n' +
+    '  DUPLICATE_BATCH_HOTFIX,\n' +
+    '  QUESTIONS_HUB_STYLESHEET,\n' +
+    '  QUESTIONS_HUB_SCRIPT,\n' +
+    '  QUESTION_JSON_DETAILS_SCRIPT,\n' +
+    '  FACTORY_SIMULADO_SCRIPT,\n' +
+    '  FACTORY_SIMULADO_STYLESHEET,\n' +
+    '  FACTORY_SIMULADO_VISIBILITY_LOADER,\n' +
+    '  TIMER_RUNTIME_V316,\n' +
+    '  USAGE_TELEMETRY_V317,\n' +
+    '  SIMULADO_INTERATIVO_SCRIPT,\n' +
+    '  SIMULADO_INTERATIVO_STYLESHEET,\n' +
+    '  SIMULADO_INTEGRACAO_SCRIPT,\n' +
+    '  FACTORY_PENALTIES_SCRIPT,\n' +
+    '  FACTORY_RESUMO_AULA_VISUAL_SCRIPT,\n' +
+    '  FACTORY_RESUMO_AULA_CANONICAL_SCRIPT,\n' +
+    '  "vendor/pdf.mjs",\n' +
+    '  "vendor/pdf.worker.mjs",\n' +
+    '  "vendor/pdfjs-LICENSE.txt",\n' +
+    '  "manifest.json",\n' +
+    '  "icons/aldus-visual-320.webp",\n' +
+    '  "icons/aldus-visual.png",\n' +
+    '  "icons/aldus-brand-mark-v93.png",\n' +
+    '  "icons/logo-mark.svg",\n' +
+    '  "icons/icon.svg",\n' +
+    '  "icons/icon-maskable.svg"\n' +
+    '];\n' +
+    'const STATIC_PATHS = new Set(STATIC_ASSETS.map((asset) => new URL(asset, self.registration.scope).pathname));\n' +
+    'const ESSENTIAL_ASSETS = [\n' +
+    '  "./",\n' +
+    '  "index.html",\n' +
+    '  `app-${RELEASE_SUFFIX}.css?v=${CURRENT_VERSION}`,\n' +
+    '  `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`,\n' +
+    '  "icons/aldus-visual-320.webp",\n' +
+    '  SECURITY_HARDENING,\n' +
+    '  CATASTROPHIC_STATE_GUARD,\n' +
+    '  BOOTSTRAP_PROTECTED,\n' +
+    '  BOOTSTRAP_CORE\n' +
+    '];\n' +
+    '\n' +
+    'async function precacheAssets() {\n' +
+    '  const cache = await caches.open(CACHE_NAME);\n' +
+    '  await cache.addAll(ESSENTIAL_ASSETS);\n' +
+    '}\n' +
+    '\n' +
+    'self.addEventListener("install", (event) => {\n' +
+    '  event.waitUntil(precacheAssets().then(() => self.skipWaiting()));\n' +
+    '});\n' +
+    '\n' +
+    'self.addEventListener("message", (event) => {\n' +
+    '  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();\n' +
+    '});\n' +
+    '\n' +
+    'self.addEventListener("activate", (event) => {\n' +
+    '  event.waitUntil(\n' +
+    '    caches.keys()\n' +
+    '      .then((names) => Promise.all(\n' +
+    '        names\n' +
+    '          .filter((name) =>\n' +
+    '            (name.startsWith("metas-estudo-") && name !== CACHE_NAME)\n' +
+    '            || name.startsWith("aldus-runtime-modules-")\n' +
+    '            || name.startsWith("aldus-compiled-app-")\n' +
+    '          )\n' +
+    '          .map((name) => caches.delete(name))\n' +
+    '      ))\n' +
+    '      .then(() => self.clients.claim())\n' +
+    '  );\n' +
+    '});\n' +
+    '\n' +
+    'async function ca'... 9433 more characters
+  
+      at TestContext.<anonymous> (/home/runner/work/metas-estudo/metas-estudo/tests/stability.test.js:267:10)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1047:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+      at Test.postRun (node:internal/test_runner/test:1173:19)
+      at Test.run (node:internal/test_runner/test:1101:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:744:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '"use strict";\n\nconst CURRENT_VERSION = "20260815-interacao-responsiva-v344";\nconst RELEASE_SUFFIX = CURRENT_VERSION.match(/v\\d+$/)?.[0] || "current";\nconst SECURITY_VERSION = "20260810-seguranca-estabilidade-v296";\nconst PROTECTION_VERSION = "20260815-bootstrap-performance-v342";\nconst BOOTSTRAP_VERSION = "20260815-bootstrap-performance-v342";\nconst DUPLICATE_CONTINUITY_VERSION = "20260811-duplicate-flow-owner-v309";\nconst DUPLICATE_RECOMMENDATIONS_VERSION = "20260811-duplicate-flow-owner-v309";\nconst DUPLICATE_BATCH_HOTFIX_VERSION = "20260811-duplicate-flow-owner-v309";\nconst ENTRY_RECOVERY_VERSION = "20260811-duplicate-flow-owner-v309";\nconst FACTORY_SCHEDULE_VERSION = "20260808-factory-schedule-scope-v277";\nconst FACTORY_SCHEDULE_FILTERS_VERSION = "20260808-factory-schedule-planning-preview-filters-v280";\nconst FACTORY_SCHEDULE_DATES_VERSION = "20260809-factory-schedule-planning-dates-v281";\nconst QUESTIONS_HUB_VERSION = "20260814-desempenho-integral-v329";\nconst QUESTION_JSON_DETAILS_VERSION = "20260810-revisao-json-explicacoes-v299";\nconst CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v297-hotfix5-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-duplicate-recommended-batch-v300-duplicate-batch-persistence-v301-duplicate-batch-performance-v304-duplicate-batch-commit-v305-entry-parser-recovery-v306-duplicate-core-delivery-v307-duplicate-batch-core-pin-v308-duplicate-flow-owner-v309-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4-security-v296-questions-hub-v298-question-json-details-v299-factory-simulado-escolha-automatica-v312-simulado-interativo-v313-integracao-v318-reparo-factory-simulado-visibility-v315-posthog-telemetry-v317-simulado-location-v328-factory-resumo-aula-canonical-v327-qconcursos-filter-v337-bootstrap-performance-v342`;\nconst CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";\nconst CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;\nconst HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";\nconst HISTORY_LAYOUT_STYLESHEET = `question-history-layout-v223.css?v=${HISTORY_LAYOUT_VERSION}`;\nconst FACTORY_QUEUE_INTEGRITY = `factory-queue-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=factory-queue-integrity-hotfix5`;\nconst FACTORY_DESTINATION_INTEGRITY = "factory-destination-integrity-v237.js?v=20260804-pastas-destino-classificacao-exata-v237&hotfix=discipline-topic-exact1";\nconst FACTORY_SCHEDULE_SCOPE = `factory-schedule-scope-v277.js?v=${FACTORY_SCHEDULE_VERSION}`;\nconst FACTORY_SCHEDULE_FILTERS = `factory-schedule-filters-v279.js?v=${FACTORY_SCHEDULE_FILTERS_VERSION}`;\nconst FACTORY_SCHEDULE_DATES = `factory-schedule-dates-v281.js?v=${FACTORY_SCHEDULE_DATES_VERSION}`;\nconst TIMER_AUDIO_RECOVERY = "timer-audio-recovery-v236.js?v=20260810-timer-alarm-audio-v297&hotfix=timer-audio-recovery-hotfix5";\nconst TIMER_AUDIO_UNIFIER = "timer-audio-unifier-v241.js?v=20260805-timer-audio-unified-v241&hotfix=timer-audio-unifier-hotfix1";\nconst TIMER_MESSAGE_DEDUPE = "timer-message-dedupe-v239.js?v=20260805-timer-message-last-five-v242&hotfix=timer-message-last-five-hotfix1";\nconst DAILY_SUMMARY_TIME_FORMAT = "daily-summary-time-format-v243.js?v=20260805-daily-summary-hours-minutes-v243&hotfix=daily-summary-time-format-hotfix4";\nconst TIMER_SESSION_INTEGRITY = `timer-session-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=timer-session-integrity-hotfix1`;\nconst INTEGRITY_LOADER = `planning-integrity-loader-v235.js?v=${CURRENT_VERSION}`;\nconst INTEGRITY_CORE = `planning-integrity-v235.js?v=${CURRENT_VERSION}`;\nconst CATASTROPHIC_STATE_GUARD = `catastrophic-state-guard-v275.js?v=${PROTECTION_VERSION}`;\nconst BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275.js?v=${BOOTSTRAP_VERSION}`;\nconst BOOTSTRAP_CORE = `bootstrap-integrity-loader-v258-core.js?v=${BOOTSTRAP_VERSION}`;\nconst QCONCURSOS_FILTER_ROUTE_V333 = `qconcursos-filter-route-v333.js?v=${BOOTSTRAP_VERSION}`;\nconst QCONCURSOS_ALL_FILTERS_V334 = `qconcursos-all-filters-v334.js?v=${BOOTSTRAP_VERSION}`;\nconst QCONCURSOS_ROUTE_SAFETY_V335 = `qconcursos-route-safety-v335.js?v=${BOOTSTRAP_VERSION}`;\nconst QCONCURSOS_NATIVE_SUBJECT_V336 = `qconcursos-native-subject-v336.js?v=${BOOTSTRAP_VERSION}`;\nconst QCONCURSOS_CURRENT_CATALOG_V337 = `qconcursos-current-catalog-v337.js?v=${BOOTSTRAP_VERSION}`;\nconst RECOVERY_SAFETY = `recovery-safety-v275.js?v=${PROTECTION_VERSION}`;\nconst SECURITY_HARDENING = `security-hardening-v296.js?v=${SECURITY_VERSION}`;\nconst DUPLICATE_DIAGNOSTICS_LOADER = `duplicate-diagnostics-loader-v269.js?v=${DUPLICATE_CONTINUITY_VERSION}`;\nconst DUPLICATE_DIAGNOSTICS_SEARCH = `duplicate-diagnostics-search-v272.js?v=${DUPLICATE_CONTINUITY_VERSION}`;\nconst DUPLICATE_DIAGNOSTICS_MAP = `duplicate-diagnostics-map-v273.js?v=${DUPLICATE_CONTINUITY_VERSION}`;\nconst DUPLICATE_DIAGNOSTICS_ACTIONS = `duplicate-diagnostics-actions-v274.js?v=${DUPLICATE_CONTINUITY_VERSION}`;\nconst DUPLICATE_DIAGNOSTICS_SEARCH_CSS = `duplicate-diagnostics-search-v271.css?v=${DUPLICATE_CONTINUITY_VERSION}`;\nconst DUPLICATE_DIAGNOSTICS_CORE_CSS = `duplicate-diagnostics-v260.css?v=${DUPLICATE_RECOMMENDATIONS_VERSION}`;\nconst DUPLICATE_RECOMMENDATIONS_CORE = `duplicate-diagnostics-v309.js?v=${DUPLICATE_RECOMMENDATIONS_VERSION}`;\nconst DUPLICATE_BATCH_HOTFIX = `duplicate-diagnostics-batch-v305.js?v=${DUPLICATE_BATCH_HOTFIX_VERSION}`;\nconst QUESTIONS_HUB_STYLESHEET = `questions-hub-v298.css?v=${QUESTIONS_HUB_VERSION}`;\nconst QUESTIONS_HUB_SCRIPT = `questions-hub-v322.js?v=${QUESTIONS_HUB_VERSION}`;\nconst QUESTION_JSON_DETAILS_SCRIPT = `question-bank-json-details-v299.js?v=${QUESTION_JSON_DETAILS_VERSION}`;\nconst FACTORY_SIMULADO_SCRIPT = "factory-simulado-prompt-v310.js?v=20260814-desempenho-integral-v329";\nconst FACTORY_SIMULADO_STYLESHEET = "factory-simulado-prompt-v310.css?v=20260814-desempenho-integral-v329";\nconst FACTORY_SIMULADO_VISIBILITY_LOADER = "factory-simulado-visibility-v315.js?v=20260814-desempenho-integral-v329";\nconst TIMER_RUNTIME_V316 = "timer-runtime-v316.js?v=20260814-desempenho-integral-v329";\nconst USAGE_TELEMETRY_V317 = "usage-telemetry-v315.js?v=20260814-desempenho-integral-v329";\nconst SIMULADO_INTERATIVO_SCRIPT = "simulado-interativo-v313.js?v=20260811-simulado-interativo-v313";\nconst SIMULADO_INTERATIVO_STYLESHEET = "simulado-interativo-v313.css?v=20260811-simulado-interativo-v313";\nconst SIMULADO_INTEGRACAO_SCRIPT = "simulado-integracao-v314.js?v=20260812-simulado-integracao-v318-reparo";\nconst FACTORY_PENALTIES_SCRIPT = "factory-penalties-v320.js?v=20260814-desempenho-integral-v329";\nconst FACTORY_RESUMO_AULA_VISUAL_SCRIPT = "factory-resumo-aula-visual-v326.js?v=20260814-desempenho-integral-v329";\nconst FACTORY_RESUMO_AULA_CANONICAL_SCRIPT = "factory-resumo-aula-canonical-v327.js?v=20260814-desempenho-integral-v329";\nconst STATIC_ASSETS = [\n  "./",\n  "index.html",\n  `app-${RELEASE_SUFFIX}.css?v=${CURRENT_VERSION}`,\n  `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`,\n  FACTORY_QUEUE_INTEGRITY,\n  FACTORY_DESTINATION_INTEGRITY,\n  FACTORY_SCHEDULE_SCOPE,\n  FACTORY_SCHEDULE_FILTERS,\n  FACTORY_SCHEDULE_DATES,\n  TIMER_AUDIO_RECOVERY,\n  TIMER_AUDIO_UNIFIER,\n  TIMER_MESSAGE_DEDUPE,\n  DAILY_SUMMARY_TIME_FORMAT,\n  TIMER_SESSION_INTEGRITY,\n  INTEGRITY_LOADER,\n  INTEGRITY_CORE,\n  CATASTROPHIC_STATE_GUARD,\n  BOOTSTRAP_PROTECTED,\n  BOOTSTRAP_CORE,\n  QCONCURSOS_FILTER_ROUTE_V333,\n  QCONCURSOS_ALL_FILTERS_V334,\n  QCONCURSOS_ROUTE_SAFETY_V335,\n  QCONCURSOS_NATIVE_SUBJECT_V336,\n  QCONCURSOS_CURRENT_CATALOG_V337,\n  RECOVERY_SAFETY,\n  SECURITY_HARDENING,\n  CONTRAST_STYLESHEET,\n  HISTORY_LAYOUT_STYLESHEET,\n  DUPLICATE_DIAGNOSTICS_LOADER,\n  DUPLICATE_DIAGNOSTICS_SEARCH,\n  DUPLICATE_DIAGNOSTICS_MAP,\n  DUPLICATE_DIAGNOSTICS_ACTIONS,\n  DUPLICATE_DIAGNOSTICS_SEARCH_CSS,\n  DUPLICATE_DIAGNOSTICS_CORE_CSS,\n  DUPLICATE_RECOMMENDATIONS_CORE,\n  DUPLICATE_BATCH_HOTFIX,\n  QUESTIONS_HUB_STYLESHEET,\n  QUESTIONS_HUB_SCRIPT,\n  QUESTION_JSON_DETAILS_SCRIPT,\n  FACTORY_SIMULADO_SCRIPT,\n  FACTORY_SIMULADO_STYLESHEET,\n  FACTORY_SIMULADO_VISIBILITY_LOADER,\n  TIMER_RUNTIME_V316,\n  USAGE_TELEMETRY_V317,\n  SIMULADO_INTERATIVO_SCRIPT,\n  SIMULADO_INTERATIVO_STYLESHEET,\n  SIMULADO_INTEGRACAO_SCRIPT,\n  FACTORY_PENALTIES_SCRIPT,\n  FACTORY_RESUMO_AULA_VISUAL_SCRIPT,\n  FACTORY_RESUMO_AULA_CANONICAL_SCRIPT,\n  "vendor/pdf.mjs",\n  "vendor/pdf.worker.mjs",\n  "vendor/pdfjs-LICENSE.txt",\n  "manifest.json",\n  "icons/aldus-visual-320.webp",\n  "icons/aldus-visual.png",\n  "icons/aldus-brand-mark-v93.png",\n  "icons/logo-mark.svg",\n  "icons/icon.svg",\n  "icons/icon-maskable.svg"\n];\nconst STATIC_PATHS = new Set(STATIC_ASSETS.map((asset) => new URL(asset, self.registration.scope).pathname));\nconst ESSENTIAL_ASSETS = [\n  "./",\n  "index.html",\n  `app-${RELEASE_SUFFIX}.css?v=${CURRENT_VERSION}`,\n  `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`,\n  "icons/aldus-visual-320.webp",\n  SECURITY_HARDENING,\n  CATASTROPHIC_STATE_GUARD,\n  BOOTSTRAP_PROTECTED,\n  BOOTSTRAP_CORE\n];\n\nasync function precacheAssets() {\n  const cache = await caches.open(CACHE_NAME);\n  await cache.addAll(ESSENTIAL_ASSETS);\n}\n\nself.addEventListener("install", (event) => {\n  event.waitUntil(precacheAssets().then(() => self.skipWaiting()));\n});\n\nself.addEventListener("message", (event) => {\n  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();\n});\n\nself.addEventListener("activate", (event) => {\n  event.waitUntil(\n    caches.keys()\n      .then((names) => Promise.all(\n        names\n          .filter((name) =>\n            (name.startsWith("metas-estudo-") && name !== CACHE_NAME)\n            || name.startsWith("aldus-runtime-modules-")\n            || name.startsWith("aldus-compiled-app-")\n          )\n          .map((name) => caches.delete(name))\n      ))\n      .then(() => self.clients.claim())\n  );\n});\n\nasync function ca'... 9433 more characters,
+    expected: /const CACHE_NAME = `metas-estudo-\$\{CURRENT_VERSION\}`/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at tests/stability.test.js:313:1
+✖ interface publicada expõe sincronização Google Drive (1.41941ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /const GOOGLE_DRIVE_SCOPE = "https:\/\/www\.googleapis\.com\/auth\/drive\.appdata"/. Input:
+  
+  'const STORAGE_KEY = "metasConcursoData";\n' +
+    'const SIMULADOS_STORAGE_KEY = "metasEstudoSimulados";\n' +
+    'const MOTIVATION_STORAGE_KEY = "metasEstudoMensagemDoDia";\n' +
+    'const CADERNO_ERROS_STORAGE_KEY = "cadernoErros";\n' +
+    'const CADERNO_ERROS_DEBUG = false;\n' +
+    'const GOOGLE_CLIENT_ID = "888613157566-p6ad2hmuav7uc7tqabs846rnnmh6g7mf.apps.googleusercontent.com";\n' +
+    'const GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.metadata.readonly";\n' +
+    'const GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";\n' +
+    'const DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";\n' +
+    'const SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";\n' +
+    'const TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";\n' +
+    'const TIMER_SESSION_SAFETY_STORAGE_KEY = "metasEstudoTimerSessionSafety";\n' +
+    'const APP_VERSION = globalThis.__ALDUS_APP_RELEASE__?.version;\n' +
+    'if (!APP_VERSION) throw new Error("[Aldus Meta] Fonte canônica de versão não carregada.");\n' +
+    'const AUTO_SYNC_DEBOUNCE_MS = 4000;\n' +
+    'const LOCAL_STORAGE_SAFE_STATE_BYTES = 4 * 1024 * 1024;\n' +
+    'const VIEW_RENDER_CACHE_TTL_MS_V172 = 60 * 1000;\n' +
+    'let viewDataRevisionV172 = 0;\n' +
+    'const QB_RENDER_LIMIT = 20;\n' +
+    'const ENABLE_FACTORY = true;\n' +
+    'const FACTORY_UI_COMPAT_LABELS = "RESUMOS A PRODUZIR HOJE | A PRODUZIR | EM PRODUÇÃO | CONCLUÍDOS | MATERIAIS JÁ PRONTOS PARA ESTUDAR | Pasta de destino do Word/PDF:";\n' +
+    'const DAILY_PLAN_COMPAT_LABELS = "META DE QUESTÕES | 📚 ESTUDAR HOJE | 🏭 PRODUZIR MATERIAL HOJE | 🔄 REVISAR HOJE";\n' +
+    'const LEGACY_STORAGE_COMPAT_LABEL = "Fonte principal: <strong>localStorage</strong>";\n' +
+    'const LEGACY_TIMER_GOAL_MINUTES_RECOVERY_MIGRATION_ID = "legacyTimerGoalMinutesRecoveryV1";\n' +
+    'const LEGACY_TIMER_RECOVERY_V2_MIGRATION_KEY = "legacyTimerRecoveryV2";\n' +
+    'const FACTORY_STATUSES = ["Não iniciado","Em produção","Aguardando revisão","Aprovado","PDF gerado","Não se aplica","Precisa refazer","Atualizar depois"];\n' +
+    'const FACTORY_TRIAGEM_STATUSES = ["Não iniciada", "Em andamento", "Concluída", "Precisa refazer"];\n' +
+    'const FACTORY_MODULES = [\n' +
+    '  { key: "triagem", label: "TRIAGEM", virtual: true },\n' +
+    '  { key: "resumoAula", label: "RESUMO/AULA" },\n' +
+    '  { key: "lei", label: "LEI" },\n' +
+    '  { key: "jurisprudencia", label: "JURISPRUDÊNCIA" },\n' +
+    '  { key: "peca", label: "PEÇA" },\n' +
+    '  { key: "completo", label: "COMPLETO" }\n' +
+    '];\n' +
+    '\n' +
+    'const MATERIAL_ESTIMATE_VERSION = 1;\n' +
+    'const MATERIAL_ESTIMATE_MIGRATION_ID = "materialDynamicTimeEstimateV1";\n' +
+    'const MATERIAL_DENSITY_FACTORS = { light: 0.8, normal: 1, dense: 1.25 };\n' +
+    'const MATERIAL_DENSITY_LABELS = { light: "leve", normal: "normal", dense: "densa" };\n' +
+    'const MATERIAL_ESTIMATE_MODES = ["automatic", "manual"];\n' +
+    'const MATERIAL_ESTIMATE_BASE_RANGES = [\n' +
+    '  { maxPages: 5, minutes: 30 },\n' +
+    '  { maxPages: 10, minutes: 60 },\n' +
+    '  { maxPages: 15, minutes: 90 },\n' +
+    '  { maxPages: 25, minutes: 120 },\n' +
+    '  { maxPages: 35, minutes: 180 },\n' +
+    '  { maxPages: 45, minutes: 240 }\n' +
+    '];\n' +
+    'function materialEstimateEmpty() { return { usefulPages: 0, materialDensity: "normal", automaticEstimatedMinutes: 0, manualEstimatedMinutes: 0, estimatedMinutes: 0, estimateMode: "automatic", estimatedAt: "", estimateVersion: MATERIAL_ESTIMATE_VERSION }; }\n' +
+    'function validMaterialDensity(density) { return Object.prototype.hasOwnProperty.call(MATERIAL_DENSITY_FACTORS, density); }\n' +
+    'function parseOptionalInteger(value) { if (value === "" || value === null || value === undefined) return 0; if (typeof value === "string" && !/^\\d+$/.test(value.trim())) return NaN; const n = Number(value); return Number.isInteger(n) ? n : NaN; }\n' +
+    'function materialBaseEstimatedMinutes(usefulPages) {\n' +
+    '  const pages = parseOptionalInteger(usefulPages);\n' +
+    '  if (Number.isNaN(pages)) throw new Error("Informe páginas úteis como número inteiro.");\n' +
+    '  if (pages < 0) throw new Error("Páginas úteis não podem ser negativas.");\n' +
+    '  if (pages === 0) return 0;\n' +
+    '  const range = MATERIAL_ESTIMATE_BASE_RANGES.find((item) => pages <= item.maxPages);\n' +
+    '  if (range) return range.minutes;\n' +
+    '  return 240 + Math.ceil((pages - 45) / 10) * 60;\n' +
+    '}\n' +
+    'function roundToThirtyMinutes(minutes) {\n' +
+    '  if (!Number.isFinite(minutes) || minutes <= 0) return 0;\n' +
+    '  // Empates exatos entre dois blocos de 30 minutos arredondam para cima de forma determinística.\n' +
+    '  return Math.max(30, Math.floor((minutes + 15) / 30) * 30);\n' +
+    '}\n' +
+    'function calculateMaterialEstimatedMinutes(usefulPages, density = "normal") {\n' +
+    '  if (!validMaterialDensity(density)) throw new Error("Densidade inválida. Use light, normal ou dense.");\n' +
+    '  const base = materialBaseEstimatedMinutes(usefulPages);\n' +
+    '  if (!base) return 0;\n' +
+    '  return roundToThirtyMinutes(base * MATERIAL_DENSITY_FACTORS[density]);\n' +
+    '}\n' +
+    'function normalizeManualEstimatedMinutes(value) {\n' +
+    '  const minutes = parseOptionalInteger(value);\n' +
+    '  if (Number.isNaN(minutes) || minutes <= 0 || minutes % 30 !== 0) return 0;\n' +
+    '  return minutes;\n' +
+    '}\n' +
+    'function normalizeMaterialEstimateFields(material = {}) {\n' +
+    '  const defaults = materialEstimateEmpty();\n' +
+    '  const density = validMaterialDensity(material.materialDensity) ? material.materialDensity : defaults.materialDensity;\n' +
+    '  const usefulPages = Math.max(0, parseOptionalInteger(material.usefulPages) || 0);\n' +
+    '  const mode = MATERIAL_ESTIMATE_MODES.includes(material.estimateMode) ? material.estimateMode : defaults.estimateMode;\n' +
+    '  const automatic = usefulPages ? calculateMaterialEstimatedMinutes(usefulPages, density) : 0;\n' +
+    '  const manual = normalizeManualEstimatedMinutes(material.manualEstimatedMinutes);\n' +
+    '  return { ...material, usefulPages, materialDensity: density, automaticEstimatedMinutes: automatic, manualEstimatedMinutes: manual, estimatedMinutes: mode === "manual" ? manual : automatic, estimateMode: mode, estimatedAt: material.estimatedAt || "", estimateVersion: Number(material.estimateVersion) || MATERIAL_ESTIMATE_VERSION };\n' +
+    '}\n' +
+    'function migrateMaterialEstimates(targetState = state) {\n' +
+    '  targetState.materials ||= []; targetState.migrations ||= {};\n' +
+    '  let changed = !targetState.migrations[MATERIAL_ESTIMATE_MIGRATION_ID];\n' +
+    '  targetState.materials = targetState.materials.map((material) => { const normalized = normalizeMaterialEstimateFields(material); changed ||= JSON.stringify(material) !== JSON.stringify(normalized); return normalized; });\n' +
+    '  if (!targetState.migrations[MATERIAL_ESTIMATE_MIGRATION_ID]) targetState.migrations[MATERIAL_ESTIMATE_MIGRATION_ID] = new Date().toISOString();\n' +
+    '  return changed;\n' +
+    '}\n' +
+    '\n' +
+    'const SEGMENTED_GOAL_MIGRATION_ID = "segmentedDynamicStudyGoalsV1";\n' +
+    'function validEstimatedMinutes(value) { const n = Number(value); return Number.isFinite(n) && n > 0 ? Math.round(n) : 0; }\n' +
+    'function splitEstimatedMinutesIntoSegments(totalMinutes) {\n' +
+    '  const total = validEstimatedMinutes(totalMinutes);\n' +
+    '  if (!total) return [];\n' +
+    '  if (total <= 90) return [total];\n' +
+    '  const segments = [];\n' +
+    '  let remaining = total;\n' +
+    '  while (remaining > 60) {\n' +
+    '    segments.push(60);\n' +
+    '    remaining -= 60;\n' +
+    '  }\n' +
+    '  if (remaining > 0) segments.push(remaining);\n' +
+    '  return segments;\n' +
+    '}\n' +
+    '\n' +
+    'function nextSchedulableSegmentDate(startDate, segmentOffset, segmentMinutes, targetState = state) {\n' +
+    '  let date = startDate;\n' +
+    '  let placed = 0;\n' +
+    '  for (let guard = 0; guard < 120; guard++) {\n' +
+    '    const availability = availabilityForDate(date, targetState);\n' +
+    '    const capacity = Math.max(0, Number(availability.hours || 0) * 60);\n' +
+    '    const planned = (targetState.dailyGoals || []).filter((goal) => goalDateValue(goal) === date).reduce((sum, goal) => sum + Number(goal.minutes || 0), 0);\n' +
+    '    const usable = availability.type !== "indisponível" && (!capacity || planned + segmentMinutes <= capacity);\n' +
+    '    if (usable && placed++ >= segmentOffset) return date;\n' +
+    '    date = addDays(date, 1);\n' +
+    '  }\n' +
+    '  return addDays(startDate, segmentOffset);\n' +
+    '}\n' +
+    'function dynamicGoalSegmentKey(goal = {}) { return [goal.syllabusItemId || "", goal.estimateSourceId || "", goal.segmentIndex || 1, goal.segmentCount || 1].join("|"); }\n' +
+    'function normalizeSegmentedGoalFields(goal = {}) {\n' +
+    '  if (!goal || typeof goal !== "object") return goal;\n' +
+    '  if (goal.estimatedTotalMinutes !== undefined) goal.estimatedTotalMinutes = validEstimatedMinutes(goal.estimatedTotalMinutes);\n' +
+    '  if (goal.segmentMinutes !== undefined) goal.segmentMinutes = validEstimatedMinutes(goal.segmentMinutes);\n' +
+    '  if (goal.segmentIndex !== undefined) goal.segmentIndex = Math.max(1, Number.parseInt(goal.segmentIndex, 10) || 1);\n' +
+    '  if (goal.segmentCount !== undefined) goal.segmentCount = Math.max(1, Number.parseInt(goal.segmentCount, 10) || 1);\n' +
+    '  goal.estimateSourceId ||= "";\n' +
+    '  return goal;\n' +
+    '}\n' +
+    'function migrateSegmentedGoals(targetState = state) {\n' +
+    '  targetState.dailyGoals ||= []; targetState.migrations ||= {};\n' +
+    '  let changed = !targetState.migrations[SEGMENTED_GOAL_MIGRATION_ID];\n' +
+    '  targetState.dailyGoals.forEach((goal) => { const before = JSON.stringify(goal); normalizeSegmentedGoalFields(goal); changed ||= before !== JSON.stringify(goal); });\n' +
+    '  if (!targetState.migrations[SEGMENTED_GOAL_MIGRATION_ID]) targetState.migrations[SEGMENTED_GOAL_MIGRATION_ID] = new Date().toISOString();\n' +
+    '  return changed;\n' +
+    '}\n' +
+    'function estimateMaterialForItem(item = {}) {\n' +
+    '  const linked = resolveAvailableMaterials({ discipline: item.discipline, subject: item.subject, syllabusItemId: item.id }).filter((m) => m.source !== "factory" || m.factoryModuleKey === "resumoAula");\n' +
+    '  const material = linked.find((m) => validEstimatedMinutes(m.manualEstimatedMinutes)) || linked.find((m) => validEstimatedMinutes(m.estimatedMinutes));\n' +
+    '  if (!material) return null;\n' +
+    '  const manual = validEstimatedMinutes(material.manualEstimatedMinutes);\n' +
+    '  const estimated = validEstimatedMinutes(material.estimatedMinutes);\n' +
+    '  const minutes = manual || estimated;\n' +
+    '  return minutes ? { material, minutes, source: manual ? "manualEstimatedMinutes" : "estimatedMinutes" } : null;\n' +
+    '}\n' +
+    'function plannedStudyStatsForMaterial(material = {}) {\n' +
+    '  const goals = (state.dailyGoals || []).filter((g) => g.estimateSourceId === material.id || (g.syllabusItemId && (g.syllabusItemId === material.syllabusItemId || (material.syllabusItemIds || []).includes(g.syllabusItemId))));\n' +
+    '  const planned = goals.reduce((a,g)=>a+Number(g.minutes||0),0);\n' +
+    '  const done = goals.reduce((a,g)=>a+goalTotalActualMinutes(g),0);\n' +
+    '  const total = validEstimatedMinutes(material.'... 970794 more characters
+  
+      at TestContext.<anonymous> (/home/runner/work/metas-estudo/metas-estudo/tests/stability.test.js:333:10)
+      at Test.runInAsyncScope (node:async_hooks:214:14)
+      at Test.run (node:internal/test_runner/test:1047:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+      at Test.postRun (node:internal/test_runner/test:1173:19)
+      at Test.run (node:internal/test_runner/test:1101:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:744:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'const STORAGE_KEY = "metasConcursoData";\nconst SIMULADOS_STORAGE_KEY = "metasEstudoSimulados";\nconst MOTIVATION_STORAGE_KEY = "metasEstudoMensagemDoDia";\nconst CADERNO_ERROS_STORAGE_KEY = "cadernoErros";\nconst CADERNO_ERROS_DEBUG = false;\nconst GOOGLE_CLIENT_ID = "888613157566-p6ad2hmuav7uc7tqabs846rnnmh6g7mf.apps.googleusercontent.com";\nconst GOOGLE_DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.metadata.readonly";\nconst GOOGLE_SYNC_FILE_NAME = "metas-estudo-sync.json";\nconst DEVICE_ID_STORAGE_KEY = "metasEstudoDeviceId";\nconst SYNC_META_STORAGE_KEY = "metasEstudoSyncMeta";\nconst TIMER_PREFS_STORAGE_KEY = "metasEstudoTimerPreferences";\nconst TIMER_SESSION_SAFETY_STORAGE_KEY = "metasEstudoTimerSessionSafety";\nconst APP_VERSION = globalThis.__ALDUS_APP_RELEASE__?.version;\nif (!APP_VERSION) throw new Error("[Aldus Meta] Fonte canônica de versão não carregada.");\nconst AUTO_SYNC_DEBOUNCE_MS = 4000;\nconst LOCAL_STORAGE_SAFE_STATE_BYTES = 4 * 1024 * 1024;\nconst VIEW_RENDER_CACHE_TTL_MS_V172 = 60 * 1000;\nlet viewDataRevisionV172 = 0;\nconst QB_RENDER_LIMIT = 20;\nconst ENABLE_FACTORY = true;\nconst FACTORY_UI_COMPAT_LABELS = "RESUMOS A PRODUZIR HOJE | A PRODUZIR | EM PRODUÇÃO | CONCLUÍDOS | MATERIAIS JÁ PRONTOS PARA ESTUDAR | Pasta de destino do Word/PDF:";\nconst DAILY_PLAN_COMPAT_LABELS = "META DE QUESTÕES | 📚 ESTUDAR HOJE | 🏭 PRODUZIR MATERIAL HOJE | 🔄 REVISAR HOJE";\nconst LEGACY_STORAGE_COMPAT_LABEL = "Fonte principal: <strong>localStorage</strong>";\nconst LEGACY_TIMER_GOAL_MINUTES_RECOVERY_MIGRATION_ID = "legacyTimerGoalMinutesRecoveryV1";\nconst LEGACY_TIMER_RECOVERY_V2_MIGRATION_KEY = "legacyTimerRecoveryV2";\nconst FACTORY_STATUSES = ["Não iniciado","Em produção","Aguardando revisão","Aprovado","PDF gerado","Não se aplica","Precisa refazer","Atualizar depois"];\nconst FACTORY_TRIAGEM_STATUSES = ["Não iniciada", "Em andamento", "Concluída", "Precisa refazer"];\nconst FACTORY_MODULES = [\n  { key: "triagem", label: "TRIAGEM", virtual: true },\n  { key: "resumoAula", label: "RESUMO/AULA" },\n  { key: "lei", label: "LEI" },\n  { key: "jurisprudencia", label: "JURISPRUDÊNCIA" },\n  { key: "peca", label: "PEÇA" },\n  { key: "completo", label: "COMPLETO" }\n];\n\nconst MATERIAL_ESTIMATE_VERSION = 1;\nconst MATERIAL_ESTIMATE_MIGRATION_ID = "materialDynamicTimeEstimateV1";\nconst MATERIAL_DENSITY_FACTORS = { light: 0.8, normal: 1, dense: 1.25 };\nconst MATERIAL_DENSITY_LABELS = { light: "leve", normal: "normal", dense: "densa" };\nconst MATERIAL_ESTIMATE_MODES = ["automatic", "manual"];\nconst MATERIAL_ESTIMATE_BASE_RANGES = [\n  { maxPages: 5, minutes: 30 },\n  { maxPages: 10, minutes: 60 },\n  { maxPages: 15, minutes: 90 },\n  { maxPages: 25, minutes: 120 },\n  { maxPages: 35, minutes: 180 },\n  { maxPages: 45, minutes: 240 }\n];\nfunction materialEstimateEmpty() { return { usefulPages: 0, materialDensity: "normal", automaticEstimatedMinutes: 0, manualEstimatedMinutes: 0, estimatedMinutes: 0, estimateMode: "automatic", estimatedAt: "", estimateVersion: MATERIAL_ESTIMATE_VERSION }; }\nfunction validMaterialDensity(density) { return Object.prototype.hasOwnProperty.call(MATERIAL_DENSITY_FACTORS, density); }\nfunction parseOptionalInteger(value) { if (value === "" || value === null || value === undefined) return 0; if (typeof value === "string" && !/^\\d+$/.test(value.trim())) return NaN; const n = Number(value); return Number.isInteger(n) ? n : NaN; }\nfunction materialBaseEstimatedMinutes(usefulPages) {\n  const pages = parseOptionalInteger(usefulPages);\n  if (Number.isNaN(pages)) throw new Error("Informe páginas úteis como número inteiro.");\n  if (pages < 0) throw new Error("Páginas úteis não podem ser negativas.");\n  if (pages === 0) return 0;\n  const range = MATERIAL_ESTIMATE_BASE_RANGES.find((item) => pages <= item.maxPages);\n  if (range) return range.minutes;\n  return 240 + Math.ceil((pages - 45) / 10) * 60;\n}\nfunction roundToThirtyMinutes(minutes) {\n  if (!Number.isFinite(minutes) || minutes <= 0) return 0;\n  // Empates exatos entre dois blocos de 30 minutos arredondam para cima de forma determinística.\n  return Math.max(30, Math.floor((minutes + 15) / 30) * 30);\n}\nfunction calculateMaterialEstimatedMinutes(usefulPages, density = "normal") {\n  if (!validMaterialDensity(density)) throw new Error("Densidade inválida. Use light, normal ou dense.");\n  const base = materialBaseEstimatedMinutes(usefulPages);\n  if (!base) return 0;\n  return roundToThirtyMinutes(base * MATERIAL_DENSITY_FACTORS[density]);\n}\nfunction normalizeManualEstimatedMinutes(value) {\n  const minutes = parseOptionalInteger(value);\n  if (Number.isNaN(minutes) || minutes <= 0 || minutes % 30 !== 0) return 0;\n  return minutes;\n}\nfunction normalizeMaterialEstimateFields(material = {}) {\n  const defaults = materialEstimateEmpty();\n  const density = validMaterialDensity(material.materialDensity) ? material.materialDensity : defaults.materialDensity;\n  const usefulPages = Math.max(0, parseOptionalInteger(material.usefulPages) || 0);\n  const mode = MATERIAL_ESTIMATE_MODES.includes(material.estimateMode) ? material.estimateMode : defaults.estimateMode;\n  const automatic = usefulPages ? calculateMaterialEstimatedMinutes(usefulPages, density) : 0;\n  const manual = normalizeManualEstimatedMinutes(material.manualEstimatedMinutes);\n  return { ...material, usefulPages, materialDensity: density, automaticEstimatedMinutes: automatic, manualEstimatedMinutes: manual, estimatedMinutes: mode === "manual" ? manual : automatic, estimateMode: mode, estimatedAt: material.estimatedAt || "", estimateVersion: Number(material.estimateVersion) || MATERIAL_ESTIMATE_VERSION };\n}\nfunction migrateMaterialEstimates(targetState = state) {\n  targetState.materials ||= []; targetState.migrations ||= {};\n  let changed = !targetState.migrations[MATERIAL_ESTIMATE_MIGRATION_ID];\n  targetState.materials = targetState.materials.map((material) => { const normalized = normalizeMaterialEstimateFields(material); changed ||= JSON.stringify(material) !== JSON.stringify(normalized); return normalized; });\n  if (!targetState.migrations[MATERIAL_ESTIMATE_MIGRATION_ID]) targetState.migrations[MATERIAL_ESTIMATE_MIGRATION_ID] = new Date().toISOString();\n  return changed;\n}\n\nconst SEGMENTED_GOAL_MIGRATION_ID = "segmentedDynamicStudyGoalsV1";\nfunction validEstimatedMinutes(value) { const n = Number(value); return Number.isFinite(n) && n > 0 ? Math.round(n) : 0; }\nfunction splitEstimatedMinutesIntoSegments(totalMinutes) {\n  const total = validEstimatedMinutes(totalMinutes);\n  if (!total) return [];\n  if (total <= 90) return [total];\n  const segments = [];\n  let remaining = total;\n  while (remaining > 60) {\n    segments.push(60);\n    remaining -= 60;\n  }\n  if (remaining > 0) segments.push(remaining);\n  return segments;\n}\n\nfunction nextSchedulableSegmentDate(startDate, segmentOffset, segmentMinutes, targetState = state) {\n  let date = startDate;\n  let placed = 0;\n  for (let guard = 0; guard < 120; guard++) {\n    const availability = availabilityForDate(date, targetState);\n    const capacity = Math.max(0, Number(availability.hours || 0) * 60);\n    const planned = (targetState.dailyGoals || []).filter((goal) => goalDateValue(goal) === date).reduce((sum, goal) => sum + Number(goal.minutes || 0), 0);\n    const usable = availability.type !== "indisponível" && (!capacity || planned + segmentMinutes <= capacity);\n    if (usable && placed++ >= segmentOffset) return date;\n    date = addDays(date, 1);\n  }\n  return addDays(startDate, segmentOffset);\n}\nfunction dynamicGoalSegmentKey(goal = {}) { return [goal.syllabusItemId || "", goal.estimateSourceId || "", goal.segmentIndex || 1, goal.segmentCount || 1].join("|"); }\nfunction normalizeSegmentedGoalFields(goal = {}) {\n  if (!goal || typeof goal !== "object") return goal;\n  if (goal.estimatedTotalMinutes !== undefined) goal.estimatedTotalMinutes = validEstimatedMinutes(goal.estimatedTotalMinutes);\n  if (goal.segmentMinutes !== undefined) goal.segmentMinutes = validEstimatedMinutes(goal.segmentMinutes);\n  if (goal.segmentIndex !== undefined) goal.segmentIndex = Math.max(1, Number.parseInt(goal.segmentIndex, 10) || 1);\n  if (goal.segmentCount !== undefined) goal.segmentCount = Math.max(1, Number.parseInt(goal.segmentCount, 10) || 1);\n  goal.estimateSourceId ||= "";\n  return goal;\n}\nfunction migrateSegmentedGoals(targetState = state) {\n  targetState.dailyGoals ||= []; targetState.migrations ||= {};\n  let changed = !targetState.migrations[SEGMENTED_GOAL_MIGRATION_ID];\n  targetState.dailyGoals.forEach((goal) => { const before = JSON.stringify(goal); normalizeSegmentedGoalFields(goal); changed ||= before !== JSON.stringify(goal); });\n  if (!targetState.migrations[SEGMENTED_GOAL_MIGRATION_ID]) targetState.migrations[SEGMENTED_GOAL_MIGRATION_ID] = new Date().toISOString();\n  return changed;\n}\nfunction estimateMaterialForItem(item = {}) {\n  const linked = resolveAvailableMaterials({ discipline: item.discipline, subject: item.subject, syllabusItemId: item.id }).filter((m) => m.source !== "factory" || m.factoryModuleKey === "resumoAula");\n  const material = linked.find((m) => validEstimatedMinutes(m.manualEstimatedMinutes)) || linked.find((m) => validEstimatedMinutes(m.estimatedMinutes));\n  if (!material) return null;\n  const manual = validEstimatedMinutes(material.manualEstimatedMinutes);\n  const estimated = validEstimatedMinutes(material.estimatedMinutes);\n  const minutes = manual || estimated;\n  return minutes ? { material, minutes, source: manual ? "manualEstimatedMinutes" : "estimatedMinutes" } : null;\n}\nfunction plannedStudyStatsForMaterial(material = {}) {\n  const goals = (state.dailyGoals || []).filter((g) => g.estimateSourceId === material.id || (g.syllabusItemId && (g.syllabusItemId === material.syllabusItemId || (material.syllabusItemIds || []).includes(g.syllabusItemId))));\n  const planned = goals.reduce((a,g)=>a+Number(g.minutes||0),0);\n  const done = goals.reduce((a,g)=>a+goalTotalActualMinutes(g),0);\n  const total = validEstimatedMinutes(material.'... 970794 more characters,
+    expected: /const GOOGLE_DRIVE_SCOPE = "https:\/\/www\.googleapis\.com\/auth\/drive\.appdata"/,
+    operator: 'match',
+    diff: 'simple'
+  }
