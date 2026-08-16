@@ -27,6 +27,32 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Apply V345
         run: node tools/apply-v345-storage-concurrency.mjs
+      - name: Normalize V344 release compatibility test
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = 'tests/v344-interaction-responsiveness.test.js';
+          let source = fs.readFileSync(path, 'utf8');
+          const replacement = `test("V344 permanece incorporada no bundle público atual", () => {
+            const version = JSON.parse(read("package.json")).version;
+            const index = read("index.html");
+            const bundleMatch = index.match(/app-(v\\d+)\\.js\\?v=([^"']+)/);
+            assert.ok(bundleMatch, "bundle público atual não identificado no index.html");
+            const suffix = bundleMatch[1];
+            assert.equal(bundleMatch[2], version);
+            const bundle = \`app-\${suffix}.js\`;
+            assert.ok(fs.existsSync(bundle));
+            assert.match(read(bundle), /INTERACTION_QUIET_WINDOW_MS_V344/);
+            assert.equal(read(bundle), read(\`docs/\${bundle}\`));
+            assert.match(read("service-worker.js"), new RegExp(\`const CURRENT_VERSION = "\${version}"\`));
+            assert.match(read("bootstrap-integrity-loader-v345-core.js"), new RegExp(\`app-\${suffix}\\\\.js\\\\?v=\${version}\`));
+            assert.equal(read("index.html"), read("docs/index.html"));
+          });`;
+          const pattern = /test\("V344 permanece incorporada no bundle público atual", \(\) => \{[\s\S]*?\n\}\);/;
+          if (!pattern.test(source)) throw new Error('Bloco V344 genérico não encontrado após aplicar V345.');
+          source = source.replace(pattern, replacement);
+          fs.writeFileSync(path, source);
+          NODE
       - name: Refresh lock
         run: npm install --package-lock-only --ignore-scripts
       - name: Build bundles
