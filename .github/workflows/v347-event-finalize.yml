@@ -1,0 +1,109 @@
+name: V347 finalizar eventos e espelho
+
+on:
+  push:
+    branches:
+      - fix/daily-summary-reflow-v347
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: fix/daily-summary-reflow-v347
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Aplicar ajustes aprovados
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: esperado 1 ocorrência, encontrado {count}: {old!r}")
+              p.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          for path in ["storage-concurrency-v345.js", "docs/storage-concurrency-v345.js"]:
+              replace_once(
+                  path,
+                  'document.dispatchEvent(new CustomEvent("aldus:view-active", {',
+                  'document.dispatchEvent(new CustomEvent("aldus:daily-summary-refresh", {',
+              )
+
+          for path in ["daily-summary-time-format-v243.js", "docs/daily-summary-time-format-v243.js"]:
+              replace_once(
+                  path,
+                  '  document.addEventListener("aldus:view-active", scheduleApply);',
+                  '  window.addEventListener("aldus:view-active", scheduleApply);\n  document.addEventListener("aldus:daily-summary-refresh", scheduleApply);',
+              )
+
+          replace_once(
+              "build-bundles.mjs",
+              '  "daily-study-collapsible-v137.js", "analytics-single-arrow-v150.js",\n',
+              '  "daily-study-collapsible-v137.js", "analytics-single-arrow-v150.js",\n  "daily-summary-time-format-v243.js",\n',
+          )
+
+          test_path = Path("tests/v347-daily-summary-reflow.test.js")
+          test_text = test_path.read_text(encoding="utf-8")
+          replacements = [
+              (
+                  '  assert.match(root, /document\\.addEventListener\\("aldus:view-active", scheduleApply\\)/);',
+                  '  assert.match(root, /window\\.addEventListener\\("aldus:view-active", scheduleApply\\)/);\n  assert.match(root, /document\\.addEventListener\\("aldus:daily-summary-refresh", scheduleApply\\)/);\n  const build = fs.readFileSync("build-bundles.mjs", "utf8");\n  assert.match(build, /"daily-summary-time-format-v243\\.js"/);',
+              ),
+              (
+                  '  assert.ok(harness.documentListeners.has("aldus:view-active"));',
+                  '  assert.ok(harness.windowListeners.has("aldus:view-active"));\n  assert.ok(harness.documentListeners.has("aldus:daily-summary-refresh"));',
+              ),
+          ]
+          for old, new in replacements:
+              count = test_text.count(old)
+              if count != 1:
+                  raise SystemExit(f"tests/v347-daily-summary-reflow.test.js: esperado 1 ocorrência, encontrado {count}: {old!r}")
+              test_text = test_text.replace(old, new, 1)
+          test_path.write_text(test_text, encoding="utf-8")
+          PY
+
+      - name: Validar sintaxe e testes relacionados
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check storage-concurrency-v345.js
+          node --check docs/storage-concurrency-v345.js
+          node --check daily-summary-time-format-v243.js
+          node --check docs/daily-summary-time-format-v243.js
+          node --check build-bundles.mjs
+          node --test \
+            tests/v347-daily-summary-reflow.test.js \
+            tests/v347-cross-tab-summary-refresh.test.js \
+            tests/v346-multitab-modules.test.js \
+            tests/v314-simulado-integracao.test.js
+          cmp daily-summary-time-format-v243.js docs/daily-summary-time-format-v243.js
+          cmp storage-concurrency-v345.js docs/storage-concurrency-v345.js
+          git diff --check
+
+      - name: Commitar somente o resultado final
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/v347-event-finalize.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "V347: separar refresh de dados da navegacao"
+          git push origin HEAD:fix/daily-summary-reflow-v347
