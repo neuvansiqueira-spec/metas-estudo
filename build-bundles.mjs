@@ -425,6 +425,7 @@ for (const filename of [
   "release-version-v147.js", "central-goals-real-time-v124.js",
   "timer-safety-v132.js", "timer-runtime-v316.js", "timer-controls-hardening-v268.js", "usage-telemetry-v315.js", "question-searchable-selects-v135.js",
   "daily-study-collapsible-v137.js", "analytics-single-arrow-v150.js",
+  "daily-summary-time-format-v243.js",
   "daily-collapsibles-closed-v140.js", "update-flow-v169.js",
   "daily-smart-review-collapsible-v138.js", "collapse-chevron-fix-v139.js",
   "reinforcement-goal-presentation-v156.js", "completed-goal-guard-v177.js", "daily-delegate-piece-goal-v183.js", "contest-countdown-v151.js",

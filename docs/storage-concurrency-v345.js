@@ -49,6 +49,19 @@
     return globalThis.state && typeof globalThis.state === "object" ? globalThis.state : null;
   }
 
+  function signalDailySummaryRefresh(commitType) {
+    if (typeof document === "undefined" || typeof document.dispatchEvent !== "function" || typeof CustomEvent !== "function") return false;
+    try {
+      document.dispatchEvent(new CustomEvent("aldus:daily-summary-refresh", {
+        detail: { source: "storage-concurrency-v346", commitType: String(commitType || "module") }
+      }));
+      return true;
+    } catch (error) {
+      console.warn("[Aldus V347] Não foi possível solicitar a atualização do resumo diário após commit entre abas.", error);
+      return false;
+    }
+  }
+
   function readWriter() {
     try {
       const value = parseJson(localStorage.getItem(WRITER_KEY), null);
@@ -329,7 +342,9 @@
         mergeGoalNonRegression(goal, payload.goal || {});
       }
     }
-    return { changed: studyAdded || Boolean(goal), studyAdded, study, goal };
+    const result = { changed: studyAdded || Boolean(goal), studyAdded, study, goal };
+    if (result.changed) signalDailySummaryRefresh("timer");
+    return result;
   }
 
   function ensureArray(targetState, key) {
@@ -377,7 +392,7 @@
       }
     }
 
-    return {
+    const result = {
       changed: repairedQuestions > 0 || sessionsAdded > 0 || logsAdded > 0 || mockAdded > 0 || notebookEntries.length > 0,
       alreadyIntegrated,
       repairedQuestions,
@@ -386,6 +401,8 @@
       mockAdded,
       notebookEntries
     };
+    if (result.changed) signalDailySummaryRefresh("simulation");
+    return result;
   }
 
   async function writeAndVerifyCurrentState(sessionId = "", simulationSessionId = "") {
