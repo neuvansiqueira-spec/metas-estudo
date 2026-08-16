@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260816-storage-consistency-v345",
+  "version": "20260816-storage-performance-v346",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
