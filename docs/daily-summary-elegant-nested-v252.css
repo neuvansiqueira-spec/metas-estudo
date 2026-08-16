@@ -77,3 +77,92 @@ html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary .d
 html[data-aldus-theme="premium-stable"] #view-metas-do-dia #dailyGoalsSummary .daily-goals-summary > .stat-card:nth-child(7) .progress > span {
   background: linear-gradient(90deg, #58b8ff, #d9e7ef) !important;
 }
+
+/* V343 — o Gerador de Simulados foi movido para #view-simulados na V328.
+   Os seletores premium originais continuaram presos a #view-fabrica-resumos,
+   deixando os controles claros sobre texto claro. Este hotfix replica somente
+   o escopo visual necessário, sem alterar lógica, dados ou montagem do gerador. */
+html[data-aldus-theme="premium-stable"] #view-simulados .factory-simulado-builder .notice,
+html[data-aldus-theme="premium-stable"] #view-simulados .factory-simulado-empty,
+html[data-aldus-theme="premium-stable"] #view-simulados .factory-simulado-disciplines,
+html[data-aldus-theme="premium-stable"] #view-simulados .factory-simulado-options {
+  border-color: rgba(125, 181, 224, .34) !important;
+  background: rgba(3, 23, 38, .72) !important;
+  color: #d6e3ec !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-simulados .factory-simulado-disciplines legend span {
+  background: #d8edff;
+  color: #06213a;
+}
+
+html[data-aldus-theme="premium-stable"] #view-simulados .factory-simulado-theme-mode {
+  border-color: rgba(125, 181, 224, .38);
+  background: #0a2b45;
+  color: #f8fbff;
+}
+
+html[data-aldus-theme="premium-stable"] #view-simulados .factory-simulado-automatic-scope {
+  border-color: rgba(134, 239, 172, .48);
+  background: rgba(20, 83, 45, .42);
+  color: #dcfce7;
+}
+
+html[data-aldus-theme="premium-stable"] #view-simulados .factory-simulado-discipline-list label {
+  border-color: rgba(125, 181, 224, .38);
+  background: #0a2b45;
+  color: #f8fbff !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-simulados .factory-simulado-discipline-list label span {
+  color: #f8fbff !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-simulados .factory-simulado-discipline-list label:has(input:checked) {
+  border-color: #8cc8f4;
+  background: #123f61;
+  box-shadow: 0 0 0 1px #8cc8f4;
+}
+
+html[data-aldus-theme="premium-stable"] #view-simulados .factory-simulado-chip {
+  border-color: rgba(125, 181, 224, .38);
+  background: #0a2b45;
+  color: #f8fbff;
+}
+
+html[data-aldus-theme="premium-stable"] #view-simulados .factory-simulado-chip small {
+  color: #b7cbd9;
+}
+
+html[data-aldus-theme="premium-stable"] #view-simulados .factory-simulado-chip button,
+html[data-aldus-theme="premium-stable"] #view-simulados .factory-simulado-single {
+  color: #d8edff !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-simulados .factory-simulado-title-row h4 span {
+  background: #d8edff;
+  color: #06213a;
+}
+
+html[data-aldus-theme="premium-stable"] #view-simulados .factory-simulado-suggestions {
+  border-color: #4b89b8;
+  background: #061d31;
+  box-shadow: 0 18px 42px rgba(0, 5, 14, .48);
+}
+
+html[data-aldus-theme="premium-stable"] #view-simulados .factory-simulado-suggestions button {
+  color: #f8fbff;
+}
+
+html[data-aldus-theme="premium-stable"] #view-simulados .factory-simulado-suggestions button:hover,
+html[data-aldus-theme="premium-stable"] #view-simulados .factory-simulado-suggestions button:focus-visible {
+  background: #123f61;
+}
+
+html[data-aldus-theme="premium-stable"] #view-simulados .factory-simulado-suggestions button span {
+  color: #b7cbd9;
+}
+
+html[data-aldus-theme="premium-stable"] #view-simulados .factory-simulado-output {
+  border-top-color: rgba(125, 181, 224, .34);
+}
