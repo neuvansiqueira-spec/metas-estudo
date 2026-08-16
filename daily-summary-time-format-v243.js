@@ -263,7 +263,8 @@
   document.addEventListener("change", (event) => {
     if (event.target?.id === "goalDate") scheduleApply();
   });
-  document.addEventListener("aldus:view-active", scheduleApply);
+  window.addEventListener("aldus:view-active", scheduleApply);
+  document.addEventListener("aldus:daily-summary-refresh", scheduleApply);
   window.addEventListener("hashchange", scheduleApply);
   window.setTimeout(scheduleApply, 250);
   window.setTimeout(scheduleApply, 1000);

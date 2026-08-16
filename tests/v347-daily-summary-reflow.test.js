@@ -138,7 +138,10 @@ test("V347 mantém paridade raiz/docs e restringe o observer à screen-stage", (
   assert.equal(root, docs);
   assert.match(root, /document\.querySelector\("\.screen-stage"\)/);
   assert.doesNotMatch(root, /observer\.observe\(document\.documentElement/);
-  assert.match(root, /document\.addEventListener\("aldus:view-active", scheduleApply\)/);
+  assert.match(root, /window\.addEventListener\("aldus:view-active", scheduleApply\)/);
+  assert.match(root, /document\.addEventListener\("aldus:daily-summary-refresh", scheduleApply\)/);
+  const build = fs.readFileSync("build-bundles.mjs", "utf8");
+  assert.match(build, /"daily-summary-time-format-v243\.js"/);
 });
 
 test("V347 chama centralTimeChartLogs no máximo uma vez por apply e ignora a própria escrita", () => {
@@ -149,7 +152,8 @@ test("V347 chama centralTimeChartLogs no máximo uma vez por apply e ignora a pr
   assert.equal(options?.subtree, true);
   assert.equal(options?.characterData, true);
   assert.ok(harness.documentListeners.has("change"));
-  assert.ok(harness.documentListeners.has("aldus:view-active"));
+  assert.ok(harness.windowListeners.has("aldus:view-active"));
+  assert.ok(harness.documentListeners.has("aldus:daily-summary-refresh"));
   assert.ok(harness.windowListeners.has("hashchange"));
 
   harness.flushRaf();

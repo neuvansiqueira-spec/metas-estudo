@@ -52,7 +52,7 @@
   function signalDailySummaryRefresh(commitType) {
     if (typeof document === "undefined" || typeof document.dispatchEvent !== "function" || typeof CustomEvent !== "function") return false;
     try {
-      document.dispatchEvent(new CustomEvent("aldus:view-active", {
+      document.dispatchEvent(new CustomEvent("aldus:daily-summary-refresh", {
         detail: { source: "storage-concurrency-v346", commitType: String(commitType || "module") }
       }));
       return true;
