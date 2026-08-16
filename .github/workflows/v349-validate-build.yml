@@ -61,6 +61,9 @@ jobs:
           cmp factory-jurisprudencia-prompt-v332.js docs/factory-jurisprudencia-prompt-v332.js
           git diff --check
 
+      - name: Simular estado final sem workflow temporário
+        run: rm .github/workflows/v349-validate-build.yml
+
       - name: Executar regressões de publicação
         run: |
           node --test \
@@ -74,12 +77,12 @@ jobs:
 
       - name: Gravar artefatos consolidados na branch
         run: |
-          if git diff --quiet; then
-            echo "Build já estava sincronizado."
-            exit 0
-          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
+          if git diff --cached --quiet; then
+            echo "Build já estava sincronizado."
+            exit 0
+          fi
           git commit -m "V349: gera artefatos consolidados [skip ci]"
           git push origin HEAD:fix/runtime-stability-v349
