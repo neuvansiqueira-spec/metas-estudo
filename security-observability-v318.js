@@ -131,6 +131,20 @@
     } catch {}
   }
 
+  // V350 — carregamento emergencial e isolado da otimização de mapeamentos.
+  // Este arquivo já é executado antes do bootstrap do aplicativo e não é parte
+  // do cache estático autoritativo. O hotfix apenas troca a consulta O(n) por
+  // índice WeakMap; não toca em estado, persistência, sincronização ou cronômetro.
+  function installEmergencyPerformanceV350() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusEmergencyPerformanceV350")) return;
+    const script = document.createElement("script");
+    script.id = "aldusEmergencyPerformanceV350";
+    script.src = "performance-emergency-v350.js?v=20260817-emergency-performance-v350";
+    script.async = false;
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   function init() {
     installRuntimeMonitoring();
     installSecurityMonitoring();
@@ -147,6 +161,8 @@
     reportPerformance: reportPerformanceOnce
   });
   globalThis.__ALDUS_SECURITY_OBSERVABILITY_V318__ = api;
+
+  installEmergencyPerformanceV350();
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init, { once: true });
