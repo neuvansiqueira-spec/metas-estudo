@@ -1,14 +1,15 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260815-bootstrap-performance-v342";
-  const CORE_SCRIPT = `bootstrap-integrity-loader-v258-core.js?v=${VERSION}`;
-  const DIAGNOSTICS_SCRIPT = `duplicate-diagnostics-v260.js?v=${VERSION}`;
-  const DIAGNOSTICS_STYLESHEET = `duplicate-diagnostics-v260.css?v=${VERSION}`;
-  const RECOVERY_SCRIPT = `recovery-safety-v275.js?v=${VERSION}`;
-  const PLANNING_SHIFT_PERSISTENCE_SCRIPT = `planning-shift-persistence-v283.js?v=${VERSION}`;
-  const TIMER_SOUND_MASTER_SCRIPT = `timer-sound-master-v265.js?v=${VERSION}&hotfix=master-mute-hotfix1`;
-  const TIMER_CONTROLS_SCRIPT = `timer-controls-hardening-v268.js?v=${VERSION}&hotfix=timer-controls-hardening-hotfix2`;
+  const VERSION = "20260817-bootstrap-fast-path-v351";
+  const LEGACY_VERSION = "20260815-bootstrap-performance-v342";
+  const CORE_SCRIPT = `bootstrap-fast-path-v351.js?v=${VERSION}`;
+  const DIAGNOSTICS_SCRIPT = `duplicate-diagnostics-v260.js?v=${LEGACY_VERSION}`;
+  const DIAGNOSTICS_STYLESHEET = `duplicate-diagnostics-v260.css?v=${LEGACY_VERSION}`;
+  const RECOVERY_SCRIPT = `recovery-safety-v275.js?v=${LEGACY_VERSION}`;
+  const PLANNING_SHIFT_PERSISTENCE_SCRIPT = `planning-shift-persistence-v283.js?v=${LEGACY_VERSION}`;
+  const TIMER_SOUND_MASTER_SCRIPT = `timer-sound-master-v265.js?v=${LEGACY_VERSION}&hotfix=master-mute-hotfix1`;
+  const TIMER_CONTROLS_SCRIPT = `timer-controls-hardening-v268.js?v=${LEGACY_VERSION}&hotfix=timer-controls-hardening-hotfix2`;
 
   function installStylesheet(baseUrl) {
     if (document.getElementById("aldusDuplicateDiagnosticsStylesV260")) return;
@@ -37,16 +38,7 @@
     installStylesheet(baseUrl);
 
     const loading = document.getElementById("appLoadingState");
-    if (loading) loading.textContent = "Protegendo e validando seus dados antes de iniciar...";
-
-    const guardPromise = globalThis.__ALDUS_CATASTROPHIC_GUARD_READY_V275__;
-    if (guardPromise && typeof guardPromise.then === "function") {
-      try {
-        await guardPromise;
-      } catch (error) {
-        console.error(`[${VERSION}] A proteção preventiva falhou. O bootstrap continuará sem sobrescrever o diagnóstico do erro.`, error);
-      }
-    }
+    if (loading) loading.textContent = "Abrindo seus dados protegidos...";
 
     const core = makeScript("aldusBootstrapIntegrityCoreV275", CORE_SCRIPT, baseUrl, source);
     const shiftPersistence = makeScript("aldusPlanningShiftPersistenceV283", PLANNING_SHIFT_PERSISTENCE_SCRIPT, baseUrl, source);
@@ -58,7 +50,7 @@
     const soundMaster = makeScript("aldusTimerSoundMasterV265", TIMER_SOUND_MASTER_SCRIPT, baseUrl, source);
     const timerControls = makeScript("aldusTimerControlsHardeningV268", TIMER_CONTROLS_SCRIPT, baseUrl, source);
 
-    core.addEventListener("error", () => console.error(`[${VERSION}] Falha ao carregar o núcleo de inicialização.`), { once: true });
+    core.addEventListener("error", () => console.error(`[${VERSION}] Falha ao carregar o fast path de inicialização.`), { once: true });
     shiftPersistence.addEventListener("error", () => console.error(`[${VERSION}] Falha ao carregar a persistência das disciplinas de plantão.`), { once: true });
     diagnostics?.addEventListener("error", () => console.error(`[${VERSION}] Falha ao carregar o diagnóstico de duplicações.`), { once: true });
     recovery.addEventListener("error", () => console.error(`[${VERSION}] Falha ao carregar a recuperação segura.`), { once: true });
