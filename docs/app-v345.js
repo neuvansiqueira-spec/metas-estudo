@@ -36174,18 +36174,21 @@ globalThis.PCPR_PCMA_2026_CATALOG = {
   // um array novo (muda a referência) e mergeArrays só faz push (muda o
   // comprimento). O primeiro/último elemento entram na chave como garantia
   // extra contra substituição in loco sem mudança de tamanho.
-  let officialMappingsIndex = null;
-  let officialMappingsIndexKey = null;
+  // WeakMap (e não um único cache) porque o planejamento consulta clones do
+  // estado alternadamente com o estado vivo — em
+  // prepareIntegratedPlanningPrioritiesV155/validateIntegratedPlanningCandidateV155.
+  // Com cache único, cada alternância invalidaria o índice e o reconstruiria a
+  // cada chamada, ficando mais lento que a varredura original. Uma entrada por
+  // array elimina esse thrash, e a chave fraca deixa os clones serem coletados.
+  const officialMappingsIndexCache = new WeakMap();
 
   function officialMappingsIndexFor(list) {
-    const key = list.length ? `${list.length}` : "0";
-    if (officialMappingsIndex
-      && officialMappingsIndexKey
-      && officialMappingsIndexKey.list === list
-      && officialMappingsIndexKey.size === key
-      && officialMappingsIndexKey.first === list[0]
-      && officialMappingsIndexKey.last === list[list.length - 1]) {
-      return officialMappingsIndex;
+    const cached = officialMappingsIndexCache.get(list);
+    if (cached
+      && cached.length === list.length
+      && cached.first === list[0]
+      && cached.last === list[list.length - 1]) {
+      return cached.index;
     }
     const index = new Map();
     list.forEach((mapping) => {
@@ -36195,8 +36198,12 @@ globalThis.PCPR_PCMA_2026_CATALOG = {
       if (bucket) bucket.push(mapping);
       else index.set(id, [mapping]);
     });
-    officialMappingsIndex = index;
-    officialMappingsIndexKey = { list, size: key, first: list[0], last: list[list.length - 1] };
+    officialMappingsIndexCache.set(list, {
+      index,
+      length: list.length,
+      first: list[0],
+      last: list[list.length - 1]
+    });
     return index;
   }
 

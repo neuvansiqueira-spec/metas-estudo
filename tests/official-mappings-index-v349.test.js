@@ -126,6 +126,39 @@ test("isItemEnabledForPlanning permanece consistente com o índice", () => {
   assert.equal(isItemEnabledForPlanning(state, "item-0", "2026-08-17"), true);
 });
 
+// O planejamento consulta clones do estado alternadamente com o estado vivo.
+// Com um cache único isso reconstruiria o índice a cada chamada, ficando mais
+// lento que a varredura original — exatamente a regressão que o WeakMap evita.
+test("alternar entre estado vivo e clones não degrada nem corrompe o resultado", () => {
+  const { officialMappingsForItem } = loadPcprModule();
+  const live = { contestSyllabusMap: buildMap(2000) };
+  const clone = { contestSyllabusMap: live.contestSyllabusMap.map((m) => ({ ...m })) };
+  const ids = [...new Set(live.contestSyllabusMap.map((m) => m.syllabusItemId))];
+
+  // correção: alternar não pode mudar o resultado de nenhum dos dois
+  for (const id of ids) {
+    assert.deepEqual(plain(officialMappingsForItem(live, id)), legacyMappingsForItem(live, id));
+    assert.deepEqual(plain(officialMappingsForItem(clone, id)), legacyMappingsForItem(clone, id));
+  }
+
+  const alternating = process.hrtime.bigint();
+  for (let round = 0; round < 20; round += 1) {
+    ids.forEach((id) => { officialMappingsForItem(live, id); officialMappingsForItem(clone, id); });
+  }
+  const alternatingNs = Number(process.hrtime.bigint() - alternating);
+
+  const legacy = process.hrtime.bigint();
+  for (let round = 0; round < 20; round += 1) {
+    ids.forEach((id) => { legacyMappingsForItem(live, id); legacyMappingsForItem(clone, id); });
+  }
+  const legacyNs = Number(process.hrtime.bigint() - legacy);
+
+  assert.ok(
+    alternatingNs * 4 < legacyNs,
+    `alternância não pode anular o ganho; alternado=${(alternatingNs / 1e6).toFixed(1)}ms legado=${(legacyNs / 1e6).toFixed(1)}ms`
+  );
+});
+
 test("índice é assintoticamente melhor que a varredura linear", () => {
   const { officialMappingsForItem } = loadPcprModule();
   const state = { contestSyllabusMap: buildMap(4000) };
