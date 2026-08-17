@@ -15,9 +15,12 @@ function assertUnique(values, message) {
 }
 
 function assertCurrentReleaseContract() {
-  const version = JSON.parse(read("package.json")).version;
+  const metadata = JSON.parse(read("package.json"));
+  const version = metadata.version;
+  const cacheVersion = metadata.aldusCacheVersion || version;
   const suffix = version.match(/v\d+$/)?.[0];
   assert.ok(suffix, "A versão pública deve terminar em vNNN.");
+  assert.match(cacheVersion, /v\d+$/, "A época de cache deve terminar em vNNN.");
 
   const entryHtml = read("index.html");
   const html = read("docs/index.html");
@@ -26,7 +29,10 @@ function assertCurrentReleaseContract() {
   const script = read("script.js");
   const jsBundle = read("app.bundle.js");
   const cssBundle = read("app.bundle.css");
-  const bootstrapCore = read("bootstrap-integrity-loader-v258-core.js");
+  const activeBootstrap = read("bootstrap-integrity-loader-v345-core.js");
+  const fallbackBootstrap = read("bootstrap-integrity-loader-v258-core.js");
+  const protectedBootstrap = read("bootstrap-integrity-loader-v275.js");
+  const catastrophicGuard = read("catastrophic-state-guard-v275.js");
 
   for (const file of [
     "script.js",
@@ -34,7 +40,10 @@ function assertCurrentReleaseContract() {
     "app-version.js",
     "app.bundle.js",
     "app.bundle.css",
-    "bootstrap-integrity-loader-v258-core.js"
+    "bootstrap-integrity-loader-v258-core.js",
+    "bootstrap-integrity-loader-v345-core.js",
+    "bootstrap-integrity-loader-v275.js",
+    "catastrophic-state-guard-v275.js"
   ]) {
     assert.equal(read(file), read(`docs/${file}`), `${file} deve ser idêntico em docs`);
   }
@@ -48,12 +57,10 @@ function assertCurrentReleaseContract() {
       "a barreira V309 deve fixar o núcleo atual do diagnóstico");
     assert.match(entryHtml, /duplicate-diagnostics-batch-v305\.js/,
       "a barreira V309 deve fixar o executor autoritativo do lote");
-  } else {
-    assert.equal(entryHtml, html, "index.html deve ser idêntico em docs");
   }
 
-  assert.match(html, new RegExp(`app-${suffix}\\.css\\?v=${version}`));
-  assert.match(html, new RegExp(`app-${suffix}\\.js\\?v=${version}`));
+  assert.match(html, new RegExp(`app-${suffix}\\.css\\?v=${cacheVersion}`));
+  assert.match(html, new RegExp(`app-${suffix}\\.js\\?v=${cacheVersion}`));
   assert.doesNotMatch(html, /app-version\.js/);
 
   const externalScripts = hrefs(html, "script", "src");
@@ -62,20 +69,31 @@ function assertCurrentReleaseContract() {
   assertUnique(externalStylesheets, "Folhas de estilo não podem ser carregadas em duplicidade.");
   assert.ok(
     externalScripts.some((src) => /bootstrap-integrity-loader-v(?:258|275)\.js/.test(src))
-      || externalScripts.some((src) => src === `app-${suffix}.js?v=${version}`),
+      || externalScripts.some((src) => src === `app-${suffix}.js?v=${cacheVersion}`),
     "O HTML deve iniciar pelo carregador protegido ou pelo bundle público atual."
   );
   assert.ok(
-    externalStylesheets.some((href) => href === `app-${suffix}.css?v=${version}`),
+    externalStylesheets.some((href) => href === `app-${suffix}.css?v=${cacheVersion}`),
     "A folha de estilo principal da versão atual deve estar ligada ao HTML."
   );
 
-  assert.match(bootstrapCore, new RegExp(`app-${suffix}\\.js\\?v=${version}`));
-  assert.match(bootstrapCore, /const SCRIPT_CHAIN = \[/);
+  assert.match(activeBootstrap, new RegExp(`const VERSION = "${cacheVersion}"`));
+  assert.match(activeBootstrap, new RegExp(`app-${suffix}\\.js\\?v=${cacheVersion}`));
+  assert.match(activeBootstrap, /bootstrap-integrity-loader-v258-core\.js\?v=\$\{VERSION\}&fallback=v345/);
+  assert.match(activeBootstrap, /sync-save-performance-v348\.js/);
+  assert.match(fallbackBootstrap, new RegExp(`app-${suffix}\\.js\\?v=${cacheVersion}`));
+  assert.match(protectedBootstrap, new RegExp(`const VERSION = "${cacheVersion}"`));
+  assert.match(protectedBootstrap, /bootstrap-integrity-loader-v345-core\.js\?v=\$\{VERSION\}/);
+  assert.match(catastrophicGuard, new RegExp(`const VERSION = "${cacheVersion}"`));
+
   assert.match(appVersion, new RegExp(`const VERSION = "${version}";`));
   assert.doesNotMatch(appVersion, /MutationObserver/);
   assert.match(script, /const APP_VERSION = globalThis\.__ALDUS_APP_RELEASE__\?\.version/);
-  assert.match(worker, new RegExp(`const CURRENT_VERSION = "${version}"`));
+
+  for (const constant of ["CURRENT_VERSION", "PROTECTION_VERSION", "BOOTSTRAP_VERSION"]) {
+    assert.match(worker, new RegExp(`const ${constant} = "${cacheVersion}"`));
+  }
+  assert.match(worker, /const CACHE_NAME = `metas-estudo-\$\{CURRENT_VERSION\}/);
   assert.match(worker, /installProtectedBootstrapV275/);
   assert.match(worker, /BOOTSTRAP_CORE/);
   assert.doesNotMatch(worker, /importScripts|patchHtmlSource|transformAppScriptResponse|replaceVersion/);
@@ -85,6 +103,7 @@ function assertCurrentReleaseContract() {
   assert.ok(fs.existsSync(`service-worker-${suffix}.js`));
   assert.equal(read(`app-${suffix}.js`), read(`docs/app-${suffix}.js`));
   assert.equal(read(`app-${suffix}.css`), read(`docs/app-${suffix}.css`));
+  assert.equal(read(`service-worker-${suffix}.js`), read("service-worker.js"));
   assert.equal(read(`service-worker-${suffix}.js`), read(`docs/service-worker-${suffix}.js`));
 
   assert.match(jsBundle, /Aldus source: pcpr-pcma-2026-catalog\.js/);

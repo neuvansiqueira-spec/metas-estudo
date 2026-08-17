@@ -39,6 +39,7 @@ jobs:
       - name: Validar segurança e regressões antes da publicação
         run: |
           npm ci --ignore-scripts
+          npm run build
           node --check security-hardening-v296.js
           node --check security-observability-v318.js
           node --check service-worker.js
@@ -47,34 +48,19 @@ jobs:
           node --check factory-penalties-v320.js
           node --check factory-resumo-aula-visual-v326.js
           node --check factory-resumo-aula-canonical-v327.js
-          node --test \
-            tests/security-hardening-v296.test.js \
-            tests/timer-controls-hardening-v268.test.js \
-            tests/legacy-timer-recovery.test.js \
-            tests/duplicate-diagnostics-v260.test.js \
-            tests/duplicate-diagnostics-relations-v266.test.js \
-            tests/v302-duplicate-batch-authoritative.test.js \
-            tests/v303-duplicate-batch-progress.test.js \
-            tests/v303-duplicate-recommendations.test.js \
-            tests/v304-duplicate-batch-performance.test.js \
-            tests/v305-duplicate-batch-commit.test.js \
-            tests/v305-entry-bootstrap.test.js \
-            tests/v307-duplicate-recommendation-presentation.test.js \
-            tests/v308-duplicate-batch-core-pin.test.js \
-            tests/v309-duplicate-flow-owner.test.js \
-            tests/v315-usage-telemetry.test.js \
-            tests/v317-posthog-telemetry.test.js \
-            tests/v315-factory-simulado-visibility.test.js \
-            tests/v316-timer-telemetry-security.test.js \
-            tests/v318-security-observability.test.js \
-            tests/v329-integral-performance.test.js \
-            tests/v320-factory-penalties-prompts.test.js \
-            tests/v326-factory-resumo-aula-visual.test.js \
-            tests/v327-factory-resumo-aula-canonical.test.js
+          node --check bootstrap-integrity-loader-v345-core.js
+          node --check bootstrap-integrity-loader-v275.js
+          node --check catastrophic-state-guard-v275.js
+          node --check storage-concurrency-v345.js
+          node --check sync-save-performance-v348.js
+          npm test
           node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
           cmp security-hardening-v296.js docs/security-hardening-v296.js
           cmp service-worker.js docs/service-worker.js
           cmp usage-telemetry-v315.js docs/usage-telemetry-v315.js
+          cmp bootstrap-integrity-loader-v345-core.js docs/bootstrap-integrity-loader-v345-core.js
+          cmp bootstrap-integrity-loader-v275.js docs/bootstrap-integrity-loader-v275.js
+          cmp catastrophic-state-guard-v275.js docs/catastrophic-state-guard-v275.js
 
       - name: Preparar paleta sofisticada dos cartões
         shell: bash
@@ -175,6 +161,13 @@ jobs:
               raise SystemExit("V327: não foi possível renovar o cache do service worker")
           sw.write_text(sw_text, encoding="utf-8")
           PY
+
+      - name: Validar artefato final após ajustes de publicação
+        run: |
+          node --check docs/service-worker.js
+          node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
+          cmp service-worker.js docs/service-worker.js
+          cmp bootstrap-integrity-loader-v345-core.js docs/bootstrap-integrity-loader-v345-core.js
 
       - name: Configurar GitHub Pages
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5

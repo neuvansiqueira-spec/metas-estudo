@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - main
+  push:
+    branches:
+      - "fix/**"
   workflow_dispatch:
 
 permissions:
@@ -11,9 +14,9 @@ permissions:
 
 jobs:
   security-check:
-    name: Segurança e telemetria
+    name: Segurança, release e regressões
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Baixar repositório
@@ -30,7 +33,10 @@ jobs:
       - name: Instalar dependências sem scripts
         run: npm ci --ignore-scripts
 
-      - name: Validar sintaxe
+      - name: Gerar artefatos públicos com release íntegro
+        run: npm run build
+
+      - name: Validar sintaxe dos caminhos ativos
         run: |
           node --check security-hardening-v296.js
           node --check usage-telemetry-v315.js
@@ -40,20 +46,24 @@ jobs:
           node --check factory-resumo-aula-canonical-v327.js
           node --check catastrophic-state-guard-v275.js
           node --check bootstrap-integrity-loader-v258-core.js
+          node --check bootstrap-integrity-loader-v345-core.js
           node --check bootstrap-integrity-loader-v258.js
           node --check bootstrap-integrity-loader-v275.js
+          node --check storage-concurrency-v345.js
+          node --check sync-save-performance-v348.js
           node --check service-worker.js
 
-      - name: Executar testes de segurança, telemetria e regressão do prompt
+      - name: Executar suíte completa
+        run: npm test
+
+      - name: Validar contrato da release gerada
+        run: node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
+
+      - name: Confirmar paridade dos artefatos críticos
         run: |
-          node --test \
-            tests/security-hardening-v296.test.js \
-            tests/v315-usage-telemetry.test.js \
-            tests/v317-posthog-telemetry.test.js \
-            tests/v316-timer-telemetry-security.test.js \
-            tests/v318-security-observability.test.js \
-            tests/v319-telemetry-security-dashboard.test.js \
-            tests/v329-integral-performance.test.js \
-            tests/v326-factory-resumo-aula-visual.test.js \
-            tests/v327-factory-resumo-aula-canonical.test.js \
-            tests/v342-bootstrap-performance.test.js
+          cmp security-hardening-v296.js docs/security-hardening-v296.js
+          cmp service-worker.js docs/service-worker.js
+          cmp usage-telemetry-v315.js docs/usage-telemetry-v315.js
+          cmp bootstrap-integrity-loader-v345-core.js docs/bootstrap-integrity-loader-v345-core.js
+          cmp bootstrap-integrity-loader-v275.js docs/bootstrap-integrity-loader-v275.js
+          cmp catastrophic-state-guard-v275.js docs/catastrophic-state-guard-v275.js

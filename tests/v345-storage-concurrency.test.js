@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import vm from "node:vm";
 
 const read = (file) => fs.readFileSync(file, "utf8");
 
@@ -21,37 +22,40 @@ test("V345 torna a varredura catastrófica excepcional", () => {
   assert.ok(fastIndex > 0 && scanIndex > fastIndex);
 });
 
-test("V345 protege gravações entre abas e diário do cronômetro", () => {
-  const guard = read("storage-concurrency-v345.js");
-  assert.match(guard, /aldus:state-writer:v345/);
-  assert.match(guard, /aldus:timer:commit-journal:v345/);
-  assert.match(guard, /saveDataSingleWriterV345/);
-  assert.match(guard, /autoSyncAfterSaveSingleWriterV345/);
-  assert.match(guard, /captureTimerSubmit/);
-  assert.match(guard, /writeAndVerifyCurrentState/);
-  assert.match(guard, /recoverTimerJournal/);
-  assert.match(guard, /mergeGoalNonRegression/);
-  assert.match(guard, /function currentState()/);
+test("concorrência V345 permanece realmente desativada em runtime", () => {
+  const source = read("storage-concurrency-v345.js");
+  const returnIndex = source.indexOf("return;");
+  const writerIndex = source.indexOf('const WRITER_KEY = "aldus:state-writer:v345"');
+  assert.ok(returnIndex > 0 && writerIndex > returnIndex, "o early return deve anteceder toda a implementação de lease");
+
+  const context = { console };
+  context.globalThis = context;
+  vm.createContext(context);
+  vm.runInContext(source, context);
+  assert.equal(context.AldusStorageConcurrencyV345, undefined, "o módulo desativado não pode exportar API de concorrência");
 });
 
-test("cronômetro só confirma depois da proteção durável V345", () => {
+test("cronômetro usa gravação direta quando a API V345 está ausente", () => {
   const script = read("script.js");
   assert.match(script, /async function submitTimerStudyModal\(event\)/);
-  assert.match(script, /await commitTimerStateV345/);
+  assert.match(script, /let durableResult = \{ durable: true, reason: "legacy-save" \}/);
+  assert.match(script, /globalThis\.AldusStorageConcurrencyV345\?\.commitTimerState/);
   assert.match(script, /Tempo salvo e protegido/);
-  assert.match(script, /O tempo ainda não foi confirmado no armazenamento/);
 });
 
-test("publicação V345 referencia artefatos e cache corretos", () => {
-  const pkg = JSON.parse(read("package.json"));
+test("publicação V345 usa época de cache coerente com o bootstrap ativo", () => {
+  const metadata = JSON.parse(read("package.json"));
+  const cacheVersion = metadata.aldusCacheVersion || metadata.version;
   const index = read("index.html");
   const sw = read("service-worker.js");
   const loader = read("bootstrap-integrity-loader-v275.js");
-  assert.equal(pkg.version, "20260816-storage-consistency-v345");
-  assert.match(index, /app-v345\.js\?v=20260816-storage-consistency-v345/);
-  assert.match(index, /app-v345\.css\?v=20260816-storage-consistency-v345/);
+  const core = read("bootstrap-integrity-loader-v345-core.js");
+  assert.match(index, new RegExp(`app-v345\\.js\\?v=${cacheVersion}`));
+  assert.match(index, new RegExp(`app-v345\\.css\\?v=${cacheVersion}`));
+  assert.match(loader, new RegExp(`const VERSION = "${cacheVersion}"`));
   assert.match(loader, /bootstrap-integrity-loader-v345-core\.js/);
-  assert.match(sw, /CURRENT_VERSION = "20260816-storage-consistency-v345"/);
+  assert.match(core, new RegExp(`const VERSION = "${cacheVersion}"`));
+  assert.match(sw, new RegExp(`CURRENT_VERSION = "${cacheVersion}"`));
   assert.match(sw, /STORAGE_CONCURRENCY_V345/);
   assert.match(sw, /bootstrap-integrity-loader-v345-core\.js/);
 });
@@ -62,7 +66,8 @@ test("docs acompanha os arquivos críticos V345", () => {
     "service-worker.js",
     "bootstrap-integrity-loader-v275.js",
     "bootstrap-integrity-loader-v345-core.js",
-    "storage-concurrency-v345.js"
+    "storage-concurrency-v345.js",
+    "catastrophic-state-guard-v275.js"
   ]) {
     assert.equal(read(file), read(`docs/${file}`), `${file} deve ser idêntico em docs`);
   }

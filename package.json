@@ -1,9 +1,10 @@
 {
   "name": "metas-estudo",
   "version": "20260816-storage-consistency-v345",
+  "aldusCacheVersion": "20260817-release-integrity-hotfix2-v345",
   "private": true,
   "scripts": {
-    "build": "node build-bundles.mjs",
+    "build": "node build-bundles.mjs && node sync-release-integrity.mjs",
     "test": "node --test tests/*.test.js"
   },
   "dependencies": {
