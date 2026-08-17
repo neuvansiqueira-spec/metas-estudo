@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260815-interacao-responsiva-v344",
+  "version": "20260817-central-time-index-v344",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

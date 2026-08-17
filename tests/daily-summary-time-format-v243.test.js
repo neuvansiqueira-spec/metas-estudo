@@ -84,9 +84,32 @@ test("mantém o resumo diário e acrescenta horas e minutos ao indicador semanal
 });
 
 test("reaplica após renderização e mudança de data", () => {
-  assert.match(source, /new MutationObserver\(scheduleApply\)/);
+  assert.match(source, /new MutationObserver\(\(records\) => \{\s*if \(mutacaoRelevante\(records\)\) scheduleApply\(\);/);
   assert.match(source, /event\.target\?\.id === "goalDate"/);
   assert.match(source, /window\.addEventListener\("hashchange", scheduleApply\)/);
+});
+
+test("não reconsolida a semana a cada mutação irrelevante da página", () => {
+  // O observador alcança document.documentElement inteiro, então sem filtro
+  // qualquer escrita de outro módulo — o cronômetro flutuante e o relógio
+  // reescrevem texto a cada segundo — agendava uma consolidação completa. Isso
+  // mantinha o main thread ocupado sem parar.
+  assert.match(source, /function mutacaoRelevante\(records\)/);
+  assert.match(source, /alvo === node \|\| alvo\.contains\(node\)/);
+  assert.match(
+    source,
+    /observer\.observe\(document\.documentElement/,
+    'o alcance amplo é intencional: os alvos são recriados quando o painel é redesenhado'
+  );
+});
+
+test("consolida a semana no máximo uma vez por execução e só com o alvo na tela", () => {
+  // currentWeekRegisteredMinutes percorre estudos, metas e registros de questões.
+  // Era chamada duas vezes por apply(), e o segundo resultado era descartado.
+  const corpoApply = source.slice(source.indexOf('function apply()'), source.indexOf('const api = Object.freeze'));
+  const chamadas = corpoApply.match(/currentWeekRegisteredMinutes\(\)/g) || [];
+  assert.equal(chamadas.length, 1, 'apply() deve consolidar a semana uma única vez');
+  assert.match(corpoApply, /weeklyElement \? currentWeekRegisteredMinutes\(\) : null/);
 });
 
 test("raiz e docs publicam exatamente o mesmo módulo", () => {

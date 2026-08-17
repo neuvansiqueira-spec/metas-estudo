@@ -179,10 +179,10 @@
     return true;
   }
 
-  function setWeeklyRegisteredValue() {
+  function setWeeklyRegisteredValue(minutes) {
     const element = document.querySelector(WEEKLY_STATUS_SELECTOR);
     if (!element) return false;
-    const minutes = currentWeekRegisteredMinutes();
+    if (minutes === undefined) minutes = currentWeekRegisteredMinutes();
     if (minutes === null) return false;
     const nextText = `${formatDurationMinutes(minutes)} registradas`;
     if (element.textContent === nextText && element.dataset.dailySummaryTimeFormatHotfix === HOTFIX) return false;
@@ -202,8 +202,16 @@
       if (setFormattedValue(PLANNED_SELECTOR, summary.target)) changed += 1;
       if (setFormattedValue(REALIZED_SELECTOR, summary.done)) changed += 1;
     }
-    if (setWeeklyRegisteredValue()) changed += 1;
-    return { changed, summary, weeklyMinutes: currentWeekRegisteredMinutes() };
+    // 2026-08-17: currentWeekRegisteredMinutes consolida todos os estudos, metas
+    // e registros de questões da semana. Era chamada duas vezes por execução —
+    // uma dentro de setWeeklyRegisteredValue e outra só para compor o retorno,
+    // que o agendador descartava. Agora é calculada uma única vez, e somente
+    // quando o indicador semanal existe na tela: sem ele não há nada a escrever
+    // e o consolidado era puro desperdício.
+    const weeklyElement = document.querySelector(WEEKLY_STATUS_SELECTOR);
+    const weeklyMinutes = weeklyElement ? currentWeekRegisteredMinutes() : null;
+    if (weeklyElement && setWeeklyRegisteredValue(weeklyMinutes)) changed += 1;
+    return { changed, summary, weeklyMinutes };
   }
 
   const api = Object.freeze({
@@ -239,7 +247,31 @@
     scheduleApply();
   }
 
-  const observer = new MutationObserver(scheduleApply);
+  // 2026-08-17: este observador vigiava document.documentElement com subtree, ou
+  // seja, qualquer mutação em qualquer ponto da página agendava uma consolidação
+  // completa. O cronômetro flutuante e o relógio reescrevem texto a cada segundo,
+  // então a consolidação passava a rodar sem parar e o main thread nunca ficava
+  // livre — o aplicativo demorava a responder e voltava a travar logo depois.
+  //
+  // O filtro abaixo mantém o alcance amplo (o módulo precisa reagir quando o
+  // painel é redesenhado e os alvos são recriados), mas só reage a mutações que
+  // realmente tocam as regiões que ele escreve: o próprio alvo, um ancestral que
+  // o contenha, ou qualquer mutação enquanto algum alvo ainda não existe.
+  const SELETORES_OBSERVADOS = [PLANNED_SELECTOR, REALIZED_SELECTOR, WEEKLY_STATUS_SELECTOR];
+
+  function mutacaoRelevante(records) {
+    const alvos = SELETORES_OBSERVADOS.map((seletor) => document.querySelector(seletor));
+    if (alvos.some((alvo) => !alvo)) return true;
+    return records.some((record) => {
+      const node = record.target;
+      if (!node) return false;
+      return alvos.some((alvo) => alvo === node || alvo.contains(node) || (node.contains && node.contains(alvo)));
+    });
+  }
+
+  const observer = new MutationObserver((records) => {
+    if (mutacaoRelevante(records)) scheduleApply();
+  });
   observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
   document.addEventListener("change", (event) => {
     if (event.target?.id === "goalDate") scheduleApply();

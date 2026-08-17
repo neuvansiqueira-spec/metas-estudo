@@ -4549,7 +4549,23 @@ function repairExistingFactoryMaterialLinksV85(targetState = state) {
   return { ...report, skipped: false };
 }
 function materialAvailable(m) { return m && m.available !== false; }
-function dailyPlanCanonical(value) { return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " "); }
+// 2026-08-17: a normaliza\u00e7\u00e3o NFD com duas substitui\u00e7\u00f5es por regex \u00e9 car\u00edssima
+// quando repetida sobre os mesmos poucos valores. O consolidado da Central de
+// Metas chegava a 22 milh\u00f5es de chamadas em 15 segundos, sempre sobre as mesmas
+// disciplinas. Como a fun\u00e7\u00e3o \u00e9 pura, o resultado \u00e9 memoizado por valor de
+// entrada. O limite existe s\u00f3 para o cache n\u00e3o crescer sem teto em importa\u00e7\u00f5es
+// grandes; ao atingi-lo o cache \u00e9 descartado e volta a crescer.
+const DAILY_PLAN_CANONICAL_CACHE = new Map();
+const DAILY_PLAN_CANONICAL_CACHE_LIMIT = 20000;
+function dailyPlanCanonical(value) {
+  const chave = typeof value === "string" ? value : String(value || "");
+  const memoizado = DAILY_PLAN_CANONICAL_CACHE.get(chave);
+  if (memoizado !== undefined) return memoizado;
+  const canonico = chave.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
+  if (DAILY_PLAN_CANONICAL_CACHE.size >= DAILY_PLAN_CANONICAL_CACHE_LIMIT) DAILY_PLAN_CANONICAL_CACHE.clear();
+  DAILY_PLAN_CANONICAL_CACHE.set(chave, canonico);
+  return canonico;
+}
 function dailyPlanSubjectKey(value) { return dailyPlanCanonical(value).replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " "); }
 function dailyPlanSubjectAliases(value = "") {
   const key = dailyPlanSubjectKey(value);
@@ -8132,13 +8148,40 @@ function renderCentralGoals() {
 }
 
 const CENTRAL_TIME_CHART_COLORS = ["#38bdf8", "#facc15", "#34d399", "#a78bfa", "#fb7185", "#22d3ee", "#f97316", "#60a5fa", "#e879f9", "#84cc16", "#f43f5e", "#14b8a6"];
-function centralTimeLogSyllabusItem(log = {}) {
-  const exact = log.syllabusItemId ? (state.syllabusItems || []).find((item) => item.id === log.syllabusItemId) : null;
-  if (exact) return exact;
-  return (state.syllabusItems || []).find((item) => dailyPlanCanonical(item.discipline) === dailyPlanCanonical(log.discipline) && dailyPlanSubjectsCompatible(item.subject, log.subject)) || null;
+// 2026-08-17: a busca abaixo rodava uma vez por log do consolidado, varrendo
+// state.syllabusItems inteiro. Com milhares de logs e centenas de itens isso é
+// um laço quadrático. O índice é construído uma única vez por consolidação e
+// repassado adiante; sem ele as funções mantêm exatamente o comportamento
+// anterior, para não afetar nenhum outro caller.
+//
+// A equivalência é preservada: a busca exata por id continua devolvendo a
+// primeira ocorrência, e o balde por disciplina canônica conserva a ordem
+// original do array — como o filtro já exigia igualdade de disciplina
+// canônica, restringir ao balde não pode mudar qual item casa primeiro.
+function centralTimeSyllabusIndex(items = state.syllabusItems || []) {
+  const porId = new Map();
+  const porDisciplina = new Map();
+  items.forEach((item) => {
+    if (!item) return;
+    if (item.id && !porId.has(item.id)) porId.set(item.id, item);
+    const chave = dailyPlanCanonical(item.discipline);
+    const balde = porDisciplina.get(chave);
+    if (balde) balde.push(item);
+    else porDisciplina.set(chave, [item]);
+  });
+  return { porId, porDisciplina };
 }
-function centralTimeLogEdital(log = {}) {
-  const item = centralTimeLogSyllabusItem(log);
+function centralTimeLogSyllabusItem(log = {}, index = null) {
+  const items = state.syllabusItems || [];
+  const exact = log.syllabusItemId
+    ? (index ? index.porId.get(log.syllabusItemId) || null : items.find((item) => item.id === log.syllabusItemId))
+    : null;
+  if (exact) return exact;
+  const candidatos = index ? (index.porDisciplina.get(dailyPlanCanonical(log.discipline)) || []) : items;
+  return candidatos.find((item) => dailyPlanCanonical(item.discipline) === dailyPlanCanonical(log.discipline) && dailyPlanSubjectsCompatible(item.subject, log.subject)) || null;
+}
+function centralTimeLogEdital(log = {}, index = null) {
+  const item = centralTimeLogSyllabusItem(log, index);
   if (item && isImportedSyllabusItem(item)) return importedSyllabusGroupName(item);
   return state.edital?.contestName || "Edital principal";
 }
@@ -8147,7 +8190,8 @@ function centralTimeChartLogs() {
   const studies = (state.studies || []).map((study) => { const descriptor = canonicalStudyDescriptor({ ...study, subject: study.topic || study.subject || "Sem assunto", discipline: study.discipline || subjectById.get(study.subjectId) || "Sem disciplina" }); return { id: study.id, date: study.date, discipline: descriptor.discipline, subject: descriptor.subject, syllabusItemId: descriptor.syllabusItemId, minutes: Number(study.minutes) || 0, type: study.timerKind === "questions" ? "Questões" : studyOriginLabel(study) }; });
   const goals = (state.dailyGoals || []).map((goal) => { const descriptor = canonicalStudyDescriptor(goal); return { id: `goal-${goal.id}`, date: goalDateValue(goal), discipline: descriptor.discipline, subject: descriptor.subject, syllabusItemId: descriptor.syllabusItemId, minutes: goalUnloggedActualMinutes(goal), type: goal.type || goal.tipo || "Meta" }; }).filter((goal) => goal.minutes > 0);
   const questions = (state.questionLogs || []).filter((log) => Number(log.minutes) > 0).map((log) => ({ id: `questions-${log.id || createId()}`, date: log.date || log.data, discipline: log.discipline || "Sem disciplina", subject: log.subject || "Sem assunto", syllabusItemId: log.syllabusItemId || "", minutes: Number(log.minutes) || 0, type: log.trainingType || "Questões" }));
-  return [...studies, ...goals, ...questions].filter((log) => log.date && log.minutes > 0).map((log) => ({ ...log, edital: centralTimeLogEdital(log) }));
+  const syllabusIndex = centralTimeSyllabusIndex();
+  return [...studies, ...goals, ...questions].filter((log) => log.date && log.minutes > 0).map((log) => ({ ...log, edital: centralTimeLogEdital(log, syllabusIndex) }));
 }
 function centralTimePeriodBounds(period = "day") {
   const today = todayISO();
