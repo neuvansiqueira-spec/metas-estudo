@@ -7,7 +7,7 @@
   const MAIN_ID = "current";
   const MAIN_LOCAL_KEY = "metasConcursoData";
   const STATUS_KEY = "aldusBootstrapFastPathV345";
-  const CONCURRENCY_SCRIPT = "storage-concurrency-v345.js?v=20260816-multitab-timer-simulado-v346";
+  const CONCURRENCY_SCRIPT = "storage-concurrency-v345.js?v=20260817-concurrency-disabled-v346";
   const FALLBACK_CORE = "bootstrap-integrity-loader-v258-core.js?v=20260816-storage-consistency-v345&fallback=v345";
   const SCRIPT_CHAIN = [
     ["aldusAppBundleScript", "app-v345.js?v=20260816-storage-consistency-v345"],

@@ -1,6 +1,15 @@
 (() => {
   "use strict";
 
+  // Desativado em 2026-08-17: este módulo reescreve saveData/autoSyncAfterSave e
+  // faz a gravação depender de um lease entre abas com sincronização assíncrona
+  // do IndexedDB. Em produção isso deixou a aba sem conseguir salvar e travando
+  // por longos períodos. Os dois consumidores (commitTimerState em app-v345.js e
+  // commitSimulationState em simulado-integracao-v314.js) já usam optional
+  // chaining e caem no caminho de gravação direto quando a API não existe.
+  // Para reativar, remova este return.
+  return;
+
   const VERSION = "20260816-multitab-timer-simulado-v346";
   const WRITER_KEY = "aldus:state-writer:v345";
   const TIMER_JOURNAL_KEY = "aldus:timer:commit-journal:v345";
