@@ -26,7 +26,13 @@
     ["aldusPlanningIntegrityLoaderV235", "planning-integrity-loader-v235.js?v=20260804-simulados-sem-fabrica-cache-unico-v236&publication=v244"],
     ["aldusCentralPeriodCardsScriptV248", "central-goals-period-palette-v248.js?v=20260805-central-period-cards-v248"],
     ["aldusDailySummaryElegantScriptV250", "daily-summary-elegant-v250.js?v=20260805-daily-summary-elegant-v250"],
-    ["aldusTimerSessionIntegrityV236", "timer-session-integrity-v236.js?v=20260804-simulados-sem-fabrica-cache-unico-v236&hotfix=timer-session-integrity-hotfix1"]
+    ["aldusTimerSessionIntegrityV236", "timer-session-integrity-v236.js?v=20260804-simulados-sem-fabrica-cache-unico-v236&hotfix=timer-session-integrity-hotfix1"],
+    // 2026-08-17: o hotfix V348 só estava ligado ao carregador de contingência
+    // (bootstrap-integrity-loader-v258.js), então nunca chegava a quem abre o
+    // site pelo caminho normal. Sem ele, syncSnapshotCollections faz syncClone
+    // de todo registro de todas as coleções a cada salvamento, travando a aba
+    // em contas com histórico grande.
+    ["aldusSyncSavePerformanceV348", "sync-save-performance-v348.js?v=20260816-sync-save-performance-v348"]
   ];
   const CRITICAL_KEYS = ["subjects", "studies", "syllabusItems", "dailyGoals", "questionLogs", "questionBank", "questionBankSessions", "simulados"];
 
