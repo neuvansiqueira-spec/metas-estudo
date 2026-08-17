@@ -1,0 +1,61 @@
+name: V349 diagnosticar suíte completa
+
+on:
+  push:
+    branches:
+      - fix/runtime-stability-v349
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Baixar V349
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: fix/runtime-stability-v349
+          fetch-depth: 0
+
+      - name: Configurar Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci --ignore-scripts
+
+      - name: Executar e resumir suíte completa
+        shell: bash
+        run: |
+          rm -f .github/workflows/v349-validate-build.yml \
+                .github/workflows/v349-full-regression.yml \
+                .github/workflows/v349-diagnose-full.yml
+          set +e
+          npm test > /tmp/v349-full.log 2>&1
+          status=$?
+          set -e
+          python - <<'PY'
+          from pathlib import Path
+          lines = Path('/tmp/v349-full.log').read_text(errors='replace').splitlines()
+          failures = [i for i, line in enumerate(lines) if line.startswith('not ok ')]
+          print('=== V349 FULL SUITE FAILURE SUMMARY ===')
+          print(f'failure_blocks={len(failures)}')
+          for n, i in enumerate(failures, 1):
+              print(f'--- FAILURE {n} ---')
+              end = min(len(lines), i + 32)
+              for line in lines[i:end]:
+                  if line.startswith('ok ') and line != lines[i]:
+                      break
+                  print(line)
+          print('--- FINAL TOTALS ---')
+          for line in lines[-80:]:
+              if line.startswith('# tests ') or line.startswith('# pass ') or line.startswith('# fail ') or line.startswith('# skipped ') or line.startswith('# cancelled '):
+                  print(line)
+          PY
+          echo "npm_test_exit=$status"
+          exit 0
