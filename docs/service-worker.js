@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20260817-central-time-index-v344";
+const CURRENT_VERSION = "20260817-canonical-memo-debounce-v344";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const SECURITY_VERSION = "20260810-seguranca-estabilidade-v296";
 const PROTECTION_VERSION = "20260815-bootstrap-performance-v342";

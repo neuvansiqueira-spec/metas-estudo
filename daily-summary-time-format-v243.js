@@ -229,16 +229,30 @@
 
   if (typeof document === "undefined") return;
 
-  let scheduled = false;
+  // 2026-08-17: o agendamento por quadro coalescia apenas mutações do mesmo
+  // frame. Um render grande produz centenas de mutações espalhadas por vários
+  // frames — medido na aba Questões: 241 consolidações completas em um único
+  // clique. O debounce de saída junta a rajada inteira em uma execução, e o teto
+  // garante que uma página em mutação contínua ainda atualize com regularidade.
+  const DEBOUNCE_MS = 250;
+  const TETO_MS = 2000;
+  let timer = null;
+  let ultimaExecucao = 0;
+
+  function executarApply() {
+    timer = null;
+    ultimaExecucao = Date.now();
+    apply();
+  }
+
   function scheduleApply() {
-    if (scheduled) return;
-    scheduled = true;
-    const run = () => {
-      scheduled = false;
-      apply();
-    };
-    if (typeof requestAnimationFrame === "function") requestAnimationFrame(run);
-    else window.setTimeout(run, 0);
+    if (Date.now() - ultimaExecucao >= TETO_MS) {
+      if (timer !== null) { window.clearTimeout(timer); timer = null; }
+      executarApply();
+      return;
+    }
+    if (timer !== null) window.clearTimeout(timer);
+    timer = window.setTimeout(executarApply, DEBOUNCE_MS);
   }
 
   if (document.readyState === "loading") {

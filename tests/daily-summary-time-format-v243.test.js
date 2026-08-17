@@ -103,6 +103,21 @@ test("não reconsolida a semana a cada mutação irrelevante da página", () => 
   );
 });
 
+test("coalesce a rajada de mutações de um render em uma única consolidação", () => {
+  // O agendamento por quadro só juntava mutações do mesmo frame. Um render grande
+  // espalha centenas de mutações por vários frames: 241 consolidações completas
+  // foram medidas em um único clique na aba Questões.
+  assert.match(source, /const DEBOUNCE_MS = 250;/);
+  assert.match(source, /const TETO_MS = 2000;/);
+  assert.match(source, /timer = window\.setTimeout\(executarApply, DEBOUNCE_MS\);/);
+  assert.match(source, /if \(timer !== null\) window\.clearTimeout\(timer\);/,
+    'a rajada só coalesce se o agendamento anterior for cancelado');
+  assert.match(source, /Date\.now\(\) - ultimaExecucao >= TETO_MS/,
+    'o teto evita que uma página em mutação contínua nunca atualize');
+  assert.doesNotMatch(source, /requestAnimationFrame\(run\)/,
+    'o agendamento por quadro foi substituído pelo debounce');
+});
+
 test("consolida a semana no máximo uma vez por execução e só com o alvo na tela", () => {
   // currentWeekRegisteredMinutes percorre estudos, metas e registros de questões.
   // Era chamada duas vezes por apply(), e o segundo resultado era descartado.

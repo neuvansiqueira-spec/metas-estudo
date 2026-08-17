@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260817-central-time-index-v344";
+  const VERSION = "20260817-canonical-memo-debounce-v344";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

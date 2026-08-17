@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260817-central-time-index-v344";
+  const VERSION = "20260817-canonical-memo-debounce-v344";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -40225,7 +40225,23 @@ function isCompletedStatusValue(status) { return ["Concluído", "Concluido", "Es
 function completedStatus(item) { return isCompletedStatusValue(item.status); }
 function normalizeProgressStatus(status) { const value = String(status || "").toLowerCase(); if (value.includes("conclu") || value === "estudado" || value === "dominado") return "Concluído"; if (value.includes("andamento") || value.includes("iniciado")) return "Iniciado"; if (value.includes("revis")) return "Revisado"; return "Não iniciado"; }
 
-function canonical(value) { return normalizeText(value).toLowerCase(); }
+// 2026-08-17: individualmente esta função é barata, mas o volume a torna
+// dominante. Medido na aba Hoje: 5.675.472 chamadas em um único render, porque
+// questionLogsForItem a chama quatro vezes por registro e é reexecutada uma vez
+// por item do edital. Isso custava 4,6 s. A função é pura, então o resultado é
+// memoizado por valor de entrada, com o mesmo teto de segurança usado em
+// dailyPlanCanonical.
+const CANONICAL_CACHE = new Map();
+const CANONICAL_CACHE_LIMIT = 20000;
+function canonical(value) {
+  const chave = typeof value === "string" ? value : String(value ?? "");
+  const memoizado = CANONICAL_CACHE.get(chave);
+  if (memoizado !== undefined) return memoizado;
+  const canonico = normalizeText(value).toLowerCase();
+  if (CANONICAL_CACHE.size >= CANONICAL_CACHE_LIMIT) CANONICAL_CACHE.clear();
+  CANONICAL_CACHE.set(chave, canonico);
+  return canonico;
+}
 function getSyllabusDisciplines() { return [...new Set(state.syllabusItems.map((item) => normalizeText(item.discipline)).filter(Boolean))].sort((a, b) => a.localeCompare(b)); }
 function getAllDisciplines() { return [...new Set([...state.subjects.map((subject) => normalizeText(subject.name)), ...getSyllabusDisciplines()].filter(Boolean))].sort((a, b) => a.localeCompare(b)); }
 function isOperationalSimuladosDiscipline(value) { return SIMULADOS_OPERATIONAL?.isOperationalDiscipline(value) === true; }

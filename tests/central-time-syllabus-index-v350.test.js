@@ -104,12 +104,36 @@ test("a otimização está na fonte, não apenas no arquivo gerado", () => {
   assert.match(fonte, /function centralTimeSyllabusIndex\(/,
     "o índice precisa estar em script.js, senão o build o descarta");
 
+  assert.match(fonte, /const CANONICAL_CACHE = new Map\(\);/,
+    "a memoização de canonical precisa estar em script.js");
+
   for (const gerado of ["app-v344.js", "app.bundle.js", "docs/app-v344.js", "docs/app.bundle.js"]) {
     const conteudo = fs.readFileSync(gerado, "utf8");
     assert.match(conteudo, /const DAILY_PLAN_CANONICAL_CACHE = new Map\(\);/, `${gerado} está sem a memoização`);
+    assert.match(conteudo, /const CANONICAL_CACHE = new Map\(\);/, `${gerado} está sem a memoização de canonical`);
     assert.match(conteudo, /function centralTimeSyllabusIndex\(/, `${gerado} está sem o índice`);
     assert.match(conteudo, /centralTimeLogEdital\(log, syllabusIndex\)/, `${gerado} não repassa o índice`);
   }
+});
+
+test("canonical memoizada devolve o mesmo resultado da versão original", () => {
+  // questionLogsForItem chama canonical quatro vezes por registro e é
+  // reexecutada por item do edital: 5.675.472 chamadas em um render da aba Hoje.
+  const source = fs.readFileSync("script.js", "utf8");
+  const trecho = recorte(source, "const CANONICAL_CACHE = new Map();", "function getSyllabusDisciplines", "canonical");
+
+  const context = { console };
+  context.globalThis = context;
+  vm.createContext(context);
+  vm.runInContext('function normalizeText(value) { return String(value ?? "").trim(); }', context);
+  vm.runInContext(trecho, context);
+
+  const original = (value) => String(value ?? "").trim().toLowerCase();
+  const casos = ["Direito Constitucional", "  DIREITO   penal  ", "Ética", "", null, undefined, 0, 123, false, "  ", "ÁÀÂ Çç ÉÊ", "já não é"];
+  casos.forEach((caso) => {
+    assert.equal(context.canonical(caso), original(caso), `divergiu em ${JSON.stringify(caso)}`);
+    assert.equal(context.canonical(caso), context.canonical(caso), "segunda chamada deve repetir o resultado");
+  });
 });
 
 test("dailyPlanCanonical memoizada devolve o mesmo resultado da versão original", () => {
