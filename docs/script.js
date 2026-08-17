@@ -4956,7 +4956,7 @@ function renderPlanningPreview(scoreContext = buildPlanningScoreContext()) {
 }
 
 function renderDashboard() {
-  renderSmartReviewSummary();
+  medirFaseBootV350("dashboard:renderSmartReviewSummary", () => renderSmartReviewSummary());
   const today = todayISO(); const todayMinutes = state.studies.filter((study) => study.date === today).reduce((sum, study) => sum + study.minutes, 0); const weekMinutes = state.studies.filter((study) => isSameWeek(study.date)).reduce((sum, study) => sum + study.minutes, 0); const totalQuestions = state.studies.reduce((sum, study) => sum + study.questions, 0); const correct = state.studies.reduce((sum, study) => sum + study.correct, 0);
   const total = state.syllabusItems.length; const studied = state.syllabusItems.filter(completedStatus).length; const weak = state.syllabusItems.filter(isWeakItem).length; const undiagnosed = state.syllabusItems.filter(isUndiagnosed).length; const notStarted = state.syllabusItems.filter((item) => item.status === "Não iniciado").length;
   const pendingByDiscipline = state.syllabusItems.filter((item) => !completedStatus(item) && item.status !== "Ignorado").reduce((acc, item) => ({ ...acc, [item.discipline]: (acc[item.discipline] || 0) + 1 }), {}); const topPending = Object.entries(pendingByDiscipline).sort((a, b) => b[1] - a[1])[0];
@@ -6093,11 +6093,43 @@ elements.qbToggleErrorHistory?.addEventListener("click", () => { if (elements.qb
 
 // Atualiza somente a tela aberta. A renderização completa de todas as telas na inicialização
 // bloqueava a interação mesmo quando o usuário precisava apenas do Dashboard.
+// 2026-08-17: oito módulos auxiliares chamam render() depois de reparar dados na
+// janela de manutenção do boot, cada um ouvindo aldus:bootstrap-ready. Cada
+// chamada redesenhava a tela inteira: medidos até três renders completos de
+// dashboard de cerca de 2,9 s cada, ou seja quase 6 s gastos redesenhando o
+// mesmo conteúdo antes do usuário tocar em nada.
+//
+// O coalescimento é deliberadamente restrito à janela do boot. Fora dela render()
+// continua síncrono, porque há dezenas de chamadas em ações do usuário que
+// encadeiam render() com showView() e leitura imediata da tela — adiar ali
+// introduziria atraso visível ou quebraria a sequência.
+function renderDaViewAtivaV350() {
+  const activeView = typeof hashToView === "function" ? hashToView() : "dashboard";
+  renderView(typeof resolveViewTarget === "function" ? resolveViewTarget(activeView) : activeView);
+}
+function dentroDaJanelaDeBootV350() {
+  return bootstrapStateReady === true
+    && startupMetricsV169.secondaryInitializationCompleteMs === null;
+}
+let renderDeBootAgendadoV350 = false;
+function agendarRenderDeBootV350() {
+  if (renderDeBootAgendadoV350) return;
+  renderDeBootAgendadoV350 = true;
+  const executar = () => {
+    renderDeBootAgendadoV350 = false;
+    medirFaseBootV350("render-coalescido-do-boot", renderDaViewAtivaV350);
+  };
+  if (typeof requestAnimationFrame === "function") requestAnimationFrame(() => setTimeout(executar, 0));
+  else setTimeout(executar, 0);
+}
 function render() {
   viewDataRevisionV172 += 1;
   renderFloatingTimer();
-  const activeView = typeof hashToView === "function" ? hashToView() : "dashboard";
-  renderView(typeof resolveViewTarget === "function" ? resolveViewTarget(activeView) : activeView);
+  if (dentroDaJanelaDeBootV350()) {
+    agendarRenderDeBootV350();
+    return;
+  }
+  renderDaViewAtivaV350();
 }
 function syllabusFromValues(values) { return { id: createId(), discipline: values[0]?.trim() || "Sem disciplina", topic: values[1]?.trim() || "Geral", subject: values[2]?.trim() || "Assunto", subtopic: values[3]?.trim() || "", reference: values[4]?.trim() || "", priority: values[5]?.trim() || "Média", weight: normalizeSubjectIncidence(values[6]), status: values[7]?.trim() || "Não iniciado", domain: normalizeImportedDomain(values[8]), notes: values[9]?.trim() || "" }; }
 
@@ -9216,16 +9248,19 @@ try {
 } catch {}
 // Envolve uma fase do boot registrando início, fim e duração. O custo é uma
 // leitura de performance.now por fase, então pode ficar permanente.
+const LIMITE_FASES_BOOT_V350 = 200;
 function medirFaseBootV350(name, callback) {
   const startedAt = performance.now();
   try {
     return callback();
   } finally {
-    startupMetricsV169.bootPhases.push({
-      name,
-      startMs: Number(startedAt.toFixed(1)),
-      durationMs: Number((performance.now() - startedAt).toFixed(1))
-    });
+    if (startupMetricsV169.bootPhases.length < LIMITE_FASES_BOOT_V350) {
+      startupMetricsV169.bootPhases.push({
+        name,
+        startMs: Number(startedAt.toFixed(1)),
+        durationMs: Number((performance.now() - startedAt).toFixed(1))
+      });
+    }
   }
 }
 const startupMetricAttributesV169 = {
@@ -10266,7 +10301,14 @@ function renderView(viewId, options = {}) {
     return;
   }
   const renderers = {
-    dashboard: () => { renderDashboard(); renderSubjects(); },
+    // 2026-08-17: um render de dashboard custa cerca de 2,9 s e é a fase mais
+    // cara do carregamento. As medições anteriores mostraram que não é o laço
+    // quadrático já corrigido, mas não distinguiam JS de layout nem diziam qual
+    // metade pesa. Medir aqui responde isso com o dado vindo do próprio uso.
+    dashboard: () => {
+      medirFaseBootV350("dashboard:renderDashboard", () => renderDashboard());
+      medirFaseBootV350("dashboard:renderSubjects", () => renderSubjects());
+    },
     edital: renderEdital,
     "edital-verticalizado": renderSyllabus,
     "importar-edital": renderImportPreview,

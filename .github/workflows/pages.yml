@@ -74,7 +74,8 @@ jobs:
             tests/v327-factory-resumo-aula-canonical.test.js \
             tests/service-worker-tombstone-v350.test.js \
             tests/central-time-syllabus-index-v350.test.js \
-            tests/daily-summary-time-format-v243.test.js
+            tests/daily-summary-time-format-v243.test.js \
+            tests/boot-render-coalesce-v350.test.js
           node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
           cmp security-hardening-v296.js docs/security-hardening-v296.js
           cmp service-worker.js docs/service-worker.js

@@ -59,7 +59,7 @@
     "aldusEmergencyIndexedDBActivationBackupV256"
   ];
   const SCRIPT_CHAIN = [
-    ["aldusAppBundleScript", "app-v344.js?v=20260817-boot-render-metrics-v344"],
+    ["aldusAppBundleScript", "app-v344.js?v=20260817-boot-render-coalesce-v344"],
     ["aldusQconcursosFilterRouteV333", "qconcursos-filter-route-v333.js?v=20260814-restaura-filtros-qconcursos-v333"],
     ["aldusQconcursosAllFiltersV334", "qconcursos-all-filters-v334.js?v=20260814-qconcursos-todas-disciplinas-v334"],
     ["aldusQconcursosRouteSafetyV335", "qconcursos-route-safety-v335.js?v=20260814-qconcursos-rota-segura-v335"],
