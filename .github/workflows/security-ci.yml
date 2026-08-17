@@ -54,7 +54,24 @@ jobs:
           node --check service-worker.js
 
       - name: Executar suíte completa
-        run: npm test
+        shell: bash
+        run: |
+          set +e
+          npm test 2>&1 | tee full-test.log
+          status=${PIPESTATUS[0]}
+          echo "$status" > full-test.exit
+          exit "$status"
+
+      - name: Preservar relatório completo dos testes
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: full-test-log
+          path: |
+            full-test.log
+            full-test.exit
+          if-no-files-found: error
+          retention-days: 3
 
       - name: Validar contrato da release gerada
         run: node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
