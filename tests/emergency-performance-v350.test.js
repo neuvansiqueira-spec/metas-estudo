@@ -88,15 +88,27 @@ test("V350 mantém caches separados para estado vivo e clone", () => {
   }
 });
 
-test("Service Worker emergencial elimina cache de aplicação e injeta apenas o hotfix V350", () => {
-  const root = fs.readFileSync("service-worker.js", "utf8");
-  const docs = fs.readFileSync("docs/service-worker.js", "utf8");
-  assert.equal(root, docs, "service-worker raiz/docs deve permanecer idêntico");
-  assert.match(root, /20260817-emergency-safe-mode-v350/);
-  assert.match(root, /performance-emergency-v350\.js/);
-  assert.match(root, /fetch\(request, \{ cache: "no-store" \}\)/);
-  assert.match(root, /caches\.delete\(name\)/);
-  assert.doesNotMatch(root, /caches\.open\(/, "modo emergencial não deve criar novo cache de aplicação");
+test("V350 usa o observador já carregado antes do bootstrap e preserva o Service Worker V344", () => {
+  const observer = fs.readFileSync("security-observability-v318.js", "utf8");
+  const docsObserver = fs.readFileSync("docs/security-observability-v318.js", "utf8");
+  const html = fs.readFileSync("index.html", "utf8");
+  const worker = fs.readFileSync("service-worker.js", "utf8");
+  const docsWorker = fs.readFileSync("docs/service-worker.js", "utf8");
+
+  assert.equal(observer, docsObserver, "observabilidade raiz/docs deve permanecer idêntica");
+  assert.match(observer, /performance-emergency-v350\.js\?v=20260817-emergency-performance-v350/);
+  assert.match(observer, /aldusEmergencyPerformanceV350/);
+  assert.match(observer, /script\.async = false/);
+  assert.ok(
+    html.indexOf("security-observability-v318.js") < html.indexOf("bootstrap-integrity-loader-v258.js"),
+    "carregador emergencial deve entrar antes do bootstrap"
+  );
+
+  assert.equal(worker, docsWorker, "Service Worker raiz/docs deve continuar idêntico");
+  assert.match(worker, /CURRENT_VERSION = "20260815-interacao-responsiva-v344"/);
+  assert.match(worker, /SECURITY_HARDENING/);
+  assert.match(worker, /async function cachedFirstNavigation\(request, event\)/);
+  assert.doesNotMatch(worker, /emergency-safe-mode-v350/);
 });
 
 test("hotfix V350 permanece idêntico entre raiz e docs", () => {
