@@ -9188,8 +9188,45 @@ const startupMetricsV169 = globalThis.__aldusStartupMetricsV169 ||= {
   interfaceInteractiveMs: null,
   secondaryInitializationCompleteMs: null,
   secondarySteps: [],
-  deferredViewModules: {}
+  deferredViewModules: {},
+  // 2026-08-17: as métricas existentes cobriam os marcos e os passos secundários,
+  // mas o boot ainda apresentava travas longas fora deles: bootstrapMaintenance
+  // media 17 s enquanto a soma dos passos dava menos de 1 s. Sem saber em que
+  // fase cada trava cai, não há como atacá-las. Estes dois registros fecham essa
+  // lacuna e ficam disponíveis em window.__aldusStartupMetricsV169.
+  longTasks: [],
+  bootPhases: []
 };
+// Observador de travas longas instalado no início do carregamento, para que
+// nenhuma trava do boot escape — instrumentar depois do load já chega tarde.
+try {
+  if (typeof PerformanceObserver === "function" && !globalThis.__aldusLongTaskObserverV350) {
+    globalThis.__aldusLongTaskObserverV350 = new PerformanceObserver((list) => {
+      list.getEntries().forEach((entry) => {
+        if (entry.duration < 100 || startupMetricsV169.longTasks.length >= 200) return;
+        startupMetricsV169.longTasks.push({
+          startMs: Number(entry.startTime.toFixed(1)),
+          durationMs: Number(entry.duration.toFixed(1))
+        });
+      });
+    });
+    globalThis.__aldusLongTaskObserverV350.observe({ type: "longtask", buffered: true });
+  }
+} catch {}
+// Envolve uma fase do boot registrando início, fim e duração. O custo é uma
+// leitura de performance.now por fase, então pode ficar permanente.
+function medirFaseBootV350(name, callback) {
+  const startedAt = performance.now();
+  try {
+    return callback();
+  } finally {
+    startupMetricsV169.bootPhases.push({
+      name,
+      startMs: Number(startedAt.toFixed(1)),
+      durationMs: Number((performance.now() - startedAt).toFixed(1))
+    });
+  }
+}
 const startupMetricAttributesV169 = {
   htmlVisibleMs: "data-aldus-html-visible-ms",
   dataRenderedMs: "data-aldus-data-rendered-ms",
@@ -9531,29 +9568,33 @@ async function bootstrapApplication() {
       }
     }
 
-    replaceState(chosenState);
-    mergeCompatibleLocalStorageData();
+    medirFaseBootV350("replaceState", () => replaceState(chosenState));
+    medirFaseBootV350("mergeCompatibleLocalStorageData", () => mergeCompatibleLocalStorageData());
     SIMULADOS_OPERATIONAL?.removeLegacyInjectedSubject(state);
-    const factoryPromptLibraryBefore = JSON.stringify(state.factoryPromptLibrary || {});
-    state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) });
-    const coreFactoryPromptsChanged = migrateCoreFactoryPrompts(state) || JSON.stringify(state.factoryPromptLibrary || {}) !== factoryPromptLibraryBefore;
-    const contestMigrationReport = typeof applyPcprPcma2026Migration === "function"
+    const coreFactoryPromptsChanged = medirFaseBootV350("migracoes-factory-prompts", () => {
+      const factoryPromptLibraryBefore = JSON.stringify(state.factoryPromptLibrary || {});
+      state.factoryPromptLibrary = migrateFactoryPromptLibraryLeiRecorte({ ...cloneData(defaultFactoryPromptLibrary), ...(state.factoryPromptLibrary || {}) });
+      return migrateCoreFactoryPrompts(state) || JSON.stringify(state.factoryPromptLibrary || {}) !== factoryPromptLibraryBefore;
+    });
+    const contestMigrationReport = medirFaseBootV350("migracao-pcpr-pcma-2026", () => (typeof applyPcprPcma2026Migration === "function"
       ? applyPcprPcma2026Migration(state)
-      : { changed: false, blocked: true };
+      : { changed: false, blocked: true }));
     bootstrapStateReady = true;
     globalThis.__aldusBootstrapReady = true;
-    const legacyGoalIdRecoveryReport = recoverLegacyTimerMinutesForGoals(state);
-    const legacyOrphanRecoveryReport = recoverOrphanLegacyTimerMinutesForGoals(state);
-    const legacyTimerRecoveryReport = mergeLegacyTimerRecoveryReports(legacyGoalIdRecoveryReport, legacyOrphanRecoveryReport);
+    const legacyTimerRecoveryReport = medirFaseBootV350("recuperacao-tempos-antigos", () => {
+      const legacyGoalIdRecoveryReport = recoverLegacyTimerMinutesForGoals(state);
+      const legacyOrphanRecoveryReport = recoverOrphanLegacyTimerMinutesForGoals(state);
+      return mergeLegacyTimerRecoveryReports(legacyGoalIdRecoveryReport, legacyOrphanRecoveryReport);
+    });
     window.__legacyTimerRecoveryReport = legacyTimerRecoveryReport;
     console.info("[Metas Estudo] Recuperação de tempos antigos", legacyTimerRecoveryReport);
-    if (legacyTimerRecoveryReport.recoveredMinutes) saveData({ markLocalChange: true });
+    if (legacyTimerRecoveryReport.recoveredMinutes) medirFaseBootV350("saveData-pos-recuperacao", () => saveData({ markLocalChange: true }));
     renderMotivationalPhrase();
     indexedDBStatus.bootstrap = recoveredError ? "erro recuperado" : "núcleo interativo";
     if (recoveredError) indexedDBStatus.error = "Não foi possível carregar os dados locais. Conecte ao Google Drive ou importe um backup.";
-    renderFloatingTimer();
+    medirFaseBootV350("renderFloatingTimer", () => renderFloatingTimer());
     showStorageWarningIfNeeded();
-    showView(hashToView(), { skipScroll: true, keepMenuOpen: true, immediateRender: true });
+    medirFaseBootV350("showView-inicial", () => showView(hashToView(), { skipScroll: true, keepMenuOpen: true, immediateRender: true }));
     markStartupMilestoneV169("dataRenderedMs");
     hideBootstrapLoadingState();
     updateStorageDiagnostics();
