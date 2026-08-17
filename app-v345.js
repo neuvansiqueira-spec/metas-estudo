@@ -44514,7 +44514,24 @@ function prepareIntegratedPlanningPrioritiesV155(targetState = state, opts = {})
     });
   });
   const validation = validateIntegratedPlanningCandidateV155(beforeState, candidateState, fromDate, mutableIds, resolvedPriorityEntries);
-  if (!validation.ok) return { ok: false, changed: false, errors: validation.errors, validation, warnings: rebuilt.warnings };
+  // Correção 2026-08-16 (hotfix2): um tema de prioridade sem vaga disponível na
+  // agenda futura não deve travar o replanejamento inteiro pra sempre (mesmo
+  // sintoma do priority-item-missing, agora em outro estágio do fluxo). Isso
+  // também fazia a simulação inteira ser refeita a cada carregamento, porque a
+  // falha impedia state.migrations de ser gravado (o guard de cache em
+  // applyIntegratedPlanningPrioritiesV155 nunca era alcançado).
+  const NOT_PLANNED_PREFIX_V155 = "priority-not-planned:";
+  const notPlannedKeys = validation.errors
+    .filter((error) => error.startsWith(NOT_PLANNED_PREFIX_V155))
+    .map((error) => error.slice(NOT_PLANNED_PREFIX_V155.length));
+  const blockingValidationErrors = validation.errors.filter((error) => !error.startsWith(NOT_PLANNED_PREFIX_V155));
+  if (blockingValidationErrors.length) return { ok: false, changed: false, errors: validation.errors, validation, warnings: rebuilt.warnings };
+  if (notPlannedKeys.length) {
+    console.warn(
+      "[Metas Estudo] Item(ns) de prioridade sem vaga disponível na agenda futura; replanejamento segue com os demais itens.",
+      notPlannedKeys
+    );
+  }
 
   const report = {
     version: INTEGRATED_PLANNING_PRIORITY_VERSION_V155,
@@ -44527,6 +44544,7 @@ function prepareIntegratedPlanningPrioritiesV155(targetState = state, opts = {})
     recalculatedFutureGoals: mutableGoals.length + addedGoals,
     priorityTopics: resolvedPriorityEntries.length,
     unresolvedPriorityTopics: unresolvedPriorityEntries.map((entry) => entry.key),
+    unscheduledPriorityTopics: notPlannedKeys,
     firstDates: validation.firstDates,
     activeOfficialItems: validation.activeOfficialItems,
     unreachableOfficialItems: validation.unreachableOfficialItems,
