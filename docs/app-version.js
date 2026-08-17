@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260817-boot-render-coalesce-v344";
+  const VERSION = "20260817-dashboard-phase-metrics-v344";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

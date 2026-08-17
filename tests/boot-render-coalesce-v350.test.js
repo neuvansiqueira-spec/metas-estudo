@@ -31,6 +31,8 @@ function carregar({ bootstrapPronto, secundariaCompleta }) {
   context.renderView = (target) => context.chamadas.renderView.push(target);
   context.renderFloatingTimer = () => { context.chamadas.renderFloatingTimer += 1; };
   context.medirFaseBootV350 = (nome, cb) => cb();
+  context.chamadas.agendadoAposPintura = [];
+  context.scheduleViewRenderAfterPaintV170 = (target) => context.chamadas.agendadoAposPintura.push(target);
   // captura o agendamento em vez de executá-lo, para observar o coalescimento
   context.requestAnimationFrame = (cb) => context.agendados.push(cb);
   context.setTimeout = (cb) => context.agendados.push(cb);
@@ -75,7 +77,12 @@ test("na janela do boot, três chamadas de render() viram um único desenho", ()
   assert.deepEqual(ctx.chamadas.renderView, [], "não deveria desenhar de imediato durante o boot");
 
   drenar(ctx);
-  assert.deepEqual(ctx.chamadas.renderView, ["dashboard"], "as três chamadas deveriam colapsar em um desenho");
+  // O redesenho não sai em bloco: vai para o agendador da V344, que espera o
+  // thread ficar quieto e cede a qualquer interação. Um render de dashboard custa
+  // cerca de 3 s, e em bloco ele trava a página inteira justamente na janela em
+  // que o usuário tenta abrir algo pela primeira vez.
+  assert.deepEqual(ctx.chamadas.agendadoAposPintura, ["dashboard"], "as três chamadas deveriam colapsar em um agendamento");
+  assert.deepEqual(ctx.chamadas.renderView, [], "não deveria desenhar de forma bloqueante no boot");
 });
 
 test("o cronômetro flutuante continua atualizando em toda chamada", () => {
@@ -93,7 +100,7 @@ test("depois de drenar, uma nova chamada no boot agenda outro desenho", () => {
   drenar(ctx);
   ctx.render();
   drenar(ctx);
-  assert.deepEqual(ctx.chamadas.renderView, ["dashboard", "dashboard"]);
+  assert.deepEqual(ctx.chamadas.agendadoAposPintura, ["dashboard", "dashboard"]);
 });
 
 test("a instrumentação do render do dashboard viaja no código publicado", () => {
