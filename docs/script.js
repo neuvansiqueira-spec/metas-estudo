@@ -8565,23 +8565,89 @@ function saveQuestionLog(event) {
   render();
   autoSyncAfterSave("question-log");
 }
-function questionRecordItem(record) {
-  const direct = getSyllabusById(record.syllabusItemId);
+// 2026-08-17: a consolidação de desempenho em questões era a fase mais cara do
+// render do dashboard. Medido no site publicado: getQuestionTotals 1.245 ms e o
+// bloco do planejamento 1.346 ms, os dois chamando
+// getUnifiedQuestionPerformanceRecords, que por registro varria syllabusItems
+// inteiro aqui e, por grupo de sessão, varria questionLogs inteiro no teste de
+// equivalência. O índice é montado uma vez por consolidação e repassado adiante;
+// sem ele estas funções mantêm exatamente o comportamento anterior.
+//
+// As buscas por id e por importKey preservam a primeira ocorrência, e os baldes
+// por chave canônica conservam a ordem original, então a regra
+// "só resolve quando houver exatamente um candidato" continua valendo igual.
+function questionRecordIndexV351(targetState = state) {
+  const porId = new Map();
+  const porImportKey = new Map();
+  const porDisciplinaAssunto = new Map();
+  (targetState.syllabusItems || []).forEach((item) => {
+    if (!item) return;
+    if (!porId.has(item.id)) porId.set(item.id, item);
+    const importKey = item.importKey || item.importMeta?.importKey;
+    if (importKey) {
+      const balde = porImportKey.get(importKey);
+      if (balde) balde.push(item); else porImportKey.set(importKey, [item]);
+    }
+    const chave = `${canonical(item.discipline)}|${canonical(item.subject)}`;
+    const balde = porDisciplinaAssunto.get(chave);
+    if (balde) balde.push(item); else porDisciplinaAssunto.set(chave, [item]);
+  });
+  const logsEquivalentes = new Set();
+  (targetState.questionLogs || []).forEach((log) => {
+    if (!log) return;
+    logsEquivalentes.add([canonical(log.discipline), canonical(log.subject), String(log.date || ""), Number(log.total), Number(log.correct), Number(log.wrong), Number(log.blank)].join("|"));
+  });
+  return { porId, porImportKey, porDisciplinaAssunto, logsEquivalentes };
+}
+function questionRecordItem(record, index = null) {
+  const direct = index ? index.porId.get(record.syllabusItemId) : getSyllabusById(record.syllabusItemId);
   if (direct) return direct;
   const importKey = record.importKey || record.syllabusImportKey;
-  if (importKey) { const found = state.syllabusItems.filter((item) => (item.importKey || item.importMeta?.importKey) === importKey); if (found.length === 1) return found[0]; }
-  const matches = state.syllabusItems.filter((item) => canonical(item.discipline) === canonical(record.discipline) && canonical(item.subject) === canonical(record.subject));
+  if (importKey) { const found = index ? (index.porImportKey.get(importKey) || []) : state.syllabusItems.filter((item) => (item.importKey || item.importMeta?.importKey) === importKey); if (found.length === 1) return found[0]; }
+  const matches = index
+    ? (index.porDisciplinaAssunto.get(`${canonical(record.discipline)}|${canonical(record.subject)}`) || [])
+    : state.syllabusItems.filter((item) => canonical(item.discipline) === canonical(record.discipline) && canonical(item.subject) === canonical(record.subject));
   return matches.length === 1 ? matches[0] : null;
 }
+// Memoização pela mesma composição de chave que qbSyllabusPackages já usa neste
+// arquivo. São cinco chamadas espalhadas, e só no render do dashboard duas delas
+// caem juntas — getQuestionTotals e problemQuestionDiscipline — recomputando o
+// consolidado inteiro duas vezes na mesma passada.
+let unifiedQuestionRecordsSnapshotV351 = null;
+function unifiedQuestionRecordsRevisionKeyV351() {
+  const logs = state.questionLogs || [];
+  const sessions = state.questionBankSessions || [];
+  const syllabus = state.syllabusItems || [];
+  return [
+    viewDataRevisionV172,
+    logs.length,
+    sessions.length,
+    syllabus.length,
+    logs[0]?.id || "",
+    logs.at(-1)?.id || "",
+    sessions[0]?.id || "",
+    sessions.at(-1)?.id || "",
+    syllabus[0]?.id || "",
+    syllabus.at(-1)?.id || ""
+  ].join("|");
+}
 function getUnifiedQuestionPerformanceRecords() {
+  const revisionKey = unifiedQuestionRecordsRevisionKeyV351();
+  if (unifiedQuestionRecordsSnapshotV351?.revisionKey === revisionKey) return unifiedQuestionRecordsSnapshotV351.records;
+  const records = computeUnifiedQuestionPerformanceRecordsV351();
+  unifiedQuestionRecordsSnapshotV351 = { revisionKey, records };
+  return records;
+}
+function computeUnifiedQuestionPerformanceRecordsV351() {
+  const indice = questionRecordIndexV351();
   const records = [], seen = new Set();
   const add = (record) => { const key = record.dedupeKey; if (!seen.has(key)) { seen.add(key); records.push(record); } };
-  (state.questionLogs || []).forEach((log) => { const item = questionRecordItem(log); add({ id:log.id, source:'manual', date:log.date || log.data || '', discipline:log.discipline || log.disciplina || 'Sem disciplina', subject:log.subject || log.assunto || 'Assunto não vinculado ao edital atual', syllabusItemId:item?.id || '', board:log.board || '', minutes:Number(log.minutes)||0, total:Number(log.total)||0, correct:Number(log.correct)||0, wrong:Number(log.wrong)||0, blank:Number(log.blank)||0, net:Number(log.cebraspeNet ?? (Number(log.correct)||0)-(Number(log.wrong)||0)), notes:log.notes || '', original:log, dedupeKey:`manual|${log.id || [log.date,log.discipline,log.subject,log.total,log.correct,log.wrong].join('|')}` }); });
+  (state.questionLogs || []).forEach((log) => { const item = questionRecordItem(log, indice); add({ id:log.id, source:'manual', date:log.date || log.data || '', discipline:log.discipline || log.disciplina || 'Sem disciplina', subject:log.subject || log.assunto || 'Assunto não vinculado ao edital atual', syllabusItemId:item?.id || '', board:log.board || '', minutes:Number(log.minutes)||0, total:Number(log.total)||0, correct:Number(log.correct)||0, wrong:Number(log.wrong)||0, blank:Number(log.blank)||0, net:Number(log.cebraspeNet ?? (Number(log.correct)||0)-(Number(log.wrong)||0)), notes:log.notes || '', original:log, dedupeKey:`manual|${log.id || [log.date,log.discipline,log.subject,log.total,log.correct,log.wrong].join('|')}` }); });
   (state.questionBankSessions || []).forEach((session) => {
     if (!Array.isArray(session.items) || !session.items.length) return;
     const groups = new Map();
     session.items.forEach((item) => { if (!item.marcado) return; const key=[item.disciplina,item.assunto,item.banca||''].join('|'); const group=groups.get(key)||{discipline:item.disciplina||'Sem disciplina',subject:item.assunto||'Assunto não vinculado ao edital atual',board:item.banca||'',items:[]}; group.items.push(item); groups.set(key,group); });
-    groups.forEach((group) => { const counts=group.items.reduce((a,item)=>{ a.total++; if(qbIsBlankMark(item)||qbIsDoubtMark(item)) a.blank++; else if(item.gabarito && item.marcado===item.gabarito) a.correct++; else if(item.gabarito) a.wrong++; return a; },{total:0,correct:0,wrong:0,blank:0}); if (!counts.total) return; const item=questionRecordItem(group); const equivalent=(state.questionLogs||[]).some((log)=>canonical(log.discipline)===canonical(group.discipline)&&canonical(log.subject)===canonical(group.subject)&&String(log.date||'')===String(session.createdAt||'').slice(0,10)&&Number(log.total)===counts.total&&Number(log.correct)===counts.correct&&Number(log.wrong)===counts.wrong&&Number(log.blank)===counts.blank); if (equivalent) return; add({ id:`${session.id}|${group.discipline}|${group.subject}`, source:'banco', date:String(session.createdAt||'').slice(0,10), discipline:group.discipline, subject:group.subject, syllabusItemId:item?.id||'', board:group.board, minutes:0, ...counts, net:counts.correct-counts.wrong, notes:'Treino concluído no Banco de Questões.', original:session, dedupeKey:`banco|${session.id}|${group.discipline}|${group.subject}` }); });
+    groups.forEach((group) => { const counts=group.items.reduce((a,item)=>{ a.total++; if(qbIsBlankMark(item)||qbIsDoubtMark(item)) a.blank++; else if(item.gabarito && item.marcado===item.gabarito) a.correct++; else if(item.gabarito) a.wrong++; return a; },{total:0,correct:0,wrong:0,blank:0}); if (!counts.total) return; const item=questionRecordItem(group, indice); const equivalent=indice.logsEquivalentes.has([canonical(group.discipline),canonical(group.subject),String(session.createdAt||'').slice(0,10),counts.total,counts.correct,counts.wrong,counts.blank].join("|")); if (equivalent) return; add({ id:`${session.id}|${group.discipline}|${group.subject}`, source:'banco', date:String(session.createdAt||'').slice(0,10), discipline:group.discipline, subject:group.subject, syllabusItemId:item?.id||'', board:group.board, minutes:0, ...counts, net:counts.correct-counts.wrong, notes:'Treino concluído no Banco de Questões.', original:session, dedupeKey:`banco|${session.id}|${group.discipline}|${group.subject}` }); });
   });
   return records;
 }

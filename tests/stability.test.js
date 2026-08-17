@@ -615,7 +615,14 @@ test('bootstrap restaura o estado local e renderiza sem depender do Google Drive
   const bootstrapStart = script.indexOf('async function bootstrapApplication()');
   const bootstrapEnd = script.indexOf('function handleBootstrapFailure', bootstrapStart);
   const bootstrap = script.slice(bootstrapStart, bootstrapEnd);
-  const renderStart = script.indexOf('function render()');
+  // 2026-08-17: o desenho da view ativa saiu de dentro de render() para
+  // renderDaViewAtivaV350, definida imediatamente antes, porque na janela do boot
+  // render() passou a coalescer as chamadas dos módulos de reparo — eram até três
+  // redesenhos completos de cerca de 3 s cada, e em bloco travavam a página antes
+  // de dar para abrir qualquer coisa. O recorte começa na função nova para cobrir
+  // as duas, e as asserções abaixo travam tanto o alvo do desenho quanto o
+  // coalescimento restrito ao boot.
+  const renderStart = script.indexOf('function renderDaViewAtivaV350()');
   const renderEnd = script.indexOf('function syllabusFromValues', renderStart);
   const renderBlock = script.slice(renderStart, renderEnd);
   const renderViewStart = script.indexOf('function renderView');
@@ -639,6 +646,9 @@ test('bootstrap restaura o estado local e renderiza sem depender do Google Drive
   assert.doesNotMatch(script, /STARTUP_GOOGLE_IDENTITY_TIMEOUT_MS|STARTUP_SYNC_TIMEOUT_MS|startupDriveVerificationDeferred|startupSyncInProgress|startupSyncResolved|startupSyncWriteQueue/);
 
   assert.match(renderBlock, /renderView\(typeof resolveViewTarget === "function" \? resolveViewTarget\(activeView\) : activeView\)/);
+  assert.match(renderBlock, /if \(dentroDaJanelaDeBootV350\(\)\) \{/, 'render() deve coalescer as chamadas do boot');
+  assert.match(renderBlock, /return bootstrapStateReady === true\s*\n?\s*&& startupMetricsV169\.secondaryInitializationCompleteMs === null;/, 'o coalescimento deve valer somente na janela do boot');
+  assert.match(renderBlock, /renderFloatingTimer\(\);/, 'o cronômetro flutuante fica fora do coalescimento');
   assert.match(renderViewBlock, /const renderers = \{/);
   assert.match(renderViewBlock, /safeRenderView\(viewId, renderers\[viewId\]\)/);
   assert.doesNotMatch(renderViewBlock, /Object\.values\(viewRenderers\)/);

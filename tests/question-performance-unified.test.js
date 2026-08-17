@@ -15,7 +15,12 @@ test('questões separam registro e consulta unificada sem alterar fontes persist
   assert.match(script, /source:'banco'/);
   assert.match(script, /Somente leitura/);
   assert.match(script, /data-view-question-performance/);
-  assert.match(script, /questionRecordItem\(record\)/);
+  // 2026-08-17: a assinatura ganhou um índice opcional para eliminar a varredura
+  // de syllabusItems por registro, que custava 1,2 s no render do dashboard. Sem
+  // o índice o comportamento é o anterior, e a regra de resolver somente quando
+  // há exatamente um candidato continua valendo nos dois caminhos — é o que a
+  // linha seguinte e o teste de equivalência em question-record-index-v351 travam.
+  assert.match(script, /function questionRecordItem\(record, index = null\)/);
   assert.match(script, /matches\.length === 1/);
 });
 

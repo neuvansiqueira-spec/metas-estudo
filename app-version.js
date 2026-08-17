@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260817-dashboard-full-attribution-v344";
+  const VERSION = "20260817-question-records-index-v344";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
