@@ -43,6 +43,7 @@ jobs:
           node --check security-observability-v318.js
           node --check service-worker.js
           node --check service-worker-v291.js
+          node --check service-worker-v345.js
           node --check usage-telemetry-v315.js
           node --check factory-penalties-v320.js
           node --check factory-resumo-aula-visual-v326.js
@@ -70,10 +71,12 @@ jobs:
             tests/v329-integral-performance.test.js \
             tests/v320-factory-penalties-prompts.test.js \
             tests/v326-factory-resumo-aula-visual.test.js \
-            tests/v327-factory-resumo-aula-canonical.test.js
+            tests/v327-factory-resumo-aula-canonical.test.js \
+            tests/service-worker-tombstone-v350.test.js
           node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
           cmp security-hardening-v296.js docs/security-hardening-v296.js
           cmp service-worker.js docs/service-worker.js
+          cmp service-worker-v345.js docs/service-worker-v345.js
           cmp usage-telemetry-v315.js docs/usage-telemetry-v315.js
 
       - name: Preparar paleta sofisticada dos cartões
