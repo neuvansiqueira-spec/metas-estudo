@@ -36162,8 +36162,50 @@ globalThis.PCPR_PCMA_2026_CATALOG = {
     return { ...profile, phase: mode === "joint" ? "pre-pcpr" : mode };
   }
 
+  // 2026-08-17: esta função percorria contestSyllabusMap inteiro a cada chamada,
+  // e isItemEnabledForPlanning a chama uma vez por item do edital dentro de
+  // .filter() sobre todos os itens (progressMetrics, planningMetrics e outras),
+  // várias vezes por render. Com ~464 itens e ~940 mapeamentos isso dava
+  // centenas de milhares de comparações por redesenho, e o redesenho roda a
+  // cada salvamento — a aba congelava por dezenas de segundos.
+  //
+  // O índice abaixo é invalidado por identidade e formato do array, o que cobre
+  // os dois únicos caminhos que alteram a coleção: upsertSystemRecords devolve
+  // um array novo (muda a referência) e mergeArrays só faz push (muda o
+  // comprimento). O primeiro/último elemento entram na chave como garantia
+  // extra contra substituição in loco sem mudança de tamanho.
+  let officialMappingsIndex = null;
+  let officialMappingsIndexKey = null;
+
+  function officialMappingsIndexFor(list) {
+    const key = list.length ? `${list.length}` : "0";
+    if (officialMappingsIndex
+      && officialMappingsIndexKey
+      && officialMappingsIndexKey.list === list
+      && officialMappingsIndexKey.size === key
+      && officialMappingsIndexKey.first === list[0]
+      && officialMappingsIndexKey.last === list[list.length - 1]) {
+      return officialMappingsIndex;
+    }
+    const index = new Map();
+    list.forEach((mapping) => {
+      if (!mapping) return;
+      const id = mapping.syllabusItemId;
+      const bucket = index.get(id);
+      if (bucket) bucket.push(mapping);
+      else index.set(id, [mapping]);
+    });
+    officialMappingsIndex = index;
+    officialMappingsIndexKey = { list, size: key, first: list[0], last: list[list.length - 1] };
+    return index;
+  }
+
   function officialMappingsForItem(targetState = {}, syllabusItemId = "") {
-    return (targetState.contestSyllabusMap || []).filter((mapping) => mapping.syllabusItemId === syllabusItemId);
+    const list = targetState.contestSyllabusMap || [];
+    if (!Array.isArray(list) || !list.length) return [];
+    // slice() preserva o contrato antigo: cada chamada devolvia um array novo,
+    // então quem receber o resultado pode mutá-lo sem corromper o índice.
+    return (officialMappingsIndexFor(list).get(syllabusItemId) || []).slice();
   }
 
   function isItemEnabledForPlanning(targetState = {}, syllabusItemId = "", date = "") {
@@ -43724,6 +43766,9 @@ function seedInitialWrongTopicsV155(targetState = state) {
   return { inserted, missing, signals };
 }
 function officialPlanningMappingsV155(targetState = state, syllabusItemId = "") {
+  // Mesma consulta de officialMappingsForItem; reaproveita o índice dela para
+  // não repetir a varredura linear por item (ver comentário na definição).
+  if (typeof officialMappingsForItem === "function") return officialMappingsForItem(targetState, syllabusItemId);
   return (targetState.contestSyllabusMap || []).filter((mapping) => mapping.syllabusItemId === syllabusItemId);
 }
 function isIntegratedPlanningCandidateV155(item = {}, targetState = state) {

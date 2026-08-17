@@ -1,10 +1,10 @@
 "use strict";
 
-const CURRENT_VERSION = "20260817-sync-save-performance-wired-v345";
+const CURRENT_VERSION = "20260817-official-mappings-index-v345";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const SECURITY_VERSION = "20260810-seguranca-estabilidade-v296";
-const PROTECTION_VERSION = "20260817-sync-save-performance-wired-v345";
-const BOOTSTRAP_VERSION = "20260817-sync-save-performance-wired-v345";
+const PROTECTION_VERSION = "20260817-official-mappings-index-v345";
+const BOOTSTRAP_VERSION = "20260817-official-mappings-index-v345";
 const DUPLICATE_CONTINUITY_VERSION = "20260811-duplicate-flow-owner-v309";
 const DUPLICATE_RECOMMENDATIONS_VERSION = "20260811-duplicate-flow-owner-v309";
 const DUPLICATE_BATCH_HOTFIX_VERSION = "20260811-duplicate-flow-owner-v309";

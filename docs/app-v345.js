@@ -4837,6 +4837,64 @@ globalThis.PCPR_PCMA_2026_CATALOG = {
       }
     },
     {
+      "id": "a0841c92-7222-430d-a1f9-33d91740b0a3",
+      "discipline": "LEGISLAÇÃO PENAL E LEGISLAÇÃO PROCESSUAL PENAL EXTRAVAGANTE",
+      "topic": "3.12 Lei das Organizações Criminosas (Lei n.º 12.850/2013).",
+      "subject": "Lei das Organizações Criminosas (Lei n.º 12.850/2013).",
+      "subtopic": "Lei das Organizações Criminosas (Lei n.º 12.850/2013).",
+      "reference": "Anexo I, item 3.12",
+      "priority": "Alta",
+      "weight": 4,
+      "status": "Não iniciado",
+      "domain": "Sem diagnóstico",
+      "notes": "Item oficial adicionado pela migração PCPR/PCMA 2026; categoria B. Corrigido em 2026-08-16: item estava referenciado no mapeamento oficial (contestSyllabusMap, classification B, CORRESPONDÊNCIA EXATA) mas ausente da lista de itens, o que bloqueava permanentemente o replanejamento por desempenho.",
+      "imported": true,
+      "officialCatalogItem": true,
+      "contestCategory": "B",
+      "contestScope": "PCPR_ONLY",
+      "importKey": "pcpr|2026|legislacao|penal|e|legislacao|processual|penal|extravagante|3.12|lei|das|organizacoes|criminosas|(lei|n.º|12.850/2013).",
+      "importMeta": {
+        "concurso": "PCPR 2026",
+        "banca": "FGV",
+        "cargo": "Delegado de Polícia",
+        "grupo": "Prova objetiva",
+        "fase": "Objetiva, discursiva e oral",
+        "fonte": "Edital oficial PCPR/PCMA 2026",
+        "agendavel": true,
+        "tipo_agendamento": "Estudo + questões",
+        "imported": true
+      }
+    },
+    {
+      "id": "bc4fe379-2d61-45f7-864d-5add3bb87115",
+      "discipline": "LEGISLAÇÃO PENAL E LEGISLAÇÃO PROCESSUAL PENAL EXTRAVAGANTE",
+      "topic": "3.2 Lei dos Crimes Hediondos (Lei n.º 8.072/1990).",
+      "subject": "Lei dos Crimes Hediondos (Lei n.º 8.072/1990).",
+      "subtopic": "Lei dos Crimes Hediondos (Lei n.º 8.072/1990).",
+      "reference": "Anexo I, item 3.2",
+      "priority": "Alta",
+      "weight": 4,
+      "status": "Não iniciado",
+      "domain": "Sem diagnóstico",
+      "notes": "Item oficial adicionado pela migração PCPR/PCMA 2026; categoria B. Corrigido em 2026-08-16: item estava referenciado no mapeamento oficial (contestSyllabusMap, classification B, CORRESPONDÊNCIA EXATA) mas ausente da lista de itens, o que bloqueava permanentemente o replanejamento por desempenho.",
+      "imported": true,
+      "officialCatalogItem": true,
+      "contestCategory": "B",
+      "contestScope": "PCPR_ONLY",
+      "importKey": "pcpr|2026|legislacao|penal|e|legislacao|processual|penal|extravagante|3.2|lei|dos|crimes|hediondos|(lei|n.º|8.072/1990).",
+      "importMeta": {
+        "concurso": "PCPR 2026",
+        "banca": "FGV",
+        "cargo": "Delegado de Polícia",
+        "grupo": "Prova objetiva",
+        "fase": "Objetiva, discursiva e oral",
+        "fonte": "Edital oficial PCPR/PCMA 2026",
+        "agendavel": true,
+        "tipo_agendamento": "Estudo + questões",
+        "imported": true
+      }
+    },
+    {
       "id": "759debbe-3bc8-537c-8d69-47dd6bef2a83",
       "discipline": "LEGISLAÇÃO PENAL E LEGISLAÇÃO PROCESSUAL PENAL EXTRAVAGANTE",
       "topic": "3.11 Lei de Migração (Lei n.º 13.445/2017): disposições penais e processuais penais aplicáveis.",
@@ -36104,8 +36162,50 @@ globalThis.PCPR_PCMA_2026_CATALOG = {
     return { ...profile, phase: mode === "joint" ? "pre-pcpr" : mode };
   }
 
+  // 2026-08-17: esta função percorria contestSyllabusMap inteiro a cada chamada,
+  // e isItemEnabledForPlanning a chama uma vez por item do edital dentro de
+  // .filter() sobre todos os itens (progressMetrics, planningMetrics e outras),
+  // várias vezes por render. Com ~464 itens e ~940 mapeamentos isso dava
+  // centenas de milhares de comparações por redesenho, e o redesenho roda a
+  // cada salvamento — a aba congelava por dezenas de segundos.
+  //
+  // O índice abaixo é invalidado por identidade e formato do array, o que cobre
+  // os dois únicos caminhos que alteram a coleção: upsertSystemRecords devolve
+  // um array novo (muda a referência) e mergeArrays só faz push (muda o
+  // comprimento). O primeiro/último elemento entram na chave como garantia
+  // extra contra substituição in loco sem mudança de tamanho.
+  let officialMappingsIndex = null;
+  let officialMappingsIndexKey = null;
+
+  function officialMappingsIndexFor(list) {
+    const key = list.length ? `${list.length}` : "0";
+    if (officialMappingsIndex
+      && officialMappingsIndexKey
+      && officialMappingsIndexKey.list === list
+      && officialMappingsIndexKey.size === key
+      && officialMappingsIndexKey.first === list[0]
+      && officialMappingsIndexKey.last === list[list.length - 1]) {
+      return officialMappingsIndex;
+    }
+    const index = new Map();
+    list.forEach((mapping) => {
+      if (!mapping) return;
+      const id = mapping.syllabusItemId;
+      const bucket = index.get(id);
+      if (bucket) bucket.push(mapping);
+      else index.set(id, [mapping]);
+    });
+    officialMappingsIndex = index;
+    officialMappingsIndexKey = { list, size: key, first: list[0], last: list[list.length - 1] };
+    return index;
+  }
+
   function officialMappingsForItem(targetState = {}, syllabusItemId = "") {
-    return (targetState.contestSyllabusMap || []).filter((mapping) => mapping.syllabusItemId === syllabusItemId);
+    const list = targetState.contestSyllabusMap || [];
+    if (!Array.isArray(list) || !list.length) return [];
+    // slice() preserva o contrato antigo: cada chamada devolvia um array novo,
+    // então quem receber o resultado pode mutá-lo sem corromper o índice.
+    return (officialMappingsIndexFor(list).get(syllabusItemId) || []).slice();
   }
 
   function isItemEnabledForPlanning(targetState = {}, syllabusItemId = "", date = "") {
@@ -43666,6 +43766,9 @@ function seedInitialWrongTopicsV155(targetState = state) {
   return { inserted, missing, signals };
 }
 function officialPlanningMappingsV155(targetState = state, syllabusItemId = "") {
+  // Mesma consulta de officialMappingsForItem; reaproveita o índice dela para
+  // não repetir a varredura linear por item (ver comentário na definição).
+  if (typeof officialMappingsForItem === "function") return officialMappingsForItem(targetState, syllabusItemId);
   return (targetState.contestSyllabusMap || []).filter((mapping) => mapping.syllabusItemId === syllabusItemId);
 }
 function isIntegratedPlanningCandidateV155(item = {}, targetState = state) {
@@ -44385,12 +44488,32 @@ function validateIntegratedPlanningCandidateV155(beforeState, candidateState, fr
     firstDates
   };
 }
+function integratedPlanningPriorityMissingV155(targetState = state) {
+  return INITIAL_WRONG_TOPICS_V155.filter((entry) => {
+    const item = (targetState.syllabusItems || []).find((candidate) => candidate.id === entry.syllabusItemId);
+    return !item || item.legacyOnly || item.hiddenFromCatalog;
+  });
+}
 function prepareIntegratedPlanningPrioritiesV155(targetState = state, opts = {}) {
+  // Checagem barata primeiro: evita clonar o estado inteiro (2x) quando já
+  // sabemos que uma parte vai falhar por causa de syllabusItemId ausente/legado.
+  // Correção 2026-08-16: um único item de prioridade com syllabusItemId inválido
+  // não deve travar o replanejamento inteiro pra sempre (isso já foi observado
+  // acontecendo em produção). Itens não resolvíveis são pulados e avisados no
+  // console; o replanejamento segue com os itens que existem de fato.
+  const unresolvedPriorityEntries = integratedPlanningPriorityMissingV155(targetState);
+  const resolvedPriorityEntries = INITIAL_WRONG_TOPICS_V155.filter((entry) => !unresolvedPriorityEntries.includes(entry));
+  if (!resolvedPriorityEntries.length) return { ok: false, changed: false, errors: unresolvedPriorityEntries.map((entry) => `priority-item-missing:${entry.key}`) };
+  if (unresolvedPriorityEntries.length) {
+    console.warn(
+      "[Metas Estudo] Ignorando item(ns) de prioridade sem syllabusItemId válido no catálogo atual; replanejamento segue com os demais itens.",
+      unresolvedPriorityEntries.map((entry) => entry.key)
+    );
+  }
   const fromDate = opts.fromDate || todayISO();
   const beforeState = cloneData(targetState);
   const simulation = cloneData(targetState);
-  const seed = seedInitialWrongTopicsV155(simulation);
-  if (seed.missing.length) return { ok: false, changed: false, errors: seed.missing.map((entry) => `priority-item-missing:${entry.key}`) };
+  seedInitialWrongTopicsV155(simulation);
 
   const mutableGoals = (beforeState.dailyGoals || []).filter((goal) => isMutablePendingPlanningGoalV155(goal, fromDate));
   const mutableIds = new Set(mutableGoals.map((goal) => goal.id));
@@ -44435,8 +44558,25 @@ function prepareIntegratedPlanningPrioritiesV155(targetState = state, opts = {})
       addedGoals += 1;
     });
   });
-  const validation = validateIntegratedPlanningCandidateV155(beforeState, candidateState, fromDate, mutableIds, INITIAL_WRONG_TOPICS_V155);
-  if (!validation.ok) return { ok: false, changed: false, errors: validation.errors, validation, warnings: rebuilt.warnings };
+  const validation = validateIntegratedPlanningCandidateV155(beforeState, candidateState, fromDate, mutableIds, resolvedPriorityEntries);
+  // Correção 2026-08-16 (hotfix2): um tema de prioridade sem vaga disponível na
+  // agenda futura não deve travar o replanejamento inteiro pra sempre (mesmo
+  // sintoma do priority-item-missing, agora em outro estágio do fluxo). Isso
+  // também fazia a simulação inteira ser refeita a cada carregamento, porque a
+  // falha impedia state.migrations de ser gravado (o guard de cache em
+  // applyIntegratedPlanningPrioritiesV155 nunca era alcançado).
+  const NOT_PLANNED_PREFIX_V155 = "priority-not-planned:";
+  const notPlannedKeys = validation.errors
+    .filter((error) => error.startsWith(NOT_PLANNED_PREFIX_V155))
+    .map((error) => error.slice(NOT_PLANNED_PREFIX_V155.length));
+  const blockingValidationErrors = validation.errors.filter((error) => !error.startsWith(NOT_PLANNED_PREFIX_V155));
+  if (blockingValidationErrors.length) return { ok: false, changed: false, errors: validation.errors, validation, warnings: rebuilt.warnings };
+  if (notPlannedKeys.length) {
+    console.warn(
+      "[Metas Estudo] Item(ns) de prioridade sem vaga disponível na agenda futura; replanejamento segue com os demais itens.",
+      notPlannedKeys
+    );
+  }
 
   const report = {
     version: INTEGRATED_PLANNING_PRIORITY_VERSION_V155,
@@ -44447,7 +44587,9 @@ function prepareIntegratedPlanningPrioritiesV155(targetState = state, opts = {})
     redistributedExisting,
     addedGoals,
     recalculatedFutureGoals: mutableGoals.length + addedGoals,
-    priorityTopics: INITIAL_WRONG_TOPICS_V155.length,
+    priorityTopics: resolvedPriorityEntries.length,
+    unresolvedPriorityTopics: unresolvedPriorityEntries.map((entry) => entry.key),
+    unscheduledPriorityTopics: notPlannedKeys,
     firstDates: validation.firstDates,
     activeOfficialItems: validation.activeOfficialItems,
     unreachableOfficialItems: validation.unreachableOfficialItems,
@@ -53227,7 +53369,6 @@ ENTREGUE O WORD COMPLETO E O LINK PARA DOWNLOAD. NÃO ENTREGUE APENAS O CONTEÚD
 
   const SOURCE_FOLDER = "https://drive.google.com/drive/folders/1ECc_otgQKwH7WfPdQr8CtD0kB07pz9Xe";
   const MIGRATION_ID = "factoryJurisprudenciaFonteCoberturaV332";
-  const BASE_PROMPT = String(defaultFactoryPromptLibrary?.jurisprudencia || "").trim();
 
   const OLD_SOURCE_BLOCK = `## ESCOPO DO MÓDULO
 
@@ -53317,6 +53458,16 @@ ANTES DESSA CONCLUSÃO NEGATIVA, REGISTRE INTERNAMENTE:
   const OLD_REVIEW_SOURCE = "* TODAS AS FONTES APROVADAS NA TRIAGEM FORAM ABERTAS E EXAMINADAS?";
   const NEW_REVIEW_SOURCE = "* A PASTA JURISPRUDENCIAL EXCLUSIVA, AS SUBPASTAS “JULGADOS STF RESUMIDOS” E “JULGADOS STJ RESUMIDOS” E TODOS OS ARQUIVOS CANDIDATOS ACESSÍVEIS FORAM PERCORRIDOS E EXAMINADOS?";
 
+  function runV332() {
+    // Correção 2026-08-16: BASE_PROMPT era lido de forma síncrona e antecipada,
+    // no momento em que este script era avaliado — quando
+    // defaultFactoryPromptLibrary.jurisprudencia ainda era "" (valor padrão),
+    // porque o módulo V231 só preenche esse valor depois do evento
+    // "aldus:bootstrap-ready" (o mesmo evento que este módulo já esperava,
+    // mas só para chamar install(), não para calcular o PROMPT). Por isso o
+    // bloco de fontes nunca era encontrado e o patch V332 nunca era instalado.
+    // Agora o cálculo roda dentro de runV332(), disparado só após o bootstrap.
+  const BASE_PROMPT = String(defaultFactoryPromptLibrary?.jurisprudencia || "").trim();
   const PROMPT = BASE_PROMPT
     .replace(OLD_SOURCE_BLOCK, NEW_SOURCE_BLOCK)
     .replace(OLD_FIDELITY_SOURCE, NEW_FIDELITY_SOURCE)
@@ -53368,8 +53519,11 @@ ANTES DESSA CONCLUSÃO NEGATIVA, REGISTRE INTERNAMENTE:
     console.info("[Aldus Meta] Prompt topificado de jurisprudência V332 ativo.");
   }
 
-  if (window.__aldusBootstrapReady) install();
-  else window.addEventListener("aldus:bootstrap-ready", install, { once: true });
+  install();
+  }
+
+  if (typeof window !== "undefined" && window.__aldusBootstrapReady) runV332();
+  else if (typeof window !== "undefined") window.addEventListener("aldus:bootstrap-ready", runV332, { once: true });
 })();
 
 /* Aldus source: central-goals-real-time-v124.js */
