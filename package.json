@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260816-storage-consistency-v345",
+  "version": "20260815-interacao-responsiva-v344",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

@@ -179,9 +179,11 @@
     return true;
   }
 
-  function setWeeklyRegisteredValue(minutes) {
+  function setWeeklyRegisteredValue() {
     const element = document.querySelector(WEEKLY_STATUS_SELECTOR);
-    if (!element || minutes === null) return false;
+    if (!element) return false;
+    const minutes = currentWeekRegisteredMinutes();
+    if (minutes === null) return false;
     const nextText = `${formatDurationMinutes(minutes)} registradas`;
     if (element.textContent === nextText && element.dataset.dailySummaryTimeFormatHotfix === HOTFIX) return false;
     element.textContent = nextText;
@@ -195,14 +197,13 @@
     if (typeof document === "undefined") return { changed: 0, summary: null, weeklyMinutes: null };
     installCentralGoalsPalette();
     const summary = currentSummaryMinutes();
-    const weeklyMinutes = currentWeekRegisteredMinutes();
     let changed = 0;
     if (summary) {
       if (setFormattedValue(PLANNED_SELECTOR, summary.target)) changed += 1;
       if (setFormattedValue(REALIZED_SELECTOR, summary.done)) changed += 1;
     }
-    if (setWeeklyRegisteredValue(weeklyMinutes)) changed += 1;
-    return { changed, summary, weeklyMinutes };
+    if (setWeeklyRegisteredValue()) changed += 1;
+    return { changed, summary, weeklyMinutes: currentWeekRegisteredMinutes() };
   }
 
   const api = Object.freeze({
@@ -232,39 +233,17 @@
     else window.setTimeout(run, 0);
   }
 
-  function mutationElement(target) {
-    if (!target) return null;
-    if (target.nodeType === 3) return target.parentElement || null;
-    return target;
-  }
-
-  function isOwnOutputMutation(mutation) {
-    const element = mutationElement(mutation?.target);
-    return Boolean(element?.closest?.(".planned-today-stat, .realized-today-stat, #weeklyGoalStatus"));
-  }
-
-  function scheduleApplyForMutations(mutations) {
-    const records = Array.from(mutations || []);
-    if (records.length && records.every(isOwnOutputMutation)) return;
-    scheduleApply();
-  }
-
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", scheduleApply, { once: true });
   } else {
     scheduleApply();
   }
 
-  const observerTarget = document.querySelector(".screen-stage");
-  const observer = new MutationObserver(scheduleApplyForMutations);
-  if (observerTarget) {
-    observer.observe(observerTarget, { childList: true, subtree: true, characterData: true });
-  }
+  const observer = new MutationObserver(scheduleApply);
+  observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
   document.addEventListener("change", (event) => {
     if (event.target?.id === "goalDate") scheduleApply();
   });
-  window.addEventListener("aldus:view-active", scheduleApply);
-  document.addEventListener("aldus:daily-summary-refresh", scheduleApply);
   window.addEventListener("hashchange", scheduleApply);
   window.setTimeout(scheduleApply, 250);
   window.setTimeout(scheduleApply, 1000);
