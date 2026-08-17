@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260816-storage-consistency-v345";
+  const VERSION = "20260815-bootstrap-performance-v342";
   const MAIN_KEY = "metasConcursoData";
   const META_KEY = "aldusIndexedDBOnlyStateV256";
   const STATUS_KEY = "aldusCatastrophicStateGuardV275";
@@ -395,28 +395,20 @@
     const mainState = stateShapeValid(mainRecord?.data) ? mainRecord.data : null;
     const previousStatus = readPreviousStatus();
 
-    if (mainState) {
-      const hasBaseline = previousStatus?.ready === true
-        && previousStatus?.counts
-        && typeof previousStatus.counts === "object";
-      const regression = hasBaseline
-        ? catastrophicRegressionFromCounts(mainState, previousStatus.counts)
-        : { catastrophic: false, losses: [] };
-
-      // V345: um IndexedDB íntegro abre imediatamente. A varredura forense de backups
-      // só ocorre quando há evidência objetiva de regressão ou ausência do estado principal.
+    if (mainState && previousStatus?.ready === true && previousStatus?.counts && typeof previousStatus.counts === "object") {
+      const regression = catastrophicRegressionFromCounts(mainState, previousStatus.counts);
       if (!regression.catastrophic) {
         const summary = counts(mainState);
         setGolden(mainState);
         return writeStatus({
           ready: true,
-          action: hasBaseline ? "preserved-fast" : "preserved-fast-no-baseline",
+          action: "preserved-fast",
           recovery: null,
           candidateCount: 1,
           chosenSource: "indexeddb",
           counts: summary,
           score: scoreCounts(summary),
-          previousVersion: previousStatus?.version || ""
+          previousVersion: previousStatus.version || ""
         });
       }
     }

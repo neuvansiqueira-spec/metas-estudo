@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260816-storage-consistency-v345";
+  const VERSION = "20260815-interacao-responsiva-v344";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -38969,7 +38969,7 @@ function populateTimerStudyModal(draft) {
   elements.timerStudyFeedAnalytics.checked = true;
   elements.timerStudyFeedAdvisor.checked = true;
 }
-async function submitTimerStudyModal(event) {
+function submitTimerStudyModal(event) {
   event.preventDefault();
   const draft = pendingTimerStudyDraft;
   if (!draft?.goal || !draft.sessionId || state.studies.some((study) => study.timerSessionId === draft.sessionId)) { showDailyGoalMessage("Esta sessão do cronômetro já foi salva.", "warning"); return; }
@@ -38993,20 +38993,7 @@ async function submitTimerStudyModal(event) {
   state.studies.push({ id: createId(), sessionId: draft.sessionId, timerSessionId: draft.sessionId, date: draft.goalDate || goal.date || goal.data || todayISO(), startedAt: new Date(draft.startedAt).toISOString(), endedAt: new Date(draft.endedAt).toISOString(), startTime: new Date(draft.startedAt).toISOString(), endTime: new Date(draft.endedAt).toISOString(), subjectId: state.subjects.find((s) => canonical(s.name) === canonical(savedDiscipline))?.id || "", discipline: savedDiscipline, syllabusItemId: descriptor.syllabusItemId, topic: savedSubject, material: elements.timerStudyMaterial.value || "", minutes, plannedMinutes: draft.plannedMinutes, timerMode: draft.mode, timerKind: draft.kind, updatesGoal: elements.timerStudyUpdateGoal.checked, plannedDuration: draft.plannedMinutes, actualDuration: minutes, pauses: draft.pauses, resumes: draft.resumes, topicStatus: "Iniciado", difficultyNotes: elements.timerStudyNotes.value.trim(), materialId: elements.timerStudyMaterial.value || "", questions: 0, correct: 0, wrong: 0, blank: 0, origin: "timer", timerSource: "Plano do Dia", timerOrigin: draft.mode, goalId: goal.id, feedAnalytics: elements.timerStudyFeedAnalytics.checked, feedAdvisor: elements.timerStudyFeedAdvisor.checked });
   saveData();
   render();
-  let durableResult = { durable: true, reason: "legacy-save" };
-  try {
-    const commitTimerStateV345 = globalThis.AldusStorageConcurrencyV345?.commitTimerState;
-    if (typeof commitTimerStateV345 === "function") {
-      durableResult = await commitTimerStateV345({ sessionId: draft.sessionId, goalId: goal.id, minutes });
-    }
-  } catch (error) {
-    durableResult = { durable: false, reason: "commit-error", error: String(error?.message || error) };
-  }
-  if (!durableResult?.durable) {
-    showDailyGoalMessage("O tempo ainda não foi confirmado no armazenamento. A sessão foi mantida para nova tentativa.", "error");
-    return;
-  }
-  showDailyGoalMessage(`Tempo salvo e protegido: ${minutes} min em ${label}.`, "success");
+  showDailyGoalMessage(`Tempo salvo: ${minutes} min em ${label}.`, "success");
   autoSyncAfterSave("timer-save");
   closeTimerStudyModal();
   closeFloatingTimer();

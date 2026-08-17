@@ -425,7 +425,6 @@ for (const filename of [
   "release-version-v147.js", "central-goals-real-time-v124.js",
   "timer-safety-v132.js", "timer-runtime-v316.js", "timer-controls-hardening-v268.js", "usage-telemetry-v315.js", "question-searchable-selects-v135.js",
   "daily-study-collapsible-v137.js", "analytics-single-arrow-v150.js",
-  "daily-summary-time-format-v243.js",
   "daily-collapsibles-closed-v140.js", "update-flow-v169.js",
   "daily-smart-review-collapsible-v138.js", "collapse-chevron-fix-v139.js",
   "reinforcement-goal-presentation-v156.js", "completed-goal-guard-v177.js", "daily-delegate-piece-goal-v183.js", "contest-countdown-v151.js",
@@ -440,7 +439,7 @@ for (const filename of [
   "qconcursos-capture-segmented-v188.js", "qconcursos-capture-bank-v188.js", "qconcursos-capture-reprocess-v188.js",
   "question-bank-capture-import-v182.css", "question-history-pie.js", "question-history-charts-v215.js",
   "question-history-tone-v216.js", "question-bank-json-review-v192.js", "question-bank-json-import-v191.js", "question-bank-json-details-v299.js", "question-bank-training-v223.js", "question-bank-filters-v224.js", "question-bank-filters-v225.js", "question-bank-filter-open-v226.js", "qconcursos-filter-route-v333.js", "qconcursos-all-filters-v334.js", "qconcursos-route-safety-v335.js", "qconcursos-native-subject-v336.js", "qconcursos-current-catalog-v337.js",
-  "bootstrap-integrity-loader-v258.js", "bootstrap-integrity-loader-v258-core.js", "bootstrap-integrity-loader-v275.js", "bootstrap-integrity-loader-v345-core.js", "storage-concurrency-v345.js",
+  "bootstrap-integrity-loader-v258.js", "bootstrap-integrity-loader-v258-core.js", "bootstrap-integrity-loader-v275.js",
   "storage-quota-guard-v256.js", "catastrophic-state-guard-v275.js", "recovery-safety-v275.js", "security-hardening-v296.js",
   "questions-hub-v322.js", "factory-simulado-difficulty-v325.js", "factory-penalties-v320.js", "factory-resumo-aula-visual-v326.js", "factory-resumo-aula-canonical-v327.js",
   "security-observability-v318.js", "telemetry-security-dashboard-v319.js", "simulado-recovery-v319.js"
