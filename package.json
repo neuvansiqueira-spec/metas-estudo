@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260817-dashboard-phase-metrics-v344",
+  "version": "20260817-dashboard-full-attribution-v344",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
