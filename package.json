@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260817-boot-phase-metrics-v344",
+  "version": "20260817-boot-render-metrics-v344",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

@@ -9195,7 +9195,8 @@ const startupMetricsV169 = globalThis.__aldusStartupMetricsV169 ||= {
   // fase cada trava cai, não há como atacá-las. Estes dois registros fecham essa
   // lacuna e ficam disponíveis em window.__aldusStartupMetricsV169.
   longTasks: [],
-  bootPhases: []
+  bootPhases: [],
+  renders: []
 };
 // Observador de travas longas instalado no início do carregamento, para que
 // nenhuma trava do boot escape — instrumentar depois do load já chega tarde.
@@ -10525,6 +10526,36 @@ async function startApplicationWithIntegrity() {
   }
   return bootstrapApplication();
 }
+
+// 2026-08-17: as travas restantes do boot somam cerca de 12 s e caem fora das
+// fases do bootstrap e fora dos secondarySteps. A fase medida mais cara é o
+// showView inicial, com 2,9 s, e as travas não atribuídas têm justamente essa
+// ordem de grandeza — o que aponta para a view sendo renderizada mais de uma vez
+// durante o carregamento. Este registro existe para confirmar ou descartar isso
+// com dado, já que instrumentar pelo console chega tarde: quando o round-trip
+// termina, o boot acabou.
+(() => {
+  const LIMITE_REGISTROS = 60;
+  ["showView", "renderView"].forEach((nome) => {
+    const original = globalThis[nome];
+    if (typeof original !== "function") return;
+    globalThis[nome] = function (...args) {
+      const startedAt = performance.now();
+      try {
+        return original.apply(this, args);
+      } finally {
+        if (startupMetricsV169.renders.length < LIMITE_REGISTROS) {
+          startupMetricsV169.renders.push({
+            name: nome,
+            view: typeof args[0] === "string" ? args[0] : "",
+            startMs: Number(startedAt.toFixed(1)),
+            durationMs: Number((performance.now() - startedAt).toFixed(1))
+          });
+        }
+      }
+    };
+  });
+})();
 
 startApplicationWithIntegrity().catch(handleBootstrapFailure);
 
