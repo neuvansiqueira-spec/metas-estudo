@@ -38,16 +38,7 @@
     installStylesheet(baseUrl);
 
     const loading = document.getElementById("appLoadingState");
-    if (loading) loading.textContent = "Protegendo seus dados antes de iniciar...";
-
-    const guardPromise = globalThis.__ALDUS_CATASTROPHIC_GUARD_READY_V275__;
-    if (guardPromise && typeof guardPromise.then === "function") {
-      try {
-        await guardPromise;
-      } catch (error) {
-        console.error(`[${VERSION}] A proteção preventiva falhou. O bootstrap continuará pelo fallback conservador.`, error);
-      }
-    }
+    if (loading) loading.textContent = "Abrindo seus dados protegidos...";
 
     const core = makeScript("aldusBootstrapIntegrityCoreV275", CORE_SCRIPT, baseUrl, source);
     const shiftPersistence = makeScript("aldusPlanningShiftPersistenceV283", PLANNING_SHIFT_PERSISTENCE_SCRIPT, baseUrl, source);
