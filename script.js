@@ -5509,9 +5509,26 @@ function questionBankBoard(raw = {}) { return [raw.banca, raw.board, raw.examini
 function normalizeQuestionBankItem(raw = {}, index = 0) { const justificativa = questionBankExplanation(raw); const alternativas = normalizeQuestionBankAlternatives(raw); return { id: String(raw.id || raw.codigo || raw.referencia || `qb-${index + 1}-${createId()}`), disciplina: String(raw.disciplina || raw.discipline || "Sem disciplina"), assunto: String(raw.assunto || raw.subject || raw.topico || raw.topic || "Sem assunto"), tema: String(raw.tema || raw.theme || raw.subassunto || raw.subtopic || "Geral"), syllabusItemId: String(raw.syllabusItemId || ""), banca: questionBankBoard(raw), ano: raw.ano || raw.year || "", orgao: String(raw.orgao || raw.agency || ""), cargo: String(raw.cargo || raw.role || ""), prova: String(raw.prova || raw.exam || ""), referencia: String(raw.referencia || raw.reference || raw.codigo || ""), tipo: String(raw.tipo || raw.type || (Object.keys(alternativas).length ? "Múltipla escolha" : "Certo/Errado")), enunciado: String(raw.enunciado || raw.statement || raw.texto || raw.question || ""), alternativas, gabarito: normalizeQuestionBankAnswer(raw.gabarito ?? raw.resposta ?? raw.answer ?? raw.correctAnswer), justificativa, fundamento: justificativa, comentarioQc: String(raw.comentarioQc || ""), observacoes: String(raw.observacoes || raw.notes || ""), tags: Array.isArray(raw.tags) ? raw.tags : [], fonte: String(raw.fonte || raw.source || ""), arquivoFonte: String(raw.arquivoFonte || raw.sourceFileName || ""), capturaFonte: String(raw.capturaFonte || ""), qcCodigo: String(raw.qcCodigo || raw.codigoQc || ""), qcNumeroNoArquivo: raw.qcNumeroNoArquivo || "", qcDisciplina: String(raw.qcDisciplina || ""), qcAssunto: String(raw.qcAssunto || ""), qcClassificacao: String(raw.qcClassificacao || ""), correspondenciaQc: String(raw.correspondenciaQc || "") }; }
 function questionBankFromPayload(payload) { const source = Array.isArray(payload) ? payload : payload?.questionBank || payload?.questoes || payload?.questions || payload?.items || []; return Array.isArray(source) ? source.map(normalizeQuestionBankItem).filter((q) => q.enunciado.trim()) : []; }
 
+// 2026-08-17: esta comparação é o laço mais interno de qbSyllabusPackages, que
+// custava 873 ms no render do dashboard. Ela roda no produto cruzado de itens do
+// edital por questões do banco, multiplicado pelos textos de cada lado, e refazia
+// duas substituições por regex a cada chamada sobre as mesmas poucas strings. A
+// normalização é pura, então é memoizada por valor, com o mesmo teto de segurança
+// usado em canonical e dailyPlanCanonical.
+const QB_PARTIAL_MATCH_CACHE = new Map();
+const QB_PARTIAL_MATCH_CACHE_LIMIT = 20000;
+function qbNormalizeForPartialMatch(value) {
+  const chave = typeof value === "string" ? value : String(value ?? "");
+  const memoizado = QB_PARTIAL_MATCH_CACHE.get(chave);
+  if (memoizado !== undefined) return memoizado;
+  const normalizado = canonical(value).replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+  if (QB_PARTIAL_MATCH_CACHE.size >= QB_PARTIAL_MATCH_CACHE_LIMIT) QB_PARTIAL_MATCH_CACHE.clear();
+  QB_PARTIAL_MATCH_CACHE.set(chave, normalizado);
+  return normalizado;
+}
 function qbSafePartialMatch(a, b) {
-  const x = canonical(a).replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
-  const y = canonical(b).replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+  const x = qbNormalizeForPartialMatch(a);
+  const y = qbNormalizeForPartialMatch(b);
   if (!x || !y) return false;
   if (x === y) return true;
   const minLen = Math.min(x.length, y.length);
@@ -5558,9 +5575,27 @@ function qbSyllabusPackages() {
   if (qbSyllabusPackagesSnapshot?.revisionKey === revisionKey) return qbSyllabusPackagesSnapshot.packages;
   const grouped = (state.syllabusItems || []).filter((item) => canonical(item.status || item.situacao) !== "ignorado").reduce((acc, item) => { const d = qbItemDiscipline(item); acc[d] ||= []; acc[d].push(item); return acc; }, {});
   const packages = Object.entries(grouped).sort((a,b)=>a[0].localeCompare(b[0],"pt-BR")).map(([discipline, items]) => {
-    const questions = qbSyllabusPackageQuestions(items);
-    const covered = items.filter((item) => questions.some((q) => qbMatchesSyllabusItem(q, item)));
-    const missing = items.filter((item) => !covered.includes(item));
+    // 2026-08-17: o produto cruzado item × questão era percorrido duas vezes — uma
+    // para descobrir as questões da disciplina e outra para descobrir quais itens
+    // ficaram cobertos — e o cálculo de missing ainda usava covered.includes dentro
+    // de um filter, um terceiro laço quadrático. Uma passada só resolve os três.
+    //
+    // A equivalência se sustenta porque uma questão só entra em questions se casou
+    // com algum item, então "o item tem correspondência em questions" é o mesmo que
+    // "o item tem correspondência no banco". A ordem de covered e missing continua
+    // sendo a de items, como nos filters originais.
+    const itensCobertos = new Set();
+    const questions = (state.questionBank || []).filter((q) => {
+      let casou = false;
+      items.forEach((item) => {
+        if (!qbMatchesSyllabusItem(q, item)) return;
+        casou = true;
+        itensCobertos.add(item);
+      });
+      return casou;
+    });
+    const covered = items.filter((item) => itensCobertos.has(item));
+    const missing = items.filter((item) => !itensCobertos.has(item));
     return { discipline, items, questions, covered, missing, bankThemes: qbUnique(questions.flatMap(q=>[q.assunto,q.tema].filter(Boolean))), last: qbLastDisciplinePerformance(discipline) };
   });
   qbSyllabusPackagesSnapshot = { revisionKey, packages };

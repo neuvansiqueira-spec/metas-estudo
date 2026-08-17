@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260817-question-records-index-v344",
+  "version": "20260817-qb-package-single-pass-v344",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
