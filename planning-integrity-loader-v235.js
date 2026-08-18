@@ -8,7 +8,7 @@
   const FACTORY_HOTFIX = "factory-queue-integrity-hotfix5";
   const FACTORY_DESTINATION_SCRIPT_ID = "aldusFactoryDestinationIntegrityV237";
   const FACTORY_DESTINATION_VERSION = "20260804-pastas-destino-classificacao-exata-v237";
-  const FACTORY_DESTINATION_HOTFIX = "discipline-topic-exact1";
+  const FACTORY_DESTINATION_HOTFIX = "factory-destination-on-demand-v354";
   const TIMER_AUDIO_SCRIPT_ID = "aldusTimerAudioRecoveryV236";
   const TIMER_AUDIO_HOTFIX = "timer-audio-recovery-hotfix5";
   const TIMER_AUDIO_UNIFIER_SCRIPT_ID = "aldusTimerAudioUnifierV241";
