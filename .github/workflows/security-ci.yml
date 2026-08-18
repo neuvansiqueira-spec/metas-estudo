@@ -59,4 +59,5 @@ jobs:
             tests/v327-factory-resumo-aula-canonical.test.js \
             tests/v342-bootstrap-performance.test.js \
             tests/v351-bootstrap-fast-path.test.js \
-            tests/v352-active-service-worker-delivery.test.js
+            tests/v352-active-service-worker-delivery.test.js \
+            tests/v353-navigation-bootstrap-delivery.test.js
