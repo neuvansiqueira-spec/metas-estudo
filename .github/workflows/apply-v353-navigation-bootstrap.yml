@@ -49,3 +49,5 @@ jobs:
           git add -A
           git commit -m "V353: entrega bootstrap protegido na primeira navegação"
           git push origin HEAD:main
+
+# Trigger V353 após o workflow existir na branch padrão.
