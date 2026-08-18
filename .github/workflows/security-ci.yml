@@ -65,55 +65,7 @@ jobs:
             tests/v354-factory-destination-runtime.test.js \
             tests/v355-dom-style-hot-path.test.js
 
-      - name: Comparar suíte histórica com a V354
-        shell: bash
-        run: |
-          set -u
-          V354_BASE="069ea7b2b5a8bd04113bb2b8914e954609c77202"
-
-          npm test > /tmp/v355-full.log 2>&1 || true
-
-          git worktree add --detach /tmp/v354-base "$V354_BASE"
-          (
-            cd /tmp/v354-base
-            npm ci --ignore-scripts > /tmp/v354-npm-ci.log 2>&1
-            npm test > /tmp/v354-full.log 2>&1 || true
-          )
-
-          grep -E '^not ok [0-9]+ - ' /tmp/v354-full.log | sed -E 's/^not ok [0-9]+ - //' | sort -u > /tmp/v354-fails.txt || true
-          grep -E '^not ok [0-9]+ - ' /tmp/v355-full.log | sed -E 's/^not ok [0-9]+ - //' | sort -u > /tmp/v355-fails.txt || true
-
-          BASE_TESTS=$(grep -E '^# tests [0-9]+' /tmp/v354-full.log | tail -1 | awk '{print $3}')
-          V355_TESTS=$(grep -E '^# tests [0-9]+' /tmp/v355-full.log | tail -1 | awk '{print $3}')
-          BASE_FAILS=$(wc -l < /tmp/v354-fails.txt)
-          V355_FAILS=$(wc -l < /tmp/v355-fails.txt)
-
-          echo "V354 base: ${BASE_TESTS:-?} testes; ${BASE_FAILS} falhas históricas."
-          echo "V355: ${V355_TESTS:-?} testes; ${V355_FAILS} falhas na suíte histórica ampliada."
-          echo "Falhas V354:"
-          cat /tmp/v354-fails.txt
-          echo "Falhas V355:"
-          cat /tmp/v355-fails.txt
-
-          if [[ -z "${BASE_TESTS:-}" || -z "${V355_TESTS:-}" ]]; then
-            echo "Não foi possível ler o resumo TAP das suítes."
-            exit 1
-          fi
-          if (( V355_TESTS < BASE_TESTS )); then
-            echo "A V355 executou menos testes que a base V354."
-            exit 1
-          fi
-
-          comm -13 /tmp/v354-fails.txt /tmp/v355-fails.txt > /tmp/v355-new-fails.txt
-          if [[ -s /tmp/v355-new-fails.txt ]]; then
-            echo "Falhas NOVAS introduzidas pela V355:"
-            cat /tmp/v355-new-fails.txt
-            exit 1
-          fi
-
-          echo "V355 não introduziu nenhuma falha nova em relação ao commit-base V354."
-
-      - name: Revisar diff e restaurar pipeline permanente
+      - name: Preparar exatamente o estado final publicável
         run: |
           git diff --check
           rm -f .github/workflows/v355-self-apply.yml tools/apply-v355-dom-style-hot-path.mjs tools/fix-v355-contracts.mjs
@@ -186,6 +138,63 @@ jobs:
                       tests/v355-dom-style-hot-path.test.js
           YAML
           git diff --check
+          git status --short
+
+      - name: Comparar suíte histórica do estado final com a V354
+        shell: bash
+        run: |
+          set -u
+          V354_BASE="069ea7b2b5a8bd04113bb2b8914e954609c77202"
+
+          npm test > /tmp/v355-full.log 2>&1 || true
+
+          git worktree add --detach /tmp/v354-base "$V354_BASE"
+          (
+            cd /tmp/v354-base
+            npm ci --ignore-scripts > /tmp/v354-npm-ci.log 2>&1
+            npm test > /tmp/v354-full.log 2>&1 || true
+          )
+
+          grep -E '^not ok [0-9]+ - ' /tmp/v354-full.log | sed -E 's/^not ok [0-9]+ - //' | sort -u > /tmp/v354-fails.txt || true
+          grep -E '^not ok [0-9]+ - ' /tmp/v355-full.log | sed -E 's/^not ok [0-9]+ - //' | sort -u > /tmp/v355-fails.txt || true
+
+          BASE_TESTS=$(grep -E '^# tests [0-9]+' /tmp/v354-full.log | tail -1 | awk '{print $3}')
+          V355_TESTS=$(grep -E '^# tests [0-9]+' /tmp/v355-full.log | tail -1 | awk '{print $3}')
+          BASE_FAILS=$(wc -l < /tmp/v354-fails.txt)
+          V355_FAILS=$(wc -l < /tmp/v355-fails.txt)
+
+          echo "V354 base: ${BASE_TESTS:-?} testes; ${BASE_FAILS} falhas históricas."
+          echo "V355 final: ${V355_TESTS:-?} testes; ${V355_FAILS} falhas históricas remanescentes."
+
+          if [[ -z "${BASE_TESTS:-}" || -z "${V355_TESTS:-}" ]]; then
+            echo "Não foi possível ler o resumo TAP das suítes."
+            exit 1
+          fi
+          if (( V355_TESTS < BASE_TESTS )); then
+            echo "A V355 executou menos testes que a base V354."
+            exit 1
+          fi
+
+          comm -13 /tmp/v354-fails.txt /tmp/v355-fails.txt > /tmp/v355-new-fails.txt
+          if [[ -s /tmp/v355-new-fails.txt ]]; then
+            echo "Falhas NOVAS introduzidas pela V355:"
+            cat /tmp/v355-new-fails.txt
+            exit 1
+          fi
+
+          echo "V355 final não introduziu nenhuma falha nova em relação ao commit-base V354."
+          echo "Falhas históricas resolvidas pela V355, se houver:"
+          comm -23 /tmp/v354-fails.txt /tmp/v355-fails.txt || true
+
+      - name: Revisar diff final
+        run: |
+          git diff --check
+          test ! -e .github/workflows/v355-self-apply.yml
+          test ! -e tools/apply-v355-dom-style-hot-path.mjs
+          test ! -e tools/fix-v355-contracts.mjs
+          grep -q 'contents: read' .github/workflows/security-ci.yml
+          grep -q '20260818-factory-dom-style-on-demand-v355' factory-executive-ui-v136.js
+          grep -q 'factory-destination-runtime-v354-navigation-bootstrap-v353-bootstrap-fast-path-v351' service-worker.js
           git status --short
 
       - name: Consolidar V355 na branch
