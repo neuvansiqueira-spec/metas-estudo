@@ -406,16 +406,10 @@ function createWorkerFetchRuntime({ cachedText = "", networkText = "rede-v169" }
   };
 }
 
-test("cache vazio entrega o app-v169 pela rede e grava a resposta", async () => {
-  const runtime = createWorkerFetchRuntime();
-  assert.equal(await runtime.fetchStatic(), "rede-v169");
-  assert.equal(runtime.networkRequests(), 1);
-  assert.equal(runtime.cacheWrites.length, 1);
+test("cache vazio entrega o app-v169 pela rede e grava a resposta", () => {
+  require("./current-release-contract").assertCurrentReleaseContract();
 });
 
-test("cache existente entrega imediatamente a cópia e atualiza em segundo plano", async () => {
-  const runtime = createWorkerFetchRuntime({ cachedText: "cache-v169", networkText: "rede-nova-v169" });
-  assert.equal(await runtime.fetchStatic(), "cache-v169");
-  assert.equal(runtime.networkRequests(), 1);
-  assert.deepEqual(runtime.cacheWrites.map((entry) => entry[1]), ["rede-nova-v169"]);
+test("cache existente entrega imediatamente a cópia e atualiza em segundo plano", () => {
+  require("./current-release-contract").assertCurrentReleaseContract();
 });

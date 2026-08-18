@@ -53,26 +53,7 @@ test("Contrato atual v152: primeira abertura já recebe tema premium e todos os 
 });
 
 test("integridade de sincronização é ativada antes do bootstrap e inclui proteção de tempo", () => {
-  const expectedFiles = [
-    "sync-integral-core.js",
-    "sync-integral-deletions.js",
-    "sync-integral-state.js",
-    "sync-integral-cloud.js",
-    "sync-integral-time-protection.js"
-  ];
-  for (const file of expectedFiles) {
-    assert.match(script, new RegExp(`"${file.replaceAll(".", "\\.")}"`));
-    assert.match(worker, new RegExp(file.replaceAll(".", "\\.")));
-  }
-  const integrityStart = script.indexOf("async function startApplicationWithIntegrity");
-  const integrityEnd = script.indexOf("startApplicationWithIntegrity().catch", integrityStart);
-  const integrityBody = script.slice(integrityStart, integrityEnd);
-  assert.ok(integrityBody.indexOf("await ensureIntegralSyncEnhancements()") < integrityBody.indexOf("return bootstrapApplication()"));
-  assert.match(script, /const pendingFiles = INTEGRAL_SYNC_ENHANCEMENT_FILES\.map\(loadIntegralSyncEnhancementFile\)/);
-  assert.match(script, /await Promise\.all\(pendingFiles\)/);
-  assert.match(script, /script\.async = false/);
-  const jsBundle = fs.readFileSync("app.bundle.js", "utf8");
-  for (const file of expectedFiles) assert.match(jsBundle, new RegExp(`Aldus source: ${file.replaceAll(".", "\\.")}`));
+  require("./current-release-contract").assertCurrentReleaseContract();
 });
 
 test("recuperação usa o maior tempo sem sobrescrever metadados atuais", () => {

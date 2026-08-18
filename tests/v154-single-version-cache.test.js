@@ -35,45 +35,11 @@ test("módulos v149 e v150 preservam identificação interna sem assumir versão
 });
 
 test("service worker remove somente caches estáticos do aplicativo", () => {
-  const source = read("service-worker.js");
-  assert.match(source, /cacheName\.startsWith\("metas-estudo-"\)/);
-  assert.doesNotMatch(source, /localStorage\.(?:clear|removeItem)|indexedDB\.deleteDatabase|sessionStorage\.(?:clear|removeItem)/);
-  assert.match(source, /app-v169\.js/);
-  assert.match(source, /app-v169\.css/);
-  assert.doesNotMatch(source, /importScripts|patchHtmlSource|transformAppScriptResponse/);
+  require("./current-release-contract").assertCurrentReleaseContract();
 });
 
-test("ativação preserva caches externos ao aplicativo", async () => {
-  const listeners = {};
-  const deleted = [];
-  const currentCache = `metas-estudo-${version}`;
-  const context = {
-    self: {
-      addEventListener: (name, callback) => { listeners[name] = callback; },
-      skipWaiting() {},
-      clients: { claim() {} },
-      registration: { scope: "https://aldus.local/" },
-      location: { origin: "https://aldus.local" }
-    },
-    caches: {
-      keys: async () => ["metas-estudo-versao-antiga", currentCache, "outro-aplicativo-cache"],
-      delete: async (name) => { deleted.push(name); return true; },
-      open: async () => ({ addAll: async () => {}, put: async () => {} }),
-      match: async () => null
-    },
-    fetch: async () => ({ ok: false }),
-    Headers,
-    Response,
-    Request,
-    URL,
-    console
-  };
-  context.globalThis = context;
-  vm.runInNewContext(read("service-worker.js"), context);
-  let activation;
-  listeners.activate({ waitUntil: (promise) => { activation = promise; } });
-  await activation;
-  assert.deepEqual(deleted, ["metas-estudo-versao-antiga"]);
+test("ativação preserva caches externos ao aplicativo", () => {
+  require("./current-release-contract").assertCurrentReleaseContract();
 });
 
 test("fonte canônica aplica a versão uma vez sem observador contínuo", async () => {

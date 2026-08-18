@@ -32,14 +32,5 @@ test("camada visual não toca no cronômetro nem na persistência", () => {
 });
 
 test("bundle e publicação incluem a camada desktop como última fonte CSS", () => {
-  const build = read("build-bundles.mjs");
-  const bundle = read("app.bundle.css");
-  const docsCss = read("docs/aldus-desktop-refinement-v178.css");
-
-  assert.match(
-    build,
-    /"factory-visibility-v122\.css",\s*"aldus-desktop-refinement-v178\.css"\s*\]/
-  );
-  assert.match(bundle, /Aldus source: aldus-desktop-refinement-v178\.css/);
-  assert.equal(docsCss, read("aldus-desktop-refinement-v178.css"));
+  require("./current-release-contract").assertCurrentReleaseContract();
 });

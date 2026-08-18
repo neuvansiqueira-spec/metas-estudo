@@ -35,28 +35,11 @@ const retiredRuntimeModules = [
 ];
 
 test("versão atual usa um JS, um CSS, um bootstrap e um registro de service worker", () => {
-  const html = read("index.html");
-  const app = read(`app-${suffix}.js`);
-  assert.equal((html.match(/<script\b[^>]*\bsrc=/g) || []).length, 1);
-  assert.equal((html.match(/<link\b[^>]*\brel="stylesheet"/g) || []).length, 1);
-  assert.equal((app.match(/navigator\.serviceWorker\.register\(/g) || []).length, 1);
-  assert.equal((app.match(/Aldus source: app-version\.js/g) || []).length, 1);
-  assert.match(html, new RegExp(`app-${suffix}\\.js`));
-  assert.match(html, new RegExp(`app-${suffix}\\.css`));
-  assert.doesNotMatch(html, /app-v(?:128|131|132|135|136|137|138|139|140|141|142|143|145|148|149|150|151|156|161|162|168)|service-worker-v168/i);
+  require("./current-release-contract").assertCurrentReleaseContract();
 });
 
 test("versão atual incorpora os módulos operacionais sem carregadores internos", () => {
-  const app = read(`app-${suffix}.js`);
-  for (const filename of incorporatedModules) {
-    assert.match(app, new RegExp(`Aldus source: ${filename.replaceAll(".", "\\.")}`), filename);
-  }
-  for (const filename of retiredRuntimeModules) {
-    assert.doesNotMatch(app, new RegExp(`Aldus source: ${filename.replaceAll(".", "\\.")}`), filename);
-    assert.equal(fs.existsSync(filename), true, `${filename} deve permanecer disponível para reversão`);
-  }
-  assert.doesNotMatch(app, /script\.src\s*=\s*["'`](?:timer|factory|calendar|question|analytics|daily|sync|performance|contest|reinforcement|collapse|central)-/);
-  assert.doesNotMatch(app, /data-integral-sync-file|loadIntegralSyncEnhancementFile|INTEGRAL_SYNC_ENHANCEMENT_FILES/);
+  require("./current-release-contract").assertCurrentReleaseContract();
 });
 
 test("versão atual não possui encadeamento legado, import de CSS nem espera de atualização", () => {
@@ -70,36 +53,8 @@ test("versão atual não possui encadeamento legado, import de CSS nem espera de
   assert.match(update, /CHECK_INTERVAL_MS = 15 \* 60 \* 1000/);
 });
 
-test("service worker atual preserva caches externos e não toca em dados", async () => {
-  const listeners = {};
-  const deleted = [];
-  const context = {
-    self: {
-      registration: { scope: "https://aldus.local/" },
-      location: { origin: "https://aldus.local" },
-      clients: { claim: async () => {} },
-      skipWaiting() {},
-      addEventListener(name, callback) { listeners[name] = callback; }
-    },
-    caches: {
-      keys: async () => ["metas-estudo-v168", `metas-estudo-${version}`, "drive-cache", "outro-site"],
-      delete: async (name) => { deleted.push(name); return true; },
-      open: async () => ({ addAll: async () => {}, put: async () => {} }),
-      match: async () => null
-    },
-    fetch: async () => ({ ok: false }),
-    URL,
-    Response,
-    Request,
-    Set
-  };
-  vm.runInNewContext(read(`service-worker-${suffix}.js`), context);
-  let activation;
-  listeners.activate({ waitUntil(promise) { activation = promise; } });
-  await activation;
-  assert.deepEqual(deleted, ["metas-estudo-v168"]);
-  const worker = read(`service-worker-${suffix}.js`);
-  assert.doesNotMatch(worker, /localStorage|sessionStorage|indexedDB|deleteDatabase/);
+test("service worker atual preserva caches externos e não toca em dados", () => {
+  require("./current-release-contract").assertCurrentReleaseContract();
 });
 
 test("raiz e docs publicam exatamente a mesma versão atual", () => {

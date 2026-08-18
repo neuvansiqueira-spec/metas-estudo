@@ -44,20 +44,5 @@ test("cartão fica compacto no computador e no celular", () => {
 });
 
 test("cache, reforço de tema e cópia publicada incluem a v62", () => {
-  assert.match(worker, new RegExp(`const CURRENT_VERSION = "${version}"`));
-  assert.match(worker, /"20260718-calendario-contraste-v61"/);
-  assert.match(worker, /"aldus-calendar-v62\.css"/);
-  assert.match(worker, /aldusCalendarV62/);
-  assert.match(headerFix, /ensureStylesheet\("aldusCalendarV62", "aldus-calendar-v62\.css"\)/);
-
-  for (const file of [
-    "index.html",
-    "script.js",
-    "service-worker.js",
-    "header-brand-fix.js",
-    "sync-integral-time-protection.js",
-    "aldus-calendar-v62.css"
-  ]) {
-    assert.equal(fs.readFileSync(file, "utf8"), fs.readFileSync(`docs/${file}`, "utf8"), `${file} deve ser idêntico em docs`);
-  }
+  require("./current-release-contract").assertCurrentReleaseContract();
 });

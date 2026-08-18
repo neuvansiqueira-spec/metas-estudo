@@ -33,10 +33,8 @@ test('patch não escreve em persistência, sincronização ou estado do aplicati
   }
 });
 
-test('carregador usa arquivo versionado e execução idempotente', () => {
-  assert.match(loader, /__aldusFactoryExecutiveUiLoaderV136/);
-  assert.match(loader, /factory-executive-ui-v136\.js\?v=20260724-fabrica-executiva-v136/);
-  assert.match(patch, /__aldusFactoryExecutiveUiV136/);
+test("carregador usa arquivo versionado e execução idempotente", () => {
+  require("./current-release-contract").assertCurrentReleaseContract();
 });
 
 test('arquivos da raiz e da publicação permanecem idênticos', () => {

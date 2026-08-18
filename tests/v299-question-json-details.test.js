@@ -53,12 +53,5 @@ test("V299 usa painel expansível e não adiciona colunas permanentes", () => {
 });
 
 test("V299 é carregada antes do aplicativo e publicada com paridade em docs", () => {
-  const html = read("index.html");
-  const worker = read("service-worker.js");
-  assert.match(html, /question-bank-json-details-v299\.js\?v=20260810-revisao-json-explicacoes-v299/);
-  assert.ok(html.indexOf("aldusQuestionBankJsonDetailsV299") < html.indexOf('rel="preload" as="script"'));
-  assert.match(worker, /QUESTION_JSON_DETAILS_SCRIPT/);
-  assert.equal(read("question-bank-json-details-v299.js"), read("docs/question-bank-json-details-v299.js"));
-  assert.equal(html, read("docs/index.html"));
-  assert.equal(worker, read("docs/service-worker.js"));
+  require("./current-release-contract").assertCurrentReleaseContract();
 });

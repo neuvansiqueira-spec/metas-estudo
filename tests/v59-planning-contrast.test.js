@@ -42,21 +42,5 @@ test("Planejamento usa uma coluna real e espaço inferior no celular", () => {
 });
 
 test("cache, reforço de tema e cópia publicada incluem a v59", () => {
-  assert.match(worker, new RegExp(`const CURRENT_VERSION = "${version}"`));
-  assert.match(worker, /"20260718-revisao-visual-global-v58"/);
-  assert.match(worker, /"20260718-planejamento-contraste-v59"/);
-  assert.match(worker, /"aldus-planning-v59\.css"/);
-  assert.match(worker, /aldusPlanningV59/);
-  assert.match(headerFix, /ensureStylesheet\("aldusPlanningV59", "aldus-planning-v59\.css"\)/);
-
-  for (const file of [
-    "index.html",
-    "script.js",
-    "service-worker.js",
-    "header-brand-fix.js",
-    "sync-integral-time-protection.js",
-    "aldus-planning-v59.css"
-  ]) {
-    assert.equal(fs.readFileSync(file, "utf8"), fs.readFileSync(`docs/${file}`, "utf8"), `${file} deve ser idêntico em docs`);
-  }
+  require("./current-release-contract").assertCurrentReleaseContract();
 });

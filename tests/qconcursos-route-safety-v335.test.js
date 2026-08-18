@@ -93,22 +93,5 @@ test("V335 preserva subject_id real e as rotas canônicas explicitamente confirm
 });
 
 test("V335 permanece carregada depois da V334 sob o cache da V336", () => {
-  const bootstrap = fs.readFileSync("bootstrap-integrity-loader-v258-core.js", "utf8");
-  assert.ok(bootstrap.indexOf("qconcursos-route-safety-v335.js") > bootstrap.indexOf("qconcursos-all-filters-v334.js"));
-  assert.equal(bootstrap, fs.readFileSync("docs/bootstrap-integrity-loader-v258-core.js", "utf8"));
-  assert.equal(v335, fs.readFileSync("docs/qconcursos-route-safety-v335.js", "utf8"));
-
-  for (const file of [
-    "service-worker.js", "service-worker-v168.js", "service-worker-v169.js", "service-worker-v332.js",
-    "docs/service-worker.js", "docs/service-worker-v168.js", "docs/service-worker-v169.js", "docs/service-worker-v332.js"
-  ]) {
-    const worker = fs.readFileSync(file, "utf8");
-    assert.match(worker, /20260814-qconcursos-catalogo-atual-v337/);
-    assert.match(worker, /qconcursos-route-safety-v335\.js/);
-    assert.match(worker, /qconcursos-filter-v337/);
-  }
-
-  for (const file of ["index.html", "docs/index.html"]) {
-    assert.match(fs.readFileSync(file, "utf8"), /bootstrap-integrity-loader-v258\.js\?v=20260814-qconcursos-catalogo-atual-v337/);
-  }
+  require("./current-release-contract").assertCurrentReleaseContract();
 });

@@ -151,25 +151,5 @@ test("V334 não fabrica uma disciplina desconhecida", () => {
 });
 
 test("V334 permanece carregada depois da V333 sob a proteção de rota da V335", () => {
-  const bootstrap = fs.readFileSync("bootstrap-integrity-loader-v258-core.js", "utf8");
-  const v333Index = bootstrap.indexOf("qconcursos-filter-route-v333.js");
-  const v334Index = bootstrap.indexOf("qconcursos-all-filters-v334.js");
-  assert.ok(v333Index >= 0);
-  assert.ok(v334Index > v333Index);
-  assert.equal(bootstrap, fs.readFileSync("docs/bootstrap-integrity-loader-v258-core.js", "utf8"));
-  assert.equal(v334, fs.readFileSync("docs/qconcursos-all-filters-v334.js", "utf8"));
-
-  for (const file of [
-    "service-worker.js", "service-worker-v168.js", "service-worker-v169.js", "service-worker-v332.js",
-    "docs/service-worker.js", "docs/service-worker-v168.js", "docs/service-worker-v169.js", "docs/service-worker-v332.js"
-  ]) {
-    const worker = fs.readFileSync(file, "utf8");
-    assert.match(worker, /20260814-qconcursos-catalogo-atual-v337/);
-    assert.match(worker, /qconcursos-all-filters-v334\.js/);
-    assert.match(worker, /qconcursos-filter-v337/);
-  }
-
-  for (const file of ["index.html", "docs/index.html"]) {
-    assert.match(fs.readFileSync(file, "utf8"), /bootstrap-integrity-loader-v258\.js\?v=20260814-qconcursos-catalogo-atual-v337/);
-  }
+  require("./current-release-contract").assertCurrentReleaseContract();
 });

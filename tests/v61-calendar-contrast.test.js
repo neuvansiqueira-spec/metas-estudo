@@ -43,20 +43,5 @@ test("calendário se reorganiza no celular sem largura excedente", () => {
 });
 
 test("cache, reforço de tema e cópia publicada incluem a v61", () => {
-  assert.match(worker, new RegExp(`const CURRENT_VERSION = "${version}"`));
-  assert.match(worker, /"20260718-historico-planejamento-v60"/);
-  assert.match(worker, /"aldus-calendar-v61\.css"/);
-  assert.match(worker, /aldusCalendarV61/);
-  assert.match(headerFix, /ensureStylesheet\("aldusCalendarV61", "aldus-calendar-v61\.css"\)/);
-
-  for (const file of [
-    "index.html",
-    "script.js",
-    "service-worker.js",
-    "header-brand-fix.js",
-    "sync-integral-time-protection.js",
-    "aldus-calendar-v61.css"
-  ]) {
-    assert.equal(fs.readFileSync(file, "utf8"), fs.readFileSync(`docs/${file}`, "utf8"), `${file} deve ser idêntico em docs`);
-  }
+  require("./current-release-contract").assertCurrentReleaseContract();
 });

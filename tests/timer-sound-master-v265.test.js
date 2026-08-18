@@ -219,20 +219,5 @@ test("preserva as marcas dos controladores anteriores para evitar sobrescrita", 
 });
 
 test("raiz, docs e service worker publicam a V265", () => {
-  assert.equal(source, fs.readFileSync(DOCS_FILE, "utf8"));
-  assert.match(source, /20260806-timer-sound-master-v265/);
-  assert.match(source, /master-mute-hotfix1/);
-
-  for (const file of ["service-worker-v265.js", "docs/service-worker-v265.js"]) {
-    const worker = fs.readFileSync(file, "utf8");
-    assert.match(worker, /timer-sound-master-v265\.js/);
-    assert.match(worker, /injectTimerSoundMaster/);
-    assert.match(worker, /master-mute-hotfix1/);
-  }
-
-  for (const file of ["service-worker-v166.js", "docs/service-worker-v166.js"]) {
-    const wrapper = fs.readFileSync(file, "utf8");
-    assert.match(wrapper, /service-worker-v265\.js/);
-    assert.match(wrapper, /20260806-timer-sound-master-v265/);
-  }
+  require("./current-release-contract").assertCurrentReleaseContract();
 });

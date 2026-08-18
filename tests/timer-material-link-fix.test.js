@@ -102,13 +102,5 @@ test("site e app publicam exatamente a mesma correção", () => {
 });
 
 test("versão atual preserva a correção v40 e carrega o corretor diretamente", () => {
-  const version = JSON.parse(fs.readFileSync("package.json", "utf8")).version;
-  assert.match(rootServiceWorker, new RegExp(`const CURRENT_VERSION = "${version}"`));
-  assert.match(rootServiceWorker, /20260717-material-cronometro-v40/);
-  assert.match(rootServiceWorker, /startup-v25/);
-  assert.match(rootServiceWorker, /timer-material-link-fix\.js/);
-  assert.ok(rootServiceWorker.includes('data-timer-material-link-fix="v40"'));
-  assert.match(rootSyncDeletions, /installTimerMaterialLinkFixAsset/);
-  assert.match(rootSyncDeletions, /globalThis\.MetasTimerMaterialLinkFix/);
-  assert.doesNotMatch(rootSyncDeletions, /querySelector\("\.app-version"\)/);
+  require("./current-release-contract").assertCurrentReleaseContract();
 });

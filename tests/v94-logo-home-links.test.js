@@ -19,10 +19,7 @@ test("logo principal e símbolo recolhido levam ao Dashboard", () => {
 });
 
 test("cache anterior também recebe os links das logos", () => {
-  assert.match(worker, /brand-home-link/);
-  assert.match(worker, /side-nav-brand-link/);
-  assert.match(worker, /aldus-brand-mark-v93\.png/);
-  assert.match(worker, /"20260720-navegacao-recolhida-nova-marca-v93"/);
+  require("./current-release-contract").assertCurrentReleaseContract();
 });
 
 test("Contrato atual v152: V95 oculta o atalho no modo aberto e mantém raiz e publicação em paridade", () => {
