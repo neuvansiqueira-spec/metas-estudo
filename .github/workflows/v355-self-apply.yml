@@ -1,0 +1,72 @@
+name: V355 self apply
+
+on:
+  push:
+    branches:
+      - v355-dom-style-hot-path
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Baixar branch V355
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: v355-dom-style-hot-path
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Configurar Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci --ignore-scripts
+
+      - name: Aplicar V355 e regenerar bundles
+        run: |
+          node tools/apply-v355-dom-style-hot-path.mjs
+          npm run build
+
+      - name: Validar sintaxe e contratos críticos
+        run: |
+          node --check factory-executive-ui-v136.js
+          node --check app-v344.js
+          node --check service-worker.js
+          node --test \
+            tests/v136-factory-executive-ui.test.js \
+            tests/v342-bootstrap-performance.test.js \
+            tests/v351-bootstrap-fast-path.test.js \
+            tests/v352-active-service-worker-delivery.test.js \
+            tests/v353-navigation-bootstrap-delivery.test.js \
+            tests/v354-factory-destination-runtime.test.js \
+            tests/v355-dom-style-hot-path.test.js
+
+      - name: Executar suite completa
+        run: npm test
+
+      - name: Revisar diff e remover scaffolding temporário
+        run: |
+          git diff --check
+          rm -f .github/workflows/v355-self-apply.yml tools/apply-v355-dom-style-hot-path.mjs
+          git diff --check
+          git status --short
+
+      - name: Consolidar V355 na branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração a consolidar."
+            exit 0
+          fi
+          git commit -m "V355: restringe hot path DOM/style à Fábrica"
+          git push origin HEAD:v355-dom-style-hot-path
