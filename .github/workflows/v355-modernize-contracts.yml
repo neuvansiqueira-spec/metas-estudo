@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - v355-full-suite-green
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
