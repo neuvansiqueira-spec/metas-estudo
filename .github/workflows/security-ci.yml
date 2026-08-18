@@ -36,6 +36,7 @@ jobs:
           node --check usage-telemetry-v315.js
           node --check security-observability-v318.js
           node --check telemetry-security-dashboard-v319.js
+          node --check simulado-recovery-v319.js
           node --check factory-resumo-aula-visual-v326.js
           node --check factory-resumo-aula-canonical-v327.js
           node --check catastrophic-state-guard-v275.js
@@ -55,6 +56,7 @@ jobs:
             tests/v316-timer-telemetry-security.test.js \
             tests/v318-security-observability.test.js \
             tests/v319-telemetry-security-dashboard.test.js \
+            tests/v319-simulado-recovery.test.js \
             tests/v329-integral-performance.test.js \
             tests/v326-factory-resumo-aula-visual.test.js \
             tests/v327-factory-resumo-aula-canonical.test.js \
@@ -63,4 +65,5 @@ jobs:
             tests/v352-active-service-worker-delivery.test.js \
             tests/v353-navigation-bootstrap-delivery.test.js \
             tests/v354-factory-destination-runtime.test.js \
-            tests/v355-dom-style-hot-path.test.js
+            tests/v355-dom-style-hot-path.test.js \
+            tests/v356-simulado-recovery-hot-path.test.js

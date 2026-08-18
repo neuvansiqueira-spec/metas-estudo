@@ -76,8 +76,8 @@ test("V319 informa ausência de estado sem destruir os simulados locais", async 
   assert.equal(report.localQuestions, 1);
 });
 
-test("entrada principal carrega a V319 depois do shell", () => {
+test("entrada principal carrega a recuperação de simulados depois do shell", () => {
   const html = fs.readFileSync("index.html", "utf8");
-  assert.match(html, /simulado-recovery-v319\.js/);
-  assert.match(html, /SIMULADO_RECOVERY_VERSION/);
+  assert.match(html, /id="aldusSimuladoRecoveryV319"/);
+  assert.match(html, /defer src="simulado-recovery-v319\.js\?v=/);
 });
