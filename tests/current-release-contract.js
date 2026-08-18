@@ -27,6 +27,8 @@ function assertCurrentReleaseContract() {
   const jsBundle = read("app.bundle.js");
   const cssBundle = read("app.bundle.css");
   const bootstrapCore = read("bootstrap-integrity-loader-v258-core.js");
+  const factoryDestinationRuntime = read("factory-destination-integrity-v237.js");
+  const planningIntegrityLoader = read("planning-integrity-loader-v235.js");
 
   for (const file of [
     "script.js",
@@ -34,7 +36,9 @@ function assertCurrentReleaseContract() {
     "app-version.js",
     "app.bundle.js",
     "app.bundle.css",
-    "bootstrap-integrity-loader-v258-core.js"
+    "bootstrap-integrity-loader-v258-core.js",
+    "factory-destination-integrity-v237.js",
+    "planning-integrity-loader-v235.js"
   ]) {
     assert.equal(read(file), read(`docs/${file}`), `${file} deve ser idêntico em docs`);
   }
@@ -79,6 +83,18 @@ function assertCurrentReleaseContract() {
   assert.match(worker, /installProtectedBootstrapV275/);
   assert.match(worker, /BOOTSTRAP_CORE/);
   assert.doesNotMatch(worker, /importScripts|patchHtmlSource|transformAppScriptResponse|replaceVersion/);
+
+  // V354: a classificação V237 continua disponível, mas a reconciliação pesada não pode voltar ao boot normal.
+  assert.match(factoryDestinationRuntime, /20260818-factory-destination-on-demand-v354/);
+  assert.match(factoryDestinationRuntime, /const isFactoryRoute = \(\) =>/);
+  assert.match(factoryDestinationRuntime, /requestIdleCallback/);
+  assert.doesNotMatch(factoryDestinationRuntime, /showVersion\(\); install\(\); applyCached\(\)/);
+  assert.doesNotMatch(factoryDestinationRuntime, /setTimeout\(\(\) => \{ install\(\); applyCached\(\); \}, 1500\)/);
+  assert.doesNotMatch(factoryDestinationRuntime, /setTimeout\(\(\) => refresh\(\), 2300\)/);
+  assert.doesNotMatch(factoryDestinationRuntime, /setInterval\(install, 250\)/);
+  assert.match(planningIntegrityLoader, /FACTORY_DESTINATION_HOTFIX = "factory-destination-on-demand-v354"/);
+  assert.match(worker, /factory-destination-runtime-v354-navigation-bootstrap-v353-bootstrap-fast-path-v351/);
+  assert.match(worker, /factory-destination-integrity-v237\.js\?v=20260804-pastas-destino-classificacao-exata-v237&hotfix=factory-destination-on-demand-v354/);
 
   assert.ok(fs.existsSync(`app-${suffix}.js`));
   assert.ok(fs.existsSync(`app-${suffix}.css`));
