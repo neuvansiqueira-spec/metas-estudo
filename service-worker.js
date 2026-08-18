@@ -6,6 +6,7 @@ const SECURITY_VERSION = "20260810-seguranca-estabilidade-v296";
 const PROTECTION_VERSION = "20260815-bootstrap-performance-v342";
 const BOOTSTRAP_VERSION = "20260815-bootstrap-performance-v342";
 const FAST_BOOTSTRAP_VERSION = "20260817-bootstrap-fast-path-v351";
+const NAVIGATION_DELIVERY_VERSION = "20260817-navigation-bootstrap-delivery-v353";
 const DUPLICATE_CONTINUITY_VERSION = "20260811-duplicate-flow-owner-v309";
 const DUPLICATE_RECOMMENDATIONS_VERSION = "20260811-duplicate-flow-owner-v309";
 const DUPLICATE_BATCH_HOTFIX_VERSION = "20260811-duplicate-flow-owner-v309";
@@ -15,7 +16,7 @@ const FACTORY_SCHEDULE_FILTERS_VERSION = "20260808-factory-schedule-planning-pre
 const FACTORY_SCHEDULE_DATES_VERSION = "20260809-factory-schedule-planning-dates-v281";
 const QUESTIONS_HUB_VERSION = "20260814-desempenho-integral-v329";
 const QUESTION_JSON_DETAILS_VERSION = "20260810-revisao-json-explicacoes-v299";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v297-hotfix5-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-duplicate-recommended-batch-v300-duplicate-batch-persistence-v301-duplicate-batch-performance-v304-duplicate-batch-commit-v305-entry-parser-recovery-v306-duplicate-core-delivery-v307-duplicate-batch-core-pin-v308-duplicate-flow-owner-v309-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4-security-v296-questions-hub-v298-question-json-details-v299-factory-simulado-escolha-automatica-v312-simulado-interativo-v313-integracao-v318-reparo-factory-simulado-visibility-v315-posthog-telemetry-v317-simulado-location-v328-factory-resumo-aula-canonical-v327-qconcursos-filter-v337-bootstrap-fast-path-v351`;
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v297-hotfix5-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-duplicate-recommended-batch-v300-duplicate-batch-persistence-v301-duplicate-batch-performance-v304-duplicate-batch-commit-v305-entry-parser-recovery-v306-duplicate-core-delivery-v307-duplicate-batch-core-pin-v308-duplicate-flow-owner-v309-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4-security-v296-questions-hub-v298-question-json-details-v299-factory-simulado-escolha-automatica-v312-simulado-interativo-v313-integracao-v318-reparo-factory-simulado-visibility-v315-posthog-telemetry-v317-simulado-location-v328-factory-resumo-aula-canonical-v327-qconcursos-filter-v337-navigation-bootstrap-v353-bootstrap-fast-path-v351`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
@@ -129,9 +130,8 @@ const STATIC_ASSETS = [
   "icons/icon-maskable.svg"
 ];
 const STATIC_PATHS = new Set(STATIC_ASSETS.map((asset) => new URL(asset, self.registration.scope).pathname));
+const CANONICAL_DOCUMENT_URL = new URL("index.html", self.registration.scope).href;
 const ESSENTIAL_ASSETS = [
-  "./",
-  "index.html",
   `app-${RELEASE_SUFFIX}.css?v=${CURRENT_VERSION}`,
   `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`,
   "icons/aldus-visual-320.webp",
@@ -145,6 +145,14 @@ const ESSENTIAL_ASSETS = [
 async function precacheAssets() {
   const cache = await caches.open(CACHE_NAME);
   await cache.addAll(ESSENTIAL_ASSETS);
+
+  const response = await fetch(CANONICAL_DOCUMENT_URL, { cache: "no-store" });
+  if (!response?.ok) throw new Error(`Documento inicial indisponível: ${response?.status || 0}`);
+  const patchedResponse = await ensurePageStylesheets(response);
+  if (!await responseHasProtectedBootstrap(patchedResponse)) {
+    throw new Error("Documento inicial sem bootstrap V351 após transformação.");
+  }
+  await cache.put(CANONICAL_DOCUMENT_URL, patchedResponse.clone());
 }
 
 self.addEventListener("install", (event) => {
@@ -335,25 +343,61 @@ async function ensurePageStylesheets(response) {
   });
 }
 
+async function responseHasProtectedBootstrap(response) {
+  if (!response?.ok) return false;
+  if (response.headers.get("x-aldus-integrity-version") !== CURRENT_VERSION) return false;
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("text/html")) return false;
+  const html = await response.clone().text();
+  return html.includes('id="aldusBootstrapIntegrityLoaderV275"')
+    && html.includes(BOOTSTRAP_PROTECTED)
+    && html.includes(FAST_BOOTSTRAP_VERSION);
+}
+
+async function cacheNavigationResponse(response) {
+  if (!response?.ok) return response;
+  const cache = await caches.open(CACHE_NAME);
+  await cache.put(CANONICAL_DOCUMENT_URL, response.clone());
+  return response;
+}
+
 async function refreshNavigation(request) {
   const response = await fetch(request, { cache: "no-store" });
   if (!response?.ok) throw new Error(`Navegação indisponível: ${response?.status || 0}`);
   const patchedResponse = await ensurePageStylesheets(response);
-  return cacheResponse(request, patchedResponse);
+  if (!await responseHasProtectedBootstrap(patchedResponse)) {
+    throw new Error("Navegação sem bootstrap V351 após transformação.");
+  }
+  return cacheNavigationResponse(patchedResponse);
 }
 
 async function cachedFirstNavigation(request, event) {
-  const cached = await caches.match(request, { ignoreSearch: true })
-    || await caches.match(new URL("index.html", self.registration.scope).href, { ignoreSearch: true });
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(CANONICAL_DOCUMENT_URL, { ignoreSearch: true });
 
-  if (cached) {
-    event?.waitUntil?.(refreshNavigation(request).catch(() => null));
+  if (cached && await responseHasProtectedBootstrap(cached)) {
+    event?.waitUntil?.(refreshNavigation(request).catch((error) => {
+      console.warn(`[${NAVIGATION_DELIVERY_VERSION}] Falha ao atualizar a navegação em segundo plano.`, error);
+    }));
     return cached;
   }
 
   try {
     return await refreshNavigation(request);
-  } catch {}
+  } catch (error) {
+    console.error(`[${NAVIGATION_DELIVERY_VERSION}] Falha ao entregar navegação protegida.`, error);
+  }
+
+  if (cached) {
+    try {
+      const repaired = await ensurePageStylesheets(cached);
+      if (await responseHasProtectedBootstrap(repaired)) {
+        return cacheNavigationResponse(repaired);
+      }
+    } catch (error) {
+      console.error(`[${NAVIGATION_DELIVERY_VERSION}] Falha ao reparar HTML cacheado.`, error);
+    }
+  }
 
   return new Response("Aplicativo indisponível temporariamente.", {
     status: 503,
