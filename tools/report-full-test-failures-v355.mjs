@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 
+// V355: diagnóstico temporário da suíte integral; remover antes do merge.
 const result = spawnSync(process.execPath, ["--test", "tests/*.test.js"], {
   shell: true,
   encoding: "utf8",
