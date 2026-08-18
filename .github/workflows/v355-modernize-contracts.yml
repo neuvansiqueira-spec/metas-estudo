@@ -1,0 +1,48 @@
+name: V355 modernize historical contracts
+
+on:
+  push:
+    branches:
+      - v355-full-suite-green
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Baixar branch
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: v355-full-suite-green
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Configurar Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalar dependências
+        run: npm ci --ignore-scripts
+      - name: Modernizar somente contratos históricos
+        run: node tools/modernize-v355-historical-contracts.mjs
+      - name: Validar sintaxe dos testes alterados
+        run: |
+          node --check tests/aldus-meta-branding.test.js
+          node --check tests/stability.test.js
+          node --check tests/v169-single-bundle.test.js
+          node --check tests/v219-release-pipeline.test.js
+      - name: Remover aplicador temporário
+        run: rm -f .github/workflows/v355-modernize-contracts.yml tools/modernize-v355-historical-contracts.mjs
+      - name: Revisar diff
+        run: git diff --check
+      - name: Consolidar na branch V355
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "V355: atualiza contratos históricos para a release atual"
+          git push origin HEAD:v355-full-suite-green
