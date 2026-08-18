@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260812-simulado-recovery-v319";
+  const VERSION = "20260818-simulado-recovery-hot-path-v356";
   const INTERACTIVE_STORAGE_KEY = "aldusSimuladosInterativosV313";
   const STATUS_ID = "aldusSimuladoRecoveryStatusV319";
   const BACKUP_KEYS = [
@@ -13,15 +13,34 @@
     "aldusEmergencyIndexedDBActivationBackupV256"
   ];
   const RETRY_DELAYS = [0, 500, 1500, 3000, 6000, 10000, 15000, 25000, 40000, 60000, 90000, 120000];
+  const RECOVERY_VIEWS = new Set(["simulados", "banco-questoes", "fabrica-resumos"]);
 
   let lastReport = null;
   let attempt = 0;
+  let automaticPending = false;
+  let lastAutomaticRoute = "";
 
   const text = (value) => String(value ?? "").trim();
   const safeParse = (value) => {
     if (typeof value !== "string") return value;
     try { return JSON.parse(value); } catch { return null; }
   };
+
+  function structuredBackupValue(value) {
+    if (typeof value !== "string") return value;
+    const trimmed = value.trimStart();
+    if (!trimmed || (trimmed[0] !== "{" && trimmed[0] !== "[")) return null;
+    return safeParse(value);
+  }
+
+  function currentRoute() {
+    if (typeof location === "undefined") return "";
+    return text(location.hash).replace(/^#/, "").split(/[?&]/)[0];
+  }
+
+  function recoveryViewActive() {
+    return RECOVERY_VIEWS.has(currentRoute());
+  }
 
   function stateReady() {
     return typeof state !== "undefined" && state && typeof state === "object" && typeof saveData === "function";
@@ -43,7 +62,7 @@
 
   function collectBackupStates(value, output, seen, budget) {
     if (budget.count >= 4000) return;
-    const parsed = safeParse(value);
+    const parsed = structuredBackupValue(value);
     if (!parsed || typeof parsed !== "object") return;
     if (seen.has(parsed)) return;
     seen.add(parsed);
@@ -56,7 +75,10 @@
       return;
     }
 
-    for (const entry of Object.values(parsed)) collectBackupStates(entry, output, seen, budget);
+    for (const [key, entry] of Object.entries(parsed)) {
+      if (key === "questionBank" || key === "questionBankSessions") continue;
+      collectBackupStates(entry, output, seen, budget);
+    }
   }
 
   function readBackupStates() {
@@ -251,27 +273,46 @@
     return lastReport;
   }
 
+  async function runAutomatic(origin) {
+    const route = currentRoute();
+    if (!RECOVERY_VIEWS.has(route)) {
+      lastAutomaticRoute = "";
+      return lastReport;
+    }
+    if (automaticPending) return lastReport;
+    if (lastAutomaticRoute === route && lastReport?.stateAvailable) return lastReport;
+
+    automaticPending = true;
+    try {
+      const report = await run(origin);
+      if (report?.stateAvailable) lastAutomaticRoute = route;
+      return report;
+    } finally {
+      automaticPending = false;
+    }
+  }
+
   function schedule() {
     if (typeof setTimeout !== "function") return;
-    RETRY_DELAYS.forEach((delay) => setTimeout(() => run(`retry-${delay}`).catch((error) => {
+    RETRY_DELAYS.forEach((delay) => setTimeout(() => runAutomatic(`retry-${delay}`).catch((error) => {
       console.warn(`[${VERSION}] Tentativa automática falhou.`, error);
     }), delay));
   }
 
   if (typeof window !== "undefined") {
-    window.addEventListener("load", () => run("load").catch(() => {}));
-    window.addEventListener("pageshow", () => run("pageshow").catch(() => {}));
-    window.addEventListener("focus", () => run("focus").catch(() => {}));
-    window.addEventListener("hashchange", () => run("hashchange").catch(() => {}));
+    window.addEventListener("load", () => runAutomatic("load").catch(() => {}));
+    window.addEventListener("pageshow", () => runAutomatic("pageshow").catch(() => {}));
+    window.addEventListener("focus", () => runAutomatic("focus").catch(() => {}));
+    window.addEventListener("hashchange", () => runAutomatic("hashchange").catch(() => {}));
     document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") run("visible").catch(() => {});
+      if (document.visibilityState === "visible") runAutomatic("visible").catch(() => {});
     });
     document.addEventListener("click", (event) => {
       const link = event.target?.closest?.("[data-view-link], a[href^='#']");
       if (!link) return;
       const target = text(link.getAttribute?.("data-view-link") || link.getAttribute?.("href")).replace(/^#/, "");
-      if (["simulados", "banco-questoes", "fabrica-resumos"].includes(target)) {
-        setTimeout(() => run(`view-${target}`).catch(() => {}), 250);
+      if (RECOVERY_VIEWS.has(target)) {
+        setTimeout(() => runAutomatic(`view-${target}`).catch(() => {}), 250);
       }
     }, true);
   }
@@ -281,7 +322,8 @@
     run,
     getLastReport: () => lastReport,
     readLocalExams,
-    readBackupStates
+    readBackupStates,
+    recoveryViewActive
   });
   globalThis.__ALDUS_SIMULADO_RECOVERY_V319__ = api;
   schedule();
