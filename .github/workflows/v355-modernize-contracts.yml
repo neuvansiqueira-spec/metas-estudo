@@ -31,15 +31,15 @@ jobs:
       - name: Instalar dependências
         run: npm ci --ignore-scripts
       - name: Modernizar somente contratos históricos
-        run: node tools/modernize-v355-historical-contracts.mjs
+        run: node tools/modernize-v355-historical-contracts-v2.mjs
       - name: Validar sintaxe dos testes alterados
         run: |
           node --check tests/aldus-meta-branding.test.js
           node --check tests/stability.test.js
           node --check tests/v169-single-bundle.test.js
           node --check tests/v219-release-pipeline.test.js
-      - name: Remover aplicador temporário
-        run: rm -f .github/workflows/v355-modernize-contracts.yml tools/modernize-v355-historical-contracts.mjs
+      - name: Remover aplicadores temporários
+        run: rm -f .github/workflows/v355-modernize-contracts.yml tools/modernize-v355-historical-contracts.mjs tools/modernize-v355-historical-contracts-v2.mjs
       - name: Revisar diff
         run: git diff --check
       - name: Consolidar na branch V355
