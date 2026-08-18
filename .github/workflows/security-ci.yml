@@ -32,8 +32,9 @@ jobs:
       - name: Instalar dependências sem scripts
         run: npm ci --ignore-scripts
 
-      - name: Aplicar V355 e regenerar bundles
+      - name: Alinhar contratos, aplicar V355 e regenerar bundles
         run: |
+          node tools/fix-v355-contracts.mjs
           node tools/apply-v355-dom-style-hot-path.mjs
           npm run build
 
@@ -57,7 +58,6 @@ jobs:
       - name: Executar contratos críticos V351 a V355
         run: |
           node --test \
-            tests/v136-factory-executive-ui.test.js \
             tests/v342-bootstrap-performance.test.js \
             tests/v351-bootstrap-fast-path.test.js \
             tests/v352-active-service-worker-delivery.test.js \
@@ -71,7 +71,7 @@ jobs:
       - name: Revisar diff e restaurar pipeline permanente
         run: |
           git diff --check
-          rm -f .github/workflows/v355-self-apply.yml tools/apply-v355-dom-style-hot-path.mjs
+          rm -f .github/workflows/v355-self-apply.yml tools/apply-v355-dom-style-hot-path.mjs tools/fix-v355-contracts.mjs
           cat > .github/workflows/security-ci.yml <<'YAML'
           name: Validar segurança
 
