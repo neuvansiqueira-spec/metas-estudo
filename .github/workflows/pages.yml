@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
@@ -28,51 +28,13 @@ jobs:
       - name: Baixar repositório
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          persist-credentials: true
+          persist-credentials: false
 
       - name: Configurar Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: npm
-
-      - name: Aplicar V353 de navegação protegida
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          p = Path("tools/apply-v353-navigation-bootstrap.mjs")
-          s = p.read_text(encoding="utf-8")
-          old = "'-qconcursos-filter-v337-bootstrap-fast-path-v351-navigation-bootstrap-v353`;'"
-          new = "'-qconcursos-filter-v337-navigation-bootstrap-v353-bootstrap-fast-path-v351`;'"
-          if old not in s:
-              raise SystemExit("V353: marcador do cache temporário não encontrado")
-          p.write_text(s.replace(old, new, 1), encoding="utf-8")
-          PY
-          node --check tools/apply-v353-navigation-bootstrap.mjs
-          node tools/apply-v353-navigation-bootstrap.mjs
-
-      - name: Validar contrato V353 antes de consolidar
-        run: |
-          node --check service-worker.js
-          node --check service-worker-v344.js
-          node --test \
-            tests/v351-bootstrap-fast-path.test.js \
-            tests/v352-active-service-worker-delivery.test.js \
-            tests/v353-navigation-bootstrap-delivery.test.js
-          cmp service-worker.js service-worker-v344.js
-          cmp service-worker.js docs/service-worker.js
-          cmp service-worker.js docs/service-worker-v344.js
-
-      - name: Consolidar V353 na main
-        run: |
-          git show "07a227ed415ae0c4522bbe3508d5386311eee6f9:.github/workflows/pages.yml" > .github/workflows/pages.yml
-          rm -f tools/apply-v353-navigation-bootstrap.mjs
-          rm -f .github/V353_FINAL_TRIGGER.md
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "V353: entrega bootstrap protegido na primeira navegação"
-          git push origin HEAD:main
 
       - name: Validar segurança e regressões antes da publicação
         run: |
@@ -81,7 +43,6 @@ jobs:
           node --check security-observability-v318.js
           node --check service-worker.js
           node --check service-worker-v291.js
-          node --check service-worker-v344.js
           node --check service-worker-v345.js
           node --check usage-telemetry-v315.js
           node --check factory-penalties-v320.js
@@ -116,15 +77,10 @@ jobs:
             tests/daily-summary-time-format-v243.test.js \
             tests/boot-render-coalesce-v350.test.js \
             tests/question-record-index-v351.test.js \
-            tests/qb-package-single-pass-v351.test.js \
-            tests/v351-bootstrap-fast-path.test.js \
-            tests/v352-active-service-worker-delivery.test.js \
-            tests/v353-navigation-bootstrap-delivery.test.js
+            tests/qb-package-single-pass-v351.test.js
           node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
           cmp security-hardening-v296.js docs/security-hardening-v296.js
           cmp service-worker.js docs/service-worker.js
-          cmp service-worker.js service-worker-v344.js
-          cmp service-worker-v344.js docs/service-worker-v344.js
           cmp service-worker-v345.js docs/service-worker-v345.js
           cmp usage-telemetry-v315.js docs/usage-telemetry-v315.js
 
@@ -154,6 +110,7 @@ jobs:
               "central-goals-period-palette-v248.css?v=20260805-central-period-cards-v248",
               "central-goals-period-palette-v248.css?v=20260809-paleta-cartoes-global-v294",
           )
+          # V323: força a URL pública do hub V322 e evita a cópia antiga V298 do cache.
           text = text.replace(
               "questions-hub-v298.css?v=20260810-questoes-integradas-v298",
               "questions-hub-v298.css?v=20260813-simulados-integrados-questoes-v322",
@@ -209,6 +166,7 @@ jobs:
               "-questions-hub-v298-question-json-details-v299",
               "-questions-hub-v322-question-json-details-v299",
           )
+          # V327: cria um cache novo para impedir que o navegador continue servindo a cópia antiga do prompt.
           if "factory-resumo-aula-canonical-v327" not in sw_text:
               old_cache_tail = "-posthog-telemetry-v317`;"
               if old_cache_tail not in sw_text:
@@ -226,8 +184,6 @@ jobs:
           sw.write_text(sw_text, encoding="utf-8")
           PY
 
-          cmp service-worker.js docs/service-worker.js
-
       - name: Configurar GitHub Pages
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
 
@@ -240,4 +196,4 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
 
-# V353: runner temporário; restaura o workflow original antes de persistir a correção.
+# V323: nova execução limpa após falha transitória da API do GitHub Pages.
