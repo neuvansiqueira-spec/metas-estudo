@@ -2,6 +2,7 @@
 (() => {
   "use strict";
   const VERSION = "20260804-pastas-destino-classificacao-exata-v237";
+  const RUNTIME_VERSION = "20260818-factory-destination-on-demand-v354";
   const ROOT = "1fBp2Ibx4_acuP4fvIK26SKkVtLJmEcOJ";
   const FLAG = "__ALDUS_FACTORY_DESTINATION_INTEGRITY_V237__";
   const CACHE_KEYS = ["aldusFactoryDestinationTreeV237", "aldusFactoryDestinationTreeV232", "aldusFactoryDestinationTreeV230"];
@@ -125,17 +126,45 @@
   }
   const applyCached = options => { const t = cached(); return t ? applyTree(t, options) : { applied: false, reason: "cache-empty", changed: 0 }; };
   async function refresh(options = {}) { try { if (typeof __refreshFactoryDestinationFoldersV232 === "function") await __refreshFactoryDestinationFoldersV232({ force: true }); } catch {} return applyCached(options); }
-  function wrap(name) { try { const fn = globalThis[name]; if (typeof fn !== "function" || fn.__destinationV237) return; const wrapped = name === "checkCloudForUpdatesAfterAuth" ? async function(...args) { const r = await fn.apply(this, args); await refresh(); return r; } : function(...args) { const r = fn.apply(this, args); queueMicrotask(() => refresh()); return r; }; Object.defineProperty(wrapped, "__destinationV237", { value: true }); Object.defineProperty(wrapped, "__aldusOriginal", { value: fn }); globalThis[name] = wrapped; } catch {} }
+  const isFactoryRoute = () => typeof location !== "undefined" && location.hash === "#fabrica-resumos";
+  let automaticApplyQueued = false;
+
+  function queueFactoryApply() {
+    if (!isFactoryRoute() || automaticApplyQueued) return false;
+    automaticApplyQueued = true;
+    const run = () => {
+      automaticApplyQueued = false;
+      if (!isFactoryRoute()) return;
+      try { applyCached(); } catch (error) { console.warn(`[${RUNTIME_VERSION}] Falha ao aplicar Pasta destino sob demanda.`, error); }
+    };
+    if (typeof requestIdleCallback === "function") requestIdleCallback(run, { timeout: 750 });
+    else setTimeout(run, 0);
+    return true;
+  }
+
+  function wrap(name) {
+    try {
+      const fn = globalThis[name];
+      if (typeof fn !== "function" || fn.__destinationV237) return;
+      const wrapped = name === "checkCloudForUpdatesAfterAuth"
+        ? async function(...args) { const r = await fn.apply(this, args); queueFactoryApply(); return r; }
+        : function(...args) { const r = fn.apply(this, args); queueFactoryApply(); return r; };
+      Object.defineProperty(wrapped, "__destinationV237", { value: true });
+      Object.defineProperty(wrapped, "__aldusOriginal", { value: fn });
+      globalThis[name] = wrapped;
+    } catch {}
+  }
   function install() { wrap("syncFactoryWithActiveEdital"); wrap("checkCloudForUpdatesAfterAuth"); }
   function showVersion() { if (typeof document === "undefined") return; document.documentElement.dataset.aldusReleaseVersion = VERSION; document.querySelectorAll(".app-version").forEach(e => { e.textContent = `Versão: ${VERSION}`; }); }
 
-  const api = Object.freeze({ version: VERSION, rootId: ROOT, resolveDiscipline: discipline, resolveTopic: topic, applyEntry, applyTree, applyCached, refresh, audit: () => globalThis.__factoryDestinationFoldersV237Report || null });
+  const api = Object.freeze({ version: VERSION, runtimeVersion: RUNTIME_VERSION, rootId: ROOT, resolveDiscipline: discipline, resolveTopic: topic, applyEntry, applyTree, applyCached, refresh, queueFactoryApply, audit: () => globalThis.__factoryDestinationFoldersV237Report || null });
   Object.defineProperty(globalThis, FLAG, { value: api });
   Object.defineProperties(globalThis, { __resolveFactoryDestinationDisciplineV237: { value: discipline, configurable: true }, __resolveFactoryDestinationTopicV237: { value: topic, configurable: true }, __applyFactoryDestinationToEntryV237: { value: applyEntry, configurable: true }, __applyFactoryDestinationTreeV237: { value: applyTree, configurable: true }, __refreshFactoryDestinationFoldersV237: { value: refresh, configurable: true } });
   if (typeof document === "undefined") return;
-  showVersion(); install(); applyCached();
-  setTimeout(() => { install(); applyCached(); }, 1500);
-  setTimeout(() => refresh(), 2300);
-  const timer = setInterval(install, 250); setTimeout(() => clearInterval(timer), 15000);
-  addEventListener("hashchange", () => { if (location.hash === "#fabrica-resumos") { showVersion(); queueMicrotask(() => refresh()); } });
+
+  // V354: no boot normal apenas instala os wrappers leves. A reconciliação O(itens × pastas)
+  // fica restrita à área da Fábrica ou a chamadas explícitas da API existente.
+  install();
+  if (isFactoryRoute()) { showVersion(); queueFactoryApply(); }
+  addEventListener("hashchange", () => { if (isFactoryRoute()) { showVersion(); queueFactoryApply(); } });
 })();
