@@ -5,6 +5,8 @@ const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const SECURITY_VERSION = "20260810-seguranca-estabilidade-v296";
 const PROTECTION_VERSION = "20260815-bootstrap-performance-v342";
 const BOOTSTRAP_VERSION = "20260815-bootstrap-performance-v342";
+const FAST_BOOTSTRAP_VERSION = "20260817-bootstrap-fast-path-v351";
+const NAVIGATION_DELIVERY_VERSION = "20260817-navigation-bootstrap-delivery-v353";
 const DUPLICATE_CONTINUITY_VERSION = "20260811-duplicate-flow-owner-v309";
 const DUPLICATE_RECOMMENDATIONS_VERSION = "20260811-duplicate-flow-owner-v309";
 const DUPLICATE_BATCH_HOTFIX_VERSION = "20260811-duplicate-flow-owner-v309";
@@ -14,13 +16,13 @@ const FACTORY_SCHEDULE_FILTERS_VERSION = "20260808-factory-schedule-planning-pre
 const FACTORY_SCHEDULE_DATES_VERSION = "20260809-factory-schedule-planning-dates-v281";
 const QUESTIONS_HUB_VERSION = "20260814-desempenho-integral-v329";
 const QUESTION_JSON_DETAILS_VERSION = "20260810-revisao-json-explicacoes-v299";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v297-hotfix5-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-duplicate-recommended-batch-v300-duplicate-batch-persistence-v301-duplicate-batch-performance-v304-duplicate-batch-commit-v305-entry-parser-recovery-v306-duplicate-core-delivery-v307-duplicate-batch-core-pin-v308-duplicate-flow-owner-v309-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4-security-v296-questions-hub-v298-question-json-details-v299-factory-simulado-escolha-automatica-v312-simulado-interativo-v313-integracao-v318-reparo-factory-simulado-visibility-v315-posthog-telemetry-v317-simulado-location-v328-factory-resumo-aula-canonical-v327-qconcursos-filter-v337-bootstrap-performance-v342`;
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v297-hotfix5-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-duplicate-recommended-batch-v300-duplicate-batch-persistence-v301-duplicate-batch-performance-v304-duplicate-batch-commit-v305-entry-parser-recovery-v306-duplicate-core-delivery-v307-duplicate-batch-core-pin-v308-duplicate-flow-owner-v309-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4-security-v296-questions-hub-v298-question-json-details-v299-factory-simulado-escolha-automatica-v312-simulado-interativo-v313-integracao-v318-reparo-factory-simulado-visibility-v315-posthog-telemetry-v317-simulado-location-v328-factory-resumo-aula-canonical-v327-qconcursos-filter-v337-dom-style-hot-path-v355-factory-destination-runtime-v354-navigation-bootstrap-v353-bootstrap-fast-path-v351`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
 const HISTORY_LAYOUT_STYLESHEET = `question-history-layout-v223.css?v=${HISTORY_LAYOUT_VERSION}`;
 const FACTORY_QUEUE_INTEGRITY = `factory-queue-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=factory-queue-integrity-hotfix5`;
-const FACTORY_DESTINATION_INTEGRITY = "factory-destination-integrity-v237.js?v=20260804-pastas-destino-classificacao-exata-v237&hotfix=discipline-topic-exact1";
+const FACTORY_DESTINATION_INTEGRITY = "factory-destination-integrity-v237.js?v=20260804-pastas-destino-classificacao-exata-v237&hotfix=factory-destination-on-demand-v354";
 const FACTORY_SCHEDULE_SCOPE = `factory-schedule-scope-v277.js?v=${FACTORY_SCHEDULE_VERSION}`;
 const FACTORY_SCHEDULE_FILTERS = `factory-schedule-filters-v279.js?v=${FACTORY_SCHEDULE_FILTERS_VERSION}`;
 const FACTORY_SCHEDULE_DATES = `factory-schedule-dates-v281.js?v=${FACTORY_SCHEDULE_DATES_VERSION}`;
@@ -32,7 +34,8 @@ const TIMER_SESSION_INTEGRITY = `timer-session-integrity-v236.js?v=${CURRENT_VER
 const INTEGRITY_LOADER = `planning-integrity-loader-v235.js?v=${CURRENT_VERSION}`;
 const INTEGRITY_CORE = `planning-integrity-v235.js?v=${CURRENT_VERSION}`;
 const CATASTROPHIC_STATE_GUARD = `catastrophic-state-guard-v275.js?v=${PROTECTION_VERSION}`;
-const BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275.js?v=${BOOTSTRAP_VERSION}`;
+const BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275.js?v=${FAST_BOOTSTRAP_VERSION}`;
+const BOOTSTRAP_FAST_PATH = `bootstrap-fast-path-v351.js?v=${FAST_BOOTSTRAP_VERSION}`;
 const BOOTSTRAP_CORE = `bootstrap-integrity-loader-v258-core.js?v=${BOOTSTRAP_VERSION}`;
 const QCONCURSOS_FILTER_ROUTE_V333 = `qconcursos-filter-route-v333.js?v=${BOOTSTRAP_VERSION}`;
 const QCONCURSOS_ALL_FILTERS_V334 = `qconcursos-all-filters-v334.js?v=${BOOTSTRAP_VERSION}`;
@@ -82,6 +85,7 @@ const STATIC_ASSETS = [
   INTEGRITY_CORE,
   CATASTROPHIC_STATE_GUARD,
   BOOTSTRAP_PROTECTED,
+  BOOTSTRAP_FAST_PATH,
   BOOTSTRAP_CORE,
   QCONCURSOS_FILTER_ROUTE_V333,
   QCONCURSOS_ALL_FILTERS_V334,
@@ -126,21 +130,29 @@ const STATIC_ASSETS = [
   "icons/icon-maskable.svg"
 ];
 const STATIC_PATHS = new Set(STATIC_ASSETS.map((asset) => new URL(asset, self.registration.scope).pathname));
+const CANONICAL_DOCUMENT_URL = new URL("index.html", self.registration.scope).href;
 const ESSENTIAL_ASSETS = [
-  "./",
-  "index.html",
   `app-${RELEASE_SUFFIX}.css?v=${CURRENT_VERSION}`,
   `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`,
   "icons/aldus-visual-320.webp",
   SECURITY_HARDENING,
   CATASTROPHIC_STATE_GUARD,
   BOOTSTRAP_PROTECTED,
+  BOOTSTRAP_FAST_PATH,
   BOOTSTRAP_CORE
 ];
 
 async function precacheAssets() {
   const cache = await caches.open(CACHE_NAME);
   await cache.addAll(ESSENTIAL_ASSETS);
+
+  const response = await fetch(CANONICAL_DOCUMENT_URL, { cache: "no-store" });
+  if (!response?.ok) throw new Error(`Documento inicial indisponível: ${response?.status || 0}`);
+  const patchedResponse = await ensurePageStylesheets(response);
+  if (!await responseHasProtectedBootstrap(patchedResponse)) {
+    throw new Error("Documento inicial sem bootstrap V351 após transformação.");
+  }
+  await cache.put(CANONICAL_DOCUMENT_URL, patchedResponse.clone());
 }
 
 self.addEventListener("install", (event) => {
@@ -190,11 +202,8 @@ function installProtectedBootstrapV275(html) {
     .replace(/<script\s+id=["']aldusCatastrophicStateGuardV275["'][^>]*><\/script>/gi, "")
     .replace(/<script\s+id=["']aldusBootstrapIntegrityLoaderV275["'][^>]*><\/script>/gi, "");
 
-  const tags = [
-    `<script id="aldusCatastrophicStateGuardV275" src="${CATASTROPHIC_STATE_GUARD}"></script>`,
-    `<script id="aldusBootstrapIntegrityLoaderV275" src="${BOOTSTRAP_PROTECTED}"></script>`
-  ].join("\n  ");
-  return injectBeforeFinalClosingTag(patched, "</body>", tags);
+  const tag = `<script id="aldusBootstrapIntegrityLoaderV275" src="${BOOTSTRAP_PROTECTED}"></script>`;
+  return injectBeforeFinalClosingTag(patched, "</body>", tag);
 }
 
 function installSecurityHardeningV296(html) {
@@ -334,25 +343,61 @@ async function ensurePageStylesheets(response) {
   });
 }
 
+async function responseHasProtectedBootstrap(response) {
+  if (!response?.ok) return false;
+  if (response.headers.get("x-aldus-integrity-version") !== CURRENT_VERSION) return false;
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("text/html")) return false;
+  const html = await response.clone().text();
+  return html.includes('id="aldusBootstrapIntegrityLoaderV275"')
+    && html.includes(BOOTSTRAP_PROTECTED)
+    && html.includes(FAST_BOOTSTRAP_VERSION);
+}
+
+async function cacheNavigationResponse(response) {
+  if (!response?.ok) return response;
+  const cache = await caches.open(CACHE_NAME);
+  await cache.put(CANONICAL_DOCUMENT_URL, response.clone());
+  return response;
+}
+
 async function refreshNavigation(request) {
   const response = await fetch(request, { cache: "no-store" });
   if (!response?.ok) throw new Error(`Navegação indisponível: ${response?.status || 0}`);
   const patchedResponse = await ensurePageStylesheets(response);
-  return cacheResponse(request, patchedResponse);
+  if (!await responseHasProtectedBootstrap(patchedResponse)) {
+    throw new Error("Navegação sem bootstrap V351 após transformação.");
+  }
+  return cacheNavigationResponse(patchedResponse);
 }
 
 async function cachedFirstNavigation(request, event) {
-  const cached = await caches.match(request, { ignoreSearch: true })
-    || await caches.match(new URL("index.html", self.registration.scope).href, { ignoreSearch: true });
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(CANONICAL_DOCUMENT_URL, { ignoreSearch: true });
 
-  if (cached) {
-    event?.waitUntil?.(refreshNavigation(request).catch(() => null));
+  if (cached && await responseHasProtectedBootstrap(cached)) {
+    event?.waitUntil?.(refreshNavigation(request).catch((error) => {
+      console.warn(`[${NAVIGATION_DELIVERY_VERSION}] Falha ao atualizar a navegação em segundo plano.`, error);
+    }));
     return cached;
   }
 
   try {
     return await refreshNavigation(request);
-  } catch {}
+  } catch (error) {
+    console.error(`[${NAVIGATION_DELIVERY_VERSION}] Falha ao entregar navegação protegida.`, error);
+  }
+
+  if (cached) {
+    try {
+      const repaired = await ensurePageStylesheets(cached);
+      if (await responseHasProtectedBootstrap(repaired)) {
+        return cacheNavigationResponse(repaired);
+      }
+    } catch (error) {
+      console.error(`[${NAVIGATION_DELIVERY_VERSION}] Falha ao reparar HTML cacheado.`, error);
+    }
+  }
 
   return new Response("Aplicativo indisponível temporariamente.", {
     status: 503,
