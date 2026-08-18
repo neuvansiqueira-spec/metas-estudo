@@ -29,6 +29,7 @@ function assertCurrentReleaseContract() {
   const bootstrapCore = read("bootstrap-integrity-loader-v258-core.js");
   const factoryDestinationRuntime = read("factory-destination-integrity-v237.js");
   const planningIntegrityLoader = read("planning-integrity-loader-v235.js");
+  const factoryExecutiveRuntime = read("factory-executive-ui-v136.js");
 
   for (const file of [
     "script.js",
@@ -38,7 +39,8 @@ function assertCurrentReleaseContract() {
     "app.bundle.css",
     "bootstrap-integrity-loader-v258-core.js",
     "factory-destination-integrity-v237.js",
-    "planning-integrity-loader-v235.js"
+    "planning-integrity-loader-v235.js",
+    "factory-executive-ui-v136.js"
   ]) {
     assert.equal(read(file), read(`docs/${file}`), `${file} deve ser idêntico em docs`);
   }
@@ -95,6 +97,13 @@ function assertCurrentReleaseContract() {
   assert.match(planningIntegrityLoader, /FACTORY_DESTINATION_HOTFIX = "factory-destination-on-demand-v354"/);
   assert.match(worker, /factory-destination-runtime-v354-navigation-bootstrap-v353-bootstrap-fast-path-v351/);
   assert.match(worker, /factory-destination-integrity-v237\.js\?v=20260804-pastas-destino-classificacao-exata-v237&hotfix=factory-destination-on-demand-v354/);
+
+  // V355: a interface da Fábrica não pode voltar a recalcular DOM/estilo fora da própria rota.
+  assert.ok(factoryExecutiveRuntime.includes("20260818-factory-dom-style-on-demand-v355"));
+  assert.ok(factoryExecutiveRuntime.includes("const isFactoryRoute = () =>"));
+  assert.ok(factoryExecutiveRuntime.includes("requestIdleCallback"));
+  assert.ok(!factoryExecutiveRuntime.includes("new MutationObserver(refresh)"));
+  assert.match(worker, /dom-style-hot-path-v355-factory-destination-runtime-v354-navigation-bootstrap-v353-bootstrap-fast-path-v351/);
 
   assert.ok(fs.existsSync(`app-${suffix}.js`));
   assert.ok(fs.existsSync(`app-${suffix}.css`));

@@ -56028,6 +56028,7 @@ Para cada módulo disponível, confira:
   window.__aldusFactoryExecutiveUiV136 = true;
 
   const VERSION = "20260724-fabrica-executiva-v136";
+  const RUNTIME_VERSION = "20260818-factory-dom-style-on-demand-v355";
   const root = document.getElementById("view-fabrica-resumos");
   if (!root) return;
 
@@ -56152,16 +56153,35 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     const status = root.querySelector("#factoryExecutiveSearchStatusV136");
     if (!input || !status) return;
     const query = normalize(input.value);
+
+    // V355: durante o boot e nas atualizações normais a busca está vazia. Nesse
+    // caso não há motivo para ler textContent de todos os cartões nem regravar
+    // dataset em cada item, operação que forçava recálculo amplo de estilo.
+    if (!query) {
+      root.querySelectorAll('[data-factory-search-hidden-v136="true"]').forEach((target) => {
+        target.dataset.factorySearchHiddenV136 = "false";
+      });
+      if (clear) clear.hidden = true;
+      if (status.textContent !== "Pesquise na lista atualmente exibida.") {
+        status.textContent = "Pesquise na lista atualmente exibida.";
+      }
+      return;
+    }
+
     let visible = 0;
     targets().forEach((target) => {
-      const match = !query || normalize(target.textContent).includes(query);
-      target.dataset.factorySearchHiddenV136 = String(!match);
+      const match = normalize(target.textContent).includes(query);
+      const nextHidden = String(!match);
+      if (target.dataset.factorySearchHiddenV136 !== nextHidden) {
+        target.dataset.factorySearchHiddenV136 = nextHidden;
+      }
       if (match) visible += 1;
     });
-    if (clear) clear.hidden = !query;
-    status.textContent = !query ? "Pesquise na lista atualmente exibida." : visible
+    if (clear) clear.hidden = false;
+    const nextStatus = visible
       ? `${visible} ${visible === 1 ? "resultado encontrado" : "resultados encontrados"} nesta visualização.`
       : "Nenhum tema encontrado nesta visualização. Ajuste a pesquisa ou o filtro.";
+    if (status.textContent !== nextStatus) status.textContent = nextStatus;
   }
 
   function syncUi() {
@@ -56194,7 +56214,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
       registerPanel.dataset.factoryExecutiveV136 = "true";
       registerPanel.addEventListener("toggle", syncUi);
     }
-    root.querySelectorAll("#factoryList .compact-factory-card").forEach((card) => card.dataset.factoryExecutiveV136 = "true");
+    root.querySelectorAll('#factoryList .compact-factory-card:not([data-factory-executive-v136="true"])').forEach((card) => { card.dataset.factoryExecutiveV136 = "true"; });
   }
 
   function bind(toolbar, flow) {
@@ -56229,24 +56249,73 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     }
   }
 
+  const isFactoryRoute = () => typeof location !== "undefined" && location.hash === "#fabrica-resumos";
   let scheduled = false;
-  function refresh() {
-    if (scheduled) return;
-    scheduled = true;
-    requestAnimationFrame(() => {
+  let idleHandle = null;
+  let dirty = true;
+
+  function runRefresh() {
+    scheduled = false;
+    idleHandle = null;
+    if (!isFactoryRoute() || !dirty) return;
+    dirty = false;
+    ensureStyles();
+    const { toolbar, flow } = ensureToolbar();
+    enhancePanels();
+    bind(toolbar, flow);
+    syncUi();
+    applySearch();
+  }
+
+  function refresh({ interactive = false } = {}) {
+    dirty = true;
+    if (!isFactoryRoute()) return false;
+
+    // Um clique do usuário não deve esperar um callback ocioso já pendente.
+    if (interactive && idleHandle !== null && typeof cancelIdleCallback === "function") {
+      cancelIdleCallback(idleHandle);
+      idleHandle = null;
       scheduled = false;
-      ensureStyles();
-      const { toolbar, flow } = ensureToolbar();
-      enhancePanels();
-      bind(toolbar, flow);
-      syncUi();
-      applySearch();
+    }
+    if (scheduled) return false;
+    scheduled = true;
+
+    if (!interactive && typeof requestIdleCallback === "function") {
+      idleHandle = requestIdleCallback(() => requestAnimationFrame(runRefresh), { timeout: 500 });
+    } else {
+      requestAnimationFrame(runRefresh);
+    }
+    return true;
+  }
+
+  function mutationNeedsRefresh(records) {
+    return records.some((record) => {
+      if (record.type !== "childList" || (!record.addedNodes.length && !record.removedNodes.length)) return false;
+      const target = record.target;
+      if (target?.closest?.(".factory-executive-toolbar-v136, .factory-stage-flow-v136")) return false;
+      return true;
     });
   }
 
-  new MutationObserver(refresh).observe(root, { childList: true, subtree: true });
-  root.addEventListener("click", (event) => { if (event.target.closest("[data-factory-filter], [data-factory-scope]")) refresh(); });
-  refresh();
+  new MutationObserver((records) => {
+    // Fora da Fábrica, o observer fica praticamente inerte: apenas registra que
+    // a view mudou. A atualização completa ocorrerá uma única vez ao entrar nela.
+    if (!isFactoryRoute()) {
+      dirty = true;
+      return;
+    }
+    if (mutationNeedsRefresh(records)) refresh();
+  }).observe(root, { childList: true, subtree: true });
+
+  root.addEventListener("click", (event) => {
+    if (event.target.closest("[data-factory-filter], [data-factory-scope]")) refresh({ interactive: true });
+  });
+
+  addEventListener("hashchange", () => {
+    if (isFactoryRoute()) refresh({ interactive: true });
+  });
+
+  if (isFactoryRoute()) refresh({ interactive: true });
 })();
 
 /* Aldus source: daily-study-collapsible-v137.js */

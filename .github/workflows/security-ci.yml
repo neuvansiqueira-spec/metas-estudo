@@ -7,21 +7,19 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   security-check:
-    name: Segurança, V355 e regressões
+    name: Segurança e telemetria
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
 
     steps:
-      - name: Baixar branch V355
+      - name: Baixar repositório
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          ref: v355-dom-style-hot-path
-          fetch-depth: 0
-          persist-credentials: true
+          persist-credentials: false
 
       - name: Configurar Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -31,12 +29,6 @@ jobs:
 
       - name: Instalar dependências sem scripts
         run: npm ci --ignore-scripts
-
-      - name: Alinhar contratos, aplicar V355 e regenerar bundles
-        run: |
-          node tools/fix-v355-contracts.mjs
-          node tools/apply-v355-dom-style-hot-path.mjs
-          npm run build
 
       - name: Validar sintaxe
         run: |
@@ -51,156 +43,24 @@ jobs:
           node --check bootstrap-integrity-loader-v258.js
           node --check bootstrap-integrity-loader-v275.js
           node --check factory-executive-ui-v136.js
-          node --check app-v344.js
           node --check service-worker.js
           node --check service-worker-v344.js
 
-      - name: Executar contratos críticos V351 a V355
+      - name: Executar testes de segurança, telemetria e regressão do prompt
         run: |
           node --test \
+            tests/security-hardening-v296.test.js \
+            tests/v315-usage-telemetry.test.js \
+            tests/v317-posthog-telemetry.test.js \
+            tests/v316-timer-telemetry-security.test.js \
+            tests/v318-security-observability.test.js \
+            tests/v319-telemetry-security-dashboard.test.js \
+            tests/v329-integral-performance.test.js \
+            tests/v326-factory-resumo-aula-visual.test.js \
+            tests/v327-factory-resumo-aula-canonical.test.js \
             tests/v342-bootstrap-performance.test.js \
             tests/v351-bootstrap-fast-path.test.js \
             tests/v352-active-service-worker-delivery.test.js \
             tests/v353-navigation-bootstrap-delivery.test.js \
             tests/v354-factory-destination-runtime.test.js \
             tests/v355-dom-style-hot-path.test.js
-
-      - name: Preparar exatamente o estado final publicável
-        run: |
-          git diff --check
-          rm -f .github/workflows/v355-self-apply.yml tools/apply-v355-dom-style-hot-path.mjs tools/fix-v355-contracts.mjs
-          cat > .github/workflows/security-ci.yml <<'YAML'
-          name: Validar segurança
-
-          on:
-            pull_request:
-              branches:
-                - main
-            workflow_dispatch:
-
-          permissions:
-            contents: read
-
-          jobs:
-            security-check:
-              name: Segurança e telemetria
-              runs-on: ubuntu-latest
-              timeout-minutes: 10
-
-              steps:
-                - name: Baixar repositório
-                  uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-                  with:
-                    persist-credentials: false
-
-                - name: Configurar Node
-                  uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-                  with:
-                    node-version: 22
-                    cache: npm
-
-                - name: Instalar dependências sem scripts
-                  run: npm ci --ignore-scripts
-
-                - name: Validar sintaxe
-                  run: |
-                    node --check security-hardening-v296.js
-                    node --check usage-telemetry-v315.js
-                    node --check security-observability-v318.js
-                    node --check telemetry-security-dashboard-v319.js
-                    node --check factory-resumo-aula-visual-v326.js
-                    node --check factory-resumo-aula-canonical-v327.js
-                    node --check catastrophic-state-guard-v275.js
-                    node --check bootstrap-integrity-loader-v258-core.js
-                    node --check bootstrap-integrity-loader-v258.js
-                    node --check bootstrap-integrity-loader-v275.js
-                    node --check factory-executive-ui-v136.js
-                    node --check service-worker.js
-                    node --check service-worker-v344.js
-
-                - name: Executar testes de segurança, telemetria e regressão do prompt
-                  run: |
-                    node --test \
-                      tests/security-hardening-v296.test.js \
-                      tests/v315-usage-telemetry.test.js \
-                      tests/v317-posthog-telemetry.test.js \
-                      tests/v316-timer-telemetry-security.test.js \
-                      tests/v318-security-observability.test.js \
-                      tests/v319-telemetry-security-dashboard.test.js \
-                      tests/v329-integral-performance.test.js \
-                      tests/v326-factory-resumo-aula-visual.test.js \
-                      tests/v327-factory-resumo-aula-canonical.test.js \
-                      tests/v342-bootstrap-performance.test.js \
-                      tests/v351-bootstrap-fast-path.test.js \
-                      tests/v352-active-service-worker-delivery.test.js \
-                      tests/v353-navigation-bootstrap-delivery.test.js \
-                      tests/v354-factory-destination-runtime.test.js \
-                      tests/v355-dom-style-hot-path.test.js
-          YAML
-          git diff --check
-          git status --short
-
-      - name: Comparar suíte histórica do estado final com a V354
-        shell: bash
-        run: |
-          set -u
-          V354_BASE="069ea7b2b5a8bd04113bb2b8914e954609c77202"
-
-          npm test > /tmp/v355-full.log 2>&1 || true
-
-          git worktree add --detach /tmp/v354-base "$V354_BASE"
-          (
-            cd /tmp/v354-base
-            npm ci --ignore-scripts > /tmp/v354-npm-ci.log 2>&1
-            npm test > /tmp/v354-full.log 2>&1 || true
-          )
-
-          grep -E '^not ok [0-9]+ - ' /tmp/v354-full.log | sed -E 's/^not ok [0-9]+ - //' | sort -u > /tmp/v354-fails.txt || true
-          grep -E '^not ok [0-9]+ - ' /tmp/v355-full.log | sed -E 's/^not ok [0-9]+ - //' | sort -u > /tmp/v355-fails.txt || true
-
-          BASE_TESTS=$(grep -E '^# tests [0-9]+' /tmp/v354-full.log | tail -1 | awk '{print $3}')
-          V355_TESTS=$(grep -E '^# tests [0-9]+' /tmp/v355-full.log | tail -1 | awk '{print $3}')
-          BASE_FAILS=$(wc -l < /tmp/v354-fails.txt)
-          V355_FAILS=$(wc -l < /tmp/v355-fails.txt)
-
-          echo "V354 base: ${BASE_TESTS:-?} testes; ${BASE_FAILS} falhas históricas."
-          echo "V355 final: ${V355_TESTS:-?} testes; ${V355_FAILS} falhas históricas remanescentes."
-
-          if [[ -z "${BASE_TESTS:-}" || -z "${V355_TESTS:-}" ]]; then
-            echo "Não foi possível ler o resumo TAP das suítes."
-            exit 1
-          fi
-          if (( V355_TESTS < BASE_TESTS )); then
-            echo "A V355 executou menos testes que a base V354."
-            exit 1
-          fi
-
-          comm -13 /tmp/v354-fails.txt /tmp/v355-fails.txt > /tmp/v355-new-fails.txt
-          if [[ -s /tmp/v355-new-fails.txt ]]; then
-            echo "Falhas NOVAS introduzidas pela V355:"
-            cat /tmp/v355-new-fails.txt
-            exit 1
-          fi
-
-          echo "V355 final não introduziu nenhuma falha nova em relação ao commit-base V354."
-          echo "Falhas históricas resolvidas pela V355, se houver:"
-          comm -23 /tmp/v354-fails.txt /tmp/v355-fails.txt || true
-
-      - name: Revisar diff final
-        run: |
-          git diff --check
-          test ! -e .github/workflows/v355-self-apply.yml
-          test ! -e tools/apply-v355-dom-style-hot-path.mjs
-          test ! -e tools/fix-v355-contracts.mjs
-          grep -q 'contents: read' .github/workflows/security-ci.yml
-          grep -q '20260818-factory-dom-style-on-demand-v355' factory-executive-ui-v136.js
-          grep -q 'factory-destination-runtime-v354-navigation-bootstrap-v353-bootstrap-fast-path-v351' service-worker.js
-          git status --short
-
-      - name: Consolidar V355 na branch
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "V355: restringe hot path DOM/style à Fábrica"
-          git push origin HEAD:v355-dom-style-hot-path
