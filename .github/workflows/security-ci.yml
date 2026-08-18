@@ -43,6 +43,7 @@ jobs:
           node --check bootstrap-integrity-loader-v258.js
           node --check bootstrap-integrity-loader-v275.js
           node --check service-worker.js
+          node --check service-worker-v344.js
 
       - name: Executar testes de segurança, telemetria e regressão do prompt
         run: |
@@ -56,4 +57,6 @@ jobs:
             tests/v329-integral-performance.test.js \
             tests/v326-factory-resumo-aula-visual.test.js \
             tests/v327-factory-resumo-aula-canonical.test.js \
-            tests/v342-bootstrap-performance.test.js
+            tests/v342-bootstrap-performance.test.js \
+            tests/v351-bootstrap-fast-path.test.js \
+            tests/v352-active-service-worker-delivery.test.js
