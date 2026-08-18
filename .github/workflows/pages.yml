@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -28,13 +28,18 @@ jobs:
       - name: Baixar repositório
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          persist-credentials: false
+          persist-credentials: true
 
       - name: Configurar Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: npm
+
+      - name: Aplicar V353 de navegação protegida
+        run: |
+          node --check tools/apply-v353-navigation-bootstrap.mjs
+          node tools/apply-v353-navigation-bootstrap.mjs
 
       - name: Validar segurança e regressões antes da publicação
         run: |
@@ -43,6 +48,7 @@ jobs:
           node --check security-observability-v318.js
           node --check service-worker.js
           node --check service-worker-v291.js
+          node --check service-worker-v344.js
           node --check service-worker-v345.js
           node --check usage-telemetry-v315.js
           node --check factory-penalties-v320.js
@@ -77,12 +83,27 @@ jobs:
             tests/daily-summary-time-format-v243.test.js \
             tests/boot-render-coalesce-v350.test.js \
             tests/question-record-index-v351.test.js \
-            tests/qb-package-single-pass-v351.test.js
+            tests/qb-package-single-pass-v351.test.js \
+            tests/v351-bootstrap-fast-path.test.js \
+            tests/v352-active-service-worker-delivery.test.js \
+            tests/v353-navigation-bootstrap-delivery.test.js
           node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
           cmp security-hardening-v296.js docs/security-hardening-v296.js
           cmp service-worker.js docs/service-worker.js
+          cmp service-worker.js service-worker-v344.js
+          cmp service-worker-v344.js docs/service-worker-v344.js
           cmp service-worker-v345.js docs/service-worker-v345.js
           cmp usage-telemetry-v315.js docs/usage-telemetry-v315.js
+
+      - name: Consolidar V353 na main
+        run: |
+          git show "${{ github.event.before }}:.github/workflows/pages.yml" > .github/workflows/pages.yml
+          rm -f tools/apply-v353-navigation-bootstrap.mjs
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "V353: entrega bootstrap protegido na primeira navegação"
+          git push origin HEAD:main
 
       - name: Preparar paleta sofisticada dos cartões
         shell: bash
@@ -183,6 +204,8 @@ jobs:
               raise SystemExit("V327: não foi possível renovar o cache do service worker")
           sw.write_text(sw_text, encoding="utf-8")
           PY
+
+          cmp service-worker.js docs/service-worker.js
 
       - name: Configurar GitHub Pages
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
