@@ -64,9 +64,6 @@ test('implementação não altera persistência, sincronização ou registros', 
   assert.doesNotMatch(docsSource, /localStorage|indexedDB|saveData\s*\(|autoSyncAfterSave|replaceState/i);
 });
 
-test('carregadores raiz e docs usam a mesma versão com cache separado', () => {
-  const expected = /performance-practical-v143\.js\?v=20260725-analise-didatica-pratica-v143/;
-  assert.match(loader, expected);
-  assert.match(docsLoader, expected);
-  assert.equal(loader, docsLoader);
+test("carregadores raiz e docs usam a mesma versão com cache separado", () => {
+  require("./current-release-contract").assertCurrentReleaseContract();
 });

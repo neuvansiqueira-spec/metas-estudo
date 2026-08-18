@@ -45,20 +45,5 @@ test("ações ficam compactas e exclusão mantém contraste", () => {
 });
 
 test("cache, reforço de tema e publicação incluem a v60", () => {
-  assert.match(worker, new RegExp(`const CURRENT_VERSION = "${version}"`));
-  assert.match(worker, /"20260718-planejamento-contraste-v59"/);
-  assert.match(worker, /"aldus-planning-history-v60\.css"/);
-  assert.match(worker, /aldusPlanningHistoryV60/);
-  assert.match(headerFix, /ensureStylesheet\("aldusPlanningHistoryV60", "aldus-planning-history-v60\.css"\)/);
-
-  for (const file of [
-    "index.html",
-    "script.js",
-    "service-worker.js",
-    "header-brand-fix.js",
-    "sync-integral-time-protection.js",
-    "aldus-planning-history-v60.css"
-  ]) {
-    assert.equal(fs.readFileSync(file, "utf8"), fs.readFileSync(`docs/${file}`, "utf8"), `${file} deve ser idêntico em docs`);
-  }
+  require("./current-release-contract").assertCurrentReleaseContract();
 });

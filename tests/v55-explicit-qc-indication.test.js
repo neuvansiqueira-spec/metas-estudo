@@ -58,10 +58,5 @@ test("orientação impede copiar automaticamente a numeração do edital", () =>
 });
 
 test("base v55 e arquivos publicados permanecem sincronizados", () => {
-  assert.match(worker, new RegExp(`const CURRENT_VERSION = "${version}"`));
-  assert.match(worker, /"20260718-numeracao-qc-filtros-v54"/);
-  assert.match(html, new RegExp(`Versão: ${version}`));
-  for (const file of ["index.html", "script.js", "service-worker.js", "header-brand-fix.js", "sync-integral-time-protection.js"]) {
-    assert.equal(fs.readFileSync(file, "utf8"), fs.readFileSync(`docs/${file}`, "utf8"), `${file} deve ser idêntico em docs`);
-  }
+  require("./current-release-contract").assertCurrentReleaseContract();
 });

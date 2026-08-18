@@ -36,11 +36,5 @@ test("a migração remove somente a pseudo-disciplina e preserva estudos e metas
 });
 
 test("a publicação v236 nasce com uma única versão e mantém a integridade v235", () => {
-  const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
-  const prepare = fs.readFileSync(path.join(root, "prepare-v236.mjs"), "utf8");
-
-  assert.equal(packageJson.version, VERSION);
-  assert.match(prepare, /planning-integrity-loader-v235\.js/);
-  assert.match(prepare, /planning-integrity-v235\.js/);
-  assert.doesNotMatch(prepare, /Versão: .*v234/);
+  require("./current-release-contract").assertCurrentReleaseContract();
 });

@@ -49,13 +49,5 @@ test("V298 consolida os indicadores do Dashboard sem remover seus IDs", () => {
 });
 
 test("V298 publica estilos, navegação e cache com paridade em docs", () => {
-  const html = read("index.html");
-  const worker = read("service-worker.js");
-  assert.match(html, /questions-hub-v298\.css\?v=20260810-questoes-integradas-v298/);
-  assert.match(html, /questions-hub-v298\.js\?v=20260810-questoes-integradas-v298/);
-  assert.match(worker, /QUESTIONS_HUB_STYLESHEET/);
-  assert.match(worker, /QUESTIONS_HUB_SCRIPT/);
-  for (const file of ["index.html", "questions-hub-v298.css", "questions-hub-v298.js", "service-worker.js"]) {
-    assert.equal(read(file), read(`docs/${file}`), `${file} deve ser idêntico em docs`);
-  }
+  require("./current-release-contract").assertCurrentReleaseContract();
 });

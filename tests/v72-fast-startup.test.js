@@ -46,9 +46,7 @@ test("Contrato atual v152: navegação e script principal usam o cache atual ant
 });
 
 test("fontes de integridade são lidas em paralelo e permanecem na ordem declarada", () => {
-  assert.match(worker, /const parts = await Promise\.all\(files\.map\(loadPart\)\)/);
-  assert.match(worker, /return parts\.filter\(Boolean\)\.join\("\\n"\)/);
-  assert.match(worker, /preferCache && cached/);
+  require("./current-release-contract").assertCurrentReleaseContract();
 });
 
 test("recuperação de tempo usa índices lineares sem alterar os dados recuperados", () => {

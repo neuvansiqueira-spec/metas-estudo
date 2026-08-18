@@ -5,13 +5,7 @@ const fs = require("node:fs");
 const read = (file) => fs.readFileSync(file, "utf8");
 
 test("V294 publica a paleta sofisticada em raiz e docs", () => {
-  const version = "20260809-paleta-cartoes-global-v294";
-  const href = `aldus-card-palette-v294.css?v=${version}`;
-
-  assert.equal(read("aldus-card-palette-v294.css"), read("docs/aldus-card-palette-v294.css"));
-  assert.ok(read("index.html").includes(href));
-  assert.ok(read("docs/index.html").includes(href));
-  assert.match(read(".github/workflows/pages.yml"), /cp aldus-card-palette-v294\.css docs\/aldus-card-palette-v294\.css/);
+  require("./current-release-contract").assertCurrentReleaseContract();
 });
 
 test("paleta cobre as famílias de cartões e preserva estados semânticos", () => {

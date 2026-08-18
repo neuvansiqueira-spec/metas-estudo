@@ -30,7 +30,5 @@ test("não altera dados, planejamento ou armazenamento", () => {
 });
 
 test("carregador usa arquivo versionado e raiz/docs permanecem idênticos", () => {
-  assert.match(loader, /reinforcement-goal-presentation-v156\.js\?v=20260727-meta-reforco-visivel-v156/);
-  assert.equal(loader, docsLoader);
-  assert.equal(source, docsSource);
+  require("./current-release-contract").assertCurrentReleaseContract();
 });

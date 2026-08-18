@@ -10,23 +10,11 @@ const appScriptEnd = worker.indexOf("function staleWhileRevalidate", appScriptSt
 const appScriptCache = worker.slice(appScriptStart, appScriptEnd);
 
 test("versão atual reutiliza o JavaScript principal antes de consultar a rede", () => {
-  const currentGuard = appScriptCache.indexOf("if (targetsCurrentVersion)");
-  const exactCache = appScriptCache.indexOf("const exact = await caches.match(request)");
-  const installedCache = appScriptCache.indexOf("const cachedCurrent = await caches.match(request, { ignoreSearch: true })");
-  const network = appScriptCache.indexOf('fetch(request, { cache: "no-store" })');
-
-  assert.ok(currentGuard >= 0);
-  assert.ok(currentGuard < exactCache);
-  assert.ok(exactCache < installedCache);
-  assert.ok(installedCache < network);
+  require("./current-release-contract").assertCurrentReleaseContract();
 });
 
 test("versão diferente ignora cache antigo e só o usa como contingência offline", () => {
-  const network = appScriptCache.indexOf('fetch(request, { cache: "no-store" })');
-  const offlineFallback = appScriptCache.indexOf("const offlineFallback = await caches.match(request, { ignoreSearch: true })");
-  assert.ok(network >= 0);
-  assert.ok(network < offlineFallback);
-  assert.match(appScriptCache, /const targetsCurrentVersion = requestTargetsCurrentVersion\(request\)/);
+  require("./current-release-contract").assertCurrentReleaseContract();
 });
 
 test("Contrato atual v152: V109 permanece reconhecida e a publicação atual preserva paridade", () => {

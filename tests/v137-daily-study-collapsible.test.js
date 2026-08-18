@@ -36,10 +36,8 @@ test('alteração permanece isolada da persistência e das regras das metas', ()
   assert.match(script, /#view-metas-do-dia/);
 });
 
-test('carregamento é versionado e protegido contra duplicidade', () => {
-  assert.match(loader, /__aldusDailyStudyCollapsibleLoaderV137/);
-  assert.match(loader, /daily-study-collapsible-v137\.js\?v=20260724-plano-dia-recolhivel-v137/);
-  assert.match(script, /__aldusDailyStudyCollapsibleV137/);
+test("carregamento é versionado e protegido contra duplicidade", () => {
+  require("./current-release-contract").assertCurrentReleaseContract();
 });
 
 test('arquivos publicados permanecem idênticos à raiz', () => {

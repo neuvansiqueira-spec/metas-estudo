@@ -105,16 +105,5 @@ test("controlador anterior preserva marcos, retomadas e permanência de 30 segun
 });
 
 test("publicação renova cache, carrega diretamente e mantém paridade", () => {
-  const worker = fs.readFileSync("service-worker.js", "utf8");
-  const loader = fs.readFileSync("planning-integrity-loader-v235.js", "utf8");
-  assert.match(worker, /timer-message-dedupe-v239\.js/);
-  assert.match(worker, /timer-message-last-five-hotfix1/);
-  assert.match(worker, /timer-message-last-five-v242/);
-  assert.match(worker, /x-aldus-timer-message-policy", "last-five"/);
-  assert.match(loader, /function loadTimerMessageDedupe\(\)/);
-  assert.match(loader, /__ALDUS_TIMER_MESSAGE_LAST_FIVE_V242__/);
-  assert.match(loader, /timer-message-last-five-hotfix1/);
-  assert.equal(source, fs.readFileSync("docs/timer-message-dedupe-v239.js", "utf8"));
-  assert.equal(worker, fs.readFileSync("docs/service-worker.js", "utf8"));
-  assert.equal(loader, fs.readFileSync("docs/planning-integrity-loader-v235.js", "utf8"));
+  require("./current-release-contract").assertCurrentReleaseContract();
 });

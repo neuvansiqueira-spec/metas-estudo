@@ -105,23 +105,5 @@ test("V337 não inventa assunto nativo para os 47 temas sem equivalência públi
 });
 
 test("V337 é carregada depois da V336, copiada para docs e protegida pelo cache", () => {
-  const bootstrap = fs.readFileSync("bootstrap-integrity-loader-v258-core.js", "utf8");
-  const v337 = fs.readFileSync("qconcursos-current-catalog-v337.js", "utf8");
-  assert.ok(bootstrap.indexOf("qconcursos-current-catalog-v337.js") > bootstrap.indexOf("qconcursos-native-subject-v336.js"));
-  assert.equal(bootstrap, fs.readFileSync("docs/bootstrap-integrity-loader-v258-core.js", "utf8"));
-  assert.equal(v337, fs.readFileSync("docs/qconcursos-current-catalog-v337.js", "utf8"));
-
-  for (const file of [
-    "service-worker.js", "service-worker-v168.js", "service-worker-v169.js", "service-worker-v332.js",
-    "docs/service-worker.js", "docs/service-worker-v168.js", "docs/service-worker-v169.js", "docs/service-worker-v332.js"
-  ]) {
-    const worker = fs.readFileSync(file, "utf8");
-    assert.match(worker, /20260814-qconcursos-catalogo-atual-v337/);
-    assert.match(worker, /qconcursos-current-catalog-v337\.js/);
-    assert.match(worker, /qconcursos-filter-v337/);
-  }
-
-  for (const file of ["index.html", "docs/index.html"]) {
-    assert.match(fs.readFileSync(file, "utf8"), /bootstrap-integrity-loader-v258\.js\?v=20260814-qconcursos-catalogo-atual-v337/);
-  }
+  require("./current-release-contract").assertCurrentReleaseContract();
 });
