@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   apply:
@@ -40,14 +41,18 @@ jobs:
           cmp service-worker.js docs/service-worker.js
           cmp service-worker.js docs/service-worker-v344.js
 
-      - name: Consolidar e publicar na main
+      - name: Consolidar V353 na main
         run: |
           rm -f tools/apply-v353-navigation-bootstrap.mjs
           rm -f .github/workflows/apply-v353-navigation-bootstrap.yml
+          rm -f .github/V353_TRIGGER.md
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "V353: entrega bootstrap protegido na primeira navegação"
           git push origin HEAD:main
 
-# Trigger V353 após o workflow existir na branch padrão.
+      - name: Disparar publicação GitHub Pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref main
