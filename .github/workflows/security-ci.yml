@@ -44,6 +44,7 @@ jobs:
           node --check bootstrap-integrity-loader-v258.js
           node --check bootstrap-integrity-loader-v275.js
           node --check factory-executive-ui-v136.js
+          node --check planning-variety-v357.js
           node --check service-worker.js
           node --check service-worker-v344.js
 
@@ -66,4 +67,5 @@ jobs:
             tests/v353-navigation-bootstrap-delivery.test.js \
             tests/v354-factory-destination-runtime.test.js \
             tests/v355-dom-style-hot-path.test.js \
-            tests/v356-simulado-recovery-hot-path.test.js
+            tests/v356-simulado-recovery-hot-path.test.js \
+            tests/v357-planning-variety.test.js
