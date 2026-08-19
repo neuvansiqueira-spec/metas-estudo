@@ -1,0 +1,177 @@
+name: Publicar Planejamento V365
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/pages-v365.yml"
+      - "planning-runtime-v365.js"
+      - "tests/v365-planning-runtime.test.js"
+  workflow_run:
+    workflows:
+      - "Publicar GitHub Pages"
+    types:
+      - completed
+  workflow_dispatch:
+
+concurrency:
+  group: github-pages-v365
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy-planning:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    name: Publicar planejamento V365
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Baixar main atual
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Configurar Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+
+      - name: Validar planejamento V365
+        run: |
+          node --check planning-variety-v357.js
+          node --check planning-piece-rotation-v358.js
+          node --check planning-runtime-v365.js
+          node --test tests/v357-planning-variety.test.js tests/v358-piece-rotation-repair.test.js tests/v365-planning-runtime.test.js tests/v352-active-service-worker-delivery.test.js
+
+      - name: Montar entrega V365
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import os
+          import re
+
+          planning_source = Path("planning-variety-v357.js").read_text(encoding="utf-8")
+          piece_source = Path("planning-piece-rotation-v358.js").read_text(encoding="utf-8")
+          runtime_source = Path("planning-runtime-v365.js").read_text(encoding="utf-8")
+
+          def version_of(source, label):
+              match = re.search(r'const VERSION = "([^"]+)";', source)
+              if not match:
+                  raise SystemExit(f"V365: versão de {label} não encontrada")
+              return match.group(1)
+
+          planning_version = version_of(planning_source, "V362")
+          piece_version = version_of(piece_source, "V360")
+          runtime_version = version_of(runtime_source, "V365")
+
+          index = Path("docs/index.html")
+          text = index.read_text(encoding="utf-8")
+
+          for script_id in ("aldusPlanningVarietyV357", "aldusPieceRotationRepairV358", "aldusPlanningRuntimeV365"):
+              text = re.sub(
+                  rf'\s*<!--[^>]*(?:planning|piece)[^>]*-->\s*<script[^>]*id=["\']{script_id}["\'][^>]*>.*?</script>\s*',
+                  "\n",
+                  text,
+                  flags=re.I | re.S,
+              )
+              text = re.sub(
+                  rf'\s*<script[^>]*id=["\']{script_id}["\'][^>]*>.*?</script>\s*',
+                  "\n",
+                  text,
+                  flags=re.I | re.S,
+              )
+
+          text = re.sub(
+              r'\s*<meta\s+name=["\']aldus-planning-delivery["\'][^>]*>\s*',
+              "\n",
+              text,
+              flags=re.I,
+          )
+          meta = (
+              f'  <meta name="aldus-planning-delivery" '
+              f'content="v365|{planning_version}|{piece_version}|{runtime_version}" />\n'
+          )
+          if "</head>" not in text:
+              raise SystemExit("V365: </head> não encontrado")
+          text = text.replace("</head>", meta + "</head>", 1)
+
+          delivery = (
+              '  <!-- aldus-planning-delivery-v365 -->\n'
+              '  <script id="aldusPlanningVarietyV357">\n'
+              + planning_source
+              + '\n  </script>\n'
+              '  <script id="aldusPieceRotationRepairV358">\n'
+              + piece_source
+              + '\n  </script>\n'
+              '  <script id="aldusPlanningRuntimeV365">\n'
+              + runtime_source
+              + '\n  </script>\n'
+          )
+          bootstrap = re.search(
+              r'(?m)^\s*<script\s+id=["\']aldusBootstrapIntegrityLoaderV(?:258|275)["\']',
+              text,
+          )
+          if not bootstrap:
+              raise SystemExit("V365: loader de bootstrap não encontrado")
+          text = text[:bootstrap.start()] + delivery + text[bootstrap.start():]
+
+          for marker in (planning_version, piece_version, runtime_version):
+              if marker not in text:
+                  raise SystemExit(f"V365: HTML final não contém {marker}")
+          if text.find("aldusPlanningRuntimeV365") > text.find("aldusBootstrapIntegrityLoaderV"):
+              raise SystemExit("V365: runtime entrou depois do bootstrap")
+          index.write_text(text, encoding="utf-8")
+
+          delivery_suffix = f"-planning-delivery-v365-{runtime_version}"
+          for worker_name in ("service-worker.js", "service-worker-v344.js"):
+              worker = Path("docs") / worker_name
+              source = worker.read_text(encoding="utf-8")
+              pattern = re.compile(r'(const CACHE_NAME = `)([^`\n]+)(`;)', re.M)
+              match = pattern.search(source)
+              if not match:
+                  raise SystemExit(f"V365: CACHE_NAME não encontrado em {worker_name}")
+              cache_body = re.sub(r'-planning-delivery-[^`]+$', '', match.group(2))
+              replacement = match.group(1) + cache_body + delivery_suffix + match.group(3)
+              source = source[:match.start()] + replacement + source[match.end():]
+              if delivery_suffix not in source:
+                  raise SystemExit(f"V365: cache novo não aplicado em {worker_name}")
+              worker.write_text(source, encoding="utf-8")
+
+          Path("docs/planning-delivery-v365.txt").write_text(
+              "Aldus Planning Delivery V365\n"
+              f"planning={planning_version}\n"
+              f"pieces={piece_version}\n"
+              f"runtime={runtime_version}\n"
+              f"source={os.environ.get('GITHUB_SHA', 'unknown')}\n",
+              encoding="utf-8",
+          )
+
+          public_worker = Path("docs/service-worker-v344.js").read_text(encoding="utf-8")
+          if delivery_suffix not in public_worker:
+              raise SystemExit("V365: worker público não contém o cache renovado")
+          print(f"V365 pronta: {planning_version} / {piece_version} / {runtime_version}")
+          PY
+
+      - name: Configurar GitHub Pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+
+      - name: Enviar artefato V365
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: docs
+
+      - name: Publicar V365
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
