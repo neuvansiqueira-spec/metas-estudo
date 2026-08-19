@@ -49,6 +49,7 @@ jobs:
           node --check factory-resumo-aula-visual-v326.js
           node --check factory-resumo-aula-canonical-v327.js
           node --check planning-variety-v357.js
+          node --check planning-piece-rotation-v358.js
           node --test \
             tests/security-hardening-v296.test.js \
             tests/timer-controls-hardening-v268.test.js \
@@ -79,7 +80,8 @@ jobs:
             tests/boot-render-coalesce-v350.test.js \
             tests/question-record-index-v351.test.js \
             tests/qb-package-single-pass-v351.test.js \
-            tests/v357-planning-variety.test.js
+            tests/v357-planning-variety.test.js \
+            tests/v358-piece-rotation-repair.test.js
           node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
           cmp security-hardening-v296.js docs/security-hardening-v296.js
           cmp service-worker.js docs/service-worker.js
@@ -168,6 +170,22 @@ jobs:
               if bootstrap_position < 0:
                   raise SystemExit("V357: loader de bootstrap não encontrado para injeção segura")
               text = text[:bootstrap_position] + planning_inline + text[bootstrap_position:]
+
+          # V358: repara apenas Peças automáticas futuras intactas, no mesmo ponto inline.
+          # Sem requisição adicional e sem trabalho contínuo: a execução real ocorre em idle nas rotas de planejamento.
+          if "aldusPieceRotationRepairV358" not in text:
+              piece_rotation_source = Path("planning-piece-rotation-v358.js").read_text(encoding="utf-8")
+              piece_rotation_inline = (
+                  '  <!-- aldus-piece-rotation-repair-v358 -->\n'
+                  '  <script id="aldusPieceRotationRepairV358">\n'
+                  + piece_rotation_source
+                  + '\n  </script>\n'
+              )
+              bootstrap_marker = '  <script id="aldusBootstrapIntegrityLoaderV258"'
+              bootstrap_position = text.find(bootstrap_marker)
+              if bootstrap_position < 0:
+                  raise SystemExit("V358: loader de bootstrap não encontrado para injeção segura")
+              text = text[:bootstrap_position] + piece_rotation_inline + text[bootstrap_position:]
           index.write_text(text, encoding="utf-8")
 
           sw = Path("docs/service-worker.js")
