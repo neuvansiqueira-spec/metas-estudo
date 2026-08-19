@@ -1,399 +1,68 @@
-/* Aldus V357: variedade do cronograma e rodízio de Peças */
+/* Aldus V362: variedade, progressão didática e rodízio estável de Peças */
 (() => {
   "use strict";
-
-  const VERSION = "20260818-planning-variety-v357";
+  const VERSION = "20260819-planning-pedagogy-v362";
   if (globalThis.__aldusPlanningVarietyV357?.version === VERSION) return;
 
-  const PIECE_ID_PREFIX = "v357-piece:";
+  const PREFIX = "v357-piece:";
   const PIECE_DISCIPLINE = "PEÇA PARA DELEGADO DE POLÍCIA CIVIL";
-  const PIECE_TYPES = Object.freeze([
-    "Representação por Prisão Temporária",
-    "Representação por Prisão Preventiva",
-    "Representação por Busca e Apreensão",
-    "Representação por Interceptação Telefônica",
-    "Representação por Interceptação Telemática",
-    "Representação por Interceptação Ambiental",
-    "Representação por Quebra de Sigilo Financeiro",
-    "Representação por Quebra de Sigilo Bancário",
-    "Representação por Quebra de Sigilo Fiscal",
-    "Representação por Quebra de Sigilo Telefônico",
+  const PIECES = Object.freeze([
+    "Representação por Prisão Temporária", "Representação por Prisão Preventiva",
+    "Representação por Busca e Apreensão", "Representação por Interceptação Telefônica",
+    "Representação por Interceptação Telemática", "Representação por Interceptação Ambiental",
+    "Representação por Quebra de Sigilo Financeiro", "Representação por Quebra de Sigilo Bancário",
+    "Representação por Quebra de Sigilo Fiscal", "Representação por Quebra de Sigilo Telefônico",
     "Representação por Quebra de Sigilo Telemático"
   ]);
-  const PLANNING_ROUTES = new Set(["planejamento", "metas-do-dia", "calendario-metas", "central-metas"]);
-  const AUTOMATIC_ORIGINS = new Set(["planejamento", "edital verticalizado", "plano do dia"]);
-  let flowWrappersInstalled = false;
-  let auditScheduled = false;
-  let auditCompleted = false;
-  let lastAudit = null;
+  const ROUTES = new Set(["planejamento", "metas-do-dia", "calendario-metas", "central-metas"]);
+  const AUTO_ORIGINS = new Set(["planejamento", "edital verticalizado", "plano do dia"]);
+  const WINDOW = 3;
+  let flowsInstalled = false, pedagogyInstalled = false, auditScheduled = false, auditDone = false, lastAudit = null;
+  let cacheSource = null, cacheLength = -1, orderById = new Map(), orderByKey = new Map();
 
-  function canonical(value) {
-    return String(value || "")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[–—−]/g, "-")
-      .replace(/\s+/g, " ")
-      .trim()
-      .toLowerCase();
-  }
+  const canonical = (v) => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[–—−]/g, "-").replace(/\s+/g, " ").trim().toLowerCase();
+  const route = () => typeof location === "undefined" ? "" : String(location.hash || "").replace(/^#/, "").split(/[?&]/)[0];
+  const today = () => { try { if (typeof todayISO === "function") return todayISO(); } catch {} return new Date().toISOString().slice(0, 10); };
+  const dateOf = (r = {}) => String(r.date || r.data || "").slice(0, 10);
+  const subjectOf = (r = {}) => { try { if (typeof planningBaseSubject === "function") return planningBaseSubject(r); } catch {} return String(r.baseSubject || r.subject || r.assunto || r.topic || r.topico || r.tema || "").replace(/\s+[—-]\s+parte\s+\d+\/\d+\s*$/i, "").trim(); };
+  const subjectKey = (v) => { let k = canonical(v).replace(/^\d+(?:\.\d+)*\s+/, "").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim(); return k.startsWith("representacao por ") ? k.slice(18) : k; };
+  const disciplineKey = (v) => canonical(v).replace(/legislacao penal e legislacao processual penal/g, "legislacao penal e processual penal").replace(/pecas? para delegado(?: de policia civil)?/g, "peca para delegado").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+  const semanticKey = (r = {}) => { const d = disciplineKey(r.discipline || r.disciplina), s = subjectKey(subjectOf(r)); return d && s ? `${d}|${s}` : ""; };
+  const ignored = (r = {}) => ["ignorada", "ignorado", "nao cumprida", "nao cumprido"].includes(canonical(r.status));
+  const isPiece = (r = {}) => !!r && typeof r === "object" && (r.fixedDailyPieceV183 === true || r.pieceCatalogKeyV357 || r.supplementalDelegatePieceV360 === true || canonical(r.contestCategory || r.category || r.classification) === "piece" || (canonical(r.discipline || r.disciplina).includes("peca") && canonical(r.discipline || r.disciplina).includes("delegad")));
+  function hasExecution(r = {}) { const h = r.history || r.historico; if (Array.isArray(h) ? h.length : h) return true; if ([r.actualMinutes,r.tempo_real_minutos,r.studyActualMinutes,r.questionActualMinutes,r.performedMinutes,r.tempoRealizado,r.tempo_realizado].some(v => Number(v) > 0)) return true; return ["concluida","concluido","em andamento","estudado","dominado","revisado"].includes(canonical(r.status)); }
+  function isManual(r = {}) { try { if (typeof isManualDailyGoal === "function" && isManualDailyGoal(r)) return true; } catch {} const o = canonical(r.origin || r.origem); return o === "manual" || o.startsWith("manual ") || o.includes("usuario"); }
+  function isAutoNew(r = {}) { if (!r || isPiece(r) || hasExecution(r) || !AUTO_ORIGINS.has(canonical(r.origin || r.origem))) return false; const t = canonical(r.type || r.tipo || "estudo novo"); return !t || t === "estudo novo" || t === "estudo"; }
 
-  function routeName() {
-    if (typeof location === "undefined") return "";
-    return String(location.hash || "").replace(/^#/, "").split(/[?&]/)[0];
-  }
+  const virtualId = (s) => `${PREFIX}${subjectKey(s).replace(/\s+/g, "-")}`;
+  const VIRTUAL = Object.freeze(PIECES.map(subject => Object.freeze({ id: virtualId(subject), discipline: PIECE_DISCIPLINE, disciplina: PIECE_DISCIPLINE, subject, assunto: subject, topic: subject, status: "Não iniciado", domain: "Não avaliado", priority: "Alta", weight: 5, contestCategory: "PIECE", category: "PIECE", classification: "PIECE", virtualPieceV357: true })));
 
-  function currentDate() {
-    try {
-      if (typeof todayISO === "function") return todayISO();
-    } catch {}
-    return new Date().toISOString().slice(0, 10);
-  }
+  function sanitize(r) { if (!r || typeof r !== "object") return r; const id = String(r.syllabusItemId || r.syllabus_item_id || ""); if (!id.startsWith(PREFIX)) return r; r.pieceCatalogKeyV357 = id; r.syllabusItemId = ""; if (Object.hasOwn(r, "syllabus_item_id")) r.syllabus_item_id = ""; r.fixedDailyPieceV183 = true; r.planningVarietyPolicyV357 = VERSION; return r; }
+  function deep(value, fn, seen = new Set()) { if (!value || typeof value !== "object" || seen.has(value)) return value; seen.add(value); if (Array.isArray(value)) value.forEach(v => deep(v, fn, seen)); else { fn(value); ["added","selected","generated","reports","dates","removed"].forEach(k => value[k] && deep(value[k], fn, seen)); } return value; }
+  function withCatalog(st, callback) { if (!st || typeof st !== "object") return callback(); const original = Array.isArray(st.syllabusItems) ? st.syllabusItems : []; const present = new Set(original.filter(isPiece).map(x => subjectKey(subjectOf(x)))); const virtual = VIRTUAL.filter(x => !present.has(subjectKey(x.subject))); const patched = []; (st.dailyGoals || []).forEach(g => { if (g?.pieceCatalogKeyV357) { patched.push([g,g.syllabusItemId]); g.syllabusItemId = g.pieceCatalogKeyV357; } }); st.syllabusItems = virtual.length ? [...original, ...virtual] : original; try { return callback(); } finally { patched.forEach(([g,id]) => g.syllabusItemId = id || ""); st.syllabusItems = original; } }
 
-  function goalDate(record = {}) {
-    return String(record.date || record.data || "");
-  }
+  const pieceIndex = (r) => PIECES.findIndex(s => subjectKey(s) === subjectKey(subjectOf(r)));
+  function expectedPiece(date, st) { let last = -1, lastDate = "", lastPos = -1; (st?.dailyGoals || []).forEach((g,pos) => { const d = dateOf(g), i = pieceIndex(g); if (!d || d >= date || ignored(g) || !isPiece(g) || i < 0) return; if (d > lastDate || (d === lastDate && pos > lastPos)) { last = i; lastDate = d; lastPos = pos; } }); const idx = (last + 1 + PIECES.length) % PIECES.length, wanted = PIECES[idx]; return (st?.syllabusItems || []).find(x => isPiece(x) && subjectKey(subjectOf(x)) === subjectKey(wanted)) || VIRTUAL[idx]; }
+  function retarget(goal, date, st) { if (!goal || !isPiece(goal) || hasExecution(goal) || isManual(goal)) return false; const item = expectedPiece(date || dateOf(goal) || today(), st); if (!item) return false; const s = subjectOf(item), id = String(item.id || ""); goal.discipline = goal.disciplina = PIECE_DISCIPLINE; goal.subject = goal.assunto = goal.baseSubject = s; if (Object.hasOwn(goal,"topic")) goal.topic = s; if (Object.hasOwn(goal,"topico")) goal.topico = s; if (Object.hasOwn(goal,"tema")) goal.tema = s; goal.syllabusItemId = id; if (Object.hasOwn(goal,"syllabus_item_id")) goal.syllabus_item_id = id; if (id.startsWith(PREFIX)) goal.pieceCatalogKeyV357 = id; else delete goal.pieceCatalogKeyV357; goal.fixedDailyPieceV183 = true; goal.planningPieceSequenceV362 = VERSION; return true; }
 
-  function baseSubject(record = {}) {
-    try {
-      if (typeof planningBaseSubject === "function") return planningBaseSubject(record);
-    } catch {}
-    return String(record.baseSubject || record.subject || record.assunto || record.topic || record.tema || "")
-      .replace(/\s+[—-]\s+parte\s+\d+\/\d+\s*$/i, "")
-      .trim();
-  }
+  function wrapPieceApi(api) { if (!api || typeof api.ensureDailyPieceForDate !== "function" || api.planningVarietyV357 === VERSION) return api; const original = api.ensureDailyPieceForDate.bind(api); return Object.freeze({ ...api, ensureDailyPieceForDate(date, st = null, options = {}) { const stateNow = st || (typeof state !== "undefined" ? state : null); return withCatalog(stateNow, () => { const result = original(date, stateNow, options); deep(result, r => retarget(r, date, stateNow)); return deep(result, sanitize); }); }, planningVarietyV357: VERSION, pieceTypesV357: PIECES }); }
+  function trapPieceApi() { const p = "__aldusDailyDelegatePieceGoalV183", d = Object.getOwnPropertyDescriptor(globalThis,p); if (d?.value) { const w = wrapPieceApi(d.value); if (w !== d.value && d.writable !== false) globalThis[p] = w; return; } if (d && d.configurable === false) return; let value = d?.get ? d.get.call(globalThis) : undefined; Object.defineProperty(globalThis,p,{configurable:true,enumerable:d?.enumerable ?? true,get(){return value},set(next){value=wrapPieceApi(next);Object.defineProperty(globalThis,p,{value,configurable:true,enumerable:true,writable:true})}}); }
 
-  function subjectKey(value) {
-    let key = canonical(value)
-      .replace(/^\d+(?:\.\d+)*\s+/, "")
-      .replace(/[^a-z0-9]+/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    if (key.startsWith("representacao por ")) key = key.slice("representacao por ".length);
-    return key;
-  }
+  function filteredArgs(args = {}, st) { const eligible = Array.isArray(args.eligibleGoals) ? args.eligibleGoals : null; if (!eligible?.length) return args; const existing = Array.isArray(args.existingGoals) ? args.existingGoals : [], need = Math.max(0,(Number(args.topicTarget)||0)-existing.length); if (!need) return args; const d = String(args.date || today()), occupied = new Set(); existing.forEach(g => { if (isAutoNew(g)) { const k=semanticKey(g); if(k) occupied.add(k); } }); (st?.dailyGoals || []).forEach(g => { if (isAutoNew(g) && dateOf(g) < d) { const k=semanticKey(g); if(k) occupied.add(k); } }); const seen = new Set(occupied), filtered=[]; eligible.forEach(g => { if (!isAutoNew(g)) return filtered.push(g); const k=semanticKey(g); if (!k || !seen.has(k)) { filtered.push(g); if(k) seen.add(k); } }); return filtered.length < need ? args : { ...args, eligibleGoals: filtered }; }
 
-  function disciplineKey(value) {
-    return canonical(value)
-      .replace(/legislacao penal e legislacao processual penal/g, "legislacao penal e processual penal")
-      .replace(/pecas? para delegado(?: de policia civil)?/g, "peca para delegado")
-      .replace(/[^a-z0-9]+/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-  }
+  function rebuildOrder(st) { const items = Array.isArray(st?.syllabusItems) ? st.syllabusItems : []; if (items === cacheSource && items.length === cacheLength) return; cacheSource=items; cacheLength=items.length; orderById=new Map(); orderByKey=new Map(); items.forEach((item,i)=>{const id=String(item.id||"");if(id&&!orderById.has(id))orderById.set(id,i);const k=semanticKey(item);if(k&&!orderByKey.has(k))orderByKey.set(k,i)}); }
+  function orderOf(r,st){rebuildOrder(st);const id=String(r.syllabusItemId||r.syllabus_item_id||r.id||"");if(id&&orderById.has(id))return orderById.get(id);const k=semanticKey(r);return k&&orderByKey.has(k)?orderByKey.get(k):Infinity;}
+  function pedagogical(baseline, st) { if (!Array.isArray(baseline) || baseline.length < 2 || !st) return baseline; const out=baseline.slice(), groups=new Map(); baseline.forEach((r,i)=>{if(!isAutoNew(r))return;const d=disciplineKey(r.discipline||r.disciplina);if(!d)return;const g=groups.get(d)||[];g.push({r,i,order:orderOf(r,st)});groups.set(d,g)}); groups.forEach(g=>{if(g.filter(x=>Number.isFinite(x.order)).length<2)return;const sorted=g.slice().sort((a,b)=>{const sa=Number.isFinite(a.order)?Math.floor(a.order/WINDOW):Infinity,sb=Number.isFinite(b.order)?Math.floor(b.order/WINDOW):Infinity;return sa-sb||a.i-b.i});g.forEach((slot,p)=>out[slot.i]=sorted[p].r)}); return out; }
+  function installPedagogy(){if(pedagogyInstalled)return true;const original=globalThis.planningDistributionOrderV77;if(typeof original!=="function")return false;if(original.__aldusPedagogyV362){pedagogyInstalled=true;return true}const wrapped=function(){const st=arguments[1]||(typeof state!=="undefined"?state:null);return pedagogical(original.apply(this,arguments),st)};Object.defineProperty(wrapped,"__aldusPedagogyV362",{value:true});globalThis.planningDistributionOrderV77=wrapped;pedagogyInstalled=true;return true;}
 
-  function semanticTopicKey(record = {}) {
-    const discipline = disciplineKey(record.discipline || record.disciplina);
-    const subject = subjectKey(baseSubject(record));
-    return discipline && subject ? `${discipline}|${subject}` : "";
-  }
+  function wrap(name, factory){const current=globalThis[name];if(typeof current!=="function"||current.__aldusPlanningVarietyV357)return false;const w=factory(current);Object.defineProperty(w,"__aldusPlanningVarietyV357",{value:true});globalThis[name]=w;return true;}
+  function installFlows(){if(flowsInstalled)return true;const sel=wrap("selectPlanningGoalsForTargets",original=>function(args={}){const st=args.targetState||(typeof state!=="undefined"?state:null),d=String(args.date||today());return withCatalog(st,()=>{const result=original.call(this,filteredArgs(args,st));deep(result,r=>retarget(r,d,st));return deep(result,sanitize)})});wrap("generateGoalsForDate",original=>function(date,opts={}){const st=opts.targetState||(typeof state!=="undefined"?state:null),d=String(date||today());return withCatalog(st,()=>{const result=original.apply(this,arguments);deep(result,r=>retarget(r,d,st));return deep(result,sanitize)})});wrap("reconcileDailyGoalsWithPlanning",original=>function(st,date){const current=st||(typeof state!=="undefined"?state:null),d=String(date||today());return withCatalog(current,()=>{const result=original.apply(this,arguments);(current?.dailyGoals||[]).filter(g=>dateOf(g)===d).forEach(g=>retarget(g,d,current));deep(result,r=>retarget(r,d,current));return deep(result,sanitize)})});flowsInstalled=sel||typeof globalThis.selectPlanningGoalsForTargets!=="function";return flowsInstalled;}
 
-  function looksLikePiece(record = {}) {
-    if (!record || typeof record !== "object") return false;
-    if (record.fixedDailyPieceV183 === true || record.pieceCatalogKeyV357) return true;
-    const category = canonical(record.contestCategory || record.category || record.classification);
-    if (category === "piece") return true;
-    const discipline = canonical(record.discipline || record.disciplina);
-    return discipline.includes("peca") && discipline.includes("delegad");
-  }
+  function audit(reason="idle-audit"){if(auditDone)return lastAudit;const st=typeof state!=="undefined"?state:null;if(!st||!Array.isArray(st.dailyGoals)||typeof reconcilePlanningDates!=="function")return null;const start=typeof performance!=="undefined"&&performance.now?performance.now():Date.now(),now=today(),seen=new Set(),dups=[];st.dailyGoals.map((g,i)=>({g,i})).filter(x=>dateOf(x.g)>=now&&isAutoNew(x.g)).sort((a,b)=>dateOf(a.g).localeCompare(dateOf(b.g))||a.i-b.i).forEach(({g})=>{const k=semanticKey(g);if(!k)return;if(seen.has(k))dups.push(g);else seen.add(k)});auditDone=true;if(dups.length){const set=new Set(dups),dates=[...new Set(dups.map(dateOf).filter(Boolean))].sort(),previous=st.dailyGoals;st.dailyGoals=previous.filter(g=>!set.has(g));try{reconcilePlanningDates(st,dates,{rebuildAutomatic:false})}catch(e){st.dailyGoals=previous;auditDone=false;console.warn(`[${VERSION}] Auditoria semântica não aplicada; cronograma anterior preservado.`,e);return null}if(typeof saveData==="function")saveData({markLocalChange:true,reason:"planning-pedagogy-v362"});if(typeof render==="function")render();if(typeof autoSyncAfterSave==="function")autoSyncAfterSave("planning-pedagogy-v362");lastAudit=Object.freeze({version:VERSION,reason,duplicates:dups.length,affectedDates:dates.length,changed:true,totalMs:Number(((performance?.now?.()??Date.now())-start).toFixed?.(1)??0)});return lastAudit}lastAudit=Object.freeze({version:VERSION,reason,duplicates:0,affectedDates:0,changed:false,totalMs:Number(((performance?.now?.()??Date.now())-start).toFixed?.(1)??0)});return lastAudit;}
+  function scheduleAudit(reason="planning-route"){if(auditDone||auditScheduled||!ROUTES.has(route()))return false;auditScheduled=true;const run=()=>{auditScheduled=false;audit(reason)};if(typeof requestIdleCallback==="function")requestIdleCallback(run,{timeout:1500});else if(typeof setTimeout==="function")setTimeout(run,0);else queueMicrotask(run);return true;}
+  function ready(){installFlows();installPedagogy();scheduleAudit("bootstrap-ready")}
 
-  function hasExecution(record = {}) {
-    const history = record.history || record.historico;
-    if (Array.isArray(history) ? history.length > 0 : Boolean(history)) return true;
-    const numericFields = [
-      record.actualMinutes,
-      record.tempo_real_minutos,
-      record.studyActualMinutes,
-      record.questionActualMinutes,
-      record.performedMinutes,
-      record.tempoRealizado,
-      record.tempo_realizado
-    ];
-    if (numericFields.some((value) => Number(value) > 0)) return true;
-    const status = canonical(record.status);
-    return ["concluida", "concluido", "em andamento", "estudado", "dominado", "revisado"].includes(status);
-  }
-
-  function isAutomaticNewStudy(record = {}) {
-    if (!record || typeof record !== "object" || looksLikePiece(record) || hasExecution(record)) return false;
-    if (!AUTOMATIC_ORIGINS.has(canonical(record.origin || record.origem))) return false;
-    const type = canonical(record.type || record.tipo || "estudo novo");
-    return !type || type === "estudo novo" || type === "estudo";
-  }
-
-  function virtualPieceId(subject) {
-    return `${PIECE_ID_PREFIX}${subjectKey(subject).replace(/\s+/g, "-")}`;
-  }
-
-  const VIRTUAL_PIECES = Object.freeze(PIECE_TYPES.map((subject) => Object.freeze({
-    id: virtualPieceId(subject),
-    discipline: PIECE_DISCIPLINE,
-    disciplina: PIECE_DISCIPLINE,
-    subject,
-    assunto: subject,
-    topic: subject,
-    status: "Não iniciado",
-    domain: "Não avaliado",
-    priority: "Alta",
-    weight: 5,
-    contestCategory: "PIECE",
-    category: "PIECE",
-    classification: "PIECE",
-    virtualPieceV357: true
-  })));
-
-  function sanitizePieceRecord(record) {
-    if (!record || typeof record !== "object") return record;
-    const syllabusId = String(record.syllabusItemId || record.syllabus_item_id || "");
-    if (!syllabusId.startsWith(PIECE_ID_PREFIX)) return record;
-    record.pieceCatalogKeyV357 = syllabusId;
-    record.syllabusItemId = "";
-    if (Object.prototype.hasOwnProperty.call(record, "syllabus_item_id")) record.syllabus_item_id = "";
-    record.fixedDailyPieceV183 = true;
-    record.planningVarietyPolicyV357 = VERSION;
-    return record;
-  }
-
-  function sanitizePieceResult(value, seen = new Set()) {
-    if (!value || typeof value !== "object" || seen.has(value)) return value;
-    seen.add(value);
-    if (Array.isArray(value)) {
-      value.forEach((entry) => sanitizePieceResult(entry, seen));
-      return value;
-    }
-    sanitizePieceRecord(value);
-    ["added", "selected", "generated", "reports", "dates", "removed"].forEach((key) => {
-      if (value[key] && typeof value[key] === "object") sanitizePieceResult(value[key], seen);
-    });
-    return value;
-  }
-
-  function withPieceCatalog(targetState, callback) {
-    if (!targetState || typeof targetState !== "object") return callback();
-    const originalItems = Array.isArray(targetState.syllabusItems) ? targetState.syllabusItems : [];
-    const existingPieceSubjects = new Set(
-      originalItems.filter(looksLikePiece).map((item) => subjectKey(baseSubject(item))).filter(Boolean)
-    );
-    const virtualItems = VIRTUAL_PIECES.filter((item) => !existingPieceSubjects.has(subjectKey(item.subject)));
-    const patchedGoals = [];
-
-    (targetState.dailyGoals || []).forEach((goal) => {
-      if (!goal?.pieceCatalogKeyV357) return;
-      patchedGoals.push([goal, goal.syllabusItemId]);
-      goal.syllabusItemId = goal.pieceCatalogKeyV357;
-    });
-
-    targetState.syllabusItems = virtualItems.length ? [...originalItems, ...virtualItems] : originalItems;
-    try {
-      const result = callback();
-      sanitizePieceResult(result);
-      return result;
-    } finally {
-      patchedGoals.forEach(([goal, previous]) => { goal.syllabusItemId = previous || ""; });
-      targetState.syllabusItems = originalItems;
-    }
-  }
-
-  function wrapPieceApi(api) {
-    if (!api || typeof api !== "object" || api.planningVarietyV357 === VERSION) return api;
-    const originalEnsure = typeof api.ensureDailyPieceForDate === "function"
-      ? api.ensureDailyPieceForDate.bind(api)
-      : null;
-    if (!originalEnsure) return api;
-    const wrappedEnsure = function ensureDailyPieceForDateV357(date, targetState = null, options = {}) {
-      const currentState = targetState || (typeof state !== "undefined" ? state : null);
-      return withPieceCatalog(currentState, () => originalEnsure(date, currentState, options));
-    };
-    return Object.freeze({
-      ...api,
-      ensureDailyPieceForDate: wrappedEnsure,
-      planningVarietyV357: VERSION,
-      pieceTypesV357: PIECE_TYPES
-    });
-  }
-
-  function installPieceApiTrap() {
-    const property = "__aldusDailyDelegatePieceGoalV183";
-    const descriptor = Object.getOwnPropertyDescriptor(globalThis, property);
-    if (descriptor?.value) {
-      const wrapped = wrapPieceApi(descriptor.value);
-      if (wrapped !== descriptor.value && descriptor.writable !== false) globalThis[property] = wrapped;
-      return;
-    }
-    if (descriptor && descriptor.configurable === false) return;
-    let value = descriptor?.get ? descriptor.get.call(globalThis) : undefined;
-    Object.defineProperty(globalThis, property, {
-      configurable: true,
-      enumerable: descriptor?.enumerable ?? true,
-      get() { return value; },
-      set(next) {
-        value = wrapPieceApi(next);
-        Object.defineProperty(globalThis, property, {
-          value,
-          configurable: true,
-          enumerable: true,
-          writable: true
-        });
-      }
-    });
-  }
-
-  function filteredSelectionArgs(args = {}, targetState) {
-    const eligibleGoals = Array.isArray(args.eligibleGoals) ? args.eligibleGoals : null;
-    if (!eligibleGoals?.length) return args;
-    const existingGoals = Array.isArray(args.existingGoals) ? args.existingGoals : [];
-    const targetTopics = Math.max(0, Number(args.topicTarget) || 0);
-    const needed = Math.max(0, targetTopics - existingGoals.length);
-    if (!needed) return args;
-    const date = String(args.date || currentDate());
-    const occupied = new Set();
-
-    existingGoals.forEach((goal) => {
-      if (!isAutomaticNewStudy(goal)) return;
-      const key = semanticTopicKey(goal);
-      if (key) occupied.add(key);
-    });
-    (targetState?.dailyGoals || []).forEach((goal) => {
-      if (!isAutomaticNewStudy(goal)) return;
-      const goalDay = goalDate(goal);
-      if (!goalDay || goalDay >= date) return;
-      const key = semanticTopicKey(goal);
-      if (key) occupied.add(key);
-    });
-
-    const filtered = [];
-    const localSeen = new Set(occupied);
-    eligibleGoals.forEach((goal) => {
-      if (!isAutomaticNewStudy(goal)) {
-        filtered.push(goal);
-        return;
-      }
-      const key = semanticTopicKey(goal);
-      if (!key || !localSeen.has(key)) {
-        filtered.push(goal);
-        if (key) localSeen.add(key);
-      }
-    });
-    if (filtered.length < needed) return args;
-    return { ...args, eligibleGoals: filtered };
-  }
-
-  function wrapGlobalFunction(name, wrapperFactory) {
-    const current = globalThis[name];
-    if (typeof current !== "function" || current.__aldusPlanningVarietyV357) return false;
-    const wrapped = wrapperFactory(current);
-    Object.defineProperty(wrapped, "__aldusPlanningVarietyV357", { value: true });
-    globalThis[name] = wrapped;
-    return true;
-  }
-
-  function installFlowWrappers() {
-    if (flowWrappersInstalled) return true;
-    const selection = wrapGlobalFunction("selectPlanningGoalsForTargets", (original) => function selectPlanningGoalsForTargetsV357(args = {}) {
-      const targetState = args.targetState || (typeof state !== "undefined" ? state : null);
-      return withPieceCatalog(targetState, () => sanitizePieceResult(original.call(this, filteredSelectionArgs(args, targetState))));
-    });
-    wrapGlobalFunction("generateGoalsForDate", (original) => function generateGoalsForDateV357(date, opts = {}) {
-      const targetState = opts.targetState || (typeof state !== "undefined" ? state : null);
-      return withPieceCatalog(targetState, () => sanitizePieceResult(original.apply(this, arguments)));
-    });
-    wrapGlobalFunction("reconcileDailyGoalsWithPlanning", (original) => function reconcileDailyGoalsWithPlanningV357(targetState, date, opts = {}) {
-      const currentState = targetState || (typeof state !== "undefined" ? state : null);
-      return withPieceCatalog(currentState, () => sanitizePieceResult(original.apply(this, arguments)));
-    });
-    flowWrappersInstalled = selection || typeof globalThis.selectPlanningGoalsForTargets !== "function";
-    return flowWrappersInstalled;
-  }
-
-  function auditSchedule(reason = "idle-audit") {
-    if (auditCompleted) return lastAudit;
-    const targetState = typeof state !== "undefined" ? state : null;
-    if (!targetState || !Array.isArray(targetState.dailyGoals)) return null;
-    if (typeof reconcilePlanningDates !== "function") return null;
-
-    const startedAt = typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now();
-    const today = currentDate();
-    const candidates = targetState.dailyGoals
-      .map((goal, index) => ({ goal, index }))
-      .filter(({ goal }) => goalDate(goal) >= today && isAutomaticNewStudy(goal))
-      .sort((a, b) => goalDate(a.goal).localeCompare(goalDate(b.goal)) || a.index - b.index);
-    const seen = new Set();
-    const duplicates = [];
-    candidates.forEach(({ goal }) => {
-      const key = semanticTopicKey(goal);
-      if (!key) return;
-      if (seen.has(key)) duplicates.push(goal);
-      else seen.add(key);
-    });
-
-    auditCompleted = true;
-    if (!duplicates.length) {
-      const finishedAt = typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now();
-      lastAudit = Object.freeze({ version: VERSION, reason, duplicates: 0, affectedDates: 0, changed: false, totalMs: Number((finishedAt - startedAt).toFixed?.(1) ?? (finishedAt - startedAt)) });
-      return lastAudit;
-    }
-
-    const duplicateSet = new Set(duplicates);
-    const affectedDates = [...new Set(duplicates.map(goalDate).filter(Boolean))].sort();
-    const previousGoals = targetState.dailyGoals;
-    targetState.dailyGoals = previousGoals.filter((goal) => !duplicateSet.has(goal));
-    let reconcileReport = null;
-    try {
-      reconcileReport = reconcilePlanningDates(targetState, affectedDates, { rebuildAutomatic: false });
-    } catch (error) {
-      targetState.dailyGoals = previousGoals;
-      auditCompleted = false;
-      console.warn(`[${VERSION}] Auditoria semântica não aplicada; cronograma anterior preservado.`, error);
-      return null;
-    }
-
-    if (typeof saveData === "function") saveData({ markLocalChange: true, reason: "planning-variety-v357" });
-    if (typeof render === "function") render();
-    if (typeof autoSyncAfterSave === "function") autoSyncAfterSave("planning-variety-v357");
-    const finishedAt = typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now();
-    lastAudit = Object.freeze({
-      version: VERSION,
-      reason,
-      duplicates: duplicates.length,
-      affectedDates: affectedDates.length,
-      changed: true,
-      totalMs: Number((finishedAt - startedAt).toFixed?.(1) ?? (finishedAt - startedAt)),
-      replenished: Number(reconcileReport?.added?.length || 0)
-    });
-    return lastAudit;
-  }
-
-  function scheduleAudit(reason = "planning-route") {
-    if (auditCompleted || auditScheduled || !PLANNING_ROUTES.has(routeName())) return false;
-    auditScheduled = true;
-    const execute = () => {
-      auditScheduled = false;
-      installFlowWrappers();
-      auditSchedule(reason);
-    };
-    if (typeof requestIdleCallback === "function") requestIdleCallback(execute, { timeout: 1200 });
-    else if (typeof setTimeout === "function") setTimeout(execute, 0);
-    else queueMicrotask(execute);
-    return true;
-  }
-
-  function onBootstrapReady() {
-    installFlowWrappers();
-    scheduleAudit("bootstrap-planning-route");
-  }
-
-  installPieceApiTrap();
-  if (typeof window !== "undefined") {
-    if (globalThis.__aldusBootstrapReady) queueMicrotask(onBootstrapReady);
-    else window.addEventListener("aldus:bootstrap-ready", onBootstrapReady, { once: true });
-    window.addEventListener("hashchange", () => scheduleAudit("route-entered"));
-  }
-
-  globalThis.__aldusPlanningVarietyV357 = Object.freeze({
-    version: VERSION,
-    pieceTypes: PIECE_TYPES,
-    semanticTopicKey,
-    installFlowWrappers,
-    runAudit: auditSchedule,
-    getLastAudit: () => lastAudit
-  });
+  trapPieceApi();
+  if(typeof window!=="undefined"){if(globalThis.__aldusBootstrapReady)queueMicrotask(ready);else window.addEventListener("aldus:bootstrap-ready",ready,{once:true});window.addEventListener("aldus:post-bootstrap-maintenance-complete",()=>{installFlows();installPedagogy();scheduleAudit("post-bootstrap-maintenance")},{once:true});window.addEventListener("hashchange",()=>scheduleAudit("route-entered"));}
+  globalThis.__aldusPlanningVarietyV357=Object.freeze({version:VERSION,pieceTypes:PIECES,pedagogyWindow:WINDOW,reorderWithinDisciplines:pedagogical,retargetPieceGoal:retarget,runAudit:audit,scheduleAudit,getLastAudit:()=>lastAudit});
 })();
