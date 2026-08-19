@@ -1,8 +1,8 @@
-/* Aldus V358: repara rodízio futuro de Peças sem criar hot path */
+/* Aldus V359: repara o timing do rodízio futuro de Peças sem criar hot path */
 (() => {
   "use strict";
 
-  const VERSION = "20260818-piece-rotation-repair-v358";
+  const VERSION = "20260818-piece-rotation-post-bootstrap-v359";
   if (globalThis.__aldusPieceRotationRepairV358?.version === VERSION) return;
 
   const PIECE_ID_PREFIX = "v357-piece:";
@@ -167,6 +167,24 @@
       futureGroups.set(date, entries);
     });
 
+    // V359: cronograma vazio/incompleto durante o bootstrap não encerra a auditoria.
+    // A V186 pode criar as Peças no pós-bootstrap; aguardamos esse estado real antes de concluir.
+    if (!futureGroups.size) {
+      const finishedAt = typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now();
+      lastAudit = Object.freeze({
+        version: VERSION,
+        reason,
+        changed: false,
+        waitingForGoals: true,
+        reassigned: 0,
+        removedDuplicates: 0,
+        protectedDates: 0,
+        futureDates: 0,
+        totalMs: Number((finishedAt - startedAt).toFixed?.(1) ?? (finishedAt - startedAt))
+      });
+      return lastAudit;
+    }
+
     const removeSet = new Set();
     const affectedDates = new Set();
     let reassigned = 0;
@@ -214,9 +232,9 @@
     const changed = reassigned > 0 || removeSet.size > 0;
     auditCompleted = true;
     if (changed) {
-      if (typeof saveData === "function") saveData({ markLocalChange: true, reason: "piece-rotation-repair-v358" });
+      if (typeof saveData === "function") saveData({ markLocalChange: true, reason: "piece-rotation-post-bootstrap-v359" });
       if (typeof render === "function") render();
-      if (typeof autoSyncAfterSave === "function") autoSyncAfterSave("piece-rotation-repair-v358");
+      if (typeof autoSyncAfterSave === "function") autoSyncAfterSave("piece-rotation-post-bootstrap-v359");
     }
 
     const finishedAt = typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now();
@@ -224,6 +242,7 @@
       version: VERSION,
       reason,
       changed,
+      waitingForGoals: false,
       reassigned,
       removedDuplicates: removeSet.size,
       protectedDates,
@@ -253,14 +272,19 @@
   if (typeof window !== "undefined") {
     if (globalThis.__aldusBootstrapReady) queueMicrotask(onBootstrapReady);
     else window.addEventListener("aldus:bootstrap-ready", onBootstrapReady, { once: true });
+    window.addEventListener("aldus:post-bootstrap-maintenance-complete", () => {
+      scheduleAudit("post-bootstrap-maintenance");
+    }, { once: true });
     window.addEventListener("hashchange", () => scheduleAudit("route-entered"));
   }
 
-  globalThis.__aldusPieceRotationRepairV358 = Object.freeze({
+  const publicApi = Object.freeze({
     version: VERSION,
     pieceTypes: PIECE_TYPES,
     runAudit: auditPieceRotation,
     scheduleAudit,
     getLastAudit: () => lastAudit
   });
+  globalThis.__aldusPieceRotationRepairV358 = publicApi;
+  globalThis.__aldusPieceRotationTimingV359 = publicApi;
 })();
