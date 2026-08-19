@@ -139,6 +139,40 @@ test("V358 mantém no máximo uma Peça automática futura por dia e pede recomp
   assert.equal(context.__aldusPieceRotationRepairV358.getLastAudit().removedDuplicates, 1);
 });
 
+test("V359 não encerra auditoria com cronograma vazio e roda após o pós-bootstrap", () => {
+  const context = makeContext();
+  context.todayISO = () => "2026-08-19";
+  context.state = { dailyGoals: [] };
+  let saves = 0;
+  context.saveData = () => { saves += 1; };
+  context.render = () => {};
+  context.autoSyncAfterSave = () => {};
+
+  context.dispatchEvent({ type: "aldus:bootstrap-ready" });
+  context.flushIdle();
+  const waiting = context.__aldusPieceRotationRepairV358.getLastAudit();
+  assert.equal(waiting.waitingForGoals, true);
+  assert.equal(waiting.futureDates, 0);
+  assert.match(waiting.version, /v359$/);
+
+  const repeated = "Representação por Quebra de Sigilo Bancário";
+  const futureDates = Array.from({ length: 13 }, (_, index) => `2026-08-${String(19 + index).padStart(2, "0")}`);
+  context.state.dailyGoals = [
+    pieceGoal("past", "2026-08-18", repeated),
+    ...futureDates.map((date, index) => pieceGoal(`loaded-${index}`, date, repeated))
+  ];
+
+  context.dispatchEvent({ type: "aldus:post-bootstrap-maintenance-complete" });
+  context.flushIdle();
+
+  const future = context.state.dailyGoals.filter((goal) => goal.date >= "2026-08-19");
+  assert.equal(new Set(future.slice(0, 11).map((goal) => goal.subject)).size, 11);
+  assert.equal(context.__aldusPieceRotationRepairV358.getLastAudit().waitingForGoals, false);
+  assert.equal(context.__aldusPieceRotationRepairV358.getLastAudit().reassigned, 13);
+  assert.equal(saves, 1);
+  assert.equal(context.__aldusPieceRotationTimingV359.version, context.__aldusPieceRotationRepairV358.version);
+});
+
 test("V358 fica inerte fora das rotas de planejamento", () => {
   const context = makeContext("#fabrica-resumos");
   context.todayISO = () => "2026-08-19";
@@ -149,8 +183,10 @@ test("V358 fica inerte fora das rotas de planejamento", () => {
   assert.equal(context.__aldusPieceRotationRepairV358.getLastAudit(), null);
 });
 
-test("V358 não cria hot path nem acesso direto ao armazenamento", () => {
+test("V359 não cria hot path nem acesso direto ao armazenamento", () => {
   assert.match(source, /requestIdleCallback/);
+  assert.match(source, /aldus:post-bootstrap-maintenance-complete/);
+  assert.match(source, /waitingForGoals/);
   assert.match(source, /PLANNING_ROUTES/);
   assert.doesNotMatch(source, /MutationObserver|setInterval|localStorage|indexedDB|syncStableSerialize|cloneData|structuredClone/);
   const pagesWorkflow = fs.readFileSync(path.join(root, ".github", "workflows", "pages.yml"), "utf8");
