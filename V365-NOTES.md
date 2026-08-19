@@ -1,0 +1,1 @@
+V365 valida o cronograma pós-geração: reaplica o ciclo das 11 Peças, corrige a ordem didática futura e limita a seleção nova à fronteira inicial do edital, sem MutationObserver, setInterval ou acesso direto a armazenamento.
