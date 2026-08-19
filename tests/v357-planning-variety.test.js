@@ -176,3 +176,124 @@ test("V357 não cria hot path, loop contínuo nem acesso direto ao armazenamento
   assert.match(pagesWorkflow, /planning-variety-v357\.js/);
   assert.match(pagesWorkflow, /aldusPlanningVarietyV357/);
 });
+
+const v361Source = fs.readFileSync(path.join(root, "factory-schedule-performance-v361.js"), "utf8");
+
+function v361Dates(count) {
+  const start = new Date("2026-08-19T12:00:00Z");
+  return Array.from({ length: count }, (_, index) => {
+    const date = new Date(start);
+    date.setUTCDate(date.getUTCDate() + index);
+    return date.toISOString().slice(0, 10);
+  });
+}
+
+function makeV361Context() {
+  const scheduledDates = v361Dates(30);
+  const targetState = {
+    dailyGoals: scheduledDates.map((date, index) => ({
+      id: `goal-${index}`,
+      date,
+      syllabusItemId: `syllabus-${index}`,
+      discipline: `Disciplina ${index}`,
+      subject: `Tema ${index}`,
+      status: "Pendente"
+    }))
+  };
+  const agenda = Array.from({ length: 100 }, (_, index) => ({
+    id: `factory-${index}`,
+    editalActive: true,
+    editalLink: { itemIds: [`syllabus-${index}`], discipline: `Disciplina ${index}`, subject: `Tema ${index}` },
+    modules: { resumoAula: { status: "Não iniciado" } }
+  }));
+  let originalQueueCalls = 0;
+  let largestAgenda = 0;
+  const document = {
+    readyState: "complete",
+    addEventListener() {},
+    getElementById() { return null; },
+    createElement() { throw new Error("DOM não deve ser necessário neste teste"); }
+  };
+  const context = {
+    console,
+    Date,
+    Map,
+    Set,
+    WeakSet,
+    Object,
+    String,
+    Number,
+    Array,
+    Boolean,
+    Math,
+    JSON,
+    document,
+    state: targetState,
+    factoryProductionScope: "schedule",
+    __ALDUS_FACTORY_SCHEDULE_SCOPE_V277__: { version: "v277" },
+    isPlanningStudyGoal: () => true,
+    factoryResumoAulaPending: () => true,
+    ensureFactoryAgenda: () => agenda,
+    requestAnimationFrame(callback) { callback(); return 1; },
+    queueMicrotask(callback) { callback(); },
+    addEventListener() {},
+    factoryQueueForDate(date, narrowedAgenda) {
+      originalQueueCalls += 1;
+      largestAgenda = Math.max(largestAgenda, narrowedAgenda.length);
+      const goal = targetState.dailyGoals.find((entry) => entry.date === date);
+      const item = narrowedAgenda.find((entry) => entry.editalLink.itemIds.includes(goal?.syllabusItemId));
+      return item ? [{ item, goals: [goal] }] : [];
+    }
+  };
+  context.renderFactory = () => {
+    scheduledDates.forEach((date) => context.factoryQueueForDate(date, agenda));
+    return true;
+  };
+  context.window = context;
+  context.globalThis = context;
+  vm.createContext(context);
+  vm.runInContext(v361Source, context, { filename: "factory-schedule-performance-v361.js" });
+  return {
+    context,
+    get originalQueueCalls() { return originalQueueCalls; },
+    get largestAgenda() { return largestAgenda; }
+  };
+}
+
+test("V361 limita o primeiro render a 20 temas e calcula o próximo bloco sob demanda", () => {
+  const fixture = makeV361Context();
+  fixture.context.renderFactory();
+  const first = fixture.context.__ALDUS_FACTORY_SCHEDULE_PERFORMANCE_V361__.getSession();
+  assert.equal(first.visibleLimit, 20);
+  assert.equal(first.loadedThemes, 20);
+  assert.equal(fixture.originalQueueCalls, 20);
+  assert.equal(first.hasMorePotential, true);
+
+  fixture.context.__ALDUS_FACTORY_SCHEDULE_PERFORMANCE_V361__.showMore();
+  const second = fixture.context.__ALDUS_FACTORY_SCHEDULE_PERFORMANCE_V361__.getSession();
+  assert.equal(second.visibleLimit, 40);
+  assert.equal(second.loadedThemes, 30);
+  assert.equal(fixture.originalQueueCalls, 30, "datas já calculadas devem vir do cache");
+  assert.equal(second.hasMorePotential, false);
+});
+
+test("V361 reduz a agenda exata antes da fila pesada", () => {
+  const fixture = makeV361Context();
+  fixture.context.renderFactory();
+  assert.equal(fixture.largestAgenda, 1, "agenda de 100 itens deve cair para o item exato do dia");
+});
+
+test("V361 desativa V280/V281 e não cria hot path contínuo", () => {
+  const fixture = makeV361Context();
+  assert.equal(fixture.context.__ALDUS_FACTORY_SCHEDULE_FILTERS_V280__.supersededByV361, true);
+  assert.equal(fixture.context.__ALDUS_FACTORY_SCHEDULE_DATES_V281__.supersededByV361, true);
+  assert.match(v361Source, /PAGE_SIZE = 20/);
+  assert.match(v361Source, /narrowAgendaForDate/);
+  assert.match(v361Source, /requestAnimationFrame/);
+  assert.doesNotMatch(v361Source, /MutationObserver|setInterval|localStorage|indexedDB|saveData\s*\(|syncStableSerialize|cloneData/);
+  const preloader = fs.readFileSync(path.join(root, "planning-piece-rotation-v358.js"), "utf8");
+  assert.match(preloader, /aldusFactorySchedulePerformanceV361/);
+  assert.match(preloader, /factory-schedule-performance-v361\.js\?v=/);
+  const docsRuntime = fs.readFileSync(path.join(root, "docs", "factory-schedule-performance-v361.js"), "utf8");
+  assert.equal(docsRuntime, v361Source);
+});
