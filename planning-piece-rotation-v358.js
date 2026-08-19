@@ -430,3 +430,31 @@
   globalThis.__aldusPieceRotationTimingV359 = publicApi;
   globalThis.__aldusDelegatePieceCatalogV360 = publicApi;
 })();
+
+/* Aldus V361: preloader do Cronograma incremental da Fábrica */
+(() => {
+  "use strict";
+  const VERSION = "20260819-factory-schedule-incremental-v361";
+  if (globalThis.__aldusFactoryScheduleV361Preloader?.version === VERSION) return;
+
+  // Bloqueia os dois complementos legados antes que os scripts V280/V281 injetados pelo worker executem.
+  // O escopo-base V277 continua ativo e é otimizado pelo runtime V361 após o carregamento.
+  globalThis.__ALDUS_FACTORY_SCHEDULE_FILTERS_V280__ ||= Object.freeze({ version: VERSION, supersededByV361: true });
+  globalThis.__ALDUS_FACTORY_SCHEDULE_DATES_V281__ ||= Object.freeze({ version: VERSION, supersededByV361: true });
+
+  function loadRuntime() {
+    if (typeof document === "undefined") return false;
+    if (globalThis.__ALDUS_FACTORY_SCHEDULE_PERFORMANCE_V361__) return true;
+    if (document.getElementById("aldusFactorySchedulePerformanceV361")) return true;
+    const script = document.createElement("script");
+    script.id = "aldusFactorySchedulePerformanceV361";
+    script.src = new URL(`factory-schedule-performance-v361.js?v=${VERSION}`, document.baseURI).toString();
+    script.async = false;
+    script.addEventListener("error", () => console.error(`[${VERSION}] Falha ao carregar a otimização do Cronograma da Fábrica.`), { once: true });
+    (document.head || document.documentElement).appendChild(script);
+    return true;
+  }
+
+  loadRuntime();
+  globalThis.__aldusFactoryScheduleV361Preloader = Object.freeze({ version: VERSION, loadRuntime });
+})();
