@@ -1,0 +1,182 @@
+name: Publicar Planejamento V364
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/pages-v364.yml"
+      - "planning-variety-v357.js"
+      - "planning-piece-rotation-v358.js"
+  workflow_run:
+    workflows:
+      - "Publicar GitHub Pages"
+    types:
+      - completed
+  workflow_dispatch:
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy-planning:
+    name: Publicar planejamento V364
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Baixar main atual
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Configurar Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+
+      - name: Validar políticas de planejamento
+        run: |
+          node --check planning-variety-v357.js
+          node --check planning-piece-rotation-v358.js
+          node --test tests/v357-planning-variety.test.js tests/v358-piece-rotation-repair.test.js tests/v352-active-service-worker-delivery.test.js
+
+      - name: Montar entrega V364
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import os
+          import re
+
+          planning_path = Path("planning-variety-v357.js")
+          piece_path = Path("planning-piece-rotation-v358.js")
+          planning_source = planning_path.read_text(encoding="utf-8")
+          piece_source = piece_path.read_text(encoding="utf-8")
+
+          planning_match = re.search(r'const VERSION = "([^"]+)";', planning_source)
+          piece_match = re.search(r'const VERSION = "([^"]+)";', piece_source)
+          if not planning_match or not piece_match:
+              raise SystemExit("V364: versões de planejamento não encontradas")
+          planning_version = planning_match.group(1)
+          piece_version = piece_match.group(1)
+
+          index = Path("docs/index.html")
+          text = index.read_text(encoding="utf-8")
+
+          # Remove qualquer entrega anterior da mesma política, seja inline ou externa.
+          text = re.sub(
+              r'\s*<!--\s*aldus-planning-variety-v357\s*-->\s*<script[^>]*id=["\']aldusPlanningVarietyV357["\'][^>]*>.*?</script>\s*',
+              "\n",
+              text,
+              flags=re.I | re.S,
+          )
+          text = re.sub(
+              r'\s*<script[^>]*id=["\']aldusPlanningVarietyV357["\'][^>]*>.*?</script>\s*',
+              "\n",
+              text,
+              flags=re.I | re.S,
+          )
+          text = re.sub(
+              r'\s*<!--\s*aldus-piece-rotation-repair-v358\s*-->\s*<script[^>]*id=["\']aldusPieceRotationRepairV358["\'][^>]*>.*?</script>\s*',
+              "\n",
+              text,
+              flags=re.I | re.S,
+          )
+          text = re.sub(
+              r'\s*<script[^>]*id=["\']aldusPieceRotationRepairV358["\'][^>]*>.*?</script>\s*',
+              "\n",
+              text,
+              flags=re.I | re.S,
+          )
+          text = re.sub(
+              r'\s*<meta\s+name=["\']aldus-planning-delivery["\'][^>]*>\s*',
+              "\n",
+              text,
+              flags=re.I,
+          )
+
+          meta = (
+              f'  <meta name="aldus-planning-delivery" '
+              f'content="v364|{planning_version}|{piece_version}" />\n'
+          )
+          if "</head>" not in text:
+              raise SystemExit("V364: </head> não encontrado")
+          text = text.replace("</head>", meta + "</head>", 1)
+
+          delivery = (
+              '  <!-- aldus-planning-delivery-v364 -->\n'
+              '  <script id="aldusPlanningVarietyV357">\n'
+              + planning_source
+              + '\n  </script>\n'
+              '  <script id="aldusPieceRotationRepairV358">\n'
+              + piece_source
+              + '\n  </script>\n'
+          )
+          bootstrap = re.search(
+              r'(?m)^\s*<script\s+id=["\']aldusBootstrapIntegrityLoaderV(?:258|275)["\']',
+              text,
+          )
+          if not bootstrap:
+              raise SystemExit("V364: loader de bootstrap não encontrado")
+          text = text[:bootstrap.start()] + delivery + text[bootstrap.start():]
+
+          if planning_version not in text or piece_version not in text:
+              raise SystemExit("V364: HTML final não contém as políticas atuais")
+          if text.find("aldusPlanningVarietyV357") > text.find("aldusBootstrapIntegrityLoaderV"):
+              raise SystemExit("V364: política entrou depois do bootstrap")
+          index.write_text(text, encoding="utf-8")
+
+          # O worker registrado precisa mudar de bytes e de CACHE_NAME para abandonar o HTML velho.
+          delivery_suffix = f"-planning-delivery-v364-{planning_version}"
+          for worker_name in ("service-worker.js", "service-worker-v344.js"):
+              worker = Path("docs") / worker_name
+              source = worker.read_text(encoding="utf-8")
+              pattern = re.compile(r'(const CACHE_NAME = `)([^`\n]+)(`;)', re.M)
+              match = pattern.search(source)
+              if not match:
+                  raise SystemExit(f"V364: CACHE_NAME não encontrado em {worker_name}")
+              cache_body = re.sub(r'-planning-delivery-[^`]+$', '', match.group(2))
+              replacement = match.group(1) + cache_body + delivery_suffix + match.group(3)
+              source = source[:match.start()] + replacement + source[match.end():]
+              if delivery_suffix not in source:
+                  raise SystemExit(f"V364: cache novo não aplicado em {worker_name}")
+              worker.write_text(source, encoding="utf-8")
+
+          probe = Path("docs/planning-delivery-v364.txt")
+          probe.write_text(
+              "Aldus Planning Delivery V364\n"
+              f"planning={planning_version}\n"
+              f"pieces={piece_version}\n"
+              f"source={os.environ.get('GITHUB_SHA', 'unknown')}\n",
+              encoding="utf-8",
+          )
+
+          public_worker = Path("docs/service-worker-v344.js").read_text(encoding="utf-8")
+          if delivery_suffix not in public_worker:
+              raise SystemExit("V364: worker público não contém o cache renovado")
+          print(f"V364 pronta: {planning_version} / {piece_version}")
+          PY
+
+      - name: Configurar GitHub Pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
+
+      - name: Enviar artefato V364
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: docs
+
+      - name: Publicar V364
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
