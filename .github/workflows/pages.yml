@@ -48,6 +48,7 @@ jobs:
           node --check factory-penalties-v320.js
           node --check factory-resumo-aula-visual-v326.js
           node --check factory-resumo-aula-canonical-v327.js
+          node --check planning-variety-v357.js
           node --test \
             tests/security-hardening-v296.test.js \
             tests/timer-controls-hardening-v268.test.js \
@@ -77,7 +78,8 @@ jobs:
             tests/daily-summary-time-format-v243.test.js \
             tests/boot-render-coalesce-v350.test.js \
             tests/question-record-index-v351.test.js \
-            tests/qb-package-single-pass-v351.test.js
+            tests/qb-package-single-pass-v351.test.js \
+            tests/v357-planning-variety.test.js
           node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
           cmp security-hardening-v296.js docs/security-hardening-v296.js
           cmp service-worker.js docs/service-worker.js
@@ -150,6 +152,22 @@ jobs:
           )
           if "aldusFactoryResumoAulaCanonicalV327" not in text:
               text = text.replace("</body>", factory_resumo_aula_canonical + "</body>", 1)
+
+          # V357: injeta a política de variedade de planejamento inline, antes do loader do app.
+          # Isso evita uma requisição adicional e instala o rodízio de Peças antes da V183/V186.
+          if "aldusPlanningVarietyV357" not in text:
+              planning_source = Path("planning-variety-v357.js").read_text(encoding="utf-8")
+              planning_inline = (
+                  '  <!-- aldus-planning-variety-v357 -->\n'
+                  '  <script id="aldusPlanningVarietyV357">\n'
+                  + planning_source
+                  + '\n  </script>\n'
+              )
+              bootstrap_marker = '  <script id="aldusBootstrapIntegrityLoaderV258"'
+              bootstrap_position = text.find(bootstrap_marker)
+              if bootstrap_position < 0:
+                  raise SystemExit("V357: loader de bootstrap não encontrado para injeção segura")
+              text = text[:bootstrap_position] + planning_inline + text[bootstrap_position:]
           index.write_text(text, encoding="utf-8")
 
           sw = Path("docs/service-worker.js")
