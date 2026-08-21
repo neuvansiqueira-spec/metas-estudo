@@ -1,8 +1,8 @@
-/* Aldus V369: corrige a classificação real das origens automáticas do cronograma */
+/* Aldus V370: balanceia o rodízio mensal sem reiniciar após Peças executadas */
 (() => {
   "use strict";
 
-  const VERSION = "20260821-planning-quality-v369";
+  const VERSION = "20260821-planning-quality-v370";
   if (globalThis.__aldusPlanningQualityV368?.version === VERSION) return;
 
   const PIECE_DISCIPLINE = "PEÇA PARA DELEGADO DE POLÍCIA CIVIL";
@@ -143,16 +143,26 @@
       .includes(canonical(record.status));
   }
 
+  function hasAutomaticPieceMarker(record = {}) {
+    return record.fixedDailyPieceV183 === true
+      || record.supplementalDelegatePieceV368 === true
+      || Boolean(record.pieceCatalogKeyV357)
+      || Boolean(record.fixedDailyPiecePolicy)
+      || Boolean(record.planningPieceRotationV368);
+  }
+
   function isManual(record = {}) {
     const origin = canonical(record.origin || record.origem);
+    if (record.manual === true || record.isManual === true || origin === "manual" || origin.startsWith("manual ") || origin.includes("usuario")) return true;
     if (AUTO_ORIGINS.has(origin)) return false;
+    if (hasAutomaticPieceMarker(record)) return false;
     try { if (typeof isManualDailyGoal === "function" && isManualDailyGoal(record)) return true; } catch {}
-    return record.manual === true || record.isManual === true || origin === "manual" || origin.startsWith("manual ") || origin.includes("usuario");
+    return false;
   }
 
   function looksLikePiece(record = {}) {
     if (!record || typeof record !== "object") return false;
-    if (record.fixedDailyPieceV183 === true || record.supplementalDelegatePieceV368 === true || record.pieceCatalogKeyV357) return true;
+    if (hasAutomaticPieceMarker(record)) return true;
     if (canonical(record.contestCategory || record.category || record.classification) === "piece") return true;
     const discipline = canonical(record.discipline || record.disciplina);
     return discipline.includes("peca") && discipline.includes("delegad");
@@ -290,6 +300,7 @@
     const startDate = repairStartDate();
     const indexBySubject = new Map(PIECES.map((definition, index) => [subjectKey(definition.subject), index]));
     const indexed = targetState.dailyGoals.map((goal, index) => ({ goal, index }));
+    const usage = PIECES.map(() => 0);
     let lastIndex = -1;
 
     indexed
@@ -299,6 +310,26 @@
         const index = indexBySubject.get(subjectKey(rawSubject(goal)));
         if (Number.isInteger(index)) lastIndex = index;
       });
+
+    const registerProtected = (goal) => {
+      const index = indexBySubject.get(subjectKey(rawSubject(goal)));
+      if (!Number.isInteger(index)) return;
+      usage[index] += 1;
+      lastIndex = index;
+    };
+
+    const nextBalancedIndex = () => {
+      let selected = 0;
+      let lowestUsage = Infinity;
+      for (let offset = 1; offset <= PIECES.length; offset += 1) {
+        const index = (lastIndex + offset + PIECES.length) % PIECES.length;
+        if (usage[index] < lowestUsage) {
+          selected = index;
+          lowestUsage = usage[index];
+        }
+      }
+      return selected;
+    };
 
     const groups = new Map();
     indexed.forEach(({ goal, index }) => {
@@ -317,17 +348,15 @@
       const automaticEntries = entries.filter(({ goal }) => !isManual(goal) && !hasExecution(goal));
       if (protectedEntries.length) {
         automaticEntries.forEach(({ goal }) => remove.add(goal));
-        protectedEntries.forEach(({ goal }) => {
-          const index = indexBySubject.get(subjectKey(rawSubject(goal)));
-          if (Number.isInteger(index)) lastIndex = index;
-        });
+        protectedEntries.forEach(({ goal }) => registerProtected(goal));
         return;
       }
       if (!automaticEntries.length) return;
       const keep = automaticEntries[0].goal;
       automaticEntries.slice(1).forEach(({ goal }) => remove.add(goal));
-      lastIndex = (lastIndex + 1 + PIECES.length) % PIECES.length;
+      lastIndex = nextBalancedIndex();
       if (bindGoalToPiece(keep, PIECES[lastIndex], targetState)) changed += 1;
+      usage[lastIndex] += 1;
     });
     if (remove.size) targetState.dailyGoals = targetState.dailyGoals.filter((goal) => !remove.has(goal));
     return { changed, removed: remove.size, futureDates: groups.size };

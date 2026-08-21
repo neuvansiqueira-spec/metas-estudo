@@ -3,7 +3,7 @@
 
   const VERSION = "20260817-bootstrap-fast-path-v351";
   const LEGACY_VERSION = "20260815-bootstrap-performance-v342";
-  const CORE_SCRIPT = `bootstrap-fast-path-v351.js?v=${VERSION}&planning=v369`;
+  const CORE_SCRIPT = `bootstrap-fast-path-v351.js?v=${VERSION}&planning=v370`;
   const DIAGNOSTICS_SCRIPT = `duplicate-diagnostics-v260.js?v=${LEGACY_VERSION}`;
   const DIAGNOSTICS_STYLESHEET = `duplicate-diagnostics-v260.css?v=${LEGACY_VERSION}`;
   const RECOVERY_SCRIPT = `recovery-safety-v275.js?v=${LEGACY_VERSION}`;
