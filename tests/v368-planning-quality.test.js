@@ -9,6 +9,12 @@ const source = fs.readFileSync(path.join(root, "planning-quality-v368.js"), "utf
 const appSource = fs.readFileSync(path.join(root, "script.js"), "utf8");
 const PIECE_DISCIPLINE = "PEÇA PARA DELEGADO DE POLÍCIA CIVIL";
 const BANK = "Representação por Quebra de Sigilo Bancário";
+const ALLOWED_PIECES = new Set([
+  "Relatório Final de Inquérito Policial",
+  "Auto de Prisão em Flagrante / Despacho Pós-Flagrante",
+  "Representação por Prisão Preventiva",
+  "Representação por Prisão Temporária"
+]);
 
 const originClassifierSource = appSource.match(/function isManualDailyGoal\(goal\) \{[^\n]+\}/)?.[0];
 
@@ -56,7 +62,7 @@ function pieceGoal(date, subject = BANK, extra = {}) {
   };
 }
 
-test("V368 transforma o cronograma real de uma única Peça em rodízio dos 11 tipos", () => {
+test("V371 restringe a meta diária às quatro Peças autorizadas com aleatoriedade controlada", () => {
   const dailyGoals = [];
   for (let day = 1; day <= 31; day += 1) {
     dailyGoals.push(pieceGoal(`2026-08-${String(day).padStart(2, "0")}`));
@@ -68,16 +74,18 @@ test("V368 transforma o cronograma real de uma única Peça em rodízio dos 11 t
   const sandbox = context(state);
   const report = sandbox.__aldusPlanningQualityV368.run("test", { persist: false });
 
-  assert.equal(report.catalogAdded, 10);
-  assert.equal(state.syllabusItems.filter((item) => item.classification === "PIECE").length, 11);
+  assert.equal(report.catalogAdded, 4);
+  assert.equal(state.syllabusItems.filter((item) => ALLOWED_PIECES.has(item.subject)).length, 4);
   const month = state.dailyGoals.map((goal) => goal.subject);
   assert.equal(month.length, 31);
-  assert.equal(new Set(month).size, 11);
+  assert.equal(new Set(month).size, 4);
+  assert.ok(month.every((subject) => ALLOWED_PIECES.has(subject)));
   assert.ok(month.every((subject, index) => index === 0 || subject !== month[index - 1]));
-  assert.notEqual(state.dailyGoals.find((goal) => goal.date === "2026-08-03").subject, BANK);
+  const counts = [...month.reduce((map, subject) => map.set(subject, (map.get(subject) || 0) + 1), new Map()).values()];
+  assert.ok(Math.max(...counts) - Math.min(...counts) <= 1);
 });
 
-test("V370 reconhece a marca automática legada mesmo quando a origem está vazia", () => {
+test("V371 reconhece a marca automática legada mesmo quando a origem está vazia", () => {
   const goals = ["06", "07", "08"].map((day) => pieceGoal(`2026-08-${day}`, BANK, { origin: "", origem: "" }));
   const state = {
     syllabusItems: [{ id: "bank", discipline: PIECE_DISCIPLINE, subject: BANK, classification: "PIECE" }],
@@ -90,7 +98,7 @@ test("V370 reconhece a marca automática legada mesmo quando a origem está vazi
   assert.equal(sandbox.isManualDailyGoal({ origin: "manual" }), true);
   sandbox.__aldusPlanningQualityV368.run("legacy-classifier-regression", { persist: false });
   assert.equal(new Set(state.dailyGoals.map((goal) => goal.subject)).size, 3,
-    "A política V370 deve usar a marca fixa V183 e diversificar as Peças automáticas legadas.");
+    "A política V371 deve usar a marca fixa V183 e diversificar as Peças automáticas legadas.");
 });
 
 test("V368 preserva Peça manual ou executada e remove somente a automática concorrente", () => {
@@ -190,7 +198,7 @@ test("V368 audita o estado imediatamente antes de construir a exportação mensa
   assert.equal(sandbox.__aldusPlanningQualityV368.getLastReport().reason, "before-export-payload");
 });
 
-test("V370 reproduz o Excel anexado: preserva execução e balanceia as 25 Peças pendentes", () => {
+test("V371 reproduz o Excel anexado: preserva execução e usa somente as quatro Peças autorizadas", () => {
   const executed = [
     pieceGoal("2026-08-03", BANK, { status: "Concluída", actualMinutes: 35 }),
     pieceGoal("2026-08-04", BANK, { status: "Concluída", actualMinutes: 17 }),
@@ -228,8 +236,9 @@ test("V370 reproduz o Excel anexado: preserva execução e balanceia as 25 Peça
   const pendingCounts = new Map();
   pendingRows.forEach((row) => pendingCounts.set(row.subject, (pendingCounts.get(row.subject) || 0) + 1));
   assert.equal(pendingRows.length, 25);
-  assert.equal(pendingCounts.has(BANK), false, "O tipo já executado sete vezes não deve voltar para a fila pendente.");
-  assert.equal(pendingCounts.size, 10);
+  assert.equal(pendingCounts.has(BANK), false, "Peças fora do conjunto autorizado não devem voltar para a fila pendente.");
+  assert.equal(pendingCounts.size, 4);
+  assert.ok([...pendingCounts.keys()].every((subject) => ALLOWED_PIECES.has(subject)));
   assert.ok(Math.max(...pendingCounts.values()) - Math.min(...pendingCounts.values()) <= 1);
   assert.ok(pendingRows.every((row, index) => index === 0 || row.subject !== pendingRows[index - 1].subject));
 });
@@ -243,7 +252,7 @@ test("V368 não cria hot path e mantém execução limitada às rotas e ações 
   assert.match(source, /EXPORT_IDS\.has\(id\)/);
 });
 
-test("V370 está espelhada e ligada aos dois caminhos de bootstrap publicados", () => {
+test("V371 está espelhada e ligada aos dois caminhos de bootstrap publicados", () => {
   assert.equal(source, fs.readFileSync(path.join(root, "docs", "planning-quality-v368.js"), "utf8"));
   assert.equal(
     fs.readFileSync(path.join(root, "timer-goal-integrity-v366.js"), "utf8"),
@@ -253,7 +262,7 @@ test("V370 está espelhada e ligada aos dois caminhos de bootstrap publicados", 
     const rootSource = fs.readFileSync(path.join(root, file), "utf8");
     const docsSource = fs.readFileSync(path.join(root, "docs", file), "utf8");
     assert.equal(rootSource, docsSource, `${file} precisa manter paridade com docs`);
-    assert.match(rootSource, /aldusPlanningQualityV368.*planning-quality-v368\.js\?v=20260821-planning-quality-v370/);
+    assert.match(rootSource, /aldusPlanningQualityV368.*planning-quality-v368\.js\?v=20260821-planning-quality-v371/);
     assert.match(rootSource, /aldusTimerGoalIntegrityV366.*timer-goal-integrity-v366\.js\?v=20260821-timer-goal-integrity-v366/);
   }
 });

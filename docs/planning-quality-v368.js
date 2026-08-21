@@ -1,8 +1,8 @@
-/* Aldus V370: balanceia o rodízio mensal sem reiniciar após Peças executadas */
+/* Aldus V371: limita o rodízio automático às quatro Peças práticas definidas pelo usuário */
 (() => {
   "use strict";
 
-  const VERSION = "20260821-planning-quality-v370";
+  const VERSION = "20260821-planning-quality-v371";
   if (globalThis.__aldusPlanningQualityV368?.version === VERSION) return;
 
   const PIECE_DISCIPLINE = "PEÇA PARA DELEGADO DE POLÍCIA CIVIL";
@@ -22,17 +22,10 @@
     "generalidades", "gestao publica", "introducao", "nocoes gerais", "parte geral"
   ]);
   const PIECES = Object.freeze([
-    ["4d0ea920-103f-5837-9a0f-52c578953e5d", "Representação por Prisão Temporária"],
+    ["f1a9d4ec-4e0d-5ae0-8bb7-7cd8ea84f201", "Relatório Final de Inquérito Policial"],
+    ["4bf8d907-864e-52f0-a920-2dc00dc6a539", "Auto de Prisão em Flagrante / Despacho Pós-Flagrante"],
     ["e0906c87-c3d8-59f6-9c7f-784eb0fcc546", "Representação por Prisão Preventiva"],
-    ["752a1824-290b-585d-a033-d1630647df77", "Representação por Busca e Apreensão"],
-    ["5ae73131-f876-5c20-a573-4f59ce7411f8", "Representação por Interceptação Telefônica"],
-    ["261e0e54-798c-5394-92d0-fb875b26e263", "Representação por Interceptação Telemática"],
-    ["fdd2ecb9-0b9c-506f-99cd-2c38dcfca534", "Representação por Interceptação Ambiental"],
-    ["75efe26c-7291-5981-a51c-42dce41b3aa8", "Representação por Quebra de Sigilo Financeiro"],
-    ["958b698b-5323-5d06-8930-ca79252bc265", "Representação por Quebra de Sigilo Bancário"],
-    ["322d5a10-97e0-53c1-976b-c6efbdb9596a", "Representação por Quebra de Sigilo Fiscal"],
-    ["d2002c8c-a3b8-5a5b-9b67-1c166d6cb7df", "Representação por Quebra de Sigilo Telefônico"],
-    ["a739d529-5420-5d11-8cd7-da3bc3b9dd88", "Representação por Quebra de Sigilo Telemático"]
+    ["4d0ea920-103f-5837-9a0f-52c578953e5d", "Representação por Prisão Temporária"]
   ].map(([id, subject]) => Object.freeze({ id, subject })));
 
   let selectionInstalled = false;
@@ -318,17 +311,21 @@
       lastIndex = index;
     };
 
-    const nextBalancedIndex = () => {
-      let selected = 0;
-      let lowestUsage = Infinity;
-      for (let offset = 1; offset <= PIECES.length; offset += 1) {
-        const index = (lastIndex + offset + PIECES.length) % PIECES.length;
-        if (usage[index] < lowestUsage) {
-          selected = index;
-          lowestUsage = usage[index];
-        }
+    const stableHash = (value) => {
+      let hash = 2166136261;
+      for (const character of String(value || "")) {
+        hash ^= character.charCodeAt(0);
+        hash = Math.imul(hash, 16777619);
       }
-      return selected;
+      return hash >>> 0;
+    };
+
+    const nextBalancedIndex = (goal) => {
+      const available = PIECES.map((_, index) => index).filter((index) => index !== lastIndex);
+      const lowestUsage = Math.min(...available.map((index) => usage[index]));
+      const candidates = available.filter((index) => usage[index] === lowestUsage);
+      const seed = `${goalDate(goal)}|${goal.id || goal.goalId || "peca-diaria"}|aldus-four-pieces`;
+      return candidates[stableHash(seed) % candidates.length];
     };
 
     const groups = new Map();
@@ -354,7 +351,7 @@
       if (!automaticEntries.length) return;
       const keep = automaticEntries[0].goal;
       automaticEntries.slice(1).forEach(({ goal }) => remove.add(goal));
-      lastIndex = nextBalancedIndex();
+      lastIndex = nextBalancedIndex(keep);
       if (bindGoalToPiece(keep, PIECES[lastIndex], targetState)) changed += 1;
       usage[lastIndex] += 1;
     });
