@@ -8,10 +8,10 @@
   const MAIN_ID = "current";
   const STATUS_KEY = "aldusBootstrapFastPathV351";
   const GUARD_SCRIPT = `catastrophic-state-guard-v275.js?v=${LEGACY_BOOTSTRAP_VERSION}&fallback=v351`;
-  const FALLBACK_CORE = `bootstrap-integrity-loader-v258-core.js?v=${LEGACY_BOOTSTRAP_VERSION}&fallback=v351&planning=v367`;
+  const FALLBACK_CORE = `bootstrap-integrity-loader-v258-core.js?v=${LEGACY_BOOTSTRAP_VERSION}&fallback=v351&planning=v368`;
   const SCRIPT_CHAIN = [
     ["aldusAppBundleScript", "app-v344.js?v=20260817-qb-package-single-pass-v344"],
-    ["aldusPlanningQualityV367", "planning-quality-v367.js?v=20260821-planning-quality-v367"],
+    ["aldusPlanningQualityV368", "planning-quality-v368.js?v=20260821-planning-quality-v368"],
     ["aldusTimerGoalIntegrityV366", "timer-goal-integrity-v366.js?v=20260821-timer-goal-integrity-v366"],
     ["aldusQconcursosFilterRouteV333", "qconcursos-filter-route-v333.js?v=20260814-restaura-filtros-qconcursos-v333"],
     ["aldusQconcursosAllFiltersV334", "qconcursos-all-filters-v334.js?v=20260814-qconcursos-todas-disciplinas-v334"],
