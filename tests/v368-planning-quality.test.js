@@ -6,8 +6,21 @@ const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const source = fs.readFileSync(path.join(root, "planning-quality-v368.js"), "utf8");
+const appSource = fs.readFileSync(path.join(root, "script.js"), "utf8");
 const PIECE_DISCIPLINE = "PEÇA PARA DELEGADO DE POLÍCIA CIVIL";
 const BANK = "Representação por Quebra de Sigilo Bancário";
+
+const originClassifierSource = appSource.match(/function isManualDailyGoal\(goal\) \{[^\n]+\}/)?.[0];
+
+function installRealOriginClassifier(sandbox) {
+  assert.ok(originClassifierSource, "O classificador real de origens automáticas precisa estar presente no bundle-fonte.");
+  sandbox.canonical = (value) => String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+  vm.runInContext(`${originClassifierSource}\nglobalThis.isManualDailyGoal = isManualDailyGoal;`, sandbox);
+}
 
 function context(state, today = "2026-08-21") {
   const sandbox = {
@@ -21,6 +34,7 @@ function context(state, today = "2026-08-21") {
   };
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  installRealOriginClassifier(sandbox);
   vm.runInContext(source, sandbox);
   return sandbox;
 }
@@ -61,6 +75,22 @@ test("V368 transforma o cronograma real de uma única Peça em rodízio dos 11 t
   assert.equal(new Set(month).size, 11);
   assert.ok(month.every((subject, index) => index === 0 || subject !== month[index - 1]));
   assert.notEqual(state.dailyGoals.find((goal) => goal.date === "2026-08-03").subject, BANK);
+});
+
+test("V369 corrige a classificação mesmo diante do classificador legado do site", () => {
+  const goals = [pieceGoal("2026-08-06"), pieceGoal("2026-08-07"), pieceGoal("2026-08-08")];
+  const state = {
+    syllabusItems: [{ id: "bank", discipline: PIECE_DISCIPLINE, subject: BANK, classification: "PIECE" }],
+    dailyGoals: goals
+  };
+  const sandbox = context(state);
+
+  assert.equal(sandbox.isManualDailyGoal({ origin: "planejamento peça diária" }), true,
+    "A fixture precisa reproduzir a classificação incorreta que existia no bundle real.");
+  assert.equal(sandbox.isManualDailyGoal({ origin: "manual" }), true);
+  sandbox.__aldusPlanningQualityV368.run("legacy-classifier-regression", { persist: false });
+  assert.equal(new Set(state.dailyGoals.map((goal) => goal.subject)).size, 3,
+    "A política V369 deve superar o classificador legado e diversificar as Peças automáticas.");
 });
 
 test("V368 preserva Peça manual ou executada e remove somente a automática concorrente", () => {
@@ -152,6 +182,7 @@ test("V368 audita o estado imediatamente antes de construir a exportação mensa
   };
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  installRealOriginClassifier(sandbox);
   vm.runInContext(source, sandbox);
 
   const payload = sandbox.buildGoalCalendarExportPayload();
@@ -180,6 +211,7 @@ test("V368 reproduz o Excel de agosto: preserva execução e diversifica todas a
   };
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
+  installRealOriginClassifier(sandbox);
   vm.runInContext(source, sandbox);
 
   const payload = sandbox.buildGoalCalendarExportPayload();
@@ -200,7 +232,7 @@ test("V368 não cria hot path e mantém execução limitada às rotas e ações 
   assert.match(source, /EXPORT_IDS\.has\(id\)/);
 });
 
-test("V368 está espelhada e ligada aos dois caminhos de bootstrap publicados", () => {
+test("V369 está espelhada e ligada aos dois caminhos de bootstrap publicados", () => {
   assert.equal(source, fs.readFileSync(path.join(root, "docs", "planning-quality-v368.js"), "utf8"));
   assert.equal(
     fs.readFileSync(path.join(root, "timer-goal-integrity-v366.js"), "utf8"),
@@ -210,7 +242,7 @@ test("V368 está espelhada e ligada aos dois caminhos de bootstrap publicados", 
     const rootSource = fs.readFileSync(path.join(root, file), "utf8");
     const docsSource = fs.readFileSync(path.join(root, "docs", file), "utf8");
     assert.equal(rootSource, docsSource, `${file} precisa manter paridade com docs`);
-    assert.match(rootSource, /aldusPlanningQualityV368.*planning-quality-v368\.js\?v=20260821-planning-quality-v368/);
+    assert.match(rootSource, /aldusPlanningQualityV368.*planning-quality-v368\.js\?v=20260821-planning-quality-v369/);
     assert.match(rootSource, /aldusTimerGoalIntegrityV366.*timer-goal-integrity-v366\.js\?v=20260821-timer-goal-integrity-v366/);
   }
 });
