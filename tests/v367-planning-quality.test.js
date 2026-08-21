@@ -145,7 +145,7 @@ test("V367 não cria hot path e mantém execução limitada às rotas e ações 
   assert.match(source, /EXPORT_IDS\.has\(id\)/);
 });
 
-test("V367 permanece arquivada e sua sucessora V368 está ligada aos dois caminhos de bootstrap", () => {
+test("V367 permanece arquivada e sua sucessora corrigida está ligada aos dois caminhos de bootstrap", () => {
   assert.equal(source, fs.readFileSync(path.join(root, "docs", "planning-quality-v367.js"), "utf8"));
   assert.equal(
     fs.readFileSync(path.join(root, "timer-goal-integrity-v366.js"), "utf8"),
@@ -155,7 +155,7 @@ test("V367 permanece arquivada e sua sucessora V368 está ligada aos dois caminh
     const rootSource = fs.readFileSync(path.join(root, file), "utf8");
     const docsSource = fs.readFileSync(path.join(root, "docs", file), "utf8");
     assert.equal(rootSource, docsSource, `${file} precisa manter paridade com docs`);
-    assert.match(rootSource, /aldusPlanningQualityV368.*planning-quality-v368\.js\?v=20260821-planning-quality-v368/);
+    assert.match(rootSource, /aldusPlanningQualityV368.*planning-quality-v368\.js\?v=20260821-planning-quality-v369/);
     assert.match(rootSource, /aldusTimerGoalIntegrityV366.*timer-goal-integrity-v366\.js\?v=20260821-timer-goal-integrity-v366/);
   }
 });

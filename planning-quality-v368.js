@@ -1,8 +1,8 @@
-/* Aldus V368: qualidade didática e rodízio efetivamente entregue no cronograma */
+/* Aldus V369: corrige a classificação real das origens automáticas do cronograma */
 (() => {
   "use strict";
 
-  const VERSION = "20260821-planning-quality-v368";
+  const VERSION = "20260821-planning-quality-v369";
   if (globalThis.__aldusPlanningQualityV368?.version === VERSION) return;
 
   const PIECE_DISCIPLINE = "PEÇA PARA DELEGADO DE POLÍCIA CIVIL";
@@ -144,8 +144,9 @@
   }
 
   function isManual(record = {}) {
-    try { if (typeof isManualDailyGoal === "function" && isManualDailyGoal(record)) return true; } catch {}
     const origin = canonical(record.origin || record.origem);
+    if (AUTO_ORIGINS.has(origin)) return false;
+    try { if (typeof isManualDailyGoal === "function" && isManualDailyGoal(record)) return true; } catch {}
     return record.manual === true || record.isManual === true || origin === "manual" || origin.startsWith("manual ") || origin.includes("usuario");
   }
 
