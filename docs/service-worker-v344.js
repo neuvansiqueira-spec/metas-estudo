@@ -7,7 +7,7 @@ const PROTECTION_VERSION = "20260815-bootstrap-performance-v342";
 const BOOTSTRAP_VERSION = "20260815-bootstrap-performance-v342";
 const FAST_BOOTSTRAP_VERSION = "20260817-bootstrap-fast-path-v351";
 const NAVIGATION_DELIVERY_VERSION = "20260817-navigation-bootstrap-delivery-v353";
-const PLANNING_QUALITY_VERSION = "20260821-planning-quality-v367";
+const PLANNING_QUALITY_VERSION = "20260821-planning-quality-v368";
 const TIMER_GOAL_INTEGRITY_VERSION = "20260821-timer-goal-integrity-v366";
 const DUPLICATE_CONTINUITY_VERSION = "20260811-duplicate-flow-owner-v309";
 const DUPLICATE_RECOMMENDATIONS_VERSION = "20260811-duplicate-flow-owner-v309";
@@ -18,7 +18,7 @@ const FACTORY_SCHEDULE_FILTERS_VERSION = "20260808-factory-schedule-planning-pre
 const FACTORY_SCHEDULE_DATES_VERSION = "20260809-factory-schedule-planning-dates-v281";
 const QUESTIONS_HUB_VERSION = "20260814-desempenho-integral-v329";
 const QUESTION_JSON_DETAILS_VERSION = "20260810-revisao-json-explicacoes-v299";
-const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v297-hotfix5-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-duplicate-recommended-batch-v300-duplicate-batch-persistence-v301-duplicate-batch-performance-v304-duplicate-batch-commit-v305-entry-parser-recovery-v306-duplicate-core-delivery-v307-duplicate-batch-core-pin-v308-duplicate-flow-owner-v309-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4-security-v296-questions-hub-v298-question-json-details-v299-factory-simulado-escolha-automatica-v312-simulado-interativo-v313-integracao-v318-reparo-factory-simulado-visibility-v315-posthog-telemetry-v317-simulado-location-v328-factory-resumo-aula-canonical-v327-qconcursos-filter-v337-dom-style-hot-path-v355-factory-destination-runtime-v354-navigation-bootstrap-v353-bootstrap-fast-path-v351-timer-goal-integrity-v366-planning-quality-v367`;
+const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v297-hotfix5-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-duplicate-recommended-batch-v300-duplicate-batch-persistence-v301-duplicate-batch-performance-v304-duplicate-batch-commit-v305-entry-parser-recovery-v306-duplicate-core-delivery-v307-duplicate-batch-core-pin-v308-duplicate-flow-owner-v309-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4-security-v296-questions-hub-v298-question-json-details-v299-factory-simulado-escolha-automatica-v312-simulado-interativo-v313-integracao-v318-reparo-factory-simulado-visibility-v315-posthog-telemetry-v317-simulado-location-v328-factory-resumo-aula-canonical-v327-qconcursos-filter-v337-dom-style-hot-path-v355-factory-destination-runtime-v354-navigation-bootstrap-v353-bootstrap-fast-path-v351-timer-goal-integrity-v366-planning-quality-v368`;
 const CONTRAST_VERSION = "20260802-contraste-distribuicao-v222";
 const CONTRAST_STYLESHEET = `question-history-contrast-v222.css?v=${CONTRAST_VERSION}`;
 const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
@@ -36,8 +36,8 @@ const TIMER_SESSION_INTEGRITY = `timer-session-integrity-v236.js?v=${CURRENT_VER
 const INTEGRITY_LOADER = `planning-integrity-loader-v235.js?v=${CURRENT_VERSION}`;
 const INTEGRITY_CORE = `planning-integrity-v235.js?v=${CURRENT_VERSION}`;
 const CATASTROPHIC_STATE_GUARD = `catastrophic-state-guard-v275.js?v=${PROTECTION_VERSION}`;
-const BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275.js?v=${FAST_BOOTSTRAP_VERSION}&planning=v367`;
-const BOOTSTRAP_FAST_PATH = `bootstrap-fast-path-v351.js?v=${FAST_BOOTSTRAP_VERSION}&planning=v367`;
+const BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275.js?v=${FAST_BOOTSTRAP_VERSION}&planning=v368`;
+const BOOTSTRAP_FAST_PATH = `bootstrap-fast-path-v351.js?v=${FAST_BOOTSTRAP_VERSION}&planning=v368`;
 const BOOTSTRAP_CORE = `bootstrap-integrity-loader-v258-core.js?v=${BOOTSTRAP_VERSION}`;
 const QCONCURSOS_FILTER_ROUTE_V333 = `qconcursos-filter-route-v333.js?v=${BOOTSTRAP_VERSION}`;
 const QCONCURSOS_ALL_FILTERS_V334 = `qconcursos-all-filters-v334.js?v=${BOOTSTRAP_VERSION}`;
@@ -68,7 +68,7 @@ const SIMULADO_INTEGRACAO_SCRIPT = "simulado-integracao-v314.js?v=20260812-simul
 const FACTORY_PENALTIES_SCRIPT = "factory-penalties-v320.js?v=20260814-desempenho-integral-v329";
 const FACTORY_RESUMO_AULA_VISUAL_SCRIPT = "factory-resumo-aula-visual-v326.js?v=20260814-desempenho-integral-v329";
 const FACTORY_RESUMO_AULA_CANONICAL_SCRIPT = "factory-resumo-aula-canonical-v327.js?v=20260814-desempenho-integral-v329";
-const PLANNING_QUALITY_SCRIPT = `planning-quality-v367.js?v=${PLANNING_QUALITY_VERSION}`;
+const PLANNING_QUALITY_SCRIPT = `planning-quality-v368.js?v=${PLANNING_QUALITY_VERSION}`;
 const TIMER_GOAL_INTEGRITY_SCRIPT = `timer-goal-integrity-v366.js?v=${TIMER_GOAL_INTEGRITY_VERSION}`;
 const STATIC_ASSETS = [
   "./",

@@ -50,7 +50,7 @@ jobs:
           node --check factory-resumo-aula-canonical-v327.js
           node --check planning-variety-v357.js
           node --check planning-piece-rotation-v358.js
-          node --check planning-quality-v367.js
+          node --check planning-quality-v368.js
           node --test \
             tests/security-hardening-v296.test.js \
             tests/timer-controls-hardening-v268.test.js \
@@ -84,7 +84,7 @@ jobs:
             tests/v352-active-service-worker-delivery.test.js \
             tests/v357-planning-variety.test.js \
             tests/v358-piece-rotation-repair.test.js \
-            tests/v367-planning-quality.test.js
+            tests/v368-planning-quality.test.js
           node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
           cmp security-hardening-v296.js docs/security-hardening-v296.js
           cmp service-worker.js docs/service-worker.js
@@ -159,7 +159,7 @@ jobs:
           if "aldusFactoryResumoAulaCanonicalV327" not in text:
               text = text.replace("</body>", factory_resumo_aula_canonical + "</body>", 1)
 
-          # V367 substitui as entregas inline V357/V360. O runtime cacheável já está nos
+          # V368 substitui as entregas inline V357/V360. O runtime cacheável já está nos
           # dois caminhos de bootstrap; remover blocos antigos evita execução duplicada.
           legacy_planning = {
               "aldusPlanningVarietyV357": "planning-variety-v357.js",
@@ -168,7 +168,7 @@ jobs:
           }
           for script_id, source_file in legacy_planning.items():
               if not Path(source_file).exists():
-                  raise SystemExit(f"V367: fonte legada ausente para auditoria: {source_file}")
+                  raise SystemExit(f"V368: fonte legada ausente para auditoria: {source_file}")
               text = re.sub(
                   rf'\s*<!--[^>]*(?:planning|piece)[^>]*-->\s*<script[^>]*id=["\']{script_id}["\'][^>]*>.*?</script>\s*',
                   "\n",
@@ -182,15 +182,15 @@ jobs:
                   flags=re.I | re.S,
               )
 
-          planning_source = Path("planning-quality-v367.js").read_text(encoding="utf-8")
+          planning_source = Path("planning-quality-v368.js").read_text(encoding="utf-8")
           planning_match = re.search(r'const VERSION = "([^"]+)";', planning_source)
           if not planning_match:
-              raise SystemExit("V367: versão da política de planejamento não encontrada")
+              raise SystemExit("V368: versão da política de planejamento não encontrada")
           planning_version = planning_match.group(1)
           for bootstrap_file in ("docs/bootstrap-fast-path-v351.js", "docs/bootstrap-integrity-loader-v258-core.js"):
               bootstrap_source = Path(bootstrap_file).read_text(encoding="utf-8")
-              if "planning-quality-v367.js" not in bootstrap_source or planning_version not in bootstrap_source:
-                  raise SystemExit(f"V367: runtime não ligado ao bootstrap em {bootstrap_file}")
+              if "planning-quality-v368.js" not in bootstrap_source or planning_version not in bootstrap_source:
+                  raise SystemExit(f"V368: runtime não ligado ao bootstrap em {bootstrap_file}")
           index.write_text(text, encoding="utf-8")
 
           # V363: o worker efetivamente registrado é service-worker-v344.js.

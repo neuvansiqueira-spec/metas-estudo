@@ -46,7 +46,7 @@ jobs:
           node --check factory-executive-ui-v136.js
           node --check planning-variety-v357.js
           node --check planning-piece-rotation-v358.js
-          node --check planning-quality-v367.js
+          node --check planning-quality-v368.js
           node --check service-worker.js
           node --check service-worker-v344.js
 
@@ -72,4 +72,4 @@ jobs:
             tests/v356-simulado-recovery-hot-path.test.js \
             tests/v357-planning-variety.test.js \
             tests/v358-piece-rotation-repair.test.js \
-            tests/v367-planning-quality.test.js
+            tests/v368-planning-quality.test.js
