@@ -77,20 +77,20 @@ test("V368 transforma o cronograma real de uma única Peça em rodízio dos 11 t
   assert.notEqual(state.dailyGoals.find((goal) => goal.date === "2026-08-03").subject, BANK);
 });
 
-test("V369 corrige a classificação mesmo diante do classificador legado do site", () => {
-  const goals = [pieceGoal("2026-08-06"), pieceGoal("2026-08-07"), pieceGoal("2026-08-08")];
+test("V370 reconhece a marca automática legada mesmo quando a origem está vazia", () => {
+  const goals = ["06", "07", "08"].map((day) => pieceGoal(`2026-08-${day}`, BANK, { origin: "", origem: "" }));
   const state = {
     syllabusItems: [{ id: "bank", discipline: PIECE_DISCIPLINE, subject: BANK, classification: "PIECE" }],
     dailyGoals: goals
   };
   const sandbox = context(state);
 
-  assert.equal(sandbox.isManualDailyGoal({ origin: "planejamento peça diária" }), true,
+  assert.equal(sandbox.isManualDailyGoal(goals[0]), true,
     "A fixture precisa reproduzir a classificação incorreta que existia no bundle real.");
   assert.equal(sandbox.isManualDailyGoal({ origin: "manual" }), true);
   sandbox.__aldusPlanningQualityV368.run("legacy-classifier-regression", { persist: false });
   assert.equal(new Set(state.dailyGoals.map((goal) => goal.subject)).size, 3,
-    "A política V369 deve superar o classificador legado e diversificar as Peças automáticas.");
+    "A política V370 deve usar a marca fixa V183 e diversificar as Peças automáticas legadas.");
 });
 
 test("V368 preserva Peça manual ou executada e remove somente a automática concorrente", () => {
@@ -190,14 +190,21 @@ test("V368 audita o estado imediatamente antes de construir a exportação mensa
   assert.equal(sandbox.__aldusPlanningQualityV368.getLastReport().reason, "before-export-payload");
 });
 
-test("V368 reproduz o Excel de agosto: preserva execução e diversifica todas as Peças automáticas pendentes", () => {
-  const completed = pieceGoal("2026-08-03", BANK, { status: "Concluída", actualMinutes: 35 });
-  const inProgress = pieceGoal("2026-08-05", BANK, { status: "Em andamento", actualMinutes: 12 });
-  const pendingDates = ["01", "02", "03", "06", "07", "08", "09", "11", "12", "13", "15", "16", "17", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31"];
-  const pending = pendingDates.map((day) => pieceGoal(`2026-08-${day}`));
+test("V370 reproduz o Excel anexado: preserva execução e balanceia as 25 Peças pendentes", () => {
+  const executed = [
+    pieceGoal("2026-08-03", BANK, { status: "Concluída", actualMinutes: 35 }),
+    pieceGoal("2026-08-04", BANK, { status: "Concluída", actualMinutes: 17 }),
+    pieceGoal("2026-08-05", BANK, { status: "Em andamento", actualMinutes: 12 }),
+    pieceGoal("2026-08-05", BANK, { status: "Concluída", actualMinutes: 21 }),
+    pieceGoal("2026-08-10", BANK, { status: "Concluída", actualMinutes: 30 }),
+    pieceGoal("2026-08-14", BANK, { status: "Concluída", actualMinutes: 45 }),
+    pieceGoal("2026-08-18", BANK, { status: "Concluída", actualMinutes: 20 })
+  ];
+  const pendingDates = ["01", "02", "06", "07", "08", "09", "11", "12", "13", "15", "16", "17", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31"];
+  const pending = pendingDates.map((day) => pieceGoal(`2026-08-${day}`, BANK, { origin: "", origem: "" }));
   const state = {
     syllabusItems: [{ id: "bank", discipline: PIECE_DISCIPLINE, subject: BANK, classification: "PIECE" }],
-    dailyGoals: [completed, inProgress, ...pending]
+    dailyGoals: [...executed, ...pending]
   };
   const sandbox = {
     state,
@@ -215,12 +222,16 @@ test("V368 reproduz o Excel de agosto: preserva execução e diversifica todas a
   vm.runInContext(source, sandbox);
 
   const payload = sandbox.buildGoalCalendarExportPayload();
-  assert.equal(completed.subject, BANK);
-  assert.equal(inProgress.subject, BANK);
-  assert.equal(payload.rows.filter((row) => row.date === "2026-08-03").length, 1);
+  assert.ok(executed.every((goal) => goal.subject === BANK));
+  assert.equal(payload.rows.filter((row) => row.status !== "Pendente").length, 7);
   const pendingRows = payload.rows.filter((row) => row.status === "Pendente");
-  assert.ok(new Set(pendingRows.map((row) => row.subject)).size >= 9);
-  assert.ok(pendingRows.some((row) => row.date < "2026-08-21" && row.subject !== BANK));
+  const pendingCounts = new Map();
+  pendingRows.forEach((row) => pendingCounts.set(row.subject, (pendingCounts.get(row.subject) || 0) + 1));
+  assert.equal(pendingRows.length, 25);
+  assert.equal(pendingCounts.has(BANK), false, "O tipo já executado sete vezes não deve voltar para a fila pendente.");
+  assert.equal(pendingCounts.size, 10);
+  assert.ok(Math.max(...pendingCounts.values()) - Math.min(...pendingCounts.values()) <= 1);
+  assert.ok(pendingRows.every((row, index) => index === 0 || row.subject !== pendingRows[index - 1].subject));
 });
 
 test("V368 não cria hot path e mantém execução limitada às rotas e ações de planejamento", () => {
@@ -232,7 +243,7 @@ test("V368 não cria hot path e mantém execução limitada às rotas e ações 
   assert.match(source, /EXPORT_IDS\.has\(id\)/);
 });
 
-test("V369 está espelhada e ligada aos dois caminhos de bootstrap publicados", () => {
+test("V370 está espelhada e ligada aos dois caminhos de bootstrap publicados", () => {
   assert.equal(source, fs.readFileSync(path.join(root, "docs", "planning-quality-v368.js"), "utf8"));
   assert.equal(
     fs.readFileSync(path.join(root, "timer-goal-integrity-v366.js"), "utf8"),
@@ -242,7 +253,7 @@ test("V369 está espelhada e ligada aos dois caminhos de bootstrap publicados", 
     const rootSource = fs.readFileSync(path.join(root, file), "utf8");
     const docsSource = fs.readFileSync(path.join(root, "docs", file), "utf8");
     assert.equal(rootSource, docsSource, `${file} precisa manter paridade com docs`);
-    assert.match(rootSource, /aldusPlanningQualityV368.*planning-quality-v368\.js\?v=20260821-planning-quality-v369/);
+    assert.match(rootSource, /aldusPlanningQualityV368.*planning-quality-v368\.js\?v=20260821-planning-quality-v370/);
     assert.match(rootSource, /aldusTimerGoalIntegrityV366.*timer-goal-integrity-v366\.js\?v=20260821-timer-goal-integrity-v366/);
   }
 });
