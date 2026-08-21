@@ -2,7 +2,7 @@
   "use strict";
 
   const VERSION = "20260821-timer-goal-integrity-v366";
-  const CORE_SCRIPT = "bootstrap-integrity-loader-v258-core.js?v=20260815-bootstrap-performance-v342";
+  const CORE_SCRIPT = "bootstrap-integrity-loader-v258-core.js?v=20260815-bootstrap-performance-v342&planning=v367";
   const DIAGNOSTICS_SCRIPT = "duplicate-diagnostics-v260.js?v=20260806-duplicate-diagnostics-v260";
   const DIAGNOSTICS_STYLESHEET = "duplicate-diagnostics-v260.css?v=20260806-duplicate-diagnostics-v260";
   const TIMER_SOUND_MASTER_SCRIPT = "timer-sound-master-v265.js?v=20260806-timer-sound-master-v265&hotfix=master-mute-hotfix1";

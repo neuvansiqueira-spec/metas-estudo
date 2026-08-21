@@ -30,7 +30,8 @@ test("V352 entrega a V351 pelo worker ativo e gira o cache de bootstrap", () => 
   const active = fs.readFileSync(path.join(root, activeFilename), "utf8");
 
   assert.match(active, /FAST_BOOTSTRAP_VERSION = "20260817-bootstrap-fast-path-v351"/);
-  assert.match(active, /BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275\.js\?v=\$\{FAST_BOOTSTRAP_VERSION\}`/);
-  assert.match(active, /BOOTSTRAP_FAST_PATH = `bootstrap-fast-path-v351\.js\?v=\$\{FAST_BOOTSTRAP_VERSION\}`/);
-  assert.match(active, /-bootstrap-fast-path-v351`/);
+  assert.match(active, /BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275\.js\?v=\$\{FAST_BOOTSTRAP_VERSION\}[^`]*`/);
+  assert.match(active, /BOOTSTRAP_FAST_PATH = `bootstrap-fast-path-v351\.js\?v=\$\{FAST_BOOTSTRAP_VERSION\}[^`]*`/);
+  assert.match(active, /planning-quality-v367/);
+  assert.match(active, /-bootstrap-fast-path-v351(?:-[^`]*)?`/);
 });
