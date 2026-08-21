@@ -1,14 +1,15 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260815-bootstrap-performance-v342";
-  const CORE_SCRIPT = "bootstrap-integrity-loader-v258-core.js?v=20260815-bootstrap-performance-v342";
+  const VERSION = "20260821-timer-goal-integrity-v366";
+  const CORE_SCRIPT = "bootstrap-integrity-loader-v258-core.js?v=20260815-bootstrap-performance-v342&planning=v367";
   const DIAGNOSTICS_SCRIPT = "duplicate-diagnostics-v260.js?v=20260806-duplicate-diagnostics-v260";
   const DIAGNOSTICS_STYLESHEET = "duplicate-diagnostics-v260.css?v=20260806-duplicate-diagnostics-v260";
   const TIMER_SOUND_MASTER_SCRIPT = "timer-sound-master-v265.js?v=20260806-timer-sound-master-v265&hotfix=master-mute-hotfix1";
   const TIMER_CONTROLS_SCRIPT = "timer-controls-hardening-v268.js?v=20260808-timer-controls-sound-v268&hotfix=timer-controls-hardening-hotfix1";
   const PLANNING_SHIFT_PERSISTENCE_SCRIPT = "planning-shift-persistence-v283.js?v=20260809-planejamento-plantao-salvamento-v283";
   const HEADER_BRAND_FIX_SCRIPT = "header-brand-fix.js?v=20260815-logo-alta-qualidade-v338";
+  const TIMER_GOAL_INTEGRITY_SCRIPT = "timer-goal-integrity-v366.js?v=20260821-timer-goal-integrity-v366";
   const PRELOAD_SCRIPTS = [HEADER_BRAND_FIX_SCRIPT];
 
   function installStylesheet(baseUrl) {
@@ -63,6 +64,9 @@
   if (source?.id) source.removeAttribute("id");
   core.addEventListener("error", reportLoadError(VERSION, "o núcleo de inicialização preservado"));
 
+  const timerGoalIntegrity = makeScript("aldusTimerGoalIntegrityV366", TIMER_GOAL_INTEGRITY_SCRIPT, baseUrl, source);
+  timerGoalIntegrity.addEventListener("error", reportLoadError(VERSION, "a integridade do tempo do cronômetro nas metas"));
+
   const shiftPersistence = makeScript("aldusPlanningShiftPersistenceV283", PLANNING_SHIFT_PERSISTENCE_SCRIPT, baseUrl, source);
   shiftPersistence.addEventListener("error", reportLoadError(VERSION, "a persistência das disciplinas de plantão"));
 
@@ -77,7 +81,8 @@
 
   parent.insertBefore(brandFix, source?.nextSibling || null);
   parent.insertBefore(core, brandFix.nextSibling);
-  parent.insertBefore(shiftPersistence, core.nextSibling);
+  parent.insertBefore(timerGoalIntegrity, core.nextSibling);
+  parent.insertBefore(shiftPersistence, timerGoalIntegrity.nextSibling);
   parent.insertBefore(diagnostics, shiftPersistence.nextSibling);
   parent.insertBefore(soundMaster, diagnostics.nextSibling);
   parent.insertBefore(timerControls, soundMaster.nextSibling);
@@ -86,6 +91,7 @@
     version: VERSION,
     headerBrandFix: HEADER_BRAND_FIX_SCRIPT,
     core: CORE_SCRIPT,
+    timerGoalIntegrity: TIMER_GOAL_INTEGRITY_SCRIPT,
     planningShiftPersistence: PLANNING_SHIFT_PERSISTENCE_SCRIPT,
     script: DIAGNOSTICS_SCRIPT,
     stylesheet: DIAGNOSTICS_STYLESHEET,

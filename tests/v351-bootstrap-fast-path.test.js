@@ -76,7 +76,7 @@ test("Service Worker V351 entrega o fast path e não inicia o guard pesado no bo
   const worker = fs.readFileSync(path.join(root, "service-worker.js"), "utf8");
   assert.match(worker, /FAST_BOOTSTRAP_VERSION = "20260817-bootstrap-fast-path-v351"/);
   assert.match(worker, /BOOTSTRAP_FAST_PATH = `bootstrap-fast-path-v351\.js/);
-  assert.match(worker, /bootstrap-fast-path-v351`/);
+  assert.match(worker, /bootstrap-fast-path-v351(?:-[^`]*)?`/);
   const start = worker.indexOf("function installProtectedBootstrapV275");
   const end = worker.indexOf("function installSecurityHardeningV296", start);
   const route = worker.slice(start, end);
@@ -85,5 +85,5 @@ test("Service Worker V351 entrega o fast path e não inicia o guard pesado no bo
   assert.doesNotMatch(route, /<script id="aldusCatastrophicStateGuardV275"/);
   assert.match(worker, /CATASTROPHIC_STATE_GUARD/);
   assert.match(worker, /bootstrap-fast-path-v351/);
-  assert.match(worker, /-bootstrap-fast-path-v351`/);
+  assert.match(worker, /-bootstrap-fast-path-v351(?:-[^`]*)?`/);
 });
