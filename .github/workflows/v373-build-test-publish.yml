@@ -4,24 +4,28 @@ on:
   push:
     branches:
       - agent/v373-fix-jurisprudencia-v332-bootstrap
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: v373-jurisprudencia-bootstrap-${{ github.ref }}
+  group: v373-jurisprudencia-bootstrap-${{ github.event.pull_request.head.ref || github.ref }}
   cancel-in-progress: false
 
 jobs:
   build-test-publish:
-    if: ${{ github.actor != 'github-actions[bot]' }}
+    if: ${{ github.actor != 'github-actions[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.ref == 'agent/v373-fix-jurisprudencia-v332-bootstrap') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout branch
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
 
       - name: Setup Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -69,4 +73,4 @@ jobs:
             exit 0
           fi
           git commit -m "V373: gera bundle e invalida cache da correção jurisprudencial"
-          git push origin HEAD:agent/v373-fix-jurisprudencia-v332-bootstrap
+          git push origin HEAD:${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
