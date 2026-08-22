@@ -22,7 +22,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - name: Instalar dependências
@@ -171,7 +171,7 @@ jobs:
               }
             };
             const context = {
-              console: { ...console, error(...args) { errors.push(args.join(" ")); } },
+              console: { log() {}, info() {}, warn() {}, error(...args) { errors.push(args.join(" ")); } },
               window,
               queueMicrotask(fn) { fn(); },
               defaultFactoryPromptLibrary: { jurisprudencia: "" },
@@ -226,7 +226,8 @@ jobs:
             text = text.replace(old, new, 1)
           path.write_text(text, encoding='utf-8')
           PY
-          for f in service-worker.js service-worker-v344.js service-worker-v168.js service-worker-v169.js service-worker-v332.js; do
+          cp service-worker.js docs/service-worker.js
+          for f in service-worker-v344.js service-worker-v168.js service-worker-v169.js service-worker-v332.js; do
             cp service-worker.js "$f"
             cp service-worker.js "docs/$f"
           done
