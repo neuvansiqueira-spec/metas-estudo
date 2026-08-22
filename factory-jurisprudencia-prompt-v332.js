@@ -3,7 +3,6 @@
 
   const SOURCE_FOLDER = "https://drive.google.com/drive/folders/1ECc_otgQKwH7WfPdQr8CtD0kB07pz9Xe";
   const MIGRATION_ID = "factoryJurisprudenciaFonteCoberturaV332";
-  const BASE_PROMPT = String(defaultFactoryPromptLibrary?.jurisprudencia || "").trim();
 
   const OLD_SOURCE_BLOCK = `## ESCOPO DO MÓDULO
 
@@ -93,14 +92,26 @@ ANTES DESSA CONCLUSÃO NEGATIVA, REGISTRE INTERNAMENTE:
   const OLD_REVIEW_SOURCE = "* TODAS AS FONTES APROVADAS NA TRIAGEM FORAM ABERTAS E EXAMINADAS?";
   const NEW_REVIEW_SOURCE = "* A PASTA JURISPRUDENCIAL EXCLUSIVA, AS SUBPASTAS “JULGADOS STF RESUMIDOS” E “JULGADOS STJ RESUMIDOS” E TODOS OS ARQUIVOS CANDIDATOS ACESSÍVEIS FORAM PERCORRIDOS E EXAMINADOS?";
 
-  const PROMPT = BASE_PROMPT
-    .replace(OLD_SOURCE_BLOCK, NEW_SOURCE_BLOCK)
-    .replace(OLD_FIDELITY_SOURCE, NEW_FIDELITY_SOURCE)
-    .replace(OLD_REVIEW_SOURCE, NEW_REVIEW_SOURCE);
+  let BASE_PROMPT = "";
+  let PROMPT = "";
+  let installed = false;
 
-  if (!BASE_PROMPT.includes(OLD_SOURCE_BLOCK) || PROMPT === BASE_PROMPT) {
-    console.error("[Aldus] A V332 não localizou o bloco de fontes do prompt topificado V231.");
-    return;
+  function buildPrompt(basePrompt) {
+    const base = String(basePrompt || "").trim();
+    if (!base) return "";
+
+    if (base.includes(NEW_SOURCE_BLOCK) && base.includes(NEW_FIDELITY_SOURCE) && base.includes(NEW_REVIEW_SOURCE)) {
+      return base;
+    }
+
+    if (!base.includes(OLD_SOURCE_BLOCK)) return "";
+
+    const next = base
+      .replace(OLD_SOURCE_BLOCK, NEW_SOURCE_BLOCK)
+      .replace(OLD_FIDELITY_SOURCE, NEW_FIDELITY_SOURCE)
+      .replace(OLD_REVIEW_SOURCE, NEW_REVIEW_SOURCE);
+
+    return next !== base ? next : "";
   }
 
   function isOfficialPreviousPrompt(value) {
@@ -115,8 +126,17 @@ ANTES DESSA CONCLUSÃO NEGATIVA, REGISTRE INTERNAMENTE:
   }
 
   function install() {
+    if (installed) return;
     if (typeof defaultFactoryPromptLibrary === "undefined" || typeof state === "undefined") return;
 
+    BASE_PROMPT = String(defaultFactoryPromptLibrary.jurisprudencia || "").trim();
+    PROMPT = buildPrompt(BASE_PROMPT);
+    if (!PROMPT) {
+      console.error("[Aldus] A V332 não localizou o bloco de fontes do prompt topificado V231 após o bootstrap.");
+      return;
+    }
+
+    installed = true;
     defaultFactoryPromptLibrary.jurisprudencia = PROMPT;
     state.migrations = state.migrations || {};
     state.factoryPromptLibrary = state.factoryPromptLibrary || {};
