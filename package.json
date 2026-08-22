@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260817-qb-package-single-pass-v344",
+  "version": "20260822-jurisprudencia-bootstrap-v373",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
