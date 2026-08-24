@@ -6,6 +6,8 @@
   const STARTUP_GUARD_MS = 5000;
   const RESTORE_SCRIPT_ID = "aldusAuthorizedGoalRestoreV391";
   const RESTORE_VERSION = "20260824-restaura-planejamento-gestao-estrategica-v391";
+  const CORRECTION_SCRIPT_ID = "aldusAuthorizedGoalRestoreV392";
+  const CORRECTION_VERSION = "20260824-corrige-identidade-meta-planejamento-v392";
   const startedAt = Date.now();
 
   if (globalThis.__ALDUS_STARTUP_PLANNING_STABILITY_V387__) return;
@@ -79,6 +81,21 @@
     return true;
   }
 
+  function loadAuthorizedCorrectionV392() {
+    if (typeof document === "undefined") return false;
+    if (document.getElementById(CORRECTION_SCRIPT_ID)) return true;
+    const script = document.createElement("script");
+    script.id = CORRECTION_SCRIPT_ID;
+    script.src = `daily-goal-authorized-restore-v392.js?v=${encodeURIComponent(CORRECTION_VERSION)}`;
+    script.async = false;
+    script.addEventListener("error", () => {
+      script.remove();
+      console.error("[Aldus V392] Falha ao carregar a correção de identidade da meta do Plano do Dia.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+    return true;
+  }
+
   function installAlignmentGuards() {
     wrapDailyPlanAlignment();
   }
@@ -87,6 +104,7 @@
   queueMicrotask(installAlignmentGuards);
   evictLegacyRuntimeCache();
   loadAuthorizedRestoreV391();
+  loadAuthorizedCorrectionV392();
 
   if (typeof window !== "undefined") {
     window.addEventListener("aldus:bootstrap-integrity-v258-ready", installAlignmentGuards, { once: true });
@@ -100,6 +118,7 @@
     startupGuardActive,
     wrapDailyPlanAlignment,
     evictLegacyRuntimeCache,
-    loadAuthorizedRestoreV391
+    loadAuthorizedRestoreV391,
+    loadAuthorizedCorrectionV392
   });
 })();
