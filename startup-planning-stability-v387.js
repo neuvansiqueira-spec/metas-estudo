@@ -4,6 +4,8 @@
   const VERSION = "20260824-startup-planning-stability-v387";
   const ALIGN_MARKER = "__aldusStartupPlanningStabilityV387";
   const STARTUP_GUARD_MS = 5000;
+  const RESTORE_SCRIPT_ID = "aldusAuthorizedGoalRestoreV388";
+  const RESTORE_VERSION = "20260824-restaura-meta-planejamento-gestao-publica-v388";
   const startedAt = Date.now();
 
   if (globalThis.__ALDUS_STARTUP_PLANNING_STABILITY_V387__) return;
@@ -42,6 +44,7 @@
       const targets = [
         new URL("factory-queue-integrity-v236.js", location.href),
         new URL("planning-integrity-loader-v235.js", location.href),
+        new URL("planning-integrity-v235.js", location.href),
         new URL("manual-goal-additive-v379.js", location.href)
       ];
       for (const name of names) {
@@ -58,6 +61,21 @@
     return { caches: touched, deleted };
   }
 
+  function loadAuthorizedRestoreV388() {
+    if (typeof document === "undefined") return false;
+    if (document.getElementById(RESTORE_SCRIPT_ID)) return true;
+    const script = document.createElement("script");
+    script.id = RESTORE_SCRIPT_ID;
+    script.src = `daily-goal-authorized-restore-v388.js?v=${encodeURIComponent(RESTORE_VERSION)}`;
+    script.async = false;
+    script.addEventListener("error", () => {
+      script.remove();
+      console.error("[Aldus V388] Falha ao carregar a recuperação autorizada da meta do Plano do Dia.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+    return true;
+  }
+
   function installAlignmentGuards() {
     wrapDailyPlanAlignment();
   }
@@ -65,6 +83,7 @@
   installAlignmentGuards();
   queueMicrotask(installAlignmentGuards);
   evictLegacyRuntimeCache();
+  loadAuthorizedRestoreV388();
 
   if (typeof window !== "undefined") {
     window.addEventListener("aldus:bootstrap-integrity-v258-ready", installAlignmentGuards, { once: true });
@@ -77,6 +96,7 @@
     version: VERSION,
     startupGuardActive,
     wrapDailyPlanAlignment,
-    evictLegacyRuntimeCache
+    evictLegacyRuntimeCache,
+    loadAuthorizedRestoreV388
   });
 })();
