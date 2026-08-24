@@ -167,7 +167,7 @@ test("V392 não adiciona hot paths nem chama makeGoal", () => {
   ]) assert.equal(source.includes(token), false, `caminho proibido: ${token}`);
   assert.match(source, /findV391Goal/);
   assert.match(source, /uniqueItemId/);
-  assert.match(source, /wrongGoal\.discipline = discipline/);
+  assert.match(source, /goal\.discipline = discipline/);
 });
 
 test("V392 mantém paridade raiz/docs e é carregada depois da V391", () => {
