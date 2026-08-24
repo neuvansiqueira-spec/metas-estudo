@@ -181,14 +181,6 @@
     queueMicrotask(() => queueMicrotask(callback));
   }
 
-  function nestedIdle(callback) {
-    if (typeof requestIdleCallback === "function") {
-      requestIdleCallback(() => requestIdleCallback(callback, { timeout: 1800 }), { timeout: 1800 });
-      return;
-    }
-    setTimeout(() => setTimeout(callback, 0), 0);
-  }
-
   function installRuntimeListeners() {
     if (typeof document === "undefined" || document.documentElement?.dataset?.aldusManualGoalAdditiveV379 === "true") return;
     if (document.documentElement) document.documentElement.dataset.aldusManualGoalAdditiveV379 = "true";
@@ -218,18 +210,12 @@
     }, true);
 
     if (typeof window !== "undefined") {
-      const afterBootstrap = (reason) => {
-        installGuards();
-        const targetState = currentState();
-        const snapshot = snapshotManualDates(targetState);
-        if (!snapshot.size) return;
-        nestedIdle(() => reconcileSnapshot(targetState, snapshot, reason));
-      };
       window.addEventListener("load", () => nestedMicrotask(installGuards), { once: true });
-      window.addEventListener("aldus:bootstrap-integrity-v258-ready", () => afterBootstrap("bootstrap-ready"));
-      window.addEventListener("aldus:post-bootstrap-maintenance-complete", () => afterBootstrap("post-bootstrap-maintenance"));
+      window.addEventListener("aldus:bootstrap-integrity-v258-ready", installGuards, { once: true });
+      window.addEventListener("aldus:post-bootstrap-maintenance-complete", installGuards, { once: true });
+      window.addEventListener("aldus:bootstrap-ready", installGuards, { once: true });
       window.addEventListener("hashchange", () => {
-        if (PLANNING_ROUTES.has(routeName())) afterBootstrap("planning-route-entered");
+        if (PLANNING_ROUTES.has(routeName())) installGuards();
       });
     }
   }
