@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260817-bootstrap-fast-path-v351";
+  const VERSION = "20260823-bootstrap-current-runtime-v375";
   const LEGACY_VERSION = "20260815-bootstrap-performance-v342";
   const CORE_SCRIPT = `bootstrap-fast-path-v351.js?v=${VERSION}&planning=v371`;
   const DIAGNOSTICS_SCRIPT = `duplicate-diagnostics-v260.js?v=${LEGACY_VERSION}`;
