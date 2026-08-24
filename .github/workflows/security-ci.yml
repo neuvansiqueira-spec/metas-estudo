@@ -35,6 +35,7 @@ jobs:
           node --check security-hardening-v296.js
           node --check usage-telemetry-v315.js
           node --check security-observability-v318.js
+          node --check question-bank-manual-notes-v386.js
           node --check telemetry-security-dashboard-v319.js
           node --check simulado-recovery-v319.js
           node --check factory-resumo-aula-visual-v326.js
@@ -72,4 +73,5 @@ jobs:
             tests/v356-simulado-recovery-hot-path.test.js \
             tests/v357-planning-variety.test.js \
             tests/v358-piece-rotation-repair.test.js \
-            tests/v368-planning-quality.test.js
+            tests/v368-planning-quality.test.js \
+            tests/v386-question-bank-manual-notes.test.js

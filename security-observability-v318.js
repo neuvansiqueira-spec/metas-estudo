@@ -240,6 +240,22 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V386 — comentários, bizus e jurisprudência manuais por questão.
+  // O editor é sob demanda: não varre o banco no bootstrap, não observa o DOM
+  // e só persiste quando o usuário confirma explicitamente o salvamento.
+  function installQuestionBankManualNotesV386() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusQuestionBankManualNotesV386")) return;
+    const script = document.createElement("script");
+    script.id = "aldusQuestionBankManualNotesV386";
+    script.src = "question-bank-manual-notes-v386.js?v=20260824-question-bank-manual-notes-v386";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V386] Falha ao carregar anotações manuais do Banco de Questões.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   // V382 — sumário com a mesma didática visual dos quatro módulos de conteúdo.
   // A extensão atua somente sobre texto de prompt e não adiciona observadores,
   // polling, timers, medições de layout ou persistência automática.
@@ -280,6 +296,7 @@
   installFactoryFinalReviewV384();
   installFactoryFinalReviewCompatV384();
   installFactoryPadronizacaoFinalSumarioV385();
+  installQuestionBankManualNotesV386();
   installFactorySummaryTocV382();
 
   if (document.readyState === "loading") {
