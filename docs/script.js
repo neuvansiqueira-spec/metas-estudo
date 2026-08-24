@@ -1935,7 +1935,7 @@ async function initializePrimaryStorage() {
         console.info("[Metas Estudo] Fonte escolhida: localStorage fallback (mais recente).", { localTime, idbTime });
         indexedDBStatus.activeSource = "localStorage fallback";
         indexedDBStatus.lastLoadedSource = "localStorage";
-        await migrateLocalStorageStateToIndexedDB(cloneData(state));
+        await migrateLocalStorageStateToIndexedDB(state);
       } else {
         console.info("[Metas Estudo] Fonte escolhida: IndexedDB.", { localTime, idbTime });
         indexedDBStatus.activeSource = "IndexedDB";
@@ -1949,7 +1949,7 @@ async function initializePrimaryStorage() {
       console.info("[Metas Estudo] Fonte escolhida: localStorage fallback (IndexedDB vazio/inválido).");
       indexedDBStatus.activeSource = "localStorage fallback";
       indexedDBStatus.lastLoadedSource = "localStorage";
-      await migrateLocalStorageStateToIndexedDB(cloneData(state));
+      await migrateLocalStorageStateToIndexedDB(state);
       indexedDBStatus.validation = "localStorage copiado e validado";
     } else {
       indexedDBStatus.activeSource = idb.valid ? "IndexedDB" : "localStorage fallback";
@@ -2092,7 +2092,7 @@ function saveData(options = {}) {
 async function initializeIndexedDBBackup() {
   if (typeof migrateLocalStorageStateToIndexedDB !== "function") { recordIndexedDBWarning("Módulo IndexedDB não carregado."); return; }
   try {
-    const result = await migrateLocalStorageStateToIndexedDB(cloneData(state));
+    const result = await migrateLocalStorageStateToIndexedDB(state);
     const record = result.record || await loadStateFromIndexedDB();
     indexedDBStatus.available = true;
     indexedDBStatus.activeSource = "IndexedDB";

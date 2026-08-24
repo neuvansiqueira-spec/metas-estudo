@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260823-sync-startup-performance-v376",
+  "version": "20260823-sync-signature-performance-v377",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
