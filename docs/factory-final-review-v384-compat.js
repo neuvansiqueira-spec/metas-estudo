@@ -4,6 +4,8 @@
   const VERSION = "20260824-final-review-consolidation-v384-compat";
   const API_MARKER = "__aldusFactoryFinalReviewCompatV384";
   const WRAP_MARKER = "__aldusFactoryFinalReviewCompatWrappedV384";
+  const FINAL_ROUTER_MARKER = "__aldusFactoryFinalReviewRouterWrappedV384";
+  const FINAL_ROUTER_VERSION = "20260824-final-review-consolidation-v384";
   const FINAL_TYPE = "consolidacao";
 
   function removeRangeKeepingSecond(text, firstMarker, secondMarker = firstMarker) {
@@ -53,6 +55,7 @@
         return type === FINAL_TYPE ? stripLegacyFinalOutput(result) : result;
       };
       Object.defineProperty(wrapped, WRAP_MARKER, { value: VERSION });
+      Object.defineProperty(wrapped, FINAL_ROUTER_MARKER, { value: FINAL_ROUTER_VERSION });
       Object.defineProperty(wrapped, "__aldusFactoryFinalReviewCompatOriginal", { value: previous });
       factoryRouterText = wrapped;
       return true;
@@ -61,7 +64,13 @@
     }
   }
 
-  const api = Object.freeze({ version: VERSION, stripLegacyFinalOutput, install });
+  const api = Object.freeze({
+    version: VERSION,
+    finalRouterMarker: FINAL_ROUTER_MARKER,
+    finalRouterVersion: FINAL_ROUTER_VERSION,
+    stripLegacyFinalOutput,
+    install
+  });
   globalThis[API_MARKER] = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 
