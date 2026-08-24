@@ -193,6 +193,37 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V384 — revisão/consolidação final consciente dos dois produtos integrados.
+  // Carregamento isolado: apenas prompt, inventário e roteamento; sem polling,
+  // observadores de DOM, persistência automática ou alteração do bundle principal.
+  function installFactoryFinalReviewV384() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusFactoryFinalReviewV384")) return;
+    const script = document.createElement("script");
+    script.id = "aldusFactoryFinalReviewV384";
+    script.src = "factory-final-review-v384.js?v=20260824-final-review-consolidation-v384";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V384] Falha ao carregar a revisão e consolidação final integrada.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
+  // V384 compat — remove somente instruções legadas V128 que possam anteceder
+  // a nova consolidação. Continua isolado, sem trabalho contínuo ou persistência.
+  function installFactoryFinalReviewCompatV384() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusFactoryFinalReviewCompatV384")) return;
+    const script = document.createElement("script");
+    script.id = "aldusFactoryFinalReviewCompatV384";
+    script.src = "factory-final-review-v384-compat.js?v=20260824-final-review-consolidation-v384-compat";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V384] Falha ao carregar a compatibilidade da consolidação final.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   // V382 — sumário com a mesma didática visual dos quatro módulos de conteúdo.
   // A extensão atua somente sobre texto de prompt e não adiciona observadores,
   // polling, timers, medições de layout ou persistência automática.
@@ -230,6 +261,8 @@
   installManualGoalAdditiveV379();
   installFactoryResumoAulaJurisprudenciaV380();
   installFactoryLeiJurisprudenciaV383();
+  installFactoryFinalReviewV384();
+  installFactoryFinalReviewCompatV384();
   installFactorySummaryTocV382();
 
   if (document.readyState === "loading") {
