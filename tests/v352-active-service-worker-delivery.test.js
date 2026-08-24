@@ -25,11 +25,15 @@ test("V352 mantém o Service Worker realmente registrado idêntico ao canônico"
   assert.equal(docsActive, canonical, `docs/${activeFilename} divergiu do canônico`);
 });
 
-test("V352 entrega a V351 pelo worker ativo e gira o cache de bootstrap", () => {
+test("V352 entrega o fast path pela versão ativa e gira o cache de bootstrap", () => {
   const activeFilename = currentWorkerFilename();
   const active = fs.readFileSync(path.join(root, activeFilename), "utf8");
+  const currentVersion = active.match(/const CURRENT_VERSION = "([^"]+)";/)?.[1] || "";
+  const fastBootstrapVersion = active.match(/const FAST_BOOTSTRAP_VERSION = "([^"]+)";/)?.[1] || "";
 
-  assert.match(active, /FAST_BOOTSTRAP_VERSION = "20260817-bootstrap-fast-path-v351"/);
+  assert.ok(currentVersion, "CURRENT_VERSION deve existir no worker ativo");
+  assert.ok(fastBootstrapVersion, "FAST_BOOTSTRAP_VERSION deve existir no worker ativo");
+  assert.equal(fastBootstrapVersion, currentVersion, "o bootstrap rápido deve acompanhar a release ativa");
   assert.match(active, /BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275\.js\?v=\$\{FAST_BOOTSTRAP_VERSION\}[^`]*`/);
   assert.match(active, /BOOTSTRAP_FAST_PATH = `bootstrap-fast-path-v351\.js\?v=\$\{FAST_BOOTSTRAP_VERSION\}[^`]*`/);
   assert.match(active, /planning-quality-v368/);
