@@ -1,0 +1,155 @@
+name: V374 vinculo pastas destino Pecas
+
+on:
+  push:
+    branches:
+      - v374-piece-destination-folders
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v374-piece-destination-${{ github.event.pull_request.head.ref || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-test:
+    if: ${{ github.actor != 'github-actions[bot]' && (github.event_name != 'pull_request' || github.event.pull_request.head.ref == 'v374-piece-destination-folders') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Aplicar vinculos V374
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import json
+
+          VERSION = "20260823-piece-destination-v374"
+          catalog_path = Path("factory-destination-catalog-v222.js")
+          text = catalog_path.read_text(encoding="utf-8")
+          marker = '    discipline("peca-delegado", "1lzFW6Z5Ip0m5l5fuUhkw6D8Oi6AWRulO", "90_PECA_PARA_DELEGADO_DE_POLICIA_CIVIL", ["PECA PARA DELEGADO DE POLICIA CIVIL", "PECA PROFISSIONAL", "PECA PARA DELEGADO"], [\n'
+          if marker not in text:
+              raise SystemExit("Catálogo da disciplina Peças de Delegado não localizado")
+
+          additions = (
+              '      ["1KAViWr87FG36-8Rf2yAY53qcSz4oi5_x", "13_AUTO_DE_PRISAO_EM_FLAGRANTE_DESPACHO_POS_FLAGRANTE"],\n'
+              '      ["1soFUju6bL7hoMMqDtpV_PyoRTF1421GN", "12_RELATORIO_FINAL_DE_INQUERITO_POLICIAL"],\n'
+          )
+          if "1KAViWr87FG36-8Rf2yAY53qcSz4oi5_x" not in text:
+              text = text.replace(marker, marker + additions, 1)
+
+          required = {
+              "1KAViWr87FG36-8Rf2yAY53qcSz4oi5_x": "13_AUTO_DE_PRISAO_EM_FLAGRANTE_DESPACHO_POS_FLAGRANTE",
+              "1soFUju6bL7hoMMqDtpV_PyoRTF1421GN": "12_RELATORIO_FINAL_DE_INQUERITO_POLICIAL",
+              "1BN-Ufub9KOePMlJr0npbunSAoRaHa8vj": "2_REPRESENTACAO_POR_PRISAO_PREVENTIVA",
+              "1aMkj7Z_3Hwmckr3RAy0S91Zq6rCbQK1S": "1_REPRESENTACAO_POR_PRISAO_TEMPORARIA",
+          }
+          for folder_id, title in required.items():
+              if folder_id not in text or title not in text:
+                  raise SystemExit(f"Vínculo obrigatório ausente: {title}")
+          catalog_path.write_text(text, encoding="utf-8")
+
+          package_path = Path("package.json")
+          package = json.loads(package_path.read_text(encoding="utf-8"))
+          package["version"] = VERSION
+          package_path.write_text(json.dumps(package, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+          lock_path = Path("package-lock.json")
+          if lock_path.exists():
+              lock = json.loads(lock_path.read_text(encoding="utf-8"))
+              lock["version"] = VERSION
+              if isinstance(lock.get("packages"), dict) and isinstance(lock["packages"].get(""), dict):
+                  lock["packages"][""]["version"] = VERSION
+              lock_path.write_text(json.dumps(lock, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+          test_source = r'''const test = require("node:test");
+          const assert = require("node:assert/strict");
+          const fs = require("node:fs");
+          const vm = require("node:vm");
+
+          function runtime() {
+            const context = { console };
+            context.globalThis = context;
+            vm.createContext(context);
+            new vm.Script(fs.readFileSync("factory-destination-catalog-v222.js", "utf8")).runInContext(context);
+            new vm.Script(fs.readFileSync("factory-destination-folders-v222.js", "utf8")).runInContext(context);
+            return context;
+          }
+
+          test("V374 registra as quatro pastas destino das Peças práticas", () => {
+            const context = runtime();
+            const catalog = context.__FACTORY_DESTINATION_CATALOG_V222__;
+            const discipline = catalog.disciplines.find((entry) => entry.key === "peca-delegado");
+            assert.ok(discipline, "disciplina Peças de Delegado deve existir");
+
+            const cases = [
+              ["Auto de Prisão em Flagrante / Despacho Pós-Flagrante", "1KAViWr87FG36-8Rf2yAY53qcSz4oi5_x"],
+              ["Relatório Final de Inquérito Policial", "1soFUju6bL7hoMMqDtpV_PyoRTF1421GN"],
+              ["Representação por Prisão Preventiva", "1BN-Ufub9KOePMlJr0npbunSAoRaHa8vj"],
+              ["Representação por Prisão Temporária", "1aMkj7Z_3Hwmckr3RAy0S91Zq6rCbQK1S"]
+            ];
+
+            for (const [assunto, folderId] of cases) {
+              const item = { disciplina: "PEÇA PARA DELEGADO DE POLÍCIA CIVIL", assunto };
+              const result = context.__applyFactoryDestinationToItemV222(item, catalog);
+              assert.equal(result.status, "topic", assunto);
+              assert.equal(item.factoryDestinationFolder, `https://drive.google.com/drive/folders/${folderId}`, assunto);
+            }
+          });
+          '''.replace(/^          /gm, "")
+          Path("tests/v374-piece-destination.test.js").write_text(test_source, encoding="utf-8")
+          PY
+
+          cp factory-destination-catalog-v222.js docs/factory-destination-catalog-v222.js
+
+      - name: Build release V374
+        run: npm run build
+
+      - name: Garantir catálogo publicado
+        run: cp factory-destination-catalog-v222.js docs/factory-destination-catalog-v222.js
+
+      - name: Validar vínculos e regressões
+        run: |
+          node --check factory-destination-catalog-v222.js
+          node --check factory-destination-folders-v222.js
+          node --test tests/v374-piece-destination.test.js tests/factory-destination-folders-v222.test.js tests/factory-destination-topic-links-v232.test.js
+          grep -q '1KAViWr87FG36-8Rf2yAY53qcSz4oi5_x' factory-destination-catalog-v222.js
+          grep -q '1soFUju6bL7hoMMqDtpV_PyoRTF1421GN' factory-destination-catalog-v222.js
+          grep -q 'app-v374.js?v=20260823-piece-destination-v374' docs/index.html
+          cmp -s factory-destination-catalog-v222.js docs/factory-destination-catalog-v222.js
+          cmp -s app-v374.js docs/app-v374.js
+          cmp -s app-v374.css docs/app-v374.css
+
+      - name: Commit generated release
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/v374-piece-destination.yml
+          git add -u
+          git add -- app-v374.js docs/app-v374.js app-v374.css docs/app-v374.css tests/v374-piece-destination.test.js
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração gerada para publicar."
+            exit 0
+          fi
+          git commit -m "V374: vincula pastas destino das Peças de Delegado"
+          git push origin HEAD:v374-piece-destination-folders
