@@ -77,8 +77,9 @@ test("cópia IndexedDB roda quando o navegador estiver livre e valida o checksum
   );
 
   assert.match(queue, /requestIdleCallback\(run, \{ timeout: 1000 \}\)/);
-  assert.match(queue, /saveStateToIndexedDB\(snapshot, \{ detachedSnapshot: true \}\)/);
-  assert.match(queue, /statesMatchIndexedDBRecord\(snapshot, reloaded, record\.checksum\)/);
+  assert.doesNotMatch(queue, /const snapshot = cloneData\(state\)/);
+  assert.match(queue, /saveStateToIndexedDB\(state, \{ directSnapshot: true \}\)/);
+  assert.match(queue, /statesMatchIndexedDBRecord\(null, reloaded, record\.checksum\)/);
   assert.match(queue, /if \(indexedDBPersistQueued\) queueIndexedDBStateCopy\(\)/);
 });
 
@@ -101,14 +102,17 @@ test("payload do Drive não dispara um segundo salvamento completo", () => {
   assert.doesNotMatch(autoSync, /\}, 750\)/);
 });
 
-test("módulo IndexedDB evita validar o registro anterior em salvamento não vazio", () => {
+test("módulo IndexedDB mantém proteção contra estado vazio sem penalizar o salvamento normal", () => {
   const save = sourceBetween(
     indexedDBSource,
     "async function saveStateToIndexedDB(state, options = {})",
     "function loadStateFromIndexedDB()"
   );
 
-  assert.match(save, /if \(!indexedDBStateHasUserData\(data\)\)/);
+  assert.match(save, /const ensureSafeWrite = async \(candidate\)/);
+  assert.match(save, /if \(indexedDBStateHasUserData\(candidate\)\) return/);
+  assert.match(save, /validateIndexedDBState\(existing\)/);
+  assert.match(save, /indexedDBStateHasUserData\(existing\.data\)/);
   assert.match(save, /detachedSnapshot/);
   assert.match(save, /serializedSize/);
   assert.doesNotMatch(save, /stableSerialize\(data\)/);
