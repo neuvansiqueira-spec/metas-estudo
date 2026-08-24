@@ -177,6 +177,22 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V383 — novo prompt Lei + Jurisprudência, também isolado do bundle principal.
+  // Atua apenas sobre biblioteca/roteamento de prompts e não adiciona trabalho
+  // contínuo, observadores, polling ou persistência automática.
+  function installFactoryLeiJurisprudenciaV383() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusFactoryLeiJurisprudenciaV383")) return;
+    const script = document.createElement("script");
+    script.id = "aldusFactoryLeiJurisprudenciaV383";
+    script.src = "factory-lei-jurisprudencia-v383.js?v=20260824-factory-lei-jurisprudencia-v383";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V383] Falha ao carregar o prompt Lei + Jurisprudência.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   // V382 — sumário com a mesma didática visual dos quatro módulos de conteúdo.
   // A extensão atua somente sobre texto de prompt e não adiciona observadores,
   // polling, timers, medições de layout ou persistência automática.
@@ -213,6 +229,7 @@
   installEmergencyPerformanceV350();
   installManualGoalAdditiveV379();
   installFactoryResumoAulaJurisprudenciaV380();
+  installFactoryLeiJurisprudenciaV383();
   installFactorySummaryTocV382();
 
   if (document.readyState === "loading") {
