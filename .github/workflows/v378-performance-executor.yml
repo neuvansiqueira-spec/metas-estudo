@@ -1,0 +1,152 @@
+name: V378 Performance Executor
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v378-performance-${{ github.event.pull_request.head.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-v378:
+    if: ${{ github.event.pull_request.head.ref == 'v378-indexeddb-direct-snapshot' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout V378 branch
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: v378-indexeddb-direct-snapshot
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Apply V378 direct snapshot patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const VERSION = '20260823-indexeddb-direct-snapshot-v378';
+          const PREVIOUS = '20260823-sync-signature-performance-v377';
+
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          pkg.version = VERSION;
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+
+          let storage = fs.readFileSync('storage-indexeddb.js', 'utf8');
+          const storageStart = storage.indexOf('async function saveStateToIndexedDB(state, options = {}) {');
+          const storageEnd = storage.indexOf('\nfunction loadStateFromIndexedDB()', storageStart);
+          if (storageStart < 0 || storageEnd < 0) throw new Error('saveStateToIndexedDB não localizado.');
+          const storageReplacement = `async function saveStateToIndexedDB(state, options = {}) {\n  const source = state || {};\n  const ensureSafeWrite = async (candidate) => {\n    if (indexedDBStateHasUserData(candidate)) return;\n    const existing = await loadStateFromIndexedDB().catch(() => null);\n    if (validateIndexedDBState(existing) && indexedDBStateHasUserData(existing.data)) throw new Error("Proteção ativada: estado vazio não substitui IndexedDB válido.");\n  };\n\n  if (options.directSnapshot) {\n    await ensureSafeWrite(source);\n    let record = null;\n    await runStoreOperation(STUDY_DB_APP_STATE_STORE, "readwrite", (store) => {\n      const serializedState = JSON.stringify(source);\n      record = {\n        id: STUDY_DB_CURRENT_ID,\n        schemaVersion: STUDY_DB_SCHEMA_VERSION,\n        savedAt: new Date().toISOString(),\n        checksum: checksumForSerializedState(serializedState),\n        serializedSize: serializedState.length,\n        data: source\n      };\n      return store.put(record);\n    });\n    return record;\n  }\n\n  const data = options.detachedSnapshot\n    ? source\n    : (typeof structuredClone === "function" ? structuredClone(source) : JSON.parse(JSON.stringify(source)));\n  await ensureSafeWrite(data);\n  const serializedState = JSON.stringify(data);\n  const record = {\n    id: STUDY_DB_CURRENT_ID,\n    schemaVersion: STUDY_DB_SCHEMA_VERSION,\n    savedAt: new Date().toISOString(),\n    checksum: checksumForSerializedState(serializedState),\n    serializedSize: serializedState.length,\n    data\n  };\n  return runStoreOperation(STUDY_DB_APP_STATE_STORE, "readwrite", (store) => store.put(record)).then(() => record);\n}\n`;
+          storage = storage.slice(0, storageStart) + storageReplacement + storage.slice(storageEnd);
+          fs.writeFileSync('storage-indexeddb.js', storage);
+          fs.copyFileSync('storage-indexeddb.js', 'docs/storage-indexeddb.js');
+
+          let script = fs.readFileSync('script.js', 'utf8');
+          const oldQueue = `    const snapshot = cloneData(state);\n    const record = await saveStateToIndexedDB(snapshot, { detachedSnapshot: true });\n    const reloaded = await loadStateFromIndexedDB();\n    if (!statesMatchIndexedDBRecord(snapshot, reloaded, record.checksum)) throw new Error("A validação da gravação no IndexedDB falhou.");`;
+          const newQueue = `    const record = await saveStateToIndexedDB(state, { directSnapshot: true });\n    const reloaded = await loadStateFromIndexedDB();\n    if (!statesMatchIndexedDBRecord(null, reloaded, record.checksum)) throw new Error("A validação da gravação no IndexedDB falhou.");`;
+          if (!script.includes(oldQueue)) throw new Error('Fila IndexedDB V377 não localizada.');
+          script = script.replace(oldQueue, newQueue);
+          const oldSize = '    indexedDBStatus.size = Number(record.serializedSize) || estimateSerializedStateSize(snapshot);';
+          if (!script.includes(oldSize)) throw new Error('Fallback de tamanho IndexedDB não localizado.');
+          script = script.replace(oldSize, '    indexedDBStatus.size = Number(record.serializedSize) || 0;');
+          fs.writeFileSync('script.js', script);
+          fs.copyFileSync('script.js', 'docs/script.js');
+
+          let v171 = fs.readFileSync('tests/v171-responsive-persistence.test.js', 'utf8');
+          v171 = v171.replace(
+            '  assert.match(queue, /saveStateToIndexedDB\\(snapshot, \\{ detachedSnapshot: true \\}\\)/);\n  assert.match(queue, /statesMatchIndexedDBRecord\\(snapshot, reloaded, record\\.checksum\\)/);',
+            '  assert.doesNotMatch(queue, /const snapshot = cloneData\\(state\\)/);\n  assert.match(queue, /saveStateToIndexedDB\\(state, \\{ directSnapshot: true \\}\\)/);\n  assert.match(queue, /statesMatchIndexedDBRecord\\(null, reloaded, record\\.checksum\\)/);'
+          );
+          fs.writeFileSync('tests/v171-responsive-persistence.test.js', v171);
+
+          const v378Test = `const test = require("node:test");\nconst assert = require("node:assert/strict");\nconst fs = require("node:fs");\n\nfunction sourceBetween(source, start, end) {\n  const from = source.indexOf(start);\n  const to = source.indexOf(end, from + start.length);\n  assert.notEqual(from, -1, \`Marcador inicial ausente: \${start}\`);\n  assert.notEqual(to, -1, \`Marcador final ausente: \${end}\`);\n  return source.slice(from, to);\n}\n\ntest("V378 elimina clone profundo da fila IndexedDB", () => {\n  const script = fs.readFileSync("script.js", "utf8");\n  const queue = sourceBetween(script, "async function processIndexedDBStateCopyQueue()", "function persistStateSafely(options = {})");\n  assert.doesNotMatch(queue, /cloneData\\(state\\)/);\n  assert.match(queue, /saveStateToIndexedDB\\(state, \\{ directSnapshot: true \\}\\)/);\n  assert.match(queue, /statesMatchIndexedDBRecord\\(null, reloaded, record\\.checksum\\)/);\n  assert.match(queue, /indexedDBStatus\\.size = Number\\(record\\.serializedSize\\) \\|\\| 0/);\n});\n\ntest("V378 mantém clone legado fora do hot path e cria snapshot direto dentro da transação", () => {\n  const source = fs.readFileSync("storage-indexeddb.js", "utf8");\n  const save = sourceBetween(source, "async function saveStateToIndexedDB(state, options = {})", "function loadStateFromIndexedDB()");\n  assert.match(save, /if \\(options\\.directSnapshot\\)/);\n  assert.match(save, /const serializedState = JSON\\.stringify\\(source\\)/);\n  assert.match(save, /data: source/);\n  assert.match(save, /return store\\.put\\(record\\)/);\n  assert.match(save, /options\\.detachedSnapshot/);\n  assert.match(save, /structuredClone\\(source\\)/);\n});\n\ntest("V378 preserva proteção contra estado vazio", () => {\n  const source = fs.readFileSync("storage-indexeddb.js", "utf8");\n  assert.match(source, /Proteção ativada: estado vazio não substitui IndexedDB válido/);\n  assert.match(source, /validateIndexedDBState\\(existing\\)/);\n  assert.match(source, /indexedDBStateHasUserData\\(existing\\.data\\)/);\n});\n\ntest("V378 mantém raiz e docs sincronizados", () => {\n  assert.equal(fs.readFileSync("script.js", "utf8"), fs.readFileSync("docs/script.js", "utf8"));\n  assert.equal(fs.readFileSync("storage-indexeddb.js", "utf8"), fs.readFileSync("docs/storage-indexeddb.js", "utf8"));\n});\n\ntest("bundle V378 incorpora o caminho direto quando gerado", { skip: !fs.existsSync("app-v378.js") }, () => {\n  const bundle = fs.readFileSync("app-v378.js", "utf8");\n  assert.match(bundle, /20260823-indexeddb-direct-snapshot-v378/);\n  assert.match(bundle, /saveStateToIndexedDB\\(state, \\{ directSnapshot: true \\}\\)/);\n  assert.doesNotMatch(sourceBetween(bundle, "async function processIndexedDBStateCopyQueue()", "function persistStateSafely(options = {})"), /cloneData\\(state\\)/);\n});\n`;
+          fs.writeFileSync('tests/v378-indexeddb-direct-snapshot.test.js', v378Test);
+
+          for (const file of ['bootstrap-fast-path-v351.js', 'docs/bootstrap-fast-path-v351.js', 'bootstrap-integrity-loader-v275.js', 'docs/bootstrap-integrity-loader-v275.js']) {
+            let source = fs.readFileSync(file, 'utf8');
+            source = source.split(PREVIOUS).join(VERSION);
+            source = source.replace(/app-v377\\.js\\?v=20260823-indexeddb-direct-snapshot-v378/g, `app-v378.js?v=${VERSION}`);
+            source = source.replace(/app-v377\\.js\\?v=20260823-sync-signature-performance-v377/g, `app-v378.js?v=${VERSION}`);
+            fs.writeFileSync(file, source);
+          }
+
+          for (const file of ['service-worker.js', 'docs/service-worker.js']) {
+            let source = fs.readFileSync(file, 'utf8');
+            source = source.split(PREVIOUS).join(VERSION);
+            fs.writeFileSync(file, source);
+          }
+
+          if (fs.existsSync('V378_PLAN.md')) fs.rmSync('V378_PLAN.md');
+          NODE
+          npm install --package-lock-only --ignore-scripts
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Validate optimized source
+        run: |
+          node --check storage-indexeddb.js
+          node --check script.js
+          node --test tests/v171-responsive-persistence.test.js tests/v377-sync-signature-performance.test.js tests/v378-indexeddb-direct-snapshot.test.js
+
+      - name: Build V378
+        run: npm run build
+
+      - name: Publish versioned worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp service-worker.js service-worker-v378.js
+          cp service-worker.js docs/service-worker.js
+          cp service-worker.js docs/service-worker-v378.js
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const path = 'published-service-workers.json';
+          const data = JSON.parse(fs.readFileSync(path, 'utf8'));
+          const versions = Array.isArray(data.versoes) ? data.versoes : [];
+          if (!versions.includes('v378')) versions.push('v378');
+          data.versoes = versions;
+          fs.writeFileSync(path, JSON.stringify(data, null, 2) + '\n');
+          NODE
+
+      - name: Validate generated V378
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check app-v378.js
+          node --check service-worker.js
+          node --check bootstrap-fast-path-v351.js
+          node --check bootstrap-integrity-loader-v275.js
+          node --test tests/v171-responsive-persistence.test.js tests/v377-sync-signature-performance.test.js tests/v378-indexeddb-direct-snapshot.test.js tests/sync-device-deletions.test.js
+          grep -q 'app-v378.js?v=20260823-indexeddb-direct-snapshot-v378' bootstrap-fast-path-v351.js
+          grep -q 'const FAST_BOOTSTRAP_VERSION = "20260823-indexeddb-direct-snapshot-v378"' service-worker.js
+          grep -q 'const VERSION = "20260823-indexeddb-direct-snapshot-v378"' bootstrap-integrity-loader-v275.js
+          cmp -s storage-indexeddb.js docs/storage-indexeddb.js
+          cmp -s script.js docs/script.js
+          cmp -s service-worker.js docs/service-worker.js
+
+      - name: Commit generated release
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'No generated changes.'
+            exit 0
+          fi
+          git commit -m 'V378: remove clone redundante da fila IndexedDB'
+          git push origin HEAD:v378-indexeddb-direct-snapshot
