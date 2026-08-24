@@ -79,6 +79,7 @@
 
   function installSecurityMonitoring() {
     addEventListener("securitypolicyviolation", (event) => {
+      // Deliberately do not transmit blockedURI, sourceFile or sample.
       emit("security_event", `csp-${clean(event.effectiveDirective || event.violatedDirective, "directive")}`, "blocked");
     });
 
@@ -118,7 +119,10 @@
     if (performanceReported) return;
     performanceReported = true;
     if (lastLcpMs > 0) emit("performance_metric", "lcp", "observe", lastLcpMs / 1000);
-    if (cumulativeLayoutShift > 0) emit("performance_metric", "cls-x1000", "observe", cumulativeLayoutShift);
+    if (cumulativeLayoutShift > 0) {
+      // Preserve the existing numeric field without expanding the telemetry schema.
+      emit("performance_metric", "cls-x1000", "observe", cumulativeLayoutShift);
+    }
     try {
       const nav = performance.getEntriesByType?.("navigation")?.[0];
       if (nav && Number.isFinite(nav.loadEventEnd) && nav.loadEventEnd > 0) {
@@ -127,6 +131,10 @@
     } catch {}
   }
 
+  // V350 — carregamento emergencial e isolado da otimização de mapeamentos.
+  // Este arquivo já é executado antes do bootstrap do aplicativo e não é parte
+  // do cache estático autoritativo. O hotfix apenas troca a consulta O(n) por
+  // índice WeakMap; não toca em estado, persistência, sincronização ou cronômetro.
   function installEmergencyPerformanceV350() {
     if (typeof document === "undefined") return;
     if (document.getElementById("aldusEmergencyPerformanceV350")) return;
@@ -137,6 +145,9 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V379 — metas manuais são adicionais e nunca consomem a cota automática.
+  // O guard é carregado como módulo isolado e só atua em geração/reparo de metas,
+  // sem observadores de DOM, polling ou trabalho contínuo em segundo plano.
   function installManualGoalAdditiveV379() {
     if (typeof document === "undefined") return;
     if (document.getElementById("aldusManualGoalAdditiveV379")) return;
@@ -150,6 +161,9 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V380 — novo prompt integrado, isolado do bundle principal e dos hot paths.
+  // O módulo só registra o tipo após o bootstrap e redesenha a Fábrica apenas
+  // quando a própria tela de Fábrica já está aberta.
   function installFactoryResumoAulaJurisprudenciaV380() {
     if (typeof document === "undefined") return;
     if (document.getElementById("aldusFactoryResumoAulaJurisprudenciaV380")) return;
@@ -163,9 +177,9 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
-  // V382 — o sumário passa a espelhar a didática visual do próprio módulo.
-  // A extensão continua atuando somente sobre texto de prompt, sem observadores,
-  // polling, timers, leitura de layout ou persistência automática.
+  // V382 — sumário com a mesma didática visual dos quatro módulos de conteúdo.
+  // A extensão atua somente sobre texto de prompt e não adiciona observadores,
+  // polling, timers, medições de layout ou persistência automática.
   function installFactorySummaryTocV382() {
     if (typeof document === "undefined") return;
     if (document.getElementById("aldusFactorySummaryTocV382")) return;
