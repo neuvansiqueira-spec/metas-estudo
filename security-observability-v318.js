@@ -161,6 +161,22 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V380 — novo prompt integrado, isolado do bundle principal e dos hot paths.
+  // O módulo só registra o tipo após o bootstrap e redesenha a Fábrica apenas
+  // quando a própria tela de Fábrica já está aberta.
+  function installFactoryResumoAulaJurisprudenciaV380() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusFactoryResumoAulaJurisprudenciaV380")) return;
+    const script = document.createElement("script");
+    script.id = "aldusFactoryResumoAulaJurisprudenciaV380";
+    script.src = "factory-resumo-aula-jurisprudencia-v380.js?v=20260824-factory-resumo-aula-jurisprudencia-v380";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V380] Falha ao carregar o prompt Resumo/Aula + Jurisprudência.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   function init() {
     installRuntimeMonitoring();
     installSecurityMonitoring();
@@ -180,6 +196,7 @@
 
   installEmergencyPerformanceV350();
   installManualGoalAdditiveV379();
+  installFactoryResumoAulaJurisprudenciaV380();
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init, { once: true });
