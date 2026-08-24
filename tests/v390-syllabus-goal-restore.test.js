@@ -137,10 +137,10 @@ test("V390 permanece fora de hot paths e só consulta o edital no cenário 6 met
   assert.match(source, /makeGoal\(item, TARGET_DATE, type, scoreContext, targetState\)/);
 });
 
-test("V390 é entregue pelo guard e raiz/docs permanecem idênticos", () => {
+test("V390 permanece preservada como legado enquanto o guard entrega V391", () => {
   assert.equal(source, docsSource);
   assert.equal(startup, docsStartup);
+  assert.match(startup, /daily-goal-authorized-restore-v391\.js/);
+  assert.match(startup, /aldusAuthorizedGoalRestoreV391/);
   assert.match(startup, /daily-goal-authorized-restore-v390\.js/);
-  assert.match(startup, /aldusAuthorizedGoalRestoreV390/);
-  assert.match(startup, /daily-goal-authorized-restore-v389\.js/);
 });
