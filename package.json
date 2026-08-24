@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260823-piece-destination-v374",
+  "version": "20260823-bootstrap-current-runtime-v375",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
