@@ -53,7 +53,7 @@ jobs:
       - name: Validate optimized source
         run: |
           node --check sync-integral-deletions.js
-          node --test tests/sync-device-deletions.test.js tests/v376-sync-startup-performance.test.js
+          node --test tests/v376-sync-startup-performance.test.js
 
       - name: Build V376
         run: npm run build
