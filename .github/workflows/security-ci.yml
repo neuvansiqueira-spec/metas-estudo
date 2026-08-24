@@ -35,6 +35,10 @@ jobs:
           node --check security-hardening-v296.js
           node --check usage-telemetry-v315.js
           node --check security-observability-v318.js
+          node --check startup-planning-stability-v387.js
+          node --check factory-queue-integrity-v236.js
+          node --check planning-integrity-loader-v235.js
+          node --check manual-goal-additive-v379.js
           node --check question-bank-manual-notes-v386.js
           node --check telemetry-security-dashboard-v319.js
           node --check simulado-recovery-v319.js
@@ -74,4 +78,6 @@ jobs:
             tests/v357-planning-variety.test.js \
             tests/v358-piece-rotation-repair.test.js \
             tests/v368-planning-quality.test.js \
-            tests/v386-question-bank-manual-notes.test.js
+            tests/v379-manual-goal-additive.test.js \
+            tests/v386-question-bank-manual-notes.test.js \
+            tests/v387-startup-planning-stability.test.js

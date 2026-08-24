@@ -145,6 +145,21 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V387 — protege o startup contra realinhamento silencioso das metas e limpa
+  // somente as entradas de cache dos runtimes de planejamento corrigidos.
+  function installStartupPlanningStabilityV387() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusStartupPlanningStabilityV387")) return;
+    const script = document.createElement("script");
+    script.id = "aldusStartupPlanningStabilityV387";
+    script.src = "startup-planning-stability-v387.js?v=20260824-startup-planning-stability-v387";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V387] Falha ao carregar a proteção de estabilidade do planejamento.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   // V379 — metas manuais são adicionais e nunca consomem a cota automática.
   // O guard é carregado como módulo isolado e só atua em geração/reparo de metas,
   // sem observadores de DOM, polling ou trabalho contínuo em segundo plano.
@@ -153,7 +168,7 @@
     if (document.getElementById("aldusManualGoalAdditiveV379")) return;
     const script = document.createElement("script");
     script.id = "aldusManualGoalAdditiveV379";
-    script.src = "manual-goal-additive-v379.js?v=20260824-manual-goal-additive-v379";
+    script.src = "manual-goal-additive-v379.js?v=20260824-manual-goal-additive-v379-stability-v387";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V379] Falha ao carregar a proteção aditiva de metas manuais.");
@@ -290,6 +305,7 @@
   globalThis.__ALDUS_SECURITY_OBSERVABILITY_V318__ = api;
 
   installEmergencyPerformanceV350();
+  installStartupPlanningStabilityV387();
   installManualGoalAdditiveV379();
   installFactoryResumoAulaJurisprudenciaV380();
   installFactoryLeiJurisprudenciaV383();
