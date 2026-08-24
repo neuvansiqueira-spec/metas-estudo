@@ -72,9 +72,13 @@ test("loader V351 não aguarda o guard pesado antes de carregar o fast path", ()
   assert.doesNotMatch(loader, /await guardPromise/);
 });
 
-test("Service Worker V351 entrega o fast path e não inicia o guard pesado no boot normal", () => {
+test("Service Worker entrega o fast path atual e não inicia o guard pesado no boot normal", () => {
   const worker = fs.readFileSync(path.join(root, "service-worker.js"), "utf8");
-  assert.match(worker, /FAST_BOOTSTRAP_VERSION = "20260817-bootstrap-fast-path-v351"/);
+  const currentVersion = worker.match(/const CURRENT_VERSION = "([^"]+)";/)?.[1] || "";
+  const fastBootstrapVersion = worker.match(/const FAST_BOOTSTRAP_VERSION = "([^"]+)";/)?.[1] || "";
+  assert.ok(currentVersion, "CURRENT_VERSION deve existir no Service Worker");
+  assert.ok(fastBootstrapVersion, "FAST_BOOTSTRAP_VERSION deve existir no Service Worker");
+  assert.equal(fastBootstrapVersion, currentVersion, "o fast path deve acompanhar a release ativa");
   assert.match(worker, /BOOTSTRAP_FAST_PATH = `bootstrap-fast-path-v351\.js/);
   assert.match(worker, /bootstrap-fast-path-v351(?:-[^`]*)?`/);
   const start = worker.indexOf("function installProtectedBootstrapV275");
