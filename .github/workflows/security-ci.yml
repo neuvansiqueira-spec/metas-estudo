@@ -39,6 +39,7 @@ jobs:
           node --check planning-integrity-v235.js
           node --check daily-goal-authorized-restore-v388.js
           node --check daily-goal-authorized-restore-v389.js
+          node --check daily-goal-authorized-restore-v390.js
           node --check factory-queue-integrity-v236.js
           node --check planning-integrity-loader-v235.js
           node --check manual-goal-additive-v379.js
@@ -85,4 +86,5 @@ jobs:
             tests/v386-question-bank-manual-notes.test.js \
             tests/v387-startup-planning-stability.test.js \
             tests/v388-authorized-goal-restore.test.js \
-            tests/v389-real-state-goal-restore.test.js
+            tests/v389-real-state-goal-restore.test.js \
+            tests/v390-syllabus-goal-restore.test.js
