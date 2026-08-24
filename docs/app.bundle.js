@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260823-bootstrap-current-runtime-v375";
+  const VERSION = "20260823-sync-startup-performance-v376";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -3281,7 +3281,11 @@ function syncComparableValue(value) {
 }
 
 function syncRecordSignature(value) {
-  return syncStableSerialize(syncComparableValue(value));
+  try {
+    return JSON.stringify(value, (key, entry) => SYNC_REVISION_FIELDS.has(key) ? undefined : entry);
+  } catch {
+    return syncStableSerialize(syncComparableValue(value));
+  }
 }
 
 function syncRecordRevisionTimestamp(value = {}) {
@@ -3309,7 +3313,7 @@ function syncSnapshotCollections(targetState = state) {
     (Array.isArray(targetState?.[collection]) ? targetState[collection] : []).forEach((item) => {
       if (!item || typeof item !== "object") return;
       const key = syncCollectionKey(item, collection);
-      map.set(key, { record: syncClone(item), signature: syncRecordSignature(item) });
+      map.set(key, { signature: syncRecordSignature(item) });
     });
     snapshot[collection] = map;
   });
@@ -3469,6 +3473,7 @@ syncMergeRecord = syncMergeRecordVersioned;
 
 let syncDeletionSnapshot = null;
 let syncDeletionTrackingReady = false;
+let syncDeletionSnapshotScheduled = false;
 
 function syncDeletionTrackingSuppressed() {
   return Boolean(
@@ -3479,10 +3484,24 @@ function syncDeletionTrackingSuppressed() {
   );
 }
 
-function syncRefreshDeletionSnapshot() {
+function syncRefreshDeletionSnapshot({ defer = false } = {}) {
   if (typeof state === "undefined" || !state) return;
-  syncEnsureTombstoneStore(state);
-  syncDeletionSnapshot = syncSnapshotCollections(state);
+  const build = () => {
+    syncDeletionSnapshotScheduled = false;
+    syncEnsureTombstoneStore(state);
+    syncDeletionSnapshot = syncSnapshotCollections(state);
+  };
+  if (defer && typeof window !== "undefined") {
+    if (syncDeletionSnapshotScheduled) return;
+    syncDeletionSnapshotScheduled = true;
+    if (typeof requestIdleCallback === "function") {
+      requestIdleCallback(build, { timeout: 500 });
+    } else {
+      setTimeout(build, 0);
+    }
+    return;
+  }
+  build();
 }
 
 function installSyncDeletionTracking() {
@@ -3498,7 +3517,7 @@ function installSyncDeletionTracking() {
     return result;
   };
   const arm = () => {
-    syncRefreshDeletionSnapshot();
+    syncRefreshDeletionSnapshot({ defer: true });
     syncDeletionTrackingReady = true;
   };
   if (typeof window !== "undefined") {

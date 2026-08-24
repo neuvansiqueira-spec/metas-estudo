@@ -1,11 +1,11 @@
 "use strict";
 
-const CURRENT_VERSION = "20260823-bootstrap-current-runtime-v375";
+const CURRENT_VERSION = "20260823-sync-startup-performance-v376";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const SECURITY_VERSION = "20260810-seguranca-estabilidade-v296";
 const PROTECTION_VERSION = "20260815-bootstrap-performance-v342";
 const BOOTSTRAP_VERSION = "20260815-bootstrap-performance-v342";
-const FAST_BOOTSTRAP_VERSION = "20260823-bootstrap-current-runtime-v375";
+const FAST_BOOTSTRAP_VERSION = "20260823-sync-startup-performance-v376";
 const NAVIGATION_DELIVERY_VERSION = "20260817-navigation-bootstrap-delivery-v353";
 const PLANNING_QUALITY_VERSION = "20260821-planning-quality-v371";
 const TIMER_GOAL_INTEGRITY_VERSION = "20260821-timer-goal-integrity-v366";
