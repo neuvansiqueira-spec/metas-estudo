@@ -13,8 +13,20 @@ function syncComparableValue(value) {
   return result;
 }
 
+const SYNC_REVISION_JSON_TOKENS = [...SYNC_REVISION_FIELDS].map((key) => `${JSON.stringify(key)}:`);
+
 function syncRecordSignature(value) {
   try {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return JSON.stringify(value, (key, entry) => SYNC_REVISION_FIELDS.has(key) ? undefined : entry);
+    }
+    const shallowComparable = {};
+    Object.keys(value).forEach((key) => {
+      if (!SYNC_REVISION_FIELDS.has(key)) shallowComparable[key] = value[key];
+    });
+    const serialized = JSON.stringify(shallowComparable);
+    const hasNestedRevision = SYNC_REVISION_JSON_TOKENS.some((token) => serialized.includes(token));
+    if (!hasNestedRevision) return serialized;
     return JSON.stringify(value, (key, entry) => SYNC_REVISION_FIELDS.has(key) ? undefined : entry);
   } catch {
     return syncStableSerialize(syncComparableValue(value));

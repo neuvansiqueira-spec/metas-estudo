@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260823-sync-startup-performance-v376";
+  const VERSION = "20260823-sync-signature-performance-v377";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -3280,8 +3280,20 @@ function syncComparableValue(value) {
   return result;
 }
 
+const SYNC_REVISION_JSON_TOKENS = [...SYNC_REVISION_FIELDS].map((key) => `${JSON.stringify(key)}:`);
+
 function syncRecordSignature(value) {
   try {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return JSON.stringify(value, (key, entry) => SYNC_REVISION_FIELDS.has(key) ? undefined : entry);
+    }
+    const shallowComparable = {};
+    Object.keys(value).forEach((key) => {
+      if (!SYNC_REVISION_FIELDS.has(key)) shallowComparable[key] = value[key];
+    });
+    const serialized = JSON.stringify(shallowComparable);
+    const hasNestedRevision = SYNC_REVISION_JSON_TOKENS.some((token) => serialized.includes(token));
+    if (!hasNestedRevision) return serialized;
     return JSON.stringify(value, (key, entry) => SYNC_REVISION_FIELDS.has(key) ? undefined : entry);
   } catch {
     return syncStableSerialize(syncComparableValue(value));
@@ -39129,7 +39141,7 @@ async function initializePrimaryStorage() {
         console.info("[Metas Estudo] Fonte escolhida: localStorage fallback (mais recente).", { localTime, idbTime });
         indexedDBStatus.activeSource = "localStorage fallback";
         indexedDBStatus.lastLoadedSource = "localStorage";
-        await migrateLocalStorageStateToIndexedDB(cloneData(state));
+        await migrateLocalStorageStateToIndexedDB(state);
       } else {
         console.info("[Metas Estudo] Fonte escolhida: IndexedDB.", { localTime, idbTime });
         indexedDBStatus.activeSource = "IndexedDB";
@@ -39143,7 +39155,7 @@ async function initializePrimaryStorage() {
       console.info("[Metas Estudo] Fonte escolhida: localStorage fallback (IndexedDB vazio/inválido).");
       indexedDBStatus.activeSource = "localStorage fallback";
       indexedDBStatus.lastLoadedSource = "localStorage";
-      await migrateLocalStorageStateToIndexedDB(cloneData(state));
+      await migrateLocalStorageStateToIndexedDB(state);
       indexedDBStatus.validation = "localStorage copiado e validado";
     } else {
       indexedDBStatus.activeSource = idb.valid ? "IndexedDB" : "localStorage fallback";
@@ -39286,7 +39298,7 @@ function saveData(options = {}) {
 async function initializeIndexedDBBackup() {
   if (typeof migrateLocalStorageStateToIndexedDB !== "function") { recordIndexedDBWarning("Módulo IndexedDB não carregado."); return; }
   try {
-    const result = await migrateLocalStorageStateToIndexedDB(cloneData(state));
+    const result = await migrateLocalStorageStateToIndexedDB(state);
     const record = result.record || await loadStateFromIndexedDB();
     indexedDBStatus.available = true;
     indexedDBStatus.activeSource = "IndexedDB";

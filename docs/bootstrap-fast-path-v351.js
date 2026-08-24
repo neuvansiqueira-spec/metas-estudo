@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260823-sync-startup-performance-v376";
+  const VERSION = "20260823-sync-signature-performance-v377";
   const LEGACY_BOOTSTRAP_VERSION = "20260815-bootstrap-performance-v342";
   const MAIN_DB = "metas-estudo-db";
   const MAIN_STORE = "appState";
@@ -10,7 +10,7 @@
   const GUARD_SCRIPT = `catastrophic-state-guard-v275.js?v=${LEGACY_BOOTSTRAP_VERSION}&fallback=v351`;
   const FALLBACK_CORE = `bootstrap-integrity-loader-v258-core.js?v=${LEGACY_BOOTSTRAP_VERSION}&fallback=v351&planning=v371`;
   const SCRIPT_CHAIN = [
-    ["aldusAppBundleScript", "app-v376.js?v=20260823-sync-startup-performance-v376"],
+    ["aldusAppBundleScript", "app-v377.js?v=20260823-sync-signature-performance-v377"],
     ["aldusPlanningQualityV368", "planning-quality-v368.js?v=20260821-planning-quality-v371"],
     ["aldusTimerGoalIntegrityV366", "timer-goal-integrity-v366.js?v=20260821-timer-goal-integrity-v366"],
     ["aldusQconcursosFilterRouteV333", "qconcursos-filter-route-v333.js?v=20260814-restaura-filtros-qconcursos-v333"],
