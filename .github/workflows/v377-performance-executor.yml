@@ -1,0 +1,134 @@
+name: V377 Performance Executor
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: v377-performance-${{ github.event.pull_request.head.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-v377:
+    if: ${{ github.event.pull_request.head.ref == 'v377-sync-signature-performance' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout V377 branch
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: v377-sync-signature-performance
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Apply V377 hot-path patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const VERSION = '20260823-sync-signature-performance-v377';
+          const PREVIOUS = '20260823-sync-startup-performance-v376';
+
+          const deletionsPath = 'sync-integral-deletions.js';
+          let deletions = fs.readFileSync(deletionsPath, 'utf8');
+          const start = deletions.indexOf('function syncRecordSignature(value) {');
+          const end = deletions.indexOf('\nfunction syncRecordRevisionTimestamp', start);
+          if (start < 0 || end < 0) throw new Error('syncRecordSignature não localizado.');
+          const replacement = `const SYNC_REVISION_JSON_TOKENS = [...SYNC_REVISION_FIELDS].map((key) => \`${'${JSON.stringify(key)}'}:\`);\n\nfunction syncRecordSignature(value) {\n  try {\n    if (!value || typeof value !== "object" || Array.isArray(value)) {\n      return JSON.stringify(value, (key, entry) => SYNC_REVISION_FIELDS.has(key) ? undefined : entry);\n    }\n    const shallowComparable = {};\n    Object.keys(value).forEach((key) => {\n      if (!SYNC_REVISION_FIELDS.has(key)) shallowComparable[key] = value[key];\n    });\n    const serialized = JSON.stringify(shallowComparable);\n    const hasNestedRevision = SYNC_REVISION_JSON_TOKENS.some((token) => serialized.includes(token));\n    if (!hasNestedRevision) return serialized;\n    return JSON.stringify(value, (key, entry) => SYNC_REVISION_FIELDS.has(key) ? undefined : entry);\n  } catch {\n    return syncStableSerialize(syncComparableValue(value));\n  }\n}\n`;
+          deletions = deletions.slice(0, start) + replacement + deletions.slice(end);
+          fs.writeFileSync(deletionsPath, deletions);
+          fs.copyFileSync(deletionsPath, 'docs/sync-integral-deletions.js');
+
+          let script = fs.readFileSync('script.js', 'utf8');
+          const target = 'migrateLocalStorageStateToIndexedDB(cloneData(state))';
+          const matches = script.split(target).length - 1;
+          if (matches !== 3) throw new Error(`Esperadas 3 clonagens redundantes; encontradas ${matches}.`);
+          script = script.split(target).join('migrateLocalStorageStateToIndexedDB(state)');
+          fs.writeFileSync('script.js', script);
+          fs.copyFileSync('script.js', 'docs/script.js');
+
+          for (const file of ['bootstrap-fast-path-v351.js', 'docs/bootstrap-fast-path-v351.js', 'bootstrap-integrity-loader-v275.js', 'docs/bootstrap-integrity-loader-v275.js']) {
+            let source = fs.readFileSync(file, 'utf8');
+            source = source.split(PREVIOUS).join(VERSION);
+            source = source.replace(/app-v376\.js\?v=20260823-sync-signature-performance-v377/g, `app-v377.js?v=${VERSION}`);
+            source = source.replace(/app-v376\.js\?v=20260823-sync-startup-performance-v376/g, `app-v377.js?v=${VERSION}`);
+            fs.writeFileSync(file, source);
+          }
+
+          for (const file of ['service-worker.js', 'docs/service-worker.js']) {
+            let source = fs.readFileSync(file, 'utf8');
+            source = source.split(PREVIOUS).join(VERSION);
+            fs.writeFileSync(file, source);
+          }
+          NODE
+          npm install --package-lock-only --ignore-scripts
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Validate optimized source
+        run: |
+          node --check sync-integral-deletions.js
+          node --check script.js
+          node --test tests/v376-sync-startup-performance.test.js tests/v377-sync-signature-performance.test.js tests/sync-device-deletions.test.js
+
+      - name: Build V377
+        run: npm run build
+
+      - name: Publish versioned worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp service-worker.js service-worker-v377.js
+          cp service-worker.js docs/service-worker.js
+          cp service-worker.js docs/service-worker-v377.js
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const path = 'published-service-workers.json';
+          const data = JSON.parse(fs.readFileSync(path, 'utf8'));
+          const versions = Array.isArray(data.versoes) ? data.versoes : [];
+          if (!versions.includes('v377')) versions.push('v377');
+          data.versoes = versions;
+          fs.writeFileSync(path, JSON.stringify(data, null, 2) + '\n');
+          NODE
+
+      - name: Validate generated V377
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check app-v377.js
+          node --check service-worker.js
+          node --check bootstrap-fast-path-v351.js
+          node --check bootstrap-integrity-loader-v275.js
+          node --test tests/v376-sync-startup-performance.test.js tests/v377-sync-signature-performance.test.js tests/sync-device-deletions.test.js
+          grep -q 'app-v377.js?v=20260823-sync-signature-performance-v377' bootstrap-fast-path-v351.js
+          grep -q 'const FAST_BOOTSTRAP_VERSION = "20260823-sync-signature-performance-v377"' service-worker.js
+          grep -q 'const VERSION = "20260823-sync-signature-performance-v377"' bootstrap-integrity-loader-v275.js
+          cmp -s sync-integral-deletions.js docs/sync-integral-deletions.js
+          cmp -s script.js docs/script.js
+          cmp -s service-worker.js docs/service-worker.js
+
+      - name: Commit generated release
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'No generated changes.'
+            exit 0
+          fi
+          git commit -m 'V377: gera release de assinatura e clones otimizados'
+          git push origin HEAD:v377-sync-signature-performance
