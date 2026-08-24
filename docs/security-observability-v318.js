@@ -79,6 +79,7 @@
 
   function installSecurityMonitoring() {
     addEventListener("securitypolicyviolation", (event) => {
+      // Deliberately do not transmit blockedURI, sourceFile or sample.
       emit("security_event", `csp-${clean(event.effectiveDirective || event.violatedDirective, "directive")}`, "blocked");
     });
 
