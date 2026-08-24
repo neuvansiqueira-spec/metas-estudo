@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260823-sync-signature-performance-v377";
+  const VERSION = "20260823-indexeddb-direct-snapshot-v378";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

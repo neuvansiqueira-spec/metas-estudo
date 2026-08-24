@@ -87,13 +87,34 @@ function indexedDBStateHasUserData(state = {}) {
 
 async function saveStateToIndexedDB(state, options = {}) {
   const source = state || {};
+  const ensureSafeWrite = async (candidate) => {
+    if (indexedDBStateHasUserData(candidate)) return;
+    const existing = await loadStateFromIndexedDB().catch(() => null);
+    if (validateIndexedDBState(existing) && indexedDBStateHasUserData(existing.data)) throw new Error("Proteção ativada: estado vazio não substitui IndexedDB válido.");
+  };
+
+  if (options.directSnapshot) {
+    await ensureSafeWrite(source);
+    let record = null;
+    await runStoreOperation(STUDY_DB_APP_STATE_STORE, "readwrite", (store) => {
+      const serializedState = JSON.stringify(source);
+      record = {
+        id: STUDY_DB_CURRENT_ID,
+        schemaVersion: STUDY_DB_SCHEMA_VERSION,
+        savedAt: new Date().toISOString(),
+        checksum: checksumForSerializedState(serializedState),
+        serializedSize: serializedState.length,
+        data: source
+      };
+      return store.put(record);
+    });
+    return record;
+  }
+
   const data = options.detachedSnapshot
     ? source
     : (typeof structuredClone === "function" ? structuredClone(source) : JSON.parse(JSON.stringify(source)));
-  if (!indexedDBStateHasUserData(data)) {
-    const existing = await loadStateFromIndexedDB().catch(() => null);
-    if (validateIndexedDBState(existing) && indexedDBStateHasUserData(existing.data)) throw new Error("Proteção ativada: estado vazio não substitui IndexedDB válido.");
-  }
+  await ensureSafeWrite(data);
   const serializedState = JSON.stringify(data);
   const record = {
     id: STUDY_DB_CURRENT_ID,

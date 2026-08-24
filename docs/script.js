@@ -1992,15 +1992,14 @@ async function processIndexedDBStateCopyQueue() {
   indexedDBPersistQueued = false;
   indexedDBPersistInFlight = true;
   try {
-    const snapshot = cloneData(state);
-    const record = await saveStateToIndexedDB(snapshot, { detachedSnapshot: true });
+    const record = await saveStateToIndexedDB(state, { directSnapshot: true });
     const reloaded = await loadStateFromIndexedDB();
-    if (!statesMatchIndexedDBRecord(snapshot, reloaded, record.checksum)) throw new Error("A validação da gravação no IndexedDB falhou.");
+    if (!statesMatchIndexedDBRecord(null, reloaded, record.checksum)) throw new Error("A validação da gravação no IndexedDB falhou.");
     indexedDBStatus.available = true;
     indexedDBStatus.activeSource = "IndexedDB";
     indexedDBStatus.lastCopyAt = record.savedAt;
     indexedDBStatus.validation = "válido";
-    indexedDBStatus.size = Number(record.serializedSize) || estimateSerializedStateSize(snapshot);
+    indexedDBStatus.size = Number(record.serializedSize) || 0;
     if (indexedDBStatus.migration === "pendente") indexedDBStatus.migration = "concluída";
     indexedDBStatus.error = indexedDBStatus.localStorageFull ? "IndexedDB funcionando; cópia localStorage indisponível por falta de espaço." : "";
   } catch (error) {
