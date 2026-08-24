@@ -7,7 +7,9 @@ const vm = require("node:vm");
 const workerPath = path.resolve(__dirname, "..", "service-worker.js");
 const source = fs.readFileSync(workerPath, "utf8");
 const currentVersion = source.match(/const CURRENT_VERSION = "([^"]+)";/)?.[1] || "";
+const fastBootstrapVersion = source.match(/const FAST_BOOTSTRAP_VERSION = "([^"]+)";/)?.[1] || "";
 assert.ok(currentVersion, "CURRENT_VERSION deve existir no Service Worker canônico");
+assert.ok(fastBootstrapVersion, "FAST_BOOTSTRAP_VERSION deve existir no Service Worker canônico");
 const scope = "https://example.test/metas-estudo/";
 const canonical = `${scope}index.html`;
 
@@ -63,7 +65,7 @@ test("V353 não precacheia HTML cru e grava um documento canônico já protegido
   assert.equal(cached.headers.get("x-aldus-integrity-version"), currentVersion);
   const html = await cached.text();
   assert.match(html, /id="aldusBootstrapIntegrityLoaderV275"/);
-  assert.match(html, /bootstrap-integrity-loader-v275\.js\?v=20260817-bootstrap-fast-path-v351/);
+  assert.ok(html.includes(`bootstrap-integrity-loader-v275.js?v=${fastBootstrapVersion}`));
 });
 
 test("V353 nunca devolve HTML cacheado cru na primeira navegação", async () => {
@@ -79,7 +81,7 @@ test("V353 nunca devolve HTML cacheado cru na primeira navegação", async () =>
   assert.equal(response.headers.get("x-aldus-integrity-version"), currentVersion);
   const html = await response.text();
   assert.match(html, /id="aldusBootstrapIntegrityLoaderV275"/);
-  assert.match(html, /20260817-bootstrap-fast-path-v351/);
+  assert.ok(html.includes(fastBootstrapVersion));
   const repaired = await rt.cache.match(canonical);
   assert.ok(repaired);
   assert.match(await repaired.text(), /aldusBootstrapIntegrityLoaderV275/);
