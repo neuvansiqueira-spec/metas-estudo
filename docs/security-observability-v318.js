@@ -177,6 +177,22 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V381 — sumário obrigatório nos quatro prompts de conteúdo da Fábrica.
+  // A extensão atua somente sobre texto de prompt e não adiciona observadores,
+  // polling, timers, medições de layout ou persistência automática.
+  function installFactorySummaryTocV381() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusFactorySummaryTocV381")) return;
+    const script = document.createElement("script");
+    script.id = "aldusFactorySummaryTocV381";
+    script.src = "factory-summary-toc-v381.js?v=20260824-factory-summary-toc-v381";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V381] Falha ao carregar a regra de sumário dos prompts da Fábrica.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   function init() {
     installRuntimeMonitoring();
     installSecurityMonitoring();
@@ -197,6 +213,7 @@
   installEmergencyPerformanceV350();
   installManualGoalAdditiveV379();
   installFactoryResumoAulaJurisprudenciaV380();
+  installFactorySummaryTocV381();
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init, { once: true });
