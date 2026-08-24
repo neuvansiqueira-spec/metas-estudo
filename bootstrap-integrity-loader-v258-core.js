@@ -59,7 +59,7 @@
     "aldusEmergencyIndexedDBActivationBackupV256"
   ];
   const SCRIPT_CHAIN = [
-    ["aldusAppBundleScript", "app-v377.js?v=20260823-sync-signature-performance-v377"],
+    ["aldusAppBundleScript", "app-v378.js?v=20260823-indexeddb-direct-snapshot-v378"],
     ["aldusPlanningQualityV368", "planning-quality-v368.js?v=20260821-planning-quality-v371"],
     ["aldusTimerGoalIntegrityV366", "timer-goal-integrity-v366.js?v=20260821-timer-goal-integrity-v366"],
     ["aldusQconcursosFilterRouteV333", "qconcursos-filter-route-v333.js?v=20260814-restaura-filtros-qconcursos-v333"],

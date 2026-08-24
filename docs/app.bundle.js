@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260823-sync-signature-performance-v377";
+  const VERSION = "20260823-indexeddb-direct-snapshot-v378";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -125,13 +125,34 @@ function indexedDBStateHasUserData(state = {}) {
 
 async function saveStateToIndexedDB(state, options = {}) {
   const source = state || {};
+  const ensureSafeWrite = async (candidate) => {
+    if (indexedDBStateHasUserData(candidate)) return;
+    const existing = await loadStateFromIndexedDB().catch(() => null);
+    if (validateIndexedDBState(existing) && indexedDBStateHasUserData(existing.data)) throw new Error("Proteção ativada: estado vazio não substitui IndexedDB válido.");
+  };
+
+  if (options.directSnapshot) {
+    await ensureSafeWrite(source);
+    let record = null;
+    await runStoreOperation(STUDY_DB_APP_STATE_STORE, "readwrite", (store) => {
+      const serializedState = JSON.stringify(source);
+      record = {
+        id: STUDY_DB_CURRENT_ID,
+        schemaVersion: STUDY_DB_SCHEMA_VERSION,
+        savedAt: new Date().toISOString(),
+        checksum: checksumForSerializedState(serializedState),
+        serializedSize: serializedState.length,
+        data: source
+      };
+      return store.put(record);
+    });
+    return record;
+  }
+
   const data = options.detachedSnapshot
     ? source
     : (typeof structuredClone === "function" ? structuredClone(source) : JSON.parse(JSON.stringify(source)));
-  if (!indexedDBStateHasUserData(data)) {
-    const existing = await loadStateFromIndexedDB().catch(() => null);
-    if (validateIndexedDBState(existing) && indexedDBStateHasUserData(existing.data)) throw new Error("Proteção ativada: estado vazio não substitui IndexedDB válido.");
-  }
+  await ensureSafeWrite(data);
   const serializedState = JSON.stringify(data);
   const record = {
     id: STUDY_DB_CURRENT_ID,
@@ -39198,15 +39219,14 @@ async function processIndexedDBStateCopyQueue() {
   indexedDBPersistQueued = false;
   indexedDBPersistInFlight = true;
   try {
-    const snapshot = cloneData(state);
-    const record = await saveStateToIndexedDB(snapshot, { detachedSnapshot: true });
+    const record = await saveStateToIndexedDB(state, { directSnapshot: true });
     const reloaded = await loadStateFromIndexedDB();
-    if (!statesMatchIndexedDBRecord(snapshot, reloaded, record.checksum)) throw new Error("A validação da gravação no IndexedDB falhou.");
+    if (!statesMatchIndexedDBRecord(null, reloaded, record.checksum)) throw new Error("A validação da gravação no IndexedDB falhou.");
     indexedDBStatus.available = true;
     indexedDBStatus.activeSource = "IndexedDB";
     indexedDBStatus.lastCopyAt = record.savedAt;
     indexedDBStatus.validation = "válido";
-    indexedDBStatus.size = Number(record.serializedSize) || estimateSerializedStateSize(snapshot);
+    indexedDBStatus.size = Number(record.serializedSize) || 0;
     if (indexedDBStatus.migration === "pendente") indexedDBStatus.migration = "concluída";
     indexedDBStatus.error = indexedDBStatus.localStorageFull ? "IndexedDB funcionando; cópia localStorage indisponível por falta de espaço." : "";
   } catch (error) {
