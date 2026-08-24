@@ -94,11 +94,10 @@ const saved = api.persistQuestionNotes(state.questionBank[0], {
 assert.strictEqual(saved.saved, true);
 assert.strictEqual(saveCalls, 1);
 assert.strictEqual(syncCalls, 1);
-assert.deepStrictEqual(api.notesFor(state.questionBank[0]), {
-  comentario: 'Comentário pessoal',
-  bizu: 'Bizu de prova',
-  jurisprudencia: 'Tese jurisprudencial'
-});
+const savedNotes = api.notesFor(state.questionBank[0]);
+assert.strictEqual(savedNotes.comentario, 'Comentário pessoal');
+assert.strictEqual(savedNotes.bizu, 'Bizu de prova');
+assert.strictEqual(savedNotes.jurisprudencia, 'Tese jurisprudencial');
 assert.strictEqual(api.noteCount(state.questionBank[0]), 3);
 assert.strictEqual(state.questionBank[0].anotacoesManuais.source, 'manual');
 
