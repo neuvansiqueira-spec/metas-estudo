@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260817-qb-package-single-pass-v344",
+  "version": "20260823-piece-destination-v374",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

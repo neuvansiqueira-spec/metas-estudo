@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20260817-qb-package-single-pass-v344";
+const CURRENT_VERSION = "20260823-piece-destination-v374";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const SECURITY_VERSION = "20260810-seguranca-estabilidade-v296";
 const PROTECTION_VERSION = "20260815-bootstrap-performance-v342";
