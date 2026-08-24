@@ -224,6 +224,22 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V385 — padronização visual final de DOCX alterado com sumário didático.
+  // O módulo apenas registra prompt/roteamento e preserva o conteúdo do usuário;
+  // sem polling, observadores, persistência automática ou hot paths.
+  function installFactoryPadronizacaoFinalSumarioV385() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusFactoryPadronizacaoFinalSumarioV385")) return;
+    const script = document.createElement("script");
+    script.id = "aldusFactoryPadronizacaoFinalSumarioV385";
+    script.src = "factory-padronizacao-final-sumario-v385.js?v=20260824-factory-padronizacao-final-sumario-v385";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V385] Falha ao carregar Padronização Final + Sumário.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   // V382 — sumário com a mesma didática visual dos quatro módulos de conteúdo.
   // A extensão atua somente sobre texto de prompt e não adiciona observadores,
   // polling, timers, medições de layout ou persistência automática.
@@ -263,6 +279,7 @@
   installFactoryLeiJurisprudenciaV383();
   installFactoryFinalReviewV384();
   installFactoryFinalReviewCompatV384();
+  installFactoryPadronizacaoFinalSumarioV385();
   installFactorySummaryTocV382();
 
   if (document.readyState === "loading") {
