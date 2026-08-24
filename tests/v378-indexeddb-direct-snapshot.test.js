@@ -1,3 +1,4 @@
+// V378 final contract: runtime unchanged; this commit only refreshes CI against the clean base.
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
