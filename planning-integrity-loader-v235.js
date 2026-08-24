@@ -2,6 +2,7 @@
   "use strict";
 
   const VERSION = "20260804-planejamento-metas-fabrica-integridade-v235";
+  const STARTUP_STABILITY_VERSION = "20260824-startup-planning-stability-v387";
   const SNAPSHOT_KEY = "aldusPlanningManualGoalsV235";
   const SCRIPT_ID = "aldusPlanningIntegrityCoreV235";
   const FACTORY_SCRIPT_ID = "aldusFactoryQueueIntegrityV236";
@@ -101,7 +102,7 @@
     if (globalThis.__ALDUS_FACTORY_QUEUE_INTEGRITY_V236__ || document.getElementById(FACTORY_SCRIPT_ID)) return true;
     const script = document.createElement("script");
     script.id = FACTORY_SCRIPT_ID;
-    script.src = `factory-queue-integrity-v236.js?v=${encodeURIComponent(releaseVersion)}&hotfix=${encodeURIComponent(FACTORY_HOTFIX)}`;
+    script.src = `factory-queue-integrity-v236.js?v=${encodeURIComponent(releaseVersion)}&hotfix=${encodeURIComponent(FACTORY_HOTFIX)}&stability=${encodeURIComponent(STARTUP_STABILITY_VERSION)}`;
     script.async = false;
     script.addEventListener("error", () => {
       script.remove();
@@ -214,24 +215,7 @@
     script.async = false;
     script.addEventListener("load", () => {
       installPersistenceGuards();
-      window.setTimeout(() => {
-        enforceSnapshot();
-        loadFactoryDestinationIntegrity();
-        loadTimerAudioRecovery(releaseVersion);
-        loadTimerAudioUnifier();
-        loadTimerMessageDedupe();
-        loadDailySummaryTimeFormat();
-        loadTimerSessionIntegrity(releaseVersion);
-        try {
-          if (typeof ensureDailyPlanAlignedWithPlanningV174 === "function") {
-            const date = typeof todayISO === "function" ? todayISO() : new Date().toISOString().slice(0, 10);
-            const result = ensureDailyPlanAlignedWithPlanningV174(state, date);
-            if (result?.changed && typeof saveData === "function") saveData({ markLocalChange: true });
-          }
-        } catch (error) {
-          console.warn("[Aldus v235] A confirmação pós-carregamento será repetida na próxima abertura.", error);
-        }
-      }, 250);
+      enforceSnapshot();
     }, { once: true });
     script.addEventListener("error", () => {
       loaded = false;
@@ -241,11 +225,12 @@
     return true;
   }
 
-  const timer = window.setInterval(() => {
-    if (loadIntegrityCore()) window.clearInterval(timer);
-  }, 100);
-  window.setTimeout(() => {
-    window.clearInterval(timer);
-    loadIntegrityCore();
-  }, 20000);
+  const attemptLoad = () => loadIntegrityCore();
+  attemptLoad();
+  if (typeof window !== "undefined") {
+    window.addEventListener("aldus:bootstrap-integrity-v258-ready", attemptLoad, { once: true });
+    window.addEventListener("aldus:post-bootstrap-maintenance-complete", attemptLoad, { once: true });
+    window.addEventListener("aldus:bootstrap-ready", attemptLoad, { once: true });
+    window.addEventListener("load", attemptLoad, { once: true });
+  }
 })();
