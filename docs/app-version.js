@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260823-bootstrap-current-runtime-v375";
+  const VERSION = "20260823-sync-startup-performance-v376";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

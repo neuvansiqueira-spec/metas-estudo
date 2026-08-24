@@ -87,14 +87,21 @@ test("rastreador cria marcador de exclusão e data de edição", () => {
   assert.equal(currentState.subjects[0].updatedAt, changedAt);
 });
 
-test("arquivos publicados permanecem idênticos e cache usa a versão atual", () => {
+test("arquivos publicados permanecem idênticos e bundle usa a versão atual", () => {
   assert.equal(fs.readFileSync("sync-integral-deletions.js", "utf8"), fs.readFileSync("docs/sync-integral-deletions.js", "utf8"));
   assert.equal(fs.readFileSync("sync-integral-state.js", "utf8"), fs.readFileSync("docs/sync-integral-state.js", "utf8"));
   assert.equal(fs.readFileSync("service-worker.js", "utf8"), fs.readFileSync("docs/service-worker.js", "utf8"));
   const worker = fs.readFileSync("service-worker.js", "utf8");
   const version = JSON.parse(fs.readFileSync("package.json", "utf8")).version;
-  assert.match(worker, /const CURRENT_VERSION = self\.__ALDUS_APP_RELEASE__\.version/);
+  const releaseSuffix = version.match(/(v\d+)$/)?.[1];
+  assert.ok(releaseSuffix);
+  assert.ok(worker.includes(`const CURRENT_VERSION = "${version}";`));
   assert.match(fs.readFileSync("app-version.js", "utf8"), new RegExp(`const VERSION = "${version}"`));
-  assert.match(worker, /sync-integral-deletions\.js/);
-  assert.match(worker, /\["sync-integral-core\.js", "sync-integral-deletions\.js", "sync-integral-state\.js", "sync-integral-cloud\.js", "sync-integral-time-protection\.js"\]/);
+  assert.match(worker, /`app-\$\{RELEASE_SUFFIX\}\.js\?v=\$\{CURRENT_VERSION\}`/);
+  const bundlePath = `app-${releaseSuffix}.js`;
+  assert.ok(fs.existsSync(bundlePath));
+  const bundle = fs.readFileSync(bundlePath, "utf8");
+  assert.match(bundle, /function syncSnapshotCollections\(/);
+  assert.match(bundle, /function syncTrackCollectionMutations\(/);
+  assert.match(bundle, /function syncRecordSignature\(/);
 });
