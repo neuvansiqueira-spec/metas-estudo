@@ -145,6 +145,22 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V379 — metas manuais são adicionais e nunca consomem a cota automática.
+  // O guard é carregado como módulo isolado e só atua em geração/reparo de metas,
+  // sem observadores de DOM, polling ou trabalho contínuo em segundo plano.
+  function installManualGoalAdditiveV379() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusManualGoalAdditiveV379")) return;
+    const script = document.createElement("script");
+    script.id = "aldusManualGoalAdditiveV379";
+    script.src = "manual-goal-additive-v379.js?v=20260824-manual-goal-additive-v379";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V379] Falha ao carregar a proteção aditiva de metas manuais.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   function init() {
     installRuntimeMonitoring();
     installSecurityMonitoring();
@@ -163,6 +179,7 @@
   globalThis.__ALDUS_SECURITY_OBSERVABILITY_V318__ = api;
 
   installEmergencyPerformanceV350();
+  installManualGoalAdditiveV379();
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init, { once: true });
