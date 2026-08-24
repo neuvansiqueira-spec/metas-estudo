@@ -1,3 +1,4 @@
+// Regressão V374: os quatro temas práticos devem manter destino específico.
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
