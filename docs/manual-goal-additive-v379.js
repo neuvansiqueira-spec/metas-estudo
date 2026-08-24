@@ -147,9 +147,9 @@
 
   function ensureAutomaticQuota(targetState, date) {
     if (!targetState || !date || !hasManualGoalOnDate(targetState, date)) return { changed: false, skipped: "no-manual-goal" };
+    installGuards();
     const replenish = globalThis.replenishMissingDailyPlanningGoalsV116;
     if (typeof replenish !== "function") return { changed: false, skipped: "replenisher-unavailable" };
-    installGuards();
     try {
       return replenish(targetState, date) || { changed: false };
     } catch (error) {
