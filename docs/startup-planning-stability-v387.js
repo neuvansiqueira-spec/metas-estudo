@@ -8,6 +8,8 @@
   const RESTORE_VERSION = "20260824-restaura-planejamento-gestao-estrategica-v391";
   const CORRECTION_SCRIPT_ID = "aldusAuthorizedGoalRestoreV392";
   const CORRECTION_VERSION = "20260824-corrige-identidade-meta-planejamento-v392";
+  const EXPLICIT_ALIGNMENT_SCRIPT_ID = "aldusDailyPlanExplicitAlignmentV393";
+  const EXPLICIT_ALIGNMENT_VERSION = "20260824-explicit-daily-plan-alignment-v393";
   const startedAt = Date.now();
 
   if (globalThis.__ALDUS_STARTUP_PLANNING_STABILITY_V387__) return;
@@ -50,7 +52,10 @@
         new URL("manual-goal-additive-v379.js", location.href),
         new URL("daily-goal-authorized-restore-v388.js", location.href),
         new URL("daily-goal-authorized-restore-v389.js", location.href),
-        new URL("daily-goal-authorized-restore-v390.js", location.href)
+        new URL("daily-goal-authorized-restore-v390.js", location.href),
+        new URL("daily-goal-authorized-restore-v391.js", location.href),
+        new URL("daily-goal-authorized-restore-v392.js", location.href),
+        new URL("daily-plan-explicit-alignment-v393.js", location.href)
       ];
       for (const name of names) {
         if (!String(name).startsWith("metas-estudo-")) continue;
@@ -96,6 +101,21 @@
     return true;
   }
 
+  function loadExplicitAlignmentV393() {
+    if (typeof document === "undefined") return false;
+    if (document.getElementById(EXPLICIT_ALIGNMENT_SCRIPT_ID)) return true;
+    const script = document.createElement("script");
+    script.id = EXPLICIT_ALIGNMENT_SCRIPT_ID;
+    script.src = `daily-plan-explicit-alignment-v393.js?v=${encodeURIComponent(EXPLICIT_ALIGNMENT_VERSION)}`;
+    script.async = false;
+    script.addEventListener("error", () => {
+      script.remove();
+      console.error("[Aldus V393] Falha ao carregar a proteção permanente do Plano do Dia.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+    return true;
+  }
+
   function installAlignmentGuards() {
     wrapDailyPlanAlignment();
   }
@@ -105,6 +125,7 @@
   evictLegacyRuntimeCache();
   loadAuthorizedRestoreV391();
   loadAuthorizedCorrectionV392();
+  loadExplicitAlignmentV393();
 
   if (typeof window !== "undefined") {
     window.addEventListener("aldus:bootstrap-integrity-v258-ready", installAlignmentGuards, { once: true });
@@ -119,6 +140,7 @@
     wrapDailyPlanAlignment,
     evictLegacyRuntimeCache,
     loadAuthorizedRestoreV391,
-    loadAuthorizedCorrectionV392
+    loadAuthorizedCorrectionV392,
+    loadExplicitAlignmentV393
   });
 })();
