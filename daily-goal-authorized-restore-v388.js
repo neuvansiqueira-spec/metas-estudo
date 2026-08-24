@@ -13,9 +13,9 @@
   const canonical = (value) => String(value || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
-    .trim()
-    .toLowerCase();
+    .trim();
 
   const dateOf = (goal = {}) => String(goal.date || goal.data || "").slice(0, 10);
   const disciplineOf = (goal = {}) => canonical(goal.discipline || goal.disciplina);
