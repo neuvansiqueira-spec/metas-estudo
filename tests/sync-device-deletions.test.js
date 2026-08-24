@@ -93,7 +93,7 @@ test("arquivos publicados permanecem idênticos e cache usa a versão atual", ()
   assert.equal(fs.readFileSync("service-worker.js", "utf8"), fs.readFileSync("docs/service-worker.js", "utf8"));
   const worker = fs.readFileSync("service-worker.js", "utf8");
   const version = JSON.parse(fs.readFileSync("package.json", "utf8")).version;
-  assert.match(worker, /const CURRENT_VERSION = self\.__ALDUS_APP_RELEASE__\.version/);
+  assert.ok(worker.includes(`const CURRENT_VERSION = "${version}";`));
   assert.match(fs.readFileSync("app-version.js", "utf8"), new RegExp(`const VERSION = "${version}"`));
   assert.match(worker, /sync-integral-deletions\.js/);
   assert.match(worker, /\["sync-integral-core\.js", "sync-integral-deletions\.js", "sync-integral-state\.js", "sync-integral-cloud\.js", "sync-integral-time-protection\.js"\]/);
