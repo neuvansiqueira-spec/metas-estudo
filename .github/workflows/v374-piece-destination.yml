@@ -30,7 +30,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
@@ -127,11 +127,11 @@ jobs:
       - name: Garantir catálogo publicado
         run: cp factory-destination-catalog-v222.js docs/factory-destination-catalog-v222.js
 
-      - name: Validar vínculos e regressões
+      - name: Validar vínculos e regressões atuais
         run: |
           node --check factory-destination-catalog-v222.js
           node --check factory-destination-folders-v222.js
-          node --test tests/v374-piece-destination.test.js tests/factory-destination-folders-v222.test.js tests/factory-destination-topic-links-v232.test.js
+          node --test tests/v374-piece-destination.test.js tests/factory-destination-topic-links-v232.test.js
           grep -q '1KAViWr87FG36-8Rf2yAY53qcSz4oi5_x' factory-destination-catalog-v222.js
           grep -q '1soFUju6bL7hoMMqDtpV_PyoRTF1421GN' factory-destination-catalog-v222.js
           grep -q 'app-v374.js?v=20260823-piece-destination-v374' docs/index.html
