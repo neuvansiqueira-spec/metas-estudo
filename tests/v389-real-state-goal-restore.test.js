@@ -129,10 +129,12 @@ test("V389 não adiciona hot paths nem trabalho contínuo", () => {
   assert.match(source, /dayGoals\.length !== EXPECTED_TOTAL - 1/);
 });
 
-test("V389 é entregue pelo guard e mantém paridade raiz/docs", () => {
+test("V389 mantém paridade e é retirada do cache quando a V390 assume a entrega ativa", () => {
   assert.equal(source, docsSource);
   assert.equal(startup, docsStartup);
   assert.match(startup, /daily-goal-authorized-restore-v389\.js/);
-  assert.match(startup, /20260824-restaura-meta-planejamento-gestao-publica-v389/);
+  assert.match(startup, /daily-goal-authorized-restore-v390\.js/);
+  assert.match(startup, /20260824-restaura-meta-planejamento-gestao-publica-v390/);
+  assert.doesNotMatch(startup, /const RESTORE_VERSION = "20260824-restaura-meta-planejamento-gestao-publica-v389"/);
   assert.match(startup, /daily-goal-authorized-restore-v388\.js/);
 });
