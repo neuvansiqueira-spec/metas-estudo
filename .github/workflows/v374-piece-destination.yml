@@ -115,7 +115,7 @@ jobs:
               assert.equal(item.factoryDestinationFolder, `https://drive.google.com/drive/folders/${folderId}`, assunto);
             }
           });
-          '''.replace(/^          /gm, "")
+          '''
           Path("tests/v374-piece-destination.test.js").write_text(test_source, encoding="utf-8")
           PY
 
