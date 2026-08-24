@@ -64,21 +64,14 @@ jobs:
           fs.writeFileSync('script.js', script);
           fs.copyFileSync('script.js', 'docs/script.js');
 
-          let v171 = fs.readFileSync('tests/v171-responsive-persistence.test.js', 'utf8');
-          v171 = v171.replace(
-            '  assert.match(queue, /saveStateToIndexedDB\\(snapshot, \\{ detachedSnapshot: true \\}\\)/);\n  assert.match(queue, /statesMatchIndexedDBRecord\\(snapshot, reloaded, record\\.checksum\\)/);',
-            '  assert.doesNotMatch(queue, /const snapshot = cloneData\\(state\\)/);\n  assert.match(queue, /saveStateToIndexedDB\\(state, \\{ directSnapshot: true \\}\\)/);\n  assert.match(queue, /statesMatchIndexedDBRecord\\(null, reloaded, record\\.checksum\\)/);'
-          );
-          fs.writeFileSync('tests/v171-responsive-persistence.test.js', v171);
-
           const v378Test = `const test = require("node:test");\nconst assert = require("node:assert/strict");\nconst fs = require("node:fs");\n\nfunction sourceBetween(source, start, end) {\n  const from = source.indexOf(start);\n  const to = source.indexOf(end, from + start.length);\n  assert.notEqual(from, -1, \`Marcador inicial ausente: \${start}\`);\n  assert.notEqual(to, -1, \`Marcador final ausente: \${end}\`);\n  return source.slice(from, to);\n}\n\ntest("V378 elimina clone profundo da fila IndexedDB", () => {\n  const script = fs.readFileSync("script.js", "utf8");\n  const queue = sourceBetween(script, "async function processIndexedDBStateCopyQueue()", "function persistStateSafely(options = {})");\n  assert.doesNotMatch(queue, /cloneData\\(state\\)/);\n  assert.match(queue, /saveStateToIndexedDB\\(state, \\{ directSnapshot: true \\}\\)/);\n  assert.match(queue, /statesMatchIndexedDBRecord\\(null, reloaded, record\\.checksum\\)/);\n  assert.match(queue, /indexedDBStatus\\.size = Number\\(record\\.serializedSize\\) \\|\\| 0/);\n});\n\ntest("V378 mantém clone legado fora do hot path e cria snapshot direto dentro da transação", () => {\n  const source = fs.readFileSync("storage-indexeddb.js", "utf8");\n  const save = sourceBetween(source, "async function saveStateToIndexedDB(state, options = {})", "function loadStateFromIndexedDB()");\n  assert.match(save, /if \\(options\\.directSnapshot\\)/);\n  assert.match(save, /const serializedState = JSON\\.stringify\\(source\\)/);\n  assert.match(save, /data: source/);\n  assert.match(save, /return store\\.put\\(record\\)/);\n  assert.match(save, /options\\.detachedSnapshot/);\n  assert.match(save, /structuredClone\\(source\\)/);\n});\n\ntest("V378 preserva proteção contra estado vazio", () => {\n  const source = fs.readFileSync("storage-indexeddb.js", "utf8");\n  assert.match(source, /Proteção ativada: estado vazio não substitui IndexedDB válido/);\n  assert.match(source, /validateIndexedDBState\\(existing\\)/);\n  assert.match(source, /indexedDBStateHasUserData\\(existing\\.data\\)/);\n});\n\ntest("V378 mantém raiz e docs sincronizados", () => {\n  assert.equal(fs.readFileSync("script.js", "utf8"), fs.readFileSync("docs/script.js", "utf8"));\n  assert.equal(fs.readFileSync("storage-indexeddb.js", "utf8"), fs.readFileSync("docs/storage-indexeddb.js", "utf8"));\n});\n\ntest("bundle V378 incorpora o caminho direto quando gerado", { skip: !fs.existsSync("app-v378.js") }, () => {\n  const bundle = fs.readFileSync("app-v378.js", "utf8");\n  assert.match(bundle, /20260823-indexeddb-direct-snapshot-v378/);\n  assert.match(bundle, /saveStateToIndexedDB\\(state, \\{ directSnapshot: true \\}\\)/);\n  assert.doesNotMatch(sourceBetween(bundle, "async function processIndexedDBStateCopyQueue()", "function persistStateSafely(options = {})"), /cloneData\\(state\\)/);\n});\n`;
           fs.writeFileSync('tests/v378-indexeddb-direct-snapshot.test.js', v378Test);
 
           for (const file of ['bootstrap-fast-path-v351.js', 'docs/bootstrap-fast-path-v351.js', 'bootstrap-integrity-loader-v275.js', 'docs/bootstrap-integrity-loader-v275.js']) {
             let source = fs.readFileSync(file, 'utf8');
             source = source.split(PREVIOUS).join(VERSION);
-            source = source.replace(/app-v377\\.js\\?v=20260823-indexeddb-direct-snapshot-v378/g, `app-v378.js?v=${VERSION}`);
-            source = source.replace(/app-v377\\.js\\?v=20260823-sync-signature-performance-v377/g, `app-v378.js?v=${VERSION}`);
+            source = source.replace(/app-v377\.js\?v=20260823-indexeddb-direct-snapshot-v378/g, `app-v378.js?v=${VERSION}`);
+            source = source.replace(/app-v377\.js\?v=20260823-sync-signature-performance-v377/g, `app-v378.js?v=${VERSION}`);
             fs.writeFileSync(file, source);
           }
 
@@ -89,6 +82,7 @@ jobs:
           }
 
           if (fs.existsSync('V378_PLAN.md')) fs.rmSync('V378_PLAN.md');
+          if (fs.existsSync('V378_TRIGGER')) fs.rmSync('V378_TRIGGER');
           NODE
           npm install --package-lock-only --ignore-scripts
 
