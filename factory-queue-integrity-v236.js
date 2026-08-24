@@ -4,9 +4,20 @@
   const VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
   const HOTFIX = "factory-queue-integrity-hotfix5";
   const FLAG = "__aldusFactoryQueueIntegrityV236";
+  const CANONICAL_CACHE_LIMIT = 512;
+  const canonicalCache = new Map();
   if (globalThis.__ALDUS_FACTORY_QUEUE_INTEGRITY_V236__) return;
 
-  const canonical = (value) => String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, " ").toLocaleLowerCase("pt-BR");
+  const canonical = (value) => {
+    const source = String(value ?? "");
+    if (source.length <= 256 && canonicalCache.has(source)) return canonicalCache.get(source);
+    const result = source.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, " ").toLocaleLowerCase("pt-BR");
+    if (source.length <= 256) {
+      if (canonicalCache.size >= CANONICAL_CACHE_LIMIT) canonicalCache.clear();
+      canonicalCache.set(source, result);
+    }
+    return result;
+  };
   const first = (...values) => values.find((value) => String(value ?? "").trim()) || "";
   const itemOf = (entry = {}) => entry?.item && typeof entry.item === "object" ? entry.item : entry;
   const goalsOf = (entry = {}) => Array.isArray(entry?.goals) ? entry.goals.filter(Boolean) : (entry?.goal ? [entry.goal] : []);
@@ -227,7 +238,9 @@
     const view = document.querySelector('#view-fabrica-resumos, [data-view="fabrica-resumos"]');
     if (!view) return;
     view.querySelectorAll("li, article, details, tr").forEach((node) => {
-      const text = canonical(node.textContent);
+      const rawText = String(node.textContent || "");
+      if (!/simulad/i.test(rawText)) return;
+      const text = canonical(rawText);
       if (text.includes("disciplina: simulados") && /(material|produzir|pendente|resumo)/.test(text)) (node.closest("li") || node).remove();
     });
     dedupeWeeklyProjection();
@@ -283,9 +296,21 @@
     }
   }
 
-  if (install()) redraw();
-  const timer = window.setInterval(() => { if (install()) redraw(); }, 100);
-  window.setTimeout(() => window.clearInterval(timer), 15000);
+  function installAndRedraw() {
+    if (install()) redraw();
+  }
+
+  installAndRedraw();
+  if (typeof window !== "undefined") {
+    window.addEventListener("aldus:bootstrap-integrity-v258-ready", installAndRedraw, { once: true });
+    window.addEventListener("aldus:post-bootstrap-maintenance-complete", installAndRedraw, { once: true });
+    window.addEventListener("aldus:bootstrap-ready", installAndRedraw, { once: true });
+    window.addEventListener("load", installAndRedraw, { once: true });
+    window.addEventListener("hashchange", () => {
+      if (location.hash === "#fabrica-resumos") installAndRedraw();
+    });
+  }
+
   globalThis.__ALDUS_FACTORY_QUEUE_INTEGRITY_V236__ = Object.freeze({
     version: VERSION,
     hotfix: HOTFIX,
