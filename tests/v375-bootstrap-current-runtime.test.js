@@ -1,3 +1,4 @@
+// Regressão final da recuperação observada em produção: V344 não pode voltar a controlar o bootstrap.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
