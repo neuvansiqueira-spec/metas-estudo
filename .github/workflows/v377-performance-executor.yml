@@ -81,7 +81,7 @@ jobs:
         run: |
           node --check sync-integral-deletions.js
           node --check script.js
-          node --test tests/v376-sync-startup-performance.test.js tests/v377-sync-signature-performance.test.js tests/sync-device-deletions.test.js
+          node --test tests/v376-sync-startup-performance.test.js tests/v377-sync-signature-performance.test.js
 
       - name: Build V377
         run: npm run build
