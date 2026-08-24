@@ -79,7 +79,6 @@
 
   function installSecurityMonitoring() {
     addEventListener("securitypolicyviolation", (event) => {
-      // Deliberately do not transmit blockedURI, sourceFile or sample.
       emit("security_event", `csp-${clean(event.effectiveDirective || event.violatedDirective, "directive")}`, "blocked");
     });
 
@@ -119,10 +118,7 @@
     if (performanceReported) return;
     performanceReported = true;
     if (lastLcpMs > 0) emit("performance_metric", "lcp", "observe", lastLcpMs / 1000);
-    if (cumulativeLayoutShift > 0) {
-      // Preserve the existing numeric field without expanding the telemetry schema.
-      emit("performance_metric", "cls-x1000", "observe", cumulativeLayoutShift);
-    }
+    if (cumulativeLayoutShift > 0) emit("performance_metric", "cls-x1000", "observe", cumulativeLayoutShift);
     try {
       const nav = performance.getEntriesByType?.("navigation")?.[0];
       if (nav && Number.isFinite(nav.loadEventEnd) && nav.loadEventEnd > 0) {
@@ -131,145 +127,99 @@
     } catch {}
   }
 
-  // V350 — carregamento emergencial e isolado da otimização de mapeamentos.
-  // Este arquivo já é executado antes do bootstrap do aplicativo e não é parte
-  // do cache estático autoritativo. O hotfix apenas troca a consulta O(n) por
-  // índice WeakMap; não toca em estado, persistência, sincronização ou cronômetro.
+  function appendRuntime(id, src, errorMessage) {
+    if (typeof document === "undefined") return;
+    if (document.getElementById(id)) return;
+    const script = document.createElement("script");
+    script.id = id;
+    script.src = src;
+    script.async = false;
+    if (errorMessage) {
+      script.addEventListener("error", () => console.error(errorMessage), { once: true });
+    }
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   function installEmergencyPerformanceV350() {
-    if (typeof document === "undefined") return;
-    if (document.getElementById("aldusEmergencyPerformanceV350")) return;
-    const script = document.createElement("script");
-    script.id = "aldusEmergencyPerformanceV350";
-    script.src = "performance-emergency-v350.js?v=20260817-emergency-performance-v350";
-    script.async = false;
-    (document.head || document.documentElement).appendChild(script);
+    appendRuntime(
+      "aldusEmergencyPerformanceV350",
+      "performance-emergency-v350.js?v=20260817-emergency-performance-v350"
+    );
   }
 
-  // V379 — metas manuais são adicionais e nunca consomem a cota automática.
-  // O guard é carregado como módulo isolado e só atua em geração/reparo de metas,
-  // sem observadores de DOM, polling ou trabalho contínuo em segundo plano.
+  // V387 deve entrar antes das rotinas de metas/planejamento. Ele bloqueia apenas
+  // mutação automática no startup e limpa do cache os três runtimes legados que
+  // foram corrigidos, sem varrer dados, metas ou armazenamento da aplicação.
+  function installStartupPlanningStabilityV387() {
+    appendRuntime(
+      "aldusStartupPlanningStabilityV387",
+      "startup-planning-stability-v387.js?v=20260824-startup-planning-stability-v387",
+      "[Aldus V387] Falha ao carregar a proteção de estabilidade do planejamento."
+    );
+  }
+
   function installManualGoalAdditiveV379() {
-    if (typeof document === "undefined") return;
-    if (document.getElementById("aldusManualGoalAdditiveV379")) return;
-    const script = document.createElement("script");
-    script.id = "aldusManualGoalAdditiveV379";
-    script.src = "manual-goal-additive-v379.js?v=20260824-manual-goal-additive-v379";
-    script.async = false;
-    script.addEventListener("error", () => {
-      console.error("[Aldus V379] Falha ao carregar a proteção aditiva de metas manuais.");
-    }, { once: true });
-    (document.head || document.documentElement).appendChild(script);
+    appendRuntime(
+      "aldusManualGoalAdditiveV379",
+      "manual-goal-additive-v379.js?v=20260824-manual-goal-additive-v379-stability-v387",
+      "[Aldus V379] Falha ao carregar a proteção aditiva de metas manuais."
+    );
   }
 
-  // V380 — novo prompt integrado, isolado do bundle principal e dos hot paths.
-  // O módulo só registra o tipo após o bootstrap e redesenha a Fábrica apenas
-  // quando a própria tela de Fábrica já está aberta.
   function installFactoryResumoAulaJurisprudenciaV380() {
-    if (typeof document === "undefined") return;
-    if (document.getElementById("aldusFactoryResumoAulaJurisprudenciaV380")) return;
-    const script = document.createElement("script");
-    script.id = "aldusFactoryResumoAulaJurisprudenciaV380";
-    script.src = "factory-resumo-aula-jurisprudencia-v380.js?v=20260824-factory-resumo-aula-jurisprudencia-v380";
-    script.async = false;
-    script.addEventListener("error", () => {
-      console.error("[Aldus V380] Falha ao carregar o prompt Resumo/Aula + Jurisprudência.");
-    }, { once: true });
-    (document.head || document.documentElement).appendChild(script);
+    appendRuntime(
+      "aldusFactoryResumoAulaJurisprudenciaV380",
+      "factory-resumo-aula-jurisprudencia-v380.js?v=20260824-factory-resumo-aula-jurisprudencia-v380",
+      "[Aldus V380] Falha ao carregar o prompt Resumo/Aula + Jurisprudência."
+    );
   }
 
-  // V383 — novo prompt Lei + Jurisprudência, também isolado do bundle principal.
-  // Atua apenas sobre biblioteca/roteamento de prompts e não adiciona trabalho
-  // contínuo, observadores, polling ou persistência automática.
   function installFactoryLeiJurisprudenciaV383() {
-    if (typeof document === "undefined") return;
-    if (document.getElementById("aldusFactoryLeiJurisprudenciaV383")) return;
-    const script = document.createElement("script");
-    script.id = "aldusFactoryLeiJurisprudenciaV383";
-    script.src = "factory-lei-jurisprudencia-v383.js?v=20260824-factory-lei-jurisprudencia-v383";
-    script.async = false;
-    script.addEventListener("error", () => {
-      console.error("[Aldus V383] Falha ao carregar o prompt Lei + Jurisprudência.");
-    }, { once: true });
-    (document.head || document.documentElement).appendChild(script);
+    appendRuntime(
+      "aldusFactoryLeiJurisprudenciaV383",
+      "factory-lei-jurisprudencia-v383.js?v=20260824-factory-lei-jurisprudencia-v383",
+      "[Aldus V383] Falha ao carregar o prompt Lei + Jurisprudência."
+    );
   }
 
-  // V384 — revisão/consolidação final consciente dos dois produtos integrados.
-  // Carregamento isolado: apenas prompt, inventário e roteamento; sem polling,
-  // observadores de DOM, persistência automática ou alteração do bundle principal.
   function installFactoryFinalReviewV384() {
-    if (typeof document === "undefined") return;
-    if (document.getElementById("aldusFactoryFinalReviewV384")) return;
-    const script = document.createElement("script");
-    script.id = "aldusFactoryFinalReviewV384";
-    script.src = "factory-final-review-v384.js?v=20260824-final-review-consolidation-v384";
-    script.async = false;
-    script.addEventListener("error", () => {
-      console.error("[Aldus V384] Falha ao carregar a revisão e consolidação final integrada.");
-    }, { once: true });
-    (document.head || document.documentElement).appendChild(script);
+    appendRuntime(
+      "aldusFactoryFinalReviewV384",
+      "factory-final-review-v384.js?v=20260824-final-review-consolidation-v384",
+      "[Aldus V384] Falha ao carregar a revisão e consolidação final integrada."
+    );
   }
 
-  // V384 compat — remove somente instruções legadas V128 que possam anteceder
-  // a nova consolidação. Continua isolado, sem trabalho contínuo ou persistência.
   function installFactoryFinalReviewCompatV384() {
-    if (typeof document === "undefined") return;
-    if (document.getElementById("aldusFactoryFinalReviewCompatV384")) return;
-    const script = document.createElement("script");
-    script.id = "aldusFactoryFinalReviewCompatV384";
-    script.src = "factory-final-review-v384-compat.js?v=20260824-final-review-consolidation-v384-compat";
-    script.async = false;
-    script.addEventListener("error", () => {
-      console.error("[Aldus V384] Falha ao carregar a compatibilidade da consolidação final.");
-    }, { once: true });
-    (document.head || document.documentElement).appendChild(script);
+    appendRuntime(
+      "aldusFactoryFinalReviewCompatV384",
+      "factory-final-review-v384-compat.js?v=20260824-final-review-consolidation-v384-compat",
+      "[Aldus V384] Falha ao carregar a compatibilidade da consolidação final."
+    );
   }
 
-  // V385 — padronização visual final de DOCX alterado com sumário didático.
-  // O módulo apenas registra prompt/roteamento e preserva o conteúdo do usuário;
-  // sem polling, observadores, persistência automática ou hot paths.
   function installFactoryPadronizacaoFinalSumarioV385() {
-    if (typeof document === "undefined") return;
-    if (document.getElementById("aldusFactoryPadronizacaoFinalSumarioV385")) return;
-    const script = document.createElement("script");
-    script.id = "aldusFactoryPadronizacaoFinalSumarioV385";
-    script.src = "factory-padronizacao-final-sumario-v385.js?v=20260824-factory-padronizacao-final-sumario-v385";
-    script.async = false;
-    script.addEventListener("error", () => {
-      console.error("[Aldus V385] Falha ao carregar Padronização Final + Sumário.");
-    }, { once: true });
-    (document.head || document.documentElement).appendChild(script);
+    appendRuntime(
+      "aldusFactoryPadronizacaoFinalSumarioV385",
+      "factory-padronizacao-final-sumario-v385.js?v=20260824-factory-padronizacao-final-sumario-v385",
+      "[Aldus V385] Falha ao carregar Padronização Final + Sumário."
+    );
   }
 
-  // V386 — comentários, bizus e jurisprudência manuais por questão.
-  // O editor é sob demanda: não varre o banco no bootstrap, não observa o DOM
-  // e só persiste quando o usuário confirma explicitamente o salvamento.
   function installQuestionBankManualNotesV386() {
-    if (typeof document === "undefined") return;
-    if (document.getElementById("aldusQuestionBankManualNotesV386")) return;
-    const script = document.createElement("script");
-    script.id = "aldusQuestionBankManualNotesV386";
-    script.src = "question-bank-manual-notes-v386.js?v=20260824-question-bank-manual-notes-v386";
-    script.async = false;
-    script.addEventListener("error", () => {
-      console.error("[Aldus V386] Falha ao carregar anotações manuais do Banco de Questões.");
-    }, { once: true });
-    (document.head || document.documentElement).appendChild(script);
+    appendRuntime(
+      "aldusQuestionBankManualNotesV386",
+      "question-bank-manual-notes-v386.js?v=20260824-question-bank-manual-notes-v386",
+      "[Aldus V386] Falha ao carregar anotações manuais do Banco de Questões."
+    );
   }
 
-  // V382 — sumário com a mesma didática visual dos quatro módulos de conteúdo.
-  // A extensão atua somente sobre texto de prompt e não adiciona observadores,
-  // polling, timers, medições de layout ou persistência automática.
   function installFactorySummaryTocV382() {
-    if (typeof document === "undefined") return;
-    if (document.getElementById("aldusFactorySummaryTocV382")) return;
-    const script = document.createElement("script");
-    script.id = "aldusFactorySummaryTocV382";
-    script.src = "factory-summary-toc-v381.js?v=20260824-factory-summary-toc-v382";
-    script.async = false;
-    script.addEventListener("error", () => {
-      console.error("[Aldus V382] Falha ao carregar a formatação didática do sumário.");
-    }, { once: true });
-    (document.head || document.documentElement).appendChild(script);
+    appendRuntime(
+      "aldusFactorySummaryTocV382",
+      "factory-summary-toc-v381.js?v=20260824-factory-summary-toc-v382",
+      "[Aldus V382] Falha ao carregar a formatação didática do sumário."
+    );
   }
 
   function init() {
@@ -290,6 +240,7 @@
   globalThis.__ALDUS_SECURITY_OBSERVABILITY_V318__ = api;
 
   installEmergencyPerformanceV350();
+  installStartupPlanningStabilityV387();
   installManualGoalAdditiveV379();
   installFactoryResumoAulaJurisprudenciaV380();
   installFactoryLeiJurisprudenciaV383();
