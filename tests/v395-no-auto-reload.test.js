@@ -56,3 +56,7 @@ test("Pages deriva o worker ativo da CURRENT_VERSION em vez de fixar uma versão
   assert.doesNotMatch(workflow, /worker efetivamente registrado é service-worker-v344\.js/);
   assert.doesNotMatch(workflow, /for worker_name in \("service-worker\.js", "service-worker-v344\.js"\)/);
 });
+
+// O workflow de Pages já executa este arquivo. Importar a V396 torna a regressão
+// de áudio bloqueante na publicação sem duplicar a lista histórica do workflow.
+require("./v396-timer-audio-stability.test.js");
