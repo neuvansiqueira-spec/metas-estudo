@@ -2,7 +2,8 @@
   "use strict";
 
   const VERSION = "20260804-planejamento-metas-fabrica-integridade-v235";
-  const STARTUP_STABILITY_VERSION = "20260825-factory-startup-consistency-v389";
+  const STARTUP_STABILITY_VERSION = "20260824-startup-planning-stability-v387";
+  const FACTORY_STARTUP_CONSISTENCY_VERSION = "20260825-factory-startup-consistency-v394";
   const SNAPSHOT_KEY = "aldusPlanningManualGoalsV235";
   const SCRIPT_ID = "aldusPlanningIntegrityCoreV235";
   const FACTORY_SCRIPT_ID = "aldusFactoryQueueIntegrityV236";
@@ -24,7 +25,7 @@
   const TIMER_SESSION_SCRIPT_ID = "aldusTimerSessionIntegrityV236";
   const TIMER_SESSION_HOTFIX = "timer-session-integrity-hotfix1";
   const FACTORY_VIEW = "fabrica-resumos";
-  const FACTORY_STARTUP_NOTICE_ID = "aldusFactoryStartupConsistencyV389";
+  const FACTORY_STARTUP_NOTICE_ID = "aldusFactoryStartupConsistencyV394";
   let loaded = false;
 
   function bootstrapReady() {
@@ -79,7 +80,7 @@
     try {
       if (typeof renderFactory === "function") renderFactory();
     } catch (error) {
-      console.warn("[Aldus V389] A Fábrica será redesenhada na próxima atualização da tela.", error);
+      console.warn("[Aldus V394] A Fábrica será redesenhada na próxima atualização da tela.", error);
     }
   }
 
@@ -160,7 +161,7 @@
     }
     const script = document.createElement("script");
     script.id = FACTORY_SCRIPT_ID;
-    script.src = `factory-queue-integrity-v236.js?v=${encodeURIComponent(releaseVersion)}&hotfix=${encodeURIComponent(FACTORY_HOTFIX)}&stability=${encodeURIComponent(STARTUP_STABILITY_VERSION)}`;
+    script.src = `factory-queue-integrity-v236.js?v=${encodeURIComponent(releaseVersion)}&hotfix=${encodeURIComponent(FACTORY_HOTFIX)}&stability=${encodeURIComponent(FACTORY_STARTUP_CONSISTENCY_VERSION)}`;
     script.async = false;
     script.addEventListener("load", () => releaseFactoryStartupGuard(), { once: true });
     script.addEventListener("error", () => {
