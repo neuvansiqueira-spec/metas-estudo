@@ -2,6 +2,7 @@
   "use strict";
 
   const VERSION = "20260821-timer-goal-integrity-v366";
+  const UPDATE_FLOW_SCRIPT = "update-flow-v395.js?v=20260825-no-auto-reload-v395";
   const CORE_SCRIPT = "bootstrap-integrity-loader-v258-core.js?v=20260815-bootstrap-performance-v342&planning=v371";
   const DIAGNOSTICS_SCRIPT = "duplicate-diagnostics-v260.js?v=20260806-duplicate-diagnostics-v260";
   const DIAGNOSTICS_STYLESHEET = "duplicate-diagnostics-v260.css?v=20260806-duplicate-diagnostics-v260";
@@ -10,7 +11,7 @@
   const PLANNING_SHIFT_PERSISTENCE_SCRIPT = "planning-shift-persistence-v283.js?v=20260809-planejamento-plantao-salvamento-v283";
   const HEADER_BRAND_FIX_SCRIPT = "header-brand-fix.js?v=20260815-logo-alta-qualidade-v338";
   const TIMER_GOAL_INTEGRITY_SCRIPT = "timer-goal-integrity-v366.js?v=20260821-timer-goal-integrity-v366";
-  const PRELOAD_SCRIPTS = [HEADER_BRAND_FIX_SCRIPT];
+  const PRELOAD_SCRIPTS = [UPDATE_FLOW_SCRIPT, HEADER_BRAND_FIX_SCRIPT];
 
   function installStylesheet(baseUrl) {
     if (document.getElementById("aldusDuplicateDiagnosticsStylesV260")) return;
@@ -57,6 +58,9 @@
   installScriptPreloads(baseUrl);
   installStylesheet(baseUrl);
 
+  const updateFlow = makeScript("aldusUpdateFlowV395", UPDATE_FLOW_SCRIPT, baseUrl, source);
+  updateFlow.addEventListener("error", reportLoadError(VERSION, "a proteção contra recarga automática"));
+
   const brandFix = makeScript("aldusHeaderBrandFixV338", HEADER_BRAND_FIX_SCRIPT, baseUrl, source);
   brandFix.addEventListener("error", reportLoadError(VERSION, "a restauração da logo em alta qualidade"));
 
@@ -79,7 +83,8 @@
   const timerControls = makeScript("aldusTimerControlsHardeningV268", TIMER_CONTROLS_SCRIPT, baseUrl, source);
   timerControls.addEventListener("error", reportLoadError(VERSION, "a proteção dos controles do cronômetro"));
 
-  parent.insertBefore(brandFix, source?.nextSibling || null);
+  parent.insertBefore(updateFlow, source?.nextSibling || null);
+  parent.insertBefore(brandFix, updateFlow.nextSibling);
   parent.insertBefore(core, brandFix.nextSibling);
   parent.insertBefore(timerGoalIntegrity, core.nextSibling);
   parent.insertBefore(shiftPersistence, timerGoalIntegrity.nextSibling);
@@ -89,6 +94,7 @@
 
   globalThis.__aldusDuplicateDiagnosticsLoaderV260 = Object.freeze({
     version: VERSION,
+    updateFlow: UPDATE_FLOW_SCRIPT,
     headerBrandFix: HEADER_BRAND_FIX_SCRIPT,
     core: CORE_SCRIPT,
     timerGoalIntegrity: TIMER_GOAL_INTEGRITY_SCRIPT,

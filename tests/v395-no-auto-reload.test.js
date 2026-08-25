@@ -1,0 +1,47 @@
+const assert = require("node:assert/strict");
+const test = require("node:test");
+const fs = require("node:fs");
+const path = require("node:path");
+
+const root = path.resolve(__dirname, "..");
+const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
+
+test("V395 impede recarga automática em controllerchange", () => {
+  const source = read("update-flow-v395.js");
+  assert.match(source, /20260825-no-auto-reload-v395/);
+  assert.match(source, /navigator\.serviceWorker\.addEventListener\("controllerchange"/);
+  assert.match(source, /if \(manualReloadRequested && safeToReload\(\)\) \{\s*location\.reload\(\);/s);
+  assert.match(source, /reloadMode: "manual-only-no-controller-reload-v395"/);
+  assert.doesNotMatch(source, /reloadOnce\("controllerchange"\)/);
+});
+
+test("V395 é instalado antes do bundle principal nos dois bootstraps", () => {
+  const protectedLoader = read("bootstrap-integrity-loader-v275.js");
+  const legacyLoader = read("bootstrap-integrity-loader-v258.js");
+  assert.match(protectedLoader, /UPDATE_FLOW_SCRIPT = "update-flow-v395\.js\?v=20260825-no-auto-reload-v395"/);
+  assert.match(protectedLoader, /parent\.insertBefore\(updateFlow, source\?\.nextSibling \|\| null\);\s*await updateFlowReady;\s*parent\.insertBefore\(core, updateFlow\.nextSibling\);/s);
+  assert.match(legacyLoader, /UPDATE_FLOW_SCRIPT = "update-flow-v395\.js\?v=20260825-no-auto-reload-v395"/);
+  assert.ok(legacyLoader.indexOf("parent.insertBefore(updateFlow") < legacyLoader.indexOf("parent.insertBefore(core"));
+});
+
+test("V395 renova o cache sem remover a estratégia de performance", () => {
+  const worker = read("service-worker.js");
+  assert.match(worker, /UPDATE_FLOW_VERSION = "20260825-no-auto-reload-v395"/);
+  assert.match(worker, /planning-quality-v371-no-auto-reload-v395/);
+  assert.match(worker, /const UPDATE_FLOW_SCRIPT = `update-flow-v395\.js\?v=\$\{UPDATE_FLOW_VERSION\}`/);
+  assert.match(worker, /BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275\.js\?v=\$\{FAST_BOOTSTRAP_VERSION\}&planning=v371&update=v395`/);
+  assert.match(worker, /async function cachedFirstNavigation/);
+  assert.match(worker, /async function cacheFirstStatic/);
+});
+
+test("V395 mantém paridade root/docs", () => {
+  for (const file of [
+    "update-flow-v395.js",
+    "bootstrap-integrity-loader-v275.js",
+    "bootstrap-integrity-loader-v258.js",
+    "service-worker.js",
+    "service-worker-v378.js"
+  ]) {
+    assert.equal(read(file), read(`docs/${file}`), `${file} deve permanecer idêntico em docs`);
+  }
+});
