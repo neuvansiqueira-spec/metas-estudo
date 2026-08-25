@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260812-timer-diagnostics-security-v316";
+  const VERSION = "20260825-timer-reload-recovery-v316.1";
   const GLOBAL_KEY = "__ALDUS_TIMER_RUNTIME_V316__";
   const SAFETY_KEY = "metasEstudoTimerSessionSafety";
   const DIAGNOSTICS_KEY = "aldus:timer:diagnostics:v316";
@@ -40,9 +40,28 @@
     }
   }
 
+  function navigationType() {
+    try {
+      return performance.getEntriesByType?.("navigation")?.[0]?.type || "navigate";
+    } catch {
+      return "navigate";
+    }
+  }
+
   function preflightStoredSession() {
     const saved = readJson(SAFETY_KEY, null);
     if (!saved?.goalId || saved.closed) return false;
+
+    if (navigationType() === "reload") {
+      restoredAwaitingDecision = false;
+      return writeJson(SAFETY_KEY, {
+        ...saved,
+        restoredByV316: false,
+        restoredAfterReload: true,
+        snapshotAt: Date.now()
+      });
+    }
+
     const protectedSnapshot = {
       ...saved,
       elapsedSeconds: Math.max(0, Number(saved.elapsedSeconds) || 0),
@@ -58,6 +77,30 @@
 
   function timerState() {
     try { return typeof floatingTimer === "object" && floatingTimer ? floatingTimer : null; } catch { return null; }
+  }
+
+  function checkpointStoredSession(reason = "checkpoint") {
+    const timer = timerState();
+    const saved = readJson(SAFETY_KEY, null);
+    if (!timer?.goalId || timer.closed || timer.completed || !saved?.goalId) return false;
+
+    const running = !timer.paused && Number(timer.startedAt) > 0;
+    let elapsedSeconds = Math.max(0, Number(timer.elapsedSeconds) || Number(saved.elapsedSeconds) || 0);
+    if (running && typeof currentTimerSeconds === "function") {
+      try { elapsedSeconds = Math.max(0, Number(currentTimerSeconds()) || elapsedSeconds); } catch {}
+    }
+
+    const now = Date.now();
+    return writeJson(SAFETY_KEY, {
+      ...saved,
+      elapsedSeconds,
+      startedAt: running ? now : null,
+      paused: Boolean(timer.paused),
+      completionDismissed: Boolean(timer.completionDismissed),
+      restoredByV316: false,
+      snapshotAt: now,
+      checkpointReason: reason
+    });
   }
 
   function sessionKey(timer = timerState()) {
@@ -357,7 +400,11 @@
 
   preflightStoredSession();
   document.addEventListener("click", interceptActions, true);
-  addEventListener("pagehide", () => releaseOwnership("pagehide"), { passive: true });
+  addEventListener("pagehide", () => {
+    checkpointStoredSession("pagehide");
+    releaseOwnership("pagehide");
+  }, { passive: true });
+  addEventListener("beforeunload", () => checkpointStoredSession("beforeunload"), { passive: true });
   addEventListener("storage", (event) => {
     if (event.key === OWNER_KEY) enforceSingleRunningTab();
   });
