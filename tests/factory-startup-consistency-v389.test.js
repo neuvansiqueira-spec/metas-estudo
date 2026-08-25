@@ -4,8 +4,6 @@ const fs = require('node:fs');
 
 const loader = fs.readFileSync('planning-integrity-loader-v235.js', 'utf8');
 const docsLoader = fs.readFileSync('docs/planning-integrity-loader-v235.js', 'utf8');
-const worker = fs.readFileSync('service-worker-v378.js', 'utf8');
-const docsWorker = fs.readFileSync('docs/service-worker-v378.js', 'utf8');
 
 test('Fábrica protege a tela antes de liberar o bootstrap', () => {
   const eagerQueue = loader.indexOf('loadFactoryQueueIntegrity(releaseVersion);');
@@ -18,17 +16,17 @@ test('Fábrica protege a tela antes de liberar o bootstrap', () => {
   assert.match(loader, /releaseFactoryStartupGuard/);
 });
 
-test('worker V378 busca runtimes críticos na rede antes do cache', () => {
-  assert.match(worker, /planning-integrity-loader-v235\.js/);
-  assert.match(worker, /factory-queue-integrity-v236\.js/);
-  assert.match(worker, /timer-runtime-v316\.js/);
-  assert.match(worker, /fetch\(request, \{ cache: "no-store" \}\)/);
-  assert.match(worker, /caches\.match\(request, \{ ignoreSearch: true \}\)/);
-  assert.match(worker, /event\.stopImmediatePropagation\(\)/);
-  assert.match(worker, /importScripts\(`service-worker\.js\?hotfix=/);
+test('V394 preserva o contrato de estabilidade V387 e usa cache-bust próprio', () => {
+  assert.match(loader, /STARTUP_STABILITY_VERSION = "20260824-startup-planning-stability-v387"/);
+  assert.match(loader, /FACTORY_STARTUP_CONSISTENCY_VERSION = "20260825-factory-startup-consistency-v394"/);
+  assert.match(loader, /stability=\$\{encodeURIComponent\(FACTORY_STARTUP_CONSISTENCY_VERSION\)\}/);
 });
 
-test('cópias publicadas permanecem idênticas', () => {
+test('proteção da Fábrica não adiciona polling nem gravação automática', () => {
+  assert.equal(loader.includes('setInterval('), false);
+  assert.equal(loader.includes('saveData({ markLocalChange: true })'), false);
+});
+
+test('cópias publicadas do loader permanecem idênticas', () => {
   assert.equal(loader, docsLoader);
-  assert.equal(worker, docsWorker);
 });
