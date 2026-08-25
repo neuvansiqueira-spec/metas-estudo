@@ -45,3 +45,13 @@ test("V395 mantém paridade root/docs", () => {
     assert.equal(read(file), read(`docs/${file}`), `${file} deve permanecer idêntico em docs`);
   }
 });
+
+test("Pages deriva o worker ativo da CURRENT_VERSION em vez de fixar uma versão antiga", () => {
+  const workflow = read(".github/workflows/pages.yml");
+  assert.match(workflow, /current_version_match = re\.search\(r'const CURRENT_VERSION = "\(\[\^"\]\+\)";'/);
+  assert.match(workflow, /active_worker_name = f"service-worker-\{release_suffix_match\.group\(1\)\}\.js"/);
+  assert.match(workflow, /for worker_name in \("service-worker\.js", active_worker_name\):/);
+  assert.match(workflow, /active_worker_path\.read_text\(encoding="utf-8"\)/);
+  assert.doesNotMatch(workflow, /worker efetivamente registrado é service-worker-v344\.js/);
+  assert.doesNotMatch(workflow, /for worker_name in \("service-worker\.js", "service-worker-v344\.js"\)/);
+});
