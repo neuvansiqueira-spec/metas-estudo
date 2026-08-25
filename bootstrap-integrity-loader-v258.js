@@ -3,6 +3,7 @@
 
   const VERSION = "20260821-timer-goal-integrity-v366";
   const UPDATE_FLOW_SCRIPT = "update-flow-v395.js?v=20260825-no-auto-reload-v395";
+  const TIMER_AUDIO_STABILITY_SCRIPT = "timer-audio-stability-v396.js?v=20260825-timer-audio-stability-v396";
   const CORE_SCRIPT = "bootstrap-integrity-loader-v258-core.js?v=20260815-bootstrap-performance-v342&planning=v371";
   const DIAGNOSTICS_SCRIPT = "duplicate-diagnostics-v260.js?v=20260806-duplicate-diagnostics-v260";
   const DIAGNOSTICS_STYLESHEET = "duplicate-diagnostics-v260.css?v=20260806-duplicate-diagnostics-v260";
@@ -11,7 +12,7 @@
   const PLANNING_SHIFT_PERSISTENCE_SCRIPT = "planning-shift-persistence-v283.js?v=20260809-planejamento-plantao-salvamento-v283";
   const HEADER_BRAND_FIX_SCRIPT = "header-brand-fix.js?v=20260815-logo-alta-qualidade-v338";
   const TIMER_GOAL_INTEGRITY_SCRIPT = "timer-goal-integrity-v366.js?v=20260821-timer-goal-integrity-v366";
-  const PRELOAD_SCRIPTS = [UPDATE_FLOW_SCRIPT, HEADER_BRAND_FIX_SCRIPT];
+  const PRELOAD_SCRIPTS = [UPDATE_FLOW_SCRIPT, TIMER_AUDIO_STABILITY_SCRIPT, HEADER_BRAND_FIX_SCRIPT];
 
   function installStylesheet(baseUrl) {
     if (document.getElementById("aldusDuplicateDiagnosticsStylesV260")) return;
@@ -61,6 +62,9 @@
   const updateFlow = makeScript("aldusUpdateFlowV395", UPDATE_FLOW_SCRIPT, baseUrl, source);
   updateFlow.addEventListener("error", reportLoadError(VERSION, "a proteção contra recarga automática"));
 
+  const timerAudioStability = makeScript("aldusTimerAudioStabilityV396", TIMER_AUDIO_STABILITY_SCRIPT, baseUrl, source);
+  timerAudioStability.addEventListener("error", reportLoadError(VERSION, "a estabilidade do áudio do cronômetro"));
+
   const brandFix = makeScript("aldusHeaderBrandFixV338", HEADER_BRAND_FIX_SCRIPT, baseUrl, source);
   brandFix.addEventListener("error", reportLoadError(VERSION, "a restauração da logo em alta qualidade"));
 
@@ -84,7 +88,8 @@
   timerControls.addEventListener("error", reportLoadError(VERSION, "a proteção dos controles do cronômetro"));
 
   parent.insertBefore(updateFlow, source?.nextSibling || null);
-  parent.insertBefore(brandFix, updateFlow.nextSibling);
+  parent.insertBefore(timerAudioStability, updateFlow.nextSibling);
+  parent.insertBefore(brandFix, timerAudioStability.nextSibling);
   parent.insertBefore(core, brandFix.nextSibling);
   parent.insertBefore(timerGoalIntegrity, core.nextSibling);
   parent.insertBefore(shiftPersistence, timerGoalIntegrity.nextSibling);
@@ -95,6 +100,7 @@
   globalThis.__aldusDuplicateDiagnosticsLoaderV260 = Object.freeze({
     version: VERSION,
     updateFlow: UPDATE_FLOW_SCRIPT,
+    timerAudioStability: TIMER_AUDIO_STABILITY_SCRIPT,
     headerBrandFix: HEADER_BRAND_FIX_SCRIPT,
     core: CORE_SCRIPT,
     timerGoalIntegrity: TIMER_GOAL_INTEGRITY_SCRIPT,

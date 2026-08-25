@@ -68,6 +68,7 @@ jobs:
             tests/v315-usage-telemetry.test.js
             tests/v315-factory-simulado-visibility.test.js
             tests/v316-timer-telemetry-security.test.js
+            tests/v396-timer-audio-stability.test.js
           )
           existing=()
           for file in "${candidates[@]}"; do

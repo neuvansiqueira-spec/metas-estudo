@@ -15,11 +15,12 @@ test("V395 impede recarga automática em controllerchange", () => {
   assert.doesNotMatch(source, /reloadOnce\("controllerchange"\)/);
 });
 
-test("V395 é instalado antes do bundle principal nos dois bootstraps", () => {
+test("V395 continua instalado antes do bundle principal nos dois bootstraps", () => {
   const protectedLoader = read("bootstrap-integrity-loader-v275.js");
   const legacyLoader = read("bootstrap-integrity-loader-v258.js");
   assert.match(protectedLoader, /UPDATE_FLOW_SCRIPT = "update-flow-v395\.js\?v=20260825-no-auto-reload-v395"/);
-  assert.match(protectedLoader, /parent\.insertBefore\(updateFlow, source\?\.nextSibling \|\| null\);\s*await updateFlowReady;\s*parent\.insertBefore\(core, updateFlow\.nextSibling\);/s);
+  assert.ok(protectedLoader.indexOf("parent.insertBefore(updateFlow") < protectedLoader.indexOf("parent.insertBefore(core"));
+  assert.match(protectedLoader, /await updateFlowReady/);
   assert.match(legacyLoader, /UPDATE_FLOW_SCRIPT = "update-flow-v395\.js\?v=20260825-no-auto-reload-v395"/);
   assert.ok(legacyLoader.indexOf("parent.insertBefore(updateFlow") < legacyLoader.indexOf("parent.insertBefore(core"));
 });
@@ -29,7 +30,7 @@ test("V395 renova o cache sem remover a estratégia de performance", () => {
   assert.match(worker, /UPDATE_FLOW_VERSION = "20260825-no-auto-reload-v395"/);
   assert.match(worker, /planning-quality-v371-no-auto-reload-v395/);
   assert.match(worker, /const UPDATE_FLOW_SCRIPT = `update-flow-v395\.js\?v=\$\{UPDATE_FLOW_VERSION\}`/);
-  assert.match(worker, /BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275\.js\?v=\$\{FAST_BOOTSTRAP_VERSION\}&planning=v371&update=v395`/);
+  assert.match(worker, /BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275\.js\?v=\$\{FAST_BOOTSTRAP_VERSION\}&planning=v371&update=v395(?:&audio=v396)?`/);
   assert.match(worker, /async function cachedFirstNavigation/);
   assert.match(worker, /async function cacheFirstStatic/);
 });
@@ -55,3 +56,7 @@ test("Pages deriva o worker ativo da CURRENT_VERSION em vez de fixar uma versão
   assert.doesNotMatch(workflow, /worker efetivamente registrado é service-worker-v344\.js/);
   assert.doesNotMatch(workflow, /for worker_name in \("service-worker\.js", "service-worker-v344\.js"\)/);
 });
+
+// O workflow de Pages já executa este arquivo. Importar a V396 torna a regressão
+// de áudio bloqueante na publicação sem duplicar a lista histórica do workflow.
+require("./v396-timer-audio-stability.test.js");
