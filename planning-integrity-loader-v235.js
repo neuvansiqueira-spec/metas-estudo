@@ -3,10 +3,11 @@
 
   const VERSION = "20260804-planejamento-metas-fabrica-integridade-v235";
   const STARTUP_STABILITY_VERSION = "20260824-startup-planning-stability-v387";
+  const FACTORY_STARTUP_CONSISTENCY_VERSION = "20260825-factory-startup-consistency-v394";
   const SNAPSHOT_KEY = "aldusPlanningManualGoalsV235";
   const SCRIPT_ID = "aldusPlanningIntegrityCoreV235";
   const FACTORY_SCRIPT_ID = "aldusFactoryQueueIntegrityV236";
-  const FACTORY_HOTFIX = "factory-queue-integrity-hotfix5";
+  const FACTORY_HOTFIX = "factory-queue-integrity-hotfix6";
   const FACTORY_DESTINATION_SCRIPT_ID = "aldusFactoryDestinationIntegrityV237";
   const FACTORY_DESTINATION_VERSION = "20260804-pastas-destino-classificacao-exata-v237";
   const FACTORY_DESTINATION_HOTFIX = "factory-destination-on-demand-v354";
@@ -23,6 +24,8 @@
   const DAILY_SUMMARY_TIME_HOTFIX = "daily-summary-time-format-hotfix4";
   const TIMER_SESSION_SCRIPT_ID = "aldusTimerSessionIntegrityV236";
   const TIMER_SESSION_HOTFIX = "timer-session-integrity-hotfix1";
+  const FACTORY_VIEW = "fabrica-resumos";
+  const FACTORY_STARTUP_NOTICE_ID = "aldusFactoryStartupConsistencyV394";
   let loaded = false;
 
   function bootstrapReady() {
@@ -30,6 +33,54 @@
       return typeof bootstrapStateReady === "undefined" || bootstrapStateReady === true;
     } catch {
       return false;
+    }
+  }
+
+  function factoryViewActive() {
+    try {
+      const route = String(location.hash || "").replace(/^#/, "").split(/[?&]/)[0];
+      return route === FACTORY_VIEW || Boolean(document.querySelector('[data-view="fabrica-resumos"].active'));
+    } catch {
+      return false;
+    }
+  }
+
+  function setFactoryStartupGuard(active) {
+    if (typeof document === "undefined") return false;
+    const list = document.getElementById("factoryList");
+    if (!list) return false;
+    let notice = document.getElementById(FACTORY_STARTUP_NOTICE_ID);
+    if (active) {
+      if (!notice) {
+        notice = document.createElement("p");
+        notice.id = FACTORY_STARTUP_NOTICE_ID;
+        notice.className = "notice";
+        notice.setAttribute("role", "status");
+        notice.setAttribute("aria-live", "polite");
+        notice.textContent = "Sincronizando pendências da Fábrica com o Plano do Dia…";
+        list.before(notice);
+      }
+      list.dataset.startupConsistencyPending = "true";
+      list.hidden = true;
+      return true;
+    }
+    delete list.dataset.startupConsistencyPending;
+    list.hidden = false;
+    notice?.remove();
+    return true;
+  }
+
+  function prepareFactoryStartupGuard() {
+    if (!bootstrapReady() && factoryViewActive()) setFactoryStartupGuard(true);
+  }
+
+  function releaseFactoryStartupGuard({ redraw = true } = {}) {
+    setFactoryStartupGuard(false);
+    if (!redraw || !factoryViewActive()) return;
+    try {
+      if (typeof renderFactory === "function") renderFactory();
+    } catch (error) {
+      console.warn("[Aldus V394] A Fábrica será redesenhada na próxima atualização da tela.", error);
     }
   }
 
@@ -99,13 +150,23 @@
   }
 
   function loadFactoryQueueIntegrity(releaseVersion) {
-    if (globalThis.__ALDUS_FACTORY_QUEUE_INTEGRITY_V236__ || document.getElementById(FACTORY_SCRIPT_ID)) return true;
+    if (globalThis.__ALDUS_FACTORY_QUEUE_INTEGRITY_V236__) {
+      releaseFactoryStartupGuard();
+      return true;
+    }
+    const existing = document.getElementById(FACTORY_SCRIPT_ID);
+    if (existing) {
+      existing.addEventListener("load", () => releaseFactoryStartupGuard(), { once: true });
+      return true;
+    }
     const script = document.createElement("script");
     script.id = FACTORY_SCRIPT_ID;
-    script.src = `factory-queue-integrity-v236.js?v=${encodeURIComponent(releaseVersion)}&hotfix=${encodeURIComponent(FACTORY_HOTFIX)}&stability=${encodeURIComponent(STARTUP_STABILITY_VERSION)}`;
+    script.src = `factory-queue-integrity-v236.js?v=${encodeURIComponent(releaseVersion)}&hotfix=${encodeURIComponent(FACTORY_HOTFIX)}&stability=${encodeURIComponent(FACTORY_STARTUP_CONSISTENCY_VERSION)}`;
     script.async = false;
+    script.addEventListener("load", () => releaseFactoryStartupGuard(), { once: true });
     script.addEventListener("error", () => {
       script.remove();
+      releaseFactoryStartupGuard({ redraw: false });
       console.warn("[Aldus V236] A correção da fila da Fábrica será tentada novamente na próxima abertura.");
     }, { once: true });
     document.body.appendChild(script);
@@ -197,12 +258,16 @@
   }
 
   function loadIntegrityCore() {
+    const releaseVersion = globalThis.__ALDUS_APP_RELEASE__?.version || VERSION;
+    prepareFactoryStartupGuard();
+    // A fila da Fábrica precisa instalar antes do bootstrap assinalar o estado como pronto.
+    // Caso contrário a tela pode mostrar contadores transitórios incorretos e corrigir-se segundos depois.
+    loadFactoryQueueIntegrity(releaseVersion);
+
     if (loaded || document.getElementById(SCRIPT_ID)) return true;
     if (!bootstrapReady()) return false;
     loaded = true;
     installPersistenceGuards();
-    const releaseVersion = globalThis.__ALDUS_APP_RELEASE__?.version || VERSION;
-    loadFactoryQueueIntegrity(releaseVersion);
     loadFactoryDestinationIntegrity();
     loadTimerAudioRecovery(releaseVersion);
     loadTimerAudioUnifier();
@@ -216,10 +281,12 @@
     script.addEventListener("load", () => {
       installPersistenceGuards();
       enforceSnapshot();
+      releaseFactoryStartupGuard();
     }, { once: true });
     script.addEventListener("error", () => {
       loaded = false;
       script.remove();
+      releaseFactoryStartupGuard({ redraw: false });
     }, { once: true });
     document.body.appendChild(script);
     return true;
@@ -232,5 +299,9 @@
     window.addEventListener("aldus:post-bootstrap-maintenance-complete", attemptLoad, { once: true });
     window.addEventListener("aldus:bootstrap-ready", attemptLoad, { once: true });
     window.addEventListener("load", attemptLoad, { once: true });
+    window.addEventListener("hashchange", () => {
+      if (factoryViewActive() && !bootstrapReady()) setFactoryStartupGuard(true);
+      attemptLoad();
+    });
   }
 })();
