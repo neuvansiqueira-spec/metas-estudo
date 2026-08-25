@@ -84,7 +84,8 @@ jobs:
             tests/v352-active-service-worker-delivery.test.js \
             tests/v357-planning-variety.test.js \
             tests/v358-piece-rotation-repair.test.js \
-            tests/v368-planning-quality.test.js
+            tests/v368-planning-quality.test.js \
+            tests/v395-no-auto-reload.test.js
           node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
           cmp security-hardening-v296.js docs/security-hardening-v296.js
           cmp service-worker.js docs/service-worker.js
@@ -193,10 +194,25 @@ jobs:
                   raise SystemExit(f"V368: runtime não ligado ao bootstrap em {bootstrap_file}")
           index.write_text(text, encoding="utf-8")
 
-          # V363: o worker efetivamente registrado é service-worker-v344.js.
-          # Ambos os workers públicos recebem um CACHE_NAME derivado da versão do planejamento.
-          # Isso força instalação/ativação de worker novo e elimina o HTML antigo sem renomear app-v344.
-          for worker_name in ("service-worker.js", "service-worker-v344.js"):
+          # V395: deriva o worker realmente registrado da CURRENT_VERSION atual.
+          # Isso evita que o deploy fique preso a um worker histórico (por exemplo, V344)
+          # e preserva automaticamente a entrega quando o sufixo público mudar no futuro.
+          canonical_worker = Path("docs/service-worker.js")
+          canonical_source = canonical_worker.read_text(encoding="utf-8")
+          current_version_match = re.search(r'const CURRENT_VERSION = "([^"]+)";', canonical_source)
+          if not current_version_match:
+              raise SystemExit("V395: CURRENT_VERSION não encontrado no service-worker.js")
+          release_suffix_match = re.search(r'(v\d+)$', current_version_match.group(1))
+          if not release_suffix_match:
+              raise SystemExit("V395: sufixo vNNN não encontrado na CURRENT_VERSION")
+          active_worker_name = f"service-worker-{release_suffix_match.group(1)}.js"
+          active_worker_path = Path("docs") / active_worker_name
+          if not active_worker_path.exists():
+              raise SystemExit(f"V395: worker ativo ausente em docs: {active_worker_name}")
+
+          # O worker canônico e o worker efetivamente registrado recebem o mesmo CACHE_NAME
+          # derivado do planejamento. As estratégias cache-first/fast bootstrap permanecem intactas.
+          for worker_name in ("service-worker.js", active_worker_name):
               sw = Path("docs") / worker_name
               sw_text = sw.read_text(encoding="utf-8")
               sw_text = sw_text.replace(
@@ -216,14 +232,14 @@ jobs:
                       count=1,
                   )
                   if cache_replaced != 1:
-                      raise SystemExit(f"V363: CACHE_NAME não encontrado em {worker_name}")
+                      raise SystemExit(f"V395: CACHE_NAME não encontrado em {worker_name}")
               if delivery_suffix not in sw_text:
-                  raise SystemExit(f"V363: cache de planejamento não aplicado em {worker_name}")
+                  raise SystemExit(f"V395: cache de planejamento não aplicado em {worker_name}")
               sw.write_text(sw_text, encoding="utf-8")
 
-          public_worker = Path("docs/service-worker-v344.js").read_text(encoding="utf-8")
+          public_worker = active_worker_path.read_text(encoding="utf-8")
           if f"planning-delivery-{planning_version}" not in public_worker:
-              raise SystemExit("V363: worker registrado não recebeu a renovação do cache")
+              raise SystemExit(f"V395: worker ativo {active_worker_name} não recebeu a renovação do cache")
           PY
 
       - name: Configurar GitHub Pages
@@ -238,4 +254,4 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
 
-# V363: entrega da política de planejamento vinculada ao cache público.
+# V395: entrega vinculada dinamicamente ao service worker ativo da release atual.
