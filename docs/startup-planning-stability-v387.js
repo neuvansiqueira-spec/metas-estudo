@@ -1,25 +1,15 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260824-startup-planning-stability-v387";
-  const ALIGN_MARKER = "__aldusStartupPlanningStabilityV387";
-  const STARTUP_GUARD_MS = 5000;
-  const RESTORE_SCRIPT_ID = "aldusAuthorizedGoalRestoreV391";
-  const RESTORE_VERSION = "20260824-restaura-planejamento-gestao-estrategica-v391";
-  const CORRECTION_SCRIPT_ID = "aldusAuthorizedGoalRestoreV392";
-  const CORRECTION_VERSION = "20260824-corrige-identidade-meta-planejamento-v392";
-  const EXPLICIT_ALIGNMENT_SCRIPT_ID = "aldusDailyPlanExplicitAlignmentV393";
-  const EXPLICIT_ALIGNMENT_VERSION = "20260824-explicit-daily-plan-alignment-v393";
-  const startedAt = Date.now();
+  const VERSION = "20260826-planning-consent-guard-v398";
+  const ALIGN_MARKER = "__aldusPlanningConsentGuardV398";
+  const FACTORY_BRIDGE_SCRIPT_ID = "aldusFactoryLc259LinkV398";
+  const FACTORY_BRIDGE_VERSION = "20260826-factory-lc259-link-v398";
 
-  if (globalThis.__ALDUS_STARTUP_PLANNING_STABILITY_V387__) return;
+  if (globalThis.__ALDUS_STARTUP_PLANNING_STABILITY_V387__?.version === VERSION) return;
 
   function startupGuardActive() {
-    return Date.now() - startedAt < STARTUP_GUARD_MS;
-  }
-
-  function hasTrustedUserActivation() {
-    try { return navigator?.userActivation?.isActive === true; } catch { return false; }
+    return true;
   }
 
   function wrapDailyPlanAlignment() {
@@ -27,11 +17,16 @@
     if (typeof current !== "function") return false;
     if (current[ALIGN_MARKER] === VERSION) return true;
 
-    const wrapped = function(...args) {
-      if (startupGuardActive() && !hasTrustedUserActivation()) {
-        return { changed: false, skipped: VERSION };
+    const wrapped = function(targetState, date, options) {
+      if (options?.explicit === true || options?.allowRebuild === true) {
+        return current.apply(this, arguments);
       }
-      return current.apply(this, args);
+      return {
+        changed: false,
+        skipped: VERSION,
+        date: String(date || ""),
+        report: null
+      };
     };
     Object.defineProperty(wrapped, ALIGN_MARKER, { value: VERSION });
     Object.defineProperty(wrapped, "__aldusOriginal", { value: current });
@@ -55,7 +50,8 @@
         new URL("daily-goal-authorized-restore-v390.js", location.href),
         new URL("daily-goal-authorized-restore-v391.js", location.href),
         new URL("daily-goal-authorized-restore-v392.js", location.href),
-        new URL("daily-plan-explicit-alignment-v393.js", location.href)
+        new URL("daily-plan-explicit-alignment-v393.js", location.href),
+        new URL("factory-lc259-link-v398.js", location.href)
       ];
       for (const name of names) {
         if (!String(name).startsWith("metas-estudo-")) continue;
@@ -66,51 +62,21 @@
         }
       }
     } catch (error) {
-      console.warn("[Aldus V387] Não foi possível limpar integralmente o cache dos runtimes antigos.", error);
+      console.warn("[Aldus V398] Não foi possível limpar integralmente o cache dos runtimes antigos.", error);
     }
     return { caches: touched, deleted };
   }
 
-  function loadAuthorizedRestoreV391() {
+  function loadFactoryLc259BridgeV398() {
     if (typeof document === "undefined") return false;
-    if (document.getElementById(RESTORE_SCRIPT_ID)) return true;
+    if (document.getElementById(FACTORY_BRIDGE_SCRIPT_ID)) return true;
     const script = document.createElement("script");
-    script.id = RESTORE_SCRIPT_ID;
-    script.src = `daily-goal-authorized-restore-v391.js?v=${encodeURIComponent(RESTORE_VERSION)}`;
+    script.id = FACTORY_BRIDGE_SCRIPT_ID;
+    script.src = `factory-lc259-link-v398.js?v=${encodeURIComponent(FACTORY_BRIDGE_VERSION)}`;
     script.async = false;
     script.addEventListener("error", () => {
       script.remove();
-      console.error("[Aldus V391] Falha ao carregar a recuperação autorizada da meta do Plano do Dia.");
-    }, { once: true });
-    (document.head || document.documentElement).appendChild(script);
-    return true;
-  }
-
-  function loadAuthorizedCorrectionV392() {
-    if (typeof document === "undefined") return false;
-    if (document.getElementById(CORRECTION_SCRIPT_ID)) return true;
-    const script = document.createElement("script");
-    script.id = CORRECTION_SCRIPT_ID;
-    script.src = `daily-goal-authorized-restore-v392.js?v=${encodeURIComponent(CORRECTION_VERSION)}`;
-    script.async = false;
-    script.addEventListener("error", () => {
-      script.remove();
-      console.error("[Aldus V392] Falha ao carregar a correção de identidade da meta do Plano do Dia.");
-    }, { once: true });
-    (document.head || document.documentElement).appendChild(script);
-    return true;
-  }
-
-  function loadExplicitAlignmentV393() {
-    if (typeof document === "undefined") return false;
-    if (document.getElementById(EXPLICIT_ALIGNMENT_SCRIPT_ID)) return true;
-    const script = document.createElement("script");
-    script.id = EXPLICIT_ALIGNMENT_SCRIPT_ID;
-    script.src = `daily-plan-explicit-alignment-v393.js?v=${encodeURIComponent(EXPLICIT_ALIGNMENT_VERSION)}`;
-    script.async = false;
-    script.addEventListener("error", () => {
-      script.remove();
-      console.error("[Aldus V393] Falha ao carregar a proteção permanente do Plano do Dia.");
+      console.error("[Aldus V398] Falha ao carregar o vínculo da LC 259 com a Fábrica de Resumos.");
     }, { once: true });
     (document.head || document.documentElement).appendChild(script);
     return true;
@@ -123,9 +89,7 @@
   installAlignmentGuards();
   queueMicrotask(installAlignmentGuards);
   evictLegacyRuntimeCache();
-  loadAuthorizedRestoreV391();
-  loadAuthorizedCorrectionV392();
-  loadExplicitAlignmentV393();
+  loadFactoryLc259BridgeV398();
 
   if (typeof window !== "undefined") {
     window.addEventListener("aldus:bootstrap-integrity-v258-ready", installAlignmentGuards, { once: true });
@@ -139,8 +103,11 @@
     startupGuardActive,
     wrapDailyPlanAlignment,
     evictLegacyRuntimeCache,
-    loadAuthorizedRestoreV391,
-    loadAuthorizedCorrectionV392,
-    loadExplicitAlignmentV393
+    loadFactoryLc259BridgeV398,
+    legacyAutomaticRepairsDisabled: Object.freeze([
+      "daily-goal-authorized-restore-v391.js",
+      "daily-goal-authorized-restore-v392.js",
+      "daily-plan-explicit-alignment-v393.js"
+    ])
   });
 })();
