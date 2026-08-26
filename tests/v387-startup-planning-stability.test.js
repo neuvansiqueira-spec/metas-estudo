@@ -16,7 +16,13 @@ const observability = read("security-observability-v318.js");
 const docsObservability = read("docs/security-observability-v318.js");
 
 function loadStartupRuntime() {
-  let alignmentCalls = 0;
+  const calls = {
+    alignment: 0,
+    integratedPriority: 0,
+    performanceRefresh: 0,
+    inflationRepair: 0,
+    reinforcementRepair: 0
+  };
   const context = {
     console,
     Date,
@@ -26,34 +32,81 @@ function loadStartupRuntime() {
     queueMicrotask: (callback) => callback(),
     navigator: { userActivation: { isActive: false } },
     ensureDailyPlanAlignedWithPlanningV174() {
-      alignmentCalls += 1;
+      calls.alignment += 1;
       return { changed: true };
+    },
+    applyIntegratedPlanningPrioritiesV155() {
+      calls.integratedPriority += 1;
+      return { ok: true, changed: true };
+    },
+    refreshPlanningPrioritiesForQuestionChangesV155() {
+      calls.performanceRefresh += 1;
+      return { ok: true, changed: true };
+    },
+    repairDailyPlanningInflationV108() {
+      calls.inflationRepair += 1;
+      return { changed: true, removed: [{ id: "automatic" }], reports: [] };
+    },
+    repairInvalidReinforcementGoalsV157() {
+      calls.reinforcementRepair += 1;
+      return { changed: true, corrected: [{ id: "automatic" }] };
     }
   };
   context.globalThis = context;
   vm.createContext(context);
   vm.runInContext(startup, context);
-  return { context, getAlignmentCalls: () => alignmentCalls };
+  return { context, calls };
 }
 
-test("V398 bloqueia alinhamento silencioso e só libera alteração explicitamente autorizada", () => {
-  const { context, getAlignmentCalls } = loadStartupRuntime();
-  const automatic = context.ensureDailyPlanAlignedWithPlanningV174({}, "2026-08-24");
+test("V399 bloqueia alinhamento silencioso e só libera alteração explicitamente autorizada", () => {
+  const { context, calls } = loadStartupRuntime();
+  const automatic = context.ensureDailyPlanAlignedWithPlanningV174({}, "2026-08-26");
   assert.equal(automatic.changed, false);
-  assert.equal(automatic.skipped, "20260826-planning-consent-guard-v398");
-  assert.equal(getAlignmentCalls(), 0);
+  assert.equal(automatic.skipped, "20260826-planning-legacy-mutator-guard-v399");
+  assert.equal(calls.alignment, 0);
 
   context.navigator.userActivation.isActive = true;
-  const mereActivation = context.ensureDailyPlanAlignedWithPlanningV174({}, "2026-08-24");
+  const mereActivation = context.ensureDailyPlanAlignedWithPlanningV174({}, "2026-08-26");
   assert.equal(mereActivation.changed, false, "um clique genérico não autoriza reescrever metas");
-  assert.equal(getAlignmentCalls(), 0);
+  assert.equal(calls.alignment, 0);
 
-  const explicitResult = context.ensureDailyPlanAlignedWithPlanningV174({}, "2026-08-24", { explicit: true });
+  const explicitResult = context.ensureDailyPlanAlignedWithPlanningV174({}, "2026-08-26", { explicit: true });
   assert.equal(explicitResult.changed, true);
-  assert.equal(getAlignmentCalls(), 1);
+  assert.equal(calls.alignment, 1);
 });
 
-test("V387/V398 não adiciona polling nem observação contínua", () => {
+test("V399 neutraliza os mutadores legados automáticos que ainda existem no bundle", () => {
+  const { context, calls } = loadStartupRuntime();
+
+  assert.equal(context.applyIntegratedPlanningPrioritiesV155({}, { reason: "replace-state" }).changed, false);
+  assert.equal(context.refreshPlanningPrioritiesForQuestionChangesV155({}).changed, false);
+  assert.equal(context.repairDailyPlanningInflationV108({}, { source: "bootstrap-legacy" }).changed, false);
+  assert.equal(context.repairInvalidReinforcementGoalsV157({}).changed, false);
+
+  assert.deepEqual(calls, {
+    alignment: 0,
+    integratedPriority: 0,
+    performanceRefresh: 0,
+    inflationRepair: 0,
+    reinforcementRepair: 0
+  });
+});
+
+test("V399 mantém saída explícita para operações realmente autorizadas", () => {
+  const { context, calls } = loadStartupRuntime();
+
+  assert.equal(context.applyIntegratedPlanningPrioritiesV155({}, { explicit: true }).changed, true);
+  assert.equal(context.refreshPlanningPrioritiesForQuestionChangesV155({}, { explicit: true }).changed, true);
+  assert.equal(context.repairDailyPlanningInflationV108({}, { allowRebuild: true }).changed, true);
+  assert.equal(context.repairInvalidReinforcementGoalsV157({}, { explicit: true }).changed, true);
+
+  assert.equal(calls.integratedPriority, 1);
+  assert.equal(calls.performanceRefresh, 1);
+  assert.equal(calls.inflationRepair, 1);
+  assert.equal(calls.reinforcementRepair, 1);
+});
+
+test("V399 não adiciona polling nem observação contínua", () => {
   assert.equal(startup.includes("setInterval("), false);
   assert.equal(startup.includes("MutationObserver"), false);
   assert.equal(startup.includes("requestAnimationFrame("), false);
@@ -92,17 +145,18 @@ test("V379 recompõe a cota apenas após ações explícitas", () => {
   assert.doesNotMatch(manual, /reconcileSnapshot\(targetState, snapshot, "planning-route-entered"\)/);
 });
 
-test("V387 continua carregada antes da proteção aditiva e a V398 assume a política de consentimento", () => {
+test("V399 amplia a política de consentimento para os reparadores legados restantes", () => {
   const stabilityIndex = observability.indexOf("installStartupPlanningStabilityV387();");
   const manualIndex = observability.indexOf("installManualGoalAdditiveV379();");
   assert.ok(stabilityIndex >= 0 && manualIndex > stabilityIndex);
-  assert.match(observability, /startup-planning-stability-v387\.js\?v=20260826-planning-consent-guard-v398/);
-  assert.match(observability, /manual-goal-additive-v379\.js\?v=20260824-manual-goal-additive-v379-stability-v387/);
-  assert.match(startup, /20260826-planning-consent-guard-v398/);
-  assert.match(startup, /legacyAutomaticRepairsDisabledV398/);
+  assert.match(startup, /20260826-planning-legacy-mutator-guard-v399/);
+  assert.match(startup, /wrapQuestionPerformanceRefresh/);
+  assert.match(startup, /wrapDailyInflationRepair/);
+  assert.match(startup, /wrapIntegratedPlanningPriority/);
+  assert.match(startup, /legacyAutomaticRepairsDisabledV399/);
 });
 
-test("V387/V398 mantém paridade entre raiz e docs", () => {
+test("V399 mantém paridade entre raiz e docs", () => {
   assert.equal(startup, docsStartup);
   assert.equal(factory, docsFactory);
   assert.equal(loader, docsLoader);
