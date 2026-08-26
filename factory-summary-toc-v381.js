@@ -15,6 +15,9 @@
   const TARGET_SET = new Set(TARGET_TYPES);
   const LEGACY_MARKER = "## SUMÁRIO OBRIGATÓRIO DO DOCUMENTO — V381";
   const SUMMARY_MARKER = "## SUMÁRIO DIDÁTICO OBRIGATÓRIO DO DOCUMENTO — V382";
+  const BEIGE_MARKER = "## SOMBREAMENTO BEGE DOS RÓTULOS — PADRÃO OBRIGATÓRIO DO MODELO";
+  const BEIGE_MIGRATION_ID = "factoryBeigeLabelShadingV399";
+  const BEIGE_WRAP_MARKER = "__aldusFactoryBeigeLabelShadingWrappedV399";
 
   const SUMMARY_SECTION = `
 
@@ -175,6 +178,47 @@ NÃO transforme o sumário em tabela sem que o próprio módulo use esse padrão
 O SUMÁRIO É PARTE OBRIGATÓRIA DO ARQUIVO WORD E DEVE FACILITAR A LOCALIZAÇÃO DE ASSUNTOS SEM PERDER A MESMA DIDÁTICA VISUAL DO RESUMO.
 `;
 
+  const BEIGE_SECTION = `
+
+${BEIGE_MARKER}
+
+ESTA É UMA ALTERAÇÃO EXCLUSIVAMENTE VISUAL. PRESERVE INTEGRALMENTE TODAS AS DEMAIS REGRAS, O CONTEÚDO, A ORDEM, A HIERARQUIA, A FONTE, O TAMANHO, OS ESPAÇAMENTOS, OS RECUOS, AS MARGENS, A PAGINAÇÃO, OS NEGRITOS, OS EMOJIS E AS FAIXAS JÁ DEFINIDAS NESTE PROMPT.
+
+NO ARQUIVO WORD, REPRODUZA O SOMBREAMENTO DO DOCUMENTO-MODELO EXATAMENTE NOS MESMOS LOCAIS FUNCIONAIS:
+
+* TOM EXATO DO SOMBREAMENTO: BEGE #EEECE1 (RGB 238, 236, 225);
+* APLIQUE O BEGE SOMENTE AO TEXTO DO RÓTULO FUNCIONAL EM NEGRITO NO INÍCIO DA LINHA, ATÉ E INCLUINDO OS DOIS-PONTOS OU A PONTUAÇÃO QUE ENCERRA O RÓTULO;
+* NÃO APLIQUE O BEGE AO EMOJI, ÍCONE, MARCADOR OU NUMERAÇÃO QUE ANTECEDE O RÓTULO;
+* NÃO APLIQUE O BEGE À EXPLICAÇÃO QUE VEM DEPOIS DOS DOIS-PONTOS;
+* O SOMBREAMENTO DEVE SER DE CARACTERE/RUN, E NÃO DO PARÁGRAFO INTEIRO;
+* MANTENHA O TEXTO DO RÓTULO EM PRETO #000000 E EM NEGRITO REAL;
+* APLIQUE A MESMA LÓGICA A TODOS OS RÓTULOS FUNCIONAIS EQUIVALENTES QUE O PRÓPRIO MÓDULO JÁ UTILIZE, SEM CRIAR NOVOS RÓTULOS APENAS PARA RECEBER SOMBREAMENTO.
+
+EXEMPLOS DO PADRÃO VISUAL A REPRODUZIR:
+
+1️⃣ **CONDUTA:** somente “CONDUTA:” recebe bege; “1️⃣” e a explicação permanecem sem bege.
+
+5️⃣ **PENA:** somente “PENA:” recebe bege.
+
+✅ **§ 1º — FORMA QUALIFICADA:** somente o texto “§ 1º — FORMA QUALIFICADA:” recebe bege; o emoji ✅ permanece sem bege.
+
+⚖️ **JURISPRUDÊNCIA — TESE:** somente “JURISPRUDÊNCIA — TESE:” recebe bege; o emoji ⚖️ e o texto da tese permanecem sem bege.
+
+⚠️ **PONTO DE PROVA:** somente “PONTO DE PROVA:” recebe bege.
+
+🚫 **REVOGAÇÃO:** somente “REVOGAÇÃO:” recebe bege.
+
+NÃO APLIQUE O SOMBREAMENTO BEGE A TÍTULOS, GRANDES EIXOS, CAPÍTULOS, SEÇÕES, CABEÇALHOS, ITENS DO SUMÁRIO, FAIXAS HORIZONTAIS OU TEXTO EXPLICATIVO CORRIDO, SALVO SE ALGUM DESSES TRECHOS FOR, PELA PRÓPRIA ESTRUTURA DO MÓDULO, UM RÓTULO FUNCIONAL EQUIVALENTE AOS EXEMPLOS ACIMA.
+
+PRESERVE INTEGRALMENTE AS FAIXAS AZUL-CLARAS JÁ PREVISTAS NOS CABEÇALHOS. O BEGE #EEECE1 NÃO SUBSTITUI, NÃO RECOLORE E NÃO SE SOBREPÕE À FAIXA AZUL.
+
+SE O PROMPT CONTIVER REGRA GERAL DIZENDO QUE AS ÚNICAS CORES PERMITIDAS SÃO AS DOS EMOJIS E DAS FAIXAS JÁ EXISTENTES, CONSIDERE O FUNDO BEGE #EEECE1 DOS RÓTULOS COMO A ÚNICA EXCEÇÃO ADICIONAL, EXCLUSIVAMENTE PARA ESTE SOMBREAMENTO. ESSA EXCEÇÃO NÃO AUTORIZA ALTERAR A COR DA FONTE NEM INTRODUZIR QUALQUER OUTRA COR.
+
+QUANDO HOUVER EDIÇÃO DIRETA DO OOXML DO DOCX, APLIQUE AO(S) RUN(S) DO RÓTULO, E SOMENTE A ELES, SOMBREAMENTO EQUIVALENTE A <w:shd w:val="clear" w:fill="EEECE1"/>.
+
+ANTES DA ENTREGA, CONFIRME VISUALMENTE QUE O BEGE APARECE SOMENTE ATRÁS DOS RÓTULOS FUNCIONAIS, COM O EMOJI/NUMERAÇÃO FORA DO SOMBREAMENTO E A EXPLICAÇÃO APÓS O RÓTULO TAMBÉM FORA DO SOMBREAMENTO.
+`;
+
   function stripLegacySummary(prompt) {
     const text = String(prompt || "").trim();
     if (!text) return text;
@@ -189,6 +233,12 @@ O SUMÁRIO É PARTE OBRIGATÓRIA DO ARQUIVO WORD E DEVE FACILITAR A LOCALIZAÇÃ
     if (raw.includes(SUMMARY_MARKER)) return raw;
     const base = stripLegacySummary(raw);
     return `${base}${SUMMARY_SECTION}`.trim();
+  }
+
+  function withBeigeShading(prompt) {
+    const raw = String(prompt || "").trim();
+    if (!raw || raw.includes(BEIGE_MARKER)) return raw;
+    return `${raw}${BEIGE_SECTION}`.trim();
   }
 
   function ensureIntegratedPromptReady() {
@@ -230,6 +280,47 @@ O SUMÁRIO É PARTE OBRIGATÓRIA DO ARQUIVO WORD E DEVE FACILITAR A LOCALIZAÇÃ
     return changed;
   }
 
+  function patchAllBeigeShading() {
+    let changed = 0;
+    let stateChanged = false;
+
+    try {
+      if (defaultFactoryPromptLibrary && typeof defaultFactoryPromptLibrary === "object") {
+        Object.keys(defaultFactoryPromptLibrary).forEach((type) => {
+          const current = defaultFactoryPromptLibrary[type];
+          if (typeof current !== "string" || !current.trim()) return;
+          const next = withBeigeShading(current);
+          if (next !== current) changed += 1;
+          defaultFactoryPromptLibrary[type] = next;
+        });
+      }
+    } catch {}
+
+    try {
+      if (state && typeof state === "object") {
+        state.factoryPromptLibrary ||= {};
+        state.migrations ||= {};
+        Object.keys(state.factoryPromptLibrary).forEach((type) => {
+          const current = state.factoryPromptLibrary[type];
+          if (typeof current !== "string" || !current.trim()) return;
+          const next = withBeigeShading(current);
+          if (next !== current) {
+            changed += 1;
+            stateChanged = true;
+            state.factoryPromptLibrary[type] = next;
+          }
+        });
+        if (!state.migrations[BEIGE_MIGRATION_ID]) {
+          state.migrations[BEIGE_MIGRATION_ID] = new Date().toISOString();
+          stateChanged = true;
+        }
+        if (stateChanged && typeof saveData === "function") saveData();
+      }
+    } catch {}
+
+    return changed;
+  }
+
   function wrapFactoryPromptBase() {
     try {
       if (typeof factoryPromptBase !== "function") return false;
@@ -241,6 +332,24 @@ O SUMÁRIO É PARTE OBRIGATÓRIA DO ARQUIVO WORD E DEVE FACILITAR A LOCALIZAÇÃ
       };
       Object.defineProperty(wrapped, WRAP_MARKER, { value: VERSION });
       Object.defineProperty(wrapped, "__aldusFactorySummaryTocOriginal", { value: previous });
+      factoryPromptBase = wrapped;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function wrapFactoryPromptBaseBeige() {
+    try {
+      if (typeof factoryPromptBase !== "function") return false;
+      if (factoryPromptBase?.[BEIGE_WRAP_MARKER] === true) return true;
+      const previous = factoryPromptBase;
+      const wrapped = function(type) {
+        const prompt = previous(type);
+        return typeof prompt === "string" ? withBeigeShading(prompt) : prompt;
+      };
+      Object.defineProperty(wrapped, BEIGE_WRAP_MARKER, { value: true });
+      Object.defineProperty(wrapped, "__aldusFactoryBeigeLabelShadingOriginal", { value: previous });
       factoryPromptBase = wrapped;
       return true;
     } catch {
@@ -262,22 +371,26 @@ O SUMÁRIO É PARTE OBRIGATÓRIA DO ARQUIVO WORD E DEVE FACILITAR A LOCALIZAÇÃ
 
   function install() {
     const changed = patchPromptLibraries();
+    const beigeChanged = patchAllBeigeShading();
     const wrapped = wrapFactoryPromptBase();
-    if (!wrapped) return { installed: false, changed, wrapped };
+    const beigeWrapped = wrapFactoryPromptBaseBeige();
+    if (!wrapped || !beigeWrapped) return { installed: false, changed, beigeChanged, wrapped, beigeWrapped };
 
     if (typeof document !== "undefined" && document.documentElement) {
       document.documentElement.dataset[INSTALL_FLAG] = "true";
     }
     refreshFactoryUi();
-    return { installed: true, changed, wrapped };
+    return { installed: true, changed, beigeChanged, wrapped, beigeWrapped };
   }
 
   const api = Object.freeze({
     version: VERSION,
     targetTypes: TARGET_TYPES,
     summaryMarker: SUMMARY_MARKER,
+    beigeMarker: BEIGE_MARKER,
     stripLegacySummary,
     withSummary,
+    withBeigeShading,
     install
   });
 
@@ -288,5 +401,6 @@ O SUMÁRIO É PARTE OBRIGATÓRIA DO ARQUIVO WORD E DEVE FACILITAR A LOCALIZAÇÃ
     window.addEventListener("aldus:bootstrap-integrity-v258-ready", install, { once: true });
     window.addEventListener("aldus:post-bootstrap-maintenance-complete", install, { once: true });
     window.addEventListener("load", install, { once: true });
+    [250, 1000, 3000].forEach((delay) => setTimeout(install, delay));
   }
 })();
