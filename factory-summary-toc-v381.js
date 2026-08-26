@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260824-factory-summary-toc-v382";
+  const VERSION = "20260826-factory-summary-toc-v400";
   const API_MARKER = "__aldusFactorySummaryTocV382";
   const WRAP_MARKER = "__aldusFactorySummaryTocWrappedV382";
   const INSTALL_FLAG = "aldusFactorySummaryTocV382";
@@ -16,7 +16,17 @@
   const LEGACY_MARKER = "## SUMÁRIO OBRIGATÓRIO DO DOCUMENTO — V381";
   const SUMMARY_MARKER = "## SUMÁRIO DIDÁTICO OBRIGATÓRIO DO DOCUMENTO — V382";
   const BEIGE_MARKER = "## SOMBREAMENTO BEGE DOS RÓTULOS — PADRÃO OBRIGATÓRIO DO MODELO";
-  const BEIGE_MIGRATION_ID = "factoryBeigeLabelShadingV399";
+  const BEIGE_MIGRATION_ID = "factoryBeigeLabelShadingScopeV400";
+  const BEIGE_TARGET_TYPES = Object.freeze([
+    "resumoAula",
+    "lei",
+    "jurisprudencia",
+    "peca",
+    "resumoAulaJurisprudencia",
+    "leiJurisprudencia",
+    "consolidacao"
+  ]);
+  const BEIGE_TARGET_SET = new Set(BEIGE_TARGET_TYPES);
 
   const SUMMARY_SECTION = `
 
@@ -234,9 +244,18 @@ ANTES DA ENTREGA, CONFIRME VISUALMENTE QUE O BEGE APARECE SOMENTE ATRÁS DOS RÓ
     return `${base}${SUMMARY_SECTION}`.trim();
   }
 
+  function stripBeigeShading(prompt) {
+    const text = String(prompt || "").trim();
+    if (!text) return text;
+    const markerIndex = text.indexOf(BEIGE_MARKER);
+    if (markerIndex < 0) return text;
+    return text.slice(0, markerIndex).trim();
+  }
+
   function withBeigeShading(prompt) {
     const raw = String(prompt || "").trim();
-    if (!raw || raw.includes(BEIGE_MARKER)) return raw;
+    if (!raw) return raw;
+    if (raw.includes(BEIGE_MARKER)) return raw;
     return `${raw}${BEIGE_SECTION}`.trim();
   }
 
@@ -279,7 +298,7 @@ ANTES DA ENTREGA, CONFIRME VISUALMENTE QUE O BEGE APARECE SOMENTE ATRÁS DOS RÓ
     return changed;
   }
 
-  function patchAllBeigeShading() {
+  function patchBeigeShadingScope() {
     let changed = 0;
     let stateChanged = false;
 
@@ -288,7 +307,9 @@ ANTES DA ENTREGA, CONFIRME VISUALMENTE QUE O BEGE APARECE SOMENTE ATRÁS DOS RÓ
         Object.keys(defaultFactoryPromptLibrary).forEach((type) => {
           const current = defaultFactoryPromptLibrary[type];
           if (typeof current !== "string" || !current.trim()) return;
-          const next = withBeigeShading(current);
+          const next = BEIGE_TARGET_SET.has(type)
+            ? withBeigeShading(current)
+            : stripBeigeShading(current);
           if (next !== current) changed += 1;
           defaultFactoryPromptLibrary[type] = next;
         });
@@ -302,7 +323,9 @@ ANTES DA ENTREGA, CONFIRME VISUALMENTE QUE O BEGE APARECE SOMENTE ATRÁS DOS RÓ
         Object.keys(state.factoryPromptLibrary).forEach((type) => {
           const current = state.factoryPromptLibrary[type];
           if (typeof current !== "string" || !current.trim()) return;
-          const next = withBeigeShading(current);
+          const next = BEIGE_TARGET_SET.has(type)
+            ? withBeigeShading(current)
+            : stripBeigeShading(current);
           if (next !== current) {
             changed += 1;
             stateChanged = true;
@@ -328,7 +351,10 @@ ANTES DA ENTREGA, CONFIRME VISUALMENTE QUE O BEGE APARECE SOMENTE ATRÁS DOS RÓ
       const wrapped = function(type) {
         const prompt = previous(type);
         const summarized = TARGET_SET.has(type) ? withSummary(prompt) : prompt;
-        return typeof summarized === "string" ? withBeigeShading(summarized) : summarized;
+        if (typeof summarized !== "string") return summarized;
+        return BEIGE_TARGET_SET.has(type)
+          ? withBeigeShading(summarized)
+          : stripBeigeShading(summarized);
       };
       Object.defineProperty(wrapped, WRAP_MARKER, { value: VERSION });
       Object.defineProperty(wrapped, "__aldusFactorySummaryTocOriginal", { value: previous });
@@ -353,7 +379,7 @@ ANTES DA ENTREGA, CONFIRME VISUALMENTE QUE O BEGE APARECE SOMENTE ATRÁS DOS RÓ
 
   function install() {
     const changed = patchPromptLibraries();
-    const beigeChanged = patchAllBeigeShading();
+    const beigeChanged = patchBeigeShadingScope();
     const wrapped = wrapFactoryPromptBase();
     if (!wrapped) return { installed: false, changed, beigeChanged, wrapped };
 
@@ -367,10 +393,12 @@ ANTES DA ENTREGA, CONFIRME VISUALMENTE QUE O BEGE APARECE SOMENTE ATRÁS DOS RÓ
   const api = Object.freeze({
     version: VERSION,
     targetTypes: TARGET_TYPES,
+    beigeTargetTypes: BEIGE_TARGET_TYPES,
     summaryMarker: SUMMARY_MARKER,
     beigeMarker: BEIGE_MARKER,
     stripLegacySummary,
     withSummary,
+    stripBeigeShading,
     withBeigeShading,
     install
   });
