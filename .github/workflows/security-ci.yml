@@ -43,6 +43,7 @@ jobs:
           node --check daily-goal-authorized-restore-v391.js
           node --check daily-goal-authorized-restore-v392.js
           node --check daily-plan-explicit-alignment-v393.js
+          node --check factory-lc259-link-v398.js
           node --check factory-queue-integrity-v236.js
           node --check planning-integrity-loader-v235.js
           node --check manual-goal-additive-v379.js
@@ -93,4 +94,5 @@ jobs:
             tests/v390-syllabus-goal-restore.test.js \
             tests/v391-strategic-planning-restore.test.js \
             tests/v392-restored-goal-identity.test.js \
-            tests/v393-explicit-daily-plan-alignment.test.js
+            tests/v393-explicit-daily-plan-alignment.test.js \
+            tests/v398-lc259-plan-factory.test.js
