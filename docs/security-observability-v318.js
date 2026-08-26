@@ -160,18 +160,17 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
-  // V379 — metas manuais são adicionais e nunca consomem a cota automática.
-  // O guard é carregado como módulo isolado e só atua em geração/reparo de metas,
-  // sem observadores de DOM, polling ou trabalho contínuo em segundo plano.
+  // V401 — metas manuais continuam aditivas e retomadas da semana passam a
+  // ser registradas no Plano do Dia em que o estudo realmente é iniciado.
   function installManualGoalAdditiveV379() {
     if (typeof document === "undefined") return;
     if (document.getElementById("aldusManualGoalAdditiveV379")) return;
     const script = document.createElement("script");
     script.id = "aldusManualGoalAdditiveV379";
-    script.src = "manual-goal-additive-v379.js?v=20260824-manual-goal-additive-v379-stability-v387";
+    script.src = "manual-goal-additive-v379.js?v=20260826-manual-goal-additive-v401-previous-goal-resume-today";
     script.async = false;
     script.addEventListener("error", () => {
-      console.error("[Aldus V379] Falha ao carregar a proteção aditiva de metas manuais.");
+      console.error("[Aldus V401] Falha ao carregar a proteção aditiva e a retomada de metas no Plano do Dia.");
     }, { once: true });
     (document.head || document.documentElement).appendChild(script);
   }
