@@ -22,6 +22,7 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
+          import re
 
           old_startup = 'startup-planning-stability-v387.js?v=20260824-startup-planning-stability-v387'
           new_startup = 'startup-planning-stability-v387.js?v=20260826-planning-consent-guard-v398'
@@ -32,14 +33,15 @@ jobs:
                   raise SystemExit(f'loader antigo não encontrado: {name}')
               p.write_text(text.replace(old_startup, new_startup), encoding='utf-8')
 
-          old_obs = 'security-observability-v318.js?v=20260812-security-observability-v318'
           new_obs = 'security-observability-v318.js?v=20260826-planning-consent-guard-v398'
+          obs_pattern = re.compile(r'security-observability-v318\.js\?v=[A-Za-z0-9._-]+')
           for name in ['index.html', 'docs/index.html', '.github/workflows/pages.yml']:
               p = Path(name)
               text = p.read_text(encoding='utf-8')
-              if old_obs not in text:
-                  raise SystemExit(f'observability antiga não encontrada: {name}')
-              p.write_text(text.replace(old_obs, new_obs), encoding='utf-8')
+              updated, count = obs_pattern.subn(new_obs, text)
+              if count == 0:
+                  raise SystemExit(f'referência de observabilidade não encontrada: {name}')
+              p.write_text(updated, encoding='utf-8')
 
           test = Path('tests/v387-startup-planning-stability.test.js')
           text = test.read_text(encoding='utf-8')
