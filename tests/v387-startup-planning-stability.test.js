@@ -96,7 +96,7 @@ test("V387 continua carregada antes da proteção aditiva e a V398 assume a pol�
   const stabilityIndex = observability.indexOf("installStartupPlanningStabilityV387();");
   const manualIndex = observability.indexOf("installManualGoalAdditiveV379();");
   assert.ok(stabilityIndex >= 0 && manualIndex > stabilityIndex);
-  assert.match(observability, /startup-planning-stability-v387\.js\?v=20260824-startup-planning-stability-v387/);
+  assert.match(observability, /startup-planning-stability-v387\.js\?v=20260826-planning-consent-guard-v398/);
   assert.match(observability, /manual-goal-additive-v379\.js\?v=20260824-manual-goal-additive-v379-stability-v387/);
   assert.match(startup, /20260826-planning-consent-guard-v398/);
   assert.match(startup, /legacyAutomaticRepairsDisabledV398/);
