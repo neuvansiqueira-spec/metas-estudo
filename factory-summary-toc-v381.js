@@ -17,7 +17,6 @@
   const SUMMARY_MARKER = "## SUMÁRIO DIDÁTICO OBRIGATÓRIO DO DOCUMENTO — V382";
   const BEIGE_MARKER = "## SOMBREAMENTO BEGE DOS RÓTULOS — PADRÃO OBRIGATÓRIO DO MODELO";
   const BEIGE_MIGRATION_ID = "factoryBeigeLabelShadingV399";
-  const BEIGE_WRAP_MARKER = "__aldusFactoryBeigeLabelShadingWrappedV399";
 
   const SUMMARY_SECTION = `
 
@@ -328,28 +327,11 @@ ANTES DA ENTREGA, CONFIRME VISUALMENTE QUE O BEGE APARECE SOMENTE ATRÁS DOS RÓ
       const previous = factoryPromptBase;
       const wrapped = function(type) {
         const prompt = previous(type);
-        return TARGET_SET.has(type) ? withSummary(prompt) : prompt;
+        const summarized = TARGET_SET.has(type) ? withSummary(prompt) : prompt;
+        return typeof summarized === "string" ? withBeigeShading(summarized) : summarized;
       };
       Object.defineProperty(wrapped, WRAP_MARKER, { value: VERSION });
       Object.defineProperty(wrapped, "__aldusFactorySummaryTocOriginal", { value: previous });
-      factoryPromptBase = wrapped;
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  function wrapFactoryPromptBaseBeige() {
-    try {
-      if (typeof factoryPromptBase !== "function") return false;
-      if (factoryPromptBase?.[BEIGE_WRAP_MARKER] === true) return true;
-      const previous = factoryPromptBase;
-      const wrapped = function(type) {
-        const prompt = previous(type);
-        return typeof prompt === "string" ? withBeigeShading(prompt) : prompt;
-      };
-      Object.defineProperty(wrapped, BEIGE_WRAP_MARKER, { value: true });
-      Object.defineProperty(wrapped, "__aldusFactoryBeigeLabelShadingOriginal", { value: previous });
       factoryPromptBase = wrapped;
       return true;
     } catch {
@@ -373,14 +355,13 @@ ANTES DA ENTREGA, CONFIRME VISUALMENTE QUE O BEGE APARECE SOMENTE ATRÁS DOS RÓ
     const changed = patchPromptLibraries();
     const beigeChanged = patchAllBeigeShading();
     const wrapped = wrapFactoryPromptBase();
-    const beigeWrapped = wrapFactoryPromptBaseBeige();
-    if (!wrapped || !beigeWrapped) return { installed: false, changed, beigeChanged, wrapped, beigeWrapped };
+    if (!wrapped) return { installed: false, changed, beigeChanged, wrapped };
 
     if (typeof document !== "undefined" && document.documentElement) {
       document.documentElement.dataset[INSTALL_FLAG] = "true";
     }
     refreshFactoryUi();
-    return { installed: true, changed, beigeChanged, wrapped, beigeWrapped };
+    return { installed: true, changed, beigeChanged, wrapped };
   }
 
   const api = Object.freeze({
