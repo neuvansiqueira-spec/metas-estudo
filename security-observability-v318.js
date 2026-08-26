@@ -145,17 +145,17 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
-  // V387 — protege o startup contra realinhamento silencioso das metas e limpa
-  // somente as entradas de cache dos runtimes de planejamento corrigidos.
+  // V399 — protege o planejamento contra mutadores legados silenciosos sem
+  // adicionar polling, observadores de DOM ou trabalho contínuo.
   function installStartupPlanningStabilityV387() {
     if (typeof document === "undefined") return;
     if (document.getElementById("aldusStartupPlanningStabilityV387")) return;
     const script = document.createElement("script");
     script.id = "aldusStartupPlanningStabilityV387";
-    script.src = "startup-planning-stability-v387.js?v=20260826-planning-consent-guard-v398";
+    script.src = "startup-planning-stability-v387.js?v=20260826-planning-legacy-mutator-guard-v399";
     script.async = false;
     script.addEventListener("error", () => {
-      console.error("[Aldus V387] Falha ao carregar a proteção de estabilidade do planejamento.");
+      console.error("[Aldus V399] Falha ao carregar a proteção de estabilidade do planejamento.");
     }, { once: true });
     (document.head || document.documentElement).appendChild(script);
   }
