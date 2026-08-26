@@ -83,14 +83,16 @@ test("V398 não interfere em outras disciplinas", () => {
   assert.equal(result.items.length, 0);
 });
 
-test("V398 é somente leitura e desativa reparos automáticos antigos", () => {
+test("V398 continua somente leitura sob a guarda V399", () => {
   for (const token of ["saveData(", "autoSyncAfterSave(", "state.dailyGoals", "dailyGoals.push(", "dailyGoals.splice("]) {
     assert.equal(source.includes(token), false, `V398 não pode escrever no planejamento: ${token}`);
   }
   assert.match(source, /readOnly: true/);
-  assert.match(startup, /20260826-planning-consent-guard-v398/);
+  assert.match(startup, /20260826-planning-legacy-mutator-guard-v399/);
   assert.match(startup, /options\?\.explicit === true \|\| options\?\.allowRebuild === true/);
-  assert.match(startup, /legacyAutomaticRepairsDisabledV398/);
+  assert.match(startup, /legacyAutomaticRepairsDisabledV399/);
+  assert.match(startup, /refreshPlanningPrioritiesForQuestionChangesV155/);
+  assert.match(startup, /repairDailyPlanningInflationV108/);
   assert.doesNotMatch(startup, /\n\s*loadAuthorizedRestoreV391\(\);\n\s*loadAuthorizedCorrectionV392\(\);\n\s*loadExplicitAlignmentV393\(\);\n\s*\n\s*if \(typeof window/);
 });
 
