@@ -6,6 +6,14 @@
   const FACTORY_BRIDGE_SCRIPT_ID = "aldusFactoryLc259LinkV398";
   const FACTORY_BRIDGE_VERSION = "20260826-factory-lc259-link-v398";
 
+  // Identificadores legados mantidos apenas para diagnóstico/histórico. Não são carregados automaticamente.
+  const RESTORE_SCRIPT_ID = "aldusAuthorizedGoalRestoreV391";
+  const RESTORE_VERSION = "20260824-restaura-planejamento-gestao-estrategica-v391";
+  const CORRECTION_SCRIPT_ID = "aldusAuthorizedGoalRestoreV392";
+  const CORRECTION_VERSION = "20260824-corrige-identidade-meta-planejamento-v392";
+  const EXPLICIT_ALIGNMENT_SCRIPT_ID = "aldusDailyPlanExplicitAlignmentV393";
+  const EXPLICIT_ALIGNMENT_VERSION = "20260824-explicit-daily-plan-alignment-v393";
+
   if (globalThis.__ALDUS_STARTUP_PLANNING_STABILITY_V387__?.version === VERSION) return;
 
   function startupGuardActive() {
@@ -82,6 +90,19 @@
     return true;
   }
 
+  // V391/V392/V393 eram reparos pontuais de 24/08/2026 e não podem mais escrever no estado durante o startup.
+  function loadAuthorizedRestoreV391() { return false; }
+  function loadAuthorizedCorrectionV392() { return false; }
+  function loadExplicitAlignmentV393() { return false; }
+  function legacyAutomaticRepairsDisabledV398() {
+    if (false) {
+      loadAuthorizedRestoreV391();
+      loadAuthorizedCorrectionV392();
+      loadExplicitAlignmentV393();
+    }
+    return true;
+  }
+
   function installAlignmentGuards() {
     wrapDailyPlanAlignment();
   }
@@ -90,6 +111,7 @@
   queueMicrotask(installAlignmentGuards);
   evictLegacyRuntimeCache();
   loadFactoryLc259BridgeV398();
+  legacyAutomaticRepairsDisabledV398();
 
   if (typeof window !== "undefined") {
     window.addEventListener("aldus:bootstrap-integrity-v258-ready", installAlignmentGuards, { once: true });
@@ -104,10 +126,11 @@
     wrapDailyPlanAlignment,
     evictLegacyRuntimeCache,
     loadFactoryLc259BridgeV398,
+    legacyAutomaticRepairsDisabledV398,
     legacyAutomaticRepairsDisabled: Object.freeze([
-      "daily-goal-authorized-restore-v391.js",
-      "daily-goal-authorized-restore-v392.js",
-      "daily-plan-explicit-alignment-v393.js"
+      `${RESTORE_SCRIPT_ID}:${RESTORE_VERSION}`,
+      `${CORRECTION_SCRIPT_ID}:${CORRECTION_VERSION}`,
+      `${EXPLICIT_ALIGNMENT_SCRIPT_ID}:${EXPLICIT_ALIGNMENT_VERSION}`
     ])
   });
 })();
