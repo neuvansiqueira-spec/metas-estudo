@@ -287,6 +287,22 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V388 — sombreamento marrom acinzentado dos subtópicos dos geradores de resumo.
+  // A regra é anexada aos prompts existentes e não substitui conteúdo, fontes,
+  // hierarquia, sumário ou demais regras de formatação já cadastradas.
+  function installFactorySubtopicShadingV388() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusFactorySubtopicShadingV388")) return;
+    const script = document.createElement("script");
+    script.id = "aldusFactorySubtopicShadingV388";
+    script.src = "factory-subtopic-shading-v388.js?v=20260826-factory-subtopic-shading-v388";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V388] Falha ao carregar o sombreamento de subtópicos da Fábrica.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   function init() {
     installRuntimeMonitoring();
     installSecurityMonitoring();
@@ -314,6 +330,7 @@
   installFactoryPadronizacaoFinalSumarioV385();
   installQuestionBankManualNotesV386();
   installFactorySummaryTocV382();
+  installFactorySubtopicShadingV388();
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init, { once: true });
