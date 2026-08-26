@@ -35,7 +35,7 @@ jobs:
 
           new_obs = 'security-observability-v318.js?v=20260826-planning-consent-guard-v398'
           obs_pattern = re.compile(r'security-observability-v318\.js\?v=[A-Za-z0-9._-]+')
-          for name in ['index.html', 'docs/index.html', '.github/workflows/pages.yml']:
+          for name in ['index.html', 'docs/index.html']:
               p = Path(name)
               text = p.read_text(encoding='utf-8')
               updated, count = obs_pattern.subn(new_obs, text)
@@ -78,6 +78,6 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add security-observability-v318.js docs/security-observability-v318.js index.html docs/index.html .github/workflows/pages.yml tests/v387-startup-planning-stability.test.js service-worker.js service-worker-v378.js docs/service-worker.js docs/service-worker-v378.js
+          git add security-observability-v318.js docs/security-observability-v318.js index.html docs/index.html tests/v387-startup-planning-stability.test.js service-worker.js service-worker-v378.js docs/service-worker.js docs/service-worker-v378.js
           git commit -m 'fix: renovar entrega e cache da V398'
           git push origin HEAD:fix/lc259-plan-factory-v398
