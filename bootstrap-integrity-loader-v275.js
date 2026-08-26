@@ -5,7 +5,7 @@
   const LEGACY_VERSION = "20260815-bootstrap-performance-v342";
   const UPDATE_FLOW_SCRIPT = "update-flow-v395.js?v=20260825-no-auto-reload-v395";
   const TIMER_AUDIO_STABILITY_SCRIPT = "timer-audio-stability-v396.js?v=20260825-timer-audio-stability-v396";
-  const CORE_SCRIPT = `bootstrap-fast-path-v351.js?v=${VERSION}&planning=v371`;
+  const CORE_SCRIPT = `bootstrap-fast-path-v351.js?v=${VERSION}&planning=v397`;
   const DIAGNOSTICS_SCRIPT = `duplicate-diagnostics-v260.js?v=${LEGACY_VERSION}`;
   const DIAGNOSTICS_STYLESHEET = `duplicate-diagnostics-v260.css?v=${LEGACY_VERSION}`;
   const RECOVERY_SCRIPT = `recovery-safety-v275.js?v=${LEGACY_VERSION}`;

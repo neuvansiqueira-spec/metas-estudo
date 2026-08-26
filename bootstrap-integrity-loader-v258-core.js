@@ -60,7 +60,7 @@
   ];
   const SCRIPT_CHAIN = [
     ["aldusAppBundleScript", "app-v378.js?v=20260823-indexeddb-direct-snapshot-v378"],
-    ["aldusPlanningQualityV368", "planning-quality-v368.js?v=20260821-planning-quality-v371"],
+    ["aldusPlanningQualityV368", "planning-quality-v368.js?v=20260826-planning-stability-v397"],
     ["aldusTimerGoalIntegrityV366", "timer-goal-integrity-v366.js?v=20260821-timer-goal-integrity-v366"],
     ["aldusQconcursosFilterRouteV333", "qconcursos-filter-route-v333.js?v=20260814-restaura-filtros-qconcursos-v333"],
     ["aldusQconcursosAllFiltersV334", "qconcursos-all-filters-v334.js?v=20260814-qconcursos-todas-disciplinas-v334"],
