@@ -1,8 +1,8 @@
-/* Aldus V371: limita o rodízio automático às quatro Peças práticas definidas pelo usuário */
+/* Aldus V397: planejamento estável; reparos somente após ação explícita de geração */
 (() => {
   "use strict";
 
-  const VERSION = "20260821-planning-quality-v371";
+  const VERSION = "20260826-planning-stability-v397";
   if (globalThis.__aldusPlanningQualityV368?.version === VERSION) return;
 
   const PIECE_DISCIPLINE = "PEÇA PARA DELEGADO DE POLÍCIA CIVIL";
@@ -14,7 +14,6 @@
     "planejamento calendario", "calendario", "geracao automatica"
   ]);
   const GENERATION_IDS = new Set(["generateCalendarGoals", "generateDailyGoals", "refreshDailyGoalsFromPlanning"]);
-  const EXPORT_IDS = new Set(["exportGoalCalendarExcel", "exportGoalCalendarPdf", "exportGoalCalendarImage"]);
   const STOP_WORDS = new Set(["a", "as", "ao", "aos", "com", "da", "das", "de", "do", "dos", "e", "em", "na", "nas", "no", "nos", "o", "os", "para", "por", "sem", "um", "uma"]);
   const GENERIC_SUBJECTS = new Set([
     "administracao publica", "analise de documentos", "aspectos introdutorios",
@@ -31,7 +30,6 @@
   let selectionInstalled = false;
   let exportGateInstalled = false;
   let listenersInstalled = false;
-  let initialScheduled = false;
   let lastReport = null;
   let orderSource = null;
   let orderLength = -1;
@@ -522,21 +520,8 @@
   }
 
   function installExportGate() {
-    if (exportGateInstalled) return true;
-    const original = globalThis.buildGoalCalendarExportPayload;
-    if (typeof original !== "function") return false;
-    if (original.__aldusPlanningQualityV368 === VERSION) {
-      exportGateInstalled = true;
-      return true;
-    }
-    const wrapped = function(...args) {
-      const report = run("before-export-payload", { persist: false, render: false, sync: false });
-      const payload = original.apply(this, args);
-      if (report?.changed) queueMicrotask(() => persist("planning-quality-v368:after-export-payload"));
-      return payload;
-    };
-    Object.defineProperty(wrapped, "__aldusPlanningQualityV368", { value: VERSION });
-    globalThis.buildGoalCalendarExportPayload = wrapped;
+    // V397: exportar é estritamente somente leitura. Nenhuma meta é reparada,
+    // substituída, salva ou sincronizada como efeito colateral da exportação.
     exportGateInstalled = true;
     return true;
   }
@@ -563,43 +548,23 @@
     document.addEventListener("click", (event) => {
       if (!PLANNING_ROUTES.has(routeName())) return;
       const id = elementId(event.target);
-      if (GENERATION_IDS.has(id)) {
-        scheduleAfterGeneration(id);
-      } else if (EXPORT_IDS.has(id)) {
-        installSelectionGate();
-        const report = run(`before-${id}`, { persist: false, render: false, sync: false });
-        if (report?.changed) queueMicrotask(() => persist(`planning-quality-v368:after-${id}`));
-      }
+      if (!GENERATION_IDS.has(id)) return;
+
+      // V397: somente uma ação explícita de gerar/regerar pode habilitar a
+      // seleção pedagógica e executar reparos no planejamento persistido.
+      installSelectionGate();
+      scheduleAfterGeneration(id);
     }, true);
     return true;
   }
 
-  function scheduleInitialRepair(reason) {
-    if (initialScheduled || !PLANNING_ROUTES.has(routeName())) return false;
-    initialScheduled = true;
-    const callback = () => {
-      initialScheduled = false;
-      installSelectionGate();
-      installExportGate();
-      run(reason);
-    };
-    if (typeof requestIdleCallback === "function") requestIdleCallback(callback, { timeout: 1800 });
-    else if (typeof setTimeout === "function") setTimeout(callback, 0);
-    else queueMicrotask(callback);
-    return true;
+  function scheduleInitialRepair() {
+    // Compatibilidade de API: rotas, bootstrap, renderização e sincronização
+    // nunca devem alterar metas sem uma ação explícita do usuário.
+    return false;
   }
 
   installListeners();
-  queueMicrotask(() => {
-    installSelectionGate();
-    installExportGate();
-  });
-  if (typeof window !== "undefined") {
-    const afterMaintenance = () => scheduleInitialRepair("post-bootstrap-maintenance");
-    if (globalThis.__aldusPostBootstrapMaintenanceComplete === true) queueMicrotask(afterMaintenance);
-    else window.addEventListener("aldus:post-bootstrap-maintenance-complete", afterMaintenance, { once: true });
-    window.addEventListener("hashchange", () => scheduleInitialRepair("planning-route-entered"));
-  }
 
   globalThis.__aldusPlanningQualityV368 = Object.freeze({
     version: VERSION,

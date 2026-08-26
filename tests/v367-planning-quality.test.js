@@ -155,7 +155,7 @@ test("V367 permanece arquivada e sua sucessora corrigida está ligada aos dois c
     const rootSource = fs.readFileSync(path.join(root, file), "utf8");
     const docsSource = fs.readFileSync(path.join(root, "docs", file), "utf8");
     assert.equal(rootSource, docsSource, `${file} precisa manter paridade com docs`);
-    assert.match(rootSource, /aldusPlanningQualityV368.*planning-quality-v368\.js\?v=20260821-planning-quality-v371/);
+    assert.match(rootSource, /aldusPlanningQualityV368.*planning-quality-v368\.js\?v=20260826-planning-stability-v397/);
     assert.match(rootSource, /aldusTimerGoalIntegrityV366.*timer-goal-integrity-v366\.js\?v=20260821-timer-goal-integrity-v366/);
   }
 });

@@ -173,11 +173,12 @@ test("V368 qualifica assunto vago com o nível hierárquico disponível", () => 
   assert.equal(state.dailyGoals[0].subject, "Criminalística — Conceitos fundamentais.");
 });
 
-test("V368 audita o estado imediatamente antes de construir a exportação mensal", () => {
+test("V397 mantém a exportação mensal estritamente somente leitura", () => {
   const state = {
     syllabusItems: [{ id: "bank", discipline: PIECE_DISCIPLINE, subject: BANK, classification: "PIECE" }],
     dailyGoals: [pieceGoal("2026-08-06"), pieceGoal("2026-08-07"), pieceGoal("2026-08-08")]
   };
+  const before = JSON.stringify(state);
   const sandbox = {
     state,
     todayISO: () => "2026-08-21",
@@ -194,11 +195,12 @@ test("V368 audita o estado imediatamente antes de construir a exportação mensa
   vm.runInContext(source, sandbox);
 
   const payload = sandbox.buildGoalCalendarExportPayload();
-  assert.equal(new Set(payload.subjects).size, 3);
-  assert.equal(sandbox.__aldusPlanningQualityV368.getLastReport().reason, "before-export-payload");
+  assert.equal(JSON.stringify(state), before, "Exportar não pode alterar o planejamento em memória.");
+  assert.equal(new Set(payload.subjects).size, 1, "A exportação deve refletir exatamente o estado salvo.");
+  assert.equal(sandbox.__aldusPlanningQualityV368.getLastReport(), null);
 });
 
-test("V371 reproduz o Excel anexado: preserva execução e usa somente as quatro Peças autorizadas", () => {
+test("V397 preserva execução e repara Peças somente após geração explícita: preserva execução e usa somente as quatro Peças autorizadas", () => {
   const executed = [
     pieceGoal("2026-08-03", BANK, { status: "Concluída", actualMinutes: 35 }),
     pieceGoal("2026-08-04", BANK, { status: "Concluída", actualMinutes: 17 }),
@@ -229,6 +231,7 @@ test("V371 reproduz o Excel anexado: preserva execução e usa somente as quatro
   installRealOriginClassifier(sandbox);
   vm.runInContext(source, sandbox);
 
+  sandbox.__aldusPlanningQualityV368.run("explicit-generation", { persist: false, render: false, sync: false });
   const payload = sandbox.buildGoalCalendarExportPayload();
   assert.ok(executed.every((goal) => goal.subject === BANK));
   assert.equal(payload.rows.filter((row) => row.status !== "Pendente").length, 7);
@@ -243,16 +246,16 @@ test("V371 reproduz o Excel anexado: preserva execução e usa somente as quatro
   assert.ok(pendingRows.every((row, index) => index === 0 || row.subject !== pendingRows[index - 1].subject));
 });
 
-test("V368 não cria hot path e mantém execução limitada às rotas e ações de planejamento", () => {
+test("V397 não cria hot path e não executa reparos em eventos passivos", () => {
   assert.doesNotMatch(source, /MutationObserver|setInterval|localStorage|indexedDB/);
-  assert.equal((source.match(/requestIdleCallback/g) || []).length, 2);
+  assert.equal((source.match(/requestIdleCallback/g) || []).length, 0);
   assert.equal((source.match(/document\.addEventListener\("click"/g) || []).length, 1);
   assert.match(source, /PLANNING_ROUTES\.has\(routeName\(\)\)/);
   assert.match(source, /GENERATION_IDS\.has\(id\)/);
-  assert.match(source, /EXPORT_IDS\.has\(id\)/);
+  assert.doesNotMatch(source, /before-export-payload|planning-route-entered|post-bootstrap-maintenance/);
 });
 
-test("V371 está espelhada e ligada aos dois caminhos de bootstrap publicados", () => {
+test("V397 está espelhada e ligada aos dois caminhos de bootstrap publicados", () => {
   assert.equal(source, fs.readFileSync(path.join(root, "docs", "planning-quality-v368.js"), "utf8"));
   assert.equal(
     fs.readFileSync(path.join(root, "timer-goal-integrity-v366.js"), "utf8"),
@@ -262,7 +265,7 @@ test("V371 está espelhada e ligada aos dois caminhos de bootstrap publicados", 
     const rootSource = fs.readFileSync(path.join(root, file), "utf8");
     const docsSource = fs.readFileSync(path.join(root, "docs", file), "utf8");
     assert.equal(rootSource, docsSource, `${file} precisa manter paridade com docs`);
-    assert.match(rootSource, /aldusPlanningQualityV368.*planning-quality-v368\.js\?v=20260821-planning-quality-v371/);
+    assert.match(rootSource, /aldusPlanningQualityV368.*planning-quality-v368\.js\?v=20260826-planning-stability-v397/);
     assert.match(rootSource, /aldusTimerGoalIntegrityV366.*timer-goal-integrity-v366\.js\?v=20260821-timer-goal-integrity-v366/);
   }
 });
