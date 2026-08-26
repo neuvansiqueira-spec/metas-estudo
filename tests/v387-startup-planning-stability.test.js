@@ -36,20 +36,24 @@ function loadStartupRuntime() {
   return { context, getAlignmentCalls: () => alignmentCalls };
 }
 
-test("V387 bloqueia alinhamento silencioso das metas durante o startup", () => {
+test("V398 bloqueia alinhamento silencioso e só libera alteração explicitamente autorizada", () => {
   const { context, getAlignmentCalls } = loadStartupRuntime();
-  const result = context.ensureDailyPlanAlignedWithPlanningV174({}, "2026-08-24");
-  assert.equal(result.changed, false);
-  assert.equal(result.skipped, "20260824-startup-planning-stability-v387");
+  const automatic = context.ensureDailyPlanAlignedWithPlanningV174({}, "2026-08-24");
+  assert.equal(automatic.changed, false);
+  assert.equal(automatic.skipped, "20260826-planning-consent-guard-v398");
   assert.equal(getAlignmentCalls(), 0);
 
   context.navigator.userActivation.isActive = true;
-  const explicitResult = context.ensureDailyPlanAlignedWithPlanningV174({}, "2026-08-24");
+  const mereActivation = context.ensureDailyPlanAlignedWithPlanningV174({}, "2026-08-24");
+  assert.equal(mereActivation.changed, false, "um clique genérico não autoriza reescrever metas");
+  assert.equal(getAlignmentCalls(), 0);
+
+  const explicitResult = context.ensureDailyPlanAlignedWithPlanningV174({}, "2026-08-24", { explicit: true });
   assert.equal(explicitResult.changed, true);
   assert.equal(getAlignmentCalls(), 1);
 });
 
-test("V387 não adiciona polling nem observação contínua", () => {
+test("V387/V398 não adiciona polling nem observação contínua", () => {
   assert.equal(startup.includes("setInterval("), false);
   assert.equal(startup.includes("MutationObserver"), false);
   assert.equal(startup.includes("requestAnimationFrame("), false);
@@ -57,6 +61,7 @@ test("V387 não adiciona polling nem observação contínua", () => {
   assert.match(startup, /factory-queue-integrity-v236\.js/);
   assert.match(startup, /planning-integrity-loader-v235\.js/);
   assert.match(startup, /manual-goal-additive-v379\.js/);
+  assert.match(startup, /factory-lc259-link-v398\.js/);
 });
 
 test("V236 elimina o polling de 100 ms e reduz normalizações repetidas", () => {
@@ -87,15 +92,17 @@ test("V379 recompõe a cota apenas após ações explícitas", () => {
   assert.doesNotMatch(manual, /reconcileSnapshot\(targetState, snapshot, "planning-route-entered"\)/);
 });
 
-test("V387 é carregada antes da proteção aditiva de metas e usa cache-bust próprio", () => {
+test("V387 continua carregada antes da proteção aditiva e a V398 assume a política de consentimento", () => {
   const stabilityIndex = observability.indexOf("installStartupPlanningStabilityV387();");
   const manualIndex = observability.indexOf("installManualGoalAdditiveV379();");
   assert.ok(stabilityIndex >= 0 && manualIndex > stabilityIndex);
-  assert.match(observability, /startup-planning-stability-v387\.js\?v=20260824-startup-planning-stability-v387/);
+  assert.match(observability, /startup-planning-stability-v387\.js\?v=20260826-planning-consent-guard-v398/);
   assert.match(observability, /manual-goal-additive-v379\.js\?v=20260824-manual-goal-additive-v379-stability-v387/);
+  assert.match(startup, /20260826-planning-consent-guard-v398/);
+  assert.match(startup, /legacyAutomaticRepairsDisabledV398/);
 });
 
-test("V387 mantém paridade entre raiz e docs", () => {
+test("V387/V398 mantém paridade entre raiz e docs", () => {
   assert.equal(startup, docsStartup);
   assert.equal(factory, docsFactory);
   assert.equal(loader, docsLoader);

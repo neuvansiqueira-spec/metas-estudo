@@ -152,7 +152,7 @@
     if (document.getElementById("aldusStartupPlanningStabilityV387")) return;
     const script = document.createElement("script");
     script.id = "aldusStartupPlanningStabilityV387";
-    script.src = "startup-planning-stability-v387.js?v=20260824-startup-planning-stability-v387";
+    script.src = "startup-planning-stability-v387.js?v=20260826-planning-consent-guard-v398";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V387] Falha ao carregar a proteção de estabilidade do planejamento.");
