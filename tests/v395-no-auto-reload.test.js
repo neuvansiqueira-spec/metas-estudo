@@ -28,7 +28,9 @@ test("V395 continua instalado antes do bundle principal nos dois bootstraps", ()
 test("V395 renova o cache sem remover a estratégia de performance", () => {
   const worker = read("service-worker.js");
   assert.match(worker, /UPDATE_FLOW_VERSION = "20260825-no-auto-reload-v395"/);
-  assert.match(worker, /planning-quality-v371-no-auto-reload-v395/);
+  // A V395 deve exigir apenas seu próprio marcador de cache. A versão do planejamento
+  // evolui independentemente (V397/V398 e posteriores) e não pode bloquear o deploy.
+  assert.match(worker, /no-auto-reload-v395/);
   assert.match(worker, /const UPDATE_FLOW_SCRIPT = `update-flow-v395\.js\?v=\$\{UPDATE_FLOW_VERSION\}`/);
   assert.match(worker, /BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275\.js\?v=\$\{FAST_BOOTSTRAP_VERSION\}&planning=v397&update=v395(?:&audio=v396)?`/);
   assert.match(worker, /async function cachedFirstNavigation/);
