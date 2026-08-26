@@ -1,8 +1,9 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260824-manual-goal-additive-v379";
+  const VERSION = "20260826-manual-goal-additive-v401";
   const MARKER = "__aldusManualGoalAdditiveV379";
+  const RESUME_MARKER = "__aldusPreviousGoalResumeTodayV401";
   const GENERATION_IDS = new Set(["generateCalendarGoals", "generateDailyGoals", "refreshDailyGoalsFromPlanning"]);
   const PLANNING_ROUTES = new Set(["planejamento", "metas-do-dia", "calendario-metas", "central-metas"]);
   const AUTO_ORIGINS = new Set([
@@ -24,6 +25,147 @@
     : String(location.hash || "").replace(/^#/, "").split(/[?&]/)[0];
 
   const goalDate = (goal = {}) => String(goal.date || goal.data || "").slice(0, 10);
+
+  function localISO(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  }
+
+  function currentDateISO() {
+    try { if (typeof globalThis.todayISO === "function") return globalThis.todayISO(); } catch {}
+    return localISO(new Date());
+  }
+
+  function currentWeekStart(date) {
+    try { if (typeof globalThis.weekStart === "function") return globalThis.weekStart(date); } catch {}
+    const parsed = new Date(`${date}T12:00:00`);
+    parsed.setDate(parsed.getDate() - parsed.getDay());
+    return localISO(parsed);
+  }
+
+  function isGoalDoneValue(goal = {}) {
+    try { if (typeof globalThis.isGoalDone === "function") return globalThis.isGoalDone(goal); } catch {}
+    return goal.completed === true || goal.status === "Concluída" || goal.studyStatus === "Concluído";
+  }
+
+  function goalActualMinutes(goal = {}) {
+    return Math.max(0, Number(goal.actualMinutes) || (Number(goal.studyActualMinutes) || 0) + (Number(goal.questionActualMinutes) || 0));
+  }
+
+  function cloneGoal(goal = {}) {
+    try { if (typeof structuredClone === "function") return structuredClone(goal); } catch {}
+    return JSON.parse(JSON.stringify(goal));
+  }
+
+  function newGoalId() {
+    try { if (typeof globalThis.createId === "function") return globalThis.createId(); } catch {}
+    try { if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID(); } catch {}
+    return `retomada-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  }
+
+  function sameStudyGoal(left = {}, right = {}) {
+    const leftItem = String(left.syllabusItemId || "").trim();
+    const rightItem = String(right.syllabusItemId || "").trim();
+    if (leftItem && rightItem) return leftItem === rightItem;
+    return canonical(left.discipline || left.disciplina) === canonical(right.discipline || right.disciplina)
+      && canonical(left.baseSubject || left.subject || left.assunto) === canonical(right.baseSubject || right.subject || right.assunto);
+  }
+
+  function isPreviousGoalFromCurrentWeek(goal = {}, date = currentDateISO()) {
+    const sourceDate = goalDate(goal);
+    return Boolean(sourceDate && sourceDate < date && sourceDate >= currentWeekStart(date));
+  }
+
+  function currentState() {
+    try { if (typeof state !== "undefined" && state) return state; } catch {}
+    return globalThis.state || null;
+  }
+
+  function ensureTodayExecutionGoal(sourceGoal, targetState = currentState(), date = currentDateISO()) {
+    if (!sourceGoal || !targetState || !Array.isArray(targetState.dailyGoals) || !isPreviousGoalFromCurrentWeek(sourceGoal, date)) {
+      return { goal: sourceGoal, created: false, eligible: false, date };
+    }
+    const sourceId = String(sourceGoal.id || "");
+    const linked = targetState.dailyGoals.find((goal) => goalDate(goal) === date && String(goal.resumedFromGoalId || "") === sourceId);
+    if (linked) return { goal: linked, created: false, eligible: true, reused: true, date };
+    const sameToday = targetState.dailyGoals.find((goal) => goalDate(goal) === date && !isGoalDoneValue(goal) && sameStudyGoal(goal, sourceGoal));
+    if (sameToday) return { goal: sameToday, created: false, eligible: true, reused: true, date };
+
+    const sourceDate = goalDate(sourceGoal);
+    const actual = goalActualMinutes(sourceGoal);
+    const planned = Math.max(0, Number(sourceGoal.minutes) || Number(sourceGoal.tempo_sugerido_minutos) || 0);
+    const remaining = !isGoalDoneValue(sourceGoal) && planned > actual ? planned - actual : planned;
+    const now = new Date().toISOString();
+    const goal = cloneGoal(sourceGoal);
+    goal.id = newGoalId();
+    goal.date = goal.data = date;
+    goal.minutes = Math.max(1, remaining || planned || actual || 50);
+    goal.tempo_sugerido_minutos = goal.minutes;
+    goal.studyActualMinutes = 0;
+    goal.questionActualMinutes = 0;
+    goal.actualMinutes = 0;
+    goal.status = "Pendente";
+    goal.studyStatus = "Pendente";
+    goal.completed = false;
+    goal.sessionCompleted = false;
+    goal.materialCompleted = false;
+    goal.completedAt = null;
+    goal.origin = goal.origem = "manual - retomada de meta anterior";
+    goal.manual = true;
+    goal.isManual = true;
+    goal.resumedFromGoalId = sourceId;
+    goal.resumedFromDate = sourceDate;
+    goal.resumeRootGoalId = sourceGoal.resumeRootGoalId || sourceGoal.resumedFromGoalId || sourceId;
+    goal.createdAt = now;
+    goal.updatedAt = now;
+    goal.history = [{ at: now, text: `Retomada no Plano do Dia de ${date}; meta original preservada em ${sourceDate}.` }];
+    goal.notes = [String(sourceGoal.notes || "").trim(), `Retomada em ${date} de meta planejada para ${sourceDate}.`].filter(Boolean).join("\n");
+    targetState.dailyGoals.push(goal);
+    return { goal, created: true, eligible: true, sourceGoal, sourceDate, date };
+  }
+
+  function persistResume(report, reason = "previous-goal-resume-today") {
+    if (!report?.created) return;
+    try { if (typeof saveData === "function") saveData({ markLocalChange: true, skipDerivedRefresh: true, reason }); } catch {}
+    try { if (typeof autoSyncAfterSave === "function") autoSyncAfterSave(reason); } catch {}
+    try {
+      if (typeof showDailyGoalMessage === "function") showDailyGoalMessage(`Meta de ${report.sourceDate} retomada e salva no Plano do Dia de ${report.date}.`, "success");
+    } catch {}
+  }
+
+  function rollbackUncommittedResume(report) {
+    if (!report?.created) return;
+    const targetState = currentState();
+    if (!targetState?.dailyGoals) return;
+    targetState.dailyGoals = targetState.dailyGoals.filter((goal) => goal !== report.goal);
+  }
+
+  function wrapResumeAction(name, verifyCommit = false) {
+    const original = globalThis[name];
+    if (typeof original !== "function") return false;
+    if (original[RESUME_MARKER] === VERSION) return true;
+    const wrapped = function(goal, ...rest) {
+      const report = ensureTodayExecutionGoal(goal);
+      const historyBefore = report.created ? (report.goal.history || []).length : 0;
+      const result = original.call(this, report.goal, ...rest);
+      if (report.created) {
+        const committed = !verifyCommit || (report.goal.history || []).length > historyBefore || goalActualMinutes(report.goal) > 0;
+        if (committed) persistResume(report, `previous-goal-${name}`);
+        else rollbackUncommittedResume(report);
+      }
+      return result;
+    };
+    Object.defineProperty(wrapped, RESUME_MARKER, { value: VERSION });
+    Object.defineProperty(wrapped, "__aldusPreviousGoalResumeOriginal", { value: original });
+    globalThis[name] = wrapped;
+    return true;
+  }
+
+  function installResumeActions() {
+    return {
+      timer: wrapResumeAction("startFloatingTimer"),
+      register: wrapResumeAction("registerGoalTime", true)
+    };
+  }
 
   function isManualGoal(goal = {}) {
     if (!goal || typeof goal !== "object") return false;
@@ -48,11 +190,6 @@
       String(goal.createdAt || goal.created_at || ""),
       String(index)
     ].join("|");
-  }
-
-  function currentState() {
-    try { if (typeof state !== "undefined" && state) return state; } catch {}
-    return globalThis.state || null;
   }
 
   function withManualGoalsOutsideQuota(targetState, operation) {
@@ -110,7 +247,8 @@
     const repair = wrapStateRoutine("repairDailyPlanningInflationV108");
     const replenish = wrapStateRoutine("replenishMissingDailyPlanningGoalsV116");
     const selection = wrapSelectionRoutine();
-    return { repair, replenish, selection };
+    const resume = installResumeActions();
+    return { repair, replenish, selection, resume };
   }
 
   function snapshotDate(targetState, date) {
@@ -227,6 +365,9 @@
     snapshotDate,
     restoreSnapshot,
     ensureAutomaticQuota,
+    isPreviousGoalFromCurrentWeek,
+    ensureTodayExecutionGoal,
+    installResumeActions,
     installGuards
   });
 

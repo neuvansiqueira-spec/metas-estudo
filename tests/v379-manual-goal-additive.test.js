@@ -150,21 +150,162 @@ test("V379: snapshot restaura meta automática removida quando existe meta manua
   assert.ok(state.dailyGoals.some((goal) => goal.id === "peca-auto"));
 });
 
-test("V379: guard permanece fora dos hot paths de performance", () => {
-  assert.ok(Buffer.byteLength(source, "utf8") < 12000);
+test("V401: meta anterior da semana cria execução manual no Plano do Dia atual", () => {
+  const { api } = loadRuntime();
+  const original = {
+    id: "meta-terca",
+    date: "2026-08-25",
+    data: "2026-08-25",
+    syllabusItemId: "item-1",
+    discipline: "Direito Penal",
+    subject: "Crimes contra a dignidade sexual",
+    origin: "planejamento",
+    status: "Em andamento",
+    minutes: 60,
+    studyActualMinutes: 20,
+    questionActualMinutes: 0,
+    actualMinutes: 20
+  };
+  const state = { dailyGoals: [original] };
+
+  const report = api.ensureTodayExecutionGoal(original, state, "2026-08-26");
+
+  assert.equal(report.created, true);
+  assert.equal(report.goal.date, "2026-08-26");
+  assert.equal(report.goal.data, "2026-08-26");
+  assert.equal(report.goal.minutes, 40);
+  assert.equal(report.goal.actualMinutes, 0);
+  assert.equal(report.goal.status, "Pendente");
+  assert.equal(report.goal.manual, true);
+  assert.equal(report.goal.resumedFromGoalId, "meta-terca");
+  assert.equal(report.goal.resumedFromDate, "2026-08-25");
+  assert.equal(original.date, "2026-08-25");
+  assert.equal(original.actualMinutes, 20);
+  assert.equal(state.dailyGoals.length, 2);
+});
+
+test("V401: clicar novamente na mesma meta antiga no mesmo dia não duplica a retomada", () => {
+  const { api } = loadRuntime();
+  const original = {
+    id: "meta-antiga",
+    date: "2026-08-24",
+    syllabusItemId: "item-2",
+    discipline: "Direito Administrativo",
+    subject: "Atos administrativos",
+    origin: "planejamento",
+    status: "Pendente",
+    minutes: 50
+  };
+  const state = { dailyGoals: [original] };
+
+  const first = api.ensureTodayExecutionGoal(original, state, "2026-08-26");
+  const second = api.ensureTodayExecutionGoal(original, state, "2026-08-26");
+
+  assert.equal(first.created, true);
+  assert.equal(second.created, false);
+  assert.equal(second.reused, true);
+  assert.equal(second.goal.id, first.goal.id);
+  assert.equal(state.dailyGoals.length, 2);
+});
+
+test("V401: meta equivalente já existente hoje é reutilizada em vez de criar cópia", () => {
+  const { api } = loadRuntime();
+  const oldGoal = {
+    id: "meta-segunda",
+    date: "2026-08-24",
+    syllabusItemId: "item-3",
+    discipline: "Processo Penal",
+    subject: "Citações e intimações",
+    status: "Pendente",
+    minutes: 50
+  };
+  const todayGoal = {
+    id: "meta-hoje",
+    date: "2026-08-26",
+    syllabusItemId: "item-3",
+    discipline: "Processo Penal",
+    subject: "Citações e intimações",
+    status: "Pendente",
+    minutes: 50
+  };
+  const state = { dailyGoals: [oldGoal, todayGoal] };
+
+  const report = api.ensureTodayExecutionGoal(oldGoal, state, "2026-08-26");
+
+  assert.equal(report.created, false);
+  assert.equal(report.reused, true);
+  assert.equal(report.goal.id, "meta-hoje");
+  assert.equal(state.dailyGoals.length, 2);
+});
+
+test("V401: não transporta automaticamente meta de semana anterior", () => {
+  const { api } = loadRuntime();
+  const oldGoal = {
+    id: "meta-fora-semana",
+    date: "2026-08-22",
+    discipline: "Constitucional",
+    subject: "Segurança pública",
+    status: "Pendente",
+    minutes: 50
+  };
+  const state = { dailyGoals: [oldGoal] };
+
+  const report = api.ensureTodayExecutionGoal(oldGoal, state, "2026-08-26");
+
+  assert.equal(report.created, false);
+  assert.equal(report.eligible, false);
+  assert.equal(report.goal, oldGoal);
+  assert.equal(state.dailyGoals.length, 1);
+});
+
+test("V401: meta já concluída pode ser refeita hoje sem reaproveitar tempo anterior", () => {
+  const { api } = loadRuntime();
+  const doneGoal = {
+    id: "meta-concluida",
+    date: "2026-08-25",
+    syllabusItemId: "item-4",
+    discipline: "Direitos Humanos",
+    subject: "DUDH",
+    status: "Concluída",
+    completed: true,
+    minutes: 60,
+    studyActualMinutes: 65,
+    actualMinutes: 65
+  };
+  const state = { dailyGoals: [doneGoal] };
+
+  const report = api.ensureTodayExecutionGoal(doneGoal, state, "2026-08-26");
+
+  assert.equal(report.created, true);
+  assert.equal(report.goal.minutes, 60);
+  assert.equal(report.goal.studyActualMinutes, 0);
+  assert.equal(report.goal.actualMinutes, 0);
+  assert.equal(report.goal.completed, false);
+  assert.equal(doneGoal.completed, true);
+});
+
+test("V401: cronômetro e registro manual de tempo são envolvidos pela retomada", () => {
+  assert.match(source, /wrapResumeAction\("startFloatingTimer"\)/);
+  assert.match(source, /wrapResumeAction\("registerGoalTime", true\)/);
+  assert.match(source, /skipDerivedRefresh: true/);
+  assert.match(source, /resumedFromGoalId/);
+});
+
+test("V379/V401: guard permanece fora dos hot paths de performance", () => {
+  assert.ok(Buffer.byteLength(source, "utf8") < 18000);
   assert.equal(source.includes("MutationObserver"), false);
   assert.equal(source.includes("setInterval("), false);
   assert.equal(source.includes("getComputedStyle("), false);
   assert.equal(source.includes("requestAnimationFrame("), false);
 });
 
-test("V379: publicação raiz/docs é idêntica e carregada pelo observability", () => {
+test("V379/V401: publicação raiz/docs é idêntica e carregada pelo observability", () => {
   const docsSource = fs.readFileSync("docs/manual-goal-additive-v379.js", "utf8");
   const loader = fs.readFileSync("security-observability-v318.js", "utf8");
   const docsLoader = fs.readFileSync("docs/security-observability-v318.js", "utf8");
 
   assert.equal(docsSource, source);
   assert.equal(docsLoader, loader);
-  assert.match(loader, /manual-goal-additive-v379\.js\?v=20260824-manual-goal-additive-v379/);
+  assert.match(loader, /manual-goal-additive-v379\.js\?v=20260826-manual-goal-additive-v401-previous-goal-resume-today/);
   assert.match(loader, /installManualGoalAdditiveV379\(\)/);
 });
