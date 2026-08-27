@@ -4166,15 +4166,19 @@ function exactFactoryGoalMatches(goal = {}, agenda = []) {
   if (byId.length) return { items: byId, mode: "identificador original do item do edital" };
   const byKey = stableKey ? agenda.filter((item) => (item.editalLink?.itemKeys || []).includes(stableKey)) : [];
   if (byKey.length) return { items: byKey, mode: "identificador original do item do edital" };
-  const discipline = canonical(syllabus?.discipline || syllabus?.disciplina || goal.discipline || goal.disciplina || "");
-  const subject = canonical(syllabus ? factorySyllabusMainSubject(syllabus) : (goal.subject || goal.assunto || ""));
-  const subtopic = canonical(factoryGoalSubtopic(goal));
-  const exact = agenda.filter((item) => {
-    if (canonical(item.disciplina) !== discipline || canonical(item.tema) !== subject) return false;
-    if (!subtopic) return true;
-    return (item.editalSubtemas || []).some((value) => canonical(value) === subtopic);
-  });
-  return { items: exact, mode: exact.length ? "correspondência exata normalizada por disciplina, assunto principal e subassunto" : "sem vínculo exato" };
+  const discipline = dailyPlanSubjectKey(syllabus?.discipline || syllabus?.disciplina || goal.discipline || goal.disciplina || "");
+  const subject = syllabus ? factorySyllabusMainSubject(syllabus) : (goal.subject || goal.assunto || "");
+  const subtopic = factoryGoalSubtopic(goal);
+  const disciplineMatches = agenda.filter((item) => dailyPlanSubjectKey(item.disciplina) === discipline);
+  const subjectMatches = disciplineMatches.filter((item) => dailyPlanSubjectsCompatible(item.tema, subject)
+    || (item.editalSubtemas || []).some((value) => dailyPlanSubjectsCompatible(value, subject)));
+  if (!subtopic) {
+    return { items: subjectMatches, mode: subjectMatches.length ? "correspondência semântica por disciplina e assunto" : "sem vínculo exato" };
+  }
+  const subtopicMatches = disciplineMatches.filter((item) => dailyPlanSubjectsCompatible(item.tema, subtopic)
+    || (item.editalSubtemas || []).some((value) => dailyPlanSubjectsCompatible(value, subtopic)));
+  const exact = subtopicMatches.length ? subtopicMatches : subjectMatches;
+  return { items: exact, mode: exact.length ? "correspondência semântica por disciplina, assunto e subassunto" : "sem vínculo exato" };
 }
 function factoryGoalGroupsForDate(date = todayISO(), agenda = []) {
   const dayGoals = (state.dailyGoals || []).filter((goal) => (goal.date || goal.data) === date && !isGoalDone(goal) && !planningRecordMatchesCompletedSubject(goal));
@@ -4218,24 +4222,14 @@ function factoryCanAppearInDoNow(entry = {}, queue = factoryDoNowQueue()) {
 function factoryDoNowQueue(agenda = ensureFactoryAgenda()) {
   const activeAgenda = agenda.filter((item) => item.editalActive !== false);
   const today = todayISO();
-  const dates = [...new Set((state.dailyGoals || []).map((goal) => goal.date || goal.data).filter((date) => date && date <= today))].sort();
-  const seen = new Set();
-  const overdue = [];
-  const current = [];
-  dates.forEach((date) => {
-    const target = date < today ? overdue : current;
-    factoryQueueForDate(date, activeAgenda).forEach((entry) => {
-      if (seen.has(entry.item.id) || !factoryResumoAulaPending(entry)) return;
-      seen.add(entry.item.id);
-      target.push({ ...entry, sourceDate: date });
-    });
-  });
-  return [...overdue, ...current];
+  return factoryQueueForDate(today, activeAgenda)
+    .filter(factoryResumoAulaPending)
+    .map((entry) => ({ ...entry, sourceDate: today }));
 }
-function factoryUnlockedDayDate(agenda = ensureFactoryAgenda()) { return factoryDoNowQueue(agenda)[0]?.sourceDate || todayISO(); }
+function factoryUnlockedDayDate() { return todayISO(); }
 function factoryWeeklyQueue(agenda = ensureFactoryAgenda()) {
   const activeAgenda = agenda.filter((item) => item.editalActive !== false);
-  const start = todayISO(), end = addDays(start, 6), seen = new Set(), queue = [];
+  const start = weekStart(todayISO()), end = addDays(start, 6), seen = new Set(), queue = [];
   daysBetween(start, 7).filter((date) => date <= end).forEach((date) => {
     factoryQueueForDate(date, activeAgenda).forEach((entry) => {
       if (seen.has(entry.item.id) || !factoryResumoAulaPending(entry)) return;
@@ -4244,7 +4238,44 @@ function factoryWeeklyQueue(agenda = ensureFactoryAgenda()) {
   });
   return queue;
 }
-function factoryProductionQueue(agenda = ensureFactoryAgenda()) { return factoryProductionScope === "week" ? factoryWeeklyQueue(agenda) : factoryDoNowQueue(agenda); }
+function factoryAllGoalsQueue(agenda = ensureFactoryAgenda()) {
+  const activeAgenda = agenda.filter((item) => item.editalActive !== false);
+  const seen = new Set(), queue = [];
+  factoryScopeDates("all").forEach((date) => {
+    factoryQueueForDate(date, activeAgenda).forEach((entry) => {
+      if (seen.has(entry.item.id) || !factoryResumoAulaPending(entry)) return;
+      seen.add(entry.item.id);
+      queue.push({ ...entry, sourceDate: date });
+    });
+  });
+  return queue;
+}
+function factoryScopeDates(scope = factoryProductionScope) {
+  if (scope === "week") return daysBetween(weekStart(todayISO()), 7);
+  if (scope === "all") {
+    return [...new Set((state.dailyGoals || []).map(goalDateValue).filter(Boolean))].sort();
+  }
+  return [todayISO()];
+}
+function factoryScopeLabel(scope = factoryProductionScope) {
+  return scope === "week" ? "semana atual" : scope === "all" ? "todas as metas salvas" : "Plano do Dia";
+}
+function factoryProductionQueue(agenda = ensureFactoryAgenda()) {
+  return factoryProductionScope === "week" ? factoryWeeklyQueue(agenda) : factoryProductionScope === "all" ? factoryAllGoalsQueue(agenda) : factoryDoNowQueue(agenda);
+}
+
+function renderFactoryIntegrityInfo(scopeDates = [], periodEntries = [], agenda = []) {
+  const target = document.getElementById("factoryIntegrityInfo");
+  if (!target) return;
+  const dateSet = new Set(scopeDates);
+  const periodGoals = (state.dailyGoals || []).filter((goal) => dateSet.has(goalDateValue(goal)));
+  const matchedGoals = new Set(periodEntries.flatMap((entry) => entry.goals || []));
+  const unmatched = periodGoals.filter((goal) => !isGoalDone(goal) && !planningRecordMatchesCompletedSubject(goal) && !matchedGoals.has(goal));
+  const syncMeta = typeof readSyncMeta === "function" ? readSyncMeta() : {};
+  const storage = indexedDBStatus.available ? "IndexedDB ativo" : (indexedDBStatus.localStorageAvailable ? "localStorage em modo de compatibilidade" : "armazenamento local indisponível");
+  const cloud = syncMeta.connected ? (syncMeta.pendingSync ? "Google Drive conectado, com envio pendente" : "Google Drive conectado") : "Google Drive não conectado neste navegador";
+  target.innerHTML = `<strong>Integridade entre áreas</strong><div class="card-meta-grid"><span>Fonte das metas: <strong>dailyGoals (somente leitura)</strong></span><span>Recorte: <strong>${escapeHTML(factoryScopeLabel())}</strong></span><span>Metas no recorte: <strong>${periodGoals.length}</strong></span><span>Metas pendentes sem vínculo na Fábrica: <strong>${unmatched.length}</strong></span><span>Temas ativos na Fábrica: <strong>${agenda.filter((item) => item.editalActive !== false).length}</strong></span><span>Persistência: <strong>${escapeHTML(storage)}</strong></span><span>Backup: <strong>inclui factoryAgenda, materiais e metas</strong></span><span>Sincronização: <strong>${escapeHTML(cloud)}</strong></span></div><p class="item-meta">Abrir, pesquisar, filtrar ou trocar o período da Fábrica não cria, remove, troca nem reagenda metas. Alterações continuam restritas aos comandos explícitos de cadastro, edição e produção.</p>${unmatched.length ? `<p class="notice warning-notice">Atenção: ${unmatched.length} meta(s) pendente(s) ainda não possuem vínculo exato com um tema da Fábrica. Elas permanecem preservadas no Planejamento e no Calendário.</p>` : ""}`;
+}
 function factoryActionButtonHTML(item, primary = true) {
   const next = factoryNextAction(item);
   const cls = primary ? "factory-primary-action" : "secondary-button";
@@ -4285,15 +4316,17 @@ function renderFactory() {
     });
     const activeAgenda = agenda.filter((item) => item.editalActive !== false);
     const unlockedDate = factoryUnlockedDayDate(activeAgenda);
-    const scopeDates = factoryProductionScope === "week" ? daysBetween(todayISO(), 7) : [unlockedDate];
+    const scopeDates = factoryScopeDates();
     const dailyProjection = scopeDates.flatMap((date) => buildDailyPlanProjection(date).filter((entry) => !isGoalDone(entry.goal) && !planningRecordMatchesCompletedSubject(entry.goal)).map((entry) => ({ ...entry, factoryDate:date })));
-    const todayPlanPanel = `<details class="factory-section factory-today-plan factory-collapsible"><summary>📚 ${factoryProductionScope === "week" ? "MATERIAIS DAS METAS PENDENTES — SEMANA" : `MATERIAIS DAS METAS PENDENTES — ${formatDateBR(unlockedDate)}`} <small>${dailyProjection.length}</small></summary><div class="factory-collapsible-content">${dailyProjection.length ? dailyProjection.map((entry) => { const count = entry.materialGroups.reduce((total, group) => total + group.materials.length, 0); const status = !count ? "Precisa produzir" : "Material já disponível"; const descriptor = canonicalStudyDescriptor(entry.goal); return `<article class="syllabus-card factory-card"><h3>${escapeHTML(descriptor.discipline)} — ${escapeHTML(descriptor.subject)}</h3><p class="item-meta">${formatDateBR(entry.factoryDate)} • ${escapeHTML(status)} • ${count} arquivo(s)</p>${entry.materialGroups.length ? entry.materialGroups.map((group) => `<p><strong>${escapeHTML(group.label === "resumoAula" ? "RESUMO/AULA" : group.label.toUpperCase())}:</strong> ${group.materials.map((material) => escapeHTML(materialButtonLabel(material))).join(" • ")}</p>`).join("") : `<p class="item-meta">Nenhum material vinculado.</p>`}</article>`; }).join("") : `<p class="empty-message">Nenhuma meta pendente neste período.</p>`}</div></details>`;
+    const materialPeriodLabel = factoryProductionScope === "week" ? "SEMANA ATUAL" : factoryProductionScope === "all" ? "TODAS AS METAS SALVAS" : formatDateBR(unlockedDate);
+    const todayPlanPanel = `<details class="factory-section factory-today-plan factory-collapsible"><summary>📚 MATERIAIS DAS METAS PENDENTES — ${materialPeriodLabel} <small>${dailyProjection.length}</small></summary><div class="factory-collapsible-content">${dailyProjection.length ? dailyProjection.map((entry) => { const count = entry.materialGroups.reduce((total, group) => total + group.materials.length, 0); const status = !count ? "Precisa produzir" : "Material já disponível"; const descriptor = canonicalStudyDescriptor(entry.goal); return `<article class="syllabus-card factory-card"><h3>${escapeHTML(descriptor.discipline)} — ${escapeHTML(descriptor.subject)}</h3><p class="item-meta">${formatDateBR(entry.factoryDate)} • ${escapeHTML(status)} • ${count} arquivo(s)</p>${entry.materialGroups.length ? entry.materialGroups.map((group) => `<p><strong>${escapeHTML(group.label === "resumoAula" ? "RESUMO/AULA" : group.label.toUpperCase())}:</strong> ${group.materials.map((material) => escapeHTML(materialButtonLabel(material))).join(" • ")}</p>`).join("") : `<p class="item-meta">Nenhum material vinculado.</p>`}</article>`; }).join("") : `<p class="empty-message">Nenhuma meta pendente neste período.</p>`}</div></details>`;
     const seenPeriod = new Set();
     const periodEntries = scopeDates.flatMap((date) => factoryQueueForDate(date, activeAgenda).map((entry) => ({ ...entry, sourceDate:date }))).filter((entry) => { if (seenPeriod.has(entry.item.id)) return false; seenPeriod.add(entry.item.id); return true; });
     const queue = periodEntries.filter(factoryResumoAulaPending);
     const todayQueue = queue;
     const completedCount = activeAgenda.filter((item) => factoryThemeIsCompleted(normalizeFactoryModules(item.modules || {}))).length;
-    if (elements.factorySummary) elements.factorySummary.innerHTML = `<article class="stat-card factory-summary-now">${queue[0] ? factoryThemeHighlightHTML(queue[0].item, factoryRecorteHoje(queue[0])) : `<span>FAÇA AGORA</span><strong>Sem resumo pendente</strong>`}</article><article class="stat-card"><span>${factoryProductionScope === "week" ? "Fila da semana" : `Fila de ${formatDateBR(unlockedDate)}`}</span><strong>${todayQueue.length}</strong></article><article class="stat-card"><span>Pendentes no período</span><strong>${queue.length}</strong></article><article class="stat-card"><span>Concluídos</span><strong>${completedCount}</strong></article>`;
+    if (elements.factorySummary) elements.factorySummary.innerHTML = `<article class="stat-card factory-summary-now">${queue[0] ? factoryThemeHighlightHTML(queue[0].item, factoryRecorteHoje(queue[0])) : `<span>FAÇA AGORA</span><strong>Sem resumo pendente</strong>`}</article><article class="stat-card"><span>Fila — ${escapeHTML(factoryScopeLabel())}</span><strong>${todayQueue.length}</strong></article><article class="stat-card"><span>Pendentes no período</span><strong>${queue.length}</strong></article><article class="stat-card"><span>Concluídos</span><strong>${completedCount}</strong></article>`;
+    renderFactoryIntegrityInfo(scopeDates, periodEntries, agenda);
     if (!agenda.length) { elements.factoryList.textContent = "Nenhum tema cadastrado na Fábrica."; return; }
     const detailsHTML = (entry) => {
       const item = entry.item || entry;
@@ -4325,7 +4358,7 @@ function renderFactory() {
       const modules = normalizeFactoryModules(item.modules || {}, item);
       return modules.resumoAula?.status !== "Não se aplica" && !factoryResumoAulaReady({ ...item, modules });
     })?.item.id || "";
-    const nowPanel = nowEntry ? `<details id="factoryDoNow" class="factory-do-now factory-collapsible" open><summary>🎯 FAÇA AGORA</summary><div class="factory-collapsible-content">${cardFor(nowEntry, queue.indexOf(nowEntry))}<div class="card-actions"><button type="button" class="secondary-button" data-open-url="${escapeHTML(factorySourceFolderLink(nowEntry.item) || "")}" ${factorySourceFolderLink(nowEntry.item) ? "" : "disabled"}>Abrir pasta das fontes</button><button type="button" class="secondary-button" data-open-url="${escapeHTML(factoryDestinationFolderLink(nowEntry.item) || "")}" ${factoryDestinationFolderLink(nowEntry.item) ? "" : "disabled"}>Abrir pasta de destino</button><button type="button" class="secondary-button" data-factory-next="${nowEntry.item.id}">Ir para o próximo tema</button></div></div></details>` : `<details id="factoryDoNow" class="factory-do-now factory-collapsible" open><summary>🎯 FAÇA AGORA</summary><div class="factory-collapsible-content"><p class="empty-message">Nenhum resumo/aula pendente de hoje ou de dias anteriores.</p></div></details>`;
+    const nowPanel = nowEntry ? `<details id="factoryDoNow" class="factory-do-now factory-collapsible" open><summary>🎯 FAÇA AGORA</summary><div class="factory-collapsible-content">${cardFor(nowEntry, queue.indexOf(nowEntry))}<div class="card-actions"><button type="button" class="secondary-button" data-open-url="${escapeHTML(factorySourceFolderLink(nowEntry.item) || "")}" ${factorySourceFolderLink(nowEntry.item) ? "" : "disabled"}>Abrir pasta das fontes</button><button type="button" class="secondary-button" data-open-url="${escapeHTML(factoryDestinationFolderLink(nowEntry.item) || "")}" ${factoryDestinationFolderLink(nowEntry.item) ? "" : "disabled"}>Abrir pasta de destino</button><button type="button" class="secondary-button" data-factory-next="${nowEntry.item.id}">Ir para o próximo tema</button></div></div></details>` : `<details id="factoryDoNow" class="factory-do-now factory-collapsible" open><summary>🎯 FAÇA AGORA</summary><div class="factory-collapsible-content"><p class="empty-message">Nenhum resumo/aula pendente em ${escapeHTML(factoryScopeLabel())}.</p></div></details>`;
     const queuePanel = `<details class="factory-today-queue factory-collapsible"><summary>📋 FILA RESUMIDA DE PENDÊNCIAS <small>${queue.length}</small></summary><div class="factory-collapsible-content">${queue.length ? `<ol>${queue.map((entry, index) => {
       const modules = normalizeFactoryModules(entry.item.modules || {}, entry.item);
       const status = factoryOverallStatus(modules);
@@ -4342,7 +4375,7 @@ function renderFactory() {
     if (factoryCurrentFilter === "precisa-refazer") entries = entries.filter(({ item }) => normalizeFactoryTriagemStatus(item, item.modules) === "Precisa refazer" || factoryOverallStatus(item.modules) === "Precisa refazer");
     if (factoryCurrentFilter === "prontos") entries = entries.filter(({ item }) => factoryResumoAulaReady(item));
     const listPanel = factoryCurrentFilter === "faca-agora" ? "" : `<details class="factory-section factory-collapsible" open><summary>${factoryCurrentFilter === "fila-hoje" ? "📋 FILA RESUMIDA DE PENDÊNCIAS" : "Temas"} <small>${entries.length}</small></summary><div class="factory-collapsible-content">${entries.length ? entries.slice(0, factoryVisibleCount).map(cardFor).join("") + (entries.length > factoryVisibleCount ? `<button type="button" class="secondary-button" data-show-factory-more>Mostrar mais 20</button>` : "") : `<p class="empty-message">Nenhum tema nesta lista.</p>`}</div></details>`;
-    const scopeNotice = `<p class="notice factory-scope-notice">${factoryProductionScope === "week" ? `Produção antecipada dos próximos sete dias: ${formatDateBR(scopeDates[0])} a ${formatDateBR(scopeDates[scopeDates.length - 1])}.` : unlockedDate === todayISO() ? "Exibindo somente os resumos pendentes do Plano do Dia." : `Todos os resumos de hoje estão prontos. O dia ${formatDateBR(unlockedDate)} foi liberado automaticamente.`}</p>`;
+    const scopeNotice = `<p class="notice factory-scope-notice">${factoryProductionScope === "week" ? `Semana atual, igual ao Calendário de Metas: ${formatDateBR(scopeDates[0])} a ${formatDateBR(scopeDates[scopeDates.length - 1])}.` : factoryProductionScope === "all" ? "Todas as metas efetivamente salvas, sem incluir prévias não confirmadas do Planejamento." : `Plano do Dia de ${formatDateBR(unlockedDate)}, sem transporte ou liberação automática de outra data.`}</p>`;
     elements.factoryList.innerHTML = scopeNotice + todayPlanPanel + (factoryCurrentFilter === "faca-agora" ? nowPanel + queuePanel : listPanel);
   } catch (error) {
     console.error("[Metas Estudo] Erro ao carregar Fábrica de Resumos", error);
@@ -4524,6 +4557,7 @@ function syncFactoryMaterialsPlanningV80(targetState = state) {
       item.prioridade = nextGoal.priority || nextGoal.prioridade || item.prioridade;
     }
   });
+  const linkedGoalCount = goals.filter((goal) => activeAgenda.some((item) => itemMatchesGoal(item, goal))).length;
   targetState.materials.forEach((material) => {
     const matchingItems = (targetState.syllabusItems || []).filter((item) => canonical(item.discipline || item.disciplina) === canonical(material.discipline || material.disciplina) && dailyPlanSubjectsCompatible(item.subject || item.assunto || item.topic, material.subject || material.assunto));
     const ids = [...new Set([material.syllabusItemId, ...(material.syllabusItemIds || []), ...matchingItems.map((item) => item.id)].filter(Boolean))];
@@ -4531,18 +4565,14 @@ function syncFactoryMaterialsPlanningV80(targetState = state) {
     material.syllabusItemId = material.syllabusItemId || ids[0] || "";
     material.planningGoalIds = [...new Set(goals.filter((goal) => materialMatchesAssociation(material, { discipline: goal.discipline || goal.disciplina, subject: goal.subject || goal.assunto, syllabusItemId: goal.syllabusItemId, goalId: goal.id })).map((goal) => goal.id).filter(Boolean))];
   });
-  goals.forEach((goal) => {
-    const exactItems = activeAgenda.filter((item) => factorySyllabusItemIds(item).includes(goal.syllabusItemId));
-    const compatibleItems = exactItems.length ? exactItems : activeAgenda.filter((item) => dailyPlanRecordsShareSubject(item, goal));
-    goal.factoryItemId = compatibleItems[0]?.id || "";
-    goal.materialIds = [...new Set(targetState.materials.filter(materialAvailable).filter((material) => materialMatchesAssociation(material, { discipline: goal.discipline || goal.disciplina, subject: goal.subject || goal.assunto, syllabusItemId: goal.syllabusItemId, factoryItemId: goal.factoryItemId, goalId: goal.id })).map((material) => material.id))];
-    goal.hasMaterial = goal.materialIds.length > 0;
-  });
+  // V402: a Fábrica calcula os vínculos, mas não grava dados derivados nas metas.
+  // Isso mantém dailyGoals como fonte autoritativa do Plano do Dia/Calendário e
+  // impede que um salvamento feito em outra área altere silenciosamente o plano.
   targetState.factoryAgenda = agenda.map(normalizeFactoryItem);
   targetState.factoryItems = targetState.factoryAgenda;
   const after = JSON.stringify({ factoryAgenda: targetState.factoryAgenda, materials: targetState.materials, goalLinks: targetState.dailyGoals.map((goal) => ({ id: goal.id, factoryItemId: goal.factoryItemId || "", materialIds: goal.materialIds || [], hasMaterial: Boolean(goal.hasMaterial) })) });
   primeFactoryPlanningSyncFingerprintV170(targetState);
-  return { changed: before !== after, skipped: false, factoryItems: activeAgenda.length, linkedGoals: goals.filter((goal) => goal.factoryItemId).length, linkedMaterials: targetState.materials.filter((material) => material.planningGoalIds?.length).length, editalReport };
+  return { changed: before !== after, skipped: false, factoryItems: activeAgenda.length, linkedGoals: linkedGoalCount, linkedMaterials: targetState.materials.filter((material) => material.planningGoalIds?.length).length, editalReport };
 }
 function migrateFactoryMaterialsPlanningV80(targetState = state) {
   targetState.migrations ||= {};
@@ -7398,7 +7428,7 @@ function refreshPlanningPrioritiesForQuestionChangesV155(targetState = state) {
   if (targetState.planning?.prioritySourceFingerprintV155 === fingerprint) return { ok: true, changed: false, skipped: true };
   const result = applyIntegratedPlanningPrioritiesV155(targetState, { force: true, reason: "question-performance-updated" });
   globalThis.__integratedPlanningPriorityV155 = result;
-  if (!result.ok) console.error("[Metas Estudo] Replanejamento por desempenho bloqueado; o estado anterior foi preservado.", result.errors);
+  if (!result.ok) console.warn("[Metas Estudo] Replanejamento por desempenho bloqueado; o estado anterior foi preservado.", result.errors);
   return result;
 }
 function replanFutureGoalsAfterCompletionV77(completedRecord, targetState = state, opts = {}) {
@@ -9237,7 +9267,7 @@ function handleFactoryScopeClick(event) {
   const button = event.target.closest("[data-production-scope]");
   if (!button) return;
   event.preventDefault();
-  factoryProductionScope = button.dataset.productionScope === "week" ? "week" : "day";
+  factoryProductionScope = ["day", "week", "all"].includes(button.dataset.productionScope) ? button.dataset.productionScope : "day";
   factoryCurrentFilter = "faca-agora"; factoryOpenDetailId = ""; factoryVisibleCount = 20;
   renderFactory();
 }

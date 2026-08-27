@@ -101,7 +101,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
       toolbar.className = "factory-executive-toolbar-v136";
       toolbar.dataset.factoryExecutiveVersion = VERSION;
       toolbar.setAttribute("aria-label", "Pesquisa e ações principais da Fábrica");
-      toolbar.innerHTML = `<label class="factory-executive-search-v136" for="factoryExecutiveSearchV136"><span>Localizar tema</span><span class="factory-search-row-v136"><input id="factoryExecutiveSearchV136" type="search" autocomplete="off" spellcheck="false" placeholder="Pesquisar disciplina, tema, etapa ou palavra-chave..." aria-describedby="factoryExecutiveSearchStatusV136"><button type="button" class="factory-search-clear-v136" data-factory-search-clear-v136 hidden>Limpar</button></span><small id="factoryExecutiveSearchStatusV136" class="factory-search-status-v136" aria-live="polite">Pesquise na lista atualmente exibida.</small></label><div class="factory-executive-actions-v136" aria-label="Ações rápidas da Fábrica"><button type="button" class="factory-filter-toggle-v136" data-factory-command-v136="filters" aria-expanded="false">Filtros</button><button type="button" class="factory-register-toggle-v136" data-factory-command-v136="register" aria-expanded="false">+ Novo tema</button></div>`;
+      toolbar.innerHTML = `<label class="factory-executive-search-v136" for="factoryExecutiveSearchV136"><span>Localizar tema nas metas</span><span class="factory-search-row-v136"><input id="factoryExecutiveSearchV136" type="search" autocomplete="off" spellcheck="false" placeholder="Pesquisar disciplina, tema, etapa ou palavra-chave..." aria-describedby="factoryExecutiveSearchStatusV136"><button type="button" class="factory-search-clear-v136" data-factory-search-clear-v136 hidden>Limpar</button></span><small id="factoryExecutiveSearchStatusV136" class="factory-search-status-v136" aria-live="polite">Escolha Plano do Dia, Produção da Semana ou Todas as Metas. A busca é somente leitura.</small></label><div class="factory-executive-actions-v136" aria-label="Ações rápidas da Fábrica"><button type="button" class="factory-register-toggle-v136" data-factory-command-v136="register" aria-expanded="false">+ Novo tema</button></div>`;
       tabs.before(toolbar);
     }
     let flow = root.querySelector(".factory-stage-flow-v136");
@@ -117,7 +117,8 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   }
 
   function targets() {
-    const set = new Set(root.querySelectorAll("#factoryList .compact-factory-card"));
+    const set = new Set(root.querySelectorAll("#factoryList article.factory-card"));
+    root.querySelectorAll("#factoryList .compact-factory-card").forEach((item) => set.add(item));
     root.querySelectorAll("#factoryList .factory-queue-item").forEach((item) => set.add(item.closest("li") || item));
     return [...set];
   }
@@ -137,11 +138,16 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
         target.dataset.factorySearchHiddenV136 = "false";
       });
       if (clear) clear.hidden = true;
-      if (status.textContent !== "Pesquise na lista atualmente exibida.") {
-        status.textContent = "Pesquise na lista atualmente exibida.";
+      const idleMessage = "Escolha Plano do Dia, Produção da Semana ou Todas as Metas. A busca é somente leitura.";
+      if (status.textContent !== idleMessage) {
+        status.textContent = idleMessage;
       }
       return;
     }
+
+    // A pesquisa não modifica metas, mas deve sempre revelar a área de resultados.
+    const productionPanel = root.querySelector("#factoryProductionPanelV163");
+    if (productionPanel) productionPanel.open = true;
 
     let visible = 0;
     targets().forEach((target) => {
@@ -155,7 +161,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     if (clear) clear.hidden = false;
     const nextStatus = visible
       ? `${visible} ${visible === 1 ? "resultado encontrado" : "resultados encontrados"} nesta visualização.`
-      : "Nenhum tema encontrado nesta visualização. Ajuste a pesquisa ou o filtro.";
+      : "Nenhum tema encontrado neste período. Selecione “Todas as Metas” para pesquisar em todo o planejamento salvo.";
     if (status.textContent !== nextStatus) status.textContent = nextStatus;
   }
 
@@ -164,11 +170,8 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     root.querySelectorAll("[data-factory-flow-v136]").forEach((button) => {
       button.setAttribute("aria-pressed", (FLOW_FILTERS[button.dataset.factoryFlowV136] || []).includes(active) ? "true" : "false");
     });
-    const filterPanel = root.querySelector(".factory-filter-panel");
     const registerPanel = root.querySelector("#factoryRegisterPanel");
-    const filterButton = root.querySelector('[data-factory-command-v136="filters"]');
     const registerButton = root.querySelector('[data-factory-command-v136="register"]');
-    if (filterButton && filterPanel) filterButton.setAttribute("aria-expanded", filterPanel.open ? "true" : "false");
     if (registerButton && registerPanel) {
       registerButton.setAttribute("aria-expanded", registerPanel.open ? "true" : "false");
       registerButton.textContent = registerPanel.open ? "Fechar cadastro" : "+ Novo tema";
@@ -204,7 +207,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
           return;
         }
         const command = event.target.closest("[data-factory-command-v136]")?.dataset.factoryCommandV136;
-        const panel = command === "filters" ? root.querySelector(".factory-filter-panel") : command === "register" ? root.querySelector("#factoryRegisterPanel") : null;
+        const panel = command === "register" ? root.querySelector("#factoryRegisterPanel") : null;
         if (panel) {
           panel.open = !panel.open;
           if (panel.open) {
@@ -263,27 +266,19 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     return true;
   }
 
-  function mutationNeedsRefresh(records) {
-    return records.some((record) => {
-      if (record.type !== "childList" || (!record.addedNodes.length && !record.removedNodes.length)) return false;
-      const target = record.target;
-      if (target?.closest?.(".factory-executive-toolbar-v136, .factory-stage-flow-v136")) return false;
-      return true;
-    });
+  if (typeof renderFactory === "function" && !renderFactory.__factoryExecutiveV136) {
+    const previousRenderFactory = renderFactory;
+    const wrappedRenderFactory = function renderFactoryExecutiveV136(...args) {
+      const result = previousRenderFactory.apply(this, args);
+      refresh();
+      return result;
+    };
+    Object.defineProperty(wrappedRenderFactory, "__factoryExecutiveV136", { value: true });
+    renderFactory = wrappedRenderFactory;
   }
 
-  new MutationObserver((records) => {
-    // Fora da Fábrica, o observer fica praticamente inerte: apenas registra que
-    // a view mudou. A atualização completa ocorrerá uma única vez ao entrar nela.
-    if (!isFactoryRoute()) {
-      dirty = true;
-      return;
-    }
-    if (mutationNeedsRefresh(records)) refresh();
-  }).observe(root, { childList: true, subtree: true });
-
   root.addEventListener("click", (event) => {
-    if (event.target.closest("[data-factory-filter], [data-factory-scope]")) refresh({ interactive: true });
+    if (event.target.closest("[data-factory-filter], [data-production-scope]")) refresh({ interactive: true });
   });
 
   addEventListener("hashchange", () => {

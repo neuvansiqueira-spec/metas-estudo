@@ -43,6 +43,7 @@ function runtime(hash = "#metas-do-dia") {
     cancelIdleCallback() {},
     addEventListener(name, callback) { listeners.set(name, callback); },
     CSS: { escape(value) { return value; } },
+    renderFactory() { return "rendered"; },
     setTimeout
   };
   context.window = context;
@@ -56,7 +57,8 @@ test("V355 deixa a interface executiva da Fábrica inerte fora da rota da Fábri
   const rt = runtime("#metas-do-dia");
   assert.equal(rt.animationFrames.length, 0, "Metas do Dia não deve agendar refresh da Fábrica");
   assert.equal(rt.idleCallbacks.length, 0, "Metas do Dia não deve agendar trabalho ocioso da Fábrica");
-  rt.observer()([{ type: "childList", addedNodes: [{}], removedNodes: [], target: rt.root }]);
+  assert.equal(rt.observer(), null, "V402 não deve manter observador contínuo de DOM");
+  rt.context.renderFactory();
   assert.equal(rt.animationFrames.length, 0, "mutações ocultas não devem disparar RAF");
   assert.equal(rt.idleCallbacks.length, 0, "mutações ocultas não devem disparar refresh pesado");
 });
@@ -67,10 +69,10 @@ test("V355 atualiza uma vez ao entrar na Fábrica e coalesce mutações seguinte
   rt.listeners.get("hashchange")();
   assert.equal(rt.animationFrames.length, 1, "entrada explícita deve responder no próximo frame");
   rt.animationFrames.shift()();
-  rt.observer()([{ type: "childList", addedNodes: [{}], removedNodes: [], target: rt.root }]);
-  assert.equal(rt.idleCallbacks.length, 1, "mutações da Fábrica devem ser coalescidas no período ocioso");
-  rt.observer()([{ type: "childList", addedNodes: [{}], removedNodes: [], target: rt.root }]);
-  assert.equal(rt.idleCallbacks.length, 1, "mutações consecutivas não podem empilhar refreshes");
+  rt.context.renderFactory();
+  assert.equal(rt.idleCallbacks.length, 1, "a renderização da Fábrica deve atualizar a interface no período ocioso");
+  rt.context.renderFactory();
+  assert.equal(rt.idleCallbacks.length, 1, "renderizações consecutivas não podem empilhar refreshes");
 });
 
 test("V355 evita varredura integral quando a busca está vazia", () => {

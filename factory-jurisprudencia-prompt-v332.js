@@ -98,8 +98,10 @@ ANTES DESSA CONCLUSÃO NEGATIVA, REGISTRE INTERNAMENTE:
     .replace(OLD_FIDELITY_SOURCE, NEW_FIDELITY_SOURCE)
     .replace(OLD_REVIEW_SOURCE, NEW_REVIEW_SOURCE);
 
-  if (!BASE_PROMPT.includes(OLD_SOURCE_BLOCK) || PROMPT === BASE_PROMPT) {
-    console.error("[Aldus] A V332 não localizou o bloco de fontes do prompt topificado V231.");
+  // Instalações mais novas já podem ter um prompt oficial posterior à V231. Nesse
+  // caso a migração histórica deve preservar o texto atual e encerrar em silêncio,
+  // em vez de registrar como erro uma condição esperada e segura.
+  if (!BASE_PROMPT || !BASE_PROMPT.includes(OLD_SOURCE_BLOCK) || PROMPT === BASE_PROMPT) {
     return;
   }
 

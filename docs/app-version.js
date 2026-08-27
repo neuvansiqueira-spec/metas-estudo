@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260823-indexeddb-direct-snapshot-v378";
+  const VERSION = "20260827-factory-cross-area-integrity-v402";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
