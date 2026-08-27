@@ -85,7 +85,8 @@ jobs:
             tests/v357-planning-variety.test.js \
             tests/v358-piece-rotation-repair.test.js \
             tests/v368-planning-quality.test.js \
-            tests/v395-no-auto-reload.test.js
+            tests/v395-no-auto-reload.test.js \
+            tests/v402-factory-cross-area-integrity.test.js
           node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
           cmp security-hardening-v296.js docs/security-hardening-v296.js
           cmp service-worker.js docs/service-worker.js

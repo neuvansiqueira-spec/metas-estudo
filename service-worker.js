@@ -1,11 +1,11 @@
 "use strict";
 
-const CURRENT_VERSION = "20260823-indexeddb-direct-snapshot-v378";
+const CURRENT_VERSION = "20260827-factory-cross-area-integrity-v402";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const SECURITY_VERSION = "20260810-seguranca-estabilidade-v296";
 const PROTECTION_VERSION = "20260815-bootstrap-performance-v342";
 const BOOTSTRAP_VERSION = "20260815-bootstrap-performance-v342";
-const FAST_BOOTSTRAP_VERSION = "20260823-indexeddb-direct-snapshot-v378";
+const FAST_BOOTSTRAP_VERSION = "20260827-factory-cross-area-integrity-v402";
 const NAVIGATION_DELIVERY_VERSION = "20260817-navigation-bootstrap-delivery-v353";
 const PLANNING_QUALITY_VERSION = "20260826-planning-stability-v397";
 const TIMER_GOAL_INTEGRITY_VERSION = "20260821-timer-goal-integrity-v366";
@@ -15,9 +15,7 @@ const DUPLICATE_CONTINUITY_VERSION = "20260811-duplicate-flow-owner-v309";
 const DUPLICATE_RECOMMENDATIONS_VERSION = "20260811-duplicate-flow-owner-v309";
 const DUPLICATE_BATCH_HOTFIX_VERSION = "20260811-duplicate-flow-owner-v309";
 const ENTRY_RECOVERY_VERSION = "20260811-duplicate-flow-owner-v309";
-const FACTORY_SCHEDULE_VERSION = "20260808-factory-schedule-scope-v277";
-const FACTORY_SCHEDULE_FILTERS_VERSION = "20260808-factory-schedule-planning-preview-filters-v280";
-const FACTORY_SCHEDULE_DATES_VERSION = "20260809-factory-schedule-planning-dates-v281";
+const FACTORY_CROSS_AREA_VERSION = "20260827-factory-cross-area-integrity-v402";
 const QUESTIONS_HUB_VERSION = "20260814-desempenho-integral-v329";
 const QUESTION_JSON_DETAILS_VERSION = "20260810-revisao-json-explicacoes-v299";
 const CACHE_NAME = `metas-estudo-${CURRENT_VERSION}-factory-weekly-dedupe-v237-hotfix2-timer-alarm-audio-v297-hotfix5-timer-audio-unified-v241-hotfix1-timer-message-last-five-v242-hotfix1-daily-summary-direct-v244-hotfix2-duplicate-search-v274-data-protection-v275-duplicate-consolidation-continuity-v276-duplicate-recommended-batch-v300-duplicate-batch-persistence-v301-duplicate-batch-performance-v304-duplicate-batch-commit-v305-entry-parser-recovery-v306-duplicate-core-delivery-v307-duplicate-batch-core-pin-v308-duplicate-flow-owner-v309-factory-schedule-v277-factory-schedule-preview-v280-factory-schedule-dates-v281-planning-shift-save-v283-weekly-registered-minutes-hotfix4-security-v296-questions-hub-v298-question-json-details-v299-factory-simulado-escolha-automatica-v312-simulado-interativo-v313-integracao-v318-reparo-factory-simulado-visibility-v315-posthog-telemetry-v317-simulado-location-v328-factory-resumo-aula-canonical-v327-qconcursos-filter-v337-dom-style-hot-path-v355-factory-destination-runtime-v354-navigation-bootstrap-v353-bootstrap-fast-path-v351-timer-goal-integrity-v366-planning-stability-v397-planning-consent-v398-no-auto-reload-v395-timer-audio-stability-v396`;
@@ -27,9 +25,6 @@ const HISTORY_LAYOUT_VERSION = "20260802-tabela-historico-compacta-v223";
 const HISTORY_LAYOUT_STYLESHEET = `question-history-layout-v223.css?v=${HISTORY_LAYOUT_VERSION}`;
 const FACTORY_QUEUE_INTEGRITY = `factory-queue-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=factory-queue-integrity-hotfix5`;
 const FACTORY_DESTINATION_INTEGRITY = "factory-destination-integrity-v237.js?v=20260804-pastas-destino-classificacao-exata-v237&hotfix=factory-destination-on-demand-v354";
-const FACTORY_SCHEDULE_SCOPE = `factory-schedule-scope-v277.js?v=${FACTORY_SCHEDULE_VERSION}`;
-const FACTORY_SCHEDULE_FILTERS = `factory-schedule-filters-v279.js?v=${FACTORY_SCHEDULE_FILTERS_VERSION}`;
-const FACTORY_SCHEDULE_DATES = `factory-schedule-dates-v281.js?v=${FACTORY_SCHEDULE_DATES_VERSION}`;
 const TIMER_AUDIO_RECOVERY = "timer-audio-recovery-v236.js?v=20260810-timer-alarm-audio-v297&hotfix=timer-audio-recovery-hotfix5";
 const TIMER_AUDIO_STABILITY = `timer-audio-stability-v396.js?v=${TIMER_AUDIO_STABILITY_VERSION}`;
 const TIMER_AUDIO_UNIFIER = "timer-audio-unifier-v241.js?v=20260805-timer-audio-unified-v241&hotfix=timer-audio-unifier-hotfix1";
@@ -81,9 +76,6 @@ const STATIC_ASSETS = [
   `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`,
   FACTORY_QUEUE_INTEGRITY,
   FACTORY_DESTINATION_INTEGRITY,
-  FACTORY_SCHEDULE_SCOPE,
-  FACTORY_SCHEDULE_FILTERS,
-  FACTORY_SCHEDULE_DATES,
   TIMER_AUDIO_RECOVERY,
   TIMER_AUDIO_STABILITY,
   TIMER_AUDIO_UNIFIER,
@@ -265,12 +257,7 @@ function installDuplicateBatchV309(html) {
   return patched;
 }
 
-function installFactoryScheduleV277(html) {
-  const tags = [
-    `<script id="aldusFactoryScheduleScopeV277" src="${FACTORY_SCHEDULE_SCOPE}"></script>`,
-    `<script id="aldusFactoryScheduleFiltersV280" src="${FACTORY_SCHEDULE_FILTERS}"></script>`,
-    `<script id="aldusFactoryScheduleDatesV281" src="${FACTORY_SCHEDULE_DATES}"></script>`
-  ].join("\n  ");
+function removeLegacyFactorySchedule(html) {
   let patched = html.replace(
     /<script\s+id=["']aldusFactoryScheduleScopeV\d+["'][^>]*><\/script>/gi,
     ""
@@ -291,7 +278,6 @@ function installFactoryScheduleV277(html) {
     /<script\s+[^>]*src=["'][^"']*factory-schedule-dates-v\d+\.js[^"']*["'][^>]*><\/script>/gi,
     ""
   );
-  patched = injectBeforeFinalClosingTag(patched, "</body>", tags);
   return patched;
 }
 
@@ -338,7 +324,10 @@ async function ensurePageStylesheets(response) {
   patchedHtml = installDuplicateRecommendationsV309(patchedHtml);
   patchedHtml = installDuplicateDiagnosticsV276(patchedHtml);
   patchedHtml = installDuplicateBatchV309(patchedHtml);
-  patchedHtml = installFactoryScheduleV277(patchedHtml);
+  // V402: o recorte Hoje/Semana/Todas as Metas pertence ao núcleo da Fábrica.
+  // Remover as sobreposições históricas evita uma segunda fonte de datas, filtros
+  // e prévias que poderia divergir do Planejamento ou alterar a leitura da fila.
+  patchedHtml = removeLegacyFactorySchedule(patchedHtml);
 
   const headers = new Headers(response.headers);
   headers.delete("content-length");
@@ -347,9 +336,7 @@ async function ensurePageStylesheets(response) {
   headers.set("x-aldus-data-protection", PROTECTION_VERSION);
   headers.set("x-aldus-duplicate-search", "duplicate-flow-owner-v309");
   headers.set("x-aldus-entry-recovery", ENTRY_RECOVERY_VERSION);
-  headers.set("x-aldus-factory-schedule", FACTORY_SCHEDULE_VERSION);
-  headers.set("x-aldus-factory-schedule-filters", FACTORY_SCHEDULE_FILTERS_VERSION);
-  headers.set("x-aldus-factory-schedule-dates", FACTORY_SCHEDULE_DATES_VERSION);
+  headers.set("x-aldus-factory-cross-area", FACTORY_CROSS_AREA_VERSION);
   headers.set("x-aldus-security", SECURITY_VERSION);
 
   return new Response(patchedHtml, {

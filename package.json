@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260823-indexeddb-direct-snapshot-v378",
+  "version": "20260827-factory-cross-area-integrity-v402",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

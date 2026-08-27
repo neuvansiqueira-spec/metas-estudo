@@ -95,4 +95,5 @@ jobs:
             tests/v391-strategic-planning-restore.test.js \
             tests/v392-restored-goal-identity.test.js \
             tests/v393-explicit-daily-plan-alignment.test.js \
-            tests/v398-lc259-plan-factory.test.js
+            tests/v398-lc259-plan-factory.test.js \
+            tests/v402-factory-cross-area-integrity.test.js

@@ -24,7 +24,7 @@
   <link rel="icon" type="image/svg+xml" href="icons/logo-mark.svg?v=20260728-carregamento-direto-v168" />
   <link rel="preload" as="image" type="image/webp" href="icons/aldus-visual-320.webp?v=20260814-desempenho-integral-v329" fetchpriority="high" />
   <!-- Fontes CSS consolidadas, na ordem original: style.css; aldus-premium-theme.css; aldus-premium-refinement-v47.css; aldus-interface-v51.css; aldus-responsive-v52.css; aldus-contrast-v53.css; aldus-visual-v58.css; aldus-planning-v59.css; aldus-planning-history-v60.css; aldus-calendar-v61.css; aldus-calendar-v62.css; aldus-export-brand-v63.css; aldus-export-brand-v64.css; aldus-daily-goals-v66.css; aldus-daily-time-v67.css; aldus-contrast-system-v68.css; aldus-component-contrast-v69.css; aldus-advisor-layout-v70.css; aldus-backup-contrast-v71.css; aldus-navigation-scroll-v73.css; aldus-goal-integrity-v75.css; aldus-completed-visibility-v76.css. -->
-  <link id="aldusAppBundleStyles" rel="stylesheet" href="app-v378.css?v=20260823-indexeddb-direct-snapshot-v378" />
+  <link id="aldusAppBundleStyles" rel="stylesheet" href="app-v402.css?v=20260827-factory-cross-area-integrity-v402" />
   <link id="aldusQuestionsHubStylesV298" rel="stylesheet" href="questions-hub-v298.css?v=20260814-gerador-simulados-em-questoes-v328" />
 
   <link id="aldusCentralGoalsPaletteV246" rel="stylesheet" href="central-goals-palette-v245.css?v=20260805-dashboard-central-metas-cores-v246" />
@@ -37,7 +37,7 @@
   <link id="aldusDailySummaryElegantDirectV251" rel="stylesheet" href="daily-summary-elegant-direct-v251.css?v=20260805-daily-summary-elegant-direct-v251" />
   <link id="aldusDailySummaryElegantNestedV252" rel="stylesheet" href="daily-summary-elegant-nested-v252.css?v=20260805-daily-summary-elegant-nested-v252" />
   <link id="aldusCardPaletteV294" rel="stylesheet" href="aldus-card-palette-v294.css?v=20260809-paleta-cartoes-global-v294" />
-  <link rel="preload" as="script" href="app-v378.js?v=20260823-indexeddb-direct-snapshot-v378" />
+  <link rel="preload" as="script" href="app-v402.js?v=20260827-factory-cross-area-integrity-v402" />
   <link rel="preload" as="script" href="factory-simulado-visibility-v315.js?v=20260814-gerador-simulados-em-questoes-v328" />
 </head>
 <body>
@@ -387,16 +387,17 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
 
     <section id="view-fabrica-resumos" class="panel app-view" data-view="fabrica-resumos" aria-labelledby="factory-title">
       <div class="section-heading"><p class="eyebrow">Fábrica</p><h2 id="factory-title">🏭 Fábrica de Resumos</h2></div>
-      <p class="notice">Versão mínima e segura para cadastrar, listar, editar, excluir e acompanhar o status dos temas. Os dados são salvos no localStorage, entram no backup manual e seguem na sincronização Google Drive pelo estado do app.</p>
+      <p id="factoryIntegrityInfo" class="notice">Verificando a integridade das metas, da persistência, do backup e da sincronização da Fábrica.</p>
       <div class="actions factory-settings-actions"><button id="editFactoryPromptLibrary" type="button" class="secondary-button">Editar biblioteca de prompts</button></div>
       <section id="factoryPromptLibraryPanel" class="bulk-box factory-prompt-library" hidden aria-labelledby="factory-prompt-library-title"></section>
       <div id="factorySummary" class="stats-grid compact factory-summary" aria-live="polite"></div>
       <nav class="factory-production-tabs" aria-label="Período de produção da Fábrica">
         <button type="button" data-production-scope="day" aria-pressed="true">Plano do Dia</button>
         <button type="button" class="secondary-button" data-production-scope="week" aria-pressed="false">Produção da Semana</button>
+        <button type="button" class="secondary-button" data-production-scope="all" aria-pressed="false">Todas as Metas</button>
       </nav>
-      <details class="factory-collapsible factory-filter-panel" open>
-        <summary>Filtros e etapas da Fábrica</summary>
+      <details class="factory-collapsible factory-filter-panel" hidden aria-hidden="true">
+        <summary>Rotas internas das etapas da Fábrica</summary>
         <div class="actions factory-filter-actions" role="group" aria-label="Filtros da Fábrica">
         <button type="button" class="secondary-button" data-factory-filter="faca-agora">FAÇA AGORA</button>
         <button type="button" class="secondary-button" data-factory-filter="fila-hoje">FILA DO PERÍODO</button>
@@ -1170,7 +1171,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </section>
   </div>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260823-indexeddb-direct-snapshot-v378</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20260827-factory-cross-area-integrity-v402</p></footer>
   <div id="legacyTimerRecoveryModal" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="legacyTimerRecoveryModalTitle" hidden>
     <div class="app-modal-backdrop" data-legacy-recovery-cancel></div>
     <section class="app-modal-card">
