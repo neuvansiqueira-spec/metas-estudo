@@ -324,3 +324,159 @@
     dedupeWeeklyProjection
   });
 })();
+
+/* V378: “Todas as Metas” usa somente as datas efetivamente salvas em dailyGoals. */
+(() => {
+  "use strict";
+
+  const VERSION = "20260827-factory-all-goals-scope-v378";
+  const FLAG = "__ALDUS_FACTORY_ALL_GOALS_SCOPE_V378__";
+  let installed = false;
+  if (globalThis[FLAG]) return;
+
+  function currentState() {
+    try { return typeof state === "object" && state ? state : globalThis.state; }
+    catch { return globalThis.state || null; }
+  }
+
+  function goalDate(goal = {}) {
+    try {
+      if (typeof goalDateValue === "function") {
+        const value = goalDateValue(goal);
+        if (value) return String(value).slice(0, 10);
+      }
+    } catch {}
+    return String(goal.date || goal.data || goal.scheduledDate || goal.dataPlanejada || "").slice(0, 10);
+  }
+
+  function allDates() {
+    const targetState = currentState();
+    return [...new Set((Array.isArray(targetState?.dailyGoals) ? targetState.dailyGoals : [])
+      .map(goalDate)
+      .filter(Boolean))].sort();
+  }
+
+  function allQueue(agenda = ensureFactoryAgenda(), dates = allDates()) {
+    const activeAgenda = (Array.isArray(agenda) ? agenda : []).filter((item) => item?.editalActive !== false);
+    const seen = new Set();
+    const queue = [];
+    dates.forEach((date) => {
+      let entries = [];
+      try { entries = typeof factoryQueueForDate === "function" ? factoryQueueForDate(date, activeAgenda) : []; }
+      catch (error) { console.warn(`[${VERSION}] Falha ao ler a fila de ${date}.`, error); }
+      (Array.isArray(entries) ? entries : []).forEach((entry) => {
+        const id = String(entry?.item?.id || entry?.id || "");
+        if (!id || seen.has(id)) return;
+        try {
+          if (typeof factoryResumoAulaPending === "function" && !factoryResumoAulaPending(entry)) return;
+        } catch {}
+        seen.add(id);
+        queue.push({ ...entry, sourceDate: date });
+      });
+    });
+    return queue;
+  }
+
+  function allScopeActive() {
+    try { if (typeof factoryProductionScope !== "undefined") return factoryProductionScope === "all"; } catch {}
+    return Boolean(document.querySelector('[data-production-scope="all"].active, [data-production-scope="all"][aria-pressed="true"]'));
+  }
+
+  function replaceText(root, from, to) {
+    if (!root) return;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let node;
+    while ((node = walker.nextNode())) {
+      if (node.nodeValue?.includes(from)) node.nodeValue = node.nodeValue.replaceAll(from, to);
+    }
+  }
+
+  function decorateAllScope() {
+    document.querySelectorAll("[data-production-scope]").forEach((button) => {
+      const active = button.dataset.productionScope === "all";
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+    const root = document.getElementById("factoryList");
+    if (!root) return;
+    replaceText(root, "MATERIAIS DAS METAS PENDENTES — SEMANA", "MATERIAIS DAS METAS PENDENTES — TODAS AS METAS SALVAS");
+    replaceText(root, "Fila da semana", "Fila — todas as metas salvas");
+    replaceText(root, "Nenhum resumo/aula pendente de hoje ou de dias anteriores.", "Nenhum resumo/aula pendente em todas as metas salvas.");
+    const notice = root.querySelector(".factory-scope-notice");
+    if (notice) notice.textContent = "Todas as metas efetivamente salvas em dailyGoals. Esta visualização é somente leitura e não cria, remove, troca nem reagenda metas.";
+  }
+
+  function install() {
+    if (installed) return true;
+    if (typeof document === "undefined") return false;
+    if (
+      typeof renderFactory !== "function"
+      || typeof factoryProductionQueue !== "function"
+      || typeof ensureFactoryAgenda !== "function"
+      || typeof factoryQueueForDate !== "function"
+      || typeof factoryResumoAulaPending !== "function"
+      || typeof daysBetween !== "function"
+      || typeof factoryWeeklyQueue !== "function"
+    ) return false;
+
+    const originalRenderFactory = renderFactory;
+    const originalProductionQueue = factoryProductionQueue;
+
+    factoryProductionQueue = function factoryProductionQueueAllScopeV378(agenda = ensureFactoryAgenda()) {
+      if (allScopeActive()) return allQueue(agenda);
+      return originalProductionQueue.apply(this, arguments);
+    };
+    Object.defineProperty(factoryProductionQueue, "__aldusOriginal", { value: originalProductionQueue });
+
+    renderFactory = function renderFactoryAllScopeV378(...args) {
+      if (!allScopeActive()) return originalRenderFactory.apply(this, args);
+      const dates = allDates();
+      const previousScope = factoryProductionScope;
+      const originalDaysBetween = daysBetween;
+      const originalWeeklyQueue = factoryWeeklyQueue;
+      try {
+        factoryProductionScope = "week";
+        daysBetween = function daysBetweenAllScopeV378(start, count) {
+          if (Number(count) === 7) return [...dates];
+          return originalDaysBetween.apply(this, arguments);
+        };
+        factoryWeeklyQueue = function factoryWeeklyQueueAllScopeV378(agenda = ensureFactoryAgenda()) {
+          return allQueue(agenda, dates);
+        };
+        return originalRenderFactory.apply(this, args);
+      } finally {
+        daysBetween = originalDaysBetween;
+        factoryWeeklyQueue = originalWeeklyQueue;
+        factoryProductionScope = previousScope;
+        decorateAllScope();
+      }
+    };
+    Object.defineProperty(renderFactory, "__aldusOriginal", { value: originalRenderFactory });
+
+    document.addEventListener("click", (event) => {
+      const button = event.target.closest?.('[data-production-scope="all"]');
+      if (!button) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      try {
+        factoryProductionScope = "all";
+        if (typeof factoryCurrentFilter !== "undefined") factoryCurrentFilter = "faca-agora";
+        if (typeof factoryOpenDetailId !== "undefined") factoryOpenDetailId = "";
+        if (typeof factoryVisibleCount !== "undefined") factoryVisibleCount = 20;
+        renderFactory();
+      } catch (error) {
+        console.error(`[${VERSION}] Não foi possível abrir Todas as Metas.`, error);
+      }
+    }, true);
+
+    installed = true;
+    globalThis[FLAG] = Object.freeze({ version: VERSION, allDates, allQueue, installedAt: new Date().toISOString() });
+    return true;
+  }
+
+  if (!install() && typeof window !== "undefined") {
+    window.addEventListener("aldus:bootstrap-ready", install, { once: true });
+    window.addEventListener("aldus:post-bootstrap-maintenance-complete", install, { once: true });
+    window.addEventListener("load", install, { once: true });
+  }
+})();
