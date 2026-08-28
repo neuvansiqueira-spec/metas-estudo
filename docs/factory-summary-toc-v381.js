@@ -27,6 +27,14 @@
     "consolidacao"
   ]);
   const BEIGE_TARGET_SET = new Set(BEIGE_TARGET_TYPES);
+  const JURISPRUDENCE_YEAR_MARKER = "## ANO DA DECISÃO — REGRA OBRIGATÓRIA DA JURISPRUDÊNCIA";
+  const JURISPRUDENCE_YEAR_TARGET_TYPES = Object.freeze([
+    "jurisprudencia",
+    "resumoAulaJurisprudencia",
+    "leiJurisprudencia",
+    "consolidacao"
+  ]);
+  const JURISPRUDENCE_YEAR_TARGET_SET = new Set(JURISPRUDENCE_YEAR_TARGET_TYPES);
 
   const SUMMARY_SECTION = `
 
@@ -228,6 +236,23 @@ QUANDO HOUVER EDIÇÃO DIRETA DO OOXML DO DOCX, APLIQUE AO(S) RUN(S) DO RÓTULO,
 ANTES DA ENTREGA, CONFIRME VISUALMENTE QUE O BEGE APARECE SOMENTE ATRÁS DOS RÓTULOS FUNCIONAIS, COM O EMOJI/NUMERAÇÃO FORA DO SOMBREAMENTO E A EXPLICAÇÃO APÓS O RÓTULO TAMBÉM FORA DO SOMBREAMENTO.
 `;
 
+  const JURISPRUDENCE_YEAR_SECTION = `
+
+${JURISPRUDENCE_YEAR_MARKER}
+
+EM TODO CONTEÚDO JURISPRUDENCIAL GERADO, REVISADO OU CONSOLIDADO, O ANO DA DECISÃO DEVE SER APRESENTADO PARA CADA JULGADO, PRECEDENTE OU DECISÃO CITADA.
+
+USE O CAMPO:
+📍 **ANO DA DECISÃO: [AAAA]**
+
+SE A FONTE NÃO INFORMAR O ANO DA DECISÃO, NÃO OMITA O CAMPO E NÃO INVENTE. REGISTRE:
+📍 **ANO DA DECISÃO: NÃO IDENTIFICADO NA FONTE**
+
+ESTA REGRA VALE TANTO PARA OS BLOCOS JURISPRUDENCIAIS CONTEXTUALIZADOS QUANTO PARA QUADROS FINAIS, JURISPRUDÊNCIA COMPLEMENTAR E CONSOLIDAÇÃO FINAL.
+
+NÃO ALTERE NENHUMA OUTRA REGRA DO PROMPT.
+`;
+
   function stripLegacySummary(prompt) {
     const text = String(prompt || "").trim();
     if (!text) return text;
@@ -257,6 +282,13 @@ ANTES DA ENTREGA, CONFIRME VISUALMENTE QUE O BEGE APARECE SOMENTE ATRÁS DOS RÓ
     if (!raw) return raw;
     if (raw.includes(BEIGE_MARKER)) return raw;
     return `${raw}${BEIGE_SECTION}`.trim();
+  }
+
+  function withJurisprudenceYear(prompt) {
+    const raw = String(prompt || "").trim();
+    if (!raw) return raw;
+    if (raw.includes(JURISPRUDENCE_YEAR_MARKER)) return raw;
+    return `${raw}${JURISPRUDENCE_YEAR_SECTION}`.trim();
   }
 
   function ensureIntegratedPromptReady() {
@@ -292,6 +324,42 @@ ANTES DA ENTREGA, CONFIRME VISUALMENTE QUE O BEGE APARECE SOMENTE ATRÁS DOS RÓ
           state.factoryPromptLibrary[type] = next;
         });
         state.migrations[MIGRATION_ID] ||= new Date().toISOString();
+      }
+    } catch {}
+
+    return changed;
+  }
+
+  function patchJurisprudenceYearScope() {
+    let changed = 0;
+    let stateChanged = false;
+
+    try {
+      if (defaultFactoryPromptLibrary && typeof defaultFactoryPromptLibrary === "object") {
+        JURISPRUDENCE_YEAR_TARGET_TYPES.forEach((type) => {
+          const current = String(defaultFactoryPromptLibrary[type] || "").trim();
+          if (!current) return;
+          const next = withJurisprudenceYear(current);
+          if (next !== current) changed += 1;
+          defaultFactoryPromptLibrary[type] = next;
+        });
+      }
+    } catch {}
+
+    try {
+      if (state && typeof state === "object") {
+        state.factoryPromptLibrary ||= {};
+        JURISPRUDENCE_YEAR_TARGET_TYPES.forEach((type) => {
+          const current = String(state.factoryPromptLibrary[type] || "").trim();
+          if (!current) return;
+          const next = withJurisprudenceYear(current);
+          if (next !== current) {
+            changed += 1;
+            stateChanged = true;
+            state.factoryPromptLibrary[type] = next;
+          }
+        });
+        if (stateChanged && typeof saveData === "function") saveData();
       }
     } catch {}
 
@@ -352,9 +420,12 @@ ANTES DA ENTREGA, CONFIRME VISUALMENTE QUE O BEGE APARECE SOMENTE ATRÁS DOS RÓ
         const prompt = previous(type);
         const summarized = TARGET_SET.has(type) ? withSummary(prompt) : prompt;
         if (typeof summarized !== "string") return summarized;
+        const jurisprudenceYear = JURISPRUDENCE_YEAR_TARGET_SET.has(type)
+          ? withJurisprudenceYear(summarized)
+          : summarized;
         return BEIGE_TARGET_SET.has(type)
-          ? withBeigeShading(summarized)
-          : stripBeigeShading(summarized);
+          ? withBeigeShading(jurisprudenceYear)
+          : stripBeigeShading(jurisprudenceYear);
       };
       Object.defineProperty(wrapped, WRAP_MARKER, { value: VERSION });
       Object.defineProperty(wrapped, "__aldusFactorySummaryTocOriginal", { value: previous });
@@ -379,6 +450,7 @@ ANTES DA ENTREGA, CONFIRME VISUALMENTE QUE O BEGE APARECE SOMENTE ATRÁS DOS RÓ
 
   function install() {
     const changed = patchPromptLibraries();
+    patchJurisprudenceYearScope();
     const beigeChanged = patchBeigeShadingScope();
     const wrapped = wrapFactoryPromptBase();
     if (!wrapped) return { installed: false, changed, beigeChanged, wrapped };
