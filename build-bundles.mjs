@@ -407,7 +407,7 @@ for (const legacySuffix of ["v168", "v169", "v332"]) {
 }
 
 for (const filename of [
-  "app-version.js", "style.css", "script.js", "service-worker.js", "questions-hub-v298.css", "questions-hub-v298.js", "sync-integral-core.js",
+  "app-version.js", "style.css", "script.js", "service-worker.js", "storage-indexeddb.js", "questions-hub-v298.css", "questions-hub-v298.js", "sync-integral-core.js", "sync-integral-cloud.js",
   // 2026-08-17: este módulo tem teste exigindo cópias idênticas, mas estava fora
   // da sincronia do build e divergia a cada alteração feita só na raiz.
   "daily-summary-time-format-v243.js",

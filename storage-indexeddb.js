@@ -85,46 +85,70 @@ function indexedDBStateHasUserData(state = {}) {
   return ["subjects", "studies", "syllabusItems", "dailyGoals", "questionLogs", "materials", "questionBank", "simulados", "smartReviews", "factoryAgenda", "factoryItems"].some((key) => Array.isArray(state?.[key]) && state[key].length);
 }
 
-async function saveStateToIndexedDB(state, options = {}) {
-  const source = state || {};
-  const ensureSafeWrite = async (candidate) => {
-    if (indexedDBStateHasUserData(candidate)) return;
-    const existing = await loadStateFromIndexedDB().catch(() => null);
-    if (validateIndexedDBState(existing) && indexedDBStateHasUserData(existing.data)) throw new Error("Proteção ativada: estado vazio não substitui IndexedDB válido.");
-  };
+function resolveIndexedDBWriteCandidate(source, existing, options = {}) {
+  const current = validateIndexedDBState(existing) ? existing : null;
+  const expectedChecksum = String(options.expectedChecksum || "");
+  const concurrentMerge = Boolean(current && expectedChecksum && current.checksum !== expectedChecksum);
+  let data = source || {};
 
-  if (options.directSnapshot) {
-    await ensureSafeWrite(source);
-    let record = null;
-    await runStoreOperation(STUDY_DB_APP_STATE_STORE, "readwrite", (store) => {
-      const serializedState = JSON.stringify(source);
-      record = {
-        id: STUDY_DB_CURRENT_ID,
-        schemaVersion: STUDY_DB_SCHEMA_VERSION,
-        savedAt: new Date().toISOString(),
-        checksum: checksumForSerializedState(serializedState),
-        serializedSize: serializedState.length,
-        data: source
-      };
-      return store.put(record);
-    });
-    return record;
+  if (concurrentMerge) {
+    if (typeof options.mergeConcurrentState !== "function") {
+      throw new Error("Conflito de gravação detectado: o IndexedDB foi atualizado por outra aba.");
+    }
+    data = options.mergeConcurrentState(data, current.data);
   }
 
-  const data = options.detachedSnapshot
-    ? source
-    : (typeof structuredClone === "function" ? structuredClone(source) : JSON.parse(JSON.stringify(source)));
-  await ensureSafeWrite(data);
-  const serializedState = JSON.stringify(data);
-  const record = {
-    id: STUDY_DB_CURRENT_ID,
-    schemaVersion: STUDY_DB_SCHEMA_VERSION,
-    savedAt: new Date().toISOString(),
-    checksum: checksumForSerializedState(serializedState),
-    serializedSize: serializedState.length,
-    data
-  };
-  return runStoreOperation(STUDY_DB_APP_STATE_STORE, "readwrite", (store) => store.put(record)).then(() => record);
+  if (!indexedDBStateHasUserData(data) && current && indexedDBStateHasUserData(current.data)) {
+    throw new Error("Proteção ativada: estado vazio não substitui IndexedDB válido.");
+  }
+
+  return { data, concurrentMerge, previousChecksum: current?.checksum || "" };
+}
+
+function saveIndexedDBStateAtomically(source, options = {}) {
+  return openStudyDatabase().then((database) => new Promise((resolve, reject) => {
+    const transaction = database.transaction(STUDY_DB_APP_STATE_STORE, "readwrite");
+    const store = transaction.objectStore(STUDY_DB_APP_STATE_STORE);
+    const request = store.get(STUDY_DB_CURRENT_ID);
+    let record = null;
+    let failure = null;
+
+    request.onsuccess = () => {
+      try {
+        const resolved = resolveIndexedDBWriteCandidate(source, request.result || null, options);
+        const serializedState = JSON.stringify(resolved.data);
+        record = {
+          id: STUDY_DB_CURRENT_ID,
+          schemaVersion: STUDY_DB_SCHEMA_VERSION,
+          savedAt: new Date().toISOString(),
+          checksum: checksumForSerializedState(serializedState),
+          serializedSize: serializedState.length,
+          data: resolved.data,
+          concurrentMerge: resolved.concurrentMerge,
+          previousChecksum: resolved.previousChecksum
+        };
+        store.put(record);
+      } catch (error) {
+        failure = error;
+        transaction.abort();
+      }
+    };
+    request.onerror = () => {
+      failure = request.error || new Error("Falha ao consultar o estado atual do IndexedDB.");
+    };
+    transaction.oncomplete = () => { database.close(); resolve(record); };
+    transaction.onerror = () => { database.close(); reject(failure || transaction.error || new Error("Falha na transação IndexedDB.")); };
+    transaction.onabort = () => { database.close(); reject(failure || transaction.error || new Error("Transação IndexedDB abortada.")); };
+  }));
+}
+
+async function saveStateToIndexedDB(state, options = {}) {
+  const source = state || {};
+  if (options.directSnapshot || options.detachedSnapshot) {
+    return saveIndexedDBStateAtomically(source, options);
+  }
+  const data = typeof structuredClone === "function" ? structuredClone(source) : JSON.parse(JSON.stringify(source));
+  return saveIndexedDBStateAtomically(data, options);
 }
 
 function loadStateFromIndexedDB() {
@@ -167,5 +191,5 @@ async function migrateLocalStorageStateToIndexedDB(state) {
   return { completed: true, reused: false, record: reloaded, metadata };
 }
 
-if (typeof window !== "undefined") Object.assign(window, { openStudyDatabase, saveStateToIndexedDB, loadStateFromIndexedDB, getIndexedDBMetadata, validateIndexedDBState, estimateSerializedStateSize, migrateLocalStorageStateToIndexedDB, statesMatchIndexedDBRecord, indexedDBStateHasUserData });
-if (typeof module !== "undefined") module.exports = { openStudyDatabase, saveStateToIndexedDB, loadStateFromIndexedDB, getIndexedDBMetadata, validateIndexedDBState, estimateSerializedStateSize, migrateLocalStorageStateToIndexedDB, checksumForState, legacyChecksumForState, checksumMatchesState, statesMatchIndexedDBRecord, indexedDBStateHasUserData };
+if (typeof window !== "undefined") Object.assign(window, { openStudyDatabase, saveStateToIndexedDB, loadStateFromIndexedDB, getIndexedDBMetadata, validateIndexedDBState, estimateSerializedStateSize, migrateLocalStorageStateToIndexedDB, statesMatchIndexedDBRecord, indexedDBStateHasUserData, checksumForState });
+if (typeof module !== "undefined") module.exports = { openStudyDatabase, saveStateToIndexedDB, loadStateFromIndexedDB, getIndexedDBMetadata, validateIndexedDBState, estimateSerializedStateSize, migrateLocalStorageStateToIndexedDB, checksumForState, legacyChecksumForState, checksumMatchesState, statesMatchIndexedDBRecord, indexedDBStateHasUserData, resolveIndexedDBWriteCandidate };

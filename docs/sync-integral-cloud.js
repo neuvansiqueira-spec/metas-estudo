@@ -50,6 +50,8 @@ async function uploadSyncPayloadIntegral(payload = makeSyncPayload(), { statusMe
 
 async function applyCloudPayloadIntegral(payload, { preserveView = false } = {}) {
   isApplyingRemote = true;
+  const previousState = cloneData(state);
+  let localPersistenceCommitted = false;
   try {
     validateCloudPayload(payload);
     syncCreateSafetyBackup(state, "before-cloud-download-merge");
@@ -67,10 +69,23 @@ async function applyCloudPayloadIntegral(payload, { preserveView = false } = {})
       stateFingerprint: syncStateFingerprint(mergedState)
     };
     replaceState(mergedState);
-    const snapshot = cloneData(state);
-    const saved = await saveStateToIndexedDB(snapshot);
+    let snapshot = cloneData(state);
+    const saved = await saveStateToIndexedDB(snapshot, {
+      detachedSnapshot: true,
+      expectedChecksum: indexedDBPersistBaseChecksum,
+      mergeConcurrentState: (cloudState, storedState) => mergeSyncStates(storedState, cloudState, "remote")
+    });
     const reloaded = await loadStateFromIndexedDB();
-    if (!statesMatchIndexedDBRecord(snapshot, reloaded)) throw new Error("A validação da restauração no IndexedDB falhou.");
+    if (!statesMatchIndexedDBRecord(null, reloaded, saved.checksum)) throw new Error("A validação da restauração no IndexedDB falhou.");
+    localPersistenceCommitted = true;
+    indexedDBPersistBaseChecksum = saved.checksum;
+    if (saved.concurrentMerge) {
+      replaceState(saved.data);
+      snapshot = cloneData(saved.data);
+      mergedPayload.state = cloneData(saved.data);
+      mergedPayload.stateFingerprint = syncStateFingerprint(saved.data);
+    }
+    publishIndexedDBPersistenceSignal(saved);
     indexedDBStatus.available = true;
     indexedDBStatus.activeSource = "IndexedDB";
     indexedDBStatus.lastLoadedSource = "Mesclagem Google Drive";
@@ -92,6 +107,7 @@ async function applyCloudPayloadIntegral(payload, { preserveView = false } = {})
     if (!preserveView) showView("backup");
     renderSyncStatus(uploadSucceeded ? "Sincronização integral concluída sem perda de sessões." : "Dados mesclados neste dispositivo. Reenvio para a nuvem pendente.");
   } catch (error) {
+    if (!localPersistenceCommitted) replaceState(previousState);
     if (!error.cloudSyncKind) throw cloudSyncError("apply", "Erro ao mesclar os dados da nuvem. Os dados locais foram preservados.", error);
     throw error;
   } finally {

@@ -102,17 +102,17 @@ test("payload do Drive não dispara um segundo salvamento completo", () => {
   assert.doesNotMatch(autoSync, /\}, 750\)/);
 });
 
-test("módulo IndexedDB mantém proteção contra estado vazio sem penalizar o salvamento normal", () => {
+test("módulo IndexedDB protege estado vazio e resolve concorrência na mesma transação", () => {
   const save = sourceBetween(
     indexedDBSource,
-    "async function saveStateToIndexedDB(state, options = {})",
+    "function resolveIndexedDBWriteCandidate(source, existing, options = {})",
     "function loadStateFromIndexedDB()"
   );
 
-  assert.match(save, /const ensureSafeWrite = async \(candidate\)/);
-  assert.match(save, /if \(indexedDBStateHasUserData\(candidate\)\) return/);
-  assert.match(save, /validateIndexedDBState\(existing\)/);
-  assert.match(save, /indexedDBStateHasUserData\(existing\.data\)/);
+  assert.match(save, /expectedChecksum/);
+  assert.match(save, /mergeConcurrentState/);
+  assert.match(save, /indexedDBStateHasUserData\(current\.data\)/);
+  assert.match(save, /transaction\.abort\(\)/);
   assert.match(save, /detachedSnapshot/);
   assert.match(save, /serializedSize/);
   assert.doesNotMatch(save, /stableSerialize\(data\)/);
