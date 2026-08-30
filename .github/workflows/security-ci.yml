@@ -56,6 +56,8 @@ jobs:
           node --check bootstrap-integrity-loader-v258-core.js
           node --check bootstrap-integrity-loader-v258.js
           node --check bootstrap-integrity-loader-v275.js
+          node --check bootstrap-fast-path-v351.js
+          node --check service-worker-v378.js
           node --check factory-executive-ui-v136.js
           node --check planning-variety-v357.js
           node --check planning-piece-rotation-v358.js
@@ -96,4 +98,5 @@ jobs:
             tests/v392-restored-goal-identity.test.js \
             tests/v393-explicit-daily-plan-alignment.test.js \
             tests/v398-lc259-plan-factory.test.js \
-            tests/v402-factory-cross-area-integrity.test.js
+            tests/v402-factory-cross-area-integrity.test.js \
+            tests/v404-bootstrap-runtime-unification.test.js
