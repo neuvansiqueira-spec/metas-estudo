@@ -123,46 +123,70 @@ function indexedDBStateHasUserData(state = {}) {
   return ["subjects", "studies", "syllabusItems", "dailyGoals", "questionLogs", "materials", "questionBank", "simulados", "smartReviews", "factoryAgenda", "factoryItems"].some((key) => Array.isArray(state?.[key]) && state[key].length);
 }
 
-async function saveStateToIndexedDB(state, options = {}) {
-  const source = state || {};
-  const ensureSafeWrite = async (candidate) => {
-    if (indexedDBStateHasUserData(candidate)) return;
-    const existing = await loadStateFromIndexedDB().catch(() => null);
-    if (validateIndexedDBState(existing) && indexedDBStateHasUserData(existing.data)) throw new Error("Proteção ativada: estado vazio não substitui IndexedDB válido.");
-  };
+function resolveIndexedDBWriteCandidate(source, existing, options = {}) {
+  const current = validateIndexedDBState(existing) ? existing : null;
+  const expectedChecksum = String(options.expectedChecksum || "");
+  const concurrentMerge = Boolean(current && expectedChecksum && current.checksum !== expectedChecksum);
+  let data = source || {};
 
-  if (options.directSnapshot) {
-    await ensureSafeWrite(source);
-    let record = null;
-    await runStoreOperation(STUDY_DB_APP_STATE_STORE, "readwrite", (store) => {
-      const serializedState = JSON.stringify(source);
-      record = {
-        id: STUDY_DB_CURRENT_ID,
-        schemaVersion: STUDY_DB_SCHEMA_VERSION,
-        savedAt: new Date().toISOString(),
-        checksum: checksumForSerializedState(serializedState),
-        serializedSize: serializedState.length,
-        data: source
-      };
-      return store.put(record);
-    });
-    return record;
+  if (concurrentMerge) {
+    if (typeof options.mergeConcurrentState !== "function") {
+      throw new Error("Conflito de gravação detectado: o IndexedDB foi atualizado por outra aba.");
+    }
+    data = options.mergeConcurrentState(data, current.data);
   }
 
-  const data = options.detachedSnapshot
-    ? source
-    : (typeof structuredClone === "function" ? structuredClone(source) : JSON.parse(JSON.stringify(source)));
-  await ensureSafeWrite(data);
-  const serializedState = JSON.stringify(data);
-  const record = {
-    id: STUDY_DB_CURRENT_ID,
-    schemaVersion: STUDY_DB_SCHEMA_VERSION,
-    savedAt: new Date().toISOString(),
-    checksum: checksumForSerializedState(serializedState),
-    serializedSize: serializedState.length,
-    data
-  };
-  return runStoreOperation(STUDY_DB_APP_STATE_STORE, "readwrite", (store) => store.put(record)).then(() => record);
+  if (!indexedDBStateHasUserData(data) && current && indexedDBStateHasUserData(current.data)) {
+    throw new Error("Proteção ativada: estado vazio não substitui IndexedDB válido.");
+  }
+
+  return { data, concurrentMerge, previousChecksum: current?.checksum || "" };
+}
+
+function saveIndexedDBStateAtomically(source, options = {}) {
+  return openStudyDatabase().then((database) => new Promise((resolve, reject) => {
+    const transaction = database.transaction(STUDY_DB_APP_STATE_STORE, "readwrite");
+    const store = transaction.objectStore(STUDY_DB_APP_STATE_STORE);
+    const request = store.get(STUDY_DB_CURRENT_ID);
+    let record = null;
+    let failure = null;
+
+    request.onsuccess = () => {
+      try {
+        const resolved = resolveIndexedDBWriteCandidate(source, request.result || null, options);
+        const serializedState = JSON.stringify(resolved.data);
+        record = {
+          id: STUDY_DB_CURRENT_ID,
+          schemaVersion: STUDY_DB_SCHEMA_VERSION,
+          savedAt: new Date().toISOString(),
+          checksum: checksumForSerializedState(serializedState),
+          serializedSize: serializedState.length,
+          data: resolved.data,
+          concurrentMerge: resolved.concurrentMerge,
+          previousChecksum: resolved.previousChecksum
+        };
+        store.put(record);
+      } catch (error) {
+        failure = error;
+        transaction.abort();
+      }
+    };
+    request.onerror = () => {
+      failure = request.error || new Error("Falha ao consultar o estado atual do IndexedDB.");
+    };
+    transaction.oncomplete = () => { database.close(); resolve(record); };
+    transaction.onerror = () => { database.close(); reject(failure || transaction.error || new Error("Falha na transação IndexedDB.")); };
+    transaction.onabort = () => { database.close(); reject(failure || transaction.error || new Error("Transação IndexedDB abortada.")); };
+  }));
+}
+
+async function saveStateToIndexedDB(state, options = {}) {
+  const source = state || {};
+  if (options.directSnapshot || options.detachedSnapshot) {
+    return saveIndexedDBStateAtomically(source, options);
+  }
+  const data = typeof structuredClone === "function" ? structuredClone(source) : JSON.parse(JSON.stringify(source));
+  return saveIndexedDBStateAtomically(data, options);
 }
 
 function loadStateFromIndexedDB() {
@@ -205,8 +229,8 @@ async function migrateLocalStorageStateToIndexedDB(state) {
   return { completed: true, reused: false, record: reloaded, metadata };
 }
 
-if (typeof window !== "undefined") Object.assign(window, { openStudyDatabase, saveStateToIndexedDB, loadStateFromIndexedDB, getIndexedDBMetadata, validateIndexedDBState, estimateSerializedStateSize, migrateLocalStorageStateToIndexedDB, statesMatchIndexedDBRecord, indexedDBStateHasUserData });
-if (typeof module !== "undefined") module.exports = { openStudyDatabase, saveStateToIndexedDB, loadStateFromIndexedDB, getIndexedDBMetadata, validateIndexedDBState, estimateSerializedStateSize, migrateLocalStorageStateToIndexedDB, checksumForState, legacyChecksumForState, checksumMatchesState, statesMatchIndexedDBRecord, indexedDBStateHasUserData };
+if (typeof window !== "undefined") Object.assign(window, { openStudyDatabase, saveStateToIndexedDB, loadStateFromIndexedDB, getIndexedDBMetadata, validateIndexedDBState, estimateSerializedStateSize, migrateLocalStorageStateToIndexedDB, statesMatchIndexedDBRecord, indexedDBStateHasUserData, checksumForState });
+if (typeof module !== "undefined") module.exports = { openStudyDatabase, saveStateToIndexedDB, loadStateFromIndexedDB, getIndexedDBMetadata, validateIndexedDBState, estimateSerializedStateSize, migrateLocalStorageStateToIndexedDB, checksumForState, legacyChecksumForState, checksumMatchesState, statesMatchIndexedDBRecord, indexedDBStateHasUserData, resolveIndexedDBWriteCandidate };
 
 /* Aldus source: analytics-engine.js */
 (function (root, factory) {
@@ -3814,6 +3838,8 @@ async function uploadSyncPayloadIntegral(payload = makeSyncPayload(), { statusMe
 
 async function applyCloudPayloadIntegral(payload, { preserveView = false } = {}) {
   isApplyingRemote = true;
+  const previousState = cloneData(state);
+  let localPersistenceCommitted = false;
   try {
     validateCloudPayload(payload);
     syncCreateSafetyBackup(state, "before-cloud-download-merge");
@@ -3831,10 +3857,23 @@ async function applyCloudPayloadIntegral(payload, { preserveView = false } = {})
       stateFingerprint: syncStateFingerprint(mergedState)
     };
     replaceState(mergedState);
-    const snapshot = cloneData(state);
-    const saved = await saveStateToIndexedDB(snapshot);
+    let snapshot = cloneData(state);
+    const saved = await saveStateToIndexedDB(snapshot, {
+      detachedSnapshot: true,
+      expectedChecksum: indexedDBPersistBaseChecksum,
+      mergeConcurrentState: (cloudState, storedState) => mergeSyncStates(storedState, cloudState, "remote")
+    });
     const reloaded = await loadStateFromIndexedDB();
-    if (!statesMatchIndexedDBRecord(snapshot, reloaded)) throw new Error("A validação da restauração no IndexedDB falhou.");
+    if (!statesMatchIndexedDBRecord(null, reloaded, saved.checksum)) throw new Error("A validação da restauração no IndexedDB falhou.");
+    localPersistenceCommitted = true;
+    indexedDBPersistBaseChecksum = saved.checksum;
+    if (saved.concurrentMerge) {
+      replaceState(saved.data);
+      snapshot = cloneData(saved.data);
+      mergedPayload.state = cloneData(saved.data);
+      mergedPayload.stateFingerprint = syncStateFingerprint(saved.data);
+    }
+    publishIndexedDBPersistenceSignal(saved);
     indexedDBStatus.available = true;
     indexedDBStatus.activeSource = "IndexedDB";
     indexedDBStatus.lastLoadedSource = "Mesclagem Google Drive";
@@ -3856,6 +3895,7 @@ async function applyCloudPayloadIntegral(payload, { preserveView = false } = {})
     if (!preserveView) showView("backup");
     renderSyncStatus(uploadSucceeded ? "Sincronização integral concluída sem perda de sessões." : "Dados mesclados neste dispositivo. Reenvio para a nuvem pendente.");
   } catch (error) {
+    if (!localPersistenceCommitted) replaceState(previousState);
     if (!error.cloudSyncKind) throw cloudSyncError("apply", "Erro ao mesclar os dados da nuvem. Os dados locais foram preservados.", error);
     throw error;
   } finally {
@@ -38367,6 +38407,12 @@ let indexedDBPersistInFlight = false;
 let indexedDBPersistQueued = false;
 let indexedDBPersistTimer = null;
 let indexedDBPersistScheduleMode = "";
+let indexedDBPersistBaseChecksum = "";
+let indexedDBPersistenceSignalHandling = false;
+let indexedDBPersistenceChannel = null;
+const INDEXEDDB_PERSISTENCE_SIGNAL_KEY = "metasEstudoIndexedDBSignalV405";
+const INDEXEDDB_PERSISTENCE_CHANNEL_NAME = "metas-estudo-indexeddb-v405";
+const indexedDBPersistenceInstanceId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 let bootstrapStateReady = false;
 
 function migrateCoreFactoryPrompts(targetState = state) {
@@ -39149,6 +39195,7 @@ async function loadPrimaryStateFromIndexedDB() {
 async function initializePrimaryStorage() {
   try {
     const idb = await loadPrimaryStateFromIndexedDB();
+    indexedDBPersistBaseChecksum = idb.valid ? idb.record?.checksum || "" : "";
     indexedDBStatus.available = true;
     indexedDBStatus.lastCopyAt = idb.record?.savedAt || "";
     indexedDBStatus.validation = idb.valid ? "válido" : (idb.empty ? "vazio" : "inválido");
@@ -39162,7 +39209,8 @@ async function initializePrimaryStorage() {
         console.info("[Metas Estudo] Fonte escolhida: localStorage fallback (mais recente).", { localTime, idbTime });
         indexedDBStatus.activeSource = "localStorage fallback";
         indexedDBStatus.lastLoadedSource = "localStorage";
-        await migrateLocalStorageStateToIndexedDB(state);
+        const migration = await migrateLocalStorageStateToIndexedDB(state);
+        indexedDBPersistBaseChecksum = migration.record?.checksum || indexedDBPersistBaseChecksum;
       } else {
         console.info("[Metas Estudo] Fonte escolhida: IndexedDB.", { localTime, idbTime });
         indexedDBStatus.activeSource = "IndexedDB";
@@ -39176,7 +39224,8 @@ async function initializePrimaryStorage() {
       console.info("[Metas Estudo] Fonte escolhida: localStorage fallback (IndexedDB vazio/inválido).");
       indexedDBStatus.activeSource = "localStorage fallback";
       indexedDBStatus.lastLoadedSource = "localStorage";
-      await migrateLocalStorageStateToIndexedDB(state);
+      const migration = await migrateLocalStorageStateToIndexedDB(state);
+      indexedDBPersistBaseChecksum = migration.record?.checksum || indexedDBPersistBaseChecksum;
       indexedDBStatus.validation = "localStorage copiado e validado";
     } else {
       indexedDBStatus.activeSource = idb.valid ? "IndexedDB" : "localStorage fallback";
@@ -39219,9 +39268,25 @@ async function processIndexedDBStateCopyQueue() {
   indexedDBPersistQueued = false;
   indexedDBPersistInFlight = true;
   try {
-    const record = await saveStateToIndexedDB(state, { directSnapshot: true });
+    const saveOptions = {
+      directSnapshot: true,
+      expectedChecksum: indexedDBPersistBaseChecksum,
+      mergeConcurrentState: (localState, storedState) => {
+        if (typeof mergeSyncStates !== "function") throw new Error("Mesclagem segura entre abas indisponível.");
+        return mergeSyncStates(storedState, localState, "remote");
+      }
+    };
+    const record = indexedDBPersistBaseChecksum
+      ? await saveStateToIndexedDB(state, saveOptions)
+      : await saveStateToIndexedDB(state, { directSnapshot: true });
     const reloaded = await loadStateFromIndexedDB();
     if (!statesMatchIndexedDBRecord(null, reloaded, record.checksum)) throw new Error("A validação da gravação no IndexedDB falhou.");
+    indexedDBPersistBaseChecksum = record.checksum;
+    if (record.concurrentMerge && checksumForState(state) !== record.checksum) {
+      replaceState(record.data);
+      render();
+      if (typeof showDailyGoalMessage === "function") showDailyGoalMessage("Alterações de outra aba foram mescladas sem perda de dados.", "success");
+    }
     indexedDBStatus.available = true;
     indexedDBStatus.activeSource = "IndexedDB";
     indexedDBStatus.lastCopyAt = record.savedAt;
@@ -39229,6 +39294,7 @@ async function processIndexedDBStateCopyQueue() {
     indexedDBStatus.size = Number(record.serializedSize) || 0;
     if (indexedDBStatus.migration === "pendente") indexedDBStatus.migration = "concluída";
     indexedDBStatus.error = indexedDBStatus.localStorageFull ? "IndexedDB funcionando; cópia localStorage indisponível por falta de espaço." : "";
+    publishIndexedDBPersistenceSignal(record);
   } catch (error) {
     recordIndexedDBWarning("Falha ao atualizar a cópia IndexedDB.", error);
   } finally {
@@ -39238,10 +39304,73 @@ async function processIndexedDBStateCopyQueue() {
   }
 }
 
+function publishIndexedDBPersistenceSignal(record) {
+  if (!record?.checksum) return;
+  const signal = { source: indexedDBPersistenceInstanceId, checksum: record.checksum, savedAt: record.savedAt || new Date().toISOString() };
+  if (indexedDBPersistenceChannel) {
+    try {
+      indexedDBPersistenceChannel.postMessage(signal);
+      return;
+    } catch (error) {
+      console.warn("[Metas Estudo] Canal entre abas indisponível; usando aviso local compatível.", error);
+    }
+  }
+  try { localStorage.setItem(INDEXEDDB_PERSISTENCE_SIGNAL_KEY, JSON.stringify(signal)); }
+  catch (error) { console.warn("[Metas Estudo] Aviso entre abas indisponível; o IndexedDB permanece protegido.", error); }
+}
+
+async function handleIndexedDBPersistenceSignal(signal = {}) {
+  if (!bootstrapStateReady || indexedDBPersistenceSignalHandling || signal.source === indexedDBPersistenceInstanceId || !signal.checksum || signal.checksum === indexedDBPersistBaseChecksum) return;
+  indexedDBPersistenceSignalHandling = true;
+  try {
+    const record = await loadStateFromIndexedDB();
+    if (!validateIndexedDBState(record) || record.checksum === indexedDBPersistBaseChecksum) return;
+    if (indexedDBPersistQueued || indexedDBPersistInFlight) {
+      indexedDBPersistQueued = true;
+      queueIndexedDBStateCopy();
+      return;
+    }
+    const mergedState = typeof mergeSyncStates === "function" ? mergeSyncStates(state, record.data, "remote") : record.data;
+    const mergedChecksum = checksumForState(mergedState);
+    indexedDBPersistBaseChecksum = record.checksum;
+    replaceState(mergedState);
+    if (mergedChecksum !== record.checksum) queueIndexedDBStateCopy();
+    render();
+    if (typeof showDailyGoalMessage === "function") showDailyGoalMessage("Dados atualizados pela outra aba deste dispositivo.", "success");
+  } catch (error) {
+    console.warn("[Metas Estudo] Falha ao reconciliar a atualização de outra aba.", error);
+  } finally {
+    indexedDBPersistenceSignalHandling = false;
+  }
+}
+
+function installIndexedDBPersistenceSignals() {
+  if (typeof window === "undefined" || globalThis.__aldusIndexedDBPersistenceSignalsV405) return;
+  globalThis.__aldusIndexedDBPersistenceSignalsV405 = true;
+  if (typeof BroadcastChannel === "function") {
+    try {
+      indexedDBPersistenceChannel = new BroadcastChannel(INDEXEDDB_PERSISTENCE_CHANNEL_NAME);
+      indexedDBPersistenceChannel.addEventListener("message", (event) => handleIndexedDBPersistenceSignal(event.data));
+    } catch (error) {
+      indexedDBPersistenceChannel = null;
+      console.warn("[Metas Estudo] BroadcastChannel indisponível; usando evento de armazenamento.", error);
+    }
+  }
+  if (!indexedDBPersistenceChannel) {
+    window.addEventListener("storage", (event) => {
+      if (event.key !== INDEXEDDB_PERSISTENCE_SIGNAL_KEY || !event.newValue) return;
+      try { handleIndexedDBPersistenceSignal(JSON.parse(event.newValue)); }
+      catch (error) { console.warn("[Metas Estudo] Sinal de persistência inválido ignorado.", error); }
+    });
+  }
+}
+
+installIndexedDBPersistenceSignals();
+
 function persistStateSafely(options = {}) {
   if (options.markLocalChange && !isApplyingRemote) markLocalUpdated();
   state.dailyGoals?.forEach(normalizeGoalTimeFields);
-  queueIndexedDBStateCopy();
+  if (!options.skipIndexedDB) queueIndexedDBStateCopy();
   const knownLargeState = indexedDBStatus.available && indexedDBStatus.size > LOCAL_STORAGE_SAFE_STATE_BYTES;
   if (knownLargeState || indexedDBStatus.localStorageFull) {
     indexedDBStatus.localStorageAvailable = false;
@@ -39320,6 +39449,7 @@ async function initializeIndexedDBBackup() {
   try {
     const result = await migrateLocalStorageStateToIndexedDB(state);
     const record = result.record || await loadStateFromIndexedDB();
+    indexedDBPersistBaseChecksum = record?.checksum || indexedDBPersistBaseChecksum;
     indexedDBStatus.available = true;
     indexedDBStatus.activeSource = "IndexedDB";
     indexedDBStatus.lastCopyAt = record?.savedAt || result.metadata?.savedAt || "";
@@ -39342,6 +39472,7 @@ async function verifyStorageCopy() {
     const record = await loadStateFromIndexedDB();
     if (!validateIndexedDBState(record)) throw new Error("Registro current ausente ou checksum inválido.");
     if (!statesMatchIndexedDBRecord(state, record)) throw new Error("IndexedDB válido, mas diferente do estado em memória.");
+    indexedDBPersistBaseChecksum = record.checksum;
     indexedDBStatus.available = true; indexedDBStatus.lastCopyAt = record.savedAt || indexedDBStatus.lastCopyAt; indexedDBStatus.validation = "válido e igual à memória"; indexedDBStatus.size = estimateSerializedStateSize(state); indexedDBStatus.migration = "concluída"; indexedDBStatus.error = "Teste de carregamento pelo IndexedDB concluído sem substituir dados.";
   } catch (error) {
     indexedDBStatus.migration = "erro"; recordIndexedDBWarning("Teste de carregamento pelo IndexedDB falhou.", error);
@@ -39919,26 +40050,67 @@ function mergeBackupData(data = {}) {
   if (typeof applyPcprPcma2026Migration === "function") applyPcprPcma2026Migration(state);
 }
 function clearProjectLocalStorage() { getProjectStorageKeys().forEach((key) => localStorage.removeItem(key)); }
-function restoreBackup(payload, mode) {
-  if (mode === "replace") { clearProjectLocalStorage(); replaceState(payload.data); }
-  if (mode === "merge") mergeBackupData(payload.data);
-  recoverLegacyTimerMinutesForGoals(state);
-  recoverOrphanLegacyTimerMinutesForGoals(state);
-  if (typeof syncRebuildGoalTotals === "function") syncRebuildGoalTotals(state);
-  indexedDBStatus.lastLoadedSource = "backup";
-  saveData({ markLocalChange: true });
-  render(); showView("backup"); elements.backupPreview.innerHTML += `<p class="notice">Backup ${mode === "replace" ? "substituído" : "mesclado"} com sucesso.</p>`; autoSyncAfterSave("backup-import");
+async function restoreBackup(payload, mode) {
+  const previousState = cloneData(state);
+  try {
+    if (!payload?.data || typeof payload.data !== "object" || Array.isArray(payload.data)) throw new Error("Backup sem estado válido.");
+    if (typeof syncCreateSafetyBackup === "function") syncCreateSafetyBackup(previousState, "before-backup-import");
+    if (mode === "replace") replaceState(payload.data);
+    if (mode === "merge") mergeBackupData(payload.data);
+    recoverLegacyTimerMinutesForGoals(state);
+    recoverOrphanLegacyTimerMinutesForGoals(state);
+    if (typeof syncRebuildGoalTotals === "function") syncRebuildGoalTotals(state);
+
+    const snapshot = cloneData(state);
+    const saved = await saveStateToIndexedDB(snapshot, {
+      detachedSnapshot: true,
+      expectedChecksum: indexedDBPersistBaseChecksum,
+      mergeConcurrentState: (backupState, storedState) => {
+        if (typeof mergeSyncStates !== "function") throw new Error("Mesclagem segura entre abas indisponível.");
+        return mergeSyncStates(storedState, backupState, "remote");
+      }
+    });
+    const reloaded = await loadStateFromIndexedDB();
+    if (!statesMatchIndexedDBRecord(null, reloaded, saved.checksum)) throw new Error("A validação da restauração no IndexedDB falhou.");
+
+    indexedDBPersistBaseChecksum = saved.checksum;
+    if (saved.concurrentMerge) replaceState(saved.data);
+    indexedDBStatus.available = true;
+    indexedDBStatus.activeSource = "IndexedDB";
+    indexedDBStatus.lastLoadedSource = "backup";
+    indexedDBStatus.lastCopyAt = saved.savedAt;
+    indexedDBStatus.validation = "Backup gravado e validado no IndexedDB";
+    indexedDBStatus.size = Number(saved.serializedSize) || estimateSerializedStateSize(state);
+    if (mode === "replace") clearProjectLocalStorage();
+    try { markLocalUpdated(); } catch (error) { console.warn("[Metas Estudo] Metadado de sincronização local indisponível.", error); }
+    persistStateSafely({ skipIndexedDB: true });
+    publishIndexedDBPersistenceSignal(saved);
+    render();
+    showView("backup");
+    elements.backupPreview.innerHTML += `<p class="notice">Backup ${mode === "replace" ? "substituído" : "mesclado"} e validado com sucesso.</p>`;
+    autoSyncAfterSave("backup-import");
+    return true;
+  } catch (error) {
+    replaceState(previousState);
+    render();
+    showView("backup");
+    elements.backupPreview.innerHTML += `<p class="notice warning">A restauração não foi aplicada porque a gravação segura não pôde ser validada.</p>`;
+    console.error("[Metas Estudo] Restauração de backup revertida.", error);
+    return false;
+  }
 }
 async function handleBackupFile(file) {
   try {
     pendingBackupPayload = renderBackupPreview(JSON.parse(await file.text()));
   } catch (error) { console.error("Erro ao importar backup", error); alert("Não foi possível ler este arquivo JSON de backup."); }
 }
-function handleBackupImportChoice(action) {
+async function handleBackupImportChoice(action) {
   if (action === "cancel") { pendingBackupPayload = null; elements.backupPreview.innerHTML = ""; return; }
   if (!pendingBackupPayload) return alert("Selecione um arquivo de backup JSON antes de importar.");
   if (action === "replace" && !confirm("Substituir dados atuais? Apenas dados do projeto metas-estudo serão apagados antes da restauração.")) return;
-  restoreBackup(pendingBackupPayload, action); pendingBackupPayload = null;
+  const payload = pendingBackupPayload;
+  await restoreBackup(payload, action);
+  pendingBackupPayload = null;
 }
 function clearAllLocalDataFromBackup() {
   if (!confirm("Tem certeza? Esta ação apagará os dados salvos neste navegador. Faça backup antes de continuar.")) return;
@@ -48940,6 +49112,7 @@ async function bootstrapApplication() {
     let idb = { valid: false, empty: true, record: null };
     try {
       idb = await loadPrimaryStateFromIndexedDB();
+      indexedDBPersistBaseChecksum = idb.valid ? idb.record?.checksum || "" : "";
       indexedDBStatus.indexedDBReadBeforeRender = true;
       indexedDBStatus.available = true;
       indexedDBStatus.lastCopyAt = idb.record?.savedAt || "";
@@ -48963,7 +49136,8 @@ async function bootstrapApplication() {
         indexedDBStatus.lastLoadedSource = "localStorage migrado";
         indexedDBStatus.bootstrapSource = "localStorage migrado";
         try {
-          await persistBootstrapStateToIndexedDB(localState);
+          const migration = await persistBootstrapStateToIndexedDB(localState);
+          indexedDBPersistBaseChecksum = migration?.record?.checksum || indexedDBPersistBaseChecksum;
           indexedDBStatus.validation = "localStorage copiado e validado";
         } catch (error) {
           recoveredError = "Dados do localStorage carregados, mas a cópia IndexedDB falhou.";

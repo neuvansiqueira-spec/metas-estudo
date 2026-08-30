@@ -20,22 +20,23 @@ test("V378 elimina clone profundo da fila IndexedDB", () => {
   assert.match(queue, /indexedDBStatus\.size = Number\(record\.serializedSize\) \|\| 0/);
 });
 
-test("V378 mantém clone legado fora do hot path e cria snapshot direto dentro da transação", () => {
+test("V378 mantém o hot path sem clone e a gravação direta dentro de transação atômica", () => {
   const source = fs.readFileSync("storage-indexeddb.js", "utf8");
   const save = sourceBetween(source, "async function saveStateToIndexedDB(state, options = {})", "function loadStateFromIndexedDB()");
-  assert.match(save, /if \(options\.directSnapshot\)/);
-  assert.match(save, /const serializedState = JSON\.stringify\(source\)/);
-  assert.match(save, /data: source/);
-  assert.match(save, /return store\.put\(record\)/);
+  assert.match(save, /if \(options\.directSnapshot \|\| options\.detachedSnapshot\)/);
+  assert.match(save, /return saveIndexedDBStateAtomically\(source, options\)/);
   assert.match(save, /options\.detachedSnapshot/);
   assert.match(save, /structuredClone\(source\)/);
+  const atomic = sourceBetween(source, "function saveIndexedDBStateAtomically(source, options = {})", "async function saveStateToIndexedDB(state, options = {})");
+  assert.match(atomic, /const serializedState = JSON\.stringify\(resolved\.data\)/);
+  assert.match(atomic, /store\.put\(record\)/);
 });
 
 test("V378 preserva proteção contra estado vazio", () => {
   const source = fs.readFileSync("storage-indexeddb.js", "utf8");
   assert.match(source, /Proteção ativada: estado vazio não substitui IndexedDB válido/);
   assert.match(source, /validateIndexedDBState\(existing\)/);
-  assert.match(source, /indexedDBStateHasUserData\(existing\.data\)/);
+  assert.match(source, /indexedDBStateHasUserData\(current\.data\)/);
 });
 
 test("V378 mantém raiz e docs sincronizados", () => {

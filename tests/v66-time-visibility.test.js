@@ -94,7 +94,7 @@ test("correspondência ambígua não atribui tempo à meta errada", () => {
 
 test("restauração e nuvem executam a reconciliação antes de exibir os dados", () => {
   assert.match(script, /replaceState\(payload\.state\); recoverLegacyTimerMinutesForGoals\(state\); recoverOrphanLegacyTimerMinutesForGoals\(state\); const snapshot/);
-  assert.match(script, /recoverOrphanLegacyTimerMinutesForGoals\(state\);\n  if \(typeof syncRebuildGoalTotals === "function"\) syncRebuildGoalTotals\(state\);/);
+  assert.match(script, /recoverOrphanLegacyTimerMinutesForGoals\(state\);\n\s+if \(typeof syncRebuildGoalTotals === "function"\) syncRebuildGoalTotals\(state\);/);
   assert.match(stateModule, /syncGoalForExecutionRecord/);
   assert.match(stateModule, /syncRelinkExecutionRecord/);
 });
@@ -122,4 +122,3 @@ test("Contrato atual v152: cache, versão e cópias de publicação permanecem e
   assert.equal(index, fs.readFileSync("docs/index.html", "utf8"));
   assert.equal(worker, fs.readFileSync("docs/service-worker.js", "utf8"));
 });
-
