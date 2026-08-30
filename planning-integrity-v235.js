@@ -1,10 +1,11 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260824-planejamento-integridade-explicita-v388";
+  const VERSION = "20260830-plano-dia-auto-reconcile-v403";
   const SNAPSHOT_KEY = "aldusPlanningManualGoalsV235";
   const FACTORY_VIEW = "fabrica-resumos";
   const DAILY_VIEW = "metas-do-dia";
+  const STARTUP_RECONCILE_MARKER = "__aldusDailyPlanStartupReconciledV403";
   let installed = false;
 
   function positiveInteger(value, fallback = 0) {
@@ -141,6 +142,53 @@
     } catch {}
   }
 
+  function currentDateISO() {
+    try {
+      if (typeof globalThis.todayISO === "function") return globalThis.todayISO();
+    } catch {}
+    const date = new Date();
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  }
+
+  function reconcileDailyPlanOnStartup(targetState = typeof state !== "undefined" ? state : null) {
+    if (!targetState || !Array.isArray(targetState.dailyGoals)) return { changed: false, skipped: "state-unavailable" };
+    if (globalThis[STARTUP_RECONCILE_MARKER] === true) return { changed: false, skipped: "already-reconciled" };
+
+    const replenish = globalThis.replenishMissingDailyPlanningGoalsV116;
+    if (typeof replenish !== "function") return { changed: false, skipped: "replenisher-unavailable" };
+
+    globalThis[STARTUP_RECONCILE_MARKER] = true;
+    const date = currentDateISO();
+    let report;
+    try {
+      report = replenish(targetState, date) || { changed: false };
+    } catch (error) {
+      globalThis[STARTUP_RECONCILE_MARKER] = false;
+      console.warn(`[${VERSION}] Não foi possível reconciliar automaticamente o Plano do Dia.`, error);
+      return { changed: false, skipped: "replenisher-error" };
+    }
+
+    if (!report.changed) return report;
+
+    invalidateViews();
+    const reason = "daily-plan-startup-reconcile-v403";
+    try {
+      if (typeof globalThis.saveData === "function") {
+        globalThis.saveData({ markLocalChange: true, skipDerivedRefresh: true, reason });
+      }
+    } catch {}
+    try { if (typeof globalThis.render === "function") globalThis.render(); } catch {}
+    try { if (typeof globalThis.autoSyncAfterSave === "function") globalThis.autoSyncAfterSave(reason); } catch {}
+    return report;
+  }
+
+  function scheduleStartupReconcile() {
+    const run = () => reconcileDailyPlanOnStartup();
+    if (typeof queueMicrotask === "function") queueMicrotask(run);
+    else Promise.resolve().then(run);
+    if (typeof window !== "undefined") window.addEventListener("load", run, { once: true });
+  }
+
   function installFactoryGuard() {
     const current = globalThis.renderFactory;
     if (typeof current !== "function" || current.__aldusIntegrityV388) return false;
@@ -176,10 +224,12 @@
     installTargetGuard();
     installFactoryGuard();
     bindPlanningForm();
+    scheduleStartupReconcile();
     document.documentElement.dataset.aldusIntegrityVersion = VERSION;
     globalThis.__ALDUS_PLANNING_INTEGRITY_V235__ = Object.freeze({
       version: VERSION,
       explicitOnly: true,
+      startupDailyPlanReconcile: true,
       installedAt: new Date().toISOString()
     });
     installed = true;
