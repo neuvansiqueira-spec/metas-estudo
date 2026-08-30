@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260823-indexeddb-direct-snapshot-v378";
+  const VERSION = "20260830-bootstrap-runtime-unification-v404";
   const LEGACY_VERSION = "20260815-bootstrap-performance-v342";
   const UPDATE_FLOW_SCRIPT = "update-flow-v395.js?v=20260825-no-auto-reload-v395";
   const TIMER_AUDIO_STABILITY_SCRIPT = "timer-audio-stability-v396.js?v=20260825-timer-audio-stability-v396";

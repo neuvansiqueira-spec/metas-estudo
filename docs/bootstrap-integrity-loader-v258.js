@@ -1,10 +1,10 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260821-timer-goal-integrity-v366";
+  const VERSION = "20260830-bootstrap-runtime-unification-v404";
   const UPDATE_FLOW_SCRIPT = "update-flow-v395.js?v=20260825-no-auto-reload-v395";
   const TIMER_AUDIO_STABILITY_SCRIPT = "timer-audio-stability-v396.js?v=20260825-timer-audio-stability-v396";
-  const CORE_SCRIPT = "bootstrap-integrity-loader-v258-core.js?v=20260815-bootstrap-performance-v342&planning=v397";
+  const CORE_SCRIPT = "bootstrap-integrity-loader-v258-core.js?v=20260830-bootstrap-runtime-unification-v404&planning=v397";
   const DIAGNOSTICS_SCRIPT = "duplicate-diagnostics-v260.js?v=20260806-duplicate-diagnostics-v260";
   const DIAGNOSTICS_STYLESHEET = "duplicate-diagnostics-v260.css?v=20260806-duplicate-diagnostics-v260";
   const TIMER_SOUND_MASTER_SCRIPT = "timer-sound-master-v265.js?v=20260806-timer-sound-master-v265&hotfix=master-mute-hotfix1";

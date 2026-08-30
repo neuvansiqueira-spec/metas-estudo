@@ -1,16 +1,16 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260823-indexeddb-direct-snapshot-v378";
+  const VERSION = "20260830-bootstrap-runtime-unification-v404";
   const LEGACY_BOOTSTRAP_VERSION = "20260815-bootstrap-performance-v342";
   const MAIN_DB = "metas-estudo-db";
   const MAIN_STORE = "appState";
   const MAIN_ID = "current";
   const STATUS_KEY = "aldusBootstrapFastPathV351";
   const GUARD_SCRIPT = `catastrophic-state-guard-v275.js?v=${LEGACY_BOOTSTRAP_VERSION}&fallback=v351`;
-  const FALLBACK_CORE = `bootstrap-integrity-loader-v258-core.js?v=${LEGACY_BOOTSTRAP_VERSION}&fallback=v351&planning=v397`;
+  const FALLBACK_CORE = `bootstrap-integrity-loader-v258-core.js?v=${VERSION}&fallback=v351&planning=v397`;
   const SCRIPT_CHAIN = [
-    ["aldusAppBundleScript", "app-v378.js?v=20260823-indexeddb-direct-snapshot-v378"],
+    ["aldusAppBundleScript", "app-v402.js?v=20260827-factory-cross-area-integrity-v402"],
     ["aldusPlanningQualityV368", "planning-quality-v368.js?v=20260826-planning-stability-v397"],
     ["aldusTimerGoalIntegrityV366", "timer-goal-integrity-v366.js?v=20260821-timer-goal-integrity-v366"],
     ["aldusQconcursosFilterRouteV333", "qconcursos-filter-route-v333.js?v=20260814-restaura-filtros-qconcursos-v333"],

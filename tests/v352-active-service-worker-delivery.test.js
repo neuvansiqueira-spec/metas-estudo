@@ -33,7 +33,12 @@ test("V352 entrega o fast path pela versão ativa e gira o cache de bootstrap", 
 
   assert.ok(currentVersion, "CURRENT_VERSION deve existir no worker ativo");
   assert.ok(fastBootstrapVersion, "FAST_BOOTSTRAP_VERSION deve existir no worker ativo");
-  assert.equal(fastBootstrapVersion, currentVersion, "o bootstrap rápido deve acompanhar a release ativa");
+  const fastPath = fs.readFileSync(path.join(root, "bootstrap-fast-path-v351.js"), "utf8");
+  assert.match(
+    fastPath,
+    new RegExp(`const VERSION = "${fastBootstrapVersion.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`),
+    "o worker e o fast path devem usar o mesmo token de entrega"
+  );
   assert.match(active, /BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275\.js\?v=\$\{FAST_BOOTSTRAP_VERSION\}[^`]*`/);
   assert.match(active, /BOOTSTRAP_FAST_PATH = `bootstrap-fast-path-v351\.js\?v=\$\{FAST_BOOTSTRAP_VERSION\}[^`]*`/);
   assert.match(active, /planning-quality-v368/);
