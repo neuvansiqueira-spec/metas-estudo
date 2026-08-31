@@ -95,31 +95,44 @@ function makeContext({ existingPieces = false } = {}) {
   return context;
 }
 
-test("suprime as auditorias duplicadas e executa apenas após a manutenção", () => {
+test("bootstrap, manutenção e pageshow não agendam nem alteram metas", () => {
   const context = makeContext();
+  const before = JSON.stringify(context.state.dailyGoals);
   context.dispatchEvent({ type: "aldus:bootstrap-ready" });
-  assert.equal(context.getCounters().timers, 1);
   context.dispatchEvent({ type: "aldus:post-bootstrap-maintenance-complete" });
-  assert.equal(context.getCounters().timers, 0);
+  context.dispatchEvent({ type: "pageshow", persisted: true });
   context.flushIdle();
-  assert.deepEqual(context.getCounters(), { scoreBuilds: 1, saveCalls: 1, renderCalls: 1, syncCalls: 1, timers: 0 });
   context.runTimers();
-  assert.equal(context.getCounters().saveCalls, 1);
+
+  assert.equal(JSON.stringify(context.state.dailyGoals), before);
+  assert.deepEqual(context.getCounters(), { scoreBuilds: 0, saveCalls: 0, renderCalls: 0, syncCalls: 0, timers: 0 });
   assert.equal(context.__aldusDailyPieceAuditPerformanceV186.legacyListenersSuppressed, 3);
+  assert.equal(context.__aldusDailyPieceAuditPerformanceV186.automaticMutationDisabled, true);
 });
 
-test("reutiliza um único contexto de pontuação para várias datas", () => {
+test("auditoria sem autorização explícita é somente leitura e não percorre planejamento", () => {
   const context = makeContext();
-  const report = context.__aldusDailyPieceAuditPerformanceV186.runAudit("test");
+  const before = JSON.stringify(context.state.dailyGoals);
+  const report = context.__aldusDailyPieceAuditPerformanceV186.runAudit("automatic-like-call");
+
+  assert.equal(report.changed, false);
+  assert.equal(report.skipped, "explicit-authorization-required");
+  assert.equal(JSON.stringify(context.state.dailyGoals), before);
+  assert.deepEqual(context.getCounters(), { scoreBuilds: 0, saveCalls: 0, renderCalls: 0, syncCalls: 0, timers: 0 });
+});
+
+test("auditoria explicitamente autorizada reutiliza um único contexto de pontuação", () => {
+  const context = makeContext();
+  const report = context.__aldusDailyPieceAuditPerformanceV186.runAudit("test-explicit", { explicit: true, allowMutations: true });
   assert.equal(report.changed, true);
   assert.equal(report.performance.changedDates, 3);
   assert.equal(report.performance.scoreContextBuilds, 1);
-  assert.equal(context.getCounters().scoreBuilds, 1);
+  assert.deepEqual(context.getCounters(), { scoreBuilds: 1, saveCalls: 1, renderCalls: 1, syncCalls: 1, timers: 0 });
 });
 
-test("quando as Peças já existem, não recalcula pontuação nem salva", () => {
+test("quando as Peças já existem, auditoria explícita não recalcula pontuação nem salva", () => {
   const context = makeContext({ existingPieces: true });
-  const report = context.__aldusDailyPieceAuditPerformanceV186.runAudit("test-existing");
+  const report = context.__aldusDailyPieceAuditPerformanceV186.runAudit("test-existing", { explicit: true, allowMutations: true });
   assert.equal(report.changed, false);
   assert.equal(report.performance.scoreContextBuilds, 0);
   assert.deepEqual(context.getCounters(), { scoreBuilds: 0, saveCalls: 0, renderCalls: 0, syncCalls: 0, timers: 0 });

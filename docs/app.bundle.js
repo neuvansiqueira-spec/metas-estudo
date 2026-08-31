@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260831-daily-plan-deterministic-integrity-v417";
+  const VERSION = "20260831-metas-integridade-sem-auditoria-v418";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -58085,6 +58085,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
   if (globalThis.__aldusDailyPieceAuditPerformanceV186) return;
 
   const VERSION = "20260730-auditoria-peca-consolidada-v186";
+  const POLICY_VERSION = "20260831-metas-integridade-sem-auditoria-v418";
   const MIGRATION_KEY = "dailyPieceAuditPerformanceV186";
   const AUDIT_DAYS = 21;
   const prelude = globalThis.__aldusDailyPieceAuditPreludeV186;
@@ -58097,10 +58098,6 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     if (prelude?.originalBootstrapReady) globalThis.__aldusBootstrapReady = prelude.originalBootstrapReady;
   } catch {}
   if (!api || typeof api.ensureDailyPieceForDate !== "function") return;
-
-  let initialAuditCompleted = false;
-  let scheduledHandle = null;
-  let scheduledMode = "";
 
   function goalDate(goal = {}) {
     return String(goal.date || goal.data || "");
@@ -58172,10 +58169,36 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     }
   }
 
-  function runAudit(reason = "audit") {
+  function blockedAuditReport(reason, targetState) {
+    const performanceReport = {
+      version: VERSION,
+      policyVersion: POLICY_VERSION,
+      reason,
+      totalGoals: Array.isArray(targetState?.dailyGoals) ? targetState.dailyGoals.length : 0,
+      auditedDates: 0,
+      missingDates: 0,
+      scoreContextBuilds: 0,
+      changedDates: 0,
+      totalMs: 0,
+      skipped: "explicit-authorization-required"
+    };
+    globalThis.__aldusDailyPieceAuditLastV186 = Object.freeze(performanceReport);
+    return {
+      changed: false,
+      reason,
+      skipped: "explicit-authorization-required",
+      reports: [],
+      performance: performanceReport
+    };
+  }
+
+  function runAudit(reason = "audit", options = {}) {
     const targetState = typeof state !== "undefined" ? state : null;
     if (!targetState || !Array.isArray(targetState.dailyGoals)) {
       return { changed: false, reason, auditedDates: 0, missingDates: 0 };
+    }
+    if (options?.explicit !== true || options?.allowMutations !== true) {
+      return blockedAuditReport(reason, targetState);
     }
 
     const startedAt = performance.now();
@@ -58189,6 +58212,7 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     const changedReports = reports.filter((report) => report?.changed);
     const performanceReport = {
       version: VERSION,
+      policyVersion: POLICY_VERSION,
       reason,
       totalGoals: targetState.dailyGoals.length,
       auditedDates: index.dates.length,
@@ -58209,62 +58233,22 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
       replacedAutomaticGoals: changedReports.filter((report) => report.removed).length,
       preservedPolicy: "metas manuais, concluídas, iniciadas, com tempo ou histórico não são removidas"
     };
-    if (typeof saveData === "function") saveData({ markLocalChange: true, reason: "daily-piece-audit-v186" });
+    if (typeof saveData === "function") saveData({ markLocalChange: true, reason: "daily-piece-audit-v186-explicit" });
     if (typeof render === "function") render();
-    if (typeof autoSyncAfterSave === "function") autoSyncAfterSave("daily-piece-audit-v186");
+    if (typeof autoSyncAfterSave === "function") autoSyncAfterSave("daily-piece-audit-v186-explicit");
     return { changed: true, reason, reports, performance: performanceReport };
   }
 
-  function cancelScheduledAudit() {
-    if (scheduledHandle === null) return;
-    if (scheduledMode === "idle" && typeof cancelIdleCallback === "function") cancelIdleCallback(scheduledHandle);
-    else if (scheduledMode === "timeout") clearTimeout(scheduledHandle);
-    scheduledHandle = null;
-    scheduledMode = "";
+  function scheduleInitialAudit() {
+    return false;
   }
-
-  function executeInitialAudit(reason) {
-    if (initialAuditCompleted) return false;
-    cancelScheduledAudit();
-    initialAuditCompleted = true;
-    runAudit(reason);
-    return true;
-  }
-
-  function scheduleInitialAudit(reason, preferIdle = false) {
-    if (initialAuditCompleted) return false;
-    cancelScheduledAudit();
-    const execute = () => {
-      scheduledHandle = null;
-      scheduledMode = "";
-      executeInitialAudit(reason);
-    };
-    if (preferIdle && typeof requestIdleCallback === "function") {
-      scheduledMode = "idle";
-      scheduledHandle = requestIdleCallback(execute, { timeout: 500 });
-    } else if (typeof setTimeout === "function") {
-      scheduledMode = "timeout";
-      scheduledHandle = setTimeout(execute, preferIdle ? 0 : 1000);
-    } else {
-      queueMicrotask(execute);
-    }
-    return true;
-  }
-
-  const onBootstrapReady = () => scheduleInitialAudit("bootstrap-fallback", false);
-  if (prelude?.originalBootstrapReady || globalThis.__aldusBootstrapReady) queueMicrotask(onBootstrapReady);
-  else window.addEventListener("aldus:bootstrap-ready", onBootstrapReady, { once: true });
-  window.addEventListener("aldus:post-bootstrap-maintenance-complete", () => {
-    scheduleInitialAudit("post-bootstrap-maintenance", true);
-  }, { once: true });
-  window.addEventListener("pageshow", (event) => {
-    if (event.persisted) runAudit("pageshow-bfcache");
-  });
 
   globalThis.__aldusDailyPieceAuditPerformanceV186 = Object.freeze({
     version: VERSION,
+    policyVersion: POLICY_VERSION,
     runAudit,
     scheduleInitialAudit,
+    automaticMutationDisabled: true,
     legacyListenersSuppressed: prelude?.suppressed?.length || 0
   });
 })();

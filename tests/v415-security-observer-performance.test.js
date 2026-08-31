@@ -3,6 +3,8 @@ const fs = require("node:fs");
 const test = require("node:test");
 
 const read = (path) => fs.readFileSync(path, "utf8");
+const packageVersion = JSON.parse(read("package.json")).version;
+const releaseSuffix = packageVersion.match(/v\d+$/)?.[0] || "current";
 
 test("V415 agrupa o hardening de DOM fora do caminho crítico", () => {
   const source = read("security-hardening-v296.js");
@@ -17,12 +19,12 @@ test("V415 agrupa o hardening de DOM fora do caminho crítico", () => {
   assert.doesNotMatch(source, /new MutationObserver\(\(records\) =>/);
 });
 
-test("V416 preserva o batching V415 e renova somente a entrega do hardening", () => {
+test("release atual preserva o batching V415 e renova somente a entrega do hardening", () => {
   const worker = read("service-worker.js");
   assert.equal(worker, read("docs/service-worker.js"));
-  assert.equal(worker, read("service-worker-v417.js"));
-  assert.equal(worker, read("docs/service-worker-v417.js"));
-  assert.match(worker, /const CURRENT_VERSION = "20260831-daily-plan-deterministic-integrity-v417";/);
+  assert.equal(worker, read(`service-worker-${releaseSuffix}.js`));
+  assert.equal(worker, read(`docs/service-worker-${releaseSuffix}.js`));
+  assert.ok(worker.includes(`const CURRENT_VERSION = "${packageVersion}";`));
   assert.match(worker, /const SECURITY_VERSION = "20260831-weekly-status-stability-v416";/);
   assert.match(worker, /security-weekly-status-stability-v416/);
   assert.match(worker, /cache\.addAll\(ESSENTIAL_ASSETS\)/);

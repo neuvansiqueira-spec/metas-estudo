@@ -3,6 +3,8 @@ const fs = require("node:fs");
 const test = require("node:test");
 
 const read = (path) => fs.readFileSync(path, "utf8");
+const packageVersion = JSON.parse(read("package.json")).version;
+const releaseSuffix = packageVersion.match(/v\d+$/)?.[0] || "current";
 
 test("V416 deixa o texto da meta semanal sob domínio exclusivo da aplicação", () => {
   const source = read("security-hardening-v296.js");
@@ -16,11 +18,11 @@ test("V416 deixa o texto da meta semanal sob domínio exclusivo da aplicação",
   assert.match(source, /requestIdleCallback/);
 });
 
-test("V416 canoniza a URL do hardening no HTML sem remover defer", () => {
+test("release atual canoniza a URL do hardening no HTML sem remover defer", () => {
   const worker = read("service-worker.js");
   assert.equal(worker, read("docs/service-worker.js"));
-  assert.equal(worker, read("service-worker-v417.js"));
-  assert.equal(worker, read("docs/service-worker-v417.js"));
+  assert.equal(worker, read(`service-worker-${releaseSuffix}.js`));
+  assert.equal(worker, read(`docs/service-worker-${releaseSuffix}.js`));
   assert.match(worker, /const SECURITY_VERSION = "20260831-weekly-status-stability-v416";/);
   assert.match(worker, /security-weekly-status-stability-v416/);
   assert.match(worker, /function installSecurityHardeningV296\(html\)/);
