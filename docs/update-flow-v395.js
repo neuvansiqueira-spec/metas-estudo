@@ -107,11 +107,8 @@
   }
 
   function pendingWorker(registration = registrationRef) {
-    const waiting = registration?.waiting;
-    if (waiting) return waiting;
-    const installing = registration?.installing;
-    if (installing && !["redundant", "activated"].includes(installing.state)) return installing;
-    return null;
+    // Um worker ainda em instalação não está pronto para ser aplicado.
+    return registration?.waiting || null;
   }
 
   function ensureBanner() {
@@ -142,7 +139,8 @@
         waiting.postMessage?.({ type: "SKIP_WAITING" });
         return;
       }
-      location.reload();
+      manualReloadRequested = false;
+      hideUpdateReady();
     });
     document.body.appendChild(banner);
     return banner;
@@ -200,13 +198,13 @@
     ensureBanner();
     installEditingGuard();
     navigator.serviceWorker.addEventListener("controllerchange", () => {
-      updateAvailable = true;
       if (manualReloadRequested && safeToReload()) {
         location.reload();
         return;
       }
       manualReloadRequested = false;
-      showUpdateReady();
+      updateAvailable = false;
+      hideUpdateReady();
       console.info(`[Aldus ${VERSION}] Novo Service Worker assumiu o controle sem recarregar a página.`);
     });
     window.addEventListener("focus", () => checkForUpdate());
