@@ -96,22 +96,44 @@ jobs:
           grep -F 'automatic-mutation-disabled-v419' planning-integrity-v235.js
           grep -F 'automaticMutationDisabled: true' completed-goal-guard-v177.js
 
-      - name: Targeted regression tests
-        run: |
-          node --test \
-            tests/v108-daily-plan-sync-inflation.test.js \
-            tests/v186-piece-audit-performance.test.js \
-            tests/v365-planning-runtime.test.js \
-            tests/v379-manual-goal-additive.test.js \
-            tests/v406-daily-plan-authoritative-startup.test.js \
-            tests/v407-planning-state-binding.test.js \
-            tests/v410-daily-plan-post-bootstrap-reconcile.test.js \
-            tests/v411-completed-goals-review-only.test.js \
-            tests/v413-core-daily-plan-consistency.test.js \
-            tests/v416-weekly-status-stability.test.js \
-            tests/v417-daily-plan-deterministic-integrity.test.js \
-            tests/v419-daily-goals-invariance.test.js
-          node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
+      - name: Test V108 sync inflation
+        run: node --test tests/v108-daily-plan-sync-inflation.test.js
+
+      - name: Test V186 piece audit
+        run: node --test tests/v186-piece-audit-performance.test.js
+
+      - name: Test V365 planning runtime
+        run: node --test tests/v365-planning-runtime.test.js
+
+      - name: Test V379 manual additive
+        run: node --test tests/v379-manual-goal-additive.test.js
+
+      - name: Test V406 startup invariance
+        run: node --test tests/v406-daily-plan-authoritative-startup.test.js
+
+      - name: Test V407 state binding
+        run: node --test tests/v407-planning-state-binding.test.js
+
+      - name: Test V410 post-bootstrap invariance
+        run: node --test tests/v410-daily-plan-post-bootstrap-reconcile.test.js
+
+      - name: Test V411 completed goals
+        run: node --test tests/v411-completed-goals-review-only.test.js
+
+      - name: Test V413 core consistency
+        run: node --test tests/v413-core-daily-plan-consistency.test.js
+
+      - name: Test V416 weekly stability
+        run: node --test tests/v416-weekly-status-stability.test.js
+
+      - name: Test V417 deterministic integrity
+        run: node --test tests/v417-daily-plan-deterministic-integrity.test.js
+
+      - name: Test V419 global invariance
+        run: node --test tests/v419-daily-goals-invariance.test.js
+
+      - name: Test current release contract
+        run: node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
 
       - name: Compare full suite against baseline
         shell: bash
