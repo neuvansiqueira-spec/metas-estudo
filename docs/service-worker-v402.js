@@ -4,6 +4,7 @@ const CACHE_FIX_VERSION = "20260831-core-daily-plan-consistency-v413";
 const COMPLETED_GOALS_CACHE_VERSION_V411 = "20260831-metas-concluidas-somente-revisao-v411";
 const DAILY_GOAL_STABILITY_CACHE_VERSION_V412 = "20260831-estabilidade-metas-antes-bootstrap-v412";
 const CORE_DAILY_PLAN_CACHE_VERSION_V413 = "20260831-core-daily-plan-consistency-v413";
+const CURRENT_HTML_GUARD_VERSION_V413 = "20260831-rejeita-html-v402-em-cache-v413";
 // Contrato exclusivamente textual do pipeline V395. O bloco mantém CACHE_NAME
 // fora do escopo léxico global para não colidir com o CACHE_NAME declarado pelo
 // service-worker.js canônico carregado via importScripts.
@@ -47,4 +48,5 @@ self.addEventListener("activate", (event) => {
 void COMPLETED_GOALS_CACHE_VERSION_V411;
 void DAILY_GOAL_STABILITY_CACHE_VERSION_V412;
 void CORE_DAILY_PLAN_CACHE_VERSION_V413;
+void CURRENT_HTML_GUARD_VERSION_V413;
 importScripts(`service-worker.js?v=${CACHE_FIX_VERSION}`);
