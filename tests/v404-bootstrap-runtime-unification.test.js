@@ -2,23 +2,25 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const test = require("node:test");
 
-const RELEASE = "20260831-core-daily-plan-consistency-v413";
-const APP_SUFFIX = "v413";
+const FAST_APP_RELEASE = "20260827-factory-cross-area-integrity-v402";
+const FAST_APP_SUFFIX = "v402";
+const FALLBACK_APP_RELEASE = "20260831-core-daily-plan-consistency-v413";
+const FALLBACK_APP_SUFFIX = "v413";
 const BOOTSTRAP_RELEASE = "20260830-bootstrap-runtime-unification-v404";
 const read = (file) => fs.readFileSync(file, "utf8");
 const executable = (source) => source
   .replace(/\/\*[\s\S]*?\*\//g, "")
   .replace(/^[ \t]*\/\/.*$/gm, "");
 
-test("fast path e fallback carregam o mesmo núcleo público atual", () => {
+test("fast path preserva o núcleo enxuto V402 e fallback entrega o núcleo público V413", () => {
   const fast = read("bootstrap-fast-path-v351.js");
   const fallback = read("bootstrap-integrity-loader-v258-core.js");
 
   assert.match(fast, new RegExp(`const VERSION = "${BOOTSTRAP_RELEASE}"`));
-  assert.match(fast, new RegExp(`app-${APP_SUFFIX}\\.js\\?v=${RELEASE}`));
+  assert.match(fast, new RegExp(`app-${FAST_APP_SUFFIX}\\.js\\?v=${FAST_APP_RELEASE}`));
   assert.doesNotMatch(fast, /app-v378\.js/);
   assert.match(fast, /FALLBACK_CORE = `bootstrap-integrity-loader-v258-core\.js\?v=\$\{VERSION\}/);
-  assert.match(fallback, new RegExp(`app-${APP_SUFFIX}\\.js\\?v=${RELEASE}`));
+  assert.match(fallback, new RegExp(`app-${FALLBACK_APP_SUFFIX}\\.js\\?v=${FALLBACK_APP_RELEASE}`));
 });
 
 test("URLs dos carregadores renovam o cache sem adicionar trabalho ao hot path", () => {
