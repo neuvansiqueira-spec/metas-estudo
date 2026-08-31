@@ -357,7 +357,9 @@ async function responseHasProtectedBootstrap(response) {
   const html = await response.clone().text();
   return html.includes('id="aldusBootstrapIntegrityLoaderV275"')
     && html.includes(BOOTSTRAP_PROTECTED)
-    && html.includes(FAST_BOOTSTRAP_VERSION);
+    && html.includes(FAST_BOOTSTRAP_VERSION)
+    && html.includes(`app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`)
+    && html.includes(`Versão: ${CURRENT_VERSION}`);
 }
 
 async function cacheNavigationResponse(response) {
