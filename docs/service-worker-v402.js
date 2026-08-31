@@ -1,6 +1,10 @@
 "use strict";
 
 const CACHE_FIX_VERSION = "20260830-planning-integrity-cache-v408";
+// Contrato do pipeline V395: o deploy acrescenta o sufixo de entrega ao
+// CACHE_NAME do worker ativo. Esta constante não é usada pela ponte em runtime;
+// o cache efetivo continua pertencendo ao service-worker.js canônico importado.
+const CACHE_NAME = `metas-estudo-v408-active-bridge`;
 const PLANNING_INTEGRITY_PATHS = new Set([
   new URL("planning-integrity-v235.js", self.registration.scope).pathname,
   new URL("planning-integrity-loader-v235.js", self.registration.scope).pathname
