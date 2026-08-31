@@ -4,6 +4,7 @@
   const VERSION = "20260804-planejamento-metas-fabrica-integridade-v235";
   const STARTUP_STABILITY_VERSION = "20260824-startup-planning-stability-v387";
   const FACTORY_STARTUP_CONSISTENCY_VERSION = "20260825-factory-startup-consistency-v394";
+  const PLANNING_CORE_VERSION = "20260831-metas-concluidas-somente-revisao-v411";
   const SNAPSHOT_KEY = "aldusPlanningManualGoalsV235";
   const SCRIPT_ID = "aldusPlanningIntegrityCoreV235";
   const FACTORY_SCRIPT_ID = "aldusFactoryQueueIntegrityV236";
@@ -276,7 +277,7 @@
     loadTimerSessionIntegrity(releaseVersion);
     const script = document.createElement("script");
     script.id = SCRIPT_ID;
-    script.src = `planning-integrity-v235.js?v=${encodeURIComponent(releaseVersion)}`;
+    script.src = `planning-integrity-v235.js?v=${encodeURIComponent(PLANNING_CORE_VERSION)}`;
     script.async = false;
     script.addEventListener("load", () => {
       installPersistenceGuards();

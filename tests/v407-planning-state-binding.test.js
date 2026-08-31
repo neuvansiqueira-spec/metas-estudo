@@ -94,7 +94,7 @@ test("V407 continua instalando com state léxico e V410 reconcilia após bootstr
   assert.equal(counters.save, 1);
   assert.equal(counters.render, 1);
   assert.equal(context[MARKER], true);
-  assert.equal(context.__ALDUS_PLANNING_INTEGRITY_V235__?.version, "20260830-plano-dia-post-bootstrap-v410");
-  assert.equal(context.document.documentElement.dataset.aldusIntegrityVersion, "20260830-plano-dia-post-bootstrap-v410");
+  assert.equal(context.__ALDUS_PLANNING_INTEGRITY_V235__?.version, "20260831-metas-concluidas-somente-revisao-v411");
+  assert.equal(context.document.documentElement.dataset.aldusIntegrityVersion, "20260831-metas-concluidas-somente-revisao-v411");
   assert.equal(source, docsSource);
 });

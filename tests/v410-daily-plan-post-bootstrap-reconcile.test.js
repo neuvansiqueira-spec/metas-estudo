@@ -121,7 +121,7 @@ test("V410 ignora estado provisório e reconcilia uma única vez após a manuten
 
   vm.runInContext(source, context);
 
-  assert.equal(context.__ALDUS_PLANNING_INTEGRITY_V235__?.version, "20260830-plano-dia-post-bootstrap-v410");
+  assert.equal(context.__ALDUS_PLANNING_INTEGRITY_V235__?.version, "20260831-metas-concluidas-somente-revisao-v411");
   assert.equal(context[MARKER], undefined, "não deve marcar reconciliação durante o estado provisório");
   assert.equal(counters.replenish, 0, "não deve recompor o estado provisório");
   assert.equal(provisionalState.dailyGoals.length, 4);

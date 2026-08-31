@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260830-plano-dia-post-bootstrap-v410";
+  const VERSION = "20260831-metas-concluidas-somente-revisao-v411";
   const SNAPSHOT_KEY = "aldusPlanningManualGoalsV235";
   const FACTORY_VIEW = "fabrica-resumos";
   const DAILY_VIEW = "metas-do-dia";
@@ -123,6 +123,214 @@
     catch { return "normal"; }
   }
 
+  function completedRecordsV411(targetState = currentState()) {
+    try {
+      return typeof globalThis.completedPlanningSubjectRecords === "function"
+        ? globalThis.completedPlanningSubjectRecords(targetState)
+        : (targetState?.dailyGoals || []).filter((goal) => goal?.status === "Concluída");
+    } catch {
+      return [];
+    }
+  }
+
+  function recordMatchesCompletedSubjectV411(record = {}, completedRecords = completedRecordsV411()) {
+    try {
+      return typeof globalThis.planningRecordMatchesCompletedSubject === "function"
+        ? globalThis.planningRecordMatchesCompletedSubject(record, completedRecords)
+        : record?.status === "Concluída";
+    } catch {
+      return record?.status === "Concluída";
+    }
+  }
+
+  function isCompletedGoalV411(goal = {}) {
+    try {
+      return typeof globalThis.isGoalDone === "function"
+        ? globalThis.isGoalDone(goal)
+        : goal?.status === "Concluída";
+    } catch {
+      return goal?.status === "Concluída";
+    }
+  }
+
+  function isPlanningStudyGoalV411(goal = {}) {
+    try {
+      return typeof globalThis.isPlanningStudyGoal === "function"
+        ? globalThis.isPlanningStudyGoal(goal)
+        : true;
+    } catch {
+      return true;
+    }
+  }
+
+  function shouldHideFromDailyPlanV411(goal = {}, completedRecords = completedRecordsV411()) {
+    return isCompletedGoalV411(goal) || recordMatchesCompletedSubjectV411(goal, completedRecords);
+  }
+
+  function isActionableStudyGoalV411(goal = {}, completedRecords = completedRecordsV411()) {
+    return isPlanningStudyGoalV411(goal) && !shouldHideFromDailyPlanV411(goal, completedRecords);
+  }
+
+  function goalDateV411(goal = {}) {
+    return goal.date || goal.data || "";
+  }
+
+  function installScoreContextGuardV411() {
+    const current = globalThis.buildPlanningScoreContext;
+    if (typeof current !== "function" || current.__aldusCompletedGoalsV411) return false;
+    const guarded = function buildPlanningScoreContextV411(targetState = currentState(), ...args) {
+      const context = current.call(this, targetState, ...args);
+      if (!context || !Array.isArray(context.candidates)) return context;
+      const completedRecords = completedRecordsV411(targetState);
+      return {
+        ...context,
+        candidates: context.candidates.filter((candidate) => !recordMatchesCompletedSubjectV411(candidate, completedRecords))
+      };
+    };
+    Object.defineProperty(guarded, "__aldusCompletedGoalsV411", { value: VERSION });
+    Object.defineProperty(guarded, "__aldusOriginal", { value: current });
+    globalThis.buildPlanningScoreContext = guarded;
+    return true;
+  }
+
+  function installReplenishmentGuardV411() {
+    const current = globalThis.replenishMissingDailyPlanningGoalsV116;
+    if (typeof current !== "function" || current.__aldusCompletedGoalsV411) return false;
+    const guarded = function replenishMissingDailyPlanningGoalsV411(targetState = currentState(), date = currentDateISO(), opts = {}) {
+      if (!targetState || !Array.isArray(targetState.dailyGoals)
+        || typeof globalThis.planningTargetsForDate !== "function"
+        || typeof globalThis.eligiblePlanningGoalsForDate !== "function"
+        || typeof globalThis.selectPlanningGoalsForTargets !== "function") {
+        return current.call(this, targetState, date, opts);
+      }
+
+      const targets = globalThis.planningTargetsForDate(date, targetState, opts) || {};
+      const topicTarget = Math.max(0, Number(targets.topics) || 0);
+      const allStudyGoals = targetState.dailyGoals.filter((goal) => goalDateV411(goal) === date && isPlanningStudyGoalV411(goal));
+      const completedRecords = completedRecordsV411(targetState);
+      const actionableGoals = allStudyGoals.filter((goal) => isActionableStudyGoalV411(goal, completedRecords));
+      const report = {
+        date,
+        topicTarget,
+        before: actionableGoals.length,
+        after: actionableGoals.length,
+        added: [],
+        preserved: allStudyGoals.map((goal) => goal.id).filter(Boolean),
+        warnings: [],
+        changed: false,
+        skipped: ""
+      };
+
+      if (topicTarget <= 0) { report.skipped = "zero-target-safety"; return report; }
+      if (actionableGoals.length >= topicTarget) { report.skipped = "target-already-met"; return report; }
+
+      const reservedSyllabusIds = new Set();
+      actionableGoals.forEach((goal) => {
+        try {
+          const key = typeof globalThis.goalSyllabusReservationKey === "function"
+            ? globalThis.goalSyllabusReservationKey(goal)
+            : goal.syllabusItemId;
+          if (key) reservedSyllabusIds.add(key);
+        } catch {}
+      });
+      const scoreContext = opts.scoreContext || globalThis.buildPlanningScoreContext(targetState);
+      const eligibleGoals = globalThis.eligiblePlanningGoalsForDate(date, {
+        targetState,
+        scoreContext,
+        existingGoals: actionableGoals,
+        reservedSyllabusIds
+      }).filter((goal) => isActionableStudyGoalV411(goal, completedRecords));
+      const selection = globalThis.selectPlanningGoalsForTargets({
+        date,
+        topicTarget,
+        disciplineTarget: Math.max(1, Number(targets.disciplines) || 1),
+        eligibleGoals,
+        existingGoals: actionableGoals
+      });
+      const now = new Date().toISOString();
+      (selection?.selected || []).forEach((goal) => {
+        if (!isActionableStudyGoalV411(goal, completedRecords)) return;
+        goal.origin = goal.origem = "planejamento";
+        goal.createdAt ||= now;
+        goal.updatedAt = now;
+        targetState.dailyGoals.push(goal);
+        report.added.push(goal.id);
+      });
+      report.after = targetState.dailyGoals.filter((goal) => goalDateV411(goal) === date && isActionableStudyGoalV411(goal, completedRecords)).length;
+      report.changed = report.added.length > 0;
+      if (report.after < topicTarget) report.warnings.push(`Planejamento prevê ${topicTarget} assunto(s), mas existem apenas ${report.after} assunto(s) elegível(is) sem repetição.`);
+      if (report.changed) {
+        targetState.migrations ||= {};
+        targetState.migrations.dailyPlanningReplenishmentV411 = {
+          executedAt: now,
+          date,
+          before: report.before,
+          after: report.after,
+          added: report.added.length
+        };
+      }
+      return report;
+    };
+    Object.defineProperty(guarded, "__aldusCompletedGoalsV411", { value: VERSION });
+    Object.defineProperty(guarded, "__aldusOriginal", { value: current });
+    globalThis.replenishMissingDailyPlanningGoalsV116 = guarded;
+    return true;
+  }
+
+  function installNextGoalGuardV411() {
+    const current = globalThis.renderNextDailyGoal;
+    if (typeof current !== "function" || current.__aldusCompletedGoalsV411) return false;
+    const guarded = function renderNextDailyGoalV411(dayGoals = [], ...args) {
+      const completedRecords = completedRecordsV411(currentState());
+      return current.call(this, (dayGoals || []).filter((goal) => !shouldHideFromDailyPlanV411(goal, completedRecords)), ...args);
+    };
+    Object.defineProperty(guarded, "__aldusCompletedGoalsV411", { value: VERSION });
+    Object.defineProperty(guarded, "__aldusOriginal", { value: current });
+    globalThis.renderNextDailyGoal = guarded;
+    return true;
+  }
+
+  function hideCompletedDailyGoalCardsV411(targetState = currentState()) {
+    if (typeof document === "undefined" || !targetState) return 0;
+    const completedRecords = completedRecordsV411(targetState);
+    const goalsById = new Map((targetState.dailyGoals || []).map((goal) => [String(goal.id || ""), goal]));
+    let removed = 0;
+    document.querySelectorAll('#view-metas-do-dia [data-daily-goal-details]').forEach((card) => {
+      const goal = goalsById.get(String(card.dataset?.dailyGoalDetails || ""));
+      if (!goal || !shouldHideFromDailyPlanV411(goal, completedRecords)) return;
+      card.remove();
+      removed += 1;
+    });
+    const board = document.querySelector("#view-metas-do-dia .daily-goals-board");
+    const resume = board?.closest("details")?.querySelector(".daily-plan-resume");
+    if (resume) {
+      const visible = board.querySelectorAll("[data-daily-goal-details]").length;
+      resume.textContent = `${visible} meta(s) pendente(s)`;
+    }
+    return removed;
+  }
+
+  function installDailyGoalsRenderGuardV411() {
+    const current = globalThis.renderDailyGoals;
+    if (typeof current !== "function" || current.__aldusCompletedGoalsV411) return false;
+    const guarded = function renderDailyGoalsV411(...args) {
+      const result = current.apply(this, args);
+      hideCompletedDailyGoalCardsV411(currentState());
+      return result;
+    };
+    Object.defineProperty(guarded, "__aldusCompletedGoalsV411", { value: VERSION });
+    Object.defineProperty(guarded, "__aldusOriginal", { value: current });
+    globalThis.renderDailyGoals = guarded;
+    return true;
+  }
+
+  function installCompletedGoalGuardsV411() {
+    installScoreContextGuardV411();
+    installReplenishmentGuardV411();
+    installNextGoalGuardV411();
+    installDailyGoalsRenderGuardV411();
+  }
+
   function overrideForDate(date, targetState = currentState()) {
     return planningState(targetState)?.dailyGoalOverridesV235?.[date] || null;
   }
@@ -241,6 +449,7 @@
     if (!installed) {
       installPersistenceGuards();
       installTargetGuard();
+      installCompletedGoalGuardsV411();
       installFactoryGuard();
       bindPlanningForm();
 
@@ -250,6 +459,7 @@
         explicitOnly: true,
         startupDailyPlanReconcile: true,
         postBootstrapAuthoritative: true,
+        completedGoalsReviewOnly: true,
         installedAt: new Date().toISOString()
       });
       installed = true;
