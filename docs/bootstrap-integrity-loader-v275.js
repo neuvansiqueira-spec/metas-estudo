@@ -3,7 +3,7 @@
 
   const VERSION = "20260830-bootstrap-runtime-unification-v404";
   const LEGACY_VERSION = "20260815-bootstrap-performance-v342";
-  const UPDATE_FLOW_SCRIPT = "update-flow-v395.js?v=20260825-no-auto-reload-v395";
+  const UPDATE_FLOW_SCRIPT = "update-flow-v395.js?v=20260831-update-banner-stability-v414";
   const TIMER_AUDIO_STABILITY_SCRIPT = "timer-audio-stability-v396.js?v=20260825-timer-audio-stability-v396";
   const CORE_SCRIPT = `bootstrap-fast-path-v351.js?v=${VERSION}&planning=v397`;
   const DIAGNOSTICS_SCRIPT = `duplicate-diagnostics-v260.js?v=${LEGACY_VERSION}`;
