@@ -6,6 +6,7 @@ const vm = require("node:vm");
 
 const preludeSource = fs.readFileSync(path.join(__dirname, "..", "daily-piece-audit-prelude-v186.js"), "utf8");
 const performanceSource = fs.readFileSync(path.join(__dirname, "..", "daily-piece-audit-performance-v186.js"), "utf8");
+const publishedPerformanceSource = fs.readFileSync(path.join(__dirname, "..", "docs", "daily-piece-audit-performance-v186.js"), "utf8");
 
 function makeContext({ existingPieces = false } = {}) {
   const listeners = new Map();
@@ -94,6 +95,10 @@ function makeContext({ existingPieces = false } = {}) {
   context.getCounters = () => ({ scoreBuilds, saveCalls, renderCalls, syncCalls, timers: timers.size });
   return context;
 }
+
+test("cópia publicada da auditoria V186 é idêntica à fonte canônica", () => {
+  assert.equal(publishedPerformanceSource, performanceSource);
+});
 
 test("bootstrap, manutenção e pageshow não agendam nem alteram metas", () => {
   const context = makeContext();
