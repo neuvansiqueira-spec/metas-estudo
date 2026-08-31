@@ -1,0 +1,611 @@
+name: V419 Daily Goals Invariance
+
+on:
+  push:
+    branches:
+      - agent/daily-goals-invariance-v419
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci --ignore-scripts
+
+      - name: Remove temporary workflow from candidate tree
+        run: rm -f .github/workflows/v419-daily-goals-invariance.yml
+
+      - name: Capture baseline suite
+        shell: bash
+        run: |
+          set +e
+          node --test tests/*.test.js > /tmp/baseline.tap 2>&1
+          echo "BASELINE_EXIT=$?" >> "$GITHUB_ENV"
+          set -e
+          tail -n 20 /tmp/baseline.tap || true
+
+      - name: Apply V419 source policy and regression tests
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+
+          RELEASE = "20260831-daily-goals-explicit-mutation-v419"
+
+          def replace_once(text, old, new, label):
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"V419 patch mismatch {label}: expected 1 occurrence, found {count}")
+              return text.replace(old, new, 1)
+
+          # 1) Planning integrity: startup/replaceState may diagnose, never mutate dailyGoals.
+          p = Path("planning-integrity-v235.js")
+          text = p.read_text(encoding="utf-8")
+          text = replace_once(text,
+              'const VERSION = "20260831-metas-concluidas-somente-revisao-v411";',
+              f'const VERSION = "{RELEASE}";',
+              "planning version")
+          text = replace_once(text,
+              '        enforceSnapshot();\n        if (postBootstrapMaintenanceComplete()) reconcileDailyPlanOnStartup();\n        return result;',
+              '        enforceSnapshot();\n        return result;',
+              "replaceState auto reconcile")
+          old_reconcile = '''  function reconcileDailyPlanOnStartup(targetState = currentState()) {
+    if (!targetState || !Array.isArray(targetState.dailyGoals)) return { changed: false, skipped: "state-unavailable" };
+    if (globalThis[STARTUP_RECONCILE_MARKER] === true) return { changed: false, skipped: "already-reconciled" };
+
+    const replenish = globalThis.replenishMissingDailyPlanningGoalsV116;
+    if (typeof replenish !== "function") return { changed: false, skipped: "replenisher-unavailable" };
+
+    const date = currentDateISO();
+    try {
+      const report = replenish(targetState, date) || { changed: false };
+
+      if (report.changed) {
+        invalidateViews();
+        const reason = "daily-plan-post-bootstrap-reconcile-v410";
+        if (typeof globalThis.saveData === "function") {
+          globalThis.saveData({ markLocalChange: true, skipDerivedRefresh: true, reason });
+        }
+        if (typeof globalThis.render === "function") globalThis.render();
+        try { if (typeof globalThis.autoSyncAfterSave === "function") globalThis.autoSyncAfterSave(reason); } catch {}
+      }
+
+      globalThis[STARTUP_RECONCILE_MARKER] = true;
+      return report;
+    } catch (error) {
+      globalThis[STARTUP_RECONCILE_MARKER] = false;
+      console.warn(`[${VERSION}] Não foi possível reconciliar automaticamente o Plano do Dia.`, error);
+      return { changed: false, skipped: "replenisher-error" };
+    }
+  }
+'''
+          new_reconcile = '''  function reconcileDailyPlanOnStartup(targetState = currentState()) {
+    if (!targetState || !Array.isArray(targetState.dailyGoals)) return { changed: false, skipped: "state-unavailable" };
+    if (globalThis[STARTUP_RECONCILE_MARKER] === true) return { changed: false, skipped: "already-diagnosed" };
+
+    const date = currentDateISO();
+    const completedRecords = completedRecordsV411(targetState);
+    const allStudyGoals = targetState.dailyGoals.filter((goal) => goalDateV411(goal) === date && isPlanningStudyGoalV411(goal));
+    const actionableGoals = allStudyGoals.filter((goal) => isActionableStudyGoalV411(goal, completedRecords));
+    let targets = {};
+    try {
+      targets = typeof globalThis.planningTargetsForDate === "function"
+        ? (globalThis.planningTargetsForDate(date, targetState) || {})
+        : {};
+    } catch {}
+    const topicTarget = Math.max(0, Number(targets.topics) || 0);
+    const report = {
+      changed: false,
+      date,
+      topicTarget,
+      totalStudyGoals: allStudyGoals.length,
+      actionableGoals: actionableGoals.length,
+      missingActionableGoals: Math.max(0, topicTarget - actionableGoals.length),
+      skipped: "automatic-mutation-disabled-v419"
+    };
+    globalThis[STARTUP_RECONCILE_MARKER] = true;
+    globalThis.__aldusDailyPlanStartupDiagnosticV419 = Object.freeze({ ...report });
+    return report;
+  }
+'''
+          text = replace_once(text, old_reconcile, new_reconcile, "startup reconcile body")
+          text = replace_once(text,
+              '        startupDailyPlanReconcile: true,\n        postBootstrapAuthoritative: true,',
+              '        startupDailyPlanReconcile: false,\n        automaticDailyGoalMutationDisabled: true,\n        postBootstrapAuthoritative: true,',
+              "planning API policy")
+          p.write_text(text, encoding="utf-8")
+          Path("docs/planning-integrity-v235.js").write_text(text, encoding="utf-8")
+
+          # 2) Loader: cache-bust the corrected planning core.
+          loader = Path("planning-integrity-loader-v235.js")
+          ltext = loader.read_text(encoding="utf-8")
+          ltext = replace_once(ltext,
+              'const PLANNING_CORE_VERSION = "20260831-metas-concluidas-somente-revisao-v411";',
+              f'const PLANNING_CORE_VERSION = "{RELEASE}";',
+              "loader planning core version")
+          loader.write_text(ltext, encoding="utf-8")
+          Path("docs/planning-integrity-loader-v235.js").write_text(ltext, encoding="utf-8")
+
+          # 3) Completed-goal guard: keep candidate filtering, but repairs require explicit authorization.
+          c = Path("completed-goal-guard-v177.js")
+          ctext = c.read_text(encoding="utf-8")
+          ctext = replace_once(ctext,
+              '  const VERSION = "20260730-metas-concluidas-fora-do-plano-v177";\n  const MIGRATION_KEY = "completedSubjectsOutsideAutomaticPlanV177";',
+              f'  const VERSION = "20260730-metas-concluidas-fora-do-plano-v177";\n  const POLICY_VERSION = "{RELEASE}";\n  const MIGRATION_KEY = "completedSubjectsOutsideAutomaticPlanV177";',
+              "completed policy version")
+          ctext = replace_once(ctext,
+              '  function repairExistingAutomaticGoals(targetState = null, reason = "audit") {\n    const currentState = targetState || (typeof state !== "undefined" ? state : null);',
+              '  function repairExistingAutomaticGoals(targetState = null, reason = "audit", options = {}) {\n    if (options?.explicit !== true || options?.allowMutations !== true) {\n      return { changed: false, removed: [], converted: [], reason, skipped: "explicit-authorization-required" };\n    }\n    const currentState = targetState || (typeof state !== "undefined" ? state : null);',
+              "completed repair gate")
+          ctext = replace_once(ctext,
+              '  function runAudit(reason) {\n    const goalTypeGuardInstalled = installAutomaticGoalTypeGuard();\n    const candidateGuardInstalled = installCandidateGuard();\n    const repair = repairExistingAutomaticGoals(null, reason);',
+              '  function runAudit(reason = "audit", options = {}) {\n    const goalTypeGuardInstalled = installAutomaticGoalTypeGuard();\n    const candidateGuardInstalled = installCandidateGuard();\n    const repair = repairExistingAutomaticGoals(null, reason, options);',
+              "completed run audit options")
+          old_listeners = '''  const onBootstrapReady = () => runAudit("bootstrap-ready");
+  if (globalThis.__aldusBootstrapReady) queueMicrotask(onBootstrapReady);
+  else window.addEventListener("aldus:bootstrap-ready", onBootstrapReady, { once: true });
+
+  window.addEventListener("aldus:post-bootstrap-maintenance-complete", () => runAudit("post-bootstrap-maintenance"), { once: true });
+  window.addEventListener("pageshow", (event) => {
+    if (event.persisted) runAudit("pageshow-bfcache");
+  });
+  window.addEventListener("storage", () => runAudit("cross-tab-storage"));
+
+'''
+          ctext = replace_once(ctext, old_listeners,
+              '  // V419: bootstrap, pageshow e storage são somente leitura; nenhum reparo é agendado automaticamente.\n\n',
+              "completed automatic listeners")
+          ctext = replace_once(ctext,
+              '  globalThis.__aldusCompletedGoalGuardV177 = Object.freeze({\n    version: VERSION,\n    goalTypeGuardInstalled,',
+              '  globalThis.__aldusCompletedGoalGuardV177 = Object.freeze({\n    version: VERSION,\n    policyVersion: POLICY_VERSION,\n    automaticMutationDisabled: true,\n    goalTypeGuardInstalled,',
+              "completed API policy")
+          c.write_text(ctext, encoding="utf-8")
+          Path("docs/completed-goal-guard-v177.js").write_text(ctext, encoding="utf-8")
+
+          # 4) Update historical regression tests to the stricter V419 invariant.
+          common_header = '''const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const vm = require("node:vm");
+
+const source = fs.readFileSync("planning-integrity-v235.js", "utf8");
+const docsSource = fs.readFileSync("docs/planning-integrity-v235.js", "utf8");
+const DATE = "2026-08-30";
+const MARKER = "__aldusDailyPlanStartupReconciledV406";
+const POST_BOOTSTRAP_ATTR = "data-aldus-bootstrap-maintenance-ms";
+const RELEASE = "20260831-daily-goals-explicit-mutation-v419";
+
+class FakeWindow {
+  constructor() { this.listeners = new Map(); }
+  addEventListener(type, listener, options = {}) {
+    const list = this.listeners.get(type) || [];
+    list.push({ listener, once: options?.once === true });
+    this.listeners.set(type, list);
+  }
+  emit(type, event = {}) {
+    const list = [...(this.listeners.get(type) || [])];
+    for (const entry of list) entry.listener({ type, ...event });
+    this.listeners.set(type, (this.listeners.get(type) || []).filter((entry) => !entry.once));
+  }
+}
+
+function makeState(count = 3) {
+  return {
+    planning: { config: { disciplinesPerDay: count, topicsPerDay: count } },
+    dailyGoals: Array.from({ length: count }, (_, index) => ({ id: `auto-${index + 1}`, date: DATE, origin: "planejamento", status: "Pendente", minutes: 60 + index }))
+  };
+}
+
+function baseContext(targetState, { postBootstrap = true } = {}) {
+  const counters = { replenish: 0, save: 0, render: 0, sync: 0 };
+  const attrs = new Map();
+  if (postBootstrap) attrs.set(POST_BOOTSTRAP_ATTR, "1.0");
+  const window = new FakeWindow();
+  const snapshot = { disciplines: 6, topics: 6, savedAt: "2026-08-30T20:00:00-03:00" };
+  const context = {
+    console, state: targetState, window,
+    document: {
+      readyState: "complete",
+      documentElement: { dataset: {}, getAttribute(name) { return attrs.has(name) ? attrs.get(name) : null; }, setAttribute(name, value) { attrs.set(name, String(value)); } },
+      getElementById() { return null; }, querySelectorAll() { return []; }, querySelector() { return null; }, addEventListener() {}
+    },
+    localStorage: { getItem(key) { return key === "aldusPlanningManualGoalsV235" ? JSON.stringify(snapshot) : null; }, setItem() {} },
+    planningTargetsForDate(date, s) { return { disciplines: Number(s?.planning?.config?.disciplinesPerDay || 0), topics: Number(s?.planning?.config?.topicsPerDay || 0) }; },
+    todayISO() { return DATE; },
+    replenishMissingDailyPlanningGoalsV116() { counters.replenish += 1; throw new Error("V419: reposição automática proibida"); },
+    saveData() { counters.save += 1; }, render() { counters.render += 1; }, autoSyncAfterSave() { counters.sync += 1; },
+    Date, Object, Array, String, Number, Set, Map
+  };
+  context.globalThis = context;
+  return { context, counters, window, attrs };
+}
+'''
+
+          Path("tests/v406-daily-plan-authoritative-startup.test.js").write_text(common_header + '''
+
+test("V419 restaura apenas a configuração autoritativa sem completar dailyGoals no startup", () => {
+  const targetState = makeState(3);
+  const before = JSON.stringify(targetState.dailyGoals);
+  const { context, counters } = baseContext(targetState);
+  vm.createContext(context);
+  vm.runInContext(source, context);
+  assert.equal(targetState.planning.config.disciplinesPerDay, 6);
+  assert.equal(targetState.planning.config.topicsPerDay, 6);
+  assert.equal(JSON.stringify(targetState.dailyGoals), before);
+  assert.deepEqual(counters, { replenish: 0, save: 0, render: 0, sync: 0 });
+  assert.equal(context[MARKER], true);
+  assert.equal(context.__ALDUS_PLANNING_INTEGRITY_V235__.startupDailyPlanReconcile, false);
+  assert.equal(context.__ALDUS_PLANNING_INTEGRITY_V235__.automaticDailyGoalMutationDisabled, true);
+});
+
+test("V419 mantém dailyGoals idêntico em recargas completas repetidas", () => {
+  for (let index = 0; index < 5; index += 1) {
+    const targetState = makeState(3);
+    const before = JSON.stringify(targetState.dailyGoals);
+    const { context, counters } = baseContext(targetState);
+    vm.createContext(context);
+    vm.runInContext(source, context);
+    assert.equal(JSON.stringify(targetState.dailyGoals), before, `recarga ${index + 1}`);
+    assert.equal(counters.replenish, 0);
+    assert.equal(counters.save, 0);
+  }
+});
+
+test("V419 mantém o hot path sem timers, polling ou observadores", () => {
+  for (const token of ["queueMicrotask(", "Promise.resolve().then", "setTimeout(", "setInterval(", "requestAnimationFrame(", "requestIdleCallback(", "MutationObserver"]) {
+    assert.equal(source.includes(token), false, token);
+  }
+  assert.equal(source, docsSource);
+});
+''', encoding="utf-8")
+
+          Path("tests/v407-planning-state-binding.test.js").write_text(common_header + '''
+
+test("V419 continua instalando com state léxico sem preencher metas automaticamente", () => {
+  const targetState = makeState(5);
+  const before = JSON.stringify(targetState.dailyGoals);
+  const { context, counters } = baseContext(targetState);
+  context.__targetState = targetState;
+  delete context.state;
+  vm.createContext(context);
+  vm.runInContext("let state = __targetState;", context);
+  vm.runInContext(source, context);
+  assert.equal(targetState.planning.config.disciplinesPerDay, 6);
+  assert.equal(JSON.stringify(targetState.dailyGoals), before);
+  assert.equal(counters.replenish, 0);
+  assert.equal(counters.save, 0);
+  assert.equal(context.__ALDUS_PLANNING_INTEGRITY_V235__.version, RELEASE);
+  assert.equal(context.document.documentElement.dataset.aldusIntegrityVersion, RELEASE);
+  assert.equal(source, docsSource);
+});
+''', encoding="utf-8")
+
+          Path("tests/v410-daily-plan-post-bootstrap-reconcile.test.js").write_text(common_header + '''
+
+test("V419 pós-bootstrap apenas diagnostica e não recompõe dailyGoals", () => {
+  const targetState = makeState(3);
+  const before = JSON.stringify(targetState.dailyGoals);
+  const { context, counters, window } = baseContext(targetState, { postBootstrap: false });
+  vm.createContext(context);
+  vm.runInContext(source, context);
+  assert.equal(JSON.stringify(targetState.dailyGoals), before);
+  context.document.documentElement.setAttribute(POST_BOOTSTRAP_ATTR, "12.4");
+  window.emit("aldus:post-bootstrap-maintenance-complete");
+  assert.equal(JSON.stringify(targetState.dailyGoals), before);
+  assert.equal(counters.replenish, 0);
+  assert.equal(counters.save, 0);
+  assert.equal(counters.render, 0);
+  assert.equal(context[MARKER], true);
+  assert.equal(context.__aldusDailyPlanStartupDiagnosticV419.skipped, "automatic-mutation-disabled-v419");
+});
+
+test("V419 replaceState depois do bootstrap não dispara reposição", () => {
+  const initial = makeState(4);
+  const finalState = makeState(2);
+  const beforeFinal = JSON.stringify(finalState.dailyGoals);
+  const { context, counters } = baseContext(initial);
+  context.__finalState = finalState;
+  vm.createContext(context);
+  vm.runInContext(`let state = globalThis.state; globalThis.replaceState = function(nextState) { state = nextState; globalThis.state = nextState; return nextState; };`, context);
+  vm.runInContext(source, context);
+  vm.runInContext("replaceState(__finalState);", context);
+  assert.equal(JSON.stringify(finalState.dailyGoals), beforeFinal);
+  assert.equal(counters.replenish, 0);
+  assert.equal(counters.save, 0);
+});
+''', encoding="utf-8")
+
+          Path("tests/v411-completed-goals-review-only.test.js").write_text('''const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const vm = require("node:vm");
+
+const source = fs.readFileSync("planning-integrity-v235.js", "utf8");
+const docsSource = fs.readFileSync("docs/planning-integrity-v235.js", "utf8");
+const loader = fs.readFileSync("planning-integrity-loader-v235.js", "utf8");
+const docsLoader = fs.readFileSync("docs/planning-integrity-loader-v235.js", "utf8");
+const DATE = "2026-08-31";
+const RELEASE = "20260831-daily-goals-explicit-mutation-v419";
+
+function completedRecords(targetState) { return (targetState.dailyGoals || []).filter((goal) => goal.status === "Concluída"); }
+function matchesCompleted(record, completed) { return completed.some((goal) => goal.syllabusItemId === (record.syllabusItemId || record.id)); }
+
+function makeContext() {
+  const completed = { id: "done", date: DATE, discipline: "Direito", subject: "Atos", syllabusItemId: "s1", type: "Estudo novo", status: "Concluída" };
+  const pending = { id: "pending", date: DATE, discipline: "Português", subject: "Crase", syllabusItemId: "s2", type: "Estudo novo", status: "Pendente" };
+  const candidates = [{ id: "s1", discipline: "Direito", subject: "Atos" }, { id: "s3", discipline: "TI", subject: "Redes" }, { id: "s4", discipline: "RLM", subject: "Lógica" }];
+  const targetState = { planning: { config: { disciplinesPerDay: 3, topicsPerDay: 3 } }, dailyGoals: [completed, pending] };
+  const context = {
+    console, state: targetState, window: { addEventListener() {} },
+    document: { readyState: "complete", documentElement: { dataset: {}, getAttribute() { return "14.1"; } }, getElementById() { return null; }, querySelectorAll() { return []; }, querySelector() { return null; }, addEventListener() {} },
+    localStorage: { getItem() { return null; }, setItem() {} }, todayISO() { return DATE; },
+    planningTargetsForDate() { return { disciplines: 3, topics: 3 }; }, completedPlanningSubjectRecords: completedRecords, planningRecordMatchesCompletedSubject: matchesCompleted,
+    isGoalDone(goal) { return goal.status === "Concluída"; }, isPlanningStudyGoal() { return true; }, goalSyllabusReservationKey(goal) { return goal.syllabusItemId; },
+    buildPlanningScoreContext() { return { candidates: [...candidates], itemMetrics: new Map(), diagnosticMetrics: new Map() }; },
+    eligiblePlanningGoalsForDate(date, options) { return options.scoreContext.candidates.map((item) => ({ id: `goal-${item.id}`, date, discipline: item.discipline, subject: item.subject, syllabusItemId: item.id, type: "Estudo novo", status: "Pendente" })); },
+    selectPlanningGoalsForTargets({ topicTarget, eligibleGoals, existingGoals }) { return { selected: eligibleGoals.slice(0, Math.max(0, topicTarget - existingGoals.length)) }; },
+    replenishMissingDailyPlanningGoalsV116() { throw new Error("repositor legado não deve ser usado diretamente"); },
+    saveData() { throw new Error("startup não deve salvar"); }, render() { throw new Error("startup não deve renderizar por mutação"); },
+    Date, Object, Array, String, Number, Set, Map
+  };
+  context.globalThis = context;
+  return { context, targetState };
+}
+
+test("V419 filtra concluídos dos candidatos sem preencher vagas no startup", () => {
+  const { context, targetState } = makeContext();
+  const before = JSON.stringify(targetState.dailyGoals);
+  vm.createContext(context);
+  vm.runInContext(source, context);
+  assert.deepEqual(Array.from(context.buildPlanningScoreContext(targetState).candidates, (item) => item.id), ["s3", "s4"]);
+  assert.equal(JSON.stringify(targetState.dailyGoals), before);
+  assert.equal(context.__ALDUS_PLANNING_INTEGRITY_V235__.completedGoalsReviewOnly, true);
+  assert.equal(context.__ALDUS_PLANNING_INTEGRITY_V235__.automaticDailyGoalMutationDisabled, true);
+});
+
+test("V419 mantém concluído fora da próxima atividade sem apagar histórico", () => {
+  const completed = { id: "done", status: "Concluída", syllabusItemId: "s1" };
+  const pending = { id: "pending", status: "Pendente", syllabusItemId: "s2" };
+  const reopened = { id: "reopened", status: "Pendente", syllabusItemId: "s1" };
+  const targetState = { planning: { config: { disciplinesPerDay: 1, topicsPerDay: 1 } }, dailyGoals: [completed, pending, reopened] };
+  let received = [];
+  const cards = [completed, pending, reopened].map((goal) => ({ dataset: { dailyGoalDetails: goal.id }, removed: false, remove() { this.removed = true; } }));
+  const context = {
+    console, state: targetState, window: { addEventListener() {} },
+    document: { readyState: "complete", documentElement: { dataset: {}, getAttribute() { return null; } }, getElementById() { return null; }, querySelectorAll(s) { return s.includes("data-daily-goal-details") ? cards : []; }, querySelector() { return null; }, addEventListener() {} },
+    localStorage: { getItem() { return null; }, setItem() {} }, planningTargetsForDate() { return { disciplines: 1, topics: 1 }; },
+    completedPlanningSubjectRecords: completedRecords, planningRecordMatchesCompletedSubject: matchesCompleted, isGoalDone(goal) { return goal.status === "Concluída"; }, isPlanningStudyGoal() { return true; },
+    renderNextDailyGoal(goals) { received = goals; }, renderDailyGoals() {}, Date, Object, Array, String, Number, Set, Map
+  };
+  context.globalThis = context;
+  vm.createContext(context);
+  vm.runInContext(source, context);
+  context.renderNextDailyGoal([completed, pending, reopened]);
+  context.renderDailyGoals();
+  assert.deepEqual(Array.from(received, (goal) => goal.id), ["pending"]);
+  assert.deepEqual(cards.map((card) => card.removed), [true, false, true]);
+  assert.equal(targetState.dailyGoals.length, 3);
+});
+
+test("V419 preserva paridade e cache-bust do núcleo corrigido", () => {
+  assert.equal(source, docsSource);
+  assert.equal(loader, docsLoader);
+  assert.match(loader, new RegExp(`const PLANNING_CORE_VERSION = "${RELEASE}"`));
+  assert.match(loader, /planning-integrity-v235\\.js\\?v=\\$\\{encodeURIComponent\\(PLANNING_CORE_VERSION\\)\\}/);
+  assert.doesNotMatch(source, /setTimeout|setInterval|MutationObserver|requestAnimationFrame|requestIdleCallback/);
+});
+''', encoding="utf-8")
+
+          Path("tests/v419-daily-goals-invariance.test.js").write_text('''const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const vm = require("node:vm");
+
+const planning = fs.readFileSync("planning-integrity-v235.js", "utf8");
+const completedGuard = fs.readFileSync("completed-goal-guard-v177.js", "utf8");
+const RELEASE = "20260831-daily-goals-explicit-mutation-v419";
+
+test("V419 planejamento não chama repositor, save, render ou sync no diagnóstico de startup", () => {
+  const start = planning.indexOf("function reconcileDailyPlanOnStartup");
+  const end = planning.indexOf("function finalizeStartupReconcile", start);
+  assert.ok(start >= 0 && end > start);
+  const block = planning.slice(start, end);
+  assert.match(block, /automatic-mutation-disabled-v419/);
+  assert.doesNotMatch(block, /replenishMissingDailyPlanningGoalsV116|saveData|autoSyncAfterSave|\.push\(/);
+  const replaceStart = planning.indexOf("function replaceStateIntegrityV388");
+  const replaceEnd = planning.indexOf("};", replaceStart);
+  assert.doesNotMatch(planning.slice(replaceStart, replaceEnd), /reconcileDailyPlanOnStartup/);
+});
+
+test("V419 guarda de concluídos não instala gatilhos automáticos e exige autorização dupla", () => {
+  assert.match(completedGuard, new RegExp(`POLICY_VERSION = "${RELEASE}"`));
+  assert.doesNotMatch(completedGuard, /window\.addEventListener\("aldus:bootstrap-ready"|window\.addEventListener\("aldus:post-bootstrap-maintenance-complete"|window\.addEventListener\("pageshow"|window\.addEventListener\("storage"|queueMicrotask\(/);
+  assert.match(completedGuard, /options\?\.explicit !== true \|\| options\?\.allowMutations !== true/);
+  assert.match(completedGuard, /automaticMutationDisabled: true/);
+});
+
+test("V419 auditoria de concluídos é read-only por padrão e muta somente quando explicitamente autorizada", () => {
+  const targetState = {
+    syllabusItems: [{ id: "s1", discipline: "Direito", subject: "Atos", status: "Concluído" }],
+    dailyGoals: [{ id: "g1", date: "2026-08-31", discipline: "Direito", subject: "Atos", syllabusItemId: "s1", status: "Pendente", origin: "planejamento" }],
+    migrations: {}
+  };
+  const counters = { save: 0, render: 0, sync: 0 };
+  const context = {
+    console, state: targetState,
+    planningGoalTypeForItemV157() { return "Estudo novo"; },
+    buildPlanningScoreContext() { return { candidates: [] }; },
+    completedPlanningSubjectRecords() { return targetState.syllabusItems; },
+    planningRecordMatchesCompletedSubject(record, completed) { return completed.some((item) => item.id === record.syllabusItemId); },
+    isGoalDone(goal) { return goal.status === "Concluída"; },
+    saveData() { counters.save += 1; }, render() { counters.render += 1; }, autoSyncAfterSave() { counters.sync += 1; },
+    Date, Object, Array, String, Number, Set, Map
+  };
+  context.globalThis = context;
+  vm.createContext(context);
+  vm.runInContext(completedGuard, context);
+  const before = JSON.stringify(targetState.dailyGoals);
+  const blocked = context.__aldusCompletedGoalGuardV177.runAudit("bootstrap-ready");
+  assert.equal(blocked.skipped, "explicit-authorization-required");
+  assert.equal(JSON.stringify(targetState.dailyGoals), before);
+  assert.deepEqual(counters, { save: 0, render: 0, sync: 0 });
+  const explicit = context.__aldusCompletedGoalGuardV177.runAudit("manual-repair", { explicit: true, allowMutations: true });
+  assert.equal(explicit.changed, true);
+  assert.equal(targetState.dailyGoals.length, 0);
+  assert.deepEqual(counters, { save: 1, render: 1, sync: 1 });
+});
+
+test("V419 mantém fontes raiz e publicadas idênticas", () => {
+  assert.equal(planning, fs.readFileSync("docs/planning-integrity-v235.js", "utf8"));
+  assert.equal(completedGuard, fs.readFileSync("docs/completed-goal-guard-v177.js", "utf8"));
+  assert.equal(fs.readFileSync("planning-integrity-loader-v235.js", "utf8"), fs.readFileSync("docs/planning-integrity-loader-v235.js", "utf8"));
+});
+''', encoding="utf-8")
+
+          # 5) Service-worker bridge and published-worker registry for old clients.
+          sw = Path("service-worker-v402.js")
+          swtext = sw.read_text(encoding="utf-8")
+          swtext = replace_once(swtext,
+              'const GOAL_INTEGRITY_NO_AUTO_AUDIT_CACHE_VERSION_V418 = "20260831-metas-integridade-sem-auditoria-v418";',
+              'const GOAL_INTEGRITY_NO_AUTO_AUDIT_CACHE_VERSION_V418 = "20260831-metas-integridade-sem-auditoria-v418";\nconst DAILY_GOALS_EXPLICIT_MUTATION_CACHE_VERSION_V419 = "20260831-daily-goals-explicit-mutation-v419";',
+              "worker V419 constant")
+          swtext = replace_once(swtext,
+              '  new URL("app-v418.js", self.registration.scope).pathname,',
+              '  new URL("app-v418.js", self.registration.scope).pathname,\n  new URL("app-v419.js", self.registration.scope).pathname,',
+              "worker V419 app path")
+          swtext = replace_once(swtext,
+              'void GOAL_INTEGRITY_NO_AUTO_AUDIT_CACHE_VERSION_V418;\nimportScripts',
+              'void GOAL_INTEGRITY_NO_AUTO_AUDIT_CACHE_VERSION_V418;\nvoid DAILY_GOALS_EXPLICIT_MUTATION_CACHE_VERSION_V419;\nimportScripts',
+              "worker V419 void")
+          sw.write_text(swtext, encoding="utf-8")
+          Path("docs/service-worker-v402.js").write_text(swtext, encoding="utf-8")
+
+          registry = Path("published-service-workers.json")
+          payload = json.loads(registry.read_text(encoding="utf-8"))
+          if "v419" not in payload["versoes"]:
+              payload["versoes"].append("v419")
+          registry.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+          PY
+
+          npm version 20260831-daily-goals-explicit-mutation-v419 --no-git-tag-version
+
+      - name: Build V419
+        run: npm run build
+
+      - name: Restore V419 standalone parity after build
+        shell: bash
+        run: |
+          cp planning-integrity-v235.js docs/planning-integrity-v235.js
+          cp planning-integrity-loader-v235.js docs/planning-integrity-loader-v235.js
+          cp completed-goal-guard-v177.js docs/completed-goal-guard-v177.js
+          cp service-worker-v402.js docs/service-worker-v402.js
+
+      - name: Syntax and performance guards
+        shell: bash
+        run: |
+          node --check planning-integrity-v235.js
+          node --check completed-goal-guard-v177.js
+          node --check planning-integrity-loader-v235.js
+          node --check app-v419.js
+          node --check service-worker-v419.js
+          node --check service-worker-v402.js
+          python - <<'PY'
+          from pathlib import Path
+          planning = Path("planning-integrity-v235.js").read_text()
+          completed = Path("completed-goal-guard-v177.js").read_text()
+          forbidden = ["setTimeout(", "setInterval(", "requestAnimationFrame(", "requestIdleCallback(", "MutationObserver"]
+          for token in forbidden:
+              if token in planning:
+                  raise SystemExit(f"planning hot-path token forbidden: {token}")
+          for token in ["setTimeout(", "setInterval(", "requestAnimationFrame(", "requestIdleCallback(", "MutationObserver", "queueMicrotask("]:
+              if token in completed:
+                  raise SystemExit(f"completed-goal automatic scheduling token forbidden: {token}")
+          for token in ['window.addEventListener("storage"', 'window.addEventListener("pageshow"', 'window.addEventListener("aldus:bootstrap-ready"', 'window.addEventListener("aldus:post-bootstrap-maintenance-complete"']:
+              if token in completed:
+                  raise SystemExit(f"completed-goal automatic listener forbidden: {token}")
+          PY
+          cmp planning-integrity-v235.js docs/planning-integrity-v235.js
+          cmp planning-integrity-loader-v235.js docs/planning-integrity-loader-v235.js
+          cmp completed-goal-guard-v177.js docs/completed-goal-guard-v177.js
+          cmp service-worker-v402.js docs/service-worker-v402.js
+          grep -F 'app-v419.js?v=20260831-daily-goals-explicit-mutation-v419' docs/index.html
+          grep -F 'automatic-mutation-disabled-v419' planning-integrity-v235.js
+          grep -F 'automaticMutationDisabled: true' completed-goal-guard-v177.js
+
+      - name: Targeted regression tests
+        run: |
+          node --test \
+            tests/v108-daily-plan-sync-inflation.test.js \
+            tests/v186-piece-audit-performance.test.js \
+            tests/v365-planning-runtime.test.js \
+            tests/v379-manual-goal-additive.test.js \
+            tests/v406-daily-plan-authoritative-startup.test.js \
+            tests/v407-planning-state-binding.test.js \
+            tests/v410-daily-plan-post-bootstrap-reconcile.test.js \
+            tests/v411-completed-goals-review-only.test.js \
+            tests/v413-core-daily-plan-consistency.test.js \
+            tests/v416-weekly-status-stability.test.js \
+            tests/v417-daily-plan-deterministic-integrity.test.js \
+            tests/v419-daily-goals-invariance.test.js
+          node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
+
+      - name: Compare full suite against baseline
+        shell: bash
+        run: |
+          set +e
+          node --test tests/*.test.js > /tmp/candidate.tap 2>&1
+          CANDIDATE_EXIT=$?
+          set -e
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          def failures(path):
+              result = set()
+              for line in Path(path).read_text(errors="replace").splitlines():
+                  m = re.match(r"\s*not ok\s+\d+\s+-\s+(.*)", line)
+                  if m:
+                      result.add(m.group(1).strip())
+              return result
+          baseline = failures("/tmp/baseline.tap")
+          candidate = failures("/tmp/candidate.tap")
+          new = sorted(candidate - baseline)
+          removed = sorted(baseline - candidate)
+          print(f"baseline failing tests: {len(baseline)}")
+          print(f"candidate failing tests: {len(candidate)}")
+          print(f"historical failures removed: {len(removed)}")
+          if new:
+              print("NEW FAILURES:")
+              for item in new: print(f" - {item}")
+              raise SystemExit(1)
+          print("new failures: 0")
+          PY
+          tail -n 20 /tmp/candidate.tap || true
+
+      - name: Review diff and commit validated V419
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          echo "Changed files:"
+          git status --short
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "V419: tornar mutações de metas explicitamente autorizadas"
+          git push origin HEAD:agent/daily-goals-invariance-v419
