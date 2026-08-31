@@ -31,7 +31,8 @@ jobs:
         shell: bash
         run: |
           cp tools/v419_patch.py /tmp/v419_patch.py
-          rm -f .github/workflows/v419-daily-goals-invariance.yml tools/v419_patch.py
+          cp tools/v419_v177_test_patch.py /tmp/v419_v177_test_patch.py
+          rm -f .github/workflows/v419-daily-goals-invariance.yml tools/v419_patch.py tools/v419_v177_test_patch.py
           set +e
           node --test tests/*.test.js > /tmp/baseline.tap 2>&1
           BASELINE_EXIT=$?
@@ -43,6 +44,7 @@ jobs:
         shell: bash
         run: |
           python /tmp/v419_patch.py
+          python /tmp/v419_v177_test_patch.py
           node <<'NODE'
           const fs = require('node:fs');
           const version = '20260831-daily-goals-explicit-mutation-v419';
@@ -112,6 +114,7 @@ jobs:
         shell: bash
         run: |
           node --test \
+            tests/v177-completed-goal-guard.test.js \
             tests/v186-piece-audit-performance.test.js \
             tests/v365-planning-runtime.test.js \
             tests/v379-manual-goal-additive.test.js \
