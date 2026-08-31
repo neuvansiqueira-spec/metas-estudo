@@ -7,12 +7,13 @@ const source = fs.readFileSync("planning-integrity-v235.js", "utf8");
 const docsSource = fs.readFileSync("docs/planning-integrity-v235.js", "utf8");
 const DATE = "2026-08-30";
 const MARKER = "__aldusDailyPlanStartupReconciledV406";
+const POST_BOOTSTRAP_ATTR = "data-aldus-bootstrap-maintenance-ms";
 
 class FakeWindow {
   addEventListener() {}
 }
 
-test("V407 instala e reconcilia quando state existe como binding léxico, sem globalThis.state", () => {
+test("V407 continua instalando com state léxico e V410 reconcilia após bootstrap definitivo", () => {
   const planned = Array.from({ length: 6 }, (_, index) => ({
     id: `auto-${index + 1}`,
     date: DATE,
@@ -37,7 +38,10 @@ test("V407 instala e reconcilia quando state existe como binding léxico, sem gl
     window: new FakeWindow(),
     document: {
       readyState: "complete",
-      documentElement: { dataset: {} },
+      documentElement: {
+        dataset: {},
+        getAttribute(name) { return name === POST_BOOTSTRAP_ATTR ? "1.0" : null; }
+      },
       getElementById() { return null; },
       addEventListener() {}
     },
@@ -90,7 +94,7 @@ test("V407 instala e reconcilia quando state existe como binding léxico, sem gl
   assert.equal(counters.save, 1);
   assert.equal(counters.render, 1);
   assert.equal(context[MARKER], true);
-  assert.equal(context.__ALDUS_PLANNING_INTEGRITY_V235__?.version, "20260830-plano-dia-state-binding-v407");
-  assert.equal(context.document.documentElement.dataset.aldusIntegrityVersion, "20260830-plano-dia-state-binding-v407");
+  assert.equal(context.__ALDUS_PLANNING_INTEGRITY_V235__?.version, "20260830-plano-dia-post-bootstrap-v410");
+  assert.equal(context.document.documentElement.dataset.aldusIntegrityVersion, "20260830-plano-dia-post-bootstrap-v410");
   assert.equal(source, docsSource);
 });
