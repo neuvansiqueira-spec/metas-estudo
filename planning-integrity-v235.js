@@ -1,11 +1,12 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260830-plano-dia-state-binding-v407";
+  const VERSION = "20260830-plano-dia-post-bootstrap-v410";
   const SNAPSHOT_KEY = "aldusPlanningManualGoalsV235";
   const FACTORY_VIEW = "fabrica-resumos";
   const DAILY_VIEW = "metas-do-dia";
   const STARTUP_RECONCILE_MARKER = "__aldusDailyPlanStartupReconciledV406";
+  const POST_BOOTSTRAP_ATTR = "data-aldus-bootstrap-maintenance-ms";
   let installed = false;
 
   function positiveInteger(value, fallback = 0) {
@@ -66,12 +67,22 @@
     return changed;
   }
 
+  function postBootstrapMaintenanceComplete() {
+    try {
+      const root = typeof document !== "undefined" ? document.documentElement : null;
+      return Boolean(root && typeof root.getAttribute === "function" && root.getAttribute(POST_BOOTSTRAP_ATTR) !== null);
+    } catch {
+      return false;
+    }
+  }
+
   function installPersistenceGuards() {
     if (typeof globalThis.replaceState === "function" && !globalThis.replaceState.__aldusIntegrityV388) {
       const original = globalThis.replaceState;
       const guarded = function replaceStateIntegrityV388(...args) {
         const result = original.apply(this, args);
         enforceSnapshot();
+        if (postBootstrapMaintenanceComplete()) reconcileDailyPlanOnStartup();
         return result;
       };
       Object.defineProperty(guarded, "__aldusIntegrityV388", { value: VERSION });
@@ -171,7 +182,7 @@
 
       if (report.changed) {
         invalidateViews();
-        const reason = "daily-plan-startup-reconcile-v406";
+        const reason = "daily-plan-post-bootstrap-reconcile-v410";
         if (typeof globalThis.saveData === "function") {
           globalThis.saveData({ markLocalChange: true, skipDerivedRefresh: true, reason });
         }
@@ -186,6 +197,13 @@
       console.warn(`[${VERSION}] Não foi possível reconciliar automaticamente o Plano do Dia.`, error);
       return { changed: false, skipped: "replenisher-error" };
     }
+  }
+
+  function finalizeStartupReconcile(targetState = currentState()) {
+    if (!postBootstrapMaintenanceComplete()) return { changed: false, skipped: "post-bootstrap-pending" };
+    if (!targetState || !Array.isArray(targetState.dailyGoals)) return { changed: false, skipped: "state-unavailable" };
+    enforceSnapshot(targetState);
+    return reconcileDailyPlanOnStartup(targetState);
   }
 
   function installFactoryGuard() {
@@ -217,28 +235,27 @@
   }
 
   function install() {
-    if (installed) return true;
     const targetState = currentState();
     if (typeof document === "undefined" || !targetState || typeof globalThis.planningTargetsForDate !== "function") return false;
-    installPersistenceGuards();
-    installTargetGuard();
-    installFactoryGuard();
-    bindPlanningForm();
 
-    // A mesma restauração autoritativa que o loader faria no evento load precisa
-    // acontecer antes da reconciliação do Plano do Dia. Assim o recompositor
-    // nunca enxerga a configuração provisória do bootstrap.
-    enforceSnapshot();
+    if (!installed) {
+      installPersistenceGuards();
+      installTargetGuard();
+      installFactoryGuard();
+      bindPlanningForm();
 
-    document.documentElement.dataset.aldusIntegrityVersion = VERSION;
-    globalThis.__ALDUS_PLANNING_INTEGRITY_V235__ = Object.freeze({
-      version: VERSION,
-      explicitOnly: true,
-      startupDailyPlanReconcile: true,
-      installedAt: new Date().toISOString()
-    });
-    installed = true;
-    reconcileDailyPlanOnStartup();
+      document.documentElement.dataset.aldusIntegrityVersion = VERSION;
+      globalThis.__ALDUS_PLANNING_INTEGRITY_V235__ = Object.freeze({
+        version: VERSION,
+        explicitOnly: true,
+        startupDailyPlanReconcile: true,
+        postBootstrapAuthoritative: true,
+        installedAt: new Date().toISOString()
+      });
+      installed = true;
+    }
+
+    finalizeStartupReconcile(currentState());
     return true;
   }
 

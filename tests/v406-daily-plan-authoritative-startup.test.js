@@ -7,6 +7,7 @@ const source = fs.readFileSync("planning-integrity-v235.js", "utf8");
 const docsSource = fs.readFileSync("docs/planning-integrity-v235.js", "utf8");
 const MARKER = "__aldusDailyPlanStartupReconciledV406";
 const DATE = "2026-08-30";
+const POST_BOOTSTRAP_ATTR = "data-aldus-bootstrap-maintenance-ms";
 const planned = [
   { id: "auto-1", minutes: 60 },
   { id: "auto-2", minutes: 70 },
@@ -68,7 +69,10 @@ function run({ failSave = false, includeManual = false } = {}) {
     window: new FakeWindow(),
     document: {
       readyState: "complete",
-      documentElement: { dataset: {} },
+      documentElement: {
+        dataset: {},
+        getAttribute(name) { return name === POST_BOOTSTRAP_ATTR ? "1.0" : null; }
+      },
       getElementById() { return null; },
       addEventListener() {}
     },
@@ -189,7 +193,7 @@ test("V406 mantém 6 metas/7h05 em recargas completas repetidas", () => {
   }
 });
 
-test("V406 não introduz polling, timers ou reconciliação por microtask/load", () => {
+test("V410 mantém a sequência autoritativa sem polling, timers ou microtasks", () => {
   for (const token of [
     "queueMicrotask(",
     "Promise.resolve().then",
@@ -203,8 +207,10 @@ test("V406 não introduz polling, timers ou reconciliação por microtask/load",
     assert.equal(source.includes(token), false, `mecanismo proibido: ${token}`);
   }
 
-  const enforceIndex = source.indexOf("enforceSnapshot();", source.indexOf("function install()"));
-  const reconcileIndex = source.indexOf("reconcileDailyPlanOnStartup();", source.indexOf("function install()"));
-  assert.ok(enforceIndex >= 0 && reconcileIndex > enforceIndex, "a restauração autoritativa deve preceder a reconciliação");
+  const finalizeIndex = source.indexOf("function finalizeStartupReconcile");
+  const enforceIndex = source.indexOf("enforceSnapshot(targetState);", finalizeIndex);
+  const reconcileIndex = source.indexOf("reconcileDailyPlanOnStartup(targetState);", finalizeIndex);
+  assert.ok(finalizeIndex >= 0 && enforceIndex > finalizeIndex && reconcileIndex > enforceIndex, "a restauração autoritativa pós-bootstrap deve preceder a reconciliação");
+  assert.match(source, /data-aldus-bootstrap-maintenance-ms/);
   assert.equal(source, docsSource);
 });
