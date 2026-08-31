@@ -2,6 +2,7 @@
   "use strict";
 
   const VERSION = "20260810-seguranca-estabilidade-v296";
+  const MUTATION_BATCH_VERSION = "20260831-security-dom-batch-v415";
   const FILE_LIMITS = Object.freeze({
     json: 32 * 1024 * 1024,
     pdf: 120 * 1024 * 1024,
@@ -9,7 +10,10 @@
   });
   const validatedFiles = new WeakSet();
   const recentSubmits = new WeakMap();
+  const pendingAddedRoots = new Set();
   let persistenceRequested = false;
+  let mutationHardeningScheduled = false;
+  let weeklyStatusNeedsRefresh = false;
 
   if (globalThis.__ALDUS_SECURITY_HARDENING_V296__) return;
 
@@ -151,6 +155,43 @@
     if (simplified !== current) status.textContent = simplified;
   }
 
+  function isWeeklyStatusMutation(record) {
+    const target = record?.target;
+    if (target instanceof Element && (target.id === "weeklyGoalStatus" || target.closest?.("#weeklyGoalStatus"))) return true;
+    return [...(record?.addedNodes || [])].some((node) => node instanceof Element
+      && (node.id === "weeklyGoalStatus" || Boolean(node.querySelector?.("#weeklyGoalStatus"))));
+  }
+
+  function flushMutationHardening() {
+    mutationHardeningScheduled = false;
+    const roots = [...pendingAddedRoots].filter((root) => root?.isConnected);
+    pendingAddedRoots.clear();
+
+    if (roots.length > 24) hardenAddedLinks(document);
+    else roots.forEach(hardenAddedLinks);
+
+    if (weeklyStatusNeedsRefresh) {
+      weeklyStatusNeedsRefresh = false;
+      simplifyWeeklyGoalStatus();
+    }
+  }
+
+  function scheduleMutationHardening(records) {
+    for (const record of records) {
+      if (isWeeklyStatusMutation(record)) weeklyStatusNeedsRefresh = true;
+      record.addedNodes.forEach((node) => {
+        if (node.nodeType === Node.ELEMENT_NODE) pendingAddedRoots.add(node);
+      });
+    }
+    if (mutationHardeningScheduled || (!pendingAddedRoots.size && !weeklyStatusNeedsRefresh)) return;
+    mutationHardeningScheduled = true;
+    if (typeof globalThis.requestIdleCallback === "function") {
+      globalThis.requestIdleCallback(flushMutationHardening, { timeout: 300 });
+    } else {
+      globalThis.setTimeout(flushMutationHardening, 0);
+    }
+  }
+
   function guardRapidSubmit(event) {
     const form = event.target;
     if (!(form instanceof HTMLFormElement)) return;
@@ -185,17 +226,13 @@
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", prepareDocument, { once: true });
     else prepareDocument();
 
-    const observer = new MutationObserver((records) => {
-      for (const record of records) record.addedNodes.forEach((node) => {
-        if (node.nodeType === Node.ELEMENT_NODE) hardenAddedLinks(node);
-      });
-      simplifyWeeklyGoalStatus();
-    });
+    const observer = new MutationObserver(scheduleMutationHardening);
     observer.observe(document.documentElement, { childList: true, subtree: true });
   }
 
   globalThis.__ALDUS_SECURITY_HARDENING_V296__ = Object.freeze({
     version: VERSION,
+    mutationBatchVersion: MUTATION_BATCH_VERSION,
     fileLimits: FILE_LIMITS,
     framingBlocked,
     validateFile,
