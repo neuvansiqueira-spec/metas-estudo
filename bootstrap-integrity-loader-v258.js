@@ -2,7 +2,7 @@
   "use strict";
 
   const VERSION = "20260830-bootstrap-runtime-unification-v404";
-  const UPDATE_FLOW_SCRIPT = "update-flow-v395.js?v=20260825-no-auto-reload-v395";
+  const UPDATE_FLOW_SCRIPT = "update-flow-v395.js?v=20260831-update-banner-stability-v414";
   const TIMER_AUDIO_STABILITY_SCRIPT = "timer-audio-stability-v396.js?v=20260825-timer-audio-stability-v396";
   const CORE_SCRIPT = "bootstrap-integrity-loader-v258-core.js?v=20260830-bootstrap-runtime-unification-v404&planning=v397";
   const DIAGNOSTICS_SCRIPT = "duplicate-diagnostics-v260.js?v=20260806-duplicate-diagnostics-v260";
