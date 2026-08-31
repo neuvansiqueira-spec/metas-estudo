@@ -2,16 +2,18 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 
+const packageVersion = JSON.parse(fs.readFileSync("package.json", "utf8")).version;
+const releaseSuffix = packageVersion.match(/v\d+$/)?.[0] || "current";
 const script = fs.readFileSync("script.js", "utf8");
-const bundle = fs.readFileSync("app-v417.js", "utf8");
-const docsBundle = fs.readFileSync("docs/app-v417.js", "utf8");
+const bundle = fs.readFileSync(`app-${releaseSuffix}.js`, "utf8");
+const docsBundle = fs.readFileSync(`docs/app-${releaseSuffix}.js`, "utf8");
 const index = fs.readFileSync("index.html", "utf8");
 const docsIndex = fs.readFileSync("docs/index.html", "utf8");
 const workerBridge = fs.readFileSync("service-worker-v402.js", "utf8");
 const docsWorkerBridge = fs.readFileSync("docs/service-worker-v402.js", "utf8");
 const worker = fs.readFileSync("service-worker.js", "utf8");
 
-test("V417 substitui a reconciliação V413 por diagnóstico antes da primeira exibição", () => {
+test("release atual substitui a reconciliação V413 por diagnóstico antes da primeira exibição", () => {
   const reconcile = script.indexOf('medirFaseBootV350("diagnostico-plano-dia-deterministico-v417"');
   const firstRender = script.indexOf('medirFaseBootV350("showView-inicial"');
 
@@ -35,14 +37,14 @@ test("V413 exclui concluídos no núcleo, inclusive candidatos com reforço diag
   assert.match(script, /isPlanningStudyGoal\(goal\) && isActionableDailyPlanGoal\(goal, targetState, completedRecords\)/);
 });
 
-test("V417 publica bundle e ponte de cache sem observadores ou polling novos", () => {
+test("release atual publica bundle e ponte de cache sem observadores ou polling novos", () => {
   assert.equal(bundle, docsBundle);
   assert.equal(index, docsIndex);
   assert.equal(workerBridge, docsWorkerBridge);
-  assert.match(index, /app-v417\.js\?v=20260831-daily-plan-deterministic-integrity-v417/);
+  assert.ok(index.includes(`app-${releaseSuffix}.js?v=${packageVersion}`));
   assert.match(workerBridge, /CORE_DAILY_PLAN_CACHE_VERSION_V413/);
   assert.match(workerBridge, /bootstrap-integrity-loader-v258-core\.js/);
-  assert.match(workerBridge, /app-v417\.js/);
+  assert.ok(workerBridge.includes(`app-${releaseSuffix}.js`));
   assert.match(worker, /html\.includes\(`app-\$\{RELEASE_SUFFIX\}\.js\?v=\$\{CURRENT_VERSION\}`\)/);
   assert.match(worker, /html\.includes\(`Versão: \$\{CURRENT_VERSION\}`\)/);
   assert.doesNotMatch(workerBridge, /addEventListener\("fetch"/);
