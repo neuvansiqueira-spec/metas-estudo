@@ -26,6 +26,13 @@ test("V408 preserva cache-first e não adiciona trabalho permanente", () => {
   assert.doesNotMatch(bridge, /setTimeout|setInterval|MutationObserver|requestAnimationFrame|requestIdleCallback/);
 });
 
+test("V408 mantém o contrato V395 necessário à publicação sem abrir cache extra", () => {
+  assert.match(bridge, /const CACHE_NAME = `metas-estudo-v408-active-bridge`;/);
+  const deployPattern = /(const CACHE_NAME = `[^`\n]+)(`;)/;
+  assert.equal(deployPattern.test(bridge), true);
+  assert.doesNotMatch(bridge, /caches\.open\(CACHE_NAME\)/);
+});
+
 test("V408 executa a limpeza apenas na ativação do novo worker", () => {
   assert.match(bridge, /self\.addEventListener\("activate", \(event\) => \{/);
   assert.match(bridge, /event\.waitUntil\(invalidatePlanningIntegrityCacheV408\(\)\)/);
