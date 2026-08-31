@@ -126,11 +126,10 @@
   }
 
   function pendingWorker(registration = registrationRef) {
-    const waiting = registration?.waiting;
-    if (waiting) return waiting;
-    const installing = registration?.installing;
-    if (installing && !["redundant", "activated"].includes(installing.state)) return installing;
-    return null;
+    // Só existe uma atualização pronta quando o worker terminou de instalar.
+    // Recarregar enquanto ele ainda está em `installing` reinicia a página antes
+    // da ativação e pode manter o aviso em loop.
+    return registration?.waiting || null;
   }
 
   function currentReleaseAlreadyActive(registration = registrationRef) {
@@ -190,8 +189,12 @@
         return;
       }
       const waiting = registrationRef?.waiting;
-      waiting?.postMessage?.({ type: "SKIP_WAITING" });
-      reloadOnce("update-button");
+      if (!waiting) {
+        hideRedundantUpdateReady();
+        return;
+      }
+      waiting.postMessage?.({ type: "SKIP_WAITING" });
+      // A recarga ocorre apenas no `controllerchange`, depois da ativação.
     });
     document.body.appendChild(banner);
     return banner;
