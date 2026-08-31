@@ -83,6 +83,7 @@ jobs:
           git worktree add /tmp/v418-baseline "$BASE"
           ln -s "$GITHUB_WORKSPACE/node_modules" /tmp/v418-baseline/node_modules
           (cd /tmp/v418-baseline && node --test tests/*.test.js > /tmp/v418-base.tap 2>&1) || true
+          rm -f .github/workflows/v418-goal-integrity-release.yml
           node --test tests/*.test.js > /tmp/v418-candidate.tap 2>&1 || true
           node <<'NODE'
           const fs = require('node:fs');
