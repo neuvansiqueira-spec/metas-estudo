@@ -20,9 +20,9 @@ test("V415 agrupa o hardening de DOM fora do caminho crítico", () => {
 test("V416 preserva o batching V415 e renova somente a entrega do hardening", () => {
   const worker = read("service-worker.js");
   assert.equal(worker, read("docs/service-worker.js"));
-  assert.equal(worker, read("service-worker-v413.js"));
-  assert.equal(worker, read("docs/service-worker-v413.js"));
-  assert.match(worker, /const CURRENT_VERSION = "20260831-core-daily-plan-consistency-v413";/);
+  assert.equal(worker, read("service-worker-v417.js"));
+  assert.equal(worker, read("docs/service-worker-v417.js"));
+  assert.match(worker, /const CURRENT_VERSION = "20260831-daily-plan-deterministic-integrity-v417";/);
   assert.match(worker, /const SECURITY_VERSION = "20260831-weekly-status-stability-v416";/);
   assert.match(worker, /security-weekly-status-stability-v416/);
   assert.match(worker, /cache\.addAll\(ESSENTIAL_ASSETS\)/);

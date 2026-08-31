@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260831-core-daily-plan-consistency-v413";
+  const VERSION = "20260831-daily-plan-deterministic-integrity-v417";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -40174,7 +40174,14 @@ function formatDateBR(dateString) {
   return `${day}/${month}/${year}`;
 }
 function isGoalDone(goal) { return goal.status === "Concluída"; }
-function goalTotalActualMinutes(goal) { normalizeGoalTimeFields(goal); return Number(goal.actualMinutes) || 0; }
+function goalTotalActualMinutes(goal = {}) {
+  const hasStudyActual = goal.studyActualMinutes !== undefined && goal.studyActualMinutes !== null && goal.studyActualMinutes !== "";
+  const hasQuestionActual = goal.questionActualMinutes !== undefined && goal.questionActualMinutes !== null && goal.questionActualMinutes !== "";
+  if (hasStudyActual || hasQuestionActual) {
+    return (Number(goal.studyActualMinutes) || 0) + (Number(goal.questionActualMinutes) || 0);
+  }
+  return Number(goal.actualMinutes ?? goal.tempo_real_minutos) || 0;
+}
 function legacyTimerMigrationState(targetState = state) {
   targetState.migrations ||= {};
   targetState.migrations[LEGACY_TIMER_RECOVERY_V2_MIGRATION_KEY] ||= { assignments: {}, ignored: {}, pending: {}, executedAt: "" };
@@ -44334,7 +44341,15 @@ function selectableDisciplineGoalsForDate(date, opts = {}) {
   }).selected;
 }
 function isManualDailyGoal(goal) { return !["edital verticalizado", "planejamento", "plano do dia"].includes(canonical(goal.origin || goal.origem || "manual")); }
-function isProtectedDailyGoal(goal) { return isManualDailyGoal(goal) || isGoalDone(goal) || isGoalInProgress(goal) || goalTotalActualMinutes(goal) > 0 || (goal.history || goal.historico || []).length > 0 || !["", "Pendente"].includes(goal.status || "Pendente"); }
+function isProtectedDailyGoal(goal = {}) {
+  return isManualDailyGoal(goal)
+    || isGoalDone(goal)
+    || isGoalInProgress(goal)
+    || goalTotalActualMinutes(goal) > 0
+    || Boolean((goal.history || goal.historico || []).length)
+    || goal.userEdited === true
+    || !["", "Pendente"].includes(goal.status || "Pendente");
+}
 function isAutomaticIntactDailyGoal(goal) { return !isProtectedDailyGoal(goal); }
 function dailyGoalRepairTimestampV108(goal = {}) {
   return Math.max(...[goal.updatedAt, goal.modifiedAt, goal.savedAt, goal.createdAt]
@@ -44595,10 +44610,20 @@ function markDailyPlanAlignmentV174(targetState = state, date = todayISO()) {
   return marker;
 }
 function ensureDailyPlanAlignedWithPlanningV174(targetState = state, date = todayISO(), opts = {}) {
+  const authorized = opts.explicit === true || opts.allowRebuild === true;
+  if (!authorized) {
+    return {
+      changed: false,
+      skipped: "explicit-authorization-required",
+      date,
+      status: dailyPlanAlignmentStatusV174(targetState, date),
+      report: null
+    };
+  }
   const status = dailyPlanAlignmentStatusV174(targetState, date);
   if (status.aligned && !opts.force) return { changed: false, skipped: status.skipped || "already-aligned", date, status, report: null };
   if (status.targets.topics <= 0) return { changed: false, skipped: "zero-target-safety", date, status, report: null };
-  const report = reconcileDailyGoalsWithPlanning(targetState, date, { ...opts, rebuildAutomatic: true });
+  const report = reconcileDailyGoalsWithPlanning(targetState, date, { ...opts, explicit: true, allowRebuild: true, rebuildAutomatic: true });
   markDailyPlanAlignmentV174(targetState, date);
   return {
     changed: Boolean(report.added.length || report.removed.length || !status.aligned),
@@ -44762,6 +44787,8 @@ function prepareIntegratedPlanningPrioritiesV155(targetState = state, opts = {})
   simulation.dailyGoals = (simulation.dailyGoals || []).filter((goal) => !mutableIds.has(goal.id));
   const reservedSyllabusIds = new Set(simulation.dailyGoals.map(goalSyllabusReservationKey).filter(Boolean));
   const rebuilt = reconcilePlanningDates(simulation, dates, {
+    explicit: true,
+    allowRebuild: true,
     rebuildAutomatic: true,
     reservedSyllabusIds,
     scoreContext: buildPlanningScoreContext(simulation)
@@ -44855,7 +44882,7 @@ function replanFutureGoalsAfterCompletionV77(completedRecord, targetState = stat
   if (!staleGoals.length) return { removed: [], added: [], affectedDates, warnings: [] };
   const staleSet = new Set(staleGoals);
   targetState.dailyGoals = targetState.dailyGoals.filter((goal) => !staleSet.has(goal));
-  const rebuilt = reconcilePlanningDates(targetState, affectedDates, { scoreContext: buildPlanningScoreContext(targetState) });
+  const rebuilt = reconcilePlanningDates(targetState, affectedDates, { explicit: true, scoreContext: buildPlanningScoreContext(targetState) });
   return { removed: staleGoals.map((goal) => goal.id), added: rebuilt.added, affectedDates, warnings: rebuilt.warnings };
 }
 function rebalanceFuturePlanningGoalsV77(targetState = state) {
@@ -44864,7 +44891,7 @@ function rebalanceFuturePlanningGoalsV77(targetState = state) {
   const dates = [...new Set((targetState.dailyGoals || [])
     .filter((goal) => goalDateValue(goal) >= todayISO() && !isManualDailyGoal(goal) && isAutomaticIntactDailyGoal(goal) && isPlanningStudyGoal(goal))
     .map(goalDateValue).filter(Boolean))].sort();
-  const rebuilt = dates.length ? reconcilePlanningDates(targetState, dates, { rebuildAutomatic: true }) : { added: [], removed: [], warnings: [] };
+  const rebuilt = dates.length ? reconcilePlanningDates(targetState, dates, { explicit: true, allowRebuild: true, rebuildAutomatic: true }) : { added: [], removed: [], warnings: [] };
   targetState.migrations.planningDistributionV77 = { executedAt: new Date().toISOString(), dates: dates.length, added: rebuilt.added.length, removed: rebuilt.removed.length };
   return { changed: Boolean(rebuilt.added.length || rebuilt.removed.length), skipped: false, dates, added: rebuilt.added, removed: rebuilt.removed, warnings: rebuilt.warnings };
 }
@@ -45076,7 +45103,7 @@ function generateDailyGoals() {
       return;
     }
     // Compatibilidade: const report = reconcileDailyGoalsWithPlanning(state, date, { manual: availabilityForDate(date).type === "indisponível" })
-    const report = reconcileDailyGoalsWithPlanning(state, date, { manual: manualUnavailable });
+    const report = reconcileDailyGoalsWithPlanning(state, date, { explicit: true, manual: manualUnavailable });
     markDailyPlanAlignmentV174(state, date);
     if (!report.added.length) { saveData({ markLocalChange: true }); showDailyGoalMessage(existingToday.length ? `Nenhuma meta nova foi adicionada: o Plano do Dia já está reconciliado para ${formatDateBR(date)}.` : "Nenhuma meta gerada. Verifique assuntos agendáveis, duplicidades ou disponibilidade do dia.", report.warnings.length ? "warning" : "success"); return; }
     saveData({ markLocalChange: true });
@@ -45090,8 +45117,17 @@ function refreshDailyGoalsFromPlanning() {
   try {
     const date = elements.goalDate.value || todayISO();
     if (!state.syllabusItems.length) { showDailyGoalMessage("Não foi possível atualizar. Verifique se o edital foi importado.", "error"); return; }
-    const report = reconcileDailyGoalsWithPlanning(state, date, { rebuildAutomatic: true });
-    markDailyPlanAlignmentV174(state, date);
+    const goalsBefore = JSON.stringify(state.dailyGoals || []);
+    const alignment = ensureDailyPlanAlignedWithPlanningV174(state, date, {
+      explicit: true,
+      allowRebuild: true,
+      force: true
+    });
+    const report = alignment.report || { added: [], removed: [], preserved: [], warnings: [], found: 0, foundTopics: 0, expected: 0, expectedTopics: 0 };
+    if (JSON.stringify(state.dailyGoals || []) === goalsBefore) {
+      showDailyGoalMessage(`O Plano de ${formatDateBR(date)} já corresponde ao Planejamento. Nenhuma meta foi alterada.`, "success");
+      return;
+    }
     saveData({ markLocalChange: true });
     render();
     autoSyncAfterSave("daily-goal-planning-refresh");
@@ -45242,8 +45278,8 @@ function postponeGoal(goal) {
   goal.status = "Reagendada";
   appendGoalHistory(goal, `Reagendada de ${oldDate} para ${nextDate}.`);
   elements.goalDate.value = nextDate;
-  reconcileDailyGoalsWithPlanning(state, oldDate);
-  reconcileDailyGoalsWithPlanning(state, nextDate);
+  reconcileDailyGoalsWithPlanning(state, oldDate, { explicit: true });
+  reconcileDailyGoalsWithPlanning(state, nextDate, { explicit: true });
   markDailyPlanAlignmentV174(state, oldDate);
   markDailyPlanAlignmentV174(state, nextDate);
   saveData({ markLocalChange: true });
@@ -45920,15 +45956,14 @@ function hydrateDailyGoal(goalId) {
 function renderDailyGoals() {
   if (!elements.dailyGoalsList) return;
   const date = elements.goalDate?.value || todayISO();
-  const alignment = ensureDailyPlanAlignedWithPlanningV174(state, date);
-  if (alignment.changed) saveData({ markLocalChange: true });
+  const alignmentStatus = dailyPlanAlignmentStatusV174(state, date);
   renderSmartReviewBlock(elements.daySmartReview, date);
   renderChooseSubjectForDayV158();
   const availability = availabilityForDate(date);
-  const dayGoals = actionableDailyPlanGoalsForDate(state, date).sort((a,b) => (a.status || "").localeCompare(b.status || "") || a.discipline.localeCompare(b.discipline));
+  const dayGoals = actionableDailyPlanGoalsForDate(state, date).map((goal) => cloneData(goal)).sort((a,b) => (a.status || "").localeCompare(b.status || "") || a.discipline.localeCompare(b.discipline));
   const projection = buildDailyPlanProjection(date);
   window.__dailyPlanProjectionByGoalId = new Map(projection.map((entry) => [entry.goal.id, entry]));
-  window.__dailyPlanConsistencyReport = { date, dailyGoals: dayGoals.length, projectedGoals: projection.length, factoryItemsForToday: projection.reduce((sum, entry) => sum + entry.factoryItems.length, 0), materialsForToday: projection.reduce((sum, entry) => sum + entry.materialGroups.reduce((total, group) => total + group.materials.length, 0), 0), goalsWithoutMaterial: projection.filter((entry) => !entry.materialGroups.length).map((entry) => entry.goal.id), ambiguousMaterials: projection.filter((entry) => entry.warnings.length).length, visualDuplicatesRemoved: projection.reduce((sum, entry) => sum + entry.warnings.length, 0), stateMutatedDuringRender: alignment.changed, alignment: alignment.report ? { added: alignment.report.added.length, removed: alignment.report.removed.length, preserved: alignment.report.preserved.length } : { skipped: alignment.skipped } };
+  window.__dailyPlanConsistencyReport = { date, dailyGoals: dayGoals.length, projectedGoals: projection.length, factoryItemsForToday: projection.reduce((sum, entry) => sum + entry.factoryItems.length, 0), materialsForToday: projection.reduce((sum, entry) => sum + entry.materialGroups.reduce((total, group) => total + group.materials.length, 0), 0), goalsWithoutMaterial: projection.filter((entry) => !entry.materialGroups.length).map((entry) => entry.goal.id), ambiguousMaterials: projection.filter((entry) => entry.warnings.length).length, visualDuplicatesRemoved: projection.reduce((sum, entry) => sum + entry.warnings.length, 0), stateMutatedDuringRender: false, alignment: { aligned: alignmentStatus.aligned, skipped: alignmentStatus.skipped || "" } };
   const otherDates = state.dailyGoals.some((goal) => goalDateValue(goal) !== date);
   const stats = goalProgressStats(dayGoals, availability);
   const dayContent = getDayContentConfig(date);
@@ -46273,7 +46308,7 @@ elements.planningConfigForm?.addEventListener("submit", (event) => {
   if (c.examDate) state.edital.examDate = c.examDate;
   const selectedDate = elements.goalDate?.value || todayISO();
   const horizon = Math.max(21, Number(c.safetyDays) || 21);
-  const integration = reconcilePlanningDates(state, [selectedDate, ...daysBetween(todayISO(), horizon)], { rebuildAutomatic: true });
+  const integration = reconcilePlanningDates(state, [selectedDate, ...daysBetween(todayISO(), horizon)], { explicit: true, allowRebuild: true, rebuildAutomatic: true });
   integration.reports.forEach((item) => markDailyPlanAlignmentV174(state, item.date));
   const report = integration.reports.find((item) => item.date === selectedDate) || integration.reports[0] || { found: 0, expected: 0, foundTopics: 0, expectedTopics: 0, warnings: [] };
   // Compatibilidade: const report = reconcileDailyGoalsWithPlanning(state, elements.goalDate?.value || todayISO())
@@ -46296,7 +46331,7 @@ elements.availabilityCalendar?.addEventListener("change", (event) => {
   const current = availabilityForDate(date, state);
   if (typeDate) state.planning.availability[date] = { type: event.target.value, hours: availabilityDefaults(event.target.value, state) };
   if (hoursDate) state.planning.availability[date] = { ...current, hours: Number(event.target.value) || 0 };
-  const report = reconcileDailyGoalsWithPlanning(state, date, { rebuildAutomatic: true });
+  const report = reconcileDailyGoalsWithPlanning(state, date, { explicit: true, allowRebuild: true, rebuildAutomatic: true });
   markDailyPlanAlignmentV174(state, date);
   saveData({ markLocalChange: true });
   render();
@@ -46528,10 +46563,10 @@ elements.goalForm.addEventListener("submit", (event) => {
     state.dailyGoals.push(payload);
   }
   if (oldDate !== selectedDate) {
-    reconcileDailyGoalsWithPlanning(state, oldDate);
+    reconcileDailyGoalsWithPlanning(state, oldDate, { explicit: true });
     markDailyPlanAlignmentV174(state, oldDate);
   }
-  reconcileDailyGoalsWithPlanning(state, selectedDate);
+  reconcileDailyGoalsWithPlanning(state, selectedDate, { explicit: true });
   markDailyPlanAlignmentV174(state, selectedDate);
   saveData({ markLocalChange: true });
   resetGoalFormEditing(selectedDate);
@@ -49039,24 +49074,18 @@ async function runPostInteractiveBootstrapMaintenanceV169(recoveredError) {
   };
 
   await run("daily-planning-repairs", () => {
-    const replacementRepairReportV108 = globalThis.__dailyPlanningInflationRepairV108 || { changed: false, removed: [], reports: [] };
-    const legacyDailyPlanningRepairV108 = repairDailyPlanningInflationV108(state, { source: "bootstrap-legacy" });
-    const dailyPlanningRepairV108 = {
-      changed: replacementRepairReportV108.changed || legacyDailyPlanningRepairV108.changed,
-      removed: [...(replacementRepairReportV108.removed || []), ...(legacyDailyPlanningRepairV108.removed || [])],
-      reports: [...(replacementRepairReportV108.reports || []), ...(legacyDailyPlanningRepairV108.reports || [])]
-    };
+    const dailyPlanningRepairV108 = { changed: false, removed: [], reports: [], skipped: "explicit-authorization-required" };
     window.__dailyPlanningInflationRepairV108 = dailyPlanningRepairV108;
-    const dailyPlanningAlignmentV174 = ensureDailyPlanAlignedWithPlanningV174(state, todayISO());
-    // Compatibilidade histórica: reconcileDailyGoalsWithPlanning(state, todayISO())
-    const dailyPlanningMethodologyV117 = dailyPlanningAlignmentV174.report || { added: [], removed: [], preserved: [], warnings: [], found: 0, foundTopics: 0 };
+    const dailyPlanningAlignmentV174 = {
+      changed: false,
+      skipped: "explicit-authorization-required",
+      date: todayISO(),
+      status: dailyPlanAlignmentStatusV174(state, todayISO()),
+      report: null
+    };
+    const dailyPlanningMethodologyV117 = { added: [], removed: [], preserved: [], warnings: [], found: 0, foundTopics: 0, skipped: "explicit-authorization-required" };
     window.__dailyPlanningMethodologyV117 = dailyPlanningMethodologyV117;
     window.__dailyPlanningAlignmentV174 = dailyPlanningAlignmentV174;
-    if (dailyPlanningRepairV108.changed || dailyPlanningAlignmentV174.changed) saveData({ markLocalChange: true });
-    if (dailyPlanningAlignmentV174.changed && document.documentElement.dataset.activeView === "metas-do-dia") {
-      viewRenderCacheV172.delete("metas-do-dia");
-      renderView("metas-do-dia");
-    }
   });
 
   await run("factory-material-sync", () => {
@@ -49064,30 +49093,25 @@ async function runPostInteractiveBootstrapMaintenanceV169(recoveredError) {
   });
 
   await run("goal-integrity-repairs", () => {
-    const goalIntegrityReport = repairAutomaticGoalDuplicatesV75(state);
+    const goalIntegrityReport = { changed: false, removed: 0, normalized: 0, skipped: "explicit-authorization-required" };
     window.__goalIntegrityReportV75 = goalIntegrityReport;
-    if (goalIntegrityReport.changed) saveData({ markLocalChange: true });
-    const completedGoalIntegrityReport = repairCompletedPlanningGoalsV76(state);
+    const completedGoalIntegrityReport = { changed: false, removed: 0, skipped: "explicit-authorization-required" };
     window.__completedGoalIntegrityReportV76 = completedGoalIntegrityReport;
-    if (completedGoalIntegrityReport.changed) saveData({ markLocalChange: true });
   });
 
   await run("future-planning-rebalance", () => {
-    const planningDistributionReport = rebalanceFuturePlanningGoalsV77(state);
+    const planningDistributionReport = { changed: false, skipped: true, dates: [], added: [], removed: [], warnings: [], reason: "explicit-authorization-required" };
     window.__planningDistributionReportV77 = planningDistributionReport;
-    if (!planningDistributionReport.skipped) saveData({ markLocalChange: true });
   });
 
   await run("weekly-planning-rebalance", () => {
-    const balancedWeeklyReport = rebalanceCurrentWeekV78(state);
+    const balancedWeeklyReport = { changed: false, skipped: true, removed: [], added: [], reason: "explicit-authorization-required" };
     window.__balancedWeeklyReportV78 = balancedWeeklyReport;
-    if (!balancedWeeklyReport.skipped) saveData({ markLocalChange: true });
   });
 
   await run("monthly-planning-rebalance", () => {
-    const balancedMonthlyReport = rebalanceCurrentMonthV79(state);
+    const balancedMonthlyReport = { changed: false, skipped: true, removed: [], added: [], reason: "explicit-authorization-required" };
     window.__balancedMonthlyReportV79 = balancedMonthlyReport;
-    if (!balancedMonthlyReport.skipped) saveData({ markLocalChange: true });
   });
 
   await run("factory-planning-maintenance", () => {
@@ -49184,27 +49208,28 @@ async function bootstrapApplication() {
     window.__legacyTimerRecoveryReport = legacyTimerRecoveryReport;
     console.info("[Metas Estudo] Recuperação de tempos antigos", legacyTimerRecoveryReport);
     if (legacyTimerRecoveryReport.recoveredMinutes) medirFaseBootV350("saveData-pos-recuperacao", () => saveData({ markLocalChange: true }));
-    const startupDailyPlanReportV413 = medirFaseBootV350("reconciliacao-plano-dia-definitivo-v413", () => {
+    const startupDailyPlanReportV417 = medirFaseBootV350("diagnostico-plano-dia-deterministico-v417", () => {
       try {
-        const report = replenishMissingDailyPlanningGoalsV116(state, todayISO());
-        globalThis.__aldusDailyPlanStartupReconciledV406 = true;
+        const status = dailyPlanAlignmentStatusV174(state, todayISO());
+        globalThis.__aldusDailyPlanStartupReconciledV406 = false;
         globalThis.__aldusCoreDailyPlanReconciliationV413 = Object.freeze({
-          version: "20260831-core-daily-plan-consistency-v413",
+          version: "20260831-daily-plan-deterministic-integrity-v417",
           date: todayISO(),
-          changed: Boolean(report?.changed),
-          before: Number(report?.before) || 0,
-          after: Number(report?.after) || 0,
-          added: Array.isArray(report?.added) ? report.added.length : 0,
-          completedBeforeFirstRender: true
+          changed: false,
+          added: 0,
+          removed: 0,
+          completedBeforeFirstRender: true,
+          skipped: "explicit-authorization-required",
+          aligned: Boolean(status?.aligned)
         });
-        return report;
+        return { changed: false, skipped: "explicit-authorization-required", status };
       } catch (error) {
         globalThis.__aldusDailyPlanStartupReconciledV406 = false;
-        console.warn("[Aldus V413] A reconciliação anterior à primeira exibição não pôde ser concluída.", error);
-        return { changed: false, skipped: "core-reconciliation-error" };
+        console.warn("[Aldus V417] O diagnóstico anterior à primeira exibição não pôde ser concluído.", error);
+        return { changed: false, skipped: "core-diagnostic-error" };
       }
     });
-    if (startupDailyPlanReportV413.changed) medirFaseBootV350("saveData-plano-dia-definitivo-v413", () => saveData({ markLocalChange: true, skipDerivedRefresh: true, reason: "core-daily-plan-consistency-v413" }));
+    window.__aldusDailyPlanStartupStatusV417 = startupDailyPlanReportV417;
     renderMotivationalPhrase();
     indexedDBStatus.bootstrap = recoveredError ? "erro recuperado" : "núcleo interativo";
     if (recoveredError) indexedDBStatus.error = "Não foi possível carregar os dados locais. Conecte ao Google Drive ou importe um backup.";
@@ -50053,7 +50078,7 @@ function showView(viewId = hashToView(), options = {}) {
     activePanel.hidden = false;
     if (dailyPlanNeedsAlignment) {
       activePanel.setAttribute("aria-busy", "true");
-      if (elements.dailyGoalsSummary) elements.dailyGoalsSummary.innerHTML = '<p class="notice">Alinhando as metas ao planejamento vigente…</p>';
+      if (elements.dailyGoalsSummary) elements.dailyGoalsSummary.innerHTML = '<p class="notice">Carregando o Plano do Dia…</p>';
       if (elements.nextDailyGoal) elements.nextDailyGoal.innerHTML = "";
       if (elements.dailyGoalsList) elements.dailyGoalsList.innerHTML = "";
     }
@@ -55434,11 +55459,10 @@ ANTES DESSA CONCLUSÃO NEGATIVA, REGISTRE INTERNAMENTE:
   }
 
   function pendingWorker(registration = registrationRef) {
-    const waiting = registration?.waiting;
-    if (waiting) return waiting;
-    const installing = registration?.installing;
-    if (installing && !["redundant", "activated"].includes(installing.state)) return installing;
-    return null;
+    // Só existe uma atualização pronta quando o worker terminou de instalar.
+    // Recarregar enquanto ele ainda está em `installing` reinicia a página antes
+    // da ativação e pode manter o aviso em loop.
+    return registration?.waiting || null;
   }
 
   function currentReleaseAlreadyActive(registration = registrationRef) {
@@ -55498,8 +55522,12 @@ ANTES DESSA CONCLUSÃO NEGATIVA, REGISTRE INTERNAMENTE:
         return;
       }
       const waiting = registrationRef?.waiting;
-      waiting?.postMessage?.({ type: "SKIP_WAITING" });
-      reloadOnce("update-button");
+      if (!waiting) {
+        hideRedundantUpdateReady();
+        return;
+      }
+      waiting.postMessage?.({ type: "SKIP_WAITING" });
+      // A recarga ocorre apenas no `controllerchange`, depois da ativação.
     });
     document.body.appendChild(banner);
     return banner;

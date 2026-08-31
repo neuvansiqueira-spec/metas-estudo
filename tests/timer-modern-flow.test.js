@@ -73,7 +73,7 @@ test('Plano do Dia reconcilia disciplinas por dia sem repetir enquanto houver el
 
 test('Assuntos por dia nao reduz quantidade de disciplinas e excedentes sao removidos com seguranca', () => {
   assert.match(script, /topicLimit: Math\.max\(Number\(planningConfig\(\)\.topicsPerDay\) \|\| 1, Number\(planningConfig\(\)\.disciplinesPerDay\) \|\| 1\)/);
-  assert.match(script, /function isProtectedDailyGoal\(goal\).*isManualDailyGoal\(goal\).*isGoalDone\(goal\).*isGoalInProgress\(goal\).*goalTotalActualMinutes\(goal\) > 0/s);
+  assert.match(script, /function isProtectedDailyGoal\(goal(?: = \{\})?\).*isManualDailyGoal\(goal\).*isGoalDone\(goal\).*isGoalInProgress\(goal\).*goalTotalActualMinutes\(goal\) > 0/s);
   assert.match(script, /function isAutomaticIntactDailyGoal\(goal\) \{ return !isProtectedDailyGoal\(goal\); \}/);
   assert.match(script, /report\.removed\.push\(goal\.id\)/);
 });
@@ -81,7 +81,7 @@ test('Assuntos por dia nao reduz quantidade de disciplinas e excedentes sao remo
 test('Salvar Planejamento atualiza Plano do Dia e botao manual tambem reconcilia', () => {
   assert.match(script, /const report = reconcileDailyGoalsWithPlanning\(state, elements\.goalDate\?\.value \|\| todayISO\(\)\)/);
   assert.match(script, /Planejamento salvo e Plano do Dia atualizado/);
-  assert.match(script, /const report = reconcileDailyGoalsWithPlanning\(state, date, \{ manual: availabilityForDate\(date\)\.type === "indisponível" \}\)/);
+  assert.match(script, /const report = reconcileDailyGoalsWithPlanning\(state, date, \{ explicit: true, manual: manualUnavailable \}\)/);
   assert.doesNotMatch(script, /location\.reload\(\)/);
 });
 

@@ -4,15 +4,15 @@ const test = require("node:test");
 
 const FAST_APP_RELEASE = "20260827-factory-cross-area-integrity-v402";
 const FAST_APP_SUFFIX = "v402";
-const FALLBACK_APP_RELEASE = "20260831-core-daily-plan-consistency-v413";
-const FALLBACK_APP_SUFFIX = "v413";
+const FALLBACK_APP_RELEASE = "20260831-daily-plan-deterministic-integrity-v417";
+const FALLBACK_APP_SUFFIX = "v417";
 const BOOTSTRAP_RELEASE = "20260830-bootstrap-runtime-unification-v404";
 const read = (file) => fs.readFileSync(file, "utf8");
 const executable = (source) => source
   .replace(/\/\*[\s\S]*?\*\//g, "")
   .replace(/^[ \t]*\/\/.*$/gm, "");
 
-test("fast path preserva o núcleo enxuto V402 e fallback entrega o núcleo público V413", () => {
+test("fast path preserva o núcleo enxuto V402 e fallback entrega o núcleo público V417", () => {
   const fast = read("bootstrap-fast-path-v351.js");
   const fallback = read("bootstrap-integrity-loader-v258-core.js");
 
@@ -52,7 +52,7 @@ test("artefatos publicados permanecem sincronizados", () => {
     "service-worker-v168.js",
     "service-worker-v169.js",
     "service-worker-v332.js",
-    "service-worker-v413.js"
+    "service-worker-v417.js"
   ]) {
     assert.equal(read(file), read(`docs/${file}`), `${file} deve ser idêntico em docs`);
   }

@@ -19,8 +19,8 @@ test("V416 deixa o texto da meta semanal sob domínio exclusivo da aplicação",
 test("V416 canoniza a URL do hardening no HTML sem remover defer", () => {
   const worker = read("service-worker.js");
   assert.equal(worker, read("docs/service-worker.js"));
-  assert.equal(worker, read("service-worker-v413.js"));
-  assert.equal(worker, read("docs/service-worker-v413.js"));
+  assert.equal(worker, read("service-worker-v417.js"));
+  assert.equal(worker, read("docs/service-worker-v417.js"));
   assert.match(worker, /const SECURITY_VERSION = "20260831-weekly-status-stability-v416";/);
   assert.match(worker, /security-weekly-status-stability-v416/);
   assert.match(worker, /function installSecurityHardeningV296\(html\)/);

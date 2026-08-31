@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260831-core-daily-plan-consistency-v413";
+  const VERSION = "20260831-daily-plan-deterministic-integrity-v417";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

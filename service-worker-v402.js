@@ -6,6 +6,7 @@ const DAILY_GOAL_STABILITY_CACHE_VERSION_V412 = "20260831-estabilidade-metas-ant
 const CORE_DAILY_PLAN_CACHE_VERSION_V413 = "20260831-core-daily-plan-consistency-v413";
 const CURRENT_HTML_GUARD_VERSION_V413 = "20260831-rejeita-html-v402-em-cache-v413";
 const UPDATE_BANNER_STABILITY_VERSION_V414 = "20260831-update-banner-stability-v414";
+const DAILY_PLAN_DETERMINISTIC_CACHE_VERSION_V417 = "20260831-daily-plan-deterministic-integrity-v417";
 // Contrato exclusivamente textual do pipeline V395. O bloco mantém CACHE_NAME
 // fora do escopo léxico global para não colidir com o CACHE_NAME declarado pelo
 // service-worker.js canônico carregado via importScripts.
@@ -22,6 +23,7 @@ const PLANNING_INTEGRITY_PATHS = new Set([
   new URL("app-v402.js", self.registration.scope).pathname,
   new URL("app-v413.js", self.registration.scope).pathname,
   new URL("app-v414.js", self.registration.scope).pathname,
+  new URL("app-v417.js", self.registration.scope).pathname,
   new URL("startup-planning-stability-v387.js", self.registration.scope).pathname,
   new URL("planning-integrity-v235.js", self.registration.scope).pathname,
   new URL("planning-integrity-loader-v235.js", self.registration.scope).pathname
@@ -54,4 +56,5 @@ void DAILY_GOAL_STABILITY_CACHE_VERSION_V412;
 void CORE_DAILY_PLAN_CACHE_VERSION_V413;
 void CURRENT_HTML_GUARD_VERSION_V413;
 void UPDATE_BANNER_STABILITY_VERSION_V414;
+void DAILY_PLAN_DETERMINISTIC_CACHE_VERSION_V417;
 importScripts(`service-worker.js?v=${CACHE_FIX_VERSION}`);

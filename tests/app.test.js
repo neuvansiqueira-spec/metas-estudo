@@ -434,7 +434,7 @@ test('Hotfix seleciona disciplinas e assuntos distintos e reconciliação é ide
   assert.match(script, /usedSubjects\.has\(subjectKey\)/);
   assert.match(script, /Apenas \$\{selected\.length\} disciplinas elegíveis disponíveis para este dia\./);
   assert.match(script, /seenAuto\.has\(key\)/);
-  assert.match(script, /function isProtectedDailyGoal\(goal\)[\s\S]*isManualDailyGoal\(goal\)[\s\S]*isGoalDone\(goal\)[\s\S]*isGoalInProgress\(goal\)[\s\S]*goalTotalActualMinutes\(goal\) > 0/);
+  assert.match(script, /function isProtectedDailyGoal\(goal(?: = \{\})?\)[\s\S]*isManualDailyGoal\(goal\)[\s\S]*isGoalDone\(goal\)[\s\S]*isGoalInProgress\(goal\)[\s\S]*goalTotalActualMinutes\(goal\) > 0/);
   assert.match(script, /dayModeIncludesGoals\(dayContent\.mode\) \? Math\.max/);
   assert.match(script, /dayModeIncludesQuestions\(cfg\.mode\)/);
   assert.match(style, /#view-planejamento\s*\{[\s\S]*padding-bottom: calc\(150px \+ env\(safe-area-inset-bottom, 0px\)\)/);

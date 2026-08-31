@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20260831-core-daily-plan-consistency-v413";
+const CURRENT_VERSION = "20260831-daily-plan-deterministic-integrity-v417";
 const DASHBOARD_PENDING_SEMANTICS_V413 = "pendentes-separados-de-em-andamento";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const SECURITY_VERSION = "20260831-weekly-status-stability-v416";

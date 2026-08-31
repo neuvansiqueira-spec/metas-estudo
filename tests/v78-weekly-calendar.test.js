@@ -93,9 +93,12 @@ test("geração semanal usa plano equilibrado e não empilha metas nos primeiros
   assert.match(script, /if \(balancedPlan && !balancedPlan\.complete\)[\s\S]*Nenhuma meta existente foi removida/);
 });
 
-test("a primeira abertura da V78 corrige a semana atual automaticamente", () => {
+test("o rebalanceamento V78 permanece explícito e não altera a semana na abertura", () => {
   assert.match(script, /function rebalanceCurrentWeekV78/);
-  assert.match(script, /rebalanceCurrentWeekV78\(state\)/);
+  const maintenance = script.slice(script.indexOf("async function runPostInteractiveBootstrapMaintenanceV169"), script.indexOf("async function bootstrapApplication"));
+  const weeklyDiagnostic = maintenance.slice(maintenance.indexOf('run("weekly-planning-rebalance"'), maintenance.indexOf('run("monthly-planning-rebalance"'));
+  assert.doesNotMatch(maintenance, /rebalanceCurrentWeekV78\(state\)/);
+  assert.match(weeklyDiagnostic, /balancedWeeklyReport[\s\S]*explicit-authorization-required[\s\S]*__balancedWeeklyReportV78/);
   assert.match(script, /balancedWeeklyCalendarV78/);
   assert.match(script, /!isManualDailyGoal\(goal\) && isAutomaticIntactDailyGoal\(goal\)/);
 });

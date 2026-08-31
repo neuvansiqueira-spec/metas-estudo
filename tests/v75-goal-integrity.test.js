@@ -26,10 +26,12 @@ test("meta é identificada por disciplina e assunto, sem depender do material", 
   assert.doesNotMatch(makeGoal, /partLabel|nextSchedulableSegmentDate/);
 });
 
-test("duplicações antigas são reparadas e o histórico recupera materiais pelo assunto", () => {
+test("reparo de duplicações permanece disponível sem executar automaticamente na abertura", () => {
   const script = read("script.js");
   assert.match(script, /function repairAutomaticGoalDuplicatesV75/);
-  assert.match(script, /repairAutomaticGoalDuplicatesV75\(state\)/);
+  const maintenance = script.slice(script.indexOf("async function runPostInteractiveBootstrapMaintenanceV169"), script.indexOf("async function bootstrapApplication"));
+  assert.doesNotMatch(maintenance, /repairAutomaticGoalDuplicatesV75\(state\)/);
+  assert.match(maintenance, /goalIntegrityReportV75[\s\S]*explicit-authorization-required/);
   assert.match(script, /function materialTitlesForStudy/);
   assert.match(script, /resolveAvailableMaterials\(\{ discipline, subject: study\.topic, syllabusItemId: study\.syllabusItemId \}\)/);
   assert.match(script, /function addManualTime\(\)/);
