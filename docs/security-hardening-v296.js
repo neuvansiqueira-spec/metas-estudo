@@ -3,6 +3,7 @@
 
   const VERSION = "20260810-seguranca-estabilidade-v296";
   const MUTATION_BATCH_VERSION = "20260831-security-dom-batch-v415";
+  const UI_OWNERSHIP_VERSION = "20260831-weekly-status-stability-v416";
   const FILE_LIMITS = Object.freeze({
     json: 32 * 1024 * 1024,
     pdf: 120 * 1024 * 1024,
@@ -13,7 +14,6 @@
   const pendingAddedRoots = new Set();
   let persistenceRequested = false;
   let mutationHardeningScheduled = false;
-  let weeklyStatusNeedsRefresh = false;
 
   if (globalThis.__ALDUS_SECURITY_HARDENING_V296__) return;
 
@@ -147,21 +147,6 @@
     root.querySelectorAll?.("a[target='_blank']").forEach(hardenAnchor);
   }
 
-  function simplifyWeeklyGoalStatus() {
-    const status = document.getElementById("weeklyGoalStatus");
-    if (!status) return;
-    const current = String(status.textContent || "");
-    const simplified = current.replace(/\s+registradas\b/iu, "").trim();
-    if (simplified !== current) status.textContent = simplified;
-  }
-
-  function isWeeklyStatusMutation(record) {
-    const target = record?.target;
-    if (target instanceof Element && (target.id === "weeklyGoalStatus" || target.closest?.("#weeklyGoalStatus"))) return true;
-    return [...(record?.addedNodes || [])].some((node) => node instanceof Element
-      && (node.id === "weeklyGoalStatus" || Boolean(node.querySelector?.("#weeklyGoalStatus"))));
-  }
-
   function flushMutationHardening() {
     mutationHardeningScheduled = false;
     const roots = [...pendingAddedRoots].filter((root) => root?.isConnected);
@@ -169,21 +154,15 @@
 
     if (roots.length > 24) hardenAddedLinks(document);
     else roots.forEach(hardenAddedLinks);
-
-    if (weeklyStatusNeedsRefresh) {
-      weeklyStatusNeedsRefresh = false;
-      simplifyWeeklyGoalStatus();
-    }
   }
 
   function scheduleMutationHardening(records) {
     for (const record of records) {
-      if (isWeeklyStatusMutation(record)) weeklyStatusNeedsRefresh = true;
       record.addedNodes.forEach((node) => {
         if (node.nodeType === Node.ELEMENT_NODE) pendingAddedRoots.add(node);
       });
     }
-    if (mutationHardeningScheduled || (!pendingAddedRoots.size && !weeklyStatusNeedsRefresh)) return;
+    if (mutationHardeningScheduled || !pendingAddedRoots.size) return;
     mutationHardeningScheduled = true;
     if (typeof globalThis.requestIdleCallback === "function") {
       globalThis.requestIdleCallback(flushMutationHardening, { timeout: 300 });
@@ -219,10 +198,7 @@
     document.addEventListener("submit", guardRapidSubmit, true);
     document.addEventListener("pointerdown", requestPersistentStorage, { once: true, capture: true });
     document.addEventListener("keydown", requestPersistentStorage, { once: true, capture: true });
-    const prepareDocument = () => {
-      hardenAddedLinks();
-      simplifyWeeklyGoalStatus();
-    };
+    const prepareDocument = () => hardenAddedLinks();
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", prepareDocument, { once: true });
     else prepareDocument();
 
@@ -233,6 +209,7 @@
   globalThis.__ALDUS_SECURITY_HARDENING_V296__ = Object.freeze({
     version: VERSION,
     mutationBatchVersion: MUTATION_BATCH_VERSION,
+    uiOwnershipVersion: UI_OWNERSHIP_VERSION,
     fileLimits: FILE_LIMITS,
     framingBlocked,
     validateFile,
