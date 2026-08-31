@@ -4,7 +4,7 @@
   const VERSION = "20260804-planejamento-metas-fabrica-integridade-v235";
   const STARTUP_STABILITY_VERSION = "20260824-startup-planning-stability-v387";
   const FACTORY_STARTUP_CONSISTENCY_VERSION = "20260825-factory-startup-consistency-v394";
-  const PLANNING_CORE_VERSION = "20260831-metas-concluidas-somente-revisao-v411";
+  const PLANNING_CORE_VERSION = "20260831-daily-goals-explicit-mutation-v419";
   const SNAPSHOT_KEY = "aldusPlanningManualGoalsV235";
   const SCRIPT_ID = "aldusPlanningIntegrityCoreV235";
   const FACTORY_SCRIPT_ID = "aldusFactoryQueueIntegrityV236";

@@ -4,10 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 
-const source = fs.readFileSync(
-  path.join(__dirname, "..", "completed-goal-guard-v177.js"),
-  "utf8"
-);
+const source = fs.readFileSync(path.join(__dirname, "..", "completed-goal-guard-v177.js"), "utf8");
 
 function makeContext() {
   const listeners = new Map();
@@ -33,19 +30,8 @@ function makeContext() {
   let saveCalls = 0;
   let renderCalls = 0;
   let syncCalls = 0;
-
   const context = {
-    console,
-    Date,
-    Map,
-    Object,
-    String,
-    Number,
-    Array,
-    Boolean,
-    setTimeout,
-    clearTimeout,
-    queueMicrotask: (callback) => callback(),
+    console, Date, Map, Object, String, Number, Array, Boolean,
     state,
     __aldusBootstrapReady: false,
     isManualDailyGoal(goal) { return goal.origin === "manual"; },
@@ -53,24 +39,18 @@ function makeContext() {
     goalTotalActualMinutes(goal) { return Number(goal.actualMinutes || 0); },
     normalGoalTypeForItemV157(item) { return item.tipo_agendamento === "Questões apenas" ? "Questões" : "Estudo novo"; },
     completedPlanningSubjectRecords(targetState) {
-      return [
-        ...targetState.syllabusItems.filter((item) => item.status === "Concluído"),
-        ...targetState.dailyGoals.filter((goal) => goal.status === "Concluída")
-      ];
+      return [...targetState.syllabusItems.filter((item) => item.status === "Concluído"), ...targetState.dailyGoals.filter((goal) => goal.status === "Concluída")];
     },
     planningRecordMatchesCompletedSubject(record, completed) {
       const recordId = record.syllabusItemId || record.id;
       return completed.some((item) => (item.syllabusItemId || item.id) === recordId);
     },
     planningGoalTypeForItemV157() { return "Reforço"; },
-    buildPlanningScoreContext() {
-      return { candidates: state.syllabusItems.slice(), diagnosticMetrics: new Map() };
-    },
+    buildPlanningScoreContext() { return { candidates: state.syllabusItems.slice(), diagnosticMetrics: new Map() }; },
     saveData() { saveCalls += 1; },
     render() { renderCalls += 1; },
     autoSyncAfterSave() { syncCalls += 1; }
   };
-
   context.window = context;
   context.globalThis = context;
   context.addEventListener = (type, listener) => {
@@ -82,15 +62,42 @@ function makeContext() {
     for (const listener of listeners.get(event.type) || []) listener(event);
   };
   context.getCounters = () => ({ saveCalls, renderCalls, syncCalls });
+  context.getListeners = () => listeners;
   vm.createContext(context);
   return context;
 }
 
-test("remove metas automáticas pendentes de assuntos concluídos em qualquer data", () => {
+test("V419 bootstrap, pós-bootstrap, pageshow e storage não alteram metas concluídas automaticamente", () => {
   const context = makeContext();
+  const before = JSON.stringify(context.state);
   vm.runInContext(source, context, { filename: "completed-goal-guard-v177.js" });
-  context.dispatchEvent({ type: "aldus:bootstrap-ready" });
+  for (const type of ["aldus:bootstrap-ready", "aldus:post-bootstrap-maintenance-complete", "pageshow", "storage"]) {
+    context.dispatchEvent({ type, persisted: true });
+  }
+  assert.equal(JSON.stringify(context.state), before);
+  assert.deepEqual(context.getCounters(), { saveCalls: 0, renderCalls: 0, syncCalls: 0 });
+  assert.equal(context.__aldusCompletedGoalGuardV177.automaticMutationDisabled, true);
+  assert.equal(context.getListeners().size, 0);
+});
 
+test("V419 impede assuntos concluídos e reforço automático nas gerações futuras", () => {
+  const context = makeContext();
+  vm.runInContext(source, context);
+  assert.equal(context.planningGoalTypeForItemV157(context.state.syllabusItems[1]), "Estudo novo");
+  assert.deepEqual(context.buildPlanningScoreContext().candidates.map((item) => item.id), ["new", "questions"]);
+});
+
+test("V419 reparo V177 exige autorização explícita, preserva protegidas e é idempotente", () => {
+  const context = makeContext();
+  vm.runInContext(source, context);
+  const before = JSON.stringify(context.state.dailyGoals);
+  const blocked = context.__aldusCompletedGoalGuardV177.runAudit("bootstrap-ready");
+  assert.equal(blocked.skipped, "explicit-authorization-required");
+  assert.equal(JSON.stringify(context.state.dailyGoals), before);
+  assert.deepEqual(context.getCounters(), { saveCalls: 0, renderCalls: 0, syncCalls: 0 });
+
+  const report = context.__aldusCompletedGoalGuardV177.runAudit("manual-repair", { explicit: true, allowMutations: true });
+  assert.equal(report.changed, true);
   assert.equal(context.state.dailyGoals.some((goal) => goal.id === "duplicate-completed"), false);
   assert.equal(context.state.dailyGoals.find((goal) => goal.id === "automatic-reinforcement").type, "Estudo novo");
   assert.equal(context.state.dailyGoals.find((goal) => goal.id === "manual-reinforcement").type, "Reforço");
@@ -101,25 +108,9 @@ test("remove metas automáticas pendentes de assuntos concluídos em qualquer da
   assert.deepEqual(context.state.studies, [{ id: "study-1", syllabusItemId: "done" }]);
   assert.deepEqual(context.state.questionLogs, [{ id: "question-1", syllabusItemId: "done" }]);
   assert.deepEqual(context.getCounters(), { saveCalls: 1, renderCalls: 1, syncCalls: 1 });
-});
 
-test("impede assuntos concluídos e reforço automático nas gerações futuras", () => {
-  const context = makeContext();
-  vm.runInContext(source, context);
-
-  assert.equal(context.planningGoalTypeForItemV157(context.state.syllabusItems[1]), "Estudo novo");
-  assert.deepEqual(
-    context.buildPlanningScoreContext().candidates.map((item) => item.id),
-    ["new", "questions"]
-  );
-});
-
-test("auditoria é idempotente e não usa injeção ou observador global", () => {
-  const context = makeContext();
-  vm.runInContext(source, context);
-  context.dispatchEvent({ type: "aldus:bootstrap-ready" });
-  context.dispatchEvent({ type: "aldus:post-bootstrap-maintenance-complete" });
-
+  const second = context.__aldusCompletedGoalGuardV177.runAudit("manual-repair", { explicit: true, allowMutations: true });
+  assert.equal(second.changed, false);
   assert.deepEqual(context.getCounters(), { saveCalls: 1, renderCalls: 1, syncCalls: 1 });
   assert.equal(source.includes("MutationObserver"), false);
   assert.equal(source.includes("serviceWorker"), false);

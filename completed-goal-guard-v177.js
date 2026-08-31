@@ -4,6 +4,7 @@
   if (globalThis.__aldusCompletedGoalGuardV177) return;
 
   const VERSION = "20260730-metas-concluidas-fora-do-plano-v177";
+  const POLICY_VERSION = "20260831-daily-goals-explicit-mutation-v419";
   const MIGRATION_KEY = "completedSubjectsOutsideAutomaticPlanV177";
 
   function canonicalValue(value) {
@@ -159,7 +160,10 @@
     }
   }
 
-  function repairExistingAutomaticGoals(targetState = null, reason = "audit") {
+  function repairExistingAutomaticGoals(targetState = null, reason = "audit", options = {}) {
+    if (options?.explicit !== true || options?.allowMutations !== true) {
+      return { changed: false, removed: [], converted: [], reason, skipped: "explicit-authorization-required" };
+    }
     const currentState = targetState || (typeof state !== "undefined" ? state : null);
     try {
       if (!currentState || !Array.isArray(currentState.dailyGoals)) {
@@ -236,10 +240,10 @@
     }
   }
 
-  function runAudit(reason) {
+  function runAudit(reason = "audit", options = {}) {
     const goalTypeGuardInstalled = installAutomaticGoalTypeGuard();
     const candidateGuardInstalled = installCandidateGuard();
-    const repair = repairExistingAutomaticGoals(null, reason);
+    const repair = repairExistingAutomaticGoals(null, reason, options);
     globalThis.__aldusCompletedGoalGuardV177LastAudit = Object.freeze({
       at: new Date().toISOString(),
       reason,
@@ -253,18 +257,12 @@
   const goalTypeGuardInstalled = installAutomaticGoalTypeGuard();
   const candidateGuardInstalled = installCandidateGuard();
 
-  const onBootstrapReady = () => runAudit("bootstrap-ready");
-  if (globalThis.__aldusBootstrapReady) queueMicrotask(onBootstrapReady);
-  else window.addEventListener("aldus:bootstrap-ready", onBootstrapReady, { once: true });
-
-  window.addEventListener("aldus:post-bootstrap-maintenance-complete", () => runAudit("post-bootstrap-maintenance"), { once: true });
-  window.addEventListener("pageshow", (event) => {
-    if (event.persisted) runAudit("pageshow-bfcache");
-  });
-  window.addEventListener("storage", () => runAudit("cross-tab-storage"));
+  // V419: bootstrap, pageshow e storage são somente leitura; nenhum reparo é agendado automaticamente.
 
   globalThis.__aldusCompletedGoalGuardV177 = Object.freeze({
     version: VERSION,
+    policyVersion: POLICY_VERSION,
+    automaticMutationDisabled: true,
     goalTypeGuardInstalled,
     candidateGuardInstalled,
     runAudit,

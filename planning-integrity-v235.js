@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260831-metas-concluidas-somente-revisao-v411";
+  const VERSION = "20260831-daily-goals-explicit-mutation-v419";
   const SNAPSHOT_KEY = "aldusPlanningManualGoalsV235";
   const FACTORY_VIEW = "fabrica-resumos";
   const DAILY_VIEW = "metas-do-dia";
@@ -82,7 +82,6 @@
       const guarded = function replaceStateIntegrityV388(...args) {
         const result = original.apply(this, args);
         enforceSnapshot();
-        if (postBootstrapMaintenanceComplete()) reconcileDailyPlanOnStartup();
         return result;
       };
       Object.defineProperty(guarded, "__aldusIntegrityV388", { value: VERSION });
@@ -379,32 +378,31 @@
 
   function reconcileDailyPlanOnStartup(targetState = currentState()) {
     if (!targetState || !Array.isArray(targetState.dailyGoals)) return { changed: false, skipped: "state-unavailable" };
-    if (globalThis[STARTUP_RECONCILE_MARKER] === true) return { changed: false, skipped: "already-reconciled" };
-
-    const replenish = globalThis.replenishMissingDailyPlanningGoalsV116;
-    if (typeof replenish !== "function") return { changed: false, skipped: "replenisher-unavailable" };
+    if (globalThis[STARTUP_RECONCILE_MARKER] === true) return { changed: false, skipped: "already-diagnosed" };
 
     const date = currentDateISO();
+    const completedRecords = completedRecordsV411(targetState);
+    const allStudyGoals = targetState.dailyGoals.filter((goal) => goalDateV411(goal) === date && isPlanningStudyGoalV411(goal));
+    const actionableGoals = allStudyGoals.filter((goal) => isActionableStudyGoalV411(goal, completedRecords));
+    let targets = {};
     try {
-      const report = replenish(targetState, date) || { changed: false };
-
-      if (report.changed) {
-        invalidateViews();
-        const reason = "daily-plan-post-bootstrap-reconcile-v410";
-        if (typeof globalThis.saveData === "function") {
-          globalThis.saveData({ markLocalChange: true, skipDerivedRefresh: true, reason });
-        }
-        if (typeof globalThis.render === "function") globalThis.render();
-        try { if (typeof globalThis.autoSyncAfterSave === "function") globalThis.autoSyncAfterSave(reason); } catch {}
-      }
-
-      globalThis[STARTUP_RECONCILE_MARKER] = true;
-      return report;
-    } catch (error) {
-      globalThis[STARTUP_RECONCILE_MARKER] = false;
-      console.warn(`[${VERSION}] Não foi possível reconciliar automaticamente o Plano do Dia.`, error);
-      return { changed: false, skipped: "replenisher-error" };
-    }
+      targets = typeof globalThis.planningTargetsForDate === "function"
+        ? (globalThis.planningTargetsForDate(date, targetState) || {})
+        : {};
+    } catch {}
+    const topicTarget = Math.max(0, Number(targets.topics) || 0);
+    const report = {
+      changed: false,
+      date,
+      topicTarget,
+      totalStudyGoals: allStudyGoals.length,
+      actionableGoals: actionableGoals.length,
+      missingActionableGoals: Math.max(0, topicTarget - actionableGoals.length),
+      skipped: "automatic-mutation-disabled-v419"
+    };
+    globalThis[STARTUP_RECONCILE_MARKER] = true;
+    globalThis.__aldusDailyPlanStartupDiagnosticV419 = Object.freeze({ ...report });
+    return report;
   }
 
   function finalizeStartupReconcile(targetState = currentState()) {
@@ -457,7 +455,8 @@
       globalThis.__ALDUS_PLANNING_INTEGRITY_V235__ = Object.freeze({
         version: VERSION,
         explicitOnly: true,
-        startupDailyPlanReconcile: true,
+        startupDailyPlanReconcile: false,
+        automaticDailyGoalMutationDisabled: true,
         postBootstrapAuthoritative: true,
         completedGoalsReviewOnly: true,
         installedAt: new Date().toISOString()
