@@ -7,6 +7,7 @@ const docsIndex = fs.readFileSync("docs/index.html", "utf8");
 const stability = fs.readFileSync("startup-planning-stability-v387.js", "utf8");
 const worker = fs.readFileSync("service-worker-v402.js", "utf8");
 const docsWorker = fs.readFileSync("docs/service-worker-v402.js", "utf8");
+const script = fs.readFileSync("script.js", "utf8");
 
 test("V412 instala a proteção de estabilidade antes do bootstrap do aplicativo", () => {
   const stabilityIndex = index.indexOf('id="aldusStartupPlanningStabilityV387"');
@@ -34,4 +35,14 @@ test("V412 renova somente os arquivos necessários sem trabalho permanente", () 
   assert.doesNotMatch(worker, /addEventListener\("fetch"/);
   assert.doesNotMatch(worker, /setTimeout|setInterval|MutationObserver|requestAnimationFrame|requestIdleCallback/);
   assert.equal(worker, docsWorker);
+});
+
+test("startup não modifica dailyGoals já existentes", () => {
+  const maintenanceStart = script.indexOf("async function runPostInteractiveBootstrapMaintenanceV169");
+  const maintenance = script.slice(maintenanceStart, script.indexOf("async function bootstrapApplication", maintenanceStart));
+  const bootstrap = script.slice(script.indexOf("async function bootstrapApplication"));
+
+  assert.doesNotMatch(maintenance, /repairAutomaticGoalDuplicatesV75\(state\)|repairCompletedPlanningGoalsV76\(state\)|rebalanceFuturePlanningGoalsV77\(state\)|rebalanceCurrentWeekV78\(state\)|rebalanceCurrentMonthV79\(state\)/);
+  assert.doesNotMatch(bootstrap, /replenishMissingDailyPlanningGoalsV116\(state, todayISO\(\)\)/);
+  assert.match(bootstrap, /diagnostico-plano-dia-deterministico-v417/);
 });

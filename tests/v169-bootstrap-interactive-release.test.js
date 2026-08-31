@@ -56,7 +56,7 @@ test("reparos e rebalanceamentos não permanecem no trecho crítico do bootstrap
   }
 });
 
-test("a manutenção preserva todas as rotinas e sua ordem histórica", () => {
+test("a manutenção preserva a ordem, mas rotinas destrutivas ficam em modo diagnóstico", () => {
   const maintenance = functionSource(
     "runPostInteractiveBootstrapMaintenanceV169(recoveredError)",
     "bootstrapApplication"
@@ -66,14 +66,12 @@ test("a manutenção preserva todas as rotinas e sua ordem histórica", () => {
     "handleBootstrapFailure"
   );
   const orderedCalls = [
-    "repairDailyPlanningInflationV108(state",
-    "reconcileDailyGoalsWithPlanning(state",
+    'run("daily-planning-repairs"',
     "syncAllFactoryMaterials()",
-    "repairAutomaticGoalDuplicatesV75(state)",
-    "repairCompletedPlanningGoalsV76(state)",
-    "rebalanceFuturePlanningGoalsV77(state)",
-    "rebalanceCurrentWeekV78(state)",
-    "rebalanceCurrentMonthV79(state)",
+    'run("goal-integrity-repairs"',
+    'run("future-planning-rebalance"',
+    'run("weekly-planning-rebalance"',
+    'run("monthly-planning-rebalance"',
     "migrateFactoryMaterialsPlanningV80(state)",
     "repairExistingFactoryMaterialLinksV85(state)"
   ];
@@ -84,6 +82,17 @@ test("a manutenção preserva todas as rotinas e sua ordem histórica", () => {
     assert.ok(index > previous, `${call} deve manter a ordem histórica`);
     previous = index;
   }
+
+  for (const forbidden of [
+    "repairDailyPlanningInflationV108(state",
+    "reconcileDailyGoalsWithPlanning(state",
+    "repairAutomaticGoalDuplicatesV75(state)",
+    "repairCompletedPlanningGoalsV76(state)",
+    "rebalanceFuturePlanningGoalsV77(state)",
+    "rebalanceCurrentWeekV78(state)",
+    "rebalanceCurrentMonthV79(state)"
+  ]) assert.doesNotMatch(maintenance, new RegExp(forbidden.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(maintenance, /explicit-authorization-required/);
 
   assert.doesNotMatch(
     maintenance,

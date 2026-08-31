@@ -15,11 +15,13 @@ test("assuntos concluídos e variações compatíveis ficam fora das novas metas
   assert.match(script, /!planningRecordMatchesCompletedSubject\(item, completedRecords\)/);
 });
 
-test("a primeira abertura remove meta automática pendente de assunto já concluído", () => {
+test("a primeira abertura apenas diagnostica metas de assuntos já concluídos", () => {
   const script = read("script.js");
   assert.match(script, /function repairCompletedPlanningGoalsV76/);
   assert.match(script, /!isManualDailyGoal\(goal\) && !isGoalDone\(goal\) && goalTotalActualMinutes\(goal\) <= 0/);
-  assert.match(script, /repairCompletedPlanningGoalsV76\(state\)/);
+  const maintenance = script.slice(script.indexOf("async function runPostInteractiveBootstrapMaintenanceV169"), script.indexOf("async function bootstrapApplication"));
+  assert.doesNotMatch(maintenance, /repairCompletedPlanningGoalsV76\(state\)/);
+  assert.match(maintenance, /completedGoalIntegrityReportV76[\s\S]*explicit-authorization-required/);
 });
 
 test("data clara e conteúdo acima da navegação móvel permanecem visíveis", () => {

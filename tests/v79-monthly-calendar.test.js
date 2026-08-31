@@ -79,10 +79,13 @@ test("geração mensal usa o plano equilibrado em vez do preenchimento cronológ
   assert.doesNotMatch(block, /daysBetween\(start, days\)\.forEach/);
 });
 
-test("primeira abertura da V79 redistribui o mês atual uma única vez", () => {
+test("o rebalanceamento V79 permanece explícito e não altera o mês na abertura", () => {
   assert.match(script, /function rebalanceCurrentMonthV79/);
   assert.match(script, /balancedMonthlyCalendarV79/);
-  assert.match(script, /rebalanceCurrentMonthV79\(state\)/);
+  const maintenance = script.slice(script.indexOf("async function runPostInteractiveBootstrapMaintenanceV169"), script.indexOf("async function bootstrapApplication"));
+  const monthlyDiagnostic = maintenance.slice(maintenance.indexOf('run("monthly-planning-rebalance"'), maintenance.indexOf('run("factory-planning-maintenance"'));
+  assert.doesNotMatch(maintenance, /rebalanceCurrentMonthV79\(state\)/);
+  assert.match(monthlyDiagnostic, /balancedMonthlyReport[\s\S]*explicit-authorization-required[\s\S]*__balancedMonthlyReportV79/);
 });
 
 test("Contrato atual v152: V83 mantém a distribuição mensal da V79, cache e publicação em paridade", () => {

@@ -75,10 +75,12 @@ test("conclusões no plano e no edital acionam a atualização do calendário", 
   assert.match(script, /function updateItemProgress[\s\S]*replanFutureGoalsAfterCompletionV77\(item, state\)/);
 });
 
-test("a primeira abertura redistribui apenas metas automáticas futuras intactas", () => {
+test("a redistribuição futura exige ação explícita e não ocorre na primeira abertura", () => {
   assert.match(script, /function rebalanceFuturePlanningGoalsV77/);
-  assert.match(script, /reconcilePlanningDates\(targetState, dates, \{ rebuildAutomatic: true \}\)/);
-  assert.match(script, /rebalanceFuturePlanningGoalsV77\(state\)/);
+  assert.match(script, /reconcilePlanningDates\(targetState, dates, \{ explicit: true, allowRebuild: true, rebuildAutomatic: true \}\)/);
+  const maintenance = script.slice(script.indexOf("async function runPostInteractiveBootstrapMaintenanceV169"), script.indexOf("async function bootstrapApplication"));
+  assert.doesNotMatch(maintenance, /rebalanceFuturePlanningGoalsV77\(state\)/);
+  assert.match(maintenance, /planningDistributionReportV77[\s\S]*explicit-authorization-required/);
   assert.match(script, /!isManualDailyGoal\(goal\) && isAutomaticIntactDailyGoal\(goal\)/);
 });
 

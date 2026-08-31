@@ -73,8 +73,8 @@ test('calendário gera, salva e sincroniza sem variável de contexto ausente', (
 
 test('planejamento, disponibilidade e metas mensais persistem e reconciliam', () => {
   const planningEvents = sourceBetween('function setPlanningSaveStatus', 'if (elements.generateDailyGoals)');
-  assert.match(planningEvents, /reconcilePlanningDates\(state,[\s\S]*\{ rebuildAutomatic: true \}\)/);
-  assert.match(planningEvents, /reconcileDailyGoalsWithPlanning\(state, date, \{ rebuildAutomatic: true \}\)/);
+  assert.match(planningEvents, /reconcilePlanningDates\(state,[\s\S]*\{ explicit: true, allowRebuild: true, rebuildAutomatic: true \}\)/);
+  assert.match(planningEvents, /reconcileDailyGoalsWithPlanning\(state, date, \{ explicit: true, allowRebuild: true, rebuildAutomatic: true \}\)/);
   assert.match(planningEvents, /saveData\(\{ markLocalChange: true \}\)/);
   assert.match(planningEvents, /autoSyncAfterSave\("planning"\)/);
   assert.match(script, /autoSyncAfterSave\("planning-availability"\)/);
