@@ -19,7 +19,7 @@ test("V408 invalida apenas o cache antigo da integridade do planejamento", () =>
 });
 
 test("V408 preserva cache-first e não adiciona trabalho permanente", () => {
-  assert.match(bridge, new RegExp(`importScripts\\\(` + "`service-worker\\.js\\?v=\\$\\{CACHE_FIX_VERSION\\}`" + `\\\)`));
+  assert.ok(bridge.includes("importScripts(`service-worker.js?v=${CACHE_FIX_VERSION}`);"));
   assert.match(canonical, /async function cacheFirstStatic\(request\)/);
   assert.match(canonical, /caches\.match\(request, \{ ignoreSearch: true \}\)/);
   assert.doesNotMatch(bridge, /addEventListener\("fetch"/);
