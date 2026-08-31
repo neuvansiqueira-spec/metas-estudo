@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260831-daily-plan-deterministic-integrity-v417",
+  "version": "20260831-metas-integridade-sem-auditoria-v418",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
