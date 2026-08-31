@@ -14,33 +14,47 @@ function currentWorkerFilename(source = canonical) {
   return `service-worker-${suffix}.js`;
 }
 
-test("V352 mantém o Service Worker realmente registrado idêntico ao canônico", () => {
+function isPlanningCacheBridge(source) {
+  return source.includes('const CACHE_FIX_VERSION = "20260830-planning-integrity-cache-v408";')
+    && source.includes('importScripts(`service-worker.js?v=${CACHE_FIX_VERSION}`);');
+}
+
+test("V352 mantém o Service Worker ativo equivalente ao canônico ou como ponte V408 estrita", () => {
   const activeFilename = currentWorkerFilename();
   const active = fs.readFileSync(path.join(root, activeFilename), "utf8");
   const docsCanonical = fs.readFileSync(path.join(root, "docs", "service-worker.js"), "utf8");
   const docsActive = fs.readFileSync(path.join(root, "docs", activeFilename), "utf8");
 
-  assert.equal(active, canonical, `${activeFilename} divergiu de service-worker.js`);
   assert.equal(docsCanonical, canonical, "docs/service-worker.js divergiu do canônico");
-  assert.equal(docsActive, canonical, `docs/${activeFilename} divergiu do canônico`);
+  assert.equal(docsActive, active, `docs/${activeFilename} divergiu da raiz`);
+
+  if (active === canonical) return;
+
+  assert.ok(isPlanningCacheBridge(active), `${activeFilename} divergiu do canônico sem ser a ponte V408 autorizada`);
+  assert.match(active, /planning-integrity-v235\.js/);
+  assert.match(active, /planning-integrity-loader-v235\.js/);
+  assert.match(active, /cache\.delete\(request\)/);
+  assert.doesNotMatch(active, /addEventListener\("fetch"/);
+  assert.doesNotMatch(active, /setTimeout|setInterval|MutationObserver|requestAnimationFrame|requestIdleCallback/);
 });
 
-test("V352 entrega o fast path pela versão ativa e gira o cache de bootstrap", () => {
+test("V352 entrega o fast path pela implementação canônica e gira o cache de bootstrap", () => {
   const activeFilename = currentWorkerFilename();
   const active = fs.readFileSync(path.join(root, activeFilename), "utf8");
-  const currentVersion = active.match(/const CURRENT_VERSION = "([^"]+)";/)?.[1] || "";
-  const fastBootstrapVersion = active.match(/const FAST_BOOTSTRAP_VERSION = "([^"]+)";/)?.[1] || "";
+  const effective = isPlanningCacheBridge(active) ? canonical : active;
+  const currentVersion = effective.match(/const CURRENT_VERSION = "([^"]+)";/)?.[1] || "";
+  const fastBootstrapVersion = effective.match(/const FAST_BOOTSTRAP_VERSION = "([^"]+)";/)?.[1] || "";
 
-  assert.ok(currentVersion, "CURRENT_VERSION deve existir no worker ativo");
-  assert.ok(fastBootstrapVersion, "FAST_BOOTSTRAP_VERSION deve existir no worker ativo");
+  assert.ok(currentVersion, "CURRENT_VERSION deve existir no worker efetivo");
+  assert.ok(fastBootstrapVersion, "FAST_BOOTSTRAP_VERSION deve existir no worker efetivo");
   const fastPath = fs.readFileSync(path.join(root, "bootstrap-fast-path-v351.js"), "utf8");
   assert.match(
     fastPath,
     new RegExp(`const VERSION = "${fastBootstrapVersion.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`),
     "o worker e o fast path devem usar o mesmo token de entrega"
   );
-  assert.match(active, /BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275\.js\?v=\$\{FAST_BOOTSTRAP_VERSION\}[^`]*`/);
-  assert.match(active, /BOOTSTRAP_FAST_PATH = `bootstrap-fast-path-v351\.js\?v=\$\{FAST_BOOTSTRAP_VERSION\}[^`]*`/);
-  assert.match(active, /planning-quality-v368/);
-  assert.match(active, /-bootstrap-fast-path-v351(?:-[^`]*)?`/);
+  assert.match(effective, /BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275\.js\?v=\$\{FAST_BOOTSTRAP_VERSION\}[^`]*`/);
+  assert.match(effective, /BOOTSTRAP_FAST_PATH = `bootstrap-fast-path-v351\.js\?v=\$\{FAST_BOOTSTRAP_VERSION\}[^`]*`/);
+  assert.match(effective, /planning-quality-v368/);
+  assert.match(effective, /-bootstrap-fast-path-v351(?:-[^`]*)?`/);
 });
