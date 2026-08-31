@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260827-factory-cross-area-integrity-v402",
+  "version": "20260831-core-daily-plan-consistency-v413",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

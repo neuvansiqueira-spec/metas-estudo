@@ -5121,7 +5121,7 @@ function renderDashboard() {
   const today = todayISO(); const todayMinutes = state.studies.filter((study) => study.date === today).reduce((sum, study) => sum + study.minutes, 0); const weekMinutes = state.studies.filter((study) => isSameWeek(study.date)).reduce((sum, study) => sum + study.minutes, 0); const totalQuestions = state.studies.reduce((sum, study) => sum + study.questions, 0); const correct = state.studies.reduce((sum, study) => sum + study.correct, 0);
   const total = state.syllabusItems.length; const studied = state.syllabusItems.filter(completedStatus).length; const weak = medirFaseBootV350("dashboard:filter-isWeakItem", () => state.syllabusItems.filter(isWeakItem).length); const undiagnosed = medirFaseBootV350("dashboard:filter-isUndiagnosed", () => state.syllabusItems.filter(isUndiagnosed).length); const notStarted = state.syllabusItems.filter((item) => item.status === "Não iniciado").length;
   const pendingByDiscipline = state.syllabusItems.filter((item) => !completedStatus(item) && item.status !== "Ignorado").reduce((acc, item) => ({ ...acc, [item.discipline]: (acc[item.discipline] || 0) + 1 }), {}); const topPending = Object.entries(pendingByDiscipline).sort((a, b) => b[1] - a[1])[0];
-  const questionTotals = medirFaseBootV350("dashboard:getQuestionTotals", () => getQuestionTotals()); const pendingGoals = state.dailyGoals.filter((goal) => goalDateValue(goal) === today && goal.status === "Pendente").length; const doneGoals = state.dailyGoals.filter((goal) => goalDateValue(goal) === today && goal.status === "Concluída").length;
+  const questionTotals = medirFaseBootV350("dashboard:getQuestionTotals", () => getQuestionTotals()); const todayPlanGoals = actionableDailyPlanGoalsForDate(state, today); const todayPlanStats = goalProgressStats(todayPlanGoals, availabilityForDate(today)); const pendingGoals = todayPlanStats.pending; const doneGoals = state.dailyGoals.filter((goal) => goalDateValue(goal) === today && isGoalDone(goal)).length;
   medirFaseBootV350("dashboard:escrita-dom-indicadores", () => { elements.todayHours.textContent = formatHours(todayMinutes); elements.weekHours.textContent = formatHours(weekMinutes); elements.weeklyGoalStatus.textContent = `${formatHours(weekMinutes)} registradas`; elements.totalQuestions.textContent = questionTotals.total || totalQuestions; elements.accuracyRate.textContent = questionTotals.total ? `${Math.round(questionTotals.correct / questionTotals.total * 100)}%` : (totalQuestions ? `${Math.round((correct / totalQuestions) * 100)}%` : "0%"); elements.generalCebraspeNet.textContent = questionTotals.net; elements.todayPendingGoals.textContent = pendingGoals; elements.todayDoneGoals.textContent = doneGoals; });
   const progress = medirFaseBootV350("dashboard:progressMetrics", () => progressMetrics()); const plan = medirFaseBootV350("dashboard:planningMetrics", () => planningMetrics()); medirFaseBootV350("dashboard:renderDashboardProgressSummary", () => renderDashboardProgressSummary()); if (elements.totalStudyTime) elements.totalStudyTime.textContent = formatHours(plan.totalMinutes); if (elements.averageTimePerTopic) elements.averageTimePerTopic.textContent = formatHours(plan.avgMinutes); if (elements.dashboardCompletionForecast) elements.dashboardCompletionForecast.textContent = formatDateBR(plan.forecastDate); if (elements.daysUntilExam) elements.daysUntilExam.textContent = plan.examDate ? Math.ceil((parseDate(plan.examDate) - parseDate(todayISO())) / 86400000) : "-"; if (elements.planningStatus) elements.planningStatus.textContent = plan.safeDiff === null ? "sem prova" : plan.safeDiff < 0 ? "atrasado" : plan.safeDiff <= 7 ? "em dia" : "adiantado";
   medirFaseBootV350("dashboard:escrita-dom-progresso", () => { if (elements.syllabusStudied) elements.syllabusStudied.textContent = `${progress.percent}%`; if (elements.dashboardStudiedTopics) elements.dashboardStudiedTopics.textContent = studied; if (elements.syllabusTotal) elements.syllabusTotal.textContent = total; if (elements.schedulableTotal) elements.schedulableTotal.textContent = state.syllabusItems.filter((item) => isSchedulable(item.id)).length; if (elements.notStartedTotal) elements.notStartedTotal.textContent = notStarted; if (elements.undiagnosedTotal) elements.undiagnosedTotal.textContent = undiagnosed; if (elements.weakTotal) elements.weakTotal.textContent = weak; if (elements.pendingDiscipline) elements.pendingDiscipline.textContent = topPending ? `${topPending[0]} (${topPending[1]})` : "-"; });
@@ -5132,10 +5132,11 @@ function renderDashboard() {
   if (elements.dashboardQuestionBankPackages) elements.dashboardQuestionBankPackages.textContent = qbPackageSummary.packages;
   if (elements.dashboardQuestionBankLinked) elements.dashboardQuestionBankLinked.textContent = qbPackageSummary.linked;
   if (elements.dashboardQuestionBankMissing) elements.dashboardQuestionBankMissing.textContent = qbPackageSummary.missing;
-  medirFaseBootV350("dashboard:escrita-dom-planejamento", () => { if (elements.dashboardMinWeeklyHours) elements.dashboardMinWeeklyHours.textContent = `${planningConfig().minWeeklyHours || 0}h`; if (elements.dashboardIdealWeeklyHours) elements.dashboardIdealWeeklyHours.textContent = `${planningConfig().idealWeeklyHours || 0}h`; if (elements.dashboardProblemDiscipline) elements.dashboardProblemDiscipline.textContent = problemQuestionDiscipline(); const todayGoals = state.dailyGoals.filter((goal)=>goalDateValue(goal)===todayISO()); const wsDash = weekStart(todayISO()), weDash = addDays(wsDash,6), weekGoals = goalsBetween(wsDash,weDash); if (elements.dashboardTodayDisciplines) elements.dashboardTodayDisciplines.textContent = new Set(todayGoals.map((g)=>g.discipline)).size; if (elements.dashboardTodayTopics) elements.dashboardTodayTopics.textContent = todayGoals.length; if (elements.dashboardWeekDisciplines) elements.dashboardWeekDisciplines.textContent = new Set(weekGoals.map((g)=>g.discipline)).size; if (elements.dashboardWeekTopics) elements.dashboardWeekTopics.textContent = weekGoals.length; });
+  medirFaseBootV350("dashboard:escrita-dom-planejamento", () => { if (elements.dashboardMinWeeklyHours) elements.dashboardMinWeeklyHours.textContent = `${planningConfig().minWeeklyHours || 0}h`; if (elements.dashboardIdealWeeklyHours) elements.dashboardIdealWeeklyHours.textContent = `${planningConfig().idealWeeklyHours || 0}h`; if (elements.dashboardProblemDiscipline) elements.dashboardProblemDiscipline.textContent = problemQuestionDiscipline(); const todayGoals = todayPlanGoals; const wsDash = weekStart(todayISO()), weDash = addDays(wsDash,6), weekGoals = goalsBetween(wsDash,weDash); if (elements.dashboardTodayDisciplines) elements.dashboardTodayDisciplines.textContent = new Set(todayGoals.map((g)=>g.discipline)).size; if (elements.dashboardTodayTopics) elements.dashboardTodayTopics.textContent = todayGoals.length; if (elements.dashboardWeekDisciplines) elements.dashboardWeekDisciplines.textContent = new Set(weekGoals.map((g)=>g.discipline)).size; if (elements.dashboardWeekTopics) elements.dashboardWeekTopics.textContent = weekGoals.length; });
   medirFaseBootV350("dashboard:escrita-dom-materiais", () => { if (elements.materialsTotal) { elements.materialsTotal.textContent = state.materials.length; elements.materialDisciplinesTotal.textContent = new Set(state.materials.map((m)=>canonical(m.discipline)).filter(Boolean)).size; elements.materialTopicsTotal.textContent = new Set(state.materials.map((m)=>`${canonical(m.discipline)}|${canonical(m.subject)}`).filter((v)=>v!=="|")).size; } });
   const ms = medirFaseBootV350("dashboard:mockStats", () => mockStats()); if (elements.mockTotal) elements.mockTotal.textContent = ms.count; if (elements.mockLastNet) elements.mockLastNet.textContent = ms.last; if (elements.mockBestNet) elements.mockBestNet.textContent = ms.best; if (elements.mockAverageNet) elements.mockAverageNet.textContent = ms.average; if (elements.mockAboveGoal) elements.mockAboveGoal.textContent = ms.aboveGoal; if (elements.mockProblemDiscipline) elements.mockProblemDiscipline.textContent = ms.problemDiscipline;
   medirFaseBootV350("dashboard:renderDashboardGoalsScaleSummary", () => renderDashboardGoalsScaleSummary());
+  medirFaseBootV350("dashboard:renderGoalDashboardCards", () => renderGoalDashboardCards(todayPlanGoals));
 }
 function renderEdital() { ["contestName", "agency", "role", "board", "examDate", "officialLink", "generalNotes"].forEach((key) => { elements[key].value = state.edital[key] || ""; }); elements.pdfInfo.innerHTML = state.edital.pdf ? `<strong>Arquivo:</strong> ${escapeHTML(state.edital.pdf.name)}<br><span class="item-meta">Anexado em ${escapeHTML(state.edital.pdf.attachedAt)}</span>` : ""; }
 function contestBadgesForItem(item = {}) {
@@ -6860,7 +6861,7 @@ function buildPlanningScoreContext(targetState = state) {
     scores.set(item.id, disciplineWeightValue(item.discipline, targetState) * 18 + pending / total * 40 + (item.status === "Não iniciado" ? 35 : 0) + (!diagnosed ? 18 : 0) + (weakItem ? 42 : 0) + (weakness.question || 0) * .7 + (weakness.mock || 0) * .4 + (normalizeSubjectIncidence(item.weight) - 3) * 10 + reviewDue + examBoost + diagnostic.boost); itemMetrics.set(item.id, { diagnosed, minutes, performance: { ...performance, net }, weakItem, diagnostic }); if (typeof performanceCounters !== "undefined") { performanceCounters.scoreExecutions++; performanceCounters.scoredItems++; }
   });
   const completedRecords = completedPlanningSubjectRecords(targetState);
-  const candidates = (targetState.syllabusItems || []).filter((item) => isIntegratedPlanningCandidateV155(item, targetState) && ((diagnosticMetrics.get(item.id)?.boost || 0) > 0 || !planningRecordMatchesCompletedSubject(item, completedRecords))).sort((a, b) => (scores.get(b.id) || 0) - (scores.get(a.id) || 0));
+  const candidates = (targetState.syllabusItems || []).filter((item) => isIntegratedPlanningCandidateV155(item, targetState) && !planningRecordMatchesCompletedSubject(item, completedRecords)).sort((a, b) => (scores.get(b.id) || 0) - (scores.get(a.id) || 0));
   return { studiesBySyllabusItemId, goalsBySyllabusItemId, questionLogsBySyllabusItemId, studiesByDisciplineSubject, goalsByDisciplineSubject, questionsByDisciplineSubject, materialsBySyllabusItemId, materialsByParentSyllabusItemId, materialsByDisciplineSubject, materialEstimateBySyllabusItemId, pendingByDiscipline, totalByDiscipline, weaknesses, itemMetrics, diagnosticMetrics, scores, candidates };
 }
 function disciplineQuestionWeakness(discipline) { return buildPlanningScoreContext().weaknesses[discipline]?.question || 0; }
@@ -6930,6 +6931,13 @@ function isPlanningStudyGoal(goal = {}) {
   const discipline = goal.discipline || goal.disciplina || "";
   if (goal.operationalDiscipline === true || isOperationalSimuladosDiscipline(discipline)) return false;
   return ["estudo novo", "revisão", "revisao", "reforço", "reforco", "questões", "questoes", "simulado", "meta"].includes(canonical(goal.type || goal.tipo || "Meta"));
+}
+function isActionableDailyPlanGoal(goal = {}, targetState = state, completedRecords = completedPlanningSubjectRecords(targetState)) {
+  return !isGoalDone(goal) && !planningRecordMatchesCompletedSubject(goal, completedRecords);
+}
+function actionableDailyPlanGoalsForDate(targetState = state, date = todayISO()) {
+  const completedRecords = completedPlanningSubjectRecords(targetState);
+  return (targetState.dailyGoals || []).filter((goal) => goalDateValue(goal) === date && isActionableDailyPlanGoal(goal, targetState, completedRecords));
 }
 function planningDistributionProfileV77(targetState = state, date = todayISO()) {
   const windowStart = addDays(date, -28);
@@ -7118,7 +7126,8 @@ function replenishMissingDailyPlanningGoalsV116(targetState = state, date = toda
   const targets = planningTargetsForDate(date, targetState, opts);
   const topicTarget = Math.max(0, Number(targets.topics) || 0);
   const report = { date, topicTarget, before: 0, after: 0, added: [], preserved: [], warnings: [], changed: false, skipped: "" };
-  const studyGoals = targetState.dailyGoals.filter((goal) => goalDateValue(goal) === date && isPlanningStudyGoal(goal));
+  const completedRecords = completedPlanningSubjectRecords(targetState);
+  const studyGoals = targetState.dailyGoals.filter((goal) => goalDateValue(goal) === date && isPlanningStudyGoal(goal) && isActionableDailyPlanGoal(goal, targetState, completedRecords));
   report.before = studyGoals.length;
   report.after = studyGoals.length;
   report.preserved = studyGoals.map((goal) => goal.id).filter(Boolean);
@@ -7129,7 +7138,8 @@ function replenishMissingDailyPlanningGoalsV116(targetState = state, date = toda
   const reservedSyllabusIds = new Set();
   studyGoals.forEach((goal) => { const key = goalSyllabusReservationKey(goal); if (key) reservedSyllabusIds.add(key); });
   const scoreContext = opts.scoreContext || buildPlanningScoreContext(targetState);
-  const eligibleGoals = eligiblePlanningGoalsForDate(date, { targetState, scoreContext, existingGoals: studyGoals, reservedSyllabusIds });
+  const eligibleGoals = eligiblePlanningGoalsForDate(date, { targetState, scoreContext, existingGoals: studyGoals, reservedSyllabusIds })
+    .filter((goal) => isActionableDailyPlanGoal(goal, targetState, completedRecords));
   const selection = selectPlanningGoalsForTargets({
     date,
     topicTarget,
@@ -7139,13 +7149,14 @@ function replenishMissingDailyPlanningGoalsV116(targetState = state, date = toda
   });
   const now = new Date().toISOString();
   selection.selected.forEach((goal) => {
+    if (!isActionableDailyPlanGoal(goal, targetState, completedRecords)) return;
     goal.origin = goal.origem = "planejamento";
     goal.createdAt ||= now;
     goal.updatedAt = now;
     targetState.dailyGoals.push(goal);
     report.added.push(goal.id);
   });
-  report.after = targetState.dailyGoals.filter((goal) => goalDateValue(goal) === date && isPlanningStudyGoal(goal)).length;
+  report.after = targetState.dailyGoals.filter((goal) => goalDateValue(goal) === date && isPlanningStudyGoal(goal) && isActionableDailyPlanGoal(goal, targetState, completedRecords)).length;
   report.changed = report.added.length > 0;
   if (report.after < topicTarget) report.warnings.push(`Planejamento prevê ${topicTarget} assunto(s), mas existem apenas ${report.after} assunto(s) elegível(is) sem repetição.`);
   if (report.changed) {
@@ -8377,7 +8388,7 @@ function renderDashboardGoalsScaleSummary() {
   if (!elements.dashboardGoalsScaleSummary) return;
   const today = todayISO();
   const av = availabilityForDate(today);
-  const dayGoals = state.dailyGoals.filter((goal) => goalDateValue(goal) === today);
+  const dayGoals = actionableDailyPlanGoalsForDate(state, today);
   const dayStats = goalProgressStats(dayGoals, av);
   const week = periodSummary(weekStart(today), 7);
   const monthStart = `${today.slice(0,7)}-01`;
@@ -8389,7 +8400,7 @@ function renderDashboardGoalsScaleSummary() {
 function renderCentralGoals() {
   if (!elements.centralGoalsCards && !elements.dashboardGoalsScaleSummary) return;
   const today = todayISO(), av = availabilityForDate(today), ws = weekStart(today), monthStart = `${today.slice(0,7)}-01`, monthDays = new Date(parseDate(today).getFullYear(), parseDate(today).getMonth()+1, 0).getDate();
-  const dayGoals = state.dailyGoals.filter((goal) => goalDateValue(goal) === today), dayStats = goalProgressStats(dayGoals, av), week = periodSummary(ws, 7), month = periodSummary(monthStart, monthDays), monthlyTarget = monthlyPlanningTarget(today);
+  const dayGoals = actionableDailyPlanGoalsForDate(state, today), dayStats = goalProgressStats(dayGoals, av), week = periodSummary(ws, 7), month = periodSummary(monthStart, monthDays), monthlyTarget = monthlyPlanningTarget(today);
   const dayDisciplines = new Set(dayGoals.map((goal) => canonicalStudyDescriptor(goal).discipline)).size;
   globalThis.__crossAreaLinkageReportV173 = buildCrossAreaLinkageReportV173(state);
   if (elements.centralGoalsCards) elements.centralGoalsCards.innerHTML = `
@@ -8647,7 +8658,7 @@ function renderDailyGoals() {
   renderSmartReviewBlock(elements.daySmartReview, date);
   renderChooseSubjectForDayV158();
   const availability = availabilityForDate(date);
-  const dayGoals = state.dailyGoals.filter((goal) => goalDateValue(goal) === date).sort((a,b) => isGoalDone(a) - isGoalDone(b) || (a.status || "").localeCompare(b.status || "") || a.discipline.localeCompare(b.discipline));
+  const dayGoals = actionableDailyPlanGoalsForDate(state, date).sort((a,b) => (a.status || "").localeCompare(b.status || "") || a.discipline.localeCompare(b.discipline));
   const projection = buildDailyPlanProjection(date);
   window.__dailyPlanProjectionByGoalId = new Map(projection.map((entry) => [entry.goal.id, entry]));
   window.__dailyPlanConsistencyReport = { date, dailyGoals: dayGoals.length, projectedGoals: projection.length, factoryItemsForToday: projection.reduce((sum, entry) => sum + entry.factoryItems.length, 0), materialsForToday: projection.reduce((sum, entry) => sum + entry.materialGroups.reduce((total, group) => total + group.materials.length, 0), 0), goalsWithoutMaterial: projection.filter((entry) => !entry.materialGroups.length).map((entry) => entry.goal.id), ambiguousMaterials: projection.filter((entry) => entry.warnings.length).length, visualDuplicatesRemoved: projection.reduce((sum, entry) => sum + entry.warnings.length, 0), stateMutatedDuringRender: alignment.changed, alignment: alignment.report ? { added: alignment.report.added.length, removed: alignment.report.removed.length, preserved: alignment.report.preserved.length } : { skipped: alignment.skipped } };
@@ -8676,7 +8687,8 @@ function renderDailyGoals() {
 function renderNextDailyGoal(dayGoals, projectionByGoalId = new Map()) {
   if (!elements.nextDailyGoal) return;
   dayGoals.forEach(normalizeGoalTimeFields);
-  const next = dayGoals.find((g)=>!isGoalDone(g) && !["Não cumprida", "Ignorada", "Adiada", "Reagendada"].includes(g.status || ""));
+  const completedRecords = completedPlanningSubjectRecords(state);
+  const next = dayGoals.find((g)=>isActionableDailyPlanGoal(g, state, completedRecords) && !["Não cumprida", "Ignorada", "Adiada", "Reagendada"].includes(g.status || ""));
   if (!next) { elements.nextDailyGoal.innerHTML = `<details ${dailyPlanSectionAttrs("next", true)}>${dailyPlanSummaryHTML("Próxima atividade", "Todas concluídas")}<div class="daily-plan-content"><p>Todas as metas do dia foram concluídas.</p></div></details>`; return; }
   const descriptor = canonicalStudyDescriptor(next);
   const materialState = getDailyGoalMaterialState(next, projectionByGoalId.get(next.id));
@@ -9901,6 +9913,27 @@ async function bootstrapApplication() {
     window.__legacyTimerRecoveryReport = legacyTimerRecoveryReport;
     console.info("[Metas Estudo] Recuperação de tempos antigos", legacyTimerRecoveryReport);
     if (legacyTimerRecoveryReport.recoveredMinutes) medirFaseBootV350("saveData-pos-recuperacao", () => saveData({ markLocalChange: true }));
+    const startupDailyPlanReportV413 = medirFaseBootV350("reconciliacao-plano-dia-definitivo-v413", () => {
+      try {
+        const report = replenishMissingDailyPlanningGoalsV116(state, todayISO());
+        globalThis.__aldusDailyPlanStartupReconciledV406 = true;
+        globalThis.__aldusCoreDailyPlanReconciliationV413 = Object.freeze({
+          version: "20260831-core-daily-plan-consistency-v413",
+          date: todayISO(),
+          changed: Boolean(report?.changed),
+          before: Number(report?.before) || 0,
+          after: Number(report?.after) || 0,
+          added: Array.isArray(report?.added) ? report.added.length : 0,
+          completedBeforeFirstRender: true
+        });
+        return report;
+      } catch (error) {
+        globalThis.__aldusDailyPlanStartupReconciledV406 = false;
+        console.warn("[Aldus V413] A reconciliação anterior à primeira exibição não pôde ser concluída.", error);
+        return { changed: false, skipped: "core-reconciliation-error" };
+      }
+    });
+    if (startupDailyPlanReportV413.changed) medirFaseBootV350("saveData-plano-dia-definitivo-v413", () => saveData({ markLocalChange: true, skipDerivedRefresh: true, reason: "core-daily-plan-consistency-v413" }));
     renderMotivationalPhrase();
     indexedDBStatus.bootstrap = recoveredError ? "erro recuperado" : "núcleo interativo";
     if (recoveredError) indexedDBStatus.error = "Não foi possível carregar os dados locais. Conecte ao Google Drive ou importe um backup.";
@@ -9988,14 +10021,15 @@ function hashToView() {
   return resolveViewTarget(window.location.hash);
 }
 
-function renderGoalDashboardCards() {
+function renderGoalDashboardCards(precomputedTodayGoals = null) {
   const today = todayISO(), ws = weekStart(today), we = addDays(ws, 6);
-  const todayGoals = state.dailyGoals.filter((goal) => goalDateValue(goal) === today);
+  const todayGoals = Array.isArray(precomputedTodayGoals) ? precomputedTodayGoals : actionableDailyPlanGoalsForDate(state, today);
   const weekGoals = goalsBetween(ws, we);
   const monthGoals = state.dailyGoals.filter((goal) => goalDateValue(goal).slice(0, 7) === today.slice(0, 7));
   const availability = availabilityForDate(today), stats = goalProgressStats(todayGoals, availability);
   const nextToday = todayGoals.find((goal) => !isGoalDone(goal) && !["Não cumprida", "Ignorada", "Adiada", "Reagendada"].includes(goal.status || ""));
-  const next = state.dailyGoals.filter((goal) => goal.status !== "Concluída" && goalDateValue(goal) >= today).sort((a, b) => goalDateValue(a).localeCompare(goalDateValue(b)))[0];
+  const completedRecords = completedPlanningSubjectRecords(state);
+  const next = state.dailyGoals.filter((goal) => isActionableDailyPlanGoal(goal, state, completedRecords) && goalDateValue(goal) >= today).sort((a, b) => goalDateValue(a).localeCompare(goalDateValue(b)))[0];
   const delayed = Object.entries(state.syllabusItems.filter((item) => !completedStatus(item) && item.status !== "Ignorado").reduce((map, item) => (map[item.discipline] = (map[item.discipline] || 0) + 1, map), {})).sort((a, b) => b[1] - a[1])[0];
   const top = Object.entries(weekGoals.reduce((map, goal) => (map[goal.discipline] = (map[goal.discipline] || 0) + 1, map), {})).sort((a, b) => b[1] - a[1])[0];
   if (elements.dashboardTodayGoal) elements.dashboardTodayGoal.textContent = stats.target ? formatHours(stats.target) : "0h";

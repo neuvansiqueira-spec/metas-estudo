@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20260827-factory-cross-area-integrity-v402";
+const CURRENT_VERSION = "20260831-core-daily-plan-consistency-v413";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const SECURITY_VERSION = "20260810-seguranca-estabilidade-v296";
 const PROTECTION_VERSION = "20260815-bootstrap-performance-v342";

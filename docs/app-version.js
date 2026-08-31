@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260827-factory-cross-area-integrity-v402";
+  const VERSION = "20260831-core-daily-plan-consistency-v413";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
