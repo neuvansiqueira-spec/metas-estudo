@@ -4,6 +4,8 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 
 const source = fs.readFileSync("script.js", "utf8");
+const packageVersion = JSON.parse(fs.readFileSync("package.json", "utf8")).version;
+const releaseSuffix = packageVersion.match(/v\d+$/)?.[0] || "current";
 const renderStart = source.indexOf("function renderDailyGoals()");
 const renderEnd = source.indexOf("function renderNextDailyGoal", renderStart);
 const renderSource = source.slice(renderStart, renderEnd);
@@ -89,7 +91,6 @@ for (const count of [5, 6]) {
     const maintenance = maintenanceRuntime(dailyGoals);
     const snapshot = JSON.parse(JSON.stringify(dailyGoals));
 
-    // bootstrap -> Dashboard -> Plano do Dia -> novo render -> load -> manutenção pós-bootstrap
     render.context.dailyPlanAlignmentStatusV174(render.context.state, "2026-08-31");
     render.render();
     render.render();
@@ -188,14 +189,16 @@ test("metas manuais, executadas, concluídas, reagendadas, editadas e com histó
   ]) assert.equal(protectedGoal(item), true);
 });
 
-test("V417 publica somente um núcleo e mantém raiz e docs sincronizados", () => {
+test("release atual publica somente um núcleo e mantém raiz e docs sincronizados", () => {
   const index = fs.readFileSync("index.html", "utf8");
   const docsIndex = fs.readFileSync("docs/index.html", "utf8");
   const bridge = fs.readFileSync("service-worker-v402.js", "utf8");
+  const versionedAsset = `app-${releaseSuffix}.js?v=${packageVersion}`;
   assert.equal(index, docsIndex);
-  assert.match(index, /app-v417\.js\?v=20260831-daily-plan-deterministic-integrity-v417/);
-  assert.equal((index.match(/app-v417\.js\?v=/g) || []).length, 1);
+  assert.ok(index.includes(versionedAsset));
+  assert.equal(index.split(versionedAsset).length - 1, 1);
   assert.doesNotMatch(index, /app-v413\.js\?v=/);
   assert.match(bridge, /DAILY_PLAN_DETERMINISTIC_CACHE_VERSION_V417/);
+  if (releaseSuffix === "v418") assert.match(bridge, /GOAL_INTEGRITY_NO_AUTO_AUDIT_CACHE_VERSION_V418/);
   assert.doesNotMatch(bridge, /setTimeout|setInterval|MutationObserver|requestAnimationFrame|requestIdleCallback/);
 });
