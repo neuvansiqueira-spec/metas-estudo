@@ -228,7 +228,7 @@
     // A mesma restauração autoritativa que o loader faria no evento load precisa
     // acontecer antes da reconciliação do Plano do Dia. Assim o recompositor
     // nunca enxerga a configuração provisória do bootstrap.
-    enforceSnapshot(targetState);
+    enforceSnapshot();
 
     document.documentElement.dataset.aldusIntegrityVersion = VERSION;
     globalThis.__ALDUS_PLANNING_INTEGRITY_V235__ = Object.freeze({
@@ -238,7 +238,7 @@
       installedAt: new Date().toISOString()
     });
     installed = true;
-    reconcileDailyPlanOnStartup(targetState);
+    reconcileDailyPlanOnStartup();
     return true;
   }
 
