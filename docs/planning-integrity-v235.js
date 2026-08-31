@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260830-plano-dia-reconcile-pos-bootstrap-v406";
+  const VERSION = "20260830-plano-dia-state-binding-v407";
   const SNAPSHOT_KEY = "aldusPlanningManualGoalsV235";
   const FACTORY_VIEW = "fabrica-resumos";
   const DAILY_VIEW = "metas-do-dia";
@@ -13,7 +13,15 @@
     return Number.isFinite(number) && number > 0 ? number : fallback;
   }
 
-  function planningState(targetState = typeof state !== "undefined" ? state : null) {
+  function currentState() {
+    try {
+      if (typeof state !== "undefined" && state && typeof state === "object") return state;
+    } catch {}
+    const fallback = globalThis.state;
+    return fallback && typeof fallback === "object" ? fallback : null;
+  }
+
+  function planningState(targetState = currentState()) {
     if (!targetState || typeof targetState !== "object") return null;
     targetState.planning ||= {};
     targetState.planning.config ||= {};
@@ -29,7 +37,7 @@
     }
   }
 
-  function stateSnapshot(targetState = typeof state !== "undefined" ? state : null) {
+  function stateSnapshot(targetState = currentState()) {
     return planningState(targetState)?.manualGoalsConfigV235 || null;
   }
 
@@ -39,11 +47,11 @@
     return (Date.parse(right.savedAt || "") || 0) > (Date.parse(left.savedAt || "") || 0) ? right : left;
   }
 
-  function authoritativeSnapshot(targetState = typeof state !== "undefined" ? state : null) {
+  function authoritativeSnapshot(targetState = currentState()) {
     return newerSnapshot(stateSnapshot(targetState), readSnapshot());
   }
 
-  function enforceSnapshot(targetState = typeof state !== "undefined" ? state : null) {
+  function enforceSnapshot(targetState = currentState()) {
     const planning = planningState(targetState);
     const snapshot = authoritativeSnapshot(targetState);
     const disciplines = positiveInteger(snapshot?.disciplines);
@@ -82,7 +90,7 @@
     }
   }
 
-  function recordManualCount(disciplines, topics = disciplines, targetState = typeof state !== "undefined" ? state : null) {
+  function recordManualCount(disciplines, topics = disciplines, targetState = currentState()) {
     const planning = planningState(targetState);
     const count = positiveInteger(disciplines);
     if (!planning || !count) return null;
@@ -99,19 +107,19 @@
     return snapshot;
   }
 
-  function dayType(date, targetState = typeof state !== "undefined" ? state : null) {
+  function dayType(date, targetState = currentState()) {
     try { return typeof globalThis.getPlanningDayType === "function" ? globalThis.getPlanningDayType(date, targetState) : "normal"; }
     catch { return "normal"; }
   }
 
-  function overrideForDate(date, targetState = typeof state !== "undefined" ? state : null) {
+  function overrideForDate(date, targetState = currentState()) {
     return planningState(targetState)?.dailyGoalOverridesV235?.[date] || null;
   }
 
   function installTargetGuard() {
     const current = globalThis.planningTargetsForDate;
     if (typeof current !== "function" || current.__aldusIntegrityV388) return false;
-    const guarded = function planningTargetsForDateV388(date, targetState = typeof state !== "undefined" ? state : null, opts = {}) {
+    const guarded = function planningTargetsForDateV388(date, targetState = currentState(), opts = {}) {
       const targets = current(date, targetState, opts);
       if (!targets || Number(targets.disciplines) <= 0) return targets;
       const override = overrideForDate(date, targetState);
@@ -150,7 +158,7 @@
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
   }
 
-  function reconcileDailyPlanOnStartup(targetState = typeof state !== "undefined" ? state : null) {
+  function reconcileDailyPlanOnStartup(targetState = currentState()) {
     if (!targetState || !Array.isArray(targetState.dailyGoals)) return { changed: false, skipped: "state-unavailable" };
     if (globalThis[STARTUP_RECONCILE_MARKER] === true) return { changed: false, skipped: "already-reconciled" };
 
@@ -210,7 +218,8 @@
 
   function install() {
     if (installed) return true;
-    if (typeof document === "undefined" || typeof globalThis.state === "undefined" || typeof globalThis.planningTargetsForDate !== "function") return false;
+    const targetState = currentState();
+    if (typeof document === "undefined" || !targetState || typeof globalThis.planningTargetsForDate !== "function") return false;
     installPersistenceGuards();
     installTargetGuard();
     installFactoryGuard();
