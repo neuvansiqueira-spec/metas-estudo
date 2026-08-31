@@ -23,7 +23,8 @@ test("V416 canoniza a URL do hardening no HTML sem remover defer", () => {
   assert.equal(worker, read("docs/service-worker-v413.js"));
   assert.match(worker, /const SECURITY_VERSION = "20260831-weekly-status-stability-v416";/);
   assert.match(worker, /security-weekly-status-stability-v416/);
-  assert.match(worker, /const pattern = \/<script\\s\+\[\^>\]\*src=/);
+  assert.match(worker, /function installSecurityHardeningV296\(html\)/);
+  assert.ok(worker.includes("security-hardening-v296\\.js"));
   assert.match(worker, /aldusSecurityHardeningV296" defer src=/);
   assert.doesNotMatch(worker, /if \(html\.includes\("security-hardening-v296\.js"\)\) return html;/);
 });

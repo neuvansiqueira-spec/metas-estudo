@@ -8,16 +8,19 @@ const workerPath = path.resolve(__dirname, "..", "service-worker.js");
 const source = fs.readFileSync(workerPath, "utf8");
 const currentVersion = source.match(/const CURRENT_VERSION = "([^"]+)";/)?.[1] || "";
 const fastBootstrapVersion = source.match(/const FAST_BOOTSTRAP_VERSION = "([^"]+)";/)?.[1] || "";
+const releaseSuffix = currentVersion.match(/v\d+$/)?.[0] || "";
 assert.ok(currentVersion, "CURRENT_VERSION deve existir no Service Worker canônico");
 assert.ok(fastBootstrapVersion, "FAST_BOOTSTRAP_VERSION deve existir no Service Worker canônico");
+assert.ok(releaseSuffix, "CURRENT_VERSION deve terminar em vNNN");
 const scope = "https://example.test/metas-estudo/";
 const canonical = `${scope}index.html`;
+const validShell = `<!doctype html><html><head></head><body><main>app</main><script src="app-${releaseSuffix}.js?v=${currentVersion}"></script><span>Versão: ${currentVersion}</span></body></html>`;
 
 function makeRuntime() {
   const store = new Map();
   const addAllCalls = [];
   const waits = [];
-  let fetchImpl = async () => new Response("<!doctype html><html><head></head><body><main>app</main></body></html>", {
+  let fetchImpl = async () => new Response(validShell, {
     status: 200,
     headers: { "content-type": "text/html" }
   });

@@ -5,6 +5,7 @@ const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
 const read = (file) => fs.readFileSync(path.join(root, file), "utf8");
+const UPDATE_DELIVERY = "20260831-update-banner-stability-v414";
 
 test("V395 impede recarga automática em controllerchange", () => {
   const source = read("update-flow-v395.js");
@@ -18,18 +19,19 @@ test("V395 impede recarga automática em controllerchange", () => {
 test("V395 continua instalado antes do bundle principal nos dois bootstraps", () => {
   const protectedLoader = read("bootstrap-integrity-loader-v275.js");
   const legacyLoader = read("bootstrap-integrity-loader-v258.js");
-  assert.match(protectedLoader, /UPDATE_FLOW_SCRIPT = "update-flow-v395\.js\?v=20260825-no-auto-reload-v395"/);
+  const expectedDelivery = new RegExp(`UPDATE_FLOW_SCRIPT = "update-flow-v395\\.js\\?v=${UPDATE_DELIVERY}"`);
+  assert.match(protectedLoader, expectedDelivery);
   assert.ok(protectedLoader.indexOf("parent.insertBefore(updateFlow") < protectedLoader.indexOf("parent.insertBefore(core"));
   assert.match(protectedLoader, /await updateFlowReady/);
-  assert.match(legacyLoader, /UPDATE_FLOW_SCRIPT = "update-flow-v395\.js\?v=20260825-no-auto-reload-v395"/);
+  assert.match(legacyLoader, expectedDelivery);
   assert.ok(legacyLoader.indexOf("parent.insertBefore(updateFlow") < legacyLoader.indexOf("parent.insertBefore(core"));
 });
 
 test("V395 renova o cache sem remover a estratégia de performance", () => {
   const worker = read("service-worker.js");
-  assert.match(worker, /UPDATE_FLOW_VERSION = "20260825-no-auto-reload-v395"/);
-  // A V395 deve exigir apenas seu próprio marcador de cache. A versão do planejamento
-  // evolui independentemente (V397/V398 e posteriores) e não pode bloquear o deploy.
+  assert.match(worker, new RegExp(`UPDATE_FLOW_VERSION = "${UPDATE_DELIVERY}"`));
+  // O comportamento V395 continua no módulo; o token de entrega pode evoluir para
+  // correções posteriores sem invalidar a proteção contra recarga automática.
   assert.match(worker, /no-auto-reload-v395/);
   assert.match(worker, /const UPDATE_FLOW_SCRIPT = `update-flow-v395\.js\?v=\$\{UPDATE_FLOW_VERSION\}`/);
   assert.match(worker, /BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275\.js\?v=\$\{FAST_BOOTSTRAP_VERSION\}&planning=v397&update=v395(?:&audio=v396)?`/);
