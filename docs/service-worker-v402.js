@@ -2,6 +2,7 @@
 
 const CACHE_FIX_VERSION = "20260830-planning-integrity-cache-v408";
 const COMPLETED_GOALS_CACHE_VERSION_V411 = "20260831-metas-concluidas-somente-revisao-v411";
+const DAILY_GOAL_STABILITY_CACHE_VERSION_V412 = "20260831-estabilidade-metas-antes-bootstrap-v412";
 // Contrato exclusivamente textual do pipeline V395. O bloco mantém CACHE_NAME
 // fora do escopo léxico global para não colidir com o CACHE_NAME declarado pelo
 // service-worker.js canônico carregado via importScripts.
@@ -9,6 +10,9 @@ const COMPLETED_GOALS_CACHE_VERSION_V411 = "20260831-metas-concluidas-somente-re
   const CACHE_NAME = `metas-estudo-v408-active-bridge`;
 }
 const PLANNING_INTEGRITY_PATHS = new Set([
+  new URL("", self.registration.scope).pathname,
+  new URL("index.html", self.registration.scope).pathname,
+  new URL("startup-planning-stability-v387.js", self.registration.scope).pathname,
   new URL("planning-integrity-v235.js", self.registration.scope).pathname,
   new URL("planning-integrity-loader-v235.js", self.registration.scope).pathname
 ]);
@@ -36,4 +40,5 @@ self.addEventListener("activate", (event) => {
 // A alteração do bridge força uma nova ativação; a limpeza acima entrega o
 // núcleo V411 sem mudar o comportamento cache-first do worker canônico.
 void COMPLETED_GOALS_CACHE_VERSION_V411;
+void DAILY_GOAL_STABILITY_CACHE_VERSION_V412;
 importScripts(`service-worker.js?v=${CACHE_FIX_VERSION}`);
