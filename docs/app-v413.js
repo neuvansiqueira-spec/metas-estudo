@@ -12167,7 +12167,7 @@ globalThis.PCPR_PCMA_2026_CATALOG = {
       "contestScope": "PCMA_ONLY",
       "importKey": "pcma|2026|direito|constitucional|10.1|processo|legislativo:|fundamentos|e|garantias|de|independencia,|conceito,|objetos,|atos|e|procedimentos",
       "i
-... 2379500 bytes omitted ...
+... 2379507 bytes omitted ...
 LegacyPrompt(value) {
     const text = String(value || "").trim();
     if (!text) return true;
