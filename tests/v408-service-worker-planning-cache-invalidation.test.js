@@ -1,6 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
+const vm = require("node:vm");
 
 const bridge = fs.readFileSync("service-worker-v402.js", "utf8");
 const docsBridge = fs.readFileSync("docs/service-worker-v402.js", "utf8");
@@ -26,11 +27,17 @@ test("V408 preserva cache-first e não adiciona trabalho permanente", () => {
   assert.doesNotMatch(bridge, /setTimeout|setInterval|MutationObserver|requestAnimationFrame|requestIdleCallback/);
 });
 
-test("V408 mantém o contrato V395 necessário à publicação sem abrir cache extra", () => {
-  assert.match(bridge, /const CACHE_NAME = `metas-estudo-v408-active-bridge`;/);
+test("V409 mantém o contrato V395 sem colidir com CACHE_NAME do worker canônico", () => {
+  assert.match(bridge, /\{\s*const CACHE_NAME = `metas-estudo-v408-active-bridge`;\s*\}/);
   const deployPattern = /(const CACHE_NAME = `[^`\n]+)(`;)/;
   assert.equal(deployPattern.test(bridge), true);
   assert.doesNotMatch(bridge, /caches\.open\(CACHE_NAME\)/);
+
+  const inlineCanonical = bridge.replace(
+    /importScripts\(`service-worker\.js\?v=\$\{CACHE_FIX_VERSION\}`\);/,
+    canonical
+  );
+  assert.doesNotThrow(() => new vm.Script(inlineCanonical));
 });
 
 test("V408 executa a limpeza apenas na ativação do novo worker", () => {
