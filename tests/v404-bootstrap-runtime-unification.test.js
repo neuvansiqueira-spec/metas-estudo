@@ -2,17 +2,18 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const test = require("node:test");
 
+const packageVersion = JSON.parse(fs.readFileSync("package.json", "utf8")).version;
 const FAST_APP_RELEASE = "20260827-factory-cross-area-integrity-v402";
 const FAST_APP_SUFFIX = "v402";
-const FALLBACK_APP_RELEASE = "20260831-daily-plan-deterministic-integrity-v417";
-const FALLBACK_APP_SUFFIX = "v417";
+const FALLBACK_APP_RELEASE = packageVersion;
+const FALLBACK_APP_SUFFIX = packageVersion.match(/v\d+$/)?.[0] || "current";
 const BOOTSTRAP_RELEASE = "20260830-bootstrap-runtime-unification-v404";
 const read = (file) => fs.readFileSync(file, "utf8");
 const executable = (source) => source
   .replace(/\/\*[\s\S]*?\*\//g, "")
   .replace(/^[ \t]*\/\/.*$/gm, "");
 
-test("fast path preserva o núcleo enxuto V402 e fallback entrega o núcleo público V417", () => {
+test("fast path preserva o núcleo enxuto V402 e fallback entrega o núcleo público atual", () => {
   const fast = read("bootstrap-fast-path-v351.js");
   const fallback = read("bootstrap-integrity-loader-v258-core.js");
 
@@ -20,7 +21,7 @@ test("fast path preserva o núcleo enxuto V402 e fallback entrega o núcleo púb
   assert.match(fast, new RegExp(`app-${FAST_APP_SUFFIX}\\.js\\?v=${FAST_APP_RELEASE}`));
   assert.doesNotMatch(fast, /app-v378\.js/);
   assert.match(fast, /FALLBACK_CORE = `bootstrap-integrity-loader-v258-core\.js\?v=\$\{VERSION\}/);
-  assert.match(fallback, new RegExp(`app-${FALLBACK_APP_SUFFIX}\\.js\\?v=${FALLBACK_APP_RELEASE}`));
+  assert.ok(fallback.includes(`app-${FALLBACK_APP_SUFFIX}.js?v=${FALLBACK_APP_RELEASE}`));
 });
 
 test("URLs dos carregadores renovam o cache sem adicionar trabalho ao hot path", () => {
@@ -52,7 +53,7 @@ test("artefatos publicados permanecem sincronizados", () => {
     "service-worker-v168.js",
     "service-worker-v169.js",
     "service-worker-v332.js",
-    "service-worker-v417.js"
+    `service-worker-${FALLBACK_APP_SUFFIX}.js`
   ]) {
     assert.equal(read(file), read(`docs/${file}`), `${file} deve ser idêntico em docs`);
   }
