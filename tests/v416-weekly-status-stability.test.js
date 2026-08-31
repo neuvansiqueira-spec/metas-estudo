@@ -4,27 +4,26 @@ const test = require("node:test");
 
 const read = (path) => fs.readFileSync(path, "utf8");
 
-test("V415 agrupa o hardening de DOM fora do caminho crítico", () => {
+test("V416 deixa o texto da meta semanal sob domínio exclusivo da aplicação", () => {
   const source = read("security-hardening-v296.js");
   assert.equal(source, read("docs/security-hardening-v296.js"));
-  assert.match(source, /20260831-security-dom-batch-v415/);
+  assert.match(source, /20260831-weekly-status-stability-v416/);
+  assert.doesNotMatch(source, /simplifyWeeklyGoalStatus/);
+  assert.doesNotMatch(source, /weeklyStatusNeedsRefresh/);
+  assert.doesNotMatch(source, /isWeeklyStatusMutation/);
+  assert.doesNotMatch(source, /registradas\\b/);
   assert.match(source, /new MutationObserver\(scheduleMutationHardening\)/);
   assert.match(source, /requestIdleCallback/);
-  assert.match(source, /pendingAddedRoots/);
-  assert.match(source, /roots\.length > 24/);
-  assert.match(source, /function guardLinkClick/);
-  assert.match(source, /hardenAnchor\(anchor\)/);
-  assert.doesNotMatch(source, /new MutationObserver\(\(records\) =>/);
 });
 
-test("V416 preserva o batching V415 e renova somente a entrega do hardening", () => {
+test("V416 canoniza a URL do hardening no HTML sem remover defer", () => {
   const worker = read("service-worker.js");
   assert.equal(worker, read("docs/service-worker.js"));
   assert.equal(worker, read("service-worker-v413.js"));
   assert.equal(worker, read("docs/service-worker-v413.js"));
-  assert.match(worker, /const CURRENT_VERSION = "20260831-core-daily-plan-consistency-v413";/);
   assert.match(worker, /const SECURITY_VERSION = "20260831-weekly-status-stability-v416";/);
   assert.match(worker, /security-weekly-status-stability-v416/);
-  assert.match(worker, /cache\.addAll\(ESSENTIAL_ASSETS\)/);
-  assert.match(worker, /async function cacheFirstStatic/);
+  assert.match(worker, /const pattern = \/<script\\s\+\[\^>\]\*src=/);
+  assert.match(worker, /aldusSecurityHardeningV296" defer src=/);
+  assert.doesNotMatch(worker, /if \(html\.includes\("security-hardening-v296\.js"\)\) return html;/);
 });
