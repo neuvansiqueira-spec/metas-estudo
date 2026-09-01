@@ -1,10 +1,10 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260824-factory-padronizacao-final-sumario-v385";
+  const VERSION = "20260901-factory-padronizacao-final-sumario-v422";
   const TYPE_KEY = "padronizacaoFinalSumario";
   const TYPE_LABEL = "Gerar prompt Padronização Final + Sumário";
-  const MIGRATION_ID = "factoryPadronizacaoFinalSumarioV385";
+  const MIGRATION_ID = "factoryPadronizacaoFinalSumarioV422";
   const API_MARKER = "__aldusFactoryPadronizacaoFinalSumarioV385";
   const INSTALL_FLAG = "aldusFactoryPadronizacaoFinalSumarioV385";
 
@@ -34,7 +34,8 @@ O texto recebido é a versão material definitiva para esta etapa.
 - aplicar estilos estruturais de título sem mudar a aparência visual pretendida;
 - corrigir defeitos puramente formais de formatação;
 - criar ou atualizar o sumário;
-- criar navegação interna e hiperlinks quando tecnicamente suportados;
+- criar navegação interna e hiperlinks obrigatórios em todas as entradas do sumário;
+- somente se a ferramenta comprovadamente não suportar hiperlink interno, registrar essa limitação de forma explícita na entrega e preservar os estilos estruturais dos títulos para manter o Painel de Navegação do Word;
 - preservar e estabilizar a apresentação já escolhida pelo usuário.
 
 ==============================
@@ -132,7 +133,7 @@ Preserve, no título correspondente:
 Use o estilo estrutural para permitir:
 - Painel de Navegação do Word;
 - criação de sumário;
-- hiperlinks internos;
+- hiperlinks internos obrigatórios em todas as entradas do sumário;
 - navegação por títulos.
 
 NÃO transforme rótulos como REGRA, EXCEÇÃO, PRAZO, COMPETÊNCIA, TESE, PROVA ou PONTO DE PROVA em títulos do sumário quando eles forem apenas elementos internos de um tópico.
@@ -180,7 +181,7 @@ NÃO distribua artificialmente espaços entre palavras.
 Quando a ferramenta de DOCX suportar um campo automático real de sumário do Word:
 - prefira o sumário automático;
 - baseie-o nos estilos estruturais aplicados ao corpo;
-- habilite hiperlinks internos quando suportados;
+- habilite hiperlinks internos obrigatórios em todas as entradas do sumário;
 - use números de página alinhados à direita com líder pontilhado somente quando a paginação estiver final e confiável;
 - personalize os estilos TOC para refletir a gramática visual do documento;
 - preserve as escolhas manuais do corpo;
@@ -189,7 +190,8 @@ Quando a ferramenta de DOCX suportar um campo automático real de sumário do Wo
 Se não for possível criar ou atualizar com segurança um sumário automático real:
 - crie SUMÁRIO MANUAL DIDÁTICO;
 - reproduza fielmente a hierarquia dos títulos;
-- use hiperlinks internos quando suportados;
+- crie hiperlinks internos obrigatórios em todas as entradas do sumário, apontando para o cabeçalho correspondente;
+- somente se a ferramenta comprovadamente não suportar hiperlink interno, registre essa limitação de forma explícita na entrega e preserve os estilos estruturais dos títulos;
 - NÃO invente, estime nem suponha números de página.
 
 ==============================
@@ -251,6 +253,28 @@ ENTREGA:
 - informe qual arquivo foi usado como fonte;
 - informe o nome do novo arquivo e, se salvo, o link exato.`;
 
+  function migratePromptV422(prompt) {
+    const raw = String(prompt || "").trim();
+    if (!raw) return BASE_PROMPT;
+    return raw
+      .replace(
+        "- criar navegação interna e hiperlinks quando tecnicamente suportados;",
+        "- criar navegação interna e hiperlinks obrigatórios em todas as entradas do sumário;\n- somente se a ferramenta comprovadamente não suportar hiperlink interno, registrar essa limitação de forma explícita na entrega e preservar os estilos estruturais dos títulos para manter o Painel de Navegação do Word;"
+      )
+      .replace(
+        "- hiperlinks internos;",
+        "- hiperlinks internos obrigatórios em todas as entradas do sumário;"
+      )
+      .replace(
+        "- habilite hiperlinks internos quando suportados;",
+        "- habilite hiperlinks internos obrigatórios em todas as entradas do sumário;"
+      )
+      .replace(
+        "- use hiperlinks internos quando suportados;",
+        "- crie hiperlinks internos obrigatórios em todas as entradas do sumário, apontando para o cabeçalho correspondente;\n- somente se a ferramenta comprovadamente não suportar hiperlink interno, registre essa limitação de forma explícita na entrega e preserve os estilos estruturais dos títulos;"
+      );
+  }
+
   function ensurePromptType() {
     try {
       if (!Array.isArray(FACTORY_PROMPT_TYPES)) return false;
@@ -282,10 +306,13 @@ ENTREGA:
       state.factoryPromptLibrary ||= {};
       state.migrations ||= {};
       const alreadyMigrated = Boolean(state.migrations[MIGRATION_ID]);
-      const hasPrompt = Boolean(String(state.factoryPromptLibrary[TYPE_KEY] || "").trim());
-      const changed = !alreadyMigrated || !hasPrompt;
-      if (!hasPrompt) state.factoryPromptLibrary[TYPE_KEY] = BASE_PROMPT;
+      const current = String(state.factoryPromptLibrary[TYPE_KEY] || "").trim();
+      const hasPrompt = Boolean(current);
+      const next = !hasPrompt ? BASE_PROMPT : (!alreadyMigrated ? migratePromptV422(current) : current);
+      const changed = !alreadyMigrated || next !== current;
+      if (next !== current) state.factoryPromptLibrary[TYPE_KEY] = next;
       if (!alreadyMigrated) state.migrations[MIGRATION_ID] = new Date().toISOString();
+      if (changed && typeof saveData === "function") saveData();
       return { installed: true, changed };
     } catch {
       return { installed: false, changed: false, reason: "state-write-failed" };
@@ -380,6 +407,7 @@ ENTREGA:
     version: VERSION,
     typeKey: TYPE_KEY,
     prompt: BASE_PROMPT,
+    migratePromptV422,
     relabelGeneralSource,
     install
   });
