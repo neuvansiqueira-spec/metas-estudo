@@ -6,7 +6,7 @@ const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const SECURITY_VERSION = "20260831-weekly-status-stability-v416";
 const PROTECTION_VERSION = "20260815-bootstrap-performance-v342";
 const BOOTSTRAP_VERSION = "20260815-bootstrap-performance-v342";
-const FAST_BOOTSTRAP_VERSION = "20260830-bootstrap-runtime-unification-v404";
+const FAST_BOOTSTRAP_VERSION = "20260901-bootstrap-current-bundle-v421";
 const NAVIGATION_DELIVERY_VERSION = "20260817-navigation-bootstrap-delivery-v353";
 // V420: prazo maximo que a navegacao espera pela rede antes de cair no cache.
 const NAVIGATION_NETWORK_DEADLINE_MS = 1500;
