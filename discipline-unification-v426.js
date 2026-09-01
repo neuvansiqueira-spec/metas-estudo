@@ -180,22 +180,27 @@
     if ((state?.syllabusItems || []).some((i) => cleanText(i?.discipline) === wanted)) return true;
     return (state?.dailyGoals || []).some((g) => cleanText(g?.discipline) === wanted || cleanText(g?.disciplina) === wanted);
   }
-  function migrationTouchedDisciplineNames() { return new Set([...REMOVABLE_IF_EMPTY, ...SPLIT_ORIGINS, ...Object.keys(WHOLE_MERGES), ...Object.values(WHOLE_MERGES), ...Object.values(DESTINATIONS)]); }
+  function migrationTouchedDisciplineNames() {
+    const names = new Set([...REMOVABLE_IF_EMPTY, ...SPLIT_ORIGINS, ...Object.keys(WHOLE_MERGES), ...Object.values(WHOLE_MERGES), ...Object.values(DESTINATIONS)]);
+    for (const [, target] of SPECIFIC_LAW_RULES) names.add(target);
+    return names;
+  }
   function validateWeightKeysPostCondition(state, preexistingWeightKeys = new Set(), report = {}) {
     const weights = state?.disciplineWeights || {}, touched = migrationTouchedDisciplineNames();
     const invalid = Object.keys(weights).map(cleanText).filter((n) => n && !disciplineExists(state, n));
     const touchedInvalid = invalid.filter((n) => touched.has(n));
     const unrelatedInvalid = invalid.filter((n) => !touched.has(n));
     const syllabusNames = new Set((state?.syllabusItems || []).map((i) => cleanText(i?.discipline)).filter(Boolean));
+    const sortPt = (values) => [...new Set(values)].sort((a, b) => a.localeCompare(b, "pt-BR"));
     report.weightValidation = {
       mode: "post-condition",
       existenceRule: "syllabusItems|dailyGoals|operational",
-      legitimateNonSyllabusWeights: Object.keys(weights).map(cleanText).filter((n) => n && !syllabusNames.has(n) && disciplineExists(state, n)),
-      unrelatedPreexistingOrphanWeights: unrelatedInvalid.filter((n) => preexistingWeightKeys.has(n)),
-      unrelatedInvalidWeights: unrelatedInvalid,
-      touchedInvalidWeights: touchedInvalid
+      legitimateNonSyllabusWeights: sortPt(Object.keys(weights).map(cleanText).filter((n) => n && !syllabusNames.has(n) && disciplineExists(state, n))),
+      unrelatedPreexistingOrphanWeights: sortPt(unrelatedInvalid.filter((n) => preexistingWeightKeys.has(n))),
+      unrelatedInvalidWeights: sortPt(unrelatedInvalid),
+      touchedInvalidWeights: sortPt(touchedInvalid)
     };
-    if (touchedInvalid.length) throw new Error(`V426: pós-condição de disciplineWeights falhou: ${touchedInvalid.join(", ")}`);
+    if (touchedInvalid.length) throw new Error(`V426: pós-condição de disciplineWeights falhou nas disciplinas tocadas: ${touchedInvalid.join(", ")}`);
   }
   function basePostConditionsSatisfied(state) {
     try {
