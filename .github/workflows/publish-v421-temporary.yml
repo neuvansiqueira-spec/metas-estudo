@@ -89,7 +89,14 @@ jobs:
           node --test tests/service-worker-tombstone-v350.test.js
           node --test tests/v329-integral-performance.test.js
 
-      - name: Validar baseline integral por nomes
+      - name: Preparar exatamente a arvore final
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm -r -- .github/v421-payload .github/workflows/publish-v421-temporary.yml
+          git add -A
+
+      - name: Validar baseline integral por nomes na arvore final
         shell: bash
         run: |
           set -euo pipefail
@@ -116,13 +123,15 @@ jobs:
           const candidateStatus = Number(fs.readFileSync('/tmp/v421-suite.status', 'utf8').trim());
           const baselineSet = new Set(baseline);
           const newFailures = candidate.filter((name) => !baselineSet.has(name));
+          const resolvedFailures = baseline.filter((name) => !new Set(candidate).has(name));
 
           fs.writeFileSync('/tmp/v421-failures.txt', `${candidate.join('\n')}${candidate.length ? '\n' : ''}`);
           fs.writeFileSync('/tmp/v421-new-failures.txt', `${newFailures.join('\n')}${newFailures.length ? '\n' : ''}`);
 
           console.log(`V420: falhas nominais=${baseline.length}`);
           console.log(`V421: status=${candidateStatus}; falhas nominais=${candidate.length}`);
-          for (const name of candidate) console.log(`V421 FAIL: ${name}`);
+          for (const name of resolvedFailures) console.log(`RESOLVIDA: ${name}`);
+          for (const name of newFailures) console.error(`NOVA FALHA: ${name}`);
 
           if (candidateStatus !== 0 && candidate.length === 0) {
             console.error('A suite V421 falhou, mas nenhuma falha nominal TAP pôde ser extraída.');
@@ -130,18 +139,17 @@ jobs:
           }
 
           if (newFailures.length > 0) {
-            console.error(`V421 introduziu ${newFailures.length} falha(s) nominal(is) nova(s):`);
-            for (const name of newFailures) console.error(`NOVA FALHA: ${name}`);
+            console.error(`V421 introduziu ${newFailures.length} falha(s) nominal(is) nova(s).`);
             process.exit(1);
           }
 
           console.log('Gate nominal aprovado: nenhuma falha nova em relação à V420.');
           NODE
 
-      - name: Comparar com a arvore testada e remover temporarios
+      - name: Comparar a arvore final com a arvore testada
         shell: bash
         run: |
-          git rm -r -- .github/v421-payload .github/workflows/publish-v421-temporary.yml
+          set -euo pipefail
           git add -A
 
           divergence=0
