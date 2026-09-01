@@ -38,7 +38,7 @@ jobs:
           node --check discipline-unification-v426-revision.js
           node --check planning-integrity-v235.js
           node --check factory-queue-integrity-v236.js
-          node --test tests/v426-discipline-unification.test.js tests/v426-revision-b1-e.test.js tests/v426-persistence-partial.test.js
+          node --test tests/v426-discipline-unification.test.js tests/v426-revision-b1-e.test.js tests/v426-persistence-partial.test.js tests/factory-registration-idempotency-v426.test.js
           cmp discipline-unification-v426.js docs/discipline-unification-v426.js
           cmp discipline-unification-v426-revision.js docs/discipline-unification-v426-revision.js
           cmp performance-emergency-v350.js docs/performance-emergency-v350.js
