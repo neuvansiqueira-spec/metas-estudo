@@ -254,6 +254,22 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V425 — novo prompt Fusão Final, isolado do bundle principal.
+  // Registra apenas tipo, descrição e prompt-base; sem polling, observadores,
+  // requestAnimationFrame ou persistência automática.
+  function installFactoryFusaoFinalV425() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusFactoryFusaoFinalV425")) return;
+    const script = document.createElement("script");
+    script.id = "aldusFactoryFusaoFinalV425";
+    script.src = "factory-fusao-final-v425.js?v=20260901-factory-fusao-final-v425";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V425] Falha ao carregar o prompt Fusão Final.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   // V386 — comentários, bizus e jurisprudência manuais por questão.
   // O editor é sob demanda: não varre o banco no bootstrap, não observa o DOM
   // e só persiste quando o usuário confirma explicitamente o salvamento.
@@ -311,6 +327,7 @@
   installFactoryFinalReviewV384();
   installFactoryFinalReviewCompatV384();
   installFactoryPadronizacaoFinalSumarioV385();
+  installFactoryFusaoFinalV425();
   installQuestionBankManualNotesV386();
   installFactorySummaryTocV382();
 
