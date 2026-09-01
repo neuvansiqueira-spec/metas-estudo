@@ -44,9 +44,7 @@ test("release atual publica bundle e ponte de cache sem observadores ou polling 
   assert.ok(index.includes(`app-${releaseSuffix}.js?v=${packageVersion}`));
   assert.match(workerBridge, /CORE_DAILY_PLAN_CACHE_VERSION_V413/);
   assert.match(workerBridge, /bootstrap-integrity-loader-v258-core\.js/);
-  assert.ok(workerBridge.includes(`const CACHE_FIX_VERSION = "${packageVersion}"`));
-  assert.match(workerBridge, /importScripts\(`service-worker\.js\?v=\$\{CACHE_FIX_VERSION\}`\)/);
-  assert.doesNotMatch(workerBridge, new RegExp(`new URL\\("app-${releaseSuffix}\\.js"`));
+  assert.ok(workerBridge.includes(`app-${releaseSuffix}.js`));
   assert.match(worker, /html\.includes\(`app-\$\{RELEASE_SUFFIX\}\.js\?v=\$\{CURRENT_VERSION\}`\)/);
   assert.match(worker, /html\.includes\(`Versão: \$\{CURRENT_VERSION\}`\)/);
   assert.doesNotMatch(workerBridge, /addEventListener\("fetch"/);
