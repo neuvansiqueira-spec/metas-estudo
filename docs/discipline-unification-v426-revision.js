@@ -573,6 +573,16 @@
   function applyRevision(targetState, options, baseApply) {
     if (!isObject(targetState)) return { changed: false, blocked: true, reason: "state-unavailable" };
     if (revisionCompleted(targetState)) return { changed: false, blocked: false, repeated: true, report: clone(targetState.migrations[MIGRATION_KEY].report || {}) };
+    const existingMigration = targetState?.migrations?.[MIGRATION_KEY];
+    if (existingMigration?.version === VERSION
+      && existingMigration?.completed === false
+      && revisionPostconditionsSatisfied(targetState, existingMigration)) {
+      return {
+        changed: false, blocked: false, repeated: true, pendingPersistence: true,
+        removedIds: clone(existingMigration?.stageProgress?.B1?.removedIds || []),
+        report: clone(existingMigration.report || {})
+      };
+    }
     const backup = options?.backupConfirmation;
     if (!backup?.confirmed || !cleanText(backup.fileName)) return { changed: false, blocked: true, reason: "backup-required" };
 
