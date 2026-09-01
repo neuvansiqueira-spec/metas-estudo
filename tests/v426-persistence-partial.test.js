@@ -204,25 +204,17 @@ test("relatório final nasce do estado relido e completed só vira true depois d
   );
 });
 
-test("planning-integrity exporta recordManualCount e o worker invalida apenas a API de planejamento sem bump global", () => {
+test("planning-integrity exporta recordManualCount e o v387 já invalida a API de planejamento sem alterar o worker", () => {
   const planning = fs.readFileSync("planning-integrity-v235.js", "utf8");
   const docsPlanning = fs.readFileSync("docs/planning-integrity-v235.js", "utf8");
-  const worker = fs.readFileSync("service-worker.js", "utf8");
-  const activeWorker = fs.readFileSync("service-worker-v424.js", "utf8");
-  const docsWorker = fs.readFileSync("docs/service-worker.js", "utf8");
-  const docsActiveWorker = fs.readFileSync("docs/service-worker-v424.js", "utf8");
+  const startup = fs.readFileSync("startup-planning-stability-v387.js", "utf8");
 
   assert.equal(planning, docsPlanning);
   assert.match(planning, /__ALDUS_PLANNING_INTEGRITY_V235__/);
   assert.match(planning, /recordManualCount,/);
 
-  assert.equal(worker, activeWorker);
-  assert.equal(worker, docsWorker);
-  assert.equal(worker, docsActiveWorker);
-  assert.match(worker, /CURRENT_VERSION = "20260901-daily-plan-completed-visible-v424"/);
-  assert.match(worker, /V426_PLANNING_API_INVALIDATION_PATHS/);
-  assert.match(worker, /planning-integrity-v235\.js/);
-  assert.match(worker, /planning-integrity-loader-v235\.js/);
-  assert.match(worker, /invalidateV426PlanningApiCache\(\)/);
-  assert.doesNotMatch(worker, /CURRENT_VERSION = "[^"]*v426"/);
+  assert.match(startup, /function evictLegacyRuntimeCache\(\)/);
+  assert.match(startup, /new URL\("planning-integrity-v235\.js", location\.href\)/);
+  assert.match(startup, /new URL\("planning-integrity-loader-v235\.js", location\.href\)/);
+  assert.match(startup, /cache\.delete\(target, \{ ignoreSearch: true \}\)/);
 });
