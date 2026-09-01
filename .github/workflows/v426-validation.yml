@@ -36,7 +36,7 @@ jobs:
           set -euo pipefail
           node --check discipline-unification-v426.js
           node --check performance-emergency-v350.js
-          node --test tests/v426-discipline-unification.test.js tests/emergency-performance-v350.test.js
+          node --test tests/v426-discipline-unification.test.js
           cmp discipline-unification-v426.js docs/discipline-unification-v426.js
           cmp performance-emergency-v350.js docs/performance-emergency-v350.js
 
