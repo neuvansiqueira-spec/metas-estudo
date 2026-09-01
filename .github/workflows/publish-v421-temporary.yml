@@ -1,8 +1,11 @@
 name: Publicar V421 e remover workflow temporario
 
 on:
-  schedule:
-    - cron: "*/5 * * * *"
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/publish-v421-temporary.yml
   workflow_dispatch:
 
 permissions:
@@ -14,6 +17,7 @@ concurrency:
 
 jobs:
   build-test-publish:
+    if: ${{ github.actor != 'github-actions[bot]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -23,6 +27,46 @@ jobs:
           fetch-depth: 0
           ref: main
 
+      - name: Configurar Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Capturar falhas nominais da V420
+        shell: bash
+        run: |
+          set -euo pipefail
+          git worktree add --detach /tmp/v420 ffa48a257bc4ad92164c64e62a901447edf0b791
+          (
+            cd /tmp/v420
+            npm ci --ignore-scripts
+            set +e
+            npm test > /tmp/v420-suite.log 2>&1
+            baseline_status=$?
+            set -e
+            printf '%s\n' "$baseline_status" > /tmp/v420-suite.status
+          )
+          git worktree remove --force /tmp/v420
+
+          node - <<'NODE'
+          const fs = require('fs');
+          const log = fs.readFileSync('/tmp/v420-suite.log', 'utf8');
+          const status = Number(fs.readFileSync('/tmp/v420-suite.status', 'utf8').trim());
+          const failures = [...log.matchAll(/^\s*not ok \d+ - (.+)$/gm)]
+            .map((match) => match[1].trim())
+            .filter(Boolean)
+            .filter((name, index, all) => all.indexOf(name) === index)
+            .sort();
+          fs.writeFileSync('/tmp/v420-failures.txt', `${failures.join('\n')}${failures.length ? '\n' : ''}`);
+          console.log(`V420: status=${status}; falhas nominais=${failures.length}`);
+          for (const name of failures) console.log(`V420 FAIL: ${name}`);
+          if (status !== 0 && failures.length === 0) {
+            console.error('A suite V420 falhou, mas nenhuma falha nominal TAP pôde ser extraída.');
+            process.exit(1);
+          }
+          NODE
+
       - name: Aplicar fontes V421 inertes
         shell: bash
         run: |
@@ -31,12 +75,6 @@ jobs:
             mkdir -p "$(dirname "$target")"
             cp "$source" "$target"
           done < <(find .github/v421-payload/root -type f -print0)
-
-      - name: Configurar Node
-        uses: actions/setup-node@49933ea5288caeca4fa41551a30e30af803 # v4
-        with:
-          node-version: 22
-          cache: npm
 
       - name: Gerar a arvore V421
         run: |
@@ -51,17 +89,54 @@ jobs:
           node --test tests/service-worker-tombstone-v350.test.js
           node --test tests/v329-integral-performance.test.js
 
-      - name: Validar baseline integral
+      - name: Validar baseline integral por nomes
         shell: bash
         run: |
+          set -euo pipefail
           set +e
           npm test > /tmp/v421-suite.log 2>&1
-          suite_status=$?
+          candidate_status=$?
           set -e
-          test "$suite_status" -ne 0
-          grep -qx 'ℹ tests 1564' /tmp/v421-suite.log
-          grep -qx 'ℹ pass 1440' /tmp/v421-suite.log
-          grep -qx 'ℹ fail 124' /tmp/v421-suite.log
+          printf '%s\n' "$candidate_status" > /tmp/v421-suite.status
+
+          node - <<'NODE'
+          const fs = require('fs');
+
+          function extractFailures(path) {
+            const log = fs.readFileSync(path, 'utf8');
+            return [...log.matchAll(/^\s*not ok \d+ - (.+)$/gm)]
+              .map((match) => match[1].trim())
+              .filter(Boolean)
+              .filter((name, index, all) => all.indexOf(name) === index)
+              .sort();
+          }
+
+          const baseline = extractFailures('/tmp/v420-suite.log');
+          const candidate = extractFailures('/tmp/v421-suite.log');
+          const candidateStatus = Number(fs.readFileSync('/tmp/v421-suite.status', 'utf8').trim());
+          const baselineSet = new Set(baseline);
+          const newFailures = candidate.filter((name) => !baselineSet.has(name));
+
+          fs.writeFileSync('/tmp/v421-failures.txt', `${candidate.join('\n')}${candidate.length ? '\n' : ''}`);
+          fs.writeFileSync('/tmp/v421-new-failures.txt', `${newFailures.join('\n')}${newFailures.length ? '\n' : ''}`);
+
+          console.log(`V420: falhas nominais=${baseline.length}`);
+          console.log(`V421: status=${candidateStatus}; falhas nominais=${candidate.length}`);
+          for (const name of candidate) console.log(`V421 FAIL: ${name}`);
+
+          if (candidateStatus !== 0 && candidate.length === 0) {
+            console.error('A suite V421 falhou, mas nenhuma falha nominal TAP pôde ser extraída.');
+            process.exit(1);
+          }
+
+          if (newFailures.length > 0) {
+            console.error(`V421 introduziu ${newFailures.length} falha(s) nominal(is) nova(s):`);
+            for (const name of newFailures) console.error(`NOVA FALHA: ${name}`);
+            process.exit(1);
+          }
+
+          console.log('Gate nominal aprovado: nenhuma falha nova em relação à V420.');
+          NODE
 
       - name: Comparar com a arvore testada e remover temporarios
         shell: bash
