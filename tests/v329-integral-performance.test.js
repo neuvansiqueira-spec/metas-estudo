@@ -41,11 +41,16 @@ test("V329 paraleliza módulos auxiliares após carregar o núcleo", () => {
   assert.ok(bootstrap.indexOf("await loadScript(...application)") < bootstrap.indexOf("await Promise.all(enhancements.map"));
 });
 
-test("V329 usa cache imediato na navegação e pré-cache essencial enxuto", () => {
+test("V420 usa rede com prazo curto na navegação e pré-cache essencial enxuto", () => {
   const worker = read("service-worker.js");
   const essential = worker.slice(worker.indexOf("const ESSENTIAL_ASSETS"), worker.indexOf("async function precacheAssets"));
   assert.match(worker, /async function cachedFirstNavigation\(request, event\)/);
-  assert.match(worker, /event\?\.waitUntil\?\.\(refreshNavigation\(request\)/);
+  // V420: a navegação passou a buscar a rede primeiro, com prazo curto, porque servir
+  // o documento cacheado prendia o app uma versão atrás a cada publicação.
+  assert.match(worker, /const NAVIGATION_NETWORK_DEADLINE_MS = \d+;/);
+  assert.match(worker, /const fresh = await withNavigationDeadline\(settledNetwork\);/);
+  assert.match(worker, /event\?\.waitUntil\?\.\(settledNetwork\)/);
+  assert.match(worker, /if \(cached && await responseHasProtectedBootstrap\(cached\)\) return cached;/);
   assert.match(worker, /event\.respondWith\(cachedFirstNavigation\(request, event\)\)/);
   assert.doesNotMatch(worker, /Promise\.allSettled\(STATIC_ASSETS/);
   assert.doesNotMatch(essential, /USAGE_TELEMETRY|SIMULADO_INTERATIVO|DUPLICATE_BATCH|FACTORY_SIMULADO/);
