@@ -33,18 +33,9 @@ jobs:
           set -euo pipefail
 
           base='https://neuvansiqueira-spec.github.io/metas-estudo/'
-          expected_bundle=$(python - <<'PY'
-          from pathlib import Path
-          import re
-          text = Path('docs/index.html').read_text(encoding='utf-8')
-          match = re.search(r'<link rel="preload" as="script" href="(app-v\d+\.js\?v=[^"]+)"', text)
-          if not match:
-              raise SystemExit('preload do bundle atual nao encontrado em docs/index.html')
-          print(match.group(1))
-          PY
-          )
-          expected_bundle_file=${expected_bundle%%\?*}
-          expected_version=$(python - <<'PY'
+
+          expected_version=$(node -p "require('./package.json').version")
+          worker_version=$(python - <<'PY'
           from pathlib import Path
           import re
           text = Path('docs/service-worker.js').read_text(encoding='utf-8')
@@ -55,10 +46,29 @@ jobs:
           PY
           )
 
-          echo "Esperado: bundle=$expected_bundle_file version=$expected_version"
+          if [ "$worker_version" != "$expected_version" ]; then
+            echo "CONTRATO LOCAL INVALIDO: package.json=${expected_version}; CURRENT_VERSION=${worker_version}"
+            exit 1
+          fi
+
+          release_suffix=$(printf '%s\n' "$expected_version" | sed -nE 's/.*-(v[0-9]+)$/\1/p')
+          if [ -z "$release_suffix" ]; then
+            echo "CONTRATO LOCAL INVALIDO: package.json nao termina em sufixo vNNN: ${expected_version}"
+            exit 1
+          fi
+
+          expected_bundle_file="app-${release_suffix}.js"
+          expected_bundle="${expected_bundle_file}?v=${expected_version}"
+
+          echo "Esperado: version=${expected_version}; bundle=${expected_bundle_file}"
 
           success=0
-          for attempt in $(seq 1 18); do
+          started_at=$(date +%s)
+          deadline=$((started_at + 180))
+          attempt=0
+
+          while [ "$(date +%s)" -le "$deadline" ]; do
+            attempt=$((attempt + 1))
             stamp="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${attempt}-$(date +%s)"
             common=(-sS -L --connect-timeout 10 --max-time 30 -H 'Cache-Control: no-cache' -H 'Pragma: no-cache')
 
@@ -68,33 +78,51 @@ jobs:
             worker_code=$(curl "${common[@]}" -o /tmp/public-worker.js -w '%{http_code}' "${base}service-worker.js?verify=${stamp}" || true)
 
             index_ok=0
+            bundle_ok=0
             fast_ok=0
             worker_ok=0
+            stale_fast_literals=''
 
             if [ "$index_code" = '200' ] && grep -Fq "<link rel=\"preload\" as=\"script\" href=\"${expected_bundle}\"" /tmp/public-index.html; then
               index_ok=1
             fi
-            if [ "$fast_code" = '200' ] && ! grep -Fq 'app-v402' /tmp/public-fast.js; then
-              fast_ok=1
+
+            if [ "$bundle_code" = '200' ]; then
+              bundle_ok=1
             fi
+
+            if [ "$fast_code" = '200' ]; then
+              stale_fast_literals=$(grep -Eo 'app-v[0-9]+\.js' /tmp/public-fast.js | sort -u | grep -Fvx "$expected_bundle_file" || true)
+              if [ -z "$stale_fast_literals" ]; then
+                fast_ok=1
+              fi
+            fi
+
             if [ "$worker_code" = '200' ] && grep -Fq "const CURRENT_VERSION = \"${expected_version}\";" /tmp/public-worker.js; then
               worker_ok=1
             fi
 
-            echo "Tentativa ${attempt}: index=${index_code}/${index_ok} bundle=${bundle_code} fast=${fast_code}/${fast_ok} worker=${worker_code}/${worker_ok}"
+            elapsed=$(( $(date +%s) - started_at ))
+            echo "Tentativa ${attempt} (${elapsed}s): index=${index_code}/${index_ok} bundle=${bundle_code}/${bundle_ok} fast=${fast_code}/${fast_ok} worker=${worker_code}/${worker_ok}"
 
-            if [ "$index_ok" -eq 1 ] && [ "$bundle_code" = '200' ] && [ "$fast_ok" -eq 1 ] && [ "$worker_ok" -eq 1 ]; then
+            if [ "$index_ok" -eq 1 ] && [ "$bundle_ok" -eq 1 ] && [ "$fast_ok" -eq 1 ] && [ "$worker_ok" -eq 1 ]; then
               success=1
               break
             fi
-            sleep 5
+
+            if [ "$(date +%s)" -gt "$deadline" ]; then
+              break
+            fi
+            sleep 10
           done
 
           if [ "$success" -ne 1 ]; then
-            echo 'ERRO: GitHub remoto pode estar correto, mas o endereco publico nao serve uma release coerente.'
+            echo 'ERRO: PUBLICADO COM ARTEFATOS DIVERGENTES.'
+            echo 'O GitHub Pages ja pode ter aceitado e publicado o deploy; a falha desta verificacao NAO reverte o site.'
+            echo 'O endereco publico nao convergiu para uma release coerente dentro da janela de propagacao de ate 180 segundos.'
             echo "index.html: HTTP ${index_code}; preload esperado ${expected_bundle}"
             echo "${expected_bundle_file}: HTTP ${bundle_code}"
-            echo "bootstrap-fast-path-v351.js: HTTP ${fast_code}; app-v402 presente=$([ -f /tmp/public-fast.js ] && grep -Fq 'app-v402' /tmp/public-fast.js && echo sim || echo nao)"
+            echo "bootstrap-fast-path-v351.js: HTTP ${fast_code}; literais de bundle divergentes=${stale_fast_literals:-nenhum}"
             echo "service-worker.js: HTTP ${worker_code}; CURRENT_VERSION esperada ${expected_version}"
             exit 1
           fi
@@ -102,5 +130,5 @@ jobs:
           echo 'VALIDACAO EXTERNA APROVADA'
           echo "index.html: preload -> ${expected_bundle}"
           echo "${expected_bundle_file}: HTTP 200"
-          echo 'bootstrap-fast-path-v351.js: sem literal app-v402'
+          echo "bootstrap-fast-path-v351.js: nenhum literal app-vNNN.js divergente de ${expected_bundle_file}"
           echo "service-worker.js: CURRENT_VERSION=${expected_version}"
