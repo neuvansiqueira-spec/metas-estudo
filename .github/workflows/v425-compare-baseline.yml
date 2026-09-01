@@ -1,0 +1,58 @@
+name: V425 compare baseline
+
+on:
+  push:
+    branches: [v425-fusao-final]
+
+permissions:
+  contents: read
+
+jobs:
+  compare-failure-names:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout validator
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Compare V424 baseline with V425 by failing test name
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_SHA=6c3ba121f5310a42b881c8bbf75d001444d54d3c
+          V425_SHA=d51b1a9572fa30138114aac129b2cdba69635e2f
+          git worktree add /tmp/v424 "$BASE_SHA"
+          git worktree add /tmp/v425 "$V425_SHA"
+
+          cd /tmp/v424
+          npm ci
+          npm test > /tmp/v424.log 2>&1 || true
+
+          cd /tmp/v425
+          npm ci
+          node --test tests/v425-factory-fusao-final.test.js
+          npm test > /tmp/v425.log 2>&1 || true
+
+          grep '^not ok ' /tmp/v424.log | sed -E 's/^not ok [0-9]+ - //' | sort > /tmp/v424-failures.txt || true
+          grep '^not ok ' /tmp/v425.log | sed -E 's/^not ok [0-9]+ - //' | sort > /tmp/v425-failures.txt || true
+
+          echo '=== V424 counts ==='
+          grep -E '# tests |# pass |# fail ' /tmp/v424.log | tail -n 10 || true
+          echo '=== V425 counts ==='
+          grep -E '# tests |# pass |# fail ' /tmp/v425.log | tail -n 10 || true
+          echo "V424 failing names: $(wc -l < /tmp/v424-failures.txt)"
+          echo "V425 failing names: $(wc -l < /tmp/v425-failures.txt)"
+
+          if ! diff -u /tmp/v424-failures.txt /tmp/v425-failures.txt; then
+            echo 'ERRO: conjunto nominal de falhas divergiu.'
+            exit 1
+          fi
+          echo 'OK: conjunto nominal de falhas idêntico à baseline V424.'
