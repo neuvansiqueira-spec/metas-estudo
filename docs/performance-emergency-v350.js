@@ -7,6 +7,21 @@
   const indexCache = new WeakMap();
   let installed = false;
 
+  // V426 — transporte pré-bootstrap para a migração de disciplinas.
+  // O módulo carregado é one-shot e não altera o hot path do índice V350.
+  function installDisciplineUnificationV426() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusDisciplineUnificationV426")) return;
+    const script = document.createElement("script");
+    script.id = "aldusDisciplineUnificationV426";
+    script.src = "discipline-unification-v426.js?v=20260901-discipline-unification-v426";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V426] Falha ao carregar a migração de unificação de disciplinas.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   function indexFor(list) {
     const cached = indexCache.get(list);
     if (cached
@@ -60,6 +75,7 @@
     return true;
   }
 
+  installDisciplineUnificationV426();
   if (install()) return;
 
   const startedAt = Date.now();

@@ -1,0 +1,81 @@
+name: Validar V426
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v426:
+    name: Migração, baseline e espelhamento
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Baixar repositório com histórico
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Configurar Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependências da branch
+        run: npm ci --ignore-scripts
+
+      - name: Validar contratos V426
+        run: |
+          set -euo pipefail
+          node --check discipline-unification-v426.js
+          node --check performance-emergency-v350.js
+          node --test tests/v426-discipline-unification.test.js
+          cmp discipline-unification-v426.js docs/discipline-unification-v426.js
+          cmp performance-emergency-v350.js docs/performance-emergency-v350.js
+
+      - name: Executar baseline nominal no commit-pai
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          if [ -z "$BASE_SHA" ]; then
+            BASE_SHA="$(git rev-parse HEAD^)"
+          fi
+          echo "BASE_SHA=$BASE_SHA" >> "$GITHUB_ENV"
+          git worktree add --detach /tmp/v426-baseline "$BASE_SHA"
+          (
+            cd /tmp/v426-baseline
+            npm ci --ignore-scripts
+            node --test tests/*.test.js > /tmp/v426-baseline.tap 2>&1 || true
+          )
+
+      - name: Comparar suíte completa por nome de falha
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tests/*.test.js > /tmp/v426-head.tap 2>&1 || true
+          node tools/compare-test-failures-v426.mjs /tmp/v426-baseline.tap /tmp/v426-head.tap
+
+      - name: Confirmar escopo e arquivos espelhados
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --name-only "$BASE_SHA"...HEAD | sort
+          git diff --exit-code "$BASE_SHA"...HEAD -- \
+            script.js \
+            planning-integrity-v235.js \
+            planning-quality-v368.js \
+            planning-piece-rotation-v358.js \
+            service-worker.js \
+            service-worker-v378.js \
+            factory-resumo-aula-jurisprudencia-v380.js \
+            factory-lei-jurisprudencia-v383.js \
+            factory-padronizacao-final-sumario-v385.js \
+            factory-fusao-final-v425.js
