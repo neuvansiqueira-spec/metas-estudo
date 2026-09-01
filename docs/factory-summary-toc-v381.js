@@ -1,20 +1,23 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260826-factory-summary-toc-v400";
+  const VERSION = "20260901-factory-summary-toc-v422";
   const API_MARKER = "__aldusFactorySummaryTocV382";
   const WRAP_MARKER = "__aldusFactorySummaryTocWrappedV382";
   const INSTALL_FLAG = "aldusFactorySummaryTocV382";
-  const MIGRATION_ID = "factorySummaryTocV382";
+  const MIGRATION_ID = "factorySummaryTocV422";
   const TARGET_TYPES = Object.freeze([
     "resumoAula",
+    "lei",
     "jurisprudencia",
     "peca",
-    "resumoAulaJurisprudencia"
+    "resumoAulaJurisprudencia",
+    "leiJurisprudencia"
   ]);
   const TARGET_SET = new Set(TARGET_TYPES);
   const LEGACY_MARKER = "## SUMÁRIO OBRIGATÓRIO DO DOCUMENTO — V381";
-  const SUMMARY_MARKER = "## SUMÁRIO DIDÁTICO OBRIGATÓRIO DO DOCUMENTO — V382";
+  const SUMMARY_MARKER_V382 = "## SUMÁRIO DIDÁTICO OBRIGATÓRIO DO DOCUMENTO — V382";
+  const SUMMARY_MARKER = "## SUMÁRIO DIDÁTICO OBRIGATÓRIO DO DOCUMENTO — V422";
   const BEIGE_MARKER = "## SOMBREAMENTO BEGE DOS RÓTULOS — PADRÃO OBRIGATÓRIO DO MODELO";
   const BEIGE_MIGRATION_ID = "factoryBeigeLabelShadingScopeV400";
   const BEIGE_TARGET_TYPES = Object.freeze([
@@ -28,6 +31,8 @@
   ]);
   const BEIGE_TARGET_SET = new Set(BEIGE_TARGET_TYPES);
   const JURISPRUDENCE_YEAR_MARKER = "## ANO DA DECISÃO — REGRA OBRIGATÓRIA DA JURISPRUDÊNCIA";
+  const JURISPRUDENCE_CITATION_MARKER = "## CITAÇÃO JURISPRUDENCIAL — FORMATO OBRIGATÓRIO";
+  const JURISPRUDENCE_CITATION_MIGRATION_ID = "factoryJurisprudenceCitationV422";
   const JURISPRUDENCE_YEAR_TARGET_TYPES = Object.freeze([
     "jurisprudencia",
     "resumoAulaJurisprudencia",
@@ -159,7 +164,7 @@ QUANDO a ferramenta de geração de DOCX suportar campo automático real de sum�
 * use estilos estruturais equivalentes a Título 1, Título 2 e, apenas quando necessário, Título 3 no corpo;
 * personalize os estilos Sumário 1/TOC 1, Sumário 2/TOC 2 e Sumário 3/TOC 3 para reproduzir a mesma gramática visual descrita acima;
 * preserve emojis e marcadores presentes no texto dos títulos;
-* habilite hiperlinks internos quando tecnicamente suportado;
+* habilite hiperlinks internos obrigatórios em todas as entradas do sumário;
 * atualize o campo do sumário depois da paginação final quando a ferramenta permitir.
 
 NÃO aceite como resultado final um sumário automático com aparência padrão genérica do Word se a ferramenta permitir personalização dos estilos TOC.
@@ -170,10 +175,21 @@ SE a ferramenta não conseguir criar ou atualizar com segurança o campo automá
 
 NO FALLBACK MANUAL:
 * preserve marcadores, emojis, hierarquia, negrito e recuos;
-* use hiperlinks internos quando puder criá-los corretamente;
+* crie hiperlinks internos obrigatórios em todas as entradas do sumário, apontando para indicadores/âncoras dos cabeçalhos correspondentes;
 * não invente números de página;
 * não estime páginas;
 * mantenha estilos estruturais nos títulos do corpo para que o Painel de Navegação do Word continue útil.
+
+### HIPERLINKS OBRIGATÓRIOS
+
+TODA ENTRADA DO SUMÁRIO — TÍTULOS DE NÍVEL 1, SUBTÓPICOS DE NÍVEL 2 E, QUANDO EXISTIREM, ITENS DE NÍVEL 3 — DEVE SER UM HIPERLINK INTERNO QUE LEVE AO CABEÇALHO CORRESPONDENTE NO CORPO DO DOCUMENTO.
+
+* O HIPERLINK COBRE O TEXTO VISÍVEL DA ENTRADA, INCLUINDO EMOJI, MARCADOR E NUMERAÇÃO;
+* NÃO DEIXE ENTRADAS SEM VÍNCULO NAVEGÁVEL;
+* MANTENHA A APARÊNCIA DEFINIDA NESTE PROMPT: TEXTO PRETO #000000, NEGRITO FUNCIONAL E SEM SUBLINHADO AZUL PADRÃO DO WORD;
+* NO SUMÁRIO AUTOMÁTICO, HABILITE OS HIPERLINKS DO CAMPO TOC;
+* NO FALLBACK MANUAL, CRIE INDICADORES/ÂNCORAS NOS CABEÇALHOS DO CORPO E APONTE CADA ENTRADA PARA O SEU INDICADOR;
+* SOMENTE SE A FERRAMENTA COMPROVADAMENTE NÃO SUPORTAR HIPERLINK INTERNO, REGISTRE ESSA LIMITAÇÃO DE FORMA EXPLÍCITA NA ENTREGA E PRESERVE OS ESTILOS ESTRUTURAIS DOS TÍTULOS PARA QUE O PAINEL DE NAVEGAÇÃO DO WORD CONTINUE FUNCIONANDO.
 
 ### IDENTIDADE VISUAL
 
@@ -236,19 +252,34 @@ QUANDO HOUVER EDIÇÃO DIRETA DO OOXML DO DOCX, APLIQUE AO(S) RUN(S) DO RÓTULO,
 ANTES DA ENTREGA, CONFIRME VISUALMENTE QUE O BEGE APARECE SOMENTE ATRÁS DOS RÓTULOS FUNCIONAIS, COM O EMOJI/NUMERAÇÃO FORA DO SOMBREAMENTO E A EXPLICAÇÃO APÓS O RÓTULO TAMBÉM FORA DO SOMBREAMENTO.
 `;
 
-  const JURISPRUDENCE_YEAR_SECTION = `
+  const JURISPRUDENCE_CITATION_SECTION = `
 
-${JURISPRUDENCE_YEAR_MARKER}
+${JURISPRUDENCE_CITATION_MARKER}
 
-EM TODO CONTEÚDO JURISPRUDENCIAL GERADO, REVISADO OU CONSOLIDADO, O ANO DA DECISÃO DEVE SER APRESENTADO PARA CADA JULGADO, PRECEDENTE OU DECISÃO CITADA.
+EM TODO CONTEÚDO JURISPRUDENCIAL GERADO, REVISADO OU CONSOLIDADO, A FONTE DE CADA JULGADO, PRECEDENTE, SÚMULA OU TESE DEVE APARECER NA PRÓPRIA LINHA DO ENTENDIMENTO, LOGO APÓS O TEXTO DA TESE, ENTRE PARÊNTESES E EM ITÁLICO.
 
-USE O CAMPO:
-📍 **ANO DA DECISÃO: [AAAA]**
+FORMATO OBRIGATÓRIO:
 
-SE A FONTE NÃO INFORMAR O ANO DA DECISÃO, NÃO OMITA O CAMPO E NÃO INVENTE. REGISTRE:
-📍 **ANO DA DECISÃO: NÃO IDENTIFICADO NA FONTE**
+⚖️ **JURISPRUDÊNCIA — TESE:** [texto do entendimento]. *([TRIBUNAL], [CLASSE E NÚMERO DO PROCESSO], [INFORMATIVO, QUANDO HOUVER], [ANO])*.
 
-ESTA REGRA VALE TANTO PARA OS BLOCOS JURISPRUDENCIAIS CONTEXTUALIZADOS QUANTO PARA QUADROS FINAIS, JURISPRUDÊNCIA COMPLEMENTAR E CONSOLIDAÇÃO FINAL.
+EXEMPLOS DE REFERÊNCIA:
+
+⚖️ **JURISPRUDÊNCIA — TESE:** É ilícita a prova decorrente da revelação, pelo médico, de informação obtida em razão do sigilo profissional sobre aborto provocado pela paciente; também são ilícitas as provas dela derivadas, salvo fonte independente. *(STJ, HC 1.000.918/SP, 2026)*.
+
+⚖️ **JURISPRUDÊNCIA — TESE:** O descumprimento da cadeia de custódia não gera nulidade automática; sua repercussão recai sobre a eficácia probatória e depende de avaliação concreta. *(STJ, Corte Especial, Inq 1.674/DF, Informativo 891. 2026)*.
+
+REGRAS DE APLICAÇÃO:
+* O ITÁLICO COMEÇA NO PARÊNTESE DE ABERTURA E TERMINA NO PARÊNTESE DE FECHAMENTO;
+* O PONTO FINAL DA FRASE FICA FORA DO ITÁLICO, DEPOIS DO PARÊNTESE DE FECHAMENTO;
+* O TEXTO DA TESE PERMANECE EM FONTE NORMAL, SEM ITÁLICO;
+* O RÓTULO FUNCIONAL EM NEGRITO CONSERVA O SOMBREAMENTO BEGE JÁ DEFINIDO NESTE PROMPT;
+* REGISTRE DENTRO DO PARÊNTESE SOMENTE O QUE CONSTAR DA FONTE: TRIBUNAL, ÓRGÃO JULGADOR, CLASSE E NÚMERO, INFORMATIVO E ANO;
+* NÃO INVENTE TRIBUNAL, NÚMERO DE PROCESSO, INFORMATIVO OU ANO;
+* SE A FONTE NÃO INFORMAR O ANO, REGISTRE A AUSÊNCIA DENTRO DO MESMO PARÊNTESE, SEM CRIAR CAMPO SEPARADO.
+
+ESTA REGRA VALE PARA OS MESMOS RÓTULOS JURISPRUDENCIAIS UTILIZADOS PELO MÓDULO — TESE, REGRA, EXCEÇÃO, DISTINÇÃO E EVOLUÇÃO — E TAMBÉM PARA BLOCOS CONTEXTUALIZADOS, QUADROS FINAIS, JURISPRUDÊNCIA COMPLEMENTAR E CONSOLIDAÇÃO FINAL.
+
+NÃO CRIE CAMPO SEPARADO DE ANO DA DECISÃO. O ANO INTEGRA A CITAÇÃO ENTRE PARÊNTESES.
 
 NÃO ALTERE NENHUMA OUTRA REGRA DO PROMPT.
 `;
@@ -256,9 +287,11 @@ NÃO ALTERE NENHUMA OUTRA REGRA DO PROMPT.
   function stripLegacySummary(prompt) {
     const text = String(prompt || "").trim();
     if (!text) return text;
-    const legacyIndex = text.indexOf(LEGACY_MARKER);
-    if (legacyIndex < 0) return text;
-    return text.slice(0, legacyIndex).trim();
+    const legacyIndexes = [LEGACY_MARKER, SUMMARY_MARKER_V382]
+      .map((marker) => text.indexOf(marker))
+      .filter((index) => index >= 0);
+    if (!legacyIndexes.length) return text;
+    return text.slice(0, Math.min(...legacyIndexes)).trim();
   }
 
   function withSummary(prompt) {
@@ -284,11 +317,20 @@ NÃO ALTERE NENHUMA OUTRA REGRA DO PROMPT.
     return `${raw}${BEIGE_SECTION}`.trim();
   }
 
-  function withJurisprudenceYear(prompt) {
+  function stripJurisprudenceYear(prompt) {
+    const text = String(prompt || "").trim();
+    if (!text) return text;
+    const markerIndex = text.indexOf(JURISPRUDENCE_YEAR_MARKER);
+    if (markerIndex < 0) return text;
+    return text.slice(0, markerIndex).trim();
+  }
+
+  function withJurisprudenceCitation(prompt) {
     const raw = String(prompt || "").trim();
     if (!raw) return raw;
-    if (raw.includes(JURISPRUDENCE_YEAR_MARKER)) return raw;
-    return `${raw}${JURISPRUDENCE_YEAR_SECTION}`.trim();
+    const base = stripJurisprudenceYear(raw);
+    if (base.includes(JURISPRUDENCE_CITATION_MARKER)) return base;
+    return `${base}${JURISPRUDENCE_CITATION_SECTION}`.trim();
   }
 
   function ensureIntegratedPromptReady() {
@@ -339,7 +381,7 @@ NÃO ALTERE NENHUMA OUTRA REGRA DO PROMPT.
         JURISPRUDENCE_YEAR_TARGET_TYPES.forEach((type) => {
           const current = String(defaultFactoryPromptLibrary[type] || "").trim();
           if (!current) return;
-          const next = withJurisprudenceYear(current);
+          const next = withJurisprudenceCitation(current);
           if (next !== current) changed += 1;
           defaultFactoryPromptLibrary[type] = next;
         });
@@ -349,16 +391,21 @@ NÃO ALTERE NENHUMA OUTRA REGRA DO PROMPT.
     try {
       if (state && typeof state === "object") {
         state.factoryPromptLibrary ||= {};
+        state.migrations ||= {};
         JURISPRUDENCE_YEAR_TARGET_TYPES.forEach((type) => {
           const current = String(state.factoryPromptLibrary[type] || "").trim();
           if (!current) return;
-          const next = withJurisprudenceYear(current);
+          const next = withJurisprudenceCitation(current);
           if (next !== current) {
             changed += 1;
             stateChanged = true;
             state.factoryPromptLibrary[type] = next;
           }
         });
+        if (!state.migrations[JURISPRUDENCE_CITATION_MIGRATION_ID]) {
+          state.migrations[JURISPRUDENCE_CITATION_MIGRATION_ID] = new Date().toISOString();
+          stateChanged = true;
+        }
         if (stateChanged && typeof saveData === "function") saveData();
       }
     } catch {}
@@ -421,7 +468,7 @@ NÃO ALTERE NENHUMA OUTRA REGRA DO PROMPT.
         const summarized = TARGET_SET.has(type) ? withSummary(prompt) : prompt;
         if (typeof summarized !== "string") return summarized;
         const jurisprudenceYear = JURISPRUDENCE_YEAR_TARGET_SET.has(type)
-          ? withJurisprudenceYear(summarized)
+          ? withJurisprudenceCitation(summarized)
           : summarized;
         return BEIGE_TARGET_SET.has(type)
           ? withBeigeShading(jurisprudenceYear)
@@ -450,16 +497,16 @@ NÃO ALTERE NENHUMA OUTRA REGRA DO PROMPT.
 
   function install() {
     const changed = patchPromptLibraries();
-    patchJurisprudenceYearScope();
+    const citationChanged = patchJurisprudenceYearScope();
     const beigeChanged = patchBeigeShadingScope();
     const wrapped = wrapFactoryPromptBase();
-    if (!wrapped) return { installed: false, changed, beigeChanged, wrapped };
+    if (!wrapped) return { installed: false, changed, citationChanged, beigeChanged, wrapped };
 
     if (typeof document !== "undefined" && document.documentElement) {
       document.documentElement.dataset[INSTALL_FLAG] = "true";
     }
     refreshFactoryUi();
-    return { installed: true, changed, beigeChanged, wrapped };
+    return { installed: true, changed, citationChanged, beigeChanged, wrapped };
   }
 
   const api = Object.freeze({
@@ -467,9 +514,15 @@ NÃO ALTERE NENHUMA OUTRA REGRA DO PROMPT.
     targetTypes: TARGET_TYPES,
     beigeTargetTypes: BEIGE_TARGET_TYPES,
     summaryMarker: SUMMARY_MARKER,
+    legacySummaryMarkerV382: SUMMARY_MARKER_V382,
     beigeMarker: BEIGE_MARKER,
+    jurisprudenceCitationMarker: JURISPRUDENCE_CITATION_MARKER,
+    jurisprudenceCitationMigrationId: JURISPRUDENCE_CITATION_MIGRATION_ID,
     stripLegacySummary,
     withSummary,
+    stripJurisprudenceYear,
+    withJurisprudenceCitation,
+    patchJurisprudenceYearScope,
     stripBeigeShading,
     withBeigeShading,
     install

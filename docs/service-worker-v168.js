@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20260901-bootstrap-current-bundle-v421";
+const CURRENT_VERSION = "20260901-factory-citation-toc-v422";
 const DASHBOARD_PENDING_SEMANTICS_V413 = "pendentes-separados-de-em-andamento";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const SECURITY_VERSION = "20260831-weekly-status-stability-v416";

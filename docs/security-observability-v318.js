@@ -246,7 +246,7 @@
     if (document.getElementById("aldusFactoryPadronizacaoFinalSumarioV385")) return;
     const script = document.createElement("script");
     script.id = "aldusFactoryPadronizacaoFinalSumarioV385";
-    script.src = "factory-padronizacao-final-sumario-v385.js?v=20260824-factory-padronizacao-final-sumario-v385";
+    script.src = "factory-padronizacao-final-sumario-v385.js?v=20260901-factory-padronizacao-final-sumario-v422";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V385] Falha ao carregar Padronização Final + Sumário.");
@@ -278,7 +278,7 @@
     if (document.getElementById("aldusFactorySummaryTocV382")) return;
     const script = document.createElement("script");
     script.id = "aldusFactorySummaryTocV382";
-    script.src = "factory-summary-toc-v381.js?v=20260824-factory-summary-toc-v382";
+    script.src = "factory-summary-toc-v381.js?v=20260901-factory-summary-toc-v422";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V382] Falha ao carregar a formatação didática do sumário.");

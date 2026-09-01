@@ -7,9 +7,9 @@ const docs = fs.readFileSync('docs/factory-summary-toc-v381.js', 'utf8');
 const security = fs.readFileSync('security-observability-v318.js', 'utf8');
 const docsSecurity = fs.readFileSync('docs/security-observability-v318.js', 'utf8');
 
-test('V382 torna o sumário um espelho didático do módulo', () => {
-  assert.match(root, /20260824-factory-summary-toc-v382/);
-  assert.match(root, /SUMÁRIO DIDÁTICO OBRIGATÓRIO DO DOCUMENTO — V382/);
+test('V422 torna o sumário um espelho didático do módulo', () => {
+  assert.match(root, /20260901-factory-summary-toc-v422/);
+  assert.match(root, /SUMÁRIO DIDÁTICO OBRIGATÓRIO DO DOCUMENTO — V422/);
   assert.match(root, /MESMA LINGUAGEM DIDÁTICA, HIERARQUIA VISUAL, ÍCONES FUNCIONAIS/);
   assert.match(root, /♦️ \*\*📑 SUMÁRIO\*\*/);
   assert.match(root, /ESPELHO VISUAL DO CORPO/);
@@ -43,31 +43,33 @@ test('Jurisprudência e Peça mantêm a identidade própria em vez de receber pa
   assert.match(root, /NÃO transforme a peça em RESUMO\/AULA/);
 });
 
-test('V382 substitui a instrução V381 já persistida sem duplicar o sumário', () => {
+test('V422 substitui instruções V381 e V382 já persistidas sem duplicar o sumário', () => {
   assert.match(root, /const LEGACY_MARKER = "## SUMÁRIO OBRIGATÓRIO DO DOCUMENTO — V381"/);
-  assert.match(root, /function stripLegacySummary\(prompt\)/);
-  assert.match(root, /const legacyIndex = text\.indexOf\(LEGACY_MARKER\)/);
-  assert.match(root, /const base = stripLegacySummary\(raw\)/);
-  assert.match(root, /factorySummaryTocV382/);
+  assert.match(root, /const SUMMARY_MARKER_V382 = "## SUMÁRIO DIDÁTICO OBRIGATÓRIO DO DOCUMENTO — V382"/);
+  assert.match(root, /const SUMMARY_MARKER = "## SUMÁRIO DIDÁTICO OBRIGATÓRIO DO DOCUMENTO — V422"/);
+  assert.match(root, /\[LEGACY_MARKER, SUMMARY_MARKER_V382\]/);
+  assert.match(root, /Math\.min\(\.\.\.legacyIndexes\)/);
+  assert.match(root, /factorySummaryTocV422/);
 });
 
-test('V382 continua isolada de hot paths e persistência', () => {
+test('V422 continua isolada de hot paths; gravação ocorre apenas na migração', () => {
   for (const forbidden of [
     'MutationObserver',
     'setInterval(',
     'getComputedStyle(',
     'requestAnimationFrame(',
     'indexedDB',
-    'localStorage',
-    'saveData('
+    'localStorage'
   ]) {
     assert.equal(root.includes(forbidden), false, `não deve conter ${forbidden}`);
   }
+  assert.match(root, /factoryJurisprudenceCitationV422/);
+  assert.match(root, /stateChanged && typeof saveData === "function"/);
 });
 
-test('loader usa cache-bust V382 e raiz/docs permanecem idênticos', () => {
+test('loader usa cache-bust V422 e raiz/docs permanecem idênticos', () => {
   assert.match(security, /installFactorySummaryTocV382/);
-  assert.match(security, /factory-summary-toc-v381\.js\?v=20260824-factory-summary-toc-v382/);
+  assert.match(security, /factory-summary-toc-v381\.js\?v=20260901-factory-summary-toc-v422/);
   assert.match(security, /aldusFactorySummaryTocV382/);
   assert.equal(root, docs, 'runtime raiz e docs devem ser idênticos');
   assert.equal(security, docsSecurity, 'loader raiz e docs devem ser idênticos');

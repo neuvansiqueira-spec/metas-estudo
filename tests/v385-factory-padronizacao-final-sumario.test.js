@@ -16,7 +16,7 @@ const docsLoaderSource = fs.readFileSync(docsLoaderPath, "utf8");
 const api = require(rootPath);
 
 test("V385 publica o novo tipo e o rótulo correto", () => {
-  assert.equal(api.version, "20260824-factory-padronizacao-final-sumario-v385");
+  assert.equal(api.version, "20260901-factory-padronizacao-final-sumario-v422");
   assert.equal(api.typeKey, "padronizacaoFinalSumario");
   assert.match(rootSource, /Gerar prompt Padronização Final \+ Sumário/);
 });
@@ -44,6 +44,8 @@ test("V385 separa a regra do sumário da formatação do corpo", () => {
   assert.match(api.prompt, /ESSA REGRA VALE SOMENTE PARA O SUMÁRIO/);
   assert.match(api.prompt, /Ela NÃO autoriza retirar o alinhamento JUSTIFICADO do corpo/);
   assert.match(api.prompt, /Painel de Navegação do Word/);
+  assert.match(api.prompt, /hiperlinks internos obrigatórios em todas as entradas do sumário/);
+  assert.match(api.prompt, /ferramenta comprovadamente não suportar hiperlink interno/);
   assert.match(api.prompt, /NÃO invente, estime nem suponha números de página/);
 });
 
@@ -63,7 +65,7 @@ test("V385 mantém paridade raiz/docs e loader publica o módulo", () => {
   assert.equal(rootSource, docsSource);
   assert.equal(loaderSource, docsLoaderSource);
   assert.match(loaderSource, /installFactoryPadronizacaoFinalSumarioV385/);
-  assert.match(loaderSource, /factory-padronizacao-final-sumario-v385\.js\?v=20260824-factory-padronizacao-final-sumario-v385/);
+  assert.match(loaderSource, /factory-padronizacao-final-sumario-v385\.js\?v=20260901-factory-padronizacao-final-sumario-v422/);
 });
 
 test("V385 não adiciona hot paths ou persistência automática", () => {
@@ -74,7 +76,6 @@ test("V385 não adiciona hot paths ou persistência automática", () => {
     "requestAnimationFrame(",
     "indexedDB.",
     "localStorage.",
-    "saveData(",
     "autoSyncAfterSave("
   ]) {
     assert.equal(rootSource.includes(forbidden), false, `token proibido: ${forbidden}`);

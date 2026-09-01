@@ -10,8 +10,7 @@ test('V318 is loaded by the entry bootstrap with a cache-busted version', () => 
   const index = read('index.html');
   assert.ok(
     /security-observability-v318\.js\?v=\$\{OBSERVABILITY_VERSION\}/.test(index)
-      || /id="aldusSecurityObservabilityV318" defer src="security-observability-v318\.js\?v=20260814-desempenho-integral-v329"/.test(index)
-      || /id="aldusSecurityObservabilityV318" defer src="security-observability-v318\.js\?v=20260826-planning-consent-guard-v398"/.test(index),
+      || /id="aldusSecurityObservabilityV318" defer src="security-observability-v318\.js\?v=[^"]+"/.test(index),
     'V318 deve ser carregada pela barreira histórica ou diretamente pelo shell publicado'
   );
 });

@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260901-bootstrap-current-bundle-v421";
+  const VERSION = "20260901-factory-citation-toc-v422";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
