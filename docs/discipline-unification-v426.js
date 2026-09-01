@@ -116,7 +116,7 @@
     const a = numericWeight(sourceRaw), b = numericWeight(targetRaw);
     const finalValue = a !== null && b !== null ? Math.max(a, b) : a !== null ? a : b !== null ? b : targetRaw !== undefined ? targetRaw : sourceRaw;
     weights[target] = finalValue; delete weights[source];
-    report.weightMerges.push({ scope, from: source, to: target, sourceWeight: sourceRaw, previousDestinationWeight: targetRaw ?? null, finalWeight });
+    report.weightMerges.push({ scope, from: source, to: target, sourceWeight: sourceRaw, previousDestinationWeight: targetRaw ?? null, finalWeight: finalValue });
     rememberCount(report, scope); return true;
   }
   function rewriteWeightMap(weights, report, scope) {
