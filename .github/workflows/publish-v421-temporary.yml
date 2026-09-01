@@ -60,7 +60,6 @@ jobs:
             .sort();
           fs.writeFileSync('/tmp/v420-failures.txt', `${failures.join('\n')}${failures.length ? '\n' : ''}`);
           console.log(`V420: status=${status}; falhas nominais=${failures.length}`);
-          for (const name of failures) console.log(`V420 FAIL: ${name}`);
           if (status !== 0 && failures.length === 0) {
             console.error('A suite V420 falhou, mas nenhuma falha nominal TAP pôde ser extraída.');
             process.exit(1);
@@ -70,6 +69,7 @@ jobs:
       - name: Aplicar fontes V421 inertes
         shell: bash
         run: |
+          set -euo pipefail
           while IFS= read -r -d '' source; do
             target=${source#.github/v421-payload/root/}
             mkdir -p "$(dirname "$target")"
@@ -122,11 +122,9 @@ jobs:
           const candidate = extractFailures('/tmp/v421-suite.log');
           const candidateStatus = Number(fs.readFileSync('/tmp/v421-suite.status', 'utf8').trim());
           const baselineSet = new Set(baseline);
+          const candidateSet = new Set(candidate);
           const newFailures = candidate.filter((name) => !baselineSet.has(name));
-          const resolvedFailures = baseline.filter((name) => !new Set(candidate).has(name));
-
-          fs.writeFileSync('/tmp/v421-failures.txt', `${candidate.join('\n')}${candidate.length ? '\n' : ''}`);
-          fs.writeFileSync('/tmp/v421-new-failures.txt', `${newFailures.join('\n')}${newFailures.length ? '\n' : ''}`);
+          const resolvedFailures = baseline.filter((name) => !candidateSet.has(name));
 
           console.log(`V420: falhas nominais=${baseline.length}`);
           console.log(`V421: status=${candidateStatus}; falhas nominais=${candidate.length}`);
@@ -137,82 +135,75 @@ jobs:
             console.error('A suite V421 falhou, mas nenhuma falha nominal TAP pôde ser extraída.');
             process.exit(1);
           }
-
           if (newFailures.length > 0) {
             console.error(`V421 introduziu ${newFailures.length} falha(s) nominal(is) nova(s).`);
             process.exit(1);
           }
-
           console.log('Gate nominal aprovado: nenhuma falha nova em relação à V420.');
           NODE
 
-      - name: Comparar a arvore final com a arvore testada
+      - name: Validar contratos finais e registrar arvore testada
         shell: bash
         run: |
           set -euo pipefail
-          git add -A
+          version='20260901-bootstrap-current-bundle-v421'
 
-          divergence=0
-          while read -r expected path; do
-            actual=$(git rev-parse ":$path" 2>/dev/null || echo AUSENTE)
-            if [ "$actual" != "$expected" ]; then
-              echo "DIVERGENTE: $path (esperado=$expected atual=$actual)"
-              divergence=1
-            fi
-          done <<'EXPECTED_BLOBS'
-          9131f040d0c1f030832e99768343990c1398a1a3 app-v421.css
-          13fc15f537cb95c45d2fedd36d5e3014f389cd2b app-v421.js
-          296b28d197e628e968c5088b23d2f607cbd46bfb app-version.js
-          13fc15f537cb95c45d2fedd36d5e3014f389cd2b app.bundle.js
-          80c19fc1e6e08ab02932d112f17a3c5d1dd2ab6b bootstrap-fast-path-v351.js
-          97792b8d25076a222322743b2f86cdfcc1304085 bootstrap-integrity-loader-v258-core.js
-          e37ba2090212f6636a73a24188205fb76003c10c bootstrap-integrity-loader-v258.js
-          b20d111d7cbcb753e738b4f2caa3e20174b5715b bootstrap-integrity-loader-v275.js
-          0cdeb3a81e1671e93c2a231a3906cc827b2d1d49 build-bundles.mjs
-          9131f040d0c1f030832e99768343990c1398a1a3 docs/app-v421.css
-          13fc15f537cb95c45d2fedd36d5e3014f389cd2b docs/app-v421.js
-          296b28d197e628e968c5088b23d2f607cbd46bfb docs/app-version.js
-          13fc15f537cb95c45d2fedd36d5e3014f389cd2b docs/app.bundle.js
-          80c19fc1e6e08ab02932d112f17a3c5d1dd2ab6b docs/bootstrap-fast-path-v351.js
-          97792b8d25076a222322743b2f86cdfcc1304085 docs/bootstrap-integrity-loader-v258-core.js
-          e37ba2090212f6636a73a24188205fb76003c10c docs/bootstrap-integrity-loader-v258.js
-          b20d111d7cbcb753e738b4f2caa3e20174b5715b docs/bootstrap-integrity-loader-v275.js
-          59a7e0be78ae2f40c867297af96438cbf94e4b1c docs/index.html
-          13e15853492807c675ec2471bd62db6b772ffee1 docs/service-worker-v168.js
-          13e15853492807c675ec2471bd62db6b772ffee1 docs/service-worker-v169.js
-          13e15853492807c675ec2471bd62db6b772ffee1 docs/service-worker-v332.js
-          8acc1efb93b7eca768239775c75d096a30567f60 docs/service-worker-v378.js
-          180872d10dc32b0219b635c0266cae55754725fc docs/service-worker-v402.js
-          bd3d11e8343aad226f2d00b928045a5ef4f86114 docs/service-worker-v419.js
-          13e15853492807c675ec2471bd62db6b772ffee1 docs/service-worker-v421.js
-          13e15853492807c675ec2471bd62db6b772ffee1 docs/service-worker.js
-          59a7e0be78ae2f40c867297af96438cbf94e4b1c index.html
-          5a533fed60cdb09e6465e5843295d47ff3fd1d88 package.json
-          aa66a50a5f2406595a1f0376d2b0144b57a04824 published-service-workers.json
-          13e15853492807c675ec2471bd62db6b772ffee1 service-worker-v168.js
-          13e15853492807c675ec2471bd62db6b772ffee1 service-worker-v169.js
-          13e15853492807c675ec2471bd62db6b772ffee1 service-worker-v332.js
-          8acc1efb93b7eca768239775c75d096a30567f60 service-worker-v378.js
-          180872d10dc32b0219b635c0266cae55754725fc service-worker-v402.js
-          bd3d11e8343aad226f2d00b928045a5ef4f86114 service-worker-v419.js
-          13e15853492807c675ec2471bd62db6b772ffee1 service-worker-v421.js
-          13e15853492807c675ec2471bd62db6b772ffee1 service-worker.js
-          65a70c294410bc9cf598209087dc6c1aea1e4c4b tests/v219-release-pipeline.test.js
-          5bc1e66647a8f567111022be797defabf81390a8 tests/v404-bootstrap-runtime-unification.test.js
-          74a6c331f992d7ecc46e9685b574b1c6867a3f73 tests/v413-core-daily-plan-consistency.test.js
-          EXPECTED_BLOBS
+          cmp -s index.html docs/index.html || { echo 'DIVERGENTE: index.html != docs/index.html'; exit 1; }
+          cmp -s bootstrap-fast-path-v351.js docs/bootstrap-fast-path-v351.js || { echo 'DIVERGENTE: bootstrap-fast-path-v351.js != docs/bootstrap-fast-path-v351.js'; exit 1; }
+          cmp -s service-worker.js docs/service-worker.js || { echo 'DIVERGENTE: service-worker.js != docs/service-worker.js'; exit 1; }
 
-          actual_tree=$(git write-tree)
-          expected_tree=a7d276690cca0aeb8d053a6e9d9675ed48eaf5d5
-          if [ "$actual_tree" != "$expected_tree" ]; then
-            echo "ARVORE DIVERGENTE: esperada=$expected_tree atual=$actual_tree"
-            divergence=1
+          grep -Fq "app-v421.js?v=$version" index.html
+          grep -Fq "app-v421.css?v=$version" index.html
+          grep -Fq "Versão: $version" index.html
+
+          if grep -Fq 'app-v402' bootstrap-fast-path-v351.js; then
+            echo 'DIVERGENTE: bootstrap-fast-path-v351.js ainda contém literal app-v402'
+            exit 1
           fi
-          test "$divergence" -eq 0
 
-      - name: Publicar arvore validada
+          for worker in service-worker.js docs/service-worker.js service-worker-v421.js docs/service-worker-v421.js; do
+            grep -Fq "const CURRENT_VERSION = \"$version\";" "$worker" || {
+              echo "DIVERGENTE: $worker não contém CURRENT_VERSION=$version"
+              exit 1
+            }
+          done
+
+          test ! -e .github/v421-payload
+          test ! -e .github/workflows/publish-v421-temporary.yml
+
+          git add -A
+          tested_tree=$(git write-tree)
+          echo "TESTED_TREE=$tested_tree" >> "$GITHUB_ENV"
+          echo "ARVORE TESTADA: $tested_tree"
+
+      - name: Publicar exatamente a arvore testada
+        shell: bash
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "V421: derivar bundle atual e renovar cache"
+
+          commit_tree=$(git rev-parse 'HEAD^{tree}')
+          if [ "$commit_tree" != "$TESTED_TREE" ]; then
+            echo "ARVORE DIVERGENTE ANTES DO PUSH: testada=$TESTED_TREE commit=$commit_tree"
+            git diff --name-status "$TESTED_TREE" "$commit_tree" | sed 's/^/DIVERGENTE: /'
+            exit 1
+          fi
+
           git push origin HEAD:main
+
+      - name: Conferir arvore publicada contra a testada
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          remote_tree=$(git rev-parse 'origin/main^{tree}')
+          echo "ARVORE TESTADA:   $TESTED_TREE"
+          echo "ARVORE PUBLICADA: $remote_tree"
+          if [ "$remote_tree" != "$TESTED_TREE" ]; then
+            echo 'A arvore publicada diverge da arvore testada:'
+            git diff --name-status "$TESTED_TREE" "$remote_tree" | sed 's/^/DIVERGENTE: /'
+            exit 1
+          fi
+          echo 'ARVORE PUBLICADA IDÊNTICA À ARVORE TESTADA: nenhuma divergência.'
