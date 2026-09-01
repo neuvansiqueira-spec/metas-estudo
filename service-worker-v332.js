@@ -1,13 +1,16 @@
 "use strict";
 
-const CURRENT_VERSION = "20260831-daily-goals-explicit-mutation-v419";
+const CURRENT_VERSION = "20260901-bootstrap-current-bundle-v421";
 const DASHBOARD_PENDING_SEMANTICS_V413 = "pendentes-separados-de-em-andamento";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const SECURITY_VERSION = "20260831-weekly-status-stability-v416";
 const PROTECTION_VERSION = "20260815-bootstrap-performance-v342";
 const BOOTSTRAP_VERSION = "20260815-bootstrap-performance-v342";
-const FAST_BOOTSTRAP_VERSION = "20260830-bootstrap-runtime-unification-v404";
+const FAST_BOOTSTRAP_VERSION = "20260901-bootstrap-current-bundle-v421";
 const NAVIGATION_DELIVERY_VERSION = "20260817-navigation-bootstrap-delivery-v353";
+// V420: prazo maximo que a navegacao espera pela rede antes de cair no cache.
+const NAVIGATION_NETWORK_DEADLINE_MS = 1500;
+const NAVIGATION_DEADLINE = Object.freeze({ aldusNavigationDeadline: true });
 const PLANNING_QUALITY_VERSION = "20260826-planning-stability-v397";
 const TIMER_GOAL_INTEGRITY_VERSION = "20260821-timer-goal-integrity-v366";
 const UPDATE_FLOW_VERSION = "20260831-update-banner-stability-v414";
@@ -380,22 +383,48 @@ async function refreshNavigation(request) {
   return cacheNavigationResponse(patchedResponse);
 }
 
+async function withNavigationDeadline(settledNetwork) {
+  if (typeof setTimeout !== "function") return settledNetwork;
+  let timer = null;
+  const deadline = new Promise((resolve) => {
+    timer = setTimeout(() => resolve(NAVIGATION_DEADLINE), NAVIGATION_NETWORK_DEADLINE_MS);
+  });
+  try {
+    return await Promise.race([settledNetwork, deadline]);
+  } finally {
+    if (timer !== null && typeof clearTimeout === "function") clearTimeout(timer);
+  }
+}
+
 async function cachedFirstNavigation(request, event) {
   const cache = await caches.open(CACHE_NAME);
   const cached = await cache.match(CANONICAL_DOCUMENT_URL, { ignoreSearch: true });
 
-  if (cached && await responseHasProtectedBootstrap(cached)) {
-    event?.waitUntil?.(refreshNavigation(request).catch((error) => {
-      console.warn(`[${NAVIGATION_DELIVERY_VERSION}] Falha ao atualizar a navegação em segundo plano.`, error);
-    }));
-    return cached;
-  }
+  // Rede primeiro, com prazo curto. Servir o documento cacheado aqui prendia o app
+  // uma versao atras: o Service Worker so troca de versao depois que a pagina nova
+  // registra o worker novo, e a pagina nova so chega pela rede. O resultado era que
+  // toda publicacao precisava de dois carregamentos para valer, e o primeiro rodava
+  // o codigo antigo contra os dados reais do usuario.
+  const settledNetwork = refreshNavigation(request).then(
+    (response) => response,
+    (error) => {
+      console.warn(`[${NAVIGATION_DELIVERY_VERSION}] Falha ao buscar a navegacao mais recente.`, error);
+      return NAVIGATION_DEADLINE;
+    }
+  );
 
-  try {
-    return await refreshNavigation(request);
-  } catch (error) {
-    console.error(`[${NAVIGATION_DELIVERY_VERSION}] Falha ao entregar navegação protegida.`, error);
-  }
+  const fresh = await withNavigationDeadline(settledNetwork);
+  if (fresh !== NAVIGATION_DEADLINE) return fresh;
+
+  // Rede lenta ou indisponivel: entrega o cache imediatamente, como antes, e deixa
+  // o refresh terminar em segundo plano para o carregamento seguinte.
+  event?.waitUntil?.(settledNetwork);
+
+  if (cached && await responseHasProtectedBootstrap(cached)) return cached;
+
+  // Sem cache utilizavel nao ha o que entregar antes da rede: espera ela terminar.
+  const late = await settledNetwork;
+  if (late !== NAVIGATION_DEADLINE) return late;
 
   if (cached) {
     try {

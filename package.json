@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260831-daily-goals-explicit-mutation-v419",
+  "version": "20260901-bootstrap-current-bundle-v421",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

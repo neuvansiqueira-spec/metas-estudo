@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260831-daily-goals-explicit-mutation-v419";
+  const VERSION = "20260901-bootstrap-current-bundle-v421";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
