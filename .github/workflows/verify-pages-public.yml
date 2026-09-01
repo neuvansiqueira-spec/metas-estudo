@@ -1,0 +1,106 @@
+name: Verificar GitHub Pages publicado
+
+on:
+  workflow_run:
+    workflows:
+      - Publicar GitHub Pages
+    types:
+      - completed
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-github-pages-public
+  cancel-in-progress: true
+
+jobs:
+  verify-public-site:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Baixar a mesma revisao publicada
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+
+      - name: Verificar o endereco publico fora do repositorio
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          base='https://neuvansiqueira-spec.github.io/metas-estudo/'
+          expected_bundle=$(python - <<'PY'
+          from pathlib import Path
+          import re
+          text = Path('docs/index.html').read_text(encoding='utf-8')
+          match = re.search(r'<link rel="preload" as="script" href="(app-v\d+\.js\?v=[^"]+)"', text)
+          if not match:
+              raise SystemExit('preload do bundle atual nao encontrado em docs/index.html')
+          print(match.group(1))
+          PY
+          )
+          expected_bundle_file=${expected_bundle%%\?*}
+          expected_version=$(python - <<'PY'
+          from pathlib import Path
+          import re
+          text = Path('docs/service-worker.js').read_text(encoding='utf-8')
+          match = re.search(r'const CURRENT_VERSION = "([^"]+)";', text)
+          if not match:
+              raise SystemExit('CURRENT_VERSION nao encontrado em docs/service-worker.js')
+          print(match.group(1))
+          PY
+          )
+
+          echo "Esperado: bundle=$expected_bundle_file version=$expected_version"
+
+          success=0
+          for attempt in $(seq 1 18); do
+            stamp="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${attempt}-$(date +%s)"
+            common=(-sS -L --connect-timeout 10 --max-time 30 -H 'Cache-Control: no-cache' -H 'Pragma: no-cache')
+
+            index_code=$(curl "${common[@]}" -o /tmp/public-index.html -w '%{http_code}' "${base}?verify=${stamp}" || true)
+            bundle_code=$(curl "${common[@]}" -o /tmp/public-app.js -w '%{http_code}' "${base}${expected_bundle_file}?verify=${stamp}" || true)
+            fast_code=$(curl "${common[@]}" -o /tmp/public-fast.js -w '%{http_code}' "${base}bootstrap-fast-path-v351.js?verify=${stamp}" || true)
+            worker_code=$(curl "${common[@]}" -o /tmp/public-worker.js -w '%{http_code}' "${base}service-worker.js?verify=${stamp}" || true)
+
+            index_ok=0
+            fast_ok=0
+            worker_ok=0
+
+            if [ "$index_code" = '200' ] && grep -Fq "<link rel=\"preload\" as=\"script\" href=\"${expected_bundle}\"" /tmp/public-index.html; then
+              index_ok=1
+            fi
+            if [ "$fast_code" = '200' ] && ! grep -Fq 'app-v402' /tmp/public-fast.js; then
+              fast_ok=1
+            fi
+            if [ "$worker_code" = '200' ] && grep -Fq "const CURRENT_VERSION = \"${expected_version}\";" /tmp/public-worker.js; then
+              worker_ok=1
+            fi
+
+            echo "Tentativa ${attempt}: index=${index_code}/${index_ok} bundle=${bundle_code} fast=${fast_code}/${fast_ok} worker=${worker_code}/${worker_ok}"
+
+            if [ "$index_ok" -eq 1 ] && [ "$bundle_code" = '200' ] && [ "$fast_ok" -eq 1 ] && [ "$worker_ok" -eq 1 ]; then
+              success=1
+              break
+            fi
+            sleep 5
+          done
+
+          if [ "$success" -ne 1 ]; then
+            echo 'ERRO: GitHub remoto pode estar correto, mas o endereco publico nao serve uma release coerente.'
+            echo "index.html: HTTP ${index_code}; preload esperado ${expected_bundle}"
+            echo "${expected_bundle_file}: HTTP ${bundle_code}"
+            echo "bootstrap-fast-path-v351.js: HTTP ${fast_code}; app-v402 presente=$([ -f /tmp/public-fast.js ] && grep -Fq 'app-v402' /tmp/public-fast.js && echo sim || echo nao)"
+            echo "service-worker.js: HTTP ${worker_code}; CURRENT_VERSION esperada ${expected_version}"
+            exit 1
+          fi
+
+          echo 'VALIDACAO EXTERNA APROVADA'
+          echo "index.html: preload -> ${expected_bundle}"
+          echo "${expected_bundle_file}: HTTP 200"
+          echo 'bootstrap-fast-path-v351.js: sem literal app-v402'
+          echo "service-worker.js: CURRENT_VERSION=${expected_version}"
