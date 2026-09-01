@@ -35,10 +35,17 @@ jobs:
         run: |
           set -euo pipefail
           node --check discipline-unification-v426.js
-          node --check performance-emergency-v350.js
-          node --test tests/v426-discipline-unification.test.js
+          node --check discipline-unification-v426-revision.js
+          node --check planning-integrity-v235.js
+          node --check service-worker.js
+          node --test tests/v426-discipline-unification.test.js tests/v426-revision-b1-e.test.js tests/v426-persistence-partial.test.js
           cmp discipline-unification-v426.js docs/discipline-unification-v426.js
+          cmp discipline-unification-v426-revision.js docs/discipline-unification-v426-revision.js
           cmp performance-emergency-v350.js docs/performance-emergency-v350.js
+          cmp planning-integrity-v235.js docs/planning-integrity-v235.js
+          cmp service-worker.js service-worker-v424.js
+          cmp service-worker.js docs/service-worker.js
+          cmp service-worker-v424.js docs/service-worker-v424.js
 
       - name: Executar baseline nominal no commit-pai
         shell: bash
@@ -68,12 +75,21 @@ jobs:
         run: |
           set -euo pipefail
           git diff --name-only "$BASE_SHA"...HEAD | sort
+          cmp discipline-unification-v426.js docs/discipline-unification-v426.js
+          cmp discipline-unification-v426-revision.js docs/discipline-unification-v426-revision.js
+          cmp performance-emergency-v350.js docs/performance-emergency-v350.js
+          cmp security-observability-v318.js docs/security-observability-v318.js
+          cmp planning-integrity-v235.js docs/planning-integrity-v235.js
+          cmp service-worker.js service-worker-v424.js
+          cmp service-worker.js docs/service-worker.js
+          cmp service-worker-v424.js docs/service-worker-v424.js
+          grep -q 'recordManualCount,' planning-integrity-v235.js
+          grep -q 'V426_PLANNING_API_INVALIDATION_PATHS' service-worker.js
+          grep -q 'CURRENT_VERSION = "20260901-daily-plan-completed-visible-v424"' service-worker.js
           git diff --exit-code "$BASE_SHA"...HEAD -- \
             script.js \
-            planning-integrity-v235.js \
             planning-quality-v368.js \
             planning-piece-rotation-v358.js \
-            service-worker.js \
             service-worker-v378.js \
             factory-resumo-aula-jurisprudencia-v380.js \
             factory-lei-jurisprudencia-v383.js \
