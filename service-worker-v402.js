@@ -1,6 +1,6 @@
 "use strict";
 
-const CACHE_FIX_VERSION = "20260901-factory-citation-toc-v422";
+const CACHE_FIX_VERSION = "20260901-daily-plan-completed-visible-v424";
 const COMPLETED_GOALS_CACHE_VERSION_V411 = "20260831-metas-concluidas-somente-revisao-v411";
 const DAILY_GOAL_STABILITY_CACHE_VERSION_V412 = "20260831-estabilidade-metas-antes-bootstrap-v412";
 const CORE_DAILY_PLAN_CACHE_VERSION_V413 = "20260831-core-daily-plan-consistency-v413";

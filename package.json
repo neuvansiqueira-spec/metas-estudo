@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260901-factory-citation-toc-v422",
+  "version": "20260901-daily-plan-completed-visible-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

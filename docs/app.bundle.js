@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260901-factory-citation-toc-v422";
+  const VERSION = "20260901-daily-plan-completed-visible-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -40959,6 +40959,17 @@ const FACTORY_PROMPT_TYPES = [
   { key: "peca", label: "Gerar prompt Peça" },
   { key: "consolidacao", label: "Gerar prompt Consolidação Final" }
 ];
+const FACTORY_PROMPT_DESCRIPTIONS = {
+  triagem: "Classifica cada arquivo da pasta por módulo e avalia se as fontes bastam. Não gera conteúdo.",
+  resumoAula: "Transforma as fontes teóricas em mapa hierárquico de palavras-chave para cópia manuscrita.",
+  lei: "Lei topificada artigo por artigo, restrita ao recorte informado.",
+  jurisprudencia: "Julgados, súmulas e teses buscados exclusivamente na pasta jurisprudencial.",
+  peca: "Modelo de peça processual a partir das fontes práticas.",
+  consolidacao: "Reúne os módulos já gerados num documento único.",
+  resumoAulaJurisprudencia: "Resumo teórico com a jurisprudência integrada no ponto do instituto, mais quadro final.",
+  leiJurisprudencia: "Lei topificada com jurisprudência junto do dispositivo, mais quadro final.",
+  padronizacaoFinalSumario: "Só padroniza formatação e cria o sumário de um DOCX pronto. Não altera conteúdo."
+};
 const FACTORY_DEFAULT_SOURCE_FOLDER = "https://drive.google.com/drive/folders/1BTUFtLBf6tuKG6kqWTRIrPT75cltdy-n";
 const FACTORY_JURISPRUDENCIA_SOURCE_FOLDER = "https://drive.google.com/drive/folders/1ECc_otgQKwH7WfPdQr8CtD0kB07pz9Xe";
 function factorySourceFolderLink(item = {}, type = "") {
@@ -41110,7 +41121,13 @@ function renderFactoryPromptLibrary() {
   const panel = elements.factoryPromptLibraryPanel;
   if (!panel) return;
   state.factoryPromptLibrary = normalizeFactoryPromptLibrary(state.factoryPromptLibrary);
-  const fields = FACTORY_PROMPT_TYPES.map(({ key, label }) => `<label class="wide"><strong>${escapeHTML(label.replace("Gerar prompt ", "PROMPT ").replace("de triagem", "TRIAGEM COMPLETO").replace("Resumo/Aula", "RESUMO/AULA COMPLETO").replace("Lei", "LEI COMPLETO").replace("Jurisprudência", "JURISPRUDÊNCIA COMPLETO").replace("Peça", "PEÇA COMPLETO").replace("Consolidação Final", "CONSOLIDAÇÃO FINAL COMPLETO"))}</strong><textarea rows="8" data-factory-library-field="${key}" placeholder="Cole aqui o prompt-base completo deste módulo">${escapeHTML(state.factoryPromptLibrary[key])}</textarea><button type="button" class="secondary-button" data-factory-library-restore="${key}">Restaurar modelo padrão</button></label>`).join("");
+  const fields = FACTORY_PROMPT_TYPES.map(({ key, label }) => {
+    const description = FACTORY_PROMPT_DESCRIPTIONS[key] || "";
+    const hint = description
+      ? `<small class="factory-prompt-hint">${escapeHTML(description)}</small>`
+      : "";
+    return `<label class="wide"><strong>${escapeHTML(label.replace("Gerar prompt ", "PROMPT ").replace("de triagem", "TRIAGEM COMPLETO").replace("Resumo/Aula", "RESUMO/AULA COMPLETO").replace("Lei", "LEI COMPLETO").replace("Jurisprudência", "JURISPRUDÊNCIA COMPLETO").replace("Peça", "PEÇA COMPLETO").replace("Consolidação Final", "CONSOLIDAÇÃO FINAL COMPLETO"))}</strong>${hint}<textarea rows="8" data-factory-library-field="${key}" placeholder="Cole aqui o prompt-base completo deste módulo">${escapeHTML(state.factoryPromptLibrary[key])}</textarea><button type="button" class="secondary-button" data-factory-library-restore="${key}">Restaurar modelo padrão</button></label>`;
+  }).join("");
   panel.innerHTML = `<div class="section-heading inline"><div><p class="eyebrow">Configurações da Fábrica</p><h3 id="factory-prompt-library-title">⚙️ Biblioteca de Prompts da Fábrica</h3></div><button type="button" class="secondary-button" data-factory-library-close>Fechar</button></div><p class="notice">Salve aqui os prompts-base completos do projeto. Eles entram no backup e na sincronização Google Drive.</p><form id="factoryPromptLibraryForm" class="form-grid">${fields}<button class="wide" type="submit">Salvar biblioteca de prompts</button></form>`;
 }
 function saveFactoryPromptLibrary(event) {
@@ -44213,6 +44230,14 @@ function actionableDailyPlanGoalsForDate(targetState = state, date = todayISO())
   const completedRecords = completedPlanningSubjectRecords(targetState);
   return (targetState.dailyGoals || []).filter((goal) => goalDateValue(goal) === date && isActionableDailyPlanGoal(goal, targetState, completedRecords));
 }
+// V424: a meta concluída continua pertencendo ao dia. O filtro de acionáveis existe
+// para a cota e para a próxima meta, não para a exibição: usá-lo na lista fazia a meta
+// desaparecer ao ser concluída e tornava o contador "Metas concluídas" sempre zero.
+function dailyPlanGoalsForDisplay(targetState = state, date = todayISO()) {
+  const completedRecords = completedPlanningSubjectRecords(targetState);
+  return (targetState.dailyGoals || []).filter((goal) => goalDateValue(goal) === date
+    && (isGoalDone(goal) || isActionableDailyPlanGoal(goal, targetState, completedRecords)));
+}
 function planningDistributionProfileV77(targetState = state, date = todayISO()) {
   const windowStart = addDays(date, -28);
   const counts = new Map(), lastDates = new Map();
@@ -45692,7 +45717,7 @@ function renderDashboardGoalsScaleSummary() {
   const today = todayISO();
   const av = availabilityForDate(today);
   const dayGoals = actionableDailyPlanGoalsForDate(state, today);
-  const dayStats = goalProgressStats(dayGoals, av);
+  const dayStats = goalProgressStats(dailyPlanGoalsForDisplay(state, today), av);
   const week = periodSummary(weekStart(today), 7);
   const monthStart = `${today.slice(0,7)}-01`;
   const monthDays = new Date(parseDate(today).getFullYear(), parseDate(today).getMonth()+1, 0).getDate();
@@ -45703,7 +45728,7 @@ function renderDashboardGoalsScaleSummary() {
 function renderCentralGoals() {
   if (!elements.centralGoalsCards && !elements.dashboardGoalsScaleSummary) return;
   const today = todayISO(), av = availabilityForDate(today), ws = weekStart(today), monthStart = `${today.slice(0,7)}-01`, monthDays = new Date(parseDate(today).getFullYear(), parseDate(today).getMonth()+1, 0).getDate();
-  const dayGoals = actionableDailyPlanGoalsForDate(state, today), dayStats = goalProgressStats(dayGoals, av), week = periodSummary(ws, 7), month = periodSummary(monthStart, monthDays), monthlyTarget = monthlyPlanningTarget(today);
+  const dayGoals = actionableDailyPlanGoalsForDate(state, today), dayStats = goalProgressStats(dailyPlanGoalsForDisplay(state, today), av), week = periodSummary(ws, 7), month = periodSummary(monthStart, monthDays), monthlyTarget = monthlyPlanningTarget(today);
   const dayDisciplines = new Set(dayGoals.map((goal) => canonicalStudyDescriptor(goal).discipline)).size;
   globalThis.__crossAreaLinkageReportV173 = buildCrossAreaLinkageReportV173(state);
   if (elements.centralGoalsCards) elements.centralGoalsCards.innerHTML = `
@@ -45960,7 +45985,7 @@ function renderDailyGoals() {
   renderSmartReviewBlock(elements.daySmartReview, date);
   renderChooseSubjectForDayV158();
   const availability = availabilityForDate(date);
-  const dayGoals = actionableDailyPlanGoalsForDate(state, date).map((goal) => cloneData(goal)).sort((a,b) => (a.status || "").localeCompare(b.status || "") || a.discipline.localeCompare(b.discipline));
+  const dayGoals = dailyPlanGoalsForDisplay(state, date).map((goal) => cloneData(goal)).sort((a,b) => (Number(isGoalDone(a)) - Number(isGoalDone(b))) || (a.status || "").localeCompare(b.status || "") || a.discipline.localeCompare(b.discipline));
   const projection = buildDailyPlanProjection(date);
   window.__dailyPlanProjectionByGoalId = new Map(projection.map((entry) => [entry.goal.id, entry]));
   window.__dailyPlanConsistencyReport = { date, dailyGoals: dayGoals.length, projectedGoals: projection.length, factoryItemsForToday: projection.reduce((sum, entry) => sum + entry.factoryItems.length, 0), materialsForToday: projection.reduce((sum, entry) => sum + entry.materialGroups.reduce((total, group) => total + group.materials.length, 0), 0), goalsWithoutMaterial: projection.filter((entry) => !entry.materialGroups.length).map((entry) => entry.goal.id), ambiguousMaterials: projection.filter((entry) => entry.warnings.length).length, visualDuplicatesRemoved: projection.reduce((sum, entry) => sum + entry.warnings.length, 0), stateMutatedDuringRender: false, alignment: { aligned: alignmentStatus.aligned, skipped: alignmentStatus.skipped || "" } };

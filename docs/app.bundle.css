@@ -3437,6 +3437,7 @@ html[data-aldus-theme="premium-stable"] #view-metas-do-dia .historical-time-stat
 .material-estimate-feedback.success { background: #ecfdf5; border-color: #86efac; color: #14532d; }
 .material-estimate-feedback.error { background: #fff7ed; border-color: #fdba74; color: #9a3412; }
 .material-estimate-mode-hint { margin-top: 8px; padding: 8px 10px; border-left: 4px solid var(--primary); background: #eff6ff; border-radius: 8px; }
+.factory-prompt-hint { display: block; margin-bottom: 6px; color: var(--muted); font-size: .85rem; line-height: 1.35; }
 
 #view-materiais .material-card { min-width: 0; overflow-wrap: break-word; }
 #view-materiais .materials-collapsible-section { margin: 16px 0; border: 1px solid var(--border); border-radius: 16px; background: var(--card); box-shadow: var(--shadow); overflow: hidden; }
@@ -9471,6 +9472,7 @@ html[data-aldus-theme="premium-stable"] #view-metas-do-dia .historical-time-stat
     .material-estimate-box,
     .material-estimate-feedback,
     .material-estimate-mode-hint,
+    .factory-prompt-hint,
     .privacy-note,
     .advisor-kv > div,
     .analytics-filters,

@@ -26,7 +26,11 @@ test("release atual substitui a reconciliação V413 por diagnóstico antes da p
 
 test("V413 usa uma única lista acionável no Dashboard e no Plano do Dia", () => {
   assert.match(script, /function actionableDailyPlanGoalsForDate/);
-  assert.match(script, /const dayGoals = actionableDailyPlanGoalsForDate\(state, date\)/);
+  // V424: a lista de exibição inclui as metas concluídas do dia; o filtro de acionáveis
+  // continua servindo à cota e à próxima meta. Dashboard e Plano do Dia seguem
+  // consumindo a MESMA lista, que é o contrato original desta verificação.
+  assert.match(script, /const dayGoals = dailyPlanGoalsForDisplay\(state, date\)/);
+  assert.equal((script.match(/goalProgressStats\(dailyPlanGoalsForDisplay\(state, today\), av\)/g) || []).length, 2);
   assert.match(script, /renderGoalDashboardCards\(todayPlanGoals\)/);
   assert.match(script, /const todayGoals = Array\.isArray\(precomputedTodayGoals\) \? precomputedTodayGoals : actionableDailyPlanGoalsForDate\(state, today\)/);
 });

@@ -27,6 +27,9 @@ function renderRuntime(count, suppliedGoals = null) {
     renderSmartReviewBlock() {}, renderChooseSubjectForDayV158() {},
     availabilityForDate: () => ({ type: "normal", hours: 5 }),
     actionableDailyPlanGoalsForDate: (targetState, date) => targetState.dailyGoals.filter((item) => item.date === date),
+    // V424: a lista de exibição inclui as concluídas do dia; o stub espelha esse contrato.
+    dailyPlanGoalsForDisplay: (targetState, date) => targetState.dailyGoals.filter((item) => item.date === date),
+    isGoalDone: (goal) => (goal || {}).status === "Concluída",
     cloneData: (value) => JSON.parse(JSON.stringify(value)),
     buildDailyPlanProjection: () => dailyGoals.map((item) => ({ goal: item, factoryItems: [], materialGroups: [], warnings: [] })),
     goalProgressStats: (goals) => ({ completed: 0, pending: goals.length, target: 300, done: 0, goalsPct: 0 }),
