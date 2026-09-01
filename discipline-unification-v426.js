@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260901-discipline-unification-v426-postcondition-r2";
+  const VERSION = "20260901-discipline-unification-v426-persistence-r3";
   const MIGRATION_KEY = "disciplineUnificationV426";
   const API_KEY = "__ALDUS_DISCIPLINE_UNIFICATION_V426__";
   const WRAP_MARKER = "__aldusDisciplineUnificationV426Wrapped";
@@ -11,21 +11,18 @@
     "LEGISLAÇÃO PENAL E LEGISLAÇÃO PROCESSUAL PENAL EXTRAVAGANTE",
     "LEGISLAÇÃO PENAL E PROCESSUAL PENAL ESPECIAL"
   ]);
-
   const DESTINATIONS = Object.freeze({
     penal: "LEGISLAÇÃO ESPECÍFICA – DIREITO PENAL",
     processualPenal: "LEGISLAÇÃO ESPECÍFICA – DIREITO PROCESSUAL PENAL",
     administrativo: "LEGISLAÇÃO ESPECÍFICA – DIREITO ADMINISTRATIVO",
     direitosHumanos: "LEGISLAÇÃO ESPECÍFICA – DIREITOS HUMANOS"
   });
-
   const WHOLE_MERGES = Object.freeze({
     CRIMINOLOGIA: "CIÊNCIAS FORENSES",
     "MEDICINA LEGAL": "CIÊNCIAS FORENSES",
     "DIREITO ADMINISTRATIVO E GESTÃO PÚBLICA": "DIREITO ADMINISTRATIVO",
     "LEGISLAÇÃO ESPECIAL – DIREITO ADMINISTRATIVO": DESTINATIONS.administrativo
   });
-
   const REMOVABLE_IF_EMPTY = Object.freeze([
     "Direito Penal e Legislação Complementar",
     "Direito Administrativo e Legislação Complementar",
@@ -34,612 +31,250 @@
     DESTINATIONS.direitosHumanos,
     ...SPLIT_ORIGINS
   ]);
-
   const SPECIFIC_LAW_RULES = Object.freeze([
-    ["7.210", DESTINATIONS.processualPenal],
-    ["12.037", DESTINATIONS.processualPenal],
-    ["10.446", DESTINATIONS.processualPenal],
-    ["5.553", DESTINATIONS.processualPenal],
-    ["8.429", "DIREITO ADMINISTRATIVO"],
-    ["12.846", "DIREITO ADMINISTRATIVO"],
+    ["7.210", DESTINATIONS.processualPenal], ["12.037", DESTINATIONS.processualPenal],
+    ["10.446", DESTINATIONS.processualPenal], ["5.553", DESTINATIONS.processualPenal],
+    ["8.429", "DIREITO ADMINISTRATIVO"], ["12.846", "DIREITO ADMINISTRATIVO"],
     ["12.318", "DIREITO CIVIL"]
   ]);
-
   const EXPLICIT_PENAL_LAWS = Object.freeze(["9.609", "9.610", "12.288", "6.001"]);
   const OPERATIONAL_DISCIPLINES = new Set(["simulado", "simulados", "peca", "pecas"]);
-
   const LIST_COLLECTIONS = Object.freeze([
-    ["syllabusItems", ["discipline"]],
-    ["dailyGoals", ["discipline", "disciplina"]],
-    ["studies", ["discipline"]],
-    ["materials", ["discipline"]],
-    ["questionLogs", ["discipline", "disciplina"]],
-    ["questionBank", ["discipline", "disciplina"]],
-    ["questionErrorNotebook", ["discipline", "disciplina"]],
-    ["factoryItems", ["disciplina"]],
+    ["syllabusItems", ["discipline"]], ["dailyGoals", ["discipline", "disciplina"]],
+    ["studies", ["discipline"]], ["materials", ["discipline"]],
+    ["questionLogs", ["discipline", "disciplina"]], ["questionBank", ["discipline", "disciplina"]],
+    ["questionErrorNotebook", ["discipline", "disciplina"]], ["factoryItems", ["disciplina"]],
     ["subjects", ["discipline"]]
   ]);
-
   const PROTECTED_LENGTHS = Object.freeze([
-    "syllabusItems", "dailyGoals", "studies", "materials", "questionLogs",
-    "questionBank", "questionBankSessions", "questionErrorNotebook", "simulados",
-    "factoryItems", "subjects"
+    "syllabusItems", "dailyGoals", "studies", "materials", "questionLogs", "questionBank",
+    "questionBankSessions", "questionErrorNotebook", "simulados", "factoryItems", "subjects"
   ]);
 
-  const clone = (value) => JSON.parse(JSON.stringify(value));
-  const isObject = (value) => value && typeof value === "object" && !Array.isArray(value);
-  const hasOwn = (object, key) => Object.prototype.hasOwnProperty.call(object || {}, key);
-
-  function cleanText(value) {
-    return String(value ?? "").replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
-  }
-
-  function canonical(value) {
-    return cleanText(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  }
-
-  function recordText(record = {}) {
-    return [record.subject, record.assunto, record.topic, record.topico, record.title, record.name, record.description]
-      .map(cleanText)
-      .filter(Boolean)
-      .join(" | ");
-  }
-
-  function recordLabel(record = {}) {
-    return cleanText(record.subject || record.assunto || record.topic || record.topico || record.title || record.name || record.id || "(sem assunto)");
-  }
+  const clone = (v) => JSON.parse(JSON.stringify(v));
+  const isObject = (v) => v && typeof v === "object" && !Array.isArray(v);
+  const hasOwn = (o, k) => Object.prototype.hasOwnProperty.call(o || {}, k);
+  const cleanText = (v) => String(v ?? "").replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
+  const canonical = (v) => cleanText(v).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const recordLabel = (r = {}) => cleanText(r.subject || r.assunto || r.topic || r.topico || r.title || r.name || r.id || "(sem assunto)");
+  const recordText = (r = {}) => [r.subject, r.assunto, r.topic, r.topico, r.title, r.name, r.description].map(cleanText).filter(Boolean).join(" | ");
 
   function classifySplitRecord(record = {}) {
     const text = recordText(record);
-    for (const [law, target] of SPECIFIC_LAW_RULES) {
-      if (text.includes(law)) return { target, law, matched: true, explicitPenal: false };
-    }
-    for (const law of EXPLICIT_PENAL_LAWS) {
-      if (text.includes(law)) return { target: DESTINATIONS.penal, law, matched: true, explicitPenal: true };
-    }
-    return { target: DESTINATIONS.penal, law: null, matched: false, explicitPenal: false };
+    for (const [law, target] of SPECIFIC_LAW_RULES) if (text.includes(law)) return { target, law, matched: true };
+    for (const law of EXPLICIT_PENAL_LAWS) if (text.includes(law)) return { target: DESTINATIONS.penal, law, matched: true };
+    return { target: DESTINATIONS.penal, law: null, matched: false };
   }
-
-  function destinationHasWrongHyphen(name) {
-    return Object.values(DESTINATIONS).includes(name) && name.includes(" - ");
-  }
-
   function assertDestinationSpelling() {
-    for (const name of Object.values(DESTINATIONS)) {
-      if (name.includes(" - ") || !name.includes(" – ")) {
-        throw new Error(`V426: nome-destino inválido; esperado travessão U+2013: ${name}`);
-      }
-    }
+    for (const name of Object.values(DESTINATIONS)) if (name.includes(" - ") || !name.includes(" – ")) throw new Error(`V426: nome-destino inválido: ${name}`);
   }
-
-  function rememberCount(report, collection, increment = 1) {
-    report.collectionRewriteCounts[collection] = (report.collectionRewriteCounts[collection] || 0) + increment;
-  }
-
+  function rememberCount(report, key, n = 1) { report.collectionRewriteCounts[key] = (report.collectionRewriteCounts[key] || 0) + n; }
   function buildSplitTargetMap(working, report) {
-    const targetBySyllabusId = new Map();
-    for (const item of Array.isArray(working.syllabusItems) ? working.syllabusItems : []) {
+    const map = new Map();
+    for (const item of working.syllabusItems || []) {
       if (!SPLIT_ORIGINS.includes(item?.discipline)) continue;
-      const from = item.discipline;
-      const classification = classifySplitRecord(item);
-      targetBySyllabusId.set(String(item.id || ""), classification.target);
-      item.discipline = classification.target;
+      const from = item.discipline, c = classifySplitRecord(item);
+      map.set(String(item.id || ""), c.target);
+      item.discipline = c.target;
       rememberCount(report, "syllabusItems");
-      const entry = { id: item.id || "", subject: recordLabel(item), from, to: classification.target, law: classification.law };
+      const entry = { id: item.id || "", subject: recordLabel(item), from, to: c.target, law: c.law };
       report.stageAReassignments.push(entry);
-      if (!classification.matched) report.stageAUnmatched.push(entry);
+      if (!c.matched) report.stageAUnmatched.push(entry);
     }
-    return targetBySyllabusId;
+    return map;
   }
-
-  function resolveSplitTarget(record, targetBySyllabusId) {
-    const syllabusId = String(record?.syllabusItemId || "");
-    if (syllabusId && targetBySyllabusId.has(syllabusId)) return targetBySyllabusId.get(syllabusId);
-    return classifySplitRecord(record).target;
+  function resolveTarget(record, map) {
+    const id = String(record?.syllabusItemId || "");
+    return id && map.has(id) ? map.get(id) : classifySplitRecord(record).target;
   }
-
-  function rewrittenDiscipline(value, record, targetBySyllabusId) {
+  function rewrittenDiscipline(value, record, map) {
     const name = cleanText(value);
-    if (!name) return value;
-    if (SPLIT_ORIGINS.includes(name)) return resolveSplitTarget(record, targetBySyllabusId);
-    if (hasOwn(WHOLE_MERGES, name)) return WHOLE_MERGES[name];
-    return value;
+    if (SPLIT_ORIGINS.includes(name)) return resolveTarget(record, map);
+    return hasOwn(WHOLE_MERGES, name) ? WHOLE_MERGES[name] : value;
   }
-
-  function rewriteRecordFields(record, fields, targetBySyllabusId) {
+  function rewriteFields(record, fields, map) {
     if (!isObject(record)) return false;
     let changed = false;
     for (const field of fields) {
       if (!hasOwn(record, field)) continue;
-      const before = record[field];
-      const after = rewrittenDiscipline(before, record, targetBySyllabusId);
-      if (after !== before) {
-        record[field] = after;
-        changed = true;
-      }
+      const next = rewrittenDiscipline(record[field], record, map);
+      if (next !== record[field]) { record[field] = next; changed = true; }
     }
     return changed;
   }
-
-  function rewriteCollections(working, targetBySyllabusId, report) {
+  function rewriteCollections(working, map, report) {
     for (const [collection, fields] of LIST_COLLECTIONS) {
-      for (const record of Array.isArray(working[collection]) ? working[collection] : []) {
-        if (collection === "syllabusItems" && !SPLIT_ORIGINS.includes(record?.discipline) && !hasOwn(WHOLE_MERGES, record?.discipline)) continue;
-        if (rewriteRecordFields(record, fields, targetBySyllabusId)) rememberCount(report, collection);
-      }
+      for (const record of working[collection] || []) if (rewriteFields(record, fields, map)) rememberCount(report, collection);
     }
-    for (const session of Array.isArray(working.questionBankSessions) ? working.questionBankSessions : []) {
-      for (const item of Array.isArray(session?.items) ? session.items : []) {
-        if (rewriteRecordFields(item, ["disciplina"], targetBySyllabusId)) rememberCount(report, "questionBankSessions.items");
-      }
-    }
-    for (const simulado of Array.isArray(working.simulados) ? working.simulados : []) {
-      for (const discipline of Array.isArray(simulado?.disciplines) ? simulado.disciplines : []) {
-        if (rewriteRecordFields(discipline, ["discipline"], targetBySyllabusId)) rememberCount(report, "simulados.disciplines");
-      }
-    }
+    for (const session of working.questionBankSessions || []) for (const item of session?.items || []) if (rewriteFields(item, ["disciplina"], map)) rememberCount(report, "questionBankSessions.items");
+    for (const simulado of working.simulados || []) for (const item of simulado?.disciplines || []) if (rewriteFields(item, ["discipline"], map)) rememberCount(report, "simulados.disciplines");
   }
-
-  function numericWeight(value) {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
+  function numericWeight(v) { const n = Number(v); return Number.isFinite(n) ? n : null; }
   function mergeWeightKey(weights, source, target, report, scope = "disciplineWeights") {
     if (!isObject(weights) || !hasOwn(weights, source)) return false;
-    const sourceRaw = weights[source];
-    const targetRaw = hasOwn(weights, target) ? weights[target] : undefined;
-    const sourceNumber = numericWeight(sourceRaw);
-    const targetNumber = numericWeight(targetRaw);
-    let finalValue;
-    if (sourceNumber !== null && targetNumber !== null) finalValue = Math.max(sourceNumber, targetNumber);
-    else if (sourceNumber !== null) finalValue = sourceNumber;
-    else if (targetNumber !== null) finalValue = targetNumber;
-    else finalValue = targetRaw !== undefined ? targetRaw : sourceRaw;
-    weights[target] = finalValue;
-    delete weights[source];
-    report.weightMerges.push({ scope, from: source, to: target, sourceWeight: sourceRaw, previousDestinationWeight: targetRaw ?? null, finalWeight: finalValue });
-    rememberCount(report, scope);
-    return true;
+    const sourceRaw = weights[source], targetRaw = hasOwn(weights, target) ? weights[target] : undefined;
+    const a = numericWeight(sourceRaw), b = numericWeight(targetRaw);
+    const finalValue = a !== null && b !== null ? Math.max(a, b) : a !== null ? a : b !== null ? b : targetRaw !== undefined ? targetRaw : sourceRaw;
+    weights[target] = finalValue; delete weights[source];
+    report.weightMerges.push({ scope, from: source, to: target, sourceWeight: sourceRaw, previousDestinationWeight: targetRaw ?? null, finalWeight });
+    rememberCount(report, scope); return true;
   }
-
   function rewriteWeightMap(weights, report, scope) {
     if (!isObject(weights)) return;
     for (const source of SPLIT_ORIGINS) mergeWeightKey(weights, source, DESTINATIONS.penal, report, scope);
     for (const [source, target] of Object.entries(WHOLE_MERGES)) mergeWeightKey(weights, source, target, report, scope);
   }
-
   function normalizePlanningProfiles(working, report) {
-    const joint = isObject(working.contestPlanningProfiles) ? working.contestPlanningProfiles.joint : null;
-    if (!isObject(joint?.categories)) return;
-    const before = joint.categories.C;
-    joint.categories.C = 0;
+    const categories = working?.contestPlanningProfiles?.joint?.categories;
+    if (!isObject(categories)) return;
+    const before = categories.C; categories.C = 0;
     if (before !== 0) report.configChanges.push({ path: "contestPlanningProfiles.joint.categories.C", before, after: 0 });
   }
-
-  function collectDisciplineNames(state) {
-    const names = new Set();
-    const add = (value) => { const name = cleanText(value); if (name) names.add(name); };
-    for (const [collection, fields] of LIST_COLLECTIONS) {
-      for (const record of Array.isArray(state?.[collection]) ? state[collection] : []) for (const field of fields) add(record?.[field]);
-    }
-    for (const session of Array.isArray(state?.questionBankSessions) ? state.questionBankSessions : []) {
-      for (const item of Array.isArray(session?.items) ? session.items : []) add(item?.disciplina);
-    }
-    for (const simulado of Array.isArray(state?.simulados) ? state.simulados : []) {
-      for (const item of Array.isArray(simulado?.disciplines) ? simulado.disciplines : []) add(item?.discipline);
-    }
-    for (const key of Object.keys(isObject(state?.disciplineWeights) ? state.disciplineWeights : {})) add(key);
-    return names;
-  }
-
   function countNamedReferences(state, name) {
     let count = 0;
-    for (const [collection, fields] of LIST_COLLECTIONS) {
-      for (const record of Array.isArray(state?.[collection]) ? state[collection] : []) {
-        if (fields.some((field) => cleanText(record?.[field]) === name)) count += 1;
-      }
-    }
-    for (const session of Array.isArray(state?.questionBankSessions) ? state.questionBankSessions : []) {
-      for (const item of Array.isArray(session?.items) ? session.items : []) if (cleanText(item?.disciplina) === name) count += 1;
-    }
-    for (const simulado of Array.isArray(state?.simulados) ? state.simulados : []) {
-      for (const item of Array.isArray(simulado?.disciplines) ? simulado.disciplines : []) if (cleanText(item?.discipline) === name) count += 1;
-    }
+    for (const [collection, fields] of LIST_COLLECTIONS) for (const r of state?.[collection] || []) if (fields.some((f) => cleanText(r?.[f]) === name)) count += 1;
+    for (const s of state?.questionBankSessions || []) for (const r of s?.items || []) if (cleanText(r?.disciplina) === name) count += 1;
+    for (const s of state?.simulados || []) for (const r of s?.disciplines || []) if (cleanText(r?.discipline) === name) count += 1;
     return count;
   }
-
   function removeEmptyDisciplines(working, report) {
-    const syllabusItems = Array.isArray(working.syllabusItems) ? working.syllabusItems : [];
     working.disciplineWeights ||= {};
     for (const name of REMOVABLE_IF_EMPTY) {
-      const syllabusCount = syllabusItems.filter((item) => cleanText(item?.discipline) === name).length;
+      const syllabusCount = (working.syllabusItems || []).filter((i) => cleanText(i?.discipline) === name).length;
       const otherReferences = Math.max(0, countNamedReferences(working, name) - syllabusCount);
-      if (syllabusCount > 0) {
-        report.notEmptyDisciplines.push({ name, syllabusItems: syllabusCount, otherReferences });
-        continue;
-      }
+      if (syllabusCount) { report.notEmptyDisciplines.push({ name, syllabusItems: syllabusCount, otherReferences }); continue; }
       const hadWeight = hasOwn(working.disciplineWeights, name);
-      if (hadWeight) {
-        delete working.disciplineWeights[name];
-        rememberCount(report, "disciplineWeights");
-      }
+      if (hadWeight) { delete working.disciplineWeights[name]; rememberCount(report, "disciplineWeights"); }
       report.excludedDisciplines.push(name);
       report.stageCDetails.push({ name, removedWeight: hadWeight, preservedHistoricalReferences: otherReferences });
     }
   }
-
-  function snapshotLengths(state) {
-    return Object.fromEntries(PROTECTED_LENGTHS.map((key) => [key, Array.isArray(state?.[key]) ? state[key].length : 0]));
+  function applyPlanningConfig(working, report) {
+    working.planning ||= {}; working.planning.config ||= {};
+    const config = working.planning.config;
+    const tb = config.topicsPerDay; config.topicsPerDay = 8;
+    if (tb !== 8) report.configChanges.push({ path: "planning.config.topicsPerDay", before: tb ?? null, after: 8 });
+    const db = config.disciplinesPerDay;
+    if (!Number.isFinite(Number(db)) || Number(db) < 8) { config.disciplinesPerDay = 8; report.configChanges.push({ path: "planning.config.disciplinesPerDay", before: db ?? null, after: 8 }); }
   }
-
-  function assertLengthsUnchanged(before, after) {
-    for (const key of PROTECTED_LENGTHS) {
-      if (before[key] !== after[key]) throw new Error(`V426: coleção ${key} mudou de tamanho (${before[key]} -> ${after[key]}).`);
-    }
+  function collectDisciplineNames(state) {
+    const names = new Set(), add = (v) => { const s = cleanText(v); if (s) names.add(s); };
+    for (const [collection, fields] of LIST_COLLECTIONS) for (const r of state?.[collection] || []) for (const f of fields) add(r?.[f]);
+    for (const s of state?.questionBankSessions || []) for (const r of s?.items || []) add(r?.disciplina);
+    for (const s of state?.simulados || []) for (const r of s?.disciplines || []) add(r?.discipline);
+    for (const k of Object.keys(state?.disciplineWeights || {})) add(k);
+    return names;
   }
-
   function assertNoLegacyNamesRemain(state) {
-    const names = collectDisciplineNames(state);
-    const forbidden = [...SPLIT_ORIGINS, ...Object.keys(WHOLE_MERGES)];
-    const remaining = forbidden.filter((name) => names.has(name));
+    const names = collectDisciplineNames(state), forbidden = [...SPLIT_ORIGINS, ...Object.keys(WHOLE_MERGES)];
+    const remaining = forbidden.filter((n) => names.has(n));
     if (remaining.length) throw new Error(`V426: nomes antigos permaneceram após migração: ${remaining.join(", ")}`);
   }
-
+  function assertNoWrongDestinationHyphen(state) {
+    for (const n of collectDisciplineNames(state)) if (Object.values(DESTINATIONS).includes(n) && n.includes(" - ")) throw new Error(`V426: destino usa hífen: ${n}`);
+  }
   function disciplineExists(state, name) {
     const wanted = cleanText(name);
     if (!wanted) return false;
     if (OPERATIONAL_DISCIPLINES.has(canonical(wanted))) return true;
-    if ((Array.isArray(state?.syllabusItems) ? state.syllabusItems : []).some((item) => cleanText(item?.discipline) === wanted)) return true;
-    return (Array.isArray(state?.dailyGoals) ? state.dailyGoals : []).some((goal) => cleanText(goal?.discipline) === wanted || cleanText(goal?.disciplina) === wanted);
+    if ((state?.syllabusItems || []).some((i) => cleanText(i?.discipline) === wanted)) return true;
+    return (state?.dailyGoals || []).some((g) => cleanText(g?.discipline) === wanted || cleanText(g?.disciplina) === wanted);
   }
-
-  function migrationTouchedDisciplineNames() {
-    const names = new Set([...REMOVABLE_IF_EMPTY, ...SPLIT_ORIGINS, ...Object.keys(WHOLE_MERGES), ...Object.values(WHOLE_MERGES), ...Object.values(DESTINATIONS)]);
-    for (const [, target] of SPECIFIC_LAW_RULES) names.add(target);
-    return names;
-  }
-
-  function validateWeightKeysPostCondition(state, preexistingWeightKeys, report) {
-    const weights = isObject(state?.disciplineWeights) ? state.disciplineWeights : {};
-    const syllabusNames = new Set((Array.isArray(state?.syllabusItems) ? state.syllabusItems : []).map((item) => cleanText(item?.discipline)).filter(Boolean));
-    const invalid = Object.keys(weights).map(cleanText).filter(Boolean).filter((name) => !disciplineExists(state, name));
-    const touched = migrationTouchedDisciplineNames();
-    const touchedInvalid = invalid.filter((name) => touched.has(name));
-    const unrelatedInvalid = invalid.filter((name) => !touched.has(name));
-    const unrelatedPreexistingOrphans = unrelatedInvalid.filter((name) => preexistingWeightKeys.has(name));
-    const legitimateNonSyllabus = Object.keys(weights)
-      .map(cleanText)
-      .filter(Boolean)
-      .filter((name) => !syllabusNames.has(name) && disciplineExists(state, name));
-
+  function migrationTouchedDisciplineNames() { return new Set([...REMOVABLE_IF_EMPTY, ...SPLIT_ORIGINS, ...Object.keys(WHOLE_MERGES), ...Object.values(WHOLE_MERGES), ...Object.values(DESTINATIONS)]); }
+  function validateWeightKeysPostCondition(state, preexistingWeightKeys = new Set(), report = {}) {
+    const weights = state?.disciplineWeights || {}, touched = migrationTouchedDisciplineNames();
+    const invalid = Object.keys(weights).map(cleanText).filter((n) => n && !disciplineExists(state, n));
+    const touchedInvalid = invalid.filter((n) => touched.has(n));
+    const unrelatedInvalid = invalid.filter((n) => !touched.has(n));
+    const syllabusNames = new Set((state?.syllabusItems || []).map((i) => cleanText(i?.discipline)).filter(Boolean));
     report.weightValidation = {
       mode: "post-condition",
       existenceRule: "syllabusItems|dailyGoals|operational",
-      legitimateNonSyllabusWeights: [...new Set(legitimateNonSyllabus)].sort((a, b) => a.localeCompare(b, "pt-BR")),
-      unrelatedPreexistingOrphanWeights: [...new Set(unrelatedPreexistingOrphans)].sort((a, b) => a.localeCompare(b, "pt-BR")),
-      unrelatedInvalidWeights: [...new Set(unrelatedInvalid)].sort((a, b) => a.localeCompare(b, "pt-BR")),
-      touchedInvalidWeights: [...new Set(touchedInvalid)].sort((a, b) => a.localeCompare(b, "pt-BR"))
+      legitimateNonSyllabusWeights: Object.keys(weights).map(cleanText).filter((n) => n && !syllabusNames.has(n) && disciplineExists(state, n)),
+      unrelatedPreexistingOrphanWeights: unrelatedInvalid.filter((n) => preexistingWeightKeys.has(n)),
+      unrelatedInvalidWeights: unrelatedInvalid,
+      touchedInvalidWeights: touchedInvalid
     };
-
-    if (touchedInvalid.length) {
-      throw new Error(`V426: pós-condição de disciplineWeights falhou nas disciplinas tocadas: ${touchedInvalid.join(", ")}`);
-    }
+    if (touchedInvalid.length) throw new Error(`V426: pós-condição de disciplineWeights falhou: ${touchedInvalid.join(", ")}`);
   }
-
-  function assertNoWrongDestinationHyphen(state) {
-    for (const name of collectDisciplineNames(state)) {
-      if (destinationHasWrongHyphen(name)) throw new Error(`V426: destino usa hífen em vez de travessão: ${name}`);
-    }
-  }
-
-  function applyPlanningConfig(working, report) {
-    working.planning ||= {};
-    working.planning.config ||= {};
-    const config = working.planning.config;
-    const topicsBefore = config.topicsPerDay;
-    config.topicsPerDay = 8;
-    if (topicsBefore !== 8) report.configChanges.push({ path: "planning.config.topicsPerDay", before: topicsBefore ?? null, after: 8 });
-    const disciplinesBefore = Number(config.disciplinesPerDay);
-    if (!Number.isFinite(disciplinesBefore) || disciplinesBefore < 8) {
-      const before = config.disciplinesPerDay;
-      config.disciplinesPerDay = 8;
-      report.configChanges.push({ path: "planning.config.disciplinesPerDay", before: before ?? null, after: 8 });
-    }
-  }
-
-  function replaceState(target, source) {
-    for (const key of Object.keys(target)) delete target[key];
-    Object.assign(target, source);
-  }
-
-  function completedMigration(targetState) {
-    return targetState?.migrations?.[MIGRATION_KEY]?.completed === true;
-  }
-
-  function readMigrationAbortLock() {
+  function basePostConditionsSatisfied(state) {
     try {
-      const raw = localStorage.getItem(ABORT_LOCK_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch { return null; }
-  }
-
-  function clearMigrationAbortLock() {
-    try { localStorage.removeItem(ABORT_LOCK_KEY); } catch {}
-  }
-
-  function migrationAbortLockApplies(buildVersion = VERSION) {
-    const lock = readMigrationAbortLock();
-    if (!lock) return false;
-    if (lock.buildVersion !== buildVersion) {
-      clearMigrationAbortLock();
-      return false;
-    }
-    return true;
-  }
-
-  function markMigrationAbort(error, backup, buildVersion = VERSION) {
-    if (!backup?.confirmed || !cleanText(backup.fileName)) return false;
-    const lock = {
-      buildVersion,
-      backupFileName: cleanText(backup.fileName),
-      backupSavedAt: backup.savedAt || null,
-      error: cleanText(error?.message || error || "falha desconhecida"),
-      abortedAt: new Date().toISOString()
-    };
-    try {
-      localStorage.setItem(ABORT_LOCK_KEY, JSON.stringify(lock));
+      assertNoLegacyNamesRemain(state); assertNoWrongDestinationHyphen(state);
+      if (Number(state?.planning?.config?.topicsPerDay) !== 8 || Number(state?.planning?.config?.disciplinesPerDay) < 8) return false;
+      if (isObject(state?.contestPlanningProfiles?.joint?.categories) && Number(state.contestPlanningProfiles.joint.categories.C) !== 0) return false;
+      for (const name of REMOVABLE_IF_EMPTY) {
+        const empty = !(state?.syllabusItems || []).some((i) => cleanText(i?.discipline) === name);
+        if (empty && hasOwn(state?.disciplineWeights || {}, name)) return false;
+      }
       return true;
     } catch { return false; }
   }
+  function completedMigration(state) { return state?.migrations?.[MIGRATION_KEY]?.completed === true && basePostConditionsSatisfied(state); }
+  function snapshotLengths(state) { return Object.fromEntries(PROTECTED_LENGTHS.map((k) => [k, Array.isArray(state?.[k]) ? state[k].length : 0])); }
+  function assertLengthsUnchanged(a, b) { for (const k of PROTECTED_LENGTHS) if (a[k] !== b[k]) throw new Error(`V426: coleção ${k} mudou de tamanho (${a[k]} -> ${b[k]}).`); }
+  function replaceState(target, source) { for (const k of Object.keys(target)) delete target[k]; Object.assign(target, source); }
 
   function applyDisciplineUnificationV426(targetState = {}, options = {}) {
     assertDestinationSpelling();
     if (!isObject(targetState)) return { changed: false, blocked: true, reason: "state-unavailable" };
-    if (completedMigration(targetState)) {
-      return { changed: false, blocked: false, repeated: true, report: clone(targetState.migrations[MIGRATION_KEY].report || {}) };
-    }
-
+    if (completedMigration(targetState)) return { changed: false, blocked: false, repeated: true, report: clone(targetState.migrations[MIGRATION_KEY].report || {}) };
     const backup = options.backupConfirmation;
     if (!backup?.confirmed || !cleanText(backup.fileName)) return { changed: false, blocked: true, reason: "backup-required" };
-
-    const beforeNames = collectDisciplineNames(targetState);
-    const preexistingWeightKeys = new Set(Object.keys(isObject(targetState.disciplineWeights) ? targetState.disciplineWeights : {}).map(cleanText).filter(Boolean));
-    const protectedBefore = snapshotLengths(targetState);
+    const protectedBefore = snapshotLengths(targetState), beforeNames = collectDisciplineNames(targetState);
+    const preexistingWeightKeys = new Set(Object.keys(targetState.disciplineWeights || {}).map(cleanText));
     const working = clone(targetState);
-    const report = {
-      version: VERSION,
-      backup: {
-        confirmed: true,
-        fileName: cleanText(backup.fileName),
-        savedAt: backup.savedAt || new Date().toISOString(),
-        bytes: Number.isFinite(Number(backup.bytes)) ? Number(backup.bytes) : null
-      },
-      collectionRewriteCounts: {},
-      stageAReassignments: [],
-      stageAUnmatched: [],
-      weightMerges: [],
-      excludedDisciplines: [],
-      notEmptyDisciplines: [],
-      stageCDetails: [],
-      weightValidation: null,
-      configChanges: [],
-      distinctDisciplineNamesBefore: beforeNames.size,
-      distinctDisciplineNamesAfter: null,
-      destinationHyphenValidated: false
-    };
-
+    const report = { version: VERSION, backup: clone(backup), collectionRewriteCounts: {}, stageAReassignments: [], stageAUnmatched: [], weightMerges: [], excludedDisciplines: [], notEmptyDisciplines: [], stageCDetails: [], weightValidation: null, configChanges: [], distinctDisciplineNamesBefore: beforeNames.size, distinctDisciplineNamesAfter: null, destinationHyphenValidated: false };
     working.disciplineWeights ||= {};
-    const targetBySyllabusId = buildSplitTargetMap(working, report);
-    rewriteCollections(working, targetBySyllabusId, report);
+    const map = buildSplitTargetMap(working, report);
+    rewriteCollections(working, map, report);
     rewriteWeightMap(working.disciplineWeights, report, "disciplineWeights");
     normalizePlanningProfiles(working, report);
     removeEmptyDisciplines(working, report);
     applyPlanningConfig(working, report);
-
-    const protectedAfter = snapshotLengths(working);
-    assertLengthsUnchanged(protectedBefore, protectedAfter);
-    assertNoLegacyNamesRemain(working);
-    assertNoWrongDestinationHyphen(working);
+    assertLengthsUnchanged(protectedBefore, snapshotLengths(working));
+    assertNoLegacyNamesRemain(working); assertNoWrongDestinationHyphen(working);
     validateWeightKeysPostCondition(working, preexistingWeightKeys, report);
-
-    report.distinctDisciplineNamesAfter = collectDisciplineNames(working).size;
-    report.destinationHyphenValidated = true;
+    report.distinctDisciplineNamesAfter = collectDisciplineNames(working).size; report.destinationHyphenValidated = true;
     working.migrations ||= {};
-    working.migrations[MIGRATION_KEY] = {
-      version: VERSION,
-      executedAt: new Date().toISOString(),
-      completed: true,
-      backup: clone(report.backup),
-      report: clone(report)
-    };
-
+    const prior = isObject(working.migrations[MIGRATION_KEY]) ? working.migrations[MIGRATION_KEY] : {};
+    working.migrations[MIGRATION_KEY] = { ...prior, version: VERSION, executedAt: new Date().toISOString(), completed: true, backup: clone(report.backup), report: clone(report), stages: { ...(prior.stages || {}), ABCD: { completed: true, version: VERSION, executedAt: new Date().toISOString() } } };
     replaceState(targetState, working);
     return { changed: true, blocked: false, report: clone(report) };
   }
 
   function enforcePostMigrationPlanningProfile(targetState) {
-    if (!completedMigration(targetState)) return false;
-    const joint = targetState?.contestPlanningProfiles?.joint;
-    if (!isObject(joint?.categories)) return false;
-    joint.categories.C = 0;
-    return true;
+    if (!targetState?.migrations?.[MIGRATION_KEY]) return false;
+    const categories = targetState?.contestPlanningProfiles?.joint?.categories;
+    if (!isObject(categories)) return false;
+    categories.C = 0; return true;
   }
-
   function installPcprCompatibilityWrapper() {
     try {
       const current = globalThis.applyPcprPcma2026Migration;
       if (typeof current !== "function" || current[WRAP_MARKER] === VERSION) return Boolean(current);
-      const wrapped = function applyPcprPcma2026MigrationV426(...args) {
-        const result = current.apply(this, args);
-        enforcePostMigrationPlanningProfile(args[0]);
-        return result;
-      };
-      Object.defineProperty(wrapped, WRAP_MARKER, { value: VERSION });
-      Object.defineProperty(wrapped, "__aldusV426Original", { value: current });
-      globalThis.applyPcprPcma2026Migration = wrapped;
-      return true;
+      const wrapped = function(...args) { const result = current.apply(this, args); enforcePostMigrationPlanningProfile(args[0]); return result; };
+      Object.defineProperty(wrapped, WRAP_MARKER, { value: VERSION }); globalThis.applyPcprPcma2026Migration = wrapped; return true;
     } catch { return false; }
   }
-
-  function reportText(report = {}) {
-    const validation = report.weightValidation || {};
-    const lines = [
-      "V426 — Relatório de unificação de disciplinas",
-      `Backup confirmado: ${report.backup?.fileName || "não informado"}`,
-      `Nomes distintos: ${report.distinctDisciplineNamesBefore ?? "?"} → ${report.distinctDisciplineNamesAfter ?? "?"}`,
-      `Travessão validado: ${report.destinationHyphenValidated ? "sim" : "não"}`,
-      "",
-      "Registros reescritos por coleção:"
-    ];
-    for (const [collection, count] of Object.entries(report.collectionRewriteCounts || {})) lines.push(`- ${collection}: ${count}`);
-    lines.push("", "Etapa A — itens reatribuídos:");
-    for (const item of report.stageAReassignments || []) lines.push(`- ${item.subject} → ${item.to}${item.law ? ` [${item.law}]` : ""}`);
-    lines.push("", "Etapa A — sem regra específica (encaminhados para Penal):");
-    if (!(report.stageAUnmatched || []).length) lines.push("- nenhum");
-    else for (const item of report.stageAUnmatched) lines.push(`- ${item.subject}`);
-    lines.push("", "Fusões de peso:");
-    if (!(report.weightMerges || []).length) lines.push("- nenhuma");
-    else for (const item of report.weightMerges) lines.push(`- [${item.scope}] ${item.from} (${String(item.sourceWeight)}) → ${item.to}; final ${String(item.finalWeight)}`);
-    lines.push("", `Disciplinas excluídas: ${(report.excludedDisciplines || []).join("; ") || "nenhuma"}`);
-    lines.push(`Deveriam estar vazias, mas não estavam: ${(report.notEmptyDisciplines || []).map((item) => `${item.name} (syllabus=${item.syllabusItems}, refs=${item.otherReferences})`).join("; ") || "nenhuma"}`);
-    lines.push("", "Validação de disciplineWeights — pós-condição:");
-    lines.push(`- disciplinas legítimas sem item de edital: ${(validation.legitimateNonSyllabusWeights || []).join("; ") || "nenhuma"}`);
-    lines.push(`- chaves órfãs preexistentes não relacionadas: ${(validation.unrelatedPreexistingOrphanWeights || []).join("; ") || "nenhuma"}`);
-    lines.push(`- inválidas entre disciplinas tocadas: ${(validation.touchedInvalidWeights || []).join("; ") || "nenhuma"}`);
-    lines.push("", "Configurações:");
-    for (const item of report.configChanges || []) lines.push(`- ${item.path}: ${String(item.before)} → ${String(item.after)}`);
-    return lines.join("\n");
-  }
+  function readMigrationAbortLock() { try { const raw = localStorage.getItem(ABORT_LOCK_KEY); return raw ? JSON.parse(raw) : null; } catch { return null; } }
+  function clearMigrationAbortLock() { try { localStorage.removeItem(ABORT_LOCK_KEY); } catch {} }
+  function migrationAbortLockApplies(buildVersion = VERSION) { const lock = readMigrationAbortLock(); if (!lock) return false; if (lock.buildVersion !== buildVersion) { clearMigrationAbortLock(); return false; } return true; }
+  function markMigrationAbort(error, backup, buildVersion = VERSION) { if (!backup?.confirmed || !cleanText(backup.fileName)) return false; try { localStorage.setItem(ABORT_LOCK_KEY, JSON.stringify({ buildVersion, backupFileName: cleanText(backup.fileName), backupSavedAt: backup.savedAt || null, error: cleanText(error?.message || error), abortedAt: new Date().toISOString() })); return true; } catch { return false; } }
+  function reportText(report = {}) { return ["V426 — Relatório de unificação de disciplinas", `Backup confirmado: ${report.backup?.fileName || "não informado"}`, `Nomes distintos: ${report.distinctDisciplineNamesBefore ?? "?"} → ${report.distinctDisciplineNamesAfter ?? "?"}`, `Etapa A: ${(report.stageAReassignments || []).length} reatribuições`, `Disciplinas excluídas: ${(report.excludedDisciplines || []).join("; ") || "nenhuma"}`, `Configurações: ${(report.configChanges || []).map((i) => `${i.path}: ${String(i.before)}→${String(i.after)}`).join("; ") || "nenhuma"}`].join("\n"); }
 
   async function buildAndSaveBackup(targetState) {
-    if (typeof globalThis.showSaveFilePicker !== "function") throw new Error("Este navegador não permite confirmar a gravação do backup. Use Chrome/Edge desktop atualizado.");
-    const exportedAt = new Date().toISOString();
-    let storageValue = "";
-    try { storageValue = localStorage.getItem("metasConcursoData") || ""; } catch {}
-    const envelope = {
-      app: "Aldus Meta",
-      schema: "discipline-unification-v426-pre-migration-backup",
-      version: 1,
-      storageKey: "metasConcursoData",
-      exportedAt,
-      data: clone(targetState),
-      localStorage: { metasConcursoData: storageValue || JSON.stringify(targetState) }
-    };
-    const payload = JSON.stringify(envelope, null, 2);
+    if (typeof globalThis.showSaveFilePicker !== "function") throw new Error("Este navegador não permite confirmar a gravação do backup.");
+    const exportedAt = new Date().toISOString(), payload = JSON.stringify({ app: "Aldus Meta", schema: "discipline-unification-v426-pre-migration-backup", version: 1, storageKey: "metasConcursoData", exportedAt, data: clone(targetState), localStorage: { metasConcursoData: (() => { try { return localStorage.getItem("metasConcursoData") || JSON.stringify(targetState); } catch { return JSON.stringify(targetState); } })() } }, null, 2);
     const suggestedName = `backup-metas-estudo-v426-${exportedAt.replace(/[:.]/g, "-")}.json`;
-    const handle = await globalThis.showSaveFilePicker({ suggestedName, types: [{ description: "Backup JSON Aldus Meta", accept: { "application/json": [".json"] } }] });
-    const writable = await handle.createWritable();
-    try { await writable.write(payload); await writable.close(); }
-    catch (error) { try { await writable.abort?.(); } catch {} throw error; }
-    const savedFile = await handle.getFile();
-    const expectedBytes = new Blob([payload]).size;
-    if (savedFile.size !== expectedBytes) throw new Error(`Backup incompleto: esperado ${expectedBytes} bytes, gravado ${savedFile.size}.`);
-    return { confirmed: true, fileName: savedFile.name || handle.name || suggestedName, savedAt: new Date().toISOString(), bytes: savedFile.size };
+    const handle = await showSaveFilePicker({ suggestedName, types: [{ description: "Backup JSON Aldus Meta", accept: { "application/json": [".json"] } }] });
+    const writable = await handle.createWritable(); await writable.write(payload); await writable.close();
+    const file = await handle.getFile(); if (file.size !== new Blob([payload]).size) throw new Error("Backup incompleto.");
+    return { confirmed: true, fileName: file.name || suggestedName, savedAt: new Date().toISOString(), bytes: file.size };
   }
+  function armBrowserMigration() { installPcprCompatibilityWrapper(); return true; }
 
-  function createPanel() {
-    if (typeof document === "undefined" || document.getElementById("aldusV426MigrationPanel")) return null;
-    const panel = document.createElement("section");
-    panel.id = "aldusV426MigrationPanel";
-    panel.setAttribute("role", "status");
-    panel.style.cssText = "position:fixed;right:16px;bottom:16px;z-index:2147483000;width:min(520px,calc(100vw - 32px));max-height:72vh;overflow:auto;background:#fff;border:1px solid #c9c3b8;border-radius:12px;box-shadow:0 12px 36px rgba(0,0,0,.22);padding:16px;font:14px/1.45 Arial,sans-serif;color:#181818";
-    panel.innerHTML = '<strong style="display:block;font-size:16px;margin-bottom:8px">V426 — unificação de disciplinas</strong><p style="margin:0 0 12px">Antes de alterar qualquer dado, o Aldus Meta precisa gravar e verificar um backup JSON completo.</p><button type="button" data-v426-apply style="border:0;border-radius:8px;padding:10px 14px;font-weight:700;cursor:pointer">Salvar backup e aplicar V426</button><div data-v426-status style="margin-top:10px"></div>';
-    document.body.appendChild(panel);
-    return panel;
-  }
-
-  function renderAbortLock(panel, buildVersion = VERSION) {
-    if (!migrationAbortLockApplies(buildVersion)) return false;
-    const lock = readMigrationAbortLock() || {};
-    const button = panel?.querySelector?.("[data-v426-apply]");
-    const status = panel?.querySelector?.("[data-v426-status]");
-    if (button) {
-      button.disabled = true;
-      button.textContent = "V426 aguardando correção publicada";
-    }
-    if (status) status.textContent = `A tentativa anterior abortou depois do backup ${lock.backupFileName || "confirmado"}. Esta versão não solicitará outro backup. A tentativa será liberada automaticamente quando uma versão corrigida for publicada.`;
-    return true;
-  }
-
-  function armBrowserMigration() {
-    try {
-      if (typeof state === "undefined" || !isObject(state)) return false;
-      installPcprCompatibilityWrapper();
-      if (completedMigration(state)) {
-        clearMigrationAbortLock();
-        enforcePostMigrationPlanningProfile(state);
-        return true;
-      }
-      const panel = createPanel();
-      if (!panel) return false;
-      if (renderAbortLock(panel, VERSION)) return true;
-      const button = panel.querySelector("[data-v426-apply]");
-      const status = panel.querySelector("[data-v426-status]");
-      button?.addEventListener("click", async () => {
-        button.disabled = true;
-        status.textContent = "Gravando e verificando o backup…";
-        let backupConfirmation = null;
-        try {
-          backupConfirmation = await buildAndSaveBackup(state);
-          if (typeof saveData !== "function") throw new Error("Função de persistência indisponível; a migração não foi iniciada.");
-          const beforeMigration = clone(state);
-          const result = applyDisciplineUnificationV426(state, { backupConfirmation });
-          if (result.blocked) throw new Error(result.reason || "Migração bloqueada.");
-          installPcprCompatibilityWrapper();
-          enforcePostMigrationPlanningProfile(state);
-          try { saveData(); }
-          catch (saveError) {
-            replaceState(state, beforeMigration);
-            throw new Error(`Falha ao persistir a V426; estado em memória restaurado. ${saveError?.message || String(saveError)}`);
-          }
-          clearMigrationAbortLock();
-          const text = reportText(result.report);
-          status.innerHTML = '<strong>V426 aplicada com backup confirmado.</strong><pre data-v426-report style="white-space:pre-wrap;max-height:42vh;overflow:auto;background:#f7f5f1;padding:10px;border-radius:8px"></pre><button type="button" data-v426-copy style="margin-top:8px">Copiar relatório</button>';
-          status.querySelector("[data-v426-report]").textContent = text;
-          status.querySelector("[data-v426-copy]")?.addEventListener("click", async () => { try { await navigator.clipboard.writeText(text); } catch {} });
-          console.info("[Aldus V426] Migração concluída", result.report);
-          try { window.dispatchEvent(new CustomEvent("aldus:discipline-unification-v426-complete", { detail: clone(result.report) })); } catch {}
-        } catch (error) {
-          const cancelled = error?.name === "AbortError";
-          if (!cancelled && backupConfirmation?.confirmed) markMigrationAbort(error, backupConfirmation, VERSION);
-          status.textContent = cancelled
-            ? "Backup cancelado. Nenhum dado da V426 foi alterado."
-            : `V426 não aplicada: ${error?.message || String(error)} Nenhum dado da V426 foi alterado.`;
-          if (!renderAbortLock(panel, VERSION)) button.disabled = false;
-        }
-      });
-      return true;
-    } catch { return false; }
-  }
-
-  const api = Object.freeze({
-    version: VERSION,
-    migrationKey: MIGRATION_KEY,
-    destinations: DESTINATIONS,
-    splitOrigins: SPLIT_ORIGINS,
-    wholeMerges: WHOLE_MERGES,
-    apply: applyDisciplineUnificationV426,
-    reportText,
-    disciplineExists,
-    validateWeightKeysPostCondition,
-    enforcePostMigrationPlanningProfile,
-    installPcprCompatibilityWrapper,
-    markMigrationAbort,
-    clearMigrationAbortLock,
-    migrationAbortLockApplies,
-    readMigrationAbortLock,
-    abortLockKey: ABORT_LOCK_KEY,
-    armBrowserMigration
-  });
-
-  globalThis[API_KEY] = api;
-  globalThis.applyDisciplineUnificationV426 = applyDisciplineUnificationV426;
+  const api = Object.freeze({ version: VERSION, migrationKey: MIGRATION_KEY, destinations: DESTINATIONS, splitOrigins: SPLIT_ORIGINS, wholeMerges: WHOLE_MERGES, apply: applyDisciplineUnificationV426, reportText, disciplineExists, validateWeightKeysPostCondition, basePostConditionsSatisfied, completedMigration, enforcePostMigrationPlanningProfile, installPcprCompatibilityWrapper, markMigrationAbort, clearMigrationAbortLock, migrationAbortLockApplies, readMigrationAbortLock, abortLockKey: ABORT_LOCK_KEY, buildAndSaveBackup, armBrowserMigration });
+  globalThis[API_KEY] = api; globalThis.applyDisciplineUnificationV426 = applyDisciplineUnificationV426;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
-
-  if (typeof window !== "undefined") {
-    window.addEventListener("aldus:bootstrap-ready", armBrowserMigration, { once: true });
-    window.addEventListener("aldus:post-bootstrap-maintenance-complete", armBrowserMigration, { once: true });
-    window.addEventListener("load", armBrowserMigration, { once: true });
-  }
+  if (typeof window !== "undefined") { window.addEventListener("aldus:bootstrap-ready", armBrowserMigration, { once: true }); window.addEventListener("aldus:post-bootstrap-maintenance-complete", armBrowserMigration, { once: true }); window.addEventListener("load", armBrowserMigration, { once: true }); }
 })();
