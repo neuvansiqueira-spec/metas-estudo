@@ -7,8 +7,7 @@
   const indexCache = new WeakMap();
   let installed = false;
 
-  // V426 — transporte pré-bootstrap para a migração de disciplinas.
-  // O módulo carregado é one-shot e não altera o hot path do índice V350.
+  // V426 — transporte pré-bootstrap para a migração-base de disciplinas.
   function installDisciplineUnificationV426() {
     if (typeof document === "undefined") return;
     if (document.getElementById("aldusDisciplineUnificationV426")) return;
@@ -18,6 +17,22 @@
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V426] Falha ao carregar a migração de unificação de disciplinas.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
+  // V426 revisada — B.1 (duplicatas sem histórico) + E (reagendamento PCMA).
+  // O complemento espera a migração-base, reutiliza o mesmo backup no fluxo novo
+  // e exige novo backup apenas quando a V426 inicial já havia sido aplicada.
+  function installDisciplineUnificationRevisionV426() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusDisciplineUnificationRevisionV426")) return;
+    const script = document.createElement("script");
+    script.id = "aldusDisciplineUnificationRevisionV426";
+    script.src = "discipline-unification-v426-revision.js?v=20260901-discipline-unification-v426-revision-b1-e";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V426 revisada] Falha ao carregar B.1/E.");
     }, { once: true });
     (document.head || document.documentElement).appendChild(script);
   }
@@ -76,6 +91,7 @@
   }
 
   installDisciplineUnificationV426();
+  installDisciplineUnificationRevisionV426();
   if (install()) return;
 
   const startedAt = Date.now();
