@@ -1,10 +1,11 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260901-discipline-unification-v426";
+  const VERSION = "20260901-discipline-unification-v426-postcondition-r2";
   const MIGRATION_KEY = "disciplineUnificationV426";
   const API_KEY = "__ALDUS_DISCIPLINE_UNIFICATION_V426__";
   const WRAP_MARKER = "__aldusDisciplineUnificationV426Wrapped";
+  const ABORT_LOCK_KEY = "aldus:v426:aborted-build-lock";
 
   const SPLIT_ORIGINS = Object.freeze([
     "LEGISLAÇÃO PENAL E LEGISLAÇÃO PROCESSUAL PENAL EXTRAVAGANTE",
@@ -45,6 +46,7 @@
   ]);
 
   const EXPLICIT_PENAL_LAWS = Object.freeze(["9.609", "9.610", "12.288", "6.001"]);
+  const OPERATIONAL_DISCIPLINES = new Set(["simulado", "simulados", "peca", "pecas"]);
 
   const LIST_COLLECTIONS = Object.freeze([
     ["syllabusItems", ["discipline"]],
@@ -70,6 +72,10 @@
 
   function cleanText(value) {
     return String(value ?? "").replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim();
+  }
+
+  function canonical(value) {
+    return cleanText(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   }
 
   function recordText(record = {}) {
@@ -112,21 +118,14 @@
 
   function buildSplitTargetMap(working, report) {
     const targetBySyllabusId = new Map();
-    const items = Array.isArray(working.syllabusItems) ? working.syllabusItems : [];
-    for (const item of items) {
+    for (const item of Array.isArray(working.syllabusItems) ? working.syllabusItems : []) {
       if (!SPLIT_ORIGINS.includes(item?.discipline)) continue;
       const from = item.discipline;
       const classification = classifySplitRecord(item);
       targetBySyllabusId.set(String(item.id || ""), classification.target);
       item.discipline = classification.target;
       rememberCount(report, "syllabusItems");
-      const entry = {
-        id: item.id || "",
-        subject: recordLabel(item),
-        from,
-        to: classification.target,
-        law: classification.law
-      };
+      const entry = { id: item.id || "", subject: recordLabel(item), from, to: classification.target, law: classification.law };
       report.stageAReassignments.push(entry);
       if (!classification.matched) report.stageAUnmatched.push(entry);
     }
@@ -164,25 +163,18 @@
 
   function rewriteCollections(working, targetBySyllabusId, report) {
     for (const [collection, fields] of LIST_COLLECTIONS) {
-      const list = Array.isArray(working[collection]) ? working[collection] : [];
-      for (const record of list) {
+      for (const record of Array.isArray(working[collection]) ? working[collection] : []) {
         if (collection === "syllabusItems" && !SPLIT_ORIGINS.includes(record?.discipline) && !hasOwn(WHOLE_MERGES, record?.discipline)) continue;
         if (rewriteRecordFields(record, fields, targetBySyllabusId)) rememberCount(report, collection);
       }
     }
-
-    const sessions = Array.isArray(working.questionBankSessions) ? working.questionBankSessions : [];
-    for (const session of sessions) {
-      const items = Array.isArray(session?.items) ? session.items : [];
-      for (const item of items) {
+    for (const session of Array.isArray(working.questionBankSessions) ? working.questionBankSessions : []) {
+      for (const item of Array.isArray(session?.items) ? session.items : []) {
         if (rewriteRecordFields(item, ["disciplina"], targetBySyllabusId)) rememberCount(report, "questionBankSessions.items");
       }
     }
-
-    const simulados = Array.isArray(working.simulados) ? working.simulados : [];
-    for (const simulado of simulados) {
-      const disciplines = Array.isArray(simulado?.disciplines) ? simulado.disciplines : [];
-      for (const discipline of disciplines) {
+    for (const simulado of Array.isArray(working.simulados) ? working.simulados : []) {
+      for (const discipline of Array.isArray(simulado?.disciplines) ? simulado.disciplines : []) {
         if (rewriteRecordFields(discipline, ["discipline"], targetBySyllabusId)) rememberCount(report, "simulados.disciplines");
       }
     }
@@ -206,14 +198,7 @@
     else finalValue = targetRaw !== undefined ? targetRaw : sourceRaw;
     weights[target] = finalValue;
     delete weights[source];
-    report.weightMerges.push({
-      scope,
-      from: source,
-      to: target,
-      sourceWeight: sourceRaw,
-      previousDestinationWeight: targetRaw ?? null,
-      finalWeight: finalValue
-    });
+    report.weightMerges.push({ scope, from: source, to: target, sourceWeight: sourceRaw, previousDestinationWeight: targetRaw ?? null, finalWeight: finalValue });
     rememberCount(report, scope);
     return true;
   }
@@ -225,28 +210,18 @@
   }
 
   function normalizePlanningProfiles(working, report) {
-    const profiles = isObject(working.contestPlanningProfiles) ? working.contestPlanningProfiles : null;
-    if (!profiles) return;
-    const joint = profiles.joint;
-    if (isObject(joint?.categories)) {
-      const before = joint.categories.C;
-      joint.categories.C = 0;
-      if (before !== 0) {
-        report.configChanges.push({ path: "contestPlanningProfiles.joint.categories.C", before, after: 0 });
-      }
-    }
+    const joint = isObject(working.contestPlanningProfiles) ? working.contestPlanningProfiles.joint : null;
+    if (!isObject(joint?.categories)) return;
+    const before = joint.categories.C;
+    joint.categories.C = 0;
+    if (before !== 0) report.configChanges.push({ path: "contestPlanningProfiles.joint.categories.C", before, after: 0 });
   }
 
   function collectDisciplineNames(state) {
     const names = new Set();
-    const add = (value) => {
-      const name = cleanText(value);
-      if (name) names.add(name);
-    };
+    const add = (value) => { const name = cleanText(value); if (name) names.add(name); };
     for (const [collection, fields] of LIST_COLLECTIONS) {
-      for (const record of Array.isArray(state?.[collection]) ? state[collection] : []) {
-        for (const field of fields) add(record?.[field]);
-      }
+      for (const record of Array.isArray(state?.[collection]) ? state[collection] : []) for (const field of fields) add(record?.[field]);
     }
     for (const session of Array.isArray(state?.questionBankSessions) ? state.questionBankSessions : []) {
       for (const item of Array.isArray(session?.items) ? session.items : []) add(item?.disciplina);
@@ -266,14 +241,10 @@
       }
     }
     for (const session of Array.isArray(state?.questionBankSessions) ? state.questionBankSessions : []) {
-      for (const item of Array.isArray(session?.items) ? session.items : []) {
-        if (cleanText(item?.disciplina) === name) count += 1;
-      }
+      for (const item of Array.isArray(session?.items) ? session.items : []) if (cleanText(item?.disciplina) === name) count += 1;
     }
     for (const simulado of Array.isArray(state?.simulados) ? state.simulados : []) {
-      for (const item of Array.isArray(simulado?.disciplines) ? simulado.disciplines : []) {
-        if (cleanText(item?.discipline) === name) count += 1;
-      }
+      for (const item of Array.isArray(simulado?.disciplines) ? simulado.disciplines : []) if (cleanText(item?.discipline) === name) count += 1;
     }
     return count;
   }
@@ -283,20 +254,18 @@
     working.disciplineWeights ||= {};
     for (const name of REMOVABLE_IF_EMPTY) {
       const syllabusCount = syllabusItems.filter((item) => cleanText(item?.discipline) === name).length;
+      const otherReferences = Math.max(0, countNamedReferences(working, name) - syllabusCount);
       if (syllabusCount > 0) {
-        report.notEmptyDisciplines.push({ name, syllabusItems: syllabusCount, otherReferences: countNamedReferences(working, name) - syllabusCount });
+        report.notEmptyDisciplines.push({ name, syllabusItems: syllabusCount, otherReferences });
         continue;
       }
-      const otherReferences = countNamedReferences(working, name);
-      if (otherReferences > 0) {
-        report.notEmptyDisciplines.push({ name, syllabusItems: 0, otherReferences });
-        continue;
-      }
-      if (hasOwn(working.disciplineWeights, name)) {
+      const hadWeight = hasOwn(working.disciplineWeights, name);
+      if (hadWeight) {
         delete working.disciplineWeights[name];
         rememberCount(report, "disciplineWeights");
       }
       report.excludedDisciplines.push(name);
+      report.stageCDetails.push({ name, removedWeight: hadWeight, preservedHistoricalReferences: otherReferences });
     }
   }
 
@@ -317,10 +286,45 @@
     if (remaining.length) throw new Error(`V426: nomes antigos permaneceram após migração: ${remaining.join(", ")}`);
   }
 
-  function assertWeightKeysExist(state) {
+  function disciplineExists(state, name) {
+    const wanted = cleanText(name);
+    if (!wanted) return false;
+    if (OPERATIONAL_DISCIPLINES.has(canonical(wanted))) return true;
+    if ((Array.isArray(state?.syllabusItems) ? state.syllabusItems : []).some((item) => cleanText(item?.discipline) === wanted)) return true;
+    return (Array.isArray(state?.dailyGoals) ? state.dailyGoals : []).some((goal) => cleanText(goal?.discipline) === wanted || cleanText(goal?.disciplina) === wanted);
+  }
+
+  function migrationTouchedDisciplineNames() {
+    const names = new Set([...REMOVABLE_IF_EMPTY, ...SPLIT_ORIGINS, ...Object.keys(WHOLE_MERGES), ...Object.values(WHOLE_MERGES), ...Object.values(DESTINATIONS)]);
+    for (const [, target] of SPECIFIC_LAW_RULES) names.add(target);
+    return names;
+  }
+
+  function validateWeightKeysPostCondition(state, preexistingWeightKeys, report) {
+    const weights = isObject(state?.disciplineWeights) ? state.disciplineWeights : {};
     const syllabusNames = new Set((Array.isArray(state?.syllabusItems) ? state.syllabusItems : []).map((item) => cleanText(item?.discipline)).filter(Boolean));
-    const invalid = Object.keys(isObject(state?.disciplineWeights) ? state.disciplineWeights : {}).filter((name) => !syllabusNames.has(cleanText(name)));
-    if (invalid.length) throw new Error(`V426: disciplineWeights contém disciplina inexistente: ${invalid.join(", ")}`);
+    const invalid = Object.keys(weights).map(cleanText).filter(Boolean).filter((name) => !disciplineExists(state, name));
+    const touched = migrationTouchedDisciplineNames();
+    const touchedInvalid = invalid.filter((name) => touched.has(name));
+    const unrelatedInvalid = invalid.filter((name) => !touched.has(name));
+    const unrelatedPreexistingOrphans = unrelatedInvalid.filter((name) => preexistingWeightKeys.has(name));
+    const legitimateNonSyllabus = Object.keys(weights)
+      .map(cleanText)
+      .filter(Boolean)
+      .filter((name) => !syllabusNames.has(name) && disciplineExists(state, name));
+
+    report.weightValidation = {
+      mode: "post-condition",
+      existenceRule: "syllabusItems|dailyGoals|operational",
+      legitimateNonSyllabusWeights: [...new Set(legitimateNonSyllabus)].sort((a, b) => a.localeCompare(b, "pt-BR")),
+      unrelatedPreexistingOrphanWeights: [...new Set(unrelatedPreexistingOrphans)].sort((a, b) => a.localeCompare(b, "pt-BR")),
+      unrelatedInvalidWeights: [...new Set(unrelatedInvalid)].sort((a, b) => a.localeCompare(b, "pt-BR")),
+      touchedInvalidWeights: [...new Set(touchedInvalid)].sort((a, b) => a.localeCompare(b, "pt-BR"))
+    };
+
+    if (touchedInvalid.length) {
+      throw new Error(`V426: pós-condição de disciplineWeights falhou nas disciplinas tocadas: ${touchedInvalid.join(", ")}`);
+    }
   }
 
   function assertNoWrongDestinationHyphen(state) {
@@ -353,24 +357,54 @@
     return targetState?.migrations?.[MIGRATION_KEY]?.completed === true;
   }
 
+  function readMigrationAbortLock() {
+    try {
+      const raw = localStorage.getItem(ABORT_LOCK_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  }
+
+  function clearMigrationAbortLock() {
+    try { localStorage.removeItem(ABORT_LOCK_KEY); } catch {}
+  }
+
+  function migrationAbortLockApplies(buildVersion = VERSION) {
+    const lock = readMigrationAbortLock();
+    if (!lock) return false;
+    if (lock.buildVersion !== buildVersion) {
+      clearMigrationAbortLock();
+      return false;
+    }
+    return true;
+  }
+
+  function markMigrationAbort(error, backup, buildVersion = VERSION) {
+    if (!backup?.confirmed || !cleanText(backup.fileName)) return false;
+    const lock = {
+      buildVersion,
+      backupFileName: cleanText(backup.fileName),
+      backupSavedAt: backup.savedAt || null,
+      error: cleanText(error?.message || error || "falha desconhecida"),
+      abortedAt: new Date().toISOString()
+    };
+    try {
+      localStorage.setItem(ABORT_LOCK_KEY, JSON.stringify(lock));
+      return true;
+    } catch { return false; }
+  }
+
   function applyDisciplineUnificationV426(targetState = {}, options = {}) {
     assertDestinationSpelling();
     if (!isObject(targetState)) return { changed: false, blocked: true, reason: "state-unavailable" };
     if (completedMigration(targetState)) {
-      return {
-        changed: false,
-        blocked: false,
-        repeated: true,
-        report: clone(targetState.migrations[MIGRATION_KEY].report || {})
-      };
+      return { changed: false, blocked: false, repeated: true, report: clone(targetState.migrations[MIGRATION_KEY].report || {}) };
     }
 
     const backup = options.backupConfirmation;
-    if (!backup?.confirmed || !cleanText(backup.fileName)) {
-      return { changed: false, blocked: true, reason: "backup-required" };
-    }
+    if (!backup?.confirmed || !cleanText(backup.fileName)) return { changed: false, blocked: true, reason: "backup-required" };
 
     const beforeNames = collectDisciplineNames(targetState);
+    const preexistingWeightKeys = new Set(Object.keys(isObject(targetState.disciplineWeights) ? targetState.disciplineWeights : {}).map(cleanText).filter(Boolean));
     const protectedBefore = snapshotLengths(targetState);
     const working = clone(targetState);
     const report = {
@@ -387,6 +421,8 @@
       weightMerges: [],
       excludedDisciplines: [],
       notEmptyDisciplines: [],
+      stageCDetails: [],
+      weightValidation: null,
       configChanges: [],
       distinctDisciplineNamesBefore: beforeNames.size,
       distinctDisciplineNamesAfter: null,
@@ -405,7 +441,7 @@
     assertLengthsUnchanged(protectedBefore, protectedAfter);
     assertNoLegacyNamesRemain(working);
     assertNoWrongDestinationHyphen(working);
-    assertWeightKeysExist(working);
+    validateWeightKeysPostCondition(working, preexistingWeightKeys, report);
 
     report.distinctDisciplineNamesAfter = collectDisciplineNames(working).size;
     report.destinationHyphenValidated = true;
@@ -436,20 +472,18 @@
       if (typeof current !== "function" || current[WRAP_MARKER] === VERSION) return Boolean(current);
       const wrapped = function applyPcprPcma2026MigrationV426(...args) {
         const result = current.apply(this, args);
-        const targetState = args[0];
-        enforcePostMigrationPlanningProfile(targetState);
+        enforcePostMigrationPlanningProfile(args[0]);
         return result;
       };
       Object.defineProperty(wrapped, WRAP_MARKER, { value: VERSION });
       Object.defineProperty(wrapped, "__aldusV426Original", { value: current });
       globalThis.applyPcprPcma2026Migration = wrapped;
       return true;
-    } catch {
-      return false;
-    }
+    } catch { return false; }
   }
 
   function reportText(report = {}) {
+    const validation = report.weightValidation || {};
     const lines = [
       "V426 — Relatório de unificação de disciplinas",
       `Backup confirmado: ${report.backup?.fileName || "não informado"}`,
@@ -469,15 +503,17 @@
     else for (const item of report.weightMerges) lines.push(`- [${item.scope}] ${item.from} (${String(item.sourceWeight)}) → ${item.to}; final ${String(item.finalWeight)}`);
     lines.push("", `Disciplinas excluídas: ${(report.excludedDisciplines || []).join("; ") || "nenhuma"}`);
     lines.push(`Deveriam estar vazias, mas não estavam: ${(report.notEmptyDisciplines || []).map((item) => `${item.name} (syllabus=${item.syllabusItems}, refs=${item.otherReferences})`).join("; ") || "nenhuma"}`);
+    lines.push("", "Validação de disciplineWeights — pós-condição:");
+    lines.push(`- disciplinas legítimas sem item de edital: ${(validation.legitimateNonSyllabusWeights || []).join("; ") || "nenhuma"}`);
+    lines.push(`- chaves órfãs preexistentes não relacionadas: ${(validation.unrelatedPreexistingOrphanWeights || []).join("; ") || "nenhuma"}`);
+    lines.push(`- inválidas entre disciplinas tocadas: ${(validation.touchedInvalidWeights || []).join("; ") || "nenhuma"}`);
     lines.push("", "Configurações:");
     for (const item of report.configChanges || []) lines.push(`- ${item.path}: ${String(item.before)} → ${String(item.after)}`);
     return lines.join("\n");
   }
 
   async function buildAndSaveBackup(targetState) {
-    if (typeof globalThis.showSaveFilePicker !== "function") {
-      throw new Error("Este navegador não permite confirmar a gravação do backup. Use Chrome/Edge desktop atualizado.");
-    }
+    if (typeof globalThis.showSaveFilePicker !== "function") throw new Error("Este navegador não permite confirmar a gravação do backup. Use Chrome/Edge desktop atualizado.");
     const exportedAt = new Date().toISOString();
     let storageValue = "";
     try { storageValue = localStorage.getItem("metasConcursoData") || ""; } catch {}
@@ -491,31 +527,15 @@
       localStorage: { metasConcursoData: storageValue || JSON.stringify(targetState) }
     };
     const payload = JSON.stringify(envelope, null, 2);
-    const timestamp = exportedAt.replace(/[:.]/g, "-");
-    const suggestedName = `backup-metas-estudo-v426-${timestamp}.json`;
-    const handle = await globalThis.showSaveFilePicker({
-      suggestedName,
-      types: [{ description: "Backup JSON Aldus Meta", accept: { "application/json": [".json"] } }]
-    });
+    const suggestedName = `backup-metas-estudo-v426-${exportedAt.replace(/[:.]/g, "-")}.json`;
+    const handle = await globalThis.showSaveFilePicker({ suggestedName, types: [{ description: "Backup JSON Aldus Meta", accept: { "application/json": [".json"] } }] });
     const writable = await handle.createWritable();
-    try {
-      await writable.write(payload);
-      await writable.close();
-    } catch (error) {
-      try { await writable.abort?.(); } catch {}
-      throw error;
-    }
+    try { await writable.write(payload); await writable.close(); }
+    catch (error) { try { await writable.abort?.(); } catch {} throw error; }
     const savedFile = await handle.getFile();
     const expectedBytes = new Blob([payload]).size;
-    if (savedFile.size !== expectedBytes) {
-      throw new Error(`Backup incompleto: esperado ${expectedBytes} bytes, gravado ${savedFile.size}.`);
-    }
-    return {
-      confirmed: true,
-      fileName: savedFile.name || handle.name || suggestedName,
-      savedAt: new Date().toISOString(),
-      bytes: savedFile.size
-    };
+    if (savedFile.size !== expectedBytes) throw new Error(`Backup incompleto: esperado ${expectedBytes} bytes, gravado ${savedFile.size}.`);
+    return { confirmed: true, fileName: savedFile.name || handle.name || suggestedName, savedAt: new Date().toISOString(), bytes: savedFile.size };
   }
 
   function createPanel() {
@@ -529,55 +549,68 @@
     return panel;
   }
 
+  function renderAbortLock(panel, buildVersion = VERSION) {
+    if (!migrationAbortLockApplies(buildVersion)) return false;
+    const lock = readMigrationAbortLock() || {};
+    const button = panel?.querySelector?.("[data-v426-apply]");
+    const status = panel?.querySelector?.("[data-v426-status]");
+    if (button) {
+      button.disabled = true;
+      button.textContent = "V426 aguardando correção publicada";
+    }
+    if (status) status.textContent = `A tentativa anterior abortou depois do backup ${lock.backupFileName || "confirmado"}. Esta versão não solicitará outro backup. A tentativa será liberada automaticamente quando uma versão corrigida for publicada.`;
+    return true;
+  }
+
   function armBrowserMigration() {
     try {
       if (typeof state === "undefined" || !isObject(state)) return false;
       installPcprCompatibilityWrapper();
       if (completedMigration(state)) {
+        clearMigrationAbortLock();
         enforcePostMigrationPlanningProfile(state);
         return true;
       }
       const panel = createPanel();
       if (!panel) return false;
+      if (renderAbortLock(panel, VERSION)) return true;
       const button = panel.querySelector("[data-v426-apply]");
       const status = panel.querySelector("[data-v426-status]");
       button?.addEventListener("click", async () => {
         button.disabled = true;
         status.textContent = "Gravando e verificando o backup…";
+        let backupConfirmation = null;
         try {
-          const backupConfirmation = await buildAndSaveBackup(state);
+          backupConfirmation = await buildAndSaveBackup(state);
           if (typeof saveData !== "function") throw new Error("Função de persistência indisponível; a migração não foi iniciada.");
           const beforeMigration = clone(state);
           const result = applyDisciplineUnificationV426(state, { backupConfirmation });
           if (result.blocked) throw new Error(result.reason || "Migração bloqueada.");
           installPcprCompatibilityWrapper();
           enforcePostMigrationPlanningProfile(state);
-          try {
-            saveData();
-          } catch (saveError) {
+          try { saveData(); }
+          catch (saveError) {
             replaceState(state, beforeMigration);
             throw new Error(`Falha ao persistir a V426; estado em memória restaurado. ${saveError?.message || String(saveError)}`);
           }
+          clearMigrationAbortLock();
           const text = reportText(result.report);
           status.innerHTML = '<strong>V426 aplicada com backup confirmado.</strong><pre data-v426-report style="white-space:pre-wrap;max-height:42vh;overflow:auto;background:#f7f5f1;padding:10px;border-radius:8px"></pre><button type="button" data-v426-copy style="margin-top:8px">Copiar relatório</button>';
           status.querySelector("[data-v426-report]").textContent = text;
-          status.querySelector("[data-v426-copy]")?.addEventListener("click", async () => {
-            try { await navigator.clipboard.writeText(text); } catch {}
-          });
+          status.querySelector("[data-v426-copy]")?.addEventListener("click", async () => { try { await navigator.clipboard.writeText(text); } catch {} });
           console.info("[Aldus V426] Migração concluída", result.report);
           try { window.dispatchEvent(new CustomEvent("aldus:discipline-unification-v426-complete", { detail: clone(result.report) })); } catch {}
         } catch (error) {
           const cancelled = error?.name === "AbortError";
+          if (!cancelled && backupConfirmation?.confirmed) markMigrationAbort(error, backupConfirmation, VERSION);
           status.textContent = cancelled
             ? "Backup cancelado. Nenhum dado da V426 foi alterado."
-            : `V426 não aplicada: ${error?.message || String(error)} Nenhum dado da V426 será alterado sem backup confirmado.`;
-          button.disabled = false;
+            : `V426 não aplicada: ${error?.message || String(error)} Nenhum dado da V426 foi alterado.`;
+          if (!renderAbortLock(panel, VERSION)) button.disabled = false;
         }
       });
       return true;
-    } catch {
-      return false;
-    }
+    } catch { return false; }
   }
 
   const api = Object.freeze({
@@ -588,14 +621,20 @@
     wholeMerges: WHOLE_MERGES,
     apply: applyDisciplineUnificationV426,
     reportText,
+    disciplineExists,
+    validateWeightKeysPostCondition,
     enforcePostMigrationPlanningProfile,
     installPcprCompatibilityWrapper,
+    markMigrationAbort,
+    clearMigrationAbortLock,
+    migrationAbortLockApplies,
+    readMigrationAbortLock,
+    abortLockKey: ABORT_LOCK_KEY,
     armBrowserMigration
   });
 
   globalThis[API_KEY] = api;
   globalThis.applyDisciplineUnificationV426 = applyDisciplineUnificationV426;
-
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 
   if (typeof window !== "undefined") {

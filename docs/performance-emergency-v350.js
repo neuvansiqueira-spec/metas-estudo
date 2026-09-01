@@ -13,7 +13,7 @@
     if (document.getElementById("aldusDisciplineUnificationV426")) return;
     const script = document.createElement("script");
     script.id = "aldusDisciplineUnificationV426";
-    script.src = "discipline-unification-v426.js?v=20260901-discipline-unification-v426";
+    script.src = "discipline-unification-v426.js?v=20260901-discipline-unification-v426-postcondition-r2";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V426] Falha ao carregar a migração de unificação de disciplinas.");
@@ -29,7 +29,7 @@
     if (document.getElementById("aldusDisciplineUnificationRevisionV426")) return;
     const script = document.createElement("script");
     script.id = "aldusDisciplineUnificationRevisionV426";
-    script.src = "discipline-unification-v426-revision.js?v=20260901-discipline-unification-v426-revision-b1-e";
+    script.src = "discipline-unification-v426-revision.js?v=20260901-discipline-unification-v426-revision-b1-e-r2";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V426 revisada] Falha ao carregar B.1/E.");

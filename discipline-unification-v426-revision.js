@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260901-discipline-unification-v426-revision-b1-e";
+  const VERSION = "20260901-discipline-unification-v426-revision-b1-e-r2";
   const REVISION_ID = "b1-e-20260901";
   const MIGRATION_KEY = "disciplineUnificationV426";
   const API_KEY = "__ALDUS_DISCIPLINE_UNIFICATION_V426__";
@@ -67,7 +67,9 @@
       const value = Number(goal?.[field]);
       if (Number.isFinite(value) && value > 0) return value / 60;
     }
-    return 0;
+    const study = Number(goal?.studyActualMinutes || 0);
+    const questions = Number(goal?.questionActualMinutes || 0);
+    return (Number.isFinite(study) ? study : 0) + (Number.isFinite(questions) ? questions : 0);
   }
 
   function countRefs(list, id, options = {}) {
@@ -83,12 +85,9 @@
     let prioritySignals = 0;
     const signals = state?.planning?.topicPrioritySignalsV155;
     if (isObject(signals)) {
-      for (const [key, value] of Object.entries(signals)) {
-        if (cleanText(key) === id || referencesId(value, id)) prioritySignals += 1;
-      }
-    } else if (Array.isArray(signals)) {
-      prioritySignals = countRefs(signals, id);
-    }
+      for (const [key, value] of Object.entries(signals)) if (cleanText(key) === id || referencesId(value, id)) prioritySignals += 1;
+    } else if (Array.isArray(signals)) prioritySignals = countRefs(signals, id);
+
     const profile = {
       dailyGoals: linkedGoals.length,
       studies: countRefs(state.studies, id),
@@ -353,6 +352,7 @@
   }
 
   function reportText(report = {}) {
+    const validation = report.weightValidation || {};
     const lines = [
       "V426 revisada — Relatório final",
       `Backup confirmado: ${report.backup?.fileName || "não informado"}`,
@@ -372,11 +372,15 @@
     lines.push("", "Etapa E — metas não reagendadas:");
     if (!(report.goalsNotRescheduled || []).length) lines.push("- nenhuma");
     else for (const item of report.goalsNotRescheduled) lines.push(`- ${item.subject} | ${item.from} | ${(item.reasons || []).join("; ")}`);
-    lines.push("", "Relatório da etapa original A/B/C/D:");
+    lines.push("", "Etapas A/B/C/D:");
     lines.push(`- reatribuições A: ${(report.stageAReassignments || []).length}`);
     lines.push(`- fusões de peso: ${(report.weightMerges || []).length}`);
     lines.push(`- disciplinas excluídas: ${(report.excludedDisciplines || []).join("; ") || "nenhuma"}`);
-    lines.push(`- configurações: ${(report.configChanges || []).map((item) => `${item.path}: ${String(item.before)}→${String(item.after)}`).join("; ") || "nenhuma"}`);
+    lines.push("", "Validação de disciplineWeights — pós-condição:");
+    lines.push(`- disciplinas legítimas sem item de edital: ${(validation.legitimateNonSyllabusWeights || []).join("; ") || "nenhuma"}`);
+    lines.push(`- chaves órfãs preexistentes não relacionadas: ${(validation.unrelatedPreexistingOrphanWeights || []).join("; ") || "nenhuma"}`);
+    lines.push(`- inválidas entre disciplinas tocadas: ${(validation.touchedInvalidWeights || []).join("; ") || "nenhuma"}`);
+    lines.push("", `Configurações: ${(report.configChanges || []).map((item) => `${item.path}: ${String(item.before)}→${String(item.after)}`).join("; ") || "nenhuma"}`);
     return lines.join("\n");
   }
 
@@ -398,7 +402,8 @@
     const suggestedName = `backup-metas-estudo-v426-revisada-${exportedAt.replace(/[:.]/g, "-")}.json`;
     const handle = await globalThis.showSaveFilePicker({ suggestedName, types: [{ description: "Backup JSON Aldus Meta", accept: { "application/json": [".json"] } }] });
     const writable = await handle.createWritable();
-    try { await writable.write(payload); await writable.close(); } catch (error) { try { await writable.abort?.(); } catch {} throw error; }
+    try { await writable.write(payload); await writable.close(); }
+    catch (error) { try { await writable.abort?.(); } catch {} throw error; }
     const file = await handle.getFile();
     const expectedBytes = new Blob([payload]).size;
     if (file.size !== expectedBytes) throw new Error(`Backup incompleto: esperado ${expectedBytes} bytes, gravado ${file.size}.`);
@@ -421,6 +426,19 @@
     return panel;
   }
 
+  function renderAbortLock(baseApi, panel) {
+    if (typeof baseApi?.migrationAbortLockApplies !== "function" || !baseApi.migrationAbortLockApplies(VERSION)) return false;
+    const lock = typeof baseApi.readMigrationAbortLock === "function" ? baseApi.readMigrationAbortLock() : null;
+    const button = panel?.querySelector?.("[data-v426-revision-apply]");
+    const status = panel?.querySelector?.("[data-v426-revision-status]");
+    if (button) {
+      button.disabled = true;
+      button.textContent = "V426 aguardando correção publicada";
+    }
+    if (status) status.textContent = `A tentativa anterior abortou depois do backup ${lock?.backupFileName || "confirmado"}. Esta versão não solicitará outro backup. A tentativa será liberada automaticamente quando uma versão corrigida for publicada.`;
+    return true;
+  }
+
   function installWithBase(baseApi) {
     if (globalThis[INSTALL_KEY]) return true;
     if (!baseApi || typeof baseApi.apply !== "function") return false;
@@ -434,30 +452,42 @@
     function armBrowserMigration() {
       try {
         if (typeof state === "undefined" || !isObject(state)) return false;
-        if (revisionCompleted(state)) return true;
+        if (revisionCompleted(state)) {
+          baseApi.clearMigrationAbortLock?.();
+          return true;
+        }
         const panel = createOrReplacePanel(oldMigrationCompleted(state));
         if (!panel) return false;
+        if (renderAbortLock(baseApi, panel)) return true;
         const button = panel.querySelector("[data-v426-revision-apply]");
         const status = panel.querySelector("[data-v426-revision-status]");
         button?.addEventListener("click", async () => {
           button.disabled = true;
           status.textContent = "Gravando e relendo o backup…";
+          let backupConfirmation = null;
           try {
-            const backupConfirmation = await buildAndSaveBackup(state);
+            backupConfirmation = await buildAndSaveBackup(state);
             if (typeof saveData !== "function") throw new Error("Função de persistência indisponível; nenhuma migração foi iniciada.");
             const before = clone(state);
             const result = apply(state, { backupConfirmation });
             if (result.blocked) throw new Error(result.reason || "Migração bloqueada.");
             try { baseApi.enforcePostMigrationPlanningProfile?.(state); saveData(); }
-            catch (saveError) { for (const key of Object.keys(state)) delete state[key]; Object.assign(state, before); throw new Error(`Falha ao persistir a revisão; estado em memória restaurado. ${saveError?.message || String(saveError)}`); }
+            catch (saveError) {
+              for (const key of Object.keys(state)) delete state[key];
+              Object.assign(state, before);
+              throw new Error(`Falha ao persistir a revisão; estado em memória restaurado. ${saveError?.message || String(saveError)}`);
+            }
+            baseApi.clearMigrationAbortLock?.();
             const text = reportText(result.report);
             status.innerHTML = '<strong>V426 revisada aplicada com backup confirmado.</strong><pre data-v426-revision-report style="white-space:pre-wrap;max-height:42vh;overflow:auto;background:#f7f5f1;padding:10px;border-radius:8px"></pre><button type="button" data-v426-revision-copy style="margin-top:8px">Copiar relatório</button>';
             status.querySelector("[data-v426-revision-report]").textContent = text;
             status.querySelector("[data-v426-revision-copy]")?.addEventListener("click", async () => { try { await navigator.clipboard.writeText(text); } catch {} });
             console.info("[Aldus V426 revisada] Migração concluída", result.report);
           } catch (error) {
-            status.textContent = error?.name === "AbortError" ? "Backup cancelado. Nenhum dado da revisão foi alterado." : `V426 revisada não aplicada: ${error?.message || String(error)}`;
-            button.disabled = false;
+            const cancelled = error?.name === "AbortError";
+            if (!cancelled && backupConfirmation?.confirmed) baseApi.markMigrationAbort?.(error, backupConfirmation, VERSION);
+            status.textContent = cancelled ? "Backup cancelado. Nenhum dado da revisão foi alterado." : `V426 revisada não aplicada: ${error?.message || String(error)}`;
+            if (!renderAbortLock(baseApi, panel)) button.disabled = false;
           }
         });
         return true;
@@ -491,7 +521,7 @@
     else {
       const script = document.createElement("script");
       script.id = BASE_SCRIPT_ID;
-      script.src = "discipline-unification-v426.js?v=20260901-discipline-unification-v426";
+      script.src = "discipline-unification-v426.js?v=20260901-discipline-unification-v426-postcondition-r2";
       script.async = false;
       script.addEventListener("load", install, { once: true });
       (document.head || document.documentElement).appendChild(script);

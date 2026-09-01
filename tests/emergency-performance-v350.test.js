@@ -96,7 +96,7 @@ test("V350 usa o observador já carregado antes do bootstrap e preserva o Servic
   const docsWorker = fs.readFileSync("docs/service-worker.js", "utf8");
 
   assert.equal(observer, docsObserver, "observabilidade raiz/docs deve permanecer idêntica");
-  assert.match(observer, /performance-emergency-v350\.js\?v=20260817-emergency-performance-v350/);
+  assert.match(observer, /performance-emergency-v350\.js\?v=20260901-v426-postcondition-r2/);
   assert.match(observer, /aldusEmergencyPerformanceV350/);
   assert.match(observer, /script\.async = false/);
   assert.ok(
