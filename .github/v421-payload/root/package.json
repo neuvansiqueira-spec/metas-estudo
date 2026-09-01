@@ -1,0 +1,12 @@
+{
+  "name": "metas-estudo",
+  "version": "20260901-bootstrap-current-bundle-v421",
+  "private": true,
+  "scripts": {
+    "build": "node build-bundles.mjs",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "pdfjs-dist": "6.2.108"
+  }
+}
