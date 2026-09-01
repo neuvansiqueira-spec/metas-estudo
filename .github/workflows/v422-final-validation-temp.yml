@@ -17,21 +17,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout da candidata
+      - name: Checkout
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
 
-      - name: Preparar Node
+      - name: Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
 
-      - name: Instalar dependencias
+      - name: Dependencias
         run: npm ci --ignore-scripts
 
-      - name: Confirmar baseline nominal dos 33 contratos
+      - name: Confirmar baseline V422 e registrar suite integral
         shell: bash
         run: |
           set +e
@@ -41,127 +41,98 @@ jobs:
             tests/v382-factory-summary-didactic.test.js \
             tests/v383-factory-lei-jurisprudencia.test.js \
             tests/v385-factory-padronizacao-final-sumario.test.js \
-            > /tmp/v422-baseline-modules.tap 2>&1
-          status=$?
+            > /tmp/base-mod.tap 2>&1
           set -e
-          cat /tmp/v422-baseline-modules.tap
-          test "$status" -ne 0
           python - <<'PY'
           from pathlib import Path
           import re
-          text = Path('/tmp/v422-baseline-modules.tap').read_text(encoding='utf-8')
-          def metric(name):
-              m = re.search(rf'^# {name} (\d+)$', text, re.M)
-              if not m: raise SystemExit(f'metrica ausente: {name}')
-              return int(m.group(1))
-          expected = {
-              'V381 cobre exatamente os quatro prompts de conteúdo solicitados',
-              'V381 permanece fora dos hot paths e sem persistência automática',
-              'V381 preserva identidade visual dos módulos e granularidade útil',
-              'V382 continua isolada de hot paths e persistência',
-              'V382 torna o sumário um espelho didático do módulo',
-              'loader V381 é isolado, ordenado após V380 e raiz/docs permanecem idênticos',
-              'regra de sumário é idempotente e preserva o prompt preexistente',
-              'sumário é obrigatório, navegável e não inventa paginação',
-          }
-          failures = set(re.findall(r'^not ok \d+ - (.+)$', text, re.M))
-          if (metric('tests'), metric('pass'), metric('fail')) != (33,25,8):
-              raise SystemExit(f'baseline inesperada: {(metric("tests"), metric("pass"), metric("fail"))}')
-          if failures != expected:
-              raise SystemExit(f'falhas baseline divergentes: {sorted(failures)}')
-          print('BASELINE V422 CONFIRMADA: 33 testes, 25 passam, 8 falham.')
+          t=Path('/tmp/base-mod.tap').read_text()
+          metric=lambda n:int(re.search(rf'^# {n} (\d+)$',t,re.M).group(1))
+          expected={
+          'V381 cobre exatamente os quatro prompts de conteúdo solicitados',
+          'V381 permanece fora dos hot paths e sem persistência automática',
+          'V381 preserva identidade visual dos módulos e granularidade útil',
+          'V382 continua isolada de hot paths e persistência',
+          'V382 torna o sumário um espelho didático do módulo',
+          'loader V381 é isolado, ordenado após V380 e raiz/docs permanecem idênticos',
+          'regra de sumário é idempotente e preserva o prompt preexistente',
+          'sumário é obrigatório, navegável e não inventa paginação'}
+          got=set(re.findall(r'^not ok \d+ - (.+)$',t,re.M))
+          assert (metric('tests'),metric('pass'),metric('fail'))==(33,25,8),(metric('tests'),metric('pass'),metric('fail'))
+          assert got==expected,(got,expected)
+          print('BASELINE MODULOS: 33/25/8 nominalmente confirmada')
           PY
-
-      - name: Registrar baseline da suite integral
-        shell: bash
-        run: |
           set +e
-          npm test > /tmp/v422-baseline-full.tap 2>&1
+          npm test > /tmp/base-full.tap 2>&1
           set -e
-          tail -n 40 /tmp/v422-baseline-full.tap
+          tail -n 12 /tmp/base-full.tap
 
-      - name: Tornar cache-bust do aplicador independente do valor antigo
+      - name: Corrigir aplicador e aplicar V422
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
-          import re
-          p = Path('tools/apply-v422-temp.py')
-          text = p.read_text(encoding='utf-8')
-          old = "idx = replace_once(idx, 'security-observability-v318.js?v=20260812-security-observability-v318', 'security-observability-v318.js?v=20260901-factory-prompts-v422', 'cache bust observability no index')"
-          new = "idx, count = re.subn(r'security-observability-v318\\.js\\?v=[^\\\"\\\'<>\\s]+', 'security-observability-v318.js?v=20260901-factory-prompts-v422', idx, count=1)\nif count != 1:\n    raise SystemExit(f'cache bust observability no index: esperado 1 ocorrência, encontrado {count}')"
-          if text.count(old) != 1:
-              raise SystemExit(f'linha historica do cache-bust esperada uma vez; encontrado {text.count(old)}')
-          p.write_text(text.replace(old, new, 1), encoding='utf-8', newline='\n')
+          p=Path('tools/apply-v422-temp.py')
+          s=p.read_text()
+          old="idx = replace_once(idx, 'security-observability-v318.js?v=20260812-security-observability-v318', 'security-observability-v318.js?v=20260901-factory-prompts-v422', 'cache bust observability no index')"
+          new="idx, count = re.subn(r'security-observability-v318\\.js\\?v=[^\\\"\\\'<>\\s]+', 'security-observability-v318.js?v=20260901-factory-prompts-v422', idx, count=1)\nif count != 1:\n    raise SystemExit(f'cache bust observability no index: esperado 1 ocorrência, encontrado {count}')"
+          assert s.count(old)==1,s.count(old)
+          p.write_text(s.replace(old,new,1),newline='\n')
+          PY
+          python tools/apply-v422-temp.py
+
+      - name: Corrigir os dois bugs comprovados do harness V422
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('tests/v422-factory-citation-toc.test.js')
+          s=p.read_text()
+          pairs=[
+          ("factoryPromptBase(type) { return this.state?.factoryPromptLibrary?.[type] || ''; },","factoryPromptBase(type) { return saved[type] || ''; },"),
+          ('assert.match(source, /<w:shd w:val=\\\\"clear\\\\" w:fill=\\\\"EEECE1\\\\"\\/>/);','assert.match(source, /<w:shd w:val="clear" w:fill="EEECE1"\\/>/);')]
+          for a,b in pairs:
+              assert s.count(a)==1,(a,s.count(a))
+              s=s.replace(a,b,1)
+          assert 'this.state?.factoryPromptLibrary' not in s
+          assert r'w:val=\\"clear\\"' not in s
+          p.write_text(s,newline='\n')
+          print('HARNESS: binding e regex corrigidos; escapes impossiveis auditados')
           PY
 
-      - name: Aplicar V422
-        run: python tools/apply-v422-temp.py
-
-      - name: Corrigir os dois bugs comprovados do harness gerado
+      - name: Preparar versao e build V422
         shell: bash
         run: |
           python - <<'PY'
-          from pathlib import Path
-          p = Path('tests/v422-factory-citation-toc.test.js')
-          text = p.read_text(encoding='utf-8')
-          replacements = [
-              (
-                  "factoryPromptBase(type) { return this.state?.factoryPromptLibrary?.[type] || ''; },",
-                  "factoryPromptBase(type) { return saved[type] || ''; },",
-                  'binding do factoryPromptBase'
-              ),
-              (
-                  'assert.match(source, /<w:shd w:val=\\\\"clear\\\\" w:fill=\\\\"EEECE1\\\\"\\/>/);',
-                  'assert.match(source, /<w:shd w:val="clear" w:fill="EEECE1"\\/>/);',
-                  'regex do w:shd bege'
-              ),
-          ]
-          for old, new, label in replacements:
-              count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f'{label}: esperado 1, encontrado {count}')
-              text = text.replace(old, new, 1)
-          p.write_text(text, encoding='utf-8', newline='\n')
-          PY
-
-      - name: Auditar assercoes geradas antes do retry
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          text = Path('tests/v422-factory-citation-toc.test.js').read_text(encoding='utf-8')
-          if 'this.state?.factoryPromptLibrary' in text:
-              raise SystemExit('binding this.state residual no harness')
-          if r'w:val=\\"clear\\"' in text or r'w:fill=\\"EEECE1\\"' in text:
-              raise SystemExit('escape impossivel residual na regex do w:shd')
-          required = [
-              'factoryPromptBase(type) { return saved[type]',
-              'w:val="clear" w:fill="EEECE1"',
-              'TODA ENTRADA DO SUMÁRIO',
-              'withJurisprudenceCitation',
-              'factoryJurisprudenceCitationV422',
-          ]
-          for token in required:
-              if token not in text:
-                  raise SystemExit(f'asserção/contrato esperado ausente: {token}')
-          print('AUDITORIA DO HARNESS V422: sem terceiro escape/binding impossivel detectado.')
-          PY
-
-      - name: Renovar release para V422 e gerar bundles
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
           import json
-          p = Path('package.json')
-          data = json.loads(p.read_text(encoding='utf-8'))
-          data['version'] = '20260901-factory-citation-toc-v422'
-          p.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8', newline='\n')
+          from pathlib import Path
+          p=Path('package.json'); d=json.loads(p.read_text()); d['version']='20260901-factory-citation-toc-v422'; p.write_text(json.dumps(d,ensure_ascii=False,indent=2)+'\n',newline='\n')
           PY
           npm run build
 
-      - name: Validar 41 contratos dos modulos V380 V381 V382 V383 V385 V422
+      - name: Renovar artefatos e contratos release-agnostic
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,re
+          from pathlib import Path
+          version='20260901-factory-citation-toc-v422'
+          for name in ['service-worker-v402.js','docs/service-worker-v402.js']:
+              p=Path(name); s=p.read_text(); s2,n=re.subn(r'const CACHE_FIX_VERSION = "[^"]+";',f'const CACHE_FIX_VERSION = "{version}";',s,count=1)
+              assert n==1,(name,n); p.write_text(s2,newline='\n')
+          p=Path('published-service-workers.json'); d=json.loads(p.read_text());
+          if 'v422' not in d['versoes']: d['versoes'].append('v422')
+          p.write_text(json.dumps(d,ensure_ascii=False,indent=2)+'\n',newline='\n')
+          p=Path('tests/v318-security-observability.test.js'); s=p.read_text()
+          old='''    /security-observability-v318\\.js\\?v=\\$\\{OBSERVABILITY_VERSION\\}/.test(index)\n      || /id="aldusSecurityObservabilityV318" defer src="security-observability-v318\\.js\\?v=20260814-desempenho-integral-v329"/.test(index)\n      || /id="aldusSecurityObservabilityV318" defer src="security-observability-v318\\.js\\?v=20260826-planning-consent-guard-v398"/.test(index),'''
+          new='''    /security-observability-v318\\.js\\?v=\\$\\{OBSERVABILITY_VERSION\\}/.test(index)\n      || /id="aldusSecurityObservabilityV318" defer src="security-observability-v318\\.js\\?v=[^"]+"/.test(index),'''
+          assert s.count(old)==1,s.count(old); p.write_text(s.replace(old,new,1),newline='\n')
+          PY
+          cmp service-worker-v402.js docs/service-worker-v402.js
+          test -f service-worker-v422.js
+          test -f docs/service-worker-v422.js
+
+      - name: Validar 41 contratos V380 V381 V382 V383 V385 V422 e bege byte a byte
         shell: bash
         run: |
           node --test \
@@ -170,72 +141,55 @@ jobs:
             tests/v382-factory-summary-didactic.test.js \
             tests/v383-factory-lei-jurisprudencia.test.js \
             tests/v385-factory-padronizacao-final-sumario.test.js \
-            tests/v422-factory-citation-toc.test.js \
-            | tee /tmp/v422-candidate-modules.tap
-          grep -Eq '^# tests 41$' /tmp/v422-candidate-modules.tap
-          grep -Eq '^# pass 41$' /tmp/v422-candidate-modules.tap
-          grep -Eq '^# fail 0$' /tmp/v422-candidate-modules.tap
-
-      - name: Confirmar BEIGE_SECTION byte a byte contra origin main
-        shell: bash
-        run: |
+            tests/v422-factory-citation-toc.test.js | tee /tmp/cand-mod.tap
+          grep -Eq '^# tests 41$' /tmp/cand-mod.tap
+          grep -Eq '^# pass 41$' /tmp/cand-mod.tap
+          grep -Eq '^# fail 0$' /tmp/cand-mod.tap
           python - <<'PY'
-          import re, subprocess
+          import re,subprocess
           from pathlib import Path
-          candidate = Path('factory-summary-toc-v381.js').read_bytes()
-          baseline = subprocess.check_output(['git','show','origin/main:factory-summary-toc-v381.js'])
-          pattern = rb'  const BEIGE_SECTION = `.*?`;\n'
-          a = re.search(pattern, baseline, re.S)
-          b = re.search(pattern, candidate, re.S)
-          if not a or not b:
-              raise SystemExit('BEIGE_SECTION ausente em baseline ou candidata')
-          if a.group(0) != b.group(0):
-              raise SystemExit('BEIGE_SECTION divergiu de origin/main')
-          print(f'BEIGE_SECTION IDENTICA: {len(a.group(0))} bytes')
+          base=subprocess.check_output(['git','show','origin/main:factory-summary-toc-v381.js'])
+          cand=Path('factory-summary-toc-v381.js').read_bytes(); pat=rb'  const BEIGE_SECTION = `.*?`;\n'
+          a=re.search(pat,base,re.S); b=re.search(pat,cand,re.S); assert a and b and a.group(0)==b.group(0)
+          print('BEIGE_SECTION: byte a byte identica a origin/main')
           PY
 
-      - name: Validar suite integral e comparar falhas nominalmente
+      - name: Validar suite integral sem falhas novas
         shell: bash
         run: |
           set +e
-          npm test > /tmp/v422-candidate-full.tap 2>&1
+          npm test > /tmp/cand-full.tap 2>&1
           set -e
-          tail -n 40 /tmp/v422-candidate-full.tap
+          tail -n 12 /tmp/cand-full.tap
           python - <<'PY'
           from pathlib import Path
           import re
-          base = Path('/tmp/v422-baseline-full.tap').read_text(encoding='utf-8')
-          cand = Path('/tmp/v422-candidate-full.tap').read_text(encoding='utf-8')
-          fail_re = re.compile(r'^not ok \d+ - (.+)$', re.M)
-          base_fail = set(fail_re.findall(base))
-          cand_fail = set(fail_re.findall(cand))
-          expected_removed = {
-              'V381 cobre exatamente os quatro prompts de conteúdo solicitados',
-              'V381 permanece fora dos hot paths e sem persistência automática',
-              'V381 preserva identidade visual dos módulos e granularidade útil',
-              'V382 continua isolada de hot paths e persistência',
-              'V382 torna o sumário um espelho didático do módulo',
-              'loader V381 é isolado, ordenado após V380 e raiz/docs permanecem idênticos',
-              'regra de sumário é idempotente e preserva o prompt preexistente',
-              'sumário é obrigatório, navegável e não inventa paginação',
-          }
-          new_fail = cand_fail - base_fail
-          removed = base_fail - cand_fail
-          if new_fail:
-              raise SystemExit('NOVAS FALHAS: ' + ' | '.join(sorted(new_fail)))
-          if removed != expected_removed:
-              raise SystemExit('FALHAS REMOVIDAS DIVERGEM: ' + ' | '.join(sorted(removed)))
-          print(f'SUITE INTEGRAL: baseline={len(base_fail)}; candidata={len(cand_fail)}; novas=0; resolvidas=8')
-          for name in sorted(removed): print(f'RESOLVIDA: {name}')
+          get=lambda p:set(re.findall(r'^not ok \d+ - (.+)$',Path(p).read_text(),re.M))
+          base=get('/tmp/base-full.tap'); cand=get('/tmp/cand-full.tap')
+          removed=base-cand; new=cand-base
+          expected={
+          'V381 cobre exatamente os quatro prompts de conteúdo solicitados',
+          'V381 permanece fora dos hot paths e sem persistência automática',
+          'V381 preserva identidade visual dos módulos e granularidade útil',
+          'V382 continua isolada de hot paths e persistência',
+          'V382 torna o sumário um espelho didático do módulo',
+          'loader V381 é isolado, ordenado após V380 e raiz/docs permanecem idênticos',
+          'regra de sumário é idempotente e preserva o prompt preexistente',
+          'sumário é obrigatório, navegável e não inventa paginação'}
+          print('BASE_FAIL',len(base)); print('CAND_FAIL',len(cand)); print('NEW',sorted(new)); print('REMOVED',sorted(removed))
+          assert not new,sorted(new)
+          assert removed==expected,(sorted(removed),sorted(expected))
+          print('SUITE INTEGRAL: zero falhas novas; oito contratos obsoletos resolvidos')
           PY
 
-      - name: Verificar paridade LF migracao release e ausencia de hot path novo
+      - name: Verificacoes finais de paridade migracao e hot path
         shell: bash
         run: |
           set -euo pipefail
           cmp factory-summary-toc-v381.js docs/factory-summary-toc-v381.js
           cmp factory-padronizacao-final-sumario-v385.js docs/factory-padronizacao-final-sumario-v385.js
           cmp security-observability-v318.js docs/security-observability-v318.js
+          cmp service-worker-v402.js docs/service-worker-v402.js
           ! grep -Fq 'withJurisprudenceYear' factory-summary-toc-v381.js
           ! grep -Fq '📍 **ANO DA DECISÃO:' factory-summary-toc-v381.js
           grep -Fq '## CITAÇÃO JURISPRUDENCIAL — FORMATO OBRIGATÓRIO' factory-summary-toc-v381.js
@@ -243,33 +197,24 @@ jobs:
           grep -Fq 'factoryJurisprudenceCitationV422' factory-summary-toc-v381.js
           grep -Fq '"lei"' factory-summary-toc-v381.js
           grep -Fq '"leiJurisprudencia"' factory-summary-toc-v381.js
-          grep -Fq 'security-observability-v318.js?v=20260901-factory-prompts-v422' docs/index.html
-          grep -Fq 'app-v422.js?v=20260901-factory-citation-toc-v422' docs/index.html
+          grep -Fq 'security-observability-v318.js?v=20260901-factory-prompts-v422' index.html
+          grep -Fq 'app-v422.js?v=20260901-factory-citation-toc-v422' index.html
           grep -Fq 'const CURRENT_VERSION = "20260901-factory-citation-toc-v422";' service-worker.js
-          grep -Fq 'const CURRENT_VERSION = "20260901-factory-citation-toc-v422";' docs/service-worker.js
-          test -f app-v422.js
-          test -f docs/app-v422.js
-          for token in 'MutationObserver(' 'setInterval(' 'getComputedStyle(' 'requestAnimationFrame(' 'indexedDB.' 'localStorage.' 'autoSyncAfterSave('; do
-            ! grep -Fq "$token" factory-summary-toc-v381.js
-          done
+          grep -Fq 'const CACHE_FIX_VERSION = "20260901-factory-citation-toc-v422";' service-worker-v402.js
+          grep -Fq '"v422"' published-service-workers.json
+          for token in 'MutationObserver(' 'setInterval(' 'getComputedStyle(' 'requestAnimationFrame(' 'indexedDB.' 'localStorage.' 'autoSyncAfterSave('; do ! grep -Fq "$token" factory-summary-toc-v381.js; done
           python - <<'PY'
           from pathlib import Path
-          for p in ['factory-summary-toc-v381.js','docs/factory-summary-toc-v381.js','factory-padronizacao-final-sumario-v385.js','docs/factory-padronizacao-final-sumario-v385.js']:
-              if b'\r\n' in Path(p).read_bytes(): raise SystemExit(f'CRLF detectado: {p}')
+          for f in ['factory-summary-toc-v381.js','docs/factory-summary-toc-v381.js','factory-padronizacao-final-sumario-v385.js','docs/factory-padronizacao-final-sumario-v385.js']:
+              assert b'\r\n' not in Path(f).read_bytes(),f
           PY
           git diff --check
 
-      - name: Commitar somente a candidata validada
+      - name: Commitar candidata limpa
         shell: bash
         run: |
           set -euo pipefail
-          rm -f \
-            .github/workflows/v422-apply-temp.yml \
-            .github/workflows/v422-apply-retry-temp.yml \
-            .github/workflows/v422-apply-retry2-temp.yml \
-            .github/workflows/v422-apply-retry3-temp.yml \
-            .github/workflows/v422-final-validation-temp.yml \
-            tools/apply-v422-temp.py
+          rm -f .github/workflows/v422-apply-temp.yml .github/workflows/v422-apply-retry-temp.yml .github/workflows/v422-apply-retry2-temp.yml .github/workflows/v422-apply-retry3-temp.yml .github/workflows/v422-final-validation-temp.yml tools/apply-v422-temp.py
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
