@@ -67,6 +67,20 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V429 - painel de pendentes de outros dias no Plano do Dia.
+  function installDailyPlanPendingPanelV429() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusDailyPlanPendingPanelV429")) return;
+    const script = document.createElement("script");
+    script.id = "aldusDailyPlanPendingPanelV429";
+    script.src = "daily-plan-pending-panel-v429.js?v=20260902-daily-plan-pending-panel-v429";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V429] Falha ao carregar o painel de pendentes.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   function indexFor(list) {
     const cached = indexCache.get(list);
     if (cached
@@ -124,6 +138,7 @@
   installDisciplineUnificationRevisionV426();
   installFactoryEditalLinkRepairV428();
   installPlanningStabilityV427();
+  installDailyPlanPendingPanelV429();
   if (install()) return;
 
   const startedAt = Date.now();
