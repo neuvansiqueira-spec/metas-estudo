@@ -25,7 +25,7 @@ jobs:
         shell: python
         run: |
           from pathlib import Path
-          import re
+          import subprocess
 
           root = Path('.')
           source_path = root / 'script.js'
@@ -188,11 +188,9 @@ jobs:
 
           patched = source[:start] + replacement + source[end:]
           source_path.write_text(patched, encoding='utf-8')
-          docs_script = root / 'docs' / 'script.js'
-          docs_script.write_text(patched, encoding='utf-8')
+          (root / 'docs' / 'script.js').write_text(patched, encoding='utf-8')
 
-          # A correção passa a estar na fonte; retire a tentativa de hotfix no módulo V236.
-          import subprocess
+          # A correção fica na fonte. O hotfix temporário de v236 volta exatamente ao main.
           subprocess.run(['git', 'checkout', 'origin/main', '--', 'factory-queue-integrity-v236.js', 'docs/factory-queue-integrity-v236.js'], check=True)
 
           test = r'''const test = require("node:test");
@@ -280,16 +278,6 @@ jobs:
           old_test = root / 'tests' / 'factory-registration-idempotency-v426.test.js'
           if old_test.exists(): old_test.unlink()
 
-          workflow = root / '.github' / 'workflows' / 'v426-validation.yml'
-          text = workflow.read_text(encoding='utf-8')
-          text = text.replace('          node --check factory-queue-integrity-v236.js\n', '          node --check script.js\n')
-          text = text.replace('tests/v426-persistence-partial.test.js tests/factory-registration-idempotency-v426.test.js', 'tests/v426-persistence-partial.test.js tests/factory-sync-rename-v426.test.js')
-          text = text.replace('          cmp factory-queue-integrity-v236.js docs/factory-queue-integrity-v236.js\n', '          cmp script.js docs/script.js\n', 1)
-          text = text.replace('          cmp factory-queue-integrity-v236.js docs/factory-queue-integrity-v236.js\n', '          cmp script.js docs/script.js\n', 1)
-          text = text.replace('          grep -q \'factory-queue-integrity-v236.js\' startup-planning-stability-v387.js\n', '')
-          text = text.replace('            script.js \\\n', '')
-          workflow.write_text(text, encoding='utf-8')
-
       - name: Regerar bundle e provar que o worker não mudou
         shell: bash
         run: |
@@ -308,14 +296,14 @@ jobs:
           cmp script.js docs/script.js
           cmp app-v424.js docs/app-v424.js
 
-      - name: Remover executor temporário e enviar correção
+      - name: Enviar apenas código, bundles e testes
         shell: bash
         run: |
           set -euo pipefail
-          rm .github/workflows/v426-source-factory-fix.yml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
+          git add script.js docs/script.js app.bundle.js docs/app.bundle.js app-v424.js docs/app-v424.js factory-queue-integrity-v236.js docs/factory-queue-integrity-v236.js tests/factory-sync-rename-v426.test.js
+          git add -u tests/factory-registration-idempotency-v426.test.js || true
           if git diff --cached --name-only | grep -E '(^|/)service-worker[^/]*\.js$'; then
             echo 'ERRO: Service Worker entrou no commit.' >&2
             exit 1
