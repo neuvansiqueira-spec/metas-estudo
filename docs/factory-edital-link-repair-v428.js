@@ -19,7 +19,7 @@
   // vínculos e remove as cópias vazias que o sync criou, preservando qualquer
   // item com trabalho de módulo.
 
-  const VERSION = "20260901-factory-edital-link-repair-v428";
+  const VERSION = "20260902-factory-edital-link-repair-v428-state-binding-r2";
   const MIGRATION_KEY = "factoryEditalLinkRepairV428";
   const API_KEY = "__ALDUS_FACTORY_EDITAL_LINK_REPAIR_V428__";
 
@@ -430,9 +430,21 @@
   globalThis.applyFactoryEditalLinkRepairV428 = applyFactoryEditalLinkRepairV428;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 
+  // `script.js` declara o estado como `const state`, que cria binding léxico
+  // global — visível como identificador, ausente de globalThis. Ler
+  // `globalThis.state` devolve undefined e o reparo sai em silêncio.
+  function resolveAppState() {
+    try {
+      // eslint-disable-next-line no-undef
+      if (isObject(state)) return state;
+    } catch { /* binding inexistente ou em TDZ */ }
+    if (isObject(globalThis.state)) return globalThis.state;
+    return null;
+  }
+
   function runOnce() {
     try {
-      const state = globalThis.state;
+      const state = resolveAppState();
       if (!isObject(state) || completedRepair(state)) return;
       const result = applyFactoryEditalLinkRepairV428(state);
       if (result.blocked) {

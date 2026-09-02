@@ -222,6 +222,45 @@ test('V428 não introduz polling, temporizador nem gravação fora do fluxo', ()
   assert.equal(saves.length, 1, 'a persistência ocorre uma única vez, após o reparo');
 });
 
+test('V428 alcança o estado declarado como const no escopo global', () => {
+  const vm = require('node:vm');
+  const source = read('factory-edital-link-repair-v428.js');
+  const listeners = new Map();
+  const context = vm.createContext({
+    console: { info() {}, warn() {} },
+    structuredClone,
+    window: { addEventListener: (nome, fn) => listeners.set(nome, fn), dispatchEvent: () => true },
+    CustomEvent: class { constructor(nome, init) { this.type = nome; this.detail = init?.detail; } }
+  });
+  context.__disparaLoad = () => listeners.get('load')?.();
+  // Reproduz script.js:1091 — `const state` cria binding léxico global,
+  // visível como identificador e ausente de globalThis.
+  vm.runInContext(`const state = ${JSON.stringify({
+    factoryAgenda: [{
+      id: 'a', disciplina: 'MEDICINA LEGAL', tema: 'Balística forense',
+      createdAt: '2026-07-10T00:00:00.000Z', modules: {},
+      editalLink: { groupKey: 'edital:medicina legal|balística forense', discipline: 'MEDICINA LEGAL' }
+    }],
+    dailyGoals: [], syllabusItems: [], studies: [], materials: []
+  })}; globalThis.__leituraDoGlobal = typeof globalThis.state;`, context);
+  assert.equal(context.__leituraDoGlobal, 'undefined', 'globalThis.state não existe para um const global');
+
+  vm.runInContext(source, context);
+  // Exercita o caminho real de boot — runOnce via evento —, e não apply() com
+  // o estado passado à mão, que passaria mesmo lendo globalThis.state.
+  vm.runInContext('globalThis.__disparaLoad();', context);
+  vm.runInContext('globalThis.__disciplina = state.factoryAgenda[0].disciplina;', context);
+  assert.equal(context.__disciplina, 'CIÊNCIAS FORENSES', 'ler apenas globalThis.state faria o reparo sair em silêncio');
+  vm.runInContext('globalThis.__marcador = !!state.migrations?.factoryEditalLinkRepairV428?.completed;', context);
+  assert.equal(context.__marcador, true);
+});
+
+test('V428 não depende exclusivamente de globalThis.state', () => {
+  const source = read('factory-edital-link-repair-v428.js');
+  assert.match(source, /function resolveAppState\(\)/);
+  assert.doesNotMatch(source, /const state = globalThis\.state;/, 'foi o que impediu o reparo de rodar na V428 inicial');
+});
+
 test('V428 mantém paridade raiz/docs', () => {
   assert.equal(read('factory-edital-link-repair-v428.js'), read('docs/factory-edital-link-repair-v428.js'));
 });
