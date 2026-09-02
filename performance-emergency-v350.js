@@ -95,6 +95,20 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V435 - reata duas prioridades do simulado cujos ids nao existem mais.
+  function installPlanningPriorityRemapV435() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusPlanningPriorityRemapV435")) return;
+    const script = document.createElement("script");
+    script.id = "aldusPlanningPriorityRemapV435";
+    script.src = "planning-priority-remap-v435.js?v=20260902-planning-priority-remap-v435";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V435] Falha ao carregar o remapeamento de prioridades.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   function indexFor(list) {
     const cached = indexCache.get(list);
     if (cached
@@ -153,6 +167,7 @@
   installFactoryEditalLinkRepairV428();
   installPlanningStabilityV427();
   installDailyNetHoursCardV433();
+  installPlanningPriorityRemapV435();
   installDailyPlanPendingPanelV429();
   if (install()) return;
 
