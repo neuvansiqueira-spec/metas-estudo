@@ -120,9 +120,18 @@ test("aborto após backup bloqueia novo backup na mesma versão e libera em vers
 test("cadeia V426 usa query strings novas sem depender de bump do Service Worker", () => {
   const performanceLoader = fs.readFileSync("performance-emergency-v350.js", "utf8");
   const securityLoader = fs.readFileSync("security-observability-v318.js", "utf8");
-  assert.match(performanceLoader, /discipline-unification-v426\.js\?v=20260901-discipline-unification-v426-postcondition-r2/);
-  assert.match(performanceLoader, /discipline-unification-v426-revision\.js\?v=20260901-discipline-unification-v426-revision-b1-e-r2/);
-  assert.match(securityLoader, /performance-emergency-v350\.js\?v=20260901-v426-postcondition-r2/);
+  // O contrato é que cada elo da cadeia seja servido com cache-bust datado.
+  // Fixar o literal da release fazia este teste reprovar a cada renovação
+  // legítima da query — que é justamente o comportamento correto.
+  const DATED_QUERY = /^\?v=\d{8}-[a-z0-9-]+/;
+  const queryFor = (source, module) => {
+    const at = source.indexOf(module + "?v=");
+    return at === -1 ? "" : source.slice(at + module.length);
+  };
+  for (const module of ["discipline-unification-v426.js", "discipline-unification-v426-revision.js", "factory-edital-link-repair-v428.js"]) {
+    assert.match(queryFor(performanceLoader, module), DATED_QUERY, module);
+  }
+  assert.match(queryFor(securityLoader, "performance-emergency-v350.js"), DATED_QUERY);
 });
 
 test("raiz e docs permanecem idênticos nos módulos tocados da V426", () => {

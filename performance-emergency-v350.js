@@ -37,6 +37,21 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V428 - reparo do vinculo do edital na Fabrica: renomeia factoryAgenda,
+  // reescreve editalLink.groupKey e remove as copias vazias que o sync criou.
+  function installFactoryEditalLinkRepairV428() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusFactoryEditalLinkRepairV428")) return;
+    const script = document.createElement("script");
+    script.id = "aldusFactoryEditalLinkRepairV428";
+    script.src = "factory-edital-link-repair-v428.js?v=20260901-factory-edital-link-repair-v428";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V428] Falha ao carregar o reparo do vinculo do edital.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   function indexFor(list) {
     const cached = indexCache.get(list);
     if (cached
@@ -92,6 +107,7 @@
 
   installDisciplineUnificationV426();
   installDisciplineUnificationRevisionV426();
+  installFactoryEditalLinkRepairV428();
   if (install()) return;
 
   const startedAt = Date.now();
