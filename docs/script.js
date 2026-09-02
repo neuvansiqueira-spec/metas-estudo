@@ -4112,6 +4112,91 @@ function factoryConsolidateLinkedAgenda(items = []) {
   }
   return { agenda, removed };
 }
+function factorySyncLinkTokens(item = {}) {
+  const link = item.editalLink || {};
+  const itemIds = [...new Set([
+    item.syllabusItemId,
+    ...(Array.isArray(item.syllabusItemIds) ? item.syllabusItemIds : []),
+    ...(Array.isArray(link.itemIds) ? link.itemIds : [])
+  ].map((value) => String(value || "").trim()).filter(Boolean))];
+  const itemKeys = [...new Set((Array.isArray(link.itemKeys) ? link.itemKeys : [])
+    .map((value) => String(value || "").trim()).filter(Boolean))];
+  return { itemIds, itemKeys };
+}
+function factorySyncModuleScore(module = {}) {
+  const scores = { "pdf gerado": 90, aprovado: 80, "aguardando revisao": 70, "em producao": 60, "precisa refazer": 50, "atualizar depois": 40, "nao iniciado": 20, "nao se aplica": 10 };
+  const status = canonical(module?.status || module);
+  let score = scores[status] || 0;
+  if (module?.fileId || module?.driveFileId || module?.url || module?.link) score += 8;
+  return score;
+}
+function factorySyncItemScore(item = {}) {
+  let score = 0;
+  Object.values(item.modules || {}).forEach((module) => { score += factorySyncModuleScore(module); });
+  if (item.factoryDestinationFolder || item.destinationFolderUrl || item.pastaDestino || item.folderUrl) score += 5;
+  return score;
+}
+function factoryMergeSyncItems(left = {}, right = {}) {
+  const leftScore = factorySyncItemScore(left);
+  const rightScore = factorySyncItemScore(right);
+  const leftCreated = Date.parse(left.createdAt || "") || Number.MAX_SAFE_INTEGER;
+  const rightCreated = Date.parse(right.createdAt || "") || Number.MAX_SAFE_INTEGER;
+  const preferred = rightScore > leftScore || (rightScore === leftScore && rightCreated < leftCreated) ? right : left;
+  const secondary = preferred === left ? right : left;
+  const modules = {};
+  for (const key of new Set([...Object.keys(secondary.modules || {}), ...Object.keys(preferred.modules || {})])) {
+    const a = secondary.modules?.[key];
+    const b = preferred.modules?.[key];
+    modules[key] = factorySyncModuleScore(b) >= factorySyncModuleScore(a) ? (b ?? a) : a;
+  }
+  const leftTokens = factorySyncLinkTokens(left);
+  const rightTokens = factorySyncLinkTokens(right);
+  const preferredLink = preferred.editalLink || {};
+  const secondaryLink = secondary.editalLink || {};
+  return {
+    ...secondary,
+    ...preferred,
+    modules,
+    syllabusItemId: preferred.syllabusItemId || secondary.syllabusItemId || leftTokens.itemIds[0] || rightTokens.itemIds[0] || "",
+    syllabusItemIds: [...new Set([...leftTokens.itemIds, ...rightTokens.itemIds])],
+    editalSubtemas: [...new Set([...(secondary.editalSubtemas || []), ...(preferred.editalSubtemas || [])])],
+    editalLink: {
+      ...secondaryLink,
+      ...preferredLink,
+      itemIds: [...new Set([...leftTokens.itemIds, ...rightTokens.itemIds])],
+      itemKeys: [...new Set([...leftTokens.itemKeys, ...rightTokens.itemKeys])],
+      references: [...new Set([...(secondaryLink.references || []), ...(preferredLink.references || [])])],
+      topics: [...new Set([...(secondaryLink.topics || []), ...(preferredLink.topics || [])])]
+    },
+    duplicateFactoryItemIds: [...new Set([left.id, right.id, ...(left.duplicateFactoryItemIds || []), ...(right.duplicateFactoryItemIds || [])].filter(Boolean))]
+  };
+}
+function factoryConsolidateLinkedAgenda(items = []) {
+  const agenda = [];
+  const byItemId = new Map();
+  const byItemKey = new Map();
+  let removed = 0;
+  const indexTokens = (item, index) => {
+    const tokens = factorySyncLinkTokens(item);
+    tokens.itemIds.forEach((id) => byItemId.set(id, index));
+    tokens.itemKeys.forEach((key) => byItemKey.set(key, index));
+  };
+  for (const item of Array.isArray(items) ? items : []) {
+    const tokens = factorySyncLinkTokens(item);
+    let index = tokens.itemIds.map((id) => byItemId.get(id)).find((value) => Number.isInteger(value));
+    if (!Number.isInteger(index)) index = tokens.itemKeys.map((key) => byItemKey.get(key)).find((value) => Number.isInteger(value));
+    if (!Number.isInteger(index)) {
+      index = agenda.length;
+      agenda.push(item);
+      indexTokens(item, index);
+      continue;
+    }
+    agenda[index] = factoryMergeSyncItems(agenda[index], item);
+    indexTokens(agenda[index], index);
+    removed += 1;
+  }
+  return { agenda, removed };
+}
 function syncFactoryWithActiveEdital() {
   const consolidated = factoryConsolidateLinkedAgenda(ensureFactoryAgenda());
   const agenda = consolidated.agenda;
