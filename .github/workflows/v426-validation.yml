@@ -37,13 +37,15 @@ jobs:
           node --check discipline-unification-v426.js
           node --check discipline-unification-v426-revision.js
           node --check planning-integrity-v235.js
-          node --check factory-queue-integrity-v236.js
-          node --test tests/v426-discipline-unification.test.js tests/v426-revision-b1-e.test.js tests/v426-persistence-partial.test.js tests/factory-registration-idempotency-v426.test.js
+          node --check script.js
+          node --test tests/v426-discipline-unification.test.js tests/v426-revision-b1-e.test.js tests/v426-persistence-partial.test.js tests/factory-sync-rename-v426.test.js
           cmp discipline-unification-v426.js docs/discipline-unification-v426.js
           cmp discipline-unification-v426-revision.js docs/discipline-unification-v426-revision.js
           cmp performance-emergency-v350.js docs/performance-emergency-v350.js
           cmp planning-integrity-v235.js docs/planning-integrity-v235.js
-          cmp factory-queue-integrity-v236.js docs/factory-queue-integrity-v236.js
+          cmp script.js docs/script.js
+          cmp app.bundle.js docs/app.bundle.js
+          cmp app-v424.js docs/app-v424.js
 
       - name: Executar baseline nominal no commit-pai
         shell: bash
@@ -78,14 +80,15 @@ jobs:
           cmp performance-emergency-v350.js docs/performance-emergency-v350.js
           cmp security-observability-v318.js docs/security-observability-v318.js
           cmp planning-integrity-v235.js docs/planning-integrity-v235.js
+          cmp script.js docs/script.js
+          cmp app.bundle.js docs/app.bundle.js
+          cmp app-v424.js docs/app-v424.js
           cmp factory-queue-integrity-v236.js docs/factory-queue-integrity-v236.js
           grep -q 'recordManualCount,' planning-integrity-v235.js
           grep -q 'planning-integrity-v235.js' startup-planning-stability-v387.js
           grep -q 'planning-integrity-loader-v235.js' startup-planning-stability-v387.js
-          grep -q 'factory-queue-integrity-v236.js' startup-planning-stability-v387.js
           grep -q 'cache.delete(target, { ignoreSearch: true })' startup-planning-stability-v387.js
           git diff --exit-code "$BASE_SHA"...HEAD -- \
-            script.js \
             planning-quality-v368.js \
             planning-piece-rotation-v358.js \
             service-worker.js \
