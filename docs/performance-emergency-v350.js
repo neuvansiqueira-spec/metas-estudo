@@ -52,6 +52,21 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V427 - estabilidade do Plano do Dia: fixa a cota nas tres fontes do V235
+  // e troca a reconstrucao destrutiva do botao por preenchimento aditivo.
+  function installPlanningStabilityV427() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusPlanningStabilityV427")) return;
+    const script = document.createElement("script");
+    script.id = "aldusPlanningStabilityV427";
+    script.src = "planning-stability-v427.js?v=20260902-planning-stability-v427";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V427] Falha ao carregar a estabilidade do Plano do Dia.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   function indexFor(list) {
     const cached = indexCache.get(list);
     if (cached
@@ -108,6 +123,7 @@
   installDisciplineUnificationV426();
   installDisciplineUnificationRevisionV426();
   installFactoryEditalLinkRepairV428();
+  installPlanningStabilityV427();
   if (install()) return;
 
   const startedAt = Date.now();
