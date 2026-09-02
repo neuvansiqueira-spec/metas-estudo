@@ -44,7 +44,7 @@
     if (document.getElementById("aldusFactoryEditalLinkRepairV428")) return;
     const script = document.createElement("script");
     script.id = "aldusFactoryEditalLinkRepairV428";
-    script.src = "factory-edital-link-repair-v428.js?v=20260901-factory-edital-link-repair-v428";
+    script.src = "factory-edital-link-repair-v428.js?v=20260902-factory-edital-link-repair-v428-state-binding-r2";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V428] Falha ao carregar o reparo do vinculo do edital.");
