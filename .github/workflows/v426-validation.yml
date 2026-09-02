@@ -73,9 +73,27 @@ jobs:
             planning-integrity-v235.js \
             planning-quality-v368.js \
             planning-piece-rotation-v358.js \
-            service-worker.js \
             service-worker-v378.js \
             factory-resumo-aula-jurisprudencia-v380.js \
             factory-lei-jurisprudencia-v383.js \
             factory-padronizacao-final-sumario-v385.js \
             factory-fusao-final-v425.js
+
+          workers=(
+            service-worker.js
+            docs/service-worker.js
+            service-worker-v168.js
+            docs/service-worker-v168.js
+            service-worker-v169.js
+            docs/service-worker-v169.js
+            service-worker-v424.js
+            docs/service-worker-v424.js
+          )
+          for worker in "${workers[@]}"; do
+            test "$(git diff --numstat "$BASE_SHA"...HEAD -- "$worker")" = $'0\t1\t'"$worker"
+            test "$(git diff --unified=0 "$BASE_SHA"...HEAD -- "$worker" | grep -Ec '^[+-][^-+]')" -eq 1
+            git diff --unified=0 "$BASE_SHA"...HEAD -- "$worker" | grep -qx -- '-  FACTORY_DESTINATION_INTEGRITY,'
+          done
+          for worker in "${workers[@]:1}"; do
+            cmp service-worker.js "$worker"
+          done
