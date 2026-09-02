@@ -1,0 +1,178 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+
+const root = path.resolve(__dirname, '..');
+const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
+const api = require(path.join(root, 'daily-net-hours-card-v433.js'));
+
+const HOJE = (() => {
+  const now = new Date();
+  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 10);
+})();
+
+test('V433 soma apenas as sessões de hoje, como script.js:5145', () => {
+  const state = {
+    studies: [
+      { date: HOJE, minutes: 50 },
+      { date: HOJE, minutes: 25 },
+      { date: '2026-01-01', minutes: 300 },
+      { date: HOJE, minutes: 0 },
+      { date: HOJE, minutes: -10 },
+      { date: HOJE }
+    ]
+  };
+  assert.equal(api.todayMinutes(state), 75, 'ignora outras datas, zeros, negativos e ausentes');
+  assert.equal(api.todaySessions(state), 5);
+});
+
+test('V433 não quebra com estado ausente ou malformado', () => {
+  assert.equal(api.todayMinutes(null), 0);
+  assert.equal(api.todayMinutes({}), 0);
+  assert.equal(api.todayMinutes({ studies: 'nao é lista' }), 0);
+  assert.equal(api.todayMinutes({ studies: [null, 7, { date: HOJE, minutes: 'abc' }] }), 0);
+});
+
+test('V433 formata em horas e minutos, sem decimal', () => {
+  assert.equal(api.formatMinutes(0), '0min');
+  assert.equal(api.formatMinutes(45), '45min');
+  assert.equal(api.formatMinutes(60), '1h');
+  assert.equal(api.formatMinutes(75), '1h 15min');
+  assert.equal(api.formatMinutes(525), '8h 45min');
+  assert.equal(api.formatMinutes(-30), '0min');
+});
+
+test('V433 concorda com formatHours do app na conversão de minutos', () => {
+  // formatHours devolve "8.8h"; este card devolve "8h 45min". A diferença é
+  // deliberada: o card do topo é lido de relance e hora fracionada engana.
+  const script = read('script.js');
+  assert.match(script, /function formatHours\(minutes\)/);
+  assert.equal(api.formatMinutes(525), '8h 45min');
+});
+
+test('V433 descreve quantas sessões existem hoje', () => {
+  assert.equal(api.sessionLabel(0), 'Nenhuma sessão registrada hoje.');
+  assert.equal(api.sessionLabel(1), '1 sessão registrada hoje.');
+  assert.equal(api.sessionLabel(3), '3 sessões registradas hoje.');
+});
+
+function domHarness(state) {
+  const listeners = new Map();
+  const context = {
+    console: { info() {}, warn() {} },
+    window: { addEventListener: (nome, fn) => listeners.set(nome, fn) }
+  };
+  const nodes = new Map();
+  const makeNode = (id) => {
+    const node = {
+      className: '', textContent: '', innerHTML: '',
+      children: [], parentNode: null,
+      appendChild(child) { child.parentNode = this; this.children.push(child); return child; },
+      insertBefore(child, ref) {
+        child.parentNode = this;
+        const at = this.children.indexOf(ref);
+        this.children.splice(at === -1 ? this.children.length : at, 0, child);
+        return child;
+      },
+      closest(sel) { return sel === '.goal-card' ? nodes.get('goalCard') : null; }
+    };
+    // O módulo cria o elemento e só depois atribui o id; o registro precisa
+    // acompanhar a atribuição, como faz um DOM de verdade.
+    let atual = '';
+    Object.defineProperty(node, 'id', {
+      get: () => atual,
+      set(valor) { atual = String(valor || ''); if (atual) nodes.set(atual, node); },
+      enumerable: true
+    });
+    node.id = id;
+    return node;
+  };
+  const head = makeNode('head');
+  const parent = makeNode('parent');
+  const goalCard = makeNode('goalCard');
+  goalCard.className = 'goal-card';
+  parent.appendChild(goalCard);
+  const weekly = makeNode('weeklyGoalStatus');
+  goalCard.appendChild(weekly);
+  context.document = {
+    head,
+    documentElement: head,
+    getElementById: (id) => nodes.get(id) || null,
+    createElement: () => makeNode('')
+  };
+  context.state = state;
+  context.globalThis = context;
+  vm.createContext(context);
+  vm.runInContext(read('daily-net-hours-card-v433.js'), context);
+  return { context, listeners, nodes, parent, goalCard };
+}
+
+test('V433 insere o card antes do card da meta semanal', () => {
+  const { context, listeners, nodes, parent, goalCard } = domHarness({
+    studies: [{ date: HOJE, minutes: 90 }]
+  });
+  listeners.get('load')();
+  const card = nodes.get('aldusDailyNetHoursCardV433');
+  assert.ok(card, 'o card precisa existir');
+  assert.equal(card.className, 'goal-card', 'herda a aparência do card irmão');
+  assert.ok(parent.children.indexOf(card) < parent.children.indexOf(goalCard),
+    'o card do dia vem antes do semanal');
+  assert.equal(nodes.get('aldusDailyNetHoursValueV433').textContent, '1h 30min');
+  assert.equal(context.__ALDUS_DAILY_NET_HOURS_CARD_V433__.version, '20260902-daily-net-hours-card-v433');
+});
+
+test('V433 não duplica o card em renders sucessivos', () => {
+  const { listeners, parent } = domHarness({ studies: [{ date: HOJE, minutes: 30 }] });
+  listeners.get('load')();
+  const antes = parent.children.length;
+  const api433 = null;
+  for (let i = 0; i < 5; i += 1) listeners.get('load')();
+  assert.equal(parent.children.length, antes, 'inserir mais de uma vez criaria cards repetidos');
+  assert.equal(api433, null);
+});
+
+test('V433 não faz nada quando o card da meta semanal não existe', () => {
+  const context = vm.createContext({
+    console: { info() {}, warn() {} },
+    window: { addEventListener() {} },
+    document: { head: {}, documentElement: {}, getElementById: () => null, createElement: () => ({}) },
+    state: { studies: [] }
+  });
+  context.globalThis = context;
+  vm.runInContext(read('daily-net-hours-card-v433.js'), context);
+  assert.equal(context.__ALDUS_DAILY_NET_HOURS_CARD_V433__.renderCard(), false);
+});
+
+test('V433 alcança o estado declarado como const no escopo global', () => {
+  const listeners = new Map();
+  const context = vm.createContext({
+    console: { info() {}, warn() {} },
+    window: { addEventListener: (nome, fn) => listeners.set(nome, fn) },
+    document: { head: {}, documentElement: {}, getElementById: () => null, createElement: () => ({}) }
+  });
+  context.globalThis = context;
+  vm.runInContext(`const state = { studies: [{ date: "${HOJE}", minutes: 42 }] };
+    globalThis.__leituraDoGlobal = typeof globalThis.state;`, context);
+  assert.equal(context.__leituraDoGlobal, 'undefined');
+  vm.runInContext(read('daily-net-hours-card-v433.js'), context);
+  vm.runInContext('globalThis.__minutos = __ALDUS_DAILY_NET_HOURS_CARD_V433__.todayMinutes(state);', context);
+  assert.equal(context.__minutos, 42, 'ler apenas globalThis.state daria zero');
+});
+
+test('V433 não introduz polling, observador nem escrita de estado', () => {
+  const source = read('daily-net-hours-card-v433.js');
+  const codigo = source.split('\n').filter((linha) => !linha.trim().startsWith('//')).join('\n');
+  assert.doesNotMatch(codigo, /setInterval|setTimeout|requestAnimationFrame|MutationObserver/);
+  assert.doesNotMatch(codigo, /saveData|localStorage|indexedDB/);
+  assert.doesNotMatch(codigo, /state\.[a-zA-Z]+\s*=/, 'o card apenas lê o estado');
+});
+
+test('V433 mantém paridade raiz/docs e é publicado com cache-bust', () => {
+  assert.equal(read('daily-net-hours-card-v433.js'), read('docs/daily-net-hours-card-v433.js'));
+  const loader = read('performance-emergency-v350.js');
+  assert.match(loader, /daily-net-hours-card-v433\.js\?v=\d{8}-[a-z0-9-]+/);
+  assert.equal(loader, read('docs/performance-emergency-v350.js'));
+});
