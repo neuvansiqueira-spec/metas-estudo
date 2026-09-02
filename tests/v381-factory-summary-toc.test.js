@@ -13,14 +13,17 @@ const loader = fs.readFileSync(loaderPath, 'utf8');
 const docsLoader = fs.readFileSync(docsLoaderPath, 'utf8');
 const api = require(`../${runtimePath}`);
 
-test('V422 cobre os seis prompts de conteúdo solicitados', () => {
+test('V431 cobre os seis prompts de conteúdo mais a Fusão Final', () => {
   assert.deepEqual([...api.targetTypes], [
     'resumoAula',
     'lei',
     'jurisprudencia',
     'peca',
     'resumoAulaJurisprudencia',
-    'leiJurisprudencia'
+    'leiJurisprudencia',
+    // V431: sem este tipo o prompt da Fusão Final manda seguir as regras de
+    // sumário do projeto sem que regra nenhuma seja injetada.
+    'fusaoFinal'
   ]);
   assert.equal(api.summaryMarker, '## SUMÁRIO DIDÁTICO OBRIGATÓRIO DO DOCUMENTO — V422');
 });
@@ -72,7 +75,7 @@ test('V422 permanece fora dos hot paths e persiste somente migrações explícit
 test('loader V422 é isolado, ordenado após V380 e raiz/docs permanecem idênticos', () => {
   assert.equal(runtime, docsRuntime, 'runtime raiz/docs deve permanecer sincronizado');
   assert.equal(loader, docsLoader, 'loader raiz/docs deve permanecer sincronizado');
-  assert.match(loader, /factory-summary-toc-v381\.js\?v=20260901-factory-summary-toc-v422/);
+  assert.match(loader, /factory-summary-toc-v381\.js\?v=\d{8}-[a-z0-9-]+/);
   assert.match(loader, /installFactoryResumoAulaJurisprudenciaV380\(\);[\s\S]*installFactorySummaryTocV382\(\);/);
   assert.doesNotMatch(loader, /factory-summary-toc-v381[\s\S]*MutationObserver\s*\(/);
 });

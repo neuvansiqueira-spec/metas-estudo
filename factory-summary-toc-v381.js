@@ -12,7 +12,11 @@
     "jurisprudencia",
     "peca",
     "resumoAulaJurisprudencia",
-    "leiJurisprudencia"
+    "leiJurisprudencia",
+    // V431: a Fusao Final nasceu depois da V422 e ficou fora das listas de alvo.
+    // Sem isso o prompt manda "seguir as regras de sumario deste projeto" sem que
+    // regra nenhuma seja injetada, e o modelo improvisa a formatacao.
+    "fusaoFinal"
   ]);
   const TARGET_SET = new Set(TARGET_TYPES);
   const LEGACY_MARKER = "## SUMÁRIO OBRIGATÓRIO DO DOCUMENTO — V381";
@@ -27,7 +31,8 @@
     "peca",
     "resumoAulaJurisprudencia",
     "leiJurisprudencia",
-    "consolidacao"
+    "consolidacao",
+    "fusaoFinal"
   ]);
   const BEIGE_TARGET_SET = new Set(BEIGE_TARGET_TYPES);
   const JURISPRUDENCE_YEAR_MARKER = "## ANO DA DECISÃO — REGRA OBRIGATÓRIA DA JURISPRUDÊNCIA";

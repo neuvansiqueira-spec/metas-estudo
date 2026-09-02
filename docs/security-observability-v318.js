@@ -257,6 +257,21 @@
   // V425 — novo prompt Fusão Final, isolado do bundle principal.
   // Registra apenas tipo, descrição e prompt-base; sem polling, observadores,
   // requestAnimationFrame ou persistência automática.
+  // V431 - relocacao de jurisprudencia e preservacao do sublinhado na Fusao
+  // Final. Carregado apos a V425 para embrulhar o roteador ja instalado.
+  function installFactoryFusaoFinalRelocationV431() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusFactoryFusaoFinalRelocationV431")) return;
+    const script = document.createElement("script");
+    script.id = "aldusFactoryFusaoFinalRelocationV431";
+    script.src = "factory-fusao-final-relocation-v431.js?v=20260902-factory-fusao-final-relocation-v431";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V431] Falha ao carregar a relocacao de jurisprudencia da Fusao Final.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   function installFactoryFusaoFinalV425() {
     if (typeof document === "undefined") return;
     if (document.getElementById("aldusFactoryFusaoFinalV425")) return;
@@ -294,7 +309,7 @@
     if (document.getElementById("aldusFactorySummaryTocV382")) return;
     const script = document.createElement("script");
     script.id = "aldusFactorySummaryTocV382";
-    script.src = "factory-summary-toc-v381.js?v=20260901-factory-summary-toc-v422";
+    script.src = "factory-summary-toc-v381.js?v=20260902-factory-summary-toc-fusao-final-v431";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V382] Falha ao carregar a formatação didática do sumário.");
@@ -328,6 +343,7 @@
   installFactoryFinalReviewCompatV384();
   installFactoryPadronizacaoFinalSumarioV385();
   installFactoryFusaoFinalV425();
+  installFactoryFusaoFinalRelocationV431();
   installQuestionBankManualNotesV386();
   installFactorySummaryTocV382();
 
