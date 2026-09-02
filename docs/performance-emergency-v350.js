@@ -109,6 +109,20 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V436 - lancamento rapido de questoes no Plano do Dia.
+  function installQuickQuestionEntryV436() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusQuickQuestionEntryLoaderV436")) return;
+    const script = document.createElement("script");
+    script.id = "aldusQuickQuestionEntryLoaderV436";
+    script.src = "quick-question-entry-v436.js?v=20260902-quick-question-entry-v436";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V436] Falha ao carregar o lancamento rapido de questoes.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   function indexFor(list) {
     const cached = indexCache.get(list);
     if (cached
@@ -168,6 +182,7 @@
   installPlanningStabilityV427();
   installDailyNetHoursCardV433();
   installPlanningPriorityRemapV435();
+  installQuickQuestionEntryV436();
   installDailyPlanPendingPanelV429();
   if (install()) return;
 
