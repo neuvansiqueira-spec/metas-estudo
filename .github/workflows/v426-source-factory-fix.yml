@@ -1,0 +1,324 @@
+name: V426 source factory fix
+
+on:
+  push:
+    branches:
+      - v426-persistence-source-fix
+
+permissions:
+  contents: write
+
+jobs:
+  patch-source:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: v426-persistence-source-fix
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+          cache: npm
+      - name: Corrigir identidade estável da Fábrica na fonte
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          root = Path('.')
+          source_path = root / 'script.js'
+          source = source_path.read_text(encoding='utf-8')
+          start = source.index('function syncFactoryWithActiveEdital() {')
+          end = source.index('function reopenFactoryTheme(id) {', start)
+
+          replacement = r'''function factorySyncLinkTokens(item = {}) {
+            const link = item.editalLink || {};
+            const itemIds = [...new Set([
+              item.syllabusItemId,
+              ...(Array.isArray(item.syllabusItemIds) ? item.syllabusItemIds : []),
+              ...(Array.isArray(link.itemIds) ? link.itemIds : [])
+            ].map((value) => String(value || "").trim()).filter(Boolean))];
+            const itemKeys = [...new Set((Array.isArray(link.itemKeys) ? link.itemKeys : [])
+              .map((value) => String(value || "").trim()).filter(Boolean))];
+            return { itemIds, itemKeys };
+          }
+          function factorySyncModuleScore(module = {}) {
+            const scores = { "pdf gerado": 90, aprovado: 80, "aguardando revisao": 70, "em producao": 60, "precisa refazer": 50, "atualizar depois": 40, "nao iniciado": 20, "nao se aplica": 10 };
+            const status = canonical(module?.status || module);
+            let score = scores[status] || 0;
+            if (module?.fileId || module?.driveFileId || module?.url || module?.link) score += 8;
+            return score;
+          }
+          function factorySyncItemScore(item = {}) {
+            let score = 0;
+            Object.values(item.modules || {}).forEach((module) => { score += factorySyncModuleScore(module); });
+            if (item.factoryDestinationFolder || item.destinationFolderUrl || item.pastaDestino || item.folderUrl) score += 5;
+            return score;
+          }
+          function factoryMergeSyncItems(left = {}, right = {}) {
+            const leftScore = factorySyncItemScore(left);
+            const rightScore = factorySyncItemScore(right);
+            const leftCreated = Date.parse(left.createdAt || "") || Number.MAX_SAFE_INTEGER;
+            const rightCreated = Date.parse(right.createdAt || "") || Number.MAX_SAFE_INTEGER;
+            const preferred = rightScore > leftScore || (rightScore === leftScore && rightCreated < leftCreated) ? right : left;
+            const secondary = preferred === left ? right : left;
+            const modules = {};
+            for (const key of new Set([...Object.keys(secondary.modules || {}), ...Object.keys(preferred.modules || {})])) {
+              const a = secondary.modules?.[key];
+              const b = preferred.modules?.[key];
+              modules[key] = factorySyncModuleScore(b) >= factorySyncModuleScore(a) ? (b ?? a) : a;
+            }
+            const leftTokens = factorySyncLinkTokens(left);
+            const rightTokens = factorySyncLinkTokens(right);
+            const preferredLink = preferred.editalLink || {};
+            const secondaryLink = secondary.editalLink || {};
+            return {
+              ...secondary,
+              ...preferred,
+              modules,
+              syllabusItemId: preferred.syllabusItemId || secondary.syllabusItemId || leftTokens.itemIds[0] || rightTokens.itemIds[0] || "",
+              syllabusItemIds: [...new Set([...leftTokens.itemIds, ...rightTokens.itemIds])],
+              editalSubtemas: [...new Set([...(secondary.editalSubtemas || []), ...(preferred.editalSubtemas || [])])],
+              editalLink: {
+                ...secondaryLink,
+                ...preferredLink,
+                itemIds: [...new Set([...leftTokens.itemIds, ...rightTokens.itemIds])],
+                itemKeys: [...new Set([...leftTokens.itemKeys, ...rightTokens.itemKeys])],
+                references: [...new Set([...(secondaryLink.references || []), ...(preferredLink.references || [])])],
+                topics: [...new Set([...(secondaryLink.topics || []), ...(preferredLink.topics || [])])]
+              },
+              duplicateFactoryItemIds: [...new Set([left.id, right.id, ...(left.duplicateFactoryItemIds || []), ...(right.duplicateFactoryItemIds || [])].filter(Boolean))]
+            };
+          }
+          function factoryConsolidateLinkedAgenda(items = []) {
+            const agenda = [];
+            const byItemId = new Map();
+            const byItemKey = new Map();
+            let removed = 0;
+            const indexTokens = (item, index) => {
+              const tokens = factorySyncLinkTokens(item);
+              tokens.itemIds.forEach((id) => byItemId.set(id, index));
+              tokens.itemKeys.forEach((key) => byItemKey.set(key, index));
+            };
+            for (const item of Array.isArray(items) ? items : []) {
+              const tokens = factorySyncLinkTokens(item);
+              let index = tokens.itemIds.map((id) => byItemId.get(id)).find((value) => Number.isInteger(value));
+              if (!Number.isInteger(index)) index = tokens.itemKeys.map((key) => byItemKey.get(key)).find((value) => Number.isInteger(value));
+              if (!Number.isInteger(index)) {
+                index = agenda.length;
+                agenda.push(item);
+                indexTokens(item, index);
+                continue;
+              }
+              agenda[index] = factoryMergeSyncItems(agenda[index], item);
+              indexTokens(agenda[index], index);
+              removed += 1;
+            }
+            return { agenda, removed };
+          }
+          function syncFactoryWithActiveEdital() {
+            const consolidated = factoryConsolidateLinkedAgenda(ensureFactoryAgenda());
+            const agenda = consolidated.agenda;
+            const groups = factoryActiveEditalGroups();
+            const activeKeys = new Set(groups.map((group) => group.key));
+            const byKey = new Map();
+            const byItemId = new Map();
+            const byItemKey = new Map();
+            const indexItem = (item) => {
+              if (item.editalLink?.groupKey) byKey.set(item.editalLink.groupKey, item);
+              const tokens = factorySyncLinkTokens(item);
+              tokens.itemIds.forEach((id) => { if (!byItemId.has(id)) byItemId.set(id, item); });
+              tokens.itemKeys.forEach((key) => { if (!byItemKey.has(key)) byItemKey.set(key, item); });
+            };
+            agenda.forEach(indexItem);
+            const findExisting = (group) => {
+              const exact = byKey.get(group.key);
+              if (exact) return exact;
+              for (const id of group.itemIds || []) if (byItemId.has(String(id))) return byItemId.get(String(id));
+              for (const key of group.itemKeys || []) if (byItemKey.has(String(key))) return byItemKey.get(String(key));
+              return null;
+            };
+            const now = new Date().toISOString();
+            let created = 0;
+            let changed = consolidated.removed > 0;
+            groups.forEach((group) => {
+              const recorte = group.subtopics.length ? `Subtemas do edital: ${group.subtopics.join("; ")}` : "";
+              const existing = findExisting(group);
+              if (existing) {
+                const previousSignature = JSON.stringify({ disciplina: existing.disciplina, tema: existing.tema, syllabusItemId: existing.syllabusItemId, syllabusItemIds: existing.syllabusItemIds, link: existing.editalLink, subtemas: existing.editalSubtemas, active: existing.editalActive, archived: existing.archivedReason, observacao: existing.observacao });
+                existing.disciplina = group.discipline;
+                existing.tema = group.subject;
+                existing.syllabusItemId = group.itemIds[0] || existing.syllabusItemId || "";
+                existing.syllabusItemIds = group.itemIds;
+                existing.editalLink = { ...(existing.editalLink || {}), groupKey: group.key, itemIds: group.itemIds, itemKeys: group.itemKeys, discipline: group.discipline, subject: group.subject, references: group.references, topics: group.topics };
+                existing.editalSubtemas = group.subtopics;
+                existing.editalActive = true;
+                existing.archivedReason = "";
+                if (recorte && !existing.observacao?.includes(recorte)) existing.observacao = [existing.observacao, recorte].filter(Boolean).join("\n");
+                if (previousSignature !== JSON.stringify({ disciplina: existing.disciplina, tema: existing.tema, syllabusItemId: existing.syllabusItemId, syllabusItemIds: existing.syllabusItemIds, link: existing.editalLink, subtemas: existing.editalSubtemas, active: existing.editalActive, archived: existing.archivedReason, observacao: existing.observacao })) changed = true;
+                existing.updatedAt = existing.updatedAt || now;
+                indexItem(existing);
+                return;
+              }
+              const createdItem = normalizeFactoryItem({
+                id: createId(), disciplina: group.discipline, tema: group.subject, prioridade: "Média", status: "Não iniciado",
+                observacao: recorte, createdAt: now, updatedAt: now,
+                editalLink: { groupKey: group.key, itemIds: group.itemIds, itemKeys: group.itemKeys, discipline: group.discipline, subject: group.subject, references: group.references, topics: group.topics },
+                editalSubtemas: group.subtopics, editalActive: true
+              });
+              agenda.push(createdItem);
+              indexItem(createdItem);
+              created += 1;
+              changed = true;
+            });
+            agenda.forEach((item) => {
+              if (item.editalLink?.groupKey && !activeKeys.has(item.editalLink.groupKey)) {
+                item.editalActive = false;
+                item.archivedReason = "Fora do edital ativo";
+                changed = true;
+              }
+            });
+            state.factoryAgenda = agenda.map(normalizeFactoryItem);
+            state.factoryItems = state.factoryAgenda;
+            return { created, mergedDuplicates: consolidated.removed, changed, groups, disciplines: new Set(groups.map((g)=>g.discipline)).size, subjects: groups.length, subtopics: groups.reduce((total, group)=>total + group.subtopics.length, 0) };
+          }
+          '''
+
+          patched = source[:start] + replacement + source[end:]
+          source_path.write_text(patched, encoding='utf-8')
+          docs_script = root / 'docs' / 'script.js'
+          docs_script.write_text(patched, encoding='utf-8')
+
+          # A correção passa a estar na fonte; retire a tentativa de hotfix no módulo V236.
+          import subprocess
+          subprocess.run(['git', 'checkout', 'origin/main', '--', 'factory-queue-integrity-v236.js', 'docs/factory-queue-integrity-v236.js'], check=True)
+
+          test = r'''const test = require("node:test");
+          const assert = require("node:assert/strict");
+          const fs = require("node:fs");
+          const vm = require("node:vm");
+
+          const source = fs.readFileSync("script.js", "utf8");
+          const start = source.indexOf("function factorySyncLinkTokens(item = {}) {");
+          const end = source.indexOf("function reopenFactoryTheme(id) {", start);
+          assert.ok(start >= 0 && end > start, "trecho de sincronização da Fábrica não localizado");
+          const syncSource = source.slice(start, end);
+
+          function runtime(count = 112, withCreatedDuplicates = false) {
+            const groups = Array.from({ length: count }, (_, index) => ({
+              key: `edital:ciencias forenses|tema ${index}`,
+              discipline: "CIÊNCIAS FORENSES",
+              subject: `Tema ${index}`,
+              itemIds: [`syllabus-${index}`],
+              itemKeys: [`id:syllabus-${index}`],
+              subtopics: [], references: [], topics: []
+            }));
+            const oldItems = groups.map((group, index) => ({
+              id: `factory-old-${index}`,
+              disciplina: "MEDICINA LEGAL",
+              tema: group.subject,
+              createdAt: "2026-08-01T00:00:00.000Z",
+              syllabusItemId: group.itemIds[0],
+              syllabusItemIds: [...group.itemIds],
+              editalLink: { groupKey: `edital:medicina legal|tema ${index}`, itemIds: [...group.itemIds], itemKeys: [...group.itemKeys] },
+              modules: { resumo: { status: index === 0 ? "Aprovado" : "Não iniciado" } }
+            }));
+            const agenda = withCreatedDuplicates ? oldItems.flatMap((old, index) => [old, {
+              id: `factory-new-${index}`,
+              disciplina: "CIÊNCIAS FORENSES",
+              tema: old.tema,
+              createdAt: "2026-09-01T00:00:00.000Z",
+              syllabusItemId: old.syllabusItemId,
+              syllabusItemIds: [...old.syllabusItemIds],
+              editalLink: { groupKey: groups[index].key, itemIds: [...old.syllabusItemIds], itemKeys: [...groups[index].itemKeys] },
+              modules: { resumo: { status: "Não iniciado" } }
+            }]) : oldItems;
+            const state = { factoryAgenda: agenda, factoryItems: agenda };
+            let ids = 0;
+            const context = {
+              state,
+              canonical(value) { return String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, " ").toLocaleLowerCase("pt-BR"); },
+              ensureFactoryAgenda() { return state.factoryAgenda; },
+              factoryActiveEditalGroups() { return groups; },
+              normalizeFactoryItem(item) { return JSON.parse(JSON.stringify(item)); },
+              createId() { return `created-${++ids}`; },
+              Date, JSON, Map, Set
+            };
+            vm.createContext(context);
+            vm.runInContext(syncSource, context);
+            return { context, state };
+          }
+
+          test("renomear MEDICINA LEGAL para CIÊNCIAS FORENSES reutiliza os 112 itens vinculados", () => {
+            const { context, state } = runtime(112, false);
+            const first = context.syncFactoryWithActiveEdital();
+            assert.equal(first.created, 0);
+            assert.equal(first.mergedDuplicates, 0);
+            assert.equal(state.factoryAgenda.length, 112);
+            assert.ok(state.factoryAgenda.every((item) => item.disciplina === "CIÊNCIAS FORENSES"));
+            assert.ok(state.factoryAgenda.every((item, index) => item.editalLink.groupKey === `edital:ciencias forenses|tema ${index}`));
+            const second = context.syncFactoryWithActiveEdital();
+            assert.equal(second.created, 0);
+            assert.equal(second.mergedDuplicates, 0);
+            assert.equal(state.factoryAgenda.length, 112);
+          });
+
+          test("duplicatas já criadas pela troca de groupKey são consolidadas sem perder progresso", () => {
+            const { context, state } = runtime(112, true);
+            const result = context.syncFactoryWithActiveEdital();
+            assert.equal(result.created, 0);
+            assert.equal(result.mergedDuplicates, 112);
+            assert.equal(state.factoryAgenda.length, 112);
+            assert.equal(state.factoryAgenda[0].modules.resumo.status, "Aprovado");
+            assert.ok(state.factoryAgenda[0].duplicateFactoryItemIds.includes("factory-old-0"));
+            assert.ok(state.factoryAgenda[0].duplicateFactoryItemIds.includes("factory-new-0"));
+          });
+          '''
+          (root / 'tests' / 'factory-sync-rename-v426.test.js').write_text(test, encoding='utf-8')
+          old_test = root / 'tests' / 'factory-registration-idempotency-v426.test.js'
+          if old_test.exists(): old_test.unlink()
+
+          workflow = root / '.github' / 'workflows' / 'v426-validation.yml'
+          text = workflow.read_text(encoding='utf-8')
+          text = text.replace('          node --check factory-queue-integrity-v236.js\n', '          node --check script.js\n')
+          text = text.replace('tests/v426-persistence-partial.test.js tests/factory-registration-idempotency-v426.test.js', 'tests/v426-persistence-partial.test.js tests/factory-sync-rename-v426.test.js')
+          text = text.replace('          cmp factory-queue-integrity-v236.js docs/factory-queue-integrity-v236.js\n', '          cmp script.js docs/script.js\n', 1)
+          text = text.replace('          cmp factory-queue-integrity-v236.js docs/factory-queue-integrity-v236.js\n', '          cmp script.js docs/script.js\n', 1)
+          text = text.replace('          grep -q \'factory-queue-integrity-v236.js\' startup-planning-stability-v387.js\n', '')
+          text = text.replace('            script.js \\\n', '')
+          workflow.write_text(text, encoding='utf-8')
+
+      - name: Regerar bundle e provar que o worker não mudou
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
+          npm run build
+          changed_workers="$(git diff --name-only | grep -E '(^|/)service-worker[^/]*\.js$' || true)"
+          if [ -n "$changed_workers" ]; then
+            echo "$changed_workers" | xargs -r git restore --
+          fi
+          if git diff --name-only | grep -E '(^|/)service-worker[^/]*\.js$'; then
+            echo 'ERRO: build tentou deixar alteração em Service Worker.' >&2
+            exit 1
+          fi
+          node --test tests/factory-sync-rename-v426.test.js tests/v426-persistence-partial.test.js
+          cmp script.js docs/script.js
+          cmp app-v424.js docs/app-v424.js
+
+      - name: Remover executor temporário e enviar correção
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/v426-source-factory-fix.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if git diff --cached --name-only | grep -E '(^|/)service-worker[^/]*\.js$'; then
+            echo 'ERRO: Service Worker entrou no commit.' >&2
+            exit 1
+          fi
+          git commit -m 'fix(v426): estabilizar identidade da Fábrica por vínculo do edital'
+          git push origin HEAD:v426-persistence-source-fix
