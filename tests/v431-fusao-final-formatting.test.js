@@ -9,24 +9,8 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const toc = read('factory-summary-toc-v381.js');
 const fusao = read('factory-fusao-final-v425.js');
 
-// Carrega apenas as funções de injeção, sem o resto do módulo.
-function relocationApi() {
-  const context = vm.createContext({});
-  const pick = (re, nome) => {
-    const m = fusao.match(re);
-    assert.ok(m, `não encontrei ${nome}`);
-    return m[0];
-  };
-  const fonte = [
-    pick(/const RELOCATION_MARKER = "[^"]+";/, 'RELOCATION_MARKER'),
-    pick(/const RELOCATION_SECTION = `[\s\S]*?`;/, 'RELOCATION_SECTION'),
-    pick(/function withRelocationSection[\s\S]*?\n  }\n/, 'withRelocationSection'),
-    pick(/function withRelocationReportLines[\s\S]*?\n  }\n/, 'withRelocationReportLines'),
-    'globalThis.__api = { withRelocationSection, RELOCATION_SECTION };'
-  ].join('\n');
-  vm.runInContext(fonte, context);
-  return context.__api;
-}
+const relocacao = require(path.join(root, "factory-fusao-final-relocation-v431.js"));
+const relocationApi = () => relocacao;
 
 const PROMPT_DO_USUARIO = [
   '## ESCOPO DO MÓDULO FUSÃO FINAL',
@@ -77,13 +61,13 @@ test('V431 acrescenta as duas linhas de prestação de contas ao relatório', ()
 });
 
 test('V431 exige declaração expressa quando nada foi relocado', () => {
-  const { RELOCATION_SECTION } = relocationApi();
+  const RELOCATION_SECTION = relocationApi().section;
   assert.match(RELOCATION_SECTION, /SE NENHUMA TESE FOI MOVIDA, DIGA ISSO EXPRESSAMENTE/,
     'o silêncio foi exatamente o que ocorreu no documento que motivou esta correção');
 });
 
 test('V431 proíbe converter sublinhado em realce', () => {
-  const { RELOCATION_SECTION } = relocationApi();
+  const RELOCATION_SECTION = relocationApi().section;
   assert.match(RELOCATION_SECTION, /SUBLINHADO NÃO É REALCE/);
   assert.match(RELOCATION_SECTION, /PROIBIDO converter sublinhado em realce/);
 });
@@ -113,7 +97,34 @@ test('V431 mantém a proibição de reescrever a redação', () => {
     'a relocação muda posição, nunca texto');
 });
 
-test('V431 mantém paridade raiz/docs nos dois módulos tocados', () => {
+test('V431 não altera o módulo protegido pela trava de escopo da V426', () => {
+  // .github/workflows/v426-validation.yml proíbe qualquer alteração neste
+  // arquivo. A relocação entra por composição, num módulo próprio.
+  const relocationSource = read('factory-fusao-final-relocation-v431.js');
+  assert.doesNotMatch(fusao, /RELOCAÇÃO DE JURISPRUDÊNCIA/);
+  assert.match(relocationSource, /RELOCAÇÃO DE JURISPRUDÊNCIA/);
+});
+
+test('V431 embrulha o roteador sem substituir o prompt do usuário', () => {
+  const previous = global.factoryPromptBase;
+  try {
+    global.factoryPromptBase = (type) => (type === 'fusaoFinal' ? PROMPT_DO_USUARIO : `anterior:${type}`);
+    assert.equal(relocationApi().install(), true);
+    const servido = global.factoryPromptBase('fusaoFinal');
+    assert.ok(servido.includes('texto que o usuário editou à mão'));
+    assert.match(servido, /## RELOCAÇÃO DE JURISPRUDÊNCIA/);
+    assert.equal(global.factoryPromptBase('triagem'), 'anterior:triagem', 'outros tipos passam intactos');
+    assert.equal(relocationApi().install(), true, 'instalar duas vezes não duplica o embrulho');
+    assert.equal(global.factoryPromptBase('fusaoFinal'), servido);
+  } finally {
+    if (previous === undefined) delete global.factoryPromptBase;
+    else global.factoryPromptBase = previous;
+  }
+});
+
+test('V431 mantém paridade raiz/docs nos módulos tocados', () => {
   assert.equal(read('factory-summary-toc-v381.js'), read('docs/factory-summary-toc-v381.js'));
-  assert.equal(read('factory-fusao-final-v425.js'), read('docs/factory-fusao-final-v425.js'));
+  assert.equal(read('factory-fusao-final-relocation-v431.js'), read('docs/factory-fusao-final-relocation-v431.js'));
+  assert.equal(read('security-observability-v318.js'), read('docs/security-observability-v318.js'));
+  assert.match(read('security-observability-v318.js'), /factory-fusao-final-relocation-v431\.js\?v=\d{8}-[a-z0-9-]+/);
 });
