@@ -1,13 +1,41 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260901-factory-fusao-final-v425";
+  const VERSION = "20260902-factory-fusao-final-v425-relocation-r1";
   const TYPE_KEY = "fusaoFinal";
   const TYPE_LABEL = "Gerar prompt Fusão Final";
   const MIGRATION_ID = "factoryFusaoFinalV425";
   const API_MARKER = "__aldusFactoryFusaoFinalV425";
   const INSTALL_FLAG = "aldusFactoryFusaoFinalV425";
   const DESCRIPTION = "Funde o Word editado no estudo com as marcações do PDF num documento novo, sem tocar no original.";
+
+  // V431: a secao abaixo e injetada em tempo de execucao. Editar apenas o
+  // BASE_PROMPT nao bastaria: a biblioteca de prompts vive nos dados do usuario
+  // e so recebe o texto padrao quando esta vazia.
+  const RELOCATION_MARKER = "## RELOCAÇÃO DE JURISPRUDÊNCIA";
+  const RELOCATION_SECTION = `${RELOCATION_MARKER}
+
+QUANDO UMA TESE JURISPRUDENCIAL ESTIVER EM PONTO GENÉRICO DO DOCUMENTO, MAS SE REFERIR CLARAMENTE A UM INSTITUTO ESPECÍFICO TRATADO EM OUTRO LUGAR, MOVA-A PARA JUNTO DESSE INSTITUTO.
+
+ESTA É A ÚNICA ALTERAÇÃO ESTRUTURAL AUTORIZADA NESTE MÓDULO. ELA MUDA APENAS A POSIÇÃO, NUNCA O TEXTO.
+
+REGRAS:
+* NÃO altere uma palavra da tese, da citação entre parênteses ou do rótulo;
+* NÃO mova quando houver qualquer dúvida sobre o destino correto — na dúvida, deixe onde está e registre no relatório;
+* NÃO crie seção, título ou instituto novo para acomodar uma tese;
+* NÃO mova tese que já esteja junto do instituto a que se refere;
+* NÃO desmonte o quadro final de jurisprudência, quando existir — ele permanece como está;
+* NÃO agrupe teses por tribunal, ano ou tema; a referência é sempre o instituto do corpo do resumo.
+
+MOVER JURISPRUDÊNCIA PARA O INSTITUTO ERRADO É PIOR DO QUE DEIXÁ-LA MAL POSICIONADA. Na ausência de correspondência inequívoca, preserve a posição original.
+
+RELATÓRIO OBRIGATÓRIO DESTA SEÇÃO: liste cada tese movida, com o trecho inicial da tese, a posição de origem e a posição de destino. Liste também as teses que você considerou mover e decidiu não mover, com o motivo. SE NENHUMA TESE FOI MOVIDA, DIGA ISSO EXPRESSAMENTE — o silêncio não é resposta aceitável.
+
+## SUBLINHADO NÃO É REALCE
+
+SUBLINHADO NO PDF PERMANECE SUBLINHADO NO DOCUMENTO FINAL. GRIFO E REALCE PERMANECEM REALCE.
+
+É PROIBIDO converter sublinhado em realce amarelo, ou realce em sublinhado. Cada marca de leitura mantém a forma que tinha na origem. Quando não for possível distinguir sublinhado de realce na extração, preserve o texto sem marca nenhuma e registre o caso no relatório final — inventar a marca errada é pior do que não marcar.`;
 
   const BASE_PROMPT = `## ESCOPO DO MÓDULO FUSÃO FINAL
 
@@ -165,6 +193,37 @@ Ao final, informe:
     }
   }
 
+  // Insere a secao antes do relatorio final, para que o relatorio ja exista
+  // quando o modelo ler as exigencias dela. Sem a ancora, acrescenta ao fim.
+  function withRelocationSection(prompt) {
+    const text = String(prompt || "");
+    if (!text.trim()) return text;
+    if (text.includes(RELOCATION_MARKER)) return text;
+    const anchor = "## RELATÓRIO FINAL OBRIGATÓRIO";
+    const at = text.indexOf(anchor);
+    const merged = at === -1
+      ? `${text.trimEnd()}
+
+${RELOCATION_SECTION}`
+      : `${text.slice(0, at).trimEnd()}
+
+${RELOCATION_SECTION}
+
+${text.slice(at)}`;
+    return withRelocationReportLines(merged);
+  }
+
+  function withRelocationReportLines(prompt) {
+    const text = String(prompt || "");
+    const line = "* jurisprudências relocadas, com origem e destino;";
+    if (text.includes(line)) return text;
+    const anchor = "* confirmação de que o documento original permanece intacto.";
+    if (!text.includes(anchor)) return text;
+    return text.replace(anchor, `${line}
+* jurisprudências avaliadas e mantidas na posição original, com o motivo;
+${anchor}`);
+  }
+
   function installPromptBase() {
     try {
       if (typeof factoryPromptBase !== "function") return false;
@@ -173,7 +232,7 @@ Ao final, informe:
       const wrapped = function(type) {
         if (type !== TYPE_KEY) return previous(type);
         const configured = String(state?.factoryPromptLibrary?.[TYPE_KEY] || "").trim();
-        return configured || BASE_PROMPT;
+        return withRelocationSection(configured || BASE_PROMPT);
       };
       Object.defineProperty(wrapped, API_MARKER, { value: VERSION });
       Object.defineProperty(wrapped, "__aldusFactoryFusaoFinalOriginal", { value: previous });

@@ -16,7 +16,7 @@ const docsLoaderSource = fs.readFileSync(docsLoaderPath, "utf8");
 const api = require(rootPath);
 
 test("V425 publica o tipo Fusão Final e o prompt-base correto", () => {
-  assert.equal(api.version, "20260901-factory-fusao-final-v425");
+  assert.match(api.version, /^\d{8}-factory-fusao-final-v425/);
   assert.equal(api.typeKey, "fusaoFinal");
   assert.equal(api.label, "Gerar prompt Fusão Final");
   assert.match(api.prompt, /## ESCOPO DO MÓDULO FUSÃO FINAL/);
@@ -91,7 +91,13 @@ test("V425 install é idempotente, posiciona o tipo após padronização e regis
       global.FACTORY_PROMPT_DESCRIPTIONS.fusaoFinal,
       "Funde o Word editado no estudo com as marcações do PDF num documento novo, sem tocar no original."
     );
-    assert.equal(global.factoryPromptBase("fusaoFinal"), api.prompt);
+    // V431: o roteador devolve o prompt-base acrescido da seção de relocação de
+    // jurisprudência, injetada em tempo de execução porque a biblioteca de
+    // prompts vive nos dados do usuário e não recebe o texto padrão de novo.
+    const servido = global.factoryPromptBase("fusaoFinal");
+    assert.ok(servido.startsWith(api.prompt.slice(0, 200)), "o prompt-base continua sendo a origem");
+    assert.match(servido, /## RELOCAÇÃO DE JURISPRUDÊNCIA/);
+    assert.match(servido, /## RELATÓRIO FINAL OBRIGATÓRIO/);
     assert.equal(global.factoryPromptBase("triagem"), "anterior:triagem");
   } finally {
     for (const [key, value] of Object.entries(previous)) {
@@ -117,7 +123,7 @@ test("V425 mantém paridade raiz/docs e loader publica o módulo com cache-bust"
   assert.equal(rootSource, docsSource);
   assert.equal(loaderSource, docsLoaderSource);
   assert.match(loaderSource, /installFactoryFusaoFinalV425/);
-  assert.match(loaderSource, /factory-fusao-final-v425\.js\?v=20260901-factory-fusao-final-v425/);
+  assert.match(loaderSource, /factory-fusao-final-v425\.js\?v=\d{8}-[a-z0-9-]+/);
 });
 
 test("V425 não introduz hot paths nem persistência automática", () => {

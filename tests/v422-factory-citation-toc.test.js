@@ -17,7 +17,9 @@ function legacyPrompt(label = 'PROMPT SALVO') {
 }
 
 function createHarness() {
-  const types = ['resumoAula', 'lei', 'jurisprudencia', 'peca', 'resumoAulaJurisprudencia', 'leiJurisprudencia', 'consolidacao'];
+  // 'fusaoFinal' entra aqui porque a V431 o incluiu nos tipos-alvo. No app real
+  // esse prompt já existe na biblioteca do usuário, gravado pelo módulo da V425.
+  const types = ['resumoAula', 'lei', 'jurisprudencia', 'peca', 'resumoAulaJurisprudencia', 'leiJurisprudencia', 'consolidacao', 'fusaoFinal'];
   const defaults = Object.fromEntries(types.map((type) => [type, legacyPrompt(`DEFAULT ${type}`)]));
   const saved = Object.fromEntries(types.map((type) => [type, legacyPrompt(`STATE ${type}`)]));
   let saves = 0;
@@ -89,7 +91,10 @@ test('V422 renova V382 para V422 na biblioteca persistida', () => {
 test('V422 inclui lei e leiJurisprudencia nos tipos-alvo do sumário', () => {
   assert.ok(api.targetTypes.includes('lei'));
   assert.ok(api.targetTypes.includes('leiJurisprudencia'));
-  assert.equal(api.targetTypes.length, 6);
+  // V431 acrescentou fusaoFinal: o prompt da Fusão Final manda seguir as regras
+  // de sumário do projeto, e antes disso nenhuma regra era injetada nele.
+  assert.equal(api.targetTypes.length, 7);
+  assert.ok(api.targetTypes.includes('fusaoFinal'));
 });
 
 test('V422 descreve toda entrada do sumário como hiperlink obrigatório', () => {

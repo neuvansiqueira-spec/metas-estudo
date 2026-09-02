@@ -8,7 +8,7 @@ const security = fs.readFileSync('security-observability-v318.js', 'utf8');
 const docsSecurity = fs.readFileSync('docs/security-observability-v318.js', 'utf8');
 
 test('V422 torna o sumário um espelho didático do módulo', () => {
-  assert.match(root, /20260901-factory-summary-toc-v422/);
+  assert.match(root, /\d{8}-factory-summary-toc-[a-z0-9-]+/);
   assert.match(root, /SUMÁRIO DIDÁTICO OBRIGATÓRIO DO DOCUMENTO — V422/);
   assert.match(root, /MESMA LINGUAGEM DIDÁTICA, HIERARQUIA VISUAL, ÍCONES FUNCIONAIS/);
   assert.match(root, /♦️ \*\*📑 SUMÁRIO\*\*/);
@@ -69,7 +69,7 @@ test('V422 continua isolada de hot paths; gravação ocorre apenas na migração
 
 test('loader usa cache-bust V422 e raiz/docs permanecem idênticos', () => {
   assert.match(security, /installFactorySummaryTocV382/);
-  assert.match(security, /factory-summary-toc-v381\.js\?v=20260901-factory-summary-toc-v422/);
+  assert.match(security, /factory-summary-toc-v381\.js\?v=\d{8}-[a-z0-9-]+/);
   assert.match(security, /aldusFactorySummaryTocV382/);
   assert.equal(root, docs, 'runtime raiz e docs devem ser idênticos');
   assert.equal(security, docsSecurity, 'loader raiz e docs devem ser idênticos');

@@ -262,7 +262,7 @@
     if (document.getElementById("aldusFactoryFusaoFinalV425")) return;
     const script = document.createElement("script");
     script.id = "aldusFactoryFusaoFinalV425";
-    script.src = "factory-fusao-final-v425.js?v=20260901-factory-fusao-final-v425";
+    script.src = "factory-fusao-final-v425.js?v=20260902-factory-fusao-final-v425-relocation-r1";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V425] Falha ao carregar o prompt Fusão Final.");
@@ -294,7 +294,7 @@
     if (document.getElementById("aldusFactorySummaryTocV382")) return;
     const script = document.createElement("script");
     script.id = "aldusFactorySummaryTocV382";
-    script.src = "factory-summary-toc-v381.js?v=20260901-factory-summary-toc-v422";
+    script.src = "factory-summary-toc-v381.js?v=20260902-factory-summary-toc-fusao-final-v431";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V382] Falha ao carregar a formatação didática do sumário.");
