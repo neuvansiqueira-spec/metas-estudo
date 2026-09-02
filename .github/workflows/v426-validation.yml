@@ -89,11 +89,19 @@ jobs:
             service-worker-v424.js
             docs/service-worker-v424.js
           )
+          workers_changed=false
           for worker in "${workers[@]}"; do
-            test "$(git diff --numstat "$BASE_SHA"...HEAD -- "$worker")" = $'0\t1\t'"$worker"
+            worker_diff="$(git diff --numstat "$BASE_SHA"...HEAD -- "$worker")"
+            if [[ -z "$worker_diff" ]]; then
+              continue
+            fi
+            workers_changed=true
+            test "$worker_diff" = $'0\t1\t'"$worker"
             test "$(git diff --unified=0 "$BASE_SHA"...HEAD -- "$worker" | grep -Ec '^[+-][^-+]')" -eq 1
             git diff --unified=0 "$BASE_SHA"...HEAD -- "$worker" | grep -qx -- '-  FACTORY_DESTINATION_INTEGRITY,'
           done
-          for worker in "${workers[@]:1}"; do
-            cmp service-worker.js "$worker"
-          done
+          if [[ "$workers_changed" == true ]]; then
+            for worker in "${workers[@]:1}"; do
+              cmp service-worker.js "$worker"
+            done
+          fi
