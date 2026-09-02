@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const vm = require("node:vm");
 
+// A identidade persistente vem do vínculo com o edital; groupKey pode mudar quando a disciplina é renomeada.
 const source = fs.readFileSync("script.js", "utf8");
 const start = source.indexOf("function factorySyncLinkTokens(item = {}) {");
 const end = source.indexOf("function reopenFactoryTheme(id) {", start);
