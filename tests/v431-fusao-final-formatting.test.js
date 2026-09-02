@@ -72,6 +72,24 @@ test('V431 proíbe converter sublinhado em realce', () => {
   assert.match(RELOCATION_SECTION, /PROIBIDO converter sublinhado em realce/);
 });
 
+test('V431 preserva a cor da marca sem afetar a cor do corpo do texto', () => {
+  const RELOCATION_SECTION = relocationApi().section;
+  assert.match(RELOCATION_SECTION, /A MARCA MANTÉM A COR QUE TINHA NO PDF/);
+  assert.match(RELOCATION_SECTION, /Sublinhado vermelho continua vermelho/);
+  assert.match(RELOCATION_SECTION, /NÃO converta marca colorida para preto/);
+  assert.match(RELOCATION_SECTION, /O texto do corpo do resumo continua preto #000000/,
+    'a regra vale para a marca, não para o corpo — a identidade do projeto exige preto');
+});
+
+test('V431 exige espaçamento idêntico entre blocos irmãos', () => {
+  const RELOCATION_SECTION = relocationApi().section;
+  assert.match(RELOCATION_SECTION, /ESPAÇAMENTO — SEGUIR O DOCUMENTO DE ORIGEM/);
+  assert.match(RELOCATION_SECTION, /inserir linha em branco ou parágrafo vazio entre entradas do mesmo tipo/);
+  assert.match(RELOCATION_SECTION, /ficam com espaçamento IDÊNTICO entre si/);
+  assert.match(RELOCATION_SECTION, /CONFERÊNCIA OBRIGATÓRIA ANTES DE ENTREGAR/,
+    'sem conferência explícita o modelo não revisa o próprio espaçamento');
+});
+
 test('V431 é idempotente: injetar duas vezes não duplica a seção', () => {
   const { withRelocationSection } = relocationApi();
   const uma = withRelocationSection(PROMPT_DO_USUARIO);

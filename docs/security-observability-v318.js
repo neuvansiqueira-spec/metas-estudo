@@ -264,7 +264,7 @@
     if (document.getElementById("aldusFactoryFusaoFinalRelocationV431")) return;
     const script = document.createElement("script");
     script.id = "aldusFactoryFusaoFinalRelocationV431";
-    script.src = "factory-fusao-final-relocation-v431.js?v=20260902-factory-fusao-final-relocation-v431";
+    script.src = "factory-fusao-final-relocation-v431.js?v=20260902-factory-fusao-final-relocation-v431-fidelity-r2";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V431] Falha ao carregar a relocacao de jurisprudencia da Fusao Final.");

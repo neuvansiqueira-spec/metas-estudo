@@ -19,7 +19,7 @@
   // quando está vazia (`if (!hasPrompt) ...` na V425). Quem já tem o prompt salvo
   // — o caso de quem vinha usando o módulo — nunca veria a alteração.
 
-  const VERSION = "20260902-factory-fusao-final-relocation-v431";
+  const VERSION = "20260902-factory-fusao-final-relocation-v431-fidelity-r2";
   const TYPE_KEY = "fusaoFinal";
   const API_KEY = "__ALDUS_FACTORY_FUSAO_FINAL_RELOCATION_V431__";
   const WRAP_MARKER = "__aldusFactoryFusaoFinalRelocationV431";
@@ -52,7 +52,31 @@ RELATÓRIO OBRIGATÓRIO DESTA SEÇÃO: liste cada tese movida, com o trecho inic
 
 SUBLINHADO NO PDF PERMANECE SUBLINHADO NO DOCUMENTO FINAL. GRIFO E REALCE PERMANECEM REALCE.
 
-É PROIBIDO converter sublinhado em realce amarelo, ou realce em sublinhado. Cada marca de leitura mantém a forma que tinha na origem. Quando não for possível distinguir sublinhado de realce na extração, preserve o texto sem marca nenhuma e registre o caso no relatório final — inventar a marca errada é pior do que não marcar.`;
+É PROIBIDO converter sublinhado em realce amarelo, ou realce em sublinhado. Cada marca de leitura mantém a forma que tinha na origem. Quando não for possível distinguir sublinhado de realce na extração, preserve o texto sem marca nenhuma e registre o caso no relatório final — inventar a marca errada é pior do que não marcar.
+
+## COR DA MARCA — PRESERVAR A DA ORIGEM
+
+A MARCA MANTÉM A COR QUE TINHA NO PDF. Sublinhado vermelho continua vermelho; sublinhado azul continua azul; realce verde continua verde.
+
+NÃO converta marca colorida para preto. NÃO padronize as cores das marcas. NÃO escolha uma cor por conta própria.
+
+A cor da marca é informação: ela distingue o que o usuário destacou de um jeito do que destacou de outro. Perder a cor apaga essa distinção.
+
+Isto vale apenas para a MARCA — sublinhado, realce, contorno. O texto do corpo do resumo continua preto #000000, como manda a identidade do projeto. Quando a extração não informar a cor da marca, use vermelho para sublinhado e registre a suposição no relatório final.
+
+## ESPAÇAMENTO — SEGUIR O DOCUMENTO DE ORIGEM
+
+O ESPAÇAMENTO ENTRE PARÁGRAFOS, ENTRE ENTRADAS E ANTES E DEPOIS DOS RÓTULOS É O MESMO QUE O RESUMO DE ORIGEM JÁ USA. Meça no documento e repita.
+
+É PROIBIDO:
+* inserir linha em branco ou parágrafo vazio entre entradas do mesmo tipo;
+* deixar espaço maior antes de uma entrada do que antes da entrada anterior;
+* alterar espaçamento entre linhas, espaçamento antes/depois do parágrafo, ou recuo;
+* separar um rótulo funcional do texto que ele introduz.
+
+Entradas consecutivas do mesmo tipo — duas teses de jurisprudência seguidas, dois institutos seguidos — ficam com espaçamento IDÊNTICO entre si. Se uma delas veio da fusão e a outra já existia, isso não pode ser perceptível pelo espaçamento.
+
+CONFERÊNCIA OBRIGATÓRIA ANTES DE ENTREGAR: percorra o documento final e verifique que o espaço entre blocos irmãos é sempre o mesmo. Relate no relatório final que a conferência foi feita.`;
 
   // Acrescenta as duas linhas de prestação de contas ao relatório existente.
   function withReportLines(prompt) {
