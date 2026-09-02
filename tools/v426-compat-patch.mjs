@@ -1,32 +1,37 @@
 import fs from 'node:fs';
 
 for (const name of ['script.js', 'docs/script.js']) {
-  let text = fs.readFileSync(name, 'utf8');
+  let text = fs.readFileSync(name, 'utf8').replace(/\r\n/g, '\n');
   const helperMarker = 'function factorySyncLinkTokens(item = {}) {';
   const syncMarker = 'function syncFactoryWithActiveEdital() {';
 
-  let syncStart = text.indexOf(syncMarker);
-  if (syncStart < 0) throw new Error(`sync block missing: ${name}`);
+  const syncStartInitial = text.indexOf(syncMarker);
+  if (syncStartInitial < 0) throw new Error(`sync block missing: ${name}`);
 
-  // Tentativas anteriores podem ter deixado o bloco auxiliar repetido. Mantém apenas a última cópia antes do sync.
-  while (true) {
-    const first = text.indexOf(helperMarker);
-    if (first < 0 || first >= syncStart) throw new Error(`helper block missing: ${name}`);
-    const second = text.indexOf(helperMarker, first + helperMarker.length);
-    if (second < 0 || second >= syncStart) break;
-    text = text.slice(0, first) + text.slice(second);
-    syncStart = text.indexOf(syncMarker);
+  const helperPositions = [];
+  for (let pos = text.indexOf(helperMarker); pos >= 0 && pos < syncStartInitial; pos = text.indexOf(helperMarker, pos + helperMarker.length)) {
+    helperPositions.push(pos);
+  }
+  if (!helperPositions.length) throw new Error(`helper block missing: ${name}`);
+  if (helperPositions.length > 1) {
+    text = text.slice(0, helperPositions[0]) + text.slice(helperPositions[helperPositions.length - 1]);
   }
 
-  const oldLookup = `  const findExisting = (group) => {\n    const exact = byKey.get(group.key);\n    if (exact) return exact;\n`;
-  const newLookup = `  const findExisting = (group) => {\n    const existing = byKey.get(group.key);\n    if (existing) return existing;\n`;
-  if (text.includes(oldLookup)) text = text.replace(oldLookup, newLookup);
-  if (!text.includes(newLookup)) throw new Error(`groupKey compatibility block missing: ${name}`);
+  text = text.replace(
+    /(const\s+findExisting\s*=\s*\(group\)\s*=>\s*\{\s*)const\s+exact\s*=\s*byKey\.get\(group\.key\);\s*if\s*\(exact\)\s*return\s+exact;/,
+    '$1const existing = byKey.get(group.key);\n    if (existing) return existing;'
+  );
+  if (!/const\s+existing\s*=\s*byKey\.get\(group\.key\);\s*if\s*\(existing\)\s*return\s+existing;/.test(text)) {
+    throw new Error(`groupKey compatibility block missing: ${name}`);
+  }
 
-  const oldCreate = `    const createdItem = normalizeFactoryItem({\n      id: createId(), disciplina: group.discipline, tema: group.subject, prioridade: "Média", status: "Não iniciado",\n      observacao: recorte, createdAt: now, updatedAt: now,\n      editalLink: { groupKey: group.key, itemIds: group.itemIds, itemKeys: group.itemKeys, discipline: group.discipline, subject: group.subject, references: group.references, topics: group.topics },\n      editalSubtemas: group.subtopics, editalActive: true\n    });\n    agenda.push(createdItem);\n    indexItem(createdItem);\n`;
-  const newCreate = `    agenda.push(normalizeFactoryItem({\n      id: createId(), disciplina: group.discipline, tema: group.subject, prioridade: "Média", status: "Não iniciado",\n      observacao: recorte, createdAt: now, updatedAt: now,\n      editalLink: { groupKey: group.key, itemIds: group.itemIds, itemKeys: group.itemKeys, discipline: group.discipline, subject: group.subject, references: group.references, topics: group.topics },\n      editalSubtemas: group.subtopics, editalActive: true\n    }));\n    const createdItem = agenda[agenda.length - 1];\n    indexItem(createdItem);\n`;
-  if (text.includes(oldCreate)) text = text.replace(oldCreate, newCreate);
-  if (!text.includes(newCreate)) throw new Error(`creation compatibility block missing: ${name}`);
+  const createPattern = /const\s+createdItem\s*=\s*normalizeFactoryItem\(\{([\s\S]*?editalSubtemas:\s*group\.subtopics,\s*editalActive:\s*true[\s\S]*?)\}\);\s*agenda\.push\(createdItem\);\s*indexItem\(createdItem\);/;
+  if (createPattern.test(text)) {
+    text = text.replace(createPattern, (_match, body) => `agenda.push(normalizeFactoryItem({${body}}));\n    const createdItem = agenda[agenda.length - 1];\n    indexItem(createdItem);`);
+  }
+  if (!/agenda\.push\(normalizeFactoryItem\(\{[\s\S]*?editalSubtemas:\s*group\.subtopics,\s*editalActive:\s*true[\s\S]*?\}\)\);\s*const\s+createdItem\s*=\s*agenda\[agenda\.length\s*-\s*1\];\s*indexItem\(createdItem\);/.test(text)) {
+    throw new Error(`creation compatibility block missing: ${name}`);
+  }
 
   const helpers = text.match(/function factorySyncLinkTokens\(item = \{\}\) \{/g) || [];
   if (helpers.length !== 1) throw new Error(`expected exactly one helper block in ${name}, got ${helpers.length}`);
