@@ -4027,18 +4027,119 @@ function factoryActiveEditalGroups() {
   });
   return [...groups.values()].map((group) => ({ ...group, subtopics: [...group.subtopics].sort((a,b)=>a.localeCompare(b,"pt-BR")), references: [...group.references], topics: [...group.topics] }));
 }
+function factorySyncLinkTokens(item = {}) {
+  const link = item.editalLink || {};
+  const itemIds = [...new Set([
+    item.syllabusItemId,
+    ...(Array.isArray(item.syllabusItemIds) ? item.syllabusItemIds : []),
+    ...(Array.isArray(link.itemIds) ? link.itemIds : [])
+  ].map((value) => String(value || "").trim()).filter(Boolean))];
+  const itemKeys = [...new Set((Array.isArray(link.itemKeys) ? link.itemKeys : [])
+    .map((value) => String(value || "").trim()).filter(Boolean))];
+  return { itemIds, itemKeys };
+}
+function factorySyncModuleScore(module = {}) {
+  const scores = { "pdf gerado": 90, aprovado: 80, "aguardando revisao": 70, "em producao": 60, "precisa refazer": 50, "atualizar depois": 40, "nao iniciado": 20, "nao se aplica": 10 };
+  const status = canonical(module?.status || module);
+  let score = scores[status] || 0;
+  if (module?.fileId || module?.driveFileId || module?.url || module?.link) score += 8;
+  return score;
+}
+function factorySyncItemScore(item = {}) {
+  let score = 0;
+  Object.values(item.modules || {}).forEach((module) => { score += factorySyncModuleScore(module); });
+  if (item.factoryDestinationFolder || item.destinationFolderUrl || item.pastaDestino || item.folderUrl) score += 5;
+  return score;
+}
+function factoryMergeSyncItems(left = {}, right = {}) {
+  const leftScore = factorySyncItemScore(left);
+  const rightScore = factorySyncItemScore(right);
+  const leftCreated = Date.parse(left.createdAt || "") || Number.MAX_SAFE_INTEGER;
+  const rightCreated = Date.parse(right.createdAt || "") || Number.MAX_SAFE_INTEGER;
+  const preferred = rightScore > leftScore || (rightScore === leftScore && rightCreated < leftCreated) ? right : left;
+  const secondary = preferred === left ? right : left;
+  const modules = {};
+  for (const key of new Set([...Object.keys(secondary.modules || {}), ...Object.keys(preferred.modules || {})])) {
+    const a = secondary.modules?.[key];
+    const b = preferred.modules?.[key];
+    modules[key] = factorySyncModuleScore(b) >= factorySyncModuleScore(a) ? (b ?? a) : a;
+  }
+  const leftTokens = factorySyncLinkTokens(left);
+  const rightTokens = factorySyncLinkTokens(right);
+  const preferredLink = preferred.editalLink || {};
+  const secondaryLink = secondary.editalLink || {};
+  return {
+    ...secondary,
+    ...preferred,
+    modules,
+    syllabusItemId: preferred.syllabusItemId || secondary.syllabusItemId || leftTokens.itemIds[0] || rightTokens.itemIds[0] || "",
+    syllabusItemIds: [...new Set([...leftTokens.itemIds, ...rightTokens.itemIds])],
+    editalSubtemas: [...new Set([...(secondary.editalSubtemas || []), ...(preferred.editalSubtemas || [])])],
+    editalLink: {
+      ...secondaryLink,
+      ...preferredLink,
+      itemIds: [...new Set([...leftTokens.itemIds, ...rightTokens.itemIds])],
+      itemKeys: [...new Set([...leftTokens.itemKeys, ...rightTokens.itemKeys])],
+      references: [...new Set([...(secondaryLink.references || []), ...(preferredLink.references || [])])],
+      topics: [...new Set([...(secondaryLink.topics || []), ...(preferredLink.topics || [])])]
+    },
+    duplicateFactoryItemIds: [...new Set([left.id, right.id, ...(left.duplicateFactoryItemIds || []), ...(right.duplicateFactoryItemIds || [])].filter(Boolean))]
+  };
+}
+function factoryConsolidateLinkedAgenda(items = []) {
+  const agenda = [];
+  const byItemId = new Map();
+  const byItemKey = new Map();
+  let removed = 0;
+  const indexTokens = (item, index) => {
+    const tokens = factorySyncLinkTokens(item);
+    tokens.itemIds.forEach((id) => byItemId.set(id, index));
+    tokens.itemKeys.forEach((key) => byItemKey.set(key, index));
+  };
+  for (const item of Array.isArray(items) ? items : []) {
+    const tokens = factorySyncLinkTokens(item);
+    let index = tokens.itemIds.map((id) => byItemId.get(id)).find((value) => Number.isInteger(value));
+    if (!Number.isInteger(index)) index = tokens.itemKeys.map((key) => byItemKey.get(key)).find((value) => Number.isInteger(value));
+    if (!Number.isInteger(index)) {
+      index = agenda.length;
+      agenda.push(item);
+      indexTokens(item, index);
+      continue;
+    }
+    agenda[index] = factoryMergeSyncItems(agenda[index], item);
+    indexTokens(agenda[index], index);
+    removed += 1;
+  }
+  return { agenda, removed };
+}
 function syncFactoryWithActiveEdital() {
-  const agenda = ensureFactoryAgenda();
+  const consolidated = factoryConsolidateLinkedAgenda(ensureFactoryAgenda());
+  const agenda = consolidated.agenda;
   const groups = factoryActiveEditalGroups();
   const activeKeys = new Set(groups.map((group) => group.key));
   const byKey = new Map();
-  agenda.forEach((item) => { if (item.editalLink?.groupKey) byKey.set(item.editalLink.groupKey, item); });
+  const byItemId = new Map();
+  const byItemKey = new Map();
+  const indexItem = (item) => {
+    if (item.editalLink?.groupKey) byKey.set(item.editalLink.groupKey, item);
+    const tokens = factorySyncLinkTokens(item);
+    tokens.itemIds.forEach((id) => { if (!byItemId.has(id)) byItemId.set(id, item); });
+    tokens.itemKeys.forEach((key) => { if (!byItemKey.has(key)) byItemKey.set(key, item); });
+  };
+  agenda.forEach(indexItem);
+  const findExisting = (group) => {
+    const exact = byKey.get(group.key);
+    if (exact) return exact;
+    for (const id of group.itemIds || []) if (byItemId.has(String(id))) return byItemId.get(String(id));
+    for (const key of group.itemKeys || []) if (byItemKey.has(String(key))) return byItemKey.get(String(key));
+    return null;
+  };
   const now = new Date().toISOString();
   let created = 0;
-  let changed = false;
+  let changed = consolidated.removed > 0;
   groups.forEach((group) => {
     const recorte = group.subtopics.length ? `Subtemas do edital: ${group.subtopics.join("; ")}` : "";
-    const existing = byKey.get(group.key);
+    const existing = findExisting(group);
     if (existing) {
       const previousSignature = JSON.stringify({ disciplina: existing.disciplina, tema: existing.tema, syllabusItemId: existing.syllabusItemId, syllabusItemIds: existing.syllabusItemIds, link: existing.editalLink, subtemas: existing.editalSubtemas, active: existing.editalActive, archived: existing.archivedReason, observacao: existing.observacao });
       existing.disciplina = group.discipline;
@@ -4052,14 +4153,17 @@ function syncFactoryWithActiveEdital() {
       if (recorte && !existing.observacao?.includes(recorte)) existing.observacao = [existing.observacao, recorte].filter(Boolean).join("\n");
       if (previousSignature !== JSON.stringify({ disciplina: existing.disciplina, tema: existing.tema, syllabusItemId: existing.syllabusItemId, syllabusItemIds: existing.syllabusItemIds, link: existing.editalLink, subtemas: existing.editalSubtemas, active: existing.editalActive, archived: existing.archivedReason, observacao: existing.observacao })) changed = true;
       existing.updatedAt = existing.updatedAt || now;
+      indexItem(existing);
       return;
     }
-    agenda.push(normalizeFactoryItem({
+    const createdItem = normalizeFactoryItem({
       id: createId(), disciplina: group.discipline, tema: group.subject, prioridade: "Média", status: "Não iniciado",
       observacao: recorte, createdAt: now, updatedAt: now,
       editalLink: { groupKey: group.key, itemIds: group.itemIds, itemKeys: group.itemKeys, discipline: group.discipline, subject: group.subject, references: group.references, topics: group.topics },
       editalSubtemas: group.subtopics, editalActive: true
-    }));
+    });
+    agenda.push(createdItem);
+    indexItem(createdItem);
     created += 1;
     changed = true;
   });
@@ -4072,7 +4176,7 @@ function syncFactoryWithActiveEdital() {
   });
   state.factoryAgenda = agenda.map(normalizeFactoryItem);
   state.factoryItems = state.factoryAgenda;
-  return { created, changed, groups, disciplines: new Set(groups.map((g)=>g.discipline)).size, subjects: groups.length, subtopics: groups.reduce((total, group)=>total + group.subtopics.length, 0) };
+  return { created, mergedDuplicates: consolidated.removed, changed, groups, disciplines: new Set(groups.map((g)=>g.discipline)).size, subjects: groups.length, subtopics: groups.reduce((total, group)=>total + group.subtopics.length, 0) };
 }
 function reopenFactoryTheme(id) {
   const item = ensureFactoryAgenda().find((x) => x.id === id);

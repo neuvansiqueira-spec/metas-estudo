@@ -1,8 +1,8 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260901-factory-registration-idempotency-v426";
-  const HOTFIX = "factory-queue-integrity-hotfix6";
+  const VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
+  const HOTFIX = "factory-queue-integrity-hotfix5";
   const FLAG = "__aldusFactoryQueueIntegrityV236";
   const CANONICAL_CACHE_LIMIT = 512;
   const canonicalCache = new Map();
@@ -47,14 +47,6 @@
     const theme = canonical(first(item.tema, item.subject, item.assunto, item.title, item.titulo, entry.tema, entry.subject, entry.assunto, goal.baseSubject, goal.subject, goal.assunto));
     const subtopics = unique([...(entry.subtopics || []), ...(item.editalSubtemas || []), goal.subtopic, goal.subassunto].map(canonical)).sort().join("|");
     if (discipline || theme) return `${discipline}::${theme}::${subtopics}`;
-    return first(item.id, entry.id) ? `id::${canonical(first(item.id, entry.id))}` : "";
-  }
-
-  function factoryRegistrationKey(entry = {}) {
-    const item = itemOf(entry);
-    const discipline = canonical(first(item.disciplina, item.discipline, entry.disciplina, entry.discipline));
-    const theme = canonical(first(item.tema, item.subject, item.assunto, item.title, item.titulo, entry.tema, entry.subject, entry.assunto));
-    if (discipline || theme) return `${discipline}::${theme}`;
     return first(item.id, entry.id) ? `id::${canonical(first(item.id, entry.id))}` : "";
   }
 
@@ -156,13 +148,13 @@
     };
   }
 
-  function sanitizeWithKey(entries, keyFactory) {
+  function sanitize(entries) {
     if (!Array.isArray(entries)) return entries;
     const output = [];
     const positions = new Map();
     entries.forEach((entry) => {
       if (!entry || referencesSimulados(entry)) return;
-      const key = keyFactory(entry);
+      const key = semanticKey(entry);
       if (!key || !positions.has(key)) {
         if (key) positions.set(key, output.length);
         output.push(entry);
@@ -172,67 +164,6 @@
       }
     });
     return output;
-  }
-
-  function sanitize(entries) {
-    return sanitizeWithKey(entries, semanticKey);
-  }
-
-  function sanitizeFactoryAgenda(entries) {
-    return sanitizeWithKey(entries, factoryRegistrationKey);
-  }
-
-  function currentFactoryState() {
-    try { return typeof state === "object" && state ? state : globalThis.state; }
-    catch { return globalThis.state || null; }
-  }
-
-  function alignFactoryAgendaGroupKeys() {
-    const targetState = currentFactoryState();
-    const agenda = Array.isArray(targetState?.factoryAgenda)
-      ? targetState.factoryAgenda
-      : (Array.isArray(targetState?.factoryItems) ? targetState.factoryItems : []);
-    if (!agenda.length || typeof factoryActiveEditalGroups !== "function") return { changed: false, aligned: 0, total: agenda.length };
-
-    let groups = [];
-    try { groups = factoryActiveEditalGroups(); }
-    catch { return { changed: false, aligned: 0, total: agenda.length }; }
-    const byRegistration = new Map((Array.isArray(groups) ? groups : []).map((group) => [factoryRegistrationKey({ disciplina: group?.discipline, tema: group?.subject }), group]));
-    let aligned = 0;
-
-    agenda.forEach((item) => {
-      const group = byRegistration.get(factoryRegistrationKey(item));
-      if (!group?.key) return;
-      const previousKey = String(item?.editalLink?.groupKey || "");
-      const previousIds = Array.isArray(item?.syllabusItemIds) ? item.syllabusItemIds : [];
-      const groupIds = Array.isArray(group.itemIds) ? group.itemIds : [];
-      const nextIds = unique([...previousIds, ...groupIds]);
-      const changed = previousKey !== group.key
-        || nextIds.length !== previousIds.length
-        || groupIds.some((id) => !previousIds.includes(id));
-      if (!changed) return;
-      item.editalLink = {
-        ...(item.editalLink || {}),
-        groupKey: group.key,
-        itemIds: nextIds,
-        itemKeys: unique([...(item.editalLink?.itemKeys || []), ...(group.itemKeys || [])]),
-        discipline: group.discipline,
-        subject: group.subject,
-        references: unique([...(item.editalLink?.references || []), ...(group.references || [])]),
-        topics: unique([...(item.editalLink?.topics || []), ...(group.topics || [])])
-      };
-      item.syllabusItemId = groupIds[0] || item.syllabusItemId || "";
-      item.syllabusItemIds = nextIds;
-      item.editalSubtemas = unique([...(item.editalSubtemas || []), ...(group.subtopics || [])]);
-      item.editalActive = true;
-      aligned += 1;
-    });
-
-    if (targetState) {
-      targetState.factoryAgenda = agenda;
-      targetState.factoryItems = targetState.factoryAgenda;
-    }
-    return { changed: aligned > 0, aligned, total: agenda.length };
   }
 
   function chainHas(fn) {
@@ -326,18 +257,9 @@
       }, original);
       changed = true;
     }
-    if (typeof syncFactoryWithActiveEdital === "function" && !chainHas(syncFactoryWithActiveEdital)) {
-      const original = syncFactoryWithActiveEdital;
-      syncFactoryWithActiveEdital = mark(function (...args) {
-        const alignment = alignFactoryAgendaGroupKeys();
-        const result = original.apply(this, args);
-        return result && typeof result === "object" ? { ...result, existingAgendaAligned: alignment.aligned } : result;
-      }, original);
-      changed = true;
-    }
     if (typeof ensureFactoryAgenda === "function" && !chainHas(ensureFactoryAgenda)) {
       const original = ensureFactoryAgenda;
-      ensureFactoryAgenda = mark(function (...args) { return sanitizeFactoryAgenda(original.apply(this, args)); }, original);
+      ensureFactoryAgenda = mark(function (...args) { return sanitize(original.apply(this, args)); }, original);
       changed = true;
     }
     if (typeof factoryGoalGroupsForDate === "function" && !chainHas(factoryGoalGroupsForDate)) {
@@ -395,10 +317,7 @@
     installedAt: new Date().toISOString(),
     referencesSimulados,
     semanticKey,
-    factoryRegistrationKey,
     sanitizeFactoryEntries: sanitize,
-    sanitizeFactoryAgendaEntries: sanitizeFactoryAgenda,
-    alignFactoryAgendaGroupKeys,
     weeklyProjectionSubjectKey,
     collapseWeeklyProjectionRecords,
     formatMergedDates,
