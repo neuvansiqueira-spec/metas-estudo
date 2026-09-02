@@ -110,18 +110,27 @@ function domHarness(state) {
   return { context, listeners, nodes, parent, goalCard };
 }
 
-test('V433 insere o card antes do card da meta semanal', () => {
+test('V433 empilha o card do dia acima do semanal, sem virar item do grid', () => {
   const { context, listeners, nodes, parent, goalCard } = domHarness({
     studies: [{ date: HOJE, minutes: 90 }]
   });
   listeners.get('load')();
   const card = nodes.get('aldusDailyNetHoursCardV433');
+  const stack = nodes.get('aldusDailyNetHoursStackV433');
   assert.ok(card, 'o card precisa existir');
+  assert.ok(stack, 'o empilhamento precisa existir');
   assert.equal(card.className, 'goal-card', 'herda a aparência do card irmão');
-  assert.ok(parent.children.indexOf(card) < parent.children.indexOf(goalCard),
-    'o card do dia vem antes do semanal');
+
+  // O .hero-content é um grid de duas colunas. Um terceiro filho espremia a
+  // coluna do card semanal e quebrava "META SEMANAL" em três linhas.
+  assert.equal(parent.children.length, 2, 'o grid continua com dois itens');
+  assert.ok(parent.children.includes(stack));
+  assert.equal(stack.children.indexOf(card), 0, 'o card do dia vem primeiro');
+  assert.equal(stack.children.indexOf(goalCard), 1, 'o semanal fica logo abaixo');
+  assert.equal(goalCard.parentNode, stack, 'o card semanal foi movido para o empilhamento');
+
   assert.equal(nodes.get('aldusDailyNetHoursValueV433').textContent, '1h 30min');
-  assert.equal(context.__ALDUS_DAILY_NET_HOURS_CARD_V433__.version, '20260902-daily-net-hours-card-v433');
+  assert.match(context.__ALDUS_DAILY_NET_HOURS_CARD_V433__.version, /^\d{8}-daily-net-hours-card-v433/);
 });
 
 test('V433 não duplica o card em renders sucessivos', () => {
