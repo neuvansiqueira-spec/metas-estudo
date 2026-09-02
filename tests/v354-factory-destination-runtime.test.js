@@ -73,7 +73,8 @@ test("V354 remove as três reconciliações automáticas da V237", () => {
 });
 
 test("V354 renova a entrega do asset e o cache do Service Worker", () => {
-  assert.match(loader, /FACTORY_DESTINATION_HOTFIX = "factory-destination-on-demand-v354"/);
-  assert.match(worker, /factory-destination-integrity-v237\.js\?v=20260804-pastas-destino-classificacao-exata-v237&hotfix=factory-destination-on-demand-v354/);
+  assert.match(loader, /FACTORY_DESTINATION_VERSION = "20260902-factory-destination-tree-fingerprint-v430"/);
+  assert.match(loader, /FACTORY_DESTINATION_HOTFIX = "factory-destination-tree-fingerprint-v430"/);
+  assert.doesNotMatch(worker.match(/const STATIC_ASSETS = \[[\s\S]*?\n\];/)?.[0] || "", /FACTORY_DESTINATION_INTEGRITY/);
   assert.match(worker, /factory-destination-runtime-v354-navigation-bootstrap-v353-bootstrap-fast-path-v351/);
 });

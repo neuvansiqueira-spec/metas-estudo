@@ -94,9 +94,10 @@ function assertCurrentReleaseContract() {
   assert.doesNotMatch(factoryDestinationRuntime, /setTimeout\(\(\) => \{ install\(\); applyCached\(\); \}, 1500\)/);
   assert.doesNotMatch(factoryDestinationRuntime, /setTimeout\(\(\) => refresh\(\), 2300\)/);
   assert.doesNotMatch(factoryDestinationRuntime, /setInterval\(install, 250\)/);
-  assert.match(planningIntegrityLoader, /FACTORY_DESTINATION_HOTFIX = "factory-destination-on-demand-v354"/);
+  assert.match(planningIntegrityLoader, /FACTORY_DESTINATION_VERSION = "20260902-factory-destination-tree-fingerprint-v430"/);
+  assert.match(planningIntegrityLoader, /FACTORY_DESTINATION_HOTFIX = "factory-destination-tree-fingerprint-v430"/);
   assert.match(worker, /factory-destination-runtime-v354-navigation-bootstrap-v353-bootstrap-fast-path-v351/);
-  assert.match(worker, /factory-destination-integrity-v237\.js\?v=20260804-pastas-destino-classificacao-exata-v237&hotfix=factory-destination-on-demand-v354/);
+  assert.doesNotMatch(worker.match(/const STATIC_ASSETS = \[[\s\S]*?\n\];/)?.[0] || "", /FACTORY_DESTINATION_INTEGRITY/);
 
   // V355: a interface da Fábrica não pode voltar a recalcular DOM/estilo fora da própria rota.
   assert.ok(factoryExecutiveRuntime.includes("20260818-factory-dom-style-on-demand-v355"));
