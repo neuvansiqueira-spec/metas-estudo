@@ -1,0 +1,46 @@
+name: V426 compat source fix
+
+on:
+  push:
+    branches:
+      - v426-persistence-source-fix
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: v426-persistence-source-fix
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+          cache: npm
+      - name: Aplicar ajuste lexical compatível
+        run: node tools/v426-compat-patch.mjs
+      - name: Instalar dependências
+        run: npm ci --ignore-scripts
+      - name: Regenerar bundles
+        run: npm run build
+      - name: Validar fonte, espelhos e ausência de worker
+        run: |
+          changed_workers="$(git diff --name-only | grep -E '(^|/)service-worker[^/]*\.js$' || true)"
+          if [ -n "$changed_workers" ]; then echo "$changed_workers" | xargs -r git restore --; fi
+          node --test tests/factory-sync-rename-v426.test.js tests/stability.test.js
+          cmp script.js docs/script.js
+          cmp app.bundle.js docs/app.bundle.js
+          cmp app-v424.js docs/app-v424.js
+          test -z "$(git diff --name-only | grep -E '(^|/)service-worker[^/]*\.js$' || true)"
+      - name: Gravar somente fonte e bundles
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add script.js docs/script.js app.bundle.js docs/app.bundle.js app-v424.js docs/app-v424.js
+          git diff --cached --quiet && exit 0
+          git commit -m 'fix(v426): preservar contrato da sincronização da Fábrica'
+          git push origin HEAD:v426-persistence-source-fix

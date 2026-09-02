@@ -119,34 +119,23 @@
     if (performanceReported) return;
     performanceReported = true;
     if (lastLcpMs > 0) emit("performance_metric", "lcp", "observe", lastLcpMs / 1000);
-    if (cumulativeLayoutShift > 0) {
-      // Preserve the existing numeric field without expanding the telemetry schema.
-      emit("performance_metric", "cls-x1000", "observe", cumulativeLayoutShift);
-    }
+    if (cumulativeLayoutShift > 0) emit("performance_metric", "cls-x1000", "observe", cumulativeLayoutShift);
     try {
       const nav = performance.getEntriesByType?.("navigation")?.[0];
-      if (nav && Number.isFinite(nav.loadEventEnd) && nav.loadEventEnd > 0) {
-        emit("performance_metric", "page-load", "observe", nav.loadEventEnd / 1000);
-      }
+      if (nav && Number.isFinite(nav.loadEventEnd) && nav.loadEventEnd > 0) emit("performance_metric", "page-load", "observe", nav.loadEventEnd / 1000);
     } catch {}
   }
 
-  // V350 — carregamento emergencial e isolado da otimização de mapeamentos.
-  // Este arquivo já é executado antes do bootstrap do aplicativo e não é parte
-  // do cache estático autoritativo. O hotfix apenas troca a consulta O(n) por
-  // índice WeakMap; não toca em estado, persistência, sincronização ou cronômetro.
   function installEmergencyPerformanceV350() {
     if (typeof document === "undefined") return;
     if (document.getElementById("aldusEmergencyPerformanceV350")) return;
     const script = document.createElement("script");
     script.id = "aldusEmergencyPerformanceV350";
-    script.src = "performance-emergency-v350.js?v=20260901-v426-postcondition-r2";
+    script.src = "performance-emergency-v350.js?v=20260901-v426-persistence-r3";
     script.async = false;
     (document.head || document.documentElement).appendChild(script);
   }
 
-  // V399 — protege o planejamento contra mutadores legados silenciosos sem
-  // adicionar polling, observadores de DOM ou trabalho contínuo.
   function installStartupPlanningStabilityV387() {
     if (typeof document === "undefined") return;
     if (document.getElementById("aldusStartupPlanningStabilityV387")) return;
@@ -160,8 +149,6 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
-  // V401 — metas manuais continuam aditivas e retomadas da semana passam a
-  // ser registradas no Plano do Dia em que o estudo realmente é iniciado.
   function installManualGoalAdditiveV379() {
     if (typeof document === "undefined") return;
     if (document.getElementById("aldusManualGoalAdditiveV379")) return;
@@ -175,9 +162,6 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
-  // V380 — novo prompt integrado, isolado do bundle principal e dos hot paths.
-  // O módulo só registra o tipo após o bootstrap e redesenha a Fábrica apenas
-  // quando a própria tela de Fábrica já está aberta.
   function installFactoryResumoAulaJurisprudenciaV380() {
     if (typeof document === "undefined") return;
     if (document.getElementById("aldusFactoryResumoAulaJurisprudenciaV380")) return;
@@ -191,9 +175,6 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
-  // V383 — novo prompt Lei + Jurisprudência, também isolado do bundle principal.
-  // Atua apenas sobre biblioteca/roteamento de prompts e não adiciona trabalho
-  // contínuo, observadores, polling ou persistência automática.
   function installFactoryLeiJurisprudenciaV383() {
     if (typeof document === "undefined") return;
     if (document.getElementById("aldusFactoryLeiJurisprudenciaV383")) return;
@@ -207,9 +188,6 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
-  // V384 — revisão/consolidação final consciente dos dois produtos integrados.
-  // Carregamento isolado: apenas prompt, inventário e roteamento; sem polling,
-  // observadores de DOM, persistência automática ou alteração do bundle principal.
   function installFactoryFinalReviewV384() {
     if (typeof document === "undefined") return;
     if (document.getElementById("aldusFactoryFinalReviewV384")) return;
@@ -223,8 +201,6 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
-  // V384 compat — remove somente instruções legadas V128 que possam anteceder
-  // a nova consolidação. Continua isolado, sem trabalho contínuo ou persistência.
   function installFactoryFinalReviewCompatV384() {
     if (typeof document === "undefined") return;
     if (document.getElementById("aldusFactoryFinalReviewCompatV384")) return;
@@ -238,9 +214,6 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
-  // V385 — padronização visual final de DOCX alterado com sumário didático.
-  // O módulo apenas registra prompt/roteamento e preserva o conteúdo do usuário;
-  // sem polling, observadores, persistência automática ou hot paths.
   function installFactoryPadronizacaoFinalSumarioV385() {
     if (typeof document === "undefined") return;
     if (document.getElementById("aldusFactoryPadronizacaoFinalSumarioV385")) return;
@@ -254,9 +227,6 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
-  // V425 — novo prompt Fusão Final, isolado do bundle principal.
-  // Registra apenas tipo, descrição e prompt-base; sem polling, observadores,
-  // requestAnimationFrame ou persistência automática.
   function installFactoryFusaoFinalV425() {
     if (typeof document === "undefined") return;
     if (document.getElementById("aldusFactoryFusaoFinalV425")) return;
@@ -270,9 +240,6 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
-  // V386 — comentários, bizus e jurisprudência manuais por questão.
-  // O editor é sob demanda: não varre o banco no bootstrap, não observa o DOM
-  // e só persiste quando o usuário confirma explicitamente o salvamento.
   function installQuestionBankManualNotesV386() {
     if (typeof document === "undefined") return;
     if (document.getElementById("aldusQuestionBankManualNotesV386")) return;
@@ -286,9 +253,6 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
-  // V382 — sumário com a mesma didática visual dos quatro módulos de conteúdo.
-  // A extensão atua somente sobre texto de prompt e não adiciona observadores,
-  // polling, timers, medições de layout ou persistência automática.
   function installFactorySummaryTocV382() {
     if (typeof document === "undefined") return;
     if (document.getElementById("aldusFactorySummaryTocV382")) return;
@@ -312,11 +276,7 @@
     }, { passive: true });
   }
 
-  const api = Object.freeze({
-    version: VERSION,
-    emit,
-    reportPerformance: reportPerformanceOnce
-  });
+  const api = Object.freeze({ version: VERSION, emit, reportPerformance: reportPerformanceOnce });
   globalThis.__ALDUS_SECURITY_OBSERVABILITY_V318__ = api;
 
   installEmergencyPerformanceV350();
@@ -331,9 +291,5 @@
   installQuestionBankManualNotesV386();
   installFactorySummaryTocV382();
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init, { once: true });
-  } else {
-    init();
-  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once: true }); else init();
 })();

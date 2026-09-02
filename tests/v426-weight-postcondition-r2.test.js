@@ -120,9 +120,9 @@ test("aborto após backup bloqueia novo backup na mesma versão e libera em vers
 test("cadeia V426 usa query strings novas sem depender de bump do Service Worker", () => {
   const performanceLoader = fs.readFileSync("performance-emergency-v350.js", "utf8");
   const securityLoader = fs.readFileSync("security-observability-v318.js", "utf8");
-  assert.match(performanceLoader, /discipline-unification-v426\.js\?v=20260901-discipline-unification-v426-postcondition-r2/);
-  assert.match(performanceLoader, /discipline-unification-v426-revision\.js\?v=20260901-discipline-unification-v426-revision-b1-e-r2/);
-  assert.match(securityLoader, /performance-emergency-v350\.js\?v=20260901-v426-postcondition-r2/);
+  assert.match(performanceLoader, /discipline-unification-v426\.js\?v=20260901-discipline-unification-v426-persistence-r3/);
+  assert.match(performanceLoader, /discipline-unification-v426-revision\.js\?v=20260901-discipline-unification-v426-revision-persistence-r3/);
+  assert.match(securityLoader, /performance-emergency-v350\.js\?v=20260901-v426-persistence-r3/);
 });
 
 test("raiz e docs permanecem idênticos nos módulos tocados da V426", () => {

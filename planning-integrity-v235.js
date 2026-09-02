@@ -459,6 +459,7 @@
         automaticDailyGoalMutationDisabled: true,
         postBootstrapAuthoritative: true,
         completedGoalsReviewOnly: true,
+        recordManualCount,
         installedAt: new Date().toISOString()
       });
       installed = true;
