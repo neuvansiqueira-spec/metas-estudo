@@ -21,10 +21,14 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: node tools/v426-compat-patch.mjs
-      - run: npm ci --ignore-scripts
-      - run: npm run build
-      - run: |
+      - name: Aplicar ajuste lexical compatível
+        run: node tools/v426-compat-patch.mjs
+      - name: Instalar dependências
+        run: npm ci --ignore-scripts
+      - name: Regenerar bundles
+        run: npm run build
+      - name: Validar fonte, espelhos e ausência de worker
+        run: |
           changed_workers="$(git diff --name-only | grep -E '(^|/)service-worker[^/]*\.js$' || true)"
           if [ -n "$changed_workers" ]; then echo "$changed_workers" | xargs -r git restore --; fi
           node --test tests/factory-sync-rename-v426.test.js tests/stability.test.js
@@ -32,7 +36,8 @@ jobs:
           cmp app.bundle.js docs/app.bundle.js
           cmp app-v424.js docs/app-v424.js
           test -z "$(git diff --name-only | grep -E '(^|/)service-worker[^/]*\.js$' || true)"
-      - run: |
+      - name: Gravar somente fonte e bundles
+        run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add script.js docs/script.js app.bundle.js docs/app.bundle.js app-v424.js docs/app-v424.js
