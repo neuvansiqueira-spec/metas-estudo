@@ -11,11 +11,23 @@ const ADM_GESTAO = "1u5QOY9Hu0PYTT_Mu41y5LZt8efvsVw-H";
 const ADM = "1xnzmOhZSQYffoOPgiQejz3d8-Z3vUWdY";
 const ESPECIAL = "1h32SI1Gu8GRUGmScMI5Ag7c98gC6A5xC";
 
-function runtime() {
-  const context = { console, queueMicrotask, globalThis: null };
+function runtime(script = source, state = null) {
+  const context = { console, queueMicrotask, globalThis: null, __FACTORY_DESTINATION_STATE__: state };
   context.globalThis = context;
   vm.createContext(context);
-  vm.runInContext(source, context);
+  vm.runInContext(script, context);
+  return context;
+}
+
+function spyRuntime(items = []) {
+  const instrumented = source
+    .replace("function treeFingerprint(tree) {", "function treeFingerprint(tree) { globalThis.__v430FingerprintCalls += 1;")
+    .replace("function discipline(entry, tree) {", "function discipline(entry, tree) { globalThis.__v430DisciplineCalls += 1;")
+    .replace("function topic(entry, tree, match) {", "function topic(entry, tree, match) { globalThis.__v430TopicCalls += 1;");
+  const context = runtime(instrumented, { factoryAgenda: items });
+  context.__v430FingerprintCalls = 0;
+  context.__v430DisciplineCalls = 0;
+  context.__v430TopicCalls = 0;
   return context;
 }
 
@@ -96,4 +108,83 @@ test("código isolado não mantém vínculo automático inseguro", () => {
   const result = apply(item);
   assert.equal(result.status, "unsafe-managed-cleared");
   assert.equal(item.factoryDestinationFolder, undefined);
+});
+
+test("árvore inalterada pula discipline e topic sem alterar nenhum link", () => {
+  const items = [
+    { id: "dpp", disciplina: "DIREITO PROCESSUAL PENAL", tema: "Arquivamento", subtema: "2.3.7" },
+    { id: "adm", disciplina: "DIREITO ADMINISTRATIVO", tema: "Atos administrativos" }
+  ];
+  const context = spyRuntime(items);
+  const api = context.__ALDUS_FACTORY_DESTINATION_INTEGRITY_V237__;
+  const first = api.applyTree(tree(), { save: false, render: false });
+  const links = new Map(items.map(item => [item.id, item.factoryDestinationFolder]));
+  assert.equal(first.total, items.length);
+  assert.ok(context.__v430DisciplineCalls > 0);
+  assert.ok(context.__v430TopicCalls > 0);
+
+  context.__v430DisciplineCalls = 0;
+  context.__v430TopicCalls = 0;
+  const second = api.applyTree(tree(), { save: false, render: false });
+
+  assert.equal(second.total, items.length);
+  assert.equal(second.changed, 0);
+  assert.equal(context.__v430DisciplineCalls, 0);
+  assert.equal(context.__v430TopicCalls, 0);
+  assert.deepEqual(new Map(items.map(item => [item.id, item.factoryDestinationFolder])), links);
+});
+
+test("nó novo, removido ou com id diferente invalida a impressão", () => {
+  const variants = [
+    current => current.nodes.push({ id: "novo", name: "PASTA_NOVA", depth: 1, pathIds: [ROOT, "novo"], pathNames: ["PASTA_NOVA"] }),
+    current => current.nodes.splice(current.nodes.findIndex(node => node.id === "hediondos"), 1),
+    current => { current.nodes.find(node => node.id === "hediondos").id = "hediondos-novo-id"; }
+  ];
+
+  variants.forEach(changeTree => {
+    const item = { id: "dpp", disciplina: "DIREITO PROCESSUAL PENAL", tema: "Arquivamento", subtema: "2.3.7" };
+    const context = spyRuntime([item]);
+    const api = context.__ALDUS_FACTORY_DESTINATION_INTEGRITY_V237__;
+    api.applyTree(tree(), { save: false, render: false });
+    context.__v430DisciplineCalls = 0;
+    context.__v430TopicCalls = 0;
+    const changedTree = structuredClone(tree());
+    changeTree(changedTree);
+
+    api.applyTree(changedTree, { save: false, render: false });
+
+    assert.equal(context.__v430DisciplineCalls, 1);
+    assert.equal(context.__v430TopicCalls, 1);
+  });
+});
+
+test("item sem pasta ou gerenciado por versão anterior nunca é pulado", () => {
+  const item = { id: "dpp", disciplina: "DIREITO PROCESSUAL PENAL", tema: "Arquivamento", subtema: "2.3.7" };
+  const context = spyRuntime([item]);
+  const api = context.__ALDUS_FACTORY_DESTINATION_INTEGRITY_V237__;
+  api.applyTree(tree(), { save: false, render: false });
+
+  delete item.factoryDestinationFolder;
+  context.__v430DisciplineCalls = 0;
+  context.__v430TopicCalls = 0;
+  api.applyTree(tree(), { save: false, render: false });
+  assert.equal(context.__v430DisciplineCalls, 1);
+  assert.equal(context.__v430TopicCalls, 1);
+  assert.equal(item.factoryDestinationFolder, "https://drive.google.com/drive/folders/arquivamento");
+
+  item.factoryDestinationFolderCatalogVersion = "v232";
+  context.__v430DisciplineCalls = 0;
+  context.__v430TopicCalls = 0;
+  api.applyTree(tree(), { save: false, render: false });
+  assert.equal(context.__v430DisciplineCalls, 1);
+  assert.equal(context.__v430TopicCalls, 1);
+});
+
+test("SIMULADOS é excluído antes da impressão e das buscas", () => {
+  const context = spyRuntime();
+  const result = context.__applyFactoryDestinationToEntryV237({ disciplina: "SIMULADOS", tema: "PCPR" }, tree());
+  assert.equal(result.status, "excluded-simulados");
+  assert.equal(context.__v430FingerprintCalls, 0);
+  assert.equal(context.__v430DisciplineCalls, 0);
+  assert.equal(context.__v430TopicCalls, 0);
 });

@@ -7,6 +7,7 @@
   const FLAG = "__ALDUS_FACTORY_DESTINATION_INTEGRITY_V237__";
   const CACHE_KEYS = ["aldusFactoryDestinationTreeV237", "aldusFactoryDestinationTreeV232", "aldusFactoryDestinationTreeV230"];
   const MANAGED = "factoryDestinationFolderCatalogVersion";
+  const TREE_FINGERPRINT = "factoryDestinationFolderTreeFingerprint";
   if (globalThis[FLAG]) return;
 
   const RULES = Object.freeze([
@@ -44,6 +45,18 @@
   const itemOf = e => e?.item && typeof e.item === "object" ? e.item : e;
   const url = id => `https://drive.google.com/drive/folders/${id}`;
   const unique = a => [...new Set(a.filter(Boolean).map(String))];
+  function treeFingerprint(tree) {
+    const ids = (tree?.nodes || []).map(node => String(node?.id ?? "")).sort();
+    let fnv = 2166136261, djb = 5381;
+    ids.forEach(id => {
+      for (let index = 0; index <= id.length; index++) {
+        const unit = index < id.length ? id.charCodeAt(index) : 0;
+        fnv = Math.imul(fnv ^ unit, 16777619);
+        djb = Math.imul(djb, 33) ^ unit;
+      }
+    });
+    return `${ids.length}:${(fnv >>> 0).toString(36)}:${(djb >>> 0).toString(36)}`;
+  }
 
   function disciplines(entry = {}) {
     const i = itemOf(entry), g = Array.isArray(entry?.goals) ? entry.goals[0] || {} : entry?.goal || {};
@@ -95,16 +108,18 @@
 
   const existing = i => String(i.factoryDestinationFolder || i.pastaDestinoWordPdf || i.destinationFolder || i.finalFilesFolder || i.destinationFolderUrl || i.pastaDestino || i.folderUrl || "").trim();
   const managed = i => Boolean(i[MANAGED] || i.factoryDestinationFolderCatalogKey || i.factoryDestinationFolderMatchType || i.factoryDestinationFolderMatchId);
-  function clear(i) { ["factoryDestinationFolder", "factoryDestinationFolderCatalogVersion", "factoryDestinationFolderCatalogKey", "factoryDestinationFolderMatchType", "factoryDestinationFolderMatchTitle", "factoryDestinationFolderMatchScore", "factoryDestinationFolderMatchedAt", "factoryDestinationFolderMatchPath", "factoryDestinationFolderMatchId", "factoryDestinationFolderMatchEvidence"].forEach(k => delete i[k]); }
-  function applyEntry(entry, tree) {
+  function clear(i) { ["factoryDestinationFolder", "factoryDestinationFolderCatalogVersion", "factoryDestinationFolderCatalogKey", "factoryDestinationFolderMatchType", "factoryDestinationFolderMatchTitle", "factoryDestinationFolderMatchScore", "factoryDestinationFolderMatchedAt", "factoryDestinationFolderMatchPath", "factoryDestinationFolderMatchId", "factoryDestinationFolderMatchEvidence", TREE_FINGERPRINT].forEach(k => delete i[k]); }
+  function applyEntry(entry, tree, fingerprint) {
     if (!entry || typeof entry !== "object") return { changed: false, status: "invalid" };
     if (disciplines(entry).some(x => canon(x) === "SIMULADOS")) return { changed: false, status: "excluded-simulados" };
-    const i = itemOf(entry), old = existing(i), d = discipline(entry, tree), t = d && topic(entry, tree, d);
+    const i = itemOf(entry), currentFingerprint = fingerprint ?? treeFingerprint(tree);
+    if (i[MANAGED] === VERSION && i[TREE_FINGERPRINT] === currentFingerprint && String(i.factoryDestinationFolder || "").trim()) return { changed: false, status: "topic" };
+    const old = existing(i), d = discipline(entry, tree), t = d && topic(entry, tree, d);
     if (!t?.node?.id) { if (managed(i)) { clear(i); return { changed: true, status: "unsafe-managed-cleared", previousUrl: old }; } return { changed: false, status: d ? "topic-unmatched" : "discipline-unmatched" }; }
     const next = url(t.node.id), path = t.node.pathNames.join(" → ");
-    if (old === next && i[MANAGED] === VERSION && i.factoryDestinationFolderMatchPath === path) return { changed: false, status: "topic", url: next, path };
+    if (old === next && i[MANAGED] === VERSION && i.factoryDestinationFolderMatchPath === path && i[TREE_FINGERPRINT] === currentFingerprint) return { changed: false, status: "topic", url: next, path };
     if (old && old !== next) { i.factoryDestinationFolderPreviousUrl = old; i.factoryDestinationFolderReplacedAt = new Date().toISOString(); i.factoryDestinationFolderReplacementReason = "classificacao-disciplina-tema-exata-v237"; }
-    Object.assign(i, { factoryDestinationFolder: next, [MANAGED]: VERSION, factoryDestinationFolderCatalogKey: d.node.id, factoryDestinationFolderMatchType: `exact-v237-${t.reason}`, factoryDestinationFolderMatchTitle: t.node.name, factoryDestinationFolderMatchScore: Math.round(t.score), factoryDestinationFolderMatchPath: path, factoryDestinationFolderMatchId: t.node.id, factoryDestinationFolderMatchedAt: new Date().toISOString(), factoryDestinationFolderMatchEvidence: t.evidence });
+    Object.assign(i, { factoryDestinationFolder: next, [MANAGED]: VERSION, [TREE_FINGERPRINT]: currentFingerprint, factoryDestinationFolderCatalogKey: d.node.id, factoryDestinationFolderMatchType: `exact-v237-${t.reason}`, factoryDestinationFolderMatchTitle: t.node.name, factoryDestinationFolderMatchScore: Math.round(t.score), factoryDestinationFolderMatchPath: path, factoryDestinationFolderMatchId: t.node.id, factoryDestinationFolderMatchedAt: new Date().toISOString(), factoryDestinationFolderMatchEvidence: t.evidence });
     return { changed: true, status: "topic", previousUrl: old, url: next, path, reason: t.reason, evidence: t.evidence };
   }
 
@@ -116,8 +131,9 @@
     const s = stateNow(), list = s && agenda(s); if (!s || !tree?.nodes?.length || !Array.isArray(list)) return { applied: false, reason: "not-ready", changed: 0 };
     applying = true;
     try {
+      const fingerprint = treeFingerprint(tree);
       const report = { version: VERSION, appliedAt: new Date().toISOString(), total: list.length, changed: 0, matched: 0, corrected: 0, clearedUnsafe: 0, unmatched: 0, excludedSimulados: 0, corrections: [] };
-      list.forEach(entry => { const r = applyEntry(entry, tree); if (r.changed) report.changed++; if (r.status === "topic") { report.matched++; if (r.changed) { report.corrected++; report.corrections.push({ discipline: disciplines(entry)[0] || "", topic: itemOf(entry).tema || itemOf(entry).subject || itemOf(entry).assunto || "", previousUrl: r.previousUrl || "", url: r.url, path: r.path, reason: r.reason, evidence: r.evidence }); } } else if (r.status === "unsafe-managed-cleared") report.clearedUnsafe++; else if (r.status === "excluded-simulados") report.excludedSimulados++; else if (/unmatched$/.test(r.status)) report.unmatched++; });
+      list.forEach(entry => { const r = applyEntry(entry, tree, fingerprint); if (r.changed) report.changed++; if (r.status === "topic") { report.matched++; if (r.changed) { report.corrected++; report.corrections.push({ discipline: disciplines(entry)[0] || "", topic: itemOf(entry).tema || itemOf(entry).subject || itemOf(entry).assunto || "", previousUrl: r.previousUrl || "", url: r.url, path: r.path, reason: r.reason, evidence: r.evidence }); } } else if (r.status === "unsafe-managed-cleared") report.clearedUnsafe++; else if (r.status === "excluded-simulados") report.excludedSimulados++; else if (/unmatched$/.test(r.status)) report.unmatched++; });
       s.factoryAgenda = list; s.factoryItems = list; s.migrations ||= {}; s.migrations.factoryDestinationFoldersV237 = report; globalThis.__factoryDestinationFoldersV237Report = report;
       if (report.changed && options.save !== false) try { if (typeof saveData === "function") saveData({ markLocalChange: true }); } catch {}
       if (report.changed && options.render !== false) try { if (typeof renderFactory === "function" && location.hash === "#fabrica-resumos") renderFactory(); } catch {}
