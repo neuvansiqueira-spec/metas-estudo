@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260831-daily-goals-explicit-mutation-v419";
+  const VERSION = "20260903-protected-daily-goal-dom-v442";
   const SNAPSHOT_KEY = "aldusPlanningManualGoalsV235";
   const FACTORY_VIEW = "fabrica-resumos";
   const DAILY_VIEW = "metas-do-dia";
@@ -162,12 +162,24 @@
     }
   }
 
+  function isProtectedDailyGoalV442(goal = {}) {
+    try {
+      // eslint-disable-next-line no-undef
+      return typeof isProtectedDailyGoal === "function" && isProtectedDailyGoal(goal) === true;
+    } catch {
+      return false;
+    }
+  }
+
   function shouldHideFromDailyPlanV411(goal = {}, completedRecords = completedRecordsV411()) {
+    if (isProtectedDailyGoalV442(goal)) return false;
     return isCompletedGoalV411(goal) || recordMatchesCompletedSubjectV411(goal, completedRecords);
   }
 
   function isActionableStudyGoalV411(goal = {}, completedRecords = completedRecordsV411()) {
-    return isPlanningStudyGoalV411(goal) && !shouldHideFromDailyPlanV411(goal, completedRecords);
+    return isPlanningStudyGoalV411(goal)
+      && !isCompletedGoalV411(goal)
+      && !recordMatchesCompletedSubjectV411(goal, completedRecords);
   }
 
   function goalDateV411(goal = {}) {
@@ -281,7 +293,9 @@
     if (typeof current !== "function" || current.__aldusCompletedGoalsV411) return false;
     const guarded = function renderNextDailyGoalV411(dayGoals = [], ...args) {
       const completedRecords = completedRecordsV411(currentState());
-      return current.call(this, (dayGoals || []).filter((goal) => !shouldHideFromDailyPlanV411(goal, completedRecords)), ...args);
+      return current.call(this, (dayGoals || []).filter((goal) => (
+        !isCompletedGoalV411(goal) && !recordMatchesCompletedSubjectV411(goal, completedRecords)
+      )), ...args);
     };
     Object.defineProperty(guarded, "__aldusCompletedGoalsV411", { value: VERSION });
     Object.defineProperty(guarded, "__aldusOriginal", { value: current });
@@ -296,7 +310,7 @@
     let removed = 0;
     document.querySelectorAll('#view-metas-do-dia [data-daily-goal-details]').forEach((card) => {
       const goal = goalsById.get(String(card.dataset?.dailyGoalDetails || ""));
-      if (!goal || !shouldHideFromDailyPlanV411(goal, completedRecords)) return;
+      if (!goal || isCompletedGoalV411(goal) || !shouldHideFromDailyPlanV411(goal, completedRecords)) return;
       card.remove();
       removed += 1;
     });
