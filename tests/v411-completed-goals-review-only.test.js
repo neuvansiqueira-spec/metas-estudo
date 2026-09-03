@@ -8,7 +8,7 @@ const docsSource = fs.readFileSync("docs/planning-integrity-v235.js", "utf8");
 const loader = fs.readFileSync("planning-integrity-loader-v235.js", "utf8");
 const docsLoader = fs.readFileSync("docs/planning-integrity-loader-v235.js", "utf8");
 const DATE = "2026-08-31";
-const RELEASE = "20260831-daily-goals-explicit-mutation-v419";
+const RELEASE = "20260903-protected-daily-goal-dom-v442";
 
 function completedRecords(targetState) { return (targetState.dailyGoals || []).filter((goal) => goal.status === "Concluída"); }
 function matchesCompleted(record, completed) { return completed.some((goal) => goal.syllabusItemId === (record.syllabusItemId || record.id)); }
@@ -41,7 +41,7 @@ test("V419 filtra concluídos dos candidatos sem preencher vagas no startup", ()
   assert.equal(context.__ALDUS_PLANNING_INTEGRITY_V235__.automaticDailyGoalMutationDisabled, true);
 });
 
-test("V419 mantém concluído fora da próxima atividade sem apagar histórico", () => {
+test("V442 mantém concluída visível no DOM e exclui duplicada automática da próxima atividade", () => {
   const completed = { id: "done", status: "Concluída", syllabusItemId: "s1" };
   const pending = { id: "pending", status: "Pendente", syllabusItemId: "s2" };
   const reopened = { id: "reopened", status: "Pendente", syllabusItemId: "s1" };
@@ -61,13 +61,60 @@ test("V419 mantém concluído fora da próxima atividade sem apagar histórico",
   context.renderNextDailyGoal([completed, pending, reopened]);
   context.renderDailyGoals();
   assert.deepEqual(Array.from(received, (goal) => goal.id), ["pending"]);
-  assert.deepEqual(cards.map((card) => card.removed), [true, false, true]);
+  assert.deepEqual(cards.map((card) => card.removed), [false, false, true]);
   assert.equal(targetState.dailyGoals.length, 3);
 });
 
-test("V419 preserva paridade e cache-bust do núcleo corrigido", () => {
+test("V442 preserva cartões protegidos e remove somente a meta automática deduplicada", () => {
+  const completed = { id: "done", status: "Concluída", syllabusItemId: "s1", origin: "planejamento" };
+  const manual = { id: "manual", status: "Pendente", syllabusItemId: "s1", origin: "manual" };
+  const piece = { id: "piece", status: "Pendente", syllabusItemId: "s1", origin: "planejamento peça diária" };
+  const automatic = { id: "automatic", status: "Pendente", syllabusItemId: "s1", origin: "planejamento" };
+  const targetState = { planning: { config: { disciplinesPerDay: 4, topicsPerDay: 4 } }, dailyGoals: [completed, manual, piece, automatic] };
+  const cards = targetState.dailyGoals.map((goal) => ({
+    dataset: { dailyGoalDetails: goal.id },
+    removed: false,
+    remove() { this.removed = true; }
+  }));
+  const resume = { textContent: "4 meta(s) pendente(s)" };
+  const board = {
+    querySelectorAll(selector) { return selector.includes("data-daily-goal-details") ? cards.filter((card) => !card.removed) : []; },
+    closest() { return { querySelector(selector) { return selector === ".daily-plan-resume" ? resume : null; } }; }
+  };
+  const context = {
+    console, state: targetState, window: { addEventListener() {} },
+    document: {
+      readyState: "complete",
+      documentElement: { dataset: {}, getAttribute() { return null; } },
+      getElementById() { return null; },
+      querySelectorAll(selector) { return selector.includes("data-daily-goal-details") ? cards : []; },
+      querySelector(selector) { return selector.includes("daily-goals-board") ? board : null; },
+      addEventListener() {}
+    },
+    localStorage: { getItem() { return null; }, setItem() {} },
+    planningTargetsForDate() { return { disciplines: 4, topics: 4 }; },
+    completedPlanningSubjectRecords: completedRecords,
+    planningRecordMatchesCompletedSubject: matchesCompleted,
+    isGoalDone(goal) { return goal.status === "Concluída"; },
+    isProtectedDailyGoal(goal) { return goal.origin === "manual" || goal.origin === "planejamento peça diária"; },
+    renderDailyGoals() {},
+    Date, Object, Array, String, Number, Set, Map
+  };
+  context.globalThis = context;
+  vm.createContext(context);
+  vm.runInContext(source, context);
+  context.renderDailyGoals();
+
+  assert.deepEqual(cards.map((card) => card.removed), [false, false, false, true]);
+  assert.equal(board.querySelectorAll("[data-daily-goal-details]").length, 3);
+  assert.equal(resume.textContent, "3 meta(s) pendente(s)");
+  assert.equal(targetState.dailyGoals.length, 4);
+});
+
+test("V442 preserva paridade e renova o cache-bust do núcleo corrigido", () => {
   assert.equal(source, docsSource);
   assert.equal(loader, docsLoader);
+  assert.match(source, new RegExp(`const VERSION = "${RELEASE}"`));
   assert.match(loader, new RegExp(`const PLANNING_CORE_VERSION = "${RELEASE}"`));
   assert.match(loader, /planning-integrity-v235\.js\?v=\$\{encodeURIComponent\(PLANNING_CORE_VERSION\)\}/);
   assert.doesNotMatch(source, /setTimeout|setInterval|MutationObserver|requestAnimationFrame|requestIdleCallback/);
