@@ -123,6 +123,20 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V441 - metas protegidas nunca somem da lista visivel do Plano do Dia.
+  function installDailyPlanVisibleGoalsV441() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusDailyPlanVisibleGoalsLoaderV441")) return;
+    const script = document.createElement("script");
+    script.id = "aldusDailyPlanVisibleGoalsLoaderV441";
+    script.src = "daily-plan-visible-goals-v441.js?v=20260903-daily-plan-visible-goals-v441";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V441] Falha ao carregar a visibilidade das metas protegidas.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   function indexFor(list) {
     const cached = indexCache.get(list);
     if (cached
@@ -184,6 +198,7 @@
   installPlanningPriorityRemapV435();
   installQuickQuestionEntryV436();
   installDailyPlanPendingPanelV429();
+  installDailyPlanVisibleGoalsV441();
   if (install()) return;
 
   const startedAt = Date.now();
