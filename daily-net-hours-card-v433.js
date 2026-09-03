@@ -16,7 +16,7 @@
   // STATIC_ASSETS e alterá-lo levantaria a questão do cache do service worker.
   // O card é acessório e não justifica esse risco.
 
-  const VERSION = "20260902-daily-net-hours-card-v433-fit-r5";
+  const VERSION = "20260903-daily-net-hours-card-v433-align-r6";
   const API_KEY = "__ALDUS_DAILY_NET_HOURS_CARD_V433__";
   const CARD_ID = "aldusDailyNetHoursCardV433";
   const VALUE_ID = "aldusDailyNetHoursValueV433";
@@ -105,6 +105,10 @@
          o valor semanal, com fonte ate 2.25rem, empurrava o card para fora da
          tela. Dentro do par ele encolhe e quebra linha. */
       #${PAIR_ID} > * { min-width: 0; }
+      /* O tema aplica align-self: center aos cards. Cada um se centralizava na
+         propria celula e, com alturas diferentes, os topos nao batiam — medido
+         na pagina: 232px contra 240px. Esticar iguala altura e alinhamento. */
+      #${PAIR_ID} > .goal-card { align-self: stretch !important; }
       #${PAIR_ID} .goal-card strong {
         font-size: clamp(1.35rem, 1.9vw, 1.8rem);
         line-height: 1.15;

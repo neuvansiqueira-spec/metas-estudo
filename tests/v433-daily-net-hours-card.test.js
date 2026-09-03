@@ -142,6 +142,10 @@ test('V433 põe os dois cards lado a lado, com um selo só', () => {
   const estilo = context.document.getElementById('aldusDailyNetHoursStyleV433');
   assert.match(estilo.textContent, /\.goal-card::before \{ content: none/, 'e sai de dentro dos cards');
   assert.match(estilo.textContent, /align-items: start/, 'o par fica alinhado ao alto');
+  // Medido na página publicada: o tema aplica align-self: center, e com
+  // alturas diferentes os topos não batiam (232px contra 240px).
+  assert.match(estilo.textContent, /> \.goal-card \{ align-self: stretch !important/,
+    'os dois cards precisam esticar para ficar do mesmo tamanho');
 
   assert.equal(parent.children.length, 1, 'o grid do hero continua com um item nesta coluna');
   assert.equal(nodes.get('aldusDailyNetHoursValueV433').textContent, '1h 30min');
