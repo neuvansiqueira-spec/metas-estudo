@@ -9,9 +9,11 @@ const bundle = fs.readFileSync(`app-${releaseSuffix}.js`, "utf8");
 const docsBundle = fs.readFileSync(`docs/app-${releaseSuffix}.js`, "utf8");
 const index = fs.readFileSync("index.html", "utf8");
 const docsIndex = fs.readFileSync("docs/index.html", "utf8");
+const planningIntegrityLoader = fs.readFileSync("planning-integrity-loader-v235.js", "utf8");
 const workerBridge = fs.readFileSync("service-worker-v402.js", "utf8");
 const docsWorkerBridge = fs.readFileSync("docs/service-worker-v402.js", "utf8");
 const worker = fs.readFileSync("service-worker.js", "utf8");
+const planningCoreVersion = planningIntegrityLoader.match(/const PLANNING_CORE_VERSION = "([^"]+)"/)?.[1];
 
 test("release atual substitui a reconciliação V413 por diagnóstico antes da primeira exibição", () => {
   const reconcile = script.indexOf('medirFaseBootV350("diagnostico-plano-dia-deterministico-v417"');
@@ -48,7 +50,8 @@ test("release atual publica bundle e ponte de cache sem observadores ou polling 
   assert.ok(index.includes(`app-${releaseSuffix}.js?v=${packageVersion}`));
   assert.match(workerBridge, /CORE_DAILY_PLAN_CACHE_VERSION_V413/);
   assert.match(workerBridge, /bootstrap-integrity-loader-v258-core\.js/);
-  assert.ok(workerBridge.includes(`const CACHE_FIX_VERSION = "${packageVersion}"`));
+  assert.ok(planningCoreVersion);
+  assert.ok(workerBridge.includes(`const CACHE_FIX_VERSION = "${planningCoreVersion}"`));
   assert.match(workerBridge, /importScripts\(`service-worker\.js\?v=\$\{CACHE_FIX_VERSION\}`\)/);
   assert.doesNotMatch(workerBridge, new RegExp(`new URL\\("app-${releaseSuffix}\\.js"`));
   assert.match(worker, /html\.includes\(`app-\$\{RELEASE_SUFFIX\}\.js\?v=\$\{CURRENT_VERSION\}`\)/);

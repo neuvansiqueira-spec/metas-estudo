@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260831-daily-goals-explicit-mutation-v419";
+  const VERSION = "20260903-protected-daily-goals-dom-v442";
   const SNAPSHOT_KEY = "aldusPlanningManualGoalsV235";
   const FACTORY_VIEW = "fabrica-resumos";
   const DAILY_VIEW = "metas-do-dia";
@@ -162,7 +162,21 @@
     }
   }
 
+  function isProtectedDailyGoalV442(goal = {}) {
+    try {
+      // eslint-disable-next-line no-undef
+      if (typeof isProtectedDailyGoal === "function") return isProtectedDailyGoal(goal) === true;
+    } catch {}
+    try {
+      return typeof globalThis.isProtectedDailyGoal === "function"
+        && globalThis.isProtectedDailyGoal(goal) === true;
+    } catch {
+      return false;
+    }
+  }
+
   function shouldHideFromDailyPlanV411(goal = {}, completedRecords = completedRecordsV411()) {
+    if (isProtectedDailyGoalV442(goal)) return false;
     return isCompletedGoalV411(goal) || recordMatchesCompletedSubjectV411(goal, completedRecords);
   }
 

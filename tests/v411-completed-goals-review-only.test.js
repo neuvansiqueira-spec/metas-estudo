@@ -8,7 +8,7 @@ const docsSource = fs.readFileSync("docs/planning-integrity-v235.js", "utf8");
 const loader = fs.readFileSync("planning-integrity-loader-v235.js", "utf8");
 const docsLoader = fs.readFileSync("docs/planning-integrity-loader-v235.js", "utf8");
 const DATE = "2026-08-31";
-const RELEASE = "20260831-daily-goals-explicit-mutation-v419";
+const RELEASE = "20260903-protected-daily-goals-dom-v442";
 
 function completedRecords(targetState) { return (targetState.dailyGoals || []).filter((goal) => goal.status === "Concluída"); }
 function matchesCompleted(record, completed) { return completed.some((goal) => goal.syllabusItemId === (record.syllabusItemId || record.id)); }
