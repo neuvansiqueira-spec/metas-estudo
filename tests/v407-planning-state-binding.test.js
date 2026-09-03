@@ -8,7 +8,7 @@ const docsSource = fs.readFileSync("docs/planning-integrity-v235.js", "utf8");
 const DATE = "2026-08-30";
 const MARKER = "__aldusDailyPlanStartupReconciledV406";
 const POST_BOOTSTRAP_ATTR = "data-aldus-bootstrap-maintenance-ms";
-const RELEASE = "20260831-daily-goals-explicit-mutation-v419";
+const RELEASE = "20260903-protected-daily-goals-dom-v442";
 
 class FakeWindow {
   constructor() { this.listeners = new Map(); }
