@@ -76,6 +76,44 @@ test('V427 troca a reconstrução destrutiva por preenchimento aditivo', () => {
   }
 });
 
+test('V441 restaura só meta protegida e mantém fora a automática omitida pela deduplicação', () => {
+  const targetState = planningState();
+  const protectedGoal = { id: 'protegida', date: '2026-09-03', protected: true };
+  const automaticDuplicate = { id: 'automatica-duplicada', date: '2026-09-03', protected: false };
+  const survivor = { id: 'sobrevivente', date: '2026-09-03', protected: false };
+  targetState.dailyGoals = [protectedGoal, automaticDuplicate, survivor];
+
+  const originalReconcile = globalThis.reconcileDailyGoalsWithPlanning;
+  const originalProtected = globalThis.isProtectedDailyGoal;
+  globalThis.isProtectedDailyGoal = (goal) => goal.protected === true;
+  globalThis.reconcileDailyGoalsWithPlanning = (state) => {
+    // Simula a etapa destrutiva/deduplicadora: ambas somem. A rede V441 só
+    // pode trazer de volta a que a política central considera protegida.
+    state.dailyGoals = [survivor];
+    return {
+      added: [],
+      removed: ['protegida', 'automatica-duplicada'],
+      preserved: [],
+      warnings: []
+    };
+  };
+
+  try {
+    const result = api.alignAdditively(targetState, '2026-09-03', { explicit: true, force: true });
+    assert.equal(targetState.dailyGoals.includes(protectedGoal), true,
+      'a meta protegida removida pela etapa interna precisa ser restaurada');
+    assert.equal(targetState.dailyGoals.includes(automaticDuplicate), false,
+      'a automática omitida pela deduplicação continua fora');
+    assert.deepEqual(result.report.restoredProtected, ['protegida']);
+    assert.deepEqual(result.report.removed, ['automatica-duplicada'],
+      'o relatório não pode dizer que a protegida continua removida após restaurá-la');
+    assert.ok(result.report.preserved.includes('protegida'));
+  } finally {
+    globalThis.reconcileDailyGoalsWithPlanning = originalReconcile;
+    globalThis.isProtectedDailyGoal = originalProtected;
+  }
+});
+
 test('V427 exige autorização explícita antes de tocar no plano', () => {
   const resultado = api.alignAdditively(planningState(), '2026-09-02', {});
   assert.equal(resultado.changed, false);
@@ -140,6 +178,13 @@ test('V427 alcança o estado declarado como const no escopo global', () => {
   assert.equal(context.__cota, 8, 'ler apenas globalThis.state faria a cota continuar em 5');
 });
 
+test('V441 resolve o estado somente pelo identificador state, nunca por globalThis.state', () => {
+  const source = read('planning-stability-v427.js');
+  assert.match(source, /if \(isObject\(state\)\) return state;/);
+  assert.doesNotMatch(source, /globalThis\.state/,
+    'script.js declara const state; globalThis.state não representa o estado real do app');
+});
+
 test('V427 não introduz polling nem toca em metas fora do fluxo do botão', () => {
   const source = read('planning-stability-v427.js');
   // Só o código executável: as menções em comentário explicam o defeito e não
@@ -153,6 +198,6 @@ test('V427 não introduz polling nem toca em metas fora do fluxo do botão', () 
 test('V427 mantém paridade raiz/docs e é publicado com cache-bust', () => {
   assert.equal(read('planning-stability-v427.js'), read('docs/planning-stability-v427.js'));
   const loader = read('performance-emergency-v350.js');
-  assert.match(loader, /planning-stability-v427\.js\?v=/);
+  assert.match(loader, /planning-stability-v427\.js\?v=20260903-planning-stability-v427-protected-restore-r2/);
   assert.equal(loader, read('docs/performance-emergency-v350.js'));
 });

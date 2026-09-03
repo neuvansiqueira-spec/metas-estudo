@@ -59,7 +59,7 @@
     if (document.getElementById("aldusPlanningStabilityV427")) return;
     const script = document.createElement("script");
     script.id = "aldusPlanningStabilityV427";
-    script.src = "planning-stability-v427.js?v=20260902-planning-stability-v427";
+    script.src = "planning-stability-v427.js?v=20260903-planning-stability-v427-protected-restore-r2";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V427] Falha ao carregar a estabilidade do Plano do Dia.");
