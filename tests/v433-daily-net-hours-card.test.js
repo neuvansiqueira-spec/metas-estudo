@@ -110,24 +110,20 @@ function domHarness(state) {
   return { context, listeners, nodes, parent, goalCard };
 }
 
-test('V433 empilha o card do dia acima do semanal, sem virar item do grid', () => {
+test('V433 insere o bloco do dia dentro do card semanal, sem duplicar moldura', () => {
   const { context, listeners, nodes, parent, goalCard } = domHarness({
     studies: [{ date: HOJE, minutes: 90 }]
   });
   listeners.get('load')();
   const card = nodes.get('aldusDailyNetHoursCardV433');
-  const stack = nodes.get('aldusDailyNetHoursStackV433');
-  assert.ok(card, 'o card precisa existir');
-  assert.ok(stack, 'o empilhamento precisa existir');
-  assert.equal(card.className, 'goal-card', 'herda a aparência do card irmão');
+  assert.ok(card, 'o bloco precisa existir');
 
-  // O .hero-content é um grid de duas colunas. Um terceiro filho espremia a
-  // coluna do card semanal e quebrava "META SEMANAL" em três linhas.
-  assert.equal(parent.children.length, 2, 'o grid continua com dois itens');
-  assert.ok(parent.children.includes(stack));
-  assert.equal(stack.children.indexOf(card), 0, 'o card do dia vem primeiro');
-  assert.equal(stack.children.indexOf(goalCard), 1, 'o semanal fica logo abaixo');
-  assert.equal(goalCard.parentNode, stack, 'o card semanal foi movido para o empilhamento');
+  // Dois cards separados repetiam o selo "Indicador estratégico" e alongavam
+  // o hero. O bloco do dia passa a viver dentro do card que já existe.
+  assert.equal(card.parentNode, goalCard, 'o bloco fica dentro do card semanal');
+  assert.equal(goalCard.children.indexOf(card), 0, 'e aparece antes do conteúdo semanal');
+  assert.equal(parent.children.length, 1, 'o grid do hero continua com um item nesta coluna');
+  assert.notEqual(card.className, 'goal-card', 'não clona a moldura do card');
 
   assert.equal(nodes.get('aldusDailyNetHoursValueV433').textContent, '1h 30min');
   assert.match(context.__ALDUS_DAILY_NET_HOURS_CARD_V433__.version, /^\d{8}-daily-net-hours-card-v433/);
