@@ -66,12 +66,21 @@ function domHarness(state) {
     window: { addEventListener: (nome, fn) => listeners.set(nome, fn) }
   };
   const nodes = new Map();
+  const detach = (child) => {
+    const old = child && child.parentNode;
+    if (!old || !Array.isArray(old.children)) return;
+    const at = old.children.indexOf(child);
+    if (at !== -1) old.children.splice(at, 1);
+  };
   const makeNode = (id) => {
     const node = {
       className: '', textContent: '', innerHTML: '',
       children: [], parentNode: null,
-      appendChild(child) { child.parentNode = this; this.children.push(child); return child; },
+      // Mover um nó o retira do pai anterior, como no DOM real. Sem isso o
+      // nó aparece nos dois pais e a contagem de filhos mente.
+      appendChild(child) { detach(child); child.parentNode = this; this.children.push(child); return child; },
       insertBefore(child, ref) {
+        detach(child);
         child.parentNode = this;
         const at = this.children.indexOf(ref);
         this.children.splice(at === -1 ? this.children.length : at, 0, child);
@@ -110,21 +119,31 @@ function domHarness(state) {
   return { context, listeners, nodes, parent, goalCard };
 }
 
-test('V433 insere o bloco do dia dentro do card semanal, sem duplicar moldura', () => {
+test('V433 põe os dois cards lado a lado, com um selo só', () => {
   const { context, listeners, nodes, parent, goalCard } = domHarness({
     studies: [{ date: HOJE, minutes: 90 }]
   });
   listeners.get('load')();
   const card = nodes.get('aldusDailyNetHoursCardV433');
-  assert.ok(card, 'o bloco precisa existir');
+  const pair = nodes.get('aldusHeroIndicatorPairV433');
+  const row = nodes.get('aldusHeroIndicatorRowV433');
+  const chip = nodes.get('aldusHeroIndicatorChipV433');
 
-  // Dois cards separados repetiam o selo "Indicador estratégico" e alongavam
-  // o hero. O bloco do dia passa a viver dentro do card que já existe.
-  assert.equal(card.parentNode, goalCard, 'o bloco fica dentro do card semanal');
-  assert.equal(goalCard.children.indexOf(card), 0, 'e aparece antes do conteúdo semanal');
+  assert.ok(card && pair && row && chip, 'linha, par, selo e card precisam existir');
+  assert.equal(card.parentNode, pair, 'o card do dia é irmão do semanal');
+  assert.equal(goalCard.parentNode, pair, 'e o semanal vive no mesmo par');
+  assert.equal(pair.children.indexOf(card), 0, 'o dia vem à esquerda');
+  assert.equal(pair.children.indexOf(goalCard), 1);
+  assert.equal(card.className, 'goal-card', 'mesma moldura dos dois lados');
+
+  // .goal-card::before desenha o selo; com dois cards ele aparecia duas vezes.
+  assert.equal(chip.textContent, 'Indicador estratégico');
+  assert.equal(row.children.indexOf(chip), 0, 'o selo é cabeçalho do par');
+  const estilo = context.document.getElementById('aldusDailyNetHoursStyleV433');
+  assert.match(estilo.textContent, /\.goal-card::before \{ content: none/, 'e sai de dentro dos cards');
+  assert.match(estilo.textContent, /align-items: start/, 'o par fica alinhado ao alto');
+
   assert.equal(parent.children.length, 1, 'o grid do hero continua com um item nesta coluna');
-  assert.notEqual(card.className, 'goal-card', 'não clona a moldura do card');
-
   assert.equal(nodes.get('aldusDailyNetHoursValueV433').textContent, '1h 30min');
   assert.match(context.__ALDUS_DAILY_NET_HOURS_CARD_V433__.version, /^\d{8}-daily-net-hours-card-v433/);
 });

@@ -16,12 +16,15 @@
   // STATIC_ASSETS e alterá-lo levantaria a questão do cache do service worker.
   // O card é acessório e não justifica esse risco.
 
-  const VERSION = "20260902-daily-net-hours-card-v433-single-r3";
+  const VERSION = "20260902-daily-net-hours-card-v433-pair-r4";
   const API_KEY = "__ALDUS_DAILY_NET_HOURS_CARD_V433__";
   const CARD_ID = "aldusDailyNetHoursCardV433";
   const VALUE_ID = "aldusDailyNetHoursValueV433";
   const DETAIL_ID = "aldusDailyNetHoursDetailV433";
   const STYLE_ID = "aldusDailyNetHoursStyleV433";
+  const ROW_ID = "aldusHeroIndicatorRowV433";
+  const PAIR_ID = "aldusHeroIndicatorPairV433";
+  const CHIP_ID = "aldusHeroIndicatorChipV433";
 
   const isObject = (value) => Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
@@ -86,14 +89,34 @@
     // Herda a aparência de .goal-card, que é o card irmão; só o suficiente para
     // não depender de alteração nos CSS empacotados.
     style.textContent = `
-      /* Bloco interno do card semanal, nao um card proprio: dois cards
-         empilhados repetiam o selo "Indicador estrategico" e deixavam o topo
-         pesado demais. */
-      #${CARD_ID} { display: flex; flex-direction: column; gap: 2px; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid rgba(127,127,127,.28); }
-      #${CARD_ID} .aldus-v433-eyebrow { font-size: .78rem; letter-spacing: .04em; text-transform: uppercase; opacity: .85; }
-      #${CARD_ID} #${VALUE_ID} { font-size: clamp(1.4rem, 3vw, 1.9rem); font-weight: 700; line-height: 1.15; }
+      /* Dois cards irmaos, lado a lado, alinhados ao alto da coluna direita.
+         O selo "Indicador estrategico" e desenhado por .goal-card::before; com
+         dois cards ele aparecia duas vezes. Sai dos dois e vira cabecalho do
+         par, uma vez so. */
+      #${ROW_ID} { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+      #${CHIP_ID} {
+        display: inline-flex; align-self: flex-start;
+        padding: 5px 9px; border-radius: 999px;
+        background: rgba(199,154,59,.18); color: #fff4d6;
+        font-size: .72rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase;
+      }
+      #${PAIR_ID} { display: grid; grid-template-columns: 1fr; gap: 12px; min-width: 0; }
+      #${PAIR_ID} .goal-card::before { content: none !important; margin: 0 !important; padding: 0 !important; }
+      #${PAIR_ID} .goal-card { min-width: 0; }
+      #${PAIR_ID} .goal-card > span { display: block; white-space: nowrap; }
+      #${CARD_ID} { display: flex; flex-direction: column; gap: 3px; }
+      #${CARD_ID} .aldus-v433-eyebrow { font-size: .78rem; letter-spacing: .04em; text-transform: uppercase; opacity: .9; }
+      #${CARD_ID} #${VALUE_ID} { font-size: clamp(1.5rem, 2.4vw, 2rem); font-weight: 700; line-height: 1.15; }
       #${CARD_ID} #${DETAIL_ID} { font-size: .8rem; opacity: .78; }
-      .goal-card > span { display: block; white-space: nowrap; }
+      /* Acima de 1024px a coluna comporta os dois lado a lado. O !important
+         vence a regra de tema, que fixa 230-310px e centraliza verticalmente. */
+      @media (min-width: 1024px) {
+        .hero-content {
+          grid-template-columns: minmax(0, 1fr) minmax(420px, 560px) !important;
+          align-items: start !important;
+        }
+        #${PAIR_ID} { grid-template-columns: 1fr 1fr; }
+      }
     `;
     (document.head || document.documentElement).appendChild(style);
   }
@@ -104,13 +127,26 @@
     return weekly ? weekly.closest(".goal-card") : null;
   }
 
-  // O bloco do dia entra DENTRO do card semanal, antes do conteudo dele.
-  // Cards separados duplicavam a moldura e o selo, e alongavam o hero.
-  function firstChildOf(node) {
-    if (!node) return null;
-    if (node.firstElementChild) return node.firstElementChild;
-    const kids = Array.isArray(node.children) ? node.children : [];
-    return kids.length ? kids[0] : null;
+  // Os dois cards passam a ser irmaos dentro de uma linha propria, com o selo
+  // como cabecalho do par. Antes: um card so, com o bloco do dia embutido — o
+  // usuario achou desorganizado.
+  function ensureRow(anchor) {
+    const existing = document.getElementById(ROW_ID);
+    if (existing) return existing;
+    const parent = anchor.parentNode;
+    if (!parent || typeof parent.insertBefore !== "function") return null;
+    const row = document.createElement("div");
+    row.id = ROW_ID;
+    const chip = document.createElement("span");
+    chip.id = CHIP_ID;
+    chip.textContent = "Indicador estratégico";
+    const pair = document.createElement("div");
+    pair.id = PAIR_ID;
+    row.appendChild(chip);
+    row.appendChild(pair);
+    parent.insertBefore(row, anchor);
+    pair.appendChild(anchor);
+    return pair;
   }
 
   function ensureCard() {
@@ -119,8 +155,11 @@
     const existing = document.getElementById(CARD_ID);
     if (existing) return existing;
     ensureStyle();
+    const pair = ensureRow(anchor);
+    if (!pair) return null;
     const card = document.createElement("div");
     card.id = CARD_ID;
+    card.className = anchor.className;
 
     // Montado por createElement, não por innerHTML: nada aqui vem de dado do
     // usuário, mas construir nós evita string de marcação e deixa o card
@@ -141,7 +180,7 @@
     card.appendChild(eyebrow);
     card.appendChild(value);
     card.appendChild(detail);
-    anchor.insertBefore(card, firstChildOf(anchor));
+    pair.insertBefore(card, anchor);
     return card;
   }
 
