@@ -19,10 +19,14 @@
   //    causa direta de preparar resumo para A, B e C e voltar com D, E e F.
   //    O reparo troca a reconstrução por preenchimento aditivo.
   //
+  // V441 acrescenta uma rede de segurança estreita: se a reconciliação aditiva
+  // remover uma meta protegida, ela é restaurada. Metas automáticas intactas
+  // continuam sujeitas à deduplicação normal e nunca entram nessa restauração.
+  //
   // Nada aqui roda sozinho sobre as metas: a cota é escrita uma vez, e o
   // comportamento aditivo só age quando o usuário clica no botão.
 
-  const VERSION = "20260902-planning-stability-v427";
+  const VERSION = "20260903-planning-stability-v427-protected-restore-r2";
   const MARKER_KEY = "planningStabilityV427";
   const API_KEY = "__ALDUS_PLANNING_STABILITY_V427__";
   const SNAPSHOT_KEY = "aldusPlanningManualGoalsV235";
@@ -36,6 +40,7 @@
     const parsed = Number.parseInt(value, 10);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
   };
+  const goalDate = (goal = {}) => String(goal.date || goal.data || "").slice(0, 10);
 
   // `script.js` declara o estado como `const state`, que não existe em
   // globalThis. O identificador direto é o único caminho.
@@ -44,8 +49,55 @@
       // eslint-disable-next-line no-undef
       if (isObject(state)) return state;
     } catch { /* binding inexistente ou em TDZ */ }
-    if (isObject(globalThis.state)) return globalThis.state;
     return null;
+  }
+
+  function isProtectedByCore(goal) {
+    try {
+      return typeof globalThis.isProtectedDailyGoal === "function"
+        && globalThis.isProtectedDailyGoal(goal) === true;
+    } catch {
+      return false;
+    }
+  }
+
+  function protectedGoalsForDate(targetState, date) {
+    if (!Array.isArray(targetState?.dailyGoals)) return [];
+    return targetState.dailyGoals.filter((goal) => goalDate(goal) === date && isProtectedByCore(goal));
+  }
+
+  function restoreProtectedGoals(targetState, protectedBefore, report = {}) {
+    if (!Array.isArray(targetState?.dailyGoals) || !Array.isArray(protectedBefore) || !protectedBefore.length) {
+      report.restoredProtected ||= [];
+      return [];
+    }
+
+    const restored = [];
+    for (const goal of protectedBefore) {
+      // Revalida a política no momento da restauração. Nunca há fallback por
+      // origem/status: sem isProtectedDailyGoal verdadeiro, a meta fica fora.
+      if (!isProtectedByCore(goal)) continue;
+      const id = goal?.id;
+      const stillPresent = targetState.dailyGoals.includes(goal)
+        || Boolean(id && targetState.dailyGoals.some((item) => item?.id === id));
+      if (stillPresent) continue;
+      targetState.dailyGoals.push(goal);
+      restored.push(goal);
+    }
+
+    const restoredIds = restored.map((goal) => goal?.id).filter(Boolean);
+    report.restoredProtected = restoredIds;
+    if (restoredIds.length) {
+      const restoredSet = new Set(restoredIds);
+      if (Array.isArray(report.removed)) {
+        report.removed = report.removed.filter((id) => !restoredSet.has(id));
+      }
+      report.preserved = [...new Set([
+        ...(Array.isArray(report.preserved) ? report.preserved : []),
+        ...restoredIds
+      ])];
+    }
+    return restored;
   }
 
   // --- 1. Cota: escrever nas três fontes, senão o V235 desfaz -------------
@@ -88,17 +140,21 @@
     if (status?.targets && status.targets.topics <= 0) {
       return { changed: false, skipped: "zero-target-safety", date, status, report: null };
     }
+
+    const protectedBefore = protectedGoalsForDate(targetState, date);
     const report = globalThis.reconcileDailyGoalsWithPlanning(targetState, date, {
       ...opts,
       explicit: true,
       allowRebuild: true,
       rebuildAutomatic: false
-    });
+    }) || {};
+    const restoredProtected = restoreProtectedGoals(targetState, protectedBefore, report);
+
     if (typeof globalThis.markDailyPlanAlignmentV174 === "function") {
       globalThis.markDailyPlanAlignmentV174(targetState, date);
     }
     return {
-      changed: Boolean(report.added.length || report.removed.length || !status?.aligned),
+      changed: Boolean((report.added || []).length || (report.removed || []).length || restoredProtected.length || !status?.aligned),
       skipped: "",
       date,
       status,
@@ -164,6 +220,8 @@
     targetTopics: TARGET_TOPICS,
     writeQuota,
     quotaOf,
+    protectedGoalsForDate,
+    restoreProtectedGoals,
     alignAdditively,
     installAdditiveAlignment,
     apply: applyPlanningStabilityV427
