@@ -140,7 +140,7 @@
     if (document.getElementById("aldusEmergencyPerformanceV350")) return;
     const script = document.createElement("script");
     script.id = "aldusEmergencyPerformanceV350";
-    script.src = "performance-emergency-v350.js?v=20260902-factory-edital-link-repair-v428-state-binding-r2";
+    script.src = "performance-emergency-v350.js?v=20260903-goal-status-color-v443";
     script.async = false;
     (document.head || document.documentElement).appendChild(script);
   }
