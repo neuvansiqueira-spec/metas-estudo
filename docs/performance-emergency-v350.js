@@ -137,6 +137,20 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V443 - cor no status da meta no Plano do Dia.
+  function installDailyGoalStatusColorV443() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusDailyGoalStatusColorV443")) return;
+    const script = document.createElement("script");
+    script.id = "aldusDailyGoalStatusColorV443";
+    script.src = "daily-goal-status-color-v443.js?v=20260903-daily-goal-status-color-v443";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V443] Falha ao carregar a cor do status das metas.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   function indexFor(list) {
     const cached = indexCache.get(list);
     if (cached
@@ -197,6 +211,7 @@
   installDailyNetHoursCardV433();
   installPlanningPriorityRemapV435();
   installQuickQuestionEntryV436();
+  installDailyGoalStatusColorV443();
   installDailyPlanPendingPanelV429();
   installDailyPlanVisibleGoalsV441();
   if (install()) return;
