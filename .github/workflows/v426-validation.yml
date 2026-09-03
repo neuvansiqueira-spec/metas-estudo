@@ -68,9 +68,9 @@ jobs:
         run: |
           set -euo pipefail
           git diff --name-only "$BASE_SHA"...HEAD | sort
+          # V442 passa a ser dona de planning-integrity-v235.js; este arquivo não fica mais congelado pelo escopo V426.
           git diff --exit-code "$BASE_SHA"...HEAD -- \
             script.js \
-            planning-integrity-v235.js \
             planning-quality-v368.js \
             planning-piece-rotation-v358.js \
             service-worker-v378.js \
