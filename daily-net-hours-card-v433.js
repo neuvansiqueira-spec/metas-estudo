@@ -16,13 +16,12 @@
   // STATIC_ASSETS e alterá-lo levantaria a questão do cache do service worker.
   // O card é acessório e não justifica esse risco.
 
-  const VERSION = "20260902-daily-net-hours-card-v433-stack-r2";
+  const VERSION = "20260902-daily-net-hours-card-v433-single-r3";
   const API_KEY = "__ALDUS_DAILY_NET_HOURS_CARD_V433__";
   const CARD_ID = "aldusDailyNetHoursCardV433";
   const VALUE_ID = "aldusDailyNetHoursValueV433";
   const DETAIL_ID = "aldusDailyNetHoursDetailV433";
   const STYLE_ID = "aldusDailyNetHoursStyleV433";
-  const STACK_ID = "aldusDailyNetHoursStackV433";
 
   const isObject = (value) => Boolean(value) && typeof value === "object" && !Array.isArray(value);
 
@@ -87,16 +86,14 @@
     // Herda a aparência de .goal-card, que é o card irmão; só o suficiente para
     // não depender de alteração nos CSS empacotados.
     style.textContent = `
-      #${STACK_ID} { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-      #${CARD_ID} { display: flex; flex-direction: column; gap: 4px; }
+      /* Bloco interno do card semanal, nao um card proprio: dois cards
+         empilhados repetiam o selo "Indicador estrategico" e deixavam o topo
+         pesado demais. */
+      #${CARD_ID} { display: flex; flex-direction: column; gap: 2px; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid rgba(127,127,127,.28); }
       #${CARD_ID} .aldus-v433-eyebrow { font-size: .78rem; letter-spacing: .04em; text-transform: uppercase; opacity: .85; }
-      #${CARD_ID} #${VALUE_ID} { font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 700; line-height: 1.1; }
-      #${CARD_ID} #${DETAIL_ID} { font-size: .82rem; opacity: .8; }
-      /* O rótulo do card semanal quebrava em três linhas dentro da coluna
-         estreita do hero — "META" numa linha, "SEMANAL" na seguinte. O defeito
-         é anterior a este módulo; corrigido aqui porque o card agora divide o
-         mesmo empilhamento e a incoerência entre os dois ficaria visível. */
-      #${STACK_ID} .goal-card > span { display: block; white-space: nowrap; }
+      #${CARD_ID} #${VALUE_ID} { font-size: clamp(1.4rem, 3vw, 1.9rem); font-weight: 700; line-height: 1.15; }
+      #${CARD_ID} #${DETAIL_ID} { font-size: .8rem; opacity: .78; }
+      .goal-card > span { display: block; white-space: nowrap; }
     `;
     (document.head || document.documentElement).appendChild(style);
   }
@@ -107,21 +104,13 @@
     return weekly ? weekly.closest(".goal-card") : null;
   }
 
-  // O .hero-content é um grid de duas colunas (aldus-interface-v51.css:58).
-  // Inserir um terceiro filho espremia a coluna do card semanal e quebrava
-  // "META SEMANAL" em três linhas. Os dois cards passam a dividir a MESMA
-  // coluna, empilhados: o grid continua com dois itens e o card semanal
-  // recupera a largura original.
-  function ensureStack(anchor) {
-    const existing = document.getElementById(STACK_ID);
-    if (existing) return existing;
-    const parent = anchor.parentNode;
-    if (!parent || typeof parent.insertBefore !== "function") return null;
-    const stack = document.createElement("div");
-    stack.id = STACK_ID;
-    parent.insertBefore(stack, anchor);
-    stack.appendChild(anchor);
-    return stack;
+  // O bloco do dia entra DENTRO do card semanal, antes do conteudo dele.
+  // Cards separados duplicavam a moldura e o selo, e alongavam o hero.
+  function firstChildOf(node) {
+    if (!node) return null;
+    if (node.firstElementChild) return node.firstElementChild;
+    const kids = Array.isArray(node.children) ? node.children : [];
+    return kids.length ? kids[0] : null;
   }
 
   function ensureCard() {
@@ -130,11 +119,8 @@
     const existing = document.getElementById(CARD_ID);
     if (existing) return existing;
     ensureStyle();
-    const stack = ensureStack(anchor);
-    if (!stack) return null;
     const card = document.createElement("div");
     card.id = CARD_ID;
-    card.className = anchor.className;
 
     // Montado por createElement, não por innerHTML: nada aqui vem de dado do
     // usuário, mas construir nós evita string de marcação e deixa o card
@@ -155,7 +141,7 @@
     card.appendChild(eyebrow);
     card.appendChild(value);
     card.appendChild(detail);
-    stack.insertBefore(card, anchor);
+    anchor.insertBefore(card, firstChildOf(anchor));
     return card;
   }
 
@@ -199,7 +185,6 @@
   const api = Object.freeze({
     version: VERSION,
     cardId: CARD_ID,
-    stackId: STACK_ID,
     todayMinutes,
     todaySessions,
     formatMinutes,
