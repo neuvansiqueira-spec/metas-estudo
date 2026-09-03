@@ -18,7 +18,7 @@
   // normal da maioria das metas; destacá-lo em amarelo encheria a tela de
   // alerta sem informação.
 
-  const VERSION = "20260903-daily-goal-status-color-v443";
+  const VERSION = "20260903-daily-goal-status-color-v443-specificity-r2";
   const API_KEY = "__ALDUS_DAILY_GOAL_STATUS_COLOR_V443__";
   const STYLE_ID = "aldusDailyGoalStatusStyleV443";
   const MARK_ATTR = "data-aldus-goal-status";
@@ -47,22 +47,22 @@
     const style = document.createElement("style");
     style.id = STYLE_ID;
     style.textContent = `
-      [${MARK_ATTR}] { font-weight: 700; }
-      [${MARK_ATTR}="concluida"] { color: #5fd39b; }
-      [${MARK_ATTR}="andamento"] { color: #7cc0ff; }
-      [${MARK_ATTR}="pendente"] { color: rgba(255,255,255,.62); font-weight: 600; }
+      [${MARK_ATTR}] { font-weight: 700 !important; }
+      [${MARK_ATTR}="concluida"] { color: #5fd39b !important; }
+      [${MARK_ATTR}="andamento"] { color: #7cc0ff !important; }
+      [${MARK_ATTR}="pendente"] { color: rgba(255,255,255,.62) !important; font-weight: 600; }
       [${MARK_ATTR}="nao-cumprida"],
       [${MARK_ATTR}="adiada"],
-      [${MARK_ATTR}="reagendada"] { color: #e3b45a; }
-      [${MARK_ATTR}="ignorada"] { color: rgba(255,255,255,.45); font-weight: 600; }
+      [${MARK_ATTR}="reagendada"] { color: #e3b45a !important; }
+      [${MARK_ATTR}="ignorada"] { color: rgba(255,255,255,.45) !important; font-weight: 600; }
       /* Tema claro: os mesmos papéis, tons escurecidos para manter contraste. */
       @media (prefers-color-scheme: light) {
-        html:not([data-aldus-theme="premium-stable"]) [${MARK_ATTR}="concluida"] { color: #16794f; }
-        html:not([data-aldus-theme="premium-stable"]) [${MARK_ATTR}="andamento"] { color: #1b5fa8; }
-        html:not([data-aldus-theme="premium-stable"]) [${MARK_ATTR}="pendente"] { color: rgba(0,0,0,.58); }
+        html:not([data-aldus-theme="premium-stable"]) [${MARK_ATTR}="concluida"] { color: #16794f !important; }
+        html:not([data-aldus-theme="premium-stable"]) [${MARK_ATTR}="andamento"] { color: #1b5fa8 !important; }
+        html:not([data-aldus-theme="premium-stable"]) [${MARK_ATTR}="pendente"] { color: rgba(0,0,0,.58) !important; }
         html:not([data-aldus-theme="premium-stable"]) [${MARK_ATTR}="nao-cumprida"],
         html:not([data-aldus-theme="premium-stable"]) [${MARK_ATTR}="adiada"],
-        html:not([data-aldus-theme="premium-stable"]) [${MARK_ATTR}="reagendada"] { color: #8a6314; }
+        html:not([data-aldus-theme="premium-stable"]) [${MARK_ATTR}="reagendada"] { color: #8a6314 !important; }
       }
     `;
     (document.head || document.documentElement).appendChild(style);

@@ -143,7 +143,7 @@
     if (document.getElementById("aldusDailyGoalStatusColorV443")) return;
     const script = document.createElement("script");
     script.id = "aldusDailyGoalStatusColorV443";
-    script.src = "daily-goal-status-color-v443.js?v=20260903-daily-goal-status-color-v443";
+    script.src = "daily-goal-status-color-v443.js?v=20260903-daily-goal-status-color-v443-specificity-r2";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V443] Falha ao carregar a cor do status das metas.");
