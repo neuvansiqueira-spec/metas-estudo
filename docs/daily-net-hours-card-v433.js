@@ -16,7 +16,7 @@
   // STATIC_ASSETS e alterá-lo levantaria a questão do cache do service worker.
   // O card é acessório e não justifica esse risco.
 
-  const VERSION = "20260902-daily-net-hours-card-v433-pair-r4";
+  const VERSION = "20260902-daily-net-hours-card-v433-fit-r5";
   const API_KEY = "__ALDUS_DAILY_NET_HOURS_CARD_V433__";
   const CARD_ID = "aldusDailyNetHoursCardV433";
   const VALUE_ID = "aldusDailyNetHoursValueV433";
@@ -101,6 +101,17 @@
         font-size: .72rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase;
       }
       #${PAIR_ID} { display: grid; grid-template-columns: 1fr; gap: 12px; min-width: 0; }
+      /* Itens de grid tem min-width auto e o conteudo dita a largura minima:
+         o valor semanal, com fonte ate 2.25rem, empurrava o card para fora da
+         tela. Dentro do par ele encolhe e quebra linha. */
+      #${PAIR_ID} > * { min-width: 0; }
+      #${PAIR_ID} .goal-card strong {
+        font-size: clamp(1.35rem, 1.9vw, 1.8rem);
+        line-height: 1.15;
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+      #${PAIR_ID} .goal-card small { overflow-wrap: anywhere; }
       #${PAIR_ID} .goal-card::before { content: none !important; margin: 0 !important; padding: 0 !important; }
       #${PAIR_ID} .goal-card { min-width: 0; }
       #${PAIR_ID} .goal-card > span { display: block; white-space: nowrap; }
@@ -112,7 +123,7 @@
          vence a regra de tema, que fixa 230-310px e centraliza verticalmente. */
       @media (min-width: 1024px) {
         .hero-content {
-          grid-template-columns: minmax(0, 1fr) minmax(420px, 560px) !important;
+          grid-template-columns: minmax(0, 1fr) minmax(390px, 500px) !important;
           align-items: start !important;
         }
         #${PAIR_ID} { grid-template-columns: 1fr 1fr; }
