@@ -14,26 +14,89 @@ const HOJE = (() => {
   return local.toISOString().slice(0, 10);
 })();
 
-test('V433 soma apenas as sessões de hoje, como script.js:5145', () => {
+test('V446 soma pela meta, mesma fonte do Resumo do dia', () => {
+  // Números medidos em 03/09/2026: o Resumo do dia mostrava 3h46 (226min) e o
+  // card mostrava 2h31 (151min), lado a lado. A diferença de 75min é tempo que
+  // vive na meta e não vira sessão.
   const state = {
+    dailyGoals: [
+      { id: 'delta', date: HOJE, studyActualMinutes: 112, questionActualMinutes: 0 },
+      { id: 'improbidade', date: HOJE, studyActualMinutes: 61, questionActualMinutes: 13 },
+      { id: 'peca', date: HOJE, actualMinutes: 40 },
+      { id: 'sem-tempo', date: HOJE },
+      { id: 'ontem', date: '2026-01-01', studyActualMinutes: 300 }
+    ],
     studies: [
-      { date: HOJE, minutes: 50 },
-      { date: HOJE, minutes: 25 },
-      { date: '2026-01-01', minutes: 300 },
-      { date: HOJE, minutes: 0 },
-      { date: HOJE, minutes: -10 },
-      { date: HOJE }
+      { date: HOJE, minutes: 55, goalId: 'delta' },
+      { date: HOJE, minutes: 40, goalId: 'peca' },
+      { date: HOJE, minutes: 2, goalId: 'improbidade' },
+      { date: HOJE, minutes: 8, goalId: 'improbidade' },
+      { date: HOJE, minutes: 43, goalId: 'improbidade' },
+      { date: HOJE, minutes: 3, goalId: 'improbidade' },
+      { date: '2026-01-01', minutes: 300, goalId: 'ontem' }
     ]
   };
-  assert.equal(api.todayMinutes(state), 75, 'ignora outras datas, zeros, negativos e ausentes');
-  assert.equal(api.todaySessions(state), 5);
+  assert.equal(api.todayMinutes(state), 226,
+    'somar as sessões daria 151 e divergiria do Resumo do dia');
+  assert.equal(api.todaySessions(state), 6, 'a legenda continua contando sessões');
+});
+
+test('V446 não conta duas vezes o tempo que já está na meta', () => {
+  const state = {
+    dailyGoals: [{ id: 'a', date: HOJE, studyActualMinutes: 60 }],
+    studies: [{ date: HOJE, minutes: 60, goalId: 'a' }]
+  };
+  assert.equal(api.todayMinutes(state), 60, 'a sessão já está refletida na meta');
+});
+
+test('V446 preserva sessão avulsa, sem meta do dia', () => {
+  const state = {
+    dailyGoals: [{ id: 'a', date: HOJE, studyActualMinutes: 60 }],
+    studies: [
+      { date: HOJE, minutes: 60, goalId: 'a' },
+      { date: HOJE, minutes: 25, goalId: 'meta-de-outro-dia' },
+      { date: HOJE, minutes: 10 }
+    ]
+  };
+  assert.equal(api.todayMinutes(state), 95, 'tempo real sem meta do dia não pode sumir');
+});
+
+test('V446 reproduz goalTotalActualMinutes de script.js:3061', () => {
+  // Parcial informada vence actualMinutes; sem parcial, cai no legado.
+  assert.equal(api.goalActualMinutes({ studyActualMinutes: 61, questionActualMinutes: 13, actualMinutes: 999 }), 74);
+  assert.equal(api.goalActualMinutes({ studyActualMinutes: 0, actualMinutes: 999 }), 0,
+    'zero informado é informação, não ausência');
+  assert.equal(api.goalActualMinutes({ actualMinutes: 40 }), 40);
+  assert.equal(api.goalActualMinutes({ tempo_real_minutos: 30 }), 30);
+  assert.equal(api.goalActualMinutes({}), 0);
+  assert.equal(api.goalActualMinutes(null), 0);
+});
+
+test('V446 parte da lista exibida, não da lista crua de metas', () => {
+  // O Resumo do dia soma dailyPlanGoalsForDisplay; somar a lista crua incluiria
+  // metas que a tela esconde e recriaria a divergência ao contrário.
+  const state = {
+    dailyGoals: [
+      { id: 'visivel', date: HOJE, actualMinutes: 30 },
+      { id: 'escondida', date: HOJE, actualMinutes: 500 }
+    ],
+    studies: []
+  };
+  const original = globalThis.dailyPlanGoalsForDisplay;
+  globalThis.dailyPlanGoalsForDisplay = (target) => target.dailyGoals.filter((g) => g.id === 'visivel');
+  try {
+    assert.deepEqual(api.goalsForDate(state, HOJE).map((g) => g.id), ['visivel']);
+    assert.equal(api.todayMinutes(state), 30);
+  } finally {
+    globalThis.dailyPlanGoalsForDisplay = original;
+  }
 });
 
 test('V433 não quebra com estado ausente ou malformado', () => {
   assert.equal(api.todayMinutes(null), 0);
   assert.equal(api.todayMinutes({}), 0);
-  assert.equal(api.todayMinutes({ studies: 'nao é lista' }), 0);
-  assert.equal(api.todayMinutes({ studies: [null, 7, { date: HOJE, minutes: 'abc' }] }), 0);
+  assert.equal(api.todayMinutes({ studies: 'nao é lista', dailyGoals: 'nao é lista' }), 0);
+  assert.equal(api.todayMinutes({ dailyGoals: [null, 7, { date: HOJE, actualMinutes: 'abc' }] }), 0);
 });
 
 test('V433 formata em horas e minutos, sem decimal', () => {
@@ -51,6 +114,8 @@ test('V433 concorda com formatHours do app na conversão de minutos', () => {
   const script = read('script.js');
   assert.match(script, /function formatHours\(minutes\)/);
   assert.equal(api.formatMinutes(525), '8h 45min');
+  // A fonte é a mesma do Resumo do dia; só a formatação difere.
+  assert.match(script, /function goalTotalActualMinutes\(goal = \{\}\)/);
 });
 
 test('V433 descreve quantas sessões existem hoje', () => {
@@ -121,7 +186,8 @@ function domHarness(state) {
 
 test('V433 põe os dois cards lado a lado, com um selo só', () => {
   const { context, listeners, nodes, parent, goalCard } = domHarness({
-    studies: [{ date: HOJE, minutes: 90 }]
+    dailyGoals: [{ id: 'g', date: HOJE, actualMinutes: 90 }],
+    studies: [{ date: HOJE, minutes: 90, goalId: 'g' }]
   });
   listeners.get('load')();
   const card = nodes.get('aldusDailyNetHoursCardV433');
@@ -153,7 +219,10 @@ test('V433 põe os dois cards lado a lado, com um selo só', () => {
 });
 
 test('V433 não duplica o card em renders sucessivos', () => {
-  const { listeners, parent } = domHarness({ studies: [{ date: HOJE, minutes: 30 }] });
+  const { listeners, parent } = domHarness({
+    dailyGoals: [{ id: 'g', date: HOJE, actualMinutes: 30 }],
+    studies: [{ date: HOJE, minutes: 30, goalId: 'g' }]
+  });
   listeners.get('load')();
   const antes = parent.children.length;
   const api433 = null;
@@ -182,7 +251,7 @@ test('V433 alcança o estado declarado como const no escopo global', () => {
     document: { head: {}, documentElement: {}, getElementById: () => null, createElement: () => ({}) }
   });
   context.globalThis = context;
-  vm.runInContext(`const state = { studies: [{ date: "${HOJE}", minutes: 42 }] };
+  vm.runInContext(`const state = { dailyGoals: [{ id: "g", date: "${HOJE}", actualMinutes: 42 }], studies: [] };
     globalThis.__leituraDoGlobal = typeof globalThis.state;`, context);
   assert.equal(context.__leituraDoGlobal, 'undefined');
   vm.runInContext(read('daily-net-hours-card-v433.js'), context);

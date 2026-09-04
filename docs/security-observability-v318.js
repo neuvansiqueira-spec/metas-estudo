@@ -140,7 +140,7 @@
     if (document.getElementById("aldusEmergencyPerformanceV350")) return;
     const script = document.createElement("script");
     script.id = "aldusEmergencyPerformanceV350";
-    script.src = "performance-emergency-v350.js?v=20260903-status-color-specificity-r2";
+    script.src = "performance-emergency-v350.js?v=20260903-daily-hours-same-source-v446";
     script.async = false;
     (document.head || document.documentElement).appendChild(script);
   }

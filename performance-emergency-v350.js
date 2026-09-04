@@ -87,7 +87,7 @@
     if (document.getElementById("aldusDailyNetHoursCardLoaderV433")) return;
     const script = document.createElement("script");
     script.id = "aldusDailyNetHoursCardLoaderV433";
-    script.src = "daily-net-hours-card-v433.js?v=20260903-daily-net-hours-card-v433-align-r6";
+    script.src = "daily-net-hours-card-v433.js?v=20260903-daily-net-hours-card-v433-same-source-v446";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V433] Falha ao carregar o card de horas do dia.");

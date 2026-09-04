@@ -9,14 +9,15 @@
   // o próprio usuário ler 8h45 e achar que eram do dia.
   //
   // Este módulo acrescenta um card irmão ao da meta semanal, com as horas
-  // líquidas de hoje. Não cria dado novo: usa exatamente a mesma conta de
-  // script.js:5145 — soma de `minutes` das sessões cujo `date` é hoje.
+  // líquidas de hoje. Não cria dado novo nem conta própria: desde a V446 usa a
+  // mesma fonte do "Tempo realizado hoje" do Resumo do dia, para que dois
+  // números do mesmo dia não apareçam divergindo em telas vizinhas.
   //
   // Injeção por módulo, e não edição de index.html: o index está em
   // STATIC_ASSETS e alterá-lo levantaria a questão do cache do service worker.
   // O card é acessório e não justifica esse risco.
 
-  const VERSION = "20260903-daily-net-hours-card-v433-align-r6";
+  const VERSION = "20260903-daily-net-hours-card-v433-same-source-v446";
   const API_KEY = "__ALDUS_DAILY_NET_HOURS_CARD_V433__";
   const CARD_ID = "aldusDailyNetHoursCardV433";
   const VALUE_ID = "aldusDailyNetHoursValueV433";
@@ -48,14 +49,72 @@
     return local.toISOString().slice(0, 10);
   }
 
-  // Mesma conta de script.js:5145. Não reimplementa regra: soma o que foi
-  // efetivamente registrado nas sessões de hoje.
+  // V446 — Mesma fonte do "Tempo realizado hoje" do Resumo do dia.
+  //
+  // Até aqui o card somava `minutes` das sessões do dia. O Resumo do dia soma
+  // `goalTotalActualMinutes` das metas do dia (script.js:3061). Os dois números
+  // apareciam lado a lado divergindo: 2h31 contra 3h46 em 03/09/2026.
+  //
+  // Medido no estado real daquele dia: 6 sessões somavam 151min, e as metas
+  // somavam 226min. Os 75min de diferença não eram erro — eram tempo que
+  // existe na meta e não vira sessão: 13min lançados como tempo de questões, e
+  // 62min de execução informada na própria meta, sem cronômetro. Estudo feito,
+  // invisível para a contagem por sessão. O card menor é que estava errado.
+  //
+  // A soma passa a ser a das metas, e as sessões do dia que não pertencem a
+  // nenhuma meta do dia entram à parte — assim tempo avulso não some, e o que
+  // já está contado na meta não conta duas vezes.
+
+  // Espelha script.js:goalTotalActualMinutes. Usa a função do app quando ela
+  // existe; a cópia local serve ao teste e a um carregamento fora de ordem.
+  function goalActualMinutes(goal) {
+    if (!isObject(goal)) return 0;
+    try {
+      // eslint-disable-next-line no-undef
+      if (typeof goalTotalActualMinutes === "function") return Number(goalTotalActualMinutes(goal)) || 0;
+    } catch { /* fora do app */ }
+    const informado = (campo) => goal[campo] !== undefined && goal[campo] !== null && goal[campo] !== "";
+    if (informado("studyActualMinutes") || informado("questionActualMinutes")) {
+      return (Number(goal.studyActualMinutes) || 0) + (Number(goal.questionActualMinutes) || 0);
+    }
+    return Number(goal.actualMinutes ?? goal.tempo_real_minutos) || 0;
+  }
+
+  function goalDate(goal) {
+    return String(goal?.date || goal?.data || "").slice(0, 10);
+  }
+
+  // O Resumo do dia parte de dailyPlanGoalsForDisplay, que esconde duplicatas
+  // e metas de assunto já concluído. Somar a lista crua daria número maior que
+  // o exibido — a mesma divergência, invertida.
+  function goalsForDate(targetState, date) {
+    try {
+      // eslint-disable-next-line no-undef
+      if (typeof dailyPlanGoalsForDisplay === "function") {
+        const lista = dailyPlanGoalsForDisplay(targetState, date);
+        if (Array.isArray(lista)) return lista.filter(isObject);
+      }
+    } catch { /* fora do app */ }
+    const goals = Array.isArray(targetState?.dailyGoals) ? targetState.dailyGoals : [];
+    return goals.filter((goal) => isObject(goal) && goalDate(goal) === date);
+  }
+
+  function studyGoalId(study) {
+    return String(study?.goalId || study?.dailyGoalId || "");
+  }
+
   function todayMinutes(targetState) {
-    const studies = Array.isArray(targetState?.studies) ? targetState.studies : [];
     const date = today();
+    const goals = goalsForDate(targetState, date);
     let total = 0;
+    for (const goal of goals) total += goalActualMinutes(goal);
+
+    // Sessão do dia sem meta do dia: tempo real que nenhuma meta contabiliza.
+    const vinculadas = new Set(goals.map((goal) => String(goal?.id || "")).filter(Boolean));
+    const studies = Array.isArray(targetState?.studies) ? targetState.studies : [];
     for (const study of studies) {
-      if (!isObject(study) || study.date !== date) continue;
+      if (!isObject(study) || String(study.date || "").slice(0, 10) !== date) continue;
+      if (vinculadas.has(studyGoalId(study))) continue;
       const minutes = Number(study.minutes);
       if (Number.isFinite(minutes) && minutes > 0) total += minutes;
     }
@@ -65,7 +124,7 @@
   function todaySessions(targetState) {
     const studies = Array.isArray(targetState?.studies) ? targetState.studies : [];
     const date = today();
-    return studies.filter((study) => isObject(study) && study.date === date).length;
+    return studies.filter((study) => isObject(study) && String(study.date || "").slice(0, 10) === date).length;
   }
 
   function formatMinutes(total) {
@@ -241,6 +300,8 @@
     cardId: CARD_ID,
     todayMinutes,
     todaySessions,
+    goalActualMinutes,
+    goalsForDate,
     formatMinutes,
     sessionLabel,
     renderCard,
