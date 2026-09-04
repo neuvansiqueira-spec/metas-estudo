@@ -59,7 +59,7 @@
     if (document.getElementById("aldusPlanningStabilityV427")) return;
     const script = document.createElement("script");
     script.id = "aldusPlanningStabilityV427";
-    script.src = "planning-stability-v427.js?v=20260903-planning-stability-v427-protected-restore-r2";
+    script.src = "planning-stability-v427.js?v=20260904-planning-stability-v427-cota-6";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V427] Falha ao carregar a estabilidade do Plano do Dia.");
@@ -105,6 +105,20 @@
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V447] Falha ao carregar a protecao contra gravacao concorrente.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
+  // V448 - as 42 aulas restantes do Dedicacao Delta FULL viram metas do dia.
+  function installDeltaFullPlanV448() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusDeltaFullPlanLoaderV448")) return;
+    const script = document.createElement("script");
+    script.id = "aldusDeltaFullPlanLoaderV448";
+    script.src = "delta-full-plan-v448.js?v=20260904-delta-full-plan-v448";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V448] Falha ao carregar o plano do Dedicacao Delta.");
     }, { once: true });
     (document.head || document.documentElement).appendChild(script);
   }
@@ -223,6 +237,7 @@
   installFactoryEditalLinkRepairV428();
   installPlanningStabilityV427();
   installIndexedDBConcurrentWriteV447();
+  installDeltaFullPlanV448();
   installDailyNetHoursCardV433();
   installPlanningPriorityRemapV435();
   installQuickQuestionEntryV436();

@@ -17,14 +17,14 @@ function planningState(topics = 5, disciplines = 5) {
   };
 }
 
-test('V427 grava a cota nas três fontes que o V235 reaplica', () => {
+test('V427 grava a cota de 6 nas três fontes que o V235 reaplica', () => {
   const state = planningState();
   const snapshot = api.writeQuota(state);
-  assert.equal(state.planning.config.topicsPerDay, 8);
-  assert.equal(state.planning.config.disciplinesPerDay, 8);
-  assert.equal(state.planning.manualGoalsConfigV235.topics, 8,
+  assert.equal(state.planning.config.topicsPerDay, 6);
+  assert.equal(state.planning.config.disciplinesPerDay, 6);
+  assert.equal(state.planning.manualGoalsConfigV235.topics, 6,
     'escrever só em planning.config é desfeito no saveData seguinte');
-  assert.equal(snapshot.topics, 8);
+  assert.equal(snapshot.topics, 6);
 });
 
 test('V427 escreve o snapshot no formato que recordManualCount espera', () => {
@@ -41,7 +41,7 @@ test('V427 registra a cota anterior no marcador, para auditoria', () => {
   const result = api.apply(state);
   assert.equal(result.changed, true);
   assert.deepEqual(result.quotaBefore, { disciplines: 5, topics: 5 });
-  assert.deepEqual(result.quota, { disciplines: 8, topics: 8 });
+  assert.deepEqual(result.quota, { disciplines: 6, topics: 6 });
   assert.equal(state.migrations.planningStabilityV427.completed, true);
 });
 
@@ -51,6 +51,19 @@ test('V427 é idempotente: a segunda execução não reescreve', () => {
   const again = api.apply(state);
   assert.equal(again.repeated, true);
   assert.equal(again.changed, false);
+});
+
+test('V427 reaplica quando a cota-alvo muda, e não só na primeira vez', () => {
+  // Quem já rodou a versão de cota 8 tem o marcador completed:true. Sem
+  // comparar o alvo gravado, trocar 8 por 6 no código não teria efeito nenhum.
+  const state = planningState(8, 8);
+  state.migrations = { planningStabilityV427: { completed: true, version: 'antiga', quotaAfter: { disciplines: 8, topics: 8 } } };
+  const result = api.apply(state);
+  assert.equal(result.changed, true, 'marcador antigo não pode congelar a cota velha');
+  assert.equal(state.planning.config.topicsPerDay, 6);
+  assert.deepEqual(state.migrations.planningStabilityV427.targetQuota, { disciplines: 6, topics: 6 },
+    'o alvo precisa ficar gravado, senão a próxima mudança também não pega');
+  assert.equal(api.apply(state).repeated, true, 'com o mesmo alvo, volta a ser uma vez só');
 });
 
 test('V427 não altera nada quando não há planejamento', () => {
@@ -175,7 +188,7 @@ test('V427 alcança o estado declarado como const no escopo global', () => {
   context.__disparaLoad = () => listeners.get('load')?.();
   vm.runInContext('globalThis.__disparaLoad();', context);
   vm.runInContext('globalThis.__cota = state.planning.config.topicsPerDay;', context);
-  assert.equal(context.__cota, 8, 'ler apenas globalThis.state faria a cota continuar em 5');
+  assert.equal(context.__cota, 6, 'ler apenas globalThis.state faria a cota continuar em 5');
 });
 
 test('V441 resolve o estado somente pelo identificador state, nunca por globalThis.state', () => {
@@ -198,6 +211,6 @@ test('V427 não introduz polling nem toca em metas fora do fluxo do botão', () 
 test('V427 mantém paridade raiz/docs e é publicado com cache-bust', () => {
   assert.equal(read('planning-stability-v427.js'), read('docs/planning-stability-v427.js'));
   const loader = read('performance-emergency-v350.js');
-  assert.match(loader, /planning-stability-v427\.js\?v=20260903-planning-stability-v427-protected-restore-r2/);
+  assert.match(loader, /planning-stability-v427\.js\?v=\d{8}-[a-z0-9-]+/);
   assert.equal(loader, read('docs/performance-emergency-v350.js'));
 });

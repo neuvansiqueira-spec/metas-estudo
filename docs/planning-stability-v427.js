@@ -26,14 +26,17 @@
   // Nada aqui roda sozinho sobre as metas: a cota é escrita uma vez, e o
   // comportamento aditivo só age quando o usuário clica no botão.
 
-  const VERSION = "20260903-planning-stability-v427-protected-restore-r2";
+  const VERSION = "20260904-planning-stability-v427-cota-6";
   const MARKER_KEY = "planningStabilityV427";
   const API_KEY = "__ALDUS_PLANNING_STABILITY_V427__";
   const SNAPSHOT_KEY = "aldusPlanningManualGoalsV235";
   const WRAP_MARKER = "__aldusPlanningStabilityV427";
 
-  const TARGET_DISCIPLINES = 8;
-  const TARGET_TOPICS = 8;
+  // Cota diária de metas do Planejamento. Passou de 8 para 6 em 04/09/2026: as
+  // 42 aulas do Dedicação Delta (V448) entram JUNTO com estas, e 8 + 2 deixava
+  // dez metas num dia que o usuário fecha em cerca de 3 horas.
+  const TARGET_DISCIPLINES = 6;
+  const TARGET_TOPICS = 6;
 
   const isObject = (value) => Boolean(value) && typeof value === "object" && !Array.isArray(value);
   const positiveInteger = (value, fallback = 0) => {
@@ -195,7 +198,16 @@
   function applyPlanningStabilityV427(targetState, options = {}) {
     if (!isObject(targetState)) return { changed: false, blocked: true, reason: "state-unavailable" };
     const before = quotaOf(targetState);
-    const already = targetState?.migrations?.[MARKER_KEY]?.completed === true;
+    const marker = targetState?.migrations?.[MARKER_KEY];
+    const target = { disciplines: TARGET_DISCIPLINES, topics: TARGET_TOPICS };
+    // O marcador sozinho não basta: quando a cota-alvo muda, a migração
+    // precisa rodar de novo. Sem isto, trocar 8 por 6 no código não teria
+    // efeito nenhum em quem já executou a versão anterior — e o marcador
+    // antigo não guardava o alvo, então ele também é tratado como divergente.
+    const sameTarget = isObject(marker?.targetQuota)
+      && marker.targetQuota.disciplines === target.disciplines
+      && marker.targetQuota.topics === target.topics;
+    const already = marker?.completed === true && sameTarget;
     if (already && !options.force) {
       return { changed: false, blocked: false, repeated: true, quota: before };
     }
@@ -207,7 +219,8 @@
       executedAt: new Date().toISOString(),
       completed: true,
       quotaBefore: before,
-      quotaAfter: quotaOf(targetState)
+      quotaAfter: quotaOf(targetState),
+      targetQuota: target
     };
     return { changed: true, blocked: false, quotaBefore: before, quota: quotaOf(targetState) };
   }
