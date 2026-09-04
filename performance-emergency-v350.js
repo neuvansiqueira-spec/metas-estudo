@@ -101,7 +101,7 @@
     if (document.getElementById("aldusIndexedDBConcurrentWriteLoaderV447")) return;
     const script = document.createElement("script");
     script.id = "aldusIndexedDBConcurrentWriteLoaderV447";
-    script.src = "indexeddb-concurrent-write-v447.js?v=20260904-indexeddb-concurrent-write-v447";
+    script.src = "indexeddb-concurrent-write-v447.js?v=20260904-indexeddb-concurrent-write-v447-two-tabs-r2";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V447] Falha ao carregar a protecao contra gravacao concorrente.");

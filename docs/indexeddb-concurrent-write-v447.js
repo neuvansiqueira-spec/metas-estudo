@@ -20,6 +20,10 @@
   // O registro estava íntegro e consistente consigo mesmo. Nunca houve falha do
   // IndexedDB — havia outro escritor.
   //
+  // DUAS ABAS SÃO O USO NORMAL: o usuário mantém uma aba no cronômetro e outra
+  // na Fábrica de Resumos, o dia inteiro. A colisão não é um evento raro a
+  // tolerar uma vez; é rotina, e precisa ser barata e convergente.
+  //
   // A correção intercepta apenas esta assinatura de erro e, antes de rebaixar a
   // persistência, relê o registro:
   //
@@ -42,21 +46,41 @@
   // declaradas com `let` no topo do bundle, portanto alcançáveis por
   // identificador simples a partir daqui.
 
-  const VERSION = "20260904-indexeddb-concurrent-write-v447";
+  const VERSION = "20260904-indexeddb-concurrent-write-v447-two-tabs-r2";
   const API_KEY = "__ALDUS_INDEXEDDB_CONCURRENT_WRITE_V447__";
   const WARNING_MESSAGE = "Falha ao atualizar a cópia IndexedDB.";
   const VALIDATION_ERROR = "A validação da gravação no IndexedDB falhou.";
   const LOCAL_STORAGE_FULL_MESSAGE = "IndexedDB funcionando; cópia localStorage indisponível por falta de espaço.";
 
-  // Duas abas gravando em revezamento poderiam se reenfileirar sem fim. Depois
-  // deste número de recuperações seguidas o módulo para de reenfileirar — sem
-  // rebaixar a persistência: o próximo salvamento comum grava de qualquer modo.
-  const MAX_CONSECUTIVE_REQUEUES = 5;
+  // Duas defesas contra a colisão virar disputa, nesta ordem:
+  //
+  // 1. Espera com sorteio antes de tentar de novo. Sem o sorteio as duas abas
+  //    voltam a gravar no mesmo instante e colidem em compasso, indefinidamente.
+  //    O intervalo dobra a cada tentativa da mesma rajada, até o teto.
+  //
+  // 2. Teto POR RAJADA, não por sessão. Se a mesclagem não convergir — duas
+  //    versões que se reescrevem em ciclo —, o módulo para de insistir naquela
+  //    rajada, sem rebaixar a persistência: o próximo salvamento comum chama
+  //    queueIndexedDBStateCopy de novo e a reconciliação acontece ali. Passado
+  //    BURST_RESET_MS sem colisão, a contagem recomeça do zero, de modo que uma
+  //    sessão longa de duas abas nunca esgota a proteção.
+  const REQUEUE_BURST_LIMIT = 8;
+  const BURST_RESET_MS = 15000;
+  const BACKOFF_BASE_MS = 200;
+  const BACKOFF_MAX_MS = 3000;
 
-  let consecutiveRecoveries = 0;
+  let burstCount = 0;
+  let lastCollisionAt = 0;
 
   const isObject = (value) => Boolean(value) && typeof value === "object" && !Array.isArray(value);
   const text = (value) => String(value ?? "");
+
+  // Metade fixa, metade sorteada: garante espera mínima crescente e desencontra
+  // as duas abas, que sem isso repetem a colisão no mesmo ritmo.
+  function backoffDelay(attempt, random = Math.random) {
+    const step = Math.min(BACKOFF_MAX_MS, BACKOFF_BASE_MS * (2 ** Math.max(0, attempt - 1)));
+    return Math.round(step / 2 + random() * (step / 2));
+  }
 
   // Só a assinatura exata do ciclo gravar-reler-comparar. Qualquer outro aviso
   // do IndexedDB segue direto para o comportamento original.
@@ -82,6 +106,24 @@
     status.error = status.localStorageFull ? LOCAL_STORAGE_FULL_MESSAGE : "";
   }
 
+  // Conta a rajada atual e devolve a tentativa. Uma pausa sem colisão reinicia.
+  function registerCollision(now = Date.now()) {
+    if (now - lastCollisionAt > BURST_RESET_MS) burstCount = 0;
+    lastCollisionAt = now;
+    burstCount += 1;
+    return burstCount;
+  }
+
+  function scheduleRequeue(attempt) {
+    if (typeof globalThis.queueIndexedDBStateCopy !== "function") return false;
+    const delay = backoffDelay(attempt);
+    setTimeout(() => {
+      try { globalThis.queueIndexedDBStateCopy(); }
+      catch { /* a fila some se a aba estiver fechando */ }
+    }, delay);
+    return true;
+  }
+
   async function verifyBeforeDemoting(original, message, error) {
     const status = resolveStatus();
     try {
@@ -90,22 +132,23 @@
       // eslint-disable-next-line no-undef
       const valid = typeof validateIndexedDBState === "function" && validateIndexedDBState(record);
       if (!valid || !status) {
-        consecutiveRecoveries = 0;
+        burstCount = 0;
         original(message, error);
         return false;
       }
       markHealthy(status, record);
-      consecutiveRecoveries += 1;
       if (typeof globalThis.updateStorageDiagnostics === "function") globalThis.updateStorageDiagnostics();
-      if (consecutiveRecoveries <= MAX_CONSECUTIVE_REQUEUES && typeof globalThis.queueIndexedDBStateCopy === "function") {
-        globalThis.queueIndexedDBStateCopy();
-      } else if (consecutiveRecoveries > MAX_CONSECUTIVE_REQUEUES) {
-        console.warn("[Aldus V447] Gravações concorrentes seguidas; aguardando o próximo salvamento comum. Verifique se há outra aba do site aberta.");
+
+      const attempt = registerCollision();
+      if (attempt <= REQUEUE_BURST_LIMIT) {
+        scheduleRequeue(attempt);
+      } else if (attempt === REQUEUE_BURST_LIMIT + 1) {
+        console.warn("[Aldus V447] Gravações simultâneas seguidas; o próximo salvamento comum reconcilia. Esperado com mais de uma aba aberta.");
       }
       return true;
     } catch (verificationError) {
       // Não conseguir reler é falha de verdade: mantém o comportamento antigo.
-      consecutiveRecoveries = 0;
+      burstCount = 0;
       original(message, verificationError || error);
       return false;
     }
@@ -118,7 +161,7 @@
       if (original.__aldusConcurrentWriteV447 === VERSION) return true;
       const wrapped = function(message, error) {
         if (!isConcurrentWriteSignature(message, error)) {
-          consecutiveRecoveries = 0;
+          burstCount = 0;
           return original.call(this, message, error);
         }
         // A verificação é assíncrona; a decisão de rebaixar fica com ela.
@@ -154,11 +197,14 @@
     version: VERSION,
     warningMessage: WARNING_MESSAGE,
     validationError: VALIDATION_ERROR,
-    maxConsecutiveRequeues: MAX_CONSECUTIVE_REQUEUES,
+    requeueBurstLimit: REQUEUE_BURST_LIMIT,
+    burstResetMs: BURST_RESET_MS,
+    backoffMaxMs: BACKOFF_MAX_MS,
+    backoffDelay,
     isConcurrentWriteSignature,
     verifyBeforeDemoting,
     install,
-    resetCounter() { consecutiveRecoveries = 0; }
+    resetCounter() { burstCount = 0; lastCollisionAt = 0; }
   });
 
   globalThis[API_KEY] = api;
