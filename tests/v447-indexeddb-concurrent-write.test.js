@@ -196,6 +196,8 @@ test('V447 mantém paridade raiz/docs e é publicado com cache-bust nas duas cam
   assert.match(loader, /indexeddb-concurrent-write-v447\.js\?v=\d{8}-[a-z0-9-]+/);
   assert.equal(loader, read('docs/performance-emergency-v350.js'));
   const outer = read('security-observability-v318.js');
-  assert.match(outer, /performance-emergency-v350\.js\?v=20260904-indexeddb-concurrent-write-v447-two-tabs-r2/);
+  // A camada externa é compartilhada e sua query muda a cada publicação:
+  // conferir o formato, não a versão, senão todo PR seguinte quebra este teste.
+  assert.match(outer, /performance-emergency-v350\.js\?v=\d{8}-[a-z0-9-]+/);
   assert.equal(outer, read('docs/security-observability-v318.js'));
 });

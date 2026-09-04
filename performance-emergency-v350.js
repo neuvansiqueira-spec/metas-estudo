@@ -109,6 +109,20 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V448 - as 42 aulas restantes do Dedicacao Delta FULL viram metas do dia.
+  function installDeltaFullPlanV448() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusDeltaFullPlanLoaderV448")) return;
+    const script = document.createElement("script");
+    script.id = "aldusDeltaFullPlanLoaderV448";
+    script.src = "delta-full-plan-v448.js?v=20260904-delta-full-plan-v448";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V448] Falha ao carregar o plano do Dedicacao Delta.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   // V435 - reata duas prioridades do simulado cujos ids nao existem mais.
   function installPlanningPriorityRemapV435() {
     if (typeof document === "undefined") return;
@@ -223,6 +237,7 @@
   installFactoryEditalLinkRepairV428();
   installPlanningStabilityV427();
   installIndexedDBConcurrentWriteV447();
+  installDeltaFullPlanV448();
   installDailyNetHoursCardV433();
   installPlanningPriorityRemapV435();
   installQuickQuestionEntryV436();
