@@ -95,6 +95,20 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V447 - gravacao concorrente entre abas nao e falha do IndexedDB.
+  function installIndexedDBConcurrentWriteV447() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusIndexedDBConcurrentWriteLoaderV447")) return;
+    const script = document.createElement("script");
+    script.id = "aldusIndexedDBConcurrentWriteLoaderV447";
+    script.src = "indexeddb-concurrent-write-v447.js?v=20260904-indexeddb-concurrent-write-v447";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V447] Falha ao carregar a protecao contra gravacao concorrente.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   // V435 - reata duas prioridades do simulado cujos ids nao existem mais.
   function installPlanningPriorityRemapV435() {
     if (typeof document === "undefined") return;
@@ -208,6 +222,7 @@
   installDisciplineUnificationRevisionV426();
   installFactoryEditalLinkRepairV428();
   installPlanningStabilityV427();
+  installIndexedDBConcurrentWriteV447();
   installDailyNetHoursCardV433();
   installPlanningPriorityRemapV435();
   installQuickQuestionEntryV436();
