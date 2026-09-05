@@ -123,6 +123,20 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V450 - o cronometro nao para quando o tempo previsto acaba.
+  function installTimerOvertimeV450() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusTimerOvertimeLoaderV450")) return;
+    const script = document.createElement("script");
+    script.id = "aldusTimerOvertimeLoaderV450";
+    script.src = "timer-overtime-v450.js?v=20260905-timer-overtime-v450";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V450] Falha ao carregar a contagem do tempo extra.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   // V435 - reata duas prioridades do simulado cujos ids nao existem mais.
   function installPlanningPriorityRemapV435() {
     if (typeof document === "undefined") return;
@@ -238,6 +252,7 @@
   installPlanningStabilityV427();
   installIndexedDBConcurrentWriteV447();
   installDeltaFullPlanV448();
+  installTimerOvertimeV450();
   installDailyNetHoursCardV433();
   installPlanningPriorityRemapV435();
   installQuickQuestionEntryV436();
