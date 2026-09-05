@@ -10,8 +10,8 @@
   const FACTORY_SCRIPT_ID = "aldusFactoryQueueIntegrityV236";
   const FACTORY_HOTFIX = "factory-queue-integrity-hotfix6";
   const FACTORY_DESTINATION_SCRIPT_ID = "aldusFactoryDestinationIntegrityV237";
-  const FACTORY_DESTINATION_VERSION = "20260902-factory-destination-tree-fingerprint-v430";
-  const FACTORY_DESTINATION_HOTFIX = "factory-destination-tree-fingerprint-v430";
+  const FACTORY_DESTINATION_VERSION = "20260905-factory-destination-queue-cooldown-v449";
+  const FACTORY_DESTINATION_HOTFIX = "factory-destination-queue-cooldown-v449";
   const TIMER_AUDIO_SCRIPT_ID = "aldusTimerAudioRecoveryV236";
   const TIMER_AUDIO_HOTFIX = "timer-audio-recovery-hotfix5";
   const TIMER_AUDIO_UNIFIER_SCRIPT_ID = "aldusTimerAudioUnifierV241";

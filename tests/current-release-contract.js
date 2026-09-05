@@ -94,8 +94,8 @@ function assertCurrentReleaseContract() {
   assert.doesNotMatch(factoryDestinationRuntime, /setTimeout\(\(\) => \{ install\(\); applyCached\(\); \}, 1500\)/);
   assert.doesNotMatch(factoryDestinationRuntime, /setTimeout\(\(\) => refresh\(\), 2300\)/);
   assert.doesNotMatch(factoryDestinationRuntime, /setInterval\(install, 250\)/);
-  assert.match(planningIntegrityLoader, /FACTORY_DESTINATION_VERSION = "20260902-factory-destination-tree-fingerprint-v430"/);
-  assert.match(planningIntegrityLoader, /FACTORY_DESTINATION_HOTFIX = "factory-destination-tree-fingerprint-v430"/);
+  assert.match(planningIntegrityLoader, /FACTORY_DESTINATION_VERSION = "20260905-factory-destination-queue-cooldown-v449"/);
+  assert.match(planningIntegrityLoader, /FACTORY_DESTINATION_HOTFIX = "factory-destination-queue-cooldown-v449"/);
   assert.match(worker, /factory-destination-runtime-v354-navigation-bootstrap-v353-bootstrap-fast-path-v351/);
   assert.doesNotMatch(worker.match(/const STATIC_ASSETS = \[[\s\S]*?\n\];/)?.[0] || "", /FACTORY_DESTINATION_INTEGRITY/);
 
