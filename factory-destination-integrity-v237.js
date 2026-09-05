@@ -8,6 +8,7 @@
   const CACHE_KEYS = ["aldusFactoryDestinationTreeV237", "aldusFactoryDestinationTreeV232", "aldusFactoryDestinationTreeV230"];
   const MANAGED = "factoryDestinationFolderCatalogVersion";
   const TREE_FINGERPRINT = "factoryDestinationFolderTreeFingerprint";
+  const UNMATCHED = "factoryDestinationFolderUnmatchedStamp";
   if (globalThis[FLAG]) return;
 
   const RULES = Object.freeze([
@@ -34,13 +35,27 @@
   const BLOCK = /\b(AUDIO|AUDIOS|LEGADO|CLASSIFICAR|PENDENTE|PENDENTES|MATERIAL COMPLEMENTAR|MATERIAIS COMPLEMENTARES|FONTES|PASTA MAE|SELECIONADO|VIAGEM)\b/;
   let applying = false;
 
-  const canon = (v = "") => String(v ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[º°ª]/g, "").replace(/[^A-Z0-9]+/g, " ").replace(/\s+/g, " ").trim();
-  const strip = (v = "") => canon(v).replace(/^(?:ITEM\s+)?\d+(?:\s+\d+){0,5}(?=\s+[A-Z])\s+/, "").trim();
+  const canonRaw = (v = "") => String(v ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[º°ª]/g, "").replace(/[^A-Z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+  const stripRaw = (v = "") => canon(v).replace(/^(?:ITEM\s+)?\d+(?:\s+\d+){0,5}(?=\s+[A-Z])\s+/, "").trim();
   const code = (v = "") => { const m = String(v ?? "").trim().match(/^(?:ITEM\s*)?(\d+(?:[._-]\d+){0,5})(?=\D|$)/i); return m ? m[1].split(/[._-]+/).map(x => String(Number(x))).join(".") : ""; };
   const bare = (v = "") => /^(?:SUBTEMA(?:S)?(?: DO EDITAL)? )?\d+(?: \d+){0,5}$/.test(canon(v));
-  const tokenSet = (v = "") => new Set(strip(v).split(" ").filter(x => x.length > 1 && !STOP.has(x) && !/^\d+$/.test(x)));
+  const tokenSetRaw = (v = "") => new Set(strip(v).split(" ").filter(x => x.length > 1 && !STOP.has(x) && !/^\d+$/.test(x)));
   const jac = (a, b) => { const x = tokenSet(a), y = tokenSet(b); if (!x.size || !y.size) return 0; let i = 0; x.forEach(t => { if (y.has(t)) i++; }); return i / (x.size + y.size - i); };
-  const sig = (v = "") => { const n = strip(v).split(" ").filter(x => /^\d+$/.test(x)); const years = new Set(n.filter(x => /^(?:18|19|20)\d{2}$/.test(x))); const laws = new Set(n.filter(x => x.length >= 3 && !years.has(x)).map(x => String(Number(x)))); return { years, laws }; };
+  const sigRaw = (v = "") => { const n = strip(v).split(" ").filter(x => /^\d+$/.test(x)); const years = new Set(n.filter(x => /^(?:18|19|20)\d{2}$/.test(x))); const laws = new Set(n.filter(x => x.length >= 3 && !years.has(x)).map(x => String(Number(x)))); return { years, laws }; };
+  // V449 — memoria de uma passada so.
+  //
+  // canon/strip/tokenSet/sig sao puras: mesma string, mesmo resultado. Sem
+  // memoria, elas eram refeitas para cada NO da arvore vezes cada EVIDENCIA
+  // de cada meta — o mesmo nome de pasta normalizado milhares de vezes.
+  // Memorizar nao muda nenhuma classificacao, so para de repetir a conta.
+  // As tabelas sao esvaziadas ao fim de cada passada, para nao acumular.
+  const memoCanon = new Map(), memoStrip = new Map(), memoTokens = new Map(), memoSig = new Map();
+  const memo = (tabela, chave, calcular) => { let valor = tabela.get(chave); if (valor === undefined) { valor = calcular(chave); tabela.set(chave, valor); } return valor; };
+  const canon = (v = "") => memo(memoCanon, String(v ?? ""), canonRaw);
+  const strip = (v = "") => memo(memoStrip, String(v ?? ""), stripRaw);
+  const tokenSet = (v = "") => memo(memoTokens, String(v ?? ""), tokenSetRaw);
+  const sig = (v = "") => memo(memoSig, String(v ?? ""), sigRaw);
+  const clearMemo = () => { memoCanon.clear(); memoStrip.clear(); memoTokens.clear(); memoSig.clear(); };
   const overlap = (a, b) => ({ years: [...a.years].filter(x => b.years.has(x)), laws: [...a.laws].filter(x => b.laws.has(x)) });
   const itemOf = e => e?.item && typeof e.item === "object" ? e.item : e;
   const url = id => `https://drive.google.com/drive/folders/${id}`;
@@ -108,16 +123,39 @@
 
   const existing = i => String(i.factoryDestinationFolder || i.pastaDestinoWordPdf || i.destinationFolder || i.finalFilesFolder || i.destinationFolderUrl || i.pastaDestino || i.folderUrl || "").trim();
   const managed = i => Boolean(i[MANAGED] || i.factoryDestinationFolderCatalogKey || i.factoryDestinationFolderMatchType || i.factoryDestinationFolderMatchId);
-  function clear(i) { ["factoryDestinationFolder", "factoryDestinationFolderCatalogVersion", "factoryDestinationFolderCatalogKey", "factoryDestinationFolderMatchType", "factoryDestinationFolderMatchTitle", "factoryDestinationFolderMatchScore", "factoryDestinationFolderMatchedAt", "factoryDestinationFolderMatchPath", "factoryDestinationFolderMatchId", "factoryDestinationFolderMatchEvidence", TREE_FINGERPRINT].forEach(k => delete i[k]); }
+  function clear(i) { ["factoryDestinationFolder", "factoryDestinationFolderCatalogVersion", "factoryDestinationFolderCatalogKey", "factoryDestinationFolderMatchType", "factoryDestinationFolderMatchTitle", "factoryDestinationFolderMatchScore", "factoryDestinationFolderMatchedAt", "factoryDestinationFolderMatchPath", "factoryDestinationFolderMatchId", "factoryDestinationFolderMatchEvidence", TREE_FINGERPRINT, UNMATCHED].forEach(k => delete i[k]); }
+  // V449 — memoria do "sem par".
+  //
+  // Medido em 05/09/2026: numa base de 868 itens, os que ja casaram saem de
+  // graca (o carimbo MANAGED + fingerprint corta na entrada), mas os que NAO
+  // casam nao deixam rastro nenhum — e por isso sao reclassificados por
+  // inteiro em toda passada, varrendo a arvore de pastas item a item. Era dai
+  // que vinham os nove segundos de tela travada na Fabrica.
+  //
+  // O carimbo abaixo guarda tambem o resultado negativo. Ele so vale enquanto
+  // a arvore for a mesma (fingerprint) E o texto que alimenta a classificacao
+  // for o mesmo (assinatura): mudou a pasta no Drive ou mudou disciplina/tema
+  // da meta, o carimbo cai sozinho e a classificacao roda de novo.
+  function inputSignature(entry) {
+    return `${disciplines(entry).map(canon).join("|")}#${evidence(entry).map(e => `${canon(e.text)}:${e.weight}`).join("|")}`;
+  }
   function applyEntry(entry, tree, fingerprint) {
     if (!entry || typeof entry !== "object") return { changed: false, status: "invalid" };
     if (disciplines(entry).some(x => canon(x) === "SIMULADOS")) return { changed: false, status: "excluded-simulados" };
     const i = itemOf(entry), currentFingerprint = fingerprint ?? treeFingerprint(tree);
     if (i[MANAGED] === VERSION && i[TREE_FINGERPRINT] === currentFingerprint && String(i.factoryDestinationFolder || "").trim()) return { changed: false, status: "topic" };
+    const stampBase = managed(i) ? "" : `${currentFingerprint}#${inputSignature(entry)}#`;
+    if (stampBase && typeof i[UNMATCHED] === "string" && i[UNMATCHED].startsWith(stampBase)) return { changed: false, status: i[UNMATCHED].slice(stampBase.length) };
     const old = existing(i), d = discipline(entry, tree), t = d && topic(entry, tree, d);
-    if (!t?.node?.id) { if (managed(i)) { clear(i); return { changed: true, status: "unsafe-managed-cleared", previousUrl: old }; } return { changed: false, status: d ? "topic-unmatched" : "discipline-unmatched" }; }
+    if (!t?.node?.id) {
+      if (managed(i)) { clear(i); return { changed: true, status: "unsafe-managed-cleared", previousUrl: old }; }
+      const status = d ? "topic-unmatched" : "discipline-unmatched";
+      i[UNMATCHED] = `${stampBase}${status}`;
+      return { changed: false, status };
+    }
     const next = url(t.node.id), path = t.node.pathNames.join(" → ");
     if (old === next && i[MANAGED] === VERSION && i.factoryDestinationFolderMatchPath === path && i[TREE_FINGERPRINT] === currentFingerprint) return { changed: false, status: "topic", url: next, path };
+    delete i[UNMATCHED];
     if (old && old !== next) { i.factoryDestinationFolderPreviousUrl = old; i.factoryDestinationFolderReplacedAt = new Date().toISOString(); i.factoryDestinationFolderReplacementReason = "classificacao-disciplina-tema-exata-v237"; }
     Object.assign(i, { factoryDestinationFolder: next, [MANAGED]: VERSION, [TREE_FINGERPRINT]: currentFingerprint, factoryDestinationFolderCatalogKey: d.node.id, factoryDestinationFolderMatchType: `exact-v237-${t.reason}`, factoryDestinationFolderMatchTitle: t.node.name, factoryDestinationFolderMatchScore: Math.round(t.score), factoryDestinationFolderMatchPath: path, factoryDestinationFolderMatchId: t.node.id, factoryDestinationFolderMatchedAt: new Date().toISOString(), factoryDestinationFolderMatchEvidence: t.evidence });
     return { changed: true, status: "topic", previousUrl: old, url: next, path, reason: t.reason, evidence: t.evidence };
@@ -138,20 +176,55 @@
       if (report.changed && options.save !== false) try { if (typeof saveData === "function") saveData({ markLocalChange: true }); } catch {}
       if (report.changed && options.render !== false) try { if (typeof renderFactory === "function" && location.hash === "#fabrica-resumos") renderFactory(); } catch {}
       return { applied: true, ...report };
-    } finally { applying = false; }
+    } finally { applying = false; clearMemo(); }
   }
   const applyCached = options => { const t = cached(); return t ? applyTree(t, options) : { applied: false, reason: "cache-empty", changed: 0 }; };
   async function refresh(options = {}) { try { if (typeof __refreshFactoryDestinationFoldersV232 === "function") await __refreshFactoryDestinationFoldersV232({ force: true }); } catch {} return applyCached(options); }
   const isFactoryRoute = () => typeof location !== "undefined" && location.hash === "#fabrica-resumos";
   let automaticApplyQueued = false;
 
-  function queueFactoryApply() {
+  // V449 — corte do laco de reaplicacao.
+  //
+  // Medido no navegador do usuario em 05/09/2026, na area da Fabrica:
+  //   [Violation] requestIdleCallback took 9527ms  (esta linha)
+  //   ... 9662ms, 9441ms, 9285ms, 9408ms
+  // Cinco passadas de mais de nove segundos, quase 50 s de bloqueio, com
+  // 868 itens na agenda e 686 marcados como alterados a cada volta.
+  //
+  // O ciclo: syncFactoryWithActiveEdital (envolvido por wrap) chama
+  // queueFactoryApply; applyTree percorre os 868 itens e chama saveData ao
+  // final; o salvamento dispara a sincronizacao da Fabrica de novo, que
+  // volta a enfileirar. `applying` protegia applyTree, mas nao a fila: a
+  // passada seguinte era enfileirada DURANTE a passada em curso, porque
+  // automaticApplyQueued ja voltava a false no inicio do run.
+  //
+  // Duas travas, ambas na fila e nao no trabalho:
+  //   1. nao enfileirar enquanto uma aplicacao esta em curso;
+  //   2. intervalo minimo entre aplicacoes, bem maior quando a passada
+  //      anterior nao mudou nada — ai nao ha o que reconciliar, e insistir
+  //      so queima nove segundos.
+  const COOLDOWN_APOS_MUDANCA_MS = 15000;
+  const COOLDOWN_SEM_MUDANCA_MS = 600000;
+  let ultimaAplicacaoEm = 0;
+  let intervaloMinimoMs = 0;
+
+  function queueFactoryApply(options = {}) {
     if (!isFactoryRoute() || automaticApplyQueued) return false;
+    if (applying && options.force !== true) return false;
+    if (options.force !== true && ultimaAplicacaoEm && Date.now() - ultimaAplicacaoEm < intervaloMinimoMs) return false;
     automaticApplyQueued = true;
     const run = () => {
       automaticApplyQueued = false;
       if (!isFactoryRoute()) return;
-      try { applyCached(); } catch (error) { console.warn(`[${RUNTIME_VERSION}] Falha ao aplicar Pasta destino sob demanda.`, error); }
+      try {
+        const resultado = applyCached();
+        ultimaAplicacaoEm = Date.now();
+        intervaloMinimoMs = resultado && resultado.changed ? COOLDOWN_APOS_MUDANCA_MS : COOLDOWN_SEM_MUDANCA_MS;
+      } catch (error) {
+        ultimaAplicacaoEm = Date.now();
+        intervaloMinimoMs = COOLDOWN_APOS_MUDANCA_MS;
+        console.warn(`[${RUNTIME_VERSION}] Falha ao aplicar Pasta destino sob demanda.`, error);
+      }
     };
     if (typeof requestIdleCallback === "function") requestIdleCallback(run, { timeout: 750 });
     else setTimeout(run, 0);
@@ -173,7 +246,7 @@
   function install() { wrap("syncFactoryWithActiveEdital"); wrap("checkCloudForUpdatesAfterAuth"); }
   function showVersion() { if (typeof document === "undefined") return; document.documentElement.dataset.aldusReleaseVersion = VERSION; document.querySelectorAll(".app-version").forEach(e => { e.textContent = `Versão: ${VERSION}`; }); }
 
-  const api = Object.freeze({ version: VERSION, runtimeVersion: RUNTIME_VERSION, rootId: ROOT, resolveDiscipline: discipline, resolveTopic: topic, applyEntry, applyTree, applyCached, refresh, queueFactoryApply, audit: () => globalThis.__factoryDestinationFoldersV237Report || null });
+  const api = Object.freeze({ version: VERSION, runtimeVersion: RUNTIME_VERSION, rootId: ROOT, resolveDiscipline: discipline, resolveTopic: topic, applyEntry, applyTree, applyCached, refresh, queueFactoryApply, queueState: () => ({ applying, queued: automaticApplyQueued, lastAt: ultimaAplicacaoEm, cooldownMs: intervaloMinimoMs }), audit: () => globalThis.__factoryDestinationFoldersV237Report || null });
   Object.defineProperty(globalThis, FLAG, { value: api });
   Object.defineProperties(globalThis, { __resolveFactoryDestinationDisciplineV237: { value: discipline, configurable: true }, __resolveFactoryDestinationTopicV237: { value: topic, configurable: true }, __applyFactoryDestinationToEntryV237: { value: applyEntry, configurable: true }, __applyFactoryDestinationTreeV237: { value: applyTree, configurable: true }, __refreshFactoryDestinationFoldersV237: { value: refresh, configurable: true } });
   if (typeof document === "undefined") return;

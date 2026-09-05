@@ -73,8 +73,16 @@ test("V354 remove as três reconciliações automáticas da V237", () => {
 });
 
 test("V354 renova a entrega do asset e o cache do Service Worker", () => {
-  assert.match(loader, /FACTORY_DESTINATION_VERSION = "20260902-factory-destination-tree-fingerprint-v430"/);
-  assert.match(loader, /FACTORY_DESTINATION_HOTFIX = "factory-destination-tree-fingerprint-v430"/);
+  // A garantia e a renovacao, nao um numero fixo: fixar a versao literal
+  // quebraria este teste em toda entrega seguinte, sem nada de errado no site.
+  const versao = loader.match(/FACTORY_DESTINATION_VERSION = "([^"]+)"/)?.[1] || "";
+  const hotfix = loader.match(/FACTORY_DESTINATION_HOTFIX = "([^"]+)"/)?.[1] || "";
+  assert.match(versao, /^\d{8}-[a-z0-9-]+-v(\d+)$/, "a versao do carregador precisa ser datada");
+  assert.match(hotfix, /^[a-z0-9-]+-v(\d+)$/, "o hotfix precisa acompanhar a versao");
+  assert.equal(versao.match(/-v(\d+)$/)[1], hotfix.match(/-v(\d+)$/)[1],
+    "versao e hotfix precisam apontar para a mesma entrega");
+  assert.ok(Number(versao.match(/-v(\d+)$/)[1]) >= 430,
+    "a query nao pode regredir para antes da V430");
   assert.doesNotMatch(worker.match(/const STATIC_ASSETS = \[[\s\S]*?\n\];/)?.[0] || "", /FACTORY_DESTINATION_INTEGRITY/);
   assert.match(worker, /factory-destination-runtime-v354-navigation-bootstrap-v353-bootstrap-fast-path-v351/);
 });
