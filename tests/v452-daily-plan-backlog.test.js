@@ -43,7 +43,8 @@ function harness({ metas = [], comSecao = true, comCampoData = true } = {}) {
     document: { getElementById: (id) => nos.get(id) || null, createElement: criar },
     Event: class { constructor(t) { this.type = t; } },
     setInterval: () => 0,
-    clearInterval() {}
+    clearInterval() {},
+    setTimeout: () => 0
   };
   context.globalThis = context;
   context.window = context;
@@ -114,6 +115,37 @@ test('V452 aguenta estado vazio e ausência do campo de data', () => {
   assert.deepEqual(vazio.api.emAberto(), []);
   const semCampo = harness({ metas: [meta('a', '2026-09-10')], comCampoData: false });
   assert.equal(semCampo.api.irParaODia('2026-09-10'), false);
+});
+
+test('V453 filtra por disciplina, assunto ou data', () => {
+  const { api } = harness({ metas: [
+    meta('a', '2026-09-10', { discipline: 'DIREITO PENAL', subject: 'Homicídio' }),
+    meta('b', '2026-09-09', { discipline: 'DIREITO CONSTITUCIONAL', subject: 'Intervenção federal' })
+  ] });
+  const todas = api.emAberto();
+  assert.deepEqual(api.filtrar(todas, 'penal', false).map((m) => m.id), ['a']);
+  assert.deepEqual(api.filtrar(todas, 'intervenção', false).map((m) => m.id), ['b']);
+  assert.deepEqual(api.filtrar(todas, '09/09', false).map((m) => m.id), ['b'], 'a data digitada como no Brasil também filtra');
+  assert.equal(api.filtrar(todas, '', false).length, 2);
+});
+
+test('V453 filtra só as que já comecei', () => {
+  const { api } = harness({ metas: [
+    meta('comecada', '2026-09-10', { actualMinutes: 45 }),
+    meta('intocada', '2026-09-09')
+  ] });
+  const todas = api.emAberto();
+  assert.deepEqual(api.filtrar(todas, '', true).map((m) => m.id), ['comecada']);
+  assert.equal(api.filtrar(todas, '', false).length, 2, 'sem a marca, as duas aparecem');
+});
+
+test('V453 combina texto e marca', () => {
+  const { api } = harness({ metas: [
+    meta('a', '2026-09-10', { discipline: 'DIREITO PENAL', actualMinutes: 30 }),
+    meta('b', '2026-09-09', { discipline: 'DIREITO PENAL' }),
+    meta('c', '2026-09-08', { discipline: 'MEDICINA LEGAL', actualMinutes: 20 })
+  ] });
+  assert.deepEqual(api.filtrar(api.emAberto(), 'penal', true).map((m) => m.id), ['a']);
 });
 
 test('V452 mantém paridade raiz/docs', () => {
