@@ -137,6 +137,20 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V451 - registrar questoes do cartao sem sair do Plano do Dia.
+  function installDailyPlanQuestionImportV451() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusDailyPlanQuestionImportLoaderV451")) return;
+    const script = document.createElement("script");
+    script.id = "aldusDailyPlanQuestionImportLoaderV451";
+    script.src = "daily-plan-question-import-v451.js?v=20260906-daily-plan-question-import-v451";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V451] Falha ao carregar o registro de questoes do Plano do Dia.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   // V435 - reata duas prioridades do simulado cujos ids nao existem mais.
   function installPlanningPriorityRemapV435() {
     if (typeof document === "undefined") return;
@@ -253,6 +267,7 @@
   installIndexedDBConcurrentWriteV447();
   installDeltaFullPlanV448();
   installTimerOvertimeV450();
+  installDailyPlanQuestionImportV451();
   installDailyNetHoursCardV433();
   installPlanningPriorityRemapV435();
   installQuickQuestionEntryV436();

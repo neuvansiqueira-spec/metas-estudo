@@ -140,7 +140,7 @@
     if (document.getElementById("aldusEmergencyPerformanceV350")) return;
     const script = document.createElement("script");
     script.id = "aldusEmergencyPerformanceV350";
-    script.src = "performance-emergency-v350.js?v=20260905-timer-overtime-v450";
+    script.src = "performance-emergency-v350.js?v=20260906-daily-plan-question-import-v451";
     script.async = false;
     (document.head || document.documentElement).appendChild(script);
   }
