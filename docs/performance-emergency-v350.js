@@ -165,6 +165,34 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // TimerStudyRealDateV454 - a data real da sessao do cronometro.
+  function installTimerStudyRealDateV454() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusTimerStudyRealDateV454Loader")) return;
+    const script = document.createElement("script");
+    script.id = "aldusTimerStudyRealDateV454Loader";
+    script.src = "timer-study-real-date-v454.js?v=20260906-plano-do-dia-legivel-v455";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus] Falha ao carregar a data real da sessao do cronometro.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
+  // DailyPlanLegibilityV455 - a legibilidade do Plano do Dia.
+  function installDailyPlanLegibilityV455() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusDailyPlanLegibilityV455Loader")) return;
+    const script = document.createElement("script");
+    script.id = "aldusDailyPlanLegibilityV455Loader";
+    script.src = "daily-plan-legibility-v455.js?v=20260906-plano-do-dia-legivel-v455";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus] Falha ao carregar a legibilidade do Plano do Dia.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   // V435 - reata duas prioridades do simulado cujos ids nao existem mais.
   function installPlanningPriorityRemapV435() {
     if (typeof document === "undefined") return;
@@ -283,6 +311,8 @@
   installTimerOvertimeV450();
   installDailyPlanQuestionImportV451();
   installDailyPlanBacklogV452();
+  installTimerStudyRealDateV454();
+  installDailyPlanLegibilityV455();
   installDailyNetHoursCardV433();
   installPlanningPriorityRemapV435();
   installQuickQuestionEntryV436();
