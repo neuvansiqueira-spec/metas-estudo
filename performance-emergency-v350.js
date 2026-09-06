@@ -151,6 +151,20 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V452 - metas em aberto de dias anteriores, no Plano do Dia.
+  function installDailyPlanBacklogV452() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusDailyPlanBacklogLoaderV452")) return;
+    const script = document.createElement("script");
+    script.id = "aldusDailyPlanBacklogLoaderV452";
+    script.src = "daily-plan-backlog-v452.js?v=20260906-daily-plan-backlog-v452";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V452] Falha ao carregar as metas em aberto.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   // V435 - reata duas prioridades do simulado cujos ids nao existem mais.
   function installPlanningPriorityRemapV435() {
     if (typeof document === "undefined") return;
@@ -268,6 +282,7 @@
   installDeltaFullPlanV448();
   installTimerOvertimeV450();
   installDailyPlanQuestionImportV451();
+  installDailyPlanBacklogV452();
   installDailyNetHoursCardV433();
   installPlanningPriorityRemapV435();
   installQuickQuestionEntryV436();
