@@ -157,7 +157,7 @@
     if (document.getElementById("aldusDailyPlanBacklogLoaderV452")) return;
     const script = document.createElement("script");
     script.id = "aldusDailyPlanBacklogLoaderV452";
-    script.src = "daily-plan-backlog-v452.js?v=20260906-daily-plan-backlog-v452";
+    script.src = "daily-plan-backlog-v452.js?v=20260906-daily-plan-backlog-filtro-v453";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V452] Falha ao carregar as metas em aberto.");

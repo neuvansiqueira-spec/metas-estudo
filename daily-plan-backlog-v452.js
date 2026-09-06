@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260906-daily-plan-backlog-v452";
+  const VERSION = "20260906-daily-plan-backlog-v452-filtro-v453";
   const FLAG = "__ALDUS_DAILY_PLAN_BACKLOG_V452__";
   const PAINEL_ID = "aldusDailyPlanBacklogV452";
   const SECAO = "view-metas-do-dia";
@@ -108,15 +108,28 @@
       + (sobra > 0 ? `<p class="file-info">e mais ${sobra} meta(s) em aberto.</p>` : "");
   }
 
+  function filtrar(lista, termo, soComecadas) {
+    const alvo = String(termo || "").trim().toLowerCase();
+    return lista.filter((m) => {
+      if (soComecadas && m.minutos <= 0) return false;
+      if (!alvo) return true;
+      return `${m.disciplina} ${m.assunto} ${dataBR(m.data)}`.toLowerCase().includes(alvo);
+    });
+  }
+
   function desenhar(bloco) {
-    const lista = emAberto();
+    const todas = emAberto();
+    const campo = bloco.querySelector('[data-v452="filtro"]');
+    const marca = bloco.querySelector('[data-v452="so-comecadas"]');
+    const lista = filtrar(todas, campo?.value, Boolean(marca?.checked));
     const alvo = bloco.querySelector('[data-v452="lista"]');
     if (alvo) alvo.innerHTML = linhas(lista);
     const resumo = bloco.querySelector('[data-v452="resumo"]');
     if (resumo) {
-      const comTempo = lista.filter((m) => m.minutos > 0).length;
-      resumo.textContent = lista.length
-        ? `${lista.length} em aberto — ${comTempo} já começada(s).`
+      const comTempo = todas.filter((m) => m.minutos > 0).length;
+      const filtradas = lista.length !== todas.length ? ` · ${lista.length} na lista` : "";
+      resumo.textContent = todas.length
+        ? `${todas.length} em aberto — ${comTempo} já começada(s)${filtradas}.`
         : "Nada em aberto.";
     }
     return lista;
@@ -135,11 +148,23 @@
     bloco.innerHTML = `
       <summary>Metas em aberto de dias anteriores <span data-v452="resumo" class="item-meta"></span></summary>
       <p class="file-info">Metas pendentes de datas passadas, começadas ou não. As com tempo lançado vêm primeiro. Nada é movido: o botão só leva você ao dia da meta.</p>
+      <div class="form-grid compact">
+        <label class="wide">Filtrar por disciplina, assunto ou data
+          <input type="search" data-v452="filtro" placeholder="ex.: penal, intervenção, 10/09" />
+        </label>
+        <label><input type="checkbox" data-v452="so-comecadas" /> Só as que já comecei</label>
+      </div>
       <div data-v452="lista"></div>
     `;
     secao.appendChild(bloco);
 
     bloco.addEventListener("toggle", () => { if (bloco.open) desenhar(bloco); });
+    bloco.addEventListener("input", (evento) => {
+      if (evento.target?.dataset?.v452 === "filtro") desenhar(bloco);
+    });
+    bloco.addEventListener("change", (evento) => {
+      if (evento.target?.dataset?.v452 === "so-comecadas") desenhar(bloco);
+    });
     bloco.addEventListener("click", (evento) => {
       const data = evento.target?.closest?.("button[data-v452-ir]")?.dataset?.v452Ir;
       if (data) irParaODia(data);
@@ -157,14 +182,28 @@
     return true;
   }
 
-  const api = Object.freeze({ version: VERSION, install, emAberto, irParaODia, painelId: PAINEL_ID, limite: LIMITE });
+  // O painel e montado na carga, quando state.dailyGoals pode ainda estar
+  // sendo hidratado — foi por isso que a lista apareceu com seis metas e logo
+  // se corrigiu. Estes redesenhos cobrem a janela sem custar nada depois.
+  function redesenhosDeCarga() {
+    const bloco = document.getElementById(PAINEL_ID);
+    if (!bloco) return;
+    if (typeof setTimeout !== "function") return;
+    [1000, 3000, 8000].forEach((espera) => {
+      setTimeout(() => { try { desenhar(bloco); } catch {} }, espera);
+    });
+  }
+
+  const api = Object.freeze({ version: VERSION, install, emAberto, filtrar, irParaODia, painelId: PAINEL_ID, limite: LIMITE });
   globalThis[FLAG] = api;
 
   if (typeof document !== "undefined") {
-    if (!install()) {
+    if (install()) redesenhosDeCarga();
+    else {
       let tentativas = 0;
       const timer = setInterval(() => {
-        if (install() || (tentativas += 1) >= 100) clearInterval(timer);
+        if (install()) { clearInterval(timer); redesenhosDeCarga(); }
+        else if ((tentativas += 1) >= 100) clearInterval(timer);
       }, 200);
     }
   }
