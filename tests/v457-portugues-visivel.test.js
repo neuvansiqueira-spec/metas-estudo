@@ -14,6 +14,7 @@ const MEUS = [
   'daily-plan-pending-panel-v429.js',
   'timer-study-real-date-v454.js',
   'daily-plan-legibility-v455.js',
+  'daily-plan-preview-v462.js',
   'indexeddb-concurrent-write-v447.js',
   'delta-full-plan-v448.js'
 ];

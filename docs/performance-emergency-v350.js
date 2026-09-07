@@ -73,7 +73,7 @@
     if (document.getElementById("aldusDailyPlanPendingPanelV429")) return;
     const script = document.createElement("script");
     script.id = "aldusDailyPlanPendingPanelV429";
-    script.src = "daily-plan-pending-panel-v429.js?v=20260906-plano-dia-painel-unico-v461";
+    script.src = "daily-plan-pending-panel-v429.js?v=20260907-plano-dia-previa-fiel-v462";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V429] Falha ao carregar o painel de pendentes.");
@@ -171,11 +171,22 @@
     if (document.getElementById("aldusDailyPlanLegibilityV455Loader")) return;
     const script = document.createElement("script");
     script.id = "aldusDailyPlanLegibilityV455Loader";
-    script.src = "daily-plan-legibility-v455.js?v=20260906-plano-dia-painel-unico-v461";
+    script.src = "daily-plan-legibility-v455.js?v=20260907-plano-dia-previa-fiel-v462";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus] Falha ao carregar a legibilidade do Plano do Dia.");
     }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
+  // V462 — composição da prévia; reaproveita resumo, metas, V436 e V429.
+  function installDailyPlanPreviewV462() {
+    if (typeof document === "undefined" || document.getElementById("aldusDailyPlanPreviewV462Loader")) return;
+    const script = document.createElement("script");
+    script.id = "aldusDailyPlanPreviewV462Loader";
+    script.src = "daily-plan-preview-v462.js?v=20260907-plano-dia-previa-fiel-v462";
+    script.async = false;
+    script.addEventListener("error", () => console.error("[Aldus] Falha ao carregar o visual do Plano do Dia."), {once:true});
     (document.head || document.documentElement).appendChild(script);
   }
 
@@ -312,6 +323,7 @@
   installDailyPlanQuestionImportV451();
   installTimerStudyRealDateV454();
   installDailyPlanLegibilityV455();
+  installDailyPlanPreviewV462();
   installTimerPictureInPictureV458();
   installDailyNetHoursCardV433();
   installPlanningPriorityRemapV435();
