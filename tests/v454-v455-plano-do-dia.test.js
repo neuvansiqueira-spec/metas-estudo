@@ -100,16 +100,39 @@ test('V455 fica calado quando o dia é hoje', () => {
   assert.equal(nos.get('aldusDailyPlanOtherDayV455').hidden, true);
 });
 
-test('V455 dá cor e rótulo próprios a cada bloco', () => {
+test('V456 dá acento próprio a cada bloco, na paleta do site', () => {
+  const folha = read('aldus-daily-plan-palette-v456.css');
   const { api } = harnessVisual();
-  const folha = api.css();
-  for (const [chave, cor, rotulo] of api.cores) {
+  for (const [chave, cor] of api.cores) {
     assert.match(folha, new RegExp(`data-daily-plan-section="${chave}"`), `falta o bloco ${chave}`);
-    assert.ok(folha.includes(cor), `falta a cor de ${chave}`);
-    assert.ok(folha.includes(`content: "${rotulo}"`), `falta o rótulo de ${chave}`);
+    assert.ok(folha.includes(cor), `o bloco ${chave} precisa usar ${cor}, e não um tom inventado`);
   }
-  const cores = api.cores.map(([, cor]) => cor);
-  assert.equal(new Set(cores).size, cores.length, 'duas cores iguais anulam o propósito');
+});
+
+test('V456 usa a paleta de cartões que já existe, sem inventar cor', () => {
+  const folha = read('aldus-daily-plan-palette-v456.css');
+  const paleta = read('aldus-card-palette-v294.css');
+  for (const token of ['--aldus-card-purple', '--aldus-card-gold', '--aldus-card-blue', '--aldus-card-teal']) {
+    assert.ok(paleta.includes(token), `${token} precisa existir na V294`);
+    assert.ok(folha.includes(`var(${token})`), `a V456 precisa consumir ${token}`);
+  }
+  // A receita visual é a mesma da V294: halo radial, gradiente e faixa interna.
+  assert.match(folha, /radial-gradient\(circle at 9% 16%/);
+  assert.match(folha, /linear-gradient\(145deg/);
+  assert.match(folha, /inset 5px 0 0 var\(--aldus-card-accent\)/);
+});
+
+test('V456 não inventa cor fora da paleta', () => {
+  const folha = read('aldus-daily-plan-palette-v456.css');
+  const hex = [...folha.matchAll(/#[0-9a-f]{3,8}/gi)].map((m) => m[0].toLowerCase());
+  const permitidos = new Set(['#f2c957', '#0d2b45', '#061a2d', '#b8cadd']);
+  const fora = hex.filter((c) => !permitidos.has(c));
+  assert.deepEqual(fora, [], `cores fora da paleta: ${fora.join(', ')}`);
+});
+
+test('V455 carrega a folha da paleta', () => {
+  const { api } = harnessVisual();
+  assert.match(api.folha, /aldus-daily-plan-palette-v456\.css\?v=/);
 });
 
 test('V455 só pinta: não mexe em comportamento', () => {
@@ -118,7 +141,8 @@ test('V455 só pinta: não mexe em comportamento', () => {
     'este módulo não pode tocar em dado nem em render do site');
 });
 
-test('V454 e V455 mantêm paridade raiz/docs', () => {
+test('V454, V455 e V456 mantêm paridade raiz/docs', () => {
   assert.equal(read('timer-study-real-date-v454.js'), read('docs/timer-study-real-date-v454.js'));
   assert.equal(read('daily-plan-legibility-v455.js'), read('docs/daily-plan-legibility-v455.js'));
+  assert.equal(read('aldus-daily-plan-palette-v456.css'), read('docs/aldus-daily-plan-palette-v456.css'));
 });
