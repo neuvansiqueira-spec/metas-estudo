@@ -15,6 +15,18 @@ function normalizeName(raw) {
   return name;
 }
 
+// Quantos testes o arquivo declara ao todo, passando ou falhando. É o que
+// distingue a falha que foi CONSERTADA da que sumiu porque alguém apagou o
+// teste — as duas somem do conjunto, mas só a segunda encolhe a suíte.
+function totalTests(file) {
+  const source = fs.readFileSync(file, "utf8");
+  let total = 0;
+  for (const line of source.split(/\r?\n/)) {
+    if (/^\s*(not )?ok\s+\d+\s+-\s+/.test(line)) total += 1;
+  }
+  return total;
+}
+
 function failureNames(file) {
   const source = fs.readFileSync(file, "utf8");
   const names = new Set();
@@ -37,16 +49,32 @@ const removed = baseline.filter((name) => !headSet.has(name));
 console.log(`Baseline: ${baseline.length} falhas nominais.`);
 console.log(`Branch: ${head.length} falhas nominais.`);
 
-if (added.length || removed.length) {
-  if (added.length) {
-    console.error("Falhas novas:");
-    for (const name of added) console.error(`+ ${name}`);
-  }
-  if (removed.length) {
-    console.error("Falhas que desapareceram (conjunto deixou de ser idêntico):");
-    for (const name of removed) console.error(`- ${name}`);
-  }
+const baselineTotal = totalTests(baselinePath);
+const headTotal = totalTests(headPath);
+
+// Falha nova continua reprovando: é para isso que este gate existe.
+if (added.length) {
+  console.error("Falhas novas:");
+  for (const name of added) console.error(`+ ${name}`);
   process.exit(1);
 }
 
-console.log("V426: conjunto nominal de falhas idêntico à baseline.");
+// Falha que desaparece pode ser duas coisas muito diferentes: um conserto de
+// verdade, ou alguém apagando o teste para esconder o vermelho. Reprovar as
+// duas, como antes, tornava impossível consertar um teste quebrado sem também
+// mexer neste arquivo — foi o que aconteceu em 07/09/2026, quando um teste que
+// fixava a data em que fora escrito passou a falhar na virada do dia.
+if (removed.length) {
+  console.log("Falhas que desapareceram:");
+  for (const name of removed) console.log(`- ${name}`);
+  if (headTotal < baselineTotal) {
+    console.error(
+      `Reprovado: a suíte encolheu de ${baselineTotal} para ${headTotal} testes. ` +
+      "Falha que some junto com o teste não é conserto."
+    );
+    process.exit(1);
+  }
+  console.log(`Aceito: a suíte manteve ${headTotal} testes (baseline: ${baselineTotal}).`);
+}
+
+console.log("V426: nenhuma falha nova em relação à baseline.");
