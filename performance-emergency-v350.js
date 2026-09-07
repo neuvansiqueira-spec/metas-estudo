@@ -129,7 +129,7 @@
     if (document.getElementById("aldusTimerOvertimeLoaderV450")) return;
     const script = document.createElement("script");
     script.id = "aldusTimerOvertimeLoaderV450";
-    script.src = "timer-overtime-v450.js?v=20260905-timer-overtime-v450";
+    script.src = "timer-overtime-v450.js?v=20260906-portugues-visivel-v457";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V450] Falha ao carregar a contagem do tempo extra.");
@@ -143,7 +143,7 @@
     if (document.getElementById("aldusDailyPlanQuestionImportLoaderV451")) return;
     const script = document.createElement("script");
     script.id = "aldusDailyPlanQuestionImportLoaderV451";
-    script.src = "daily-plan-question-import-v451.js?v=20260906-daily-plan-question-import-v451";
+    script.src = "daily-plan-question-import-v451.js?v=20260906-portugues-visivel-v457";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V451] Falha ao carregar o registro de questoes do Plano do Dia.");
