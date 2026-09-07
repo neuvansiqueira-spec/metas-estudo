@@ -204,7 +204,7 @@ test('V450 escreve na tela o que está fazendo', () => {
   avancarMinutos(240);
   api.passada();
   assert.match(dom.banner().textContent, /Parei de contar/);
-  assert.match(dom.banner().textContent, /Lance a mao/);
+  assert.match(dom.banner().textContent, /Lance à mão/);
 });
 
 test('V450 não mexe em sessão que não terminou', () => {

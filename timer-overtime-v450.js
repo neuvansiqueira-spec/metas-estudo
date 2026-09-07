@@ -116,7 +116,7 @@
     persistir();
     try {
       if (typeof showDailyGoalMessage === "function") {
-        showDailyGoalMessage(`O cronometro parou em ${minutos(EXTRA_MAXIMO_SEGUNDOS)} min alem do previsto. Se voce estudou mais, lance o restante a mao.`, "warning");
+        showDailyGoalMessage(`O cronômetro parou em ${minutos(EXTRA_MAXIMO_SEGUNDOS)} min além do previsto. Se você estudou mais, lance o restante à mão.`, "warning");
       }
     } catch {}
     return true;
@@ -147,8 +147,8 @@
     const extra = Math.max(0, total - marca.previstoSegundos);
     elemento.hidden = false;
     elemento.textContent = marca.capadoEm
-      ? `Tempo previsto concluido as ${hora(marca.desde)}. Parei de contar as ${hora(marca.capadoEm)}, em +${minutos(EXTRA_MAXIMO_SEGUNDOS)} min. Estudou mais? Lance a mao.`
-      : `Tempo previsto concluido as ${hora(marca.desde)} — continuo contando: +${minutos(extra)} min (total ${minutos(total)} min).`;
+      ? `Tempo previsto concluído às ${hora(marca.desde)}. Parei de contar às ${hora(marca.capadoEm)}, em +${minutos(EXTRA_MAXIMO_SEGUNDOS)} min. Estudou mais? Lance à mão.`
+      : `Tempo previsto concluído às ${hora(marca.desde)} — continuo contando: +${minutos(extra)} min (total ${minutos(total)} min).`;
   }
 
   function passada() {

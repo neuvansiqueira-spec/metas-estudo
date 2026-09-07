@@ -64,9 +64,9 @@
 
   function enviarParaRevisao(conteudo) {
     const entrada = entradaDaFabrica();
-    if (!entrada) return { erro: "Nao encontrei a importacao da Fabrica nesta pagina. Recarregue e tente de novo." };
+    if (!entrada) return { erro: "Não encontrei a importação da Fábrica nesta página. Recarregue e tente de novo." };
     try { JSON.parse(conteudo); }
-    catch { return { erro: "Isso nao e um JSON valido. Copie do cartao a partir da chave { ate a ultima }." }; }
+    catch { return { erro: "Isso não é um JSON válido. Copie do cartão a partir da chave { até a última }." }; }
     try {
       const arquivo = new File([conteudo], "cartao-questoes.json", { type: "application/json" });
       const dados = new DataTransfer();
@@ -75,7 +75,7 @@
       entrada.dispatchEvent(new Event("change", { bubbles: true }));
       return { enviado: true };
     } catch (error) {
-      return { erro: `Nao consegui abrir a revisao: ${error?.message || error}` };
+      return { erro: `Não consegui abrir a revisão: ${error?.message || error}` };
     }
   }
 
