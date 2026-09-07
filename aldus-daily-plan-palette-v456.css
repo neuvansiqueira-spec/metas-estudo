@@ -18,6 +18,25 @@
    mesmo bloco tem sempre a mesma cor, que é o que permite reconhecer de
    relance. */
 
+/* V461 — neutraliza artigos com um unico bloco, diretamente ou no mount
+   do resumo. Cabecalhos com acoes e outros conteudos mantem o cartao. */
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia article:is(
+  :has(> details.daily-plan-section):not(:has(> details.daily-plan-section ~ details.daily-plan-section)):not(:has(> :not(.section-heading, details.daily-plan-section))),
+  :has(> #dailyGoalsSummary > details.daily-plan-section:only-child):not(:has(> :not(.section-heading, #dailyGoalsSummary)))
+):not(:has(> .section-heading :not(p.eyebrow, h2))) {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia article:is(
+  :has(> details.daily-plan-section):not(:has(> details.daily-plan-section ~ details.daily-plan-section)):not(:has(> :not(.section-heading, details.daily-plan-section))),
+  :has(> #dailyGoalsSummary > details.daily-plan-section:only-child):not(:has(> :not(.section-heading, #dailyGoalsSummary)))
+):not(:has(> .section-heading :not(p.eyebrow, h2))) > .section-heading {
+  display: none !important;
+}
+
 html[data-aldus-theme="premium-stable"] #view-metas-do-dia details.daily-plan-section {
   --aldus-card-accent: var(--aldus-card-blue);
   --aldus-card-border: rgba(61, 163, 255, .26);
@@ -145,9 +164,9 @@ html[data-aldus-theme="premium-stable"] #view-metas-do-dia .daily-plan-section[d
   transform: translateX(2px);
 }
 
-/* Os painéis que a V451 e a V452 acrescentam entram na mesma família, para
+/* Os painéis que a V451 e a V429 acrescentam entram na mesma família, para
    não parecerem enxertos. */
-html[data-aldus-theme="premium-stable"] #view-metas-do-dia :is(#aldusDailyPlanBacklogV452, #aldusDailyPlanQuestionImportV451) {
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia :is(#aldusPendingOtherDaysV429, #aldusDailyPlanQuestionImportV451) {
   --aldus-card-accent: var(--aldus-card-teal);
   --aldus-card-halo: rgba(26, 150, 141, .16);
   border: 1px solid rgba(54, 203, 192, .42) !important;
@@ -161,7 +180,7 @@ html[data-aldus-theme="premium-stable"] #view-metas-do-dia :is(#aldusDailyPlanBa
     inset 5px 0 0 var(--aldus-card-accent),
     0 13px 30px rgba(0, 7, 19, .22) !important;
 }
-html[data-aldus-theme="premium-stable"] #view-metas-do-dia :is(#aldusDailyPlanBacklogV452, #aldusDailyPlanQuestionImportV451) > summary {
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia :is(#aldusPendingOtherDaysV429, #aldusDailyPlanQuestionImportV451) > summary {
   padding: 12px 2px;
   font-weight: 700;
   cursor: pointer;

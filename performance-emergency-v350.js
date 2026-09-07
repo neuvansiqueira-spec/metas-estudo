@@ -73,7 +73,7 @@
     if (document.getElementById("aldusDailyPlanPendingPanelV429")) return;
     const script = document.createElement("script");
     script.id = "aldusDailyPlanPendingPanelV429";
-    script.src = "daily-plan-pending-panel-v429.js?v=20260902-daily-plan-pending-panel-v429";
+    script.src = "daily-plan-pending-panel-v429.js?v=20260906-plano-dia-painel-unico-v461";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V429] Falha ao carregar o painel de pendentes.");
@@ -151,20 +151,6 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
-  // V452 - metas em aberto de dias anteriores, no Plano do Dia.
-  function installDailyPlanBacklogV452() {
-    if (typeof document === "undefined") return;
-    if (document.getElementById("aldusDailyPlanBacklogLoaderV452")) return;
-    const script = document.createElement("script");
-    script.id = "aldusDailyPlanBacklogLoaderV452";
-    script.src = "daily-plan-backlog-v452.js?v=20260906-daily-plan-backlog-filtro-v453";
-    script.async = false;
-    script.addEventListener("error", () => {
-      console.error("[Aldus V452] Falha ao carregar as metas em aberto.");
-    }, { once: true });
-    (document.head || document.documentElement).appendChild(script);
-  }
-
   // TimerStudyRealDateV454 - a data real da sessao do cronometro.
   function installTimerStudyRealDateV454() {
     if (typeof document === "undefined") return;
@@ -185,7 +171,7 @@
     if (document.getElementById("aldusDailyPlanLegibilityV455Loader")) return;
     const script = document.createElement("script");
     script.id = "aldusDailyPlanLegibilityV455Loader";
-    script.src = "daily-plan-legibility-v455.js?v=20260906-plano-do-dia-sombra-leve-v460";
+    script.src = "daily-plan-legibility-v455.js?v=20260906-plano-dia-painel-unico-v461";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus] Falha ao carregar a legibilidade do Plano do Dia.");
@@ -324,7 +310,6 @@
   installDeltaFullPlanV448();
   installTimerOvertimeV450();
   installDailyPlanQuestionImportV451();
-  installDailyPlanBacklogV452();
   installTimerStudyRealDateV454();
   installDailyPlanLegibilityV455();
   installTimerPictureInPictureV458();

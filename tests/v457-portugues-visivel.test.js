@@ -11,7 +11,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const MEUS = [
   'timer-overtime-v450.js',
   'daily-plan-question-import-v451.js',
-  'daily-plan-backlog-v452.js',
+  'daily-plan-pending-panel-v429.js',
   'timer-study-real-date-v454.js',
   'daily-plan-legibility-v455.js',
   'indexeddb-concurrent-write-v447.js',
