@@ -357,3 +357,13 @@ html[data-aldus-theme="premium-stable"] #view-metas-do-dia #aldusDailyPlanFrameV
 }
 html[data-aldus-theme="premium-stable"] #view-metas-do-dia #aldusDailyPlanFrameV462 .stat-card { line-height: 1.5 !important; }
 html[data-aldus-theme="premium-stable"] #view-metas-do-dia #aldusDailyPlanFrameV462 .stat-card :is(strong, .aldus-preview-time-value) { text-shadow: none !important; }
+
+/* V463: elimina o mínimo de altura global e o peso herdado do strong da V429. */
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #aldusPendingOtherDaysV429 > summary {
+  min-height: 0 !important;
+  color: rgb(246,249,252) !important;
+}
+html[data-aldus-theme="premium-stable"] #view-metas-do-dia #aldusPendingOtherDaysV429 > summary > strong {
+  font: inherit !important;
+  color: inherit !important;
+}
