@@ -193,6 +193,20 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V458 - o cronometro numa janela que fica por cima de tudo.
+  function installTimerPictureInPictureV458() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusTimerPipLoaderV458")) return;
+    const script = document.createElement("script");
+    script.id = "aldusTimerPipLoaderV458";
+    script.src = "timer-picture-in-picture-v458.js?v=20260906-timer-picture-in-picture-v458";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V458] Falha ao carregar a janela flutuante do cronometro.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   // V435 - reata duas prioridades do simulado cujos ids nao existem mais.
   function installPlanningPriorityRemapV435() {
     if (typeof document === "undefined") return;
@@ -313,6 +327,7 @@
   installDailyPlanBacklogV452();
   installTimerStudyRealDateV454();
   installDailyPlanLegibilityV455();
+  installTimerPictureInPictureV458();
   installDailyNetHoursCardV433();
   installPlanningPriorityRemapV435();
   installQuickQuestionEntryV436();
