@@ -185,7 +185,7 @@
     if (document.getElementById("aldusDailyPlanLegibilityV455Loader")) return;
     const script = document.createElement("script");
     script.id = "aldusDailyPlanLegibilityV455Loader";
-    script.src = "daily-plan-legibility-v455.js?v=20260906-plano-do-dia-paleta-v459";
+    script.src = "daily-plan-legibility-v455.js?v=20260906-plano-do-dia-sombra-leve-v460";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus] Falha ao carregar a legibilidade do Plano do Dia.");

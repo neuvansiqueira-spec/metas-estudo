@@ -20,7 +20,7 @@
 
 html[data-aldus-theme="premium-stable"] #view-metas-do-dia details.daily-plan-section {
   --aldus-card-accent: var(--aldus-card-blue);
-  --aldus-card-border: rgba(61, 163, 255, .54);
+  --aldus-card-border: rgba(61, 163, 255, .26);
   --aldus-card-halo: rgba(29, 115, 199, .20);
   position: relative;
   border: 1px solid var(--aldus-card-border) !important;
@@ -28,13 +28,12 @@ html[data-aldus-theme="premium-stable"] #view-metas-do-dia details.daily-plan-se
   margin-block: 14px;
   overflow: hidden;
   background:
-    radial-gradient(circle at 9% 16%, var(--aldus-card-halo) 0%, rgba(0, 0, 0, 0) 40%),
+    radial-gradient(circle at 6% 12%, var(--aldus-card-halo) 0%, rgba(0, 0, 0, 0) 32%),
     linear-gradient(145deg, var(--aldus-card-surface-a) 0%, var(--aldus-card-surface-b) 100%) !important;
   box-shadow:
     inset 5px 0 0 var(--aldus-card-accent),
-    inset 0 1px 0 rgba(255, 255, 255, .035),
-    0 13px 30px rgba(0, 7, 19, .24),
-    0 0 22px var(--aldus-card-halo) !important;
+    inset 0 1px 0 rgba(255, 255, 255, .03),
+    0 4px 12px rgba(0, 7, 19, .18) !important;
   transition: box-shadow .18s ease, border-color .18s ease;
 }
 
@@ -43,41 +42,40 @@ html[data-aldus-theme="premium-stable"] #view-metas-do-dia details.daily-plan-se
   border-color: var(--aldus-card-accent) !important;
   box-shadow:
     inset 5px 0 0 var(--aldus-card-accent),
-    inset 0 1px 0 rgba(255, 255, 255, .05),
-    0 16px 36px rgba(0, 7, 19, .30),
-    0 0 30px var(--aldus-card-halo) !important;
+    inset 0 1px 0 rgba(255, 255, 255, .045),
+    0 8px 20px rgba(0, 7, 19, .24) !important;
 }
 
 /* Acento por função. Metas em turquesa, revisão em violeta, histórico em
    dourado, questões em azul — as quatro cores da paleta, sem inventar. */
 html[data-aldus-theme="premium-stable"] #view-metas-do-dia details.daily-plan-section[data-daily-plan-section="goals"] {
   --aldus-card-accent: var(--aldus-card-teal);
-  --aldus-card-border: rgba(54, 203, 192, .55);
+  --aldus-card-border: rgba(54, 203, 192, .26);
   --aldus-card-halo: rgba(26, 150, 141, .18);
 }
 html[data-aldus-theme="premium-stable"] #view-metas-do-dia details.daily-plan-section[data-daily-plan-section="review"] {
   --aldus-card-accent: var(--aldus-card-purple);
-  --aldus-card-border: rgba(180, 111, 255, .60);
+  --aldus-card-border: rgba(180, 111, 255, .28);
   --aldus-card-halo: rgba(126, 70, 210, .20);
 }
 html[data-aldus-theme="premium-stable"] #view-metas-do-dia details.daily-plan-section[data-daily-plan-section="history"] {
   --aldus-card-accent: var(--aldus-card-gold);
-  --aldus-card-border: rgba(242, 201, 87, .58);
+  --aldus-card-border: rgba(242, 201, 87, .28);
   --aldus-card-halo: rgba(199, 151, 43, .17);
 }
 html[data-aldus-theme="premium-stable"] #view-metas-do-dia details.daily-plan-section[data-daily-plan-section="questions"] {
   --aldus-card-accent: var(--aldus-card-blue);
-  --aldus-card-border: rgba(61, 163, 255, .57);
+  --aldus-card-border: rgba(61, 163, 255, .28);
   --aldus-card-halo: rgba(29, 115, 199, .20);
 }
 html[data-aldus-theme="premium-stable"] #view-metas-do-dia details.daily-plan-section[data-daily-plan-section="next"] {
   --aldus-card-accent: var(--aldus-card-purple);
-  --aldus-card-border: rgba(180, 111, 255, .52);
+  --aldus-card-border: rgba(180, 111, 255, .24);
   --aldus-card-halo: rgba(126, 70, 210, .17);
 }
 html[data-aldus-theme="premium-stable"] #view-metas-do-dia details.daily-plan-section[data-daily-plan-section="summary"] {
   --aldus-card-accent: var(--aldus-card-gold);
-  --aldus-card-border: rgba(242, 201, 87, .50);
+  --aldus-card-border: rgba(242, 201, 87, .24);
   --aldus-card-halo: rgba(199, 151, 43, .15);
 }
 
@@ -157,7 +155,7 @@ html[data-aldus-theme="premium-stable"] #view-metas-do-dia :is(#aldusDailyPlanBa
   margin-block: 14px;
   padding: 4px 18px 14px;
   background:
-    radial-gradient(circle at 9% 16%, var(--aldus-card-halo) 0%, rgba(0, 0, 0, 0) 40%),
+    radial-gradient(circle at 6% 12%, var(--aldus-card-halo) 0%, rgba(0, 0, 0, 0) 32%),
     linear-gradient(145deg, var(--aldus-card-surface-a) 0%, var(--aldus-card-surface-b) 100%) !important;
   box-shadow:
     inset 5px 0 0 var(--aldus-card-accent),
