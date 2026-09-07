@@ -47,7 +47,10 @@
   // corrige a data sem tocar em mais nada: a meta continua acumulando igual.
   function carimbarDiaReal(draft = rascunho()) {
     if (!draft || typeof draft !== "object") return null;
-    const dia = diaLocal(draft.endedAt) || hoje();
+    // Sem hora de termino, a referencia e o hoje do app (todayISO), nao o
+    // relogio do sistema: quem manda no calendario do site e o app. Usar o
+    // relogio aqui tambem tornava o teste dependente do dia em que foi escrito.
+    const dia = draft.endedAt ? (diaLocal(draft.endedAt) || hoje()) : hoje();
     if (!dia) return null;
     draft.goalDate = dia;
     return dia;

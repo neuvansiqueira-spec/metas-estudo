@@ -346,10 +346,12 @@ html[data-aldus-theme="premium-stable"] #view-metas-do-dia[data-preview-v462] {
 }
 html[data-aldus-theme="premium-stable"] #view-metas-do-dia #aldusDailyPlanFrameV462,
 html[data-aldus-theme="premium-stable"] #view-metas-do-dia #aldusDailyPlanMoreV462 {
-  max-width: 736px !important;
+  /* V603 — 736px era a largura de UMA coluna da maquete de comparacao, nao uma
+     decisao de desenho. Na rota, o bloco acompanha a largura da pagina, como o
+     cabecalho e os avisos acima dele. */
+  max-width: none !important;
   width: 100% !important;
   box-sizing: border-box !important;
-  margin-inline: auto !important;
 }
 html[data-aldus-theme="premium-stable"] #view-metas-do-dia #aldusDailyPlanFrameV462 :is(.daily-plan-section, .daily-plan-section > summary, .daily-plan-content) {
   color: rgb(246,249,252) !important;

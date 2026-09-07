@@ -33,10 +33,13 @@ test('V454 data a sessão pelo dia em que ela terminou, não pelo dia da meta', 
     'goalDate tem precedência sobre goal.date na gravação: é por ele que a correção passa');
 });
 
-test('V454 sem endedAt, usa hoje', () => {
+test('V454 sem endedAt, usa o hoje do app — não o relógio do sistema', () => {
   const { api } = harnessData();
-  const draft = {};
-  assert.equal(api.carimbarDiaReal(draft), HOJE);
+  // Este teste quebrou sozinho na virada de 06 para 07/09/2026: o módulo caía
+  // em new Date() quando faltava endedAt, e a data fixa do harness deixava de
+  // bater. Quem manda no calendário do site é o app, via todayISO.
+  assert.equal(api.carimbarDiaReal({}), HOJE);
+  assert.equal(api.carimbarDiaReal({ endedAt: 0 }), HOJE, 'endedAt inválido também cai no hoje do app');
 });
 
 test('V454 não explode sem rascunho', () => {
