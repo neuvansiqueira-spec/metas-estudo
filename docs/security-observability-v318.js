@@ -140,7 +140,7 @@
     if (document.getElementById("aldusEmergencyPerformanceV350")) return;
     const script = document.createElement("script");
     script.id = "aldusEmergencyPerformanceV350";
-    script.src = "performance-emergency-v350.js?v=20260907-plano-do-dia-largura-v603";
+    script.src = "performance-emergency-v350.js?v=20260907-cota-2-e-botao-visivel-v606";
     script.async = false;
     (document.head || document.documentElement).appendChild(script);
   }

@@ -13,7 +13,7 @@ function harness({ comBarra = true, comApi = true } = {}) {
   const criar = (tag) => {
     const node = {
       tag, id: '', type: '', className: '', title: '', textContent: '', innerHTML: '',
-      hidden: false, filhos: [], ouvintes: {},
+      hidden: false, filhos: [], ouvintes: {}, style: { cssText: '' },
       appendChild(f) { this.filhos.push(f); if (f.id) nos.set(f.id, f); return f; },
       addEventListener(n, fn) { (this.ouvintes[n] ||= []).push(fn); },
       click() { cliques.push(this.__seletor || this.id); },
@@ -35,7 +35,10 @@ function harness({ comBarra = true, comApi = true } = {}) {
     const n = criar('span'); n.id = id; n.textContent = valor; n.__seletor = '#' + id; nos.set(id, n);
   }
   const alerta = criar('div'); alerta.id = 'timerAlert'; alerta.hidden = true; alerta.textContent = ''; nos.set('timerAlert', alerta);
-  const barra = criar('div'); barra.__seletor = '#floatingTimer .floating-timer-actions';
+  const barra = criar('div'); barra.__seletor = '#floatingTimer > .floating-timer-actions';
+  // A primeira .floating-timer-actions do painel real: mora dentro de
+  // #timerCompletion, escondida ate o tempo acabar. Quem cair aqui some.
+  const barraOculta = criar('div'); barraOculta.__seletor = '#timerCompletion .floating-timer-actions';
   const salvar = criar('button'); salvar.__seletor = '#floatingTimer [data-timer-action="save"]';
 
   const context = {
@@ -46,7 +49,9 @@ function harness({ comBarra = true, comApi = true } = {}) {
       getElementById: (id) => nos.get(id) || null,
       createElement: criar,
       querySelector: (sel) => {
-        if (sel === '#floatingTimer .floating-timer-actions') return comBarra ? barra : null;
+        // Sem o ">", o navegador devolve a barra escondida da secao de conclusao.
+        if (sel === '#floatingTimer .floating-timer-actions') return comBarra ? barraOculta : null;
+        if (sel === '#floatingTimer > .floating-timer-actions') return comBarra ? barra : null;
         if (sel === '#timerPauseResume') return nos.get('timerPauseResume');
         if (sel === '#floatingTimer [data-timer-action="save"]') return salvar;
         return null;
@@ -58,15 +63,23 @@ function harness({ comBarra = true, comApi = true } = {}) {
   context.window = context;
   vm.createContext(context);
   vm.runInContext(read('timer-picture-in-picture-v458.js'), context);
-  return { context, api: context.__ALDUS_TIMER_PIP_V458__, nos, barra, cliques, alerta };
+  return { context, api: context.__ALDUS_TIMER_PIP_V458__, nos, barra, barraOculta, cliques, alerta };
 }
 
-test('V458 põe o botão na barra de ações do cronômetro', () => {
-  const { barra, nos } = harness();
+test('V458 põe o botão na barra visível, não na escondida da conclusão', () => {
+  const { barra, barraOculta, nos } = harness();
   const botao = nos.get('aldusTimerPipButtonV458');
   assert.ok(botao, 'o botão precisa existir');
   assert.equal(botao.textContent, 'Janela flutuante');
-  assert.ok(barra.filhos.includes(botao), 'e precisa estar na barra do cronômetro');
+  assert.ok(barra.filhos.includes(botao),
+    'ele tem de ficar ao lado de Pausar, Salvar tempo, Zerar e Fechar');
+  assert.ok(!barraOculta.filhos.includes(botao),
+    'a barra de #timerCompletion só aparece quando o tempo acaba: ali o botão some');
+});
+
+test('V458 usa o seletor de filho direto, que é o que separa as duas barras', () => {
+  assert.match(read('timer-picture-in-picture-v458.js'),
+    /#floatingTimer > \.floating-timer-actions/);
 });
 
 test('V458 espelha o que a página mostra, sem recalcular tempo', () => {

@@ -5,6 +5,10 @@ const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
+
+// A cota-alvo vem do modulo: fixa-la aqui faria este teste quebrar a cada
+// ajuste do numero, que e justamente o que ele deve permitir.
+const COTA = Number(read('planning-stability-v427.js').match(/TARGET_TOPICS = (\d+)/)[1]);
 const api = require(path.join(root, 'planning-stability-v427.js'));
 
 function planningState(topics = 5, disciplines = 5) {
@@ -17,14 +21,14 @@ function planningState(topics = 5, disciplines = 5) {
   };
 }
 
-test('V427 grava a cota de 6 nas três fontes que o V235 reaplica', () => {
+test('V427 grava a cota declarada nas três fontes que o V235 reaplica', () => {
   const state = planningState();
   const snapshot = api.writeQuota(state);
-  assert.equal(state.planning.config.topicsPerDay, 6);
-  assert.equal(state.planning.config.disciplinesPerDay, 6);
-  assert.equal(state.planning.manualGoalsConfigV235.topics, 6,
+  assert.equal(state.planning.config.topicsPerDay, COTA);
+  assert.equal(state.planning.config.disciplinesPerDay, COTA);
+  assert.equal(state.planning.manualGoalsConfigV235.topics, COTA,
     'escrever só em planning.config é desfeito no saveData seguinte');
-  assert.equal(snapshot.topics, 6);
+  assert.equal(snapshot.topics, COTA);
 });
 
 test('V427 escreve o snapshot no formato que recordManualCount espera', () => {
@@ -41,7 +45,7 @@ test('V427 registra a cota anterior no marcador, para auditoria', () => {
   const result = api.apply(state);
   assert.equal(result.changed, true);
   assert.deepEqual(result.quotaBefore, { disciplines: 5, topics: 5 });
-  assert.deepEqual(result.quota, { disciplines: 6, topics: 6 });
+  assert.deepEqual(result.quota, { disciplines: COTA, topics: COTA });
   assert.equal(state.migrations.planningStabilityV427.completed, true);
 });
 
@@ -60,8 +64,8 @@ test('V427 reaplica quando a cota-alvo muda, e não só na primeira vez', () => 
   state.migrations = { planningStabilityV427: { completed: true, version: 'antiga', quotaAfter: { disciplines: 8, topics: 8 } } };
   const result = api.apply(state);
   assert.equal(result.changed, true, 'marcador antigo não pode congelar a cota velha');
-  assert.equal(state.planning.config.topicsPerDay, 6);
-  assert.deepEqual(state.migrations.planningStabilityV427.targetQuota, { disciplines: 6, topics: 6 },
+  assert.equal(state.planning.config.topicsPerDay, COTA);
+  assert.deepEqual(state.migrations.planningStabilityV427.targetQuota, { disciplines: COTA, topics: COTA },
     'o alvo precisa ficar gravado, senão a próxima mudança também não pega');
   assert.equal(api.apply(state).repeated, true, 'com o mesmo alvo, volta a ser uma vez só');
 });
@@ -188,7 +192,7 @@ test('V427 alcança o estado declarado como const no escopo global', () => {
   context.__disparaLoad = () => listeners.get('load')?.();
   vm.runInContext('globalThis.__disparaLoad();', context);
   vm.runInContext('globalThis.__cota = state.planning.config.topicsPerDay;', context);
-  assert.equal(context.__cota, 6, 'ler apenas globalThis.state faria a cota continuar em 5');
+  assert.equal(context.__cota, COTA, 'ler apenas globalThis.state faria a cota continuar em 5');
 });
 
 test('V441 resolve o estado somente pelo identificador state, nunca por globalThis.state', () => {

@@ -59,7 +59,7 @@
     if (document.getElementById("aldusPlanningStabilityV427")) return;
     const script = document.createElement("script");
     script.id = "aldusPlanningStabilityV427";
-    script.src = "planning-stability-v427.js?v=20260904-planning-stability-v427-cota-6";
+    script.src = "planning-stability-v427.js?v=20260907-cota-2-e-botao-visivel-v606";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V427] Falha ao carregar a estabilidade do Plano do Dia.");
@@ -73,7 +73,7 @@
     if (document.getElementById("aldusDailyPlanPendingPanelV429")) return;
     const script = document.createElement("script");
     script.id = "aldusDailyPlanPendingPanelV429";
-    script.src = "daily-plan-pending-panel-v429.js?v=20260907-plano-do-dia-largura-v603";
+    script.src = "daily-plan-pending-panel-v429.js?v=20260907-cota-2-e-botao-visivel-v606";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V429] Falha ao carregar o painel de pendentes.");
@@ -171,7 +171,7 @@
     if (document.getElementById("aldusDailyPlanLegibilityV455Loader")) return;
     const script = document.createElement("script");
     script.id = "aldusDailyPlanLegibilityV455Loader";
-    script.src = "daily-plan-legibility-v455.js?v=20260907-plano-do-dia-largura-v603";
+    script.src = "daily-plan-legibility-v455.js?v=20260907-cota-2-e-botao-visivel-v606";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus] Falha ao carregar a legibilidade do Plano do Dia.");
@@ -184,7 +184,7 @@
     if (typeof document === "undefined" || document.getElementById("aldusDailyPlanPreviewV462Loader")) return;
     const script = document.createElement("script");
     script.id = "aldusDailyPlanPreviewV462Loader";
-    script.src = "daily-plan-preview-v462.js?v=20260907-plano-do-dia-largura-v603";
+    script.src = "daily-plan-preview-v462.js?v=20260907-cota-2-e-botao-visivel-v606";
     script.async = false;
     script.addEventListener("error", () => console.error("[Aldus] Falha ao carregar o visual do Plano do Dia."), {once:true});
     (document.head || document.documentElement).appendChild(script);
@@ -196,7 +196,7 @@
     if (document.getElementById("aldusTimerPipLoaderV458")) return;
     const script = document.createElement("script");
     script.id = "aldusTimerPipLoaderV458";
-    script.src = "timer-picture-in-picture-v458.js?v=20260906-timer-picture-in-picture-v458";
+    script.src = "timer-picture-in-picture-v458.js?v=20260907-cota-2-e-botao-visivel-v606";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V458] Falha ao carregar a janela flutuante do cronometro.");

@@ -35,8 +35,12 @@
   // Cota diária de metas do Planejamento. Passou de 8 para 6 em 04/09/2026: as
   // 42 aulas do Dedicação Delta (V448) entram JUNTO com estas, e 8 + 2 deixava
   // dez metas num dia que o usuário fecha em cerca de 3 horas.
-  const TARGET_DISCIPLINES = 6;
-  const TARGET_TOPICS = 6;
+  // V606 — de 6 para 2. Medido em 07/09/2026: com 6 assuntos por dia o site
+  // planejava de 7h30 a 11h21 diarias, e ele faz 2h. A divida crescia de 5 a 9
+  // horas por dia sozinha, e foi o que produziu as 276 metas pendentes. O padrao
+  // do proprio aplicativo, em defaultPlanning, e 2 disciplinas e 3 assuntos.
+  const TARGET_DISCIPLINES = 2;
+  const TARGET_TOPICS = 2;
 
   const isObject = (value) => Boolean(value) && typeof value === "object" && !Array.isArray(value);
   const positiveInteger = (value, fallback = 0) => {
