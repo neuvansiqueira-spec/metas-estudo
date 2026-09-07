@@ -151,13 +151,19 @@
   function install() {
     if (typeof document === "undefined") return false;
     if (document.getElementById(BOTAO_ID)) return true;
-    const acoes = document.querySelector("#floatingTimer .floating-timer-actions");
+    // V606 — a barra de acoes que e FILHA DIRETA do painel. O #floatingTimer tem
+    // duas .floating-timer-actions, e a primeira mora dentro de #timerCompletion,
+    // a secao que so aparece quando o tempo acaba. Sem o ">", o querySelector
+    // devolvia essa: o botao existia no DOM e nunca aparecia na tela.
+    const acoes = document.querySelector("#floatingTimer > .floating-timer-actions");
     if (!acoes) return false;
     const botao = document.createElement("button");
     botao.id = BOTAO_ID;
     botao.type = "button";
     botao.className = "secondary-button";
     botao.textContent = "Janela flutuante";
+    // Fileira propria, largura inteira: cai logo abaixo de Zerar e Fechar.
+    botao.style.cssText = "flex:1 1 100%";
     botao.title = "Abre o cronômetro numa janela que fica por cima de outros programas";
     botao.addEventListener("click", async () => {
       const r = await abrir();
