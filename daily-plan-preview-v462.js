@@ -130,7 +130,7 @@
         lastListFirst = list?.firstElementChild;
       }
       const message = byId('dailyGoalsMessage');
-      if (message) place(root, message, more);
+      if (message) place(root, message, frame);
       const study = list?.closest('section.today-study-panel');
       if (study) {
         study.dataset.collapsed = "false";
