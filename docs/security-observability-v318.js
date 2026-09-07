@@ -140,7 +140,7 @@
     if (document.getElementById("aldusEmergencyPerformanceV350")) return;
     const script = document.createElement("script");
     script.id = "aldusEmergencyPerformanceV350";
-    script.src = "performance-emergency-v350.js?v=20260907-plano-dia-previa-fiel-v462";
+    script.src = "performance-emergency-v350.js?v=20260907-plano-dia-previa-fiel-v463";
     script.async = false;
     (document.head || document.documentElement).appendChild(script);
   }
