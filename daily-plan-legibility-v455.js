@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260906-daily-plan-legibility-v455";
+  const VERSION = "20260906-daily-plan-legibility-v455-paleta-v456";
   const FLAG = "__ALDUS_DAILY_PLAN_LEGIBILITY_V455__";
   const ESTILO_ID = "aldusDailyPlanLegibilityStylesV455";
   const AVISO_ID = "aldusDailyPlanOtherDayV455";
@@ -35,56 +35,49 @@
   // relatou não distinguir "Lançar questões" de "Metas de estudo". Cada chave
   // ganha uma cor de faixa à esquerda e um rótulo próprio. É só pintura: nada
   // aqui muda comportamento.
+  const FOLHA_ID = "aldusDailyPlanPaletteV456";
+  const FOLHA = "aldus-daily-plan-palette-v456.css?v=20260906-plano-do-dia-paleta-v456";
+
+  // V456 — as cores das secoes sairam daqui e foram para a folha externa, que
+  // segue a paleta de cartoes da V294 (violeta, dourado, azul, turquesa) em vez
+  // de inventar tons proprios. Aqui fica so o que e comportamento: o aviso de
+  // dia diferente.
   const CORES = [
-    ["goals", "#4ade80", "Metas"],
-    ["review", "#a78bfa", "Revisão"],
-    ["history", "#fbbf24", "Histórico"],
-    ["questions", "#38bdf8", "Questões"],
-    ["summary", "#94a3b8", "Resumo"],
-    ["materials", "#fb7185", "Materiais"],
-    ["factory", "#f472b6", "Fábrica"]
+    ["goals", "var(--aldus-card-teal)", "Metas"],
+    ["review", "var(--aldus-card-purple)", "Revisão"],
+    ["history", "var(--aldus-card-gold)", "Histórico"],
+    ["questions", "var(--aldus-card-blue)", "Questões"],
+    ["next", "var(--aldus-card-purple)", "Próxima"],
+    ["summary", "var(--aldus-card-gold)", "Resumo"]
   ];
 
   function css() {
-    const porChave = CORES.map(([chave, cor, rotulo]) => `
-      #${SECAO} details.daily-plan-section[data-daily-plan-section="${chave}"] { border-left-color: ${cor}; }
-      #${SECAO} details.daily-plan-section[data-daily-plan-section="${chave}"] > summary .daily-plan-title::before {
-        content: "${rotulo}";
-        background: ${cor};
-      }`).join("\n");
-
     return `
-      /* V455 — separar os blocos do Plano do Dia. Só aparência. */
-      #${SECAO} details.daily-plan-section {
-        border-left: 4px solid #64748b;
-        margin-block: 0.85rem;
-        border-radius: 10px;
-      }
-      #${SECAO} details.daily-plan-section > summary { padding-block: 0.6rem; }
-      #${SECAO} details.daily-plan-section > summary .daily-plan-title { display: inline-flex; align-items: center; gap: 0.6rem; }
-      #${SECAO} details.daily-plan-section > summary .daily-plan-title::before {
-        content: "Bloco";
-        font-size: 0.62rem;
-        font-weight: 700;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-        color: #0b1220;
-        background: #64748b;
-        padding: 0.12rem 0.45rem;
-        border-radius: 999px;
-      }
-      ${porChave}
-
-      /* Aviso de dia diferente: ele clicou em "Ir para o dia" e leu as metas de
-         20/07 achando que eram de hoje. */
+      /* Aviso de dia diferente: ele clicou em "Ir para o dia", foi para 20/07 e
+         leu as metas de la achando que eram de hoje. */
       #${AVISO_ID} {
         display: flex; gap: 0.9rem; align-items: center; flex-wrap: wrap;
-        border: 1px solid #fbbf24; border-left-width: 5px;
-        border-radius: 10px; padding: 0.7rem 0.95rem; margin-block: 0.85rem;
-        background: rgba(251, 191, 36, 0.10);
+        border: 1px solid var(--aldus-card-gold, #f2c957);
+        border-radius: 16px; padding: 0.8rem 1.1rem; margin-block: 0.9rem;
+        background:
+          radial-gradient(circle at 9% 16%, rgba(199, 151, 43, .18) 0%, rgba(0,0,0,0) 42%),
+          linear-gradient(145deg, var(--aldus-card-surface-a, #0d2b45) 0%, var(--aldus-card-surface-b, #061a2d) 100%);
+        box-shadow: inset 5px 0 0 var(--aldus-card-gold, #f2c957), 0 13px 30px rgba(0, 7, 19, .24);
       }
-      #${AVISO_ID} strong { font-size: 1rem; }
+      #${AVISO_ID} strong { font-size: 1.02rem; letter-spacing: -.015em; }
+      #${AVISO_ID} .item-meta { color: var(--aldus-card-muted, #b8cadd); }
     `;
+  }
+
+  function instalarFolha() {
+    if (typeof document === "undefined") return false;
+    if (document.getElementById(FOLHA_ID)) return true;
+    const link = document.createElement("link");
+    link.id = FOLHA_ID;
+    link.rel = "stylesheet";
+    link.href = FOLHA;
+    (document.head || document.documentElement).appendChild(link);
+    return true;
   }
 
   function instalarEstilo() {
@@ -137,6 +130,7 @@
 
   function install() {
     if (typeof document === "undefined") return false;
+    instalarFolha();
     instalarEstilo();
     if (!aviso()) return false;
     atualizarAviso();
@@ -148,7 +142,7 @@
     return true;
   }
 
-  const api = Object.freeze({ version: VERSION, install, atualizarAviso, css, cores: CORES, avisoId: AVISO_ID });
+  const api = Object.freeze({ version: VERSION, install, atualizarAviso, css, cores: CORES, avisoId: AVISO_ID, folha: FOLHA });
   globalThis[FLAG] = api;
 
   if (typeof document !== "undefined") {
