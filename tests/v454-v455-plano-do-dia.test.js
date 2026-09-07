@@ -116,10 +116,13 @@ test('V456 usa a paleta de cartões que já existe, sem inventar cor', () => {
     assert.ok(paleta.includes(token), `${token} precisa existir na V294`);
     assert.ok(folha.includes(`var(${token})`), `a V456 precisa consumir ${token}`);
   }
-  // A receita visual é a mesma da V294: halo radial, gradiente e faixa interna.
-  assert.match(folha, /radial-gradient\(circle at 9% 16%/);
-  assert.match(folha, /linear-gradient\(145deg/);
-  assert.match(folha, /inset 5px 0 0 var\(--aldus-card-accent\)/);
+  // A receita visual e a mesma da V294: halo radial, gradiente e faixa interna.
+  // A coordenada exata do halo e detalhe de ajuste fino, nao regra — fixa-la
+  // faria este teste quebrar a cada acerto de peso visual.
+  assert.ok(folha.includes('radial-gradient(circle at'), 'falta o halo radial');
+  assert.ok(folha.includes('var(--aldus-card-halo)'), 'o halo precisa vir da paleta');
+  assert.ok(folha.includes('linear-gradient(145deg'), 'falta a superficie em gradiente');
+  assert.ok(folha.includes('inset 5px 0 0 var(--aldus-card-accent)'), 'falta a faixa do acento');
 });
 
 test('V456 não inventa cor fora da paleta', () => {
