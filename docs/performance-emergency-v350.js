@@ -73,7 +73,7 @@
     if (document.getElementById("aldusDailyPlanPendingPanelV429")) return;
     const script = document.createElement("script");
     script.id = "aldusDailyPlanPendingPanelV429";
-    script.src = "daily-plan-pending-panel-v429.js?v=20260907-plano-dia-previa-fiel-v463";
+    script.src = "daily-plan-pending-panel-v429.js?v=20260907-plano-do-dia-largura-v603";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V429] Falha ao carregar o painel de pendentes.");
@@ -171,7 +171,7 @@
     if (document.getElementById("aldusDailyPlanLegibilityV455Loader")) return;
     const script = document.createElement("script");
     script.id = "aldusDailyPlanLegibilityV455Loader";
-    script.src = "daily-plan-legibility-v455.js?v=20260907-plano-dia-previa-fiel-v463";
+    script.src = "daily-plan-legibility-v455.js?v=20260907-plano-do-dia-largura-v603";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus] Falha ao carregar a legibilidade do Plano do Dia.");
@@ -184,7 +184,7 @@
     if (typeof document === "undefined" || document.getElementById("aldusDailyPlanPreviewV462Loader")) return;
     const script = document.createElement("script");
     script.id = "aldusDailyPlanPreviewV462Loader";
-    script.src = "daily-plan-preview-v462.js?v=20260907-plano-dia-previa-fiel-v463";
+    script.src = "daily-plan-preview-v462.js?v=20260907-plano-do-dia-largura-v603";
     script.async = false;
     script.addEventListener("error", () => console.error("[Aldus] Falha ao carregar o visual do Plano do Dia."), {once:true});
     (document.head || document.documentElement).appendChild(script);
