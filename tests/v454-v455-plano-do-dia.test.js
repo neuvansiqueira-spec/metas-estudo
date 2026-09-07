@@ -141,6 +141,24 @@ test('V455 só pinta: não mexe em comportamento', () => {
     'este módulo não pode tocar em dado nem em render do site');
 });
 
+test('V459 marca as propriedades em disputa, senão a V68 vence', () => {
+  const folha = read('aldus-daily-plan-palette-v456.css');
+  // aldus-contrast-system-v68.css aplica background e box-shadow com !important
+  // sobre a familia que inclui .daily-plan-section. Sem a mesma marcacao aqui,
+  // so a cor do texto passa e a caixa continua chapada.
+  const v68 = read('aldus-contrast-system-v68.css');
+  assert.match(v68, /daily-plan-section/, 'a V68 precisa mesmo tocar nesta familia');
+  // As declaracoes sao multilinha: separa por ponto e virgula e olha o valor.
+  const declaracoes = folha.split(';');
+  for (const prop of ['background', 'box-shadow']) {
+    const alvo = declaracoes.filter((d) => d.trim().includes(prop + ':'));
+    assert.ok(alvo.length > 0, 'a folha precisa definir ' + prop);
+    for (const decl of alvo) {
+      assert.ok(decl.includes('!important'), 'sem !important a V68 vence em ' + prop + ': ' + decl.trim().slice(0, 60));
+    }
+  }
+});
+
 test('V454, V455 e V456 mantêm paridade raiz/docs', () => {
   assert.equal(read('timer-study-real-date-v454.js'), read('docs/timer-study-real-date-v454.js'));
   assert.equal(read('daily-plan-legibility-v455.js'), read('docs/daily-plan-legibility-v455.js'));

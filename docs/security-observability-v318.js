@@ -140,7 +140,7 @@
     if (document.getElementById("aldusEmergencyPerformanceV350")) return;
     const script = document.createElement("script");
     script.id = "aldusEmergencyPerformanceV350";
-    script.src = "performance-emergency-v350.js?v=20260906-timer-picture-in-picture-v458";
+    script.src = "performance-emergency-v350.js?v=20260906-plano-do-dia-paleta-v459";
     script.async = false;
     (document.head || document.documentElement).appendChild(script);
   }
