@@ -5,7 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
-const version = '20260906-plano-dia-painel-unico-v461';
+const version = read('daily-plan-legibility-v455.js').match(/aldus-daily-plan-palette-v456\.css\?v=([^"']+)/)[1];
 const meta = (id, extra = {}) => ({ id, date: '2026-09-05', discipline: 'Direito Penal', subject: id, status: 'Pendente', actualMinutes: 0, ...extra });
 
 function harness(goals = [], helpers = {}) {
