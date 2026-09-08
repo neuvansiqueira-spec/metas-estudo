@@ -138,10 +138,24 @@ test('V607 respeita um limite menor pedido por quem chamou', () => {
   assert.equal(h.chamadas[0].topicLimit, 1, 'o teto restringe, nunca amplia o pedido');
 });
 
-test('V607 usa o alvo da V427 quando o config cru voltou para 8', () => {
-  const h = harness({ cota: 8, marcador: { disciplines: 2, topics: 2 } });
+test('V609 a cota vem da tela de Planejamento, nao de carimbo meu', () => {
+  // Ele salva 4 no formulario; recordManualCount grava nas tres fontes. Se o
+  // teto ignorasse isso, o ajuste dele nao surtiria efeito nenhum.
+  const h = harness({ cota: 4, marcador: { disciplines: 2, topics: 2 } });
   rodar(h);
-  assert.equal(pendentes(h), 2, 'uma migração tardia da V426 não pode reabrir o dia');
+  assert.equal(pendentes(h), 4, 'o numero do Planejamento manda sobre o carimbo da V427');
+});
+
+test('V609 cai no carimbo da V427 so quando o config nao serve', () => {
+  const h = harness({ cota: 0, marcador: { disciplines: 2, topics: 2 } });
+  rodar(h);
+  assert.equal(pendentes(h), 2, 'config invalido: o alvo publicado da V427 e a rede');
+});
+
+test('V609 reduzir a cota no Planejamento nao apaga o que ja estava no dia', () => {
+  const h = harness({ metas: [meta('a'), meta('b'), meta('c')], cota: 1 });
+  rodar(h);
+  assert.equal(pendentes(h), 3, 'o teto barra entrada; nunca apaga');
 });
 
 test('V607 avisa com a contagem, para o limite ser visível', () => {

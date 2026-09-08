@@ -140,7 +140,7 @@
     if (document.getElementById("aldusEmergencyPerformanceV350")) return;
     const script = document.createElement("script");
     script.id = "aldusEmergencyPerformanceV350";
-    script.src = "performance-emergency-v350.js?v=20260907-teto-diario-metas-v607";
+    script.src = "performance-emergency-v350.js?v=20260908-cota-do-planejamento-manda-v609";
     script.async = false;
     (document.head || document.documentElement).appendChild(script);
   }

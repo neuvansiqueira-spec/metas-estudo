@@ -1,7 +1,7 @@
 /* Apresentacao do Plano do Dia conforme a previa V456. Nao escreve dados. */
 (() => {
   "use strict";
-  const VERSION = "20260907-teto-diario-metas-v607";
+  const VERSION = "20260908-cota-do-planejamento-manda-v609";
   const KEY = "__ALDUS_DAILY_PLAN_PREVIEW_V462__";
   const ROOT = "view-metas-do-dia";
   const FRAME = "aldusDailyPlanFrameV462";

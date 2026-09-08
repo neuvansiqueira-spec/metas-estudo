@@ -27,7 +27,7 @@
   // como esta; o teto so barra entrada. O unico descarte possivel e de metas
   // criadas na propria chamada, que nunca existiram antes dela.
 
-  const VERSION = "20260907-teto-diario-metas-v607";
+  const VERSION = "20260908-cota-do-planejamento-manda-v609";
   const FLAG = "__ALDUS_DAILY_QUOTA_V607__";
   const MARCA = "__aldusDailyQuotaV607";
   const COTA_PADRAO = 2;
@@ -54,14 +54,25 @@
     meta?.fixedDailyPieceV183 === true ||
     String(meta?.origin || meta?.origem || "").trim() === ORIGEM_PECA;
 
-  // A V427 grava a cota em tres fontes. A V426 escreve 8 durante a migracao;
-  // ela nao repete isso a cada saveData, mas se uma execucao tardia deixar o
-  // config cru em 8, o alvo publicado pela V427 continua valendo.
+  // V609 — QUEM MANDA E A TELA DE PLANEJAMENTO.
+  //
+  // Ao salvar aquele formulario, `recordManualCount` (planning-integrity-v235.js:103)
+  // grava o numero do usuario nas tres fontes: planning.config.topicsPerDay,
+  // disciplinesPerDay e o snapshot manualGoalsConfigV235. E o ajuste dele.
+  //
+  // A primeira versao deste modulo lia o carimbo da V427 ANTES do config, para
+  // resistir a uma execucao tardia da migracao da V426, que escreve 8. O efeito
+  // colateral era grave: trocar o numero no Planejamento nao surtia efeito
+  // nenhum, porque o teto continuava no valor carimbado. Ele reclamou, com
+  // razao: "EU QUE DEFINO QUANTAS METAS NO DIA PELA AREA DO PLANEJAMENTO".
+  //
+  // Agora o config vem primeiro. O carimbo da V427 so entra quando o config
+  // esta ausente ou invalido — e nunca para reduzir o que o usuario pediu.
   function cotaDe(alvo) {
-    const doMarcador = Number(alvo?.migrations?.planningStabilityV427?.targetQuota?.topics);
-    if (Number.isFinite(doMarcador) && doMarcador > 0) return doMarcador;
     const doConfig = Number(alvo?.planning?.config?.topicsPerDay);
     if (Number.isFinite(doConfig) && doConfig > 0) return doConfig;
+    const doMarcador = Number(alvo?.migrations?.planningStabilityV427?.targetQuota?.topics);
+    if (Number.isFinite(doMarcador) && doMarcador > 0) return doMarcador;
     return COTA_PADRAO;
   }
 
