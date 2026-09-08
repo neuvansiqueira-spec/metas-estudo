@@ -36,7 +36,7 @@
   // ganha uma cor de faixa à esquerda e um rótulo próprio. É só pintura: nada
   // aqui muda comportamento.
   const FOLHA_ID = "aldusDailyPlanPaletteV456";
-  const FOLHA = "aldus-daily-plan-palette-v456.css?v=20260908-cronometro-flutuante-cabe-v612";
+  const FOLHA = "aldus-daily-plan-palette-v456.css?v=20260908-previa-com-gabarito-v614";
 
   // V456 — as cores das secoes sairam daqui e foram para a folha externa, que
   // segue a paleta de cartoes da V294 (violeta, dourado, azul, turquesa) em vez

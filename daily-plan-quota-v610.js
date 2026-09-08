@@ -1,6 +1,6 @@
 (() => {
   "use strict";
-  const VERSION = "20260908-cronometro-flutuante-cabe-v612";
+  const VERSION = "20260908-previa-com-gabarito-v614";
   const KEY = "__ALDUS_DAILY_PLAN_QUOTA_V610__";
   const MARK = "__aldusDailyPlanQuotaV610";
   const START = "2026-09-08";

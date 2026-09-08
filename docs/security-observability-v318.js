@@ -140,7 +140,7 @@
     if (document.getElementById("aldusEmergencyPerformanceV350")) return;
     const script = document.createElement("script");
     script.id = "aldusEmergencyPerformanceV350";
-    script.src = "performance-emergency-v350.js?v=20260908-cronometro-flutuante-cabe-v612";
+    script.src = "performance-emergency-v350.js?v=20260908-previa-com-gabarito-v614";
     script.async = false;
     (document.head || document.documentElement).appendChild(script);
   }
