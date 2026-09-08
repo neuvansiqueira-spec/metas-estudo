@@ -141,3 +141,22 @@ test('V458 escreve em português correto', () => {
 test('V458 mantém paridade raiz/docs', () => {
   assert.equal(read('timer-picture-in-picture-v458.js'), read('docs/timer-picture-in-picture-v458.js'));
 });
+
+test('V612 a janela flutuante cabe em qualquer altura e os botoes ficam alcancaveis', () => {
+  const fonte = read("timer-picture-in-picture-v458.js");
+  const corpo = fonte.match(/body \{([\s\S]*?)\}/);
+  assert.ok(corpo, "a folha da janela precisa estilizar o corpo");
+  assert.match(corpo[1], /overflow-y:\s*auto/,
+    "sem isso a barra de rolagem aparece no documento e as setas nao respondem");
+  const acoes = fonte.match(/\.acoes \{([\s\S]*?)\}/);
+  assert.ok(acoes, "a barra de acoes precisa de regra propria");
+  assert.match(acoes[1], /position:\s*sticky/,
+    "Pausar e Salvar tem de ficar colados embaixo, alcancaveis sem rolar");
+  assert.match(acoes[1], /bottom:\s*0/);
+  for (const seletor of [".tempo", ".disciplina", ".assunto"]) {
+    const bloco = fonte.match(new RegExp("\\" + seletor + " \{([^}]*)\}"));
+    assert.ok(bloco, "falta " + seletor);
+    assert.match(bloco[1], /clamp\(/,
+      seletor + " precisa acompanhar a altura da janela, que ele encolhe para caber ao lado da aula");
+  }
+});

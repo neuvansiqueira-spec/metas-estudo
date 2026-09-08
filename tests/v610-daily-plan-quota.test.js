@@ -6,7 +6,9 @@ const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
 const read = name => fs.readFileSync(path.join(root, name), 'utf8');
 const DATE = '2026-09-08';
-const VERSION = '20260908-plano-do-dia-v610';
+// V612 — a revisao vem do proprio modulo. Fixada como texto, ela tornava
+// impossivel renovar a cadeia de cache sem editar este teste.
+const VERSION = read('daily-plan-quota-v610.js').match(/VERSION\s*=\s*"([^"]+)"/)[1];
 const moduleSource = read('daily-plan-quota-v610.js');
 const canonical = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
 const goal = (id, extra = {}) => ({ id, date: DATE, data: DATE, syllabusItemId: id, discipline: id, subject: id, status: 'Pendente', origin: 'planejamento', ...extra });
