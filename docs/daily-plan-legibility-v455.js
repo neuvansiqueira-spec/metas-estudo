@@ -36,7 +36,7 @@
   // ganha uma cor de faixa à esquerda e um rótulo próprio. É só pintura: nada
   // aqui muda comportamento.
   const FOLHA_ID = "aldusDailyPlanPaletteV456";
-  const FOLHA = "aldus-daily-plan-palette-v456.css?v=20260907-cota-2-e-botao-visivel-v606";
+  const FOLHA = "aldus-daily-plan-palette-v456.css?v=20260907-teto-diario-metas-v607";
 
   // V456 — as cores das secoes sairam daqui e foram para a folha externa, que
   // segue a paleta de cartoes da V294 (violeta, dourado, azul, turquesa) em vez
@@ -66,6 +66,21 @@
       }
       #${AVISO_ID} strong { font-size: 1.02rem; letter-spacing: -.015em; }
       #${AVISO_ID} .item-meta { color: var(--aldus-card-muted, #b8cadd); }
+
+      /* V607 — a data acompanha a rolagem.
+
+         A faixa "Exibindo metas de:" existe desde sempre (index.html:549),
+         mas mora no topo do Plano do Dia: assim que ele rola para ver as
+         metas, ela sai da tela. Em 07/09/2026 ele passou meia hora achando
+         que metas removidas tinham voltado, quando estava olhando outro dia
+         sem ter como saber. Sem a data na tela, o painel inteiro e ambiguo. */
+      #view-metas-do-dia .selected-day-banner {
+        position: sticky;
+        top: 0;
+        z-index: 6;
+        margin-block: 0.7rem;
+        padding: 0.7rem 1.1rem;
+      }
     `;
   }
 
