@@ -36,7 +36,7 @@
   // ganha uma cor de faixa à esquerda e um rótulo próprio. É só pintura: nada
   // aqui muda comportamento.
   const FOLHA_ID = "aldusDailyPlanPaletteV456";
-  const FOLHA = "aldus-daily-plan-palette-v456.css?v=20260907-cota-2-e-botao-visivel-v606";
+  const FOLHA = "aldus-daily-plan-palette-v456.css?v=20260908-plano-do-dia-v610";
 
   // V456 — as cores das secoes sairam daqui e foram para a folha externa, que
   // segue a paleta de cartoes da V294 (violeta, dourado, azul, turquesa) em vez

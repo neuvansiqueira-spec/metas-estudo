@@ -9,6 +9,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 // Os módulos que eu escrevi. O texto que ele lê na tela precisa estar em
 // português correto — foi ele quem apontou: "não esquece do português".
 const MEUS = [
+  'daily-plan-quota-v610.js',
   'timer-overtime-v450.js',
   'daily-plan-question-import-v451.js',
   'daily-plan-pending-panel-v429.js',
