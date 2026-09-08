@@ -30,9 +30,22 @@
   // Aqui os dois campos entram na frente, com a fonte escrita junto — do jeito
   // que o cartao rotula — para que a distincao sobreviva dentro do site.
   // ------------------------------------------------------------------
-  const explicacaoOriginal = typeof globalThis.questionBankExplanation === "function"
-    ? globalThis.questionBankExplanation
-    : null;
+  // V615 — a original e resolvida na hora do uso, nao na carga.
+  //
+  // Antes ela era capturada num const no momento em que este arquivo rodava.
+  // Quando o modulo chegava antes de o script.js definir a funcao, o const
+  // virava null, instalarExplicacao() desistia na hora e nunca mais tentava —
+  // o laco de repeticao no fim do arquivo so refaz o painel. O resultado era
+  // silencioso e intermitente: dependendo da ordem de carga da visita, a
+  // importacao gravava a justificativa ou a perdia. Medido em 08/09/2026: de
+  // 684 questoes no banco, so 25 tinham o formato composto.
+  let explicacaoOriginal = null;
+  function originalDaExplicacao() {
+    if (explicacaoOriginal) return explicacaoOriginal;
+    const atual = globalThis.questionBankExplanation;
+    if (typeof atual === "function" && atual !== explicacaoV451) explicacaoOriginal = atual;
+    return explicacaoOriginal;
+  }
 
   function explicacaoV451(raw = {}) {
     const partes = [];
@@ -41,12 +54,14 @@
     if (doQc) partes.push(`Justificativa — QConcursos: ${doQc}`);
     if (propria) partes.push(`Explicação complementar: ${propria}`);
     if (partes.length) return partes.join("\n\n");
-    try { return explicacaoOriginal ? explicacaoOriginal(raw) : ""; } catch { return ""; }
+    try { const anterior = originalDaExplicacao(); return anterior ? anterior(raw) : ""; } catch { return ""; }
   }
 
   function instalarExplicacao() {
-    if (!explicacaoOriginal) return false;
     if (globalThis.questionBankExplanation === explicacaoV451) return true;
+    // O script.js ainda nao chegou. Tentar de novo depois, sem desistir.
+    if (typeof globalThis.questionBankExplanation !== "function") return false;
+    originalDaExplicacao();
     try { globalThis.questionBankExplanation = explicacaoV451; return true; } catch { return false; }
   }
 
@@ -132,17 +147,28 @@
     install,
     painelId: PAINEL_ID,
     explicacao: explicacaoV451,
+    instalarExplicacao,
+    originalDaExplicacao,
     enviarParaRevisao
   });
   globalThis[FLAG] = api;
 
-  instalarExplicacao();
+  // As duas instalacoes sao independentes: a do painel depende do DOM, a da
+  // explicacao depende do script.js. Esperar pelas duas, sem uma mascarar a outra.
+  function instalarTudo() {
+    const explicacaoPronta = instalarExplicacao();
+    const painelPronto = install();
+    return explicacaoPronta && painelPronto;
+  }
+
   if (typeof document !== "undefined") {
-    if (!install()) {
+    if (!instalarTudo()) {
       let tentativas = 0;
       const timer = setInterval(() => {
-        if (install() || (tentativas += 1) >= 100) clearInterval(timer);
+        if (instalarTudo() || (tentativas += 1) >= 100) clearInterval(timer);
       }, 200);
     }
+  } else {
+    instalarExplicacao();
   }
 })();

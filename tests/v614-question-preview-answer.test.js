@@ -126,3 +126,55 @@ test('V614 mantém paridade raiz/docs e é publicado com cache-bust', () => {
     assert.equal(read(arquivo), read(`docs/${arquivo}`), arquivo);
   }
 });
+
+// V615 — a corrida de carga que fazia a justificativa se perder na importacao.
+function harnessV451({ comScript = true } = {}) {
+  const context = {
+    console: { warn() {}, error() {}, info() {} },
+    setInterval: () => 0,
+    clearInterval() {}
+  };
+  if (comScript) {
+    context.questionBankExplanation = function original(raw = {}) {
+      return String(raw.justificativa ?? raw.fundamento ?? raw.observacoes ?? "").trim();
+    };
+  }
+  context.globalThis = context;
+  vm.createContext(context);
+  vm.runInContext(read('daily-plan-question-import-v451.js'), context);
+  return { context, api: context.__ALDUS_DAILY_PLAN_QUESTION_IMPORT_V451__ };
+}
+
+const bruta = {
+  justificativa_qconcursos: 'AAA',
+  explicacao_complementar: 'BBB',
+  observacoes: 'Acertei — marquei D, correta D'
+};
+
+test('V615 compõe as duas justificativas quando o script.js já está carregado', () => {
+  const h = harnessV451();
+  const saida = h.context.questionBankExplanation(bruta);
+  assert.match(saida, /Justificativa — QConcursos: AAA/);
+  assert.match(saida, /Explicação complementar: BBB/);
+  assert.doesNotMatch(saida, /Acertei/, 'a observação não pode ocupar o lugar da justificativa');
+});
+
+test('V615 instala mesmo chegando antes do script.js', () => {
+  const h = harnessV451({ comScript: false });
+  assert.equal(h.api.instalarExplicacao(), false, 'sem a função do script.js não há o que trocar');
+  // O script.js chega depois, como acontece na carga real.
+  h.context.questionBankExplanation = function original(raw = {}) {
+    return String(raw.justificativa ?? raw.observacoes ?? "").trim();
+  };
+  assert.equal(h.api.instalarExplicacao(), true, 'a segunda tentativa precisa pegar');
+  const saida = h.context.questionBankExplanation(bruta);
+  assert.match(saida, /QConcursos: AAA/, 'era aqui que a justificativa se perdia');
+});
+
+test('V615 preserva a original como reserva, sem se envolver a si mesma', () => {
+  const h = harnessV451();
+  const original = h.api.originalDaExplicacao();
+  assert.equal(typeof original, 'function');
+  assert.notEqual(original, h.api.explicacao, 'envolver a si mesma seria laço infinito');
+  assert.equal(h.context.questionBankExplanation({ justificativa: 'do campo antigo' }), 'do campo antigo');
+});

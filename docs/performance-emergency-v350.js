@@ -156,7 +156,7 @@
     if (document.getElementById("aldusDailyPlanQuestionImportLoaderV451")) return;
     const script = document.createElement("script");
     script.id = "aldusDailyPlanQuestionImportLoaderV451";
-    script.src = "daily-plan-question-import-v451.js?v=20260906-portugues-visivel-v457";
+    script.src = "daily-plan-question-import-v451.js?v=20260908-previa-com-gabarito-v614";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V451] Falha ao carregar o registro de questoes do Plano do Dia.");
