@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260906-timer-picture-in-picture-v458";
+  const VERSION = "20260908-cronometro-flutuante-cabe-v612";
   const FLAG = "__ALDUS_TIMER_PIP_V458__";
   const BOTAO_ID = "aldusTimerPipButtonV458";
   const ATUALIZACAO_MS = 500;
@@ -53,26 +53,39 @@
     } catch { return false; }
   }
 
+  // V612 — a janela e pequena e o usuario a encolhe para caber ao lado da aula.
+  // Com tamanhos fixos, o conteudo estourava, aparecia barra de rolagem e os
+  // botoes Pausar e Salvar ficavam abaixo do corte. Agora os tamanhos
+  // acompanham a altura da janela e a barra de acoes fica colada embaixo,
+  // sempre alcancavel, role ou nao role.
   const ESTILO = `
     :root { color-scheme: dark; }
+    html { height: 100%; }
     body {
-      margin: 0; padding: 14px 16px;
-      font: 14px/1.4 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+      margin: 0; padding: clamp(6px, 2.4vh, 14px) clamp(10px, 3vw, 16px);
+      font: 14px/1.35 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
       color: #f5f9fd;
       background:
         radial-gradient(circle at 12% 14%, rgba(29, 115, 199, .22) 0%, rgba(0, 0, 0, 0) 46%),
         linear-gradient(145deg, #0d2b45 0%, #061a2d 100%);
-      display: flex; flex-direction: column; gap: 8px; height: 100vh; box-sizing: border-box;
+      display: flex; flex-direction: column; gap: clamp(2px, 1vh, 8px);
+      height: 100vh; box-sizing: border-box;
+      overflow-y: auto; overflow-x: hidden;
     }
-    .disciplina { font-size: .74rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: #3da3ff; }
-    .assunto { font-size: .84rem; color: #b8cadd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .tempo { font-size: 2.6rem; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1; margin: 2px 0; }
-    .progresso { font-size: .74rem; color: #b8cadd; }
-    .alerta { font-size: .78rem; font-weight: 700; color: #f2c957; }
-    .acoes { display: flex; gap: 8px; margin-top: auto; }
+    .disciplina { font-size: clamp(.6rem, 2.3vh, .74rem); font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: #3da3ff; }
+    .assunto { font-size: clamp(.7rem, 2.5vh, .84rem); color: #b8cadd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tempo { font-size: clamp(1.4rem, 9vh, 2.6rem); font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1; margin: 0; }
+    .progresso { font-size: clamp(.6rem, 2.1vh, .74rem); color: #b8cadd; }
+    .alerta { font-size: clamp(.64rem, 2.3vh, .78rem); font-weight: 700; color: #f2c957; }
+    .acoes {
+      display: flex; gap: 8px; margin-top: auto; flex-shrink: 0;
+      position: sticky; bottom: 0;
+      padding-top: clamp(4px, 1.4vh, 10px);
+      background: linear-gradient(to bottom, rgba(6, 26, 45, 0) 0%, #061a2d 45%);
+    }
     button {
       flex: 1; font: inherit; font-weight: 700; cursor: pointer;
-      padding: 9px 10px; border-radius: 10px;
+      padding: clamp(5px, 1.6vh, 9px) 10px; border-radius: 10px;
       border: 1px solid rgba(61, 163, 255, .5); background: #0e2d4c; color: #f5f9fd;
     }
     button.salvar { border-color: rgba(54, 203, 192, .55); }
