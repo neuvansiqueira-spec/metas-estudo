@@ -140,7 +140,7 @@
     if (document.getElementById("aldusEmergencyPerformanceV350")) return;
     const script = document.createElement("script");
     script.id = "aldusEmergencyPerformanceV350";
-    script.src = "performance-emergency-v350.js?v=20260907-cota-2-e-botao-visivel-v606";
+    script.src = "performance-emergency-v350.js?v=20260908-plano-do-dia-v610";
     script.async = false;
     (document.head || document.documentElement).appendChild(script);
   }

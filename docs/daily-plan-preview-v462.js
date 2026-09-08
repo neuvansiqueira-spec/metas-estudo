@@ -1,7 +1,7 @@
 /* Apresentacao do Plano do Dia conforme a previa V456. Nao escreve dados. */
 (() => {
   "use strict";
-  const VERSION = "20260907-cota-2-e-botao-visivel-v606";
+  const VERSION = "20260908-plano-do-dia-v610";
   const KEY = "__ALDUS_DAILY_PLAN_PREVIEW_V462__";
   const ROOT = "view-metas-do-dia";
   const FRAME = "aldusDailyPlanFrameV462";
