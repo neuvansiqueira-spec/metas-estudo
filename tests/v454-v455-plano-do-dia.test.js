@@ -170,3 +170,14 @@ test('V454, V455 e V456 mantêm paridade raiz/docs', () => {
   assert.equal(read('daily-plan-legibility-v455.js'), read('docs/daily-plan-legibility-v455.js'));
   assert.equal(read('aldus-daily-plan-palette-v456.css'), read('docs/aldus-daily-plan-palette-v456.css'));
 });
+
+test('V607 faz a data do dia acompanhar a rolagem', () => {
+  const css = read('daily-plan-legibility-v455.js');
+  const bloco = css.match(/#view-metas-do-dia \.selected-day-banner \{([^}]*)\}/);
+  assert.ok(bloco, 'a faixa da data precisa de regra propria');
+  assert.match(bloco[1], /position:\s*sticky/,
+    'no topo do painel ela sai da tela assim que ele rola ate as metas');
+  assert.match(bloco[1], /top:\s*0/);
+  assert.ok(read('index.html').includes('id="selectedGoalDateLabel"'),
+    'a faixa e o elemento que o script.js:8729 preenche com a data');
+});
