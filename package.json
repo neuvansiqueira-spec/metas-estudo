@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260901-daily-plan-completed-visible-v424",
+  "version": "20260909-cronometro-sombreamento-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

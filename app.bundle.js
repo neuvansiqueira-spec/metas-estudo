@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260901-daily-plan-completed-visible-v424";
+  const VERSION = "20260909-cronometro-sombreamento-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -63481,7 +63481,7 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
         border-left-color: rgba(199, 154, 59, .78) !important;
         box-shadow:
           0 0 0 1px rgba(199, 154, 59, .16),
-          0 26px 64px rgba(4, 27, 45, .28) !important;
+          0 26px 64px rgba(4, 27, 45, .056) !important;
       }
 
       @media (prefers-reduced-motion: no-preference) {

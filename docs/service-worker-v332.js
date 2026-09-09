@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20260901-daily-plan-completed-visible-v424";
+const CURRENT_VERSION = "20260909-cronometro-sombreamento-v424";
 const DASHBOARD_PENDING_SEMANTICS_V413 = "pendentes-separados-de-em-andamento";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const SECURITY_VERSION = "20260831-weekly-status-stability-v416";
@@ -80,7 +80,6 @@ const STATIC_ASSETS = [
   `app-${RELEASE_SUFFIX}.css?v=${CURRENT_VERSION}`,
   `app-${RELEASE_SUFFIX}.js?v=${CURRENT_VERSION}`,
   FACTORY_QUEUE_INTEGRITY,
-  FACTORY_DESTINATION_INTEGRITY,
   TIMER_AUDIO_RECOVERY,
   TIMER_AUDIO_STABILITY,
   TIMER_AUDIO_UNIFIER,
