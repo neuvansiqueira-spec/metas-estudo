@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260909-cronometro-sombreamento-v424";
+  const VERSION = "20260909-conferencia-justificativa-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -47341,6 +47341,20 @@ elements.questionHistoryBody.addEventListener("click", (event) => { const edit =
   }
 
   function text(value) { return String(value ?? "").trim(); }
+
+  // A tabela mostrava gabarito mas nao a justificativa, entao nao dava para
+  // conferir antes de salvar se ela veio no arquivo. O texto sai do mesmo
+  // compositor que o resto do banco usa (questionBankExplanation, corrigido na
+  // V615); os campos crus ficam de reserva para quando ele ainda nao carregou.
+  function justificativaDaQuestao(questao) {
+    try {
+      if (typeof globalThis.questionBankExplanation === "function") {
+        const composta = text(globalThis.questionBankExplanation(questao));
+        if (composta) return composta;
+      }
+    } catch { /* cai para os campos crus */ }
+    return text(questao?.justificativa) || text(questao?.fundamento) || text(questao?.comentarioQc);
+  }
   function sourceItems(payload) {
     if (Array.isArray(payload)) return payload;
     return payload?.questionBank || payload?.questoes || payload?.questions || payload?.items || [];
@@ -47401,6 +47415,8 @@ elements.questionHistoryBody.addEventListener("click", (event) => { const edit =
       .aldus-json-review-actions-v192{display:flex;justify-content:flex-end;gap:10px;margin-top:16px;position:sticky;bottom:-20px;padding:14px 0 2px;background:var(--surface,#fff)}
       .aldus-json-review-code-v192{white-space:nowrap;font-weight:700}
       .aldus-json-review-summary-v192{max-width:300px}
+      .aldus-json-review-reason-v192{max-width:300px}
+      .aldus-json-review-reason-missing-v192{font-weight:700;opacity:.75}
       @media(max-width:720px){.aldus-json-review-v192{padding:8px}.aldus-json-review-card-v192{max-height:96vh;padding:14px}.aldus-json-review-head-v192{align-items:center}.aldus-json-review-actions-v192{flex-direction:column-reverse}.aldus-json-review-actions-v192 button{width:100%}}
     `;
     document.head.appendChild(style);
@@ -47417,12 +47433,15 @@ elements.questionHistoryBody.addEventListener("click", (event) => { const edit =
       modal.setAttribute("role", "dialog");
       modal.setAttribute("aria-modal", "true");
       modal.setAttribute("aria-labelledby", "aldusQbJsonReviewTitleV192");
+      let comJustificativa = 0;
       const rowHtml = rows.map((row, index) => {
         const q = row.question;
         const code = q.qcCodigo || q.numero_qconcursos || q.referencia || q.id || `Questão ${index + 1}`;
         const statement = text(q.enunciado).slice(0, 190);
         const marked = markedAnswer(row.raw) || "—";
         const key = officialAnswer(row.raw) || text(q.gabarito) || "—";
+        const justificativa = justificativaDaQuestao(q);
+        if (justificativa) comJustificativa += 1;
         return `<tr>
           <td>${index + 1}</td>
           <td class="aldus-json-review-code-v192">${html(code)}</td>
@@ -47431,6 +47450,7 @@ elements.questionHistoryBody.addEventListener("click", (event) => { const edit =
           <td>${html(actionLabel(row.action))}</td>
           <td>${html(marked)}</td>
           <td>${html(key)}</td>
+          <td class="aldus-json-review-reason-v192">${justificativa ? html(justificativa.slice(0, 160)) + (justificativa.length > 160 ? "…" : "") : '<span class="aldus-json-review-reason-missing-v192">sem justificativa</span>'}</td>
           <td>${html(statusLabel(row.status))}${row.raw?.revisao_manual === true ? " • revisão manual" : ""}</td>
         </tr>`;
       }).join("");
@@ -47447,13 +47467,14 @@ elements.questionHistoryBody.addEventListener("click", (event) => { const edit =
           <article class="aldus-json-review-stat-v192"><span>Novas</span><strong>${plan.counts.created}</strong></article>
           <article class="aldus-json-review-stat-v192"><span>Atualizadas</span><strong>${plan.counts.updated}</strong></article>
           <article class="aldus-json-review-stat-v192"><span>Sem alteração</span><strong>${plan.counts.unchanged}</strong></article>
+          <article class="aldus-json-review-stat-v192"><span>Com justificativa</span><strong>${comJustificativa} de ${rows.length}</strong></article>
           <article class="aldus-json-review-stat-v192"><span>Certas</span><strong>${plan.counts.correct}</strong></article>
           <article class="aldus-json-review-stat-v192"><span>Erradas</span><strong>${plan.counts.wrong}</strong></article>
           <article class="aldus-json-review-stat-v192"><span>Não respondidas</span><strong>${plan.counts.blank}</strong></article>
         </div>
         <p class="aldus-json-review-note-v192">${html(duplicateNote)}</p>
         <div class="aldus-json-review-table-wrap-v192"><table class="aldus-json-review-table-v192">
-          <thead><tr><th>#</th><th>Código</th><th>Disciplina e assunto</th><th>Enunciado</th><th>Ação</th><th>Marcada</th><th>Gabarito</th><th>Resultado</th></tr></thead>
+          <thead><tr><th>#</th><th>Código</th><th>Disciplina e assunto</th><th>Enunciado</th><th>Ação</th><th>Marcada</th><th>Gabarito</th><th>Justificativa</th><th>Resultado</th></tr></thead>
           <tbody>${rowHtml}</tbody>
         </table></div>
         <div class="aldus-json-review-actions-v192"><button type="button" class="secondary-button" data-json-review-cancel>Cancelar sem salvar</button><button type="button" data-json-review-confirm>Confirmar importação</button></div>
