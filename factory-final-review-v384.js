@@ -331,9 +331,9 @@ SE o sumário automático não puder ser criado/atualizado com segurança, use f
         if (type !== FINAL_TYPE) return previous(type);
         try {
           const current = String(state?.factoryPromptLibrary?.[FINAL_TYPE] || "").trim();
-          return current || BASE_PROMPT;
+          return withContentPolicy(current || BASE_PROMPT);
         } catch {
-          return BASE_PROMPT;
+          return withContentPolicy(BASE_PROMPT);
         }
       };
       Object.defineProperty(wrapped, BASE_WRAP_MARKER, { value: VERSION });
@@ -343,6 +343,11 @@ SE o sumário automático não puder ser criado/atualizado com segurança, use f
     } catch {
       return false;
     }
+  }
+
+  function withContentPolicy(prompt) {
+    const patchContent = globalThis.__aldusFactoryResumoAulaCanonicalV327?.patchContentPrompt;
+    return typeof patchContent === "function" ? patchContent(prompt) : prompt;
   }
 
   function wrapRouter() {

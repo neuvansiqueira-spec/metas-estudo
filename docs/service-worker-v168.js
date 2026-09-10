@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20260909-conferencia-justificativa-v424";
+const CURRENT_VERSION = "20260910-factory-resumo-autossuficiente-v424";
 const DASHBOARD_PENDING_SEMANTICS_V413 = "pendentes-separados-de-em-andamento";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const SECURITY_VERSION = "20260831-weekly-status-stability-v416";
@@ -71,7 +71,7 @@ const SIMULADO_INTERATIVO_STYLESHEET = "simulado-interativo-v313.css?v=20260811-
 const SIMULADO_INTEGRACAO_SCRIPT = "simulado-integracao-v314.js?v=20260812-simulado-integracao-v318-reparo";
 const FACTORY_PENALTIES_SCRIPT = "factory-penalties-v320.js?v=20260814-desempenho-integral-v329";
 const FACTORY_RESUMO_AULA_VISUAL_SCRIPT = "factory-resumo-aula-visual-v326.js?v=20260814-desempenho-integral-v329";
-const FACTORY_RESUMO_AULA_CANONICAL_SCRIPT = "factory-resumo-aula-canonical-v327.js?v=20260814-desempenho-integral-v329";
+const FACTORY_RESUMO_AULA_CANONICAL_SCRIPT = "factory-resumo-aula-canonical-v327.js?v=20260814-desempenho-integral-v329&policy=20260910";
 const PLANNING_QUALITY_SCRIPT = `planning-quality-v368.js?v=${PLANNING_QUALITY_VERSION}`;
 const TIMER_GOAL_INTEGRITY_SCRIPT = `timer-goal-integrity-v366.js?v=${TIMER_GOAL_INTEGRITY_VERSION}`;
 const STATIC_ASSETS = [

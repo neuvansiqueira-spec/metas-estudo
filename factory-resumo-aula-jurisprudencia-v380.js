@@ -156,7 +156,9 @@ A integração jurisprudencial deve enriquecer a aula sem quebrar seu fluxo did�
     try {
       emojiFont = String(FACTORY_DOCX_EMOJI_FONT_INSTRUCTIONS || "").trim();
     } catch {}
-    return `${base}${INTEGRATION_SECTION}${emojiFont ? `\n\n${emojiFont}` : ""}`.trim();
+    const prompt = `${base}${INTEGRATION_SECTION}${emojiFont ? `\n\n${emojiFont}` : ""}`.trim();
+    const patchContent = globalThis.__aldusFactoryResumoAulaCanonicalV327?.patchContentPrompt;
+    return typeof patchContent === "function" ? patchContent(prompt) : prompt;
   }
 
   function ensurePromptType() {

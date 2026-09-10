@@ -1,8 +1,29 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260814-factory-resumo-aula-canonical-v327";
+  const VERSION = "20260910-factory-resumo-autossuficiente-v327";
   const MIGRATION_ID = "factoryResumoAulaCanonicalVisualV327";
+  const CONTENT_MIGRATION_ID = "factoryResumoAutossuficiente20260910";
+  const CONTENT_HEADING = "## AUTOSSUFICIÊNCIA DO CONTEÚDO E RESOLUÇÃO DE REMISSÕES";
+  const CONTENT_END = "FIM DAS REGRAS DE AUTOSSUFICIÊNCIA.";
+  const CONTENT_TYPES = ["resumoAulaJurisprudencia", "consolidacao"];
+  const CONTENT_SECTION = `${CONTENT_HEADING}
+
+CADA TÓPICO DEVE PERMITIR ESTUDAR A REGRA SEM RETORNAR AO MATERIAL DE ORIGEM PARA DESCOBRIR INFORMAÇÕES ESSENCIAIS OMITIDAS. ESTA EXIGÊNCIA VALE PARA TODAS AS LINHAS, ENUMERAÇÕES E ÍCONES, INCLUSIVE EXCEÇÕES, DISTINÇÕES E TESES JURISPRUDENCIAIS.
+
+1. RECUPERE NAS FONTES AUTORIZADAS OS ELEMENTOS QUE DELIMITAM CADA AFIRMAÇÃO: SUJEITO, ATO, OBJETO, HIPÓTESE, REQUISITOS, PROCEDIMENTO, PRAZO, EFEITOS, LIMITES E EXCEÇÕES, QUANDO APLICÁVEIS. NÃO FORCE CAMPOS SEM PERTINÊNCIA.
+2. SE MENCIONAR CONDIÇÕES, REGRAS, ENTIDADES, AUTORIDADES, PARENTES, DIPLOMAS LEGAIS OU MEDIDAS DE PROTEÇÃO, EXPLICITE QUAIS SÃO. NAS COMUNICAÇÕES, INFORME QUEM COMUNICA, A QUEM E EM QUE MOMENTO. NAS DISTINÇÕES, IDENTIFIQUE OS REGIMES COMPARADOS E A DIFERENÇA CONCRETA.
+3. NÃO SUBSTITUA INFORMAÇÃO POR “CONFORME O MATERIAL”, “NOS TERMOS DO MATERIAL”, “DISCIPLINA INDICADA”, “ENTIDADES INDICADAS”, “CONDIÇÕES ESPECÍFICAS”, “COMUNICAÇÕES PREVISTAS” OU EXPRESSÕES EQUIVALENTES SEM EXPLICITAÇÃO. APAGAR A EXPRESSÃO VAGA NÃO CORRIGE A OMISSÃO: RECUPERE E ESCREVA O CONTEÚDO QUE ELA ENCOBRE.
+4. PRESERVE AS ENUMERAÇÕES QUE DELIMITAM A REGRA, INCLUSIVE TODOS OS INTEGRANTES DE ROL TAXATIVO, E INDIQUE SE OS REQUISITOS SÃO CUMULATIVOS OU ALTERNATIVOS. NÃO SUBSTITUA ROL TAXATIVO POR EXEMPLOS, “ETC.” OU “ENTRE OUTROS”. NÃO GENERALIZE UMA REGRA ALÉM DA HIPÓTESE QUE A SUSTENTA.
+5. PRESERVE OBRIGAÇÃO, FACULDADE, PROIBIÇÃO, NEGAÇÕES E RESSALVAS. NÃO TROQUE “SERÁ/DEVE” POR “PODE”, NEM O INVERSO. NÃO TRANSFORME DÚVIDA OU DIVERGÊNCIA EM REGRA CATEGÓRICA, E NÃO REMOVA A CONDIÇÃO DA QUAL DEPENDE UMA CONCLUSÃO.
+6. RECUPERAR INFORMAÇÃO EXPRESSA EM OUTRO TRECHO DAS FONTES AUTORIZADAS É PARTE OBRIGATÓRIA DA SÍNTESE; NÃO É COMPLEMENTAÇÃO EXTERNA. RELEIA OS TRECHOS PERTINENTES, INCLUSIVE QUADROS, NOTAS E LISTAS. CITAÇÕES DE ARTIGOS OU PRECEDENTES PODEM IDENTIFICAR O FUNDAMENTO, MAS NÃO SUBSTITUEM A EXPLICAÇÃO NECESSÁRIA DA REGRA.
+7. SE A INFORMAÇÃO INDISPENSÁVEL NÃO CONSTAR DAS FONTES AUTORIZADAS OU NÃO PUDER SER LIDA, NÃO INVENTE, NÃO COMPLETE POR MEMÓRIA E NÃO AMPLIE A PESQUISA PARA FONTES NÃO AUTORIZADAS. REGISTRE SEPARADAMENTE NA ENTREGA O TÓPICO AFETADO, O DADO EXATO QUE FALTA E A LIMITAÇÃO ENCONTRADA. NÃO APRESENTE ESSE TÓPICO COMO COMPLETO OU VALIDADO NEM DISFARCE A LACUNA COM UMA RESSALVA GENÉRICA.
+8. A CONCISÃO REDUZ REPETIÇÕES E PALAVRAS DISPENSÁVEIS. NÃO HÁ META NUMÉRICA DE PALAVRAS POR LINHA: USE FRASES OU SUBITENS VINCULADOS AO MESMO BLOCO, NA EXTENSÃO NECESSÁRIA PARA PRESERVAR O SENTIDO. AS REGRAS DE FONTE, ESCOPO, FORMATAÇÃO E IDENTIDADE VISUAL DO MÓDULO CONTINUAM VÁLIDAS.
+9. ANTES DA ENTREGA, REVISE CADA AFIRMAÇÃO PERGUNTANDO: QUAIS REGRAS? QUAIS ENTIDADES? QUAIS REQUISITOS? QUEM ATUA? QUEM COMUNICA A QUEM? QUAL PRAZO? QUAL EXCEÇÃO? SE A RESPOSTA FOR NECESSÁRIA E NÃO ESTIVER NO PRÓPRIO BLOCO, RECUPERE-A NA FONTE E REESCREVA. COMPARE NOVAMENTE OS RÓIS, CONDIÇÕES E VERBOS COM A FONTE APÓS ENCURTAR OU AGRUPAR O TEXTO.
+
+NA REVISÃO E CONSOLIDAÇÃO, RECUPERE TAMBÉM OMISSÕES DOS PRODUTOS ANTERIORES QUANDO AS FONTES AUTORIZADAS AS RESOLVEREM. REFERÊNCIAS INTERNAS PODEM AJUDAR A NAVEGAR, MAS NÃO DEVEM SUBSTITUIR O NÚCLEO NECESSÁRIO À COMPREENSÃO DO BLOCO. ESTA REGRA NÃO AUTORIZA REESCREVER CONTEÚDO NOS MODOS EXCLUSIVAMENTE VISUAIS OU DE FUSÃO DE ANOTAÇÕES.
+
+${CONTENT_END}`;
   const SIGNATURE = "TRANSFORME AS FONTES CLASSIFICADAS COMO RESUMO/AULA";
   const CAPITAL_HEADING = "## CAPITALIZAÇÃO DOS TÓPICOS E SUBTÓPICOS";
   const FORMAT_HEADING = "## FORMATO OBRIGATÓRIO";
@@ -431,7 +452,7 @@ NÃO ENTREGUE APENAS O CONTEÚDO NO CHAT, SALVO PEDIDO EXPRESSO.`;
     const original = String(prompt || "");
     if (!original.includes(SIGNATURE)) return original;
 
-    let updated = original;
+    let updated = patchContentPrompt(original);
     if (updated.includes(CAPITAL_HEADING)) {
       updated = replaceSection(updated, CAPITAL_HEADING, CAPITAL_SECTION);
     } else {
@@ -450,6 +471,34 @@ NÃO ENTREGUE APENAS O CONTEÚDO NO CHAT, SALVO PEDIDO EXPRESSO.`;
 
     updated = replaceSection(updated, WORD_HEADING, WORD_SECTION);
     return updated;
+  }
+
+  function patchContentPrompt(prompt) {
+    let text = String(prompt || "");
+    if (!text.trim() || text.includes("[PROMPT COMPLETO AINDA NÃO CADASTRADO")) return text;
+    text = text.replaceAll("NÃO PESQUISE, ATUALIZE, CORRIJA OU COMPLETE O CONTEÚDO.",
+      "NÃO ACRESCENTE CONTEÚDO EXTERNO NEM ATUALIZE POR MEMÓRIA. RECUPERE INTEGRALMENTE AS INFORMAÇÕES PERTINENTES NAS FONTES AUTORIZADAS.");
+    text = text.replaceAll("PREFIRA LINHAS COM ATÉ 22 PALAVRAS.",
+      "PREFIRA FRASES DIRETAS, SEM LIMITE NUMÉRICO DE PALAVRAS E SEM OMITIR ELEMENTOS JURÍDICOS NECESSÁRIOS.");
+    text = text.replaceAll("A LINHA PODE ULTRAPASSAR ESSE TAMANHO SOMENTE QUANDO A DIVISÃO GERAR AMBIGUIDADE, RETIRAR CONDIÇÃO, EXCEÇÃO, SUJEITO, OBJETO OU CONSEQUÊNCIA.",
+      "DIVIDA LINHAS EXTENSAS EM SUBITENS DO MESMO BLOCO QUANDO ISSO MELHORAR A LEITURA, PRESERVANDO CONDIÇÃO, EXCEÇÃO, SUJEITO, OBJETO E CONSEQUÊNCIA.");
+    text = text.replaceAll("SE HOUVER DÚVIDA, PRESERVE APENAS A IDEIA SEGURA.",
+      "SE HOUVER DÚVIDA, PRESERVE O ALCANCE E AS RESSALVAS DO QUE ESTIVER SUSTENTADO; IDENTIFIQUE SEPARADAMENTE O PONTO NÃO RESOLVIDO, SEM GENERALIZAR A CONCLUSÃO.");
+    const contentStart = text.indexOf(CONTENT_HEADING);
+    if (contentStart >= 0) {
+      const contentEnd = text.indexOf(CONTENT_END, contentStart);
+      return contentEnd < 0 ? text : `${text.slice(0, contentStart)}${CONTENT_SECTION}${text.slice(contentEnd + CONTENT_END.length)}`;
+    }
+    const firstHeading = text.indexOf("\n\n## ");
+    return firstHeading < 0 ? `${text.trimEnd()}\n\n${CONTENT_SECTION}`
+      : `${text.slice(0, firstHeading)}\n\n${CONTENT_SECTION}${text.slice(firstHeading)}`;
+  }
+
+  function rememberContentBackup(targetState, type, prompt) {
+    if (!targetState || !String(prompt || "").trim() || String(prompt).includes(CONTENT_HEADING)) return;
+    targetState.factoryPromptLibraryBackups ||= {};
+    const key = `${type}BeforeAutossuficiencia20260910`;
+    targetState.factoryPromptLibraryBackups[key] ??= prompt;
   }
 
   function currentState() {
@@ -483,7 +532,8 @@ NÃO ENTREGUE APENAS O CONTEÚDO NO CHAT, SALVO PEDIDO EXPRESSO.`;
 
   function canonicalPromptFrom(prompt = "") {
     const candidate = String(prompt || "");
-    const base = candidate.includes(SIGNATURE) ? candidate : sourceBasePrompt();
+    if (candidate.trim() && !candidate.includes(SIGNATURE)) return patchContentPrompt(candidate);
+    const base = candidate.trim() ? candidate : sourceBasePrompt();
     return patchPrompt(base);
   }
 
@@ -496,6 +546,7 @@ NÃO ENTREGUE APENAS O CONTEÚDO NO CHAT, SALVO PEDIDO EXPRESSO.`;
       && text.includes("🏛️ **COMPETÊNCIA:**")
       && text.includes("⏱️ **PRAZO:**")
       && text.includes("🚫 **VEDAÇÃO:**")
+      && text.includes(CONTENT_HEADING)
       && !text.includes(OLD_TITLECASE_RULE)
       && !text.includes(OLD_TITLECASE_EXAMPLE);
   }
@@ -519,6 +570,11 @@ NÃO ENTREGUE APENAS O CONTEÚDO NO CHAT, SALVO PEDIDO EXPRESSO.`;
           const current = String(normalized.resumoAula || "");
           if (!current.trim() || current.includes(SIGNATURE)) {
             normalized.resumoAula = canonicalPromptFrom(current);
+          } else {
+            normalized.resumoAula = patchContentPrompt(current);
+          }
+          for (const type of CONTENT_TYPES) {
+            if (normalized[type]) normalized[type] = patchContentPrompt(normalized[type]);
           }
         }
         return normalized;
@@ -537,11 +593,12 @@ NÃO ENTREGUE APENAS O CONTEÚDO NO CHAT, SALVO PEDIDO EXPRESSO.`;
       const previousFactoryPromptBase = factoryPromptBase;
       factoryPromptBase = function factoryPromptBaseV327(type) {
         const original = previousFactoryPromptBase(type);
-        if (type !== "resumoAula") return original;
-        const canonical = canonicalPromptFrom(original);
+        if (type !== "resumoAula" && !CONTENT_TYPES.includes(type)) return original;
+        const canonical = type === "resumoAula" ? canonicalPromptFrom(original) : patchContentPrompt(original);
         const targetState = currentState();
-        if (targetState?.factoryPromptLibrary && canonical && targetState.factoryPromptLibrary.resumoAula !== canonical) {
-          targetState.factoryPromptLibrary.resumoAula = canonical;
+        if (targetState?.factoryPromptLibrary && canonical && targetState.factoryPromptLibrary[type] !== canonical) {
+          rememberContentBackup(targetState, type, targetState.factoryPromptLibrary[type]);
+          targetState.factoryPromptLibrary[type] = canonical;
           targetState.migrations ||= {};
           targetState.migrations[MIGRATION_ID] ||= new Date().toISOString();
         }
@@ -572,6 +629,7 @@ NÃO ENTREGUE APENAS O CONTEÚDO NO CHAT, SALVO PEDIDO EXPRESSO.`;
       const current = String(targetState.factoryPromptLibrary.resumoAula || "");
       const canonical = canonicalPromptFrom(current);
       if (canonical && current !== canonical) {
+        rememberContentBackup(targetState, "resumoAula", current);
         targetState.factoryPromptLibrary.resumoAula = canonical;
         changed = true;
       }
@@ -580,6 +638,26 @@ NÃO ENTREGUE APENAS O CONTEÚDO NO CHAT, SALVO PEDIDO EXPRESSO.`;
         targetState.migrations[MIGRATION_ID] = new Date().toISOString();
         changed = true;
       }
+    }
+
+    for (const type of CONTENT_TYPES) {
+      if (defaults?.[type]) {
+        const patched = patchContentPrompt(defaults[type]);
+        if (patched !== defaults[type]) { defaults[type] = patched; changed = true; }
+      }
+      const current = targetState?.factoryPromptLibrary?.[type];
+      if (current) {
+        const patched = patchContentPrompt(current);
+        if (patched !== current) {
+          rememberContentBackup(targetState, type, current);
+          targetState.factoryPromptLibrary[type] = patched;
+          changed = true;
+        }
+      }
+    }
+    if (targetState && !targetState.migrations[CONTENT_MIGRATION_ID]) {
+      targetState.migrations[CONTENT_MIGRATION_ID] = new Date().toISOString();
+      changed = true;
     }
 
     const normalizerInstalled = installNormalizerGuard();
@@ -596,6 +674,7 @@ NÃO ENTREGUE APENAS O CONTEÚDO NO CHAT, SALVO PEDIDO EXPRESSO.`;
       canonical: isCanonicalPrompt(prompt),
       changed,
       patchPrompt,
+      patchContentPrompt,
       canonicalPromptFrom,
       isCanonicalPrompt,
       updatedAt: new Date().toISOString()

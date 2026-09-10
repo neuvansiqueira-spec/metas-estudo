@@ -14,7 +14,7 @@ const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 function extractStringConst(source, name) {
   const line = source.split('\n').find((candidate) => candidate.startsWith(`const ${name} = `));
   assert.ok(line, `constante ${name} não encontrada`);
-  const literal = line.slice(`const ${name} = `.length, -1);
+  const literal = line.trimEnd().slice(`const ${name} = `.length, -1);
   return JSON.parse(literal);
 }
 

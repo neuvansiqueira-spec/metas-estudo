@@ -139,7 +139,7 @@ test('V423 usa CSS já bundleado e preserva o agrupamento de contraste V68', () 
 
 test('V423 rotaciona CURRENT_VERSION/CACHE_NAME e publica bundle e worker correspondentes', () => {
   const version = JSON.parse(read('package.json')).version;
-  assert.equal(version, '20260901-daily-plan-completed-visible-v424');
+  assert.match(version, /^\d{8}-.+-v424$/);
   const worker = read('service-worker.js');
   assert.match(worker, new RegExp(`const CURRENT_VERSION = "${version}";`));
   assert.match(worker, /const CACHE_NAME = `metas-estudo-\$\{CURRENT_VERSION\}-/);

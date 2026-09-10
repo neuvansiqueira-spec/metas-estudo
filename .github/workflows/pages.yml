@@ -77,6 +77,7 @@ jobs:
             tests/v320-factory-penalties-prompts.test.js \
             tests/v326-factory-resumo-aula-visual.test.js \
             tests/v327-factory-resumo-aula-canonical.test.js \
+            tests/factory-content-autonomy.test.js \
             tests/service-worker-tombstone-v350.test.js \
             tests/central-time-syllabus-index-v350.test.js \
             tests/daily-summary-time-format-v243.test.js \
@@ -160,7 +161,7 @@ jobs:
           factory_resumo_aula_canonical = (
               '  <!-- aldus-factory-resumo-aula-canonical-v327 -->\n'
               '  <script id="aldusFactoryResumoAulaCanonicalV327" '
-              'src="factory-resumo-aula-canonical-v327.js?v=20260814-factory-resumo-aula-canonical-v327"></script>\n'
+              'src="factory-resumo-aula-canonical-v327.js?v=20260814-factory-resumo-aula-canonical-v327&policy=20260910"></script>\n'
           )
           if "aldusFactoryResumoAulaCanonicalV327" not in text:
               text = text.replace("</body>", factory_resumo_aula_canonical + "</body>", 1)
