@@ -1,44 +1,15 @@
 (() => {
   "use strict";
 
-  // V427 — Estabilidade do Plano do Dia.
-  //
-  // Duas correções, ambas medidas no estado real do usuário em 01/09/2026:
-  //
-  // 1. A COTA NÃO FICAVA EM 8. A V426 gravou 8 em `planning.config`, mas o
-  //    `planning-integrity-v235.js` reaplica `manualGoalsConfigV235` por cima a
-  //    cada saveData(). O snapshot vive em três lugares — `planning.
-  //    manualGoalsConfigV235`, `planning.config` e a chave
-  //    `aldusPlanningManualGoalsV235` do localStorage — e escrever em apenas um
-  //    deles é desfeito no salvamento seguinte. Medido: topicsPerDay = 5.
-  //
-  // 2. O BOTÃO "ATUALIZAR CONFORME PLANEJAMENTO" ERA DESTRUTIVO.
-  //    `ensureDailyPlanAlignedWithPlanningV174` fixa `rebuildAutomatic: true`
-  //    (script.js:7384), e essa opção executa `removeGoals(automatic)` —
-  //    apaga todas as metas pendentes não protegidas e sorteia outras. É a
-  //    causa direta de preparar resumo para A, B e C e voltar com D, E e F.
-  //    O reparo troca a reconstrução por preenchimento aditivo.
-  //
-  // V441 acrescenta uma rede de segurança estreita: se a reconciliação aditiva
-  // remover uma meta protegida, ela é restaurada. Metas automáticas intactas
-  // continuam sujeitas à deduplicação normal e nunca entram nessa restauração.
-  //
-  // Nada aqui roda sozinho sobre as metas: a cota é escrita uma vez, e o
-  // comportamento aditivo só age quando o usuário clica no botão.
-
-  const VERSION = "20260904-planning-stability-v427-cota-6";
+  // Abrir o site preserva a cota e instala apenas o alinhamento aditivo.
+  // O utilitário legado de alteração da cota exige ação explícita.
+  const VERSION = "20260911-planning-user-control-v424";
   const MARKER_KEY = "planningStabilityV427";
   const API_KEY = "__ALDUS_PLANNING_STABILITY_V427__";
   const SNAPSHOT_KEY = "aldusPlanningManualGoalsV235";
   const WRAP_MARKER = "__aldusPlanningStabilityV427";
 
-  // Cota diária de metas do Planejamento. Passou de 8 para 6 em 04/09/2026: as
-  // 42 aulas do Dedicação Delta (V448) entram JUNTO com estas, e 8 + 2 deixava
-  // dez metas num dia que o usuário fecha em cerca de 3 horas.
-  // V606 — de 6 para 2. Medido em 07/09/2026: com 6 assuntos por dia o site
-  // planejava de 7h30 a 11h21 diarias, e ele faz 2h. A divida crescia de 5 a 9
-  // horas por dia sozinha, e foi o que produziu as 276 metas pendentes. O padrao
-  // do proprio aplicativo, em defaultPlanning, e 2 disciplinas e 3 assuntos.
+  // Valores legados usados somente pela ferramenta explícita de migração.
   const TARGET_DISCIPLINES = 2;
   const TARGET_TOPICS = 2;
 
@@ -200,6 +171,7 @@
   // --- Instalação --------------------------------------------------------
 
   function applyPlanningStabilityV427(targetState, options = {}) {
+    if (options.explicit !== true) return { changed: false, blocked: true, reason: "explicit-authorization-required" };
     if (!isObject(targetState)) return { changed: false, blocked: true, reason: "state-unavailable" };
     const before = quotaOf(targetState);
     const marker = targetState?.migrations?.[MARKER_KEY];
@@ -251,13 +223,7 @@
   function runOnce() {
     try {
       installAdditiveAlignment();
-      const appState = resolveAppState();
-      if (!appState) return;
-      const result = applyPlanningStabilityV427(appState);
-      if (result.blocked || !result.changed) return;
-      console.info("[Aldus V427] Cota do Plano do Dia fixada.", result.quotaBefore, "→", result.quota);
-      try { if (typeof saveData === "function") saveData(); }
-      catch (error) { console.warn("[Aldus V427] Falha ao persistir a cota.", error); }
+      // Abrir o site instala a proteção; a cota salva pertence ao usuário.
     } catch (error) {
       console.warn("[Aldus V427] Estabilidade não aplicada.", error);
     }

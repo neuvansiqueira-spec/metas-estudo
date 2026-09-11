@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260903-protected-daily-goals-dom-v442";
+  const VERSION = "20260911-planning-user-control-v424";
   const SNAPSHOT_KEY = "aldusPlanningManualGoalsV235";
   const FACTORY_VIEW = "fabrica-resumos";
   const DAILY_VIEW = "metas-do-dia";
@@ -303,24 +303,9 @@
     return true;
   }
 
-  function hideCompletedDailyGoalCardsV411(targetState = currentState()) {
-    if (typeof document === "undefined" || !targetState) return 0;
-    const completedRecords = completedRecordsV411(targetState);
-    const goalsById = new Map((targetState.dailyGoals || []).map((goal) => [String(goal.id || ""), goal]));
-    let removed = 0;
-    document.querySelectorAll('#view-metas-do-dia [data-daily-goal-details]').forEach((card) => {
-      const goal = goalsById.get(String(card.dataset?.dailyGoalDetails || ""));
-      if (!goal || !shouldHideFromDailyPlanV411(goal, completedRecords)) return;
-      card.remove();
-      removed += 1;
-    });
-    const board = document.querySelector("#view-metas-do-dia .daily-goals-board");
-    const resume = board?.closest("details")?.querySelector(".daily-plan-resume");
-    if (resume) {
-      const visible = board.querySelectorAll("[data-daily-goal-details]").length;
-      resume.textContent = `${visible} meta(s) pendente(s)`;
-    }
-    return removed;
+  function hideCompletedDailyGoalCardsV411() {
+    // Elegibilidade para novas metas não autoriza ocultar metas já salvas.
+    return 0;
   }
 
   function installDailyGoalsRenderGuardV411() {

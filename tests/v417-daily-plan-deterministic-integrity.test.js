@@ -120,7 +120,7 @@ test("sequência bootstrap, Dashboard, Plano do Dia, load e manutenção não co
 
 test("todas as reconstruções automáticas declaradas exigem contexto explícito", () => {
   const calls = [...source.matchAll(/reconcile(?:DailyGoalsWithPlanning|PlanningDates)\([^;\n]*rebuildAutomatic: true[^;\n]*\)/g)].map((match) => match[0]);
-  assert.ok(calls.length >= 3);
+  assert.ok(calls.length >= 1, "a reconstrução explícita continua disponível");
   for (const call of calls) assert.match(call, /explicit: true|allowRebuild: true/);
 
   const refreshStart = source.indexOf("function refreshDailyGoalsFromPlanning()");

@@ -42,7 +42,7 @@ test('V427 escreve o snapshot no formato que recordManualCount espera', () => {
 
 test('V427 registra a cota anterior no marcador, para auditoria', () => {
   const state = planningState(5, 5);
-  const result = api.apply(state);
+  const result = api.apply(state, { explicit: true });
   assert.equal(result.changed, true);
   assert.deepEqual(result.quotaBefore, { disciplines: 5, topics: 5 });
   assert.deepEqual(result.quota, { disciplines: COTA, topics: COTA });
@@ -51,8 +51,8 @@ test('V427 registra a cota anterior no marcador, para auditoria', () => {
 
 test('V427 é idempotente: a segunda execução não reescreve', () => {
   const state = planningState();
-  api.apply(state);
-  const again = api.apply(state);
+  api.apply(state, { explicit: true });
+  const again = api.apply(state, { explicit: true });
   assert.equal(again.repeated, true);
   assert.equal(again.changed, false);
 });
@@ -62,16 +62,16 @@ test('V427 reaplica quando a cota-alvo muda, e não só na primeira vez', () => 
   // comparar o alvo gravado, trocar 8 por 6 no código não teria efeito nenhum.
   const state = planningState(8, 8);
   state.migrations = { planningStabilityV427: { completed: true, version: 'antiga', quotaAfter: { disciplines: 8, topics: 8 } } };
-  const result = api.apply(state);
+  const result = api.apply(state, { explicit: true });
   assert.equal(result.changed, true, 'marcador antigo não pode congelar a cota velha');
   assert.equal(state.planning.config.topicsPerDay, COTA);
   assert.deepEqual(state.migrations.planningStabilityV427.targetQuota, { disciplines: COTA, topics: COTA },
     'o alvo precisa ficar gravado, senão a próxima mudança também não pega');
-  assert.equal(api.apply(state).repeated, true, 'com o mesmo alvo, volta a ser uma vez só');
+  assert.equal(api.apply(state, { explicit: true }).repeated, true, 'com o mesmo alvo, volta a ser uma vez só');
 });
 
 test('V427 não altera nada quando não há planejamento', () => {
-  const result = api.apply({ dailyGoals: [] });
+  const result = api.apply({ dailyGoals: [] }, { explicit: true });
   assert.equal(result.blocked, true);
   assert.equal(result.reason, 'planning-unavailable');
 });
@@ -192,7 +192,7 @@ test('V427 alcança o estado declarado como const no escopo global', () => {
   context.__disparaLoad = () => listeners.get('load')?.();
   vm.runInContext('globalThis.__disparaLoad();', context);
   vm.runInContext('globalThis.__cota = state.planning.config.topicsPerDay;', context);
-  assert.equal(context.__cota, COTA, 'ler apenas globalThis.state faria a cota continuar em 5');
+  assert.equal(context.__cota, 5, 'abrir o site preserva a configuração salva pelo usuário');
 });
 
 test('V441 resolve o estado somente pelo identificador state, nunca por globalThis.state', () => {

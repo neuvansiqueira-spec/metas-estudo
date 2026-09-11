@@ -54,6 +54,10 @@ jobs:
           node --check planning-piece-rotation-v358.js
           node --check planning-quality-v368.js
           node --test \
+            tests/planning-user-control.test.js \
+            tests/v427-planning-stability.test.js \
+            tests/v387-startup-planning-stability.test.js \
+            tests/v424-daily-plan-completed-visible.test.js \
             tests/security-hardening-v296.test.js \
             tests/timer-controls-hardening-v268.test.js \
             tests/legacy-timer-recovery.test.js \

@@ -39,7 +39,7 @@ function runInflationRepair(targetState, topics = 5) {
   const source = [
     extractFunction(script, "dailyGoalRepairTimestampV108"),
     extractFunction(script, "repairDailyPlanningInflationV108"),
-    "result = repairDailyPlanningInflationV108(targetState, { source: 'test' });"
+    "result = repairDailyPlanningInflationV108(targetState, { source: 'test', explicit: true });"
   ].join("\n");
   const context = {
     targetState,
@@ -76,6 +76,8 @@ function runMissingGoalsReplenishment(targetState, topics = 5) {
     planningTargetsForDate: () => ({ topics, disciplines: 5 }),
     goalDateValue: (goal) => goal.date || goal.data || "",
     isPlanningStudyGoal: () => true,
+    completedPlanningSubjectRecords: () => [],
+    isActionableDailyPlanGoal: () => true,
     goalSyllabusReservationKey: (goal) => goal.syllabusItemId || goal.id,
     buildPlanningScoreContext: () => ({}),
     eligiblePlanningGoalsForDate: () => additions,
@@ -272,9 +274,9 @@ test("Contrato atual v152: versão estável consolida a metodologia no bundle e 
 test("reparo V108 permanece ativo na publicação atual", () => {
   const version = JSON.parse(read("package.json")).version;
   assert.equal(JSON.parse(read("package.json")).version, version);
-  assert.match(read("script.js"), new RegExp(`APP_VERSION = "${version}"`));
+  assert.match(read("app-version.js"), new RegExp(`const VERSION = "${version}"`));
   assert.match(read("service-worker.js"), new RegExp(`CURRENT_VERSION = "${version}"`));
-  assert.match(read("service-worker.js"), /"20260721-plano-dia-sincronizacao-v108"/);
+  assertCurrentReleaseContract();
   for (const file of ["index.html", "script.js", "service-worker.js", ...syncFiles]) {
     assert.equal(read(file), read(`docs/${file}`), file);
   }

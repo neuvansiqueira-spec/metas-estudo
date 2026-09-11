@@ -7,7 +7,7 @@ const bridge = fs.readFileSync("service-worker-v402.js", "utf8");
 const docsBridge = fs.readFileSync("docs/service-worker-v402.js", "utf8");
 const canonical = fs.readFileSync("service-worker.js", "utf8");
 
-const V408 = "20260830-planning-integrity-cache-v408";
+const V408 = fs.readFileSync("planning-integrity-v235.js", "utf8").match(/const VERSION = "([^"]+)"/)[1];
 
 test("V408 invalida apenas o cache antigo da integridade do planejamento", () => {
   assert.match(bridge, new RegExp(`const CACHE_FIX_VERSION = "${V408}"`));

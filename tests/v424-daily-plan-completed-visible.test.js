@@ -13,7 +13,7 @@ test('V424 expõe a lista de exibição do dia, separada do filtro de acionávei
   const end = script.indexOf('\n}', start);
   const body = script.slice(start, end);
   assert.match(body, /goalDateValue\(goal\) === date/);
-  assert.match(body, /isGoalDone\(goal\) \|\| isActionableDailyPlanGoal\(goal, targetState, completedRecords\)/);
+  assert.doesNotMatch(body, /isActionableDailyPlanGoal|planningRecordMatchesCompletedSubject/);
 });
 
 test('V424 preserva o filtro de acionáveis para cota e próxima meta', () => {

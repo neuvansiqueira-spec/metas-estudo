@@ -62,7 +62,7 @@ test("conclusão remove somente a meta automática futura e solicita sua reposi�
   const stale = { id: "stale", date: "2026-07-21", discipline: "A", subject: "Assunto 1", status: "Pendente", origin: "planejamento" };
   const manual = { id: "manual", date: "2026-07-22", discipline: "A", subject: "Assunto 1", status: "Pendente", origin: "manual" };
   const targetState = { dailyGoals: [completed, stale, manual] };
-  const report = context.replanFutureGoalsAfterCompletionV77(completed, targetState);
+  const report = context.replanFutureGoalsAfterCompletionV77(completed, targetState, { explicit: true });
   assert.deepEqual([...report.removed], ["stale"]);
   assert.deepEqual([...report.added], ["nova-2026-07-21"]);
   assert.equal(targetState.dailyGoals.includes(stale), false);

@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260910-factory-resumo-autossuficiente-v424";
+  const VERSION = "20260911-planning-user-control-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -42312,7 +42312,7 @@ function dedupeWeeklyGoalsForDisplay(goals = []) {
 function weeklyPlanGoalsForDate(date, requested = Number(planningConfig().disciplinesPerDay) || 1, scoreContext = null, reservedSyllabusIds = new Set()) {
   // Compatibilidade: eligibleItems: eligiblePlanningGoalsForDate(date, { scoreContext })
   const existing = state.dailyGoals.filter((goal) => goalDateValue(goal) === date && isPlanningStudyGoal(goal));
-  if (existing.length) return dedupeWeeklyGoalsForDisplay(existing);
+  if (existing.length) return existing;
   const targets = planningTargetsForDate(date);
   const eligibleGoals = eligiblePlanningGoalsForDate(date, { scoreContext, reservedSyllabusIds });
   return selectPlanningGoalsForTargets({ date, topicTarget: targets.topics, disciplineTarget: targets.disciplines || requested, eligibleGoals }).selected;
@@ -42322,9 +42322,10 @@ function weeklyPlanDays(requested = Number(planningConfig().disciplinesPerDay) |
   (state.dailyGoals || []).filter((goal) => dateSet.has(goalDateValue(goal))).forEach((goal) => { const key = goalSyllabusReservationKey(goal); if (key) reservedSyllabusIds.add(key); });
   const displayedSubjects = new Set();
   return dates.map((date) => {
+    const saved = state.dailyGoals.some((goal) => goalDateValue(goal) === date && isPlanningStudyGoal(goal));
     const goals = weeklyPlanGoalsForDate(date, requested, scoreContext, reservedSyllabusIds).filter((goal) => {
       const key = planningItemKey(goal);
-      if (!isManualDailyGoal(goal) && displayedSubjects.has(key)) return false;
+      if (!saved && !isManualDailyGoal(goal) && displayedSubjects.has(key)) return false;
       if (key) displayedSubjects.add(key);
       return true;
     });
@@ -42333,7 +42334,7 @@ function weeklyPlanDays(requested = Number(planningConfig().disciplinesPerDay) |
   });
 }
 function renderWeeklyGoalsPlanDesktop(days) {
-  const rows = days.flatMap((day)=>day.goals.map((goal)=>{ const descriptor = canonicalStudyDescriptor(goal); goal = { ...goal, discipline: descriptor.discipline, subject: descriptor.subject }; return `<tr><td>${formatDateBR(day.date)}</td><td>${escapeHTML(goal.discipline)}</td><td>${escapeHTML(goal.subject)}</td></tr>`; }));
+  const rows = days.flatMap((day)=>day.goals.map((goal)=>{ const descriptor = canonicalStudyDescriptor(goal); goal = { ...goal, discipline: descriptor.discipline, subject: descriptor.subject }; return `<tr><td>${formatDateBR(day.date)}<br><small>${day.saved ? "Metas salvas" : "Prévia ainda não salva"}</small></td><td>${escapeHTML(goal.discipline)}</td><td>${escapeHTML(goal.subject)}</td></tr>`; }));
   return `<div class="weekly-plan-desktop"><table><thead><tr><th>Data</th><th>Disciplina</th><th>Assunto</th></tr></thead><tbody>${rows.length ? rows.join("") : `<tr><td colspan="3">Sem metas elegíveis para a semana.</td></tr>`}</tbody></table></div>`;
 }
 function renderWeeklyGoalsPlanMobile(days) {
@@ -42399,7 +42400,7 @@ function renderPlanningPreview(scoreContext = buildPlanningScoreContext()) {
     const type = getPlanningDayType(date), dayContent = getDayContentConfig(date), targets = planningTargetsForDate(date);
     const savedGoals = state.dailyGoals.filter((goal) => goalDateValue(goal) === date && isPlanningStudyGoal(goal));
     const selectedGoals = savedGoals.length ? savedGoals : selectPlanningGoalsForTargets({ date, topicTarget: targets.topics, disciplineTarget: targets.disciplines, eligibleGoals: eligiblePlanningGoalsForDate(date, { scoreContext, reservedSyllabusIds }) }).selected;
-    const studyGoals = selectedGoals.filter((goal) => { const key = planningItemKey(goal); if (!isManualDailyGoal(goal) && displayedSubjects.has(key)) return false; if (key) displayedSubjects.add(key); return true; });
+    const studyGoals = selectedGoals.filter((goal) => { const key = planningItemKey(goal); if (!savedGoals.length && !isManualDailyGoal(goal) && displayedSubjects.has(key)) return false; if (key) displayedSubjects.add(key); return true; });
     reserveGeneratedSyllabus(reservedSyllabusIds, studyGoals);
     const disciplineCount = new Set(studyGoals.map((goal) => canonical(goal.discipline || goal.disciplina))).size;
     const warning = targets.topics && (studyGoals.length < targets.topics || disciplineCount < targets.disciplines) ? `<p class="notice">Disponíveis: ${studyGoals.length} de ${targets.topics} assunto(s), em ${disciplineCount} de ${targets.disciplines} disciplina(s).</p>` : "";
@@ -43924,7 +43925,8 @@ function isPendingAutomaticReinforcementGoalV157(goal = {}) {
     && ["", "Pendente"].includes(goal.status || "")
     && !isManualDailyGoal(goal);
 }
-function repairInvalidReinforcementGoalsV157(targetState = state) {
+function repairInvalidReinforcementGoalsV157(targetState = state, opts = {}) {
+  if (opts.explicit !== true && opts.allowRebuild !== true) return { changed: false, corrected: [], skipped: "explicit-authorization-required" };
   const candidates = (targetState.dailyGoals || []).filter(isPendingAutomaticReinforcementGoalV157);
   if (!candidates.length) return { version: REINFORCEMENT_CLASSIFICATION_VERSION_V157, changed: false, corrected: [] };
   const context = buildPlanningScoreContext(targetState);
@@ -44234,9 +44236,7 @@ function actionableDailyPlanGoalsForDate(targetState = state, date = todayISO())
 // para a cota e para a próxima meta, não para a exibição: usá-lo na lista fazia a meta
 // desaparecer ao ser concluída e tornava o contador "Metas concluídas" sempre zero.
 function dailyPlanGoalsForDisplay(targetState = state, date = todayISO()) {
-  const completedRecords = completedPlanningSubjectRecords(targetState);
-  return (targetState.dailyGoals || []).filter((goal) => goalDateValue(goal) === date
-    && (isGoalDone(goal) || isActionableDailyPlanGoal(goal, targetState, completedRecords)));
+  return (targetState.dailyGoals || []).filter((goal) => goalDateValue(goal) === date);
 }
 function planningDistributionProfileV77(targetState = state, date = todayISO()) {
   const windowStart = addDays(date, -28);
@@ -44382,6 +44382,7 @@ function dailyGoalRepairTimestampV108(goal = {}) {
     .filter(Number.isFinite), 0);
 }
 function repairDailyPlanningInflationV108(targetState = state, opts = {}) {
+  if (opts.explicit !== true && opts.allowRebuild !== true) return { changed: false, removed: [], reports: [], skipped: "explicit-authorization-required" };
   targetState.dailyGoals ||= [];
   const fromDate = opts.fromDate || todayISO();
   const dates = [...new Set(targetState.dailyGoals
@@ -44648,7 +44649,7 @@ function ensureDailyPlanAlignedWithPlanningV174(targetState = state, date = toda
   const status = dailyPlanAlignmentStatusV174(targetState, date);
   if (status.aligned && !opts.force) return { changed: false, skipped: status.skipped || "already-aligned", date, status, report: null };
   if (status.targets.topics <= 0) return { changed: false, skipped: "zero-target-safety", date, status, report: null };
-  const report = reconcileDailyGoalsWithPlanning(targetState, date, { ...opts, explicit: true, allowRebuild: true, rebuildAutomatic: true });
+  const report = reconcileDailyGoalsWithPlanning(targetState, date, { ...opts, explicit: true, allowRebuild: true, rebuildAutomatic: opts.rebuildAutomatic === true });
   markDailyPlanAlignmentV174(targetState, date);
   return {
     changed: Boolean(report.added.length || report.removed.length || !status.aligned),
@@ -44872,6 +44873,8 @@ function prepareIntegratedPlanningPrioritiesV155(targetState = state, opts = {})
   return { ok: true, changed: true, candidateState, report, validation, errors: [] };
 }
 function applyIntegratedPlanningPrioritiesV155(targetState = state, opts = {}) {
+  // A proteção precisa existir antes de replaceState, inclusive antes dos wrappers de boot.
+  if (opts.explicit !== true && opts.allowRebuild !== true) return { ok: true, changed: false, skipped: "explicit-authorization-required", errors: [] };
   const fingerprint = planningPriorityFingerprintV155(targetState);
   const existing = targetState.migrations?.[INTEGRATED_PLANNING_PRIORITY_VERSION_V155];
   if (!opts.force && existing && targetState.planning?.prioritySourceFingerprintV155 === fingerprint) {
@@ -44894,6 +44897,7 @@ function refreshPlanningPrioritiesForQuestionChangesV155(targetState = state) {
   return result;
 }
 function replanFutureGoalsAfterCompletionV77(completedRecord, targetState = state, opts = {}) {
+  if (opts.explicit !== true && opts.allowRebuild !== true) return { removed: [], added: [], affectedDates: [], warnings: [], skipped: "explicit-authorization-required" };
   const fromDate = opts.fromDate || todayISO();
   const completedSyllabusId = String(completedRecord?.syllabusItemId || completedRecord?.id || "");
   const matchesCompleted = (goal) => completedSyllabusId && String(goal.syllabusItemId || "") === completedSyllabusId
@@ -46330,20 +46334,16 @@ elements.planningConfigForm?.addEventListener("submit", (event) => {
   }
   c.dayContentModes = normalizeDayContentModes(nextModes);
   state.planning.config = c;
+  // Registrar a escolha antes de saveData, mesmo se o módulo auxiliar ainda não carregou.
+  const manualQuota = { version: "20260911-planning-user-control", disciplines: c.disciplinesPerDay, topics: c.topicsPerDay, savedAt: new Date().toISOString() };
+  state.planning.manualGoalsConfigV235 = manualQuota;
+  try { localStorage.setItem("aldusPlanningManualGoalsV235", JSON.stringify(manualQuota)); } catch {}
   if (c.examDate) state.edital.examDate = c.examDate;
-  const selectedDate = elements.goalDate?.value || todayISO();
-  const horizon = Math.max(21, Number(c.safetyDays) || 21);
-  const integration = reconcilePlanningDates(state, [selectedDate, ...daysBetween(todayISO(), horizon)], { explicit: true, allowRebuild: true, rebuildAutomatic: true });
-  integration.reports.forEach((item) => markDailyPlanAlignmentV174(state, item.date));
-  const report = integration.reports.find((item) => item.date === selectedDate) || integration.reports[0] || { found: 0, expected: 0, foundTopics: 0, expectedTopics: 0, warnings: [] };
-  // Compatibilidade: const report = reconcileDailyGoalsWithPlanning(state, elements.goalDate?.value || todayISO())
-  // Compatibilidade: Planejamento salvo e Plano do Dia atualizado
   saveData({ markLocalChange: true });
   render(); showView("planejamento");
-  const preserved = integration.reports.reduce((total, item) => total + item.preserved.length, 0);
-  const message = `Planejamento salvo. ${integration.added.length} meta(s) criada(s), ${integration.removed.length} automática(s) substituída(s) e ${preserved} registro(s) iniciado(s), concluído(s) ou manual(is) preservado(s). Data selecionada: ${report.foundTopics} de ${report.expectedTopics} assunto(s), em ${report.found} de ${report.expected} disciplina(s).${integration.warnings.length ? ` ${[...new Set(integration.warnings)].join(" ")}` : ""}`;
-  setPlanningSaveStatus(message, integration.warnings.length ? "warning" : "success");
-  showDailyGoalMessage(message, integration.warnings.length ? "warning" : "success");
+  const message = "Configurações salvas. As metas já programadas foram preservadas. Use a geração de metas para aplicar as novas configurações ao planejamento.";
+  setPlanningSaveStatus(message, "success");
+  showDailyGoalMessage(message, "success");
   autoSyncAfterSave("planning");
 });
 elements.availabilityCalendar?.addEventListener("change", (event) => {
@@ -46356,12 +46356,10 @@ elements.availabilityCalendar?.addEventListener("change", (event) => {
   const current = availabilityForDate(date, state);
   if (typeDate) state.planning.availability[date] = { type: event.target.value, hours: availabilityDefaults(event.target.value, state) };
   if (hoursDate) state.planning.availability[date] = { ...current, hours: Number(event.target.value) || 0 };
-  const report = reconcileDailyGoalsWithPlanning(state, date, { explicit: true, allowRebuild: true, rebuildAutomatic: true });
-  markDailyPlanAlignmentV174(state, date);
   saveData({ markLocalChange: true });
   render();
-  const message = `Disponibilidade de ${formatDateBR(date)} salva e integrada: ${report.foundTopics} de ${report.expectedTopics} assunto(s) planejado(s).${report.warnings.length ? ` ${report.warnings.join(" ")}` : ""}`;
-  setPlanningSaveStatus(message, report.warnings.length ? "warning" : "success");
+  const message = `Disponibilidade de ${formatDateBR(date)} salva. As metas já programadas foram preservadas.`;
+  setPlanningSaveStatus(message, "success");
   autoSyncAfterSave("planning-availability");
 });
 

@@ -166,7 +166,7 @@ test("meta de revisão prevalece sobre a classificação de reforço", () => {
     runtime.planningGoalTypeForItemV157(state.syllabusItems[0], "2026-07-27", null, state, goal()),
     "Revisão"
   );
-  const report = clone(runtime.repairInvalidReinforcementGoalsV157(state));
+  const report = clone(runtime.repairInvalidReinforcementGoalsV157(state, { explicit: true }));
   assert.equal(report.corrected.length, 1);
   assert.equal(state.dailyGoals[0].type, "Revisão");
   assert.equal(state.dailyGoals[0].tipo, "revisão");
@@ -210,9 +210,9 @@ test("reparo altera somente type e tipo, preserva prioridade e é idempotente", 
   state.dailyGoals.push(goal({ actualMinutes: 20, studyActualMinutes: 20 }));
   const before = clone(state);
   const runtime = v157Runtime(state);
-  const first = clone(runtime.repairInvalidReinforcementGoalsV157(state));
+  const first = clone(runtime.repairInvalidReinforcementGoalsV157(state, { explicit: true }));
   const afterFirst = clone(state);
-  const second = clone(runtime.repairInvalidReinforcementGoalsV157(state));
+  const second = clone(runtime.repairInvalidReinforcementGoalsV157(state, { explicit: true }));
 
   assert.equal(first.changed, true);
   assert.equal(first.corrected.length, 1);
@@ -238,7 +238,7 @@ test("metas concluídas, manuais e históricas não são modificadas", () => {
   );
   const before = clone(state);
   const runtime = v157Runtime(state);
-  const report = clone(runtime.repairInvalidReinforcementGoalsV157(state));
+  const report = clone(runtime.repairInvalidReinforcementGoalsV157(state, { explicit: true }));
   assert.equal(report.changed, false);
   assert.deepEqual(clone(state), before);
 });
@@ -267,8 +267,8 @@ test("V157 protege carregamento, salvamento e payload sincronizado antigo", () =
     cloudContext
   );
   assert.equal(staleState.dailyGoals[0].type, "Reforço");
-  assert.equal(cloudContext.prepared.state.dailyGoals[0].type, "Estudo novo");
-  assert.equal(cloudContext.prepared.state.dailyGoals[0].tipo, "estudo novo");
+  assert.equal(cloudContext.prepared.state.dailyGoals[0].type, "Reforço", "sincronizar não reclassifica uma meta salva");
+  assert.equal(cloudContext.prepared.state.dailyGoals[0].tipo, staleState.dailyGoals[0].tipo);
   assert.equal(
     cloudContext.prepared.stateFingerprint,
     JSON.stringify(cloudContext.prepared.state)
