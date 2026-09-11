@@ -183,7 +183,7 @@
     if (document.getElementById("aldusFactoryResumoAulaJurisprudenciaV380")) return;
     const script = document.createElement("script");
     script.id = "aldusFactoryResumoAulaJurisprudenciaV380";
-    script.src = "factory-resumo-aula-jurisprudencia-v380.js?v=20260824-factory-resumo-aula-jurisprudencia-v380&policy=20260910";
+    script.src = "factory-resumo-aula-jurisprudencia-v380.js?v=20260824-factory-resumo-aula-jurisprudencia-v380&policy=20260911-precisao-concisao";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V380] Falha ao carregar o prompt Resumo/Aula + Jurisprudência.");
@@ -215,7 +215,7 @@
     if (document.getElementById("aldusFactoryFinalReviewV384")) return;
     const script = document.createElement("script");
     script.id = "aldusFactoryFinalReviewV384";
-    script.src = "factory-final-review-v384.js?v=20260824-final-review-consolidation-v384&policy=20260910";
+    script.src = "factory-final-review-v384.js?v=20260824-final-review-consolidation-v384&policy=20260911-precisao-concisao";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V384] Falha ao carregar a revisão e consolidação final integrada.");

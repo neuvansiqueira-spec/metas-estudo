@@ -165,7 +165,7 @@ jobs:
           factory_resumo_aula_canonical = (
               '  <!-- aldus-factory-resumo-aula-canonical-v327 -->\n'
               '  <script id="aldusFactoryResumoAulaCanonicalV327" '
-              'src="factory-resumo-aula-canonical-v327.js?v=20260814-factory-resumo-aula-canonical-v327&policy=20260910"></script>\n'
+              'src="factory-resumo-aula-canonical-v327.js?v=20260814-factory-resumo-aula-canonical-v327&policy=20260911-precisao-concisao"></script>\n'
           )
           if "aldusFactoryResumoAulaCanonicalV327" not in text:
               text = text.replace("</body>", factory_resumo_aula_canonical + "</body>", 1)

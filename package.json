@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260911-planning-user-control-v424",
+  "version": "20260911-factory-precisao-concisao-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

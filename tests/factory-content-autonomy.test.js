@@ -59,6 +59,10 @@ function assertPolicy(prompt) {
   assert.match(prompt, /NÃO TROQUE “SERÁ\/DEVE” POR “PODE”/);
   assert.match(prompt, /NÃO COMPLETE POR MEMÓRIA/);
   assert.match(prompt, /O DADO EXATO QUE FALTA/);
+  assert.match(prompt, /PRESERVAÇÃO OBRIGATÓRIA DA ESSÊNCIA DO RESUMO/);
+  assert.match(prompt, /A MERA SINGULARIDADE DE UM DETALHE NÃO JUSTIFICA SUA INCLUSÃO/);
+  assert.match(prompt, /NÃO TENTE RESPONDER A TODA PERGUNTA POSSÍVEL SOBRE O TEMA/);
+  assert.doesNotMatch(prompt, /RECUPERE INTEGRALMENTE AS INFORMAÇÕES PERTINENTES/);
 }
 
 test('prompts reais, salvos e personalizados recebem a política nos três modos', () => {
@@ -127,5 +131,55 @@ test('política preserva vazios e placeholders em vez de simular prompt completo
   const context = harness();
   for (const text of ['', '[PROMPT COMPLETO AINDA NÃO CADASTRADO NA BIBLIOTECA DA FÁBRICA]']) {
     assert.equal(vm.runInContext(`__aldusFactoryResumoAulaCanonicalV327.patchContentPrompt(${JSON.stringify(text)})`, context), text);
+  }
+});
+
+test('migra a política anterior sem acumular seções nem perder preferências e backups', () => {
+  const context = harness();
+  const oldPolicy = base + '\nRECUPERE INTEGRALMENTE AS INFORMAÇÕES PERTINENTES NAS FONTES AUTORIZADAS.\n\n' + heading + '\nPOLÍTICA ANTERIOR DO USUÁRIO\nFIM DAS REGRAS DE AUTOSSUFICIÊNCIA.' + customTail;
+  const firstBackup = vm.runInContext('state.factoryPromptLibraryBackups.resumoAulaBeforeAutossuficiencia20260910', context);
+  vm.runInContext(`
+    state.factoryPromptLibrary.resumoAula = ${JSON.stringify(oldPolicy)};
+    delete state.factoryPromptLibraryBackups.resumoAulaBeforePrecisaoConcisao20260911;
+  `, context);
+  const migrated = generate(context, 'resumoAula');
+  assertPolicy(migrated);
+  assert.doesNotMatch(migrated, /POLÍTICA ANTERIOR DO USUÁRIO/);
+  assert.match(migrated, /APLICAÇÃO TRANSVERSAL A TODAS AS DISCIPLINAS/);
+  assert.ok(migrated.endsWith(customTail));
+  assert.equal(vm.runInContext('state.factoryPromptLibraryBackups.resumoAulaBeforePrecisaoConcisao20260911', context), oldPolicy);
+  assert.equal(vm.runInContext('state.factoryPromptLibraryBackups.resumoAulaBeforeAutossuficiencia20260910', context), firstBackup);
+  assert.equal(generate(context, 'resumoAula'), migrated);
+  vm.runInContext(canonical, context);
+  assert.equal(vm.runInContext('state.factoryPromptLibraryBackups.resumoAulaBeforePrecisaoConcisao20260911', context), oldPolicy);
+});
+
+test('aplica a mesma política transversal sem substituir o conteúdo de disciplinas diferentes', () => {
+  const context = harness();
+  for (const subject of ['MATEMÁTICA — PROPORÇÕES E UNIDADES', 'INFORMÁTICA — PROTOCOLOS E VERSÕES', 'DIREITO — REGRAS E EXCEÇÕES']) {
+    const customized = `MINHA AULA: ${subject}\nFONTES: APENAS A PASTA DO TEMA.` + customTail;
+    vm.runInContext(`state.factoryPromptLibrary.resumoAula = ${JSON.stringify(customized)}`, context);
+    const prompt = generate(context, 'resumoAula');
+    assert.ok(prompt.startsWith(`MINHA AULA: ${subject}\nFONTES: APENAS A PASTA DO TEMA.`));
+    assert.ok(prompt.endsWith(customTail));
+    assertPolicy(prompt);
+    assert.match(prompt, /NÃO FORCE CATEGORIAS JURÍDICAS NEM JURISPRUDÊNCIA/);
+    assert.match(prompt, /UNIDADES, BASES DE CÁLCULO, SIGNIFICADO DAS VARIÁVEIS/);
+    assert.equal(generate(context, 'resumoAula'), prompt);
+  }
+});
+
+test('os três caminhos de geração mantêm precisão, deduplicação e a exceção de retomada local', () => {
+  for (const order of [['canonical', 'integrated', 'review'], ['integrated', 'review', 'canonical']]) {
+    const context = harness(order);
+    for (const type of ['resumoAula', 'resumoAulaJurisprudencia', 'consolidacao']) {
+      const prompt = generate(context, type);
+      assert.match(prompt, /MANTENHA CADA PRAZO, PERCENTUAL, LIMITE OU RESULTADO LIGADO À SUA HIPÓTESE/);
+      assert.match(prompt, /COMPARE O SENTIDO, NÃO APENAS AS PALAVRAS/);
+      assert.match(prompt, /É PERMITIDO RETOMAR UMA INFORMAÇÃO QUANDO ELA FOR NECESSÁRIA/);
+      assert.match(prompt, /NÃO CONFUNDA CONTRADIÇÃO, DIFERENÇA DE HIPÓTESE OU COMPLEMENTO COM DUPLICAÇÃO/);
+      assert.match(prompt, /COMPARE TESE POR TESE/);
+      assert.match(prompt, /CORRIJA AS FALHAS IDENTIFICADAS; NÃO SE LIMITE A DECLARAR QUE REVISOU/);
+    }
   }
 });
