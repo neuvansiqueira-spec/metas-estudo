@@ -104,6 +104,7 @@
   }
 
   function todayMinutes(targetState) {
+    if (globalThis.__ALDUS_STUDY_TIME__) return globalThis.__ALDUS_STUDY_TIME__.secondsBetween(targetState, today()) / 60;
     const date = today();
     const goals = goalsForDate(targetState, date);
     let total = 0;
@@ -122,12 +123,14 @@
   }
 
   function todaySessions(targetState) {
+    if (globalThis.__ALDUS_STUDY_TIME__) return globalThis.__ALDUS_STUDY_TIME__.sessionCount(targetState, today());
     const studies = Array.isArray(targetState?.studies) ? targetState.studies : [];
     const date = today();
     return studies.filter((study) => isObject(study) && String(study.date || "").slice(0, 10) === date).length;
   }
 
   function formatMinutes(total) {
+    if (globalThis.__ALDUS_STUDY_TIME__) return globalThis.__ALDUS_STUDY_TIME__.formatMinutes(total);
     const minutes = Math.max(0, Math.round(Number(total) || 0));
     const hours = Math.floor(minutes / 60);
     const rest = minutes % 60;

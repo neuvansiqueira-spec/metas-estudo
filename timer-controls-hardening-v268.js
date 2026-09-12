@@ -112,6 +112,7 @@
     if (!timer?.goalId || timer.completed || timer.paused) return false;
 
     const elapsed = elapsedSeconds();
+    timer.pauses = [...(timer.pauses || []), new Date().toISOString()];
     timer.elapsedSeconds = elapsed;
     timer.startedAt = null;
     timer.paused = true;
@@ -129,6 +130,7 @@
     const runtimeV316 = globalThis.__ALDUS_TIMER_RUNTIME_V316__;
     if (runtimeV316?.prepareResume && !runtimeV316.prepareResume("controls-resume")) return false;
 
+    timer.resumes = [...(timer.resumes || []), new Date().toISOString()];
     timer.elapsedSeconds = Math.max(0, Number(timer.elapsedSeconds) || 0);
     timer.startedAt = Date.now();
     timer.paused = false;

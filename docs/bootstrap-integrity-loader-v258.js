@@ -8,7 +8,7 @@
   const DIAGNOSTICS_SCRIPT = "duplicate-diagnostics-v260.js?v=20260806-duplicate-diagnostics-v260";
   const DIAGNOSTICS_STYLESHEET = "duplicate-diagnostics-v260.css?v=20260806-duplicate-diagnostics-v260";
   const TIMER_SOUND_MASTER_SCRIPT = "timer-sound-master-v265.js?v=20260806-timer-sound-master-v265&hotfix=master-mute-hotfix1";
-  const TIMER_CONTROLS_SCRIPT = "timer-controls-hardening-v268.js?v=20260808-timer-controls-sound-v268&hotfix=timer-controls-hardening-hotfix1";
+  const TIMER_CONTROLS_SCRIPT = "timer-controls-hardening-v268.js?v=20260912-tempo-segundos-indicadores-v424";
   const PLANNING_SHIFT_PERSISTENCE_SCRIPT = "planning-shift-persistence-v283.js?v=20260809-planejamento-plantao-salvamento-v283";
   const HEADER_BRAND_FIX_SCRIPT = "header-brand-fix.js?v=20260815-logo-alta-qualidade-v338";
   const TIMER_GOAL_INTEGRITY_SCRIPT = "timer-goal-integrity-v366.js?v=20260821-timer-goal-integrity-v366";

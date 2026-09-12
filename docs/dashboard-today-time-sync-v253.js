@@ -6,7 +6,7 @@
   const GLOBAL_KEY = "__ALDUS_DASHBOARD_TODAY_TIME_SYNC_V253__";
   const STORAGE_KEY = "metasConcursoData";
   const DASHBOARD_SELECTOR = "#todayHours";
-  const SUMMARY_SELECTOR = "#dailyGoalsSummary .daily-goals-summary > .realized-today-stat > strong";
+  const SUMMARY_SELECTOR = "#dailyGoalsSummary .realized-today-stat > strong";
 
   if (globalThis[GLOBAL_KEY]) return;
 
@@ -59,6 +59,7 @@
   }
 
   function calculateTodayMinutes(sourceState, date = localTodayISO()) {
+    if (globalThis.__ALDUS_STUDY_TIME__) return globalThis.__ALDUS_STUDY_TIME__.secondsBetween(sourceState, date) / 60;
     const current = sourceState && typeof sourceState === "object" ? sourceState : {};
     const studies = Array.isArray(current.studies) ? current.studies : [];
     const goals = Array.isArray(current.dailyGoals) ? current.dailyGoals : [];
@@ -87,6 +88,7 @@
   }
 
   function formatDurationMinutes(minutes) {
+    if (globalThis.__ALDUS_STUDY_TIME__) return globalThis.__ALDUS_STUDY_TIME__.formatMinutes(minutes);
     const total = Math.max(0, Math.round(Number(minutes) || 0));
     if (total < 60) return `${total}min`;
     const hours = Math.floor(total / 60);

@@ -149,6 +149,7 @@ const jsSources = [
   "sync-integral-time-protection.js",
   "pcpr-pcma-2026-catalog.js",
   "pcpr-pcma-2026-migration.js",
+  "study-time-ledger.js",
   "qconcursos-pdf-import-v181.js",
   "qconcursos-capture-import-v182.js",
   "simulados-edital-integration.js",
@@ -425,6 +426,7 @@ for (const filename of [
   // 2026-08-17: este módulo tem teste exigindo cópias idênticas, mas estava fora
   // da sincronia do build e divergia a cada alteração feita só na raiz.
   "daily-summary-time-format-v243.js",
+  "study-time-ledger.js", "dashboard-today-time-sync-v253.js", "daily-net-hours-card-v433.js", "daily-plan-preview-v462.js",
   "duplicate-diagnostics-v260.js", "duplicate-diagnostics-v260.css", "duplicate-diagnostics-loader-v269.js",
   "duplicate-diagnostics-search-v271.css", "duplicate-diagnostics-search-v272.js", "duplicate-diagnostics-map-v273.js", "duplicate-diagnostics-actions-v274.js",
   "duplicate-diagnostics-v303.js", "duplicate-diagnostics-v309.js", "duplicate-diagnostics-batch-v302.js", "duplicate-diagnostics-batch-v303.js", "duplicate-diagnostics-batch-v304.js", "duplicate-diagnostics-batch-v305.js",

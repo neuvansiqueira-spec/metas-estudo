@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260911-factory-precisao-concisao-v424";
+  const VERSION = "20260912-tempo-segundos-indicadores-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -36217,6 +36217,72 @@ globalThis.PCPR_PCMA_2026_CATALOG = {
   global.isItemEnabledForPlanning = isItemEnabledForPlanning;
 })(globalThis);
 
+/* Aldus source: study-time-ledger.js */
+/* Read-only time accounting. Legacy minute fields remain unchanged. */
+(() => {
+  "use strict";
+  const number = value => Math.max(0, Number(value) || 0);
+  const date = record => String(record?.date || record?.data || "").slice(0, 10);
+  const key = record => String(record.timerSessionId || record.sessionId || record.id || JSON.stringify(record));
+  function unique(records = []) {
+    const seen = new Set();
+    return records.filter(record => {
+      const id = key(record);
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  }
+  function recordSeconds(record = {}) {
+    for (const field of ["seconds", "elapsedSeconds", "actualDurationSeconds"]) {
+      const value = record[field];
+      if (value !== undefined && value !== null && value !== "" && Number.isFinite(Number(value)) && Number(value) >= 0) return Math.round(Number(value));
+    }
+    return Math.round(number(record.minutes ?? record.actualDuration) * 60);
+  }
+  function legacyGoalMinutes(goal = {}, kind) {
+    const has = field => goal[field] !== undefined && goal[field] !== null && goal[field] !== "";
+    const questions = number(goal.questionActualMinutes);
+    const total = has("studyActualMinutes") || has("questionActualMinutes")
+      ? number(goal.studyActualMinutes) + questions : number(goal.actualMinutes ?? goal.tempo_real_minutos);
+    return kind === "questions" ? questions : kind === "study" ? Math.max(0, total - questions) : total;
+  }
+  function credited(goal, studies, kind) {
+    return studies.filter(s => String(s.goalId || s.dailyGoalId || "") === String(goal.id)
+      && s.origin === "timer" && s.updatesGoal !== false
+      && (!kind || (s.timerKind === "questions" ? "questions" : "study") === kind));
+  }
+  function residualMinutes(goal, studies, kind) {
+    return Math.max(0, legacyGoalMinutes(goal, kind) - credited(goal, studies, kind).reduce((total, s) => total + number(s.minutes), 0));
+  }
+  function goalSeconds(goal, state = {}, kind) {
+    const studies = unique(state.studies || []);
+    return Math.round(residualMinutes(goal, studies, kind) * 60)
+      + credited(goal, studies, kind).reduce((total, s) => total + recordSeconds(s), 0);
+  }
+  function logs(state = {}) {
+    const studies = unique(state.studies || []);
+    return [
+      ...studies.map(s => ({...s, seconds: recordSeconds(s)})),
+      ...unique(state.dailyGoals || []).map(g => ({id: `goal-${g.id}`, date: date(g), discipline: g.discipline || g.disciplina,
+        topic: g.subject || g.assunto, syllabusItemId: g.syllabusItemId, type: g.type || g.tipo || "Meta", seconds: Math.round(residualMinutes(g, studies) * 60)})),
+      ...unique(state.questionLogs || []).map(q => ({...q, id: `questions-${q.id || key(q)}`, date: date(q), type: q.trainingType || "Questões", seconds: recordSeconds(q)}))
+    ].filter(log => log.seconds > 0);
+  }
+  function secondsBetween(state, start, end = start) {
+    return logs(state).reduce((total, log) => date(log) >= start && date(log) <= end ? total + log.seconds : total, 0);
+  }
+  function formatSeconds(value) {
+    const seconds = Math.round(number(value));
+    return `${Math.floor(seconds / 3600)}h ${String(Math.floor(seconds % 3600 / 60)).padStart(2, "0")}min ${String(seconds % 60).padStart(2, "0")}s`;
+  }
+  const api = Object.freeze({recordSeconds, legacyGoalMinutes, goalSeconds, logs, secondsBetween, formatSeconds,
+    formatMinutes: minutes => formatSeconds(number(minutes) * 60),
+    sessionCount: (state, day) => unique(state.studies || []).filter(s => date(s) === day).length});
+  globalThis.__ALDUS_STUDY_TIME__ = api;
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+})();
+
 /* Aldus source: qconcursos-pdf-import-v181.js */
 (() => {
   "use strict";
@@ -39088,10 +39154,10 @@ function submitTimerStudyModal(event) {
     if (goal.actualMinutes > 0 && goal.status === "Pendente") goal.status = "Em andamento";
     appendGoalHistory(goal, `Tempo salvo pelo cronômetro: +${minutes} min em ${label} em ${new Date(draft.endedAt).toLocaleString("pt-BR")}. Total realizado: ${goal.actualMinutes} min.`);
   }
-  state.studies.push({ id: createId(), sessionId: draft.sessionId, timerSessionId: draft.sessionId, date: draft.goalDate || goal.date || goal.data || todayISO(), startedAt: new Date(draft.startedAt).toISOString(), endedAt: new Date(draft.endedAt).toISOString(), startTime: new Date(draft.startedAt).toISOString(), endTime: new Date(draft.endedAt).toISOString(), subjectId: state.subjects.find((s) => canonical(s.name) === canonical(savedDiscipline))?.id || "", discipline: savedDiscipline, syllabusItemId: descriptor.syllabusItemId, topic: savedSubject, material: elements.timerStudyMaterial.value || "", minutes, plannedMinutes: draft.plannedMinutes, timerMode: draft.mode, timerKind: draft.kind, updatesGoal: elements.timerStudyUpdateGoal.checked, plannedDuration: draft.plannedMinutes, actualDuration: minutes, pauses: draft.pauses, resumes: draft.resumes, topicStatus: "Iniciado", difficultyNotes: elements.timerStudyNotes.value.trim(), materialId: elements.timerStudyMaterial.value || "", questions: 0, correct: 0, wrong: 0, blank: 0, origin: "timer", timerSource: "Plano do Dia", timerOrigin: draft.mode, goalId: goal.id, feedAnalytics: elements.timerStudyFeedAnalytics.checked, feedAdvisor: elements.timerStudyFeedAdvisor.checked });
+  state.studies.push({ id: createId(), sessionId: draft.sessionId, timerSessionId: draft.sessionId, date: draft.goalDate || goal.date || goal.data || todayISO(), startedAt: new Date(draft.startedAt).toISOString(), endedAt: new Date(draft.endedAt).toISOString(), startTime: new Date(draft.startedAt).toISOString(), endTime: new Date(draft.endedAt).toISOString(), subjectId: state.subjects.find((s) => canonical(s.name) === canonical(savedDiscipline))?.id || "", discipline: savedDiscipline, syllabusItemId: descriptor.syllabusItemId, topic: savedSubject, material: elements.timerStudyMaterial.value || "", minutes, seconds: draft.seconds, elapsedSeconds: draft.seconds, actualDurationSeconds: draft.seconds, plannedMinutes: draft.plannedMinutes, timerMode: draft.mode, timerKind: draft.kind, updatesGoal: elements.timerStudyUpdateGoal.checked, plannedDuration: draft.plannedMinutes, actualDuration: minutes, pauses: draft.pauses, resumes: draft.resumes, topicStatus: "Iniciado", difficultyNotes: elements.timerStudyNotes.value.trim(), materialId: elements.timerStudyMaterial.value || "", questions: 0, correct: 0, wrong: 0, blank: 0, origin: "timer", timerSource: "Plano do Dia", timerOrigin: draft.mode, goalId: goal.id, feedAnalytics: elements.timerStudyFeedAnalytics.checked, feedAdvisor: elements.timerStudyFeedAdvisor.checked });
   saveData();
   render();
-  showDailyGoalMessage(`Tempo salvo: ${minutes} min em ${label}.`, "success");
+  showDailyGoalMessage(`Tempo salvo: ${formatHours(draft.seconds / 60)} em ${label}.`, "success");
   autoSyncAfterSave("timer-save");
   closeTimerStudyModal();
   closeFloatingTimer();
@@ -40163,7 +40229,7 @@ function goalCompletionElements() {
 let goalCompletionActiveGoalId = "";
 let goalCompletionReturnFocus = null;
 const goalCompletionInProgress = new Set();
-function formatHours(minutes) { const hours = minutes / 60; return `${Number.isInteger(hours) ? hours : hours.toFixed(1)}h`; }
+function formatHours(minutes) { if (globalThis.__ALDUS_STUDY_TIME__) return globalThis.__ALDUS_STUDY_TIME__.formatMinutes(minutes); const hours = minutes / 60; return `${Number.isInteger(hours) ? hours : hours.toFixed(1)}h`; }
 function formatDateBR(dateString) {
   if (typeof dateString !== "string") return "-";
   const match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -40181,6 +40247,10 @@ function goalTotalActualMinutes(goal = {}) {
     return (Number(goal.studyActualMinutes) || 0) + (Number(goal.questionActualMinutes) || 0);
   }
   return Number(goal.actualMinutes ?? goal.tempo_real_minutos) || 0;
+}
+function goalDisplayMinutes(goal, kind) {
+  if (globalThis.__ALDUS_STUDY_TIME__) return globalThis.__ALDUS_STUDY_TIME__.goalSeconds(goal, state, kind) / 60;
+  return kind === "study" ? Number(goal.studyActualMinutes) || 0 : kind === "questions" ? Number(goal.questionActualMinutes) || 0 : goalTotalActualMinutes(goal);
 }
 function legacyTimerMigrationState(targetState = state) {
   targetState.migrations ||= {};
@@ -42410,10 +42480,10 @@ function renderPlanningPreview(scoreContext = buildPlanningScoreContext()) {
 
 function renderDashboard() {
   medirFaseBootV350("dashboard:renderSmartReviewSummary", () => renderSmartReviewSummary());
-  const today = todayISO(); const todayMinutes = state.studies.filter((study) => study.date === today).reduce((sum, study) => sum + study.minutes, 0); const weekMinutes = state.studies.filter((study) => isSameWeek(study.date)).reduce((sum, study) => sum + study.minutes, 0); const totalQuestions = state.studies.reduce((sum, study) => sum + study.questions, 0); const correct = state.studies.reduce((sum, study) => sum + study.correct, 0);
+  const today = todayISO(); const todayMinutes = globalThis.__ALDUS_STUDY_TIME__ ? globalThis.__ALDUS_STUDY_TIME__.secondsBetween(state, today) / 60 : state.studies.filter((study) => study.date === today).reduce((sum, study) => sum + study.minutes, 0); const weekMinutes = globalThis.__ALDUS_STUDY_TIME__ ? globalThis.__ALDUS_STUDY_TIME__.secondsBetween(state, weekStart(today), addDays(weekStart(today), 6)) / 60 : state.studies.filter((study) => isSameWeek(study.date)).reduce((sum, study) => sum + study.minutes, 0); const totalQuestions = state.studies.reduce((sum, study) => sum + study.questions, 0); const correct = state.studies.reduce((sum, study) => sum + study.correct, 0);
   const total = state.syllabusItems.length; const studied = state.syllabusItems.filter(completedStatus).length; const weak = medirFaseBootV350("dashboard:filter-isWeakItem", () => state.syllabusItems.filter(isWeakItem).length); const undiagnosed = medirFaseBootV350("dashboard:filter-isUndiagnosed", () => state.syllabusItems.filter(isUndiagnosed).length); const notStarted = state.syllabusItems.filter((item) => item.status === "Não iniciado").length;
   const pendingByDiscipline = state.syllabusItems.filter((item) => !completedStatus(item) && item.status !== "Ignorado").reduce((acc, item) => ({ ...acc, [item.discipline]: (acc[item.discipline] || 0) + 1 }), {}); const topPending = Object.entries(pendingByDiscipline).sort((a, b) => b[1] - a[1])[0];
-  const questionTotals = medirFaseBootV350("dashboard:getQuestionTotals", () => getQuestionTotals()); const todayPlanGoals = actionableDailyPlanGoalsForDate(state, today); const pendingGoals = todayPlanGoals.filter((goal) => goal.status === "Pendente").length; const doneGoals = state.dailyGoals.filter((goal) => goalDateValue(goal) === today && isGoalDone(goal)).length;
+  const questionTotals = medirFaseBootV350("dashboard:getQuestionTotals", () => getQuestionTotals()); const todayPlanGoals = dailyPlanGoalsForDisplay(state, today); const pendingGoals = todayPlanGoals.filter((goal) => goal.status === "Pendente").length; const doneGoals = state.dailyGoals.filter((goal) => goalDateValue(goal) === today && isGoalDone(goal)).length;
   medirFaseBootV350("dashboard:escrita-dom-indicadores", () => { elements.todayHours.textContent = formatHours(todayMinutes); elements.weekHours.textContent = formatHours(weekMinutes); elements.weeklyGoalStatus.textContent = `${formatHours(weekMinutes)} registradas`; elements.totalQuestions.textContent = questionTotals.total || totalQuestions; elements.accuracyRate.textContent = questionTotals.total ? `${Math.round(questionTotals.correct / questionTotals.total * 100)}%` : (totalQuestions ? `${Math.round((correct / totalQuestions) * 100)}%` : "0%"); elements.generalCebraspeNet.textContent = questionTotals.net; elements.todayPendingGoals.textContent = pendingGoals; elements.todayDoneGoals.textContent = doneGoals; });
   const progress = medirFaseBootV350("dashboard:progressMetrics", () => progressMetrics()); const plan = medirFaseBootV350("dashboard:planningMetrics", () => planningMetrics()); medirFaseBootV350("dashboard:renderDashboardProgressSummary", () => renderDashboardProgressSummary()); if (elements.totalStudyTime) elements.totalStudyTime.textContent = formatHours(plan.totalMinutes); if (elements.averageTimePerTopic) elements.averageTimePerTopic.textContent = formatHours(plan.avgMinutes); if (elements.dashboardCompletionForecast) elements.dashboardCompletionForecast.textContent = formatDateBR(plan.forecastDate); if (elements.daysUntilExam) elements.daysUntilExam.textContent = plan.examDate ? Math.ceil((parseDate(plan.examDate) - parseDate(todayISO())) / 86400000) : "-"; if (elements.planningStatus) elements.planningStatus.textContent = plan.safeDiff === null ? "sem prova" : plan.safeDiff < 0 ? "atrasado" : plan.safeDiff <= 7 ? "em dia" : "adiantado";
   medirFaseBootV350("dashboard:escrita-dom-progresso", () => { if (elements.syllabusStudied) elements.syllabusStudied.textContent = `${progress.percent}%`; if (elements.dashboardStudiedTopics) elements.dashboardStudiedTopics.textContent = studied; if (elements.syllabusTotal) elements.syllabusTotal.textContent = total; if (elements.schedulableTotal) elements.schedulableTotal.textContent = state.syllabusItems.filter((item) => isSchedulable(item.id)).length; if (elements.notStartedTotal) elements.notStartedTotal.textContent = notStarted; if (elements.undiagnosedTotal) elements.undiagnosedTotal.textContent = undiagnosed; if (elements.weakTotal) elements.weakTotal.textContent = weak; if (elements.pendingDiscipline) elements.pendingDiscipline.textContent = topPending ? `${topPending[0]} (${topPending[1]})` : "-"; });
@@ -42625,7 +42695,7 @@ function renderHistory() {
   }
   studies.forEach((study) => {
     const row = document.createElement("tr");
-    row.innerHTML = `<td>${formatDateBR(study.date)}</td><td>${escapeHTML(study.discipline || subjectNameById(study.subjectId))}</td><td>${escapeHTML(study.topic)}</td><td>${study.minutes}</td><td>${study.questions}</td><td>${study.correct}</td><td>${study.wrong}</td><td>${study.blank}</td>`;
+    row.innerHTML = `<td>${formatDateBR(study.date)}</td><td>${escapeHTML(study.discipline || subjectNameById(study.subjectId))}</td><td>${escapeHTML(study.topic)}</td><td>${globalThis.__ALDUS_STUDY_TIME__ ? formatHours(globalThis.__ALDUS_STUDY_TIME__.recordSeconds(study) / 60) : study.minutes}</td><td>${study.questions}</td><td>${study.correct}</td><td>${study.wrong}</td><td>${study.blank}</td>`;
     elements.historyBody.appendChild(row);
   });
 }
@@ -45665,7 +45735,7 @@ function goalCalendarVisualLabel(goal) {
 }
 function goalCalendarVisualClass(goal) { return `calendar-goal-state-${goalCalendarVisualState(goal)}`; }
 function goalCalendarMini(g){ const descriptor = canonicalStudyDescriptor(g); return `<p class="goal-pill ${goalCalendarVisualClass(g)}" aria-label="${escapeHTML(goalCalendarVisualLabel(g))}: ${escapeHTML(descriptor.discipline)} — ${escapeHTML(descriptor.subject)}">${escapeHTML(descriptor.discipline)} — ${escapeHTML(descriptor.subject)}</p>`; }
-function goalCalendarCard(goal){ normalizeGoalTimeFields(goal); const descriptor = canonicalStudyDescriptor(goal); return `<article class="syllabus-card goal-status-${canonical(goal.status)} ${goalCalendarVisualClass(goal)}" aria-label="${escapeHTML(goalCalendarVisualLabel(goal))}: ${escapeHTML(descriptor.discipline)} — ${escapeHTML(descriptor.subject)}"><header><div><h3>${escapeHTML(descriptor.discipline)} — ${escapeHTML(descriptor.subject)}</h3><div class="item-meta">${escapeHTML(goal.type)} • planejado ${goal.minutes||0} min • estudo ${goal.studyActualMinutes||0} min • questões ${goal.questionActualMinutes||0} min • total ${goal.actualMinutes||0} min</div></div></header><div class="card-actions"><button data-calendar-action="done" data-id="${goal.id}">Concluir meta</button><button data-calendar-action="postpone" data-id="${goal.id}">Adiar</button><button data-calendar-action="edit" data-id="${goal.id}">Editar</button><button data-calendar-action="study-time" data-id="${goal.id}">Registrar estudo</button><button data-calendar-action="question-time" data-id="${goal.id}">Tempo de questões</button><button data-calendar-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button data-calendar-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button data-register-goal="${goal.id}">Registrar questões</button></div></article>`; }
+function goalCalendarCard(goal){ normalizeGoalTimeFields(goal); const descriptor = canonicalStudyDescriptor(goal); return `<article class="syllabus-card goal-status-${canonical(goal.status)} ${goalCalendarVisualClass(goal)}" aria-label="${escapeHTML(goalCalendarVisualLabel(goal))}: ${escapeHTML(descriptor.discipline)} — ${escapeHTML(descriptor.subject)}"><header><div><h3>${escapeHTML(descriptor.discipline)} — ${escapeHTML(descriptor.subject)}</h3><div class="item-meta">${escapeHTML(goal.type)} • planejado ${goal.minutes||0} min • estudo ${formatHours(goalDisplayMinutes(goal, "study"))} • questões ${formatHours(goalDisplayMinutes(goal, "questions"))} • total ${formatHours(goalDisplayMinutes(goal))}</div></div></header><div class="card-actions"><button data-calendar-action="done" data-id="${goal.id}">Concluir meta</button><button data-calendar-action="postpone" data-id="${goal.id}">Adiar</button><button data-calendar-action="edit" data-id="${goal.id}">Editar</button><button data-calendar-action="study-time" data-id="${goal.id}">Registrar estudo</button><button data-calendar-action="question-time" data-id="${goal.id}">Tempo de questões</button><button data-calendar-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button data-calendar-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button data-register-goal="${goal.id}">Registrar questões</button></div></article>`; }
 
 function buildGoalCalendarExportPayload(date = elements.calendarDate?.value || todayISO()) {
   const build = (mode) => { const period = goalCalendarPeriod(date, mode); return { ...period, days: period.dates.map((day) => { const goals = state.dailyGoals.filter((goal) => goalDateValue(goal) === day).map((goal) => { const descriptor = canonicalStudyDescriptor(goal); return { date: day, syllabusItemId: descriptor.syllabusItemId, discipline: descriptor.discipline, subject: descriptor.subject, type: goal.type || "Estudo", plannedMinutes: Number(goal.minutes) || 0, actualMinutes: Number(goal.actualMinutes) || 0, status: goal.status || "Pendente", priority: goal.priority || "-" }; }); const av = availabilityForDate(day); return { date: day, dayType: dayTypeLabel(av), availableHours: Number(av.hours) || 0, goals }; }) }; };
@@ -45785,6 +45855,16 @@ function centralTimeLogEdital(log = {}, index = null) {
   return state.edital?.contestName || "Edital principal";
 }
 function centralTimeChartLogs() {
+  if (globalThis.__ALDUS_STUDY_TIME__) {
+    const index = centralTimeSyllabusIndex();
+    const subjectById = new Map((state.subjects || []).map(subject => [subject.id, subject.name]));
+    return globalThis.__ALDUS_STUDY_TIME__.logs(state).map(log => {
+      const descriptor = canonicalStudyDescriptor({...log, subject: log.topic || log.subject || "Sem assunto", discipline: log.discipline || subjectById.get(log.subjectId) || "Sem disciplina"});
+      const row = {...log, discipline: descriptor.discipline, subject: descriptor.subject, syllabusItemId: descriptor.syllabusItemId,
+        minutes: log.seconds / 60, type: log.type || (log.timerKind === "questions" ? "Questões" : studyOriginLabel(log))};
+      return {...row, edital: centralTimeLogEdital(row, index)};
+    });
+  }
   const subjectById = new Map((state.subjects || []).map((subject) => [subject.id, subject.name]));
   const studies = (state.studies || []).map((study) => { const descriptor = canonicalStudyDescriptor({ ...study, subject: study.topic || study.subject || "Sem assunto", discipline: study.discipline || subjectById.get(study.subjectId) || "Sem disciplina" }); return { id: study.id, date: study.date, discipline: descriptor.discipline, subject: descriptor.subject, syllabusItemId: descriptor.syllabusItemId, minutes: Number(study.minutes) || 0, type: study.timerKind === "questions" ? "Questões" : studyOriginLabel(study) }; });
   const goals = (state.dailyGoals || []).map((goal) => { const descriptor = canonicalStudyDescriptor(goal); return { id: `goal-${goal.id}`, date: goalDateValue(goal), discipline: descriptor.discipline, subject: descriptor.subject, syllabusItemId: descriptor.syllabusItemId, minutes: goalUnloggedActualMinutes(goal), type: goal.type || goal.tipo || "Meta" }; }).filter((goal) => goal.minutes > 0);
@@ -45918,7 +45998,7 @@ function relatedGoalExecutionMinutes(goal = {}) {
   }).reduce((sum, candidate) => sum + goalTotalActualMinutes(candidate), 0);
 }
 function goalAccumulatedExecution(goal, entry = null, materialState = getDailyGoalMaterialState(goal, entry)) {
-  const current = goalTotalActualMinutes(goal);
+  const current = goalDisplayMinutes(goal);
   const material = entry?.estimateMaterial || materialState?.estimatedMaterials?.[0] || materialState?.materials?.[0] || null;
   const materialTotal = material ? plannedStudyStatsForMaterial(material).done : 0;
   const syllabusItem = getSyllabusById(goal.syllabusItemId);
@@ -45934,9 +46014,10 @@ function goalAccumulatedExecution(goal, entry = null, materialState = getDailyGo
 function goalExecutionSummaryHTML(goal, entry = null, materialState = getDailyGoalMaterialState(goal, entry)) {
   const execution = goalAccumulatedExecution(goal, entry, materialState);
   const estimatedProgress = execution.estimated > 0 ? ` • ${Math.round((execution.cumulative / execution.estimated) * 100)}% da estimativa` : "";
-  return `<section class="goal-execution-summary" aria-label="Tempo realizado"><article class="goal-execution-total"><span>Tempo acumulado neste assunto</span><strong>${formatExportDuration(execution.cumulative)}</strong><small>${execution.cumulative} min registrados${estimatedProgress}</small></article><article class="goal-execution-current"><span>Nesta meta de ${formatDateBR(execution.date)}</span><strong>${formatExportDuration(execution.current)}</strong><small>${execution.current} de ${Number(goal.minutes || 0)} min planejados</small></article></section>`;
+  return `<section class="goal-execution-summary" aria-label="Tempo realizado"><article class="goal-execution-total"><span>Tempo acumulado neste assunto</span><strong>${formatExportDuration(execution.cumulative)}</strong><small>${formatExportDuration(execution.cumulative)} registrados${estimatedProgress}</small></article><article class="goal-execution-current"><span>Nesta meta de ${formatDateBR(execution.date)}</span><strong>${formatExportDuration(execution.current)}</strong><small>${formatExportDuration(execution.current)} de ${formatExportDuration(Number(goal.minutes || 0))} planejados</small></article></section>`;
 }
 function totalRecordedStudyMinutes(records = state.studies || []) {
+  if (globalThis.__ALDUS_STUDY_TIME__) return globalThis.__ALDUS_STUDY_TIME__.secondsBetween({studies: records}, "0000-01-01", "9999-12-31") / 60;
   const seen = new Set();
   return records.reduce((total, record) => {
     const key = String(record.timerSessionId || record.sessionId || record.id || JSON.stringify(record));
@@ -45954,7 +46035,7 @@ function dailyGoalDetailsBodyHTML(goal, projectionEntry = null) {
   const descriptor = canonicalStudyDescriptor(goal);
   const history = (goal.history || goal.historico || []).slice(-3).map((entry) => `<li>${escapeHTML(typeof entry === "string" ? entry : entry.message || entry.text || JSON.stringify(entry))}</li>`).join("");
   const materialState = getDailyGoalMaterialState(goal, projectionEntry);
-  return `<div class="daily-goal-content">${goalExecutionSummaryHTML(goal, projectionEntry, materialState)}<div class="card-meta-grid"><span>Disciplina: ${escapeHTML(descriptor.discipline)}</span><span>Assunto: ${escapeHTML(descriptor.subject)}</span><span>Tipo: ${escapeHTML(goal.type || goal.tipo || "-")}</span><span>Prioridade: ${escapeHTML(goal.priority || goal.prioridade || "-")}</span><span>Planejado nesta meta: ${Number(goal.minutes||0)} min</span><span>Estudo nesta meta: ${Number(goal.studyActualMinutes||0)} min</span><span>Questões nesta meta: ${Number(goal.questionActualMinutes||0)} min</span><span>Total nesta meta: ${Number(goal.actualMinutes||0)} min</span><span>Status: ${escapeHTML(status)}</span><span>Referência: ${escapeHTML(descriptor.reference || "-")}</span></div><div class="progress"><span style="width:${Math.min(100, Math.round((goalTotalActualMinutes(goal) / Math.max(1, Number(goal.minutes)||1)) * 100))}%"></span></div>${dailyGoalMaterialAvailabilityHTML(materialState)}${goalMaterialEstimateHTML(goal, projectionEntry, materialState)}${goalTimeComparisonHTML(goal, projectionEntry, materialState)}${goalMaterialsDetailsHTML(goal, projectionEntry, materialState)}<p class="notice" data-goal-material-notice="${goal.id}" ${goalMaterialNotices.has(goal.id) ? "" : "hidden"}>${escapeHTML(goalMaterialNotices.get(goal.id) || "")}</p><details class="daily-goal-history"><summary>Histórico resumido</summary><ul>${history || "<li>Sem histórico registrado.</li>"}</ul></details><div class="card-actions">${materialState.hasMaterials ? `<button type="button" data-open-goal-material="${goal.id}">Abrir material</button>` : `<button type="button" data-create-goal-material data-discipline="${escapeHTML(descriptor.discipline)}" data-subject="${escapeHTML(descriptor.subject)}" data-syllabus-item-id="${escapeHTML(descriptor.syllabusItemId)}">Cadastrar material</button><a class="button-link" href="#fabrica-resumos" data-view-link="fabrica-resumos">Produzir material</a>`}<button type="button" data-goal-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button type="button" data-goal-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button type="button" data-goal-action="Concluída" data-id="${goal.id}">Concluir meta</button></div><details class="daily-goal-more-actions"><summary>Mais ações</summary><div class="card-actions"><button type="button" data-goal-action="Estudo" data-id="${goal.id}">Registrar estudo manualmente</button><button type="button" data-goal-action="QuestoesTempo" data-id="${goal.id}">Registrar tempo de questões</button><button type="button" data-register-goal="${goal.id}">Registrar questões</button><button type="button" data-goal-history="${goal.id}">Ver histórico</button><button type="button" data-goal-action="Adiada" data-id="${goal.id}">Reagendar ou adiar</button><button type="button" data-goal-action="Não cumprida" data-id="${goal.id}">Não cumprir</button></div></details></div>`;
+  return `<div class="daily-goal-content">${goalExecutionSummaryHTML(goal, projectionEntry, materialState)}<div class="card-meta-grid"><span>Disciplina: ${escapeHTML(descriptor.discipline)}</span><span>Assunto: ${escapeHTML(descriptor.subject)}</span><span>Tipo: ${escapeHTML(goal.type || goal.tipo || "-")}</span><span>Prioridade: ${escapeHTML(goal.priority || goal.prioridade || "-")}</span><span>Planejado nesta meta: ${Number(goal.minutes||0)} min</span><span>Estudo nesta meta: ${formatHours(goalDisplayMinutes(goal, "study"))}</span><span>Questões nesta meta: ${formatHours(goalDisplayMinutes(goal, "questions"))}</span><span>Total nesta meta: ${formatHours(goalDisplayMinutes(goal))}</span><span>Status: ${escapeHTML(status)}</span><span>Referência: ${escapeHTML(descriptor.reference || "-")}</span></div><div class="progress"><span style="width:${Math.min(100, Math.round((goalTotalActualMinutes(goal) / Math.max(1, Number(goal.minutes)||1)) * 100))}%"></span></div>${dailyGoalMaterialAvailabilityHTML(materialState)}${goalMaterialEstimateHTML(goal, projectionEntry, materialState)}${goalTimeComparisonHTML(goal, projectionEntry, materialState)}${goalMaterialsDetailsHTML(goal, projectionEntry, materialState)}<p class="notice" data-goal-material-notice="${goal.id}" ${goalMaterialNotices.has(goal.id) ? "" : "hidden"}>${escapeHTML(goalMaterialNotices.get(goal.id) || "")}</p><details class="daily-goal-history"><summary>Histórico resumido</summary><ul>${history || "<li>Sem histórico registrado.</li>"}</ul></details><div class="card-actions">${materialState.hasMaterials ? `<button type="button" data-open-goal-material="${goal.id}">Abrir material</button>` : `<button type="button" data-create-goal-material data-discipline="${escapeHTML(descriptor.discipline)}" data-subject="${escapeHTML(descriptor.subject)}" data-syllabus-item-id="${escapeHTML(descriptor.syllabusItemId)}">Cadastrar material</button><a class="button-link" href="#fabrica-resumos" data-view-link="fabrica-resumos">Produzir material</a>`}<button type="button" data-goal-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button type="button" data-goal-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button type="button" data-goal-action="Concluída" data-id="${goal.id}">Concluir meta</button></div><details class="daily-goal-more-actions"><summary>Mais ações</summary><div class="card-actions"><button type="button" data-goal-action="Estudo" data-id="${goal.id}">Registrar estudo manualmente</button><button type="button" data-goal-action="QuestoesTempo" data-id="${goal.id}">Registrar tempo de questões</button><button type="button" data-register-goal="${goal.id}">Registrar questões</button><button type="button" data-goal-history="${goal.id}">Ver histórico</button><button type="button" data-goal-action="Adiada" data-id="${goal.id}">Reagendar ou adiar</button><button type="button" data-goal-action="Não cumprida" data-id="${goal.id}">Não cumprir</button></div></details></div>`;
 }
 function dailyGoalDetailsCard(goal, number = 1, projectionEntry = null) {
   normalizeGoalTimeFields(goal);
@@ -45998,7 +46079,7 @@ function renderDailyGoals() {
   const dayContent = getDayContentConfig(date);
   const questionProgress = questionGoalProgress(date);
   if (elements.selectedGoalDateLabel) elements.selectedGoalDateLabel.textContent = formatDateBR(date);
-  if (elements.dailyGoalsSummary) elements.dailyGoalsSummary.innerHTML = `<details ${dailyPlanSectionAttrs("summary", true)}>${dailyPlanSummaryHTML("Resumo de hoje", `${stats.completed} concluídas • ${stats.pending} pendentes`)}<div class="daily-plan-content daily-goals-summary stats-grid compact"><article class="stat-card"><span>Metas concluídas</span><strong>${stats.completed}</strong></article><article class="stat-card"><span>Metas pendentes</span><strong>${stats.pending}</strong></article><article class="stat-card planned-today-stat"><span>Tempo planejado hoje</span><strong>${formatHours(stats.target)}</strong></article><article class="stat-card realized-today-stat"><span>Tempo realizado hoje</span><strong>${formatHours(stats.done)}</strong></article><article class="stat-card historical-time-stat"><span>Histórico de estudo registrado</span><strong>${formatExportDuration(totalRecordedStudyMinutes())}</strong></article><article class="stat-card"><span>Questões realizadas</span><strong>${questionProgress.done}</strong></article><article class="stat-card wide-stat"><span>Progresso geral: ${stats.goalsPct}%</span><div class="progress"><span style="width:${stats.goalsPct}%"></span></div></article></div></details>`;
+  if (elements.dailyGoalsSummary) elements.dailyGoalsSummary.innerHTML = `<details ${dailyPlanSectionAttrs("summary", true)}>${dailyPlanSummaryHTML("Resumo de hoje", `${stats.completed} concluídas • ${stats.pending} pendentes`)}<div class="daily-plan-content daily-goals-summary stats-grid compact"><article class="stat-card"><span>Metas concluídas</span><strong>${stats.completed}</strong></article><article class="stat-card"><span>Metas pendentes</span><strong>${stats.pending}</strong></article><article class="stat-card planned-today-stat"><span>Tempo planejado hoje</span><strong>${formatHours(stats.target)}</strong></article><article class="stat-card realized-today-stat"><span>Tempo realizado hoje</span><strong>${formatHours(globalThis.__ALDUS_STUDY_TIME__ ? globalThis.__ALDUS_STUDY_TIME__.secondsBetween(state, date) / 60 : stats.done)}</strong></article><article class="stat-card historical-time-stat"><span>Histórico de estudo registrado</span><strong>${formatExportDuration(totalRecordedStudyMinutes())}</strong></article><article class="stat-card"><span>Questões realizadas</span><strong>${questionProgress.done}</strong></article><article class="stat-card wide-stat"><span>Progresso geral: ${stats.goalsPct}%</span><div class="progress"><span style="width:${stats.goalsPct}%"></span></div></article></div></details>`;
   renderNextDailyGoal(dayGoals, window.__dailyPlanProjectionByGoalId);
   const notices = [];
   if (availability.type === "indisponível") notices.push(`<p class="notice warning-notice">Dia marcado como indisponível. A geração automática só acontece mediante confirmação.</p>`);
@@ -49363,16 +49444,19 @@ function hashToView() {
 
 function renderGoalDashboardCards(precomputedTodayGoals = null) {
   const today = todayISO(), ws = weekStart(today), we = addDays(ws, 6);
-  const todayGoals = Array.isArray(precomputedTodayGoals) ? precomputedTodayGoals : actionableDailyPlanGoalsForDate(state, today);
+  const todayGoals = dailyPlanGoalsForDisplay(state, today);
   const weekGoals = goalsBetween(ws, we);
   const monthGoals = state.dailyGoals.filter((goal) => goalDateValue(goal).slice(0, 7) === today.slice(0, 7));
   const availability = availabilityForDate(today), stats = goalProgressStats(todayGoals, availability);
+  if (globalThis.__ALDUS_STUDY_TIME__) {
+    stats.done = globalThis.__ALDUS_STUDY_TIME__.secondsBetween(state, today) / 60;
+    stats.remaining = Math.max(0, stats.target - stats.done);
+  }
   const nextToday = todayGoals.find((goal) => !isGoalDone(goal) && !["Não cumprida", "Ignorada", "Adiada", "Reagendada"].includes(goal.status || ""));
-  const completedRecords = completedPlanningSubjectRecords(state);
-  const next = state.dailyGoals.filter((goal) => isActionableDailyPlanGoal(goal, state, completedRecords) && goalDateValue(goal) >= today).sort((a, b) => goalDateValue(a).localeCompare(goalDateValue(b)))[0];
+  const next = state.dailyGoals.filter((goal) => !isGoalDone(goal) && !["Não cumprida", "Ignorada", "Adiada", "Reagendada"].includes(goal.status || "") && goalDateValue(goal) >= today).sort((a, b) => goalDateValue(a).localeCompare(goalDateValue(b)))[0];
   const delayed = Object.entries(state.syllabusItems.filter((item) => !completedStatus(item) && item.status !== "Ignorado").reduce((map, item) => (map[item.discipline] = (map[item.discipline] || 0) + 1, map), {})).sort((a, b) => b[1] - a[1])[0];
   const top = Object.entries(weekGoals.reduce((map, goal) => (map[goal.discipline] = (map[goal.discipline] || 0) + 1, map), {})).sort((a, b) => b[1] - a[1])[0];
-  if (elements.dashboardTodayGoal) elements.dashboardTodayGoal.textContent = stats.target ? formatHours(stats.target) : "0h";
+  if (elements.dashboardTodayGoal) elements.dashboardTodayGoal.textContent = formatHours(stats.target);
   if (elements.dashboardTodayGoalDetail) elements.dashboardTodayGoalDetail.textContent = `${todayGoals.length} meta(s) para hoje`;
   if (elements.dashboardDailyGoalRate) elements.dashboardDailyGoalRate.textContent = `${stats.goalsPct}%`;
   if (elements.dashboardTodayRemaining) elements.dashboardTodayRemaining.textContent = formatHours(stats.remaining);
@@ -49406,6 +49490,7 @@ function showFactoryDisabledMessage() {
 
 /* 20260714-exportacao-real-graficos-v2 */
 function formatExportDuration(minutes, compact = false) {
+  if (globalThis.__ALDUS_STUDY_TIME__) return globalThis.__ALDUS_STUDY_TIME__.formatMinutes(minutes);
   const total = Math.max(0, Math.round(Number(minutes) || 0));
   if (compact && total >= 60) return `${(total / 60).toFixed(1).replace('.', ',')} h`;
   if (total < 60) return `${total} min`;

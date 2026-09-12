@@ -59,7 +59,7 @@
     "aldusEmergencyIndexedDBActivationBackupV256"
   ];
   const SCRIPT_CHAIN = [
-    ["aldusAppBundleScript", "app-v424.js?v=20260911-factory-precisao-concisao-v424"],
+    ["aldusAppBundleScript", "app-v424.js?v=20260912-tempo-segundos-indicadores-v424"],
     ["aldusPlanningQualityV368", "planning-quality-v368.js?v=20260826-planning-stability-v397"],
     ["aldusTimerGoalIntegrityV366", "timer-goal-integrity-v366.js?v=20260821-timer-goal-integrity-v366"],
     ["aldusQconcursosFilterRouteV333", "qconcursos-filter-route-v333.js?v=20260814-restaura-filtros-qconcursos-v333"],
@@ -71,8 +71,8 @@
     ["aldusFactorySimuladoPromptV310", "factory-simulado-prompt-v310.js?v=20260814-gerador-simulados-em-questoes-v328"],
     ["aldusSimuladoInterativoV313", "simulado-interativo-v313.js?v=20260811-simulado-interativo-v313"],
     ["aldusSimuladoIntegracaoV314", "simulado-integracao-v314.js?v=20260811-simulado-integracao-v314"],
-    ["aldusDailySummaryTimeFormatV243Direct", "daily-summary-time-format-v243.js?v=20260805-daily-summary-hours-minutes-v243&hotfix=daily-summary-time-format-hotfix3"],
-    ["aldusDashboardTodayTimeSyncV253", "dashboard-today-time-sync-v253.js?v=20260805-dashboard-today-time-sync-v253&hotfix=dashboard-today-time-sync-hotfix1"],
+    ["aldusDailySummaryTimeFormatV243Direct", "daily-summary-time-format-v243.js?v=20260912-tempo-segundos-indicadores-v424"],
+    ["aldusDashboardTodayTimeSyncV253", "dashboard-today-time-sync-v253.js?v=20260912-tempo-segundos-indicadores-v424"],
     ["aldusDashboardTodayQuestionsSyncV257", "dashboard-today-questions-sync-v257.js?v=20260805-dashboard-today-questions-sync-v257&hotfix=question-bank-sessions1"],
     ["aldusPlanningIntegrityLoaderV235", "planning-integrity-loader-v235.js?v=20260804-simulados-sem-fabrica-cache-unico-v236&publication=v244"],
     ["aldusCentralPeriodCardsScriptV248", "central-goals-period-palette-v248.js?v=20260805-central-period-cards-v248"],

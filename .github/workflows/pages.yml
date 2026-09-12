@@ -54,6 +54,7 @@ jobs:
           node --check planning-piece-rotation-v358.js
           node --check planning-quality-v368.js
           node --test \
+            tests/study-time-seconds.test.js \
             tests/planning-user-control.test.js \
             tests/v427-planning-stability.test.js \
             tests/v387-startup-planning-stability.test.js \

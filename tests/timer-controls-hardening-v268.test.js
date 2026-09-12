@@ -58,7 +58,7 @@ function runtime({ confirmResult = true } = {}) {
   const context = {
     console,
     document,
-    Date: class extends Date { static now() { return now; } },
+    Date: class extends Date { constructor(...args) { super(...(args.length ? args : [now])); } static now() { return now; } },
     window: {
       setInterval() { return 17; },
       clearInterval() {},
@@ -131,12 +131,19 @@ test("pausar e continuar preservam a mesma sessão e o tempo acumulado", () => {
   assert.equal(r.timer.startedAt, null);
   assert.equal(r.timer.paused, true);
 
+  assert.equal(r.timer.pauses.at(-1), new Date(15_000).toISOString());
+  assert.equal(r.api.pauseActiveTimer(), false);
+  assert.equal(r.timer.pauses.length, 1);
+
   r.setNow(20_000);
   assert.equal(r.api.resumePausedTimer(), true);
   assert.equal(r.timer.sessionId, "session-1");
   assert.equal(r.timer.elapsedSeconds, 130);
   assert.equal(r.timer.startedAt, 20_000);
   assert.equal(r.timer.paused, false);
+  assert.equal(r.timer.resumes.at(-1), new Date(20_000).toISOString());
+  assert.equal(r.api.resumePausedTimer(), false);
+  assert.equal(r.timer.resumes.length, 1);
   assert.deepEqual(r.events.sounds, ["pause", "resume"]);
   assert.ok(r.events.persists >= 2);
 });

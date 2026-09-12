@@ -50,18 +50,19 @@ test("soma registros, minutos não registrados das metas e questões sem duplica
 
 test("usa os alvos reais e reage a alterações", () => {
   assert.match(source, /#todayHours/);
-  assert.match(source, /#dailyGoalsSummary \.daily-goals-summary > \.realized-today-stat > strong/);
+  assert.match(source, /#dailyGoalsSummary \.realized-today-stat > strong/);
   assert.match(source, /MutationObserver/);
   assert.match(source, /addEventListener\("storage"/);
   assert.match(source, /addEventListener\("focus"/);
   assert.match(source, /visibilitychange/);
 });
 
-test("HTML carrega V253 diretamente depois da V243", () => {
-  for (const path of ["index.html", "docs/index.html"]) {
+test("bootstrap ativo carrega V253 depois da V243 com a versão publicada", () => {
+  const version = JSON.parse(read("package.json")).version;
+  for (const path of ["bootstrap-integrity-loader-v258-core.js", "docs/bootstrap-integrity-loader-v258-core.js"]) {
     const html = read(path);
     assert.ok(html.indexOf("aldusDashboardTodayTimeSyncV253") > html.indexOf("aldusDailySummaryTimeFormatV243Direct"));
-    assert.match(html, new RegExp(`dashboard-today-time-sync-v253\\.js\\?v=${VERSION}&hotfix=dashboard-today-time-sync-hotfix1`));
+    assert.match(html, new RegExp(`dashboard-today-time-sync-v253\\.js\\?v=${version}`));
     assert.equal((html.match(/aldusDashboardTodayTimeSyncV253/g) || []).length, 1);
   }
 });

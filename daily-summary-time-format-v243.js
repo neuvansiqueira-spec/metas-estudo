@@ -66,6 +66,7 @@
   if (globalThis[GLOBAL_KEY]) return;
 
   function formatDurationMinutes(minutes) {
+    if (globalThis.__ALDUS_STUDY_TIME__) return globalThis.__ALDUS_STUDY_TIME__.formatMinutes(minutes);
     const total = Math.max(0, Math.round(Number(minutes) || 0));
     if (total < 60) return `${total}min`;
     const hours = Math.floor(total / 60);
@@ -145,10 +146,12 @@
       if (typeof state === "undefined" || !Array.isArray(state?.dailyGoals)) return null;
       const date = selectedDate();
       const availability = typeof availabilityForDate === "function" ? availabilityForDate(date) : { hours: 0 };
-      return calculateSummaryMinutes(state.dailyGoals, date, availability, {
+      const summary = calculateSummaryMinutes(state.dailyGoals, date, availability, {
         goalDateValue: typeof goalDateValue === "function" ? goalDateValue : defaultGoalDate,
         goalTotalActualMinutes: typeof goalTotalActualMinutes === "function" ? goalTotalActualMinutes : defaultActualMinutes
       });
+      if (globalThis.__ALDUS_STUDY_TIME__) summary.done = globalThis.__ALDUS_STUDY_TIME__.secondsBetween(state, date) / 60;
+      return summary;
     } catch {
       return null;
     }
@@ -162,6 +165,7 @@
       const today = typeof todayISO === "function" ? todayISO() : new Date().toLocaleDateString("en-CA");
       const start = typeof weekStart === "function" ? weekStart(today) : weekStartFallback(today);
       const end = typeof addDays === "function" ? addDays(start, 6) : addDaysFallback(start, 6);
+      if (globalThis.__ALDUS_STUDY_TIME__) return globalThis.__ALDUS_STUDY_TIME__.secondsBetween(state, start, end) / 60;
       return calculateRegisteredMinutesBetween(centralTimeChartLogs(), start, end);
     } catch {
       return null;

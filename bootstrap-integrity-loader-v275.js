@@ -11,7 +11,7 @@
   const RECOVERY_SCRIPT = `recovery-safety-v275.js?v=${LEGACY_VERSION}`;
   const PLANNING_SHIFT_PERSISTENCE_SCRIPT = `planning-shift-persistence-v283.js?v=${LEGACY_VERSION}`;
   const TIMER_SOUND_MASTER_SCRIPT = `timer-sound-master-v265.js?v=${LEGACY_VERSION}&hotfix=master-mute-hotfix1`;
-  const TIMER_CONTROLS_SCRIPT = `timer-controls-hardening-v268.js?v=${LEGACY_VERSION}&hotfix=timer-controls-hardening-hotfix2`;
+  const TIMER_CONTROLS_SCRIPT = `timer-controls-hardening-v268.js?v=20260912-tempo-segundos-indicadores-v424&hotfix=timer-controls-hardening-hotfix2`;
 
   function installStylesheet(baseUrl) {
     if (document.getElementById("aldusDuplicateDiagnosticsStylesV260")) return;
