@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260913-simulado-discursivo-delegado-v424";
+  const VERSION = "20260913-simulado-pecas-pdf-timbre-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

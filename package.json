@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260913-simulado-discursivo-delegado-v424",
+  "version": "20260913-simulado-pecas-pdf-timbre-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
