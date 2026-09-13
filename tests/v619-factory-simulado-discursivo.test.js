@@ -31,7 +31,7 @@ test("V619 gera o modelo PC-DF 2026 com multiplicadores próprios", () => {
   assert.match(prompt, /NPD ≥ 36,00/);
 });
 
-test("V619 gera o modelo PC-PR 2026 com espelho FGV e peça restrita a cautelares", () => {
+test("V619 gera o modelo PC-PR 2026 com espelho FGV e sorteio restrito às cautelares do edital", () => {
   const prompt = api.buildPrompt({ banca: "FGV", modelo: "pcpr26" }, date);
   assert.match(prompt, /PADRÃO FGV/);
   assert.match(prompt, /4 questões discursivas, até 20 linhas, 15 pontos cada/);
@@ -39,16 +39,28 @@ test("V619 gera o modelo PC-PR 2026 com espelho FGV e peça restrita a cautelare
   assert.match(prompt, /ESPELHO DE CORREÇÃO/);
   assert.match(prompt, /a FGV NÃO nomeia a peça/);
   assert.match(prompt, /extensão inferior ao mínimo ou superior ao máximo de linhas/);
+  assert.match(prompt, /Escolha somente entre as medidas previstas no edital deste modelo/);
   assert.doesNotMatch(prompt, /NPP = NC/);
   const model = api.normalizeOptions({ banca: "FGV", modelo: "pcpr26" }).model;
-  assert.deepEqual(api.pecasFor(model), ["sorteio", "preventiva", "temporaria", "busca", "interceptacao", "quebraSigilo"]);
+  assert.deepEqual(api.pecasSorteio(model), ["preventiva", "temporaria", "busca", "interceptacao", "captacaoAmbiental", "quebraSigilo"]);
 });
 
-test("V619 recusa peça fora do edital do modelo e volta ao sorteio", () => {
-  const normalized = api.normalizeOptions({ banca: "FGV", modelo: "pcpr26", peca: "portariaIp" });
-  assert.equal(normalized.peca, "sorteio");
-  const prompt = api.buildPrompt({ banca: "FGV", modelo: "pcpr26", peca: "portariaIp" }, date);
-  assert.match(prompt, /Escolha somente entre as medidas previstas no edital deste modelo/);
+test("V619 oferece todas as peças, representações e administrativas, para escolha", () => {
+  assert.deepEqual(api.pecaGrupos.map((grupo) => grupo.rotulo), ["Representações ao Judiciário", "Peças administrativas e procedimentais"]);
+  for (const key of ["preventiva", "temporaria", "captacaoAmbiental", "infiltracao", "medidasProtetivas", "insanidadeMental", "portariaIp", "despachoApf", "relatorioFinal", "indiciamento", "tco", "fianca", "atoInfracional", "portariaPad"]) {
+    assert.ok(api.pecas[key], key);
+  }
+  assert.ok(Object.keys(api.pecas).length >= 30);
+});
+
+test("V619 aceita qualquer peça e avisa quando ela está fora do edital do modelo", () => {
+  assert.equal(api.normalizeOptions({ banca: "FGV", modelo: "pcpr26", peca: "relatorioFinal" }).peca, "relatorioFinal");
+  const fora = api.buildPrompt({ banca: "FGV", modelo: "pcpr26", peca: "relatorioFinal" }, date);
+  assert.match(fora, /Relatório final de inquérito policial/);
+  assert.match(fora, /não está no rol do edital do modelo PC-PR 2026/);
+  const dentro = api.buildPrompt({ banca: "FGV", modelo: "pcpr26", peca: "temporaria" }, date);
+  assert.doesNotMatch(dentro, /não está no rol do edital/);
+  assert.equal(api.normalizeOptions({ peca: "inexistente" }).peca, "sorteio");
 });
 
 test("V619 respeita composição, peça escolhida e tema", () => {
@@ -57,9 +69,26 @@ test("V619 respeita composição, peça escolhida e tema", () => {
   assert.match(somentePeca, /Representação por prisão temporária/);
   assert.match(somentePeca, /Tema: Lei Maria da Penha/);
   assert.doesNotMatch(somentePeca, /- Questões:/);
+  assert.doesNotMatch(somentePeca, /folhas de questão/);
   const somenteQuestoes = api.buildPrompt({ banca: "FGV", modelo: "pcpi25", composicao: "questoes" }, date);
   assert.match(somenteQuestoes, /não haverá peça neste simulado/);
   assert.doesNotMatch(somenteQuestoes, /- Peça: situação-problema/);
+  assert.doesNotMatch(somenteQuestoes, /a PEÇA com/);
+});
+
+test("V619 pede o PDF das folhas de resposta com o timbre do Aldus no formato da banca", () => {
+  const cebraspe = api.buildPrompt({ banca: "CEBRASPE", modelo: "pcma26" }, date);
+  assert.match(cebraspe, /ARQUIVO PDF DAS FOLHAS DE RESPOSTA/);
+  assert.match(cebraspe, /CADERNO DE TEXTOS DEFINITIVOS/);
+  assert.match(cebraspe, /ALDUS META/);
+  assert.match(cebraspe, /#0A2C66/);
+  assert.match(cebraspe, /linhas numeradas de 1 a 15/);
+  assert.match(cebraspe, /a PEÇA com 60 linhas numeradas em sequência contínua, em 2 página\(s\) de até 30 linhas \(linhas 1–30, 31–60\)/);
+  assert.match(cebraspe, /ALDUS_Folhas_de_Resposta_CEBRASPE_PCMA26_13-09-2026\.pdf/);
+  const fgv = api.buildPrompt({ banca: "FGV", modelo: "pcpi25" }, date);
+  assert.match(fgv, /FOLHA DE TEXTOS DEFINITIVOS/);
+  assert.match(fgv, /mínimo de 20 linhas/);
+  assert.match(fgv, /em 4 página\(s\)/);
 });
 
 test("V619 exige leitura conferível, padrão fixado antes da nota e prova inédita", () => {
@@ -87,7 +116,7 @@ test("V619 mantém paridade raiz/docs e o loader publica o módulo", () => {
   const loaderSource = fs.readFileSync(loaderPath, "utf8");
   assert.equal(loaderSource, fs.readFileSync(docsLoaderPath, "utf8"));
   assert.match(loaderSource, /installFactorySimuladoDiscursivoV619\(\);/);
-  assert.match(loaderSource, /factory-simulado-discursivo-v619\.js\?v=20260913-simulado-discursivo-delegado-v619/);
+  assert.match(loaderSource, new RegExp(`factory-simulado-discursivo-v619\\.js\\?v=${api.version}`));
 });
 
 test("V619 não adiciona hot paths nem persistência", () => {

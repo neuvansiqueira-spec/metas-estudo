@@ -1,28 +1,61 @@
-/* Simulado de peças e discursivas de Delegado (Cebraspe e FGV) na Fábrica de Resumos — v619.
-   Gera um prompt para o ChatGPT/Claude elaborar a prova inédita no padrão da banca e, depois,
-   corrigir as fotos das respostas manuscritas pelo padrão de resposta/espelho da mesma banca.
-   Base: provas, padrões de resposta e espelhos de Delegado 2021-2026 baixados dos sites da Cebraspe e da FGV
-   (pasta "PROVAS DISCURSIVAS E PEÇAS - DELEGADO - CEBRASPE E FGV (2021-2026)" no Drive) e editais PC-MA 2026,
+/* Simulado de peças e discursivas de Delegado (Cebraspe e FGV) na Fábrica de Resumos — v619 (revisão v620).
+   Gera um prompt para o ChatGPT/Claude elaborar a prova inédita no padrão da banca, gerar o PDF das folhas de
+   resposta com o timbre do Aldus e, depois, corrigir as fotos das respostas manuscritas pelo padrão de resposta/espelho
+   da mesma banca. Base: provas, padrões de resposta e espelhos de Delegado 2021-2026 baixados dos sites da Cebraspe e da
+   FGV (pasta "PROVAS DISCURSIVAS E PEÇAS - DELEGADO - CEBRASPE E FGV (2021-2026)" no Drive) e editais PC-MA 2026,
    PC-DF 2026, PC-PR 2026 e PC-PI 2025. Sem persistência, sem observadores e sem trabalho contínuo. */
 (() => {
   "use strict";
 
-  const VERSION = "20260913-simulado-discursivo-delegado-v619";
+  const VERSION = "20260913-simulado-discursivo-delegado-v620";
   const SECTION_ID = "factorySimuladoDiscursivoV619";
   const API_MARKER = "__ALDUS_FACTORY_SIMULADO_DISCURSIVO_V619__";
 
-  const PECAS = {
-    sorteio: "Sorteio pela recorrência da banca",
-    preventiva: "Representação por prisão preventiva",
-    temporaria: "Representação por prisão temporária",
-    conversaoFlagrante: "Representação pela conversão da prisão em flagrante em preventiva",
-    despachoApf: "Despacho de ratificação e conclusão do auto de prisão em flagrante, com providências",
-    portariaIp: "Portaria de instauração de inquérito policial, com diligências e representações",
-    busca: "Representação por busca e apreensão (podendo cumular medidas cautelares diversas da prisão)",
-    interceptacao: "Representação por interceptação telefônica, telemática ou ambiental",
-    quebraSigilo: "Representação por quebra de sigilo de dados bancário, fiscal, telefônico ou telemático",
-    infiltracao: "Representação por infiltração de agentes, inclusive virtual"
-  };
+  const SORTEIO = "Sorteio pela recorrência da banca";
+  const PECA_GRUPOS = [
+    {
+      rotulo: "Representações ao Judiciário",
+      itens: {
+        preventiva: "Representação por prisão preventiva",
+        temporaria: "Representação por prisão temporária",
+        conversaoFlagrante: "Representação pela conversão da prisão em flagrante em preventiva",
+        cautelaresDiversas: "Representação por medidas cautelares diversas da prisão (art. 319 do CPP)",
+        busca: "Representação por busca e apreensão (podendo cumular medidas cautelares diversas da prisão)",
+        interceptacao: "Representação por interceptação telefônica ou telemática",
+        captacaoAmbiental: "Representação por captação ambiental (art. 8º-A da Lei nº 9.296/1996)",
+        quebraSigilo: "Representação por quebra de sigilo de dados bancário, fiscal, telefônico ou telemático",
+        dadosCelular: "Representação por acesso aos dados de aparelho celular apreendido",
+        infiltracao: "Representação por infiltração de agentes, inclusive virtual",
+        acaoControlada: "Representação por ação controlada ou não atuação policial",
+        colaboracao: "Representação pela homologação de acordo de colaboração premiada",
+        medidasAssecuratorias: "Representação por medidas assecuratórias (sequestro, arresto ou hipoteca legal)",
+        medidasProtetivas: "Pedido de medidas protetivas de urgência (art. 12, III, da Lei nº 11.340/2006)",
+        conducaoCoercitiva: "Representação por condução coercitiva para reconhecimento pessoal",
+        identificacaoCriminal: "Representação por identificação criminal e coleta de perfil genético (Lei nº 12.037/2009)",
+        insanidadeMental: "Representação pela instauração de incidente de insanidade mental (art. 149, § 1º, do CPP)",
+        dilacaoPrazo: "Pedido de dilação do prazo do inquérito policial (art. 10, § 3º, do CPP)"
+      }
+    },
+    {
+      rotulo: "Peças administrativas e procedimentais",
+      itens: {
+        portariaIp: "Portaria de instauração de inquérito policial, com diligências e representações",
+        despachoApf: "Despacho de ratificação e conclusão do auto de prisão em flagrante, com providências",
+        naoRatificacao: "Despacho de não ratificação da voz de prisão em flagrante, com liberação do conduzido",
+        autoPrisao: "Auto de prisão em flagrante delito",
+        indiciamento: "Despacho de indiciamento (art. 2º, § 6º, da Lei nº 12.830/2013)",
+        relatorioFinal: "Relatório final de inquérito policial",
+        tco: "Termo circunstanciado de ocorrência (Lei nº 9.099/1995)",
+        fianca: "Despacho de arbitramento de fiança pela autoridade policial (art. 322 do CPP)",
+        vpi: "Despacho de verificação da procedência das informações (notícia anônima)",
+        indeferimentoIp: "Despacho de indeferimento de requerimento de instauração de inquérito (art. 5º, § 2º, do CPP)",
+        requisicaoDados: "Requisição de dados, documentos e informações (art. 2º, § 2º, da Lei nº 12.830/2013)",
+        atoInfracional: "Auto de apreensão em flagrante de ato infracional (art. 173 do ECA)",
+        portariaPad: "Portaria de instauração de sindicância ou de processo administrativo disciplinar"
+      }
+    }
+  ];
+  const PECAS = Object.freeze(Object.assign({ sorteio: SORTEIO }, ...PECA_GRUPOS.map((grupo) => grupo.itens)));
 
   const COMPOSICOES = {
     completa: "Prova completa do modelo",
@@ -36,8 +69,8 @@
         id: "pcma26",
         label: "PC-MA 2026 — 4 questões (15 linhas) + peça (60 linhas)",
         fonte: "Edital nº 1/2026 da PC-MA, subitens 9.1 e 9.7",
-        questoes: { quantidade: 4, linhas: "até 15 linhas", valor: "5,00 pontos" },
-        peca: { linhas: "até 60 linhas", valor: "20,00 pontos", nome: "peça prático-profissional" },
+        questoes: { quantidade: 4, linhas: "até 15 linhas", maxLinhas: 15, valor: "5,00 pontos" },
+        peca: { linhas: "até 60 linhas", maxLinhas: 60, valor: "20,00 pontos", nome: "peça prático-profissional" },
         disciplinas: "Grupos II e III do edital: Direito Administrativo, Direito Constitucional, Medicina Legal, Direitos Humanos, Direito Penal, Direito Processual Penal, Legislação Penal e Processual Penal Especial e Criminologia",
         regras: [
           "Total da prova discursiva: 40,00 pontos (4 questões de 5,00 + peça de 20,00); duração de 4 horas; manuscrita com caneta preta.",
@@ -53,8 +86,8 @@
         id: "pcdf26",
         label: "PC-DF 2026 — 3 questões (30 linhas) + peça (90 linhas)",
         fonte: "Edital de Delegado da PC-DF 2026, subitens 10.1, 10.7 e 10.8",
-        questoes: { quantidade: 3, linhas: "até 30 linhas", valor: "10,00 pontos" },
-        peca: { linhas: "até 90 linhas", valor: "30,00 pontos", nome: "peça relativa à atividade de polícia judiciária" },
+        questoes: { quantidade: 3, linhas: "até 30 linhas", maxLinhas: 30, valor: "10,00 pontos" },
+        peca: { linhas: "até 90 linhas", maxLinhas: 90, valor: "30,00 pontos", nome: "peça relativa à atividade de polícia judiciária" },
         disciplinas: "disciplinas do edital; em 2026 caíram Direito Constitucional, Direito Administrativo (responsabilidade civil do Estado e regime disciplinar da Lei nº 15.047/2024), Legislação Penal Especial e Processo Penal",
         regras: [
           "P2: 3 questões de 10,00 pontos; P3: peça de 30,00 pontos. Total: 60,00 pontos.",
@@ -72,8 +105,8 @@
         id: "pcpr26",
         label: "PC-PR 2026 — 4 questões (20 linhas) + peça cautelar (60 linhas)",
         fonte: "Edital nº 01/2026 da PC-PR, subitens 10.5 a 10.13",
-        questoes: { quantidade: 4, linhas: "até 20 linhas", valor: "15 pontos" },
-        peca: { linhas: "até 60 linhas", valor: "40 pontos", nome: "peça prática-profissional" },
+        questoes: { quantidade: 4, linhas: "até 20 linhas", maxLinhas: 20, valor: "15 pontos" },
+        peca: { linhas: "até 60 linhas", maxLinhas: 60, valor: "40 pontos", nome: "peça prática-profissional" },
         disciplinas: "uma questão de cada: Direito Penal; Direito Processual Penal; Legislação Penal e Processual Penal Extravagantes; Direito Constitucional",
         regras: [
           "Total: 100 pontos (4 questões de 15 + peça de 40); duração de 5 horas.",
@@ -84,14 +117,14 @@
           "Consulta permitida à legislação seca, sem anotações, jurisprudência, súmulas ou roteiros de peças. Aprovação: mínimo de 50 pontos."
         ],
         aprovacao: "mínimo de 50 de 100 pontos",
-        pecasPermitidas: ["sorteio", "preventiva", "temporaria", "busca", "interceptacao", "quebraSigilo"]
+        pecasPermitidas: ["preventiva", "temporaria", "busca", "interceptacao", "captacaoAmbiental", "quebraSigilo"]
       },
       {
         id: "pcpi25",
         label: "PC-PI 2025 — 3 questões (20 a 30 linhas) + peça (120 linhas)",
         fonte: "Edital nº 01/2025 da PC-PI, subitens 9.21 a 9.32",
-        questoes: { quantidade: 3, linhas: "entre 20 e 30 linhas", valor: "15 pontos" },
-        peca: { linhas: "até 120 linhas", valor: "55 pontos", nome: "peça profissional" },
+        questoes: { quantidade: 3, linhas: "entre 20 e 30 linhas", maxLinhas: 30, minLinhas: 20, valor: "15 pontos" },
+        peca: { linhas: "até 120 linhas", maxLinhas: 120, valor: "55 pontos", nome: "peça profissional" },
         disciplinas: "todas as disciplinas da prova objetiva (no caderno aplicado: Direito Penal, Direito Processual Penal e Direito Constitucional)",
         regras: [
           "Total: 100 pontos (3 questões de 15 + peça de 55); duração de 5 horas; sem consulta.",
@@ -171,9 +204,13 @@ Temas mais cobrados nas questões (ocorrências):
   };
 
   const ESTRUTURA_PECAS = `ESTRUTURA QUE OS PADRÕES E ESPELHOS EXIGEM, POR TIPO DE PEÇA
-- Representação (prisão, busca, interceptação, quebra de sigilo, infiltração): endereçamento ao juízo competente; referência ao inquérito; preâmbulo com a atribuição (art. 144, § 4º, da CF, Lei nº 12.830/2013 e CPP) e a medida; fatos só quando o enunciado não os dispensar; fundamentos (materialidade e indícios de autoria, requisitos legais específicos da medida, necessidade, adequação e subsidiariedade, contemporaneidade); pedidos (medida, prazo, sigilo, oitiva do Ministério Público); local, data e "Delegado de Polícia".
+- Representação (prisão, cautelares, busca, interceptação, captação ambiental, quebra de sigilo, infiltração e demais pedidos ao juízo): endereçamento ao juízo competente; referência ao inquérito; preâmbulo com a atribuição (art. 144, § 4º, da CF, Lei nº 12.830/2013 e CPP) e a medida; fatos só quando o enunciado não os dispensar; fundamentos (materialidade e indícios de autoria, requisitos legais específicos da medida, necessidade, adequação e subsidiariedade, contemporaneidade); pedidos (medida, prazo, sigilo, oitiva do Ministério Público); local, data e "Delegado de Polícia".
 - Despacho no auto de prisão em flagrante: situação de flagrância e sua espécie; tipificação completa; ratificação ou homologação; fiança ou vedação; providências (nota de culpa, ciência das garantias, comunicação em 24 horas ao juiz, ao Ministério Público e, sem advogado, à Defensoria, exames de corpo de delito, apreensões e laudos, identificação, informação sobre filhos, representação pela conversão em preventiva quando cabível); local, data e "Delegado de Polícia".
-- Portaria de instauração: autoridade e fundamento legal; fatos em tese e tipificação; "resolve instaurar"; diligências numeradas; representações ao juízo quando cabíveis; cumpra-se; local, data e "Delegado de Polícia".`;
+- Portaria de instauração: autoridade e fundamento legal; fatos em tese e tipificação; "resolve instaurar"; diligências numeradas; representações ao juízo quando cabíveis; cumpra-se; local, data e "Delegado de Polícia".
+- Demais peças administrativas: sigam a estrutura legal própria. Relatório final: diligências realizadas, materialidade, autoria, tipificação, indiciamento e remessa ao juízo (art. 10, §§ 1º e 2º, do CPP). Indiciamento: ato fundamentado com autoria, materialidade e circunstâncias (art. 2º, § 6º, da Lei nº 12.830/2013). Termo circunstanciado: fato, autor, vítima, testemunhas, compromisso de comparecimento e encaminhamento ao Juizado (art. 69 da Lei nº 9.099/1995). Portaria disciplinar: autoridade, fato, servidor, dispositivos infringidos em tese, comissão e prazo.`;
+
+  const TIMBRE_ALDUS = `Timbre do Aldus no alto de todas as páginas: à esquerda, o símbolo do Aldus Meta; ao lado, "ALDUS META" em azul-marinho #061C33, negrito, e abaixo "Metas de Estudo" em dourado #DFB64C; à direita, em corpo menor, "Simulado discursivo — Delegado de Polícia", a banca, o modelo de prova e a data; um filete dourado #DFB64C separando o timbre do corpo da folha.
+- Símbolo do Aldus Meta, desenhado em coordenadas vetoriais num quadro de 512 × 512 (origem no canto superior esquerdo): quadrado branco com cantos de raio 112 e contorno cinza-claro; letra "A" azul-marinho #0A2C66 formada pelo polígono (256,42) (477,458) (370,398) (256,176) (142,398) (35,458); dentro do "A", uma gota branca de (256,195) a (256,470), com largura máxima de cerca de 150; no centro da gota, estrela azul #3F73ED de quatro pontas com os vértices (256,255) (275,301) (321,320) (275,339) (256,385) (237,339) (191,320) (237,301). Reduza o símbolo para cerca de 14 mm de altura.`;
 
   const config = {
     banca: "CEBRASPE",
@@ -207,16 +244,19 @@ Temas mais cobrados nas questões (ocorrências):
     return list.find((model) => model.id === id) || list[0];
   }
 
-  function pecasFor(model) {
-    const keys = Array.isArray(model.pecasPermitidas) ? model.pecasPermitidas : Object.keys(PECAS);
-    return keys.filter((key) => PECAS[key]);
+  function pecasSorteio(model) {
+    return Array.isArray(model.pecasPermitidas) ? model.pecasPermitidas.filter((key) => PECAS[key]) : [];
+  }
+
+  function foraDoEdital(model, peca) {
+    return peca !== "sorteio" && Array.isArray(model.pecasPermitidas) && !model.pecasPermitidas.includes(peca);
   }
 
   function normalizeOptions(options = {}) {
     const banca = normalizeBanca(options.banca);
     const model = modelFor(banca, options.modelo);
     const composicao = COMPOSICOES[options.composicao] ? options.composicao : "completa";
-    const peca = pecasFor(model).includes(options.peca) ? options.peca : "sorteio";
+    const peca = Object.prototype.hasOwnProperty.call(PECAS, options.peca) ? options.peca : "sorteio";
     return { banca, model, composicao, peca, tema: text(options.tema).slice(0, 300) };
   }
 
@@ -239,12 +279,15 @@ Temas mais cobrados nas questões (ocorrências):
   function pecaText(banca, model, peca, composicao) {
     if (composicao === "questoes") return "não haverá peça neste simulado.";
     if (peca !== "sorteio") {
-      return banca === "FGV"
+      const base = banca === "FGV"
         ? `${PECAS[peca]}. Não revele o nome da peça no enunciado: a identificação faz parte da avaliação, como na FGV.`
         : `${PECAS[peca]}. O comando pode indicar a medida ("formule a representação pela medida mais adequada") ou pedir "a peça cabível", como a Cebraspe faz.`;
+      return foraDoEdital(model, peca)
+        ? `${base} Atenção: esta peça não está no rol do edital do modelo ${model.label.split(" — ")[0]}; foi escolhida por mim para treino, então mantenha as demais regras do modelo (linhas, valor e correção).`
+        : base;
     }
-    const restricao = Array.isArray(model.pecasPermitidas)
-      ? ` Escolha somente entre as medidas previstas no edital deste modelo: ${pecasFor(model).filter((key) => key !== "sorteio").map((key) => PECAS[key].toLowerCase()).join("; ")}.`
+    const restricao = pecasSorteio(model).length
+      ? ` Escolha somente entre as medidas previstas no edital deste modelo: ${pecasSorteio(model).map((key) => PECAS[key].toLowerCase()).join("; ")}.`
       : "";
     return `escolha pela recorrência da banca indicada abaixo, sem me dizer qual é.${restricao}`;
   }
@@ -260,6 +303,38 @@ Temas mais cobrados nas questões (ocorrências):
     if (composicao !== "peca") partes.push(questoes);
     if (composicao !== "questoes") partes.push(peca);
     return partes.join("\n");
+  }
+
+  function paginasPeca(maxLinhas) {
+    const paginas = [];
+    for (let inicio = 1; inicio <= maxLinhas; inicio += 30) paginas.push(`${inicio}–${Math.min(inicio + 29, maxLinhas)}`);
+    return paginas;
+  }
+
+  function folhasPdfText(banca, model, composicao, date) {
+    const nomeFolha = banca === "FGV" ? "FOLHA DE TEXTOS DEFINITIVOS" : "CADERNO DE TEXTOS DEFINITIVOS";
+    const rodape = banca === "FGV"
+      ? "Não assine nem rubrique as folhas. Só o texto escrito dentro das linhas será avaliado."
+      : "Não se identifique. Na peça, se quiser assinar, use apenas “Delegado de Polícia”. O texto além da última linha não será avaliado.";
+    const itens = [];
+    if (composicao !== "peca") {
+      const minimo = model.questoes.minLinhas ? `, com a marca "mínimo de ${model.questoes.minLinhas} linhas" no cabeçalho` : "";
+      itens.push(`- ${model.questoes.quantidade} folhas de questão (QUESTÃO 1 a QUESTÃO ${model.questoes.quantidade}), uma por página, cada uma com linhas numeradas de 1 a ${model.questoes.maxLinhas}${minimo};`);
+    }
+    if (composicao !== "questoes") {
+      const paginas = paginasPeca(model.peca.maxLinhas);
+      itens.push(`- a PEÇA com ${model.peca.maxLinhas} linhas numeradas em sequência contínua, em ${paginas.length} página(s) de até 30 linhas (linhas ${paginas.join(", ")}), cada página identificada como "PEÇA — página x/${paginas.length}";`);
+    }
+    const arquivo = `ALDUS_Folhas_de_Resposta_${banca}_${model.id.toUpperCase()}_${formatDate(date).replaceAll("/", "-")}.pdf`;
+    return `ARQUIVO PDF DAS FOLHAS DE RESPOSTA (gere junto com a prova)
+- Gere um arquivo PDF para impressão, em A4 retrato, com as folhas de resposta no formato das folhas de textos definitivos da ${banca}:
+${itens.join("\n")}
+- Em cada página: margens de 1,5 cm; linhas pautadas finas em cinza, com altura de 7 mm, para escrita à mão (30 linhas cabem numa página A4 junto com o timbre); número de cada linha na margem esquerda; nenhum outro espaço de escrita além das linhas.
+- ${TIMBRE_ALDUS}
+- Abaixo do timbre, em cada página: "${nomeFolha}", a identificação do item (QUESTÃO n ou PEÇA — página x/y), o valor e o limite de linhas, e o campo "Linhas efetivamente escritas: ____".
+- Rodapé de todas as páginas: "Aldus Meta • Folha x de y" e o lembrete da banca: "${rodape}"
+- Não coloque nas folhas enunciados, respostas, dicas, gabarito ou marcas de correção.
+- Nome do arquivo: ${arquivo}. Se não conseguir gerar o arquivo nesta conversa, avise em uma linha, descreva o formato das folhas e siga com a prova.`;
   }
 
   function correcaoNotaText(banca, model) {
@@ -284,7 +359,7 @@ Data de referência: ${formatDate(date)}
 
 PAPEL
 Você vai atuar em duas etapas, uma de cada vez:
-1) como examinador(a) da banca ${banca}, elaborar uma prova discursiva INÉDITA para Delegado de Polícia no formato do modelo abaixo;
+1) como examinador(a) da banca ${banca}, elaborar uma prova discursiva INÉDITA para Delegado de Polícia no formato do modelo abaixo, com o PDF das folhas de resposta;
 2) quando eu enviar fotos ou digitalizações das minhas respostas manuscritas, corrigi-las ESTRITAMENTE e SOMENTE pelo padrão ${banca} descrito neste prompt.
 Na etapa 1 não apresente gabarito, padrão de resposta, espelho, dicas ou comentários.
 
@@ -305,7 +380,10 @@ ETAPA 1 — ELABORE A PROVA
 - Monte o caderno no estilo ${banca}: cabeçalho, instruções da banca e, em cada item, número, valor e limite de linhas.
 ${elaboracaoText(banca, model, composicao)}
 - Nível real da banca: fatos suficientes para exigir distinções finas, com pelo menos um ponto de cabimento ou de tipificação que separe a resposta completa da mediana, sem pegadinha estranha ao padrão.
-- Ao final, escreva só as instruções para eu responder: folha pautada com linhas numeradas, limite de linhas de cada item, uma resposta por página identificada (Q1, Q2... e PEÇA p. 1/2), foto tirada de cima, com boa luz, página inteira e sem cortes. Termine com: "Quando terminar, envie as imagens nesta conversa."
+
+${folhasPdfText(banca, model, composicao, date)}
+
+- Ao final, escreva só as instruções para eu responder: imprimir as folhas do PDF (sem impressora, usar folha pautada com as linhas numeradas do mesmo jeito), respeitar o limite de linhas de cada item, fotografar cada folha de cima, com boa luz, página inteira e sem cortes. Termine com: "Quando terminar, envie as imagens nesta conversa."
 
 ETAPA 2 — CORRIJA (somente depois que eu enviar as imagens)
 2.1 Leitura das imagens
@@ -334,6 +412,14 @@ REGRAS DE SEGURANÇA JURÍDICA (valem para as duas etapas)
     return entries.map(([value, label]) => `<option value="${escapeHtml(value)}" ${value === selected ? "selected" : ""}>${escapeHtml(label)}</option>`).join("");
   }
 
+  function pecaSelectHtml(model, selected) {
+    const grupos = PECA_GRUPOS.map((grupo) => {
+      const opcoes = Object.entries(grupo.itens).map(([key, label]) => [key, foraDoEdital(model, key) ? `${label} — fora do edital deste modelo` : label]);
+      return `<optgroup label="${escapeHtml(grupo.rotulo)}">${optionsHtml(opcoes, selected)}</optgroup>`;
+    }).join("");
+    return `${optionsHtml([["sorteio", SORTEIO]], selected)}${grupos}`;
+  }
+
   function sectionHtml() {
     const { banca, model, composicao, peca } = normalizeOptions(config);
     config.banca = banca;
@@ -346,12 +432,12 @@ REGRAS DE SEGURANÇA JURÍDICA (valem para as duas etapas)
     return `<details id="${SECTION_ID}" class="factory-section factory-simulado-builder factory-collapsible"${config.open ? " open" : ""}>
       <summary>SIMULADO DE PEÇAS E DISCURSIVAS <small>DELEGADO • CEBRASPE • FGV</small></summary>
       <div class="factory-collapsible-content">
-        <p class="notice">Gera o prompt para o ChatGPT ou o Claude montar uma prova inédita no padrão da banca e, depois, corrigir as fotos das suas respostas manuscritas pelo padrão de resposta (Cebraspe) ou espelho (FGV) da mesma banca.</p>
+        <p class="notice">Gera o prompt para o ChatGPT ou o Claude montar uma prova inédita no padrão da banca, com o PDF das folhas de resposta com o timbre do Aldus, e depois corrigir as fotos das suas respostas manuscritas pelo padrão de resposta (Cebraspe) ou espelho (FGV) da mesma banca.</p>
         <div class="factory-simulado-grid">
           <label>Banca<select data-factory-discursivo="banca">${optionsHtml([["CEBRASPE", "CEBRASPE"], ["FGV", "FGV"]], banca)}</select></label>
           <label>Modelo de prova<select data-factory-discursivo="modelo">${optionsHtml(MODELS[banca].map((item) => [item.id, item.label]), model.id)}</select></label>
           <label>Composição<select data-factory-discursivo="composicao">${optionsHtml(Object.entries(COMPOSICOES), composicao)}</select></label>
-          <label>Peça<select data-factory-discursivo="peca" ${composicao === "questoes" ? "disabled" : ""}>${optionsHtml(pecasFor(model).map((key) => [key, PECAS[key]]), peca)}</select></label>
+          <label>Peça<select data-factory-discursivo="peca" ${composicao === "questoes" ? "disabled" : ""}>${pecaSelectHtml(model, peca)}</select></label>
           <label class="wide">Tema (opcional)<input type="text" maxlength="300" value="${escapeHtml(config.tema)}" data-factory-discursivo="tema" placeholder="Ex.: Lei Maria da Penha; prisão temporária; busca domiciliar" /></label>
         </div>
         <div class="card-actions"><button type="button" data-factory-discursivo-gerar>Gerar prompt</button></div>
@@ -444,9 +530,10 @@ REGRAS DE SEGURANÇA JURÍDICA (valem para as duas etapas)
     sectionId: SECTION_ID,
     models: MODELS,
     pecas: PECAS,
+    pecaGrupos: PECA_GRUPOS,
     buildPrompt,
     normalizeOptions,
-    pecasFor,
+    pecasSorteio,
     install
   });
 
