@@ -53,11 +53,14 @@
   }
 
   function hasPerformanceEvidence(raw = {}) {
+    // Guardar o treino, mesmo com gabarito, não é uma resolução.
+    if (raw.corrigida === false) return false;
     return ["resposta_marcada", "respostaMarcada", "marcado", "userAnswer", "resposta_usuario", "resultado", "status_resultado", "acertou", "nao_respondida", "não_respondida"]
       .some((key) => own(raw, key));
   }
 
   function resultStatus(raw = {}) {
+    if (raw.corrigida === false) return '';
     const result = canonicalJson(firstNonEmpty(raw.resultado, raw.status_resultado, raw.statusResultado, raw.status));
     if (result.includes("anulad") || result.includes("cancelad")) return "anulada";
     if (result.includes("nao respond") || result.includes("em branco") || result === "branco") return "branco";
@@ -130,6 +133,7 @@
   }
 
   function explanationFromRaw(raw = {}) {
+    if (raw.justificativas_alternativas && globalThis.AldusQuestionTraining) return globalThis.AldusQuestionTraining.explanation(raw);
     return text(firstNonEmpty(raw.justificativa, raw.fundamento, raw.comentario, raw["comentário"], raw.comentarioQc, raw.explanation, raw.notes));
   }
 
@@ -304,6 +308,7 @@
   }
 
   function buildImportPlan(payload = {}, currentBank = [], currentSessions = []) {
+    globalThis.AldusQuestionTraining?.validatePayload(payload);
     const source = Array.isArray(payload) ? payload : (payload.questionBank || payload.questoes || payload.questions || payload.items || []);
     if (!Array.isArray(source)) throw new Error("O JSON não contém uma lista de questões reconhecida.");
     const bank = currentBank.map((question) => ({ ...question }));
@@ -326,6 +331,9 @@
       if (existingIndex >= 0) {
         const existing = bank[existingIndex];
         storedQuestion = mergeMeaningful(existing, question);
+        if (question.corrigida === false && existing.corrigida === true) {
+          for (const key of ['corrigida','resultado','resposta_marcada','respostaMarcada','acertou']) storedQuestion[key] = existing[key];
+        }
         storedQuestion.id = existing.id || question.id;
         if (JSON.stringify(storedQuestion) === JSON.stringify(existing)) counts.unchanged += 1;
         else { bank[existingIndex] = storedQuestion; counts.updated += 1; }
@@ -395,12 +403,14 @@
         return;
       }
       state.questionBank = plan.bank;
+      globalThis.AldusQuestionTraining?.recordImport(state, payload, plan);
       state.questionBankSessions ||= [];
       if (plan.session) {
         state.questionBankSessions.unshift(plan.session);
         if (typeof qbSaveNotebookItems === "function") qbSaveNotebookItems(plan.notebookItems);
       }
       saveData({ markLocalChange: true });
+      globalThis.AldusQuestionTraining?.scheduleRefresh?.();
       if (typeof renderQuestionBank === "function") renderQuestionBank();
       if (typeof qbRenderErrorNotebook === "function") qbRenderErrorNotebook();
       if (typeof autoSyncAfterSave === "function") autoSyncAfterSave("question-bank-json-import");

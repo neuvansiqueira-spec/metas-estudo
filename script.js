@@ -4455,6 +4455,7 @@ function factoryThemeHighlightHTML(item = {}, recorte = "", { position = "" } = 
   return `<div class="factory-theme-highlight"><p class="factory-theme-label">${escapeHTML(factoryThemeVisualLabel(item))}</p><h3 class="factory-theme-title">${escapeHTML(subject)}</h3><p class="factory-theme-discipline"><strong>Disciplina:</strong> ${escapeHTML(discipline)}${escapeHTML(positionText)}</p><p class="item-meta"><strong>Planejamento integrado:</strong> ${escapeHTML(planningText)}</p>${recorte ? `<p class="factory-theme-recorte"><strong>Recorte da meta:</strong> ${escapeHTML(recorte)}</p>` : ""}</div>`;
 }
 function renderFactory() {
+  globalThis.AldusQuestionTraining?.scheduleRefresh?.();
   if (!elements.factoryList) return;
   try {
     const agenda = (state.factoryAgenda?.length ? state.factoryAgenda : (state.factoryItems || [])).map(normalizeFactoryItem);
@@ -5146,6 +5147,7 @@ function renderPlanningPreview(scoreContext = buildPlanningScoreContext()) {
 }
 
 function renderDashboard() {
+  globalThis.AldusQuestionTraining?.scheduleRefresh?.();
   medirFaseBootV350("dashboard:renderSmartReviewSummary", () => renderSmartReviewSummary());
   const today = todayISO(); const todayMinutes = globalThis.__ALDUS_STUDY_TIME__ ? globalThis.__ALDUS_STUDY_TIME__.secondsBetween(state, today) / 60 : state.studies.filter((study) => study.date === today).reduce((sum, study) => sum + study.minutes, 0); const weekMinutes = globalThis.__ALDUS_STUDY_TIME__ ? globalThis.__ALDUS_STUDY_TIME__.secondsBetween(state, weekStart(today), addDays(weekStart(today), 6)) / 60 : state.studies.filter((study) => isSameWeek(study.date)).reduce((sum, study) => sum + study.minutes, 0); const totalQuestions = state.studies.reduce((sum, study) => sum + study.questions, 0); const correct = state.studies.reduce((sum, study) => sum + study.correct, 0);
   const total = state.syllabusItems.length; const studied = state.syllabusItems.filter(completedStatus).length; const weak = medirFaseBootV350("dashboard:filter-isWeakItem", () => state.syllabusItems.filter(isWeakItem).length); const undiagnosed = medirFaseBootV350("dashboard:filter-isUndiagnosed", () => state.syllabusItems.filter(isUndiagnosed).length); const notStarted = state.syllabusItems.filter((item) => item.status === "Não iniciado").length;
@@ -8731,6 +8733,7 @@ function hydrateDailyGoal(goalId) {
   mount.innerHTML = dailyGoalDetailsBodyHTML(goal, entry || null); details.dataset.dailyGoalHydrated = "true"; ensureDailyGoalEditAction(details, goalId); if (typeof performanceCounters !== "undefined") performanceCounters.hydratedGoals++;
 }
 function renderDailyGoals() {
+  globalThis.AldusQuestionTraining?.scheduleRefresh?.();
   if (!elements.dailyGoalsList) return;
   const date = elements.goalDate?.value || todayISO();
   const alignmentStatus = dailyPlanAlignmentStatusV174(state, date);

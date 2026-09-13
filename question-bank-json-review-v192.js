@@ -132,7 +132,7 @@
         : (plan.session ? `${plan.notebookItems.length} item(ns) serão encaminhados ao Caderno de Erros.` : "Nenhum desempenho do usuário foi identificado; somente o banco será atualizado.");
       modal.innerHTML = `<section class="aldus-json-review-card-v192">
         <header class="aldus-json-review-head-v192">
-          <div><p class="eyebrow">REVISAR ANTES DE SALVAR</p><h2 id="aldusQbJsonReviewTitleV192">Importação JSON do QConcursos</h2><p>${html(fileName)}</p></div>
+          <div><p class="eyebrow">REVISAR ANTES DE SALVAR</p><h2 id="aldusQbJsonReviewTitleV192">Importação JSON de questões</h2><p>${html(fileName)}</p></div>
           <button type="button" class="secondary-button aldus-json-review-close-v192" data-json-review-cancel aria-label="Cancelar importação">×</button>
         </header>
         <div class="aldus-json-review-stats-v192">
@@ -164,14 +164,16 @@
     });
   }
 
-  function commitPlan(plan) {
+  function commitPlan(plan, payload) {
     state.questionBank = plan.bank;
+    globalThis.AldusQuestionTraining?.recordImport(state, payload, plan);
     state.questionBankSessions ||= [];
     if (plan.session) {
       state.questionBankSessions.unshift(plan.session);
       if (typeof qbSaveNotebookItems === "function") qbSaveNotebookItems(plan.notebookItems);
     }
     saveData({ markLocalChange: true });
+    globalThis.AldusQuestionTraining?.scheduleRefresh?.();
     if (typeof renderQuestionBank === "function") renderQuestionBank();
     if (typeof qbRenderErrorNotebook === "function") qbRenderErrorNotebook();
     if (typeof autoSyncAfterSave === "function") autoSyncAfterSave("question-bank-json-import");
@@ -196,7 +198,7 @@
         if (typeof elements !== "undefined" && elements.qbMessage) elements.qbMessage.textContent = "Importação JSON cancelada; nenhum dado foi alterado.";
         return;
       }
-      commitPlan(plan);
+      commitPlan(plan, payload);
       const performanceMessage = plan.duplicateSession
         ? " O desempenho idêntico já existia e não foi duplicado."
         : (plan.session ? ` ${plan.counts.results} resultado(s) registrado(s) no histórico.` : " Nenhum resultado de desempenho foi identificado.");

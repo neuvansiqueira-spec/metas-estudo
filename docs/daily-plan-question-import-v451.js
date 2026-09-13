@@ -48,6 +48,7 @@
   }
 
   function explicacaoV451(raw = {}) {
+    if (raw.justificativas_alternativas && globalThis.AldusQuestionTraining) return globalThis.AldusQuestionTraining.explanation(raw);
     const partes = [];
     const doQc = texto(raw.justificativa_qconcursos ?? raw.justificativaQconcursos ?? raw.justificativaQc);
     const propria = texto(raw.explicacao_complementar ?? raw.explicacaoComplementar);

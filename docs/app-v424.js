@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260912-tempo-segundos-indicadores-v424";
+  const VERSION = "20260913-treino-questoes-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -3062,7 +3062,7 @@ const SYNC_COLLECTIONS = [
   "subjects", "studies", "syllabusItems", "dailyGoals", "questionLogs",
   "smartReviews", "simulados", "materials", "questionBank",
   "questionBankSessions", "questionErrorNotebook", "factoryItems", "factoryAgenda",
-  "contestProfiles", "contestSyllabusMap", "planningModeHistory"
+  "contestProfiles", "contestSyllabusMap", "planningModeHistory", "questionTrainingEvents"
 ];
 const SYNC_MAX_NUMERIC_FIELDS = new Set([
   "minutes", "seconds", "elapsedSeconds", "plannedMinutes", "actualMinutes",
@@ -36283,6 +36283,303 @@ globalThis.PCPR_PCMA_2026_CATALOG = {
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })();
 
+/* Aldus source: question-training.js */
+/* Treinos da Fábrica: configuração, instruções e histórico por tema. */
+(() => {
+  'use strict';
+  const SCHEMA = 'aldus-question-training-v1';
+  const text = v => String(v ?? '').trim();
+  const canon = v => text(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const esc = v => text(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const id = () => globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const hash = value => {let n=2166136261; for(const c of value) n=Math.imul(n^c.charCodeAt(0),16777619);return (n>>>0).toString(16);};
+  const qid = v => /^q\s*\d+$/i.test(text(v)) ? `Q${text(v).replace(/\D/g,'')}` : text(v);
+  const sourceItems = p => Array.isArray(p) ? p : p?.questionBank || p?.questoes || p?.questions || p?.items || [];
+  const topic = r => ({discipline:text(r.discipline || r.disciplina), theme:text(r.subject || r.assunto || r.theme || r.tema), syllabusItemId:text(r.syllabusItemId)});
+  const topicKey = r => {const t=topic(r);return `${canon(t.discipline)}|${canon(t.theme)}`;};
+  const contentKey = q => canon(q.enunciado || q.statement) + '|' + Object.values(q.alternativas || {}).map(canon).join('|');
+  const corrected = q => q.corrigida === true || (q.corrigida !== false && /^(acertei|errei|certo|errado)$/.test(canon(q.resultado || q.status)));
+  function explanation(q){
+    return [q.justificativa_qconcursos && `Justificativa — QConcursos: ${q.justificativa_qconcursos}`,
+      q.explicacao_complementar && `Explicação complementar — Agente: ${q.explicacao_complementar}`,
+      ...Object.entries(q.justificativas_alternativas||{}).map(([key,value])=>`${key} — ${key===q.gabarito?'Correta':'Incorreta'}: ${text(value)}`)].filter(Boolean).join('\n\n');
+  }
+  function exclusions(state={}) {
+    const all=[...(state.questionBank||[]),...(state.questionBankSessions||[]).flatMap(s=>s.items||[])];
+    return {ids:[...new Set(all.flatMap(q=>[q.id,q.qcCodigo,q.numero_qconcursos]).map(qid).filter(Boolean))],
+      questions:[...new Map((state.questionBank||[]).filter(q=>text(q.enunciado)).map(q=>[contentKey(q),{id:qid(q.id),enunciado:q.enunciado,alternativas:q.alternativas||{}}])).values()]};
+  }
+  function normalizeConfig(raw={}) {
+    const primary=text(raw.primary || 'FGV').toUpperCase();
+    const count=Number(raw.count || 15);
+    if(![5,10,15].includes(count))throw Error('Escolha 5, 10 ou 15 questões.');
+    if(!text(raw.discipline))throw Error('Informe a disciplina.');
+    if(!primary || primary==='OUTRA')throw Error('Informe o nome da banca.');
+    const mode=raw.supplement || 'none';
+    const fallback=mode.startsWith('cebraspe') ? ['CEBRASPE'] : mode==='ordered' ? [raw.first,raw.second].map(v=>text(v).toUpperCase()).filter(Boolean) : [];
+    if(mode==='ordered'&&!fallback.length)throw Error('Informe ao menos a primeira banca complementar.');
+    const cebraspe=mode==='cebraspe-mc'?'Múltipla escolha':mode==='cebraspe-ce'?'Certo/Errado':mode==='cebraspe-both'?'Ambos':raw.cebraspe || 'Ambos';
+    return {discipline:text(raw.discipline),theme:text(raw.theme),syllabusItemId:text(raw.syllabusItemId),count,primary,
+      fallback:[...new Set(fallback)].filter(b=>b!==primary),cebraspe,allowGenerated:raw.allowGenerated===true,
+      generatedFormat:raw.generatedFormat || 'Múltipla escolha',difficulty:raw.difficulty || 'Difíceis primeiro',
+      order:raw.order || 'Mais recentes',priority:'Delegado Civil > Delegado Federal > Juiz > Promotor > Procurador > Defensor > outros jurídicos superiores > outros superiores'};
+  }
+  function prompt(config, state={}, roundId=id()) {
+    const c=normalizeConfig(config), excluded=exclusions(state);
+    const syllabus=(state.syllabusItems||[]).filter(q=>canon(q.discipline)===canon(c.discipline)).map(q=>q.subject).filter(Boolean);
+    const metadata={schema:SCHEMA,trainingRound:{id:roundId,discipline:c.discipline,theme:c.theme,topicKey:topicKey(c),syllabusItemId:c.syllabusItemId,config:c}};
+    const instruction=`# TREINO INTERATIVO — RODADA ${roundId}
+Disciplina: ${c.discipline}
+Tema: ${c.theme || 'Treino misto da disciplina, restrito aos assuntos do edital abaixo'}
+Quantidade: ${c.count}. Banca principal: ${c.primary}.
+Complementação com questões reais, SOMENTE se faltarem da principal: ${c.fallback.join(' → ') || 'NÃO AUTORIZADA'}.
+CEBRASPE: ${c.cebraspe}. Nunca converter questão real de Certo/Errado em alternativas nem o inverso.
+Preferência: ${c.difficulty}; ordem: ${c.order}; desempate: mais recentes e Delegado primeiro.
+Prioridade de cargos: ${c.priority}. Nunca nível médio.
+Assuntos do edital: ${[...new Set(syllabus)].join('; ') || 'não fornecidos; limitar à disciplina/tema informado'}.
+
+# SELEÇÃO E INTEGRALIDADE
+Pesquise várias páginas do QConcursos para completar a quantidade com questões válidas. Exclua anuladas e desatualizadas. Prefira casos, distinções, exceções e jurisprudência, conforme a dificuldade escolhida.
+Copie o enunciado e TODAS as alternativas INTEGRALMENTE, na ordem e redação originais: textos de apoio, comandos, assertivas, negações, ressalvas, tabelas e imagens indispensáveis. Compare cada item com a página individual. Snippets e prévias cortadas não bastam. Não parafraseie, resuma, use reticências substitutivas, transforme formatos ou preencha lacunas por memória. Sem confirmar a íntegra, descarte. Se imagens essenciais não puderem ser incluídas legivelmente, substitua a questão.
+Para questões reais, transcreva MECANICAMENTE o gabarito do próprio QC para o MESMO código Q. Não resolva para escolher ou mudar a correta. Comentários, votos e inferências não substituem o gabarito do QC. Verifique a letra e o texto correspondente. Sem gabarito confirmado, descarte. Metadados, fonte e link devem ser verificáveis e corresponder à mesma questão. Nunca invente IDs ou links.
+
+# NÃO REPETIR
+Exclua TODOS os IDs abaixo e questões já apresentadas nesta conversa, inclusive guardadas sem resposta. Confira também identidade de conteúdo para evitar a mesma questão sob outro código. Não trate memória incompleta de outras conversas como histórico integral. Consulte o banco/arquivo acessível do Projeto e o filtro NÃO RESOLVIDAS do QC SOMENTE se houver sessão autenticada acessível; não alegue acesso que não ocorreu. Não clique em responder para obter gabarito nem altere o histórico do usuário. Informe quais históricos foram efetivamente consultados e eventuais lacunas. A lista fornecida é obrigatória mesmo sem acesso à conta QC. Reconfira exclusões ANTES da entrega.
+IDs proibidos (${excluded.ids.length}): ${excluded.ids.join(', ') || 'nenhum registro local encontrado; conferir o histórico acessível do Projeto'}.
+
+# COMPLEMENTO AUTORAL
+${c.allowGenerated ? `Se faltarem reais após as buscas e bancas permitidas, crie SOMENTE o número faltante no formato ${c.generatedFormat}.` : 'NÃO crie questões; se faltarem reais válidas, entregue menos e explique.'}
+Autoral: selo visível CRIADA PELO AGENTE, fonte="Agente", origem_tipo="autoral", ID="AGENTE-${roundId}-NN", banca="Autoral", banca_estilo=estilo solicitado. Não atribuir código Q, prova, órgão, ano de concurso, link QC ou gabarito QC fictícios. A proibição de resolver para definir gabarito aplica-se às reais; nas autorais, elabore e revise a correta com fundamento verificável. Mantenha reais e autorais identificadas e conte-as separadamente.
+
+# JUSTIFICATIVAS COMPLETAS, APÓS CORRIGIR
+Para CADA alternativa, certa ou errada: conclusão, regra aplicável, aplicação ao caso e motivo específico do acerto/erro; na errada, identifique o trecho defeituoso e a formulação correta. Em C/E, explique o julgamento e a correção da assertiva quando errada. Não basta repetir o gabarito, dizer “incorreta” ou citar artigo sem explicar. Não criar aula geral: aprofundar o necessário para compreender cada opção. Confira lei/jurisprudência vigente e referências; nunca invente dispositivos, decisões ou comentários.
+Separar “Justificativa — QConcursos” (síntese fiel confirmada, sem copiar comentário longo) de “Explicação complementar — Agente”. Falta de comentário QC: declarar “Justificativa do QConcursos não confirmada.” e produzir a análise complementar verificável sem alterar o gabarito QC. justificativas_alternativas deve conter A–E ou C/E, com texto explicativo para cada opção.
+
+# ENTREGA E FUNCIONAMENTO
+Entregue um HTML autônomo e funcional com CSS/JS incorporados, usando o modelo abaixo. Preencha SOMENTE o JSON no elemento training-data; preserve o comportamento dos controles. Nada de prévia estática ou botão decorativo. Numere cartões e exiba disciplina, tema, banca, ano, cargo, Q/link verificável ou selo autoral. Textos íntegros, sem line-clamp, truncamento ou alturas que escondam conteúdo.
+Paleta de cores e remover grifo sticky no topo de CADA cartão durante toda sua rolagem; preserve seleção ao clicar na cor, contraste e uso no celular. Riscar alternativa não seleciona resposta. Grifos/riscos não alteram o texto exportado. Selecionar resposta não revela correta; somente CORRIGIR QUESTÃO ou CORRIGIR TODAS revela gabarito e todas as justificativas. Não respondidas não são erros. Placar calcula % só sobre corrigidas.
+Dois downloads SEMPRE disponíveis: GUARDAR TREINO COMPLETO (todas, mesmo sem resposta, com gabarito e justificativas integrais) e EXPORTAR CORRIGIDAS (somente corrigidas). A exportação completa contém corrigida=false, resposta_marcada="", resultado="NAO_RESPONDIDA" para as intocadas; respondidas não corrigidas usam RESPONDIDA_SEM_CORRECAO e sua marcação. Nunca invente desempenho. JSON completo pode revelar gabaritos ao ser aberto; mantê-los ocultos na interface até correção. Reabrir HTML ou importar JSON deve restaurar respostas, correções e anotações.
+Use estes metadados em AMBAS as exportações: ${JSON.stringify(metadata)}.
+Cada questionBank[]: id, disciplina, assunto, tema, syllabusItemId, banca, banca_estilo, ano, orgao, cargo, tipo, enunciado, alternativas, gabarito, resposta_correta, resposta_marcada, corrigida, resultado, fonte, origem_tipo, link, justificativa_qconcursos, explicacao_complementar, justificativas_alternativas, trainingRoundId. Disciplina/assunto/tema devem conservar o vínculo com esta rodada. Reais: origem_tipo="qconcursos"; autorais: "autoral". gabarito=resposta_correta. Múltipla escolha: alternativas A–E integrais; C/E: alternativas={}, gabarito C ou E. Mantenha justificativas como texto, sem HTML executável. Não coloque URLs javascript: ou código recebido das páginas nos dados.
+Antes de entregar, validar contagem, exclusões, fonte e íntegra, gabarito QC nas reais, selo nas autorais, justificativas de cada opção, seleção/grifo, correção e ambos os JSONs. Inclua um balanço de reais/autorais/descartadas e códigos Q confirmados.
+`;
+    return {config:c,metadata,excluded,instruction,roundId};
+  }
+  function validatePayload(payload) {
+    if(payload?.schema!==SCHEMA)return;
+    const questions=sourceItems(payload); if(!questions.length)throw Error('Treino sem questões.');
+    const config=(payload.trainingRound||payload.metadata?.trainingRound)?.config;
+    if(config?.count&&questions.length>config.count)throw Error('O treino excede a quantidade solicitada.');
+    const seen=new Set();
+    for(const q of questions){
+      if(typeof q.corrigida!=='boolean')throw Error(`Informe se a questão foi corrigida: ${q.id}`);
+      if(!text(q.id)||seen.has(qid(q.id)))throw Error('Código ausente ou repetido no treino.');seen.add(qid(q.id));
+      if(!text(q.enunciado))throw Error(`Enunciado ausente: ${q.id}`);
+      const choices=Object.keys(q.alternativas||{}); const keys=choices.length?choices:['C','E'];
+      if(!keys.includes(q.gabarito)||q.resposta_correta!==q.gabarito)throw Error(`Gabarito inconsistente: ${q.id}`);
+      if(keys.some(k=>typeof q.justificativas_alternativas?.[k]!=='string'||!text(q.justificativas_alternativas[k])))throw Error(`Faltam justificativas por alternativa: ${q.id}`);
+      if(choices.some(k=>!text(q.alternativas[k])))throw Error(`Alternativa vazia: ${q.id}`);
+      if(q.origem_tipo==='autoral'){
+        if(config?.allowGenerated===false)throw Error('A rodada não autoriza questões criadas pelo agente.');
+        if(!text(q.id).startsWith('AGENTE-')||q.fonte!=='Agente'||q.banca!=='Autoral')throw Error(`Identifique a questão criada pelo agente: ${q.id}`);
+      } else if(q.origem_tipo!=='qconcursos'||!/^Q\d+$/.test(qid(q.id))||q.fonte!=='QConcursos')throw Error(`Fonte da questão real inconsistente: ${q.id}`);
+      if(q.corrigida===true&&(!keys.includes(q.resposta_marcada)||q.resultado!==(q.resposta_marcada===q.gabarito?'ACERTEI':'ERREI')))throw Error(`Resultado inconsistente: ${q.id}`);
+    }
+  }
+  function importEvents(payload, plan, existing=[]) {
+    const round=payload?.trainingRound || payload?.metadata?.trainingRound;
+    const groups=new Map();
+    for(const raw of sourceItems(payload)){
+      const stored=plan.bank.find(q=>qid(q.id)===qid(raw.id)) || plan.bank.find(q=>contentKey(q)===contentKey(raw)) || raw;
+      const ctx=round?.theme ? round : topic(stored); const key=topicKey(ctx);
+      if(!groups.has(key))groups.set(key,{...topic(ctx),topicKey:key,questionIds:[],rows:[]});
+      groups.get(key).questionIds.push(qid(stored.id));
+      groups.get(key).rows.push([qid(stored.id),stored.enunciado,stored.gabarito,raw.resposta_marcada||'',raw.corrigida,raw.resultado,raw.justificativas_alternativas]);
+    }
+    return [...groups.values()].map(g=>({id:`qimport-${hash(JSON.stringify([g.topicKey,round?.id||'',g.rows.sort((a,b)=>a[0].localeCompare(b[0]))]))}`,
+      kind:'import',topicKey:g.topicKey,discipline:g.discipline,theme:g.theme,roundId:round?.id||'',createdAt:new Date().toISOString(),
+      questionIds:[...new Set(g.questionIds)]})).filter(e=>!existing.some(old=>old.id===e.id));
+  }
+  function recordImport(state,payload,plan){
+    const events=importEvents(payload,plan,state.questionTrainingEvents||[]);
+    if(events.length)state.questionTrainingEvents=[...(state.questionTrainingEvents||[]),...events];
+    return events;
+  }
+  function stats(state,ctx){
+    const key=topicKey(ctx),events=(state.questionTrainingEvents||[]).filter(e=>e.topicKey===key);
+    const importedIds=new Set(events.filter(e=>e.kind==='import').flatMap(e=>e.questionIds||[]));
+    const questions=[...new Map((state.questionBank||[]).filter(q=>topicKey(q)===key||importedIds.has(qid(q.id))).map(q=>[qid(q.id),q])).values()];
+    const answered=new Set((state.questionBankSessions||[]).flatMap(s=>s.items||[]).filter(q=>['certo','errado'].includes(q.status)).map(q=>qid(q.id)));
+    const done=questions.filter(q=>corrected(q)||answered.has(qid(q.id))).length;
+    const waiting=questions.filter(q=>!corrected(q)&&!answered.has(qid(q.id))&&/^[A-E]$/.test(q.resposta_marcada||q.respostaMarcada||'')).length;
+    return {prompts:events.filter(e=>e.kind==='prompt').length,imports:events.filter(e=>e.kind==='import').length,questions:questions.length,corrected:done,pending:questions.length-done-waiting,waiting,
+      generated:questions.filter(q=>q.origem_tipo==='autoral').length};
+  }
+  function label(s){return `${s.prompts} prompt(s) · ${s.imports} importação(ões) · ${s.questions} questões únicas · ${s.corrected} corrigidas · ${s.pending} a responder${s.waiting?` · ${s.waiting} aguardando correção`:''}${s.generated?` · ${s.generated} autorais`:''}`;}
+  const api={SCHEMA,canon,qid,topic,topicKey,exclusions,normalizeConfig,prompt,validatePayload,importEvents,recordImport,stats,label,esc,explanation};
+  globalThis.AldusQuestionTraining=api;
+  if(typeof module!=='undefined')module.exports=api;
+})();
+
+/* Aldus source: question-training-card.js */
+/* Modelo autônomo: dados são texto, nunca código executável. */
+(() => {
+  'use strict';
+  function runtime(){
+    const $=s=>document.querySelector(s);
+    let data=JSON.parse($('#training-data').textContent), selected=null;
+    const keys=q=>Object.keys(q.alternativas||{}).length?Object.keys(q.alternativas):['C','E'];
+    const storageKey=()=>`aldus-training:${data.trainingRound?.id||data.metadata?.trainingRound?.id||data.questionBank.map(q=>q.id).join('|')}`;
+    function normalize(){data.questionBank||=[];data.questionBank.forEach(q=>{q.resposta_marcada||='';q.corrigida=q.corrigida===true;q.anotacoes||={};q.alternativas_eliminadas||=[];});}
+    function persist(){try{localStorage.setItem(storageKey(),JSON.stringify(data));}catch{$('#message').textContent='Não foi possível salvar no navegador. Use Guardar treino completo.';}}
+    function node(tag,cls,value){const el=document.createElement(tag);if(cls)el.className=cls;if(value!==undefined)el.textContent=String(value);return el;}
+    function button(label,action){const b=node('button','',label);b.type='button';b.addEventListener('click',action);return b;}
+    function markText(el,value,ranges=[]){
+      el.replaceChildren();const text=String(value||''),points=[...new Set([0,text.length,...ranges.flatMap(r=>[Math.max(0,r.start),Math.min(text.length,r.end)])])].sort((a,b)=>a-b);
+      for(let i=0;i<points.length-1;i++){const a=points[i],b=points[i+1];const r=ranges.filter(r=>r.start<=a&&r.end>=b).at(-1);
+        const fragment=r?node('mark','',text.slice(a,b)):document.createTextNode(text.slice(a,b));if(r)fragment.style.backgroundColor=r.color;el.append(fragment);}
+    }
+    function textBlock(q,field,value){const el=node('div','qt-text');el.dataset.question=q.id;el.dataset.field=field;markText(el,value,q.anotacoes[field]||[]);return el;}
+    function rememberSelection(){const s=getSelection();if(!s?.rangeCount||s.isCollapsed)return;const r=s.getRangeAt(0);
+      const element=(r.startContainer.nodeType===1?r.startContainer:r.startContainer.parentElement)?.closest('.qt-text');
+      if(!element||!element.contains(r.endContainer))return;const pre=r.cloneRange();pre.selectNodeContents(element);pre.setEnd(r.startContainer,r.startOffset);
+      selected={id:element.dataset.question,field:element.dataset.field,start:pre.toString().length,end:pre.toString().length+r.toString().length};}
+    document.addEventListener('selectionchange',rememberSelection);
+    function highlight(q,color){if(!selected||selected.id!==q.id||selected.end<=selected.start)return;
+      const r=selected,list=q.anotacoes[r.field]||[];q.anotacoes[r.field]=color?[...list,{start:r.start,end:r.end,color}]:list.filter(x=>x.end<=r.start||x.start>=r.end);persist();render();}
+    function correct(q){if(!q.resposta_marcada)return;q.corrigida=true;q.resultado=q.resposta_marcada===q.gabarito?'ACERTEI':'ERREI';persist();render();}
+    function render(){
+      const root=$('#cards');root.replaceChildren();const round=data.trainingRound||data.metadata?.trainingRound||{};
+      $('#title').textContent=round.discipline?`${round.discipline} · ${round.theme||'Treino misto'}`:'Treino de questões';
+      data.questionBank.forEach((q,index)=>{
+        const card=node('article','qt-card'),toolbar=node('div','qt-toolbar');toolbar.append(node('strong','',`Questão ${index+1}`));
+        for(const [label,color] of [['Amarelo','#ffe580'],['Verde','#a3e9b2'],['Azul','#a9d9ff'],['Rosa','#ffb9dd']]){const b=button(label,()=>highlight(q,color));b.style.backgroundColor=color;b.style.color='#152238';b.addEventListener('pointerdown',e=>e.preventDefault());toolbar.append(b);}
+        const erase=button('Remover grifo',()=>highlight(q,null));erase.addEventListener('pointerdown',e=>e.preventDefault());toolbar.append(erase);card.append(toolbar);
+        const body=node('div','qt-body');body.append(node('p','qt-meta',q.origem_tipo==='autoral'?`CRIADA PELO AGENTE · estilo ${q.banca_estilo||'jurídico'}`:`${q.id} · ${q.banca||''} · ${q.ano||''} · ${q.orgao||''} — ${q.cargo||''}`));
+        if(q.origem_tipo!=='autoral'&&/delegado/i.test(q.cargo||''))body.append(node('span','qt-badge','PRIORIDADE DELEGADO'));
+        body.append(node('p','qt-meta',[q.disciplina,q.assunto,q.tema].filter(Boolean).join(' · ')),textBlock(q,'enunciado',q.enunciado));
+        for(const k of keys(q)){
+          const row=node('section',`qt-option${q.resposta_marcada===k?' chosen':''}${q.alternativas_eliminadas.includes(k)?' eliminated':''}`);
+          const controls=node('div','qt-option-controls');controls.append(node('strong','',k));
+          const choose=button(q.resposta_marcada===k?'Marcada':'Marcar',()=>{q.resposta_marcada=k;q.resultado='RESPONDIDA_SEM_CORRECAO';persist();render();});choose.disabled=q.corrigida;choose.setAttribute('aria-pressed',String(q.resposta_marcada===k));
+          controls.append(choose,button(q.alternativas_eliminadas.includes(k)?'Desriscar':'Riscar',()=>{q.alternativas_eliminadas=q.alternativas_eliminadas.includes(k)?q.alternativas_eliminadas.filter(x=>x!==k):[...q.alternativas_eliminadas,k];persist();render();}));
+          row.append(controls,textBlock(q,k,q.alternativas?.[k]||({C:'Certo',E:'Errado'}[k])));body.append(row);
+        }
+        if(q.origem_tipo!=='autoral'&&/^https:\/\/(?:www\.)?qconcursos\.com\//i.test(q.link||'')){const link=node('a','','Abrir no QConcursos ↗');link.href=q.link;link.target='_blank';link.rel='noopener noreferrer';body.append(link);}
+        const answer=button('CORRIGIR QUESTÃO',()=>correct(q));answer.disabled=!q.resposta_marcada||q.corrigida;body.append(answer);
+        body.append(node('p','qt-status',q.corrigida?`${q.resposta_marcada===q.gabarito?'✓ ACERTOU':'✗ ERROU'} — marcou ${q.resposta_marcada} · correta ${q.gabarito}`:q.resposta_marcada?'Respondida — aguardando correção':'Não respondida'));
+        if(q.corrigida){const explanation=node('section','qt-explanations');explanation.append(node('h3','','Justificativas'));
+          if(q.justificativa_qconcursos)explanation.append(node('p','','Justificativa — QConcursos: '+q.justificativa_qconcursos));
+          if(q.explicacao_complementar)explanation.append(node('p','','Explicação complementar — Agente: '+q.explicacao_complementar));
+          keys(q).forEach(k=>explanation.append(node('h4','',`${k} — ${k===q.gabarito?'Correta':'Incorreta'}`),node('p','',q.justificativas_alternativas?.[k]||'Justificativa não fornecida.')));body.append(explanation);}
+        card.append(body);root.append(card);
+      });
+      const done=data.questionBank.filter(q=>q.corrigida),correctCount=done.filter(q=>q.resposta_marcada===q.gabarito).length;
+      $('#score').textContent=`Total ${data.questionBank.length} · Corrigidas ${done.length} · Acertos ${correctCount} · Erros ${done.length-correctCount} · Não respondidas ${data.questionBank.filter(q=>!q.resposta_marcada).length} · ${done.length?Math.round(correctCount/done.length*100):0}%`;
+    }
+    function exported(all){return {...data,schema:'aldus-question-training-v1',exportMode:all?'complete':'corrected',questionBank:data.questionBank.filter(q=>all||q.corrigida).map(q=>({...q,resposta_correta:q.gabarito,resultado:q.corrigida?(q.resposta_marcada===q.gabarito?'ACERTEI':'ERREI'):(q.resposta_marcada?'RESPONDIDA_SEM_CORRECAO':'NAO_RESPONDIDA')}))};}
+    let output='';
+    function download(){if(!output)return;const url=URL.createObjectURL(new Blob([output],{type:'application/json;charset=utf-8'})),a=node('a');a.href=url;a.download='treino-questoes.json';document.body.append(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(url);},2500);}
+    function exportFile(all){const payload=exported(all);output=JSON.stringify(payload,null,2);$('#json').value=output;$('#export-area').hidden=false;
+      $('#export-info').textContent=`Exportadas ${payload.questionBank.length}/${data.questionBank.length} · IDs: ${payload.questionBank.map(q=>q.id).join(', ')} · Respondidas sem correção: ${data.questionBank.filter(q=>q.resposta_marcada&&!q.corrigida).length}`;download();}
+    $('#all').addEventListener('click',()=>{data.questionBank.forEach(q=>{if(q.resposta_marcada){q.corrigida=true;q.resultado=q.resposta_marcada===q.gabarito?'ACERTEI':'ERREI';}});persist();render();});
+    $('#complete').addEventListener('click',()=>exportFile(true));$('#corrected').addEventListener('click',()=>exportFile(false));$('#download-again').addEventListener('click',download);
+    $('#import').addEventListener('change',async e=>{try{const incoming=JSON.parse(await e.target.files[0].text());if(!Array.isArray(incoming.questionBank))throw Error('JSON sem questionBank');data=incoming;normalize();persist();render();$('#message').textContent='Treino carregado.';}catch(error){$('#message').textContent=error.message;}});
+    normalize();try{const saved=JSON.parse(localStorage.getItem(storageKey()));if(saved?.questionBank&&saved.questionBank.map(q=>q.id).join('|')===data.questionBank.map(q=>q.id).join('|')){data=saved;normalize();}}catch{}
+    render();globalThis.AldusTrainingCard={exported};
+  }
+  function buildHTML(payload={schema:'aldus-question-training-v1',questionBank:[]}){
+    const data=JSON.stringify(payload).replace(/</g,'\\u003c').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');
+    return `<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Treino de questões</title><style>
+*{box-sizing:border-box}body{margin:0;background:#061a2b;color:#edf5fc;font:16px/1.6 system-ui,sans-serif;padding-bottom:200px}main,header{max-width:960px;margin:auto;padding:20px}h1{font-size:1.7rem}button,input{font:inherit}button,a{cursor:pointer}button{padding:9px 12px;border:1px solid #54758d;border-radius:9px;background:#173e59;color:#fff}button:disabled{opacity:.55;cursor:default}button:focus-visible,a:focus-visible{outline:3px solid #ffe580}a{color:#84d6ff}.qt-card{margin:24px 0;border:1px solid #4c728c;border-radius:16px;background:#0c2940;overflow:visible}.qt-toolbar{position:sticky;top:0;z-index:4;background:#15374e;padding:12px;display:flex;gap:8px;flex-wrap:wrap;border-radius:16px 16px 0 0;align-items:center;border-bottom:1px solid #4c728c}.qt-body{padding:24px}.qt-meta{color:#bcd0de}.qt-text,.qt-explanations p{white-space:pre-wrap;overflow-wrap:anywhere}.qt-badge{color:#ffe580}.qt-option{padding:14px;margin:15px 0;border:1px solid #446c85;border-radius:12px}.qt-option-controls{display:flex;gap:10px;align-items:center;margin-bottom:10px}.chosen{border:2px solid #ffe580}.eliminated .qt-text{text-decoration:line-through;opacity:.7}.qt-body>button{margin:12px}.qt-explanations{border-top:2px solid #ffe580;margin-top:20px}mark{color:#142030;border-radius:2px}footer{position:fixed;bottom:0;width:100%;z-index:10;background:#061a2b;border-top:2px solid #f4d673;padding:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}#score{width:100%;text-align:center}textarea{width:100%;min-height:260px;font:13px monospace}#export-area{padding:20px;background:#173e59}#message{color:#ffe580}@media(max-width:550px){main,header{padding:12px}.qt-body{padding:14px}.qt-toolbar{gap:5px;padding:8px}.qt-toolbar button{font-size:13px;padding:7px}footer button{font-size:13px;padding:7px}body{padding-bottom:240px}}
+</style><header><h1 id="title">Treino de questões</h1><label>Retomar treino guardado: <input type="file" id="import" accept=".json,application/json"></label><p id="message" role="status"></p><p>O JSON completo inclui gabaritos e justificativas. Eles ficam ocultos no cartão até a correção.</p></header><main><div id="cards"></div><section id="export-area" hidden><h2>Exportação</h2><p id="export-info"></p><textarea id="json" readonly aria-label="JSON completo para copiar"></textarea><button id="download-again">BAIXAR ARQUIVO JSON</button></section></main><footer><div id="score" aria-live="polite"></div><button id="all">CORRIGIR TODAS</button><button id="complete">GUARDAR TREINO COMPLETO</button><button id="corrected">EXPORTAR CORRIGIDAS</button></footer><script type="application/json" id="training-data">${data}</script><script>(${runtime.toString()})();</script></html>`;
+  }
+  globalThis.AldusTrainingTemplate={buildHTML};
+  if(typeof module!=='undefined')module.exports={buildHTML};
+})();
+
+/* Aldus source: question-training-ui.js */
+(() => {
+  'use strict';
+  const api=globalThis.AldusQuestionTraining;
+  if(!api||typeof document==='undefined')return;
+  const getState=()=>{try{return typeof state==='undefined'?null:state;}catch{return null;}};
+  let queued=false,current=null,focusReturn=null;
+  function scheduleRefresh(){if(queued)return;queued=true;setTimeout(()=>{queued=false;refresh();},0);}
+  api.scheduleRefresh=scheduleRefresh;
+  function download(name,text,type='text/plain;charset=utf-8'){
+    const url=URL.createObjectURL(new Blob([text],{type})),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(url);},2500);
+  }
+  function style(){if(document.getElementById('questionTrainingStyles'))return;const s=document.createElement('style');s.id='questionTrainingStyles';s.textContent=`
+    .qt-site-panel{border:1px solid #52748c;border-left:5px solid #f5d46b;border-radius:14px;padding:18px;margin:16px 0;background:#0c2940;color:#edf5fc}.qt-site-panel h3{margin:0 0 8px}.qt-topic-status{display:block;color:#98e0eb;font-size:.82rem;line-height:1.6;margin:8px 0;white-space:normal}.qt-site-panel button{margin:5px}.qt-site-panel table{width:100%;border-collapse:collapse;font-size:.88rem}.qt-site-panel td,.qt-site-panel th{padding:8px;text-align:left;border-bottom:1px solid #426179}.qt-site-panel .qt-scroll{overflow:auto}#questionTrainingDialog{color:#edf5fc;background:#0b263b;border:1px solid #62859e;border-radius:18px;width:min(900px,95vw);max-height:90dvh;padding:22px;overflow:auto}#questionTrainingDialog::backdrop{background:#000b}#questionTrainingDialog .qt-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}#questionTrainingDialog [hidden]{display:none!important}#questionTrainingDialog label{display:flex;flex-direction:column;gap:5px}#questionTrainingDialog input,#questionTrainingDialog select,#questionTrainingDialog textarea{width:100%;min-width:0;background:#061a2b;color:#edf5fc;border:1px solid #658197;padding:10px;border-radius:8px;font:inherit}#questionTrainingDialog textarea{height:220px;font:12px monospace}#questionTrainingDialog button{margin:8px 5px 0 0}#questionTrainingDialog .qt-wide{grid-column:1/-1}#qtOutput:empty{display:none}#qtNotice{color:#f5d46b;white-space:pre-wrap}@media(max-width:600px){#questionTrainingDialog .qt-fields{grid-template-columns:1fr}.qt-site-panel{padding:12px}}
+  `;document.head.append(s);}
+  function formHTML(){return `<form id="questionTrainingForm"><h2>Configurar rodada de questões</h2><p>Escolha a disciplina. O tema é opcional para um treino misto.</p><div class="qt-fields">
+    <label>Disciplina<input name="discipline" list="qtDisciplines" required></label><label>Tema / assunto<input name="theme" list="qtThemes" placeholder="Em branco: misto da disciplina"></label>
+    <label>Número de questões<select name="count"><option>5</option><option>10</option><option selected>15</option></select></label>
+    <label>Banca principal<select name="primary"><option>FGV</option><option>CEBRASPE</option><option>AOCP</option><option>VUNESP</option><option>Outra</option></select></label>
+    <label id="qtOther" hidden>Nome da outra banca<input name="otherPrimary"></label>
+    <label>Formato CEBRASPE<select name="cebraspe"><option>Ambos</option><option>Múltipla escolha</option><option>Certo/Errado</option></select></label>
+    <label>Se faltarem questões da banca principal<select name="supplement"><option value="none">Não completar com outras bancas</option><option value="cebraspe-mc">Sim: CEBRASPE só com alternativas</option><option value="cebraspe-ce">Sim: CEBRASPE só Certo/Errado</option><option value="cebraspe-both">Sim: CEBRASPE nos dois formatos</option><option value="ordered">Sim: escolher ordem das bancas</option></select></label>
+    <label class="qt-order" hidden>Primeira banca complementar<input name="first" list="qtBoards" value="CEBRASPE"></label><label class="qt-order" hidden>Segunda banca complementar<input name="second" list="qtBoards" value="VUNESP"></label>
+    <label>Se ainda faltarem questões reais<select name="allowGenerated"><option value="yes">Completar com criadas pelo agente</option><option value="no">Entregar menos; só questões reais</option></select></label>
+    <label>Formato das questões criadas<select name="generatedFormat"><option>Múltipla escolha</option><option>Certo/Errado</option><option>Ambos</option></select></label>
+    <label>Dificuldade preferida<select name="difficulty"><option>Difíceis primeiro</option><option>Muito difíceis primeiro</option><option>Equilibrada</option></select></label>
+    <label>Ordem do treino<select name="order"><option>Mais recentes</option><option>Mais difíceis</option></select></label>
+    </div><datalist id="qtDisciplines"></datalist><datalist id="qtThemes"></datalist><datalist id="qtBoards"><option>FGV</option><option>CEBRASPE</option><option>AOCP</option><option>VUNESP</option><option>FCC</option><option>IBFC</option><option>CONSULPLAN</option></datalist>
+    <p>Reais: texto integral e gabarito do QConcursos. Autorais: identificação própria e justificativas de todas as alternativas. O histórico local acompanha o prompt; o histórico da conta QC depende de acesso autenticado.</p>
+    <button type="submit">GERAR PROMPT DO TREINO</button><button type="button" data-qt-close>Fechar</button><p id="qtNotice" role="status"></p><div id="qtOutput"></div></form>`;}
+  function lists(form){const s=getState();const disciplines=[...new Set((s.syllabusItems||[]).map(q=>q.discipline).filter(Boolean))].sort();
+    form.querySelector('#qtDisciplines').innerHTML=disciplines.map(v=>`<option value="${api.esc(v)}">`).join('');
+    form.querySelector('#qtThemes').innerHTML=[...new Set((s.syllabusItems||[]).filter(q=>api.canon(q.discipline)===api.canon(form.elements.discipline.value)).map(q=>q.subject).filter(Boolean))].map(v=>`<option value="${api.esc(v)}">`).join('');
+  }
+  function options(form){form.querySelector('#qtOther').hidden=form.elements.primary.value!=='Outra';form.elements.otherPrimary.required=form.elements.primary.value==='Outra';form.querySelectorAll('.qt-order').forEach(e=>e.hidden=form.elements.supplement.value!=='ordered');}
+  function open(ctx={}){
+    style();focusReturn=document.activeElement;let d=document.getElementById('questionTrainingDialog');if(!d){d=document.createElement('dialog');d.id='questionTrainingDialog';document.body.append(d);}
+    current=null;d.innerHTML=formHTML();const f=d.querySelector('form'),t=api.topic(ctx);f.elements.discipline.value=t.discipline;f.elements.theme.value=t.theme;f.dataset.syllabusId=t.syllabusItemId;lists(f);options(f);
+    f.addEventListener('change',()=>{lists(f);options(f);if(current){current=null;f.querySelector('#qtOutput').replaceChildren();f.querySelector('#qtNotice').textContent='Configuração alterada. Gere uma nova rodada.';}});
+    f.addEventListener('submit',generate);d.querySelector('[data-qt-close]').addEventListener('click',()=>d.close());d.addEventListener('close',()=>focusReturn?.focus(),{once:true});d.showModal();f.elements.discipline.focus();
+  }
+  function generate(event){
+    event.preventDefault();const f=event.currentTarget,s=getState(),notice=f.querySelector('#qtNotice');
+    try{
+      const raw=Object.fromEntries(new FormData(f));raw.primary=raw.primary==='Outra'?raw.otherPrimary:raw.primary;raw.allowGenerated=raw.allowGenerated==='yes';
+      const match=(s.syllabusItems||[]).find(q=>api.canon(q.discipline)===api.canon(raw.discipline)&&api.canon(q.subject)===api.canon(raw.theme));raw.syllabusItemId=match?.id||'';
+      const generated=api.prompt(raw,s);const template=globalThis.AldusTrainingTemplate.buildHTML({...generated.metadata,questionBank:[]});
+      const exclusionText=JSON.stringify(generated.excluded.questions);
+      const attachment=exclusionText.length>18000;
+      const full=generated.instruction+(attachment?'\nTambém confira o arquivo exclusoes-treino.json, que será baixado com o prompt; ele contém textos para comparar duplicatas. Não gere o treino sem lê-lo.':'\nConteúdo já existente para conferir duplicatas: '+exclusionText)+`\n\n# MODELO HTML OBRIGATÓRIO\nPreencha training-data com o JSON das questões. Escape < como \\u003c dentro do JSON.\n\n${template}`;
+      s.questionTrainingEvents||=[];s.questionTrainingEvents.push({id:generated.roundId,kind:'prompt',roundId:generated.roundId,topicKey:api.topicKey(generated.config),...api.topic(generated.config),config:generated.config,requestedCount:generated.config.count,createdAt:new Date().toISOString(),exclusionCount:generated.excluded.ids.length});
+      if(typeof saveData==='function')saveData({markLocalChange:true});
+      current={...generated,full,template,attachment};
+      const output=f.querySelector('#qtOutput');output.innerHTML='<label>Prompt pronto para copiar<textarea id="qtPromptText" readonly></textarea></label><button type="button" id="qtCopy">COPIAR PROMPT</button><button type="button" id="qtDownload">BAIXAR PROMPT</button><button type="button" id="qtTemplate">BAIXAR MODELO DO CARTÃO</button><button type="button" id="qtExclusions">BAIXAR HISTÓRICO DE EXCLUSÕES</button>';
+      output.querySelector('textarea').value=full;
+      const extra=()=>{if(attachment)download('exclusoes-treino.json',JSON.stringify(generated.excluded,null,2),'application/json;charset=utf-8');};
+      output.querySelector('#qtCopy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(full);notice.textContent=attachment?'Prompt copiado. Anexe também o histórico baixado ao Projeto.':'Prompt copiado. Cole no Projeto para gerar o treino.';}catch{output.querySelector('textarea').select();notice.textContent='Selecionei o prompt. Use Ctrl+C para copiar.';}extra();});
+      output.querySelector('#qtDownload').addEventListener('click',()=>{download('prompt-treino-questoes.txt',full);extra();});
+      output.querySelector('#qtTemplate').addEventListener('click',()=>download('modelo-treino-questoes.html',template,'text/html;charset=utf-8'));
+      output.querySelector('#qtExclusions').addEventListener('click',()=>download('exclusoes-treino.json',JSON.stringify(generated.excluded,null,2),'application/json;charset=utf-8'));
+      notice.textContent=`Prompt registrado para ${raw.theme||raw.discipline}. ${generated.excluded.ids.length} IDs excluídos. ${attachment?'Ao copiar, anexe também o histórico baixado.':''}`;scheduleRefresh();
+    }catch(error){notice.textContent=error.message;}
+  }
+  function refresh(){
+    const s=getState();if(!s)return;style();const factory=document.getElementById('factoryList');
+    if(factory&&!document.getElementById('questionTrainingFactory')){const panel=document.createElement('section');panel.id='questionTrainingFactory';panel.className='qt-site-panel';panel.innerHTML='<h3>Treino de questões</h3><p>Configure a rodada, copie o prompt e guarde o treino completo ou apenas os resultados corrigidos.</p><button type="button" data-qt-open>CONFIGURAR TREINO</button>';factory.before(panel);}
+    const cache=new Map(),getStats=ctx=>{const key=api.topicKey(ctx);if(!cache.has(key))cache.set(key,api.stats(s,ctx));return cache.get(key);};
+    const update=(card,ctx,container)=>{if(!ctx||!container)return;let box=container.querySelector('.qt-topic-status');if(!box){box=document.createElement('small');box.className='qt-topic-status';container.append(box);}const msg='Treinos: '+api.label(getStats(ctx));if(box.textContent!==msg)box.textContent=msg;
+      if(card.matches('[data-factory-card]')&&!card.querySelector('[data-qt-factory]')){const b=document.createElement('button');b.type='button';b.dataset.qtFactory=card.dataset.factoryCard;b.textContent='Treino de questões';(card.querySelector('.factory-main-actions')||card).append(b);}};
+    const agenda=s.factoryAgenda?.length?s.factoryAgenda:s.factoryItems||[];
+    document.querySelectorAll('[data-factory-card]').forEach(card=>update(card,agenda.find(q=>q.id===card.dataset.factoryCard),card.querySelector('.factory-card-heading')||card));
+    document.querySelectorAll('[data-daily-goal-details]').forEach(card=>update(card,(s.dailyGoals||[]).find(q=>q.id===card.dataset.dailyGoalDetails),card.querySelector('summary > span')||card.querySelector('summary')));
+    const dashboard=document.getElementById('view-dashboard');if(!dashboard)return;let panel=document.getElementById('questionTrainingDashboard');if(!panel){panel=document.createElement('section');panel.id='questionTrainingDashboard';panel.className='qt-site-panel';dashboard.append(panel);}
+    const topics=new Map(),linked=new Set((s.questionTrainingEvents||[]).filter(e=>e.kind==='import').flatMap(e=>e.questionIds||[]));(s.questionTrainingEvents||[]).forEach(e=>topics.set(e.topicKey,e));(s.questionBank||[]).filter(q=>!linked.has(api.qid(q.id))).forEach(q=>{const key=api.topicKey(q);if(!topics.has(key))topics.set(key,api.topic(q));});
+    const rows=[...topics.values()].map(ctx=>({ctx,stats:getStats(ctx)}));
+    const html=`<h3>Treinos por tema</h3><p>Prompts gerados, JSONs importados e questões únicas. Reimportar o mesmo conteúdo não aumenta a contagem.</p><details><summary>${rows.length} tema(s) com registros — ver contadores</summary><div class="qt-scroll"><table><thead><tr><th>Disciplina / tema</th><th>Prompts</th><th>Importações</th><th>Questões</th><th>Corrigidas</th><th>A responder</th></tr></thead><tbody>${rows.map(({ctx,stats:t})=>`<tr><td>${api.esc(api.topic(ctx).discipline)} — ${api.esc(api.topic(ctx).theme||'Misto da disciplina')}</td><td>${t.prompts}</td><td>${t.imports}</td><td>${t.questions}</td><td>${t.corrected}</td><td>${t.pending}</td></tr>`).join('')}</tbody></table></div></details>`;
+    if(panel.dataset.snapshot!==html){const wasOpen=panel.querySelector('details')?.open;panel.innerHTML=html;panel.dataset.snapshot=html;if(wasOpen)panel.querySelector('details').open=true;}
+  }
+  document.addEventListener('click',event=>{const b=event.target.closest?.('[data-qt-open],[data-qt-factory]');if(!b)return;event.preventDefault();const s=getState();const agenda=s?.factoryAgenda?.length?s.factoryAgenda:s?.factoryItems||[];open(b.dataset.qtFactory?agenda.find(q=>q.id===b.dataset.qtFactory)||{}:{});});
+  api.open=open;api.refresh=refresh;document.addEventListener('DOMContentLoaded',scheduleRefresh,{once:true});if(document.readyState!=='loading')scheduleRefresh();
+})();
+
 /* Aldus source: qconcursos-pdf-import-v181.js */
 (() => {
   "use strict";
@@ -41788,6 +42085,7 @@ function factoryThemeHighlightHTML(item = {}, recorte = "", { position = "" } = 
   return `<div class="factory-theme-highlight"><p class="factory-theme-label">${escapeHTML(factoryThemeVisualLabel(item))}</p><h3 class="factory-theme-title">${escapeHTML(subject)}</h3><p class="factory-theme-discipline"><strong>Disciplina:</strong> ${escapeHTML(discipline)}${escapeHTML(positionText)}</p><p class="item-meta"><strong>Planejamento integrado:</strong> ${escapeHTML(planningText)}</p>${recorte ? `<p class="factory-theme-recorte"><strong>Recorte da meta:</strong> ${escapeHTML(recorte)}</p>` : ""}</div>`;
 }
 function renderFactory() {
+  globalThis.AldusQuestionTraining?.scheduleRefresh?.();
   if (!elements.factoryList) return;
   try {
     const agenda = (state.factoryAgenda?.length ? state.factoryAgenda : (state.factoryItems || [])).map(normalizeFactoryItem);
@@ -42479,6 +42777,7 @@ function renderPlanningPreview(scoreContext = buildPlanningScoreContext()) {
 }
 
 function renderDashboard() {
+  globalThis.AldusQuestionTraining?.scheduleRefresh?.();
   medirFaseBootV350("dashboard:renderSmartReviewSummary", () => renderSmartReviewSummary());
   const today = todayISO(); const todayMinutes = globalThis.__ALDUS_STUDY_TIME__ ? globalThis.__ALDUS_STUDY_TIME__.secondsBetween(state, today) / 60 : state.studies.filter((study) => study.date === today).reduce((sum, study) => sum + study.minutes, 0); const weekMinutes = globalThis.__ALDUS_STUDY_TIME__ ? globalThis.__ALDUS_STUDY_TIME__.secondsBetween(state, weekStart(today), addDays(weekStart(today), 6)) / 60 : state.studies.filter((study) => isSameWeek(study.date)).reduce((sum, study) => sum + study.minutes, 0); const totalQuestions = state.studies.reduce((sum, study) => sum + study.questions, 0); const correct = state.studies.reduce((sum, study) => sum + study.correct, 0);
   const total = state.syllabusItems.length; const studied = state.syllabusItems.filter(completedStatus).length; const weak = medirFaseBootV350("dashboard:filter-isWeakItem", () => state.syllabusItems.filter(isWeakItem).length); const undiagnosed = medirFaseBootV350("dashboard:filter-isUndiagnosed", () => state.syllabusItems.filter(isUndiagnosed).length); const notStarted = state.syllabusItems.filter((item) => item.status === "Não iniciado").length;
@@ -46064,6 +46363,7 @@ function hydrateDailyGoal(goalId) {
   mount.innerHTML = dailyGoalDetailsBodyHTML(goal, entry || null); details.dataset.dailyGoalHydrated = "true"; ensureDailyGoalEditAction(details, goalId); if (typeof performanceCounters !== "undefined") performanceCounters.hydratedGoals++;
 }
 function renderDailyGoals() {
+  globalThis.AldusQuestionTraining?.scheduleRefresh?.();
   if (!elements.dailyGoalsList) return;
   const date = elements.goalDate?.value || todayISO();
   const alignmentStatus = dailyPlanAlignmentStatusV174(state, date);
@@ -47538,7 +47838,7 @@ elements.questionHistoryBody.addEventListener("click", (event) => { const edit =
         : (plan.session ? `${plan.notebookItems.length} item(ns) serão encaminhados ao Caderno de Erros.` : "Nenhum desempenho do usuário foi identificado; somente o banco será atualizado.");
       modal.innerHTML = `<section class="aldus-json-review-card-v192">
         <header class="aldus-json-review-head-v192">
-          <div><p class="eyebrow">REVISAR ANTES DE SALVAR</p><h2 id="aldusQbJsonReviewTitleV192">Importação JSON do QConcursos</h2><p>${html(fileName)}</p></div>
+          <div><p class="eyebrow">REVISAR ANTES DE SALVAR</p><h2 id="aldusQbJsonReviewTitleV192">Importação JSON de questões</h2><p>${html(fileName)}</p></div>
           <button type="button" class="secondary-button aldus-json-review-close-v192" data-json-review-cancel aria-label="Cancelar importação">×</button>
         </header>
         <div class="aldus-json-review-stats-v192">
@@ -47570,14 +47870,16 @@ elements.questionHistoryBody.addEventListener("click", (event) => { const edit =
     });
   }
 
-  function commitPlan(plan) {
+  function commitPlan(plan, payload) {
     state.questionBank = plan.bank;
+    globalThis.AldusQuestionTraining?.recordImport(state, payload, plan);
     state.questionBankSessions ||= [];
     if (plan.session) {
       state.questionBankSessions.unshift(plan.session);
       if (typeof qbSaveNotebookItems === "function") qbSaveNotebookItems(plan.notebookItems);
     }
     saveData({ markLocalChange: true });
+    globalThis.AldusQuestionTraining?.scheduleRefresh?.();
     if (typeof renderQuestionBank === "function") renderQuestionBank();
     if (typeof qbRenderErrorNotebook === "function") qbRenderErrorNotebook();
     if (typeof autoSyncAfterSave === "function") autoSyncAfterSave("question-bank-json-import");
@@ -47602,7 +47904,7 @@ elements.questionHistoryBody.addEventListener("click", (event) => { const edit =
         if (typeof elements !== "undefined" && elements.qbMessage) elements.qbMessage.textContent = "Importação JSON cancelada; nenhum dado foi alterado.";
         return;
       }
-      commitPlan(plan);
+      commitPlan(plan, payload);
       const performanceMessage = plan.duplicateSession
         ? " O desempenho idêntico já existia e não foi duplicado."
         : (plan.session ? ` ${plan.counts.results} resultado(s) registrado(s) no histórico.` : " Nenhum resultado de desempenho foi identificado.");
@@ -48390,11 +48692,14 @@ elements.questionHistoryBody.addEventListener("click", (event) => { const edit =
   }
 
   function hasPerformanceEvidence(raw = {}) {
+    // Guardar o treino, mesmo com gabarito, não é uma resolução.
+    if (raw.corrigida === false) return false;
     return ["resposta_marcada", "respostaMarcada", "marcado", "userAnswer", "resposta_usuario", "resultado", "status_resultado", "acertou", "nao_respondida", "não_respondida"]
       .some((key) => own(raw, key));
   }
 
   function resultStatus(raw = {}) {
+    if (raw.corrigida === false) return '';
     const result = canonicalJson(firstNonEmpty(raw.resultado, raw.status_resultado, raw.statusResultado, raw.status));
     if (result.includes("anulad") || result.includes("cancelad")) return "anulada";
     if (result.includes("nao respond") || result.includes("em branco") || result === "branco") return "branco";
@@ -48467,6 +48772,7 @@ elements.questionHistoryBody.addEventListener("click", (event) => { const edit =
   }
 
   function explanationFromRaw(raw = {}) {
+    if (raw.justificativas_alternativas && globalThis.AldusQuestionTraining) return globalThis.AldusQuestionTraining.explanation(raw);
     return text(firstNonEmpty(raw.justificativa, raw.fundamento, raw.comentario, raw["comentário"], raw.comentarioQc, raw.explanation, raw.notes));
   }
 
@@ -48641,6 +48947,7 @@ elements.questionHistoryBody.addEventListener("click", (event) => { const edit =
   }
 
   function buildImportPlan(payload = {}, currentBank = [], currentSessions = []) {
+    globalThis.AldusQuestionTraining?.validatePayload(payload);
     const source = Array.isArray(payload) ? payload : (payload.questionBank || payload.questoes || payload.questions || payload.items || []);
     if (!Array.isArray(source)) throw new Error("O JSON não contém uma lista de questões reconhecida.");
     const bank = currentBank.map((question) => ({ ...question }));
@@ -48663,6 +48970,9 @@ elements.questionHistoryBody.addEventListener("click", (event) => { const edit =
       if (existingIndex >= 0) {
         const existing = bank[existingIndex];
         storedQuestion = mergeMeaningful(existing, question);
+        if (question.corrigida === false && existing.corrigida === true) {
+          for (const key of ['corrigida','resultado','resposta_marcada','respostaMarcada','acertou']) storedQuestion[key] = existing[key];
+        }
         storedQuestion.id = existing.id || question.id;
         if (JSON.stringify(storedQuestion) === JSON.stringify(existing)) counts.unchanged += 1;
         else { bank[existingIndex] = storedQuestion; counts.updated += 1; }
@@ -48732,12 +49042,14 @@ elements.questionHistoryBody.addEventListener("click", (event) => { const edit =
         return;
       }
       state.questionBank = plan.bank;
+      globalThis.AldusQuestionTraining?.recordImport(state, payload, plan);
       state.questionBankSessions ||= [];
       if (plan.session) {
         state.questionBankSessions.unshift(plan.session);
         if (typeof qbSaveNotebookItems === "function") qbSaveNotebookItems(plan.notebookItems);
       }
       saveData({ markLocalChange: true });
+      globalThis.AldusQuestionTraining?.scheduleRefresh?.();
       if (typeof renderQuestionBank === "function") renderQuestionBank();
       if (typeof qbRenderErrorNotebook === "function") qbRenderErrorNotebook();
       if (typeof autoSyncAfterSave === "function") autoSyncAfterSave("question-bank-json-import");

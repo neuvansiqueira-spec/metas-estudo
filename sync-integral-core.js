@@ -2,7 +2,7 @@ const SYNC_COLLECTIONS = [
   "subjects", "studies", "syllabusItems", "dailyGoals", "questionLogs",
   "smartReviews", "simulados", "materials", "questionBank",
   "questionBankSessions", "questionErrorNotebook", "factoryItems", "factoryAgenda",
-  "contestProfiles", "contestSyllabusMap", "planningModeHistory"
+  "contestProfiles", "contestSyllabusMap", "planningModeHistory", "questionTrainingEvents"
 ];
 const SYNC_MAX_NUMERIC_FIELDS = new Set([
   "minutes", "seconds", "elapsedSeconds", "plannedMinutes", "actualMinutes",
