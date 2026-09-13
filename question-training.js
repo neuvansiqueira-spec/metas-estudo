@@ -14,9 +14,10 @@
   const contentKey = q => canon(q.enunciado || q.statement) + '|' + Object.values(q.alternativas || {}).map(canon).join('|');
   const corrected = q => q.corrigida === true || (q.corrigida !== false && /^(acertei|errei|certo|errado)$/.test(canon(q.resultado || q.status)));
   function explanation(q){
-    return [q.justificativa_qconcursos && `Justificativa — QConcursos: ${q.justificativa_qconcursos}`,
+    return [q.justificativa_documento && `Justificativa — Comentado do simulado: ${q.justificativa_documento}`,
+      q.justificativa_qconcursos && `Justificativa — QConcursos: ${q.justificativa_qconcursos}`,
       q.explicacao_complementar && `Explicação complementar — Agente: ${q.explicacao_complementar}`,
-      ...Object.entries(q.justificativas_alternativas||{}).map(([key,value])=>`${key} — ${key===q.gabarito?'Correta':'Incorreta'}: ${text(value)}`)].filter(Boolean).join('\n\n');
+      ...Object.entries(q.justificativas_alternativas||{}).map(([key,value])=>`${key}${q.gabarito?` — ${key===q.gabarito?'Correta':'Incorreta'}`:''}: ${text(value)}`)].filter(Boolean).join('\n\n');
   }
   function exclusions(state={}) {
     const all=[...(state.questionBank||[]),...(state.questionBankSessions||[]).flatMap(s=>s.items||[])];

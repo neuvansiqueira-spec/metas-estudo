@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260913-treino-questoes-lateral-v424";
+  const VERSION = "20260913-acompanhamento-simulado-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -36300,9 +36300,10 @@ globalThis.PCPR_PCMA_2026_CATALOG = {
   const contentKey = q => canon(q.enunciado || q.statement) + '|' + Object.values(q.alternativas || {}).map(canon).join('|');
   const corrected = q => q.corrigida === true || (q.corrigida !== false && /^(acertei|errei|certo|errado)$/.test(canon(q.resultado || q.status)));
   function explanation(q){
-    return [q.justificativa_qconcursos && `Justificativa — QConcursos: ${q.justificativa_qconcursos}`,
+    return [q.justificativa_documento && `Justificativa — Comentado do simulado: ${q.justificativa_documento}`,
+      q.justificativa_qconcursos && `Justificativa — QConcursos: ${q.justificativa_qconcursos}`,
       q.explicacao_complementar && `Explicação complementar — Agente: ${q.explicacao_complementar}`,
-      ...Object.entries(q.justificativas_alternativas||{}).map(([key,value])=>`${key} — ${key===q.gabarito?'Correta':'Incorreta'}: ${text(value)}`)].filter(Boolean).join('\n\n');
+      ...Object.entries(q.justificativas_alternativas||{}).map(([key,value])=>`${key}${q.gabarito?` — ${key===q.gabarito?'Correta':'Incorreta'}`:''}: ${text(value)}`)].filter(Boolean).join('\n\n');
   }
   function exclusions(state={}) {
     const all=[...(state.questionBank||[]),...(state.questionBankSessions||[]).flatMap(s=>s.items||[])];
@@ -36580,6 +36581,269 @@ Antes de entregar, validar contagem, exclusões, fonte e íntegra, gabarito QC n
   }
   document.addEventListener('click',event=>{const b=event.target.closest?.('[data-qt-open],[data-qt-factory]');if(!b)return;event.preventDefault();const s=getState();const agenda=s?.factoryAgenda?.length?s.factoryAgenda:s?.factoryItems||[];open(b.dataset.qtFactory?agenda.find(q=>q.id===b.dataset.qtFactory)||{}:{});});
   api.open=open;api.refresh=refresh;document.addEventListener('DOMContentLoaded',scheduleRefresh,{once:true});if(document.readyState!=='loading')scheduleRefresh();
+})();
+
+/* Aldus source: exam-tracker-core.js */
+/* Núcleo compartilhado pelo cartão autônomo e pelo importador do site. */
+function createExamTrackerCore() {
+  'use strict';
+  const SCHEMA='aldus-exam-tracker-v1', CORRECTION_SCHEMA='aldus-exam-correction-v1';
+  const text=v=>String(v??'').trim(), clone=v=>JSON.parse(JSON.stringify(v));
+  const canon=v=>text(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const finite=v=>Number.isFinite(Number(v))&&Number(v)>=0?Number(v):0;
+  const choices=q=>Object.keys(q.alternativas||{}).length?Object.keys(q.alternativas):q.tipo==='Certo/Errado'?['C','E']:['A','B','C','D','E'];
+  const labels={ACERTEI:'Acertou',ERREI:'Errou',ANULADA:'Anulada',NAO_RESPONDIDA:'Em branco',AGUARDANDO_CORRECAO:'Aguardando correção',EM_ANDAMENTO:'Em resolução'};
+  function classifications(q){
+    const raw=Array.isArray(q.classificacoes)&&q.classificacoes.length?q.classificacoes:[{disciplina:q.disciplina||'Não classificada',assunto:q.assunto||'A classificar'}];
+    return [...new Map(raw.map(c=>({disciplina:text(c.disciplina)||'Não classificada',assunto:text(c.assunto)||'A classificar'})).map(c=>[canon(c.disciplina)+'|'+canon(c.assunto),c])).values()];
+  }
+  function validateDocument(data){
+    if(data?.schema!==SCHEMA||!text(data.exam?.id)||!Array.isArray(data.questionBank)||!data.questionBank.length)throw Error('Arquivo de acompanhamento inválido ou sem questões.');
+    const ids=new Set(),numbers=new Set();
+    data.questionBank.forEach(q=>{
+      if(!text(q.id)||ids.has(q.id)||!Number.isInteger(Number(q.numero))||Number(q.numero)<1||numbers.has(Number(q.numero)))throw Error('Há questão sem identificação ou com número repetido.');
+      ids.add(q.id);numbers.add(Number(q.numero));
+      if(q.gabarito&&!choices(q).includes(q.gabarito))throw Error(`Gabarito inválido na questão ${q.numero}.`);
+      if(q.resposta_marcada&&!choices(q).includes(q.resposta_marcada))throw Error(`Resposta inválida na questão ${q.numero}.`);
+      if(q.manualResult&&!['ACERTEI','ERREI','ANULADA'].includes(q.manualResult))throw Error(`Resultado manual inválido na questão ${q.numero}.`);
+    });
+  }
+  function normalize(input){
+    validateDocument(input);const data=clone(input);data.exam.finished=data.exam.finished===true;data.active=null;
+    data.currentIndex=Math.min(Math.max(0,Number(data.currentIndex)||0),data.questionBank.length-1);
+    data.questionBank.forEach(q=>{q.numero=Number(q.numero);q.elapsedMs=finite(q.elapsedMs??finite(q.tempo_segundos)*1000);q.resposta_marcada=text(q.resposta_marcada);q.classificacoes=classifications(q);q.confidence=text(q.confidence);q.notes=text(q.notes);q.finalizada=q.finalizada===true;q.revisar=q.revisar===true;});
+    return data;
+  }
+  function checkpoint(data,now,pause=false){
+    if(data.active){const q=data.questionBank.find(q=>q.id===data.active.id);if(q)q.elapsedMs+=Math.max(0,now-data.active.since);data.active.since=now;}
+    if(pause)data.active=null;
+  }
+  function start(data,index,now){
+    if(data.exam.finished)return false;checkpoint(data,now,true);data.currentIndex=index;
+    const q=data.questionBank[index];if(!q)return false;q.finalizada=false;data.active={id:q.id,since:now};return true;
+  }
+  function elapsed(data,q,now){return finite(q.elapsedMs)+(data.active?.id===q.id?Math.max(0,now-data.active.since):0);}
+  function seconds(ms){return Math.floor(finite(ms)/1000);}
+  function format(ms){const s=seconds(ms);return `${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor(s/60)%60).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;}
+  function finish(data,now){checkpoint(data,now,true);data.exam.finished=true;data.exam.finishedAt||=new Date().toISOString();}
+  function outcome(data,q){
+    if(!data.exam.finished)return 'EM_ANDAMENTO';
+    if(q.manualResult)return q.manualResult;
+    if(q.anulada&&text(q.fonte_gabarito))return 'ANULADA';
+    if(!q.resposta_marcada)return 'NAO_RESPONDIDA';
+    if(q.gabarito_confirmado===true&&q.gabarito&&text(q.fonte_gabarito))return q.resposta_marcada===q.gabarito?'ACERTEI':'ERREI';
+    return 'AGUARDANDO_CORRECAO';
+  }
+  function summarize(data){
+    const groups=new Map(),themes=new Map(),total={questions:data.questionBank.length,correct:0,wrong:0,blank:0,pending:0,annulled:0,elapsedMs:0,doubt:0,guess:0};
+    function count(bucket,q,result){bucket.questions++;bucket.elapsedMs+=q.elapsedMs;if(result==='ACERTEI')bucket.correct++;else if(result==='ERREI')bucket.wrong++;else if(result==='ANULADA')bucket.annulled++;else if(result==='NAO_RESPONDIDA')bucket.blank++;else bucket.pending++;}
+    const empty=()=>({questions:0,correct:0,wrong:0,blank:0,pending:0,annulled:0,elapsedMs:0,numbers:[]});
+    const details=data.questionBank.map(q=>{
+      const result=outcome(data,q),cs=classifications(q);count(total,q,result);if(q.confidence==='estudei_esqueci')total.doubt++;if(q.confidence==='nunca_estudei_chutei')total.guess++;
+      const used=new Set();cs.forEach(c=>{const d=canon(c.disciplina),t=d+'|'+canon(c.assunto);if(!used.has(d)){used.add(d);if(!groups.has(d))groups.set(d,{name:c.disciplina,...empty()});count(groups.get(d),q,result);groups.get(d).numbers.push(q.numero);}if(!themes.has(t))themes.set(t,{name:c.disciplina+' — '+c.assunto,...empty()});count(themes.get(t),q,result);themes.get(t).numbers.push(q.numero);});
+      return {number:q.numero,id:q.id,result,elapsedMs:q.elapsedMs,classifications:cs,confidence:q.confidence,review:q.revisar||result==='ERREI'||['estudei_esqueci','nunca_estudei_chutei'].includes(q.confidence)};
+    });
+    total.questions=data.questionBank.length;total.accuracy=total.correct+total.wrong?Math.round(100*total.correct/(total.correct+total.wrong)):null;
+    total.disciplinesWithCorrect=[...groups.values()].filter(d=>d.correct>0).length;
+    total.disciplinesWithWrong=[...groups.values()].filter(d=>d.wrong>0).length;
+    total.meanMs=data.questionBank.filter(q=>q.elapsedMs>0).length?total.elapsedMs/data.questionBank.filter(q=>q.elapsedMs>0).length:0;
+    return {total,disciplines:[...groups.values()],themes:[...themes.values()],details};
+  }
+  function exported(data,now){
+    const result=clone(data);checkpoint(result,now,true);result.schema=SCHEMA;result.metadata={...(result.metadata||{}),titulo:result.exam.title,data_resolucao:result.exam.finishedAt||'',arquivo_origem:result.exam.source||''};
+    result.questionBank=result.questionBank.map(q=>{
+      const status=outcome(result,q),cs=classifications(q),corrected=['ACERTEI','ERREI','ANULADA'].includes(status);
+      return {...q,disciplina:cs[0].disciplina,assunto:cs[0].assunto,tema:cs[0].assunto,disciplinas:[...new Set(cs.map(c=>c.disciplina))],assuntos:[...new Set(cs.map(c=>c.assunto))],classificacoes:cs,
+        fonte:q.fonte||'Simulado anexado',origem_tipo:'simulado',prova:result.exam.title,tempo_segundos:Math.round(q.elapsedMs)/1000,
+        gabarito:q.gabarito||'',resposta_correta:q.gabarito||'',corrigida:corrected,resultado:status,acertou:status==='ACERTEI'?true:status==='ERREI'?false:null,
+        fundamento:[q.justificativa_documento&&'Comentado: '+q.justificativa_documento,q.explicacao_complementar&&'Agente: '+q.explicacao_complementar,...Object.entries(q.justificativas_alternativas||{}).map(([k,v])=>k+': '+v)].filter(Boolean).join('\n\n'),
+        observacoes:[q.notes,q.confidence&&'Percepção: '+q.confidence,q.manualResult&&'Resultado informado pelo usuário; não confirma gabarito documental.'].filter(Boolean).join('\n'),revisao_manual:q.revisar||q.confidence==='estudei_esqueci'||q.confidence==='nunca_estudei_chutei'};
+    });return result;
+  }
+  function validateExport(data){
+    if(data?.schema!==SCHEMA)return;validateDocument(data);
+    data.questionBank.forEach(q=>{
+      if(!text(q.enunciado)||q.conteudo_pendente===true)throw Error(`Questão ${q.numero}: falta o enunciado integral ou conteúdo essencial para inserir no banco do site. Guarde o JSON e peça ao agente para completar a partir do simulado.`);
+      const expected=outcome(data,q);if(q.resultado!==expected||q.corrigida!==['ACERTEI','ERREI','ANULADA'].includes(expected))throw Error(`Resultado inconsistente na questão ${q.numero}.`);
+    });
+  }
+  function applyCorrections(data,patch){
+    if(!data.exam.finished)throw Error('Encerre o simulado antes de importar a correção.');
+    if(patch?.schema!==CORRECTION_SCHEMA||patch.examId!==data.exam.id||!Array.isArray(patch.corrections))throw Error('Correção pertence a outro simulado ou tem formato inválido.');
+    const seen=new Set();const changes=patch.corrections.map(c=>{
+      const q=data.questionBank.find(q=>q.id===c.id&&q.numero===Number(c.numero));
+      if(!q||seen.has(c.id))throw Error('Correção com questão desconhecida ou repetida.');seen.add(c.id);
+      if(!text(c.fonte_gabarito)||(!c.anulada&&!choices(q).includes(c.gabarito)))throw Error(`Falta gabarito ou fonte verificável na questão ${c.numero}.`);
+      return {q,c};
+    });
+    changes.forEach(({q,c})=>{q.gabarito=c.anulada?'':c.gabarito;q.gabarito_confirmado=true;q.fonte_gabarito=text(c.fonte_gabarito);q.anulada=c.anulada===true;
+      for(const field of ['justificativa_documento','explicacao_complementar','justificativas_alternativas'])if(c[field]!==undefined)q[field]=clone(c[field]);
+    });return changes.length;
+  }
+  return {SCHEMA,CORRECTION_SCHEMA,text,clone,canon,choices,classifications,normalize,checkpoint,start,elapsed,format,finish,outcome,labels,summarize,exported,validateDocument,validateExport,applyCorrections};
+}
+globalThis.AldusExamTracker=createExamTrackerCore();
+globalThis.AldusExamTracker.createCore=createExamTrackerCore;
+if(typeof module!=='undefined')module.exports=globalThis.AldusExamTracker;
+
+/* Aldus source: exam-tracker-card.js */
+(() => {
+  'use strict';
+  function runtime(A){
+    const $=id=>document.getElementById(id),now=()=>performance.now();
+    let data;try{data=A.normalize(JSON.parse($('exam-data').textContent));}catch(e){$('message').textContent=e.message;return;}
+    const storageKey=()=>`aldus-exam-tracker:${data.exam.id}`;
+    try{const saved=JSON.parse(localStorage.getItem(storageKey()));if(saved?.exam?.id===data.exam.id&&saved.questionBank.map(q=>q.id).join('|')===data.questionBank.map(q=>q.id).join('|'))data=A.normalize(saved);}catch{}
+    const q=()=>data.questionBank[data.currentIndex];
+    function message(s){$('message').textContent=s;}
+    function persist(){A.checkpoint(data,now());try{const copy=A.clone(data);copy.active=null;localStorage.setItem(storageKey(),JSON.stringify(copy));}catch{message('Não foi possível salvar no navegador. Baixe o JSON para preservar o acompanhamento.');}}
+    function el(tag,cls,txt){const n=document.createElement(tag);if(cls)n.className=cls;if(txt!==undefined)n.textContent=txt;return n;}
+    function btn(txt,fn,cls=''){const b=el('button',cls,txt);b.type='button';b.addEventListener('click',fn);return b;}
+    function opt(value,label){const n=el('option','',label);n.value=value;return n;}
+    function download(name,value,type='application/json;charset=utf-8'){
+      const text=typeof value==='string'?value:JSON.stringify(value,null,2),url=URL.createObjectURL(new Blob([text],{type})),link=el('a');link.href=url;link.download=name;document.body.append(link);link.click();setTimeout(()=>{link.remove();URL.revokeObjectURL(url);},2500);
+      $('exportText').value=text;$('exportFallback').hidden=false;
+    }
+    function tick(){const current=q();$('questionTime').textContent=A.format(A.elapsed(data,current,now()));$('totalTime').textContent=A.format(data.questionBank.reduce((s,item)=>s+A.elapsed(data,item,now()),0));$('timerStatus').textContent=data.exam.finished?'Simulado encerrado':data.active?'Cronômetro em andamento':'Cronômetro pausado';}
+    function go(index){A.checkpoint(data,now(),true);data.currentIndex=Math.max(0,Math.min(index,data.questionBank.length-1));persist();render();}
+    function next(){const wasRunning=!!data.active;A.checkpoint(data,now(),true);if(!data.exam.finished)q().finalizada=true;if(data.currentIndex<data.questionBank.length-1){data.currentIndex++;if(wasRunning)A.start(data,data.currentIndex,now());}persist();render();}
+    function renderClassifications(){
+      const root=$('classifications');root.replaceChildren();if(q().classificacao_observacao)root.append(el('p','muted',q().classificacao_observacao));q().classificacoes.forEach((c,index)=>{
+        const row=el('div','classification');const dl=el('label','',index?'Disciplina adicional':'Disciplina principal'),di=el('input');di.value=c.disciplina;di.setAttribute('list','disciplineList');di.setAttribute('aria-label',`Disciplina ${index+1}`);di.addEventListener('change',()=>{c.disciplina=di.value;persist();renderReport();});dl.append(di);
+        const tl=el('label','','Assunto / tema'),ti=el('input');ti.value=c.assunto;ti.setAttribute('list','themeList');ti.setAttribute('aria-label',`Assunto ${index+1}`);ti.addEventListener('change',()=>{c.assunto=ti.value;persist();renderReport();});tl.append(ti);row.append(dl,tl);
+        if(index)row.append(btn('Remover',()=>{q().classificacoes.splice(index,1);persist();renderClassifications();}));root.append(row);
+      });
+    }
+    function renderAnswers(){
+      const root=$('answers');root.replaceChildren();const current=q();A.choices(current).forEach(k=>{
+        const row=el('div','answer-row'+(current.resposta_marcada===k?' selected':''));const b=btn(current.resposta_marcada===k?`${k} · Marcada`:`${k} · Marcar`,()=>{current.resposta_marcada=k;persist();renderAnswers();renderMap();});b.disabled=data.exam.finished;b.setAttribute('aria-pressed',String(current.resposta_marcada===k));row.append(b,el('span','answer-text',current.alternativas?.[k]||({C:'Certo',E:'Errado'}[k])||`Alternativa ${k}`));root.append(row);
+      });$('clearAnswer').disabled=data.exam.finished;
+    }
+    function renderCorrection(){
+      $('correction').hidden=!data.exam.finished;if(!data.exam.finished)return;
+      const current=q(),status=A.outcome(data,current);$('result').textContent=A.labels[status];$('manualResult').value=current.manualResult||'';
+      const root=$('explanations');root.replaceChildren();
+      if(current.gabarito_confirmado&&current.fonte_gabarito)root.append(el('p','',`Gabarito documental: ${current.anulada?'Anulada':current.gabarito} · ${current.fonte_gabarito}`));
+      else root.append(el('p','','Gabarito documental não confirmado. Você pode registrar o resultado manualmente.'));
+      if(current.manualResult)root.append(el('p','','Resultado manual ativo. Escolha “Usar gabarito documental / deixar pendente” para voltar à correção pelo documento.'));
+      if(current.justificativa_documento)root.append(el('p','preserve','Justificativa do comentado: '+current.justificativa_documento));
+      if(current.explicacao_complementar)root.append(el('p','preserve','Explicação complementar do agente: '+current.explicacao_complementar));
+      Object.entries(current.justificativas_alternativas||{}).forEach(([key,value])=>root.append(el('h4','',`Alternativa ${key}`),el('p','preserve',String(value))));
+      if(!current.justificativa_documento&&!current.explicacao_complementar&&!Object.keys(current.justificativas_alternativas||{}).length)root.append(el('p','','Justificativas ainda não fornecidas. Você pode importar a correção do comentado depois.'));
+    }
+    function renderMap(){const root=$('questionMap');root.replaceChildren();data.questionBank.forEach((item,index)=>{const outcome=A.outcome(data,item),b=btn(String(item.numero),()=>go(index),'map-item '+(index===data.currentIndex?'current ':'')+(outcome==='ACERTEI'?'correct':outcome==='ERREI'?'wrong':item.resposta_marcada?'answered':''));b.setAttribute('aria-label',`Ir à questão ${item.numero}${item.revisar?' · revisar':''}`);b.title=`Questão ${item.numero}: ${data.exam.finished?A.labels[outcome]:item.resposta_marcada?'respondida':'sem resposta'}`;root.append(b);});}
+    function tableRows(root,rows){root.replaceChildren();rows.forEach(item=>{const tr=el('tr');[item.name,item.questions,item.correct,item.wrong,item.pending,item.blank,item.annulled,A.format(item.elapsedMs)].forEach(v=>tr.append(el('td','',String(v))));root.append(tr);});}
+    function renderReport(){
+      $('report').hidden=!data.exam.finished;if(!data.exam.finished)return;const report=A.summarize(data),t=report.total;
+      $('summary').textContent=`${t.questions} questões · ${t.correct} acertos · ${t.wrong} erros · ${t.pending} aguardando correção · ${t.blank} em branco · ${t.annulled} anuladas · Aproveitamento: ${t.accuracy===null?'—':t.accuracy+'%'} · Disciplinas com acertos: ${t.disciplinesWithCorrect} · Disciplinas com erros: ${t.disciplinesWithWrong}`;
+      $('timeSummary').textContent=`Tempo líquido: ${A.format(t.elapsedMs)} · Média das questões cronometradas: ${A.format(t.meanMs)} · Estudei, mas esqueci: ${t.doubt} · Nunca estudei e chutei: ${t.guess}`;
+      const chart=$('chart');chart.replaceChildren();const max=Math.max(1,...report.disciplines.map(d=>d.questions));report.disciplines.forEach(d=>{const row=el('div','chart-row'),bar=el('div','bar');row.append(el('strong','',d.name));for(const [key,label,cls] of [['correct','acertos','correct'],['wrong','erros','wrong'],['pending','pendentes','pending'],['blank','em branco','blank'],['annulled','anuladas','annulled']]){if(d[key]){const part=el('span',cls,String(d[key]));part.style.width=(100*d[key]/max)+'%';part.title=`${d[key]} ${label}`;part.setAttribute('aria-label',part.title);bar.append(part);}}row.append(bar);chart.append(row);});
+      tableRows($('disciplineRows'),report.disciplines);tableRows($('themeRows'),report.themes);
+      const details=$('questionRows');details.replaceChildren();report.details.forEach(d=>{const tr=el('tr');const first=el('td');first.append(btn(String(d.number),()=>{go(data.questionBank.findIndex(q=>q.id===d.id));$('currentCard').scrollIntoView({block:'start'});}));tr.append(first);[d.classifications.map(c=>c.disciplina+' / '+c.assunto).join('; '),A.labels[d.result],A.format(d.elapsedMs),d.confidence==='estudei_esqueci'?'Estudei, mas esqueci':d.confidence==='nunca_estudei_chutei'?'Nunca estudei e chutei':d.confidence==='duvida'?'Outra dúvida':'',d.review?'Revisar':''].forEach(v=>tr.append(el('td','',v)));details.append(tr);});
+      $('reviewSuggestion').textContent='Prioridade de revisão: '+(report.details.filter(d=>d.review).map(d=>'Q'+d.number).join(', ')||'nenhuma questão sinalizada.');
+    }
+    function render(){
+      $('title').textContent=data.exam.title||'Acompanhamento de simulado';$('currentNumber').textContent='Questão '+q().numero;$('position').textContent=`${data.currentIndex+1} de ${data.questionBank.length} · ${data.questionBank.filter(q=>q.finalizada).length} finalizadas`;
+      $('jump').replaceChildren(...data.questionBank.map((item,i)=>opt(String(i),'Questão '+item.numero)));$('jump').value=String(data.currentIndex);
+      $('start').textContent=q().elapsedMs?'Continuar':'Iniciar';$('start').disabled=data.exam.finished||!!data.active;$('pause').disabled=!data.active;$('finishQuestion').disabled=data.exam.finished;
+      $('finishExam').hidden=data.exam.finished;$('previous').disabled=data.currentIndex===0;$('next').disabled=data.currentIndex===data.questionBank.length-1;
+      $('questionText').textContent=q().enunciado||'Consulte esta questão no simulado anexado.';renderClassifications();renderAnswers();renderCorrection();renderMap();renderReport();
+      $('confidence').value=q().confidence;$('review').checked=q().revisar;$('notes').value=q().notes;$('confidence').disabled=data.exam.finished;
+      $('correctionFile').disabled=!data.exam.finished;$('correctionPrompt').disabled=!data.exam.finished;tick();
+    }
+    $('start').onclick=()=>{A.start(data,data.currentIndex,now());persist();render();};$('pause').onclick=()=>{A.checkpoint(data,now(),true);persist();render();};
+    $('finishQuestion').onclick=()=>{A.checkpoint(data,now(),true);q().finalizada=true;persist();render();message(`Questão ${q().numero} finalizada em ${A.format(q().elapsedMs)}.`);};
+    $('previous').onclick=()=>go(data.currentIndex-1);$('next').onclick=next;$('jump').onchange=e=>go(Number(e.target.value));
+    $('addClassification').onclick=()=>{q().classificacoes.push({disciplina:'',assunto:''});renderClassifications();};
+    $('confidence').onchange=e=>{q().confidence=e.target.value;persist();};$('review').onchange=e=>{q().revisar=e.target.checked;persist();renderMap();renderReport();};$('notes').oninput=e=>{q().notes=e.target.value;persist();};
+    $('clearAnswer').onclick=()=>{q().resposta_marcada='';persist();renderAnswers();renderMap();};
+    $('finishExam').onclick=()=>{A.checkpoint(data,now(),true);persist();render();const missing=data.questionBank.filter(q=>!q.resposta_marcada).length;if(confirm(`Encerrar o simulado e liberar a correção? Há ${missing} questão(ões) sem resposta. Elas serão separadas dos erros. Após encerrar, as respostas ficam bloqueadas.`)){A.finish(data,now());persist();render();$('report').scrollIntoView({block:'start'});}};
+    $('manualResult').onchange=e=>{q().manualResult=e.target.value;persist();renderCorrection();renderMap();renderReport();};
+    function exportJSON(forSite){const snapshot=A.exported(data,now());snapshot.exportMode=forSite?'site':'backup';if(forSite){try{A.validateExport(snapshot);}catch(e){message(e.message);return;}}download(`simulado-${data.exam.id}${forSite?'-site':'-retomada'}.json`,snapshot);}
+    $('saveJSON').onclick=()=>exportJSON(false);$('exportJSON').onclick=()=>exportJSON(true);
+    $('resumeFile').onchange=async e=>{try{if(!e.target.files[0])return;const input=JSON.parse(await e.target.files[0].text());A.validateDocument(input);if(input.exam.id!==data.exam.id)throw Error('Este JSON pertence a outro simulado. Abra o cartão correspondente.');if(!confirm('Restaurar o acompanhamento deste JSON? O estado atual será substituído.'))return;A.checkpoint(data,now(),true);data=A.normalize(input);persist();render();message('Acompanhamento restaurado com o cronômetro pausado.');}catch(err){message(err.message);}finally{e.target.value='';}};
+    $('correctionFile').onchange=async e=>{try{if(!e.target.files[0])return;const patch=JSON.parse(await e.target.files[0].text()),n=A.applyCorrections(data,patch);persist();render();message(`Correção importada: ${n} questão(ões). Respostas, tempos e classificações preservados. Resultados manuais continuam prioritários até você removê-los.`);}catch(err){message(err.message);}finally{e.target.value='';}};
+    $('correctionPrompt').onclick=()=>download('prompt-correcao-simulado.txt',`Leia o simulado comentado anexado e o JSON de acompanhamento. Não resolva por conta própria para inferir gabaritos ausentes. Confira a mesma prova, edição, numeração e conteúdo. Preserve IDs. Devolva APENAS JSON no formato {"schema":"aldus-exam-correction-v1","examId":${JSON.stringify(data.exam.id)},"corrections":[{"id":"ID ORIGINAL","numero":1,"gabarito":"A","fonte_gabarito":"arquivo, página e edição","justificativa_documento":"síntese do comentário confirmado","justificativas_alternativas":{"A":"fundamento específico", "B":"motivo do erro"}}]}. Cada alternativa deve receber justificativa quando a fonte permitir; diferencie explicação complementar do agente em explicacao_complementar e não invente referências. Se houver anulação confirmada, use anulada=true e gabarito="". Questões sem gabarito confirmável ficam fora da lista; informe as lacunas separadamente. Não altere respostas, classificações, anotações, percepção de dúvida, tempos ou resultados manuais. Depois importarei esse JSON em IMPORTAR CORREÇÃO no cartão.`, 'text/plain;charset=utf-8');
+    $('exportReport').onclick=()=>{const r=A.summarize(data);download('relatorio-simulado.txt',`${data.exam.title}\n${$('summary').textContent}\n${$('timeSummary').textContent}\n\nPor disciplina (uma questão interdisciplinar aparece em cada disciplina relacionada):\n${r.disciplines.map(d=>`${d.name}: ${d.correct} acertos, ${d.wrong} erros, ${d.pending} pendentes, ${d.blank} em branco, ${d.annulled} anuladas`).join('\n')}\n\nQuestões:\n${r.details.map(d=>`Q${d.number}: ${A.labels[d.result]} — ${A.format(d.elapsedMs)} — ${d.classifications.map(c=>c.disciplina+' / '+c.assunto).join('; ')}${d.review?' — Revisar':''}`).join('\n')}`, 'text/plain;charset=utf-8');};
+    const catalog=[...(data.catalog||[]),...data.questionBank.flatMap(A.classifications)];$('disciplineList').replaceChildren(...[...new Set(catalog.map(c=>c.disciplina).filter(Boolean))].sort().map(v=>opt(v,v)));$('themeList').replaceChildren(...[...new Set(catalog.map(c=>c.assunto).filter(Boolean))].sort().map(v=>opt(v,v)));
+    window.addEventListener('pagehide',()=>{A.checkpoint(data,now(),true);persist();});setInterval(()=>{if(data.active)persist();tick();},1000);
+    render();globalThis.AldusExamCard={snapshot:()=>A.exported(data,now())};
+  }
+  function buildHTML(payload){
+    const core=globalThis.AldusExamTracker||(typeof require==='function'?require('./exam-tracker-core.js'):null);if(!core)throw Error('Núcleo do acompanhamento não carregado.');
+    const json=JSON.stringify(payload).replace(/</g,'\\u003c').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');
+    return `<!doctype html><html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Acompanhamento de simulado</title><style>
+*{box-sizing:border-box}body{margin:0;background:#071b2c;color:#ecf5fc;font:16px/1.5 system-ui,sans-serif}main{max-width:1100px;margin:auto;padding:24px}h1{font-size:2rem;margin:8px 0}h2{margin:0 0 14px}h3{margin:12px 0}.muted{color:#b7cedd}.panel{background:#102d42;border:1px solid #42647d;border-radius:18px;padding:24px;margin:18px 0}.timer-head{display:flex;justify-content:space-between;gap:20px;align-items:center}.clock{font-size:2.5rem;font-variant-numeric:tabular-nums;color:#ffe580}.buttons{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}button,input,select,textarea{font:inherit}button{cursor:pointer;padding:10px 16px;border:1px solid #5e849b;border-radius:10px;color:#f2f7fb;background:#194760}button.primary{background:#ffe580;color:#13273a;border-color:#ffe580;font-weight:700}button:disabled{opacity:.5;cursor:default}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #a9d9ff}input:not([type=checkbox]),select,textarea{width:100%;min-width:0;background:#081f31;border:1px solid #65859c;border-radius:8px;color:#edf5fc;padding:10px}label{display:block}textarea{min-height:80px}.classification{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end;margin:12px 0}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.answer-row{display:grid;grid-template-columns:max-content minmax(0,1fr);align-items:start;gap:12px;margin:10px 0;padding:10px;border:1px solid #42647d;border-radius:12px}.answer-row.selected{border-color:#ffe580;background:#1b4051}.answer-text,.preserve{white-space:pre-wrap;overflow-wrap:anywhere}.map{display:flex;flex-wrap:wrap;gap:6px}.map-item{min-width:45px;padding:8px}.map-item.current{outline:3px solid #ffe580}.map-item.answered{background:#295b83}.correct{background:#28896f}.wrong{background:#bb4b65}.pending{background:#637ba6}.blank{background:#696f7e}.annulled{background:#846cb0}.chart-row{margin:12px 0}.bar{display:flex;min-height:30px;background:#081f31;border-radius:7px;overflow:hidden}.bar span{text-align:center;color:white;min-width:20px}.legend{display:flex;gap:12px;flex-wrap:wrap}.legend span{padding:4px 8px;border-radius:5px}.scroll{overflow:auto}table{width:100%;border-collapse:collapse;text-align:left}td,th{padding:10px;border-bottom:1px solid #3c5b73;vertical-align:top}th{color:#a9d9ff}#message{color:#ffe580;white-space:pre-wrap;min-height:24px}#exportText{min-height:190px}details{margin:12px 0}summary{cursor:pointer;font-weight:600}#currentCard{scroll-margin-top:12px}[hidden]{display:none!important}@media(max-width:600px){main{padding:12px}.panel{padding:16px}.timer-head{align-items:start}.clock{font-size:1.8rem}h1{font-size:1.5rem}.classification,.form-grid{grid-template-columns:1fr}.answer-row button{font-size:13px;padding:8px}.answer-row{gap:8px;padding:8px}.buttons button{flex:1 1 auto}}
+</style><main><p class="muted">ALDUS · ACOMPANHAMENTO DE SIMULADO</p><h1 id="title">Seu simulado</h1><p class="muted">Resolva no seu material e registre aqui. O tempo continua ao trocar de aba; use Pausar nas interrupções. Ao fechar ou recarregar, o acompanhamento volta pausado.</p><p id="message" role="status"></p>
+<section id="currentCard" class="panel"><div class="timer-head"><div><h2 id="currentNumber"></h2><div id="position" class="muted"></div></div><div><span class="muted">Tempo da questão</span><div id="questionTime" class="clock">00:00:00</div></div></div><p><span id="timerStatus"></span> · Tempo total <strong id="totalTime">00:00:00</strong></p><div class="buttons"><button id="start" class="primary">Iniciar</button><button id="pause">Pausar</button><button id="finishQuestion">Finalizar questão</button><button id="previous">Anterior</button><button id="next">Próxima questão</button></div><label>Ir para <select id="jump"></select></label>
+<div id="classifications"></div><button id="addClassification">Adicionar disciplina / assunto</button><datalist id="disciplineList"></datalist><datalist id="themeList"></datalist><details><summary>Consultar enunciado</summary><p id="questionText" class="preserve"></p></details><h3>Minha resposta</h3><div id="answers"></div><button id="clearAnswer">Deixar em branco</button><div class="form-grid"><label>Como foi resolver esta questão?<select id="confidence"><option value="">Não informado</option><option value="seguro">Respondi com segurança</option><option value="estudei_esqueci">Estudei, mas não me lembrei</option><option value="nunca_estudei_chutei">Nunca estudei o assunto e chutei</option><option value="duvida">Fiquei com outra dúvida</option></select></label><label>Anotações<textarea id="notes" placeholder="O que preciso revisar?"></textarea></label></div><p><label><input type="checkbox" id="review"> Quero revisar esta questão</label></p>
+<section id="correction" hidden><h3 id="result"></h3><label>Resultado manual<select id="manualResult"><option value="">Usar gabarito documental / deixar pendente</option><option value="ACERTEI">Acertei</option><option value="ERREI">Errei</option><option value="ANULADA">Anulada</option></select></label><div id="explanations"></div></section></section>
+<section class="panel"><h2>Mapa de questões</h2><div id="questionMap" class="map"></div><div class="buttons"><button id="finishExam" class="primary">ENCERRAR SIMULADO E VER RESULTADOS</button></div></section>
+<section class="panel"><h2>Salvar, retomar e corrigir</h2><div class="buttons"><button id="saveJSON">GUARDAR ACOMPANHAMENTO JSON</button><button id="exportJSON">EXPORTAR JSON PARA O SITE</button><button id="correctionPrompt">BAIXAR PROMPT PARA CORRIGIR DEPOIS</button></div><p class="muted">O JSON preserva questões, marcações, tempos e justificativas disponíveis. Pode conter gabaritos fornecidos nos anexos; eles só aparecem na interface após encerrar.</p><div class="form-grid"><label>Retomar acompanhamento por JSON<input id="resumeFile" type="file" accept=".json,application/json"></label><label>Importar correção do agente após encerrar<input id="correctionFile" type="file" accept=".json,application/json"></label></div><details id="exportFallback" hidden><summary>JSON / texto para copiar se o download falhar</summary><textarea id="exportText" readonly aria-label="Conteúdo exportado"></textarea></details></section>
+<section id="report" class="panel" hidden><h2>Resultado do simulado</h2><p id="summary"></p><p id="timeSummary"></p><div class="legend"><span class="correct">Acertos</span><span class="wrong">Erros</span><span class="pending">Aguardando correção</span><span class="blank">Em branco</span><span class="annulled">Anuladas</span></div><div id="chart" role="img" aria-label="Distribuição dos resultados por disciplina"></div><p class="muted">Cada questão conta uma vez no total geral. No gráfico e nas tabelas por área, questões com mais de uma disciplina ou assunto aparecem em cada área relacionada; essas linhas não devem ser somadas como total geral. Aproveitamento calculado somente sobre acertos e erros.</p><h3>Por disciplina</h3><div class="scroll"><table><thead><tr><th>Disciplina</th><th>Questões</th><th>Acertos</th><th>Erros</th><th>Pendentes</th><th>Branco</th><th>Anuladas</th><th>Tempo</th></tr></thead><tbody id="disciplineRows"></tbody></table></div><details><summary>Detalhar por assunto</summary><div class="scroll"><table><thead><tr><th>Assunto</th><th>Questões</th><th>Acertos</th><th>Erros</th><th>Pendentes</th><th>Branco</th><th>Anuladas</th><th>Tempo</th></tr></thead><tbody id="themeRows"></tbody></table></div></details><p id="reviewSuggestion"></p><div class="scroll"><table><thead><tr><th>Questão</th><th>Disciplinas / assuntos</th><th>Resultado</th><th>Tempo</th><th>Percepção</th><th>Revisão</th></tr></thead><tbody id="questionRows"></tbody></table></div><button id="exportReport">BAIXAR RELATÓRIO SIMPLIFICADO</button></section></main><script id="exam-data" type="application/json">${json}</script><script>(${runtime.toString()})((${core.createCore.toString()})());</script></html>`;
+  }
+  globalThis.AldusExamTrackerCard={buildHTML};if(typeof module!=='undefined')module.exports={buildHTML};
+})();
+
+/* Aldus source: exam-tracker-factory.js */
+(() => {
+  'use strict';
+  const A=globalThis.AldusExamTracker;
+  if(!A)return;
+  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  function buildPrompt(config={},state={}){
+    const title=A.text(config.title)||'Meu simulado',examId=config.id||globalThis.crypto?.randomUUID?.()||'sim-'+Date.now();
+    const catalog=(state.syllabusItems||[]).map(q=>({disciplina:q.discipline,assunto:q.subject})).filter(c=>c.disciplina&&c.assunto);
+    const data={schema:A.SCHEMA,exam:{id:examId,title,source:'PREENCHER COM O ARQUIVO ANEXADO',finished:false},catalog,questionBank:[]};
+    const html=globalThis.AldusExamTrackerCard.buildHTML(data);
+    return {examId,prompt:`# ACOMPANHAMENTO INTERATIVO DE SIMULADO
+Vou anexar o SIMULADO e, se disponível, o SIMULADO COMENTADO ou GABARITO. Crie o HTML autônomo usando integralmente o modelo abaixo, preenchendo apenas o JSON do elemento exam-data. Não substitua o acompanhamento por explicação textual, imagem ou tela sem funcionalidade.
+Título: ${title}. ID fixo do simulado: ${examId}.
+Quantidade informada: ${A.text(config.count)||'identificar no simulado anexado'}. Formato: ${A.text(config.format)||'identificar por questão: múltipla escolha ou Certo/Errado'}.
+
+# DOCUMENTOS E MAPEAMENTO
+Leia todos os anexos necessários. Preserve a numeração e a ordem da prova, inclusive questões interdisciplinares. Confira a quantidade real com a numeração e informe eventuais páginas ausentes, ilegíveis, versões divergentes ou trechos não recuperados; não invente questões nem gabaritos para preencher lacunas. Sem o simulado, peça o arquivo antes de gerar o cartão. Este módulo acompanha a prova anexada, não busca nem cria questões substitutas no QConcursos.
+Para cada questão, identifique a disciplina e o assunto com base no conteúdo, usando a nomenclatura do catálogo do site quando houver correspondência. classificacoes é uma lista de pares {disciplina,assunto}: coloque primeiro a classificação principal, depois cada disciplina/assunto adicional relevante. Não acrescente temas só porque aparecem incidentalmente no texto. Se incerto, indique “A classificar” e explique a incerteza em classificacao_observacao; não apresente palpite como classificação confirmada. Todas as classificações devem continuar editáveis no cartão.
+Transcreva enunciado e alternativas completos do anexo para permitir inserir as questões no banco do site. Preserve textos de apoio e assertivas. Não resuma nem preencha por memória. Se houver imagem/tabela essencial que o modelo não consiga representar fielmente, registre a referência à página em enunciado e a limitação em conteudo_pendente=true; informe claramente a necessidade de consultar o original. O acompanhamento pode funcionar, mas não apresente a questão como transcrição integral.
+
+# CORREÇÃO SOMENTE APÓS ENCERRAR
+Se o comentado/gabarito estiver anexado, confira a mesma prova, edição, número e conteúdo; copie mecanicamente o gabarito da fonte e preencha fonte_gabarito com arquivo, página e edição. Não resolva a questão para inferir gabarito ausente. Sem confirmação: gabarito="", gabarito_confirmado=false, fonte_gabarito="". Questão anulada confirmada: anulada=true, gabarito="" e fonte_gabarito identificada.
+Gabaritos e justificativas ficam nos dados e são revelados na interface somente após ENCERRAR SIMULADO E VER RESULTADOS. A resposta marcada pelo usuário será comparada ao gabarito confirmado. Dúvida e chute são diagnósticos independentes, nunca evidência de erro. Não responda nem registre desempenho em nome do usuário.
+Sem comentado, o usuário poderá registrar Acertei, Errei ou Anulada ao final. Isso não confirma uma letra correta. Para correção posterior, o cartão exporta um JSON de acompanhamento e um prompt específico: o usuário anexa ambos ao comentado na conversa e importa o JSON de correção retornado. Um HTML local não chama o GPT sozinho.
+
+# JUSTIFICATIVAS
+justificativa_documento: síntese fiel do comentário efetivamente lido. justificativas_alternativas: fundamento específico de cada alternativa certa/errada quando o material permitir; indique lacunas em vez de inventar. explicacao_complementar: análise adicional do agente explicitamente identificada, com referências verificáveis, sem substituir o gabarito documental. Aprofunde o necessário para entender o acerto/erro, sem criar uma aula alheia à questão. No Certo/Errado, explique o julgamento da assertiva. Se não houver justificativa, deixe o campo vazio e informe a pendência.
+
+# CONTRATO DOS DADOS
+Preserve schema="aldus-exam-tracker-v1", exam.id=${JSON.stringify(examId)}, exam.title=${JSON.stringify(title)}, exam.finished=false, currentIndex=0, active=null.
+Cada item em questionBank: id="SIM-${examId}-NUMERO", numero (inteiro original), disciplina, assunto, tema, classificacoes:[{disciplina,assunto}], classificacao_observacao, tipo ("Múltipla escolha" ou "Certo/Errado"), enunciado, alternativas (objeto com chaves e ordem originais; {} para C/E), fonte="Simulado anexado", origem_tipo="simulado", gabarito, gabarito_confirmado (booleano), fonte_gabarito, anulada (booleano), justificativa_documento, justificativas_alternativas (objeto de textos), explicacao_complementar, resposta_marcada="", elapsedMs=0, finalizada=false, confidence="", notes="", revisar=false, manualResult="". Não fabrique código QConcursos nem atribuição de banca/ano que não esteja no anexo.
+Dados de exemplo do modelo são apenas estrutura: substitua questionBank pela prova lida. Nunca atribua ao usuário as respostas do comentado. Escape < como \\u003c dentro do JSON. Não insira scripts, HTML executável ou URLs javascript: nos dados.
+
+# COMPORTAMENTO A PRESERVAR
+Cronômetro com horas, minutos e segundos por questão e total líquido; pausa/continuação sem contar pausas. Próxima questão finaliza a atual e transfere o cronômetro apenas se ele estava rodando. Retornar a uma questão acumula seu tempo sem duplicá-la. Trocar de aba não pausa, pois o usuário pode consultar a prova em outra aba. Fechar/recarregar salva e retoma pausado. Não iniciar automaticamente antes de o usuário clicar.
+Manter numeração, mapa navegável, classificação múltipla editável, marcação de resposta ao lado das alternativas, percepção “Estudei, mas não me lembrei” / “Nunca estudei o assunto e chutei”, revisão e anotações. Não mostrar respostas certas nem placar de acertos durante a resolução.
+Ao encerrar: gráfico e relatório por disciplina e assunto, lista numerada de questões certas/erradas, pendentes, em branco e anuladas separadas, tempo total e médio, sugestão de revisão pelos erros/dúvidas/chutes. Cada questão conta uma vez no total; linhas de áreas relacionadas podem se sobrepor e isso deve ser explícito.
+Preservar GUARDAR ACOMPANHAMENTO JSON e EXPORTAR JSON PARA O SITE, com todo o conteúdo disponível, tempo, múltiplas classificações, respostas, fontes e justificativas. Itens sem correção usam corrigida=false e não viram erros. Importar correção posterior preserva os dados do usuário. Não atribuir tempo manual inventado nem alterar o relógio do site.
+Antes de entregar, conferir IDs/números, quantidade, correspondência dos anexos, fontes dos gabaritos, conteúdo extraído e controles no navegador. Entregar HTML para baixar e informar quaisquer lacunas de extração ou correção.
+
+# MODELO HTML OBRIGATÓRIO
+${html}`};
+  }
+  function refresh(){
+    if(typeof document==='undefined')return;const list=document.getElementById('factoryList');if(!list||document.getElementById('examTrackerFactory'))return;
+    const section=document.createElement('section');section.id='examTrackerFactory';section.className='qt-site-panel';section.innerHTML='<h3>Acompanhar um simulado</h3><p>Gere o prompt, anexe sua prova na conversa e acompanhe cada questão com cronômetro, dúvidas e resultados.</p><button type="button" id="examTrackerConfigure">CONFIGURAR ACOMPANHAMENTO</button>';list.before(section);section.querySelector('button').onclick=open;
+  }
+  function download(name,text){const url=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(url);},2500);}
+  function open(){
+    let dialog=document.getElementById('examTrackerDialog');if(!dialog){dialog=document.createElement('dialog');dialog.id='examTrackerDialog';dialog.style.cssText='width:min(900px,95vw);max-height:90vh;overflow:auto;background:#102d42;color:#edf5fc;border:1px solid #65859c;border-radius:18px;padding:24px';document.body.append(dialog);}
+    dialog.innerHTML='<form id="examTrackerForm"><h2>Acompanhamento de simulado</h2><label>Nome do simulado<input name="title" required placeholder="Ex.: Simulado 4 — Delegado"></label><label>Quantidade de questões (opcional)<input name="count" type="number" min="1" max="1000" placeholder="Identificar no arquivo"></label><label>Formato<select name="format"><option>Identificar no arquivo</option><option>Múltipla escolha</option><option>Certo/Errado</option><option>Misto</option></select></label><p>Depois de copiar, anexe o simulado à conversa. O comentado ou gabarito pode ser anexado agora ou após a resolução.</p><button type="submit">GERAR PROMPT DE ACOMPANHAMENTO</button><button type="button" id="examTrackerClose">Fechar</button><p id="examTrackerNotice" role="status"></p><div id="examTrackerOutput"></div></form>';
+    dialog.querySelectorAll('label').forEach(l=>l.style.cssText='display:block;margin:14px 0');dialog.querySelectorAll('input,select').forEach(i=>i.style.cssText='display:block;width:100%;padding:10px;background:#081f31;color:#edf5fc;border:1px solid #65859c;border-radius:8px;font:inherit');
+    dialog.querySelector('#examTrackerClose').onclick=()=>dialog.close();const form=dialog.querySelector('form');form.onsubmit=e=>{e.preventDefault();try{let s={};try{if(typeof state!=='undefined')s=state;}catch{}const result=buildPrompt(Object.fromEntries(new FormData(form)),s),output=dialog.querySelector('#examTrackerOutput');output.innerHTML='<label>Prompt pronto<textarea id="examTrackerPrompt" readonly style="width:100%;height:220px"></textarea></label><button type="button" id="examTrackerCopy">COPIAR PROMPT</button><button type="button" id="examTrackerDownload">BAIXAR PROMPT</button>';output.querySelector('textarea').value=result.prompt;output.querySelector('#examTrackerCopy').onclick=async()=>{try{await navigator.clipboard.writeText(result.prompt);dialog.querySelector('#examTrackerNotice').textContent='Prompt copiado. Cole como mensagem no Projeto e anexe o simulado.';}catch{output.querySelector('textarea').select();dialog.querySelector('#examTrackerNotice').textContent='Use Ctrl+C para copiar o texto selecionado.';}};output.querySelector('#examTrackerDownload').onclick=()=>download('prompt-acompanhamento-simulado.txt',result.prompt);dialog.querySelector('#examTrackerNotice').textContent='Prompt pronto para '+form.elements.title.value+'.';}catch(err){dialog.querySelector('#examTrackerNotice').textContent=err.message;}};
+    form.addEventListener('input',()=>{dialog.querySelector('#examTrackerOutput').replaceChildren();dialog.querySelector('#examTrackerNotice').textContent='';});dialog.showModal();form.elements.title.focus();
+  }
+  let queued=false;A.scheduleRefresh=()=>{if(queued)return;queued=true;setTimeout(()=>{queued=false;refresh();},0);};A.buildPrompt=buildPrompt;A.refresh=refresh;A.open=open;
+  if(typeof document!=='undefined'){document.addEventListener('DOMContentLoaded',A.scheduleRefresh,{once:true});if(document.readyState!=='loading')A.scheduleRefresh();}
+  if(typeof module!=='undefined')module.exports={buildPrompt};
 })();
 
 /* Aldus source: qconcursos-pdf-import-v181.js */
@@ -42087,6 +42351,7 @@ function factoryThemeHighlightHTML(item = {}, recorte = "", { position = "" } = 
   return `<div class="factory-theme-highlight"><p class="factory-theme-label">${escapeHTML(factoryThemeVisualLabel(item))}</p><h3 class="factory-theme-title">${escapeHTML(subject)}</h3><p class="factory-theme-discipline"><strong>Disciplina:</strong> ${escapeHTML(discipline)}${escapeHTML(positionText)}</p><p class="item-meta"><strong>Planejamento integrado:</strong> ${escapeHTML(planningText)}</p>${recorte ? `<p class="factory-theme-recorte"><strong>Recorte da meta:</strong> ${escapeHTML(recorte)}</p>` : ""}</div>`;
 }
 function renderFactory() {
+  globalThis.AldusExamTracker?.scheduleRefresh?.();
   globalThis.AldusQuestionTraining?.scheduleRefresh?.();
   if (!elements.factoryList) return;
   try {
@@ -48949,6 +49214,7 @@ elements.questionHistoryBody.addEventListener("click", (event) => { const edit =
   }
 
   function buildImportPlan(payload = {}, currentBank = [], currentSessions = []) {
+    globalThis.AldusExamTracker?.validateExport(payload);
     globalThis.AldusQuestionTraining?.validatePayload(payload);
     const source = Array.isArray(payload) ? payload : (payload.questionBank || payload.questoes || payload.questions || payload.items || []);
     if (!Array.isArray(source)) throw new Error("O JSON não contém uma lista de questões reconhecida.");

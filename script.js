@@ -4455,6 +4455,7 @@ function factoryThemeHighlightHTML(item = {}, recorte = "", { position = "" } = 
   return `<div class="factory-theme-highlight"><p class="factory-theme-label">${escapeHTML(factoryThemeVisualLabel(item))}</p><h3 class="factory-theme-title">${escapeHTML(subject)}</h3><p class="factory-theme-discipline"><strong>Disciplina:</strong> ${escapeHTML(discipline)}${escapeHTML(positionText)}</p><p class="item-meta"><strong>Planejamento integrado:</strong> ${escapeHTML(planningText)}</p>${recorte ? `<p class="factory-theme-recorte"><strong>Recorte da meta:</strong> ${escapeHTML(recorte)}</p>` : ""}</div>`;
 }
 function renderFactory() {
+  globalThis.AldusExamTracker?.scheduleRefresh?.();
   globalThis.AldusQuestionTraining?.scheduleRefresh?.();
   if (!elements.factoryList) return;
   try {

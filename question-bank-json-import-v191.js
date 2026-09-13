@@ -308,6 +308,7 @@
   }
 
   function buildImportPlan(payload = {}, currentBank = [], currentSessions = []) {
+    globalThis.AldusExamTracker?.validateExport(payload);
     globalThis.AldusQuestionTraining?.validatePayload(payload);
     const source = Array.isArray(payload) ? payload : (payload.questionBank || payload.questoes || payload.questions || payload.items || []);
     if (!Array.isArray(source)) throw new Error("O JSON não contém uma lista de questões reconhecida.");
