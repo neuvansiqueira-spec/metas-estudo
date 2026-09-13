@@ -317,6 +317,22 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V619 — simulado de peças e discursivas de Delegado (Cebraspe e FGV) na
+  // Fábrica de Resumos. Só monta o painel e gera texto de prompt; sem polling,
+  // observadores de DOM, timers ou persistência.
+  function installFactorySimuladoDiscursivoV619() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusFactorySimuladoDiscursivoV619")) return;
+    const script = document.createElement("script");
+    script.id = "aldusFactorySimuladoDiscursivoV619";
+    script.src = "factory-simulado-discursivo-v619.js?v=20260913-simulado-discursivo-delegado-v619";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V619] Falha ao carregar o Simulado de Peças e Discursivas.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   function init() {
     installRuntimeMonitoring();
     installSecurityMonitoring();
@@ -346,6 +362,7 @@
   installFactoryFusaoFinalRelocationV431();
   installQuestionBankManualNotesV386();
   installFactorySummaryTocV382();
+  installFactorySimuladoDiscursivoV619();
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init, { once: true });
