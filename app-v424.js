@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260913-limpeza-metas-concluidas-v424";
+  const VERSION = "20260913-sem-assunto-repetido-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
