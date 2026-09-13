@@ -70,9 +70,13 @@ test("conclusão remove somente a meta automática futura e solicita sua reposi�
 });
 
 test("conclusões no plano e no edital acionam a atualização do calendário", () => {
-  assert.match(script, /replanFutureGoalsAfterCompletionV77\(goal, state\)/);
-  assert.match(script, /if \(!wasCompleted && completedStatus\(item\)\) replanFutureGoalsAfterCompletionV77\(item, state\)/);
-  assert.match(script, /function updateItemProgress[\s\S]*replanFutureGoalsAfterCompletionV77\(item, state\)/);
+  // V424: cada chamada nasce de uma confirmação explícita do usuário (Concluir meta,
+  // editar um item do edital, salvar status na tela de Progresso) — não de uma varredura
+  // automática — então passam explicit:true para que a limpeza de duplicatas futuras
+  // do mesmo assunto realmente aconteça (ver tests/planning-user-control.test.js).
+  assert.match(script, /replanFutureGoalsAfterCompletionV77\(goal, state, \{ explicit: true \}\)/);
+  assert.match(script, /if \(!wasCompleted && completedStatus\(item\)\) replanFutureGoalsAfterCompletionV77\(item, state, \{ explicit: true \}\)/);
+  assert.match(script, /function updateItemProgress[\s\S]*replanFutureGoalsAfterCompletionV77\(item, state, \{ explicit: true \}\)/);
 });
 
 test("a redistribuição futura exige ação explícita e não ocorre na primeira abertura", () => {

@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260912-tempo-segundos-indicadores-v424";
+  const VERSION = "20260913-limpeza-metas-concluidas-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -40676,7 +40676,7 @@ function setItemStatus(id, status) {
   if (!item) return;
   const wasCompleted = completedStatus(item);
   item.status = status;
-  if (!wasCompleted && completedStatus(item)) replanFutureGoalsAfterCompletionV77(item, state);
+  if (!wasCompleted && completedStatus(item)) replanFutureGoalsAfterCompletionV77(item, state, { explicit: true });
   saveData({ markLocalChange: true });
   autoSyncAfterSave("syllabus-status");
   render();
@@ -42361,7 +42361,7 @@ function updateItemProgress(id, patch = {}) {
   if (!item) return null;
   const wasCompleted = completedStatus(item);
   Object.assign(item, patch, { updatedAt: new Date().toISOString() });
-  return !wasCompleted && completedStatus(item) ? replanFutureGoalsAfterCompletionV77(item, state) : null;
+  return !wasCompleted && completedStatus(item) ? replanFutureGoalsAfterCompletionV77(item, state, { explicit: true }) : null;
 }
 function findSyllabusItemByStudy(subjectId, topic) { const discipline = subjectNameById(subjectId); return state.syllabusItems.find((item) => canonical(item.discipline) === canonical(discipline) && (canonical(topic).includes(canonical(item.subject)) || canonical(item.subject).includes(canonical(topic)))); }
 
@@ -43720,7 +43720,7 @@ elements.syllabusForm.addEventListener("submit", (event) => {
   if (existingIndex >= 0) state.syllabusItems[existingIndex] = { ...state.syllabusItems[existingIndex], ...payload };
   else state.syllabusItems.push(payload);
   const savedItem = state.syllabusItems.find((item) => item.id === payload.id);
-  if (!wasCompleted && completedStatus(savedItem)) replanFutureGoalsAfterCompletionV77(savedItem, state);
+  if (!wasCompleted && completedStatus(savedItem)) replanFutureGoalsAfterCompletionV77(savedItem, state, { explicit: true });
   editingSyllabusId = null;
   elements.syllabusForm.reset();
   elements.itemPriority.value = "Média";
@@ -45354,7 +45354,7 @@ function confirmGoalCompletion(goalId = goalCompletionActiveGoalId) {
   }
 
   const replanReport = materialFinished && typeof replanFutureGoalsAfterCompletionV77 === "function"
-    ? replanFutureGoalsAfterCompletionV77(goal, state)
+    ? replanFutureGoalsAfterCompletionV77(goal, state, { explicit: true })
     : { removed: [], added: [], affectedDates: [], warnings: [] };
   saveData({ markLocalChange: true });
   render();
