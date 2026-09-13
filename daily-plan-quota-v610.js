@@ -1,6 +1,6 @@
 (() => {
   "use strict";
-  const VERSION = "20260908-previa-com-gabarito-v614";
+  const VERSION = "20260913-sem-assunto-repetido-v617";
   const KEY = "__ALDUS_DAILY_PLAN_QUOTA_V610__";
   const MARK = "__aldusDailyPlanQuotaV610";
   const START = "2026-09-08";
@@ -71,7 +71,10 @@
     for (const g of added) {
       if (piece(g, s)) g.origin = g.origem = "planejamento peça diária";
       s.dailyGoals.push(g);
-      if (opts.reservedSyllabusIds && g.syllabusItemId) opts.reservedSyllabusIds.add(String(g.syllabusItemId));
+      // A reserva usa a chave do nucleo (disciplina|assunto). Reservar o id deixava o dia
+      // seguinte escolher de novo os mesmos assuntos prioritarios.
+      const reservedKey = typeof globalThis.goalSyllabusReservationKey === "function" ? globalThis.goalSyllabusReservationKey(g) : g.syllabusItemId;
+      if (opts.reservedSyllabusIds && reservedKey) opts.reservedSyllabusIds.add(String(reservedKey));
     }
     const addedAutomatic = added.filter(g => automatic(g, s) && pending(g)).length;
     const report = { ...result, date: d, expectedTopics: info.limit, foundTopics: info.before + addedAutomatic,

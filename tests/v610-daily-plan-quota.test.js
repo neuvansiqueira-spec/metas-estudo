@@ -161,6 +161,18 @@ test('reconciliação de várias datas limita cada dia, preservando originais',(
  for(const d of [DATE,'2026-09-09']) assert.equal(h.c.__ALDUS_DAILY_PLAN_QUOTA_V610__.budget(h.state,d).before,2);
  assert.equal(r.removed.length,0); old.forEach(g=>assert.ok(h.state.dailyGoals.includes(g)));
 });
+test('reconciliação de várias datas não repete o mesmo assunto em dias diferentes',()=>{
+ // No site a chave de reserva é disciplina|assunto, e não o syllabusItemId. Reservar o id
+ // fazia cada dia seguinte escolher de novo os mesmos assuntos prioritários.
+ const h=harness();
+ h.c.planningItemKey=g=>`${canonical(g.discipline)}|${canonical(g.subject)}`;
+ h.c.goalSyllabusReservationKey=h.c.planningItemKey;
+ const dates=[DATE,'2026-09-09'], api=h.c.__ALDUS_DAILY_PLAN_QUOTA_V610__;
+ h.c.reconcilePlanningDates(h.state,dates,{explicit:true});
+ const [first,second]=dates.map(d=>h.state.dailyGoals.filter(g=>(g.date||g.data)===d&&api.automatic(g,h.state)&&api.pending(g)).map(h.c.planningItemKey));
+ assert.equal(first.length,2); assert.equal(second.length,2);
+ assert.deepEqual(first.filter(k=>second.includes(k)),[]);
+});
 test('metas com tempo, userEdited e histórico mantêm identidade e campos',()=>{
  const old=[goal('a',{actualMinutes:1,userEdited:true}),goal('b',{tempoReal:5,history:[{x:1}]})],snapshot=JSON.stringify(old);
  const h=harness({goals:old.slice()}); h.click('refreshDailyGoalsFromPlanning');

@@ -58,7 +58,7 @@
     if (document.getElementById("aldusDailyPlanQuotaV610")) return;
     const script = document.createElement("script");
     script.id = "aldusDailyPlanQuotaV610";
-    script.src = "daily-plan-quota-v610.js?v=20260908-previa-com-gabarito-v614";
+    script.src = "daily-plan-quota-v610.js?v=20260913-sem-assunto-repetido-v617";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V610] Falha ao carregar o limite de metas automáticas.");
@@ -86,7 +86,7 @@
     if (document.getElementById("aldusDailyPlanPendingPanelV429")) return;
     const script = document.createElement("script");
     script.id = "aldusDailyPlanPendingPanelV429";
-    script.src = "daily-plan-pending-panel-v429.js?v=20260908-previa-com-gabarito-v614";
+    script.src = "daily-plan-pending-panel-v429.js?v=20260913-sem-assunto-repetido-v617";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V429] Falha ao carregar o painel de pendentes.");
@@ -156,7 +156,7 @@
     if (document.getElementById("aldusDailyPlanQuestionImportLoaderV451")) return;
     const script = document.createElement("script");
     script.id = "aldusDailyPlanQuestionImportLoaderV451";
-    script.src = "daily-plan-question-import-v451.js?v=20260908-previa-com-gabarito-v614";
+    script.src = "daily-plan-question-import-v451.js?v=20260913-sem-assunto-repetido-v617";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V451] Falha ao carregar o registro de questoes do Plano do Dia.");
@@ -184,7 +184,7 @@
     if (document.getElementById("aldusDailyPlanLegibilityV455Loader")) return;
     const script = document.createElement("script");
     script.id = "aldusDailyPlanLegibilityV455Loader";
-    script.src = "daily-plan-legibility-v455.js?v=20260908-previa-com-gabarito-v614";
+    script.src = "daily-plan-legibility-v455.js?v=20260913-sem-assunto-repetido-v617";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus] Falha ao carregar a legibilidade do Plano do Dia.");
@@ -197,7 +197,7 @@
     if (typeof document === "undefined" || document.getElementById("aldusDailyPlanPreviewV462Loader")) return;
     const script = document.createElement("script");
     script.id = "aldusDailyPlanPreviewV462Loader";
-    script.src = "daily-plan-preview-v462.js?v=20260908-previa-com-gabarito-v614";
+    script.src = "daily-plan-preview-v462.js?v=20260913-sem-assunto-repetido-v617";
     script.async = false;
     script.addEventListener("error", () => console.error("[Aldus] Falha ao carregar o visual do Plano do Dia."), {once:true});
     (document.head || document.documentElement).appendChild(script);
@@ -209,7 +209,7 @@
     if (document.getElementById("aldusTimerPipLoaderV458")) return;
     const script = document.createElement("script");
     script.id = "aldusTimerPipLoaderV458";
-    script.src = "timer-picture-in-picture-v458.js?v=20260908-previa-com-gabarito-v614";
+    script.src = "timer-picture-in-picture-v458.js?v=20260913-sem-assunto-repetido-v617";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V458] Falha ao carregar a janela flutuante do cronometro.");
@@ -223,7 +223,7 @@
     if (document.getElementById("aldusQuestionPreviewAnswerV614")) return;
     const script = document.createElement("script");
     script.id = "aldusQuestionPreviewAnswerV614";
-    script.src = "question-preview-answer-v614.js?v=20260908-previa-com-gabarito-v614";
+    script.src = "question-preview-answer-v614.js?v=20260913-sem-assunto-repetido-v617";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V614] Falha ao carregar o gabarito na previa das questoes.");

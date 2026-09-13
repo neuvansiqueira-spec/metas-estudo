@@ -12,7 +12,7 @@
   // acrescenta o gabarito e a justificativa a cada item. Nada e recalculado: os
   // dados vem de `qbFilteredQuestions()`, a mesma fonte que a previa usa.
 
-  const VERSION = "20260908-previa-com-gabarito-v614";
+  const VERSION = "20260913-sem-assunto-repetido-v617";
   const FLAG = "__ALDUS_QB_PREVIEW_ANSWER_V614__";
   const MARCA = "__aldusQbPreviewAnswerV614";
   const CAIXA = "qbFilteredPreview";
