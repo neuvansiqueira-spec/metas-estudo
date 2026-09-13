@@ -1,6 +1,6 @@
 (() => {
   "use strict";
-  const VERSION = "20260913-sem-assunto-repetido-v617";
+  const VERSION = "20260913-cota-sem-repeticao-v618";
   const KEY = "__ALDUS_DAILY_PLAN_QUOTA_V610__";
   const MARK = "__aldusDailyPlanQuotaV610";
   const START = "2026-09-08";
@@ -54,6 +54,19 @@
     const goal = api.buildFixedPieceGoal(item, d, draft);
     if (goal) draft.dailyGoals.push(goal);
   }
+  // Assuntos ja marcados de hoje em diante (automaticas pendentes e cota do simulado) ficam
+  // reservados: gerar um dia nao repete assunto que ja esta em outro dia (pedido de 13/09).
+  function scheduledKeys(s, d) {
+    const keyOf = typeof globalThis.goalSyllabusReservationKey === "function" ? globalThis.goalSyllabusReservationKey : g => g?.syllabusItemId;
+    const itemOf = typeof globalThis.getSyllabusById === "function" ? globalThis.getSyllabusById : () => null;
+    const today = typeof todayISO === "function" ? todayISO() : d;
+    const keys = new Set();
+    for (const g of s?.dailyGoals || []) {
+      if (dateOf(g) < today || !pending(g) || piece(g, s) || !(g?.simulado3V605 || automatic(g, s))) continue;
+      for (const k of [keyOf(g), g.syllabusItemId ? keyOf(itemOf(g.syllabusItemId) || {}) : ""]) if (k) keys.add(String(k));
+    }
+    return keys;
+  }
   function reconcile(original, receiver, s, d, opts) {
     if (!s || !Array.isArray(s.dailyGoals) || !enabled(d)) return original.call(receiver, s, d, opts);
     const info = budget(s, d);
@@ -65,7 +78,7 @@
     let result;
     try {
       result = original.call(receiver, draft, d, { ...opts, rebuildAutomatic: false,
-        ...(opts.reservedSyllabusIds ? { reservedSyllabusIds: new Set(opts.reservedSyllabusIds) } : {}) }) || {};
+        reservedSyllabusIds: new Set([...(opts.reservedSyllabusIds || []), ...scheduledKeys(s, d)]) }) || {};
     } finally { context = previous; }
     const added = additions(draft.dailyGoals, s, d, info.remaining);
     for (const g of added) {
@@ -117,7 +130,8 @@
       const draft = { ...s, dailyGoals: clone(s.dailyGoals) };
       ensurePiece(draft, d);
       const createdPiece = additions(draft.dailyGoals, s, d).filter(g => piece(g, s));
-      const generated = info.remaining ? original.call(this, d, { ...opts, targetState: draft, maxGoals: info.remaining, topicLimit: info.remaining }) || [] : [];
+      const generated = info.remaining ? original.call(this, d, { ...opts, targetState: draft, maxGoals: info.remaining, topicLimit: info.remaining,
+        reservedSyllabusIds: new Set([...(opts.reservedSyllabusIds || []), ...scheduledKeys(s, d)]) }) || [] : [];
       return additions([...createdPiece, ...generated], s, d, info.remaining);
     });
     const api = globalThis.__aldusDailyDelegatePieceGoalV183;

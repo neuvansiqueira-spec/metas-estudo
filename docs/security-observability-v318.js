@@ -140,7 +140,7 @@
     if (document.getElementById("aldusEmergencyPerformanceV350")) return;
     const script = document.createElement("script");
     script.id = "aldusEmergencyPerformanceV350";
-    script.src = "performance-emergency-v350.js?v=20260913-sem-assunto-repetido-v617";
+    script.src = "performance-emergency-v350.js?v=20260913-cota-sem-repeticao-v618";
     script.async = false;
     (document.head || document.documentElement).appendChild(script);
   }

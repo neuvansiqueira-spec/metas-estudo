@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260913-sem-assunto-repetido-v424",
+  "version": "20260913-cota-sem-repeticao-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

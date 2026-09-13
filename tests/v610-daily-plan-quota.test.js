@@ -173,6 +173,20 @@ test('reconciliação de várias datas não repete o mesmo assunto em dias difer
  assert.equal(first.length,2); assert.equal(second.length,2);
  assert.deepEqual(first.filter(k=>second.includes(k)),[]);
 });
+test('geração de um dia não repete assunto já marcado em outro dia, nem o da cota do simulado',()=>{
+ // Pedido do usuário (13/09): meta normal com o mesmo assunto de uma meta da cota não pode se repetir.
+ const cota=goal('cota-penal',{syllabusItemId:'penal',discipline:'penal',subject:'penal',date:'2026-09-10',data:'2026-09-10',origin:'manual',simulado3V605:true});
+ const outroDia=goal('auto-processo',{syllabusItemId:'processo',discipline:'processo',subject:'processo',date:'2026-09-09',data:'2026-09-09'});
+ const feito=goal('feito-civil',{syllabusItemId:'civil',discipline:'civil',subject:'civil',date:'2026-09-09',data:'2026-09-09',status:'Concluída'});
+ for(const button of ['generateDailyGoals','refreshDailyGoalsFromPlanning']){
+  const h=harness({goals:[cota,outroDia,feito].map(g=>({...g}))}); h.click(button);
+  const api=h.c.__ALDUS_DAILY_PLAN_QUOTA_V610__;
+  const novas=h.state.dailyGoals.filter(g=>(g.date||g.data)===DATE&&api.automatic(g,h.state)).map(g=>g.syllabusItemId);
+  assert.equal(novas.length,2,button);
+  assert.ok(!novas.includes('penal'),`${button}: repetiu assunto da cota`);
+  assert.ok(!novas.includes('processo'),`${button}: repetiu assunto de outro dia`);
+ }
+});
 test('metas com tempo, userEdited e histórico mantêm identidade e campos',()=>{
  const old=[goal('a',{actualMinutes:1,userEdited:true}),goal('b',{tempoReal:5,history:[{x:1}]})],snapshot=JSON.stringify(old);
  const h=harness({goals:old.slice()}); h.click('refreshDailyGoalsFromPlanning');
