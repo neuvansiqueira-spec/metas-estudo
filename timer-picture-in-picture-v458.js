@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260908-previa-com-gabarito-v614";
+  const VERSION = "20260913-cota-sem-repeticao-v618";
   const FLAG = "__ALDUS_TIMER_PIP_V458__";
   const BOTAO_ID = "aldusTimerPipButtonV458";
   const ATUALIZACAO_MS = 500;

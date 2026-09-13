@@ -11,7 +11,37 @@ function between(start, end) {
 const date = '2026-09-11';
 const goal = (id, extra = {}) => ({id, date, discipline:'Direito', subject:'Assunto planejado', syllabusItemId:'s1', status:'Pendente', origin:'planejamento', minutes:45, ...extra});
 
-test('concluir assunto não substitui metas já agendadas do mesmo assunto', () => {
+// V424: concluir uma meta (botão "Concluir meta", editar um item do edital, ou salvar
+// status na tela de Progresso) é uma confirmação explícita do usuário sobre UM registro
+// específico — por isso os 4 pontos de chamada em produção passam explicit:true, e a
+// limpeza das cópias automáticas ainda não iniciadas do mesmo assunto volta a acontecer.
+// Isso é diferente de uma varredura automática de startup/configurações, que continua
+// bloqueada sem explicit:true (segundo teste abaixo).
+test('concluir assunto substitui as cópias automáticas futuras do mesmo assunto, mas preserva metas manuais e metas já iniciadas', () => {
+  const completed = goal('concluida', {status:'Concluída'});
+  const staleFuture = goal('amanha', {date:'2026-09-12'});
+  const manualFuture = goal('manual', {date:'2026-09-13', origin:'manual'});
+  const startedFuture = goal('em-andamento', {date:'2026-09-14', studyActualMinutes:10});
+  const s = {dailyGoals:[completed, staleFuture, manualFuture, startedFuture]};
+  let replacements = 0;
+  const ctx = vm.createContext({
+    state:s, todayISO:()=>date, goalDateValue:g=>g.date,
+    isManualDailyGoal:g=>g.origin==='manual',
+    shouldRecalculateDailyGoal:g=>g.status!=='Concluída' && !(g.studyActualMinutes||g.questionActualMinutes||g.actualMinutes),
+    planningRecordMatchesCompletedSubject:(goal,completedList)=>goal.syllabusItemId===completedList[0].syllabusItemId,
+    buildPlanningScoreContext:()=>({}),
+    reconcilePlanningDates:(_s,dates)=>{replacements++;return {added:dates.map((d)=>`nova-${d}`),warnings:[]};},
+  });
+  vm.runInContext(between('function replanFutureGoalsAfterCompletionV77','function rebalanceFuturePlanningGoalsV77'),ctx);
+  const report = ctx.replanFutureGoalsAfterCompletionV77(completed, s, {explicit:true});
+  assert.deepEqual(report.removed,['amanha']);
+  assert.equal(replacements,1);
+  assert.equal(s.dailyGoals.some((g)=>g.id==='amanha'),false);
+  assert.equal(s.dailyGoals.some((g)=>g.id==='manual'),true);
+  assert.equal(s.dailyGoals.some((g)=>g.id==='em-andamento'),true);
+});
+
+test('sem explicit:true (varredura automática, não uma conclusão específica) a limpeza continua bloqueada', () => {
   const s = {dailyGoals:[goal('hoje'),goal('amanha',{date:'2026-09-12'}),goal('manual',{origin:'manual'})],studies:[{minutes:17}]};
   const before = JSON.stringify(s);
   let replacements = 0;
