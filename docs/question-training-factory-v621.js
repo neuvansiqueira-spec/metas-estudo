@@ -1,11 +1,10 @@
-/* Melhorias do Treino de Questões da Fábrica — v621. */
+/* Melhorias do Treino de Questões da Fábrica — v621.2. */
 (() => {
   "use strict";
 
-  const VERSION = "20260914-treino-fabrica-pastas-qconcursos-v621";
+  const VERSION = "20260914-treino-fabrica-decisao-conversa-v621-2";
   const FLAG = "__ALDUS_QUESTION_TRAINING_FACTORY_V621__";
   const PROMPT_MARK = "__aldusQuestionTrainingPromptV621";
-  const VALIDATE_MARK = "__aldusQuestionTrainingValidateV621";
   const TEMPLATE_MARK = "__aldusQuestionTrainingTemplateV621";
   let lastGenerated = null;
   let pendingFactoryId = "";
@@ -119,18 +118,7 @@
       round.config ||= {};
       round.config.destinationFolder = destinationFolder;
       round.config.outputBaseName = base;
-      round.searchAudit = {
-        qconcursosSearched: false,
-        queries: [],
-        pagesChecked: 0,
-        realCandidatesFound: 0,
-        realUsedIds: [],
-        rejectedCandidates: [],
-        deficitAfterRealSearch: Number(config.count || 0),
-        verifiedZeroResults: false,
-        accessIssue: false,
-        evidence: []
-      };
+      if ("searchAudit" in round) delete round.searchAudit;
     }
 
     const folderText = destinationFolder || "NÃO IDENTIFICADA. Não invente pasta nem diga que salvou no Drive.";
@@ -146,13 +134,11 @@ PASTA DE DESTINO DO TEMA/DISCIPLINA NO GOOGLE DRIVE: ${folderText}
 # PORTÃO QCONCURSOS — ANTES DE QUALQUER QUESTÃO AUTORAL
 1. Pesquise PRIMEIRO no QConcursos a banca principal, disciplina e tema desta rodada. Percorra múltiplas páginas/resultados e abra as páginas individuais necessárias para confirmar íntegra, metadados e gabarito.
 2. Enquanto existir questão REAL válida do QConcursos que atenda aos filtros e não esteja nas exclusões, é PROIBIDO criar questão autoral para ocupar a vaga.
-3. Questão autoral só pode preencher o DÉFICIT REAL que restar depois de esgotar as questões válidas encontradas nas bancas permitidas.
-4. Falha de acesso, login ausente, bloqueio, timeout, dificuldade de pesquisa ou limite de ferramenta NÃO provam inexistência de questões. Nesses casos, entregue menos questões e relate a limitação; NÃO complete com autorais.
-5. Se o treino vier 100% autoral, você deve ter verificado zero resultados reais válidos e registrar evidências explícitas das buscas. Sem essa comprovação, NÃO entregue treino 100% autoral.
-6. Não basta escrever que "não encontrou". Registre a auditoria estruturada exigida abaixo; ela será validada ao importar o JSON no site.
-
-# AUDITORIA OBRIGATÓRIA DA BUSCA
-No JSON final, atualize trainingRound.searchAudit com dados reais da pesquisa: qconcursosSearched=true; queries=[consultas/filtros efetivamente usados]; pagesChecked=número de páginas/resultados examinados; realCandidatesFound=quantidade de candidatas reais encontradas; realUsedIds=[códigos Q usados]; rejectedCandidates=[{id,reason}] para candidatas descartadas; deficitAfterRealSearch=quantidade que faltou após a busca real; verifiedZeroResults=true SOMENTE se realmente não existir candidata válida encontrada; accessIssue=true se houve impedimento técnico; evidence=[descrições verificáveis das buscas/páginas consultadas]. Não invente auditoria.`;
+3. Se encontrar quantidade suficiente de questões reais, gere o treino normalmente apenas com elas.
+4. Se encontrar MENOS questões reais do que a quantidade solicitada, NÃO crie ainda nenhuma questão autoral. Informe na CONVERSA, de forma objetiva: quantas questões reais válidas foram encontradas, quantas faltam para completar o treino e quais bancas/filtros foram pesquisados. Em seguida, PARE e aguarde decisão expressa do usuário sobre completar ou não o déficit com questões autorais.
+5. Somente depois de o usuário autorizar expressamente na conversa, complete apenas o número faltante com questões autorais, se isso também estiver permitido pela configuração da rodada.
+6. Falha de acesso, login ausente, bloqueio, timeout, dificuldade de pesquisa ou limite de ferramenta NÃO provam inexistência de questões. Nesses casos, informe a limitação na conversa e PARE; NÃO complete automaticamente com autorais.
+7. NÃO registre auditoria de busca no JSON. O JSON deve conter somente os dados normais do treino e das questões. A decisão sobre eventual complementação autoral pertence à conversa com o usuário.`;
 
     result.instruction = `${critical}\n\n${result.instruction}`;
     result.destinationFolder = destinationFolder;
@@ -160,6 +146,8 @@ No JSON final, atualize trainingRound.searchAudit com dados reais da pesquisa: q
     return result;
   }
 
+  /* Mantido apenas como utilitário legado para compatibilidade de testes antigos.
+     Não é chamado pela validação/importação e não exige auditoria no JSON. */
   function validateSearchAudit(payload) {
     const questions = questionsOf(payload);
     const authorial = questions.filter((q) => q?.origem_tipo === "autoral");
@@ -210,16 +198,6 @@ No JSON final, atualize trainingRound.searchAudit com dados reais da pesquisa: q
       };
       Object.defineProperty(wrappedPrompt, PROMPT_MARK, { value: true });
       api.prompt = wrappedPrompt;
-    }
-    if (typeof api.validatePayload === "function" && !api.validatePayload[VALIDATE_MARK]) {
-      const originalValidate = api.validatePayload;
-      const wrappedValidate = function validatePayloadV621(payload) {
-        const output = originalValidate.call(this, payload);
-        if (payload?.schema === api.SCHEMA) validateSearchAudit(payload);
-        return output;
-      };
-      Object.defineProperty(wrappedValidate, VALIDATE_MARK, { value: true });
-      api.validatePayload = wrappedValidate;
     }
     return true;
   }
