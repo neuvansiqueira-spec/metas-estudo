@@ -333,6 +333,21 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V621 — destino do treino, campo CEBRASPE contextual, nomes dos arquivos e
+  // trava auditável para priorizar questões reais do QConcursos antes de autorais.
+  function installQuestionTrainingFactoryV621() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusQuestionTrainingFactoryV621")) return;
+    const script = document.createElement("script");
+    script.id = "aldusQuestionTrainingFactoryV621";
+    script.src = "question-training-factory-v621.js?v=20260914-treino-fabrica-pastas-qconcursos-v621";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V621] Falha ao carregar as melhorias do Treino de Questões da Fábrica.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   function init() {
     installRuntimeMonitoring();
     installSecurityMonitoring();
@@ -363,6 +378,7 @@
   installQuestionBankManualNotesV386();
   installFactorySummaryTocV382();
   installFactorySimuladoDiscursivoV619();
+  installQuestionTrainingFactoryV621();
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init, { once: true });
