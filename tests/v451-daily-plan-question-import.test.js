@@ -89,13 +89,23 @@ test('V451 não estraga questão sem os campos novos', () => {
   assert.equal(api.explicacao({}), '');
 });
 
-test('V451 cria o painel dentro do Plano do Dia', () => {
+test('V451 cria o painel dentro do Plano do Dia com colagem e arquivo JSON', () => {
   const { nos } = harness();
   const painel = nos.get('aldusDailyPlanQuestionImportV451');
   assert.ok(painel, 'o painel precisa existir');
   assert.equal(painel.parentNode.id, 'view-metas-do-dia');
   assert.match(painel.innerHTML, /Registrar questões do cartão/);
   assert.match(painel.innerHTML, /data-v451="texto"/);
+  assert.match(painel.innerHTML, /data-v451="arquivo"/);
+  assert.match(painel.innerHTML, /data-v451="arquivo-input"/);
+  assert.match(painel.innerHTML, /accept="\.json,application\/json"/);
+});
+
+test('V451 lê o conteúdo de um arquivo JSON selecionado', async () => {
+  const { api } = harness();
+  const conteudo = JSON.stringify({ questionBank: [questaoDoCartao] });
+  const lido = await api.lerArquivoJson({ text: async () => conteudo });
+  assert.equal(lido, conteudo);
 });
 
 test('V451 não reimplanta importação: entrega ao mesmo input da Fábrica', () => {
