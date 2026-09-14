@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260913-acompanhamento-simulado-v424";
+  const VERSION = "20260913-fechar-configuracao-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -36515,6 +36515,8 @@ Antes de entregar, validar contagem, exclusões, fonte e íntegra, gabarito QC n
   }
   function style(){if(document.getElementById('questionTrainingStyles'))return;const s=document.createElement('style');s.id='questionTrainingStyles';s.textContent=`
     .qt-site-panel{border:1px solid #52748c;border-left:5px solid #f5d46b;border-radius:14px;padding:18px;margin:16px 0;background:#0c2940;color:#edf5fc}.qt-site-panel h3{margin:0 0 8px}.qt-topic-status{display:block;color:#98e0eb;font-size:.82rem;line-height:1.6;margin:8px 0;white-space:normal}.qt-site-panel button{margin:5px}.qt-site-panel table{width:100%;border-collapse:collapse;font-size:.88rem}.qt-site-panel td,.qt-site-panel th{padding:8px;text-align:left;border-bottom:1px solid #426179}.qt-site-panel .qt-scroll{overflow:auto}#questionTrainingDialog{color:#edf5fc;background:#0b263b;border:1px solid #62859e;border-radius:18px;width:min(900px,95vw);max-height:90dvh;padding:22px;overflow:auto}#questionTrainingDialog::backdrop{background:#000b}#questionTrainingDialog .qt-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}#questionTrainingDialog [hidden]{display:none!important}#questionTrainingDialog label{display:flex;flex-direction:column;gap:5px}#questionTrainingDialog input,#questionTrainingDialog select,#questionTrainingDialog textarea{width:100%;min-width:0;background:#061a2b;color:#edf5fc;border:1px solid #658197;padding:10px;border-radius:8px;font:inherit}#questionTrainingDialog textarea{height:220px;font:12px monospace}#questionTrainingDialog button{margin:8px 5px 0 0}#questionTrainingDialog .qt-wide{grid-column:1/-1}#qtOutput:empty{display:none}#qtNotice{color:#f5d46b;white-space:pre-wrap}@media(max-width:600px){#questionTrainingDialog .qt-fields{grid-template-columns:1fr}.qt-site-panel{padding:12px}}
+    #questionTrainingDialog .qt-dialog-top{position:sticky;top:-22px;z-index:10;display:flex;justify-content:flex-end;margin:-22px -22px 12px;padding:10px 16px;background:#0b263b;border-bottom:1px solid #62859e}
+    #questionTrainingDialog .qt-dialog-top button{width:auto;min-width:100px;margin:0;padding:10px 16px;flex:none;color:#edf5fc}
   `;document.head.append(s);}
   function formHTML(){return `<form id="questionTrainingForm"><h2>Configurar rodada de questões</h2><p>Escolha a disciplina. O tema é opcional para um treino misto.</p><div class="qt-fields">
     <label>Disciplina<input name="discipline" list="qtDisciplines" required></label><label>Tema / assunto<input name="theme" list="qtThemes" placeholder="Em branco: misto da disciplina"></label>
@@ -36538,9 +36540,9 @@ Antes de entregar, validar contagem, exclusões, fonte e íntegra, gabarito QC n
   function options(form){form.querySelector('#qtOther').hidden=form.elements.primary.value!=='Outra';form.elements.otherPrimary.required=form.elements.primary.value==='Outra';form.querySelectorAll('.qt-order').forEach(e=>e.hidden=form.elements.supplement.value!=='ordered');}
   function open(ctx={}){
     style();focusReturn=document.activeElement;let d=document.getElementById('questionTrainingDialog');if(!d){d=document.createElement('dialog');d.id='questionTrainingDialog';document.body.append(d);}
-    current=null;d.innerHTML=formHTML();const f=d.querySelector('form'),t=api.topic(ctx);f.elements.discipline.value=t.discipline;f.elements.theme.value=t.theme;f.dataset.syllabusId=t.syllabusItemId;lists(f);options(f);
+    current=null;d.innerHTML='<div class="qt-dialog-top"><button type="button" data-qt-close-top aria-label="Fechar configuração">× Fechar</button></div>'+formHTML();const f=d.querySelector('form'),t=api.topic(ctx);f.elements.discipline.value=t.discipline;f.elements.theme.value=t.theme;f.dataset.syllabusId=t.syllabusItemId;lists(f);options(f);
     f.addEventListener('change',()=>{lists(f);options(f);if(current){current=null;f.querySelector('#qtOutput').replaceChildren();f.querySelector('#qtNotice').textContent='Configuração alterada. Gere uma nova rodada.';}});
-    f.addEventListener('submit',generate);d.querySelector('[data-qt-close]').addEventListener('click',()=>d.close());d.addEventListener('close',()=>focusReturn?.focus(),{once:true});d.showModal();f.elements.discipline.focus();
+    f.addEventListener('submit',generate);d.querySelectorAll('[data-qt-close],[data-qt-close-top]').forEach(button=>button.addEventListener('click',()=>d.close()));d.addEventListener('close',()=>focusReturn?.focus(),{once:true});d.showModal();f.elements.discipline.focus();
   }
   function generate(event){
     event.preventDefault();const f=event.currentTarget,s=getState(),notice=f.querySelector('#qtNotice');

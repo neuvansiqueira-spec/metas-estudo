@@ -9,7 +9,7 @@
   const STATUS_KEY = "aldusBootstrapFastPathV351";
   const GUARD_SCRIPT = `catastrophic-state-guard-v275.js?v=${LEGACY_BOOTSTRAP_VERSION}&fallback=v351`;
   const FALLBACK_CORE = `bootstrap-integrity-loader-v258-core.js?v=${VERSION}&fallback=v351&planning=v397`;
-  const FALLBACK_APPLICATION_SCRIPT = "app-v424.js?v=20260913-acompanhamento-simulado-v424";
+  const FALLBACK_APPLICATION_SCRIPT = "app-v424.js?v=20260913-fechar-configuracao-v424";
 
   function resolveApplicationScript() {
     if (typeof document === "undefined") return FALLBACK_APPLICATION_SCRIPT;

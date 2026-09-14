@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260913-acompanhamento-simulado-v424";
+  const VERSION = "20260913-fechar-configuracao-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
