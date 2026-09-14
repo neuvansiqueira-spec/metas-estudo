@@ -3,7 +3,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260906-daily-plan-question-import-v451";
+  const VERSION = "20260914-daily-plan-question-import-v451-file-upload";
   const FLAG = "__ALDUS_DAILY_PLAN_QUESTION_IMPORT_V451__";
   const PAINEL_ID = "aldusDailyPlanQuestionImportV451";
   const SECAO = "view-metas-do-dia";
@@ -70,9 +70,10 @@
   // 2) O painel no Plano do Dia.
   //
   // Ele nao reimplanta importacao nenhuma: monta um arquivo com o texto colado
-  // e entrega ao mesmo <input id="qbFile"> da Fabrica. A revisao da V192 escuta
-  // o change no document e abre o mesmo painel de conferencia de sempre, com
-  // validas, novas, certas, erradas e o Caderno de Erros.
+  // ou le o arquivo JSON escolhido e entrega ao mesmo <input id="qbFile"> da
+  // Fabrica. A revisao da V192 escuta o change no document e abre o mesmo painel
+  // de conferencia de sempre, com validas, novas, certas, erradas e o Caderno
+  // de Erros.
   // ------------------------------------------------------------------
   function entradaDaFabrica() {
     try { return document.getElementById("qbFile"); } catch { return null; }
@@ -82,7 +83,7 @@
     const entrada = entradaDaFabrica();
     if (!entrada) return { erro: "Não encontrei a importação da Fábrica nesta página. Recarregue e tente de novo." };
     try { JSON.parse(conteudo); }
-    catch { return { erro: "Isso não é um JSON válido. Copie do cartão a partir da chave { até a última }." }; }
+    catch { return { erro: "Isso não é um JSON válido. Cole o conteúdo completo ou selecione um arquivo .json válido." }; }
     try {
       const arquivo = new File([conteudo], "cartao-questoes.json", { type: "application/json" });
       const dados = new DataTransfer();
@@ -93,6 +94,20 @@
     } catch (error) {
       return { erro: `Não consegui abrir a revisão: ${error?.message || error}` };
     }
+  }
+
+  async function lerArquivoJson(arquivo) {
+    if (!arquivo) throw new Error("Nenhum arquivo JSON foi selecionado.");
+    if (typeof arquivo.text === "function") return arquivo.text();
+    if (typeof FileReader !== "undefined") {
+      return new Promise((resolve, reject) => {
+        const leitor = new FileReader();
+        leitor.onload = () => resolve(String(leitor.result ?? ""));
+        leitor.onerror = () => reject(leitor.error || new Error("Falha ao ler o arquivo JSON."));
+        leitor.readAsText(arquivo, "utf-8");
+      });
+    }
+    throw new Error("Este navegador não conseguiu ler o arquivo selecionado.");
   }
 
   function painel() {
@@ -107,7 +122,11 @@
     bloco.className = "choose-subject-day-panel";
     bloco.innerHTML = `
       <summary>Registrar questões do cartão (JSON)</summary>
-      <p class="file-info">Cole o JSON do cartão. Abre a mesma revisão da Fábrica, sem sair do Plano do Dia.</p>
+      <p class="file-info">Cole o JSON do cartão ou selecione um arquivo .json. Os dois caminhos abrem a mesma revisão da Fábrica, sem sair do Plano do Dia.</p>
+      <div class="actions wide">
+        <button type="button" data-v451="arquivo">Selecionar arquivo JSON</button>
+        <input type="file" data-v451="arquivo-input" accept=".json,application/json" hidden>
+      </div>
       <label class="wide">JSON do cartão
         <textarea data-v451="texto" rows="5" spellcheck="false" placeholder='{ "questionBank": [ ... ] }'></textarea>
       </label>
@@ -124,14 +143,43 @@
       if (!acao) return;
       const campo = bloco.querySelector('[data-v451="texto"]');
       const status = bloco.querySelector('[data-v451="status"]');
-      if (acao === "limpar") { campo.value = ""; status.textContent = ""; return; }
+      if (acao === "arquivo") {
+        bloco.querySelector('[data-v451="arquivo-input"]')?.click?.();
+        return;
+      }
+      if (acao === "limpar") {
+        if (campo) campo.value = "";
+        if (status) status.textContent = "";
+        return;
+      }
       if (acao !== "importar") return;
-      const conteudo = texto(campo.value);
-      if (!conteudo) { status.textContent = "Cole o JSON antes de registrar."; return; }
+      const conteudo = texto(campo?.value);
+      if (!conteudo) { if (status) status.textContent = "Cole o JSON antes de registrar ou use o botão Selecionar arquivo JSON."; return; }
       const resultado = enviarParaRevisao(conteudo);
-      if (resultado.erro) { status.textContent = resultado.erro; return; }
-      status.textContent = "Revisão aberta. Confira e confirme para gravar no banco.";
-      campo.value = "";
+      if (resultado.erro) { if (status) status.textContent = resultado.erro; return; }
+      if (status) status.textContent = "Revisão aberta. Confira e confirme para gravar no banco.";
+      if (campo) campo.value = "";
+    });
+
+    bloco.addEventListener("change", async (evento) => {
+      const entradaArquivo = evento.target;
+      if (entradaArquivo?.dataset?.v451 !== "arquivo-input") return;
+      const status = bloco.querySelector('[data-v451="status"]');
+      const campo = bloco.querySelector('[data-v451="texto"]');
+      const arquivo = entradaArquivo.files?.[0];
+      if (!arquivo) return;
+      if (status) status.textContent = `Lendo ${arquivo.name || "arquivo JSON"}...`;
+      try {
+        const conteudo = await lerArquivoJson(arquivo);
+        const resultado = enviarParaRevisao(conteudo);
+        if (resultado.erro) { if (status) status.textContent = resultado.erro; return; }
+        if (status) status.textContent = "Arquivo JSON carregado. Revisão aberta; confira e confirme para gravar no banco.";
+        if (campo) campo.value = "";
+      } catch (error) {
+        if (status) status.textContent = `Não consegui ler o arquivo JSON: ${error?.message || error}`;
+      } finally {
+        try { entradaArquivo.value = ""; } catch {}
+      }
     });
 
     return bloco;
@@ -150,7 +198,8 @@
     explicacao: explicacaoV451,
     instalarExplicacao,
     originalDaExplicacao,
-    enviarParaRevisao
+    enviarParaRevisao,
+    lerArquivoJson
   });
   globalThis[FLAG] = api;
 
