@@ -54,3 +54,38 @@ test('bundle contém gerador, modelo e interface antes do núcleo e raiz/docs co
   const bundle=fs.readFileSync('app.bundle.js','utf8');
   for(const file of ['question-training.js','question-training-card.js','question-training-ui.js']){assert.ok(bundle.indexOf(`/* Aldus source: ${file} */`)<bundle.indexOf('/* Aldus source: script.js */'));assert.equal(fs.readFileSync(file,'utf8'),fs.readFileSync('docs/'+file,'utf8'));}
 });
+
+function trainingV621(){
+  const ctx={console,AldusQuestionTraining:{...api},AldusTrainingTemplate:{...template}};ctx.globalThis=ctx;vm.createContext(ctx);vm.runInContext(fs.readFileSync('question-training-factory-v621.js','utf8'),ctx);return ctx;
+}
+test('V621 herda a pasta do tema e nomeia a rodada por disciplina e assunto',()=>{
+  const ctx=trainingV621();
+  const state={factoryAgenda:[{id:'factory-1',disciplina:'DIREITO PENAL',tema:'Princípios do Direito Penal',factoryDestinationFolder:'https://drive.google.com/drive/folders/pasta-do-tema'}]};
+  const p=ctx.AldusQuestionTraining.prompt({discipline:'DIREITO PENAL',theme:'Princípios do Direito Penal',allowGenerated:true,count:5},state,'rodada-v621');
+  assert.equal(p.destinationFolder,'https://drive.google.com/drive/folders/pasta-do-tema');
+  assert.equal(p.metadata.trainingRound.destinationFolder,p.destinationFolder);
+  assert.equal(p.outputBaseName,'TREINO_DIREITO PENAL_PRINCÍPIOS DO DIREITO PENAL');
+  assert.match(p.instruction,/PASTA DE DESTINO DO TEMA\/DISCIPLINA NO GOOGLE DRIVE/);
+  assert.match(p.instruction,/salve DIRETAMENTE os dois arquivos nessa pasta/);
+  assert.match(p.instruction,/PORTÃO QCONCURSOS/);
+  assert.match(p.instruction,/Falta de acesso|Falha de acesso/);
+});
+test('V621 só aceita autorais com auditoria real da busca no QConcursos',()=>{
+  const ctx=trainingV621(),validate=ctx.__ALDUS_QUESTION_TRAINING_FACTORY_V621__.validateSearchAudit;
+  const autoral={origem_tipo:'autoral'};
+  assert.throws(()=>validate({questionBank:[autoral],trainingRound:{}}),/auditoria obrigatória/);
+  assert.throws(()=>validate({questionBank:[autoral],trainingRound:{searchAudit:{qconcursosSearched:true,queries:['FGV Penal'],pagesChecked:2,deficitAfterRealSearch:1,verifiedZeroResults:true,accessIssue:true,evidence:['p1','p2']}}}),/impedimento de acesso/);
+  assert.doesNotThrow(()=>validate({questionBank:[autoral],trainingRound:{searchAudit:{qconcursosSearched:true,queries:['FGV Penal'],pagesChecked:2,realCandidatesFound:0,realUsedIds:[],rejectedCandidates:[],deficitAfterRealSearch:1,verifiedZeroResults:true,accessIssue:false,evidence:['Página 1 sem questão válida','Página 2 sem questão válida']}}}));
+});
+test('V621 mantém CEBRASPE contextual, nomes temáticos e publicação raiz/docs',()=>{
+  const source=fs.readFileSync('question-training-factory-v621.js','utf8');
+  assert.match(source,/select\.disabled = !active/);
+  assert.match(source,/label\.hidden = !active/);
+  assert.match(source,/TREINO_\$\{safeFilePart/);
+  assert.match(source,/\$\{context\.base\}_EXCLUSOES\.json/);
+  assert.equal(source,fs.readFileSync('docs/question-training-factory-v621.js','utf8'));
+  const loader=fs.readFileSync('security-observability-v318.js','utf8');
+  assert.match(loader,/question-training-factory-v621\.js\?v=20260914-treino-fabrica-pastas-qconcursos-v621/);
+  assert.match(loader,/installQuestionTrainingFactoryV621\(\);/);
+  assert.equal(loader,fs.readFileSync('docs/security-observability-v318.js','utf8'));
+});
