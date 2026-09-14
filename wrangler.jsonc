@@ -1,0 +1,13 @@
+{
+  // Cloudflare Workers Static Assets — preparação segura do Aldus Meta.
+  // Este arquivo não altera DNS nem substitui o GitHub Pages por si só.
+  "name": "aldus-meta",
+  "compatibility_date": "2026-08-12",
+  "assets": {
+    // O build do projeto mantém em docs/ a cópia publicável do aplicativo.
+    "directory": "./docs",
+    // O Aldus Meta navega por fragmentos (#...), então URLs inexistentes devem continuar 404.
+    "not_found_handling": "none",
+    "html_handling": "auto-trailing-slash"
+  }
+}
