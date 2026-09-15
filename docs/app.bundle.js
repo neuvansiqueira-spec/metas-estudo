@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260915-calendario-exportacoes-v424";
+  const VERSION = "20260915-treino-prompts-por-formulario-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
