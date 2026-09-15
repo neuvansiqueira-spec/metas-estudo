@@ -309,7 +309,7 @@
     if (document.getElementById("aldusGoalCalendarExportV623")) return;
     const script = document.createElement("script");
     script.id = "aldusGoalCalendarExportV623";
-    script.src = "goal-calendar-export-v623.js?v=20260915-calendario-exportacoes-v623";
+    script.src = "goal-calendar-export-v623.js?v=20260915-calendario-exportacoes-v623-2";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V623] Falha ao carregar os arquivos novos do Calendário de Metas.");

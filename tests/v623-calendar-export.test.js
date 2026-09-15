@@ -1,4 +1,4 @@
-/* V623.1 — calendário exporta dados reais da Fábrica com boa legibilidade. */
+/* V623.2 — calendário exporta dados reais da Fábrica com boa legibilidade. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -50,7 +50,7 @@ function report(options={}) {
   return api.buildReport({ periods:periods(), referenceDate:'2026-09-15', scope:'daily', scopeLabel:'Somente dia', summaries:api.elaboratedSummaries(state), trainings:api.trainingRecords(state), today:'2026-09-15', generatedAt:'2026-09-15T15:00:00Z', ...options });
 }
 
-test('V623.1 reconhece produto já elaborado inclusive em Aguardando revisão', () => {
+test('V623.2 reconhece produto já elaborado inclusive em Aguardando revisão', () => {
   const rows = api.elaboratedSummaries(sampleState());
   assert.equal(rows.length, 3);
   assert.ok(rows.some((r) => r.factoryStatus === 'Aguardando revisão'));
@@ -59,14 +59,14 @@ test('V623.1 reconhece produto já elaborado inclusive em Aguardando revisão', 
   assert.ok(!rows.some((r) => r.factoryStatus === 'Em produção'));
 });
 
-test('V623.1 treinos elaborados exigem questões importadas', () => {
+test('V623.2 treinos elaborados exigem questões importadas', () => {
   const rows = api.trainingRecords(sampleState());
   assert.equal(rows.length, 1);
   assert.equal(rows[0].typeLabel, 'FGV · 3 QUESTÕES');
   assert.equal(rows[0].folderUrl, FOLDER_A);
 });
 
-test('V623.1 reconhece arquivos gêmeos Word/PDF e ignora inválidos', () => {
+test('V623.2 reconhece arquivos gêmeos Word/PDF e ignora inválidos', () => {
   const file = (id,name,time='2026-09-01T00:00:00Z') => ({id,name,modifiedTime:time,mimeType:name.endsWith('.pdf')?'application/pdf':'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
   const folder = [
     file('w1','MAPA_HIERARQUICO_RESUMO_AULA_PRINCIPIOS.docx'), file('p1','MAPA_HIERARQUICO_RESUMO_AULA_PRINCIPIOS.pdf'),
@@ -76,7 +76,7 @@ test('V623.1 reconhece arquivos gêmeos Word/PDF e ignora inválidos', () => {
   assert.equal(picked.word.id,'w1'); assert.equal(picked.pdf.id,'p1'); assert.equal(picked.twin,true);
 });
 
-test('V623.1 consulta Drive uma vez por pasta e traz páginas/arquivos reais', async () => {
+test('V623.2 consulta Drive uma vez por pasta e traz páginas/arquivos reais', async () => {
   const files = { '1AAAAAAAAAAAAAAAAAAAAA': [
     {id:'w1',name:'MAPA_HIERARQUICO_RESUMO_AULA_PRINCIPIOS.docx',createdTime:'2026-08-20T12:00:00Z',modifiedTime:'2026-08-21T12:00:00Z',webViewLink:'https://drive.google.com/file/d/w1/view'},
     {id:'p1',name:'MAPA_HIERARQUICO_RESUMO_AULA_PRINCIPIOS.pdf',createdTime:'2026-08-20T12:05:00Z',modifiedTime:'2026-08-21T12:05:00Z',webViewLink:'https://drive.google.com/file/d/p1/view'},
@@ -96,7 +96,7 @@ test('V623.1 consulta Drive uma vez por pasta e traz páginas/arquivos reais', a
   assert.match(by['QUANTIDADE DE PÁGINAS DO WORD DO RESUMO'],/^12/);
 });
 
-test('V623.1 não inventa dados sem Drive: NÃO CONFERIDO e PREJUDICADO continuam distintos', () => {
+test('V623.2 não inventa dados sem Drive: NÃO CONFERIDO e PREJUDICADO continuam distintos', () => {
   const rows=api.elaboratedSummaries(sampleState());
   const linked=rows.find((r)=>r.folderUrl), noLinks=rows.find((r)=>!r.folderUrl&&!r.wordLink&&!r.pdfLink);
   const a=api.summaryView(linked,undefined,'off'), b=api.summaryView(noLinks,undefined,'off');
@@ -104,10 +104,15 @@ test('V623.1 não inventa dados sem Drive: NÃO CONFERIDO e PREJUDICADO continua
   assert.equal(b.fields.find((f)=>f.label==='QUANTIDADE DE PÁGINAS DO PDF DO RESUMO').value,api.PREJUDICADO);
 });
 
-test('V623.1 PDF tem timbre, contraste explícito, Fábrica e meta reconhecida por produto', () => {
+test('V623.2 PDF tem timbre, contraste explícito, Fábrica e meta reconhecida por produto', () => {
   const html=api.buildPrintHtml(report());
   assert.match(html,/<thead><tr><td><div class="acv-letterhead"><div class="acv-logo">/);
   assert.match(html,/opacity:1!important/);
+  assert.match(html,/size:A4 landscape/);
+  assert.match(html,/max-width:281mm/);
+  assert.ok(html.includes('Resumo do tema:'));
+  assert.ok(html.includes('Treino de questões:'));
+  assert.ok(html.includes('REALIZADO'));
   assert.ok(html.includes('Produto elaborado'));
   assert.ok(html.includes('STATUS NA FÁBRICA:'));
   assert.ok(html.includes('ARQUIVO WORD:'));
@@ -115,15 +120,17 @@ test('V623.1 PDF tem timbre, contraste explícito, Fábrica e meta reconhecida p
   assert.match(html,/counter\(page\)/);
 });
 
-test('V623.1 imagem usa duas colunas e preserva largura 1600', () => {
+test('V623.2 imagem usa duas colunas e preserva largura 1600', () => {
   const svg=api.buildSvg(report());
   assert.match(svg,/viewBox="0 0 1600 \d+"/);
   assert.match(svg,/data-generated-brand="Aldus Metas Concurso"/);
   assert.ok(svg.includes('Produto elaborado'));
+  assert.ok(svg.includes('Resumo do tema: REALIZADO'));
+  assert.ok(svg.includes('Treino de questões: REALIZADO'));
   assert.ok(svg.length>1000);
 });
 
-test('V623.1 Excel tem três abas e informações ampliadas da Fábrica', () => {
+test('V623.2 Excel tem três abas e informações ampliadas da Fábrica', () => {
   const files=api.buildWorkbookFiles(report(),new Uint8Array([137,80,78,71]));
   const by=Object.fromEntries(files.map((f)=>[f.name,f.data]));
   assert.match(by['xl/workbook.xml'],/<sheet name="Calendário"/);
@@ -131,13 +138,15 @@ test('V623.1 Excel tem três abas e informações ampliadas da Fábrica', () => 
   assert.match(by['xl/workbook.xml'],/<sheet name="Fábrica - treinos"/);
   const resumos=by['xl/worksheets/sheet2.xml'];
   for(const text of ['STATUS NA FÁBRICA','ARQUIVO WORD','ARQUIVO PDF','QUANTIDADE DE PÁGINAS DO WORD DO RESUMO','QUANTIDADE DE PÁGINAS DO PDF DO RESUMO']) assert.ok(resumos.includes(text));
-  assert.ok(by['xl/worksheets/sheet1.xml'].includes('Evidência na Fábrica'));
+  assert.ok(by['xl/worksheets/sheet1.xml'].includes('Resumo do tema'));
+  assert.ok(by['xl/worksheets/sheet1.xml'].includes('Treino de questões'));
+  assert.ok(by['xl/worksheets/sheet1.xml'].includes('REALIZADO'));
   for(const n of [1,2,3]) assert.match(by[`xl/drawings/drawing${n}.xml`],/<xdr:col>0<\/xdr:col>/);
 });
 
-test('V623.1 continua carregado pela cadeia ativa e espelhado em docs', () => {
+test('V623.2 continua carregado pela cadeia ativa e espelhado em docs', () => {
   const loader=fs.readFileSync('performance-emergency-v350.js','utf8');
-  assert.ok(loader.includes('script.src = "goal-calendar-export-v623.js?v=20260915-calendario-exportacoes-v623";'));
+  assert.ok(loader.includes('script.src = "goal-calendar-export-v623.js?v=20260915-calendario-exportacoes-v623-2";'));
   assert.deepEqual(fs.readFileSync('goal-calendar-export-v623.js'),fs.readFileSync('docs/goal-calendar-export-v623.js'));
   assert.match(fs.readFileSync('build-bundles.mjs','utf8'),/"goal-calendar-export-v623\.js"/);
 });
