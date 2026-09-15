@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20260915-treino-prompts-por-formulario-v424";
+const CURRENT_VERSION = "20260915-treino-triagem-assunto-qc-v424";
 const DASHBOARD_PENDING_SEMANTICS_V413 = "pendentes-separados-de-em-andamento";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const SECURITY_VERSION = "20260831-weekly-status-stability-v416";
