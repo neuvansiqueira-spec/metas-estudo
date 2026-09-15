@@ -93,6 +93,25 @@ test('V621.5 exige no PROMPT 2 base jurídica concreta em ordem de hierarquia',(
   assert.match(h,/referência não confirmada/);
   assert.doesNotMatch(ctx.AldusQuestionTraining.prompt({discipline:'DIREITO PENAL',theme:'Crimes de Trânsito'},{},'r').triageInstruction,/BASE JURÍDICA CONCRETA/);
 });
+test('V621.6 PROMPT 1 exige filtro de ASSUNTO do QC e usa o vínculo que o site conhece',()=>{
+  const ctx=trainingV621();
+  const estado={syllabusItems:[{id:'s1',discipline:'DIREITO CONSTITUCIONAL',topic:'8.4 Organização do Estado.',subject:'Organização do Estado'}]};
+  const gera=()=>ctx.AldusQuestionTraining.prompt({discipline:'DIREITO CONSTITUCIONAL',theme:'Organização do Estado',syllabusItemId:'s1',count:15},estado,'r').triageInstruction;
+  let t=gera();
+  assert.match(t,/# ASSUNTO DO QC — FILTRO OBRIGATÓRIO NO LINK/);
+  assert.match(t,/PROIBIDO entregar link filtrado só por disciplina/);
+  assert.doesNotMatch(t,/pode ser mais amplo que a quantidade final/);
+  assert.match(t,/assunto\(s\) do QC aplicados no link: nome \+ subject_ids/);
+  assert.match(t,/O site não tem vínculo de assunto do QC para “Organização do Estado”/);
+  let recebido=null;
+  ctx.buildQconcursosFilterRoute=item=>{recebido=item;return {url:'https://www.qconcursos.com/questoes-de-concursos/questoes?discipline_ids%5B%5D=3&subject_ids%5B%5D=16321',qcSubjectLabel:'Direitos Individuais'};};
+  t=gera();assert.equal(recebido.topic,'8.4 Organização do Estado.');assert.match(t,/subject_ids\[\]=16321/);assert.match(t,/Parta desse link/);
+  ctx.buildQconcursosFilterRoute=item=>({url:'https://www.qconcursos.com/questoes-de-concursos/questoes?q=x',qcSubjectLabel:item.subject,qcNumber:'11',qcNumberSource:'catalog-category'});
+  t=gera();assert.match(t,/assunto nº 11 — categoria mais ampla confirmada/);
+  ctx.buildQconcursosFilterRoute=()=>({url:'https://www.qconcursos.com/questoes-de-concursos/questoes?q=x',qcNumber:'',qcNumberSource:'reviewed-unavailable'});
+  t=gera();assert.match(t,/não tem código próprio confirmado no QC/);
+  assert.match(ctx.AldusQuestionTraining.prompt({discipline:'DIREITO PENAL',count:5},{},'m').triageInstruction,/Treino misto da disciplina: não há assunto único/);
+});
 test('V621 só aceita autorais com auditoria real da busca no QConcursos',()=>{
   const ctx=trainingV621(),validate=ctx.__ALDUS_QUESTION_TRAINING_FACTORY_V621__.validateSearchAudit;
   const autoral={origem_tipo:'autoral'};
