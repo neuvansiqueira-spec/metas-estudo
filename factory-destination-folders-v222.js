@@ -10,31 +10,44 @@
     "aplicavel", "aplicaveis", "aspecto", "aspectos", "brasil", "brasileira", "brasileiro", "direito", "estadual", "federal", "lei", "leis", "n", "no"
   ]);
 
-  function canonicalText(value = "") {
-    return String(value || "")
+  // V622: cada abertura roda esta vinculação cinco vezes, e cada rodada compara
+  // cada tema com todas as pastas do catálogo, normalizando os mesmos textos
+  // centenas de milhares de vezes (~0,7 s por rodada no backup de 13/09). As
+  // funções de texto abaixo são puras; guardamos o resultado por texto de entrada.
+  function memoizeText(compute) {
+    const memo = new Map();
+    return (value = "") => {
+      const key = String(value || "");
+      let result = memo.get(key);
+      if (result === undefined) {
+        result = compute(key);
+        if (memo.size >= 20000) memo.clear();
+        memo.set(key, result);
+      }
+      return result;
+    };
+  }
+
+  const canonicalText = memoizeText((value) => value
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .toUpperCase()
       .replace(/[º°ª]/g, "")
       .replace(/[^A-Z0-9]+/g, " ")
       .replace(/\s+/g, " ")
-      .trim();
-  }
+      .trim());
 
-  function stripLeadingCode(value = "") {
-    return canonicalText(value).replace(/^\d+(?:\s+\d+){0,3}\s+/, "").trim();
-  }
+  const stripLeadingCode = memoizeText((value) => canonicalText(value).replace(/^\d+(?:\s+\d+){0,3}\s+/, "").trim());
 
-  function leadingCode(value = "") {
-    const raw = String(value || "").trim();
+  const leadingCode = memoizeText((value) => {
+    const raw = value.trim();
     const match = raw.match(/^(?:ITEM\s*)?(\d+(?:[._-]\d+){0,3})(?=\D|$)/i);
     if (!match) return "";
     return match[1].split(/[._-]+/).map((part) => String(Number(part))).join(".");
-  }
+  });
 
-  function tokenSet(value = "") {
-    return new Set(stripLeadingCode(value).split(" ").filter((token) => token.length > 1 && !STOP_WORDS.has(token.toLowerCase())));
-  }
+  // Os conjuntos só são lidos por jaccard e numberOverlap; podem ser compartilhados.
+  const tokenSet = memoizeText((value) => new Set(stripLeadingCode(value).split(" ").filter((token) => token.length > 1 && !STOP_WORDS.has(token.toLowerCase()))));
 
   function jaccard(left, right) {
     const a = tokenSet(left);
@@ -164,15 +177,34 @@
     return Boolean(item[MANAGED_VERSION_FIELD] || item.factoryDestinationFolderCatalogKey || item.factoryDestinationFolderMatchType);
   }
 
+  // A escolha da pasta depende só dos textos de disciplina e de tema do item e do
+  // catálogo (congelado). Guardamos a escolha por catálogo e por textos, para que
+  // as rodadas seguintes da mesma abertura não refaçam a comparação.
+  const resolutionMemo = new WeakMap();
+  function resolveItem(item, catalog) {
+    const memo = catalog && typeof catalog === "object" ? (resolutionMemo.get(catalog) || new Map()) : null;
+    if (memo && !resolutionMemo.has(catalog)) resolutionMemo.set(catalog, memo);
+    const key = JSON.stringify([disciplineTexts(item), topicTexts(item)]);
+    const cached = memo?.get(key);
+    if (cached) return cached;
+    const disciplineMatch = resolveDiscipline(item, catalog);
+    const topicMatch = disciplineMatch?.entry?.folder?.url ? resolveTopic(item, disciplineMatch.entry) : null;
+    const resolved = { disciplineMatch, topicMatch };
+    if (memo) {
+      if (memo.size >= 5000) memo.clear();
+      memo.set(key, resolved);
+    }
+    return resolved;
+  }
+
   function applyToItem(item, catalog, options = {}) {
     if (!item || typeof item !== "object") return { changed: false, status: "invalid" };
     const existing = existingDestination(item);
     const managed = isManagedDestination(item);
     if (existing && !managed && !options.overwriteManual) return { changed: false, status: "manual-preserved", url: existing };
 
-    const disciplineMatch = resolveDiscipline(item, catalog);
+    const { disciplineMatch, topicMatch } = resolveItem(item, catalog);
     if (!disciplineMatch?.entry?.folder?.url) return { changed: false, status: "discipline-unmatched" };
-    const topicMatch = resolveTopic(item, disciplineMatch.entry);
     if (!topicMatch?.folder?.url) return { changed: false, status: "topic-unmatched" };
     const destination = topicMatch.folder;
     const matchType = "topic";

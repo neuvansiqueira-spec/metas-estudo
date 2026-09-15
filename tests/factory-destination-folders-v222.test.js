@@ -103,6 +103,30 @@ test("não inventa vínculo quando a disciplina não existe no catálogo", () =>
   assert.equal(report.unmatched, 1);
 });
 
+test("V622 ignora o número inicial do tema ao comparar com a pasta", () => {
+  // "10 PRINCIPIOS FUNDAMENTAIS" só encontra "04_PRINCIPIOS_FUNDAMENTAIS" se o
+  // número do começo for descartado dos dois lados; sem isso a pasta não é achada.
+  const item = { disciplina: "Direito Constitucional", tema: "10 Princípios fundamentais" };
+  const context = makeContext([item]);
+  context.__applyFactoryDestinationFoldersV222();
+  assert.equal(item.factoryDestinationFolder, "https://drive.google.com/drive/folders/const-principios");
+});
+
+test("V622 rodadas repetidas devolvem a mesma escolha de pasta", () => {
+  const items = [
+    { disciplina: "Direito Constitucional", tema: "2. Poder constituinte e reforma" },
+    { disciplina: "Direito Administrativo", tema: "Lei n.º 13.709/2018 — LGPD" },
+    { disciplina: "Direito Administrativo e Gestão Pública", tema: "Atos administrativos" },
+    { disciplina: "Disciplina inexistente", tema: "Assunto qualquer" }
+  ];
+  const context = makeContext(items);
+  const catalog = context.__FACTORY_DESTINATION_CATALOG_V222__;
+  const first = items.map((item) => JSON.stringify(context.__applyFactoryDestinationToItemV222({ ...item }, catalog)));
+  const second = items.map((item) => JSON.stringify(context.__applyFactoryDestinationToItemV222({ ...item }, catalog)));
+  assert.deepEqual(second, first);
+  assert.ok(first[0].includes("const-poder") && first[1].includes("admin-lgpd") && first[2].includes("gestao-atos"));
+});
+
 test("é idempotente e não salva novamente sem alteração", () => {
   const item = { disciplina: "Direito Constitucional", tema: "Princípios fundamentais" };
   const context = makeContext([item]);

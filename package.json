@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260915-desempenho-areas-v424",
+  "version": "20260915-abertura-rapida-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
