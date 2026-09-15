@@ -79,10 +79,12 @@ test('V621 só aceita autorais com auditoria real da busca no QConcursos',()=>{
 });
 test('V621 mantém CEBRASPE contextual, nomes temáticos e publicação raiz/docs',()=>{
   const source=fs.readFileSync('question-training-factory-v621.js','utf8');
-  assert.match(source,/select\.disabled = !active/);
-  assert.match(source,/label\.hidden = !active/);
+  // V621.3 compactou o arquivo (sem espaços e com variáveis curtas); o teste
+  // confere o comportamento, não a formatação.
+  assert.match(source,/select\.disabled\s*=\s*!active/);
+  assert.match(source,/label\.hidden\s*=\s*!active/);
   assert.match(source,/TREINO_\$\{safeFilePart/);
-  assert.match(source,/\$\{context\.base\}_EXCLUSOES\.json/);
+  assert.match(source,/\$\{\w+\.base\}_EXCLUSOES\.json/);
   assert.equal(source,fs.readFileSync('docs/question-training-factory-v621.js','utf8'));
   const loader=fs.readFileSync('security-observability-v318.js','utf8');
   assert.match(loader,/question-training-factory-v621\.js\?v=20260914-treino-fabrica-pastas-qconcursos-v621/);
