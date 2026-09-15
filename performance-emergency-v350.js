@@ -302,6 +302,21 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V623 — Calendário de Metas: PDF, Excel e imagem com timbre do Aldus e o
+  // registro dos resumos e treinos elaborados na Fábrica.
+  function installGoalCalendarExportV623() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusGoalCalendarExportV623")) return;
+    const script = document.createElement("script");
+    script.id = "aldusGoalCalendarExportV623";
+    script.src = "goal-calendar-export-v623.js?v=20260915-calendario-exportacoes-v623";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V623] Falha ao carregar os arquivos novos do Calendário de Metas.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   function indexFor(list) {
     const cached = indexCache.get(list);
     if (cached
@@ -376,6 +391,7 @@
   installDailyPlanPendingPanelV429();
   installDailyPlanVisibleGoalsV441();
   installPerformanceHotPathsV622();
+  installGoalCalendarExportV623();
   if (install()) return;
 
   const startedAt = Date.now();

@@ -264,7 +264,7 @@ test("V622 fixa a impressão digital de cada função original do script.js", ()
 test("V622 é carregado pelo instalador emergencial e espelhado em docs", () => {
   const loader = read("performance-emergency-v350.js");
   assert.ok(loader.includes('script.src = "performance-hot-paths-v622.js?v=20260914-desempenho-areas-v622";'));
-  assert.match(loader, /\n  installPerformanceHotPathsV622\(\);\r?\n  if \(install\(\)\) return;/);
+  assert.match(loader, /\n  installPerformanceHotPathsV622\(\);\r?\n/);
   for (const file of ["performance-hot-paths-v622.js", "performance-emergency-v350.js", "question-training.js", "question-training-ui.js"]) {
     assert.deepEqual(fs.readFileSync(file), fs.readFileSync(`docs/${file}`), `${file} deve ser idêntico em docs`);
   }
