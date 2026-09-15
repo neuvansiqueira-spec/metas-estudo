@@ -113,6 +113,11 @@ test('V623.2 PDF tem timbre, contraste explícito, Fábrica e meta reconhecida p
   assert.ok(html.includes('Resumo do tema:'));
   assert.ok(html.includes('Treino de questões:'));
   assert.ok(html.includes('REALIZADO'));
+  assert.match(html,/size:A4 landscape/);
+  assert.match(html,/max-width:281mm/);
+  assert.ok(html.includes('Resumo do tema:'));
+  assert.ok(html.includes('Treino de questões:'));
+  assert.ok(html.includes('REALIZADO'));
   assert.ok(html.includes('Produto elaborado'));
   assert.ok(html.includes('STATUS NA FÁBRICA:'));
   assert.ok(html.includes('ARQUIVO WORD:'));
@@ -125,6 +130,8 @@ test('V623.2 imagem usa duas colunas e preserva largura 1600', () => {
   assert.match(svg,/viewBox="0 0 1600 \d+"/);
   assert.match(svg,/data-generated-brand="Aldus Metas Concurso"/);
   assert.ok(svg.includes('Produto elaborado'));
+  assert.ok(svg.includes('Resumo do tema: REALIZADO'));
+  assert.ok(svg.includes('Treino de questões: REALIZADO'));
   assert.ok(svg.includes('Resumo do tema: REALIZADO'));
   assert.ok(svg.includes('Treino de questões: REALIZADO'));
   assert.ok(svg.length>1000);
