@@ -3,7 +3,8 @@
   'use strict';
   const SCHEMA = 'aldus-question-training-v1';
   const text = v => String(v ?? '').trim();
-  const canon = v => text(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const canonCache = new Map();
+  const canon = v => {const t=text(v);let c=canonCache.get(t);if(c===undefined){c=t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();if(canonCache.size>=20000)canonCache.clear();canonCache.set(t,c);}return c;};
   const esc = v => text(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const id = () => globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const hash = value => {let n=2166136261; for(const c of value) n=Math.imul(n^c.charCodeAt(0),16777619);return (n>>>0).toString(16);};
@@ -122,18 +123,32 @@ Antes de entregar, validar contagem, exclusões, fonte e íntegra, gabarito QC n
     if(events.length)state.questionTrainingEvents=[...(state.questionTrainingEvents||[]),...events];
     return events;
   }
-  function stats(state,ctx){
+  // V622: a tela pede os contadores de dezenas de temas numa mesma passada. Sem
+  // o índice, cada tema varria o banco inteiro e todas as sessões (0,2–0,5 s por
+  // abertura do Plano do Dia ou da Fábrica). O índice vale só para essa passada.
+  function statsIndex(state){
+    const bank=state.questionBank||[],byTopic=new Map(),byQid=new Map();
+    const push=(map,key,i)=>{const list=map.get(key);if(list)list.push(i);else map.set(key,[i]);};
+    bank.forEach((q,i)=>{push(byTopic,topicKey(q),i);push(byQid,qid(q.id),i);});
+    const answered=new Set((state.questionBankSessions||[]).flatMap(s=>s.items||[]).filter(q=>['certo','errado'].includes(q.status)).map(q=>qid(q.id)));
+    return {state,bank,byTopic,byQid,answered};
+  }
+  function stats(state,ctx,index){
     const key=topicKey(ctx),events=(state.questionTrainingEvents||[]).filter(e=>e.topicKey===key);
     const importedIds=new Set(events.filter(e=>e.kind==='import').flatMap(e=>e.questionIds||[]));
-    const questions=[...new Map((state.questionBank||[]).filter(q=>topicKey(q)===key||importedIds.has(qid(q.id))).map(q=>[qid(q.id),q])).values()];
-    const answered=new Set((state.questionBankSessions||[]).flatMap(s=>s.items||[]).filter(q=>['certo','errado'].includes(q.status)).map(q=>qid(q.id)));
+    const indexed=Boolean(index&&index.state===state&&index.bank===state.questionBank);
+    const matched=indexed
+      ?[...new Set([...(index.byTopic.get(key)||[]),...[...importedIds].flatMap(id=>index.byQid.get(id)||[])])].sort((a,b)=>a-b).map(i=>index.bank[i])
+      :(state.questionBank||[]).filter(q=>topicKey(q)===key||importedIds.has(qid(q.id)));
+    const questions=[...new Map(matched.map(q=>[qid(q.id),q])).values()];
+    const answered=indexed?index.answered:new Set((state.questionBankSessions||[]).flatMap(s=>s.items||[]).filter(q=>['certo','errado'].includes(q.status)).map(q=>qid(q.id)));
     const done=questions.filter(q=>corrected(q)||answered.has(qid(q.id))).length;
     const waiting=questions.filter(q=>!corrected(q)&&!answered.has(qid(q.id))&&/^[A-E]$/.test(q.resposta_marcada||q.respostaMarcada||'')).length;
     return {prompts:events.filter(e=>e.kind==='prompt').length,imports:events.filter(e=>e.kind==='import').length,questions:questions.length,corrected:done,pending:questions.length-done-waiting,waiting,
       generated:questions.filter(q=>q.origem_tipo==='autoral').length};
   }
   function label(s){return `${s.prompts} prompt(s) · ${s.imports} importação(ões) · ${s.questions} questões únicas · ${s.corrected} corrigidas · ${s.pending} a responder${s.waiting?` · ${s.waiting} aguardando correção`:''}${s.generated?` · ${s.generated} autorais`:''}`;}
-  const api={SCHEMA,canon,qid,topic,topicKey,exclusions,normalizeConfig,prompt,validatePayload,importEvents,recordImport,stats,label,esc,explanation};
+  const api={SCHEMA,canon,qid,topic,topicKey,exclusions,normalizeConfig,prompt,validatePayload,importEvents,recordImport,stats,statsIndex,label,esc,explanation};
   globalThis.AldusQuestionTraining=api;
   if(typeof module!=='undefined')module.exports=api;
 })();

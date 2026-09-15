@@ -65,7 +65,7 @@
   function refresh(){
     const s=getState();if(!s)return;style();const factory=document.getElementById('factoryList');
     if(factory&&!document.getElementById('questionTrainingFactory')){const panel=document.createElement('section');panel.id='questionTrainingFactory';panel.className='qt-site-panel';panel.innerHTML='<h3>Treino de questões</h3><p>Configure a rodada, copie o prompt e guarde o treino completo ou apenas os resultados corrigidos.</p><button type="button" data-qt-open>CONFIGURAR TREINO</button>';factory.before(panel);}
-    const cache=new Map(),getStats=ctx=>{const key=api.topicKey(ctx);if(!cache.has(key))cache.set(key,api.stats(s,ctx));return cache.get(key);};
+    let statsIndex=null;const cache=new Map(),getStats=ctx=>{const key=api.topicKey(ctx);if(!cache.has(key))cache.set(key,api.stats(s,ctx,statsIndex||=api.statsIndex?.(s)));return cache.get(key);};
     const update=(card,ctx,container)=>{if(!ctx||!container)return;let box=container.querySelector('.qt-topic-status');if(!box){box=document.createElement('small');box.className='qt-topic-status';container.append(box);}const msg='Treinos: '+api.label(getStats(ctx));if(box.textContent!==msg)box.textContent=msg;
       if(card.matches('[data-factory-card]')&&!card.querySelector('[data-qt-factory]')){const b=document.createElement('button');b.type='button';b.dataset.qtFactory=card.dataset.factoryCard;b.textContent='Treino de questões';(card.querySelector('.factory-main-actions')||card).append(b);}};
     const agenda=s.factoryAgenda?.length?s.factoryAgenda:s.factoryItems||[];

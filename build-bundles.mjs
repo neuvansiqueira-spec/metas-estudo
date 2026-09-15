@@ -433,7 +433,7 @@ for (const filename of [
   // da sincronia do build e divergia a cada alteração feita só na raiz.
   "daily-summary-time-format-v243.js",
   "study-time-ledger.js", "dashboard-today-time-sync-v253.js", "daily-net-hours-card-v433.js", "daily-plan-preview-v462.js",
-  "question-training.js", "question-training-card.js", "question-training-ui.js", "daily-plan-question-import-v451.js", "performance-emergency-v350.js",
+  "question-training.js", "question-training-card.js", "question-training-ui.js", "daily-plan-question-import-v451.js", "performance-emergency-v350.js", "performance-hot-paths-v622.js",
   "exam-tracker-core.js", "exam-tracker-card.js", "exam-tracker-factory.js",
   "duplicate-diagnostics-v260.js", "duplicate-diagnostics-v260.css", "duplicate-diagnostics-loader-v269.js",
   "duplicate-diagnostics-search-v271.css", "duplicate-diagnostics-search-v272.js", "duplicate-diagnostics-map-v273.js", "duplicate-diagnostics-actions-v274.js",

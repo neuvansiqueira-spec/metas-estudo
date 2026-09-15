@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260913-fechar-configuracao-v424",
+  "version": "20260915-desempenho-areas-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

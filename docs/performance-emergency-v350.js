@@ -287,6 +287,21 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V622 — Plano do Dia, Fábrica, Calendário e troca de área: índices no lugar
+  // de varreduras repetidas e troca de área sem esperar o mouse parar.
+  function installPerformanceHotPathsV622() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusPerformanceHotPathsV622")) return;
+    const script = document.createElement("script");
+    script.id = "aldusPerformanceHotPathsV622";
+    script.src = "performance-hot-paths-v622.js?v=20260914-desempenho-areas-v622";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V622] Falha ao carregar a otimização das áreas mais usadas.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   function indexFor(list) {
     const cached = indexCache.get(list);
     if (cached
@@ -360,6 +375,7 @@
   installDailyGoalStatusColorV443();
   installDailyPlanPendingPanelV429();
   installDailyPlanVisibleGoalsV441();
+  installPerformanceHotPathsV622();
   if (install()) return;
 
   const startedAt = Date.now();
