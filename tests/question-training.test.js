@@ -66,9 +66,32 @@ test('V621 herda a pasta do tema e nomeia a rodada por disciplina e assunto',()=
   assert.equal(p.metadata.trainingRound.destinationFolder,p.destinationFolder);
   assert.equal(p.outputBaseName,'TREINO_DIREITO PENAL_PRINCÍPIOS DO DIREITO PENAL');
   assert.match(p.instruction,/PASTA DE DESTINO DO TEMA\/DISCIPLINA NO GOOGLE DRIVE/);
-  assert.match(p.instruction,/salve DIRETAMENTE os dois arquivos nessa pasta/);
+  // Desde a V621.4 o arquivamento no Drive fica no PROMPT 2 (PDF → HTML).
+  assert.match(p.htmlInstruction,/salve DIRETAMENTE os arquivos nela/);
   assert.match(p.instruction,/PORTÃO QCONCURSOS/);
   assert.match(p.instruction,/Falta de acesso|Falha de acesso/);
+});
+test('V621.5 prende os prompts ao formulário do tema: outro tema nunca herda a rodada anterior',()=>{
+  const ctx=trainingV621(),v=ctx.__ALDUS_QUESTION_TRAINING_FACTORY_V621__;
+  const form=(discipline,theme)=>({elements:{discipline:{value:discipline},theme:{value:theme}}});
+  const transito=form('DIREITO PENAL','Crimes de Trânsito'),controle=form('DIREITO CONSTITUCIONAL','Controle de Constitucionalidade');
+  const gerado=v.rememberGenerated(transito,ctx.AldusQuestionTraining.prompt({discipline:'DIREITO PENAL',theme:'Crimes de Trânsito',count:5},{},'rodada-transito'));
+  assert.equal(v.generatedFor(transito),gerado);
+  assert.equal(v.generatedFor(controle),null);
+  ctx.AldusQuestionTraining.prompt({discipline:'DIREITO CONSTITUCIONAL',theme:'Controle de Constitucionalidade',count:5},{},'rodada-fora-do-formulario');
+  assert.equal(v.generatedFor(transito),gerado);
+  transito.elements.theme.value='Crimes Hediondos';
+  assert.equal(v.generatedFor(transito),null);
+});
+test('V621.5 exige no PROMPT 2 base jurídica concreta em ordem de hierarquia',()=>{
+  const ctx=trainingV621();
+  const h=ctx.AldusQuestionTraining.prompt({discipline:'DIREITO PENAL',theme:'Crimes de Trânsito',count:5},{},'rodada-base').htmlInstruction;
+  assert.match(h,/# BASE JURÍDICA CONCRETA DE CADA CONCLUSÃO/);
+  const ordem=['Dispositivo legal/constitucional VIGENTE','Súmula (vinculante ou não), tema de repercussão geral ou recurso repetitivo','Jurisprudência do STF/STJ','Doutrina: só quando realmente necessária'].map(t=>h.indexOf(t));
+  assert.ok(ordem.every(i=>i>0),'todos os níveis presentes');
+  assert.deepEqual([...ordem].sort((a,b)=>a-b),ordem);
+  assert.match(h,/referência não confirmada/);
+  assert.doesNotMatch(ctx.AldusQuestionTraining.prompt({discipline:'DIREITO PENAL',theme:'Crimes de Trânsito'},{},'r').triageInstruction,/BASE JURÍDICA CONCRETA/);
 });
 test('V621 só aceita autorais com auditoria real da busca no QConcursos',()=>{
   const ctx=trainingV621(),validate=ctx.__ALDUS_QUESTION_TRAINING_FACTORY_V621__.validateSearchAudit;
