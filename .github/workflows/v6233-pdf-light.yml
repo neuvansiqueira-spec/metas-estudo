@@ -1,0 +1,125 @@
+name: Aplicar otimização V623.3 do PDF
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  optimize:
+    if: ${{ !contains(github.event.head_commit.message, '[v6233-applied]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Aplicar otimização localizada do PDF
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          targets = [Path('goal-calendar-export-v623.js'), Path('docs/goal-calendar-export-v623.js')]
+          for path in targets:
+              s = path.read_text(encoding='utf-8')
+              old = s
+              s = s.replace('/* V623.2 — Calendário de Metas: PDF paisagem, status explícito de resumo/treino e exportações legíveis. */',
+                            '/* V623.3 — Calendário de Metas: PDF paisagem mais leve, status explícito e exportações legíveis. */')
+              s = s.replace('const VERSION = "20260915-calendario-exportacoes-v623-2";',
+                            'const VERSION = "20260915-calendario-exportacoes-v623-3";')
+
+              # Paginação mais leve: mantém A4 paisagem, mas evita cálculo de total de páginas.
+              s, n = re.subn(
+                  r'@page\{size:A4 landscape;margin:([^;]+);@bottom-right\{content:"Página " counter\(page\) " de " counter\(pages\);font:7\.5pt Arial;color:#475569\}\}',
+                  r'@page{size:A4 landscape;margin:\1;@bottom-right{content:"Página " counter(page);font:7.5pt Arial;color:#475569}}',
+                  s,
+                  count=1,
+              )
+              if n != 1:
+                  raise SystemExit(f'{path}: não localizei o contador total de páginas')
+
+              # Remove efeitos gráficos caros no PDF, preservando as cores e a estrutura.
+              s = s.replace('box-shadow:0 .8mm 0 ${COLORS.gold}', 'box-shadow:none')
+              s = s.replace('background:linear-gradient(120deg,${COLORS.navy},#0B3A7A 62%,${COLORS.blue})', 'background:${COLORS.navy}')
+
+              # Timbre leve: texto vetorial simples em vez de SVG repetido em toda página.
+              s, n = re.subn(
+                  r'const letterheadHtml = \(r\) => `<div class="acv-letterhead"><div class="acv-logo">\$\{logoSvg\(\)\}</div><div class="acv-doc"><strong>Calendário de metas</strong><span>Referência \$\{esc\(dateBR\(r\.referenceDate\)\)\} · \$\{esc\(r\.scopeLabel\)\}</span></div></div>`;',
+                  'const letterheadHtml = (r) => `<div class="acv-letterhead"><div class="acv-logo"><strong>ALDUS</strong><span>METAS CONCURSO</span></div><div class="acv-doc"><strong>Calendário de metas</strong><span>Referência ${esc(dateBR(r.referenceDate))} · ${esc(r.scopeLabel)}</span></div></div>`;',
+                  s,
+                  count=1,
+              )
+              if n != 1:
+                  raise SystemExit(f'{path}: não localizei o timbre do PDF')
+
+              s, n = re.subn(
+                  r'\.aldus-cal-v623 \.acv-logo\{width:38mm;flex:0 0 38mm;line-height:0\}\.aldus-cal-v623 \.acv-logo svg\{display:block;width:100%;height:auto\}',
+                  '.aldus-cal-v623 .acv-logo{width:38mm;flex:0 0 38mm;line-height:1.05;color:${COLORS.navy}!important}.aldus-cal-v623 .acv-logo strong{display:block;font:800 15pt Arial,Helvetica,sans-serif;letter-spacing:.12em;color:${COLORS.navy}!important}.aldus-cal-v623 .acv-logo span{display:block;margin-top:.6mm;font:700 6.5pt Arial,Helvetica,sans-serif;letter-spacing:.20em;color:${COLORS.gold}!important}',
+                  s,
+                  count=1,
+              )
+              if n != 1:
+                  raise SystemExit(f'{path}: não localizei o CSS do logo')
+
+              # Reduz recalculação de paginação em linhas/dias; mantém cada registro da Fábrica íntegro.
+              s = s.replace('.aldus-cal-v623 table.acv-goals tr{break-inside:avoid}', '.aldus-cal-v623 table.acv-goals tr{break-inside:auto;page-break-inside:auto}')
+              s = s.replace('.aldus-cal-v623 .acv-day{margin:0 0 2.6mm;border:.25mm solid ${COLORS.line};border-radius:2mm;overflow:hidden;break-inside:avoid}',
+                            '.aldus-cal-v623 .acv-day{margin:0 0 2.6mm;border:.25mm solid ${COLORS.line};border-radius:1mm;overflow:hidden;break-inside:auto;page-break-inside:auto}')
+
+              # Acrescenta um perfil de impressão simples, sem sombras/filtros/text-shadow repetidos.
+              needle = '.aldus-cal-v623 .acv-footer{margin-top:3mm;padding-top:2mm;border-top:.25mm solid ${COLORS.line};color:${COLORS.muted}!important;font-size:7.3pt;display:flex;justify-content:space-between}`; }'
+              replacement = '.aldus-cal-v623 .acv-footer{margin-top:3mm;padding-top:2mm;border-top:.25mm solid ${COLORS.line};color:${COLORS.muted}!important;font-size:7.3pt;display:flex;justify-content:space-between}.aldus-cal-v623 .acv-cover,.aldus-cal-v623 .acv-section-title,.aldus-cal-v623 .acv-kpi,.aldus-cal-v623 .acv-day,.aldus-cal-v623 .acv-record,.aldus-cal-v623 .acv-pill{box-shadow:none!important;filter:none!important;text-shadow:none!important}.aldus-cal-v623 .acv-cover,.aldus-cal-v623 .acv-section-title,.aldus-cal-v623 .acv-kpi,.aldus-cal-v623 .acv-record{border-radius:1mm!important}`; }'
+              if needle not in s:
+                  raise SystemExit(f'{path}: não localizei o final do CSS de impressão')
+              s = s.replace(needle, replacement, 1)
+
+              if s == old:
+                  raise SystemExit(f'{path}: nenhuma alteração aplicada')
+              path.write_text(s, encoding='utf-8')
+
+          # Mantém espelho idêntico.
+          Path('docs/goal-calendar-export-v623.js').write_text(Path('goal-calendar-export-v623.js').read_text(encoding='utf-8'), encoding='utf-8')
+
+          # Cache-bust da cadeia ativa.
+          for p in [Path('performance-emergency-v350.js'), Path('docs/performance-emergency-v350.js')]:
+              t = p.read_text(encoding='utf-8')
+              old = 'goal-calendar-export-v623.js?v=20260915-calendario-exportacoes-v623-2'
+              new = 'goal-calendar-export-v623.js?v=20260915-calendario-exportacoes-v623-3'
+              if old not in t:
+                  raise SystemExit(f'{p}: cache-bust V623.2 não encontrado')
+              p.write_text(t.replace(old, new, 1), encoding='utf-8')
+
+          # Atualiza testes e acrescenta regressões de leveza.
+          tp = Path('tests/v623-calendar-export.test.js')
+          t = tp.read_text(encoding='utf-8').replace('V623.2', 'V623.3')
+          t = t.replace('20260915-calendario-exportacoes-v623-2', '20260915-calendario-exportacoes-v623-3')
+          marker = "  assert.match(html,/counter\\(page\\)/);"
+          if marker not in t:
+              raise SystemExit('teste PDF: marcador do contador não encontrado')
+          t = t.replace(marker, marker + "\n  assert.doesNotMatch(html,/counter\\(pages\\)/);\n  assert.doesNotMatch(html,/linear-gradient/);\n  assert.ok(html.includes('ALDUS') && html.includes('METAS CONCURSO'));", 1)
+          tp.write_text(t, encoding='utf-8')
+          PY
+
+      - name: Validar JavaScript e regressões
+        run: |
+          node --check goal-calendar-export-v623.js
+          node --check docs/goal-calendar-export-v623.js
+          node --test tests/v623-calendar-export.test.js
+          cmp -s goal-calendar-export-v623.js docs/goal-calendar-export-v623.js
+          cmp -s performance-emergency-v350.js docs/performance-emergency-v350.js
+          git diff --check
+
+      - name: Publicar otimização
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add goal-calendar-export-v623.js docs/goal-calendar-export-v623.js performance-emergency-v350.js docs/performance-emergency-v350.js tests/v623-calendar-export.test.js
+          git commit -m "perf(calendar): deixar PDF mais leve [v6233-applied]"
+          git push
