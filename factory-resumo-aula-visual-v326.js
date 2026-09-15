@@ -305,7 +305,35 @@ SE HOUVER ERRO EXCLUSIVAMENTE VISUAL, CORRIJA SOMENTE A FORMATAÇÃO. NÃO ALTER
     return true;
   }
 
+  // V623: a V327 (política de 11/09/2026) reescreve as mesmas seções do
+  // RESUMO/AULA com o texto novo e é ela que gera o prompt usado. As duas
+  // desfaziam uma à outra a cada abertura e a cada entrada na Fábrica, e cada
+  // troca salvava os dados. Com a V327 na página, a V326 não mexe mais nesse
+  // prompt; sem ela, tudo segue como antes.
+  function canonicalPolicyOwnsResumoAula() {
+    try {
+      if (globalThis.__aldusFactoryResumoAulaCanonicalV327) return true;
+      return typeof document !== "undefined"
+        && typeof document.getElementById === "function"
+        && Boolean(document.getElementById("aldusFactoryResumoAulaCanonicalV327"));
+    } catch (_error) {
+      return false;
+    }
+  }
+
   function applyFactoryResumoAulaVisualPolicy() {
+    if (canonicalPolicyOwnsResumoAula()) {
+      globalThis.__aldusFactoryResumoAulaVisualV326 = Object.freeze({
+        version: VERSION,
+        migrationId: MIGRATION_ID,
+        applied: false,
+        changed: false,
+        delegatedTo: "factory-resumo-aula-canonical-v327",
+        patchPrompt,
+        updatedAt: new Date().toISOString()
+      });
+      return false;
+    }
     const targetState = currentState();
     let changed = false;
 

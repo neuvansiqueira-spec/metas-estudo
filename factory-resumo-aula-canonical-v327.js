@@ -628,6 +628,10 @@ NÃO ENTREGUE APENAS O CONTEÚDO NO CHAT, SALVO PEDIDO EXPRESSO.`;
 
   function applyCanonicalPolicy({ persist = true } = {}) {
     let changed = false;
+    // V623: salva só quando o estado mudou. Ajustar o padrão em memória ou
+    // instalar as guardas não altera os dados, mas fazia a V327 salvar a cada
+    // abertura, com a sincronização pós-salvamento a reboque.
+    let stateChanged = false;
     const defaults = currentDefaults();
     if (defaults) {
       const current = String(defaults.resumoAula || "");
@@ -647,11 +651,13 @@ NÃO ENTREGUE APENAS O CONTEÚDO NO CHAT, SALVO PEDIDO EXPRESSO.`;
         rememberContentBackup(targetState, "resumoAula", current);
         targetState.factoryPromptLibrary.resumoAula = canonical;
         changed = true;
+        stateChanged = true;
       }
       targetState.migrations ||= {};
       if (canonical && !targetState.migrations[MIGRATION_ID]) {
         targetState.migrations[MIGRATION_ID] = new Date().toISOString();
         changed = true;
+        stateChanged = true;
       }
     }
 
@@ -667,19 +673,21 @@ NÃO ENTREGUE APENAS O CONTEÚDO NO CHAT, SALVO PEDIDO EXPRESSO.`;
           rememberContentBackup(targetState, type, current);
           targetState.factoryPromptLibrary[type] = patched;
           changed = true;
+          stateChanged = true;
         }
       }
     }
     if (targetState && !targetState.migrations[CONTENT_MIGRATION_ID]) {
       targetState.migrations[CONTENT_MIGRATION_ID] = new Date().toISOString();
       changed = true;
+      stateChanged = true;
     }
 
     const normalizerInstalled = installNormalizerGuard();
     const generatorInstalled = installGeneratorGuard();
     changed = normalizerInstalled || generatorInstalled || changed;
 
-    if (changed && persist && targetState) persistIfPossible();
+    if (stateChanged && persist && targetState) persistIfPossible();
 
     const prompt = targetState?.factoryPromptLibrary?.resumoAula || defaults?.resumoAula || sourceBasePrompt();
     globalThis.__aldusFactoryResumoAulaCanonicalV327 = Object.freeze({

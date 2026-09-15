@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260915-abertura-rapida-v424";
+  const VERSION = "20260915-prompt-sem-disputa-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
