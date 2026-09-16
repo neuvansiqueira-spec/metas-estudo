@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260915-treino-triagem-assunto-qc-v424";
+  const VERSION = "20260916-calendario-real-pdf-leve-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

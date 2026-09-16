@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260915-treino-triagem-assunto-qc-v424",
+  "version": "20260916-calendario-real-pdf-leve-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
