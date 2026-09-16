@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260916-calendario-simples-v424";
+  const VERSION = "20260916-simulado-pcpr-fora-biblioteca-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

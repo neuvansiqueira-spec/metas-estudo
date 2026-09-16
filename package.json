@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260916-calendario-simples-v424",
+  "version": "20260916-simulado-pcpr-fora-biblioteca-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
