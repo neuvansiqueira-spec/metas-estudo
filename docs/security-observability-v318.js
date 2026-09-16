@@ -325,7 +325,7 @@
     if (document.getElementById("aldusFactorySimuladoDiscursivoV619")) return;
     const script = document.createElement("script");
     script.id = "aldusFactorySimuladoDiscursivoV619";
-    script.src = "factory-simulado-discursivo-v619.js?v=20260913-simulado-discursivo-delegado-v620";
+    script.src = "factory-simulado-discursivo-v619.js?v=20260916-simulado-pcpr-fora-biblioteca-v624";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V619] Falha ao carregar o Simulado de Peças e Discursivas.");

@@ -7,8 +7,10 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260913-simulado-discursivo-delegado-v620";
+  const VERSION = "20260916-simulado-pcpr-fora-biblioteca-v624";
   const SECTION_ID = "factorySimuladoDiscursivoV619";
+  // V624 — o painel fica na Fábrica, logo depois do painel "Biblioteca de prompts" (factory-simple-v163), e não dentro dele.
+  const LIBRARY_PANEL_ID = "factoryPromptPanelV163";
   const API_MARKER = "__ALDUS_FACTORY_SIMULADO_DISCURSIVO_V619__";
 
   const SORTEIO = "Sorteio pela recorrência da banca";
@@ -347,8 +349,606 @@ ${itens.join("\n")}
 - Peça: se eu tiver elaborado peça diversa da cabível, atribua conceito 0 no quesito de identificação e estrutura e pontue os demais quesitos somente no que coincidir com o padrão.`;
   }
 
+  // V624 — prompt da PC-PR 2026 com o texto que ele definiu; só os campos entre colchetes vêm do formulário.
+  const CONFIGURACAO_PCPR = { completa: "PROVA COMPLETA", peca: "SOMENTE PEÇA", questoes: "SOMENTE QUESTÕES" };
+
+  function buildPromptPcpr26({ composicao, peca, tema }, date) {
+    const data = formatDate(date);
+    const pecaSelecionada = composicao === "questoes" ? "não se aplica (somente questões)" : PECAS[peca];
+    const linhaTema = tema ? `\nTema: ${tema}` : "";
+    return `SIMULADO DISCURSIVO DE DELEGADO DE POLÍCIA — PADRÃO FGV / PC-PR 2026
+1. IDENTIFICAÇÃO DO MODELO
+Concurso de referência: Polícia Civil do Estado do Paraná — Delegado de Polícia
+Banca: Fundação Getulio Vargas — FGV
+Edital de referência: Edital nº 01/2026 da PC-PR, especialmente subitens 10.5 a 10.13
+Data de referência do simulado: ${data}
+Configuração: ${CONFIGURACAO_PCPR[composicao]}
+Peça selecionada: ${pecaSelecionada}${linhaTema}
+Este prompt possui duas etapas independentes e sucessivas:
+
+1. ELABORAÇÃO DO SIMULADO E DO PDF;
+2. CORREÇÃO DA RESPOSTA MANUSCRITA.
+
+Execute apenas uma etapa por vez.
+2. REGRA DE FIDELIDADE AO EDITAL
+O objetivo é reproduzir com máxima fidelidade possível o modelo da prova discursiva para Delegado de Polícia da PC-PR 2026, sem inventar exigências inexistentes no edital.
+O modelo integral da Prova Discursiva possui:
+
+* 100 pontos no total;
+* 4 questões discursivas;
+* limite de 20 linhas por questão;
+* valor máximo de 15 pontos por questão;
+* subtotal máximo de 60 pontos nas questões;
+* 1 peça prática-profissional;
+* limite máximo de 60 linhas para a peça;
+* valor máximo de 40 pontos para a peça.
+
+As quatro questões são formuladas a partir das seguintes áreas:
+
+* Direito Penal;
+* Direito Processual Penal;
+* Legislação Penal e Processual Penal Extravagantes;
+* Direito Constitucional.
+
+A peça prática-profissional é descrita pelo edital como referente a medida cautelar usualmente elaborada por Delegado de Polícia, que “poderá consistir em”:
+
+* Representação por Prisão Temporária;
+* Representação por Prisão Preventiva;
+* Busca e Apreensão;
+* Interceptação Telefônica;
+* Interceptação Telemática;
+* Interceptação Ambiental;
+* Quebra de Sigilo de Dados Financeiro;
+* Quebra de Sigilo Bancário;
+* Quebra de Sigilo Fiscal;
+* Quebra de Sigilo Telefônico;
+* Quebra de Sigilo Telemático.
+
+2.1. INTERPRETAÇÃO DA ENUMERAÇÃO DO ITEM 10.5
+Não trate automaticamente essa enumeração como rol taxativo, pois o edital emprega a expressão “poderá consistir em”.
+Ao mesmo tempo, não afirme que qualquer outra peça está expressamente prevista no item 10.5.
+Adote a seguinte regra:
+SORTEIO AUTOMÁTICO
+Quando a opção escolhida for “Sorteio pela recorrência da banca” ou equivalente, selecione preferencialmente uma das modalidades expressamente nominadas no item 10.5.
+PEÇA ESCOLHIDA PELO USUÁRIO
+Se o usuário escolher expressamente peça policial diversa das modalidades nominadas no item 10.5 — por exemplo:
+
+* Auto de Prisão em Flagrante;
+* despacho de ratificação do flagrante;
+* despacho de não ratificação;
+* relatório final de inquérito;
+* indiciamento;
+* portaria de instauração;
+* arbitramento de fiança;
+* representação por outra cautelar;
+* outra peça inerente à atividade de polícia judiciária;
+
+a peça poderá ser utilizada para treinamento.
+Nesse caso, internamente considere o exercício como:
+“treino ampliado de peça de Delegado no padrão FGV, utilizando como referência estrutural a PC-PR 2026”.
+Não insira essa observação no enunciado entregue ao candidato, salvo se ela for necessária para evitar uma informação falsa.
+Nunca afirme que peça não mencionada no item 10.5 está expressamente prevista pelo edital.
+Nunca afirme, sem fundamento adicional, que ela está proibida pelo edital.
+3. ETAPA 1 — ELABORAÇÃO DO SIMULADO
+Atue como examinador da FGV responsável pela elaboração de prova discursiva para Delegado de Polícia.
+Crie prova INÉDITA, juridicamente consistente, atualizada até a data de referência indicada e compatível com o grau de profundidade exigido de candidato ao cargo de Delegado de Polícia.
+REGRA ABSOLUTA DE SIGILO DA SOLUÇÃO
+Durante a Etapa 1, não apresente:
+
+* gabarito;
+* padrão de resposta;
+* espelho de correção;
+* solução;
+* nome da peça, quando a identificação da peça fizer parte da avaliação;
+* dicas;
+* comentários explicativos;
+* jurisprudência indicativa da resposta correta;
+* artigos de lei apresentados de maneira que revelem gratuitamente a solução;
+* lista de teses esperadas;
+* providências que o candidato deveria adotar.
+
+A prova deve ser entregue como se estivesse sendo aplicada naquele momento.
+4. PADRÃO DE ELABORAÇÃO DA PEÇA
+A situação-problema deve possuir densidade suficiente para exigir análise simultânea de aspectos de:
+
+* Direito Penal;
+* Direito Processual Penal;
+* Legislação Penal e Processual Penal Especial, quando pertinente;
+* Direito Constitucional, quando pertinente;
+* atribuições da autoridade policial;
+* legalidade de diligências;
+* validade de elementos informativos e probatórios;
+* situação flagrancial, quando pertinente;
+* medidas cautelares;
+* direitos e garantias fundamentais;
+* providências investigativas;
+* teses defensivas plausíveis;
+* competência;
+* legitimidade;
+* requisitos legais da medida;
+* contemporaneidade, necessidade, adequação e proporcionalidade, quando aplicáveis;
+* jurisprudência consolidada dos tribunais superiores pertinente à solução.
+
+Inclua fatos suficientes para permitir uma resposta juridicamente determinada.
+Evite:
+
+* fatos contraditórios;
+* omissões que tornem impossível escolher a solução;
+* pegadinhas baseadas exclusivamente em ambiguidade redacional;
+* indicação explícita do nome da peça correta;
+* cobrança de conhecimento fora do programa sem relação razoável com a atividade policial.
+
+Pode haver informações secundárias ou fatos destinados a testar a capacidade de selecionar juridicamente o que é relevante.
+5. PADRÃO FGV DE ENUNCIADO
+A narrativa deverá ser concreta, cronológica e suficientemente detalhada.
+Ao final, formule comando semelhante a:
+“À luz do caso concreto, apresente, na qualidade de Delegado de Polícia, a peça jurídica cabível. Enfrente todos os pontos de direito material e de direito processual, explícita e implicitamente abordados no enunciado, indicando as providências juridicamente pertinentes.”
+Não revele o nome da peça na pergunta quando a sua identificação fizer parte da avaliação.
+Ao final, informe:
+Valor: 40,00 pontos.
+Limite máximo: 60 linhas.
+Não estabeleça limite mínimo de linhas para a peça, pois o item 10.5 estabelece, para ela, limite máximo de 60 linhas.
+6. REGRAS OFICIAIS DE REALIZAÇÃO A SEREM REPRODUZIDAS
+A prova deverá informar que a resposta deve ser:
+
+* manuscrita de forma legível;
+* escrita com caneta esferográfica de tinta azul ou preta;
+* com corpo da caneta fabricado em material transparente;
+* transcrita obrigatoriamente para a Folha de Textos Definitivos.
+
+Somente o texto transcrito para a Folha de Textos Definitivos será considerado válido para correção.
+Os espaços destinados a rascunho são facultativos e não serão considerados para avaliação.
+Informe também que:
+
+* não haverá substituição da Folha de Textos Definitivos por erro do candidato;
+* a transcrição é de inteira responsabilidade do candidato;
+* a Folha de Textos Definitivos não pode ser assinada ou rubricada;
+* não pode conter qualquer marca que identifique o candidato;
+* marca identificadora poderá gerar eliminação, conforme o edital.
+
+7. NOTA ZERO
+Reproduza de maneira fiel as hipóteses previstas no edital.
+Poderá ser atribuída nota zero à questão ou à peça, conforme aplicável, em casos como:
+
+* fuga ao tema;
+* apresentação em forma diversa da exigida;
+* desenhos;
+* números usados de modo incompatível com a resposta textual;
+* versos;
+* espaçamento excessivo entre letras, palavras ou parágrafos;
+* códigos alheios à língua portuguesa escrita;
+* utilização de idioma diverso do português;
+* resposta escrita a lápis;
+* resposta em branco;
+* letra ilegível;
+* descumprimento de limite mínimo ou máximo quando o respectivo item possuir tais limites.
+
+IMPORTANTE PARA A PEÇA PC-PR
+O edital estabelece máximo de 60 linhas para a peça.
+Não invente um número mínimo de linhas para a peça.
+Portanto, não considere automaticamente uma peça curta como nota zero apenas por possuir poucas linhas.
+Ela poderá naturalmente perder conteúdo e pontuação se for insuficiente, mas a penalidade deverá decorrer da qualidade e da incompletude da resposta, e não de um limite mínimo inexistente.
+8. CONSULTA DURANTE A PROVA
+Para o cargo de Delegado de Polícia, reproduza corretamente o regime de consulta previsto no edital.
+É permitida consulta à legislação editada em livro.
+O material não poderá conter:
+
+* anotações;
+* comentários;
+* apontamentos;
+* jurisprudência;
+* súmulas;
+* orientações jurisprudenciais;
+* enunciados dos tribunais.
+
+São admitidos:
+
+* marca-texto;
+* sublinhados.
+
+Também são vedados materiais que contenham:
+
+* remissão interpretativa que extrapole a legislação seca;
+* índice integrado com nomenclaturas doutrinárias;
+* índice de critérios jurisprudenciais;
+* direcionamento por conteúdo sistematizado;
+* esquema de peças processuais ou procedimentais;
+* roteiro para elaboração de peças;
+* anotações jurisprudenciais sobre temas sensíveis;
+* trechos de decisões.
+
+Não simplifique essa regra para a frase imprecisa:
+“é permitida apenas legislação seca sem qualquer marcação”.
+Isso seria incorreto, porque o edital admite expressamente marca-texto e sublinhados.
+9. CRITÉRIOS DE CORREÇÃO
+O item 10.7 prevê, para as questões da Prova Discursiva:
+a) compreensão/conhecimento do conteúdo proposto e propriedade da resposta;
+b) argumentação apropriada, relevante e suficiente em relação à questão proposta;
+c) fundamentação legal da resposta;
+d) uso correto do vernáculo.
+O item 10.8 prevê prejuízo proporcional da nota quando houver abordagem:
+
+* tangencial;
+* parcial;
+* diluída em divagações;
+* baseada em colagem de textos ou de questões apresentadas nas provas.
+
+CUIDADO METODOLÓGICO
+Não diga que o edital fornece um espelho detalhado e específico da peça antes da prova.
+Ele não fornece previamente a distribuição interna dos 40 pontos entre teses, fundamentos e pedidos.
+Para o simulado, crie um espelho técnico próprio, inspirado:
+
+* nos critérios previstos no edital;
+* na estrutura jurídica necessária à peça;
+* na jurisprudência e legislação vigentes;
+* no padrão histórico de correção da FGV para provas discursivas de Delegado.
+
+Esse espelho serve exclusivamente para o treinamento.
+Não o apresente como se fosse o futuro espelho oficial da FGV.
+10. NOTA DE APROVAÇÃO
+No modelo integral, a Prova Discursiva é avaliada de 0 a 100 pontos.
+O edital considera aprovado nessa fase o candidato que obtiver, cumulativamente:
+
+* pontuação mínima de 50%, isto é, 50 pontos;
+* e classificação dentro dos limites estabelecidos pelo edital, observadas as regras próprias de convocação.
+
+IMPORTANTE
+Não invente nota mínima autônoma para a peça.
+Não diga, por exemplo:
+
+* “é necessário obter 20/40 na peça”;
+* “é necessário obter 25/40 na peça”;
+
+a menos que exista regra oficial superveniente que estabeleça isso.
+Em um simulado configurado como somente peça, atribua nota de 0 a 40, mas não transforme 20/40 ou qualquer outro número em “nota de aprovação oficial da PC-PR”.
+11. CADERNO DE PROVA
+Além de apresentar a prova na conversa, gere UM ÚNICO ARQUIVO PDF, pronto para impressão.
+O PDF deve conter:
+
+1. capa;
+2. instruções gerais;
+3. enunciado integral;
+4. instruções para preenchimento;
+5. folhas de resposta.
+
+Não gere somente as folhas pautadas.
+O arquivo deverá ser autossuficiente: o candidato precisa conseguir realizar o simulado impresso sem consultar novamente a conversa.
+12. CAPA DO PDF
+A primeira página deverá apresentar:
+ALDUS META
+SIMULADO DISCURSIVO — DELEGADO DE POLÍCIA
+FGV — PC-PR 2026
+PEÇA PRÁTICO-PROFISSIONAL
+Data de referência: ${data}
+Se o exercício corresponder a peça não expressamente nominada no item 10.5, não coloque qualquer advertência na capa que revele a natureza ou o nome da peça.
+Nunca revele a solução.
+13. TEXTO DO CADERNO DE PROVA
+Insira no PDF, antes do enunciado:
+CADERNO DE PROVA
+Este simulado reproduz exclusivamente a peça prática-profissional no padrão de treinamento indicado.
+A peça vale 40,00 pontos e deverá ser respondida em até 60 linhas.
+No modelo integral da PC-PR 2026, a Prova Discursiva possui valor total de 100,00 pontos, sendo composta por quatro questões discursivas de até 20 linhas, valendo 15 pontos cada, e uma peça prática-profissional de até 60 linhas, valendo 40 pontos.
+A prova integral possui duração prevista de 5 horas.
+A resposta deverá ser manuscrita de forma legível, utilizando caneta esferográfica de tinta azul ou preta, fabricada em material transparente.
+Somente o texto lançado na Folha de Textos Definitivos será considerado para avaliação.
+A Folha de Textos Definitivos não poderá ser assinada, rubricada ou conter marca que permita identificar o candidato.
+Os espaços destinados a rascunho não serão avaliados.
+A abordagem tangencial, parcial ou excessivamente diluída em divagações poderá prejudicar proporcionalmente a pontuação.
+Aplicam-se as hipóteses de nota zero previstas no edital, inclusive fuga ao tema, resposta em forma incompatível com a exigida, resposta a lápis, resposta em branco, letra ilegível e desrespeito aos limites de extensão aplicáveis.
+Para o cargo de Delegado de Polícia, é permitida a consulta à legislação editada em livro, observadas as restrições do edital. São admitidos marca-texto e sublinhados, permanecendo proibidos anotações, comentários, apontamentos, jurisprudência, súmulas, orientações jurisprudenciais, enunciados, roteiros de peças e demais materiais vedados pelos subitens 10.12 a 10.12.2.
+14. PEÇA PRÁTICO-PROFISSIONAL NO PDF
+Depois das instruções, inserir:
+PEÇA PRÁTICO-PROFISSIONAL
+Valor: 40,00 pontos | Máximo: 60 linhas
+Reproduza integralmente o enunciado elaborado.
+Não:
+
+* resuma;
+* suprima fatos;
+* remeta o candidato à conversa;
+* revele o nome da peça;
+* apresente gabarito;
+* insira comentários;
+* apresente fundamentos esperados.
+
+Ao final, reproduza integralmente o comando.
+Depois:
+Valor: 40,00 pontos.
+Limite máximo: 60 linhas.
+15. INSTRUÇÕES PARA RESPONDER
+Após o enunciado, inserir:
+INSTRUÇÕES PARA RESPONDER
+Utilize exclusivamente as folhas de resposta apresentadas a seguir.
+Redija sua peça respeitando o limite máximo de 60 linhas.
+Caso esteja realizando o simulado impresso:
+
+* utilize caneta azul ou preta;
+* prefira caneta de corpo transparente, reproduzindo as condições do edital;
+* não assine;
+* não rubrique;
+* não faça qualquer marca destinada à identificação.
+
+Para fins deste simulado do Aldus, as 60 linhas serão divididas em:
+
+* linhas 1 a 30 na primeira folha;
+* linhas 31 a 60 na segunda folha.
+
+Essa divisão em duas páginas de 30 linhas constitui formatação operacional do Aldus e não deve ser apresentada como exigência literal do edital.
+Se estiver sem impressora, utilize folha pautada e reproduza a mesma numeração.
+Depois de terminar:
+
+1. fotografe cada folha de cima;
+2. mantenha a página inteira no enquadramento;
+3. deixe as margens visíveis;
+4. utilize boa iluminação;
+5. garanta foco suficiente para leitura da letra;
+6. evite sombras;
+7. não corte nenhuma parte da resposta;
+8. envie todas as páginas na ordem correta.
+
+Quando terminar, envie as imagens nesta mesma conversa.
+16. FOLHAS DE RESPOSTA
+FOLHA 1
+Criar página A4 contendo:
+ALDUS META
+SIMULADO DISCURSIVO — DELEGADO DE POLÍCIA
+FGV — PC-PR 2026
+PEÇA PRÁTICO-PROFISSIONAL
+FOLHA DE RESPOSTA — PÁGINA 1/2
+Linhas 1–30
+Criar exatamente 30 linhas destinadas à escrita manuscrita, numeradas de 1 a 30.
+FOLHA 2
+Criar página A4 contendo:
+ALDUS META
+SIMULADO DISCURSIVO — DELEGADO DE POLÍCIA
+FGV — PC-PR 2026
+PEÇA PRÁTICO-PROFISSIONAL
+FOLHA DE RESPOSTA — PÁGINA 2/2
+Linhas 31–60
+Criar exatamente 30 linhas destinadas à escrita manuscrita, numeradas de 31 a 60.
+17. PADRÃO VISUAL
+Produza o PDF em:
+
+* formato A4;
+* orientação retrato;
+* fundo branco;
+* margens adequadas para impressão;
+* tipografia sóbria;
+* excelente legibilidade;
+* identidade visual discreta do ALDUS META;
+* azul institucional #0A2C66 em títulos e detalhes;
+* boa impressão também em escala de cinza.
+
+Evite excesso de elementos decorativos.
+O documento deverá lembrar um caderno profissional de concurso público.
+Não tente comprimir o enunciado inteiro em uma única página.
+Utilize quantas páginas forem necessárias para apresentar o caso com conforto de leitura.
+As páginas destinadas à resposta deverão permanecer separadas do enunciado.
+18. NOME DO PDF
+Utilize:
+ALDUS_Simulado_FGV_PCPR26_${data.replaceAll("/", "-")}.pdf
+Não utilize apenas:
+ALDUS_Folhas_de_Resposta...
+porque o arquivo deverá conter:
+
+* Caderno de Prova;
+* enunciado;
+* instruções;
+* folhas de resposta.
+
+19. ENCERRAMENTO DA ETAPA 1
+Depois de apresentar o enunciado e gerar o PDF:
+PARE.
+Não:
+
+* explique a solução;
+* identifique a peça;
+* indique artigos;
+* apresente espelho;
+* dê pistas;
+* pergunte se o candidato quer o gabarito.
+
+Aguarde o envio das respostas manuscritas.
+20. ETAPA 2 — RECEBIMENTO DAS IMAGENS
+Esta etapa começa somente quando eu enviar fotografias ou digitalizações das folhas preenchidas.
+Primeiro, verifique:
+
+* se todas as páginas estão presentes;
+* se estão na ordem correta;
+* se o enquadramento permite leitura;
+* se nenhuma margem contém texto cortado;
+* se cada linha pode ser lida com segurança.
+
+Não faça inferências sobre palavras ilegíveis.
+Se não conseguir determinar com segurança uma palavra ou trecho, marque:
+[ilegível]
+Se o trecho ilegível puder modificar a avaliação jurídica ou a pontuação daquele item, solicite nova imagem antes de fechar a correção.
+Não atribua ao candidato palavras que ele não escreveu.
+21. FIXAÇÃO PRÉVIA DO ESPELHO
+Antes de comparar minha resposta com o padrão:
+
+1. resolva integralmente o caso;
+2. identifique a peça juridicamente adequada;
+3. identifique todos os problemas jurídicos explícitos e implícitos;
+4. defina as teses corretas;
+5. defina os fundamentos normativos;
+6. identifique a jurisprudência relevante existente na data de referência;
+7. identifique os pedidos, decisões, determinações ou providências cabíveis;
+8. construa um espelho de pontuação totalizando exatamente 40,00 pontos.
+
+Somente depois disso confronte o espelho com o que escrevi.
+Não ajuste o padrão ao que eu escrevi.
+Não crie critério depois de descobrir minha resposta apenas para favorecer ou prejudicar minha nota.
+22. CRITÉRIO ÚNICO DE CORREÇÃO
+A resposta deverá ser corrigida conforme:
+
+* a situação concreta apresentada;
+* a legislação vigente na data de referência;
+* a jurisprudência aplicável;
+* o padrão técnico exigível de Delegado de Polícia;
+* as regras do edital;
+* o estilo de avaliação da FGV.
+
+Não pontue afirmação juridicamente incorreta apenas porque ela parece plausível.
+Não desconte pela ausência de conteúdo que não era juridicamente exigível.
+Não exija informação inexistente no enunciado.
+Não crie fatos novos.
+23. ESTRUTURA DO ESPELHO
+Divida os 40,00 pontos entre itens juridicamente objetivos.
+O espelho deverá contemplar, conforme o caso:
+A. IDENTIFICAÇÃO E ADEQUAÇÃO DA PEÇA
+
+* espécie de peça;
+* autoridade destinatária, quando cabível;
+* legitimidade;
+* competência;
+* adequação procedimental.
+
+B. DIREITO MATERIAL
+
+* tipificação;
+* qualificadoras;
+* causas de aumento;
+* concurso de crimes;
+* concurso de agentes;
+* consumação ou tentativa;
+* demais consequências pertinentes.
+
+C. DIREITO PROCESSUAL
+
+* situação flagrancial;
+* legalidade de diligências;
+* ingresso domiciliar;
+* busca;
+* apreensão;
+* reconhecimento;
+* interrogatório;
+* elementos informativos;
+* cadeia de custódia;
+* direitos do preso;
+* demais questões pertinentes.
+
+D. REQUISITOS DA MEDIDA OU PROVIDÊNCIA
+Examine individualmente:
+
+* pressupostos;
+* fundamentos;
+* requisitos legais;
+* adequação;
+* necessidade;
+* contemporaneidade, quando exigível;
+* proporcionalidade, quando pertinente.
+
+E. PEDIDOS E PROVIDÊNCIAS
+Verifique todos os pedidos, representações, comunicações e providências juridicamente necessários.
+F. ESTRUTURA E TÉCNICA
+Avalie:
+
+* coerência;
+* organização;
+* fundamentação;
+* objetividade;
+* argumentação;
+* clareza;
+* vernáculo.
+
+A distribuição deverá somar 40,00 pontos exatamente.
+24. FORMA DA CORREÇÃO
+Apresente a correção nesta ordem:
+RESULTADO
+Nota: XX,XX / 40,00
+1. PEÇA ESPERADA
+Informe qual era a peça juridicamente adequada e por quê.
+2. ADEQUAÇÃO DA PEÇA APRESENTADA
+Informe se a peça adotada pelo candidato foi correta, parcialmente adequada ou inadequada, justificando juridicamente.
+3. ESPELHO DE CORREÇÃO
+Apresente tabela contendo:
+
+* item;
+* conteúdo esperado;
+* valor;
+* o que foi efetivamente escrito;
+* pontuação obtida;
+* justificativa do desconto.
+
+4. DIREITO MATERIAL
+Analise os acertos, omissões e erros.
+5. DIREITO PROCESSUAL
+Analise os acertos, omissões e erros.
+6. PROVIDÊNCIAS E PEDIDOS
+Indique o que foi corretamente requerido ou determinado e o que faltou.
+7. FUNDAMENTAÇÃO
+Aponte:
+
+* dispositivos corretos;
+* dispositivos incorretos;
+* jurisprudência relevante;
+* fundamentos ausentes.
+
+8. ESTRUTURA E VERNÁCULO
+Avalie somente erros efetivamente relevantes.
+Não transforme preferências estilísticas do corretor em erro jurídico.
+9. PONTOS PERDIDOS
+Indique objetivamente onde e por que cada desconto ocorreu.
+10. NOTA FINAL
+XX,XX / 40,00
+25. TRANSCRIÇÃO DA RESPOSTA
+Antes ou durante a correção, preserve o conteúdo efetivamente escrito.
+Não:
+
+* reescreva silenciosamente a resposta;
+* corrija palavras antes de avaliá-las;
+* substitua argumento do candidato por argumento melhor;
+* complete fundamento ausente;
+* atribua pedido que não foi formulado.
+
+Quando houver dúvida de leitura, use:
+[ilegível]
+26. PROIBIÇÃO DE CORREÇÃO BENEVOLENTE ARTIFICIAL
+Corrija como banca examinadora.
+Não aumente a nota:
+
+* para estimular;
+* porque a ideia “estava próxima”;
+* porque é possível imaginar o que o candidato pretendia dizer;
+* porque determinada tese poderia ter sido desenvolvida.
+
+Pontue o conteúdo jurídico efetivamente demonstrado.
+Ao mesmo tempo, não seja artificialmente rigoroso.
+Se a resposta expressou corretamente a tese jurídica, não exija frase idêntica ao espelho.
+Avalie conteúdo, e não mera coincidência vocabular.
+27. INEDITISMO
+A prova criada deverá ser inédita.
+É permitido reproduzir:
+
+* padrão de dificuldade;
+* estilo de narrativa;
+* densidade;
+* formato de comando;
+* tipos de problemas jurídicos característicos da banca.
+
+É proibido:
+
+* copiar questão real;
+* alterar apenas nomes ou números de caso real;
+* reproduzir de perto uma peça oficial anteriormente aplicada.
+
+28. REGRA FINAL
+Na ETAPA 1, entregue somente:
+
+1. Caderno de Prova;
+2. enunciado;
+3. PDF completo com o caderno e as folhas de resposta.
+
+Depois, aguarde.
+Na ETAPA 2, após o envio das imagens, realize a correção completa e fundamentada pelo padrão previamente fixado.
+Não misture as duas etapas.
+Não apresente o espelho antes de eu concluir a prova.`;
+  }
+
   function buildPrompt(options = {}, date = new Date()) {
     const { banca, model, composicao, peca, tema } = normalizeOptions(options);
+    if (model.id === "pcpr26") return buildPromptPcpr26({ composicao, peca, tema }, date);
     const nomePadrao = banca === "FGV" ? "ESPELHO DE CORREÇÃO, com itens, valores e faixas de pontuação" : "PADRÃO DE RESPOSTA, com o texto-modelo, os elementos essenciais marcados (i), (ii)... e os QUESITOS AVALIADOS com escala de conceitos";
     const colunas = banca === "FGV" ? "resposta | pontos por item | linguagem | linhas | nota" : "resposta | NC | NE | TL | nota (NQ ou NPP)";
     const disciplinas = composicao === "peca" ? "" : `\n- Disciplinas das questões: ${model.disciplinas}.`;
@@ -499,6 +1099,17 @@ REGRAS DE SEGURANÇA JURÍDICA (valem para as duas etapas)
     });
   }
 
+  // V624 — fora da Biblioteca de prompts: logo depois do painel dela, como área própria da Fábrica.
+  function place(view, section) {
+    if (!view || !section) return;
+    const library = document.getElementById(LIBRARY_PANEL_ID);
+    if (library && library.parentElement === view) {
+      if (library.nextElementSibling !== section) library.after(section);
+      return;
+    }
+    if (section.parentElement !== view) view.appendChild(section);
+  }
+
   function mount() {
     if (typeof document === "undefined") return false;
     const view = document.getElementById("view-fabrica-resumos");
@@ -506,12 +1117,10 @@ REGRAS DE SEGURANÇA JURÍDICA (valem para as duas etapas)
     const html = sectionHtml();
     const current = document.getElementById(SECTION_ID);
     if (current) current.outerHTML = html;
-    else {
-      const anchor = document.getElementById("factoryPromptLibraryPanel") || view.querySelector(".factory-settings-actions");
-      if (anchor) anchor.insertAdjacentHTML("afterend", html);
-      else view.insertAdjacentHTML("beforeend", html);
-    }
-    bind(document.getElementById(SECTION_ID));
+    else view.insertAdjacentHTML("beforeend", html);
+    const section = document.getElementById(SECTION_ID);
+    place(view, section);
+    bind(section);
     return true;
   }
 
@@ -521,7 +1130,11 @@ REGRAS DE SEGURANÇA JURÍDICA (valem para as duas etapas)
       document.addEventListener("DOMContentLoaded", install, { once: true });
       return { installed: false, deferred: true };
     }
-    if (document.getElementById(SECTION_ID)) return { installed: true, repeated: true };
+    const current = document.getElementById(SECTION_ID);
+    if (current) {
+      place(document.getElementById("view-fabrica-resumos"), current);
+      return { installed: true, repeated: true };
+    }
     return { installed: mount() };
   }
 

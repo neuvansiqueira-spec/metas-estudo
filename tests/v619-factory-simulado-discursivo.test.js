@@ -32,17 +32,42 @@ test("V619 gera o modelo PC-DF 2026 com multiplicadores próprios", () => {
 });
 
 test("V619 gera o modelo PC-PR 2026 com espelho FGV e sorteio restrito às cautelares do edital", () => {
-  const prompt = api.buildPrompt({ banca: "FGV", modelo: "pcpr26" }, date);
-  assert.match(prompt, /PADRÃO FGV/);
-  assert.match(prompt, /4 questões discursivas, até 20 linhas, 15 pontos cada/);
-  assert.match(prompt, /peça prática-profissional, até 60 linhas, 40 pontos/);
-  assert.match(prompt, /ESPELHO DE CORREÇÃO/);
-  assert.match(prompt, /a FGV NÃO nomeia a peça/);
-  assert.match(prompt, /extensão inferior ao mínimo ou superior ao máximo de linhas/);
-  assert.match(prompt, /Escolha somente entre as medidas previstas no edital deste modelo/);
-  assert.doesNotMatch(prompt, /NPP = NC/);
   const model = api.normalizeOptions({ banca: "FGV", modelo: "pcpr26" }).model;
   assert.deepEqual(api.pecasSorteio(model), ["preventiva", "temporaria", "busca", "interceptacao", "captacaoAmbiental", "quebraSigilo"]);
+});
+
+test("V624 usa na PC-PR 2026 o prompt definido por ele, preenchendo só os campos do formulário", () => {
+  const prompt = api.buildPrompt({ banca: "FGV", modelo: "pcpr26" }, date);
+  assert.ok(prompt.startsWith("SIMULADO DISCURSIVO DE DELEGADO DE POLÍCIA — PADRÃO FGV / PC-PR 2026\n1. IDENTIFICAÇÃO DO MODELO\n"));
+  assert.match(prompt, /Data de referência do simulado: 13\/09\/2026\nConfiguração: PROVA COMPLETA\nPeça selecionada: Sorteio pela recorrência da banca\nEste prompt possui duas etapas/);
+  assert.match(prompt, /Data de referência: 13\/09\/2026\nSe o exercício corresponder/);
+  assert.match(prompt, /ALDUS_Simulado_FGV_PCPR26_13-09-2026\.pdf/);
+  assert.match(prompt, /2\.1\. INTERPRETAÇÃO DA ENUMERAÇÃO DO ITEM 10\.5/);
+  assert.match(prompt, /Não estabeleça limite mínimo de linhas para a peça/);
+  assert.match(prompt, /construa um espelho de pontuação totalizando exatamente 40,00 pontos/);
+  assert.ok(prompt.endsWith("Não misture as duas etapas.\nNão apresente o espelho antes de eu concluir a prova."));
+  assert.doesNotMatch(prompt, /\[(DATA|PROVA COMPLETA|PEÇA SELECIONADA)/);
+  for (const antigo of [/Escolha somente entre as medidas previstas/, /não está no rol do edital/, /RECORRÊNCIA FGV/, /Timbre do Aldus/]) {
+    assert.doesNotMatch(prompt, antigo);
+  }
+
+  const peca = api.buildPrompt({ banca: "FGV", modelo: "pcpr26", composicao: "peca", peca: "temporaria", tema: "Lei Maria da Penha" }, date);
+  assert.match(peca, /Configuração: SOMENTE PEÇA\nPeça selecionada: Representação por prisão temporária\nTema: Lei Maria da Penha\nEste prompt/);
+  const fora = api.buildPrompt({ banca: "FGV", modelo: "pcpr26", composicao: "peca", peca: "relatorioFinal" }, date);
+  assert.match(fora, /Peça selecionada: Relatório final de inquérito policial\n/);
+  assert.match(fora, /treino ampliado de peça de Delegado no padrão FGV/);
+  const questoes = api.buildPrompt({ banca: "FGV", modelo: "pcpr26", composicao: "questoes" }, date);
+  assert.match(questoes, /Configuração: SOMENTE QUESTÕES\nPeça selecionada: não se aplica \(somente questões\)\n/);
+
+  const outroModelo = api.buildPrompt({ banca: "FGV", modelo: "pcpi25" }, date);
+  assert.match(outroModelo, /PADRÃO FGV/);
+  assert.match(outroModelo, /RECORRÊNCIA FGV/);
+});
+
+test("V624 monta o simulado na Fábrica, depois da Biblioteca de prompts e fora dela", () => {
+  assert.match(rootSource, /const LIBRARY_PANEL_ID = "factoryPromptPanelV163";/);
+  assert.match(rootSource, /library\.after\(section\)/);
+  assert.doesNotMatch(rootSource, /getElementById\("factoryPromptLibraryPanel"\)/);
 });
 
 test("V619 oferece todas as peças, representações e administrativas, para escolha", () => {
@@ -53,13 +78,8 @@ test("V619 oferece todas as peças, representações e administrativas, para esc
   assert.ok(Object.keys(api.pecas).length >= 30);
 });
 
-test("V619 aceita qualquer peça e avisa quando ela está fora do edital do modelo", () => {
+test("V619 aceita qualquer peça e normaliza peça inexistente para sorteio", () => {
   assert.equal(api.normalizeOptions({ banca: "FGV", modelo: "pcpr26", peca: "relatorioFinal" }).peca, "relatorioFinal");
-  const fora = api.buildPrompt({ banca: "FGV", modelo: "pcpr26", peca: "relatorioFinal" }, date);
-  assert.match(fora, /Relatório final de inquérito policial/);
-  assert.match(fora, /não está no rol do edital do modelo PC-PR 2026/);
-  const dentro = api.buildPrompt({ banca: "FGV", modelo: "pcpr26", peca: "temporaria" }, date);
-  assert.doesNotMatch(dentro, /não está no rol do edital/);
   assert.equal(api.normalizeOptions({ peca: "inexistente" }).peca, "sorteio");
 });
 
@@ -92,8 +112,8 @@ test("V619 pede o PDF das folhas de resposta com o timbre do Aldus no formato da
 });
 
 test("V619 exige leitura conferível, padrão fixado antes da nota e prova inédita", () => {
-  for (const banca of ["CEBRASPE", "FGV"]) {
-    const prompt = api.buildPrompt({ banca }, date);
+  for (const [banca, modelo] of [["CEBRASPE", "pcma26"], ["FGV", "pcpi25"]]) {
+    const prompt = api.buildPrompt({ banca, modelo }, date);
     assert.match(prompt, /\[ilegível\]/);
     assert.match(prompt, /peça nova foto dessa página antes de corrigir/);
     assert.match(prompt, /Não ajuste o padrão ao que eu escrevi/);
@@ -103,12 +123,18 @@ test("V619 exige leitura conferível, padrão fixado antes da nota e prova inéd
 });
 
 test("V619 não usa instruções que o ChatGPT já recusou", () => {
-  for (const banca of ["CEBRASPE", "FGV"]) {
-    const prompt = api.buildPrompt({ banca }, date);
+  for (const [banca, modelo] of [["CEBRASPE", "pcma26"], ["FGV", "pcpi25"]]) {
+    const prompt = api.buildPrompt({ banca, modelo }, date);
     for (const forbidden of [/palavra por palavra/i, /literal/i, /canvas/i, /\bHTML\b/]) {
       assert.doesNotMatch(prompt, forbidden);
     }
   }
+  // O texto da PC-PR é dele; "literal" aparece só em "exigência literal do edital", sem pedir cópia de texto.
+  const pcpr = api.buildPrompt({ banca: "FGV", modelo: "pcpr26" }, date);
+  for (const forbidden of [/palavra por palavra/i, /canvas/i, /\bHTML\b/]) {
+    assert.doesNotMatch(pcpr, forbidden);
+  }
+  assert.equal((pcpr.match(/literal/gi) || []).length, 1);
 });
 
 test("V619 mantém paridade raiz/docs e o loader publica o módulo", () => {
