@@ -1,22 +1,31 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260821-timer-goal-integrity-v366";
+  const VERSION = "20260916-goal-time-history-reconcile-v425";
   const READY_RETRY_MS = 75;
   const READY_RETRY_LIMIT = 160;
+  const HISTORY_LIMIT = 100;
 
   if (globalThis.__aldusTimerGoalIntegrityV366) return;
 
   const toMinutes = (value) => {
     const numeric = Number(value);
-    return Number.isFinite(numeric) && numeric > 0 ? Math.round(numeric) : 0;
+    return Number.isFinite(numeric) && numeric > 0 ? numeric : 0;
   };
 
   const timerSessionKey = (study = {}) => String(study.timerSessionId || study.sessionId || study.id || "");
 
+  function timerStudyMinutes(study = {}) {
+    for (const field of ["seconds", "elapsedSeconds", "actualDurationSeconds"]) {
+      const value = Number(study?.[field]);
+      if (Number.isFinite(value) && value > 0) return value / 60;
+    }
+    return toMinutes(study.minutes ?? study.actualDuration);
+  }
+
   function isGoalUpdatingTimerStudy(study = {}) {
     if (!study || study.updatesGoal === false) return false;
-    if (!toMinutes(study.minutes ?? study.actualDuration)) return false;
+    if (!timerStudyMinutes(study)) return false;
     if (study.origin === "timer") return true;
     return Boolean(study.timerSessionId || (study.sessionId && study.timerMode) || study.timerSource || study.timerOrigin);
   }
@@ -25,8 +34,8 @@
     if (!goal) return false;
     const currentStudy = Math.max(0, Number(goal.studyActualMinutes) || 0);
     const currentQuestions = Math.max(0, Number(goal.questionActualMinutes) || 0);
-    const nextStudy = Math.max(currentStudy, studyMinutes || 0);
-    const nextQuestions = Math.max(currentQuestions, questionMinutes || 0);
+    const nextStudy = Math.max(currentStudy, toMinutes(studyMinutes));
+    const nextQuestions = Math.max(currentQuestions, toMinutes(questionMinutes));
     const currentTotal = Math.max(0, Number(goal.actualMinutes) || 0, Number(goal.tempo_real_minutos) || 0);
     const nextTotal = Math.max(currentTotal, nextStudy + nextQuestions);
 
@@ -61,7 +70,7 @@
       if (!sessionKey || seenSessions.has(sessionKey)) continue;
       seenSessions.add(sessionKey);
 
-      const minutes = toMinutes(study.minutes ?? study.actualDuration);
+      const minutes = timerStudyMinutes(study);
       if (!minutes) continue;
       const target = study.timerKind === "questions" || study.kind === "questions" ? questionTotals : studyTotals;
       target.set(goalId, (target.get(goalId) || 0) + minutes);
@@ -81,6 +90,19 @@
     }
 
     return { changed: repairedGoals > 0, repairedGoals, repairedMinutes };
+  }
+
+  function reconcileGoalFromLedger(goal, targetState = state) {
+    if (!goal || !globalThis.__ALDUS_STUDY_TIME__?.goalSeconds) return { changed: false, repairedGoals: 0, repairedMinutes: 0 };
+    const before = Math.max(0, Number(goal.actualMinutes) || 0, Number(goal.tempo_real_minutos) || 0);
+    const studyMinutes = globalThis.__ALDUS_STUDY_TIME__.goalSeconds(goal, targetState, "study") / 60;
+    const questionMinutes = globalThis.__ALDUS_STUDY_TIME__.goalSeconds(goal, targetState, "questions") / 60;
+    const changed = applyGoalMinimums(goal, studyMinutes, questionMinutes);
+    return {
+      changed,
+      repairedGoals: changed ? 1 : 0,
+      repairedMinutes: changed ? Math.max(0, (Number(goal.actualMinutes) || 0) - before) : 0
+    };
   }
 
   function persistRepair(report, reason) {
@@ -122,7 +144,7 @@
           if (!isGoalUpdatingTimerStudy(study) || !study.goalId) return;
           const goal = state.dailyGoals?.find((item) => String(item?.id || "") === String(study.goalId));
           if (!goal) return;
-          const minutes = toMinutes(study.minutes ?? study.actualDuration);
+          const minutes = timerStudyMinutes(study);
           const isQuestions = study.timerKind === "questions" || study.kind === "questions";
           const report = { changed: false, repairedGoals: 0, repairedMinutes: 0 };
           const before = Math.max(0, Number(goal.actualMinutes) || 0, Number(goal.tempo_real_minutos) || 0);
@@ -137,6 +159,80 @@
         }
       }, 0);
     }, true);
+  }
+
+  function historyTimestamp(record = {}) {
+    for (const field of ["endedAt", "endTime", "startedAt", "startTime"]) {
+      const parsed = Date.parse(String(record?.[field] || ""));
+      if (Number.isFinite(parsed)) return parsed;
+    }
+    const day = String(record.date || record.data || "").slice(0, 10);
+    const parsed = Date.parse(day ? `${day}T00:00:00` : "");
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  function installHistoryVisibilityFix() {
+    if (globalThis.__aldusGoalHistoryVisibilityV425 || typeof renderHistory !== "function") return;
+    globalThis.__aldusGoalHistoryVisibilityV425 = true;
+
+    renderHistory = function renderHistoryWithReconciledGoalTime() {
+      const baseStudies = Array.isArray(state?.studies) ? state.studies : [];
+      const residualGoalLogs = globalThis.__ALDUS_STUDY_TIME__?.logs
+        ? globalThis.__ALDUS_STUDY_TIME__.logs(state).filter((entry) => String(entry?.id || "").startsWith("goal-"))
+        : [];
+      const studies = [...baseStudies, ...residualGoalLogs]
+        .sort((left, right) => historyTimestamp(right) - historyTimestamp(left))
+        .slice(0, HISTORY_LIMIT);
+
+      elements.historyBody.innerHTML = "";
+      if (!studies.length) {
+        const row = document.createElement("tr");
+        row.innerHTML = `<td colspan="8" class="empty-message">Nenhum registro geral de estudo encontrado.</td>`;
+        elements.historyBody.appendChild(row);
+        return;
+      }
+
+      studies.forEach((study) => {
+        const row = document.createElement("tr");
+        const minutes = globalThis.__ALDUS_STUDY_TIME__?.recordSeconds
+          ? globalThis.__ALDUS_STUDY_TIME__.recordSeconds(study) / 60
+          : Number(study.minutes) || 0;
+        row.innerHTML = `<td>${formatDateBR(study.date)}</td><td>${escapeHTML(study.discipline || subjectNameById(study.subjectId))}</td><td>${escapeHTML(study.topic || "")}</td><td>${formatHours(minutes)}</td><td>${Number(study.questions) || 0}</td><td>${Number(study.correct) || 0}</td><td>${Number(study.wrong) || 0}</td><td>${Number(study.blank) || 0}</td>`;
+        elements.historyBody.appendChild(row);
+      });
+    };
+  }
+
+  function installGoalCompletionReconciliation() {
+    if (globalThis.__aldusGoalCompletionReconcileV425 || typeof confirmGoalCompletion !== "function") return;
+    globalThis.__aldusGoalCompletionReconcileV425 = true;
+    const originalConfirmGoalCompletion = confirmGoalCompletion;
+
+    confirmGoalCompletion = function confirmGoalCompletionWithReconciledTime(goalId) {
+      const resolvedGoalId = goalId || (typeof goalCompletionActiveGoalId !== "undefined" ? goalCompletionActiveGoalId : "");
+      const goal = state.dailyGoals?.find((item) => String(item?.id || "") === String(resolvedGoalId));
+      if (goal) {
+        const directReport = reconcileDirectTimerTotals(state);
+        const ledgerReport = reconcileGoalFromLedger(goal, state);
+        if (directReport.changed || ledgerReport.changed) {
+          persistRepair({
+            changed: true,
+            repairedGoals: Math.max(directReport.repairedGoals || 0, ledgerReport.repairedGoals || 0),
+            repairedMinutes: Math.max(directReport.repairedMinutes || 0, ledgerReport.repairedMinutes || 0)
+          }, "before-goal-completion");
+        }
+      }
+
+      try {
+        return originalConfirmGoalCompletion.call(this, resolvedGoalId);
+      } finally {
+        try {
+          if (typeof goalCompletionInProgress !== "undefined") goalCompletionInProgress.delete(resolvedGoalId);
+          const confirmButton = document.getElementById("goalCompletionConfirm");
+          if (confirmButton && !confirmButton.closest("[hidden]")) confirmButton.disabled = false;
+        } catch {}
+      }
+    };
   }
 
   function installStateReplacementGuard() {
@@ -168,12 +264,15 @@
     }
 
     installTimerSubmitVerification();
+    installHistoryVisibilityFix();
+    installGoalCompletionReconciliation();
     installStateReplacementGuard();
     scheduleIdleReconciliation("bootstrap");
 
     globalThis.__aldusTimerGoalIntegrityV366 = Object.freeze({
       version: VERSION,
-      reconcile: () => reconcileDirectTimerTotals(state)
+      reconcile: () => reconcileDirectTimerTotals(state),
+      reconcileGoal: (goal) => reconcileGoalFromLedger(goal, state)
     });
   }
 
