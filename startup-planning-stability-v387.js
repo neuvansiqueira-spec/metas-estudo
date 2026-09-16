@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260916-planning-guard-goal-time-hotfix-v425";
+  const VERSION = "20260826-planning-legacy-mutator-guard-v399";
   const ALIGN_MARKER = "__aldusPlanningConsentGuardV399";
   const LEGACY_MUTATOR_MARKER = "__aldusPlanningLegacyMutatorGuardV399";
   const FACTORY_BRIDGE_SCRIPT_ID = "aldusFactoryLc259LinkV398";
