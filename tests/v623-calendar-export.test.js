@@ -1,260 +1,165 @@
-/* V623.5 — calendário exporta dados reais da Fábrica, confere a pasta de cada meta no Drive e gera PDF leve. */
+/* V623.7 — Calendário de Metas no formato simples pedido em 16/09/2026: por meta do período escolhido (sem PEÇA),
+   RESUMO (AULA + JURISPRUDÊNCIA) pelo "Aprovado" da Fábrica com a data do arquivo na pasta, LINK DA PASTA DESTINO,
+   TREINO DE QUESTÕES e JURISPRUDÊNCIA pelo arquivo na pasta destino do Google Drive. */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const api = require('../goal-calendar-export-v623.js');
 
-const FOLDER_A = 'https://drive.google.com/drive/folders/1AAAAAAAAAAAAAAAAAAAAA';
-function sampleState() {
+const WORD = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', FOLDER = 'application/vnd.google-apps.folder';
+const driveFolder = (id) => `https://drive.google.com/drive/folders/${id}`;
+const canonText = (v) => String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+function state() {
   return {
-    activeContestId: 'pcpr-2026-delegado',
-    contestProfiles: [
-      { id: 'pcpr-2026-delegado', name: 'PCPR 2026 — Delegado de Polícia' },
-      { id: 'pcma-2026-delegado', name: 'PCMA 2026 — Delegado de Polícia Civil' }
-    ],
-    contestSyllabusMap: [
-      { contestId: 'pcpr-2026-delegado', syllabusItemId: 'item-1', code: '2.1' },
-      { contestId: 'pcma-2026-delegado', syllabusItemId: 'item-1', code: '1.4' },
-      { contestId: 'pcma-2026-delegado', syllabusItemId: 'item-1', code: '15' }
-    ],
-    syllabusItems: [
-      { id: 'item-1', reference: '2.1 Princípios Fundamentais.' },
-      { id: 'item-2', reference: '4.3 Teoria da pena.' }
-    ],
+    syllabusItems: [{ id: 's-dgf', subject: 'Direitos e garantias fundamentais' }, { id: 's-lei', subject: 'Lei de Interceptação Telefônica' }],
     factoryAgenda: [
-      {
-        id: 'f1', disciplina: 'DIREITO PROCESSUAL PENAL', tema: 'Princípios Fundamentais do Processo Penal',
-        editalLink: { itemIds: ['item-1'] }, factoryDestinationFolder: FOLDER_A,
-        modules: {
-          resumoAula: { status: 'Aguardando revisão', pdfLink: FOLDER_A },
-          lei: { status: 'PDF gerado', dataConclusao: '2026-07-10' },
-          jurisprudencia: { status: 'Não se aplica' },
-          peca: { status: 'Em produção' },
-          completo: { status: 'Não iniciado' }
-        }
-      },
-      { id: 'f2', disciplina: 'DIREITO PENAL', tema: 'Teoria da Pena', syllabusItemId: 'item-2', modules: { resumoAula: { status: 'Aprovado' } } }
-    ],
-    questionTrainingEvents: [
-      { id: 'r1', kind: 'prompt', roundId: 'r1', discipline: 'DIREITO PROCESSUAL PENAL', theme: 'Princípios Fundamentais do Processo Penal', config: { primary: 'FGV', syllabusItemId: 'item-1' } },
-      { id: 'i1', kind: 'import', roundId: 'r1', discipline: 'DIREITO PROCESSUAL PENAL', theme: 'Princípios Fundamentais do Processo Penal', questionIds: ['Q1','Q2','Q3'], createdAt: '2026-09-13T11:00:00.000Z' }
+      { id: 'pri', disciplina: 'DIREITO PROCESSUAL PENAL', tema: 'Princípios Fundamentais do Processo Penal', factoryDestinationFolder: driveFolder('PASTA_PRI_00001'), modules: { resumoAula: { status: 'Aprovado', dataConclusao: '' } } },
+      { id: 'col', disciplina: 'DIREITO PROCESSUAL PENAL', tema: 'Colaboração Premiada', factoryDestinationFolder: driveFolder('PASTA_COL_00001'), modules: { resumoAula: { status: 'Aprovado', dataConclusao: '2026-08-17' } } },
+      { id: 'peca', disciplina: 'PEÇA PARA DELEGADO DE POLÍCIA CIVIL', tema: 'Relatório Final de Inquérito Policial', factoryDestinationFolder: driveFolder('PASTA_PECA_0001'), modules: { resumoAula: { status: 'Não iniciado' }, peca: { status: 'Aprovado' } } },
+      { id: 'apf', disciplina: 'PEÇA PARA DELEGADO DE POLÍCIA CIVIL', tema: 'Auto de Prisão em Flagrante', factoryDestinationFolder: driveFolder('PASTA_APF_00001'), modules: { resumoAula: { status: 'Não se aplica' } } },
+      { id: 'eca', disciplina: 'DIREITO PROCESSUAL PENAL', tema: 'Apuração de Atos Infracionais – ECA', factoryDestinationFolder: driveFolder('PASTA_ECA_00001'), modules: { resumoAula: { status: 'Aprovado' } } },
+      { id: 'soc', disciplina: 'DIREITO CONSTITUCIONAL', tema: 'Direitos sociais', factoryDestinationFolder: driveFolder('PASTA_SOC_00001'), modules: { resumoAula: { status: 'Não se aplica' } } },
+      { id: 'dgf', disciplina: 'DIREITO CONSTITUCIONAL', tema: 'Direitos e garantias fundamentais', syllabusItemId: 's-dgf', factoryDestinationFolder: driveFolder('PASTA_DGF_00001'), modules: { resumoAula: { status: 'Aprovado' } } },
+      { id: 'nac', disciplina: 'DIREITO CONSTITUCIONAL', tema: 'Nacionalidade', syllabusItemId: 's-dgf', factoryDestinationFolder: driveFolder('PASTA_NAC_00001'), modules: {} },
+      { id: 'lei', disciplina: 'LEGISLAÇÃO ESPECÍFICA – DIREITO PROCESSUAL PENAL', tema: 'Lei nº 9.296/1996', syllabusItemId: 's-lei', factoryDestinationFolder: driveFolder('PASTA_LEI_00001'), modules: { lei: { status: 'Aprovado' } } }
     ]
   };
 }
-function periods() {
-  const goal = { date:'2026-09-15', discipline:'DIREITO PROCESSUAL PENAL', subject:'Princípios Fundamentais do Processo Penal', type:'Estudo novo', plannedMinutes:60, actualMinutes:0, status:'Pendente', priority:'Alta' };
-  return [{ label:'DIA', key:'daily', data:{ mode:'daily', start:'2026-09-15', end:'2026-09-15', goals:[goal], planned:60, actual:0, disciplines:{'DIREITO PROCESSUAL PENAL':1}, days:[{date:'2026-09-15',dayType:'Folga',goals:[goal]}] } }];
-}
-function report(options={}) {
-  const state = sampleState();
-  return api.buildReport({ periods:periods(), referenceDate:'2026-09-15', scope:'daily', scopeLabel:'Somente dia', summaries:api.elaboratedSummaries(state), trainings:api.trainingRecords(state), appState:state, today:'2026-09-15', generatedAt:'2026-09-15T15:00:00Z', ...options });
-}
-
-test('V623.4 reconhece produto já elaborado inclusive em Aguardando revisão', () => {
-  const rows = api.elaboratedSummaries(sampleState());
-  assert.equal(rows.length, 3);
-  assert.ok(rows.some((r) => r.factoryStatus === 'Aguardando revisão'));
-  assert.ok(rows.some((r) => r.factoryStatus === 'Aprovado'));
-  assert.ok(rows.some((r) => r.factoryStatus === 'PDF gerado'));
-  assert.ok(!rows.some((r) => r.factoryStatus === 'Em produção'));
-});
-
-test('V623.5 treino importado entra uma vez; prompt do mesmo tema não duplica', () => {
-  const rows = api.trainingRecords(sampleState());
-  assert.equal(rows.length, 1);
-  assert.equal(rows[0].typeLabel, 'FGV · 3 QUESTÕES');
-  assert.equal(rows[0].folderUrl, FOLDER_A);
-});
-
-test('V623.4 reconhece arquivos gêmeos Word/PDF e ignora inválidos', () => {
-  const file = (id,name,time='2026-09-01T00:00:00Z') => ({id,name,modifiedTime:time,mimeType:name.endsWith('.pdf')?'application/pdf':'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
-  const folder = [
-    file('w1','MAPA_HIERARQUICO_RESUMO_AULA_PRINCIPIOS.docx'), file('p1','MAPA_HIERARQUICO_RESUMO_AULA_PRINCIPIOS.pdf'),
-    file('p2','MAPA_HIERARQUICO_RESUMO_AULA_PRINCIPIOS_ANTIGO.pdf','2026-09-05T00:00:00Z'), file('bad','ARQUIVO_INCORRETO_DESCONSIDERAR_MAPA_HIERARQUICO_RESUMO_AULA.docx')
-  ];
-  const picked = api.pickModuleFiles({shared:folder}, 'resumoAula');
-  assert.equal(picked.word.id,'w1'); assert.equal(picked.pdf.id,'p1'); assert.equal(picked.twin,true);
-});
-
-test('V623.4 consulta Drive uma vez por pasta e traz páginas/arquivos reais', async () => {
-  const files = { '1AAAAAAAAAAAAAAAAAAAAA': [
-    {id:'w1',name:'MAPA_HIERARQUICO_RESUMO_AULA_PRINCIPIOS.docx',createdTime:'2026-08-20T12:00:00Z',modifiedTime:'2026-08-21T12:00:00Z',webViewLink:'https://drive.google.com/file/d/w1/view'},
-    {id:'p1',name:'MAPA_HIERARQUICO_RESUMO_AULA_PRINCIPIOS.pdf',createdTime:'2026-08-20T12:05:00Z',modifiedTime:'2026-08-21T12:05:00Z',webViewLink:'https://drive.google.com/file/d/p1/view'},
-    {id:'t0',name:'TREINO_DIREITO_PROCESSUAL_PENAL_PRINCIPIOS_01_TRIAGEM_QC.txt',modifiedTime:'2026-09-13T12:00:00Z'},
-    {id:'t1',name:'TREINO_DIREITO_PROCESSUAL_PENAL_PRINCIPIOS.html',modifiedTime:'2026-09-13T11:00:00Z',webViewLink:'https://drive.google.com/file/d/t1/view'}
-  ]};
-  let calls=0;
-  const get=async(url)=>{calls++;const id=decodeURIComponent(url).match(/'([\w-]+)' in parents/)?.[1];return{files:files[id]||[]};};
-  const state=sampleState(), records=[...api.elaboratedSummaries(state),...api.trainingRecords(state)];
-  const out=await api.createDriveReader({get,countPdfPages:async()=>12}).resolve(records);
-  assert.equal(out.state,'on'); assert.equal(calls,1);
-  const resumo=records.find((r)=>r.moduleKey==='resumoAula'&&r.discipline==='DIREITO PROCESSUAL PENAL');
-  const view=api.summaryView(resumo,out.results.get(resumo.id),'on');
-  const by=Object.fromEntries(view.fields.filter((f)=>f.label).map((f)=>[f.label,f.value]));
-  assert.equal(by['ARQUIVO WORD'],'MAPA_HIERARQUICO_RESUMO_AULA_PRINCIPIOS.docx');
-  assert.equal(by['ARQUIVO PDF'],'MAPA_HIERARQUICO_RESUMO_AULA_PRINCIPIOS.pdf');
-  assert.equal(by['QUANTIDADE DE PÁGINAS DO PDF DO RESUMO'],'12');
-  assert.match(by['QUANTIDADE DE PÁGINAS DO WORD DO RESUMO'],/^12/);
-  const treino=records.find((r)=>r.kind==='treino');
-  assert.equal(out.results.get(treino.id).trainingFile.id,'t1');
-});
-
-test('V623.4 não inventa dados sem Drive: NÃO CONFERIDO e PREJUDICADO continuam distintos', () => {
-  const rows=api.elaboratedSummaries(sampleState());
-  const linked=rows.find((r)=>r.folderUrl), noLinks=rows.find((r)=>!r.folderUrl&&!r.wordLink&&!r.pdfLink);
-  const a=api.summaryView(linked,undefined,'off'), b=api.summaryView(noLinks,undefined,'off');
-  assert.equal(a.fields.find((f)=>f.label==='QUANTIDADE DE PÁGINAS DO PDF DO RESUMO').value,api.DRIVE_NOTES.off);
-  assert.equal(b.fields.find((f)=>f.label==='QUANTIDADE DE PÁGINAS DO PDF DO RESUMO').value,api.PREJUDICADO);
-});
-
-test('V623.5 PDF leve: tabelas, timbre na margem da página e resumo/treino de cada meta', () => {
-  const html=api.buildPrintHtml(report());
-  assert.match(html,/size:A4 landscape/);
-  assert.match(html,/max-width:281mm/);
-  assert.match(html,/@top-left\{content:"";[^}]*background:url\("data:image\/svg\+xml,/);
-  const logo=decodeURIComponent(html.match(/url\("data:image\/svg\+xml,([^"]+)"\)/)[1]);
-  assert.ok(logo.includes('>ALDUS</text>') && logo.includes('>METAS CONCURSO</text>'));
-  assert.ok(html.includes('@top-right{content:"Calendário de metas  ·  Referência 15/09/2026 · Somente dia"'));
-  assert.ok(html.includes('@bottom-right{content:"Página " counter(page)'));
-  assert.doesNotMatch(html,/counter\(pages\)/);
-  // position:fixed com deslocamento negativo fazia o timbre sair embaixo e o rodapé cobrir a tabela.
-  assert.doesNotMatch(html,/position:fixed/);
-  assert.doesNotMatch(html,/acv-page-head|acv-page-foot|acv-record|acv-factory-table/);
-  // Peso 800 puxava a Arial Black; cantos arredondados e gradientes viram desenho no PDF.
-  assert.doesNotMatch(html,/font-weight:800|font:800|linear-gradient/);
-  assert.match(html,/border-radius:0!important/);
-  assert.match(html,/id="goalCalendarPrintableReport" class="aldus-cal-v623" data-version="[^"]+" aria-hidden="true"/);
-  assert.ok(html.includes('<th>Resumo pronto?</th>') && html.includes('<th>Treino pronto?</th>'));
-  assert.ok(html.includes('SIM — RESUMO/AULA, LEI'));
-  assert.ok(html.includes('marcado na Fábrica; Drive não conferido'));
-  assert.ok(html.includes('SIM — 3 questões importadas no site'));
-  assert.ok(html.includes('Produto elaborado'));
-  assert.ok(html.includes('<th>Status na Fábrica</th>') && html.includes('<th>Páginas do Word</th>') && html.includes('<th>Páginas do PDF</th>'));
-  assert.ok(html.includes('abrir pasta'));
-});
-
-test('V623.5 imagem preserva largura 1600 e mostra resumo/treino pronto', () => {
-  const svg=api.buildSvg(report());
-  assert.match(svg,/viewBox="0 0 1600 \d+"/);
-  assert.match(svg,/data-generated-brand="Aldus Metas Concurso"/);
-  assert.ok(svg.includes('Produto elaborado'));
-  assert.ok(svg.includes('Resumo pronto? SIM — RESUMO/AULA, LEI'));
-  assert.ok(svg.includes('Treino pronto? SIM — 3 questões importadas no site'));
-  assert.ok(svg.length>1000);
-});
-
-test('V623.5 Excel tem três abas, tipo do resumo e resumo/treino pronto por meta', () => {
-  const files=api.buildWorkbookFiles(report(),new Uint8Array([137,80,78,71]));
-  const by=Object.fromEntries(files.map((f)=>[f.name,f.data]));
-  assert.match(by['xl/workbook.xml'],/<sheet name="Calendário"/);
-  assert.match(by['xl/workbook.xml'],/<sheet name="Fábrica - resumos"/);
-  assert.match(by['xl/workbook.xml'],/<sheet name="Fábrica - treinos"/);
-  const resumos=by['xl/worksheets/sheet2.xml'];
-  for(const text of ['RESUMO - TIPO ELABORADO','STATUS NA FÁBRICA','ARQUIVO WORD','ARQUIVO PDF','QUANTIDADE DE PÁGINAS DO WORD DO RESUMO','QUANTIDADE DE PÁGINAS DO PDF DO RESUMO']) assert.ok(resumos.includes(text));
-  assert.ok(by['xl/worksheets/sheet1.xml'].includes('Resumo pronto?'));
-  assert.ok(by['xl/worksheets/sheet1.xml'].includes('Treino pronto?'));
-  assert.ok(by['xl/worksheets/sheet1.xml'].includes('SIM — RESUMO/AULA, LEI (marcado na Fábrica; Drive não conferido)'));
-  assert.ok(by['xl/worksheets/sheet3.xml'].includes('TREINO - TIPO'));
-  for(const n of [1,2,3]) assert.match(by[`xl/drawings/drawing${n}.xml`],/<xdr:col>0<\/xdr:col>/);
-});
-
-test('V623.5 continua carregado pela cadeia ativa e espelhado em docs', () => {
-  const loader=fs.readFileSync('performance-emergency-v350.js','utf8');
-  assert.ok(loader.includes('script.src = "goal-calendar-export-v623.js?v=20260916-calendario-real-pdf-leve-v623-5";'));
-  assert.deepEqual(fs.readFileSync('goal-calendar-export-v623.js'),fs.readFileSync('docs/goal-calendar-export-v623.js'));
-  assert.match(fs.readFileSync('build-bundles.mjs','utf8'),/"goal-calendar-export-v623\.js"/);
-});
-
-// Casos reais de 17/09/2026: o calendário dizia "NÃO REALIZADO" com o arquivo pronto na pasta.
-const WORD='application/vnd.openxmlformats-officedocument.wordprocessingml.document', FOLDER='application/vnd.google-apps.folder';
-const driveFolder=(id)=>`https://drive.google.com/drive/folders/${id}`;
-const canonText=(v)=>String(v||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
-function realState() {
-  return {
-    syllabusItems:[{ id:'s-peca', subject:'Relatório Final de Inquérito Policial' }, { id:'s-dgf', subject:'Direitos e garantias fundamentais' }, { id:'s-lei', subject:'Lei de Interceptação Telefônica' }],
-    factoryAgenda:[
-      { id:'peca', disciplina:'PEÇA PARA DELEGADO DE POLÍCIA CIVIL', tema:'Relatório Final de Inquérito Policial', syllabusItemId:'s-peca', factoryDestinationFolder:driveFolder('PASTA_PECA_0001'), modules:{ peca:{ status:'Não iniciado' } } },
-      { id:'dgf', disciplina:'DIREITO CONSTITUCIONAL', tema:'Direitos e garantias fundamentais', syllabusItemId:'s-dgf', factoryDestinationFolder:driveFolder('PASTA_DGF_00001'), modules:{ resumoAula:{ status:'Aprovado' } } },
-      { id:'nac', disciplina:'DIREITO CONSTITUCIONAL', tema:'Nacionalidade', syllabusItemId:'s-dgf', factoryDestinationFolder:driveFolder('PASTA_NAC_00001'), modules:{} },
-      { id:'soc', disciplina:'DIREITO CONSTITUCIONAL', tema:'Direitos sociais', syllabusItemId:'s-dgf', factoryDestinationFolder:driveFolder('PASTA_SOC_00001'), modules:{ resumoAula:{ status:'Aprovado' } } },
-      { id:'lei', disciplina:'LEGISLAÇÃO ESPECÍFICA – DIREITO PROCESSUAL PENAL', tema:'Lei nº 9.296/1996', syllabusItemId:'s-lei', factoryDestinationFolder:driveFolder('PASTA_LEI_00001'), modules:{ lei:{ status:'Aprovado' } } },
-      { id:'pri', disciplina:'DIREITO PROCESSUAL PENAL', tema:'Princípios Fundamentais do Processo Penal', factoryDestinationFolder:driveFolder('PASTA_PRI_00001'), modules:{ resumoAula:{ status:'Aprovado' } } }
-    ],
-    questionTrainingEvents:[
-      { id:'p-pri', kind:'prompt', roundId:'p-pri', discipline:'DIREITO PROCESSUAL PENAL', theme:'Princípios Fundamentais do Processo Penal', config:{ primary:'FGV', count:20 }, createdAt:'2026-09-15T19:00:00Z' },
-      { id:'p-col', kind:'prompt', roundId:'p-col', discipline:'DIREITO PROCESSUAL PENAL', theme:'Colaboração Premiada', config:{ primary:'CEBRASPE', count:20 }, createdAt:'2026-09-15T22:00:00Z' },
-      { id:'p-col2', kind:'prompt', roundId:'p-col2', discipline:'DIREITO PROCESSUAL PENAL', theme:'Colaboração Premiada', config:{ primary:'CEBRASPE', count:30 }, createdAt:'2026-09-15T23:00:00Z' }
-    ]
-  };
-}
-const goal=(discipline,subject,syllabusItemId='')=>({ date:'2026-09-17', syllabusItemId, discipline, subject, type:'Estudo novo', plannedMinutes:75, actualMinutes:0, status:'Pendente', priority:'Alta' });
+const goal = (discipline, subject, date = '2026-09-17', syllabusItemId = '') => ({ date, syllabusItemId, discipline, subject, type: 'Estudo novo', plannedMinutes: 75, actualMinutes: 0, status: 'Pendente', priority: 'Alta' });
+const file = (id, name, mimeType = WORD, createdTime = '2026-09-01T10:00:00Z') => ({ id, name, mimeType, createdTime, modifiedTime: createdTime, webViewLink: `https://drive.google.com/file/d/${id}/view` });
 function fakeDrive() {
-  const f=(id,name,mimeType=WORD)=>({ id,name,mimeType,createdTime:'2026-09-01T00:00:00Z',modifiedTime:'2026-09-01T00:00:00Z',webViewLink:`https://drive.google.com/file/d/${id}/view` });
-  const folders={
-    PASTA_PECA_0001:[f('a1','MAPA_TOPIFICADO_PECA_RELATORIO_FINAL_INQUERITO_POLICIAL.docx'),f('a2','MAPA_TOPIFICADO_PECA_RELATORIO_FINAL_INQUERITO_POLICIAL.pdf','application/pdf')],
-    PASTA_DGF_00001:[f('b1','MAPA_HIERARQUICO_RESUMO_AULA_DIREITOS_E_GARANTIAS_FUNDAMENTAIS.docx'),f('b2','8_2_3_NACIONALIDADE',FOLDER)],
-    PASTA_NAC_00001:[], PASTA_SOC_00001:[],
-    PASTA_LEI_00001:[f('c1','Lei-n-9-296-de-1996-Interceptacao-Telefonica.pdf','application/pdf')],
-    PASTA_PRI_00001:[f('d1','TREINO_DIREITO PROCESSUAL PENAL_PRINCÍPIOS FUNDAMENTAIS DO PROCESSO PENAL.json','application/json'),f('d2','TREINO_DIREITO PROCESSUAL PENAL_PRINCÍPIOS FUNDAMENTAIS DO PROCESSO PENAL.html','text/html')]
+  const folders = {
+    PASTA_PRI_00001: [file('p1', 'MAPA_HIERARQUICO_RESUMO_AULA_PRINCIPIOS.docx', WORD, '2026-09-15T14:15:39Z'), file('p2', 'TREINO_DIREITO PROCESSUAL PENAL_PRINCÍPIOS.json', 'application/json', '2026-09-15T19:26:00Z'), file('p3', 'TREINO_DIREITO PROCESSUAL PENAL_PRINCÍPIOS.html', 'text/html', '2026-09-15T19:23:51Z'), file('p4', 'TREINO_DIREITO PROCESSUAL PENAL_PRINCÍPIOS_01_TRIAGEM_QC.txt', 'text/plain', '2026-09-16T08:00:00Z')],
+    PASTA_COL_00001: [file('c1', 'MAPA_MENTAL_JURISPRUDENCIAS_COLABORACAO_PREMIADA.pdf', 'application/pdf', '2026-08-20T09:00:00Z'), file('c2', 'MAPA_HIERARQUICO_RESUMO_AULA_COLABORACAO_PREMIADA.docx', WORD, '2026-08-16T08:00:00Z')],
+    PASTA_ECA_00001: [], PASTA_SOC_00001: [],
+    PASTA_PECA_0001: [file('r1', 'MAPA_TOPIFICADO_PECA_RELATORIO_FINAL_INQUERITO_POLICIAL.docx')],
+    PASTA_APF_00001: [], PASTA_DGF_00001: [file('d1', 'MAPA_HIERARQUICO_RESUMO_AULA_DGF.docx'), file('d2', '8_2_3_NACIONALIDADE', FOLDER)], PASTA_NAC_00001: [],
+    PASTA_LEI_00001: [file('l1', 'Lei-n-9-296-de-1996-Interceptacao-Telefonica.pdf', 'application/pdf')]
   };
-  const parents={ PASTA_NAC_00001:'PASTA_DGF_00001', PASTA_SOC_00001:'PASTA_DGF_00001' };
   return async (url) => {
-    const u=decodeURIComponent(url), list=u.match(/'([\w-]+)' in parents/);
-    if(list) return { files:folders[list[1]]||[] };
-    const meta=u.match(/files\/([\w-]+)\?fields=id,parents/);
-    if(meta) return { id:meta[1], parents:[parents[meta[1]]||'raiz'] };
-    throw new Error('url inesperada '+u);
+    const u = decodeURIComponent(url), list = u.match(/'([\w-]+)' in parents/);
+    if (list) return { files: folders[list[1]] || [] };
+    throw new Error('url inesperada ' + u);
   };
 }
-async function realReport(goals) {
-  const state=realState(), linker=api.createGoalLinker(state), links=new Map();
-  goals.forEach((g)=>links.set([g.date,g.syllabusItemId,canonText(g.discipline),canonText(g.subject)].join('|'),linker.links(g)));
-  const out=await api.createDriveReader({ get:fakeDrive(), countPdfPages:async()=>1 }).resolveGoals(links, linker.folderIndex);
-  assert.equal(out.state,'on');
-  const day={ label:'DIA', key:'daily', data:{ start:'2026-09-17', end:'2026-09-17', goals, days:[{ date:'2026-09-17', dayType:'Folga', goals }] } };
-  return api.buildReport({ periods:[day], referenceDate:'2026-09-17', scope:'daily', scopeLabel:'Somente dia', summaries:api.elaboratedSummaries(state), trainings:api.trainingRecords(state), appState:state, goalDrive:out.results, driveState:'on', today:'2026-09-16' });
+async function report({ goals, key = 'daily', driveState = 'on', start = '2026-09-17', end = '2026-09-17' }) {
+  const appState = state(), linker = api.createGoalLinker(appState), links = new Map();
+  goals.forEach((g) => links.set([g.date, g.syllabusItemId, canonText(g.discipline), canonText(g.subject)].join('|'), linker.links(g)));
+  const out = driveState === 'on' ? await api.createDriveReader({ get: fakeDrive() }).resolveGoals(links) : { results: new Map(), state: driveState };
+  const dates = [...new Set(goals.map((g) => g.date))];
+  const days = [...dates.map((date) => ({ date, dayType: 'Folga', goals: goals.filter((g) => g.date === date) })), { date: '2026-09-19', goals: [] }];
+  return api.buildReport({ periods: [{ label: key === 'daily' ? 'DIA' : 'SEMANA', key, data: { start, end, days } }], referenceDate: '2026-09-17', scope: key, scopeLabel: key === 'daily' ? 'Somente dia' : 'Somente semana', linker, goalDrive: out.results, driveState: out.state, generatedAt: '2026-09-16T12:30:00Z' });
 }
+const rowsOf = (r) => r.periods.flatMap((p) => p.days.flatMap((d) => d.rows));
 
-test('V623.5 meta liga ao tema pelo item do edital, sem pegar subtema irmão', () => {
-  const linker=api.createGoalLinker(realState());
-  assert.deepEqual(linker.links(goal('DIREITO PROCESSUAL PENAL','Lei de Interceptação Telefônica','s-lei')).map((l)=>[l.item.id,l.relation]), [['lei','item']]);
-  assert.deepEqual(linker.links(goal('CONSTITUCIONAL','Nacionalidade','s-dgf')).map((l)=>l.item.id), ['nac']);
-  assert.deepEqual(linker.links(goal('DIREITO CONSTITUCIONAL','Direitos políticos','s-dgf')).map((l)=>l.item.id), ['dgf']);
-  assert.deepEqual(linker.links(goal('DIREITO PENAL','Tema que não existe')), []);
+test('V623.7 RESUMO segue o "Aprovado" do RESUMO/AULA, com a data do arquivo na pasta do Drive', async () => {
+  const r = await report({ goals: [goal('DIREITO PROCESSUAL PENAL', 'Princípios Fundamentais do Processo Penal'), goal('DIREITO PROCESSUAL PENAL', 'Colaboração Premiada'), goal('DIREITO PROCESSUAL PENAL', 'Apuração de Atos Infracionais – ECA'), goal('DIREITO CONSTITUCIONAL', 'Direitos sociais'), goal('DIREITO PENAL', 'Tema fora da Fábrica')] });
+  const [pri, col, eca, soc, fora] = rowsOf(r);
+  assert.equal(pri.resumo.text, 'REALIZADO NO DIA 15/09/2026');
+  // A data da Fábrica (17/08) não vale: vale a do arquivo do resumo na pasta (16/08).
+  assert.equal(col.resumo.text, 'REALIZADO NO DIA 16/08/2026');
+  assert.equal(eca.resumo.text, 'REALIZADO (DATA NÃO ENCONTRADA NA PASTA DO DRIVE)');
+  // Só existem REALIZADO e NÃO REALIZADO: "Não se aplica" na Fábrica sai como NÃO REALIZADO.
+  assert.equal(soc.resumo.text, 'NÃO REALIZADO');
+  assert.equal(fora.resumo.text, 'NÃO REALIZADO');
+  assert.equal(fora.folderUrl, '');
 });
 
-test('V623.5 resumo e treino da meta vêm da pasta real, não só do status da Fábrica', async () => {
-  const goals=[goal('PEÇA PARA DELEGADO DE POLÍCIA CIVIL','Relatório Final de Inquérito Policial','s-peca'), goal('CONSTITUCIONAL','Nacionalidade','s-dgf'), goal('DIREITO CONSTITUCIONAL','Direitos sociais','s-dgf'), goal('DIREITO PROCESSUAL PENAL','Lei de Interceptação Telefônica','s-lei'), goal('DIREITO PROCESSUAL PENAL','Princípios Fundamentais do Processo Penal'), goal('DIREITO PROCESSUAL PENAL','Colaboração Premiada')];
-  const r=await realReport(goals), out=goals.map((g)=>api.factoryOutcomeForGoal(g,r));
-  assert.equal(out[0].summaryLabel,'SIM — PEÇA (Word e PDF)'); assert.equal(out[0].summaryDone,true);
-  assert.equal(out[1].summaryLabel,'NÃO NO TEMA — há resumo do tema maior'); assert.match(out[1].summaryDetail,/^Direitos e garantias fundamentais \(RESUMO\/AULA\)/); assert.equal(out[1].summaryDone,false);
-  // Status "Aprovado" sem arquivo na pasta não vira SIM.
-  assert.equal(out[2].summaryLabel,'NÃO NO TEMA — há resumo do tema maior');
-  assert.equal(out[3].summaryLabel,'NÃO — a pasta não tem o arquivo'); assert.match(out[3].summaryDetail,/a Fábrica marca LEI como pronto · tema na Fábrica: Lei nº 9\.296\/1996/);
-  assert.equal(out[4].trainingLabel,'SIM — arquivo do treino na pasta'); assert.match(out[4].trainingDetail,/PROCESSO PENAL\.html$/);
-  assert.equal(out[4].summaryLabel,'NÃO — a pasta não tem o arquivo');
-  assert.equal(out[5].summaryLabel,'NÃO — tema não está na Fábrica');
-  assert.equal(out[5].trainingLabel,'NÃO — prompt gerado, tema sem pasta na Fábrica'); assert.match(out[5].trainingDetail,/15\/09\/2026/);
-  const html=api.buildPrintHtml(r);
-  assert.ok(html.includes('SIM — PEÇA (Word e PDF)') && html.includes('NÃO NO TEMA — há resumo do tema maior'));
+test('V623.7 metas de PEÇA ficam fora do levantamento, sem buraco na numeração', async () => {
+  const r = await report({ key: 'weekly', start: '2026-09-13', end: '2026-09-19', goals: [goal('PEÇA PARA DELEGADO DE POLÍCIA CIVIL', 'Relatório Final de Inquérito Policial', '2026-09-17'), goal('DIREITO PROCESSUAL PENAL', 'Colaboração Premiada', '2026-09-17'), goal('PEÇA PARA DELEGADO DE POLÍCIA CIVIL', 'Auto de Prisão em Flagrante', '2026-09-17'), goal('PEÇA PARA DELEGADO DE POLÍCIA CIVIL', 'Auto de Prisão em Flagrante', '2026-09-18')] });
+  assert.deepEqual(r.periods[0].days.map((d) => [d.date, d.rows.map((x) => [x.number, x.theme])]), [['2026-09-17', [[1, 'Colaboração Premiada']]]]);
+  const html = api.buildPrintHtml(r);
+  assert.ok(!html.includes('PEÇA') && !html.includes('Relatório Final'));
 });
 
-test('V623.5 treino feito só com prompt entra uma vez por tema, com o prompt mais recente', () => {
-  const rows=api.trainingRecords(realState());
-  const col=rows.filter((r)=>r.theme==='Colaboração Premiada');
-  assert.equal(col.length,1); assert.equal(col[0].typeLabel,'CEBRASPE · 30 PEDIDAS'); assert.match(col[0].factoryStatus,/^Prompt gerado/);
-  assert.equal(rows.filter((r)=>r.theme==='Princípios Fundamentais do Processo Penal').length,1);
+test('V623.7 TREINO e JURISPRUDÊNCIA vêm do arquivo na pasta destino, com a data do arquivo', async () => {
+  const r = await report({ goals: [goal('DIREITO PROCESSUAL PENAL', 'Princípios Fundamentais do Processo Penal'), goal('DIREITO PROCESSUAL PENAL', 'Colaboração Premiada'), goal('DIREITO PROCESSUAL PENAL', 'Lei de Interceptação Telefônica', '2026-09-17', 's-lei')] });
+  const [pri, col, lei] = rowsOf(r);
+  assert.equal(pri.treino.text, 'REALIZADO NO DIA 15/09/2026');
+  assert.equal(pri.juris.text, 'NÃO REALIZADO');
+  assert.equal(col.treino.text, 'NÃO REALIZADO');
+  assert.equal(col.juris.text, 'REALIZADO NO DIA 20/08/2026');
+  // Texto da lei na pasta não é resumo nem jurisprudência.
+  assert.equal(lei.juris.text, 'NÃO REALIZADO');
+  assert.equal(lei.folderUrl, driveFolder('PASTA_LEI_00001'));
 });
 
-test('V623.5 tipo do arquivo pelo começo do nome; prompts e texto de lei não contam', () => {
-  const kind=(name)=>api.productKind({ name });
-  assert.equal(kind('MAPA_HIERARQUICO_RESUMO_AULA_LEI_13_709_2018.docx'),'resumoAula');
-  assert.equal(kind('RESUMO_TOPIFICADO_LEI_9_296_1996_INTERCEPTACAO_TELEFONICA_FINAL.pdf'),'lei');
-  assert.equal(kind('MAPA_MENTAL_JURISPRUDENCIAS_ARQUIVAMENTO.docx'),'jurisprudencia');
-  assert.equal(kind('RESUMO_PECA_REPRESENTACAO_POR_INTERCEPTACAO_TELEFONICA.docx'),'peca');
-  assert.equal(kind('Lei-n-9-296-de-1996-Interceptacao-Telefonica.pdf'),'');
-  assert.equal(api.isTrainingFile({ name:'TREINO_DIREITO PENAL_TEMA.html' }),true);
-  assert.equal(api.isTrainingFile({ name:'TREINO_DIREITO PENAL_TEMA_01_TRIAGEM_QC.txt' }),false);
-  assert.equal(api.isTrainingFile({ name:'TREINO_DIREITO PENAL_TEMA_EXCLUSOES.json' }),false);
-  assert.equal(api.isTrainingFile({ name:'TREINO_DIREITO PENAL_TEMA_MODELO.html' }),false);
+test('V623.7 sem Google Drive não inventa: NÃO CONFERIDO onde há pasta', async () => {
+  const r = await report({ goals: [goal('DIREITO PROCESSUAL PENAL', 'Colaboração Premiada'), goal('DIREITO PENAL', 'Tema fora da Fábrica')], driveState: 'off' });
+  const [col, fora] = rowsOf(r);
+  assert.equal(col.resumo.text, 'REALIZADO (DATA NÃO CONFERIDA — Google Drive não autorizado)');
+  assert.equal(col.treino.text, 'NÃO CONFERIDO (Google Drive não autorizado)'); assert.equal(col.treino.warn, true);
+  assert.equal(fora.treino.text, 'NÃO REALIZADO');
+});
+
+test('V623.7 meta liga ao tema pelo item do edital, sem pegar subtema irmão', () => {
+  const linker = api.createGoalLinker(state());
+  assert.deepEqual(linker.links(goal('DIREITO PROCESSUAL PENAL', 'Lei de Interceptação Telefônica', '2026-09-17', 's-lei')).map((l) => [l.item.id, l.relation]), [['lei', 'item']]);
+  assert.deepEqual(linker.links(goal('CONSTITUCIONAL', 'Nacionalidade', '2026-09-17', 's-dgf')).map((l) => l.item.id), ['nac']);
+  assert.deepEqual(linker.links(goal('DIREITO CONSTITUCIONAL', 'Direitos políticos', '2026-09-17', 's-dgf')).map((l) => l.item.id), ['dgf']);
+});
+
+test('V623.7 só entram as metas do período; numeração recomeça em cada dia; dias vazios somem', async () => {
+  const r = await report({ key: 'weekly', start: '2026-09-13', end: '2026-09-19', goals: [goal('DIREITO PROCESSUAL PENAL', 'Colaboração Premiada', '2026-09-17'), goal('DIREITO PROCESSUAL PENAL', 'Princípios Fundamentais do Processo Penal', '2026-09-17'), goal('DIREITO PROCESSUAL PENAL', 'Colaboração Premiada', '2026-09-18')] });
+  assert.equal(r.periods.length, 1);
+  assert.deepEqual(r.periods[0].days.map((d) => [d.date, d.rows.map((x) => x.number)]), [['2026-09-17', [1, 2]], ['2026-09-18', [1]]]);
+  assert.equal(r.periods[0].total, 3);
+  assert.equal('summaries' in r || 'trainings' in r, false);
+});
+
+test('V623.7 PDF simples: uma linha por meta, colunas na ordem pedida e protegido do CSS do site', async () => {
+  const html = api.buildPrintHtml(await report({ goals: [goal('DIREITO PROCESSUAL PENAL', 'Princípios Fundamentais do Processo Penal'), goal('DIREITO PENAL', 'Tema fora da Fábrica')] }));
+  const heads = [...html.matchAll(/<th>([^<]+)<\/th>/g)].map((m) => m[1]);
+  assert.deepEqual(heads, ['META', 'DISCIPLINA', 'TEMA', 'RESUMO (AULA + JURISPRUDÊNCIA)', 'LINK DA PASTA DESTINO', 'TREINO DE QUESTÕES', 'JURISPRUDÊNCIA']);
+  assert.ok(html.includes('<td class="acv-meta">META 1</td><td>DIREITO PROCESSUAL PENAL</td><td>Princípios Fundamentais do Processo Penal</td>'));
+  assert.ok(html.includes(`<a href="${driveFolder('PASTA_PRI_00001')}">abrir pasta</a>`));
+  assert.ok(html.includes('SEM PASTA DESTINO NA FÁBRICA'));
+  assert.ok(html.includes('>ALDUS</text>') && html.includes('>METAS CONCURSO</text>'));
+  assert.match(html, /size:A4 landscape/);
+  assert.match(html, /aria-hidden="true"/);
+  // O timbre na margem da página saía cortado com "Margens: nenhuma"; position:fixed cobria a tabela.
+  assert.doesNotMatch(html, /@top-left|@top-right|position:fixed/);
+  assert.match(html, /#goalCalendarPrintableReport\.aldus-cal-v623 th\{[^}]*text-align:left!important/);
+  assert.match(html, /#goalCalendarPrintableReport\.aldus-cal-v623,#goalCalendarPrintableReport\.aldus-cal-v623 \*\{[^}]*text-transform:none!important/);
+  for (const antigo of ['Produto elaborado', 'PREJUDICADO', 'Cumprimento', 'Fábrica de Resumos —', 'Páginas do Word', 'Resumo pronto?', 'NÃO SE APLICA']) assert.ok(!html.includes(antigo), antigo);
+});
+
+test('V623.7 imagem mostra as quatro informações de cada meta', async () => {
+  const svg = api.buildSvg(await report({ goals: [goal('DIREITO PROCESSUAL PENAL', 'Princípios Fundamentais do Processo Penal')] }));
+  assert.match(svg, /viewBox="0 0 1600 \d+"/);
+  for (const t of ['META 1 · DIREITO PROCESSUAL PENAL — Princípios Fundamentais do Processo Penal', 'RESUMO (AULA + JURISPRUDÊNCIA):', 'LINK DA PASTA DESTINO:', 'TREINO DE QUESTÕES:', 'JURISPRUDÊNCIA:', 'REALIZADO NO DIA 15/09/2026']) assert.ok(svg.includes(t), t);
+  assert.ok(!svg.includes('Produto elaborado'));
+});
+
+test('V623.7 Excel tem uma aba com as colunas pedidas; DATA só em período de vários dias', async () => {
+  const byName = (files) => Object.fromEntries(files.map((f) => [f.name, f.data]));
+  const dia = byName(api.buildWorkbookFiles(await report({ goals: [goal('DIREITO PROCESSUAL PENAL', 'Colaboração Premiada')] }), new Uint8Array([137, 80, 78, 71])));
+  assert.match(dia['xl/workbook.xml'], /<sheets><sheet name="Metas" sheetId="1" r:id="rId1"\/><\/sheets>/);
+  assert.equal(dia['xl/worksheets/sheet2.xml'], undefined);
+  const sheet = dia['xl/worksheets/sheet1.xml'];
+  const order = ['META', 'DISCIPLINA', 'TEMA', 'RESUMO (AULA + JURISPRUDÊNCIA)', 'LINK DA PASTA DESTINO', 'TREINO DE QUESTÕES', 'JURISPRUDÊNCIA'].map((h) => sheet.indexOf(`>${h}</t>`));
+  assert.ok(order.every((pos, i) => pos > 0 && (i === 0 || pos > order[i - 1])), JSON.stringify(order));
+  assert.ok(!sheet.includes('>DATA</t>'));
+  assert.ok(sheet.includes('REALIZADO NO DIA 16/08/2026') && sheet.includes('REALIZADO NO DIA 20/08/2026'));
+  assert.ok(sheet.includes(`HYPERLINK(&quot;${driveFolder('PASTA_COL_00001')}&quot;`));
+  const semana = byName(api.buildWorkbookFiles(await report({ key: 'weekly', start: '2026-09-13', end: '2026-09-19', goals: [goal('DIREITO PROCESSUAL PENAL', 'Colaboração Premiada')] }), new Uint8Array([137, 80, 78, 71])));
+  assert.ok(semana['xl/worksheets/sheet1.xml'].includes('>DATA</t>'));
+});
+
+test('V623.7 tipo do arquivo pelo começo do nome; prompts e texto de lei não contam', () => {
+  const kind = (name) => api.productKind({ name });
+  assert.equal(kind('MAPA_HIERARQUICO_RESUMO_AULA_LEI_13_709_2018.docx'), 'resumoAula');
+  assert.equal(kind('MAPA_MENTAL_JURISPRUDENCIAS_ARQUIVAMENTO.docx'), 'jurisprudencia');
+  assert.equal(kind('Lei-n-9-296-de-1996-Interceptacao-Telefonica.pdf'), '');
+  assert.equal(api.isTrainingFile({ name: 'TREINO_DIREITO PENAL_TEMA.html' }), true);
+  assert.equal(api.isTrainingFile({ name: 'TREINO_DIREITO PENAL_TEMA_01_TRIAGEM_QC.txt' }), false);
+  assert.equal(api.isTrainingFile({ name: 'TREINO_DIREITO PENAL_TEMA_EXCLUSOES.json' }), false);
+});
+
+test('V623.7 continua carregado pela cadeia ativa e espelhado em docs', () => {
+  const loader = fs.readFileSync('performance-emergency-v350.js', 'utf8');
+  assert.ok(loader.includes('script.src = "goal-calendar-export-v623.js?v=20260916-calendario-simples-v623-7";'));
+  assert.deepEqual(fs.readFileSync('goal-calendar-export-v623.js'), fs.readFileSync('docs/goal-calendar-export-v623.js'));
+  assert.match(fs.readFileSync('build-bundles.mjs', 'utf8'), /"goal-calendar-export-v623\.js"/);
 });
