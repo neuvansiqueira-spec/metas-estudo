@@ -133,3 +133,23 @@ test('V621 mantém CEBRASPE contextual, nomes temáticos e publicação raiz/doc
   assert.match(loader,/installQuestionTrainingFactoryV621\(\);/);
   assert.equal(loader,fs.readFileSync('docs/security-observability-v318.js','utf8'));
 });
+
+test('V621.7 aceita o JSON do PROMPT 2 com origem "real" e banca "AUTORAL" sem afrouxar o resto',()=>{
+  // Formato exportado em 16/09/2026 pelo HTML do treino (questoes-corrigidas (6).json): 1 real + 14 autorais.
+  const ctx=trainingV621();ctx.__ALDUS_QUESTION_TRAINING_FACTORY_V621__.install();
+  const validate=(p)=>ctx.AldusQuestionTraining.validatePayload(p);
+  const real=()=>question('Q2365401',{origem_tipo:'real',fonte:'QConcursos',corrigida:true,resposta_marcada:'B',resultado:'ERREI'});
+  const autoral=(n)=>question(`AGENTE-round1-0${n}`,{origem_tipo:'autoral',fonte:'Questão autoral gerada para treino',banca:'AUTORAL',banca_estilo:'FGV',corrigida:true,resposta_marcada:'A',resultado:'ACERTEI'});
+  const p=payload([real(),autoral(1),autoral(2)]);
+  assert.doesNotThrow(()=>validate(p));
+  assert.deepEqual(p.questionBank.map((q)=>[q.origem_tipo,q.fonte,q.banca]),[['qconcursos','QConcursos','FGV'],['autoral','Agente','Autoral'],['autoral','Agente','Autoral']]);
+  // A identidade continua vindo do código: "autoral" sem AGENTE- e "real" sem código Q seguem recusados.
+  assert.throws(()=>validate(payload([question('Q1',{origem_tipo:'autoral',banca:'AUTORAL'})])),/Identifique a questão criada pelo agente/);
+  assert.throws(()=>validate(payload([question('AGENTE-round1-09',{origem_tipo:'real',fonte:'QConcursos'})])),/Fonte da questão real inconsistente/);
+  assert.throws(()=>validate(payload([question('Q3',{origem_tipo:'real',fonte:'Blog de questões'})])),/Fonte da questão real inconsistente/);
+  // As demais checagens não mudam.
+  assert.throws(()=>validate(payload([autoral(3),{...autoral(4),resultado:'ERREI'}])),/Resultado inconsistente/);
+  // Fora do schema do treino, nada é reescrito.
+  const alheio={questionBank:[{id:'AGENTE-x-01',origem_tipo:'real',banca:'AUTORAL'}]};validate(alheio);
+  assert.deepEqual(alheio.questionBank[0],{id:'AGENTE-x-01',origem_tipo:'real',banca:'AUTORAL'});
+});

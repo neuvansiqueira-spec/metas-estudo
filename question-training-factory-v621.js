@@ -1,4 +1,4 @@
-/* Melhorias do Treino de Questões da Fábrica — v621.6. */
+/* Melhorias do Treino de Questões da Fábrica — v621.7. */
 (() => {
   "use strict";
   const VERSION="20260915-treino-triagem-filtro-assunto-qc-v621-6",FLAG="__ALDUS_QUESTION_TRAINING_FACTORY_V621__",PROMPT_MARK="__aldusQuestionTrainingPromptV621",TEMPLATE_MARK="__aldusQuestionTrainingTemplateV621",VALIDATE_MARK="__aldusQuestionTrainingValidateV621";
@@ -21,6 +21,20 @@
   function baseName(d,t){return`TREINO_${safeFilePart(d,"DISCIPLINA")}_${safeFilePart(t,"MISTO")}`;}
   function questionsOf(p={}){return Array.isArray(p)?p:(p.questionBank||p.questoes||p.questions||p.items||[]);}
   function roundOf(p={}){return p.trainingRound||p.metadata?.trainingRound||{};}
+  // O PROMPT 2 (PDF → HTML) lista os campos, mas não fixa os valores: o agente passou a exportar
+  // origem_tipo "real", banca "AUTORAL" e fonte por extenso, e o validador recusava o treino inteiro
+  // no Registrar questões. Aqui só se trocam sinônimos inequívocos; quem decide real x autoral
+  // continua sendo o código da questão (Q123 / AGENTE-...), e as demais checagens seguem iguais.
+  function normalizeOrigins(payload,schema){
+    if(!payload||Array.isArray(payload)||payload.schema!==schema)return payload;
+    for(const q of questionsOf(payload)){
+      if(!q||typeof q!=="object")continue;
+      const id=text(q.id),origin=canon(q.origem_tipo),source=canon(q.fonte),board=canon(q.banca);
+      if(/^AGENTE-/i.test(id)&&(["autoral","agente","gerada","criada pelo agente"].includes(origin)||board==="autoral"||/autoral|agente/.test(source))){q.origem_tipo="autoral";q.fonte="Agente";q.banca="Autoral";}
+      else if(/^q\s*\d+$/i.test(id)&&["real","qc","qconcursos","questao real"].includes(origin)&&/qconcursos/.test(source)){q.origem_tipo="qconcursos";q.fonte="QConcursos";}
+    }
+    return payload;
+  }
   function validateSearchAudit(payload){
     const qs=questionsOf(payload),a=qs.filter(q=>q?.origem_tipo==="autoral");if(!a.length)return;const r=roundOf(payload),x=r.searchAudit||payload.searchAudit||payload.metadata?.searchAudit;
     if(!x||x.qconcursosSearched!==true)throw Error("Questões autorais bloqueadas: falta auditoria obrigatória da busca no QConcursos.");
@@ -95,7 +109,7 @@
   function installApi(){
     const api=globalThis.AldusQuestionTraining;if(!api)return false;
     if(typeof api.prompt==="function"&&!api.prompt[PROMPT_MARK]){const old=api.prompt,wrapped=function(config={},s=currentState(),id){const effective=liveConfig(config),res=old.call(this,effective,s,id),patched=patchResult(res,effective,s);if(generatingForm)rememberGenerated(generatingForm,patched);return patched;};Object.defineProperty(wrapped,PROMPT_MARK,{value:true});api.prompt=wrapped;}
-    if(typeof api.validatePayload==="function"&&!api.validatePayload[VALIDATE_MARK]){const oldValidate=api.validatePayload,wrappedValidate=function(payload){const value=oldValidate.call(this,payload);validateJustificationQuality(payload);return value;};Object.defineProperty(wrappedValidate,VALIDATE_MARK,{value:true});api.validatePayload=wrappedValidate;}
+    if(typeof api.validatePayload==="function"&&!api.validatePayload[VALIDATE_MARK]){const oldValidate=api.validatePayload,wrappedValidate=function(payload){normalizeOrigins(payload,api.SCHEMA);const value=oldValidate.call(this,payload);validateJustificationQuality(payload);return value;};Object.defineProperty(wrappedValidate,VALIDATE_MARK,{value:true});api.validatePayload=wrappedValidate;}
     return true;
   }
   function installTemplate(){const t=globalThis.AldusTrainingTemplate;if(!t||typeof t.buildHTML!=="function"||t.buildHTML[TEMPLATE_MARK])return Boolean(t);const old=t.buildHTML,wrapped=function(payload){const html=old.call(this,payload),r=roundOf(payload),base=text(r.outputBaseName)||baseName(r.discipline,r.theme);return html.replace("a.download='treino-questoes.json';",`a.download=${JSON.stringify(`${base}.json`)};`);};Object.defineProperty(wrapped,TEMPLATE_MARK,{value:true});t.buildHTML=wrapped;return true;}
