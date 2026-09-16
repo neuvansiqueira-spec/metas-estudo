@@ -1,11 +1,13 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260826-planning-legacy-mutator-guard-v399";
+  const VERSION = "20260916-planning-guard-goal-time-hotfix-v425";
   const ALIGN_MARKER = "__aldusPlanningConsentGuardV399";
   const LEGACY_MUTATOR_MARKER = "__aldusPlanningLegacyMutatorGuardV399";
   const FACTORY_BRIDGE_SCRIPT_ID = "aldusFactoryLc259LinkV398";
   const FACTORY_BRIDGE_VERSION = "20260826-factory-lc259-link-v398";
+  const GOAL_TIME_HOTFIX_SCRIPT_ID = "aldusGoalTimeHistoryHotfixV425";
+  const GOAL_TIME_HOTFIX_VERSION = "20260916-goal-time-history-hotfix-v425";
 
   // Identificadores legados mantidos apenas para diagnóstico/histórico. Não são carregados automaticamente.
   const RESTORE_SCRIPT_ID = "aldusAuthorizedGoalRestoreV391";
@@ -168,7 +170,7 @@
         }
       }
     } catch (error) {
-      console.warn("[Aldus V399] Não foi possível limpar integralmente o cache dos runtimes antigos.", error);
+      console.warn("[Aldus V425] Não foi possível limpar integralmente o cache dos runtimes antigos.", error);
     }
     return { caches: touched, deleted };
   }
@@ -183,6 +185,21 @@
     script.addEventListener("error", () => {
       script.remove();
       console.error("[Aldus V398] Falha ao carregar o vínculo da LC 259 com a Fábrica de Resumos.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+    return true;
+  }
+
+  function loadGoalTimeHistoryHotfixV425() {
+    if (typeof document === "undefined") return false;
+    if (document.getElementById(GOAL_TIME_HOTFIX_SCRIPT_ID)) return true;
+    const script = document.createElement("script");
+    script.id = GOAL_TIME_HOTFIX_SCRIPT_ID;
+    script.src = `goal-time-history-hotfix-v425.js?v=${encodeURIComponent(GOAL_TIME_HOTFIX_VERSION)}`;
+    script.async = false;
+    script.addEventListener("error", () => {
+      script.remove();
+      console.error("[Aldus V425] Falha ao carregar o hotfix de tempo, histórico e conclusão das metas.");
     }, { once: true });
     (document.head || document.documentElement).appendChild(script);
     return true;
@@ -205,6 +222,7 @@
   queueMicrotask(installPlanningMutationGuards);
   evictLegacyRuntimeCache();
   loadFactoryLc259BridgeV398();
+  loadGoalTimeHistoryHotfixV425();
   legacyAutomaticRepairsDisabledV399();
 
   if (typeof window !== "undefined") {
@@ -226,6 +244,7 @@
     installPlanningMutationGuards,
     evictLegacyRuntimeCache,
     loadFactoryLc259BridgeV398,
+    loadGoalTimeHistoryHotfixV425,
     legacyAutomaticRepairsDisabledV399,
     legacyAutomaticRepairsDisabled: Object.freeze([
       `${RESTORE_SCRIPT_ID}:${RESTORE_VERSION}`,
