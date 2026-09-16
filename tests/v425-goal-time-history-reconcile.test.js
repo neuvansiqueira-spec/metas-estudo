@@ -114,15 +114,15 @@ function makeContext() {
   return { context, rows };
 }
 
-function loadIntegrity(context) {
+function loadHotfix(context) {
   vm.createContext(context);
-  const source = fs.readFileSync('timer-goal-integrity-v366.js', 'utf8');
+  const source = fs.readFileSync('goal-time-history-hotfix-v425.js', 'utf8');
   vm.runInContext(source, context);
 }
 
 test('reconcilia 1h06min51s do cronômetro antes de concluir a meta', () => {
   const { context } = makeContext();
-  loadIntegrity(context);
+  loadHotfix(context);
   context.confirmGoalCompletion('g1');
 
   const goal = context.state.dailyGoals[0];
@@ -133,9 +133,18 @@ test('reconcilia 1h06min51s do cronômetro antes de concluir a meta', () => {
 
 test('histórico não perde sessão recente quando há mais de 20 registros no mesmo dia', () => {
   const { context, rows } = makeContext();
-  loadIntegrity(context);
+  loadHotfix(context);
   context.renderHistory();
 
   assert.equal(rows.length, 26);
   assert.ok(rows.some((row) => row.innerHTML.includes('Prevenção do delito.')));
+});
+
+test('startup carrega o hotfix por caminho fora da lista estática do service worker', () => {
+  const startup = fs.readFileSync('startup-planning-stability-v387.js', 'utf8');
+  const serviceWorker = fs.readFileSync('service-worker.js', 'utf8');
+
+  assert.match(startup, /goal-time-history-hotfix-v425\.js/);
+  assert.match(startup, /loadGoalTimeHistoryHotfixV425\(\)/);
+  assert.doesNotMatch(serviceWorker, /"goal-time-history-hotfix-v425\.js/);
 });
