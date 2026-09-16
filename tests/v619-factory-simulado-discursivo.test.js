@@ -67,6 +67,7 @@ test("V624 usa na PC-PR 2026 o prompt definido por ele, preenchendo só os campo
 test("V624 monta o simulado na Fábrica, depois da Biblioteca de prompts e fora dela", () => {
   assert.match(rootSource, /const LIBRARY_PANEL_ID = "factoryPromptPanelV163";/);
   assert.match(rootSource, /library\.after\(section\)/);
+  assert.match(rootSource, /window\.addEventListener\("load", install, \{ once: true \}\)/);
   assert.doesNotMatch(rootSource, /getElementById\("factoryPromptLibraryPanel"\)/);
 });
 

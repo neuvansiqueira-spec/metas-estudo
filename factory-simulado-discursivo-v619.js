@@ -7,7 +7,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260916-simulado-pcpr-fora-biblioteca-v624";
+  const VERSION = "20260916-simulado-posicao-fixa-v624";
   const SECTION_ID = "factorySimuladoDiscursivoV619";
   // V624 — o painel fica na Fábrica, logo depois do painel "Biblioteca de prompts" (factory-simple-v163), e não dentro dele.
   const LIBRARY_PANEL_ID = "factoryPromptPanelV163";
@@ -1158,6 +1158,8 @@ REGRAS DE SEGURANÇA JURÍDICA (valem para as duas etapas)
 
   if (typeof window !== "undefined") {
     install();
+    // V624 — em carga sem cache o factory-simple-v163 cria a Biblioteca depois deste módulo; reposiciona uma vez no load.
+    if (document.readyState !== "complete") window.addEventListener("load", install, { once: true });
     window.addEventListener("hashchange", () => {
       if (String(location.hash || "").replace(/^#/, "").split(/[?&]/)[0] === "fabrica-resumos") install();
     });
