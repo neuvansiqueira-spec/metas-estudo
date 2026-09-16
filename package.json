@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260916-registrar-questoes-json-treino-v424",
+  "version": "20260916-calendario-simples-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

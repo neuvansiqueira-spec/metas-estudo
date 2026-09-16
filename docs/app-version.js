@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260916-registrar-questoes-json-treino-v424";
+  const VERSION = "20260916-calendario-simples-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
