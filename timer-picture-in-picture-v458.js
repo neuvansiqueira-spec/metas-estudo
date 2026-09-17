@@ -74,13 +74,13 @@
     }
     .disciplina { font-size: clamp(.6rem, 2.3vh, .74rem); font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: #3da3ff; }
     .assunto { font-size: clamp(.7rem, 2.5vh, .84rem); color: #b8cadd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    /* V626.1 — o Chrome nao deixa a janela passar de cerca de um quarto da tela
-       quando o tamanho vem de um atalho, entao o relogio tem de ocupar o vazio
-       que sobrava dentro dela. O desconto de 100px mantem intacta a janela
-       encolhida ao lado da aula (ali o tempo continua no piso de 1.4rem) e faz
-       o relogio disparar so quando ha altura de verdade; o 20vw impede que o
-       tempo estoure a largura numa janela alta e estreita. */
-    .tempo { font-size: clamp(1.4rem, min(calc(50vh - 100px), 20vw), 18rem); font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1; margin: 0; }
+    /* V626.2 — o Chrome nao deixa a janela passar de um quarto da tela quando o
+       tamanho vem de um atalho, e o zoom de 150% dele encolhe ainda mais o que
+       o CSS enxerga: a janela de 940x515 na tela vale 627x308 aqui. Entao a
+       conta e feita para o tempo encher essa janela. A reta passa pelo piso de
+       1.4rem na janela minima (240x90), que ele usa ao lado da aula, e o 21vw
+       segura a largura, que e o limite real numa janela baixa e larga. */
+    .tempo { font-size: clamp(1.4rem, min(calc(56vh - 28px), 21vw), 20rem); font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1; margin: 0; }
     .progresso { font-size: clamp(.6rem, 2.1vh, .74rem); color: #b8cadd; }
     .alerta { font-size: clamp(.64rem, 2.3vh, .78rem); font-weight: 700; color: #f2c957; }
     .acoes {
