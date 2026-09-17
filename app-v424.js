@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260917-relogio-flutuante-zoom-real-v424";
+  const VERSION = "20260917-janela-flutuante-maxima-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
