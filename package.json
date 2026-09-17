@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260917-janela-flutuante-maxima-v424",
+  "version": "20260917-relogio-metade-na-janela-grande-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
