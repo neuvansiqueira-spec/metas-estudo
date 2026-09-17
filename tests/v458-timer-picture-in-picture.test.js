@@ -138,6 +138,24 @@ test('V458 escreve em português correto', () => {
   }
 });
 
+test('V627 o botão de máximo pede o tamanho pela própria janela flutuante', () => {
+  const { api } = harness();
+  const pedidos = [];
+  const janelaFalsa = {
+    screen: { availWidth: 1280, availHeight: 672, width: 1280, height: 720 },
+    resizeTo: (w, h) => pedidos.push([w, h])
+  };
+  assert.equal(api.maximizar(janelaFalsa), true);
+  assert.deepEqual(pedidos, [[1280, 672]],
+    'o Chrome corta sozinho para o máximo dele; pedir a área útil inteira é o que chega mais longe');
+  assert.equal(api.maximizar(null), false, 'sem janela aberta, não faz nada');
+  const fonte = read('timer-picture-in-picture-v458.js');
+  assert.match(fonte, /data-pip-acao="maximizar"/,
+    'o clique tem de nascer dentro da janela flutuante: é o que o resizeTo exige');
+  assert.match(fonte, /@media \(min-height: 420px\)/,
+    'escolha dele: no tamanho máximo o relógio cai pela metade');
+});
+
 test('V458 mantém paridade raiz/docs', () => {
   assert.equal(read('timer-picture-in-picture-v458.js'), read('docs/timer-picture-in-picture-v458.js'));
 });
