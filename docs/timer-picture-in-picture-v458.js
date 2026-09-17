@@ -72,8 +72,8 @@
       height: 100vh; box-sizing: border-box;
       overflow-y: auto; overflow-x: hidden;
     }
-    .disciplina { font-size: clamp(.6rem, 2.3vh, .74rem); font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: #3da3ff; padding-right: 34px; }
-    .assunto { font-size: clamp(.7rem, 2.5vh, .84rem); color: #b8cadd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 34px; }
+    .disciplina { font-size: clamp(.6rem, 2.3vh, .74rem); font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: #3da3ff; }
+    .assunto { font-size: clamp(.7rem, 2.5vh, .84rem); color: #b8cadd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     /* V626.2 — o Chrome nao deixa a janela passar de um quarto da tela quando o
        tamanho vem de um atalho, e o zoom de 150% dele encolhe ainda mais o que
        o CSS enxerga: a janela de 940x515 na tela vale 627x308 aqui. Entao a
@@ -81,10 +81,12 @@
        1.4rem na janela minima (240x90), que ele usa ao lado da aula, e o 21vw
        segura a largura, que e o limite real numa janela baixa e larga. */
     .tempo { font-size: clamp(1.4rem, min(calc(56vh - 28px), 21vw), 20rem); font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1; margin: 0; }
-    /* V627, escolha dele: com a janela no tamanho maximo o relogio cai pela
-       metade. A altura de 420px so aparece acima do corte do Chrome, entao a
-       janela do atalho e a encolhida ao lado da aula nao mudam. */
-    @media (min-height: 420px) {
+    /* V627.1, escolha dele: no tamanho maximo da janela o relogio cai pela
+       metade. O maximo que o Chrome deixa alcancar e a janela do atalho, que
+       tem cerca de 308px de altura de CSS (940x515 na tela dele, com zoom de
+       150%). Por isso o corte fica em 280px: pega essa janela e qualquer uma
+       maior, e nao toca na padrao (220px) nem na encolhida ao lado da aula. */
+    @media (min-height: 280px) {
       .tempo { font-size: clamp(1.4rem, min(calc(28vh - 14px), 10.5vw), 10rem); }
     }
     .progresso { font-size: clamp(.6rem, 2.1vh, .74rem); color: #b8cadd; }
@@ -102,38 +104,21 @@
     }
     button.salvar { border-color: rgba(54, 203, 192, .55); }
     button:hover { border-color: #3da3ff; }
-    .maximizar {
-      position: fixed; top: 4px; right: 5px; z-index: 2;
-      flex: none; width: 28px; height: 24px; padding: 0;
-      font-size: 13px; line-height: 1; border-radius: 8px;
-      background: rgba(14, 45, 76, .9);
-    }
   `;
 
-  // V627 — o corte de um quarto da tela que o Chrome aplica vale para o tamanho
-  // pedido na CRIAÇÃO da janela, e a API de extensão esbarra no mesmo limite: é
-  // por isso que o atalho do teclado para em 940x515 na tela dele. O resizeTo
-  // feito DENTRO da janela flutuante segue outro caminho e chega ao máximo do
-  // Chrome, 80% da tela, mas exige um clique de verdade nessa janela — nenhum
-  // atalho ou script consegue produzir essa ativação. Daí o botão aqui dentro.
-  function maximizar(alvo = janela) {
-    if (!alvo) return false;
-    try {
-      const tela = alvo.screen;
-      const largura = Math.round(tela.availWidth || tela.width || 0);
-      const altura = Math.round(tela.availHeight || tela.height || 0);
-      if (!largura || !altura) return false;
-      alvo.resizeTo(largura, altura);
-      return true;
-    } catch { return false; }
-  }
+  // V627.1 — TESTADO NA MÁQUINA DELE EM 17/09/2026, NÃO FUNCIONA: o botão que
+  // chamava resizeTo pedindo a área útil inteira deixou a janela do mesmo
+  // tamanho. Nem a API da extensão (chrome.windows.update) nem o resizeTo com
+  // clique de verdade dentro da janela passam do corte de um quarto da tela,
+  // que nele dá 940x515. O botão foi retirado para não ocupar espaço à toa.
+  // Para chegar aos 80% que o Chrome permite, só o arrasto do mouse ou um
+  // ajudante fora do navegador. Não repetir essa tentativa.
 
   function montar(doc) {
     const estilo = doc.createElement("style");
     estilo.textContent = ESTILO;
     doc.head.appendChild(estilo);
     doc.body.innerHTML = `
-      <button type="button" class="maximizar" data-pip-acao="maximizar" title="Aumentar a janela ao máximo">&#10530;</button>
       <span class="disciplina" data-pip="disciplina"></span>
       <span class="assunto" data-pip="assunto"></span>
       <strong class="tempo" data-pip="tempo">00:00:00</strong>
@@ -146,7 +131,6 @@
     `;
     doc.body.addEventListener("click", (evento) => {
       const acao = evento.target?.closest?.("button[data-pip-acao]")?.dataset?.pipAcao;
-      if (acao === "maximizar") maximizar();
       if (acao === "pausar") acionar("#timerPauseResume");
       if (acao === "salvar") {
         acionar('#floatingTimer [data-timer-action="save"]');
@@ -224,7 +208,7 @@
     return true;
   }
 
-  const api = Object.freeze({ version: VERSION, install, abrir, fechar, leitura, pintar, montar, maximizar, suportado, botaoId: BOTAO_ID });
+  const api = Object.freeze({ version: VERSION, install, abrir, fechar, leitura, pintar, montar, suportado, botaoId: BOTAO_ID });
   globalThis[FLAG] = api;
 
   if (typeof document !== "undefined") {

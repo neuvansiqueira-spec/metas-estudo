@@ -138,22 +138,22 @@ test('V458 escreve em português correto', () => {
   }
 });
 
-test('V627 o botão de máximo pede o tamanho pela própria janela flutuante', () => {
-  const { api } = harness();
-  const pedidos = [];
-  const janelaFalsa = {
-    screen: { availWidth: 1280, availHeight: 672, width: 1280, height: 720 },
-    resizeTo: (w, h) => pedidos.push([w, h])
-  };
-  assert.equal(api.maximizar(janelaFalsa), true);
-  assert.deepEqual(pedidos, [[1280, 672]],
-    'o Chrome corta sozinho para o máximo dele; pedir a área útil inteira é o que chega mais longe');
-  assert.equal(api.maximizar(null), false, 'sem janela aberta, não faz nada');
+test('V627.1 no tamanho máximo da janela o relógio cai pela metade', () => {
   const fonte = read('timer-picture-in-picture-v458.js');
-  assert.match(fonte, /data-pip-acao="maximizar"/,
-    'o clique tem de nascer dentro da janela flutuante: é o que o resizeTo exige');
-  assert.match(fonte, /@media \(min-height: 420px\)/,
-    'escolha dele: no tamanho máximo o relógio cai pela metade');
+  const base = fonte.match(/\n    \.tempo \{ font-size: clamp\(1\.4rem, min\(calc\((\d+)vh - (\d+)px\), ([\d.]+)vw\), (\d+)rem\)/);
+  assert.ok(base, 'a regra normal do tempo precisa continuar em clamp');
+  const media = fonte.match(/@media \(min-height: (\d+)px\) \{\s*\.tempo \{ font-size: clamp\(1\.4rem, min\(calc\(([\d.]+)vh - ([\d.]+)px\), ([\d.]+)vw\), (\d+)rem\)/);
+  assert.ok(media, 'falta a regra da janela grande');
+  assert.equal(Number(media[2]) * 2, Number(base[1]), 'metade da altura');
+  assert.equal(Number(media[3]) * 2, Number(base[2]), 'metade do desconto');
+  assert.equal(Number(media[4]) * 2, Number(base[3]), 'metade da largura');
+  assert.equal(Number(media[5]) * 2, Number(base[4]), 'metade do teto');
+  // A janela do atalho tem ~308px de altura de CSS e a padrão tem 220: o corte
+  // fica entre as duas, senão a metade valeria onde ele não pediu.
+  assert.ok(Number(media[1]) > 220 && Number(media[1]) < 308,
+    'o corte tem de separar a janela padrão da janela do atalho');
+  assert.doesNotMatch(fonte, /\.resizeTo\(/,
+    'testado em 17/09/2026: o Chrome não deixa a página aumentar a janela, nem com clique');
 });
 
 test('V458 mantém paridade raiz/docs', () => {
