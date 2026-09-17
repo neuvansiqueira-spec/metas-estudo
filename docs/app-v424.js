@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260916-simulado-posicao-fixa-v424";
+  const VERSION = "20260917-fabrica-busca-completa-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -57227,6 +57227,33 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     return [...set];
   }
 
+  // V625: as listas por etapa mostram 20 temas por vez ("Mostrar mais 20") e a
+  // busca só enxergava essa primeira página. Com texto na busca, a página passa a
+  // ter todos os temas do período; ao limpar, volta aos 20 de sempre.
+  let expandedForSearch = false;
+
+  function expandPageForSearch() {
+    try {
+      if (typeof factoryVisibleCount !== "number" || typeof renderFactory !== "function") return;
+      factoryVisibleCount = Number.MAX_SAFE_INTEGER;
+      expandedForSearch = true;
+      renderFactory();
+    } catch (error) {
+      console.warn(`[${VERSION}] Não foi possível ampliar a lista para a busca.`, error);
+    }
+  }
+
+  function restorePageSize() {
+    expandedForSearch = false;
+    try {
+      if (typeof factoryVisibleCount !== "number" || factoryVisibleCount <= 20) return;
+      factoryVisibleCount = 20;
+      renderFactory();
+    } catch (error) {
+      console.warn(`[${VERSION}] Não foi possível restaurar a lista após a busca.`, error);
+    }
+  }
+
   function applySearch() {
     const input = root.querySelector("#factoryExecutiveSearchV136");
     const clear = root.querySelector("[data-factory-search-clear-v136]");
@@ -57241,6 +57268,11 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
       root.querySelectorAll('[data-factory-search-hidden-v136="true"]').forEach((target) => {
         target.dataset.factorySearchHiddenV136 = "false";
       });
+      root.querySelectorAll('[data-factory-search-opened-v136="true"]').forEach((section) => {
+        section.open = false;
+        delete section.dataset.factorySearchOpenedV136;
+      });
+      if (expandedForSearch) restorePageSize();
       if (clear) clear.hidden = true;
       const idleMessage = "Escolha Plano do Dia, Produção da Semana ou Todas as Metas. A busca é somente leitura.";
       if (status.textContent !== idleMessage) {
@@ -57252,8 +57284,10 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
     // A pesquisa não modifica metas, mas deve sempre revelar a área de resultados.
     const productionPanel = root.querySelector("#factoryProductionPanelV163");
     if (productionPanel) productionPanel.open = true;
+    if (root.querySelector("#factoryList [data-show-factory-more]")) expandPageForSearch();
 
     let visible = 0;
+    const sections = new Map();
     targets().forEach((target) => {
       const match = normalize(target.textContent).includes(query);
       const nextHidden = String(!match);
@@ -57261,11 +57295,31 @@ html[data-aldus-theme="premium-stable"] #view-fabrica-resumos [data-factory-sear
         target.dataset.factorySearchHiddenV136 = nextHidden;
       }
       if (match) visible += 1;
+      const section = target.closest("#factoryList > details");
+      if (section) sections.set(section, Boolean(sections.get(section)) || match);
     });
+
+    // V625: os resultados ficavam dentro de painéis recolhidos (Materiais, Fila
+    // resumida), e o FAÇA AGORA seguia mostrando os botões de outro tema. Abre só
+    // os painéis com resultado e esconde os que não têm nenhum.
+    sections.forEach((hasMatch, section) => {
+      const nextHidden = String(!hasMatch);
+      if (section.dataset.factorySearchHiddenV136 !== nextHidden) {
+        section.dataset.factorySearchHiddenV136 = nextHidden;
+      }
+      if (hasMatch && !section.open) {
+        section.open = true;
+        section.dataset.factorySearchOpenedV136 = "true";
+      }
+    });
+
     if (clear) clear.hidden = false;
+    const allScope = root.querySelector('[data-production-scope="all"][aria-pressed="true"]');
     const nextStatus = visible
       ? `${visible} ${visible === 1 ? "resultado encontrado" : "resultados encontrados"} nesta visualização.`
-      : "Nenhum tema encontrado neste período. Selecione “Todas as Metas” para pesquisar em todo o planejamento salvo.";
+      : allScope
+        ? "Nenhum tema encontrado em Todas as Metas nesta etapa. Experimente Pendentes, Em produção, Revisão ou Prontos."
+        : "Nenhum tema encontrado neste período. Selecione “Todas as Metas” para pesquisar em todo o planejamento salvo.";
     if (status.textContent !== nextStatus) status.textContent = nextStatus;
   }
 

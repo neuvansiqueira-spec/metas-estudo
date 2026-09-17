@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260916-simulado-posicao-fixa-v424";
+  const VERSION = "20260917-fabrica-busca-completa-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
