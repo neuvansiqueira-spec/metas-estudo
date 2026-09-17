@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260917-relogio-flutuante-maior-v424";
+  const VERSION = "20260917-relogio-flutuante-cheio-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
