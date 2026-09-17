@@ -74,7 +74,10 @@
     }
     .disciplina { font-size: clamp(.6rem, 2.3vh, .74rem); font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: #3da3ff; }
     .assunto { font-size: clamp(.7rem, 2.5vh, .84rem); color: #b8cadd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .tempo { font-size: clamp(1.4rem, 9vh, 2.6rem); font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1; margin: 0; }
+    /* V626 — o teto de 2.6rem segurava o relogio em tamanho medio mesmo com a
+       janela grande. Agora ele cresce junto; o 16vw impede que o tempo estoure
+       a largura numa janela alta e estreita. */
+    .tempo { font-size: clamp(1.4rem, min(12vh, 16vw), 14rem); font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1; margin: 0; }
     .progresso { font-size: clamp(.6rem, 2.1vh, .74rem); color: #b8cadd; }
     .alerta { font-size: clamp(.64rem, 2.3vh, .78rem); font-weight: 700; color: #f2c957; }
     .acoes {
