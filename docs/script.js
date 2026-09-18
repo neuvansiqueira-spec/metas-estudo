@@ -4352,7 +4352,8 @@ function exactFactoryGoalMatches(goal = {}, agenda = []) {
   return { items: exact, mode: exact.length ? "correspondência semântica por disciplina, assunto e subassunto" : "sem vínculo exato" };
 }
 function factoryGoalGroupsForDate(date = todayISO(), agenda = []) {
-  const dayGoals = (state.dailyGoals || []).filter((goal) => (goal.date || goal.data) === date && !isGoalDone(goal) && !planningRecordMatchesCompletedSubject(goal));
+  // V628: meta concluída, ou de assunto já concluído, continua na Fábrica (Prontos ou pendente de atualização).
+  const dayGoals = (state.dailyGoals || []).filter((goal) => (goal.date || goal.data) === date);
   const groups = new Map();
   const modes = new Set();
   dayGoals.forEach((goal) => {
@@ -4381,7 +4382,7 @@ function factoryTodayQueue(agenda = ensureFactoryAgenda()) { return factoryQueue
 function factoryResumoAulaPending(entry = {}) {
   const item = entry.item || entry;
   const modules = normalizeFactoryModules(item.modules || {}, item);
-  return modules.resumoAula?.status !== "Não se aplica" && !factorySubjectAlreadyStudied(item) && !factoryResumoAulaReady({ ...item, modules });
+  return modules.resumoAula?.status !== "Não se aplica" && !factoryResumoAulaReady({ ...item, modules });
 }
 function factoryCanAppearInDoNow(entry = {}, queue = factoryDoNowQueue()) {
   const item = entry.item || entry;
@@ -4441,7 +4442,7 @@ function renderFactoryIntegrityInfo(scopeDates = [], periodEntries = [], agenda 
   const dateSet = new Set(scopeDates);
   const periodGoals = (state.dailyGoals || []).filter((goal) => dateSet.has(goalDateValue(goal)));
   const matchedGoals = new Set(periodEntries.flatMap((entry) => entry.goals || []));
-  const unmatched = periodGoals.filter((goal) => !isGoalDone(goal) && !planningRecordMatchesCompletedSubject(goal) && !matchedGoals.has(goal));
+  const unmatched = periodGoals.filter((goal) => !isGoalDone(goal) && !matchedGoals.has(goal));
   const syncMeta = typeof readSyncMeta === "function" ? readSyncMeta() : {};
   const storage = indexedDBStatus.available ? "IndexedDB ativo" : (indexedDBStatus.localStorageAvailable ? "localStorage em modo de compatibilidade" : "armazenamento local indisponível");
   const cloud = syncMeta.connected ? (syncMeta.pendingSync ? "Google Drive conectado, com envio pendente" : "Google Drive conectado") : "Google Drive não conectado neste navegador";
@@ -4490,7 +4491,7 @@ function renderFactory() {
     const activeAgenda = agenda.filter((item) => item.editalActive !== false);
     const unlockedDate = factoryUnlockedDayDate(activeAgenda);
     const scopeDates = factoryScopeDates();
-    const dailyProjection = scopeDates.flatMap((date) => buildDailyPlanProjection(date).filter((entry) => !isGoalDone(entry.goal) && !planningRecordMatchesCompletedSubject(entry.goal)).map((entry) => ({ ...entry, factoryDate:date })));
+    const dailyProjection = scopeDates.flatMap((date) => buildDailyPlanProjection(date).filter((entry) => !isGoalDone(entry.goal)).map((entry) => ({ ...entry, factoryDate:date })));
     const materialPeriodLabel = factoryProductionScope === "week" ? "SEMANA ATUAL" : factoryProductionScope === "all" ? "TODAS AS METAS SALVAS" : formatDateBR(unlockedDate);
     const todayPlanPanel = `<details class="factory-section factory-today-plan factory-collapsible"><summary>📚 MATERIAIS DAS METAS PENDENTES — ${materialPeriodLabel} <small>${dailyProjection.length}</small></summary><div class="factory-collapsible-content">${dailyProjection.length ? dailyProjection.map((entry) => { const count = entry.materialGroups.reduce((total, group) => total + group.materials.length, 0); const status = !count ? "Precisa produzir" : "Material já disponível"; const descriptor = canonicalStudyDescriptor(entry.goal); return `<article class="syllabus-card factory-card"><h3>${escapeHTML(descriptor.discipline)} — ${escapeHTML(descriptor.subject)}</h3><p class="item-meta">${formatDateBR(entry.factoryDate)} • ${escapeHTML(status)} • ${count} arquivo(s)</p>${entry.materialGroups.length ? entry.materialGroups.map((group) => `<p><strong>${escapeHTML(group.label === "resumoAula" ? "RESUMO/AULA" : group.label.toUpperCase())}:</strong> ${group.materials.map((material) => escapeHTML(materialButtonLabel(material))).join(" • ")}</p>`).join("") : `<p class="item-meta">Nenhum material vinculado.</p>`}</article>`; }).join("") : `<p class="empty-message">Nenhuma meta pendente neste período.</p>`}</div></details>`;
     const seenPeriod = new Set();

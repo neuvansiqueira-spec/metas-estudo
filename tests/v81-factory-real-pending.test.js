@@ -16,12 +16,15 @@ function sourceBetween(start, end) {
   return script.slice(from, to);
 }
 
-test("Fábrica não coloca metas concluídas ou assuntos já estudados na fila", () => {
+// V628 (18/09/2026, regra do usuário): meta concluída continua na Fábrica; o que decide
+// Pendentes x Prontos é o Resumo/Aula, não a conclusão da meta. Ver v628-factory-completed-goals-stay.
+test("Fábrica mantém metas concluídas e assuntos já estudados; o Resumo/Aula decide a etapa", () => {
   const groups = sourceBetween("function factoryGoalGroupsForDate", "function factoryTodayGroups");
   const pending = sourceBetween("function factoryResumoAulaPending", "function factoryCanAppearInDoNow");
-  assert.match(groups, /!isGoalDone\(goal\)/);
-  assert.match(groups, /!planningRecordMatchesCompletedSubject\(goal\)/);
-  assert.match(pending, /!factorySubjectAlreadyStudied\(item\)/);
+  assert.doesNotMatch(groups, /isGoalDone\(goal\)/);
+  assert.doesNotMatch(groups, /planningRecordMatchesCompletedSubject/);
+  assert.doesNotMatch(pending, /factorySubjectAlreadyStudied/);
+  assert.match(pending, /!factoryResumoAulaReady/);
 });
 
 test("material já cadastrado também satisfaz a necessidade da Fábrica", () => {

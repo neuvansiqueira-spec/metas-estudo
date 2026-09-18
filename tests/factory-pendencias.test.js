@@ -31,7 +31,7 @@ test('Faça agora considera somente resumo/aula pendente, inclui atrasados, excl
   assert.match(bodyOf('factoryResumoAulaReady'), /materialMatchesAssociation/);
 });
 
-test('status aprovado sem arquivo continua pendente, enquanto assunto estudado fica fora', () => {
+test('status aprovado sem arquivo continua pendente, e assunto estudado continua na Fábrica (V628)', () => {
   const factoryEligibility = [
     bodyOf('factoryDoNowQueue'),
     bodyOf('factoryResumoAulaPending'),
@@ -39,7 +39,7 @@ test('status aprovado sem arquivo continua pendente, enquanto assunto estudado f
   ].join('\n');
   assert.doesNotMatch(factoryEligibility, /Inquérito Policial|Inquerito Policial/i);
   assert.match(bodyOf('factoryDoNowQueue'), /factoryResumoAulaPending/);
-  assert.match(bodyOf('factoryResumoAulaPending'), /!factorySubjectAlreadyStudied\(item\)/);
+  assert.doesNotMatch(bodyOf('factoryResumoAulaPending'), /factorySubjectAlreadyStudied/);
   assert.match(bodyOf('factoryResumoAulaPending'), /!factoryResumoAulaReady/);
 });
 
