@@ -1,5 +1,5 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const api=require('../question-training.js'),template=require('../question-training-card.js');
+const api=require('../question-training.js'),template=require('../question-training-card.js'),statusV625=require('../question-training-status-v625.js');
 function importer(){const ctx=vm.createContext({console,AldusQuestionTraining:api});vm.runInContext(fs.readFileSync('question-bank-json-import-v191.js','utf8'),ctx);return ctx.AldusQuestionBankJsonImportV191;}
 function question(id='Q101',extra={}){return {id,disciplina:'DIREITO PENAL',assunto:'Tema de teste',tema:'Recorte',tipo:'Múltipla escolha',banca:'FGV',fonte:'QConcursos',origem_tipo:'qconcursos',enunciado:`Texto completo da questão ${id}.`,alternativas:{A:'Alternativa A completa.',B:'Alternativa B completa.'},gabarito:'A',resposta_correta:'A',resposta_marcada:'',corrigida:false,resultado:'NAO_RESPONDIDA',justificativas_alternativas:{A:'A satisfaz a condição descrita.',B:'B contraria a condição descrita.'},...extra};}
 function payload(questions){return {schema:api.SCHEMA,trainingRound:{id:'round1',discipline:'DIREITO PENAL',theme:'Tema de teste'},questionBank:questions};}
@@ -152,4 +152,37 @@ test('V621.7 aceita o JSON do PROMPT 2 com origem "real" e banca "AUTORAL" sem a
   // Fora do schema do treino, nada é reescrito.
   const alheio={questionBank:[{id:'AGENTE-x-01',origem_tipo:'real',banca:'AUTORAL'}]};validate(alheio);
   assert.deepEqual(alheio.questionBank[0],{id:'AGENTE-x-01',origem_tipo:'real',banca:'AUTORAL'});
+});
+
+
+test('V625 exclui anulada, desatualizada, outro e fora do tema do JSON importável',()=>{
+  const p=payload([
+    question('Q101'),
+    question('Q102',{situacao_questao:'Anulada'}),
+    question('Q103',{situacao_questao:'Desatualizada'}),
+    question('Q104',{situacao_questao:'Outro'}),
+    question('Q105',{situacao_questao:'Fora do tema'})
+  ]);
+  const safe=statusV625.sanitizePayload(p);
+  assert.deepEqual(safe.payload.questionBank.map(q=>q.id),['Q101']);
+  assert.deepEqual(safe.excluded.map(q=>q.situacao_questao),['anulada','desatualizada','outro','fora_do_tema']);
+  assert.equal(safe.payload.questoes_excluidas.length,4);
+  assert.ok(safe.payload.questoes_excluidas.every(q=>q.excluir_do_banco===true));
+  assert.equal(statusV625.statusOf({situacao_questao:'Fora do tema'}),'fora_do_tema');
+  assert.equal(statusV625.statusOf({excluir_do_banco:true,motivo_exclusao:'Anulada'}),'anulada');
+});
+
+test('V625 injeta seletor de situação, cores de acerto/erro e filtro nos cartões novos',()=>{
+  const html=statusV625.augmentHtml(template.buildHTML(payload([question('Q101')])));
+  for(const label of ['Normal','Anulada','Desatualizada','Outro','Fora do tema']) assert.match(html,new RegExp(label));
+  assert.match(html,/qt-correct-v625/);
+  assert.match(html,/qt-wrong-v625/);
+  assert.match(html,/questoes_excluidas/);
+  assert.equal(statusV625.augmentHtml(html),html,'injeção precisa ser idempotente');
+});
+
+test('V625 mantém paridade raiz\/docs e está ligado ao shell público',()=>{
+  assert.equal(fs.readFileSync('question-training-status-v625.js','utf8'),fs.readFileSync('docs/question-training-status-v625.js','utf8'));
+  assert.match(fs.readFileSync('index.html','utf8'),/question-training-status-v625\.js\?v=20260918-question-training-status-v625/);
+  assert.match(fs.readFileSync('docs\/index.html','utf8'),/question-training-status-v625\.js\?v=20260918-question-training-status-v625/);
 });
