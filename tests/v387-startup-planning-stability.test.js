@@ -119,7 +119,8 @@ test("V399 não adiciona polling nem observação contínua", () => {
 
 test("V236 elimina o polling de 100 ms e reduz normalizações repetidas", () => {
   assert.equal(factory.includes("setInterval("), false);
-  assert.match(factory, /CANONICAL_CACHE_LIMIT = 512/);
+  // V628: limite subiu de 512 para 4096 (a agenda tem ~2 mil textos); continua limitado.
+  assert.match(factory, /CANONICAL_CACHE_LIMIT = 4096/);
   assert.match(factory, /canonicalCache/);
   assert.match(factory, /if \(!\/simulad\/i\.test\(rawText\)\) return/);
   assert.match(factory, /aldus:bootstrap-integrity-v258-ready/);

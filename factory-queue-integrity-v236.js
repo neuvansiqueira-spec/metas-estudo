@@ -4,7 +4,9 @@
   const VERSION = "20260804-simulados-sem-fabrica-cache-unico-v236";
   const HOTFIX = "factory-queue-integrity-hotfix5";
   const FLAG = "__aldusFactoryQueueIntegrityV236";
-  const CANONICAL_CACHE_LIMIT = 512;
+  // V628: 512 esvaziava o cache a cada limpeza da agenda (~600 temas, ~2 mil textos) e
+  // sanitize custava ~8 ms por meta; com 4096 cai para ~1 ms, sem mudar o resultado.
+  const CANONICAL_CACHE_LIMIT = 4096;
   const canonicalCache = new Map();
   if (globalThis.__ALDUS_FACTORY_QUEUE_INTEGRITY_V236__) return;
 
