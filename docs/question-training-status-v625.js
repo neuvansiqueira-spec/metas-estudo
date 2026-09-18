@@ -301,7 +301,7 @@
   function augmentHtml(html) {
     const source = text(html);
     if (!source || source.includes("__ALDUS_TRAINING_STATUS_STANDALONE_V625__")) return source;
-    const script = `<script>globalThis.__ALDUS_TRAINING_STATUS_STANDALONE_V625__=true;(\${standaloneRuntime.toString()})();<\/script>`;
+    const script = `<script>globalThis.__ALDUS_TRAINING_STATUS_STANDALONE_V625__=true;(${standaloneRuntime.toString()})();<\/script>`;
     return source.includes("</html>") ? source.replace("</html>", `${script}</html>`) : `${source}${script}`;
   }
 
