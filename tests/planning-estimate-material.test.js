@@ -36,6 +36,13 @@ test('Meta compara estimativa e tempo realizado sem concluir automaticamente', (
   assert.match(script, /Precisou de .* adicionais/);
   assert.match(script, /Estimativa ultrapassada em/);
   assert.match(script, /Este indicador é informativo: a meta só é concluída/);
+  assert.match(script, /function formatMinuteValue\\(minutes\\)/);
+  assert.match(script, /Restam aproximadamente \\$\\{formatMinuteValue\\(estimated - actual\\)\\}/);
+  assert.match(script, /formatMinuteValue\\(comparison\\.actual\\)/);
+  assert.match(script, /formatMinuteValue\\(goalDisplayMinutes\\(goal\\)\\)/);
+  assert.doesNotMatch(script, /Restam aproximadamente \\$\\{estimated - actual\\} min/);
+  assert.doesNotMatch(script, /\\$\\{goal\\.actualMinutes \\|\\| 0\\} de/);
+  assert.match(fs.readFileSync('service-worker.js', 'utf8'), /fractional-minute-display-hotfix1/);
   assert.match(script, /goalTimeComparisonHTML\(goal, projectionEntry, materialState\)/);
   assert.doesNotMatch(script.match(/function goalTimeComparison[\s\S]*?function nextGoalEstimateHTML/)[0], /goal\.status\s*=/);
   assert.match(css, /\.goal-time-comparison\.tone-ahead/);

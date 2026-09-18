@@ -40810,6 +40810,17 @@ let goalCompletionActiveGoalId = "";
 let goalCompletionReturnFocus = null;
 const goalCompletionInProgress = new Set();
 function formatHours(minutes) { if (globalThis.__ALDUS_STUDY_TIME__) return globalThis.__ALDUS_STUDY_TIME__.formatMinutes(minutes); const hours = minutes / 60; return `${Number.isInteger(hours) ? hours : hours.toFixed(1)}h`; }
+function formatMinuteValue(minutes) {
+  const totalSeconds = Math.max(0, Math.round((Number(minutes) || 0) * 60));
+  const hours = Math.floor(totalSeconds / 3600);
+  const mins = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const parts = [];
+  if (hours) parts.push(`${hours}h`);
+  if (mins || hours) parts.push(`${mins}min`);
+  if (seconds) parts.push(`${seconds}s`);
+  return parts.length ? parts.join(" ") : "0 min";
+}
 function formatDateBR(dateString) {
   if (typeof dateString !== "string") return "-";
   const match = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -46555,21 +46566,21 @@ function goalTimeComparison(goal, entry = null, materialState = getDailyGoalMate
   let tone = "neutral"; let label = actual > 0 ? "Em andamento" : "Não iniciado";
   if (estimated > 0 && actual < estimated) {
     tone = done ? "ahead" : "remaining";
-    label = done ? `Concluída ${estimated - actual} min antes da estimativa` : `Restam aproximadamente ${estimated - actual} min`;
+    label = done ? `Concluída ${formatMinuteValue(estimated - actual)} antes da estimativa` : `Restam aproximadamente ${formatMinuteValue(estimated - actual)}`;
   } else if (estimated > 0 && actual === estimated) {
     tone = done ? "ahead" : "remaining";
     label = done ? "Concluída dentro da estimativa" : "Estimativa atingida";
   } else if (estimated > 0 && actual > estimated) {
     tone = "exceeded";
-    label = done ? `Precisou de ${actual - estimated} min adicionais` : `Estimativa ultrapassada em ${actual - estimated} min`;
+    label = done ? `Precisou de ${formatMinuteValue(actual - estimated)} adicionais` : `Estimativa ultrapassada em ${formatMinuteValue(actual - estimated)}`;
   }
   return { estimated, actual, difference, percent, done, tone, label };
 }
 function goalTimeComparisonHTML(goal, entry = null, materialState = getDailyGoalMaterialState(goal, entry)) {
   const comparison = goalTimeComparison(goal, entry, materialState);
   if (!comparison.estimated) return "";
-  const differenceLabel = comparison.difference === 0 ? "No tempo previsto" : comparison.difference < 0 ? `${Math.abs(comparison.difference)} min a menos` : `${comparison.difference} min a mais`;
-  return `<details class="goal-time-comparison tone-${comparison.tone}"><summary><span>Estimativa × realizado</span><strong>${escapeHTML(comparison.label)}</strong></summary><div class="goal-time-comparison-grid"><span><small>Estimativa</small><strong>${comparison.estimated} min</strong></span><span><small>Realizado</small><strong>${comparison.actual} min</strong></span><span><small>Diferença</small><strong>${differenceLabel}</strong></span><span><small>Uso da estimativa</small><strong>${comparison.percent}%</strong></span></div><p>Este indicador é informativo: a meta só é concluída quando você usa a ação “Concluir meta”.</p></details>`;
+  const differenceLabel = comparison.difference === 0 ? "No tempo previsto" : comparison.difference < 0 ? `${formatMinuteValue(Math.abs(comparison.difference))} a menos` : `${formatMinuteValue(comparison.difference)} a mais`;
+  return `<details class="goal-time-comparison tone-${comparison.tone}"><summary><span>Estimativa × realizado</span><strong>${escapeHTML(comparison.label)}</strong></summary><div class="goal-time-comparison-grid"><span><small>Estimativa</small><strong>${comparison.estimated} min</strong></span><span><small>Realizado</small><strong>${formatMinuteValue(comparison.actual)}</strong></span><span><small>Diferença</small><strong>${differenceLabel}</strong></span><span><small>Uso da estimativa</small><strong>${comparison.percent}%</strong></span></div><p>Este indicador é informativo: a meta só é concluída quando você usa a ação “Concluir meta”.</p></details>`;
 }
 function relatedGoalExecutionMinutes(goal = {}) {
   const syllabusItemId = String(goal.syllabusItemId || "").trim();
@@ -46627,7 +46638,7 @@ function dailyGoalDetailsCard(goal, number = 1, projectionEntry = null) {
   const inProgress = !isGoalDone(goal) && (goal.status === "Em andamento" || goalTotalActualMinutes(goal) > 0);
   const hydrated = remembered || inProgress;
   const status = goal.status || "Pendente";
-  const resume = `${goal.actualMinutes || 0} de ${Number(goal.minutes || 0)} min • ${status}`;
+  const resume = `${formatMinuteValue(goalDisplayMinutes(goal))} de ${Number(goal.minutes || 0)} min • ${status}`;
   return `<details class="daily-goal-section goal-status-${canonical(status)}" data-daily-goal-details="${goal.id}" data-daily-goal-hydrated="${hydrated}"${hydrated ? " open" : ""}><summary class="daily-goal-summary"><span><strong>${escapeHTML(descriptor.discipline)}</strong><span>${escapeHTML(descriptor.subject)}</span></span><span>${escapeHTML(resume)}</span></summary><div data-daily-goal-body="${goal.id}">${hydrated ? dailyGoalDetailsBodyHTML(goal, projectionEntry) : '<div class="daily-goal-content daily-goal-placeholder"><p class="item-meta">Abra esta meta para carregar os detalhes e ações.</p></div>'}</div></details>`;
 }
 function ensureDailyGoalEditAction(container, goalId) {
