@@ -82,7 +82,8 @@ test('atributos data-factory-* gerados têm rota ou são campos/painéis explici
   const passive = new Set([
     'factory-library-field', 'factory-modules-form', 'factory-module-field', 'factory-save-next',
     'factory-prompt-text', 'factory-router-text', 'factory-prompt-message', 'factory-card',
-    'factory-detail', 'factory-prompt-panel', 'factory-modules-panel'
+    'factory-detail', 'factory-prompt-panel', 'factory-modules-panel',
+    'factory-materials-panel', 'factory-materials-body'
   ]);
   const unexpected = attrs.filter((attr) => !actionable.has(attr) && !passive.has(attr));
   assert.deepEqual(unexpected, []);

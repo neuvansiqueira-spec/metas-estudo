@@ -111,6 +111,8 @@ test("Produção da Semana também mantém o tema de meta concluída na semana",
 
 test("painel de materiais e aviso de integridade não escondem meta pendente de assunto já concluído", () => {
   const render = sourceBetween("function renderFactoryIntegrityInfo", "function setFactoryTriagemStatus");
-  assert.match(render, /buildDailyPlanProjection\(date\)\.filter\(\(entry\) => !isGoalDone\(entry\.goal\)\)/);
+  // V629: a projeção do painel de materiais passou a ser montada em factoryPendingMaterialsHTML.
+  const panel = sourceBetween("function factoryPendingMaterialsHTML", "function hydrateFactoryPendingMaterials");
+  assert.match(panel, /buildDailyPlanProjection\(date\)\.filter\(\(entry\) => !isGoalDone\(entry\.goal\)\)/);
   assert.doesNotMatch(render, /planningRecordMatchesCompletedSubject/);
 });

@@ -4491,9 +4491,9 @@ function renderFactory() {
     const activeAgenda = agenda.filter((item) => item.editalActive !== false);
     const unlockedDate = factoryUnlockedDayDate(activeAgenda);
     const scopeDates = factoryScopeDates();
-    const dailyProjection = scopeDates.flatMap((date) => buildDailyPlanProjection(date).filter((entry) => !isGoalDone(entry.goal)).map((entry) => ({ ...entry, factoryDate:date })));
+    const pendingGoalsCount = scopeDates.reduce((total, date) => total + (state.dailyGoals || []).filter((goal) => (goal.date || goal.data) === date && !isGoalDone(goal)).length, 0);
     const materialPeriodLabel = factoryProductionScope === "week" ? "SEMANA ATUAL" : factoryProductionScope === "all" ? "TODAS AS METAS SALVAS" : formatDateBR(unlockedDate);
-    const todayPlanPanel = `<details class="factory-section factory-today-plan factory-collapsible"><summary>📚 MATERIAIS DAS METAS PENDENTES — ${materialPeriodLabel} <small>${dailyProjection.length}</small></summary><div class="factory-collapsible-content">${dailyProjection.length ? dailyProjection.map((entry) => { const count = entry.materialGroups.reduce((total, group) => total + group.materials.length, 0); const status = !count ? "Precisa produzir" : "Material já disponível"; const descriptor = canonicalStudyDescriptor(entry.goal); return `<article class="syllabus-card factory-card"><h3>${escapeHTML(descriptor.discipline)} — ${escapeHTML(descriptor.subject)}</h3><p class="item-meta">${formatDateBR(entry.factoryDate)} • ${escapeHTML(status)} • ${count} arquivo(s)</p>${entry.materialGroups.length ? entry.materialGroups.map((group) => `<p><strong>${escapeHTML(group.label === "resumoAula" ? "RESUMO/AULA" : group.label.toUpperCase())}:</strong> ${group.materials.map((material) => escapeHTML(materialButtonLabel(material))).join(" • ")}</p>`).join("") : `<p class="item-meta">Nenhum material vinculado.</p>`}</article>`; }).join("") : `<p class="empty-message">Nenhuma meta pendente neste período.</p>`}</div></details>`;
+    const todayPlanPanel = `<details class="factory-section factory-today-plan factory-collapsible" data-factory-materials-panel><summary>📚 MATERIAIS DAS METAS PENDENTES — ${materialPeriodLabel} <small>${pendingGoalsCount}</small></summary><div class="factory-collapsible-content" data-factory-materials-body>${pendingGoalsCount ? `<p class="item-meta">Abra para carregar os materiais deste período.</p>` : `<p class="empty-message">Nenhuma meta pendente neste período.</p>`}</div></details>`;
     const seenPeriod = new Set();
     const periodEntries = scopeDates.flatMap((date) => factoryQueueForDate(date, activeAgenda).map((entry) => ({ ...entry, sourceDate:date }))).filter((entry) => { if (seenPeriod.has(entry.item.id)) return false; seenPeriod.add(entry.item.id); return true; });
     const queue = periodEntries.filter(factoryResumoAulaPending);
@@ -4504,11 +4504,8 @@ function renderFactory() {
     if (!agenda.length) { elements.factoryList.textContent = "Nenhum tema cadastrado na Fábrica."; return; }
     const detailsHTML = (entry) => {
       const item = entry.item || entry;
-      const modules = normalizeFactoryModules(item.modules || {});
-      const promptButtons = FACTORY_PROMPT_TYPES.map(({ key, label }) => `<button type="button" class="secondary-button" data-factory-prompt="${item.id}|${key}">${escapeHTML(label)}</button>`).join("");
-      const moduleSummary = FACTORY_MODULES.filter(({ virtual }) => !virtual).map(({ key, label }) => `<li><strong>${escapeHTML(label)}:</strong> ${escapeHTML(modules[key].status)}${modules[key].wordLink ? " • Word" : ""}${modules[key].pdfLink ? " • PDF" : ""}</li>`).join("");
       if (factoryOpenDetailId !== item.id) return `<details class="factory-theme-details" data-factory-detail="${item.id}"><summary>DETALHES DO TEMA</summary><div class="factory-detail-body" data-detail-placeholder="${item.id}"></div></details>`;
-      return `<details class="factory-theme-details" data-factory-detail="${item.id}" open data-detail-hydrated="true"><summary>DETALHES DO TEMA</summary><div class="factory-detail-body"><h4>Triagem</h4><p class="item-meta">Status da triagem: ${escapeHTML(item.triagemStatus)} ${item.triagemCompletedAt ? `• ${formatDateBR(item.triagemCompletedAt)}` : ""}</p><div class="card-actions"><button type="button" class="secondary-button" data-factory-prompt="${item.id}|triagem">Gerar prompt de triagem</button><button type="button" data-factory-triagem="${item.id}|Concluída">Marcar triagem como concluída</button><button type="button" class="secondary-button" data-factory-triagem="${item.id}|Precisa refazer">Marcar como precisa refazer</button></div><ul class="factory-module-summary">${moduleSummary}</ul><div class="factory-prompt-actions"><h4>Botões de todos os prompts</h4><div class="card-actions">${promptButtons}</div></div><div class="card-meta-grid"><span>Subtemas abrangidos: ${escapeHTML((item.editalSubtemas || []).join("; ") || "-")}</span><span>Vínculo do edital: ${escapeHTML(item.editalLink?.groupKey || "manual")}</span><span>Pasta das fontes: ${escapeHTML(factorySourceFolderLink(item) || "-")}</span><span>Pasta de destino: ${escapeHTML(factoryDestinationFolderLink(item) || "-")}</span><span>Lei: ${escapeHTML(modules.lei.leiNome || "-")}</span><span>Observações: ${escapeHTML(item.observacao || "-")}</span></div>${factoryModuleLinksHTML(item)}<div class="card-actions"><button type="button" data-factory-modules="${item.id}">Editar módulos</button><button type="button" data-factory-edit="${item.id}">Editar tema</button><button type="button" class="danger" data-factory-delete="${item.id}">Excluir</button></div><div class="factory-prompt-panel" data-factory-prompt-panel="${item.id}"></div><div class="factory-modules-panel" data-factory-modules-panel="${item.id}"></div></div></details>`;
+      return `<details class="factory-theme-details" data-factory-detail="${item.id}" open data-detail-hydrated="true"><summary>DETALHES DO TEMA</summary><div class="factory-detail-body">${factoryDetailBodyHTML(item)}</div></details>`;
     };
     const cardFor = (entry, index = 0) => {
       const item = entry.item || entry;
@@ -4573,6 +4570,41 @@ function factoryGoToNext(currentId = "") {
   const currentIndex = queue.findIndex(({ item }) => item.id === currentId);
   const nextEntry = queue.slice(Math.max(0, currentIndex + 1)).find(({ item }) => !factoryResumoAulaReady(item)) || queue.find(({ item }) => item.id !== currentId) || queue[0];
   if (nextEntry) { factoryOpenDetailId = nextEntry.item.id; factoryCurrentFilter = "faca-agora"; renderFactory(); document.getElementById("factoryDoNow")?.scrollIntoView({ behavior: "smooth", block: "start" }); }
+}
+// V629: o painel "MATERIAIS DAS METAS PENDENTES" nasce fechado, mas o seu conteúdo era
+// montado em todo desenho da Fábrica. Medido em 20/09/2026 com 629 metas e 877 temas:
+// 615 ms por desenho, só para um painel que o usuário quase nunca abre. Agora o número do
+// cabeçalho sai direto das metas e o conteúdo é montado quando o painel é aberto.
+function factoryPendingMaterialsHTML(scopeDates = factoryScopeDates()) {
+  const dailyProjection = scopeDates.flatMap((date) => buildDailyPlanProjection(date).filter((entry) => !isGoalDone(entry.goal)).map((entry) => ({ ...entry, factoryDate:date })));
+  return dailyProjection.length ? dailyProjection.map((entry) => { const count = entry.materialGroups.reduce((total, group) => total + group.materials.length, 0); const status = !count ? "Precisa produzir" : "Material já disponível"; const descriptor = canonicalStudyDescriptor(entry.goal); return `<article class="syllabus-card factory-card"><h3>${escapeHTML(descriptor.discipline)} — ${escapeHTML(descriptor.subject)}</h3><p class="item-meta">${formatDateBR(entry.factoryDate)} • ${escapeHTML(status)} • ${count} arquivo(s)</p>${entry.materialGroups.length ? entry.materialGroups.map((group) => `<p><strong>${escapeHTML(group.label === "resumoAula" ? "RESUMO/AULA" : group.label.toUpperCase())}:</strong> ${group.materials.map((material) => escapeHTML(materialButtonLabel(material))).join(" • ")}</p>`).join("") : `<p class="item-meta">Nenhum material vinculado.</p>`}</article>`; }).join("") : `<p class="empty-message">Nenhuma meta pendente neste período.</p>`;
+}
+function hydrateFactoryPendingMaterials(details) {
+  if (!details || details.dataset.materialsHydrated === "true") return;
+  const mount = details.querySelector("[data-factory-materials-body]");
+  if (!mount) return;
+  mount.innerHTML = factoryPendingMaterialsHTML();
+  details.dataset.materialsHydrated = "true";
+}
+// V629: corpo do DETALHES DO TEMA fica em uma funcao propria, usada tanto na renderizacao quanto na hidratacao ao abrir o tema.
+function factoryDetailBodyHTML(item) {
+  const modules = normalizeFactoryModules(item.modules || {});
+  const promptButtons = FACTORY_PROMPT_TYPES.map(({ key, label }) => `<button type="button" class="secondary-button" data-factory-prompt="${item.id}|${key}">${escapeHTML(label)}</button>`).join("");
+  const moduleSummary = FACTORY_MODULES.filter(({ virtual }) => !virtual).map(({ key, label }) => `<li><strong>${escapeHTML(label)}:</strong> ${escapeHTML(modules[key].status)}${modules[key].wordLink ? " • Word" : ""}${modules[key].pdfLink ? " • PDF" : ""}</li>`).join("");
+  return `<h4>Triagem</h4><p class="item-meta">Status da triagem: ${escapeHTML(item.triagemStatus)} ${item.triagemCompletedAt ? `• ${formatDateBR(item.triagemCompletedAt)}` : ""}</p><div class="card-actions"><button type="button" class="secondary-button" data-factory-prompt="${item.id}|triagem">Gerar prompt de triagem</button><button type="button" data-factory-triagem="${item.id}|Concluída">Marcar triagem como concluída</button><button type="button" class="secondary-button" data-factory-triagem="${item.id}|Precisa refazer">Marcar como precisa refazer</button></div><ul class="factory-module-summary">${moduleSummary}</ul><div class="factory-prompt-actions"><h4>Botões de todos os prompts</h4><div class="card-actions">${promptButtons}</div></div><div class="card-meta-grid"><span>Subtemas abrangidos: ${escapeHTML((item.editalSubtemas || []).join("; ") || "-")}</span><span>Vínculo do edital: ${escapeHTML(item.editalLink?.groupKey || "manual")}</span><span>Pasta das fontes: ${escapeHTML(factorySourceFolderLink(item) || "-")}</span><span>Pasta de destino: ${escapeHTML(factoryDestinationFolderLink(item) || "-")}</span><span>Lei: ${escapeHTML(modules.lei.leiNome || "-")}</span><span>Observações: ${escapeHTML(item.observacao || "-")}</span></div>${factoryModuleLinksHTML(item)}<div class="card-actions"><button type="button" data-factory-modules="${item.id}">Editar módulos</button><button type="button" data-factory-edit="${item.id}">Editar tema</button><button type="button" class="danger" data-factory-delete="${item.id}">Excluir</button></div><div class="factory-prompt-panel" data-factory-prompt-panel="${item.id}"></div><div class="factory-modules-panel" data-factory-modules-panel="${item.id}"></div>`;
+}
+// V629: abrir "DETALHES DO TEMA" pela propria barra preenchia um painel vazio, porque so o tema de factoryOpenDetailId vinha montado.
+function hydrateFactoryDetail(details) {
+  if (!details || details.dataset.detailHydrated === "true") return;
+  const id = details.dataset.factoryDetail;
+  const mount = details.querySelector("[data-detail-placeholder]");
+  if (!id || !mount) return;
+  const agenda = state.factoryAgenda?.length ? state.factoryAgenda : (state.factoryItems || []);
+  const raw = agenda.find((entry) => entry && entry.id === id);
+  if (!raw) return;
+  mount.innerHTML = factoryDetailBodyHTML(normalizeFactoryItem(raw));
+  mount.removeAttribute("data-detail-placeholder");
+  details.dataset.detailHydrated = "true";
 }
 function toggleFactoryDetail(id) {
   factoryOpenDetailId = factoryOpenDetailId === id ? "" : id;
@@ -4861,7 +4893,31 @@ function dailyPlanRecordsShareSubject(left = {}, right = {}) {
 function dailyPlanMaterialIdentity(material = {}) {
   return `${materialPhysicalFileIdentity(material)}|${material.factoryModuleKey || "material"}`;
 }
-function buildDailyPlanProjection(date, targetState = state) { if (typeof performanceCounters !== "undefined") performanceCounters.projectionBuilds++;
+// V629: a projeção do Plano do Dia era refeita 65 vezes por desenho da Fábrica — 21 pelas
+// datas do período e 44 por materialsForDailyGoal, que reconstruía a projeção inteira só
+// para achar uma meta. Medido em 20/09/2026 com 629 metas e 877 temas: 1047 ms por desenho.
+// A função apenas lê o estado, então o resultado é guardado por data enquanto durar a
+// execução síncrona atual; o microtask descarta o cache assim que a pilha esvazia, e a
+// assinatura abaixo o descarta antes disso se alguma das listas lidas for trocada.
+let dailyPlanProjectionTaskCache = null;
+function dailyPlanProjectionSignature(targetState) {
+  return [targetState.dailyGoals, targetState.materials, targetState.factoryAgenda, targetState.factoryItems];
+}
+function buildDailyPlanProjection(date, targetState = state) {
+  if (!dailyPlanProjectionTaskCache) {
+    dailyPlanProjectionTaskCache = new Map();
+    queueMicrotask(() => { dailyPlanProjectionTaskCache = null; });
+  }
+  let byDate = dailyPlanProjectionTaskCache.get(targetState);
+  if (!byDate) { byDate = new Map(); dailyPlanProjectionTaskCache.set(targetState, byDate); }
+  const signature = dailyPlanProjectionSignature(targetState);
+  const cached = byDate.get(date);
+  if (cached && cached.signature.every((value, index) => value === signature[index])) return cached.projection;
+  const projection = buildDailyPlanProjectionUncached(date, targetState);
+  byDate.set(date, { signature, projection });
+  return projection;
+}
+function buildDailyPlanProjectionUncached(date, targetState = state) { if (typeof performanceCounters !== "undefined") performanceCounters.projectionBuilds++;
   const goals = (targetState.dailyGoals || []).filter((goal) => (goal.date || goal.data) === date);
   const materials = (targetState.materials || []).filter(materialAvailable);
   const factoryItems = targetState.factoryAgenda?.length ? targetState.factoryAgenda : (targetState.factoryItems || []);
@@ -4870,12 +4926,18 @@ function buildDailyPlanProjection(date, targetState = state) { if (typeof perfor
   const materialsByGoalId = new Map(), materialsByFactoryItemId = new Map(), materialsBySyllabusItemId = new Map(), materialsByParentSyllabusItemId = new Map(), materialsByEstimateSourceId = new Map();
   factoryItems.forEach((item) => { add(factoryByGoalId, item.goalId, item); [item.syllabusItemId, ...(item.syllabusItemIds || []), ...(item.editalLink?.itemIds || [])].forEach((id) => add(factoryBySyllabusItemId, id, item)); add(factoryByParentSyllabusItemId, item.parentSyllabusItemId, item); });
   materials.forEach((material) => { add(materialsByGoalId, material.goalId, material); add(materialsByFactoryItemId, material.factoryItemId, material); [material.syllabusItemId, ...(material.syllabusItemIds || [])].forEach((id) => add(materialsBySyllabusItemId, id, material)); add(materialsByParentSyllabusItemId, material.parentSyllabusItemId, material); add(materialsByEstimateSourceId, material.id, material); });
+  // V629: o teste "não tem vínculo com o edital" não depende da meta, mas rodava para cada
+  // par meta × item. Medido em 20/09/2026 com 629 metas e 877 temas: 2,17 milhões de chamadas
+  // de recordSyllabusAssociationIds por desenho da Fábrica. A lista sai do laço; o filtro por
+  // assunto, que depende da meta, continua igual e na mesma ordem.
+  const legacyFactoryCandidates = factoryItems.filter((item) => !recordSyllabusAssociationIds(item).length);
+  const legacyMaterialCandidates = materials.filter((material) => !recordSyllabusAssociationIds(material).length);
   return goals.map((goal) => {
     const descriptor = canonicalStudyDescriptor(goal, targetState);
-    const legacyFactory = factoryItems.filter((item) => !recordSyllabusAssociationIds(item).length && dailyPlanRecordsShareSubject(item, descriptor));
+    const legacyFactory = legacyFactoryCandidates.filter((item) => dailyPlanRecordsShareSubject(item, descriptor));
     const linkedFactory = new Set([...(factoryByGoalId.get(goal.id) || []), ...(factoryBySyllabusItemId.get(goal.syllabusItemId) || []), ...(factoryByParentSyllabusItemId.get(goal.syllabusItemId) || []), ...legacyFactory]);
     const factoryIds = new Set([...linkedFactory].map((item) => item.id));
-    const legacyMaterials = materials.filter((material) => !recordSyllabusAssociationIds(material).length && dailyPlanRecordsShareSubject(material, descriptor));
+    const legacyMaterials = legacyMaterialCandidates.filter((material) => dailyPlanRecordsShareSubject(material, descriptor));
     const linked = new Set([...(materialsByGoalId.get(goal.id) || []), ...(materialsByEstimateSourceId.get(goal.estimateSourceId) || []), ...(materialsBySyllabusItemId.get(goal.syllabusItemId) || []), ...(materialsByParentSyllabusItemId.get(goal.syllabusItemId) || []), ...legacyMaterials]);
     factoryIds.forEach((id) => (materialsByFactoryItemId.get(id) || []).forEach((m) => linked.add(m)));
     const uniqueByIdentity = new Map(); [...linked].forEach((material) => { const key = dailyPlanMaterialIdentity(material); const current = uniqueByIdentity.get(key); if (!current || (Number(material.estimatedMinutes) || 0) > (Number(current.estimatedMinutes) || 0)) uniqueByIdentity.set(key, material); }); const uniqueMaterials = [...uniqueByIdentity.values()];
@@ -9571,6 +9633,7 @@ function initFactoryEvents() {
   document.querySelector(".factory-production-tabs")?.addEventListener("click", handleFactoryScopeClick);
   elements.factoryList?.addEventListener("click", handleFactoryListClick);
   elements.factoryList?.addEventListener("submit", handleFactoryModulesSubmit);
+  elements.factoryList?.addEventListener("toggle", (event) => { const details = event.target; if (!(details instanceof HTMLDetailsElement) || !details.open) return; if (details.dataset.factoryDetail) hydrateFactoryDetail(details); else if (details.hasAttribute("data-factory-materials-panel")) hydrateFactoryPendingMaterials(details); }, true);
   elements.editFactoryPromptLibrary?.addEventListener("click", openFactoryPromptLibrary);
   elements.editFactoryPromptLibrary?.setAttribute("aria-controls", "factoryPromptLibraryPanel");
   elements.factoryPromptLibraryPanel?.addEventListener("click", handleFactoryPromptLibraryClick);

@@ -168,6 +168,26 @@
     return output;
   }
 
+  // V629: sanitize percorria a agenda inteira a cada chamada, e exactFactoryGoalMatches
+  // e chamado uma vez por meta. Medido em 20/09/2026 com 629 metas e 877 temas:
+  // 805 ms por desenho da Fabrica so nesta funcao. O resultado depende apenas do array
+  // recebido, entao guardamos a resposta pela identidade do array. O cache vale somente
+  // durante a execucao sincrona atual (o microtask o descarta assim que a pilha esvazia),
+  // de modo que nenhuma alteracao posterior da agenda e lida de um cache velho.
+  let sanitizeTaskCache = null;
+  function sanitizeAgenda(entries) {
+    if (!Array.isArray(entries) || entries.length < 2) return sanitize(entries);
+    if (!sanitizeTaskCache) {
+      sanitizeTaskCache = new WeakMap();
+      queueMicrotask(() => { sanitizeTaskCache = null; });
+    }
+    const cached = sanitizeTaskCache.get(entries);
+    if (cached) return cached;
+    const output = sanitize(entries);
+    sanitizeTaskCache.set(entries, output);
+    return output;
+  }
+
   function chainHas(fn) {
     const seen = new Set();
     while (typeof fn === "function" && !seen.has(fn)) {
@@ -254,7 +274,7 @@
       const original = exactFactoryGoalMatches;
       exactFactoryGoalMatches = mark(function (goal, agenda, ...rest) {
         if (referencesSimulados(goal)) return { items: [], mode: HOTFIX };
-        const result = original.call(this, goal, sanitize(agenda), ...rest);
+        const result = original.call(this, goal, sanitizeAgenda(agenda), ...rest);
         return result && typeof result === "object" ? { ...result, items: sanitize(result.items || []) } : result;
       }, original);
       changed = true;
@@ -266,17 +286,17 @@
     }
     if (typeof factoryGoalGroupsForDate === "function" && !chainHas(factoryGoalGroupsForDate)) {
       const original = factoryGoalGroupsForDate;
-      factoryGoalGroupsForDate = mark(function (...args) { if (Array.isArray(args[1])) args[1] = sanitize(args[1]); return sanitize(original.apply(this, args)); }, original);
+      factoryGoalGroupsForDate = mark(function (...args) { if (Array.isArray(args[1])) args[1] = sanitizeAgenda(args[1]); return sanitize(original.apply(this, args)); }, original);
       changed = true;
     }
     if (typeof factoryQueueForDate === "function" && !chainHas(factoryQueueForDate)) {
       const original = factoryQueueForDate;
-      factoryQueueForDate = mark(function (...args) { if (Array.isArray(args[1])) args[1] = sanitize(args[1]); return sanitize(original.apply(this, args)); }, original);
+      factoryQueueForDate = mark(function (...args) { if (Array.isArray(args[1])) args[1] = sanitizeAgenda(args[1]); return sanitize(original.apply(this, args)); }, original);
       changed = true;
     }
     if (typeof factoryDoNowQueue === "function" && !chainHas(factoryDoNowQueue)) {
       const original = factoryDoNowQueue;
-      factoryDoNowQueue = mark(function (...args) { if (Array.isArray(args[0])) args[0] = sanitize(args[0]); return sanitize(original.apply(this, args)); }, original);
+      factoryDoNowQueue = mark(function (...args) { if (Array.isArray(args[0])) args[0] = sanitizeAgenda(args[0]); return sanitize(original.apply(this, args)); }, original);
       changed = true;
     }
     if (typeof factoryResumoAulaPending === "function" && !chainHas(factoryResumoAulaPending)) {

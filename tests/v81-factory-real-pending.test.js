@@ -37,9 +37,11 @@ test("material já cadastrado também satisfaz a necessidade da Fábrica", () =>
 test("painel distingue material pronto de produção pendente", () => {
   const render = sourceBetween("function renderFactory", "function setFactoryTriagemStatus");
   assert.match(render, /MATERIAIS DAS METAS PENDENTES/);
-  assert.match(render, /Material já disponível/);
-  assert.match(render, /Precisa produzir/);
-  assert.match(render, /filter\(\(entry\) => !isGoalDone\(entry\.goal\)/);
+  // V629: o corpo do painel é montado por factoryPendingMaterialsHTML, ao abrir o painel.
+  const panel = sourceBetween("function factoryPendingMaterialsHTML", "function hydrateFactoryPendingMaterials");
+  assert.match(panel, /Material já disponível/);
+  assert.match(panel, /Precisa produzir/);
+  assert.match(panel, /filter\(\(entry\) => !isGoalDone\(entry\.goal\)/);
 });
 
 test("Contrato atual v152: V83 mantém cache anterior e publicação em paridade", () => {
