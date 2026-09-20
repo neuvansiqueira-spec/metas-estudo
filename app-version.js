@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260918-fabrica-concluidas-rapida-v424";
+  const VERSION = "20260920-fabrica-detalhes-e-desempenho-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

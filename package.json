@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260918-fabrica-concluidas-rapida-v424",
+  "version": "20260920-fabrica-detalhes-e-desempenho-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
