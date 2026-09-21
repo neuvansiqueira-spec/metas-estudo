@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260824-factory-lei-jurisprudencia-v383";
+  const VERSION = "20260921-factory-lei-jurisprudencia-v383-planalto-v635";
   const TYPE_KEY = "leiJurisprudencia";
   const TYPE_LABEL = "Gerar prompt Lei + Jurisprudência";
   const MIGRATION_ID = "factoryLeiJurisprudenciaV383";
@@ -9,6 +9,73 @@
   const PRIORITY_FOLDERS = ["JULGADOS STF RESUMIDOS", "JULGADOS STJ RESUMIDOS"];
   const API_MARKER = "__aldusFactoryLeiJurisprudenciaV383";
   const INSTALL_FLAG = "aldusFactoryLeiJurisprudenciaV383";
+
+  // V635 (21/09): Planalto como fonte normativa principal, obrigatória e verificável nos
+  // módulos LEI e LEI + JURISPRUDÊNCIA. Resolve o conflito do roteador comum ("conteúdo
+  // externo não fornecido" proibido x consulta obrigatória ao Planalto) e troca a linha fixa
+  // "📍 FONTE: PLANALTO" por URL e data da consulta. Os demais tipos, inclusive a TRIAGEM,
+  // continuam passando direto pelos invólucros, sem alteração.
+  const PLANALTO_TYPES = Object.freeze(["lei", TYPE_KEY]);
+  const PLANALTO_MARKER = "REGRA OBRIGATÓRIA DO MÓDULO LEI — FONTE NORMATIVA OFICIAL (PLANALTO)";
+  const PLANALTO_ROUTER_REPLACEMENTS = Object.freeze([
+    [
+      "Fontes a usar: conforme a triagem e as fontes classificadas para este módulo.",
+      "Fontes a usar: para o TEXTO NORMATIVO, obrigatoriamente o texto oficial vigente no site do Planalto (www.planalto.gov.br); para identificar diploma, dispositivos e recorte, as fontes classificadas na triagem e a pasta do Google Drive; no modo com jurisprudência, a pasta jurisprudencial indicada no prompt completo."
+    ],
+    [
+      "Fontes a não usar: fontes de outros módulos, conteúdo externo não fornecido e materiais não aprovados na triagem.",
+      "Fontes a não usar: fontes de outros módulos, conteúdo externo não fornecido e materiais não aprovados na triagem. EXCEÇÃO OFICIAL E OBRIGATÓRIA DESTE MÓDULO: a consulta ao site oficial do Planalto é exigida e não se enquadra como conteúdo externo proibido."
+    ],
+    [
+      "Confira o conteúdo normativo exclusivamente no texto oficial vigente do Planalto.",
+      "Obtenha o conteúdo normativo exclusivamente do texto oficial vigente no Planalto, conforme a regra obrigatória abaixo."
+    ]
+  ]);
+  const PLANALTO_BASE_LINE = /^📍 FONTE: PLANALTO[ \t]*$/m;
+  const PLANALTO_BASE_REPLACEMENT = "📍 FONTE OFICIAL: [URL EXATA DA PÁGINA DO PLANALTO EFETIVAMENTE CONSULTADA]\n📅 CONSULTA AO PLANALTO: [DATA DA CONSULTA — DD/MM/AAAA]";
+  const PLANALTO_SECTION = `==============================
+${PLANALTO_MARKER}
+==============================
+
+Para legislação federal, o site oficial do Planalto (www.planalto.gov.br) é a FONTE NORMATIVA PRINCIPAL E OBRIGATÓRIA. Esta consulta é uma exceção oficial à restrição de conteúdo externo não fornecido: ela não é opcional e não pode ser substituída pelos materiais do Drive.
+
+FUNÇÃO DE CADA FONTE:
+- PLANALTO: fornece e confirma a redação vigente de artigo, parágrafo, inciso, alínea e item, com alterações, revogações e inclusões.
+- GOOGLE DRIVE (triagem e materiais): identifica diploma, artigos, incisos, parágrafos, alterações relevantes e recorte; fornece organização didática, doutrina, jurisprudência (no modo com jurisprudência), atualizações e pontos de prova. PDF, apostila ou resumo do Drive nunca é fonte oficial da redação da lei, ainda que reproduza o texto legal.
+
+FLUXO OBRIGATÓRIO:
+1. Com o Drive, a triagem e o recorte informado, identifique o diploma e os dispositivos.
+2. Abra no Planalto a página oficial do diploma, preferencialmente a versão compilada.
+3. Leia nela a redação vigente dos dispositivos do recorte e confira as alterações, revogações e inclusões indicadas na própria página.
+4. Só então produza o material, a partir dessa redação.
+
+REGISTRO OBRIGATÓRIO NO WORD, logo abaixo da identificação da lei:
+📍 FONTE OFICIAL: [URL exata da página do Planalto efetivamente consultada]
+📅 CONSULTA AO PLANALTO: [data da consulta, DD/MM/AAAA]
+Não escreva “FONTE: PLANALTO” sem a URL e a data, e não preencha URL ou data que não correspondam a uma consulta efetivamente realizada nesta conversa. Informe a mesma URL e data na resposta final.
+
+DIVERGÊNCIA: se a redação do Planalto divergir de PDF, apostila ou resumo do Drive, prevalece o Planalto na redação da norma. Registre a divergência de forma objetiva: dispositivo, redação do Planalto e o que diz o material.
+
+PLANALTO INACESSÍVEL: não finja a consulta e não use o Drive como substituto silencioso. Escreva no topo do Word e na resposta “⚠️ TEXTO OFICIAL NÃO CONFIRMADO NO PLANALTO — [motivo]”, identifique os dispositivos sem confirmação e não apresente o material como conferido com a redação oficial.
+
+PROIBIDO: reconstruir redação legal de memória; reproduzir apostila como se fosse lei; apresentar paráfrase como redação literal; completar lacuna normativa com resumo; usar PDF antigo do Drive como fonte superior ao Planalto.`;
+
+  function withPlanaltoRouter(routerText) {
+    let text = String(routerText || "");
+    if (!text || text.includes(PLANALTO_MARKER)) return text;
+    for (const [from, to] of PLANALTO_ROUTER_REPLACEMENTS) {
+      if (text.includes(from)) text = text.split(from).join(to);
+    }
+    const delivery = text.indexOf("\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:");
+    return delivery >= 0
+      ? `${text.slice(0, delivery)}\n\n${PLANALTO_SECTION}${text.slice(delivery)}`
+      : `${text.trimEnd()}\n\n${PLANALTO_SECTION}`;
+  }
+
+  function withPlanaltoBase(basePrompt) {
+    const text = String(basePrompt || "");
+    return text ? text.replace(PLANALTO_BASE_LINE, PLANALTO_BASE_REPLACEMENT) : text;
+  }
 
   const BASE_REPLACEMENTS = Object.freeze([
     [
@@ -349,9 +416,10 @@ ANTES DE ENTREGAR, CONFIRME:
       if (factoryPromptBase?.[API_MARKER] === VERSION) return true;
       const previous = factoryPromptBase;
       const wrapped = function(type) {
-        if (type !== TYPE_KEY) return previous(type);
+        if (!PLANALTO_TYPES.includes(type)) return previous(type);
+        if (type !== TYPE_KEY) return withPlanaltoBase(previous(type));
         const configured = String(state?.factoryPromptLibrary?.[TYPE_KEY] || "").trim();
-        return configured || buildPrompt();
+        return withPlanaltoBase(configured || buildPrompt());
       };
       Object.defineProperty(wrapped, API_MARKER, { value: VERSION });
       Object.defineProperty(wrapped, "__aldusFactoryLeiJurisprudenciaOriginal", { value: previous });
@@ -368,11 +436,12 @@ ANTES DE ENTREGAR, CONFIRME:
       if (factoryRouterText?.[API_MARKER] === VERSION) return true;
       const previous = factoryRouterText;
       const wrapped = function(type, item = {}) {
-        if (type !== TYPE_KEY) return previous(type, item);
+        if (!PLANALTO_TYPES.includes(type)) return previous(type, item);
+        if (type !== TYPE_KEY) return withPlanaltoRouter(previous(type, item));
         const leiRouter = String(previous("lei", item) || "");
         const moduleIndex = leiRouter.indexOf("\nMÓDULO:");
         const common = moduleIndex >= 0 ? leiRouter.slice(0, moduleIndex).trimEnd() : leiRouter.trimEnd();
-        return `${common}\n\nMÓDULO: LEI + JURISPRUDÊNCIA. Produza um único módulo integrado: a LEI usa o diploma, a fonte oficial e o recorte autorizados pelo módulo LEI; a camada jurisprudencial usa exclusivamente a pasta jurisprudencial indicada no prompt completo. A jurisprudência deve ser inserida junto do dispositivo correspondente e consolidada, sem repetição integral, em quadro final de revisão. ESTE MODO NÃO É PEÇA: se o tema pertencer à categoria PEÇA, não o converta em LEI + JURISPRUDÊNCIA.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o MÓDULO LEI + JURISPRUDÊNCIA;\n- gerar um arquivo Word editável contendo o módulo integrado;\n- preservar a arquitetura e a formatação canônica do módulo LEI;\n- incluir sumário didático compatível com a arquitetura da lei;\n- não gerar RESUMO/AULA, PEÇA, JURISPRUDÊNCIA autônoma ou CONSOLIDAÇÃO FINAL;\n- salvar no Drive apenas quando a pasta de destino estiver preenchida e a ação de upload for efetivamente concluída.`;
+        return withPlanaltoRouter(`${common}\n\nMÓDULO: LEI + JURISPRUDÊNCIA. Produza um único módulo integrado: a LEI usa o diploma, a fonte oficial e o recorte autorizados pelo módulo LEI; a camada jurisprudencial usa exclusivamente a pasta jurisprudencial indicada no prompt completo. A jurisprudência deve ser inserida junto do dispositivo correspondente e consolidada, sem repetição integral, em quadro final de revisão. ESTE MODO NÃO É PEÇA: se o tema pertencer à categoria PEÇA, não o converta em LEI + JURISPRUDÊNCIA.\n\nENTREGA OBRIGATÓRIA DESTA ETAPA:\n- gerar somente o MÓDULO LEI + JURISPRUDÊNCIA;\n- gerar um arquivo Word editável contendo o módulo integrado;\n- preservar a arquitetura e a formatação canônica do módulo LEI;\n- incluir sumário didático compatível com a arquitetura da lei;\n- não gerar RESUMO/AULA, PEÇA, JURISPRUDÊNCIA autônoma ou CONSOLIDAÇÃO FINAL;\n- salvar no Drive apenas quando a pasta de destino estiver preenchida e a ação de upload for efetivamente concluída.`);
       };
       Object.defineProperty(wrapped, API_MARKER, { value: VERSION });
       Object.defineProperty(wrapped, "__aldusFactoryLeiJurisprudenciaRouterOriginal", { value: previous });
@@ -426,6 +495,8 @@ ANTES DE ENTREGAR, CONFIRME:
     priorityFolders: Object.freeze([...PRIORITY_FOLDERS]),
     adaptLeiBase,
     buildPrompt,
+    withPlanaltoRouter,
+    withPlanaltoBase,
     install
   });
 

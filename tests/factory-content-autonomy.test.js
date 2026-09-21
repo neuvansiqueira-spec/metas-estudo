@@ -59,10 +59,27 @@ function assertPolicy(prompt) {
   assert.match(prompt, /NÃO TROQUE “SERÁ\/DEVE” POR “PODE”/);
   assert.match(prompt, /NÃO COMPLETE POR MEMÓRIA/);
   assert.match(prompt, /O DADO EXATO QUE FALTA/);
-  assert.match(prompt, /PRESERVAÇÃO OBRIGATÓRIA DA ESSÊNCIA DO RESUMO/);
-  assert.match(prompt, /A MERA SINGULARIDADE DE UM DETALHE NÃO JUSTIFICA SUA INCLUSÃO/);
-  assert.match(prompt, /NÃO TENTE RESPONDER A TODA PERGUNTA POSSÍVEL SOBRE O TEMA/);
-  assert.doesNotMatch(prompt, /RECUPERE INTEGRALMENTE AS INFORMAÇÕES PERTINENTES/);
+  // V635 (21/09): densidade + completude, sem repetição. As cláusulas de 11/09 que
+  // autorizavam perda de conteúdo não podem voltar.
+  assert.match(prompt, /PADRÃO OBRIGATÓRIO: DENSIDADE \+ COMPLETUDE, SEM REPETIÇÃO — NÃO BREVIDADE/);
+  assert.match(prompt, /NÃO SÃO CONTEÚDO ACESSÓRIO E NÃO PODEM SER OMITIDOS PARA ENCURTAR O RESUMO/);
+  assert.match(prompt, /SE A CONFERÊNCIA REVELAR LACUNA, ACRESCENTE O CONTEÚDO FALTANTE, AINDA QUE ISSO AUMENTE O RESUMO/);
+  for (const clausula of [
+    /PRECISÃO E CONCISÃO/,
+    /MENOR REDAÇÃO SUFICIENTE/,
+    /DETALHES ACESSÓRIOS PODEM SER OMITIDOS/,
+    /A MERA SINGULARIDADE DE UM DETALHE NÃO JUSTIFICA SUA INCLUSÃO/,
+    /NÃO TENTE RESPONDER A TODA PERGUNTA POSSÍVEL/,
+    /NÃO AUTORIZA AUMENTAR O ESCOPO, O DETALHAMENTO OU O TAMANHO/,
+    /NÃO ACRESCENTE CONTEXTUALIZAÇÕES, DESDOBRAMENTOS/,
+    /NÃO DESENVOLVA CADA ELEMENTO COMO UMA EXPLICAÇÃO AUTÔNOMA/,
+    /EXPLICITE SOMENTE OS ELEMENTOS INDISPENSÁVEIS/,
+    /APENAS AS INFORMAÇÕES ESSENCIAIS/,
+    /PRESERVANDO A SÍNTESE/,
+    /GRAU DE SÍNTESE/
+  ]) {
+    assert.doesNotMatch(prompt, clausula);
+  }
 }
 
 test('prompts reais, salvos e personalizados recebem a política nos três modos', () => {
@@ -152,6 +169,31 @@ test('migra a política anterior sem acumular seções nem perder preferências 
   assert.equal(generate(context, 'resumoAula'), migrated);
   vm.runInContext(canonical, context);
   assert.equal(vm.runInContext('state.factoryPromptLibraryBackups.resumoAulaBeforePrecisaoConcisao20260911', context), oldPolicy);
+});
+
+test('V635 converte o prompt salvo com a política de concisão de 11/09 e guarda o anterior', () => {
+  const concisao1109 = base
+    + '\nNÃO ACRESCENTE CONTEÚDO EXTERNO NEM ATUALIZE POR MEMÓRIA. RECUPERE NAS FONTES AUTORIZADAS APENAS AS INFORMAÇÕES ESSENCIAIS À COMPREENSÃO DO RECORTE RESUMIDO, PRESERVANDO A SÍNTESE E A FORMATAÇÃO.\n\n'
+    + heading + '\n\nAPLICAÇÃO TRANSVERSAL A TODAS AS DISCIPLINAS — PRECISÃO E CONCISÃO\n\n'
+    + 'PRESERVAÇÃO OBRIGATÓRIA DA ESSÊNCIA DO RESUMO. COMPLETE SOMENTE A LACUNA ESSENCIAL, COM A MENOR REDAÇÃO SUFICIENTE PARA PRESERVAR SENTIDO E PRECISÃO. '
+    + 'DETALHES ACESSÓRIOS PODEM SER OMITIDOS PELA SÍNTESE MESMO QUE SEJAM ÚNICOS. NÃO TENTE RESPONDER A TODA PERGUNTA POSSÍVEL SOBRE O TEMA.\n\n'
+    + 'FIM DAS REGRAS DE AUTOSSUFICIÊNCIA.' + customTail;
+  for (const type of ['resumoAula', 'resumoAulaJurisprudencia', 'consolidacao']) {
+    const context = harness();
+    vm.runInContext(`
+      state.factoryPromptLibrary[${JSON.stringify(type)}] = ${JSON.stringify(concisao1109)};
+      delete state.factoryPromptLibraryBackups[${JSON.stringify(type + 'BeforeDensidadeCompletude20260921')}];
+    `, context);
+    const migrated = generate(context, type);
+    assertPolicy(migrated);
+    assert.match(migrated, /RECUPERE INTEGRALMENTE NAS FONTES AUTORIZADAS AS INFORMAÇÕES PERTINENTES AO RECORTE/);
+    assert.equal(migrated.split(heading).length - 1, 1);
+    assert.ok(migrated.endsWith(customTail));
+    if (type === 'resumoAula') {
+      assert.equal(vm.runInContext(`state.factoryPromptLibraryBackups[${JSON.stringify(type + 'BeforeDensidadeCompletude20260921')}]`, context), concisao1109);
+    }
+    assert.equal(generate(context, type), migrated, 'a conversão é idempotente');
+  }
 });
 
 test('aplica a mesma política transversal sem substituir o conteúdo de disciplinas diferentes', () => {

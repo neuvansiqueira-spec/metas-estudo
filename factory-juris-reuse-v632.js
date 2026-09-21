@@ -1,9 +1,12 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260920-factory-juris-reuse-v632";
+  // V635 (21/09): a triagem passa a ser ponto de partida, não teto. A regra anterior
+  // (REGRA ESPECIAL DE DESEMPENHO) declarava prevalência sobre a busca da V380 e
+  // dispensava a complementação quando o pacote parecia "suficiente".
+  const VERSION = "20260921-factory-juris-reuse-v632-v635";
   const TARGET_TYPE = "resumoAulaJurisprudencia";
-  const MARKER = "REGRA ESPECIAL DE DESEMPENHO — REAPROVEITAMENTO DA TRIAGEM JURISPRUDENCIAL";
+  const MARKER = "REGRA DE REAPROVEITAMENTO E COMPLEMENTAÇÃO JURISPRUDENCIAL — A TRIAGEM É PONTO DE PARTIDA, NÃO TETO";
 
   function promptMeta(id) {
     const escaped = CSS.escape(String(id || ""));
@@ -20,27 +23,33 @@
       MARKER,
       "==============================",
       "",
-      "Esta regra é específica desta etapa e PREVALECE sobre qualquer instrução anterior que determine inventário completo, varredura recursiva total ou releitura integral de toda a pasta jurisprudencial.",
+      "Esta regra define a ORDEM da busca jurisprudencial. Ela não substitui, não reduz e não prevalece sobre a metodologia de busca do módulo integrado RESUMO/AULA + JURISPRUDÊNCIA: reaproveitar fontes elimina releitura, não elimina a busca pelo que ainda falta.",
       "",
-      "1. REUTILIZE A TRIAGEM JÁ CONCLUÍDA.",
-      "Se a TRIAGEM imediatamente anterior classificou JURISPRUDÊNCIA como SUFICIENTE e já identificou fontes principais, secundárias ou de apoio, use essas fontes diretamente.",
-      "Não refaça inventário geral de STF/STJ, não percorra todos os anos e não repita buscas amplas apenas para confirmar o que a TRIAGEM já consolidou.",
+      "1. REUTILIZE TUDO O QUE JÁ FOI ENCONTRADO.",
+      "Use diretamente as fontes jurisprudenciais já identificadas e lidas na TRIAGEM ou nesta conversa. Não reabra nem releia arquivo já examinado nesta conversa, salvo para extrair trecho ainda não aproveitado.",
       "",
-      "2. LEITURA DIRECIONADA.",
-      "Abra somente as fontes jurisprudenciais já aprovadas na TRIAGEM e os trechos necessários para extrair ou confirmar as teses relacionadas aos institutos efetivamente tratados no RESUMO/AULA.",
+      "2. VERIFIQUE A COBERTURA JURISPRUDENCIAL MATERIAL DO TEMA.",
+      "Liste internamente os institutos e subtemas tratados no resumo. Para cada um, verifique se já há jurisprudência pertinente identificada: tese, súmula, tema repetitivo, repercussão geral ou informativo.",
       "",
-      "3. BUSCA COMPLEMENTAR SOMENTE SE HOUVER LACUNA CONCRETA.",
-      "Faça busca adicional na pasta jurisprudencial exclusiva apenas quando faltar jurisprudência para um ponto material relevante, houver conflito entre fontes, arquivo essencial estiver inacessível/ilegível ou a TRIAGEM tiver classificado JURISPRUDÊNCIA como PARCIALMENTE SUFICIENTE/INSUFICIENTE.",
-      "Quando complementar, faça pesquisa direcionada pelo instituto específico e encerre a busca assim que a lacuna estiver resolvida.",
+      "3. CONSULTE O ÍNDICE DA PASTA JURISPRUDENCIAL.",
+      "Para cada instituto ou subtema sem cobertura, pesquise por termos na pasta jurisprudencial exclusiva (nome do instituto, sinônimos, artigo de lei, súmula ou tema), usando a busca indexada do Drive, e abra os resultados pertinentes. Isso evita reler a pasta inteira e não dispensa a leitura do conteúdo efetivo dos arquivos candidatos.",
       "",
-      "4. NÃO REDUZA A QUALIDADE.",
-      "Não omita tese relevante, requisito, condição, exceção, distinção ou evolução já identificada nas fontes aprovadas.",
-      "A otimização elimina repetição de busca, não conteúdo jurídico.",
+      "4. IDENTIFIQUE A JURISPRUDÊNCIA PERTINENTE AINDA AUSENTE.",
+      "Todo entendimento materialmente relevante localizado e ainda não aproveitado deve ser lido e incorporado no ponto do instituto correspondente.",
       "",
-      "5. SE A TRIAGEM NÃO ESTIVER DISPONÍVEL NESTA CONVERSA.",
-      "Não faça inventário recursivo completo por padrão. Use a pasta jurisprudencial exclusiva com buscas direcionadas ao tema e aos institutos do resumo, priorizando arquivos claramente pertinentes; amplie somente se os resultados forem insuficientes.",
+      "5. COMPLEMENTE OBRIGATORIAMENTE QUANDO HOUVER LACUNA.",
+      "Havendo instituto ou subtema sem cobertura, a complementação é obrigatória. Se as buscas direcionadas não bastarem, aplique a varredura recursiva prevista no módulo integrado. Continua valendo a regra do módulo integrado: só declare ausência de jurisprudência diretamente relevante depois da varredura recursiva completa e da leitura dos candidatos acessíveis.",
       "",
-      "FIM DA REGRA ESPECIAL DE REAPROVEITAMENTO"
+      "SIGNIFICADO DE \"SUFICIENTE\":",
+      "\"Suficiente\" significa somente cobertura material suficiente de TODOS os institutos e subtemas do resumo. Haver alguma jurisprudência no pacote ou na TRIAGEM não torna a cobertura suficiente. A classificação \"SUFICIENTE\" dada pela TRIAGEM não dispensa as etapas 2 a 5.",
+      "",
+      "SE A TRIAGEM NÃO ESTIVER DISPONÍVEL NESTA CONVERSA:",
+      "Execute as etapas 2 a 5 diretamente na pasta jurisprudencial exclusiva, com a metodologia de busca do módulo integrado.",
+      "",
+      "NÃO REDUZA A QUALIDADE:",
+      "Não omita tese relevante, requisito, condição, exceção, distinção, divergência ou evolução. A otimização elimina repetição de busca e de leitura, não conteúdo jurídico.",
+      "",
+      "FIM DA REGRA DE REAPROVEITAMENTO E COMPLEMENTAÇÃO JURISPRUDENCIAL"
     ].join("\n");
   }
 
@@ -57,7 +66,7 @@
 
     const escaped = CSS.escape(String(id || ""));
     const status = document.querySelector('[data-factory-prompt-message="' + escaped + '"]');
-    if (status) status.textContent = "Triagem jurisprudencial será reaproveitada; nova varredura ampla foi desativada.";
+    if (status) status.textContent = "Triagem jurisprudencial reaproveitada como ponto de partida; lacunas serão complementadas.";
   }
 
   function handleFactoryClick(event) {
