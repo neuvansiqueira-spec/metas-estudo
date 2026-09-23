@@ -200,3 +200,30 @@ test('deploy da V327 valida, copia, injeta após V326 e renova o cache público'
     'a V327 deve ser injetada depois da V326 para assumir a fonte canônica final'
   );
 });
+
+test('V327 crava os valores do padrão que os Words fora de forma não seguiram (23/09/2026)', () => {
+  const prompt = currentPrompt(createHarness());
+  // antes disso o prompt só fixava o preto: o tom do azul, o bege, a fonte e os recuos ficavam a cargo do gerador
+  assert.match(prompt, /### VALORES FIXOS DO WORD/);
+  assert.match(prompt, /FONTE ARIAL, TAMANHO 11, EM TODO O DOCUMENTO/);
+  assert.match(prompt, /FAIXA AZUL-CLARA #D9EAF7/);
+  assert.match(prompt, /FAIXA BEGE #EEECE1/);
+  assert.match(prompt, /É PROIBIDO USAR LISTA COM MARCADOR •/);
+  assert.match(prompt, /É PROIBIDO DEIXAR A LINHA DE CONTEÚDO INTEIRA EM NEGRITO/);
+  assert.match(prompt, /É PROIBIDO SUBSTITUIR OS TÍTULOS ♦️ POR CABEÇALHOS ▶️📚/);
+  assert.match(prompt, /NÃO INSIRA NO DOCUMENTO DESCRIÇÃO DA PRÓPRIA EXECUÇÃO/);
+  assert.match(prompt, /15\. NÃO HÁ NENHUMA LINHA COM MARCADOR •/);
+  assert.match(prompt, /17\. EXISTEM TÍTULOS ♦️ NO CORPO DO DOCUMENTO/);
+  assert.equal(source, fs.readFileSync('docs/factory-resumo-aula-canonical-v327.js', 'utf8'),
+    'raiz e docs devem ficar iguais');
+});
+
+test('V327 reescreve o prompt já salvo, mesmo com a migração antiga registrada', () => {
+  // é isso que faz a correção chegar ao prompt que ele usa, sem precisar limpar dados
+  const context = createHarness();
+  vm.runInContext('state.migrations = { factoryResumoAulaCanonicalVisualV327: "2026-09-01T00:00:00.000Z" }', context);
+  vm.runInContext('state.factoryPromptLibrary.resumoAula = ' + JSON.stringify(BASE_PROMPT), context);
+  const refeito = vm.runInContext(
+    '__aldusFactoryResumoAulaCanonicalV327.canonicalPromptFrom(state.factoryPromptLibrary.resumoAula)', context);
+  assert.match(refeito, /### VALORES FIXOS DO WORD/);
+});

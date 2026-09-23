@@ -385,6 +385,17 @@ ANTES DE ENTREGAR, CONFIRME:
     }
   }
 
+  // Trecho estável da seção que este módulo acrescenta: identifica um prompt montado por ele.
+  const INTEGRATION_MARKER = "MÓDULO INTEGRADO — LEI + JURISPRUDÊNCIA";
+
+  function rememberPromptBackup(targetState, type, prompt) {
+    try {
+      if (!targetState || !String(prompt || "").trim()) return;
+      targetState.factoryPromptLibraryBackups ||= {};
+      targetState.factoryPromptLibraryBackups[`${type}BeforeValoresFixos20260923`] ??= prompt;
+    } catch {}
+  }
+
   function ensurePromptLibrary() {
     const prompt = buildPrompt();
     if (!prompt) return { installed: false, changed: false, reason: "lei-unavailable" };
@@ -400,9 +411,16 @@ ANTES DE ENTREGAR, CONFIRME:
       state.factoryPromptLibrary ||= {};
       state.migrations ||= {};
       const alreadyMigrated = Boolean(state.migrations[MIGRATION_ID]);
-      const hasPrompt = Boolean(String(state.factoryPromptLibrary[TYPE_KEY] || "").trim());
-      const changed = !alreadyMigrated || !hasPrompt;
-      if (!hasPrompt) state.factoryPromptLibrary[TYPE_KEY] = prompt;
+      const saved = String(state.factoryPromptLibrary[TYPE_KEY] || "").trim();
+      const hasPrompt = Boolean(saved);
+      // Mesmo caso do RESUMO/AULA + JURISPRUDÊNCIA (V380): este prompt é montado a partir do da LEI e
+      // só era gravado quando ainda não existia, de modo que congelava e não recebia as correções
+      // posteriores do prompt-base. Refaz quando o texto salvo foi montado aqui e ficou para trás.
+      const builtHere = hasPrompt && saved.includes(INTEGRATION_MARKER);
+      const outdated = builtHere && saved !== prompt;
+      const changed = !alreadyMigrated || !hasPrompt || outdated;
+      if (outdated) rememberPromptBackup(state, TYPE_KEY, saved);
+      if (!hasPrompt || outdated) state.factoryPromptLibrary[TYPE_KEY] = prompt;
       if (!alreadyMigrated) state.migrations[MIGRATION_ID] = new Date().toISOString();
       return { installed: true, changed };
     } catch {

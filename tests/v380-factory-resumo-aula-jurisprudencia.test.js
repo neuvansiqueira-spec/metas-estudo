@@ -52,3 +52,52 @@ test('V380 é carregada isoladamente pelo observability sem alterar o bundle pri
   assert.equal(runtime, docsRuntime, 'runtime V380 deve permanecer idêntico entre raiz e docs');
   assert.equal(security, docsSecurity, 'security-observability deve permanecer idêntico entre raiz e docs');
 });
+
+// 23/09/2026: dois Words saíram fora do padrão visual. O prompt combinado tinha congelado na versão
+// de quando foi criado — só era gravado se ainda não existisse — e não recebia as correções do RESUMO/AULA.
+function montarContexto(promptSalvo) {
+  const vm = require('node:vm');
+  const ctx = {
+    console,
+    setTimeout: (fn) => { fn(); return 0; },
+    location: { hash: '' },
+    document: {
+      readyState: 'complete', addEventListener() {}, getElementById: () => null,
+      createElement: () => ({ setAttribute() {}, appendChild() {}, style: {} }),
+      head: { appendChild() {} }, querySelector: () => null
+    },
+    state: {
+      factoryPromptLibrary: {
+        resumoAula: 'TRANSFORME AS FONTES CLASSIFICADAS COMO RESUMO/AULA\n\n### VALORES FIXOS DO WORD\n\nFONTE ARIAL, TAMANHO 11.',
+        resumoAulaJurisprudencia: promptSalvo
+      },
+      migrations: { factoryResumoAulaJurisprudenciaV380: '2026-08-24T00:00:00.000Z' }
+    },
+    defaultFactoryPromptLibrary: { resumoAula: 'base', resumoAulaJurisprudencia: 'base' },
+    FACTORY_PROMPT_TYPES: [{ key: 'resumoAula', label: 'Gerar prompt Resumo/Aula' }],
+    factoryRouterText: () => '',
+    addEventListener() {}
+  };
+  ctx.window = ctx; ctx.globalThis = ctx;
+  vm.createContext(ctx);
+  vm.runInContext(runtime, ctx);
+  ctx.__aldusFactoryResumoAulaJurisprudenciaV380.install();
+  return ctx;
+}
+
+test('V380 refaz o prompt combinado quando o RESUMO/AULA é corrigido, guardando o anterior', () => {
+  const antigo = 'PROMPT ANTIGO SEM OS VALORES FIXOS\n\nQUADRO FINAL DE JURISPRUDÊNCIA';
+  const ctx = montarContexto(antigo);
+  const atual = ctx.state.factoryPromptLibrary.resumoAulaJurisprudencia;
+  assert.notEqual(atual, antigo, 'o prompt congelado tem de ser refeito');
+  assert.match(atual, /VALORES FIXOS DO WORD/, 'a correção do RESUMO/AULA precisa chegar ao combinado');
+  assert.match(atual, /QUADRO FINAL DE JURISPRUDÊNCIA/, 'a camada de jurisprudência continua');
+  assert.equal(ctx.state.factoryPromptLibraryBackups.resumoAulaJurisprudenciaBeforeValoresFixos20260923, antigo);
+});
+
+test('V380 não toca em prompt que não foi montado por ele', () => {
+  const dele = 'PROMPT ESCRITO POR MIM, SEM A SEÇÃO DO MÓDULO.';
+  const ctx = montarContexto(dele);
+  assert.equal(ctx.state.factoryPromptLibrary.resumoAulaJurisprudencia, dele);
+  assert.equal(ctx.state.factoryPromptLibraryBackups, undefined);
+});

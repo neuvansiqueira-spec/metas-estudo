@@ -182,3 +182,25 @@ test('deploy valida, copia e injeta a V326 após a política de penas', () => {
     'a atualização visual deve ser injetada depois da política de penas'
   );
 });
+
+test('V326 crava os valores do padrão que os Words fora de forma não seguiram (23/09/2026)', () => {
+  const prompt = currentPrompt(createHarness());
+  // medidos nos resumos aprovados: antes disso o prompt só fixava o preto, e o layout variava a cada execução
+  assert.match(prompt, /## PADRÃO VISUAL DO WORD[\s\S]*### VALORES FIXOS DO WORD/);
+  assert.match(prompt, /FONTE ARIAL, TAMANHO 11, EM TODO O DOCUMENTO/);
+  assert.match(prompt, /FAIXA AZUL-CLARA #D9EAF7/);
+  assert.match(prompt, /FAIXA BEGE #EEECE1/);
+  assert.match(prompt, /É PROIBIDO USAR LISTA COM MARCADOR •/);
+  assert.match(prompt, /É PROIBIDO DEIXAR A LINHA DE CONTEÚDO INTEIRA EM NEGRITO/);
+  assert.match(prompt, /NÃO INSIRA NO DOCUMENTO DESCRIÇÃO DA PRÓPRIA EXECUÇÃO/);
+  assert.match(prompt, /13\. NÃO HÁ NENHUMA LINHA COM MARCADOR •/);
+  assert.match(prompt, /15\. EXISTEM TÍTULOS ♦️ NO CORPO DO DOCUMENTO/);
+});
+
+test('V326 leva os valores fixos também para o prompt RESUMO/AULA + JURISPRUDÊNCIA', () => {
+  const combinado = fs.readFileSync('factory-resumo-aula-jurisprudencia-v380.js', 'utf8');
+  // o V380 monta o prompt a partir do RESUMO/AULA já corrigido, então não duplica as regras visuais
+  assert.match(combinado, /currentResumoAulaPrompt/);
+  assert.equal(fs.readFileSync('factory-resumo-aula-visual-v326.js', 'utf8'),
+    fs.readFileSync('docs/factory-resumo-aula-visual-v326.js', 'utf8'), 'raiz e docs devem ficar iguais');
+});

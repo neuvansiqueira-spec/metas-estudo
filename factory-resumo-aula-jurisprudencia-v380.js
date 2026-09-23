@@ -180,6 +180,17 @@ A integração jurisprudencial deve enriquecer a aula sem quebrar seu fluxo did�
     }
   }
 
+  // Trecho estável da seção que este módulo acrescenta: identifica um prompt montado por ele.
+  const INTEGRATION_MARKER = "QUADRO FINAL DE JURISPRUDÊNCIA";
+
+  function rememberPromptBackup(targetState, type, prompt) {
+    try {
+      if (!targetState || !String(prompt || "").trim()) return;
+      targetState.factoryPromptLibraryBackups ||= {};
+      targetState.factoryPromptLibraryBackups[`${type}BeforeValoresFixos20260923`] ??= prompt;
+    } catch {}
+  }
+
   function ensurePromptLibrary() {
     const prompt = buildPrompt();
     if (!prompt) return { installed: false, changed: false, reason: "resumo-aula-unavailable" };
@@ -195,9 +206,17 @@ A integração jurisprudencial deve enriquecer a aula sem quebrar seu fluxo did�
       state.factoryPromptLibrary ||= {};
       state.migrations ||= {};
       const alreadyMigrated = Boolean(state.migrations[MIGRATION_ID]);
-      const hasPrompt = Boolean(String(state.factoryPromptLibrary[TYPE_KEY] || "").trim());
-      const changed = !alreadyMigrated || !hasPrompt;
-      if (!hasPrompt) state.factoryPromptLibrary[TYPE_KEY] = prompt;
+      const saved = String(state.factoryPromptLibrary[TYPE_KEY] || "").trim();
+      const hasPrompt = Boolean(saved);
+      // Este prompt é montado a partir do RESUMO/AULA. Antes ele só era gravado quando ainda não
+      // existia: uma vez salvo, congelava, e as correções feitas no prompt-base nunca chegavam aqui
+      // (em 23/09/2026 o salvo estava 9.454 caracteres atrás do gerado). Agora, quando o texto salvo
+      // é o que este módulo montou e ficou para trás, ele é refeito — com cópia do anterior guardada.
+      const builtHere = hasPrompt && saved.includes(INTEGRATION_MARKER);
+      const outdated = builtHere && saved !== prompt;
+      const changed = !alreadyMigrated || !hasPrompt || outdated;
+      if (outdated) rememberPromptBackup(state, TYPE_KEY, saved);
+      if (!hasPrompt || outdated) state.factoryPromptLibrary[TYPE_KEY] = prompt;
       if (!alreadyMigrated) state.migrations[MIGRATION_ID] = new Date().toISOString();
       return { installed: true, changed };
     } catch {
