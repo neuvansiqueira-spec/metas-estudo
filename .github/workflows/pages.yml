@@ -50,6 +50,7 @@ jobs:
           node --check factory-penalties-v320.js
           node --check factory-resumo-aula-visual-v326.js
           node --check factory-resumo-aula-canonical-v327.js
+          node --check factory-cobertura-v640.js
           node --check planning-variety-v357.js
           node --check planning-piece-rotation-v358.js
           node --check planning-quality-v368.js
@@ -117,6 +118,7 @@ jobs:
           cp factory-penalties-v320.js docs/factory-penalties-v320.js
           cp factory-resumo-aula-visual-v326.js docs/factory-resumo-aula-visual-v326.js
           cp factory-resumo-aula-canonical-v327.js docs/factory-resumo-aula-canonical-v327.js
+          cp factory-cobertura-v640.js docs/factory-cobertura-v640.js
 
           python - <<'PY'
           from pathlib import Path
