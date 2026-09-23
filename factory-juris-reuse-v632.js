@@ -83,19 +83,23 @@
     setMessage(id, "Triagem jurisprudencial reaproveitada como ponto de partida; lacunas serão complementadas.");
   }
 
-  function setMessage(id, message) {
+  function setMessage(id, message, alerta = false) {
     const escaped = CSS.escape(String(id || ""));
     const status = document.querySelector('[data-factory-prompt-message="' + escaped + '"]');
-    if (status && message) status.textContent = message;
+    if (status && message) {
+      status.textContent = message;
+      // V638: mesma classe de alerta do módulo do bridge (estilo injetado lá).
+      status.classList.toggle("aldus-bridge-off", Boolean(alerta));
+    }
   }
 
-  function setBusy(id, busy, message) {
+  function setBusy(id, busy, message, alerta = false) {
     const escaped = CSS.escape(String(id || ""));
     for (const selector of ['[data-factory-prompt-copy="' + escaped + '"]', '[data-factory-router-copy="' + escaped + '"]']) {
       const button = document.querySelector(selector);
       if (button) button.disabled = Boolean(busy);
     }
-    setMessage(id, message);
+    setMessage(id, message, alerta);
   }
 
   function rotulo(item) {
@@ -214,7 +218,7 @@
         ? `Pacote jurisprudencial incluído: ${n} informativo(s) pertinente(s). Prompt pronto para copiar.`
         : "Índice local sem julgado com as expressões do tema; o prompt manda buscar por instituto. Pronto para copiar.");
     } catch (_error) {
-      setBusy(id, false, "Bridge local indisponível: pacote jurisprudencial não incluído. Prompt pronto para copiar, sem ele.");
+      setBusy(id, false, "⚠️ BRIDGE DESLIGADO — este prompt saiu SEM o pacote de jurisprudência do acervo STF/STJ. O guardião costuma religar o bridge em até 1 minuto: aguarde e gere o prompt de novo.", true);
     }
   }
 

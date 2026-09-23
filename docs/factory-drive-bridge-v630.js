@@ -7,6 +7,28 @@
   const PACKAGE_MARKER = "PACOTE LOCAL DE PRÉ-TRIAGEM — GOOGLE DRIVE";
   const cache = new Map();
 
+  // V638: o estado "sem bridge" tinha a mesma aparência do estado normal, e em 22/09/2026
+  // vários prompts foram gerados sem pré-triagem sem que isso fosse percebido.
+  const ALERT_STYLE_ID = "aldusBridgeAlertaEstiloV638";
+
+  function ensureAlertStyle() {
+    if (document.getElementById(ALERT_STYLE_ID)) return;
+    const style = document.createElement("style");
+    style.id = ALERT_STYLE_ID;
+    style.textContent = `
+      #${STATUS_ID}.aldus-bridge-off,
+      [data-factory-prompt-message].aldus-bridge-off {
+        color: #fecaca;
+        background: rgba(220, 38, 38, .18);
+        border: 1px solid rgba(220, 38, 38, .65);
+        border-radius: 10px;
+        padding: 6px 10px;
+        font-weight: 700;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   function normalizeKey(value = "") {
     return String(value || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
   }
@@ -57,11 +79,13 @@
       const health = await bridgeFetch("/health", { method: "GET", headers: {} });
       const total = Number(health.main_index_files || 0).toLocaleString("pt-BR");
       button.textContent = `Drive Bridge: conectado • ${total} arquivos`;
+      button.classList.remove("aldus-bridge-off");
       button.title = "Bridge local em modo somente leitura. Clique para verificar novamente.";
       if (forceMessage) button.blur();
       return true;
     } catch (error) {
-      button.textContent = "Drive Bridge: desconectado";
+      button.textContent = "⚠️ Drive Bridge: DESCONECTADO";
+      button.classList.add("aldus-bridge-off");
       button.title = "Mantenha o CMD do bridge aberto. Se o navegador pedir acesso à rede local, permita.";
       return false;
     } finally {
@@ -147,14 +171,17 @@
     }
   }
 
-  function setPromptBusy(id, busy, message = "") {
+  function setPromptBusy(id, busy, message = "", alerta = false) {
     const escaped = CSS.escape(String(id || ""));
     const copy = document.querySelector(`[data-factory-prompt-copy="${escaped}"]`);
     const routerCopy = document.querySelector(`[data-factory-router-copy="${escaped}"]`);
     const status = document.querySelector(`[data-factory-prompt-message="${escaped}"]`);
     if (copy) copy.disabled = Boolean(busy);
     if (routerCopy) routerCopy.disabled = Boolean(busy);
-    if (status && message) status.textContent = message;
+    if (status && message) {
+      status.textContent = message;
+      status.classList.toggle("aldus-bridge-off", Boolean(alerta));
+    }
   }
 
   async function enrichTriagemPrompt(id) {
@@ -189,7 +216,7 @@
       setPromptBusy(id, false, `Pré-triagem concluída: ${result.total_selecionados || 0} arquivo(s) priorizado(s). Prompt pronto para copiar.`);
       checkHealth(false);
     } catch (error) {
-      setPromptBusy(id, false, "Bridge local indisponível. Prompt original mantido; verifique o CMD e o acesso à rede local.");
+      setPromptBusy(id, false, "⚠️ BRIDGE DESLIGADO — este prompt saiu SEM a pré-triagem do Drive e SEM o pacote de jurisprudência. Prompt original mantido; o guardião costuma religar o bridge em até 1 minuto: aguarde e gere o prompt de novo.", true);
       checkHealth(false);
     }
   }
@@ -207,6 +234,7 @@
   }
 
   function install() {
+    ensureAlertStyle();
     ensureStatusControl();
     document.addEventListener("click", handleFactoryClick, false);
     checkHealth(false);
