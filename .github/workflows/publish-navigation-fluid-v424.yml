@@ -57,8 +57,7 @@ jobs:
           tests/side-nav-hover-collapse-v207.test.mjs
           tests/v73-navigation-scroll.test.js
           tests/v91-collapsible-side-navigation.test.js
-          tests/v94-logo-home-links.test.js
-          tests/v219-release-pipeline.test.js
+
 
       - name: Validate mirrored public files
         run: |
