@@ -237,13 +237,14 @@ html[data-aldus-theme="premium-stable"] :is(.screen-stage, .app-view, .dashboard
     visibility: hidden;
     pointer-events: none;
     transform: translate3d(-105%, 0, 0);
-    transition: transform .2s ease, visibility .2s ease !important;
+    transition: transform .2s ease, visibility 0s linear .2s !important;
   }
 
   html[data-aldus-theme="premium-stable"] .topbar .nav-links.open {
     visibility: visible !important;
     pointer-events: auto !important;
     transform: translate3d(0, 0, 0) !important;
+    transition: transform .2s ease, visibility 0s linear 0s !important;
   }
 
   html[data-aldus-theme="premium-stable"] .mobile-menu-header {

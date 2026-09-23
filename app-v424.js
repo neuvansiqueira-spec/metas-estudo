@@ -64118,8 +64118,8 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
   const COLLAPSED_CLASS = "side-nav-collapsed";
   const MODULE_CLASS = "side-nav-hover-v207";
   const STYLE_ID = "sideNavHoverV207Style";
-  const OPEN_DELAY_MS = 130;
-  const CLOSE_DELAY_MS = 150;
+  const OPEN_DELAY_MS = 90;
+  const CLOSE_DELAY_MS = 320;
 
   let root = null;
   let layout = null;
@@ -64142,14 +64142,24 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
         .${MODULE_CLASS}{
           --aldus-side-nav-hover-duration:.22s;
         }
-        .${MODULE_CLASS},
+        .${MODULE_CLASS}{
+          --aldus-side-nav-collapsed-width:76px;
+          --aldus-side-nav-expanded-width:224px;
+        }
+        html[data-side-nav-collapsed] body .app-layout.${MODULE_CLASS}{
+          grid-template-columns:var(--aldus-side-nav-collapsed-width) minmax(0,1fr) !important;
+        }
         .${MODULE_CLASS} .side-nav{
-          transition-property:grid-template-columns,width,padding,box-shadow;
+          z-index:12;
+          width:var(--aldus-side-nav-collapsed-width);
+          will-change:width;
+          transition-property:width,padding,box-shadow;
           transition-duration:var(--aldus-side-nav-hover-duration);
           transition-timing-function:ease;
         }
-        .${MODULE_CLASS} .side-nav{
-          will-change:width;
+        html[data-side-nav-collapsed="false"] .${MODULE_CLASS} .side-nav{
+          width:var(--aldus-side-nav-expanded-width);
+          box-shadow:0 18px 42px rgba(3,21,34,.18);
         }
         .${MODULE_CLASS} .side-nav-heading{
           grid-template-columns:minmax(0,1fr) !important;
@@ -64168,7 +64178,10 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
         html[data-side-nav-collapsed="false"] .${MODULE_CLASS} .side-nav-title-text{
           opacity:0;
           transform:translateX(-6px);
-          animation:aldusSideNavTitleRevealV207 .14s ease .22s forwards;
+          animation:aldusSideNavTitleRevealV207 .14s ease .08s forwards;
+        }
+        html[data-side-nav-collapsed="false"] .${MODULE_CLASS} .side-nav-groups{
+          animation:aldusSideNavGroupsRevealV207 .16s ease .06s both;
         }
         #sideNavToggle[data-side-nav-auto-hover="true"]{
           display:none !important;
@@ -64181,12 +64194,21 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
           from{opacity:0;transform:translateX(-6px)}
           to{opacity:1;transform:translateX(0)}
         }
+        @keyframes aldusSideNavGroupsRevealV207{
+          from{opacity:0;transform:translateX(-5px)}
+          to{opacity:1;transform:translateX(0)}
+        }
       }
       @media (hover:hover) and (pointer:fine) and (min-width:761px) and (prefers-reduced-motion:reduce){
+        .${MODULE_CLASS} .side-nav,
+        html[data-side-nav-collapsed="false"] .${MODULE_CLASS} .side-nav-title-text,
+        html[data-side-nav-collapsed="false"] .${MODULE_CLASS} .side-nav-groups{
+          transition:none !important;
+          animation:none !important;
+        }
         html[data-side-nav-collapsed="false"] .${MODULE_CLASS} .side-nav-title-text{
           opacity:1;
           transform:none;
-          animation:none;
         }
       }
     `;
@@ -64243,10 +64265,20 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
     }
   }
 
+  function openNow() {
+    if (!isDesktop()) return;
+    if (openTimer) window.clearTimeout(openTimer);
+    if (closeTimer) window.clearTimeout(closeTimer);
+    openTimer = 0;
+    closeTimer = 0;
+    setCollapsed(false);
+  }
+
   function scheduleOpen() {
     if (!isDesktop()) return;
     if (closeTimer) window.clearTimeout(closeTimer);
     if (openTimer) window.clearTimeout(openTimer);
+    closeTimer = 0;
     openTimer = window.setTimeout(() => {
       openTimer = 0;
       setCollapsed(false);
@@ -64257,6 +64289,7 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
     if (!isDesktop()) return;
     if (openTimer) window.clearTimeout(openTimer);
     if (closeTimer) window.clearTimeout(closeTimer);
+    openTimer = 0;
     closeTimer = window.setTimeout(() => {
       closeTimer = 0;
       const activeInside = nav?.contains(document.activeElement);
@@ -64267,10 +64300,6 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
 
   function handleMediaChange() {
     applyDesktopState();
-    if (isDesktop()) {
-      window.setTimeout(applyDesktopState, 180);
-      window.setTimeout(applyDesktopState, 700);
-    }
   }
 
   function bindEvents() {
@@ -64278,7 +64307,7 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
     nav.dataset.sideNavHoverBoundV207 = "true";
     nav.addEventListener("pointerenter", scheduleOpen, { passive: true });
     nav.addEventListener("pointerleave", scheduleClose, { passive: true });
-    nav.addEventListener("focusin", scheduleOpen);
+    nav.addEventListener("focusin", openNow);
     nav.addEventListener("focusout", scheduleClose);
     mediaQuery?.addEventListener?.("change", handleMediaChange);
     window.addEventListener("pageshow", applyDesktopState);
@@ -64296,8 +64325,6 @@ VALIDAÇÃO FINAL OBRIGATÓRIA
     mediaQuery = window.matchMedia(DESKTOP_QUERY);
     bindEvents();
     applyDesktopState();
-    window.setTimeout(applyDesktopState, 250);
-    window.setTimeout(applyDesktopState, 800);
     return true;
   }
 
