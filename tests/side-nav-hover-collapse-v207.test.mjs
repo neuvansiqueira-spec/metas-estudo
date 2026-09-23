@@ -33,4 +33,4 @@ test("raiz, docs, runtime e service worker publicam a V207", () => {
   assert.match(runtimeSource, /side-nav-hover-collapse-v207\.js/);
   assert.match(runtimeSource, /ALDUS_V207_NAV_MARKER/);
   assert.match(workerSource, /20260731-suaviza-titulo-navegacao-v207/);
-});
+});\n\ntest("V207 mantém o painel estável e remove reaplicações tardias", () => {\n  assert.match(source, /transition-property:width,padding,box-shadow/);\n  assert.doesNotMatch(source, /transition-property:grid-template-columns/);\n  assert.doesNotMatch(source, /setTimeout\\(applyDesktopState,\\s*(?:180|250|700|800)\\)/);\n  assert.match(source, /prefers-reduced-motion:reduce/);\n});\n
