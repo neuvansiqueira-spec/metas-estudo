@@ -4619,6 +4619,26 @@ function toggleFactoryDetail(id) {
 function factoryMaterialUniqueKey(factoryItemId, factoryModuleKey, factoryFormat) {
   return [factoryItemId, factoryModuleKey, factoryFormat].map((v) => String(v || "").trim()).join("|");
 }
+function factoryMaterialPositions() {
+  const positions = new Map();
+  (state.materials || []).forEach((material, index) => {
+    if (material.source !== "factory") return;
+    const keys = [material.factoryUniqueKey, factoryMaterialUniqueKey(material.factoryItemId, material.factoryModuleKey, material.factoryFormat)];
+    keys.forEach((key) => { if (key && !positions.has(key)) positions.set(key, index); });
+  });
+  return positions;
+}
+function factoryMaterialPosition(unique, factoryItemId, factoryModuleKey, factoryFormat, positions) {
+  if (positions) {
+    if (!positions.has(unique)) return -1;
+    const index = positions.get(unique);
+    const material = state.materials[index];
+    if (material?.source === "factory" && (material.factoryUniqueKey === unique
+      || (material.factoryItemId === factoryItemId && material.factoryModuleKey === factoryModuleKey && material.factoryFormat === factoryFormat))) return index;
+  }
+  return state.materials.findIndex((material) => material.source === "factory" && (material.factoryUniqueKey === unique
+    || (material.factoryItemId === factoryItemId && material.factoryModuleKey === factoryModuleKey && material.factoryFormat === factoryFormat)));
+}
 function factorySyllabusItemIds(item = {}) {
   return [...new Set([...(Array.isArray(item.editalLink?.itemIds) ? item.editalLink.itemIds : []), ...(Array.isArray(item.syllabusItemIds) ? item.syllabusItemIds : []), item.syllabusItemId || ""].filter(Boolean))];
 }
@@ -4626,12 +4646,15 @@ function factoryModuleMaterialTitle(item, moduleKey, format) {
   const label = FACTORY_MODULES.find((m) => m.key === moduleKey)?.label || moduleKey;
   return `${item.tema || item.subject || "Material"} — ${label} — ${format}`;
 }
-function markFactoryMaterialUnavailable(factoryItemId, factoryModuleKey, factoryFormat) {
+function markFactoryMaterialUnavailable(factoryItemId, factoryModuleKey, factoryFormat, positions) {
   const key = factoryMaterialUniqueKey(factoryItemId, factoryModuleKey, factoryFormat);
-  const material = (state.materials || []).find((m) => m.source === "factory" && m.factoryUniqueKey === key);
+  if (positions && !positions.has(key)) return;
+  const candidate = positions?.has(key) ? state.materials[positions.get(key)] : null;
+  const material = candidate?.source === "factory" && candidate.factoryUniqueKey === key
+    ? candidate : (state.materials || []).find((m) => m.source === "factory" && m.factoryUniqueKey === key);
   if (material) { material.available = false; material.updatedAt = new Date().toISOString(); }
 }
-function syncFactoryModuleMaterials(item) {
+function syncFactoryModuleMaterials(item, positions) {
   state.materials ||= [];
   const normalized = normalizeFactoryItem(item);
   const syllabusItemIds = factorySyllabusItemIds(normalized);
@@ -4639,8 +4662,8 @@ function syncFactoryModuleMaterials(item) {
   Object.entries(normalizeFactoryModules(normalized.modules || {})).forEach(([moduleKey, module]) => {
     [["Word", module.wordLink], ["PDF", module.pdfLink]].forEach(([format, link]) => {
       const unique = factoryMaterialUniqueKey(normalized.id, moduleKey, format);
-      const idx = state.materials.findIndex((m) => m.source === "factory" && (m.factoryUniqueKey === unique || (m.factoryItemId === normalized.id && m.factoryModuleKey === moduleKey && m.factoryFormat === format)));
-      if (!isValidHttpUrl(String(link || "").trim())) { markFactoryMaterialUnavailable(normalized.id, moduleKey, format); return; }
+      const idx = factoryMaterialPosition(unique, normalized.id, moduleKey, format, positions);
+      if (!isValidHttpUrl(String(link || "").trim())) { markFactoryMaterialUnavailable(normalized.id, moduleKey, format, positions); return; }
       const payload = {
         id: idx >= 0 ? state.materials[idx].id : `factory-${normalized.id}-${moduleKey}-${canonical(format)}`,
         title: factoryModuleMaterialTitle(normalized, moduleKey, format), source: "factory", factoryUniqueKey: unique,
@@ -4653,16 +4676,17 @@ function syncFactoryModuleMaterials(item) {
       };
       if (idx >= 0) state.materials[idx] = normalizeMaterialEstimateFields({ ...state.materials[idx], ...payload });
       else state.materials.push(normalizeMaterialEstimateFields(payload));
+      if (positions && !positions.has(unique)) positions.set(unique, idx >= 0 ? idx : state.materials.length - 1);
     });
   });
   const summaryModule = normalizeFactoryModules(normalized.modules || {}, normalized).resumoAula;
   const folderFormat = "Pasta";
   const folderUnique = factoryMaterialUniqueKey(normalized.id, "resumoAula", folderFormat);
-  const folderIndex = state.materials.findIndex((material) => material.source === "factory" && (material.factoryUniqueKey === folderUnique || (material.factoryItemId === normalized.id && material.factoryModuleKey === "resumoAula" && material.factoryFormat === folderFormat)));
+  const folderIndex = factoryMaterialPosition(folderUnique, normalized.id, "resumoAula", folderFormat, positions);
   const directFileLinked = [summaryModule.wordLink, summaryModule.pdfLink].some((link) => isValidHttpUrl(String(link || "").trim()));
   const folderLink = directFileLinked ? "" : factoryResumoAulaFolderMaterialLink(normalized);
   if (!folderLink) {
-    markFactoryMaterialUnavailable(normalized.id, "resumoAula", folderFormat);
+    markFactoryMaterialUnavailable(normalized.id, "resumoAula", folderFormat, positions);
   } else {
     const folderPayload = {
       id: folderIndex >= 0 ? state.materials[folderIndex].id : `factory-${normalized.id}-resumoaula-pasta`,
@@ -4678,9 +4702,13 @@ function syncFactoryModuleMaterials(item) {
     };
     if (folderIndex >= 0) state.materials[folderIndex] = normalizeMaterialEstimateFields({ ...state.materials[folderIndex], ...folderPayload });
     else state.materials.push(normalizeMaterialEstimateFields(folderPayload));
+    if (positions && !positions.has(folderUnique)) positions.set(folderUnique, folderIndex >= 0 ? folderIndex : state.materials.length - 1);
   }
 }
-function syncAllFactoryMaterials() { ensureFactoryAgenda().forEach(syncFactoryModuleMaterials); }
+function syncAllFactoryMaterials() {
+  const positions = factoryMaterialPositions();
+  ensureFactoryAgenda().forEach((item) => syncFactoryModuleMaterials(item, positions));
+}
 const FACTORY_MATERIALS_WORKFLOW_MIGRATION_V80 = "factoryMaterialsPlanningV80";
 const FACTORY_MATERIAL_LINK_REPAIR_MIGRATION_V85 = "factoryMaterialLinkRepairV85";
 let factoryPlanningSyncFingerprintCacheV170 = "";
@@ -7902,7 +7930,13 @@ function renderChooseSubjectForDayV158() {
   if (disciplines.includes(currentDiscipline)) elements.chooseSubjectForDayDiscipline.value = currentDiscipline;
   const discipline = elements.chooseSubjectForDayDiscipline.value;
   const currentItemId = elements.chooseSubjectForDayItem.value;
-  const items = availableItems.filter((item) => !discipline || item.discipline === discipline);
+  const items = availableItems
+    .filter((item) => !discipline || item.discipline === discipline)
+    .sort((left, right) =>
+      String(left.subject || "").localeCompare(String(right.subject || ""), "pt-BR", { sensitivity: "base" })
+      || String(left.subtopic || "").localeCompare(String(right.subtopic || ""), "pt-BR", { sensitivity: "base" })
+      || String(left.id || "").localeCompare(String(right.id || ""), "pt-BR")
+    );
   elements.chooseSubjectForDayItem.innerHTML = '<option value="">Selecione</option>' + items.map((item) => `<option value="${escapeHTML(item.id)}">${escapeHTML(item.subject)}${item.subtopic ? ` • ${escapeHTML(item.subtopic)}` : ""}</option>`).join("");
   if (items.some((item) => item.id === currentItemId)) elements.chooseSubjectForDayItem.value = currentItemId;
 

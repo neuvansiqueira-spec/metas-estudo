@@ -40,7 +40,7 @@ test('prompt do módulo PEÇA exige varredura de especificidades temáticas e fo
 
 test('materiais automáticos usam chave única e a pasta é identificada como pasta, não como arquivo', () => {
   assert.match(script, /function factoryMaterialUniqueKey\(factoryItemId, factoryModuleKey, factoryFormat\)/);
-  assert.match(script, /function syncFactoryModuleMaterials\(item\)/);
+  assert.match(script, /function syncFactoryModuleMaterials\(item, positions\)/);
   assert.match(script, /source: "factory"/);
   assert.match(script, /factoryItemId: normalized\.id/);
   assert.match(script, /factoryModuleKey: moduleKey/);
@@ -48,7 +48,7 @@ test('materiais automáticos usam chave única e a pasta é identificada como pa
   assert.match(script, /syllabusItemIds/);
   assert.match(script, /available: true/);
   assert.match(script, /function markFactoryMaterialUnavailable/);
-  assert.match(script, /markFactoryMaterialUnavailable\(normalized\.id, moduleKey, format\)/);
+  assert.match(script, /markFactoryMaterialUnavailable\(normalized\.id, moduleKey, format, positions\)/);
   assert.match(script, /factoryFormat: folderFormat/);
   assert.match(script, /Pasta no Google Drive/);
   assert.match(script, /Vincule o Word\/PDF individual/);
@@ -112,6 +112,6 @@ test('Plano do Dia e Materiais separam estudo, produção e cards de materiais',
   assert.match(script, /MATERIAIS RECENTES/);
   assert.match(script, /OUTROS MATERIAIS/);
   assert.match(script, /data-use-material-study/);
-  assert.match(script, /markFactoryMaterialUnavailable\(normalized\.id, moduleKey, format\)/);
+  assert.match(script, /markFactoryMaterialUnavailable\(normalized\.id, moduleKey, format, positions\)/);
   assert.equal(script, docsScript, 'script.js e docs/script.js devem permanecer sincronizados');
 });

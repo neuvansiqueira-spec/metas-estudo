@@ -306,15 +306,25 @@
   // polling, timers, medições de layout ou persistência automática.
   function installFactorySummaryTocV382() {
     if (typeof document === "undefined") return;
-    if (document.getElementById("aldusFactorySummaryTocV382")) return;
-    const script = document.createElement("script");
-    script.id = "aldusFactorySummaryTocV382";
-    script.src = "factory-summary-toc-v381.js?v=20260902-factory-summary-toc-fusao-final-v431";
-    script.async = false;
-    script.addEventListener("error", () => {
-      console.error("[Aldus V382] Falha ao carregar a formatação didática do sumário.");
-    }, { once: true });
-    (document.head || document.documentElement).appendChild(script);
+    const loadForFactory = () => {
+      const activeView = document.documentElement?.dataset.activeView || String(location.hash || "").slice(1);
+      if (activeView !== "fabrica-resumos") return;
+      if (document.getElementById("aldusFactorySummaryTocV382")) return;
+      const script = document.createElement("script");
+      script.id = "aldusFactorySummaryTocV382";
+      script.src = "factory-summary-toc-v381.js?v=20260902-factory-summary-toc-fusao-final-v431";
+      script.async = false;
+      script.addEventListener("load", () => globalThis.__aldusFactorySummaryTocV382?.install?.(), { once: true });
+      script.addEventListener("error", () => {
+        console.error("[Aldus V382] Falha ao carregar a formatação didática do sumário.");
+      }, { once: true });
+      (document.head || document.documentElement).appendChild(script);
+      window.removeEventListener("aldus:view-active", loadForFactory);
+      window.removeEventListener("hashchange", loadForFactory);
+    };
+    window.addEventListener("aldus:view-active", loadForFactory);
+    window.addEventListener("hashchange", loadForFactory);
+    loadForFactory();
   }
 
   // V619 — simulado de peças e discursivas de Delegado (Cebraspe e FGV) na

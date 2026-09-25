@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260920-fabrica-detalhes-e-desempenho-v424",
+  "version": "20260925-desempenho-pc-assuntos-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
