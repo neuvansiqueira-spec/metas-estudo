@@ -1,0 +1,254 @@
+name: V373 build console performance
+
+on:
+  push:
+    branches:
+      - v373-console-performance
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Aplicar correções V373
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          # 1) V332: calcular o prompt somente depois do bootstrap V231.
+          path = Path('factory-jurisprudencia-prompt-v332.js')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace('  const BASE_PROMPT = String(defaultFactoryPromptLibrary?.jurisprudencia || "").trim();\n\n', '')
+
+          start = text.index('  const PROMPT = BASE_PROMPT')
+          end = text.index('\n\n  function isOfficialPreviousPrompt', start)
+          build = '''  function buildPrompt(basePrompt) {
+            const base = String(basePrompt || "").trim();
+            if (!base) return "";
+            if (base.includes(SOURCE_FOLDER) && base.includes("JULGADOS STF RESUMIDOS") && base.includes("JULGADOS STJ RESUMIDOS")) return base;
+            if (!base.includes(OLD_SOURCE_BLOCK)) return "";
+            const prompt = base
+              .replace(OLD_SOURCE_BLOCK, NEW_SOURCE_BLOCK)
+              .replace(OLD_FIDELITY_SOURCE, NEW_FIDELITY_SOURCE)
+              .replace(OLD_REVIEW_SOURCE, NEW_REVIEW_SOURCE);
+            return prompt === base ? "" : prompt;
+          }'''
+          text = text[:start] + build + text[end:]
+          text = text.replace('function isOfficialPreviousPrompt(value) {', 'function isOfficialPreviousPrompt(value, basePrompt, prompt) {')
+          text = text.replace('text === BASE_PROMPT || text === PROMPT', 'text === basePrompt || text === prompt')
+
+          install_start = text.index('  function install() {')
+          replacement = '''  function install() {
+            if (globalThis.__ALDUS_FACTORY_JURISPRUDENCIA_V332__) return true;
+            if (typeof defaultFactoryPromptLibrary === "undefined" || typeof state === "undefined") return false;
+
+            const basePrompt = String(defaultFactoryPromptLibrary?.jurisprudencia || "").trim();
+            const prompt = buildPrompt(basePrompt);
+            if (!prompt) return false;
+
+            defaultFactoryPromptLibrary.jurisprudencia = prompt;
+            state.migrations = state.migrations || {};
+            state.factoryPromptLibrary = state.factoryPromptLibrary || {};
+            state.factoryPromptLibraryBackups = state.factoryPromptLibraryBackups || {};
+
+            let changed = state.migrations[MIGRATION_ID] !== true;
+            const current = String(state.factoryPromptLibrary.jurisprudencia || "").trim();
+            if (isOfficialPreviousPrompt(current, basePrompt, prompt)) {
+              if (current && current !== prompt && current !== FACTORY_LIBRARY_FALLBACK) {
+                state.factoryPromptLibraryBackups.jurisprudenciaBeforeV332 = current;
+              }
+              if (current !== prompt) changed = true;
+              state.factoryPromptLibrary.jurisprudencia = prompt;
+            }
+
+            state.migrations[MIGRATION_ID] = true;
+            const normalized = normalizeFactoryPromptLibrary(state.factoryPromptLibrary);
+            if (JSON.stringify(normalized) !== JSON.stringify(state.factoryPromptLibrary)) changed = true;
+            state.factoryPromptLibrary = normalized;
+            if (changed && typeof saveData === "function") saveData();
+
+            const previousPromptBase = factoryPromptBase;
+            if (!previousPromptBase?.__aldusJurisprudenciaV332) {
+              const wrapped = function factoryPromptBaseV332(type) {
+                if (type !== "jurisprudencia") return previousPromptBase(type);
+                const value = String(state.factoryPromptLibrary?.jurisprudencia || "").trim();
+                return value || prompt;
+              };
+              Object.defineProperty(wrapped, "__aldusJurisprudenciaV332", { value: true });
+              factoryPromptBase = wrapped;
+            }
+
+            globalThis.__ALDUS_FACTORY_JURISPRUDENCIA_V332__ = Object.freeze({
+              version: "20260822-bootstrap-order-v373",
+              installedAt: new Date().toISOString()
+            });
+            console.info("[Aldus Meta] Prompt topificado de jurisprudência V332 ativo.");
+            return true;
+          }
+
+          function scheduleInstall() {
+            if (typeof queueMicrotask === "function") queueMicrotask(install);
+            else Promise.resolve().then(install);
+          }
+
+          if (window.__aldusBootstrapReady) scheduleInstall();
+          else window.addEventListener("aldus:bootstrap-ready", scheduleInstall, { once: true });
+          })();
+          '''
+          text = text[:install_start] + replacement
+          path.write_text(text, encoding='utf-8')
+
+          # 2) Simulados: retirar MutationObserver global e limitar as tentativas.
+          path = Path('factory-simulado-visibility-v315.js')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace('const VERSION = "20260814-gerador-simulados-em-questoes-v328";', 'const VERSION = "20260822-console-performance-v373";')
+          text = text.replace('const MAX_ACTIVE_ATTEMPTS = 120;', 'const MAX_ACTIVE_ATTEMPTS = 40;')
+          observer = re.compile(r'\n  const observer = new MutationObserver\(\(\) => \{.*?observer\.observe\(document\.documentElement, \{ childList: true, subtree: true \}\);\n', re.S)
+          text, count = observer.subn('\n', text, count=1)
+          if count != 1:
+            raise SystemExit('MutationObserver V315 não localizado')
+          path.write_text(text, encoding='utf-8')
+
+          # 3) HTML: preload não utilizado e meta PWA moderna.
+          path = Path('docs/index.html')
+          html = path.read_text(encoding='utf-8')
+          html = re.sub(r'^\s*<link[^>]+rel=["\']preload["\'][^>]+factory-simulado-visibility-v315\.js[^>]*>\s*\n?', '', html, flags=re.I|re.M)
+          html = re.sub(r'^\s*<link[^>]+factory-simulado-visibility-v315\.js[^>]+rel=["\']preload["\'][^>]*>\s*\n?', '', html, flags=re.I|re.M)
+          if 'name="mobile-web-app-capable"' not in html:
+            marker = '<meta name="apple-mobile-web-app-capable" content="yes">'
+            if marker in html:
+              html = html.replace(marker, marker + '\n  <meta name="mobile-web-app-capable" content="yes">', 1)
+            else:
+              html = html.replace('</head>', '  <meta name="mobile-web-app-capable" content="yes">\n</head>', 1)
+          html = re.sub(r'(factory-simulado-visibility-v315\.js\?v=)[^"\']+', r'\g<1>20260822-console-performance-v373', html)
+          path.write_text(html, encoding='utf-8')
+          PY
+
+          cp factory-jurisprudencia-prompt-v332.js docs/factory-jurisprudencia-prompt-v332.js
+          cp factory-simulado-visibility-v315.js docs/factory-simulado-visibility-v315.js
+
+      - name: Adicionar regressão V373
+        shell: bash
+        run: |
+          cat > tests/v373-console-performance.test.js <<'EOF'
+          const test = require("node:test");
+          const assert = require("node:assert/strict");
+          const fs = require("node:fs");
+          const vm = require("node:vm");
+
+          test("V332 respeita a ordem real do bootstrap sem erro transitório", () => {
+            const sourceV231 = fs.readFileSync("factory-jurisprudencia-prompt-v231.js", "utf8");
+            const sourceV332 = fs.readFileSync("factory-jurisprudencia-prompt-v332.js", "utf8");
+            const listeners = new Map();
+            const errors = [];
+            let saved = 0;
+            const window = {
+              __aldusBootstrapReady: false,
+              addEventListener(type, fn) {
+                const list = listeners.get(type) || [];
+                list.push(fn);
+                listeners.set(type, list);
+              }
+            };
+            const context = {
+              console: { log() {}, info() {}, warn() {}, error(...args) { errors.push(args.join(" ")); } },
+              window,
+              queueMicrotask(fn) { fn(); },
+              defaultFactoryPromptLibrary: { jurisprudencia: "" },
+              state: { migrations: {}, factoryPromptLibrary: { jurisprudencia: "" } },
+              FACTORY_LIBRARY_FALLBACK: "Cole aqui o prompt completo.",
+              saveData() { saved += 1; },
+              factoryPromptBase(type) { return type === "jurisprudencia" ? "" : "outro"; },
+              normalizeFactoryPromptLibrary(library) { return { ...library }; }
+            };
+            vm.createContext(context);
+            new vm.Script(sourceV231).runInContext(context);
+            new vm.Script(sourceV332).runInContext(context);
+            assert.equal(errors.length, 0);
+            for (const fn of listeners.get("aldus:bootstrap-ready") || []) fn();
+            assert.equal(errors.length, 0);
+            assert.match(context.state.factoryPromptLibrary.jurisprudencia, /JULGADOS STF RESUMIDOS/);
+            assert.equal(context.state.migrations.factoryJurisprudenciaFonteCoberturaV332, true);
+            assert.ok(saved >= 1);
+          });
+
+          test("V373 não mantém observador global na visibilidade de Simulados", () => {
+            const source = fs.readFileSync("factory-simulado-visibility-v315.js", "utf8");
+            assert.doesNotMatch(source, /new MutationObserver/);
+            assert.match(source, /MAX_ACTIVE_ATTEMPTS = 40/);
+            assert.match(source, /20260822-console-performance-v373/);
+          });
+
+          test("V373 remove preload inútil e publica a meta PWA moderna", () => {
+            const html = fs.readFileSync("docs/index.html", "utf8");
+            assert.doesNotMatch(html, /<link[^>]+rel=["']preload["'][^>]+factory-simulado-visibility-v315\.js/i);
+            assert.match(html, /<meta name="mobile-web-app-capable" content="yes">/);
+          });
+          EOF
+
+      - name: Regerar bundles
+        run: npm run build
+
+      - name: Sincronizar fontes e renovar cache de publicação
+        shell: bash
+        run: |
+          cp factory-jurisprudencia-prompt-v332.js docs/factory-jurisprudencia-prompt-v332.js
+          cp factory-simulado-visibility-v315.js docs/factory-simulado-visibility-v315.js
+          python3 <<'PY'
+          from pathlib import Path
+          path = Path('service-worker.js')
+          text = path.read_text(encoding='utf-8')
+          old = 'planning-quality-v371`;'
+          new = 'planning-quality-v371-console-performance-v373`;'
+          if new not in text:
+            if old not in text:
+              raise SystemExit('CACHE_NAME esperado não localizado')
+            text = text.replace(old, new, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+          cp service-worker.js docs/service-worker.js
+          for f in service-worker-v344.js service-worker-v168.js service-worker-v169.js service-worker-v332.js; do
+            cp service-worker.js "$f"
+            cp service-worker.js "docs/$f"
+          done
+
+      - name: Validar sintaxe e testes
+        shell: bash
+        run: |
+          node --check factory-jurisprudencia-prompt-v332.js
+          node --check factory-simulado-visibility-v315.js
+          npm test
+
+      - name: Commitar artefatos V373
+        shell: bash
+        run: |
+          git config user.name "neuvansiqueira-spec"
+          git config user.email "neuvan.siqueira@gmail.com"
+          git rm .github/workflows/v373-build.yml
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Sem alterações para publicar"
+            exit 0
+          fi
+          git commit -m "V373: limpa console e reduz custo contínuo de Simulados"
+          git push origin HEAD:v373-console-performance
