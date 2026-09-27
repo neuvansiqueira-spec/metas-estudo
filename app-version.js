@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260925-desempenho-pc-assuntos-v424";
+  const VERSION = "20260927-plano-do-dia-integridade-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260826-manual-goal-additive-v401";
+  const VERSION = "20260927-manual-goal-additive-v641";
   const MARKER = "__aldusManualGoalAdditiveV379";
   const RESUME_MARKER = "__aldusPreviousGoalResumeTodayV401";
   const GENERATION_IDS = new Set(["generateCalendarGoals", "generateDailyGoals", "refreshDailyGoalsFromPlanning"]);
@@ -258,9 +258,13 @@
       .filter(({ goal }) => goalDate(goal) === date && !isManualGoal(goal));
   }
 
-  function snapshotManualDates(targetState) {
+  // V641: a recomposição após um botão global fica restrita às datas que o botão abrange:
+  // a data escolhida (gerar/atualizar o dia) ou de hoje em diante (calendário). Antes,
+  // gerar um dia recompunha a cota em todas as datas com meta manual, inclusive passadas.
+  function snapshotManualDates(targetState, scope = {}) {
     if (!targetState || !Array.isArray(targetState.dailyGoals)) return new Map();
-    const dates = new Set(targetState.dailyGoals.filter(isManualGoal).map(goalDate).filter(Boolean));
+    const inScope = (date) => (scope.date ? date === scope.date : true) && (scope.fromDate ? date >= scope.fromDate : true);
+    const dates = new Set(targetState.dailyGoals.filter(isManualGoal).map(goalDate).filter(Boolean).filter(inScope));
     return new Map([...dates].map((date) => [date, snapshotDate(targetState, date)]));
   }
 
@@ -323,15 +327,10 @@
     if (typeof document === "undefined" || document.documentElement?.dataset?.aldusManualGoalAdditiveV379 === "true") return;
     if (document.documentElement) document.documentElement.dataset.aldusManualGoalAdditiveV379 = "true";
 
-    document.addEventListener("submit", (event) => {
-      if (event.target?.id !== "goalForm") return;
-      installGuards();
-      const targetState = currentState();
-      const date = String(document.getElementById("goalDate")?.value || "").slice(0, 10);
-      const snapshot = new Map([[date, snapshotDate(targetState, date)]]);
-      nestedMicrotask(() => reconcileSnapshot(targetState, snapshot, "manual-submit"));
-    }, true);
-
+    // V641: o envio do formulário de meta (adicionar/editar) é operação individual.
+    // Antes ele disparava ensureAutomaticQuota → replenishMissingDailyPlanningGoalsV116,
+    // que completava a cota automática do dia a cada meta manual salva. Removido:
+    // recompor cota só acontece nos botões globais explícitos abaixo.
     document.addEventListener("click", (event) => {
       let node = event.target;
       let id = "";
@@ -342,7 +341,8 @@
       if (!GENERATION_IDS.has(id) || !PLANNING_ROUTES.has(routeName())) return;
       installGuards();
       const targetState = currentState();
-      const snapshot = snapshotManualDates(targetState);
+      const selectedDate = String(document.getElementById("goalDate")?.value || "").slice(0, 10) || currentDateISO();
+      const snapshot = snapshotManualDates(targetState, id === "generateCalendarGoals" ? { fromDate: currentDateISO() } : { date: selectedDate });
       if (!snapshot.size) return;
       nestedMicrotask(() => reconcileSnapshot(targetState, snapshot, `after-${id}`));
     }, true);

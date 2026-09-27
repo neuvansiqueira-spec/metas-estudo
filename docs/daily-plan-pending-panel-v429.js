@@ -79,7 +79,7 @@
     const goals = Array.isArray(targetState?.dailyGoals) ? targetState.dailyGoals : [];
     return goals.filter((goal) => {
       const date = dateOf(goal);
-      return Boolean(date) && date < limit && !done(goal);
+      return Boolean(date) && date < limit && !done(goal) && goal?.removedFromDailyPlanV641 !== true;
     });
   }
 

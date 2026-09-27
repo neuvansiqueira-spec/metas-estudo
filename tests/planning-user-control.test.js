@@ -17,7 +17,9 @@ const goal = (id, extra = {}) => ({id, date, discipline:'Direito', subject:'Assu
 // limpeza das cópias automáticas ainda não iniciadas do mesmo assunto volta a acontecer.
 // Isso é diferente de uma varredura automática de startup/configurações, que continua
 // bloqueada sem explicit:true (segundo teste abaixo).
-test('concluir assunto substitui as cópias automáticas futuras do mesmo assunto, mas preserva metas manuais e metas já iniciadas', () => {
+// V641: concluir retira as cópias intocadas do mesmo assunto, mas NÃO gera metas substitutas;
+// completar a cota é operação global explícita (Gerar/Atualizar conforme planejamento).
+test('concluir assunto retira as cópias automáticas futuras do mesmo assunto sem gerar substitutas, e preserva manuais e iniciadas', () => {
   const completed = goal('concluida', {status:'Concluída'});
   const staleFuture = goal('amanha', {date:'2026-09-12'});
   const manualFuture = goal('manual', {date:'2026-09-13', origin:'manual'});
@@ -35,7 +37,8 @@ test('concluir assunto substitui as cópias automáticas futuras do mesmo assunt
   vm.runInContext(between('function replanFutureGoalsAfterCompletionV77','function rebalanceFuturePlanningGoalsV77'),ctx);
   const report = ctx.replanFutureGoalsAfterCompletionV77(completed, s, {explicit:true});
   assert.deepEqual(report.removed,['amanha']);
-  assert.equal(replacements,1);
+  assert.equal(replacements,0);
+  assert.deepEqual([...report.added],[]);
   assert.equal(s.dailyGoals.some((g)=>g.id==='amanha'),false);
   assert.equal(s.dailyGoals.some((g)=>g.id==='manual'),true);
   assert.equal(s.dailyGoals.some((g)=>g.id==='em-andamento'),true);

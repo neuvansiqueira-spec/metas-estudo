@@ -306,6 +306,6 @@ test("V379/V401: publicação raiz/docs é idêntica e carregada pelo observabil
 
   assert.equal(docsSource, source);
   assert.equal(docsLoader, loader);
-  assert.match(loader, /manual-goal-additive-v379\.js\?v=20260826-manual-goal-additive-v401-previous-goal-resume-today/);
+  assert.match(loader, /manual-goal-additive-v379\.js\?v=20260927-manual-goal-additive-v641-envio-sem-cota/);
   assert.match(loader, /installManualGoalAdditiveV379\(\)/);
 });

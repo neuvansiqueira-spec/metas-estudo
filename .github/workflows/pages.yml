@@ -54,6 +54,7 @@ jobs:
           node --check planning-variety-v357.js
           node --check planning-piece-rotation-v358.js
           node --check planning-quality-v368.js
+          node --check daily-goal-individual-guard-v641.js
           node --test \
             tests/exam-tracker.test.js \
             tests/question-training.test.js \
@@ -99,7 +100,8 @@ jobs:
             tests/v395-no-auto-reload.test.js \
             tests/v402-factory-cross-area-integrity.test.js \
             tests/v404-bootstrap-runtime-unification.test.js \
-            tests/v616-json-review-justificativa.test.js
+            tests/v616-json-review-justificativa.test.js \
+            tests/v641-daily-goal-individual-integrity.test.js
           node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
           cmp security-hardening-v296.js docs/security-hardening-v296.js
           cmp service-worker.js docs/service-worker.js

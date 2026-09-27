@@ -53,7 +53,8 @@
     const restored = [];
 
     for (const goal of targetState.dailyGoals) {
-      if (dateOf(goal) !== date || !protectedGoal(goal)) continue;
+      // V641: meta retirada do Plano do Dia pelo usuário não volta à lista (o registro é preservado).
+      if (dateOf(goal) !== date || !protectedGoal(goal) || goal?.removedFromDailyPlanV641 === true) continue;
       const id = idOf(goal);
       if (visibleReferences.has(goal) || (id && visibleIds.has(id))) continue;
       restored.push(goal);

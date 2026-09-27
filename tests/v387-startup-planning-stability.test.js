@@ -139,7 +139,9 @@ test("V235 não realinha nem salva metas automaticamente ao carregar", () => {
 test("V379 recompõe a cota apenas após ações explícitas", () => {
   assert.equal(manual.includes("nestedIdle"), false);
   assert.equal(manual.includes("afterBootstrap"), false);
-  assert.match(manual, /manual-submit/);
+  // V641: salvar/editar meta pelo formulário é operação individual e não recompõe cota.
+  assert.doesNotMatch(manual, /manual-submit/);
+  assert.doesNotMatch(manual, /addEventListener\("submit"/);
   assert.match(manual, /GENERATION_IDS/);
   assert.match(manual, /reconcileSnapshot\(targetState, snapshot, `after-\$\{id\}`\)/);
   assert.doesNotMatch(manual, /reconcileSnapshot\(targetState, snapshot, "bootstrap-ready"\)/);

@@ -167,10 +167,25 @@
     if (document.getElementById("aldusManualGoalAdditiveV379")) return;
     const script = document.createElement("script");
     script.id = "aldusManualGoalAdditiveV379";
-    script.src = "manual-goal-additive-v379.js?v=20260826-manual-goal-additive-v401-previous-goal-resume-today";
+    script.src = "manual-goal-additive-v379.js?v=20260927-manual-goal-additive-v641-envio-sem-cota";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V401] Falha ao carregar a proteção aditiva e a retomada de metas no Plano do Dia.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
+  // V641 — trava estrutural: ação sobre uma meta individual altera somente essa meta.
+  // Sem polling nem observadores: só age dentro de uma operação individual do usuário.
+  function installDailyGoalIndividualGuardV641() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusDailyGoalIndividualGuardV641")) return;
+    const script = document.createElement("script");
+    script.id = "aldusDailyGoalIndividualGuardV641";
+    script.src = "daily-goal-individual-guard-v641.js?v=20260927-daily-goal-individual-guard-v641";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V641] Falha ao carregar a trava de integridade do Plano do Dia.");
     }, { once: true });
     (document.head || document.documentElement).appendChild(script);
   }
@@ -378,6 +393,7 @@
   installEmergencyPerformanceV350();
   installStartupPlanningStabilityV387();
   installManualGoalAdditiveV379();
+  installDailyGoalIndividualGuardV641();
   installFactoryResumoAulaJurisprudenciaV380();
   installFactoryLeiJurisprudenciaV383();
   installFactoryFinalReviewV384();

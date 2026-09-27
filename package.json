@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260925-desempenho-pc-assuntos-v424",
+  "version": "20260927-plano-do-dia-integridade-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

@@ -36,11 +36,20 @@
     return { date: d, limit, before, remaining: Math.max(0, limit - before) };
   }
   const key = g => g?.id ? `id:${g.id}` : JSON.stringify([dateOf(g), g?.syllabusItemId, g?.discipline, g?.subject, g?.type]);
+  // V641: identidade semantica no dia. Em 25/09/2026 o dia recebeu "Sujeitos do processo"
+  // de novo (mesmo syllabusItemId) porque a escolha do usuario ja concluida nao era reservada.
+  const subjectKey = g => [canon(g?.discipline || g?.disciplina), canon(String(g?.baseSubject || g?.subject || g?.assunto || "").replace(/\s+—\s+parte\s+\d+\/\d+\s*$/i, ""))].join("|");
+  function sameDaySubject(s, d, g) {
+    const item = String(g?.syllabusItemId || ""), subject = subjectKey(g);
+    return day(s, d).some(x => x !== g && x?.removedFromDailyPlanV641 !== true
+      && ((item && String(x?.syllabusItemId || "") === item) || (subject !== "|" && subjectKey(x) === subject)));
+  }
   function additions(candidates, s, d, maximum = budget(s, d).remaining) {
     const seen = new Set(s.dailyGoals.map(key));
     let count = 0, hasPiece = day(s, d).some(g => piece(g, s) && !["ignorada", "ignorado", "nao cumprida"].includes(canon(g.status)));
     return candidates.filter(g => {
       if (!g || dateOf(g) !== d || seen.has(key(g))) return false;
+      if (sameDaySubject(s, d, g)) return false;
       if (piece(g, s)) { if (hasPiece) return false; hasPiece = true; }
       else if (automatic(g, s) && pending(g)) { if (count >= maximum) return false; count++; }
       seen.add(key(g));

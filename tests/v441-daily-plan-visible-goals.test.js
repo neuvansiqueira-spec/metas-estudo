@@ -190,6 +190,6 @@ test('V441 é somente leitura e mantém o núcleo intocado', () => {
 test('V441 tem paridade raiz/docs e carregamento com cache-bust datado', () => {
   assert.equal(source, read('docs/daily-plan-visible-goals-v441.js'));
   const loader = read('performance-emergency-v350.js');
-  assert.match(loader, /daily-plan-visible-goals-v441\.js\?v=20260903-[a-z0-9-]+/);
+  assert.match(loader, /daily-plan-visible-goals-v441\.js\?v=202609\d\d-[a-z0-9-]+/);
   assert.equal(loader, read('docs/performance-emergency-v350.js'));
 });

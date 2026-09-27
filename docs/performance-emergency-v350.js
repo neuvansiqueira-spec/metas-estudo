@@ -265,7 +265,7 @@
     if (document.getElementById("aldusDailyPlanVisibleGoalsLoaderV441")) return;
     const script = document.createElement("script");
     script.id = "aldusDailyPlanVisibleGoalsLoaderV441";
-    script.src = "daily-plan-visible-goals-v441.js?v=20260903-daily-plan-visible-goals-v441";
+    script.src = "daily-plan-visible-goals-v441.js?v=20260927-daily-plan-visible-goals-v441-retirada-v641";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V441] Falha ao carregar a visibilidade das metas protegidas.");

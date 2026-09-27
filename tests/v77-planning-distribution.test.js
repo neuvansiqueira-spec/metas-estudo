@@ -45,7 +45,7 @@ test("a rotação evita repetir no dia seguinte uma disciplina quando existe alt
   assert.equal(ordered[0].discipline, "Disciplina B");
 });
 
-test("conclusão remove somente a meta automática futura e solicita sua reposição", () => {
+test("conclusão remove somente a meta automática futura e não gera reposição (V641)", () => {
   const context = {
     state: {},
     todayISO: () => "2026-07-20",
@@ -64,7 +64,7 @@ test("conclusão remove somente a meta automática futura e solicita sua reposi�
   const targetState = { dailyGoals: [completed, stale, manual] };
   const report = context.replanFutureGoalsAfterCompletionV77(completed, targetState, { explicit: true });
   assert.deepEqual([...report.removed], ["stale"]);
-  assert.deepEqual([...report.added], ["nova-2026-07-21"]);
+  assert.deepEqual([...report.added], []);
   assert.equal(targetState.dailyGoals.includes(stale), false);
   assert.equal(targetState.dailyGoals.includes(manual), true);
 });

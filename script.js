@@ -7072,13 +7072,71 @@ function isActionableDailyPlanGoal(goal = {}, targetState = state, completedReco
 }
 function actionableDailyPlanGoalsForDate(targetState = state, date = todayISO()) {
   const completedRecords = completedPlanningSubjectRecords(targetState);
-  return (targetState.dailyGoals || []).filter((goal) => goalDateValue(goal) === date && isActionableDailyPlanGoal(goal, targetState, completedRecords));
+  return (targetState.dailyGoals || []).filter((goal) => goalDateValue(goal) === date && !isGoalRemovedFromDailyPlanV641(goal) && isActionableDailyPlanGoal(goal, targetState, completedRecords));
 }
 // V424: a meta concluída continua pertencendo ao dia. O filtro de acionáveis existe
 // para a cota e para a próxima meta, não para a exibição: usá-lo na lista fazia a meta
 // desaparecer ao ser concluída e tornava o contador "Metas concluídas" sempre zero.
 function dailyPlanGoalsForDisplay(targetState = state, date = todayISO()) {
-  return (targetState.dailyGoals || []).filter((goal) => goalDateValue(goal) === date);
+  return (targetState.dailyGoals || []).filter((goal) => goalDateValue(goal) === date && !isGoalRemovedFromDailyPlanV641(goal));
+}
+// V641: "Excluir meta" com execução registrada não apaga o registro; só o retira do Plano do Dia.
+function isGoalRemovedFromDailyPlanV641(goal = {}) { return goal?.removedFromDailyPlanV641 === true; }
+// V641: identidade semântica da meta no dia. UUID diferente não torna duas metas diferentes:
+// mesma data e mesmo assunto do edital (syllabusItemId) ou mesma disciplina|assunto é a mesma meta.
+function findSemanticDuplicateGoalV641(targetState = state, candidate = {}, ignoredGoal = null) {
+  const date = goalDateValue(candidate);
+  const itemId = String(candidate.syllabusItemId || "");
+  const key = planningItemKey(candidate);
+  if (!date) return null;
+  return (targetState.dailyGoals || []).find((goal) => goal !== ignoredGoal
+    && goalDateValue(goal) === date
+    && !isGoalRemovedFromDailyPlanV641(goal)
+    && ((itemId && String(goal.syllabusItemId || "") === itemId) || (key && planningItemKey(goal) === key))) || null;
+}
+// V641: evidência de execução. Meta nessas condições nunca é apagada por padrão.
+function goalHasExecutionEvidenceV641(goal = {}) {
+  const ownHistory = (goal.history || goal.historico || []).filter((entry) => !/^(Meta manual criada|Assunto escolhido)/.test(String(entry?.text || entry || "")));
+  return isGoalDone(goal)
+    || isGoalInProgress(goal)
+    || goalTotalActualMinutes(goal) > 0
+    || Boolean(goal.completedAt)
+    || ownHistory.length > 0
+    || !["", "Pendente"].includes(goal.status || "Pendente")
+    || (state.studies || []).some((study) => study?.goalId === goal.id)
+    || (state.questionLogs || []).some((entry) => entry?.linkedGoalId === goal.id || entry?.goalId === goal.id);
+}
+// V641: exclusão individual. Altera somente a meta escolhida: não gera substituta, não recompõe
+// cota, não reconcilia nem reagenda. A lápide de sincronização é gravada pelo saveData (V39).
+function deleteDailyGoalV641(goalId) {
+  const goal = (state.dailyGoals || []).find((item) => item.id === goalId);
+  if (!goal) return { changed: false, code: "not-found" };
+  const label = `${goal.discipline || goal.disciplina || ""} — ${goal.subject || goal.assunto || ""}`;
+  if (!goalHasExecutionEvidenceV641(goal)) {
+    if (!confirm(`Excluir esta meta do Plano do Dia?\n\n${label}\n\nNenhuma outra meta será adicionada, substituída ou alterada.`)) return { changed: false, code: "cancelled" };
+    state.dailyGoals = state.dailyGoals.filter((item) => item !== goal);
+    saveData({ markLocalChange: true, reason: "delete-daily-goal-v641" });
+    render();
+    autoSyncAfterSave("daily-goal-delete");
+    showDailyGoalMessage("Meta excluída. Nenhuma outra meta foi adicionada, substituída ou alterada.", "success");
+    return { changed: true, code: "deleted", goalId };
+  }
+  const answer = prompt(`Esta meta tem execução registrada (tempo, histórico, status ou conclusão).\n\n${label}\n\nDigite RETIRAR para tirá-la do Plano do Dia preservando o registro, o tempo e o histórico.\nDigite APAGAR para apagar definitivamente o registro da meta (as sessões de estudo e de questões continuam no histórico geral).\n\nNenhuma outra meta será adicionada, substituída ou alterada.`, "RETIRAR");
+  const choice = canonical(answer || "");
+  if (choice === "apagar") {
+    state.dailyGoals = state.dailyGoals.filter((item) => item !== goal);
+  } else if (choice === "retirar") {
+    goal.removedFromDailyPlanV641 = true;
+    goal.removedFromDailyPlanAtV641 = new Date().toISOString();
+    appendGoalHistory(goal, `Retirada do Plano do Dia pelo usuário em ${new Date().toLocaleString("pt-BR")}; registro, tempo e histórico preservados.`);
+  } else {
+    return { changed: false, code: "cancelled" };
+  }
+  saveData({ markLocalChange: true, reason: "delete-daily-goal-v641" });
+  render();
+  autoSyncAfterSave("daily-goal-delete");
+  showDailyGoalMessage(choice === "apagar" ? "Registro da meta apagado. Nenhuma outra meta foi alterada." : "Meta retirada do Plano do Dia com o registro preservado. Nenhuma outra meta foi alterada.", "success");
+  return { changed: true, code: choice === "apagar" ? "deleted" : "removed-from-plan", goalId };
 }
 function planningDistributionProfileV77(targetState = state, date = todayISO()) {
   const windowStart = addDays(date, -28);
@@ -7753,8 +7811,9 @@ function replanFutureGoalsAfterCompletionV77(completedRecord, targetState = stat
   if (!staleGoals.length) return { removed: [], added: [], affectedDates, warnings: [] };
   const staleSet = new Set(staleGoals);
   targetState.dailyGoals = targetState.dailyGoals.filter((goal) => !staleSet.has(goal));
-  const rebuilt = reconcilePlanningDates(targetState, affectedDates, { explicit: true, scoreContext: buildPlanningScoreContext(targetState) });
-  return { removed: staleGoals.map((goal) => goal.id), added: rebuilt.added, affectedDates, warnings: rebuilt.warnings };
+  // V641: concluir um assunto retira só as cópias pendentes e intocadas desse mesmo assunto.
+  // Não gera metas substitutas: completar a cota é operação global explícita (Gerar/Atualizar).
+  return { removed: staleGoals.map((goal) => goal.id), added: [], affectedDates, warnings: [] };
 }
 function rebalanceFuturePlanningGoalsV77(targetState = state) {
   targetState.migrations ||= {};
@@ -8138,7 +8197,7 @@ function confirmGoalCompletion(goalId = goalCompletionActiveGoalId) {
   render();
   autoSyncAfterSave("daily-goal");
   closeGoalCompletionModal();
-  const replacementMessage = replanReport.removed.length ? ` ${replanReport.removed.length} meta(s) futura(s) deste assunto foram substituída(s) por ${replanReport.added.length} novo(s) assunto(s) pendente(s).` : "";
+  const replacementMessage = replanReport.removed.length ? ` ${replanReport.removed.length} cópia(s) automática(s) pendente(s) deste mesmo assunto em outra(s) data(s) foram retiradas; nenhuma meta nova foi gerada.` : "";
   const continuationMessage = continuation && !materialFinished ? ` A continuação foi encaixada em ${formatDateBR(goalDateValue(continuation))}.` : "";
   showDailyGoalMessage(`${actualMinutes > 0 ? (materialFinished ? `Meta concluída. Os ${actualMinutes} minutos registrados foram mantidos.` : `Sessão concluída. Os ${actualMinutes} minutos foram mantidos e o assunto continua em andamento.`) : "Meta concluída sem tempo registrado."}${continuationMessage}${replacementMessage}`, "success");
   goalCompletionInProgress.delete(goalId);
@@ -8149,16 +8208,15 @@ function updateGoalDone(goal) {
 function postponeGoal(goal) {
   const nextDate = prompt("Nova data da meta (AAAA-MM-DD)", goalDateValue(goal));
   if (!nextDate || Number.isNaN(Date.parse(`${nextDate}T00:00:00`))) return;
+  if (findSemanticDuplicateGoalV641(state, { ...goal, date: nextDate, data: nextDate }, goal)) return alert(`Este assunto já tem meta em ${formatDateBR(nextDate)}. Nenhuma meta foi alterada.`);
   const oldDate = goalDateValue(goal);
   goal.date = nextDate;
   goal.data = nextDate;
   goal.status = "Reagendada";
   appendGoalHistory(goal, `Reagendada de ${oldDate} para ${nextDate}.`);
   elements.goalDate.value = nextDate;
-  reconcileDailyGoalsWithPlanning(state, oldDate, { explicit: true });
-  reconcileDailyGoalsWithPlanning(state, nextDate, { explicit: true });
-  markDailyPlanAlignmentV174(state, oldDate);
-  markDailyPlanAlignmentV174(state, nextDate);
+  // V641: reagendar move somente esta meta; a vaga no dia de origem fica vaga e o dia
+  // de destino não é completado (antes: os dois dias eram reconciliados com a cota).
   saveData({ markLocalChange: true });
   showDailyGoalMessage(`Meta adiada para ${formatDateBR(nextDate)}.`, "success");
   autoSyncAfterSave("daily-goal");
@@ -8813,7 +8871,7 @@ function dailyGoalDetailsBodyHTML(goal, projectionEntry = null) {
   const descriptor = canonicalStudyDescriptor(goal);
   const history = (goal.history || goal.historico || []).slice(-3).map((entry) => `<li>${escapeHTML(typeof entry === "string" ? entry : entry.message || entry.text || JSON.stringify(entry))}</li>`).join("");
   const materialState = getDailyGoalMaterialState(goal, projectionEntry);
-  return `<div class="daily-goal-content">${goalExecutionSummaryHTML(goal, projectionEntry, materialState)}<div class="card-meta-grid"><span>Disciplina: ${escapeHTML(descriptor.discipline)}</span><span>Assunto: ${escapeHTML(descriptor.subject)}</span><span>Tipo: ${escapeHTML(goal.type || goal.tipo || "-")}</span><span>Prioridade: ${escapeHTML(goal.priority || goal.prioridade || "-")}</span><span>Planejado nesta meta: ${Number(goal.minutes||0)} min</span><span>Estudo nesta meta: ${formatHours(goalDisplayMinutes(goal, "study"))}</span><span>Questões nesta meta: ${formatHours(goalDisplayMinutes(goal, "questions"))}</span><span>Total nesta meta: ${formatHours(goalDisplayMinutes(goal))}</span><span>Status: ${escapeHTML(status)}</span><span>Referência: ${escapeHTML(descriptor.reference || "-")}</span></div><div class="progress"><span style="width:${Math.min(100, Math.round((goalTotalActualMinutes(goal) / Math.max(1, Number(goal.minutes)||1)) * 100))}%"></span></div>${dailyGoalMaterialAvailabilityHTML(materialState)}${goalMaterialEstimateHTML(goal, projectionEntry, materialState)}${goalTimeComparisonHTML(goal, projectionEntry, materialState)}${goalMaterialsDetailsHTML(goal, projectionEntry, materialState)}<p class="notice" data-goal-material-notice="${goal.id}" ${goalMaterialNotices.has(goal.id) ? "" : "hidden"}>${escapeHTML(goalMaterialNotices.get(goal.id) || "")}</p><details class="daily-goal-history"><summary>Histórico resumido</summary><ul>${history || "<li>Sem histórico registrado.</li>"}</ul></details><div class="card-actions">${materialState.hasMaterials ? `<button type="button" data-open-goal-material="${goal.id}">Abrir material</button>` : `<button type="button" data-create-goal-material data-discipline="${escapeHTML(descriptor.discipline)}" data-subject="${escapeHTML(descriptor.subject)}" data-syllabus-item-id="${escapeHTML(descriptor.syllabusItemId)}">Cadastrar material</button><a class="button-link" href="#fabrica-resumos" data-view-link="fabrica-resumos">Produzir material</a>`}<button type="button" data-goal-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button type="button" data-goal-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button type="button" data-goal-action="Concluída" data-id="${goal.id}">Concluir meta</button></div><details class="daily-goal-more-actions"><summary>Mais ações</summary><div class="card-actions"><button type="button" data-goal-action="Estudo" data-id="${goal.id}">Registrar estudo manualmente</button><button type="button" data-goal-action="QuestoesTempo" data-id="${goal.id}">Registrar tempo de questões</button><button type="button" data-register-goal="${goal.id}">Registrar questões</button><button type="button" data-goal-history="${goal.id}">Ver histórico</button><button type="button" data-goal-action="Adiada" data-id="${goal.id}">Reagendar ou adiar</button><button type="button" data-goal-action="Não cumprida" data-id="${goal.id}">Não cumprir</button></div></details></div>`;
+  return `<div class="daily-goal-content">${goalExecutionSummaryHTML(goal, projectionEntry, materialState)}<div class="card-meta-grid"><span>Disciplina: ${escapeHTML(descriptor.discipline)}</span><span>Assunto: ${escapeHTML(descriptor.subject)}</span><span>Tipo: ${escapeHTML(goal.type || goal.tipo || "-")}</span><span>Prioridade: ${escapeHTML(goal.priority || goal.prioridade || "-")}</span><span>Planejado nesta meta: ${Number(goal.minutes||0)} min</span><span>Estudo nesta meta: ${formatHours(goalDisplayMinutes(goal, "study"))}</span><span>Questões nesta meta: ${formatHours(goalDisplayMinutes(goal, "questions"))}</span><span>Total nesta meta: ${formatHours(goalDisplayMinutes(goal))}</span><span>Status: ${escapeHTML(status)}</span><span>Referência: ${escapeHTML(descriptor.reference || "-")}</span></div><div class="progress"><span style="width:${Math.min(100, Math.round((goalTotalActualMinutes(goal) / Math.max(1, Number(goal.minutes)||1)) * 100))}%"></span></div>${dailyGoalMaterialAvailabilityHTML(materialState)}${goalMaterialEstimateHTML(goal, projectionEntry, materialState)}${goalTimeComparisonHTML(goal, projectionEntry, materialState)}${goalMaterialsDetailsHTML(goal, projectionEntry, materialState)}<p class="notice" data-goal-material-notice="${goal.id}" ${goalMaterialNotices.has(goal.id) ? "" : "hidden"}>${escapeHTML(goalMaterialNotices.get(goal.id) || "")}</p><details class="daily-goal-history"><summary>Histórico resumido</summary><ul>${history || "<li>Sem histórico registrado.</li>"}</ul></details><div class="card-actions">${materialState.hasMaterials ? `<button type="button" data-open-goal-material="${goal.id}">Abrir material</button>` : `<button type="button" data-create-goal-material data-discipline="${escapeHTML(descriptor.discipline)}" data-subject="${escapeHTML(descriptor.subject)}" data-syllabus-item-id="${escapeHTML(descriptor.syllabusItemId)}">Cadastrar material</button><a class="button-link" href="#fabrica-resumos" data-view-link="fabrica-resumos">Produzir material</a>`}<button type="button" data-goal-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button type="button" data-goal-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button type="button" data-goal-action="Concluída" data-id="${goal.id}">Concluir meta</button><button type="button" class="danger" data-delete-goal="${goal.id}">Excluir meta</button></div><details class="daily-goal-more-actions"><summary>Mais ações</summary><div class="card-actions"><button type="button" data-goal-action="Estudo" data-id="${goal.id}">Registrar estudo manualmente</button><button type="button" data-goal-action="QuestoesTempo" data-id="${goal.id}">Registrar tempo de questões</button><button type="button" data-register-goal="${goal.id}">Registrar questões</button><button type="button" data-goal-history="${goal.id}">Ver histórico</button><button type="button" data-goal-action="Adiada" data-id="${goal.id}">Reagendar ou adiar</button><button type="button" data-goal-action="Não cumprida" data-id="${goal.id}">Não cumprir</button></div></details></div>`;
 }
 function dailyGoalDetailsCard(goal, number = 1, projectionEntry = null) {
   normalizeGoalTimeFields(goal);
@@ -9359,6 +9417,8 @@ function handleDailyGoalActionClick(event) {
     if (goal) editGoal(goal);
     return;
   }
+  const deleteButton = event.target.closest("button[data-delete-goal]");
+  if (deleteButton) { event.preventDefault(); deleteDailyGoalV641(deleteButton.dataset.deleteGoal); return; }
   const historyButton = event.target.closest("button[data-goal-history]");
   if (historyButton) { const details = document.querySelector(`[data-daily-goal-details="${historyButton.dataset.goalHistory}"] .daily-goal-history`); if (details) details.open = true; return; }
   const button = event.target.closest("button[data-register-goal]");
@@ -9438,6 +9498,8 @@ elements.goalForm.addEventListener("submit", (event) => {
     operationalDiscipline: operationalSimulado,
     linkedView: operationalSimulado ? "simulados" : (existing?.linkedView || "")
   };
+  const duplicate = findSemanticDuplicateGoalV641(state, payload, existing);
+  if (duplicate) return alert(`Este assunto já tem meta em ${formatDateBR(selectedDate)} (${duplicate.discipline || duplicate.disciplina} — ${duplicate.subject || duplicate.assunto}). Nenhuma meta foi criada ou alterada.`);
   if (existing) {
     Object.assign(existing, payload);
     appendGoalHistory(existing, `Meta atualizada manualmente em ${new Date().toLocaleString("pt-BR")}.`);
@@ -9445,16 +9507,12 @@ elements.goalForm.addEventListener("submit", (event) => {
     appendGoalHistory(payload, `Meta manual criada em ${new Date().toLocaleString("pt-BR")}.`);
     state.dailyGoals.push(payload);
   }
-  if (oldDate !== selectedDate) {
-    reconcileDailyGoalsWithPlanning(state, oldDate, { explicit: true });
-    markDailyPlanAlignmentV174(state, oldDate);
-  }
-  reconcileDailyGoalsWithPlanning(state, selectedDate, { explicit: true });
-  markDailyPlanAlignmentV174(state, selectedDate);
+  // V641: adicionar ou editar uma meta altera somente essa meta. Não reconcilia o dia,
+  // não completa cota e não gera outras metas (antes: 4 metas + 1 adicionada viravam 10).
   saveData({ markLocalChange: true });
   resetGoalFormEditing(selectedDate);
   render();
-  showDailyGoalMessage(existing ? "Meta atualizada e integrada ao planejamento." : "Meta manual salva e integrada ao planejamento.", "success");
+  showDailyGoalMessage(existing ? "Meta atualizada. Nenhuma outra meta foi alterada." : "Meta adicionada. Nenhuma outra meta foi alterada.", "success");
   autoSyncAfterSave("daily-goal");
 });
 elements.cancelGoalEdit?.addEventListener("click", () => resetGoalFormEditing(elements.goalDate?.value || todayISO()));

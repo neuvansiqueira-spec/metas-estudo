@@ -15,10 +15,15 @@ const SYNC_MAX_NUMERIC_FIELDS = new Set([
 function syncClone(value) { return cloneData(value ?? null); }
 function syncValueEmpty(value) { return value === undefined || value === null || value === ""; }
 function syncTimestamp(value = {}) {
-  const dates = [value.updatedAt, value.savedAt, value.endedAt, value.completedAt, value.modifiedAt, value.createdAt, value.startedAt, value.openedAt, value.date]
+  const dates = [value.updatedAt, value.savedAt, value.endedAt, value.completedAt, value.modifiedAt, value.createdAt, value.startedAt, value.openedAt]
     .map((entry) => Date.parse(entry || ""))
     .filter(Number.isFinite);
-  return dates.length ? Math.max(...dates) : 0;
+  if (dates.length) return Math.max(...dates);
+  // V641: `date` é o dia planejado da meta, não o momento da edição. Usá-lo junto com os
+  // carimbos fazia a versão antiga de uma meta antecipada (ex.: 28/09 → 25/09) vencer
+  // qualquer mesclagem, e a meta voltava para 28/09. Só serve quando não há carimbo algum.
+  const planned = Date.parse(value.date || "");
+  return Number.isFinite(planned) ? planned : 0;
 }
 function syncPrimitiveArray(local = [], remote = []) {
   const result = [];
