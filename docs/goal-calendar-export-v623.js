@@ -194,7 +194,7 @@ ${R} .acv-ok{color:${COLORS.green}!important;font-weight:700!important}${R} .acv
 ${R} a{color:${COLORS.blue}!important;text-decoration:underline!important}`; }
   const statusHtml = (cell) => `<span class="${cell.done ? "acv-ok" : cell.warn ? "acv-warn" : "acv-no"}">${esc(cell.text)}</span>`;
   function rowHtml(row) {
-    return `<tr><td class="acv-meta">META ${row.number}</td><td>${esc(row.discipline)}</td><td>${esc(row.theme)}</td><td>${statusHtml(row.resumo)}</td><td>${row.folderUrl ? `<a href="${esc(row.folderUrl)}">abrir pasta</a>` : statusHtml({ text: NO_FOLDER })}</td><td>${statusHtml(row.treino)}</td><td>${statusHtml(row.juris)}</td></tr>`;
+    return `<tr><td class="acv-meta">META ${row.number}</td><td>${esc(row.discipline)}</td><td>${esc(row.theme)}</td><td>${statusHtml(row.resumo)}</td><td>${/^https?:\/\//i.test(String(row.folderUrl || "")) ? `<a href="${esc(row.folderUrl)}">abrir pasta</a>` : statusHtml({ text: NO_FOLDER })}</td><td>${statusHtml(row.treino)}</td><td>${statusHtml(row.juris)}</td></tr>`;
   }
   function periodHtml(period) {
     if (!period.total) return `<h2>${esc(period.title)} · ${esc(period.range)}</h2><p class="acv-note">Nenhuma meta neste período.</p>`;

@@ -4317,8 +4317,8 @@ function factoryModuleLinksHTML(item = {}) {
   const links = FACTORY_MODULES.filter(({ virtual }) => !virtual).flatMap(({ key, label }) => {
     const module = modules[key] || {};
     return [
-      module.wordLink ? `<a href="${escapeHTML(module.wordLink)}" target="_blank" rel="noopener">Word — ${escapeHTML(label)}</a>` : "",
-      module.pdfLink ? `<a href="${escapeHTML(module.pdfLink)}" target="_blank" rel="noopener">PDF — ${escapeHTML(label)}</a>` : ""
+      isValidHttpUrl(module.wordLink) ? `<a href="${escapeHTML(module.wordLink)}" target="_blank" rel="noopener">Word — ${escapeHTML(label)}</a>` : "",
+      isValidHttpUrl(module.pdfLink) ? `<a href="${escapeHTML(module.pdfLink)}" target="_blank" rel="noopener">PDF — ${escapeHTML(label)}</a>` : ""
     ].filter(Boolean);
   });
   const folderLink = factoryResumoAulaFolderMaterialLink(item);
