@@ -20,7 +20,7 @@
   // ou enunciado não há como alimentar o caderno de erros, e fabricar
   // identidade de questão seria dado falso.
 
-  const VERSION = "20260902-quick-question-entry-v436";
+  const VERSION = "20260928-sem-retiradas-v436";
   const API_KEY = "__ALDUS_QUICK_QUESTION_ENTRY_V436__";
   const PANEL_ID = "aldusQuickQuestionEntryV436";
   const STYLE_ID = "aldusQuickQuestionStyleV436";
@@ -70,6 +70,8 @@
     const out = [];
     for (const goal of goals) {
       if (!isObject(goal) || goalDate(goal) !== date) continue;
+      // Meta retirada do Plano do Dia (V641) não vira botão (28/09/2026).
+      if (goal.removedFromDailyPlanV641 === true) continue;
       const subject = clean(goal.subject || goal.tema);
       const discipline = clean(goal.discipline || goal.disciplina);
       if (!subject) continue;

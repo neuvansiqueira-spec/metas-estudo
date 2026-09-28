@@ -107,3 +107,13 @@ test('V436 mantém paridade raiz/docs e é publicado com cache-bust', () => {
   assert.match(loader, /quick-question-entry-v436\.js\?v=\d{8}-[a-z0-9-]+/);
   assert.equal(loader, read('docs/performance-emergency-v350.js'));
 });
+
+test('V436 não mostra em "Lançar questões" meta retirada do Plano do Dia (28/09)', () => {
+  const state = {
+    dailyGoals: [
+      { date: HOJE, discipline: 'PEÇA PARA DELEGADO DE POLÍCIA CIVIL', subject: 'Auto de Prisão em Flagrante / Despacho Pós-Flagrante', removedFromDailyPlanV641: true },
+      { date: HOJE, discipline: 'DIREITO PROCESSUAL PENAL', subject: 'Citação, intimação, interdição de direito' }
+    ]
+  };
+  assert.deepEqual(api.todaySubjects(state).map((entry) => entry.subject), ['Citação, intimação, interdição de direito']);
+});

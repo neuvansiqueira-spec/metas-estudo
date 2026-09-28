@@ -159,7 +159,17 @@ test('V623.7 tipo do arquivo pelo começo do nome; prompts e texto de lei não c
 
 test('V623.7 continua carregado pela cadeia ativa e espelhado em docs', () => {
   const loader = fs.readFileSync('performance-emergency-v350.js', 'utf8');
-  assert.ok(loader.includes('script.src = "goal-calendar-export-v623.js?v=20260916-calendario-simples-v623-7";'));
+  assert.ok(loader.includes('script.src = "goal-calendar-export-v623.js?v=20260928-sem-retiradas-v623-8";'));
   assert.deepEqual(fs.readFileSync('goal-calendar-export-v623.js'), fs.readFileSync('docs/goal-calendar-export-v623.js'));
   assert.match(fs.readFileSync('build-bundles.mjs', 'utf8'), /"goal-calendar-export-v623\.js"/);
+});
+
+test('V623.8 meta retirada do Plano do Dia não entra no arquivo e a numeração segue sem buracos (28/09)', async () => {
+  const retirada = { ...goal('LEGISLAÇÃO ESPECÍFICA – DIREITO PENAL', 'Lei nº 6.001/1973 (Estatuto do índio)'), removedFromDailyPlanV641: true };
+  const r = await report({ goals: [retirada, goal('DIREITO ADMINISTRATIVO', 'Dever de eficiência'), goal('DIREITO PROCESSUAL PENAL', 'Sentença criminal')], driveState: 'off' });
+  const rows = rowsOf(r);
+  assert.equal(rows.length, 2);
+  assert.equal(JSON.stringify(rows).includes('Estatuto do índio'), false);
+  assert.deepEqual(rows.map((row) => row.number), [1, 2]);
+  assert.equal(rows[0].theme, 'Dever de eficiência');
 });

@@ -5,7 +5,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260916-calendario-simples-v623-7";
+  const VERSION = "20260928-sem-retiradas-v623-8";
   const FLAG = "__ALDUS_GOAL_CALENDAR_EXPORT_V623__";
   if (globalThis[FLAG]) return;
 
@@ -137,6 +137,8 @@
   // (não do campo de conclusão da Fábrica); TREINO DE QUESTÕES e JURISPRUDÊNCIA valem o arquivo na pasta.
   const doneOn = (date) => { const day = dateBR(date); return /^\d{2}\/\d{2}\/\d{4}$/.test(day) ? `${DONE} NO DIA ${day}` : `${DONE} (DATA NÃO REGISTRADA)`; };
   const isPieceGoal = (goal) => canon(goal?.discipline).startsWith("peca");
+  // Meta retirada do Plano do Dia (V641) não entra no arquivo (28/09/2026).
+  const exportableGoal = (goal) => !isPieceGoal(goal) && goal?.removedFromDailyPlanV641 !== true;
   function goalRow(goal, report, number) {
     const links = report?.linker ? report.linker.links(goal) : [], items = links.map((link) => link.item);
     const info = report?.goalDrive?.get(goalKey(goal)), checked = report?.driveState === "on" && info?.checked === true;
@@ -159,7 +161,7 @@
     const report = { version: VERSION, generatedAt, referenceDate, scope, scopeLabel, driveState, driveNote: DRIVE_NOTES[driveState] || DRIVE_NOTES.off, linker: linker || (appState ? createGoalLinker(appState) : null), goalDrive };
     report.periods = periods.map(({ label, key, data }) => {
       // Pedido dele: metas de PEÇA não entram no levantamento; a numeração segue sem buracos.
-      const days = (data.days || []).map((day) => ({ date: day.date, rows: (day.goals || []).filter((goal) => !isPieceGoal(goal)).map((goal, index) => goalRow(goal, report, index + 1)) })).filter((day) => day.rows.length);
+      const days = (data.days || []).map((day) => ({ date: day.date, rows: (day.goals || []).filter(exportableGoal).map((goal, index) => goalRow(goal, report, index + 1)) })).filter((day) => day.rows.length);
       return { key, title: PERIOD_TITLE[key] || `Metas — ${label}`, range: periodRange(data), multiDay: key !== "daily", days, total: days.reduce((sum, day) => sum + day.rows.length, 0) };
     });
     return report;
@@ -281,7 +283,7 @@ ${R} a{color:${COLORS.blue}!important;text-decoration:underline!important}`; }
     const appState=currentState();if(!appState)throw new Error("Os dados ainda estão carregando.");
     const referenceDate=document.getElementById("calendarDate")?.value||todayISO(),scope=document.getElementById("goalCalendarExportScope")?.value||"daily",scopeLabel={daily:"Somente dia",weekly:"Somente semana",monthly:"Somente mês",all:"Dia + semana + mês"}[scope]||scope;
     const periods=collectPeriods(referenceDate,scope),linker=createGoalLinker(appState),goalLinks=new Map();
-    periods.forEach(({data})=>(data.days||[]).forEach((day)=>(day.goals||[]).filter((goal)=>!isPieceGoal(goal)).forEach((goal)=>{const key=goalKey(goal);if(!goalLinks.has(key))goalLinks.set(key,linker.links(goal));})));
+    periods.forEach(({data})=>(data.days||[]).forEach((day)=>(day.goals||[]).filter(exportableGoal).forEach((goal)=>{const key=goalKey(goal);if(!goalLinks.has(key))goalLinks.set(key,linker.links(goal));})));
     let goalDrive=new Map(),driveState="off";
     if([...goalLinks.values()].some((links)=>links.length)){
       setStatus("Solicitando leitura do Google Drive para conferir treino e jurisprudência…");
