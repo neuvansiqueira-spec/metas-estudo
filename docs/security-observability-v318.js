@@ -205,6 +205,21 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V647 — "Tema específico" num painel próprio da Fábrica (disciplina, tema,
+  // recorte e pasta de destino), fora dos cartões dos temas. Não grava dados.
+  function installFactoryTemaEspecificoV647() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusFactoryTemaEspecificoV647")) return;
+    const script = document.createElement("script");
+    script.id = "aldusFactoryTemaEspecificoV647";
+    script.src = "factory-tema-especifico-v647.js?v=20260928-tema-especifico-avulso-v647";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V647] Falha ao carregar o painel de tema específico.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   // V646 — "Configurar rodada de questões" arrumada (campos principais em cima,
   // preferências recolhidas com resumo) e com as últimas escolhas lembradas.
   function installQuestionTrainingFormV646() {
@@ -460,6 +475,7 @@
   installDailyPlanMoreOptionsV643();
   installTimerPauseOriginV645();
   installQuestionTrainingFormV646();
+  installFactoryTemaEspecificoV647();
   installFactoryResumoAulaJurisprudenciaV380();
   installFactoryLeiJurisprudenciaV383();
   installFactoryFinalReviewV384();

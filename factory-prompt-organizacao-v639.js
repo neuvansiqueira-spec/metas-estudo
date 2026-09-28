@@ -3,7 +3,7 @@
 
   // V639: os prompts do tema apareciam numa fileira única, o que levava a escolher o módulo errado.
   // Aqui eles são agrupados por etapa e numerados (1., 1.1, 2., 2.1...), sem mudar o que cada botão faz.
-  const VERSION = "20260923-factory-prompt-organizacao-v639";
+  const VERSION = "20260928-sem-bloco4-v639";
   const STYLE_ID = "aldusPromptOrganizacaoEstiloV639";
   const MARCADOR = "aldus-prompts-v639";
 
@@ -17,17 +17,6 @@
       titulo: "3. Fechamento", numero: 3, classe: "etapa-3",
       chaves: ["consolidacao", "fusaoFinal", "padronizacaoFinalSumario"]
     }
-  ];
-
-  // 4. Tema específico: mesmo prompt, mas para um tema digitado na hora (fora das metas, ou para aprofundar).
-  const LIVRES = [
-    ["resumoAulaJurisprudencia", "RESUMO/AULA + JURISPRUDÊNCIA"],
-    ["leiJurisprudencia", "LEI + JURISPRUDÊNCIA"],
-    ["jurisprudencia", "JURISPRUDÊNCIA"],
-    ["triagem", "TRIAGEM"],
-    ["resumoAula", "RESUMO/AULA"],
-    ["lei", "LEI"],
-    ["peca", "PEÇA"]
   ];
 
   const NOMES = {
@@ -56,15 +45,11 @@
         border-left: 4px solid #64748b; border-radius: 0 14px 14px 0; }
       .${MARCADOR} .etapa-2 { border-left-color: #2563eb; }
       .${MARCADOR} .etapa-3 { border-left-color: #16a34a; }
-      .${MARCADOR} .etapa-4 { border-left-color: #f59e0b; }
       .${MARCADOR} .etapa-titulo { margin: 0 0 8px; font-size: .78rem; font-weight: 800; letter-spacing: .06em;
         text-transform: uppercase; opacity: .85; }
       .${MARCADOR} .etapa-botoes { display: flex; flex-wrap: wrap; gap: 8px; }
       .${MARCADOR} .etapa-botoes button { font-size: .86rem; }
       .${MARCADOR} .numero { font-weight: 800; margin-right: 6px; opacity: .75; }
-      .${MARCADOR} .tema-livre-campos { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
-      .${MARCADOR} .tema-livre-campos input { flex: 1 1 260px; padding: 8px 10px; border-radius: 12px; font: inherit; }
-      .${MARCADOR} .tema-livre-aviso { margin: 8px 0 0; font-size: .8rem; opacity: .8; }
     `;
     document.head.appendChild(style);
   }
@@ -102,97 +87,12 @@
       return `<div class="etapa ${grupo.classe}"><p class="etapa-titulo">${grupo.titulo}</p><div class="etapa-botoes">${botoes}</div></div>`;
     }).join("");
 
-    const id = achados[0][1];
-    const campos = `<div class="tema-livre-campos">`
-      + `<input type="text" data-aldus-tema-livre-campo="${id}" placeholder="tema específico (ex.: busca pessoal em abordagem policial)">`
-      + `<input type="text" data-aldus-tema-livre-recorte="${id}" placeholder="recorte (opcional)">`
-      + `</div>`;
-    const botoesLivres = LIVRES
-      .filter(([chave]) => porChave.has(chave))
-      .map(([chave, nome], indice) => `<button type="button" class="secondary-button" data-aldus-tema-livre="${id}|${chave}">`
-        + `<span class="numero">4.${indice + 1}</span>${nome}</button>`)
-      .join("");
-    const bloco4 = botoesLivres
-      ? `<div class="etapa etapa-4"><p class="etapa-titulo">4. Tema específico</p>${campos}`
-        + `<div class="etapa-botoes">${botoesLivres}</div>`
-        + `<p class="tema-livre-aviso">Usa a disciplina e as pastas deste tema, trocando só o assunto. Não cria meta nem altera a Fábrica.</p>`
-        + `<p class="tema-livre-aviso" data-aldus-tema-livre-msg="${id}"></p></div>`
-      : "";
+    // 28/09/2026: o bloco "4. Tema específico" saiu do cartão (pedido dele: tema
+    // específico não é daquele tema). Agora é o painel próprio da V647, no topo da Fábrica.
+
 
     if (!blocos) return texto;
-    return texto.slice(0, inicio) + `<div class="${MARCADOR}">${blocos}${bloco4}</div>` + texto.slice(fim);
-  }
-
-  function aviso(id, texto) {
-    const alvo = document.querySelector(`[data-aldus-tema-livre-msg="${CSS.escape(id)}"]`);
-    if (alvo) alvo.textContent = texto;
-  }
-
-  // Linhas de pasta e de link guardam o nome do tema no caminho: trocar ali quebraria o destino do arquivo.
-  const LINHA_DE_CAMINHO = /(https?:|drive\.google|pasta|caminho|link)/i;
-
-  function trocarTemaNoTexto(id, original, tema, recorte) {
-    const escapado = CSS.escape(String(id || ""));
-    let trocou = false;
-    for (const seletor of [`[data-factory-prompt-text="${escapado}"]`, `[data-factory-router-text="${escapado}"]`]) {
-      const campo = document.querySelector(seletor);
-      if (!campo || typeof campo.value !== "string") continue;
-      const antes = campo.value;
-      let texto = antes.split("\n")
-        .map((linha) => (LINHA_DE_CAMINHO.test(linha) ? linha : linha.split(original).join(tema)))
-        .join("\n");
-      if (recorte) texto = texto.replace(/^(Tema:.*)$/mi, `$1\nRecorte pedido: ${recorte}`);
-      if (texto !== antes) { campo.value = texto; trocou = true; }
-    }
-    return trocou;
-  }
-
-  function gerarTemaLivre(id, tipo) {
-    const campo = document.querySelector(`[data-aldus-tema-livre-campo="${CSS.escape(id)}"]`);
-    const recorte = document.querySelector(`[data-aldus-tema-livre-recorte="${CSS.escape(id)}"]`);
-    const tema = String(campo?.value || "").trim();
-    if (!tema) { aviso(id, "Escreva o tema específico antes de gerar o prompt."); campo?.focus?.(); return; }
-
-    const item = (typeof ensureFactoryAgenda === "function" ? ensureFactoryAgenda() : []).find((x) => x.id === id);
-    if (!item) { aviso(id, "Tema da Fábrica não encontrado."); return; }
-    const original = String(item.tema || "");
-
-    // O site só atende cliques dentro do #factoryList, então o gatilho nasce dentro do próprio cartão.
-    const ancora = campo?.closest?.(".etapa") || document.querySelector(`[data-factory-prompt-panel="${CSS.escape(id)}"]`);
-    if (!ancora || typeof ancora.appendChild !== "function") {
-      aviso(id, "Não foi possível gerar aqui: recarregue a página e tente de novo.");
-      return;
-    }
-    const gatilho = document.createElement("button");
-    gatilho.type = "button";
-    gatilho.hidden = true;
-    gatilho.setAttribute("data-factory-prompt", `${id}|${tipo}`);
-    ancora.appendChild(gatilho);
-    try {
-      // O site monta o prompt do tema como sempre. Nada do item é alterado: ensureFactoryAgenda regrava
-      // state.factoryAgenda a cada chamada, então mexer no objeto acabaria gravado no lugar do tema real.
-      gatilho.click();
-    } finally {
-      gatilho.remove();
-    }
-
-    // Troca do assunto no texto já montado, antes de o bridge ler a linha "Tema:" (ele lê em microtask).
-    const extra = String(recorte?.value || "").trim();
-    if (!trocarTemaNoTexto(id, original, tema, extra)) {
-      aviso(id, "O prompt não foi gerado (o painel não abriu). Tente de novo.");
-      return;
-    }
-    const cabecalho = document.querySelector(`[data-factory-prompt-panel="${CSS.escape(id)}"] .factory-prompt-header .item-meta`);
-    if (cabecalho) cabecalho.textContent = `${item.disciplina} — ${tema}`;
-    aviso(id, `Prompt gerado para: ${tema}. A meta e o tema da Fábrica continuam como estavam; as pastas são as deste tema.`);
-  }
-
-  function aoClicar(evento) {
-    const botao = evento.target?.closest?.("[data-aldus-tema-livre]");
-    if (!botao) return;
-    evento.preventDefault();
-    const [id, tipo] = String(botao.dataset.aldusTemaLivre || "").split("|");
-    if (id && tipo) gerarTemaLivre(id, tipo);
+    return texto.slice(0, inicio) + `<div class="${MARCADOR}">${blocos}</div>` + texto.slice(fim);
   }
 
   function install() {
@@ -213,8 +113,7 @@
       Object.defineProperty(wrapped, "__aldusPromptOrganizacaoOriginal", { value: previous });
       factoryDetailBodyHTML = wrapped;
       ensureStyle();
-      document.addEventListener("click", aoClicar, false);
-      window.__ALDUS_FACTORY_PROMPT_ORGANIZACAO_V639__ = Object.freeze({ version: VERSION, grupos: GRUPOS, nomes: NOMES, livres: LIVRES, organizar, gerarTemaLivre });
+      window.__ALDUS_FACTORY_PROMPT_ORGANIZACAO_V639__ = Object.freeze({ version: VERSION, grupos: GRUPOS, nomes: NOMES, organizar });
       return true;
     } catch (_erro) {
       return false;
