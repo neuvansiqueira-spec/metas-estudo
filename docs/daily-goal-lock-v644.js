@@ -131,6 +131,10 @@
 
   function verificar(dados, gravado, vivo = null) {
     if (!dados || !Array.isArray(dados.dailyGoals) || !gravado || !Array.isArray(gravado.dailyGoals)) return [];
+    // Estado ainda vazio (gravação da abertura, antes de carregar os dados): não
+    // é exclusão de metas. As proteções V256/V275 já impedem que vazio substitua
+    // dados válidos; aqui só não se mexe nem se avisa.
+    if (!dados.dailyGoals.length && gravado.dailyGoals.length) return [];
     const antes = new Map(keyed(gravado.dailyGoals));
     const vivos = new Map(vivo && vivo !== dados && Array.isArray(vivo.dailyGoals) ? keyed(vivo.dailyGoals) : []);
     const remocoes = Object.assign({}, gravado[REMOVALS] || {}, vivo?.[REMOVALS] || {}, dados[REMOVALS] || {});

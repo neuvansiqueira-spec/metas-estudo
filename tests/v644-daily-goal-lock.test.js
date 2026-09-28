@@ -90,3 +90,11 @@ test('V644 é carregada pela cadeia ativa e publicada igual na raiz e em docs', 
   assert.match(loader, /\n  installDailyGoalLockV644\(\);/);
   for (const file of ['daily-goal-lock-v644.js', 'security-observability-v318.js']) assert.equal(read(file), read('docs/' + file), file);
 });
+
+test('V644 não trata o estado vazio da abertura como exclusão de todas as metas', () => {
+  const { api } = harness();
+  const gravado = { dailyGoals: [goal('a', '2026-09-28'), goal('b', '2026-09-29')] };
+  const dados = { dailyGoals: [] };
+  assert.equal(api.verificar(dados, gravado).length, 0);
+  assert.equal(dados.dailyGoals.length, 0, 'não injeta metas num estado que ainda vai ser carregado');
+});
