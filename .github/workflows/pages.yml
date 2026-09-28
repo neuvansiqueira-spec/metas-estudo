@@ -111,7 +111,8 @@ jobs:
             tests/v450-timer-overtime.test.js \
             tests/v436-quick-question-entry.test.js \
             tests/v623-calendar-export.test.js \
-            tests/v645-timer-pause-origin.test.js
+            tests/v645-timer-pause-origin.test.js \
+            tests/v646-question-training-form.test.js
           node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
           cmp security-hardening-v296.js docs/security-hardening-v296.js
           cmp service-worker.js docs/service-worker.js

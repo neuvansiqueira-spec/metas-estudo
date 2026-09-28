@@ -205,6 +205,21 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V646 — "Configurar rodada de questões" arrumada (campos principais em cima,
+  // preferências recolhidas com resumo) e com as últimas escolhas lembradas.
+  function installQuestionTrainingFormV646() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusQuestionTrainingFormV646")) return;
+    const script = document.createElement("script");
+    script.id = "aldusQuestionTrainingFormV646";
+    script.src = "question-training-form-v646.js?v=20260928-rodada-arrumada-v646";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V646] Falha ao carregar a arrumação da rodada de questões.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   // V645 — só anota de onde veio cada pausa do cronômetro (página, janela
   // flutuante, atalho, fim do previsto ou sem clique). Não muda o cronômetro.
   function installTimerPauseOriginV645() {
@@ -444,6 +459,7 @@
   // installDailyGoalLockV644();
   installDailyPlanMoreOptionsV643();
   installTimerPauseOriginV645();
+  installQuestionTrainingFormV646();
   installFactoryResumoAulaJurisprudenciaV380();
   installFactoryLeiJurisprudenciaV383();
   installFactoryFinalReviewV384();
