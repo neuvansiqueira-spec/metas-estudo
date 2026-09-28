@@ -205,6 +205,21 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V645 — só anota de onde veio cada pausa do cronômetro (página, janela
+  // flutuante, atalho, fim do previsto ou sem clique). Não muda o cronômetro.
+  function installTimerPauseOriginV645() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusTimerPauseOriginV645")) return;
+    const script = document.createElement("script");
+    script.id = "aldusTimerPauseOriginV645";
+    script.src = "timer-pause-origin-v645.js?v=20260928-origem-das-pausas-v645";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V645] Falha ao carregar o registro de origem das pausas.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   // V643 — "Mais opções do dia" organizada: barra do dia e cartões; os dois
   // formulários de adicionar meta num só cartão, com abas. Só composição visual.
   function installDailyPlanMoreOptionsV643() {
@@ -428,6 +443,7 @@
   // gravação da abertura). Não religar sem correção e teste com dados reais.
   // installDailyGoalLockV644();
   installDailyPlanMoreOptionsV643();
+  installTimerPauseOriginV645();
   installFactoryResumoAulaJurisprudenciaV380();
   installFactoryLeiJurisprudenciaV383();
   installFactoryFinalReviewV384();

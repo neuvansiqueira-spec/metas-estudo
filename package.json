@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260928-sem-retiradas-v424",
+  "version": "20260928-origem-das-pausas-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
