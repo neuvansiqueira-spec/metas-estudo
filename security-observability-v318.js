@@ -212,7 +212,7 @@
     if (document.getElementById("aldusQuestionTrainingFormV646")) return;
     const script = document.createElement("script");
     script.id = "aldusQuestionTrainingFormV646";
-    script.src = "question-training-form-v646.js?v=20260928-rodada-arrumada-v646";
+    script.src = "question-training-form-v646.js?v=20260928-bancas-em-ordem-v646-2";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V646] Falha ao carregar a arrumação da rodada de questões.");
@@ -425,7 +425,7 @@
     if (document.getElementById("aldusQuestionTrainingFactoryV621")) return;
     const script = document.createElement("script");
     script.id = "aldusQuestionTrainingFactoryV621";
-    script.src = "question-training-factory-v621.js?v=20260914-treino-fabrica-pastas-qconcursos-v621";
+    script.src = "question-training-factory-v621.js?v=20260928-bancas-em-ordem-v621";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V621] Falha ao carregar as melhorias do Treino de Questões da Fábrica.");

@@ -44,7 +44,28 @@ test('V646 só apresenta: não grava nos dados do estudo nem monta prompt', () =
 
 test('V646 é carregada pela cadeia ativa e publicada igual na raiz e em docs', () => {
   const loader = read('security-observability-v318.js');
-  assert.ok(loader.includes('question-training-form-v646.js?v=20260928-rodada-arrumada-v646'));
+  assert.ok(loader.includes('question-training-form-v646.js?v=20260928-bancas-em-ordem-v646-2'));
   assert.match(loader, /\n  installQuestionTrainingFormV646\(\);/);
   for (const file of ['question-training-form-v646.js', 'security-observability-v318.js']) assert.equal(read(file), read('docs/' + file), file);
+});
+
+test('V646.2 lista de bancas em ordem vira principal + complementação no prompt', () => {
+  const api = require(path.join(root, 'question-training.js'));
+  const boards = [{ banca: 'FGV' }, { banca: 'CEBRASPE', formato: 'Múltipla escolha' }, { banca: 'CEBRASPE', formato: 'Certo/Errado' }, { banca: 'FCC' }];
+  const c = api.normalizeConfig({ discipline: 'Penal', count: 10, boards: JSON.stringify(boards) });
+  assert.equal(c.primary, 'FGV');
+  assert.deepEqual([...c.fallback], ['CEBRASPE (só múltipla escolha)', 'CEBRASPE (só Certo/Errado)', 'FCC']);
+  assert.equal(c.cebraspe, 'formato indicado em cada posição da lista de bancas');
+  const soCeb = api.normalizeConfig({ discipline: 'Penal', count: 10, boards: JSON.stringify([{ banca: 'CEBRASPE', formato: 'Certo/Errado' }, { banca: 'FGV' }]) });
+  assert.equal(soCeb.primary, 'CEBRASPE');
+  assert.equal(soCeb.cebraspe, 'Certo/Errado');
+  assert.deepEqual([...soCeb.fallback], ['FGV']);
+});
+
+test('V646.2 escolha equivalente à antiga gera as mesmas instruções de bancas', () => {
+  const api = require(path.join(root, 'question-training.js'));
+  const linhas = (t) => t.split('\n').slice(3, 6).join('\n');
+  const antigo = api.prompt({ discipline: 'Penal', count: 10, primary: 'FGV', supplement: 'cebraspe-mc' }, {}, 'R').instruction;
+  const novo = api.prompt({ discipline: 'Penal', count: 10, boards: JSON.stringify([{ banca: 'FGV' }, { banca: 'CEBRASPE', formato: 'Múltipla escolha' }]) }, {}, 'R').instruction;
+  assert.equal(linhas(novo), linhas(antigo));
 });

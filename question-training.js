@@ -25,7 +25,28 @@
     return {ids:[...new Set(all.flatMap(q=>[q.id,q.qcCodigo,q.numero_qconcursos]).map(qid).filter(Boolean))],
       questions:[...new Map((state.questionBank||[]).filter(q=>text(q.enunciado)).map(q=>[contentKey(q),{id:qid(q.id),enunciado:q.enunciado,alternativas:q.alternativas||{}}])).values()]};
   }
+  // V646 (28/09/2026, pedido dele): lista de bancas em ordem de prioridade,
+  // com o formato de cada posição de CEBRASPE. Sem a lista, vale o modo antigo.
+  const BOARD_FORMAT_LABEL={'Múltipla escolha':'só múltipla escolha','Certo/Errado':'só Certo/Errado','Ambos':'múltipla escolha e Certo/Errado'};
+  function parseBoards(value){
+    let list=value;
+    if(typeof list==='string'){try{list=JSON.parse(list||'[]');}catch{list=[];}}
+    if(!Array.isArray(list))return [];
+    return list.map(b=>({banca:text(b?.banca).toUpperCase(),formato:BOARD_FORMAT_LABEL[b?.formato]?b.formato:''})).filter(b=>b.banca&&b.banca!=='OUTRA');
+  }
+  function boardLabel(b){return b.banca==='CEBRASPE'?`CEBRASPE (${BOARD_FORMAT_LABEL[b.formato||'Ambos']})`:b.banca;}
   function normalizeConfig(raw={}) {
+    const boards=parseBoards(raw.boards);
+    if(boards.length){
+      const cebraspeFormats=[...new Set(boards.filter(b=>b.banca==='CEBRASPE').map(b=>b.formato||'Ambos'))];
+      // Um só formato de CEBRASPE: o nome fica "CEBRASPE" e o formato vai na linha
+      // "CEBRASPE:", como sempre foi. Mais de um: cada posição leva o seu formato.
+      const labels=[...new Set(boards.map(b=>cebraspeFormats.length>1?boardLabel(b):b.banca))];
+      const base=normalizeConfig({...raw,boards:undefined,primary:boards[0].banca,supplement:'none'});
+      return {...base,primary:boards[0].banca,primaryLabel:labels[0],fallback:labels.slice(1),
+        cebraspe:cebraspeFormats.length===1?cebraspeFormats[0]:cebraspeFormats.length?'formato indicado em cada posição da lista de bancas':base.cebraspe,
+        boards};
+    }
     const primary=text(raw.primary || 'FGV').toUpperCase();
     const count=Number(raw.count || 15);
     if(![5,10,15].includes(count))throw Error('Escolha 5, 10 ou 15 questões.');
@@ -47,7 +68,7 @@
     const instruction=`# TREINO INTERATIVO — RODADA ${roundId}
 Disciplina: ${c.discipline}
 Tema: ${c.theme || 'Treino misto da disciplina, restrito aos assuntos do edital abaixo'}
-Quantidade: ${c.count}. Banca principal: ${c.primary}.
+Quantidade: ${c.count}. Banca principal: ${c.primaryLabel || c.primary}.
 Complementação com questões reais, SOMENTE se faltarem da principal: ${c.fallback.join(' → ') || 'NÃO AUTORIZADA'}.
 CEBRASPE: ${c.cebraspe}. Nunca converter questão real de Certo/Errado em alternativas nem o inverso.
 Preferência: ${c.difficulty}; ordem: ${c.order}; desempate: mais recentes e Delegado primeiro.

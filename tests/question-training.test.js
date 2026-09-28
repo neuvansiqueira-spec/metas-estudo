@@ -129,7 +129,7 @@ test('V621 mantém CEBRASPE contextual, nomes temáticos e publicação raiz/doc
   assert.match(source,/\$\{\w+\.base\}_EXCLUSOES\.json/);
   assert.equal(source,fs.readFileSync('docs/question-training-factory-v621.js','utf8'));
   const loader=fs.readFileSync('security-observability-v318.js','utf8');
-  assert.match(loader,/question-training-factory-v621\.js\?v=20260914-treino-fabrica-pastas-qconcursos-v621/);
+  assert.match(loader,/question-training-factory-v621\.js\?v=20260928-bancas-em-ordem-v621/);
   assert.match(loader,/installQuestionTrainingFactoryV621\(\);/);
   assert.equal(loader,fs.readFileSync('docs/security-observability-v318.js','utf8'));
 });
