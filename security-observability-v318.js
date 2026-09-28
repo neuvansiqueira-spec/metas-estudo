@@ -190,6 +190,21 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V644 — trava das metas: nenhuma meta entra, sai ou muda de dia sem ação
+  // dele no site (ou do agente, pela API autorizar). Verifica na gravação.
+  function installDailyGoalLockV644() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusDailyGoalLockV644")) return;
+    const script = document.createElement("script");
+    script.id = "aldusDailyGoalLockV644";
+    script.src = "daily-goal-lock-v644.js?v=20260928-trava-das-metas-v644";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V644] Falha ao carregar a trava das metas.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   // V643 — "Mais opções do dia" organizada: barra do dia e cartões; os dois
   // formulários de adicionar meta num só cartão, com abas. Só composição visual.
   function installDailyPlanMoreOptionsV643() {
@@ -408,6 +423,7 @@
   installEmergencyPerformanceV350();
   installStartupPlanningStabilityV387();
   installManualGoalAdditiveV379();
+  installDailyGoalLockV644();
   installDailyGoalIndividualGuardV641();
   installDailyPlanMoreOptionsV643();
   installFactoryResumoAulaJurisprudenciaV380();

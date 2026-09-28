@@ -1,17 +1,17 @@
-/* O cronometro nao para quando o tempo previsto acaba — v450. */
+/* O cronometro nao para quando o tempo previsto acaba — v450.
+   28/09/2026 (escolha dele, opcao "a"): segue contando sem teto ate ele pausar,
+   so avisando que passou do previsto. E o tempo entre o congelamento da
+   conclusao e a retomada deixa de ser perdido. */
 (() => {
   "use strict";
 
-  const VERSION = "20260905-timer-overtime-v450";
+  const VERSION = "20260928-timer-overtime-sem-teto-v450";
   const FLAG = "__ALDUS_TIMER_OVERTIME_V450__";
   const BANNER_ID = "aldusTimerOvertimeBannerV450";
   const VIGIA_MS = 500;
 
-  // Teto do tempo extra. Passado dele, o cronometro para de verdade e diz onde
-  // parou. Sem teto, um alarme que ele nao ouviu de manha viraria seis horas de
-  // estudo que nao existiram. Com teto, o pior caso e meia hora a mais — e ela
-  // aparece escrita na tela antes de qualquer coisa ser salva.
-  const EXTRA_MAXIMO_SEGUNDOS = 30 * 60;
+  // Sem teto: ate 28/09/2026 havia um limite de 30 min (escolha minha, nao
+  // dele). Ele escolheu que o cronometro siga contando ate ele pausar.
 
   if (globalThis[FLAG]) {
     try { globalThis[FLAG].install?.(); } catch {}
@@ -19,6 +19,11 @@
   }
 
   let vigiaId = null;
+  // Ultimo instante em que a sessao estava correndo. O site congela a conclusao
+  // em "elapsedSeconds = previsto" e apaga startedAt; sem esta ancora, os
+  // segundos entre o fim do previsto e a retomada (ou a aba dormindo em segundo
+  // plano) se perdiam.
+  let ancora = null;
 
   function cronometro() {
     try { return typeof floatingTimer === "object" && floatingTimer ? floatingTimer : null; } catch { return null; }
@@ -80,9 +85,26 @@
     return true;
   }
 
+  function tempoReal(timer) {
+    if (!ancora || ancora.goalId !== timer.goalId || ancora.sessionId !== timer.sessionId) return 0;
+    return Math.max(0, ancora.elapsedSeconds + Math.floor((Date.now() - ancora.startedAt) / 1000));
+  }
+
+  function registrarAncora(timer) {
+    if (timer?.goalId && timer.startedAt && !timer.paused) {
+      ancora = { goalId: timer.goalId, sessionId: timer.sessionId, startedAt: Number(timer.startedAt) || 0, elapsedSeconds: Math.max(0, Number(timer.elapsedSeconds) || 0) };
+    } else if (!timer?.completed) {
+      ancora = null;
+    }
+  }
+
   function iniciarTempoExtra(timer) {
     const previstoSegundos = previstos();
     if (!previstoSegundos) return false;
+    // Devolve à sessão o tempo que o congelamento cortou.
+    const real = tempoReal(timer);
+    if (real > (Number(timer.elapsedSeconds) || 0)) timer.elapsedSeconds = real;
+    ancora = null;
 
     // A V268 ja sabe retomar depois da conclusao — inclusive trocando o modo e
     // avisando na tela. Aqui ela e chamada sozinha, sem esperar o clique que o
@@ -95,30 +117,9 @@
     timer.overtimeV450 = {
       versao: VERSION,
       desde: Date.now(),
-      previstoSegundos,
-      limiteSegundos: previstoSegundos + EXTRA_MAXIMO_SEGUNDOS,
-      capadoEm: null
+      previstoSegundos
     };
     persistir();
-    return true;
-  }
-
-  function encerrarNoTeto(timer) {
-    const marca = timer.overtimeV450;
-    if (!marca || marca.capadoEm) return false;
-    timer.elapsedSeconds = marca.limiteSegundos;
-    timer.startedAt = null;
-    timer.paused = true;
-    try { if (timer.intervalId) clearInterval(timer.intervalId); } catch {}
-    timer.intervalId = null;
-    marca.capadoEm = Date.now();
-    chamar("renderFloatingTimer");
-    persistir();
-    try {
-      if (typeof showDailyGoalMessage === "function") {
-        showDailyGoalMessage(`O cronômetro parou em ${minutos(EXTRA_MAXIMO_SEGUNDOS)} min além do previsto. Se você estudou mais, lance o restante à mão.`, "warning");
-      }
-    } catch {}
     return true;
   }
 
@@ -146,17 +147,16 @@
     const total = decorridos();
     const extra = Math.max(0, total - marca.previstoSegundos);
     elemento.hidden = false;
-    elemento.textContent = marca.capadoEm
-      ? `Tempo previsto concluído às ${hora(marca.desde)}. Parei de contar às ${hora(marca.capadoEm)}, em +${minutos(EXTRA_MAXIMO_SEGUNDOS)} min. Estudou mais? Lance à mão.`
-      : `Tempo previsto concluído às ${hora(marca.desde)} — continuo contando: +${minutos(extra)} min (total ${minutos(total)} min).`;
+    elemento.textContent = `Tempo previsto concluído às ${hora(marca.desde)} — continuo contando até você pausar: +${minutos(extra)} min (total ${minutos(total)} min).`;
   }
 
   function passada() {
     const timer = cronometro();
-    if (!timer?.goalId) { desenharBanner(); return; }
+    if (!timer?.goalId) { ancora = null; desenharBanner(); return; }
 
     const marca = timer.overtimeV450;
     if (!marca) {
+      registrarAncora(timer);
       // A conclusao congela o cronometro em tres atribuicoes: elapsedSeconds
       // vira o previsto, startedAt vira null, paused vira true. E esse congelamento
       // — e so ele — que este modulo desfaz, uma unica vez por sessao.
@@ -165,7 +165,6 @@
       return;
     }
 
-    if (!marca.capadoEm && decorridos() >= marca.limiteSegundos) encerrarNoTeto(timer);
     desenharBanner();
   }
 
@@ -181,11 +180,9 @@
 
   const api = Object.freeze({
     version: VERSION,
-    extraMaximoSegundos: EXTRA_MAXIMO_SEGUNDOS,
     install,
     passada,
     iniciarTempoExtra,
-    encerrarNoTeto,
     estado: () => {
       const timer = cronometro();
       return {

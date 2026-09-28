@@ -173,19 +173,49 @@ test('V450 age uma vez só: pausa depois do extra é decisão dele', () => {
   assert.equal(floatingTimer.paused, true, 'o módulo não pode desfazer uma pausa pedida por ele');
 });
 
-test('V450 para no teto, para não inventar tempo', () => {
+test('V450 não para sozinho: segue contando até ele pausar (escolha dele, 28/09)', () => {
   const { api, floatingTimer, concluir, avancarMinutos, context } = harness();
   concluir();
   api.passada();
 
-  // Alarme não ouvido e ele saiu: quatro horas de aba aberta.
   avancarMinutos(240);
   api.passada();
 
-  assert.equal(floatingTimer.paused, true, 'passado o teto, o cronômetro para de verdade');
-  assert.ok(floatingTimer.overtimeV450.capadoEm, 'e registra quando parou');
-  assert.equal(context.currentTimerSeconds(), (45 + 30) * 60,
-    'o pior caso é meia hora a mais, não quatro horas');
+  assert.equal(floatingTimer.paused, false, 'sem teto: só ele pausa');
+  assert.equal(context.currentTimerSeconds(), (45 + 240) * 60);
+});
+
+test('V450 não perde os minutos entre o fim do previsto e a retomada', () => {
+  const { api, floatingTimer, avancarMinutos, context } = harness();
+  // A vigia viu a sessão correndo.
+  api.passada();
+  // O previsto acaba, o site congela em 45 min, e a aba (em segundo plano)
+  // só volta a rodar a vigia três minutos depois.
+  avancarMinutos(48);
+  floatingTimer.completed = true;
+  floatingTimer.completionAlarmPlayed = true;
+  floatingTimer.elapsedSeconds = 45 * 60;
+  floatingTimer.startedAt = null;
+  floatingTimer.paused = true;
+  api.passada();
+
+  assert.equal(floatingTimer.paused, false);
+  assert.equal(context.currentTimerSeconds(), 48 * 60, 'os três minutos do congelamento contam');
+  avancarMinutos(2);
+  assert.equal(context.currentTimerSeconds(), 50 * 60);
+});
+
+test('V450 não usa a âncora de outra sessão', () => {
+  const { api, floatingTimer, avancarMinutos, context } = harness();
+  api.passada();
+  floatingTimer.sessionId = 's2';
+  avancarMinutos(50);
+  floatingTimer.completed = true;
+  floatingTimer.elapsedSeconds = 45 * 60;
+  floatingTimer.startedAt = null;
+  floatingTimer.paused = true;
+  api.passada();
+  assert.equal(context.currentTimerSeconds(), 45 * 60);
 });
 
 test('V450 escreve na tela o que está fazendo', () => {
@@ -198,13 +228,8 @@ test('V450 escreve na tela o que está fazendo', () => {
   const banner = dom.banner();
   assert.ok(banner, 'o aviso precisa existir na tela');
   assert.equal(banner.hidden, false);
-  assert.match(banner.textContent, /continuo contando: \+12 min/);
+  assert.match(banner.textContent, /continuo contando até você pausar: \+12 min/);
   assert.match(banner.textContent, /total 57 min/);
-
-  avancarMinutos(240);
-  api.passada();
-  assert.match(dom.banner().textContent, /Parei de contar/);
-  assert.match(dom.banner().textContent, /Lance à mão/);
 });
 
 test('V450 não mexe em sessão que não terminou', () => {

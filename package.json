@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260928-mais-opcoes-do-dia-v424",
+  "version": "20260928-trava-das-metas-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

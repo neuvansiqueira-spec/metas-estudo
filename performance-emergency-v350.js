@@ -128,7 +128,7 @@
     if (document.getElementById("aldusDeltaFullPlanLoaderV448")) return;
     const script = document.createElement("script");
     script.id = "aldusDeltaFullPlanLoaderV448";
-    script.src = "delta-full-plan-v448.js?v=20260904-delta-full-plan-v448";
+    script.src = "delta-full-plan-v448.js?v=20260928-delta-desligado-v448";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V448] Falha ao carregar o plano do Dedicacao Delta.");
@@ -142,7 +142,7 @@
     if (document.getElementById("aldusTimerOvertimeLoaderV450")) return;
     const script = document.createElement("script");
     script.id = "aldusTimerOvertimeLoaderV450";
-    script.src = "timer-overtime-v450.js?v=20260906-portugues-visivel-v457";
+    script.src = "timer-overtime-v450.js?v=20260928-timer-overtime-sem-teto-v450";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V450] Falha ao carregar a contagem do tempo extra.");

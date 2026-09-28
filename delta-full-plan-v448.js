@@ -245,9 +245,10 @@
     }
   }
 
-  if (typeof window !== "undefined") {
-    window.addEventListener("aldus:post-bootstrap-maintenance-complete", start, { once: true });
-    window.addEventListener("aldus:bootstrap-ready", start, { once: true });
-    window.addEventListener("load", start, { once: true });
-  }
+  // 28/09/2026: ele não quer mais as metas do Dedicação Delta. A criação
+  // automática ficou desligada: quando o carimbo da migração se perdia numa
+  // mesclagem, start() recriava as 42 metas na inicialização, e depois algo as
+  // apagava (lotes de 42 lápides em 23, 24, 25 e 27/09). O módulo segue
+  // carregado só pela API (apply/undo manuais).
+  void start;
 })();

@@ -59,7 +59,7 @@ for (const arquivo of MEUS) {
 test('a correção do V457 está aplicada', () => {
   const timer = read('timer-overtime-v450.js');
   assert.match(timer, /Tempo previsto concluído às/);
-  assert.match(timer, /O cronômetro parou em/);
+  assert.match(timer, /continuo contando até você pausar/);
   const importar = read('daily-plan-question-import-v451.js');
   assert.match(importar, /Não encontrei a importação da Fábrica/);
   assert.match(importar, /Isso não é um JSON válido/);

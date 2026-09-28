@@ -138,20 +138,18 @@ test('V448 guarda no marcador o suficiente para auditar e reverter', () => {
   assert.equal(new Set(report.goalIds).size, 42, 'ids repetidos quebrariam o undo');
 });
 
-test('V448 alcança o estado declarado como const no escopo global', () => {
+test('V448 não cria mais metas do Delta ao abrir o site (pedido dele, 28/09)', () => {
   const listeners = new Map();
   const context = vm.createContext({
     console: { info() {}, warn() {} },
     window: { addEventListener: (nome, fn) => listeners.set(nome, fn) }
   });
   context.globalThis = context;
-  vm.runInContext(`const state = { dailyGoals: [], syllabusItems: [], migrations: {} };
-    globalThis.__leituraDoGlobal = typeof globalThis.state;`, context);
-  assert.equal(context.__leituraDoGlobal, 'undefined');
+  vm.runInContext('const state = { dailyGoals: [], syllabusItems: [], migrations: {} };', context);
   vm.runInContext(read('delta-full-plan-v448.js'), context);
-  listeners.get('load')();
+  assert.equal(listeners.size, 0, 'nenhum evento de inicialização dispara a criação');
   vm.runInContext('globalThis.__total = state.dailyGoals.length;', context);
-  assert.equal(context.__total, 42, 'ler apenas globalThis.state não criaria nada');
+  assert.equal(context.__total, 0);
 });
 
 test('V448 mantém paridade raiz/docs e é publicado com cache-bust nas duas camadas', () => {
