@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260928-majoritaria-e-autores-v424",
+  "version": "20260928-copiar-questao-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

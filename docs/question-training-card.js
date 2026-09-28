@@ -23,12 +23,37 @@
     document.addEventListener('selectionchange',rememberSelection);
     function highlight(q,color){if(!selected||selected.id!==q.id||selected.end<=selected.start)return;
       const r=selected,list=q.anotacoes[r.field]||[];q.anotacoes[r.field]=color?[...list,{start:r.start,end:r.end,color}]:list.filter(x=>x.end<=r.start||x.start>=r.end);persist();render();}
+    // 28/09/2026 (pedido dele): botão que leva a questão para a área de transferência,
+    // para aprofundar as respostas em outra conversa. Antes de corrigir, sem gabarito.
+    function questionText(q,index){
+      const lines=[`Questão ${index+1}`];
+      if(q.origem_tipo==='autoral')lines.push(`Criada pelo agente · estilo ${q.banca_estilo||'jurídico'}`);
+      else lines.push([q.id,q.banca,q.ano,[q.orgao,q.cargo].filter(Boolean).join(' — ')].filter(Boolean).join(' · '));
+      const subject=[q.disciplina,q.assunto,q.tema].filter(Boolean).join(' · ');if(subject)lines.push(subject);
+      lines.push('',String(q.enunciado||''),'');
+      for(const k of keys(q))lines.push(`${k}) ${q.alternativas?.[k]||({C:'Certo',E:'Errado'}[k])}`);
+      if(q.corrigida){
+        lines.push('',`Minha resposta: ${q.resposta_marcada||'—'} · Gabarito: ${q.gabarito||'—'} · ${q.resposta_marcada===q.gabarito?'ACERTEI':'ERREI'}`);
+        if(q.justificativa_qconcursos)lines.push('',`Justificativa — QConcursos: ${q.justificativa_qconcursos}`);
+        if(q.explicacao_complementar)lines.push('',`Explicação complementar — Agente: ${q.explicacao_complementar}`);
+        const just=keys(q).filter(k=>q.justificativas_alternativas?.[k]);
+        if(just.length){lines.push('','Justificativas por alternativa:');just.forEach(k=>lines.push(`${k} — ${k===q.gabarito?'Correta':'Incorreta'}: ${q.justificativas_alternativas[k]}`));}
+      }
+      return lines.join('\n');
+    }
+    async function copyQuestion(q,index,b){
+      const value=questionText(q,index);let ok=false;
+      try{await navigator.clipboard.writeText(value);ok=true;}catch{}
+      if(!ok){const area=node('textarea');area.value=value;area.setAttribute('readonly','');area.style.position='fixed';area.style.opacity='0';document.body.append(area);area.select();try{ok=document.execCommand('copy');}catch{}area.remove();}
+      b.textContent=ok?'Copiada ✓':'Não consegui copiar';setTimeout(()=>{b.textContent='Copiar questão';},1600);
+    }
     function correct(q){if(!q.resposta_marcada)return;q.corrigida=true;q.resultado=q.resposta_marcada===q.gabarito?'ACERTEI':'ERREI';persist();render();}
     function render(){
       const root=$('#cards');root.replaceChildren();const round=data.trainingRound||data.metadata?.trainingRound||{};
       $('#title').textContent=round.discipline?`${round.discipline} · ${round.theme||'Treino misto'}`:'Treino de questões';
       data.questionBank.forEach((q,index)=>{
         const card=node('article','qt-card'),toolbar=node('div','qt-toolbar');toolbar.append(node('strong','',`Questão ${index+1}`));
+        const copy=button('Copiar questão',()=>copyQuestion(q,index,copy));copy.className='qt-copy';copy.title=q.corrigida?'Copia enunciado, alternativas, sua resposta, gabarito e justificativas':'Copia enunciado e alternativas (sem gabarito)';toolbar.append(copy);
         for(const [label,color] of [['Amarelo','#ffe580'],['Verde','#a3e9b2'],['Azul','#a9d9ff'],['Rosa','#ffb9dd']]){const b=button(label,()=>highlight(q,color));b.style.backgroundColor=color;b.style.color='#152238';b.addEventListener('pointerdown',e=>e.preventDefault());toolbar.append(b);}
         const erase=button('Remover grifo',()=>highlight(q,null));erase.addEventListener('pointerdown',e=>e.preventDefault());toolbar.append(erase);card.append(toolbar);
         const body=node('div','qt-body');body.append(node('p','qt-meta',q.origem_tipo==='autoral'?`CRIADA PELO AGENTE · estilo ${q.banca_estilo||'jurídico'}`:`${q.id} · ${q.banca||''} · ${q.ano||''} · ${q.orgao||''} — ${q.cargo||''}`));

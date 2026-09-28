@@ -114,7 +114,8 @@ jobs:
             tests/v645-timer-pause-origin.test.js \
             tests/v646-question-training-form.test.js \
             tests/v647-factory-tema-especifico.test.js \
-            tests/v639-factory-prompt-organizacao.test.js
+            tests/v639-factory-prompt-organizacao.test.js \
+            tests/question-training-card-copiar.test.js
           node -e "require('./tests/current-release-contract.js').assertCurrentReleaseContract()"
           cmp security-hardening-v296.js docs/security-hardening-v296.js
           cmp service-worker.js docs/service-worker.js
