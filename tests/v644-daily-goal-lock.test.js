@@ -87,7 +87,7 @@ test('V644 trata retirar do plano como exclusão', () => {
 test('V644 é carregada pela cadeia ativa e publicada igual na raiz e em docs', () => {
   const loader = read('security-observability-v318.js');
   assert.ok(loader.includes('daily-goal-lock-v644.js?v=20260928-trava-das-metas-v644'));
-  assert.match(loader, /\n  installDailyGoalLockV644\(\);/);
+  assert.doesNotMatch(loader, /\n  installDailyGoalLockV644\(\);/, 'V644 desligada em 28/09 até correção');
   for (const file of ['daily-goal-lock-v644.js', 'security-observability-v318.js']) assert.equal(read(file), read('docs/' + file), file);
 });
 

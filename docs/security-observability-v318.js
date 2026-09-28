@@ -424,7 +424,9 @@
   installStartupPlanningStabilityV387();
   installManualGoalAdditiveV379();
   installDailyGoalIndividualGuardV641();
-  installDailyGoalLockV644();
+  // V644 DESLIGADA em 28/09/2026: apagou 541 metas (base virou vazia na
+  // gravação da abertura). Não religar sem correção e teste com dados reais.
+  // installDailyGoalLockV644();
   installDailyPlanMoreOptionsV643();
   installFactoryResumoAulaJurisprudenciaV380();
   installFactoryLeiJurisprudenciaV383();
