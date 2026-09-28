@@ -225,3 +225,21 @@ test('os três caminhos de geração mantêm precisão, deduplicação e a exce�
     }
   }
 });
+
+test('V327 (28/09): corrente majoritária e autores das teorias, com marca só quando vier de fora das fontes', () => {
+  const context = harness();
+  for (const type of ['resumoAula', 'resumoAulaJurisprudencia', 'consolidacao']) {
+    const prompt = generate(context, type);
+    assert.match(prompt, /11\. CORRENTE MAJORITÁRIA NAS DIVERGÊNCIAS\./, type);
+    assert.match(prompt, /QUAL É A MAJORITÁRIA NA DOUTRINA E QUAL PREVALECE NO STF, NO STJ E NAS BANCAS/, type);
+    assert.match(prompt, /12\. AUTORES DAS TEORIAS\./, type);
+    assert.match(prompt, /SEM NENHUMA MARCA OU OBSERVAÇÃO SOBRE A FONTE/, type);
+    assert.match(prompt, /\[FORA DAS FONTES — CONFERIR\]/, type);
+    assert.match(prompt, /NÃO INVENTE NOME/, type);
+    assert.match(prompt, /13\. CONFERÊNCIA EFETIVA ANTES DA ENTREGA\./, type);
+    assert.doesNotMatch(prompt, /11\. CONFERÊNCIA EFETIVA/, type);
+  }
+  for (const [type, esperado] of [['lei', 'LEI INTACTA'], ['triagem', 'TRIAGEM INTACTA'], ['peca', 'PEÇA INTACTA']]) {
+    assert.equal(generate(context, type), esperado, `${type} não recebe as regras novas`);
+  }
+});

@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260928-tema-especifico-v424";
+  const VERSION = "20260928-majoritaria-e-autores-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
