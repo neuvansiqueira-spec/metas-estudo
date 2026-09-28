@@ -423,8 +423,8 @@
   installEmergencyPerformanceV350();
   installStartupPlanningStabilityV387();
   installManualGoalAdditiveV379();
-  installDailyGoalLockV644();
   installDailyGoalIndividualGuardV641();
+  installDailyGoalLockV644();
   installDailyPlanMoreOptionsV643();
   installFactoryResumoAulaJurisprudenciaV380();
   installFactoryLeiJurisprudenciaV383();
