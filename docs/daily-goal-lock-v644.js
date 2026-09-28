@@ -28,6 +28,10 @@
   const LOG_KEY = "aldusGoalLockV644Log";
   const MAX_LOG = 50;
   if (globalThis[KEY]) return;
+  // DESLIGADA em 28/09/2026: apagou 541 metas no uso real (a base virava vazia
+  // na gravação da abertura). O arquivo continua para os testes, mas não age no
+  // navegador, nem se uma página antiga em cache ainda mandar carregá-lo.
+  if (typeof document !== "undefined") return;
 
   let foto = null;          // Map chave → assinatura, do início da janela
   let janelaAte = 0;
