@@ -3249,7 +3249,13 @@ function populateOperationalSimuladosGoalSubject(current = "") {
 }
 function populateGoalSubjectsForDiscipline(discipline, current = "") {
   if (isOperationalSimuladosDiscipline(discipline)) populateOperationalSimuladosGoalSubject(current);
-  else optionsForItems(elements.goalSyllabusItem, discipline, current);
+  else optionsForItems(elements.goalSyllabusItem, discipline, current, { alphabetical: true });
+}
+// V643: dentro da disciplina, assuntos em ordem alfabética (mesma regra do "Encaixar no dia").
+function compareSyllabusItemsAlphabeticallyV643(left, right) {
+  return String(left.subject || "").localeCompare(String(right.subject || ""), "pt-BR", { sensitivity: "base", numeric: true })
+    || String(left.subtopic || "").localeCompare(String(right.subtopic || ""), "pt-BR", { sensitivity: "base", numeric: true })
+    || String(left.id || "").localeCompare(String(right.id || ""), "pt-BR");
 }
 function subjectForDiscipline(discipline) { return state.subjects.find((subject) => canonical(subject.name) === canonical(discipline)); }
 function ensureSubjectForDiscipline(discipline) {
@@ -6651,7 +6657,7 @@ function qconcursosNumberResolution(item = {}) {
 }
 function qconcursosNumberForItem(item = {}) { return qconcursosNumberResolution(item).number; }
 function questionItemOptionLabel(item = {}, showQconcursosNumber = false) { const base = `${item.subject || item.assunto || "Assunto sem nome"}${item.subtopic || item.subtema ? ` • ${item.subtopic || item.subtema}` : ""}`; const resolution = qconcursosNumberResolution(item); if (!showQconcursosNumber) return base; if (resolution.number) return `[QC ${resolution.number}] ${base}`; return resolution.source === "reviewed-unavailable" ? `[QC sem código próprio] ${base}` : base; }
-function optionsForItems(select, discipline, current = "", options = {}) { const items = state.syllabusItems.filter((item) => !item.hiddenFromCatalog && (!discipline || item.discipline === discipline)); select.innerHTML = '<option value="">Selecione</option>' + items.map((item) => `<option value="${item.id}" ${item.id === current ? "selected" : ""}>${escapeHTML(questionItemOptionLabel(item, options.showQconcursosNumber === true))}</option>`).join(""); }
+function optionsForItems(select, discipline, current = "", options = {}) { const items = state.syllabusItems.filter((item) => !item.hiddenFromCatalog && (!discipline || item.discipline === discipline)); if (options.alphabetical) items.sort(compareSyllabusItemsAlphabeticallyV643); select.innerHTML = '<option value="">Selecione</option>' + items.map((item) => `<option value="${item.id}" ${item.id === current ? "selected" : ""}>${escapeHTML(questionItemOptionLabel(item, options.showQconcursosNumber === true))}</option>`).join(""); }
 function renderGoalSelectors() {
   const gd = elements.goalDiscipline.value;
   const gi = elements.goalSyllabusItem.value;
@@ -8001,7 +8007,7 @@ function renderChooseSubjectForDayV158() {
 
   const capacity = selectedSubjectDayCapacityV158(state, date);
   const currentReplacementId = elements.chooseSubjectReplacementGoal.value;
-  elements.chooseSubjectReplacementGoal.innerHTML = '<option value="">Selecione a meta que sairá</option>' + capacity.replacementGoals.map((goal) => `<option value="${escapeHTML(goal.id)}">${escapeHTML(goal.discipline)} — ${escapeHTML(goal.subject)}</option>`).join("");
+  elements.chooseSubjectReplacementGoal.innerHTML = '<option value="">Selecione a meta que sairá</option>' + [...capacity.replacementGoals].sort((left, right) => String(left.discipline || "").localeCompare(String(right.discipline || ""), "pt-BR", { sensitivity: "base" }) || String(left.subject || "").localeCompare(String(right.subject || ""), "pt-BR", { sensitivity: "base", numeric: true })).map((goal) => `<option value="${escapeHTML(goal.id)}">${escapeHTML(goal.discipline)} — ${escapeHTML(goal.subject)}</option>`).join("");
   if (capacity.replacementGoals.some((goal) => goal.id === currentReplacementId)) elements.chooseSubjectReplacementGoal.value = currentReplacementId;
   elements.chooseSubjectReplacementField.hidden = !capacity.full;
   elements.chooseSubjectReplacementGoal.required = capacity.full;

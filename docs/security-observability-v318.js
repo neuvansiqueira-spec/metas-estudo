@@ -190,6 +190,21 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V643 — "Mais opções do dia" organizada: barra do dia e cartões; os dois
+  // formulários de adicionar meta num só cartão, com abas. Só composição visual.
+  function installDailyPlanMoreOptionsV643() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusDailyPlanMoreOptionsV643")) return;
+    const script = document.createElement("script");
+    script.id = "aldusDailyPlanMoreOptionsV643";
+    script.src = "daily-plan-more-options-v643.js?v=20260928-mais-opcoes-do-dia-v643";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V643] Falha ao carregar a organização de Mais opções do dia.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   // V380 — novo prompt integrado, isolado do bundle principal e dos hot paths.
   // O módulo só registra o tipo após o bootstrap e redesenha a Fábrica apenas
   // quando a própria tela de Fábrica já está aberta.
@@ -394,6 +409,7 @@
   installStartupPlanningStabilityV387();
   installManualGoalAdditiveV379();
   installDailyGoalIndividualGuardV641();
+  installDailyPlanMoreOptionsV643();
   installFactoryResumoAulaJurisprudenciaV380();
   installFactoryLeiJurisprudenciaV383();
   installFactoryFinalReviewV384();
