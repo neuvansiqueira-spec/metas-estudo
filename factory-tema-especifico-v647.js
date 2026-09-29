@@ -14,12 +14,36 @@
    igual, lendo a linha "Tema:". */
 (() => {
   "use strict";
-  const VERSION = "20260929-tema-especifico-revisao-v647-3";
+  const VERSION = "20260929-tema-especifico-pastas-v647-4";
   const KEY = "__ALDUS_FACTORY_TEMA_ESPECIFICO_V647__";
   const ID = "tema-especifico-avulso-v647";
   const PAINEL = "aldusTemaEspecificoV647";
   const STYLE_ID = "aldusTemaEspecificoEstiloV647";
   if (globalThis[KEY]) return;
+
+  // 29/09/2026 (pedido dele): 01_FONTES_BRUTAS_POR_ORIGEM › 97_TEMAS_ESPECIFICOS › <disciplina> › <tema>.
+  // Pastas criadas no Drive dele nessa data, com os mesmos nomes das disciplinas das fontes brutas.
+  const PASTA_BASE = { nome: "97_TEMAS_ESPECIFICOS", url: "https://drive.google.com/drive/folders/19NMp9CcPTqq9lJ0D8Hh_iWP8sdU8sgjD" };
+  const SUBPASTAS = [
+    ["01_DIREITO_PENAL", "1E55bQAESLhp6bA4nQ3p7FyIEb7vMhBzP"],
+    ["02_DIREITO_PROCESSUAL_PENAL", "1kGsOVfTVQEn-EzDrqPg9ooPf2hzDGKGC"],
+    ["03_LEGISLACAO_PENAL_E_LEGISLACAO_PROCESSUAL_PENAL_EXTRAVAGANTE", "1fLjhP7USN4kPE6AqI-khEIy0ZHi2UV3u"],
+    ["04_DIREITO_CONSTITUCIONAL", "12MEEYe8a6-cnDHCVJ1wFuNrFpuj8rKYd"],
+    ["05_DIREITO_ADMINISTRATIVO_E_GESTAO_PUBLICA", "1wPuXFgRhgRb0qwdOp6tG7KlaRzMcZuoT"],
+    ["06_LEGISLACAO_ESTADUAL_E_INSTITUCIONAL", "1VTNjY6zoTrAhrNMteaffGGz5QXzTE7-A"],
+    ["07_DIREITOS_HUMANOS", "1R1T-lMi3gkQQ3JIqz33A5MqdHTdta_Cx"],
+    ["08_CIENCIAS_FORENSES", "1h_t5asaoE5rRCd8me26X0Rk_Q7PPytL3"],
+    ["09_DIREITO_DIGITAL", "1inV2DkEsBgldGmK_TOC9Wz_P2zAAV-ny"],
+    ["10_DIREITO_CIVIL", "1xkvEElFGB4b4zSG4jnIpwCIG8udqvak9"],
+    ["11_DIREITO_PROCESSUAL_CIVIL", "11zF7TeJdzR8VJYck5ShKl2hAXY8qp8vV"],
+    ["12_DIREITO_AGRARIO", "1Wu9HZ_sDX-i1ZLM4KvPwiK4A1UzMV0MQ"],
+    ["13_DIREITO_AMBIENTAL", "1EFduv1JTA0U32HE29bA2vayjl5XnZwHs"],
+    ["14_DIREITO_ADMINISTRATIVO", "1RtEw2_3eMUTdlDQDcV-1xyqMGgiRjkPy"],
+    ["15_MEDICINA_LEGAL", "19nAyRvicEIVoMLhAXII4xfNGmLQCujyX"],
+    ["16_LEGISLACAO_PENAL_E_PROCESSUAL_PENAL_ESPECIAL", "1HghjkCJjpQTq0EbWOjP8-XJCopedLjUZ"],
+    ["17_CRIMINOLOGIA", "1CQeC-xuTMBJpatu7z1d8YPZReEKGVisy"],
+    ["90_PECA_PARA_DELEGADO_DE_POLICIA_CIVIL", "1o6xUbXu_UMRphIhR88kkSTJmGuqeJrtC"]
+  ].map(([nome, id]) => ({ nome, url: `https://drive.google.com/drive/folders/${id}` }));
 
   const TIPOS = [
     ["resumoAulaJurisprudencia", "RESUMO/AULA + JURISPRUDÊNCIA"],
@@ -52,6 +76,25 @@
       if (!catalogo || typeof resolver !== "function" || !disciplina) return "";
       return texto(resolver({ disciplina }, catalogo)?.entry?.folder?.url);
     } catch { return ""; }
+  }
+
+  const canonico = (v) => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim();
+  function subpastaDaDisciplina(disciplina) {
+    const alvo = canonico(disciplina);
+    return SUBPASTAS.find((s) => canonico(s.nome.replace(/^\d+_/, "")) === alvo) || null;
+  }
+
+  function regraOndeSalvar(disciplina, tema) {
+    const sub = subpastaDaDisciplina(disciplina);
+    const lista = SUBPASTAS.map((s) => `- ${s.nome}: ${s.url}`).join("\n");
+    return `\n\n==============================\nREGRA FINAL — ONDE SALVAR (TEMAS ESPECÍFICOS)\n==============================\n\n`
+      + `1. A PASTA-BASE DOS TEMAS ESPECÍFICOS É ${PASTA_BASE.nome}: ${PASTA_BASE.url}\n`
+      + `2. DENTRO DELA HÁ UMA SUBPASTA POR DISCIPLINA:\n${lista}\n`
+      + `3. A DISCIPLINA INFORMADA NO CABEÇALHO É “${disciplina}”.${sub ? ` ELA CORRESPONDE À SUBPASTA ${sub.nome}.` : " IDENTIFIQUE A SUBPASTA CORRESPONDENTE PELO CONTEÚDO DO RESUMO."}\n`
+      + `4. DENTRO DA SUBPASTA DA DISCIPLINA, PROCURE UMA SUBPASTA COM O NOME DO TEMA ESPECÍFICO “${tema}”. SE ELA NÃO EXISTIR, CRIE-A COM ESSE NOME. SE A SUBPASTA DA DISCIPLINA NÃO EXISTIR, CRIE-A DENTRO DA PASTA-BASE, NO MESMO PADRÃO DE NOMES. SOMENTE DEPOIS DE A PASTA DO TEMA EXISTIR, SALVE O ARQUIVO NELA.\n`
+      + `5. SE NÃO PUDER CONCLUIR COM SEGURANÇA A QUAL DISCIPLINA O RESUMO PERTENCE, ANTES DE CRIAR QUALQUER PASTA OU SALVAR, PERGUNTE AO USUÁRIO E AGUARDE A RESPOSTA.\n`
+      + `6. SE A FERRAMENTA NÃO PERMITIR CRIAR PASTAS, NÃO SALVE EM OUTRO LUGAR: DISPONIBILIZE O ARQUIVO PARA DOWNLOAD E INFORME O CAMINHO EXATO (${PASTA_BASE.nome} › DISCIPLINA › TEMA) QUE O USUÁRIO DEVE CRIAR.\n`
+      + `ESTA REGRA DEFINE O LOCAL DE GRAVAÇÃO E PREVALECE SOBRE A PASTA DE DESTINO E O FLUXO DE GRAVAÇÃO INFORMADOS ACIMA.`;
   }
 
   const ehLinkDoDrive = (v) => /^https:\/\/drive\.google\.com\//i.test(texto(v));
@@ -98,7 +141,7 @@
           <label>Recorte (opcional)<input type="text" data-te="recorte" placeholder="ex.: revisão de jurisprudência 2025–2026"></label>
           <label class="te-largo">Pasta de destino no Google Drive
             <input type="url" data-te="pasta" placeholder="escolha a disciplina ou cole o link de uma pasta do Drive">
-            <span class="te-pasta-acoes"><span data-te="pasta-info"></span><button type="button" class="secondary-button" data-te-acao="pasta-disciplina">Usar a pasta da disciplina</button></span>
+            <span class="te-pasta-acoes"><span data-te="pasta-info"></span><button type="button" class="secondary-button" data-te-acao="pasta-automatica">Usar a pasta automática (Temas específicos)</button> <button type="button" class="secondary-button" data-te-acao="pasta-disciplina">Usar a pasta da disciplina</button></span>
           </label>
           <label class="te-largo">Pasta das fontes no Google Drive (opcional)
             <input type="url" data-te="fontes" placeholder="em branco: as pastas de fontes de sempre (a de jurisprudência no prompt JURISPRUDÊNCIA)">
@@ -129,14 +172,15 @@
     const atualizarInfoPasta = () => {
       const valor = texto(campo("pasta").value);
       info.textContent = !valor ? "Sem pasta: o prompt sai sem indicação de onde salvar."
+        : valor === PASTA_BASE.url ? `Automática: ${PASTA_BASE.nome} › disciplina › tema (o agente cria a do tema).`
         : valor === pastaAutomatica ? "Pasta da disciplina."
         : ehLinkDoDrive(valor) ? "Pasta escolhida por você." : "Isso não parece um link de pasta do Google Drive.";
     };
     const usarPastaDaDisciplina = () => {
       pastaAutomatica = pastaDaDisciplina(campo("disciplina").value);
-      campo("pasta").value = pastaAutomatica;
       atualizarInfoPasta();
     };
+    campo("pasta").value = PASTA_BASE.url;
     painel.addEventListener("toggle", () => {
       // A lista de disciplinas é lida ao abrir (a Fábrica pode ter mudado).
       if (!painel.open) return;
@@ -146,10 +190,8 @@
       select.value = atual;
     });
     campo("disciplina").addEventListener("change", () => {
-      // Troca de disciplina: só substitui a pasta se ela era a automática (ou vazia).
-      const valor = texto(campo("pasta").value);
-      if (!valor || valor === pastaAutomatica) usarPastaDaDisciplina();
-      else { pastaAutomatica = pastaDaDisciplina(campo("disciplina").value); atualizarInfoPasta(); }
+      // A pasta de destino automática (97_TEMAS_ESPECIFICOS) vale para qualquer disciplina.
+      usarPastaDaDisciplina();
     });
     campo("pasta").addEventListener("input", atualizarInfoPasta);
     campo("fontes").addEventListener("input", () => {
@@ -237,6 +279,10 @@
       completo = trocarFontes(completo, fontes);
       roteador = trocarFontes(roteador, fontes);
     }
+    if (pasta === PASTA_BASE.url) {
+      completo += regraOndeSalvar(disciplina, tema);
+      roteador += regraOndeSalvar(disciplina, tema);
+    }
     if (revisao) {
       completo += regraRevisao();
       roteador += regraRevisao();
@@ -277,6 +323,12 @@
     }
     if (botao.dataset.teAcao === "copiar") { evento.preventDefault(); copiar(false); }
     if (botao.dataset.teAcao === "copiar-roteador") { evento.preventDefault(); copiar(true); }
+    if (botao.dataset.teAcao === "pasta-automatica") {
+      evento.preventDefault();
+      const campoPasta = byId(PAINEL).querySelector('[data-te="pasta"]');
+      campoPasta.value = PASTA_BASE.url;
+      campoPasta.dispatchEvent(new Event("input"));
+    }
     if (botao.dataset.teAcao === "pasta-disciplina") {
       evento.preventDefault();
       const painel = byId(PAINEL);
@@ -293,7 +345,7 @@
     return ok;
   }
 
-  const api = Object.freeze({ version: VERSION, id: ID, tipos: TIPOS, instalar, gerar, temaAvulso, pastaDaDisciplina, trocarFontes, regraRevisao });
+  const api = Object.freeze({ version: VERSION, id: ID, tipos: TIPOS, instalar, gerar, temaAvulso, pastaDaDisciplina, trocarFontes, regraRevisao, regraOndeSalvar, subpastaDaDisciplina, pastaBase: PASTA_BASE, subpastas: SUBPASTAS });
   globalThis[KEY] = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (typeof window !== "undefined") {

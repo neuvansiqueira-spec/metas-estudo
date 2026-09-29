@@ -45,7 +45,7 @@ test('V647 não grava nada: nem meta, nem item da Fábrica, nem dados do estudo'
 
 test('V647 é carregada pela cadeia ativa e publicada igual na raiz e em docs', () => {
   const loader = read('security-observability-v318.js');
-  assert.ok(loader.includes(`${MODULE}?v=20260929-tema-especifico-revisao-v647-3`));
+  assert.ok(loader.includes(`${MODULE}?v=20260929-tema-especifico-pastas-v647-4`));
   assert.match(loader, /\n  installFactoryTemaEspecificoV647\(\);/);
   for (const file of [MODULE, 'security-observability-v318.js', 'factory-prompt-organizacao-v639.js']) assert.equal(read(file), read('docs/' + file), file);
 });
@@ -85,4 +85,21 @@ test('V647.3 revisão com várias disciplinas: recorte é a pasta inteira, organ
 test('V647.3 com pasta própria o clique não segue para os pacotes do acervo padrão (bridge)', () => {
   const source = read(MODULE);
   assert.match(source, /resultado === "fontes-proprias"\) \{ evento\.stopImmediatePropagation/);
+});
+
+test('V647.4 pasta automática 97_TEMAS_ESPECIFICOS › disciplina › tema, criando o que faltar', () => {
+  const { api } = harness();
+  assert.equal(api.pastaBase.nome, '97_TEMAS_ESPECIFICOS');
+  assert.equal(api.subpastas.length, 18);
+  assert.equal(api.subpastaDaDisciplina('DIREITO PROCESSUAL PENAL').nome, '02_DIREITO_PROCESSUAL_PENAL');
+  assert.equal(api.subpastaDaDisciplina('Ciências Forenses').nome, '08_CIENCIAS_FORENSES');
+  assert.equal(api.subpastaDaDisciplina('LEGISLAÇÃO ESPECÍFICA – DIREITO PENAL'), null, 'nome ambíguo: o agente decide ou pergunta');
+  const regra = api.regraOndeSalvar('DIREITO PROCESSUAL PENAL', 'Busca pessoal');
+  assert.match(regra, /ELA CORRESPONDE À SUBPASTA 02_DIREITO_PROCESSUAL_PENAL/);
+  assert.match(regra, /SUBPASTA COM O NOME DO TEMA ESPECÍFICO “Busca pessoal”\. SE ELA NÃO EXISTIR, CRIE-A/);
+  assert.match(regra, /SOMENTE DEPOIS DE A PASTA DO TEMA EXISTIR, SALVE O ARQUIVO NELA/);
+  assert.match(regra, /PERGUNTE AO USUÁRIO E AGUARDE A RESPOSTA/);
+  assert.match(regra, /SE A FERRAMENTA NÃO PERMITIR CRIAR PASTAS, NÃO SALVE EM OUTRO LUGAR/);
+  const ambigua = api.regraOndeSalvar('REVISÃO DIZER O DIREITO', 'PCPR');
+  assert.match(ambigua, /IDENTIFIQUE A SUBPASTA CORRESPONDENTE PELO CONTEÚDO DO RESUMO/);
 });

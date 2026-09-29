@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260929-tema-revisao-v424",
+  "version": "20260929-temas-especificos-pastas-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
