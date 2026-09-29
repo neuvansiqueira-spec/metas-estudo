@@ -209,7 +209,7 @@
     if (document.getElementById("aldusTimerPipLoaderV458")) return;
     const script = document.createElement("script");
     script.id = "aldusTimerPipLoaderV458";
-    script.src = "timer-picture-in-picture-v458.js?v=20260929-pausa-pisca-v458";
+    script.src = "timer-picture-in-picture-v458.js?v=20260929-pausa-amarelo-v458";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V458] Falha ao carregar a janela flutuante do cronometro.");

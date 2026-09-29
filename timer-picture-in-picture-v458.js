@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260929-pausa-pisca-v458";
+  const VERSION = "20260929-pausa-amarelo-v458";
   const FLAG = "__ALDUS_TIMER_PIP_V458__";
   const BOTAO_ID = "aldusTimerPipButtonV458";
   const ATUALIZACAO_MS = 500;
@@ -106,10 +106,15 @@
       border: 1px solid rgba(61, 163, 255, .5); background: #0e2d4c; color: #f5f9fd;
     }
     button.salvar { border-color: rgba(54, 203, 192, .55); }
-    @keyframes aldusPausaPisca { 0%, 49% { background: #7a1f1f; } 50%, 100% { background: #0d2b45; } }
-    body.pausa-longa { animation: aldusPausaPisca 1s steps(1, end) infinite; }
-    body.pausa-longa .alerta { color: #ffe08a; }
-    @media (prefers-reduced-motion: reduce) { body.pausa-longa { animation: none; background: #7a1f1f; } }
+    /* 29/09/2026, escolha dele: "amarelo sinal", piscada rápida (0,6 s), texto escuro no amarelo. */
+    @keyframes aldusPausaPisca { 0%, 49% { background: #ffd400; } 50%, 100% { background: #0d2b45; } }
+    @keyframes aldusPausaTexto { 0%, 49% { color: #1a1a00; } 50%, 100% { color: #f5f9fd; } }
+    body.pausa-longa { animation: aldusPausaPisca .6s steps(1, end) infinite; }
+    body.pausa-longa :is(.disciplina, .assunto, .tempo, .progresso, .alerta) { animation: aldusPausaTexto .6s steps(1, end) infinite; }
+    @media (prefers-reduced-motion: reduce) {
+      body.pausa-longa { animation: none; background: #ffd400; }
+      body.pausa-longa :is(.disciplina, .assunto, .tempo, .progresso, .alerta) { animation: none; color: #1a1a00; }
+    }
     button:hover { border-color: #3da3ff; }
   `;
 

@@ -201,5 +201,6 @@ test('V458 (29/09): pausado há 5 minutos ou mais, a janela pisca e avisa', () =
   api.pintar(doc);
   assert.equal(classes.has('pausa-longa'), false, 'ao continuar, para de piscar');
   assert.equal(api.pausaAlertaMs, 5 * 60 * 1000);
-  assert.match(read('timer-picture-in-picture-v458.js'), /body\.pausa-longa \{ animation: aldusPausaPisca/);
+  assert.match(read('timer-picture-in-picture-v458.js'), /body\.pausa-longa \{ animation: aldusPausaPisca \.6s/);
+  assert.match(read('timer-picture-in-picture-v458.js'), /background: #ffd400/, 'amarelo sinal, escolha dele');
 });
