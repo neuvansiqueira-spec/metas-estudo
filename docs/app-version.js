@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260929-temas-especificos-pastas-v424";
+  const VERSION = "20260929-pausa-pisca-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

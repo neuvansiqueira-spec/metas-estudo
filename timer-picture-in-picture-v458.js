@@ -2,10 +2,12 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260913-cota-sem-repeticao-v618";
+  const VERSION = "20260929-pausa-pisca-v458";
   const FLAG = "__ALDUS_TIMER_PIP_V458__";
   const BOTAO_ID = "aldusTimerPipButtonV458";
   const ATUALIZACAO_MS = 500;
+  // 29/09/2026 (pedido dele): pausado há 5 minutos ou mais, a janela pisca.
+  const PAUSA_ALERTA_MS = 5 * 60 * 1000;
 
   if (globalThis[FLAG]) {
     try { globalThis[FLAG].install?.(); } catch {}
@@ -14,6 +16,7 @@
 
   let janela = null;
   let relogio = null;
+  let pausadoDesde = null;
 
   const texto = (id) => {
     try { return String(document.getElementById(id)?.textContent || "").trim(); } catch { return ""; }
@@ -103,6 +106,10 @@
       border: 1px solid rgba(61, 163, 255, .5); background: #0e2d4c; color: #f5f9fd;
     }
     button.salvar { border-color: rgba(54, 203, 192, .55); }
+    @keyframes aldusPausaPisca { 0%, 49% { background: #7a1f1f; } 50%, 100% { background: #0d2b45; } }
+    body.pausa-longa { animation: aldusPausaPisca 1s steps(1, end) infinite; }
+    body.pausa-longa .alerta { color: #ffe08a; }
+    @media (prefers-reduced-motion: reduce) { body.pausa-longa { animation: none; background: #7a1f1f; } }
     button:hover { border-color: #3da3ff; }
   `;
 
@@ -140,8 +147,27 @@
     });
   }
 
+  const estaPausado = (acao) => /^(continuar|retomar)$/i.test(String(acao || "").trim());
+  function inicioDaPausa() {
+    try {
+      const timer = typeof floatingTimer === "object" ? floatingTimer : null;
+      const ultima = Array.isArray(timer?.pauses) ? Date.parse(timer.pauses[timer.pauses.length - 1]) : NaN;
+      if (timer?.paused && Number.isFinite(ultima)) return ultima;
+    } catch {}
+    return null;
+  }
+  function minutosPausado(dados, agora = Date.now()) {
+    if (!estaPausado(dados.acao)) { pausadoDesde = null; return 0; }
+    pausadoDesde = inicioDaPausa() || pausadoDesde || agora;
+    return Math.max(0, agora - pausadoDesde);
+  }
+
   function pintar(doc) {
     const dados = leitura();
+    const pausa = minutosPausado(dados);
+    const longa = pausa >= PAUSA_ALERTA_MS;
+    try { doc.body?.classList?.toggle("pausa-longa", longa); } catch {}
+    if (longa) dados.alerta = [`⏸ PAUSADO HÁ ${Math.floor(pausa / 60000)} MIN`, dados.alerta].filter(Boolean).join(" · ");
     const por = (chave) => doc.querySelector(`[data-pip="${chave}"]`);
     if (por("disciplina")) por("disciplina").textContent = dados.disciplina;
     if (por("assunto")) por("assunto").textContent = dados.assunto;
@@ -208,7 +234,7 @@
     return true;
   }
 
-  const api = Object.freeze({ version: VERSION, install, abrir, fechar, leitura, pintar, montar, suportado, botaoId: BOTAO_ID });
+  const api = Object.freeze({ version: VERSION, install, abrir, fechar, leitura, pintar, montar, suportado, botaoId: BOTAO_ID, minutosPausado, pausaAlertaMs: PAUSA_ALERTA_MS });
   globalThis[FLAG] = api;
 
   if (typeof document !== "undefined") {

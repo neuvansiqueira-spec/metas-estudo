@@ -178,3 +178,28 @@ test('V612 a janela flutuante cabe em qualquer altura e os botoes ficam alcancav
       seletor + " precisa acompanhar a altura da janela, que ele encolhe para caber ao lado da aula");
   }
 });
+
+test('V458 (29/09): pausado há 5 minutos ou mais, a janela pisca e avisa', () => {
+  const { api, context, nos } = harness();
+  const classes = new Set();
+  const campos = {};
+  const doc = {
+    body: { classList: { toggle: (c, on) => (on ? classes.add(c) : classes.delete(c)) } },
+    querySelector: (sel) => (campos[sel] ||= { textContent: '', hidden: false })
+  };
+  const agora = Date.now();
+  nos.get('timerPauseResume').textContent = 'Continuar';
+  context.floatingTimer = { paused: true, pauses: [new Date(agora - 2 * 60000).toISOString()] };
+  api.pintar(doc);
+  assert.equal(classes.has('pausa-longa'), false, 'pausa curta não pisca');
+  context.floatingTimer.pauses.push(new Date(agora - 6 * 60000).toISOString());
+  api.pintar(doc);
+  assert.equal(classes.has('pausa-longa'), true, '6 minutos pausado: pisca');
+  assert.match(campos['[data-pip="alerta"]'].textContent, /PAUSADO HÁ 6 MIN/);
+  nos.get('timerPauseResume').textContent = 'Pausar';
+  context.floatingTimer.paused = false;
+  api.pintar(doc);
+  assert.equal(classes.has('pausa-longa'), false, 'ao continuar, para de piscar');
+  assert.equal(api.pausaAlertaMs, 5 * 60 * 1000);
+  assert.match(read('timer-picture-in-picture-v458.js'), /body\.pausa-longa \{ animation: aldusPausaPisca/);
+});
