@@ -129,7 +129,7 @@ test('V621 mantém CEBRASPE contextual, nomes temáticos e publicação raiz/doc
   assert.match(source,/\$\{\w+\.base\}_EXCLUSOES\.json/);
   assert.equal(source,fs.readFileSync('docs/question-training-factory-v621.js','utf8'));
   const loader=fs.readFileSync('security-observability-v318.js','utf8');
-  assert.match(loader,/question-training-factory-v621\.js\?v=20260928-bancas-em-ordem-v621/);
+  assert.match(loader,/question-training-factory-v621\.js\?v=20260929-regra4-assunto-superior-v621/);
   assert.match(loader,/installQuestionTrainingFactoryV621\(\);/);
   assert.equal(loader,fs.readFileSync('docs/security-observability-v318.js','utf8'));
 });
@@ -185,4 +185,15 @@ test('V625 mantém paridade raiz\/docs e está ligado ao shell público',()=>{
   assert.equal(fs.readFileSync('question-training-status-v625.js','utf8'),fs.readFileSync('docs/question-training-status-v625.js','utf8'));
   assert.match(fs.readFileSync('index.html','utf8'),/question-training-status-v625\.js\?v=20260918-question-training-status-v625/);
   assert.match(fs.readFileSync('docs\/index.html','utf8'),/question-training-status-v625\.js\?v=20260918-question-training-status-v625/);
+});
+
+test('V621 (29/09): regra 4 da triagem usa o assunto superior confirmado antes de parar', () => {
+  const fs = require('fs');
+  const source = fs.readFileSync('question-training-factory-v621.js', 'utf8');
+  assert.match(source, /use no link o subject_id CONFIRMADO do assunto imediatamente superior que o contém/);
+  assert.match(source, /A página do assunto no QC pode ser usada para conferir a classificação de uma questão, mas o link continua exigindo subject_ids\[\] numéricos confirmados/);
+  assert.match(source, /PARE somente se nenhum subject_id confirmado — do tema ou de um assunto superior — cobrir o tema/);
+  assert.match(source, /Nunca entregue link só de disciplina e nunca estime números/);
+  assert.doesNotMatch(source, /Se não conseguir confirmar o filtro de assunto, NÃO entregue link só de disciplina: informe o que faltou e PARE/);
+  assert.match(source, /Use no link somente subject_ids confirmados no próprio QC/, 'a regra 2 continua');
 });

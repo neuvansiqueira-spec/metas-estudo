@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260928-tema-fontes-v424",
+  "version": "20260929-regra4-triagem-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

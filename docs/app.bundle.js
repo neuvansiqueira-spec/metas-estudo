@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260928-tema-fontes-v424";
+  const VERSION = "20260929-regra4-triagem-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
