@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260928-copiar-questao-v424";
+  const VERSION = "20260928-tema-fontes-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

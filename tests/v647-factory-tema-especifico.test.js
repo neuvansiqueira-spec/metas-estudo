@@ -45,7 +45,16 @@ test('V647 não grava nada: nem meta, nem item da Fábrica, nem dados do estudo'
 
 test('V647 é carregada pela cadeia ativa e publicada igual na raiz e em docs', () => {
   const loader = read('security-observability-v318.js');
-  assert.ok(loader.includes(`${MODULE}?v=20260928-tema-especifico-avulso-v647`));
+  assert.ok(loader.includes(`${MODULE}?v=20260928-tema-especifico-fontes-v647-2`));
   assert.match(loader, /\n  installFactoryTemaEspecificoV647\(\);/);
   for (const file of [MODULE, 'security-observability-v318.js', 'factory-prompt-organizacao-v639.js']) assert.equal(read(file), read('docs/' + file), file);
+});
+
+test('V647.2 pasta das fontes escolhida substitui a de sempre em todas as ocorrências (inclusive JURISPRUDÊNCIA)', () => {
+  const { api } = harness();
+  const prompt = 'Tema: X\nPASTA DAS FONTES NO GOOGLE DRIVE:\nhttps://drive.google.com/drive/folders/1ECc_juris\n\nPASTA DE DESTINO DOS ARQUIVOS GERADOS NESTA ETAPA:\nhttps://drive.google.com/drive/folders/destino\n...\nPASTA DAS FONTES NO GOOGLE DRIVE:\r\nhttps://drive.google.com/drive/folders/outra';
+  const novo = api.trocarFontes(prompt, 'https://drive.google.com/drive/folders/MINHA_FONTE');
+  assert.equal((novo.match(/MINHA_FONTE/g) || []).length, 2);
+  assert.doesNotMatch(novo, /1ECc_juris|folders\/outra/);
+  assert.match(novo, /PASTA DE DESTINO DOS ARQUIVOS GERADOS NESTA ETAPA:\nhttps:\/\/drive\.google\.com\/drive\/folders\/destino/, 'a pasta de destino não é tocada');
 });

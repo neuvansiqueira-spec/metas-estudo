@@ -212,7 +212,7 @@
     if (document.getElementById("aldusFactoryTemaEspecificoV647")) return;
     const script = document.createElement("script");
     script.id = "aldusFactoryTemaEspecificoV647";
-    script.src = "factory-tema-especifico-v647.js?v=20260928-tema-especifico-avulso-v647";
+    script.src = "factory-tema-especifico-v647.js?v=20260928-tema-especifico-fontes-v647-2";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V647] Falha ao carregar o painel de tema específico.");

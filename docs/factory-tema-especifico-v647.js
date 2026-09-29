@@ -14,7 +14,7 @@
    igual, lendo a linha "Tema:". */
 (() => {
   "use strict";
-  const VERSION = "20260928-tema-especifico-avulso-v647";
+  const VERSION = "20260928-tema-especifico-fontes-v647-2";
   const KEY = "__ALDUS_FACTORY_TEMA_ESPECIFICO_V647__";
   const ID = "tema-especifico-avulso-v647";
   const PAINEL = "aldusTemaEspecificoV647";
@@ -97,6 +97,10 @@
             <input type="url" data-te="pasta" placeholder="escolha a disciplina ou cole o link de uma pasta do Drive">
             <span class="te-pasta-acoes"><span data-te="pasta-info"></span><button type="button" class="secondary-button" data-te-acao="pasta-disciplina">Usar a pasta da disciplina</button></span>
           </label>
+          <label class="te-largo">Pasta das fontes no Google Drive (opcional)
+            <input type="url" data-te="fontes" placeholder="em branco: as pastas de fontes de sempre (a de jurisprudência no prompt JURISPRUDÊNCIA)">
+            <span class="te-pasta-acoes"><span data-te="fontes-info">Em branco: as pastas de fontes de sempre.</span></span>
+          </label>
         </div>
         <div class="te-botoes">${TIPOS.map(([tipo, nome]) => `<button type="button" class="secondary-button" data-factory-prompt="${ID}|${tipo}">${nome}</button>`).join("")}</div>
         <p class="te-aviso">Não cria meta nem altera a Fábrica. O arquivo vai para a pasta indicada acima.</p>
@@ -142,6 +146,11 @@
       else { pastaAutomatica = pastaDaDisciplina(campo("disciplina").value); atualizarInfoPasta(); }
     });
     campo("pasta").addEventListener("input", atualizarInfoPasta);
+    campo("fontes").addEventListener("input", () => {
+      const valor = texto(campo("fontes").value);
+      campo("fontes-info").textContent = !valor ? "Em branco: as pastas de fontes de sempre."
+        : ehLinkDoDrive(valor) ? "As fontes serão lidas desta pasta, nos 7 prompts." : "Isso não parece um link de pasta do Google Drive.";
+    });
     painel.addEventListener("click", aoClicar);
     atualizarInfoPasta();
     return true;
@@ -161,6 +170,11 @@
     }
   }
 
+  // Troca o link logo abaixo de "PASTA DAS FONTES NO GOOGLE DRIVE:" (todas as ocorrências).
+  function trocarFontes(t, fontes) {
+    return String(t).replace(/(PASTA DAS FONTES NO GOOGLE DRIVE:[ \t]*\r?\n)[^\r\n]*/g, (_m, rotulo) => `${rotulo}${fontes}`);
+  }
+
   function mensagem(t) {
     const el = document.querySelector(`#${PAINEL} [data-factory-prompt-message="${ID}"]`);
     if (el) el.textContent = t;
@@ -178,13 +192,19 @@
     const tema = texto(campo("tema").value);
     const recorte = texto(campo("recorte").value);
     const pasta = texto(campo("pasta").value);
+    const fontes = texto(campo("fontes").value);
     if (!disciplina) { mensagem("Escolha a disciplina."); campo("disciplina").focus(); return false; }
     if (!tema) { mensagem("Escreva o tema específico."); campo("tema").focus(); return false; }
     if (pasta && !ehLinkDoDrive(pasta)) { mensagem("A pasta precisa ser um link do Google Drive (https://drive.google.com/…)."); campo("pasta").focus(); return false; }
+    if (fontes && !ehLinkDoDrive(fontes)) { mensagem("A pasta das fontes precisa ser um link do Google Drive (https://drive.google.com/…)."); campo("fontes").focus(); return false; }
     if (typeof factoryPromptText !== "function") { mensagem("O gerador de prompts da Fábrica ainda não carregou. Aguarde e tente de novo."); return false; }
     const item = temaAvulso(disciplina, tema, pasta);
     let completo = factoryPromptText(tipo, item, "full");
     let roteador = factoryPromptText(tipo, item, "router");
+    if (fontes) {
+      completo = trocarFontes(completo, fontes);
+      roteador = trocarFontes(roteador, fontes);
+    }
     if (recorte) {
       const comRecorte = (t) => String(t).replace(/^(Tema:.*)$/mi, `$1\nRecorte pedido: ${recorte}`);
       completo = comRecorte(completo);
@@ -196,7 +216,7 @@
     campo("saida").hidden = false;
     const nome = (TIPOS.find(([t]) => t === tipo) || [tipo, tipo])[1];
     campo("titulo").textContent = `Prompt — ${nome} — ${disciplina} — ${tema}`;
-    mensagem(pasta ? `Prompt gerado para: ${tema}. Pasta de destino incluída.` : `Prompt gerado para: ${tema}, sem pasta de destino.`);
+    mensagem(`${pasta ? `Prompt gerado para: ${tema}. Pasta de destino incluída.` : `Prompt gerado para: ${tema}, sem pasta de destino.`}${fontes ? " Fontes: a pasta indicada." : ""}`);
     return true;
   }
 
@@ -236,7 +256,7 @@
     return ok;
   }
 
-  const api = Object.freeze({ version: VERSION, id: ID, tipos: TIPOS, instalar, gerar, temaAvulso, pastaDaDisciplina });
+  const api = Object.freeze({ version: VERSION, id: ID, tipos: TIPOS, instalar, gerar, temaAvulso, pastaDaDisciplina, trocarFontes });
   globalThis[KEY] = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (typeof window !== "undefined") {
