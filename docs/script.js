@@ -8089,12 +8089,20 @@ function buildGoalCompletionSummary(goal) {
   const study = Number(goal.studyActualMinutes) || 0;
   const questions = Number(goal.questionActualMinutes) || 0;
   const total = goalTotalActualMinutes(goal);
-  const diff = total - planned;
-  const diffLabel = diff > 0 ? `Acima do planejado: ${diff} min` : diff < 0 ? `Abaixo do planejado: ${Math.abs(diff)} min` : "Dentro do planejado: 0 min";
+  const diff = Math.round((total - planned) * 60) / 60;
+  const diffLabel = diff > 0 ? `Acima do planejado: ${formatGoalCompletionMinutes(diff)}` : diff < 0 ? `Abaixo do planejado: ${formatGoalCompletionMinutes(Math.abs(diff))}` : "Dentro do planejado: 0 min";
   if (total <= 0) {
-    return `<h3>${escapeHTML(goal.discipline || "Disciplina")}</h3><p class="goal-completion-subject">${escapeHTML(goal.subject || "Assunto")}</p><p class="goal-completion-zero"><strong>Nenhum tempo foi registrado nesta meta.</strong><br>A conclusão não adicionará tempo automaticamente.</p><div class="goal-completion-grid"><span><strong>Planejado</strong>${planned} min</span><span><strong>Total realizado</strong>0 min</span></div>`;
+    return `<h3>${escapeHTML(goal.discipline || "Disciplina")}</h3><p class="goal-completion-subject">${escapeHTML(goal.subject || "Assunto")}</p><p class="goal-completion-zero"><strong>Nenhum tempo foi registrado nesta meta.</strong><br>A conclusão não adicionará tempo automaticamente.</p><div class="goal-completion-grid"><span><strong>Planejado</strong>${formatGoalCompletionMinutes(planned)}</span><span><strong>Total realizado</strong>0 min</span></div>`;
   }
-  return `<h3>${escapeHTML(goal.discipline || "Disciplina")}</h3><p class="goal-completion-subject">${escapeHTML(goal.subject || "Assunto")}</p><div class="goal-completion-grid"><span><strong>Planejado</strong>${planned} min</span><span><strong>Estudo registrado</strong>${study} min</span><span><strong>Questões registradas</strong>${questions} min</span><span><strong>Total realizado</strong>${total} min</span><span><strong>Diferença</strong>${diffLabel}</span></div>`;
+  return `<h3>${escapeHTML(goal.discipline || "Disciplina")}</h3><p class="goal-completion-subject">${escapeHTML(goal.subject || "Assunto")}</p><div class="goal-completion-grid"><span><strong>Planejado</strong>${formatGoalCompletionMinutes(planned)}</span><span><strong>Estudo registrado</strong>${formatGoalCompletionMinutes(study)}</span><span><strong>Questões registradas</strong>${formatGoalCompletionMinutes(questions)}</span><span><strong>Total realizado</strong>${formatGoalCompletionMinutes(total)}</span><span><strong>Diferença</strong>${diffLabel}</span></div>`;
+}
+// O cronômetro guarda minutos com fração (segundos/60); na tela, "219 min 53 s" em vez de 219.8833 min.
+function formatGoalCompletionMinutes(minutes) {
+  const totalSeconds = Math.max(0, Math.round((Number(minutes) || 0) * 60));
+  const mins = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (!seconds) return `${mins} min`;
+  return mins ? `${mins} min ${seconds} s` : `${seconds} s`;
 }
 function openGoalCompletionModal(goalId, trigger = null) {
   const goal = state.dailyGoals.find((g) => g.id === goalId);
@@ -8113,7 +8121,7 @@ function openGoalCompletionModal(goalId, trigger = null) {
   els.notice.textContent = total <= 0
     ? "A conclusão não adicionará tempo automaticamente."
     : estimatedRemaining > 0
-      ? `Esta sessão será encerrada e o restante do assunto (${estimatedRemaining} min) será colocado automaticamente em outro dia disponível.`
+      ? `Esta sessão será encerrada e o restante do assunto (${formatGoalCompletionMinutes(estimatedRemaining)}) será colocado automaticamente em outro dia disponível.`
       : "O tempo registrado será preservado. Confirme, na etapa seguinte, se o assunto foi integralmente terminado.";
   els.cancel.textContent = total > 0 ? "Cancelar" : "Voltar";
   els.confirm.textContent = total > 0 ? (estimatedRemaining > 0 ? "Concluir sessão e continuar depois" : "Finalizar sessão") : "Concluir sem registrar tempo";
