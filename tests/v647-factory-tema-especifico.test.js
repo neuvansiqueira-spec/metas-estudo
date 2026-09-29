@@ -45,7 +45,7 @@ test('V647 não grava nada: nem meta, nem item da Fábrica, nem dados do estudo'
 
 test('V647 é carregada pela cadeia ativa e publicada igual na raiz e em docs', () => {
   const loader = read('security-observability-v318.js');
-  assert.ok(loader.includes(`${MODULE}?v=20260928-tema-especifico-fontes-v647-2`));
+  assert.ok(loader.includes(`${MODULE}?v=20260929-tema-especifico-revisao-v647-3`));
   assert.match(loader, /\n  installFactoryTemaEspecificoV647\(\);/);
   for (const file of [MODULE, 'security-observability-v318.js', 'factory-prompt-organizacao-v639.js']) assert.equal(read(file), read('docs/' + file), file);
 });
@@ -54,7 +54,35 @@ test('V647.2 pasta das fontes escolhida substitui a de sempre em todas as ocorr�
   const { api } = harness();
   const prompt = 'Tema: X\nPASTA DAS FONTES NO GOOGLE DRIVE:\nhttps://drive.google.com/drive/folders/1ECc_juris\n\nPASTA DE DESTINO DOS ARQUIVOS GERADOS NESTA ETAPA:\nhttps://drive.google.com/drive/folders/destino\n...\nPASTA DAS FONTES NO GOOGLE DRIVE:\r\nhttps://drive.google.com/drive/folders/outra';
   const novo = api.trocarFontes(prompt, 'https://drive.google.com/drive/folders/MINHA_FONTE');
-  assert.equal((novo.match(/MINHA_FONTE/g) || []).length, 2);
+  assert.equal((novo.split('REGRA FINAL — PASTA DAS FONTES')[0].match(/MINHA_FONTE/g) || []).length, 2);
   assert.doesNotMatch(novo, /1ECc_juris|folders\/outra/);
   assert.match(novo, /PASTA DE DESTINO DOS ARQUIVOS GERADOS NESTA ETAPA:\nhttps:\/\/drive\.google\.com\/drive\/folders\/destino/, 'a pasta de destino não é tocada');
+});
+
+test('V647.3 pasta própria anula o acervo padrão também na REGRA FINAL do módulo JURISPRUDÊNCIA', () => {
+  const { api } = harness();
+  const PADRAO = 'https://drive.google.com/drive/folders/1ECc_otgQKwH7WfPdQr8CtD0kB07pz9Xe';
+  const prompt = `PASTA DAS FONTES NO GOOGLE DRIVE:
+${PADRAO}
+...
+REGRA FINAL E PREVALENTE — FONTE EXCLUSIVA DA JURISPRUDÊNCIA
+Para este módulo, use exclusivamente a pasta ${PADRAO} e todas as suas subpastas.`;
+  const novo = api.trocarFontes(prompt, 'https://drive.google.com/drive/folders/REVISAO', [PADRAO]);
+  assert.doesNotMatch(novo, /1ECc_otgQKwH7WfPdQr8CtD0kB07pz9Xe/, 'nenhum link do acervo padrão sobra');
+  assert.match(novo, /use exclusivamente a pasta https:\/\/drive\.google\.com\/drive\/folders\/REVISAO/);
+  assert.match(novo, /REGRA FINAL — PASTA DAS FONTES DESTA ETAPA \(TEMA ESPECÍFICO\)[\s\S]*A PASTA DAS FONTES DESTA ETAPA É https:\/\/drive\.google\.com\/drive\/folders\/REVISAO[\s\S]*PREVALECE/);
+});
+
+test('V647.3 revisão com várias disciplinas: recorte é a pasta inteira, organizado por disciplina e assunto', () => {
+  const { api } = harness();
+  const regra = api.regraRevisao();
+  assert.match(regra, /O RECORTE É O CONTEÚDO INTEGRAL DA PASTA DE FONTES/);
+  assert.match(regra, /SEM INTERROMPER POR RECORTE IMPRECISO/);
+  assert.match(regra, /POR DISCIPLINA \(♦️\) E, DENTRO DE CADA UMA, POR ASSUNTO \(▶️\)/);
+  assert.match(regra, /NÃO LIMITAM A BUSCA/);
+});
+
+test('V647.3 com pasta própria o clique não segue para os pacotes do acervo padrão (bridge)', () => {
+  const source = read(MODULE);
+  assert.match(source, /resultado === "fontes-proprias"\) \{ evento\.stopImmediatePropagation/);
 });

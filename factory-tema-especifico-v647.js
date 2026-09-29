@@ -14,7 +14,7 @@
    igual, lendo a linha "Tema:". */
 (() => {
   "use strict";
-  const VERSION = "20260928-tema-especifico-fontes-v647-2";
+  const VERSION = "20260929-tema-especifico-revisao-v647-3";
   const KEY = "__ALDUS_FACTORY_TEMA_ESPECIFICO_V647__";
   const ID = "tema-especifico-avulso-v647";
   const PAINEL = "aldusTemaEspecificoV647";
@@ -69,6 +69,9 @@
       #${PAINEL} .te-campos input, #${PAINEL} .te-campos select { padding: 8px 10px; border-radius: 12px; font: inherit; font-weight: 400; }
       #${PAINEL} .te-pasta-acoes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: .78rem; font-weight: 400; opacity: .85; }
       #${PAINEL} .te-pasta-acoes button { width: auto; min-height: 0; padding: 4px 10px; font-size: .78rem; }
+      #${PAINEL} .te-revisao span { display: flex; align-items: center; gap: 8px; }
+      #${PAINEL} .te-revisao input { width: 18px !important; height: 18px; margin: 0; flex: none; }
+      #${PAINEL} .te-revisao small { font-weight: 400; opacity: .8; }
       #${PAINEL} .te-botoes { display: flex; flex-wrap: wrap; gap: 8px; }
       #${PAINEL} .te-botoes button { font-size: .86rem; width: auto !important; flex: 0 1 auto !important; margin: 0 !important; }
       #${PAINEL} .te-aviso { margin: 0; font-size: .8rem; opacity: .85; }
@@ -100,6 +103,9 @@
           <label class="te-largo">Pasta das fontes no Google Drive (opcional)
             <input type="url" data-te="fontes" placeholder="em branco: as pastas de fontes de sempre (a de jurisprudência no prompt JURISPRUDÊNCIA)">
             <span class="te-pasta-acoes"><span data-te="fontes-info">Em branco: as pastas de fontes de sempre.</span></span>
+          </label>
+          <label class="te-largo te-revisao"><span><input type="checkbox" data-te="revisao"> Revisão com várias disciplinas e temas</span>
+            <small>Usa todo o conteúdo da pasta de fontes e organiza por disciplina e assunto.</small>
           </label>
         </div>
         <div class="te-botoes">${TIPOS.map(([tipo, nome]) => `<button type="button" class="secondary-button" data-factory-prompt="${ID}|${tipo}">${nome}</button>`).join("")}</div>
@@ -170,9 +176,34 @@
     }
   }
 
+  // Pastas de fontes padrão do site (script.js). Com pasta própria, nenhuma delas pode sobrar
+  // no prompt: a "REGRA FINAL E PREVALENTE" do módulo JURISPRUDÊNCIA citava o acervo padrão
+  // e anulava a pasta escolhida (erro da V647.2, corrigido em 29/09/2026).
+  function pastasPadrao() {
+    const lista = [];
+    try { if (typeof FACTORY_JURISPRUDENCIA_SOURCE_FOLDER === "string") lista.push(FACTORY_JURISPRUDENCIA_SOURCE_FOLDER); } catch {}
+    try { if (typeof FACTORY_DEFAULT_SOURCE_FOLDER === "string") lista.push(FACTORY_DEFAULT_SOURCE_FOLDER); } catch {}
+    return lista.filter(Boolean);
+  }
+
+  function regraFinalFontes(fontes) {
+    return `\n\n==============================\nREGRA FINAL — PASTA DAS FONTES DESTA ETAPA (TEMA ESPECÍFICO)\n==============================\n\n`
+      + `A PASTA DAS FONTES DESTA ETAPA É ${fontes}, COM TODAS AS SUAS SUBPASTAS. ELA SUBSTITUI QUALQUER OUTRA PASTA DE FONTES CITADA NESTE PROMPT, INCLUSIVE O ACERVO STF/STJ E A PASTA GERAL DA FÁBRICA. `
+      + `SE AS SUBPASTAS “JULGADOS STF RESUMIDOS” E “JULGADOS STJ RESUMIDOS” NÃO EXISTIREM NELA, EXAMINE TODAS AS SUBPASTAS EXISTENTES. ESTA REGRA PREVALECE SOBRE QUALQUER INSTRUÇÃO ANTERIOR.`;
+  }
+
+  function regraRevisao() {
+    return `\n\n==============================\nREVISÃO COM VÁRIAS DISCIPLINAS E TEMAS\n==============================\n\n`
+      + `ESTA ETAPA É UMA REVISÃO QUE ABRANGE VÁRIAS DISCIPLINAS E TEMAS. O RECORTE É O CONTEÚDO INTEGRAL DA PASTA DE FONTES: EXTRAIA TODOS OS JULGADOS, SÚMULAS E TESES NELA CONTIDOS, SEM INTERROMPER POR RECORTE IMPRECISO. `
+      + `ORGANIZE O DOCUMENTO POR DISCIPLINA (♦️) E, DENTRO DE CADA UMA, POR ASSUNTO (▶️), E REFLITA ESSA ORGANIZAÇÃO NO SUMÁRIO. `
+      + `A DISCIPLINA E O TEMA INFORMADOS NO CABEÇALHO IDENTIFICAM A REVISÃO E NÃO LIMITAM A BUSCA. ESTA REGRA PREVALECE SOBRE QUALQUER INSTRUÇÃO ANTERIOR QUE EXIJA RECORTE ÚNICO.`;
+  }
+
   // Troca o link logo abaixo de "PASTA DAS FONTES NO GOOGLE DRIVE:" (todas as ocorrências).
-  function trocarFontes(t, fontes) {
-    return String(t).replace(/(PASTA DAS FONTES NO GOOGLE DRIVE:[ \t]*\r?\n)[^\r\n]*/g, (_m, rotulo) => `${rotulo}${fontes}`);
+  function trocarFontes(t, fontes, padrao = pastasPadrao()) {
+    let texto = String(t).replace(/(PASTA DAS FONTES NO GOOGLE DRIVE:[ \t]*\r?\n)[^\r\n]*/g, (_m, rotulo) => `${rotulo}${fontes}`);
+    for (const url of padrao) texto = texto.split(url).join(fontes);
+    return texto + regraFinalFontes(fontes);
   }
 
   function mensagem(t) {
@@ -193,6 +224,7 @@
     const recorte = texto(campo("recorte").value);
     const pasta = texto(campo("pasta").value);
     const fontes = texto(campo("fontes").value);
+    const revisao = Boolean(campo("revisao")?.checked);
     if (!disciplina) { mensagem("Escolha a disciplina."); campo("disciplina").focus(); return false; }
     if (!tema) { mensagem("Escreva o tema específico."); campo("tema").focus(); return false; }
     if (pasta && !ehLinkDoDrive(pasta)) { mensagem("A pasta precisa ser um link do Google Drive (https://drive.google.com/…)."); campo("pasta").focus(); return false; }
@@ -205,6 +237,10 @@
       completo = trocarFontes(completo, fontes);
       roteador = trocarFontes(roteador, fontes);
     }
+    if (revisao) {
+      completo += regraRevisao();
+      roteador += regraRevisao();
+    }
     if (recorte) {
       const comRecorte = (t) => String(t).replace(/^(Tema:.*)$/mi, `$1\nRecorte pedido: ${recorte}`);
       completo = comRecorte(completo);
@@ -216,8 +252,8 @@
     campo("saida").hidden = false;
     const nome = (TIPOS.find(([t]) => t === tipo) || [tipo, tipo])[1];
     campo("titulo").textContent = `Prompt — ${nome} — ${disciplina} — ${tema}`;
-    mensagem(`${pasta ? `Prompt gerado para: ${tema}. Pasta de destino incluída.` : `Prompt gerado para: ${tema}, sem pasta de destino.`}${fontes ? " Fontes: a pasta indicada." : ""}`);
-    return true;
+    mensagem(`${pasta ? `Prompt gerado para: ${tema}. Pasta de destino incluída.` : `Prompt gerado para: ${tema}, sem pasta de destino.`}${fontes ? " Fontes: só a pasta indicada (sem os pacotes do acervo padrão)." : ""}${revisao ? " Revisão com várias disciplinas e temas." : ""}`);
+    return fontes ? "fontes-proprias" : true;
   }
 
   async function copiar(roteador) {
@@ -235,7 +271,8 @@
     if (prompt && prompt.startsWith(`${ID}|`)) {
       evento.preventDefault();
       // Sem stopPropagation: as extensões do bridge ouvem este mesmo clique no document.
-      if (!gerar(prompt.split("|")[1])) evento.stopImmediatePropagation?.();
+      const resultado = gerar(prompt.split("|")[1]);
+      if (!resultado || resultado === "fontes-proprias") { evento.stopImmediatePropagation?.(); evento.stopPropagation?.(); }
       return;
     }
     if (botao.dataset.teAcao === "copiar") { evento.preventDefault(); copiar(false); }
@@ -256,7 +293,7 @@
     return ok;
   }
 
-  const api = Object.freeze({ version: VERSION, id: ID, tipos: TIPOS, instalar, gerar, temaAvulso, pastaDaDisciplina, trocarFontes });
+  const api = Object.freeze({ version: VERSION, id: ID, tipos: TIPOS, instalar, gerar, temaAvulso, pastaDaDisciplina, trocarFontes, regraRevisao });
   globalThis[KEY] = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (typeof window !== "undefined") {
