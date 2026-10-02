@@ -571,6 +571,11 @@
         enforcePostMigrationPlanningProfile(state);
         return true;
       }
+      // V648: ver discipline-unification-v426-revision.js — sem showSaveFilePicker não há painel.
+      if (typeof globalThis.showSaveFilePicker !== "function") {
+        document.getElementById("aldusV426MigrationPanel")?.remove();
+        return false;
+      }
       const panel = createPanel();
       if (!panel) return false;
       if (renderAbortLock(panel, VERSION)) return true;

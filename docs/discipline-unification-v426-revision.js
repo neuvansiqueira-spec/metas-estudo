@@ -456,6 +456,12 @@
           baseApi.clearMigrationAbortLock?.();
           return true;
         }
+        // V648: sem showSaveFilePicker (celular, Safari) o backup obrigatório não pode ser
+        // gravado, então o painel só travava a tela. A migração fica para o Chrome do PC.
+        if (typeof globalThis.showSaveFilePicker !== "function") {
+          document.getElementById(PANEL_ID)?.remove();
+          return false;
+        }
         const panel = createOrReplacePanel(oldMigrationCompleted(state));
         if (!panel) return false;
         if (renderAbortLock(baseApi, panel)) return true;
@@ -521,7 +527,7 @@
     else {
       const script = document.createElement("script");
       script.id = BASE_SCRIPT_ID;
-      script.src = "discipline-unification-v426.js?v=20260901-discipline-unification-v426-postcondition-r2";
+      script.src = "discipline-unification-v426.js?v=20261002-sem-painel-celular-v648";
       script.async = false;
       script.addEventListener("load", install, { once: true });
       (document.head || document.documentElement).appendChild(script);
