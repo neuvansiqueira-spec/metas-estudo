@@ -332,6 +332,20 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V650 — avisos de Google Drive sem conexão e de aba parada há 60 minutos.
+  function installAvisoConexaoAbaV650() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusAvisoConexaoAbaV650")) return;
+    const script = document.createElement("script");
+    script.id = "aldusAvisoConexaoAbaV650";
+    script.src = "aviso-conexao-aba-v650.js?v=20261002-aviso-conexao-aba-v650";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V650] Falha ao carregar os avisos de conexão e de aba parada.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   function indexFor(list) {
     const cached = indexCache.get(list);
     if (cached
@@ -408,6 +422,7 @@
   installPerformanceHotPathsV622();
   installGoalCalendarExportV623();
   installSyncLeveConferenciaV649();
+  installAvisoConexaoAbaV650();
   if (install()) return;
 
   const startedAt = Date.now();
