@@ -317,6 +317,21 @@
     (document.head || document.documentElement).appendChild(script);
   }
 
+  // V649 — sincronização leve (só baixa da nuvem quando o arquivo mudou) e
+  // conferência de dados entre aparelhos na aba Backup.
+  function installSyncLeveConferenciaV649() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusSyncLeveConferenciaV649")) return;
+    const script = document.createElement("script");
+    script.id = "aldusSyncLeveConferenciaV649";
+    script.src = "sync-leve-conferencia-v649.js?v=20261002-sync-leve-conferencia-v649";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V649] Falha ao carregar a sincronização leve e a conferência de dados.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
   function indexFor(list) {
     const cached = indexCache.get(list);
     if (cached
@@ -392,6 +407,7 @@
   installDailyPlanVisibleGoalsV441();
   installPerformanceHotPathsV622();
   installGoalCalendarExportV623();
+  installSyncLeveConferenciaV649();
   if (install()) return;
 
   const startedAt = Date.now();
