@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20260929-minutos-conclusao-v424",
+  "version": "20261005-pastas-destino-sem-disputa-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

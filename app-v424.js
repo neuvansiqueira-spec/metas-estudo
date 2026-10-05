@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260929-minutos-conclusao-v424";
+  const VERSION = "20261005-pastas-destino-sem-disputa-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -51733,6 +51733,11 @@ document.addEventListener("keydown", (event) => {
     return String(item.factoryDestinationFolder || item.pastaDestinoWordPdf || item.destinationFolder || item.finalFilesFolder || "").trim();
   }
 
+  const NEWER_MANAGED_VERSIONS = new Set([
+    "20260803-pastas-destino-temas-exatos-v232",
+    "20260804-pastas-destino-classificacao-exata-v237"
+  ]);
+
   function isManagedDestination(item = {}) {
     return Boolean(item[MANAGED_VERSION_FIELD] || item.factoryDestinationFolderCatalogKey || item.factoryDestinationFolderMatchType);
   }
@@ -51762,6 +51767,13 @@ document.addEventListener("keydown", (event) => {
     const existing = existingDestination(item);
     const managed = isManagedDestination(item);
     if (existing && !managed && !options.overwriteManual) return { changed: false, status: "manual-preserved", url: existing };
+    // V651 — a V232 (subpasta do tema no Drive) e a V237 (classificação exata)
+    // são mais novas e gravam os mesmos campos. Regravar por cima delas com o
+    // carimbo da V222 fazia as versões se alternarem nos mesmos itens a cada
+    // salvamento, com a tela travada ao abrir o site.
+    if (NEWER_MANAGED_VERSIONS.has(item[MANAGED_VERSION_FIELD]) || typeof item.factoryDestinationFolderUnmatchedStamp === "string") {
+      return { changed: false, status: "newer-preserved", url: existing };
+    }
 
     const { disciplineMatch, topicMatch } = resolveItem(item, catalog);
     if (!disciplineMatch?.entry?.folder?.url) return { changed: false, status: "discipline-unmatched" };
@@ -51897,7 +51909,31 @@ document.addEventListener("keydown", (event) => {
   let refreshInFlight = null;
   let lastRefreshAt = 0;
 
-  function canonicalText(value = "") {
+  // V651 — as funções de texto são puras (mesma string, mesmo resultado). Sem
+  // memória, cada rodada normalizava os mesmos nomes de pasta milhões de vezes:
+  // 881 itens × 1.318 pastas custavam 5,9 s de tela travada em 05/10/2026.
+  const TEXT_MEMO_LIMIT = 50000;
+  function memoized(compute) {
+    const table = new Map();
+    return (value = "") => {
+      const key = String(value || "");
+      let result = table.get(key);
+      if (result === undefined) {
+        if (table.size >= TEXT_MEMO_LIMIT) table.clear();
+        result = compute(key);
+        table.set(key, result);
+      }
+      return result;
+    };
+  }
+
+  const canonicalText = memoized(canonicalTextRaw);
+  const stripLeadingCode = memoized(stripLeadingCodeRaw);
+  const leadingCode = memoized(leadingCodeRaw);
+  const tokenSet = memoized(tokenSetRaw);
+  const relevantNumbers = memoized(relevantNumbersRaw);
+
+  function canonicalTextRaw(value = "") {
     return String(value || "")
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
@@ -51908,18 +51944,18 @@ document.addEventListener("keydown", (event) => {
       .trim();
   }
 
-  function stripLeadingCode(value = "") {
+  function stripLeadingCodeRaw(value = "") {
     return canonicalText(value).replace(/^\d+(?:\s+\d+){0,5}\s+/, "").trim();
   }
 
-  function leadingCode(value = "") {
+  function leadingCodeRaw(value = "") {
     const raw = String(value || "").trim();
     const match = raw.match(/^(?:ITEM\s*)?(\d+(?:[._-]\d+){0,5})(?=\D|$)/i);
     if (!match) return "";
     return match[1].split(/[._-]+/).map((part) => String(Number(part))).join(".");
   }
 
-  function tokenSet(value = "") {
+  function tokenSetRaw(value = "") {
     return new Set(stripLeadingCode(value).split(" ").filter((token) => token.length > 1 && !STOP_WORDS.has(token.toLowerCase())));
   }
 
@@ -51932,7 +51968,7 @@ document.addEventListener("keydown", (event) => {
     return intersection / (a.size + b.size - intersection);
   }
 
-  function relevantNumbers(value = "") {
+  function relevantNumbersRaw(value = "") {
     return new Set(canonicalText(value).split(" ").filter((token) => /^\d{3,4}$/.test(token)));
   }
 
@@ -52070,7 +52106,35 @@ document.addEventListener("keydown", (event) => {
     };
   }
 
+  // V651 — o que depende só da árvore é calculado uma vez por árvore.
+  const treeIndexes = new WeakMap();
+  function treeIndex(tree) {
+    if (!tree || typeof tree !== "object") return { disciplines: null, candidates: new Map(), resolutions: new Map() };
+    let index = treeIndexes.get(tree);
+    if (!index) {
+      index = { disciplines: null, candidates: new Map(), resolutions: new Map() };
+      treeIndexes.set(tree, index);
+    }
+    return index;
+  }
+
   function destinationDisciplineNodes(tree) {
+    const index = treeIndex(tree);
+    if (!index.disciplines) index.disciplines = destinationDisciplineNodesRaw(tree);
+    return index.disciplines;
+  }
+
+  function topicCandidates(tree, disciplineNode) {
+    const index = treeIndex(tree);
+    let candidates = index.candidates.get(disciplineNode.id);
+    if (!candidates) {
+      candidates = (tree?.nodes || []).filter((node) => node.id !== disciplineNode.id && node.pathIds.includes(disciplineNode.id));
+      index.candidates.set(disciplineNode.id, candidates);
+    }
+    return candidates;
+  }
+
+  function destinationDisciplineNodesRaw(tree) {
     return (tree?.nodes || []).filter((node) => {
       if (node.depth !== 1) return false;
       const title = stripLeadingCode(node.name);
@@ -52147,7 +52211,7 @@ document.addEventListener("keydown", (event) => {
     const inputs = topicTexts(item);
     if (!inputs.length || !disciplineMatch?.node) return null;
     const disciplineNode = disciplineMatch.node;
-    const candidates = (tree?.nodes || []).filter((node) => node.id !== disciplineNode.id && node.pathIds.includes(disciplineNode.id));
+    const candidates = topicCandidates(tree, disciplineNode);
     if (!candidates.length) return null;
 
     const ranked = candidates.map((node) => {
@@ -52164,6 +52228,26 @@ document.addEventListener("keydown", (event) => {
     if (!best || best.score < 88) return null;
     if (second && best.score < 180 && best.score - second.score < 8) return null;
     return best;
+  }
+
+  const NEWER_MANAGED_VERSION = "20260804-pastas-destino-classificacao-exata-v237";
+  function isNewerClassification(item = {}) {
+    return item[MANAGED_VERSION_FIELD] === NEWER_MANAGED_VERSION
+      || typeof item.factoryDestinationFolderUnmatchedStamp === "string";
+  }
+
+  function resolveItem(item, tree) {
+    const resolutions = treeIndex(tree).resolutions;
+    const key = JSON.stringify([disciplineTexts(item), topicTexts(item)]);
+    let resolved = resolutions.get(key);
+    if (!resolved) {
+      const disciplineMatch = resolveDiscipline(item, tree);
+      const topicMatch = disciplineMatch ? resolveTopic(item, tree, disciplineMatch) : null;
+      resolved = { disciplineMatch, topicMatch };
+      if (resolutions.size >= 5000) resolutions.clear();
+      resolutions.set(key, resolved);
+    }
+    return resolved;
   }
 
   function clearManagedFields(item) {
@@ -52185,8 +52269,12 @@ document.addEventListener("keydown", (event) => {
     const preserveExisting = Boolean(existing && !managed && options.preserveExisting === true);
     if (preserveExisting) return { changed: false, status: "manual-preserved", url: existing };
 
-    const disciplineMatch = resolveDiscipline(item, tree);
-    const topicMatch = disciplineMatch ? resolveTopic(item, tree, disciplineMatch) : null;
+    // V651 — a V237 (classificação exata, aberta na Fábrica) é a mais nova a
+    // gravar estes campos. Regravar por cima dela com o carimbo desta versão
+    // fazia as duas se alternarem nos mesmos 685 itens a cada salvamento.
+    if (isNewerClassification(item)) return { changed: false, status: "newer-preserved", url: existing };
+
+    const { disciplineMatch, topicMatch } = resolveItem(item, tree);
     if (!topicMatch?.node?.id) {
       if (isLegacyFallback(item) || item[MANAGED_VERSION_FIELD] === VERSION) {
         clearManagedFields(item);
@@ -52301,9 +52389,18 @@ document.addEventListener("keydown", (event) => {
     }
   }
 
+  // V651 — a mesma árvore (mesmo objeto) enquanto o cache não mudar, para que a
+  // memória de resoluções valha entre as rodadas.
+  let parsedCacheText = null;
+  let parsedCacheValue = null;
   function loadCachedTree({ allowExpired = false } = {}) {
     try {
-      const parsed = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
+      const text = localStorage.getItem(CACHE_KEY) || "null";
+      if (text !== parsedCacheText) {
+        parsedCacheValue = JSON.parse(text);
+        parsedCacheText = text;
+      }
+      const parsed = parsedCacheValue;
       if (!parsed?.tree?.nodes?.length) return null;
       if (!allowExpired && Date.now() - Number(parsed.cachedAt || 0) > CACHE_TTL_MS) return null;
       return parsed.tree;

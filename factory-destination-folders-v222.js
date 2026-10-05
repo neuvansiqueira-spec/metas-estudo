@@ -173,6 +173,11 @@
     return String(item.factoryDestinationFolder || item.pastaDestinoWordPdf || item.destinationFolder || item.finalFilesFolder || "").trim();
   }
 
+  const NEWER_MANAGED_VERSIONS = new Set([
+    "20260803-pastas-destino-temas-exatos-v232",
+    "20260804-pastas-destino-classificacao-exata-v237"
+  ]);
+
   function isManagedDestination(item = {}) {
     return Boolean(item[MANAGED_VERSION_FIELD] || item.factoryDestinationFolderCatalogKey || item.factoryDestinationFolderMatchType);
   }
@@ -202,6 +207,13 @@
     const existing = existingDestination(item);
     const managed = isManagedDestination(item);
     if (existing && !managed && !options.overwriteManual) return { changed: false, status: "manual-preserved", url: existing };
+    // V651 — a V232 (subpasta do tema no Drive) e a V237 (classificação exata)
+    // são mais novas e gravam os mesmos campos. Regravar por cima delas com o
+    // carimbo da V222 fazia as versões se alternarem nos mesmos itens a cada
+    // salvamento, com a tela travada ao abrir o site.
+    if (NEWER_MANAGED_VERSIONS.has(item[MANAGED_VERSION_FIELD]) || typeof item.factoryDestinationFolderUnmatchedStamp === "string") {
+      return { changed: false, status: "newer-preserved", url: existing };
+    }
 
     const { disciplineMatch, topicMatch } = resolveItem(item, catalog);
     if (!disciplineMatch?.entry?.folder?.url) return { changed: false, status: "discipline-unmatched" };
