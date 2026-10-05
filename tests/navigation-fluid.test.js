@@ -36,3 +36,10 @@ test("bundle V424 incorpora a correção e raiz/docs ficam espelhados", () => {
   assert.equal(nav, fs.readFileSync("docs/side-nav-hover-collapse-v207.js", "utf8"));
   assert.equal(mobile, fs.readFileSync("docs/aldus-responsive-v52.css", "utf8"));
 });
+
+test("V657 menu recolhe ao tirar o mouse mesmo com o foco no item clicado", () => {
+  const source = fs.readFileSync("side-nav-hover-collapse-v207.js", "utf8");
+  assert.match(source, /const activeInside = !focusFromPointer && nav\?\.contains\(document\.activeElement\);/);
+  assert.match(source, /nav\.addEventListener\("pointerdown", \(\) => \{ focusFromPointer = true; \}/);
+  assert.match(source, /document\.addEventListener\("keydown", \(\) => \{ focusFromPointer = false; \}/);
+});

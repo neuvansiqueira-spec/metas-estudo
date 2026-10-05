@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20261005-sem-faixa-drive-v424";
+  const VERSION = "20261005-menu-recolhe-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

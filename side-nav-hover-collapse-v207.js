@@ -20,6 +20,9 @@
   let mediaQuery = null;
   let openTimer = 0;
   let closeTimer = 0;
+  // V657 — foco vindo de clique do mouse não segura o menu aberto: antes, clicar
+  // num item deixava o foco nele e o menu só recolhia ao clicar fora.
+  let focusFromPointer = false;
 
   function isDesktop() {
     return Boolean(mediaQuery?.matches);
@@ -184,7 +187,7 @@
     openTimer = 0;
     closeTimer = window.setTimeout(() => {
       closeTimer = 0;
-      const activeInside = nav?.contains(document.activeElement);
+      const activeInside = !focusFromPointer && nav?.contains(document.activeElement);
       const pointerInside = nav?.matches?.(":hover");
       if (!activeInside && !pointerInside) setCollapsed(true);
     }, CLOSE_DELAY_MS);
@@ -197,6 +200,8 @@
   function bindEvents() {
     if (!nav || nav.dataset.sideNavHoverBoundV207 === "true") return;
     nav.dataset.sideNavHoverBoundV207 = "true";
+    nav.addEventListener("pointerdown", () => { focusFromPointer = true; }, { passive: true });
+    document.addEventListener("keydown", () => { focusFromPointer = false; }, { passive: true });
     nav.addEventListener("pointerenter", scheduleOpen, { passive: true });
     nav.addEventListener("pointerleave", scheduleClose, { passive: true });
     nav.addEventListener("focusin", openNow);
