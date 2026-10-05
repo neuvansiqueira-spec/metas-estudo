@@ -37,12 +37,20 @@ function syncPrimitiveArray(local = [], remote = []) {
   return result;
 }
 function syncStableSerialize(value) {
-  if (value === null || value === undefined) return String(value);
-  if (Array.isArray(value)) return `[${value.map(syncStableSerialize).sort().join(",")}]`;
-  if (typeof value === "object") {
-    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${syncStableSerialize(value[key])}`).join(",")}}`;
+  // V658: aliases (factoryItems/factoryAgenda) share one traversal. Keep the
+  // cache inside this call: state can be edited in place between fingerprints.
+  const serializedObjects = new WeakMap();
+  function serialize(entry) {
+    if (entry === null || entry === undefined) return String(entry);
+    if (typeof entry !== "object") return JSON.stringify(entry);
+    if (serializedObjects.has(entry)) return serializedObjects.get(entry);
+    const serialized = Array.isArray(entry)
+      ? `[${entry.map(serialize).sort().join(",")}]`
+      : `{${Object.keys(entry).sort().map((key) => `${JSON.stringify(key)}:${serialize(entry[key])}`).join(",")}}`;
+    serializedObjects.set(entry, serialized);
+    return serialized;
   }
-  return JSON.stringify(value);
+  return serialize(value);
 }
 function syncStateFingerprint(value = {}) {
   const serialized = syncStableSerialize(value || {});

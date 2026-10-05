@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20261005-menu-recolhe-v424",
+  "version": "20261005-sync-fingerprint-v658-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

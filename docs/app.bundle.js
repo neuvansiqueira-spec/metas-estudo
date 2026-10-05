@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20261005-menu-recolhe-v424";
+  const VERSION = "20261005-sync-fingerprint-v658-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -3115,12 +3115,20 @@ function syncPrimitiveArray(local = [], remote = []) {
   return result;
 }
 function syncStableSerialize(value) {
-  if (value === null || value === undefined) return String(value);
-  if (Array.isArray(value)) return `[${value.map(syncStableSerialize).sort().join(",")}]`;
-  if (typeof value === "object") {
-    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${syncStableSerialize(value[key])}`).join(",")}}`;
+  // V658: aliases (factoryItems/factoryAgenda) share one traversal. Keep the
+  // cache inside this call: state can be edited in place between fingerprints.
+  const serializedObjects = new WeakMap();
+  function serialize(entry) {
+    if (entry === null || entry === undefined) return String(entry);
+    if (typeof entry !== "object") return JSON.stringify(entry);
+    if (serializedObjects.has(entry)) return serializedObjects.get(entry);
+    const serialized = Array.isArray(entry)
+      ? `[${entry.map(serialize).sort().join(",")}]`
+      : `{${Object.keys(entry).sort().map((key) => `${JSON.stringify(key)}:${serialize(entry[key])}`).join(",")}}`;
+    serializedObjects.set(entry, serialized);
+    return serialized;
   }
-  return JSON.stringify(value);
+  return serialize(value);
 }
 function syncStateFingerprint(value = {}) {
   const serialized = syncStableSerialize(value || {});
@@ -3849,12 +3857,12 @@ function syncCreateSafetyBackup(sourceState, sourceLabel = "before-merge") {
 }
 
 /* Aldus source: sync-integral-cloud.js */
-function syncPreparePayload(payload = {}) {
+function syncPreparePayload(payload = {}, { fingerprint = true } = {}) {
   const prepared = { ...payload, state: cloneData(payload.state || state) };
   if (typeof repairInvalidReinforcementGoalsV157 === "function") {
     repairInvalidReinforcementGoalsV157(prepared.state);
   }
-  prepared.stateFingerprint = syncStateFingerprint(prepared.state);
+  if (fingerprint) prepared.stateFingerprint = syncStateFingerprint(prepared.state);
   return prepared;
 }
 
@@ -3862,7 +3870,8 @@ async function uploadSyncPayloadIntegral(payload = makeSyncPayload(), { statusMe
   if (isSyncing) return null;
   isSyncing = true;
   try {
-    payload = syncPreparePayload(payload);
+    // V658: only the final, repaired upload state needs a fingerprint.
+    payload = syncPreparePayload(payload, { fingerprint: false });
     const file = await findSyncFile();
     if (file) {
       // V654 — o arquivo da nuvem (~26 MB) já baixado por quem chamou é
@@ -3886,8 +3895,7 @@ async function uploadSyncPayloadIntegral(payload = makeSyncPayload(), { statusMe
         deviceId: getDeviceId(),
         deviceName: getDeviceName(),
         mergedDeviceIds: [...new Set([...(remotePayload.mergedDeviceIds || []), remotePayload.deviceId, ...(payload.mergedDeviceIds || []), payload.deviceId].filter(Boolean))],
-        state: mergedState,
-        stateFingerprint: syncStateFingerprint(mergedState)
+        state: mergedState
       };
     }
     payload = syncPreparePayload(payload);

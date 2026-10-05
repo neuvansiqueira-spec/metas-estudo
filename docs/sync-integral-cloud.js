@@ -1,9 +1,9 @@
-function syncPreparePayload(payload = {}) {
+function syncPreparePayload(payload = {}, { fingerprint = true } = {}) {
   const prepared = { ...payload, state: cloneData(payload.state || state) };
   if (typeof repairInvalidReinforcementGoalsV157 === "function") {
     repairInvalidReinforcementGoalsV157(prepared.state);
   }
-  prepared.stateFingerprint = syncStateFingerprint(prepared.state);
+  if (fingerprint) prepared.stateFingerprint = syncStateFingerprint(prepared.state);
   return prepared;
 }
 
@@ -11,7 +11,8 @@ async function uploadSyncPayloadIntegral(payload = makeSyncPayload(), { statusMe
   if (isSyncing) return null;
   isSyncing = true;
   try {
-    payload = syncPreparePayload(payload);
+    // V658: only the final, repaired upload state needs a fingerprint.
+    payload = syncPreparePayload(payload, { fingerprint: false });
     const file = await findSyncFile();
     if (file) {
       // V654 — o arquivo da nuvem (~26 MB) já baixado por quem chamou é
@@ -35,8 +36,7 @@ async function uploadSyncPayloadIntegral(payload = makeSyncPayload(), { statusMe
         deviceId: getDeviceId(),
         deviceName: getDeviceName(),
         mergedDeviceIds: [...new Set([...(remotePayload.mergedDeviceIds || []), remotePayload.deviceId, ...(payload.mergedDeviceIds || []), payload.deviceId].filter(Boolean))],
-        state: mergedState,
-        stateFingerprint: syncStateFingerprint(mergedState)
+        state: mergedState
       };
     }
     payload = syncPreparePayload(payload);
