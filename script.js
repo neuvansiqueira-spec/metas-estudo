@@ -2252,7 +2252,36 @@ function renderSyncStatus(message = "") {
 let googleDriveAccessToken = "";
 let googleDriveTokenExpiresAt = 0;
 let googleDriveTokenClient = null;
+let googleDriveTokenRequest = null;
 let googleIdentityServicesPromise = null;
+// V652 — a autorização do Google (vale ~1 h) fica guardada na própria aba até
+// vencer: recarregar a página não pede Reconectar de novo. sessionStorage, e
+// não localStorage (regra de segurança do projeto): some ao fechar a aba e não
+// entra em backups nem nas buscas de recuperação.
+const GOOGLE_DRIVE_TOKEN_STORAGE_KEY = "aldusGoogleDriveTokenV652";
+function googleDriveTokenStorage() {
+  try { return typeof sessionStorage !== "undefined" ? sessionStorage : null; } catch { return null; }
+}
+function rememberGoogleDriveAccessToken() {
+  try { googleDriveTokenStorage()?.setItem(GOOGLE_DRIVE_TOKEN_STORAGE_KEY, `${googleDriveTokenExpiresAt}|${googleDriveAccessToken}`); } catch {}
+}
+function restoreGoogleDriveAccessToken() {
+  try {
+    const storage = googleDriveTokenStorage();
+    const raw = storage?.getItem(GOOGLE_DRIVE_TOKEN_STORAGE_KEY) || "";
+    const cut = raw.indexOf("|");
+    const expiresAt = Number(raw.slice(0, cut));
+    const token = raw.slice(cut + 1);
+    if (cut > 0 && token && Date.now() < expiresAt - 60000) {
+      googleDriveAccessToken = token;
+      googleDriveTokenExpiresAt = expiresAt;
+      return true;
+    }
+    if (raw) storage.removeItem(GOOGLE_DRIVE_TOKEN_STORAGE_KEY);
+  } catch {}
+  return false;
+}
+restoreGoogleDriveAccessToken();
 
 function loadGoogleIdentityServices() {
   if (window.google?.accounts?.oauth2) return Promise.resolve(true);
@@ -2279,7 +2308,11 @@ function loadGoogleIdentityServices() {
   return googleIdentityServicesPromise;
 }
 
-function clearGoogleDriveAccessToken() { googleDriveAccessToken = ""; googleDriveTokenExpiresAt = 0; }
+function clearGoogleDriveAccessToken() {
+  googleDriveAccessToken = "";
+  googleDriveTokenExpiresAt = 0;
+  try { googleDriveTokenStorage()?.removeItem(GOOGLE_DRIVE_TOKEN_STORAGE_KEY); } catch {}
+}
 function hasValidGoogleDriveAccessToken() { return Boolean(googleDriveAccessToken && Date.now() < googleDriveTokenExpiresAt - 60000); }
 function syncErrorMessage(error, fallback) {
   const msg = String(error?.message || error || "");
@@ -2294,18 +2327,28 @@ async function getAccessToken({ prompt = "" } = {}) {
   await loadGoogleIdentityServices();
   if (!window.google?.accounts?.oauth2) throw new Error("Google Identity Services não carregou. Verifique a conexão.");
   return new Promise((resolve, reject) => {
+    // V652 — o cliente do Google é criado uma vez só; a resposta precisa ir para
+    // o pedido em curso. Antes ela ia sempre para o primeiro pedido da aba, e o
+    // segundo Reconectar ficava esperando para sempre.
+    googleDriveTokenRequest?.reject(new Error("login cancelado"));
+    googleDriveTokenRequest = { resolve, reject };
+    const settle = () => { const pending = googleDriveTokenRequest; googleDriveTokenRequest = null; return pending; };
     googleDriveTokenClient = googleDriveTokenClient || google.accounts.oauth2.initTokenClient({
       client_id: GOOGLE_CLIENT_ID,
       scope: GOOGLE_DRIVE_SCOPE,
       callback: (response) => {
+        const pending = settle();
         if (response?.access_token) {
           googleDriveAccessToken = response.access_token;
           googleDriveTokenExpiresAt = Date.now() + (Number(response.expires_in || 3600) * 1000);
-          resolve(googleDriveAccessToken);
+          rememberGoogleDriveAccessToken();
+          pending?.resolve(googleDriveAccessToken);
           return;
         }
-        reject(new Error(response?.error || "login cancelado"));
-      }
+        pending?.reject(new Error(response?.error || "login cancelado"));
+      },
+      // Janela fechada ou bloqueada: o pedido termina com erro, em vez de ficar preso.
+      error_callback: (error) => settle()?.reject(new Error(error?.type || "popup_closed"))
     });
     googleDriveTokenClient.requestAccessToken(prompt ? { prompt } : {});
   });

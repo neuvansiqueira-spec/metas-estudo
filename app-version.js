@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20261005-pastas-destino-carimbos-v424";
+  const VERSION = "20261005-drive-autorizacao-guardada-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
