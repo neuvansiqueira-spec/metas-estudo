@@ -662,7 +662,10 @@ function installTimeRecoveryDiagnosticUI() {
   window.addEventListener("hashchange", () => {
     if (String(location.hash || "").includes("backup")) schedule();
   });
-  setTimeout(renderTimeRecoveryDiagnostic, 3300);
+  // V653 — o painel fica dentro do Backup. Montá-lo em toda abertura fazia três
+  // cópias completas dos dados (~0,9 s de página parada) para uma tela fechada;
+  // ao entrar no Backup, o hashchange acima já o monta.
+  if (String(location.hash || "").includes("backup")) setTimeout(renderTimeRecoveryDiagnostic, 3300);
 }
 
 installGoalTimeNonRegressionProtection();

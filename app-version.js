@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20261005-salvamento-sem-repeticao-v424";
+  const VERSION = "20261005-diagnostico-tempo-no-backup-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

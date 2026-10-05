@@ -150,3 +150,12 @@ test("V653 mantém paridade raiz/docs", () => {
     assert.equal(read(path.join("docs", file)).replace(/\r\n/g, "\n"), read(file).replace(/\r\n/g, "\n"), file);
   }
 });
+
+test("V653 o diagnóstico de recuperação de tempo só é montado no Backup", () => {
+  const source = read("sync-integral-time-protection.js");
+  const start = source.indexOf("function installTimeRecoveryDiagnosticUI()");
+  const block = source.slice(start, source.indexOf("\ninstallGoalTimeNonRegressionProtection();", start));
+  assert.match(block, /if \(String\(location\.hash \|\| ""\)\.includes\("backup"\)\) setTimeout\(renderTimeRecoveryDiagnostic, 3300\);/);
+  assert.match(block, /hashchange[\s\S]*includes\("backup"\)\) schedule\(\)/);
+  assert.equal(read("docs/sync-integral-time-protection.js").replace(/\r\n/g, "\n"), source.replace(/\r\n/g, "\n"));
+});
