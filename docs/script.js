@@ -2052,8 +2052,17 @@ function publishIndexedDBPersistenceSignal(record) {
   catch (error) { console.warn("[Metas Estudo] Aviso entre abas indisponível; o IndexedDB permanece protegido.", error); }
 }
 
+// V655 — com várias abas abertas (o usuário trabalha com 4–5: cronômetro e
+// Fábrica), cada salvamento fazia TODAS as outras abas lerem, conferirem e
+// mesclarem os ~20 MB na hora (1–3 s cada), inclusive as escondidas.
+// Aba escondida só guarda o último aviso e se atualiza ao voltar a ser vista.
+let indexedDBDeferredSignalV655 = null;
 async function handleIndexedDBPersistenceSignal(signal = {}) {
   if (!bootstrapStateReady || indexedDBPersistenceSignalHandling || signal.source === indexedDBPersistenceInstanceId || !signal.checksum || signal.checksum === indexedDBPersistBaseChecksum) return;
+  if (typeof document !== "undefined" && document.hidden) {
+    indexedDBDeferredSignalV655 = signal;
+    return;
+  }
   indexedDBPersistenceSignalHandling = true;
   try {
     const record = await loadStateFromIndexedDB();
@@ -2061,6 +2070,17 @@ async function handleIndexedDBPersistenceSignal(signal = {}) {
     if (indexedDBPersistQueued || indexedDBPersistInFlight) {
       indexedDBPersistQueued = true;
       queueIndexedDBStateCopy();
+      return;
+    }
+    // V655 — esta aba não tem nada além do que ela mesma gravou por último (a
+    // conferência do estado atual é igual à da última gravação dela). A outra aba
+    // gravou por cima dessa base, mesclando se preciso: o registro salvo já
+    // contém tudo. Adota o registro, como uma recarga faria, sem mesclar 20 MB.
+    if (checksumForState(state) === indexedDBPersistBaseChecksum) {
+      indexedDBPersistBaseChecksum = record.checksum;
+      replaceState(record.data);
+      render();
+      if (typeof showDailyGoalMessage === "function") showDailyGoalMessage("Dados atualizados pela outra aba deste dispositivo.", "success");
       return;
     }
     const mergedState = typeof mergeSyncStates === "function" ? mergeSyncStates(state, record.data, "remote") : record.data;
@@ -2080,6 +2100,14 @@ async function handleIndexedDBPersistenceSignal(signal = {}) {
 function installIndexedDBPersistenceSignals() {
   if (typeof window === "undefined" || globalThis.__aldusIndexedDBPersistenceSignalsV405) return;
   globalThis.__aldusIndexedDBPersistenceSignalsV405 = true;
+  if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden || !indexedDBDeferredSignalV655) return;
+      const signal = indexedDBDeferredSignalV655;
+      indexedDBDeferredSignalV655 = null;
+      handleIndexedDBPersistenceSignal(signal);
+    });
+  }
   if (typeof BroadcastChannel === "function") {
     try {
       indexedDBPersistenceChannel = new BroadcastChannel(INDEXEDDB_PERSISTENCE_CHANNEL_NAME);
@@ -2450,9 +2478,35 @@ async function runAutoSyncAfterSave(reason) {
     renderSyncStatus(message);
   }
 }
+// V655 — envio ao Drive em lote. Conectado, cada envio baixa, mescla e sobe os
+// ~20 MB (segundos de página parada); antes ele ia 4 s depois de CADA alteração.
+// Agora: a primeira alteração depois de um envio sai em 4 s, como antes; as
+// seguintes juntam-se e saem no máximo a cada 10 minutos (valor inicial, do
+// usuário). Ao sair da aba (trocar, minimizar, fechar), o pendente sai na hora.
+const AUTO_SYNC_BATCH_INTERVAL_MS_V655 = 10 * 60 * 1000;
+let autoSyncLastRunAtV655 = 0;
+let autoSyncBatchDueAtV655 = 0;
+function autoSyncBatchScheduled() { return Boolean(autoSyncTimer || autoSyncIdleHandle); }
+function flushAutoSyncBatchNow() {
+  if (!autoSyncBatchScheduled() || isSyncLocked()) return false;
+  clearTimeout(autoSyncTimer);
+  autoSyncTimer = null;
+  if (autoSyncIdleHandle) {
+    if (autoSyncIdleMode === "idle" && typeof cancelIdleCallback === "function") cancelIdleCallback(autoSyncIdleHandle);
+    else clearTimeout(autoSyncIdleHandle);
+    autoSyncIdleHandle = null;
+    autoSyncIdleMode = "";
+  }
+  autoSyncBatchDueAtV655 = 0;
+  autoSyncLastRunAtV655 = Date.now();
+  runAutoSyncAfterSave(pendingAutoSyncReason);
+  return true;
+}
 function autoSyncAfterSave(reason = "alteração") {
   if (isSyncLocked()) return;
   pendingAutoSyncReason = reason;
+  if (!autoSyncBatchDueAtV655) autoSyncBatchDueAtV655 = Math.max(Date.now() + AUTO_SYNC_DEBOUNCE_MS, autoSyncLastRunAtV655 + AUTO_SYNC_BATCH_INTERVAL_MS_V655);
+  const autoSyncDelayV655 = Math.max(AUTO_SYNC_DEBOUNCE_MS, autoSyncBatchDueAtV655 - Date.now());
   clearTimeout(autoSyncTimer);
   if (autoSyncIdleHandle) {
     if (autoSyncIdleMode === "idle" && typeof cancelIdleCallback === "function") cancelIdleCallback(autoSyncIdleHandle);
@@ -2465,6 +2519,8 @@ function autoSyncAfterSave(reason = "alteração") {
     const run = () => {
       autoSyncIdleHandle = null;
       autoSyncIdleMode = "";
+      autoSyncBatchDueAtV655 = 0;
+      autoSyncLastRunAtV655 = Date.now();
       runAutoSyncAfterSave(pendingAutoSyncReason);
     };
     if (typeof requestIdleCallback === "function") {
@@ -2474,8 +2530,12 @@ function autoSyncAfterSave(reason = "alteração") {
       autoSyncIdleMode = "timeout";
       autoSyncIdleHandle = setTimeout(run, 0);
     }
-  }, AUTO_SYNC_DEBOUNCE_MS);
+  }, autoSyncDelayV655); // AUTO_SYNC_DEBOUNCE_MS no mínimo
   return autoSyncTimer;
+}
+if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
+  document.addEventListener("visibilitychange", () => { if (document.hidden) flushAutoSyncBatchNow(); });
+  window.addEventListener("pagehide", () => flushAutoSyncBatchNow());
 }
 
 function isQuotaExceededError(error) {

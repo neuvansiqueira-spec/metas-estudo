@@ -64,7 +64,10 @@
         return original.call(this, context);
       }
       const modifiedTime = String(file?.modifiedTime || "");
-      if (modifiedTime && modifiedTime === lastFullCheckModifiedTime && !syncPending()) return undefined;
+      // V655 — com envio em lote, há alteração local pendente por até 10 min. Se a
+      // nuvem não mudou, não há o que trazer: o lote agendado leva o pendente.
+      const batchScheduled = typeof autoSyncBatchScheduled === "function" && autoSyncBatchScheduled();
+      if (modifiedTime && modifiedTime === lastFullCheckModifiedTime && (!syncPending() || batchScheduled)) return undefined;
 
       probedModifiedTime = modifiedTime;
       pullSucceeded = false;
@@ -77,6 +80,19 @@
         pullSucceeded = false;
       }
     };
+    // V655 — o arquivo que este aparelho acabou de enviar já é conhecido: a
+    // próxima conferência não precisa baixá-lo de volta.
+    for (const name of ["updateSyncFile", "createSyncFile"]) {
+      const originalWrite = globalThis[name];
+      if (typeof originalWrite !== "function" || originalWrite.__aldusV655) continue;
+      const wrappedWrite = async function (...args) {
+        const saved = await originalWrite.apply(this, args);
+        if (saved?.modifiedTime) lastFullCheckModifiedTime = String(saved.modifiedTime);
+        return saved;
+      };
+      Object.defineProperty(wrappedWrite, "__aldusV655", { value: true });
+      globalThis[name] = wrappedWrite;
+    }
     return true;
   }
 
