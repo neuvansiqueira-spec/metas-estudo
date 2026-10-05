@@ -24,6 +24,27 @@
     derivedScheduleMode = "";
   }
 
+  // V653 — passos derivados que devolvem { changed: false } não mudaram nada.
+  // Resultado ausente ou diferente conta como mudança (comportamento anterior).
+  function reportedUnchanged(result) {
+    return Boolean(result && typeof result === "object" && result.changed === false);
+  }
+
+  // V653 — a tela ativa foi desenhada com a revisão atual dos dados (o mesmo
+  // registro que renderView usa em reuseIfFresh). saveData e render() avançam a
+  // revisão, então "igual" quer dizer: desenhada depois do último salvamento.
+  function activeViewIsCurrent() {
+    try {
+      if (typeof viewRenderCacheV172 === "undefined" || typeof viewDataRevisionV172 === "undefined") return false;
+      const activeView = typeof hashToView === "function" ? hashToView() : "dashboard";
+      const target = typeof resolveViewTarget === "function" ? resolveViewTarget(activeView) : activeView;
+      const cached = viewRenderCacheV172.get(target);
+      return Boolean(cached && cached.revision === viewDataRevisionV172);
+    } catch {
+      return false;
+    }
+  }
+
   function runDerivedRefresh(reason = "scheduled") {
     if (!derivedRefreshPending || derivedRefreshInFlight) return false;
     cancelScheduledRefresh();
@@ -45,27 +66,42 @@
     pendingReasons = new Set();
 
     try {
+      let priorityResult = null;
+      let reinforcementResult = null;
+      let factoryResult = null;
       if (typeof refreshPlanningPrioritiesForQuestionChangesV155 === "function") {
         const step = performance.now();
-        refreshPlanningPrioritiesForQuestionChangesV155(state);
+        priorityResult = refreshPlanningPrioritiesForQuestionChangesV155(state);
         report.planningPriorityMs = Number((performance.now() - step).toFixed(1));
       }
       if (typeof repairInvalidReinforcementGoalsV157 === "function") {
         const step = performance.now();
-        globalThis.__reinforcementClassificationRepairV157 = repairInvalidReinforcementGoalsV157(state);
+        reinforcementResult = repairInvalidReinforcementGoalsV157(state);
+        globalThis.__reinforcementClassificationRepairV157 = reinforcementResult;
         report.reinforcementRepairMs = Number((performance.now() - step).toFixed(1));
       }
       if (typeof syncFactoryMaterialsPlanningV80 === "function") {
         const step = performance.now();
-        syncFactoryMaterialsPlanningV80(state);
+        factoryResult = syncFactoryMaterialsPlanningV80(state);
         report.factoryPlanningMs = Number((performance.now() - step).toFixed(1));
       }
 
-      const persistenceStartedAt = performance.now();
-      originalSaveData({ skipDerivedRefresh: true, markLocalChange: false });
-      report.persistenceMs = Number((performance.now() - persistenceStartedAt).toFixed(1));
+      // V653 — sem mudança derivada, o salvamento imediato já gravou o estado e
+      // a tela já mostra esta revisão: regravar os ~20 MB e redesenhar a tela
+      // custava de 1 a 2 s de página parada a cada ação. A sincronização com a
+      // nuvem segue chamada sempre, como antes.
+      const nothingChanged = reportedUnchanged(priorityResult)
+        && reportedUnchanged(reinforcementResult)
+        && reportedUnchanged(factoryResult);
+      report.repeatedSaveSkipped = nothingChanged;
+      if (!nothingChanged) {
+        const persistenceStartedAt = performance.now();
+        originalSaveData({ skipDerivedRefresh: true, markLocalChange: false });
+        report.persistenceMs = Number((performance.now() - persistenceStartedAt).toFixed(1));
+      }
 
-      if (typeof document === "undefined" || !document.hidden) {
+      report.repeatedRenderSkipped = nothingChanged && activeViewIsCurrent();
+      if (!report.repeatedRenderSkipped && (typeof document === "undefined" || !document.hidden)) {
         const renderStartedAt = performance.now();
         if (typeof render === "function") render();
         report.renderMs = Number((performance.now() - renderStartedAt).toFixed(1));

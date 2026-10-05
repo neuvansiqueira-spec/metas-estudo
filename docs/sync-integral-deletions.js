@@ -51,14 +51,28 @@ function syncEnsureTombstoneStore(targetState = state) {
   return targetState.syncTombstones;
 }
 
+// V653 — factoryItems e factoryAgenda são o mesmo array: sem memória, cada
+// salvamento calculava a assinatura dos mesmos 881 itens duas vezes. A memória
+// vale só durante uma chamada (os itens não mudam no meio dela), e a assinatura
+// ignora os campos de revisão que syncTrackCollectionMutations atualiza.
+function syncMemoizedRecordSignature(memo, item) {
+  let signature = memo.get(item);
+  if (signature === undefined) {
+    signature = syncRecordSignature(item);
+    memo.set(item, signature);
+  }
+  return signature;
+}
+
 function syncSnapshotCollections(targetState = state) {
   const snapshot = {};
+  const signatures = new WeakMap();
   SYNC_COLLECTIONS.forEach((collection) => {
     const map = new Map();
     (Array.isArray(targetState?.[collection]) ? targetState[collection] : []).forEach((item) => {
       if (!item || typeof item !== "object") return;
       const key = syncCollectionKey(item, collection);
-      map.set(key, { signature: syncRecordSignature(item) });
+      map.set(key, { signature: syncMemoizedRecordSignature(signatures, item) });
     });
     snapshot[collection] = map;
   });
@@ -67,6 +81,7 @@ function syncSnapshotCollections(targetState = state) {
 
 function syncTrackCollectionMutations(previousSnapshot = {}, targetState = state, changedAt = new Date().toISOString()) {
   const store = syncEnsureTombstoneStore(targetState);
+  const signatures = new WeakMap();
   let changed = false;
   SYNC_COLLECTIONS.forEach((collection) => {
     const previous = previousSnapshot?.[collection] instanceof Map ? previousSnapshot[collection] : new Map();
@@ -97,7 +112,7 @@ function syncTrackCollectionMutations(previousSnapshot = {}, targetState = state
         changed = true;
         return;
       }
-      if (before.signature !== syncRecordSignature(item)) {
+      if (before.signature !== syncMemoizedRecordSignature(signatures, item)) {
         item.updatedAt = changedAt;
         changed = true;
       }

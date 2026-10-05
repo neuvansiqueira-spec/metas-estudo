@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20261005-drive-autorizacao-guardada-v424";
+  const VERSION = "20261005-salvamento-sem-repeticao-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -123,8 +123,24 @@ function indexedDBStateHasUserData(state = {}) {
   return ["subjects", "studies", "syllabusItems", "dailyGoals", "questionLogs", "materials", "questionBank", "simulados", "smartReviews", "factoryAgenda", "factoryItems"].some((key) => Array.isArray(state?.[key]) && state[key].length);
 }
 
+// V653 — cada gravação lia o registro atual do IndexedDB e recalculava a
+// conferência dos ~20 MB (160–200 ms), embora esse mesmo registro já tivesse sido
+// conferido por inteiro ao ser gravado e relido. Aqui o registro vem direto do
+// IndexedDB (nunca de memória alterada); se for o mesmo já conferido (mesma
+// conferência, data de gravação e tamanho), a conta não é refeita.
+let lastFullyValidatedIndexedDBRecordKey = "";
+function indexedDBRecordIdentity(record) {
+  if (!record || !record.checksum || !record.savedAt) return "";
+  return `${record.checksum}|${record.savedAt}|${record.serializedSize || ""}`;
+}
+function indexedDBRecordAlreadyValidated(record) {
+  const identity = indexedDBRecordIdentity(record);
+  return Boolean(identity && identity === lastFullyValidatedIndexedDBRecordKey && record.id === STUDY_DB_CURRENT_ID
+    && record.schemaVersion === STUDY_DB_SCHEMA_VERSION && record.data && typeof record.data === "object" && !Array.isArray(record.data));
+}
+
 function resolveIndexedDBWriteCandidate(source, existing, options = {}) {
-  const current = validateIndexedDBState(existing) ? existing : null;
+  const current = (indexedDBRecordAlreadyValidated(existing) || validateIndexedDBState(existing)) ? existing : null;
   const expectedChecksum = String(options.expectedChecksum || "");
   const concurrentMerge = Boolean(current && expectedChecksum && current.checksum !== expectedChecksum);
   let data = source || {};
@@ -205,7 +221,9 @@ function validateIndexedDBState(record) {
   if (!record || record.id !== STUDY_DB_CURRENT_ID || record.schemaVersion !== STUDY_DB_SCHEMA_VERSION || !record.data || typeof record.data !== "object" || Array.isArray(record.data)) return false;
   const arrayKeys = ["subjects", "studies", "syllabusItems", "dailyGoals", "questionLogs", "smartReviews", "simulados", "materials", "questionBank", "questionBankSessions", "questionErrorNotebook"];
   if (!arrayKeys.every((key) => record.data[key] === undefined || Array.isArray(record.data[key]))) return false;
-  return checksumMatchesState(record.checksum, record.data);
+  const valid = checksumMatchesState(record.checksum, record.data);
+  if (valid) lastFullyValidatedIndexedDBRecordKey = indexedDBRecordIdentity(record);
+  return valid;
 }
 
 function statesMatchIndexedDBRecord(state, record, expectedChecksum = "") {
@@ -3368,14 +3386,28 @@ function syncEnsureTombstoneStore(targetState = state) {
   return targetState.syncTombstones;
 }
 
+// V653 — factoryItems e factoryAgenda são o mesmo array: sem memória, cada
+// salvamento calculava a assinatura dos mesmos 881 itens duas vezes. A memória
+// vale só durante uma chamada (os itens não mudam no meio dela), e a assinatura
+// ignora os campos de revisão que syncTrackCollectionMutations atualiza.
+function syncMemoizedRecordSignature(memo, item) {
+  let signature = memo.get(item);
+  if (signature === undefined) {
+    signature = syncRecordSignature(item);
+    memo.set(item, signature);
+  }
+  return signature;
+}
+
 function syncSnapshotCollections(targetState = state) {
   const snapshot = {};
+  const signatures = new WeakMap();
   SYNC_COLLECTIONS.forEach((collection) => {
     const map = new Map();
     (Array.isArray(targetState?.[collection]) ? targetState[collection] : []).forEach((item) => {
       if (!item || typeof item !== "object") return;
       const key = syncCollectionKey(item, collection);
-      map.set(key, { signature: syncRecordSignature(item) });
+      map.set(key, { signature: syncMemoizedRecordSignature(signatures, item) });
     });
     snapshot[collection] = map;
   });
@@ -3384,6 +3416,7 @@ function syncSnapshotCollections(targetState = state) {
 
 function syncTrackCollectionMutations(previousSnapshot = {}, targetState = state, changedAt = new Date().toISOString()) {
   const store = syncEnsureTombstoneStore(targetState);
+  const signatures = new WeakMap();
   let changed = false;
   SYNC_COLLECTIONS.forEach((collection) => {
     const previous = previousSnapshot?.[collection] instanceof Map ? previousSnapshot[collection] : new Map();
@@ -3414,7 +3447,7 @@ function syncTrackCollectionMutations(previousSnapshot = {}, targetState = state
         changed = true;
         return;
       }
-      if (before.signature !== syncRecordSignature(item)) {
+      if (before.signature !== syncMemoizedRecordSignature(signatures, item)) {
         item.updatedAt = changedAt;
         changed = true;
       }
@@ -52624,6 +52657,27 @@ document.addEventListener("keydown", (event) => {
     derivedScheduleMode = "";
   }
 
+  // V653 — passos derivados que devolvem { changed: false } não mudaram nada.
+  // Resultado ausente ou diferente conta como mudança (comportamento anterior).
+  function reportedUnchanged(result) {
+    return Boolean(result && typeof result === "object" && result.changed === false);
+  }
+
+  // V653 — a tela ativa foi desenhada com a revisão atual dos dados (o mesmo
+  // registro que renderView usa em reuseIfFresh). saveData e render() avançam a
+  // revisão, então "igual" quer dizer: desenhada depois do último salvamento.
+  function activeViewIsCurrent() {
+    try {
+      if (typeof viewRenderCacheV172 === "undefined" || typeof viewDataRevisionV172 === "undefined") return false;
+      const activeView = typeof hashToView === "function" ? hashToView() : "dashboard";
+      const target = typeof resolveViewTarget === "function" ? resolveViewTarget(activeView) : activeView;
+      const cached = viewRenderCacheV172.get(target);
+      return Boolean(cached && cached.revision === viewDataRevisionV172);
+    } catch {
+      return false;
+    }
+  }
+
   function runDerivedRefresh(reason = "scheduled") {
     if (!derivedRefreshPending || derivedRefreshInFlight) return false;
     cancelScheduledRefresh();
@@ -52645,27 +52699,42 @@ document.addEventListener("keydown", (event) => {
     pendingReasons = new Set();
 
     try {
+      let priorityResult = null;
+      let reinforcementResult = null;
+      let factoryResult = null;
       if (typeof refreshPlanningPrioritiesForQuestionChangesV155 === "function") {
         const step = performance.now();
-        refreshPlanningPrioritiesForQuestionChangesV155(state);
+        priorityResult = refreshPlanningPrioritiesForQuestionChangesV155(state);
         report.planningPriorityMs = Number((performance.now() - step).toFixed(1));
       }
       if (typeof repairInvalidReinforcementGoalsV157 === "function") {
         const step = performance.now();
-        globalThis.__reinforcementClassificationRepairV157 = repairInvalidReinforcementGoalsV157(state);
+        reinforcementResult = repairInvalidReinforcementGoalsV157(state);
+        globalThis.__reinforcementClassificationRepairV157 = reinforcementResult;
         report.reinforcementRepairMs = Number((performance.now() - step).toFixed(1));
       }
       if (typeof syncFactoryMaterialsPlanningV80 === "function") {
         const step = performance.now();
-        syncFactoryMaterialsPlanningV80(state);
+        factoryResult = syncFactoryMaterialsPlanningV80(state);
         report.factoryPlanningMs = Number((performance.now() - step).toFixed(1));
       }
 
-      const persistenceStartedAt = performance.now();
-      originalSaveData({ skipDerivedRefresh: true, markLocalChange: false });
-      report.persistenceMs = Number((performance.now() - persistenceStartedAt).toFixed(1));
+      // V653 — sem mudança derivada, o salvamento imediato já gravou o estado e
+      // a tela já mostra esta revisão: regravar os ~20 MB e redesenhar a tela
+      // custava de 1 a 2 s de página parada a cada ação. A sincronização com a
+      // nuvem segue chamada sempre, como antes.
+      const nothingChanged = reportedUnchanged(priorityResult)
+        && reportedUnchanged(reinforcementResult)
+        && reportedUnchanged(factoryResult);
+      report.repeatedSaveSkipped = nothingChanged;
+      if (!nothingChanged) {
+        const persistenceStartedAt = performance.now();
+        originalSaveData({ skipDerivedRefresh: true, markLocalChange: false });
+        report.persistenceMs = Number((performance.now() - persistenceStartedAt).toFixed(1));
+      }
 
-      if (typeof document === "undefined" || !document.hidden) {
+      report.repeatedRenderSkipped = nothingChanged && activeViewIsCurrent();
+      if (!report.repeatedRenderSkipped && (typeof document === "undefined" || !document.hidden)) {
         const renderStartedAt = performance.now();
         if (typeof render === "function") render();
         report.renderMs = Number((performance.now() - renderStartedAt).toFixed(1));

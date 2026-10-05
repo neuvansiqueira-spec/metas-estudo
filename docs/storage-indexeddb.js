@@ -85,8 +85,24 @@ function indexedDBStateHasUserData(state = {}) {
   return ["subjects", "studies", "syllabusItems", "dailyGoals", "questionLogs", "materials", "questionBank", "simulados", "smartReviews", "factoryAgenda", "factoryItems"].some((key) => Array.isArray(state?.[key]) && state[key].length);
 }
 
+// V653 — cada gravação lia o registro atual do IndexedDB e recalculava a
+// conferência dos ~20 MB (160–200 ms), embora esse mesmo registro já tivesse sido
+// conferido por inteiro ao ser gravado e relido. Aqui o registro vem direto do
+// IndexedDB (nunca de memória alterada); se for o mesmo já conferido (mesma
+// conferência, data de gravação e tamanho), a conta não é refeita.
+let lastFullyValidatedIndexedDBRecordKey = "";
+function indexedDBRecordIdentity(record) {
+  if (!record || !record.checksum || !record.savedAt) return "";
+  return `${record.checksum}|${record.savedAt}|${record.serializedSize || ""}`;
+}
+function indexedDBRecordAlreadyValidated(record) {
+  const identity = indexedDBRecordIdentity(record);
+  return Boolean(identity && identity === lastFullyValidatedIndexedDBRecordKey && record.id === STUDY_DB_CURRENT_ID
+    && record.schemaVersion === STUDY_DB_SCHEMA_VERSION && record.data && typeof record.data === "object" && !Array.isArray(record.data));
+}
+
 function resolveIndexedDBWriteCandidate(source, existing, options = {}) {
-  const current = validateIndexedDBState(existing) ? existing : null;
+  const current = (indexedDBRecordAlreadyValidated(existing) || validateIndexedDBState(existing)) ? existing : null;
   const expectedChecksum = String(options.expectedChecksum || "");
   const concurrentMerge = Boolean(current && expectedChecksum && current.checksum !== expectedChecksum);
   let data = source || {};
@@ -167,7 +183,9 @@ function validateIndexedDBState(record) {
   if (!record || record.id !== STUDY_DB_CURRENT_ID || record.schemaVersion !== STUDY_DB_SCHEMA_VERSION || !record.data || typeof record.data !== "object" || Array.isArray(record.data)) return false;
   const arrayKeys = ["subjects", "studies", "syllabusItems", "dailyGoals", "questionLogs", "smartReviews", "simulados", "materials", "questionBank", "questionBankSessions", "questionErrorNotebook"];
   if (!arrayKeys.every((key) => record.data[key] === undefined || Array.isArray(record.data[key]))) return false;
-  return checksumMatchesState(record.checksum, record.data);
+  const valid = checksumMatchesState(record.checksum, record.data);
+  if (valid) lastFullyValidatedIndexedDBRecordKey = indexedDBRecordIdentity(record);
+  return valid;
 }
 
 function statesMatchIndexedDBRecord(state, record, expectedChecksum = "") {
