@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20261005-abas-e-envio-em-lote-v424",
+  "version": "20261005-sem-faixa-drive-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

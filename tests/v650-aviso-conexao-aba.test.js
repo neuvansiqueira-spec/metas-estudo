@@ -25,3 +25,9 @@ test("V650 é carregada pela cadeia ativa e espelhada entre raiz e docs", () => 
     assert.equal(read(file), read(`docs/${file}`), file);
   }
 });
+
+test("V656 a faixa de reconexão do Drive fica desligada (decisão do usuário, 05/10)", () => {
+  const source = read("aviso-conexao-aba-v650.js");
+  assert.match(source, /const DRIVE_NOTICE_ENABLED = false;/);
+  assert.match(source, /if \(!DRIVE_NOTICE_ENABLED\) \{ clearNotice\("drive"\); return; \}/);
+});

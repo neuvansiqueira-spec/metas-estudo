@@ -338,7 +338,7 @@
     if (document.getElementById("aldusAvisoConexaoAbaV650")) return;
     const script = document.createElement("script");
     script.id = "aldusAvisoConexaoAbaV650";
-    script.src = "aviso-conexao-aba-v650.js?v=20261002-aviso-conexao-aba-v650";
+    script.src = "aviso-conexao-aba-v650.js?v=20261005-sem-faixa-drive-v656";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V650] Falha ao carregar os avisos de conexão e de aba parada.");

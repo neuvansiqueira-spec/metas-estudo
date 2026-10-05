@@ -85,7 +85,14 @@
     }
   }
 
+  // V656 — decisão do usuário (05/10/2026): sem faixa de reconexão do Google
+  // Drive; o site volta a funcionar como antes de 02/10, sem pedir nada. A
+  // conexão continua possível pelo botão do Backup. Para religar a faixa, trocar
+  // para true.
+  const DRIVE_NOTICE_ENABLED = false;
+
   function checkDrive() {
+    if (!DRIVE_NOTICE_ENABLED) { clearNotice("drive"); return; }
     if (Date.now() - loadedAt < STARTUP_GRACE_MS) return;
     if (typeof readSyncMeta !== "function" || typeof hasValidGoogleDriveAccessToken !== "function") return;
     if (driveConnected()) {
