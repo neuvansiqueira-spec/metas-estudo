@@ -181,3 +181,21 @@ test("V651 mantém paridade raiz/docs das pastas de destino", () => {
     assert.equal(read(path.join("docs", file)).replace(/\r\n/g, "\n"), read(file).replace(/\r\n/g, "\n"), file);
   }
 });
+
+test("V651 a padronização do item da Fábrica guarda os carimbos da pasta de destino", () => {
+  const script = read("script.js");
+  const start = script.indexOf("function factoryDestinationControlFields(");
+  assert.notEqual(start, -1);
+  const end = script.indexOf("\nfunction normalizeFactoryItem(", start);
+  const context = vm.createContext({});
+  vm.runInContext(script.slice(start, end), context);
+  const fields = context.factoryDestinationControlFields({
+    factoryDestinationFolder: "https://drive.google.com/drive/folders/x",
+    factoryDestinationFolderCatalogVersion: V237,
+    factoryDestinationFolderTreeFingerprint: "3:a:b",
+    factoryDestinationFolderUnmatchedStamp: undefined,
+    tema: "Arquivamento"
+  });
+  assert.deepEqual({ ...fields }, { factoryDestinationFolderCatalogVersion: V237, factoryDestinationFolderTreeFingerprint: "3:a:b" });
+  assert.match(script, /\.\.\.factoryDestinationControlFields\(item\),\r?\n\s+createdAt:/);
+});

@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20261005-pastas-destino-sem-disputa-v424";
+  const VERSION = "20261005-pastas-destino-carimbos-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -41942,6 +41942,13 @@ function normalizeFactoryTriagemStatus(item = {}, modules = {}) {
   const startedModule = ["resumoAula", "lei", "jurisprudencia", "peca"].some((key) => (modules[key]?.status || "Não iniciado") !== "Não iniciado");
   return startedModule ? "Concluída" : "Não iniciada";
 }
+function factoryDestinationControlFields(item = {}) {
+  const fields = {};
+  Object.keys(item).forEach((key) => {
+    if (key !== "factoryDestinationFolder" && key.startsWith("factoryDestinationFolder") && item[key] !== undefined) fields[key] = item[key];
+  });
+  return fields;
+}
 function normalizeFactoryItem(item = {}) {
   const now = new Date().toISOString();
   const modules = normalizeFactoryModules(item.modules || item.modulos || {}, item);
@@ -41971,6 +41978,10 @@ function normalizeFactoryItem(item = {}) {
     triagemCompletedAt: item.triagemCompletedAt || item.triagem_completed_at || item.triagem?.completedAt || "",
     triagemNotes: item.triagemNotes || item.triagem_notes || item.triagem?.notes || "",
     factoryDestinationFolder: item.factoryDestinationFolder || item.pastaDestinoWordPdf || item.destinationFolder || item.finalFilesFolder || "",
+    // V651 — os carimbos das versões de pasta de destino (V222/V232/V237) ficam
+    // com o item. Sem eles, cada versão achava todos os itens desatualizados e
+    // regravava 685 temas a cada abertura, com a tela travada.
+    ...factoryDestinationControlFields(item),
     createdAt: item.createdAt || item.created_at || item.updatedAt || now,
     modules: normalizeFactoryModules(item.modules || item.modulos || {}, item),
     updatedAt: item.updatedAt || item.updated_at || now,
