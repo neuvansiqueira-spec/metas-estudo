@@ -189,7 +189,10 @@ function syncMergeRecordVersioned(localValue = {}, remoteValue = {}, prefer = "r
   const remotePreferred = remoteTime === localTime ? prefer === "remote" : remoteTime > localTime;
   const primary = remotePreferred ? remoteValue : localValue;
   const secondary = remotePreferred ? localValue : remoteValue;
-  const result = { ...syncClone(secondary), ...syncClone(primary) };
+  // V654 — cópia rasa: só define a ordem das chaves. Todas as chaves dos dois
+  // lados são reatribuídas abaixo (com cópia), então clonar os dois registros
+  // inteiros aqui, em cada nível, era trabalho descartado (~1 s por mesclagem).
+  const result = { ...secondary, ...primary };
   const keys = new Set([...Object.keys(localValue), ...Object.keys(remoteValue)]);
   keys.forEach((key) => {
     const left = localValue[key];

@@ -7,14 +7,19 @@ function syncPreparePayload(payload = {}) {
   return prepared;
 }
 
-async function uploadSyncPayloadIntegral(payload = makeSyncPayload(), { statusMessage = "Dados enviados para a nuvem com sucesso." } = {}) {
+async function uploadSyncPayloadIntegral(payload = makeSyncPayload(), { statusMessage = "Dados enviados para a nuvem com sucesso.", prefetchedRemote = null, prefetchedModifiedTime = "" } = {}) {
   if (isSyncing) return null;
   isSyncing = true;
   try {
     payload = syncPreparePayload(payload);
     const file = await findSyncFile();
     if (file) {
-      const remotePayload = await downloadSyncFile(file.id);
+      // V654 — o arquivo da nuvem (~26 MB) já baixado por quem chamou é
+      // reaproveitado se o Drive ainda tem a mesma versão (mesma data de
+      // alteração); se mudou, baixa de novo, como antes. A mesclagem segue igual.
+      const fileModifiedTime = String(file.modifiedTime || "");
+      const prefetchedIsCurrent = Boolean(prefetchedRemote && fileModifiedTime && fileModifiedTime === String(prefetchedModifiedTime || ""));
+      const remotePayload = prefetchedIsCurrent ? prefetchedRemote : await downloadSyncFile(file.id);
       validateCloudPayload(remotePayload);
       syncCreateSafetyBackup(state, "before-cloud-upload-merge");
       const mergedAt = new Date().toISOString();
@@ -57,6 +62,7 @@ async function applyCloudPayloadIntegral(payload, { preserveView = false } = {})
     syncCreateSafetyBackup(state, "before-cloud-download-merge");
     const mergedAt = new Date().toISOString();
     const mergedState = mergeSyncStates(state, payload.state, "remote");
+    const mergedFromModifiedTime = String(payload?.__aldusSyncFileModifiedTimeV654 || "");
     const mergedPayload = {
       ...payload,
       updatedAt: mergedAt,
@@ -95,7 +101,7 @@ async function applyCloudPayloadIntegral(payload, { preserveView = false } = {})
     writeCloudStateTransaction(snapshot, mergedPayload);
     let uploadSucceeded = false;
     try {
-      await uploadSyncPayloadIntegral(mergedPayload, { statusMessage: "Dados dos dispositivos mesclados e enviados para a nuvem." });
+      await uploadSyncPayloadIntegral(mergedPayload, { statusMessage: "Dados dos dispositivos mesclados e enviados para a nuvem.", prefetchedRemote: payload, prefetchedModifiedTime: mergedFromModifiedTime });
       uploadSucceeded = true;
     } catch (uploadError) {
       console.warn("[Metas Estudo] A mesclagem foi preservada localmente, mas o reenvio para a nuvem ficou pendente.", uploadError);

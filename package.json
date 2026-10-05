@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20261005-diagnostico-tempo-no-backup-v424",
+  "version": "20261005-sincronizacao-mais-leve-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

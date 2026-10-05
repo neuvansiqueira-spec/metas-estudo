@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20261005-diagnostico-tempo-no-backup-v424";
+  const VERSION = "20261005-sincronizacao-mais-leve-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -3524,7 +3524,10 @@ function syncMergeRecordVersioned(localValue = {}, remoteValue = {}, prefer = "r
   const remotePreferred = remoteTime === localTime ? prefer === "remote" : remoteTime > localTime;
   const primary = remotePreferred ? remoteValue : localValue;
   const secondary = remotePreferred ? localValue : remoteValue;
-  const result = { ...syncClone(secondary), ...syncClone(primary) };
+  // V654 — cópia rasa: só define a ordem das chaves. Todas as chaves dos dois
+  // lados são reatribuídas abaixo (com cópia), então clonar os dois registros
+  // inteiros aqui, em cada nível, era trabalho descartado (~1 s por mesclagem).
+  const result = { ...secondary, ...primary };
   const keys = new Set([...Object.keys(localValue), ...Object.keys(remoteValue)]);
   keys.forEach((key) => {
     const left = localValue[key];
@@ -3626,13 +3629,16 @@ function installSyncDeletionTracking() {
 installSyncDeletionTracking();
 
 /* Aldus source: sync-integral-state.js */
-function syncMergeCollection(localList = [], remoteList = [], collection = "records", prefer = "remote") {
+// V654 — ownedInputs: as listas já são cópias próprias da mesclagem (mergeSyncStates
+// clona os dois estados no início); o item que só existe de um lado não precisa
+// de outra cópia. Sem a opção, o comportamento é o anterior.
+function syncMergeCollection(localList = [], remoteList = [], collection = "records", prefer = "remote", ownedInputs = false) {
   const merged = new Map();
   const add = (item, side) => {
     if (!item || typeof item !== "object") return;
     const key = syncCollectionKey(item, collection);
     const current = merged.get(key);
-    if (!current) merged.set(key, syncClone(item));
+    if (!current) merged.set(key, ownedInputs ? item : syncClone(item));
     else if (collection === "dailyGoals") merged.set(key, side === "remote" ? syncMergeDailyGoalRecord(current, item, prefer) : syncMergeDailyGoalRecord(item, current, prefer));
     else merged.set(key, side === "remote" ? syncMergeRecord(current, item, prefer) : syncMergeRecord(item, current, prefer));
   };
@@ -3769,12 +3775,31 @@ function syncRebuildGoalTotals(mergedState) {
   });
   return mergedState;
 }
+// V654 — chaves que mergeSyncStates mescla de novo, uma a uma, depois da passada
+// geral. Na passada geral elas eram percorridas e clonadas inteiras (as coleções
+// somam ~15 MB) e o resultado ia fora. Entram vazias nessa passada, na mesma
+// posição, e o resultado final é o mesmo.
+function syncSeparatelyMergedKeysV654() {
+  return [
+    ...SYNC_COLLECTIONS, "settings", "planning", "edital", "schedulableSettings", "activeContestId", "planningMode",
+    "contestPlanningProfiles", "disciplineWeights", "monthlyGoals", "factoryPromptLibrary", "migrations", "timerSession", "syncTombstones"
+  ];
+}
+function syncWithoutSeparatelyMergedKeys(source) {
+  const shallow = { ...source };
+  syncSeparatelyMergedKeysV654().forEach((key) => { if (Object.prototype.hasOwnProperty.call(shallow, key)) shallow[key] = null; });
+  return shallow;
+}
 function mergeSyncStates(localState = {}, remoteState = {}, prefer = "remote") {
   const local = syncClone(localState || {}) || {};
   const remote = syncClone(remoteState || {}) || {};
-  const merged = syncMergeObject({ ...cloneData(defaultState), ...local }, { ...cloneData(defaultState), ...remote }, prefer);
+  const merged = syncMergeObject(
+    syncWithoutSeparatelyMergedKeys({ ...cloneData(defaultState), ...local }),
+    syncWithoutSeparatelyMergedKeys({ ...cloneData(defaultState), ...remote }),
+    prefer
+  );
   SYNC_COLLECTIONS.forEach((collection) => {
-    merged[collection] = syncMergeCollection(local[collection], remote[collection], collection, prefer);
+    merged[collection] = syncMergeCollection(local[collection], remote[collection], collection, prefer, true);
   });
   merged.settings = syncMergeObject(local.settings || {}, remote.settings || {}, prefer);
   merged.planning = syncMergeObject(local.planning || {}, remote.planning || {}, prefer);
@@ -3833,14 +3858,19 @@ function syncPreparePayload(payload = {}) {
   return prepared;
 }
 
-async function uploadSyncPayloadIntegral(payload = makeSyncPayload(), { statusMessage = "Dados enviados para a nuvem com sucesso." } = {}) {
+async function uploadSyncPayloadIntegral(payload = makeSyncPayload(), { statusMessage = "Dados enviados para a nuvem com sucesso.", prefetchedRemote = null, prefetchedModifiedTime = "" } = {}) {
   if (isSyncing) return null;
   isSyncing = true;
   try {
     payload = syncPreparePayload(payload);
     const file = await findSyncFile();
     if (file) {
-      const remotePayload = await downloadSyncFile(file.id);
+      // V654 — o arquivo da nuvem (~26 MB) já baixado por quem chamou é
+      // reaproveitado se o Drive ainda tem a mesma versão (mesma data de
+      // alteração); se mudou, baixa de novo, como antes. A mesclagem segue igual.
+      const fileModifiedTime = String(file.modifiedTime || "");
+      const prefetchedIsCurrent = Boolean(prefetchedRemote && fileModifiedTime && fileModifiedTime === String(prefetchedModifiedTime || ""));
+      const remotePayload = prefetchedIsCurrent ? prefetchedRemote : await downloadSyncFile(file.id);
       validateCloudPayload(remotePayload);
       syncCreateSafetyBackup(state, "before-cloud-upload-merge");
       const mergedAt = new Date().toISOString();
@@ -3883,6 +3913,7 @@ async function applyCloudPayloadIntegral(payload, { preserveView = false } = {})
     syncCreateSafetyBackup(state, "before-cloud-download-merge");
     const mergedAt = new Date().toISOString();
     const mergedState = mergeSyncStates(state, payload.state, "remote");
+    const mergedFromModifiedTime = String(payload?.__aldusSyncFileModifiedTimeV654 || "");
     const mergedPayload = {
       ...payload,
       updatedAt: mergedAt,
@@ -3921,7 +3952,7 @@ async function applyCloudPayloadIntegral(payload, { preserveView = false } = {})
     writeCloudStateTransaction(snapshot, mergedPayload);
     let uploadSucceeded = false;
     try {
-      await uploadSyncPayloadIntegral(mergedPayload, { statusMessage: "Dados dos dispositivos mesclados e enviados para a nuvem." });
+      await uploadSyncPayloadIntegral(mergedPayload, { statusMessage: "Dados dos dispositivos mesclados e enviados para a nuvem.", prefetchedRemote: payload, prefetchedModifiedTime: mergedFromModifiedTime });
       uploadSucceeded = true;
     } catch (uploadError) {
       console.warn("[Metas Estudo] A mesclagem foi preservada localmente, mas o reenvio para a nuvem ficou pendente.", uploadError);
@@ -40422,8 +40453,10 @@ async function runAutoSyncAfterSave(reason) {
   if (!meta.connected || !hasValidGoogleDriveAccessToken()) { const message = autoSyncLocalOnlyMessage(reason, meta); markPendingSync(reason, message); renderSyncStatus(message); return; }
   try {
     const file = await findSyncFile();
+    let remoteForUploadV654 = null;
     if (file) {
       const remote = await downloadSyncFile(file.id);
+      remoteForUploadV654 = remote;
       const remoteDate = new Date(syncPayloadUpdatedAt(remote, file.modifiedTime) || 0);
       const lastSyncDate = new Date(meta.lastSyncAt || 0);
       if (remoteDate > lastSyncDate && remote.deviceId !== getDeviceId()) {
@@ -40434,7 +40467,9 @@ async function runAutoSyncAfterSave(reason) {
       }
     }
     const payload = makeSyncPayload();
-    await uploadSyncPayload(payload, { statusMessage: autoSyncSuccessMessage(reason) });
+    // V654 — o arquivo da nuvem acabou de ser baixado acima: o envio o reaproveita
+    // se ele não mudou no Drive, em vez de baixar os ~26 MB de novo.
+    await uploadSyncPayload(payload, { statusMessage: autoSyncSuccessMessage(reason), prefetchedRemote: file ? remoteForUploadV654 : null, prefetchedModifiedTime: file ? String(file.modifiedTime || "") : "" });
     writeSyncMeta({ pendingSync: false, pendingSyncReason: "", lastAutoSyncAt: new Date().toISOString(), lastAutoSyncReason: reason, lastAutoSyncError: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", error: "" });
     renderSyncStatus(autoSyncSuccessMessage(reason));
   } catch (error) {
@@ -40531,7 +40566,12 @@ function writeCloudStateTransaction(nextState, payload) {
     console.warn("[Metas Estudo] localStorage ignorado após restauração do Google Drive.", error);
   }
 }
-async function pullSyncPayload() { if (isSyncing) throw new Error("sincronização em andamento"); isSyncing = true; try { let file; try { file = await findSyncFile(); } catch (error) { throw cloudSyncError("query", "Erro ao consultar a nuvem. Verifique a conexão e tente novamente.", error); } if (!file) throw cloudSyncError("query", "Arquivo remoto inexistente."); let payload; try { payload = await downloadSyncFile(file.id); } catch (error) { throw cloudSyncError("download", "Erro ao baixar o arquivo do Google Drive. Tente novamente.", error); } validateCloudPayload(payload); const cloudDataUpdatedAt = syncPayloadUpdatedAt(payload, file.modifiedTime); writeSyncMeta({ connected: true, remoteUpdatedAt: cloudDataUpdatedAt, cloudDataUpdatedAt, remoteDeviceName: payload.deviceName || "", error: "", errorDetails: "" }); renderSyncStatus("Dados da nuvem encontrados."); return payload; } finally { isSyncing = false; } }
+// V654 — o payload baixado leva, fora da serialização, a versão do arquivo do Drive
+// de onde veio. Com ela o envio seguinte reaproveita o download se o arquivo não mudou.
+function markPulledSyncFileV654(payload, file) {
+  try { if (payload && typeof payload === "object" && file?.modifiedTime) Object.defineProperty(payload, "__aldusSyncFileModifiedTimeV654", { value: String(file.modifiedTime), configurable: true }); } catch {}
+}
+async function pullSyncPayload() { if (isSyncing) throw new Error("sincronização em andamento"); isSyncing = true; try { let file; try { file = await findSyncFile(); } catch (error) { throw cloudSyncError("query", "Erro ao consultar a nuvem. Verifique a conexão e tente novamente.", error); } if (!file) throw cloudSyncError("query", "Arquivo remoto inexistente."); let payload; try { payload = await downloadSyncFile(file.id); } catch (error) { throw cloudSyncError("download", "Erro ao baixar o arquivo do Google Drive. Tente novamente.", error); } validateCloudPayload(payload); markPulledSyncFileV654(payload, file); const cloudDataUpdatedAt = syncPayloadUpdatedAt(payload, file.modifiedTime); writeSyncMeta({ connected: true, remoteUpdatedAt: cloudDataUpdatedAt, cloudDataUpdatedAt, remoteDeviceName: payload.deviceName || "", error: "", errorDetails: "" }); renderSyncStatus("Dados da nuvem encontrados."); return payload; } finally { isSyncing = false; } }
 async function applyCloudPayload(payload) { isApplyingRemote = true; try { validateCloudPayload(payload); const cloudDataUpdatedAt = syncPayloadUpdatedAt(payload); replaceState(payload.state); recoverLegacyTimerMinutesForGoals(state); recoverOrphanLegacyTimerMinutesForGoals(state); const snapshot = cloneData(state); const saved = await saveStateToIndexedDB(snapshot); const reloaded = await loadStateFromIndexedDB(); if (!statesMatchIndexedDBRecord(snapshot, reloaded)) throw new Error("A validação da restauração no IndexedDB falhou."); indexedDBStatus.available = true; indexedDBStatus.activeSource = "IndexedDB"; indexedDBStatus.lastLoadedSource = "Google Drive"; indexedDBStatus.lastCopyAt = saved.savedAt; indexedDBStatus.validation = "Google Drive gravado, reconciliado e validado no IndexedDB"; indexedDBStatus.size = estimateSerializedStateSize(snapshot); writeCloudStateTransaction(snapshot, payload); writeSyncMeta({ connected: true, pendingSync: false, pendingSyncReason: null, localDirty: false, lastLocalUpdateAt: cloudDataUpdatedAt, localDataUpdatedAt: cloudDataUpdatedAt, lastSyncAt: new Date().toISOString(), lastAutoSyncError: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", remoteUpdatedAt: cloudDataUpdatedAt, cloudDataUpdatedAt, remoteDeviceName: payload.deviceName || "", error: "", errorDetails: "", lastCloudDialogAt: "" }); suppressAutoChecksAfterSync(); render(); showView("backup"); renderSyncStatus("Dados atualizados pela nuvem, com o tempo executado reconciliado."); } catch (error) { if (!error.cloudSyncKind) throw cloudSyncError("apply", "Erro ao aplicar os dados da nuvem. Os dados locais foram preservados.", error); throw error; } finally { isApplyingRemote = false; } }
 async function syncNow() { if (!canRunAutoSyncChecks()) return; try { const remote = await pullSyncPayload(); const meta = readSyncMeta(); const localDate = new Date(localDataUpdatedAt(meta) || 0); const remoteDate = new Date(syncPayloadUpdatedAt(remote) || 0); if (+remoteDate === +localDate) return renderSyncStatus("Tudo sincronizado."); if (hasLocalSyncPending(meta) && remote.deviceId !== getDeviceId()) { const pendingChoice = await resolvePendingLocalSyncBeforeCloudDownload(meta); if (pendingChoice === "download") await applyCloudPayload(remote); return; } if (remoteDate > localDate) { const choice = askSyncChoice("Existem dados mais recentes no Google Drive.", ["Baixar versão da nuvem", "Cancelar"]); if (choice === "Baixar versão da nuvem") await applyCloudPayload(remote); else renderSyncStatus("Sincronização cancelada pelo usuário."); } else if (localDate > remoteDate) { const choice = askSyncChoice("Este dispositivo tem versão mais nova. Deseja enviar para a nuvem?", ["Enviar este dispositivo para a nuvem", "Cancelar"]); if (choice === "Enviar este dispositivo para a nuvem") await uploadSyncPayload(makeSyncPayload()); else renderSyncStatus("Sincronização cancelada pelo usuário."); } } catch (error) { recordCloudSyncError(error, "Erro ao sincronizar."); } }
 function hasPendingLocalChanges(meta = readSyncMeta()) { return new Date(localDataUpdatedAt(meta) || 0) > new Date(meta.cloudDataUpdatedAt || meta.remoteUpdatedAt || 0); }

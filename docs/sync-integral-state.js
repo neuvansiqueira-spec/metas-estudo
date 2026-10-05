@@ -1,10 +1,13 @@
-function syncMergeCollection(localList = [], remoteList = [], collection = "records", prefer = "remote") {
+// V654 — ownedInputs: as listas já são cópias próprias da mesclagem (mergeSyncStates
+// clona os dois estados no início); o item que só existe de um lado não precisa
+// de outra cópia. Sem a opção, o comportamento é o anterior.
+function syncMergeCollection(localList = [], remoteList = [], collection = "records", prefer = "remote", ownedInputs = false) {
   const merged = new Map();
   const add = (item, side) => {
     if (!item || typeof item !== "object") return;
     const key = syncCollectionKey(item, collection);
     const current = merged.get(key);
-    if (!current) merged.set(key, syncClone(item));
+    if (!current) merged.set(key, ownedInputs ? item : syncClone(item));
     else if (collection === "dailyGoals") merged.set(key, side === "remote" ? syncMergeDailyGoalRecord(current, item, prefer) : syncMergeDailyGoalRecord(item, current, prefer));
     else merged.set(key, side === "remote" ? syncMergeRecord(current, item, prefer) : syncMergeRecord(item, current, prefer));
   };
@@ -141,12 +144,31 @@ function syncRebuildGoalTotals(mergedState) {
   });
   return mergedState;
 }
+// V654 — chaves que mergeSyncStates mescla de novo, uma a uma, depois da passada
+// geral. Na passada geral elas eram percorridas e clonadas inteiras (as coleções
+// somam ~15 MB) e o resultado ia fora. Entram vazias nessa passada, na mesma
+// posição, e o resultado final é o mesmo.
+function syncSeparatelyMergedKeysV654() {
+  return [
+    ...SYNC_COLLECTIONS, "settings", "planning", "edital", "schedulableSettings", "activeContestId", "planningMode",
+    "contestPlanningProfiles", "disciplineWeights", "monthlyGoals", "factoryPromptLibrary", "migrations", "timerSession", "syncTombstones"
+  ];
+}
+function syncWithoutSeparatelyMergedKeys(source) {
+  const shallow = { ...source };
+  syncSeparatelyMergedKeysV654().forEach((key) => { if (Object.prototype.hasOwnProperty.call(shallow, key)) shallow[key] = null; });
+  return shallow;
+}
 function mergeSyncStates(localState = {}, remoteState = {}, prefer = "remote") {
   const local = syncClone(localState || {}) || {};
   const remote = syncClone(remoteState || {}) || {};
-  const merged = syncMergeObject({ ...cloneData(defaultState), ...local }, { ...cloneData(defaultState), ...remote }, prefer);
+  const merged = syncMergeObject(
+    syncWithoutSeparatelyMergedKeys({ ...cloneData(defaultState), ...local }),
+    syncWithoutSeparatelyMergedKeys({ ...cloneData(defaultState), ...remote }),
+    prefer
+  );
   SYNC_COLLECTIONS.forEach((collection) => {
-    merged[collection] = syncMergeCollection(local[collection], remote[collection], collection, prefer);
+    merged[collection] = syncMergeCollection(local[collection], remote[collection], collection, prefer, true);
   });
   merged.settings = syncMergeObject(local.settings || {}, remote.settings || {}, prefer);
   merged.planning = syncMergeObject(local.planning || {}, remote.planning || {}, prefer);
