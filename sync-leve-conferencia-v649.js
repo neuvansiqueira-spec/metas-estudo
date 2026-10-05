@@ -18,6 +18,7 @@
   if (globalThis[INSTALL_KEY]) return;
 
   let lastFullCheckModifiedTime = "";
+  let uploadRevision = 0;
 
   function syncPending() {
     try {
@@ -69,14 +70,15 @@
       const batchScheduled = typeof autoSyncBatchScheduled === "function" && autoSyncBatchScheduled();
       if (modifiedTime && modifiedTime === lastFullCheckModifiedTime && (!syncPending() || batchScheduled)) return undefined;
 
+      const uploadRevisionBeforeCheck = uploadRevision;
       probedModifiedTime = modifiedTime;
       pullSucceeded = false;
       try {
         return await original.call(this, context);
       } finally {
         // Só vale como "conferido" quando o arquivo foi baixado e nada ficou pendente.
-        // Se a mesclagem reenviou dados, a data muda e a próxima conferência é completa.
-        if (pullSucceeded && probedModifiedTime && !syncPending()) lastFullCheckModifiedTime = probedModifiedTime;
+        // Se houve envio, preserve a versão nova registrada pelo próprio envio.
+        if (pullSucceeded && probedModifiedTime && !syncPending() && uploadRevision === uploadRevisionBeforeCheck) lastFullCheckModifiedTime = probedModifiedTime;
         pullSucceeded = false;
       }
     };
@@ -87,7 +89,10 @@
       if (typeof originalWrite !== "function" || originalWrite.__aldusV655) continue;
       const wrappedWrite = async function (...args) {
         const saved = await originalWrite.apply(this, args);
-        if (saved?.modifiedTime) lastFullCheckModifiedTime = String(saved.modifiedTime);
+        if (saved?.modifiedTime) {
+          lastFullCheckModifiedTime = String(saved.modifiedTime);
+          uploadRevision += 1;
+        }
         return saved;
       };
       Object.defineProperty(wrappedWrite, "__aldusV655", { value: true });

@@ -144,6 +144,23 @@ function saveIndexedDBStateAtomically(source, options = {}) {
           previousChecksum: resolved.previousChecksum
         };
         store.put(record);
+        // V659: reler antes de encerrar a transação impede que outra gravação
+        // seja confundida com corrupção da cópia que acabamos de salvar.
+        if (options.verify) {
+          const verification = store.get(STUDY_DB_CURRENT_ID);
+          verification.onsuccess = () => {
+            if (!statesMatchIndexedDBRecord(null, verification.result, record.checksum)) {
+              failure = new Error("A validação da gravação no IndexedDB falhou.");
+              transaction.abort();
+              return;
+            }
+            record = verification.result;
+          };
+          verification.onerror = () => {
+            failure = verification.error || new Error("Falha ao validar a gravação IndexedDB.");
+            transaction.abort();
+          };
+        }
       } catch (error) {
         failure = error;
         transaction.abort();

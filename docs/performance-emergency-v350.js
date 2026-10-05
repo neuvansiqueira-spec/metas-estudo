@@ -324,7 +324,7 @@
     if (document.getElementById("aldusSyncLeveConferenciaV649")) return;
     const script = document.createElement("script");
     script.id = "aldusSyncLeveConferenciaV649";
-    script.src = "sync-leve-conferencia-v649.js?v=20261005-envio-em-lote-v655";
+    script.src = "sync-leve-conferencia-v649.js?v=20261005-validacao-atomica-v659";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V649] Falha ao carregar a sincronização leve e a conferência de dados.");

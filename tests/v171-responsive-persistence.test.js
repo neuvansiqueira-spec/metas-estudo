@@ -78,8 +78,8 @@ test("cópia IndexedDB roda quando o navegador estiver livre e valida o checksum
 
   assert.match(queue, /requestIdleCallback\(run, \{ timeout: 1000 \}\)/);
   assert.doesNotMatch(queue, /const snapshot = cloneData\(state\)/);
-  assert.match(queue, /saveStateToIndexedDB\(state, \{ directSnapshot: true \}\)/);
-  assert.match(queue, /statesMatchIndexedDBRecord\(null, reloaded, record\.checksum\)/);
+  assert.match(queue, /saveStateToIndexedDB\(state, \{ directSnapshot: true(?:, verify: true)? \}\)/);
+  assert.match(queue, /verify: true/);
   assert.match(queue, /if \(indexedDBPersistQueued\) queueIndexedDBStateCopy\(\)/);
 });
 

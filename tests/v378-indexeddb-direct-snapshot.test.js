@@ -15,8 +15,8 @@ test("V378 elimina clone profundo da fila IndexedDB", () => {
   const script = fs.readFileSync("script.js", "utf8");
   const queue = sourceBetween(script, "async function processIndexedDBStateCopyQueue()", "function persistStateSafely(options = {})");
   assert.doesNotMatch(queue, /cloneData\(state\)/);
-  assert.match(queue, /saveStateToIndexedDB\(state, \{ directSnapshot: true \}\)/);
-  assert.match(queue, /statesMatchIndexedDBRecord\(null, reloaded, record\.checksum\)/);
+  assert.match(queue, /saveStateToIndexedDB\(state, \{ directSnapshot: true(?:, verify: true)? \}\)/);
+  assert.match(queue, /verify: true/);
   assert.match(queue, /indexedDBStatus\.size = Number\(record\.serializedSize\) \|\| 0/);
 });
 
@@ -47,6 +47,6 @@ test("V378 mantém raiz e docs sincronizados", () => {
 test("bundle V378 incorpora o caminho direto quando gerado", { skip: !fs.existsSync("app-v378.js") }, () => {
   const bundle = fs.readFileSync("app-v378.js", "utf8");
   assert.match(bundle, /20260823-indexeddb-direct-snapshot-v378/);
-  assert.match(bundle, /saveStateToIndexedDB\(state, \{ directSnapshot: true \}\)/);
+  assert.match(bundle, /saveStateToIndexedDB\(state, \{ directSnapshot: true(?:, verify: true)? \}\)/);
   assert.doesNotMatch(sourceBetween(bundle, "async function processIndexedDBStateCopyQueue()", "function persistStateSafely(options = {})"), /cloneData\(state\)/);
 });

@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20261005-sync-fingerprint-v658-v424";
+  const VERSION = "20261005-validacao-atomica-v659-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

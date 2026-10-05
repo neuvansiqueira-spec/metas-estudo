@@ -78,11 +78,11 @@ async function applyCloudPayloadIntegral(payload, { preserveView = false } = {})
     let snapshot = cloneData(state);
     const saved = await saveStateToIndexedDB(snapshot, {
       detachedSnapshot: true,
+      verify: true,
       expectedChecksum: indexedDBPersistBaseChecksum,
       mergeConcurrentState: (cloudState, storedState) => mergeSyncStates(storedState, cloudState, "remote")
     });
-    const reloaded = await loadStateFromIndexedDB();
-    if (!statesMatchIndexedDBRecord(null, reloaded, saved.checksum)) throw new Error("A validação da restauração no IndexedDB falhou.");
+    // A cópia foi relida e validada na própria transação de gravação (V659).
     localPersistenceCommitted = true;
     indexedDBPersistBaseChecksum = saved.checksum;
     if (saved.concurrentMerge) {

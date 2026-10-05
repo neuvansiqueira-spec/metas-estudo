@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20261005-sync-fingerprint-v658-v424";
+  const VERSION = "20261005-validacao-atomica-v659-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -182,6 +182,23 @@ function saveIndexedDBStateAtomically(source, options = {}) {
           previousChecksum: resolved.previousChecksum
         };
         store.put(record);
+        // V659: reler antes de encerrar a transação impede que outra gravação
+        // seja confundida com corrupção da cópia que acabamos de salvar.
+        if (options.verify) {
+          const verification = store.get(STUDY_DB_CURRENT_ID);
+          verification.onsuccess = () => {
+            if (!statesMatchIndexedDBRecord(null, verification.result, record.checksum)) {
+              failure = new Error("A validação da gravação no IndexedDB falhou.");
+              transaction.abort();
+              return;
+            }
+            record = verification.result;
+          };
+          verification.onerror = () => {
+            failure = verification.error || new Error("Falha ao validar a gravação IndexedDB.");
+            transaction.abort();
+          };
+        }
       } catch (error) {
         failure = error;
         transaction.abort();
@@ -3937,11 +3954,11 @@ async function applyCloudPayloadIntegral(payload, { preserveView = false } = {})
     let snapshot = cloneData(state);
     const saved = await saveStateToIndexedDB(snapshot, {
       detachedSnapshot: true,
+      verify: true,
       expectedChecksum: indexedDBPersistBaseChecksum,
       mergeConcurrentState: (cloudState, storedState) => mergeSyncStates(storedState, cloudState, "remote")
     });
-    const reloaded = await loadStateFromIndexedDB();
-    if (!statesMatchIndexedDBRecord(null, reloaded, saved.checksum)) throw new Error("A validação da restauração no IndexedDB falhou.");
+    // A cópia foi relida e validada na própria transação de gravação (V659).
     localPersistenceCommitted = true;
     indexedDBPersistBaseChecksum = saved.checksum;
     if (saved.concurrentMerge) {
@@ -40041,6 +40058,7 @@ async function processIndexedDBStateCopyQueue() {
   indexedDBPersistInFlight = true;
   try {
     const saveOptions = {
+      verify: true,
       directSnapshot: true,
       expectedChecksum: indexedDBPersistBaseChecksum,
       mergeConcurrentState: (localState, storedState) => {
@@ -40050,9 +40068,8 @@ async function processIndexedDBStateCopyQueue() {
     };
     const record = indexedDBPersistBaseChecksum
       ? await saveStateToIndexedDB(state, saveOptions)
-      : await saveStateToIndexedDB(state, { directSnapshot: true });
-    const reloaded = await loadStateFromIndexedDB();
-    if (!statesMatchIndexedDBRecord(null, reloaded, record.checksum)) throw new Error("A validação da gravação no IndexedDB falhou.");
+      : await saveStateToIndexedDB(state, { directSnapshot: true, verify: true });
+    // V659: a validação já ocorreu antes do commit, sem janela entre abas.
     indexedDBPersistBaseChecksum = record.checksum;
     if (record.concurrentMerge && checksumForState(state) !== record.checksum) {
       replaceState(record.data);

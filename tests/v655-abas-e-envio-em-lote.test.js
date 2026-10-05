@@ -147,8 +147,8 @@ test("V655 a aba que volta a ser vista processa o último aviso guardado", () =>
 test("V655 a conferência da nuvem não refaz a mesclagem enquanto o lote está agendado", () => {
   const source = read("sync-leve-conferencia-v649.js");
   assert.match(source, /modifiedTime === lastFullCheckModifiedTime && \(!syncPending\(\) \|\| batchScheduled\)/);
-  assert.match(source, /if \(saved\?\.modifiedTime\) lastFullCheckModifiedTime = String\(saved\.modifiedTime\);/);
-  assert.match(read("performance-emergency-v350.js"), /sync-leve-conferencia-v649\.js\?v=20261005-envio-em-lote-v655/);
+  assert.match(source, /if \(saved\?\.modifiedTime\) \{\s*lastFullCheckModifiedTime = String\(saved\.modifiedTime\);/);
+  assert.match(read("performance-emergency-v350.js"), /sync-leve-conferencia-v649\.js\?v=20261005-validacao-atomica-v659/);
 });
 
 test("V655 mantém paridade raiz/docs", () => {

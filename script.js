@@ -2002,6 +2002,7 @@ async function processIndexedDBStateCopyQueue() {
   indexedDBPersistInFlight = true;
   try {
     const saveOptions = {
+      verify: true,
       directSnapshot: true,
       expectedChecksum: indexedDBPersistBaseChecksum,
       mergeConcurrentState: (localState, storedState) => {
@@ -2011,9 +2012,8 @@ async function processIndexedDBStateCopyQueue() {
     };
     const record = indexedDBPersistBaseChecksum
       ? await saveStateToIndexedDB(state, saveOptions)
-      : await saveStateToIndexedDB(state, { directSnapshot: true });
-    const reloaded = await loadStateFromIndexedDB();
-    if (!statesMatchIndexedDBRecord(null, reloaded, record.checksum)) throw new Error("A validação da gravação no IndexedDB falhou.");
+      : await saveStateToIndexedDB(state, { directSnapshot: true, verify: true });
+    // V659: a validação já ocorreu antes do commit, sem janela entre abas.
     indexedDBPersistBaseChecksum = record.checksum;
     if (record.concurrentMerge && checksumForState(state) !== record.checksum) {
       replaceState(record.data);

@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20261005-sync-fingerprint-v658-v424";
+const CURRENT_VERSION = "20261005-validacao-atomica-v659-v424";
 const DASHBOARD_PENDING_SEMANTICS_V413 = "pendentes-separados-de-em-andamento";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const SECURITY_VERSION = "20260831-weekly-status-stability-v416";
