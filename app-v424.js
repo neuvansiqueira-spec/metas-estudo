@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20261006-correcoes-fabrica-v660-1-v424";
+  const VERSION = "20261006-sincronizacao-sem-carimbo-v660-3-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -3679,6 +3679,16 @@ function syncRefreshDeletionSnapshot({ defer = false } = {}) {
   build();
 }
 
+// V660.3 — dados adotados de fora (cópia da nuvem, gravação de outra aba) trocavam
+// o estado sem passar pelo saveData, e a fotografia ficava a de antes. No
+// salvamento seguinte, tudo o que veio de fora era carimbado como alteração deste
+// aparelho: 617 itens da Fábrica às 12:23 de 06/10/2026, logo após a
+// sincronização das 12:22 (reproduzido: 1.811 registros). Quem adota dados de
+// fora chama esta função logo depois de trocar o estado.
+function syncAdoptExternalState() {
+  if (syncDeletionTrackingReady) syncRefreshDeletionSnapshot();
+}
+
 function installSyncDeletionTracking() {
   if (globalThis.__metasSyncDeletionTrackingV39 || typeof saveData !== "function") return;
   globalThis.__metasSyncDeletionTrackingV39 = true;
@@ -3875,6 +3885,50 @@ function syncWithoutSeparatelyMergedKeys(source) {
   syncSeparatelyMergedKeysV654().forEach((key) => { if (Object.prototype.hasOwnProperty.call(shallow, key)) shallow[key] = null; });
   return shallow;
 }
+// V660.3 — a mesclagem une as listas de ids dos dois lados. Uma cópia mais antiga
+// (nuvem ou outro aparelho) trazia de volta, para 264 itens da Fábrica, os ids de
+// temas que já tinham sido fundidos em outro (reproduzido em 06/10/2026), e
+// desfazia a correção V660.1. Depois da mesclagem, todo id que aparece no
+// mergedFrom de um tema existente passa a ser o id desse tema. Não muda
+// horários: as duas cópias chegam ao mesmo resultado ao se mesclar.
+const SYNC_SYLLABUS_LINK_COLLECTIONS_V660 = ["dailyGoals", "studies", "materials", "factoryAgenda", "factoryItems"];
+function syncRepointMergedSyllabusIds(target = {}) {
+  const items = Array.isArray(target.syllabusItems) ? target.syllabusItems : [];
+  const existing = new Set(items.map((item) => item?.id).filter(Boolean));
+  const keeperOf = new Map();
+  items.forEach((item) => {
+    (Array.isArray(item?.mergedFrom) ? item.mergedFrom : []).forEach((id) => {
+      if (id && !existing.has(id) && !keeperOf.has(id)) keeperOf.set(id, item.id);
+    });
+  });
+  if (!keeperOf.size) return 0;
+  const resolve = (id) => keeperOf.get(id) || id;
+  const resolveList = (list) => {
+    const next = [...new Set(list.map(resolve))];
+    return next.length !== list.length || next.some((id, index) => id !== list[index]) ? next : list;
+  };
+  const seen = new Set();
+  let changed = 0;
+  SYNC_SYLLABUS_LINK_COLLECTIONS_V660.forEach((collection) => {
+    (Array.isArray(target[collection]) ? target[collection] : []).forEach((record) => {
+      if (!record || typeof record !== "object" || seen.has(record)) return;
+      seen.add(record);
+      ["syllabusItemId", "parentSyllabusItemId"].forEach((field) => {
+        if (record[field] && keeperOf.has(record[field])) { record[field] = resolve(record[field]); changed += 1; }
+      });
+      if (Array.isArray(record.syllabusItemIds)) {
+        const next = resolveList(record.syllabusItemIds);
+        if (next !== record.syllabusItemIds) { record.syllabusItemIds = next; changed += 1; }
+      }
+      if (Array.isArray(record.editalLink?.itemIds)) {
+        const next = resolveList(record.editalLink.itemIds);
+        if (next !== record.editalLink.itemIds) { record.editalLink.itemIds = next; changed += 1; }
+      }
+    });
+  });
+  return changed;
+}
+
 function mergeSyncStates(localState = {}, remoteState = {}, prefer = "remote") {
   const local = syncClone(localState || {}) || {};
   const remote = syncClone(remoteState || {}) || {};
@@ -3886,7 +3940,8 @@ function mergeSyncStates(localState = {}, remoteState = {}, prefer = "remote") {
   SYNC_COLLECTIONS.forEach((collection) => {
     merged[collection] = syncMergeCollection(local[collection], remote[collection], collection, prefer, true);
   });
-  merged.settings = syncMergeObject(local.settings || {}, remote.settings || {}, prefer);
+  syncRepointMergedSyllabusIds(merged);
+  merged.settings =syncMergeObject(local.settings || {}, remote.settings || {}, prefer);
   merged.planning = syncMergeObject(local.planning || {}, remote.planning || {}, prefer);
   merged.edital = syncMergeObject(local.edital || {}, remote.edital || {}, prefer);
   merged.schedulableSettings = syncMergeObject(local.schedulableSettings || {}, remote.schedulableSettings || {}, prefer);
@@ -3901,6 +3956,14 @@ function mergeSyncStates(localState = {}, remoteState = {}, prefer = "remote") {
   merged.monthlyGoals = syncMergeObject(local.monthlyGoals || {}, remote.monthlyGoals || {}, prefer);
   merged.factoryPromptLibrary = syncMergeObject(local.factoryPromptLibrary || {}, remote.factoryPromptLibrary || {}, prefer);
   merged.migrations = syncMergeObject(local.migrations || {}, remote.migrations || {}, prefer);
+  // V660.2 — as cópias avulsas que a V660 tirou dos dados e guardou num banco
+  // separado (aldus-arquivo-v660) voltavam da cópia do Drive, porque a mesclagem
+  // une as chaves dos dois lados (visto em 06/10/2026, 12:22). Depois de
+  // arquivadas em algum aparelho, elas não entram mais na mesclagem.
+  const archivedKeysV660 = merged.migrations?.dataRepairsV660?.archivedCopies?.keys;
+  if (Array.isArray(archivedKeysV660)) {
+    archivedKeysV660.filter((key) => /^backup(Metas|Fabrica)V6\d\d$/.test(key)).forEach((key) => { delete merged[key]; });
+  }
   merged.timerSession = syncMergeRecord(local.timerSession || {}, remote.timerSession || {}, prefer);
   if (!merged.timerSession?.goalId) merged.timerSession = local.timerSession?.goalId ? syncClone(local.timerSession) : (remote.timerSession?.goalId ? syncClone(remote.timerSession) : null);
   merged.syncTombstones = syncMergeTombstones(local.syncTombstones, remote.syncTombstones);
@@ -3978,6 +4041,7 @@ async function uploadSyncPayloadIntegral(payload = makeSyncPayload(), { statusMe
     payload = syncPreparePayload(payload);
     const saved = file ? await updateSyncFile(file.id, payload) : await createSyncFile(payload);
     replaceState(payload.state);
+    if (typeof syncAdoptExternalState === "function") syncAdoptExternalState();
     saveData({ skipSyncTimestamp: true });
     writeSyncMeta({ connected: true, pendingSync: false, pendingSyncReason: null, localDirty: false, lastSyncAt: new Date().toISOString(), remoteUpdatedAt: syncPayloadUpdatedAt(payload), cloudDataUpdatedAt: syncPayloadUpdatedAt(payload), localDataUpdatedAt: syncPayloadUpdatedAt(payload), lastLocalUpdateAt: syncPayloadUpdatedAt(payload), remoteDeviceName: payload.deviceName, stateFingerprint: payload.stateFingerprint, error: "" });
     suppressAutoChecksAfterSync();
@@ -4011,6 +4075,7 @@ async function applyCloudPayloadIntegral(payload, { preserveView = false } = {})
       stateFingerprint: syncStateFingerprint(mergedState)
     };
     replaceState(mergedState);
+    if (typeof syncAdoptExternalState === "function") syncAdoptExternalState();
     let snapshot = cloneData(state);
     const saved = await saveStateToIndexedDB(snapshot, {
       detachedSnapshot: true,
@@ -4023,6 +4088,7 @@ async function applyCloudPayloadIntegral(payload, { preserveView = false } = {})
     indexedDBPersistBaseChecksum = saved.checksum;
     if (saved.concurrentMerge) {
       replaceState(saved.data);
+      if (typeof syncAdoptExternalState === "function") syncAdoptExternalState();
       snapshot = cloneData(saved.data);
       mergedPayload.state = cloneData(saved.data);
       mergedPayload.stateFingerprint = syncStateFingerprint(saved.data);
@@ -4050,6 +4116,7 @@ async function applyCloudPayloadIntegral(payload, { preserveView = false } = {})
     renderSyncStatus(uploadSucceeded ? "Sincronização integral concluída sem perda de sessões." : "Dados mesclados neste dispositivo. Reenvio para a nuvem pendente.");
   } catch (error) {
     if (!localPersistenceCommitted) replaceState(previousState);
+    if (!localPersistenceCommitted && typeof syncAdoptExternalState === "function") syncAdoptExternalState();
     if (!error.cloudSyncKind) throw cloudSyncError("apply", "Erro ao mesclar os dados da nuvem. Os dados locais foram preservados.", error);
     throw error;
   } finally {
@@ -4222,6 +4289,7 @@ function installSameDeviceStateSync() {
       sameDeviceStateSyncApplying = true;
       const mergedState = mergeSyncStates(state, incomingState, "remote");
       replaceState(mergedState);
+      if (typeof syncAdoptExternalState === "function") syncAdoptExternalState();
       saveData({ skipSyncTimestamp: true });
       render();
       if (typeof showDailyGoalMessage === "function") {
@@ -40159,6 +40227,7 @@ async function processIndexedDBStateCopyQueue() {
     indexedDBPersistBaseChecksum = record.checksum;
     if (record.concurrentMerge && checksumForState(state) !== record.checksum) {
       replaceState(record.data);
+      if (typeof syncAdoptExternalState === "function") syncAdoptExternalState();
       render();
       if (typeof showDailyGoalMessage === "function") showDailyGoalMessage("Alterações de outra aba foram mescladas sem perda de dados.", "success");
     }
@@ -40222,6 +40291,7 @@ async function handleIndexedDBPersistenceSignal(signal = {}) {
     if (checksumForState(state) === indexedDBPersistBaseChecksum) {
       indexedDBPersistBaseChecksum = record.checksum;
       replaceState(record.data);
+      if (typeof syncAdoptExternalState === "function") syncAdoptExternalState();
       render();
       if (typeof showDailyGoalMessage === "function") showDailyGoalMessage("Dados atualizados pela outra aba deste dispositivo.", "success");
       return;
@@ -40230,6 +40300,7 @@ async function handleIndexedDBPersistenceSignal(signal = {}) {
     const mergedChecksum = checksumForState(mergedState);
     indexedDBPersistBaseChecksum = record.checksum;
     replaceState(mergedState);
+    if (typeof syncAdoptExternalState === "function") syncAdoptExternalState();
     if (mergedChecksum !== record.checksum) queueIndexedDBStateCopy();
     render();
     if (typeof showDailyGoalMessage === "function") showDailyGoalMessage("Dados atualizados pela outra aba deste dispositivo.", "success");

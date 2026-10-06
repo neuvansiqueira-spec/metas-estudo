@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20261006-correcoes-fabrica-v660-1-v424";
+  const VERSION = "20261006-sincronizacao-sem-carimbo-v660-3-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

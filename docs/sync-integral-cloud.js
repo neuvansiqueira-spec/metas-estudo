@@ -42,6 +42,7 @@ async function uploadSyncPayloadIntegral(payload = makeSyncPayload(), { statusMe
     payload = syncPreparePayload(payload);
     const saved = file ? await updateSyncFile(file.id, payload) : await createSyncFile(payload);
     replaceState(payload.state);
+    if (typeof syncAdoptExternalState === "function") syncAdoptExternalState();
     saveData({ skipSyncTimestamp: true });
     writeSyncMeta({ connected: true, pendingSync: false, pendingSyncReason: null, localDirty: false, lastSyncAt: new Date().toISOString(), remoteUpdatedAt: syncPayloadUpdatedAt(payload), cloudDataUpdatedAt: syncPayloadUpdatedAt(payload), localDataUpdatedAt: syncPayloadUpdatedAt(payload), lastLocalUpdateAt: syncPayloadUpdatedAt(payload), remoteDeviceName: payload.deviceName, stateFingerprint: payload.stateFingerprint, error: "" });
     suppressAutoChecksAfterSync();
@@ -75,6 +76,7 @@ async function applyCloudPayloadIntegral(payload, { preserveView = false } = {})
       stateFingerprint: syncStateFingerprint(mergedState)
     };
     replaceState(mergedState);
+    if (typeof syncAdoptExternalState === "function") syncAdoptExternalState();
     let snapshot = cloneData(state);
     const saved = await saveStateToIndexedDB(snapshot, {
       detachedSnapshot: true,
@@ -87,6 +89,7 @@ async function applyCloudPayloadIntegral(payload, { preserveView = false } = {})
     indexedDBPersistBaseChecksum = saved.checksum;
     if (saved.concurrentMerge) {
       replaceState(saved.data);
+      if (typeof syncAdoptExternalState === "function") syncAdoptExternalState();
       snapshot = cloneData(saved.data);
       mergedPayload.state = cloneData(saved.data);
       mergedPayload.stateFingerprint = syncStateFingerprint(saved.data);
@@ -114,6 +117,7 @@ async function applyCloudPayloadIntegral(payload, { preserveView = false } = {})
     renderSyncStatus(uploadSucceeded ? "Sincronização integral concluída sem perda de sessões." : "Dados mesclados neste dispositivo. Reenvio para a nuvem pendente.");
   } catch (error) {
     if (!localPersistenceCommitted) replaceState(previousState);
+    if (!localPersistenceCommitted && typeof syncAdoptExternalState === "function") syncAdoptExternalState();
     if (!error.cloudSyncKind) throw cloudSyncError("apply", "Erro ao mesclar os dados da nuvem. Os dados locais foram preservados.", error);
     throw error;
   } finally {
@@ -286,6 +290,7 @@ function installSameDeviceStateSync() {
       sameDeviceStateSyncApplying = true;
       const mergedState = mergeSyncStates(state, incomingState, "remote");
       replaceState(mergedState);
+      if (typeof syncAdoptExternalState === "function") syncAdoptExternalState();
       saveData({ skipSyncTimestamp: true });
       render();
       if (typeof showDailyGoalMessage === "function") {

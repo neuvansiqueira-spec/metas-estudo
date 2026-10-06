@@ -267,6 +267,16 @@ function syncRefreshDeletionSnapshot({ defer = false } = {}) {
   build();
 }
 
+// V660.3 — dados adotados de fora (cópia da nuvem, gravação de outra aba) trocavam
+// o estado sem passar pelo saveData, e a fotografia ficava a de antes. No
+// salvamento seguinte, tudo o que veio de fora era carimbado como alteração deste
+// aparelho: 617 itens da Fábrica às 12:23 de 06/10/2026, logo após a
+// sincronização das 12:22 (reproduzido: 1.811 registros). Quem adota dados de
+// fora chama esta função logo depois de trocar o estado.
+function syncAdoptExternalState() {
+  if (syncDeletionTrackingReady) syncRefreshDeletionSnapshot();
+}
+
 function installSyncDeletionTracking() {
   if (globalThis.__metasSyncDeletionTrackingV39 || typeof saveData !== "function") return;
   globalThis.__metasSyncDeletionTrackingV39 = true;

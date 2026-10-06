@@ -314,7 +314,7 @@ test("V660 fundir temas também troca o id dentro das listas", () => {
 
 test("V660 correções de dados são carregadas e espelhadas em docs", () => {
   const loader = read("performance-emergency-v350.js");
-  assert.match(loader, /script\.src = "correcoes-dados-v660\.js\?v=20261006-correcoes-dados-v660-1";/);
+  assert.match(loader, /script\.src = "correcoes-dados-v660\.js\?v=20261006-correcoes-dados-v660-2";/);
   assert.match(loader, /\n  installCorrecoesDadosV660\(\);\r?\n/);
   for (const file of ["correcoes-dados-v660.js", "performance-emergency-v350.js", "timer-pause-origin-v645.js", "aviso-conexao-aba-v650.js", "sync-integral-time-protection.js", "duplicate-diagnostics-v309.js"]) {
     assert.equal(read(file), read(`docs/${file}`), file);
@@ -330,4 +330,77 @@ test("V660 materiais da Fábrica: mesma regra de vínculo da V80, e cronômetro 
   assert.match(script, /syllabusItemIds: linkedSyllabusItemIds\(folderIndex >= 0 \? state\.materials\[folderIndex\] : null\)/);
   assert.match(script, /updateItemProgress\(studiedSyllabusItem\.id, \{ status: "Em andamento"/);
   assert.match(script, /if \(!record\.unchangedV660\) publishIndexedDBPersistenceSignal\(record\);/);
+});
+
+// --- V660.2: cópias arquivadas não voltam pela mesclagem com o Drive -------
+
+function loadSyncEngine() {
+  const source = [
+    "const defaultState = { contestProfiles: [], activeContestId: null, contestSyllabusMap: [] };",
+    "function cloneData(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }",
+    read("sync-integral-core.js"),
+    read("sync-integral-deletions.js"),
+    read("sync-integral-state.js"),
+    "globalThis.__exports = { mergeSyncStates };"
+  ].join("\n");
+  const context = { console, setTimeout: () => 0, clearTimeout: () => {}, localStorage: { setItem() {} }, getDeviceId: () => "pc" };
+  vm.createContext(context);
+  vm.runInContext(source, context);
+  return context.__exports;
+}
+
+test("V660.2 a mesclagem com o Drive não traz de volta as cópias já arquivadas", () => {
+  const { mergeSyncStates } = loadSyncEngine();
+  const archivedCopies = { database: "aldus-arquivo-v660", keys: ["backupMetasV606", "backupFabricaV613"] };
+  const local = { dailyGoals: [], migrations: { dataRepairsV660: { appliedAt: "x", archivedCopies } } };
+  const cloud = { dailyGoals: [], backupMetasV606: [{ id: "velha" }], backupFabricaV613: { a: 1 }, outraChave: 7, migrations: {} };
+  const merged = mergeSyncStates(local, cloud, "remote");
+  assert.equal(merged.backupMetasV606, undefined);
+  assert.equal(merged.backupFabricaV613, undefined);
+  assert.equal(merged.outraChave, 7, "chaves que não foram arquivadas continuam como antes");
+  const semArquivo = mergeSyncStates({ dailyGoals: [], migrations: {} }, cloud, "remote");
+  assert.equal(JSON.stringify(semArquivo.backupMetasV606), JSON.stringify([{ id: "velha" }]), "sem arquivo feito, nada é descartado");
+});
+
+test("V660.2 a limpeza só tira dos dados a cópia conferida igual no arquivo", () => {
+  const source = read("correcoes-dados-v660.js");
+  assert.match(source, /const different = present\.filter\(\(key\) => JSON\.stringify\(archived\[key\]\) !== JSON\.stringify\(target\[key\]\)\);/);
+  assert.match(source, /if \(saved\.length !== different\.length\) return false;/);
+  assert.match(source, /removed = await removeReturnedCopies\(target\);/);
+});
+
+// --- V660.3: sincronização sem desfazer correções nem carimbar o que veio de fora
+
+test("V660.3 a mesclagem troca ids de temas fundidos pelo tema que ficou", () => {
+  const { mergeSyncStates } = loadSyncEngine();
+  const syllabusItems = [{ id: "novo", mergedFrom: ["velho"], updatedAt: "2026-10-06T10:00:00.000Z" }];
+  const local = { syllabusItems, factoryAgenda: [{ id: "f1", syllabusItemId: "novo", syllabusItemIds: ["novo"], editalLink: { itemIds: ["novo"] }, updatedAt: "2026-10-06T12:00:00.000Z" }], migrations: {} };
+  const cloud = { syllabusItems, factoryAgenda: [{ id: "f1", syllabusItemId: "velho", syllabusItemIds: ["novo", "velho"], editalLink: { itemIds: ["velho"] }, updatedAt: "2026-10-05T21:00:00.000Z" }], migrations: {} };
+  const merged = mergeSyncStates(local, cloud, "remote");
+  const item = merged.factoryAgenda.find((record) => record.id === "f1");
+  assert.equal(item.syllabusItemId, "novo");
+  assert.equal(JSON.stringify(item.syllabusItemIds), JSON.stringify(["novo"]));
+  assert.equal(JSON.stringify(item.editalLink.itemIds), JSON.stringify(["novo"]));
+});
+
+test("V660.3 dados adotados de fora não são carimbados como alteração deste aparelho", () => {
+  const { context, ready } = deletionTracker();
+  context.__setState({ dailyGoals: [{ id: "g1", subject: "local", updatedAt: "2026-10-06T10:00:00.000Z" }] });
+  ready();
+  // Outra aba (ou a nuvem) trouxe uma versão diferente do mesmo registro.
+  context.__setState({ dailyGoals: [{ id: "g1", subject: "de fora", updatedAt: "2026-10-06T11:00:00.000Z" }] });
+  vm.runInContext("syncAdoptExternalState();", context);
+  context.__save();
+  assert.equal(context.__state().dailyGoals[0].updatedAt, "2026-10-06T11:00:00.000Z");
+});
+
+test("V660.3 todo ponto que adota dados de fora atualiza a fotografia", () => {
+  const call = 'if (typeof syncAdoptExternalState === "function") syncAdoptExternalState();';
+  const count = (source) => source.split(call).length - 1;
+  assert.equal(count(read("script.js")), 3, "fila do IndexedDB e aviso de outra aba (adoção e mesclagem)");
+  assert.equal(count(read("sync-integral-cloud.js")), 4, "envio, aplicação da nuvem, mesclagem concorrente e outra janela");
+  assert.ok(read("sync-integral-cloud.js").includes('if (!localPersistenceCommitted && typeof syncAdoptExternalState === "function") syncAdoptExternalState();'), "desfazer");
+  for (const file of ["script.js", "sync-integral-cloud.js", "sync-integral-state.js", "sync-integral-deletions.js"]) {
+    assert.equal(read(file), read(`docs/${file}`), file);
+  }
 });

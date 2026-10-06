@@ -353,7 +353,7 @@
     if (document.getElementById("aldusCorrecoesDadosV660")) return;
     const script = document.createElement("script");
     script.id = "aldusCorrecoesDadosV660";
-    script.src = "correcoes-dados-v660.js?v=20261006-correcoes-dados-v660-1";
+    script.src = "correcoes-dados-v660.js?v=20261006-correcoes-dados-v660-2";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V660] Falha ao carregar as correções de dados.");

@@ -159,6 +159,50 @@ function syncWithoutSeparatelyMergedKeys(source) {
   syncSeparatelyMergedKeysV654().forEach((key) => { if (Object.prototype.hasOwnProperty.call(shallow, key)) shallow[key] = null; });
   return shallow;
 }
+// V660.3 — a mesclagem une as listas de ids dos dois lados. Uma cópia mais antiga
+// (nuvem ou outro aparelho) trazia de volta, para 264 itens da Fábrica, os ids de
+// temas que já tinham sido fundidos em outro (reproduzido em 06/10/2026), e
+// desfazia a correção V660.1. Depois da mesclagem, todo id que aparece no
+// mergedFrom de um tema existente passa a ser o id desse tema. Não muda
+// horários: as duas cópias chegam ao mesmo resultado ao se mesclar.
+const SYNC_SYLLABUS_LINK_COLLECTIONS_V660 = ["dailyGoals", "studies", "materials", "factoryAgenda", "factoryItems"];
+function syncRepointMergedSyllabusIds(target = {}) {
+  const items = Array.isArray(target.syllabusItems) ? target.syllabusItems : [];
+  const existing = new Set(items.map((item) => item?.id).filter(Boolean));
+  const keeperOf = new Map();
+  items.forEach((item) => {
+    (Array.isArray(item?.mergedFrom) ? item.mergedFrom : []).forEach((id) => {
+      if (id && !existing.has(id) && !keeperOf.has(id)) keeperOf.set(id, item.id);
+    });
+  });
+  if (!keeperOf.size) return 0;
+  const resolve = (id) => keeperOf.get(id) || id;
+  const resolveList = (list) => {
+    const next = [...new Set(list.map(resolve))];
+    return next.length !== list.length || next.some((id, index) => id !== list[index]) ? next : list;
+  };
+  const seen = new Set();
+  let changed = 0;
+  SYNC_SYLLABUS_LINK_COLLECTIONS_V660.forEach((collection) => {
+    (Array.isArray(target[collection]) ? target[collection] : []).forEach((record) => {
+      if (!record || typeof record !== "object" || seen.has(record)) return;
+      seen.add(record);
+      ["syllabusItemId", "parentSyllabusItemId"].forEach((field) => {
+        if (record[field] && keeperOf.has(record[field])) { record[field] = resolve(record[field]); changed += 1; }
+      });
+      if (Array.isArray(record.syllabusItemIds)) {
+        const next = resolveList(record.syllabusItemIds);
+        if (next !== record.syllabusItemIds) { record.syllabusItemIds = next; changed += 1; }
+      }
+      if (Array.isArray(record.editalLink?.itemIds)) {
+        const next = resolveList(record.editalLink.itemIds);
+        if (next !== record.editalLink.itemIds) { record.editalLink.itemIds = next; changed += 1; }
+      }
+    });
+  });
+  return changed;
+}
+
 function mergeSyncStates(localState = {}, remoteState = {}, prefer = "remote") {
   const local = syncClone(localState || {}) || {};
   const remote = syncClone(remoteState || {}) || {};
@@ -170,7 +214,8 @@ function mergeSyncStates(localState = {}, remoteState = {}, prefer = "remote") {
   SYNC_COLLECTIONS.forEach((collection) => {
     merged[collection] = syncMergeCollection(local[collection], remote[collection], collection, prefer, true);
   });
-  merged.settings = syncMergeObject(local.settings || {}, remote.settings || {}, prefer);
+  syncRepointMergedSyllabusIds(merged);
+  merged.settings =syncMergeObject(local.settings || {}, remote.settings || {}, prefer);
   merged.planning = syncMergeObject(local.planning || {}, remote.planning || {}, prefer);
   merged.edital = syncMergeObject(local.edital || {}, remote.edital || {}, prefer);
   merged.schedulableSettings = syncMergeObject(local.schedulableSettings || {}, remote.schedulableSettings || {}, prefer);
@@ -185,6 +230,14 @@ function mergeSyncStates(localState = {}, remoteState = {}, prefer = "remote") {
   merged.monthlyGoals = syncMergeObject(local.monthlyGoals || {}, remote.monthlyGoals || {}, prefer);
   merged.factoryPromptLibrary = syncMergeObject(local.factoryPromptLibrary || {}, remote.factoryPromptLibrary || {}, prefer);
   merged.migrations = syncMergeObject(local.migrations || {}, remote.migrations || {}, prefer);
+  // V660.2 — as cópias avulsas que a V660 tirou dos dados e guardou num banco
+  // separado (aldus-arquivo-v660) voltavam da cópia do Drive, porque a mesclagem
+  // une as chaves dos dois lados (visto em 06/10/2026, 12:22). Depois de
+  // arquivadas em algum aparelho, elas não entram mais na mesclagem.
+  const archivedKeysV660 = merged.migrations?.dataRepairsV660?.archivedCopies?.keys;
+  if (Array.isArray(archivedKeysV660)) {
+    archivedKeysV660.filter((key) => /^backup(Metas|Fabrica)V6\d\d$/.test(key)).forEach((key) => { delete merged[key]; });
+  }
   merged.timerSession = syncMergeRecord(local.timerSession || {}, remote.timerSession || {}, prefer);
   if (!merged.timerSession?.goalId) merged.timerSession = local.timerSession?.goalId ? syncClone(local.timerSession) : (remote.timerSession?.goalId ? syncClone(remote.timerSession) : null);
   merged.syncTombstones = syncMergeTombstones(local.syncTombstones, remote.syncTombstones);

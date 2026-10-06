@@ -10,7 +10,7 @@
   //    que ficou): 6 metas, 4 estudos e 30 materiais ainda apontavam para o id
   //    removido. Passam a apontar para o tema que ficou. Id sem destino
   //    registrado não é tocado: fica listado no relatório para decisão dele.
-  const VERSION = "20261006-correcoes-dados-v660-1";
+  const VERSION = "20261006-correcoes-dados-v660-2";
   const KEY = "__ALDUS_DATA_REPAIRS_V660__";
   const MIGRATION = "dataRepairsV660";
   const MIGRATION_FACTORY = "dataRepairsV660Fabrica";
@@ -116,8 +116,8 @@
   const ARCHIVE_STORE = "copias";
   const ARCHIVED_KEYS = ["backupMetasV606", "backupMetasV607", "backupMetasV608", "backupMetasV611", "backupFabricaV613"];
 
-  function archiveCopies(target, now) {
-    const keys = ARCHIVED_KEYS.filter((key) => target[key] !== undefined);
+  function archiveCopies(target, now, onlyKeys = ARCHIVED_KEYS) {
+    const keys = onlyKeys.filter((key) => target[key] !== undefined);
     if (!keys.length || typeof indexedDB === "undefined") return Promise.resolve([]);
     const record = { id: `${now}-backups-dentro-dos-dados`, savedAt: now, version: VERSION, data: Object.fromEntries(keys.map((key) => [key, target[key]])) };
     const expected = JSON.stringify(record.data);
@@ -142,13 +142,63 @@
     });
   }
 
+  function readArchivedCopies() {
+    if (typeof indexedDB === "undefined") return Promise.resolve({});
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(ARCHIVE_DB, 1);
+      request.onupgradeneeded = () => {
+        if (!request.result.objectStoreNames.contains(ARCHIVE_STORE)) request.result.createObjectStore(ARCHIVE_STORE, { keyPath: "id" });
+      };
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => {
+        const database = request.result;
+        const all = database.transaction(ARCHIVE_STORE, "readonly").objectStore(ARCHIVE_STORE).getAll();
+        all.onsuccess = () => {
+          const copies = {};
+          (all.result || []).sort((left, right) => String(left.savedAt).localeCompare(String(right.savedAt)))
+            .forEach((record) => Object.assign(copies, record.data || {}));
+          database.close();
+          resolve(copies);
+        };
+        all.onerror = () => { database.close(); reject(all.error); };
+      };
+    });
+  }
+
+  // V660.2 — as cópias já arquivadas voltaram da cópia do Drive pela mesclagem
+  // (06/10/2026, 12:22). Elas só saem de novo dos dados depois de conferidas
+  // iguais no arquivo separado; o que estiver diferente é arquivado antes.
+  async function removeReturnedCopies(target) {
+    const keys = target.migrations?.[MIGRATION]?.archivedCopies?.keys;
+    if (!Array.isArray(keys)) return false;
+    const present = keys.filter((key) => ARCHIVED_KEYS.includes(key) && target[key] !== undefined);
+    if (!present.length) return false;
+    const archived = await readArchivedCopies();
+    const different = present.filter((key) => JSON.stringify(archived[key]) !== JSON.stringify(target[key]));
+    if (different.length) {
+      const saved = await archiveCopies(target, new Date().toISOString(), different);
+      if (saved.length !== different.length) return false;
+    }
+    for (const key of present) delete target[key];
+    return true;
+  }
+
   async function run() {
     const target = appState();
     if (!target || !hasUserData(target)) return false;
     target.migrations ||= {};
     const firstDone = Boolean(target.migrations[MIGRATION]?.appliedAt);
     const factoryDone = Boolean(target.migrations[MIGRATION_FACTORY]?.appliedAt);
-    if (firstDone && factoryDone) return true;
+    if (firstDone && factoryDone) {
+      let removed = false;
+      try { removed = await removeReturnedCopies(target); } catch (error) {
+        console.warn(`[Aldus ${VERSION}] As cópias que voltaram do Drive ficaram nos dados.`, error);
+      }
+      if (removed) {
+        try { if (typeof saveData === "function") saveData({ markLocalChange: true }); } catch {}
+      }
+      return true;
+    }
     const now = new Date().toISOString();
     if (!firstDone) await runFirstRepairs(target, now);
     if (!factoryDone) {
@@ -183,7 +233,7 @@
     };
   }
 
-  const api = Object.freeze({ version: VERSION, run, repairStatuses, repairLinks, mergedTargets });
+  const api = Object.freeze({ version: VERSION, run, repairStatuses, repairLinks, mergedTargets, removeReturnedCopies });
   globalThis[KEY] = api;
   if (typeof module !== "undefined" && module.exports) {
     module.exports = api;

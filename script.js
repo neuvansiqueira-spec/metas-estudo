@@ -2025,6 +2025,7 @@ async function processIndexedDBStateCopyQueue() {
     indexedDBPersistBaseChecksum = record.checksum;
     if (record.concurrentMerge && checksumForState(state) !== record.checksum) {
       replaceState(record.data);
+      if (typeof syncAdoptExternalState === "function") syncAdoptExternalState();
       render();
       if (typeof showDailyGoalMessage === "function") showDailyGoalMessage("Alterações de outra aba foram mescladas sem perda de dados.", "success");
     }
@@ -2088,6 +2089,7 @@ async function handleIndexedDBPersistenceSignal(signal = {}) {
     if (checksumForState(state) === indexedDBPersistBaseChecksum) {
       indexedDBPersistBaseChecksum = record.checksum;
       replaceState(record.data);
+      if (typeof syncAdoptExternalState === "function") syncAdoptExternalState();
       render();
       if (typeof showDailyGoalMessage === "function") showDailyGoalMessage("Dados atualizados pela outra aba deste dispositivo.", "success");
       return;
@@ -2096,6 +2098,7 @@ async function handleIndexedDBPersistenceSignal(signal = {}) {
     const mergedChecksum = checksumForState(mergedState);
     indexedDBPersistBaseChecksum = record.checksum;
     replaceState(mergedState);
+    if (typeof syncAdoptExternalState === "function") syncAdoptExternalState();
     if (mergedChecksum !== record.checksum) queueIndexedDBStateCopy();
     render();
     if (typeof showDailyGoalMessage === "function") showDailyGoalMessage("Dados atualizados pela outra aba deste dispositivo.", "success");
