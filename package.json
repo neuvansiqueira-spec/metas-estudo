@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20261006-auditoria-correcoes-v660-v424",
+  "version": "20261006-correcoes-fabrica-v660-1-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

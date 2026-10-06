@@ -10,9 +10,10 @@
   //    que ficou): 6 metas, 4 estudos e 30 materiais ainda apontavam para o id
   //    removido. Passam a apontar para o tema que ficou. Id sem destino
   //    registrado não é tocado: fica listado no relatório para decisão dele.
-  const VERSION = "20261006-correcoes-dados-v660";
+  const VERSION = "20261006-correcoes-dados-v660-1";
   const KEY = "__ALDUS_DATA_REPAIRS_V660__";
   const MIGRATION = "dataRepairsV660";
+  const MIGRATION_FACTORY = "dataRepairsV660Fabrica";
   if (globalThis[KEY]) return;
 
   const canon = (value) => String(value || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ").trim().toLowerCase();
@@ -56,30 +57,47 @@
     return { existing, keeperOf };
   }
 
-  function repairLinks(target, now) {
+  // V660.1 — a primeira rodada (06/10, 09:54) acertou metas, estudos e materiais,
+  // mas os itens da Fábrica guardavam os mesmos ids antigos nas listas
+  // (syllabusItemIds e editalLink.itemIds); a sincronização da Fábrica copiou
+  // essas listas de volta para 21 materiais. Agora os itens da Fábrica também
+  // são acertados, e os materiais de novo, na mesma rodada.
+  const LINK_COLLECTIONS = ["dailyGoals", "studies", "materials"];
+  const FACTORY_LINK_COLLECTIONS = ["factoryAgenda", "factoryItems", "materials"];
+
+  function repairLinks(target, now, collections = LINK_COLLECTIONS) {
     const { existing, keeperOf } = mergedTargets(target);
-    const repointed = { dailyGoals: 0, studies: 0, materials: 0 };
+    const repointed = Object.fromEntries(collections.map((collection) => [collection, 0]));
     const unresolved = new Set();
+    const seen = new Set();
     const resolve = (id) => {
       if (!id || existing.has(id)) return id;
       const keeper = keeperOf.get(id);
       if (!keeper) unresolved.add(id);
       return keeper || id;
     };
-    for (const collection of ["dailyGoals", "studies", "materials"]) {
+    const resolveList = (list) => {
+      const next = [...new Set(list.map(resolve))];
+      return next.length !== list.length || next.some((id, index) => id !== list[index]) ? next : null;
+    };
+    for (const collection of collections) {
       for (const record of Array.isArray(target[collection]) ? target[collection] : []) {
-        if (!record || typeof record !== "object") continue;
+        // factoryItems e factoryAgenda costumam ser a mesma lista: cada item conta uma vez.
+        if (!record || typeof record !== "object" || seen.has(record)) continue;
+        seen.add(record);
         let touched = false;
-        if (record.syllabusItemId) {
-          const next = resolve(record.syllabusItemId);
-          if (next !== record.syllabusItemId) { record.syllabusItemId = next; touched = true; }
+        for (const field of ["syllabusItemId", "parentSyllabusItemId"]) {
+          if (!record[field]) continue;
+          const next = resolve(record[field]);
+          if (next !== record[field]) { record[field] = next; touched = true; }
         }
-        if (collection === "materials" && Array.isArray(record.syllabusItemIds)) {
-          const next = [...new Set(record.syllabusItemIds.map(resolve))];
-          if (next.length !== record.syllabusItemIds.length || next.some((id, index) => id !== record.syllabusItemIds[index])) {
-            record.syllabusItemIds = next;
-            touched = true;
-          }
+        if (collection !== "dailyGoals" && collection !== "studies" && Array.isArray(record.syllabusItemIds)) {
+          const next = resolveList(record.syllabusItemIds);
+          if (next) { record.syllabusItemIds = next; touched = true; }
+        }
+        if (Array.isArray(record.editalLink?.itemIds)) {
+          const next = resolveList(record.editalLink.itemIds);
+          if (next) { record.editalLink.itemIds = next; touched = true; }
         }
         if (touched) {
           record.updatedAt = now;
@@ -128,8 +146,23 @@
     const target = appState();
     if (!target || !hasUserData(target)) return false;
     target.migrations ||= {};
-    if (target.migrations[MIGRATION]?.appliedAt) return true;
+    const firstDone = Boolean(target.migrations[MIGRATION]?.appliedAt);
+    const factoryDone = Boolean(target.migrations[MIGRATION_FACTORY]?.appliedAt);
+    if (firstDone && factoryDone) return true;
     const now = new Date().toISOString();
+    if (!firstDone) await runFirstRepairs(target, now);
+    if (!factoryDone) {
+      const factoryLinks = repairLinks(target, now, FACTORY_LINK_COLLECTIONS);
+      target.migrations[MIGRATION_FACTORY] = { version: VERSION, appliedAt: now, linksRepointed: factoryLinks.repointed, unresolvedSyllabusIds: factoryLinks.unresolved };
+    }
+    try { if (typeof saveData === "function") saveData({ markLocalChange: true }); } catch (error) {
+      console.warn(`[Aldus ${VERSION}] Correções aplicadas, mas o salvamento falhou.`, error);
+    }
+    try { if (typeof render === "function") render(); } catch {}
+    return true;
+  }
+
+  async function runFirstRepairs(target, now) {
     let archived = [];
     try {
       archived = await archiveCopies(target, now);
@@ -148,11 +181,6 @@
       unresolvedSyllabusIds: links.unresolved,
       archivedCopies: archived.length ? { database: ARCHIVE_DB, keys: archived } : null
     };
-    try { if (typeof saveData === "function") saveData({ markLocalChange: true }); } catch (error) {
-      console.warn(`[Aldus ${VERSION}] Correções aplicadas, mas o salvamento falhou.`, error);
-    }
-    try { if (typeof render === "function") render(); } catch {}
-    return true;
   }
 
   const api = Object.freeze({ version: VERSION, run, repairStatuses, repairLinks, mergedTargets });

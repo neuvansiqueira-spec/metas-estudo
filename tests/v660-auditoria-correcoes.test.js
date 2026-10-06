@@ -281,6 +281,28 @@ test("V660 vínculo com tema fundido aponta para o tema que ficou; sem destino n
   assert.deepEqual(report.unresolved, ["sumido"]);
 });
 
+test("V660.1 itens da Fábrica e seus materiais deixam de carregar ids de temas fundidos", () => {
+  const repairs = require("../correcoes-dados-v660.js");
+  const agenda = [
+    { id: "f1", syllabusItemId: "velho", syllabusItemIds: ["velho", "outro"], editalLink: { itemIds: ["velho"] } },
+    { id: "f2", syllabusItemId: "outro", syllabusItemIds: ["outro"] }
+  ];
+  const target = {
+    syllabusItems: [{ id: "novo", mergedFrom: ["velho"] }, { id: "outro" }],
+    factoryAgenda: agenda,
+    factoryItems: agenda,
+    materials: [{ id: "m1", syllabusItemId: "novo", parentSyllabusItemId: "velho", syllabusItemIds: ["novo", "velho", "sumido"] }]
+  };
+  const report = repairs.repairLinks(target, "agora", ["factoryAgenda", "factoryItems", "materials"]);
+  assert.equal(agenda[0].syllabusItemId, "novo");
+  assert.deepEqual(agenda[0].syllabusItemIds, ["novo", "outro"]);
+  assert.deepEqual(agenda[0].editalLink.itemIds, ["novo"]);
+  assert.deepEqual(target.materials[0].syllabusItemIds, ["novo", "sumido"]);
+  assert.equal(target.materials[0].parentSyllabusItemId, "novo");
+  assert.deepEqual(report.repointed, { factoryAgenda: 1, factoryItems: 0, materials: 1 });
+  assert.deepEqual(report.unresolved, ["sumido"]);
+});
+
 test("V660 fundir temas também troca o id dentro das listas", () => {
   const api = require("../duplicate-diagnostics-v309.js");
   const material = { id: "x", syllabusItemIds: ["velho", "outro"], editalLink: { itemIds: ["velho"] } };
@@ -292,7 +314,7 @@ test("V660 fundir temas também troca o id dentro das listas", () => {
 
 test("V660 correções de dados são carregadas e espelhadas em docs", () => {
   const loader = read("performance-emergency-v350.js");
-  assert.match(loader, /script\.src = "correcoes-dados-v660\.js\?v=20261006-correcoes-dados-v660";/);
+  assert.match(loader, /script\.src = "correcoes-dados-v660\.js\?v=20261006-correcoes-dados-v660-1";/);
   assert.match(loader, /\n  installCorrecoesDadosV660\(\);\r?\n/);
   for (const file of ["correcoes-dados-v660.js", "performance-emergency-v350.js", "timer-pause-origin-v645.js", "aviso-conexao-aba-v650.js", "sync-integral-time-protection.js", "duplicate-diagnostics-v309.js"]) {
     assert.equal(read(file), read(`docs/${file}`), file);
