@@ -1822,6 +1822,14 @@ function submitTimerStudyModal(event) {
     appendGoalHistory(goal, `Tempo salvo pelo cronômetro: +${minutes} min em ${label} em ${new Date(draft.endedAt).toLocaleString("pt-BR")}. Total realizado: ${goal.actualMinutes} min.`);
   }
   state.studies.push({ id: createId(), sessionId: draft.sessionId, timerSessionId: draft.sessionId, date: draft.goalDate || goal.date || goal.data || todayISO(), startedAt: new Date(draft.startedAt).toISOString(), endedAt: new Date(draft.endedAt).toISOString(), startTime: new Date(draft.startedAt).toISOString(), endTime: new Date(draft.endedAt).toISOString(), subjectId: state.subjects.find((s) => canonical(s.name) === canonical(savedDiscipline))?.id || "", discipline: savedDiscipline, syllabusItemId: descriptor.syllabusItemId, topic: savedSubject, material: elements.timerStudyMaterial.value || "", minutes, seconds: draft.seconds, elapsedSeconds: draft.seconds, actualDurationSeconds: draft.seconds, plannedMinutes: draft.plannedMinutes, timerMode: draft.mode, timerKind: draft.kind, updatesGoal: elements.timerStudyUpdateGoal.checked, plannedDuration: draft.plannedMinutes, actualDuration: minutes, pauses: draft.pauses, resumes: draft.resumes, topicStatus: "Iniciado", difficultyNotes: elements.timerStudyNotes.value.trim(), materialId: elements.timerStudyMaterial.value || "", questions: 0, correct: 0, wrong: 0, blank: 0, origin: "timer", timerSource: "Plano do Dia", timerOrigin: draft.mode, goalId: goal.id, feedAnalytics: elements.timerStudyFeedAnalytics.checked, feedAdvisor: elements.timerStudyFeedAdvisor.checked });
+  // V660 — o registro manual (registerGoalTime) já marcava o assunto do edital
+  // como "Em andamento"; salvar pelo cronômetro não, e 156 assuntos com metas
+  // concluídas seguiam "Não iniciado". Os minutos já contam pelo estudo gravado
+  // acima; "Concluído" continua sendo decisão do usuário.
+  const studiedSyllabusItem = draft.kind !== "questions" && minutes > 0 && typeof getSyllabusById === "function" ? getSyllabusById(descriptor.syllabusItemId) : null;
+  if (studiedSyllabusItem && (!studiedSyllabusItem.status || canonical(studiedSyllabusItem.status) === canonical("Não iniciado"))) {
+    updateItemProgress(studiedSyllabusItem.id, { status: "Em andamento", lastStudyDate: draft.goalDate || goal.date || goal.data || todayISO() });
+  }
   saveData();
   render();
   showDailyGoalMessage(`Tempo salvo: ${formatHours(draft.seconds / 60)} em ${label}.`, "success");
@@ -2027,7 +2035,8 @@ async function processIndexedDBStateCopyQueue() {
     indexedDBStatus.size = Number(record.serializedSize) || 0;
     if (indexedDBStatus.migration === "pendente") indexedDBStatus.migration = "concluída";
     indexedDBStatus.error = indexedDBStatus.localStorageFull ? "IndexedDB funcionando; cópia localStorage indisponível por falta de espaço." : "";
-    publishIndexedDBPersistenceSignal(record);
+    // V660: sem mudança, nada foi gravado; avisar as outras abas as faria reler 20 MB à toa.
+    if (!record.unchangedV660) publishIndexedDBPersistenceSignal(record);
   } catch (error) {
     recordIndexedDBWarning("Falha ao atualizar a cópia IndexedDB.", error);
   } finally {
@@ -2241,7 +2250,37 @@ async function verifyStorageCopy() {
 }
 
 function readSyncMeta() { return readJSONStorage(SYNC_META_STORAGE_KEY, { connected: false, lastLocalUpdateAt: "", lastLocalSaveAt: "", lastLocalSaveReason: "", lastSyncAt: "", lastAutoSyncAt: "", lastAutoSyncReason: "", lastAutoSyncErrorAt: "", lastAutoSyncErrorReason: "", lastAutoSyncError: "", pendingSync: false, pendingSyncReason: null, localDirty: false, localDataUpdatedAt: "", cloudDataUpdatedAt: "", remoteUpdatedAt: "", remoteDeviceName: "", error: "" }); }
-function writeSyncMeta(meta) { localStorage.setItem(SYNC_META_STORAGE_KEY, JSON.stringify({ ...readSyncMeta(), ...meta })); }
+function writeSyncMeta(meta) {
+  localStorage.setItem(SYNC_META_STORAGE_KEY, JSON.stringify({ ...readSyncMeta(), ...meta }));
+  appendSyncErrorLogV660(meta);
+}
+// V660 — "error" e "errorDetails" são um campo só, reescrito a cada erro: o erro
+// de aplicar a nuvem de 05/10/2026 20:37 foi apagado pelo "Autorização expirada"
+// seguinte e a causa ficou sem registro. Aqui cada erro novo entra numa lista
+// (repetição seguida só soma), com a mensagem e o detalhe completos.
+const SYNC_ERROR_LOG_KEY_V660 = "aldus:sync:erros:v660";
+function appendSyncErrorLogV660(meta = {}) {
+  const message = String(meta.lastAutoSyncError || meta.error || "").trim();
+  if (!message) return;
+  try {
+    const log = JSON.parse(localStorage.getItem(SYNC_ERROR_LOG_KEY_V660) || "[]");
+    const entry = {
+      at: new Date().toISOString(),
+      message,
+      kind: String(meta.lastCloudErrorKind || ""),
+      reason: String(meta.lastAutoSyncErrorReason || meta.pendingSyncReason || ""),
+      details: String(meta.errorDetails || "").slice(0, 4000)
+    };
+    const last = log[log.length - 1];
+    if (last && last.message === entry.message && last.kind === entry.kind && last.reason === entry.reason && !entry.details) {
+      last.lastAt = entry.at;
+      last.count = (Number(last.count) || 1) + 1;
+    } else {
+      log.push(entry);
+    }
+    localStorage.setItem(SYNC_ERROR_LOG_KEY_V660, JSON.stringify(log.slice(-30)));
+  } catch {}
+}
 function markLocalUpdated(date = new Date().toISOString()) { writeLocalDataUpdatedAt(date); }
 function getDeviceId() { let id = localStorage.getItem(DEVICE_ID_STORAGE_KEY); if (!id) { id = createId(); localStorage.setItem(DEVICE_ID_STORAGE_KEY, id); } return id; }
 function getDeviceName() { const ua = navigator.userAgent || ""; const kind = /Mobi|Android|iPhone/i.test(ua) ? "Celular" : (/iPad|Tablet/i.test(ua) ? "Tablet" : "PC"); return `${kind} / ${navigator.platform || "navegador"}`; }
@@ -4781,13 +4820,36 @@ function markFactoryMaterialUnavailable(factoryItemId, factoryModuleKey, factory
   const candidate = positions?.has(key) ? state.materials[positions.get(key)] : null;
   const material = candidate?.source === "factory" && candidate.factoryUniqueKey === key
     ? candidate : (state.materials || []).find((m) => m.source === "factory" && m.factoryUniqueKey === key);
-  if (material) { material.available = false; material.updatedAt = new Date().toISOString(); }
+  // V660: só marca o horário quando o material muda de fato.
+  if (material && material.available !== false) { material.available = false; material.updatedAt = new Date().toISOString(); }
 }
 function syncFactoryModuleMaterials(item, positions) {
   state.materials ||= [];
   const normalized = normalizeFactoryItem(item);
   const syllabusItemIds = factorySyllabusItemIds(normalized);
   const now = new Date().toISOString();
+  // V660 — a V80 regrava a lista do material com o assunto principal primeiro e
+  // só acrescenta (nunca tira); aqui a lista era refeita na ordem da Fábrica e
+  // perdia o que a V80 tinha posto. Uma desfazia a outra em toda abertura
+  // (27 materiais, 06/10/2026). Mesma regra nas duas: principal primeiro, depois
+  // a Fábrica, depois o que o material já tinha. Se o material passou a outro
+  // assunto principal (religado na Fábrica), a lista recomeça da Fábrica.
+  const primarySyllabusItemId = normalized.syllabusItemId || syllabusItemIds[0] || "";
+  const linkedSyllabusItemIds = (existing) => {
+    const sameSubject = Boolean(existing) && String(existing.syllabusItemId || "") === primarySyllabusItemId;
+    const kept = sameSubject && Array.isArray(existing.syllabusItemIds) ? existing.syllabusItemIds : [];
+    return [...new Set([primarySyllabusItemId, ...syllabusItemIds, ...kept].filter(Boolean))];
+  };
+  // V660 — o payload sempre trazia updatedAt: agora, e todo material da Fábrica
+  // ganhava horário novo a cada rodada, mesmo sem mudar nada: os dados nunca
+  // ficavam iguais e cada abertura gravava os 20 MB duas vezes. O registro só é
+  // trocado (e ganha horário novo) quando algo além do horário mudou.
+  const sameExceptRevision = (left, right) => JSON.stringify({ ...left, updatedAt: undefined }) === JSON.stringify({ ...right, updatedAt: undefined });
+  const commitMaterial = (index, payload) => {
+    if (index < 0) { state.materials.push(normalizeMaterialEstimateFields(payload)); return; }
+    const next = normalizeMaterialEstimateFields({ ...state.materials[index], ...payload });
+    if (!sameExceptRevision(next, state.materials[index])) state.materials[index] = next;
+  };
   Object.entries(normalizeFactoryModules(normalized.modules || {})).forEach(([moduleKey, module]) => {
     [["Word", module.wordLink], ["PDF", module.pdfLink]].forEach(([format, link]) => {
       const unique = factoryMaterialUniqueKey(normalized.id, moduleKey, format);
@@ -4798,13 +4860,12 @@ function syncFactoryModuleMaterials(item, positions) {
         title: factoryModuleMaterialTitle(normalized, moduleKey, format), source: "factory", factoryUniqueKey: unique,
         factoryItemId: normalized.id, factoryModuleKey: moduleKey, factoryFormat: format,
         goalId: normalized.goalId || "", discipline: normalized.disciplina, subject: normalized.tema,
-        syllabusItemId: normalized.syllabusItemId || syllabusItemIds[0] || "", syllabusItemIds,
+        syllabusItemId: primarySyllabusItemId, syllabusItemIds: linkedSyllabusItemIds(idx >= 0 ? state.materials[idx] : null),
         parentSyllabusItemId: normalized.parentSyllabusItemId || "",
         link: String(link).trim(), type: format, origin: "Google Drive", date: module.dataConclusao || todayISO(), updatedAt: now, available: true,
         notes: `Material automático da Fábrica (${FACTORY_MODULES.find((m) => m.key === moduleKey)?.label || moduleKey}).`, tags: ["Fábrica de Resumos", moduleKey, format]
       };
-      if (idx >= 0) state.materials[idx] = normalizeMaterialEstimateFields({ ...state.materials[idx], ...payload });
-      else state.materials.push(normalizeMaterialEstimateFields(payload));
+      commitMaterial(idx, payload);
       if (positions && !positions.has(unique)) positions.set(unique, idx >= 0 ? idx : state.materials.length - 1);
     });
   });
@@ -4823,14 +4884,13 @@ function syncFactoryModuleMaterials(item, positions) {
       source: "factory", factoryUniqueKey: folderUnique,
       factoryItemId: normalized.id, factoryModuleKey: "resumoAula", factoryFormat: folderFormat,
       goalId: normalized.goalId || "", discipline: normalized.disciplina, subject: normalized.tema,
-      syllabusItemId: normalized.syllabusItemId || syllabusItemIds[0] || "", syllabusItemIds,
+      syllabusItemId: primarySyllabusItemId, syllabusItemIds: linkedSyllabusItemIds(folderIndex >= 0 ? state.materials[folderIndex] : null),
       parentSyllabusItemId: normalized.parentSyllabusItemId || "",
       link: folderLink, type: folderFormat, origin: "Google Drive", date: summaryModule.dataConclusao || todayISO(), updatedAt: now, available: true,
       notes: "Pasta de destino da Fábrica com o material produzido. Vincule o Word/PDF individual quando desejar acesso direto ao arquivo.",
       tags: ["Fábrica de Resumos", "resumoAula", folderFormat]
     };
-    if (folderIndex >= 0) state.materials[folderIndex] = normalizeMaterialEstimateFields({ ...state.materials[folderIndex], ...folderPayload });
-    else state.materials.push(normalizeMaterialEstimateFields(folderPayload));
+    commitMaterial(folderIndex, folderPayload);
     if (positions && !positions.has(folderUnique)) positions.set(folderUnique, folderIndex >= 0 ? folderIndex : state.materials.length - 1);
   }
 }

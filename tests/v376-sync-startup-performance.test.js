@@ -54,8 +54,10 @@ test("V376 tira a fotografia inicial do caminho crítico do bootstrap", () => {
   const source = fs.readFileSync("sync-integral-deletions.js", "utf8");
   assert.doesNotMatch(source, /record:\s*syncClone\(item\)/);
   assert.match(source, /JSON\.stringify\(value,/);
-  assert.match(source, /requestIdleCallback\(build, \{ timeout: 500 \}\)/);
-  assert.match(source, /syncRefreshDeletionSnapshot\(\{ defer: true \}\)/);
+  // V660: a fotografia é tirada no aldus:bootstrap-ready (depois da primeira
+  // pintura), já com os dados carregados, e nunca antes dele.
+  assert.match(source, /addEventListener\("aldus:bootstrap-ready", arm, \{ once: true \}\)/);
+  assert.match(source, /if \(syncDeletionTrackingReady\) syncRefreshDeletionSnapshot\(\);/);
   assert.equal(source, fs.readFileSync("docs/sync-integral-deletions.js", "utf8"));
 });
 

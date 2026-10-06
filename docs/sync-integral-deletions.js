@@ -276,11 +276,19 @@ function installSyncDeletionTracking() {
       syncTrackCollectionMutations(syncDeletionSnapshot, state);
     }
     const result = originalSaveData.apply(this, args);
-    syncRefreshDeletionSnapshot();
+    // V660 — antes do bootstrap o estado ainda é o padrão vazio. Reparos que
+    // salvam nessa fase (reforço V156, simulados V314, plantão V283) deixavam a
+    // fotografia vazia; o primeiro salvamento depois da carga via todos os
+    // registros como novos e carimbava 5.907 deles com "agora" a cada abertura.
+    if (syncDeletionTrackingReady) syncRefreshDeletionSnapshot();
     return result;
   };
   const arm = () => {
-    syncRefreshDeletionSnapshot({ defer: true });
+    // V660 — a fotografia é tirada já com os dados carregados, antes de o
+    // rastreio valer. Adiá-la (V376) deixava o salvamento do bootstrap comparar
+    // com a fotografia anterior à carga. O bootstrap-ready só dispara depois da
+    // primeira pintura, então isso continua fora do caminho crítico.
+    syncRefreshDeletionSnapshot();
     syncDeletionTrackingReady = true;
   };
   if (typeof window !== "undefined") {

@@ -274,7 +274,11 @@ function installPrimaryStorageMergeProtection() {
 
     const originalSummary = timeProtectionSummary(result?.data || {});
     const protectedSummary = timeProtectionSummary(protectedState);
-    const changed = typeof syncStateFingerprint === "function"
+    // V660 — só com o IndexedDB como fonte, protectedState é cópia exata de
+    // result.data: as duas impressões digitais (0,4–0,75 s cada sobre 20 MB)
+    // comparavam a cópia consigo mesma em toda abertura.
+    const onlyIndexedDB = sources.length === 1 && sources[0] === "IndexedDB";
+    const changed = onlyIndexedDB ? false : typeof syncStateFingerprint === "function"
       ? syncStateFingerprint(result?.data || {}) !== syncStateFingerprint(protectedState)
       : JSON.stringify(result?.data || {}) !== JSON.stringify(protectedState);
 

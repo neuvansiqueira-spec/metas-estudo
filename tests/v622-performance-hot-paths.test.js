@@ -44,6 +44,7 @@ const ORIGINAL_FUNCTIONS = [
   "isUndiagnosed", "itemPerformance", "isWeakItem", "lastStudyDateForItem", "lastReviewForItem",
   "recentErrorLogForItem", "smartReviewReason", "smartReviewPlan", "getSmartReviewSuggestions",
   "isGoalDone", "goalDateValue", "getStudyTimeLogs", "planningMetrics",
+  "isTopicStarted", "isTopicReviewed", "normalizeProgressStatus", "planningSituation", "progressMetrics",
   "normalizeQconcursosCatalogText", "qconcursosAuditedMatch", "qconcursosCatalogMatch",
   "qconcursosNumberResolution", "questionItemOptionLabel",
   "dailyPlanSubjectKey", "dailyPlanSubjectAliases", "dailyPlanSubjectsCompatible", "dailyPlanRecordsShareSubject",
@@ -121,6 +122,7 @@ function harness(state, { beforeModule = "" } = {}) {
       return context.state.factoryAgenda;
     },
     syncAllFactoryMaterials: () => {},
+    migrateImportedDisciplines: () => {},
     isPlanningStudyGoal: (goal = {}) => goal.type !== "Operacional",
     normalizeFactoryItem: (item) => ({ ...item }),
     ...scheduler.globals
@@ -263,7 +265,7 @@ test("V622 fixa a impressão digital de cada função original do script.js", ()
 
 test("V622 é carregado pelo instalador emergencial e espelhado em docs", () => {
   const loader = read("performance-emergency-v350.js");
-  assert.ok(loader.includes('script.src = "performance-hot-paths-v622.js?v=20260914-desempenho-areas-v622";'));
+  assert.ok(loader.includes('script.src = "performance-hot-paths-v622.js?v=20261006-painel-indice-v660";'));
   assert.match(loader, /\n  installPerformanceHotPathsV622\(\);\r?\n/);
   for (const file of ["performance-hot-paths-v622.js", "performance-emergency-v350.js", "question-training.js", "question-training-ui.js"]) {
     assert.deepEqual(fs.readFileSync(file), fs.readFileSync(`docs/${file}`), `${file} deve ser idêntico em docs`);
@@ -277,9 +279,10 @@ test("V622 instala todas as substituições quando as originais não mudaram", (
   const api = installModule();
   assert.equal(api.report.skipped.length, 0);
   assert.deepEqual([...api.report.installed].sort(), [
-    "dailyPlanSubjectKey", "getSmartReviewSuggestions", "goalsForItem", "normalizeQconcursosCatalogText",
-    "planningMetrics", "qconcursosAuditedMatch", "questionItemOptionLabel", "questionLogsForItem",
-    "scheduleViewRenderAfterPaintV170", "studiesForItem", "subjectForDiscipline", "syncFactoryMaterialsPlanningV80"
+    "dailyPlanSubjectKey", "getSmartReviewSuggestions", "goalsForItem", "minutesForItem", "normalizeQconcursosCatalogText",
+    "planningMetrics", "progressMetrics", "qconcursosAuditedMatch", "questionItemOptionLabel", "questionLogsForItem",
+    "scheduleViewRenderAfterPaintV170", "studiesForItem", "subjectForDiscipline", "syncFactoryMaterialsPlanningV80",
+    "uniqueTimerStudiesForGoal"
   ]);
 });
 
@@ -294,11 +297,13 @@ test("V622 revisão inteligente, métricas e buscas por item devolvem o mesmo re
     const expected = {
       suggestions: dates.map((date) => original.getSmartReviewSuggestions(date)),
       metrics: original.planningMetrics(),
+      progress: original.progressMetrics(),
       lookups: lookups(original)
     };
     installModule();
     assert.deepEqual(dates.map((date) => context.getSmartReviewSuggestions(date)), expected.suggestions, `semente ${seed}: revisão inteligente`);
     assert.deepEqual(context.planningMetrics(), expected.metrics, `semente ${seed}: métricas do planejamento`);
+    assert.deepEqual(context.progressMetrics(), expected.progress, `semente ${seed}: progresso do Painel (V660)`);
     assert.deepEqual(lookups(context), expected.lookups, `semente ${seed}: buscas fora do escopo`);
   }
 });

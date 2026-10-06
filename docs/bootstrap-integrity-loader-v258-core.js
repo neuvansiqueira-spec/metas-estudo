@@ -59,7 +59,7 @@
     "aldusEmergencyIndexedDBActivationBackupV256"
   ];
   const SCRIPT_CHAIN = [
-    ["aldusAppBundleScript", "app-v424.js?v=20261005-validacao-atomica-v659-v424"],
+    ["aldusAppBundleScript", "app-v424.js?v=20261006-auditoria-correcoes-v660-v424"],
     ["aldusPlanningQualityV368", "planning-quality-v368.js?v=20260826-planning-stability-v397"],
     ["aldusTimerGoalIntegrityV366", "timer-goal-integrity-v366.js?v=20260821-timer-goal-integrity-v366"],
     ["aldusQconcursosFilterRouteV333", "qconcursos-filter-route-v333.js?v=20260814-restaura-filtros-qconcursos-v333"],
@@ -565,12 +565,29 @@
     return status;
   }
 
+  function scriptAlreadyFetched(element) {
+    try {
+      const url = new URL(element.getAttribute("src") || "", document.baseURI).href;
+      return performance.getEntriesByName(url).some((entry) => entry.responseEnd > 0);
+    } catch {
+      return false;
+    }
+  }
+
   function loadScript(id, src) {
     return new Promise((resolve, reject) => {
       const existing = document.getElementById(id);
       if (existing) {
         if (existing.dataset.aldusLoaded === "true") resolve(existing);
-        else existing.addEventListener("load", () => resolve(existing), { once: true });
+        // V660 — outro carregador (fast path V351) pode ter inserido e carregado o
+        // mesmo script antes; o "load" dele já passou e a espera nunca terminava,
+        // então aldus:bootstrap-integrity-v258-ready nunca era emitido.
+        else if (scriptAlreadyFetched(existing) && document.readyState === "complete") resolve(existing);
+        else {
+          existing.addEventListener("load", () => resolve(existing), { once: true });
+          // O "load" da janela só dispara depois de todo script inserido rodar.
+          if (document.readyState !== "complete") window.addEventListener("load", () => resolve(existing), { once: true });
+        }
         return;
       }
       const script = document.createElement("script");

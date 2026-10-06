@@ -294,7 +294,7 @@
     if (document.getElementById("aldusPerformanceHotPathsV622")) return;
     const script = document.createElement("script");
     script.id = "aldusPerformanceHotPathsV622";
-    script.src = "performance-hot-paths-v622.js?v=20260914-desempenho-areas-v622";
+    script.src = "performance-hot-paths-v622.js?v=20261006-painel-indice-v660";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V622] Falha ao carregar a otimização das áreas mais usadas.");
@@ -338,10 +338,25 @@
     if (document.getElementById("aldusAvisoConexaoAbaV650")) return;
     const script = document.createElement("script");
     script.id = "aldusAvisoConexaoAbaV650";
-    script.src = "aviso-conexao-aba-v650.js?v=20261005-sem-faixa-drive-v656";
+    script.src = "aviso-conexao-aba-v650.js?v=20261006-drive-parado-v660";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V650] Falha ao carregar os avisos de conexão e de aba parada.");
+    }, { once: true });
+    (document.head || document.documentElement).appendChild(script);
+  }
+
+  // V660 — correções de dados da auditoria de 06/10/2026 (situação dos assuntos
+  // já estudados e vínculos com temas fundidos), aplicadas uma única vez.
+  function installCorrecoesDadosV660() {
+    if (typeof document === "undefined") return;
+    if (document.getElementById("aldusCorrecoesDadosV660")) return;
+    const script = document.createElement("script");
+    script.id = "aldusCorrecoesDadosV660";
+    script.src = "correcoes-dados-v660.js?v=20261006-correcoes-dados-v660";
+    script.async = false;
+    script.addEventListener("error", () => {
+      console.error("[Aldus V660] Falha ao carregar as correções de dados.");
     }, { once: true });
     (document.head || document.documentElement).appendChild(script);
   }
@@ -423,6 +438,7 @@
   installGoalCalendarExportV623();
   installSyncLeveConferenciaV649();
   installAvisoConexaoAbaV650();
+  installCorrecoesDadosV660();
   if (install()) return;
 
   const startedAt = Date.now();

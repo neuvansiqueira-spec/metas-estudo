@@ -40,12 +40,26 @@
     return Math.round(residualMinutes(goal, studies, kind) * 60)
       + credited(goal, studies, kind).reduce((total, s) => total + recordSeconds(s), 0);
   }
+  // V660 — residualMinutes varria todos os estudos para cada meta (654 × 326 a
+  // cada chamada, e o Painel chama várias vezes por desenho). Mesmo critério de
+  // credited() sem tipo, agrupado uma vez por chamada.
+  function creditedMinutesByGoal(studies) {
+    const byGoal = new Map();
+    studies.forEach(s => {
+      if (s.origin !== "timer" || s.updatesGoal === false) return;
+      const goalId = String(s.goalId || s.dailyGoalId || "");
+      byGoal.set(goalId, (byGoal.get(goalId) || 0) + number(s.minutes));
+    });
+    return byGoal;
+  }
   function logs(state = {}) {
     const studies = unique(state.studies || []);
+    const creditedByGoal = creditedMinutesByGoal(studies);
+    const residual = g => Math.max(0, legacyGoalMinutes(g) - (creditedByGoal.get(String(g.id)) || 0));
     return [
       ...studies.map(s => ({...s, seconds: recordSeconds(s)})),
       ...unique(state.dailyGoals || []).map(g => ({id: `goal-${g.id}`, date: date(g), discipline: g.discipline || g.disciplina,
-        topic: g.subject || g.assunto, syllabusItemId: g.syllabusItemId, type: g.type || g.tipo || "Meta", seconds: Math.round(residualMinutes(g, studies) * 60)})),
+        topic: g.subject || g.assunto, syllabusItemId: g.syllabusItemId, type: g.type || g.tipo || "Meta", seconds: Math.round(residual(g) * 60)})),
       ...unique(state.questionLogs || []).map(q => ({...q, id: `questions-${q.id || key(q)}`, date: date(q), type: q.trainingType || "Questões", seconds: recordSeconds(q)}))
     ].filter(log => log.seconds > 0);
   }

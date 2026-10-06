@@ -430,6 +430,24 @@
     const topicsInput = document.getElementById("planningTopicsPerDay");
     if (!form || !countInput || form.dataset.integrityV388Bound === "true") return false;
     form.dataset.integrityV388Bound = "true";
+    // V660 — o limite de metas automáticas do Plano do Dia é "Assuntos por dia",
+    // que nunca fica abaixo de "Disciplinas por dia". Aumentar as disciplinas
+    // levava os assuntos junto (no salvar); diminuir não, e o Plano do Dia seguia
+    // no número antigo. Agora o campo dos assuntos acompanha o das disciplinas
+    // nos dois sentidos; depois disso ele ainda pode ser ajustado à mão para cima.
+    if (topicsInput) {
+      countInput.addEventListener("input", () => {
+        const count = positiveInteger(countInput.value);
+        if (count) topicsInput.value = String(count);
+      });
+      if (!document.getElementById("planningTopicsLimitHintV660")) {
+        const hint = document.createElement("small");
+        hint.id = "planningTopicsLimitHintV660";
+        hint.className = "planning-field-hint";
+        hint.textContent = "O Plano do Dia usa este número como limite de metas automáticas. Ele acompanha \"Disciplinas por dia\".";
+        topicsInput.insertAdjacentElement("afterend", hint);
+      }
+    }
     form.addEventListener("submit", () => {
       const count = positiveInteger(countInput.value);
       if (!count) return;

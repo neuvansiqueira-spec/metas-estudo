@@ -91,7 +91,56 @@
   // para true.
   const DRIVE_NOTICE_ENABLED = false;
 
+  // V660 — sem a faixa, o envio ao Drive parou em 05/10/2026 às 21:03 (autorização
+  // vencida) sem nenhum sinal na tela. Aviso pequeno e fixo no canto, que não
+  // ocupa o topo nem empurra o menu; some quando a conexão volta. A renovação
+  // continua exigindo o clique dele (o Google não abre a janela sem clique).
+  const DRIVE_CHIP_ID = "aldusDriveParadoV660";
+
+  function formatSince(iso) {
+    const date = new Date(iso || "");
+    if (!Number.isFinite(date.getTime())) return "";
+    const time = date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    if (date.toDateString() === new Date().toDateString()) return time;
+    return `${date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })} ${time}`;
+  }
+
+  function driveChip() {
+    let chip = document.getElementById(DRIVE_CHIP_ID);
+    if (chip) return chip;
+    if (!document.getElementById(`${DRIVE_CHIP_ID}Estilo`)) {
+      const style = document.createElement("style");
+      style.id = `${DRIVE_CHIP_ID}Estilo`;
+      style.textContent = `#${DRIVE_CHIP_ID}{position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:2147481000;width:auto;min-width:0;min-height:0;height:auto;margin:0;border:0;border-radius:999px;padding:5px 11px;background:#ffd400;color:#1a1400;font:600 12px/1.3 Arial,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.35);cursor:pointer}`
+        + `@media (max-width:760px){#${DRIVE_CHIP_ID}{bottom:calc(84px + env(safe-area-inset-bottom,0px))}}`;
+      document.head.appendChild(style);
+    }
+    chip = document.createElement("button");
+    chip.type = "button";
+    chip.id = DRIVE_CHIP_ID;
+    chip.setAttribute("role", "status");
+    chip.addEventListener("click", () => document.getElementById("connectGoogleDrive")?.click());
+    document.body.appendChild(chip);
+    return chip;
+  }
+
+  function updateDriveChip() {
+    if (Date.now() - loadedAt < STARTUP_GRACE_MS) return;
+    if (typeof readSyncMeta !== "function" || typeof hasValidGoogleDriveAccessToken !== "function") return;
+    if (driveConnected()) {
+      document.getElementById(DRIVE_CHIP_ID)?.remove();
+      return;
+    }
+    let meta = {};
+    try { meta = readSyncMeta() || {}; } catch {}
+    const since = formatSince(meta.lastSyncAt);
+    const text = `${since ? `Drive parado desde ${since}` : "Drive desconectado"} — clique para reconectar`;
+    const chip = driveChip();
+    if (chip.textContent !== text) chip.textContent = text;
+  }
+
   function checkDrive() {
+    updateDriveChip();
     if (!DRIVE_NOTICE_ENABLED) { clearNotice("drive"); return; }
     if (Date.now() - loadedAt < STARTUP_GRACE_MS) return;
     if (typeof readSyncMeta !== "function" || typeof hasValidGoogleDriveAccessToken !== "function") return;

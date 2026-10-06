@@ -23,6 +23,8 @@
     "targetSyllabusItemId"
   ]);
 
+  const LINK_LIST_FIELDS = new Set(["syllabusItemIds", "itemIds"]);
+
   const COLLECTION_KEYS = [
     "studies",
     "dailyGoals",
@@ -741,6 +743,16 @@
         value.updatedAt ||= new Date().toISOString();
         changed += 1;
         paths.push(`${path}.${key}`);
+        return;
+      }
+      // V660 — listas de ids (syllabusItemIds dos materiais, itemIds do vínculo
+      // com o edital) ficavam com o id do tema removido: 30 materiais apontavam
+      // para temas que não existem mais (06/10/2026).
+      if (LINK_LIST_FIELDS.has(key) && Array.isArray(current) && current.includes(removedId)) {
+        value[key] = [...new Set(current.map((entry) => (entry === removedId ? keeperId : entry)))];
+        value.updatedAt ||= new Date().toISOString();
+        changed += 1;
+        paths.push(`${path}.${key}[]`);
         return;
       }
       if (current && typeof current === "object") {

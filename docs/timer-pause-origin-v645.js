@@ -41,7 +41,12 @@
   function ouvirPagina() {
     if (typeof document === "undefined" || document.__aldusPauseOriginV645) return;
     document.__aldusPauseOriginV645 = true;
-    document.addEventListener("click", (event) => {
+    // V660 — no documento, este ouvinte podia ficar atrás do da V268, que barra o
+    // clique (stopImmediatePropagation) conforme a ordem de carga; os apertos dele
+    // saíam como "sem clique" (registro de 05/10/2026). A janela recebe a captura
+    // antes do documento, então aqui nenhum clique se perde.
+    const alvoDosCliques = typeof window !== "undefined" && typeof window.addEventListener === "function" ? window : document;
+    alvoDosCliques.addEventListener("click", (event) => {
       if (!ehBotaoPausa(event.target)) return;
       passada();
       if (event.isTrusted) { marcar("botão na página", "página"); return; }

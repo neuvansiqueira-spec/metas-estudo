@@ -27,7 +27,9 @@ test("V378 mantém o hot path sem clone e a gravação direta dentro de transaç
   assert.match(save, /return saveIndexedDBStateAtomically\(source, options\)/);
   assert.match(save, /options\.detachedSnapshot/);
   assert.match(save, /structuredClone\(source\)/);
-  const atomic = sourceBetween(source, "function saveIndexedDBStateAtomically(source, options = {})", "async function saveStateToIndexedDB(state, options = {})");
+  // V660: a transação de escrita mora em writeIndexedDBRecordOnce; a mesclagem com
+  // outra aba acontece fora dela, em saveIndexedDBStateAtomically.
+  const atomic = sourceBetween(source, "function writeIndexedDBRecordOnce(data, options = {}, merged = false)", "async function saveStateToIndexedDB(state, options = {})");
   assert.match(atomic, /const serializedState = JSON\.stringify\(resolved\.data\)/);
   assert.match(atomic, /store\.put\(record\)/);
 });

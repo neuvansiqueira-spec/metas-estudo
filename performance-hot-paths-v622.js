@@ -42,7 +42,10 @@
     dailyPlanSubjectAliases: "3c8059c0-308",
     factorySyllabusItemIds: "a6f79c66-259",
     materialMatchesAssociation: "c28c0179-861",
-    materialAssociationIds: "b88f865e-235"
+    materialAssociationIds: "b88f865e-235",
+    uniqueTimerStudiesForGoal: "8a664eed-434",
+    minutesForItem: "dd196632-318",
+    progressMetrics: "3637d184-2798"
   });
 
   function normalizeSource(source) {
@@ -191,6 +194,49 @@
 
   function scopedPlanningMetrics(...args) {
     return withLookupScope(() => originals.planningMetrics.apply(this, args));
+  }
+
+  // V660 — Painel: progressMetrics passava por cada um dos 668 itens do edital
+  // quatro vezes (estudado, iniciado, pendente e minutos); cada passada somava de
+  // novo estudos, metas e questões, e cada meta varria todos os estudos em
+  // uniqueTimerStudiesForGoal. Medido em 06/10/2026: 0,7–1,5 s por desenho.
+  // progressMetrics só lê depois de migrateImportedDisciplines, que roda antes de
+  // qualquer busca; dentro dela as buscas usam o índice da chamada e os minutos
+  // de cada item são somados uma vez.
+  function scopedProgressMetrics(...args) {
+    return withLookupScope(() => originals.progressMetrics.apply(this, args));
+  }
+
+  function scopedMinutesForItem(item) {
+    if (!lookupScope || item === null || typeof item !== "object") return originals.minutesForItem(item);
+    let memo = lookupScope.get("minutesForItem");
+    if (!memo) lookupScope.set("minutesForItem", (memo = new WeakMap()));
+    if (memo.has(item)) return memo.get(item);
+    const minutes = originals.minutesForItem(item);
+    memo.set(item, minutes);
+    return minutes;
+  }
+
+  function buildTimerStudiesByGoal(list) {
+    const byGoal = new Map();
+    list.forEach((study, index) => {
+      if (study.origin !== "timer" || study.updatesGoal === false) return;
+      pushIndex(byGoal, study.goalId, index);
+    });
+    return byGoal;
+  }
+
+  function scopedUniqueTimerStudiesForGoal(goal, studies = state.studies) {
+    if (!lookupScope || goal == null || studies !== state.studies) return originals.uniqueTimerStudiesForGoal(goal, studies);
+    const index = scopedIndex("timerStudiesByGoal", studies, buildTimerStudiesByGoal);
+    if (!index) return originals.uniqueTimerStudiesForGoal(goal, studies);
+    const seen = new Set();
+    return (index.get(goal.id) || []).map((position) => studies[position]).filter((study) => {
+      const sessionKey = String(study.timerSessionId || study.sessionId || study.id || "");
+      if (sessionKey && seen.has(sessionKey)) return false;
+      if (sessionKey) seen.add(sessionKey);
+      return true;
+    });
   }
 
   // Seletor de assunto do Plano do Dia: o rótulo só usa o número do QConcursos
@@ -462,6 +508,9 @@
     { name: "studiesForItem", replacement: scopedStudiesForItem },
     { name: "getSmartReviewSuggestions", replacement: scopedGetSmartReviewSuggestions, requires: ITEM_LOOKUPS },
     { name: "planningMetrics", replacement: scopedPlanningMetrics, requires: ITEM_LOOKUPS },
+    { name: "uniqueTimerStudiesForGoal", replacement: scopedUniqueTimerStudiesForGoal },
+    { name: "minutesForItem", replacement: scopedMinutesForItem },
+    { name: "progressMetrics", replacement: scopedProgressMetrics, requires: [...ITEM_LOOKUPS, "minutesForItem", "uniqueTimerStudiesForGoal"] },
     { name: "questionItemOptionLabel", replacement: lazyQuestionItemOptionLabel },
     { name: "normalizeQconcursosCatalogText", replacement: memoizedNormalizeQconcursosCatalogText },
     { name: "qconcursosAuditedMatch", replacement: indexedQconcursosAuditedMatch, requires: ["normalizeQconcursosCatalogText"] },

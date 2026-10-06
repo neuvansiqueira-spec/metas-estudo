@@ -286,7 +286,14 @@
     targetState.factoryAgenda = agenda;
     targetState.factoryItems = agenda;
     targetState.migrations ||= {};
-    targetState.migrations.factoryDestinationFoldersV222 = report;
+    // V660 — sem nenhuma mudança, o relatório era regravado só com horário novo a
+    // cada rodada (cinco por abertura): os dados nunca ficavam iguais e a abertura
+    // sempre gravava os 20 MB. Mesmo resultado da rodada anterior: fica o anterior.
+    const previous = targetState.migrations.factoryDestinationFoldersV222;
+    const sameAsPrevious = report.changed === 0 && previous && typeof previous === "object"
+      && ["version", "total", "changed", "topic", "disciplineFallback", "manualPreserved", "unmatched"].every((key) => previous[key] === report[key]);
+    if (sameAsPrevious) report.appliedAt = previous.appliedAt;
+    else targetState.migrations.factoryDestinationFoldersV222 = report;
     globalThis.__factoryDestinationFoldersV222Report = report;
 
     if (report.changed > 0) {

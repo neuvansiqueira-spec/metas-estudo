@@ -121,29 +121,59 @@ function resolveIndexedDBWriteCandidate(source, existing, options = {}) {
   return { data, concurrentMerge, previousChecksum: current?.checksum || "" };
 }
 
-function saveIndexedDBStateAtomically(source, options = {}) {
+// V660 — a mesclagem com a cópia de outra aba (0,9–1,4 s) e a conferência
+// completa do registro anterior rodavam DENTRO da transação de escrita. Com
+// várias abas, cada gravação segurava o banco por 2–10 s, e a aba que abria
+// esperava para ler, parada em "Validando..." (medido em 06/10/2026). Agora a
+// transação só lê, compara a identificação, grava e confere (V659). Se outra aba
+// gravou no meio, ela termina sem gravar; a conferência e a mesclagem acontecem
+// fora, e a gravação é tentada de novo sobre a cópia nova.
+const INDEXEDDB_WRITE_ATTEMPTS_V660 = 4;
+
+function indexedDBRecordUsable(record) {
+  return Boolean(record) && (indexedDBRecordAlreadyValidated(record) || validateIndexedDBState(record));
+}
+
+function writeIndexedDBRecordOnce(data, options = {}, merged = false) {
   return openStudyDatabase().then((database) => new Promise((resolve, reject) => {
     const transaction = database.transaction(STUDY_DB_APP_STATE_STORE, "readwrite");
     const store = transaction.objectStore(STUDY_DB_APP_STATE_STORE);
     const request = store.get(STUDY_DB_CURRENT_ID);
-    let record = null;
+    const expectedChecksum = String(options.expectedChecksum || "");
+    let outcome = null;
     let failure = null;
 
     request.onsuccess = () => {
       try {
-        const resolved = resolveIndexedDBWriteCandidate(source, request.result || null, options);
+        const existing = request.result || null;
+        if (expectedChecksum && existing && existing.checksum !== expectedChecksum) {
+          outcome = { conflict: true, existing };
+          return;
+        }
+        const resolved = { data, concurrentMerge: merged, previousChecksum: existing?.checksum || "" };
+        if (!indexedDBStateHasUserData(resolved.data) && existing && indexedDBStateHasUserData(existing.data) && indexedDBRecordUsable(existing)) {
+          throw new Error("Proteção ativada: estado vazio não substitui IndexedDB válido.");
+        }
         const serializedState = JSON.stringify(resolved.data);
-        record = {
+        const checksum = checksumForSerializedState(serializedState);
+        if (!merged && existing && existing.checksum === checksum
+          && (existing.checksum === expectedChecksum || indexedDBRecordAlreadyValidated(existing))) {
+          // Nada mudou desde a cópia conferida: não regrava nem acorda as outras abas.
+          outcome = { record: { ...existing, concurrentMerge: false, unchangedV660: true } };
+          return;
+        }
+        const record = {
           id: STUDY_DB_CURRENT_ID,
           schemaVersion: STUDY_DB_SCHEMA_VERSION,
           savedAt: new Date().toISOString(),
-          checksum: checksumForSerializedState(serializedState),
+          checksum,
           serializedSize: serializedState.length,
           data: resolved.data,
           concurrentMerge: resolved.concurrentMerge,
           previousChecksum: resolved.previousChecksum
         };
         store.put(record);
+        outcome = { record };
         // V659: reler antes de encerrar a transação impede que outra gravação
         // seja confundida com corrupção da cópia que acabamos de salvar.
         if (options.verify) {
@@ -154,7 +184,7 @@ function saveIndexedDBStateAtomically(source, options = {}) {
               transaction.abort();
               return;
             }
-            record = verification.result;
+            outcome = { record: verification.result };
           };
           verification.onerror = () => {
             failure = verification.error || new Error("Falha ao validar a gravação IndexedDB.");
@@ -169,10 +199,32 @@ function saveIndexedDBStateAtomically(source, options = {}) {
     request.onerror = () => {
       failure = request.error || new Error("Falha ao consultar o estado atual do IndexedDB.");
     };
-    transaction.oncomplete = () => { database.close(); resolve(record); };
+    transaction.oncomplete = () => { database.close(); resolve(outcome); };
     transaction.onerror = () => { database.close(); reject(failure || transaction.error || new Error("Falha na transação IndexedDB.")); };
     transaction.onabort = () => { database.close(); reject(failure || transaction.error || new Error("Transação IndexedDB abortada.")); };
   }));
+}
+
+async function saveIndexedDBStateAtomically(source, options = {}) {
+  let data = source || {};
+  let merged = false;
+  let attemptOptions = options;
+  for (let attempt = 0; attempt < INDEXEDDB_WRITE_ATTEMPTS_V660; attempt += 1) {
+    const outcome = await writeIndexedDBRecordOnce(data, attemptOptions, merged);
+    if (!outcome?.conflict) return outcome?.record || null;
+    // Outra aba gravou depois da cópia que esta aba conhece: conferir e mesclar
+    // aqui fora, sem segurar o banco, e tentar de novo sobre a cópia nova.
+    const current = indexedDBRecordUsable(outcome.existing) ? outcome.existing : null;
+    if (current) {
+      if (typeof options.mergeConcurrentState !== "function") {
+        throw new Error("Conflito de gravação detectado: o IndexedDB foi atualizado por outra aba.");
+      }
+      data = options.mergeConcurrentState(data, current.data);
+      merged = true;
+    }
+    attemptOptions = { ...options, expectedChecksum: outcome.existing?.checksum || "" };
+  }
+  throw new Error("Conflito de gravação: outra aba continuou gravando durante todas as tentativas.");
 }
 
 async function saveStateToIndexedDB(state, options = {}) {
