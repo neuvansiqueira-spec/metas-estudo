@@ -7,7 +7,7 @@
   const FACTORY_BRIDGE_SCRIPT_ID = "aldusFactoryLc259LinkV398";
   const FACTORY_BRIDGE_VERSION = "20260826-factory-lc259-link-v398";
   const GOAL_TIME_HOTFIX_SCRIPT_ID = "aldusGoalTimeHistoryHotfixV425";
-  const GOAL_TIME_HOTFIX_VERSION = "20260916-goal-time-history-hotfix-v425";
+  const GOAL_TIME_HOTFIX_VERSION = "20261006-sem-inflacao-de-tempo-v660-4";
 
   // Identificadores legados mantidos apenas para diagnóstico/histórico. Não são carregados automaticamente.
   const RESTORE_SCRIPT_ID = "aldusAuthorizedGoalRestoreV391";

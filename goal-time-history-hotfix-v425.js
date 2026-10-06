@@ -45,13 +45,6 @@
     }, 0);
   }
 
-  function displayedGoalSeconds(goal, targetState, kind) {
-    if (globalThis.__ALDUS_STUDY_TIME__?.goalSeconds) {
-      return Math.max(0, Number(globalThis.__ALDUS_STUDY_TIME__.goalSeconds(goal, targetState, kind)) || 0);
-    }
-    return goalTimerSeconds(goal, targetState, kind);
-  }
-
   function reconcileGoal(goal, targetState = state) {
     if (!goal) return { changed: false, before: 0, after: 0 };
 
@@ -59,13 +52,18 @@
     const beforeQuestions = Math.max(0, Number(goal.questionActualMinutes) || 0);
     const beforeTotal = Math.max(0, Number(goal.actualMinutes) || 0, Number(goal.tempo_real_minutos) || 0);
 
-    const ledgerStudy = displayedGoalSeconds(goal, targetState, "study") / 60;
-    const ledgerQuestions = displayedGoalSeconds(goal, targetState, "questions") / 60;
+    // V660.4 — o piso usava também goalSeconds, que parte do próprio tempo da
+    // meta: tempo da meta − minutos arredondados das sessões + segundos exatos.
+    // Toda rodada (a cada abertura, às vezes duas) somava de novo essa diferença
+    // de arredondamento: +0,9 min por rodada numa meta com 102 min no
+    // cronômetro; 89 metas e cerca de 76,7 h a mais entre 13/09 e 06/10/2026, sem
+    // estudo. O piso agora é só a soma exata das sessões do cronômetro, que não
+    // depende do valor atual da meta.
     const timerStudy = goalTimerSeconds(goal, targetState, "study") / 60;
     const timerQuestions = goalTimerSeconds(goal, targetState, "questions") / 60;
 
-    const nextStudy = Math.max(beforeStudy, ledgerStudy, timerStudy);
-    const nextQuestions = Math.max(beforeQuestions, ledgerQuestions, timerQuestions);
+    const nextStudy = Math.max(beforeStudy, timerStudy);
+    const nextQuestions = Math.max(beforeQuestions, timerQuestions);
     const nextTotal = Math.max(beforeTotal, nextStudy + nextQuestions);
 
     const changed = nextStudy !== beforeStudy || nextQuestions !== beforeQuestions || nextTotal !== beforeTotal;

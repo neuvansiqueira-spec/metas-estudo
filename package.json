@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20261006-sincronizacao-sem-carimbo-v660-3-v424",
+  "version": "20261006-sem-inflacao-de-tempo-v660-4-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

@@ -404,3 +404,45 @@ test("V660.3 todo ponto que adota dados de fora atualiza a fotografia", () => {
     assert.equal(read(file), read(`docs/${file}`), file);
   }
 });
+
+// --- V660.4: o tempo das metas não cresce sozinho a cada abertura ------------
+
+test("V660.4 conferir o tempo da meta várias vezes não soma a diferença de arredondamento", () => {
+  const ledger = require("../study-time-ledger.js");
+  const goal = { id: "g1", date: "2026-07-20", subject: "Licitações", status: "Concluída", studyActualMinutes: 264.9, questionActualMinutes: 10, actualMinutes: 274.9 };
+  const studies = [
+    { id: "s1", timerSessionId: "t1", goalId: "g1", origin: "timer", timerKind: "study", minutes: 4, seconds: 259 },
+    { id: "s2", timerSessionId: "t2", goalId: "g1", origin: "timer", timerKind: "study", minutes: 41, seconds: 2472 },
+    { id: "s3", timerSessionId: "t3", goalId: "g1", origin: "timer", timerKind: "study", minutes: 29, seconds: 1752 }
+  ];
+  const context = {
+    console, setTimeout: () => 1, clearTimeout() {},
+    state: { dailyGoals: [goal], studies },
+    elements: { historyBody: { innerHTML: "", appendChild() {} } },
+    document: { getElementById: () => null, createElement: () => ({ innerHTML: "" }) },
+    saveData() {}, render() {}, renderHistory() {}, confirmGoalCompletion() {},
+    __ALDUS_STUDY_TIME__: ledger
+  };
+  context.globalThis = context;
+  vm.createContext(context);
+  vm.runInContext(read("goal-time-history-hotfix-v425.js"), context);
+  const api = context.__ALDUS_GOAL_TIME_HISTORY_HOTFIX_V425__;
+  for (let i = 0; i < 3; i += 1) api.reconcileGoal(goal);
+  assert.equal(goal.studyActualMinutes, 264.9);
+  assert.equal(goal.actualMinutes, 274.9);
+  // A garantia da V425 continua: meta abaixo da soma exata do cronômetro sobe até ela.
+  const nova = { id: "g2", studyActualMinutes: 0, questionActualMinutes: 0, actualMinutes: 0 };
+  context.state.dailyGoals.push(nova);
+  context.state.studies.push({ id: "s4", timerSessionId: "t4", goalId: "g2", origin: "timer", timerKind: "study", minutes: 66.85, seconds: 4011 });
+  api.reconcileGoal(nova);
+  assert.ok(Math.abs(nova.studyActualMinutes - 66.85) < 0.001);
+});
+
+test("V660.4 a conferência na conclusão (V366) também usa só o cronômetro", () => {
+  const source = read("timer-goal-integrity-v366.js");
+  assert.doesNotMatch(source, /__ALDUS_STUDY_TIME__\.goalSeconds/);
+  assert.match(source, /const studyMinutes = goalTimerMinutes\(goal, targetState, false\);/);
+  assert.equal(source, read("docs/timer-goal-integrity-v366.js"));
+  assert.equal(read("goal-time-history-hotfix-v425.js"), read("docs/goal-time-history-hotfix-v425.js"));
+  assert.doesNotMatch(read("goal-time-history-hotfix-v425.js"), /goalSeconds\(/);
+});

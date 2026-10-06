@@ -92,11 +92,28 @@
     return { changed: repairedGoals > 0, repairedGoals, repairedMinutes };
   }
 
+  // V660.4 — goalSeconds parte do próprio tempo da meta (tempo da meta − minutos
+  // arredondados + segundos exatos); usado como piso, somava a diferença de
+  // arredondamento de novo a cada conclusão. O piso é a soma exata das sessões
+  // do cronômetro desta meta, a mesma conta de reconcileDirectTimerTotals.
+  function goalTimerMinutes(goal, targetState, questions) {
+    const seen = new Set();
+    return (Array.isArray(targetState?.studies) ? targetState.studies : []).reduce((total, study) => {
+      if (!isGoalUpdatingTimerStudy(study) || String(study.goalId || "") !== String(goal.id || "")) return total;
+      const isQuestions = study.timerKind === "questions" || study.kind === "questions";
+      if (isQuestions !== questions) return total;
+      const sessionKey = timerSessionKey(study);
+      if (!sessionKey || seen.has(sessionKey)) return total;
+      seen.add(sessionKey);
+      return total + timerStudyMinutes(study);
+    }, 0);
+  }
+
   function reconcileGoalFromLedger(goal, targetState = state) {
-    if (!goal || !globalThis.__ALDUS_STUDY_TIME__?.goalSeconds) return { changed: false, repairedGoals: 0, repairedMinutes: 0 };
+    if (!goal) return { changed: false, repairedGoals: 0, repairedMinutes: 0 };
     const before = Math.max(0, Number(goal.actualMinutes) || 0, Number(goal.tempo_real_minutos) || 0);
-    const studyMinutes = globalThis.__ALDUS_STUDY_TIME__.goalSeconds(goal, targetState, "study") / 60;
-    const questionMinutes = globalThis.__ALDUS_STUDY_TIME__.goalSeconds(goal, targetState, "questions") / 60;
+    const studyMinutes = goalTimerMinutes(goal, targetState, false);
+    const questionMinutes = goalTimerMinutes(goal, targetState, true);
     const changed = applyGoalMinimums(goal, studyMinutes, questionMinutes);
     return {
       changed,
