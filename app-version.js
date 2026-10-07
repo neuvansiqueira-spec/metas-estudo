@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20261006-sem-inflacao-de-tempo-v660-4-v424";
+  const VERSION = "20261007-tema-especifico-plano-e-fabrica-v661-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

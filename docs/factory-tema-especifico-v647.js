@@ -11,10 +11,15 @@
    avulso que só existe na memória desta tela: não cria meta, não entra na
    Fábrica e nada é gravado. Os botões usam data-factory-prompt e o texto fica em
    data-factory-prompt-text, então a busca do bridge (V630/V631/V632) funciona
-   igual, lendo a linha "Tema:". */
+   igual, lendo a linha "Tema:".
+
+   V647.5 (07/10/2026, pedido dele): opção de, ao gerar o prompt, colocar o tema também
+   no Plano do Dia, com o dia e o tempo planejado escolhidos aqui. Desmarcada, nada é
+   gravado, como antes. Marcada, a meta é criada pela função do site (V661.1), a mesma
+   do "Tema específico, fora do edital" do Com detalhes. */
 (() => {
   "use strict";
-  const VERSION = "20260929-tema-especifico-pastas-v647-4";
+  const VERSION = "20261007-tema-especifico-plano-do-dia-v647-5";
   const KEY = "__ALDUS_FACTORY_TEMA_ESPECIFICO_V647__";
   const ID = "tema-especifico-avulso-v647";
   const PAINEL = "aldusTemaEspecificoV647";
@@ -115,6 +120,8 @@
       #${PAINEL} .te-revisao span { display: flex; align-items: center; gap: 8px; }
       #${PAINEL} .te-revisao input { width: 18px !important; height: 18px; margin: 0; flex: none; }
       #${PAINEL} .te-revisao small { font-weight: 400; opacity: .8; }
+      #${PAINEL} .te-plano { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+      #${PAINEL} .te-plano[hidden] { display: none; }
       #${PAINEL} .te-botoes { display: flex; flex-wrap: wrap; gap: 8px; }
       #${PAINEL} .te-botoes button { font-size: .86rem; width: auto !important; flex: 0 1 auto !important; margin: 0 !important; }
       #${PAINEL} .te-aviso { margin: 0; font-size: .8rem; opacity: .85; }
@@ -150,9 +157,16 @@
           <label class="te-largo te-revisao"><span><input type="checkbox" data-te="revisao"> Revisão com várias disciplinas e temas</span>
             <small>Usa todo o conteúdo da pasta de fontes e organiza por disciplina e assunto.</small>
           </label>
+          <label class="te-largo te-revisao"><span><input type="checkbox" data-te="plano"> Colocar também no Plano do Dia</span>
+            <small>Ao gerar o prompt, o tema entra como meta no dia escolhido (como "Tema específico, fora do edital"). Gerar outro prompt do mesmo tema no mesmo dia não cria outra meta.</small>
+          </label>
+          <div class="te-largo te-plano" data-te="plano-campos" hidden>
+            <label>Dia no Plano<input type="date" data-te="plano-dia"></label>
+            <label>Tempo planejado (min)<input type="number" min="1" step="1" value="50" data-te="plano-minutos"></label>
+          </div>
         </div>
         <div class="te-botoes">${TIPOS.map(([tipo, nome]) => `<button type="button" class="secondary-button" data-factory-prompt="${ID}|${tipo}">${nome}</button>`).join("")}</div>
-        <p class="te-aviso">Não cria meta nem altera a Fábrica. O arquivo vai para a pasta indicada acima.</p>
+        <p class="te-aviso">Não altera a Fábrica. Só cria meta se "Colocar também no Plano do Dia" estiver marcado. O arquivo vai para a pasta indicada acima.</p>
         <p class="te-aviso" data-factory-prompt-message="${ID}" aria-live="polite"></p>
         <div class="te-saida" data-te="saida" hidden>
           <h4 data-te="titulo">Prompt</h4>
@@ -198,6 +212,11 @@
       const valor = texto(campo("fontes").value);
       campo("fontes-info").textContent = !valor ? "Em branco: as pastas de fontes de sempre."
         : ehLinkDoDrive(valor) ? "As fontes serão lidas desta pasta, nos 7 prompts." : "Isso não parece um link de pasta do Google Drive.";
+    });
+    campo("plano").addEventListener("change", () => {
+      const marcado = campo("plano").checked;
+      campo("plano-campos").hidden = !marcado;
+      if (marcado && !campo("plano-dia").value) campo("plano-dia").value = hojeISO();
     });
     painel.addEventListener("click", aoClicar);
     atualizarInfoPasta();
@@ -246,6 +265,31 @@
     let texto = String(t).replace(/(PASTA DAS FONTES NO GOOGLE DRIVE:[ \t]*\r?\n)[^\r\n]*/g, (_m, rotulo) => `${rotulo}${fontes}`);
     for (const url of padrao) texto = texto.split(url).join(fontes);
     return texto + regraFinalFontes(fontes);
+  }
+
+  function hojeISO() {
+    try { if (typeof todayISO === "function") return todayISO(); } catch {}
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+  const dataBR = (iso) => String(iso || "").split("-").reverse().join("/");
+
+  // V647.5: com a opção marcada, o tema entra no Plano do Dia pela função do site (V661.1).
+  function colocarNoPlano(disciplina, tema, recorte) {
+    const painel = byId(PAINEL);
+    const campo = (nome) => painel.querySelector(`[data-te="${nome}"]`);
+    if (!campo("plano")?.checked) return "";
+    const criar = globalThis.addFreeThemeGoalV661;
+    if (typeof criar !== "function") return " Plano do Dia: o site ainda não carregou; a meta não foi criada.";
+    const dia = texto(campo("plano-dia").value) || hojeISO();
+    const minutos = Number(campo("plano-minutos").value);
+    if (!Number.isFinite(minutos) || minutos < 1) return " Plano do Dia: informe um tempo planejado válido; a meta não foi criada.";
+    let r;
+    try { r = criar({ date: dia, discipline: disciplina, subject: tema, minutes: minutos, notes: recorte ? `Recorte: ${recorte}` : "", source: "Fábrica — Tema específico" }); }
+    catch (erro) { console.error("[Aldus V647.5] Falha ao criar a meta.", erro); return " Plano do Dia: falha ao criar a meta."; }
+    if (r?.ok) return ` Meta colocada no Plano do Dia de ${dataBR(r.date)} (${Math.round(minutos)} min).`;
+    if (r?.code === "duplicate") return ` O Plano do Dia de ${dataBR(r.date)} já tem meta deste tema; nenhuma meta nova.`;
+    return " Plano do Dia: a meta não foi criada.";
   }
 
   function mensagem(t) {
@@ -298,7 +342,7 @@
     campo("saida").hidden = false;
     const nome = (TIPOS.find(([t]) => t === tipo) || [tipo, tipo])[1];
     campo("titulo").textContent = `Prompt — ${nome} — ${disciplina} — ${tema}`;
-    mensagem(`${pasta ? `Prompt gerado para: ${tema}. Pasta de destino incluída.` : `Prompt gerado para: ${tema}, sem pasta de destino.`}${fontes ? " Fontes: só a pasta indicada (sem os pacotes do acervo padrão)." : ""}${revisao ? " Revisão com várias disciplinas e temas." : ""}`);
+    mensagem(`${pasta ? `Prompt gerado para: ${tema}. Pasta de destino incluída.` : `Prompt gerado para: ${tema}, sem pasta de destino.`}${fontes ? " Fontes: só a pasta indicada (sem os pacotes do acervo padrão)." : ""}${revisao ? " Revisão com várias disciplinas e temas." : ""}` + colocarNoPlano(disciplina, tema, recorte));
     return fontes ? "fontes-proprias" : true;
   }
 

@@ -39,7 +39,7 @@ test("disciplina legítima sem marcadores artificiais não é apagada", () => {
 });
 
 test("meta manual aceita SIMULADOS sem criar item no edital", () => {
-  assert.match(script, /operationalSimulado \? "" : item\.id/);
+  assert.match(script, /\(operationalSimulado \|\| freeTheme\) \? "" : item\.id/);
   assert.match(script, /appendOperationalSimuladosDisciplineOption\(elements\.goalDiscipline/);
   assert.match(script, /populateOperationalSimuladosGoalSubject/);
   assert.match(script, /SIMULADOS_OPERATIONAL\?\.removeLegacyInjectedSubject\(state\)/);

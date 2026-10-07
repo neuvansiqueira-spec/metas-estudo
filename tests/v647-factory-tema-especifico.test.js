@@ -36,16 +36,20 @@ test('V647 oferece os mesmos 7 prompts do antigo bloco 4', () => {
   assert.deepEqual(Array.from(api.tipos, ([tipo]) => tipo), ['resumoAulaJurisprudencia', 'leiJurisprudencia', 'jurisprudencia', 'triagem', 'resumoAula', 'lei', 'peca']);
 });
 
-test('V647 não grava nada: nem meta, nem item da Fábrica, nem dados do estudo', () => {
+test('V647 não grava por conta própria; meta só pela função do site, com a opção "Plano do Dia" marcada', () => {
   const source = read(MODULE);
   assert.doesNotMatch(source, /saveData|indexedDB|localStorage|state\.|factoryAgenda\.push|\.push\(\s*item/);
+  assert.match(source, /if \(!campo\("plano"\)\?\.checked\) return "";/, 'desmarcada: nenhuma meta');
+  assert.match(source, /const criar = globalThis\.addFreeThemeGoalV661;/, 'a meta vem da mesma função do Com detalhes (V661.1)');
+  assert.match(source, /<input type="checkbox" data-te="plano">/);
+  assert.match(source, /<input type="number" min="1" step="1" value="50" data-te="plano-minutos">/, 'tempo editável');
   assert.match(source, /factoryPromptText\(tipo, item, "full"\)/, 'o prompt vem do mesmo gerador do site');
   assert.match(source, /data-factory-prompt-text="\$\{ID\}"/, 'o bridge acha o texto pelo mesmo atributo');
 });
 
 test('V647 é carregada pela cadeia ativa e publicada igual na raiz e em docs', () => {
   const loader = read('security-observability-v318.js');
-  assert.ok(loader.includes(`${MODULE}?v=20260929-tema-especifico-pastas-v647-4`));
+  assert.ok(loader.includes(`${MODULE}?v=20261007-tema-especifico-plano-do-dia-v647-5`));
   assert.match(loader, /\n  installFactoryTemaEspecificoV647\(\);/);
   for (const file of [MODULE, 'security-observability-v318.js', 'factory-prompt-organizacao-v639.js']) assert.equal(read(file), read('docs/' + file), file);
 });

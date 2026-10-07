@@ -25,7 +25,7 @@
   <link rel="icon" type="image/svg+xml" href="icons/logo-mark.svg?v=20260728-carregamento-direto-v168" />
   <link rel="preload" as="image" type="image/webp" href="icons/aldus-visual-320.webp?v=20260814-desempenho-integral-v329" fetchpriority="high" />
   <!-- Fontes CSS consolidadas, na ordem original: style.css; aldus-premium-theme.css; aldus-premium-refinement-v47.css; aldus-interface-v51.css; aldus-responsive-v52.css; aldus-contrast-v53.css; aldus-visual-v58.css; aldus-planning-v59.css; aldus-planning-history-v60.css; aldus-calendar-v61.css; aldus-calendar-v62.css; aldus-export-brand-v63.css; aldus-export-brand-v64.css; aldus-daily-goals-v66.css; aldus-daily-time-v67.css; aldus-contrast-system-v68.css; aldus-component-contrast-v69.css; aldus-advisor-layout-v70.css; aldus-backup-contrast-v71.css; aldus-navigation-scroll-v73.css; aldus-goal-integrity-v75.css; aldus-completed-visibility-v76.css. -->
-  <link id="aldusAppBundleStyles" rel="stylesheet" href="app-v424.css?v=20261006-sem-inflacao-de-tempo-v660-4-v424" />
+  <link id="aldusAppBundleStyles" rel="stylesheet" href="app-v424.css?v=20261007-tema-especifico-plano-e-fabrica-v661-v424" />
   <link id="aldusQuestionsHubStylesV298" rel="stylesheet" href="questions-hub-v298.css?v=20260814-gerador-simulados-em-questoes-v328" />
 
   <link id="aldusCentralGoalsPaletteV246" rel="stylesheet" href="central-goals-palette-v245.css?v=20260809-paleta-cartoes-global-v294" />
@@ -38,7 +38,7 @@
   <link id="aldusDailySummaryElegantDirectV251" rel="stylesheet" href="daily-summary-elegant-direct-v251.css?v=20260805-daily-summary-elegant-direct-v251" />
   <link id="aldusDailySummaryElegantNestedV252" rel="stylesheet" href="daily-summary-elegant-nested-v252.css?v=20260805-daily-summary-elegant-nested-v252" />
   <link id="aldusCardPaletteV294" rel="stylesheet" href="aldus-card-palette-v294.css?v=20260809-paleta-cartoes-global-v294" />
-  <link rel="preload" as="script" href="app-v424.js?v=20261006-sem-inflacao-de-tempo-v660-4-v424" />
+  <link rel="preload" as="script" href="app-v424.js?v=20261007-tema-especifico-plano-e-fabrica-v661-v424" />
   <link rel="preload" as="script" href="factory-simulado-visibility-v315.js?v=20260814-gerador-simulados-em-questoes-v328" />
 </head>
 <body>
@@ -581,7 +581,9 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
         <input id="goalEditingId" type="hidden" />
         <label>Data<input id="goalDate" type="date" required /></label>
         <label>Disciplina<select id="goalDiscipline" required></select></label>
-        <label class="wide">Assunto<select id="goalSyllabusItem" required></select></label>
+        <label class="wide checkbox-line"><input id="goalFreeTheme" type="checkbox" /> Tema específico, fora do edital (escrever o tema)</label>
+        <label class="wide" id="goalSyllabusItemField">Assunto<select id="goalSyllabusItem" required></select></label>
+        <label class="wide" id="goalFreeThemeField" hidden>Tema específico<input id="goalFreeThemeText" type="text" maxlength="240" placeholder="Ex.: Tráfico privilegiado e hediondez" /><small>A meta entra no Plano do Dia como as outras, com cronômetro e conclusão, mas não altera o progresso de nenhum assunto do edital.</small></label>
         <label>Tipo da meta<select id="goalType"><option>Estudo novo</option><option>Revisão</option><option>Questões</option><option>Simulado</option><option>Reforço</option></select></label>
         <label>Tempo planejado (min)<input id="goalMinutes" type="number" min="1" value="50" required /></label>
         <label>Tempo realizado (min)<input id="goalActualMinutes" type="number" min="0" value="0" /></label>
@@ -1172,7 +1174,7 @@ ASSUNTO;Direito Penal;Teoria Geral do Crime;5;Altíssima"></textarea>
     </section>
   </div>
 
-  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20261006-sem-inflacao-de-tempo-v660-4-v424</p></footer>
+  <footer><p>Feito com HTML, CSS e JavaScript puro • Salvamento via localStorage</p><p class="app-version">Versão: 20261007-tema-especifico-plano-e-fabrica-v661-v424</p></footer>
   <div id="legacyTimerRecoveryModal" class="app-modal" role="dialog" aria-modal="true" aria-labelledby="legacyTimerRecoveryModalTitle" hidden>
     <div class="app-modal-backdrop" data-legacy-recovery-cancel></div>
     <section class="app-modal-card">

@@ -206,13 +206,13 @@
   }
 
   // V647 — "Tema específico" num painel próprio da Fábrica (disciplina, tema,
-  // recorte e pasta de destino), fora dos cartões dos temas. Não grava dados.
+  // recorte e pasta de destino), fora dos cartões dos temas. Só grava meta com a opção "Plano do Dia" (V647.5).
   function installFactoryTemaEspecificoV647() {
     if (typeof document === "undefined") return;
     if (document.getElementById("aldusFactoryTemaEspecificoV647")) return;
     const script = document.createElement("script");
     script.id = "aldusFactoryTemaEspecificoV647";
-    script.src = "factory-tema-especifico-v647.js?v=20260929-tema-especifico-pastas-v647-4";
+    script.src = "factory-tema-especifico-v647.js?v=20261007-tema-especifico-plano-do-dia-v647-5";
     script.async = false;
     script.addEventListener("error", () => {
       console.error("[Aldus V647] Falha ao carregar o painel de tema específico.");

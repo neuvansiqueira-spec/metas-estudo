@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20261006-sem-inflacao-de-tempo-v660-4-v424";
+  const VERSION = "20261007-tema-especifico-plano-e-fabrica-v661-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -41603,6 +41603,51 @@ function populateOperationalSimuladosGoalSubject(current = "") {
   elements.goalSyllabusItem.append(option);
   elements.goalSyllabusItem.value = option.value;
 }
+// V661: tema específico fora do edital no "Com detalhes". A meta guarda só o texto do tema
+// (sem syllabusItemId), então não mexe no progresso de nenhum assunto do edital.
+function isGoalFreeThemeModeV661() { return Boolean($("#goalFreeTheme")?.checked); }
+function isFreeThemeGoalV661(goal = {}) { return goal?.temaForaDoEdital === true; }
+function syncGoalFreeThemeFieldsV661() {
+  const free = isGoalFreeThemeModeV661();
+  const subjectField = $("#goalSyllabusItemField"), themeField = $("#goalFreeThemeField"), themeInput = $("#goalFreeThemeText");
+  if (subjectField) { subjectField.hidden = free; subjectField.style.display = free ? "none" : ""; }
+  if (themeField) { themeField.hidden = !free; themeField.style.display = free ? "" : "none"; }
+  if (elements.goalSyllabusItem) elements.goalSyllabusItem.required = !free;
+  if (themeInput) themeInput.required = free;
+}
+// V661.1: a Fábrica (bloco "Tema específico") cria a mesma meta de tema fora do edital que o
+// "Com detalhes" grava. Altera só essa meta; mesma data + disciplina + tema não cria outra.
+function addFreeThemeGoalV661({ date = "", discipline = "", subject = "", minutes = 50, notes = "", source = "" } = {}) {
+  const selectedDate = String(date || "").slice(0, 10) || todayISO();
+  const disciplineName = String(discipline || "").trim();
+  const theme = String(subject || "").replace(/\s+/g, " ").trim();
+  const plannedMinutes = Number(minutes);
+  if (!disciplineName) return { ok: false, code: "no-discipline" };
+  if (!theme) return { ok: false, code: "no-subject" };
+  if (!Number.isFinite(plannedMinutes) || plannedMinutes < 1) return { ok: false, code: "invalid-minutes" };
+  const now = new Date().toISOString();
+  const goal = {
+    id: createId(), date: selectedDate, data: selectedDate,
+    discipline: disciplineName, disciplina: disciplineName,
+    syllabusItemId: "", subject: theme, assunto: theme, baseSubject: theme, referencia_edital: "",
+    temaForaDoEdital: true,
+    type: "Estudo novo", tipo: "estudo novo", minutes: Math.round(plannedMinutes),
+    priority: "Média", prioridade: "Média", status: "Pendente",
+    studyActualMinutes: 0, questionActualMinutes: 0, actualMinutes: 0, studyStatus: "Iniciado",
+    notes: String(notes || "").trim(), origin: "manual", origem: "manual",
+    createdAt: now, updatedAt: now, completed: false, completedAt: null,
+    operationalDiscipline: false, linkedView: ""
+  };
+  const duplicate = findSemanticDuplicateGoalV641(state, goal, null);
+  if (duplicate) return { ok: false, code: "duplicate", goal: duplicate, date: selectedDate };
+  appendGoalHistory(goal, `Meta manual criada${source ? ` (${source})` : ""} em ${new Date().toLocaleString("pt-BR")}.`);
+  state.dailyGoals.push(goal);
+  saveData({ markLocalChange: true });
+  try { render(); } catch (error) { console.warn("[Aldus V661.1] Meta criada; a tela atualiza na próxima abertura do Plano do Dia.", error); }
+  autoSyncAfterSave("daily-goal");
+  return { ok: true, code: "created", goal, date: selectedDate };
+}
+globalThis.addFreeThemeGoalV661 = addFreeThemeGoalV661;
 function populateGoalSubjectsForDiscipline(discipline, current = "") {
   if (isOperationalSimuladosDiscipline(discipline)) populateOperationalSimuladosGoalSubject(current);
   else optionsForItems(elements.goalSyllabusItem, discipline, current, { alphabetical: true });
@@ -46661,6 +46706,10 @@ function editGoal(goal) {
   elements.goalPriority.value = goal.priority || goal.prioridade || "Média";
   elements.goalStatus.value = goal.status || "Pendente";
   elements.goalNotes.value = goal.notes || goal.observacoes || "";
+  const freeThemeGoal = isFreeThemeGoalV661(goal);
+  if ($("#goalFreeTheme")) $("#goalFreeTheme").checked = freeThemeGoal;
+  if ($("#goalFreeThemeText")) $("#goalFreeThemeText").value = freeThemeGoal ? (goal.subject || goal.assunto || "") : "";
+  syncGoalFreeThemeFieldsV661();
   if (elements.goalSubmitButton) elements.goalSubmitButton.textContent = "Atualizar meta";
   if (elements.cancelGoalEdit) elements.cancelGoalEdit.hidden = false;
   elements.goalForm.closest("details")?.setAttribute("open", "");
@@ -46674,6 +46723,7 @@ function resetGoalFormEditing(selectedDate = elements.goalDate?.value || todayIS
   if (elements.goalActualMinutes) elements.goalActualMinutes.value = 0;
   if (elements.goalSubmitButton) elements.goalSubmitButton.textContent = "Salvar meta manual";
   if (elements.cancelGoalEdit) elements.cancelGoalEdit.hidden = true;
+  syncGoalFreeThemeFieldsV661();
 }
 function weekStart(dateString) { const d=parseDate(dateString); d.setDate(d.getDate()-d.getDay()); return localISODate(d); }
 function daysBetween(start, count) { return Array.from({length:count},(_,i)=>addDays(start,i)); }
@@ -47273,7 +47323,7 @@ function dailyGoalDetailsBodyHTML(goal, projectionEntry = null) {
   const descriptor = canonicalStudyDescriptor(goal);
   const history = (goal.history || goal.historico || []).slice(-3).map((entry) => `<li>${escapeHTML(typeof entry === "string" ? entry : entry.message || entry.text || JSON.stringify(entry))}</li>`).join("");
   const materialState = getDailyGoalMaterialState(goal, projectionEntry);
-  return `<div class="daily-goal-content">${goalExecutionSummaryHTML(goal, projectionEntry, materialState)}<div class="card-meta-grid"><span>Disciplina: ${escapeHTML(descriptor.discipline)}</span><span>Assunto: ${escapeHTML(descriptor.subject)}</span><span>Tipo: ${escapeHTML(goal.type || goal.tipo || "-")}</span><span>Prioridade: ${escapeHTML(goal.priority || goal.prioridade || "-")}</span><span>Planejado nesta meta: ${Number(goal.minutes||0)} min</span><span>Estudo nesta meta: ${formatHours(goalDisplayMinutes(goal, "study"))}</span><span>Questões nesta meta: ${formatHours(goalDisplayMinutes(goal, "questions"))}</span><span>Total nesta meta: ${formatHours(goalDisplayMinutes(goal))}</span><span>Status: ${escapeHTML(status)}</span><span>Referência: ${escapeHTML(descriptor.reference || "-")}</span></div><div class="progress"><span style="width:${Math.min(100, Math.round((goalTotalActualMinutes(goal) / Math.max(1, Number(goal.minutes)||1)) * 100))}%"></span></div>${dailyGoalMaterialAvailabilityHTML(materialState)}${goalMaterialEstimateHTML(goal, projectionEntry, materialState)}${goalTimeComparisonHTML(goal, projectionEntry, materialState)}${goalMaterialsDetailsHTML(goal, projectionEntry, materialState)}<p class="notice" data-goal-material-notice="${goal.id}" ${goalMaterialNotices.has(goal.id) ? "" : "hidden"}>${escapeHTML(goalMaterialNotices.get(goal.id) || "")}</p><details class="daily-goal-history"><summary>Histórico resumido</summary><ul>${history || "<li>Sem histórico registrado.</li>"}</ul></details><div class="card-actions">${materialState.hasMaterials ? `<button type="button" data-open-goal-material="${goal.id}">Abrir material</button>` : `<button type="button" data-create-goal-material data-discipline="${escapeHTML(descriptor.discipline)}" data-subject="${escapeHTML(descriptor.subject)}" data-syllabus-item-id="${escapeHTML(descriptor.syllabusItemId)}">Cadastrar material</button><a class="button-link" href="#fabrica-resumos" data-view-link="fabrica-resumos">Produzir material</a>`}<button type="button" data-goal-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button type="button" data-goal-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button type="button" data-goal-action="Concluída" data-id="${goal.id}">Concluir meta</button><button type="button" class="danger" data-delete-goal="${goal.id}">Excluir meta</button></div><details class="daily-goal-more-actions"><summary>Mais ações</summary><div class="card-actions"><button type="button" data-goal-action="Estudo" data-id="${goal.id}">Registrar estudo manualmente</button><button type="button" data-goal-action="QuestoesTempo" data-id="${goal.id}">Registrar tempo de questões</button><button type="button" data-register-goal="${goal.id}">Registrar questões</button><button type="button" data-goal-history="${goal.id}">Ver histórico</button><button type="button" data-goal-action="Adiada" data-id="${goal.id}">Reagendar ou adiar</button><button type="button" data-goal-action="Não cumprida" data-id="${goal.id}">Não cumprir</button></div></details></div>`;
+  return `<div class="daily-goal-content">${goalExecutionSummaryHTML(goal, projectionEntry, materialState)}<div class="card-meta-grid"><span>Disciplina: ${escapeHTML(descriptor.discipline)}</span><span>${isFreeThemeGoalV661(goal) ? "Tema específico (fora do edital)" : "Assunto"}: ${escapeHTML(descriptor.subject)}</span><span>Tipo: ${escapeHTML(goal.type || goal.tipo || "-")}</span><span>Prioridade: ${escapeHTML(goal.priority || goal.prioridade || "-")}</span><span>Planejado nesta meta: ${Number(goal.minutes||0)} min</span><span>Estudo nesta meta: ${formatHours(goalDisplayMinutes(goal, "study"))}</span><span>Questões nesta meta: ${formatHours(goalDisplayMinutes(goal, "questions"))}</span><span>Total nesta meta: ${formatHours(goalDisplayMinutes(goal))}</span><span>Status: ${escapeHTML(status)}</span><span>Referência: ${escapeHTML(descriptor.reference || "-")}</span></div><div class="progress"><span style="width:${Math.min(100, Math.round((goalTotalActualMinutes(goal) / Math.max(1, Number(goal.minutes)||1)) * 100))}%"></span></div>${dailyGoalMaterialAvailabilityHTML(materialState)}${goalMaterialEstimateHTML(goal, projectionEntry, materialState)}${goalTimeComparisonHTML(goal, projectionEntry, materialState)}${goalMaterialsDetailsHTML(goal, projectionEntry, materialState)}<p class="notice" data-goal-material-notice="${goal.id}" ${goalMaterialNotices.has(goal.id) ? "" : "hidden"}>${escapeHTML(goalMaterialNotices.get(goal.id) || "")}</p><details class="daily-goal-history"><summary>Histórico resumido</summary><ul>${history || "<li>Sem histórico registrado.</li>"}</ul></details><div class="card-actions">${materialState.hasMaterials ? `<button type="button" data-open-goal-material="${goal.id}">Abrir material</button>` : `<button type="button" data-create-goal-material data-discipline="${escapeHTML(descriptor.discipline)}" data-subject="${escapeHTML(descriptor.subject)}" data-syllabus-item-id="${escapeHTML(descriptor.syllabusItemId)}">Cadastrar material</button><a class="button-link" href="#fabrica-resumos" data-view-link="fabrica-resumos">Produzir material</a>`}<button type="button" data-goal-timer="study" data-id="${goal.id}">Cronômetro estudo</button><button type="button" data-goal-timer="questions" data-id="${goal.id}">Cronômetro questões</button><button type="button" data-goal-action="Concluída" data-id="${goal.id}">Concluir meta</button><button type="button" class="danger" data-delete-goal="${goal.id}">Excluir meta</button></div><details class="daily-goal-more-actions"><summary>Mais ações</summary><div class="card-actions"><button type="button" data-goal-action="Estudo" data-id="${goal.id}">Registrar estudo manualmente</button><button type="button" data-goal-action="QuestoesTempo" data-id="${goal.id}">Registrar tempo de questões</button><button type="button" data-register-goal="${goal.id}">Registrar questões</button><button type="button" data-goal-history="${goal.id}">Ver histórico</button><button type="button" data-goal-action="Adiada" data-id="${goal.id}">Reagendar ou adiar</button><button type="button" data-goal-action="Não cumprida" data-id="${goal.id}">Não cumprir</button></div></details></div>`;
 }
 function dailyGoalDetailsCard(goal, number = 1, projectionEntry = null) {
   normalizeGoalTimeFields(goal);
@@ -47791,6 +47841,8 @@ elements.saveQuestionQcNumber?.addEventListener("click", () => {
   elements.questionQcNumberStatus.hidden = false; elements.questionQcNumberStatus.textContent = number ? `Numeração ${number} salva neste assunto.` : "Numeração do QC removida deste assunto.";
 });
 elements.questionSubjectSummary?.addEventListener("click", (event) => { const button=event.target.closest("[data-view-question-performance]"); if (!button) return; elements.questionFilterDiscipline.value=elements.questionDiscipline.value; renderQuestionSelectors(); elements.questionFilterSubject.value=button.dataset.viewQuestionPerformance; showView("historico-questoes"); });
+$("#goalFreeTheme")?.addEventListener("change", () => { syncGoalFreeThemeFieldsV661(); if (isGoalFreeThemeModeV661()) $("#goalFreeThemeText")?.focus?.(); });
+syncGoalFreeThemeFieldsV661();
 elements.goalSyllabusItem.addEventListener("change", () => { if (isOperationalSimuladosSubject(elements.goalSyllabusItem.value)) { elements.goalType.value = "Simulado"; return; } const item = getSyllabusById(elements.goalSyllabusItem.value); if (item) { elements.goalDiscipline.value = item.discipline; elements.goalPriority.value = item.priority; elements.goalType.value = goalTypeForItem(item); } });
 
 document.getElementById("openSimuladosManualGoal")?.addEventListener("click", () => {
@@ -47849,10 +47901,14 @@ function handleDailyGoalActionClick(event) {
 }
 elements.goalForm.addEventListener("submit", (event) => {
   event.preventDefault();
-  const operationalSimulado = isOperationalSimuladosDiscipline(elements.goalDiscipline.value)
+  const freeTheme = isGoalFreeThemeModeV661();
+  const freeThemeText = freeTheme ? String($("#goalFreeThemeText")?.value || "").replace(/\s+/g, " ").trim() : "";
+  const operationalSimulado = !freeTheme && isOperationalSimuladosDiscipline(elements.goalDiscipline.value)
     && isOperationalSimuladosSubject(elements.goalSyllabusItem.value);
-  const item = operationalSimulado ? null : getSyllabusById(elements.goalSyllabusItem.value);
-  if (!operationalSimulado && !item) return alert("Selecione um assunto do edital verticalizado.");
+  const item = (operationalSimulado || freeTheme) ? null : getSyllabusById(elements.goalSyllabusItem.value);
+  if (freeTheme && !elements.goalDiscipline.value) return alert("Selecione a disciplina do tema específico.");
+  if (freeTheme && !freeThemeText) return alert("Escreva o tema específico.");
+  if (!operationalSimulado && !freeTheme && !item) return alert("Selecione um assunto do edital verticalizado.");
   const selectedDate = elements.goalDate.value || todayISO();
   const plannedMinutes = Number(elements.goalMinutes.value);
   if (!Number.isFinite(plannedMinutes) || plannedMinutes < 1) return alert("Informe um tempo planejado válido.");
@@ -47868,6 +47924,7 @@ elements.goalForm.addEventListener("submit", (event) => {
   const status = elements.goalStatus.value || existing?.status || "Pendente";
   const subject = operationalSimulado
     ? SIMULADOS_OPERATIONAL.SUBJECT
+    : freeTheme ? freeThemeText
     : (existing?.syllabusItemId === item.id ? (existing.subject || item.subject) : item.subject);
   const payload = {
     id: existing?.id || createId(),
@@ -47875,11 +47932,12 @@ elements.goalForm.addEventListener("submit", (event) => {
     data: selectedDate,
     discipline: operationalSimulado ? SIMULADOS_OPERATIONAL.DISCIPLINE : elements.goalDiscipline.value,
     disciplina: operationalSimulado ? SIMULADOS_OPERATIONAL.DISCIPLINE : elements.goalDiscipline.value,
-    syllabusItemId: operationalSimulado ? "" : item.id,
+    syllabusItemId: (operationalSimulado || freeTheme) ? "" : item.id,
     subject,
     assunto: subject,
-    baseSubject: operationalSimulado ? SIMULADOS_OPERATIONAL.SUBJECT : item.subject,
-    referencia_edital: operationalSimulado ? "" : (item.reference || ""),
+    baseSubject: operationalSimulado ? SIMULADOS_OPERATIONAL.SUBJECT : freeTheme ? freeThemeText : item.subject,
+    referencia_edital: (operationalSimulado || freeTheme) ? "" : (item.reference || ""),
+    temaForaDoEdital: freeTheme,
     type: elements.goalType.value,
     tipo: elements.goalType.value.toLowerCase(),
     minutes: plannedMinutes,
