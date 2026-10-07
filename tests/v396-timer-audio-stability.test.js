@@ -24,7 +24,7 @@ function sharedStorage({ quota = false } = {}) {
   };
 }
 
-function loadRuntime({ storage = sharedStorage(), visible = true, focused = true } = {}) {
+function loadRuntime({ storage = sharedStorage(), visible = true, focused = true, preferences = { sound: true, motivationalSound: true }, audioEvents = [] } = {}) {
   class FakeAudioContext {
     constructor() {
       this.state = "running";
@@ -35,7 +35,7 @@ function loadRuntime({ storage = sharedStorage(), visible = true, focused = true
       return {
         type: "sine",
         frequency: { setValueAtTime() {} },
-        connect() {}, disconnect() {}, start() {}, stop() {}, addEventListener() {}
+        connect() {}, disconnect() {}, start() { audioEvents.push("start"); }, stop() {}, addEventListener() {}
       };
     }
     createGain() {
@@ -72,7 +72,7 @@ function loadRuntime({ storage = sharedStorage(), visible = true, focused = true
     window,
     localStorage: storage,
     MutationObserver: class { observe() {} disconnect() {} },
-    state: { settings: { timerPreferences: { sound: true, motivationalSound: true } } },
+    state: { settings: { timerPreferences: preferences } },
     floatingTimer: { goalId: "goal-1", elapsedSeconds: 20 * 60, paused: true },
     currentTimerSeconds() { return 20 * 60; },
     playTimerControlBeep() {},
@@ -91,6 +91,39 @@ function loadRuntime({ storage = sharedStorage(), visible = true, focused = true
   vm.runInNewContext(source, context, { filename: ROOT });
   return context.__ALDUS_TIMER_AUDIO_RECOVERY_V236__;
 }
+
+test("som desligado bloqueia alarme final, incentivo e prévia sem a proteção externa", async () => {
+  const audioEvents = [];
+  const runtime = loadRuntime({ preferences: { sound: false, motivationalSound: true }, audioEvents });
+  assert.equal(await runtime.playControlSound("start"), false);
+  assert.equal(await runtime.playMotivationalSound("tempo concluído:sessao-1", 100), false);
+  assert.equal(await runtime.playMotivationalSound("incentivo", 10), false);
+  assert.equal(await runtime.playMotivationalSound("teste", 100, { preview: true }), false);
+  assert.deepEqual(audioEvents, []);
+});
+
+test("preferência local desligada bloqueia áudio mesmo com estado restaurado ligado", async () => {
+  const storage = sharedStorage();
+  storage.setItem("metasEstudoTimerSoundEnabled", "false");
+  const audioEvents = [];
+  const runtime = loadRuntime({ storage, audioEvents });
+  assert.equal(await runtime.playMotivationalSound("tempo concluído:sessao-1", 100), false);
+  assert.equal(await runtime.playControlSound("start"), false);
+  assert.deepEqual(audioEvents, []);
+});
+
+test("desligar enquanto o áudio prepara cancela o disparo e reativar permite tocar", async () => {
+  const preferences = { sound: true, motivationalSound: true };
+  const audioEvents = [];
+  const runtime = loadRuntime({ preferences, audioEvents });
+  const pending = runtime.playMotivationalSound("teste", 100, { preview: true });
+  preferences.sound = false;
+  assert.equal(await pending, false);
+  assert.deepEqual(audioEvents, []);
+  preferences.sound = true;
+  assert.equal(await runtime.playMotivationalSound("teste", 100, { preview: true }), true);
+  assert.ok(audioEvents.length > 0);
+});
 
 test("duas abas tratam 20 minutos de foco como o mesmo evento mesmo com frases diferentes", () => {
   const storage = sharedStorage();
@@ -131,7 +164,7 @@ test("V396 entra antes do núcleo nos dois bootstraps", () => {
   const protectedLoader = fs.readFileSync("bootstrap-integrity-loader-v275.js", "utf8");
   const legacyLoader = fs.readFileSync("bootstrap-integrity-loader-v258.js", "utf8");
   for (const loader of [protectedLoader, legacyLoader]) {
-    assert.match(loader, /TIMER_AUDIO_STABILITY_SCRIPT = "timer-audio-stability-v396\.js\?v=20260825-timer-audio-stability-v396"/);
+    assert.match(loader, /TIMER_AUDIO_STABILITY_SCRIPT = "timer-audio-stability-v396\.js\?v=20260825-timer-audio-stability-v396&mute=v662"/);
     assert.ok(loader.indexOf("parent.insertBefore(timerAudioStability") < loader.indexOf("parent.insertBefore(core"));
   }
   assert.match(protectedLoader, /await timerAudioReady/);

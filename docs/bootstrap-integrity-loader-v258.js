@@ -3,11 +3,11 @@
 
   const VERSION = "20260901-bootstrap-current-bundle-v421";
   const UPDATE_FLOW_SCRIPT = "update-flow-v395.js?v=20260831-update-banner-stability-v414";
-  const TIMER_AUDIO_STABILITY_SCRIPT = "timer-audio-stability-v396.js?v=20260825-timer-audio-stability-v396";
+  const TIMER_AUDIO_STABILITY_SCRIPT = "timer-audio-stability-v396.js?v=20260825-timer-audio-stability-v396&mute=v662";
   const CORE_SCRIPT = "bootstrap-integrity-loader-v258-core.js?v=20260901-bootstrap-current-bundle-v421&planning=v397";
   const DIAGNOSTICS_SCRIPT = "duplicate-diagnostics-v260.js?v=20260806-duplicate-diagnostics-v260";
   const DIAGNOSTICS_STYLESHEET = "duplicate-diagnostics-v260.css?v=20260806-duplicate-diagnostics-v260";
-  const TIMER_SOUND_MASTER_SCRIPT = "timer-sound-master-v265.js?v=20260806-timer-sound-master-v265&hotfix=master-mute-hotfix1";
+  const TIMER_SOUND_MASTER_SCRIPT = "timer-sound-master-v265.js?v=20260806-timer-sound-master-v265&hotfix=master-mute-hotfix1&mute=v662";
   const TIMER_CONTROLS_SCRIPT = "timer-controls-hardening-v268.js?v=20260912-tempo-segundos-indicadores-v424";
   const PLANNING_SHIFT_PERSISTENCE_SCRIPT = "planning-shift-persistence-v283.js?v=20260809-planejamento-plantao-salvamento-v283";
   const HEADER_BRAND_FIX_SCRIPT = "header-brand-fix.js?v=20260815-logo-alta-qualidade-v338";

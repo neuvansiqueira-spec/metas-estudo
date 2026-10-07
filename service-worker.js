@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20261007-tema-especifico-plano-e-fabrica-v661-v424";
+const CURRENT_VERSION = "20261007-cronometro-som-desativado-v662-v424";
 const DASHBOARD_PENDING_SEMANTICS_V413 = "pendentes-separados-de-em-andamento";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const SECURITY_VERSION = "20260831-weekly-status-stability-v416";
@@ -31,15 +31,15 @@ const HISTORY_LAYOUT_STYLESHEET = `question-history-layout-v223.css?v=${HISTORY_
 const FACTORY_QUEUE_INTEGRITY = `factory-queue-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=factory-queue-integrity-hotfix5`;
 const FACTORY_DESTINATION_INTEGRITY = "factory-destination-integrity-v237.js?v=20260804-pastas-destino-classificacao-exata-v237&hotfix=factory-destination-on-demand-v354";
 const TIMER_AUDIO_RECOVERY = "timer-audio-recovery-v236.js?v=20260810-timer-alarm-audio-v297&hotfix=timer-audio-recovery-hotfix5";
-const TIMER_AUDIO_STABILITY = `timer-audio-stability-v396.js?v=${TIMER_AUDIO_STABILITY_VERSION}`;
-const TIMER_AUDIO_UNIFIER = "timer-audio-unifier-v241.js?v=20260805-timer-audio-unified-v241&hotfix=timer-audio-unifier-hotfix1";
+const TIMER_AUDIO_STABILITY = `timer-audio-stability-v396.js?v=${TIMER_AUDIO_STABILITY_VERSION}&mute=v662`;
+const TIMER_AUDIO_UNIFIER = "timer-audio-unifier-v241.js?v=20260805-timer-audio-unified-v241&hotfix=timer-audio-unifier-hotfix1&mute=v662";
 const TIMER_MESSAGE_DEDUPE = "timer-message-dedupe-v239.js?v=20260805-timer-message-last-five-v242&hotfix=timer-message-last-five-hotfix1";
 const DAILY_SUMMARY_TIME_FORMAT = "daily-summary-time-format-v243.js?v=20260805-daily-summary-hours-minutes-v243&hotfix=daily-summary-time-format-hotfix4";
 const TIMER_SESSION_INTEGRITY = `timer-session-integrity-v236.js?v=${CURRENT_VERSION}&hotfix=timer-session-integrity-hotfix1`;
 const INTEGRITY_LOADER = `planning-integrity-loader-v235.js?v=${CURRENT_VERSION}`;
 const INTEGRITY_CORE = `planning-integrity-v235.js?v=${CURRENT_VERSION}`;
 const CATASTROPHIC_STATE_GUARD = `catastrophic-state-guard-v275.js?v=${PROTECTION_VERSION}`;
-const BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275.js?v=${FAST_BOOTSTRAP_VERSION}&planning=v397&update=v395&audio=v396`;
+const BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275.js?v=${FAST_BOOTSTRAP_VERSION}&planning=v397&update=v395&audio=v396&mute=v662`;
 const BOOTSTRAP_FAST_PATH = `bootstrap-fast-path-v351.js?v=${FAST_BOOTSTRAP_VERSION}&planning=v397`;
 const BOOTSTRAP_CORE = `bootstrap-integrity-loader-v258-core.js?v=${FAST_BOOTSTRAP_VERSION}`;
 const UPDATE_FLOW_SCRIPT = `update-flow-v395.js?v=${UPDATE_FLOW_VERSION}`;

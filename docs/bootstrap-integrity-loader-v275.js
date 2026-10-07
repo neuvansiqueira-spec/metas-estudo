@@ -4,13 +4,13 @@
   const VERSION = "20260901-bootstrap-current-bundle-v421";
   const LEGACY_VERSION = "20260815-bootstrap-performance-v342";
   const UPDATE_FLOW_SCRIPT = "update-flow-v395.js?v=20260831-update-banner-stability-v414";
-  const TIMER_AUDIO_STABILITY_SCRIPT = "timer-audio-stability-v396.js?v=20260825-timer-audio-stability-v396";
+  const TIMER_AUDIO_STABILITY_SCRIPT = "timer-audio-stability-v396.js?v=20260825-timer-audio-stability-v396&mute=v662";
   const CORE_SCRIPT = `bootstrap-fast-path-v351.js?v=${VERSION}&planning=v397`;
   const DIAGNOSTICS_SCRIPT = `duplicate-diagnostics-v260.js?v=${LEGACY_VERSION}`;
   const DIAGNOSTICS_STYLESHEET = `duplicate-diagnostics-v260.css?v=${LEGACY_VERSION}`;
   const RECOVERY_SCRIPT = `recovery-safety-v275.js?v=${LEGACY_VERSION}`;
   const PLANNING_SHIFT_PERSISTENCE_SCRIPT = `planning-shift-persistence-v283.js?v=${LEGACY_VERSION}`;
-  const TIMER_SOUND_MASTER_SCRIPT = `timer-sound-master-v265.js?v=${LEGACY_VERSION}&hotfix=master-mute-hotfix1`;
+  const TIMER_SOUND_MASTER_SCRIPT = `timer-sound-master-v265.js?v=${LEGACY_VERSION}&hotfix=master-mute-hotfix1&mute=v662`;
   const TIMER_CONTROLS_SCRIPT = `timer-controls-hardening-v268.js?v=20260912-tempo-segundos-indicadores-v424&hotfix=timer-controls-hardening-hotfix2`;
 
   function installStylesheet(baseUrl) {

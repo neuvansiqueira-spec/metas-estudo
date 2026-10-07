@@ -160,3 +160,15 @@ test("raiz, docs, loader e cache publicam o V241", () => {
     assert.match(worker, /timer-audio-unified-v241-hotfix1/);
   }
 });
+
+test("conclusão e teste respeitam som desligado mesmo sem o wrapper geral", async () => {
+  for (const recovery of [true, false]) {
+    const runtime = loadRuntime({ recovery });
+    runtime.context.state.settings.timerPreferences.sound = false;
+    assert.equal(await runtime.context.playTimerCompletionAlarm("completed"), false);
+    assert.equal(await runtime.context.playTimerBeep("test"), false);
+    assert.equal(await runtime.api.playUnifiedAlarm("completed"), false);
+    assert.equal(runtime.events.central.length, 0);
+    assert.equal(runtime.events.legacyCompletion.length, 0);
+  }
+});

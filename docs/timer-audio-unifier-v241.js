@@ -49,6 +49,15 @@
   }
 
   async function playUnifiedAlarm(type = "completed") {
+    let soundEnabled = globalThis.__ALDUS_TIMER_SOUND_MASTER_V265__?.masterSoundEnabled?.() !== false;
+    try {
+      if (typeof state === "object" && state?.settings?.timerPreferences?.sound === false) soundEnabled = false;
+      if (localStorage.getItem("metasEstudoTimerSoundEnabled") === "false") soundEnabled = false;
+    } catch {}
+    if (!soundEnabled) {
+      silenceUnifiedAlarm();
+      return false;
+    }
     const normalizedType = type === "test" ? "test" : "completed";
     const api = recoveryApi();
 

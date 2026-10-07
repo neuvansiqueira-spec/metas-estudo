@@ -206,7 +206,7 @@
     if (globalThis.__ALDUS_TIMER_AUDIO_UNIFIER_V241__ || document.getElementById(TIMER_AUDIO_UNIFIER_SCRIPT_ID)) return true;
     const script = document.createElement("script");
     script.id = TIMER_AUDIO_UNIFIER_SCRIPT_ID;
-    script.src = `timer-audio-unifier-v241.js?v=${encodeURIComponent(TIMER_AUDIO_UNIFIER_VERSION)}&hotfix=${encodeURIComponent(TIMER_AUDIO_UNIFIER_HOTFIX)}`;
+    script.src = `timer-audio-unifier-v241.js?v=${encodeURIComponent(TIMER_AUDIO_UNIFIER_VERSION)}&hotfix=${encodeURIComponent(TIMER_AUDIO_UNIFIER_HOTFIX)}&mute=v662`;
     script.async = false;
     script.addEventListener("error", () => {
       script.remove();

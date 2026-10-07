@@ -184,6 +184,13 @@ test("preferência local desligada prevalece sobre estado antigo ligado", async 
   assert.equal(runtime.events.alarm, 0);
 });
 
+test("estado atual desligado não é sobreposto por preferência antiga ligada", async () => {
+  const runtime = loadRuntime({ stateSound: false, storedSound: true });
+  assert.equal(runtime.api.masterSoundEnabled(), false);
+  assert.equal(await runtime.context.playTimerCompletionAlarm("completed"), false);
+  assert.equal(runtime.events.alarm, 0);
+});
+
 test("reativar a chave geral libera o áudio sem tocar prévia automática", async () => {
   const runtime = loadRuntime({ stateSound: false, storedSound: false });
   const handler = runtime.events.listeners.find((item) => item.type === "change" && item.capture)?.listener;
@@ -218,21 +225,16 @@ test("preserva as marcas dos controladores anteriores para evitar sobrescrita", 
   assert.equal(runtime.api.installed(), true);
 });
 
-test("raiz, docs e service worker publicam a V265", () => {
+test("raiz, docs e bootstraps ativos carregam o controle geral de som", () => {
   assert.equal(source, fs.readFileSync(DOCS_FILE, "utf8"));
   assert.match(source, /20260806-timer-sound-master-v265/);
   assert.match(source, /master-mute-hotfix1/);
 
-  for (const file of ["service-worker-v265.js", "docs/service-worker-v265.js"]) {
-    const worker = fs.readFileSync(file, "utf8");
-    assert.match(worker, /timer-sound-master-v265\.js/);
-    assert.match(worker, /injectTimerSoundMaster/);
-    assert.match(worker, /master-mute-hotfix1/);
-  }
-
-  for (const file of ["service-worker-v166.js", "docs/service-worker-v166.js"]) {
-    const wrapper = fs.readFileSync(file, "utf8");
-    assert.match(wrapper, /service-worker-v265\.js/);
-    assert.match(wrapper, /20260806-timer-sound-master-v265/);
+  for (const file of ["bootstrap-integrity-loader-v258.js", "bootstrap-integrity-loader-v275.js"]) {
+    const loader = fs.readFileSync(file, "utf8");
+    assert.equal(loader, fs.readFileSync(`docs/${file}`, "utf8"));
+    assert.match(loader, /timer-sound-master-v265\.js/);
+    assert.match(loader, /parent\.insertBefore\(soundMaster/);
+    assert.match(loader, /master-mute-hotfix1&mute=v662/);
   }
 });

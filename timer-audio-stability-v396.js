@@ -52,6 +52,10 @@
   }
 
   function controlSoundEnabled() {
+    if (globalThis.__ALDUS_TIMER_SOUND_MASTER_V265__?.masterSoundEnabled?.() === false) return false;
+    try {
+      if (localStorage.getItem("metasEstudoTimerSoundEnabled") === "false") return false;
+    } catch {}
     const preference = timerPreferences()?.sound;
     return typeof preference === "boolean" ? preference : true;
   }
@@ -357,7 +361,7 @@
     lastControlAt = now;
 
     const context = await unlockAudio();
-    if (!context) return false;
+    if (!context || !controlSoundEnabled()) return false;
     const tone = normalizedType === "pause"
       ? { frequency: 440, duration: 0.13, volume: 0.085 }
       : normalizedType === "resume"
@@ -370,6 +374,7 @@
   }
 
   async function playMotivationalSound(signature = "", milestone = 10, { preview = false } = {}) {
+    if (!controlSoundEnabled()) return false;
     if (!preview && !motivationalSoundEnabled()) return false;
     const normalizedSignature = String(signature || milestone || "motivacao").trim().replace(/\s+/g, " ");
     const now = Date.now();
@@ -386,7 +391,7 @@
     }
 
     const context = await unlockAudio();
-    if (!context) return false;
+    if (!context || !controlSoundEnabled() || (!preview && !motivationalSoundEnabled())) return false;
     const finalMessage = Number(milestone) >= 100
       || /100\s*%|tempo conclu[ií]do|sess[aã]o conclu[ií]da|final/i.test(normalizedSignature);
     const priority = preview

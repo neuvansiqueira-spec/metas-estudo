@@ -34,7 +34,7 @@ test("V395 renova o cache sem remover a estratégia de performance", () => {
   // correções posteriores sem invalidar a proteção contra recarga automática.
   assert.match(worker, /no-auto-reload-v395/);
   assert.match(worker, /const UPDATE_FLOW_SCRIPT = `update-flow-v395\.js\?v=\$\{UPDATE_FLOW_VERSION\}`/);
-  assert.match(worker, /BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275\.js\?v=\$\{FAST_BOOTSTRAP_VERSION\}&planning=v397&update=v395(?:&audio=v396)?`/);
+  assert.match(worker, /BOOTSTRAP_PROTECTED = `bootstrap-integrity-loader-v275\.js\?v=\$\{FAST_BOOTSTRAP_VERSION\}&planning=v397&update=v395&audio=v396&mute=v662`/);
   assert.match(worker, /async function cachedFirstNavigation/);
   assert.match(worker, /async function cacheFirstStatic/);
 });

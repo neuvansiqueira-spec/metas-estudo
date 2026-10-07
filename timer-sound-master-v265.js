@@ -41,8 +41,9 @@
 
   function masterSoundEnabled() {
     const stored = storedMasterPreference();
-    if (typeof stored === "boolean") return stored;
     const preference = timerPreferences()?.sound;
+    if (stored === false || preference === false) return false;
+    if (stored === true) return true;
     return typeof preference === "boolean" ? preference : true;
   }
 
