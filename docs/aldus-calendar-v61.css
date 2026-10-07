@@ -170,6 +170,40 @@ html[data-aldus-theme="premium-stable"] #view-calendario-metas :is(.goal-status-
   color: #ffd7db !important;
 }
 
+/* As cores comunicam o estado das metas sem acrescentar rótulos visuais. */
+html[data-aldus-theme="premium-stable"] #view-calendario-metas :is(.goal-pill, .syllabus-card).calendar-goal-state-pending {
+  border-color: rgba(91, 190, 255, .66) !important;
+  background: linear-gradient(145deg, rgba(8, 42, 69, .98), rgba(8, 52, 84, .94)) !important;
+  color: #d7efff !important;
+  box-shadow: inset 4px 0 0 #5bbdff !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas :is(.goal-pill, .syllabus-card).calendar-goal-state-done {
+  border-color: rgba(66, 211, 164, .62) !important;
+  background: linear-gradient(145deg, rgba(6, 46, 55, .98), rgba(7, 59, 63, .94)) !important;
+  color: #c9fbe9 !important;
+  box-shadow: inset 4px 0 0 #42d3a4 !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas :is(.goal-pill, .syllabus-card).calendar-goal-state-missed {
+  border-color: rgba(242, 210, 115, .68) !important;
+  background: linear-gradient(145deg, rgba(56, 45, 17, .98), rgba(72, 55, 16, .94)) !important;
+  color: #ffe8a3 !important;
+  box-shadow: inset 4px 0 0 #f2d273 !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas :is(.syllabus-card).calendar-goal-state-pending::before {
+  background: #5bbdff !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas :is(.syllabus-card).calendar-goal-state-done::before {
+  background: #42d3a4 !important;
+}
+
+html[data-aldus-theme="premium-stable"] #view-calendario-metas :is(.syllabus-card).calendar-goal-state-missed::before {
+  background: #f2d273 !important;
+}
+
 html[data-aldus-theme="premium-stable"] #view-calendario-metas .weight-row,
 html[data-aldus-theme="premium-stable"] #view-calendario-metas .calendar-settings-section .bulk-box {
   min-width: 0 !important;
