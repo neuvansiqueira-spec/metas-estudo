@@ -27,7 +27,7 @@
     leiJurisprudencia: "LEI + JURISPRUDÊNCIA",
     jurisprudencia: "JURISPRUDÊNCIA",
     peca: "PEÇA",
-    consolidacao: "CONSOLIDAÇÃO FINAL",
+    consolidacao: "REVISÃO FINAL + PENTE-FINO",
     fusaoFinal: "FUSÃO FINAL",
     padronizacaoFinalSumario: "PADRONIZAÇÃO FINAL + SUMÁRIO"
   };

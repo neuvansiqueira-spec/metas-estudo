@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20261007-cronometro-som-desativado-v662-v424";
+  const VERSION = "20261007-factory-pente-fino-v663-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {

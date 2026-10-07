@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20261007-cronometro-som-desativado-v662-v424",
+  "version": "20261007-factory-pente-fino-v663-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",
