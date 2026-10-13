@@ -143,6 +143,8 @@
     if (!entry || typeof entry !== "object") return { changed: false, status: "invalid" };
     if (disciplines(entry).some(x => canon(x) === "SIMULADOS")) return { changed: false, status: "excluded-simulados" };
     const i = itemOf(entry), currentFingerprint = fingerprint ?? treeFingerprint(tree);
+    // V666 — tema do edital PCMA com pasta fixada em PCMA_FINAIS: não mexer.
+    if (i && i.factoryDestinationFolderPinnedV666) return { changed: false, status: "pinned-v666", url: existing(i) };
     if (i[MANAGED] === VERSION && i[TREE_FINGERPRINT] === currentFingerprint && String(i.factoryDestinationFolder || "").trim()) return { changed: false, status: "topic" };
     const stampBase = managed(i) ? "" : `${currentFingerprint}#${inputSignature(entry)}#`;
     if (stampBase && typeof i[UNMATCHED] === "string" && i[UNMATCHED].startsWith(stampBase)) return { changed: false, status: i[UNMATCHED].slice(stampBase.length) };

@@ -204,6 +204,8 @@
 
   function applyToItem(item, catalog, options = {}) {
     if (!item || typeof item !== "object") return { changed: false, status: "invalid" };
+    // V666 — tema do edital PCMA com pasta fixada em PCMA_FINAIS: não mexer.
+    if (item.factoryDestinationFolderPinnedV666) return { changed: false, status: "pinned-v666", url: existingDestination(item) };
     const existing = existingDestination(item);
     const managed = isManagedDestination(item);
     if (existing && !managed && !options.overwriteManual) return { changed: false, status: "manual-preserved", url: existing };

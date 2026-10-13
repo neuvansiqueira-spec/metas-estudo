@@ -164,6 +164,7 @@ const jsSources = [
   "factory-destination-catalog-v222.js",
   "factory-destination-folders-v222.js",
   "factory-destination-recursive-v232.js",
+  "factory-pcma-folders-v666.js",
   "question-accuracy-spectrum.js",
   "timer-material-link-fix.js",
   "question-history-pie.js",
