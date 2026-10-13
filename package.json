@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20261013-edital-pcma-delegado-v664-v424",
+  "version": "20261013-fabrica-escolher-dia-v665-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

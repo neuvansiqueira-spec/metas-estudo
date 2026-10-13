@@ -169,6 +169,7 @@ const jsSources = [
   "question-history-pie.js",
   "side-nav-collapse-v91.js",
   "factory-plan-day-v159.js",
+  "factory-day-picker-v665.js",
   "factory-lei-prompt-v123.js",
   "factory-jurisprudencia-prompt-v231.js",
   "factory-jurisprudencia-prompt-v332.js",
