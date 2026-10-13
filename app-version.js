@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20261007-factory-pente-fino-v663-v424";
+  const VERSION = "20261013-edital-pcma-delegado-v664-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
