@@ -1,11 +1,25 @@
 (() => {
   "use strict";
 
-  const VERSION = "20260920-factory-drive-bridge-v630";
+  const VERSION = "20261013-factory-drive-bridge-v630-copiar-livre-v667";
   const BRIDGE_URL = "http://127.0.0.1:8765";
   const STATUS_ID = "factoryDriveBridgeStatusV630";
   const PACKAGE_MARKER = "PACOTE LOCAL DE PRÉ-TRIAGEM — GOOGLE DRIVE";
   const cache = new Map();
+
+  // V667 (13/10/2026): a pré-busca da TRIAGEM leva de 1 a 3 minutos. Se outro prompt
+  // fosse gerado no mesmo painel nesse intervalo (caso do Tema específico, que não
+  // redesenha o painel), o "Copiar prompt completo" seguia travado: o clique não
+  // copiava e a TRIAGEM copiada antes era colada de novo no lugar do RESUMO/AULA.
+  // E, ao terminar, o pacote era anexado ao prompt do outro módulo.
+  const buscando = new Map();
+
+  function aindaETriagem(id, key) {
+    const atual = promptMeta(id);
+    return Boolean(atual.textarea)
+      && bridgeKey(atual.disciplina, atual.tema) === key
+      && /^MÓDULO: TRIAGEM\./m.test(atual.textarea.value);
+  }
 
   // V638: o estado "sem bridge" tinha a mesma aparência do estado normal, e em 22/09/2026
   // vários prompts foram gerados sem pré-triagem sem que isso fosse percebido.
@@ -201,6 +215,8 @@
     }
 
     setPromptBusy(id, true, "Pesquisando fontes no Drive pelo bridge local…");
+    const busca = {};
+    buscando.set(id, busca);
     try {
       const result = await bridgeFetch("/search", {
         method: "POST",
@@ -212,12 +228,17 @@
         })
       });
       cache.set(key, result);
+      // Outro prompt já está no painel: o pacote fica guardado para o próximo clique em TRIAGEM.
+      if (!aindaETriagem(id, key)) return;
       appendPackage(id, result);
       setPromptBusy(id, false, `Pré-triagem concluída: ${result.total_selecionados || 0} arquivo(s) priorizado(s). Prompt pronto para copiar.`);
       checkHealth(false);
     } catch (error) {
+      if (!aindaETriagem(id, key)) { checkHealth(false); return; }
       setPromptBusy(id, false, "⚠️ BRIDGE DESLIGADO — este prompt saiu SEM a pré-triagem do Drive e SEM o pacote de jurisprudência. Prompt original mantido; o guardião costuma religar o bridge em até 1 minuto: aguarde e gere o prompt de novo.", true);
       checkHealth(false);
+    } finally {
+      if (buscando.get(id) === busca) buscando.delete(id);
     }
   }
 
@@ -226,7 +247,12 @@
     if (!button) return;
     const raw = String(button.dataset.factoryPrompt || "");
     const [id, type] = raw.split("|");
-    if (!id || type !== "triagem") return;
+    if (!id) return;
+    if (type !== "triagem") {
+      // O painel passou a mostrar outro prompt: o botão Copiar não pode esperar a busca da TRIAGEM.
+      if (buscando.has(id)) setPromptBusy(id, false);
+      return;
+    }
 
     // O handler nativo da Fábrica está no #factoryList e executa antes deste
     // listener no document. Assim, o textarea já existe quando chegamos aqui.

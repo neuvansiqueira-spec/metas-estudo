@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20261013-pastas-pcma-finais-v666b-v424";
+  const VERSION = "20261013-copiar-livre-v667-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
