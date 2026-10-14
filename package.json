@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20261013-pastas-pcma-finais-v666-v424",
+  "version": "20261013-pastas-pcma-finais-v666b-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

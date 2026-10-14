@@ -43,6 +43,19 @@ test("V666 fixa a pasta do tema, limpa o carimbo antigo e respeita troca feita p
   assert.equal(item.factoryDestinationFolder, "https://drive.google.com/drive/folders/escolhida-por-ele");
 });
 
+test("V666 desfaz troca feita por rotina automática antiga (carimbo V237)", () => {
+  const api = load();
+  const item = { editalLink: { itemIds: ["pcma-delegado-v664-218"] } };
+  api.pinItem(item);
+  const nova = item.factoryDestinationFolder;
+  item.factoryDestinationFolder = "https://drive.google.com/drive/folders/antiga";
+  item.factoryDestinationFolderCatalogVersion = "20260804-pastas-destino-classificacao-exata-v237";
+  item.factoryDestinationFolderMatchType = "exact-v237-topic";
+  assert.equal(api.pinItem(item), true);
+  assert.equal(item.factoryDestinationFolder, nova);
+  assert.equal(item.factoryDestinationFolderCatalogVersion, undefined);
+});
+
 test("V666 não mexe em tema fora da V664 nem em tema arquivado", () => {
   const api = load();
   const peca = { editalLink: { itemIds: ["peca-1"] }, factoryDestinationFolder: "x" };

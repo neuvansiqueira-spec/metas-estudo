@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20261013-pastas-pcma-finais-v666-v424";
+  const VERSION = "20261013-pastas-pcma-finais-v666b-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
@@ -53429,7 +53429,15 @@ document.addEventListener("keydown", (event) => {
     if (!topic) return false;
     const target = url(topic.id);
     const pinned = item[PIN];
-    if (pinned && pinned.url !== String(item.factoryDestinationFolder || "")) return false;
+    // Pasta diferente da fixada: se veio de uma rotina automática antiga
+    // (deixa o carimbo dela), volta para a nova; se não tem carimbo, foi ele
+    // que trocou na mão e a escolha dele fica. Visto em 13/10/2026: uma cópia
+    // antiga da V237 guardada no navegador trocou 154 temas logo depois da
+    // publicação.
+    if (pinned && pinned.url !== String(item.factoryDestinationFolder || "")) {
+      const automatic = MANAGED_FIELDS.some((field) => item[field] !== undefined && item[field] !== "");
+      if (!automatic) return false;
+    }
     if (pinned && pinned.url === target && item.factoryDestinationFolder === target) return false;
     if (item.factoryDestinationFolder && item.factoryDestinationFolder !== target) {
       item.factoryDestinationFolderPreviousUrl = item.factoryDestinationFolder;
