@@ -1,6 +1,6 @@
 {
   "name": "metas-estudo",
-  "version": "20261021-leitor-tdah-v669-v424",
+  "version": "20261022-leitor-tdah-v670-v424",
   "private": true,
   "scripts": {
     "build": "node build-bundles.mjs",

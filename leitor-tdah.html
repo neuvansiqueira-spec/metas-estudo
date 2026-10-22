@@ -210,6 +210,8 @@ function aplicaPrefs(){document.documentElement.dataset.theme=tema;document.docu
 aplicaPrefs();
 /* ---- parâmetros quando aberto pela Fábrica do site ---- */
 const PARAM=new URLSearchParams(location.search);const ITEM=PARAM.get('item')||'',TEMA=PARAM.get('tema')||'',DISC=PARAM.get('disciplina')||'',PASTA=PARAM.get('pasta')||'';
+// V670: aberto pela Fábrica (site), QUESTÕES leva ao Treino do site; avulso continua copiando o pedido.
+const NO_SITE=!!ITEM&&/^https?:/.test(location.protocol);
 /* ---- armazenamento: IndexedDB próprio do leitor (localStorage antigo só é lido) ---- */
 const IDB_NOME='aldus-leitor-tdah';
 function idb(){return idb.p||(idb.p=new Promise((res,rej)=>{const r=indexedDB.open(IDB_NOME,1);r.onupgradeneeded=()=>{const db=r.result;for(const n of ['estados','itens'])if(!db.objectStoreNames.contains(n))db.createObjectStore(n)};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}))}
@@ -492,7 +494,7 @@ function temTool(k){const t=T(),b=B(),ct=cT(),cb=cB(),u=S.user;switch(k){
  case 'prov':return !!u.prov[t.id];case 'juris':return !!((ct.jurisprudencia||[]).length||(u.jurUser[t.id]||[]).length);case 'porque':return !!ct.por_que;case 'notas':return !!u.notas[t.id];
  case 'glos':return !!(ct.glossario||[]).length;case 'mnemo':return !!((cb.mnemonicos||[]).length||(u.mnemoUser[b.id]||[]).length);case 'mapa':return !!cb.mapa_mental;case 'fluxo':return !!cb.fluxograma;
  case 'img':return !!(u.imagens[b.id]||cb.imagem);case 'tutor':return !!(cb.tutor||[]).length;case 'cards':return !!((ct.flashcards||[]).length||(u.cardsUser[t.id]||[]).length);case 'resumo':return !!cb.resumo_inteligente;case 'facil':return !!ct.texto_facil;case 'perg':return !!(u.duvidas[t.id]||[]).length}return false}
-function toolBtn([k,ic,nm]){const pr=['quest','qconc','qpraz','qexc'].includes(k);return `<button class="tool ${S.user.tool===k?'ativo':''}" onclick="setTool('${k}')">${k==='prov'&&S.user.prov[T().id]?'★':ic} ${nm}${temTool(k)?'<span class="tem">●</span>':''}${pr?'<span class="tem" style="color:var(--muted)">GPT</span>':''}</button>`}
+function toolBtn([k,ic,nm]){const pr=['quest','qconc','qpraz','qexc'].includes(k);return `<button class="tool ${S.user.tool===k?'ativo':''}" onclick="setTool('${k}')">${k==='prov'&&S.user.prov[T().id]?'★':ic} ${nm}${temTool(k)?'<span class="tem">●</span>':''}${pr?`<span class="tem" style="color:var(--muted)">${k==='quest'&&NO_SITE?'SITE':'GPT'}</span>`:''}</button>`}
 function setTool(k){if(k==='prov'){const id=T().id;if(S.user.prov[id])delete S.user.prov[id];else S.user.prov[id]=1;salvar();render();toast(S.user.prov[id]?'Marcado como provável de prova.':'Marca retirada.');return}S.user.tool=S.user.tool===k?'':k;if(TOOLS10.some(x=>x[0]===k))S.user.mais=true;salvar();render()}
 const vazioPacote='<p class="muted">Ainda sem conteúdo. Abra <b>🤖 Gerar conteúdo</b>, copie o pedido deste artigo e cole a resposta da Joana.</p>';
 const doArtigo='<span class="selo">DO ARTIGO</span>';
@@ -507,6 +509,18 @@ PROMPTS.juris=()=>`${ctxPrompt()}\n\nPesquise jurisprudência do STF e do STJ so
 PROMPTS.cards=()=>{const id=T().id;const tem=[...(cT().flashcards||[]),...(S.user.cardsUser[id]||[])].map(c=>'- '+limpa(c.frente));return `${ctxPrompt()}\n\nCrie 5 FLASHCARDS NOVOS sobre este trecho, de nível de prova de Delegado, cada um por um ângulo diferente (conceito, requisito, exceção, distinção com instituto vizinho, aplicação a caso concreto, pegadinha). ${tem.length?'Não repita estes, que eu já tenho:\n'+tem.join('\n')+'\n':''}Verso curto e preciso. Não invente lei nem julgado.\nResponda com UM bloco de código JSON (sem arquivo para download):\n{"flashcards":[{"angulo":"","frente":"","verso":""}]}`};
 PROMPTS.fluxo=()=>{const b=B();return `Artigo: ${limpa(b.titulo)}${b.capitulo?' ('+limpa(b.capitulo)+')':''}\nTexto do resumo:\n${b.trechos.filter(t=>t.elegivel).map(t=>'- '+limpa(t.texto)).join('\n')}\n\nFaça um FLUXOGRAMA deste artigo como ${REGRA_FLUXO}\nNão invente lei, prazo nem exceção.\nResponda com UM bloco de código JSON (sem arquivo para download):\n{"fluxograma":{"tipo":"decisao ou sequencia","nos":[{"id":"n1","tipo":"condicao, consequencia ou excecao","texto":""}],"ligacoes":[{"de":"n1","para":"n2","rotulo":"sim ou não"}]}}`};
 async function copiarPrompt(k){const ok=await copiar(PROMPTS[k]());toast(ok?'Pedido copiado. Cole numa conversa nova do ChatGPT.':'Não consegui copiar.')}
+/* V670: QUESTÕES → Treino do site. A aba do site que abriu o leitor (parâmetro aba) abre o Treino; sem ela, outra aba do site. */
+const canalSite=('BroadcastChannel' in window)?new BroadcastChannel('aldus-leitor-tdah-site'):null;
+function semSite(){abrirModal(`<h2>📝 Treino de questões</h2><p>Não achei o site Aldus aberto neste navegador.</p><ol><li>Clique em <b>Abrir o site Aldus</b>.</li><li>Espere o site carregar.</li><li>Volte aqui e clique de novo em <b>📝 Abrir o Treino no site</b>.</li></ol><div class="row"><a class="btn prim" href="./" target="_blank" rel="noopener" onclick="fecharModal()">🌐 Abrir o site Aldus</a><button class="btn" onclick="fecharModal()">Fechar</button></div>`)}
+function abrirTreino(){const msg=t=>{const p=$('#treinoMsg');if(p)p.innerHTML=t};if(!canalSite){semSite();return}
+ const id=Math.random().toString(36).slice(2);let fim=false;msg('⏳ Abrindo o Treino na aba do site…');
+ const acabar=()=>{fim=true;canalSite.removeEventListener('message',ouvir);clearTimeout(tm)};
+ const ouvir=e=>{const d=e.data||{};if(fim||d.id!==id)return;acabar();
+  if(d.tipo==='treino-aberto'){msg('✅ <b>O Treino abriu na aba do site Aldus</b> (a aba com 📝 no nome). Clique nela.');toast('Treino aberto na aba do site.')}
+  else msg('⚠️ A aba do site não conseguiu abrir o Treino. Na Fábrica, abra este assunto e clique em <b>Treino de questões</b>.')};
+ const tm=setTimeout(()=>{if(fim)return;acabar();msg('');semSite()},4000);
+ canalSite.addEventListener('message',ouvir);
+ canalSite.postMessage({tipo:'abrir-treino',id,item:ITEM,tema:TEMA,disciplina:DISC,aba:PARAM.get('aba')||''})}
 const NOME_COLAR={juris:'julgados',cards:'flashcards',fluxo:'fluxograma'};
 function colarFerramenta(k){abrirModal(`<h2>📥 Colar ${NOME_COLAR[k]} do ChatGPT</h2><p class="muted">Copie a resposta da Joana (botão ⧉ do quadro de código), clique na caixa e aperte Ctrl+V.</p><textarea id="taFerr" style="min-height:40vh" placeholder="Cole aqui"></textarea><div class="row"><button class="btn prim" onclick="guardarFerramenta('${k}')">✔ Guardar</button><button class="btn" onclick="fecharModal()">Cancelar</button></div>`);setTimeout(()=>$('#taFerr').focus(),50)}
 function guardarFerramenta(k){const objs=extrairJsons($('#taFerr').value);const id=T().id,bid=B().id;let n=0;
@@ -519,7 +533,8 @@ const OPC_DUV=['O significado','Um exemplo prático','Comparação com instituto
 function painel(){const k=S.user.tool;if(!k)return '';const t=T(),b=B(),ct=cT(),cb=cB(),u=S.user;let h='';
  const nome=[...TOOLS8,...TOOLS10].find(x=>x[0]===k);h+=`<h4>${nome[1]} ${nome[2]}${CAMPOS_BLOCO_TOOL.includes(k)?doArtigo:''}</h4>`;
  switch(k){
- case 'quest':case 'qconc':case 'qpraz':case 'qexc':
+ case 'quest':if(NO_SITE){h+=`<p>As questões são feitas no <b>Treino de questões do site</b>, com o assunto deste resumo.</p><div class="row"><button class="btn prim" onclick="abrirTreino()">📝 Abrir o Treino no site</button></div><p id="treinoMsg" style="margin-top:.6rem"></p>`;break}
+ case 'qconc':case 'qpraz':case 'qexc':
   h+=`<p>Esta ferramenta é feita <b>na hora, no ChatGPT</b>: a Joana pergunta, você responde e ela corrige.</p><div class="row"><button class="btn prim" onclick="copiarPrompt('${k}')">📋 Copiar pedido para o ChatGPT</button></div><details style="margin-top:.8rem"><summary class="muted">Ver o pedido</summary><p style="white-space:pre-wrap">${esc(PROMPTS[k]())}</p></details>`;break;
  case 'porque':h+=ct.por_que?`<p style="font-size:1.08rem;line-height:1.6">${negrito(ct.por_que)}</p>`:(t.elegivel?vazioPacote:'<p class="muted">Trecho sem conteúdo para estudar.</p>');break;
  case 'facil':{if(!ct.texto_facil){h+=t.elegivel?vazioPacote:'<p class="muted">Trecho sem conteúdo para estudar.</p>';break}const of=u.verOriginal;h+=`<div class="row" style="margin-top:0"><button class="btn ${!of?'prim':''}" onclick="S.user.verOriginal=false;render()">✍️ Texto fácil</button><button class="btn ${of?'prim':''}" onclick="S.user.verOriginal=true;render()">📄 Texto original</button></div><p style="font-size:var(--fs);line-height:1.6;white-space:pre-wrap;margin-top:.9rem">${negrito(of?t.texto:ct.texto_facil)}</p>`;break}
@@ -695,14 +710,14 @@ function ligacaoQuadro(t){const m=limpa(t.texto).match(/((?:REsp|AREsp|HC|RHC|RE
  for(let bi=0;bi<S.inv.blocos.length;bi++){const b=S.inv.blocos[bi];if(ehQuadro(b))continue;const ti=b.trechos.findIndex(x=>limpa(x.texto).includes(num));if(ti>=0)return `<div class="row"><button class="btn sm" onclick="ir(${bi},${ti})">➜ Estudar este julgado no ${esc(b.titulo.split(':')[0])}</button></div>`}return ''}
 
 /* ============ revisão e cobertura ============ */
-function abrirRevisao(){const mt=mapaTrechos();const lnk=id=>{const r=mt[id];return r?`<a href="#" onclick="fecharModal();ir(${r.bi},${r.ti});return false">${esc(r.b.titulo.split(':')[0])} · ${esc(r.t.rotulo||('trecho '+(r.ti+1)))}</a>`:esc(id)};
+function abrirRevisao(){const mt=mapaTrechos();const lnk=(id,err)=>{const r=mt[id];return r?`<a href="#" onclick="fecharModal();${err?"S.user.tool='cards';S.user.soErrados=true;fcI=0;":''}ir(${r.bi},${r.ti});return false">${esc(r.b.titulo.split(':')[0])} · ${esc(r.t.rotulo||('trecho '+(r.ti+1)))}</a>`:esc(id)};
  const prov=Object.keys(S.user.prov);const err=Object.entries(S.user.cards).filter(([,v])=>Object.values(v).includes('err')).map(([k])=>k);const notas=Object.keys(S.user.notas);
  const bls=S.inv.blocos,trs=bls.flatMap(b=>b.trechos),el=trs.filter(t=>t.elegivel);const pr=el.filter(t=>situacaoTrecho(t)==='pronto').length,pa=el.filter(t=>situacaoTrecho(t)==='parcial').length;
  const semArt=bls.filter(b=>blocoPedivel(b)&&!S.content.blocos[b.id]);const nfc=el.reduce((a,t)=>a+((S.content.trechos[t.id]||{}).flashcards||[]).length,0);const poucos=el.filter(t=>situacaoTrecho(t)!=='pendente'&&((S.content.trechos[t.id]||{}).flashcards||[]).length<3);
  const pend=el.filter(t=>((S.content.trechos[t.id]||{}).pendencias||[]).length);
  abrirModal(`<h2>⭐ Revisão</h2>
  <h3>☆ Prováveis de prova (${prov.length})</h3>${prov.length?`<ul>${prov.map(i=>`<li>${lnk(i)}</li>`).join('')}</ul>`:'<p class="muted">Nenhum marcado.</p>'}
- <h3>✖ Flashcards que errei (${err.length} trechos)</h3>${err.length?`<ul>${err.map(i=>`<li>${lnk(i)}</li>`).join('')}</ul>`:'<p class="muted">Nenhum.</p>'}
+ <h3>✖ Flashcards que errei (${err.length} trechos)</h3>${err.length?`<ul>${err.map(i=>`<li>${lnk(i,1)}</li>`).join('')}</ul>`:'<p class="muted">Nenhum.</p>'}
  <h3>✏️ Anotações (${notas.length})</h3>${notas.length?`<ul>${notas.map(i=>`<li>${lnk(i)}: <span class="muted">${esc(S.user.notas[i].slice(0,120))}</span></li>`).join('')}</ul>`:'<p class="muted">Nenhuma.</p>'}
  <h3>📊 Cobertura</h3><table class="lst"><tr><td>Artigos</td><td>${bls.length}</td></tr><tr><td>Trechos / para estudar</td><td>${trs.length} / ${el.length}</td></tr><tr><td>Trechos prontos · parciais · sem conteúdo</td><td><span class="ok-t">${pr}</span> · <span class="pa-t">${pa}</span> · ${el.length-pr-pa}</td></tr><tr><td>Flashcards</td><td>${nfc}</td></tr><tr><td>Artigos sem mapa/fluxograma/tutor/resumo</td><td>${semArt.length?semArt.map(b=>esc(b.titulo.split(':')[0])).join(', '):'nenhum'}</td></tr><tr><td>Trechos com menos de 3 flashcards</td><td>${poucos.length}</td></tr></table>
  ${pend.length?`<details><summary>Pendências registradas pela Joana (${pend.length})</summary><ul>${pend.map(t=>`<li>${lnk(t.id)}: ${esc((S.content.trechos[t.id].pendencias||[]).join(' '))}</li>`).join('')}</ul></details>`:''}
@@ -757,7 +772,7 @@ $('#bMais').onclick=()=>{fs=Math.min(34,fs+2);lsSet('leitor-tdah:fs',fs);aplicaP
 $('#bTema').onclick=()=>{tema=tema==='auto'?'dark':tema==='dark'?'light':'auto';lsSet('leitor-tdah:tema',tema);aplicaPrefs();toast('Tema: '+({auto:'automático',dark:'escuro',light:'claro'}[tema]))};
 window.addEventListener('beforeunload',()=>{if(S&&pendente)gravarAgora()});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&S&&pendente)gravarAgora()});
-render();carregarInicial().then(()=>render());
+render();carregarInicial().then(()=>{render();if(S&&PARAM.get('revisar'))abrirRevisao()});
 window.LT={docxParaInventario,importarObjetos,extrairJsons,pedidoBloco,get S(){return S},set S(v){S=v;fixar()},render,situacaoBloco};
 </script>
 </body>

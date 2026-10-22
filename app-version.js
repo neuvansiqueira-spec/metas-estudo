@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20261021-leitor-tdah-v669-v424";
+  const VERSION = "20261022-leitor-tdah-v670-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
