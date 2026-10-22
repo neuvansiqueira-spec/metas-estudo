@@ -130,7 +130,23 @@ dl.campos dd{margin:0}
 .fl-n.grande{font-size:1.3rem;padding:1.4rem 1.2rem;max-width:780px;margin:0 auto;width:100%}
 .fl-cam{font-size:.88rem;color:var(--muted);margin:0 auto .8rem;text-align:center;max-width:780px}
 .fl-n .t{font-size:.72rem}
-@media(max-width:860px){.fl-ramos{flex-direction:column}.fl-ramo::before{display:none}}
+.esc-linha{display:grid;grid-template-columns:minmax(0,1fr) 120px minmax(0,1fr);align-items:center;width:100%}
+.esc-linha>.fl-n{height:100%;display:flex;flex-direction:column;justify-content:center}
+.esc-seta{position:relative;height:4px;background:var(--muted);margin-right:14px;display:flex;align-items:center;justify-content:center}
+.esc-seta::after{content:'';position:absolute;right:-14px;top:50%;transform:translateY(-50%);border-top:9px solid transparent;border-bottom:9px solid transparent;border-left:14px solid var(--muted)}
+.esc-seta.sim{background:var(--green)}.esc-seta.sim::after{border-left-color:var(--green)}
+.esc-seta.nao{background:var(--red)}.esc-seta.nao::after{border-left-color:var(--red)}
+.esc-seta .fl-rot{background:var(--panel);position:relative;z-index:1}
+.esc-desce{position:relative;width:calc((100% - 120px)/2);height:58px;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.esc-desce::before{content:'';position:absolute;left:50%;top:0;bottom:0;width:4px;transform:translateX(-50%);background:var(--muted)}
+.esc-desce::after{content:'';position:absolute;left:50%;bottom:-14px;transform:translateX(-50%);border-left:9px solid transparent;border-right:9px solid transparent;border-top:14px solid var(--muted)}
+.esc-desce.sim::before{background:var(--green)}.esc-desce.sim::after{border-top-color:var(--green)}
+.esc-desce.nao::before{background:var(--red)}.esc-desce.nao::after{border-top-color:var(--red)}
+.esc-desce .fl-rot{position:relative;z-index:1;background:var(--panel)}
+.esc-final{width:100%}
+.fl-col{align-items:stretch}
+.fl-col>.esc-desce{align-self:flex-start}
+@media(max-width:860px){.fl-ramos{flex-direction:column}.fl-ramo::before{display:none}.esc-linha{grid-template-columns:1fr}.esc-seta{width:4px;height:40px;margin:0 auto 14px}.esc-seta::after{right:auto;left:50%;top:auto;bottom:-14px;transform:translateX(-50%);border-left:9px solid transparent;border-right:9px solid transparent;border-top:14px solid var(--muted)}.esc-desce{width:100%}}
 .toast{position:fixed;left:50%;bottom:1.3rem;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:.7rem 1.1rem;border-radius:12px;font-weight:700;z-index:99;display:none;max-width:90vw}
 .modal{position:fixed;inset:0;background:#000a;z-index:50;display:none;align-items:flex-start;justify-content:center;padding:4vh 1rem;overflow:auto}
 .modal.on{display:flex}
@@ -197,7 +213,7 @@ async function idbSet(st,k,v){try{const db=await idb();await new Promise((res,re
 async function lerEstado(aid){if(!aid)return null;const v=await idbGet('estados',aid);if(v&&v.inv)return v;try{const l=JSON.parse(lsGet('leitor-tdah:'+aid)||'null');if(l&&l.inv)return l}catch(e){}return null}
 const canal=('BroadcastChannel' in window)?new BroadcastChannel('aldus-leitor-tdah'):null;const ABA=Math.random().toString(36).slice(2);
 let tSalvar=null,pendente=false;
-async function gravarAgora(){if(!S)return;clearTimeout(tSalvar);pendente=false;S.salvoEm=new Date().toISOString();const aid=S.inv.assunto_id;const ok=await idbSet('estados',aid,S);lsSet('leitor-tdah:ultimo',aid);if(ITEM)await idbSet('itens',ITEM,aid);if(canal)canal.postMessage({aid,aba:ABA,em:S.salvoEm});if(!ok)toast('⚠️ Não consegui salvar neste navegador.')}
+async function gravarAgora(){if(!S)return;clearTimeout(tSalvar);pendente=false;S.salvoEm=new Date().toISOString();const aid=S.inv.assunto_id;const ok=await idbSet('estados',aid,S);lsSet('leitor-tdah:ultimo',aid);if(ITEM)await idbSet('itens',ITEM,aid);if(canal)canal.postMessage({aid,aba:ABA,em:S.salvoEm});if(!ok&&!lsSet('leitor-tdah:'+aid,JSON.stringify(S)))toast('⚠️ Não consegui salvar neste navegador.')}
 function salvar(){if(!S)return;pendente=true;clearTimeout(tSalvar);tSalvar=setTimeout(gravarAgora,300)}
 if(canal)canal.onmessage=async e=>{const m=e.data||{};if(!S||m.aba===ABA||m.aid!==S.inv.assunto_id||pendente)return;const v=await lerEstado(m.aid);if(v&&(!S.salvoEm||v.salvoEm>S.salvoEm)){const pos=S.user.pos,tool=S.user.tool;S=v;fixar();S.user.pos=pos;S.user.tool=tool;render()}};
 async function carregarInicial(){
@@ -449,7 +465,7 @@ const PROMPTS={
  qconc:()=>`${ctxPrompt()}\n\nFaça um quiz rápido de 3 itens (A–D) só com os CONCEITOS jurídicos que aparecem neste trecho. Um item por vez; espere minha resposta e corrija.`,
  qpraz:()=>`${ctxPrompt()}\n\nFaça um quiz rápido de até 3 itens (A–D) só com PRAZOS, penas, marcos temporais e idades deste trecho. Se não houver nenhum, diga só "Este trecho não tem prazos". Um item por vez; espere minha resposta e corrija.`,
  qexc:()=>`${ctxPrompt()}\n\nFaça um quiz rápido de até 3 itens (A–D) só com EXCEÇÕES, ressalvas e vedações reais deste trecho. Não invente exceção; se não houver, diga só "Este trecho não tem exceções". Um item por vez; espere minha resposta e corrija.`};
-const REGRA_FLUXO=`ROTEIRO PARA RESOLVER QUESTÃO DE PROVA (4 a 8 nós). Comece por uma PERGUNTA concreta sobre o caso (tipo "condicao"), por exemplo "O titular é absolutamente incapaz?". Cada pergunta tem duas saídas, "sim" e "não". Cada saída termina numa RESPOSTA concreta (tipo "consequencia" ou "excecao") com o artigo, por exemplo "Não corre prescrição — art. 198, I". PROIBIDO nó genérico como "Identificar…", "Examinar…", "Analisar…", "Início" ou "Fim". Se o artigo não tiver decisão real, faça uma sequência de 3 a 5 passos concretos ("tipo": "sequencia").`;
+const REGRA_FLUXO=`ROTEIRO PARA RESOLVER QUESTÃO DE PROVA (4 a 8 nós). Comece por uma PERGUNTA concreta sobre o caso (tipo "condicao"), por exemplo "O titular é absolutamente incapaz?". Cada pergunta tem duas saídas, "sim" e "não". Cada saída termina numa RESPOSTA concreta (tipo "consequencia" ou "excecao") com o artigo, por exemplo "Não corre prescrição — art. 198, I". PROIBIDO nó genérico como "Identificar…", "Examinar…", "Analisar…", "Início" ou "Fim". Se o artigo não tiver decisão real, faça uma sequência de 3 a 5 passos concretos ("tipo": "sequencia"). TEXTO CURTO: no máximo 18 palavras por nó e UMA hipótese por nó; se houver várias hipóteses ou prazos, faça mais perguntas encadeadas em vez de listar tudo numa caixa. Prefira a forma em escada: a saída que resolve vai para uma RESPOSTA, a outra segue para a PERGUNTA seguinte.`;
 PROMPTS.juris=()=>`${ctxPrompt()}\n\nPesquise jurisprudência do STF e do STJ sobre ESTE trecho, em fonte oficial (stf.jus.br, stj.jus.br, informativos, súmulas, temas repetitivos e de repercussão geral). Traga até 5 julgados, os mais cobrados em prova. Inclua só o que você encontrou de verdade, com o link; não invente número de processo. Diga se a aplicação ao trecho é "direta" ou "relacionada".\nResponda com UM bloco de código JSON (sem arquivo para download):\n{"jurisprudencia":[{"tribunal":"","orgao":"","processo":"","data":"","tese":"","fundamentos":"","fonte":"link","aplicacao":"direta ou relacionada"}]}\nSe não achar nada confiável, responda {"jurisprudencia":[]} e explique em uma linha.`;
 PROMPTS.cards=()=>{const id=T().id;const tem=[...(cT().flashcards||[]),...(S.user.cardsUser[id]||[])].map(c=>'- '+limpa(c.frente));return `${ctxPrompt()}\n\nCrie 5 FLASHCARDS NOVOS sobre este trecho, de nível de prova de Delegado, cada um por um ângulo diferente (conceito, requisito, exceção, distinção com instituto vizinho, aplicação a caso concreto, pegadinha). ${tem.length?'Não repita estes, que eu já tenho:\n'+tem.join('\n')+'\n':''}Verso curto e preciso. Não invente lei nem julgado.\nResponda com UM bloco de código JSON (sem arquivo para download):\n{"flashcards":[{"angulo":"","frente":"","verso":""}]}`};
 PROMPTS.fluxo=()=>{const b=B();return `Artigo: ${limpa(b.titulo)}${b.capitulo?' ('+limpa(b.capitulo)+')':''}\nTexto do resumo:\n${b.trechos.filter(t=>t.elegivel).map(t=>'- '+limpa(t.texto)).join('\n')}\n\nFaça um FLUXOGRAMA deste artigo como ${REGRA_FLUXO}\nNão invente lei, prazo nem exceção.\nResponda com UM bloco de código JSON (sem arquivo para download):\n{"fluxograma":{"tipo":"decisao ou sequencia","nos":[{"id":"n1","tipo":"condicao, consequencia ou excecao","texto":""}],"ligacoes":[{"de":"n1","para":"n2","rotulo":"sim ou não"}]}}`};
@@ -566,7 +582,18 @@ function painelFluxo(){const f=cB().fluxograma;const refazer=`<div class="row" s
   if(sai.length===1){const l=sai[0],c=cls(l.rotulo);h+=`<div class="fl-seta ${c}">${l.rotulo?`<span class="fl-rot ${c}">${esc(l.rotulo)}</span>`:''}</div>`+no(l.para,dep+1)}
   else if(sai.length>1)h+=`<div class="fl-tronco"></div><div class="fl-ramos">${sai.map(l=>{const c=cls(l.rotulo);return `<div class="fl-ramo"><div class="fl-seta ${c}"><span class="fl-rot ${c}">${esc(l.rotulo||'segue')}</span></div><div class="fl-col">${no(l.para,dep+1)}</div></div>`}).join('')}</div>`;
   return h};
- let h=refazer+abas+`<div class="fl"><div class="fl-col">${no(ini.id,0)}</div>${nos.filter(n=>!vis.has(n.id)).map(n=>`<div class="fl-col" style="margin-top:1.2rem">${no(n.id,0)}</div>`).join('')}</div>`;
+ // Escada: pergunta com uma saída que termina (resposta) e outra que continua vira uma linha inteira.
+ const terminal=id=>!lig.some(l=>l.de===id);
+ const caixa=(n,extra='')=>`<div class="fl-n ${esc(n.tipo)} ${extra}"><div class="t">${tipoNome(n)}</div><div contenteditable="${S.user.editFluxo?'true':'false'}" data-nid="${esc(n.id)}" class="flt">${negrito(txt(n))}</div></div>`;
+ const escada=(inicio)=>{let h='',cur=inicio,primeiro=true;
+  while(cur&&porId[cur]&&!vis.has(cur)){const n=porId[cur];const sai=lig.filter(l=>l.de===cur);
+   const fim=sai.find(l=>terminal(l.para)&&porId[l.para]),segue=sai.find(l=>l!==fim);
+   if(n.tipo==='condicao'&&sai.length===2&&fim&&segue){vis.add(cur);vis.add(fim.para);const cf=cls(fim.rotulo),cs=cls(segue.rotulo);
+    h+=`<div class="esc-linha">${caixa(n)}<div class="esc-seta ${cf}"><span class="fl-rot ${cf}">${esc(fim.rotulo||'segue')}</span></div>${caixa(porId[fim.para])}</div>`;
+    h+=`<div class="esc-desce ${cs}"><span class="fl-rot ${cs}">${esc(segue.rotulo||'segue')}</span></div>`;cur=segue.para;primeiro=false;continue}
+   h+=primeiro?no(cur,0):`<div class="esc-final">${no(cur,0)}</div>`;break}
+  return h};
+ let h=refazer+abas+`<div class="fl"><div class="fl-col">${escada(ini.id)}</div>${nos.filter(n=>!vis.has(n.id)).map(n=>`<div class="fl-col" style="margin-top:1.2rem">${no(n.id,0)}</div>`).join('')}</div>`;
  h+=`<div class="row">${S.user.editFluxo?`<button class="btn ok" onclick="salvarFluxo()">💾 Salvar minha versão</button>`:`<button class="btn sm" onclick="S.user.editFluxo=true;render()">✎ Editar textos</button>`}${Object.keys(meus).length?`<button class="btn sm" onclick="delete S.user.fluxoUser[B().id];salvar();render()">Voltar ao da Joana</button>`:''}<button class="btn sm" onclick="copiar(ordemFluxoTexto()).then(()=>toast('Fluxograma copiado como texto.'))">⤓ Exportar (copiar texto)</button></div>`;return h}
 let flAt=null,flCam=[],flBloco='',flOpcoes=[];
 function flAndar(i){const o=flOpcoes[i];if(!o)return;flCam.push(o.passo);flAt=o.para;render()}
