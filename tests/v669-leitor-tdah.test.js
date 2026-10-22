@@ -62,3 +62,10 @@ test('V669: o leitor salva no IndexedDB próprio e nunca no estado do site', () 
   assert.doesNotMatch(rootLeitor, /saveData\(/);
   assert.doesNotMatch(rootModule, /saveData\(|state\.[a-zA-Z]+\s*=/);
 });
+
+test('V669 Etapas 2 e 3: leitor abre o Word pelo programa da Fábrica e salva no Drive', () => {
+  assert.match(rootLeitor, /const BRIDGE=PARAM\.get\('bridge'\)\|\|'http:\/\/127\.0\.0\.1:8765'/);
+  for (const rota of ['/leitor/resumo', '/leitor/carregar', '/leitor/salvar']) assert.ok(rootLeitor.includes(`'${rota}'`), rota);
+  assert.match(rootLeitor, /function aplicarWordNovo\(\)/);
+  assert.match(rootLeitor, /salvo só neste navegador/);
+});

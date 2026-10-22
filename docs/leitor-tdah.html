@@ -213,13 +213,44 @@ async function idbSet(st,k,v){try{const db=await idb();await new Promise((res,re
 async function lerEstado(aid){if(!aid)return null;const v=await idbGet('estados',aid);if(v&&v.inv)return v;try{const l=JSON.parse(lsGet('leitor-tdah:'+aid)||'null');if(l&&l.inv)return l}catch(e){}return null}
 const canal=('BroadcastChannel' in window)?new BroadcastChannel('aldus-leitor-tdah'):null;const ABA=Math.random().toString(36).slice(2);
 let tSalvar=null,pendente=false;
-async function gravarAgora(){if(!S)return;clearTimeout(tSalvar);pendente=false;S.salvoEm=new Date().toISOString();const aid=S.inv.assunto_id;const ok=await idbSet('estados',aid,S);lsSet('leitor-tdah:ultimo',aid);if(ITEM)await idbSet('itens',ITEM,aid);if(canal)canal.postMessage({aid,aba:ABA,em:S.salvoEm});if(!ok&&!lsSet('leitor-tdah:'+aid,JSON.stringify(S)))toast('⚠️ Não consegui salvar neste navegador.')}
+async function gravarAgora(){if(!S)return;clearTimeout(tSalvar);pendente=false;S.salvoEm=new Date().toISOString();const aid=S.inv.assunto_id;const ok=await idbSet('estados',aid,S);lsSet('leitor-tdah:ultimo',aid);if(ITEM)await idbSet('itens',ITEM,aid);if(canal)canal.postMessage({aid,aba:ABA,em:S.salvoEm});if(!ok&&!lsSet('leitor-tdah:'+aid,JSON.stringify(S)))toast('⚠️ Não consegui salvar neste navegador.');salvarNuvem()}
 function salvar(){if(!S)return;pendente=true;clearTimeout(tSalvar);tSalvar=setTimeout(gravarAgora,300)}
 if(canal)canal.onmessage=async e=>{const m=e.data||{};if(!S||m.aba===ABA||m.aid!==S.inv.assunto_id||pendente)return;const v=await lerEstado(m.aid);if(v&&(!S.salvoEm||v.salvoEm>S.salvoEm)){const pos=S.user.pos,tool=S.user.tool;S=v;fixar();S.user.pos=pos;S.user.tool=tool;render()}};
+/* ---- programa da Fábrica (bridge local): abrir o Word e salvar no Drive ---- */
+const BRIDGE=PARAM.get('bridge')||'http://127.0.0.1:8765';
+const nuvem={estado:'',em:'',msg:''};
+async function ponte(rota,corpo,ms=60000){if(!/^https?:/.test(location.protocol))return null;const c=new AbortController();const t=setTimeout(()=>c.abort(),ms);
+ try{const r=await fetch(BRIDGE+rota,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corpo),signal:c.signal});const j=await r.json();return j}catch(e){return null}finally{clearTimeout(t)}}
+const pastaAtual=()=>PASTA||(S&&S.inv&&S.inv.pasta)||'';
+async function invDaPasta(){const r=await ponte('/leitor/resumo',{pasta:pastaAtual()});if(!r)return {erro:'O programa da Fábrica não respondeu.'};if(!r.ok)return {erro:r.erro||'Erro no programa da Fábrica.'};
+ const bin=Uint8Array.from(atob(r.docx_base64),c=>c.charCodeAt(0));const inv=await docxParaInventario(bin.buffer,r.nome);inv.docx_modificado=r.modificado_em;inv.pasta=pastaAtual();return {inv}}
+async function estadoDoDrive(aid){const r=await ponte('/leitor/carregar',{pasta:pastaAtual(),assunto_id:aid});if(!r||!r.ok||!r.existe)return null;try{const v=JSON.parse(r.dados);return v&&v.inv?v:null}catch(e){return null}}
+let tNuvem=null;
+function salvarNuvem(ja){if(!S||!pastaAtual()||!/^https?:/.test(location.protocol))return;clearTimeout(tNuvem);tNuvem=setTimeout(async()=>{tNuvem=null;nuvem.estado='salvando';pintaNuvem();
+ const r=await ponte('/leitor/salvar',{pasta:pastaAtual(),assunto_id:S.inv.assunto_id,dados:JSON.stringify(S)},120000);
+ if(r&&r.ok){nuvem.estado='ok';nuvem.em=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});nuvem.salvoEm=S.salvoEm}else{nuvem.estado='erro';nuvem.msg=r?r.erro:'programa da Fábrica desligado'}pintaNuvem()},ja?0:3000)}
+function textoNuvem(){if(!pastaAtual()||!/^https?:/.test(location.protocol))return (S.user.exportadoEm!==S.salvoEm)?'💾 salvo neste navegador · ainda não está no HTML':'✅ incorporado ao HTML salvo';
+ if(nuvem.estado==='salvando')return '☁️ salvando no Drive…';if(nuvem.estado==='ok')return '☁️ salvo no Drive às '+nuvem.em;if(nuvem.estado==='erro')return '⚠️ salvo só neste navegador ('+esc(nuvem.msg)+')';return '💾 salvo neste navegador'}
+function pintaNuvem(){const el=$('#avisoSalvo');if(el)el.innerHTML=textoNuvem()}
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&tNuvem)salvarNuvem(true)});
+/* resumo refeito: mantém o conteúdo dos trechos que não mudaram */
+let avisoWordNovo=null;
+async function conferirWordNovo(){if(!S||!pastaAtual())return;const r=await invDaPasta();if(!r.inv)return;const novo=r.inv;novo.assunto_id=S.inv.assunto_id;
+ if(S.inv.docx_modificado&&novo.docx_modificado&&novo.docx_modificado!==S.inv.docx_modificado){avisoWordNovo=novo;render()}else if(!S.inv.docx_modificado){S.inv.docx_modificado=novo.docx_modificado;S.inv.pasta=pastaAtual();salvar()}}
+function aplicarWordNovo(){const novo=avisoWordNovo;if(!novo)return;const velho=new Map(S.inv.blocos.flatMap(b=>b.trechos).map(t=>[t.id,limpa(t.texto)]));let mantidos=0,trocados=0;
+ const novos=new Map(novo.blocos.flatMap(b=>b.trechos).map(t=>[t.id,limpa(t.texto)]));
+ for(const id of Object.keys(S.content.trechos)){if(novos.get(id)===velho.get(id)&&novos.has(id))mantidos++;else{delete S.content.trechos[id];trocados++}}
+ const ids=new Set(novo.blocos.map(b=>b.id));for(const id of Object.keys(S.content.blocos))if(!ids.has(id))delete S.content.blocos[id];
+ S.inv=novo;avisoWordNovo=null;S.user.pos={b:0,t:0};salvar();render();toast(`Resumo atualizado: ${mantidos} trecho(s) mantidos${trocados?`, ${trocados} mudaram e precisam de conteúdo novo`:''}.`,5000)}
 async function carregarInicial(){
  let emb=null;try{const t=$('#dados-embutidos').textContent.trim();if(t&&t!=='{}')emb=JSON.parse(t)}catch(e){}
  if(emb&&emb.inv){const l=await lerEstado(emb.inv.assunto_id);S=(l&&l.salvoEm&&emb.salvoEm&&l.salvoEm>emb.salvoEm)?l:emb;fixar();return}
- if(ITEM){const aid=await idbGet('itens',ITEM);const l=await lerEstado(aid);if(l){S=l;fixar()}return}
+ if(ITEM){const aid=await idbGet('itens',ITEM);const l=await lerEstado(aid);
+  if(l){S=l;fixar();if(PASTA){render();const d=await estadoDoDrive(S.inv.assunto_id);if(d&&d.salvoEm&&(!S.salvoEm||d.salvoEm>S.salvoEm)){S=d;fixar();await idbSet('estados',S.inv.assunto_id,S);toast('Trouxe do Drive a versão mais nova deste resumo.')}conferirWordNovo()}return}
+  if(PASTA){$('#app').innerHTML='<div class="vazio"><h1>📖 Leitor TDAH</h1><p>⏳ Abrindo o resumo da pasta do Drive…</p></div>';const r=await invDaPasta();
+   if(r.inv){const d=await estadoDoDrive(r.inv.assunto_id);S=d||{inv:r.inv,content:{blocos:{},trechos:{}},user:novoUser(),salvoEm:''};fixar();if(!S.inv.docx_modificado)S.inv.docx_modificado=r.inv.docx_modificado;S.inv.pasta=PASTA;await gravarAgora();if(d)toast('Resumo aberto com o progresso salvo no Drive.');else{toast('Resumo aberto direto da pasta do Drive.');setTimeout(()=>{if(!temConteudoAlgum())abrirArtigos()},400)}}
+   else{nuvem.estado='erro';nuvem.msg=r.erro;toast('Não consegui abrir sozinho: '+r.erro+' Escolha o Word em "Abrir resumo".',6000)}}
+  return}
  const l=await lerEstado(lsGet('leitor-tdah:ultimo'));if(l){S=l;fixar()}
 }
 function fixar(){S.content=S.content||{blocos:{},trechos:{}};S.content.blocos=S.content.blocos||{};S.content.trechos=S.content.trechos||{};S.user=Object.assign(novoUser(),S.user||{})}
@@ -295,7 +326,7 @@ async function docxParaInventario(buf,nomeArq){
 async function abrirArquivo(f){
  try{
   let inv=null,extra=null;
-  if(/\.docx$/i.test(f.name))inv=await docxParaInventario(await f.arrayBuffer(),f.name);
+  if(/\.docx$/i.test(f.name)){inv=await docxParaInventario(await f.arrayBuffer(),f.name);if(PASTA)inv.pasta=PASTA}
   else{const j=JSON.parse(await f.text());if(j.inv&&j.content){abrirEstado(j);return}if(j.inventario){inv=j.inventario;extra=j.pacotes}else inv=j;if(!inv.blocos)throw new Error('JSON não é um inventário do Leitor TDAH.')}
   const l=await lerEstado(inv.assunto_id);
   if(l&&l.inv&&confirm('Este resumo já foi aberto antes neste computador. Continuar de onde parou (com o conteúdo e as anotações já salvos)?\n\nOK = continuar · Cancelar = começar do zero')){S=l;fixar()}
@@ -658,7 +689,8 @@ function render(){
  <div class="hier">${esc(b.capitulo||'')}</div><div class="art-tit">${esc(b.titulo)}</div>${subt?`<div class="subt">${esc(limpa(subt.texto).replace(/^[^\p{L}\p{N}§]*/u,''))}</div>`:''}
  <div class="nav-row"><button class="btn" onclick="passo(-1)">↑ Anterior</button><button class="btn" onclick="passo(1)">Próximo ↓</button>
  <select onchange="ir(+this.value,0)">${S.inv.blocos.map((x,i)=>`<option value="${i}" ${i===S.user.pos.b?'selected':''}>${i+1}. ${esc(x.titulo.slice(0,60))}</option>`).join('')}</select>
- <span class="muted" style="font-size:.78rem;margin-left:auto">${naoExp?'💾 salvo neste navegador · ainda não está no HTML':'✅ incorporado ao HTML salvo'}</span></div>
+ <span id="avisoSalvo" class="muted" style="font-size:.78rem;margin-left:auto">${textoNuvem()}</span></div>
+ ${avisoWordNovo?`<div class="item" style="border-color:var(--amber);margin-bottom:.8rem">📝 <b>O Word deste resumo mudou</b>${avisoWordNovo.docx_modificado?' ('+esc(avisoWordNovo.docx_modificado.replace('T',' às ').slice(0,19))+')':''}. Atualizar mantém o conteúdo dos trechos que não mudaram.<div class="row"><button class="btn prim" onclick="aplicarWordNovo()">🔄 Atualizar o leitor</button><button class="btn" onclick="avisoWordNovo=null;render()">Agora não</button></div></div>`:''}
  <div class="card" style="--cat:${cor}"><div class="card-head"><div class="k">${nomeCat} · ${b.trechos.filter(x=>!ehSub(x)).indexOf(t)+1} DE ${b.trechos.filter(x=>!ehSub(x)).length}${S.user.prov[t.id]?' · ★ PROVÁVEL':''}</div><div class="r">${esc(t.rotulo||b.titulo)}</div></div>
  <div class="card-body"><div class="dest"><button class="btn" onclick="destacar('b')"><b>B</b> Negrito</button><button class="btn" onclick="destacar('up')">AA Maiúsculas</button><button class="btn" onclick="destacar('y')"><span class="sw" style="background:var(--hl-y)"></span> Grifo</button><button class="btn" onclick="destacar('g')"><span class="sw" style="background:var(--hl-g)"></span> Grifo</button><button class="btn" onclick="destacar('p')"><span class="sw" style="background:var(--hl-p)"></span> Grifo</button><button class="btn" onclick="destacar('rem')">Tirar destaque</button><button class="btn" onclick="restaurar()">Original</button></div>
  <div id="texto">${textoHTML(t)}</div>${!t.elegivel?`<p class="muted" style="font-size:.85rem">${esc(t.motivo||'Sem conteúdo para estudar.')}</p>`:''}${ehQuadro(b)?ligacaoQuadro(t):''}</div></div>
