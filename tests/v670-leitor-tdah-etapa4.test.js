@@ -52,3 +52,12 @@ test('V670: link de revisão abre a revisão do leitor e o errado vai direto aos
   assert.ok(rootLeitor.includes("if(S&&PARAM.get('revisar'))abrirRevisao()"));
   assert.ok(rootLeitor.includes("S.user.tool='cards';S.user.soErrados=true;"));
 });
+
+test('V670.1: leitor abre o Word do MAPA HIERÁRQUICO (eixo = Axis, instituto = Institute)', () => {
+  assert.ok(rootLeitor.includes("if(/^toc/.test(alvo))nivel=0;else if(/eixo|cap[ií]tulo|\\baxis\\b/.test(alvo))nivel=2;"));
+  assert.ok(rootLeitor.includes("else if(/artigo|institut/.test(alvo))nivel=3"));
+  assert.ok(rootLeitor.includes(".replace(/^MAPA_HIERARQUICO_(RESUMO_AULA_)?/i,'')"));
+  assert.ok(rootLeitor.includes("titulo:titulo||preTit||nomeBase"));
+  assert.ok(rootLeitor.includes("const aid=(titulo||nomeBase).normalize("));
+  assert.doesNotMatch(rootLeitor, /\x08/);
+});

@@ -285,7 +285,7 @@ async function docxParaInventario(buf,nomeArq){
   const pPr=[...p.children].find(c=>c.localName==='pPr');let nivel=0;
   if(pPr){const ps=[...pPr.children].find(c=>c.localName==='pStyle');const id=ps?val(ps):'';const nm=nomes[id]||id.toLowerCase();
    const m=nm.match(/(?:heading|t[íi]tulo|titulo)\s*(\d)/)||id.match(/^(?:Heading|Ttulo|Titulo|Título)(\d)$/i);if(m)nivel=+m[1];else if(nivelEst[id])nivel=nivelEst[id];
-   else{const alvo=(nm+' '+id).toLowerCase();if(/eixo|cap[ií]tulo/.test(alvo))nivel=2;else if(/subt[oó]pico|subtitulo|subtítulo/.test(alvo))nivel=4;else if(/artigo/.test(alvo))nivel=3}
+   else{const alvo=(nm+' '+id).toLowerCase();if(/^toc/.test(alvo))nivel=0;else if(/eixo|cap[ií]tulo|\baxis\b/.test(alvo))nivel=2;else if(/subt[oó]pico|subtitulo|subtítulo/.test(alvo))nivel=4;else if(/artigo|institut/.test(alvo))nivel=3}
    const ol=[...pPr.children].find(c=>c.localName==='outlineLvl');if(!nivel&&ol)nivel=+val(ol)+1}
   let txt='';let bAberto=false;
   for(const r of p.getElementsByTagNameNS(W,'r')){
@@ -298,7 +298,7 @@ async function docxParaInventario(buf,nomeArq){
   if(bAberto){const tr=txt.match(/\s*$/)[0];txt=txt.slice(0,txt.length-tr.length)+'**'+tr}
   txt=txt.replace(/\*\*\*\*/g,'').trim();
   if(txt)pars.push({nivel,txt})}
- const blocos=[];let titulo='',capitulo='',atual=null,h2pend=null,inicio=false;
+ const blocos=[];let titulo='',capitulo='',atual=null,h2pend=null,inicio=false,preTit='';
  const tituloLimpo=t=>limpa(t);
  const novoBloco=(tit,cap)=>{const n=blocos.length+1;const am=limpa(tit).match(/ART\.?\s*(\d+(?:\s*[-–]\s*[A-Z])?)/i);let art=am?am[1].replace(/\s*[-–]\s*/,'-').toUpperCase():'';
   const slug=art?('ART-'+art):(limpa(tit).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim().split(' ').filter(w=>w.length>3).slice(0,2).join('-')||'BLOCO');
@@ -312,7 +312,7 @@ async function docxParaInventario(buf,nomeArq){
   if(p.nivel===2){capitulo=limpa(p.txt);h2pend=p.txt;atual=null;inicio=true;continue}
   if(p.nivel===3){novoBloco(p.txt,capitulo);h2pend=null;inicio=true;continue}
   if(p.nivel>3){if(!atual)continue;atual.trechos.push({id:atual.id+'-TR-'+pad(atual.trechos.length+1),rotulo:limpa(p.txt).replace(/^[^\p{L}\p{N}§]*/u,''),categoria:'regra',elegivel:false,motivo:'Subtítulo do artigo.',texto:p.txt});continue}
-  if(!inicio)continue;
+  if(!inicio){const pt=limpa(p.txt);if(pt.length<=120)preTit=pt;continue}
   if(!atual){if(h2pend){novoBloco(h2pend,'');h2pend=null}else continue}
   const k=atual.trechos.length+1;const plain=limpa(p.txt);
   const rm=p.txt.match(/^[^\p{L}\p{N}*]*\*\*([^*]+?):?\*\*\s*:?/u);let rotulo=rm?rm[1].replace(/:$/,'').trim():'';
@@ -324,10 +324,11 @@ async function docxParaInventario(buf,nomeArq){
   atual.trechos.push({id:atual.id+'-TR-'+pad(k),rotulo,categoria:cat,elegivel:eleg,motivo:mot,texto:p.txt})}
  const bl=blocos.filter(b=>b.trechos.length);
  if(!bl.length)throw new Error('Não encontrei artigos (títulos nível 3) neste Word.');
- const nomeBase=(nomeArq||'').replace(/\.docx$/i,'');
+ // Word do MAPA HIERÁRQUICO (RESUMO/AULA): estilos Axis = eixo, Institute = instituto; o nome do arquivo vira o título.
+ const nomeBase=(nomeArq||'').replace(/\.docx$/i,'').replace(/^MAPA_HIERARQUICO_(RESUMO_AULA_)?/i,'').replace(/_/g,' ').trim();
  const aid=(titulo||nomeBase).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40).replace(/-+$/,'')||'RESUMO';
  const fonte=(pars.map(x=>limpa(x.txt).match(/https?:\/\/(?:www\.)?planalto\.gov\.br\/[^\s)\]]+/i)).find(Boolean)||[''])[0];
- return {formato:'LEITOR-TDAH-INVENTARIO-1',assunto_id:aid,titulo:titulo||nomeBase,arquivo_origem:nomeArq||'',fonte_oficial:fonte,blocos:bl};
+ return {formato:'LEITOR-TDAH-INVENTARIO-1',assunto_id:aid,titulo:titulo||preTit||nomeBase,arquivo_origem:nomeArq||'',fonte_oficial:fonte,blocos:bl};
 }
 
 /* ============ abrir ============ */
