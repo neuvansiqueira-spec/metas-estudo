@@ -69,3 +69,11 @@ test('V669 Etapas 2 e 3: leitor abre o Word pelo programa da Fábrica e salva no
   assert.match(rootLeitor, /function aplicarWordNovo\(\)/);
   assert.match(rootLeitor, /salvo só neste navegador/);
 });
+
+test('V669.3: citação de artigo abre o texto do Planalto e o resumo pede o Word mais recente', () => {
+  assert.ok(rootLeitor.includes("ponte('/leitor/lei'"));
+  assert.match(rootLeitor, /function marcarLeis\(raiz\)/);
+  assert.match(rootLeitor, /CC:PL\+'leis\/2002\/l10406compilada\.htm'/);
+  assert.ok(rootLeitor.includes("ponte('/leitor/resumo',{pasta:pastaAtual(),tema})"));
+  assert.match(rootLeitor, /fonte_oficial:fonte/);
+});

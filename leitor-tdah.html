@@ -55,6 +55,11 @@ main{max-width:1500px;margin:0 auto;padding:1rem 1.2rem 4rem}
 .dot.pronto{background:var(--green)}.dot.parcial{background:var(--amber)}
 .hier{font-size:.8rem;color:var(--muted);margin:.1rem 0 .3rem}
 .art-tit{font-size:1.75rem;font-weight:850;text-transform:uppercase;margin:.1rem 0 .8rem;letter-spacing:.01em}
+.lei{border-bottom:2px dotted var(--blue);cursor:help}
+#leiPop{position:absolute;z-index:70;display:none;width:min(560px,92vw);max-height:55vh;overflow:auto;background:var(--surface);color:var(--ink);border:2px solid var(--blue);border-radius:12px;padding:.8rem 1rem;box-shadow:0 14px 34px #0007;font-size:.95rem;line-height:1.5}
+#leiPop .lei-cab{font-size:.82rem;margin:-.8rem -1rem .5rem;padding:.6rem 1rem .45rem;border-bottom:1px solid var(--border);position:sticky;top:-.8rem;background:var(--surface);z-index:1}
+#leiPop .lei-txt{white-space:pre-wrap}
+.lei-dest{background:var(--hl-y);font-weight:750}
 .subt{font-size:1.15rem;font-weight:850;color:var(--blue);text-transform:uppercase;margin:-.4rem 0 .8rem;border-left:5px solid var(--blue);padding-left:.6rem}
 .sub-mm{font-size:.7rem;font-weight:850;letter-spacing:.06em;color:var(--blue);text-transform:uppercase;margin:.7rem .2rem .2rem;border-bottom:1px solid var(--border);padding-bottom:.2rem}
 .nav-row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-bottom:.8rem}
@@ -222,8 +227,8 @@ const nuvem={estado:'',em:'',msg:''};
 async function ponte(rota,corpo,ms=60000){if(!/^https?:/.test(location.protocol))return null;const c=new AbortController();const t=setTimeout(()=>c.abort(),ms);
  try{const r=await fetch(BRIDGE+rota,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corpo),signal:c.signal});const j=await r.json();return j}catch(e){return null}finally{clearTimeout(t)}}
 const pastaAtual=()=>PASTA||(S&&S.inv&&S.inv.pasta)||'';
-async function invDaPasta(){const r=await ponte('/leitor/resumo',{pasta:pastaAtual()});if(!r)return {erro:'O programa da Fábrica não respondeu.'};if(!r.ok)return {erro:r.erro||'Erro no programa da Fábrica.'};
- const bin=Uint8Array.from(atob(r.docx_base64),c=>c.charCodeAt(0));const inv=await docxParaInventario(bin.buffer,r.nome);inv.docx_modificado=r.modificado_em;inv.pasta=pastaAtual();return {inv}}
+async function invDaPasta(){const tema=TEMA||(S&&S.inv&&S.inv.tema)||'';const r=await ponte('/leitor/resumo',{pasta:pastaAtual(),tema});if(!r)return {erro:'O programa da Fábrica não respondeu.'};if(!r.ok)return {erro:r.erro||'Erro no programa da Fábrica.'};
+ const bin=Uint8Array.from(atob(r.docx_base64),c=>c.charCodeAt(0));const inv=await docxParaInventario(bin.buffer,r.nome);inv.docx_modificado=r.modificado_em;inv.pasta=pastaAtual();inv.tema=tema;inv.caminho_word=r.caminho||r.nome;if(r.outra_pasta)toast('Usei o resumo mais recente ('+r.modificado_em.slice(8,10)+'/'+r.modificado_em.slice(5,7)+'), que está em outra pasta: '+(r.caminho||r.nome),7000);return {inv}}
 async function estadoDoDrive(aid){const r=await ponte('/leitor/carregar',{pasta:pastaAtual(),assunto_id:aid});if(!r||!r.ok||!r.existe)return null;try{const v=JSON.parse(r.dados);return v&&v.inv?v:null}catch(e){return null}}
 let tNuvem=null;
 function salvarNuvem(ja){if(!S||!pastaAtual()||!/^https?:/.test(location.protocol))return;clearTimeout(tNuvem);tNuvem=setTimeout(async()=>{tNuvem=null;nuvem.estado='salvando';pintaNuvem();
@@ -319,7 +324,8 @@ async function docxParaInventario(buf,nomeArq){
  if(!bl.length)throw new Error('Não encontrei artigos (títulos nível 3) neste Word.');
  const nomeBase=(nomeArq||'').replace(/\.docx$/i,'');
  const aid=(titulo||nomeBase).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40).replace(/-+$/,'')||'RESUMO';
- return {formato:'LEITOR-TDAH-INVENTARIO-1',assunto_id:aid,titulo:titulo||nomeBase,arquivo_origem:nomeArq||'',blocos:bl};
+ const fonte=(pars.map(x=>limpa(x.txt).match(/https?:\/\/(?:www\.)?planalto\.gov\.br\/[^\s)\]]+/i)).find(Boolean)||[''])[0];
+ return {formato:'LEITOR-TDAH-INVENTARIO-1',assunto_id:aid,titulo:titulo||nomeBase,arquivo_origem:nomeArq||'',fonte_oficial:fonte,blocos:bl};
 }
 
 /* ============ abrir ============ */
@@ -646,6 +652,44 @@ function painelTutor(){const bid=B().id;if(tuBloco!==bid){tuI=0;tuVer=false;tuBl
  <div class="row">${tuVer?'':`<button class="btn prim" onclick="tuVer=true;render()">✔ Ver o que a resposta devia conter</button>`}${tuI>0?`<button class="btn" onclick="tuI--;tuVer=false;render()">← Anterior</button>`:''}${tuI<l.length-1?`<button class="btn" onclick="tuI++;tuVer=false;render()">Próxima →</button>`:''}</div>
  ${tuVer?`<div class="item"><div class="o">A RESPOSTA DEVIA CONTER</div><ul>${(q.a_resposta_deve_conter||[]).map(x=>`<li>${negrito(x)}</li>`).join('')}</ul>${q.dica_se_errar?`<div class="muted">Dica: ${negrito(q.dica_se_errar)}</div>`:''}<div class="muted" style="font-size:.8rem;margin-top:.4rem">Confira você mesmo: aqui não há correção por IA.</div></div>`:''}`}
 
+/* ============ dispositivos citados: texto do Planalto ao passar o mouse ============ */
+const PL='https://www.planalto.gov.br/ccivil_03/';
+const LEIS={CP:PL+'decreto-lei/del2848compilado.htm',CPP:PL+'decreto-lei/del3689compilado.htm',CC:PL+'leis/2002/l10406compilada.htm',CF:PL+'constituicao/constituicao.htm',CPC:PL+'_ato2015-2018/2015/lei/l13105.htm',CTB:PL+'leis/l9503compilado.htm',ECA:PL+'leis/l8069compilado.htm',LEP:PL+'leis/l7210compilado.htm',CTN:PL+'leis/l5172compilado.htm'};
+function urlDaLei(nome){if(!nome)return (S&&S.inv&&S.inv.fonte_oficial)||'';const n=nome.normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/\s+/g,' ').trim();
+ if(LEIS[n])return LEIS[n];if(/CODIGO PENAL/.test(n))return LEIS.CP;if(/PROCESSO PENAL/.test(n))return LEIS.CPP;if(/PROCESSO CIVIL/.test(n))return LEIS.CPC;if(/CODIGO CIVIL/.test(n))return LEIS.CC;if(/CONSTITUICAO/.test(n))return LEIS.CF;
+ const m=n.match(/LEI\s+(?:N\S*\s*)?([\d.]+)\s*\/\s*(\d{2,4})/);if(m){const num=m[1].replace(/\./g,''),ano=+m[2]<100?1900+ +m[2]:+m[2];if(ano<2001)return PL+'leis/l'+num+'.htm'}return ''}
+const RX_ART=/\b[Aa]rts?\.\s*(\d{1,4}(?:\.\d{3})?(?:\s*-\s*[A-Z]{1,2})?)(?:\s*[ºo°])?((?:\s*,\s*(?:§+\s*\d+\s*[ºo°]?|caput|par[áa]grafo\s+[úu]nico|inc(?:iso)?s?\.?\s*[IVXLC]+|[IVXLC]{1,6}\b|al[íi]nea\s*["“]?[a-z]["”]?))*)(?:\s*,?\s*d[oa]s?\s+(CPP|CPC|CTB|ECA|LEP|CTN|CP|CC|CF|C[óo]digo\s+(?:de\s+Processo\s+)?(?:Penal|Civil)|Constitui[çc][ãa]o(?:\s+Federal)?|Lei\s+(?:n[ºo°.]*\s*)?[\d.]+\s*\/\s*\d{2,4}))?/g;
+function marcarLeis(raiz){if(!raiz||!S)return;const nos=[];const w=document.createTreeWalker(raiz,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement.closest('.lei,button,textarea,a,[contenteditable="true"]')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
+ while(w.nextNode())nos.push(w.currentNode);
+ for(const no of nos){const t=no.nodeValue;RX_ART.lastIndex=0;let m,ult=0;const frag=document.createDocumentFragment();let achou=false;
+  while((m=RX_ART.exec(t))){const url=urlDaLei(m[3]);if(!url)continue;achou=true;if(m.index>ult)frag.appendChild(document.createTextNode(t.slice(ult,m.index)));
+   const sp=document.createElement('span');sp.className='lei';sp.dataset.art=m[1].replace(/\s+/g,'').toUpperCase();sp.dataset.url=url;sp.dataset.par=(m[2]||'');sp.textContent=m[0];frag.appendChild(sp);ult=m.index+m[0].length}
+  if(achou){if(ult<t.length)frag.appendChild(document.createTextNode(t.slice(ult)));no.parentNode.replaceChild(frag,no)}}
+ // "§ 2º" solto dentro de um artigo: é parágrafo do próprio artigo do bloco.
+ const art=B()&&B().artigo,urlB=urlDaLei('');if(!art||!urlB)return;const RX_PAR=/§{1,2}\s*(\d+)\s*[ºo°]?/g;const nos2=[];
+ const w2=document.createTreeWalker(raiz,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement.closest('.lei,button,textarea,a,[contenteditable="true"]')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
+ while(w2.nextNode())nos2.push(w2.currentNode);
+ for(const no of nos2){const t=no.nodeValue;RX_PAR.lastIndex=0;let m,ult=0,achou=false;const frag=document.createDocumentFragment();
+  while((m=RX_PAR.exec(t))){achou=true;if(m.index>ult)frag.appendChild(document.createTextNode(t.slice(ult,m.index)));const sp=document.createElement('span');sp.className='lei';sp.dataset.art=art.toUpperCase();sp.dataset.url=urlB;sp.dataset.par='§ '+m[1];sp.textContent=m[0];frag.appendChild(sp);ult=m.index+m[0].length}
+  if(achou){if(ult<t.length)frag.appendChild(document.createTextNode(t.slice(ult)));no.parentNode.replaceChild(frag,no)}}}
+const cacheLei=new Map();let leiAlvo=null,tLeiAbre=null,tLeiFecha=null,leiFixa=false;
+function popLei(){let p=$('#leiPop');if(!p){p=document.createElement('div');p.id='leiPop';document.body.appendChild(p);p.addEventListener('mouseenter',()=>clearTimeout(tLeiFecha));p.addEventListener('mouseleave',()=>{if(!leiFixa)fecharLei()})}return p}
+function fecharLei(){clearTimeout(tLeiAbre);const p=$('#leiPop');if(p)p.style.display='none';leiAlvo=null;leiFixa=false}
+function destacarParagrafo(texto,par){const esc2=esc(texto);const m=String(par||'').match(/§+\s*(\d+)|par[áa]grafo\s+[úu]nico/i);if(!m)return esc2;
+ const alvo=m[1]?new RegExp('(^|\\n)(§\\s*'+m[1]+'\\s*[ºo°]?[^\\n]*)'):/(^|\n)(Parágrafo único[^\n]*)/i;return esc2.replace(alvo,'$1<span class="lei-dest">$2</span>')}
+async function abrirLei(el){leiAlvo=el;const p=popLei();const art=el.dataset.art,url=el.dataset.url;const link=url+'#art'+art.replace(/[^0-9A-Z]/g,'').toLowerCase();
+ const r0=el.getBoundingClientRect();p.style.display='block';p.style.left=Math.max(8,Math.min(window.scrollX+r0.left,window.scrollX+innerWidth-580))+'px';p.style.top=(window.scrollY+r0.bottom+8)+'px';
+ const cab=`<div class="lei-cab"><b>Art. ${esc(art)}</b> · texto atual no Planalto <a href="${esc(link)}" target="_blank" rel="noopener">abrir ↗</a></div>`;
+ const chave=url+'|'+art;let r=cacheLei.get(chave);if(!r){p.innerHTML=cab+'<p class="muted">⏳ Buscando no Planalto…</p>';r=await ponte('/leitor/lei',{url,artigo:art},45000);if(r&&r.ok)cacheLei.set(chave,r)}
+ if(leiAlvo!==el)return;
+ if(!r)p.innerHTML=cab+'<p class="muted">O texto aparece aqui quando o leitor é aberto pelo site com o programa da Fábrica ligado. Use o link "abrir ↗".</p>';
+ else if(!r.ok||!r.achou)p.innerHTML=cab+`<p class="muted">${esc(r.erro||'Não encontrei este artigo na página do Planalto.')} Use o link "abrir ↗".</p>`;
+ else{p.innerHTML=cab+`<div class="lei-txt">${destacarParagrafo(r.texto,el.dataset.par)}</div>`;const d=p.querySelector('.lei-dest');p.scrollTop=d?Math.max(0,d.offsetTop-60):0}}
+document.addEventListener('mouseover',e=>{const el=e.target.closest&&e.target.closest('.lei');if(!el)return;clearTimeout(tLeiFecha);if(el===leiAlvo)return;clearTimeout(tLeiAbre);tLeiAbre=setTimeout(()=>{leiFixa=false;abrirLei(el)},250)});
+document.addEventListener('mouseout',e=>{const el=e.target.closest&&e.target.closest('.lei');if(!el||leiFixa)return;clearTimeout(tLeiAbre);tLeiFecha=setTimeout(fecharLei,350)});
+document.addEventListener('click',e=>{const el=e.target.closest&&e.target.closest('.lei');if(el){leiFixa=true;if(el!==leiAlvo)abrirLei(el);return}if(!e.target.closest('#leiPop'))fecharLei()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')fecharLei()});
+
 /* ============ quadro final: ligação com o artigo ============ */
 function ligacaoQuadro(t){const m=limpa(t.texto).match(/((?:REsp|AREsp|HC|RHC|RE|ARE|ADPF|ADI|Rcl)\s*[\d.]+)/);if(!m)return '';const num=m[1].replace(/\s+/g,' ');
  for(let bi=0;bi<S.inv.blocos.length;bi++){const b=S.inv.blocos[bi];if(ehQuadro(b))continue;const ti=b.trechos.findIndex(x=>limpa(x.texto).includes(num));if(ti>=0)return `<div class="row"><button class="btn sm" onclick="ir(${bi},${ti})">➜ Estudar este julgado no ${esc(b.titulo.split(':')[0])}</button></div>`}return ''}
@@ -700,6 +744,7 @@ function render(){
  ${painel()}</section></div>`;
  const at=document.querySelector('.tr.atual');if(at&&!render.rolou){at.scrollIntoView({block:'center'});render.rolou=true}
  if(S.user.tool==='mapa')requestAnimationFrame(linhasMapa);
+ fecharLei();marcarLeis($('#texto'));marcarLeis(document.querySelector('.painel'));
 }
 /* ============ botões do topo ============ */
 $('#bAbrir').onclick=()=>$('#fAbrir').click();
