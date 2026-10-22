@@ -1,6 +1,6 @@
 "use strict";
 
-const CURRENT_VERSION = "20261019-factory-lei-didatica-v668-v424";
+const CURRENT_VERSION = "20261021-leitor-tdah-v669-v424";
 const DASHBOARD_PENDING_SEMANTICS_V413 = "pendentes-separados-de-em-andamento";
 const RELEASE_SUFFIX = CURRENT_VERSION.match(/v\d+$/)?.[0] || "current";
 const SECURITY_VERSION = "20260831-weekly-status-stability-v416";
@@ -457,6 +457,9 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+  // V669: o Leitor TDAH é página própria, sem o bootstrap do app; a navegação
+  // protegida trocaria o leitor pelo index.html. Vai direto para a rede.
+  if (url.pathname.endsWith("/leitor-tdah.html")) return;
 
   if (request.mode === "navigate" || request.destination === "document") {
     event.respondWith(cachedFirstNavigation(request, event));

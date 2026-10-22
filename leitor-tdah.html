@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leitor TDAH</title>
+<style>
+:root{--bg:#080e1b;--surface:#101b2b;--panel:#142136;--panel2:#17263d;--ink:#eaf1ff;--muted:#acbbd1;--border:#304158;
+--green:#49A67B;--blue:#76ACDF;--amber:#E5B65C;--red:#E27A86;--purple:#AF90D8;--orange:#F58220;--orange-text:#FFA34C;
+--head-ink:#071b22;--fs:22px;--radius:16px;
+--hl-y:#f5d84a66;--hl-g:#5fdc9a55;--hl-p:#ff8fc855}
+:root[data-theme="light"]{--bg:#f0f3f9;--surface:#fff;--panel:#f7f9fd;--panel2:#ecf2f9;--ink:#19263b;--muted:#586477;--border:#bdcbdc;
+--green:#287D54;--blue:#367DB8;--amber:#B5872F;--red:#B04B59;--purple:#8463AD;--orange-text:#D86100;--head-ink:#fff;
+--hl-y:#ffe45c99;--hl-g:#7be3a988;--hl-p:#ffb3d988}
+@media (prefers-color-scheme: light){:root[data-theme="auto"]{--bg:#f0f3f9;--surface:#fff;--panel:#f7f9fd;--panel2:#ecf2f9;--ink:#19263b;--muted:#586477;--border:#bdcbdc;
+--green:#287D54;--blue:#367DB8;--amber:#B5872F;--red:#B04B59;--purple:#8463AD;--orange-text:#D86100;--head-ink:#fff;--hl-y:#ffe45c99;--hl-g:#7be3a988;--hl-p:#ffb3d988}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,"Segoe UI",Arial,sans-serif;font-size:17px}
+button{font:inherit;color:inherit;cursor:pointer}
+input,textarea,select{font:inherit;color:var(--ink);background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:.55rem .7rem}
+textarea{width:100%;min-height:5.5rem;resize:vertical}
+a{color:var(--blue)}
+.btn{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:.5rem .85rem;font-size:.86rem;font-weight:650}
+.btn:hover{border-color:var(--blue)}
+.btn.prim{background:var(--blue);color:#06121f;border-color:var(--blue)}
+.btn.ok{border-color:var(--green);color:var(--green)}
+.btn.sm{padding:.3rem .6rem;font-size:.78rem}
+.muted{color:var(--muted)}
+header.top{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--border);padding:.7rem 1.2rem}
+.top-row{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+.brand{font-size:.68rem;letter-spacing:.14em;font-weight:800;color:var(--blue)}
+.assunto{font-weight:800;font-size:1.05rem;margin-right:auto}
+.prog{height:6px;background:var(--panel2);border-radius:9px;margin-top:.55rem;overflow:hidden}
+.prog>div{height:100%;background:var(--green);width:0}
+main{max-width:1500px;margin:0 auto;padding:1rem 1.2rem 4rem}
+.vazio{max-width:760px;margin:3rem auto;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:2rem}
+.vazio h1{margin-top:0}
+.vazio ol{line-height:1.7}
+.grid{display:grid;grid-template-columns:34% 1fr;gap:1rem;align-items:start}
+.grid.semmapa{grid-template-columns:1fr}
+.mapa{position:sticky;top:5.2rem;max-height:calc(100vh - 6.5rem);overflow:auto;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:.7rem}
+.mapa h3{font-size:.72rem;letter-spacing:.12em;color:var(--muted);margin:.2rem .3rem .6rem}
+.bl{margin-bottom:.35rem}
+.bl>button{width:100%;text-align:left;background:transparent;border:1px solid transparent;border-radius:10px;padding:.45rem .55rem;font-weight:750;font-size:.84rem;display:flex;gap:.4rem;align-items:center}
+.bl>button:hover{border-color:var(--border)}
+.bl.atual>button{border-color:var(--blue)}
+.bl .st{margin-left:auto;font-size:.72rem;color:var(--muted);font-weight:600}
+.trs{display:none;padding:.15rem 0 .35rem .55rem}
+.bl.aberto .trs{display:block}
+.tr{width:100%;text-align:left;background:var(--panel2);border:2px solid transparent;border-radius:9px;padding:.4rem .55rem;margin:.22rem 0;font-size:.8rem;display:flex;gap:.4rem;align-items:center}
+.tr.atual{border-color:var(--green)}
+.tr.nel{opacity:.5}
+.tr .ic{margin-left:auto;font-size:.75rem;white-space:nowrap}
+.dot{width:.6rem;height:.6rem;border-radius:50%;flex:none;background:var(--border)}
+.dot.pronto{background:var(--green)}.dot.parcial{background:var(--amber)}
+.hier{font-size:.8rem;color:var(--muted);margin:.1rem 0 .3rem}
+.art-tit{font-size:1.75rem;font-weight:850;text-transform:uppercase;margin:.1rem 0 .8rem;letter-spacing:.01em}
+.subt{font-size:1.15rem;font-weight:850;color:var(--blue);text-transform:uppercase;margin:-.4rem 0 .8rem;border-left:5px solid var(--blue);padding-left:.6rem}
+.sub-mm{font-size:.7rem;font-weight:850;letter-spacing:.06em;color:var(--blue);text-transform:uppercase;margin:.7rem .2rem .2rem;border-bottom:1px solid var(--border);padding-bottom:.2rem}
+.nav-row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-bottom:.8rem}
+.card{border:5px solid var(--cat,var(--green));border-radius:19px;background:var(--panel);overflow:hidden}
+.card-head{background:var(--cat,var(--green));color:var(--head-ink);padding:.75rem 1.1rem}
+.card-head .k{font-size:.72rem;letter-spacing:.12em;font-weight:800;opacity:.85}
+.card-head .r{font-size:1.45rem;font-weight:900;text-transform:uppercase;margin-top:.15rem}
+.card-body{padding:1.2rem 1.3rem}
+.dest{display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.7rem}
+.dest .btn{padding:.25rem .55rem;font-size:.75rem}
+.sw{display:inline-block;width:.85rem;height:.85rem;border-radius:3px;vertical-align:-2px}
+#texto{font-size:var(--fs);line-height:1.55;white-space:pre-wrap}
+.m-b{font-weight:850}.m-up{text-transform:uppercase}
+.m-y{background:var(--hl-y)}.m-g{background:var(--hl-g)}.m-p{background:var(--hl-p)}
+.selo{display:inline-block;font-size:.7rem;font-weight:800;letter-spacing:.06em;border:1px solid var(--border);border-radius:99px;padding:.12rem .55rem;color:var(--muted);margin-left:.4rem;vertical-align:middle}
+.tools{display:grid;grid-template-columns:repeat(4,1fr);gap:.55rem;margin:1rem 0 .6rem}
+.tool{background:var(--panel2);border:2px solid var(--border);border-radius:12px;padding:.7rem .4rem;font-weight:800;font-size:.84rem;position:relative}
+.tool.ativo{border-color:var(--orange);color:var(--orange-text)}
+.tool .tem{position:absolute;top:.25rem;right:.45rem;font-size:.62rem;color:var(--green)}
+.mais{width:100%;margin:.2rem 0 .5rem;background:transparent;border:1px dashed var(--border);border-radius:12px;padding:.55rem;font-weight:800;font-size:.8rem;color:var(--muted)}
+.painel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:1.1rem 1.2rem;margin-top:.4rem}
+.painel h4{margin:.1rem 0 .7rem;font-size:1.05rem}
+.fc{border:2px solid var(--border);border-radius:14px;padding:1.2rem;min-height:8rem;font-size:1.1rem;background:var(--panel2)}
+.fc .v{margin-top:.9rem;padding-top:.9rem;border-top:1px dashed var(--border);color:var(--green);font-weight:650}
+.row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-top:.7rem}
+.item{background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:.7rem .85rem;margin:.5rem 0}
+.item .o{font-size:.7rem;font-weight:800;letter-spacing:.06em;color:var(--muted)}
+dl.campos{display:grid;grid-template-columns:max-content 1fr;gap:.45rem 1rem;margin:0}
+dl.campos dt{font-weight:800;color:var(--muted);font-size:.85rem;text-transform:uppercase}
+dl.campos dd{margin:0}
+.mm{display:flex;flex-direction:column;align-items:center;gap:.9rem}
+.mm-c{background:var(--blue);color:#06121f;font-weight:900;border-radius:99px;padding:.7rem 1.3rem;text-align:center;max-width:80%}
+.mm-rs{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:.7rem;width:100%}
+.mm-r{border:2px solid var(--border);border-left:6px solid var(--purple);border-radius:12px;padding:.65rem .8rem;background:var(--panel2)}
+.mm-r b{display:block;margin-bottom:.3rem;color:var(--c,var(--ink))}
+.mm2{position:relative;display:grid;grid-template-columns:1fr minmax(150px,22%) 1fr;gap:2.4rem;align-items:center;padding:.4rem 0}
+.mm-svg{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.mm-lado{display:flex;flex-direction:column;gap:.9rem;position:relative;z-index:1}
+.mm-meio{position:relative;z-index:1;display:flex;justify-content:center}
+.mm2 .mm-c{max-width:100%;font-size:1.05rem;padding:1rem 1.1rem;border-radius:22px}
+.mm2 .mm-r{border-left:6px solid var(--c);border-color:var(--c);background:var(--panel2)}
+@media(max-width:860px){.mm2{grid-template-columns:1fr;gap:.8rem}.mm-svg{display:none}.mm-meio{order:-1}}
+.mm-r ul{margin:.2rem 0 0;padding-left:1.1rem;font-size:.9rem}
+.fl{display:flex;flex-direction:column;align-items:center;gap:.2rem}
+.fl-n{border:2px solid var(--border);border-radius:12px;padding:.6rem .9rem;background:var(--panel2);max-width:620px;width:100%;text-align:center}
+.fl-n.condicao{border-color:var(--amber);border-radius:22px}
+.fl-n.excecao{border-color:var(--red)}
+.fl-n.consequencia{border-color:var(--green)}
+.fl-n.inicio,.fl-n.fim{border-color:var(--blue)}
+.fl-n .t{font-size:.66rem;letter-spacing:.1em;font-weight:800;color:var(--muted);text-transform:uppercase}
+.fl-a{color:var(--muted);font-size:.85rem}
+.fl-e{display:inline-block;margin:.15rem .25rem;font-size:.8rem;border:1px solid var(--border);border-radius:99px;padding:.1rem .55rem}
+.fl-col{display:flex;flex-direction:column;align-items:center;gap:.25rem;flex:1;min-width:0;width:100%}
+.fl-ramos{display:flex;gap:1rem;width:100%;align-items:flex-start}
+.fl-rot{font-weight:900;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;padding:.15rem .7rem;border-radius:99px;border:2px solid var(--border)}
+.fl-rot.sim{border-color:var(--green);color:var(--green)}.fl-rot.nao{border-color:var(--red);color:var(--red)}
+.fl-ref{font-size:.85rem;color:var(--muted);border:1px dashed var(--border);border-radius:10px;padding:.35rem .6rem}
+.fl .fl-n{max-width:none}
+.fl-n.consequencia .flt,.fl-n.excecao .flt{font-weight:750}
+.fl{gap:0}
+.fl-col{gap:0}
+.fl-n{margin:0}
+.fl-seta{position:relative;width:4px;height:64px;background:var(--muted);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;border-radius:2px}
+.fl-seta::after{content:'';position:absolute;bottom:-12px;left:50%;transform:translateX(-50%);border-left:9px solid transparent;border-right:9px solid transparent;border-top:13px solid var(--muted)}
+.fl-seta.sim{background:var(--green)}.fl-seta.sim::after{border-top-color:var(--green)}
+.fl-seta.nao{background:var(--red)}.fl-seta.nao::after{border-top-color:var(--red)}
+.fl-seta .fl-rot{position:relative;z-index:1;background:var(--panel);white-space:nowrap}
+.fl-tronco{width:4px;height:26px;background:var(--muted);margin:0 auto;border-radius:2px}
+.fl-ramos{display:flex;width:100%;gap:0;align-items:flex-start}
+.fl-ramo{position:relative;flex:1;min-width:0;padding:0 .55rem;display:flex;flex-direction:column;align-items:center}
+.fl-ramo::before{content:'';position:absolute;top:0;left:0;right:0;border-top:4px solid var(--muted)}
+.fl-ramo:first-child::before{left:50%}.fl-ramo:last-child::before{right:50%}.fl-ramo:only-child::before{display:none}
+.fl-n.grande{font-size:1.3rem;padding:1.4rem 1.2rem;max-width:780px;margin:0 auto;width:100%}
+.fl-cam{font-size:.88rem;color:var(--muted);margin:0 auto .8rem;text-align:center;max-width:780px}
+.fl-n .t{font-size:.72rem}
+@media(max-width:860px){.fl-ramos{flex-direction:column}.fl-ramo::before{display:none}}
+.toast{position:fixed;left:50%;bottom:1.3rem;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:.7rem 1.1rem;border-radius:12px;font-weight:700;z-index:99;display:none;max-width:90vw}
+.modal{position:fixed;inset:0;background:#000a;z-index:50;display:none;align-items:flex-start;justify-content:center;padding:4vh 1rem;overflow:auto}
+.modal.on{display:flex}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);width:min(980px,100%);padding:1.2rem 1.3rem}
+.modal-box h2{margin:.1rem 0 .8rem}
+table.lst{width:100%;border-collapse:collapse;font-size:.88rem}
+table.lst td,table.lst th{border-bottom:1px solid var(--border);padding:.5rem .4rem;text-align:left;vertical-align:middle}
+.ok-t{color:var(--green);font-weight:800}.pa-t{color:var(--amber);font-weight:800}.pe-t{color:var(--muted)}
+.chk{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.3rem .8rem;margin:.5rem 0}
+img.ev{max-width:100%;border-radius:12px;border:1px solid var(--border)}
+@media(max-width:860px){.grid{grid-template-columns:1fr}.mapa{position:static;max-height:45vh}.tools{grid-template-columns:repeat(2,1fr)}.art-tit{font-size:1.35rem}main{padding:1rem}}
+</style>
+</head>
+<body>
+<header class="top" id="topo">
+ <div class="top-row">
+  <div><div class="brand">LEITOR TDAH</div><div class="assunto" id="assunto">Nenhum resumo aberto</div></div>
+  <span style="flex:1"></span>
+  <button class="btn prim" id="bAbrir">📂 Abrir resumo</button>
+  <button class="btn" id="bArtigos" hidden>🤖 Gerar conteúdo</button>
+  <button class="btn" id="bRevisao" hidden>⭐ Revisão</button>
+  <button class="btn" id="bSalvar" hidden>💾 Salvar HTML</button>
+  <button class="btn" id="bMapa" hidden>◧ Mapa</button>
+  <button class="btn" id="bMenos" title="Letra menor">A−</button>
+  <button class="btn" id="bMais" title="Letra maior">A+</button>
+  <button class="btn" id="bTema">🌓 Tema</button>
+ </div>
+ <div class="prog" id="prog" hidden><div></div></div>
+</header>
+<main id="app"></main>
+<input type="file" id="fAbrir" accept=".docx,.json" hidden>
+<input type="file" id="fPacotes" accept=".json,.txt" multiple hidden>
+<input type="file" id="fImagem" accept="image/*" hidden>
+<div class="modal" id="modal"><div class="modal-box" id="modalBox"></div></div>
+<div class="toast" id="toast"></div>
+<script id="dados-embutidos" type="application/json">{}</script>
+<script>
+'use strict';
+/* ============ fonte da página (para Salvar HTML) ============ */
+const FONTE_PAGINA='<!doctype html>\n'+document.documentElement.outerHTML;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const negrito=s=>esc(s).replace(/\*\*(.+?)\*\*/gs,'<b>$1</b>');
+const limpa=s=>String(s??'').replace(/\*\*/g,'').replace(/\s+/g,' ').trim();
+const pad=(n,k=3)=>String(n).padStart(k,'0');
+function toast(m,ms=2600){const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(()=>t.style.display='none',ms)}
+async function copiar(txt){try{await navigator.clipboard.writeText(txt);return true}catch(e){const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand('copy')}catch(_){}ta.remove();return ok}}
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}}
+
+/* ============ estado ============ */
+let S=null; // {inv, content:{blocos,trechos}, user, salvoEm}
+const novoUser=()=>({pos:{b:0,t:0},prov:{},notas:{},marcas:{},cards:{},cardsUser:{},imagens:{},jurUser:{},mnemoUser:{},mapaUser:{},fluxoUser:{},tutorResp:{},duvidas:{},vistos:{},tool:'',mais:false,mapaFechado:false,soErrados:false});
+let tema=lsGet('leitor-tdah:tema')||'auto', fs=+(lsGet('leitor-tdah:fs')||22);
+function aplicaPrefs(){document.documentElement.dataset.theme=tema;document.documentElement.style.setProperty('--fs',fs+'px')}
+aplicaPrefs();
+/* ---- parâmetros quando aberto pela Fábrica do site ---- */
+const PARAM=new URLSearchParams(location.search);const ITEM=PARAM.get('item')||'',TEMA=PARAM.get('tema')||'',DISC=PARAM.get('disciplina')||'',PASTA=PARAM.get('pasta')||'';
+/* ---- armazenamento: IndexedDB próprio do leitor (localStorage antigo só é lido) ---- */
+const IDB_NOME='aldus-leitor-tdah';
+function idb(){return idb.p||(idb.p=new Promise((res,rej)=>{const r=indexedDB.open(IDB_NOME,1);r.onupgradeneeded=()=>{const db=r.result;for(const n of ['estados','itens'])if(!db.objectStoreNames.contains(n))db.createObjectStore(n)};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}))}
+async function idbGet(st,k){try{const db=await idb();return await new Promise((res,rej)=>{const q=db.transaction(st).objectStore(st).get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})}catch(e){return undefined}}
+async function idbSet(st,k,v){try{const db=await idb();await new Promise((res,rej)=>{const t=db.transaction(st,'readwrite');t.objectStore(st).put(v,k);t.oncomplete=()=>res();t.onerror=()=>rej(t.error)});return true}catch(e){return false}}
+async function lerEstado(aid){if(!aid)return null;const v=await idbGet('estados',aid);if(v&&v.inv)return v;try{const l=JSON.parse(lsGet('leitor-tdah:'+aid)||'null');if(l&&l.inv)return l}catch(e){}return null}
+const canal=('BroadcastChannel' in window)?new BroadcastChannel('aldus-leitor-tdah'):null;const ABA=Math.random().toString(36).slice(2);
+let tSalvar=null,pendente=false;
+async function gravarAgora(){if(!S)return;clearTimeout(tSalvar);pendente=false;S.salvoEm=new Date().toISOString();const aid=S.inv.assunto_id;const ok=await idbSet('estados',aid,S);lsSet('leitor-tdah:ultimo',aid);if(ITEM)await idbSet('itens',ITEM,aid);if(canal)canal.postMessage({aid,aba:ABA,em:S.salvoEm});if(!ok)toast('⚠️ Não consegui salvar neste navegador.')}
+function salvar(){if(!S)return;pendente=true;clearTimeout(tSalvar);tSalvar=setTimeout(gravarAgora,300)}
+if(canal)canal.onmessage=async e=>{const m=e.data||{};if(!S||m.aba===ABA||m.aid!==S.inv.assunto_id||pendente)return;const v=await lerEstado(m.aid);if(v&&(!S.salvoEm||v.salvoEm>S.salvoEm)){const pos=S.user.pos,tool=S.user.tool;S=v;fixar();S.user.pos=pos;S.user.tool=tool;render()}};
+async function carregarInicial(){
+ let emb=null;try{const t=$('#dados-embutidos').textContent.trim();if(t&&t!=='{}')emb=JSON.parse(t)}catch(e){}
+ if(emb&&emb.inv){const l=await lerEstado(emb.inv.assunto_id);S=(l&&l.salvoEm&&emb.salvoEm&&l.salvoEm>emb.salvoEm)?l:emb;fixar();return}
+ if(ITEM){const aid=await idbGet('itens',ITEM);const l=await lerEstado(aid);if(l){S=l;fixar()}return}
+ const l=await lerEstado(lsGet('leitor-tdah:ultimo'));if(l){S=l;fixar()}
+}
+function fixar(){S.content=S.content||{blocos:{},trechos:{}};S.content.blocos=S.content.blocos||{};S.content.trechos=S.content.trechos||{};S.user=Object.assign(novoUser(),S.user||{})}
+
+/* ============ leitura do Word (.docx) sem internet ============ */
+async function lerZip(buf){
+ const dv=new DataView(buf),u8=new Uint8Array(buf);let eocd=-1;
+ for(let i=buf.byteLength-22;i>=Math.max(0,buf.byteLength-66000);i--){if(dv.getUint32(i,true)===0x06054b50){eocd=i;break}}
+ if(eocd<0)throw new Error('Arquivo não parece um Word (.docx).');
+ const n=dv.getUint16(eocd+10,true);let p=dv.getUint32(eocd+16,true);const out={};const dec=new TextDecoder();
+ for(let k=0;k<n;k++){const met=dv.getUint16(p+10,true),csz=dv.getUint32(p+20,true),nl=dv.getUint16(p+28,true),xl=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true),off=dv.getUint32(p+42,true);
+  const nome=dec.decode(u8.subarray(p+46,p+46+nl));out[nome]={met,csz,off};p+=46+nl+xl+cl}
+ return async nome=>{const e=out[nome];if(!e)return null;const ln=dv.getUint16(e.off+26,true),lx=dv.getUint16(e.off+28,true);const dado=u8.subarray(e.off+30+ln+lx,e.off+30+ln+lx+e.csz);
+  if(e.met===0)return dec.decode(dado);
+  const ds=new Blob([dado]).stream().pipeThrough(new DecompressionStream('deflate-raw'));return await new Response(ds).text()}
+}
+const W='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+async function docxParaInventario(buf,nomeArq){
+ const ler=await lerZip(buf);const xml=await ler('word/document.xml');if(!xml)throw new Error('Word sem document.xml.');
+ const sty=await ler('word/styles.xml');const nomes={},nivelEst={};
+ if(sty){const sd=new DOMParser().parseFromString(sty,'application/xml');for(const st of sd.getElementsByTagNameNS(W,'style')){const id=st.getAttributeNS(W,'styleId')||st.getAttribute('w:styleId');const nm=st.getElementsByTagNameNS(W,'name')[0];nomes[id]=(nm&&(nm.getAttributeNS(W,'val')||nm.getAttribute('w:val'))||'').toLowerCase();const ol=st.getElementsByTagNameNS(W,'outlineLvl')[0];if(ol)nivelEst[id]=+(ol.getAttributeNS(W,'val')||ol.getAttribute('w:val'))+1}}
+ const d=new DOMParser().parseFromString(xml,'application/xml');const val=el=>el&&(el.getAttributeNS(W,'val')??el.getAttribute('w:val'));
+ const pars=[];
+ for(const p of d.getElementsByTagNameNS(W,'p')){
+  const pPr=[...p.children].find(c=>c.localName==='pPr');let nivel=0;
+  if(pPr){const ps=[...pPr.children].find(c=>c.localName==='pStyle');const id=ps?val(ps):'';const nm=nomes[id]||id.toLowerCase();
+   const m=nm.match(/(?:heading|t[íi]tulo|titulo)\s*(\d)/)||id.match(/^(?:Heading|Ttulo|Titulo|Título)(\d)$/i);if(m)nivel=+m[1];else if(nivelEst[id])nivel=nivelEst[id];
+   else{const alvo=(nm+' '+id).toLowerCase();if(/eixo|cap[ií]tulo/.test(alvo))nivel=2;else if(/subt[oó]pico|subtitulo|subtítulo/.test(alvo))nivel=4;else if(/artigo/.test(alvo))nivel=3}
+   const ol=[...pPr.children].find(c=>c.localName==='outlineLvl');if(!nivel&&ol)nivel=+val(ol)+1}
+  let txt='';let bAberto=false;
+  for(const r of p.getElementsByTagNameNS(W,'r')){
+   const rPr=[...r.children].find(c=>c.localName==='rPr');let b=false;if(rPr){const be=[...rPr.children].find(c=>c.localName==='b');if(be){const v=val(be);b=!(v==='0'||v==='false')}}
+   let t='';for(const c of r.children){if(c.localName==='t')t+=c.textContent;else if(c.localName==='tab')t+='\t';else if(c.localName==='br')t+=' '}
+   if(!t)continue;
+   if(b&&!bAberto&&t.trim()){const lead=t.match(/^\s*/)[0];txt+=lead+'**';t=t.slice(lead.length);bAberto=true}
+   else if(!b&&bAberto){const tr=txt.match(/\s*$/)[0];txt=txt.slice(0,txt.length-tr.length)+'**'+tr;bAberto=false}
+   txt+=t}
+  if(bAberto){const tr=txt.match(/\s*$/)[0];txt=txt.slice(0,txt.length-tr.length)+'**'+tr}
+  txt=txt.replace(/\*\*\*\*/g,'').trim();
+  if(txt)pars.push({nivel,txt})}
+ const blocos=[];let titulo='',capitulo='',atual=null,h2pend=null,inicio=false;
+ const tituloLimpo=t=>limpa(t);
+ const novoBloco=(tit,cap)=>{const n=blocos.length+1;const am=limpa(tit).match(/ART\.?\s*(\d+(?:\s*[-–]\s*[A-Z])?)/i);let art=am?am[1].replace(/\s*[-–]\s*/,'-').toUpperCase():'';
+  const slug=art?('ART-'+art):(limpa(tit).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim().split(' ').filter(w=>w.length>3).slice(0,2).join('-')||'BLOCO');
+  atual={id:'BL-'+pad(n)+'-'+slug,titulo:tituloLimpo(tit),capitulo:cap,artigo:art,trechos:[]};blocos.push(atual)};
+ let pulando=false;
+ for(const p of pars){
+  if(p.nivel>=1&&p.nivel<=3&&/SUM[ÁA]RIO|^\W*[ÍI]NDICE\b/i.test(limpa(p.txt))){pulando=true;atual=null;h2pend=null;continue}
+  if(p.nivel>=1&&p.nivel<=3)pulando=false;
+  if(pulando)continue;
+  if(p.nivel===1){titulo=titulo||limpa(p.txt);inicio=true;atual=null;h2pend=null;continue}
+  if(p.nivel===2){capitulo=limpa(p.txt);h2pend=p.txt;atual=null;inicio=true;continue}
+  if(p.nivel===3){novoBloco(p.txt,capitulo);h2pend=null;inicio=true;continue}
+  if(p.nivel>3){if(!atual)continue;atual.trechos.push({id:atual.id+'-TR-'+pad(atual.trechos.length+1),rotulo:limpa(p.txt).replace(/^[^\p{L}\p{N}§]*/u,''),categoria:'regra',elegivel:false,motivo:'Subtítulo do artigo.',texto:p.txt});continue}
+  if(!inicio)continue;
+  if(!atual){if(h2pend){novoBloco(h2pend,'');h2pend=null}else continue}
+  const k=atual.trechos.length+1;const plain=limpa(p.txt);
+  const rm=p.txt.match(/^[^\p{L}\p{N}*]*\*\*([^*]+?):?\*\*\s*:?/u);let rotulo=rm?rm[1].replace(/:$/,'').trim():'';
+  const cat=/^\s*⚖/.test(plain)?'jurisprudencia':/^\s*(⚠|❗|🚨|⛔)/.test(plain)?'alerta':/^\s*(🔄|📌|ℹ|💡)/.test(plain)?'ressalva':'regra';
+  let eleg=true,mot='';
+  const corpo=plain.replace(/^[^\p{L}\p{N}]*/u,'').replace(rotulo?new RegExp('^'+rotulo.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*:?','i'):/^$/,'').trim();
+  if(/^\s*🚫/u.test(plain)||/^(revogad|vetad|dispositivo (revogad|vetad))/i.test(corpo)){eleg=false;mot='Dispositivo revogado ou vetado, sem conteúdo para estudar.'}
+  else if(/^\s*(📍|📅)/.test(plain)){eleg=false;mot='Linha de fonte ou data.'}
+  atual.trechos.push({id:atual.id+'-TR-'+pad(k),rotulo,categoria:cat,elegivel:eleg,motivo:mot,texto:p.txt})}
+ const bl=blocos.filter(b=>b.trechos.length);
+ if(!bl.length)throw new Error('Não encontrei artigos (títulos nível 3) neste Word.');
+ const nomeBase=(nomeArq||'').replace(/\.docx$/i,'');
+ const aid=(titulo||nomeBase).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40).replace(/-+$/,'')||'RESUMO';
+ return {formato:'LEITOR-TDAH-INVENTARIO-1',assunto_id:aid,titulo:titulo||nomeBase,arquivo_origem:nomeArq||'',blocos:bl};
+}
+
+/* ============ abrir ============ */
+async function abrirArquivo(f){
+ try{
+  let inv=null,extra=null;
+  if(/\.docx$/i.test(f.name))inv=await docxParaInventario(await f.arrayBuffer(),f.name);
+  else{const j=JSON.parse(await f.text());if(j.inv&&j.content){abrirEstado(j);return}if(j.inventario){inv=j.inventario;extra=j.pacotes}else inv=j;if(!inv.blocos)throw new Error('JSON não é um inventário do Leitor TDAH.')}
+  const l=await lerEstado(inv.assunto_id);
+  if(l&&l.inv&&confirm('Este resumo já foi aberto antes neste computador. Continuar de onde parou (com o conteúdo e as anotações já salvos)?\n\nOK = continuar · Cancelar = começar do zero')){S=l;fixar()}
+  else{S={inv,content:{blocos:{},trechos:{}},user:novoUser(),salvoEm:''}}
+  if(extra)importarObjetos(extra,true);
+  salvar();render();toast('Resumo aberto: '+S.inv.blocos.length+' artigos, '+S.inv.blocos.reduce((a,b)=>a+b.trechos.length,0)+' trechos.');
+  if(!temConteudoAlgum())abrirArtigos();
+ }catch(e){alert('Não consegui abrir: '+e.message)}
+}
+function abrirEstado(j){S=j;fixar();salvar();render()}
+function temConteudoAlgum(){return Object.keys(S.content.trechos).length>0}
+
+/* ============ pedido para o GPT (Passo 2 embutido) ============ */
+const ehQuadro=b=>!b.artigo&&/JURISPRUD/i.test(b.titulo);
+const blocoPedivel=b=>!ehQuadro(b)&&b.trechos.some(t=>t.elegivel);
+function pedidoBloco(b){
+ const bj={assunto_id:S.inv.assunto_id,titulo_assunto:S.inv.titulo,id:b.id,titulo:b.titulo,capitulo:b.capitulo,artigo:b.artigo,trechos:b.trechos.map(t=>({id:t.id,rotulo:t.rotulo,categoria:t.categoria,elegivel:t.elegivel,texto:t.texto}))};
+ return `${limpa(b.titulo)} — LEITOR TDAH (conteúdo do artigo)
+
+1. MISSÃO
+Produzir o CONTEÚDO REAL das ferramentas do Leitor TDAH para o artigo do item 7. Não faça HTML, botões nem prompts. Seja ENXUTO: frases curtas, sem introdução, sem repetir o que já disse em outra ferramenta. NÃO faça questões nem quizzes.
+
+2. O QUE PRODUZIR
+2.1 UMA VEZ PARA O ARTIGO:
+- MAPA MENTAL: centro, ramos com sentido próprio, sub-ramos curtos. Não é a lista das frases do texto.
+- FLUXOGRAMA como ${REGRA_FLUXO}
+- IMAGEM DO EVENTO: descrição da cena que representa o EVENTO (o fato, não a palavra) e um prompt de imagem pronto. Sem pessoas identificáveis, sem conteúdo sexual explícito, sem sensacionalismo. Nada representável → "representavel": false.
+- TUTOR SOCRÁTICO: 3 perguntas encadeadas (da simples à difícil), cada uma com o que a resposta deve conter e uma dica.
+- RESUMO INTELIGENTE: regra, sujeitos, requisitos, limites, exceções, pena, ponto de prova. Campo que não se aplica fica vazio.
+- MNEMÔNICOS: 1 ou 2 criados por você ("origem": "autoral"), com a explicação.
+2.2 PARA CADA TRECHO COM "elegivel": true (pule os outros):
+- 3 FLASHCARDS, cada um por um ângulo diferente (conceito, requisito, limite, consequência, exceção, distinção, aplicação). O verso não é a regra copiada.
+- POR QUÊ?: 2 a 4 frases sobre o fundamento e a lógica do trecho, sem repetir o texto.
+- TEXTO FÁCIL: reescrita didática do trecho em 3 a 6 frases curtas, com um exemplo quando ajudar.
+- GLOSSÁRIO: só termos difíceis que aparecem pela primeira vez no artigo. Sem termo difícil → lista vazia.
+- JURISPRUDÊNCIA: só julgados citados no próprio texto e ligados a este trecho ("origem": "documento"). Sem julgado → lista vazia.
+
+3. REGRAS
+1) Copie o texto do trecho exato em "texto_original_conferido".
+2) Não invente lei, julgado, número de processo, data, prazo, pena ou exceção.
+3) Não pesquise na internet. O que você não tiver certeza vai para "pendencias".
+4) Não repita flashcard nem explicação, nem com outras palavras.
+
+4. COMO RESPONDER
+Responda com UM ÚNICO bloco de código JSON (para eu copiar com um clique) e, depois dele, no máximo duas linhas. Não gere arquivo para download. Se a resposta for cortada, eu escrevo CONTINUE e você manda outro bloco JSON, no mesmo formato, só com os trechos que faltaram.
+Português com acentos; pode usar **negrito**; quebra de linha dentro de texto: \\n.
+
+5. FORMATO
+{"formato":"LEITOR-TDAH-PACOTE-3","assunto_id":"${S.inv.assunto_id}",
+ "bloco":{"id":"${b.id}",
+  "mapa_mental":{"centro":"","ramos":[{"rotulo":"","subramos":[""]}]},
+  "fluxograma":{"tipo":"decisao ou sequencia","nos":[{"id":"n1","tipo":"inicio, condicao, consequencia, excecao ou fim","texto":""}],"ligacoes":[{"de":"n1","para":"n2","rotulo":"sim, não ou vazio"}]},
+  "imagem":{"representavel":true,"evento":"","descricao_da_cena":"","prompt_imagem":"","limitacao":""},
+  "tutor":[{"pergunta":"","a_resposta_deve_conter":[""],"dica_se_errar":""}],
+  "resumo_inteligente":{"regra":"","sujeitos":"","requisitos":"","limites":"","excecoes":"","pena":"","ponto_de_prova":""},
+  "mnemonicos":[{"texto":"","explicacao":"","origem":"autoral"}]},
+ "trechos":[{"id":"","texto_original_conferido":"","pendencias":[],
+  "flashcards":[{"angulo":"","frente":"","verso":""}],
+  "por_que":"","texto_facil":"",
+  "glossario":[{"termo":"","significado":""}],
+  "jurisprudencia":[{"tribunal":"","processo":"","orgao":"","data":"","tese":"","fonte":"","origem":"documento","aplicacao":"direta ou relacionada"}]}]}
+
+6. (sem anexos: o artigo já está abaixo)
+
+7. ARTIGO
+${JSON.stringify(bj,null,1)}`}
+
+/* ============ importar respostas ============ */
+function extrairJsons(txt){const out=[];let i=0;const s=String(txt);
+ while(i<s.length){const a=s.indexOf('{',i);if(a<0)break;let dep=0,q=false,e=false,fim=-1;
+  for(let k=a;k<s.length;k++){const c=s[k];if(q){if(e)e=false;else if(c==='\\')e=true;else if(c==='"')q=false;continue}if(c==='"'){q=true;continue}if(c==='{')dep++;else if(c==='}'){dep--;if(!dep){fim=k;break}}}
+  if(fim<0)break;try{out.push(JSON.parse(s.slice(a,fim+1)));i=fim+1}catch(err){i=a+1}}
+ return out}
+const CAMPOS_TRECHO=['flashcards','por_que','texto_facil','glossario','jurisprudencia'];
+const CAMPOS_BLOCO=['mapa_mental','fluxograma','imagem','tutor','resumo_inteligente','mnemonicos'];
+function mapaTrechos(){const m={};S.inv.blocos.forEach((b,bi)=>b.trechos.forEach((t,ti)=>m[t.id]={b,t,bi,ti}));return m}
+function importarObjetos(objs,silencioso){
+ const mt=mapaTrechos(),rel={ok:[],rec:[],pend:[],blocos:[]};const subst=[];const plano=[];
+ for(const o of objs){if(!o||typeof o!=='object')continue;
+  const lista=Array.isArray(o)?o:(o.pacotes||[o]);
+  for(const p of lista){
+   if(p.bloco&&p.bloco.id){const b=S.inv.blocos.find(x=>x.id===p.bloco.id);if(!b)rel.rec.push([p.bloco.id,'artigo não existe neste resumo']);else{for(const c of CAMPOS_BLOCO)if(p.bloco[c]!=null){plano.push(['b',b.id,c,p.bloco[c]]);if(S.content.blocos[b.id]&&S.content.blocos[b.id][c]!=null)subst.push(b.id+' · '+c)}rel.blocos.push(b.id)}}
+   for(const t of (p.trechos||[])){const r=mt[t.id];
+    if(!r){rel.rec.push([t.id,'trecho não existe neste resumo']);continue}
+    if(t.texto_original_conferido!=null&&limpa(t.texto_original_conferido).replace(/\s/g,'')!==limpa(r.t.texto).replace(/\s/g,'')){rel.rec.push([t.id,'o texto não bate com o do resumo']);continue}
+    let n=0;for(const c of CAMPOS_TRECHO)if(t[c]!=null){let v=t[c];if(c==='por_que'&&typeof v==='object')v=Object.values(v).filter(Boolean).join(' ');plano.push(['t',t.id,c,v]);n++;if(S.content.trechos[t.id]&&S.content.trechos[t.id][c]!=null)subst.push(t.id+' · '+c)}
+    for(const c of CAMPOS_BLOCO)if(t[c]!=null&&!(p.bloco&&p.bloco[c])){plano.push(['b',r.b.id,c,t[c]])}
+    if(Array.isArray(t.pendencias)&&t.pendencias.length)plano.push(['t',t.id,'pendencias',t.pendencias]);
+    rel.ok.push(t.id);if(t.pendencias&&t.pendencias.length)rel.pend.push([t.id,t.pendencias.join(' ')])}
+  }}
+ let trocar=true;if(subst.length&&!silencioso)trocar=confirm(subst.length+' ferramenta(s) já têm conteúdo e seriam substituídas.\n\nOK = substituir · Cancelar = manter o que já existe e só acrescentar o que falta');
+ for(const [k,id,c,v] of plano){const dst=k==='b'?(S.content.blocos[id]=S.content.blocos[id]||{}):(S.content.trechos[id]=S.content.trechos[id]||{});if(dst[c]!=null&&!trocar)continue;dst[c]=v}
+ salvar();return rel}
+function mostrarRelatorio(rel){
+ const okB=[...new Set(rel.blocos)].length;
+ abrirModal(`<h2>Resultado</h2><p class="ok-t">✅ ${rel.ok.length} trecho(s) recebidos${okB?` · ${okB} artigo(s) com mapa, fluxograma e demais ferramentas do artigo`:''}.</p>
+ ${rel.rec.length?`<p class="pa-t">⚠️ ${rel.rec.length} recusado(s):</p><ul>${rel.rec.map(r=>`<li>${esc(r[0])}: ${esc(r[1])}</li>`).join('')}</ul>`:''}
+ ${rel.pend.length?`<details><summary>Pendências que a Joana registrou (${rel.pend.length})</summary><ul>${rel.pend.map(r=>`<li><b>${esc(r[0])}</b>: ${esc(r[1])}</li>`).join('')}</ul></details>`:''}
+ <div class="row"><button class="btn prim" onclick="fecharModal();abrirArtigos()">Voltar à lista de artigos</button><button class="btn" onclick="fecharModal()">Ir estudar</button></div>`);render()}
+
+/* ============ situação ============ */
+function situacaoTrecho(t){if(!t.elegivel)return 'nel';const c=S.content.trechos[t.id]||{};const n=['flashcards','por_que','texto_facil'].filter(k=>c[k]!=null&&(!Array.isArray(c[k])||c[k].length)).length;return n===3?'pronto':n?'parcial':'pendente'}
+function situacaoBloco(b){const el=b.trechos.filter(t=>t.elegivel);if(!el.length||ehQuadro(b))return {k:'nada',txt:ehQuadro(b)?'revisão':'sem conteúdo'};const pr=el.filter(t=>situacaoTrecho(t)==='pronto').length;const temB=!!S.content.blocos[b.id];
+ if(pr===el.length&&temB)return {k:'pronto',txt:'✅ pronto'};if(pr||temB)return {k:'parcial',txt:`🟡 ${pr}/${el.length}`};return {k:'pendente',txt:'⏳ falta'}}
+
+/* ============ modais ============ */
+function abrirModal(h){$('#modalBox').innerHTML=h;$('#modal').classList.add('on')}
+function fecharModal(){$('#modal').classList.remove('on')}
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')fecharModal()});
+function abrirArtigos(){
+ const bls=S.inv.blocos.filter(blocoPedivel);const prontos=bls.filter(b=>situacaoBloco(b).k==='pronto').length;
+ abrirModal(`<h2>🤖 Gerar conteúdo com a Joana</h2>
+ <p class="muted">Para cada artigo: <b>1.</b> clique em <b>Copiar pedido</b> → <b>2.</b> cole numa <b>conversa nova</b> do ChatGPT e envie → <b>3.</b> quando ela responder, clique no botão de copiar do bloco de código → <b>4.</b> volte aqui e clique em <b>Colar resposta</b>. Pode usar várias abas ao mesmo tempo.</p>
+ <div class="row" style="margin:.2rem 0 .8rem"><b>${prontos} de ${bls.length}</b>&nbsp;artigos prontos.<span style="flex:1"></span><button class="btn prim" onclick="colarResposta(null)">📥 Colar resposta (qualquer artigo)</button></div>
+ <p class="muted" style="font-size:.85rem">Não precisa acertar a linha: o leitor reconhece sozinho de qual artigo é a resposta.</p>
+ <table class="lst"><tr><th>Artigo</th><th>Trechos</th><th>Situação</th><th></th></tr>
+ ${bls.map(b=>{const s=situacaoBloco(b);return `<tr><td>${esc(b.titulo)}</td><td>${b.trechos.filter(t=>t.elegivel).length}</td><td class="${s.k==='pronto'?'ok-t':s.k==='parcial'?'pa-t':'pe-t'}">${s.txt}</td>
+ <td style="white-space:nowrap"><button class="btn sm" onclick="copiarPedido('${b.id}',this)">📋 Copiar pedido</button> <button class="btn sm ok" onclick="colarResposta('${b.id}')">📥 Colar resposta</button></td></tr>`}).join('')}</table>
+ <div class="row"><button class="btn" onclick="$('#fPacotes').click()">📁 Importar arquivos PACOTE já prontos</button><button class="btn" onclick="fecharModal()">Fechar</button></div>`)}
+async function copiarPedido(id,btn){const b=S.inv.blocos.find(x=>x.id===id);const ok=await copiar(pedidoBloco(b));if(ok){btn.textContent='✔ Copiado';toast('Pedido copiado. Cole numa conversa nova do ChatGPT.')}else abrirModal(`<h2>Copie o pedido</h2><p>Não consegui copiar sozinho. Selecione tudo abaixo (Ctrl+A) e copie (Ctrl+C).</p><textarea style="min-height:50vh">${esc(pedidoBloco(b))}</textarea><div class="row"><button class="btn" onclick="abrirArtigos()">Voltar</button></div>`)}
+function colarResposta(id){const b=id&&S.inv.blocos.find(x=>x.id===id);
+ abrirModal(`<h2>📥 Resposta da Joana${b?' — '+esc(b.titulo):''}</h2><p class="muted">Cole aqui (Ctrl+V) tudo o que ela respondeu. Pode colar o texto inteiro, com a conversa em volta: eu pego só o conteúdo.</p>
+ <textarea id="taResp" style="min-height:45vh" placeholder="Cole aqui"></textarea>
+ <div class="row"><button class="btn prim" onclick="processarColado()">✔ Guardar</button><button class="btn" onclick="colarDoClipboard()">Colar da área de transferência</button><button class="btn" onclick="abrirArtigos()">Voltar</button></div>`);setTimeout(()=>$('#taResp').focus(),50)}
+async function colarDoClipboard(){try{$('#taResp').value=await navigator.clipboard.readText()}catch(e){toast('Use Ctrl+V dentro da caixa.')}}
+function processarColado(){const objs=extrairJsons($('#taResp').value);if(!objs.length){alert('Não encontrei o conteúdo (o bloco JSON) no que foi colado. Copie a resposta inteira da Joana e tente de novo.');return}mostrarRelatorio(importarObjetos(objs))}
+$('#fPacotes').addEventListener('change',async e=>{const objs=[];for(const f of e.target.files){try{objs.push(...extrairJsons(await f.text()))}catch(_){}}e.target.value='';if(!objs.length){alert('Nenhum conteúdo reconhecido nos arquivos.');return}mostrarRelatorio(importarObjetos(objs))});
+
+/* ============ navegação ============ */
+const B=()=>S.inv.blocos[S.user.pos.b];const T=()=>B().trechos[S.user.pos.t];
+const ehSub=t=>!!t&&(t.sub||t.motivo==='Subtítulo do artigo.');
+function semSub(b,t,d=1){const tr=S.inv.blocos[b].trechos;let k=t;while(k>=0&&k<tr.length&&ehSub(tr[k]))k+=d;if(k<0||k>=tr.length){k=t;while(k>=0&&k<tr.length&&ehSub(tr[k]))k-=d}return (k<0||k>=tr.length)?t:k}
+function subtituloDe(b,t){const tr=S.inv.blocos[b].trechos;for(let k=t;k>=0;k--)if(ehSub(tr[k]))return tr[k];return null}
+function ir(b,t,d=1){t=semSub(b,t,d);S.user.pos={b,t};S.user.vistos[S.inv.blocos[b].trechos[t].id]=1;salvar();render();window.scrollTo({top:0,behavior:'smooth'})}
+function passo(d){let {b,t}=S.user.pos;do{t+=d;while(t<0){b--;if(b<0){b=0;t=0;break}t=S.inv.blocos[b].trechos.length-1}while(b<S.inv.blocos.length&&t>=S.inv.blocos[b].trechos.length){t-=S.inv.blocos[b].trechos.length;b++}if(b>=S.inv.blocos.length){b=S.inv.blocos.length-1;t=S.inv.blocos[b].trechos.length-1;break}if(b===0&&t===0)break}while(ehSub(S.inv.blocos[b].trechos[t]));ir(b,t,d)}
+function passoBloco(d){const b=Math.min(Math.max(S.user.pos.b+d,0),S.inv.blocos.length-1);ir(b,0)}
+document.addEventListener('keydown',e=>{if(!S||$('#modal').classList.contains('on'))return;const a=document.activeElement;if(a&&(/INPUT|TEXTAREA|SELECT/.test(a.tagName)||a.isContentEditable))return;
+ if(e.key==='ArrowDown'){e.preventDefault();passo(1)}else if(e.key==='ArrowUp'){e.preventDefault();passo(-1)}else if(e.key==='ArrowRight'){e.preventDefault();passoBloco(1)}else if(e.key==='ArrowLeft'){e.preventDefault();passoBloco(-1)}});
+
+/* ============ texto com destaques ============ */
+function runs(txt){const out=[];const re=/\*\*(.+?)\*\*/gs;let i=0,m;while((m=re.exec(txt))){if(m.index>i)out.push({t:txt.slice(i,m.index),b:0});out.push({t:m[1],b:1});i=re.lastIndex}if(i<txt.length)out.push({t:txt.slice(i),b:0});return out}
+function textoHTML(t){const rs=runs(t.texto);const plain=rs.map(r=>r.t).join('');const N=plain.length;const at=new Array(N);let k=0;for(const r of rs)for(let j=0;j<r.t.length;j++)at[k++]={b:r.b,up:0,h:''};
+ for(const m of (S.user.marcas[t.id]||[]))for(let i=Math.max(0,m.s);i<Math.min(N,m.e);i++){if(m.k==='b')at[i].b=1;else if(m.k==='up')at[i].up=1;else at[i].h=m.k}
+ let h='',cur=null,buf='';const key=a=>a.b+'|'+a.up+'|'+a.h;const flush=()=>{if(!buf)return;const c=[cur.b?'m-b':'',cur.up?'m-up':'',cur.h?'m-'+cur.h:''].filter(Boolean).join(' ');h+=c?`<span class="${c}">${esc(buf)}</span>`:esc(buf);buf=''};
+ for(let i=0;i<N;i++){const a=at[i];if(!cur||key(a)!==key(cur)){flush();cur=a}buf+=plain[i]}flush();return h}
+function selecaoOffsets(){const sel=getSelection();const box=$('#texto');if(!sel.rangeCount||!box)return null;const r=sel.getRangeAt(0);if(!box.contains(r.startContainer)||!box.contains(r.endContainer)||r.collapsed)return null;
+ const pre=document.createRange();pre.selectNodeContents(box);pre.setEnd(r.startContainer,r.startOffset);const s=pre.toString().length;return {s,e:s+r.toString().length}}
+function destacar(k){const o=selecaoOffsets();if(!o){toast('Selecione uma palavra ou expressão no texto do trecho.');return}const id=T().id;const ms=S.user.marcas[id]=S.user.marcas[id]||[];
+ if(k==='rem')S.user.marcas[id]=ms.filter(m=>m.e<=o.s||m.s>=o.e);else ms.push({s:o.s,e:o.e,k});salvar();render()}
+function restaurar(){if(!confirm('Tirar todos os seus destaques deste trecho?'))return;delete S.user.marcas[T().id];salvar();render()}
+
+/* ============ ferramentas ============ */
+const TOOLS8=[['prov','☆','PROVÁVEL'],['juris','⚖️','JURISPRUDÊNCIA'],['porque','🧠','POR QUÊ?'],['perg','❓','PERGUNTAR'],['quest','📝','QUESTÕES'],['notas','✏️','ANOTAÇÕES'],['glos','📖','GLOSSÁRIO'],['mnemo','🧩','MNEMÔNICOS']];
+const TOOLS10=[['mapa','🧠','MAPA MENTAL'],['fluxo','🔀','FLUXOGRAMA'],['img','🖼️','IMAGEM DO EVENTO'],['tutor','🎓','TUTOR SOCRÁTICO'],['cards','🗂️','FLASHCARDS'],['qconc','📘','QUIZ: CONCEITOS'],['qpraz','⏱️','QUIZ: PRAZOS'],['qexc','⚠️','QUIZ: EXCEÇÕES'],['resumo','📑','RESUMO INTELIGENTE'],['facil','✍️','TEXTO FÁCIL']];
+const cT=()=>S.content.trechos[T().id]||{};const cB=()=>S.content.blocos[B().id]||{};
+function temTool(k){const t=T(),b=B(),ct=cT(),cb=cB(),u=S.user;switch(k){
+ case 'prov':return !!u.prov[t.id];case 'juris':return !!((ct.jurisprudencia||[]).length||(u.jurUser[t.id]||[]).length);case 'porque':return !!ct.por_que;case 'notas':return !!u.notas[t.id];
+ case 'glos':return !!(ct.glossario||[]).length;case 'mnemo':return !!((cb.mnemonicos||[]).length||(u.mnemoUser[b.id]||[]).length);case 'mapa':return !!cb.mapa_mental;case 'fluxo':return !!cb.fluxograma;
+ case 'img':return !!(u.imagens[b.id]||cb.imagem);case 'tutor':return !!(cb.tutor||[]).length;case 'cards':return !!((ct.flashcards||[]).length||(u.cardsUser[t.id]||[]).length);case 'resumo':return !!cb.resumo_inteligente;case 'facil':return !!ct.texto_facil;case 'perg':return !!(u.duvidas[t.id]||[]).length}return false}
+function toolBtn([k,ic,nm]){const pr=['quest','qconc','qpraz','qexc'].includes(k);return `<button class="tool ${S.user.tool===k?'ativo':''}" onclick="setTool('${k}')">${k==='prov'&&S.user.prov[T().id]?'★':ic} ${nm}${temTool(k)?'<span class="tem">●</span>':''}${pr?'<span class="tem" style="color:var(--muted)">GPT</span>':''}</button>`}
+function setTool(k){if(k==='prov'){const id=T().id;if(S.user.prov[id])delete S.user.prov[id];else S.user.prov[id]=1;salvar();render();toast(S.user.prov[id]?'Marcado como provável de prova.':'Marca retirada.');return}S.user.tool=S.user.tool===k?'':k;if(TOOLS10.some(x=>x[0]===k))S.user.mais=true;salvar();render()}
+const vazioPacote='<p class="muted">Ainda sem conteúdo. Abra <b>🤖 Gerar conteúdo</b>, copie o pedido deste artigo e cole a resposta da Joana.</p>';
+const doArtigo='<span class="selo">DO ARTIGO</span>';
+function ctxPrompt(){return `Artigo: ${B().titulo}${B().capitulo?' ('+B().capitulo+')':''}. Trecho: ${limpa(T().texto)}`}
+const PROMPTS={
+ quest:()=>`${ctxPrompt()}\n\nFaça 5 questões AUTORAIS de nível de prova de Delegado sobre este trecho: 2 Certo/Errado estilo Cebraspe, 1 discursiva curta, 1 múltipla escolha estilo FGV (A–E, caso concreto) e 1 múltipla escolha estilo Cebraspe (A–E). Use casos concretos, tipos penais vizinhos e jurisprudência consolidada; nada de perguntar número de informativo ou "segundo o trecho". Mostre UMA questão por vez, espere minha resposta, corrija explicando cada alternativa e só então mostre a próxima. No fim, meu placar e os pontos que errei.`,
+ qconc:()=>`${ctxPrompt()}\n\nFaça um quiz rápido de 3 itens (A–D) só com os CONCEITOS jurídicos que aparecem neste trecho. Um item por vez; espere minha resposta e corrija.`,
+ qpraz:()=>`${ctxPrompt()}\n\nFaça um quiz rápido de até 3 itens (A–D) só com PRAZOS, penas, marcos temporais e idades deste trecho. Se não houver nenhum, diga só "Este trecho não tem prazos". Um item por vez; espere minha resposta e corrija.`,
+ qexc:()=>`${ctxPrompt()}\n\nFaça um quiz rápido de até 3 itens (A–D) só com EXCEÇÕES, ressalvas e vedações reais deste trecho. Não invente exceção; se não houver, diga só "Este trecho não tem exceções". Um item por vez; espere minha resposta e corrija.`};
+const REGRA_FLUXO=`ROTEIRO PARA RESOLVER QUESTÃO DE PROVA (4 a 8 nós). Comece por uma PERGUNTA concreta sobre o caso (tipo "condicao"), por exemplo "O titular é absolutamente incapaz?". Cada pergunta tem duas saídas, "sim" e "não". Cada saída termina numa RESPOSTA concreta (tipo "consequencia" ou "excecao") com o artigo, por exemplo "Não corre prescrição — art. 198, I". PROIBIDO nó genérico como "Identificar…", "Examinar…", "Analisar…", "Início" ou "Fim". Se o artigo não tiver decisão real, faça uma sequência de 3 a 5 passos concretos ("tipo": "sequencia").`;
+PROMPTS.juris=()=>`${ctxPrompt()}\n\nPesquise jurisprudência do STF e do STJ sobre ESTE trecho, em fonte oficial (stf.jus.br, stj.jus.br, informativos, súmulas, temas repetitivos e de repercussão geral). Traga até 5 julgados, os mais cobrados em prova. Inclua só o que você encontrou de verdade, com o link; não invente número de processo. Diga se a aplicação ao trecho é "direta" ou "relacionada".\nResponda com UM bloco de código JSON (sem arquivo para download):\n{"jurisprudencia":[{"tribunal":"","orgao":"","processo":"","data":"","tese":"","fundamentos":"","fonte":"link","aplicacao":"direta ou relacionada"}]}\nSe não achar nada confiável, responda {"jurisprudencia":[]} e explique em uma linha.`;
+PROMPTS.cards=()=>{const id=T().id;const tem=[...(cT().flashcards||[]),...(S.user.cardsUser[id]||[])].map(c=>'- '+limpa(c.frente));return `${ctxPrompt()}\n\nCrie 5 FLASHCARDS NOVOS sobre este trecho, de nível de prova de Delegado, cada um por um ângulo diferente (conceito, requisito, exceção, distinção com instituto vizinho, aplicação a caso concreto, pegadinha). ${tem.length?'Não repita estes, que eu já tenho:\n'+tem.join('\n')+'\n':''}Verso curto e preciso. Não invente lei nem julgado.\nResponda com UM bloco de código JSON (sem arquivo para download):\n{"flashcards":[{"angulo":"","frente":"","verso":""}]}`};
+PROMPTS.fluxo=()=>{const b=B();return `Artigo: ${limpa(b.titulo)}${b.capitulo?' ('+limpa(b.capitulo)+')':''}\nTexto do resumo:\n${b.trechos.filter(t=>t.elegivel).map(t=>'- '+limpa(t.texto)).join('\n')}\n\nFaça um FLUXOGRAMA deste artigo como ${REGRA_FLUXO}\nNão invente lei, prazo nem exceção.\nResponda com UM bloco de código JSON (sem arquivo para download):\n{"fluxograma":{"tipo":"decisao ou sequencia","nos":[{"id":"n1","tipo":"condicao, consequencia ou excecao","texto":""}],"ligacoes":[{"de":"n1","para":"n2","rotulo":"sim ou não"}]}}`};
+async function copiarPrompt(k){const ok=await copiar(PROMPTS[k]());toast(ok?'Pedido copiado. Cole numa conversa nova do ChatGPT.':'Não consegui copiar.')}
+const NOME_COLAR={juris:'julgados',cards:'flashcards',fluxo:'fluxograma'};
+function colarFerramenta(k){abrirModal(`<h2>📥 Colar ${NOME_COLAR[k]} do ChatGPT</h2><p class="muted">Copie a resposta da Joana (botão ⧉ do quadro de código), clique na caixa e aperte Ctrl+V.</p><textarea id="taFerr" style="min-height:40vh" placeholder="Cole aqui"></textarea><div class="row"><button class="btn prim" onclick="guardarFerramenta('${k}')">✔ Guardar</button><button class="btn" onclick="fecharModal()">Cancelar</button></div>`);setTimeout(()=>$('#taFerr').focus(),50)}
+function guardarFerramenta(k){const objs=extrairJsons($('#taFerr').value);const id=T().id,bid=B().id;let n=0;
+ if(k==='cards'){const it=objs.flatMap(o=>Array.isArray(o.flashcards)?o.flashcards:(o.frente&&o.verso?[o]:[])).filter(c=>c&&c.frente&&c.verso);const arr=S.user.cardsUser[id]=S.user.cardsUser[id]||[];for(const c of it){arr.push({frente:c.frente,verso:c.verso,angulo:c.angulo||''});n++}}
+ else if(k==='juris'){const it=objs.flatMap(o=>Array.isArray(o.jurisprudencia)?o.jurisprudencia:Array.isArray(o.julgados)?o.julgados:((o.tese||o.processo)?[o]:[])).filter(j=>j&&(j.tese||j.processo));const arr=S.user.jurUser[id]=S.user.jurUser[id]||[];for(const j of it){arr.push({...j,origem:'pesquisa no ChatGPT'});n++}}
+ else if(k==='fluxo'){const f=objs.map(o=>o.fluxograma||(Array.isArray(o.nos)?o:null)).find(Boolean);if(f&&(f.nos||[]).length){(S.content.blocos[bid]=S.content.blocos[bid]||{}).fluxograma=f;delete S.user.fluxoUser[bid];n=f.nos.length}}
+ if(!n){alert('Não encontrei o conteúdo na resposta colada. Copie o quadro de código inteiro da Joana e tente de novo.');return}
+ salvar();fecharModal();render();toast(k==='fluxo'?'Fluxograma novo guardado.':n+' '+NOME_COLAR[k]+' guardado(s) neste trecho.')}
+const OPC_DUV=['O significado','Um exemplo prático','Comparação com instituto parecido','O fundamento','Quando incide','As exceções','As consequências','Jurisprudência','Pegadinhas de prova'];
+function painel(){const k=S.user.tool;if(!k)return '';const t=T(),b=B(),ct=cT(),cb=cB(),u=S.user;let h='';
+ const nome=[...TOOLS8,...TOOLS10].find(x=>x[0]===k);h+=`<h4>${nome[1]} ${nome[2]}${CAMPOS_BLOCO_TOOL.includes(k)?doArtigo:''}</h4>`;
+ switch(k){
+ case 'quest':case 'qconc':case 'qpraz':case 'qexc':
+  h+=`<p>Esta ferramenta é feita <b>na hora, no ChatGPT</b>: a Joana pergunta, você responde e ela corrige.</p><div class="row"><button class="btn prim" onclick="copiarPrompt('${k}')">📋 Copiar pedido para o ChatGPT</button></div><details style="margin-top:.8rem"><summary class="muted">Ver o pedido</summary><p style="white-space:pre-wrap">${esc(PROMPTS[k]())}</p></details>`;break;
+ case 'porque':h+=ct.por_que?`<p style="font-size:1.08rem;line-height:1.6">${negrito(ct.por_que)}</p>`:(t.elegivel?vazioPacote:'<p class="muted">Trecho sem conteúdo para estudar.</p>');break;
+ case 'facil':{if(!ct.texto_facil){h+=t.elegivel?vazioPacote:'<p class="muted">Trecho sem conteúdo para estudar.</p>';break}const of=u.verOriginal;h+=`<div class="row" style="margin-top:0"><button class="btn ${!of?'prim':''}" onclick="S.user.verOriginal=false;render()">✍️ Texto fácil</button><button class="btn ${of?'prim':''}" onclick="S.user.verOriginal=true;render()">📄 Texto original</button></div><p style="font-size:var(--fs);line-height:1.6;white-space:pre-wrap;margin-top:.9rem">${negrito(of?t.texto:ct.texto_facil)}</p>`;break}
+ case 'glos':{const g=ct.glossario||[];h+=g.length?g.map(x=>`<div class="item"><b>${esc(x.termo)}</b> — ${negrito(x.significado)}${x.exemplo?`<br><span class="muted">Ex.: ${esc(x.exemplo)}</span>`:''}</div>`).join(''):`<p class="muted">${ct.glossario?'Nenhum termo difícil novo neste trecho.':(t.elegivel?'Ainda sem conteúdo.':'Trecho sem conteúdo para estudar.')}</p>`;
+  const todos=b.trechos.flatMap(x=>(S.content.trechos[x.id]||{}).glossario||[]);if(todos.length>g.length)h+=`<details><summary class="muted">Todos os termos do artigo (${todos.length})</summary>${todos.map(x=>`<div class="item"><b>${esc(x.termo)}</b> — ${negrito(x.significado)}</div>`).join('')}</details>`;break}
+ case 'cards':h+=painelCards();break;
+ case 'juris':h+=painelJuris();break;
+ case 'mnemo':h+=painelMnemo();break;
+ case 'notas':h+=`<textarea id="taNota" placeholder="Escreva sua anotação deste trecho (salva sozinha)" oninput="S.user.notas[T().id]=this.value;if(!this.value)delete S.user.notas[T().id];salvar()">${esc(u.notas[t.id]||'')}</textarea><p class="muted" style="font-size:.8rem">Salva sozinha enquanto você escreve.</p>`;break;
+ case 'perg':h+=`<p class="muted">Marque o que quer saber, escreva a dúvida (opcional) e copie o pedido para o ChatGPT.</p><div class="chk">${OPC_DUV.map((o,i)=>`<label><input type="checkbox" class="cbDuv" value="${esc(o)}" ${i<2?'checked':''}> ${esc(o)}</label>`).join('')}</div><textarea id="taDuv" placeholder="Minha dúvida (opcional)"></textarea><div class="row"><button class="btn prim" onclick="copiarDuvida()">📋 Copiar pedido para o ChatGPT</button></div>
+  <h4 style="margin-top:1.2rem">Respostas que eu guardei</h4><textarea id="taDuvResp" placeholder="Cole aqui a resposta da Joana que você quer guardar"></textarea><div class="row"><button class="btn ok" onclick="guardarDuvida()">💾 Guardar resposta</button></div>${(u.duvidas[t.id]||[]).map((d,i)=>`<div class="item"><div class="o">${esc(d.q||'Dúvida')} · ${new Date(d.em).toLocaleDateString('pt-BR')}</div><div style="white-space:pre-wrap">${esc(d.r)}</div><button class="btn sm" onclick="S.user.duvidas[T().id].splice(${i},1);salvar();render()">Excluir</button></div>`).join('')}`;break;
+ case 'mapa':h+=painelMapa();break;
+ case 'fluxo':h+=painelFluxo();break;
+ case 'img':h+=painelImg();break;
+ case 'tutor':h+=painelTutor();break;
+ case 'resumo':{const r=cb.resumo_inteligente;if(!r){h+=vazioPacote;break}const L={regra:'Regra',sujeitos:'Sujeitos',requisitos:'Requisitos',limites:'Limites',excecoes:'Exceções',pena:'Pena',ponto_de_prova:'Ponto de prova',fundamento:'Fundamento',exemplo:'Exemplo',consequencias:'Consequências'};h+=`<dl class="campos">${Object.entries(r).filter(([,v])=>v).map(([c,v])=>`<dt>${esc(L[c]||c)}</dt><dd>${negrito(v)}</dd>`).join('')}</dl>`;break}
+ }
+ return `<div class="painel">${h}</div>`}
+const CAMPOS_BLOCO_TOOL=['mapa','fluxo','img','tutor','resumo','mnemo'];
+async function copiarDuvida(){const ops=[...document.querySelectorAll('.cbDuv:checked')].map(c=>c.value);const q=$('#taDuv').value.trim();
+ const p=`${ctxPrompt()}\n\nTenho uma dúvida sobre este trecho${q?': '+q:'.'}\nExplique de forma didática e curta, só sobre este trecho: ${ops.join('; ')||'o significado'}. Não invente lei nem julgado; se não tiver certeza, diga.`;
+ S.user.ultimaDuv=q;const ok=await copiar(p);toast(ok?'Pedido copiado. Cole no ChatGPT.':'Não consegui copiar.')}
+function guardarDuvida(){const r=$('#taDuvResp').value.trim();if(!r)return;const id=T().id;(S.user.duvidas[id]=S.user.duvidas[id]||[]).unshift({q:S.user.ultimaDuv||'',r,em:Date.now()});salvar();render();toast('Resposta guardada neste trecho.')}
+
+/* flashcards */
+let fcI=0,fcVirado=false,fcTrecho='';
+function listaCards(){const id=T().id;const base=(cT().flashcards||[]).map((c,i)=>({...c,_k:'p'+i}));const us=(S.user.cardsUser[id]||[]).map((c,i)=>({...c,_k:'u'+i}));let l=[...base,...us];if(S.user.soErrados)l=l.filter(c=>(S.user.cards[id]||{})[c._k]==='err');return l}
+function painelCards(){const id=T().id;if(fcTrecho!==id){fcI=0;fcVirado=false;fcTrecho=id}const l=listaCards();const res=S.user.cards[id]||{};const ac=Object.values(res).filter(v=>v==='ok').length,er=Object.values(res).filter(v=>v==='err').length;
+ let h=`<div class="row" style="margin-top:0;margin-bottom:.6rem"><button class="btn prim" onclick="copiarPrompt('cards')">🤖 Pedir mais flashcards ao ChatGPT</button><button class="btn ok" onclick="colarFerramenta('cards')">📥 Colar flashcards</button></div><div class="row" style="margin-top:0"><span class="muted">✔ ${ac} · ✖ ${er}</span><label style="margin-left:auto"><input type="checkbox" ${S.user.soErrados?'checked':''} onchange="S.user.soErrados=this.checked;fcI=0;render()"> só os que errei</label></div>`;
+ if(!l.length)return h+(S.user.soErrados?'<p class="muted">Nenhum errado aqui. 👏</p>':(T().elegivel?vazioPacote:'<p class="muted">Trecho sem conteúdo para estudar.</p>'))+`<div class="row"><button class="btn" onclick="novoCard()">＋ Criar meu cartão</button></div>`;
+ fcI=Math.min(fcI,l.length-1);const c=l[fcI];
+ h+=`<div class="fc"><div class="muted" style="font-size:.75rem">CARTÃO ${fcI+1} DE ${l.length}${c.angulo?' · '+esc(c.angulo).toUpperCase():''}${c._k[0]==='u'?' · MEU':''}</div><div style="margin-top:.5rem;font-weight:750">${negrito(c.frente)}</div>${fcVirado?`<div class="v">${negrito(c.verso)}${c.explicacao?`<div class="muted" style="font-weight:400;margin-top:.4rem">${negrito(c.explicacao)}</div>`:''}</div>`:''}</div>
+ <div class="row">${fcVirado?`<button class="btn ok" onclick="marcaCard('${c._k}','ok')">✔ Acertei</button><button class="btn" style="border-color:var(--red);color:var(--red)" onclick="marcaCard('${c._k}','err')">✖ Errei</button>`:`<button class="btn prim" onclick="fcVirado=true;render()">🔄 Virar</button>`}
+ <button class="btn" onclick="fcI=(fcI-1+${l.length})%${l.length};fcVirado=false;render()">←</button><button class="btn" onclick="fcI=(fcI+1)%${l.length};fcVirado=false;render()">→</button>
+ <button class="btn sm" onclick="editarCard('${c._k}')">✎ Editar</button><button class="btn sm" onclick="novoCard()">＋ Meu cartão</button></div>`;return h}
+function marcaCard(k,v){const id=T().id;(S.user.cards[id]=S.user.cards[id]||{})[k]=v;salvar();fcVirado=false;const l=listaCards();fcI=l.length?(fcI+1)%l.length:0;render()}
+function novoCard(){const f=prompt('Frente do cartão (pergunta):');if(!f)return;const v=prompt('Verso (resposta):');if(v==null)return;const id=T().id;(S.user.cardsUser[id]=S.user.cardsUser[id]||[]).push({frente:f,verso:v});salvar();render()}
+function editarCard(k){const id=T().id;const arr=k[0]==='p'?(S.content.trechos[id].flashcards):(S.user.cardsUser[id]);const c=arr[+k.slice(1)];const f=prompt('Frente:',c.frente);if(f==null)return;const v=prompt('Verso:',c.verso);if(v==null)return;c.frente=f;c.verso=v;salvar();render()}
+
+/* jurisprudência */
+function painelJuris(){const id=T().id;const p=cT().jurisprudencia||[];const us=S.user.jurUser[id]||[];
+ const card=(j,i,meu)=>`<div class="item"><div class="o">${meu?(j.origem==='pesquisa no ChatGPT'?'PESQUISADO NO CHATGPT — CONFIRA O LINK':'CADASTRADO POR MIM'):(j.origem==='documento'?'DO RESUMO':esc((j.origem||'').toUpperCase()))}${j.aplicacao?' · '+esc(j.aplicacao.toUpperCase()):''}</div><b>${esc([j.tribunal,j.orgao,j.processo,j.data].filter(Boolean).join(' · '))}</b><div>${negrito(j.tese||j.resumo||'')}</div>${j.fundamentos?`<div class="muted">${esc(j.fundamentos)}</div>`:''}${j.fonte?`<div class="muted" style="font-size:.8rem">Fonte: ${/^https?:/.test(j.fonte)?`<a href="${esc(j.fonte)}" target="_blank" rel="noopener">${esc(j.fonte)}</a>`:esc(j.fonte)}</div>`:''}${meu?`<button class="btn sm" onclick="S.user.jurUser[T().id].splice(${i},1);salvar();render()">Excluir</button>`:''}</div>`;
+ let h=`<div class="row" style="margin-top:0;margin-bottom:.6rem"><button class="btn prim" onclick="copiarPrompt('juris')">🔎 Pesquisar julgados no ChatGPT</button><button class="btn ok" onclick="colarFerramenta('juris')">📥 Colar julgados</button></div>`;
+ h+=(p.length||us.length)?p.map((j,i)=>card(j,i,0)).join('')+us.map((j,i)=>card(j,i,1)).join(''):'<p class="muted">Nenhum julgado ligado a este trecho.</p>';
+ h+=`<details style="margin-top:.8rem"><summary><b>＋ Cadastrar julgado</b></summary><p class="muted">Cole um texto qualquer sobre o julgado e clique em <b>Distribuir nas caixas</b>, ou preencha à mão.</p><textarea id="jCola" placeholder="Cole aqui o texto do julgado"></textarea><div class="row"><button class="btn" onclick="distribuir()">✨ Distribuir nas caixas</button></div>
+ <div class="chk">${['tribunal','orgao','processo','data','fonte'].map(c=>`<input id="j_${c}" placeholder="${{tribunal:'Tribunal',orgao:'Órgão julgador',processo:'Processo',data:'Data',fonte:'Fonte / link'}[c]}">`).join('')}</div><textarea id="j_tese" placeholder="Tese / resumo"></textarea><div class="row"><button class="btn ok" onclick="guardarJuris()">💾 Guardar julgado</button></div></details>`;return h}
+function distribuir(){const s=$('#jCola').value;if(!s.trim())return;const pega=re=>{const m=s.match(re);return m?m[1].trim():''};
+ $('#j_tribunal').value=pega(/\b(STF|STJ|TJ[A-Z]{2}|TRF\s?\d)\b/)||$('#j_tribunal').value;
+ $('#j_processo').value=pega(/((?:AgRg\s+n[oa]s?\s+|EDcl\s+n[oa]s?\s+)?(?:REsp|AREsp|HC|RHC|RE|ARE|ADI|ADPF|MS|Rcl|CC)\s*(?:n[º°.]?\s*)?[\d.\-]+(?:\/[A-Z]{2})?)/i)||$('#j_processo').value;
+ $('#j_orgao').value=pega(/(\d+ª\s+Turma|Plenário|Terceira Seção|\d+ª\s+Seção|Corte Especial)/i)||$('#j_orgao').value;
+ $('#j_data').value=pega(/(\d{1,2}\/\d{1,2}\/\d{4})/)||pega(/\b(20\d\d|19\d\d)\b/)||$('#j_data').value;
+ $('#j_fonte').value=pega(/(https?:\/\/\S+)/)||pega(/(Informativo\s+n?º?\s*\d+)/i)||$('#j_fonte').value;
+ $('#j_tese').value=pega(/tese\s*[:\-–]\s*([^\n]+)/i)||s.replace(/https?:\/\/\S+/g,'').trim().slice(0,800);toast('Confira as caixas antes de guardar.')}
+function guardarJuris(){const j={};['tribunal','orgao','processo','data','fonte','tese'].forEach(c=>j[c]=$('#j_'+c).value.trim());if(!j.tese&&!j.processo){toast('Preencha ao menos a tese ou o processo.');return}const id=T().id;(S.user.jurUser[id]=S.user.jurUser[id]||[]).push(j);salvar();render();toast('Julgado guardado.')}
+
+/* mnemônicos */
+let mnTeste=false;
+function painelMnemo(){const bid=B().id;const p=cB().mnemonicos||[];const us=S.user.mnemoUser[bid]||[];const todos=[...p.map(m=>({...m})),...us.map((m,i)=>({...m,_u:i}))];
+ let h=todos.length?`<div class="row" style="margin-top:0"><label><input type="checkbox" ${mnTeste?'checked':''} onchange="mnTeste=this.checked;render()"> 🎯 Testar recordação (esconde o mnemônico)</label></div>`+todos.map(m=>`<div class="item"><div class="o">${m._u!=null?'MEU':esc((m.origem||'autoral').toUpperCase())}</div>${mnTeste?`<details><summary><b>Lembra do mnemônico?</b> <span class="muted">${esc(m.explicacao||'')}</span></summary><b style="font-size:1.15rem">${negrito(m.texto)}</b></details>`:`<b style="font-size:1.15rem">${negrito(m.texto)}</b><div>${negrito(m.explicacao||'')}</div>`}${m._u!=null?`<button class="btn sm" onclick="S.user.mnemoUser[B().id].splice(${m._u},1);salvar();render()">Excluir</button>`:''}</div>`).join(''):(blocoPedivel(B())?vazioPacote:'<p class="muted">Sem mnemônicos.</p>');
+ h+=`<details style="margin-top:.6rem"><summary><b>＋ Meu mnemônico</b></summary><input id="mnT" placeholder="Mnemônico" style="width:100%;margin:.4rem 0"><input id="mnE" placeholder="O que cada parte significa" style="width:100%"><div class="row"><button class="btn ok" onclick="const t=$('#mnT').value.trim();if(t){(S.user.mnemoUser[B().id]=S.user.mnemoUser[B().id]||[]).push({texto:t,explicacao:$('#mnE').value.trim()});salvar();render()}">💾 Guardar</button></div></details>`;return h}
+
+/* mapa mental */
+function mapaDados(){const bid=B().id;const u=S.user.mapaUser[bid];if(u&&S.user.verMeuMapa!==false)return {d:outlineParaMapa(u),meu:1};return {d:cB().mapa_mental,meu:0}}
+function outlineParaMapa(txt){const ls=txt.split('\n').filter(l=>l.trim());const m={centro:(ls.shift()||'').replace(/^[-•]\s*/,'').trim(),ramos:[]};for(const l of ls){if(/^\s{2,}[-•]?/.test(l)&&m.ramos.length)m.ramos[m.ramos.length-1].subramos.push(l.replace(/^\s*[-•]\s*/,'').trim());else m.ramos.push({rotulo:l.replace(/^\s*[-•]\s*/,'').trim(),subramos:[]})}return m}
+function mapaParaOutline(m){return (m.centro||'')+'\n'+(m.ramos||[]).map(r=>'- '+(r.rotulo||'')+(r.subramos||[]).map(s=>'\n    - '+s).join('')).join('\n')}
+function painelMapa(){const {d,meu}=mapaDados();if(!d)return vazioPacote;const bid=B().id;
+ const CORES=['var(--blue)','var(--green)','var(--amber)','var(--purple)','var(--red)','var(--orange)'];
+ const ramo=(r,i)=>`<div class="mm-r" style="--c:${CORES[i%CORES.length]}"><b>${negrito(r.rotulo)}</b>${r.relacao?`<div class="muted" style="font-size:.82rem">${esc(r.relacao)}</div>`:''}${(r.subramos||[]).length?`<ul>${r.subramos.map(s=>`<li>${negrito(s)}</li>`).join('')}</ul>`:''}</div>`;
+ const rs=(d.ramos||[]).map((r,i)=>({r,i}));const esq=rs.filter(x=>x.i%2===0),dir=rs.filter(x=>x.i%2===1);
+ let h=`<div class="mm2" id="mm2"><svg class="mm-svg" id="mmSvg"></svg><div class="mm-lado e">${esq.map(x=>ramo(x.r,x.i)).join('')}</div><div class="mm-meio"><div class="mm-c" id="mmC">${negrito(d.centro)}</div></div><div class="mm-lado d">${dir.map(x=>ramo(x.r,x.i)).join('')}</div></div>`;
+ h+=`<div class="row">${S.user.mapaUser[bid]?`<button class="btn sm" onclick="S.user.verMeuMapa=${meu?'false':'true'};render()">${meu?'Ver o da Joana':'Ver a minha versão'}</button>`:''}<button class="btn sm" onclick="editarMapa()">✎ Editar e salvar minha versão</button><button class="btn sm" onclick="copiar(mapaParaOutline(mapaDados().d)).then(()=>toast('Mapa copiado como texto.'))">⤓ Exportar (copiar texto)</button></div>`;return h}
+function linhasMapa(){const box=$('#mm2'),svg=$('#mmSvg'),c=$('#mmC');if(!box||!svg||!c)return;if(getComputedStyle(svg).display==='none')return;
+ const B0=box.getBoundingClientRect(),C=c.getBoundingClientRect();svg.setAttribute('viewBox',`0 0 ${B0.width} ${B0.height}`);let p='';
+ box.querySelectorAll('.mm-r').forEach(r=>{const R=r.getBoundingClientRect();const esq=R.right<=C.left+1;const x1=(esq?C.left:C.right)-B0.left,y1=C.top+C.height/2-B0.top,x2=(esq?R.right:R.left)-B0.left,y2=R.top+R.height/2-B0.top,mx=(x1+x2)/2;
+  p+=`<path d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" fill="none" style="stroke:${r.style.getPropertyValue('--c')}" stroke-width="3" stroke-linecap="round" opacity=".85"/>`});svg.innerHTML=p}
+window.addEventListener('resize',()=>requestAnimationFrame(linhasMapa));
+function editarMapa(){const {d}=mapaDados();abrirModal(`<h2>Minha versão do mapa mental</h2><p class="muted">1ª linha = centro. Cada "- " = ramo. Linhas recuadas com "    - " = sub-ramos.</p><textarea id="taMapa" style="min-height:45vh">${esc(mapaParaOutline(d||{centro:B().titulo,ramos:[]}))}</textarea><div class="row"><button class="btn prim" onclick="S.user.mapaUser[B().id]=$('#taMapa').value;S.user.verMeuMapa=true;salvar();fecharModal();render()">💾 Salvar</button>${S.user.mapaUser[B().id]?`<button class="btn" onclick="delete S.user.mapaUser[B().id];salvar();fecharModal();render()">Apagar minha versão</button>`:''}<button class="btn" onclick="fecharModal()">Cancelar</button></div>`)}
+
+/* fluxograma */
+const NOME_TIPO={inicio:'Ponto de partida',condicao:'Pergunta',consequencia:'Resposta',excecao:'Exceção',fim:'Conclusão'};
+function painelFluxo(){const f=cB().fluxograma;const refazer=`<div class="row" style="margin-top:0;margin-bottom:.8rem"><button class="btn prim" onclick="copiarPrompt('fluxo')">🤖 ${f?'Refazer':'Fazer'} fluxograma no ChatGPT</button><button class="btn ok" onclick="colarFerramenta('fluxo')">📥 Colar fluxograma</button></div>`;
+ if(!f||!(f.nos||[]).length)return refazer+vazioPacote;const bid=B().id;const meus=S.user.fluxoUser[bid]||{};
+ const nos=f.nos,lig=f.ligacoes||[];const porId=Object.fromEntries(nos.map(n=>[n.id,n]));const vis=new Set();const txt=n=>meus[n.id]??n.texto;
+ const ini=nos.find(n=>n.tipo==='inicio')||nos.find(n=>!lig.some(l=>l.para===n.id))||nos[0];
+ const num={};{let c=0;const v=new Set(),fila=[ini.id];while(fila.length){const id=fila.shift();if(v.has(id))continue;v.add(id);if(porId[id]&&porId[id].tipo==='condicao')num[id]=++c;lig.filter(l=>l.de===id).forEach(l=>fila.push(l.para))}}
+ const tipoNome=n=>n.tipo==='condicao'?`❓ PERGUNTA ${num[n.id]||''}`:n.tipo==='consequencia'?'✅ RESPOSTA':n.tipo==='excecao'?'⚠️ EXCEÇÃO':n.tipo==='inicio'?'▶ PONTO DE PARTIDA':'🏁 CONCLUSÃO';
+ const cls=r=>/^n[ãa]o/i.test(r||'')?'nao':/^sim/i.test(r||'')?'sim':'';
+ const abas=`<div class="row" style="margin-top:0;margin-bottom:1rem"><button class="btn ${S.user.percorrer?'':'prim'}" onclick="S.user.percorrer=false;render()">🌳 Ver o fluxograma inteiro</button><button class="btn ${S.user.percorrer?'prim':''}" onclick="S.user.percorrer=true;flAt=null;render()">🧭 Resolver passo a passo</button></div>`;
+ if(S.user.percorrer){if(flBloco!==bid||!flAt||!porId[flAt]){flAt=ini.id;flCam=[];flBloco=bid}const n=porId[flAt];const sai=lig.filter(l=>l.de===flAt);
+  let h=refazer+abas+(flCam.length?`<div class="fl-cam">${flCam.map(p=>esc(p)).join('  →  ')}</div>`:'')+`<div class="fl-n ${esc(n.tipo)} grande"><div class="t">${tipoNome(n)}</div><div class="flt">${negrito(txt(n))}</div></div>`;
+  flOpcoes=sai.map(l=>({para:l.para,passo:(n.tipo==='condicao'?'P'+(num[n.id]||'')+': ':'')+(l.rotulo||'segue')}));
+  h+=sai.length?`<div class="row" style="justify-content:center;margin-top:1rem">${sai.map((l,i)=>{const c=cls(l.rotulo);return `<button class="btn ${c==='sim'?'ok':''}" style="font-size:1.05rem;padding:.7rem 1.6rem;${c==='nao'?'border-color:var(--red);color:var(--red)':''}" onclick="flAndar(${i})">${esc((l.rotulo||'Continuar').toUpperCase())}${l.rotulo?'':' →'}</button>`}).join('')}</div>`
+   :`<div class="row" style="justify-content:center;margin-top:1rem"><button class="btn prim" onclick="flAt=null;render()">↻ Recomeçar</button></div>`;
+  return h}
+ const no=(id,dep)=>{const n=porId[id];if(!n)return '';if(vis.has(id)||dep>14)return `<div class="fl-ref">↪ volta para: ${esc(limpa(txt(n)).slice(0,70))}</div>`;vis.add(id);const sai=lig.filter(l=>l.de===id);
+  let h=`<div class="fl-n ${esc(n.tipo)}"><div class="t">${tipoNome(n)}</div><div contenteditable="${S.user.editFluxo?'true':'false'}" data-nid="${esc(id)}" class="flt">${negrito(txt(n))}</div></div>`;
+  if(sai.length===1){const l=sai[0],c=cls(l.rotulo);h+=`<div class="fl-seta ${c}">${l.rotulo?`<span class="fl-rot ${c}">${esc(l.rotulo)}</span>`:''}</div>`+no(l.para,dep+1)}
+  else if(sai.length>1)h+=`<div class="fl-tronco"></div><div class="fl-ramos">${sai.map(l=>{const c=cls(l.rotulo);return `<div class="fl-ramo"><div class="fl-seta ${c}"><span class="fl-rot ${c}">${esc(l.rotulo||'segue')}</span></div><div class="fl-col">${no(l.para,dep+1)}</div></div>`}).join('')}</div>`;
+  return h};
+ let h=refazer+abas+`<div class="fl"><div class="fl-col">${no(ini.id,0)}</div>${nos.filter(n=>!vis.has(n.id)).map(n=>`<div class="fl-col" style="margin-top:1.2rem">${no(n.id,0)}</div>`).join('')}</div>`;
+ h+=`<div class="row">${S.user.editFluxo?`<button class="btn ok" onclick="salvarFluxo()">💾 Salvar minha versão</button>`:`<button class="btn sm" onclick="S.user.editFluxo=true;render()">✎ Editar textos</button>`}${Object.keys(meus).length?`<button class="btn sm" onclick="delete S.user.fluxoUser[B().id];salvar();render()">Voltar ao da Joana</button>`:''}<button class="btn sm" onclick="copiar(ordemFluxoTexto()).then(()=>toast('Fluxograma copiado como texto.'))">⤓ Exportar (copiar texto)</button></div>`;return h}
+let flAt=null,flCam=[],flBloco='',flOpcoes=[];
+function flAndar(i){const o=flOpcoes[i];if(!o)return;flCam.push(o.passo);flAt=o.para;render()}
+function salvarFluxo(){const bid=B().id;const m=S.user.fluxoUser[bid]=S.user.fluxoUser[bid]||{};document.querySelectorAll('.flt').forEach(el=>{m[el.dataset.nid]=el.innerText.trim()});S.user.editFluxo=false;salvar();render();toast('Fluxograma salvo.')}
+function ordemFluxoTexto(){const f=cB().fluxograma;const meus=S.user.fluxoUser[B().id]||{};return f.nos.map(n=>`[${n.tipo}] ${limpa(meus[n.id]??n.texto)}`+(f.ligacoes||[]).filter(l=>l.de===n.id&&l.rotulo).map(l=>`\n   ${l.rotulo} → ${l.para}`).join('')).join('\n')}
+
+/* imagem */
+function painelImg(){const bid=B().id;const im=cB().imagem;const u=S.user.imagens[bid];let h='';
+ if(im){h+=im.representavel===false?`<p class="muted">${esc(im.limitacao||'Este artigo não tem um evento que se represente bem em imagem.')}</p>`:`<div class="item"><div class="o">EVENTO</div>${negrito(im.evento)}<div class="o" style="margin-top:.5rem">CENA</div>${negrito(im.descricao_da_cena)}${im.limitacao?`<div class="muted" style="font-size:.85rem;margin-top:.4rem">${esc(im.limitacao)}</div>`:''}</div>${im.prompt_imagem?`<div class="row"><button class="btn prim" onclick="copiar(cB().imagem.prompt_imagem).then(()=>toast('Prompt da imagem copiado. Cole no ChatGPT ou no Flow.'))">📋 Copiar prompt da imagem</button></div>`:''}`}else h+=vazioPacote;
+ h+=`<h4 style="margin-top:1rem">Minha imagem</h4>`;
+ if(u)h+=`<img class="ev" src="${u.data}" alt="Imagem do evento"><div class="row"><label><input type="radio" name="tipoImg" ${u.tipo!=='real'?'checked':''} onchange="S.user.imagens[B().id].tipo='ia';salvar()"> Ilustração gerada por IA</label><label><input type="radio" name="tipoImg" ${u.tipo==='real'?'checked':''} onchange="S.user.imagens[B().id].tipo='real';salvar()"> Imagem real</label><button class="btn sm" onclick="if(confirm('Tirar a imagem?')){delete S.user.imagens[B().id];salvar();render()}">Excluir</button></div>`;
+ h+=`<div class="row"><button class="btn" onclick="$('#fImagem').click()">🖼️ ${u?'Trocar':'Anexar'} imagem do computador</button></div>`;return h}
+$('#fImagem').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(!f)return;const img=new Image();const r=new FileReader();r.onload=()=>{img.onload=()=>{const max=1400;let w=img.width,h=img.height;if(Math.max(w,h)>max){const k=max/Math.max(w,h);w=Math.round(w*k);h=Math.round(h*k)}const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);S.user.imagens[B().id]={data:c.toDataURL('image/jpeg',.85),tipo:'ia',nome:f.name};salvar();render();toast('Imagem guardada neste artigo.')};img.src=r.result};r.readAsDataURL(f)});
+
+/* tutor */
+let tuI=0,tuVer=false,tuBloco='';
+function painelTutor(){const bid=B().id;if(tuBloco!==bid){tuI=0;tuVer=false;tuBloco=bid}const l=cB().tutor||[];if(!l.length)return vazioPacote;tuI=Math.min(tuI,l.length-1);const q=l[tuI];const resp=(S.user.tutorResp[bid]||{})[tuI]||'';
+ return `<div class="muted" style="font-size:.75rem">PERGUNTA ${tuI+1} DE ${l.length}</div><p style="font-size:1.15rem;font-weight:750">${negrito(q.pergunta)}</p><textarea placeholder="Sua resposta (fica salva)" oninput="(S.user.tutorResp[B().id]=S.user.tutorResp[B().id]||{})[${tuI}]=this.value;salvar()">${esc(resp)}</textarea>
+ <div class="row">${tuVer?'':`<button class="btn prim" onclick="tuVer=true;render()">✔ Ver o que a resposta devia conter</button>`}${tuI>0?`<button class="btn" onclick="tuI--;tuVer=false;render()">← Anterior</button>`:''}${tuI<l.length-1?`<button class="btn" onclick="tuI++;tuVer=false;render()">Próxima →</button>`:''}</div>
+ ${tuVer?`<div class="item"><div class="o">A RESPOSTA DEVIA CONTER</div><ul>${(q.a_resposta_deve_conter||[]).map(x=>`<li>${negrito(x)}</li>`).join('')}</ul>${q.dica_se_errar?`<div class="muted">Dica: ${negrito(q.dica_se_errar)}</div>`:''}<div class="muted" style="font-size:.8rem;margin-top:.4rem">Confira você mesmo: aqui não há correção por IA.</div></div>`:''}`}
+
+/* ============ quadro final: ligação com o artigo ============ */
+function ligacaoQuadro(t){const m=limpa(t.texto).match(/((?:REsp|AREsp|HC|RHC|RE|ARE|ADPF|ADI|Rcl)\s*[\d.]+)/);if(!m)return '';const num=m[1].replace(/\s+/g,' ');
+ for(let bi=0;bi<S.inv.blocos.length;bi++){const b=S.inv.blocos[bi];if(ehQuadro(b))continue;const ti=b.trechos.findIndex(x=>limpa(x.texto).includes(num));if(ti>=0)return `<div class="row"><button class="btn sm" onclick="ir(${bi},${ti})">➜ Estudar este julgado no ${esc(b.titulo.split(':')[0])}</button></div>`}return ''}
+
+/* ============ revisão e cobertura ============ */
+function abrirRevisao(){const mt=mapaTrechos();const lnk=id=>{const r=mt[id];return r?`<a href="#" onclick="fecharModal();ir(${r.bi},${r.ti});return false">${esc(r.b.titulo.split(':')[0])} · ${esc(r.t.rotulo||('trecho '+(r.ti+1)))}</a>`:esc(id)};
+ const prov=Object.keys(S.user.prov);const err=Object.entries(S.user.cards).filter(([,v])=>Object.values(v).includes('err')).map(([k])=>k);const notas=Object.keys(S.user.notas);
+ const bls=S.inv.blocos,trs=bls.flatMap(b=>b.trechos),el=trs.filter(t=>t.elegivel);const pr=el.filter(t=>situacaoTrecho(t)==='pronto').length,pa=el.filter(t=>situacaoTrecho(t)==='parcial').length;
+ const semArt=bls.filter(b=>blocoPedivel(b)&&!S.content.blocos[b.id]);const nfc=el.reduce((a,t)=>a+((S.content.trechos[t.id]||{}).flashcards||[]).length,0);const poucos=el.filter(t=>situacaoTrecho(t)!=='pendente'&&((S.content.trechos[t.id]||{}).flashcards||[]).length<3);
+ const pend=el.filter(t=>((S.content.trechos[t.id]||{}).pendencias||[]).length);
+ abrirModal(`<h2>⭐ Revisão</h2>
+ <h3>☆ Prováveis de prova (${prov.length})</h3>${prov.length?`<ul>${prov.map(i=>`<li>${lnk(i)}</li>`).join('')}</ul>`:'<p class="muted">Nenhum marcado.</p>'}
+ <h3>✖ Flashcards que errei (${err.length} trechos)</h3>${err.length?`<ul>${err.map(i=>`<li>${lnk(i)}</li>`).join('')}</ul>`:'<p class="muted">Nenhum.</p>'}
+ <h3>✏️ Anotações (${notas.length})</h3>${notas.length?`<ul>${notas.map(i=>`<li>${lnk(i)}: <span class="muted">${esc(S.user.notas[i].slice(0,120))}</span></li>`).join('')}</ul>`:'<p class="muted">Nenhuma.</p>'}
+ <h3>📊 Cobertura</h3><table class="lst"><tr><td>Artigos</td><td>${bls.length}</td></tr><tr><td>Trechos / para estudar</td><td>${trs.length} / ${el.length}</td></tr><tr><td>Trechos prontos · parciais · sem conteúdo</td><td><span class="ok-t">${pr}</span> · <span class="pa-t">${pa}</span> · ${el.length-pr-pa}</td></tr><tr><td>Flashcards</td><td>${nfc}</td></tr><tr><td>Artigos sem mapa/fluxograma/tutor/resumo</td><td>${semArt.length?semArt.map(b=>esc(b.titulo.split(':')[0])).join(', '):'nenhum'}</td></tr><tr><td>Trechos com menos de 3 flashcards</td><td>${poucos.length}</td></tr></table>
+ ${pend.length?`<details><summary>Pendências registradas pela Joana (${pend.length})</summary><ul>${pend.map(t=>`<li>${lnk(t.id)}: ${esc((S.content.trechos[t.id].pendencias||[]).join(' '))}</li>`).join('')}</ul></details>`:''}
+ <div class="row"><button class="btn" onclick="baixarBackup()">⤓ Backup (JSON)</button><button class="btn" onclick="$('#fAbrir').click()">⤒ Restaurar backup</button><button class="btn" onclick="fecharModal()">Fechar</button></div>`)}
+function baixarBackup(){baixar(new Blob([JSON.stringify(S)],{type:'application/json'}),'Backup_Leitor_TDAH_'+S.inv.assunto_id+'_'+new Date().toISOString().slice(0,10)+'.json')}
+function baixar(blob,nome){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=nome;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
+
+/* ============ salvar HTML portátil ============ */
+async function salvarHTML(){clearTimeout(tSalvar);const antes=S.user.exportadoEm;S.salvoEm=new Date().toISOString();S.user.exportadoEm=S.salvoEm;await idbSet('estados',S.inv.assunto_id,S);pendente=false;
+ const dados=JSON.stringify(S).replace(/</g,'\\u003c');
+ const html=FONTE_PAGINA.replace(/(<script id="dados-embutidos" type="application\/json">)[\s\S]*?(<\/script>)/,(_,a,b)=>a+dados+b).replace(/<title>[\s\S]*?<\/title>/,'<title>'+esc('Leitor TDAH — '+S.inv.titulo)+'</title>');
+ const nome='Leitor_TDAH_'+S.inv.assunto_id+'_'+new Date().toISOString().slice(0,10)+'.html';const blob=new Blob([html],{type:'text/html'});
+ if(window.showSaveFilePicker){try{const h=await showSaveFilePicker({suggestedName:nome,types:[{description:'Página HTML',accept:{'text/html':['.html']}}]});const w=await h.createWritable();await w.write(blob);await w.close();render();toast('HTML salvo com tudo dentro.',4000);return}catch(e){if(e.name==='AbortError'){S.user.exportadoEm=antes;return}}}
+ baixar(blob,nome);render();toast('HTML salvo na pasta Downloads. Mova para a pasta do resumo no Drive.',4500)}
+
+/* ============ desenhar ============ */
+function render(){
+ const app=$('#app');const tem=!!S;['#bArtigos','#bRevisao','#bSalvar','#bMapa'].forEach(s=>$(s).hidden=!tem);$('#prog').hidden=!tem;
+ if(!tem){$('#assunto').textContent=TEMA||'Nenhum resumo aberto';app.innerHTML=`<div class="vazio"><h1>📖 Leitor TDAH</h1>${TEMA?`<p><b>Assunto da Fábrica:</b> ${esc(TEMA)}${DISC?' · '+esc(DISC):''}</p>${PASTA?`<p><a class="btn" href="${esc(PASTA)}" target="_blank" rel="noopener">📁 Abrir a pasta do resumo no Drive</a> <span class="muted">(para ver o nome do Word)</span></p>`:''}<p class="muted">Na primeira vez, escolha o Word deste assunto. Nas próximas, o botão da Fábrica já abre direto.</p>`:''}<p>Serve para <b>qualquer resumo</b>. Para começar:</p><ol><li>Clique em <b>📂 Abrir resumo</b> e escolha o <b>Word</b> do resumo (na pasta do Drive).</li><li>Clique em <b>🤖 Gerar conteúdo</b>: para cada artigo, copie o pedido, cole numa conversa nova do ChatGPT e cole a resposta de volta.</li><li>Clique em <b>💾 Salvar HTML</b> e salve na pasta do resumo. Esse arquivo abre sozinho, com tudo dentro.</li></ol><p class="muted">Também abre um HTML salvo antes, um backup ou um inventário (.json).</p><button class="btn prim" onclick="$('#fAbrir').click()">📂 Abrir resumo</button></div>`;return}
+ if(ehSub(T())){const k=semSub(S.user.pos.b,S.user.pos.t);if(k!==S.user.pos.t)S.user.pos.t=k}
+ const b=B(),t=T();S.user.vistos[t.id]=1;$('#assunto').textContent=S.inv.titulo;const subt=subtituloDe(S.user.pos.b,S.user.pos.t);
+ const trs=S.inv.blocos.flatMap(x=>x.trechos);const idx=trs.indexOf(t);$('#prog>div').style.width=((idx+1)/trs.length*100)+'%';
+ const cor={regra:'var(--green)',jurisprudencia:'var(--blue)',alerta:'var(--amber)',ressalva:'var(--purple)'}[t.categoria]||'var(--green)';
+ const nomeCat={regra:'REGRA / PONTO DO RESUMO',jurisprudencia:'JURISPRUDÊNCIA',alerta:'ALERTA / PONTO DE PROVA',ressalva:'RESSALVA'}[t.categoria]||'TRECHO';
+ const mapa=S.user.mapaFechado?'':`<aside class="mapa"><h3>MAPA DOS TRECHOS</h3>${S.inv.blocos.map((x,bi)=>{const st=situacaoBloco(x);const ab=bi===S.user.pos.b;return `<div class="bl ${ab?'atual aberto':''}" id="bl${bi}"><button onclick="this.parentNode.classList.toggle('aberto')">${bi+1}. ${esc(x.titulo)}<span class="st">${st.k==='nada'?'':st.txt}</span></button><div class="trs">${x.trechos.map((y,ti)=>{if(ehSub(y))return `<div class="sub-mm">${esc(limpa(y.texto).replace(/^[^\p{L}\p{N}§]*/u,''))}</div>`;const s=situacaoTrecho(y);const ic=(S.user.prov[y.id]?'★':'')+(S.user.notas[y.id]?'✎':'')+(((S.content.trechos[y.id]||{}).jurisprudencia||[]).length||(S.user.jurUser[y.id]||[]).length?'⚖':'')+(ti===0&&S.user.imagens[x.id]?'🖼':'');return `<button class="tr ${ab&&ti===S.user.pos.t?'atual':''} ${s==='nel'?'nel':''}" onclick="ir(${bi},${ti})"><span class="dot ${s}"></span>${ti+1}. ${esc((y.rotulo||limpa(y.texto).slice(0,40)).toUpperCase())}<span class="ic">${ic}</span></button>`}).join('')}</div></div>`}).join('')}</aside>`;
+ const naoExp=S.user.exportadoEm!==S.salvoEm;
+ app.innerHTML=`<div class="grid ${S.user.mapaFechado?'semmapa':''}">${mapa}<section>
+ <div class="hier">${esc(b.capitulo||'')}</div><div class="art-tit">${esc(b.titulo)}</div>${subt?`<div class="subt">${esc(limpa(subt.texto).replace(/^[^\p{L}\p{N}§]*/u,''))}</div>`:''}
+ <div class="nav-row"><button class="btn" onclick="passo(-1)">↑ Anterior</button><button class="btn" onclick="passo(1)">Próximo ↓</button>
+ <select onchange="ir(+this.value,0)">${S.inv.blocos.map((x,i)=>`<option value="${i}" ${i===S.user.pos.b?'selected':''}>${i+1}. ${esc(x.titulo.slice(0,60))}</option>`).join('')}</select>
+ <span class="muted" style="font-size:.78rem;margin-left:auto">${naoExp?'💾 salvo neste navegador · ainda não está no HTML':'✅ incorporado ao HTML salvo'}</span></div>
+ <div class="card" style="--cat:${cor}"><div class="card-head"><div class="k">${nomeCat} · ${b.trechos.filter(x=>!ehSub(x)).indexOf(t)+1} DE ${b.trechos.filter(x=>!ehSub(x)).length}${S.user.prov[t.id]?' · ★ PROVÁVEL':''}</div><div class="r">${esc(t.rotulo||b.titulo)}</div></div>
+ <div class="card-body"><div class="dest"><button class="btn" onclick="destacar('b')"><b>B</b> Negrito</button><button class="btn" onclick="destacar('up')">AA Maiúsculas</button><button class="btn" onclick="destacar('y')"><span class="sw" style="background:var(--hl-y)"></span> Grifo</button><button class="btn" onclick="destacar('g')"><span class="sw" style="background:var(--hl-g)"></span> Grifo</button><button class="btn" onclick="destacar('p')"><span class="sw" style="background:var(--hl-p)"></span> Grifo</button><button class="btn" onclick="destacar('rem')">Tirar destaque</button><button class="btn" onclick="restaurar()">Original</button></div>
+ <div id="texto">${textoHTML(t)}</div>${!t.elegivel?`<p class="muted" style="font-size:.85rem">${esc(t.motivo||'Sem conteúdo para estudar.')}</p>`:''}${ehQuadro(b)?ligacaoQuadro(t):''}</div></div>
+ <div class="tools">${TOOLS8.map(toolBtn).join('')}</div>
+ <button class="mais" onclick="S.user.mais=!S.user.mais;salvar();render()">${S.user.mais?'− RECOLHER':'＋ MAIS FERRAMENTAS (10)'}</button>
+ ${S.user.mais?`<div class="tools">${TOOLS10.map(toolBtn).join('')}</div>`:''}
+ ${painel()}</section></div>`;
+ const at=document.querySelector('.tr.atual');if(at&&!render.rolou){at.scrollIntoView({block:'center'});render.rolou=true}
+ if(S.user.tool==='mapa')requestAnimationFrame(linhasMapa);
+}
+/* ============ botões do topo ============ */
+$('#bAbrir').onclick=()=>$('#fAbrir').click();
+$('#fAbrir').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(!f)return;if(/\.html?$/i.test(f.name)){f.text().then(h=>{const m=h.match(/<script id="dados-embutidos" type="application\/json">([\s\S]*?)<\/script>/);try{const j=JSON.parse(m[1]);if(j.inv){abrirEstado(j);toast('HTML aberto.')}else throw 0}catch(_){alert('Este HTML não tem dados do Leitor TDAH.')}});return}abrirArquivo(f)});
+$('#fAbrir').accept='.docx,.json,.html';
+$('#bArtigos').onclick=abrirArtigos;$('#bRevisao').onclick=abrirRevisao;$('#bSalvar').onclick=salvarHTML;
+$('#bMapa').onclick=()=>{S.user.mapaFechado=!S.user.mapaFechado;salvar();render()};
+$('#bMenos').onclick=()=>{fs=Math.max(16,fs-2);lsSet('leitor-tdah:fs',fs);aplicaPrefs()};
+$('#bMais').onclick=()=>{fs=Math.min(34,fs+2);lsSet('leitor-tdah:fs',fs);aplicaPrefs()};
+$('#bTema').onclick=()=>{tema=tema==='auto'?'dark':tema==='dark'?'light':'auto';lsSet('leitor-tdah:tema',tema);aplicaPrefs();toast('Tema: '+({auto:'automático',dark:'escuro',light:'claro'}[tema]))};
+window.addEventListener('beforeunload',()=>{if(S&&pendente)gravarAgora()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&S&&pendente)gravarAgora()});
+render();carregarInicial().then(()=>render());
+window.LT={docxParaInventario,importarObjetos,extrairJsons,pedidoBloco,get S(){return S},set S(v){S=v;fixar()},render,situacaoBloco};
+</script>
+</body>
+</html>
