@@ -771,36 +771,74 @@ function painelTutor(){const bid=B().id;if(tuBloco!==bid){tuI=0;tuVer=false;tuBl
 
 /* ============ dispositivos citados: texto do Planalto ao passar o mouse ============ */
 const PL='https://www.planalto.gov.br/ccivil_03/';
-const LEIS={CP:PL+'decreto-lei/del2848compilado.htm',CPP:PL+'decreto-lei/del3689compilado.htm',CC:PL+'leis/2002/l10406compilada.htm',CF:PL+'constituicao/constituicao.htm',CPC:PL+'_ato2015-2018/2015/lei/l13105.htm',CTB:PL+'leis/l9503compilado.htm',ECA:PL+'leis/l8069compilado.htm',LEP:PL+'leis/l7210compilado.htm',CTN:PL+'leis/l5172compilado.htm'};
-function urlDaLei(nome){if(!nome)return (S&&S.inv&&S.inv.fonte_oficial)||'';const n=nome.normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/\s+/g,' ').trim();
- if(LEIS[n])return LEIS[n];if(/CODIGO PENAL/.test(n))return LEIS.CP;if(/PROCESSO PENAL/.test(n))return LEIS.CPP;if(/PROCESSO CIVIL/.test(n))return LEIS.CPC;if(/CODIGO CIVIL/.test(n))return LEIS.CC;if(/CONSTITUICAO/.test(n))return LEIS.CF;
- const m=n.match(/LEI\s+(?:N\S*\s*)?([\d.]+)\s*\/\s*(\d{2,4})/);if(m){const num=m[1].replace(/\./g,''),ano=+m[2]<100?1900+ +m[2]:+m[2];if(ano<2001)return PL+'leis/l'+num+'.htm'}return ''}
-const RX_ART=/\b[Aa]rts?\.\s*(\d{1,4}(?:\.\d{3})?(?:\s*-\s*[A-Z]{1,2})?)(?:\s*[ºo°])?((?:\s*,\s*(?:§+\s*\d+\s*[ºo°]?|caput|par[áa]grafo\s+[úu]nico|inc(?:iso)?s?\.?\s*[IVXLC]+|[IVXLC]{1,6}\b|al[íi]nea\s*["“]?[a-z]["”]?))*)(?:\s*,?\s*d[oa]s?\s+(CPP|CPC|CTB|ECA|LEP|CTN|CP|CC|CF|C[óo]digo\s+(?:de\s+Processo\s+)?(?:Penal|Civil)|Constitui[çc][ãa]o(?:\s+Federal)?|Lei\s+(?:n[ºo°.]*\s*)?[\d.]+\s*\/\s*\d{2,4}))?/g;
+const LEIS={CP:PL+'decreto-lei/del2848compilado.htm',CPP:PL+'decreto-lei/del3689compilado.htm',CC:PL+'leis/2002/l10406compilada.htm',CF:PL+'constituicao/constituicao.htm',CPC:PL+'_ato2015-2018/2015/lei/l13105.htm',CTB:PL+'leis/l9503compilado.htm',ECA:PL+'leis/l8069compilado.htm',LEP:PL+'leis/l7210compilado.htm',CTN:PL+'leis/l5172compilado.htm',
+ LINDB:PL+'decreto-lei/del4657compilado.htm',LCP:PL+'decreto-lei/del3688.htm',CDC:PL+'leis/l8078compilado.htm',CLT:PL+'decreto-lei/del5452compilado.htm',CPM:PL+'decreto-lei/del1001.htm',CPPM:PL+'decreto-lei/del1002.htm'};
+// V670.7: leis pelo número e ano (endereços do Planalto por época) e pelo nome; artigo sem lei usa a lei do resumo.
+const CODIGO_POR_NUMERO={'2848':['CP',1940],'3689':['CPP',1941],'10406':['CC',2002],'13105':['CPC',2015],'9503':['CTB',1997],'8069':['ECA',1990],'7210':['LEP',1984],'5172':['CTN',1966],'4657':['LINDB',1942],'3688':['LCP',1941],'8078':['CDC',1990],'5452':['CLT',1943],'1001':['CPM',1969],'1002':['CPPM',1969]};
+const LEIS_NOME=[[/DROGAS|ENTORPECENTES/,'11343/2006'],[/MARIA DA PENHA|VIOLENCIA DOMESTICA/,'11340/2006'],[/DESARMAMENTO/,'10826/2003'],[/EXECUCAO PENAL|EXECUCOES PENAIS/,'LEP'],[/LAVAGEM/,'9613/1998'],[/ORGANIZAC(?:AO|OES) CRIMINOSA/,'12850/2013'],[/TORTURA/,'9455/1997'],[/HEDIONDOS/,'8072/1990'],[/ABUSO DE AUTORIDADE/,'13869/2019'],[/INTERCEPTAC/,'9296/1996'],[/JUIZADOS ESPECIAIS/,'9099/1995'],[/CONTRAVENC/,'LCP'],[/INTRODUCAO AS NORMAS|LINDB/,'LINDB'],[/RACISMO|PRECONCEITO DE RACA/,'7716/1989'],[/CRIMES AMBIENTAIS|LEI AMBIENTAL/,'9605/1998'],[/CRIANCA E DO ADOLESCENTE/,'ECA'],[/TRANSITO/,'CTB'],[/DEFESA DO CONSUMIDOR/,'CDC'],[/PRISAO TEMPORARIA/,'7960/1989'],[/IDENTIFICACAO CRIMINAL/,'12037/2009'],[/ANTITERROR|TERRORISMO/,'13260/2016'],[/ANTICRIME/,'13964/2019'],[/LICITAC/,'14133/2021'],[/IMPROBIDADE/,'8429/1992'],[/PROTECAO DE DADOS|LGPD/,'13709/2018'],[/MARCO CIVIL/,'12965/2014'],[/REGISTROS PUBLICOS/,'6015/1973'],[/GENOCIDIO/,'2889/1956'],[/ECONOMIA POPULAR/,'1521/1951'],[/ORDEM TRIBUTARIA/,'8137/1990'],[/PROTECAO A VITIMAS|PROTECAO DE VITIMAS/,'9807/1999'],[/PESSOA IDOSA|ESTATUTO DO IDOSO/,'10741/2003'],[/PESSOA COM DEFICIENCIA/,'13146/2015'],[/CODIGO PENAL MILITAR/,'CPM'],[/PROCESSO PENAL MILITAR/,'CPPM'],[/PROCESSO PENAL/,'CPP'],[/PROCESSO CIVIL/,'CPC'],[/CODIGO PENAL/,'CP'],[/CODIGO CIVIL/,'CC'],[/TRIBUTARIO NACIONAL/,'CTN'],[/CONSOLIDACAO DAS LEIS DO TRABALHO/,'CLT'],[/CONSTITUICAO/,'CF']];
+const normLei=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' ').trim();
+function urlsDeNumero(num,ano,tipo){num=String(num).replace(/\D/g,'');ano=+ano;if(ano<100)ano+=ano<=30?2000:1900;
+ const c=CODIGO_POR_NUMERO[num];if(c&&c[1]===ano&&tipo!=='lc')return [LEIS[c[0]]];
+ if(tipo==='del')return [PL+'decreto-lei/del'+num+'compilado.htm',PL+'decreto-lei/del'+num+'.htm'];
+ if(tipo==='lc')return [PL+'leis/lcp/lcp'+num+'compilado.htm',PL+'leis/lcp/lcp'+num+'.htm'];
+ if(ano<=2000)return ['compilado','','compilada','consolidado','consol','cons'].map(x=>PL+'leis/l'+num+x+'.htm');
+ if(ano<=2003){const pt=num.replace(/(\d)(?=(\d{3})+$)/g,'$1.');return [PL+'leis/'+ano+'/l'+pt+'compilado.htm',PL+'leis/'+ano+'/l'+pt+'.htm',PL+'leis/'+ano+'/l'+num+'compilada.htm',PL+'leis/'+ano+'/l'+num+'.htm']}
+ const f=[[2004,2006],[2007,2010],[2011,2014],[2015,2018],[2019,2022],[2023,2026],[2027,2030]].find(([a,b])=>ano>=a&&ano<=b);if(!f)return [];
+ const base=PL+'_ato'+f[0]+'-'+f[1]+'/'+ano+'/lei/l'+num;return [base+'compilado.htm',base+'.htm']}
+function urlsDeRef(ref){if(LEIS[ref])return [LEIS[ref]];const m=String(ref).match(/^(\d+)\/(\d+)$/);return m?urlsDeNumero(m[1],m[2],'lei'):[]}
+function urlsDeNome(n){const m=n.match(/(DECRETO-? ?LEI|LEI COMPLEMENTAR|\bLC|\bLEI)\s*(?:N\S*\s*)?(\d[\d.]*)\s*\/\s*(\d{2,4})/);
+ if(m)return urlsDeNumero(m[2],m[3],/DECRETO/.test(m[1])?'del':/COMPLEMENTAR|LC/.test(m[1])?'lc':'lei');
+ if(LEIS[n])return [LEIS[n]];for(const [rx,ref] of LEIS_NOME)if(rx.test(n))return urlsDeRef(ref);return []}
+// Lei do resumo, em ordem de probabilidade: fonte do Planalto citada no Word, lei do nome do arquivo/pasta,
+// código da disciplina e, em matéria penal, o CP. A caixinha tenta em ordem e mostra a primeira onde o artigo existe.
+function leiPadrao(){const inv=(S&&S.inv)||{},l=[];const add=us=>{for(const u of us||[])if(u&&!l.includes(u))l.push(u)};
+ if(inv.fonte_oficial)add([inv.fonte_oficial]);
+ const nome=normLei(((inv.arquivo_origem||'')+' '+(inv.caminho_word||'')+' '+(inv.titulo||'')).replace(/[_/\\-]+/g,' '));
+ const m=nome.match(/\b(DECRETO LEI|LEI COMPLEMENTAR|LEI)\s+((?:\d+[ .])?\d+)\s+(\d{4})\b/);if(m)add(urlsDeNumero(m[2].replace(/\D/g,''),m[3],/DECRETO/.test(m[1])?'del':/COMPLEMENTAR/.test(m[1])?'lc':'lei'));
+ if(/\bCONSTITUICAO\b|\bCF\b/.test(nome))add([LEIS.CF]);
+ for(const [rx,ref] of LEIS_NOME)if(rx.test(nome)&&!/^(CP|CC|CPP|CPC|CF)$/.test(ref)){add(urlsDeRef(ref));break}
+ const d=normLei((typeof DISC!=='undefined'?DISC:'')+' '+(inv.disciplina||'')+' '+nome);
+ if(/PROCESSUAL PENAL|PROCESSO PENAL/.test(d))add([LEIS.CPP]);if(/PROCESSUAL CIVIL|PROCESSO CIVIL/.test(d))add([LEIS.CPC]);if(/DIREITO CIVIL/.test(d))add([LEIS.CC]);if(/CONSTITUCIONAL/.test(d))add([LEIS.CF]);
+ if(/PENAL|CRIME|DELEGADO|POLICIA/.test(d))add([LEIS.CP]);return l}
+// Nome da lei a partir do endereço do Planalto (para a caixinha dizer de qual lei é o texto).
+function nomeDaUrl(u){u=String(u||'');for(const [k,v] of Object.entries(LEIS))if(v===u)return k==='CF'?'Constituição Federal':k;
+ let m=u.match(/decreto-lei\/del(\d+)/);if(m)return 'Decreto-Lei nº '+m[1];m=u.match(/lcp\/lcp(\d+)/);if(m)return 'Lei Complementar nº '+m[1];
+ m=u.match(/\/(\d{4})\/(?:lei\/)?l([\d.]+?)(?:compilad[oa])?\.htm/);if(m)return 'Lei nº '+m[2]+'/'+m[1];m=u.match(/leis\/l(\d+)(?:compilado)?\.htm/);if(m)return 'Lei nº '+m[1];return 'Planalto'}
+function urlsDaLei(nome){const n=normLei(nome);if(!n||/^(DEST[AE]|DESS[AE])\b/.test(n))return leiPadrao();return urlsDeNome(n)}
+function urlDaLei(nome){return urlsDaLei(nome)[0]||''}
+const RX_LEI_NOME="CPPM|CPP|CPC|CPM|CTB|ECA|LEP|CTN|CDC|CLT|LCP|LINDB|CP|CC|CF|C[óo]digo\\s+(?:de\\s+Processo\\s+)?(?:Penal(?:\\s+Militar)?|Civil)|C[óo]digo\\s+de\\s+Tr[âa]nsito(?:\\s+Brasileiro)?|C[óo]digo\\s+de\\s+Defesa\\s+do\\s+Consumidor|C[óo]digo\\s+Tribut[áa]rio\\s+Nacional|Constitui[çc][ãa]o(?:\\s+(?:Federal|da\\s+Rep[úu]blica))?|(?:Decreto-?\\s?Lei|Lei\\s+Complementar|LC|Lei)\\s*(?:n[ºo°.]*\\s*)?\\d[\\d.]*\\s*\\/\\s*\\d{2,4}|Lei\\s+(?:de|da|das|do|dos)\\s+[A-ZÀ-Ú][A-Za-zÀ-ú]+(?:\\s+(?:de|da|do|das|dos|e|à)?\\s*[A-ZÀ-Ú][A-Za-zÀ-ú]+){0,4}|Lei\\s+Maria\\s+da\\s+Penha|Estatuto\\s+d[oa]\\s+[A-ZÀ-Ú][A-Za-zÀ-ú]+(?:\\s+(?:e\\s+d[oa]\\s+)?[A-ZÀ-Ú][A-Za-zÀ-ú]+){0,3}|dest[ae]\\s+(?:Lei|C[óo]digo|Estatuto)";
+const RX_ART=new RegExp("\\b[Aa]rt(?:s?\\.|igos?)\\s*(\\d{1,4}(?:\\.\\d{3})?(?:\\s*-\\s*[A-Z]{1,2})?)(?:\\s*[ºo°])?((?:\\s*(?:,|\\be\\b)\\s*(?:§+\\s*\\d+\\s*[ºo°]?|caput|par[áa]grafo\\s+[úu]nico|inc(?:iso)?s?\\.?\\s*[IVXLC]+|[IVXLC]{1,6}\\b|al[íi]nea\\s*[\"“]?[a-z][\"”]?|[\"“]?[a-z][\"”]?(?=\\s*(?:,|\\)|;|\\.|$|\\be\\b|d[oa]s?\\s))))*)(?:\\s*,?\\s*(?:d[oa]s?\\s+)?("+RX_LEI_NOME+"))?",'g');
 function marcarLeis(raiz){if(!raiz||!S)return;const nos=[];const w=document.createTreeWalker(raiz,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement.closest('.lei,button,textarea,a,[contenteditable="true"]')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
  while(w.nextNode())nos.push(w.currentNode);
  for(const no of nos){const t=no.nodeValue;RX_ART.lastIndex=0;let m,ult=0;const frag=document.createDocumentFragment();let achou=false;
-  while((m=RX_ART.exec(t))){const url=urlDaLei(m[3]);if(!url)continue;achou=true;if(m.index>ult)frag.appendChild(document.createTextNode(t.slice(ult,m.index)));
-   const sp=document.createElement('span');sp.className='lei';sp.dataset.art=m[1].replace(/\s+/g,'').toUpperCase();sp.dataset.url=url;sp.dataset.par=(m[2]||'');sp.textContent=m[0];frag.appendChild(sp);ult=m.index+m[0].length}
+  while((m=RX_ART.exec(t))){const urls=urlsDaLei(m[3]);if(!urls.length)continue;const url=urls[0];achou=true;if(m.index>ult)frag.appendChild(document.createTextNode(t.slice(ult,m.index)));
+   const sp=document.createElement('span');sp.className='lei';sp.dataset.art=m[1].replace(/\s+/g,'').toUpperCase();sp.dataset.url=url;sp.dataset.urls=JSON.stringify(urls);sp.dataset.lei=m[3]||'';sp.dataset.par=(m[2]||'');sp.textContent=m[0];frag.appendChild(sp);ult=m.index+m[0].length}
   if(achou){if(ult<t.length)frag.appendChild(document.createTextNode(t.slice(ult)));no.parentNode.replaceChild(frag,no)}}
  // "§ 2º" solto dentro de um artigo: é parágrafo do próprio artigo do bloco.
- const art=B()&&B().artigo,urlB=urlDaLei('');if(!art||!urlB)return;const RX_PAR=/§{1,2}\s*(\d+)\s*[ºo°]?/g;const nos2=[];
+ const art=B()&&B().artigo,urlsB=urlsDaLei(''),urlB=urlsB[0];if(!art||!urlB)return;const RX_PAR=/§{1,2}\s*(\d+)\s*[ºo°]?/g;const nos2=[];
  const w2=document.createTreeWalker(raiz,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement.closest('.lei,button,textarea,a,[contenteditable="true"]')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
  while(w2.nextNode())nos2.push(w2.currentNode);
  for(const no of nos2){const t=no.nodeValue;RX_PAR.lastIndex=0;let m,ult=0,achou=false;const frag=document.createDocumentFragment();
-  while((m=RX_PAR.exec(t))){achou=true;if(m.index>ult)frag.appendChild(document.createTextNode(t.slice(ult,m.index)));const sp=document.createElement('span');sp.className='lei';sp.dataset.art=art.toUpperCase();sp.dataset.url=urlB;sp.dataset.par='§ '+m[1];sp.textContent=m[0];frag.appendChild(sp);ult=m.index+m[0].length}
+  while((m=RX_PAR.exec(t))){achou=true;if(m.index>ult)frag.appendChild(document.createTextNode(t.slice(ult,m.index)));const sp=document.createElement('span');sp.className='lei';sp.dataset.art=art.toUpperCase();sp.dataset.url=urlB;sp.dataset.urls=JSON.stringify(urlsB);sp.dataset.par='§ '+m[1];sp.textContent=m[0];frag.appendChild(sp);ult=m.index+m[0].length}
   if(achou){if(ult<t.length)frag.appendChild(document.createTextNode(t.slice(ult)));no.parentNode.replaceChild(frag,no)}}}
-const cacheLei=new Map();let leiAlvo=null,tLeiAbre=null,tLeiFecha=null,leiFixa=false;
+const cacheLei=new Map(),leiBoa=new Map();let leiAlvo=null,tLeiAbre=null,tLeiFecha=null,leiFixa=false;
 function popLei(){let p=$('#leiPop');if(!p){p=document.createElement('div');p.id='leiPop';document.body.appendChild(p);p.addEventListener('mouseenter',()=>clearTimeout(tLeiFecha));p.addEventListener('mouseleave',()=>{if(!leiFixa)fecharLei()})}return p}
 function fecharLei(){clearTimeout(tLeiAbre);const p=$('#leiPop');if(p)p.style.display='none';leiAlvo=null;leiFixa=false}
-function destacarParagrafo(texto,par){const esc2=esc(texto);const m=String(par||'').match(/§+\s*(\d+)|par[áa]grafo\s+[úu]nico/i);if(!m)return esc2;
- const alvo=m[1]?new RegExp('(^|\\n)(§\\s*'+m[1]+'\\s*[ºo°]?[^\\n]*)'):/(^|\n)(Parágrafo único[^\n]*)/i;return esc2.replace(alvo,'$1<span class="lei-dest">$2</span>')}
-async function abrirLei(el){leiAlvo=el;const p=popLei();const art=el.dataset.art,url=el.dataset.url;const link=url+'#art'+art.replace(/[^0-9A-Z]/g,'').toLowerCase();
+// V670.7: destaca, em ordem, o § (ou parágrafo único), o inciso e a alínea citados ("art. 65, III, d").
+function destacarParagrafo(texto,par){let h=esc(texto);const P=String(par||'');let pos=0;
+ const marcar=rx=>{rx.lastIndex=pos;const m=rx.exec(h);if(!m)return;const ini=m.index+m[1].length,abre='<span class="lei-dest">';h=h.slice(0,ini)+abre+m[2]+'</span>'+h.slice(ini+m[2].length);pos=ini+abre.length+m[2].length+7};
+ const sp=P.match(/§+\s*(\d+)/);if(sp)marcar(new RegExp('(^|\\n)(§\\s*'+sp[1]+'\\s*[ºo°]?[^\\n]*)','g'));else if(/par[áa]grafo\s+[úu]nico/i.test(P))marcar(/(^|\n)(Parágrafo único[^\n]*)/gi);
+ const inc=P.match(/(?:^|,|\be\b)\s*(?:inc(?:iso)?s?\.?\s*)?([IVXLC]{1,6})\b/);if(inc)marcar(new RegExp('(^|\\n)('+inc[1]+'\\s*[-–—][^\\n]*)','g'));
+ const al=P.match(/,\s*(?:al[íi]nea\s*)?["“]?([a-z])["”]?\s*(?:,|$)/);if(inc&&al)marcar(new RegExp('(^|\\n)('+al[1]+'\\)[^\\n]*)','g'));
+ return h}
+async function abrirLei(el){leiAlvo=el;const p=popLei();const art=el.dataset.art;let urls=[];try{urls=JSON.parse(el.dataset.urls||'[]')}catch(e){}if(!urls.length)urls=[el.dataset.url];const chave=urls[0]+'|'+art;const kLei=urls.join('|'),boa=leiBoa.get(kLei);if(boa)urls=[boa,...urls.filter(u=>u!==boa)];let url=(cacheLei.get(chave)||{}).url||urls[0];const link=url+'#art'+art.replace(/[^0-9A-Z]/g,'').toLowerCase();
  const r0=el.getBoundingClientRect();p.style.display='block';p.style.left=Math.max(8,Math.min(window.scrollX+r0.left,window.scrollX+innerWidth-580))+'px';p.style.top=(window.scrollY+r0.bottom+8)+'px';
- const cab=`<div class="lei-cab"><b>Art. ${esc(art)}</b> · texto atual no Planalto <a href="${esc(link)}" target="_blank" rel="noopener">abrir ↗</a></div>`;
- const chave=url+'|'+art;let r=cacheLei.get(chave);if(!r){p.innerHTML=cab+'<p class="muted">⏳ Buscando no Planalto…</p>';r=await ponte('/leitor/lei',{url,artigo:art},45000);if(r&&r.ok)cacheLei.set(chave,r)}
+ const cabDe=(u,lk)=>`<div class="lei-cab"><b>Art. ${esc(art)} · ${esc(nomeDaUrl(u))}</b> · texto atual no Planalto <a href="${esc(lk)}" target="_blank" rel="noopener">abrir ↗</a></div>`;let cab=cabDe(url,link);
+ let r=cacheLei.get(chave);if(!r){p.innerHTML=cab+'<p class="muted">⏳ Buscando no Planalto…</p>';let pagina=null;for(const u of urls){const x=await ponte('/leitor/lei',{url:u,artigo:art},45000);if(!x){r=null;break}if(x.ok&&x.achou){r=x;break}if(x.ok&&!pagina)pagina=x;r=pagina||x}if(r&&r.ok&&r.achou){cacheLei.set(chave,r);if(r.url)leiBoa.set(kLei,r.url)}}
+ if(r&&r.ok&&r.achou&&r.url)cab=cabDe(r.url,r.url+'#art'+art.replace(/[^0-9A-Z]/g,'').toLowerCase());
  if(leiAlvo!==el)return;
  if(!r)p.innerHTML=cab+'<p class="muted">O texto aparece aqui quando o leitor é aberto pelo site com o programa da Fábrica ligado. Use o link "abrir ↗".</p>';
- else if(!r.ok||!r.achou)p.innerHTML=cab+`<p class="muted">${esc(r.erro||'Não encontrei este artigo na página do Planalto.')} Use o link "abrir ↗".</p>`;
+ else if(!r.ok||!r.achou)p.innerHTML=cab+`<p class="muted">${esc(r.ok?'Não encontrei este artigo nesta lei, no site do Planalto (pode ter sido revogado ou ser de outra lei).':/404/.test(r.erro||'')?'Não achei esta lei no site do Planalto (lei estadual ou endereço diferente).':(r.erro||'Erro ao buscar no Planalto.'))} Use o link "abrir ↗".</p>`;
  else{p.innerHTML=cab+`<div class="lei-txt">${destacarParagrafo(r.texto,el.dataset.par)}</div>`;const d=p.querySelector('.lei-dest');p.scrollTop=d?Math.max(0,d.offsetTop-60):0}}
 document.addEventListener('mouseover',e=>{const el=e.target.closest&&e.target.closest('.lei');if(!el)return;clearTimeout(tLeiFecha);if(el===leiAlvo)return;clearTimeout(tLeiAbre);tLeiAbre=setTimeout(()=>{leiFixa=false;abrirLei(el)},250)});
 document.addEventListener('mouseout',e=>{const el=e.target.closest&&e.target.closest('.lei');if(!el||leiFixa)return;clearTimeout(tLeiAbre);tLeiFecha=setTimeout(fecharLei,350)});
@@ -876,7 +914,7 @@ window.addEventListener('beforeunload',()=>{if(S&&pendente)gravarAgora()});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&S&&pendente)gravarAgora()});
 // V670.6: o GitHub Pages deixa esta página guardada no navegador por até 10 minutos. Ao abrir, confere se já há
 // versão nova (busca a página sem usar a cópia guardada) e, se houver, recarrega uma vez, depois de gravar.
-const VERSAO_LEITOR='20261023-leitor-v670-6';
+const VERSAO_LEITOR='20261023-leitor-v670-7';
 async function conferirVersaoNova(){if(!/^https?:/.test(location.protocol))return;
  try{const r=await fetch(location.pathname,{cache:'reload'});if(!r.ok)return;const m=(await r.text()).match(/const VERSAO_LEITOR='([^']+)'/);if(!m||m[1]===VERSAO_LEITOR)return;
   const k='leitor-tdah:recarregou:'+m[1];try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,'1')}catch(e){return}
