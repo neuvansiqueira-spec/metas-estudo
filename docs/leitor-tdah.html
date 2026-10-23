@@ -245,7 +245,9 @@ let avisoWordNovo=null;
 // V670.3: leitura pelos marcadores mudou (parágrafo § fica dentro do artigo). Resumo ainda sem conteúdo é reorganizado sozinho; com conteúdo, aparece o aviso de atualizar.
 const VERSAO_MARCAS=2;
 async function conferirWordNovo(){if(!S||!pastaAtual())return;const r=await invDaPasta();if(!r.inv)return;const novo=r.inv;novo.assunto_id=S.inv.assunto_id;
- if(S.inv.por_marcadores&&novo.por_marcadores&&(S.inv.versao_marcas||1)<VERSAO_MARCAS){if(!temConteudoAlgum()){novo.pasta=S.inv.pasta||novo.pasta;S.inv=novo;S.user.pos={b:0,t:0};salvar();render();toast('Organizei de novo os artigos deste resumo: os parágrafos (§) agora ficam dentro do artigo.',6000)}else{avisoWordNovo=novo;render()}return}
+ // V670.4: resumo ainda sem nada salvo sempre acompanha a leitura atual do Word (melhorias do leitor ou Word novo), sem perguntar.
+ if(!estadoTemAlgo(S)&&assinaturaInv(novo)!==assinaturaInv(S.inv)){novo.pasta=S.inv.pasta||novo.pasta;S.inv=novo;S.user.pos={b:0,t:0};salvar();render();toast('Organizei de novo os trechos deste resumo.',6000);return}
+ if(S.inv.por_marcadores&&novo.por_marcadores&&(S.inv.versao_marcas||1)<VERSAO_MARCAS){avisoWordNovo=novo;render();return}
  if(S.inv.docx_modificado&&novo.docx_modificado&&novo.docx_modificado!==S.inv.docx_modificado){avisoWordNovo=novo;render()}else if(!S.inv.docx_modificado){S.inv.docx_modificado=novo.docx_modificado;S.inv.pasta=pastaAtual();salvar()}}
 function aplicarWordNovo(){const novo=avisoWordNovo;if(!novo)return;const velho=new Map(S.inv.blocos.flatMap(b=>b.trechos).map(t=>[t.id,limpa(t.texto)]));let mantidos=0,trocados=0;
  const novos=new Map(novo.blocos.flatMap(b=>b.trechos).map(t=>[t.id,limpa(t.texto)]));
@@ -337,13 +339,24 @@ async function docxParaInventario(buf,nomeArq){
    if(/^▶/u.test(t))return {nivel:'sec',txt:p.txt};return {nivel:0,txt:p.txt}})};
  let mont=montar(pars),porMarca=false;
  if(!mont.bl.length){const pm=porMarcas(pars);if(pm.some(p=>p.nivel===3)){const m2=montar(pm);if(m2.bl.length){mont=m2;porMarca=true}}}
+ // V670.4: Word só com títulos de nível 1 (um por tema): cada um vira um bloco.
+ if(!mont.bl.length&&pars.some(p=>p.nivel===1)){const m3=montar(pars.map(p=>p.nivel>0&&p.nivel<4?{...p,nivel:p.nivel+1}:p));if(m3.bl.length)mont=m3}
  const {bl,titulo,preTit}=mont;
  if(!bl.length)throw new Error('Não encontrei artigos nem temas neste Word.');
+ // V670.4: julgado em cartão (📍 TRIBUNAL, 📍 PROCESSO, itens, ⚖️ TESE) vira um trecho só, em qualquer Word com esse formato.
+ const ehTrib=t=>/^📍\s*TRIBUNAL\s*:/iu.test(limpa(t.texto));
+ const julgados=bl.reduce((a,b)=>a+b.trechos.filter(ehTrib).length,0)>=3;
+ if(julgados)for(const b of bl){const novos=[];let cur=null;
+  for(const t of b.trechos){if(ehSub(t)){cur=null;novos.push(t);continue}
+   if(ehTrib(t)){cur={...t,elegivel:true,motivo:'',categoria:'jurisprudencia',_partes:[t]};novos.push(cur);continue}
+   if(cur){cur.texto+='\n'+t.texto;cur._partes.push(t);continue}novos.push(t)}
+  novos.forEach((t,i)=>{if(t._partes){const curta=t._partes.map(x=>limpa(x.texto).replace(/^[^\p{L}\p{N}§]*/u,'')).find(x=>x&&x.length<=70&&!/^(TRIBUNAL|PROCESSO)\s*:/i.test(x));const proc=t._partes.map(x=>limpa(x.texto)).find(x=>/PROCESSO\s*:/i.test(x));t.rotulo=curta||(proc?proc.replace(/^.*?PROCESSO\s*:\s*/i,''):'Julgado');delete t._partes}t.id=b.id+'-TR-'+pad(i+1)});
+  b.trechos=novos}
  // Word do MAPA HIERÁRQUICO (RESUMO/AULA): estilos Axis = eixo, Institute = instituto; o nome do arquivo vira o título.
  const nomeBase=(nomeArq||'').replace(/\.docx$/i,'').replace(/^MAPA_HIERARQUICO_(RESUMO_AULA_)?/i,'').replace(/_/g,' ').trim();
  const aid=(titulo||nomeBase).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40).replace(/-+$/,'')||'RESUMO';
  const fonte=(pars.map(x=>limpa(x.txt).match(/https?:\/\/(?:www\.)?planalto\.gov\.br\/[^\s)\]]+/i)).find(Boolean)||[''])[0];
- return {formato:'LEITOR-TDAH-INVENTARIO-1',assunto_id:aid,titulo:titulo||preTit||nomeBase,titulo_fraco:!titulo,por_marcadores:porMarca,versao_marcas:porMarca?VERSAO_MARCAS:0,arquivo_origem:nomeArq||'',fonte_oficial:fonte,blocos:bl};
+ return {formato:'LEITOR-TDAH-INVENTARIO-1',assunto_id:aid,titulo:titulo||preTit||nomeBase,titulo_fraco:!titulo,por_marcadores:porMarca,versao_marcas:porMarca?VERSAO_MARCAS:0,julgados_juntos:julgados,arquivo_origem:nomeArq||'',fonte_oficial:fonte,blocos:bl};
 }
 
 /* ============ abrir ============ */
@@ -353,7 +366,9 @@ async function abrirArquivo(f){
   if(/\.docx$/i.test(f.name)){inv=await docxParaInventario(await f.arrayBuffer(),f.name);if(PASTA)inv.pasta=PASTA}
   else{const j=JSON.parse(await f.text());if(j.inv&&j.content){abrirEstado(j);return}if(j.inventario){inv=j.inventario;extra=j.pacotes}else inv=j;if(!inv.blocos)throw new Error('JSON não é um inventário do Leitor TDAH.')}
   const l=await lerEstado(inv.assunto_id);
-  if(l&&l.inv&&confirm('Este resumo já foi aberto antes neste computador. Continuar de onde parou (com o conteúdo e as anotações já salvos)?\n\nOK = continuar · Cancelar = começar do zero')){S=l;fixar()}
+  // V670.4: salvo antes mas ainda sem nada (conteúdo, ★, notas, flashcards): abre já com a leitura nova do Word, sem perguntar.
+  if(l&&l.inv&&!estadoTemAlgo(l)){S={inv,content:{blocos:{},trechos:{}},user:Object.assign(novoUser(),{tool:l.user&&l.user.tool||''}),salvoEm:''}}
+  else if(l&&l.inv&&confirm('Este resumo já foi aberto antes neste computador. Continuar de onde parou (com o conteúdo e as anotações já salvos)?\n\nOK = continuar · Cancelar = começar do zero')){S=l;fixar()}
   else{S={inv,content:{blocos:{},trechos:{}},user:novoUser(),salvoEm:''}}
   if(extra)importarObjetos(extra,true);
   salvar();render();toast('Resumo aberto: '+S.inv.blocos.length+' artigos, '+S.inv.blocos.reduce((a,b)=>a+b.trechos.length,0)+' trechos.');
@@ -362,16 +377,20 @@ async function abrirArquivo(f){
 }
 function abrirEstado(j){S=j;fixar();salvar();render()}
 function temConteudoAlgum(){return Object.keys(S.content.trechos).length>0}
+function estadoTemAlgo(x){const c=x.content||{},u=x.user||{},n=o=>Object.keys(o||{}).length;return !!(n(c.trechos)||n(c.blocos)||n(u.prov)||n(u.notas)||n(u.cards)||n(u.cardsUser)||n(u.marcas)||n(u.jurUser)||n(u.duvidas)||n(u.imagens))}
+const assinaturaInv=inv=>JSON.stringify((inv.blocos||[]).map(b=>[b.id,b.trechos.map(t=>t.id+'|'+limpa(t.texto))]))
 
 /* ============ pedido para o GPT (Passo 2 embutido) ============ */
 const ehQuadro=b=>!b.artigo&&/JURISPRUD/i.test(b.titulo);
 const blocoPedivel=b=>!ehQuadro(b)&&b.trechos.some(t=>t.elegivel);
 function pedidoBloco(b){return pedidoBlocos([b])}
 // V670.3: vários artigos seguidos num pedido só (menos linhas para copiar e colar).
-function pedidoBlocos(bs){const b=bs[0],varios=bs.length>1;
- const bjDe=b=>({assunto_id:S.inv.assunto_id,titulo_assunto:S.inv.titulo,id:b.id,titulo:b.titulo,capitulo:b.capitulo,artigo:b.artigo,trechos:b.trechos.map(t=>({id:t.id,rotulo:t.rotulo,categoria:t.categoria,elegivel:t.elegivel,texto:t.texto}))});
- const bj=varios?bs.map(bjDe):bjDe(b);
- return `${varios?limpa(b.titulo)+' até '+limpa(bs[bs.length-1].titulo)+' — LEITOR TDAH (conteúdo de '+bs.length+' artigos)':limpa(b.titulo)+' — LEITOR TDAH (conteúdo do artigo)'}
+// V670.4: recebe artigos inteiros ou partes de artigo ({b,ts,primeira,i,n}); só a 1ª parte pede as ferramentas do artigo.
+function pedidoBlocos(bs){const ps=bs.map(x=>x&&x.b?x:{b:x,ts:x.trechos,primeira:true,i:1,n:1}),b=ps[0].b,varios=ps.length>1,algumSem=ps.some(p=>!p.primeira);
+ const nomeP=p=>limpa(p.b.titulo)+(p.n>1?' (parte '+p.i+' de '+p.n+')':'');
+ const bjDe=p=>({assunto_id:S.inv.assunto_id,titulo_assunto:S.inv.titulo,id:p.b.id,titulo:p.b.titulo,capitulo:p.b.capitulo,artigo:p.b.artigo,...(algumSem||p.n>1?{ferramentas_do_artigo:p.primeira}:{}),trechos:p.ts.map(t=>({id:t.id,rotulo:t.rotulo,categoria:t.categoria,elegivel:t.elegivel,texto:t.texto}))});
+ const bj=varios?ps.map(bjDe):bjDe(ps[0]);
+ return `${varios?nomeP(ps[0])+' até '+nomeP(ps[ps.length-1])+' — LEITOR TDAH (conteúdo de '+ps.length+' artigos)':nomeP(ps[0])+' — LEITOR TDAH (conteúdo do artigo)'}${algumSem?'\n\nATENÇÃO: artigo com "ferramentas_do_artigo": false → faça SÓ o item 2.2 (os trechos); as ferramentas do item 2.1 desse artigo vêm em outro pedido e, no JSON, o "bloco" dele leva só o "id".':''}
 
 1. MISSÃO
 Produzir o CONTEÚDO REAL das ferramentas do Leitor TDAH para ${varios?'CADA UM dos '+bs.length+' artigos do item 7 (um pacote por artigo, na mesma ordem)':'o artigo do item 7'}. Não faça HTML, botões nem prompts. Seja ENXUTO: frases curtas, sem introdução, sem repetir o que já disse em outra ferramenta. NÃO faça questões nem quizzes.
@@ -435,7 +454,7 @@ function importarObjetos(objs,silencioso){
  for(const o of objs){if(!o||typeof o!=='object')continue;
   const lista=Array.isArray(o)?o:(o.pacotes||[o]);
   for(const p of lista){
-   if(p.bloco&&p.bloco.id){const b=S.inv.blocos.find(x=>x.id===p.bloco.id);if(!b)rel.rec.push([p.bloco.id,'artigo não existe neste resumo']);else{for(const c of CAMPOS_BLOCO)if(p.bloco[c]!=null){plano.push(['b',b.id,c,p.bloco[c]]);if(S.content.blocos[b.id]&&S.content.blocos[b.id][c]!=null)subst.push(b.id+' · '+c)}rel.blocos.push(b.id)}}
+   if(p.bloco&&p.bloco.id){const b=S.inv.blocos.find(x=>x.id===p.bloco.id);if(!b)rel.rec.push([p.bloco.id,'artigo não existe neste resumo']);else{for(const c of CAMPOS_BLOCO)if(p.bloco[c]!=null){plano.push(['b',b.id,c,p.bloco[c]]);if(S.content.blocos[b.id]&&S.content.blocos[b.id][c]!=null)subst.push(b.id+' · '+c)}if(CAMPOS_BLOCO.some(c=>p.bloco[c]!=null))rel.blocos.push(b.id)}}
    for(const t of (p.trechos||[])){const r=mt[t.id];
     if(!r){rel.rec.push([t.id,'trecho não existe neste resumo']);continue}
     if(t.texto_original_conferido!=null&&limpa(t.texto_original_conferido).replace(/\s/g,'')!==limpa(r.t.texto).replace(/\s/g,'')){rel.rec.push([t.id,'o texto não bate com o do resumo']);continue}
@@ -447,9 +466,10 @@ function importarObjetos(objs,silencioso){
  let trocar=true;if(subst.length&&!silencioso)trocar=confirm(subst.length+' ferramenta(s) já têm conteúdo e seriam substituídas.\n\nOK = substituir · Cancelar = manter o que já existe e só acrescentar o que falta');
  for(const [k,id,c,v] of plano){const dst=k==='b'?(S.content.blocos[id]=S.content.blocos[id]||{}):(S.content.trechos[id]=S.content.trechos[id]||{});if(dst[c]!=null&&!trocar)continue;dst[c]=v}
  salvar();return rel}
-function mostrarRelatorio(rel){
+function mostrarRelatorio(rel,prx){
  const okB=[...new Set(rel.blocos)].length;
- abrirModal(`<h2>Resultado</h2><p class="ok-t">✅ ${rel.ok.length} trecho(s) recebidos${okB?` · ${okB} artigo(s) com mapa, fluxograma e demais ferramentas do artigo`:''}.</p>
+ const seguinte=!prx?'':prx.prox<0?'<p class="ok-t"><b>✅ Todos os pedidos deste resumo estão prontos.</b></p>':prx.copiado?`<p style="font-size:1.05rem">📋 <b>O próximo pedido (${prx.prox+1} de ${prx.total}) já está copiado.</b> Cole numa conversa nova da Joana.</p>`:`<div class="row"><button class="btn prim" onclick="copiarPedido(${prx.prox},this)">📋 Copiar próximo pedido (${prx.prox+1} de ${prx.total})</button></div>`;
+ abrirModal(`<h2>Resultado</h2><p class="ok-t">✅ ${rel.ok.length} trecho(s) recebidos${okB?` · ${okB} artigo(s) com mapa, fluxograma e demais ferramentas do artigo`:''}.</p>${seguinte}
  ${rel.rec.length?`<p class="pa-t">⚠️ ${rel.rec.length} recusado(s):</p><ul>${rel.rec.map(r=>`<li>${esc(r[0])}: ${esc(r[1])}</li>`).join('')}</ul>`:''}
  ${rel.pend.length?`<details><summary>Pendências que a Joana registrou (${rel.pend.length})</summary><ul>${rel.pend.map(r=>`<li><b>${esc(r[0])}</b>: ${esc(r[1])}</li>`).join('')}</ul></details>`:''}
  <div class="row"><button class="btn prim" onclick="fecharModal();abrirArtigos()">Voltar à lista de artigos</button><button class="btn" onclick="fecharModal()">Ir estudar</button></div>`);render()}
@@ -463,28 +483,43 @@ function situacaoBloco(b){const el=b.trechos.filter(t=>t.elegivel);if(!el.length
 function abrirModal(h){$('#modalBox').innerHTML=h;$('#modal').classList.add('on')}
 function fecharModal(){$('#modal').classList.remove('on')}
 $('#modal').addEventListener('click',e=>{if(e.target.id==='modal')fecharModal()});
+// V670.4: tela com um botão só ("Copiar próximo pedido"); a lista completa fica recolhida.
 function abrirArtigos(){
- const bls=S.inv.blocos.filter(blocoPedivel);const prontos=bls.filter(b=>situacaoBloco(b).k==='pronto').length;const gs=gruposPedido(bls);
+ const bls=S.inv.blocos.filter(blocoPedivel);const prontos=bls.filter(b=>situacaoBloco(b).k==='pronto').length;const gs=gruposPedido(bls);const st=gs.map(situacaoGrupo);const feitos=st.filter(s=>s.k==='pronto').length;const prox=proximoPedido(gs,st);
  abrirModal(`<h2>🤖 Gerar conteúdo com a Joana</h2>
- <p class="muted">Para cada pedido: <b>1.</b> clique em <b>Copiar pedido</b> → <b>2.</b> cole numa <b>conversa nova</b> do ChatGPT e envie → <b>3.</b> quando ela responder, clique no botão de copiar do bloco de código → <b>4.</b> volte aqui e clique em <b>Colar resposta</b>. Pode usar várias abas ao mesmo tempo.</p>
- <div class="row" style="margin:.2rem 0 .8rem"><b>${prontos} de ${bls.length}</b>&nbsp;artigos prontos · ${gs.length} pedido(s).<span style="flex:1"></span><button class="btn prim" onclick="colarResposta(null)">📥 Colar resposta (qualquer pedido)</button></div>
- <p class="muted" style="font-size:.85rem">Cada pedido junta alguns artigos seguidos. Não precisa acertar a linha: o leitor reconhece sozinho de quais artigos é a resposta.</p>
+ <div class="row" style="margin:.2rem 0 .6rem"><b>${feitos} de ${gs.length}</b>&nbsp;pedidos prontos · ${prontos} de ${bls.length} artigos.</div>
+ ${prox<0?'<p class="ok-t">✅ Todos os pedidos deste resumo estão prontos.</p>':`<p class="muted"><b>1.</b> Copie o próximo pedido → <b>2.</b> cole numa <b>conversa nova</b> do ChatGPT → <b>3.</b> copie a resposta dela (botão de copiar do quadro de código) → <b>4.</b> clique em <b>Colar resposta</b>. Ao guardar, o pedido seguinte já fica copiado.</p>`}
+ <div class="row">${prox<0?'':`<button class="btn prim" onclick="copiarPedido(${prox},this)">📋 Copiar próximo pedido (${prox+1} de ${gs.length})</button>`}<button class="btn ok" onclick="colarResposta(null)">📥 Colar resposta</button></div>
+ <details style="margin-top:.9rem"><summary class="muted">Ver todos os pedidos (${gs.length})</summary>
  <table class="lst"><tr><th>Pedido</th><th>Trechos</th><th>Situação</th><th></th></tr>
- ${gs.map((g,i)=>{const s=situacaoGrupo(g);return `<tr><td><b>${i+1}.</b> ${esc(nomeGrupo(g))}${g.length>1?` <span class="muted">(${g.length} artigos)</span>`:''}</td><td>${g.reduce((a,b)=>a+b.trechos.filter(t=>t.elegivel).length,0)}</td><td class="${s.k==='pronto'?'ok-t':s.k==='parcial'?'pa-t':'pe-t'}">${s.txt}</td>
- <td style="white-space:nowrap"><button class="btn sm" onclick="copiarPedido('${g.map(b=>b.id).join(',')}',this)">📋 Copiar pedido</button> <button class="btn sm ok" onclick="colarResposta('${g.length===1?g[0].id:''}')">📥 Colar resposta</button></td></tr>`}).join('')}</table>
+ ${gs.map((g,i)=>`<tr><td><b>${i+1}.</b> ${esc(nomeGrupo(g))}${g.length>1?` <span class="muted">(${g.length})</span>`:''}</td><td>${g.reduce((a,p)=>a+p.ts.filter(t=>t.elegivel).length,0)}</td><td class="${st[i].k==='pronto'?'ok-t':st[i].k==='parcial'?'pa-t':'pe-t'}">${st[i].txt}</td>
+ <td style="white-space:nowrap"><button class="btn sm" onclick="copiarPedido(${i},this)">📋 Copiar</button></td></tr>`).join('')}</table></details>
  <div class="row"><button class="btn" onclick="$('#fPacotes').click()">📁 Importar arquivos PACOTE já prontos</button><button class="btn" onclick="fecharModal()">Fechar</button></div>`)}
-// Grupos de artigos seguidos: até 18 trechos e 6 artigos por pedido; artigo maior que isso vai sozinho.
-const LIM_TRECHOS_PEDIDO=18,LIM_ARTIGOS_PEDIDO=6;
-function gruposPedido(bls){const gs=[];let g=[],n=0;for(const b of bls){const k=b.trechos.filter(t=>t.elegivel).length;if(g.length&&(n+k>LIM_TRECHOS_PEDIDO||g.length>=LIM_ARTIGOS_PEDIDO)){gs.push(g);g=[];n=0}g.push(b);n+=k}if(g.length)gs.push(g);return gs}
-function nomeGrupo(g){const curto=b=>{const t=limpa(b.titulo).replace(/^[^\p{L}\p{N}§]*/u,'');const m=t.match(/^(ARTS?\.?\s*[\dº°]+(?:\s*-\s*[A-Z])?|§\s*[\dº°]+)/i);return m?m[1]:t.slice(0,45).replace(/[\s:;,.—-]+$/u,'')};return g.length===1?limpa(g[0].titulo).replace(/^[^\p{L}\p{N}§]*/u,''):curto(g[0])+' até '+curto(g[g.length-1])}
-function situacaoGrupo(g){const ss=g.map(situacaoBloco);const pr=ss.filter(s=>s.k==='pronto').length;if(pr===g.length)return {k:'pronto',txt:'✅ pronto'};if(pr||ss.some(s=>s.k==='parcial'))return {k:'parcial',txt:`🟡 ${pr}/${g.length} artigos`};return {k:'pendente',txt:'⏳ falta'}}
-async function copiarPedido(ids,btn){const bs=String(ids).split(',').map(id=>S.inv.blocos.find(x=>x.id===id)).filter(Boolean);const texto=pedidoBlocos(bs);const ok=await copiar(texto);if(ok){btn.textContent='✔ Copiado';toast('Pedido copiado. Cole numa conversa nova do ChatGPT.')}else abrirModal(`<h2>Copie o pedido</h2><p>Não consegui copiar sozinho. Selecione tudo abaixo (Ctrl+A) e copie (Ctrl+C).</p><textarea style="min-height:50vh">${esc(texto)}</textarea><div class="row"><button class="btn" onclick="abrirArtigos()">Voltar</button></div>`)}
+// Tamanho do pedido pelo volume de texto: trecho curto pesa 1, trecho longo pesa mais (1 a cada 350 letras).
+// Até 24 de peso e 8 artigos por pedido; artigo maior que isso é dividido em partes.
+const PESO_PEDIDO=24,ARTIGOS_PEDIDO=8;
+const pesoTrecho=t=>t.elegivel?Math.max(1,limpa(t.texto).length/350):0;
+function partesDe(b){const total=b.trechos.reduce((a,t)=>a+pesoTrecho(t),0);if(total<=PESO_PEDIDO)return [{b,ts:b.trechos,primeira:true,i:1,n:1}];
+ const ls=[];let ts=[],p=0;for(const t of b.trechos){const w=pesoTrecho(t);if(w&&p&&p+w>PESO_PEDIDO){ls.push(ts);ts=[];p=0}ts.push(t);p+=w}if(ts.length)ls.push(ts);
+ return ls.map((ts,k)=>({b,ts,primeira:k===0,i:k+1,n:ls.length}))}
+function gruposPedido(bls){const gs=[];let g=[],p=0;for(const b of bls)for(const pt of partesDe(b)){const w=pt.ts.reduce((a,t)=>a+pesoTrecho(t),0);if(g.length&&(p+w>PESO_PEDIDO||g.length>=ARTIGOS_PEDIDO)){gs.push(g);g=[];p=0}g.push(pt);p+=w}if(g.length)gs.push(g);return gs}
+function nomeGrupo(g){const parte=p=>p.n>1?` (parte ${p.i} de ${p.n})`:'';const curto=p=>{const t=limpa(p.b.titulo).replace(/^[^\p{L}\p{N}§]*/u,'');const m=t.match(/^(ARTS?\.?\s*[\dº°]+(?:\s*-\s*[A-Z])?|§\s*[\dº°]+)/i);return (m?m[1]:t.slice(0,45).replace(/[\s:;,.—-]+$/u,''))+parte(p)};return g.length===1?limpa(g[0].b.titulo).replace(/^[^\p{L}\p{N}§]*/u,'')+parte(g[0]):curto(g[0])+' até '+curto(g[g.length-1])}
+function situacaoParte(p){const el=p.ts.filter(t=>t.elegivel);const pr=el.filter(t=>situacaoTrecho(t)==='pronto').length;const temB=!!S.content.blocos[p.b.id];if(pr===el.length&&(temB||!p.primeira))return 'pronto';return pr||(p.primeira&&temB)?'parcial':'pendente'}
+function situacaoGrupo(g){const ss=g.map(situacaoParte);const pr=ss.filter(s=>s==='pronto').length;if(pr===g.length)return {k:'pronto',txt:'✅ pronto'};if(pr||ss.includes('parcial'))return {k:'parcial',txt:`🟡 ${pr}/${g.length}`};return {k:'pendente',txt:'⏳ falta'}}
+// Próximo pedido: o primeiro que falta e ainda não foi copiado nesta aba; se todos já foram copiados, o primeiro que falta.
+const pedidosCopiados=new Set();const chavePedido=i=>S.inv.assunto_id+'|'+i;
+function proximoPedido(gs,st){let i=st.findIndex((s,k)=>s.k!=='pronto'&&!pedidosCopiados.has(chavePedido(k)));if(i<0)i=st.findIndex(s=>s.k!=='pronto');return i}
+async function copiarPedido(i,btn){const gs=gruposPedido(S.inv.blocos.filter(blocoPedivel));if(!gs[i])return;const texto=pedidoBlocos(gs[i]);const ok=await copiar(texto);if(ok){pedidosCopiados.add(chavePedido(i));if(btn)btn.textContent='✔ Copiado';toast('Pedido '+(i+1)+' copiado. Cole numa conversa nova do ChatGPT.')}else abrirModal(`<h2>Copie o pedido</h2><p>Não consegui copiar sozinho. Selecione tudo abaixo (Ctrl+A) e copie (Ctrl+C).</p><textarea style="min-height:50vh">${esc(texto)}</textarea><div class="row"><button class="btn" onclick="abrirArtigos()">Voltar</button></div>`)}
 function colarResposta(id){const b=id&&S.inv.blocos.find(x=>x.id===id);
  abrirModal(`<h2>📥 Resposta da Joana${b?' — '+esc(b.titulo):''}</h2><p class="muted">Cole aqui (Ctrl+V) tudo o que ela respondeu. Pode colar o texto inteiro, com a conversa em volta: eu pego só o conteúdo.</p>
  <textarea id="taResp" style="min-height:45vh" placeholder="Cole aqui"></textarea>
  <div class="row"><button class="btn prim" onclick="processarColado()">✔ Guardar</button><button class="btn" onclick="colarDoClipboard()">Colar da área de transferência</button><button class="btn" onclick="abrirArtigos()">Voltar</button></div>`);setTimeout(()=>$('#taResp').focus(),50)}
 async function colarDoClipboard(){try{$('#taResp').value=await navigator.clipboard.readText()}catch(e){toast('Use Ctrl+V dentro da caixa.')}}
-function processarColado(){const objs=extrairJsons($('#taResp').value);if(!objs.length){alert('Não encontrei o conteúdo (o bloco JSON) no que foi colado. Copie a resposta inteira da Joana e tente de novo.');return}mostrarRelatorio(importarObjetos(objs))}
+async function processarColado(){const objs=extrairJsons($('#taResp').value);if(!objs.length){alert('Não encontrei o conteúdo (o bloco JSON) no que foi colado. Copie a resposta inteira da Joana e tente de novo.');return}
+ const rel=importarObjetos(objs);const gs=gruposPedido(S.inv.blocos.filter(blocoPedivel));const prox=proximoPedido(gs,gs.map(situacaoGrupo));let copiado=false;
+ // V670.4: ao guardar, o pedido seguinte já vai para a área de transferência.
+ if(prox>=0&&rel.ok.length){copiado=await copiar(pedidoBlocos(gs[prox]));if(copiado)pedidosCopiados.add(chavePedido(prox))}
+ mostrarRelatorio(rel,{prox,total:gs.length,copiado})}
 $('#fPacotes').addEventListener('change',async e=>{const objs=[];for(const f of e.target.files){try{objs.push(...extrairJsons(await f.text()))}catch(_){}}e.target.value='';if(!objs.length){alert('Nenhum conteúdo reconhecido nos arquivos.');return}mostrarRelatorio(importarObjetos(objs))});
 
 /* ============ navegação ============ */

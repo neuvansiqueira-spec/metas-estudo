@@ -70,11 +70,22 @@ test('V670.2: Word sem títulos usa os marcadores (♦️ ▶️📚 ✅) e erro
 });
 
 test('V670.3: pedidos juntam artigos seguidos e § fica dentro do artigo', () => {
-  assert.ok(rootLeitor.includes('const LIM_TRECHOS_PEDIDO=18,LIM_ARTIGOS_PEDIDO=6;'));
   assert.ok(rootLeitor.includes('function pedidoBloco(b){return pedidoBlocos([b])}'));
   assert.ok(rootLeitor.includes("${varios?'\"pacotes\":[{':''}"));
-  assert.ok(rootLeitor.includes("copiarPedido('${g.map(b=>b.id).join(',')}',this)"));
   assert.ok(rootLeitor.includes('const VERSAO_MARCAS=2;'));
-  assert.ok(rootLeitor.includes('if(!temConteudoAlgum()){novo.pasta=S.inv.pasta||novo.pasta;S.inv=novo;'));
+  assert.ok(rootLeitor.includes('if(/^(§|PAR[ÁA]GRAFO\\s+[ÚU]NICO)/iu.test(corpo))return {nivel:0,txt:p.txt};'));
+  assert.doesNotMatch(rootLeitor, /\x08/);
+});
+
+test('V670.4: julgado vira um trecho, pedido pelo volume com partes e botão de próximo pedido', () => {
+  assert.ok(rootLeitor.includes('const julgados=bl.reduce((a,b)=>a+b.trechos.filter(ehTrib).length,0)>=3;'));
+  assert.ok(rootLeitor.includes('const PESO_PEDIDO=24,ARTIGOS_PEDIDO=8;'));
+  assert.ok(rootLeitor.includes('function partesDe(b){'));
+  assert.ok(rootLeitor.includes('"ferramentas_do_artigo": false'));
+  assert.ok(rootLeitor.includes('copiarPedido(${prox},this)'));
+  assert.ok(rootLeitor.includes('if(prox>=0&&rel.ok.length){copiado=await copiar(pedidoBlocos(gs[prox]))'));
+  assert.ok(rootLeitor.includes('if(!estadoTemAlgo(S)&&assinaturaInv(novo)!==assinaturaInv(S.inv)){'));
+  assert.ok(rootLeitor.includes('if(l&&l.inv&&!estadoTemAlgo(l)){'));
+  assert.ok(rootLeitor.includes('if(!mont.bl.length&&pars.some(p=>p.nivel===1)){'));
   assert.doesNotMatch(rootLeitor, /\x08/);
 });
