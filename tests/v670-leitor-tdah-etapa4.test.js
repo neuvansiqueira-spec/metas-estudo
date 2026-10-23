@@ -83,9 +83,17 @@ test('V670.4: julgado vira um trecho, pedido pelo volume com partes e botão de 
   assert.ok(rootLeitor.includes('function partesDe(b){'));
   assert.ok(rootLeitor.includes('"ferramentas_do_artigo": false'));
   assert.ok(rootLeitor.includes('copiarPedido(${prox},this)'));
-  assert.ok(rootLeitor.includes('if(prox>=0&&rel.ok.length){copiado=await copiar(pedidoBlocos(gs[prox]))'));
+  assert.ok(rootLeitor.includes('if(prox>=0&&rel.ok.length){copiado=await copiar(pedidoDoGrupo(gs[prox]))'));
   assert.ok(rootLeitor.includes('if(!estadoTemAlgo(S)&&assinaturaInv(novo)!==assinaturaInv(S.inv)){'));
   assert.ok(rootLeitor.includes('if(l&&l.inv&&!estadoTemAlgo(l)){'));
   assert.ok(rootLeitor.includes('if(!mont.bl.length&&pars.some(p=>p.nivel===1)){'));
   assert.doesNotMatch(rootLeitor, /\x08/);
+});
+
+test('V670.5: leitura nova do Word leva junto o que já foi feito e o pedido só pede o que falta', () => {
+  assert.ok(rootLeitor.includes('function migrarEstado(v,inv){'));
+  assert.ok(rootLeitor.includes("function aplicarWordNovo(){const novo=avisoWordNovo;if(!novo)return;avisoWordNovo=null;reorganizar(novo,'Resumo atualizado')}"));
+  assert.ok(rootLeitor.includes("if(assinaturaInv(inv)!==assinaturaInv(S.inv)){reorganizar(inv,'Resumo reorganizado');"));
+  assert.ok(rootLeitor.includes("function pedidoDoGrupo(g){const falta=g.filter(p=>situacaoParte(p)!=='pronto');"));
+  assert.doesNotMatch(rootLeitor, //);
 });
