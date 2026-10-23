@@ -874,7 +874,14 @@ $('#bMais').onclick=()=>{fs=Math.min(34,fs+2);lsSet('leitor-tdah:fs',fs);aplicaP
 $('#bTema').onclick=()=>{tema=tema==='auto'?'dark':tema==='dark'?'light':'auto';lsSet('leitor-tdah:tema',tema);aplicaPrefs();toast('Tema: '+({auto:'automático',dark:'escuro',light:'claro'}[tema]))};
 window.addEventListener('beforeunload',()=>{if(S&&pendente)gravarAgora()});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&S&&pendente)gravarAgora()});
-render();carregarInicial().then(()=>{render();if(S&&PARAM.get('revisar'))abrirRevisao()});
+// V670.6: o GitHub Pages deixa esta página guardada no navegador por até 10 minutos. Ao abrir, confere se já há
+// versão nova (busca a página sem usar a cópia guardada) e, se houver, recarrega uma vez, depois de gravar.
+const VERSAO_LEITOR='20261023-leitor-v670-6';
+async function conferirVersaoNova(){if(!/^https?:/.test(location.protocol))return;
+ try{const r=await fetch(location.pathname,{cache:'reload'});if(!r.ok)return;const m=(await r.text()).match(/const VERSAO_LEITOR='([^']+)'/);if(!m||m[1]===VERSAO_LEITOR)return;
+  const k='leitor-tdah:recarregou:'+m[1];try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,'1')}catch(e){return}
+  if(S&&pendente)await gravarAgora();toast('Versão nova do leitor: recarregando…');setTimeout(()=>location.reload(),600)}catch(e){}}
+render();carregarInicial().then(()=>{render();if(S&&PARAM.get('revisar'))abrirRevisao();conferirVersaoNova()});
 window.LT={docxParaInventario,importarObjetos,extrairJsons,pedidoBloco,get S(){return S},set S(v){S=v;fixar()},render,situacaoBloco};
 </script>
 </body>

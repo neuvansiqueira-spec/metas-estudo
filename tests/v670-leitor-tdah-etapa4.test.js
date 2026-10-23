@@ -97,3 +97,10 @@ test('V670.5: leitura nova do Word leva junto o que já foi feito e o pedido só
   assert.ok(rootLeitor.includes("function pedidoDoGrupo(g){const falta=g.filter(p=>situacaoParte(p)!=='pronto');"));
   assert.doesNotMatch(rootLeitor, //);
 });
+
+test('V670.6: leitor confere versão nova ao abrir e recarrega uma vez', () => {
+  assert.match(rootLeitor, /const VERSAO_LEITOR='\d{8}-leitor-v\d+-\d+';/);
+  assert.ok(rootLeitor.includes("const r=await fetch(location.pathname,{cache:'reload'})"));
+  assert.ok(rootLeitor.includes("const k='leitor-tdah:recarregou:'+m[1];"));
+  assert.ok(rootLeitor.includes('abrirRevisao();conferirVersaoNova()});'));
+});
