@@ -68,3 +68,13 @@ test('V670.2: Word sem títulos usa os marcadores (♦️ ▶️📚 ✅) e erro
   assert.ok(rootLeitor.includes("catch(e){return {erro:e.message+' ('+(r.caminho||r.nome)+')'}}if(inv.titulo_fraco&&tema)inv.titulo=tema;"));
   assert.doesNotMatch(rootLeitor, /\x08/);
 });
+
+test('V670.3: pedidos juntam artigos seguidos e § fica dentro do artigo', () => {
+  assert.ok(rootLeitor.includes('const LIM_TRECHOS_PEDIDO=18,LIM_ARTIGOS_PEDIDO=6;'));
+  assert.ok(rootLeitor.includes('function pedidoBloco(b){return pedidoBlocos([b])}'));
+  assert.ok(rootLeitor.includes("${varios?'\"pacotes\":[{':''}"));
+  assert.ok(rootLeitor.includes("copiarPedido('${g.map(b=>b.id).join(',')}',this)"));
+  assert.ok(rootLeitor.includes('const VERSAO_MARCAS=2;'));
+  assert.ok(rootLeitor.includes('if(!temConteudoAlgum()){novo.pasta=S.inv.pasta||novo.pasta;S.inv=novo;'));
+  assert.doesNotMatch(rootLeitor, /\x08/);
+});

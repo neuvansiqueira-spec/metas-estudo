@@ -242,7 +242,10 @@ function pintaNuvem(){const el=$('#avisoSalvo');if(el)el.innerHTML=textoNuvem()}
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&tNuvem)salvarNuvem(true)});
 /* resumo refeito: mantém o conteúdo dos trechos que não mudaram */
 let avisoWordNovo=null;
+// V670.3: leitura pelos marcadores mudou (parágrafo § fica dentro do artigo). Resumo ainda sem conteúdo é reorganizado sozinho; com conteúdo, aparece o aviso de atualizar.
+const VERSAO_MARCAS=2;
 async function conferirWordNovo(){if(!S||!pastaAtual())return;const r=await invDaPasta();if(!r.inv)return;const novo=r.inv;novo.assunto_id=S.inv.assunto_id;
+ if(S.inv.por_marcadores&&novo.por_marcadores&&(S.inv.versao_marcas||1)<VERSAO_MARCAS){if(!temConteudoAlgum()){novo.pasta=S.inv.pasta||novo.pasta;S.inv=novo;S.user.pos={b:0,t:0};salvar();render();toast('Organizei de novo os artigos deste resumo: os parágrafos (§) agora ficam dentro do artigo.',6000)}else{avisoWordNovo=novo;render()}return}
  if(S.inv.docx_modificado&&novo.docx_modificado&&novo.docx_modificado!==S.inv.docx_modificado){avisoWordNovo=novo;render()}else if(!S.inv.docx_modificado){S.inv.docx_modificado=novo.docx_modificado;S.inv.pasta=pastaAtual();salvar()}}
 function aplicarWordNovo(){const novo=avisoWordNovo;if(!novo)return;const velho=new Map(S.inv.blocos.flatMap(b=>b.trechos).map(t=>[t.id,limpa(t.texto)]));let mantidos=0,trocados=0;
  const novos=new Map(novo.blocos.flatMap(b=>b.trechos).map(t=>[t.id,limpa(t.texto)]));
@@ -330,7 +333,7 @@ async function docxParaInventario(buf,nomeArq){
  const porMarcas=pars=>{const ini=t=>limpa(t);const temInst=pars.some(p=>/^▶\uFE0F?\s*📚/u.test(ini(p.txt)));
   return pars.map(p=>{const t=ini(p.txt);if(/^♦/u.test(t)||/\bchapter\b/.test(p.est||''))return {nivel:2,txt:p.txt};if(/\barticle\b/.test(p.est||''))return {nivel:3,txt:p.txt};if(/^📘/u.test(t)||(p.nivel===1&&!/^[▶✅]/u.test(t)))return {nivel:1,txt:p.txt};
    if(temInst)return {nivel:/^▶\uFE0F?\s*📚/u.test(t)?3:0,txt:p.txt};
-   if(/^✅/u.test(t)){const corpo=t.replace(/^✅\uFE0F?\s*/u,'');const i=corpo.indexOf(':'),j=i<0?-1:corpo.indexOf(':',i+1);const tit=(j>0?corpo.slice(0,j):corpo).slice(0,110).trim();return {nivel:3,txt:p.txt,titulo:tit,comTexto:j>0&&corpo.slice(j+1).trim().length>0}}
+   if(/^✅/u.test(t)){const corpo=t.replace(/^✅\uFE0F?\s*/u,'');if(/^(§|PAR[ÁA]GRAFO\s+[ÚU]NICO)/iu.test(corpo))return {nivel:0,txt:p.txt};const i=corpo.indexOf(':'),j=i<0?-1:corpo.indexOf(':',i+1);const tit=(j>0?corpo.slice(0,j):corpo).slice(0,110).trim();return {nivel:3,txt:p.txt,titulo:tit,comTexto:j>0&&corpo.slice(j+1).trim().length>0}}
    if(/^▶/u.test(t))return {nivel:'sec',txt:p.txt};return {nivel:0,txt:p.txt}})};
  let mont=montar(pars),porMarca=false;
  if(!mont.bl.length){const pm=porMarcas(pars);if(pm.some(p=>p.nivel===3)){const m2=montar(pm);if(m2.bl.length){mont=m2;porMarca=true}}}
@@ -340,7 +343,7 @@ async function docxParaInventario(buf,nomeArq){
  const nomeBase=(nomeArq||'').replace(/\.docx$/i,'').replace(/^MAPA_HIERARQUICO_(RESUMO_AULA_)?/i,'').replace(/_/g,' ').trim();
  const aid=(titulo||nomeBase).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40).replace(/-+$/,'')||'RESUMO';
  const fonte=(pars.map(x=>limpa(x.txt).match(/https?:\/\/(?:www\.)?planalto\.gov\.br\/[^\s)\]]+/i)).find(Boolean)||[''])[0];
- return {formato:'LEITOR-TDAH-INVENTARIO-1',assunto_id:aid,titulo:titulo||preTit||nomeBase,titulo_fraco:!titulo,por_marcadores:porMarca,arquivo_origem:nomeArq||'',fonte_oficial:fonte,blocos:bl};
+ return {formato:'LEITOR-TDAH-INVENTARIO-1',assunto_id:aid,titulo:titulo||preTit||nomeBase,titulo_fraco:!titulo,por_marcadores:porMarca,versao_marcas:porMarca?VERSAO_MARCAS:0,arquivo_origem:nomeArq||'',fonte_oficial:fonte,blocos:bl};
 }
 
 /* ============ abrir ============ */
@@ -363,15 +366,18 @@ function temConteudoAlgum(){return Object.keys(S.content.trechos).length>0}
 /* ============ pedido para o GPT (Passo 2 embutido) ============ */
 const ehQuadro=b=>!b.artigo&&/JURISPRUD/i.test(b.titulo);
 const blocoPedivel=b=>!ehQuadro(b)&&b.trechos.some(t=>t.elegivel);
-function pedidoBloco(b){
- const bj={assunto_id:S.inv.assunto_id,titulo_assunto:S.inv.titulo,id:b.id,titulo:b.titulo,capitulo:b.capitulo,artigo:b.artigo,trechos:b.trechos.map(t=>({id:t.id,rotulo:t.rotulo,categoria:t.categoria,elegivel:t.elegivel,texto:t.texto}))};
- return `${limpa(b.titulo)} — LEITOR TDAH (conteúdo do artigo)
+function pedidoBloco(b){return pedidoBlocos([b])}
+// V670.3: vários artigos seguidos num pedido só (menos linhas para copiar e colar).
+function pedidoBlocos(bs){const b=bs[0],varios=bs.length>1;
+ const bjDe=b=>({assunto_id:S.inv.assunto_id,titulo_assunto:S.inv.titulo,id:b.id,titulo:b.titulo,capitulo:b.capitulo,artigo:b.artigo,trechos:b.trechos.map(t=>({id:t.id,rotulo:t.rotulo,categoria:t.categoria,elegivel:t.elegivel,texto:t.texto}))});
+ const bj=varios?bs.map(bjDe):bjDe(b);
+ return `${varios?limpa(b.titulo)+' até '+limpa(bs[bs.length-1].titulo)+' — LEITOR TDAH (conteúdo de '+bs.length+' artigos)':limpa(b.titulo)+' — LEITOR TDAH (conteúdo do artigo)'}
 
 1. MISSÃO
-Produzir o CONTEÚDO REAL das ferramentas do Leitor TDAH para o artigo do item 7. Não faça HTML, botões nem prompts. Seja ENXUTO: frases curtas, sem introdução, sem repetir o que já disse em outra ferramenta. NÃO faça questões nem quizzes.
+Produzir o CONTEÚDO REAL das ferramentas do Leitor TDAH para ${varios?'CADA UM dos '+bs.length+' artigos do item 7 (um pacote por artigo, na mesma ordem)':'o artigo do item 7'}. Não faça HTML, botões nem prompts. Seja ENXUTO: frases curtas, sem introdução, sem repetir o que já disse em outra ferramenta. NÃO faça questões nem quizzes.
 
 2. O QUE PRODUZIR
-2.1 UMA VEZ PARA O ARTIGO:
+2.1 UMA VEZ PARA ${varios?'CADA':'O'} ARTIGO:
 - MAPA MENTAL: centro, ramos com sentido próprio, sub-ramos curtos. Não é a lista das frases do texto.
 - FLUXOGRAMA como ${REGRA_FLUXO}
 - IMAGEM DO EVENTO: descrição da cena que representa o EVENTO (o fato, não a palavra) e um prompt de imagem pronto. Sem pessoas identificáveis, sem conteúdo sexual explícito, sem sensacionalismo. Nada representável → "representavel": false.
@@ -392,12 +398,12 @@ Produzir o CONTEÚDO REAL das ferramentas do Leitor TDAH para o artigo do item 7
 4) Não repita flashcard nem explicação, nem com outras palavras.
 
 4. COMO RESPONDER
-Responda com UM ÚNICO bloco de código JSON (para eu copiar com um clique) e, depois dele, no máximo duas linhas. Não gere arquivo para download. Se a resposta for cortada, eu escrevo CONTINUE e você manda outro bloco JSON, no mesmo formato, só com os trechos que faltaram.
+Responda com UM ÚNICO bloco de código JSON (para eu copiar com um clique) e, depois dele, no máximo duas linhas. Não gere arquivo para download. Se a resposta for cortada, eu escrevo CONTINUE e você manda outro bloco JSON, no mesmo formato, só com ${varios?'os artigos e ':''}os trechos que faltaram.
 Português com acentos; pode usar **negrito**; quebra de linha dentro de texto: \\n.
 
 5. FORMATO
-{"formato":"LEITOR-TDAH-PACOTE-3","assunto_id":"${S.inv.assunto_id}",
- "bloco":{"id":"${b.id}",
+{"formato":"LEITOR-TDAH-PACOTE-3","assunto_id":"${S.inv.assunto_id}",${varios?'"pacotes":[{':''}
+ "bloco":{"id":"${varios?'id do artigo':b.id}",
   "mapa_mental":{"centro":"","ramos":[{"rotulo":"","subramos":[""]}]},
   "fluxograma":{"tipo":"decisao ou sequencia","nos":[{"id":"n1","tipo":"inicio, condicao, consequencia, excecao ou fim","texto":""}],"ligacoes":[{"de":"n1","para":"n2","rotulo":"sim, não ou vazio"}]},
   "imagem":{"representavel":true,"evento":"","descricao_da_cena":"","prompt_imagem":"","limitacao":""},
@@ -408,11 +414,11 @@ Português com acentos; pode usar **negrito**; quebra de linha dentro de texto: 
   "flashcards":[{"angulo":"","frente":"","verso":""}],
   "por_que":"","texto_facil":"",
   "glossario":[{"termo":"","significado":""}],
-  "jurisprudencia":[{"tribunal":"","processo":"","orgao":"","data":"","tese":"","fonte":"","origem":"documento","aplicacao":"direta ou relacionada"}]}]}
+  "jurisprudencia":[{"tribunal":"","processo":"","orgao":"","data":"","tese":"","fonte":"","origem":"documento","aplicacao":"direta ou relacionada"}]}]}${varios?'\n }, … um objeto {"bloco":…,"trechos":…} para CADA artigo, na ordem do item 7]}':''}
 
-6. (sem anexos: o artigo já está abaixo)
+6. (sem anexos: ${varios?'os artigos já estão abaixo':'o artigo já está abaixo'})
 
-7. ARTIGO
+7. ${varios?'ARTIGOS ('+bs.length+')':'ARTIGO'}
 ${JSON.stringify(bj,null,1)}`}
 
 /* ============ importar respostas ============ */
@@ -458,16 +464,21 @@ function abrirModal(h){$('#modalBox').innerHTML=h;$('#modal').classList.add('on'
 function fecharModal(){$('#modal').classList.remove('on')}
 $('#modal').addEventListener('click',e=>{if(e.target.id==='modal')fecharModal()});
 function abrirArtigos(){
- const bls=S.inv.blocos.filter(blocoPedivel);const prontos=bls.filter(b=>situacaoBloco(b).k==='pronto').length;
+ const bls=S.inv.blocos.filter(blocoPedivel);const prontos=bls.filter(b=>situacaoBloco(b).k==='pronto').length;const gs=gruposPedido(bls);
  abrirModal(`<h2>🤖 Gerar conteúdo com a Joana</h2>
- <p class="muted">Para cada artigo: <b>1.</b> clique em <b>Copiar pedido</b> → <b>2.</b> cole numa <b>conversa nova</b> do ChatGPT e envie → <b>3.</b> quando ela responder, clique no botão de copiar do bloco de código → <b>4.</b> volte aqui e clique em <b>Colar resposta</b>. Pode usar várias abas ao mesmo tempo.</p>
- <div class="row" style="margin:.2rem 0 .8rem"><b>${prontos} de ${bls.length}</b>&nbsp;artigos prontos.<span style="flex:1"></span><button class="btn prim" onclick="colarResposta(null)">📥 Colar resposta (qualquer artigo)</button></div>
- <p class="muted" style="font-size:.85rem">Não precisa acertar a linha: o leitor reconhece sozinho de qual artigo é a resposta.</p>
- <table class="lst"><tr><th>Artigo</th><th>Trechos</th><th>Situação</th><th></th></tr>
- ${bls.map(b=>{const s=situacaoBloco(b);return `<tr><td>${esc(b.titulo)}</td><td>${b.trechos.filter(t=>t.elegivel).length}</td><td class="${s.k==='pronto'?'ok-t':s.k==='parcial'?'pa-t':'pe-t'}">${s.txt}</td>
- <td style="white-space:nowrap"><button class="btn sm" onclick="copiarPedido('${b.id}',this)">📋 Copiar pedido</button> <button class="btn sm ok" onclick="colarResposta('${b.id}')">📥 Colar resposta</button></td></tr>`}).join('')}</table>
+ <p class="muted">Para cada pedido: <b>1.</b> clique em <b>Copiar pedido</b> → <b>2.</b> cole numa <b>conversa nova</b> do ChatGPT e envie → <b>3.</b> quando ela responder, clique no botão de copiar do bloco de código → <b>4.</b> volte aqui e clique em <b>Colar resposta</b>. Pode usar várias abas ao mesmo tempo.</p>
+ <div class="row" style="margin:.2rem 0 .8rem"><b>${prontos} de ${bls.length}</b>&nbsp;artigos prontos · ${gs.length} pedido(s).<span style="flex:1"></span><button class="btn prim" onclick="colarResposta(null)">📥 Colar resposta (qualquer pedido)</button></div>
+ <p class="muted" style="font-size:.85rem">Cada pedido junta alguns artigos seguidos. Não precisa acertar a linha: o leitor reconhece sozinho de quais artigos é a resposta.</p>
+ <table class="lst"><tr><th>Pedido</th><th>Trechos</th><th>Situação</th><th></th></tr>
+ ${gs.map((g,i)=>{const s=situacaoGrupo(g);return `<tr><td><b>${i+1}.</b> ${esc(nomeGrupo(g))}${g.length>1?` <span class="muted">(${g.length} artigos)</span>`:''}</td><td>${g.reduce((a,b)=>a+b.trechos.filter(t=>t.elegivel).length,0)}</td><td class="${s.k==='pronto'?'ok-t':s.k==='parcial'?'pa-t':'pe-t'}">${s.txt}</td>
+ <td style="white-space:nowrap"><button class="btn sm" onclick="copiarPedido('${g.map(b=>b.id).join(',')}',this)">📋 Copiar pedido</button> <button class="btn sm ok" onclick="colarResposta('${g.length===1?g[0].id:''}')">📥 Colar resposta</button></td></tr>`}).join('')}</table>
  <div class="row"><button class="btn" onclick="$('#fPacotes').click()">📁 Importar arquivos PACOTE já prontos</button><button class="btn" onclick="fecharModal()">Fechar</button></div>`)}
-async function copiarPedido(id,btn){const b=S.inv.blocos.find(x=>x.id===id);const ok=await copiar(pedidoBloco(b));if(ok){btn.textContent='✔ Copiado';toast('Pedido copiado. Cole numa conversa nova do ChatGPT.')}else abrirModal(`<h2>Copie o pedido</h2><p>Não consegui copiar sozinho. Selecione tudo abaixo (Ctrl+A) e copie (Ctrl+C).</p><textarea style="min-height:50vh">${esc(pedidoBloco(b))}</textarea><div class="row"><button class="btn" onclick="abrirArtigos()">Voltar</button></div>`)}
+// Grupos de artigos seguidos: até 18 trechos e 6 artigos por pedido; artigo maior que isso vai sozinho.
+const LIM_TRECHOS_PEDIDO=18,LIM_ARTIGOS_PEDIDO=6;
+function gruposPedido(bls){const gs=[];let g=[],n=0;for(const b of bls){const k=b.trechos.filter(t=>t.elegivel).length;if(g.length&&(n+k>LIM_TRECHOS_PEDIDO||g.length>=LIM_ARTIGOS_PEDIDO)){gs.push(g);g=[];n=0}g.push(b);n+=k}if(g.length)gs.push(g);return gs}
+function nomeGrupo(g){const curto=b=>{const t=limpa(b.titulo).replace(/^[^\p{L}\p{N}§]*/u,'');const m=t.match(/^(ARTS?\.?\s*[\dº°]+(?:\s*-\s*[A-Z])?|§\s*[\dº°]+)/i);return m?m[1]:t.slice(0,45).replace(/[\s:;,.—-]+$/u,'')};return g.length===1?limpa(g[0].titulo).replace(/^[^\p{L}\p{N}§]*/u,''):curto(g[0])+' até '+curto(g[g.length-1])}
+function situacaoGrupo(g){const ss=g.map(situacaoBloco);const pr=ss.filter(s=>s.k==='pronto').length;if(pr===g.length)return {k:'pronto',txt:'✅ pronto'};if(pr||ss.some(s=>s.k==='parcial'))return {k:'parcial',txt:`🟡 ${pr}/${g.length} artigos`};return {k:'pendente',txt:'⏳ falta'}}
+async function copiarPedido(ids,btn){const bs=String(ids).split(',').map(id=>S.inv.blocos.find(x=>x.id===id)).filter(Boolean);const texto=pedidoBlocos(bs);const ok=await copiar(texto);if(ok){btn.textContent='✔ Copiado';toast('Pedido copiado. Cole numa conversa nova do ChatGPT.')}else abrirModal(`<h2>Copie o pedido</h2><p>Não consegui copiar sozinho. Selecione tudo abaixo (Ctrl+A) e copie (Ctrl+C).</p><textarea style="min-height:50vh">${esc(texto)}</textarea><div class="row"><button class="btn" onclick="abrirArtigos()">Voltar</button></div>`)}
 function colarResposta(id){const b=id&&S.inv.blocos.find(x=>x.id===id);
  abrirModal(`<h2>📥 Resposta da Joana${b?' — '+esc(b.titulo):''}</h2><p class="muted">Cole aqui (Ctrl+V) tudo o que ela respondeu. Pode colar o texto inteiro, com a conversa em volta: eu pego só o conteúdo.</p>
  <textarea id="taResp" style="min-height:45vh" placeholder="Cole aqui"></textarea>
