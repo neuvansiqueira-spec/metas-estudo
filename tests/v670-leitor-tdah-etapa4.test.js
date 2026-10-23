@@ -61,3 +61,10 @@ test('V670.1: leitor abre o Word do MAPA HIERÁRQUICO (eixo = Axis, instituto = 
   assert.ok(rootLeitor.includes("const aid=(titulo||nomeBase).normalize("));
   assert.doesNotMatch(rootLeitor, /\x08/);
 });
+
+test('V670.2: Word sem títulos usa os marcadores (♦️ ▶️📚 ✅) e erro de leitura não trava a abertura', () => {
+  assert.ok(rootLeitor.includes(' if(!mont.bl.length){const pm=porMarcas(pars);'));
+  assert.ok(rootLeitor.includes('const porMarcas=pars=>{'));
+  assert.ok(rootLeitor.includes("catch(e){return {erro:e.message+' ('+(r.caminho||r.nome)+')'}}if(inv.titulo_fraco&&tema)inv.titulo=tema;"));
+  assert.doesNotMatch(rootLeitor, /\x08/);
+});

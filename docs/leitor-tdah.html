@@ -230,7 +230,7 @@ async function ponte(rota,corpo,ms=60000){if(!/^https?:/.test(location.protocol)
  try{const r=await fetch(BRIDGE+rota,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corpo),signal:c.signal});const j=await r.json();return j}catch(e){return null}finally{clearTimeout(t)}}
 const pastaAtual=()=>PASTA||(S&&S.inv&&S.inv.pasta)||'';
 async function invDaPasta(){const tema=TEMA||(S&&S.inv&&S.inv.tema)||'';const r=await ponte('/leitor/resumo',{pasta:pastaAtual(),tema});if(!r)return {erro:'O programa da Fábrica não respondeu.'};if(!r.ok)return {erro:r.erro||'Erro no programa da Fábrica.'};
- const bin=Uint8Array.from(atob(r.docx_base64),c=>c.charCodeAt(0));const inv=await docxParaInventario(bin.buffer,r.nome);inv.docx_modificado=r.modificado_em;inv.pasta=pastaAtual();inv.tema=tema;inv.caminho_word=r.caminho||r.nome;if(r.outra_pasta)toast('Usei o resumo mais recente ('+r.modificado_em.slice(8,10)+'/'+r.modificado_em.slice(5,7)+'), que está em outra pasta: '+(r.caminho||r.nome),7000);return {inv}}
+ const bin=Uint8Array.from(atob(r.docx_base64),c=>c.charCodeAt(0));let inv;try{inv=await docxParaInventario(bin.buffer,r.nome)}catch(e){return {erro:e.message+' ('+(r.caminho||r.nome)+')'}}if(inv.titulo_fraco&&tema)inv.titulo=tema;inv.docx_modificado=r.modificado_em;inv.pasta=pastaAtual();inv.tema=tema;inv.caminho_word=r.caminho||r.nome;if(r.outra_pasta)toast('Usei o resumo mais recente ('+r.modificado_em.slice(8,10)+'/'+r.modificado_em.slice(5,7)+'), que está em outra pasta: '+(r.caminho||r.nome),7000);return {inv}}
 async function estadoDoDrive(aid){const r=await ponte('/leitor/carregar',{pasta:pastaAtual(),assunto_id:aid});if(!r||!r.ok||!r.existe)return null;try{const v=JSON.parse(r.dados);return v&&v.inv?v:null}catch(e){return null}}
 let tNuvem=null;
 function salvarNuvem(ja){if(!S||!pastaAtual()||!/^https?:/.test(location.protocol))return;clearTimeout(tNuvem);tNuvem=setTimeout(async()=>{tNuvem=null;nuvem.estado='salvando';pintaNuvem();
@@ -282,8 +282,8 @@ async function docxParaInventario(buf,nomeArq){
  const d=new DOMParser().parseFromString(xml,'application/xml');const val=el=>el&&(el.getAttributeNS(W,'val')??el.getAttribute('w:val'));
  const pars=[];
  for(const p of d.getElementsByTagNameNS(W,'p')){
-  const pPr=[...p.children].find(c=>c.localName==='pPr');let nivel=0;
-  if(pPr){const ps=[...pPr.children].find(c=>c.localName==='pStyle');const id=ps?val(ps):'';const nm=nomes[id]||id.toLowerCase();
+  const pPr=[...p.children].find(c=>c.localName==='pPr');let nivel=0,est='';
+  if(pPr){const ps=[...pPr.children].find(c=>c.localName==='pStyle');const id=ps?val(ps):'';const nm=nomes[id]||id.toLowerCase();est=(nm+' '+id).toLowerCase();
    const m=nm.match(/(?:heading|t[íi]tulo|titulo)\s*(\d)/)||id.match(/^(?:Heading|Ttulo|Titulo|Título)(\d)$/i);if(m)nivel=+m[1];else if(nivelEst[id])nivel=nivelEst[id];
    else{const alvo=(nm+' '+id).toLowerCase();if(/^toc/.test(alvo))nivel=0;else if(/eixo|cap[ií]tulo|\baxis\b/.test(alvo))nivel=2;else if(/subt[oó]pico|subtitulo|subtítulo/.test(alvo))nivel=4;else if(/artigo|institut/.test(alvo))nivel=3}
    const ol=[...pPr.children].find(c=>c.localName==='outlineLvl');if(!nivel&&ol)nivel=+val(ol)+1}
@@ -297,8 +297,9 @@ async function docxParaInventario(buf,nomeArq){
    txt+=t}
   if(bAberto){const tr=txt.match(/\s*$/)[0];txt=txt.slice(0,txt.length-tr.length)+'**'+tr}
   txt=txt.replace(/\*\*\*\*/g,'').trim();
-  if(txt)pars.push({nivel,txt})}
- const blocos=[];let titulo='',capitulo='',atual=null,h2pend=null,inicio=false,preTit='';
+  if(txt)pars.push({nivel,txt,est})}
+ const montar=pars=>{
+ const blocos=[];let titulo='',capitulo='',capBase='',atual=null,h2pend=null,inicio=false,preTit='',temaVisto=false;
  const tituloLimpo=t=>limpa(t);
  const novoBloco=(tit,cap)=>{const n=blocos.length+1;const am=limpa(tit).match(/ART\.?\s*(\d+(?:\s*[-–]\s*[A-Z])?)/i);let art=am?am[1].replace(/\s*[-–]\s*/,'-').toUpperCase():'';
   const slug=art?('ART-'+art):(limpa(tit).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim().split(' ').filter(w=>w.length>3).slice(0,2).join('-')||'BLOCO');
@@ -309,10 +310,11 @@ async function docxParaInventario(buf,nomeArq){
   if(p.nivel>=1&&p.nivel<=3)pulando=false;
   if(pulando)continue;
   if(p.nivel===1){titulo=titulo||limpa(p.txt);inicio=true;atual=null;h2pend=null;continue}
-  if(p.nivel===2){capitulo=limpa(p.txt);h2pend=p.txt;atual=null;inicio=true;continue}
-  if(p.nivel===3){novoBloco(p.txt,capitulo);h2pend=null;inicio=true;continue}
+  if(p.nivel==='sec'){capitulo=(capBase?capBase+' — ':'')+limpa(p.txt).replace(/^[^\p{L}\p{N}]*/u,'');continue}
+  if(p.nivel===2){capitulo=capBase=limpa(p.txt);h2pend=p.txt;atual=null;inicio=true;continue}
+  if(p.nivel===3){novoBloco(p.titulo||p.txt,capitulo);h2pend=null;inicio=true;if(!p.comTexto)continue}
   if(p.nivel>3){if(!atual)continue;atual.trechos.push({id:atual.id+'-TR-'+pad(atual.trechos.length+1),rotulo:limpa(p.txt).replace(/^[^\p{L}\p{N}§]*/u,''),categoria:'regra',elegivel:false,motivo:'Subtítulo do artigo.',texto:p.txt});continue}
-  if(!inicio){const pt=limpa(p.txt);if(pt.length<=120)preTit=pt;continue}
+  if(!inicio){const pt=limpa(p.txt);if(/^TEMA:\s*\S/i.test(pt)){preTit=pt.replace(/^TEMA:\s*/i,'');temaVisto=true}else if(pt.length<=120&&!temaVisto)preTit=pt;continue}
   if(!atual){if(h2pend){novoBloco(h2pend,'');h2pend=null}else continue}
   const k=atual.trechos.length+1;const plain=limpa(p.txt);
   const rm=p.txt.match(/^[^\p{L}\p{N}*]*\*\*([^*]+?):?\*\*\s*:?/u);let rotulo=rm?rm[1].replace(/:$/,'').trim():'';
@@ -322,13 +324,23 @@ async function docxParaInventario(buf,nomeArq){
   if(/^\s*🚫/u.test(plain)||/^(revogad|vetad|dispositivo (revogad|vetad))/i.test(corpo)){eleg=false;mot='Dispositivo revogado ou vetado, sem conteúdo para estudar.'}
   else if(/^\s*(📍|📅)/.test(plain)){eleg=false;mot='Linha de fonte ou data.'}
   atual.trechos.push({id:atual.id+'-TR-'+pad(k),rotulo,categoria:cat,elegivel:eleg,motivo:mot,texto:p.txt})}
- const bl=blocos.filter(b=>b.trechos.length);
- if(!bl.length)throw new Error('Não encontrei artigos (títulos nível 3) neste Word.');
+ return {bl:blocos.filter(b=>b.trechos.length),titulo,preTit}};
+ // Word sem títulos marcados (formatos antigos): usa os marcadores do texto.
+ // Mapa: ♦️ = eixo, ▶️📚 = instituto (✅ é item). Resumo de lei: ♦️ = capítulo, ▶️ = seção, ✅ = artigo (a linha também é trecho).
+ const porMarcas=pars=>{const ini=t=>limpa(t);const temInst=pars.some(p=>/^▶\uFE0F?\s*📚/u.test(ini(p.txt)));
+  return pars.map(p=>{const t=ini(p.txt);if(/^♦/u.test(t)||/\bchapter\b/.test(p.est||''))return {nivel:2,txt:p.txt};if(/\barticle\b/.test(p.est||''))return {nivel:3,txt:p.txt};if(/^📘/u.test(t)||(p.nivel===1&&!/^[▶✅]/u.test(t)))return {nivel:1,txt:p.txt};
+   if(temInst)return {nivel:/^▶\uFE0F?\s*📚/u.test(t)?3:0,txt:p.txt};
+   if(/^✅/u.test(t)){const corpo=t.replace(/^✅\uFE0F?\s*/u,'');const i=corpo.indexOf(':'),j=i<0?-1:corpo.indexOf(':',i+1);const tit=(j>0?corpo.slice(0,j):corpo).slice(0,110).trim();return {nivel:3,txt:p.txt,titulo:tit,comTexto:j>0&&corpo.slice(j+1).trim().length>0}}
+   if(/^▶/u.test(t))return {nivel:'sec',txt:p.txt};return {nivel:0,txt:p.txt}})};
+ let mont=montar(pars),porMarca=false;
+ if(!mont.bl.length){const pm=porMarcas(pars);if(pm.some(p=>p.nivel===3)){const m2=montar(pm);if(m2.bl.length){mont=m2;porMarca=true}}}
+ const {bl,titulo,preTit}=mont;
+ if(!bl.length)throw new Error('Não encontrei artigos nem temas neste Word.');
  // Word do MAPA HIERÁRQUICO (RESUMO/AULA): estilos Axis = eixo, Institute = instituto; o nome do arquivo vira o título.
  const nomeBase=(nomeArq||'').replace(/\.docx$/i,'').replace(/^MAPA_HIERARQUICO_(RESUMO_AULA_)?/i,'').replace(/_/g,' ').trim();
  const aid=(titulo||nomeBase).normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40).replace(/-+$/,'')||'RESUMO';
  const fonte=(pars.map(x=>limpa(x.txt).match(/https?:\/\/(?:www\.)?planalto\.gov\.br\/[^\s)\]]+/i)).find(Boolean)||[''])[0];
- return {formato:'LEITOR-TDAH-INVENTARIO-1',assunto_id:aid,titulo:titulo||preTit||nomeBase,arquivo_origem:nomeArq||'',fonte_oficial:fonte,blocos:bl};
+ return {formato:'LEITOR-TDAH-INVENTARIO-1',assunto_id:aid,titulo:titulo||preTit||nomeBase,titulo_fraco:!titulo,por_marcadores:porMarca,arquivo_origem:nomeArq||'',fonte_oficial:fonte,blocos:bl};
 }
 
 /* ============ abrir ============ */
