@@ -95,7 +95,7 @@ test('V670.5: leitura nova do Word leva junto o que já foi feito e o pedido só
   assert.ok(rootLeitor.includes("function aplicarWordNovo(){const novo=avisoWordNovo;if(!novo)return;avisoWordNovo=null;reorganizar(novo,'Resumo atualizado')}"));
   assert.ok(rootLeitor.includes("if(assinaturaInv(inv)!==assinaturaInv(S.inv)){reorganizar(inv,'Resumo reorganizado');"));
   assert.ok(rootLeitor.includes("function pedidoDoGrupo(g){const falta=g.filter(p=>situacaoParte(p)!=='pronto');"));
-  assert.doesNotMatch(rootLeitor, //);
+  assert.doesNotMatch(rootLeitor, /\x08/);
 });
 
 test('V670.6: leitor confere versão nova ao abrir e recarrega uma vez', () => {
@@ -131,7 +131,7 @@ test('V670.8: resposta guardada ao voltar para a aba, destaque que mantém a sel
 
 test('V670.9: lacunas dos grifos, flashcards com repetição, atalhos com barra fixa e leitura em voz alta', () => {
   assert.match(rootLeitor, /const VERSAO_LEITOR='\d{8}-leitor-v670-\d+';/);
-  assert.ok(rootLeitor.includes("function textoHTML(t){return marcadoHTML(t.texto,S.user.marcas[t.id],{lacuna:!!S.user.lacunas})}"));
+  assert.ok(rootLeitor.includes('lacuna:!!S.user.lacunas'));
   assert.ok(rootLeitor.includes("const LAC_KINDS=['b','up','y','g','p'];"));
   assert.ok(rootLeitor.includes('const INTERVALOS=[3,7,15,30];'));
   assert.ok(rootLeitor.includes('function cartoesDeHoje(){'));
@@ -152,11 +152,23 @@ test('V670.10: voz do Google primeiro, escolha de voz guardada e leitura frase p
 });
 
 test('V670.11: modo foco com tecla F, botão e barra de destaque flutuando na seleção', () => {
-  assert.match(rootLeitor, /const VERSAO_LEITOR='20261024-leitor-v670-11';/);
+  assert.match(rootLeitor, /const VERSAO_LEITOR='\d{8}-leitor-v670-\d+';/);
   assert.ok(rootLeitor.includes('<button class="btn" id="bFoco" hidden'));
   assert.ok(rootLeitor.includes("let foco=lsGet('leitor-tdah:foco')==='1';"));
   assert.ok(rootLeitor.includes('function posicionarBarra(){'));
   assert.ok(rootLeitor.includes("document.addEventListener('selectionchange',()=>{clearTimeout(tBarra);tBarra=setTimeout(posicionarBarra,30)});"));
   assert.ok(rootLeitor.includes('body.foco .card-body .dest.flutua{position:fixed;'));
+  assert.doesNotMatch(rootLeitor, /\x08/);
+});
+
+test('V670.12: destaque nas respostas coladas, foco mais largo e lacunas uma por vez', () => {
+  assert.match(rootLeitor, /const VERSAO_LEITOR='20261024-leitor-v670-12';/);
+  assert.ok(rootLeitor.includes('data-mk="c:por_que"'));
+  assert.ok(rootLeitor.includes('data-mk="c:texto_facil"'));
+  assert.ok(rootLeitor.includes('data-mk="d:${i}"'));
+  assert.ok(rootLeitor.includes("const porTrecho=['prov','notas','marcas','marcasC',"));
+  assert.ok(rootLeitor.includes('body.foco .grid{grid-template-columns:1fr;max-width:min(1500px,96vw);'));
+  assert.ok(rootLeitor.includes('function revelarLac(g){'));
+  assert.ok(rootLeitor.includes('function lacCtrl(){'));
   assert.doesNotMatch(rootLeitor, /\x08/);
 });
