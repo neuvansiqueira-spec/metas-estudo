@@ -121,7 +121,7 @@ test('V670.8: resposta guardada ao voltar para a aba, destaque que mantém a sel
   assert.ok(rootLeitor.includes("window.addEventListener('focus',()=>setTimeout(respostaAoVoltar,150));"));
   assert.ok(rootLeitor.includes('function temConteudoPacote(objs){'));
   assert.ok(rootLeitor.includes('function guardarFerramentaDe(k,objs,alvo){'));
-  assert.ok(rootLeitor.includes('rg.set(ms);salvar();const y=scrollY;render();scrollTo(0,y);selecionar(o.key,o.s,o.e)}'));
+  assert.ok(rootLeitor.includes('scrollTo(0,y);selecionar(o.key,o.s,o.e)')); // selection is restored for the shared formatter
   assert.ok(rootLeitor.includes('onmousedown="event.preventDefault()"'));
   assert.ok(rootLeitor.includes('<div id="texto" data-mk="t">'));
   assert.ok(rootLeitor.includes("data-mk=\"j:${meu?'u':'p'}:${i}:tese\""));
@@ -132,7 +132,7 @@ test('V670.8: resposta guardada ao voltar para a aba, destaque que mantém a sel
 test('V670.9: lacunas dos grifos, flashcards com repetição, atalhos com barra fixa e leitura em voz alta', () => {
   assert.match(rootLeitor, /const VERSAO_LEITOR='\d{8}-leitor-v670-\d+';/);
   assert.ok(rootLeitor.includes('lacuna:!!S.user.lacunas'));
-  assert.ok(rootLeitor.includes("const LAC_KINDS=['b','up','y','g','p'];"));
+  assert.ok(rootLeitor.includes("const LAC_KINDS=['b','up','cap','u','y','g','p'];"));
   assert.ok(rootLeitor.includes('const INTERVALOS=[3,7,15,30];'));
   assert.ok(rootLeitor.includes('function cartoesDeHoje(){'));
   assert.ok(rootLeitor.includes("for(const f2 of ['cards','agenda'])if(vu[f2]&&vu[f2][id])"));
@@ -174,7 +174,7 @@ test('V670.12: destaque nas respostas coladas, foco mais largo e lacunas uma por
 });
 
 test('V670.13: glossário sublinhado no texto, texto do trecho editável à parte e justificado', () => {
-  assert.match(rootLeitor, /const VERSAO_LEITOR='20261024-leitor-v670-14';/);
+  assert.match(rootLeitor, /const VERSAO_LEITOR='20261024-leitor-v670-15';/);
   assert.ok(rootLeitor.includes('function marcarGlossario(raiz){'));
   assert.ok(rootLeitor.includes("fecharLei();marcarLeis($('#texto'));fecharGlos();marcarGlossario($('#texto'));"));
   assert.ok(rootLeitor.includes('const txtDe=t=>(S.user.textoEd&&S.user.textoEd[t.id]!=null)?S.user.textoEd[t.id]:t.texto;'));

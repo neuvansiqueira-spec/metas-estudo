@@ -195,6 +195,41 @@ table.lst td,table.lst th{border-bottom:1px solid var(--border);padding:.5rem .4
 .chk{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.3rem .8rem;margin:.5rem 0}
 img.ev{max-width:100%;border-radius:12px;border:1px solid var(--border)}
 @media(max-width:860px){.grid{grid-template-columns:1fr}.mapa{position:static;max-height:45vh}.tools{grid-template-columns:repeat(2,1fr)}.art-tit{font-size:1.35rem}main{padding:1rem}}
+/* V670.15: leitura, anotações na expressão e edição compartilhada. */
+:root{--fmt-red:#fa9caa;--fmt-blue:#9fcaff;--fmt-green:#88d8af;--fmt-purple:#d0b6fb;--fmt-orange:#ffc078;--nota-borda:#8491a5;--fala-bg:#e5b65c38}
+:root[data-theme="light"]{--fmt-red:#a92540;--fmt-blue:#135ca4;--fmt-green:#1c704b;--fmt-purple:#7641ad;--fmt-orange:#994700;--nota-borda:#929ba8;--fala-bg:#ffe08a80}
+@media(prefers-color-scheme:light){:root[data-theme="auto"]{--fmt-red:#a92540;--fmt-blue:#135ca4;--fmt-green:#1c704b;--fmt-purple:#7641ad;--fmt-orange:#994700;--nota-borda:#929ba8;--fala-bg:#ffe08a80}}
+.leitura-titulos{position:sticky;top:var(--topo,5rem);z-index:9;background:var(--bg);padding:.45rem 0 .2rem;border-bottom:1px solid var(--border);margin-bottom:.75rem}
+.leitura-titulos .art-tit{margin-bottom:.5rem}.leitura-titulos .subt{margin-top:0}
+.dest{top:calc(var(--topo,5rem) + var(--titulos,0px) + 4px)}
+body.foco .leitura-titulos{position:static;border:0;background:transparent}
+.dest select{font-size:.75rem;padding:.25rem .35rem;max-width:145px}
+.nota-inline{border:1px dashed var(--nota-borda);border-radius:4px;padding:1px 3px;box-decoration-break:clone;-webkit-box-decoration-break:clone;cursor:help}
+.nota-inline:hover,.nota-inline:focus-visible{border-color:var(--ink)}
+#notaPop{position:fixed;z-index:75;width:min(390px,calc(100vw - 16px));max-height:55vh;overflow:auto;background:var(--surface);color:var(--ink);border:1px solid var(--nota-borda);border-radius:10px;padding:.8rem 1rem;box-shadow:0 10px 28px #0004;font-size:1rem;line-height:1.55;white-space:pre-wrap}
+#notaPop[hidden]{display:none}#notaPop .nota-pop-titulo{font-size:.72rem;font-weight:800;color:var(--muted);margin-bottom:.4rem;letter-spacing:.06em}
+#notaPop .row{white-space:normal}
+.fala-ativa{background:var(--fala-bg);border-radius:3px;box-shadow:0 2px 0 var(--amber)}
+#texto .lac:not(.vista),#texto .lac:not(.vista) *{color:transparent!important;text-decoration-color:transparent!important}
+.busca-achado{background:var(--hl-y);outline:2px solid var(--orange);border-radius:3px}
+.rich-editor{font:inherit;color:var(--ink);background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:.65rem .8rem;min-height:6rem;white-space:pre-wrap;line-height:1.6;overflow-wrap:anywhere;resize:vertical;overflow:auto}
+.rich-editor:empty::before{content:attr(data-placeholder);color:var(--muted);pointer-events:none}
+.campo-formatado{white-space:pre-wrap}
+.rich-editor[data-origem="taNota"]{min-height:20rem}.rich-editor[data-origem="taTexto"]{min-height:12rem;font-size:var(--fs)}
+.rich-editor[data-origem="taMapa"]{min-height:45vh}.rich-editor[data-origem="taNotaInline"]{min-height:12rem}
+.rich-wrap .dest{position:static;box-shadow:none;margin:.6rem 0 .35rem}.rich-wrap .dest-dica{display:none}
+.rich-wrap .dest select{max-width:140px}.rich-wrap{min-width:0;width:100%}
+.card-head{position:relative;padding-right:3.2rem}.ponto-menu{position:absolute;right:.6rem;top:.55rem;z-index:12;color:var(--ink)}
+.ponto-menu summary{list-style:none;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.2rem .65rem;cursor:pointer;font-size:1.2rem}.ponto-menu summary::-webkit-details-marker{display:none}
+.ponto-menu .ponto-opcoes{position:absolute;right:0;top:100%;margin-top:.3rem;width:min(270px,75vw);padding:.6rem;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 24px #0004;display:grid;gap:.4rem;font-size:.85rem}
+.ponto-opcoes button{text-align:left}.ponto-opcoes label{display:flex;gap:.4rem;align-items:center;padding:.4rem}
+.modal-busca{width:100%}.busca-resultados{display:grid;gap:.5rem;margin-top:.8rem}.busca-resultado{width:100%;text-align:left;white-space:normal;line-height:1.5}
+.busca-resultado small{display:block;color:var(--muted);font-weight:400}.busca-resultado mark{background:var(--hl-y);color:var(--ink)}
+.nota-item-frase{font-weight:750;margin-bottom:.5rem}.audio-acompanhar{display:flex;gap:.25rem;align-items:center;font-size:.75rem}
+body.foco .modal .dest,body.foco .modal .dest-dica{display:flex!important}
+body.foco .modal .dest-dica{display:none!important}
+@media(max-width:600px){.leitura-titulos .art-tit{font-size:1.1rem}.leitura-titulos .subt{font-size:.95rem}.dest select{max-width:130px}.card-head{padding-right:3rem}}
+
 </style>
 </head>
 <body>
@@ -204,6 +239,7 @@ img.ev{max-width:100%;border-radius:12px;border:1px solid var(--border)}
   <span style="flex:1"></span>
   <button class="btn prim" id="bAbrir">📂 Abrir resumo</button>
   <button class="btn" id="bArtigos" hidden>🤖 Gerar conteúdo</button>
+  <button class="btn" id="bBuscar" hidden onclick="abrirBusca()">⌕ Buscar</button>
   <button class="btn" id="bRevisao" hidden>⭐ Revisão</button>
   <button class="btn" id="bHoje" hidden title="Flashcards que vencem hoje, de todo o resumo">📅 Hoje</button>
   <button class="btn" id="bSalvar" hidden>💾 Salvar HTML</button>
@@ -243,7 +279,7 @@ function lsSet(k,v){try{localStorage.setItem(k,v);return true}catch(e){return fa
 
 /* ============ estado ============ */
 let S=null; // {inv, content:{blocos,trechos}, user, salvoEm}
-const novoUser=()=>({pos:{b:0,t:0},prov:{},notas:{},marcas:{},marcasC:{},textoEd:{},cards:{},agenda:{},cardsUser:{},imagens:{},jurUser:{},mnemoUser:{},mapaUser:{},fluxoUser:{},tutorResp:{},duvidas:{},vistos:{},tool:'',mais:false,mapaFechado:false,soErrados:false});
+const novoUser=()=>({pos:{b:0,t:0},prov:{},notas:{},marcas:{},marcasC:{},textoEd:{},notasInline:{},camposFmt:{},excluidos:{},pontosNovos:[],cards:{},agenda:{},cardsUser:{},imagens:{},jurUser:{},mnemoUser:{},mapaUser:{},fluxoUser:{},tutorResp:{},duvidas:{},vistos:{},tool:'',mais:false,mapaFechado:false,soErrados:false});
 let tema=lsGet('leitor-tdah:tema')||'auto', fs=+(lsGet('leitor-tdah:fs')||22);
 function aplicaPrefs(){document.documentElement.dataset.theme=tema;document.documentElement.style.setProperty('--fs',fs+'px')}
 aplicaPrefs();
@@ -296,13 +332,15 @@ function aplicarWordNovo(){const novo=avisoWordNovo;if(!novo)return;avisoWordNov
 const plainDe=txt=>runs(String(txt||'')).map(r=>r.t).join('');
 function migrarEstado(v,inv){
  const vu=v.user||{},vc=v.content||{},vct=vc.trechos||{},vcb=vc.blocos||{};
- const porTrecho=['prov','notas','marcas','marcasC','textoEd','cards','agenda','cardsUser','jurUser','duvidas','vistos'],porBloco=['imagens','mnemoUser','mapaUser','fluxoUser','tutorResp'];
+ const porTrecho=['prov','notas','marcas','marcasC','textoEd','cards','agenda','cardsUser','jurUser','duvidas','vistos','notasInline','excluidos'],porBloco=['imagens','mnemoUser','mapaUser','fluxoUser','tutorResp'];
  const U=Object.assign(novoUser(),vu);for(const k of [...porTrecho,...porBloco])U[k]={};U.pos={b:0,t:0};
  const n={inv,content:{blocos:{},trechos:{}},user:U,salvoEm:v.salvoEm||''};
  const usados=new Set();const fila=new Map();
  for(const b of (v.inv&&v.inv.blocos)||[]){const k=limpa(b.titulo);if(!fila.has(k))fila.set(k,[]);fila.get(k).push(b)}
  for(const nb of inv.blocos){const vb=(fila.get(limpa(nb.titulo))||[]).shift();if(!vb)continue;
   if(vcb[vb.id])n.content.blocos[nb.id]=vcb[vb.id];for(const k of porBloco)if(vu[k]&&vu[k][vb.id]!=null)U[k][nb.id]=vu[k][vb.id];
+  for(const p of U.pontosNovos||[])if(p.blocoId===vb.id||p.blocoTitulo===vb.titulo){p.blocoId=nb.id;if(!nb.trechos.some(t=>t.id===p.t.id)){const at=nb.trechos.findIndex(t=>t.id===p.depoisId||t.texto===p.depoisTexto);nb.trechos.splice(at<0?nb.trechos.length:at+1,0,{...p.t})}}
+  for(const [key,val] of Object.entries(vu.camposFmt||{}))if(key.startsWith('b:'+vb.id+':'))U.camposFmt['b:'+nb.id+key.slice(('b:'+vb.id).length)]=val;
   const vts=vb.trechos;let j=0;
   for(const nt of nb.trechos){const np=plainDe(nt.texto),nn=np.replace(/\s/g,'');const fontes=[];let k=j,cur=0;
    while(k<vts.length){const op=plainDe(vts[k].texto),on=op.replace(/\s/g,'');if(!on||!nn.includes(on))break;const off=np.indexOf(op,cur);fontes.push({t:vts[k],off});if(off>=0)cur=off+op.length;k++}
@@ -322,6 +360,9 @@ function migrarEstado(v,inv){
     if(vu.marcasC&&vu.marcasC[id]&&fontes.length===1)U.marcasC[nt.id]=vu.marcasC[id];
     if(vu.textoEd&&vu.textoEd[id]!=null&&fontes.length===1)U.textoEd[nt.id]=vu.textoEd[id];
     if(vu.prov&&vu.prov[id])U.prov[nt.id]=1;if(vu.vistos&&vu.vistos[id])U.vistos[nt.id]=1;
+    if(vu.notasInline&&vu.notasInline[id]){const ns=vu.notasInline[id].map(n=>({...n,s:n.s+Math.max(0,f.off),e:n.e+Math.max(0,f.off),desvinculada:n.desvinculada||f.off<0}));(U.notasInline[nt.id]=U.notasInline[nt.id]||[]).push(...ns)}
+    if(vu.excluidos&&vu.excluidos[id]&&fontes.length===1)U.excluidos[nt.id]=true;
+    for(const [key,val] of Object.entries(vu.camposFmt||{}))if(key.startsWith('t:'+id+':'))U.camposFmt['t:'+nt.id+key.slice(('t:'+id).length)]=val;
     if(vu.notas&&vu.notas[id])U.notas[nt.id]=(U.notas[nt.id]?U.notas[nt.id]+'\n':'')+vu.notas[id];
     if(vu.marcas&&vu.marcas[id]&&f.off>=0)(U.marcas[nt.id]=U.marcas[nt.id]||[]).push(...vu.marcas[id].map(m=>({...m,s:m.s+f.off,e:m.e+f.off})));
     for(const f2 of ['cards','agenda'])if(vu[f2]&&vu[f2][id]){const r=U[f2][nt.id]=U[f2][nt.id]||{};for(const [ck,val] of Object.entries(vu[f2][id])){const tipo=ck[0],i=+ck.slice(1);r[tipo+((tipo==='u'?offU:offP)+i)]=val}}
@@ -345,7 +386,7 @@ async function carregarInicial(){
   return}
  const l=await lerEstado(lsGet('leitor-tdah:ultimo'));if(l){S=l;fixar()}
 }
-function fixar(){S.content=S.content||{blocos:{},trechos:{}};S.content.blocos=S.content.blocos||{};S.content.trechos=S.content.trechos||{};S.user=Object.assign(novoUser(),S.user||{})}
+function fixar(){S.content=S.content||{blocos:{},trechos:{}};S.content.blocos=S.content.blocos||{};S.content.trechos=S.content.trechos||{};S.user=Object.assign(novoUser(),S.user||{});restaurarPontosNovos()}
 
 /* ============ leitura do Word (.docx) sem internet ============ */
 async function lerZip(buf){
@@ -459,7 +500,7 @@ async function abrirArquivo(f){
 }
 function abrirEstado(j){S=j;fixar();salvar();render()}
 function temConteudoAlgum(){return Object.keys(S.content.trechos).length>0}
-function estadoTemAlgo(x){const c=x.content||{},u=x.user||{},n=o=>Object.keys(o||{}).length;return !!(n(c.trechos)||n(c.blocos)||n(u.prov)||n(u.notas)||n(u.cards)||n(u.cardsUser)||n(u.marcas)||n(u.jurUser)||n(u.duvidas)||n(u.imagens)||n(u.textoEd))}
+function estadoTemAlgo(x){const c=x.content||{},u=x.user||{},n=o=>Object.keys(o||{}).length;return !!(n(c.trechos)||n(c.blocos)||n(u.prov)||n(u.notas)||n(u.cards)||n(u.cardsUser)||n(u.marcas)||n(u.jurUser)||n(u.duvidas)||n(u.imagens)||n(u.textoEd)||n(u.notasInline)||n(u.excluidos)||(u.pontosNovos||[]).length)}
 const assinaturaInv=inv=>JSON.stringify((inv.blocos||[]).map(b=>[b.id,b.trechos.map(t=>t.id+'|'+limpa(t.texto))]))
 
 /* ============ pedido para o GPT (Passo 2 embutido) ============ */
@@ -562,8 +603,8 @@ function situacaoBloco(b){const el=b.trechos.filter(t=>t.elegivel);if(!el.length
  if(pr===el.length&&temB)return {k:'pronto',txt:'✅ pronto'};if(pr||temB)return {k:'parcial',txt:`🟡 ${pr}/${el.length}`};return {k:'pendente',txt:'⏳ falta'}}
 
 /* ============ modais ============ */
-function abrirModal(h){$('#modalBox').innerHTML=h;$('#modal').classList.add('on')}
-function fecharModal(){$('#modal').classList.remove('on')}
+function abrirModal(h){concluirFormatosModal(false);iniciarFormatosModal();const box=$('#modalBox');box.innerHTML=h;box.setAttribute('role','dialog');box.setAttribute('aria-modal','true');const titulo=box.querySelector('h2');if(titulo){titulo.id='modalTitulo';box.setAttribute('aria-labelledby','modalTitulo')}$('#modal').classList.add('on');prepararEditores(box)}
+function fecharModal(guardar=false){concluirFormatosModal(guardar);$('#modal').classList.remove('on');selecaoFormato=null}
 $('#modal').addEventListener('click',e=>{if(e.target.id==='modal')fecharModal()});
 // V670.4: tela com um botão só ("Copiar próximo pedido"); a lista completa fica recolhida.
 function abrirArtigos(){
@@ -627,29 +668,38 @@ $('#fPacotes').addEventListener('change',async e=>{const objs=[];for(const f of 
 /* ============ navegação ============ */
 const B=()=>S.inv.blocos[S.user.pos.b];const T=()=>B().trechos[S.user.pos.t];
 const ehSub=t=>!!t&&(t.sub||t.motivo==='Subtítulo do artigo.');
-function semSub(b,t,d=1){const tr=S.inv.blocos[b].trechos;let k=t;while(k>=0&&k<tr.length&&ehSub(tr[k]))k+=d;if(k<0||k>=tr.length){k=t;while(k>=0&&k<tr.length&&ehSub(tr[k]))k-=d}return (k<0||k>=tr.length)?t:k}
+function semSub(b,t,d=1){const tr=S.inv.blocos[b].trechos;let k=t;while(k>=0&&k<tr.length&&pontoOculto(tr[k]))k+=d;if(k<0||k>=tr.length){k=t;while(k>=0&&k<tr.length&&pontoOculto(tr[k]))k-=d}return (k<0||k>=tr.length)?t:k}
 function subtituloDe(b,t){const tr=S.inv.blocos[b].trechos;for(let k=t;k>=0;k--)if(ehSub(tr[k]))return tr[k];return null}
-function ir(b,t,d=1){if(typeof pararVoz==='function'&&falando)pararVoz();editTexto='';t=semSub(b,t,d);S.user.pos={b,t};S.user.vistos[S.inv.blocos[b].trechos[t].id]=1;salvar();render();window.scrollTo({top:0,behavior:'smooth'})}
-function passo(d){let {b,t}=S.user.pos;do{t+=d;while(t<0){b--;if(b<0){b=0;t=0;break}t=S.inv.blocos[b].trechos.length-1}while(b<S.inv.blocos.length&&t>=S.inv.blocos[b].trechos.length){t-=S.inv.blocos[b].trechos.length;b++}if(b>=S.inv.blocos.length){b=S.inv.blocos.length-1;t=S.inv.blocos[b].trechos.length-1;break}if(b===0&&t===0)break}while(ehSub(S.inv.blocos[b].trechos[t]));ir(b,t,d)}
+function ir(b,t,d=1){if(typeof pararVoz==='function'&&falando)pararVoz();editTexto='';selecaoFormato=null;t=semSub(b,t,d);if(pontoOculto(S.inv.blocos[b].trechos[t])){const p=posicoesLeitura().find(p=>d>0?p.b>b:p.b<b)||posicoesLeitura()[0];if(!p)return;b=p.b;t=p.t}S.user.pos={b,t};S.user.vistos[S.inv.blocos[b].trechos[t].id]=1;salvar();render();window.scrollTo({top:0,behavior:'smooth'})}
+function passo(d){const lista=posicoesLeitura();if(!lista.length)return;const i=lista.findIndex(p=>p.b===S.user.pos.b&&p.t===S.user.pos.t),p=lista[Math.max(0,Math.min(lista.length-1,i+d))];ir(p.b,p.t,d)}
 function passoBloco(d){const b=Math.min(Math.max(S.user.pos.b+d,0),S.inv.blocos.length-1);ir(b,0)}
 document.addEventListener('keydown',e=>{if(!S||$('#modal').classList.contains('on'))return;const a=document.activeElement;if(a&&(/INPUT|TEXTAREA|SELECT/.test(a.tagName)||a.isContentEditable))return;
  if(e.key==='ArrowDown'){e.preventDefault();passo(1)}else if(e.key==='ArrowUp'){e.preventDefault();passo(-1)}else if(e.key==='ArrowRight'){e.preventDefault();passoBloco(1)}else if(e.key==='ArrowLeft'){e.preventDefault();passoBloco(-1)}});
 
 /* ============ texto com destaques ============ */
 function runs(txt){const out=[];const re=/\*\*(.+?)\*\*/gs;let i=0,m;while((m=re.exec(txt))){if(m.index>i)out.push({t:txt.slice(i,m.index),b:0});out.push({t:m[1],b:1});i=re.lastIndex}if(i<txt.length)out.push({t:txt.slice(i),b:0});return out}
-function textoHTML(t){if(lacEstado.tid!==t.id)lacEstado={tid:t.id,vistas:new Set(),info:{}};lacEstado.info={};return marcadoHTML(txtDe(t),S.user.marcas[t.id],{lacuna:!!S.user.lacunas,vistas:lacEstado.vistas,info:lacEstado.info})}
+function textoHTML(t){if(lacEstado.tid!==t.id)lacEstado={tid:t.id,vistas:new Set(),info:{}};lacEstado.info={};return marcadoHTML(txtDe(t),S.user.marcas[t.id],{lacuna:!!S.user.lacunas,vistas:lacEstado.vistas,info:lacEstado.info,notas:notasDoTrecho(t.id),fala:faixaFala&&faixaFala.tid===t.id?faixaFala:null,busca:buscaAtual&&buscaAtual.tid===t.id?buscaAtual:null})}
 let lacEstado={tid:'',vistas:new Set(),info:{}};
 // Marcas {s,e,k}: b = negrito, up = maiúsculas, y/g/p = grifo, f = letra maior (soma), f- = letra menor.
 // V670.9: com opc.lacuna, o que a pessoa negritou, grifou ou pôs em maiúsculas vira lacuna (clique revela).
-function marcadoHTML(txt,marcas,opc={}){const rs=runs(String(txt||''));const plain=rs.map(r=>r.t).join('');const N=plain.length;const at=new Array(N);let k=0;for(const r of rs)for(let j=0;j<r.t.length;j++)at[k++]={b:r.b,up:0,h:'',f:0,lac:0,g:-1};
- for(const m of (marcas||[]))for(let i=Math.max(0,m.s);i<Math.min(N,m.e);i++){if(m.k==='b')at[i].b=1;else if(m.k==='up')at[i].up=1;else if(m.k==='f')at[i].f++;else if(m.k==='f-')at[i].f--;else at[i].h=m.k;if(opc.lacuna&&LAC_KINDS.includes(m.k))at[i].lac=1}
- const nf=f=>f>0?'m-f'+Math.min(f,4):f<0?'m-fm':'';
- // V670.12: cada parte destacada seguida é uma lacuna (grupo g); opc.vistas = já reveladas; a primeira não revelada é a atual.
- let G=0;for(let i=0;i<N;i++)if(at[i].lac)at[i].g=(i&&at[i-1].lac)?G-1:G++;
+function marcadoHTML(txt,marcas,opc={}){
+ const rs=opc.literal?[{t:String(txt||''),b:0}]:runs(String(txt||''));const plain=rs.map(r=>r.t).join(''),N=plain.length,at=[];let k=0;
+ for(const r of rs)for(let j=0;j<r.t.length;j++)at[k++]={b:r.b,bc:'',up:0,cas:0,h:'',f:0,u:'',uc:'',lac:0,g:-1,nota:'',fala:0,busca:0};
+ for(const m of marcas||[]){const ini=Math.max(0,m.s),fim=Math.min(N,m.e);let primeira=-1;if(m.k==='cap'){for(let i=ini;i<fim;i++)if(/\p{L}/u.test(plain[i])){primeira=i;break}}
+  for(let i=ini;i<fim;i++){const a=at[i];if(m.k==='b'){a.b=1;if(CORES_FORMATO[m.cor])a.bc=m.cor}else if(m.k==='up'){a.up=1;a.cas=0}else if(m.k==='cap'){a.up=0;a.cas=i===primeira?1:-1}else if(m.k==='u'){a.u=TIPOS_SUBLINHADO.includes(m.tipo)?m.tipo:'solid';a.uc=CORES_FORMATO[m.cor]?m.cor:'padrao'}else if(m.k==='f')a.f++;else if(m.k==='f-')a.f--;else if(['y','g','p'].includes(m.k))a.h=m.k;if(opc.lacuna&&LAC_KINDS.includes(m.k))a.lac=1}}
+ if(!opc.lacuna)for(const n of opc.notas||[])if(!n.desvinculada&&n.texto)for(let i=Math.max(0,n.s);i<Math.min(N,n.e);i++)at[i].nota=n.id;
+ for(const [nome,faixa] of [['fala',opc.fala],['busca',opc.busca]])if(faixa)for(let i=Math.max(0,faixa.s);i<Math.min(N,faixa.e);i++)at[i][nome]=1;
+ const nf=f=>f>0?'m-f'+Math.min(f,4):f<0?'m-fm':'';let G=0;for(let i=0;i<N;i++)if(at[i].lac)at[i].g=(i&&at[i-1].lac)?G-1:G++;
  const vistas=opc.vistas||new Set();let atual=-1;for(let g=0;g<G;g++)if(!vistas.has(g)){atual=g;break}if(opc.info){opc.info.total=G;opc.info.atual=atual;opc.info.vistas=[...vistas].filter(g=>g<G).length}
- let h='',cur=null,buf='';const key=a=>a.b+'|'+a.up+'|'+a.h+'|'+nf(a.f)+'|'+a.g;const flush=()=>{if(!buf)return;const c=[cur.b?'m-b':'',cur.up?'m-up':'',cur.h?'m-'+cur.h:'',nf(cur.f),cur.lac?'lac':'',cur.lac&&vistas.has(cur.g)?'vista':'',cur.lac&&cur.g===atual?'atual':''].filter(Boolean).join(' ');h+=c?`<span class="${c}"${cur.lac?` data-g="${cur.g}" title="Clique para ver"`:''}>${esc(buf)}</span>`:esc(buf);buf=''};
- for(let i=0;i<N;i++){const a=at[i];if(!cur||key(a)!==key(cur)){flush();cur=a}buf+=plain[i]}flush();return h}
-const LAC_KINDS=['b','up','y','g','p'];
+ let h='',cur=null,buf='',aberta='';const key=a=>JSON.stringify([a.b,a.bc,a.up,a.cas,a.h,nf(a.f),a.u,a.uc,a.g,a.nota,a.fala,a.busca]);
+ const flush=()=>{if(!buf)return;if(cur.nota!==aberta){if(aberta)h+='</span>';aberta=cur.nota;if(aberta)h+=`<span class="nota-inline" data-nota="${esc(aberta)}" role="button" tabindex="0" aria-label="Consultar anotação">`}
+  const cls=[cur.b?'m-b':'',cur.up?'m-up':'',cur.h?'m-'+cur.h:'',nf(cur.f),cur.lac?'lac':'',cur.lac&&vistas.has(cur.g)?'vista':'',cur.lac&&cur.g===atual?'atual':'',cur.fala?'fala-ativa':'',cur.busca?'busca-achado':''].filter(Boolean).join(' ');
+  const sty=[cur.bc?'color:'+corFormato(cur.bc):'',cur.u?'text-decoration-line:underline;text-decoration-style:'+cur.u+';text-decoration-color:'+corFormato(cur.uc)+';text-underline-offset:4px':''].filter(Boolean).join(';');
+  h+=(cls||sty)?`<span${cls?` class="${cls}"`:''}${sty?` style="${sty}"`:''}${cur.lac?` data-g="${cur.g}" title="Clique para ver"`:''}>${esc(buf)}</span>`:esc(buf);buf=''};
+ for(let i=0;i<N;i++){const a=at[i];if(!cur||key(a)!==key(cur)){flush();cur=a}let c=plain[i];if(a.cas){const v=a.cas===1?c.toLocaleUpperCase('pt-BR'):c.toLocaleLowerCase('pt-BR');if(v.length===c.length)c=v}buf+=c}flush();if(aberta)h+='</span>';return h;
+}
+
+const LAC_KINDS=['b','up','cap','u','y','g','p'];
 const mkC=campo=>((S.user.marcasC||{})[T().id]||{})[campo]||[];
 function alternarLacunas(){const id=T().id;if(!S.user.lacunas&&!(S.user.marcas[id]||[]).some(m=>LAC_KINDS.includes(m.k))){toast('Primeiro negrite ou grife neste trecho o que é importante: isso vira lacuna.',4500);return}S.user.lacunas=!S.user.lacunas;lacEstado={tid:'',vistas:new Set(),info:{}};salvar();render();if(S.user.lacunas)toast('Uma lacuna por vez: tente lembrar a destacada em laranja e aperte Espaço (ou clique nela) para ver.',5000)}
 function revelarTudo(){for(let g=0;g<(lacEstado.info.total||0);g++)lacEstado.vistas.add(g);redesenharTexto()}
@@ -663,7 +713,7 @@ function lacCtrl(){if(!S.user.lacunas)return '<div id="lacCtrl" hidden></div>';c
 document.addEventListener('click',e=>{const l=e.target.closest&&e.target.closest('#texto .lac');if(l&&S&&S.user.lacunas){e.preventDefault();revelarLac(+l.dataset.g)}});
 window.addEventListener('keydown',e=>{if(!S||!S.user.lacunas||e.key!==' '||e.ctrlKey||e.metaKey||e.altKey||$('#modal').classList.contains('on'))return;const a=document.activeElement;if(a&&(/INPUT|TEXTAREA|SELECT|BUTTON/.test(a.tagName)||a.isContentEditable))return;if(!(lacEstado.info.atual>=0))return;e.preventDefault();revelarLac()});
 // V670.8: áreas que aceitam destaque têm data-mk: "t" = texto do trecho; "j:p|u:i:campo" = julgado (do resumo ou meu).
-function regiaoMarcas(key){if(key==='t'){const id=T().id;return {get:()=>S.user.marcas[id]||[],set:v=>{if(v.length)S.user.marcas[id]=v;else delete S.user.marcas[id]}}}
+function regiaoMarcas(key){if(String(key).startsWith('e:')){const ed=editoresAtivos.get(key);return ed?{get:()=>ed._marcas||[],set:v=>{ed._marcas=v}}:null}if(key==='t'){const id=T().id;return {get:()=>S.user.marcas[id]||[],set:v=>{if(v.length)S.user.marcas[id]=v;else delete S.user.marcas[id]}}}
  // V670.12: "c:campo" = Por quê?/Texto fácil (marcas em S.user.marcasC); "d:i" = resposta guardada em Perguntar.
  const c=String(key).match(/^c:(por_que|texto_facil)$/);if(c){const id=T().id;return {get:()=>mkC(c[1]),set:v=>{const mc=S.user.marcasC=S.user.marcasC||{};const o=mc[id]=mc[id]||{};if(v.length)o[c[1]]=v;else{delete o[c[1]];if(!Object.keys(o).length)delete mc[id]}}}}
  const d=String(key).match(/^d:(\d+)$/);if(d){const x=(S.user.duvidas[T().id]||[])[+d[1]];if(!x)return null;return {get:()=>x.marcas||[],set:v=>{if(v.length)x.marcas=v;else delete x.marcas}}}
@@ -680,33 +730,28 @@ function cortarMarcas(ms,s,e,filtro){const out=[];for(const m of ms){if(!filtro(
 const cobre=(ms,k,s,e)=>{for(let i=s;i<e;i++)if(!ms.some(m=>m.k===k&&m.s<=i&&m.e>i))return false;return true};
 // A seleção continua marcada depois de cada botão: dá para grifar, negritar e aumentar a letra sem selecionar de novo.
 // Negrito, maiúsculas e grifo: clicar de novo na mesma seleção tira.
-function destacar(k){const o=selecaoNaRegiao();if(!o){toast('Selecione uma palavra ou expressão no texto.');return}const rg=regiaoMarcas(o.key);if(!rg)return;let ms=rg.get().slice();
- if(k==='rem')ms=cortarMarcas(ms,o.s,o.e,()=>true);
- else if(k==='f'||k==='f-')ms.push({s:o.s,e:o.e,k});
- else if(cobre(ms,k,o.s,o.e))ms=cortarMarcas(ms,o.s,o.e,m=>m.k===k);
- else{if(['y','g','p'].includes(k))ms=cortarMarcas(ms,o.s,o.e,m=>['y','g','p'].includes(m.k));ms.push({s:o.s,e:o.e,k})}
- rg.set(ms);salvar();const y=scrollY;render();scrollTo(0,y);selecionar(o.key,o.s,o.e)}
+// A implementação compartilhada de destacar está na V670.15.
 function restaurar(){if(!confirm('Tirar todos os seus destaques deste trecho?'))return;delete S.user.marcas[T().id];salvar();render()}
 const BTN_DEST=(k,rot,tit)=>`<button class="btn" title="${tit}" onmousedown="event.preventDefault()" onclick="destacar('${k}')">${rot}</button>`;
-function barraDestaque(extra=''){return `<div class="dest">${BTN_DEST('b','<b>B</b> Negrito','Negrito (de novo tira)')}${BTN_DEST('up','AA Maiúsculas','Maiúsculas (de novo tira)')}${['y','g','p'].map(c=>BTN_DEST(c,`<span class="sw" style="background:var(--hl-${c})"></span> Grifo`,'Grifo (de novo tira)')).join('')}${BTN_DEST('f','A+ Letra maior','Aumenta a letra do trecho selecionado (clique mais vezes para aumentar mais)')}${BTN_DEST('f-','A− Letra menor','Diminui a letra do trecho selecionado')}${BTN_DEST('rem','Tirar destaque','Tira os destaques só do que está selecionado')}${extra}</div><div class="muted dest-dica">Selecione uma vez e clique em quantos botões quiser: a seleção continua. Atalhos: <b>Ctrl+B</b> negrito · <b>Ctrl+G</b> grifo · <b>Ctrl+M</b> maiúsculas · <b>Ctrl+=</b> / <b>Ctrl+−</b> letra.</div>`}
+// Barra de formatação compartilhada: V670.15.
 // V670.9: atalhos com texto selecionado num trecho ou julgado (sem seleção, o Ctrl+= do navegador continua igual).
 const ATALHOS={b:'b',g:'y',m:'up','=':'f','+':'f','-':'f-'};
-document.addEventListener('keydown',e=>{if(!S||!(e.ctrlKey||e.metaKey)||e.altKey||$('#modal').classList.contains('on'))return;const k=ATALHOS[e.key.toLowerCase()]||(e.code==='NumpadAdd'?'f':e.code==='NumpadSubtract'?'f-':'');if(!k||!selecaoNaRegiao())return;e.preventDefault();destacar(k)});
+document.addEventListener('keydown',e=>{if(!S||!(e.ctrlKey||e.metaKey)||e.altKey)return;const k=ATALHOS[e.key.toLowerCase()]||(e.code==='NumpadAdd'?'f':e.code==='NumpadSubtract'?'f-':'');if(!k||!selecaoNaRegiao())return;e.preventDefault();destacar(k)});
 // Altura do topo fixo, para a barra de destaque grudar logo abaixo dele.
-function medirTopo(){const h=$('#topo');if(h&&h.offsetHeight&&innerWidth)document.documentElement.style.setProperty('--topo',h.offsetHeight+'px')}
+function medirTopo(){const h=$('#topo'),tit=$('.leitura-titulos');if(h&&h.offsetHeight&&innerWidth){document.documentElement.style.setProperty('--topo',h.offsetHeight+'px');document.documentElement.style.setProperty('--titulos',(!document.body.classList.contains('foco')&&tit?tit.offsetHeight:0)+'px')}}
 if('ResizeObserver' in window)new ResizeObserver(medirTopo).observe($('#topo'));window.addEventListener('resize',medirTopo);medirTopo();
 /* ============ texto editado pela pessoa (V670.13) ============ */
 // A versão da pessoa fica em S.user.textoEd; o texto do Word (t.texto) continua intacto para conferir o conteúdo da Joana e reorganizar.
 const txtDe=t=>(S.user.textoEd&&S.user.textoEd[t.id]!=null)?S.user.textoEd[t.id]:t.texto;
 let editTexto='';
-function editorTexto(t){return `<textarea id="taTexto" spellcheck="true">${esc(txtDe(t))}</textarea><p class="muted" style="font-size:.78rem;margin:.3rem 0 0">Negrito: deixe entre **asteriscos duplos**. O Word do resumo não muda: a sua versão fica no leitor.</p><div class="row"><button class="btn prim" onclick="salvarTextoEd()">💾 Salvar</button><button class="btn" onclick="editTexto='';render()">Cancelar</button></div>`}
-function editarTexto(){S.user.lacunas=false;editTexto=T().id;render();const ta=$('#taTexto');if(ta){ta.style.height=Math.max(ta.scrollHeight+8,200)+'px';ta.focus()}}
+function editorTexto(t){S.user.camposFmt['t:'+t.id+':texto']={texto:plainDe(txtDe(t)),marcas:[...marcasBase(txtDe(t)),...(S.user.marcas[t.id]||[])]};return `<textarea id="taTexto" spellcheck="true">${esc(plainDe(txtDe(t)))}</textarea><p class="muted" style="font-size:.78rem;margin:.3rem 0 0">Use a barra para formatar a sua versão. O Word do resumo fica preservado.</p><div class="row"><button class="btn prim" onclick="salvarTextoEd()">💾 Salvar</button><button class="btn" onclick="editTexto='';render()">Cancelar</button></div>`}
+function editarTexto(){S.user.lacunas=false;editTexto=T().id;render();const ta=$('#taTexto');if(ta&&ta._editor)ta._editor.focus()}
 // Os destaques fora do pedaço reescrito continuam no lugar; os de dentro dele saem.
 function ajustarMarcas(id,antes,depois){const a=plainDe(antes),d=plainDe(depois);let p=0;while(p<a.length&&p<d.length&&a[p]===d[p])p++;let q=0;while(q<a.length-p&&q<d.length-p&&a[a.length-1-q]===d[d.length-1-q])q++;
  const fimA=a.length-q,delta=d.length-a.length;const ms=cortarMarcas(S.user.marcas[id]||[],p,fimA,()=>true).map(m=>m.s>=fimA?{...m,s:m.s+delta,e:m.e+delta}:m).filter(m=>m.e>m.s);if(ms.length)S.user.marcas[id]=ms;else delete S.user.marcas[id]}
-function salvarTextoEd(){const t=T();const ta=$('#taTexto');if(!ta)return;const novo=ta.value.replace(/\r\n?/g,'\n').trim();if(!novo){toast('O texto ficou vazio. Use "Voltar ao texto do Word" se quiser o original.');return}
- ajustarMarcas(t.id,txtDe(t),novo);if(novo===String(t.texto).trim())delete S.user.textoEd[t.id];else S.user.textoEd[t.id]=novo;editTexto='';salvar();render();toast('Texto salvo no leitor (o Word do resumo não muda).')}
-function voltarTextoWord(){const t=T();if(!confirm('Voltar ao texto do Word neste trecho? A sua versão será apagada.'))return;ajustarMarcas(t.id,txtDe(t),t.texto);delete S.user.textoEd[t.id];salvar();render()}
+function salvarTextoEd(){const t=T();const ta=$('#taTexto');if(!ta)return;const novo=ta.value.replace(/\r\n?/g,'\n');if(!novo.trim()){toast('O texto ficou vazio. Use "Voltar ao texto do Word" se quiser o original.');return}
+ ajustarNotas(t.id,txtDe(t),novo);ajustarMarcas(t.id,txtDe(t),novo);S.user.marcas[t.id]=marcasCampo('taTexto');if(novo===String(t.texto).trim())delete S.user.textoEd[t.id];else S.user.textoEd[t.id]=novo;editTexto='';salvar();render();toast('Texto salvo no leitor (o Word do resumo não muda).')}
+function voltarTextoWord(){const t=T();if(!confirm('Voltar ao texto do Word neste trecho? A sua versão será apagada.'))return;ajustarNotas(t.id,txtDe(t),t.texto);ajustarMarcas(t.id,txtDe(t),t.texto);delete S.user.textoEd[t.id];salvar();render()}
 /* ============ glossário no texto (V670.13) ============ */
 // Termos do glossário do artigo inteiro: sublinhado tracejado verde na 1ª vez em que aparecem no trecho; o significado aparece ao passar o mouse.
 // Comparação sem maiúsculas e sem acentos, letra a letra (o texto normalizado fica do mesmo tamanho do original); aceita plural com s/es.
@@ -723,7 +768,7 @@ function marcarGlossario(raiz){if(!raiz||!S)return;const termos=termosGlossario(
   if(ult<t.length)frag.appendChild(document.createTextNode(t.slice(ult)));no.parentNode.replaceChild(frag,no)}}
 let tGlos=null;
 function fecharGlos(){clearTimeout(tGlos);const p=$('#glosPop');if(p)p.style.display='none'}
-document.addEventListener('mouseover',e=>{const el=e.target.closest&&e.target.closest('.glos');if(!el)return;clearTimeout(tGlos);const raiz=el.closest('#texto');const tm=raiz&&raiz._termos&&raiz._termos[+el.dataset.gi];if(!tm)return;
+document.addEventListener('mouseover',e=>{const el=e.target.closest&&e.target.closest('.glos');if(!el||el.closest('.nota-inline'))return;clearTimeout(tGlos);const raiz=el.closest('#texto');const tm=raiz&&raiz._termos&&raiz._termos[+el.dataset.gi];if(!tm)return;
  let p=$('#glosPop');if(!p){p=document.createElement('div');p.id='glosPop';document.body.appendChild(p)}const g=tm.g;
  p.innerHTML=`📖 <b>${esc(g.termo)}</b> — ${negrito(g.significado||'')}${g.exemplo?`<div class="muted" style="margin-top:.3rem">Ex.: ${esc(g.exemplo)}</div>`:''}`;p.style.display='block';
  const r=el.getBoundingClientRect();p.style.left=Math.max(8,Math.min(scrollX+r.left,scrollX+innerWidth-p.offsetWidth-8))+'px';p.style.top=(scrollY+r.bottom+6)+'px'});
@@ -731,7 +776,7 @@ document.addEventListener('mouseout',e=>{if(e.target.closest&&e.target.closest('
 /* ============ testar memória e ouvir ============ */
 function ferrTexto(){const voz='speechSynthesis' in window;const vel=lsGet('leitor-tdah:voz-vel')||'1';
  return `<div class="ferr-texto"><button class="btn ${S.user.lacunas?'ligado':''}" onclick="alternarLacunas()" title="O que você negritou, grifou ou pôs em maiúsculas vira lacuna, uma por vez (tecla M)">🙈 ${S.user.lacunas?'Testando memória (tirar)':'Testar memória'}</button>${S.user.lacunas?`<button class="btn" onclick="revelarTudo()">👁 Mostrar tudo</button>`:''}${editTexto===T().id?'':`<button class="btn" onclick="editarTexto()" title="Reescrever este trecho com as suas palavras (o texto do Word fica guardado)">✎ Editar</button>`}${S.user.textoEd[T().id]!=null&&editTexto!==T().id?`<button class="btn" onclick="voltarTextoWord()">↩ Voltar ao texto do Word</button>`:''}
- ${voz?`<span style="flex:1"></span><button class="btn" onmousedown="event.preventDefault()" onclick="ouvir()" title="Lê o trecho, ou só o que estiver selecionado">🔊 Ouvir</button><button class="btn" id="bPausa" onclick="pausarVoz()" ${falando?'':'hidden'}>${pausado?'▶ Continuar':'⏸ Pausar'}</button><button class="btn" id="bParar" onclick="pararVoz()" ${falando?'':'hidden'}>⏹ Parar</button><select id="selVoz" title="Voz" onchange="lsSet('leitor-tdah:voz',this.value);if(falando)ouvir(true)">${opcoesVoz()}</select><select title="Velocidade da voz" onchange="lsSet('leitor-tdah:voz-vel',this.value);if(falando)ouvir(true)">${['0.8','1','1.2','1.4','1.7'].map(v=>`<option value="${v}" ${v===vel?'selected':''}>${v.replace('.',',')}×</option>`).join('')}</select>`:''}</div>`}
+ ${voz?`<span style="flex:1"></span><button class="btn" onmousedown="event.preventDefault()" onclick="ouvir()" title="Lê o trecho, ou só o que estiver selecionado">🔊 Ouvir</button><button class="btn" id="bPausa" onclick="pausarVoz()" ${falando?'':'hidden'}>${pausado?'▶ Continuar':'⏸ Pausar'}</button><button class="btn" id="bParar" onclick="pararVoz()" ${falando?'':'hidden'}>⏹ Parar</button><select id="selVoz" title="Voz" onchange="lsSet('leitor-tdah:voz',this.value);if(falando)ouvir(true)">${opcoesVoz()}</select><label class="audio-acompanhar"><input type="checkbox" ${acompanharVoz?'checked':''} onchange="alternarAcompanhamento(this.checked)"> Acompanhar leitura</label><select title="Velocidade da voz" onchange="lsSet('leitor-tdah:voz-vel',this.value);if(falando)ouvir(true)">${['0.8','1','1.2','1.4','1.7'].map(v=>`<option value="${v}" ${v===vel?'selected':''}>${v.replace('.',',')}×</option>`).join('')}</select>`:''}</div>`}
 let falando=false,pausado=false,ultimaFala='';
 function pintaVoz(){const p=$('#bPausa'),q=$('#bParar');if(p){p.hidden=!falando;p.textContent=pausado?'▶ Continuar':'⏸ Pausar'}if(q)q.hidden=!falando}
 // V670.10: vozes em português do navegador; a do Google (mais natural, precisa de internet) vem primeiro. A escolha fica guardada.
@@ -747,29 +792,17 @@ function frasesDe(txt){const out=[];for(let f of txt.split(/(?<=[.!?;:])\s+/)){f
  const j=[];for(const f of out){const u=j.length-1;if(u>=0&&(j[u].length<40||f.length<25)&&j[u].length+f.length<160)j[u]+=' '+f;else j.push(f)}return j}
 let falaId=0,falaFrases=[],falaI=0,vozFalhou=false;
 const semEmoji=s=>String(s).replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu,'').replace(/§§/g,'parágrafos').replace(/§/g,'parágrafo').replace(/(^|[^\p{L}])art\./giu,'$1artigo').replace(/\s+/g,' ').trim();
-function ouvir(repetir){const ss=window.speechSynthesis;if(!ss)return;
- // Trocou voz ou velocidade no meio: continua da frase em que estava.
- if(repetir&&falando&&falaFrases.length){ss.cancel();pausado=false;falarFrase(++falaId);pintaVoz();return}
- let txt=repetir?ultimaFala:'';
- if(!txt){const sel=getSelection();const box=$('#texto');const r=sel.rangeCount?sel.getRangeAt(0):null;txt=(r&&!r.collapsed&&box&&box.contains(r.commonAncestorContainer))?sel.toString():plainDe(txtDe(T()))}
- txt=semEmoji(txt);if(!txt)return;ultimaFala=txt;ss.cancel();falaFrases=frasesDe(txt);falaI=0;falando=true;pausado=false;falarFrase(++falaId);pintaVoz()}
-function falarFrase(id){const ss=window.speechSynthesis;if(id!==falaId||pausado)return;if(falaI>=falaFrases.length){falando=false;pintaVoz();return}
- const u=new SpeechSynthesisUtterance(falaFrases[falaI]);u.lang='pt-BR';u.rate=+(lsGet('leitor-tdah:voz-vel')||1);
- let v=vozEscolhida();if(v&&vozFalhou&&!v.localService)v=vozesPt().find(x=>x.localService)||v;if(v)u.voice=v;
- u.onend=()=>{if(id!==falaId)return;falaI++;falarFrase(id)};
- // Voz do Google sem internet: segue com a voz do Windows nesta leitura.
- u.onerror=e=>{if(id!==falaId||pausado||/interrupted|canceled/.test(e.error||''))return;if(v&&!v.localService&&!vozFalhou){vozFalhou=true;toast('A voz do Google não respondeu (internet?). Continuei com a voz do Windows.',5000);falarFrase(id);return}falando=false;pintaVoz()};
- ss.speak(u)}
+// Áudio com acompanhamento opcional: V670.15.
+// Áudio com acompanhamento opcional: V670.15.
 // Pausar para e guarda a frase; continuar recomeça dessa frase (o pause() do navegador falha com a voz do Google).
-function pausarVoz(){const ss=window.speechSynthesis;if(!ss||!falando)return;if(pausado){pausado=false;falarFrase(++falaId)}else{pausado=true;falaId++;ss.cancel()}pintaVoz()}
-function pararVoz(){falaId++;if(window.speechSynthesis)speechSynthesis.cancel();falando=false;pausado=false;pintaVoz()}
-
+function pausarVoz(){const ss=window.speechSynthesis;if(!ss||!falando)return;if(pausado){pausado=false;falarFrase(++falaId)}else{pausado=true;falaId++;ss.cancel();limparFaixaVoz()}pintaVoz()}
+// Áudio com acompanhamento opcional: V670.15.
 /* ============ ferramentas ============ */
 const TOOLS8=[['prov','☆','PROVÁVEL'],['juris','⚖️','JURISPRUDÊNCIA'],['porque','🧠','POR QUÊ?'],['perg','❓','PERGUNTAR'],['quest','📝','QUESTÕES'],['notas','✏️','ANOTAÇÕES'],['glos','📖','GLOSSÁRIO'],['mnemo','🧩','MNEMÔNICOS']];
 const TOOLS10=[['mapa','🧠','MAPA MENTAL'],['fluxo','🔀','FLUXOGRAMA'],['img','🖼️','IMAGEM DO EVENTO'],['tutor','🎓','TUTOR SOCRÁTICO'],['cards','🗂️','FLASHCARDS'],['qconc','📘','QUIZ: CONCEITOS'],['qpraz','⏱️','QUIZ: PRAZOS'],['qexc','⚠️','QUIZ: EXCEÇÕES'],['resumo','📑','RESUMO INTELIGENTE'],['facil','✍️','TEXTO FÁCIL']];
 const cT=()=>S.content.trechos[T().id]||{};const cB=()=>S.content.blocos[B().id]||{};
 function temTool(k){const t=T(),b=B(),ct=cT(),cb=cB(),u=S.user;switch(k){
- case 'prov':return !!u.prov[t.id];case 'juris':return !!((ct.jurisprudencia||[]).length||(u.jurUser[t.id]||[]).length);case 'porque':return !!ct.por_que;case 'notas':return !!u.notas[t.id];
+ case 'prov':return !!u.prov[t.id];case 'juris':return !!((ct.jurisprudencia||[]).length||(u.jurUser[t.id]||[]).length);case 'porque':return !!ct.por_que;case 'notas':return !!u.notas[t.id]||!!notasDoTrecho(t.id).length;
  case 'glos':return !!(ct.glossario||[]).length;case 'mnemo':return !!((cb.mnemonicos||[]).length||(u.mnemoUser[b.id]||[]).length);case 'mapa':return !!cb.mapa_mental;case 'fluxo':return !!cb.fluxograma;
  case 'img':return !!(u.imagens[b.id]||cb.imagem);case 'tutor':return !!(cb.tutor||[]).length;case 'cards':return !!((ct.flashcards||[]).length||(u.cardsUser[t.id]||[]).length);case 'resumo':return !!cb.resumo_inteligente;case 'facil':return !!ct.texto_facil;case 'perg':return !!(u.duvidas[t.id]||[]).length}return false}
 function toolBtn([k,ic,nm]){const pr=['quest','qconc','qpraz','qexc'].includes(k);return `<button class="tool ${S.user.tool===k?'ativo':''}" onclick="setTool('${k}')">${k==='prov'&&S.user.prov[T().id]?'★':ic} ${nm}${temTool(k)?'<span class="tem">●</span>':''}${pr?`<span class="tem" style="color:var(--muted)">${k==='quest'&&NO_SITE?'SITE':'GPT'}</span>`:''}</button>`}
@@ -827,7 +860,7 @@ function painel(){const k=S.user.tool;if(!k)return '';const t=T(),b=B(),ct=cT(),
  case 'cards':h+=painelCards();break;
  case 'juris':h+=painelJuris();break;
  case 'mnemo':h+=painelMnemo();break;
- case 'notas':h+=`<textarea id="taNota" placeholder="Escreva sua anotação deste trecho (salva sozinha)" oninput="S.user.notas[T().id]=this.value;if(!this.value)delete S.user.notas[T().id];salvar()">${esc(u.notas[t.id]||'')}</textarea><p class="muted" style="font-size:.8rem">Salva sozinha enquanto você escreve.</p>`;break;
+ case 'notas':h+=`<textarea id="taNota" placeholder="Escreva sua anotação deste trecho (salva sozinha)" oninput="S.user.notas[T().id]=this.value;if(!this.value)delete S.user.notas[T().id];salvar()">${esc(u.notas[t.id]||'')}</textarea><p class="muted" style="font-size:.8rem">Salva sozinha enquanto você escreve.</p>${notasInlineHTML()}`;break;
  case 'perg':h+=`<p class="muted">Marque o que quer saber, escreva a dúvida (opcional) e copie o pedido para o ChatGPT.</p><div class="chk">${OPC_DUV.map((o,i)=>`<label><input type="checkbox" class="cbDuv" value="${esc(o)}" ${i<2?'checked':''}> ${esc(o)}</label>`).join('')}</div><textarea id="taDuv" placeholder="Minha dúvida (opcional)"></textarea><div class="row"><button class="btn prim" onclick="copiarDuvida()">📋 Copiar pedido para o ChatGPT</button></div>
   <h4 style="margin-top:1.2rem">Respostas que eu guardei</h4><textarea id="taDuvResp" placeholder="Cole aqui a resposta da Joana que você quer guardar"></textarea><div class="row"><button class="btn ok" onclick="guardarDuvida()">💾 Guardar resposta</button></div>${(u.duvidas[t.id]||[]).length?barraDestaque():''}${(u.duvidas[t.id]||[]).map((d,i)=>`<div class="item"><div class="o">${esc(d.q||'Dúvida')} · ${new Date(d.em).toLocaleDateString('pt-BR')}</div><div class="resp-colada" data-mk="d:${i}">${marcadoHTML(d.r,d.marcas)}</div><button class="btn sm" onclick="S.user.duvidas[T().id].splice(${i},1);salvar();render()">Excluir</button></div>`).join('')}`;break;
  case 'mapa':h+=painelMapa();break;
@@ -841,7 +874,7 @@ const CAMPOS_BLOCO_TOOL=['mapa','fluxo','img','tutor','resumo','mnemo'];
 async function copiarDuvida(){const ops=[...document.querySelectorAll('.cbDuv:checked')].map(c=>c.value);const q=$('#taDuv').value.trim();
  const p=`${ctxPrompt()}\n\nTenho uma dúvida sobre este trecho${q?': '+q:'.'}\nExplique de forma didática e curta, só sobre este trecho: ${ops.join('; ')||'o significado'}. Não invente lei nem julgado; se não tiver certeza, diga.`;
  S.user.ultimaDuv=q;const ok=await copiar(p);toast(ok?'Pedido copiado. Cole no ChatGPT.':'Não consegui copiar.')}
-function guardarDuvida(){const r=$('#taDuvResp').value.trim();if(!r)return;const id=T().id;(S.user.duvidas[id]=S.user.duvidas[id]||[]).unshift({q:S.user.ultimaDuv||'',r,em:Date.now()});salvar();render();toast('Resposta guardada neste trecho.')}
+function guardarDuvida(){const r=$('#taDuvResp').value;if(!r.trim())return;const id=T().id;(S.user.duvidas[id]=S.user.duvidas[id]||[]).unshift({q:S.user.ultimaDuv||'',r,marcas:marcasCampo('taDuvResp'),em:Date.now()});salvar();render();toast('Resposta guardada neste trecho.')}
 
 /* flashcards */
 let fcI=0,fcVirado=false,fcTrecho='';
@@ -850,7 +883,7 @@ function painelCards(){const id=T().id;if(fcTrecho!==id){fcI=0;fcVirado=false;fc
  let h=`<div class="row" style="margin-top:0;margin-bottom:.6rem"><button class="btn prim" onclick="copiarPrompt('cards')">🤖 Pedir mais flashcards ao ChatGPT</button><button class="btn ok" onclick="colarFerramenta('cards')">📥 Colar flashcards</button></div>${esperaHTML('cards')}<div class="row" style="margin-top:0"><button class="btn sm" onclick="revisarHoje()">📅 Cartões de hoje (${cartoesDeHoje().length})</button><span class="muted">✔ ${ac} · ✖ ${er}</span><label style="margin-left:auto"><input type="checkbox" ${S.user.soErrados?'checked':''} onchange="S.user.soErrados=this.checked;fcI=0;render()"> só os que errei</label></div>`;
  if(!l.length)return h+(S.user.soErrados?'<p class="muted">Nenhum errado aqui. 👏</p>':(T().elegivel?vazioPacote:'<p class="muted">Trecho sem conteúdo para estudar.</p>'))+`<div class="row"><button class="btn" onclick="novoCard()">＋ Criar meu cartão</button></div>`;
  fcI=Math.min(fcI,l.length-1);const c=l[fcI];
- h+=`<div class="fc"><div class="muted" style="font-size:.75rem">CARTÃO ${fcI+1} DE ${l.length}${c.angulo?' · '+esc(c.angulo).toUpperCase():''}${c._k[0]==='u'?' · MEU':''}${voltaEm(id,c._k)}</div><div style="margin-top:.5rem;font-weight:750">${negrito(c.frente)}</div>${fcVirado?`<div class="v">${negrito(c.verso)}${c.explicacao?`<div class="muted" style="font-weight:400;margin-top:.4rem">${negrito(c.explicacao)}</div>`:''}</div>`:''}</div>
+ h+=`<div class="fc"><div class="muted" style="font-size:.75rem">CARTÃO ${fcI+1} DE ${l.length}${c.angulo?' · '+esc(c.angulo).toUpperCase():''}${c._k[0]==='u'?' · MEU':''}${voltaEm(id,c._k)}</div><div style="margin-top:.5rem;font-weight:750">${campoHTML(chaveCard(c._k,'frente'),c.frente)}</div>${fcVirado?`<div class="v">${campoHTML(chaveCard(c._k,'verso'),c.verso)}${c.explicacao?`<div class="muted" style="font-weight:400;margin-top:.4rem">${campoHTML(chaveCard(c._k,'explicacao'),c.explicacao)}</div>`:''}</div>`:''}</div>
  <div class="row">${fcVirado?`<button class="btn ok" onclick="marcaCard('${c._k}','ok')">✔ Acertei</button><button class="btn" style="border-color:var(--red);color:var(--red)" onclick="marcaCard('${c._k}','err')">✖ Errei</button>`:`<button class="btn prim" onclick="fcVirado=true;render()">🔄 Virar</button>`}
  <button class="btn" onclick="fcI=(fcI-1+${l.length})%${l.length};fcVirado=false;render()">←</button><button class="btn" onclick="fcI=(fcI+1)%${l.length};fcVirado=false;render()">→</button>
  <button class="btn sm" onclick="editarCard('${c._k}')">✎ Editar</button><button class="btn sm" onclick="novoCard()">＋ Meu cartão</button></div>`;return h}
@@ -871,12 +904,11 @@ function pintaHoje(){const L=rh.lista;const fim=b=>`<div class="row">${b}<button
  if(!L.length){abrirModal(`<h2>📅 Cartões de hoje</h2><p class="ok-t">Nenhum cartão para revisar hoje. 👏</p><p class="muted">Errou um cartão: ele volta no dia seguinte. Acertou: volta em 3, depois 7, 15 e 30 dias.</p>${fim('')}`);return}
  if(rh.i>=L.length){abrirModal(`<h2>📅 Cartões de hoje</h2><p class="ok-t">✅ Revisão do dia feita: ✔ ${rh.ok} · ✖ ${rh.err}.</p><p class="muted">Os que você errou voltam amanhã.</p>${fim('')}`);return}
  const x=L[rh.i];abrirModal(`<h2>📅 Cartões de hoje <span class="muted" style="font-size:.95rem">${rh.i+1} de ${L.length}</span></h2><div class="muted" style="font-size:.8rem">${esc(limpa(x.b.titulo).split(':')[0])} · ${esc(x.t.rotulo||('trecho '+(x.ti+1)))}</div>
- <div class="fc" style="margin-top:.5rem"><div style="font-weight:750">${negrito(x.c.frente)}</div>${rh.virado?`<div class="v">${negrito(x.c.verso)}</div>`:''}</div>
+ <div class="fc" style="margin-top:.5rem"><div style="font-weight:750">${campoHTML(chaveCard(x.k,'frente',x.id),x.c.frente)}</div>${rh.virado?`<div class="v">${campoHTML(chaveCard(x.k,'verso',x.id),x.c.verso)}</div>`:''}</div>
  ${fim((rh.virado?`<button class="btn ok" onclick="respHoje('ok')">✔ Acertei</button><button class="btn" style="border-color:var(--red);color:var(--red)" onclick="respHoje('err')">✖ Errei</button>`:`<button class="btn prim" onclick="rh.virado=true;pintaHoje()">🔄 Virar</button>`)+`<button class="btn" onclick="fecharModal();ir(${x.bi},${x.ti})">Ir para o trecho</button>`)}`)}
 function respHoje(v){const x=rh.lista[rh.i];(S.user.cards[x.id]=S.user.cards[x.id]||{})[x.k]=v;agendar(x.id,x.k,v);if(v==='ok')rh.ok++;else rh.err++;salvar();rh.i++;rh.virado=false;pintaHoje()}
-function novoCard(){const f=prompt('Frente do cartão (pergunta):');if(!f)return;const v=prompt('Verso (resposta):');if(v==null)return;const id=T().id;(S.user.cardsUser[id]=S.user.cardsUser[id]||[]).push({frente:f,verso:v});salvar();render()}
-function editarCard(k){const id=T().id;const arr=k[0]==='p'?(S.content.trechos[id].flashcards):(S.user.cardsUser[id]);const c=arr[+k.slice(1)];const f=prompt('Frente:',c.frente);if(f==null)return;const v=prompt('Verso:',c.verso);if(v==null)return;c.frente=f;c.verso=v;salvar();render()}
-
+// Editor de cartão com formatação compartilhada: V670.15.
+// Editor de cartão com formatação compartilhada: V670.15.
 /* jurisprudência */
 function painelJuris(){const id=T().id;const p=cT().jurisprudencia||[];const us=S.user.jurUser[id]||[];
  // V670.8: letra maior (acompanha A−/A+) e destaque na tese e nos fundamentos, com a mesma barra do texto.
@@ -894,13 +926,13 @@ function distribuir(){const s=$('#jCola').value;if(!s.trim())return;const pega=r
  $('#j_data').value=pega(/(\d{1,2}\/\d{1,2}\/\d{4})/)||pega(/\b(20\d\d|19\d\d)\b/)||$('#j_data').value;
  $('#j_fonte').value=pega(/(https?:\/\/\S+)/)||pega(/(Informativo\s+n?º?\s*\d+)/i)||$('#j_fonte').value;
  $('#j_tese').value=pega(/tese\s*[:\-–]\s*([^\n]+)/i)||s.replace(/https?:\/\/\S+/g,'').trim().slice(0,800);toast('Confira as caixas antes de guardar.')}
-function guardarJuris(){const j={};['tribunal','orgao','processo','data','fonte','tese'].forEach(c=>j[c]=$('#j_'+c).value.trim());if(!j.tese&&!j.processo){toast('Preencha ao menos a tese ou o processo.');return}const id=T().id;(S.user.jurUser[id]=S.user.jurUser[id]||[]).push(j);salvar();render();toast('Julgado guardado.')}
+function guardarJuris(){const j={};['tribunal','orgao','processo','data','fonte','tese'].forEach(c=>j[c]=$('#j_'+c).value);if(!j.tese&&!j.processo){toast('Preencha ao menos a tese ou o processo.');return}const id=T().id;j.marcas={tese:marcasCampo('j_tese')};(S.user.jurUser[id]=S.user.jurUser[id]||[]).push(j);salvar();render();toast('Julgado guardado.')}
 
 /* mnemônicos */
 let mnTeste=false;
 function painelMnemo(){const bid=B().id;const p=cB().mnemonicos||[];const us=S.user.mnemoUser[bid]||[];const todos=[...p.map(m=>({...m})),...us.map((m,i)=>({...m,_u:i}))];
- let h=todos.length?`<div class="row" style="margin-top:0"><label><input type="checkbox" ${mnTeste?'checked':''} onchange="mnTeste=this.checked;render()"> 🎯 Testar recordação (esconde o mnemônico)</label></div>`+todos.map(m=>`<div class="item"><div class="o">${m._u!=null?'MEU':esc((m.origem||'autoral').toUpperCase())}</div>${mnTeste?`<details><summary><b>Lembra do mnemônico?</b> <span class="muted">${esc(m.explicacao||'')}</span></summary><b style="font-size:1.15rem">${negrito(m.texto)}</b></details>`:`<b style="font-size:1.15rem">${negrito(m.texto)}</b><div>${negrito(m.explicacao||'')}</div>`}${m._u!=null?`<button class="btn sm" onclick="S.user.mnemoUser[B().id].splice(${m._u},1);salvar();render()">Excluir</button>`:''}</div>`).join(''):(blocoPedivel(B())?vazioPacote:'<p class="muted">Sem mnemônicos.</p>');
- h+=`<details style="margin-top:.6rem"><summary><b>＋ Meu mnemônico</b></summary><input id="mnT" placeholder="Mnemônico" style="width:100%;margin:.4rem 0"><input id="mnE" placeholder="O que cada parte significa" style="width:100%"><div class="row"><button class="btn ok" onclick="const t=$('#mnT').value.trim();if(t){(S.user.mnemoUser[B().id]=S.user.mnemoUser[B().id]||[]).push({texto:t,explicacao:$('#mnE').value.trim()});salvar();render()}">💾 Guardar</button></div></details>`;return h}
+ let h=todos.length?`<div class="row" style="margin-top:0"><label><input type="checkbox" ${mnTeste?'checked':''} onchange="mnTeste=this.checked;render()"> 🎯 Testar recordação (esconde o mnemônico)</label></div>`+todos.map(m=>`<div class="item"><div class="o">${m._u!=null?'MEU':esc((m.origem||'autoral').toUpperCase())}</div>${mnTeste?`<details><summary><b>Lembra do mnemônico?</b> <span class="muted">${esc(m.explicacao||'')}</span></summary><b style="font-size:1.15rem">${m._u!=null?marcadoHTML(m.texto,m.marcas?.texto||[],{literal:true}):negrito(m.texto)}</b></details>`:`<b style="font-size:1.15rem">${m._u!=null?marcadoHTML(m.texto,m.marcas?.texto||[],{literal:true}):negrito(m.texto)}</b><div>${m._u!=null?marcadoHTML(m.explicacao||'',m.marcas?.explicacao||[],{literal:true}):negrito(m.explicacao||'')}</div>`}${m._u!=null?`<button class="btn sm" onclick="S.user.mnemoUser[B().id].splice(${m._u},1);salvar();render()">Excluir</button>`:''}</div>`).join(''):(blocoPedivel(B())?vazioPacote:'<p class="muted">Sem mnemônicos.</p>');
+ h+=`<details style="margin-top:.6rem"><summary><b>＋ Meu mnemônico</b></summary><input id="mnT" placeholder="Mnemônico" style="width:100%;margin:.4rem 0"><input id="mnE" placeholder="O que cada parte significa" style="width:100%"><div class="row"><button class="btn ok" onclick="guardarMnemo()">💾 Guardar</button></div></details>`;return h}
 
 /* mapa mental */
 function mapaDados(){const bid=B().id;const u=S.user.mapaUser[bid];if(u&&S.user.verMeuMapa!==false)return {d:outlineParaMapa(u),meu:1};return {d:cB().mapa_mental,meu:0}}
@@ -908,16 +940,16 @@ function outlineParaMapa(txt){const ls=txt.split('\n').filter(l=>l.trim());const
 function mapaParaOutline(m){return (m.centro||'')+'\n'+(m.ramos||[]).map(r=>'- '+(r.rotulo||'')+(r.subramos||[]).map(s=>'\n    - '+s).join('')).join('\n')}
 function painelMapa(){const {d,meu}=mapaDados();if(!d)return vazioPacote;const bid=B().id;
  const CORES=['var(--blue)','var(--green)','var(--amber)','var(--purple)','var(--red)','var(--orange)'];
- const ramo=(r,i)=>`<div class="mm-r" style="--c:${CORES[i%CORES.length]}"><b>${negrito(r.rotulo)}</b>${r.relacao?`<div class="muted" style="font-size:.82rem">${esc(r.relacao)}</div>`:''}${(r.subramos||[]).length?`<ul>${r.subramos.map(s=>`<li>${negrito(s)}</li>`).join('')}</ul>`:''}</div>`;
+ const ramo=(r,i)=>`<div class="mm-r" style="--c:${CORES[i%CORES.length]}"><b>${campoMapaHTML(r.rotulo)}</b>${r.relacao?`<div class="muted" style="font-size:.82rem">${esc(r.relacao)}</div>`:''}${(r.subramos||[]).length?`<ul>${r.subramos.map(s=>`<li>${campoMapaHTML(s)}</li>`).join('')}</ul>`:''}</div>`;
  const rs=(d.ramos||[]).map((r,i)=>({r,i}));const esq=rs.filter(x=>x.i%2===0),dir=rs.filter(x=>x.i%2===1);
- let h=`<div class="mm2" id="mm2"><svg class="mm-svg" id="mmSvg"></svg><div class="mm-lado e">${esq.map(x=>ramo(x.r,x.i)).join('')}</div><div class="mm-meio"><div class="mm-c" id="mmC">${negrito(d.centro)}</div></div><div class="mm-lado d">${dir.map(x=>ramo(x.r,x.i)).join('')}</div></div>`;
+ let h=`<div class="mm2" id="mm2"><svg class="mm-svg" id="mmSvg"></svg><div class="mm-lado e">${esq.map(x=>ramo(x.r,x.i)).join('')}</div><div class="mm-meio"><div class="mm-c" id="mmC">${campoMapaHTML(d.centro)}</div></div><div class="mm-lado d">${dir.map(x=>ramo(x.r,x.i)).join('')}</div></div>`;
  h+=`<div class="row">${S.user.mapaUser[bid]?`<button class="btn sm" onclick="S.user.verMeuMapa=${meu?'false':'true'};render()">${meu?'Ver o da Joana':'Ver a minha versão'}</button>`:''}<button class="btn sm" onclick="editarMapa()">✎ Editar e salvar minha versão</button><button class="btn sm" onclick="copiar(mapaParaOutline(mapaDados().d)).then(()=>toast('Mapa copiado como texto.'))">⤓ Exportar (copiar texto)</button></div>`;return h}
 function linhasMapa(){const box=$('#mm2'),svg=$('#mmSvg'),c=$('#mmC');if(!box||!svg||!c)return;if(getComputedStyle(svg).display==='none')return;
  const B0=box.getBoundingClientRect(),C=c.getBoundingClientRect();svg.setAttribute('viewBox',`0 0 ${B0.width} ${B0.height}`);let p='';
  box.querySelectorAll('.mm-r').forEach(r=>{const R=r.getBoundingClientRect();const esq=R.right<=C.left+1;const x1=(esq?C.left:C.right)-B0.left,y1=C.top+C.height/2-B0.top,x2=(esq?R.right:R.left)-B0.left,y2=R.top+R.height/2-B0.top,mx=(x1+x2)/2;
   p+=`<path d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" fill="none" style="stroke:${r.style.getPropertyValue('--c')}" stroke-width="3" stroke-linecap="round" opacity=".85"/>`});svg.innerHTML=p}
 window.addEventListener('resize',()=>requestAnimationFrame(linhasMapa));
-function editarMapa(){const {d}=mapaDados();abrirModal(`<h2>Minha versão do mapa mental</h2><p class="muted">1ª linha = centro. Cada "- " = ramo. Linhas recuadas com "    - " = sub-ramos.</p><textarea id="taMapa" style="min-height:45vh">${esc(mapaParaOutline(d||{centro:B().titulo,ramos:[]}))}</textarea><div class="row"><button class="btn prim" onclick="S.user.mapaUser[B().id]=$('#taMapa').value;S.user.verMeuMapa=true;salvar();fecharModal();render()">💾 Salvar</button>${S.user.mapaUser[B().id]?`<button class="btn" onclick="delete S.user.mapaUser[B().id];salvar();fecharModal();render()">Apagar minha versão</button>`:''}<button class="btn" onclick="fecharModal()">Cancelar</button></div>`)}
+function editarMapa(){const {d}=mapaDados();abrirModal(`<h2>Minha versão do mapa mental</h2><p class="muted">1ª linha = centro. Cada "- " = ramo. Linhas recuadas com "    - " = sub-ramos.</p><textarea id="taMapa" style="min-height:45vh">${esc(mapaParaOutline(d||{centro:B().titulo,ramos:[]}))}</textarea><div class="row"><button class="btn prim" onclick="S.user.mapaUser[B().id]=$('#taMapa').value;S.user.verMeuMapa=true;fecharModal(true);salvar();render()">💾 Salvar</button>${S.user.mapaUser[B().id]?`<button class="btn" onclick="delete S.user.mapaUser[B().id];salvar();fecharModal();render()">Apagar minha versão</button>`:''}<button class="btn" onclick="fecharModal()">Cancelar</button></div>`)}
 
 /* fluxograma */
 const NOME_TIPO={inicio:'Ponto de partida',condicao:'Pergunta',consequencia:'Resposta',excecao:'Exceção',fim:'Conclusão'};
@@ -930,19 +962,19 @@ function painelFluxo(){const f=cB().fluxograma;const refazer=`<div class="row" s
  const cls=r=>/^n[ãa]o/i.test(r||'')?'nao':/^sim/i.test(r||'')?'sim':'';
  const abas=`<div class="row" style="margin-top:0;margin-bottom:1rem"><button class="btn ${S.user.percorrer?'':'prim'}" onclick="S.user.percorrer=false;render()">🌳 Ver o fluxograma inteiro</button><button class="btn ${S.user.percorrer?'prim':''}" onclick="S.user.percorrer=true;flAt=null;render()">🧭 Resolver passo a passo</button></div>`;
  if(S.user.percorrer){if(flBloco!==bid||!flAt||!porId[flAt]){flAt=ini.id;flCam=[];flBloco=bid}const n=porId[flAt];const sai=lig.filter(l=>l.de===flAt);
-  let h=refazer+abas+(flCam.length?`<div class="fl-cam">${flCam.map(p=>esc(p)).join('  →  ')}</div>`:'')+`<div class="fl-n ${esc(n.tipo)} grande"><div class="t">${tipoNome(n)}</div><div class="flt">${negrito(txt(n))}</div></div>`;
+  let h=refazer+abas+(flCam.length?`<div class="fl-cam">${flCam.map(p=>esc(p)).join('  →  ')}</div>`:'')+`<div class="fl-n ${esc(n.tipo)} grande"><div class="t">${tipoNome(n)}</div><div class="flt">${campoHTML('b:'+bid+':fluxo:'+n.id,txt(n))}</div></div>`;
   flOpcoes=sai.map(l=>({para:l.para,passo:(n.tipo==='condicao'?'P'+(num[n.id]||'')+': ':'')+(l.rotulo||'segue')}));
   h+=sai.length?`<div class="row" style="justify-content:center;margin-top:1rem">${sai.map((l,i)=>{const c=cls(l.rotulo);return `<button class="btn ${c==='sim'?'ok':''}" style="font-size:1.05rem;padding:.7rem 1.6rem;${c==='nao'?'border-color:var(--red);color:var(--red)':''}" onclick="flAndar(${i})">${esc((l.rotulo||'Continuar').toUpperCase())}${l.rotulo?'':' →'}</button>`}).join('')}</div>`
    :`<div class="row" style="justify-content:center;margin-top:1rem"><button class="btn prim" onclick="flAt=null;render()">↻ Recomeçar</button></div>`;
   return h}
  const no=(id,dep)=>{const n=porId[id];if(!n)return '';if(vis.has(id)||dep>14)return `<div class="fl-ref">↪ volta para: ${esc(limpa(txt(n)).slice(0,70))}</div>`;vis.add(id);const sai=lig.filter(l=>l.de===id);
-  let h=`<div class="fl-n ${esc(n.tipo)}"><div class="t">${tipoNome(n)}</div><div contenteditable="${S.user.editFluxo?'true':'false'}" data-nid="${esc(id)}" class="flt">${negrito(txt(n))}</div></div>`;
+  let h=`<div class="fl-n ${esc(n.tipo)}"><div class="t">${tipoNome(n)}</div><div contenteditable="${S.user.editFluxo?'true':'false'}" data-nid="${esc(id)}" class="flt">${campoHTML('b:'+bid+':fluxo:'+n.id,txt(n))}</div></div>`;
   if(sai.length===1){const l=sai[0],c=cls(l.rotulo);h+=`<div class="fl-seta ${c}">${l.rotulo?`<span class="fl-rot ${c}">${esc(l.rotulo)}</span>`:''}</div>`+no(l.para,dep+1)}
   else if(sai.length>1)h+=`<div class="fl-tronco"></div><div class="fl-ramos">${sai.map(l=>{const c=cls(l.rotulo);return `<div class="fl-ramo"><div class="fl-seta ${c}"><span class="fl-rot ${c}">${esc(l.rotulo||'segue')}</span></div><div class="fl-col">${no(l.para,dep+1)}</div></div>`}).join('')}</div>`;
   return h};
  // Escada: pergunta com uma saída que termina (resposta) e outra que continua vira uma linha inteira.
  const terminal=id=>!lig.some(l=>l.de===id);
- const caixa=(n,extra='')=>`<div class="fl-n ${esc(n.tipo)} ${extra}"><div class="t">${tipoNome(n)}</div><div contenteditable="${S.user.editFluxo?'true':'false'}" data-nid="${esc(n.id)}" class="flt">${negrito(txt(n))}</div></div>`;
+ const caixa=(n,extra='')=>`<div class="fl-n ${esc(n.tipo)} ${extra}"><div class="t">${tipoNome(n)}</div><div contenteditable="${S.user.editFluxo?'true':'false'}" data-nid="${esc(n.id)}" class="flt">${campoHTML('b:'+bid+':fluxo:'+n.id,txt(n))}</div></div>`;
  const escada=(inicio)=>{let h='',cur=inicio,primeiro=true;
   while(cur&&porId[cur]&&!vis.has(cur)){const n=porId[cur];const sai=lig.filter(l=>l.de===cur);
    const fim=sai.find(l=>terminal(l.para)&&porId[l.para]),segue=sai.find(l=>l!==fim);
@@ -1044,7 +1076,7 @@ async function abrirLei(el){leiAlvo=el;const p=popLei();const art=el.dataset.art
  if(!r)p.innerHTML=cab+'<p class="muted">O texto aparece aqui quando o leitor é aberto pelo site com o programa da Fábrica ligado. Use o link "abrir ↗".</p>';
  else if(!r.ok||!r.achou)p.innerHTML=cab+`<p class="muted">${esc(r.ok?'Não encontrei este artigo nesta lei, no site do Planalto (pode ter sido revogado ou ser de outra lei).':/404/.test(r.erro||'')?'Não achei esta lei no site do Planalto (lei estadual ou endereço diferente).':(r.erro||'Erro ao buscar no Planalto.'))} Use o link "abrir ↗".</p>`;
  else{p.innerHTML=cab+`<div class="lei-txt">${destacarParagrafo(r.texto,el.dataset.par)}</div>`;const d=p.querySelector('.lei-dest');p.scrollTop=d?Math.max(0,d.offsetTop-60):0}}
-document.addEventListener('mouseover',e=>{const el=e.target.closest&&e.target.closest('.lei');if(!el)return;clearTimeout(tLeiFecha);if(el===leiAlvo)return;clearTimeout(tLeiAbre);tLeiAbre=setTimeout(()=>{leiFixa=false;abrirLei(el)},250)});
+document.addEventListener('mouseover',e=>{const el=e.target.closest&&e.target.closest('.lei');if(!el||el.closest('.nota-inline'))return;clearTimeout(tLeiFecha);if(el===leiAlvo)return;clearTimeout(tLeiAbre);tLeiAbre=setTimeout(()=>{leiFixa=false;abrirLei(el)},250)});
 document.addEventListener('mouseout',e=>{const el=e.target.closest&&e.target.closest('.lei');if(!el||leiFixa)return;clearTimeout(tLeiAbre);tLeiFecha=setTimeout(fecharLei,350)});
 document.addEventListener('click',e=>{const el=e.target.closest&&e.target.closest('.lei');if(el){leiFixa=true;if(el!==leiAlvo)abrirLei(el);return}if(!e.target.closest('#leiPop'))fecharLei()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')fecharLei()});
@@ -1080,24 +1112,24 @@ async function salvarHTML(){clearTimeout(tSalvar);const antes=S.user.exportadoEm
 
 /* ============ desenhar ============ */
 function render(){
- const app=$('#app');const tem=!!S;['#bArtigos','#bRevisao','#bSalvar','#bMapa'].forEach(s=>$(s).hidden=!tem);$('#progRow').hidden=!tem;{const nh=tem?cartoesDeHoje().length:0;$('#bHoje').hidden=!nh;$('#bHoje').textContent='📅 Hoje ('+nh+')'}$('#bFoco').hidden=!tem;aplicaFoco(tem)
+ const app=$('#app');const tem=!!S;['#bArtigos','#bRevisao','#bSalvar','#bMapa','#bBuscar'].forEach(s=>$(s).hidden=!tem);$('#progRow').hidden=!tem;{const nh=tem?cartoesDeHoje().length:0;$('#bHoje').hidden=!nh;$('#bHoje').textContent='📅 Hoje ('+nh+')'}$('#bFoco').hidden=!tem;aplicaFoco(tem)
  if(!tem){$('#assunto').textContent=TEMA||'Nenhum resumo aberto';app.innerHTML=`<div class="vazio"><h1>📖 Leitor TDAH</h1>${TEMA?`<p><b>Assunto da Fábrica:</b> ${esc(TEMA)}${DISC?' · '+esc(DISC):''}</p>${PASTA?`<p><a class="btn" href="${esc(PASTA)}" target="_blank" rel="noopener">📁 Abrir a pasta do resumo no Drive</a> <span class="muted">(para ver o nome do Word)</span></p>`:''}<p class="muted">Na primeira vez, escolha o Word deste assunto. Nas próximas, o botão da Fábrica já abre direto.</p>`:''}<p>Serve para <b>qualquer resumo</b>. Para começar:</p><ol><li>Clique em <b>📂 Abrir resumo</b> e escolha o <b>Word</b> do resumo (na pasta do Drive).</li><li>Clique em <b>🤖 Gerar conteúdo</b>: para cada artigo, copie o pedido, cole numa conversa nova do ChatGPT e cole a resposta de volta.</li><li>Clique em <b>💾 Salvar HTML</b> e salve na pasta do resumo. Esse arquivo abre sozinho, com tudo dentro.</li></ol><p class="muted">Também abre um HTML salvo antes, um backup ou um inventário (.json).</p><button class="btn prim" onclick="$('#fAbrir').click()">📂 Abrir resumo</button></div>`;return}
- if(ehSub(T())){const k=semSub(S.user.pos.b,S.user.pos.t);if(k!==S.user.pos.t)S.user.pos.t=k}
+ if(pontoOculto(T())){const k=semSub(S.user.pos.b,S.user.pos.t);if(k!==S.user.pos.t)S.user.pos.t=k}
  const b=B(),t=T();S.user.vistos[t.id]=1;$('#assunto').textContent=S.inv.titulo;const subt=subtituloDe(S.user.pos.b,S.user.pos.t);
  // V670.8: contador "4/58" ao lado da barra (conta só os trechos; subtítulos ficam de fora, como na navegação).
- const trs=S.inv.blocos.flatMap(x=>x.trechos).filter(x=>!ehSub(x));const idx=trs.indexOf(t);$('#prog>div').style.width=((idx+1)/trs.length*100)+'%';$('#progN').textContent=(idx+1)+'/'+trs.length;
+ const trs=S.inv.blocos.flatMap(x=>x.trechos).filter(x=>!pontoOculto(x));const idx=trs.indexOf(t);$('#prog>div').style.width=((idx+1)/trs.length*100)+'%';$('#progN').textContent=(idx+1)+'/'+trs.length;
  const cor={regra:'var(--green)',jurisprudencia:'var(--blue)',alerta:'var(--amber)',ressalva:'var(--purple)'}[t.categoria]||'var(--green)';
  const nomeCat={regra:'REGRA / PONTO DO RESUMO',jurisprudencia:'JURISPRUDÊNCIA',alerta:'ALERTA / PONTO DE PROVA',ressalva:'RESSALVA'}[t.categoria]||'TRECHO';
- const mapa=S.user.mapaFechado?'':`<aside class="mapa"><h3>MAPA DOS TRECHOS</h3>${S.inv.blocos.map((x,bi)=>{const st=situacaoBloco(x);const ab=bi===S.user.pos.b;return `<div class="bl ${ab?'atual aberto':''}" id="bl${bi}"><button onclick="this.parentNode.classList.toggle('aberto')">${bi+1}. ${esc(x.titulo)}<span class="st">${st.k==='nada'?'':st.txt}</span></button><div class="trs">${x.trechos.map((y,ti)=>{if(ehSub(y))return `<div class="sub-mm">${esc(limpa(y.texto).replace(/^[^\p{L}\p{N}§]*/u,''))}</div>`;const s=situacaoTrecho(y);const ic=(S.user.prov[y.id]?'★':'')+(S.user.notas[y.id]?'✎':'')+(((S.content.trechos[y.id]||{}).jurisprudencia||[]).length||(S.user.jurUser[y.id]||[]).length?'⚖':'')+(ti===0&&S.user.imagens[x.id]?'🖼':'');return `<button class="tr ${ab&&ti===S.user.pos.t?'atual':''} ${s==='nel'?'nel':''}" onclick="ir(${bi},${ti})"><span class="dot ${s}"></span>${ti+1}. ${esc((y.rotulo||limpa(y.texto).slice(0,40)).toUpperCase())}<span class="ic">${ic}</span></button>`}).join('')}</div></div>`}).join('')}</aside>`;
+ const mapa=S.user.mapaFechado?'':`<aside class="mapa"><h3>MAPA DOS TRECHOS</h3>${S.inv.blocos.map((x,bi)=>{const st=situacaoBloco(x);const ab=bi===S.user.pos.b;return `<div class="bl ${ab?'atual aberto':''}" id="bl${bi}"><button onclick="this.parentNode.classList.toggle('aberto')">${bi+1}. ${esc(x.titulo)}<span class="st">${st.k==='nada'?'':st.txt}</span></button><div class="trs">${x.trechos.map((y,ti)=>{if(S.user.excluidos[y.id])return '';if(ehSub(y))return `<div class="sub-mm">${esc(limpa(y.texto).replace(/^[^\p{L}\p{N}§]*/u,''))}</div>`;const s=situacaoTrecho(y);const ic=(S.user.prov[y.id]?'★':'')+(S.user.notas[y.id]||notasDoTrecho(y.id).length?'✎':'')+(((S.content.trechos[y.id]||{}).jurisprudencia||[]).length||(S.user.jurUser[y.id]||[]).length?'⚖':'')+(ti===0&&S.user.imagens[x.id]?'🖼':'');return `<button class="tr ${ab&&ti===S.user.pos.t?'atual':''} ${s==='nel'?'nel':''}" onclick="ir(${bi},${ti})"><span class="dot ${s}"></span>${ti+1}. ${esc((y.rotulo||limpa(y.texto).slice(0,40)).toUpperCase())}<span class="ic">${ic}</span></button>`}).join('')}</div></div>`}).join('')}</aside>`;
  const naoExp=S.user.exportadoEm!==S.salvoEm;
  app.innerHTML=`<div class="grid ${S.user.mapaFechado?'semmapa':''}">${mapa}<section>
- <div class="hier">${esc(b.capitulo||'')}</div><div class="art-tit">${esc(b.titulo)}</div>${subt?`<div class="subt">${esc(limpa(subt.texto).replace(/^[^\p{L}\p{N}§]*/u,''))}</div>`:''}
+ <div class="leitura-titulos"><div class="hier">${esc(b.capitulo||'')}</div><div class="art-tit">${esc(b.titulo)}</div>${subt?`<div class="subt">${esc(limpa(subt.texto).replace(/^[^\p{L}\p{N}§]*/u,''))}</div>`:''}</div>
  <div class="nav-row"><button class="btn" onclick="passo(-1)">↑ Anterior</button><button class="btn" onclick="passo(1)">Próximo ↓</button>
  <select onchange="ir(+this.value,0)">${S.inv.blocos.map((x,i)=>`<option value="${i}" ${i===S.user.pos.b?'selected':''}>${i+1}. ${esc(x.titulo.slice(0,60))}</option>`).join('')}</select>
  <span id="avisoSalvo" class="muted" style="font-size:.78rem;margin-left:auto">${textoNuvem()}</span></div>
  ${avisoWordNovo?`<div class="item" style="border-color:var(--amber);margin-bottom:.8rem">📝 <b>O Word deste resumo mudou</b>${avisoWordNovo.docx_modificado?' ('+esc(avisoWordNovo.docx_modificado.replace('T',' às ').slice(0,19))+')':''}. Atualizar mantém o conteúdo dos trechos que não mudaram.<div class="row"><button class="btn prim" onclick="aplicarWordNovo()">🔄 Atualizar o leitor</button><button class="btn" onclick="avisoWordNovo=null;render()">Agora não</button></div></div>`:''}
- <div class="card" style="--cat:${cor}"><div class="card-head"><div class="k">${nomeCat} · ${b.trechos.filter(x=>!ehSub(x)).indexOf(t)+1} DE ${b.trechos.filter(x=>!ehSub(x)).length}${S.user.prov[t.id]?' · ★ PROVÁVEL':''}${S.user.textoEd[t.id]!=null?' · ✎ EDITADO POR MIM':''}</div><div class="r">${esc(t.rotulo||b.titulo)}</div></div>
- <div class="card-body">${barraDestaque(`<button class="btn" onclick="restaurar()" title="Tira todos os seus destaques deste trecho">Original</button>`)}
+ <div class="card" style="--cat:${cor}"><div class="card-head">${menuPonto()}<div class="k">${nomeCat} · ${b.trechos.filter(x=>!pontoOculto(x)).indexOf(t)+1} DE ${b.trechos.filter(x=>!pontoOculto(x)).length}${S.user.prov[t.id]?' · ★ PROVÁVEL':''}${S.user.textoEd[t.id]!=null?' · ✎ EDITADO POR MIM':''}</div><div class="r">${esc(t.rotulo||b.titulo)}</div></div>
+ <div class="card-body">${barraDestaque(`<button class="btn" onmousedown="event.preventDefault()" onclick="novaNotaInline()">Anotar expressão</button><button class="btn" onclick="restaurar()" title="Tira todos os seus destaques deste trecho">Original</button>`)}
  ${ferrTexto()}${editTexto===t.id?editorTexto(t):`<div id="texto" data-mk="t">${textoHTML(t)}</div>${lacCtrl()}`}${!t.elegivel?`<p class="muted" style="font-size:.85rem">${esc(t.motivo||'Sem conteúdo para estudar.')}</p>`:''}${ehQuadro(b)?ligacaoQuadro(t):''}</div></div>
  <div class="foco-dica muted">↑ ↓ trechos · ← → artigos · selecione o texto para destacar · <b>M</b> testa a memória · <b>F</b> ou <b>Esc</b> sai do foco</div>
  <div class="tools">${TOOLS8.map(toolBtn).join('')}</div>
@@ -1107,7 +1139,7 @@ function render(){
  const at=document.querySelector('.tr.atual');if(at&&!render.rolou){at.scrollIntoView({block:'center'});render.rolou=true}
  if(S.user.tool==='mapa')requestAnimationFrame(linhasMapa);
  medirTopo();
- fecharLei();marcarLeis($('#texto'));fecharGlos();marcarGlossario($('#texto'));marcarLeis(document.querySelector('.painel'));
+ fecharLei();marcarLeis($('#texto'));fecharGlos();marcarGlossario($('#texto'));marcarLeis(document.querySelector('.painel'));prepararAtualizacoes();
 }
 /* ============ botões do topo ============ */
 $('#bAbrir').onclick=()=>$('#fAbrir').click();
@@ -1139,11 +1171,154 @@ window.addEventListener('beforeunload',()=>{if(S&&pendente)gravarAgora()});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&S&&pendente)gravarAgora()});
 // V670.6: o GitHub Pages deixa esta página guardada no navegador por até 10 minutos. Ao abrir, confere se já há
 // versão nova (busca a página sem usar a cópia guardada) e, se houver, recarrega uma vez, depois de gravar.
-const VERSAO_LEITOR='20261024-leitor-v670-14';
+const VERSAO_LEITOR='20261024-leitor-v670-15';
 async function conferirVersaoNova(){if(!/^https?:/.test(location.protocol))return;
  try{const r=await fetch(location.pathname,{cache:'reload'});if(!r.ok)return;const m=(await r.text()).match(/const VERSAO_LEITOR='([^']+)'/);if(!m||m[1]===VERSAO_LEITOR)return;
   const k='leitor-tdah:recarregou:'+m[1];try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,'1')}catch(e){return}
   if(S&&pendente)await gravarAgora();toast('Versão nova do leitor: recarregando…');setTimeout(()=>location.reload(),600)}catch(e){}}
+/* V670.15 — recursos aprovados: anotar expressões, edição, busca, áudio e pontos. */
+const CORES_FORMATO={padrao:'Padrão',red:'Vermelho',blue:'Azul',green:'Verde',purple:'Roxo',orange:'Laranja'};
+const TIPOS_SUBLINHADO=['solid','double','dashed','dotted','wavy'];
+const NOMES_SUBLINHADO={solid:'Contínuo',double:'Duplo',dashed:'Tracejado',dotted:'Pontilhado',wavy:'Ondulado'};
+const corFormato=c=>c==='padrao'||!CORES_FORMATO[c]?'currentColor':`var(--fmt-${c})`;
+let selecaoFormato=null,buscaAtual=null,faixaFala=null,tNotaFecha=null,notaAberta='',notaFixa=false,formatosAntesModal=null;
+const editoresAtivos=new Map();
+function guardarSelecaoFormato(){const o=selecaoNaRegiao();if(o)selecaoFormato={...o,tid:T().id};return o}
+function selecaoFormatoAtual(){const o=selecaoNaRegiao();if(o)return o;if(selecaoFormato&&S&&selecaoFormato.tid===T().id&&[...document.querySelectorAll('[data-mk]')].some(el=>el.dataset.mk===selecaoFormato.key))return selecaoFormato;return null}
+function opcoesCores(sel){return Object.entries(CORES_FORMATO).map(([k,n])=>`<option value="${k}" ${sel===k?'selected':''}>${n}</option>`).join('')}
+function barraDestaque(extra=''){
+ const tipo=lsGet('leitor-tdah:sublinhado-tipo')||'solid',uc=lsGet('leitor-tdah:sublinhado-cor')||'padrao',bc=lsGet('leitor-tdah:negrito-cor')||'padrao';
+ return `<div class="dest" onmousedown="guardarSelecaoFormato()">${BTN_DEST('b','<b>B</b> Negrito','Negrito (de novo tira)')}<select aria-label="Cor do negrito" data-fmt="bc" onchange="destacarEstilo('b',this,true)">${opcoesCores(bc)}</select>${BTN_DEST('up','AA Maiúsculas','Maiúsculas (de novo tira)')}${BTN_DEST('cap','Aa Primeira maiúscula','Primeira letra maiúscula; demais minúsculas')}${BTN_DEST('u','<u>U</u> Sublinhar','Sublinhar (de novo tira)')}<select aria-label="Tipo de sublinhado" data-fmt="ut" onchange="destacarEstilo('u',this,true)">${TIPOS_SUBLINHADO.map(k=>`<option value="${k}" ${tipo===k?'selected':''}>${NOMES_SUBLINHADO[k]}</option>`).join('')}</select><select aria-label="Cor do sublinhado" data-fmt="uc" onchange="destacarEstilo('u',this,true)">${opcoesCores(uc)}</select>${['y','g','p'].map(c=>BTN_DEST(c,`<span class="sw" style="background:var(--hl-${c})"></span> Grifo`,'Grifo (de novo tira)')).join('')}${BTN_DEST('f','A+ Letra maior','Aumenta a letra do trecho selecionado')}${BTN_DEST('f-','A− Letra menor','Diminui a letra do trecho selecionado')}${BTN_DEST('rem','Tirar destaque','Tira os destaques só da seleção')}${extra}</div><div class="muted dest-dica">Selecione uma vez para aplicar mais de um formato. Ctrl+B: negrito · Ctrl+G: grifo · Ctrl+M: maiúsculas.</div>`;
+}
+function destacarEstilo(k,el,forcar){const bar=el.closest('.dest');const op={cor:k==='b'?bar.querySelector('[data-fmt="bc"]').value:bar.querySelector('[data-fmt="uc"]').value};if(k==='u')op.tipo=bar.querySelector('[data-fmt="ut"]').value;
+ if(k==='b')lsSet('leitor-tdah:negrito-cor',op.cor);else{lsSet('leitor-tdah:sublinhado-cor',op.cor);lsSet('leitor-tdah:sublinhado-tipo',op.tipo)}destacar(k,op,forcar)}
+function destacar(k,op={},forcar=false){const o=selecaoFormatoAtual();if(!o){toast('Selecione uma palavra ou expressão no texto.');return}const rg=regiaoMarcas(o.key);if(!rg)return;let ms=rg.get().slice();
+ if(k==='b'&&!op.cor)op.cor=lsGet('leitor-tdah:negrito-cor')||'padrao';if(k==='u'){op.tipo=op.tipo||lsGet('leitor-tdah:sublinhado-tipo')||'solid';op.cor=op.cor||lsGet('leitor-tdah:sublinhado-cor')||'padrao'}
+ if(k==='rem')ms=cortarMarcas(ms,o.s,o.e,()=>true);else if(k==='f'||k==='f-')ms.push({s:o.s,e:o.e,k});
+ else if(!forcar&&cobre(ms,k,o.s,o.e))ms=cortarMarcas(ms,o.s,o.e,m=>m.k===k);
+ else{const grupo=['y','g','p'].includes(k)?['y','g','p']:['up','cap'].includes(k)?['up','cap']:[k];ms=cortarMarcas(ms,o.s,o.e,m=>grupo.includes(m.k));ms.push({s:o.s,e:o.e,k,...op})}
+ rg.set(ms);if(o.key.startsWith('e:')){const ed=editoresAtivos.get(o.key);if(ed){ed.innerHTML=marcadoHTML(ed._texto,ms,{literal:true});ed._texto=ed.textContent;sincronizarEditor(ed,false)}selecionar(o.key,o.s,o.e);return}
+ salvar();const y=scrollY;render();scrollTo(0,y);selecionar(o.key,o.s,o.e);selecaoFormato={...o,tid:T().id};
+}
+function marcasBase(txt){const out=[];let pos=0;for(const r of runs(String(txt||''))){if(r.b)out.push({s:pos,e:pos+r.t.length,k:'b'});pos+=r.t.length}return out}
+function reajustarFaixas(ms,antes,depois){let p=0;while(p<antes.length&&p<depois.length&&antes[p]===depois[p])p++;let q=0;while(q<antes.length-p&&q<depois.length-p&&antes[antes.length-1-q]===depois[depois.length-1-q])q++;
+ const fim=antes.length-q,delta=depois.length-antes.length;if(p===fim&&delta>0)return (ms||[]).map(m=>m.s<=p&&m.e>p?{...m,e:m.e+delta}:m.s>=p?{...m,s:m.s+delta,e:m.e+delta}:m);return cortarMarcas(ms||[],p,fim,()=>true).map(m=>m.s>=fim?{...m,s:m.s+delta,e:m.e+delta}:m).filter(m=>m.e>m.s)}
+function chaveCampo(el){const id=el.id;if(id==='taTexto')return 't:'+T().id+':texto';if(id==='taNotaInline')return el.dataset.chave;
+ if(id==='taMapa')return 'b:'+B().id+':mapa';if(el.dataset.richkey)return el.dataset.richkey;
+ if(!id&&el.placeholder==='Sua resposta (fica salva)')return 'b:'+B().id+':tutor:'+tuI;
+ return 't:'+T().id+':'+id}
+function registroCampo(key,txt){const d=(S.user.camposFmt||{})[key],plain=plainDe(txt);return d&&d.texto===plain?{texto:plain,marcas:d.marcas||[]}:{texto:plain,marcas:marcasBase(txt)}}
+function campoHTML(key,txt){const r=registroCampo(key,txt);return `<span class="campo-formatado">${marcadoHTML(r.texto,r.marcas,{literal:true})}</span>`}
+function sincronizarEditor(ed,ler=true){const ta=ed._campo;if(!ta){S.user.camposFmt[ed._chave]={texto:ed._texto,marcas:ed._marcas};salvar();return}if(ler){const txt=ed.textContent.replace(/\r\n?/g,'\n');ed._marcas=reajustarFaixas(ed._marcas,ed._texto,txt);ed._texto=txt}
+ ta.value=ed._texto;S.user.camposFmt[ed._chave]={texto:ed._texto,marcas:ed._marcas};ta.dispatchEvent(new Event('input',{bubbles:true}));if(!ta.closest('#modalBox')&&ta.id!=='taTexto')salvar();}
+function inserirTextoNoEditor(ed,texto){const sel=getSelection();if(!sel.rangeCount)return;const r=sel.getRangeAt(0);if(!ed.contains(r.commonAncestorContainer))return;r.deleteContents();const no=document.createTextNode(texto.replace(/\r\n?/g,'\n'));r.insertNode(no);r.setStartAfter(no);r.collapse(true);sel.removeAllRanges();sel.addRange(r);ed.dispatchEvent(new Event('input',{bubbles:true}))}
+function eventosEditor(ed){ed.addEventListener('beforeinput',e=>{if(['insertParagraph','insertLineBreak'].includes(e.inputType)){e.preventDefault();inserirTextoNoEditor(ed,'\n')}});ed.addEventListener('paste',e=>{e.preventDefault();inserirTextoNoEditor(ed,e.clipboardData.getData('text/plain'))});ed.addEventListener('drop',e=>{e.preventDefault();inserirTextoNoEditor(ed,e.dataTransfer.getData('text/plain'))})}
+function prepararEditores(raiz=document){if(!S)return;S.user.camposFmt=S.user.camposFmt||{};const alvos=[...raiz.querySelectorAll('textarea,input[id="mnT"],input[id="mnE"]')];
+ for(const ta of alvos){if(ta.hidden||ta.dataset.richReady||['taResp','taFerr','jCola'].includes(ta.id)||(!ta.id&&ta.placeholder!=='Sua resposta (fica salva)'))continue;
+  const key=chaveCampo(ta);if(!key)continue;ta.dataset.richReady='1';const r=registroCampo(key,ta.value),ed=document.createElement('div'),wrap=document.createElement('div');wrap.className='rich-wrap';
+  const bar=document.createElement('div');bar.innerHTML=barraDestaque();ed.className='rich-editor';ed.contentEditable='true';ed.setAttribute('role','textbox');ed.setAttribute('aria-multiline','true');ed.setAttribute('aria-label',ta.placeholder||({taTexto:'Editar texto do ponto',taMapa:'Editar mapa mental',taNotaInline:'Editar anotação',taNovoTexto:'Texto do novo ponto',taCardFrente:'Frente do cartão',taCardVerso:'Verso do cartão',taCardExp:'Explicação do cartão'}[ta.id]||ta.id));
+  ed.dataset.mk='e:'+key;ed.dataset.origem=ta.id;ed.dataset.placeholder=ta.placeholder||'';ed._chave=key;ed._campo=ta;ed._texto=r.texto;ed._marcas=r.marcas;ed.innerHTML=marcadoHTML(r.texto,r.marcas,{literal:true});editoresAtivos.set(ed.dataset.mk,ed);
+  ta.before(wrap);wrap.appendChild(bar);wrap.appendChild(ed);wrap.appendChild(ta);ta.hidden=true;ta.value=r.texto;ta._editor=ed;
+  ed.addEventListener('input',()=>sincronizarEditor(ed));eventosEditor(ed);
+ }
+ for(const el of raiz.querySelectorAll('.flt[contenteditable="true"]')){if(el.dataset.mk)continue;const key='b:'+B().id+':fluxo:'+el.dataset.nid,r=registroCampo(key,el.textContent);el.dataset.mk='e:'+key;el._chave=key;el._texto=r.texto;el._marcas=r.marcas;el.innerHTML=marcadoHTML(r.texto,r.marcas,{literal:true});editoresAtivos.set(el.dataset.mk,el);el.addEventListener('input',()=>{const text=el.textContent;el._marcas=reajustarFaixas(el._marcas,el._texto,text);el._texto=text;S.user.camposFmt[key]={texto:text,marcas:el._marcas};salvar()});eventosEditor(el)}
+ if(raiz.querySelector('.flt[contenteditable="true"]')&&!raiz.querySelector('.fluxo-formatos')){const f=raiz.querySelector('.fl');if(f){const bar=document.createElement('div');bar.className='fluxo-formatos';bar.innerHTML=barraDestaque();f.before(bar)}}
+}
+function capturarFormato(id,key){const ta=$('#'+id);if(!ta)return;const ed=ta._editor;if(ed)S.user.camposFmt[key]={texto:ed._texto,marcas:ed._marcas.map(m=>({...m}))}}
+function iniciarFormatosModal(){if(!S)return;formatosAntesModal=JSON.parse(JSON.stringify(S.user.camposFmt||{}))}
+function concluirFormatosModal(guardar){if(!S||!formatosAntesModal)return;if(!guardar){for(const el of document.querySelectorAll('#modalBox [data-mk^="e:"]')){const key=el._chave;if(Object.prototype.hasOwnProperty.call(formatosAntesModal,key))S.user.camposFmt[key]=formatosAntesModal[key];else delete S.user.camposFmt[key]}}formatosAntesModal=null}
+function marcasCampo(id){const ta=$('#'+id);return ta&&ta._editor?ta._editor._marcas.map(m=>({...m})):[]}
+function campoMapaHTML(txt){const d=S.user.camposFmt['b:'+B().id+':mapa'];if(!d)return negrito(txt);const s=d.texto.indexOf(plainDe(txt));if(s<0)return negrito(txt);const e=s+plainDe(txt).length;return marcadoHTML(plainDe(txt),(d.marcas||[]).filter(m=>m.s<e&&m.e>s).map(m=>({...m,s:Math.max(m.s,s)-s,e:Math.min(m.e,e)-s})),{literal:true})}
+
+/* Anotações ligadas aos intervalos do texto; nenhuma marca é inserida no Word. */
+function notasDoTrecho(tid=T().id){return (S.user.notasInline||{})[tid]||[]}
+function editarNotaInline(id){const n=notasDoTrecho().find(n=>n.id===id);if(!n)return;abrirEditorNota(n)}
+function novaNotaInline(){const o=selecaoFormatoAtual();if(!o||o.key!=='t'){toast('Selecione uma expressão no texto do ponto para anotar.');return}if(S.user.lacunas){toast('Saia do teste de memória para criar a anotação.');return}
+ const existente=notasDoTrecho().find(n=>!n.desvinculada&&n.s<o.e&&n.e>o.s);if(existente){abrirEditorNota(existente);return}
+ abrirEditorNota({id:'nota-'+crypto.randomUUID(),s:o.s,e:o.e,expressao:plainDe(txtDe(T())).slice(o.s,o.e),texto:'',marcas:[]},true)}
+function abrirEditorNota(n,nova=false){fecharNotaPop();const key='t:'+T().id+':inline:'+n.id;S.user.camposFmt[key]={texto:n.texto||'',marcas:n.marcas||[]};
+ abrirModal(`<h2>${nova?'Nova anotação':'Editar anotação'}</h2><p class="nota-item-frase">${esc(n.expressao)}</p><textarea id="taNotaInline" data-chave="${esc(key)}" placeholder="Escreva sua anotação">${esc(n.texto||'')}</textarea><div class="row"><button class="btn prim" id="salvarNotaInline">💾 Salvar anotação</button><button class="btn" onclick="fecharModal()">Cancelar</button></div>`);
+ $('#salvarNotaInline').onclick=()=>{const ta=$('#taNotaInline'),texto=ta.value;if(!texto.trim()){toast('Escreva a anotação antes de salvar.');return}const l=S.user.notasInline[T().id]=notasDoTrecho();const x={...n,texto,marcas:marcasCampo('taNotaInline')};const i=l.findIndex(v=>v.id===n.id);if(i<0)l.push(x);else l[i]=x;fecharModal(true);salvar();render();toast('Anotação ligada à expressão.')};
+ const ed=$('#taNotaInline')._editor;if(ed)ed.focus();
+}
+function excluirNotaInline(id){abrirModal(`<h2>Excluir anotação?</h2><p>A expressão continuará no texto.</p><div class="row"><button class="btn prim" id="excluirNotaConfirmada">Excluir anotação</button><button class="btn" onclick="fecharModal()">Cancelar</button></div>`);$('#excluirNotaConfirmada').onclick=()=>{S.user.notasInline[T().id]=notasDoTrecho().filter(n=>n.id!==id);fecharNotaPop();salvar();fecharModal();render()}}
+const argHTML=v=>esc(JSON.stringify(String(v)));
+function notasInlineHTML(){const l=notasDoTrecho();return l.length?'<h4 style="margin-top:1.2rem">Anotações nas expressões</h4>'+l.map(n=>`<div class="item"><div class="nota-item-frase">${esc(n.expressao)}${n.desvinculada?' · expressão alterada no texto':''}</div><div class="resp-colada">${marcadoHTML(n.texto,n.marcas,{literal:true})}</div><div class="row"><button class="btn sm" onclick="editarNotaInline(${argHTML(n.id)})">Editar anotação</button><button class="btn sm" onclick="excluirNotaInline(${argHTML(n.id)})">Excluir anotação</button></div></div>`).join(''):''}
+function fecharNotaPop(){clearTimeout(tNotaFecha);const p=$('#notaPop');if(p)p.hidden=true;notaAberta='';notaFixa=false}
+function mostrarNotaPop(el,fixa=false){const n=notasDoTrecho().find(x=>x.id===el.dataset.nota);if(!n)return;clearTimeout(tNotaFecha);fecharGlos();fecharLei();let p=$('#notaPop');if(!p){p=document.createElement('div');p.id='notaPop';p.setAttribute('role','dialog');p.setAttribute('aria-label','Anotação da expressão');document.body.appendChild(p);p.addEventListener('mouseenter',()=>clearTimeout(tNotaFecha));p.addEventListener('mouseleave',()=>{if(!notaFixa)tNotaFecha=setTimeout(fecharNotaPop,180)})}
+ notaAberta=n.id;notaFixa=fixa;p.innerHTML=`<div class="nota-pop-titulo">MINHA ANOTAÇÃO</div><div>${marcadoHTML(n.texto,n.marcas,{literal:true})}</div><div class="row"><button class="btn sm" onclick="editarNotaInline(${argHTML(n.id)})">Editar</button><button class="btn sm" onclick="fecharNotaPop()">Fechar</button></div>`;p.hidden=false;
+ const r=el.getBoundingClientRect();p.style.left=Math.max(8,Math.min(r.left,innerWidth-p.offsetWidth-8))+'px';p.style.top=Math.max(8,r.bottom+8+p.offsetHeight>innerHeight?r.top-p.offsetHeight-8:r.bottom+8)+'px';}
+document.addEventListener('mouseover',e=>{const el=e.target.closest&&e.target.closest('.nota-inline');if(el)mostrarNotaPop(el)},true);
+document.addEventListener('mouseout',e=>{if(e.target.closest&&e.target.closest('.nota-inline')&&!notaFixa){clearTimeout(tNotaFecha);tNotaFecha=setTimeout(fecharNotaPop,200)}});
+document.addEventListener('click',e=>{const el=e.target.closest&&e.target.closest('.nota-inline');if(el){if(getSelection().toString())return;e.stopImmediatePropagation();mostrarNotaPop(el,true)}else if(!e.target.closest('#notaPop'))fecharNotaPop()},true);
+document.addEventListener('keydown',e=>{const el=e.target.closest&&e.target.closest('.nota-inline');if(el&&(e.key==='Enter'||e.key===' ')){e.preventDefault();mostrarNotaPop(el,true)}if(e.key==='Escape')fecharNotaPop()});
+function ajustarNotas(id,antes,depois){const a=plainDe(antes),d=plainDe(depois);let p=0;while(p<a.length&&p<d.length&&a[p]===d[p])p++;let q=0;while(q<a.length-p&&q<d.length-p&&a[a.length-1-q]===d[d.length-1-q])q++;const fim=a.length-q,delta=d.length-a.length;
+ for(const n of notasDoTrecho(id)){if(n.desvinculada)continue;if(n.e<=p)continue;if(n.s>=fim){n.s+=delta;n.e+=delta}else n.desvinculada=true}}
+
+/* Busca sem distinção de acentos ou caixa, em todo o resumo e nas anotações. */
+function resultadosBusca(consulta,estado=S){const q=normTxt(String(consulta||'').trim());if(!q||!estado)return [];const out=[];estado.inv.blocos.forEach((b,bi)=>b.trechos.forEach((t,ti)=>{if(t.sub||t.motivo==='Subtítulo do artigo.'||(estado.user.excluidos||{})[t.id])return;
+ const itens=[{tipo:'Texto',texto:plainDe((estado.user.textoEd||{})[t.id]??t.texto)}];if((estado.user.notas||{})[t.id])itens.push({tipo:'Anotação',texto:estado.user.notas[t.id]});for(const n of (estado.user.notasInline||{})[t.id]||[])itens.push({tipo:'Anotação na expressão',texto:n.texto,notaId:n.id});
+ for(const item of itens){const text=String(item.texto||''),normal=normTxt(text);let s=0;while(out.length<200&&(s=normal.indexOf(q,s))>=0){out.push({...item,bi,ti,tid:t.id,titulo:b.titulo,rotulo:t.rotulo||'',s,e:s+q.length});s+=Math.max(1,q.length)}}}));return out}
+let resultadosAtuais=[];
+function abrirBusca(){abrirModal(`<h2>Buscar no resumo</h2><label for="buscaResumo">Texto ou anotação</label><input class="modal-busca" id="buscaResumo" type="search" placeholder="Digite uma palavra ou expressão" oninput="pintarBusca(this.value)"><div id="contagemBusca" class="muted" aria-live="polite" style="margin-top:.6rem">Digite para pesquisar.</div><div id="resultadosBusca" class="busca-resultados"></div><div class="row"><button class="btn" onclick="fecharModal()">Fechar</button></div>`);$('#buscaResumo').focus()}
+function pintarBusca(q){resultadosAtuais=resultadosBusca(q);const box=$('#resultadosBusca');if(!box)return;$('#contagemBusca').textContent=q.trim()?(resultadosAtuais.length>=200?'Primeiros 200 resultados. Refine a busca.':resultadosAtuais.length+' resultado(s).'):'Digite para pesquisar.';
+ box.innerHTML=resultadosAtuais.map((r,i)=>{const s=Math.max(0,r.s-50),e=Math.min(r.texto.length,r.e+90);return `<button class="btn busca-resultado" onclick="irResultadoBusca(${i})"><small>${esc(r.tipo)} · ${esc(r.titulo)} · ${esc(r.rotulo)}</small>${s?'…':''}${esc(r.texto.slice(s,r.s))}<mark>${esc(r.texto.slice(r.s,r.e))}</mark>${esc(r.texto.slice(r.e,e))}${e<r.texto.length?'…':''}</button>`}).join('')}
+function irResultadoBusca(i){const r=resultadosAtuais[i];if(!r)return;buscaAtual=r.tipo==='Texto'?{tid:r.tid,s:r.s,e:r.e}:null;if(r.tipo!=='Texto')S.user.tool='notas';fecharModal();ir(r.bi,r.ti);requestAnimationFrame(()=>{const el=$('.busca-achado')||document.querySelector('.painel');if(el)el.scrollIntoView({block:'center',behavior:'smooth'})})}
+
+/* Pontos novos e exclusão reversível, com ações disponíveis também no foco. */
+const pontoOculto=t=>ehSub(t)||!!(S&&S.user.excluidos&&S.user.excluidos[t.id]);
+function posicoesLeitura(){const out=[];if(S)S.inv.blocos.forEach((b,bi)=>b.trechos.forEach((t,ti)=>{if(!pontoOculto(t))out.push({b:bi,t:ti,id:t.id})}));return out}
+function menuPonto(){return `<details class="ponto-menu"><summary aria-label="Ações do ponto" title="Adicionar ou excluir ponto">⋯</summary><div class="ponto-opcoes"><button class="btn sm" onclick="abrirNovoPonto()">＋ Adicionar ponto</button><button class="btn sm" onclick="excluirPonto()">Excluir este ponto</button><button class="btn sm" onclick="abrirPontosExcluidos()">Restaurar pontos excluídos</button><button class="btn sm" onclick="ouvir()">🔊 Ouvir este ponto</button><button class="btn sm" onclick="pararVoz()">Parar áudio</button><label><input type="checkbox" ${acompanharVoz?'checked':''} onchange="alternarAcompanhamento(this.checked)"> Acompanhar leitura</label></div></details>`}
+function abrirNovoPonto(){abrirModal(`<h2>Adicionar regra / ponto do resumo</h2><label for="novoRotulo">Título do ponto</label><input id="novoRotulo" style="width:100%" placeholder="Título do novo ponto"><label for="taNovoTexto" style="display:block;margin-top:.7rem">Texto</label><textarea id="taNovoTexto" placeholder="Texto do novo ponto"></textarea><div class="row"><button class="btn prim" onclick="guardarNovoPonto()">Adicionar ponto</button><button class="btn" onclick="fecharModal()">Cancelar</button></div>`)}
+function adicionarPonto(rotulo,texto,marcas=[]){if(!texto.trim())return null;const b=B(),atual=T(),t={id:'meu-ponto-'+crypto.randomUUID(),categoria:'regra',rotulo:rotulo.trim()||'Meu ponto',texto,elegivel:true,criadoPorMim:true};
+ const i=b.trechos.indexOf(atual)+1;b.trechos.splice(i,0,t);S.user.pontosNovos.push({blocoId:b.id,blocoTitulo:b.titulo,depoisId:atual.id,depoisTexto:atual.texto,t:{...t}});if(marcas.length)S.user.marcas[t.id]=marcas;S.user.pos.t=i;return t}
+function guardarNovoPonto(){const texto=$('#taNovoTexto').value;const t=adicionarPonto($('#novoRotulo').value,texto,marcasCampo('taNovoTexto'));if(!t){toast('Escreva o texto do novo ponto.');return}fecharModal();salvar();render();toast('Ponto adicionado depois do ponto atual.')}
+function excluirPonto(){if(posicoesLeitura().length<2){toast('Mantenha pelo menos um ponto no resumo. Você pode adicionar outro antes de excluir este.');return}abrirModal(`<h2>Excluir este ponto?</h2><p>${esc(T().rotulo||'Ponto atual')}</p><p>Você poderá restaurá-lo em “Restaurar pontos excluídos”, pelo menu ⋯.</p><div class="row"><button class="btn prim" onclick="confirmarExclusaoPonto()">Excluir ponto</button><button class="btn" onclick="fecharModal()">Cancelar</button></div>`)}
+function confirmarExclusaoPonto(){
+ const lista=posicoesLeitura(),i=lista.findIndex(p=>p.id===T().id);S.user.excluidos[T().id]=true;const alvo=lista[i+1]||lista[i-1];fecharModal();salvar();ir(alvo.b,alvo.t);toast('Ponto excluído. Você pode restaurá-lo pelo menu ⋯.')}
+function abrirPontosExcluidos(){const itens=[];S.inv.blocos.forEach((b,bi)=>b.trechos.forEach((t,ti)=>{if(S.user.excluidos[t.id])itens.push({b,t,bi,ti})}));abrirModal(`<h2>Pontos excluídos</h2>${itens.length?itens.map(x=>`<div class="item"><b>${esc(x.t.rotulo||x.t.texto.slice(0,60))}</b><div class="muted">${esc(x.b.titulo)}</div><button class="btn sm" onclick="restaurarPonto(${x.bi},${x.ti})">Restaurar ponto</button></div>`).join(''):'<p>Nenhum ponto excluído.</p>'}<div class="row"><button class="btn" onclick="fecharModal()">Fechar</button></div>`)}
+function restaurarPonto(b,t){delete S.user.excluidos[S.inv.blocos[b].trechos[t].id];salvar();fecharModal();ir(b,t)}
+function restaurarPontosNovos(){if(!S)return;for(const p of S.user.pontosNovos||[]){const b=S.inv.blocos.find(b=>b.id===p.blocoId||b.titulo===p.blocoTitulo);if(!b||b.trechos.some(t=>t.id===p.t.id))continue;const at=b.trechos.findIndex(t=>t.id===p.depoisId||t.texto===p.depoisTexto);b.trechos.splice(at<0?b.trechos.length:at+1,0,{...p.t})}}
+
+/* Áudio: cada frase carrega o intervalo original, inclusive ao ler uma seleção. */
+let acompanharVoz=lsGet('leitor-tdah:acompanhar-voz')==='1',falaFaixas=[],falaTrecho='';
+function normalizarFala(txt,base=0){let chars=[];let off=0;for(const c of String(txt)){for(let i=0;i<c.length;i++)chars.push({c:c[i],s:base+off,e:base+off+c.length});off+=c.length}
+ const trocar=(re,valor)=>{const texto=chars.map(x=>x.c).join(''),out=[];let ult=0;for(const m of texto.matchAll(re)){out.push(...chars.slice(ult,m.index));const f=typeof valor==='function'?valor(m):valor,parte=chars.slice(m.index,m.index+m[0].length);if(parte.length)for(const c of f)out.push({c,s:parte[0].s,e:parte[parte.length-1].e});ult=m.index+m[0].length}out.push(...chars.slice(ult));chars=out};
+ trocar(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu,'');trocar(/§§/g,'parágrafos');trocar(/§/g,'parágrafo');trocar(/(?<![\p{L}])art\./giu,'artigo');trocar(/\s+/g,' ');while(chars.length&&chars[0].c===' ')chars.shift();while(chars.length&&chars[chars.length-1].c===' ')chars.pop();return {texto:chars.map(x=>x.c).join(''),mapa:chars.map(({s,e})=>({s,e}))}}
+function frasesMapeadas(txt,base=0){const n=normalizarFala(txt,base);let pos=0;return frasesDe(n.texto).map(texto=>{const i=n.texto.indexOf(texto,pos);if(i<0)return {texto,s:base,e:base};pos=i+texto.length;return {texto,s:n.mapa[i].s,e:n.mapa[pos-1].e}})}
+function alternarAcompanhamento(v){acompanharVoz=!!v;lsSet('leitor-tdah:acompanhar-voz',v?'1':'0');document.querySelectorAll('.audio-acompanhar input,.ponto-opcoes input[type="checkbox"]').forEach(el=>el.checked=acompanharVoz);if(!v)limparFaixaVoz();else if(falando&&!pausado)realcarFraseVoz()}
+function limparFaixaVoz(){if(!faixaFala)return;faixaFala=null;if(S&&$('#texto'))redesenharTexto()}
+function realcarFraseVoz(){if(!acompanharVoz||!S||falaTrecho!==T().id)return;const f=falaFaixas[falaI];if(!f)return;faixaFala={tid:T().id,s:f.s,e:f.e};redesenharTexto();const el=$('#texto .fala-ativa');if(el){const r=el.getBoundingClientRect(),topo=$('#topo').offsetHeight+($('.leitura-titulos')?.offsetHeight||0)+12;if(r.top<topo||r.bottom>innerHeight-20)el.scrollIntoView({block:'center',behavior:'smooth'})}}
+function ouvir(repetir){const ss=window.speechSynthesis;if(!ss||!S)return;if(repetir&&falando&&falaFrases.length){ss.cancel();pausado=false;falarFrase(++falaId);pintaVoz();return}
+ let texto=plainDe(txtDe(T())),base=0;const o=selecaoNaRegiao();if(o&&o.key==='t'){base=o.s;texto=texto.slice(o.s,o.e)}
+ const fs=frasesMapeadas(texto,base);if(!fs.length)return;ultimaFala=fs.map(f=>f.texto).join(' ');ss.cancel();vozFalhou=false;falaFaixas=fs;falaFrases=fs.map(f=>f.texto);falaTrecho=T().id;falaI=0;falando=true;pausado=false;falarFrase(++falaId);pintaVoz()}
+function falarFrase(id){const ss=window.speechSynthesis;if(id!==falaId||pausado)return;if(falaI>=falaFrases.length){falando=false;limparFaixaVoz();pintaVoz();return}const u=new SpeechSynthesisUtterance(falaFrases[falaI]);u.lang='pt-BR';u.rate=+(lsGet('leitor-tdah:voz-vel')||1);
+ let v=vozEscolhida();if(v&&vozFalhou&&!v.localService)v=vozesPt().find(x=>x.localService)||v;if(v)u.voice=v;u.onstart=()=>{if(id===falaId)realcarFraseVoz()};u.onend=()=>{if(id!==falaId)return;falaI++;falarFrase(id)};
+ u.onerror=e=>{if(id!==falaId||pausado||/interrupted|canceled/.test(e.error||''))return;if(v&&!v.localService&&!vozFalhou){vozFalhou=true;toast('A voz do Google não respondeu. Continuei com a voz do Windows.',5000);falarFrase(id);return}falando=false;limparFaixaVoz();pintaVoz()};ss.speak(u)}
+function pararVoz(){falaId++;if(window.speechSynthesis)speechSynthesis.cancel();falando=false;pausado=false;limparFaixaVoz();pintaVoz()}
+
+/* Criação e edição de flashcards usam os mesmos campos com formatação. */
+const chaveCard=(k,c,id=T().id)=>'t:'+id+':card:'+k+':'+c;
+function abrirEditorCard(k){const id=T().id,novo=!k,key=k||'u'+(S.user.cardsUser[id]||[]).length;const c=novo?{frente:'',verso:'',explicacao:''}:(k[0]==='p'?(cT().flashcards||[]):(S.user.cardsUser[id]||[]))[+k.slice(1)];if(!c)return;
+ abrirModal(`<h2>${novo?'Criar meu cartão':'Editar cartão'}</h2>${[['Frente','frente'],['Verso','verso'],['Explicação (opcional)','explicacao']].map(([nome,campo])=>`<label>${nome}</label><textarea id="${{frente:'taCardFrente',verso:'taCardVerso',explicacao:'taCardExp'}[campo]}" data-richkey="${chaveCard(key,campo)}" placeholder="${nome}">${esc(c[campo]||'')}</textarea>`).join('')}<div class="row"><button class="btn prim" id="salvarCardEditor">Salvar cartão</button><button class="btn" onclick="fecharModal()">Cancelar</button></div>`);
+ $('#salvarCardEditor').onclick=()=>{const frente=$('#taCardFrente').value,verso=$('#taCardVerso').value;if(!frente.trim()||!verso.trim()){toast('Preencha a frente e o verso.');return}const dados={...c,frente,verso,explicacao:$('#taCardExp').value};if(novo)(S.user.cardsUser[id]=S.user.cardsUser[id]||[]).push(dados);else Object.assign(c,dados);fecharModal(true);salvar();render()}}
+function novoCard(){abrirEditorCard('')}
+function editarCard(k){abrirEditorCard(k)}
+function guardarMnemo(){const texto=$('#mnT').value,explicacao=$('#mnE').value;if(!texto.trim())return;const l=S.user.mnemoUser[B().id]=S.user.mnemoUser[B().id]||[],i=l.length;capturarFormato('mnT','b:'+B().id+':mnemo:'+i+':texto');capturarFormato('mnE','b:'+B().id+':mnemo:'+i+':explicacao');l.push({texto,explicacao,marcas:{texto:marcasCampo('mnT'),explicacao:marcasCampo('mnE')}});salvar();render()}
+
+function prepararAtualizacoes(){if(!S)return;for(const [key,ed] of editoresAtivos)if(!ed.isConnected)editoresAtivos.delete(key);prepararEditores(document.querySelector('#app'));fecharNotaPop();
+ const titulo=$('.leitura-titulos');if(titulo&&'ResizeObserver' in window){if(prepararAtualizacoes.observer)prepararAtualizacoes.observer.disconnect();prepararAtualizacoes.observer=new ResizeObserver(medirTopo);prepararAtualizacoes.observer.observe(titulo)}medirTopo();
+}
+
+/* Botão direito: negrito na seleção ou na palavra clicada; fora do texto o menu permanece normal. */
+function intervaloPalavra(txt,pos){const letra=c=>!!c&&/[\p{L}\p{N}_-]/u.test(c);let i=Math.max(0,Math.min(txt.length,pos));if(!letra(txt[i])&&i>0&&letra(txt[i-1]))i--;if(!letra(txt[i]))return null;let s=i,e=i+1;while(s>0&&letra(txt[s-1]))s--;while(e<txt.length&&letra(txt[e]))e++;return {s,e}}
+let selecaoDireita=null;
+document.addEventListener('mousedown',e=>{if(e.button!==2||!S)return;const reg=e.target.closest&&e.target.closest('[data-mk]');const o=reg&&selecaoNaRegiao();selecaoDireita=o&&o.key===reg.dataset.mk?{...o,tid:T().id}:null},true);
+document.addEventListener('contextmenu',e=>{if(!S)return;const reg=e.target.closest&&e.target.closest('[data-mk]');if(!reg)return;let o=selecaoDireita&&selecaoDireita.tid===T().id&&selecaoDireita.key===reg.dataset.mk?selecaoDireita:selecaoNaRegiao();selecaoDireita=null;
+ if(!o||o.key!==reg.dataset.mk){let r=document.caretRangeFromPoint?document.caretRangeFromPoint(e.clientX,e.clientY):null;if(!r&&document.caretPositionFromPoint){const c=document.caretPositionFromPoint(e.clientX,e.clientY);if(c){r=document.createRange();r.setStart(c.offsetNode,c.offset);r.collapse(true)}}if(!r||!reg.contains(r.startContainer))return;const p=document.createRange();p.selectNodeContents(reg);p.setEnd(r.startContainer,r.startOffset);const faixa=intervaloPalavra(reg.textContent,p.toString().length);if(!faixa)return;o={key:reg.dataset.mk,...faixa}}
+ if(o.e<=o.s)return;e.preventDefault();selecionar(o.key,o.s,o.e);selecaoFormato={...o,tid:T().id};destacar('b');
+});
+
 render();carregarInicial().then(()=>{render();if(S&&PARAM.get('revisar'))abrirRevisao();conferirVersaoNova()});
 window.LT={docxParaInventario,importarObjetos,extrairJsons,pedidoBloco,get S(){return S},set S(v){S=v;fixar()},render,situacaoBloco};
 </script>
