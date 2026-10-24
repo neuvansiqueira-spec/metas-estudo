@@ -74,7 +74,12 @@ main{max-width:1500px;margin:0 auto;padding:1rem 1.2rem 4rem}
 .dest{display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.7rem;position:sticky;top:calc(var(--topo,4.5rem) + 4px);z-index:6;background:var(--panel);padding:.35rem 0;box-shadow:0 6px 8px -8px #0008}
 .dest .btn{padding:.25rem .55rem;font-size:.75rem}
 .sw{display:inline-block;width:.85rem;height:.85rem;border-radius:3px;vertical-align:-2px}
-#texto{font-size:var(--fs);line-height:1.55;white-space:pre-wrap}
+#texto{font-size:var(--fs);line-height:1.55;white-space:pre-wrap;text-align:justify;hyphens:auto;-webkit-hyphens:auto}
+/* V670.13: respostas e julgados também justificados; glossário sublinhado no texto; editor do trecho */
+.resp-colada,.jur-tese,.jur-fund{text-align:justify;hyphens:auto;-webkit-hyphens:auto}
+.glos{text-decoration:underline dashed var(--green);text-decoration-thickness:2px;text-underline-offset:4px;cursor:help}
+#glosPop{position:absolute;z-index:70;display:none;max-width:min(460px,90vw);background:var(--surface);color:var(--ink);border:2px solid var(--green);border-radius:12px;padding:.6rem .8rem;box-shadow:0 12px 30px #0007;font-size:.95rem;line-height:1.45}
+#taTexto{font-size:var(--fs);line-height:1.55;min-height:12rem}
 .m-b{font-weight:850}.m-up{text-transform:uppercase}
 .m-y{background:var(--hl-y)}.m-g{background:var(--hl-g)}.m-p{background:var(--hl-p)}
 .m-f1{font-size:1.2em}.m-f2{font-size:1.4em}.m-f3{font-size:1.65em}.m-f4{font-size:1.9em}.m-fm{font-size:.82em}
@@ -237,7 +242,7 @@ function lsSet(k,v){try{localStorage.setItem(k,v);return true}catch(e){return fa
 
 /* ============ estado ============ */
 let S=null; // {inv, content:{blocos,trechos}, user, salvoEm}
-const novoUser=()=>({pos:{b:0,t:0},prov:{},notas:{},marcas:{},marcasC:{},cards:{},agenda:{},cardsUser:{},imagens:{},jurUser:{},mnemoUser:{},mapaUser:{},fluxoUser:{},tutorResp:{},duvidas:{},vistos:{},tool:'',mais:false,mapaFechado:false,soErrados:false});
+const novoUser=()=>({pos:{b:0,t:0},prov:{},notas:{},marcas:{},marcasC:{},textoEd:{},cards:{},agenda:{},cardsUser:{},imagens:{},jurUser:{},mnemoUser:{},mapaUser:{},fluxoUser:{},tutorResp:{},duvidas:{},vistos:{},tool:'',mais:false,mapaFechado:false,soErrados:false});
 let tema=lsGet('leitor-tdah:tema')||'auto', fs=+(lsGet('leitor-tdah:fs')||22);
 function aplicaPrefs(){document.documentElement.dataset.theme=tema;document.documentElement.style.setProperty('--fs',fs+'px')}
 aplicaPrefs();
@@ -290,7 +295,7 @@ function aplicarWordNovo(){const novo=avisoWordNovo;if(!novo)return;avisoWordNov
 const plainDe=txt=>runs(String(txt||'')).map(r=>r.t).join('');
 function migrarEstado(v,inv){
  const vu=v.user||{},vc=v.content||{},vct=vc.trechos||{},vcb=vc.blocos||{};
- const porTrecho=['prov','notas','marcas','marcasC','cards','agenda','cardsUser','jurUser','duvidas','vistos'],porBloco=['imagens','mnemoUser','mapaUser','fluxoUser','tutorResp'];
+ const porTrecho=['prov','notas','marcas','marcasC','textoEd','cards','agenda','cardsUser','jurUser','duvidas','vistos'],porBloco=['imagens','mnemoUser','mapaUser','fluxoUser','tutorResp'];
  const U=Object.assign(novoUser(),vu);for(const k of [...porTrecho,...porBloco])U[k]={};U.pos={b:0,t:0};
  const n={inv,content:{blocos:{},trechos:{}},user:U,salvoEm:v.salvoEm||''};
  const usados=new Set();const fila=new Map();
@@ -314,6 +319,7 @@ function migrarEstado(v,inv){
    let offP=0,offU=0;
    for(const f of fontes){const id=f.t.id;const nP=((vct[id]||{}).flashcards||[]).length,nU=((vu.cardsUser||{})[id]||[]).length;
     if(vu.marcasC&&vu.marcasC[id]&&fontes.length===1)U.marcasC[nt.id]=vu.marcasC[id];
+    if(vu.textoEd&&vu.textoEd[id]!=null&&fontes.length===1)U.textoEd[nt.id]=vu.textoEd[id];
     if(vu.prov&&vu.prov[id])U.prov[nt.id]=1;if(vu.vistos&&vu.vistos[id])U.vistos[nt.id]=1;
     if(vu.notas&&vu.notas[id])U.notas[nt.id]=(U.notas[nt.id]?U.notas[nt.id]+'\n':'')+vu.notas[id];
     if(vu.marcas&&vu.marcas[id]&&f.off>=0)(U.marcas[nt.id]=U.marcas[nt.id]||[]).push(...vu.marcas[id].map(m=>({...m,s:m.s+f.off,e:m.e+f.off})));
@@ -452,7 +458,7 @@ async function abrirArquivo(f){
 }
 function abrirEstado(j){S=j;fixar();salvar();render()}
 function temConteudoAlgum(){return Object.keys(S.content.trechos).length>0}
-function estadoTemAlgo(x){const c=x.content||{},u=x.user||{},n=o=>Object.keys(o||{}).length;return !!(n(c.trechos)||n(c.blocos)||n(u.prov)||n(u.notas)||n(u.cards)||n(u.cardsUser)||n(u.marcas)||n(u.jurUser)||n(u.duvidas)||n(u.imagens))}
+function estadoTemAlgo(x){const c=x.content||{},u=x.user||{},n=o=>Object.keys(o||{}).length;return !!(n(c.trechos)||n(c.blocos)||n(u.prov)||n(u.notas)||n(u.cards)||n(u.cardsUser)||n(u.marcas)||n(u.jurUser)||n(u.duvidas)||n(u.imagens)||n(u.textoEd))}
 const assinaturaInv=inv=>JSON.stringify((inv.blocos||[]).map(b=>[b.id,b.trechos.map(t=>t.id+'|'+limpa(t.texto))]))
 
 /* ============ pedido para o GPT (Passo 2 embutido) ============ */
@@ -622,7 +628,7 @@ const B=()=>S.inv.blocos[S.user.pos.b];const T=()=>B().trechos[S.user.pos.t];
 const ehSub=t=>!!t&&(t.sub||t.motivo==='Subtítulo do artigo.');
 function semSub(b,t,d=1){const tr=S.inv.blocos[b].trechos;let k=t;while(k>=0&&k<tr.length&&ehSub(tr[k]))k+=d;if(k<0||k>=tr.length){k=t;while(k>=0&&k<tr.length&&ehSub(tr[k]))k-=d}return (k<0||k>=tr.length)?t:k}
 function subtituloDe(b,t){const tr=S.inv.blocos[b].trechos;for(let k=t;k>=0;k--)if(ehSub(tr[k]))return tr[k];return null}
-function ir(b,t,d=1){if(typeof pararVoz==='function'&&falando)pararVoz();t=semSub(b,t,d);S.user.pos={b,t};S.user.vistos[S.inv.blocos[b].trechos[t].id]=1;salvar();render();window.scrollTo({top:0,behavior:'smooth'})}
+function ir(b,t,d=1){if(typeof pararVoz==='function'&&falando)pararVoz();editTexto='';t=semSub(b,t,d);S.user.pos={b,t};S.user.vistos[S.inv.blocos[b].trechos[t].id]=1;salvar();render();window.scrollTo({top:0,behavior:'smooth'})}
 function passo(d){let {b,t}=S.user.pos;do{t+=d;while(t<0){b--;if(b<0){b=0;t=0;break}t=S.inv.blocos[b].trechos.length-1}while(b<S.inv.blocos.length&&t>=S.inv.blocos[b].trechos.length){t-=S.inv.blocos[b].trechos.length;b++}if(b>=S.inv.blocos.length){b=S.inv.blocos.length-1;t=S.inv.blocos[b].trechos.length-1;break}if(b===0&&t===0)break}while(ehSub(S.inv.blocos[b].trechos[t]));ir(b,t,d)}
 function passoBloco(d){const b=Math.min(Math.max(S.user.pos.b+d,0),S.inv.blocos.length-1);ir(b,0)}
 document.addEventListener('keydown',e=>{if(!S||$('#modal').classList.contains('on'))return;const a=document.activeElement;if(a&&(/INPUT|TEXTAREA|SELECT/.test(a.tagName)||a.isContentEditable))return;
@@ -630,7 +636,7 @@ document.addEventListener('keydown',e=>{if(!S||$('#modal').classList.contains('o
 
 /* ============ texto com destaques ============ */
 function runs(txt){const out=[];const re=/\*\*(.+?)\*\*/gs;let i=0,m;while((m=re.exec(txt))){if(m.index>i)out.push({t:txt.slice(i,m.index),b:0});out.push({t:m[1],b:1});i=re.lastIndex}if(i<txt.length)out.push({t:txt.slice(i),b:0});return out}
-function textoHTML(t){if(lacEstado.tid!==t.id)lacEstado={tid:t.id,vistas:new Set(),info:{}};lacEstado.info={};return marcadoHTML(t.texto,S.user.marcas[t.id],{lacuna:!!S.user.lacunas,vistas:lacEstado.vistas,info:lacEstado.info})}
+function textoHTML(t){if(lacEstado.tid!==t.id)lacEstado={tid:t.id,vistas:new Set(),info:{}};lacEstado.info={};return marcadoHTML(txtDe(t),S.user.marcas[t.id],{lacuna:!!S.user.lacunas,vistas:lacEstado.vistas,info:lacEstado.info})}
 let lacEstado={tid:'',vistas:new Set(),info:{}};
 // Marcas {s,e,k}: b = negrito, up = maiúsculas, y/g/p = grifo, f = letra maior (soma), f- = letra menor.
 // V670.9: com opc.lacuna, o que a pessoa negritou, grifou ou pôs em maiúsculas vira lacuna (clique revela).
@@ -650,7 +656,7 @@ function revelarTudo(){for(let g=0;g<(lacEstado.info.total||0);g++)lacEstado.vis
 function revelarLac(g){const i=lacEstado.info;if(g==null)g=i.atual;if(g==null||g<0)return;lacEstado.vistas.add(g);redesenharTexto();const a=document.querySelector('#texto .lac.atual');if(a){const r=a.getBoundingClientRect();if(r.top<($('#topo').offsetHeight+10)||r.bottom>innerHeight-20)a.scrollIntoView({block:'center',behavior:'smooth'})}}
 function esconderDeNovo(){lacEstado.vistas=new Set();redesenharTexto()}
 // Redesenha só o texto e o controle das lacunas (sem refazer a tela inteira).
-function redesenharTexto(){const box=$('#texto');if(!box)return;box.innerHTML=textoHTML(T());marcarLeis(box);const c=$('#lacCtrl');if(c)c.outerHTML=lacCtrl()}
+function redesenharTexto(){const box=$('#texto');if(!box)return;box.innerHTML=textoHTML(T());marcarLeis(box);marcarGlossario(box);const c=$('#lacCtrl');if(c)c.outerHTML=lacCtrl()}
 function lacCtrl(){if(!S.user.lacunas)return '<div id="lacCtrl" hidden></div>';const i=lacEstado.info||{};if(!i.total)return '<div id="lacCtrl" class="lac-ctrl muted">Nada destacado neste trecho para testar.</div>';
  return `<div id="lacCtrl" class="lac-ctrl">${i.atual>=0?`<button class="btn prim" onclick="revelarLac()">👁 Revelar a próxima <span class="muted" style="color:inherit;opacity:.8">(Espaço)</span></button>`:'<span class="ok-t">✅ Todas reveladas</span>'}<b>${i.vistas} de ${i.total}</b><button class="btn sm" onclick="esconderDeNovo()">↺ Esconder de novo</button>${i.atual>=0?'<button class="btn sm" onclick="revelarTudo()">Mostrar tudo</button>':''}<button class="btn sm" onclick="alternarLacunas()">Sair do teste</button></div>`}
 document.addEventListener('click',e=>{const l=e.target.closest&&e.target.closest('#texto .lac');if(l&&S&&S.user.lacunas){e.preventDefault();revelarLac(+l.dataset.g)}});
@@ -688,9 +694,42 @@ document.addEventListener('keydown',e=>{if(!S||!(e.ctrlKey||e.metaKey)||e.altKey
 // Altura do topo fixo, para a barra de destaque grudar logo abaixo dele.
 function medirTopo(){const h=$('#topo');if(h&&h.offsetHeight&&innerWidth)document.documentElement.style.setProperty('--topo',h.offsetHeight+'px')}
 if('ResizeObserver' in window)new ResizeObserver(medirTopo).observe($('#topo'));window.addEventListener('resize',medirTopo);medirTopo();
+/* ============ texto editado pela pessoa (V670.13) ============ */
+// A versão da pessoa fica em S.user.textoEd; o texto do Word (t.texto) continua intacto para conferir o conteúdo da Joana e reorganizar.
+const txtDe=t=>(S.user.textoEd&&S.user.textoEd[t.id]!=null)?S.user.textoEd[t.id]:t.texto;
+let editTexto='';
+function editorTexto(t){return `<textarea id="taTexto" spellcheck="true">${esc(txtDe(t))}</textarea><p class="muted" style="font-size:.78rem;margin:.3rem 0 0">Negrito: deixe entre **asteriscos duplos**. O Word do resumo não muda: a sua versão fica no leitor.</p><div class="row"><button class="btn prim" onclick="salvarTextoEd()">💾 Salvar</button><button class="btn" onclick="editTexto='';render()">Cancelar</button></div>`}
+function editarTexto(){S.user.lacunas=false;editTexto=T().id;render();const ta=$('#taTexto');if(ta){ta.style.height=Math.max(ta.scrollHeight+8,200)+'px';ta.focus()}}
+// Os destaques fora do pedaço reescrito continuam no lugar; os de dentro dele saem.
+function ajustarMarcas(id,antes,depois){const a=plainDe(antes),d=plainDe(depois);let p=0;while(p<a.length&&p<d.length&&a[p]===d[p])p++;let q=0;while(q<a.length-p&&q<d.length-p&&a[a.length-1-q]===d[d.length-1-q])q++;
+ const fimA=a.length-q,delta=d.length-a.length;const ms=cortarMarcas(S.user.marcas[id]||[],p,fimA,()=>true).map(m=>m.s>=fimA?{...m,s:m.s+delta,e:m.e+delta}:m).filter(m=>m.e>m.s);if(ms.length)S.user.marcas[id]=ms;else delete S.user.marcas[id]}
+function salvarTextoEd(){const t=T();const ta=$('#taTexto');if(!ta)return;const novo=ta.value.replace(/\r\n?/g,'\n').trim();if(!novo){toast('O texto ficou vazio. Use "Voltar ao texto do Word" se quiser o original.');return}
+ ajustarMarcas(t.id,txtDe(t),novo);if(novo===String(t.texto).trim())delete S.user.textoEd[t.id];else S.user.textoEd[t.id]=novo;editTexto='';salvar();render();toast('Texto salvo no leitor (o Word do resumo não muda).')}
+function voltarTextoWord(){const t=T();if(!confirm('Voltar ao texto do Word neste trecho? A sua versão será apagada.'))return;ajustarMarcas(t.id,txtDe(t),t.texto);delete S.user.textoEd[t.id];salvar();render()}
+/* ============ glossário no texto (V670.13) ============ */
+// Termos do glossário do artigo inteiro: sublinhado tracejado verde na 1ª vez em que aparecem no trecho; o significado aparece ao passar o mouse.
+// Comparação sem maiúsculas e sem acentos, letra a letra (o texto normalizado fica do mesmo tamanho do original); aceita plural com s/es.
+const normC=c=>{const n=c.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();return n.length===c.length?n:c};
+const normTxt=s=>{let o='';for(const c of String(s))o+=normC(c);return o};
+function termosGlossario(){const b=B();if(!b)return [];const vistos=new Set(),out=[];for(const x of b.trechos)for(const g of ((S.content.trechos[x.id]||{}).glossario||[])){const termo=limpa(g&&g.termo);const k=normTxt(termo);if(!termo||k.length<3||vistos.has(k))continue;vistos.add(k);out.push({k,g})}return out.sort((a,b)=>b.k.length-a.k.length)}
+function marcarGlossario(raiz){if(!raiz||!S)return;const termos=termosGlossario();raiz._termos=termos;if(!termos.length)return;const usados=new Set(),letra=/[\p{L}\p{N}]/u;
+ const nos=[];const w=document.createTreeWalker(raiz,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement.closest('.lei,.lac,.glos,button,textarea,a')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});while(w.nextNode())nos.push(w.currentNode);
+ for(const no of nos){const t=no.nodeValue,n=normTxt(t);const achados=[];
+  termos.forEach(({k},i)=>{if(usados.has(i))return;let pos=0;while((pos=n.indexOf(k,pos))>=0){let fim=pos+k.length;const suf=n.slice(fim).match(/^(es|s)(?![\p{L}\p{N}])/u);if(suf)fim+=suf[0].length;
+    if(!letra.test(pos>0?n[pos-1]:'')&&!letra.test(n[fim]||'')&&!achados.some(a=>pos<a.e&&fim>a.s)){achados.push({s:pos,e:fim,i});usados.add(i);break}pos++}});
+  if(!achados.length)continue;achados.sort((a,b)=>a.s-b.s);const frag=document.createDocumentFragment();let ult=0;
+  for(const a of achados){if(a.s>ult)frag.appendChild(document.createTextNode(t.slice(ult,a.s)));const sp=document.createElement('span');sp.className='glos';sp.dataset.gi=a.i;sp.textContent=t.slice(a.s,a.e);frag.appendChild(sp);ult=a.e}
+  if(ult<t.length)frag.appendChild(document.createTextNode(t.slice(ult)));no.parentNode.replaceChild(frag,no)}}
+let tGlos=null;
+function fecharGlos(){clearTimeout(tGlos);const p=$('#glosPop');if(p)p.style.display='none'}
+document.addEventListener('mouseover',e=>{const el=e.target.closest&&e.target.closest('.glos');if(!el)return;clearTimeout(tGlos);const raiz=el.closest('#texto');const tm=raiz&&raiz._termos&&raiz._termos[+el.dataset.gi];if(!tm)return;
+ let p=$('#glosPop');if(!p){p=document.createElement('div');p.id='glosPop';document.body.appendChild(p)}const g=tm.g;
+ p.innerHTML=`📖 <b>${esc(g.termo)}</b> — ${negrito(g.significado||'')}${g.exemplo?`<div class="muted" style="margin-top:.3rem">Ex.: ${esc(g.exemplo)}</div>`:''}`;p.style.display='block';
+ const r=el.getBoundingClientRect();p.style.left=Math.max(8,Math.min(scrollX+r.left,scrollX+innerWidth-p.offsetWidth-8))+'px';p.style.top=(scrollY+r.bottom+6)+'px'});
+document.addEventListener('mouseout',e=>{if(e.target.closest&&e.target.closest('.glos')){clearTimeout(tGlos);tGlos=setTimeout(fecharGlos,200)}});
 /* ============ testar memória e ouvir ============ */
 function ferrTexto(){const voz='speechSynthesis' in window;const vel=lsGet('leitor-tdah:voz-vel')||'1';
- return `<div class="ferr-texto"><button class="btn ${S.user.lacunas?'ligado':''}" onclick="alternarLacunas()" title="O que você negritou, grifou ou pôs em maiúsculas vira lacuna, uma por vez (tecla M)">🙈 ${S.user.lacunas?'Testando memória (tirar)':'Testar memória'}</button>${S.user.lacunas?`<button class="btn" onclick="revelarTudo()">👁 Mostrar tudo</button>`:''}
+ return `<div class="ferr-texto"><button class="btn ${S.user.lacunas?'ligado':''}" onclick="alternarLacunas()" title="O que você negritou, grifou ou pôs em maiúsculas vira lacuna, uma por vez (tecla M)">🙈 ${S.user.lacunas?'Testando memória (tirar)':'Testar memória'}</button>${S.user.lacunas?`<button class="btn" onclick="revelarTudo()">👁 Mostrar tudo</button>`:''}${editTexto===T().id?'':`<button class="btn" onclick="editarTexto()" title="Reescrever este trecho com as suas palavras (o texto do Word fica guardado)">✎ Editar</button>`}${S.user.textoEd[T().id]!=null&&editTexto!==T().id?`<button class="btn" onclick="voltarTextoWord()">↩ Voltar ao texto do Word</button>`:''}
  ${voz?`<span style="flex:1"></span><button class="btn" onmousedown="event.preventDefault()" onclick="ouvir()" title="Lê o trecho, ou só o que estiver selecionado">🔊 Ouvir</button><button class="btn" id="bPausa" onclick="pausarVoz()" ${falando?'':'hidden'}>${pausado?'▶ Continuar':'⏸ Pausar'}</button><button class="btn" id="bParar" onclick="pararVoz()" ${falando?'':'hidden'}>⏹ Parar</button><select id="selVoz" title="Voz" onchange="lsSet('leitor-tdah:voz',this.value);if(falando)ouvir(true)">${opcoesVoz()}</select><select title="Velocidade da voz" onchange="lsSet('leitor-tdah:voz-vel',this.value);if(falando)ouvir(true)">${['0.8','1','1.2','1.4','1.7'].map(v=>`<option value="${v}" ${v===vel?'selected':''}>${v.replace('.',',')}×</option>`).join('')}</select>`:''}</div>`}
 let falando=false,pausado=false,ultimaFala='';
 function pintaVoz(){const p=$('#bPausa'),q=$('#bParar');if(p){p.hidden=!falando;p.textContent=pausado?'▶ Continuar':'⏸ Pausar'}if(q)q.hidden=!falando}
@@ -711,7 +750,7 @@ function ouvir(repetir){const ss=window.speechSynthesis;if(!ss)return;
  // Trocou voz ou velocidade no meio: continua da frase em que estava.
  if(repetir&&falando&&falaFrases.length){ss.cancel();pausado=false;falarFrase(++falaId);pintaVoz();return}
  let txt=repetir?ultimaFala:'';
- if(!txt){const sel=getSelection();const box=$('#texto');const r=sel.rangeCount?sel.getRangeAt(0):null;txt=(r&&!r.collapsed&&box&&box.contains(r.commonAncestorContainer))?sel.toString():plainDe(T().texto)}
+ if(!txt){const sel=getSelection();const box=$('#texto');const r=sel.rangeCount?sel.getRangeAt(0):null;txt=(r&&!r.collapsed&&box&&box.contains(r.commonAncestorContainer))?sel.toString():plainDe(txtDe(T()))}
  txt=semEmoji(txt);if(!txt)return;ultimaFala=txt;ss.cancel();falaFrases=frasesDe(txt);falaI=0;falando=true;pausado=false;falarFrase(++falaId);pintaVoz()}
 function falarFrase(id){const ss=window.speechSynthesis;if(id!==falaId||pausado)return;if(falaI>=falaFrases.length){falando=false;pintaVoz();return}
  const u=new SpeechSynthesisUtterance(falaFrases[falaI]);u.lang='pt-BR';u.rate=+(lsGet('leitor-tdah:voz-vel')||1);
@@ -1056,9 +1095,9 @@ function render(){
  <select onchange="ir(+this.value,0)">${S.inv.blocos.map((x,i)=>`<option value="${i}" ${i===S.user.pos.b?'selected':''}>${i+1}. ${esc(x.titulo.slice(0,60))}</option>`).join('')}</select>
  <span id="avisoSalvo" class="muted" style="font-size:.78rem;margin-left:auto">${textoNuvem()}</span></div>
  ${avisoWordNovo?`<div class="item" style="border-color:var(--amber);margin-bottom:.8rem">📝 <b>O Word deste resumo mudou</b>${avisoWordNovo.docx_modificado?' ('+esc(avisoWordNovo.docx_modificado.replace('T',' às ').slice(0,19))+')':''}. Atualizar mantém o conteúdo dos trechos que não mudaram.<div class="row"><button class="btn prim" onclick="aplicarWordNovo()">🔄 Atualizar o leitor</button><button class="btn" onclick="avisoWordNovo=null;render()">Agora não</button></div></div>`:''}
- <div class="card" style="--cat:${cor}"><div class="card-head"><div class="k">${nomeCat} · ${b.trechos.filter(x=>!ehSub(x)).indexOf(t)+1} DE ${b.trechos.filter(x=>!ehSub(x)).length}${S.user.prov[t.id]?' · ★ PROVÁVEL':''}</div><div class="r">${esc(t.rotulo||b.titulo)}</div></div>
+ <div class="card" style="--cat:${cor}"><div class="card-head"><div class="k">${nomeCat} · ${b.trechos.filter(x=>!ehSub(x)).indexOf(t)+1} DE ${b.trechos.filter(x=>!ehSub(x)).length}${S.user.prov[t.id]?' · ★ PROVÁVEL':''}${S.user.textoEd[t.id]!=null?' · ✎ EDITADO POR MIM':''}</div><div class="r">${esc(t.rotulo||b.titulo)}</div></div>
  <div class="card-body">${barraDestaque(`<button class="btn" onclick="restaurar()" title="Tira todos os seus destaques deste trecho">Original</button>`)}
- ${ferrTexto()}<div id="texto" data-mk="t">${textoHTML(t)}</div>${lacCtrl()}${!t.elegivel?`<p class="muted" style="font-size:.85rem">${esc(t.motivo||'Sem conteúdo para estudar.')}</p>`:''}${ehQuadro(b)?ligacaoQuadro(t):''}</div></div>
+ ${ferrTexto()}${editTexto===t.id?editorTexto(t):`<div id="texto" data-mk="t">${textoHTML(t)}</div>${lacCtrl()}`}${!t.elegivel?`<p class="muted" style="font-size:.85rem">${esc(t.motivo||'Sem conteúdo para estudar.')}</p>`:''}${ehQuadro(b)?ligacaoQuadro(t):''}</div></div>
  <div class="foco-dica muted">↑ ↓ trechos · ← → artigos · selecione o texto para destacar · <b>M</b> testa a memória · <b>F</b> ou <b>Esc</b> sai do foco</div>
  <div class="tools">${TOOLS8.map(toolBtn).join('')}</div>
  <button class="mais" onclick="S.user.mais=!S.user.mais;salvar();render()">${S.user.mais?'− RECOLHER':'＋ MAIS FERRAMENTAS (10)'}</button>
@@ -1067,7 +1106,7 @@ function render(){
  const at=document.querySelector('.tr.atual');if(at&&!render.rolou){at.scrollIntoView({block:'center'});render.rolou=true}
  if(S.user.tool==='mapa')requestAnimationFrame(linhasMapa);
  medirTopo();
- fecharLei();marcarLeis($('#texto'));marcarLeis(document.querySelector('.painel'));
+ fecharLei();marcarLeis($('#texto'));fecharGlos();marcarGlossario($('#texto'));marcarLeis(document.querySelector('.painel'));
 }
 /* ============ botões do topo ============ */
 $('#bAbrir').onclick=()=>$('#fAbrir').click();
@@ -1099,7 +1138,7 @@ window.addEventListener('beforeunload',()=>{if(S&&pendente)gravarAgora()});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&S&&pendente)gravarAgora()});
 // V670.6: o GitHub Pages deixa esta página guardada no navegador por até 10 minutos. Ao abrir, confere se já há
 // versão nova (busca a página sem usar a cópia guardada) e, se houver, recarrega uma vez, depois de gravar.
-const VERSAO_LEITOR='20261024-leitor-v670-12';
+const VERSAO_LEITOR='20261024-leitor-v670-13';
 async function conferirVersaoNova(){if(!/^https?:/.test(location.protocol))return;
  try{const r=await fetch(location.pathname,{cache:'reload'});if(!r.ok)return;const m=(await r.text()).match(/const VERSAO_LEITOR='([^']+)'/);if(!m||m[1]===VERSAO_LEITOR)return;
   const k='leitor-tdah:recarregou:'+m[1];try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,'1')}catch(e){return}

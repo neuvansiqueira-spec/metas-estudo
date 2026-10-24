@@ -162,7 +162,7 @@ test('V670.11: modo foco com tecla F, botão e barra de destaque flutuando na se
 });
 
 test('V670.12: destaque nas respostas coladas, foco mais largo e lacunas uma por vez', () => {
-  assert.match(rootLeitor, /const VERSAO_LEITOR='20261024-leitor-v670-12';/);
+  assert.match(rootLeitor, /const VERSAO_LEITOR='\d{8}-leitor-v670-\d+';/);
   assert.ok(rootLeitor.includes('data-mk="c:por_que"'));
   assert.ok(rootLeitor.includes('data-mk="c:texto_facil"'));
   assert.ok(rootLeitor.includes('data-mk="d:${i}"'));
@@ -170,5 +170,16 @@ test('V670.12: destaque nas respostas coladas, foco mais largo e lacunas uma por
   assert.ok(rootLeitor.includes('body.foco .grid{grid-template-columns:1fr;max-width:min(1500px,96vw);'));
   assert.ok(rootLeitor.includes('function revelarLac(g){'));
   assert.ok(rootLeitor.includes('function lacCtrl(){'));
+  assert.doesNotMatch(rootLeitor, /\x08/);
+});
+
+test('V670.13: glossário sublinhado no texto, texto do trecho editável à parte e justificado', () => {
+  assert.match(rootLeitor, /const VERSAO_LEITOR='20261024-leitor-v670-13';/);
+  assert.ok(rootLeitor.includes('function marcarGlossario(raiz){'));
+  assert.ok(rootLeitor.includes("fecharLei();marcarLeis($('#texto'));fecharGlos();marcarGlossario($('#texto'));"));
+  assert.ok(rootLeitor.includes('const txtDe=t=>(S.user.textoEd&&S.user.textoEd[t.id]!=null)?S.user.textoEd[t.id]:t.texto;'));
+  assert.ok(rootLeitor.includes("const porTrecho=['prov','notas','marcas','marcasC','textoEd',"));
+  assert.ok(rootLeitor.includes('function ajustarMarcas(id,antes,depois){'));
+  assert.ok(rootLeitor.includes('text-align:justify;hyphens:auto'));
   assert.doesNotMatch(rootLeitor, /\x08/);
 });
