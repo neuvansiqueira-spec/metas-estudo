@@ -204,3 +204,9 @@ test('V458 (29/09): pausado há 5 minutos ou mais, a janela pisca e avisa', () =
   assert.match(read('timer-picture-in-picture-v458.js'), /body\.pausa-longa \{ animation: aldusPausaPisca \.6s/);
   assert.match(read('timer-picture-in-picture-v458.js'), /background: #ffd400/, 'amarelo sinal, escolha dele');
 });
+
+test('24/10/2026: janela flutuante abre 25% menor (255x165 em vez de 340x220)', () => {
+  const fonte = read('timer-picture-in-picture-v458.js');
+  assert.ok(fonte.includes('documentPictureInPicture.requestWindow({ width: 255, height: 165 })'));
+  assert.ok(read('performance-emergency-v350.js').includes('timer-picture-in-picture-v458.js?v=20261024-janela-menor-v458'));
+});
