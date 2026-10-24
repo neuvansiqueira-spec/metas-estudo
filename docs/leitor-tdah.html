@@ -659,17 +659,38 @@ if('ResizeObserver' in window)new ResizeObserver(medirTopo).observe($('#topo'));
 /* ============ testar memória e ouvir ============ */
 function ferrTexto(){const voz='speechSynthesis' in window;const vel=lsGet('leitor-tdah:voz-vel')||'1';
  return `<div class="ferr-texto"><button class="btn ${S.user.lacunas?'ligado':''}" onclick="alternarLacunas()" title="O que você negritou, grifou ou pôs em maiúsculas vira lacuna">🙈 ${S.user.lacunas?'Testando memória (tirar)':'Testar memória'}</button>${S.user.lacunas?`<button class="btn" onclick="revelarTudo()">👁 Mostrar tudo</button>`:''}
- ${voz?`<span style="flex:1"></span><button class="btn" onmousedown="event.preventDefault()" onclick="ouvir()" title="Lê o trecho, ou só o que estiver selecionado">🔊 Ouvir</button><button class="btn" id="bPausa" onclick="pausarVoz()" ${falando?'':'hidden'}>${pausado?'▶ Continuar':'⏸ Pausar'}</button><button class="btn" id="bParar" onclick="pararVoz()" ${falando?'':'hidden'}>⏹ Parar</button><select title="Velocidade da voz" onchange="lsSet('leitor-tdah:voz-vel',this.value);if(falando)ouvir(true)">${['0.8','1','1.2','1.4','1.7'].map(v=>`<option value="${v}" ${v===vel?'selected':''}>${v.replace('.',',')}×</option>`).join('')}</select>`:''}</div>`}
+ ${voz?`<span style="flex:1"></span><button class="btn" onmousedown="event.preventDefault()" onclick="ouvir()" title="Lê o trecho, ou só o que estiver selecionado">🔊 Ouvir</button><button class="btn" id="bPausa" onclick="pausarVoz()" ${falando?'':'hidden'}>${pausado?'▶ Continuar':'⏸ Pausar'}</button><button class="btn" id="bParar" onclick="pararVoz()" ${falando?'':'hidden'}>⏹ Parar</button><select id="selVoz" title="Voz" onchange="lsSet('leitor-tdah:voz',this.value);if(falando)ouvir(true)">${opcoesVoz()}</select><select title="Velocidade da voz" onchange="lsSet('leitor-tdah:voz-vel',this.value);if(falando)ouvir(true)">${['0.8','1','1.2','1.4','1.7'].map(v=>`<option value="${v}" ${v===vel?'selected':''}>${v.replace('.',',')}×</option>`).join('')}</select>`:''}</div>`}
 let falando=false,pausado=false,ultimaFala='';
 function pintaVoz(){const p=$('#bPausa'),q=$('#bParar');if(p){p.hidden=!falando;p.textContent=pausado?'▶ Continuar':'⏸ Pausar'}if(q)q.hidden=!falando}
+// V670.10: vozes em português do navegador; a do Google (mais natural, precisa de internet) vem primeiro. A escolha fica guardada.
+function vozesPt(){const ss=window.speechSynthesis;if(!ss)return [];let v=ss.getVoices().filter(x=>/^pt(-|_)BR/i.test(x.lang));if(!v.length)v=ss.getVoices().filter(x=>/^pt/i.test(x.lang));
+ const nota=x=>/google/i.test(x.name)?0:/natural|online/i.test(x.name)?1:2;return v.slice().sort((a,b)=>nota(a)-nota(b))}
+function vozEscolhida(){const v=vozesPt();const nome=lsGet('leitor-tdah:voz');return v.find(x=>x.name===nome)||v[0]||null}
+const nomeVoz=x=>x.name.replace(/\s*[-–(]\s*Portugu[eê]s.*$/i,'').replace(/^Microsoft\s+/i,'').replace(/\s*\bOnline\b|\s*\(Natural\)/gi,'').replace(/^Google portugu[eê]s do Brasil$/i,'Google')+(/google|natural|online/i.test(x.name)?' (natural)':' (Windows)');
+function opcoesVoz(){const v=vozesPt(),e=vozEscolhida();return v.length?v.map(x=>`<option value="${esc(x.name)}" ${e&&x.name===e.name?'selected':''}>${esc(nomeVoz(x))}</option>`).join(''):'<option>Voz padrão</option>'}
+if('speechSynthesis' in window)speechSynthesis.addEventListener('voiceschanged',()=>{const s=$('#selVoz');if(s)s.innerHTML=opcoesVoz()});
+// Frases de até ~160 letras: a voz do Google para sozinha em falas longas (cerca de 15 s).
+function frasesDe(txt){const out=[];for(let f of txt.split(/(?<=[.!?;:])\s+/)){f=f.trim();while(f.length>160){let k=f.lastIndexOf(', ',160);if(k<60)k=f.lastIndexOf(' ',160);if(k<60)k=160;out.push(f.slice(0,k+1).trim());f=f.slice(k+1).trim()}if(f)out.push(f)}
+ // Junta pedaços curtos ("Conceito:") com o seguinte, para a fala não sair picotada.
+ const j=[];for(const f of out){const u=j.length-1;if(u>=0&&(j[u].length<40||f.length<25)&&j[u].length+f.length<160)j[u]+=' '+f;else j.push(f)}return j}
+let falaId=0,falaFrases=[],falaI=0,vozFalhou=false;
 const semEmoji=s=>String(s).replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu,'').replace(/§§/g,'parágrafos').replace(/§/g,'parágrafo').replace(/(^|[^\p{L}])art\./giu,'$1artigo').replace(/\s+/g,' ').trim();
-function ouvir(repetir){const ss=window.speechSynthesis;if(!ss)return;let txt=repetir?ultimaFala:'';
+function ouvir(repetir){const ss=window.speechSynthesis;if(!ss)return;
+ // Trocou voz ou velocidade no meio: continua da frase em que estava.
+ if(repetir&&falando&&falaFrases.length){ss.cancel();pausado=false;falarFrase(++falaId);pintaVoz();return}
+ let txt=repetir?ultimaFala:'';
  if(!txt){const sel=getSelection();const box=$('#texto');const r=sel.rangeCount?sel.getRangeAt(0):null;txt=(r&&!r.collapsed&&box&&box.contains(r.commonAncestorContainer))?sel.toString():plainDe(T().texto)}
- txt=semEmoji(txt);if(!txt)return;ultimaFala=txt;ss.cancel();const u=new SpeechSynthesisUtterance(txt);u.lang='pt-BR';u.rate=+(lsGet('leitor-tdah:voz-vel')||1);
- const v=ss.getVoices().filter(v=>/^pt(-|_)BR/i.test(v.lang));if(v.length)u.voice=v.find(x=>/natural|online|francisca|antonio|thalita/i.test(x.name))||v[0];
- u.onend=u.onerror=()=>{falando=false;pausado=false;pintaVoz()};falando=true;pausado=false;ss.speak(u);pintaVoz()}
-function pausarVoz(){const ss=window.speechSynthesis;if(!ss||!falando)return;if(pausado){ss.resume();pausado=false}else{ss.pause();pausado=true}pintaVoz()}
-function pararVoz(){if(window.speechSynthesis)speechSynthesis.cancel();falando=false;pausado=false;pintaVoz()}
+ txt=semEmoji(txt);if(!txt)return;ultimaFala=txt;ss.cancel();falaFrases=frasesDe(txt);falaI=0;falando=true;pausado=false;falarFrase(++falaId);pintaVoz()}
+function falarFrase(id){const ss=window.speechSynthesis;if(id!==falaId||pausado)return;if(falaI>=falaFrases.length){falando=false;pintaVoz();return}
+ const u=new SpeechSynthesisUtterance(falaFrases[falaI]);u.lang='pt-BR';u.rate=+(lsGet('leitor-tdah:voz-vel')||1);
+ let v=vozEscolhida();if(v&&vozFalhou&&!v.localService)v=vozesPt().find(x=>x.localService)||v;if(v)u.voice=v;
+ u.onend=()=>{if(id!==falaId)return;falaI++;falarFrase(id)};
+ // Voz do Google sem internet: segue com a voz do Windows nesta leitura.
+ u.onerror=e=>{if(id!==falaId||pausado||/interrupted|canceled/.test(e.error||''))return;if(v&&!v.localService&&!vozFalhou){vozFalhou=true;toast('A voz do Google não respondeu (internet?). Continuei com a voz do Windows.',5000);falarFrase(id);return}falando=false;pintaVoz()};
+ ss.speak(u)}
+// Pausar para e guarda a frase; continuar recomeça dessa frase (o pause() do navegador falha com a voz do Google).
+function pausarVoz(){const ss=window.speechSynthesis;if(!ss||!falando)return;if(pausado){pausado=false;falarFrase(++falaId)}else{pausado=true;falaId++;ss.cancel()}pintaVoz()}
+function pararVoz(){falaId++;if(window.speechSynthesis)speechSynthesis.cancel();falando=false;pausado=false;pintaVoz()}
 
 /* ============ ferramentas ============ */
 const TOOLS8=[['prov','☆','PROVÁVEL'],['juris','⚖️','JURISPRUDÊNCIA'],['porque','🧠','POR QUÊ?'],['perg','❓','PERGUNTAR'],['quest','📝','QUESTÕES'],['notas','✏️','ANOTAÇÕES'],['glos','📖','GLOSSÁRIO'],['mnemo','🧩','MNEMÔNICOS']];
@@ -1027,7 +1048,7 @@ window.addEventListener('beforeunload',()=>{if(S&&pendente)gravarAgora()});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&S&&pendente)gravarAgora()});
 // V670.6: o GitHub Pages deixa esta página guardada no navegador por até 10 minutos. Ao abrir, confere se já há
 // versão nova (busca a página sem usar a cópia guardada) e, se houver, recarrega uma vez, depois de gravar.
-const VERSAO_LEITOR='20261023-leitor-v670-9';
+const VERSAO_LEITOR='20261024-leitor-v670-10';
 async function conferirVersaoNova(){if(!/^https?:/.test(location.protocol))return;
  try{const r=await fetch(location.pathname,{cache:'reload'});if(!r.ok)return;const m=(await r.text()).match(/const VERSAO_LEITOR='([^']+)'/);if(!m||m[1]===VERSAO_LEITOR)return;
   const k='leitor-tdah:recarregou:'+m[1];try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,'1')}catch(e){return}

@@ -130,7 +130,7 @@ test('V670.8: resposta guardada ao voltar para a aba, destaque que mantém a sel
 });
 
 test('V670.9: lacunas dos grifos, flashcards com repetição, atalhos com barra fixa e leitura em voz alta', () => {
-  assert.match(rootLeitor, /const VERSAO_LEITOR='20261023-leitor-v670-9';/);
+  assert.match(rootLeitor, /const VERSAO_LEITOR='\d{8}-leitor-v670-\d+';/);
   assert.ok(rootLeitor.includes("function textoHTML(t){return marcadoHTML(t.texto,S.user.marcas[t.id],{lacuna:!!S.user.lacunas})}"));
   assert.ok(rootLeitor.includes("const LAC_KINDS=['b','up','y','g','p'];"));
   assert.ok(rootLeitor.includes('const INTERVALOS=[3,7,15,30];'));
@@ -138,6 +138,15 @@ test('V670.9: lacunas dos grifos, flashcards com repetição, atalhos com barra 
   assert.ok(rootLeitor.includes("for(const f2 of ['cards','agenda'])if(vu[f2]&&vu[f2][id])"));
   assert.ok(rootLeitor.includes("const ATALHOS={b:'b',g:'y',m:'up','=':'f','+':'f','-':'f-'};"));
   assert.ok(rootLeitor.includes('position:sticky;top:calc(var(--topo,4.5rem) + 4px)'));
-  assert.ok(rootLeitor.includes('const u=new SpeechSynthesisUtterance(txt);u.lang=\'pt-BR\';'));
+  assert.ok(rootLeitor.includes('const u=new SpeechSynthesisUtterance(falaFrases[falaI]);u.lang=\'pt-BR\';'));
+  assert.doesNotMatch(rootLeitor, /\x08/);
+});
+
+test('V670.10: voz do Google primeiro, escolha de voz guardada e leitura frase por frase', () => {
+  assert.match(rootLeitor, /const VERSAO_LEITOR='20261024-leitor-v670-10';/);
+  assert.ok(rootLeitor.includes("const nota=x=>/google/i.test(x.name)?0:/natural|online/i.test(x.name)?1:2;"));
+  assert.ok(rootLeitor.includes("onchange=\"lsSet('leitor-tdah:voz',this.value);if(falando)ouvir(true)\""));
+  assert.ok(rootLeitor.includes('function frasesDe(txt){'));
+  assert.ok(rootLeitor.includes('function falarFrase(id){'));
   assert.doesNotMatch(rootLeitor, /\x08/);
 });
