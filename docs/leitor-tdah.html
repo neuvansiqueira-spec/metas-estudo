@@ -19,6 +19,7 @@ html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,"Sego
 button{font:inherit;color:inherit;cursor:pointer}
 input,textarea,select{font:inherit;color:var(--ink);background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:.55rem .7rem}
 textarea{width:100%;min-height:5.5rem;resize:vertical}
+#taNota{min-height:20rem;line-height:1.6}
 a{color:var(--blue)}
 .btn{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:.5rem .85rem;font-size:.86rem;font-weight:650}
 .btn:hover{border-color:var(--blue)}
@@ -1138,7 +1139,7 @@ window.addEventListener('beforeunload',()=>{if(S&&pendente)gravarAgora()});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&S&&pendente)gravarAgora()});
 // V670.6: o GitHub Pages deixa esta página guardada no navegador por até 10 minutos. Ao abrir, confere se já há
 // versão nova (busca a página sem usar a cópia guardada) e, se houver, recarrega uma vez, depois de gravar.
-const VERSAO_LEITOR='20261024-leitor-v670-13';
+const VERSAO_LEITOR='20261024-leitor-v670-14';
 async function conferirVersaoNova(){if(!/^https?:/.test(location.protocol))return;
  try{const r=await fetch(location.pathname,{cache:'reload'});if(!r.ok)return;const m=(await r.text()).match(/const VERSAO_LEITOR='([^']+)'/);if(!m||m[1]===VERSAO_LEITOR)return;
   const k='leitor-tdah:recarregou:'+m[1];try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,'1')}catch(e){return}
