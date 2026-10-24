@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20261024-janela-menor-v458";
+  const VERSION = "20261024-janela-menor2-v458";
   const FLAG = "__ALDUS_TIMER_PIP_V458__";
   const BOTAO_ID = "aldusTimerPipButtonV458";
   const ATUALIZACAO_MS = 500;
@@ -198,8 +198,8 @@
     }
     if (janela) { try { janela.focus(); } catch {} return { jaAberta: true }; }
     try {
-      // 24/10/2026, pedido dele: 25% menor que os 340x220 de antes. As letras acompanham (vh/vw).
-      janela = await documentPictureInPicture.requestWindow({ width: 255, height: 165 });
+      // 24/10/2026, pedidos dele: 25% menor duas vezes (340x220 → 255x165 → 191x124). As letras acompanham (vh/vw).
+      janela = await documentPictureInPicture.requestWindow({ width: 191, height: 124 });
     } catch (error) {
       janela = null;
       return { erro: `Não consegui abrir a janela flutuante: ${error?.message || error}` };

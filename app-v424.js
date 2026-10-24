@@ -2,7 +2,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "20261024-janela-menor-v424";
+  const VERSION = "20261024-janela-menor2-v424";
   const RELEASE_TEXT = `Versão: ${VERSION}`;
 
   function applyDocumentVersion() {
