@@ -117,7 +117,7 @@ test('V670.7: citação com alínea, lei pelo número/ano ou pelo nome e lei do 
 });
 
 test('V670.8: resposta guardada ao voltar para a aba, destaque que mantém a seleção e julgados com letra maior', () => {
-  assert.match(rootLeitor, /const VERSAO_LEITOR='20261023-leitor-v670-8';/);
+  assert.match(rootLeitor, /const VERSAO_LEITOR='\d{8}-leitor-v670-\d+';/);
   assert.ok(rootLeitor.includes("window.addEventListener('focus',()=>setTimeout(respostaAoVoltar,150));"));
   assert.ok(rootLeitor.includes('function temConteudoPacote(objs){'));
   assert.ok(rootLeitor.includes('function guardarFerramentaDe(k,objs,alvo){'));
@@ -127,4 +127,17 @@ test('V670.8: resposta guardada ao voltar para a aba, destaque que mantém a sel
   assert.ok(rootLeitor.includes("data-mk=\"j:${meu?'u':'p'}:${i}:tese\""));
   assert.ok(rootLeitor.includes('.jur-tese{font-size:var(--fs);'));
   assert.ok(rootLeitor.includes("$('#progN').textContent=(idx+1)+'/'+trs.length;"));
+});
+
+test('V670.9: lacunas dos grifos, flashcards com repetição, atalhos com barra fixa e leitura em voz alta', () => {
+  assert.match(rootLeitor, /const VERSAO_LEITOR='20261023-leitor-v670-9';/);
+  assert.ok(rootLeitor.includes("function textoHTML(t){return marcadoHTML(t.texto,S.user.marcas[t.id],{lacuna:!!S.user.lacunas})}"));
+  assert.ok(rootLeitor.includes("const LAC_KINDS=['b','up','y','g','p'];"));
+  assert.ok(rootLeitor.includes('const INTERVALOS=[3,7,15,30];'));
+  assert.ok(rootLeitor.includes('function cartoesDeHoje(){'));
+  assert.ok(rootLeitor.includes("for(const f2 of ['cards','agenda'])if(vu[f2]&&vu[f2][id])"));
+  assert.ok(rootLeitor.includes("const ATALHOS={b:'b',g:'y',m:'up','=':'f','+':'f','-':'f-'};"));
+  assert.ok(rootLeitor.includes('position:sticky;top:calc(var(--topo,4.5rem) + 4px)'));
+  assert.ok(rootLeitor.includes('const u=new SpeechSynthesisUtterance(txt);u.lang=\'pt-BR\';'));
+  assert.doesNotMatch(rootLeitor, /\x08/);
 });

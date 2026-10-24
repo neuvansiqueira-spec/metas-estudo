@@ -66,12 +66,12 @@ main{max-width:1500px;margin:0 auto;padding:1rem 1.2rem 4rem}
 .subt{font-size:1.15rem;font-weight:850;color:var(--blue);text-transform:uppercase;margin:-.4rem 0 .8rem;border-left:5px solid var(--blue);padding-left:.6rem}
 .sub-mm{font-size:.7rem;font-weight:850;letter-spacing:.06em;color:var(--blue);text-transform:uppercase;margin:.7rem .2rem .2rem;border-bottom:1px solid var(--border);padding-bottom:.2rem}
 .nav-row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-bottom:.8rem}
-.card{border:5px solid var(--cat,var(--green));border-radius:19px;background:var(--panel);overflow:hidden}
+.card{border:5px solid var(--cat,var(--green));border-radius:19px;background:var(--panel);overflow:clip}
 .card-head{background:var(--cat,var(--green));color:var(--head-ink);padding:.75rem 1.1rem}
 .card-head .k{font-size:.72rem;letter-spacing:.12em;font-weight:800;opacity:.85}
 .card-head .r{font-size:1.45rem;font-weight:900;text-transform:uppercase;margin-top:.15rem}
 .card-body{padding:1.2rem 1.3rem}
-.dest{display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.7rem}
+.dest{display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.7rem;position:sticky;top:calc(var(--topo,4.5rem) + 4px);z-index:6;background:var(--panel);padding:.35rem 0;box-shadow:0 6px 8px -8px #0008}
 .dest .btn{padding:.25rem .55rem;font-size:.75rem}
 .sw{display:inline-block;width:.85rem;height:.85rem;border-radius:3px;vertical-align:-2px}
 #texto{font-size:var(--fs);line-height:1.55;white-space:pre-wrap}
@@ -79,6 +79,10 @@ main{max-width:1500px;margin:0 auto;padding:1rem 1.2rem 4rem}
 .m-y{background:var(--hl-y)}.m-g{background:var(--hl-g)}.m-p{background:var(--hl-p)}
 .m-f1{font-size:1.2em}.m-f2{font-size:1.4em}.m-f3{font-size:1.65em}.m-f4{font-size:1.9em}.m-fm{font-size:.82em}
 .dest-dica{font-size:.75rem;margin:-.35rem 0 .6rem}
+#texto .lac{color:transparent;background:var(--panel2);border-bottom:3px solid var(--blue);border-radius:4px;cursor:pointer}#texto .lac *{color:transparent;border-color:transparent}
+#texto .lac.vista{color:inherit;background:var(--hl-y);border-bottom-color:var(--green)}#texto .lac.vista *{color:inherit}
+.ferr-texto{display:flex;gap:.35rem;flex-wrap:wrap;align-items:center;margin:-.2rem 0 .7rem}.ferr-texto .btn{padding:.25rem .55rem;font-size:.75rem}.ferr-texto select{padding:.2rem .4rem;font-size:.75rem}
+.btn.ligado{background:var(--orange);border-color:var(--orange);color:#1a0d00}
 .jur{font-size:calc(var(--fs)*.82)}
 .jur-tese{font-size:var(--fs);line-height:1.55;margin-top:.35rem;white-space:pre-wrap}
 .jur-fund{font-size:calc(var(--fs)*.85);line-height:1.5;margin-top:.35rem;white-space:pre-wrap}
@@ -182,6 +186,7 @@ img.ev{max-width:100%;border-radius:12px;border:1px solid var(--border)}
   <button class="btn prim" id="bAbrir">📂 Abrir resumo</button>
   <button class="btn" id="bArtigos" hidden>🤖 Gerar conteúdo</button>
   <button class="btn" id="bRevisao" hidden>⭐ Revisão</button>
+  <button class="btn" id="bHoje" hidden title="Flashcards que vencem hoje, de todo o resumo">📅 Hoje</button>
   <button class="btn" id="bSalvar" hidden>💾 Salvar HTML</button>
   <button class="btn" id="bMapa" hidden>◧ Mapa</button>
   <button class="btn" id="bMenos" title="Letra menor">A−</button>
@@ -218,7 +223,7 @@ function lsSet(k,v){try{localStorage.setItem(k,v);return true}catch(e){return fa
 
 /* ============ estado ============ */
 let S=null; // {inv, content:{blocos,trechos}, user, salvoEm}
-const novoUser=()=>({pos:{b:0,t:0},prov:{},notas:{},marcas:{},cards:{},cardsUser:{},imagens:{},jurUser:{},mnemoUser:{},mapaUser:{},fluxoUser:{},tutorResp:{},duvidas:{},vistos:{},tool:'',mais:false,mapaFechado:false,soErrados:false});
+const novoUser=()=>({pos:{b:0,t:0},prov:{},notas:{},marcas:{},cards:{},agenda:{},cardsUser:{},imagens:{},jurUser:{},mnemoUser:{},mapaUser:{},fluxoUser:{},tutorResp:{},duvidas:{},vistos:{},tool:'',mais:false,mapaFechado:false,soErrados:false});
 let tema=lsGet('leitor-tdah:tema')||'auto', fs=+(lsGet('leitor-tdah:fs')||22);
 function aplicaPrefs(){document.documentElement.dataset.theme=tema;document.documentElement.style.setProperty('--fs',fs+'px')}
 aplicaPrefs();
@@ -271,7 +276,7 @@ function aplicarWordNovo(){const novo=avisoWordNovo;if(!novo)return;avisoWordNov
 const plainDe=txt=>runs(String(txt||'')).map(r=>r.t).join('');
 function migrarEstado(v,inv){
  const vu=v.user||{},vc=v.content||{},vct=vc.trechos||{},vcb=vc.blocos||{};
- const porTrecho=['prov','notas','marcas','cards','cardsUser','jurUser','duvidas','vistos'],porBloco=['imagens','mnemoUser','mapaUser','fluxoUser','tutorResp'];
+ const porTrecho=['prov','notas','marcas','cards','agenda','cardsUser','jurUser','duvidas','vistos'],porBloco=['imagens','mnemoUser','mapaUser','fluxoUser','tutorResp'];
  const U=Object.assign(novoUser(),vu);for(const k of [...porTrecho,...porBloco])U[k]={};U.pos={b:0,t:0};
  const n={inv,content:{blocos:{},trechos:{}},user:U,salvoEm:v.salvoEm||''};
  const usados=new Set();const fila=new Map();
@@ -297,7 +302,7 @@ function migrarEstado(v,inv){
     if(vu.prov&&vu.prov[id])U.prov[nt.id]=1;if(vu.vistos&&vu.vistos[id])U.vistos[nt.id]=1;
     if(vu.notas&&vu.notas[id])U.notas[nt.id]=(U.notas[nt.id]?U.notas[nt.id]+'\n':'')+vu.notas[id];
     if(vu.marcas&&vu.marcas[id]&&f.off>=0)(U.marcas[nt.id]=U.marcas[nt.id]||[]).push(...vu.marcas[id].map(m=>({...m,s:m.s+f.off,e:m.e+f.off})));
-    if(vu.cards&&vu.cards[id]){const r=U.cards[nt.id]=U.cards[nt.id]||{};for(const [ck,val] of Object.entries(vu.cards[id])){const tipo=ck[0],i=+ck.slice(1);r[tipo+((tipo==='u'?offU:offP)+i)]=val}}
+    for(const f2 of ['cards','agenda'])if(vu[f2]&&vu[f2][id]){const r=U[f2][nt.id]=U[f2][nt.id]||{};for(const [ck,val] of Object.entries(vu[f2][id])){const tipo=ck[0],i=+ck.slice(1);r[tipo+((tipo==='u'?offU:offP)+i)]=val}}
     for(const f2 of ['cardsUser','jurUser','duvidas'])if(vu[f2]&&vu[f2][id])(U[f2][nt.id]=U[f2][nt.id]||[]).push(...vu[f2][id]);
     offP+=nP;offU+=nU}}
  }
@@ -602,7 +607,7 @@ const B=()=>S.inv.blocos[S.user.pos.b];const T=()=>B().trechos[S.user.pos.t];
 const ehSub=t=>!!t&&(t.sub||t.motivo==='Subtítulo do artigo.');
 function semSub(b,t,d=1){const tr=S.inv.blocos[b].trechos;let k=t;while(k>=0&&k<tr.length&&ehSub(tr[k]))k+=d;if(k<0||k>=tr.length){k=t;while(k>=0&&k<tr.length&&ehSub(tr[k]))k-=d}return (k<0||k>=tr.length)?t:k}
 function subtituloDe(b,t){const tr=S.inv.blocos[b].trechos;for(let k=t;k>=0;k--)if(ehSub(tr[k]))return tr[k];return null}
-function ir(b,t,d=1){t=semSub(b,t,d);S.user.pos={b,t};S.user.vistos[S.inv.blocos[b].trechos[t].id]=1;salvar();render();window.scrollTo({top:0,behavior:'smooth'})}
+function ir(b,t,d=1){if(typeof pararVoz==='function'&&falando)pararVoz();t=semSub(b,t,d);S.user.pos={b,t};S.user.vistos[S.inv.blocos[b].trechos[t].id]=1;salvar();render();window.scrollTo({top:0,behavior:'smooth'})}
 function passo(d){let {b,t}=S.user.pos;do{t+=d;while(t<0){b--;if(b<0){b=0;t=0;break}t=S.inv.blocos[b].trechos.length-1}while(b<S.inv.blocos.length&&t>=S.inv.blocos[b].trechos.length){t-=S.inv.blocos[b].trechos.length;b++}if(b>=S.inv.blocos.length){b=S.inv.blocos.length-1;t=S.inv.blocos[b].trechos.length-1;break}if(b===0&&t===0)break}while(ehSub(S.inv.blocos[b].trechos[t]));ir(b,t,d)}
 function passoBloco(d){const b=Math.min(Math.max(S.user.pos.b+d,0),S.inv.blocos.length-1);ir(b,0)}
 document.addEventListener('keydown',e=>{if(!S||$('#modal').classList.contains('on'))return;const a=document.activeElement;if(a&&(/INPUT|TEXTAREA|SELECT/.test(a.tagName)||a.isContentEditable))return;
@@ -610,13 +615,17 @@ document.addEventListener('keydown',e=>{if(!S||$('#modal').classList.contains('o
 
 /* ============ texto com destaques ============ */
 function runs(txt){const out=[];const re=/\*\*(.+?)\*\*/gs;let i=0,m;while((m=re.exec(txt))){if(m.index>i)out.push({t:txt.slice(i,m.index),b:0});out.push({t:m[1],b:1});i=re.lastIndex}if(i<txt.length)out.push({t:txt.slice(i),b:0});return out}
-function textoHTML(t){return marcadoHTML(t.texto,S.user.marcas[t.id])}
+function textoHTML(t){return marcadoHTML(t.texto,S.user.marcas[t.id],{lacuna:!!S.user.lacunas})}
 // Marcas {s,e,k}: b = negrito, up = maiúsculas, y/g/p = grifo, f = letra maior (soma), f- = letra menor.
-function marcadoHTML(txt,marcas){const rs=runs(String(txt||''));const plain=rs.map(r=>r.t).join('');const N=plain.length;const at=new Array(N);let k=0;for(const r of rs)for(let j=0;j<r.t.length;j++)at[k++]={b:r.b,up:0,h:'',f:0};
- for(const m of (marcas||[]))for(let i=Math.max(0,m.s);i<Math.min(N,m.e);i++){if(m.k==='b')at[i].b=1;else if(m.k==='up')at[i].up=1;else if(m.k==='f')at[i].f++;else if(m.k==='f-')at[i].f--;else at[i].h=m.k}
+// V670.9: com opc.lacuna, o que a pessoa negritou, grifou ou pôs em maiúsculas vira lacuna (clique revela).
+function marcadoHTML(txt,marcas,opc={}){const rs=runs(String(txt||''));const plain=rs.map(r=>r.t).join('');const N=plain.length;const at=new Array(N);let k=0;for(const r of rs)for(let j=0;j<r.t.length;j++)at[k++]={b:r.b,up:0,h:'',f:0,lac:0};
+ for(const m of (marcas||[]))for(let i=Math.max(0,m.s);i<Math.min(N,m.e);i++){if(m.k==='b')at[i].b=1;else if(m.k==='up')at[i].up=1;else if(m.k==='f')at[i].f++;else if(m.k==='f-')at[i].f--;else at[i].h=m.k;if(opc.lacuna&&LAC_KINDS.includes(m.k))at[i].lac=1}
  const nf=f=>f>0?'m-f'+Math.min(f,4):f<0?'m-fm':'';
- let h='',cur=null,buf='';const key=a=>a.b+'|'+a.up+'|'+a.h+'|'+nf(a.f);const flush=()=>{if(!buf)return;const c=[cur.b?'m-b':'',cur.up?'m-up':'',cur.h?'m-'+cur.h:'',nf(cur.f)].filter(Boolean).join(' ');h+=c?`<span class="${c}">${esc(buf)}</span>`:esc(buf);buf=''};
+ let h='',cur=null,buf='';const key=a=>a.b+'|'+a.up+'|'+a.h+'|'+nf(a.f)+'|'+a.lac;const flush=()=>{if(!buf)return;const c=[cur.b?'m-b':'',cur.up?'m-up':'',cur.h?'m-'+cur.h:'',nf(cur.f),cur.lac?'lac':''].filter(Boolean).join(' ');h+=c?`<span class="${c}"${cur.lac?` title="Clique para ver" onclick="this.classList.toggle('vista')"`:''}>${esc(buf)}</span>`:esc(buf);buf=''};
  for(let i=0;i<N;i++){const a=at[i];if(!cur||key(a)!==key(cur)){flush();cur=a}buf+=plain[i]}flush();return h}
+const LAC_KINDS=['b','up','y','g','p'];
+function alternarLacunas(){const id=T().id;if(!S.user.lacunas&&!(S.user.marcas[id]||[]).some(m=>LAC_KINDS.includes(m.k))){toast('Primeiro negrite ou grife neste trecho o que é importante: isso vira lacuna.',4500);return}S.user.lacunas=!S.user.lacunas;salvar();render();if(S.user.lacunas)toast('Tente lembrar o que falta e clique na lacuna para ver.',4000)}
+function revelarTudo(){document.querySelectorAll('#texto .lac').forEach(x=>x.classList.add('vista'))}
 // V670.8: áreas que aceitam destaque têm data-mk: "t" = texto do trecho; "j:p|u:i:campo" = julgado (do resumo ou meu).
 function regiaoMarcas(key){if(key==='t'){const id=T().id;return {get:()=>S.user.marcas[id]||[],set:v=>{if(v.length)S.user.marcas[id]=v;else delete S.user.marcas[id]}}}
  const m=String(key).match(/^j:([pu]):(\d+):(\w+)$/);if(!m)return null;const arr=m[1]==='p'?(cT().jurisprudencia||[]):(S.user.jurUser[T().id]||[]);const j=arr[+m[2]];if(!j)return null;
@@ -640,7 +649,27 @@ function destacar(k){const o=selecaoNaRegiao();if(!o){toast('Selecione uma palav
  rg.set(ms);salvar();const y=scrollY;render();scrollTo(0,y);selecionar(o.key,o.s,o.e)}
 function restaurar(){if(!confirm('Tirar todos os seus destaques deste trecho?'))return;delete S.user.marcas[T().id];salvar();render()}
 const BTN_DEST=(k,rot,tit)=>`<button class="btn" title="${tit}" onmousedown="event.preventDefault()" onclick="destacar('${k}')">${rot}</button>`;
-function barraDestaque(extra=''){return `<div class="dest">${BTN_DEST('b','<b>B</b> Negrito','Negrito (de novo tira)')}${BTN_DEST('up','AA Maiúsculas','Maiúsculas (de novo tira)')}${['y','g','p'].map(c=>BTN_DEST(c,`<span class="sw" style="background:var(--hl-${c})"></span> Grifo`,'Grifo (de novo tira)')).join('')}${BTN_DEST('f','A+ Letra maior','Aumenta a letra do trecho selecionado (clique mais vezes para aumentar mais)')}${BTN_DEST('f-','A− Letra menor','Diminui a letra do trecho selecionado')}${BTN_DEST('rem','Tirar destaque','Tira os destaques só do que está selecionado')}${extra}</div><div class="muted dest-dica">Selecione uma vez e clique em quantos botões quiser: a seleção continua.</div>`}
+function barraDestaque(extra=''){return `<div class="dest">${BTN_DEST('b','<b>B</b> Negrito','Negrito (de novo tira)')}${BTN_DEST('up','AA Maiúsculas','Maiúsculas (de novo tira)')}${['y','g','p'].map(c=>BTN_DEST(c,`<span class="sw" style="background:var(--hl-${c})"></span> Grifo`,'Grifo (de novo tira)')).join('')}${BTN_DEST('f','A+ Letra maior','Aumenta a letra do trecho selecionado (clique mais vezes para aumentar mais)')}${BTN_DEST('f-','A− Letra menor','Diminui a letra do trecho selecionado')}${BTN_DEST('rem','Tirar destaque','Tira os destaques só do que está selecionado')}${extra}</div><div class="muted dest-dica">Selecione uma vez e clique em quantos botões quiser: a seleção continua. Atalhos: <b>Ctrl+B</b> negrito · <b>Ctrl+G</b> grifo · <b>Ctrl+M</b> maiúsculas · <b>Ctrl+=</b> / <b>Ctrl+−</b> letra.</div>`}
+// V670.9: atalhos com texto selecionado num trecho ou julgado (sem seleção, o Ctrl+= do navegador continua igual).
+const ATALHOS={b:'b',g:'y',m:'up','=':'f','+':'f','-':'f-'};
+document.addEventListener('keydown',e=>{if(!S||!(e.ctrlKey||e.metaKey)||e.altKey||$('#modal').classList.contains('on'))return;const k=ATALHOS[e.key.toLowerCase()]||(e.code==='NumpadAdd'?'f':e.code==='NumpadSubtract'?'f-':'');if(!k||!selecaoNaRegiao())return;e.preventDefault();destacar(k)});
+// Altura do topo fixo, para a barra de destaque grudar logo abaixo dele.
+function medirTopo(){const h=$('#topo');if(h&&h.offsetHeight&&innerWidth)document.documentElement.style.setProperty('--topo',h.offsetHeight+'px')}
+if('ResizeObserver' in window)new ResizeObserver(medirTopo).observe($('#topo'));window.addEventListener('resize',medirTopo);medirTopo();
+/* ============ testar memória e ouvir ============ */
+function ferrTexto(){const voz='speechSynthesis' in window;const vel=lsGet('leitor-tdah:voz-vel')||'1';
+ return `<div class="ferr-texto"><button class="btn ${S.user.lacunas?'ligado':''}" onclick="alternarLacunas()" title="O que você negritou, grifou ou pôs em maiúsculas vira lacuna">🙈 ${S.user.lacunas?'Testando memória (tirar)':'Testar memória'}</button>${S.user.lacunas?`<button class="btn" onclick="revelarTudo()">👁 Mostrar tudo</button>`:''}
+ ${voz?`<span style="flex:1"></span><button class="btn" onmousedown="event.preventDefault()" onclick="ouvir()" title="Lê o trecho, ou só o que estiver selecionado">🔊 Ouvir</button><button class="btn" id="bPausa" onclick="pausarVoz()" ${falando?'':'hidden'}>${pausado?'▶ Continuar':'⏸ Pausar'}</button><button class="btn" id="bParar" onclick="pararVoz()" ${falando?'':'hidden'}>⏹ Parar</button><select title="Velocidade da voz" onchange="lsSet('leitor-tdah:voz-vel',this.value);if(falando)ouvir(true)">${['0.8','1','1.2','1.4','1.7'].map(v=>`<option value="${v}" ${v===vel?'selected':''}>${v.replace('.',',')}×</option>`).join('')}</select>`:''}</div>`}
+let falando=false,pausado=false,ultimaFala='';
+function pintaVoz(){const p=$('#bPausa'),q=$('#bParar');if(p){p.hidden=!falando;p.textContent=pausado?'▶ Continuar':'⏸ Pausar'}if(q)q.hidden=!falando}
+const semEmoji=s=>String(s).replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu,'').replace(/§§/g,'parágrafos').replace(/§/g,'parágrafo').replace(/(^|[^\p{L}])art\./giu,'$1artigo').replace(/\s+/g,' ').trim();
+function ouvir(repetir){const ss=window.speechSynthesis;if(!ss)return;let txt=repetir?ultimaFala:'';
+ if(!txt){const sel=getSelection();const box=$('#texto');const r=sel.rangeCount?sel.getRangeAt(0):null;txt=(r&&!r.collapsed&&box&&box.contains(r.commonAncestorContainer))?sel.toString():plainDe(T().texto)}
+ txt=semEmoji(txt);if(!txt)return;ultimaFala=txt;ss.cancel();const u=new SpeechSynthesisUtterance(txt);u.lang='pt-BR';u.rate=+(lsGet('leitor-tdah:voz-vel')||1);
+ const v=ss.getVoices().filter(v=>/^pt(-|_)BR/i.test(v.lang));if(v.length)u.voice=v.find(x=>/natural|online|francisca|antonio|thalita/i.test(x.name))||v[0];
+ u.onend=u.onerror=()=>{falando=false;pausado=false;pintaVoz()};falando=true;pausado=false;ss.speak(u);pintaVoz()}
+function pausarVoz(){const ss=window.speechSynthesis;if(!ss||!falando)return;if(pausado){ss.resume();pausado=false}else{ss.pause();pausado=true}pintaVoz()}
+function pararVoz(){if(window.speechSynthesis)speechSynthesis.cancel();falando=false;pausado=false;pintaVoz()}
 
 /* ============ ferramentas ============ */
 const TOOLS8=[['prov','☆','PROVÁVEL'],['juris','⚖️','JURISPRUDÊNCIA'],['porque','🧠','POR QUÊ?'],['perg','❓','PERGUNTAR'],['quest','📝','QUESTÕES'],['notas','✏️','ANOTAÇÕES'],['glos','📖','GLOSSÁRIO'],['mnemo','🧩','MNEMÔNICOS']];
@@ -724,14 +753,33 @@ function guardarDuvida(){const r=$('#taDuvResp').value.trim();if(!r)return;const
 let fcI=0,fcVirado=false,fcTrecho='';
 function listaCards(){const id=T().id;const base=(cT().flashcards||[]).map((c,i)=>({...c,_k:'p'+i}));const us=(S.user.cardsUser[id]||[]).map((c,i)=>({...c,_k:'u'+i}));let l=[...base,...us];if(S.user.soErrados)l=l.filter(c=>(S.user.cards[id]||{})[c._k]==='err');return l}
 function painelCards(){const id=T().id;if(fcTrecho!==id){fcI=0;fcVirado=false;fcTrecho=id}const l=listaCards();const res=S.user.cards[id]||{};const ac=Object.values(res).filter(v=>v==='ok').length,er=Object.values(res).filter(v=>v==='err').length;
- let h=`<div class="row" style="margin-top:0;margin-bottom:.6rem"><button class="btn prim" onclick="copiarPrompt('cards')">🤖 Pedir mais flashcards ao ChatGPT</button><button class="btn ok" onclick="colarFerramenta('cards')">📥 Colar flashcards</button></div>${esperaHTML('cards')}<div class="row" style="margin-top:0"><span class="muted">✔ ${ac} · ✖ ${er}</span><label style="margin-left:auto"><input type="checkbox" ${S.user.soErrados?'checked':''} onchange="S.user.soErrados=this.checked;fcI=0;render()"> só os que errei</label></div>`;
+ let h=`<div class="row" style="margin-top:0;margin-bottom:.6rem"><button class="btn prim" onclick="copiarPrompt('cards')">🤖 Pedir mais flashcards ao ChatGPT</button><button class="btn ok" onclick="colarFerramenta('cards')">📥 Colar flashcards</button></div>${esperaHTML('cards')}<div class="row" style="margin-top:0"><button class="btn sm" onclick="revisarHoje()">📅 Cartões de hoje (${cartoesDeHoje().length})</button><span class="muted">✔ ${ac} · ✖ ${er}</span><label style="margin-left:auto"><input type="checkbox" ${S.user.soErrados?'checked':''} onchange="S.user.soErrados=this.checked;fcI=0;render()"> só os que errei</label></div>`;
  if(!l.length)return h+(S.user.soErrados?'<p class="muted">Nenhum errado aqui. 👏</p>':(T().elegivel?vazioPacote:'<p class="muted">Trecho sem conteúdo para estudar.</p>'))+`<div class="row"><button class="btn" onclick="novoCard()">＋ Criar meu cartão</button></div>`;
  fcI=Math.min(fcI,l.length-1);const c=l[fcI];
- h+=`<div class="fc"><div class="muted" style="font-size:.75rem">CARTÃO ${fcI+1} DE ${l.length}${c.angulo?' · '+esc(c.angulo).toUpperCase():''}${c._k[0]==='u'?' · MEU':''}</div><div style="margin-top:.5rem;font-weight:750">${negrito(c.frente)}</div>${fcVirado?`<div class="v">${negrito(c.verso)}${c.explicacao?`<div class="muted" style="font-weight:400;margin-top:.4rem">${negrito(c.explicacao)}</div>`:''}</div>`:''}</div>
+ h+=`<div class="fc"><div class="muted" style="font-size:.75rem">CARTÃO ${fcI+1} DE ${l.length}${c.angulo?' · '+esc(c.angulo).toUpperCase():''}${c._k[0]==='u'?' · MEU':''}${voltaEm(id,c._k)}</div><div style="margin-top:.5rem;font-weight:750">${negrito(c.frente)}</div>${fcVirado?`<div class="v">${negrito(c.verso)}${c.explicacao?`<div class="muted" style="font-weight:400;margin-top:.4rem">${negrito(c.explicacao)}</div>`:''}</div>`:''}</div>
  <div class="row">${fcVirado?`<button class="btn ok" onclick="marcaCard('${c._k}','ok')">✔ Acertei</button><button class="btn" style="border-color:var(--red);color:var(--red)" onclick="marcaCard('${c._k}','err')">✖ Errei</button>`:`<button class="btn prim" onclick="fcVirado=true;render()">🔄 Virar</button>`}
  <button class="btn" onclick="fcI=(fcI-1+${l.length})%${l.length};fcVirado=false;render()">←</button><button class="btn" onclick="fcI=(fcI+1)%${l.length};fcVirado=false;render()">→</button>
  <button class="btn sm" onclick="editarCard('${c._k}')">✎ Editar</button><button class="btn sm" onclick="novoCard()">＋ Meu cartão</button></div>`;return h}
-function marcaCard(k,v){const id=T().id;(S.user.cards[id]=S.user.cards[id]||{})[k]=v;salvar();fcVirado=false;const l=listaCards();fcI=l.length?(fcI+1)%l.length:0;render()}
+function marcaCard(k,v){const id=T().id;(S.user.cards[id]=S.user.cards[id]||{})[k]=v;agendar(id,k,v);salvar();fcVirado=false;const l=listaCards();fcI=l.length?(fcI+1)%l.length:0;render()}
+// V670.9: repetição espaçada. Errou: volta amanhã. Acertou: volta em 3, depois 7, 15 e 30 dias.
+const INTERVALOS=[3,7,15,30];
+const diaDe=d=>d.getFullYear()+'-'+pad(d.getMonth()+1,2)+'-'+pad(d.getDate(),2);
+const hoje=()=>diaDe(new Date());
+const somaDias=n=>{const d=new Date();d.setDate(d.getDate()+n);return diaDe(d)};
+function agendar(id,k,v){const ag=S.user.agenda=S.user.agenda||{};const a=(ag[id]=ag[id]||{});const at=a[k];if(v==='err')a[k]={n:0,prox:somaDias(1)};else{const n=Math.min((at&&at.prox?at.n:0)+1,INTERVALOS.length);a[k]={n,prox:somaDias(INTERVALOS[n-1])}}}
+// Vence hoje: data marcada chegou; cartão errado antes desta versão (sem data) também entra.
+function cartaoVence(id,k){const a=((S.user.agenda||{})[id]||{})[k];if(a&&a.prox)return a.prox<=hoje();return (S.user.cards[id]||{})[k]==='err'}
+function voltaEm(id,k){const a=((S.user.agenda||{})[id]||{})[k];if(!a||!a.prox)return '';return a.prox<=hoje()?' · 📅 PARA REVISAR HOJE':' · 📅 VOLTA EM '+a.prox.slice(8,10)+'/'+a.prox.slice(5,7)}
+function cartoesDeHoje(){const out=[];if(!S)return out;S.inv.blocos.forEach((b,bi)=>b.trechos.forEach((t,ti)=>{const base=((S.content.trechos[t.id]||{}).flashcards||[]).map((c,i)=>({c,k:'p'+i}));const us=(S.user.cardsUser[t.id]||[]).map((c,i)=>({c,k:'u'+i}));for(const x of [...base,...us])if(x.c&&x.c.frente&&cartaoVence(t.id,x.k))out.push({...x,id:t.id,bi,ti,b,t})}));return out}
+let rh={lista:[],i:0,virado:false,ok:0,err:0};
+function revisarHoje(){rh={lista:cartoesDeHoje(),i:0,virado:false,ok:0,err:0};pintaHoje()}
+function pintaHoje(){const L=rh.lista;const fim=b=>`<div class="row">${b}<button class="btn" onclick="fecharModal();render()">Fechar</button></div>`;
+ if(!L.length){abrirModal(`<h2>📅 Cartões de hoje</h2><p class="ok-t">Nenhum cartão para revisar hoje. 👏</p><p class="muted">Errou um cartão: ele volta no dia seguinte. Acertou: volta em 3, depois 7, 15 e 30 dias.</p>${fim('')}`);return}
+ if(rh.i>=L.length){abrirModal(`<h2>📅 Cartões de hoje</h2><p class="ok-t">✅ Revisão do dia feita: ✔ ${rh.ok} · ✖ ${rh.err}.</p><p class="muted">Os que você errou voltam amanhã.</p>${fim('')}`);return}
+ const x=L[rh.i];abrirModal(`<h2>📅 Cartões de hoje <span class="muted" style="font-size:.95rem">${rh.i+1} de ${L.length}</span></h2><div class="muted" style="font-size:.8rem">${esc(limpa(x.b.titulo).split(':')[0])} · ${esc(x.t.rotulo||('trecho '+(x.ti+1)))}</div>
+ <div class="fc" style="margin-top:.5rem"><div style="font-weight:750">${negrito(x.c.frente)}</div>${rh.virado?`<div class="v">${negrito(x.c.verso)}</div>`:''}</div>
+ ${fim((rh.virado?`<button class="btn ok" onclick="respHoje('ok')">✔ Acertei</button><button class="btn" style="border-color:var(--red);color:var(--red)" onclick="respHoje('err')">✖ Errei</button>`:`<button class="btn prim" onclick="rh.virado=true;pintaHoje()">🔄 Virar</button>`)+`<button class="btn" onclick="fecharModal();ir(${x.bi},${x.ti})">Ir para o trecho</button>`)}`)}
+function respHoje(v){const x=rh.lista[rh.i];(S.user.cards[x.id]=S.user.cards[x.id]||{})[x.k]=v;agendar(x.id,x.k,v);if(v==='ok')rh.ok++;else rh.err++;salvar();rh.i++;rh.virado=false;pintaHoje()}
 function novoCard(){const f=prompt('Frente do cartão (pergunta):');if(!f)return;const v=prompt('Verso (resposta):');if(v==null)return;const id=T().id;(S.user.cardsUser[id]=S.user.cardsUser[id]||[]).push({frente:f,verso:v});salvar();render()}
 function editarCard(k){const id=T().id;const arr=k[0]==='p'?(S.content.trechos[id].flashcards):(S.user.cardsUser[id]);const c=arr[+k.slice(1)];const f=prompt('Frente:',c.frente);if(f==null)return;const v=prompt('Verso:',c.verso);if(v==null)return;c.frente=f;c.verso=v;salvar();render()}
 
@@ -870,7 +918,7 @@ function urlsDaLei(nome){const n=normLei(nome);if(!n||/^(DEST[AE]|DESS[AE])\b/.t
 function urlDaLei(nome){return urlsDaLei(nome)[0]||''}
 const RX_LEI_NOME="CPPM|CPP|CPC|CPM|CTB|ECA|LEP|CTN|CDC|CLT|LCP|LINDB|CP|CC|CF|C[óo]digo\\s+(?:de\\s+Processo\\s+)?(?:Penal(?:\\s+Militar)?|Civil)|C[óo]digo\\s+de\\s+Tr[âa]nsito(?:\\s+Brasileiro)?|C[óo]digo\\s+de\\s+Defesa\\s+do\\s+Consumidor|C[óo]digo\\s+Tribut[áa]rio\\s+Nacional|Constitui[çc][ãa]o(?:\\s+(?:Federal|da\\s+Rep[úu]blica))?|(?:Decreto-?\\s?Lei|Lei\\s+Complementar|LC|Lei)\\s*(?:n[ºo°.]*\\s*)?\\d[\\d.]*\\s*\\/\\s*\\d{2,4}|Lei\\s+(?:de|da|das|do|dos)\\s+[A-ZÀ-Ú][A-Za-zÀ-ú]+(?:\\s+(?:de|da|do|das|dos|e|à)?\\s*[A-ZÀ-Ú][A-Za-zÀ-ú]+){0,4}|Lei\\s+Maria\\s+da\\s+Penha|Estatuto\\s+d[oa]\\s+[A-ZÀ-Ú][A-Za-zÀ-ú]+(?:\\s+(?:e\\s+d[oa]\\s+)?[A-ZÀ-Ú][A-Za-zÀ-ú]+){0,3}|dest[ae]\\s+(?:Lei|C[óo]digo|Estatuto)";
 const RX_ART=new RegExp("\\b[Aa]rt(?:s?\\.|igos?)\\s*(\\d{1,4}(?:\\.\\d{3})?(?:\\s*-\\s*[A-Z]{1,2})?)(?:\\s*[ºo°])?((?:\\s*(?:,|\\be\\b)\\s*(?:§+\\s*\\d+\\s*[ºo°]?|caput|par[áa]grafo\\s+[úu]nico|inc(?:iso)?s?\\.?\\s*[IVXLC]+|[IVXLC]{1,6}\\b|al[íi]nea\\s*[\"“]?[a-z][\"”]?|[\"“]?[a-z][\"”]?(?=\\s*(?:,|\\)|;|\\.|$|\\be\\b|d[oa]s?\\s))))*)(?:\\s*,?\\s*(?:d[oa]s?\\s+)?("+RX_LEI_NOME+"))?",'g');
-function marcarLeis(raiz){if(!raiz||!S)return;const nos=[];const w=document.createTreeWalker(raiz,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement.closest('.lei,button,textarea,a,[contenteditable="true"]')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
+function marcarLeis(raiz){if(!raiz||!S)return;const nos=[];const w=document.createTreeWalker(raiz,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement.closest('.lei,.lac,button,textarea,a,[contenteditable="true"]')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
  while(w.nextNode())nos.push(w.currentNode);
  for(const no of nos){const t=no.nodeValue;RX_ART.lastIndex=0;let m,ult=0;const frag=document.createDocumentFragment();let achou=false;
   while((m=RX_ART.exec(t))){const urls=urlsDaLei(m[3]);if(!urls.length)continue;const url=urls[0];achou=true;if(m.index>ult)frag.appendChild(document.createTextNode(t.slice(ult,m.index)));
@@ -878,7 +926,7 @@ function marcarLeis(raiz){if(!raiz||!S)return;const nos=[];const w=document.crea
   if(achou){if(ult<t.length)frag.appendChild(document.createTextNode(t.slice(ult)));no.parentNode.replaceChild(frag,no)}}
  // "§ 2º" solto dentro de um artigo: é parágrafo do próprio artigo do bloco.
  const art=B()&&B().artigo,urlsB=urlsDaLei(''),urlB=urlsB[0];if(!art||!urlB)return;const RX_PAR=/§{1,2}\s*(\d+)\s*[ºo°]?/g;const nos2=[];
- const w2=document.createTreeWalker(raiz,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement.closest('.lei,button,textarea,a,[contenteditable="true"]')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
+ const w2=document.createTreeWalker(raiz,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement.closest('.lei,.lac,button,textarea,a,[contenteditable="true"]')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
  while(w2.nextNode())nos2.push(w2.currentNode);
  for(const no of nos2){const t=no.nodeValue;RX_PAR.lastIndex=0;let m,ult=0,achou=false;const frag=document.createDocumentFragment();
   while((m=RX_PAR.exec(t))){achou=true;if(m.index>ult)frag.appendChild(document.createTextNode(t.slice(ult,m.index)));const sp=document.createElement('span');sp.className='lei';sp.dataset.art=art.toUpperCase();sp.dataset.url=urlB;sp.dataset.urls=JSON.stringify(urlsB);sp.dataset.par='§ '+m[1];sp.textContent=m[0];frag.appendChild(sp);ult=m.index+m[0].length}
@@ -919,6 +967,7 @@ function abrirRevisao(){const mt=mapaTrechos();const lnk=(id,err)=>{const r=mt[i
  const pend=el.filter(t=>((S.content.trechos[t.id]||{}).pendencias||[]).length);
  abrirModal(`<h2>⭐ Revisão</h2>
  <h3>☆ Prováveis de prova (${prov.length})</h3>${prov.length?`<ul>${prov.map(i=>`<li>${lnk(i)}</li>`).join('')}</ul>`:'<p class="muted">Nenhum marcado.</p>'}
+ <h3>📅 Cartões de hoje (${cartoesDeHoje().length})</h3><div class="row" style="margin-top:0"><button class="btn prim" onclick="revisarHoje()">📅 Revisar os cartões de hoje</button></div>
  <h3>✖ Flashcards que errei (${err.length} trechos)</h3>${err.length?`<ul>${err.map(i=>`<li>${lnk(i,1)}</li>`).join('')}</ul>`:'<p class="muted">Nenhum.</p>'}
  <h3>✏️ Anotações (${notas.length})</h3>${notas.length?`<ul>${notas.map(i=>`<li>${lnk(i)}: <span class="muted">${esc(S.user.notas[i].slice(0,120))}</span></li>`).join('')}</ul>`:'<p class="muted">Nenhuma.</p>'}
  <h3>📊 Cobertura</h3><table class="lst"><tr><td>Artigos</td><td>${bls.length}</td></tr><tr><td>Trechos / para estudar</td><td>${trs.length} / ${el.length}</td></tr><tr><td>Trechos prontos · parciais · sem conteúdo</td><td><span class="ok-t">${pr}</span> · <span class="pa-t">${pa}</span> · ${el.length-pr-pa}</td></tr><tr><td>Flashcards</td><td>${nfc}</td></tr><tr><td>Artigos sem mapa/fluxograma/tutor/resumo</td><td>${semArt.length?semArt.map(b=>esc(b.titulo.split(':')[0])).join(', '):'nenhum'}</td></tr><tr><td>Trechos com menos de 3 flashcards</td><td>${poucos.length}</td></tr></table>
@@ -937,7 +986,7 @@ async function salvarHTML(){clearTimeout(tSalvar);const antes=S.user.exportadoEm
 
 /* ============ desenhar ============ */
 function render(){
- const app=$('#app');const tem=!!S;['#bArtigos','#bRevisao','#bSalvar','#bMapa'].forEach(s=>$(s).hidden=!tem);$('#progRow').hidden=!tem;
+ const app=$('#app');const tem=!!S;['#bArtigos','#bRevisao','#bSalvar','#bMapa'].forEach(s=>$(s).hidden=!tem);$('#progRow').hidden=!tem;{const nh=tem?cartoesDeHoje().length:0;$('#bHoje').hidden=!nh;$('#bHoje').textContent='📅 Hoje ('+nh+')'}
  if(!tem){$('#assunto').textContent=TEMA||'Nenhum resumo aberto';app.innerHTML=`<div class="vazio"><h1>📖 Leitor TDAH</h1>${TEMA?`<p><b>Assunto da Fábrica:</b> ${esc(TEMA)}${DISC?' · '+esc(DISC):''}</p>${PASTA?`<p><a class="btn" href="${esc(PASTA)}" target="_blank" rel="noopener">📁 Abrir a pasta do resumo no Drive</a> <span class="muted">(para ver o nome do Word)</span></p>`:''}<p class="muted">Na primeira vez, escolha o Word deste assunto. Nas próximas, o botão da Fábrica já abre direto.</p>`:''}<p>Serve para <b>qualquer resumo</b>. Para começar:</p><ol><li>Clique em <b>📂 Abrir resumo</b> e escolha o <b>Word</b> do resumo (na pasta do Drive).</li><li>Clique em <b>🤖 Gerar conteúdo</b>: para cada artigo, copie o pedido, cole numa conversa nova do ChatGPT e cole a resposta de volta.</li><li>Clique em <b>💾 Salvar HTML</b> e salve na pasta do resumo. Esse arquivo abre sozinho, com tudo dentro.</li></ol><p class="muted">Também abre um HTML salvo antes, um backup ou um inventário (.json).</p><button class="btn prim" onclick="$('#fAbrir').click()">📂 Abrir resumo</button></div>`;return}
  if(ehSub(T())){const k=semSub(S.user.pos.b,S.user.pos.t);if(k!==S.user.pos.t)S.user.pos.t=k}
  const b=B(),t=T();S.user.vistos[t.id]=1;$('#assunto').textContent=S.inv.titulo;const subt=subtituloDe(S.user.pos.b,S.user.pos.t);
@@ -955,20 +1004,21 @@ function render(){
  ${avisoWordNovo?`<div class="item" style="border-color:var(--amber);margin-bottom:.8rem">📝 <b>O Word deste resumo mudou</b>${avisoWordNovo.docx_modificado?' ('+esc(avisoWordNovo.docx_modificado.replace('T',' às ').slice(0,19))+')':''}. Atualizar mantém o conteúdo dos trechos que não mudaram.<div class="row"><button class="btn prim" onclick="aplicarWordNovo()">🔄 Atualizar o leitor</button><button class="btn" onclick="avisoWordNovo=null;render()">Agora não</button></div></div>`:''}
  <div class="card" style="--cat:${cor}"><div class="card-head"><div class="k">${nomeCat} · ${b.trechos.filter(x=>!ehSub(x)).indexOf(t)+1} DE ${b.trechos.filter(x=>!ehSub(x)).length}${S.user.prov[t.id]?' · ★ PROVÁVEL':''}</div><div class="r">${esc(t.rotulo||b.titulo)}</div></div>
  <div class="card-body">${barraDestaque(`<button class="btn" onclick="restaurar()" title="Tira todos os seus destaques deste trecho">Original</button>`)}
- <div id="texto" data-mk="t">${textoHTML(t)}</div>${!t.elegivel?`<p class="muted" style="font-size:.85rem">${esc(t.motivo||'Sem conteúdo para estudar.')}</p>`:''}${ehQuadro(b)?ligacaoQuadro(t):''}</div></div>
+ ${ferrTexto()}<div id="texto" data-mk="t">${textoHTML(t)}</div>${!t.elegivel?`<p class="muted" style="font-size:.85rem">${esc(t.motivo||'Sem conteúdo para estudar.')}</p>`:''}${ehQuadro(b)?ligacaoQuadro(t):''}</div></div>
  <div class="tools">${TOOLS8.map(toolBtn).join('')}</div>
  <button class="mais" onclick="S.user.mais=!S.user.mais;salvar();render()">${S.user.mais?'− RECOLHER':'＋ MAIS FERRAMENTAS (10)'}</button>
  ${S.user.mais?`<div class="tools">${TOOLS10.map(toolBtn).join('')}</div>`:''}
  ${painel()}</section></div>`;
  const at=document.querySelector('.tr.atual');if(at&&!render.rolou){at.scrollIntoView({block:'center'});render.rolou=true}
  if(S.user.tool==='mapa')requestAnimationFrame(linhasMapa);
+ medirTopo();
  fecharLei();marcarLeis($('#texto'));marcarLeis(document.querySelector('.painel'));
 }
 /* ============ botões do topo ============ */
 $('#bAbrir').onclick=()=>$('#fAbrir').click();
 $('#fAbrir').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(!f)return;if(/\.html?$/i.test(f.name)){f.text().then(h=>{const m=h.match(/<script id="dados-embutidos" type="application\/json">([\s\S]*?)<\/script>/);try{const j=JSON.parse(m[1]);if(j.inv){abrirEstado(j);toast('HTML aberto.')}else throw 0}catch(_){alert('Este HTML não tem dados do Leitor TDAH.')}});return}abrirArquivo(f)});
 $('#fAbrir').accept='.docx,.json,.html';
-$('#bArtigos').onclick=abrirArtigos;$('#bRevisao').onclick=abrirRevisao;$('#bSalvar').onclick=salvarHTML;
+$('#bArtigos').onclick=abrirArtigos;$('#bHoje').onclick=revisarHoje;$('#bRevisao').onclick=abrirRevisao;$('#bSalvar').onclick=salvarHTML;
 $('#bMapa').onclick=()=>{S.user.mapaFechado=!S.user.mapaFechado;salvar();render()};
 $('#bMenos').onclick=()=>{fs=Math.max(16,fs-2);lsSet('leitor-tdah:fs',fs);aplicaPrefs()};
 $('#bMais').onclick=()=>{fs=Math.min(34,fs+2);lsSet('leitor-tdah:fs',fs);aplicaPrefs()};
@@ -977,7 +1027,7 @@ window.addEventListener('beforeunload',()=>{if(S&&pendente)gravarAgora()});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&S&&pendente)gravarAgora()});
 // V670.6: o GitHub Pages deixa esta página guardada no navegador por até 10 minutos. Ao abrir, confere se já há
 // versão nova (busca a página sem usar a cópia guardada) e, se houver, recarrega uma vez, depois de gravar.
-const VERSAO_LEITOR='20261023-leitor-v670-8';
+const VERSAO_LEITOR='20261023-leitor-v670-9';
 async function conferirVersaoNova(){if(!/^https?:/.test(location.protocol))return;
  try{const r=await fetch(location.pathname,{cache:'reload'});if(!r.ok)return;const m=(await r.text()).match(/const VERSAO_LEITOR='([^']+)'/);if(!m||m[1]===VERSAO_LEITOR)return;
   const k='leitor-tdah:recarregou:'+m[1];try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,'1')}catch(e){return}
