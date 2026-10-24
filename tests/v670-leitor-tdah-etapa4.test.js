@@ -174,7 +174,7 @@ test('V670.12: destaque nas respostas coladas, foco mais largo e lacunas uma por
 });
 
 test('V670.13: glossário sublinhado no texto, texto do trecho editável à parte e justificado', () => {
-  assert.match(rootLeitor, /const VERSAO_LEITOR='20261024-leitor-v670-13';/);
+  assert.match(rootLeitor, /const VERSAO_LEITOR='20261024-leitor-v670-14';/);
   assert.ok(rootLeitor.includes('function marcarGlossario(raiz){'));
   assert.ok(rootLeitor.includes("fecharLei();marcarLeis($('#texto'));fecharGlos();marcarGlossario($('#texto'));"));
   assert.ok(rootLeitor.includes('const txtDe=t=>(S.user.textoEd&&S.user.textoEd[t.id]!=null)?S.user.textoEd[t.id]:t.texto;'));
