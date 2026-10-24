@@ -106,7 +106,7 @@ test('V670.6: leitor confere versão nova ao abrir e recarrega uma vez', () => {
 });
 
 test('V670.7: citação com alínea, lei pelo número/ano ou pelo nome e lei do resumo viram link', () => {
-  assert.match(rootLeitor, /const VERSAO_LEITOR='20261023-leitor-v670-7';/);
+  assert.match(rootLeitor, /const VERSAO_LEITOR='\d{8}-leitor-v670-\d+';/);
   assert.ok(rootLeitor.includes('function urlsDeNumero(num,ano,tipo){'));
   assert.ok(rootLeitor.includes("const base=PL+'_ato'+f[0]+'-'+f[1]+'/'+ano+'/lei/l'+num;"));
   assert.ok(rootLeitor.includes('function leiPadrao(){'));
@@ -114,4 +114,17 @@ test('V670.7: citação com alínea, lei pelo número/ano ou pelo nome e lei do 
   assert.ok(rootLeitor.includes('let pagina=null;for(const u of urls){'));
   assert.ok(rootLeitor.includes("const al=P.match("));
   assert.ok(rootLeitor.includes("CC:PL+'leis/2002/l10406compilada.htm'"));
+});
+
+test('V670.8: resposta guardada ao voltar para a aba, destaque que mantém a seleção e julgados com letra maior', () => {
+  assert.match(rootLeitor, /const VERSAO_LEITOR='20261023-leitor-v670-8';/);
+  assert.ok(rootLeitor.includes("window.addEventListener('focus',()=>setTimeout(respostaAoVoltar,150));"));
+  assert.ok(rootLeitor.includes('function temConteudoPacote(objs){'));
+  assert.ok(rootLeitor.includes('function guardarFerramentaDe(k,objs,alvo){'));
+  assert.ok(rootLeitor.includes('rg.set(ms);salvar();const y=scrollY;render();scrollTo(0,y);selecionar(o.key,o.s,o.e)}'));
+  assert.ok(rootLeitor.includes('onmousedown="event.preventDefault()"'));
+  assert.ok(rootLeitor.includes('<div id="texto" data-mk="t">'));
+  assert.ok(rootLeitor.includes("data-mk=\"j:${meu?'u':'p'}:${i}:tese\""));
+  assert.ok(rootLeitor.includes('.jur-tese{font-size:var(--fs);'));
+  assert.ok(rootLeitor.includes("$('#progN').textContent=(idx+1)+'/'+trs.length;"));
 });

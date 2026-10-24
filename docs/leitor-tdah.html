@@ -32,6 +32,9 @@ header.top{position:sticky;top:0;z-index:20;background:var(--surface);border-bot
 .assunto{font-weight:800;font-size:1.05rem;margin-right:auto}
 .prog{height:6px;background:var(--panel2);border-radius:9px;margin-top:.55rem;overflow:hidden}
 .prog>div{height:100%;background:var(--green);width:0}
+.prog-row{display:flex;align-items:center;gap:.6rem;margin-top:.55rem}.prog-row[hidden]{display:none}
+.prog-row .prog{flex:1;margin-top:0}
+.prog-n{font-size:.8rem;font-weight:800;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
 main{max-width:1500px;margin:0 auto;padding:1rem 1.2rem 4rem}
 .vazio{max-width:760px;margin:3rem auto;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:2rem}
 .vazio h1{margin-top:0}
@@ -74,6 +77,12 @@ main{max-width:1500px;margin:0 auto;padding:1rem 1.2rem 4rem}
 #texto{font-size:var(--fs);line-height:1.55;white-space:pre-wrap}
 .m-b{font-weight:850}.m-up{text-transform:uppercase}
 .m-y{background:var(--hl-y)}.m-g{background:var(--hl-g)}.m-p{background:var(--hl-p)}
+.m-f1{font-size:1.2em}.m-f2{font-size:1.4em}.m-f3{font-size:1.65em}.m-f4{font-size:1.9em}.m-fm{font-size:.82em}
+.dest-dica{font-size:.75rem;margin:-.35rem 0 .6rem}
+.jur{font-size:calc(var(--fs)*.82)}
+.jur-tese{font-size:var(--fs);line-height:1.55;margin-top:.35rem;white-space:pre-wrap}
+.jur-fund{font-size:calc(var(--fs)*.85);line-height:1.5;margin-top:.35rem;white-space:pre-wrap}
+.espera{border:1px dashed var(--green);border-radius:10px;padding:.45rem .7rem;margin:.6rem 0;font-size:.86rem}
 .selo{display:inline-block;font-size:.7rem;font-weight:800;letter-spacing:.06em;border:1px solid var(--border);border-radius:99px;padding:.12rem .55rem;color:var(--muted);margin-left:.4rem;vertical-align:middle}
 .tools{display:grid;grid-template-columns:repeat(4,1fr);gap:.55rem;margin:1rem 0 .6rem}
 .tool{background:var(--panel2);border:2px solid var(--border);border-radius:12px;padding:.7rem .4rem;font-weight:800;font-size:.84rem;position:relative}
@@ -179,7 +188,7 @@ img.ev{max-width:100%;border-radius:12px;border:1px solid var(--border)}
   <button class="btn" id="bMais" title="Letra maior">A+</button>
   <button class="btn" id="bTema">🌓 Tema</button>
  </div>
- <div class="prog" id="prog" hidden><div></div></div>
+ <div class="prog-row" id="progRow" hidden><div class="prog" id="prog"><div></div></div><span class="prog-n" id="progN" title="Trecho atual / total de trechos"></span></div>
 </header>
 <main id="app"></main>
 <input type="file" id="fAbrir" accept=".docx,.json" hidden>
@@ -198,7 +207,12 @@ const negrito=s=>esc(s).replace(/\*\*(.+?)\*\*/gs,'<b>$1</b>');
 const limpa=s=>String(s??'').replace(/\*\*/g,'').replace(/\s+/g,' ').trim();
 const pad=(n,k=3)=>String(n).padStart(k,'0');
 function toast(m,ms=2600){const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(()=>t.style.display='none',ms)}
-async function copiar(txt){try{await navigator.clipboard.writeText(txt);return true}catch(e){const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand('copy')}catch(_){}ta.remove();return ok}}
+async function copiar(txt){const ok=await copiarBruto(txt);if(ok)ultimoCopiado=normClip(txt);return ok}
+async function copiarBruto(txt){try{await navigator.clipboard.writeText(txt);return true}catch(e){const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand('copy')}catch(_){}ta.remove();return ok}}
+// V670.8: menos copia e cola. Depois de copiar um pedido, ao voltar para esta aba com a resposta da Joana copiada, o leitor guarda sozinho.
+let aguardando=null,ultimoCopiado='',ultimoLido='',avisoPermissao=false;
+const normClip=s=>String(s||'').replace(/\r\n?/g,'\n').trim();
+async function lerClip(){try{return normClip(await navigator.clipboard.readText())}catch(e){return null}}
 function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
 function lsSet(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}}
 
@@ -529,7 +543,7 @@ function abrirArtigos(){
  const bls=S.inv.blocos.filter(blocoPedivel);const prontos=bls.filter(b=>situacaoBloco(b).k==='pronto').length;const gs=gruposPedido(bls);const st=gs.map(situacaoGrupo);const feitos=st.filter(s=>s.k==='pronto').length;const prox=proximoPedido(gs,st);
  abrirModal(`<h2>🤖 Gerar conteúdo com a Joana</h2>
  <div class="row" style="margin:.2rem 0 .6rem"><b>${feitos} de ${gs.length}</b>&nbsp;pedidos prontos · ${prontos} de ${bls.length} artigos.</div>
- ${prox<0?'<p class="ok-t">✅ Todos os pedidos deste resumo estão prontos.</p>':`<p class="muted"><b>1.</b> Copie o próximo pedido → <b>2.</b> cole numa <b>conversa nova</b> do ChatGPT → <b>3.</b> copie a resposta dela (botão de copiar do quadro de código) → <b>4.</b> clique em <b>Colar resposta</b>. Ao guardar, o pedido seguinte já fica copiado.</p>`}
+ ${prox<0?'<p class="ok-t">✅ Todos os pedidos deste resumo estão prontos.</p>':`<p class="muted"><b>1.</b> Copie o próximo pedido → <b>2.</b> cole numa <b>conversa nova</b> do ChatGPT → <b>3.</b> copie a resposta dela (botão de copiar do quadro de código) → <b>4.</b> <b>volte para esta aba</b>: eu guardo sozinho e já deixo o pedido seguinte copiado.</p><p class="muted" style="font-size:.8rem">Na primeira vez, o Chrome pergunta se esta página pode ver o que foi copiado: clique em <b>Permitir</b>. Se não guardar sozinho, clique em <b>📥 Colar resposta</b> (um clique só).</p>`}
  <div class="row">${prox<0?'':`<button class="btn prim" onclick="copiarPedido(${prox},this)">📋 Copiar próximo pedido (${prox+1} de ${gs.length})</button>`}<button class="btn ok" onclick="colarResposta(null)">📥 Colar resposta</button></div>
  <details style="margin-top:.9rem"><summary class="muted">Ver todos os pedidos (${gs.length})</summary>
  <table class="lst"><tr><th>Pedido</th><th>Trechos</th><th>Situação</th><th></th></tr>
@@ -552,17 +566,35 @@ function pedidoDoGrupo(g){const falta=g.filter(p=>situacaoParte(p)!=='pronto');r
 // Próximo pedido: o primeiro que falta e ainda não foi copiado nesta aba; se todos já foram copiados, o primeiro que falta.
 const pedidosCopiados=new Set();const chavePedido=i=>S.inv.assunto_id+'|'+i;
 function proximoPedido(gs,st){let i=st.findIndex((s,k)=>s.k!=='pronto'&&!pedidosCopiados.has(chavePedido(k)));if(i<0)i=st.findIndex(s=>s.k!=='pronto');return i}
-async function copiarPedido(i,btn){const gs=gruposPedido(S.inv.blocos.filter(blocoPedivel));if(!gs[i])return;const texto=pedidoDoGrupo(gs[i]);const ok=await copiar(texto);if(ok){pedidosCopiados.add(chavePedido(i));if(btn)btn.textContent='✔ Copiado';toast('Pedido '+(i+1)+' copiado. Cole numa conversa nova do ChatGPT.')}else abrirModal(`<h2>Copie o pedido</h2><p>Não consegui copiar sozinho. Selecione tudo abaixo (Ctrl+A) e copie (Ctrl+C).</p><textarea style="min-height:50vh">${esc(texto)}</textarea><div class="row"><button class="btn" onclick="abrirArtigos()">Voltar</button></div>`)}
-function colarResposta(id){const b=id&&S.inv.blocos.find(x=>x.id===id);
+async function copiarPedido(i,btn){const gs=gruposPedido(S.inv.blocos.filter(blocoPedivel));if(!gs[i])return;const texto=pedidoDoGrupo(gs[i]);const ok=await copiar(texto);if(ok){pedidosCopiados.add(chavePedido(i));esperar('pacote');if(btn)btn.textContent='✔ Copiado';toast('Pedido '+(i+1)+' copiado. Cole numa conversa nova do ChatGPT.')}else abrirModal(`<h2>Copie o pedido</h2><p>Não consegui copiar sozinho. Selecione tudo abaixo (Ctrl+A) e copie (Ctrl+C).</p><textarea style="min-height:50vh">${esc(texto)}</textarea><div class="row"><button class="btn" onclick="abrirArtigos()">Voltar</button></div>`)}
+// V670.8: "Colar resposta" lê a área de transferência num clique; a caixa para colar só aparece se não der.
+async function colarResposta(id){if(!id){const txt=await lerClip();if(txt&&txt!==ultimoCopiado&&txt!==ultimoLido){const objs=extrairJsons(txt);if(temConteudoPacote(objs)){ultimoLido=txt;await guardarPacote(objs);return}}}
+ const b=id&&S.inv.blocos.find(x=>x.id===id);
  abrirModal(`<h2>📥 Resposta da Joana${b?' — '+esc(b.titulo):''}</h2><p class="muted">Cole aqui (Ctrl+V) tudo o que ela respondeu. Pode colar o texto inteiro, com a conversa em volta: eu pego só o conteúdo.</p>
  <textarea id="taResp" style="min-height:45vh" placeholder="Cole aqui"></textarea>
  <div class="row"><button class="btn prim" onclick="processarColado()">✔ Guardar</button><button class="btn" onclick="colarDoClipboard()">Colar da área de transferência</button><button class="btn" onclick="abrirArtigos()">Voltar</button></div>`);setTimeout(()=>$('#taResp').focus(),50)}
 async function colarDoClipboard(){try{$('#taResp').value=await navigator.clipboard.readText()}catch(e){toast('Use Ctrl+V dentro da caixa.')}}
 async function processarColado(){const objs=extrairJsons($('#taResp').value);if(!objs.length){alert('Não encontrei o conteúdo (o bloco JSON) no que foi colado. Copie a resposta inteira da Joana e tente de novo.');return}
+ if(!temConteudoPacote(objs)){alert('Isso parece o pedido, não a resposta da Joana. Copie a resposta dela (botão de copiar do quadro de código) e tente de novo.');return}
+ ultimoLido=normClip($('#taResp').value);await guardarPacote(objs)}
+// Resposta de verdade tem conteúdo (o próprio pedido também tem JSON, mas sem flashcards, mapa etc.).
+function temConteudoPacote(objs){return (objs||[]).some(o=>o&&typeof o==='object'&&(Array.isArray(o)?o:(o.pacotes||[o])).some(p=>p&&((p.bloco&&CAMPOS_BLOCO.some(c=>p.bloco[c]!=null))||(p.trechos||[]).some(t=>t&&CAMPOS_TRECHO.some(c=>t[c]!=null)))))}
+async function guardarPacote(objs){
  const rel=importarObjetos(objs);const gs=gruposPedido(S.inv.blocos.filter(blocoPedivel));const prox=proximoPedido(gs,gs.map(situacaoGrupo));let copiado=false;
  // V670.4: ao guardar, o pedido seguinte já vai para a área de transferência.
  if(prox>=0&&rel.ok.length){copiado=await copiar(pedidoDoGrupo(gs[prox]));if(copiado)pedidosCopiados.add(chavePedido(prox))}
+ if(prox<0)aguardando=null;else if(copiado)esperar('pacote');
  mostrarRelatorio(rel,{prox,total:gs.length,copiado})}
+function esperar(tipo){aguardando=S?{tipo,aid:S.inv.assunto_id,tid:T().id,bid:B().id,em:Date.now()}:null}
+// Ao voltar para a aba (foco), confere se a resposta esperada está copiada e guarda sozinho.
+async function respostaAoVoltar(){const a=aguardando;if(!S||!a||a.aid!==S.inv.assunto_id||Date.now()-a.em>4*3600e3||!document.hasFocus())return;
+ if(document.querySelector('#modal.on textarea'))return;
+ const txt=await lerClip();if(txt==null){if(!avisoPermissao){avisoPermissao=true;toast('Para eu guardar a resposta sozinho, permita que esta página veja o que foi copiado (ícone na barra de endereço). Enquanto isso, use 📥 Colar.',8000)}return}
+ if(!txt||txt===ultimoCopiado||txt===ultimoLido||aguardando!==a)return;const objs=extrairJsons(txt);if(!objs.length)return;
+ if(a.tipo==='pacote'){if(!temConteudoPacote(objs))return;ultimoLido=txt;await guardarPacote(objs);return}
+ const n=guardarFerramentaDe(a.tipo,objs,a);if(!n)return;ultimoLido=txt;aguardando=null;salvar();render();
+ const tr=(mapaTrechos()[a.tid]||{}).t;toast((a.tipo==='fluxo'?'Fluxograma novo guardado':n+' '+NOME_COLAR[a.tipo]+' guardado(s)')+(a.tid!==T().id&&tr?' no trecho "'+limpa(tr.rotulo||tr.texto).slice(0,50)+'"':'')+' sozinho.',5000)}
+window.addEventListener('focus',()=>setTimeout(respostaAoVoltar,150));
 $('#fPacotes').addEventListener('change',async e=>{const objs=[];for(const f of e.target.files){try{objs.push(...extrairJsons(await f.text()))}catch(_){}}e.target.value='';if(!objs.length){alert('Nenhum conteúdo reconhecido nos arquivos.');return}mostrarRelatorio(importarObjetos(objs))});
 
 /* ============ navegação ============ */
@@ -578,15 +610,37 @@ document.addEventListener('keydown',e=>{if(!S||$('#modal').classList.contains('o
 
 /* ============ texto com destaques ============ */
 function runs(txt){const out=[];const re=/\*\*(.+?)\*\*/gs;let i=0,m;while((m=re.exec(txt))){if(m.index>i)out.push({t:txt.slice(i,m.index),b:0});out.push({t:m[1],b:1});i=re.lastIndex}if(i<txt.length)out.push({t:txt.slice(i),b:0});return out}
-function textoHTML(t){const rs=runs(t.texto);const plain=rs.map(r=>r.t).join('');const N=plain.length;const at=new Array(N);let k=0;for(const r of rs)for(let j=0;j<r.t.length;j++)at[k++]={b:r.b,up:0,h:''};
- for(const m of (S.user.marcas[t.id]||[]))for(let i=Math.max(0,m.s);i<Math.min(N,m.e);i++){if(m.k==='b')at[i].b=1;else if(m.k==='up')at[i].up=1;else at[i].h=m.k}
- let h='',cur=null,buf='';const key=a=>a.b+'|'+a.up+'|'+a.h;const flush=()=>{if(!buf)return;const c=[cur.b?'m-b':'',cur.up?'m-up':'',cur.h?'m-'+cur.h:''].filter(Boolean).join(' ');h+=c?`<span class="${c}">${esc(buf)}</span>`:esc(buf);buf=''};
+function textoHTML(t){return marcadoHTML(t.texto,S.user.marcas[t.id])}
+// Marcas {s,e,k}: b = negrito, up = maiúsculas, y/g/p = grifo, f = letra maior (soma), f- = letra menor.
+function marcadoHTML(txt,marcas){const rs=runs(String(txt||''));const plain=rs.map(r=>r.t).join('');const N=plain.length;const at=new Array(N);let k=0;for(const r of rs)for(let j=0;j<r.t.length;j++)at[k++]={b:r.b,up:0,h:'',f:0};
+ for(const m of (marcas||[]))for(let i=Math.max(0,m.s);i<Math.min(N,m.e);i++){if(m.k==='b')at[i].b=1;else if(m.k==='up')at[i].up=1;else if(m.k==='f')at[i].f++;else if(m.k==='f-')at[i].f--;else at[i].h=m.k}
+ const nf=f=>f>0?'m-f'+Math.min(f,4):f<0?'m-fm':'';
+ let h='',cur=null,buf='';const key=a=>a.b+'|'+a.up+'|'+a.h+'|'+nf(a.f);const flush=()=>{if(!buf)return;const c=[cur.b?'m-b':'',cur.up?'m-up':'',cur.h?'m-'+cur.h:'',nf(cur.f)].filter(Boolean).join(' ');h+=c?`<span class="${c}">${esc(buf)}</span>`:esc(buf);buf=''};
  for(let i=0;i<N;i++){const a=at[i];if(!cur||key(a)!==key(cur)){flush();cur=a}buf+=plain[i]}flush();return h}
-function selecaoOffsets(){const sel=getSelection();const box=$('#texto');if(!sel.rangeCount||!box)return null;const r=sel.getRangeAt(0);if(!box.contains(r.startContainer)||!box.contains(r.endContainer)||r.collapsed)return null;
- const pre=document.createRange();pre.selectNodeContents(box);pre.setEnd(r.startContainer,r.startOffset);const s=pre.toString().length;return {s,e:s+r.toString().length}}
-function destacar(k){const o=selecaoOffsets();if(!o){toast('Selecione uma palavra ou expressão no texto do trecho.');return}const id=T().id;const ms=S.user.marcas[id]=S.user.marcas[id]||[];
- if(k==='rem')S.user.marcas[id]=ms.filter(m=>m.e<=o.s||m.s>=o.e);else ms.push({s:o.s,e:o.e,k});salvar();render()}
+// V670.8: áreas que aceitam destaque têm data-mk: "t" = texto do trecho; "j:p|u:i:campo" = julgado (do resumo ou meu).
+function regiaoMarcas(key){if(key==='t'){const id=T().id;return {get:()=>S.user.marcas[id]||[],set:v=>{if(v.length)S.user.marcas[id]=v;else delete S.user.marcas[id]}}}
+ const m=String(key).match(/^j:([pu]):(\d+):(\w+)$/);if(!m)return null;const arr=m[1]==='p'?(cT().jurisprudencia||[]):(S.user.jurUser[T().id]||[]);const j=arr[+m[2]];if(!j)return null;
+ return {get:()=>(j.marcas&&j.marcas[m[3]])||[],set:v=>{j.marcas=j.marcas||{};if(v.length)j.marcas[m[3]]=v;else delete j.marcas[m[3]]}}}
+function selecaoNaRegiao(){const sel=getSelection();if(!sel.rangeCount)return null;const r=sel.getRangeAt(0);if(r.collapsed)return null;const el=n=>n&&(n.nodeType===1?n:n.parentElement);
+ const reg=(el(r.startContainer)&&el(r.startContainer).closest('[data-mk]'))||(el(r.endContainer)&&el(r.endContainer).closest('[data-mk]'));if(!reg)return null;
+ const tot=reg.textContent.length;const pos=(no,off)=>{const p=document.createRange();p.selectNodeContents(reg);p.setEnd(no,off);return p.toString().length};
+ const s=reg.contains(r.startContainer)?pos(r.startContainer,r.startOffset):0,e=reg.contains(r.endContainer)?pos(r.endContainer,r.endOffset):tot;return e>s?{key:reg.dataset.mk,s,e}:null}
+function selecionar(key,s,e){const reg=[...document.querySelectorAll('[data-mk]')].find(x=>x.dataset.mk===key);if(!reg)return;const w=document.createTreeWalker(reg,NodeFilter.SHOW_TEXT);let pos=0,a=null,ao=0,b=null,bo=0,n;
+ while((n=w.nextNode())){const L=n.nodeValue.length;if(!a&&s<pos+L){a=n;ao=s-pos}if(a&&e<=pos+L){b=n;bo=e-pos;break}pos+=L}if(!a||!b)return;const r=document.createRange();r.setStart(a,ao);r.setEnd(b,bo);const sel=getSelection();sel.removeAllRanges();sel.addRange(r)}
+// Tira das marcas o pedaço [s,e) (as marcas que passam da seleção ficam com o resto).
+function cortarMarcas(ms,s,e,filtro){const out=[];for(const m of ms){if(!filtro(m)||m.e<=s||m.s>=e){out.push(m);continue}if(m.s<s)out.push({...m,e:s});if(m.e>e)out.push({...m,s:e})}return out}
+const cobre=(ms,k,s,e)=>{for(let i=s;i<e;i++)if(!ms.some(m=>m.k===k&&m.s<=i&&m.e>i))return false;return true};
+// A seleção continua marcada depois de cada botão: dá para grifar, negritar e aumentar a letra sem selecionar de novo.
+// Negrito, maiúsculas e grifo: clicar de novo na mesma seleção tira.
+function destacar(k){const o=selecaoNaRegiao();if(!o){toast('Selecione uma palavra ou expressão no texto.');return}const rg=regiaoMarcas(o.key);if(!rg)return;let ms=rg.get().slice();
+ if(k==='rem')ms=cortarMarcas(ms,o.s,o.e,()=>true);
+ else if(k==='f'||k==='f-')ms.push({s:o.s,e:o.e,k});
+ else if(cobre(ms,k,o.s,o.e))ms=cortarMarcas(ms,o.s,o.e,m=>m.k===k);
+ else{if(['y','g','p'].includes(k))ms=cortarMarcas(ms,o.s,o.e,m=>['y','g','p'].includes(m.k));ms.push({s:o.s,e:o.e,k})}
+ rg.set(ms);salvar();const y=scrollY;render();scrollTo(0,y);selecionar(o.key,o.s,o.e)}
 function restaurar(){if(!confirm('Tirar todos os seus destaques deste trecho?'))return;delete S.user.marcas[T().id];salvar();render()}
+const BTN_DEST=(k,rot,tit)=>`<button class="btn" title="${tit}" onmousedown="event.preventDefault()" onclick="destacar('${k}')">${rot}</button>`;
+function barraDestaque(extra=''){return `<div class="dest">${BTN_DEST('b','<b>B</b> Negrito','Negrito (de novo tira)')}${BTN_DEST('up','AA Maiúsculas','Maiúsculas (de novo tira)')}${['y','g','p'].map(c=>BTN_DEST(c,`<span class="sw" style="background:var(--hl-${c})"></span> Grifo`,'Grifo (de novo tira)')).join('')}${BTN_DEST('f','A+ Letra maior','Aumenta a letra do trecho selecionado (clique mais vezes para aumentar mais)')}${BTN_DEST('f-','A− Letra menor','Diminui a letra do trecho selecionado')}${BTN_DEST('rem','Tirar destaque','Tira os destaques só do que está selecionado')}${extra}</div><div class="muted dest-dica">Selecione uma vez e clique em quantos botões quiser: a seleção continua.</div>`}
 
 /* ============ ferramentas ============ */
 const TOOLS8=[['prov','☆','PROVÁVEL'],['juris','⚖️','JURISPRUDÊNCIA'],['porque','🧠','POR QUÊ?'],['perg','❓','PERGUNTAR'],['quest','📝','QUESTÕES'],['notas','✏️','ANOTAÇÕES'],['glos','📖','GLOSSÁRIO'],['mnemo','🧩','MNEMÔNICOS']];
@@ -610,7 +664,7 @@ const REGRA_FLUXO=`ROTEIRO PARA RESOLVER QUESTÃO DE PROVA (4 a 8 nós). Comece 
 PROMPTS.juris=()=>`${ctxPrompt()}\n\nPesquise jurisprudência do STF e do STJ sobre ESTE trecho, em fonte oficial (stf.jus.br, stj.jus.br, informativos, súmulas, temas repetitivos e de repercussão geral). Traga até 5 julgados, os mais cobrados em prova. Inclua só o que você encontrou de verdade, com o link; não invente número de processo. Diga se a aplicação ao trecho é "direta" ou "relacionada".\nResponda com UM bloco de código JSON (sem arquivo para download):\n{"jurisprudencia":[{"tribunal":"","orgao":"","processo":"","data":"","tese":"","fundamentos":"","fonte":"link","aplicacao":"direta ou relacionada"}]}\nSe não achar nada confiável, responda {"jurisprudencia":[]} e explique em uma linha.`;
 PROMPTS.cards=()=>{const id=T().id;const tem=[...(cT().flashcards||[]),...(S.user.cardsUser[id]||[])].map(c=>'- '+limpa(c.frente));return `${ctxPrompt()}\n\nCrie 5 FLASHCARDS NOVOS sobre este trecho, de nível de prova de Delegado, cada um por um ângulo diferente (conceito, requisito, exceção, distinção com instituto vizinho, aplicação a caso concreto, pegadinha). ${tem.length?'Não repita estes, que eu já tenho:\n'+tem.join('\n')+'\n':''}Verso curto e preciso. Não invente lei nem julgado.\nResponda com UM bloco de código JSON (sem arquivo para download):\n{"flashcards":[{"angulo":"","frente":"","verso":""}]}`};
 PROMPTS.fluxo=()=>{const b=B();return `Artigo: ${limpa(b.titulo)}${b.capitulo?' ('+limpa(b.capitulo)+')':''}\nTexto do resumo:\n${b.trechos.filter(t=>t.elegivel).map(t=>'- '+limpa(t.texto)).join('\n')}\n\nFaça um FLUXOGRAMA deste artigo como ${REGRA_FLUXO}\nNão invente lei, prazo nem exceção.\nResponda com UM bloco de código JSON (sem arquivo para download):\n{"fluxograma":{"tipo":"decisao ou sequencia","nos":[{"id":"n1","tipo":"condicao, consequencia ou excecao","texto":""}],"ligacoes":[{"de":"n1","para":"n2","rotulo":"sim ou não"}]}}`};
-async function copiarPrompt(k){const ok=await copiar(PROMPTS[k]());toast(ok?'Pedido copiado. Cole numa conversa nova do ChatGPT.':'Não consegui copiar.')}
+async function copiarPrompt(k){const ok=await copiar(PROMPTS[k]());const volta=NOME_COLAR[k];if(ok&&volta){esperar(k);render()}toast(ok?'Pedido copiado. Cole numa conversa nova do ChatGPT.'+(volta?' Depois copie a resposta e volte aqui: eu guardo sozinho.':''):'Não consegui copiar.',volta?5000:2600)}
 /* V670: QUESTÕES → Treino do site. A aba do site que abriu o leitor (parâmetro aba) abre o Treino; sem ela, outra aba do site. */
 const canalSite=('BroadcastChannel' in window)?new BroadcastChannel('aldus-leitor-tdah-site'):null;
 function semSite(){abrirModal(`<h2>📝 Treino de questões</h2><p>Não achei o site Aldus aberto neste navegador.</p><ol><li>Clique em <b>Abrir o site Aldus</b>.</li><li>Espere o site carregar.</li><li>Volte aqui e clique de novo em <b>📝 Abrir o Treino no site</b>.</li></ol><div class="row"><a class="btn prim" href="./" target="_blank" rel="noopener" onclick="fecharModal()">🌐 Abrir o site Aldus</a><button class="btn" onclick="fecharModal()">Fechar</button></div>`)}
@@ -624,13 +678,18 @@ function abrirTreino(){const msg=t=>{const p=$('#treinoMsg');if(p)p.innerHTML=t}
  canalSite.addEventListener('message',ouvir);
  canalSite.postMessage({tipo:'abrir-treino',id,item:ITEM,tema:TEMA,disciplina:DISC,aba:PARAM.get('aba')||''})}
 const NOME_COLAR={juris:'julgados',cards:'flashcards',fluxo:'fluxograma'};
-function colarFerramenta(k){abrirModal(`<h2>📥 Colar ${NOME_COLAR[k]} do ChatGPT</h2><p class="muted">Copie a resposta da Joana (botão ⧉ do quadro de código), clique na caixa e aperte Ctrl+V.</p><textarea id="taFerr" style="min-height:40vh" placeholder="Cole aqui"></textarea><div class="row"><button class="btn prim" onclick="guardarFerramenta('${k}')">✔ Guardar</button><button class="btn" onclick="fecharModal()">Cancelar</button></div>`);setTimeout(()=>$('#taFerr').focus(),50)}
-function guardarFerramenta(k){const objs=extrairJsons($('#taFerr').value);const id=T().id,bid=B().id;let n=0;
+const esperaHTML=k=>{const a=aguardando;return a&&a.tipo===k&&(k==='fluxo'?a.bid===B().id:a.tid===T().id)?`<div class="espera">⏳ Pedido copiado. Cole no ChatGPT, copie a resposta da Joana e <b>volte para esta aba</b>: eu guardo sozinho.</div>`:''};
+async function colarFerramenta(k){const txt=await lerClip();if(txt&&txt!==ultimoCopiado&&txt!==ultimoLido){const n=guardarFerramentaDe(k,extrairJsons(txt),{tid:T().id,bid:B().id});if(n){ultimoLido=txt;aguardando=null;salvar();render();toast(k==='fluxo'?'Fluxograma novo guardado.':n+' '+NOME_COLAR[k]+' guardado(s) neste trecho.');return}}
+ abrirModal(`<h2>📥 Colar ${NOME_COLAR[k]} do ChatGPT</h2><p class="muted">Copie a resposta da Joana (botão ⧉ do quadro de código), clique na caixa e aperte Ctrl+V.</p><textarea id="taFerr" style="min-height:40vh" placeholder="Cole aqui"></textarea><div class="row"><button class="btn prim" onclick="guardarFerramenta('${k}')">✔ Guardar</button><button class="btn" onclick="fecharModal()">Cancelar</button></div>`);setTimeout(()=>$('#taFerr').focus(),50)}
+function guardarFerramenta(k){const n=guardarFerramentaDe(k,extrairJsons($('#taFerr').value),{tid:T().id,bid:B().id});
+ if(!n){alert('Não encontrei o conteúdo na resposta colada. Copie o quadro de código inteiro da Joana e tente de novo.');return}
+ ultimoLido=normClip($('#taFerr').value);if(aguardando&&aguardando.tipo===k)aguardando=null;salvar();fecharModal();render();toast(k==='fluxo'?'Fluxograma novo guardado.':n+' '+NOME_COLAR[k]+' guardado(s) neste trecho.')}
+// Guarda julgados, flashcards ou fluxograma no trecho/artigo indicado (o da tela ou o que pediu, se a pessoa já mudou de trecho).
+function guardarFerramentaDe(k,objs,alvo){const id=alvo.tid,bid=alvo.bid;let n=0;if(!mapaTrechos()[id])return 0;
  if(k==='cards'){const it=objs.flatMap(o=>Array.isArray(o.flashcards)?o.flashcards:(o.frente&&o.verso?[o]:[])).filter(c=>c&&c.frente&&c.verso);const arr=S.user.cardsUser[id]=S.user.cardsUser[id]||[];for(const c of it){arr.push({frente:c.frente,verso:c.verso,angulo:c.angulo||''});n++}}
  else if(k==='juris'){const it=objs.flatMap(o=>Array.isArray(o.jurisprudencia)?o.jurisprudencia:Array.isArray(o.julgados)?o.julgados:((o.tese||o.processo)?[o]:[])).filter(j=>j&&(j.tese||j.processo));const arr=S.user.jurUser[id]=S.user.jurUser[id]||[];for(const j of it){arr.push({...j,origem:'pesquisa no ChatGPT'});n++}}
- else if(k==='fluxo'){const f=objs.map(o=>o.fluxograma||(Array.isArray(o.nos)?o:null)).find(Boolean);if(f&&(f.nos||[]).length){(S.content.blocos[bid]=S.content.blocos[bid]||{}).fluxograma=f;delete S.user.fluxoUser[bid];n=f.nos.length}}
- if(!n){alert('Não encontrei o conteúdo na resposta colada. Copie o quadro de código inteiro da Joana e tente de novo.');return}
- salvar();fecharModal();render();toast(k==='fluxo'?'Fluxograma novo guardado.':n+' '+NOME_COLAR[k]+' guardado(s) neste trecho.')}
+ else if(k==='fluxo'){const f=objs.map(o=>o.fluxograma||(Array.isArray(o.nos)?o:null)).find(Boolean);if(f&&(f.nos||[]).some(x=>x&&limpa(x.texto))){(S.content.blocos[bid]=S.content.blocos[bid]||{}).fluxograma=f;delete S.user.fluxoUser[bid];n=f.nos.length}}
+ return n}
 const OPC_DUV=['O significado','Um exemplo prático','Comparação com instituto parecido','O fundamento','Quando incide','As exceções','As consequências','Jurisprudência','Pegadinhas de prova'];
 function painel(){const k=S.user.tool;if(!k)return '';const t=T(),b=B(),ct=cT(),cb=cB(),u=S.user;let h='';
  const nome=[...TOOLS8,...TOOLS10].find(x=>x[0]===k);h+=`<h4>${nome[1]} ${nome[2]}${CAMPOS_BLOCO_TOOL.includes(k)?doArtigo:''}</h4>`;
@@ -665,7 +724,7 @@ function guardarDuvida(){const r=$('#taDuvResp').value.trim();if(!r)return;const
 let fcI=0,fcVirado=false,fcTrecho='';
 function listaCards(){const id=T().id;const base=(cT().flashcards||[]).map((c,i)=>({...c,_k:'p'+i}));const us=(S.user.cardsUser[id]||[]).map((c,i)=>({...c,_k:'u'+i}));let l=[...base,...us];if(S.user.soErrados)l=l.filter(c=>(S.user.cards[id]||{})[c._k]==='err');return l}
 function painelCards(){const id=T().id;if(fcTrecho!==id){fcI=0;fcVirado=false;fcTrecho=id}const l=listaCards();const res=S.user.cards[id]||{};const ac=Object.values(res).filter(v=>v==='ok').length,er=Object.values(res).filter(v=>v==='err').length;
- let h=`<div class="row" style="margin-top:0;margin-bottom:.6rem"><button class="btn prim" onclick="copiarPrompt('cards')">🤖 Pedir mais flashcards ao ChatGPT</button><button class="btn ok" onclick="colarFerramenta('cards')">📥 Colar flashcards</button></div><div class="row" style="margin-top:0"><span class="muted">✔ ${ac} · ✖ ${er}</span><label style="margin-left:auto"><input type="checkbox" ${S.user.soErrados?'checked':''} onchange="S.user.soErrados=this.checked;fcI=0;render()"> só os que errei</label></div>`;
+ let h=`<div class="row" style="margin-top:0;margin-bottom:.6rem"><button class="btn prim" onclick="copiarPrompt('cards')">🤖 Pedir mais flashcards ao ChatGPT</button><button class="btn ok" onclick="colarFerramenta('cards')">📥 Colar flashcards</button></div>${esperaHTML('cards')}<div class="row" style="margin-top:0"><span class="muted">✔ ${ac} · ✖ ${er}</span><label style="margin-left:auto"><input type="checkbox" ${S.user.soErrados?'checked':''} onchange="S.user.soErrados=this.checked;fcI=0;render()"> só os que errei</label></div>`;
  if(!l.length)return h+(S.user.soErrados?'<p class="muted">Nenhum errado aqui. 👏</p>':(T().elegivel?vazioPacote:'<p class="muted">Trecho sem conteúdo para estudar.</p>'))+`<div class="row"><button class="btn" onclick="novoCard()">＋ Criar meu cartão</button></div>`;
  fcI=Math.min(fcI,l.length-1);const c=l[fcI];
  h+=`<div class="fc"><div class="muted" style="font-size:.75rem">CARTÃO ${fcI+1} DE ${l.length}${c.angulo?' · '+esc(c.angulo).toUpperCase():''}${c._k[0]==='u'?' · MEU':''}</div><div style="margin-top:.5rem;font-weight:750">${negrito(c.frente)}</div>${fcVirado?`<div class="v">${negrito(c.verso)}${c.explicacao?`<div class="muted" style="font-weight:400;margin-top:.4rem">${negrito(c.explicacao)}</div>`:''}</div>`:''}</div>
@@ -678,9 +737,12 @@ function editarCard(k){const id=T().id;const arr=k[0]==='p'?(S.content.trechos[i
 
 /* jurisprudência */
 function painelJuris(){const id=T().id;const p=cT().jurisprudencia||[];const us=S.user.jurUser[id]||[];
- const card=(j,i,meu)=>`<div class="item"><div class="o">${meu?(j.origem==='pesquisa no ChatGPT'?'PESQUISADO NO CHATGPT — CONFIRA O LINK':'CADASTRADO POR MIM'):(j.origem==='documento'?'DO RESUMO':esc((j.origem||'').toUpperCase()))}${j.aplicacao?' · '+esc(j.aplicacao.toUpperCase()):''}</div><b>${esc([j.tribunal,j.orgao,j.processo,j.data].filter(Boolean).join(' · '))}</b><div>${negrito(j.tese||j.resumo||'')}</div>${j.fundamentos?`<div class="muted">${esc(j.fundamentos)}</div>`:''}${j.fonte?`<div class="muted" style="font-size:.8rem">Fonte: ${/^https?:/.test(j.fonte)?`<a href="${esc(j.fonte)}" target="_blank" rel="noopener">${esc(j.fonte)}</a>`:esc(j.fonte)}</div>`:''}${meu?`<button class="btn sm" onclick="S.user.jurUser[T().id].splice(${i},1);salvar();render()">Excluir</button>`:''}</div>`;
+ // V670.8: letra maior (acompanha A−/A+) e destaque na tese e nos fundamentos, com a mesma barra do texto.
+ const mk=(j,c)=>(j.marcas&&j.marcas[c])||[];
+ const card=(j,i,meu)=>`<div class="item jur"><div class="o">${meu?(j.origem==='pesquisa no ChatGPT'?'PESQUISADO NO CHATGPT — CONFIRA O LINK':'CADASTRADO POR MIM'):(j.origem==='documento'?'DO RESUMO':esc((j.origem||'').toUpperCase()))}${j.aplicacao?' · '+esc(j.aplicacao.toUpperCase()):''}</div><b>${esc([j.tribunal,j.orgao,j.processo,j.data].filter(Boolean).join(' · '))}</b><div class="jur-tese" data-mk="j:${meu?'u':'p'}:${i}:tese">${marcadoHTML(j.tese||j.resumo||'',mk(j,'tese'))}</div>${j.fundamentos?`<div class="muted jur-fund" data-mk="j:${meu?'u':'p'}:${i}:fundamentos">${marcadoHTML(j.fundamentos,mk(j,'fundamentos'))}</div>`:''}${j.fonte?`<div class="muted" style="font-size:.8rem">Fonte: ${/^https?:/.test(j.fonte)?`<a href="${esc(j.fonte)}" target="_blank" rel="noopener">${esc(j.fonte)}</a>`:esc(j.fonte)}</div>`:''}${meu?`<button class="btn sm" onclick="S.user.jurUser[T().id].splice(${i},1);salvar();render()">Excluir</button>`:''}</div>`;
  let h=`<div class="row" style="margin-top:0;margin-bottom:.6rem"><button class="btn prim" onclick="copiarPrompt('juris')">🔎 Pesquisar julgados no ChatGPT</button><button class="btn ok" onclick="colarFerramenta('juris')">📥 Colar julgados</button></div>`;
- h+=(p.length||us.length)?p.map((j,i)=>card(j,i,0)).join('')+us.map((j,i)=>card(j,i,1)).join(''):'<p class="muted">Nenhum julgado ligado a este trecho.</p>';
+ h+=esperaHTML('juris');
+ h+=(p.length||us.length)?barraDestaque()+p.map((j,i)=>card(j,i,0)).join('')+us.map((j,i)=>card(j,i,1)).join(''):'<p class="muted">Nenhum julgado ligado a este trecho.</p>';
  h+=`<details style="margin-top:.8rem"><summary><b>＋ Cadastrar julgado</b></summary><p class="muted">Cole um texto qualquer sobre o julgado e clique em <b>Distribuir nas caixas</b>, ou preencha à mão.</p><textarea id="jCola" placeholder="Cole aqui o texto do julgado"></textarea><div class="row"><button class="btn" onclick="distribuir()">✨ Distribuir nas caixas</button></div>
  <div class="chk">${['tribunal','orgao','processo','data','fonte'].map(c=>`<input id="j_${c}" placeholder="${{tribunal:'Tribunal',orgao:'Órgão julgador',processo:'Processo',data:'Data',fonte:'Fonte / link'}[c]}">`).join('')}</div><textarea id="j_tese" placeholder="Tese / resumo"></textarea><div class="row"><button class="btn ok" onclick="guardarJuris()">💾 Guardar julgado</button></div></details>`;return h}
 function distribuir(){const s=$('#jCola').value;if(!s.trim())return;const pega=re=>{const m=s.match(re);return m?m[1].trim():''};
@@ -717,7 +779,7 @@ function editarMapa(){const {d}=mapaDados();abrirModal(`<h2>Minha versão do map
 
 /* fluxograma */
 const NOME_TIPO={inicio:'Ponto de partida',condicao:'Pergunta',consequencia:'Resposta',excecao:'Exceção',fim:'Conclusão'};
-function painelFluxo(){const f=cB().fluxograma;const refazer=`<div class="row" style="margin-top:0;margin-bottom:.8rem"><button class="btn prim" onclick="copiarPrompt('fluxo')">🤖 ${f?'Refazer':'Fazer'} fluxograma no ChatGPT</button><button class="btn ok" onclick="colarFerramenta('fluxo')">📥 Colar fluxograma</button></div>`;
+function painelFluxo(){const f=cB().fluxograma;const refazer=`<div class="row" style="margin-top:0;margin-bottom:.8rem"><button class="btn prim" onclick="copiarPrompt('fluxo')">🤖 ${f?'Refazer':'Fazer'} fluxograma no ChatGPT</button><button class="btn ok" onclick="colarFerramenta('fluxo')">📥 Colar fluxograma</button></div>${esperaHTML('fluxo')}`;
  if(!f||!(f.nos||[]).length)return refazer+vazioPacote;const bid=B().id;const meus=S.user.fluxoUser[bid]||{};
  const nos=f.nos,lig=f.ligacoes||[];const porId=Object.fromEntries(nos.map(n=>[n.id,n]));const vis=new Set();const txt=n=>meus[n.id]??n.texto;
  const ini=nos.find(n=>n.tipo==='inicio')||nos.find(n=>!lig.some(l=>l.para===n.id))||nos[0];
@@ -875,11 +937,12 @@ async function salvarHTML(){clearTimeout(tSalvar);const antes=S.user.exportadoEm
 
 /* ============ desenhar ============ */
 function render(){
- const app=$('#app');const tem=!!S;['#bArtigos','#bRevisao','#bSalvar','#bMapa'].forEach(s=>$(s).hidden=!tem);$('#prog').hidden=!tem;
+ const app=$('#app');const tem=!!S;['#bArtigos','#bRevisao','#bSalvar','#bMapa'].forEach(s=>$(s).hidden=!tem);$('#progRow').hidden=!tem;
  if(!tem){$('#assunto').textContent=TEMA||'Nenhum resumo aberto';app.innerHTML=`<div class="vazio"><h1>📖 Leitor TDAH</h1>${TEMA?`<p><b>Assunto da Fábrica:</b> ${esc(TEMA)}${DISC?' · '+esc(DISC):''}</p>${PASTA?`<p><a class="btn" href="${esc(PASTA)}" target="_blank" rel="noopener">📁 Abrir a pasta do resumo no Drive</a> <span class="muted">(para ver o nome do Word)</span></p>`:''}<p class="muted">Na primeira vez, escolha o Word deste assunto. Nas próximas, o botão da Fábrica já abre direto.</p>`:''}<p>Serve para <b>qualquer resumo</b>. Para começar:</p><ol><li>Clique em <b>📂 Abrir resumo</b> e escolha o <b>Word</b> do resumo (na pasta do Drive).</li><li>Clique em <b>🤖 Gerar conteúdo</b>: para cada artigo, copie o pedido, cole numa conversa nova do ChatGPT e cole a resposta de volta.</li><li>Clique em <b>💾 Salvar HTML</b> e salve na pasta do resumo. Esse arquivo abre sozinho, com tudo dentro.</li></ol><p class="muted">Também abre um HTML salvo antes, um backup ou um inventário (.json).</p><button class="btn prim" onclick="$('#fAbrir').click()">📂 Abrir resumo</button></div>`;return}
  if(ehSub(T())){const k=semSub(S.user.pos.b,S.user.pos.t);if(k!==S.user.pos.t)S.user.pos.t=k}
  const b=B(),t=T();S.user.vistos[t.id]=1;$('#assunto').textContent=S.inv.titulo;const subt=subtituloDe(S.user.pos.b,S.user.pos.t);
- const trs=S.inv.blocos.flatMap(x=>x.trechos);const idx=trs.indexOf(t);$('#prog>div').style.width=((idx+1)/trs.length*100)+'%';
+ // V670.8: contador "4/58" ao lado da barra (conta só os trechos; subtítulos ficam de fora, como na navegação).
+ const trs=S.inv.blocos.flatMap(x=>x.trechos).filter(x=>!ehSub(x));const idx=trs.indexOf(t);$('#prog>div').style.width=((idx+1)/trs.length*100)+'%';$('#progN').textContent=(idx+1)+'/'+trs.length;
  const cor={regra:'var(--green)',jurisprudencia:'var(--blue)',alerta:'var(--amber)',ressalva:'var(--purple)'}[t.categoria]||'var(--green)';
  const nomeCat={regra:'REGRA / PONTO DO RESUMO',jurisprudencia:'JURISPRUDÊNCIA',alerta:'ALERTA / PONTO DE PROVA',ressalva:'RESSALVA'}[t.categoria]||'TRECHO';
  const mapa=S.user.mapaFechado?'':`<aside class="mapa"><h3>MAPA DOS TRECHOS</h3>${S.inv.blocos.map((x,bi)=>{const st=situacaoBloco(x);const ab=bi===S.user.pos.b;return `<div class="bl ${ab?'atual aberto':''}" id="bl${bi}"><button onclick="this.parentNode.classList.toggle('aberto')">${bi+1}. ${esc(x.titulo)}<span class="st">${st.k==='nada'?'':st.txt}</span></button><div class="trs">${x.trechos.map((y,ti)=>{if(ehSub(y))return `<div class="sub-mm">${esc(limpa(y.texto).replace(/^[^\p{L}\p{N}§]*/u,''))}</div>`;const s=situacaoTrecho(y);const ic=(S.user.prov[y.id]?'★':'')+(S.user.notas[y.id]?'✎':'')+(((S.content.trechos[y.id]||{}).jurisprudencia||[]).length||(S.user.jurUser[y.id]||[]).length?'⚖':'')+(ti===0&&S.user.imagens[x.id]?'🖼':'');return `<button class="tr ${ab&&ti===S.user.pos.t?'atual':''} ${s==='nel'?'nel':''}" onclick="ir(${bi},${ti})"><span class="dot ${s}"></span>${ti+1}. ${esc((y.rotulo||limpa(y.texto).slice(0,40)).toUpperCase())}<span class="ic">${ic}</span></button>`}).join('')}</div></div>`}).join('')}</aside>`;
@@ -891,8 +954,8 @@ function render(){
  <span id="avisoSalvo" class="muted" style="font-size:.78rem;margin-left:auto">${textoNuvem()}</span></div>
  ${avisoWordNovo?`<div class="item" style="border-color:var(--amber);margin-bottom:.8rem">📝 <b>O Word deste resumo mudou</b>${avisoWordNovo.docx_modificado?' ('+esc(avisoWordNovo.docx_modificado.replace('T',' às ').slice(0,19))+')':''}. Atualizar mantém o conteúdo dos trechos que não mudaram.<div class="row"><button class="btn prim" onclick="aplicarWordNovo()">🔄 Atualizar o leitor</button><button class="btn" onclick="avisoWordNovo=null;render()">Agora não</button></div></div>`:''}
  <div class="card" style="--cat:${cor}"><div class="card-head"><div class="k">${nomeCat} · ${b.trechos.filter(x=>!ehSub(x)).indexOf(t)+1} DE ${b.trechos.filter(x=>!ehSub(x)).length}${S.user.prov[t.id]?' · ★ PROVÁVEL':''}</div><div class="r">${esc(t.rotulo||b.titulo)}</div></div>
- <div class="card-body"><div class="dest"><button class="btn" onclick="destacar('b')"><b>B</b> Negrito</button><button class="btn" onclick="destacar('up')">AA Maiúsculas</button><button class="btn" onclick="destacar('y')"><span class="sw" style="background:var(--hl-y)"></span> Grifo</button><button class="btn" onclick="destacar('g')"><span class="sw" style="background:var(--hl-g)"></span> Grifo</button><button class="btn" onclick="destacar('p')"><span class="sw" style="background:var(--hl-p)"></span> Grifo</button><button class="btn" onclick="destacar('rem')">Tirar destaque</button><button class="btn" onclick="restaurar()">Original</button></div>
- <div id="texto">${textoHTML(t)}</div>${!t.elegivel?`<p class="muted" style="font-size:.85rem">${esc(t.motivo||'Sem conteúdo para estudar.')}</p>`:''}${ehQuadro(b)?ligacaoQuadro(t):''}</div></div>
+ <div class="card-body">${barraDestaque(`<button class="btn" onclick="restaurar()" title="Tira todos os seus destaques deste trecho">Original</button>`)}
+ <div id="texto" data-mk="t">${textoHTML(t)}</div>${!t.elegivel?`<p class="muted" style="font-size:.85rem">${esc(t.motivo||'Sem conteúdo para estudar.')}</p>`:''}${ehQuadro(b)?ligacaoQuadro(t):''}</div></div>
  <div class="tools">${TOOLS8.map(toolBtn).join('')}</div>
  <button class="mais" onclick="S.user.mais=!S.user.mais;salvar();render()">${S.user.mais?'− RECOLHER':'＋ MAIS FERRAMENTAS (10)'}</button>
  ${S.user.mais?`<div class="tools">${TOOLS10.map(toolBtn).join('')}</div>`:''}
@@ -914,7 +977,7 @@ window.addEventListener('beforeunload',()=>{if(S&&pendente)gravarAgora()});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&S&&pendente)gravarAgora()});
 // V670.6: o GitHub Pages deixa esta página guardada no navegador por até 10 minutos. Ao abrir, confere se já há
 // versão nova (busca a página sem usar a cópia guardada) e, se houver, recarrega uma vez, depois de gravar.
-const VERSAO_LEITOR='20261023-leitor-v670-7';
+const VERSAO_LEITOR='20261023-leitor-v670-8';
 async function conferirVersaoNova(){if(!/^https?:/.test(location.protocol))return;
  try{const r=await fetch(location.pathname,{cache:'reload'});if(!r.ok)return;const m=(await r.text()).match(/const VERSAO_LEITOR='([^']+)'/);if(!m||m[1]===VERSAO_LEITOR)return;
   const k='leitor-tdah:recarregou:'+m[1];try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,'1')}catch(e){return}
