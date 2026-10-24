@@ -165,6 +165,16 @@ dl.campos dd{margin:0}
 .fl-col{align-items:stretch}
 .fl-col>.esc-desce{align-self:flex-start}
 @media(max-width:860px){.fl-ramos{flex-direction:column}.fl-ramo::before{display:none}.esc-linha{grid-template-columns:1fr}.esc-seta{width:4px;height:40px;margin:0 auto 14px}.esc-seta::after{right:auto;left:50%;top:auto;bottom:-14px;transform:translateX(-50%);border-left:9px solid transparent;border-right:9px solid transparent;border-top:14px solid var(--muted)}.esc-desce{width:100%}}
+/* V670.11: modo foco — só o título e o texto, grandes e no centro; a barra de destaque aparece junto da seleção */
+body.foco .top-row>button:not(#bFoco):not(#bMenos):not(#bMais),body.foco .brand,body.foco .mapa,body.foco .nav-row,body.foco .hier,body.foco .tools,body.foco .mais,body.foco .painel,body.foco .ferr-texto,body.foco .dest-dica,body.foco .card-body .dest:not(.flutua){display:none!important}
+body.foco header.top{padding:.45rem 1.2rem}
+body.foco #bFoco{background:var(--orange);border-color:var(--orange);color:#1a0d00}
+body.foco .grid{grid-template-columns:1fr;max-width:1000px;margin:1.5rem auto 0}
+body.foco .card{border-width:3px}
+body.foco #texto{font-size:calc(var(--fs)*1.15);line-height:1.65}
+body.foco .card-body{padding:1.6rem 2rem}
+body.foco .card-body .dest.flutua{position:fixed;z-index:60;margin:0;max-width:min(760px,94vw);background:var(--surface);border:2px solid var(--blue);border-radius:12px;padding:.4rem .5rem;box-shadow:0 10px 26px #0007}
+.foco-dica{display:none;text-align:center;font-size:.78rem;margin-top:.8rem}body.foco .foco-dica{display:block}
 .toast{position:fixed;left:50%;bottom:1.3rem;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:.7rem 1.1rem;border-radius:12px;font-weight:700;z-index:99;display:none;max-width:90vw}
 .modal{position:fixed;inset:0;background:#000a;z-index:50;display:none;align-items:flex-start;justify-content:center;padding:4vh 1rem;overflow:auto}
 .modal.on{display:flex}
@@ -191,6 +201,7 @@ img.ev{max-width:100%;border-radius:12px;border:1px solid var(--border)}
   <button class="btn" id="bMapa" hidden>◧ Mapa</button>
   <button class="btn" id="bMenos" title="Letra menor">A−</button>
   <button class="btn" id="bMais" title="Letra maior">A+</button>
+  <button class="btn" id="bFoco" hidden title="Modo foco: só o texto (tecla F)">🎯 Foco</button>
   <button class="btn" id="bTema">🌓 Tema</button>
  </div>
  <div class="prog-row" id="progRow" hidden><div class="prog" id="prog"><div></div></div><span class="prog-n" id="progN" title="Trecho atual / total de trechos"></span></div>
@@ -1007,7 +1018,7 @@ async function salvarHTML(){clearTimeout(tSalvar);const antes=S.user.exportadoEm
 
 /* ============ desenhar ============ */
 function render(){
- const app=$('#app');const tem=!!S;['#bArtigos','#bRevisao','#bSalvar','#bMapa'].forEach(s=>$(s).hidden=!tem);$('#progRow').hidden=!tem;{const nh=tem?cartoesDeHoje().length:0;$('#bHoje').hidden=!nh;$('#bHoje').textContent='📅 Hoje ('+nh+')'}
+ const app=$('#app');const tem=!!S;['#bArtigos','#bRevisao','#bSalvar','#bMapa'].forEach(s=>$(s).hidden=!tem);$('#progRow').hidden=!tem;{const nh=tem?cartoesDeHoje().length:0;$('#bHoje').hidden=!nh;$('#bHoje').textContent='📅 Hoje ('+nh+')'}$('#bFoco').hidden=!tem;aplicaFoco(tem)
  if(!tem){$('#assunto').textContent=TEMA||'Nenhum resumo aberto';app.innerHTML=`<div class="vazio"><h1>📖 Leitor TDAH</h1>${TEMA?`<p><b>Assunto da Fábrica:</b> ${esc(TEMA)}${DISC?' · '+esc(DISC):''}</p>${PASTA?`<p><a class="btn" href="${esc(PASTA)}" target="_blank" rel="noopener">📁 Abrir a pasta do resumo no Drive</a> <span class="muted">(para ver o nome do Word)</span></p>`:''}<p class="muted">Na primeira vez, escolha o Word deste assunto. Nas próximas, o botão da Fábrica já abre direto.</p>`:''}<p>Serve para <b>qualquer resumo</b>. Para começar:</p><ol><li>Clique em <b>📂 Abrir resumo</b> e escolha o <b>Word</b> do resumo (na pasta do Drive).</li><li>Clique em <b>🤖 Gerar conteúdo</b>: para cada artigo, copie o pedido, cole numa conversa nova do ChatGPT e cole a resposta de volta.</li><li>Clique em <b>💾 Salvar HTML</b> e salve na pasta do resumo. Esse arquivo abre sozinho, com tudo dentro.</li></ol><p class="muted">Também abre um HTML salvo antes, um backup ou um inventário (.json).</p><button class="btn prim" onclick="$('#fAbrir').click()">📂 Abrir resumo</button></div>`;return}
  if(ehSub(T())){const k=semSub(S.user.pos.b,S.user.pos.t);if(k!==S.user.pos.t)S.user.pos.t=k}
  const b=B(),t=T();S.user.vistos[t.id]=1;$('#assunto').textContent=S.inv.titulo;const subt=subtituloDe(S.user.pos.b,S.user.pos.t);
@@ -1026,6 +1037,7 @@ function render(){
  <div class="card" style="--cat:${cor}"><div class="card-head"><div class="k">${nomeCat} · ${b.trechos.filter(x=>!ehSub(x)).indexOf(t)+1} DE ${b.trechos.filter(x=>!ehSub(x)).length}${S.user.prov[t.id]?' · ★ PROVÁVEL':''}</div><div class="r">${esc(t.rotulo||b.titulo)}</div></div>
  <div class="card-body">${barraDestaque(`<button class="btn" onclick="restaurar()" title="Tira todos os seus destaques deste trecho">Original</button>`)}
  ${ferrTexto()}<div id="texto" data-mk="t">${textoHTML(t)}</div>${!t.elegivel?`<p class="muted" style="font-size:.85rem">${esc(t.motivo||'Sem conteúdo para estudar.')}</p>`:''}${ehQuadro(b)?ligacaoQuadro(t):''}</div></div>
+ <div class="foco-dica muted">↑ ↓ trechos · ← → artigos · selecione o texto para destacar · <b>F</b> ou <b>Esc</b> sai do foco</div>
  <div class="tools">${TOOLS8.map(toolBtn).join('')}</div>
  <button class="mais" onclick="S.user.mais=!S.user.mais;salvar();render()">${S.user.mais?'− RECOLHER':'＋ MAIS FERRAMENTAS (10)'}</button>
  ${S.user.mais?`<div class="tools">${TOOLS10.map(toolBtn).join('')}</div>`:''}
@@ -1044,11 +1056,28 @@ $('#bMapa').onclick=()=>{S.user.mapaFechado=!S.user.mapaFechado;salvar();render(
 $('#bMenos').onclick=()=>{fs=Math.max(16,fs-2);lsSet('leitor-tdah:fs',fs);aplicaPrefs()};
 $('#bMais').onclick=()=>{fs=Math.min(34,fs+2);lsSet('leitor-tdah:fs',fs);aplicaPrefs()};
 $('#bTema').onclick=()=>{tema=tema==='auto'?'dark':tema==='dark'?'light':'auto';lsSet('leitor-tdah:tema',tema);aplicaPrefs();toast('Tema: '+({auto:'automático',dark:'escuro',light:'claro'}[tema]))};
+/* ============ modo foco (V670.11) ============ */
+// Tecla F ou botão 🎯: esconde mapa, ferramentas e barras; F de novo ou Esc volta. A escolha fica guardada.
+let foco=lsGet('leitor-tdah:foco')==='1';
+function aplicaFoco(tem){const on=!!(tem&&foco);document.body.classList.toggle('foco',on);$('#bFoco').textContent=on?'🎯 Sair do foco':'🎯 Foco';if(!on)soltarBarra()}
+function alternarFoco(v){if(!S)return;foco=v==null?!foco:!!v;lsSet('leitor-tdah:foco',foco?'1':'0');aplicaFoco(true);medirTopo();if(foco)toast('Modo foco: ↑ ↓ trechos · ← → artigos · selecione para destacar · F ou Esc para sair.',4500)}
+$('#bFoco').onclick=()=>alternarFoco();
+// Na captura da janela: roda antes do Esc que fecha a caixinha da lei (Esc com a caixinha aberta só fecha a caixinha).
+window.addEventListener('keydown',e=>{if(!S||e.ctrlKey||e.metaKey||e.altKey||$('#modal').classList.contains('on'))return;const a=document.activeElement;if(a&&(/INPUT|TEXTAREA|SELECT/.test(a.tagName)||a.isContentEditable))return;
+ if(e.key==='f'||e.key==='F'){e.preventDefault();alternarFoco()}else if(e.key==='Escape'&&foco&&!leiAlvo)alternarFoco(false)},{capture:true});
+// No foco, a barra de destaque flutua acima do texto selecionado (abaixo, se não couber).
+function soltarBarra(){const d=document.querySelector('.card-body .dest.flutua');if(d){d.classList.remove('flutua');d.style.top=d.style.left=''}}
+function posicionarBarra(){if(!document.body.classList.contains('foco'))return;const o=selecaoNaRegiao();const d=document.querySelector('.card-body .dest');const sel=getSelection();
+ if(!d||!o||o.key!=='t'||!sel.rangeCount){soltarBarra();return}
+ const r=sel.getRangeAt(0).getBoundingClientRect();d.classList.add('flutua');const h=d.offsetHeight,w=d.offsetWidth,topo=$('#topo').offsetHeight+6;
+ let top=r.top-h-10;if(top<topo)top=Math.min(r.bottom+10,innerHeight-h-8);d.style.top=Math.max(topo,top)+'px';d.style.left=Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2))+'px'}
+let tBarra=null;document.addEventListener('selectionchange',()=>{clearTimeout(tBarra);tBarra=setTimeout(posicionarBarra,30)});
+window.addEventListener('scroll',()=>{if(document.querySelector('.dest.flutua'))posicionarBarra()},{passive:true});
 window.addEventListener('beforeunload',()=>{if(S&&pendente)gravarAgora()});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&S&&pendente)gravarAgora()});
 // V670.6: o GitHub Pages deixa esta página guardada no navegador por até 10 minutos. Ao abrir, confere se já há
 // versão nova (busca a página sem usar a cópia guardada) e, se houver, recarrega uma vez, depois de gravar.
-const VERSAO_LEITOR='20261024-leitor-v670-10';
+const VERSAO_LEITOR='20261024-leitor-v670-11';
 async function conferirVersaoNova(){if(!/^https?:/.test(location.protocol))return;
  try{const r=await fetch(location.pathname,{cache:'reload'});if(!r.ok)return;const m=(await r.text()).match(/const VERSAO_LEITOR='([^']+)'/);if(!m||m[1]===VERSAO_LEITOR)return;
   const k='leitor-tdah:recarregou:'+m[1];try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,'1')}catch(e){return}

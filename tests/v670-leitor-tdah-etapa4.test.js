@@ -143,10 +143,20 @@ test('V670.9: lacunas dos grifos, flashcards com repetição, atalhos com barra 
 });
 
 test('V670.10: voz do Google primeiro, escolha de voz guardada e leitura frase por frase', () => {
-  assert.match(rootLeitor, /const VERSAO_LEITOR='20261024-leitor-v670-10';/);
+  assert.match(rootLeitor, /const VERSAO_LEITOR='\d{8}-leitor-v670-\d+';/);
   assert.ok(rootLeitor.includes("const nota=x=>/google/i.test(x.name)?0:/natural|online/i.test(x.name)?1:2;"));
   assert.ok(rootLeitor.includes("onchange=\"lsSet('leitor-tdah:voz',this.value);if(falando)ouvir(true)\""));
   assert.ok(rootLeitor.includes('function frasesDe(txt){'));
   assert.ok(rootLeitor.includes('function falarFrase(id){'));
+  assert.doesNotMatch(rootLeitor, /\x08/);
+});
+
+test('V670.11: modo foco com tecla F, botão e barra de destaque flutuando na seleção', () => {
+  assert.match(rootLeitor, /const VERSAO_LEITOR='20261024-leitor-v670-11';/);
+  assert.ok(rootLeitor.includes('<button class="btn" id="bFoco" hidden'));
+  assert.ok(rootLeitor.includes("let foco=lsGet('leitor-tdah:foco')==='1';"));
+  assert.ok(rootLeitor.includes('function posicionarBarra(){'));
+  assert.ok(rootLeitor.includes("document.addEventListener('selectionchange',()=>{clearTimeout(tBarra);tBarra=setTimeout(posicionarBarra,30)});"));
+  assert.ok(rootLeitor.includes('body.foco .card-body .dest.flutua{position:fixed;'));
   assert.doesNotMatch(rootLeitor, /\x08/);
 });
